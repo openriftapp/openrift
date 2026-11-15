@@ -7,7 +7,7 @@ import type {
   WorkspaceRouteParams,
   WorkspaceTarget,
 } from "@/features/catalog-workspace/lib/owner-items";
-import { selectedKeyFromParams, stepIndex } from "@/features/catalog-workspace/lib/owner-items";
+import { selectedKeyFromParams, wrapStepIndex } from "@/features/catalog-workspace/lib/owner-items";
 import { useWorkspaceSkipStore } from "@/features/catalog-workspace/stores/workspace-skip-store";
 
 type Navigate = ReturnType<typeof useNavigate>;
@@ -81,7 +81,7 @@ export function planQueueStep(
 ): { kind: "go"; target: WorkspaceTarget } | { kind: "list" } | { kind: "stay" } {
   const linkable = entries.filter((entry) => entry.target !== null);
   const index = linkable.findIndex((entry) => entry.key === currentKey);
-  const next = stepIndex(linkable.length, index, delta);
+  const next = wrapStepIndex(linkable.length, index, delta);
   const entry = next === null ? undefined : linkable[next];
   if (entry?.target && entry.key !== currentKey) {
     return { kind: "go", target: entry.target };

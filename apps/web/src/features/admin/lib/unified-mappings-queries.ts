@@ -38,15 +38,15 @@ export function unifiedMappingsSummaryQueryOptions() {
 }
 
 const fetchUnifiedMappingsForCard = createServerFn({ method: "GET" })
-  .validator((input: { cardId: string }) => input)
+  .validator((input: { cardSlug: string }) => input)
   .middleware([withCookies])
   .handler(({ context, data }): Promise<UnifiedMappingsCardResponse> =>
-    apiOrpcClient(adminUnifiedMappingsContract, context.cookie).card({ cardId: data.cardId }),
+    apiOrpcClient(adminUnifiedMappingsContract, context.cookie).card({ cardSlug: data.cardSlug }),
   );
 
-export function unifiedMappingsForCardQueryOptions(cardId: string) {
+export function unifiedMappingsForCardQueryOptions(cardSlug: string) {
   return queryOptions({
-    queryKey: adminKeys.unifiedMappings.byCard(cardId),
-    queryFn: () => fetchUnifiedMappingsForCard({ data: { cardId } }),
+    queryKey: adminKeys.unifiedMappings.byCard(cardSlug),
+    queryFn: () => fetchUnifiedMappingsForCard({ data: { cardSlug } }),
   });
 }

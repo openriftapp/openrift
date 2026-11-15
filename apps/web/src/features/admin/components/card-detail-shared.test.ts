@@ -18,7 +18,7 @@ import {
   unknownOptionValues,
 } from "./card-detail-shared";
 
-// Mirrors buildCandidateCardFields: string, dropdown-array, numeric, read-only
+// Mirrors candidateCardFieldDefs: string, dropdown-array, numeric, read-only
 // and rich-text fields.
 const fields: FieldDef[] = [
   { key: "externalId", label: "External ID", readOnly: true },
@@ -151,7 +151,7 @@ describe("buildPreseededActiveCard", () => {
   });
 });
 
-// Mirrors buildCandidatePrintingFields, including the read-only imageUrl the image switcher owns.
+// Mirrors candidatePrintingFieldDefs, including the read-only imageUrl the image switcher owns.
 const printingFields: FieldDef[] = [
   { key: "externalId", label: "External ID", readOnly: true },
   { key: "setId", label: "Set" },

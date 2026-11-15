@@ -9,12 +9,8 @@ import type {
 } from "@openrift/shared/types/api/admin";
 import { ALL_MARKETPLACES, marketplaceCarriesLanguage } from "@openrift/shared/types/pricing";
 
-export interface PrintingAssignment {
-  externalId: number;
-  finish: string;
-  language: string | null;
-  printingId: string;
-}
+import type { PrintingAssignment } from "@/features/admin/lib/printing-assignment";
+import { emptyAssignmentsByMarketplace } from "@/features/admin/lib/printing-assignment";
 
 export type ListingStrength = "strong" | "weak" | "possible";
 
@@ -38,10 +34,6 @@ export interface CardListings {
   assigned: CardListingRow[];
   strong: Record<AdminMarketplaceName, PrintingAssignment[]>;
   strongCount: number;
-}
-
-function emptyByMarketplace(): Record<AdminMarketplaceName, PrintingAssignment[]> {
-  return { tcgplayer: [], cardmarket: [], cardtrader: [], cardnexus: [] };
 }
 
 export function listingAssignment(
@@ -90,7 +82,7 @@ export function buildCardListings(
   const printingById = new Map(group.printings.map((printing) => [printing.printingId, printing]));
   const unassigned: CardListingRow[] = [];
   const assigned: CardListingRow[] = [];
-  const strong = emptyByMarketplace();
+  const strong = emptyAssignmentsByMarketplace();
 
   for (const entry of listingEntries(group)) {
     const { marketplace, product } = entry;

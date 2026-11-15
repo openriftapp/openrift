@@ -50,7 +50,7 @@ export const adminUnifiedMappingsRouter = {
     return await buildUnifiedMappingsCardResponse(
       repos,
       createMarketplaceConfigs(repos),
-      input.cardId,
+      input.cardSlug,
     );
   }),
 

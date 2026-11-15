@@ -9,7 +9,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { EnumLabels } from "@/lib/enum-labels";
 
 import type { FieldDef } from "./candidate-field-defs";
-import { buildCandidateCardFields, buildNewCardFields } from "./candidate-field-defs";
+import { candidateCardFieldDefs, buildNewCardFields } from "./candidate-field-defs";
 import { CandidateSpreadsheet } from "./candidate-spreadsheet";
 
 const markerField: FieldDef = {
@@ -454,11 +454,11 @@ describe("CandidateSpreadsheet submitter attribution", () => {
   });
 });
 
-describe("buildCandidateCardFields", () => {
+describe("candidateCardFieldDefs", () => {
   it("marks the numeric card fields as number so typed values are coerced", () => {
     const orders = { superTypes: [], cardTypes: [], domains: [] } as unknown as EnumOrders;
     const labels = { superTypes: {}, cardTypes: {}, domains: {} } as unknown as EnumLabels;
-    const byKey = new Map(buildCandidateCardFields(orders, labels).map((f) => [f.key, f]));
+    const byKey = new Map(candidateCardFieldDefs(orders, labels).map((f) => [f.key, f]));
     for (const key of ["energy", "power", "might", "mightBonus"] as const) {
       expect(byKey.get(key)?.type).toBe("number");
     }
@@ -467,7 +467,7 @@ describe("buildCandidateCardFields", () => {
   it("omits the two text keys the accept-field endpoint cannot write", () => {
     const orders = { superTypes: [], cardTypes: [], domains: [] } as unknown as EnumOrders;
     const labels = { superTypes: {}, cardTypes: {}, domains: {} } as unknown as EnumLabels;
-    const keys = buildCandidateCardFields(orders, labels).map((f) => f.key);
+    const keys = candidateCardFieldDefs(orders, labels).map((f) => f.key);
 
     expect(keys).not.toContain("rulesText");
     expect(keys).not.toContain("effectText");

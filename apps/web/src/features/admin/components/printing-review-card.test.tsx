@@ -363,7 +363,7 @@ describe("PrintingReviewCard", () => {
     captured.spreadsheet = null;
     getByText("OGN-001::foil").click();
 
-    expect(useAdminCardFoldStore.getState().collapsedByCard[CARD_ID]?.has("f1")).toBe(true);
+    expect(useAdminCardFoldStore.getState().collapsedBySlug[CARD_ID]?.has("f1")).toBe(true);
     expect(captured.spreadsheet).toBeNull();
   });
 

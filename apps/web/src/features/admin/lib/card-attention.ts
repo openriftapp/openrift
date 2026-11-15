@@ -16,7 +16,7 @@ export const CARD_ISSUE_LABELS: Record<CardIssue, string> = {
 
 export const ANY_ISSUE = "any";
 
-export function listStatusFor(
+export function cardListStatusFor(
   attentionTab: boolean,
   issue?: CardIssue,
 ): AdminCardListStatus | undefined {

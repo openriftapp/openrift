@@ -7,7 +7,7 @@ import type {
 import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
 
-import { primaryCardType } from "../../../db/helpers.js";
+import { primaryCardTypeSql } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import type { CardSubmissionsTable } from "../../../db/tables/candidates.js";
 import { buildPrintingLinkKey } from "../../../lib/printing-link-key.js";
@@ -331,7 +331,7 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
         ? ((await db
             .selectFrom("cards")
             .select(["slug", "name", "might", "energy", "power", "mightBonus", "tags"])
-            .select(primaryCardType("cards.id").as("type"))
+            .select(primaryCardTypeSql("cards.id").as("type"))
             .where("id", "=", cardId)
             .executeTakeFirst()) ?? null)
         : null;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { imagesOnSide } from "./printing-side-images";
+import { activeImageSourceUrl, imagesOnSide } from "./printing-side-images";
 
 describe("imagesOnSide", () => {
   const images = [
@@ -19,5 +19,23 @@ describe("imagesOnSide", () => {
     expect(imagesOnSide(images, { id: "pair", side: 1 }).map((image) => image.id)).toEqual([
       "bird-art",
     ]);
+  });
+});
+
+describe("activeImageSourceUrl", () => {
+  it("returns the active image's source url, not its rehosted copy", () => {
+    expect(
+      activeImageSourceUrl([
+        { isActive: false, originalUrl: "https://cdn.test/old.png" },
+        { isActive: true, originalUrl: "https://cdn.test/live.png" },
+      ]),
+    ).toBe("https://cdn.test/live.png");
+  });
+
+  it("returns null without an active image or for an upload without a source", () => {
+    expect(activeImageSourceUrl([{ isActive: false, originalUrl: "https://cdn.test/a.png" }])).toBe(
+      null,
+    );
+    expect(activeImageSourceUrl([{ isActive: true, originalUrl: null }])).toBeNull();
   });
 });

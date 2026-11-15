@@ -28,7 +28,7 @@ vi.mock("@/lib/server-fns/with-cookies", () => ({
 const { reportMutationError } = vi.hoisted(() => ({ reportMutationError: vi.fn() }));
 vi.mock("@/lib/query-client", () => ({ reportMutationError }));
 
-const { useActivatePrintingImage, useRehostPrintingImage } =
+const { useActivatePrintingImage, useEnsurePrintingImageOriginal, useRehostPrintingImage } =
   await import("./use-admin-image-mutations");
 
 function wrap(client: QueryClient) {
@@ -72,5 +72,21 @@ describe("image mutations that can fail after changing the image", () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(reportMutationError).toHaveBeenCalledTimes(1);
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin", "cards"] });
+  });
+});
+
+describe("useEnsurePrintingImageOriginal", () => {
+  it("leaves a failure to the straighten dialog's inline status", async () => {
+    const client = new QueryClient();
+    const { result } = renderHook(() => useEnsurePrintingImageOriginal(), {
+      wrapper: wrap(client),
+    });
+
+    act(() => {
+      result.current.mutate("img-1");
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(client.getMutationCache().getAll()[0]?.options.meta).toEqual({ inlineError: true });
   });
 });

@@ -408,6 +408,53 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
     });
   });
 
+  describe("POST /candidate-printings/uncheck-batch", () => {
+    it("clears checked_at on every given candidate printing", async () => {
+      await db
+        .updateTable("candidatePrintings")
+        .set({ checkedAt: new Date() })
+        .where("id", "=", psId)
+        .execute();
+
+      const res = await app.fetch(
+        adminReq("POST", `${P}/candidate-printings/uncheck-batch`, {
+          candidatePrintingIds: [psId],
+        }),
+      );
+      expect(res.status).toBe(200);
+      expect(await readJson(res)).toEqual({ updated: 1 });
+
+      const row = await db
+        .selectFrom("candidatePrintings")
+        .select("checkedAt")
+        .where("id", "=", psId)
+        .executeTakeFirstOrThrow();
+      expect(row.checkedAt).toBeNull();
+    });
+
+    it("leaves every row checked when one id has no row", async () => {
+      await db
+        .updateTable("candidatePrintings")
+        .set({ checkedAt: new Date() })
+        .where("id", "=", psId)
+        .execute();
+
+      const res = await app.fetch(
+        adminReq("POST", `${P}/candidate-printings/uncheck-batch`, {
+          candidatePrintingIds: [psId, "00000000-0000-4000-a000-0000000000ff"],
+        }),
+      );
+      expect(res.status).toBe(404);
+
+      const row = await db
+        .selectFrom("candidatePrintings")
+        .select("checkedAt")
+        .where("id", "=", psId)
+        .executeTakeFirstOrThrow();
+      expect(row.checkedAt).not.toBeNull();
+    });
+  });
+
   describe("PATCH /candidate-printings/:id", () => {
     it("updates rarity on a printing source", async () => {
       const res = await app.fetch(

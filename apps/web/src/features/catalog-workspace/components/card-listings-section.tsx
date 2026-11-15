@@ -35,6 +35,7 @@ import {
 } from "@/features/admin/hooks/use-unified-mappings";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { SOURCE_CONFIGS } from "@/features/admin/lib/marketplace-sources";
+import type { PrintingAssignment } from "@/features/admin/lib/printing-assignment";
 import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { useAssignableCardSearch } from "@/features/cards/hooks/use-card-search";
@@ -43,7 +44,6 @@ import { RecordSection } from "@/features/catalog-workspace/components/record/re
 import type {
   CardListingRow,
   ListingStrength,
-  PrintingAssignment,
 } from "@/features/catalog-workspace/lib/card-listing-rows";
 import {
   buildCardListings,

@@ -15,7 +15,7 @@ import type { Database } from "../../../db/tables.js";
 import type { CardsTable, FacesTable, PrintingsTable } from "../../../db/tables/catalog.js";
 import { inTransaction, withFace1 } from "../../../repositories/query-helpers.js";
 
-export interface PrintingIdentity {
+export interface PrintingIdentityKey {
   cardId: string;
   shortCode: string;
   finish: Finish;
@@ -133,7 +133,7 @@ export async function updatePrintingAndFace(
 
 export function catalogMutationsRepo(db: Kysely<Database>) {
   function findFaceIdByIdentity(
-    identity: Omit<PrintingIdentity, "size">,
+    identity: Omit<PrintingIdentityKey, "size">,
   ): Promise<{ id: string } | undefined> {
     return db
       .selectFrom("faces")
@@ -168,7 +168,7 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
   }
 
   async function findPrintingIdByIdentity(
-    identity: PrintingIdentity,
+    identity: PrintingIdentityKey,
     secondFaceId: string | null = null,
   ): Promise<{ id: string } | undefined> {
     const face = await findFaceIdByIdentity(identity);

@@ -33,6 +33,7 @@ import {
   ALL_ASSIGNABLE_SCOPE,
   unlinkedProductCount,
 } from "@/features/cards/lib/marketplace-coverage";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 /** Everything one "Check all & next" run has to mark as checked. */
 export interface ReviewCheckTargets {
@@ -244,32 +245,31 @@ export function useCardReviewNavigation({
       buildPrintingGroups(detail.candidatePrintingGroups, detail.candidatePrintings),
     );
 
-    // Kick off the mutations outside the try so react-compiler doesn't flag the
-    // for-of value blocks inside a try/catch statement.
-    const promises: Promise<unknown>[] = [];
-    if (targets.cardSources) {
-      promises.push(checkAllCardSources.mutateAsync(card.id));
-    }
-    for (const extraIds of targets.candidateIdBatches) {
-      promises.push(checkAllCandidatePrintings.mutateAsync({ extraIds }));
-    }
-
     setIsCheckingAll(true);
-    try {
-      await Promise.all(promises);
-
-      const nextSlug = await fetchNext();
-      if (nextSlug) {
-        goToCard(nextSlug);
-      } else {
-        toast.success("All cards reviewed!");
-        goToList();
-      }
-    } catch (error) {
+    const ok = await runReportedMutation(() =>
+      Promise.all([
+        targets.cardSources ? checkAllCardSources.mutateAsync(card.id) : null,
+        ...targets.candidateIdBatches.map((extraIds) =>
+          checkAllCandidatePrintings.mutateAsync({ extraIds }),
+        ),
+      ]),
+    );
+    if (!ok) {
       setIsCheckingAll(false);
-      throw error;
+      return;
     }
+    const next = await fetchNext()
+      .then((slug) => ({ slug }))
+      .catch(() => null);
     setIsCheckingAll(false);
+    if (next === null) {
+      toast.error("Could not load the next card.");
+    } else if (next.slug) {
+      goToCard(next.slug);
+    } else {
+      toast.success("All cards reviewed!");
+      goToList();
+    }
   }
 
   // oxlint-disable-next-line no-empty-function -- default no-op until the effect below installs the real handler

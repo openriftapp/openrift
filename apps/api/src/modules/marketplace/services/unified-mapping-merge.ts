@@ -20,7 +20,7 @@ import type {
   StagingRow,
 } from "../lib/marketplace-configs.js";
 import { buildStagedRowMapping } from "../lib/marketplace-mapping-shared.js";
-import { buildCardIndex, buildResponseGroups } from "./marketplace-mapping.js";
+import { buildMarketplaceCardIndex, buildResponseGroups } from "./marketplace-mapping.js";
 
 type UnifiedCardRow = Awaited<
   ReturnType<Repos["marketplaceMapping"]["allCardsWithPrintingsUnified"]>
@@ -95,7 +95,7 @@ export type GetMappingOverview = (
 
 /**
  * Drop duplicate printings, keeping the first occurrence of each printingId.
- * `buildCardIndex` emits one row per (printing × marketplace variant), so a
+ * `buildMarketplaceCardIndex` emits one row per (printing × marketplace variant), so a
  * printing with multiple variants in the same marketplace (e.g. TCG product
  * 653007 having both a normal and a foil SKU bound to the same printing)
  * lands in `group.printings` more than once. The wire response only has one
@@ -355,7 +355,7 @@ export async function buildUnifiedMappingsCardResponse(
 
   const overviewFor = async (config: MarketplaceConfig): Promise<MappingOverviewResult> => {
     const matchedCards = deriveCardsForMarketplace(unifiedRows, config.marketplace);
-    const { cardGroups } = buildCardIndex(matchedCards);
+    const { cardGroups } = buildMarketplaceCardIndex(matchedCards);
     const rows = stagedByMarketplace.get(config.marketplace) ?? [];
 
     const stagingRows: StagingRow[] = rows.map((r) => ({

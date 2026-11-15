@@ -10,6 +10,7 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { PrintingDeskMarkerBrowser } from "@/features/admin/components/printing-desk-marker-browser";
 import { useCreateMarker, useMarkers } from "@/features/admin/hooks/use-markers";
 import { slugifyLabel } from "@/features/admin/lib/channel-slug-suggest";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 export function PrintingDeskMarkerPicker({
   value,
@@ -58,8 +59,12 @@ export function PrintingDeskMarkerPicker({
     if (slug.length === 0) {
       return;
     }
-    await createMarker.mutateAsync({ slug, label: typed.trim() });
-    add(slug);
+    const ok = await runReportedMutation(() =>
+      createMarker.mutateAsync({ slug, label: typed.trim() }),
+    );
+    if (ok) {
+      add(slug);
+    }
   }
 
   return (

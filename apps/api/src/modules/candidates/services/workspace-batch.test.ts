@@ -260,6 +260,7 @@ describe("trusted printings", () => {
       printingId: "pr-9",
       cardId: "card-1",
       shortCode: "OGN-031",
+      finish: "normal",
       language: "EN",
       size: "standard",
       distributionChannelSlugs: [],
@@ -279,6 +280,20 @@ describe("trusted printings", () => {
           reason: "possible duplicate of OGN-031",
         },
       ],
+    });
+  });
+
+  it("previews a new foil and a new alt-art of an existing code as eligible", async () => {
+    const repos = makeRepos({
+      printings: [
+        printing("p1", { shortCode: "OGN-031", finish: "foil" }),
+        printing("p2", { shortCode: "OGN-031a" }),
+      ],
+      probes,
+    });
+    expect(await previewTrustedPrintings(asRepos(repos), ADMIN)).toMatchObject({
+      count: 2,
+      ineligible: [],
     });
   });
 
@@ -327,6 +342,7 @@ describe("trusted printings", () => {
       printingId: "pr-standard",
       cardId: "card-1",
       shortCode: "OGN-027",
+      finish: "normal",
       language: "EN",
       size: "standard",
       distributionChannelSlugs: [],
@@ -358,7 +374,7 @@ describe("trusted printings", () => {
       const run = await acceptTrustedPrintings(asRepos(repos), context());
 
       const reason =
-        "The existing OGN-027 normal EN side differs in artist. Edit that side or the source first.";
+        "The existing OGN-027 normal EN face differs in artist. Edit that face or the source first.";
       expect(preview.ineligible.map((entry) => entry.reason)).toEqual([reason]);
       expect(run.skipped.map((entry) => entry.reason)).toEqual([reason]);
       expect(acceptCandidateGroup).not.toHaveBeenCalled();
@@ -423,7 +439,7 @@ describe("trusted printings", () => {
         candidatePrintingId: "p1",
         label: "poro OGN-027 normal EN",
         reason:
-          "The existing OGN-027 normal EN side differs in artist. Edit that side or the source first.",
+          "The existing OGN-027 normal EN face differs in artist. Edit that face or the source first.",
       },
     ]);
   });

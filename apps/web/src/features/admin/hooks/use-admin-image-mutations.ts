@@ -264,6 +264,7 @@ export function useSetPrintingImageQuad(invalidates: Scope = defaultScope) {
 
 export function useEnsurePrintingImageOriginal() {
   return useMutationWithInvalidation({
+    meta: { inlineError: true },
     mutationFn: (imageId: string): Promise<ImageOriginalOutput> =>
       ensurePrintingImageOriginalFn({ data: { imageId } }),
     invalidates: [],

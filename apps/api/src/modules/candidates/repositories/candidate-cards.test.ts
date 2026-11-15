@@ -244,6 +244,11 @@ describe("candidateCardsRepo", () => {
     expect(await candidateCardsRepo(db).uncheckCandidateCards(["cc-1", "cc-2"])).toBe(2);
   });
 
+  it("uncheckCandidatePrintings counts the rows it cleared", async () => {
+    const db = createMockDb([{ id: "cp-1" }, { id: "cp-2" }]);
+    expect(await candidateCardsRepo(db).uncheckCandidatePrintings(["cp-1", "cp-2"])).toBe(2);
+  });
+
   it("checkCandidatePrinting updates checked_at", async () => {
     const db = createMockDb([{ numUpdatedRows: 1n }]);
     expect(await candidateCardsRepo(db).checkCandidatePrinting("cp-1")).toBeDefined();

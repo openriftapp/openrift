@@ -26,7 +26,7 @@ import type {
 import type {
   catalogMutationsRepo,
   FacePrintedFields,
-  PrintingIdentity,
+  PrintingIdentityKey,
 } from "../repositories/catalog-mutations.js";
 import type { distributionChannelsRepo } from "../repositories/distribution-channels.js";
 import { deleteRehostFiles } from "./images/variants.js";
@@ -226,7 +226,10 @@ export interface NewPrinting {
   imageIds: string[];
 }
 
-export function newPrintingIdentity(cardId: string, fields: NewPrintingFields): PrintingIdentity {
+export function newPrintingIdentity(
+  cardId: string,
+  fields: NewPrintingFields,
+): PrintingIdentityKey {
   return {
     cardId,
     shortCode: fields.shortCode,
@@ -342,12 +345,12 @@ export async function facePrintedFieldConflict(
     return null;
   }
   const { shortCode, finish, language } = faceIdentity;
-  return `The existing ${shortCode} ${finish} ${language} side differs in ${differing.map((check) => check.label).join(", ")}. Edit that side or the source first.`;
+  return `The existing ${shortCode} ${finish} ${language} face differs in ${differing.map((check) => check.label).join(", ")}. Edit that face or the source first.`;
 }
 
 export async function newPrintingConflict(
   repos: Pick<Repos, "catalogMutations">,
-  identity: PrintingIdentity,
+  identity: PrintingIdentityKey,
   secondFaceId: string | null = null,
 ): Promise<string | null> {
   const { cardId, shortCode, finish, markerSlugs, language } = identity;
@@ -364,7 +367,7 @@ export async function newPrintingConflict(
   return identical ? existingPrintingMessage(identity) : null;
 }
 
-function existingPrintingMessage(identity: PrintingIdentity): string {
+function existingPrintingMessage(identity: PrintingIdentityKey): string {
   const { shortCode, finish, size, markerSlugs, language } = identity;
   const markerPart = markerSlugs.length > 0 ? markerSlugs.join("+") : "no markers";
   return `This card already has a printing with short code "${shortCode}" (${finish}, ${size}, ${language}, ${markerPart}). Change the short code, finish, size, language, or markers to create a separate printing (art variant, rarity and signed alone are not enough), or edit the existing printing instead.`;
@@ -376,7 +379,10 @@ const PRINTING_IDENTITY_CONSTRAINTS = [
   "uq_faces_variant",
 ] as const;
 
-export function asPrintingIdentityConflict(error: unknown, identity?: PrintingIdentity): unknown {
+export function asPrintingIdentityConflict(
+  error: unknown,
+  identity?: PrintingIdentityKey,
+): unknown {
   if (!PRINTING_IDENTITY_CONSTRAINTS.some((name) => isUniqueViolationOn(error, name))) {
     return error;
   }

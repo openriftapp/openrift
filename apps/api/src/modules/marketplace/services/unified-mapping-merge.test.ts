@@ -531,7 +531,7 @@ describe("buildUnifiedMappingsResponse", () => {
   it("dedupes printings that appear multiple times in a marketplace's group", async () => {
     // When a printing has multiple variants in the same marketplace (e.g. TCG
     // product 653007 has both a "normal" and a "foil" SKU bound to the same
-    // printingId), `buildCardIndex` emits one row per variant, which would
+    // printingId), `buildMarketplaceCardIndex` emits one row per variant, which would
     // duplicate the printing in the response and make the admin Assign
     // dropdown show it twice with both entries checked. The merge collapses
     // duplicate printingIds.

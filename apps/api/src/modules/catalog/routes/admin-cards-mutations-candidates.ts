@@ -90,6 +90,20 @@ export const adminCardMutationsCandidatesRouter = {
     },
   ),
 
+  uncheckCandidatePrintings: os.uncheckCandidatePrintings.handler(
+    async ({ input, context, errors }) => {
+      const ids = [...new Set(input.candidatePrintingIds)];
+      const updated = await context.transact(async (trx) => {
+        const count = await trx.candidateCards.uncheckCandidatePrintings(ids);
+        if (count !== ids.length) {
+          throw errors.NOT_FOUND();
+        }
+        return count;
+      });
+      return { updated };
+    },
+  ),
+
   checkAllForCard: os.checkAllForCard.handler(async ({ input, context }) => {
     const { catalogMutations: mut, candidateCards } = context.repos;
 

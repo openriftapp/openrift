@@ -46,7 +46,7 @@ import { CardSearchDropdown } from "@/features/cards/components/card-search-drop
 import { useAdminCardSearch } from "@/features/cards/hooks/use-card-search";
 import { setsQueryOptions } from "@/features/cards/lib/sets-queries";
 import { CreationPanel } from "@/features/catalog-workspace/components/creation/creation-panel";
-import { FieldRow } from "@/features/catalog-workspace/components/record/field-row";
+import { RecordFieldRow } from "@/features/catalog-workspace/components/record/field-row";
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
 import {
   RecordBanner,
@@ -342,7 +342,7 @@ export function NewCardRecord({ name }: { name: string }) {
       </RecordSection>
 
       <RecordSection title="What gets created">
-        <FieldRow
+        <RecordFieldRow
           label="Card ID"
           value={<span className="font-mono">{cardId}</span>}
           onEdit={() => setEditingCardId(true)}

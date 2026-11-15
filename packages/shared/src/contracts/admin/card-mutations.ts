@@ -26,6 +26,8 @@ const providerParam = z.object({ provider: z.string() });
 
 const updatedCountOutput = z.object({ updated: z.number() });
 
+const MAX_BATCH_UNCHECK_IDS = 1000;
+
 export const errataAnnouncementInputSchema = z.object(errataAnnouncementFieldRules);
 
 export type ErrataAnnouncementInput = z.infer<typeof errataAnnouncementInputSchema>;
@@ -482,6 +484,11 @@ export const adminCardMutationsContract = {
     })
     .errors({ NOT_FOUND: { message: "Candidate printing not found" } })
     .input(cpIdParam),
+  uncheckCandidatePrintings: authedRoute
+    .route({ method: "POST", path: `${CARDS}/candidate-printings/uncheck-batch`, tags: [TAG] })
+    .errors({ NOT_FOUND: { message: "Candidate printing not found" } })
+    .input(z.object({ candidatePrintingIds: z.array(z.uuid()).min(1).max(MAX_BATCH_UNCHECK_IDS) }))
+    .output(updatedCountOutput),
   checkAllForCard: authedRoute
     .route({ method: "POST", path: `${CARDS}/{cardId}/check-all`, tags: [TAG] })
     .errors({ NOT_FOUND: { message: "Card not found" } })
@@ -489,7 +496,7 @@ export const adminCardMutationsContract = {
     .output(updatedCountOutput.extend({ candidateCardIds: z.array(z.string()) })),
   uncheckCandidateCards: authedRoute
     .route({ method: "POST", path: `${CARDS}/candidate-cards/uncheck-batch`, tags: [TAG] })
-    .input(z.object({ candidateCardIds: z.array(z.uuid()).min(1) }))
+    .input(z.object({ candidateCardIds: z.array(z.uuid()).min(1).max(MAX_BATCH_UNCHECK_IDS) }))
     .output(updatedCountOutput),
   patchCandidatePrinting: authedRoute
     .route({

@@ -5,7 +5,7 @@ import {
   attentionSectionFor,
   cardAttentionBadges,
   hasIssue,
-  listStatusFor,
+  cardListStatusFor,
   needsAttention,
 } from "./card-attention";
 
@@ -134,11 +134,11 @@ describe("attentionSectionFor", () => {
   });
 });
 
-describe("listStatusFor", () => {
+describe("cardListStatusFor", () => {
   it("maps the attention tab and each issue to a card-page status", () => {
-    expect(listStatusFor(true)).toBe("attention");
-    expect(listStatusFor(false)).toBeUndefined();
-    expect(listStatusFor(true, "proposals")).toBe("proposals");
-    expect(listStatusFor(false, "unlinked-products")).toBe("prices-to-assign");
+    expect(cardListStatusFor(true)).toBe("attention");
+    expect(cardListStatusFor(false)).toBeUndefined();
+    expect(cardListStatusFor(true, "proposals")).toBe("proposals");
+    expect(cardListStatusFor(false, "unlinked-products")).toBe("prices-to-assign");
   });
 });

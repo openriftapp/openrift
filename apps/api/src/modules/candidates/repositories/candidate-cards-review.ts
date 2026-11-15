@@ -357,6 +357,16 @@ export function candidateReviewRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
+    async uncheckCandidatePrintings(ids: readonly string[]): Promise<number> {
+      const rows = await db
+        .updateTable("candidatePrintings")
+        .set({ checkedAt: null })
+        .where("id", "in", [...ids])
+        .returning("id")
+        .execute();
+      return rows.length;
+    },
+
     uncheckCandidatePrinting(id: string): Promise<UpdateResult> {
       return db
         .updateTable("candidatePrintings")

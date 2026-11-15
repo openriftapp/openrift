@@ -3,12 +3,12 @@ import { create } from "zustand";
 type AdminCardSectionId = "attention" | "cardFields" | "history" | "marketplace" | "printings";
 
 interface AdminCardFoldState {
-  collapsedByCard: Record<string, Set<string>>;
+  collapsedBySlug: Record<string, Set<string>>;
   collapsedSections: Set<AdminCardSectionId>;
-  togglePrinting: (cardId: string, printingId: string) => void;
-  focusPrinting: (cardId: string, key: string, allKeys: readonly string[]) => void;
-  setCollapsedForCard: (cardId: string, collapsed: Set<string>) => void;
-  initCollapsedForCard: (cardId: string, collapsed: Set<string>) => void;
+  togglePrinting: (cardSlug: string, printingId: string) => void;
+  focusPrinting: (cardSlug: string, key: string, allKeys: readonly string[]) => void;
+  setCollapsedForCard: (cardSlug: string, collapsed: Set<string>) => void;
+  initCollapsedForCard: (cardSlug: string, collapsed: Set<string>) => void;
   toggleSection: (sectionId: AdminCardSectionId) => void;
 }
 
@@ -16,9 +16,9 @@ interface AdminCardFoldState {
 // explicitly empty set (everything open after "Expand all").
 export function getStoredCollapsedPrintings(
   state: AdminCardFoldState,
-  cardId: string,
+  cardSlug: string,
 ): ReadonlySet<string> | undefined {
-  return state.collapsedByCard[cardId];
+  return state.collapsedBySlug[cardSlug];
 }
 
 export function getCollapsedSections(state: AdminCardFoldState): ReadonlySet<AdminCardSectionId> {
@@ -26,43 +26,43 @@ export function getCollapsedSections(state: AdminCardFoldState): ReadonlySet<Adm
 }
 
 export const useAdminCardFoldStore = create<AdminCardFoldState>()((set) => ({
-  collapsedByCard: {},
+  collapsedBySlug: {},
   // History starts folded: opening it pages through the audit log.
   collapsedSections: new Set<AdminCardSectionId>(["history"]),
 
-  togglePrinting: (cardId, printingId) =>
+  togglePrinting: (cardSlug, printingId) =>
     set((state) => {
-      const current = state.collapsedByCard[cardId] ?? new Set<string>();
+      const current = state.collapsedBySlug[cardSlug] ?? new Set<string>();
       const next = new Set(current);
       if (next.has(printingId)) {
         next.delete(printingId);
       } else {
         next.add(printingId);
       }
-      return { collapsedByCard: { ...state.collapsedByCard, [cardId]: next } };
+      return { collapsedBySlug: { ...state.collapsedBySlug, [cardSlug]: next } };
     }),
 
-  focusPrinting: (cardId, key, allKeys) =>
+  focusPrinting: (cardSlug, key, allKeys) =>
     set((state) => ({
-      collapsedByCard: {
-        ...state.collapsedByCard,
-        [cardId]: new Set(allKeys.filter((other) => other !== key)),
+      collapsedBySlug: {
+        ...state.collapsedBySlug,
+        [cardSlug]: new Set(allKeys.filter((other) => other !== key)),
       },
     })),
 
-  setCollapsedForCard: (cardId, collapsed) =>
+  setCollapsedForCard: (cardSlug, collapsed) =>
     set((state) => ({
-      collapsedByCard: { ...state.collapsedByCard, [cardId]: new Set(collapsed) },
+      collapsedBySlug: { ...state.collapsedBySlug, [cardSlug]: new Set(collapsed) },
     })),
 
   // Seeds the card's default folds on first visit. A no-op afterwards, so a
   // refetch never re-folds rows the admin just opened.
-  initCollapsedForCard: (cardId, collapsed) =>
+  initCollapsedForCard: (cardSlug, collapsed) =>
     set((state) => {
-      if (state.collapsedByCard[cardId]) {
+      if (state.collapsedBySlug[cardSlug]) {
         return state;
       }
-      return { collapsedByCard: { ...state.collapsedByCard, [cardId]: new Set(collapsed) } };
+      return { collapsedBySlug: { ...state.collapsedBySlug, [cardSlug]: new Set(collapsed) } };
     }),
 
   toggleSection: (sectionId) =>

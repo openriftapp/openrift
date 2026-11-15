@@ -69,7 +69,7 @@ import type { SourceSubmitter } from "@/features/admin/lib/candidate-submitter";
 import type { FaceRow } from "@/features/admin/lib/face-rows";
 import { printingPairName } from "@/features/admin/lib/face-rows";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
-import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
+import { activeImageSourceUrl, imagesOnSide } from "@/features/admin/lib/printing-side-images";
 import { printingKindLabel } from "@/features/admin/lib/printing-summary";
 import {
   getStoredCollapsedPrintings,
@@ -221,7 +221,7 @@ export function PrintingReviewCard({
   ].join(" · ");
   const printingWithImage = {
     ...printing,
-    imageUrl: activeImage?.originalUrl ?? null,
+    imageUrl: activeImageSourceUrl(sideImages),
   };
 
   const uncheckedSources = allSources.filter((ps) => !ps.checkedAt);

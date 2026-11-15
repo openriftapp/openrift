@@ -3,7 +3,7 @@ import { labelMap } from "@openrift/shared/enum-label";
 
 import {
   acceptPrintingFieldFn,
-  uncheckCandidatePrintingFn,
+  uncheckCandidatePrintingsFn,
   useAcceptPrintingField,
   useCheckAllCandidatePrintings,
   useCheckCandidatePrinting,
@@ -95,7 +95,7 @@ export function useCandidateDiscards({
       ...discardText(sources, ids, imageIds ?? null, record),
       invalidates: undoScope(scope),
       undo: async () => {
-        await Promise.all(ids.map((id) => uncheckCandidatePrintingFn({ data: { id } })));
+        await uncheckCandidatePrintingsFn({ data: { candidatePrintingIds: [...ids] } });
       },
     };
   }

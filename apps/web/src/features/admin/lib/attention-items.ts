@@ -30,7 +30,7 @@ import {
   summarizeCandidatePrinting,
 } from "@/features/admin/lib/printing-fields";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
-import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
+import { activeImageSourceUrl, imagesOnSide } from "@/features/admin/lib/printing-side-images";
 
 type AttentionChangeKind = "value" | "text" | "image";
 
@@ -107,17 +107,6 @@ export interface AttentionSourceBlock {
   entries: AttentionSourceEntry[];
   changedFields: number;
   newPrintings: number;
-}
-
-function activeImageUrl(
-  printing: AdminPrintingResponse,
-  images: readonly AdminPrintingImageResponse[],
-): string | null {
-  const active = imagesOnSide(images, printing).find((image) => image.isActive);
-  if (!active) {
-    return null;
-  }
-  return active.rehostedUrl ?? active.originalUrl;
 }
 
 function displayImageUrl(
@@ -253,10 +242,10 @@ function buildLinkedPrintingGroup(
       }),
   );
 
-  const currentImage = activeImageUrl(printing, images);
+  const currentImage = displayImageUrl(printing, images);
   if (
     hasFieldValue(candidate.imageUrl) &&
-    candidate.imageUrl !== currentImage &&
+    candidate.imageUrl !== activeImageSourceUrl(imagesOnSide(images, printing)) &&
     (isContributor || candidate.imageMatch !== "same")
   ) {
     changes.push({
@@ -264,7 +253,7 @@ function buildLinkedPrintingGroup(
       field: "imageUrl",
       label:
         currentImage === null ? "Image" : IMAGE_CHANGE_LABELS[candidate.imageMatch ?? "unknown"],
-      current: displayImageUrl(printing, images),
+      current: currentImage,
       proposed: candidate.imageUrl,
       kind: "image",
     });

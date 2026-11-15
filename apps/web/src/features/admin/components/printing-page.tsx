@@ -6,9 +6,7 @@ import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
-  CopyIcon,
   CropIcon,
-  EllipsisVerticalIcon,
   ExternalLinkIcon,
   PencilIcon,
   RotateCcwIcon,
@@ -20,7 +18,6 @@ import {
 } from "lucide-react";
 import { Suspense, useRef, useState } from "react";
 
-import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { PageTopBarBack, PageTopBarButton } from "@/components/layout/page-top-bar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -34,18 +31,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Dropzone } from "@/components/ui/dropzone";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
+import { PrintingActionsMenu } from "@/features/admin/components/printing-actions-menu";
 import {
   PrintingHistoryCard,
   PrintingMarketplaceCard,
@@ -57,7 +49,6 @@ import { DeskSegmented, DeskStatusBadge } from "@/features/admin/components/prin
 import { SideSearch } from "@/features/admin/components/side-search";
 import { StraightenImageDialog } from "@/features/admin/components/straighten-image-dialog";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
-import { useDeletePrinting } from "@/features/admin/hooks/use-admin-card-mutations";
 import {
   useActivatePrintingImage,
   useDeletePrintingImage,
@@ -106,7 +97,14 @@ const DESK_IMAGE_SCOPE = [
 
 type Rotation = 0 | 90 | 180 | 270;
 
+const PRINTING_PAGE_DELETE_SCOPE = [
+  adminKeys.cards.all,
+  adminKeys.printingDesk.all,
+  catalogKeys.all,
+] as const;
+
 export function PrintingPage({ printingId }: { printingId: string }) {
+  const navigate = useNavigate();
   const { data } = useDeskPrinting(printingId, 1);
   const { data: access } = useAdminAccess();
   const { data: channelData } = useDistributionChannels();
@@ -148,7 +146,19 @@ export function PrintingPage({ printingId }: { printingId: string }) {
                 Make a post
               </Link>
             )}
-            {isAdmin && <PrintingActionsMenu printing={printing} />}
+            {isAdmin && (
+              <PrintingActionsMenu
+                printing={printing}
+                invalidates={PRINTING_PAGE_DELETE_SCOPE}
+                onDeleted={() =>
+                  void navigate({
+                    to: "/admin/cards/$cardSlug",
+                    params: { cardSlug: printing.cardSlug },
+                    search: { section: "printings" },
+                  })
+                }
+              />
+            )}
           </>
         }
       />
@@ -318,68 +328,6 @@ function FaceCard({
         )}
       </CardContent>
     </Card>
-  );
-}
-
-function PrintingActionsMenu({ printing }: { printing: DeskPrintingRow }) {
-  const navigate = useNavigate();
-  const deletePrinting = useDeletePrinting([
-    adminKeys.cards.all,
-    adminKeys.printingDesk.all,
-    catalogKeys.all,
-  ]);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const name = deskPrintingName(printing);
-
-  return (
-    <>
-      <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
-          <EllipsisVerticalIcon />
-          <span className="sr-only">Printing actions</span>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem
-            render={
-              <Link
-                to="/admin/cards/$cardSlug/printings/create"
-                params={{ cardSlug: printing.cardSlug }}
-                search={{ duplicateFrom: printing.printingId }}
-              />
-            }
-          >
-            <CopyIcon className="mr-2" />
-            Duplicate printing
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            variant="destructive"
-            disabled={deletePrinting.isPending}
-            onClick={() => setDeleteOpen(true)}
-          >
-            <Trash2Icon className="mr-2" />
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <ConfirmActionDialog
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        title={`Delete printing "${name}"?`}
-        description="This cannot be undone."
-        confirmLabel="Delete"
-        isPending={deletePrinting.isPending}
-        onConfirm={() =>
-          deletePrinting.mutate(printing.printingId, {
-            onSuccess: () =>
-              void navigate({
-                to: "/admin/cards/$cardSlug",
-                params: { cardSlug: printing.cardSlug },
-                search: { section: "printings" },
-              }),
-          })
-        }
-      />
-    </>
   );
 }
 

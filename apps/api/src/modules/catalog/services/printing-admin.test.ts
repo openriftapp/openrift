@@ -432,7 +432,7 @@ describe("insertNewPrinting", () => {
     ).rejects.toMatchObject({
       status: 409,
       message:
-        "The existing OGN-001 normal EN side differs in artist, flavor text. Edit that side or the source first.",
+        "The existing OGN-001 normal EN face differs in artist, flavor text. Edit that face or the source first.",
     });
     expect(repos.catalogMutations!.insertPrinting).not.toHaveBeenCalled();
   });

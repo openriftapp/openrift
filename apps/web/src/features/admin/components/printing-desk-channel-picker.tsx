@@ -18,6 +18,7 @@ import type { ChannelSearchOption } from "@/features/admin/lib/channel-picker-se
 import { searchChannelOptions } from "@/features/admin/lib/channel-picker-search";
 import { slugifyLabel, suggestChannelSlug } from "@/features/admin/lib/channel-slug-suggest";
 import { buildChannelTree, leafChannels } from "@/features/cards/lib/distribution-channel-tree";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 type Channel = DistributionChannelResponse;
 
@@ -196,13 +197,18 @@ function NewLeafForm({
     if (!canSubmit || !parent) {
       return;
     }
-    const created = await createChannel.mutateAsync({
-      slug: effectiveSlug,
-      label: label.trim(),
-      kind: parent.kind,
-      parentId,
+    let created: Awaited<ReturnType<typeof createChannel.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      created = await createChannel.mutateAsync({
+        slug: effectiveSlug,
+        label: label.trim(),
+        kind: parent.kind,
+        parentId,
+      });
     });
-    onCreated(created.slug);
+    if (ok && created) {
+      onCreated(created.slug);
+    }
   }
 
   return (
@@ -284,14 +290,19 @@ function NewRootForm({
     if (!canSubmit) {
       return;
     }
-    const created = await createChannel.mutateAsync({
-      slug: effectiveSlug,
-      label: label.trim(),
-      kind,
-      parentId: null,
-      childrenLabel: childrenLabel.trim().length > 0 ? childrenLabel.trim() : null,
+    let created: Awaited<ReturnType<typeof createChannel.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      created = await createChannel.mutateAsync({
+        slug: effectiveSlug,
+        label: label.trim(),
+        kind,
+        parentId: null,
+        childrenLabel: childrenLabel.trim().length > 0 ? childrenLabel.trim() : null,
+      });
     });
-    onCreated(created.slug);
+    if (ok && created) {
+      onCreated(created.slug);
+    }
   }
 
   return (

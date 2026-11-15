@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const captured = vi.hoisted(() => ({
   created: null as unknown,
+  fail: false,
 }));
 
 function marker(overrides: Record<string, unknown>) {
@@ -27,7 +28,7 @@ vi.mock("@/features/admin/hooks/use-markers", () => ({
     isPending: false,
     mutateAsync: (input: unknown) => {
       captured.created = input;
-      return Promise.resolve();
+      return captured.fail ? Promise.reject(new Error("taken")) : Promise.resolve();
     },
   }),
 }));
@@ -36,6 +37,7 @@ const { PrintingDeskMarkerPicker } = await import("./printing-desk-marker-picker
 
 beforeEach(() => {
   captured.created = null;
+  captured.fail = false;
 });
 
 describe("PrintingDeskMarkerPicker", () => {
@@ -81,6 +83,19 @@ describe("PrintingDeskMarkerPicker", () => {
 
     expect(captured.created).toEqual({ slug: "prerelease-mark", label: "Prerelease mark" });
     await waitFor(() => expect(onChange).toHaveBeenCalledWith(["prerelease-mark"]));
+  });
+
+  it("adds nothing when creating the marker fails", async () => {
+    captured.fail = true;
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<PrintingDeskMarkerPicker value={[]} onChange={onChange} />);
+
+    await user.type(screen.getByLabelText("Printed on the card"), "Prerelease mark");
+    await user.click(await screen.findByRole("option", { name: "Add “Prerelease mark”" }));
+
+    await waitFor(() => expect(captured.created).not.toBeNull());
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it("does not offer to create a marker that exists", async () => {

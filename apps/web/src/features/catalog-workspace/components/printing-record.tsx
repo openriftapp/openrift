@@ -17,33 +17,20 @@ import { pluralize } from "@openrift/shared/strings";
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import {
-  ChevronRightIcon,
-  CopyIcon,
-  EllipsisVerticalIcon,
-  ExternalLinkIcon,
-  Share2Icon,
-  Trash2Icon,
-} from "lucide-react";
+import { ChevronRightIcon, ExternalLinkIcon, Share2Icon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Suspense, useState } from "react";
 import { toast } from "sonner";
 
-import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePrecisionControl } from "@/features/admin/components/date-precision-control";
 import { collectEntries } from "@/features/admin/components/marketplace-product-entries";
+import { PrintingActionsMenu } from "@/features/admin/components/printing-actions-menu";
 import { PrintingCitationsEditor } from "@/features/admin/components/printing-citations-editor";
 import { PrintingDeskChannelPicker } from "@/features/admin/components/printing-desk-channel-picker";
 import { DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
@@ -52,10 +39,7 @@ import { RejectSubmissionDialog } from "@/features/admin/components/reject-submi
 import { SendNoteDialog } from "@/features/admin/components/send-note-dialog";
 import { SideSearch } from "@/features/admin/components/side-search";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
-import {
-  useDeletePrinting,
-  useUnmapMarketplacePrinting,
-} from "@/features/admin/hooks/use-admin-card-mutations";
+import { useUnmapMarketplacePrinting } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-queries";
 import {
   useDeskPrinting,
@@ -80,7 +64,7 @@ import { providerSettingsQueryOptions } from "@/features/admin/lib/provider-sett
 import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
 import { PrintingCompareSourcesDialog } from "@/features/catalog-workspace/components/compare-sources-dialog";
-import { FieldRow } from "@/features/catalog-workspace/components/record/field-row";
+import { RecordFieldRow } from "@/features/catalog-workspace/components/record/field-row";
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
 import {
   RecordBanner,
@@ -114,6 +98,13 @@ import { PERSISTENT_ERROR_TOAST } from "@/lib/toast";
 
 type PrintingField = "channel" | "size" | "announced" | "release" | "comment";
 type DeskPatch = Omit<DeskUpdateInput, "printingId" | "side">;
+
+const RECORD_DELETE_SCOPE = [
+  adminKeys.cards.all,
+  adminKeys.printingDesk.all,
+  adminKeys.workspace,
+  catalogKeys.all,
+] as const;
 
 export function PrintingRecord({ printingId }: { printingId: string }) {
   const { data: access, isPending } = useAdminAccess();
@@ -370,7 +361,13 @@ function PrintingRecordBody({
                   <Kbd>↵</Kbd>
                 </Button>
               )}
-              {isAdmin && <PrintingActionsMenu printing={printing} />}
+              {isAdmin && (
+                <PrintingActionsMenu
+                  printing={printing}
+                  invalidates={RECORD_DELETE_SCOPE}
+                  onDeleted={() => navigation.goNext()}
+                />
+              )}
             </>
           }
         />
@@ -415,7 +412,7 @@ function PrintingRecordBody({
           />
         )}
         <div>
-          <FieldRow
+          <RecordFieldRow
             label="Channel"
             value={formatCatalogFieldValue(
               "distributionChannelSlugs",
@@ -426,14 +423,14 @@ function PrintingRecordBody({
             editing={editorOf("channel")}
             suggestions={chipsFor("distributionChannelSlugs")}
           />
-          <FieldRow
+          <RecordFieldRow
             label="Size"
             value={formatCatalogFieldValue("size", printing.size, labels)}
             onEdit={editOf("size")}
             editing={editorOf("size")}
             suggestions={chipsFor("size")}
           />
-          <FieldRow
+          <RecordFieldRow
             label="Announced on"
             value={
               printing.announcedAt === null ? EMPTY_VALUE_TEXT : formatDay(printing.announcedAt)
@@ -442,14 +439,14 @@ function PrintingRecordBody({
             editing={editorOf("announced")}
             suggestions={chipsFor("announcedAt")}
           />
-          <FieldRow
+          <RecordFieldRow
             label="Available from"
             value={deskPrintingPeriod(printing)}
             onEdit={editOf("release")}
             editing={editorOf("release")}
             suggestions={availableFromChips}
           />
-          <FieldRow
+          <RecordFieldRow
             label="Comment"
             value={
               printing.comment === null || printing.comment.length === 0
@@ -750,66 +747,6 @@ function AddFace({ printing }: { printing: DeskPrintingRow }) {
         </p>
       )}
     </div>
-  );
-}
-
-function PrintingActionsMenu({ printing }: { printing: DeskPrintingRow }) {
-  const navigation = useQueueNavigation("printing");
-  const deletePrinting = useDeletePrinting([
-    adminKeys.cards.all,
-    adminKeys.printingDesk.all,
-    adminKeys.workspace,
-    catalogKeys.all,
-  ]);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-
-  return (
-    <>
-      <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
-          <EllipsisVerticalIcon />
-          <span className="sr-only">Printing actions</span>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem
-            render={
-              <Link
-                to="/admin/cards/$cardSlug/printings/create"
-                params={{ cardSlug: printing.cardSlug }}
-                search={{ duplicateFrom: printing.printingId }}
-              />
-            }
-          >
-            <CopyIcon />
-            Duplicate printing
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            variant="destructive"
-            disabled={deletePrinting.isPending}
-            onClick={() => setDeleteOpen(true)}
-          >
-            <Trash2Icon />
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <ConfirmActionDialog
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        title={`Delete printing "${deskPrintingName(printing)}"?`}
-        description="This cannot be undone."
-        confirmLabel="Delete"
-        isPending={deletePrinting.isPending}
-        onConfirm={() =>
-          deletePrinting.mutate(printing.printingId, {
-            onSuccess: () => {
-              setDeleteOpen(false);
-              navigation.goNext();
-            },
-          })
-        }
-      />
-    </>
   );
 }
 

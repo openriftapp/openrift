@@ -14,7 +14,7 @@ import { useRowSelection } from "@/features/admin/hooks/use-row-selection";
 import { workspaceRowSelectionStore } from "@/features/admin/stores/row-selection-store";
 import { EmptyQueue } from "@/features/catalog-workspace/components/empty-queue";
 import { QueueHeader } from "@/features/catalog-workspace/components/queue-header";
-import { QueueList } from "@/features/catalog-workspace/components/queue-list";
+import { WorkspaceQueueList } from "@/features/catalog-workspace/components/queue-list";
 import { RecordsTable } from "@/features/catalog-workspace/components/records-table";
 import { WorkspaceSplitLayout } from "@/features/catalog-workspace/components/workspace-split-layout";
 import { WorkspaceUndoButton } from "@/features/catalog-workspace/components/workspace-undo-button";
@@ -226,7 +226,7 @@ export function WorkspaceOwnerPage({ owner }: { owner: WorkspaceOwner }) {
     source.error !== null || source.pending ? (
       <LoadState error={source.error} pending={source.pending} />
     ) : (
-      <QueueList
+      <WorkspaceQueueList
         entries={source.entries}
         selectedKey={selectedKeyFromParams(params)}
         emptyText={segmentTotal === 0 ? "Nothing open." : `No ${noun} match these filters.`}

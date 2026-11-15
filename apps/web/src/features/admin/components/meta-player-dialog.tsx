@@ -39,7 +39,7 @@ import {
   metaPlayerRank,
   metaPlayerRecordPart,
   metaPlayerToDraft,
-  summarizeDeckCards,
+  countDeckRowsAndCopies,
   validateMetaPlayerDraft,
 } from "@/features/admin/lib/admin-meta-draft";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
@@ -288,7 +288,7 @@ export function MetaPlayerDialog({ eventId, eventFormat, player, onClose }: Meta
     }
   }
 
-  const summary = parsed ? summarizeDeckCards(parsed.cards) : null;
+  const summary = parsed ? countDeckRowsAndCopies(parsed.cards) : null;
   const copiesByZone = new Map<DeckZone, number>();
   for (const card of parsed?.cards ?? []) {
     copiesByZone.set(card.zone, (copiesByZone.get(card.zone) ?? 0) + card.quantity);

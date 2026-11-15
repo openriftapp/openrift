@@ -1,7 +1,7 @@
 import { buildCardLookupIndex } from "@openrift/shared/card-lookup";
 import type { CardSearchIndex, SearchableCard } from "@openrift/shared/card-search";
 import { CARD_SEARCH_MIN_QUERY_LENGTH, searchCards } from "@openrift/shared/card-search";
-import { extractCardIdFromShortCode } from "@openrift/shared/printing-code";
+import { resolveFinish } from "@openrift/shared/printing-accept";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { Selectable } from "kysely";
 
@@ -139,8 +139,8 @@ export function trustedPrintingGroups(
   return [...groups.values()];
 }
 
-function codeStem(shortCode: string): string {
-  return extractCardIdFromShortCode(shortCode.split("/")[0]?.trim() ?? "").toUpperCase();
+function variantCode(shortCode: string): string {
+  return (shortCode.split("/")[0]?.trim() ?? "").toUpperCase();
 }
 
 function sameSlugSet(a: readonly string[], b: readonly string[]): boolean {
@@ -152,10 +152,11 @@ export function findDuplicatePrinting(
   group: TrustedPrintingGroup,
   probes: readonly PrintingProbeRow[],
 ): PrintingProbeRow | undefined {
-  const stem = codeStem(group.first.shortCode);
+  const code = variantCode(group.first.shortCode);
+  const finish = resolveFinish(group.first.finish, group.first.rarity);
   const language = group.first.language ?? WellKnown.language.EN;
   const size = group.first.size ?? WellKnown.cardSize.STANDARD;
-  if (stem.length === 0) {
+  if (code.length === 0) {
     return undefined;
   }
   return probes.find(
@@ -163,7 +164,8 @@ export function findDuplicatePrinting(
       probe.cardId === group.cardId &&
       probe.language === language &&
       probe.size === size &&
-      codeStem(probe.shortCode) === stem &&
+      probe.finish === finish &&
+      variantCode(probe.shortCode) === code &&
       sameSlugSet(probe.distributionChannelSlugs, group.first.distributionChannelSlugs),
   );
 }

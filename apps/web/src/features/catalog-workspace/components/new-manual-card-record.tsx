@@ -1,5 +1,4 @@
 import { enumLabel } from "@openrift/shared/enum-label";
-import { slugifyName } from "@openrift/shared/strings";
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
@@ -15,6 +14,10 @@ import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useCreateCard } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useUploadPrintingImage } from "@/features/admin/hooks/use-admin-image-mutations";
+import {
+  MANUAL_CARD_STATS,
+  useManualCardDraft,
+} from "@/features/admin/hooks/use-manual-card-draft";
 import { useCreateDeskPrinting } from "@/features/admin/hooks/use-printing-desk";
 import { adminCardDetailQueryOptions } from "@/features/admin/lib/admin-card-queries";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
@@ -39,7 +42,7 @@ import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order"
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useSession } from "@/hooks/use-session";
 import { errorText } from "@/lib/error-text";
-import { parseIntegerFields, parseIntegerInput } from "@/lib/integer-input";
+import { parseIntegerInput } from "@/lib/integer-input";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { PERSISTENT_ERROR_TOAST } from "@/lib/toast";
 
@@ -51,15 +54,6 @@ const IMAGE_SCOPE = [
   cardsKeys.all,
   promosKeys.all,
 ] as const;
-
-type NumField = "might" | "energy" | "power" | "mightBonus";
-
-const NUM_FIELDS: { key: NumField; label: string }[] = [
-  { key: "might", label: "Might" },
-  { key: "energy", label: "Energy" },
-  { key: "power", label: "Power" },
-  { key: "mightBonus", label: "Might bonus" },
-];
 
 function asExistingCard(draft: CreationDraft, id: string, slug: string, name: string) {
   return { ...draft, card: { mode: "existing" as const, id, slug, name } };
@@ -75,18 +69,9 @@ export function NewManualCardRecord() {
   const { orders, labels } = useEnumOrders();
   const preferredLanguages = useEffectiveLanguageOrder();
 
-  const [name, setName] = useState("");
-  const [slugEdit, setSlugEdit] = useState<string | null>(null);
-  const [types, setTypes] = useState<string[]>([]);
-  const [domains, setDomains] = useState<string[]>([]);
-  const [superTypes, setSuperTypes] = useState<string[]>([]);
-  const [numeric, setNumeric] = useState<Record<NumField, string>>({
-    might: "",
-    energy: "",
-    power: "",
-    mightBonus: "",
-  });
-  const [tags, setTags] = useState<string[]>([]);
+  const cardDraft = useManualCardDraft();
+  const { name, slug, input } = cardDraft;
+  const { setTypes, setDomains, setSuperTypes, setTags } = cardDraft;
   const [withPrinting, setWithPrinting] = useState(true);
   const [draftEdit, setDraftEdit] = useState<CreationDraft | null>(null);
   const [pending, setPending] = useState(false);
@@ -94,7 +79,6 @@ export function NewManualCardRecord() {
 
   useRegisterRecordActions({});
 
-  const slug = (slugEdit ?? slugifyName(name)).trim();
   const baseDraft = draftFromBasePrinting({ id: "", slug: "", name: "" }, undefined, {
     language: preferredLanguages.at(0) ?? "en",
     finish: orders.finishes[0] ?? "",
@@ -105,15 +89,8 @@ export function NewManualCardRecord() {
     card: { mode: "new", slug, name: name.trim(), summary: "" },
   };
   const printingIssues = validateDraft(asExistingCard(draft, "pending", slug, name.trim()));
-  const stats = parseIntegerFields(numeric);
-  const cardReady =
-    stats !== undefined &&
-    name.trim().length > 0 &&
-    slug.length > 0 &&
-    types.length > 0 &&
-    domains.length > 0;
   const canCreate =
-    cardReady &&
+    input !== undefined &&
     (!withPrinting || printingIssues.length === 0) &&
     !pending &&
     !createCard.isPending;
@@ -173,20 +150,11 @@ export function NewManualCardRecord() {
   }
 
   async function create() {
-    if (!canCreate) {
+    if (!canCreate || input === undefined) {
       return;
     }
     setPending(true);
     setNotice(null);
-    const input = {
-      id: slug,
-      name: name.trim(),
-      types,
-      domains,
-      ...(superTypes.length > 0 && { superTypes }),
-      ...stats,
-      ...(tags.length > 0 && { tags }),
-    };
     let createdCard: Awaited<ReturnType<typeof createCard.mutateAsync>> | undefined;
     const ok = await runReportedMutation(
       async () => {
@@ -243,7 +211,7 @@ export function NewManualCardRecord() {
               <Input
                 id="new-card-name"
                 value={name}
-                onChange={(event) => setName(event.target.value)}
+                onChange={(event) => cardDraft.setName(event.target.value)}
                 placeholder="e.g. Jinx, Rebel"
               />
             </Field>
@@ -251,8 +219,8 @@ export function NewManualCardRecord() {
               <FieldLabel htmlFor="new-card-slug">Card ID *</FieldLabel>
               <Input
                 id="new-card-slug"
-                value={slugEdit ?? slugifyName(name)}
-                onChange={(event) => setSlugEdit(event.target.value)}
+                value={cardDraft.slugInput}
+                onChange={(event) => cardDraft.setSlug(event.target.value)}
                 placeholder="made from the name"
                 className="font-mono"
               />
@@ -264,7 +232,7 @@ export function NewManualCardRecord() {
               multiple
               variant="outline"
               spacing={2}
-              value={types}
+              value={cardDraft.types}
               onValueChange={setTypes}
               className="w-full flex-wrap"
             >
@@ -281,7 +249,7 @@ export function NewManualCardRecord() {
               multiple
               variant="outline"
               spacing={2}
-              value={domains}
+              value={cardDraft.domains}
               onValueChange={setDomains}
               className="w-full flex-wrap"
             >
@@ -298,7 +266,7 @@ export function NewManualCardRecord() {
               multiple
               variant="outline"
               spacing={2}
-              value={superTypes}
+              value={cardDraft.superTypes}
               onValueChange={setSuperTypes}
               className="w-full flex-wrap"
             >
@@ -310,8 +278,8 @@ export function NewManualCardRecord() {
             </ToggleGroup>
           </Field>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {NUM_FIELDS.map(({ key, label }) => {
-              const invalid = parseIntegerInput(numeric[key]) === undefined;
+            {MANUAL_CARD_STATS.map(({ key, label }) => {
+              const invalid = parseIntegerInput(cardDraft.numeric[key]) === undefined;
               return (
                 <Field key={key} data-invalid={invalid}>
                   <FieldLabel htmlFor={`new-card-${key}`}>{label}</FieldLabel>
@@ -319,9 +287,9 @@ export function NewManualCardRecord() {
                     id={`new-card-${key}`}
                     type="number"
                     min={0}
-                    value={numeric[key]}
+                    value={cardDraft.numeric[key]}
                     aria-invalid={invalid}
-                    onChange={(event) => setNumeric({ ...numeric, [key]: event.target.value })}
+                    onChange={(event) => cardDraft.setStat(key, event.target.value)}
                   />
                   {invalid && <FieldError>Whole number</FieldError>}
                 </Field>
@@ -332,7 +300,7 @@ export function NewManualCardRecord() {
             <FieldLabel htmlFor="new-card-tags">Tags</FieldLabel>
             <ChipInput
               id="new-card-tags"
-              value={tags}
+              value={cardDraft.tags}
               onChange={setTags}
               placeholder="Press Enter or comma to add"
             />

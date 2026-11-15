@@ -154,7 +154,7 @@ function DeleteSetDescription({ name }: { name: string }) {
 const columns: AdminColumnDef<AdminSetResponse, SetDraft>[] = [
   {
     header: "ID",
-    width: "w-28",
+    width: "w-24",
     cell: <SlugCell<AdminSetResponse> />,
     addCell: <DraftTextInput<SetDraft> field="id" placeholder="ID" className="font-mono" />,
   },
@@ -166,7 +166,7 @@ const columns: AdminColumnDef<AdminSetResponse, SetDraft>[] = [
   },
   {
     header: "Printed Total",
-    width: "w-32",
+    width: "w-28",
     align: "right",
     cell: <PrintedTotalCell />,
     editCell: (
@@ -194,21 +194,21 @@ const columns: AdminColumnDef<AdminSetResponse, SetDraft>[] = [
   },
   {
     header: "Type",
-    width: "w-36",
+    width: "w-32",
     cell: <SetTypeCell />,
     editCell: <SetTypeSelect />,
     addCell: <SetTypeSelect />,
   },
   {
     header: "Cards",
-    width: "w-24",
+    width: "w-20",
     align: "right",
     headerTitle: "Cards in this set",
     cell: <CardsCell />,
   },
   {
     header: "Printings",
-    width: "w-24",
+    width: "w-20",
     align: "right",
     headerTitle: "Printings in this set",
     cell: <PrintingsCell />,

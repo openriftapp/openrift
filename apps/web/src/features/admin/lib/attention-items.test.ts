@@ -147,6 +147,57 @@ describe("buildAttentionSubmissions", () => {
     ]);
   });
 
+  it("reads a contributor's image that is the live image's source as unchanged", () => {
+    const card = makeAdminCard();
+    const printing = makeAdminPrinting();
+    const source = makeCandidateCard({
+      name: card.name,
+      types: card.types,
+      domains: card.domains,
+      might: card.might,
+      energy: card.energy,
+      power: card.power,
+    });
+    const detail = makeAdminCardDetail({
+      card,
+      sources: [source],
+      printings: [printing],
+      printingImages: [
+        {
+          printingId: printing.id,
+          face: "front",
+          originalUrl: "https://cdn.test/skewed.png",
+          rehostedUrl: "/media/cards/skewed",
+          rotation: 0,
+          needsTrim: false,
+          isActive: true,
+        } as AdminPrintingImageResponse,
+      ],
+      candidatePrintings: [
+        makeCandidatePrinting({
+          candidateCardId: source.id,
+          printingId: printing.id,
+          artist: printing.artist,
+          publicCode: printing.publicCode,
+          shortCode: printing.shortCode,
+          setId: printing.setSlug,
+          rarity: printing.rarity,
+          artVariant: printing.artVariant,
+          finish: printing.finish,
+          size: printing.size,
+          language: printing.language,
+          printedYear: printing.printedYear,
+          imageUrl: "https://cdn.test/skewed.png",
+          imageMatch: null,
+        }),
+      ],
+    });
+    const changes = buildAttentionSubmissions(detail, []).flatMap((submission) =>
+      submission.groups.flatMap((group) => group.changes.map((change) => change.field)),
+    );
+    expect(changes).not.toContain("imageUrl");
+  });
+
   it("records unchanged fields alongside the changes", () => {
     const card = makeAdminCard({ name: "Lux, Lady of Luminosity", might: 3 });
     const detail = makeAdminCardDetail({

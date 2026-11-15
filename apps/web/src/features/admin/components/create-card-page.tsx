@@ -1,5 +1,4 @@
 import { enumLabel } from "@openrift/shared/enum-label";
-import { slugifyName } from "@openrift/shared/strings";
 import { useNavigate } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
@@ -12,78 +11,41 @@ import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { useCreateCard } from "@/features/admin/hooks/use-admin-card-mutations";
+import {
+  MANUAL_CARD_STATS,
+  useManualCardDraft,
+} from "@/features/admin/hooks/use-manual-card-draft";
 import { ChipInput } from "@/features/contribute/components/form-fields";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { errorText } from "@/lib/error-text";
-import { parseIntegerFields, parseIntegerInput } from "@/lib/integer-input";
-
-type NumField = "might" | "energy" | "power" | "mightBonus";
-
-const NUM_FIELDS: { key: NumField; label: string }[] = [
-  { key: "might", label: "Might" },
-  { key: "energy", label: "Energy" },
-  { key: "power", label: "Power" },
-  { key: "mightBonus", label: "Might bonus" },
-];
+import { parseIntegerInput } from "@/lib/integer-input";
 
 export function CreateCardPage() {
   const navigate = useNavigate();
   const createCard = useCreateCard();
   const { orders, labels } = useEnumOrders();
-
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [slugDirty, setSlugDirty] = useState(false);
-  // Selection order matters: the first type is primary.
-  const [types, setTypes] = useState<string[]>([]);
-  const [domains, setDomains] = useState<string[]>([]);
-  const [superTypes, setSuperTypes] = useState<string[]>([]);
-  const [numeric, setNumeric] = useState<Record<NumField, string>>({
-    might: "",
-    energy: "",
-    power: "",
-    mightBonus: "",
-  });
-  const [tags, setTags] = useState<string[]>([]);
+  const draft = useManualCardDraft();
+  const { setTypes, setDomains, setSuperTypes, setTags } = draft;
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const effectiveSlug = slugDirty ? slug : slugifyName(name);
-  const stats = parseIntegerFields(numeric);
-  const canSubmit =
-    stats !== undefined &&
-    name.trim().length > 0 &&
-    effectiveSlug.trim().length > 0 &&
-    types.length > 0 &&
-    domains.length > 0 &&
-    !createCard.isPending;
+  const canSubmit = draft.input !== undefined && !createCard.isPending;
 
   function handleSubmit() {
-    if (!canSubmit) {
+    if (draft.input === undefined || createCard.isPending) {
       return;
     }
     setErrorMsg(null);
-    createCard.mutate(
-      {
-        id: effectiveSlug.trim(),
-        name: name.trim(),
-        types,
-        domains,
-        ...(superTypes.length > 0 && { superTypes }),
-        ...stats,
-        ...(tags.length > 0 && { tags }),
+    createCard.mutate(draft.input, {
+      onSuccess: (result) => {
+        void navigate({
+          to: "/admin/cards/$cardSlug",
+          params: { cardSlug: result.cardSlug },
+        });
       },
-      {
-        onSuccess: (result) => {
-          void navigate({
-            to: "/admin/cards/$cardSlug",
-            params: { cardSlug: result.cardSlug },
-          });
-        },
-        onError: (error) => {
-          setErrorMsg(errorText(error, "Failed to create card"));
-        },
+      onError: (error) => {
+        setErrorMsg(errorText(error, "Failed to create card"));
       },
-    );
+    });
   }
 
   return (
@@ -102,8 +64,8 @@ export function CreateCardPage() {
                 <FieldLabel htmlFor="create-card-name">Name *</FieldLabel>
                 <Input
                   id="create-card-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  value={draft.name}
+                  onChange={(e) => draft.setName(e.target.value)}
                   placeholder="e.g. Jinx, Rebel"
                 />
               </Field>
@@ -111,11 +73,8 @@ export function CreateCardPage() {
                 <FieldLabel htmlFor="create-card-slug">Slug *</FieldLabel>
                 <Input
                   id="create-card-slug"
-                  value={effectiveSlug}
-                  onChange={(e) => {
-                    setSlug(e.target.value);
-                    setSlugDirty(true);
-                  }}
+                  value={draft.slugInput}
+                  onChange={(e) => draft.setSlug(e.target.value)}
                   placeholder="auto-generated from name"
                   className="font-mono"
                 />
@@ -128,7 +87,7 @@ export function CreateCardPage() {
                 multiple
                 variant="outline"
                 spacing={2}
-                value={types}
+                value={draft.types}
                 onValueChange={setTypes}
                 className="w-full flex-wrap"
               >
@@ -146,7 +105,7 @@ export function CreateCardPage() {
                 multiple
                 variant="outline"
                 spacing={2}
-                value={domains}
+                value={draft.domains}
                 onValueChange={setDomains}
                 className="w-full flex-wrap"
               >
@@ -164,7 +123,7 @@ export function CreateCardPage() {
                 multiple
                 variant="outline"
                 spacing={2}
-                value={superTypes}
+                value={draft.superTypes}
                 onValueChange={setSuperTypes}
                 className="w-full flex-wrap"
               >
@@ -177,19 +136,19 @@ export function CreateCardPage() {
             </Field>
 
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {NUM_FIELDS.map(({ key, label }) => (
-                <Field key={key} data-invalid={parseIntegerInput(numeric[key]) === undefined}>
+              {MANUAL_CARD_STATS.map(({ key, label }) => (
+                <Field key={key} data-invalid={parseIntegerInput(draft.numeric[key]) === undefined}>
                   <FieldLabel htmlFor={`create-card-${key}`}>{label}</FieldLabel>
                   <Input
                     id={`create-card-${key}`}
                     type="number"
                     min={0}
-                    aria-invalid={parseIntegerInput(numeric[key]) === undefined}
-                    value={numeric[key]}
-                    onChange={(e) => setNumeric((prev) => ({ ...prev, [key]: e.target.value }))}
+                    aria-invalid={parseIntegerInput(draft.numeric[key]) === undefined}
+                    value={draft.numeric[key]}
+                    onChange={(e) => draft.setStat(key, e.target.value)}
                     className="[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
                   />
-                  {parseIntegerInput(numeric[key]) === undefined && (
+                  {parseIntegerInput(draft.numeric[key]) === undefined && (
                     <FieldError>Whole number</FieldError>
                   )}
                 </Field>
@@ -200,7 +159,7 @@ export function CreateCardPage() {
               <FieldLabel htmlFor="create-card-tags">Tags</FieldLabel>
               <ChipInput
                 id="create-card-tags"
-                value={tags}
+                value={draft.tags}
                 onChange={setTags}
                 placeholder="Press Enter or comma to add"
               />

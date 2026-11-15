@@ -29,6 +29,7 @@ export interface PrintingProbeRow {
   printingId: string;
   cardId: string;
   shortCode: string;
+  finish: string;
   language: string;
   size: string;
   distributionChannelSlugs: string[];
@@ -82,6 +83,7 @@ export function workspaceBatchRepo(db: Kysely<Database>) {
           pr.id as "printingId",
           f.card_id as "cardId",
           f.short_code as "shortCode",
+          f.finish,
           f.language,
           pr.size,
           coalesce((

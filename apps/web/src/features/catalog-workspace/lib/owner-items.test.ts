@@ -23,7 +23,7 @@ import {
   segmentCounts,
   selectedKeyFromParams,
   sortGroups,
-  stepIndex,
+  wrapStepIndex,
   targetKey,
   visibleQueueItems,
   workspaceRole,
@@ -474,22 +474,22 @@ describe("oldestItem", () => {
   });
 });
 
-describe("stepIndex", () => {
+describe("wrapStepIndex", () => {
   it("moves forward and back inside the list", () => {
-    expect(stepIndex(3, 0, 1)).toBe(1);
-    expect(stepIndex(3, 2, -1)).toBe(1);
+    expect(wrapStepIndex(3, 0, 1)).toBe(1);
+    expect(wrapStepIndex(3, 2, -1)).toBe(1);
   });
 
   it("starts at the top when nothing is selected", () => {
-    expect(stepIndex(3, -1, 1)).toBe(0);
-    expect(stepIndex(3, -1, -1)).toBeNull();
+    expect(wrapStepIndex(3, -1, 1)).toBe(0);
+    expect(wrapStepIndex(3, -1, -1)).toBeNull();
   });
 
   it("wraps forward past the end and stops at the top", () => {
-    expect(stepIndex(3, 2, 1)).toBe(0);
-    expect(stepIndex(3, 0, -1)).toBeNull();
-    expect(stepIndex(1, 0, 1)).toBeNull();
-    expect(stepIndex(0, -1, 1)).toBeNull();
+    expect(wrapStepIndex(3, 2, 1)).toBe(0);
+    expect(wrapStepIndex(3, 0, -1)).toBeNull();
+    expect(wrapStepIndex(1, 0, 1)).toBeNull();
+    expect(wrapStepIndex(0, -1, 1)).toBeNull();
   });
 });
 

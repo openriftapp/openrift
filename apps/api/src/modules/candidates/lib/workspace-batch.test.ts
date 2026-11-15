@@ -177,6 +177,7 @@ function probe(over: Partial<PrintingProbeRow> = {}): PrintingProbeRow {
     printingId: "pr-1",
     cardId: "card-1",
     shortCode: "OGN-027",
+    finish: "normal",
     language: "EN",
     size: "standard",
     distributionChannelSlugs: [],
@@ -189,22 +190,66 @@ describe("findDuplicatePrinting", () => {
     [newRow("p1")],
     [cp("p1", { shortCode: "OGN-027a", distributionChannelSlugs: ["store-event"] })],
   );
+  const sameIdentity = { shortCode: "OGN-027a", distributionChannelSlugs: ["store-event"] };
 
-  it("hits a printing with the same card, stem, language and channels", () => {
+  it("hits a printing with the same card, code, finish, language and channels", () => {
+    expect(findDuplicatePrinting(group!, [probe(sameIdentity)])).toMatchObject({
+      printingId: "pr-1",
+    });
+  });
+
+  it("hits a printing whose code differs only in the set's case or the collector total", () => {
     expect(
-      findDuplicatePrinting(group!, [probe({ distributionChannelSlugs: ["store-event"] })]),
+      findDuplicatePrinting(group!, [probe({ ...sameIdentity, shortCode: "ogn-027a/298" })]),
     ).toMatchObject({ printingId: "pr-1" });
   });
 
-  it("misses other channels, languages and cards", () => {
+  it("hits a printing whose variant suffix differs only in case", () => {
+    expect(
+      findDuplicatePrinting(group!, [probe({ ...sameIdentity, shortCode: "OGN-027A" })]),
+    ).toMatchObject({ printingId: "pr-1" });
+  });
+
+  it("misses other channels, languages, cards and numbers", () => {
     expect(
       findDuplicatePrinting(group!, [
-        probe(),
-        probe({ language: "FR", distributionChannelSlugs: ["store-event"] }),
-        probe({ cardId: "card-2", distributionChannelSlugs: ["store-event"] }),
-        probe({ shortCode: "OGN-028", distributionChannelSlugs: ["store-event"] }),
+        probe({ shortCode: "OGN-027a" }),
+        probe({ ...sameIdentity, language: "FR" }),
+        probe({ ...sameIdentity, cardId: "card-2" }),
+        probe({ ...sameIdentity, shortCode: "OGN-028a" }),
       ]),
     ).toBeUndefined();
+  });
+
+  it("misses a new alt-art of an existing code", () => {
+    expect(
+      findDuplicatePrinting(group!, [
+        probe({ ...sameIdentity, shortCode: "OGN-027" }),
+        probe({ ...sameIdentity, shortCode: "OGN-027b" }),
+      ]),
+    ).toBeUndefined();
+  });
+
+  it("misses a new foil of an existing code and hits an existing foil", () => {
+    const [foil] = trustedPrintingGroups(
+      [newRow("p1")],
+      [cp("p1", { shortCode: "OGN-027a", finish: "foil" })],
+    );
+    expect(findDuplicatePrinting(foil!, [probe({ shortCode: "OGN-027a" })])).toBeUndefined();
+    expect(
+      findDuplicatePrinting(foil!, [probe({ shortCode: "OGN-027a", finish: "foil" })]),
+    ).toMatchObject({ printingId: "pr-1" });
+  });
+
+  it("compares the finish a missing candidate finish resolves to", () => {
+    const [epic] = trustedPrintingGroups(
+      [newRow("p1")],
+      [cp("p1", { finish: null, rarity: "epic" })],
+    );
+    expect(findDuplicatePrinting(epic!, [probe()])).toBeUndefined();
+    expect(findDuplicatePrinting(epic!, [probe({ finish: "foil" })])).toMatchObject({
+      printingId: "pr-1",
+    });
   });
 
   it("misses a printing of another size, which a new size may share a face with", () => {

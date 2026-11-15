@@ -16,7 +16,7 @@ const FIELD_LABELS: Record<keyof AcceptNewCardBody["cardFields"], string> = {
   tags: "Tags",
 };
 
-/** Keys match the spreadsheet field keys — `types` is plural, matching `buildCandidateCardFields`. */
+/** Keys match the spreadsheet field keys — `types` is plural, matching `candidateCardFieldDefs`. */
 const REQUIRED_ACTIVE_FIELDS = ["name", "types", "domains"] as const;
 
 /** Deeper validity (empty arrays, numeric fields) is checked at click time by `describeAcceptCardFieldIssues`. */

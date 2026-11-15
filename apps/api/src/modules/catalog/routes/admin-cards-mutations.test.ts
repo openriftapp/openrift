@@ -118,6 +118,7 @@ const mockCandidateCards = {
   checkAllCandidatePrintings: vi.fn(),
   checkCandidatePrinting: vi.fn(),
   uncheckCandidatePrinting: vi.fn(),
+  uncheckCandidatePrintings: vi.fn(),
   checkAllCandidateCards: vi.fn(),
   patchCandidatePrinting: vi.fn(),
   deleteCandidatePrinting: vi.fn(),
@@ -286,6 +287,61 @@ describe("POST /cards/:candidateCardId/uncheck", () => {
   });
 });
 
+describe("POST /cards/candidate-printings/uncheck-batch", () => {
+  const URL = "/api/admin/v1/cards/candidate-printings/uncheck-batch";
+  const post = (candidatePrintingIds: string[]) =>
+    app.request(URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ candidatePrintingIds }),
+    });
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockTransact.mockImplementation(async (cb) => cb(trxRepos()));
+  });
+
+  it("unchecks every given candidate printing in one transaction", async () => {
+    mockCandidateCards.uncheckCandidatePrintings.mockResolvedValue(2);
+
+    const res = await post([CP_ID, PRINTING_ID, CP_ID]);
+
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual({ updated: 2 });
+    expect(mockTransact).toHaveBeenCalledOnce();
+    expect(mockCandidateCards.uncheckCandidatePrintings).toHaveBeenCalledWith([CP_ID, PRINTING_ID]);
+  });
+
+  it("answers 404 and rolls back when one id has no row", async () => {
+    mockCandidateCards.uncheckCandidatePrintings.mockResolvedValue(1);
+    let rolledBack = false;
+    mockTransact.mockImplementation(async (cb) => {
+      const result = cb(trxRepos());
+      await result.catch(() => {
+        rolledBack = true;
+      });
+      return result;
+    });
+
+    const res = await post([CP_ID, PRINTING_ID]);
+
+    expect(res.status).toBe(404);
+    expect(rolledBack).toBe(true);
+  });
+
+  it("rejects an empty id list", async () => {
+    const res = await post([]);
+    expect(res.status).toBe(400);
+    expect(mockCandidateCards.uncheckCandidatePrintings).not.toHaveBeenCalled();
+  });
+
+  it("rejects a list longer than one batch", async () => {
+    const res = await post(Array.from({ length: 1001 }, () => CP_ID));
+    expect(res.status).toBe(400);
+    expect(mockCandidateCards.uncheckCandidatePrintings).not.toHaveBeenCalled();
+  });
+});
+
 describe("POST /cards/candidate-cards/uncheck-batch", () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -309,6 +365,16 @@ describe("POST /cards/candidate-cards/uncheck-batch", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ candidateCardIds: [] }),
+    });
+    expect(res.status).toBe(400);
+    expect(mockCandidateCards.uncheckCandidateCards).not.toHaveBeenCalled();
+  });
+
+  it("rejects a list longer than one batch", async () => {
+    const res = await app.request("/api/admin/v1/cards/candidate-cards/uncheck-batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ candidateCardIds: Array.from({ length: 1001 }, () => CARD_ID) }),
     });
     expect(res.status).toBe(400);
     expect(mockCandidateCards.uncheckCandidateCards).not.toHaveBeenCalled();

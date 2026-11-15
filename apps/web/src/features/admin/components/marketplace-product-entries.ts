@@ -10,12 +10,8 @@ import type {
 } from "@openrift/shared/types/api/admin";
 import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
 
-export interface PrintingAssignment {
-  externalId: number;
-  finish: string;
-  language: string | null;
-  printingId: string;
-}
+import type { PrintingAssignment } from "@/features/admin/lib/printing-assignment";
+import { emptyAssignmentsByMarketplace } from "@/features/admin/lib/printing-assignment";
 
 export interface MarketplaceHandlers {
   onIgnoreVariant: (externalId: number, finish: string, language: string | null) => void;
@@ -189,15 +185,14 @@ interface SuggestedMappings {
   weak: Record<AdminMarketplaceName, PrintingAssignment[]>;
 }
 
-function emptyByMarketplace(): Record<AdminMarketplaceName, PrintingAssignment[]> {
-  return { tcgplayer: [], cardmarket: [], cardtrader: [], cardnexus: [] };
-}
-
 export function collectSuggestedMappings(
   group: UnifiedMappingGroupResponse,
   suggestions: Map<string, ProductSuggestion[]> | undefined,
 ): SuggestedMappings {
-  const out: SuggestedMappings = { strong: emptyByMarketplace(), weak: emptyByMarketplace() };
+  const out: SuggestedMappings = {
+    strong: emptyAssignmentsByMarketplace(),
+    weak: emptyAssignmentsByMarketplace(),
+  };
   for (const entry of collectEntries(group)) {
     if (entry.isAssigned) {
       continue;

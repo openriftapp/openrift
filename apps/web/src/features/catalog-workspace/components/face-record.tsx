@@ -49,7 +49,7 @@ import {
   DeskFaceImagesSection,
   FaceImagesSection,
 } from "@/features/catalog-workspace/components/face-images-section";
-import { FieldRow } from "@/features/catalog-workspace/components/record/field-row";
+import { RecordFieldRow } from "@/features/catalog-workspace/components/record/field-row";
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
 import {
   RecordBanner,
@@ -314,7 +314,7 @@ function ReviewFaceRecord({
         ) : (
           <div>
             {shownFields.map((field) => (
-              <FieldRow
+              <RecordFieldRow
                 key={field}
                 label={PRINTING_FIELD_LABELS[field]}
                 value={formatCatalogFieldValue(
@@ -654,7 +654,7 @@ function DeskFaceBody({
         ) : (
           <div>
             {fieldRows.map((entry) => (
-              <FieldRow
+              <RecordFieldRow
                 key={entry.label}
                 label={entry.label}
                 value={entry.value}

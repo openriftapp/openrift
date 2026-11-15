@@ -3,7 +3,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
 
-import { cardHasType, primaryCardType } from "../../../db/helpers.js";
+import { cardHasType, primaryCardTypeSql } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import type { ProductsTable } from "../../../db/tables/marketplace.js";
 import { joinPublicFaceImage } from "../../../repositories/query-helpers.js";
@@ -133,7 +133,9 @@ export function productsRepo(db: Kysely<Database>) {
         "pr.faceId",
         { required: true },
       )
-        .leftJoin("cardTypes as ct", (join) => join.onRef("ct.slug", "=", primaryCardType("c.id")))
+        .leftJoin("cardTypes as ct", (join) =>
+          join.onRef("ct.slug", "=", primaryCardTypeSql("c.id")),
+        )
         .leftJoin("rarities as r", "r.slug", "pr.rarity")
         .select([
           "pp.productId",

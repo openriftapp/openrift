@@ -98,14 +98,16 @@ export function SourceBlock({
   }));
 
   async function markChecked() {
-    const jobs: Promise<unknown>[] = [];
-    if (cardId !== undefined && block.candidateCardIds.length > 0) {
-      jobs.push(checkCards.mutateAsync({ cardId, candidateCardIds: [...block.candidateCardIds] }));
-    }
-    if (uncheckedPrintingIds.length > 0) {
-      jobs.push(checkPrintings.mutateAsync({ extraIds: uncheckedPrintingIds }));
-    }
-    await runReportedMutation(() => Promise.all(jobs));
+    await runReportedMutation(() =>
+      Promise.all([
+        cardId !== undefined && block.candidateCardIds.length > 0
+          ? checkCards.mutateAsync({ cardId, candidateCardIds: [...block.candidateCardIds] })
+          : null,
+        uncheckedPrintingIds.length > 0
+          ? checkPrintings.mutateAsync({ extraIds: uncheckedPrintingIds })
+          : null,
+      ]),
+    );
   }
 
   function addPrinting(

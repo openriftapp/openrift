@@ -505,7 +505,7 @@ export function oldestItem(
   return oldest;
 }
 
-export function stepIndex(length: number, current: number, delta: 1 | -1): number | null {
+export function wrapStepIndex(length: number, current: number, delta: 1 | -1): number | null {
   if (length === 0) {
     return null;
   }

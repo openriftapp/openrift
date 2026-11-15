@@ -18,8 +18,8 @@ import type {
   NewCardFieldKey,
 } from "@/features/admin/components/candidate-field-defs";
 import {
-  buildCandidateCardFields,
-  buildCandidatePrintingFields,
+  candidateCardFieldDefs,
+  candidatePrintingFieldDefs,
   buildNewCardFields,
   isValidOption,
 } from "@/features/admin/components/candidate-field-defs";
@@ -71,7 +71,7 @@ export function useCardDetailData(invalidates: readonly (readonly unknown[])[]) 
 
   const { data: artistSuggestions } = useDistinctArtists();
 
-  const printingSourceFields: FieldDef<CandidatePrintingFieldKey>[] = buildCandidatePrintingFields(
+  const printingSourceFields: FieldDef<CandidatePrintingFieldKey>[] = candidatePrintingFieldDefs(
     orders,
     labels,
     markers.map((m) => ({ value: m.slug, label: m.label })),
@@ -83,7 +83,7 @@ export function useCardDetailData(invalidates: readonly (readonly unknown[])[]) 
     })),
   );
 
-  const candidateCardFields: FieldDef<CandidateCardFieldKey>[] = buildCandidateCardFields(
+  const candidateCardFields: FieldDef<CandidateCardFieldKey>[] = candidateCardFieldDefs(
     orders,
     labels,
   );

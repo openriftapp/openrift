@@ -2,7 +2,7 @@ import type { CardType } from "@openrift/shared/types/enums";
 import type { SqlBool } from "kysely";
 import { sql } from "kysely";
 
-export function primaryCardType(cardIdColumn: string) {
+export function primaryCardTypeSql(cardIdColumn: string) {
   return sql<CardType>`(SELECT cct.type_slug FROM card_card_types cct WHERE cct.card_id = ${sql.ref(cardIdColumn)} ORDER BY cct.position LIMIT 1)`;
 }
 

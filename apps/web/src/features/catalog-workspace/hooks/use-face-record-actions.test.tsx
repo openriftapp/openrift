@@ -41,7 +41,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
   acceptPrintingFieldFn: mocks.acceptPrintingFieldFn,
-  uncheckCandidatePrintingFn: mocks.uncheckFn,
+  uncheckCandidatePrintingsFn: mocks.uncheckFn,
   useAcceptPrintingField: (scope: unknown) => {
     mocks.scopes.push(scope);
     return mocks.acceptField.current;
@@ -318,7 +318,9 @@ describe("useFaceRecordActions", () => {
     );
     expect(latest()?.undoneLabel).toBe("Undone: 1 suggestion and 1 image restored on Teemo, Scout");
     await latest()?.undo();
-    expect(mocks.uncheckFn).toHaveBeenCalledWith({ data: { id: candidate.id } });
+    expect(mocks.uncheckFn).toHaveBeenCalledWith({
+      data: { candidatePrintingIds: [candidate.id] },
+    });
   });
 
   it("the toast Undo removes its own entry and runs once", async () => {
@@ -364,7 +366,9 @@ describe("useFaceRecordActions", () => {
     const entry = latest();
     expect(entry?.label).toBe("Discarded 1 suggestion and 1 image on Teemo, Scout");
     await entry?.undo();
-    expect(mocks.uncheckFn).toHaveBeenCalledWith({ data: { id: candidate.id } });
+    expect(mocks.uncheckFn).toHaveBeenCalledWith({
+      data: { candidatePrintingIds: [candidate.id] },
+    });
   });
 
   it("disables Enter while a contributor proposal is unanswered", () => {

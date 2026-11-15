@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 
 import { PrintingLabel } from "./marketplace-printing-label";
 
-export function SuggestionChip({
+export function ProductSuggestionChip({
   suggestion,
   productExternalId,
   highlightFinish,

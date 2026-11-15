@@ -1,6 +1,6 @@
 import type { Kysely } from "kysely";
 
-import { primaryCardType } from "../../../db/helpers.js";
+import { primaryCardTypeSql } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import { keyBatches, rowBatches } from "../../../lib/bind-batches.js";
 import { inTransaction, withKeyLock } from "../../../repositories/query-helpers.js";
@@ -92,7 +92,7 @@ export async function cardsByShortCode(
         "p.shortCode as shortCode",
         "c.id as cardId",
         "c.name as name",
-        primaryCardType("c.id").as("type"),
+        primaryCardTypeSql("c.id").as("type"),
       ])
       .execute();
     // Multiple printings share a short_code (finishes, variants); they are

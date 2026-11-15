@@ -62,6 +62,7 @@ const DUPLICATE_PROBE = {
   printingId: "pr-9",
   cardId: "card-1",
   shortCode: "OGN-027",
+  finish: "normal",
   language: "EN",
   size: "standard",
   distributionChannelSlugs: [],
@@ -129,6 +130,33 @@ describe("acceptFavoritePrintingsForCard", () => {
       { shortCode: "OGN-027", reason: "possible duplicate of OGN-027" },
     ]);
     expect(repos.candidateCards.checkCandidateCardsByIds).not.toHaveBeenCalled();
+  });
+
+  it("accepts a new foil of an existing code", async () => {
+    const repos = makeRepos([candidatePrintingRow("cp-1", { finish: "foil" })], [DUPLICATE_PROBE]);
+    repos.enums.all.mockResolvedValue({
+      languages: [{ slug: "EN" }],
+      rarities: [{ slug: "rare" }],
+      artVariants: [{ slug: "normal" }],
+      finishes: [{ slug: "normal" }, { slug: "foil" }],
+      cardSizes: [{ slug: "standard" }],
+      markers: [],
+    });
+
+    const result = await accept(repos);
+
+    expect(result).toMatchObject({ printingsCreated: 1, skipped: [] });
+  });
+
+  it("accepts a new alt-art of an existing code", async () => {
+    const repos = makeRepos(
+      [candidatePrintingRow("cp-1", { shortCode: "OGN-027a" })],
+      [DUPLICATE_PROBE],
+    );
+
+    const result = await accept(repos);
+
+    expect(result).toMatchObject({ printingsCreated: 1, skipped: [] });
   });
 
   it("skips a group with a value no admin list holds", async () => {

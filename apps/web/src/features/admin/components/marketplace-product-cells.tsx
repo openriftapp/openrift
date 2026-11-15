@@ -32,7 +32,7 @@ import { PrintingLabel } from "./marketplace-printing-label";
 import type { MarketplaceHandlers, MarketplaceTableRow } from "./marketplace-product-entries";
 import { displayedProductLanguage } from "./marketplace-product-entries";
 import { AssignToPrintingButton, RowActions } from "./marketplace-row-actions";
-import { SuggestionChip } from "./marketplace-suggestion-chip";
+import { ProductSuggestionChip } from "./marketplace-suggestion-chip";
 import { ProductLink } from "./price-mappings-utils";
 import { usePrintingPairNames } from "./printing-pair-names";
 
@@ -199,7 +199,7 @@ export function AssignedPrintingsCell({
   return (
     <span className="flex flex-wrap items-center gap-1">
       {suggestions.map((suggestion) => (
-        <SuggestionChip
+        <ProductSuggestionChip
           key={suggestion.printingId}
           suggestion={suggestion}
           productExternalId={product.externalId}

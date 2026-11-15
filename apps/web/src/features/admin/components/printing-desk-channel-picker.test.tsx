@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const captured = vi.hoisted(() => ({
   created: null as unknown,
+  fail: false,
 }));
 
 function channel(overrides: Record<string, unknown>) {
@@ -46,7 +47,9 @@ vi.mock("@/features/admin/hooks/use-distribution-channels", () => ({
     isPending: false,
     mutateAsync: (input: unknown) => {
       captured.created = input;
-      return Promise.resolve({ slug: "nexus-night-2026-11" });
+      return captured.fail
+        ? Promise.reject(new Error("taken"))
+        : Promise.resolve({ slug: "nexus-night-2026-11" });
     },
   }),
 }));
@@ -55,6 +58,7 @@ const { PrintingDeskChannelPicker } = await import("./printing-desk-channel-pick
 
 beforeEach(() => {
   captured.created = null;
+  captured.fail = false;
 });
 
 describe("PrintingDeskChannelPicker", () => {
@@ -177,6 +181,20 @@ describe("PrintingDeskChannelPicker", () => {
       parentId: "root-1",
     });
     expect(onChange).toHaveBeenCalledWith(["nexus-night-2026-11"]);
+  });
+
+  it("picks nothing when creating the leaf fails", async () => {
+    captured.fail = true;
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<PrintingDeskChannelPicker value={[]} onChange={onChange} />);
+
+    await user.type(screen.getByLabelText("Distribution Channels"), "November 2026");
+    await user.click(screen.getByText(/Add “November 2026” under Nexus Night/u));
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    await waitFor(() => expect(captured.created).not.toBeNull());
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it("lists the whole tree in the browse dialog", async () => {

@@ -135,7 +135,7 @@ function QueueRow({ entry, selected }: { entry: ListEntry; selected: boolean }) 
   );
 }
 
-export function QueueList({
+export function WorkspaceQueueList({
   entries,
   selectedKey,
   emptyText,

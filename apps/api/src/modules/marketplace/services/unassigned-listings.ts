@@ -13,7 +13,11 @@ import type {
   UnassignedListings,
   UnmatchedListing,
 } from "../lib/unassigned-listings.js";
-import { buildCardIndex, getMappingOverview, matchStagedProducts } from "./marketplace-mapping.js";
+import {
+  buildMarketplaceCardIndex,
+  getMappingOverview,
+  matchStagedProducts,
+} from "./marketplace-mapping.js";
 import { buildUnifiedMappingsFromRows } from "./unified-mapping-merge.js";
 
 type ListingRow = Awaited<ReturnType<Repos["marketplaceMapping"]["unassignedListings"]>>[number];
@@ -82,7 +86,7 @@ export async function listUnassignedListings(repos: Repos): Promise<UnassignedLi
   const repo = repos.marketplaceMapping;
   const [rows, cardNames] = await Promise.all([repo.unassignedListings(), repo.allCardNames()]);
 
-  const { cardNames: nameIndex } = buildCardIndex([], cardNames);
+  const { cardNames: nameIndex } = buildMarketplaceCardIndex([], cardNames);
   const cardIds = new Set(cardNames.map((card) => card.cardId));
   const touchedCardIds = new Set<string>();
   const nameless: UnmatchedListing[] = [];

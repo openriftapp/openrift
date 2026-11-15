@@ -30,7 +30,7 @@ interface CardIndex {
   cardNames: { normName: string; baseName: string | null; groupKey: string }[];
 }
 
-export function buildCardIndex(
+export function buildMarketplaceCardIndex(
   matchedCards: {
     cardId: string;
     cardSlug: string;
@@ -380,7 +380,10 @@ export async function getMappingOverview(
     groupSetSlugMap.set(row.gid as number, row.setSlug);
   }
 
-  const { cardGroups, cardNames } = buildCardIndex(matchedCards, options?.allCardsForMatching);
+  const { cardGroups, cardNames } = buildMarketplaceCardIndex(
+    matchedCards,
+    options?.allCardsForMatching,
+  );
 
   const overrideMap = new Map<string, { cardId: string }>();
   for (const row of overrideRows) {

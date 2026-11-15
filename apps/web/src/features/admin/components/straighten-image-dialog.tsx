@@ -33,6 +33,7 @@ import {
 } from "@/features/admin/lib/straighten-preview";
 import { clampQuad, defaultQuad, imageToDisplayScale } from "@/features/admin/lib/straighten-quad";
 import { useScanServing } from "@/features/scan/hooks/use-scan-serving";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 
 type Scope = readonly (readonly unknown[])[];
@@ -44,11 +45,13 @@ async function ensureOriginal(
   run: (imageId: string) => Promise<ImageOriginalOutput>,
   imageId: string,
 ): Promise<{ original: ImageOriginalOutput | null; error: string | null }> {
-  try {
-    return { original: await run(imageId), error: null };
-  } catch {
-    return { original: null, error: "The original could not be prepared." };
-  }
+  let original: ImageOriginalOutput | undefined;
+  const ok = await runReportedMutation(async () => {
+    original = await run(imageId);
+  });
+  return ok && original
+    ? { original, error: null }
+    : { original: null, error: "The original could not be prepared." };
 }
 
 async function detectQuad(

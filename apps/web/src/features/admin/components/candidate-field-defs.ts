@@ -40,7 +40,7 @@ export interface FieldDef<TKey extends string = string> {
 /** Every column the accept-field endpoint writes, plus the two read-only provider columns that are shown but never sent. */
 export type CandidateCardFieldKey = AcceptCardField | "externalId" | "extraData";
 
-export function buildCandidateCardFields(
+export function candidateCardFieldDefs(
   orders: EnumOrders,
   labels: EnumLabels,
 ): FieldDef<CandidateCardFieldKey>[] {
@@ -91,7 +91,7 @@ export function buildNewCardFields(
   orders: EnumOrders,
   labels: EnumLabels,
 ): FieldDef<NewCardFieldKey>[] {
-  const fields: FieldDef<NewCardFieldKey>[] = buildCandidateCardFields(orders, labels);
+  const fields: FieldDef<NewCardFieldKey>[] = candidateCardFieldDefs(orders, labels);
   const afterDomains = fields.findIndex((field) => field.key === "domains") + 1;
   return fields.toSpliced(afterDomains, 0, ...NEW_CARD_TEXT_FIELDS);
 }
@@ -103,7 +103,7 @@ export type CandidatePrintingFieldKey =
   | "extraData"
   | "imageUrl";
 
-export function buildCandidatePrintingFields(
+export function candidatePrintingFieldDefs(
   orders: EnumOrders,
   labels: EnumLabels,
   markers: readonly { value: string; label: string }[],

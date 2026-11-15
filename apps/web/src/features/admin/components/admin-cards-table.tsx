@@ -33,7 +33,7 @@ import {
   CARD_ISSUES,
   cardAttentionBadges,
   hasIssue,
-  listStatusFor,
+  cardListStatusFor,
   needsAttention,
 } from "@/features/admin/lib/card-attention";
 import type { AdminSearchableCard } from "@/features/cards/hooks/use-card-search";
@@ -299,7 +299,7 @@ export function AdminCardsTable({
   const { serverSort, sortRows } = useCardsTableSort(SORT_VALUES, "name");
 
   const priceFilterActive = issue === "unlinked-products";
-  const detailStatus = listStatusFor(segment === "attention", issue);
+  const detailStatus = cardListStatusFor(segment === "attention", issue);
   // The detail page's prev/next walks only rows matching this filter.
   const detailSearch = {
     ...(setSlug ? { set: setSlug } : {}),

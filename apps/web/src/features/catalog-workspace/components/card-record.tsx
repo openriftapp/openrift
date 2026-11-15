@@ -54,7 +54,7 @@ import { printingKindLabel } from "@/features/admin/lib/printing-summary";
 import { useCardBans } from "@/features/cards/hooks/use-card-bans";
 import { CardListingsSection } from "@/features/catalog-workspace/components/card-listings-section";
 import { CompareSourcesDialog } from "@/features/catalog-workspace/components/compare-sources-dialog";
-import { FieldRow } from "@/features/catalog-workspace/components/record/field-row";
+import { RecordFieldRow } from "@/features/catalog-workspace/components/record/field-row";
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
 import {
   RecordBanner,
@@ -604,7 +604,7 @@ function CardRecordBody({
         {fieldDefs.map((def) => {
           const suggestions = rowsByField.get(def.field)?.suggestions ?? [];
           return (
-            <FieldRow
+            <RecordFieldRow
               key={def.field}
               label={def.label}
               value={formatCatalogFieldValue(def.field, cardValues[def.field], labels)}

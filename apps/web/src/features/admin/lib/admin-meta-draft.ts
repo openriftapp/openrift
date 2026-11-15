@@ -324,7 +324,10 @@ export interface MetaPlayerOverlayListInput {
   listStatus: Exclude<MetaListStatus, "none">;
 }
 
-export function summarizeDeckCards(cards: ImportedDeckCard[]): { rows: number; copies: number } {
+export function countDeckRowsAndCopies(cards: ImportedDeckCard[]): {
+  rows: number;
+  copies: number;
+} {
   return {
     rows: cards.length,
     copies: cards.reduce((sum, card) => sum + card.quantity, 0),

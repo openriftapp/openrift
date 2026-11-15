@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   checkAllCards: { mutateAsync: vi.fn(() => Promise.resolve()), isPending: false },
   checkAllPrintings: { mutateAsync: vi.fn(() => Promise.resolve()), isPending: false },
   toastSuccess: vi.fn(),
+  toastError: vi.fn(),
   hotkeys: new Map<string, (...args: unknown[]) => void>(),
   nextUncheckedArgs: { current: null as [string, Set<string> | null | undefined] | null },
   checkAllCardsScope: { current: undefined as unknown },
@@ -91,7 +92,7 @@ vi.mock("@/features/admin/hooks/use-provider-settings", () => ({
   }),
 }));
 
-vi.mock("sonner", () => ({ toast: { success: mocks.toastSuccess } }));
+vi.mock("sonner", () => ({ toast: { success: mocks.toastSuccess, error: mocks.toastError } }));
 
 import { makeReviewQueueItem } from "@/test/factories";
 
@@ -501,18 +502,66 @@ describe("useCardReviewNavigation", () => {
     expect(mocks.navigate).not.toHaveBeenCalled();
   });
 
-  it("clears the run state when a check mutation rejects", async () => {
+  it("settles and stays on the card when a check mutation rejects", async () => {
     mocks.checkAllCards.mutateAsync.mockRejectedValueOnce(new Error("boom"));
     const { result } = renderNav({
       detail: stubDetail({ sources: [stubSource({ checkedAt: null })] }),
     });
 
     await act(async () => {
-      await expect(result.current.checkAllAndNext()).rejects.toThrow("boom");
+      await expect(result.current.checkAllAndNext()).resolves.toBeUndefined();
     });
+
+    expect(mocks.fetchNext).not.toHaveBeenCalled();
 
     expect(result.current.isCheckingAll).toBe(false);
     expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+
+  it("ignores a second press while the next card is still loading", async () => {
+    let resolveNext: ((slug: string | null) => void) | undefined;
+    mocks.fetchNext.mockImplementationOnce(
+      () =>
+        new Promise<string | null>((resolve) => {
+          resolveNext = resolve;
+        }),
+    );
+    const { result } = renderNav({
+      detail: stubDetail({ sources: [stubSource({ checkedAt: null })] }),
+    });
+
+    let first: Promise<void> = Promise.resolve();
+    await act(async () => {
+      first = result.current.checkAllAndNext();
+      await vi.waitFor(() => expect(mocks.fetchNext).toHaveBeenCalledOnce());
+    });
+    expect(result.current.isCheckingAll).toBe(true);
+    await act(async () => {
+      await result.current.checkAllAndNext();
+    });
+    await act(async () => {
+      resolveNext?.("zed");
+      await first;
+    });
+
+    expect(mocks.checkAllCards.mutateAsync).toHaveBeenCalledOnce();
+    expect(mocks.navigate).toHaveBeenCalledOnce();
+    expect(result.current.isCheckingAll).toBe(false);
+  });
+
+  it("settles and says so when the next card cannot be loaded", async () => {
+    mocks.fetchNext.mockRejectedValueOnce(new Error("offline"));
+    const { result } = renderNav({
+      detail: stubDetail({ sources: [stubSource({ checkedAt: null })] }),
+    });
+
+    await act(async () => {
+      await expect(result.current.checkAllAndNext()).resolves.toBeUndefined();
+    });
+
+    expect(mocks.toastError).toHaveBeenCalledWith("Could not load the next card.");
+    expect(mocks.navigate).not.toHaveBeenCalled();
+    expect(result.current.isCheckingAll).toBe(false);
   });
 
   it("moves with the same selection as the prev/next buttons on the arrow hotkeys", () => {

@@ -261,7 +261,7 @@ describe.skipIf(!ctx)("insertNewPrinting (integration)", () => {
           [],
         ),
       ),
-    ).rejects.toThrow(`The existing ${SHORT_CODE} normal EN side differs in artist.`);
+    ).rejects.toThrow(`The existing ${SHORT_CODE} normal EN face differs in artist.`);
 
     const unchanged = await db
       .selectFrom("faces")

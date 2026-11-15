@@ -232,8 +232,8 @@ export const adminUnifiedMappingsContract = {
     .route({ method: "GET", path: `${MM}/summary`, tags: [TAG] })
     .output(unifiedMappingsSummaryResponseSchema),
   card: authedRoute
-    .route({ method: "GET", path: `${MM}/card/{cardId}`, tags: [TAG] })
-    .input(z.object({ cardId: z.string() }))
+    .route({ method: "GET", path: `${MM}/card/{cardSlug}`, tags: [TAG] })
+    .input(z.object({ cardSlug: z.string() }))
     .output(unifiedMappingsCardResponseSchema),
   save: authedRoute
     .route({ method: "POST", path: MM, tags: [TAG], inputStructure: "detailed" })

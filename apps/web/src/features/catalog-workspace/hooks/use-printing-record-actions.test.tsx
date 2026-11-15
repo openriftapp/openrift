@@ -38,7 +38,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
   acceptPrintingFieldFn: mocks.acceptPrintingFieldFn,
-  uncheckCandidatePrintingFn: mocks.uncheckFn,
+  uncheckCandidatePrintingsFn: mocks.uncheckFn,
   unmapMarketplacePrintingFn: mocks.unmapFn,
   useAcceptPrintingField: () => mocks.acceptField.current,
   useCheckCandidatePrinting: () => mocks.generic.current,
@@ -161,7 +161,45 @@ describe("usePrintingRecordActions", () => {
     const entry = latest();
     expect(entry?.label).toBe("Discarded 1 suggestion on Kai'Sa · OGN-001");
     await entry?.undo();
-    expect(mocks.uncheckFn).toHaveBeenCalledWith({ data: { id: candidate.id } });
+    expect(mocks.uncheckFn).toHaveBeenCalledWith({
+      data: { candidatePrintingIds: [candidate.id] },
+    });
+  });
+
+  it("undoes an Enter over two sources with one batch uncheck", async () => {
+    const sources = [
+      makeCandidateCard({ provider: "provider-a" }),
+      makeCandidateCard({ provider: "provider-b" }),
+    ];
+    const candidates = sources.map((source) =>
+      makeCandidatePrinting({ candidateCardId: source.id, printingId: "p1", size: "oversized" }),
+    );
+    const detail = makeAdminCardDetail({
+      sources,
+      printings: [makeAdminPrinting({ id: "p1" })],
+      candidatePrintings: candidates,
+    });
+    const model = buildPrintingSuggestions([detail], "p1", CONTEXT);
+    renderHook(
+      () =>
+        usePrintingRecordActions({
+          printingId: "p1",
+          record: "Kai'Sa · OGN-001",
+          model,
+          listings: [],
+          canCheck: true,
+          canMap: true,
+        }),
+      { wrapper: wrapper(new QueryClient()) },
+    );
+
+    await mocks.registered.current?.primary?.run();
+    await latest()?.undo();
+
+    expect(mocks.uncheckFn).toHaveBeenCalledOnce();
+    expect(mocks.uncheckFn).toHaveBeenCalledWith({
+      data: { candidatePrintingIds: candidates.map((candidate) => candidate.id) },
+    });
   });
 
   it("Discard pushes an undo that unchecks the row", async () => {
@@ -192,7 +230,9 @@ describe("usePrintingRecordActions", () => {
       expect.anything(),
     );
     await latest()?.undo();
-    expect(mocks.uncheckFn).toHaveBeenCalledWith({ data: { id: candidate.id } });
+    expect(mocks.uncheckFn).toHaveBeenCalledWith({
+      data: { candidatePrintingIds: [candidate.id] },
+    });
   });
 
   it("maps the listing with the number key and refreshes the queue once it settles", async () => {

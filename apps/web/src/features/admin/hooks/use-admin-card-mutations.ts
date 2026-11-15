@@ -74,13 +74,20 @@ const checkCandidatePrintingFn = createServerFn({ method: "POST" })
     });
   });
 
-export const uncheckCandidatePrintingFn = createServerFn({ method: "POST" })
+const uncheckCandidatePrintingFn = createServerFn({ method: "POST" })
   .validator((input: { id: string }) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
     await apiOrpcClient(adminCardMutationsContract, context.cookie).uncheckCandidatePrinting({
       id: data.id,
     });
+  });
+
+export const uncheckCandidatePrintingsFn = createServerFn({ method: "POST" })
+  .validator((input: { candidatePrintingIds: string[] }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminCardMutationsContract, context.cookie).uncheckCandidatePrintings(data);
   });
 
 const checkAllCandidatePrintingsFn = createServerFn({ method: "POST" })

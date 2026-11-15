@@ -9,7 +9,7 @@ import type { CardFace, CardType } from "@openrift/shared/types/enums";
 import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
-import { cardTypes, primaryCardType } from "../../../db/helpers.js";
+import { cardTypes, primaryCardTypeSql } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import { imageUrlWithOriginal, joinAdminFaceImage } from "../../../repositories/query-helpers.js";
 import type { FullPrintingRow, PrintingUpdate } from "./catalog-mutations.js";
@@ -156,7 +156,7 @@ export function printingDeskRepo(db: Kysely<Database>) {
         "pf.cardId",
         "c.slug as cardSlug",
         "c.name as cardName",
-        primaryCardType("c.id").as("cardType"),
+        primaryCardTypeSql("c.id").as("cardType"),
         "pf.setId",
         "s.name as setName",
         "s.slug as setSlug",
@@ -446,7 +446,7 @@ export function printingDeskRepo(db: Kysely<Database>) {
           "c.name as cardName",
           "c.tags as cardTags",
           sql<CardType[]>`coalesce(${cardTypes("c.id")}, '{}')`.as("cardTypes"),
-          primaryCardType("c.id").as("cardType"),
+          primaryCardTypeSql("c.id").as("cardType"),
           "s.publicCode",
           "s.finish",
           "s.artist",

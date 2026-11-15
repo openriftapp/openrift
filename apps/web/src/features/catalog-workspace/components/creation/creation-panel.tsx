@@ -28,7 +28,7 @@ import {
   CreationImagesSummary,
 } from "@/features/catalog-workspace/components/creation/creation-images";
 import { FacePicker } from "@/features/catalog-workspace/components/creation/face-picker";
-import { FieldRow } from "@/features/catalog-workspace/components/record/field-row";
+import { RecordFieldRow } from "@/features/catalog-workspace/components/record/field-row";
 import { RecordSection } from "@/features/catalog-workspace/components/record/record-pane";
 import type {
   CreationDraft,
@@ -578,7 +578,7 @@ export function CreationPanel({
     <div className="flex flex-col gap-3.5">
       <DuplicateWarnings candidates={duplicateCandidates} onMerge={onMergeDuplicate} />
       <RecordSection title="What gets created" actions={addSecondFace}>
-        <FieldRow
+        <RecordFieldRow
           label="Card"
           value={
             draft.card === null ? (
@@ -601,7 +601,7 @@ export function CreationPanel({
           const row: EditingRow = `face-${index}`;
           const editor = editing === row ? faceEditor(face, index) : undefined;
           return (
-            <FieldRow
+            <RecordFieldRow
               key={index}
               label={index === 0 ? "Face" : "Face 2"}
               value={
@@ -619,7 +619,7 @@ export function CreationPanel({
             />
           );
         })}
-        <FieldRow
+        <RecordFieldRow
           label="Images"
           value={
             <div className="flex flex-col gap-1">
@@ -648,7 +648,7 @@ export function CreationPanel({
             ) : undefined
           }
         />
-        <FieldRow
+        <RecordFieldRow
           label="Printing"
           value={printingSummary(draft.printing)}
           onEdit={disabled ? undefined : () => setEditing("printing")}

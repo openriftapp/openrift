@@ -8,3 +8,9 @@ export function imagesOnSide<T extends { printingId: string; face: CardFace }>(
   const face: CardFace = printing.side === 2 ? "back" : "front";
   return images.filter((image) => image.printingId === printing.id && image.face === face);
 }
+
+export function activeImageSourceUrl(
+  images: readonly { isActive: boolean; originalUrl: string | null }[],
+): string | null {
+  return images.find((image) => image.isActive)?.originalUrl ?? null;
+}

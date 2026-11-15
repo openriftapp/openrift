@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 
-export function FieldRow({
+export function RecordFieldRow({
   label,
   value,
   onEdit,

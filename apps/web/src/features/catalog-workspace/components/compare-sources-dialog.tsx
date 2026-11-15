@@ -39,7 +39,7 @@ import {
 import { acceptFieldWithUndo } from "@/features/admin/lib/accept-undo";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { getProviderLabel } from "@/features/admin/lib/candidate-rows";
-import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
+import { activeImageSourceUrl, imagesOnSide } from "@/features/admin/lib/printing-side-images";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import { faceCompareCandidates } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import type { PrintingCompareGroup } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
@@ -281,7 +281,7 @@ function SourceSpreadsheet({
   const ownUrls = new Set(sideImages.map((image) => image.originalUrl));
   const activeRow = {
     ...face,
-    imageUrl: sideImages.find((image) => image.isActive)?.originalUrl ?? null,
+    imageUrl: activeImageSourceUrl(sideImages),
   };
   const landscape = getOrientation(detail.card?.types ?? []) === "landscape";
   return (

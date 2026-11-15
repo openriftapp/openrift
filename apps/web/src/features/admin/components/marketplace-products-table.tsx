@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import { SOURCE_CONFIGS } from "@/features/admin/lib/marketplace-sources";
+import type { PrintingAssignment } from "@/features/admin/lib/printing-assignment";
 
 import type { RowSuggestion } from "./marketplace-product-cells";
 import {
@@ -23,11 +24,7 @@ import {
   ProductCell,
   VariantCell,
 } from "./marketplace-product-cells";
-import type {
-  MarketplaceHandlers,
-  MarketplaceTableRow,
-  PrintingAssignment,
-} from "./marketplace-product-entries";
+import type { MarketplaceHandlers, MarketplaceTableRow } from "./marketplace-product-entries";
 import {
   buildMarketplaceRows,
   collectEntries,

@@ -12,7 +12,7 @@ import {
   metaPlayerRank,
   metaPlayerRecordPart,
   metaPlayerToDraft,
-  summarizeDeckCards,
+  countDeckRowsAndCopies,
   validateMetaEventDraft,
   validateMetaPlayerDraft,
 } from "@/features/admin/lib/admin-meta-draft";
@@ -610,9 +610,9 @@ describe("metaPlayerDeckRename", () => {
   });
 });
 
-describe("summarizeDeckCards", () => {
+describe("countDeckRowsAndCopies", () => {
   it("counts rows and copies", () => {
-    const summary = summarizeDeckCards([
+    const summary = countDeckRowsAndCopies([
       { cardId: "a", zone: "main", quantity: 3, preferredPrintingId: null },
       { cardId: "b", zone: "main", quantity: 2, preferredPrintingId: null },
       { cardId: "c", zone: "legend", quantity: 1, preferredPrintingId: null },
@@ -621,6 +621,6 @@ describe("summarizeDeckCards", () => {
   });
 
   it("reports zero for an empty list", () => {
-    expect(summarizeDeckCards([])).toEqual({ rows: 0, copies: 0 });
+    expect(countDeckRowsAndCopies([])).toEqual({ rows: 0, copies: 0 });
   });
 });
