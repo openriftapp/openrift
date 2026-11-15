@@ -13,7 +13,7 @@
     "check:duplication": "bun scripts/check-duplication.ts",
     "check:override-pins": "bun scripts/check-override-pins.ts",
     "check:ssr-bundle": "bun scripts/check-ssr-bundle.ts",
-    "countries:generate": "bun scripts/generate-country-names.ts",
+    "locale-names:generate": "bun scripts/generate-locale-names.ts",
     "typecheck": "turbo run typecheck && bun run typecheck:scripts",
     "typecheck:scripts": "bun run --cwd packages/shared tsgo --noEmit -p ../../scripts/tsconfig.json",
     "dev": "DEV_HTTPS=1 bun scripts/dev.ts",

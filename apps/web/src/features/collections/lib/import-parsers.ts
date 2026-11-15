@@ -6,7 +6,7 @@ import { isAlwaysFoilRarity, WellKnown } from "@openrift/shared/well-known";
 
 import { conditionSlugFromSource } from "@/features/collections/lib/condition-codes";
 import { parseCSV, parseCSVWithHeaders } from "@/features/collections/lib/csv";
-import { languageCodeFromSource } from "@/lib/language-names";
+import { languageCodeFromCsv } from "@/lib/csv-language-names";
 import { m } from "@/paraglide/messages.js";
 
 /** Applied to every copy the entry expands into. Other tools only export a condition. */
@@ -215,7 +215,7 @@ function parsePiltoverArchive(text: string): ParseResult {
       cardName,
       sourceCode: parsed?.shortCode ?? variantNumber,
       isPromo: variantType.toLowerCase() === "promo" ? true : undefined,
-      language: languageCodeFromSource(record["Language"]),
+      language: languageCodeFromCsv(record["Language"]),
       metadata,
       rawFields,
     };
@@ -639,7 +639,7 @@ function parseRiftMana(text: string): ParseResult {
 
     const rarity = record["Rarity"]?.trim() ?? "";
     const alwaysFoil = isAlwaysFoilRarity(rarity);
-    const language = languageCodeFromSource(record["Language"]);
+    const language = languageCodeFromCsv(record["Language"]);
 
     const baseRawFields: Record<string, string | undefined> = {
       "Source Code": cardId,

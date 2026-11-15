@@ -1,28 +1,17 @@
+import type { LabelMap } from "@openrift/shared/enum-label";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { formatMonthYear, formatShortDayYear, todayUtc } from "@openrift/shared/format-date";
 import type { SetRelease, SetReleases } from "@openrift/shared/set-release";
 import { isReleased, isReleasedAnywhere } from "@openrift/shared/set-release";
 import type { SetListEntry } from "@openrift/shared/types/api/catalog";
 
 import { DATE_WORDS } from "@/lib/date-words";
+import { LANGUAGE_NAMES } from "@/lib/language-names.gen";
 import { m } from "@/paraglide/messages.js";
 import { getLocale } from "@/paraglide/runtime.js";
 
-const BCP47_BY_CARD_LANGUAGE: Record<string, string> = {
-  KR: "ko",
-  SC: "zh-Hans",
-  TC: "zh-Hant",
-};
-
-const languageNames = new Map<string, Intl.DisplayNames>();
-
-export function cardLanguageName(code: string): string {
-  const locale = getLocale();
-  let names = languageNames.get(locale);
-  if (names === undefined) {
-    names = new Intl.DisplayNames([locale], { type: "language" });
-    languageNames.set(locale, names);
-  }
-  return names.of(BCP47_BY_CARD_LANGUAGE[code] ?? code.toLowerCase()) ?? code;
+export function cardLanguageName(code: string, languageLabels: LabelMap): string {
+  return LANGUAGE_NAMES[getLocale()][code] ?? enumLabel(languageLabels, code);
 }
 
 export interface ReleaseGroup {
@@ -159,24 +148,34 @@ function listFormat(items: string[]): string {
   return new Intl.ListFormat(getLocale(), { type: "conjunction" }).format(items);
 }
 
-function releaseItems(groups: ReleaseGroup[]): string {
+function releaseItems(groups: ReleaseGroup[], languageLabels: LabelMap): string {
   return listFormat(
     groups.map((group) =>
       m.set_release_item({
-        languages: listFormat(group.languages.map((code) => cardLanguageName(code))),
+        languages: listFormat(
+          group.languages.map((code) => cardLanguageName(code, languageLabels)),
+        ),
         when: releaseWhen(group.release),
       }),
     ),
   );
 }
 
-export function setReleaseSentence(releases: SetReleases, today = todayUtc()): string | null {
+export function setReleaseSentence(
+  releases: SetReleases,
+  languageLabels: LabelMap,
+  today = todayUtc(),
+): string | null {
   const groups = groupReleases(releases);
   const released = groups.filter((group) => isReleased(group.release, today));
   const upcoming = groups.filter((group) => !isReleased(group.release, today));
   const sentences = [
-    ...(released.length > 0 ? [m.set_released_in({ items: releaseItems(released) })] : []),
-    ...(upcoming.length > 0 ? [m.set_releases_in({ items: releaseItems(upcoming) })] : []),
+    ...(released.length > 0
+      ? [m.set_released_in({ items: releaseItems(released, languageLabels) })]
+      : []),
+    ...(upcoming.length > 0
+      ? [m.set_releases_in({ items: releaseItems(upcoming, languageLabels) })]
+      : []),
   ];
   return sentences.length > 0 ? sentences.join(" ") : null;
 }

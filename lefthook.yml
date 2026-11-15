@@ -73,14 +73,16 @@ pre-push:
           - name: duplicate-exports-check
             glob: ["*.{ts,tsx}", ".jscpd.json", "scripts/data/duplicate-exports-baseline.txt"]
             run: bun run check:duplicate-exports
-          - name: country-names-check
+          - name: locale-names-check
             glob:
               - "apps/web/src/lib/country-names/**"
+              - "apps/web/src/lib/language-names.gen.ts"
               - "apps/web/src/lib/flag-codes.ts"
               - "apps/web/project.inlang/settings.json"
-              - "scripts/generate-country-names.ts"
+              - "scripts/generate-locale-names.ts"
+              - "scripts/cldr-language-name.ts"
               - "scripts/data/cldr-*/**"
-            run: bun run countries:generate --check
+            run: bun run locale-names:generate --check
           - name: lockfile-check
             glob: "**/package.json"
             run: bun install --frozen-lockfile

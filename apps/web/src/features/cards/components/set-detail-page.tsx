@@ -18,6 +18,7 @@ import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbna
 import { publicSetDetailQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { setReleaseSentence } from "@/features/cards/lib/set-hero-copy";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
+import { useLanguageLabels } from "@/hooks/use-enums";
 import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -39,6 +40,7 @@ export function SetDetailPage() {
   const showImages = useDisplayStore((s) => s.showImages);
   const display = useCardThumbnailDisplay();
   const effectiveLanguageOrder = useEffectiveLanguageOrder();
+  const languageLabels = useLanguageLabels();
 
   const uniquePrintings = deduplicateByCard(data.printings, effectiveLanguageOrder);
   const printingsByCardId = Map.groupBy(data.printings, (printing) => printing.cardId);
@@ -74,7 +76,7 @@ export function SetDetailPage() {
           </span>
         }
         title={data.set.name}
-        lead={setReleaseSentence(data.set.releases) ?? undefined}
+        lead={setReleaseSentence(data.set.releases, languageLabels) ?? undefined}
         aside={<PageHeroCardFan urls={fanUrls} />}
       >
         <PageHeroStats

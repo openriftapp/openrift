@@ -16,15 +16,15 @@ const NAME_TO_CODE: Record<string, string> = {
   "chinese (simplified)": WellKnown.language.SC,
 };
 
-/** `languageCodeFromSource` accepts a bare code back, so this round-trips even without a name entry. */
-export function languageNameForCode(code: string): string {
+/** `languageCodeFromCsv` accepts a bare code back, so this round-trips even without a name entry. */
+export function csvLanguageName(code: string): string {
   return CODE_TO_NAME[code] ?? code;
 }
 
 const LANGUAGE_CODE = /^[A-Za-z]{2}$/u;
 
 /** Unrecognized free text returns undefined, not a junk code. */
-export function languageCodeFromSource(language: string | undefined): string | undefined {
+export function languageCodeFromCsv(language: string | undefined): string | undefined {
   const trimmed = language?.trim();
   if (!trimmed) {
     return undefined;

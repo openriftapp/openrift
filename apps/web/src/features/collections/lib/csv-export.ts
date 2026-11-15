@@ -11,9 +11,9 @@ import { isAlwaysFoilRarity, WellKnown } from "@openrift/shared/well-known";
 import { conditionShortCode } from "@/features/collections/lib/condition-codes";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
 import { stackCardName } from "@/features/collections/lib/stacked-entry";
+import { csvLanguageName } from "@/lib/csv-language-names";
 import type { DownloadName } from "@/lib/download";
 import { downloadFilename } from "@/lib/download";
-import { languageNameForCode } from "@/lib/language-names";
 
 export interface CsvExportLabels {
   sets: LabelMap;
@@ -230,7 +230,7 @@ export function generatePiltoverArchiveCSV(
       const row = [
         ...identity,
         String(group.quantity),
-        languageNameForCode(printing.language),
+        csvLanguageName(printing.language),
         condition === null ? "" : enumLabel(labels.conditions, condition),
         graded ? enumLabel(labels.graders, grader) : "",
         graded ? String(grade) : "",
@@ -322,7 +322,7 @@ export function generateRiftManaCSV(
         set: enumLabel(labels.sets, printing.setSlug),
         color: printing.card.domains.join(" / "),
         rarity: enumLabel(labels.rarities, printing.rarity),
-        language: languageNameForCode(printing.language),
+        language: csvLanguageName(printing.language),
         normalQty: 0,
         foilQty: 0,
         normalGroups: [],

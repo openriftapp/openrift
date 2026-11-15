@@ -1,5 +1,8 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import type { SetListEntry } from "@openrift/shared/types/api/catalog";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { getLocale, overwriteGetLocale } from "@/paraglide/runtime.js";
 
 import {
   cardLanguageForLocale,
@@ -31,12 +34,37 @@ function set(overrides: Partial<SetListEntry>): SetListEntry {
   };
 }
 
+const LANGUAGE_LABELS = labelMapOf({ EN: "English (catalog)", XQ: "Ionian" });
+
 describe("cardLanguageName", () => {
-  it("names the card languages whose codes are not language tags", () => {
-    expect(cardLanguageName("EN")).toBe("English");
-    expect(cardLanguageName("KR")).toBe("Korean");
-    expect(cardLanguageName("SC")).toBe("Simplified Chinese");
-    expect(cardLanguageName("TC")).toBe("Traditional Chinese");
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("names every language without the runtime's display names", () => {
+    const displayNames = vi.spyOn(Intl, "DisplayNames");
+    const baseGetLocale = getLocale;
+    overwriteGetLocale(() => "ko");
+    try {
+      expect(
+        ["EN", "FR", "KR", "SC", "TC"].map((code) => cardLanguageName(code, LANGUAGE_LABELS)),
+      ).toEqual(["영어", "프랑스어", "한국어", "중국어(간체)", "중국어(번체)"]);
+    } finally {
+      overwriteGetLocale(baseGetLocale);
+    }
+    expect(displayNames).not.toHaveBeenCalled();
+  });
+
+  it("prefers the localized name over the catalog label", () => {
+    expect(cardLanguageName("EN", LANGUAGE_LABELS)).toBe("English");
+  });
+
+  it("falls back to the catalog label for a language without a localized name", () => {
+    expect(cardLanguageName("XQ", LANGUAGE_LABELS)).toBe("Ionian");
+  });
+
+  it("falls back to the code when the catalog has no label either", () => {
+    expect(cardLanguageName("IT", LANGUAGE_LABELS)).toBe("IT");
   });
 });
 
@@ -70,6 +98,7 @@ describe("setReleaseSentence", () => {
           EN: { releasedAt: "2025-10-31", precision: "day" },
           SC: { releasedAt: "2025-08-01", precision: "day" },
         },
+        LANGUAGE_LABELS,
         TODAY,
       ),
     ).toBe("Released in Simplified Chinese on Aug 1, 2025 and in English on Oct 31, 2025.");
@@ -82,6 +111,7 @@ describe("setReleaseSentence", () => {
           EN: { releasedAt: "2026-07-31", precision: "day" },
           FR: { releasedAt: "2026-10-23", precision: "day" },
         },
+        LANGUAGE_LABELS,
         TODAY,
       ),
     ).toBe("Released in English on Jul 31, 2026. Releases in French on Oct 23, 2026.");
@@ -95,14 +125,17 @@ describe("setReleaseSentence", () => {
           FR: { releasedAt: "2027-04-01", precision: "quarter" },
           KR: { releasedAt: "2028-01-01", precision: "year" },
         },
+        LANGUAGE_LABELS,
         TODAY,
       ),
     ).toBe("Releases in English in January 2027, in French in Q2 2027, and in Korean in 2028.");
   });
 
   it("returns null when no release is dated", () => {
-    expect(setReleaseSentence({ EN: { releasedAt: null, precision: null } }, TODAY)).toBeNull();
-    expect(setReleaseSentence({}, TODAY)).toBeNull();
+    expect(
+      setReleaseSentence({ EN: { releasedAt: null, precision: null } }, LANGUAGE_LABELS, TODAY),
+    ).toBeNull();
+    expect(setReleaseSentence({}, LANGUAGE_LABELS, TODAY)).toBeNull();
   });
 });
 

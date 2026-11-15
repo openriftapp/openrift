@@ -45,7 +45,7 @@ import { runSettleBatch } from "@/features/groups/lib/trade-settle-batch";
 import { stepSequence } from "@/features/groups/lib/trade-sheet";
 import { talliedCount, useTradeTallyStore } from "@/features/groups/stores/trade-tally-store";
 import { useRequiredUserId } from "@/hooks/use-session";
-import { languageNameForCode } from "@/lib/language-names";
+import { csvLanguageName } from "@/lib/csv-language-names";
 import { m } from "@/paraglide/messages.js";
 
 async function copyOptionsOrNull(
@@ -115,9 +115,7 @@ function TallyRow({
             rarity={printing.rarity}
             hideLanguage
             trailing={
-              <span className="text-muted-foreground">
-                · {languageNameForCode(printing.language)}
-              </span>
+              <span className="text-muted-foreground">· {csvLanguageName(printing.language)}</span>
             }
           />
         ) : null}
