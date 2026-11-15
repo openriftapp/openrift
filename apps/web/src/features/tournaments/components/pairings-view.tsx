@@ -246,7 +246,7 @@ export function PairingsView({
 // "3 pods" / "4 matches" — an all-1v1 (Swiss) round pairs matches, not pods,
 // and every 2v2 team round is matches throughout.
 function formatPodCount(round: PodRoundResponse, teamMode: boolean): string {
-  const allMatches = teamMode || isAllMatchRound(round.pods.map((pod) => pod.size));
+  const allMatches = teamMode || isAllMatchRound(round.pods);
   const count = round.pods.length;
   if (allMatches) {
     return m.tournaments_round_matches_count({ count });
@@ -262,7 +262,7 @@ function RoundPenaltyStats({ round }: { round: PodRoundResponse }) {
   const largestSpread = round.pods.reduce((max, pod) => Math.max(max, pod.penalty?.spread ?? 0), 0);
   const sameRegionPods = round.pods.filter((pod) => (pod.penalty?.sameRegion ?? 0) > 0).length;
   // An all-matches (Swiss) round has no 3-pod duty to report.
-  const allMatches = isAllMatchRound(round.pods.map((pod) => pod.size));
+  const allMatches = isAllMatchRound(round.pods);
 
   const items: StatStripItem[] = [
     {

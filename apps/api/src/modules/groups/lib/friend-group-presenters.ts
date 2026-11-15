@@ -26,7 +26,7 @@ import type {
   GroupInvite,
   MemberPreviewRow,
   MemberWithUser,
-  SharedListRow,
+  SharedListWithOwner,
 } from "../repositories/friend-groups-shared.js";
 import { hasRole } from "./group-access.js";
 
@@ -188,7 +188,9 @@ export function toOutgoingRequest(
   };
 }
 
-export function toSharedList(row: SharedListRow): FriendGroupSharedListDetailResponse["list"] {
+export function toSharedList(
+  row: SharedListWithOwner,
+): FriendGroupSharedListDetailResponse["list"] {
   return {
     id: row.list.id,
     name: row.list.name,

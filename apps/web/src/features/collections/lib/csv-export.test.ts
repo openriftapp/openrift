@@ -227,6 +227,20 @@ describe("generateExportCSV", () => {
     });
   });
 
+  it("neutralises formula-like notes and gives them back on re-import", () => {
+    const stack = makeStack({ shortCode: "OGN-001", copyCount: 1 });
+    stack.copyIds = ["c1"];
+    const copiesById = new Map<string, CopyResponse>([
+      ["c1", stubCopy({ id: "c1", notesPublic: "=SUM(A1)", notesPrivate: "-signed, +1 foil" })],
+    ]);
+    const csv = generateExportCSV([stack], copiesById);
+    expect(csv.split("\n")[1]).toContain(`'=SUM(A1),"'-signed, +1 foil"`);
+    expect(parseImportData(csv).entries[0]!.metadata).toEqual({
+      notesPublic: "=SUM(A1)",
+      notesPrivate: "-signed, +1 foil",
+    });
+  });
+
   it("emits straight apostrophes for card names with curly ones", () => {
     const stack = makeStack({ shortCode: "OGN-269", name: "Kai’Sa, Survivor" });
     const csv = generateExportCSV([stack]);
@@ -369,6 +383,16 @@ describe("generatePiltoverArchiveCSV", () => {
     expect(byCode.get("OGN-089a")).toMatchObject({ finish: "foil", artVariant: "altart" });
     expect(byCode.get("OGN-309*")).toMatchObject({ isOvernumbered: true });
     expect(byCode.get("OGN-089b")).toMatchObject({ isPromo: true });
+  });
+
+  it("round-trips formula-like notes through the Piltover Archive import parser", () => {
+    const stack = makeStack({ shortCode: "OGN-001", copyCount: 1 });
+    stack.copyIds = ["c1"];
+    const copiesById = new Map<string, CopyResponse>([
+      ["c1", stubCopy({ id: "c1", notesPublic: "@Teemo" })],
+    ]);
+    const result = parseImportData(generatePiltoverArchiveCSV([stack], LABELS, copiesById));
+    expect(result.entries[0]!.metadata).toEqual({ notesPublic: "@Teemo" });
   });
 
   it("round-trips a graded copy's grading and notes", () => {

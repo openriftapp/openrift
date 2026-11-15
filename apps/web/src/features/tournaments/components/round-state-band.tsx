@@ -11,7 +11,7 @@ import { m } from "@/paraglide/messages.js";
 function roundReportProgress(round: PodRoundResponse) {
   const total = round.pods.length;
   const reported = round.pods.filter((pod) => pod.resultStatus === "reported").length;
-  return { total, reported, noun: pairingPluralNoun(round.pods.map((pod) => pod.size)) };
+  return { total, reported, noun: pairingPluralNoun(round.pods) };
 }
 
 export function OpenRoundBand({

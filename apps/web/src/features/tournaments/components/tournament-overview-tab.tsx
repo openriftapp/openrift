@@ -273,7 +273,7 @@ function RoundBand({
   const manage = canManageTournament(detail.myRoles);
   const finished = isFinished(detail);
   const round = run.rounds.at(-1);
-  const noun = pairingPluralNoun(round?.pods.map((pod) => pod.size) ?? []);
+  const noun = pairingPluralNoun(round?.pods ?? []);
 
   if (!round) {
     return (

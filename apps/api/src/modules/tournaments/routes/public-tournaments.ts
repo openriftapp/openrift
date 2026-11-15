@@ -100,15 +100,16 @@ export const publicTournamentsRouter = {
         throw errors.NOT_FOUND({ message: "Not found" });
       }
       const viewer = await context.loadUser();
-      const viewerIsParticipant = viewer
-        ? Boolean(await repos.tournaments.getParticipantByUser(tournament.id, viewer.id))
-        : false;
+      const participant = viewer
+        ? await repos.tournaments.getParticipantByUser(tournament.id, viewer.id)
+        : undefined;
       return {
         name: tournament.name,
         hostDisplayName: await hostDisplayName(repos, tournament),
         selfRegistrationOpen: tournament.selfRegistration,
         deckExpected: tournament.deckSubmission !== "none",
-        viewerIsParticipant,
+        viewerIsParticipant: participant !== undefined,
+        viewerParticipantStatus: participant?.status ?? null,
       };
     },
   ),

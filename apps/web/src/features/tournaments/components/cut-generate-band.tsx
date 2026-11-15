@@ -9,7 +9,7 @@ import { ActionBand } from "@/components/ui/action-band";
 import { Button } from "@/components/ui/button";
 import { useGenerateTournamentRound } from "@/features/tournaments/hooks/use-tournament-run";
 import { cutRoundGenerateLabel, cutRoundLabel } from "@/features/tournaments/lib/group-cut-display";
-import { groupUnits, waitingUnitsLabel } from "@/features/tournaments/lib/group-cut-units";
+import { groupUnitViews, waitingUnitsLabel } from "@/features/tournaments/lib/group-cut-units";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
@@ -59,7 +59,7 @@ export function CutGenerateBand({
 }) {
   const generateRound = useGenerateTournamentRound();
 
-  const waiting = waitingUnitsLabel(groupUnits(groupStage.groups));
+  const waiting = waitingUnitsLabel(groupUnitViews(groupStage.groups));
   const needsShares = groupStage.pendingMetaShares.length > 0;
   const blocked = waiting !== null || needsShares;
 

@@ -1,11 +1,8 @@
-import type { TradeCancelConflictData } from "@openrift/shared/contracts/fields";
-
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import type { CancelledTrade } from "@/features/groups/lib/trade-cancel-conflict";
 import { useTradeCancelConsentStore } from "@/features/groups/stores/trade-cancel-consent-store";
 import { memberName } from "@/lib/member-name";
 import { m } from "@/paraglide/messages.js";
-
-export type CancelledTrade = TradeCancelConflictData["trades"][number];
 
 const MAX_LINES = 5;
 

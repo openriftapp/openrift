@@ -40,6 +40,7 @@ import {
   useReplaceCutPairing,
   useReplaceTournamentPairing,
 } from "@/features/tournaments/hooks/use-tournament-run";
+import { dragAnnouncements } from "@/features/tournaments/lib/drag-announcements";
 import {
   movePlayer,
   moveTargets,
@@ -192,21 +193,42 @@ export function PodPairingEditor({
     );
   }
 
-  function moveOptions(playerId: string): MoveOption[] {
-    return moveTargets(state, playerId, mode).map((target) => {
-      if (target.kind === "pod") {
-        return { key: `pod:${target.index}`, label: podTitle(target.index), target };
-      }
-      if (target.kind === "newPod") {
-        const label =
-          mode === "pod"
-            ? m.tournaments_pairing_editor_new_pod()
-            : m.tournaments_pairing_editor_new_match();
-        return { key: "new-pod", label, target };
-      }
-      return { key: "bye", label: m.tournaments_pairing_editor_byes(), target };
-    });
+  function targetLabel(target: MoveTarget): string {
+    if (target.kind === "pod") {
+      return podTitle(target.index);
+    }
+    if (target.kind === "newPod") {
+      return mode === "pod"
+        ? m.tournaments_pairing_editor_new_pod()
+        : m.tournaments_pairing_editor_new_match();
+    }
+    return m.tournaments_pairing_editor_byes();
   }
+
+  function moveOptions(playerId: string): MoveOption[] {
+    return moveTargets(state, playerId, mode).map((target) => ({
+      key:
+        target.kind === "pod"
+          ? `pod:${target.index}`
+          : target.kind === "newPod"
+            ? "new-pod"
+            : "bye",
+      label: targetLabel(target),
+      target,
+    }));
+  }
+
+  const announcements = dragAnnouncements({
+    itemName: (active) => {
+      const drag = asDragData<PodPlayerDragData>(active, POD_DRAG_TYPES);
+      return drag ? nameById.get(drag.playerId) : undefined;
+    },
+    targetName: (over) => {
+      const drop = asDragData<PodSeatDropData>(over, POD_DROP_TYPES);
+      return drop ? targetLabel(drop.target) : undefined;
+    },
+    dropped: (name, target) => m.tournaments_pairing_editor_drag_moved({ name, target }),
+  });
 
   function handleDragStart(event: DragStartEvent) {
     const drag = asDragData<PodPlayerDragData>(event.active.data.current, POD_DRAG_TYPES);
@@ -274,6 +296,7 @@ export function PodPairingEditor({
     <DndContext
       sensors={sensors}
       collisionDetection={pointerWithin}
+      accessibility={{ announcements }}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >

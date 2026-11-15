@@ -18,7 +18,7 @@ import type { ApiContext } from "../../../orpc/context.js";
 import { retryOnClaimTokenCollision } from "../lib/claim-token.js";
 import { buildEntryAdvisories } from "../lib/deck-check-advisories.js";
 import { presentDeadlineSettledEntry } from "../lib/deck-check-deadline.js";
-import { isoDate, toDeckCheckEntryCardResponse } from "../lib/deck-check-presenters.js";
+import { dayOrNull, toDeckCheckEntryCardResponse } from "../lib/deck-check-presenters.js";
 import type {
   DeckCheckEntry,
   PlayerDeckCheckEntryRow,
@@ -64,7 +64,7 @@ async function buildPlayerDetail(
     entry: {
       id: row.id,
       eventName: row.eventName,
-      eventDate: isoDate(row.eventDate),
+      eventDate: dayOrNull(row.eventDate),
       groupName: row.groupName,
       format: event.format,
       allowedSets: event.allowedSets,
@@ -412,7 +412,7 @@ export const deckCheckPlayerRouter = {
       const linked = await repos.deckCheck.getLinkedEntryForUser(event.id, userId);
       return {
         eventName: event.name,
-        eventDate: isoDate(event.eventDate),
+        eventDate: dayOrNull(event.eventDate),
         groupName: event.groupName,
         format: event.format,
         allowedSets: event.allowedSets,

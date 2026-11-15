@@ -3,8 +3,8 @@ import { Suspense } from "react";
 
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { printingDisplayName } from "@/features/cards/lib/card-meta";
-import type { CancelledTrade } from "@/features/groups/components/trade-cancel-consent-dialog";
 import { TradeCancelConsentDialog } from "@/features/groups/components/trade-cancel-consent-dialog";
+import type { CancelledTrade } from "@/features/groups/lib/trade-cancel-conflict";
 import { tradePrinting } from "@/features/groups/lib/trade-printing";
 import { m } from "@/paraglide/messages.js";
 

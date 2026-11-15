@@ -607,16 +607,31 @@ describe("pairingLabel", () => {
 });
 
 describe("pairingPluralNoun", () => {
+  function pods(...sizes: number[]) {
+    return sizes.map((size) => ({
+      size,
+      members: Array.from({ length: size }, () => ({ teamId: null })),
+    }));
+  }
+
   it("counts an all-1v1 round as matches", () => {
-    expect(pairingPluralNoun([2, 2, 2])).toBe("matches");
+    expect(pairingPluralNoun(pods(2, 2, 2))).toBe("matches");
   });
 
   it("counts multiplayer pods as pods", () => {
-    expect(pairingPluralNoun([4, 4, 3])).toBe("pods");
+    expect(pairingPluralNoun(pods(4, 4, 3))).toBe("pods");
   });
 
   it("falls back to the broader word for a mixed round", () => {
-    expect(pairingPluralNoun([2, 4])).toBe("pods");
+    expect(pairingPluralNoun(pods(2, 4))).toBe("pods");
+  });
+
+  it("counts a 2v2 team round as matches", () => {
+    const teamMatch = {
+      size: 4,
+      members: ["team-a", "team-a", "team-b", "team-b"].map((teamId) => ({ teamId })),
+    };
+    expect(pairingPluralNoun([teamMatch, teamMatch])).toBe("matches");
   });
 
   it("uses the broader word for a round with no pairings", () => {

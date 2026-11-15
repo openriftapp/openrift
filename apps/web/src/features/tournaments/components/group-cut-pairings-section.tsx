@@ -16,7 +16,7 @@ import {
 } from "@/features/tournaments/hooks/use-tournament-run";
 import { bracketMode } from "@/features/tournaments/lib/cut-bracket-display";
 import { cutMatchShortLabel } from "@/features/tournaments/lib/group-cut-display";
-import { groupUnits } from "@/features/tournaments/lib/group-cut-units";
+import { groupUnitViews } from "@/features/tournaments/lib/group-cut-units";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
@@ -60,7 +60,7 @@ export function GroupCutPairingsSection({
     return <GenerateGroupsBand id={id} legendTiebreak={tournament.legendTiebreak} />;
   }
 
-  const units = groupUnits(groupStage.groups);
+  const units = groupUnitViews(groupStage.groups);
   const bracketRounds = cutRounds(data.rounds, (round) => round.roundNumber);
   const openCutRound = bracketRounds.find((round) => round.status === "reporting");
   const lastCutRound = bracketRounds.at(-1);

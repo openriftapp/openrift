@@ -6,7 +6,7 @@ import type { ErrataImageInput } from "../../catalog/services/errata-image.js";
 import type { DeckImageInput } from "../../decks/services/deck-image-parts.js";
 import type { BoardStateImageInput } from "../../stage/services/board-state-image.js";
 import type { TierListImageInput } from "../../stage/services/tier-list-image.js";
-import type { ShareImageInput, ShareImageOptions } from "./share-image.js";
+import type { ShareImageInput, ShareImageRenderOptions } from "./share-image.js";
 
 /**
  * Type-only, so importing a job shape never pulls satori or resvg into the
@@ -14,7 +14,7 @@ import type { ShareImageInput, ShareImageOptions } from "./share-image.js";
  * repositories and `Io` stay on the caller's side, the worker builds its own.
  */
 export type RenderJob =
-  | { kind: "share"; input: ShareImageInput; scale: number; options: ShareImageOptions }
+  | { kind: "share"; input: ShareImageInput; scale: number; options: ShareImageRenderOptions }
   | { kind: "deck"; input: DeckImageInput; scale: number; aspect: ShareImageAspect }
   | { kind: "tierList"; input: TierListImageInput; scale: number; aspect: ShareImageAspect }
   | { kind: "boardState"; input: BoardStateImageInput; scale: number }

@@ -59,7 +59,7 @@ export interface ShareImageInput {
   shareUrl?: string;
 }
 
-export interface ShareImageOptions {
+export interface ShareImageRenderOptions {
   aspect?: ShareImageAspect;
   qr?: boolean;
 }
@@ -232,7 +232,7 @@ export function renderShareImage(
   io: Io,
   input: ShareImageInput,
   scale = 1,
-  options: ShareImageOptions = {},
+  options: ShareImageRenderOptions = {},
 ): Promise<Buffer> {
   const withQr = options.qr !== false;
   return options.aspect === "vertical"

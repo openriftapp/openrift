@@ -1,3 +1,5 @@
+import type { ImageMatch } from "@openrift/shared/contracts/admin/card-detail-schemas";
+
 export const FINGERPRINT_SHORT_EDGE = 400;
 export const FINGERPRINT_LONG_EDGE = 560;
 export const WHOLE_HASH_COLS = 9;
@@ -19,8 +21,6 @@ const VERSION = 1;
 const WHOLE_SAME_MAX_BITS = 8;
 /** Calibrated on the catalog: rehosted copies stay below 0.75, stamped variants start at 1.48. */
 const MARK_DIFFERS_MIN = 1.3;
-
-export type ImageMatch = "same" | "art" | "mark";
 
 export interface ImageFingerprint {
   landscape: boolean;

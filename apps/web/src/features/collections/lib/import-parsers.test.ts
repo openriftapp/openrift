@@ -592,3 +592,39 @@ describe("parseImportData — format detection", () => {
     expect(result.errors[0]).toContain("OpenRift");
   });
 });
+
+describe("parseImportData — neutralised formula cells", () => {
+  const header =
+    "Card ID,Card Name,Rarity,Type,Domain,Finish,Art Variant,Promo,Quantity,Public Notes";
+
+  function publicNote(cell: string): string | undefined {
+    const csv = `${header}\nOGN-001,Test Card,Common,Unit,Arcane,normal,normal,,1,${cell}`;
+    return parseImportData(csv).entries[0]!.metadata?.notesPublic;
+  }
+
+  it("strips the apostrophe in front of =, +, @ and a non-numeric -", () => {
+    expect(publicNote("'=SUM(A1)")).toBe("=SUM(A1)");
+    expect(publicNote("'+1 foil")).toBe("+1 foil");
+    expect(publicNote("'@Teemo")).toBe("@Teemo");
+    expect(publicNote("'-signed")).toBe("-signed");
+  });
+
+  it("keeps the apostrophe in front of a negative number or ordinary text", () => {
+    expect(publicNote("'-3")).toBe("'-3");
+    expect(publicNote("'Teemo's hat")).toBe("'Teemo's hat");
+  });
+
+  it("strips one apostrophe of an escaped apostrophe-led formula", () => {
+    expect(publicNote("''=x")).toBe("'=x");
+  });
+
+  it("strips the apostrophe before whitespace and a formula, then trims", () => {
+    expect(publicNote("'\t=x")).toBe("=x");
+  });
+
+  it("strips the apostrophe in RiftCore rows", () => {
+    const csv =
+      "RIFTCORE COLLECTION EXPORT\n\n\n\n\n\nCard ID,Card Name,Standard Qty,Foil Qty\nOGN-001,'=Test,1,0";
+    expect(parseImportData(csv).entries[0]!.cardName).toBe("=Test");
+  });
+});

@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   groupLabelByPlayer,
-  groupUnits,
+  groupUnitViews,
   isCrossGroupPod,
   isDoubleForfeitPod,
   podHasNoResult,
@@ -73,9 +73,9 @@ function makePod(
   };
 }
 
-describe("groupUnits", () => {
+describe("groupUnitViews", () => {
   it("gives a 4-player group its own unit", () => {
-    const units = groupUnits([makeGroup("A", ["p1", "p2", "p3", "p4"])]);
+    const units = groupUnitViews([makeGroup("A", ["p1", "p2", "p3", "p4"])]);
     expect(units).toHaveLength(1);
     expect(units[0]?.label).toBe("Group A");
     expect(units[0]?.paired).toBe(false);
@@ -83,7 +83,7 @@ describe("groupUnits", () => {
   });
 
   it("folds the two paired 3-player groups into one unit", () => {
-    const units = groupUnits([
+    const units = groupUnitViews([
       makeGroup("D", ["p1", "p2", "p3"], { pairedGroupId: "g-E", pairedGroupLabel: "E" }),
       makeGroup("E", ["p4", "p5", "p6"], { pairedGroupId: "g-D", pairedGroupLabel: "D" }),
     ]);
@@ -94,7 +94,7 @@ describe("groupUnits", () => {
   });
 
   it("advances a paired unit only when both halves can", () => {
-    const [unit] = groupUnits([
+    const [unit] = groupUnitViews([
       makeGroup("D", ["p1"], {
         pairedGroupId: "g-E",
         pairedGroupLabel: "E",
@@ -113,14 +113,14 @@ describe("groupUnits", () => {
   });
 
   it("shows a group paired with one the stage does not list as a unit of its own", () => {
-    const units = groupUnits([
+    const units = groupUnitViews([
       makeGroup("D", ["p1"], { pairedGroupId: "g-Z", pairedGroupLabel: "Z" }),
     ]);
     expect(units.map((unit) => [unit.label, unit.paired])).toEqual([["Group D", false]]);
   });
 
   it("keeps unpaired groups in their listed order", () => {
-    const units = groupUnits([
+    const units = groupUnitViews([
       makeGroup("A", ["p1"]),
       makeGroup("B", ["p2"]),
       makeGroup("C", ["p3"]),
@@ -293,7 +293,7 @@ describe("roundSummaryLine", () => {
 
 describe("waitingUnitsLabel", () => {
   it("names each unit still playing with the round it is on", () => {
-    const units = groupUnits([
+    const units = groupUnitViews([
       makeGroup("A", ["p1"], { done: true, roundsStarted: 3 }),
       makeGroup("C", ["p2"], { roundsStarted: 2 }),
       makeGroup("D", ["p3"], {
@@ -311,12 +311,12 @@ describe("waitingUnitsLabel", () => {
   });
 
   it("is null once every group is done", () => {
-    const units = groupUnits([makeGroup("A", ["p1"], { done: true })]);
+    const units = groupUnitViews([makeGroup("A", ["p1"], { done: true })]);
     expect(waitingUnitsLabel(units)).toBeNull();
   });
 
   it("reads round one for a group that has not started", () => {
-    const units = groupUnits([makeGroup("A", ["p1"], { roundsStarted: 0 })]);
+    const units = groupUnitViews([makeGroup("A", ["p1"], { roundsStarted: 0 })]);
     expect(waitingUnitsLabel(units)).toBe("Group A (round 1)");
   });
 });

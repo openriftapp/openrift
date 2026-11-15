@@ -22,7 +22,7 @@ import type { BoxWantDemand } from "../../../lib/box-want-allocation.js";
 import { withFace1 } from "../../../repositories/query-helpers.js";
 import type { ListRuleProviders } from "../../lists/repositories/lists-rules.js";
 
-export interface SharedListRow {
+export interface MatchSharedList {
   listId: string;
   listName: string;
   ownerUserId: string;
@@ -68,7 +68,7 @@ export interface DemandEntry extends BoxWantDemand {
   buyPref: EffectiveTradePreference;
 }
 
-function listDefaultPref(list: SharedListRow): TradePreference {
+function listDefaultPref(list: MatchSharedList): TradePreference {
   return {
     pricePref: list.defaultPricePref,
     priceAbsoluteCents: list.defaultPriceAbsoluteCents,
@@ -87,7 +87,7 @@ function toSharedListRow(
     | "rules"
     | "ruleCombine"
   > & { listId: string; listName: string; ownerUserId: string; sharedAt: Date },
-): SharedListRow {
+): MatchSharedList {
   return {
     listId: row.listId,
     listName: row.listName,
@@ -107,7 +107,7 @@ export async function loadSharedLists(
   db: Kysely<Database>,
   groupId: string,
   intent: "trade" | "wish",
-): Promise<SharedListRow[]> {
+): Promise<MatchSharedList[]> {
   const rows = await db
     .selectFrom("friendGroupListShares as s")
     .innerJoin("lists as l", "l.id", "s.listId")
@@ -135,7 +135,7 @@ export async function loadOwnedLists(
   db: Kysely<Database>,
   ownerUserId: string,
   intent: "trade" | "wish",
-): Promise<SharedListRow[]> {
+): Promise<MatchSharedList[]> {
   const rows = await db
     .selectFrom("lists as l")
     .select([
@@ -450,7 +450,7 @@ export function isMatchableCopy(meta: CopyMeta | undefined): meta is CopyMeta {
 }
 
 export function buildSupply(
-  list: SharedListRow,
+  list: MatchSharedList,
   manual: ManualEntryWithMeta[],
   ruleEntries: ReturnType<typeof evaluateListRules>,
   copyMeta: Map<string, CopyMeta>,
@@ -500,7 +500,7 @@ export function buildSupply(
 }
 
 function buildDemand(
-  list: SharedListRow,
+  list: MatchSharedList,
   manual: ManualEntryWithMeta[],
   ruleEntries: ReturnType<typeof evaluateListRules>,
 ): DemandEntry[] {
@@ -549,7 +549,7 @@ export type RuleEvalContextFor = (ownerUserId: string) => Parameters<typeof eval
  */
 export async function buildRuleEvalContexts(
   providers: ListRuleProviders | undefined,
-  lists: readonly SharedListRow[],
+  lists: readonly MatchSharedList[],
 ): Promise<RuleEvalContextFor> {
   const needsCatalog = lists.some((list) => list.rules.length > 0);
   const ruleCatalog = needsCatalog && providers ? await providers.assembleCatalog() : null;
@@ -616,7 +616,7 @@ export async function buildRuleEvalContexts(
 export async function assembleDemand(
   db: Kysely<Database>,
   providers: ListRuleProviders | undefined,
-  lists: readonly SharedListRow[],
+  lists: readonly MatchSharedList[],
   evalContextFor: RuleEvalContextFor,
 ): Promise<DemandEntry[]> {
   const manualByList = await loadManualEntries(

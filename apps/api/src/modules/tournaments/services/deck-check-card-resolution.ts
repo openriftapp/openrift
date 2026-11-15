@@ -3,7 +3,7 @@ import { resolveCard } from "@openrift/shared/card-search";
 
 import type { Repos } from "../../../deps.js";
 import { createCardLookupIndexLoader } from "../../catalog/lib/card-lookup-index.js";
-import type { CardResolution } from "../repositories/deck-check-entry-cards.js";
+import type { DeckCheckCardResolution } from "../repositories/deck-check-entry-cards.js";
 
 interface CardResolutionInput {
   name: string;
@@ -14,13 +14,13 @@ export function cardResolutionKey(name: string): string {
   return normalizeNameForIdentity(name);
 }
 
-const UNMATCHED: CardResolution = {
+const UNMATCHED: DeckCheckCardResolution = {
   resolvedCardId: null,
   resolvedPrintingId: null,
   matchStatus: "unmatched",
 };
 
-const AMBIGUOUS: CardResolution = {
+const AMBIGUOUS: DeckCheckCardResolution = {
   resolvedCardId: null,
   resolvedPrintingId: null,
   matchStatus: "ambiguous",
@@ -33,8 +33,8 @@ const AMBIGUOUS: CardResolution = {
 export async function resolveDeckCheckCards(
   repos: Repos,
   inputs: CardResolutionInput[],
-): Promise<Map<string, CardResolution>> {
-  const results = new Map<string, CardResolution>();
+): Promise<Map<string, DeckCheckCardResolution>> {
+  const results = new Map<string, DeckCheckCardResolution>();
   // Deduplicated by identity key, but resolved from the raw name: the key
   // strips the punctuation the matcher wants to see.
   const byKey = new Map<string, string>();

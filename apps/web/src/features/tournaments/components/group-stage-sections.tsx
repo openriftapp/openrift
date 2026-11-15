@@ -16,7 +16,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import type { GroupUnit } from "@/features/tournaments/lib/group-cut-units";
 import {
   groupLabelByPlayer,
-  groupUnits,
+  groupUnitViews,
   isCrossGroupPod,
   roundSummaryLine,
   unitReportProgress,
@@ -58,7 +58,7 @@ export function GroupStageSections({
   onStartUnit,
   starting = false,
 }: GroupStageSectionsProps) {
-  const units = groupUnits(groupStage.groups);
+  const units = groupUnitViews(groupStage.groups);
   const labelByPlayer = groupLabelByPlayer(groupStage.groups);
   const legendByPlayer = legendsByPlayer(groupStage);
   const stageRounds = groupStageRounds(rounds, (round) => round.roundNumber);

@@ -1,4 +1,5 @@
 import type {
+  FriendGroupBoxWantRow,
   FriendGroupDetailResponse,
   FriendGroupShopEventsResponse,
 } from "@openrift/shared/types/api/friend-group";
@@ -8,7 +9,6 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { BoxWantRow } from "@/features/decks/lib/box-wants";
 import { buildBoxWantsLookup } from "@/features/decks/lib/box-wants";
 
 let currentTournaments: TournamentSummaryResponse[] = [];
@@ -19,7 +19,7 @@ let currentShopEvents: FriendGroupShopEventsResponse = {
   pastDays: 30,
 };
 let currentCollections: { id: string; name: string; groupId: string | null }[] = [];
-let currentBoxWantRows: BoxWantRow[] = [];
+let currentBoxWantRows: FriendGroupBoxWantRow[] = [];
 const acceptMutate = vi.fn();
 const declineMutate = vi.fn();
 

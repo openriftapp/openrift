@@ -20,7 +20,7 @@ export type PodRosterPlayer = PodPlayer & { status: PodPlayerStatus };
 
 export const ROSTER_STATUSES: readonly PodPlayerStatus[] = ["active", "dropped"];
 export type PodRound = Selectable<PodRoundsTable>;
-export type Pod = Selectable<PodsTable>;
+export type PodRow = Selectable<PodsTable>;
 
 /**
  * FFA placement scheme for 3/4-pods, win/draw points for Swiss (2-pods), and

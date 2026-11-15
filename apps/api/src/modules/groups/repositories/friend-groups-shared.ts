@@ -11,7 +11,7 @@ import type { ListsTable } from "../../../db/tables/lists.js";
 
 export type Group = Selectable<FriendGroupsTable>;
 
-export interface SharedListRow {
+export interface SharedListWithOwner {
   list: Pick<
     Selectable<ListsTable>,
     | "id"

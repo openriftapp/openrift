@@ -29,6 +29,7 @@ import {
 import { DragChip } from "@/features/tournaments/components/drag-chip";
 import { SaveError } from "@/features/tournaments/components/save-error";
 import { useReplaceGroupSeats } from "@/features/tournaments/hooks/use-tournament-run";
+import { dragAnnouncements } from "@/features/tournaments/lib/drag-announcements";
 import type { SeatGroup } from "@/features/tournaments/lib/group-seat-editor";
 import { swapSeats } from "@/features/tournaments/lib/group-seat-editor";
 import { refocusMenuTrigger } from "@/features/tournaments/lib/pod-pairing-editor";
@@ -180,6 +181,19 @@ export function GroupSeatEditor({
     refocusMenuTrigger(rootRef.current, "swapPlayer", playerId);
   }
 
+  const announcements = dragAnnouncements({
+    itemName: (active) => {
+      const drag = asDragData<SeatDragData>(active, SEAT_TYPES);
+      return drag ? nameOf(drag.playerId) : undefined;
+    },
+    targetName: (over, active) => {
+      const drop = asDragData<SeatDragData>(over, SEAT_TYPES);
+      const drag = asDragData<SeatDragData>(active, SEAT_TYPES);
+      return drop && drop.playerId !== drag?.playerId ? nameOf(drop.playerId) : undefined;
+    },
+    dropped: (name, target) => m.tournaments_seat_editor_drag_swapped({ name, target }),
+  });
+
   function handleDragStart(event: DragStartEvent) {
     setDraggingId(
       asDragData<SeatDragData>(event.active.data.current, SEAT_TYPES)?.playerId ?? null,
@@ -212,6 +226,7 @@ export function GroupSeatEditor({
     <DndContext
       sensors={sensors}
       collisionDetection={pointerWithin}
+      accessibility={{ announcements }}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >

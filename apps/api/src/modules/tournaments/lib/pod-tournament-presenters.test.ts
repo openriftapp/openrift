@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { gravatarHashForEmail } from "../../../lib/gravatar.js";
 import type { PodMemberRow } from "../repositories/pod-tournaments-rounds.js";
-import type { Pod, PodRound, PodScoring } from "../repositories/pod-tournaments-shared.js";
+import type { PodRound, PodRow, PodScoring } from "../repositories/pod-tournaments-shared.js";
 import { toRoundResponse } from "./pod-tournament-presenters.js";
 
 const SCORING: PodScoring = {
@@ -25,7 +25,7 @@ const ROUND: PodRound = {
   finalizedAt: new Date("2026-04-20T01:30:00.000Z"),
 };
 
-const POD: Pod = {
+const POD: PodRow = {
   id: "pod-1",
   roundId: "round-1",
   podNumber: 1,

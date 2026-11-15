@@ -1,3 +1,5 @@
+import type { FriendGroupBoxWantRow } from "@openrift/shared/types/api/friend-group";
+
 /**
  * Allocation of a group's bulk-box contents against a member's wish demand.
  *
@@ -31,13 +33,6 @@ export interface BoxCollectionAvailability {
   printings: readonly BoxAvailablePrinting[];
 }
 
-export interface BoxWantRow {
-  collectionId: string;
-  printingId: string;
-  cardId: string;
-  fulfillableQuantity: number;
-}
-
 /** The cards of `printingId` that `entry` takes from: all of them for a printing want. */
 function acceptedCards(entry: BoxWantDemand, printingId: string, cardIds: string[]): string[] {
   // Must apply the same printing gate as the match view applies to a supply copy.
@@ -57,8 +52,8 @@ function acceptedCards(entry: BoxWantDemand, printingId: string, cardIds: string
 export function allocateBoxWants(
   demand: readonly BoxWantDemand[],
   availableByCollection: readonly BoxCollectionAvailability[],
-): BoxWantRow[] {
-  const rows: BoxWantRow[] = [];
+): FriendGroupBoxWantRow[] {
+  const rows: FriendGroupBoxWantRow[] = [];
   for (const box of availableByCollection) {
     // A double-sided copy fills one want per card, so each card of a printing has its own pool.
     const remaining = new Map<string, Map<string, number>>();

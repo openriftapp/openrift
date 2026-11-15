@@ -219,11 +219,14 @@ const hostInputSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("organization"), orgId: z.uuid() }),
 ]);
 
-export const createTournamentSchema = z.object({
+const tournamentSettingsShape = {
   name: nameField(120),
+  // Host-only on update; reassigning to an org requires the caller be one of its
+  // owner/manager members.
   host: hostInputSchema,
   pairingStyle: tournamentPairingStyleSchema,
-  // Composes with 'swiss' or 'none'; rejected with 'pod' or regionsEnabled.
+  // Composes with 'swiss' or 'none'; rejected with 'pod' or regionsEnabled. On update,
+  // switching to 2v2 also requires no pod pairing or regions; leaving 2v2 requires no teams.
   playMode: tournamentPlayModeSchema.optional(),
   scoringScheme: scoringSchemeSchema.optional(),
   byePoints: z.number().int().min(0).max(99).optional(),
@@ -246,41 +249,14 @@ export const createTournamentSchema = z.object({
   groupId: z.uuid().nullable().optional(),
   startsAt: isoDateTime,
   endsAt: isoDateTime.nullable().optional(),
-});
+};
 
-export const updateTournamentSchema = z.object({
-  name: nameField(120).optional(),
+export const createTournamentSchema = z.object(tournamentSettingsShape);
+
+// pairingStyle, playMode, matchFormat and format are honored only while the tournament
+// has no rounds yet (409 otherwise).
+export const updateTournamentSchema = z.object(tournamentSettingsShape).partial().extend({
   status: tournamentStatusSchema.optional(),
-  // Host-only; reassigning to an org requires the caller be one of its
-  // owner/manager members.
-  host: hostInputSchema.optional(),
-  // Only honored while the tournament has no rounds yet (409 otherwise).
-  pairingStyle: tournamentPairingStyleSchema.optional(),
-  // Only honored while the tournament has no rounds yet. Switching to 2v2
-  // also requires no pod pairing or regions; leaving 2v2 requires no teams.
-  playMode: tournamentPlayModeSchema.optional(),
-  startsAt: isoDateTime.optional(),
-  endsAt: isoDateTime.nullable().optional(),
-  scoringScheme: scoringSchemeSchema.optional(),
-  byePoints: z.number().int().min(0).max(99).optional(),
-  // Only honored while the tournament has no rounds yet (409 otherwise).
-  matchFormat: tournamentMatchFormatSchema.optional(),
-  winPoints: z.number().int().min(0).max(99).optional(),
-  drawPoints: z.number().int().min(0).max(99).optional(),
-  regionsEnabled: z.boolean().optional(),
-  // Only honored while the tournament has no rounds yet (409 otherwise).
-  format: tournamentFormatSchema.optional(),
-  cutSize: cutSizeSchema.optional(),
-  cutRematchAvoidance: z.boolean().optional(),
-  legendTiebreak: z.boolean().optional(),
-  groupsSelfPaced: z.boolean().optional(),
-  deckSubmission: tournamentDeckSubmissionSchema.optional(),
-  submissionsCloseAt: isoDateTime.nullable().optional(),
-  listLockMode: tournamentListLockModeSchema.optional(),
-  deckFormat: z.string().min(1).nullable().optional(),
-  allowedSets: z.array(z.string()).nullable().optional(),
-  selfRegistration: z.boolean().optional(),
-  groupId: z.uuid().nullable().optional(),
   uvsgamesEventId: uvsgamesEventIdSchema.nullable().optional(),
 });
 

@@ -22,7 +22,7 @@ import type { DeckCheckKey } from "../repositories/deck-check-keys.js";
 import { buildEntryAdvisories } from "./deck-check-advisories.js";
 
 /** Exported because the player router presents the same `eventDate` field. */
-export function isoDate(value: Date | string | null): string | null {
+export function dayOrNull(value: Date | string | null): string | null {
   if (value === null) {
     return null;
   }
@@ -53,7 +53,7 @@ export function toEventSummary(
   return {
     id: row.id,
     name: row.name,
-    eventDate: isoDate(row.eventDate),
+    eventDate: dayOrNull(row.eventDate),
     format: row.format,
     allowedSets: row.allowedSets,
     status: row.status,

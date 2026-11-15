@@ -36,7 +36,7 @@ export interface NewDeckCheckEntryCard {
  * that writes it; the resolving itself is
  * `services/deck-check-card-resolution.ts`.
  */
-export interface CardResolution {
+export interface DeckCheckCardResolution {
   resolvedCardId: string | null;
   resolvedPrintingId: string | null;
   matchStatus: DeckCheckMatchStatus;
@@ -99,7 +99,7 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
       entryId: string,
       cardId: string,
       rawName: string,
-      resolution: CardResolution,
+      resolution: DeckCheckCardResolution,
     ): Promise<boolean> {
       const result = await db
         .updateTable("deckCheckEntryCards")
@@ -127,7 +127,7 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
       cardId: string,
       params: {
         name: string;
-        resolution: CardResolution;
+        resolution: DeckCheckCardResolution;
         section: string;
         zone: string;
         copies?: number;
@@ -413,7 +413,7 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
       );
     },
 
-    async updateCardResolution(cardId: string, resolution: CardResolution): Promise<void> {
+    async updateCardResolution(cardId: string, resolution: DeckCheckCardResolution): Promise<void> {
       await db
         .updateTable("deckCheckEntryCards")
         .set({

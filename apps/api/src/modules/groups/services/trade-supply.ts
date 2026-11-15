@@ -134,14 +134,14 @@ export async function autoCancelUnfillablePendingTrades(
  * action settles the question (settling a trade, writing off a loan). `preview` cancels and
  * records, inside a transaction that is rolled back afterwards.
  */
-export type TradeCancelConsent =
+export type CancelConsentPolicy =
   | { readonly kind: "silent" }
   | { readonly kind: "listed"; readonly tradeIds: ReadonlySet<string> }
   | { readonly kind: "preview"; readonly cancelled: Set<string> };
 
-export const CANCEL_WITHOUT_ASKING: TradeCancelConsent = { kind: "silent" };
+export const CANCEL_WITHOUT_ASKING: CancelConsentPolicy = { kind: "silent" };
 
-export function consentedTradeCancels(tradeIds: readonly string[] = []): TradeCancelConsent {
+export function consentedTradeCancels(tradeIds: readonly string[] = []): CancelConsentPolicy {
   return { kind: "listed", tradeIds: new Set(tradeIds) };
 }
 
@@ -151,7 +151,7 @@ export async function sweepGiverPrintings(
   trxRepos: Repos,
   giverUserId: string,
   printingIds: Iterable<string>,
-  consent: TradeCancelConsent,
+  consent: CancelConsentPolicy,
 ): Promise<void> {
   const doomed: string[] = [];
   for (const printingId of new Set(printingIds)) {
@@ -206,7 +206,7 @@ class PreviewRollbackError extends Error {
  * comes from the code the write itself runs, ownership checks and refusals included. */
 export async function previewTradeCancels(
   transact: Transact,
-  write: (trxRepos: Repos, consent: TradeCancelConsent) => Promise<unknown>,
+  write: (trxRepos: Repos, consent: CancelConsentPolicy) => Promise<unknown>,
 ): Promise<TradeCancelConflictData> {
   const consent = { kind: "preview" as const, cancelled: new Set<string>() };
   let trades: TradeCancelConflictData["trades"] = [];

@@ -9,7 +9,7 @@ import type { Repos, Transact } from "../../../deps.js";
 import { conflict, forbidden, notFound } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { ensureInbox } from "../../groups/services/inbox.js";
-import type { TradeCancelConsent } from "../../groups/services/trade-supply.js";
+import type { CancelConsentPolicy } from "../../groups/services/trade-supply.js";
 import { previewTradeCancels, sweepGiverPrintings } from "../../groups/services/trade-supply.js";
 import { logEvents } from "../../system/services/event-logger.js";
 import { loadWritableCopies } from "../lib/collection-access.js";
@@ -188,7 +188,7 @@ export async function sweepUnfillableTrades(
   trxRepos: Repos,
   userId: string,
   printingIds: Iterable<string>,
-  consent: TradeCancelConsent,
+  consent: CancelConsentPolicy,
 ): Promise<void> {
   const distinct = [...new Set(printingIds)];
   if (distinct.length === 0) {
@@ -224,7 +224,7 @@ async function moveCopiesInTransaction(
   userId: string,
   copyIds: string[],
   target: MoveTarget,
-  consent: TradeCancelConsent,
+  consent: CancelConsentPolicy,
 ): Promise<void> {
   if (!(await trxRepos.collections.lockAsMoveTarget(target.id))) {
     throw notFound("Target collection not found");
@@ -290,7 +290,7 @@ export async function moveCopies(
   userId: string,
   copyIds: string[],
   toCollectionId: string,
-  consent: TradeCancelConsent,
+  consent: CancelConsentPolicy,
 ): Promise<void> {
   const target = await resolveMoveTarget(repos, userId, toCollectionId);
   await transact((trxRepos) => moveCopiesInTransaction(trxRepos, userId, copyIds, target, consent));
@@ -320,7 +320,7 @@ export async function disposeCopies(
   transact: Transact,
   userId: string,
   copyIds: string[],
-  consent: TradeCancelConsent,
+  consent: CancelConsentPolicy,
 ): Promise<void> {
   await transact((trxRepos) => disposeCopiesInTransaction(trxRepos, userId, copyIds, consent));
 }
@@ -346,7 +346,7 @@ export async function disposeCopiesInTransaction(
   trxRepos: Repos,
   userId: string,
   copyIds: string[],
-  consent: TradeCancelConsent,
+  consent: CancelConsentPolicy,
   options?: { skipReservationGuard?: boolean },
 ): Promise<void> {
   const printingIds = await disposeCopiesUnswept(trxRepos, userId, copyIds, options);

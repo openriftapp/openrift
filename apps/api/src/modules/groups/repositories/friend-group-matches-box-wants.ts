@@ -1,3 +1,4 @@
+import type { FriendGroupBoxWantRow } from "@openrift/shared/types/api/friend-group";
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
@@ -5,7 +6,6 @@ import { allocateBoxWants } from "../../../lib/box-want-allocation.js";
 import type {
   BoxAvailablePrinting,
   BoxCollectionAvailability,
-  BoxWantRow,
 } from "../../../lib/box-want-allocation.js";
 import type { ListRuleProviders } from "../../lists/repositories/lists-rules.js";
 import {
@@ -78,7 +78,7 @@ async function resolveBoxWantsForViewer(
   db: Kysely<Database>,
   providers: ListRuleProviders | undefined,
   scope: { groupId: string; viewerUserId: string },
-): Promise<BoxWantRow[]> {
+): Promise<FriendGroupBoxWantRow[]> {
   const wishLists = await loadOwnedLists(db, scope.viewerUserId, "wish");
   if (wishLists.length === 0) {
     return [];
@@ -110,7 +110,10 @@ export function friendGroupBoxWantsRepo(db: Kysely<Database>, providers?: ListRu
      * already renders on box surfaces. That also means the answer is
      * viewer-private — no other member's lists are read.
      */
-    boxWantsForViewer(scope: { groupId: string; viewerUserId: string }): Promise<BoxWantRow[]> {
+    boxWantsForViewer(scope: {
+      groupId: string;
+      viewerUserId: string;
+    }): Promise<FriendGroupBoxWantRow[]> {
       return resolveBoxWantsForViewer(db, providers, scope);
     },
   };

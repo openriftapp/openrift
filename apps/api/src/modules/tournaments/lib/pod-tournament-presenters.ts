@@ -4,9 +4,9 @@ import type { PodResponse, PodRoundResponse } from "@openrift/shared/types/api/p
 import { gravatarHashForEmail } from "../../../lib/gravatar.js";
 import { podSizeOf, pointsForPod, pointsForTeamPod } from "../repositories/pod-points.js";
 import type { PodMemberRow, PodRoundRows } from "../repositories/pod-tournaments-rounds.js";
-import type { Pod, PodScoring } from "../repositories/pod-tournaments-shared.js";
+import type { PodRow, PodScoring } from "../repositories/pod-tournaments-shared.js";
 
-function toPodResponse(pod: Pod, memberRows: PodMemberRow[], scoring: PodScoring): PodResponse {
+function toPodResponse(pod: PodRow, memberRows: PodMemberRow[], scoring: PodScoring): PodResponse {
   const size = podSizeOf(pod.size);
   const teams = scoring.playMode === "2v2" ? teamsOf(memberRows) : null;
   const reported =

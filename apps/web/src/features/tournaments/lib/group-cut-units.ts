@@ -20,7 +20,7 @@ function unitLabel(labels: readonly string[]): string {
   return m.tournaments_lib_group_unit_label({ labels: labels.join(" · ") });
 }
 
-export function groupUnits(groups: readonly GroupStageGroupView[]): GroupUnit[] {
+export function groupUnitViews(groups: readonly GroupStageGroupView[]): GroupUnit[] {
   return pairUnits(
     groups,
     (group) => group.id,

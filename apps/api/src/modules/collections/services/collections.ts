@@ -5,7 +5,7 @@ import type { ResetCollectionsResponse } from "@openrift/shared/types/api/collec
 import type { Repos, Transact } from "../../../deps.js";
 import { conflict } from "../../../errors.js";
 import { keyBatches } from "../../../lib/bind-batches.js";
-import type { TradeCancelConsent } from "../../groups/services/trade-supply.js";
+import type { CancelConsentPolicy } from "../../groups/services/trade-supply.js";
 import { previewTradeCancels } from "../../groups/services/trade-supply.js";
 import { logEvents } from "../../system/services/event-logger.js";
 import { disposeCopiesUnswept, sweepUnfillableTrades } from "./copies.js";
@@ -21,7 +21,7 @@ export interface DeleteCollectionOpts {
 async function deleteCollectionInTransaction(
   trxRepos: Repos,
   opts: DeleteCollectionOpts,
-  consent: TradeCancelConsent,
+  consent: CancelConsentPolicy,
 ): Promise<void> {
   const { collectionId, collectionName, moveCopiesTo, targetName, userId } = opts;
 
@@ -66,7 +66,7 @@ async function deleteCollectionInTransaction(
 export async function deleteCollection(
   transact: Transact,
   opts: DeleteCollectionOpts,
-  consent: TradeCancelConsent,
+  consent: CancelConsentPolicy,
 ): Promise<void> {
   await transact((trxRepos) => deleteCollectionInTransaction(trxRepos, opts, consent));
 }
@@ -93,7 +93,7 @@ interface ClearCollectionResult {
 async function clearCollectionInTransaction(
   trxRepos: Repos,
   opts: ClearCollectionOpts,
-  consent: TradeCancelConsent,
+  consent: CancelConsentPolicy,
 ): Promise<ClearCollectionResult> {
   const { collectionId, userId } = opts;
   const copies = await trxRepos.collections.listCopiesInCollection(collectionId);
@@ -136,7 +136,7 @@ async function clearCollectionInTransaction(
 export function clearCollection(
   transact: Transact,
   opts: ClearCollectionOpts,
-  consent: TradeCancelConsent,
+  consent: CancelConsentPolicy,
 ): Promise<ClearCollectionResult> {
   return transact((trxRepos) => clearCollectionInTransaction(trxRepos, opts, consent));
 }
@@ -157,7 +157,7 @@ const RESET_BATCH_SIZE = 1000;
 async function resetCollectionsInTransaction(
   trxRepos: Repos,
   userId: string,
-  consent: TradeCancelConsent,
+  consent: CancelConsentPolicy,
 ): Promise<ResetCollectionsResponse> {
   const copies = await trxRepos.copies.listInPersonalCollections(userId);
   const copyIdBatches = chunk(
@@ -226,7 +226,7 @@ async function resetCollectionsInTransaction(
 export function resetCollections(
   transact: Transact,
   userId: string,
-  consent: TradeCancelConsent,
+  consent: CancelConsentPolicy,
 ): Promise<ResetCollectionsResponse> {
   return transact((trxRepos) => resetCollectionsInTransaction(trxRepos, userId, consent));
 }

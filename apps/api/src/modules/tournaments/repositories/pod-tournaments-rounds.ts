@@ -6,7 +6,7 @@ import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import { inTransaction } from "../../../repositories/query-helpers.js";
-import type { Pod, PodRound } from "./pod-tournaments-shared.js";
+import type { PodRound, PodRow } from "./pod-tournaments-shared.js";
 import type { Tournament } from "./tournaments-shared.js";
 
 export interface PodMemberRow {
@@ -28,7 +28,7 @@ interface PodByeRow {
 }
 
 interface PodWithMembers {
-  pod: Pod;
+  pod: PodRow;
   members: PodMemberRow[];
 }
 
@@ -39,7 +39,7 @@ export interface PodRoundRows {
 }
 
 export interface PodForResult {
-  pod: Pod;
+  pod: PodRow;
   round: PodRound;
   tournament: Tournament;
   memberPlayerIds: string[];

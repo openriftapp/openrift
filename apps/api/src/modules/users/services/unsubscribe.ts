@@ -1,3 +1,4 @@
+import type { UnsubscribePreview } from "@openrift/shared/contracts/unsubscribe";
 import type {
   EmailNotificationChannel,
   EmailNotificationPreference,
@@ -16,13 +17,6 @@ import {
 
 import type { Repos } from "../../../deps.js";
 import { verifyUnsubscribeToken } from "../../../emails/unsubscribe-token.js";
-
-export interface UnsubscribePreview {
-  valid: boolean;
-  channel: EmailNotificationChannel | null;
-  channelLabel: string | null;
-  alreadyUnsubscribed: boolean;
-}
 
 export interface UnsubscribeResult {
   channel: EmailNotificationChannel;

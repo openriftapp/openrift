@@ -29,7 +29,11 @@ export function FollowAlongSection({
     >
       <div className="flex flex-col gap-2">
         <Label>{m.tournaments_settings_report_link_label()}</Label>
-        <p className="text-muted-foreground text-sm">{m.tournaments_settings_report_link_hint()}</p>
+        <p className="text-muted-foreground text-sm">
+          {detail.pairingStyle === "swiss"
+            ? m.tournaments_settings_report_link_hint_match()
+            : m.tournaments_settings_report_link_hint()}
+        </p>
         <TokenLinkControl
           url={detail.reportToken ? tournamentTokenUrl("report", detail.reportToken) : null}
           label={m.tournaments_settings_report_link_label()}

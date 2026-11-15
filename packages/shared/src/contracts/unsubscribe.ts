@@ -18,6 +18,15 @@ const channelSchema = z.enum([
   "submissionAccepted",
 ]);
 
+export const unsubscribePreviewSchema = z.object({
+  valid: z.boolean(),
+  channel: channelSchema.nullable(),
+  channelLabel: z.string().nullable(),
+  alreadyUnsubscribed: z.boolean(),
+});
+
+export type UnsubscribePreview = z.infer<typeof unsubscribePreviewSchema>;
+
 // `preview` is a safe, read-only GET; `confirm` is the POST that flips the
 // channel off. The RFC 8058 mail-client one-click POST is a separate plain
 // route (`/api/v1/unsubscribe/one-click`), not this contract.
@@ -26,14 +35,7 @@ export const unsubscribeContract = {
     .route({ method: "GET", path: "/api/v1/unsubscribe/preview", tags: [TAG] })
     .meta({ auth: "public" })
     .input(tokenInput)
-    .output(
-      z.object({
-        valid: z.boolean(),
-        channel: channelSchema.nullable(),
-        channelLabel: z.string().nullable(),
-        alreadyUnsubscribed: z.boolean(),
-      }),
-    ),
+    .output(unsubscribePreviewSchema),
   confirm: oc
     .route({ method: "POST", path: "/api/v1/unsubscribe", tags: [TAG] })
     .meta({ auth: "public" })

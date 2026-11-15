@@ -1,5 +1,6 @@
 // oxlint-disable typescript/dot-notation -- record keys are CSV column headers; bracket access stays uniform across headers that do and don't contain spaces
 
+import { unescapeCsvField } from "@openrift/shared/csv";
 import type { CopyLink } from "@openrift/shared/types/api/collection";
 import type { ArtVariant, Finish } from "@openrift/shared/types/enums";
 import { isAlwaysFoilRarity, WellKnown } from "@openrift/shared/well-known";
@@ -81,6 +82,18 @@ export function detectImportFormat(text: string): ImportFormat | null {
   return null;
 }
 
+function readCsvRows(text: string): string[][] {
+  return parseCSV(text).map((row) => row.map((cell) => unescapeCsvField(cell)));
+}
+
+function readCsvRecords(text: string): Record<string, string>[] {
+  return parseCSVWithHeaders(text).map((record) =>
+    Object.fromEntries(
+      Object.entries(record).map(([header, value]) => [header, unescapeCsvField(value).trim()]),
+    ),
+  );
+}
+
 export function parseImportData(text: string): ParseResult {
   const trimmed = text.trim();
   if (trimmed.length === 0) {
@@ -146,7 +159,7 @@ function parsePiltoverMetadata(record: Record<string, string>): ImportCopyMetada
 }
 
 function parsePiltoverArchive(text: string): ParseResult {
-  const records = parseCSVWithHeaders(text);
+  const records = readCsvRecords(text);
   const errors: string[] = [];
 
   const [firstRecord] = records;
@@ -333,7 +346,7 @@ function parseOpenRiftMetadata(record: Record<string, string>): ImportCopyMetada
 
 /** Older exports without the Promo or metadata columns are also supported. */
 function parseOpenRift(text: string): ParseResult {
-  const records = parseCSVWithHeaders(text);
+  const records = readCsvRecords(text);
   const errors: string[] = [];
 
   const [firstRecord] = records;
@@ -454,7 +467,7 @@ function resolveCardModifier(
 /** First 6 rows are metadata before the CSV header. Proving Grounds Qty is intentionally ignored. */
 function parseRiftCore(text: string): ParseResult {
   const errors: string[] = [];
-  const allRows = parseCSV(text);
+  const allRows = readCsvRows(text);
 
   let headerIndex = -1;
   let headerRow: string[] = [];
@@ -591,7 +604,7 @@ function parseRiftCoreCardId(cardId: string): RiftCoreCardParts | null {
 
 /** Condition tokens we can't map (like "SEAL") import without a recorded condition. */
 function parseRiftMana(text: string): ParseResult {
-  const records = parseCSVWithHeaders(text);
+  const records = readCsvRecords(text);
   const errors: string[] = [];
 
   const [firstRecord] = records;

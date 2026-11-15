@@ -79,6 +79,28 @@ describe("PodCard", () => {
     expect(screen.getByRole("button", { name: "Save result" })).toBeDisabled();
   });
 
+  it("offers no per-player score entry on a walkover pod", () => {
+    const pod = match([null, null]);
+    const walkover: PodResponse = {
+      ...pod,
+      resultStatus: "reported",
+      members: pod.members.map((member, index) => ({ ...member, placement: index + 1 })),
+    };
+    render(<PodCard {...props(walkover, vi.fn())} onSubmitPlayerResult={vi.fn()} />);
+
+    expect(screen.getByText("Walkover")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add score" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the table label on one line and lets long badges wrap", () => {
+    render(<PodCard {...props(match([null, null]), vi.fn())} crossGroup />);
+
+    const label = screen.getByText("Table 1");
+    expect(label).toHaveClass("whitespace-nowrap");
+    expect(label.parentElement).toHaveClass("flex-wrap");
+    expect(screen.getByText("Cross-group").parentElement).toHaveClass("flex-wrap");
+  });
+
   it("leaves a player's score draft alone when another player saves theirs", async () => {
     const user = userEvent.setup();
     const onSubmitPlayerResult = vi.fn().mockResolvedValue(undefined);

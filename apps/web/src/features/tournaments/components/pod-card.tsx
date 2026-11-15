@@ -142,9 +142,9 @@ export function PodCard({
   );
   const [scoreDraft, setScoreDraft] = useState("");
   const reported = pod.resultStatus === "reported";
-  const selfEntry = canEnter && onSubmitPlayerResult !== undefined;
-  const enteredCount = pod.members.filter((member) => member.gamePoints !== null).length;
   const walkover = isWalkoverPod(pod);
+  const selfEntry = canEnter && onSubmitPlayerResult !== undefined && !walkover;
+  const enteredCount = pod.members.filter((member) => member.gamePoints !== null).length;
   const penaltySummary = pod.penalty ? podPenaltySummary(pod.penalty) : null;
   const stacked = layout === "stacked";
 
@@ -362,15 +362,15 @@ export function PodCard({
   return (
     <Card className="gap-3">
       <CardHeader className="gap-1">
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex flex-wrap items-center gap-2">
           <IconChip
             icon={isMatch ? SwordsIcon : UsersIcon}
             tone={reported ? "success" : "neutral"}
             size="sm"
             shape="round"
           />
-          <span>{title ?? pairingLabel(pod.podNumber)}</span>
-          <span className="ml-auto flex items-center gap-2">
+          <span className="whitespace-nowrap">{title ?? pairingLabel(pod.podNumber)}</span>
+          <span className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
             {crossGroup ? <Badge variant="info">{m.tournaments_pod_cross_group()}</Badge> : null}
             {showPenalty && !warningsExpanded ? (
               <WarningBadge warnings={warnings} nameById={nameById} />

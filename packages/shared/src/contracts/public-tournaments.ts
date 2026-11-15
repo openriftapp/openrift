@@ -1,4 +1,7 @@
-import { tournamentStaffRoleSchema } from "@openrift/shared/contracts/tournaments";
+import {
+  tournamentParticipantStatusSchema,
+  tournamentStaffRoleSchema,
+} from "@openrift/shared/contracts/tournaments";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
@@ -8,11 +11,12 @@ export const publicTournamentLandingResponseSchema = z.object({
   selfRegistrationOpen: z.boolean(),
   deckExpected: z.boolean(),
   viewerIsParticipant: z.boolean(),
+  viewerParticipantStatus: tournamentParticipantStatusSchema.nullable(),
 });
 
 export const publicTournamentJoinResponseSchema = z.object({
   participantId: z.string(),
-  status: z.enum(["requested", "invited", "active", "dropped", "no_show"]),
+  status: tournamentParticipantStatusSchema,
   alreadyJoined: z.boolean(),
 });
 

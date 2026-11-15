@@ -57,18 +57,27 @@ function SignedInJoinState({
       </div>
     );
   }
+  const status = data.viewerParticipantStatus;
+  if (status === "active" || status === "invited") {
+    return (
+      <div className="flex items-center gap-2 text-sm">
+        <CheckIcon className="size-4" /> {m.tournaments_submit_have_spot()}
+      </div>
+    );
+  }
+  if (status === "requested") {
+    return (
+      <p className="text-muted-foreground text-sm">{m.tournaments_submit_request_sent_inline()}</p>
+    );
+  }
+  if (status === "dropped" || status === "no_show") {
+    return <p className="text-muted-foreground text-sm">{m.tournaments_submit_left_event()}</p>;
+  }
   if (data.selfRegistrationOpen) {
     return (
       <Button onClick={onJoin} pending={pending}>
         {m.tournaments_submit_request_to_join()}
       </Button>
-    );
-  }
-  if (data.viewerIsParticipant) {
-    return (
-      <div className="flex items-center gap-2 text-sm">
-        <CheckIcon className="size-4" /> {m.tournaments_submit_have_spot()}
-      </div>
     );
   }
   return <p className="text-muted-foreground text-sm">{m.tournaments_submit_claim_link_hint()}</p>;

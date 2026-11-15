@@ -104,12 +104,16 @@ describe.skipIf(!hostCtx || !joinerCtx || !anonCtx)(
 
     it("reports the signed-in viewer's participant status on the landing", async () => {
       const hostView = await host.app.fetch(req("GET", `/tournaments/submit/${token}`));
-      const hostBody = (await readJson(hostView)) as { viewerIsParticipant: boolean };
-      expect(hostBody.viewerIsParticipant).toBe(false);
+      expect(await readJson(hostView)).toMatchObject({
+        viewerIsParticipant: false,
+        viewerParticipantStatus: null,
+      });
 
       const joinerView = await joiner.app.fetch(req("GET", `/tournaments/submit/${token}`));
-      const joinerBody = (await readJson(joinerView)) as { viewerIsParticipant: boolean };
-      expect(joinerBody.viewerIsParticipant).toBe(true);
+      expect(await readJson(joinerView)).toMatchObject({
+        viewerIsParticipant: true,
+        viewerParticipantStatus: "requested",
+      });
     });
 
     it("rejects request-to-join once the tournament is completed or cancelled", async () => {

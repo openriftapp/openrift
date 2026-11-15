@@ -1,4 +1,5 @@
 import { localDayDiff } from "@openrift/shared/format-date";
+import { teamsOf } from "@openrift/shared/pairing/pod-result";
 import type { EffectiveTournamentState } from "@openrift/shared/tournament-lifecycle";
 import { effectiveTournamentState } from "@openrift/shared/tournament-lifecycle";
 import type {
@@ -215,12 +216,20 @@ export function pairingLabel(podNumber: number): string {
   return m.tournaments_lib_pairing_label_table({ number: podNumber });
 }
 
-export function isAllMatchRound(sizes: readonly number[]): boolean {
-  return sizes.length > 0 && sizes.every((size) => isMatchPairing(size));
+interface PairingShape {
+  size: number;
+  members: readonly { teamId: string | null }[];
 }
 
-export function pairingPluralNoun(sizes: readonly number[]): string {
-  return isAllMatchRound(sizes)
+export function isAllMatchRound(pods: readonly PairingShape[]): boolean {
+  return (
+    pods.length > 0 &&
+    pods.every((pod) => isMatchPairing(pod.size) || teamsOf(pod.members) !== null)
+  );
+}
+
+export function pairingPluralNoun(pods: readonly PairingShape[]): string {
+  return isAllMatchRound(pods)
     ? m.tournaments_lib_pairing_noun_matches()
     : m.tournaments_lib_pairing_noun_pods();
 }

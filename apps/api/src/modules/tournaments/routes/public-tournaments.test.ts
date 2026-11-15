@@ -97,6 +97,46 @@ describe("resolveSelfJoin", () => {
   });
 });
 
+describe("landing", () => {
+  function landingApp(status: string) {
+    const app = new Hono<{ Variables: Variables }>();
+    app.use("*", async (c, next) => {
+      c.set("user", { id: USER.id } as never);
+      c.set("repos", {
+        tournaments: {
+          getBySubmissionToken: vi.fn(() =>
+            Promise.resolve({
+              id: TOURNAMENT_ID,
+              name: "Summoner Skirmish",
+              hostType: "user",
+              hostUserId: null,
+              hostOrgId: null,
+              selfRegistration: true,
+              deckSubmission: "none",
+            }),
+          ),
+          getParticipantByUser: vi.fn(() => Promise.resolve({ id: "participant-1", status })),
+        },
+      } as never);
+      await next();
+    });
+    registerRouterForTest(app, publicTournamentsRouter);
+    return app;
+  }
+
+  it.each(["requested", "invited", "active", "dropped", "no_show"])(
+    "reports a %s viewer's participant status",
+    async (status) => {
+      const res = await landingApp(status).request("/api/v1/tournaments/submit/submit-token");
+      expect(res.status).toBe(200);
+      expect(await readJson(res)).toMatchObject({
+        viewerIsParticipant: true,
+        viewerParticipantStatus: status,
+      });
+    },
+  );
+});
+
 const INVITE_TOKEN = "staffinvite01";
 const HOST_USER_ID = "host-1";
 

@@ -3,6 +3,7 @@ import { publicFriendGroupsContract } from "@openrift/shared/contracts/public-fr
 import { MINUTE_MS } from "@openrift/shared/format-date";
 import type {
   FriendGroupActivityResponse,
+  FriendGroupBoxWantRow,
   FriendGroupJoinPreviewResponse,
   FriendGroupMatchesResponse,
   FriendGroupMatchRow,
@@ -10,7 +11,7 @@ import type {
 import { queryOptions, useQueries, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
-import type { BoxWantRow, BoxWantsLookup } from "@/features/decks/lib/box-wants";
+import type { BoxWantsLookup } from "@/features/decks/lib/box-wants";
 import { buildBoxWantsLookup, EMPTY_BOX_WANTS } from "@/features/decks/lib/box-wants";
 import {
   friendGroupDetailQueryOptions,
@@ -34,7 +35,7 @@ const fetchGroupMatches = createServerFn({ method: "GET" })
 const fetchGroupBoxWants = createServerFn({ method: "GET" })
   .validator((input: string) => input)
   .middleware([withCookies])
-  .handler(({ context, data: slug }): Promise<{ items: BoxWantRow[] }> =>
+  .handler(({ context, data: slug }): Promise<{ items: FriendGroupBoxWantRow[] }> =>
     apiOrpcClient(friendGroupsContract, context.cookie).boxWants({ slug }),
   );
 
