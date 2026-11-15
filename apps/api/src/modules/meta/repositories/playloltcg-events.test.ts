@@ -35,4 +35,14 @@ describe("playloltcgEventsRepo buckets", () => {
 
     expect(recording.queries[0]).toContain("and not (coalesce(c.status = $");
   });
+
+  it("counts a staged deck only when it holds card rows", async () => {
+    const recording = createRecordingDb([[], [{ total: "0" }]]);
+
+    await playloltcgEventsRepo(recording.db).list({}, { limit: 10, offset: 0 });
+
+    expect(recording.queries[0]).toContain(
+      "and exists (select 1 from playloltcg_decklist_cards dc where dc.source_deck_id = dl.source_deck_id)",
+    );
+  });
 });

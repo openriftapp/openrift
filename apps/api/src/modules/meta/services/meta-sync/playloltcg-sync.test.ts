@@ -29,6 +29,7 @@ vi.mock("./playloltcg-accept.js", () => ({
 }));
 
 vi.mock("./playloltcg-deep-fetch.js", () => ({
+  retryEmptyPlayloltcgDecks: vi.fn(() => Promise.resolve(false)),
   readPlayloltcgDetail: vi.fn(() =>
     Promise.resolve({ shopId: null, shopName: null, isPublishResult: true }),
   ),
@@ -169,6 +170,8 @@ function fakeDeps(options: {
 
   const playloltcgResults = {
     deckCoverage: () => Promise.resolve({ outstanding: options.outstandingDecks ?? [], held: 0 }),
+    emptyDeckIds: () => Promise.resolve([]),
+    finalizeEmptyDecks: () => Promise.resolve(),
   };
 
   const playloltcgEvents = {

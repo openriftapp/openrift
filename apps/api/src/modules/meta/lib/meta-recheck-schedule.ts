@@ -3,6 +3,9 @@ import type { MetaEventStatus } from "@openrift/shared/types/enums";
 
 const RECHECK_LADDER_DAYS = [1, 3, 7, 30, 90] as const;
 
+export const RECHECK_LADDER_SPAN_MS =
+  RECHECK_LADDER_DAYS.reduce((sum, days) => sum + days, 0) * DAY_MS;
+
 const EVENT_DAY_POLL_MS = HOUR_MS;
 
 const WATCHED_EVENT_DAY_POLL_MS = 10 * MINUTE_MS;

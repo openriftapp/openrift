@@ -136,6 +136,7 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
   const stagedDeckCount = sql<number>`(
     select count(*)::int from playloltcg_decklists dl
      where dl.activity_shop_id = c.activity_shop_id and dl.fetch_status = 'fetched'
+       and exists (select 1 from playloltcg_decklist_cards dc where dc.source_deck_id = dl.source_deck_id)
   )`;
 
   const bucketColumns: MetaSyncBucketColumns = {

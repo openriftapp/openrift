@@ -9,6 +9,7 @@ import {
   firstRevisit,
   lifecycleStatus,
   nextRecheck,
+  RECHECK_LADDER_SPAN_MS,
   resumeSoon,
 } from "../../lib/meta-recheck-schedule.js";
 import {
@@ -27,7 +28,11 @@ import { clock } from "./deps.js";
 import { autoAcceptPlayloltcgEvents } from "./playloltcg-accept.js";
 import { PLAYLOLTCG_MAX_PAGE_SIZE } from "./playloltcg-client.js";
 import type { PlayloltcgDeepFetchResult, PlayloltcgDetailFacts } from "./playloltcg-deep-fetch.js";
-import { playloltcgDeepFetch, readPlayloltcgDetail } from "./playloltcg-deep-fetch.js";
+import {
+  playloltcgDeepFetch,
+  readPlayloltcgDetail,
+  retryEmptyPlayloltcgDecks,
+} from "./playloltcg-deep-fetch.js";
 import type { PlayloltcgSyncDeps } from "./playloltcg-deps.js";
 import type { RecheckPassResult, VisitOutcome } from "./recheck-pass.js";
 import { deferBlockedVisit, emptyRecheckPassResult, runRecheckPass } from "./recheck-pass.js";
@@ -393,13 +398,48 @@ async function visitPlayloltcgEvent(
       checkStage: decision.checkStage,
     });
 
-  if (!decision.deepFetch) {
+  // An empty deck is asked again at most once per UTC day and per stage from stage 1, and is
+  // final once the ladder ends, the event reads unfinished, or the event is a ladder span old.
+  const finished = displayStatus === "complete";
+  const expired =
+    row.startAt === null || now.getTime() - startAt.getTime() >= RECHECK_LADDER_SPAN_MS;
+  if (finished && expired) {
+    await deps.repos.playloltcgResults.finalizeEmptyDecks(row.activityShopId);
+  }
+  const retry =
+    finished && !expired && row.checkStage >= 1
+      ? await deps.repos.playloltcgResults.emptyDeckIds(
+          row.activityShopId,
+          startInstant(day(now), now),
+        )
+      : [];
+  const settle = async () => {
+    if (!finished || expired || decision.nextCheckAt === null) {
+      await deps.repos.playloltcgResults.finalizeEmptyDecks(row.activityShopId);
+    }
     await advance();
     result.processed++;
-    return "ok";
+  };
+
+  if (!decision.deepFetch) {
+    const retryErrors: string[] = [];
+    const gained =
+      retry.length > 0 &&
+      (await retryEmptyPlayloltcgDecks(deps, row.activityShopId, retry, deckBudget, retryErrors));
+    recordCapped(result.errors, retryErrors);
+    if (!gained) {
+      await settle();
+      return "ok";
+    }
   }
 
-  const fetched = await playloltcgDeepFetch(deps, row, detail, deckBudget);
+  const fetched = await playloltcgDeepFetch(
+    deps,
+    row,
+    detail,
+    deckBudget,
+    decision.deepFetch ? retry : [],
+  );
   result.fetched++;
   result.players += fetched.players;
   result.decks += fetched.decks;
@@ -409,10 +449,15 @@ async function visitPlayloltcgEvent(
     await grace(deps, row.activityShopId, now, row.checkStage);
     return "failed";
   }
-  await (fetched.decksRemaining > 0 && fetched.decks > 0
-    ? deps.repos.playloltcgEvents.setRecheck(row.activityShopId, resumeSoon(now, row.checkStage))
-    : advance());
-  result.processed++;
+  if (decision.deepFetch && fetched.decksRemaining > 0 && fetched.decks > 0) {
+    await deps.repos.playloltcgEvents.setRecheck(
+      row.activityShopId,
+      resumeSoon(now, row.checkStage),
+    );
+    result.processed++;
+    return "ok";
+  }
+  await settle();
   return "ok";
 }
 
@@ -442,6 +487,9 @@ export async function fetchPlayloltcgEvent(
   // Unbounded: this runs as a tracked background job, and stopping partway
   // would answer "what does the source hold" with half of it.
   const result = await playloltcgDeepFetch(deps, row, detail, Number.POSITIVE_INFINITY);
+  if (result.complete && row.nextCheckAt === null) {
+    await deps.repos.playloltcgResults.finalizeEmptyDecks(row.activityShopId);
+  }
   if (
     result.complete &&
     result.publishedResults &&

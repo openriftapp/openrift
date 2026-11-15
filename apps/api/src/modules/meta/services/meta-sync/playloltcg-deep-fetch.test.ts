@@ -6,7 +6,7 @@ import type { PlayloltcgListRow } from "../../repositories/playloltcg-events.js"
 import type { PlayloltcgClient, PlayloltcgList } from "./playloltcg-client.js";
 import { PlayloltcgBlockedError, PlayloltcgRefusedError } from "./playloltcg-client.js";
 import type { PlayloltcgDetailFacts } from "./playloltcg-deep-fetch.js";
-import { playloltcgDeepFetch } from "./playloltcg-deep-fetch.js";
+import { playloltcgDeepFetch, retryEmptyPlayloltcgDecks } from "./playloltcg-deep-fetch.js";
 import type { PlayloltcgSyncDeps } from "./playloltcg-deps.js";
 import { RunDeadlineError, SourceThrottledError } from "./source-http.js";
 
@@ -67,6 +67,7 @@ interface Harness {
   standingsPages: number[];
   mirrored: Record<string, unknown>[];
   storedDecklists: { row: Record<string, unknown>; cards: Record<string, unknown>[] }[];
+  asked: string[];
 }
 
 /**
@@ -85,6 +86,7 @@ function fakeDeps(options: {
   const standingsPages: number[] = [];
   const mirrored: Record<string, unknown>[] = [];
   const storedDecklists: { row: Record<string, unknown>; cards: Record<string, unknown>[] }[] = [];
+  const asked: string[] = [];
 
   const client = {
     requests: 0,
@@ -129,6 +131,10 @@ function fakeDeps(options: {
       mirrored.push(...rows);
       return Promise.resolve();
     },
+    markDecksAsked: (_id: number, ids: readonly string[]) => {
+      asked.push(...ids);
+      return Promise.resolve();
+    },
     putDecklist: (row: Record<string, unknown>, cards: Record<string, unknown>[]) => {
       storedDecklists.push({ row, cards });
       return Promise.resolve();
@@ -144,7 +150,7 @@ function fakeDeps(options: {
     log: createLogger("test"),
     now: () => NOW,
   };
-  return { deps, deckRequests, standingsPages, mirrored, storedDecklists };
+  return { deps, deckRequests, standingsPages, mirrored, storedDecklists, asked };
 }
 
 const BUDGET = 10_000;
@@ -433,15 +439,86 @@ describe("playloltcgDeepFetch", () => {
     ]);
   });
 
-  it("records a deck the source serves empty rather than owing it forever", async () => {
+  it("holds a deck the source serves empty as fetched with no cards, open to a retry", async () => {
     const { deps, storedDecklists } = fakeDeps({
       standings: [standingsRow({ name: "张三", finalRanking: 1, cardGroupId: 11 })],
       decks: { 11: [] },
     });
 
-    await playloltcgDeepFetch(deps, catalogRow(), DETAIL, BUDGET);
+    const result = await playloltcgDeepFetch(deps, catalogRow(), DETAIL, BUDGET);
 
-    expect(storedDecklists[0]?.row.fetchStatus).toBe("refused");
+    expect(storedDecklists).toEqual([
+      { row: expect.objectContaining({ sourceDeckId: "11", fetchStatus: "fetched" }), cards: [] },
+    ]);
+    expect(result).toMatchObject({ decks: 0, decksRemaining: 0 });
+  });
+
+  it("asks an empty deck again only once no missing deck is left", async () => {
+    const rows = [11, 12, 13].map((cardGroupId, index) =>
+      standingsRow({ name: `选手${index}`, finalRanking: index + 1, cardGroupId }),
+    );
+    const card = [{ cardNo: "OGN-001", cardName: "破晓", cardCount: 3 }];
+    const cut = fakeDeps({ standings: rows, decks: { 12: card, 13: card }, heldDecks: ["11"] });
+
+    const cutPass = await playloltcgDeepFetch(cut.deps, catalogRow(), DETAIL, 1, ["11"]);
+
+    expect(cut.deckRequests).toEqual([12]);
+    expect(cutPass.decksRemaining).toBe(1);
+
+    const whole = fakeDeps({ standings: rows, decks: { 12: card, 13: card }, heldDecks: ["11"] });
+    const wholePass = await playloltcgDeepFetch(whole.deps, catalogRow(), DETAIL, BUDGET, ["11"]);
+
+    expect(whole.deckRequests).toEqual([12, 13, 11]);
+    expect(wholePass.decksRemaining).toBe(0);
+  });
+
+  it("marks a retried deck as asked before reading it, and keeps it empty", async () => {
+    const { deps, deckRequests, storedDecklists, asked } = fakeDeps({
+      standings: [standingsRow({ name: "张三", finalRanking: 1, cardGroupId: 11 })],
+      decks: { 11: [] },
+      heldDecks: ["11"],
+    });
+
+    await playloltcgDeepFetch(deps, catalogRow(), DETAIL, BUDGET, ["11"]);
+
+    expect(asked).toEqual(["11"]);
+    expect(deckRequests).toEqual([11]);
+    expect(storedDecklists).toEqual([
+      { row: expect.objectContaining({ sourceDeckId: "11", fetchStatus: "fetched" }), cards: [] },
+    ]);
+  });
+
+  it("stores a retried deck that gained cards and reads its legend into the standings", async () => {
+    const { deps, mirrored, storedDecklists } = fakeDeps({
+      standings: [standingsRow({ name: "张三", finalRanking: 1, cardGroupId: 11 })],
+      decks: { 11: [{ cardNo: "OGN-001", cardName: "亚索", cardCount: 1, isLegend: true }] },
+      heldDecks: ["11"],
+    });
+
+    const result = await playloltcgDeepFetch(deps, catalogRow(), DETAIL, BUDGET, ["11"]);
+
+    expect(storedDecklists).toEqual([
+      {
+        row: expect.objectContaining({ sourceDeckId: "11", fetchStatus: "fetched" }),
+        cards: [expect.objectContaining({ cardName: "亚索" })],
+      },
+    ]);
+    expect(result.decks).toBe(1);
+    expect(mirrored).toHaveLength(1);
+  });
+
+  it("stores a retried deck the source now refuses as refused", async () => {
+    const { deps, storedDecklists } = fakeDeps({
+      standings: [standingsRow({ name: "张三", finalRanking: 1, cardGroupId: 11 })],
+      deckErrors: { 11: new PlayloltcgRefusedError("playloltcg code 404 for deck 11") },
+      heldDecks: ["11"],
+    });
+
+    await playloltcgDeepFetch(deps, catalogRow(), DETAIL, BUDGET, ["11"]);
+
+    expect(storedDecklists).toEqual([
+      { row: expect.objectContaining({ sourceDeckId: "11", fetchStatus: "refused" }), cards: [] },
+    ]);
   });
 
   it("leaves a deck that failed transiently fetchable", async () => {
@@ -453,5 +530,77 @@ describe("playloltcgDeepFetch", () => {
     await playloltcgDeepFetch(deps, catalogRow(), DETAIL, BUDGET);
 
     expect(storedDecklists).toEqual([]);
+  });
+
+  it("records an error when no card of a served deck can be read", async () => {
+    const { deps, storedDecklists } = fakeDeps({
+      standings: [standingsRow({ name: "张三", finalRanking: 1, cardGroupId: 11 })],
+      decks: { 11: [{ cardName: "破晓" }, { cardCount: 2 }] },
+    });
+
+    const result = await playloltcgDeepFetch(deps, catalogRow(), DETAIL, BUDGET);
+
+    expect(result.errors).toContain("Deck 11: none of its 2 cards could be read.");
+    expect(storedDecklists[0]?.cards).toEqual([]);
+  });
+});
+
+describe("retryEmptyPlayloltcgDecks", () => {
+  it("reports a gain only when the deck now has card rows", async () => {
+    const unreadable = fakeDeps({ standings: [], decks: { 11: [{ cardName: "破晓" }] } });
+    const errors: string[] = [];
+
+    const gained = await retryEmptyPlayloltcgDecks(
+      unreadable.deps,
+      ACTIVITY_SHOP_ID,
+      ["11"],
+      BUDGET,
+      errors,
+    );
+
+    expect(gained).toBe(false);
+    expect(errors).toEqual(["Deck 11: none of its 1 cards could be read."]);
+
+    const filled = fakeDeps({
+      standings: [],
+      decks: { 11: [{ cardNo: "OGN-001", cardCount: 3 }] },
+    });
+    expect(await retryEmptyPlayloltcgDecks(filled.deps, ACTIVITY_SHOP_ID, ["11"], BUDGET, [])).toBe(
+      true,
+    );
+  });
+
+  it("asks at most 5 empty decks in one visit, however much budget the run has left", async () => {
+    const { deps, deckRequests, asked } = fakeDeps({ standings: [] });
+
+    await retryEmptyPlayloltcgDecks(
+      deps,
+      ACTIVITY_SHOP_ID,
+      ["11", "12", "13", "14", "15", "16", "17"],
+      60,
+      [],
+    );
+
+    expect(deckRequests).toEqual([11, 12, 13, 14, 15]);
+    expect(asked).toEqual(["11", "12", "13", "14", "15"]);
+  });
+
+  it("reads an event's missing decks before any empty one, and caps the empty ones", async () => {
+    const rows = [21, 22, 23].map((cardGroupId, index) =>
+      standingsRow({ name: `选手${index}`, finalRanking: index + 1, cardGroupId }),
+    );
+    const { deps, deckRequests } = fakeDeps({
+      standings: rows,
+      decks: {
+        21: [{ cardNo: "OGN-001" }],
+        22: [{ cardNo: "OGN-001" }],
+        23: [{ cardNo: "OGN-001" }],
+      },
+      heldDecks: ["11", "12", "13", "14", "15", "16"],
+    });
+
+    await playloltcgDeepFetch(deps, catalogRow(), DETAIL, 60, ["11", "12", "13", "14", "15", "16"]);
+
+    expect(deckRequests).toEqual([21, 22, 23, 11, 12, 13, 14, 15]);
   });
 });

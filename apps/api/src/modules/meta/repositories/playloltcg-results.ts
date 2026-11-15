@@ -1,4 +1,5 @@
-import type { Insertable, Kysely, Selectable } from "kysely";
+import type { Insertable, Kysely, Selectable, SqlBool } from "kysely";
+import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type {
@@ -17,8 +18,12 @@ import {
 export type PlayloltcgStandingRow = Selectable<PlayloltcgEventStandingsTable>;
 export type PlayloltcgDecklistCardRow = Selectable<PlayloltcgDecklistCardsTable>;
 
+const NO_CARDS = sql<SqlBool>`not exists (
+  select 1 from playloltcg_decklist_cards c where c.source_deck_id = dl.source_deck_id
+)`;
+
 export function playloltcgResultsRepo(db: Kysely<Database>) {
-  /** Deck ids already held, fetched or refused, so a pass never re-requests one. */
+  /** Deck ids already held, fetched or refused, so a pass never re-requests one as missing. */
   async function heldDeckIds(activityShopId: number): Promise<Set<string>> {
     const held = await db
       .selectFrom("playloltcgDecklists")
@@ -75,6 +80,45 @@ export function playloltcgResultsRepo(db: Kysely<Database>) {
     },
 
     heldDeckIds,
+
+    async emptyDeckIds(activityShopId: number, askedBefore: Date): Promise<string[]> {
+      const rows = await db
+        .selectFrom("playloltcgDecklists as dl")
+        .select("dl.sourceDeckId")
+        .where("dl.activityShopId", "=", activityShopId)
+        .where("dl.fetchStatus", "=", "fetched")
+        .where(NO_CARDS)
+        .where(sql<SqlBool>`date_trunc('milliseconds', dl.fetched_at) < ${askedBefore}`)
+        .orderBy("dl.sourceDeckId", "asc")
+        .execute();
+      return rows.map((row) => row.sourceDeckId);
+    },
+
+    async markDecksAsked(
+      activityShopId: number,
+      sourceDeckIds: readonly string[],
+      at: Date,
+    ): Promise<void> {
+      if (sourceDeckIds.length === 0) {
+        return;
+      }
+      await db
+        .updateTable("playloltcgDecklists")
+        .set({ fetchedAt: at })
+        .where("activityShopId", "=", activityShopId)
+        .where("sourceDeckId", "in", sourceDeckIds)
+        .execute();
+    },
+
+    async finalizeEmptyDecks(activityShopId: number): Promise<void> {
+      await db
+        .updateTable("playloltcgDecklists as dl")
+        .set({ fetchStatus: "refused" })
+        .where("dl.activityShopId", "=", activityShopId)
+        .where("dl.fetchStatus", "=", "fetched")
+        .where(NO_CARDS)
+        .execute();
+    },
 
     async decklistCards(activityShopId: number): Promise<Map<string, PlayloltcgDecklistCardRow[]>> {
       const rows = await db

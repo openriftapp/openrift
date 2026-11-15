@@ -123,14 +123,16 @@ async function readStandings(
 
 const SKIPPED = Symbol("deck skipped");
 
+const REFUSED = Symbol("deck refused");
+
 const OUT_OF_TIME = Symbol("out of time");
 
-/** A refusal is recorded as `refused` so the id is never retried; any other failure records nothing and retries next pass. */
+/** Any failure other than a refusal records nothing and retries next pass. */
 async function readDeck(
   deps: PlayloltcgSyncDeps,
   cardGroupId: string,
   errors: string[],
-): Promise<Record<string, unknown>[] | null | typeof SKIPPED | typeof OUT_OF_TIME> {
+): Promise<Record<string, unknown>[] | typeof REFUSED | typeof SKIPPED | typeof OUT_OF_TIME> {
   try {
     const body = await deps.client.postList<Record<string, unknown>>(
       "/xcx/cardGroup/getActivityCardGroupCardListImage",
@@ -143,23 +145,75 @@ async function readDeck(
     }
     rethrowIfBlocked(error);
     errors.push(`Deck ${cardGroupId}: ${errorMessage(error)}`);
-    return error instanceof PlayloltcgRefusedError ? null : SKIPPED;
+    return error instanceof PlayloltcgRefusedError ? REFUSED : SKIPPED;
   }
 }
 
-interface PlayloltcgDeckFetch {
+interface PlayloltcgDeckReads {
   bodies: Map<string, Record<string, unknown>[]>;
   refused: string[];
+  empty: string[];
   requests: number;
+  outOfTime: boolean;
+}
+
+function noDeckReads(): PlayloltcgDeckReads {
+  return { bodies: new Map(), refused: [], empty: [], requests: 0, outOfTime: false };
+}
+
+async function readDecks(
+  deps: PlayloltcgSyncDeps,
+  ids: readonly string[],
+  reads: PlayloltcgDeckReads,
+  errors: string[],
+): Promise<void> {
+  for (const id of ids) {
+    const body = await readDeck(deps, id, errors);
+    if (body === OUT_OF_TIME) {
+      reads.outOfTime = true;
+      return;
+    }
+    reads.requests++;
+    if (body === REFUSED) {
+      reads.refused.push(id);
+    } else if (body !== SKIPPED && body.length === 0) {
+      reads.empty.push(id);
+    } else if (body !== SKIPPED) {
+      reads.bodies.set(id, body);
+    }
+  }
+}
+
+const EMPTY_RETRIES_PER_VISIT = 5;
+
+/** Marked before the read, so a visit cut after the ask still counts as one. */
+async function readEmptyDecks(
+  deps: PlayloltcgSyncDeps,
+  activityShopId: number,
+  sourceDeckIds: readonly string[],
+  budget: number,
+  reads: PlayloltcgDeckReads,
+  errors: string[],
+): Promise<void> {
+  const asked = sourceDeckIds.slice(0, Math.max(Math.min(budget, EMPTY_RETRIES_PER_VISIT), 0));
+  await deps.repos.playloltcgResults.markDecksAsked(activityShopId, asked, clock(deps));
+  await readDecks(deps, asked, reads, errors);
+}
+
+interface PlayloltcgDeckFetch extends PlayloltcgDeckReads {
   remaining: number;
 }
 
-/** Missing decks are diffed against the standings just read, not the mirror's prior fetch, which holds nothing on a first visit. */
+/**
+ * Missing decks are diffed against the standings just read, not the mirror's prior fetch, which holds nothing on a first visit.
+ * `retry` is read only once no missing deck is left, so it never feeds a resume.
+ */
 async function fetchDecks(
   deps: PlayloltcgSyncDeps,
   activityShopId: number,
   standings: readonly Record<string, unknown>[],
   held: ReadonlySet<string>,
+  retry: readonly string[],
   budget: number,
   errors: string[],
 ): Promise<PlayloltcgDeckFetch> {
@@ -170,33 +224,73 @@ async function fetchDecks(
       `Event ${activityShopId} is missing ${missing.length} decks; read ${wanted.length} within this run's budget, the rest follow shortly.`,
     );
   }
-  const bodies = new Map<string, Record<string, unknown>[]>();
-  const refused: string[] = [];
-  let requested = 0;
-  for (const id of wanted) {
-    const body = await readDeck(deps, id, errors);
-    if (body === OUT_OF_TIME) {
-      errors.push(
-        `Event ${activityShopId}: stopped reading decks at the run's time budget; the rest follow shortly.`,
-      );
-      break;
-    }
-    requested++;
-    if (body === SKIPPED) {
-      continue;
-    }
-    if (body === null || body.length === 0) {
-      refused.push(id);
-      continue;
-    }
-    bodies.set(id, body);
+  const reads = noDeckReads();
+  await readDecks(deps, wanted, reads, errors);
+  const remaining = missing.length - reads.requests;
+  if (!reads.outOfTime && remaining === 0) {
+    await readEmptyDecks(deps, activityShopId, retry, budget - reads.requests, reads, errors);
   }
-  return {
-    bodies,
-    refused,
-    requests: requested,
-    remaining: missing.length - requested,
-  };
+  if (reads.outOfTime) {
+    errors.push(
+      `Event ${activityShopId}: stopped reading decks at the run's time budget; the rest follow shortly.`,
+    );
+  }
+  return { ...reads, remaining };
+}
+
+async function storeDeckReads(
+  deps: PlayloltcgSyncDeps,
+  activityShopId: number,
+  reads: PlayloltcgDeckReads,
+  errors: string[],
+): Promise<Map<string, PlayloltcgDeckLine[]>> {
+  const shortCodes = [...reads.bodies.values()]
+    .flat()
+    .map((card) => normalizeCardNo((record(card) ?? {}).cardNo))
+    .filter((code): code is string => code !== null);
+  const bridge = await deps.repos.playloltcgEvents.cardsByShortCode(shortCodes);
+
+  const freshLines = new Map<string, PlayloltcgDeckLine[]>();
+  for (const [sourceDeckId, body] of reads.bodies) {
+    const lines = projectPlayloltcgDeckLines(body, bridge);
+    if (lines.length === 0) {
+      errors.push(`Deck ${sourceDeckId}: none of its ${body.length} cards could be read.`);
+    }
+    freshLines.set(sourceDeckId, lines);
+    await deps.repos.playloltcgResults.putDecklist(
+      { sourceDeckId, activityShopId, fetchStatus: "fetched", fetchedAt: clock(deps) },
+      lines,
+    );
+  }
+  for (const sourceDeckId of reads.refused) {
+    await deps.repos.playloltcgResults.putDecklist(
+      { sourceDeckId, activityShopId, fetchStatus: "refused", fetchedAt: clock(deps) },
+      [],
+    );
+  }
+  // A `fetched` row without cards stays retryable until the recheck makes it final; its
+  // `fetchedAt` is the last ask, which spaces the retries.
+  for (const sourceDeckId of reads.empty) {
+    await deps.repos.playloltcgResults.putDecklist(
+      { sourceDeckId, activityShopId, fetchStatus: "fetched", fetchedAt: clock(deps) },
+      [],
+    );
+  }
+  return freshLines;
+}
+
+/** True when a deck gained card rows, which reach the standings only through a deep fetch. */
+export async function retryEmptyPlayloltcgDecks(
+  deps: PlayloltcgSyncDeps,
+  activityShopId: number,
+  sourceDeckIds: readonly string[],
+  budget: number,
+  errors: string[],
+): Promise<boolean> {
+  const reads = noDeckReads();
+  await readEmptyDecks(deps, activityShopId, sourceDeckIds, budget, reads, errors);
+  const lines = await storeDeckReads(deps, activityShopId, reads, errors);
+  return [...lines.values()].some((deck) => deck.length > 0);
 }
 
 /**
@@ -223,6 +317,7 @@ export async function playloltcgDeepFetch(
   row: PlayloltcgListRow,
   detail: PlayloltcgDetailFacts,
   deckBudget: number,
+  retryEmpty: readonly string[] = [],
 ): Promise<PlayloltcgDeepFetchResult> {
   const before = deps.client.requests;
   const errors: string[] = [];
@@ -255,30 +350,17 @@ export async function playloltcgDeepFetch(
     };
   }
 
-  const fetched = await fetchDecks(deps, activityShopId, standings, held, deckBudget, errors);
+  const fetched = await fetchDecks(
+    deps,
+    activityShopId,
+    standings,
+    held,
+    retryEmpty,
+    deckBudget,
+    errors,
+  );
   const heldLines = await deps.repos.playloltcgResults.decklistCards(activityShopId);
-  const shortCodes = [...fetched.bodies.values()]
-    .flat()
-    .map((card) => normalizeCardNo((record(card) ?? {}).cardNo))
-    .filter((code): code is string => code !== null);
-  const bridge = await deps.repos.playloltcgEvents.cardsByShortCode(shortCodes);
-
-  const freshLines = new Map<string, PlayloltcgDeckLine[]>();
-  for (const [sourceDeckId, body] of fetched.bodies) {
-    const lines = projectPlayloltcgDeckLines(body, bridge);
-    freshLines.set(sourceDeckId, lines);
-    await deps.repos.playloltcgResults.putDecklist(
-      { sourceDeckId, activityShopId, fetchStatus: "fetched", fetchedAt: clock(deps) },
-      lines,
-    );
-  }
-  // Refused decks are still recorded (with no lines) so the next pass doesn't re-request them.
-  for (const sourceDeckId of fetched.refused) {
-    await deps.repos.playloltcgResults.putDecklist(
-      { sourceDeckId, activityShopId, fetchStatus: "refused", fetchedAt: clock(deps) },
-      [],
-    );
-  }
+  const freshLines = await storeDeckReads(deps, activityShopId, fetched, errors);
 
   const seenNames = new Map<string, number>();
   const rows: Insertable<PlayloltcgEventStandingsTable>[] = [];
