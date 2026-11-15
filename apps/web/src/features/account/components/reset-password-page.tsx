@@ -1,6 +1,6 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { Link, useNavigate, getRouteApi } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { AuthPageLayout } from "@/components/layout/auth-page-layout";
 import { PROSE_MARKUP } from "@/components/message-markup";
@@ -16,6 +16,8 @@ import {
   PASSWORD_MIN_LENGTH,
 } from "@/features/account/lib/account-validation";
 import { authClient } from "@/features/account/lib/auth-client";
+import { formText } from "@/features/account/lib/form-data";
+import { isPlainClick } from "@/features/account/lib/plain-click";
 import { otpErrorMessage, requestOtpErrorMessage } from "@/lib/auth-errors";
 import { m } from "@/paraglide/messages.js";
 
@@ -30,17 +32,17 @@ export function ResetPasswordPage() {
   // sent, which only `handleSendCode` can make true.
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState(initialEmail);
+  const emailForm = useRef<HTMLFormElement>(null);
   const [emailError, setEmailError] = useState("");
 
   const [otp, setOtp] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
 
-  async function handleSendCode() {
-    const trimmed = email.trim();
+  async function handleSendCode(form: HTMLFormElement) {
+    const trimmed = formText(form, "email").trim();
+    setEmail(trimmed);
     if (!isEmailAddress(trimmed)) {
       setEmailError(m.auth_reset_email_invalid());
       return;
@@ -78,7 +80,9 @@ export function ResetPasswordPage() {
     }
   }
 
-  async function handleReset() {
+  async function handleReset(form: HTMLFormElement) {
+    const newPassword = formText(form, "newPassword");
+    const confirmPassword = formText(form, "confirmPassword");
     setError("");
     if (newPassword.length < PASSWORD_MIN_LENGTH) {
       setError(m.auth_password_min());
@@ -123,9 +127,8 @@ export function ResetPasswordPage() {
       >
         {step === "email" ? (
           <AccountForm
-            onSubmit={() => {
-              void handleSendCode();
-            }}
+            ref={emailForm}
+            onSubmit={(event) => void handleSendCode(event.currentTarget)}
           >
             <FieldGroup>
               {emailError && <FieldError>{emailError}</FieldError>}
@@ -133,11 +136,11 @@ export function ResetPasswordPage() {
                 <FieldLabel htmlFor="reset-email">{m.auth_reset_email_label()}</FieldLabel>
                 <Input
                   id="reset-email"
+                  name="email"
                   type="email"
                   autoComplete="email"
                   placeholder={emailPlaceholder}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  defaultValue={initialEmail}
                   aria-invalid={Boolean(emailError)}
                   // oxlint-disable-next-line jsx-a11y/no-autofocus -- reset-password step's primary input
                   autoFocus
@@ -151,11 +154,7 @@ export function ResetPasswordPage() {
             </FieldGroup>
           </AccountForm>
         ) : (
-          <AccountForm
-            onSubmit={() => {
-              void handleReset();
-            }}
-          >
+          <AccountForm onSubmit={(event) => void handleReset(event.currentTarget)}>
             <FieldGroup>
               {error && <FieldError>{error}</FieldError>}
               <Field className="items-center">
@@ -165,10 +164,9 @@ export function ResetPasswordPage() {
                 <FieldLabel htmlFor="new-password">{m.auth_reset_new_password_label()}</FieldLabel>
                 <Input
                   id="new-password"
+                  name="newPassword"
                   type="password"
                   autoComplete="new-password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
                 />
               </Field>
               <Field>
@@ -177,10 +175,9 @@ export function ResetPasswordPage() {
                 </FieldLabel>
                 <Input
                   id="confirm-password"
+                  name="confirmPassword"
                   type="password"
                   autoComplete="new-password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
                 />
               </Field>
               <Field>
@@ -212,6 +209,16 @@ export function ResetPasswordPage() {
             to="/login"
             search={{ redirect: undefined, email: email.trim() || undefined }}
             className="underline underline-offset-2"
+            onClick={(event) => {
+              if (isPlainClick(event)) {
+                event.preventDefault();
+                const typed = emailForm.current ? formText(emailForm.current, "email") : email;
+                void navigate({
+                  to: "/login",
+                  search: { redirect: undefined, email: typed.trim() || undefined },
+                });
+              }
+            }}
           >
             {m.auth_back_to_login()}
           </Link>

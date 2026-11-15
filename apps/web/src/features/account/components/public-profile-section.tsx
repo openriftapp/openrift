@@ -1,9 +1,7 @@
-import { zodResolver } from "@hookform/resolvers/zod";
 import { PROFILE_BIO_MAX_LENGTH, validateProfileBio } from "@openrift/shared/profile-bio";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckIcon } from "lucide-react";
 import { useState } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod/v4";
 
 import { SettingsRow } from "@/components/layout/settings-row";
@@ -12,6 +10,8 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/c
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { AccountForm, AccountFormSubmit } from "@/features/account/components/account-form";
+import { useAccountForm } from "@/features/account/hooks/use-account-form";
+import { useFieldDraft } from "@/features/account/hooks/use-field-draft";
 import { useUpdateUserField } from "@/features/account/hooks/use-update-user-field";
 import { authClient } from "@/features/account/lib/auth-client";
 import { sessionQueryOptions } from "@/lib/auth-session";
@@ -87,12 +87,12 @@ const bioSchema = z.object({
 type BioValues = z.infer<typeof bioSchema>;
 
 function BioForm({ defaultBio }: { defaultBio: string }) {
-  const form = useForm<BioValues>({
-    resolver: zodResolver(bioSchema),
-    defaultValues: { bio: defaultBio },
-  });
-  const watchedBio = useWatch({ control: form.control, name: "bio" });
-
+  const form = useAccountForm(bioSchema);
+  const {
+    ref: fieldRef,
+    draft,
+    handleInput: handleDraftInput,
+  } = useFieldDraft<HTMLTextAreaElement>();
   const { save, loading, success } = useUpdateUserField(form, {
     saveFailed: m.profile_public_save_error(),
     onServerError: (error) =>
@@ -100,6 +100,7 @@ function BioForm({ defaultBio }: { defaultBio: string }) {
         message: error.message ?? m.profile_public_save_error(),
       }),
   });
+  const error = form.errors.bio;
 
   async function onSubmit(values: BioValues) {
     // An empty string normalizes to null server-side (clears the field).
@@ -107,49 +108,45 @@ function BioForm({ defaultBio }: { defaultBio: string }) {
   }
 
   return (
-    <AccountForm earlyInput="discard" onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}>
+    <AccountForm onInput={form.handleInput} onSubmit={form.handleSubmit(onSubmit)}>
       <FieldGroup>
-        {form.formState.errors.root && (
-          <FieldError>{form.formState.errors.root.message}</FieldError>
-        )}
-        <Controller
-          name="bio"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>{m.profile_public_bio_label()}</FieldLabel>
-              <Textarea
-                {...field}
-                id={field.name}
-                rows={2}
-                maxLength={PROFILE_BIO_MAX_LENGTH}
-                placeholder={m.profile_public_bio_placeholder()}
-                aria-invalid={fieldState.invalid}
-              />
-              <div className="flex items-center justify-between gap-2">
-                <FieldDescription>
-                  {m.profile_public_bio_hint({
-                    count: watchedBio.length,
-                    max: PROFILE_BIO_MAX_LENGTH,
-                  })}
-                </FieldDescription>
-                <AccountFormSubmit
-                  pending={loading}
-                  disabled={loading || watchedBio.trim() === defaultBio}
-                >
-                  {m.common_save()}
-                </AccountFormSubmit>
-              </div>
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              {success && (
-                <FieldDescription className="flex items-center gap-1.5">
-                  <CheckIcon className="text-success size-3.5" />
-                  {m.profile_public_bio_updated()}
-                </FieldDescription>
-              )}
-            </Field>
+        {form.errors.root !== undefined && <FieldError>{form.errors.root}</FieldError>}
+        <Field data-invalid={error !== undefined}>
+          <FieldLabel htmlFor="bio">{m.profile_public_bio_label()}</FieldLabel>
+          <Textarea
+            ref={fieldRef}
+            id="bio"
+            name="bio"
+            rows={2}
+            autoComplete="off"
+            maxLength={PROFILE_BIO_MAX_LENGTH}
+            defaultValue={defaultBio}
+            placeholder={m.profile_public_bio_placeholder()}
+            aria-invalid={error !== undefined}
+            onInput={handleDraftInput}
+          />
+          <div className="flex items-center justify-between gap-2">
+            <FieldDescription>
+              {m.profile_public_bio_hint({
+                count: (draft ?? defaultBio).length,
+                max: PROFILE_BIO_MAX_LENGTH,
+              })}
+            </FieldDescription>
+            <AccountFormSubmit
+              pending={loading}
+              disabled={loading || draft === undefined || draft.trim() === defaultBio}
+            >
+              {m.common_save()}
+            </AccountFormSubmit>
+          </div>
+          {error !== undefined && <FieldError>{error}</FieldError>}
+          {success && (
+            <FieldDescription className="flex items-center gap-1.5">
+              <CheckIcon className="text-success size-3.5" />
+              {m.profile_public_bio_updated()}
+            </FieldDescription>
           )}
-        />
+        </Field>
       </FieldGroup>
     </AccountForm>
   );

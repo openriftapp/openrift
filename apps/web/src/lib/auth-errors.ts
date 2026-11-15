@@ -1,5 +1,3 @@
-import type { UseFormSetError } from "react-hook-form";
-
 import { m } from "@/paraglide/messages.js";
 
 function codeToField(): Record<
@@ -30,7 +28,7 @@ function codeToField(): Record<
 const BODY_FIELD_RE = /^\[body\.(?<field>\w+)\]\s*(?<text>.+)$/u;
 
 export function setServerError(
-  form: { setError: UseFormSetError<any> },
+  form: { setError: (field: string, error: { message?: string }) => void },
   error: { code?: string; message?: string },
 ) {
   const mapped = error.code === undefined ? undefined : codeToField()[error.code];

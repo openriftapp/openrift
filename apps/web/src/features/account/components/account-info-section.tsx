@@ -1,9 +1,7 @@
-import { zodResolver } from "@hookform/resolvers/zod";
 import { validateRiotId } from "@openrift/shared/riot-id";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckIcon } from "lucide-react";
 import { useState } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod/v4";
 
 import { SettingsSection } from "@/components/layout/settings-section";
@@ -12,6 +10,8 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/c
 import { Input } from "@/components/ui/input";
 import { AccountForm, AccountFormSubmit } from "@/features/account/components/account-form";
 import { SixDigitOtpInput } from "@/features/account/components/six-digit-otp-input";
+import { useAccountForm } from "@/features/account/hooks/use-account-form";
+import { useFieldDraft } from "@/features/account/hooks/use-field-draft";
 import { useUpdateUserField } from "@/features/account/hooks/use-update-user-field";
 import {
   displayNameField,
@@ -19,15 +19,10 @@ import {
   OTP_LENGTH,
 } from "@/features/account/lib/account-validation";
 import { authClient } from "@/features/account/lib/auth-client";
+import { formText } from "@/features/account/lib/form-data";
 import { otpErrorMessage, requestOtpErrorMessage } from "@/lib/auth-errors";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { m } from "@/paraglide/messages.js";
-
-function displayNameSchema() {
-  return z.object({ name: displayNameField() });
-}
-
-type DisplayNameValues = z.infer<ReturnType<typeof displayNameSchema>>;
 
 export function AccountInfoSection({
   defaultName,
@@ -46,74 +41,27 @@ export function AccountInfoSection({
       description={m.profile_account_description()}
       contentClassName="gap-6"
     >
-      <DisplayNameForm defaultName={defaultName} userId={userId} />
-      <RiotIdForm defaultRiotId={defaultRiotId} userId={userId} />
+      <SavedTextForm
+        key={`name:${userId}`}
+        field="name"
+        schema={z.object({ name: displayNameField() })}
+        savedValue={defaultName}
+        label={m.profile_account_name_label()}
+        placeholder={m.profile_account_name_placeholder()}
+        updated={m.profile_account_name_updated()}
+      />
+      <SavedTextForm
+        key={`riotId:${userId}`}
+        field="riotId"
+        schema={riotIdSchema}
+        savedValue={defaultRiotId}
+        label={m.profile_account_riot_label()}
+        placeholder="SummonerName#EUW"
+        description={m.profile_account_riot_description()}
+        updated={m.profile_account_riot_updated()}
+      />
       <EmailForm currentEmail={currentEmail} />
     </SettingsSection>
-  );
-}
-
-function DisplayNameForm({ defaultName, userId }: { defaultName: string; userId: string }) {
-  const form = useForm<DisplayNameValues>({
-    resolver: zodResolver(displayNameSchema()),
-    defaultValues: { name: defaultName },
-  });
-  // `form.watch()` returns a function React Compiler flags as un-memoizable
-  // (IncompatibleLibrary), bailing on the whole component; useWatch does not.
-  const watchedName = useWatch({ control: form.control, name: "name" });
-
-  const { save, loading, success } = useUpdateUserField(form, {
-    saveFailed: m.profile_account_save_failed(),
-  });
-
-  async function onSubmit(values: DisplayNameValues) {
-    await save({ name: values.name.trim() });
-  }
-
-  return (
-    <AccountForm
-      key={userId}
-      earlyInput="discard"
-      onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}
-    >
-      <FieldGroup>
-        {form.formState.errors.root && (
-          <FieldError>{form.formState.errors.root.message}</FieldError>
-        )}
-        <Controller
-          name="name"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>{m.profile_account_name_label()}</FieldLabel>
-              <div className="flex gap-2">
-                <Input
-                  {...field}
-                  id={field.name}
-                  type="text"
-                  placeholder={m.profile_account_name_placeholder()}
-                  aria-invalid={fieldState.invalid}
-                  className="flex-1"
-                />
-                <AccountFormSubmit
-                  pending={loading}
-                  disabled={loading || watchedName.trim() === defaultName}
-                >
-                  {m.common_save()}
-                </AccountFormSubmit>
-              </div>
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              {success && (
-                <FieldDescription className="flex items-center gap-1.5">
-                  <CheckIcon className="text-success size-3.5" />
-                  {m.profile_account_name_updated()}
-                </FieldDescription>
-              )}
-            </Field>
-          )}
-        />
-      </FieldGroup>
-    </AccountForm>
   );
 }
 
@@ -126,67 +74,71 @@ const riotIdSchema = z.object({
   }),
 });
 
-type RiotIdValues = z.infer<typeof riotIdSchema>;
-
-function RiotIdForm({ defaultRiotId, userId }: { defaultRiotId: string; userId: string }) {
-  const form = useForm<RiotIdValues>({
-    resolver: zodResolver(riotIdSchema),
-    defaultValues: { riotId: defaultRiotId },
-  });
-  const watchedRiotId = useWatch({ control: form.control, name: "riotId" });
-
+function SavedTextForm({
+  field,
+  schema,
+  savedValue,
+  label,
+  placeholder,
+  description,
+  updated,
+}: {
+  field: "name" | "riotId";
+  schema: z.ZodType<Record<string, string>>;
+  savedValue: string;
+  label: string;
+  placeholder: string;
+  description?: string;
+  updated: string;
+}) {
+  const form = useAccountForm(schema);
+  const { ref: fieldRef, draft, handleInput: handleDraftInput } = useFieldDraft<HTMLInputElement>();
   const { save, loading, success } = useUpdateUserField(form, {
     saveFailed: m.profile_account_save_failed(),
   });
+  const error = form.errors[field];
 
-  async function onSubmit(values: RiotIdValues) {
-    // An empty string normalizes to null server-side (clears the field).
-    await save({ riotId: values.riotId.trim() });
+  async function onSubmit(values: Record<string, string>) {
+    // An empty Riot ID normalizes to null server-side (clears the field).
+    const value = (values[field] ?? "").trim();
+    await save(field === "name" ? { name: value } : { riotId: value });
   }
 
   return (
-    <AccountForm
-      key={userId}
-      earlyInput="discard"
-      onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}
-    >
+    <AccountForm onInput={form.handleInput} onSubmit={form.handleSubmit(onSubmit)}>
       <FieldGroup>
-        {form.formState.errors.root && (
-          <FieldError>{form.formState.errors.root.message}</FieldError>
-        )}
-        <Controller
-          name="riotId"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>{m.profile_account_riot_label()}</FieldLabel>
-              <div className="flex gap-2">
-                <Input
-                  {...field}
-                  id={field.name}
-                  type="text"
-                  placeholder="SummonerName#EUW"
-                  aria-invalid={fieldState.invalid}
-                  className="flex-1"
-                />
-                <AccountFormSubmit
-                  pending={loading}
-                  disabled={loading || watchedRiotId.trim() === defaultRiotId}
-                >
-                  {m.common_save()}
-                </AccountFormSubmit>
-              </div>
-              <FieldDescription>{m.profile_account_riot_description()}</FieldDescription>
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              {success && (
-                <FieldDescription className="flex items-center gap-1.5">
-                  <CheckIcon className="text-success size-3.5" />
-                  {m.profile_account_riot_updated()}
-                </FieldDescription>
-              )}
-            </Field>
+        {form.errors.root !== undefined && <FieldError>{form.errors.root}</FieldError>}
+        <Field data-invalid={error !== undefined}>
+          <FieldLabel htmlFor={field}>{label}</FieldLabel>
+          <div className="flex gap-2">
+            <Input
+              ref={fieldRef}
+              id={field}
+              name={field}
+              type="text"
+              autoComplete="off"
+              defaultValue={savedValue}
+              placeholder={placeholder}
+              aria-invalid={error !== undefined}
+              className="flex-1"
+              onInput={handleDraftInput}
+            />
+            <AccountFormSubmit
+              pending={loading}
+              disabled={loading || draft === undefined || draft.trim() === savedValue}
+            >
+              {m.common_save()}
+            </AccountFormSubmit>
+          </div>
+          {description !== undefined && <FieldDescription>{description}</FieldDescription>}
+          {error !== undefined && <FieldError>{error}</FieldError>}
+          {success && (
+            <FieldDescription className="flex items-center gap-1.5">
+              <CheckIcon className="text-success size-3.5" />
+              {updated}
+            </FieldDescription>
           )}
-        />
+        </Field>
       </FieldGroup>
     </AccountForm>
   );
@@ -210,13 +162,14 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
     setSuccess(false);
   }
 
-  async function handleSendToCurrentEmail() {
-    const trimmed = newEmail.trim();
+  async function handleSendToCurrentEmail(form: HTMLFormElement) {
+    const trimmed = formText(form, "newEmail").trim();
     if (!isEmailAddress(trimmed)) {
       setError(m.profile_account_email_invalid());
       return;
     }
     setError("");
+    setNewEmail(trimmed);
     setLoading(true);
     const result = await authClient.emailOtp
       .sendVerificationOtp({ email: currentEmail, type: "email-verification" })
@@ -313,30 +266,27 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
       )}
 
       {step === "input" && (
-        <Field>
-          <FieldLabel htmlFor="new-email">{m.profile_account_new_email_label()}</FieldLabel>
-          <div className="flex gap-2">
-            <Input
-              id="new-email"
-              type="email"
-              autoComplete="email"
-              placeholder={currentEmail}
-              value={newEmail}
-              onChange={(e) => {
-                setNewEmail(e.target.value);
-                setSuccess(false);
-              }}
-              className="flex-1"
-            />
-            <Button
-              pending={loading}
-              disabled={loading || !newEmail.trim()}
-              onClick={() => void handleSendToCurrentEmail()}
-            >
-              {m.profile_account_send_code()}
-            </Button>
-          </div>
-        </Field>
+        <AccountForm
+          onInput={() => setSuccess(false)}
+          onSubmit={(event) => void handleSendToCurrentEmail(event.currentTarget)}
+        >
+          <Field>
+            <FieldLabel htmlFor="new-email">{m.profile_account_new_email_label()}</FieldLabel>
+            <div className="flex gap-2">
+              <Input
+                id="new-email"
+                name="newEmail"
+                type="email"
+                autoComplete="email"
+                placeholder={currentEmail}
+                className="flex-1"
+              />
+              <AccountFormSubmit pending={loading} disabled={loading}>
+                {m.profile_account_send_code()}
+              </AccountFormSubmit>
+            </div>
+          </Field>
+        </AccountForm>
       )}
 
       {step === "verify-current" && (

@@ -1,8 +1,5 @@
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { useState } from "react";
-import type { Control } from "react-hook-form";
-import { useForm, useFormState, useWatch } from "react-hook-form";
+import { useRef, useState } from "react";
 import { z } from "zod/v4";
 
 import { Field, FieldDescription, FieldError, FieldGroup } from "@/components/ui/field";
@@ -10,9 +7,12 @@ import { AccountForm, AccountFormSubmit } from "@/features/account/components/ac
 import { AuthDestinationPanel } from "@/features/account/components/auth-destination-panel";
 import { AuthFormCard, SocialAuthButtons } from "@/features/account/components/auth-form-shell";
 import { FormInputField } from "@/features/account/components/form-input-field";
+import { useAccountForm } from "@/features/account/hooks/use-account-form";
 import { displayNameField, newPasswordField } from "@/features/account/lib/account-validation";
 import { signUp } from "@/features/account/lib/auth-client";
 import { authDestination } from "@/features/account/lib/auth-destination";
+import { formText } from "@/features/account/lib/form-data";
+import { isPlainClick } from "@/features/account/lib/plain-click";
 import { routeTemplate, trackSignupSubmit } from "@/lib/analytics";
 import { setServerError } from "@/lib/auth-errors";
 import { m } from "@/paraglide/messages.js";
@@ -41,10 +41,8 @@ export function SignupForm({
   const navigate = useNavigate();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const form = useForm<SignUpValues>({
-    resolver: zodResolver(signUpSchema()),
-    defaultValues: { name: "", email: initialEmail, password: "" },
-  });
+  const form = useAccountForm(signUpSchema());
+  const formRef = useRef<HTMLFormElement>(null);
   const destination = authDestination(redirectTo);
 
   async function onSubmit(values: SignUpValues) {
@@ -75,31 +73,32 @@ export function SignupForm({
       aside={destination && <AuthDestinationPanel destination={destination} />}
       {...props}
     >
-      <AccountForm onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}>
+      <AccountForm ref={formRef} onInput={form.handleInput} onSubmit={form.handleSubmit(onSubmit)}>
         <FieldGroup>
-          <RootFormError control={form.control} />
+          {form.errors.root !== undefined && <FieldError>{form.errors.root}</FieldError>}
           <FormInputField
-            control={form.control}
             name="name"
             label={m.auth_field_name()}
             type="text"
+            error={form.errors.name}
             placeholder={m.auth_name_placeholder()}
             // oxlint-disable-next-line jsx-a11y/no-autofocus -- sign-up page's primary input
             autoFocus
           />
           <FormInputField
-            control={form.control}
             name="email"
             label={m.auth_field_email()}
             type="email"
+            error={form.errors.email}
+            defaultValue={initialEmail}
             autoComplete="email"
             placeholder={emailPlaceholder}
           />
           <FormInputField
-            control={form.control}
             name="password"
             label={m.auth_field_password()}
             type="password"
+            error={form.errors.password}
             autoComplete="new-password"
           />
           <Field>
@@ -111,31 +110,33 @@ export function SignupForm({
       </AccountForm>
       <SocialAuthButtons redirectTo={redirectTo} />
       <FieldDescription className="text-center">
-        {m.auth_signup_have_account()} <LoginLink control={form.control} redirectTo={redirectTo} />
+        {m.auth_signup_have_account()}{" "}
+        <LoginLink
+          readEmail={() => (formRef.current ? formText(formRef.current, "email").trim() : "")}
+          redirectTo={redirectTo}
+        />
       </FieldDescription>
     </AuthFormCard>
   );
 }
 
-function RootFormError({ control }: { control: Control<SignUpValues> }) {
-  const { errors } = useFormState({ control });
-  return errors.root ? <FieldError>{errors.root.message}</FieldError> : null;
-}
-
-/**
- * Isolated so the watch re-renders this link, not the whole card. Uses
- * `useWatch`, not `form.watch()`: the latter bails out the React Compiler.
- */
-function LoginLink({
-  control,
-  redirectTo,
-}: {
-  control: Control<SignUpValues>;
-  redirectTo?: string;
-}) {
-  const email = useWatch({ control, name: "email" });
+function LoginLink({ readEmail, redirectTo }: { readEmail: () => string; redirectTo?: string }) {
+  const navigate = useNavigate();
   return (
-    <Link rel="nofollow" to="/login" search={{ redirect: redirectTo, email: email || undefined }}>
+    <Link
+      rel="nofollow"
+      to="/login"
+      search={{ redirect: redirectTo, email: undefined }}
+      onClick={(event) => {
+        if (isPlainClick(event)) {
+          event.preventDefault();
+          void navigate({
+            to: "/login",
+            search: { redirect: redirectTo, email: readEmail() || undefined },
+          });
+        }
+      }}
+    >
       {m.common_sign_in()}
     </Link>
   );

@@ -1,6 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import type { FieldValues, UseFormSetError } from "react-hook-form";
 
 import { authClient } from "@/features/account/lib/auth-client";
 import { setServerError } from "@/lib/auth-errors";
@@ -13,8 +12,8 @@ interface AuthServerError {
   message?: string;
 }
 
-export function useUpdateUserField<TValues extends FieldValues>(
-  form: { setError: UseFormSetError<TValues> },
+export function useUpdateUserField(
+  form: { setError: (field: string, error: { message?: string }) => void },
   options: { saveFailed: string; onServerError?: (error: AuthServerError) => void },
 ) {
   const [loading, setLoading] = useState(false);

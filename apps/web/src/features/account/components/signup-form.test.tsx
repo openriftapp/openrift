@@ -4,25 +4,32 @@ import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const shellRenders = { card: 0, social: 0 };
+const navigate = vi.fn();
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({
     children,
     to,
     search,
+    onClick,
   }: {
     children: ReactNode;
     to: string;
     search?: Record<string, unknown>;
+    onClick?: (event: React.MouseEvent<HTMLAnchorElement>) => void;
   }) => {
     const query = new URLSearchParams(
       Object.entries(search ?? {})
         .filter(([, value]) => value !== undefined && value !== "")
         .map(([key, value]) => [key, String(value)]),
     ).toString();
-    return <a href={query ? `${to}?${query}` : to}>{children}</a>;
+    return (
+      <a href={query ? `${to}?${query}` : to} onClick={onClick}>
+        {children}
+      </a>
+    );
   },
-  useNavigate: () => vi.fn(),
+  useNavigate: () => navigate,
   useRouter: () => ({ matchRoutes: () => [] }),
 }));
 
@@ -52,6 +59,7 @@ describe("SignupForm", () => {
   beforeEach(() => {
     shellRenders.card = 0;
     shellRenders.social = 0;
+    navigate.mockReset();
   });
 
   it("does not re-render the surrounding card while typing an email", async () => {
@@ -69,16 +77,17 @@ describe("SignupForm", () => {
     expect(email).toHaveValue("jinx@example.com");
   });
 
-  it("keeps the sign-in link in step with the typed email", async () => {
+  it("carries the email in the field at the moment the sign-in link is clicked", async () => {
     const user = userEvent.setup();
     render(<SignupForm emailPlaceholder="summoner@example.com" />);
+    (screen.getByLabelText("Email") as HTMLInputElement).value = "vi@example.com";
 
-    await user.type(screen.getByLabelText("Email"), "vi@example.com");
+    await user.click(screen.getByRole("link", { name: "Sign in" }));
 
-    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
-      "href",
-      "/login?email=vi%40example.com",
-    );
+    expect(navigate).toHaveBeenCalledWith({
+      to: "/login",
+      search: { redirect: undefined, email: "vi@example.com" },
+    });
   });
 
   it("shows what the destination offers next to the form", () => {

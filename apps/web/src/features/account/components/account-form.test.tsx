@@ -79,4 +79,26 @@ describe("AccountForm", () => {
 
     expect(offenders).toEqual([]);
   });
+
+  it("leaves field values to the browser across the account feature", () => {
+    const feature = path.dirname(path.dirname(new URL(import.meta.url).pathname));
+    const banned = [
+      "_valueTracker",
+      'dispatchEvent(new Event("input"',
+      "flushSync",
+      "queueMicrotask",
+      "getOwnPropertyDescriptor",
+      "Promise.resolve().then(",
+      "useLayoutEffect",
+    ];
+    const offenders = ["components", "hooks", "lib", "stores"]
+      .flatMap((dir) => readdirSync(path.join(feature, dir)).map((file) => path.join(dir, file)))
+      .filter((file) => /\.tsx?$/u.test(file) && !file.includes(".test."))
+      .filter((file) => {
+        const source = readFileSync(path.join(feature, file), "utf-8");
+        return banned.some((pattern) => source.includes(pattern));
+      });
+
+    expect(offenders).toEqual([]);
+  });
 });

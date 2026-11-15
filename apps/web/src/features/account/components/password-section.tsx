@@ -1,11 +1,9 @@
-import { zodResolver } from "@hookform/resolvers/zod";
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { MINUTE_MS } from "@openrift/shared/format-date";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { CheckIcon } from "lucide-react";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
 import { z } from "zod/v4";
 
 import { SettingsSection } from "@/components/layout/settings-section";
@@ -14,6 +12,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup } from "@/components/ui/field";
 import { AccountForm, AccountFormSubmit } from "@/features/account/components/account-form";
 import { FormInputField } from "@/features/account/components/form-input-field";
+import { useAccountForm } from "@/features/account/hooks/use-account-form";
 import { authAccountsKeys } from "@/features/account/lib/account-query-keys";
 import { newPasswordField } from "@/features/account/lib/account-validation";
 import { authClient } from "@/features/account/lib/auth-client";
@@ -90,12 +89,9 @@ function SetPasswordCard({ currentEmail }: { currentEmail: string }) {
 function ChangePasswordCard() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const form = useForm<PasswordValues>({
-    resolver: zodResolver(passwordSchema()),
-    defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
-  });
+  const form = useAccountForm(passwordSchema());
 
-  async function onSubmit(values: PasswordValues) {
+  async function onSubmit(values: PasswordValues, formElement: HTMLFormElement) {
     setLoading(true);
     setSuccess(false);
     const result = await authClient
@@ -116,7 +112,7 @@ function ChangePasswordCard() {
       return;
     }
     setSuccess(true);
-    form.reset();
+    formElement.reset();
   }
 
   return (
@@ -124,28 +120,26 @@ function ChangePasswordCard() {
       title={m.profile_password_title()}
       description={m.profile_password_change_description()}
     >
-      <AccountForm onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}>
+      <AccountForm onInput={form.handleInput} onSubmit={form.handleSubmit(onSubmit)}>
         <FieldGroup>
-          {form.formState.errors.root && (
-            <FieldError>{form.formState.errors.root.message}</FieldError>
-          )}
+          {form.errors.root !== undefined && <FieldError>{form.errors.root}</FieldError>}
           <FormInputField
-            control={form.control}
             name="currentPassword"
+            error={form.errors.currentPassword}
             label={m.profile_password_current_label()}
             type="password"
             autoComplete="current-password"
           />
           <FormInputField
-            control={form.control}
             name="newPassword"
+            error={form.errors.newPassword}
             label={m.profile_password_new_label()}
             type="password"
             autoComplete="new-password"
           />
           <FormInputField
-            control={form.control}
             name="confirmPassword"
+            error={form.errors.confirmPassword}
             label={m.profile_password_confirm_label()}
             type="password"
             autoComplete="new-password"

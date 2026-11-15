@@ -1,46 +1,46 @@
-import type { Control, FieldPath, FieldValues } from "react-hook-form";
-import { Controller } from "react-hook-form";
+import type { InputEvent } from "react";
 
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 
-export function FormInputField<T extends FieldValues>({
-  control,
+export function FormInputField({
   name,
   label,
   type,
+  error,
+  defaultValue,
   autoComplete,
   placeholder,
   autoFocus,
+  onInput,
 }: {
-  control: Control<T>;
-  name: FieldPath<T>;
+  name: string;
   label: string;
   type: "text" | "email" | "password";
+  error?: string;
+  defaultValue?: string;
   autoComplete?: string;
   placeholder?: string;
   autoFocus?: boolean;
+  onInput?: (event: InputEvent<HTMLInputElement>) => void;
 }) {
+  const invalid = error !== undefined;
   return (
-    <Controller
-      name={name}
-      control={control}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid}>
-          <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
-          <Input
-            {...field}
-            id={field.name}
-            type={type}
-            autoComplete={autoComplete}
-            placeholder={placeholder}
-            aria-invalid={fieldState.invalid}
-            // oxlint-disable-next-line jsx-a11y/no-autofocus -- callers carry their own reason
-            autoFocus={autoFocus}
-          />
-          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-        </Field>
-      )}
-    />
+    <Field data-invalid={invalid}>
+      <FieldLabel htmlFor={name}>{label}</FieldLabel>
+      <Input
+        id={name}
+        name={name}
+        type={type}
+        defaultValue={defaultValue}
+        autoComplete={autoComplete}
+        placeholder={placeholder}
+        aria-invalid={invalid}
+        // oxlint-disable-next-line jsx-a11y/no-autofocus -- callers carry their own reason
+        autoFocus={autoFocus}
+        onInput={onInput}
+      />
+      {invalid && <FieldError>{error}</FieldError>}
+    </Field>
   );
 }

@@ -185,10 +185,21 @@ test.describe("profile account & security", () => {
       await expect(newEmailInput).toBeVisible({ timeout: 15_000 });
 
       const sendButton = page.getByRole("button", { name: /send code to current email/iu });
-      await expect(sendButton).toBeDisabled();
+      let otpRequests = 0;
+      page.on("request", (req) => {
+        if (req.url().includes("/api/auth/email-otp/send-verification-otp")) {
+          otpRequests += 1;
+        }
+      });
+
+      for (const invalid of ["", "not-an-email"]) {
+        await newEmailInput.fill(invalid);
+        await sendButton.click();
+        await expect(page.getByText("Please enter a valid email address.")).toBeVisible();
+      }
+      expect(otpRequests).toBe(0);
 
       await newEmailInput.fill(newEmail);
-      await expect(sendButton).toBeEnabled();
 
       const sendCurrentRequest = page.waitForResponse(
         (res) =>

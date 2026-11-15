@@ -106,6 +106,9 @@ function Button({
       suppressHydrationWarning
       render={render}
       nativeButton={resolvedNativeButton}
+      // custom: without autocomplete off, Firefox restores a native button's disabled state
+      // across a soft reload; React's button types omit the attribute, hence the spread
+      {...(resolvedNativeButton ? { autoComplete: "off" } : undefined)}
       disabled={disabled || pending} // custom: pending state
       aria-busy={pending || undefined} // custom: pending state
       {...props}

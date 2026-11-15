@@ -13,11 +13,13 @@ vi.mock("@tanstack/react-router", () => ({
     to,
     search,
     className,
+    onClick,
   }: {
     children: ReactNode;
     to: string;
     search?: Record<string, unknown>;
     className?: string;
+    onClick?: (event: React.MouseEvent<HTMLAnchorElement>) => void;
   }) => {
     const query = new URLSearchParams(
       Object.entries(search ?? {})
@@ -25,7 +27,7 @@ vi.mock("@tanstack/react-router", () => ({
         .map(([key, value]) => [key, String(value)]),
     ).toString();
     return (
-      <a href={query ? `${to}?${query}` : to} className={className}>
+      <a href={query ? `${to}?${query}` : to} className={className} onClick={onClick}>
         {children}
       </a>
     );
@@ -147,27 +149,40 @@ describe("LoginForm", () => {
     expect(email).toHaveValue("jinx@example.com");
   });
 
-  it("keeps links in step with the typed email", async () => {
+  it("carries the email in the field at the moment a link is clicked", async () => {
+    const user = userEvent.setup();
+    renderLoginForm();
+    (activeEmailInput() as HTMLInputElement).value = " vi@example.com ";
+
+    await user.click(screen.getByRole("link", { name: "Sign up" }));
+    expect(navigate).toHaveBeenLastCalledWith({
+      to: "/signup",
+      search: { redirect: undefined, email: "vi@example.com" },
+    });
+
+    await user.click(screen.getByRole("link", { name: "Forgot your password?" }));
+    expect(navigate).toHaveBeenLastCalledWith({
+      to: "/reset-password",
+      search: { email: "vi@example.com" },
+    });
+  });
+
+  it("leaves a modified click on a link to the browser", async () => {
     const user = userEvent.setup();
     renderLoginForm();
 
-    await user.type(activeEmailInput(), "vi@example.com");
+    await user.keyboard("{Control>}");
+    await user.click(screen.getByRole("link", { name: "Sign up" }));
+    await user.keyboard("{/Control}");
 
-    expect(screen.getByRole("link", { name: "Sign up" })).toHaveAttribute(
-      "href",
-      "/signup?email=vi%40example.com",
-    );
-    expect(screen.getByRole("link", { name: "Forgot your password?" })).toHaveAttribute(
-      "href",
-      "/reset-password?email=vi%40example.com",
-    );
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it("carries the email across a tab switch", async () => {
     const user = userEvent.setup();
     renderLoginForm();
 
-    await user.type(activeEmailInput(), "caitlyn@example.com");
+    (activeEmailInput() as HTMLInputElement).value = "caitlyn@example.com";
     await user.click(screen.getByRole("tab", { name: "Email code" }));
 
     expect(activeEmailInput()).toHaveValue("caitlyn@example.com");
@@ -177,6 +192,25 @@ describe("LoginForm", () => {
     await user.click(screen.getByRole("tab", { name: "Password" }));
 
     expect(activeEmailInput()).toHaveValue("ekko@example.com");
+  });
+
+  it("keeps the address a code was sent to for the links and the password tab", async () => {
+    const user = userEvent.setup();
+    sendVerificationOtp.mockResolvedValue({ error: null });
+    renderLoginForm();
+    await user.click(screen.getByRole("tab", { name: "Email code" }));
+    await user.type(activeEmailInput(), "jinx@example.com");
+    await user.click(screen.getByRole("button", { name: "Send code" }));
+    expect(screen.getByRole("button", { name: "Verify" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("link", { name: "Sign up" }));
+    expect(navigate).toHaveBeenLastCalledWith({
+      to: "/signup",
+      search: { redirect: undefined, email: "jinx@example.com" },
+    });
+
+    await user.click(screen.getByRole("tab", { name: "Password" }));
+    expect(activeEmailInput()).toHaveValue("jinx@example.com");
   });
 
   it("stays on the email step when the sign-in code could not be sent", async () => {

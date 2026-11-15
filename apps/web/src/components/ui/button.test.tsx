@@ -110,3 +110,17 @@ describe("control sizes", () => {
     expect(buttonVariants({ size: "xs" }).split(/\s+/u)).toContain("h-6");
   });
 });
+
+describe("autocomplete", () => {
+  it("turns autocomplete off on a native button", () => {
+    render(<Button disabled>Save</Button>);
+    expect(screen.getByRole("button", { name: "Save" })).toHaveAttribute("autocomplete", "off");
+  });
+
+  it("leaves a link rendered through Button without it", () => {
+    render(<Button render={<a href="/decks">Decks</a>} />);
+    const link = screen.getByText("Decks");
+    expect(link.tagName).toBe("A");
+    expect(link).not.toHaveAttribute("autocomplete");
+  });
+});
