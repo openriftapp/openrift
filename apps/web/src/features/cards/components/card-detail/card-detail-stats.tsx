@@ -28,7 +28,7 @@ export function CardDetailStats({
     <div
       className={cn(
         "flex min-h-8 flex-wrap items-center gap-1.5",
-        align === "center" ? "flex-1 justify-center" : "justify-start",
+        align === "center" ? "flex-1 justify-center" : "justify-start empty:hidden",
       )}
     >
       {card.energy !== null && card.energy > 0 && (

@@ -1,3 +1,7 @@
+export function cardAspectVar(orientation: string): string {
+  return orientation === "landscape" ? "var(--aspect-card-landscape)" : "var(--aspect-card)";
+}
+
 export function needsCssRotation(orientation: string): boolean {
   return orientation === "landscape";
 }

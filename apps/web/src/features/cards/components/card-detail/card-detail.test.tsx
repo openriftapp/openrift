@@ -4,8 +4,10 @@ import { describe, expect, it, vi } from "vitest";
 import { stubPrinting } from "@/test/factories";
 
 vi.mock("@/hooks/use-domain-colors", () => ({ useDomainColors: () => ({}) }));
-vi.mock("./card-detail-art", () => ({ CardDetailArt: () => null }));
-vi.mock("./card-detail-links", () => ({ CardDetailLinks: () => null }));
+vi.mock("./card-detail-art", () => ({
+  CardDetailArt: ({ frame }: { frame?: string }) => <div data-testid="art" data-frame={frame} />,
+}));
+vi.mock("./card-detail-links", () => ({ CardDetailLinks: () => null, CardPageButton: () => null }));
 vi.mock("./card-detail-stats", () => ({ CardDetailStats: () => null }));
 vi.mock("./card-detail-text", () => ({ CardDetailText: () => null }));
 vi.mock("./card-detail-heading", () => ({
@@ -35,4 +37,15 @@ describe("CardDetail desktop header", () => {
     const heading = screen.getByRole("heading", { name: /Chaos Rune/u });
     expect(heading.closest(".sticky")).toBeNull();
   });
+});
+
+describe("CardDetail art", () => {
+  it.each(["pane", "modal"] as const)(
+    "draws the art in its native orientation in the %s layout",
+    (layout) => {
+      render(<CardDetail printing={printing} showImages={false} layout={layout} />);
+
+      expect(screen.getByTestId("art")).toHaveAttribute("data-frame", "native");
+    },
+  );
 });

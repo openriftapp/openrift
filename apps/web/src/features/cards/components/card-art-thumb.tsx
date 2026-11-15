@@ -5,14 +5,17 @@ import type { ReactNode } from "react";
 
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { FoilOverlay } from "@/features/cards/components/foil-overlay";
-import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
+import {
+  CARD_BORDER_RADIUS,
+  CARD_BORDER_RADIUS_LANDSCAPE,
+} from "@/features/cards/lib/card-grid-constants";
 import { getDomainColor } from "@/lib/domain";
 import { getFilterIconPath } from "@/lib/icons";
 import { LANDSCAPE_ROTATION_STYLE } from "@/lib/images";
 import { cn } from "@/lib/utils";
 
-/** `card`: portrait frame, rotates landscape art -90°. `strip`: landscape-card
- * ratio crop. `square`: square crop of the art's top. */
+/** `card`: portrait frame, rotates landscape art -90° unless `frame` is
+ * `native`. `strip`: landscape-card ratio crop. `square`: square crop of the art's top. */
 type CardArtThumbShape = "card" | "strip" | "square";
 
 const FRAME_CLASS: Record<CardArtThumbShape, string> = {
@@ -38,6 +41,7 @@ interface CardArtThumbProps {
   domains?: string[];
   fallback?: ReactNode;
   landscape?: boolean;
+  frame?: "portrait" | "native";
   foil?: boolean;
 }
 
@@ -60,10 +64,10 @@ function ThumbPlaceholder({
 }: {
   rarity?: string | null;
   domains?: string[];
-  shape: CardArtThumbShape;
+  shape: CardArtThumbShape | "lying";
 }) {
   const rarityIcon = rarity ? getFilterIconPath("rarities", rarity) : undefined;
-  const glyphSize = shape === "strip" ? "h-1/2" : "w-1/2";
+  const glyphSize = shape === "strip" || shape === "lying" ? "h-1/2" : "w-1/2";
   return (
     <span
       className="absolute inset-0 flex items-center justify-center"
@@ -92,12 +96,14 @@ export function CardArtThumb({
   domains,
   fallback,
   landscape = false,
+  frame = "portrait",
   foil = false,
 }: CardArtThumbProps) {
   const framed = shape === "card";
+  const lyingDown = framed && landscape && frame === "native";
   const resolved = src ?? (imageId ? imageUrl(imageId, variant) : null);
   const emptyFrame = fallback ?? (
-    <ThumbPlaceholder rarity={rarity} domains={domains} shape={shape} />
+    <ThumbPlaceholder rarity={rarity} domains={domains} shape={lyingDown ? "lying" : shape} />
   );
   const image = resolved && (
     <ImgWithFallback
@@ -108,7 +114,7 @@ export function CardArtThumb({
       fallback={emptyFrame}
     />
   );
-  const rotate = landscape && framed;
+  const rotate = landscape && framed && !lyingDown;
   return (
     <span
       data-slot="card-art-thumb"
@@ -116,11 +122,15 @@ export function CardArtThumb({
         // WebKit gives an aspect-ratio-sized box a `min-width: auto` of the
         // image's intrinsic width, inflating every flex ancestor.
         "relative inline-block min-w-0 shrink-0 overflow-hidden align-top",
-        FRAME_CLASS[shape],
+        lyingDown ? "bg-muted aspect-card-landscape" : FRAME_CLASS[shape],
         foil && "ring-border-accent/60 ring-1",
         className,
       )}
-      style={framed ? { borderRadius: CARD_BORDER_RADIUS } : undefined}
+      style={
+        framed
+          ? { borderRadius: lyingDown ? CARD_BORDER_RADIUS_LANDSCAPE : CARD_BORDER_RADIUS }
+          : undefined
+      }
     >
       {image ? (
         rotate ? (

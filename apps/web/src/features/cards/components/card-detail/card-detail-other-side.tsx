@@ -30,7 +30,7 @@ export function CardDetailOtherSide({
     <DoubleSidedFlip
       key={sideKey(printing)}
       otherSide={otherSide}
-      back={<CardDetailArt printing={entry} showImages={showImages} />}
+      back={<CardDetailArt printing={entry} showImages={showImages} frame="native" />}
       onFlip={() => onSelect(entry)}
     >
       {children}

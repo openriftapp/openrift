@@ -127,11 +127,11 @@ export function CardDetail({
   const cardArt =
     deckBuilding && showPrices ? (
       <div className="@container relative">
-        <CardDetailArt printing={printing} showImages={showImages} />
+        <CardDetailArt printing={printing} showImages={showImages} frame="native" />
         <CardArtPrice printing={printing} />
       </div>
     ) : (
-      <CardDetailArt printing={printing} showImages={showImages} />
+      <CardDetailArt printing={printing} showImages={showImages} frame="native" />
     );
   const art =
     printing.otherSide && onSelectPrinting ? (
@@ -343,7 +343,12 @@ export function CardDetail({
           </div>
         )}
 
-        <div className="flex items-start gap-2">
+        <div
+          className={cn(
+            "flex items-start gap-2",
+            hasNav ? "md:has-[>:empty]:hidden" : "has-[>:empty]:hidden",
+          )}
+        >
           {hasNav && (
             <Button
               variant="outline"

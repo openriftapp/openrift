@@ -65,6 +65,7 @@ function DesignRow({
   const members = [...design.byLanguage.values()];
   const selected = members.find((member) => isSelectedSide(member, selectedSideKey));
   const shown = selected ?? design.lead;
+  const landscape = getOrientation(shown.card.types) === "landscape";
   const highlighted =
     selected !== undefined &&
     highlightSideKey !== undefined &&
@@ -102,10 +103,11 @@ function DesignRow({
       <span className="relative shrink-0">
         <CardArtThumb
           imageId={frontImageId(shown)}
-          landscape={getOrientation(shown.card.types) === "landscape"}
+          landscape={landscape}
+          frame="native"
           rarity={shown.rarity}
           domains={shown.card.domains}
-          className="w-7.5"
+          className={landscape ? "w-10.5" : "w-7.5"}
           loading="lazy"
         />
         <span className="absolute -top-1.5 -right-2">{badge?.(shown)}</span>

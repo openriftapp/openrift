@@ -1,3 +1,4 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { CSSProperties, ReactNode } from "react";
@@ -14,7 +15,10 @@ import {
 import type { CellStats } from "@/features/cards/components/card-detail/printing-stats";
 import { PrintingDesignRows } from "@/features/cards/components/printing-design-rows";
 import { PrintingVariantLine } from "@/features/cards/components/printing-row";
-import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
+import {
+  CARD_BORDER_RADIUS,
+  CARD_BORDER_RADIUS_LANDSCAPE,
+} from "@/features/cards/lib/card-grid-constants";
 import type { PrintingDesign } from "@/features/cards/lib/printing-designs";
 import { groupPrintingDesigns, isSelectedSide } from "@/features/cards/lib/printing-designs";
 import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
@@ -22,6 +26,7 @@ import { usePrintingLightboxStore } from "@/features/cards/stores/printing-light
 import { useLanguageLabels } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { formatPrice } from "@/lib/format";
+import { cardAspectVar } from "@/lib/images";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -126,7 +131,7 @@ function PrintingTable(props: MatrixProps & { selectedSideKey: string; stats?: C
 }
 
 const CELL_GRID =
-  "grid grid-cols-[repeat(var(--cols),minmax(0,1fr))] gap-3 sm:w-[min(calc(var(--cols)*36rem),calc(100cqw-20rem),calc(var(--cols)*(100dvh-12rem)*var(--aspect-card)))] sm:shrink-0";
+  "grid grid-cols-[repeat(var(--cols),minmax(0,1fr))] gap-3 sm:w-[min(calc(var(--cols)*36rem),calc(100cqw-20rem),calc(var(--cols)*(100dvh-12rem)*var(--cell-aspect)))] sm:shrink-0";
 
 function PrintingMatrix({
   languages,
@@ -143,7 +148,11 @@ function PrintingMatrix({
 }: MatrixProps & { stats?: CellStats }) {
   const languageLabels = useLanguageLabels();
   const leads = designs.map((design) => design.lead);
-  const columns = { "--cols": languages.length } as CSSProperties;
+  const orientation = getOrientation(leads[0]?.card.types ?? []);
+  const columns = {
+    "--cols": languages.length,
+    "--cell-aspect": cardAspectVar(orientation),
+  } as CSSProperties;
   const cellSizes = `(min-width: 640px) calc((100vw - 20rem) / ${languages.length}), calc((100vw - 2rem) / ${languages.length})`;
 
   return (
@@ -204,8 +213,14 @@ function PrintingMatrix({
                     >
                       <span
                         aria-hidden
-                        className="aspect-card w-full border border-dashed"
-                        style={{ borderRadius: CARD_BORDER_RADIUS }}
+                        className="w-full border border-dashed"
+                        style={{
+                          aspectRatio: "var(--cell-aspect)",
+                          borderRadius:
+                            orientation === "landscape"
+                              ? CARD_BORDER_RADIUS_LANDSCAPE
+                              : CARD_BORDER_RADIUS,
+                        }}
                       />
                       {stats && (
                         <span className="text-muted-foreground/60 text-sm font-semibold tabular-nums">

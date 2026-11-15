@@ -1,3 +1,4 @@
+import { CARD_ASPECT, getOrientation } from "@openrift/shared/card-orientation";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -8,6 +9,7 @@ import { useChromaPlate } from "@/features/stage/hooks/use-chroma-plate";
 import { isChromaGround } from "@/features/stage/lib/chroma-ground";
 import type { PresentationItem } from "@/features/stage/lib/presentation-queue";
 import { usePresentationStore } from "@/features/stage/stores/presentation-store";
+import { cardAspectVar } from "@/lib/images";
 import { cn } from "@/lib/utils";
 
 /**
@@ -65,12 +67,18 @@ export function CardStageMain({
     return null;
   }
 
+  const orientation = getOrientation(current.printing.card.types);
+  const heightScale = orientation === "landscape" ? CARD_ASPECT : 1;
+
   return (
     <div className="flex min-h-0 flex-1 items-center justify-center gap-[4vw] p-[4vh]">
       {badge}
       <div
-        className="aspect-card relative max-w-full shrink"
-        style={{ height: `${cardScale * 100}%` }}
+        className="relative max-w-full shrink"
+        style={{
+          height: `${cardScale * heightScale * 100}%`,
+          aspectRatio: cardAspectVar(orientation),
+        }}
       >
         {/* The fade is dropped on a chroma ground: a part-opaque frame over
             the key gets eaten by the chroma filter instead of blending. */}
@@ -82,7 +90,7 @@ export function CardStageMain({
             forwards ? "slide-in-from-right-16" : "slide-in-from-left-16",
           )}
         >
-          <CardDetailArt printing={current.printing} showImages />
+          <CardDetailArt printing={current.printing} showImages frame="native" />
         </div>
       </div>
 

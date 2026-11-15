@@ -1,3 +1,5 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
+
 import { CardDetailArt } from "@/features/cards/components/card-detail/card-detail-art";
 import { PresentationTextPanel } from "@/features/stage/components/card-stage-main";
 import { StageRankBadge } from "@/features/stage/components/stage-rank-badge";
@@ -11,6 +13,7 @@ import type {
 } from "@/features/stage/lib/tier-list-presentation";
 import { revealedRows } from "@/features/stage/lib/tier-list-presentation";
 import { usePresentationStore } from "@/features/stage/stores/presentation-store";
+import { cardAspectVar } from "@/lib/images";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -71,9 +74,10 @@ export function TierStageMain({
           )}
           {showHero || reveal ? (
             <div
-              className="aspect-card relative min-h-0 shrink"
+              className="relative min-h-0 shrink"
               style={{
                 width: `${cardScale * 100}%`,
+                aspectRatio: cardAspectVar(getOrientation(current.printing.card.types)),
                 maxHeight: `${showText ? 55 : 90}%`,
               }}
             >
@@ -83,7 +87,7 @@ export function TierStageMain({
                 key={current.id}
                 className={cn("absolute inset-0", !chroma && "animate-in fade-in duration-300")}
               >
-                <CardDetailArt printing={current.printing} showImages />
+                <CardDetailArt printing={current.printing} showImages frame="native" />
               </div>
             </div>
           ) : null}

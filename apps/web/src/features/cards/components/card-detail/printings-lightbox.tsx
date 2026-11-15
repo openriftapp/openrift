@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { getOrientation } from "@openrift/shared/card-orientation";
 import { clamp } from "@openrift/shared/math";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -37,6 +38,7 @@ import {
 import { usePrintingLightboxStore } from "@/features/cards/stores/printing-lightbox-store";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { cardAspectVar } from "@/lib/images";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -49,7 +51,7 @@ const HISTORY_KEY = "printingLightbox";
 const MAX_COLUMNS = 5;
 const TILE_SIZES = "(min-width: 640px) 54vh, 100vw";
 const TILE_WIDTH_CLASS =
-  "w-[min(calc(100vw_-_3rem),calc((100dvh_-_13rem)_*_var(--aspect-card)))] sm:w-[min(calc(75dvh_*_var(--aspect-card)),calc((100dvh_-_13rem)_*_var(--aspect-card)),calc((100vw_-_4rem_-_(var(--tile-columns)_-_1)_*_1.5rem)_/_var(--tile-columns)))]";
+  "w-[min(calc(100vw_-_3rem),calc((100dvh_-_13rem)_*_var(--tile-aspect)))] sm:w-[min(calc(75dvh_*_var(--tile-aspect)),calc((100dvh_-_13rem)_*_var(--tile-aspect)),calc((100vw_-_4rem_-_(var(--tile-columns)_-_1)_*_1.5rem)_/_var(--tile-columns)))]";
 const NAV_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"]);
 
 function columnsFor(count: number): number {
@@ -207,7 +209,10 @@ function LightboxContent({
     setPosition(selectedIndex(designTiles(key) ?? []));
     scrollerRef.current?.scrollTo({ left: 0, top: 0 });
   };
-  const columnStyle = { "--tile-columns": columnsFor(tiles.length) } as CSSProperties;
+  const columnStyle = {
+    "--tile-columns": columnsFor(tiles.length),
+    "--tile-aspect": cardAspectVar(getOrientation(printing.card.types)),
+  } as CSSProperties;
 
   const tileElements = () => [
     ...(scrollerRef.current?.querySelectorAll<HTMLElement>("[data-lightbox-tile]") ?? []),

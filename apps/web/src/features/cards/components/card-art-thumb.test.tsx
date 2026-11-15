@@ -107,6 +107,19 @@ describe("CardArtThumb", () => {
     expect(img?.parentElement?.style.transform).toContain("rotate(-90deg)");
   });
 
+  it("lays landscape art down in a landscape frame when the frame is native", () => {
+    const { container } = render(
+      <CardArtThumb src="/bf-120w.webp" landscape frame="native" alt="" />,
+    );
+
+    const frame = container.querySelector('[data-slot="card-art-thumb"]');
+    expect(frame?.className.split(" ")).toContain("aspect-card-landscape");
+    expect(frame?.className.split(" ")).not.toContain("aspect-card");
+    expect(container.querySelector("img")?.parentElement?.style.transform ?? "").not.toContain(
+      "rotate",
+    );
+  });
+
   it("leaves portrait art unrotated", () => {
     const { container } = render(<CardArtThumb src="/x-120w.webp" alt="" />);
 

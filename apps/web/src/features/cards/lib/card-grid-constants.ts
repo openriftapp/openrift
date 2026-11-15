@@ -4,6 +4,7 @@
 
 // Keep in sync with the server share-image radius (apps/api/.../share-image-core.ts `cardRadiusPx`).
 export const CARD_BORDER_RADIUS = "5% / 3.6%";
+export const CARD_BORDER_RADIUS_LANDSCAPE = "3.6% / 5%";
 
 // Kept small: the hover ring and selection tint are their own layers and need no room here.
 export const BUTTON_PAD = 3;

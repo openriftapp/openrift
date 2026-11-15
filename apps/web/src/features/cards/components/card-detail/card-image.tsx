@@ -9,6 +9,10 @@ import { FallbackArtBadges } from "@/features/cards/components/fallback-art-badg
 import { FoilOverlay } from "@/features/cards/components/foil-overlay";
 import { SuggestImageNotice } from "@/features/cards/components/suggest-image-notice";
 import { useStandardArtFallback } from "@/features/cards/hooks/use-standard-art-fallback";
+import {
+  CARD_BORDER_RADIUS,
+  CARD_BORDER_RADIUS_LANDSCAPE,
+} from "@/features/cards/lib/card-grid-constants";
 import { LANDSCAPE_ROTATION_STYLE, needsCssRotation } from "@/lib/images";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -80,7 +84,7 @@ export function CardImage({
         style={{
           // A percentage radius renders elliptical on a non-square card; the
           // pair keeps the corners circular, swapped for a card lying down.
-          borderRadius: lyingDown ? "3.6% / 5%" : "5% / 3.6%",
+          borderRadius: lyingDown ? CARD_BORDER_RADIUS_LANDSCAPE : CARD_BORDER_RADIUS,
         }}
       >
         <div className="relative overflow-hidden" style={{ borderRadius: "inherit" }}>

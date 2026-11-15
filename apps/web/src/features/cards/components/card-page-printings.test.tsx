@@ -244,6 +244,19 @@ describe("CardPagePrintings", () => {
     expect(header?.parentElement?.className).not.toContain("overflow-hidden");
   });
 
+  it("sizes the cells of a battlefield lying down", () => {
+    const card = { types: ["battlefield"] };
+    const english = stubPrinting({ setId: "set-1", shortCode: "OGN-1", language: "EN", card });
+    const french = stubPrinting({ setId: "set-2", shortCode: "OGN-2", language: "FR", card });
+    const { container } = render(
+      <PrintingLanguageMatrix printings={[english, french]} onSelect={vi.fn()} />,
+    );
+
+    const matrix = container.firstElementChild as HTMLElement;
+    expect(matrix.style.getPropertyValue("--cell-aspect")).toBe("var(--aspect-card-landscape)");
+    expect(container.querySelector('[aria-hidden][style*="aspect-ratio"]')).not.toBeNull();
+  });
+
   it("highlights the printing picked in the lightbox until the animation ends", () => {
     const english = stubPrinting({ setId: "set-1", shortCode: "OGN-1", language: "EN" });
     const french = stubPrinting({ setId: "set-1", shortCode: "OGN-1", language: "FR" });
