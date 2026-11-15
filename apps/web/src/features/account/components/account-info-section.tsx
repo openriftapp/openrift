@@ -71,7 +71,11 @@ function DisplayNameForm({ defaultName, userId }: { defaultName: string; userId:
   }
 
   return (
-    <AccountForm key={userId} onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}>
+    <AccountForm
+      key={userId}
+      earlyInput="discard"
+      onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}
+    >
       <FieldGroup>
         {form.formState.errors.root && (
           <FieldError>{form.formState.errors.root.message}</FieldError>
@@ -141,7 +145,11 @@ function RiotIdForm({ defaultRiotId, userId }: { defaultRiotId: string; userId: 
   }
 
   return (
-    <AccountForm key={userId} onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}>
+    <AccountForm
+      key={userId}
+      earlyInput="discard"
+      onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}
+    >
       <FieldGroup>
         {form.formState.errors.root && (
           <FieldError>{form.formState.errors.root.message}</FieldError>

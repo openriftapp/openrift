@@ -12,6 +12,7 @@
 
 - fix(Account): **Sign-in before the page finishes loading** — signing in right as the page appears no longer puts your password in the address bar.
 - fix(Account): **Switching accounts** — signing in as another account without signing out starts from that account's own settings and languages.
+- fix(Account): **Password managers on slow loads** — details typed or filled in before the page finishes loading are kept and sent when you sign in, sign up, reset or change your password.
 - fix(Cards): **Card images on first load** — a card without art in your first language shows the same fallback image before and after the page finishes loading.
 - fix(Meta): **Clear status for events without results** — an event that ended with nothing on file says "No results on file" on its page, the same as in the list.
 - fix(Cards): **Promo search in any language** — typing a card's name in another language finds its promos.

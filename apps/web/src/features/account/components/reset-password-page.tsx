@@ -187,7 +187,7 @@ export function ResetPasswordPage() {
                 <AccountFormSubmit
                   pending={loading}
                   className="w-full"
-                  disabled={otp.length < OTP_LENGTH || !newPassword || loading}
+                  disabled={otp.length < OTP_LENGTH || loading}
                 >
                   {m.auth_reset_submit()}
                 </AccountFormSubmit>

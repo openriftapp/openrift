@@ -107,7 +107,7 @@ function BioForm({ defaultBio }: { defaultBio: string }) {
   }
 
   return (
-    <AccountForm onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}>
+    <AccountForm earlyInput="discard" onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}>
       <FieldGroup>
         {form.formState.errors.root && (
           <FieldError>{form.formState.errors.root.message}</FieldError>
