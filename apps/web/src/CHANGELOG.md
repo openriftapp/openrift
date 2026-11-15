@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-11-15
+
+### Highlights
+
+- feat(Cards): **Your languages from the first paint** — when you're signed in, card pages load in your display languages straight away, without switching after the page appears.
+- fix(Meta): **Events on their day** — an event no longer shows as upcoming on its own day in any time zone, and the meta front page lists the events that are running now.
+- fix(Decks): **Owned counts per printing** — a card you play in several printings shows how many copies of each you own, and the counts add up to your copies.
+
+### Other
+
+- fix(Cards): **Promo search in any language** — typing a card's name in another language finds its promos.
+- fix(Collection): **Safer CSV exports** — cells a spreadsheet would run as a formula are prefixed with an apostrophe, and importing the file again restores the original text.
+- fix(Collection): **Clearer import review** — rows that need a decision are listed under "Needs attention", and a name that matches exactly asks which printing you mean.
+- fix(Tournaments): **Your status on a join link** — the link shows whether you have a spot, a pending request, or left the event. Two-team matches read as matches, and walkover pods no longer offer "Add score".
+- fix(Decks): **Shared decks invite you in** — a shared deck offers sign-in and sign-up that bring you back to the deck.
+- fix(Decks): **Failed loads show sooner** — a deck or collection that can't load says so after a few seconds.
+- fix(Stage): **Missing tier lists** — opening the stage with a tier list that no longer exists says so and links back to your tier lists.
+- fix(App): **Features page without scripts** — the features page shows its sample cards before any script runs.
+
 ## 2026-11-14
 
 ### Highlights
