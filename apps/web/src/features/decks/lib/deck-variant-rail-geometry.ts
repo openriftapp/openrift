@@ -42,7 +42,7 @@ export const NODE_BOX = DOT_SIZE + 8;
 const CHIP_STEP = 0.05;
 
 // The "New variant" button is `size-8`.
-export const NEW_VARIANT_BOX = 32;
+const NEW_VARIANT_BOX = 32;
 // An upper bound for one `text-2xs` glyph; the label's real width is not known before layout.
 const LABEL_CHAR_WIDTH = 7;
 const DRAFT_BADGE_WIDTH = 41;
