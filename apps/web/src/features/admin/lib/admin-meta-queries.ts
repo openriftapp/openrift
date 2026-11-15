@@ -1,4 +1,5 @@
 import { adminMetaContract } from "@openrift/shared/contracts/admin/meta";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { MetaResultsState } from "@openrift/shared/meta-results";
 import type {
   AdminMetaEvent,
@@ -105,7 +106,7 @@ export function adminMetaEventsQueryOptions(params: AdminMetaEventQueryParams) {
     queryKey: adminKeys.meta.eventList(params),
     queryFn: () => fetchMetaEvents({ data: params }),
     placeholderData: keepPreviousData,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }
 
@@ -134,6 +135,6 @@ export function adminMetaEventPlayersQueryOptions(eventId: string) {
   return queryOptions({
     queryKey: adminKeys.meta.eventPlayers(eventId),
     queryFn: () => fetchMetaEventPlayers({ data: { id: eventId } }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }

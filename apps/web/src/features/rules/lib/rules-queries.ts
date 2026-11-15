@@ -1,4 +1,5 @@
 import { rulesContract } from "@openrift/shared/contracts/rules";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type {
   RuleKind,
   RuleLanguage,
@@ -65,7 +66,7 @@ export function rulesAtVersionQueryOptions(
   return queryOptions({
     queryKey: rulesKeys.byVersion(kind, language, version),
     queryFn: () => fetchRulesAtVersion({ data: { kind, language, version } }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
     refetchOnWindowFocus: false,
   });
 }
@@ -74,7 +75,7 @@ export function rulesSourceQueryOptions(kind: RuleKind, language: RuleLanguage, 
   return queryOptions({
     queryKey: rulesKeys.source(kind, language, version),
     queryFn: () => fetchRulesSource({ data: { kind, language, version } }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
     refetchOnWindowFocus: false,
   });
 }
@@ -83,7 +84,7 @@ export function ruleNumbersQueryOptions(kind: RuleKind, version: string) {
   return queryOptions({
     queryKey: rulesKeys.numbers(kind, version),
     queryFn: () => fetchRuleNumbers({ data: { kind, version } }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
     refetchOnWindowFocus: false,
     select: (data) => new Set(data.numbers) as ReadonlySet<string>,
   });
@@ -93,7 +94,7 @@ export function ruleVersionsQueryOptions(kind: RuleKind, language: RuleLanguage 
   return queryOptions({
     queryKey: rulesKeys.versions(kind, language),
     queryFn: () => fetchVersions({ data: { kind, language } }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
     refetchOnWindowFocus: false,
   });
 }

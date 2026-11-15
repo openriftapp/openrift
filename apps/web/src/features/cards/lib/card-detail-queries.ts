@@ -1,5 +1,6 @@
 import { joinCatalog } from "@openrift/shared/catalog-join";
 import { cardsContract } from "@openrift/shared/contracts/cards";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { CardDetailRelatedCard, CardDetailResponse } from "@openrift/shared/types/api/catalog";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import { queryOptions } from "@tanstack/react-query";
@@ -78,7 +79,7 @@ export function cardDetailQueryOptions(cardSlug: string) {
   return queryOptions({
     queryKey: cardsKeys.detail(cardSlug),
     queryFn: () => fetchCardDetail({ data: { cardSlug } }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
     select: enrichCardDetail,
   });
 }

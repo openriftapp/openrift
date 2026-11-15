@@ -3,6 +3,7 @@
 
 import { deckFoldersContract } from "@openrift/shared/contracts/deck-folders";
 import { decksContract } from "@openrift/shared/contracts/decks";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type {
   DeckCardWithDeckResponse,
   DeckCardsListResponse,
@@ -66,8 +67,8 @@ export function getDecksCollection(queryClient: QueryClient, userId: string): De
       id: `decks:${userId}`,
       queryClient,
       queryKey: [...decksKeys.syncedStore(userId)],
-      staleTime: 10 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
+      staleTime: 10 * MINUTE_MS,
+      gcTime: 10 * MINUTE_MS,
       queryFn: async (ctx) => {
         const response = await browserApiOrpcClient(decksContract).list(
           { includeArchived: "true" },
@@ -118,8 +119,8 @@ export function getDeckCardsCollection(
       id: `deck-cards:${userId}`,
       queryClient,
       queryKey: [...decksKeys.cardsStore(userId)],
-      staleTime: 10 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
+      staleTime: 10 * MINUTE_MS,
+      gcTime: 10 * MINUTE_MS,
       queryFn: async (ctx) => {
         const previous = queryClient.getQueryData<DeckCardWithDeckResponse[]>([
           ...decksKeys.cardsStore(userId),
@@ -196,8 +197,8 @@ export function getDeckFoldersCollection(
       id: `deck-folders:${userId}`,
       queryClient,
       queryKey: [...deckFoldersKeys.syncedStore(userId)],
-      staleTime: 10 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
+      staleTime: 10 * MINUTE_MS,
+      gcTime: 10 * MINUTE_MS,
       queryFn: async (ctx) => {
         const response = await browserApiOrpcClient(deckFoldersContract).list(undefined, {
           signal: ctx.signal,

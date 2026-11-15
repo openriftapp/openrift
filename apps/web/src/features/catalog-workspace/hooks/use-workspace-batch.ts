@@ -7,6 +7,7 @@ import type {
   WorkspaceTrustedPrintingsPreview,
 } from "@openrift/shared/contracts/admin/catalog-workspace-batch";
 import { adminCatalogWorkspaceBatchContract } from "@openrift/shared/contracts/admin/catalog-workspace-batch";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { pluralize } from "@openrift/shared/strings";
 import { useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -193,7 +194,7 @@ export function useWorkspaceBatch(kind: BatchKind, enabled: boolean) {
   const preview = useQuery({
     queryKey: batchPreviewQueryKey(kind),
     queryFn: PREVIEW_FNS[kind],
-    staleTime: 60 * 1000,
+    staleTime: MINUTE_MS,
     enabled,
   });
   const run = useMutationWithInvalidation({

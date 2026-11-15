@@ -1,5 +1,6 @@
 import { joinCatalogCards } from "@openrift/shared/catalog-join";
 import { promosContract } from "@openrift/shared/contracts/promos";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { PromosListResponse } from "@openrift/shared/types/api/catalog";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import { queryOptions } from "@tanstack/react-query";
@@ -51,7 +52,7 @@ export function publicPromoListQueryOptions(language: string) {
   return queryOptions({
     queryKey: promosKeys.forLanguage(language),
     queryFn: () => fetchPromoList({ data: language }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
     select: enrichPromoList,
   });
 }

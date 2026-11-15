@@ -1,3 +1,4 @@
+import { clamp } from "@openrift/shared/math";
 import type { Virtualizer } from "@tanstack/react-virtual";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
@@ -125,9 +126,7 @@ export function useScrollIndicator({
       const contentEnd = scrollMarginRef.current + totalSize - viewportH;
       const contentRange = contentEnd - contentStart;
       const contentPct =
-        contentRange > 0
-          ? Math.max(0, Math.min(1, (globalThis.scrollY - contentStart) / contentRange))
-          : 0;
+        contentRange > 0 ? clamp((globalThis.scrollY - contentStart) / contentRange, 0, 1) : 0;
       const halfH = indicatorHRef.current / 2;
       const trackTop = stickyOffsetRef.current + halfH + INDICATOR_PAD;
       const trackBottom = viewportH - halfH - INDICATOR_PAD;
@@ -312,7 +311,7 @@ export function useScrollIndicator({
       const liveContentRange = liveContentEnd - liveContentStart;
       const liveContentPct =
         liveContentRange > 0
-          ? Math.max(0, Math.min(1, (globalThis.scrollY - liveContentStart) / liveContentRange))
+          ? clamp((globalThis.scrollY - liveContentStart) / liveContentRange, 0, 1)
           : 0;
       const liveHalfH = indicatorHRef.current / 2;
       const liveTrackTop = stickyOffsetRef.current + liveHalfH + INDICATOR_PAD;

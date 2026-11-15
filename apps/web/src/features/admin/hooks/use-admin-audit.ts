@@ -3,6 +3,7 @@ import type {
   AdminAuditActionsResponse,
   AdminAuditActorsResponse,
 } from "@openrift/shared/contracts/admin/audit-events";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -32,7 +33,7 @@ export function useAuditActors() {
   return useQuery({
     queryKey: adminKeys.audit.actors,
     queryFn: () => fetchAuditActorsFn(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }
 
@@ -40,6 +41,6 @@ export function useAuditActions() {
   return useQuery({
     queryKey: adminKeys.audit.actions,
     queryFn: () => fetchAuditActionsFn(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }

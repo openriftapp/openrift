@@ -1,4 +1,5 @@
 import { copyHasMetadata } from "@openrift/shared/copy-metadata";
+import { clamp } from "@openrift/shared/math";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -122,7 +123,7 @@ export function useCollectionGridActions({
     if (availableCopyIds.length === 0) {
       return;
     }
-    const initialQuantity = Math.min(Math.max(1, count), availableCopyIds.length);
+    const initialQuantity = clamp(count, 1, availableCopyIds.length);
     useCollectionOverlayStore.getState().setTakeConfirm({
       printing: tilePrinting ?? stackSideForTile(stack, itemId),
       availableCopyIds,

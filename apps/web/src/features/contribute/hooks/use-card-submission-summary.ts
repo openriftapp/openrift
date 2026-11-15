@@ -1,5 +1,6 @@
 import { cardSubmissionsContract } from "@openrift/shared/contracts/card-submissions";
 import type { CardSubmissionSummaryResponse } from "@openrift/shared/contracts/card-submissions";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { queryOptions, skipToken, useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -22,7 +23,7 @@ function cardSubmissionSummaryQueryOptions(userId: string | null) {
       userId === null
         ? skipToken
         : (): Promise<CardSubmissionSummaryResponse> => fetchCardSubmissionSummaryFn(),
-    staleTime: 60_000,
+    staleTime: MINUTE_MS,
   });
 }
 

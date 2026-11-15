@@ -1,3 +1,4 @@
+import { clamp } from "@openrift/shared/math";
 import type { Printing } from "@openrift/shared/types/catalog";
 
 export interface PresentationItem {
@@ -34,7 +35,7 @@ export function clampIndex(index: number, length: number): number {
   if (!Number.isFinite(index)) {
     return 0;
   }
-  return Math.min(Math.max(Math.trunc(index), 0), length - 1);
+  return clamp(Math.trunc(index), 0, length - 1);
 }
 
 /** Does not wrap: stays at 0 or `length - 1` at the ends. */

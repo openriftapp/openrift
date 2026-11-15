@@ -6,6 +6,7 @@ import type {
   WorkspaceRecordsInput,
   WorkspaceRecordsResponse,
 } from "@openrift/shared/contracts/admin/catalog-workspace";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -31,7 +32,7 @@ export function workspaceQueueQueryOptions(owner?: WorkspaceOwner) {
   return queryOptions({
     queryKey: adminKeys.workspaceQueueFor(owner ?? "all"),
     queryFn: () => fetchWorkspaceQueue({ data: { owner } }),
-    staleTime: 60 * 1000,
+    staleTime: MINUTE_MS,
   });
 }
 
@@ -41,7 +42,7 @@ export function workspaceRecordsInfiniteQueryOptions(input: Omit<WorkspaceRecord
     queryFn: ({ pageParam }) => fetchWorkspaceRecords({ data: { ...input, cursor: pageParam } }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
-    staleTime: 60 * 1000,
+    staleTime: MINUTE_MS,
   });
 }
 

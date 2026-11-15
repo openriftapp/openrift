@@ -1,4 +1,5 @@
 import { adminPrintingCitationsContract } from "@openrift/shared/contracts/admin/printing-citations";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { AdminPrintingCitation } from "@openrift/shared/types/api/admin";
 import { useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -28,7 +29,7 @@ export function useAdminPrintingCitations(printingId: string) {
   return useQuery({
     queryKey: adminKeys.printingCitations(printingId),
     queryFn: () => fetchPrintingCitations({ data: { printingId } }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }
 

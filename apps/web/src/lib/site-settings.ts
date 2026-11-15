@@ -1,4 +1,5 @@
 import { siteSettingsContract } from "@openrift/shared/contracts/site-settings";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -22,5 +23,5 @@ const fetchSiteSettings = createServerFn({ method: "GET" }).handler(() =>
 export const siteSettingsQueryOptions = queryOptions({
   queryKey: siteSettingsKeys.all,
   queryFn: (): Promise<SiteSettings> => fetchSiteSettings(),
-  staleTime: 5 * 60 * 1000, // 5 minutes
+  staleTime: 5 * MINUTE_MS,
 });

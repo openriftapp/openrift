@@ -1,4 +1,5 @@
 import { initContract } from "@openrift/shared/contracts/init";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { InitResponse } from "@openrift/shared/types/api/init";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -19,6 +20,6 @@ const fetchInit = createServerFn({ method: "GET" }).handler(() => readInitFromSe
 export const initQueryOptions = queryOptions({
   queryKey: initKeys.all,
   queryFn: () => fetchInit(),
-  staleTime: 5 * 60 * 1000,
+  staleTime: 5 * MINUTE_MS,
   refetchOnWindowFocus: false,
 });

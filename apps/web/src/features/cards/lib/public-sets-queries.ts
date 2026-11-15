@@ -1,6 +1,6 @@
 import { joinCatalogCards } from "@openrift/shared/catalog-join";
 import { setsContract } from "@openrift/shared/contracts/sets";
-import { todayUtc } from "@openrift/shared/format-date";
+import { todayUtc, MINUTE_MS } from "@openrift/shared/format-date";
 import { isReleasedIn } from "@openrift/shared/set-release";
 import type { SetDetailResponse, SetListResponse } from "@openrift/shared/types/api/catalog";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
@@ -57,14 +57,14 @@ function enrichSetDetail(response: SetDetailResponse): EnrichedSetDetail {
 export const publicSetListQueryOptions = queryOptions({
   queryKey: setsKeys.all,
   queryFn: () => fetchSetList(),
-  staleTime: 5 * 60 * 1000,
+  staleTime: 5 * MINUTE_MS,
 });
 
 export function publicSetDetailQueryOptions(setSlug: string) {
   return queryOptions({
     queryKey: setsKeys.detail(setSlug),
     queryFn: () => fetchSetDetail({ data: setSlug }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
     select: enrichSetDetail,
   });
 }

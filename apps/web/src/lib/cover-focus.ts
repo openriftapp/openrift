@@ -1,3 +1,5 @@
+import { clamp } from "@openrift/shared/math";
+
 interface CoverBox {
   boxWidth: number;
   boxHeight: number;
@@ -20,5 +22,5 @@ export function coverPositionFromDrag(
   overflowPx: number,
 ): number {
   const moved = overflowPx > 0 ? (deltaY / overflowPx) * 100 : 0;
-  return Math.min(100, Math.max(0, Math.round(startPosition - moved)));
+  return clamp(Math.round(startPosition - moved), 0, 100);
 }

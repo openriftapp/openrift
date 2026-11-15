@@ -1,6 +1,7 @@
 // During SSR, the better-auth client can't forward cookies automatically, so
 // this server function reads them from the incoming request and forwards them.
 
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { QueryClient } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
 import { redirect } from "@tanstack/react-router";
@@ -76,7 +77,7 @@ export const sessionQueryOptions = () =>
   queryOptions({
     queryKey: ["session"],
     queryFn: () => getServerSession(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
     refetchOnWindowFocus: false,
   });
 

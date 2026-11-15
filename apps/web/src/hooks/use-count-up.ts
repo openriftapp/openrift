@@ -1,3 +1,4 @@
+import { clamp } from "@openrift/shared/math";
 import { useEffect, useRef, useState } from "react";
 
 /**
@@ -25,7 +26,7 @@ export function useCountUp(target: number, durationMs = 1200): number {
       const elapsed = now - start;
       // rAF reports the frame's own start, which can precede the call that
       // scheduled it; an unclamped negative progress renders negative counts.
-      const progress = Math.min(Math.max(elapsed / durationMs, 0), 1);
+      const progress = clamp(elapsed / durationMs, 0, 1);
       // ease-out cubic: decelerates toward the end
       const eased = 1 - (1 - progress) ** 3;
       setValue(Math.round(eased * target));

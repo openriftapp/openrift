@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { CheckIcon } from "lucide-react";
@@ -43,7 +44,7 @@ export function PasswordSection({ currentEmail }: { currentEmail: string }) {
       }
       return data ?? [];
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 
   if (isPending) {

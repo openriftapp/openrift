@@ -1,4 +1,5 @@
 import { adminMetaCandidatesContract } from "@openrift/shared/contracts/admin/meta";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { MetaOverlayQueueRow } from "@openrift/shared/types/api/meta";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -16,5 +17,5 @@ const fetchMetaOverlays = createServerFn({ method: "GET" })
 export const adminMetaOverlaysQueryOptions = queryOptions({
   queryKey: adminKeys.meta.overlays,
   queryFn: () => fetchMetaOverlays(),
-  staleTime: 5 * 60 * 1000,
+  staleTime: 5 * MINUTE_MS,
 });

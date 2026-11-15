@@ -1,4 +1,5 @@
 import { cardTradesContract } from "@openrift/shared/contracts/card-trades";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type {
   CardTradeSheetResponse,
   CardTradeStatus,
@@ -47,7 +48,7 @@ export function liveTradesByPrintingQueryOptions(userId: string | null) {
   return queryOptions({
     queryKey: tradesKeys.liveByPrinting(userId ?? ""),
     queryFn: userId === null ? skipToken : () => fetchLiveTradesByPrinting(),
-    staleTime: 60_000,
+    staleTime: MINUTE_MS,
     refetchOnWindowFocus: true,
   });
 }

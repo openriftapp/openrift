@@ -1,3 +1,4 @@
+import { clamp } from "@openrift/shared/math";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { PlusSquareIcon } from "lucide-react";
@@ -181,7 +182,7 @@ function ProposalBody({
   const cap = existingMatch ? existingMatch.buyQuantity : wantQuantity;
   const maxQuantity = Math.max(1, Math.min(choice.available, cap));
   const [quantity, setQuantity] = useState(1);
-  const effectiveQuantity = Math.min(Math.max(1, quantity), maxQuantity);
+  const effectiveQuantity = clamp(quantity, 1, maxQuantity);
 
   const [phase, setPhase] = useState<"pick" | "confirm-share">("pick");
   const [selectedId, setSelectedId] = useState<string>(() => preferredListId(options) ?? NEW_LIST);

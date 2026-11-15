@@ -1,5 +1,6 @@
 import { cardSubmissionsContract } from "@openrift/shared/contracts/card-submissions";
 import type { MissingImagesResponse } from "@openrift/shared/contracts/card-submissions";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { queryOptions, skipToken, useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -20,7 +21,7 @@ function missingImagesQueryOptions(userId: string | null) {
     queryKey: cardSubmissionsKeys.missingImages(userId ?? ""),
     queryFn:
       userId === null ? skipToken : (): Promise<MissingImagesResponse> => fetchMissingImagesFn(),
-    staleTime: 60_000,
+    staleTime: MINUTE_MS,
   });
 }
 

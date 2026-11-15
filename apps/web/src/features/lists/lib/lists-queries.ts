@@ -1,5 +1,6 @@
 import { listsContract } from "@openrift/shared/contracts/lists";
 import { publicListsContract } from "@openrift/shared/contracts/public-lists";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type {
   ListDetailResponse,
   ListIntent,
@@ -39,7 +40,7 @@ export function listsQueryOptions(userId: string, intent?: ListIntent) {
     queryKey: listsKeys.all(userId, intent),
     queryFn: () => fetchLists({ data: intent ? { intent } : undefined }),
     select: (data: ListListResponse) => data.items,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }
 

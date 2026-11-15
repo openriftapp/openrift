@@ -1,5 +1,6 @@
 import type { AdminDistributionChannelsResponse } from "@openrift/shared/contracts/admin/distribution-channels";
 import { adminDistributionChannelsContract } from "@openrift/shared/contracts/admin/distribution-channels";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -16,5 +17,5 @@ const fetchChannels = createServerFn({ method: "GET" })
 export const adminDistributionChannelsQueryOptions = queryOptions({
   queryKey: adminKeys.distributionChannels,
   queryFn: () => fetchChannels(),
-  staleTime: 30 * 60 * 1000,
+  staleTime: 30 * MINUTE_MS,
 });

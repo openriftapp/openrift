@@ -1,4 +1,5 @@
 import { adminCustomTagsContract } from "@openrift/shared/contracts/admin/custom-tags";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { MutationMeta } from "@tanstack/react-query";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -172,7 +173,7 @@ function cardCustomTagsQueryOptions(cardId: string) {
   return queryOptions({
     queryKey: adminKeys.cardCustomTags(cardId),
     queryFn: () => fetchCardCustomTags({ data: { cardId } }),
-    staleTime: 30 * 60 * 1000,
+    staleTime: 30 * MINUTE_MS,
   });
 }
 

@@ -1,4 +1,5 @@
 import { pricesContract } from "@openrift/shared/contracts/prices";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { priceLookupFromMap } from "@openrift/shared/price-lookup";
 import type { PriceLookup, PricesResponse } from "@openrift/shared/types/api/pricing";
 import { queryOptions } from "@tanstack/react-query";
@@ -32,7 +33,7 @@ export function fetchPricesForSeo(): Promise<PricesResponse> {
 export const pricesQueryOptions = queryOptions({
   queryKey: pricesKeys.all,
   queryFn: () => (globalThis.window === undefined ? fetchPrices() : fetchPricesFromEdge()),
-  staleTime: 30 * 60 * 1000, // 30 minutes
+  staleTime: 30 * MINUTE_MS,
   refetchOnWindowFocus: false,
   select: (response: PricesResponse): PriceLookup => priceLookupFromMap(response.prices),
 });

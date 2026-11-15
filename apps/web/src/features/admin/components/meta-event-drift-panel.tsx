@@ -1,3 +1,4 @@
+import { clamp } from "@openrift/shared/math";
 import { pluralize } from "@openrift/shared/strings";
 import type { MetaEventDrift } from "@openrift/shared/types/api/meta";
 import type { MetaEventOverlayField } from "@openrift/shared/types/enums";
@@ -57,7 +58,7 @@ function SourceHeader({ source }: { source: MetaEventDrift["sources"][number] })
   const setPriority = useSetMetaSourcePriority();
 
   async function move(delta: number): Promise<void> {
-    const priority = Math.min(MAX_PRIORITY, Math.max(MIN_PRIORITY, source.priority + delta));
+    const priority = clamp(source.priority + delta, MIN_PRIORITY, MAX_PRIORITY);
     if (!(await runReportedMutation(() => setPriority.mutateAsync({ id: source.id, priority })))) {
       return;
     }

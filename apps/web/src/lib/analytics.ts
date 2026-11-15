@@ -1,3 +1,5 @@
+import { MINUTE_MS } from "@openrift/shared/format-date";
+
 type EventData = Record<string, string | number>;
 
 declare global {
@@ -159,7 +161,7 @@ export function socialNewUserCallbackURL(callbackURL: string, method: SignupMeth
   return `${url.pathname}${url.search}${url.hash}`;
 }
 
-const NEW_ACCOUNT_WINDOW_MS = 10 * 60 * 1000;
+const NEW_ACCOUNT_WINDOW_MS = 10 * MINUTE_MS;
 
 /** Code sign-in creates the account on first use; the response carries no flag, so a fresh `createdAt` stands in. */
 export function isNewAccount(createdAt: string | Date, now = Date.now()): boolean {

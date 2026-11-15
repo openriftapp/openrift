@@ -1,5 +1,6 @@
 import type { AdminMetaSourceState } from "@openrift/shared/contracts/admin/meta";
 import { adminMetaContract } from "@openrift/shared/contracts/admin/meta";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { AdminMetaEventList, AdminMetaEventSource } from "@openrift/shared/types/api/meta";
 import type { DeckZone, MetaListStatus } from "@openrift/shared/types/enums";
 import { keepPreviousData, queryOptions, useQuery, useSuspenseQuery } from "@tanstack/react-query";
@@ -52,7 +53,7 @@ export function useAdminMetaEventSearch(search: string) {
   return useQuery({
     queryKey: adminKeys.meta.eventSearch(search),
     queryFn: () => searchMetaEvents({ data: search }),
-    staleTime: 60 * 1000,
+    staleTime: MINUTE_MS,
     placeholderData: keepPreviousData,
   });
 }
@@ -209,7 +210,7 @@ function adminMetaEventSourcesQueryOptions(eventId: string) {
   return queryOptions({
     queryKey: adminKeys.meta.eventSources(eventId),
     queryFn: () => fetchMetaEventSources({ data: { id: eventId } }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }
 

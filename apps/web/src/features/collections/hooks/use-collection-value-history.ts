@@ -1,4 +1,5 @@
 import { collectionValueHistoryContract } from "@openrift/shared/contracts/collection-value-history";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { centsToDollars } from "@openrift/shared/money";
 import type { CollectionValueHistoryResponse } from "@openrift/shared/types/api/collection-value-history";
 import type { CompletionScopePreference } from "@openrift/shared/types/api/preferences";
@@ -93,6 +94,6 @@ export function useCollectionValueHistory(
         copyCount: point.copyCount,
       })),
     }),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * MINUTE_MS,
   });
 }

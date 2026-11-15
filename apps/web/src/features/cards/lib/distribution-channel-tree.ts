@@ -19,16 +19,7 @@ export interface ChannelTreeNode<T extends ChannelLike = DistributionChannelResp
 const SEP = " › ";
 
 export function buildChannelTree<T extends ChannelLike>(channels: T[]): ChannelTreeNode<T>[] {
-  const byParent = new Map<string | null, T[]>();
-  for (const ch of channels) {
-    const key = ch.parentId;
-    const list = byParent.get(key);
-    if (list) {
-      list.push(ch);
-    } else {
-      byParent.set(key, [ch]);
-    }
-  }
+  const byParent = Map.groupBy(channels, (ch) => ch.parentId);
   for (const list of byParent.values()) {
     list.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.label.localeCompare(b.label));
   }

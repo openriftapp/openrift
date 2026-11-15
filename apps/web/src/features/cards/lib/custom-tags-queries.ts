@@ -1,4 +1,5 @@
 import { customTagsContract } from "@openrift/shared/contracts/custom-tags";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { CustomTagsResponse } from "@openrift/shared/types/api/custom-tags";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -22,6 +23,6 @@ const fetchCustomTags = createServerFn({ method: "GET" }).handler(() =>
 export const customTagsQueryOptions = queryOptions({
   queryKey: customTagsKeys.all,
   queryFn: () => fetchCustomTags(),
-  staleTime: 5 * 60 * 1000,
+  staleTime: 5 * MINUTE_MS,
   refetchOnWindowFocus: false,
 });

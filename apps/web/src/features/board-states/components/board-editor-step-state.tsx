@@ -5,6 +5,7 @@ import type {
 } from "@openrift/shared/board-state";
 import { BATTLEFIELD_ENCOUNTERS, TURN_PHASES, TURN_STATES } from "@openrift/shared/board-state";
 import { enumLabel } from "@openrift/shared/enum-label";
+import { clamp } from "@openrift/shared/math";
 import { WellKnown } from "@openrift/shared/well-known";
 import { HourglassIcon, TrophyIcon } from "lucide-react";
 
@@ -123,7 +124,7 @@ function NumberField({
       value={value ?? ""}
       onChange={(event) => {
         const next = event.target.valueAsNumber;
-        onChange(Number.isNaN(next) ? undefined : Math.min(99, Math.max(0, Math.trunc(next))));
+        onChange(Number.isNaN(next) ? undefined : clamp(Math.trunc(next), 0, 99));
       }}
     />
   );

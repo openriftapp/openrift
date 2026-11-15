@@ -1,3 +1,4 @@
+import { clamp } from "@openrift/shared/math";
 import { buildPool } from "@openrift/shared/pack-opener/pools";
 import { openPacks } from "@openrift/shared/pack-opener/sample";
 import type { PackPool, PackResult } from "@openrift/shared/pack-opener/types";
@@ -76,9 +77,7 @@ export function PackOpenerPage() {
   const [autoReveal, setAutoReveal] = useState(false);
 
   const count =
-    countChoice === "custom"
-      ? Math.min(500, Math.max(1, Math.floor(customCount || 1)))
-      : Number(countChoice);
+    countChoice === "custom" ? clamp(Math.floor(customCount || 1), 1, 500) : Number(countChoice);
 
   if (mainSets.length === 0) {
     return (

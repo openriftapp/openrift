@@ -1,5 +1,5 @@
 import { metaContract } from "@openrift/shared/contracts/meta";
-import { todayUtc } from "@openrift/shared/format-date";
+import { todayUtc, MINUTE_MS } from "@openrift/shared/format-date";
 import { metaResultsState } from "@openrift/shared/meta-results";
 import type {
   MetaActivityResponse,
@@ -72,7 +72,7 @@ export function metaEventPageQueryOptions(query: MetaEventListQuery) {
   return queryOptions({
     queryKey: metaKeys.eventPage(narrowed),
     queryFn: () => fetchMetaEvents({ data: narrowed }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }
 
@@ -104,7 +104,7 @@ export function metaEventFacetsQueryOptions(query: MetaEventFilterQuery = {}) {
   return queryOptions({
     queryKey: metaKeys.eventFacets(narrowed),
     queryFn: () => fetchMetaEventFacets({ data: narrowed }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }
 
@@ -123,7 +123,7 @@ export function metaEventDayCountsQueryOptions(query?: MetaEventDayCountsQuery) 
   return queryOptions({
     queryKey: metaKeys.eventDayCounts(narrowed),
     queryFn: () => fetchMetaEventDayCounts({ data: narrowed }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }
 
@@ -142,7 +142,7 @@ export function metaCountsQueryOptions(query?: MetaScopeQuery) {
   return queryOptions({
     queryKey: metaKeys.counts(narrowed),
     queryFn: () => fetchMetaCounts({ data: narrowed }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }
 
@@ -158,7 +158,7 @@ const fetchMetaActivity = createServerFn({ method: "GET" })
 export const metaActivityQueryOptions = queryOptions({
   queryKey: metaKeys.activity,
   queryFn: () => fetchMetaActivity(),
-  staleTime: 5 * 60 * 1000,
+  staleTime: 5 * MINUTE_MS,
 });
 
 const fetchMetaEvent = createServerFn({ method: "GET" })
@@ -172,7 +172,7 @@ export function metaEventQueryOptions(slug: string) {
   return queryOptions({
     queryKey: metaKeys.event(slug),
     queryFn: () => fetchMetaEvent({ data: slug }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
     refetchInterval: (query) => {
       const event = query.state.data?.event;
       return event !== undefined && metaResultsState(event, todayUtc()) === "collecting"
@@ -182,7 +182,7 @@ export function metaEventQueryOptions(slug: string) {
   });
 }
 
-const LIVE_EVENT_REFETCH_MS = 5 * 60 * 1000;
+const LIVE_EVENT_REFETCH_MS = 5 * MINUTE_MS;
 
 const fetchMetaStandings = createServerFn({ method: "GET" })
   .validator((input: MetaEventStandingsQuery) => input)
@@ -203,7 +203,7 @@ export function metaStandingsQueryOptions(
   return queryOptions({
     queryKey: metaKeys.standings(slug, narrowed),
     queryFn: () => fetchMetaStandings({ data: { ...narrowed, slug } }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }
 
@@ -218,7 +218,7 @@ export function metaRunQueryOptions(slug: string, key: string) {
   return queryOptions({
     queryKey: metaKeys.run(slug, key),
     queryFn: () => fetchMetaRun({ data: { slug, key } }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }
 
@@ -253,7 +253,7 @@ export function metaDecksQueryOptions(query?: MetaDeckQuery) {
   return queryOptions({
     queryKey: metaKeys.decks(narrowed),
     queryFn: () => fetchMetaDecks({ data: narrowed }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }
 
@@ -272,7 +272,7 @@ export function metaDeckFacetsQueryOptions(query?: MetaDeckFacetsQuery) {
   return queryOptions({
     queryKey: metaKeys.deckFacets(narrowed),
     queryFn: () => fetchMetaDeckFacets({ data: narrowed }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }
 
@@ -291,7 +291,7 @@ export function metaDeckCardsQueryOptions(query?: MetaDeckCardsQuery) {
   return queryOptions({
     queryKey: metaKeys.deckCards(narrowed),
     queryFn: () => fetchMetaDeckCards({ data: narrowed }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }
 
@@ -306,7 +306,7 @@ export function metaDeckQueryOptions(token: string) {
   return queryOptions({
     queryKey: metaKeys.deck(token),
     queryFn: () => fetchMetaDeck({ data: token }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }
 
@@ -325,7 +325,7 @@ export function metaLegendsQueryOptions(query: MetaScopeQuery = {}) {
   return queryOptions({
     queryKey: metaKeys.legends(narrowed),
     queryFn: () => fetchMetaLegends({ data: narrowed }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }
 
@@ -341,7 +341,7 @@ export function metaLegendQueryOptions(slug: string, query?: MetaLegendPageQuery
   return queryOptions({
     queryKey: metaKeys.legend(slug, narrowed),
     queryFn: () => fetchMetaLegend({ data: { ...narrowed, slug } }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }
 
@@ -356,6 +356,6 @@ export function metaPlayerQueryOptions(key: string) {
   return queryOptions({
     queryKey: metaKeys.player(key),
     queryFn: () => fetchMetaPlayer({ data: key }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }

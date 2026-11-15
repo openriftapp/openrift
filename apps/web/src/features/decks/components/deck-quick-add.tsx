@@ -2,6 +2,7 @@ import { requiredLegendOptions, totalQuantity } from "@openrift/shared/deck-rule
 import { zoneExpected } from "@openrift/shared/deck-zones";
 import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
+import { clamp } from "@openrift/shared/math";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { ChevronRightIcon, PlusIcon } from "lucide-react";
@@ -291,10 +292,10 @@ function QuickAddInner({
       const delta = event.key === "ArrowDown" ? 1 : -1;
       if (expanded) {
         const targets = targetsFor(expanded.cardId);
-        setTargetIndex((index) => Math.min(Math.max(index + delta, 0), targets.length - 1));
+        setTargetIndex((index) => clamp(index + delta, 0, targets.length - 1));
         return;
       }
-      setSelectedIndex(Math.min(Math.max(clampedIndex + delta, 0), results.length - 1));
+      setSelectedIndex(clamp(clampedIndex + delta, 0, results.length - 1));
       return;
     }
     if (event.key === "ArrowRight" || (event.key === "Tab" && !event.shiftKey)) {

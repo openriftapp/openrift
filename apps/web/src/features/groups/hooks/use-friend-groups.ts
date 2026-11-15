@@ -1,5 +1,6 @@
 import { friendGroupsContract } from "@openrift/shared/contracts/friend-groups";
 import { publicFriendGroupsContract } from "@openrift/shared/contracts/public-friend-groups";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type {
   FriendGroupActivityResponse,
   FriendGroupJoinPreviewResponse,
@@ -57,7 +58,7 @@ function friendGroupMatchesQueryOptions(userId: string, slug: string) {
     queryFn: () => fetchGroupMatches({ data: slug }),
     // Trade actions invalidate this key directly; the window only covers a
     // suggestion created by someone else's list edit.
-    staleTime: 60_000,
+    staleTime: MINUTE_MS,
   });
 }
 
@@ -67,7 +68,7 @@ function friendGroupBoxWantsQueryOptions(userId: string, slug: string) {
     queryFn: () => fetchGroupBoxWants({ data: slug }),
     // No mutation invalidates this key, so counts can lag up to a minute
     // behind a take or a wishlist edit.
-    staleTime: 60_000,
+    staleTime: MINUTE_MS,
   });
 }
 

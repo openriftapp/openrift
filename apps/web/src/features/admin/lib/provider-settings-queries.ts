@@ -1,5 +1,6 @@
 import type { ProviderSettingsResponse } from "@openrift/shared/contracts/admin/provider-settings";
 import { adminProviderSettingsContract } from "@openrift/shared/contracts/admin/provider-settings";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -16,5 +17,5 @@ const fetchProviderSettings = createServerFn({ method: "GET" })
 export const providerSettingsQueryOptions = queryOptions({
   queryKey: adminKeys.providerSettings,
   queryFn: () => fetchProviderSettings(),
-  staleTime: 30 * 60 * 1000,
+  staleTime: 30 * MINUTE_MS,
 });

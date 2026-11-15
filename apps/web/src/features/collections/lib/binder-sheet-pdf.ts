@@ -1,3 +1,4 @@
+import { clamp } from "@openrift/shared/math";
 import { qrPngDataUri } from "@openrift/shared/qr";
 import type { jsPDF } from "jspdf";
 
@@ -170,7 +171,7 @@ export function truncateToWidth(
 
 /** Rendered at 300 dpi, clamped so a card-size code stays legible and a binder-page code doesn't balloon the PDF. */
 export function qrPixelWidth(sizeMm: number): number {
-  return Math.min(2048, Math.max(512, Math.ceil((sizeMm / 25.4) * 300)));
+  return clamp(Math.ceil((sizeMm / 25.4) * 300), 512, 2048);
 }
 
 export function binderSheetFilename(name?: DownloadName): string {

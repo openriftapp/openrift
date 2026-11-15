@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { clamp } from "@openrift/shared/math";
 import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 
 import { CopyTextButton } from "@/components/copy-text-button";
@@ -41,7 +42,7 @@ function DirectionBlock({ heading, text }: { heading: string; text: string }) {
         readOnly
         value={text}
         className="field-sizing-fixed font-mono text-xs"
-        rows={Math.min(Math.max(lineCount, 2), 8)}
+        rows={clamp(lineCount, 2, 8)}
         onClick={(event) => (event.target as HTMLTextAreaElement).select()}
       />
     </div>

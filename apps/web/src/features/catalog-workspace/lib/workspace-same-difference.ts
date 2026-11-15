@@ -4,6 +4,7 @@ import type {
   WorkspaceSameDifferenceInput,
   WorkspaceSameDifferenceResponse,
 } from "@openrift/shared/contracts/admin/catalog-workspace-bulk";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -31,6 +32,6 @@ export function sameDifferenceQueryOptions(input: WorkspaceSameDifferenceInput) 
   return queryOptions({
     queryKey: adminKeys.workspaceSameDifference(input),
     queryFn: () => fetchSameDifference({ data: input }),
-    staleTime: 60 * 1000,
+    staleTime: MINUTE_MS,
   });
 }

@@ -1,10 +1,11 @@
+import { clamp } from "@openrift/shared/math";
 import { DEFAULT_ALIGNED_OPTIONS } from "@openrift/shared/scan/accept";
 
 const SCORE_WEIGHT = 0.55;
 const RUN_WEIGHT = 1 - SCORE_WEIGHT;
 
 function unit(value: number): number {
-  return Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
+  return Number.isFinite(value) ? clamp(value, 0, 1) : 0;
 }
 
 export function ghostConfidence(

@@ -1,3 +1,5 @@
+import { clamp } from "@openrift/shared/math";
+
 import { SectionHeading } from "@/components/ui/section-heading";
 import type { HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { CardChip, CardPicker } from "@/features/decks/components/deck-card-picker";
@@ -97,7 +99,7 @@ function SwapColumn({
               onChange={(raw) =>
                 onSetQuantity(
                   swapIndex,
-                  Math.min(limit ?? Number.POSITIVE_INFINITY, Math.max(1, Number(raw) || 1)),
+                  clamp(Number(raw) || 1, 1, limit ?? Number.POSITIVE_INFINITY),
                 )
               }
             />

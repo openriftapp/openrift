@@ -1,4 +1,5 @@
 import { adminOperationsContract } from "@openrift/shared/contracts/admin/operations";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { SiblingVariantDriftResponse } from "@openrift/shared/types/api/admin";
 import { useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -17,6 +18,6 @@ export function useSiblingVariantDrift(isBackfillRunning: boolean) {
   return useQuery({
     queryKey: adminKeys.siblingVariantDrift,
     queryFn: (): Promise<SiblingVariantDriftResponse> => siblingVariantDriftFn(),
-    refetchInterval: isBackfillRunning ? 5000 : 60_000,
+    refetchInterval: isBackfillRunning ? 5000 : MINUTE_MS,
   });
 }

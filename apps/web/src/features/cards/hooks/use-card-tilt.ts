@@ -1,3 +1,4 @@
+import { clamp } from "@openrift/shared/math";
 import { useEffect, useRef } from "react";
 
 interface CardTiltOptions {
@@ -60,8 +61,8 @@ export function useCardTilt({ mode, enabled, maxTilt = 8 }: CardTiltOptions): Ca
       rafRef.current = requestAnimationFrame(() => {
         const rect = el.getBoundingClientRect();
         // Clamped: a scrolled parent can move the card away without firing pointerleave.
-        const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-        const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+        const x = clamp((e.clientX - rect.left) / rect.width, 0, 1);
+        const y = clamp((e.clientY - rect.top) / rect.height, 0, 1);
 
         const rotateY = (x - 0.5) * maxTilt * 2;
         const rotateX = (0.5 - y) * maxTilt * 2;

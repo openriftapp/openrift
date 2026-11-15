@@ -1,5 +1,6 @@
 import type { AdminMeResponse } from "@openrift/shared/contracts/admin/core";
 import { adminCoreContract } from "@openrift/shared/contracts/admin/core";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { ORPCError } from "@orpc/client";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -33,5 +34,5 @@ export const adminAccessQueryOptions = (userId: string | null) =>
   queryOptions({
     queryKey: adminKeys.me(userId),
     queryFn: () => (userId === null ? NO_ACCESS : fetchAdminAccess()),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * MINUTE_MS,
   });

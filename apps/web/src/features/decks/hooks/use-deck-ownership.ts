@@ -93,15 +93,7 @@ export function computeDeckOwnership(
   // shifts every later memoCache slot in the parent fiber, causing "previous
   // cache allocated with size X but size Y was requested" warnings.
 
-  const printingsByCardId = new Map<string, Printing[]>();
-  for (const printing of allPrintings) {
-    const bucket = printingsByCardId.get(printing.cardId);
-    if (bucket) {
-      bucket.push(printing);
-    } else {
-      printingsByCardId.set(printing.cardId, [printing]);
-    }
-  }
+  const printingsByCardId = Map.groupBy(allPrintings, (printing) => printing.cardId);
 
   const ownedByCardId = ownedCountByPrinting
     ? ownedTotalsByCard(allPrintings, ownedCountByPrinting)

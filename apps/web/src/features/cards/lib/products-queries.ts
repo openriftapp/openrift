@@ -4,7 +4,7 @@ import type {
   ProductsListResponse,
 } from "@openrift/shared/contracts/products";
 import { productsContract } from "@openrift/shared/contracts/products";
-import { todayUtc } from "@openrift/shared/format-date";
+import { todayUtc, MINUTE_MS } from "@openrift/shared/format-date";
 import { isReleasedIn } from "@openrift/shared/set-release";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { queryOptions } from "@tanstack/react-query";
@@ -29,7 +29,7 @@ const fetchProducts = createServerFn({ method: "GET" })
 export const productsListQueryOptions = queryOptions({
   queryKey: productsKeys.all,
   queryFn: () => fetchProducts(),
-  staleTime: 5 * 60 * 1000,
+  staleTime: 5 * MINUTE_MS,
 });
 
 const fetchProductDetail = createServerFn({ method: "GET" })
@@ -88,7 +88,7 @@ export function productDetailQueryOptions(slug: string) {
   return queryOptions({
     queryKey: productsKeys.detail(slug),
     queryFn: () => fetchProductDetail({ data: slug }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
     select: enrichProductDetail,
   });
 }

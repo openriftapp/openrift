@@ -1,4 +1,5 @@
 import { referralsContract } from "@openrift/shared/contracts/referrals";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { readReferralCode, withReferralCode } from "@openrift/shared/referral";
 import type {
   ClaimReferralResponse,
@@ -39,7 +40,7 @@ export function useReferral(): { data?: ReferralSummaryResponse; isLoading: bool
     queryKey: referralKeys.summary(userId ?? ""),
     queryFn: () => getReferralFn(),
     enabled: Boolean(userId) && hydrated,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
   return { data, isLoading };
 }

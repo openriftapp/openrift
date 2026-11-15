@@ -16,15 +16,7 @@ export function buildPromoTree(
   channels: DistributionChannelWithCount[],
   printingsByChannelId: Map<string, Printing[]>,
 ): ChannelNode[] {
-  const byParent = new Map<string | null, DistributionChannelWithCount[]>();
-  for (const channel of channels) {
-    const list = byParent.get(channel.parentId);
-    if (list) {
-      list.push(channel);
-    } else {
-      byParent.set(channel.parentId, [channel]);
-    }
-  }
+  const byParent = Map.groupBy(channels, (channel) => channel.parentId);
   function build(parentId: string | null): ChannelNode[] {
     const siblings = byParent.get(parentId);
     if (!siblings) {

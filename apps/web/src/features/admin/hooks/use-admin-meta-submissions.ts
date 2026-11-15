@@ -3,6 +3,7 @@ import type {
   AdminMetaSubmission,
 } from "@openrift/shared/contracts/admin/meta-submissions";
 import { adminMetaSubmissionsContract } from "@openrift/shared/contracts/admin/meta-submissions";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { isDefinedError, safe } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -34,7 +35,7 @@ export function useMetaEventCorrections() {
   return useQuery({
     queryKey: adminKeys.meta.eventCorrections,
     queryFn: () => fetchMetaEventCorrections(),
-    staleTime: 60 * 1000,
+    staleTime: MINUTE_MS,
   });
 }
 
@@ -52,7 +53,7 @@ export function useMetaSubmissionForPlayerOverlay(playerOverlayId: string, enabl
     queryKey: adminKeys.meta.submissionForPlayerOverlay(playerOverlayId),
     queryFn: () => fetchSubmissionForPlayerOverlay({ data: { playerOverlayId } }),
     enabled,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }
 

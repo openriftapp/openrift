@@ -3,6 +3,7 @@ import type {
   WorkspaceHistoryInput,
 } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { adminCatalogWorkspaceContract } from "@openrift/shared/contracts/admin/catalog-workspace";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -27,7 +28,7 @@ export function workspaceHistoryQueryOptions(target: WorkspaceHistoryTarget) {
   return queryOptions({
     queryKey: adminKeys.workspaceHistory(target),
     queryFn: () => fetchWorkspaceHistory({ data: target }),
-    staleTime: 60 * 1000,
+    staleTime: MINUTE_MS,
   });
 }
 

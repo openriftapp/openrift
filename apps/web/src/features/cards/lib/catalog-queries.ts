@@ -1,4 +1,5 @@
 import { joinCatalog, joinCatalogCards, joinPrintingSides } from "@openrift/shared/catalog-join";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { indexByPrinting, indexBySideKey } from "@openrift/shared/printing-side";
 import type { CatalogPrintingsResponse, CatalogResponse } from "@openrift/shared/types/api/catalog";
 import type { DeckCatalogSubset } from "@openrift/shared/types/api/deck";
@@ -369,7 +370,7 @@ export const catalogQueryOptions = queryOptions({
     globalThis.window === undefined
       ? completeCatalogEntry(await fetchCatalog())
       : fetchCatalogFromEdge(client, primaryCatalogLanguages()),
-  staleTime: 5 * 60 * 1000, // 5 minutes
+  staleTime: 5 * MINUTE_MS,
   refetchOnWindowFocus: false,
   // Entry identity carries the enrich memo and the tail merge's staleness check.
   structuralSharing: false,

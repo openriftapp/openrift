@@ -1,4 +1,5 @@
 import { landingSummaryContract } from "@openrift/shared/contracts/landing-summary";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { LandingSummaryResponse } from "@openrift/shared/types/api/catalog";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -29,7 +30,7 @@ export const landingSummaryQueryOptions = queryOptions({
   queryKey: landingSummaryKeys.all,
   queryFn: () =>
     globalThis.window === undefined ? fetchLandingSummary() : fetchLandingSummaryFromEdge(),
-  staleTime: 5 * 60 * 1000,
+  staleTime: 5 * MINUTE_MS,
   refetchOnWindowFocus: false,
   retry: 1,
   retryDelay: 500,

@@ -7,6 +7,7 @@ import type {
 } from "@openrift/shared/board-state";
 import { PIECE_KINDS } from "@openrift/shared/board-state";
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { clamp } from "@openrift/shared/math";
 import { uniquePrintings } from "@openrift/shared/printing-side";
 import type { Card } from "@openrift/shared/types/catalog";
 import { ChevronDownIcon, ShapesIcon } from "lucide-react";
@@ -340,7 +341,7 @@ function CounterFields({ piece, actions }: { piece: BoardPiece; actions: BoardPi
             actions.setCounter(
               Number.isNaN(value)
                 ? undefined
-                : { ...counter, value: Math.min(99, Math.max(0, Math.trunc(value))) },
+                : { ...counter, value: clamp(Math.trunc(value), 0, 99) },
             );
           }}
         />

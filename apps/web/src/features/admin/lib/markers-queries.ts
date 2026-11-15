@@ -1,5 +1,6 @@
 import type { AdminMarkersResponse } from "@openrift/shared/contracts/admin/markers";
 import { adminMarkersContract } from "@openrift/shared/contracts/admin/markers";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -16,5 +17,5 @@ const fetchMarkers = createServerFn({ method: "GET" })
 export const adminMarkersQueryOptions = queryOptions({
   queryKey: adminKeys.markers,
   queryFn: () => fetchMarkers(),
-  staleTime: 30 * 60 * 1000,
+  staleTime: 30 * MINUTE_MS,
 });

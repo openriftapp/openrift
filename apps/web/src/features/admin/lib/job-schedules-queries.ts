@@ -1,5 +1,6 @@
 import type { JobSchedulesListResponse } from "@openrift/shared/contracts/admin/job-schedules";
 import { adminJobSchedulesContract } from "@openrift/shared/contracts/admin/job-schedules";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -13,7 +14,7 @@ const fetchJobSchedules = createServerFn({ method: "GET" })
     apiOrpcClient(adminJobSchedulesContract, context.cookie).list(),
   );
 
-const JOB_SCHEDULES_REFRESH_INTERVAL_MS = 60_000;
+const JOB_SCHEDULES_REFRESH_INTERVAL_MS = MINUTE_MS;
 
 export const adminJobSchedulesQueryOptions = queryOptions({
   queryKey: adminKeys.jobSchedules,

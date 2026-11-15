@@ -1,4 +1,5 @@
 import { adminFormatsContract } from "@openrift/shared/contracts/admin/formats";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -19,6 +20,6 @@ export function useFormats() {
       const data = await fetchFormatsFn();
       return data.formats;
     },
-    staleTime: 30 * 60 * 1000,
+    staleTime: 30 * MINUTE_MS,
   });
 }

@@ -1,4 +1,5 @@
 import { MAX_COPIES_PER_ADD } from "@openrift/shared/contracts/copies";
+import { clamp } from "@openrift/shared/math";
 import { uniquePrintings } from "@openrift/shared/printing-side";
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -89,7 +90,7 @@ export function AddEntryToCollectionDialogBody({
       null,
   );
   const [quantity, setQuantity] = useState(() =>
-    Math.min(Math.max(subject.totalQuantity, 1), MAX_COPIES_PER_ADD),
+    clamp(subject.totalQuantity, 1, MAX_COPIES_PER_ADD),
   );
 
   const canConfirm = !isPending && collectionId !== null;

@@ -64,18 +64,10 @@ function toBracketMatch(match: MetaEventMatch): MetaBracketMatch {
 }
 
 function roundsOfPhase(matches: readonly MetaEventMatch[], phaseOrder: number): MetaEventMatch[][] {
-  const byRound = new Map<number, MetaEventMatch[]>();
-  for (const match of matches) {
-    if (match.phaseOrder !== phaseOrder) {
-      continue;
-    }
-    const round = byRound.get(match.roundNumber);
-    if (round) {
-      round.push(match);
-    } else {
-      byRound.set(match.roundNumber, [match]);
-    }
-  }
+  const byRound = Map.groupBy(
+    matches.filter((match) => match.phaseOrder === phaseOrder),
+    (match) => match.roundNumber,
+  );
   return [...byRound.keys()].toSorted((a, b) => a - b).map((number) => byRound.get(number) ?? []);
 }
 

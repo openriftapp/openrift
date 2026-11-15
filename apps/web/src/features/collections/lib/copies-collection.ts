@@ -1,6 +1,7 @@
 // Collection identity is tied to (queryClient, userId): a user change evicts the previous
 // entry, which is cleaned up once its last reader detaches.
 
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { CollectionResponse, CopyResponse } from "@openrift/shared/types/api/collection";
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import type { Collection } from "@tanstack/react-db";
@@ -52,8 +53,8 @@ export function getCopiesCollection(
       id: `copies:${userId}`,
       queryClient,
       queryKey: [...copiesKeys.syncedStore(userId)],
-      staleTime: 10 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
+      staleTime: 10 * MINUTE_MS,
+      gcTime: 10 * MINUTE_MS,
       queryFn: async (ctx) => {
         const previous = queryClient.getQueryData<CopyResponse[]>([
           ...copiesKeys.syncedStore(userId),

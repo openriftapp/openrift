@@ -1,5 +1,6 @@
 import { errataContract } from "@openrift/shared/contracts/errata";
 import type { ErrataListResponse } from "@openrift/shared/contracts/errata";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -18,5 +19,5 @@ const fetchErrataList = createServerFn({ method: "GET" }).handler((): Promise<Er
 export const errataListQueryOptions = queryOptions({
   queryKey: errataKeys.all,
   queryFn: () => fetchErrataList(),
-  staleTime: 5 * 60 * 1000,
+  staleTime: 5 * MINUTE_MS,
 });

@@ -436,12 +436,7 @@ function BrokenImagesSection() {
     return <SettingsSection title="Broken Images" description="No broken images found." />;
   }
 
-  const bySet = new Map<string, typeof data.broken>();
-  for (const entry of data.broken) {
-    const list = bySet.get(entry.setSlug) ?? [];
-    list.push(entry);
-    bySet.set(entry.setSlug, list);
-  }
+  const bySet = Map.groupBy(data.broken, (entry) => entry.setSlug);
 
   const imageIds = data.broken.map((entry) => entry.imageId);
 
@@ -527,12 +522,7 @@ function LowResImagesSection() {
     );
   }
 
-  const bySet = new Map<string, typeof data.lowRes>();
-  for (const entry of data.lowRes) {
-    const list = bySet.get(entry.setSlug) ?? [];
-    list.push(entry);
-    bySet.set(entry.setSlug, list);
-  }
+  const bySet = Map.groupBy(data.lowRes, (entry) => entry.setSlug);
 
   return (
     <SettingsSection

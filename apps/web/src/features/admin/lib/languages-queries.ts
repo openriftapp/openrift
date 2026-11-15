@@ -1,5 +1,6 @@
 import type { AdminLanguagesResponse } from "@openrift/shared/contracts/admin/languages";
 import { adminLanguagesContract } from "@openrift/shared/contracts/admin/languages";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -16,5 +17,5 @@ const fetchLanguages = createServerFn({ method: "GET" })
 export const adminLanguagesQueryOptions = queryOptions({
   queryKey: adminKeys.languages,
   queryFn: () => fetchLanguages(),
-  staleTime: 30 * 60 * 1000,
+  staleTime: 30 * MINUTE_MS,
 });

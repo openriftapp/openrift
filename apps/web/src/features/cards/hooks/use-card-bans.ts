@@ -1,5 +1,6 @@
 import { adminCardBansContract } from "@openrift/shared/contracts/admin/card-bans";
 import type { CardBanResponse } from "@openrift/shared/contracts/admin/card-bans";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -24,7 +25,7 @@ export function useCardBans(cardId: string) {
       return data.bans;
     },
     enabled: Boolean(cardId),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }
 

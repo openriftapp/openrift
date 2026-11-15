@@ -1,5 +1,6 @@
 import type { ScanManifest } from "@openrift/shared/contracts/scan";
 import { scanContract } from "@openrift/shared/contracts/scan";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -30,7 +31,7 @@ export function useScanServing(): ScanServing {
   const manifest = useQuery({
     queryKey: scanKeys.manifest,
     queryFn: () => fetchScanManifestFn(),
-    staleTime: 60_000,
+    staleTime: MINUTE_MS,
     retry: 1,
   });
   if (manifest.isPending) {

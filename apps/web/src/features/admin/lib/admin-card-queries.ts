@@ -1,6 +1,7 @@
 import { adminCardQueriesContract } from "@openrift/shared/contracts/admin/card-queries";
 import type { AllCardsResponse } from "@openrift/shared/contracts/admin/card-queries";
 import type { ErrataAnnouncement } from "@openrift/shared/contracts/errata";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -21,7 +22,7 @@ const fetchAdminCardList = createServerFn({ method: "GET" })
 export const adminCardListQueryOptions = queryOptions({
   queryKey: adminKeys.cards.list,
   queryFn: () => fetchAdminCardList(),
-  staleTime: 5 * 60 * 1000,
+  staleTime: 5 * MINUTE_MS,
 });
 
 const fetchAllCards = createServerFn({ method: "GET" })
@@ -33,7 +34,7 @@ const fetchAllCards = createServerFn({ method: "GET" })
 export const allCardsQueryOptions = queryOptions({
   queryKey: adminKeys.cards.allCards,
   queryFn: () => fetchAllCards(),
-  staleTime: 5 * 60 * 1000,
+  staleTime: 5 * MINUTE_MS,
 });
 
 const fetchErrataAnnouncements = createServerFn({ method: "GET" })
@@ -45,7 +46,7 @@ const fetchErrataAnnouncements = createServerFn({ method: "GET" })
 export const errataAnnouncementsQueryOptions = queryOptions({
   queryKey: adminKeys.cards.errataAnnouncements,
   queryFn: () => fetchErrataAnnouncements(),
-  staleTime: 5 * 60 * 1000,
+  staleTime: 5 * MINUTE_MS,
 });
 
 const fetchAdminCardDetail = createServerFn({ method: "GET" })
@@ -79,7 +80,7 @@ export function adminCardDetailQueryOptions(cardSlug: string) {
   return queryOptions({
     queryKey: adminKeys.cards.detail(cardSlug),
     queryFn: () => fetchAdminCardDetail({ data: cardSlug }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
     refetchInterval: (query) =>
       hasPendingRehost(query.state.data) ? REHOST_POLL_INTERVAL_MS : false,
   });

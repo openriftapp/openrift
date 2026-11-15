@@ -1,5 +1,6 @@
 import { adminCatalogReviewContract } from "@openrift/shared/contracts/admin/catalog-review";
 import type { ReviewQueueResponse } from "@openrift/shared/contracts/admin/catalog-review";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -16,5 +17,5 @@ const fetchReviewQueue = createServerFn({ method: "GET" })
 export const reviewQueueQueryOptions = queryOptions({
   queryKey: adminKeys.reviewQueue,
   queryFn: () => fetchReviewQueue(),
-  staleTime: 60 * 1000,
+  staleTime: MINUTE_MS,
 });

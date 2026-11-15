@@ -1,3 +1,4 @@
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { foldForSearch } from "@openrift/shared/search-fold";
 import { slugifyName } from "@openrift/shared/strings";
 
@@ -10,7 +11,7 @@ export function downloadUrl(href: string, filename: string): void {
   anchor.remove();
 }
 
-export const REVOKE_DELAY_MS = 60_000;
+export const REVOKE_DELAY_MS = MINUTE_MS;
 
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);

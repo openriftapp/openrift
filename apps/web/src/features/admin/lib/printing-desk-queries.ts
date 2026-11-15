@@ -4,6 +4,7 @@ import type {
   DeskListOutput,
 } from "@openrift/shared/contracts/admin/printing-desk";
 import { adminPrintingDeskContract } from "@openrift/shared/contracts/admin/printing-desk";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -43,14 +44,14 @@ export const deskPrintingsQueryOptions = (mode: DeskListMode) =>
   queryOptions({
     queryKey: adminKeys.printingDesk.list(mode),
     queryFn: () => fetchDeskPrintings({ data: { mode } }),
-    staleTime: 60 * 1000,
+    staleTime: MINUTE_MS,
   });
 
 export const deskCardPrintingsQueryOptions = (cardSlug: string) =>
   queryOptions({
     queryKey: adminKeys.printingDesk.cardPrintings(cardSlug),
     queryFn: () => fetchDeskCardPrintings({ data: { cardSlug } }),
-    staleTime: 60 * 1000,
+    staleTime: MINUTE_MS,
   });
 
 /** `side` picks which face of a double-faced printing the row presents. */
@@ -58,5 +59,5 @@ export const deskPrintingQueryOptions = (printingId: string, side: 1 | 2 = 1) =>
   queryOptions({
     queryKey: adminKeys.printingDesk.printingSide(printingId, side),
     queryFn: () => fetchDeskPrinting({ data: { printingId, side } }),
-    staleTime: 60 * 1000,
+    staleTime: MINUTE_MS,
   });

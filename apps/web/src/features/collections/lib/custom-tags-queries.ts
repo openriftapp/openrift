@@ -1,4 +1,5 @@
 import { adminCustomTagsContract } from "@openrift/shared/contracts/admin/custom-tags";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type {
   CustomTagCategoryResponse,
   CustomTagResponse,
@@ -27,7 +28,7 @@ const fetchCustomTags = createServerFn({ method: "GET" })
 export const adminCustomTagsQueryOptions = queryOptions({
   queryKey: adminKeys.customTags,
   queryFn: () => fetchCustomTags(),
-  staleTime: 30 * 60 * 1000,
+  staleTime: 30 * MINUTE_MS,
 });
 
 const fetchCustomTagCategories = createServerFn({ method: "GET" })
@@ -39,5 +40,5 @@ const fetchCustomTagCategories = createServerFn({ method: "GET" })
 export const adminCustomTagCategoriesQueryOptions = queryOptions({
   queryKey: adminKeys.customTagCategories,
   queryFn: () => fetchCustomTagCategories(),
-  staleTime: 30 * 60 * 1000,
+  staleTime: 30 * MINUTE_MS,
 });

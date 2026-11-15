@@ -6,6 +6,7 @@ import type {
   JobTrigger,
 } from "@openrift/shared/contracts/admin/job-runs";
 import { adminJobRunsContract } from "@openrift/shared/contracts/admin/job-runs";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -24,7 +25,7 @@ const getLatestJobRunFn = createServerFn({ method: "GET" })
 export const JOB_RUNS_PAGE_SIZE = 50;
 
 const LATEST_RUN_ACTIVE_POLL_MS = 2000;
-const LATEST_RUN_IDLE_POLL_MS = 60_000;
+const LATEST_RUN_IDLE_POLL_MS = MINUTE_MS;
 
 export type JobRunsQueryParams = Omit<
   ContractInput<typeof adminJobRunsContract, "list">,

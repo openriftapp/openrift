@@ -10,6 +10,7 @@ import type {
   MetaSyncTriggerResult,
 } from "@openrift/shared/contracts/admin/meta-catalog";
 import { adminMetaCatalogContract } from "@openrift/shared/contracts/admin/meta-catalog";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { MetaEventTier } from "@openrift/shared/types/enums";
 import { useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -105,7 +106,7 @@ export function useMetaSyncSettings() {
   return useQuery({
     queryKey: adminKeys.meta.syncSettings,
     queryFn: () => fetchMetaSyncSettings(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }
 

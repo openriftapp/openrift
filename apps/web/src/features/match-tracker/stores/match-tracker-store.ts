@@ -1,3 +1,4 @@
+import { clamp } from "@openrift/shared/math";
 import { v7 as uuidv7 } from "uuid";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
@@ -77,7 +78,7 @@ function makePlayer(index: number): TrackedPlayer {
 }
 
 function clampPlayerCount(count: number): number {
-  return Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, Math.floor(count)));
+  return clamp(Math.floor(count), MIN_PLAYERS, MAX_PLAYERS);
 }
 
 function buildPlayers(count: number): TrackedPlayer[] {

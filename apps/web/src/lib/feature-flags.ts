@@ -1,4 +1,5 @@
 import { featureFlagsContract } from "@openrift/shared/contracts/feature-flags";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { QueryClient } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
 import { notFound } from "@tanstack/react-router";
@@ -37,7 +38,7 @@ const fetchFeatureFlags = createServerFn({ method: "GET" })
 export const featureFlagsQueryOptions = queryOptions({
   queryKey: featureFlagsKeys.all,
   queryFn: (): Promise<FeatureFlags> => fetchFeatureFlags(),
-  staleTime: 5 * 60 * 1000, // 5 minutes
+  staleTime: 5 * MINUTE_MS,
   refetchOnWindowFocus: false,
 });
 

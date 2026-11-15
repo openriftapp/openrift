@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { clamp } from "@openrift/shared/math";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { ChevronLeftIcon, GalleryHorizontalIcon, TableIcon, XIcon } from "lucide-react";
@@ -455,7 +456,7 @@ export function lightboxKeyTarget(
       return current;
     }
   }
-  return Math.min(last, Math.max(0, current + step));
+  return clamp(current + step, 0, last);
 }
 
 function LightboxTile({

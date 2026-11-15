@@ -1,4 +1,5 @@
 import { adminCardQueriesContract } from "@openrift/shared/contracts/admin/card-queries";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -15,5 +16,5 @@ const fetchDistinctArtists = createServerFn({ method: "GET" })
 export const adminDistinctArtistsQueryOptions = queryOptions({
   queryKey: adminKeys.distinctArtists,
   queryFn: () => fetchDistinctArtists(),
-  staleTime: 30 * 60 * 1000,
+  staleTime: 30 * MINUTE_MS,
 });

@@ -1,5 +1,6 @@
 import { deckCardKey } from "@openrift/shared/deck-cards";
 import { isCountedZone } from "@openrift/shared/deck-zones";
+import { clamp } from "@openrift/shared/math";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { m } from "@/paraglide/messages.js";
@@ -28,10 +29,10 @@ export function ownershipBandSegments(
   lockedOfCard = 0,
 ): OwnershipBandSegments {
   const needed = Math.max(0, quantity);
-  const exact = Math.min(needed, Math.max(0, ownedOfDisplayed));
-  const other = Math.min(needed - exact, Math.max(0, ownedOfOthers));
-  const borrowed = Math.min(needed - exact - other, Math.max(0, borrowedOfCard));
-  const locked = Math.min(needed - exact - other - borrowed, Math.max(0, lockedOfCard));
+  const exact = clamp(ownedOfDisplayed, 0, needed);
+  const other = clamp(ownedOfOthers, 0, needed - exact);
+  const borrowed = clamp(borrowedOfCard, 0, needed - exact - other);
+  const locked = clamp(lockedOfCard, 0, needed - exact - other - borrowed);
   return {
     exact,
     other,

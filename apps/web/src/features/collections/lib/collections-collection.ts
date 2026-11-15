@@ -2,6 +2,7 @@
 // entry, which is cleaned up once its last reader detaches.
 
 import { collectionsContract } from "@openrift/shared/contracts/collections";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
@@ -41,8 +42,8 @@ export function getCollectionsCollection(
       id: `collections:${userId}`,
       queryClient,
       queryKey: [...collectionsKeys.syncedStore(userId)],
-      staleTime: 10 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
+      staleTime: 10 * MINUTE_MS,
+      gcTime: 10 * MINUTE_MS,
       queryFn: async (ctx) => {
         const response = await browserApiOrpcClient(collectionsContract).list(undefined, {
           signal: ctx.signal,

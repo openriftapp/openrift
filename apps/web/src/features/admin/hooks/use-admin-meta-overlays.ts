@@ -1,4 +1,5 @@
 import { adminMetaCandidatesContract } from "@openrift/shared/contracts/admin/meta";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type {
   MetaCrossSourceReview,
   MetaEventDrift,
@@ -45,7 +46,7 @@ export function useMetaEventDrift(metaEventId: string, enabled: boolean) {
     queryKey: adminKeys.meta.eventDrift(metaEventId),
     queryFn: () => fetchMetaEventDrift({ data: metaEventId }),
     enabled,
-    staleTime: 60 * 1000,
+    staleTime: MINUTE_MS,
   });
 }
 
@@ -248,7 +249,7 @@ export function useMetaEventUploads(eventId: string) {
   return useQuery({
     queryKey: adminKeys.meta.eventUploads(eventId),
     queryFn: () => fetchEventUploads({ data: eventId }),
-    staleTime: 60 * 1000,
+    staleTime: MINUTE_MS,
   });
 }
 
@@ -364,7 +365,7 @@ export function useAdminMetaIgnoredSources() {
   return useQuery({
     queryKey: adminKeys.meta.ignoredSources,
     queryFn: () => fetchIgnored(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * MINUTE_MS,
   });
 }
 
@@ -398,7 +399,7 @@ export function useMetaEventMatchSuggestions(overlayId: string) {
   return useQuery({
     queryKey: adminKeys.meta.eventSuggestions(overlayId),
     queryFn: () => fetchEventSuggestions({ data: overlayId }),
-    staleTime: 60 * 1000,
+    staleTime: MINUTE_MS,
   });
 }
 
@@ -416,7 +417,7 @@ export function useMetaPlayerMatchSuggestions(overlayId: string) {
   return useQuery({
     queryKey: adminKeys.meta.playerSuggestions(overlayId),
     queryFn: () => fetchPlayerSuggestions({ data: overlayId }),
-    staleTime: 60 * 1000,
+    staleTime: MINUTE_MS,
   });
 }
 
@@ -432,7 +433,7 @@ export function useMetaCrossSourceReview(metaEventId: string, enabled: boolean) 
     queryKey: adminKeys.meta.crossSource(metaEventId),
     queryFn: () => fetchCrossSourceReview({ data: metaEventId }),
     enabled,
-    staleTime: 60 * 1000,
+    staleTime: MINUTE_MS,
   });
 }
 

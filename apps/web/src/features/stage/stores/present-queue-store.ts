@@ -1,3 +1,4 @@
+import { clamp } from "@openrift/shared/math";
 import { create } from "zustand";
 
 import { moveQueueEntry } from "@/features/cards/lib/card-queue";
@@ -53,7 +54,7 @@ export const usePresentQueueStore = create<PresentQueueState>()((set, get) => ({
     if (ids.length >= MAX_QUEUE_LENGTH) {
       return;
     }
-    const at = Math.min(Math.max(index, 0), ids.length);
+    const at = clamp(index, 0, ids.length);
     set(withIds([...ids.slice(0, at), printingId, ...ids.slice(at)]));
   },
 

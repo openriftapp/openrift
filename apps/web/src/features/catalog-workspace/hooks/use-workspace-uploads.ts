@@ -9,6 +9,7 @@ import type {
   WorkspaceUploadsResponse,
 } from "@openrift/shared/contracts/admin/catalog-workspace";
 import type { WorkspaceSameDifferenceInput } from "@openrift/shared/contracts/admin/catalog-workspace-bulk";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { pluralize } from "@openrift/shared/strings";
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -27,7 +28,7 @@ function workspaceUploadsQueryOptions() {
   return queryOptions({
     queryKey: adminKeys.workspaceUploads,
     queryFn: () => fetchWorkspaceUploads(),
-    staleTime: 60 * 1000,
+    staleTime: MINUTE_MS,
   });
 }
 

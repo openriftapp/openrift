@@ -1,3 +1,4 @@
+import { clamp } from "@openrift/shared/math";
 import type { Virtualizer } from "@tanstack/react-virtual";
 
 import { IS_COARSE_POINTER } from "@/lib/pointer";
@@ -55,7 +56,7 @@ export function computeSnapPoints({
       continue;
     }
     const headerScrollY = rowStart + scrollMargin - stickyOffset;
-    const contentPct = Math.max(0, Math.min(1, (headerScrollY - contentStart) / contentRange));
+    const contentPct = clamp((headerScrollY - contentStart) / contentRange, 0, 1);
     const screenY = Math.round(trackTop + contentPct * (trackBottom - trackTop));
     let firstCardId = "";
     for (const next of virtualRows.slice(i + 1)) {

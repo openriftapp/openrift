@@ -4,6 +4,7 @@ import type {
   WorkspaceEventsResponse,
 } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { adminCatalogWorkspaceContract } from "@openrift/shared/contracts/admin/catalog-workspace";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -25,7 +26,7 @@ function workspaceDecisionsQueryOptions(since?: string) {
   return queryOptions({
     queryKey: adminKeys.workspaceDecisions(since ?? "today"),
     queryFn: () => fetchWorkspaceDecisions({ data: { since } }),
-    staleTime: 60 * 1000,
+    staleTime: MINUTE_MS,
   });
 }
 
