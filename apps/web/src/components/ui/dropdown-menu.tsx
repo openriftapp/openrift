@@ -29,7 +29,9 @@ function DropdownMenuContent({
 }: MenuPrimitive.Popup.Props &
   Pick<MenuPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset">) {
   return (
-    <MenuPrimitive.Portal>
+    <MenuPrimitive.Portal
+      className="relative z-50" // custom: lifts the menu's internal backdrop above a z-50 sheet or dialog, so outside touches can't reach other triggers
+    >
       <MenuPrimitive.Positioner
         className="isolate z-50 outline-none"
         align={align}

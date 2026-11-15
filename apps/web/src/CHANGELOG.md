@@ -12,6 +12,7 @@
 
 - feat(Decks): **Where your copies are** — the ownership label under a card in the deck builder now opens a list of the collections that hold your copies of it.
 - fix(Cards): **Battlefields lie flat everywhere** — the card details in the card browser and the deck builder, the printings lists and table, the all-printings view and the stage show battlefields horizontally.
+- fix(Collection): **One sidebar menu at a time on phones** — while a collection or list menu is open in the sidebar, pressing another row no longer opens a second menu on top. A tap outside the menu closes it.
 - fix(Account): **Sign-in before the page finishes loading** — signing in right as the page appears no longer puts your password in the address bar.
 - fix(Account): **Switching accounts** — signing in as another account without signing out starts from that account's own settings and languages.
 - fix(Account): **Password managers on slow loads** — details typed or filled in before the page finishes loading are kept and sent when you sign in, sign up, reset or change your password.
