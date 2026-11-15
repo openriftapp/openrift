@@ -50,6 +50,7 @@ import type { MirrorCounts } from "@/features/admin/lib/meta-mirror-view";
 import {
   autoPublishRuleSentence,
   findRailItem,
+  MIRROR_SOURCE_TRAITS,
   mirrorCountsFromStatus,
   mirrorRail,
   mirrorViewFromSearch,
@@ -147,8 +148,7 @@ export function MetaMirrorPage() {
   const counts: MirrorCounts | null =
     current?.data.buckets ??
     (status.data === undefined ? null : mirrorCountsFromStatus(status.data));
-  const collects = source !== "topdeck";
-  const rail = counts === null ? null : mirrorRail(counts, collects);
+  const rail = counts === null ? null : mirrorRail(counts, MIRROR_SOURCE_TRAITS[source]);
   const active = rail === null ? undefined : findRailItem(rail, view);
   const selectionMode =
     view.triage === "new" ? "decide" : view.triage === "dismissed" ? "restore" : null;

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict Em9TOW0rLD27VJ9H7tJGms3tSv6KEl8r7GdMQCe118EGwjyb2ogfjdTO2GpY1zl
+\restrict OFKkfZjd3BAQUskFuPDEsFEp84Szc7akcBSbn980D4cAFyfZzHfrhzmGMBkK5YD
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -3265,6 +3265,20 @@ CREATE TABLE public.meta_events (
 
 
 --
+-- Name: meta_held_source_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.meta_held_source_events (
+    provider text NOT NULL,
+    external_id text NOT NULL,
+    meta_event_id uuid NOT NULL,
+    held_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_meta_held_source_events_external_id CHECK ((external_id <> ''::text)),
+    CONSTRAINT chk_meta_held_source_events_provider CHECK ((provider <> ''::text))
+);
+
+
+--
 -- Name: meta_player_links; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5845,6 +5859,14 @@ ALTER TABLE ONLY public.meta_events
 
 
 --
+-- Name: meta_held_source_events meta_held_source_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_held_source_events
+    ADD CONSTRAINT meta_held_source_events_pkey PRIMARY KEY (provider, external_id);
+
+
+--
 -- Name: meta_player_links meta_player_links_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7563,6 +7585,13 @@ CREATE INDEX idx_meta_events_search_trgm ON public.meta_events USING gin (name p
 --
 
 CREATE INDEX idx_meta_events_tier ON public.meta_events USING btree (tier);
+
+
+--
+-- Name: idx_meta_held_source_events_meta_event_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_meta_held_source_events_meta_event_id ON public.meta_held_source_events USING btree (meta_event_id);
 
 
 --
@@ -10799,6 +10828,14 @@ ALTER TABLE ONLY public.meta_events
 
 
 --
+-- Name: meta_held_source_events meta_held_source_events_meta_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_held_source_events
+    ADD CONSTRAINT meta_held_source_events_meta_event_id_fkey FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
+
+
+--
 -- Name: meta_player_links meta_player_links_meta_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -11458,5 +11495,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Em9TOW0rLD27VJ9H7tJGms3tSv6KEl8r7GdMQCe118EGwjyb2ogfjdTO2GpY1zl
+\unrestrict OFKkfZjd3BAQUskFuPDEsFEp84Szc7akcBSbn980D4cAFyfZzHfrhzmGMBkK5YD
 

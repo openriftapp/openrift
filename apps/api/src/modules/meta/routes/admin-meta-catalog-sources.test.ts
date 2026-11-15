@@ -740,6 +740,7 @@ describe("catalogue lists", () => {
       filters,
       { limit: 20, offset: 40 },
       { sort: "name", direction: "asc" },
+      RULE,
     );
     expect(uvsgamesEvents.bucketCounts).toHaveBeenCalledWith(filters, RULE);
     expect(uvsgamesEvents.formatMappings).toHaveBeenCalled();
@@ -763,6 +764,7 @@ describe("catalogue lists", () => {
       },
       { limit: 50, offset: 0 },
       { sort: undefined, direction: undefined },
+      RULE,
     );
   });
 
@@ -773,6 +775,7 @@ describe("catalogue lists", () => {
       expect.objectContaining({ format: "constructed", dateFrom: "2026-08-01" }),
       expect.anything(),
       expect.anything(),
+      RULE,
     );
     expect(uvsgamesEvents.formatMappings).not.toHaveBeenCalled();
   });

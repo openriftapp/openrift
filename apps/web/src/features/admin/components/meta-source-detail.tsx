@@ -196,6 +196,14 @@ function mirrorSegments(source: MetaSource, status: MetaSyncStatus): Segment[] {
       target: mirrorTarget(source, { bucket: "skippedPast" }),
     },
     {
+      key: "held",
+      count: catalog.held,
+      label: "held by a live event",
+      description: "A live event from another source covers the same store and day.",
+      colorClass: "bg-chart-3",
+      target: mirrorTarget(source, { bucket: "held" }),
+    },
+    {
       key: "rejected",
       count: counts.dismissed,
       label: "rejected",

@@ -19,12 +19,15 @@ import type {
   MetaAutoPublishRule,
   MetaSyncBucketColumns,
   MetaSyncBucketCounts,
+  MirrorHeldBy,
   MirrorListOrder,
   MirrorSyncOverview,
   MirrorTriage,
   MirrorTriageCounts,
 } from "./meta-sync-buckets.js";
 import {
+  heldBySameStore,
+  heldBySelection,
   catalogOrderBy,
   JOINED_TRIAGE,
   metaSyncBucketCondition,
@@ -99,6 +102,7 @@ export interface UvsgamesCoverageRow extends UvsgamesListRow {
   stagedPlayerCount: number;
   stagedLegendCount: number;
   stagedDeckCount: number;
+  heldBy: MirrorHeldBy | null;
 }
 
 export interface UvsgamesListFilters {
@@ -197,6 +201,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
     hasResults: sql<SqlBool>`c.display_status = 'complete'`,
     nextCheckAt: sql<Date | null>`ck.next_check_at`,
     passes: uvsgamesRulePasses,
+    held: heldBySameStore(UVSGAMES_PROVIDER, KEY),
   };
   const paged = pagedTriage(UVSGAMES_PROVIDER, KEY);
 
@@ -705,6 +710,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
       filters: UvsgamesListFilters,
       page: { limit: number; offset: number },
       order: MirrorListOrder = {},
+      rule?: MetaAutoPublishRule,
     ): Promise<{ rows: UvsgamesCoverageRow[]; total: number }> {
       let query = triagedQuery()
         .selectAll("c")
@@ -717,6 +723,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
           stagedPlayerCount.as("stagedPlayerCount"),
           stagedLegendCount.as("stagedLegendCount"),
           stagedDeckCount.as("stagedDeckCount"),
+          heldBySelection(UVSGAMES_PROVIDER, KEY, bucketColumns, rule),
         ])
         .orderBy(catalogOrderBy(sql`c.player_count`, order))
         // Ties on the sort column are common (a locals night files every store

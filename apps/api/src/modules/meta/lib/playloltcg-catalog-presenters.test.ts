@@ -5,6 +5,7 @@ import { toPlayloltcgCatalogRow } from "./playloltcg-catalog-presenters.js";
 
 function listRow(overrides: Partial<PlayloltcgListRow> = {}): PlayloltcgListRow {
   return {
+    heldBy: null,
     activityShopId: 109_991,
     shopId: 3648,
     shopName: "卡之域卡牌",

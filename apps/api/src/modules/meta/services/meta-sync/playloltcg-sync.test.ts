@@ -77,6 +77,7 @@ interface RecheckWrite {
 
 function dueRow(overrides: Partial<PlayloltcgRecheckRow> = {}): PlayloltcgRecheckRow {
   return {
+    heldBy: null,
     activityShopId: 109_991,
     shopId: null,
     shopName: "卡之域卡牌",

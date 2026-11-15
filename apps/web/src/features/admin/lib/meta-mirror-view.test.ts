@@ -4,6 +4,7 @@ import type { MirrorCounts } from "./meta-mirror-view";
 import {
   autoPublishRuleSentence,
   findRailItem,
+  MIRROR_SOURCE_TRAITS,
   mirrorRail,
   mirrorViewFromSearch,
   mirrorViewSearch,
@@ -14,6 +15,7 @@ const COUNTS: MirrorCounts = {
   passingNoResults: 2,
   skippedUpcoming: 8833,
   skippedPast: 246_948,
+  held: 3,
   notStarted: 5,
   collecting: 686,
   final: 47_225,
@@ -28,7 +30,7 @@ const RULE = { autoAcceptMinPlayers: 16, autoAcceptOfficial: true, autoAcceptNot
 
 describe("mirrorRail", () => {
   it("lists every bucket under the place it belongs to, with its count", () => {
-    const rail = mirrorRail(COUNTS, true);
+    const rail = mirrorRail(COUNTS, MIRROR_SOURCE_TRAITS.uvsgames);
 
     expect(rail.map((group) => [group.item.label, group.item.count])).toEqual([
       ["Undecided", 255_785],
@@ -41,14 +43,20 @@ describe("mirrorRail", () => {
       ["passingNoResults", 2],
       ["skippedUpcoming", 8833],
       ["skippedPast", 246_948],
+      ["held", 3],
     ]);
   });
 
-  it("says n/a for collecting on a source that never collects", () => {
-    const published = mirrorRail(COUNTS, false)[1]!;
+  it("says n/a for collecting and held on a source that never collects or holds", () => {
+    const [undecided, published] = mirrorRail(COUNTS, MIRROR_SOURCE_TRAITS.topdeck);
 
-    expect(published.children.find((item) => item.id === "collecting")?.count).toBeNull();
-    expect(published.children.find((item) => item.id === "final")?.count).toBe(47_225);
+    expect(published!.children.find((item) => item.id === "collecting")?.count).toBeNull();
+    expect(published!.children.find((item) => item.id === "final")?.count).toBe(47_225);
+    expect(undecided!.children.find((item) => item.id === "held")?.count).toBeNull();
+  });
+
+  it("files a held bucket link under undecided", () => {
+    expect(mirrorViewFromSearch({ bucket: "held" })).toEqual({ triage: "new", bucket: "held" });
   });
 });
 
@@ -80,7 +88,7 @@ describe("mirror views", () => {
   });
 
   it("finds the rail item a view selects", () => {
-    const rail = mirrorRail(COUNTS, true);
+    const rail = mirrorRail(COUNTS, MIRROR_SOURCE_TRAITS.uvsgames);
 
     expect(findRailItem(rail, { triage: "accepted", bucket: "noResults" })?.label).toBe(
       "No results",

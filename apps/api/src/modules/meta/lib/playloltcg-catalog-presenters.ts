@@ -23,6 +23,7 @@ export function toPlayloltcgCatalogRow(row: PlayloltcgListRow): PlayloltcgCatalo
     stagedPlayerCount: row.stagedPlayerCount,
     stagedLegendCount: row.stagedLegendCount,
     stagedDeckCount: row.stagedDeckCount,
+    heldBy: row.heldBy,
     sourceUrl: playloltcgEventUrl(row.activityShopId),
   };
 }

@@ -143,6 +143,7 @@ function status(
       passingNoResults: 60,
       skippedUpcoming: 8209,
       skippedPast: 23_878,
+      held: 0,
       ...catalog,
     },
     archive: {

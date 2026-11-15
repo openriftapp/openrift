@@ -22,6 +22,7 @@ const CONTEXT = {
 
 function listing(overrides: Partial<PlayriftboundListRow> = {}): PlayriftboundListRow {
   return {
+    heldBy: null,
     tournamentId: TOURNAMENT_ID,
     organizerId: "org-1",
     name: "Summoner Skirmish",

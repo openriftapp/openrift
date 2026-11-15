@@ -311,6 +311,7 @@ function syncStatus(
       passingNoResults: 0,
       skippedUpcoming: 0,
       skippedPast: 0,
+      held: 0,
       ...catalog,
     },
     archive: {

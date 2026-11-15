@@ -56,6 +56,7 @@ export function toMetaCatalogRow(
     stagedPlayerCount: row.stagedPlayerCount,
     stagedLegendCount: row.stagedLegendCount,
     stagedDeckCount: row.stagedDeckCount,
+    heldBy: row.heldBy,
     sourceUrl: uvsgamesEventUrl(row.externalId),
   };
 }
@@ -126,5 +127,6 @@ export function toMetaSyncCatalog(
     passingNoResults: overview.passingNoResults,
     skippedUpcoming: overview.skippedUpcoming,
     skippedPast: overview.skippedPast,
+    held: overview.held,
   };
 }

@@ -11,7 +11,7 @@ import type { PlayloltcgListRow } from "../../repositories/playloltcg-events.js"
 import { promoteNewEvent } from "../meta-promote.js";
 import { clock } from "./deps.js";
 import type { PlayloltcgSyncDeps } from "./playloltcg-deps.js";
-import { sameStoreLiveEvent } from "./same-store-guard.js";
+import { recordSameStoreHolds, sameStoreLiveEvent } from "./same-store-guard.js";
 
 /** This source has no template or notable-name signal; `activityType` doesn't distinguish events, so player count is the only accept rule. */
 export interface PlayloltcgAcceptSummary {
@@ -70,6 +70,7 @@ async function sweep(
   for (const page of chunk(activityShopIds, SWEEP_PAGE)) {
     const rows = await deps.repos.playloltcgEvents.unacceptedByKeys(page);
     summary.considered += rows.length;
+    const holds = new Map<string, string>();
     for (const row of rows) {
       if (row.playerCount === null || row.playerCount < threshold) {
         continue;
@@ -81,6 +82,7 @@ async function sweep(
       });
       if (twin !== undefined) {
         summary.held++;
+        holds.set(String(row.activityShopId), twin.id);
         continue;
       }
       try {
@@ -91,6 +93,13 @@ async function sweep(
         recordCapped(summary.errors, [`Auto-accept "${row.name}": ${errorMessage(error)}`]);
       }
     }
+    await recordSameStoreHolds(
+      deps.repos,
+      PLAYLOLTCG_PROVIDER,
+      page.map(String),
+      holds,
+      summary.errors,
+    );
   }
   return summary;
 }

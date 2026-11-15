@@ -66,6 +66,16 @@ function EventCell({ row }: AdminCellSlotProps<MetaMirrorRow>) {
           {row.venue}
         </div>
       )}
+      {row.heldBy !== null && (
+        <TextLink
+          variant="muted"
+          className="block text-xs"
+          title="Auto-publish holds this event back: a live event from another source covers the same store and day"
+          render={<Link to="/admin/meta/$eventId" params={{ eventId: row.heldBy.metaEventId }} />}
+        >
+          Held by {row.heldBy.metaEventName}
+        </TextLink>
+      )}
     </div>
   );
 }

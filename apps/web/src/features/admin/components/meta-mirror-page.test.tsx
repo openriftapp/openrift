@@ -114,6 +114,7 @@ const STATUS_COUNTS: MirrorCounts = {
   passingNoResults: 2,
   skippedUpcoming: 8833,
   skippedPast: 246_948,
+  held: 0,
   notStarted: 5,
   collecting: 686,
   final: 47_225,
@@ -185,6 +186,7 @@ function row(overrides: Partial<MetaCatalogRow> = {}): MetaCatalogRow {
     stagedPlayerCount: 0,
     stagedLegendCount: 0,
     stagedDeckCount: 0,
+    heldBy: null,
     sourceUrl: "https://example.invalid/events/923368",
     ...overrides,
   };
@@ -357,5 +359,28 @@ describe("MetaMirrorPage", () => {
     expect(screen.getByText("16 standings, next check 2026-10-28 17:50")).toBeInTheDocument();
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Collect results" })).toBeInTheDocument();
+  });
+
+  it("names the live event a held row waits behind", () => {
+    captured.search = { bucket: "held" };
+    captured.rows = [
+      row({
+        heldBy: {
+          metaEventId: "live-9",
+          metaEventSlug: "summoner-skirmish-bologna",
+          metaEventName: "Summoner Skirmish Bologna",
+        },
+      }),
+    ];
+
+    render(<MetaMirrorPage />);
+
+    expect(captured.params).toMatchObject({ triage: "new", bucket: "held" });
+    expect(screen.getByRole("heading", { name: "Held by a live event" })).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table")).getByRole("link", {
+        name: "Held by Summoner Skirmish Bologna",
+      }),
+    ).toBeInTheDocument();
   });
 });

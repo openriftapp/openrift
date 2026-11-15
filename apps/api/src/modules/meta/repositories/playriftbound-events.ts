@@ -19,12 +19,15 @@ import type {
   MetaAutoPublishRule,
   MetaSyncBucketColumns,
   MetaSyncBucketCounts,
+  MirrorHeldBy,
   MirrorListOrder,
   MirrorSyncOverview,
   MirrorTriage,
   MirrorTriageCounts,
 } from "./meta-sync-buckets.js";
 import {
+  heldBySameStore,
+  heldBySelection,
   catalogOrderBy,
   JOINED_TRIAGE,
   metaSyncBucketCondition,
@@ -64,6 +67,7 @@ export interface PlayriftboundListRow extends PlayriftboundEventRow {
   checkStage: number;
   stagedPlayerCount: number;
   stagedMatchCount: number;
+  heldBy: MirrorHeldBy | null;
 }
 
 export interface PlayriftboundRecheckRow extends PlayriftboundListRow {
@@ -136,11 +140,12 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
         sql<SqlBool>`coalesce(c.player_format <> 'ONE_V_ONE', false)`,
         rule.autoAcceptMinPlayers,
       ),
+    held: heldBySameStore(PLAYRIFTBOUND_PROVIDER, KEY),
   };
 
   const paged = pagedTriage(PLAYRIFTBOUND_PROVIDER, KEY);
 
-  function listSelect() {
+  function listSelect(rule?: MetaAutoPublishRule) {
     return triagedQuery()
       .selectAll("c")
       .select([
@@ -149,6 +154,7 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
         "me.slug as metaEventSlug",
         stagedPlayerCount.as("stagedPlayerCount"),
         stagedMatchCount.as("stagedMatchCount"),
+        heldBySelection(PLAYRIFTBOUND_PROVIDER, KEY, bucketColumns, rule),
         ...joinedColumns,
       ]);
   }
@@ -366,8 +372,9 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
       filters: PlayriftboundListFilters,
       pagination: { limit: number; offset: number },
       order: MirrorListOrder = {},
+      rule?: MetaAutoPublishRule,
     ): Promise<{ rows: PlayriftboundListRow[]; total: number }> {
-      let query = listSelect()
+      let query = listSelect(rule)
         .orderBy(catalogOrderBy(sql`c.registered_count`, order))
         // Stores schedule weekly nights at the same hour, so start times tie
         // often; the key breaks them and keeps paging stable.

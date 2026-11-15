@@ -23,6 +23,7 @@ const DECK_PATH = "/xcx/cardGroup/getActivityCardGroupCardListImage";
 
 function catalogRow(overrides: Partial<PlayloltcgListRow> = {}): PlayloltcgListRow {
   return {
+    heldBy: null,
     activityShopId: ACTIVITY_SHOP_ID,
     shopId: null,
     shopName: "卡之域卡牌",

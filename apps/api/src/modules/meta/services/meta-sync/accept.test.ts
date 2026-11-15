@@ -62,6 +62,19 @@ interface RecheckWrite {
   checkStage: number;
 }
 
+interface HoldWrite {
+  provider: string;
+  keys: string[];
+  held: Record<string, string>;
+}
+
+function holdRecorder(holds: HoldWrite[]) {
+  return (provider: string, keys: readonly string[], held: ReadonlyMap<string, string>) => {
+    holds.push({ provider, keys: [...keys], held: Object.fromEntries(held) });
+    return Promise.resolve();
+  };
+}
+
 function fakeDeps(
   options: {
     live?: { id: string; name: string; eventDate: string; organizer: string | null }[];
@@ -83,6 +96,7 @@ function fakeDeps(
   rechecks: RecheckWrite[];
   reads: string[];
   lifecycles: { metaEventId: string; status: string; sourceCheckedAt: Date | null }[];
+  holds: HoldWrite[];
 } {
   const inserted: Record<string, unknown>[] = [];
   const updates: { id: string; values: Record<string, unknown> }[] = [];
@@ -135,8 +149,10 @@ function fakeDeps(
   };
 
   const lifecycles: { metaEventId: string; status: string; sourceCheckedAt: Date | null }[] = [];
+  const holds: HoldWrite[] = [];
   const meta = {
     eventsAtStoresOutside: () => Promise.resolve(options.live ?? []),
+    reconcileSameStoreHolds: holdRecorder(holds),
     setEventLifecycle: (
       metaEventId: string,
       values: { status: string; sourceCheckedAt: Date | null },
@@ -153,7 +169,7 @@ function fakeDeps(
     log: createLogger("test"),
     now: () => NOW,
   };
-  return { deps, inserted, updates, rechecks, reads, lifecycles };
+  return { deps, inserted, updates, rechecks, reads, lifecycles, holds };
 }
 
 describe("acceptCatalogEvent", () => {
@@ -275,7 +291,7 @@ describe("autoAcceptCatalogEvents", () => {
   });
 
   it("holds an event another source already archived at the same store within a day", async () => {
-    const { deps, rechecks } = fakeDeps({
+    const { deps, rechecks, holds } = fakeDeps({
       settings: { autoAcceptMinPlayers: 64, autoAcceptNotable: false, autoAcceptOfficial: false },
       unaccepted: [catalogRow({ externalId: "twin", playerCount: 200 })],
       live: [
@@ -292,6 +308,18 @@ describe("autoAcceptCatalogEvents", () => {
 
     expect(summary).toMatchObject({ accepted: 0, held: 1 });
     expect(rechecks).toHaveLength(0);
+    expect(holds).toEqual([{ provider: "uvsgames", keys: ["twin"], held: { twin: "riot-live" } }]);
+  });
+
+  it("releases the hold on every judged key the guard no longer holds", async () => {
+    const { deps, holds } = fakeDeps({
+      settings: { autoAcceptMinPlayers: 64, autoAcceptNotable: false, autoAcceptOfficial: false },
+      unaccepted: [catalogRow({ externalId: "small", playerCount: 8 })],
+    });
+
+    await autoAcceptCatalogEvents(deps, ["small", "gone"]);
+
+    expect(holds).toEqual([{ provider: "uvsgames", keys: ["small", "gone"], held: {} }]);
   });
 
   it("matches the twin on the store name promotion files, not the store directory's name", async () => {

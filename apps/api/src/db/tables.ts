@@ -101,6 +101,7 @@ import type {
 import type {
   IgnoredMetaSourceEventsTable,
   IgnoredMetaSourcePlayersTable,
+  MetaHeldSourceEventsTable,
   PlayloltcgDecklistCardsTable,
   PlayloltcgDecklistsTable,
   PlayloltcgEventChecksTable,
@@ -291,6 +292,7 @@ export interface Database {
   metaEventOverlayMatches: MetaEventOverlayMatchesTable;
   ignoredMetaSourceEvents: IgnoredMetaSourceEventsTable;
   ignoredMetaSourcePlayers: IgnoredMetaSourcePlayersTable;
+  metaHeldSourceEvents: MetaHeldSourceEventsTable;
   metaEventSources: MetaEventSourcesTable;
   metaPlayerLinks: MetaPlayerLinksTable;
   metaCredits: MetaCreditsTable;

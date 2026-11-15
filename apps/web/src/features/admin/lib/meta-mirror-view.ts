@@ -22,6 +22,7 @@ export interface MirrorCounts {
   passingNoResults: number;
   skippedUpcoming: number;
   skippedPast: number;
+  held: number;
   notStarted: number;
   collecting: number;
   final: number;
@@ -39,6 +40,7 @@ export function mirrorCountsFromStatus(status: MetaSyncStatus): MirrorCounts {
     passingNoResults: catalog.passingNoResults,
     skippedUpcoming: catalog.skippedUpcoming,
     skippedPast: catalog.skippedPast,
+    held: catalog.held,
     notStarted: catalog.notStarted,
     collecting: catalog.collecting,
     final: catalog.final,
@@ -75,6 +77,7 @@ const BUCKET_TRIAGE: Record<MetaSyncBucketFilter, MetaCatalogTriage> = {
   passingNoResults: "new",
   skippedUpcoming: "new",
   skippedPast: "new",
+  held: "new",
   notStarted: "accepted",
   collecting: "accepted",
   final: "accepted",
@@ -86,6 +89,7 @@ const BUCKET_LABELS: Record<MetaSyncBucketFilter, string> = {
   passingNoResults: "Pass the rule, no results",
   skippedUpcoming: "Skipped, not started",
   skippedPast: "Skipped, past",
+  held: "Held by a live event",
   notStarted: "Not started",
   collecting: "Collecting results",
   final: "Final",
@@ -97,29 +101,47 @@ const BUCKET_DESCRIPTIONS: Record<MetaSyncBucketFilter, string> = {
   passingNoResults: "Past and undecided. They pass the rule, but the source recorded no results.",
   skippedUpcoming: "Undecided and not started. Judged again on every refresh until they start.",
   skippedPast: "Past and undecided. They do not pass the auto-publish rule.",
+  held: "Undecided. A live event from another source covers the same store and day, so auto-publish holds them back.",
   notStarted: "Published. Results are first collected when each one starts.",
   collecting: "Published and started. Checked again while standings can still change.",
   final: "Published. Standings collected, no more checks.",
   noResults: "Published and started. The source recorded no results.",
 };
 
+interface MirrorSourceTraits {
+  collects: boolean;
+  holds: boolean;
+}
+
+export const MIRROR_SOURCE_TRAITS: Record<MetaSource, MirrorSourceTraits> = {
+  uvsgames: { collects: true, holds: true },
+  playloltcg: { collects: true, holds: true },
+  playriftbound: { collects: true, holds: true },
+  topdeck: { collects: false, holds: false },
+};
+
 function bucketItem(
   bucket: MetaSyncBucketFilter,
   counts: MirrorCounts,
-  collects: boolean,
+  traits: MirrorSourceTraits,
 ): MirrorRailItem {
+  const applies =
+    (bucket !== "collecting" || traits.collects) && (bucket !== "held" || traits.holds);
   return {
     id: bucket,
     label: BUCKET_LABELS[bucket],
-    count: bucket === "collecting" && !collects ? null : counts[bucket],
+    count: applies ? counts[bucket] : null,
     view: { triage: BUCKET_TRIAGE[bucket], bucket },
     description: BUCKET_DESCRIPTIONS[bucket],
   };
 }
 
-/** `collects` is false for a source whose refresh carries the results, which never collects. */
-export function mirrorRail(counts: MirrorCounts, collects: boolean): MirrorRailGroup[] {
-  const item = (bucket: MetaSyncBucketFilter) => bucketItem(bucket, counts, collects);
+/**
+ * `collects` is false for a source whose refresh carries the results, `holds`
+ * is false for a source the same-store guard never judges.
+ */
+export function mirrorRail(counts: MirrorCounts, traits: MirrorSourceTraits): MirrorRailGroup[] {
+  const item = (bucket: MetaSyncBucketFilter) => bucketItem(bucket, counts, traits);
   return [
     {
       item: {
@@ -134,6 +156,7 @@ export function mirrorRail(counts: MirrorCounts, collects: boolean): MirrorRailG
         item("passingNoResults"),
         item("skippedUpcoming"),
         item("skippedPast"),
+        item("held"),
       ],
     },
     {

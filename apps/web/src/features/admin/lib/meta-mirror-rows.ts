@@ -41,6 +41,7 @@ export interface MetaMirrorRow {
   badges: MirrorBadge[];
   triage: MetaCatalogTriage;
   metaEventId: string | null;
+  heldBy: MetaCatalogRow["heldBy"];
   results: MetaResultsState | null;
   resultsDetail: string[];
   nextCheckAt: string | null;
@@ -140,6 +141,7 @@ export function uvsgamesMirrorRow(
     ],
     triage: row.triage,
     metaEventId: row.metaEventId,
+    heldBy: row.heldBy,
     results: published
       ? mirrorResultsState({
           started: started(row.startAt, false, now),
@@ -175,6 +177,7 @@ export function playloltcgMirrorRow(row: PlayloltcgCatalogRow, now: Date): MetaM
     ],
     triage: row.triage,
     metaEventId: row.metaEventId,
+    heldBy: row.heldBy,
     results: published
       ? mirrorResultsState({
           started: started(row.startAt, true, now),
@@ -221,6 +224,7 @@ export function topdeckMirrorRow(row: TopdeckCatalogRow, now: Date): MetaMirrorR
     ],
     triage: row.triage,
     metaEventId: row.metaEventId,
+    heldBy: row.heldBy,
     results: published
       ? mirrorResultsState({
           started: started(row.startAt, false, now),
@@ -267,6 +271,7 @@ export function playriftboundMirrorRow(row: PlayriftboundCatalogRow, now: Date):
     ],
     triage: row.triage,
     metaEventId: row.metaEventId,
+    heldBy: row.heldBy,
     results: published
       ? mirrorResultsState({
           started: started(row.startAt, false, now),

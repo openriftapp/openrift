@@ -19,6 +19,7 @@ const NOW = new Date("2026-08-30T12:00:00Z");
 
 function catalogRow(overrides: Partial<PlayloltcgListRow> = {}): PlayloltcgListRow {
   return {
+    heldBy: null,
     activityShopId: 109_991,
     shopId: null,
     shopName: "卡之域卡牌",
@@ -62,6 +63,19 @@ interface RecheckWrite {
   checkStage: number;
 }
 
+interface HoldWrite {
+  provider: string;
+  keys: string[];
+  held: Record<string, string>;
+}
+
+function holdRecorder(holds: HoldWrite[]) {
+  return (provider: string, keys: readonly string[], held: ReadonlyMap<string, string>) => {
+    holds.push({ provider, keys: [...keys], held: Object.fromEntries(held) });
+    return Promise.resolve();
+  };
+}
+
 function fakeDeps(options: {
   unaccepted: PlayloltcgListRow[];
   autoAcceptMinPlayers: number | null;
@@ -70,9 +84,11 @@ function fakeDeps(options: {
   deps: PlayloltcgSyncDeps;
   inserted: Record<string, unknown>[];
   rechecks: RecheckWrite[];
+  holds: HoldWrite[];
 } {
   const inserted: Record<string, unknown>[] = [];
   const rechecks: RecheckWrite[] = [];
+  const holds: HoldWrite[] = [];
 
   const playloltcgEvents = {
     unacceptedByKeys: (keys: readonly number[]) =>
@@ -96,7 +112,10 @@ function fakeDeps(options: {
     repos: {
       playloltcgEvents,
       metaCandidates,
-      meta: { eventsAtStoresOutside: () => Promise.resolve(options.live ?? []) },
+      meta: {
+        eventsAtStoresOutside: () => Promise.resolve(options.live ?? []),
+        reconcileSameStoreHolds: holdRecorder(holds),
+      },
       uvsgamesEvents: {
         settings: () => Promise.resolve({ autoAcceptMinPlayers: options.autoAcceptMinPlayers }),
       },
@@ -106,7 +125,7 @@ function fakeDeps(options: {
     log: createLogger("test"),
     now: () => NOW,
   };
-  return { deps, inserted, rechecks };
+  return { deps, inserted, rechecks, holds };
 }
 
 describe("autoAcceptPlayloltcgEvents", () => {
@@ -161,7 +180,7 @@ describe("autoAcceptPlayloltcgEvents", () => {
   });
 
   it("holds an event another source already archived at the same store within a day", async () => {
-    const { deps, rechecks } = fakeDeps({
+    const { deps, rechecks, holds } = fakeDeps({
       unaccepted: [catalogRow()],
       autoAcceptMinPlayers: 16,
       live: [
@@ -173,10 +192,13 @@ describe("autoAcceptPlayloltcgEvents", () => {
 
     expect(summary).toMatchObject({ accepted: 0, held: 1 });
     expect(rechecks).toEqual([]);
+    expect(holds).toEqual([
+      { provider: "playloltcg", keys: ["109991"], held: { "109991": "live-9" } },
+    ]);
   });
 
   it("accepts when the store matches but the event name does not", async () => {
-    const { deps } = fakeDeps({
+    const { deps, holds } = fakeDeps({
       unaccepted: [catalogRow()],
       autoAcceptMinPlayers: 16,
       live: [{ id: "live-9", name: "周五轮抽", eventDate: "2026-08-30", organizer: "卡之域卡牌" }],
@@ -185,6 +207,7 @@ describe("autoAcceptPlayloltcgEvents", () => {
     const summary = await autoAcceptPlayloltcgEvents(deps, [109_991]);
 
     expect(summary).toMatchObject({ accepted: 1, held: 0 });
+    expect(holds).toEqual([{ provider: "playloltcg", keys: ["109991"], held: {} }]);
   });
 });
 

@@ -20,6 +20,7 @@ import type {
 } from "./meta-sync-buckets.js";
 import {
   catalogOrderBy,
+  heldBySameStore,
   JOINED_TRIAGE,
   metaSyncBucketCondition,
   metaSyncBucketCountSelections,
@@ -147,6 +148,7 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
         sql<SqlBool>`c.is_team_event`,
         rule.autoAcceptMinPlayers,
       ),
+    held: heldBySameStore(TOPDECK_PROVIDER, KEY),
   };
 
   const paged = pagedTriage(TOPDECK_PROVIDER, KEY);

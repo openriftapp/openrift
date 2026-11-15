@@ -7,6 +7,7 @@ import type { Database } from "../../../db/tables.js";
 import { createRecordingDb } from "../../../test/recording-db.js";
 import type { MetaAutoPublishRule, MetaSyncBucketColumns } from "./meta-sync-buckets.js";
 import {
+  heldBySelection,
   metaSyncBucketCondition,
   metaSyncBucketCountSelections,
   mirrorOverviewSelections,
@@ -28,7 +29,14 @@ const columns: MetaSyncBucketColumns = {
   startAt: sql`c.start_at`,
   hasResults: sql`c.done`,
   nextCheckAt: sql`ck.next_check_at`,
-  passes: () => sql`c.passes`,
+  passes: (applied) => (applied.autoAcceptMinPlayers === null ? sql`false` : sql`c.passes`),
+  held: sql`c.held`,
+};
+
+const RULE_OFF: MetaAutoPublishRule = {
+  autoAcceptMinPlayers: null,
+  autoAcceptOfficial: false,
+  autoAcceptNotable: false,
 };
 
 const JOINED_UNDECIDED = "i.provider is null and src.meta_event_id is null";
@@ -75,6 +83,51 @@ describe("metaSyncBucketCondition", () => {
     expect(text).not.toContain(JOINED_PUBLISHED);
   });
 
+  it.each(["needsDecision", "passingNoResults"] as const)(
+    "keeps held rows that pass the rule out of %s",
+    (bucket) => {
+      expect(compile(db, metaSyncBucketCondition(bucket, columns, rule))).toContain(
+        `(${JOINED_UNDECIDED}) and not (c.held) and (c.passes)`,
+      );
+    },
+  );
+
+  it("keeps an upcoming row out of skipped only while its hold and the rule both apply", () => {
+    expect(compile(db, metaSyncBucketCondition("skippedUpcoming", columns, rule))).toContain(
+      "not ((c.passes) and (c.held))",
+    );
+  });
+
+  it("puts undecided held rows that pass the rule in the held bucket", () => {
+    expect(compile(db, metaSyncBucketCondition("held", columns, rule))).toBe(
+      compile(db, sql`((${sql.raw(JOINED_UNDECIDED)}) and (c.held) and (c.passes))`),
+    );
+  });
+
+  it("treats a hold recorded under a rule that no longer applies as skipped", () => {
+    expect(compile(db, metaSyncBucketCondition("held", columns, RULE_OFF))).toContain(
+      "(c.held) and (false)",
+    );
+    expect(compile(db, metaSyncBucketCondition("skippedPast", columns, RULE_OFF))).not.toContain(
+      "c.held",
+    );
+    expect(compile(db, metaSyncBucketCondition("skippedUpcoming", columns, RULE_OFF))).toContain(
+      "not ((false) and (c.held))",
+    );
+  });
+
+  it("names a holder only for a row that passes the rule it is read under", () => {
+    const select = (applied?: MetaAutoPublishRule) =>
+      db
+        .selectFrom("uvsgamesEvents as c")
+        .select(heldBySelection("uvsgames", sql`c.external_id`, columns, applied))
+        .compile().sql;
+
+    expect(select(rule)).toContain("and (c.passes)");
+    expect(select(RULE_OFF)).toContain("and (false)");
+    expect(select()).toContain("and (false)");
+  });
+
   it("keeps the joined triage in the aggregate counts", () => {
     const text = db
       .selectFrom("uvsgamesEvents as c")
@@ -119,6 +172,19 @@ describe.each(sources)("%s bucket filters", (_name, makeRepo) => {
       expect(where).not.toContain(JOINED_UNDECIDED);
       expect(where).not.toContain(JOINED_PUBLISHED);
     }
+  });
+
+  it("filters the hold list through exists lookups, never a hashed list", async () => {
+    const recording = createRecordingDb([[], [{ total: "0" }]]);
+
+    await makeRepo(recording.db).list(
+      { bucket: { name: "needsDecision", rule } },
+      { limit: 50, offset: 0 },
+    );
+
+    const where = bucketWhere(recording.queries[0] ?? "");
+    expect(where).toMatch(/not exists \(\s*select 1 from meta_held_source_events h/u);
+    expect(where).not.toMatch(/in \(\s*select h\.external_id/u);
   });
 
   it("selects the passing-without-results keys through anti-joins", async () => {

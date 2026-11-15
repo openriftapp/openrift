@@ -21,6 +21,7 @@ const NOW = new Date("2026-10-18T12:00:00Z");
 
 function row(overrides: Partial<PlayriftboundListRow> = {}): PlayriftboundListRow {
   return {
+    heldBy: null,
     tournamentId: "117000000000000001",
     organizerId: "org-1",
     name: "Summoner Skirmish",
@@ -61,19 +62,40 @@ function row(overrides: Partial<PlayriftboundListRow> = {}): PlayriftboundListRo
   };
 }
 
+interface HoldWrite {
+  provider: string;
+  keys: string[];
+  held: Record<string, string>;
+}
+
+function holdRecorder(holds: HoldWrite[]) {
+  return (provider: string, keys: readonly string[], held: ReadonlyMap<string, string>) => {
+    holds.push({ provider, keys: [...keys], held: Object.fromEntries(held) });
+    return Promise.resolve();
+  };
+}
+
 function fakeDeps(
   options: {
     minPlayers?: number | null;
     rows?: PlayriftboundListRow[];
     live?: { id: string; name: string; eventDate: string; organizer: string | null }[];
+    holdWriteFails?: boolean;
   } = {},
 ) {
   const rechecks: unknown[] = [];
+  const holds: HoldWrite[] = [];
   const newKeys = vi.fn(() => Promise.resolve((options.rows ?? []).map((r) => r.tournamentId)));
   const deps: PlayriftboundSyncDeps = {
     repos: {
       meta: {
         eventsAtStoresOutside: () => Promise.resolve(options.live ?? []),
+        reconcileSameStoreHolds: options.holdWriteFails
+          ? vi
+              .fn()
+              .mockRejectedValueOnce(new Error("hold points at a deleted event"))
+              .mockResolvedValue(undefined)
+          : holdRecorder(holds),
       },
       uvsgamesEvents: {
         settings: () =>
@@ -100,7 +122,7 @@ function fakeDeps(
     log: createLogger("test"),
     now: () => NOW,
   };
-  return { deps, rechecks, newKeys };
+  return { deps, rechecks, newKeys, holds };
 }
 
 describe("acceptPlayriftboundEvent", () => {
@@ -170,7 +192,7 @@ describe("same-store guard", () => {
   });
 
   it("holds an event another source already archived at the same store within a day", async () => {
-    const { deps } = fakeDeps({
+    const { deps, holds } = fakeDeps({
       rows: [row({ tournamentId: "1", name: "Summoner Skirmish" })],
       live: [
         {
@@ -184,6 +206,26 @@ describe("same-store guard", () => {
     const summary = await autoAcceptPlayriftboundEvents(deps, ["1"]);
     expect(summary).toMatchObject({ accepted: 0, held: 1 });
     expect(promoteNewEvent).not.toHaveBeenCalled();
+    expect(holds).toEqual([{ provider: "playriftbound", keys: ["1"], held: { "1": "uvs-live" } }]);
+  });
+
+  it("releases the holds of judged keys it no longer holds", async () => {
+    const { deps, holds } = fakeDeps({ rows: [row({ tournamentId: "1" })] });
+    await autoAcceptPlayriftboundEvents(deps, ["1", "2"]);
+    expect(holds).toEqual([{ provider: "playriftbound", keys: ["1", "2"], held: {} }]);
+  });
+
+  it("records a failed hold write and carries on with the next page", async () => {
+    const fillers = Array.from({ length: 999 }, (_, index) => `filler-${index}`);
+    const { deps } = fakeDeps({
+      rows: [row({ tournamentId: "1" }), row({ tournamentId: "2" })],
+      holdWriteFails: true,
+    });
+
+    const summary = await autoAcceptPlayriftboundEvents(deps, ["1", ...fillers, "2"]);
+
+    expect(summary.accepted).toBe(2);
+    expect(summary.errors).toEqual(["Same-store holds: hold points at a deleted event"]);
   });
 });
 

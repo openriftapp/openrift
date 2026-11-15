@@ -20,6 +20,7 @@ const VOCABULARY = {
 
 function row(overrides: Partial<UvsgamesCoverageRow> = {}): UvsgamesCoverageRow {
   return {
+    heldBy: null,
     externalId: "4821",
     name: "Summoner Skirmish Regional",
     startAt: new Date("2026-08-15T18:00:00Z"),
@@ -300,6 +301,7 @@ describe("toMetaSyncCatalog", () => {
     passingNoResults: 3,
     skippedUpcoming: 9,
     skippedPast: 10,
+    held: 2,
   };
 
   it("serializes the timestamps and keeps the counts", () => {

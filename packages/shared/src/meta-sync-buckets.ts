@@ -3,6 +3,7 @@ export const META_SYNC_BUCKET_FILTERS = [
   "passingNoResults",
   "skippedUpcoming",
   "skippedPast",
+  "held",
   "notStarted",
   "collecting",
   "final",

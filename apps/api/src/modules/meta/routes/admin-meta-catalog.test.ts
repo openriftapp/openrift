@@ -731,6 +731,7 @@ describe("GET /catalogue/sync", () => {
     passingNoResults: 0,
     skippedUpcoming: 0,
     skippedPast: 1,
+    held: 0,
   };
   const COUNTS = { new: 1, accepted: 2, dismissed: 3 };
   const ARCHIVE = {
@@ -857,6 +858,7 @@ describe("playloltcg catalogue", () => {
       stagedPlayerCount: 0,
       stagedLegendCount: 0,
       stagedDeckCount: 0,
+      heldBy: null,
       ...overrides,
     };
   }
@@ -881,7 +883,25 @@ describe("playloltcg catalogue", () => {
       expect.objectContaining({ search: undefined, triage: "new" }),
       { limit: 10, offset: 10 },
       { sort: undefined, direction: undefined },
+      { autoAcceptMinPlayers: 16 },
     );
+  });
+
+  it("names the live event a held row waits behind", async () => {
+    const heldBy = {
+      metaEventId: "live-7",
+      metaEventSlug: "nexus-night-shanghai",
+      metaEventName: "Nexus Night Shanghai",
+    };
+    mockPlayloltcgEvents.list.mockResolvedValue({ rows: [playloltcgRow({ heldBy })], total: 1 });
+    mockPlayloltcgEvents.bucketCounts.mockResolvedValue(null);
+    mockUvsgamesEvents.settings.mockResolvedValue({ autoAcceptMinPlayers: 16 });
+
+    const res = await app.request(`${BASE}/playloltcg/events?bucket=held`);
+
+    expect(res.status).toBe(200);
+    const body = await readJson(res);
+    expect(body.rows[0].heldBy).toEqual(heldBy);
   });
 
   it("accepts a mirrored event and files the audit row under the playloltcg key", async () => {
@@ -980,6 +1000,7 @@ describe("playloltcg catalogue", () => {
       },
       expect.anything(),
       { sort: "playerCount", direction: "asc" },
+      RULE_16,
     );
   });
 

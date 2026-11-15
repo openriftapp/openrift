@@ -27,6 +27,7 @@ export function toPlayriftboundCatalogRow(row: PlayriftboundListRow): Playriftbo
     roundsFinalized: row.roundsFinalized,
     stagedPlayerCount: row.stagedPlayerCount,
     stagedMatchCount: row.stagedMatchCount,
+    heldBy: row.heldBy,
     sourceUrl: playriftboundEventUrl(row.tournamentId),
   };
 }

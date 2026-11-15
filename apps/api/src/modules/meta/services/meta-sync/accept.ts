@@ -14,7 +14,7 @@ import type { UvsgamesListRow } from "../../repositories/uvsgames-events.js";
 import { promoteNewEvent } from "../meta-promote.js";
 import type { MetaSyncDeps } from "./deps.js";
 import { clock } from "./deps.js";
-import { sameStoreLiveEvent } from "./same-store-guard.js";
+import { recordSameStoreHolds, sameStoreLiveEvent } from "./same-store-guard.js";
 
 export interface AcceptedCatalogEvent {
   metaEventId: string;
@@ -105,6 +105,7 @@ async function sweep(
   for (const page of chunk(externalIds, SWEEP_PAGE)) {
     const rows = await deps.repos.uvsgamesEvents.unacceptedByKeys(page);
     summary.considered += rows.length;
+    const holds = new Map<string, string>();
     for (const row of rows) {
       if (row.displayStatus === UVSGAMES_STATUS_CANCELED) {
         continue;
@@ -127,6 +128,7 @@ async function sweep(
       });
       if (twin !== undefined) {
         summary.held++;
+        holds.set(row.externalId, twin.id);
         continue;
       }
       const outcome = await tryAutoAccept(deps, row, rule, vocabulary.formatMappings);
@@ -137,6 +139,7 @@ async function sweep(
       summary.failed++;
       recordCapped(summary.errors, [outcome]);
     }
+    await recordSameStoreHolds(deps.repos, UVSGAMES_PROVIDER, page, holds, summary.errors);
   }
   return summary;
 }

@@ -64,3 +64,45 @@ describe("metaEventsRepo.listCounts", () => {
     );
   });
 });
+
+describe("metaEventsRepo.updateEvent", () => {
+  it("releases the event's same-store holds in the transaction that changes a compared fact", async () => {
+    const recording = createRecordingDb([
+      [{ name: "Summoner Skirmish", event_date: "2026-10-17", organizer: "Piltover Hobbies" }],
+      { numAffectedRows: 1n },
+      { numAffectedRows: 0n },
+    ]);
+
+    const updated = await metaEventsRepo(recording.db).updateEvent("live-1", {
+      name: "Summoner Skirmish Finals",
+    });
+
+    expect(updated).toBe(true);
+    expect(recording.events).toEqual(["begin", "commit"]);
+    expect(recording.queries[0]).toContain("for update");
+    expect(recording.queries[2]).toMatch(/^delete from "meta_held_source_events"/u);
+    expect(recording.queries[2]).toContain("is distinct from");
+    expect(recording.parameters[2]).toEqual(
+      expect.arrayContaining(["live-1", "Summoner Skirmish", "2026-10-17", "Piltover Hobbies"]),
+    );
+  });
+
+  it("leaves the holds alone when no compared fact is written", async () => {
+    const recording = createRecordingDb([{ numAffectedRows: 1n }]);
+
+    await metaEventsRepo(recording.db).updateEvent("live-1", { slug: "summoner-skirmish" });
+
+    expect(recording.queries).toHaveLength(1);
+    expect(recording.queries[0]).toMatch(/^update "meta_events"/u);
+    expect(recording.events).toEqual([]);
+  });
+
+  it("reports a missing event without writing", async () => {
+    const recording = createRecordingDb([[]]);
+
+    const updated = await metaEventsRepo(recording.db).updateEvent("gone", { organizer: null });
+
+    expect(updated).toBe(false);
+    expect(recording.queries).toHaveLength(1);
+  });
+});

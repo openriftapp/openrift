@@ -468,6 +468,7 @@ describe("backfillPlayriftbound", () => {
 
 function dueRow(overrides: Partial<PlayriftboundRecheckRow> = {}): PlayriftboundRecheckRow {
   return {
+    heldBy: null,
     tournamentId: "117000000000000001",
     organizerId: "org-1",
     name: "Summoner Skirmish",

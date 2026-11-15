@@ -9,6 +9,7 @@ export interface MetaSyncBucketColumns {
   hasResults: RawBuilder<SqlBool>;
   nextCheckAt: RawBuilder<Date | null>;
   passes: (rule: MetaAutoPublishRule) => RawBuilder<SqlBool>;
+  held: RawBuilder<SqlBool>;
 }
 
 export interface MetaAutoPublishRule {
@@ -28,6 +29,7 @@ interface MetaSyncBuckets {
   passingNoResults: number;
   skippedUpcoming: number;
   skippedPast: number;
+  held: number;
 }
 
 export type MetaSyncBucketCounts = Omit<MetaSyncBuckets, "firstStartAt" | "nextCheckAt"> & {
@@ -75,6 +77,8 @@ interface MirrorTriagePredicates {
   undecided: RawBuilder<SqlBool>;
   published: RawBuilder<SqlBool>;
   rejected: RawBuilder<SqlBool>;
+  held?: RawBuilder<SqlBool>;
+  notHeld?: RawBuilder<SqlBool>;
 }
 
 const undecided = sql<SqlBool>`i.provider is null and src.meta_event_id is null`;
@@ -84,6 +88,35 @@ const rejected = sql<SqlBool>`i.provider is not null`;
 export const JOINED_TRIAGE: MirrorTriagePredicates = { undecided, published, rejected };
 
 export const NEVER = sql<SqlBool>`false`;
+
+// Uncorrelated, so the planner hashes the hold list once instead of probing it per catalogue row.
+export function heldBySameStore(provider: string, key: RawBuilder<string>): RawBuilder<SqlBool> {
+  return sql<SqlBool>`${key} in (
+    select h.external_id from meta_held_source_events h where h.provider = ${provider}
+  )`;
+}
+
+export interface MirrorHeldBy {
+  metaEventId: string;
+  metaEventSlug: string;
+  metaEventName: string;
+}
+
+/** A hold counts only while the row still passes `rule`; without one no row reads as held. */
+export function heldBySelection(
+  provider: string,
+  key: RawBuilder<string>,
+  columns: MetaSyncBucketColumns,
+  rule?: MetaAutoPublishRule,
+) {
+  const passes = rule === undefined ? NEVER : columns.passes(rule);
+  return sql<MirrorHeldBy | null>`(
+    select json_build_object('metaEventId', hme.id, 'metaEventSlug', hme.slug, 'metaEventName', hme.name)
+      from meta_held_source_events h
+      join meta_events hme on hme.id = h.meta_event_id
+     where h.provider = ${provider} and h.external_id = ${key} and ${undecided} and (${passes})
+  )`.as("heldBy");
+}
 
 export const TRIAGE_STATE = sql<MirrorTriage>`case
     when i.provider is not null then 'dismissed'
@@ -103,10 +136,16 @@ export function pagedTriage(provider: string, key: RawBuilder<string>): MirrorTr
      where y.provider = ${provider} and y.external_id = ${key}
        and y.meta_event_id is not null
   )`;
+  const hold = sql<SqlBool>`exists (
+    select 1 from meta_held_source_events h
+     where h.provider = ${provider} and h.external_id = ${key}
+  )`;
   return {
     undecided: sql<SqlBool>`${notDismissed} and ${notLinked}`,
     published: sql<SqlBool>`${notDismissed} and src.meta_event_id is not null`,
     rejected,
+    held: hold,
+    notHeld: sql<SqlBool>`not ${hold}`,
   };
 }
 
@@ -187,6 +226,8 @@ export function sizeRulePasses(
 interface MetaSyncBucketTriage {
   undecided: RawBuilder<SqlBool>;
   published: RawBuilder<SqlBool>;
+  held?: RawBuilder<SqlBool>;
+  notHeld?: RawBuilder<SqlBool>;
 }
 
 /**
@@ -200,21 +241,27 @@ export function metaSyncBucketCondition(
   triage: MetaSyncBucketTriage = JOINED_TRIAGE,
 ): RawBuilder<SqlBool> {
   const { started, hasResults, nextCheckAt } = columns;
-  const { undecided: isUndecided, published: isPublished } = triage;
+  const { undecided: unjudged, published: isPublished } = triage;
+  const held = triage.held ?? columns.held;
+  const notHeld = triage.notHeld ?? sql<SqlBool>`not (${columns.held})`;
   const passes = columns.passes(rule);
+  const passingUndecided = sql<SqlBool>`(${unjudged}) and ${notHeld} and (${passes})`;
   const scheduled = sql<SqlBool>`${nextCheckAt} is not null`;
   switch (bucket) {
     case "needsDecision": {
-      return sql<SqlBool>`((${isUndecided}) and (${started}) and (${passes}) and (${hasResults}))`;
+      return sql<SqlBool>`((${passingUndecided}) and (${started}) and (${hasResults}))`;
     }
     case "passingNoResults": {
-      return sql<SqlBool>`((${isUndecided}) and (${started}) and (${passes}) and not (${hasResults}))`;
+      return sql<SqlBool>`((${passingUndecided}) and (${started}) and not (${hasResults}))`;
     }
     case "skippedUpcoming": {
-      return sql<SqlBool>`((${isUndecided}) and not (${started}))`;
+      return sql<SqlBool>`((${unjudged}) and not (${started}) and not ((${passes}) and (${columns.held})))`;
     }
     case "skippedPast": {
-      return sql<SqlBool>`((${isUndecided}) and (${started}) and not (${passes}))`;
+      return sql<SqlBool>`((${unjudged}) and (${started}) and not (${passes}))`;
+    }
+    case "held": {
+      return sql<SqlBool>`((${unjudged}) and (${held}) and (${passes}))`;
     }
     case "notStarted": {
       return sql<SqlBool>`((${isPublished}) and not (${started}))`;
@@ -250,6 +297,7 @@ export function metaSyncBucketCountSelections(
     bucket("passingNoResults"),
     bucket("skippedUpcoming"),
     bucket("skippedPast"),
+    bucket("held"),
     countWhere(undecided, "undecided"),
     countWhere(published, "published"),
     countWhere(rejected, "rejected"),
@@ -283,6 +331,7 @@ function toMetaSyncBucketCounts(row: CountRow): MetaSyncBucketCounts {
     passingNoResults: Number(row.passingNoResults),
     skippedUpcoming: Number(row.skippedUpcoming),
     skippedPast: Number(row.skippedPast),
+    held: Number(row.held),
     undecided: Number(row.undecided),
     published: Number(row.published),
     rejected: Number(row.rejected),
@@ -316,6 +365,7 @@ function toMetaSyncBuckets(
     passingNoResults: counts.passingNoResults,
     skippedUpcoming: counts.skippedUpcoming,
     skippedPast: counts.skippedPast,
+    held: counts.held,
   };
 }
 

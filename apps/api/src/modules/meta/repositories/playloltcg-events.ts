@@ -18,12 +18,15 @@ import type {
   MetaAutoPublishRule,
   MetaSyncBucketColumns,
   MetaSyncBucketCounts,
+  MirrorHeldBy,
   MirrorListOrder,
   MirrorSyncOverview,
   MirrorTriage,
   MirrorTriageCounts,
 } from "./meta-sync-buckets.js";
 import {
+  heldBySameStore,
+  heldBySelection,
   catalogOrderBy,
   JOINED_TRIAGE,
   metaSyncBucketCondition,
@@ -69,6 +72,7 @@ export interface PlayloltcgListRow extends PlayloltcgEventRow {
   stagedPlayerCount: number;
   stagedLegendCount: number;
   stagedDeckCount: number;
+  heldBy: MirrorHeldBy | null;
 }
 
 export interface PlayloltcgRecheckRow extends PlayloltcgListRow {
@@ -145,11 +149,12 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
         sql<SqlBool>`false`,
         rule.autoAcceptMinPlayers,
       ),
+    held: heldBySameStore(PLAYLOLTCG_PROVIDER, KEY),
   };
 
   const paged = pagedTriage(PLAYLOLTCG_PROVIDER, KEY);
 
-  function listSelect() {
+  function listSelect(rule?: MetaAutoPublishRule) {
     return triagedQuery()
       .selectAll("c")
       .select([
@@ -158,6 +163,7 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
         fetchedAt.as("fetchedAt"),
         "me.slug as metaEventSlug",
         stagedPlayerCount.as("stagedPlayerCount"),
+        heldBySelection(PLAYLOLTCG_PROVIDER, KEY, bucketColumns, rule),
         stagedLegendCount.as("stagedLegendCount"),
         stagedDeckCount.as("stagedDeckCount"),
         ...joinedColumns,
@@ -321,8 +327,9 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
       filters: PlayloltcgListFilters,
       pagination: { limit: number; offset: number },
       order: MirrorListOrder = {},
+      rule?: MetaAutoPublishRule,
     ): Promise<{ rows: PlayloltcgListRow[]; total: number }> {
-      let query = listSelect()
+      let query = listSelect(rule)
         .orderBy(catalogOrderBy(sql`c.player_count`, order))
         // Ties on the sort column are common (a locals night files every store
         // on the same day), so the key breaks them and keeps paging stable.

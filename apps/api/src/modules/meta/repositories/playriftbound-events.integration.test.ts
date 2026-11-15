@@ -36,6 +36,7 @@ const KEYS = {
   team: "990000000000000017",
   skippedUpcoming: "990000000000000018",
   rejected: "990000000000000019",
+  held: "990000000000000020",
 } as const;
 const ALL_KEYS = Object.values(KEYS);
 const ORGANIZER_ID = "pri-organizer-1";
@@ -93,6 +94,11 @@ afterAll(async () => {
   }
   await ctx.db.deleteFrom("playriftboundEvents").where("tournamentId", "in", ALL_KEYS).execute();
   await ctx.db.deleteFrom("playriftboundOrganizers").where("id", "=", ORGANIZER_ID).execute();
+  await ctx.db
+    .deleteFrom("metaHeldSourceEvents")
+    .where("provider", "=", PLAYRIFTBOUND_PROVIDER)
+    .where("externalId", "in", ALL_KEYS)
+    .execute();
   await ctx.db.deleteFrom("metaEvents").where("id", "in", createdEventIds).execute();
   await ctx.db
     .deleteFrom("ignoredMetaSourceEvents")
@@ -365,6 +371,118 @@ describe.skipIf(!ctx)("playriftboundEventsRepo", () => {
     expect(passing).toContain(KEYS.passingNoResults);
     expect(passing).not.toContain(KEYS.needsDecision);
     expect(passing).not.toContain(KEYS.team);
+  });
+
+  it("moves a held row into the held bucket only while it passes the rule and the hold stands", async () => {
+    await repo.upsertBatch([row({ tournamentId: KEYS.held, registeredCount: 20 })], SEEN);
+    await repo.setDetailFacts(
+      KEYS.held,
+      {
+        structure: "SWISS",
+        matchFormat: "BO1",
+        roundCount: 3,
+        roundsPlayed: 3,
+        roundsFinalized: 3,
+        sourceUpdatedAt: SEEN,
+      },
+      SEEN,
+    );
+    const holder = await db
+      .insertInto("metaEvents")
+      .values({
+        slug: `pri-holder-${crypto.randomUUID().slice(0, 8)}`,
+        name: "PRI Holder Skirmish",
+        eventDate: "2026-10-17",
+        format: "constructed",
+      })
+      .returning(["id", "slug"])
+      .executeTakeFirstOrThrow();
+    createdEventIds.push(holder.id);
+    const meta = metaRepo(db);
+    const before = await repo.syncOverview(RULE_16);
+
+    await meta.reconcileSameStoreHolds(
+      PLAYRIFTBOUND_PROVIDER,
+      [KEYS.held],
+      new Map([[KEYS.held, holder.id]]),
+    );
+    const heldOverview = await repo.syncOverview(RULE_16);
+    const heldList = await repo.list(
+      { bucket: { name: "held", rule: RULE_16 }, search: "PRI" },
+      { limit: 500, offset: 0 },
+      {},
+      RULE_16,
+    );
+    const offOverview = await repo.syncOverview(RULE_OFF);
+    const offList = await repo.list(
+      { bucket: { name: "skippedPast", rule: RULE_OFF }, search: "PRI" },
+      { limit: 500, offset: 0 },
+      {},
+      RULE_OFF,
+    );
+
+    expect(heldOverview.held - before.held).toBe(1);
+    expect(heldOverview.needsDecision - before.needsDecision).toBe(-1);
+    expect(heldList.rows.find((r) => r.tournamentId === KEYS.held)?.heldBy).toEqual({
+      metaEventId: holder.id,
+      metaEventSlug: holder.slug,
+      metaEventName: "PRI Holder Skirmish",
+    });
+    expect(offOverview.held).toBe(0);
+    expect(offList.rows.find((r) => r.tournamentId === KEYS.held)?.heldBy).toBeNull();
+
+    await meta.reconcileSameStoreHolds(PLAYRIFTBOUND_PROVIDER, [KEYS.held], new Map());
+    const released = await repo.list(
+      { bucket: { name: "needsDecision", rule: RULE_16 }, search: "PRI" },
+      { limit: 500, offset: 0 },
+      {},
+      RULE_16,
+    );
+
+    const releasedOverview = await repo.syncOverview(RULE_16);
+    expect(releasedOverview.held).toBe(before.held);
+    expect(released.rows.find((r) => r.tournamentId === KEYS.held)?.heldBy).toBeNull();
+  });
+
+  it("releases a hold when its live event's name changes, and keeps it on an unrelated edit", async () => {
+    await repo.upsertBatch([row({ tournamentId: KEYS.held, registeredCount: 20 })], SEEN);
+    const holder = await db
+      .insertInto("metaEvents")
+      .values({
+        slug: `pri-renamed-${crypto.randomUUID().slice(0, 8)}`,
+        name: "PRI Renamed Skirmish",
+        eventDate: "2026-10-17",
+        format: "constructed",
+        organizer: "PRI Store",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    createdEventIds.push(holder.id);
+    const meta = metaRepo(db);
+    const holdsOf = () =>
+      db
+        .selectFrom("metaHeldSourceEvents")
+        .select("externalId")
+        .where("metaEventId", "=", holder.id)
+        .execute();
+    await meta.reconcileSameStoreHolds(
+      PLAYRIFTBOUND_PROVIDER,
+      [KEYS.held],
+      new Map([[KEYS.held, holder.id]]),
+    );
+
+    await meta.updateEvent(holder.id, {
+      name: "PRI Renamed Skirmish",
+      eventDate: "2026-10-17",
+      organizer: "PRI Store",
+      notes: "Top cut moved",
+    });
+    const kept = await holdsOf();
+    await meta.updateEvent(holder.id, { name: "PRI Renamed Skirmish Finals" });
+    const released = await holdsOf();
+
+    expect(kept).toEqual([{ externalId: KEYS.held }]);
+    expect(released).toEqual([]);
   });
 
   it("passes nothing through the rule while auto-publish is off", async () => {

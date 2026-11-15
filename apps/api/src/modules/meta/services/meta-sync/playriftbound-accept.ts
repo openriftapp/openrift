@@ -11,7 +11,7 @@ import type { PlayriftboundListRow } from "../../repositories/playriftbound-even
 import { promoteNewEvent } from "../meta-promote.js";
 import { clock } from "./deps.js";
 import type { PlayriftboundSyncDeps } from "./playriftbound-deps.js";
-import { sameStoreLiveEvent } from "./same-store-guard.js";
+import { recordSameStoreHolds, sameStoreLiveEvent } from "./same-store-guard.js";
 
 export interface PlayriftboundAcceptSummary {
   considered: number;
@@ -59,6 +59,7 @@ async function sweep(
   for (const page of chunk(tournamentIds, SWEEP_PAGE)) {
     const rows = await deps.repos.playriftboundEvents.unacceptedByKeys(page);
     summary.considered += rows.length;
+    const holds = new Map<string, string>();
     for (const row of rows) {
       // The archive has one row per player; a 2v2 field would show as individual results.
       if (
@@ -75,6 +76,7 @@ async function sweep(
       });
       if (twin !== undefined) {
         summary.held++;
+        holds.set(row.tournamentId, twin.id);
         continue;
       }
       try {
@@ -85,6 +87,7 @@ async function sweep(
         recordCapped(summary.errors, [`Auto-accept "${row.name}": ${errorMessage(error)}`]);
       }
     }
+    await recordSameStoreHolds(deps.repos, PLAYRIFTBOUND_PROVIDER, page, holds, summary.errors);
   }
   return summary;
 }

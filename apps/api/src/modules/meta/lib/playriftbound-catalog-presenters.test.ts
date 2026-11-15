@@ -7,6 +7,7 @@ const NOW = new Date("2026-10-18T12:00:00Z");
 
 function row(overrides: Partial<PlayriftboundListRow> = {}): PlayriftboundListRow {
   return {
+    heldBy: null,
     tournamentId: "117000000000000001",
     organizerId: "org-1",
     name: "Nexus Night",
@@ -70,6 +71,7 @@ describe("toPlayriftboundCatalogRow", () => {
       roundsFinalized: 3,
       stagedPlayerCount: 10,
       stagedMatchCount: 15,
+      heldBy: null,
       sourceUrl: "https://playriftbound.com/en-US/events/117000000000000001",
     });
   });

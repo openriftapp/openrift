@@ -15,7 +15,7 @@ import type {
   MetaEventPhasesTable,
   MetaEventsTable,
 } from "../../../db/tables/meta.js";
-import { rowBatches } from "../../../lib/bind-batches.js";
+import { keyBatches, rowBatches } from "../../../lib/bind-batches.js";
 import { containsPattern } from "../../../lib/like-pattern.js";
 import { eventPromoteKey } from "../../../lib/meta-promote-keys.js";
 import { inTransaction, lockKey, offsetPage } from "../../../repositories/query-helpers.js";
@@ -274,6 +274,42 @@ export function metaEventsRepo<R = never>(
         .where("me.organizer", "is not", null)
         .where(sql<SqlBool>`not ${citedBy(params.provider)}`)
         .execute();
+    },
+
+    /** `held` maps a judged key to its live twin; every other key in `keys` is released. */
+    async reconcileSameStoreHolds(
+      provider: string,
+      keys: readonly string[],
+      held: ReadonlyMap<string, string>,
+    ): Promise<void> {
+      const released = keys.filter((key) => !held.has(key));
+      for (const batch of keyBatches(released)) {
+        await db
+          .deleteFrom("metaHeldSourceEvents")
+          .where("provider", "=", provider)
+          .where("externalId", "in", batch)
+          .execute();
+      }
+      const rows = [...held].map(([externalId, metaEventId]) => ({
+        provider,
+        externalId,
+        metaEventId,
+      }));
+      for (const batch of rowBatches(rows)) {
+        await db
+          .insertInto("metaHeldSourceEvents")
+          .values(batch)
+          .onConflict((oc) =>
+            oc
+              .columns(["provider", "externalId"])
+              .doUpdateSet((eb) => ({
+                metaEventId: eb.ref("excluded.metaEventId"),
+                heldAt: sql`now()`,
+              }))
+              .where(sql<SqlBool>`meta_held_source_events.meta_event_id <> excluded.meta_event_id`),
+          )
+          .execute();
+      }
     },
 
     listEvents(
@@ -632,14 +668,51 @@ export function metaEventsRepo<R = never>(
       await db.updateTable("metaEvents").set(values).where("id", "=", id).execute();
     },
 
-    /** The caller has already narrowed the body to real columns via `buildPatchUpdates`. */
+    /**
+     * A change to a fact the same-store guard compares releases the holds on
+     * this event, so the next sweep judges those rows again.
+     */
     async updateEvent(id: string, updates: Updateable<MetaEventsTable>): Promise<boolean> {
-      const result = await db
-        .updateTable("metaEvents")
-        .set(updates)
-        .where("id", "=", id)
-        .executeTakeFirst();
-      return (result.numUpdatedRows ?? 0n) > 0n;
+      const write = async (trx: Kysely<Database>) => {
+        const result = await trx
+          .updateTable("metaEvents")
+          .set(updates)
+          .where("id", "=", id)
+          .executeTakeFirst();
+        return (result.numUpdatedRows ?? 0n) > 0n;
+      };
+      if (
+        updates.name === undefined &&
+        updates.eventDate === undefined &&
+        updates.organizer === undefined
+      ) {
+        return await write(db);
+      }
+      return await inTransaction(db, async (trx) => {
+        const before = await trx
+          .selectFrom("metaEvents")
+          .select(["name", "eventDate", "organizer"])
+          .where("id", "=", id)
+          .forUpdate()
+          .executeTakeFirst();
+        if (before === undefined) {
+          return false;
+        }
+        await write(trx);
+        await trx
+          .deleteFrom("metaHeldSourceEvents")
+          .where("metaEventId", "=", id)
+          .where(
+            sql<SqlBool>`exists (
+              select 1 from meta_events e
+               where e.id = ${id}
+                 and (e.name, e.event_date, e.organizer)
+                     is distinct from (${before.name}::text, ${before.eventDate}::date, ${before.organizer}::text)
+            )`,
+          )
+          .execute();
+        return true;
+      });
     },
 
     /**

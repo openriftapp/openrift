@@ -25,6 +25,7 @@ export function toTopdeckCatalogRow(row: TopdeckListRow): TopdeckCatalogRow {
     stagedLegendCount: row.stagedLegendCount,
     stagedDeckCount: row.stagedDeckCount,
     rivalProvider: row.rivalProvider,
+    heldBy: null,
     sourceUrl: topdeckEventUrl(row.tid),
   };
 }

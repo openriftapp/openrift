@@ -54,6 +54,10 @@ export type MetaSource = z.infer<typeof metaSourceSchema>;
 
 const triageSchema = z.enum(META_CATALOG_TRIAGE);
 
+const heldBySchema = z
+  .object({ metaEventId: z.string(), metaEventSlug: z.string(), metaEventName: z.string() })
+  .nullable();
+
 export const metaCatalogRowSchema = z.object({
   externalId: z.string(),
   name: z.string(),
@@ -82,6 +86,7 @@ export const metaCatalogRowSchema = z.object({
   stagedPlayerCount: z.number().int().nonnegative(),
   stagedLegendCount: z.number().int().nonnegative(),
   stagedDeckCount: z.number().int().nonnegative(),
+  heldBy: heldBySchema,
   sourceUrl: z.string(),
 });
 
@@ -113,6 +118,7 @@ const metaSyncBucketCountsSchema = z.object({
   passingNoResults: count,
   skippedUpcoming: count,
   skippedPast: count,
+  held: count,
   notStarted: count,
   collecting: count,
   final: count,
@@ -175,6 +181,7 @@ export const playloltcgCatalogRowSchema = z.object({
   stagedPlayerCount: z.number().int().nonnegative(),
   stagedLegendCount: z.number().int().nonnegative(),
   stagedDeckCount: z.number().int().nonnegative(),
+  heldBy: heldBySchema,
   sourceUrl: z.string(),
 });
 
@@ -214,6 +221,7 @@ export const topdeckCatalogRowSchema = z.object({
   stagedLegendCount: z.number().int().nonnegative(),
   stagedDeckCount: z.number().int().nonnegative(),
   rivalProvider: z.string().nullable(),
+  heldBy: heldBySchema,
   sourceUrl: z.string(),
 });
 
@@ -252,6 +260,7 @@ export const playriftboundCatalogRowSchema = z.object({
   roundsFinalized: z.number().int().nullable(),
   stagedPlayerCount: z.number().int().nonnegative(),
   stagedMatchCount: z.number().int().nonnegative(),
+  heldBy: heldBySchema,
   sourceUrl: z.string(),
 });
 
@@ -370,6 +379,7 @@ export const metaSyncStatusSchema = z.object({
     passingNoResults: z.number().int(),
     skippedUpcoming: z.number().int(),
     skippedPast: z.number().int(),
+    held: z.number().int(),
   }),
   archive: z.object({
     events: z.number().int(),

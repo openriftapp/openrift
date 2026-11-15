@@ -277,6 +277,7 @@ interface MirrorListing<TFilters, TRow> {
     filters: TFilters,
     page: { limit: number; offset: number },
     order: { sort?: MetaCatalogSort; direction?: MetaCatalogSortDirection },
+    rule: MetaAutoPublishRule,
   ) => Promise<{ rows: TRow[]; total: number }>;
   bucketCounts: (
     filters: TFilters,
@@ -304,6 +305,7 @@ function catalogList<TQuery extends CatalogListQuery, TFilters, TRow, TOut>(spec
         filters,
         { limit, offset: (page - 1) * limit },
         { sort: input.sort, direction: input.direction },
+        rule,
       ),
       events.bucketCounts(filters, rule),
       spec.presenter(context.repos),

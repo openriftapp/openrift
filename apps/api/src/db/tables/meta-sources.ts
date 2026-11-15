@@ -361,6 +361,13 @@ export interface IgnoredMetaSourceEventsTable {
   createdAt: CreatedAt;
 }
 
+export interface MetaHeldSourceEventsTable {
+  provider: string;
+  externalId: string;
+  metaEventId: string;
+  heldAt: CreatedAt;
+}
+
 export interface IgnoredMetaSourcePlayersTable {
   provider: string;
   eventExternalId: string;
