@@ -1,4 +1,5 @@
 import { mergeDeckCards, sameDeckCards } from "@openrift/shared/deck-cards";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { MAX_FACET_VALUES } from "@openrift/shared/meta-query";
 import type { MetaScopeFacet } from "@openrift/shared/meta-query";
 import type { DeckFormatConfig } from "@openrift/shared/types/api/deck";
@@ -132,7 +133,7 @@ export interface MetaDeckFacetRows {
 
 const DECK_PAGE_SIZE = 50;
 
-const ARCHIVE_TOTAL_TTL_MS = 10 * 60 * 1000;
+const ARCHIVE_TOTAL_TTL_MS = 10 * MINUTE_MS;
 
 const FINISH_BOUNDS = [1, 4, 8, 16] as const;
 

@@ -23,11 +23,11 @@ import type { TopdeckUpsertInput } from "../../repositories/topdeck-events.js";
 import { createCrawlRun } from "./crawl-run.js";
 import { clock } from "./deps.js";
 import type { MetaSyncResultBase } from "./result.js";
-import { emptyMetaSyncResult } from "./result.js";
+import { emptyMetaSyncResult, recordAutoAccept } from "./result.js";
 import { createRunHeartbeat } from "./run-heartbeat.js";
 import { isTransientSourceFailure, sourceStopOf } from "./source-http.js";
 import type { SourceStopFields } from "./source-stop.js";
-import { applySourceStop } from "./source-stop.js";
+import { applySourceStop, noSourceStop } from "./source-stop.js";
 import { isSyncNoop } from "./sync-noop.js";
 import { autoAcceptTopdeckEvents } from "./topdeck-accept.js";
 import type { TopdeckSyncDeps } from "./topdeck-deps.js";
@@ -54,9 +54,7 @@ function emptyResult(): TopdeckSyncResult {
     players: 0,
     decks: 0,
     throttled: false,
-    blocked: false,
-    blockedUntil: null,
-    pausedUntil: null,
+    ...noSourceStop(),
   };
 }
 
@@ -214,9 +212,7 @@ async function crawlFormatWindow(
 }
 
 async function finish(deps: TopdeckSyncDeps, ctx: CrawlContext): Promise<TopdeckSyncResult> {
-  const auto = await autoAcceptTopdeckEvents(deps, [...new Set(ctx.touched)]);
-  ctx.result.autoAccepted = auto.accepted;
-  recordCapped(ctx.result.errors, auto.errors);
+  recordAutoAccept(ctx.result, await autoAcceptTopdeckEvents(deps, [...new Set(ctx.touched)]));
   ctx.result.requests = deps.client.requests;
   return ctx.result;
 }

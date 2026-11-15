@@ -1,11 +1,11 @@
-import { DAY_MS, HOUR_MS } from "@openrift/shared/format-date";
+import { DAY_MS, HOUR_MS, MINUTE_MS } from "@openrift/shared/format-date";
 import type { MetaEventStatus } from "@openrift/shared/types/enums";
 
 const RECHECK_LADDER_DAYS = [1, 3, 7, 30, 90] as const;
 
 const EVENT_DAY_POLL_MS = HOUR_MS;
 
-const WATCHED_EVENT_DAY_POLL_MS = 10 * 60 * 1000;
+const WATCHED_EVENT_DAY_POLL_MS = 10 * MINUTE_MS;
 
 const STALE_EVENT_DAYS = 3;
 
@@ -104,7 +104,7 @@ export function nextRecheck(state: MetaRecheckState): MetaRecheckDecision {
   };
 }
 
-const RESUME_SOON_MS = 60 * 1000;
+const RESUME_SOON_MS = MINUTE_MS;
 
 export function resumeSoon(
   now: Date,

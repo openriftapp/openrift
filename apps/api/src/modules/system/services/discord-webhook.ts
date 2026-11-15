@@ -1,6 +1,7 @@
 import { chunk } from "@openrift/shared/collections";
 import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { Logger } from "@openrift/shared/logger";
 import { printingVariantPartsEnglish } from "@openrift/shared/printing-label";
@@ -19,7 +20,7 @@ const SUMMARY_THRESHOLD = 20;
 const MAX_DESCRIPTION_LENGTH = 4000;
 const MESSAGE_INTERVAL_MS = 1000;
 const MAX_RATE_LIMIT_RETRIES = 3;
-const MAX_RETRY_AFTER_MS = 60_000;
+const MAX_RETRY_AFTER_MS = MINUTE_MS;
 
 const COLOR_NEW = 0x57_f2_87;
 

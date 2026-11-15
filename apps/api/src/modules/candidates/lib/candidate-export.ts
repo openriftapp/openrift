@@ -9,12 +9,7 @@ export async function buildExport(repo: Repo) {
     repo.exportCardErrata(),
   ]);
 
-  const printingsByCardId = new Map<string, typeof printings>();
-  for (const p of printings) {
-    const list = printingsByCardId.get(p.cardId) ?? [];
-    list.push(p);
-    printingsByCardId.set(p.cardId, list);
-  }
+  const printingsByCardId = Map.groupBy(printings, (p) => p.cardId);
 
   const errataByCardId = new Map(errataRows.map((e) => [e.cardId, e]));
 

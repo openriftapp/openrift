@@ -177,18 +177,14 @@ async function fetchCardtraderData(
         continue;
       }
 
-      const byLangFinish = new Map<string, CtMarketplaceProduct[]>();
-      for (const listing of eligible) {
+      const byLangFinish = Map.groupBy(eligible, (listing) => {
         const lang = normalizeCtLanguage(listing.properties_hash?.riftbound_language);
         const finish =
           listing.properties_hash?.riftbound_foil === true
             ? WellKnown.finish.FOIL
             : WellKnown.finish.NORMAL;
-        const key = `${lang}::${finish}`;
-        const list = byLangFinish.get(key) ?? [];
-        list.push(listing);
-        byLangFinish.set(key, list);
-      }
+        return `${lang}::${finish}`;
+      });
 
       for (const [key, listings] of byLangFinish) {
         const [language, finish] = key.split("::") as [string, string];

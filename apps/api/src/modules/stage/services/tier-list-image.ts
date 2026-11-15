@@ -1,5 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { CARD_ASPECT } from "@openrift/shared/card-orientation";
+import { clamp } from "@openrift/shared/math";
 import { SHARE_IMAGE_COLORS } from "@openrift/shared/share-image-palette";
 import type { ShareImageAspect } from "@openrift/shared/share-image-params";
 import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
@@ -127,7 +128,7 @@ function wrapAtTileHeight(
   const tileW = Math.max(9, Math.floor(tileH * CARD_ASPECT));
   const tilesPerLine = Math.max(1, Math.floor((tilesAreaW + TILE_GAP) / (tileW + TILE_GAP)));
   const linesPerRow = cardCounts.map((count) =>
-    Math.min(maxLines, Math.max(1, Math.ceil(count / tilesPerLine))),
+    clamp(Math.ceil(count / tilesPerLine), 1, maxLines),
   );
   const rowHeights = linesPerRow.map(
     (lines) => lines * tileH + (lines - 1) * TILE_GAP + 2 * ROW_PAD,

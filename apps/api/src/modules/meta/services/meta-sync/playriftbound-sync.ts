@@ -1,4 +1,4 @@
-import { DAY_MS, HOUR_MS } from "@openrift/shared/format-date";
+import { DAY_MS, HOUR_MS, MINUTE_MS } from "@openrift/shared/format-date";
 import { errorMessage } from "@openrift/shared/strings";
 
 import { recordCapped, record } from "../../../../lib/json-coerce.js";
@@ -27,10 +27,10 @@ import type { PlayriftboundSyncDeps } from "./playriftbound-deps.js";
 import type { RecheckPassResult, VisitOutcome } from "./recheck-pass.js";
 import { emptyRecheckPassResult, runRecheckPass } from "./recheck-pass.js";
 import type { MetaSyncResultBase } from "./result.js";
-import { emptyMetaSyncResult } from "./result.js";
+import { emptyMetaSyncResult, recordAutoAccept } from "./result.js";
 import { createRunHeartbeat } from "./run-heartbeat.js";
 import type { SourceStop, SourceStopFields } from "./source-stop.js";
-import { applySourceStop, cooldownUntil } from "./source-stop.js";
+import { applySourceStop, cooldownUntil, noSourceStop } from "./source-stop.js";
 import { isRecheckPassNoop, isSyncNoop } from "./sync-noop.js";
 
 const SEARCH_QUERY = "CompeteTournamentSearch";
@@ -50,7 +50,7 @@ const SWEEP_HEARTBEAT_CELLS = 50;
 
 const MAX_FAILURES_IN_A_ROW = 5;
 
-const RECHECK_BUDGET_MS = 5 * 60 * 1000;
+const RECHECK_BUDGET_MS = 5 * MINUTE_MS;
 const RECHECK_PAGE_SIZE = 50;
 const DROP_FAILING_AFTER_MS = 14 * DAY_MS;
 
@@ -64,9 +64,7 @@ function emptyResult(): PlayriftboundSyncResult {
     ...emptyMetaSyncResult(),
     cells: 0,
     cellsWithEvents: 0,
-    blocked: false,
-    blockedUntil: null,
-    pausedUntil: null,
+    ...noSourceStop(),
   };
 }
 
@@ -256,10 +254,7 @@ async function finish(
   result: PlayriftboundSyncResult,
   touched: readonly string[],
 ): Promise<void> {
-  const auto = await autoAcceptPlayriftboundEvents(deps, [...new Set(touched)]);
-  result.autoAccepted = auto.accepted;
-  result.autoHeld = auto.held;
-  recordCapped(result.errors, auto.errors);
+  recordAutoAccept(result, await autoAcceptPlayriftboundEvents(deps, [...new Set(touched)]));
   result.requests = deps.client.requests;
 }
 

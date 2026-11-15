@@ -1,4 +1,5 @@
 import { formatContactMethodsSummary } from "@openrift/shared/contact-methods";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { groupPath } from "@openrift/shared/site-paths";
 import {
   getTradeRequestEmailCadence,
@@ -47,7 +48,7 @@ export function isRequestGroupDue(
   if (createdAts.length === 0) {
     return false;
   }
-  const windowMs = windowMinutes * 60_000;
+  const windowMs = windowMinutes * MINUTE_MS;
   const nowMs = now.getTime();
   const times = createdAts.map((createdAt) => createdAt.getTime());
   const quietFor = nowMs - Math.max(...times);

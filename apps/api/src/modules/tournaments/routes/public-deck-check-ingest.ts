@@ -1,5 +1,6 @@
 import { deckCheckIngestContract } from "@openrift/shared/contracts/deck-check-ingest";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { DeckCheckIngestResultResponse } from "@openrift/shared/types/api/deck-check";
 import { implement } from "@orpc/server";
 import type { Hono } from "hono";
@@ -24,7 +25,7 @@ const REJECTED_PUSHES_PER_MINUTE = 20;
 
 /** Keyed by the raw Authorization header, so a valid key is rate-limited per-key. */
 const ingestRateLimit = rateLimiter<{ Variables: Variables }>({
-  windowMs: 60_000,
+  windowMs: MINUTE_MS,
   limit: PUSHES_PER_MINUTE,
   standardHeaders: "draft-6",
   keyGenerator: (c) => c.req.header("authorization") ?? clientAddress(c),
@@ -35,7 +36,7 @@ let rejectedWindowStartedAt = 0;
 
 const throttleRejectedKeys = createMiddleware<{ Variables: Variables }>(async (c, next) => {
   const now = Date.now();
-  if (now - rejectedWindowStartedAt >= 60_000) {
+  if (now - rejectedWindowStartedAt >= MINUTE_MS) {
     rejectedPushesByAddress.clear();
     rejectedWindowStartedAt = now;
   }

@@ -1,3 +1,4 @@
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { errorMessage } from "@openrift/shared/strings";
 
 import { projectCatalogRow } from "../../lib/uvsgames-catalog.js";
@@ -9,7 +10,7 @@ import { gameTypeOf } from "./id-sweep.js";
 import { settleAfterManualFetch } from "./recheck.js";
 import { UvsHttpError } from "./uvsgames-client.js";
 
-export const ON_DEMAND_FETCH_COOLDOWN_MS = 10 * 60 * 1000;
+export const ON_DEMAND_FETCH_COOLDOWN_MS = 10 * MINUTE_MS;
 
 export type UvsgamesOnDemandResult =
   | { status: "fetched" | "fresh"; row: UvsgamesListRow; errors: string[] }

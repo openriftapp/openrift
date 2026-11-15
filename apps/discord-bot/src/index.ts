@@ -1,3 +1,5 @@
+import { MINUTE_MS } from "@openrift/shared/format-date";
+
 import { createApiClients } from "./api-client.js";
 import { createBot } from "./bot.js";
 import { CatalogCache } from "./catalog-cache.js";
@@ -6,7 +8,7 @@ import { log } from "./log.js";
 import { RulesCache } from "./rules-cache.js";
 import { TradeChannelCache } from "./trade-channels.js";
 
-const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
+const REFRESH_INTERVAL_MS = 30 * MINUTE_MS;
 const STARTUP_RETRY_MS = 15 * 1000;
 
 const env = readBotEnv();

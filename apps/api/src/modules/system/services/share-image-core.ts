@@ -1,3 +1,4 @@
+import { clamp } from "@openrift/shared/math";
 import { qrPngDataUri } from "@openrift/shared/qr";
 import { SHARE_IMAGE_COLORS } from "@openrift/shared/share-image-palette";
 import { Resvg } from "@resvg/resvg-js";
@@ -232,7 +233,7 @@ export function cardTile(
       );
 
   const quantity = card.quantity ?? 1;
-  const badgeH = Math.min(40, Math.max(20, Math.round(tileH * 0.18)));
+  const badgeH = clamp(Math.round(tileH * 0.18), 20, 40);
   const inset = Math.max(5, Math.round(tileH * 0.03));
   const badge =
     quantity > 1 &&

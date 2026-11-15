@@ -1,4 +1,4 @@
-import { HOUR_MS } from "@openrift/shared/format-date";
+import { HOUR_MS, MINUTE_MS } from "@openrift/shared/format-date";
 import { errorMessage } from "@openrift/shared/strings";
 
 import { recordCapped } from "../../../../lib/json-coerce.js";
@@ -23,7 +23,7 @@ import { createRunHeartbeat } from "./run-heartbeat.js";
 import { isPermanentRefusal, RunDeadlineError, sourceStopOf } from "./source-http.js";
 import { isRecheckPassNoop } from "./sync-noop.js";
 
-const RECHECK_BUDGET_MS = 5 * 60 * 1000;
+const RECHECK_BUDGET_MS = 5 * MINUTE_MS;
 
 const RECHECK_PAGE_SIZE = 100;
 

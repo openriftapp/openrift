@@ -1,3 +1,4 @@
+import { clamp } from "@openrift/shared/math";
 import type { DeckCheckMatchStatus } from "@openrift/shared/types/api/deck-check";
 import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
@@ -164,7 +165,7 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
           return true;
         }
 
-        const moveCount = Math.min(Math.max(params.copies ?? source.quantity, 1), source.quantity);
+        const moveCount = clamp(params.copies ?? source.quantity, 1, source.quantity);
         const fullMove = moveCount >= source.quantity;
         // Dense, exact-length found arrays: the driver can't store the sparse,
         // non-1-based arrays raw subscript assignment would produce.

@@ -1,4 +1,5 @@
 import { friendGroupsContract } from "@openrift/shared/contracts/friend-groups";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type {
   FriendGroupDiscordLinkCodeResponse,
   FriendGroupDiscordLinksResponse,
@@ -13,7 +14,7 @@ import { toDiscordLink } from "../lib/friend-group-presenters.js";
 import { loadGroupForMember, requireRole } from "../lib/group-access.js";
 
 /** Discord link codes are one-shot and short-lived — 15 minutes to run /link. */
-const DISCORD_LINK_CODE_TTL_MS = 15 * 60 * 1000;
+const DISCORD_LINK_CODE_TTL_MS = 15 * MINUTE_MS;
 
 const os = implement(friendGroupsContract).$context<ApiContext>().use(requireAuthedUser);
 

@@ -3,6 +3,7 @@ import { BOARD_ZONE_LABEL_EN, piecesAt, seatSlots } from "@openrift/shared/board
 import type { BoardDocument, BoardPiece, BoardPlayer } from "@openrift/shared/board-state";
 import { isDeckZone, shownBattlefields } from "@openrift/shared/board-state";
 import { CARD_ASPECT, LANDSCAPE_CARD_ASPECT } from "@openrift/shared/card-orientation";
+import { clamp } from "@openrift/shared/math";
 
 export const BOARD_GAP = 8;
 export const SLOT_GAP = 4;
@@ -113,7 +114,7 @@ function planRow(
   zones.forEach((zone, index) => {
     const wanted =
       Math.max(content[index] ?? 0, labelWidth(fullLabel(zone), MAX_LABEL_SIZE)) + SLOT_CHROME;
-    const grant = Math.min(spare, Math.max(0, wanted - (widths[index] ?? 0)));
+    const grant = clamp(wanted - (widths[index] ?? 0), 0, spare);
     widths[index] = (widths[index] ?? 0) + grant;
     spare -= grant;
   });

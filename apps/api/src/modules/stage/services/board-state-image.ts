@@ -16,6 +16,7 @@ import type {
 } from "@openrift/shared/board-state";
 import { chainEntryName, isDeckZone, shownBattlefields } from "@openrift/shared/board-state";
 import { CARD_ASPECT, LANDSCAPE_CARD_ASPECT } from "@openrift/shared/card-orientation";
+import { clamp } from "@openrift/shared/math";
 import { SHARE_IMAGE_COLORS } from "@openrift/shared/share-image-palette";
 import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
 
@@ -413,7 +414,7 @@ function battlefieldRow(
               borderRadius: 6,
               backgroundColor: "rgba(0,0,0,0.4)",
               border: `1px solid ${SHARE_IMAGE_COLORS.gold}`,
-              fontSize: Math.min(13, Math.max(9, Math.round(frameH / 4))),
+              fontSize: clamp(Math.round(frameH / 4), 9, 13),
               lineHeight: 1.1,
               fontWeight: 700,
               color: SHARE_IMAGE_COLORS.gold,

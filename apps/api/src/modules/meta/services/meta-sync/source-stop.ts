@@ -1,4 +1,4 @@
-import { HOUR_MS } from "@openrift/shared/format-date";
+import { HOUR_MS, MINUTE_MS } from "@openrift/shared/format-date";
 import { errorMessage } from "@openrift/shared/strings";
 
 import { sourceJobKinds } from "./job-kinds.js";
@@ -8,7 +8,7 @@ interface JobRunsRead {
 }
 
 const BLOCK_MS = 6 * HOUR_MS;
-const PAUSE_MS = 30 * 60 * 1000;
+const PAUSE_MS = 30 * MINUTE_MS;
 
 export type SourceStop = "block" | "pause";
 
@@ -16,6 +16,10 @@ export interface SourceStopFields {
   blocked: boolean;
   blockedUntil: string | null;
   pausedUntil: string | null;
+}
+
+export function noSourceStop(): SourceStopFields {
+  return { blocked: false, blockedUntil: null, pausedUntil: null };
 }
 
 export function cooldownUntil(now: Date): string {

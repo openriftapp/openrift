@@ -1,3 +1,4 @@
+import { clamp } from "@openrift/shared/math";
 import { errorMessage } from "@openrift/shared/strings";
 
 import { recordCapped } from "../../../../lib/json-coerce.js";
@@ -18,7 +19,7 @@ import { emptyMetaSyncResult } from "./result.js";
 import { createRunHeartbeat } from "./run-heartbeat.js";
 import { sourceStopOf } from "./source-http.js";
 import type { SourceStopFields } from "./source-stop.js";
-import { applySourceStop } from "./source-stop.js";
+import { applySourceStop, noSourceStop } from "./source-stop.js";
 import { isSyncNoop } from "./sync-noop.js";
 import { syncEventTemplates } from "./templates.js";
 import type { UvsQuery } from "./uvsgames-client.js";
@@ -77,9 +78,7 @@ function emptyResult(): MetaCatalogSyncResult {
     missingAbsent: 0,
     withdrawn: 0,
     skippedRanges: [],
-    blocked: false,
-    blockedUntil: null,
-    pausedUntil: null,
+    ...noSourceStop(),
   };
 }
 
@@ -210,7 +209,7 @@ async function absorb(deps: MetaSyncDeps, ctx: CrawlContext, rows: unknown[]): P
 
 // Never fewer than two: a split that handed back the same range would recurse forever.
 function splitParts(count: number): number {
-  return Math.min(MAX_SPLIT, Math.max(2, Math.ceil(count / MAX_PAGE_SIZE)));
+  return clamp(Math.ceil(count / MAX_PAGE_SIZE), 2, MAX_SPLIT);
 }
 
 // Contiguous inclusive sub-ranges covering [from, to] exactly once. A range

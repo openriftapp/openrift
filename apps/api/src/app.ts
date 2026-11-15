@@ -1,5 +1,6 @@
 import { swaggerUI } from "@hono/swagger-ui";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { Logger } from "@openrift/shared/logger";
 import type { ApiErrorResponse } from "@openrift/shared/types/api/error";
 import * as Sentry from "@sentry/bun";
@@ -82,7 +83,7 @@ export interface AppDeps {
 }
 
 const authRateLimit = rateLimiter<{ Variables: Variables }>({
-  windowMs: 60_000,
+  windowMs: MINUTE_MS,
   limit: 10,
   standardHeaders: "draft-6",
   keyGenerator: clientAddress,

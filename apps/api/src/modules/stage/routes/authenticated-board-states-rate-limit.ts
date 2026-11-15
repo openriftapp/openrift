@@ -1,3 +1,4 @@
+import { HOUR_MS } from "@openrift/shared/format-date";
 import type { Context, Hono } from "hono";
 import { rateLimiter } from "hono-rate-limiter";
 
@@ -12,7 +13,7 @@ type Ctx = Context<{ Variables: Variables }>;
 
 function perUserHourlyLimit(limit: number, message: string) {
   return rateLimiter<{ Variables: Variables }>({
-    windowMs: 60 * 60_000,
+    windowMs: HOUR_MS,
     limit,
     standardHeaders: "draft-6",
     // Signed-out requests pass through so the router answers them with its own 401.

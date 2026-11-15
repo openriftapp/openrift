@@ -1,4 +1,4 @@
-import { DAY_MS, HOUR_MS, formatDay, utcDayDiff } from "@openrift/shared/format-date";
+import { DAY_MS, HOUR_MS, formatDay, utcDayDiff, MINUTE_MS } from "@openrift/shared/format-date";
 import { errorMessage } from "@openrift/shared/strings";
 
 import { recordCapped } from "../../../../lib/json-coerce.js";
@@ -32,11 +32,11 @@ import type { PlayloltcgSyncDeps } from "./playloltcg-deps.js";
 import type { RecheckPassResult, VisitOutcome } from "./recheck-pass.js";
 import { emptyRecheckPassResult, runRecheckPass } from "./recheck-pass.js";
 import type { MetaSyncResultBase } from "./result.js";
-import { emptyMetaSyncResult } from "./result.js";
+import { emptyMetaSyncResult, recordAutoAccept } from "./result.js";
 import { createRunHeartbeat } from "./run-heartbeat.js";
 import { isTransientSourceFailure, sourceStopOf } from "./source-http.js";
 import type { SourceStopFields } from "./source-stop.js";
-import { applySourceStop } from "./source-stop.js";
+import { applySourceStop, noSourceStop } from "./source-stop.js";
 import { isRecheckPassNoop, isSyncNoop } from "./sync-noop.js";
 
 const EVENTS_PATH = "/xcx/activityShop/page";
@@ -50,7 +50,7 @@ const ARCHIVE_START = new Date("2025-06-01T00:00:00Z");
 
 const BLOCKED_EVENT_DEFER_MS = 24 * HOUR_MS;
 
-const PLAYLOLTCG_RECHECK_BUDGET_MS = 5 * 60 * 1000;
+const PLAYLOLTCG_RECHECK_BUDGET_MS = 5 * MINUTE_MS;
 
 // The WAF blocked the IP at 15-25k requests a day; this caps a day near 8.6k.
 const PLAYLOLTCG_RUN_REQUESTS = 60;
@@ -67,9 +67,7 @@ function emptyResult(): PlayloltcgSyncResult {
   return {
     ...emptyMetaSyncResult(),
     shops: 0,
-    blocked: false,
-    blockedUntil: null,
-    pausedUntil: null,
+    ...noSourceStop(),
   };
 }
 
@@ -200,10 +198,7 @@ async function finish(
   result: PlayloltcgSyncResult,
   touched: number[],
 ): Promise<void> {
-  const auto = await autoAcceptPlayloltcgEvents(deps, [...new Set(touched)]);
-  result.autoAccepted = auto.accepted;
-  result.autoHeld = auto.held;
-  recordCapped(result.errors, auto.errors);
+  recordAutoAccept(result, await autoAcceptPlayloltcgEvents(deps, [...new Set(touched)]));
   result.requests = deps.client.requests;
 }
 

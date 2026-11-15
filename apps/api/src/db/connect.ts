@@ -1,3 +1,4 @@
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { CamelCasePlugin, Kysely } from "kysely";
 import { PostgresJSDialect } from "kysely-postgres-js";
 import postgres from "postgres";
@@ -15,12 +16,12 @@ export interface PoolSettings {
 export const REQUEST_POOL: PoolSettings = {
   max: 20,
   statementTimeoutMs: 30_000,
-  idleInTransactionTimeoutMs: 60_000,
+  idleInTransactionTimeoutMs: MINUTE_MS,
 };
 
 export const BACKGROUND_POOL: PoolSettings = {
   max: 10,
-  idleInTransactionTimeoutMs: 10 * 60_000,
+  idleInTransactionTimeoutMs: 10 * MINUTE_MS,
 };
 
 export function createDb(connectionString: string, pool: PoolSettings = REQUEST_POOL) {

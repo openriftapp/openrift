@@ -1,7 +1,9 @@
+import { MINUTE_MS } from "@openrift/shared/format-date";
+
 import type { ApiClients } from "./api-client.js";
 import { log } from "./log.js";
 
-const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
+const REFRESH_INTERVAL_MS = 30 * MINUTE_MS;
 
 export class TradeChannelCache {
   private channels = new Map<string, Set<string>>();

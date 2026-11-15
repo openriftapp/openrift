@@ -1,4 +1,5 @@
 import { ERROR_CODES } from "@openrift/shared/error-codes";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { Context, MiddlewareHandler } from "hono";
 import { rateLimiter } from "hono-rate-limiter";
 
@@ -14,7 +15,7 @@ export function imageRateLimit(
   key: "ip" | "user",
 ): MiddlewareHandler<{ Variables: Variables }> {
   return rateLimiter<{ Variables: Variables }>({
-    windowMs: 60_000,
+    windowMs: MINUTE_MS,
     limit: perMinute,
     standardHeaders: "draft-6",
     keyGenerator: (c: Ctx) =>

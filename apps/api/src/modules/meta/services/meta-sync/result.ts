@@ -1,3 +1,5 @@
+import { recordCapped } from "../../../../lib/json-coerce.js";
+
 export interface MetaSyncResultBase {
   requests: number;
   rows: number;
@@ -30,4 +32,13 @@ export function emptyMetaSyncResult(): MetaSyncResultBase {
     cancelRequested: false,
     errors: [],
   };
+}
+
+export function recordAutoAccept(
+  result: MetaSyncResultBase,
+  auto: { accepted: number; held?: number; errors: string[] },
+): void {
+  result.autoAccepted = auto.accepted;
+  result.autoHeld = auto.held ?? 0;
+  recordCapped(result.errors, auto.errors);
 }
