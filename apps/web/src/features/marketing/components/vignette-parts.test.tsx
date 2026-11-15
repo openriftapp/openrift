@@ -24,4 +24,11 @@ describe("Swap", () => {
     expect(screen.getByText("before").className).toContain("motion-safe:animate-box-before");
     expect(screen.getByText("after").className).toContain("motion-safe:animate-box-after");
   });
+
+  it("gives both layers the shared layer class", () => {
+    render(<Swap was="before" now="after" layerClassName="truncate" />);
+
+    expect(screen.getByText("before").className).toContain("truncate");
+    expect(screen.getByText("after").className).toContain("truncate");
+  });
 });

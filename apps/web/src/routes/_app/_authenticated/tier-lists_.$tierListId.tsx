@@ -1,12 +1,10 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { LinkGoneState } from "@/components/link-gone-state";
-import { buttonVariants } from "@/components/ui/button";
 import { cleanedSearchForRedirect, filterSearchSchema } from "@/features/cards/lib/search-schemas";
+import { TierListGoneState } from "@/features/stage/components/tier-list-gone-state";
 import { tierListQueryOptions } from "@/features/stage/lib/tier-lists-queries";
 import { privateSeoHead } from "@/lib/seo";
 import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
-import { m } from "@/paraglide/messages.js";
 
 export const Route = createFileRoute("/_app/_authenticated/tier-lists_/$tierListId")({
   ssr: "data-only",
@@ -33,15 +31,5 @@ export const Route = createFileRoute("/_app/_authenticated/tier-lists_/$tierList
       }),
     );
   },
-  notFoundComponent: () => (
-    <LinkGoneState
-      title={m.tier_lists_not_found_title()}
-      description={m.tier_lists_not_found_description()}
-      action={
-        <Link to="/tier-lists" className={buttonVariants()}>
-          {m.tier_lists_not_found_action()}
-        </Link>
-      }
-    />
-  ),
+  notFoundComponent: TierListGoneState,
 });

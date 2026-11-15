@@ -16,7 +16,7 @@ import { LOCK_VIBRATION_MS } from "@/features/scan/lib/scan-feedback";
 import { frameLogEntry, frameLogLine, printingLogLine } from "@/features/scan/lib/scan-frame-log";
 import type { LockedCard, ScannerEvents } from "@/features/scan/lib/scan-locks";
 import { appendLock, lockFromTrack, resolvePrintingIn } from "@/features/scan/lib/scan-locks";
-import type { FrameDecision, ScanLoop } from "@/features/scan/lib/scan-loop";
+import type { ScanFrameDecision, ScanLoop } from "@/features/scan/lib/scan-loop";
 import {
   IDLE_PACE_DELAY_MS,
   PAUSED_POLL_MS,
@@ -115,7 +115,7 @@ export function useScanFrames(options: ScanFramesOptions): ScanFrames {
     );
   }
 
-  function noteLock(outcome: FrameOutcome, decision: FrameDecision) {
+  function noteLock(outcome: FrameOutcome, decision: ScanFrameDecision) {
     const track = decision.lock;
     if (decision.suppressed) {
       console.log(`[scan] lock of ${outcome.locked?.label} suppressed (${decision.suppressed})`);

@@ -2,11 +2,12 @@
  * Coordinates come in three flavours and never mix: quads from the pipeline
  * are in *rotated frame* pixels, the video element displays the *unrotated*
  * frame, and the canvas draws in CSS pixels. {@link coverMapping} and
- * {@link mapQuad} are the only bridge between them.
+ * {@link mapQuadToDisplay} are the only bridge between them.
  */
 
 import { clamp } from "@openrift/shared/math";
-import type { Point } from "@openrift/shared/scan/types";
+import { rotateQuad } from "@openrift/shared/scan/geometry";
+import type { Point, Quad } from "@openrift/shared/scan/types";
 
 const RETICLE_EASE = 0.15;
 const RETICLE_SNAP_PX = 0.5;
@@ -51,31 +52,12 @@ export function stepQuadToward(
   return settled;
 }
 
-type Quad = readonly [Point, Point, Point, Point];
-
 function asQuad(points: readonly Point[]): Quad | null {
   const [a, b, c, d] = points;
   if (!a || !b || !c || !d) {
     return null;
   }
   return [a, b, c, d];
-}
-
-function rotateQuad([a, b, c, d]: Quad, offset: number): Quad {
-  switch (offset % 4) {
-    case 1: {
-      return [b, c, d, a];
-    }
-    case 2: {
-      return [c, d, a, b];
-    }
-    case 3: {
-      return [d, a, b, c];
-    }
-    default: {
-      return [a, b, c, d];
-    }
-  }
 }
 
 function cornerDistances(
@@ -320,7 +302,11 @@ export function coverMapping(
   };
 }
 
-export function mapQuad(quad: readonly Point[], mapping: CoverMapping, out: Point[]): void {
+export function mapQuadToDisplay(
+  quad: readonly Point[],
+  mapping: CoverMapping,
+  out: Point[],
+): void {
   for (const [index, point] of quad.entries()) {
     const slot = out[index];
     if (!slot) {

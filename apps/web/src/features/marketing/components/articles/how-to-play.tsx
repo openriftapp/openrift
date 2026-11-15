@@ -9,7 +9,7 @@ import { Callout } from "@/components/ui/callout";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { TextLink } from "@/components/ui/text-link";
-import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
+import { ArticleFeatureCard, StepRow } from "@/features/marketing/components/article-cards";
 import { ZoneOverview } from "@/features/marketing/components/articles/zone-overview";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { getFilterIconPath } from "@/lib/icons";
@@ -108,12 +108,12 @@ export default function HowToPlayArticle() {
         <p className="text-muted-foreground">{m.help_how_to_play_runes_intro()}</p>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<TimerIcon className="size-4" />}
             title={m.help_how_to_play_rune_exhaust_title()}
             description={m.help_how_to_play_rune_exhaust_description()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<ZapIcon className="size-4" />}
             title={m.help_how_to_play_rune_return_title()}
             description={m.help_how_to_play_rune_return_description()}

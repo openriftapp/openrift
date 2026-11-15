@@ -22,7 +22,7 @@ import {
   copyQuad,
   coverMapping,
   lockRingDash,
-  mapQuad,
+  mapQuadToDisplay,
   quadMatches,
   reticleLineWidth,
   ringRadiusFor,
@@ -218,7 +218,7 @@ export function paintOverlay(
   );
 
   if (target.guide) {
-    mapQuad(target.guide, mapping, state.guide);
+    mapQuadToDisplay(target.guide, mapping, state.guide);
     const [start, ...rest] = state.guide;
     if (start) {
       context.beginPath();
@@ -235,7 +235,7 @@ export function paintOverlay(
   }
 
   for (const quad of target.counted) {
-    mapQuad(quad, mapping, state.marked);
+    mapQuadToDisplay(quad, mapping, state.marked);
     const [start, ...rest] = state.marked;
     if (start) {
       context.beginPath();
@@ -258,7 +258,7 @@ export function paintOverlay(
   }
   let settled = true;
   if (state.smoothing) {
-    mapQuad(state.smoothed, mapping, state.mapped);
+    mapQuadToDisplay(state.smoothed, mapping, state.mapped);
     if (state.shown) {
       settled = stepQuadToward(state.points, state.mapped);
     } else {

@@ -20,7 +20,7 @@ import {
   WALK_ACTIONS,
 } from "@/features/stage/lib/presentation-keys";
 import type { PresentationItem } from "@/features/stage/lib/presentation-queue";
-import { stepIndex } from "@/features/stage/lib/presentation-queue";
+import { clampStepIndex } from "@/features/stage/lib/presentation-queue";
 import { usePresentationStore } from "@/features/stage/stores/presentation-store";
 import { useUserId } from "@/hooks/use-session";
 import { isTypingTarget } from "@/lib/keyboard-target";
@@ -116,11 +116,11 @@ export function PresentationStage({
       const store = usePresentationStore.getState();
       switch (action) {
         case "next": {
-          onIndexChange(stepIndex(index, items.length, 1));
+          onIndexChange(clampStepIndex(index, items.length, 1));
           break;
         }
         case "prev": {
-          onIndexChange(stepIndex(index, items.length, -1));
+          onIndexChange(clampStepIndex(index, items.length, -1));
           break;
         }
         case "first": {

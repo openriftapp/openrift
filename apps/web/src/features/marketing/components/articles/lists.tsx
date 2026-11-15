@@ -14,7 +14,7 @@ import {
 import { Heading } from "@/components/heading";
 import { PROSE_MARKUP, linkMarkup } from "@/components/message-markup";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
-import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
+import { ArticleFeatureCard, StepRow } from "@/features/marketing/components/article-cards";
 import { marketplaceNames } from "@/features/marketing/lib/marketplace-copy";
 import { m } from "@/paraglide/messages.js";
 
@@ -33,12 +33,12 @@ export default function ListsArticle() {
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <FeatureCard
+        <ArticleFeatureCard
           icon={<HeartIcon className="size-4" />}
           title={m.help_lists_card_wishlist_title()}
           description={m.help_lists_card_wishlist_desc()}
         />
-        <FeatureCard
+        <ArticleFeatureCard
           icon={<HandshakeIcon className="size-4" />}
           title={m.help_lists_card_tradelist_title()}
           description={m.help_lists_card_tradelist_desc()}
@@ -118,12 +118,12 @@ export default function ListsArticle() {
         </p>
         <p className="text-muted-foreground mt-2">{m.help_lists_fill_wishlist_other_paths()}</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<ListPlusIcon className="size-4" />}
             title={m.help_lists_fill_catalog_title()}
             description={m.help_lists_fill_catalog_desc()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<UploadIcon className="size-4" />}
             title={m.help_lists_fill_bulk_title()}
             description={
@@ -135,12 +135,12 @@ export default function ListsArticle() {
               />
             }
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<PencilIcon className="size-4" />}
             title={m.help_lists_fill_deck_title()}
             description={m.help_lists_fill_deck_desc()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<TagIcon className="size-4" />}
             title={m.help_lists_fill_drag_title()}
             description={m.help_lists_fill_drag_desc()}
@@ -190,12 +190,12 @@ export default function ListsArticle() {
           />
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<ListPlusIcon className="size-4" />}
             title={m.help_lists_fill_from_collection_title()}
             description={m.help_lists_fill_from_collection_desc()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<TagIcon className="size-4" />}
             title={m.help_lists_fill_drag_title()}
             description={m.help_lists_fill_tradelist_drag_desc()}

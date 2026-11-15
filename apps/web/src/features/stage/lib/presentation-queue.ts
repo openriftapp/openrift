@@ -39,6 +39,6 @@ export function clampIndex(index: number, length: number): number {
 }
 
 /** Does not wrap: stays at 0 or `length - 1` at the ends. */
-export function stepIndex(index: number, length: number, delta: number): number {
+export function clampStepIndex(index: number, length: number, delta: number): number {
   return clampIndex(index + delta, length);
 }

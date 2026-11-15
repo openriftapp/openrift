@@ -21,6 +21,23 @@ export function mapQuad(quad: Quad, fn: (point: Point, index: number) => Point):
   return [fn(quad[0], 0), fn(quad[1], 1), fn(quad[2], 2), fn(quad[3], 3)];
 }
 
+export function rotateQuad([a, b, c, d]: Quad, offset: number): Quad {
+  switch (offset % 4) {
+    case 1: {
+      return [b, c, d, a];
+    }
+    case 2: {
+      return [c, d, a, b];
+    }
+    case 3: {
+      return [d, a, b, c];
+    }
+    default: {
+      return [a, b, c, d];
+    }
+  }
+}
+
 export function subPixelMinimum(before: number, at: number, after: number): number {
   const curvature = before - 2 * at + after;
   if (!Number.isFinite(curvature) || curvature <= 0) {

@@ -15,7 +15,7 @@ import { formatCount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-import { CardFan } from "./card-fan";
+import { CollectCardFan } from "./card-fan";
 import { FeatureShowcase } from "./feature-showcase";
 import { HeroBackground } from "./hero-background";
 import { HeroCtas } from "./hero-ctas";
@@ -122,7 +122,7 @@ export function LandingPage() {
               />
             )}
           </div>
-          <CardFan
+          <CollectCardFan
             key={resetKey}
             imageUrls={samples.fanUrls}
             hinting={hinting}

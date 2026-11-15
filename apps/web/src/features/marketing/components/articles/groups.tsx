@@ -18,7 +18,7 @@ import { PROSE_MARKUP, linkMarkup } from "@/components/message-markup";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Callout } from "@/components/ui/callout";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
-import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
+import { ArticleFeatureCard, StepRow } from "@/features/marketing/components/article-cards";
 import { FIXTURE_GROUPS } from "@/features/marketing/lib/vignette-fixtures";
 import { m } from "@/paraglide/messages.js";
 
@@ -118,12 +118,12 @@ export default function GroupsArticle() {
         <Heading className="mb-2">{m.help_groups_join_heading()}</Heading>
         <p className="text-muted-foreground">{m.help_groups_join_intro()}</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<KeyIcon className="size-4" />}
             title={m.help_groups_join_link_title()}
             description={m.help_groups_join_link_desc()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<ShieldIcon className="size-4" />}
             title={m.help_groups_join_approval_title()}
             description={m.help_groups_join_approval_desc()}
@@ -137,17 +137,17 @@ export default function GroupsArticle() {
           <ParaglideMessage message={m.help_groups_share_intro} markup={PROSE_MARKUP} />
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<HeartIcon className="size-4" />}
             title={m.help_groups_share_wishlist_title()}
             description={m.help_groups_share_wishlist_desc()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<HandshakeIcon className="size-4" />}
             title={m.help_groups_share_tradelist_title()}
             description={m.help_groups_share_tradelist_desc()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<FolderIcon className="size-4" />}
             title={m.help_groups_share_organize_title()}
             description={m.help_groups_share_organize_desc()}

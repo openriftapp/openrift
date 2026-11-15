@@ -1,8 +1,10 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import { isRedirect } from "@tanstack/react-router";
+import { isNotFound, isRedirect } from "@tanstack/react-router";
 import { describe, expect, it, vi } from "vitest";
+
+import { notFoundError } from "@/lib/server-fns/api-error";
 
 import { Route } from "./stage";
 
@@ -131,5 +133,43 @@ describe("/stage owned tier-list guard", () => {
 
     await expect(result).resolves.toBeUndefined();
     expect(query).not.toHaveBeenCalled();
+  });
+});
+
+const loader = Route.options.loader as unknown as (args: {
+  context: {
+    queryClient: { query: (options: { queryKey: readonly unknown[] }) => Promise<unknown> };
+  };
+  deps: { deck?: string; tier?: string };
+}) => Promise<unknown>;
+
+function runLoader(tier: Promise<unknown>) {
+  const query = vi.fn((options: { queryKey: readonly unknown[] }) =>
+    options.queryKey[0] === "tier-lists" ? tier : Promise.resolve({ user: { id: "user-1" } }),
+  );
+  return {
+    query,
+    result: loader({ context: { queryClient: { query } }, deps: { tier: "list-1" } }),
+  };
+}
+
+describe("/stage owned tier-list loader", () => {
+  it("shows the not-found page for a list the API does not have", async () => {
+    const { result } = runLoader(Promise.reject(notFoundError()));
+
+    expect(isNotFound(await result.catch((error: unknown) => error))).toBe(true);
+    expect(Route.options.notFoundComponent).toBeDefined();
+  });
+
+  it("loads the owner's list under their id", async () => {
+    const { query, result } = runLoader(Promise.resolve({ id: "list-1", tiers: [] }));
+
+    await expect(result).resolves.toBeNull();
+    expect(query).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: ["tier-lists", "user-1", "list-1"],
+        staleTime: "static",
+      }),
+    );
   });
 });

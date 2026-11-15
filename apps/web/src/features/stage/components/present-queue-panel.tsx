@@ -1,7 +1,7 @@
 import { useDroppable } from "@dnd-kit/core";
 
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { QueueList } from "@/features/stage/components/card-queue-editor";
+import { StageQueueList } from "@/features/stage/components/card-queue-editor";
 import type { QueueSource } from "@/features/stage/components/queue-source-picker";
 import { QueueSourcePicker } from "@/features/stage/components/queue-source-picker";
 import { MAX_QUEUE_LENGTH } from "@/features/stage/lib/presentation-queue";
@@ -31,7 +31,7 @@ export function PresentQueuePanel({ onAdd }: { onAdd: (source: QueueSource) => v
         {ids.length === 0 ? (
           <p className="text-muted-foreground text-sm">{m.stage_queue_empty()}</p>
         ) : (
-          <QueueList
+          <StageQueueList
             ids={ids}
             printingsById={printingsBySideKey}
             printingsByCardId={printingsByCardId}

@@ -5,7 +5,7 @@ import { Eyebrow, Heading } from "@/components/heading";
 import { PROSE_MARKUP } from "@/components/message-markup";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Callout } from "@/components/ui/callout";
-import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
+import { ArticleFeatureCard, StepRow } from "@/features/marketing/components/article-cards";
 import { m } from "@/paraglide/messages.js";
 
 export default function ProxyPrintingArticle() {
@@ -49,22 +49,22 @@ export default function ProxyPrintingArticle() {
         <Heading className="mb-2">{m.help_proxy_printing_options_heading()}</Heading>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<ImageIcon className="size-4" />}
             title={m.help_proxy_printing_option_render_title()}
             description={m.help_proxy_printing_option_render_description()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<RulerIcon className="size-4" />}
             title={m.help_proxy_printing_option_page_title()}
             description={m.help_proxy_printing_option_page_description()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<ScissorsIcon className="size-4" />}
             title={m.help_proxy_printing_option_cut_title()}
             description={m.help_proxy_printing_option_cut_description()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<ShieldCheckIcon className="size-4" />}
             title={m.help_proxy_printing_option_watermark_title()}
             description={m.help_proxy_printing_option_watermark_description()}

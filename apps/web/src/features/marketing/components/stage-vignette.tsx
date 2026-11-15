@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 import { ClipFrame } from "./clip-frame";
-import { FAKE_CONTROL } from "./vignette-parts";
+import { FAKE_CONTROL, Swap } from "./vignette-parts";
 
 const CHECKERBOARD = {
   background: "repeating-conic-gradient(#20242e 0% 25%, #171a22 0% 50%) 50% / 20px 20px",
@@ -29,14 +29,13 @@ export function StageVignette({ thumbnailUrls = [] }: { thumbnailUrls?: string[]
       <section className="flex flex-col gap-2">
         <div className="flex items-baseline justify-between gap-2">
           <span className="font-semibold">{m.stage_overlay_on_stream()}</span>
-          <span className="grid justify-items-end font-mono text-sm tracking-wide uppercase">
-            <span className="text-muted-foreground motion-safe:animate-stage-idle col-start-1 row-start-1 opacity-0">
-              {m.stage_overlay_status_empty()}
-            </span>
-            <span className="text-primary motion-safe:animate-stage-live col-start-1 row-start-1">
-              {m.stage_overlay_status_live()}
-            </span>
-          </span>
+          <Swap
+            className="grid justify-items-end font-mono text-sm tracking-wide uppercase"
+            was={<span className="text-muted-foreground">{m.stage_overlay_status_empty()}</span>}
+            now={<span className="text-primary">{m.stage_overlay_status_live()}</span>}
+            wasAnimation="motion-safe:animate-stage-idle"
+            nowAnimation="motion-safe:animate-stage-live"
+          />
         </div>
 
         <div
@@ -75,14 +74,14 @@ export function StageVignette({ thumbnailUrls = [] }: { thumbnailUrls?: string[]
         </div>
 
         <div className="flex items-center justify-between gap-3">
-          <span className="text-muted-foreground grid min-w-0 flex-1 text-sm">
-            <span className="motion-safe:animate-stage-idle col-start-1 row-start-1 truncate opacity-0">
-              {m.stage_overlay_caption_empty()}
-            </span>
-            <span className="motion-safe:animate-stage-live col-start-1 row-start-1 truncate">
-              {ON_STAGE.name}
-            </span>
-          </span>
+          <Swap
+            className="text-muted-foreground grid min-w-0 flex-1 justify-items-stretch text-sm"
+            layerClassName="truncate"
+            was={m.stage_overlay_caption_empty()}
+            now={ON_STAGE.name}
+            wasAnimation="motion-safe:animate-stage-idle"
+            nowAnimation="motion-safe:animate-stage-live"
+          />
           <span className="flex shrink-0 items-center gap-1">
             <span
               aria-hidden="true"

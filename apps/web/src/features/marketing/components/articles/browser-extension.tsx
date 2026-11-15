@@ -5,7 +5,7 @@ import { InfoIcon, LinkIcon, ListIcon, ScanTextIcon, TableIcon } from "lucide-re
 import { Heading } from "@/components/heading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TextLink } from "@/components/ui/text-link";
-import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
+import { ArticleFeatureCard, StepRow } from "@/features/marketing/components/article-cards";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { m } from "@/paraglide/messages.js";
 
@@ -72,22 +72,22 @@ export default function BrowserExtensionArticle() {
       <section>
         <Heading className="mb-2">{m.help_browser_extension_read_heading()}</Heading>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<TableIcon className="size-4" />}
             title={m.help_browser_extension_read_tables_title()}
             description={m.help_browser_extension_read_tables_desc()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<ListIcon className="size-4" />}
             title={m.help_browser_extension_read_lists_title()}
             description={m.help_browser_extension_read_lists_desc()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<ScanTextIcon className="size-4" />}
             title={m.help_browser_extension_read_codes_title()}
             description={m.help_browser_extension_read_codes_desc()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<LinkIcon className="size-4" />}
             title={m.help_browser_extension_read_none_title()}
             description={m.help_browser_extension_read_none_desc()}

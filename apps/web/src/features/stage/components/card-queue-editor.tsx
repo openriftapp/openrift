@@ -161,7 +161,7 @@ function QueueRow({
 }
 
 /** Drags are owned by {@link StageDndContext}, not by a context of this list's own: a card arriving from the browser starts outside the queue, and only one context can see both ends of that drag. */
-export function QueueList({
+export function StageQueueList({
   ids,
   printingsById,
   printingsByCardId,

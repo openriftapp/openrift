@@ -5,7 +5,7 @@
 
 import type { FrameOutcome } from "@openrift/shared/scan/session";
 
-import type { FrameDecision } from "@/features/scan/lib/scan-loop";
+import type { ScanFrameDecision } from "@/features/scan/lib/scan-loop";
 
 const PRINTING_SCORES_SHOWN = 4;
 
@@ -59,7 +59,7 @@ export interface FrameLogEntry {
 export function frameLogEntry(
   grabbedAt: number,
   outcome: FrameOutcome,
-  decision: FrameDecision,
+  decision: ScanFrameDecision,
 ): FrameLogEntry {
   return {
     grabbedAt,

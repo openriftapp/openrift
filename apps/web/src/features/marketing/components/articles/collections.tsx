@@ -21,7 +21,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Callout } from "@/components/ui/callout";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
-import { FeatureCard } from "@/features/marketing/components/article-cards";
+import { ArticleFeatureCard } from "@/features/marketing/components/article-cards";
 import { SIDEBAR_ROW, SIDEBAR_ROW_ACTIVE } from "@/features/marketing/lib/sidebar-mock";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -142,18 +142,18 @@ export default function CollectionsArticle() {
         <p className="text-muted-foreground">{m.help_collections_adding_lead()}</p>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<SearchIcon className="size-4" />}
             title={m.help_collections_adding_quick_title()}
             shortcut="Ctrl+K"
             description={m.help_collections_adding_quick_desc()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<MousePointerClickIcon className="size-4" />}
             title={m.help_collections_adding_browse_title()}
             description={m.help_collections_adding_browse_desc()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<KeyboardIcon className="size-4" />}
             title={m.help_collections_adding_several_title()}
             shortcut="1-9"
@@ -170,22 +170,22 @@ export default function CollectionsArticle() {
         <Heading className="mb-2">{m.help_collections_organizing_heading()}</Heading>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<GripVerticalIcon className="size-4" />}
             title={m.help_collections_organizing_drag_title()}
             description={m.help_collections_organizing_drag_desc()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<ListChecksIcon className="size-4" />}
             title={m.help_collections_organizing_bulk_title()}
             description={m.help_collections_organizing_bulk_desc()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<ArrowRightLeftIcon className="size-4" />}
             title={m.help_collections_organizing_move_title()}
             description={m.help_collections_organizing_move_desc()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<Trash2Icon className="size-4" />}
             title={m.help_collections_organizing_dispose_title()}
             description={m.help_collections_organizing_dispose_desc()}

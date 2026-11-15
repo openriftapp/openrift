@@ -7,7 +7,7 @@ import {
   MAX_QUEUE_LENGTH,
   clampIndex,
   resolveQueuePrintings,
-  stepIndex,
+  clampStepIndex,
 } from "./presentation-queue";
 
 function catalog(...printings: Printing[]): Record<string, Printing> {
@@ -81,14 +81,14 @@ describe("clampIndex", () => {
   });
 });
 
-describe("stepIndex", () => {
+describe("clampStepIndex", () => {
   it("steps forward and back", () => {
-    expect(stepIndex(1, 5, 1)).toBe(2);
-    expect(stepIndex(1, 5, -1)).toBe(0);
+    expect(clampStepIndex(1, 5, 1)).toBe(2);
+    expect(clampStepIndex(1, 5, -1)).toBe(0);
   });
 
   it("stops at the ends rather than wrapping", () => {
-    expect(stepIndex(4, 5, 1)).toBe(4);
-    expect(stepIndex(0, 5, -1)).toBe(0);
+    expect(clampStepIndex(4, 5, 1)).toBe(4);
+    expect(clampStepIndex(0, 5, -1)).toBe(0);
   });
 });

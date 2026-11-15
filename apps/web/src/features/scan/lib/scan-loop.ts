@@ -21,7 +21,7 @@ export interface ScanLoopDeps {
   relockGuard?: boolean;
 }
 
-export interface FrameDecision {
+export interface ScanFrameDecision {
   cardInGuide: boolean;
   lock: ArtTrack | null;
   suppressed: "relock" | "board" | null;
@@ -36,7 +36,7 @@ interface PlacementDecision<T> {
 
 export interface ScanLoop<T extends PendingFrame> {
   frameBlocked: (now: number) => boolean;
-  noteOutcome: (outcome: FrameOutcome, now: number) => FrameDecision;
+  noteOutcome: (outcome: FrameOutcome, now: number) => ScanFrameDecision;
   readBoard: (still: RgbaImage, now: () => number) => Promise<BoardCard[] | null>;
   observePlacement: (
     signal: PlacementSignal,
@@ -56,7 +56,7 @@ export function createScanLoop<T extends PendingFrame>(deps: ScanLoopDeps): Scan
     return !run.sweeping && settleBlocksFrame(run.settling, now, run.capturing);
   }
 
-  function noteOutcome(outcome: FrameOutcome, now: number): FrameDecision {
+  function noteOutcome(outcome: FrameOutcome, now: number): ScanFrameDecision {
     const run = deps.run();
     const { cardInGuide } = outcome;
     run.update({ sweeping: outcome.sweeping, still: outcome.still, cardInGuide });

@@ -11,7 +11,7 @@ import {
   createCatchUpQueue,
   shouldRunCatchUp,
 } from "@/features/scan/lib/scan-catchup";
-import type { FrameDecision } from "@/features/scan/lib/scan-loop";
+import type { ScanFrameDecision } from "@/features/scan/lib/scan-loop";
 import { createScanLoop } from "@/features/scan/lib/scan-loop";
 import { IDLE_PACE_DELAY_MS, shouldPaceFrame } from "@/features/scan/lib/scan-pacing";
 import { createScanRun } from "@/features/scan/lib/scan-run";
@@ -78,7 +78,7 @@ export interface ReplayFrame {
   /** Its pixels may already belong to `process`; only the size is safe to read. */
   frame: RgbaImage;
   outcome: FrameOutcome;
-  decision: FrameDecision;
+  decision: ScanFrameDecision;
 }
 
 type ProcessFrame = (frame: RgbaImage, index: number, seconds: number) => Promise<FrameOutcome>;
@@ -223,7 +223,7 @@ export async function replayClip(deps: ReplayDeps): Promise<ReplayResult> {
     });
   }
 
-  function noteLock(outcome: FrameOutcome, decision: FrameDecision, seconds: number): void {
+  function noteLock(outcome: FrameOutcome, decision: ScanFrameDecision, seconds: number): void {
     if (decision.suppressed) {
       result.suppressedRelocks++;
     }

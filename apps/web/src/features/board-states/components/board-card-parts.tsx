@@ -69,7 +69,7 @@ export function cardImage(card: BoardCardRef, catalog: UseCardsResult): string |
   return id === undefined ? undefined : imageUrl(id, "240w");
 }
 
-export function CardBack({ owner, className }: { owner: BoardPlayer; className?: string }) {
+export function BoardCardBack({ owner, className }: { owner: BoardPlayer; className?: string }) {
   return (
     <span
       className={cn(

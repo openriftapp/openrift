@@ -11,7 +11,7 @@ import { Heading } from "@/components/heading";
 import { PROSE_MARKUP } from "@/components/message-markup";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TextLink } from "@/components/ui/text-link";
-import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
+import { ArticleFeatureCard, StepRow } from "@/features/marketing/components/article-cards";
 import { marketplaceNames } from "@/features/marketing/lib/marketplace-copy";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { m } from "@/paraglide/messages.js";
@@ -58,12 +58,12 @@ export default function DiscordBotArticle() {
       <section>
         <Heading className="mb-2">{m.help_discord_bot_card_heading()}</Heading>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<SlashSquareIcon className="size-4" />}
             title={m.help_discord_bot_card_name_title()}
             description={m.help_discord_bot_card_name_description()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<MessageSquareTextIcon className="size-4" />}
             title={m.help_discord_bot_card_printing_title()}
             description={m.help_discord_bot_card_printing_description()}
@@ -77,12 +77,12 @@ export default function DiscordBotArticle() {
       <section>
         <Heading className="mb-2">{m.help_discord_bot_deck_heading()}</Heading>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<SlashSquareIcon className="size-4" />}
             title={m.help_discord_bot_deck_code_title()}
             description={m.help_discord_bot_deck_code_description()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<LayoutGridIcon className="size-4" />}
             title={m.help_discord_bot_deck_image_title()}
             description={m.help_discord_bot_deck_image_description()}
@@ -94,12 +94,12 @@ export default function DiscordBotArticle() {
       <section>
         <Heading className="mb-2">{m.help_discord_bot_rule_heading()}</Heading>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<SlashSquareIcon className="size-4" />}
             title={m.help_discord_bot_rule_number_title()}
             description={m.help_discord_bot_rule_number_description()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<BookOpenTextIcon className="size-4" />}
             title={m.help_discord_bot_rule_sources_title()}
             description={m.help_discord_bot_rule_sources_description()}

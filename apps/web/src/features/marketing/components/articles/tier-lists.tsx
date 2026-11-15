@@ -12,7 +12,7 @@ import {
 import { Heading } from "@/components/heading";
 import { PROSE_MARKUP } from "@/components/message-markup";
 import { TextLink } from "@/components/ui/text-link";
-import { FeatureCard } from "@/features/marketing/components/article-cards";
+import { ArticleFeatureCard } from "@/features/marketing/components/article-cards";
 import { m } from "@/paraglide/messages.js";
 
 export default function TierListsArticle() {
@@ -29,12 +29,12 @@ export default function TierListsArticle() {
         <Heading className="mb-2">{m.help_tier_lists_build_heading()}</Heading>
         <p className="text-muted-foreground">{m.help_tier_lists_build_intro()}</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<GripVerticalIcon className="size-4" />}
             title={m.help_tier_lists_card_drag_title()}
             description={m.help_tier_lists_card_drag_description()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<PencilIcon className="size-4" />}
             title={m.help_tier_lists_card_rename_title()}
             description={m.help_tier_lists_card_rename_description()}
@@ -51,12 +51,12 @@ export default function TierListsArticle() {
           />
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<Link2Icon className="size-4" />}
             title={m.help_tier_lists_card_share_title()}
             description={m.help_tier_lists_card_share_description()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<ImageDownIcon className="size-4" />}
             title={m.help_tier_lists_card_download_title()}
             description={m.help_tier_lists_card_download_description()}
@@ -68,12 +68,12 @@ export default function TierListsArticle() {
         <Heading className="mb-2">{m.help_tier_lists_stream_heading()}</Heading>
         <p className="text-muted-foreground">{m.help_tier_lists_stream_intro()}</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<MonitorPlayIcon className="size-4" />}
             title={m.help_tier_lists_card_present_title()}
             description={m.help_tier_lists_card_present_description()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<ListOrderedIcon className="size-4" />}
             title={m.help_tier_lists_card_live_title()}
             description={m.help_tier_lists_card_live_description()}

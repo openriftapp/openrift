@@ -136,7 +136,7 @@ function FanCard({
 }
 
 /** Hovering a card lifts and tilts it; clicking collects it, and `onAllCollected` fires once every card is gone. */
-export function CardFan({
+export function CollectCardFan({
   imageUrls,
   hinting,
   onAllCollected,

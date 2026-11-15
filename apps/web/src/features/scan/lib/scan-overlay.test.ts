@@ -13,7 +13,7 @@ import {
   coverMapping,
   lockRingDash,
   lockRingFraction,
-  mapQuad,
+  mapQuadToDisplay,
   quadDiagonal,
   quadMatches,
   quadOffsetTo,
@@ -348,11 +348,11 @@ describe("coverMapping", () => {
   });
 });
 
-describe("mapQuad", () => {
+describe("mapQuadToDisplay", () => {
   it("maps a quad through the cover crop into the caller's array", () => {
     const out = rect(0, 0, 0, 0);
 
-    mapQuad(rect(10, 20, 30, 40), coverMapping(100, 100, 0, 200, 200), out);
+    mapQuadToDisplay(rect(10, 20, 30, 40), coverMapping(100, 100, 0, 200, 200), out);
 
     expect(out[0]).toEqual({ x: 20, y: 40 });
     expect(out[2]).toEqual({ x: 80, y: 120 });
@@ -361,7 +361,7 @@ describe("mapQuad", () => {
   it("leaves slots the output array does not have", () => {
     const out: Point[] = [{ x: 0, y: 0 }];
 
-    mapQuad(rect(0, 0, 10, 10), coverMapping(10, 10, 0, 10, 10), out);
+    mapQuadToDisplay(rect(0, 0, 10, 10), coverMapping(10, 10, 0, 10, 10), out);
 
     expect(out).toHaveLength(1);
     expect(out[0]).toEqual({ x: 0, y: 0 });

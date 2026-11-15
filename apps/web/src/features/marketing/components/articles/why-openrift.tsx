@@ -12,7 +12,7 @@ import {
 import { Heading } from "@/components/heading";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { TextLink } from "@/components/ui/text-link";
-import { FeatureCard } from "@/features/marketing/components/article-cards";
+import { ArticleFeatureCard } from "@/features/marketing/components/article-cards";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { m } from "@/paraglide/messages.js";
 
@@ -53,7 +53,7 @@ export default function WhyOpenRiftArticle() {
       <section>
         <Heading className="mb-2">{m.help_why_openrift_what_heading()}</Heading>
         <div className="grid gap-3 sm:grid-cols-2">
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<Code2Icon className="size-4" />}
             title={m.help_why_openrift_open_source_title()}
             description={
@@ -69,17 +69,17 @@ export default function WhyOpenRiftArticle() {
               />
             }
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<ArrowRightLeftIcon className="size-4" />}
             title={m.help_why_openrift_no_lock_in_title()}
             description={m.help_why_openrift_no_lock_in_description()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<HeartIcon className="size-4" />}
             title={m.help_why_openrift_private_groups_title()}
             description={m.help_why_openrift_private_groups_description()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<ZapIcon className="size-4" />}
             title={m.help_why_openrift_speed_title()}
             description={m.help_why_openrift_speed_description()}
@@ -91,13 +91,13 @@ export default function WhyOpenRiftArticle() {
         <Heading className="mb-2">{m.help_why_openrift_gaps_heading()}</Heading>
         <p className="text-muted-foreground mb-3">{m.help_why_openrift_gaps_intro()}</p>
         <div className="grid gap-3 sm:grid-cols-2">
-          <FeatureCard
+          <ArticleFeatureCard
             variant="dashed"
             icon={<SproutIcon className="size-4" />}
             title={m.help_why_openrift_new_kid_title()}
             description={m.help_why_openrift_new_kid_description()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             variant="dashed"
             icon={<HammerIcon className="size-4" />}
             title={m.help_why_openrift_less_time_title()}

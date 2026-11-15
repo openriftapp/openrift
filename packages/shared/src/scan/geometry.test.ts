@@ -12,6 +12,7 @@ import {
   intersectLines,
   mapQuad,
   quadIou,
+  rotateQuad,
   subPixelMinimum,
   touchesFrameEdge,
 } from "./geometry";
@@ -244,6 +245,21 @@ describe("mapQuad", () => {
       { x: 12, y: 10 },
       { x: 3, y: 10 },
     ]);
+  });
+});
+
+describe("rotateQuad", () => {
+  const [a, b, c, d] = UNIT_SQUARE;
+
+  it("starts the corner order at the offset corner", () => {
+    expect(rotateQuad(UNIT_SQUARE, 1)).toEqual([b, c, d, a]);
+    expect(rotateQuad(UNIT_SQUARE, 2)).toEqual([c, d, a, b]);
+    expect(rotateQuad(UNIT_SQUARE, 3)).toEqual([d, a, b, c]);
+  });
+
+  it("wraps offsets past a full turn and keeps the order at zero", () => {
+    expect(rotateQuad(UNIT_SQUARE, 0)).toEqual([a, b, c, d]);
+    expect(rotateQuad(UNIT_SQUARE, 5)).toEqual([b, c, d, a]);
   });
 });
 

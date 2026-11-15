@@ -16,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Callout } from "@/components/ui/callout";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { TextLink } from "@/components/ui/text-link";
-import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
+import { ArticleFeatureCard, StepRow } from "@/features/marketing/components/article-cards";
 import { ZoneOverview } from "@/features/marketing/components/articles/zone-overview";
 import { useDeckFormatList, useZoneOrder } from "@/hooks/use-enums";
 import { m } from "@/paraglide/messages.js";
@@ -129,22 +129,22 @@ export default function DeckBuildingArticle() {
       <section>
         <Heading className="mb-2">{m.help_deck_building_add_heading()}</Heading>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<PlusIcon className="size-4" />}
             title={m.help_deck_building_add_quick_title()}
             description={m.help_deck_building_add_quick_desc()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<GripVerticalIcon className="size-4" />}
             title={m.help_deck_building_add_drag_title()}
             description={m.help_deck_building_add_drag_desc()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<MousePointerClickIcon className="size-4" />}
             title={m.help_deck_building_add_quantity_title()}
             description={m.help_deck_building_add_quantity_desc()}
           />
-          <FeatureCard
+          <ArticleFeatureCard
             icon={<ShuffleIcon className="size-4" />}
             title={m.help_deck_building_add_shift_title()}
             description={m.help_deck_building_add_shift_desc()}

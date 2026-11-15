@@ -1,7 +1,7 @@
 import { act, fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { CardFan } from "./card-fan";
+import { CollectCardFan } from "./card-fan";
 
 const IMAGE_URLS = [
   "https://img.example/a.webp",
@@ -13,7 +13,7 @@ const IMAGE_URLS = [
 
 const COLLECT_SETTLE_MS = 1500;
 
-describe("CardFan", () => {
+describe("CollectCardFan", () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -23,17 +23,17 @@ describe("CardFan", () => {
   });
 
   it("renders nothing until image URLs are available", () => {
-    const { container } = render(<CardFan imageUrls={[]} />);
+    const { container } = render(<CollectCardFan imageUrls={[]} />);
     expect(container.firstChild).toBeNull();
   });
 
   it("renders one card button per fanned image", () => {
-    const { container } = render(<CardFan imageUrls={IMAGE_URLS} />);
+    const { container } = render(<CollectCardFan imageUrls={IMAGE_URLS} />);
     expect(container.querySelectorAll("button").length).toBe(IMAGE_URLS.length);
   });
 
   it("keeps the fan cards out of the keyboard tab order", () => {
-    const { container } = render(<CardFan imageUrls={IMAGE_URLS} />);
+    const { container } = render(<CollectCardFan imageUrls={IMAGE_URLS} />);
     const buttons = container.querySelectorAll("button");
     expect(buttons.length).toBeGreaterThan(0);
     for (const button of buttons) {
@@ -44,7 +44,7 @@ describe("CardFan", () => {
   it("fires onAllCollected once every card is collected", () => {
     const onAllCollected = vi.fn();
     const { container } = render(
-      <CardFan imageUrls={IMAGE_URLS} onAllCollected={onAllCollected} />,
+      <CollectCardFan imageUrls={IMAGE_URLS} onAllCollected={onAllCollected} />,
     );
     for (const button of container.querySelectorAll("button")) {
       fireEvent.click(button);
@@ -59,7 +59,7 @@ describe("CardFan", () => {
   it("does not fire onAllCollected while cards remain", () => {
     const onAllCollected = vi.fn();
     const { container } = render(
-      <CardFan imageUrls={IMAGE_URLS} onAllCollected={onAllCollected} />,
+      <CollectCardFan imageUrls={IMAGE_URLS} onAllCollected={onAllCollected} />,
     );
     const firstButton = container.querySelector("button");
     expect(firstButton).not.toBeNull();

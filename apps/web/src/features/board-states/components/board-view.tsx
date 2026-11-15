@@ -42,7 +42,7 @@ import type {
 import {
   ArrowHandle,
   BattlefieldCardFrame,
-  CardBack,
+  BoardCardBack,
   cardImageId,
   KeywordBadgeChip,
 } from "@/features/board-states/components/board-card-parts";
@@ -408,7 +408,7 @@ function DeckZone({
     >
       <ZoneLabel text={ZONE_LABEL[kind]()} owner={owner} mirrored={mirrored} />
       <span className="relative shrink-0 self-end">
-        <CardBack owner={owner} />
+        <BoardCardBack owner={owner} />
         {count !== undefined && (
           <span
             className="absolute inset-x-0 bottom-1 mx-auto w-fit rounded-full bg-black/75 px-1.5 text-sm font-semibold tabular-nums"
@@ -921,7 +921,7 @@ function PieceToken({ piece, mirrored, context }: PieceProps) {
         />
         {piece.facedown && (
           <span className="absolute inset-0 transition-opacity group-hover/piece:opacity-0 group-focus/piece:opacity-0">
-            <CardBack owner={piece.owner} className="size-full border-0" />
+            <BoardCardBack owner={piece.owner} className="size-full border-0" />
           </span>
         )}
       </span>

@@ -32,7 +32,7 @@ export function StepRow({
   );
 }
 
-export function FeatureCard({
+export function ArticleFeatureCard({
   icon,
   title,
   shortcut,

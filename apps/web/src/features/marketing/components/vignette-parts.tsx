@@ -22,19 +22,23 @@ export function Swap({
   was,
   now,
   className,
+  layerClassName,
   wasAnimation = "motion-safe:animate-vignette-was",
   nowAnimation = "motion-safe:animate-vignette-now",
 }: {
   was: ReactNode;
   now: ReactNode;
   className?: string;
+  layerClassName?: string;
   wasAnimation?: string;
   nowAnimation?: string;
 }) {
   return (
     <span className={cn("inline-grid justify-items-start", className)}>
-      <span className={cn("col-start-1 row-start-1 opacity-0", wasAnimation)}>{was}</span>
-      <span className={cn("col-start-1 row-start-1", nowAnimation)}>{now}</span>
+      <span className={cn("col-start-1 row-start-1 opacity-0", layerClassName, wasAnimation)}>
+        {was}
+      </span>
+      <span className={cn("col-start-1 row-start-1", layerClassName, nowAnimation)}>{now}</span>
     </span>
   );
 }

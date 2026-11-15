@@ -1,7 +1,11 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useScanLayout } from "./use-scan-layout";
+async function loadUseScanLayout() {
+  vi.resetModules();
+  const module = await import("./use-scan-layout");
+  return module.useScanLayout;
+}
 
 interface FakeQuery {
   matches: boolean;
@@ -52,33 +56,38 @@ describe("useScanLayout", () => {
     vi.unstubAllGlobals();
   });
 
-  it("reports boxed when neither phone query matches", () => {
+  it("reports boxed when neither phone query matches", async () => {
     stubMatchMedia({});
-    const { result } = renderHook(() => useScanLayout());
+    const useScanLayout = await loadUseScanLayout();
+    const { result } = renderHook(useScanLayout);
     expect(result.current).toBe("boxed");
   });
 
-  it("reports portrait on a narrow upright viewport", () => {
+  it("reports portrait on a narrow upright viewport", async () => {
     stubMatchMedia({ [PORTRAIT]: true });
-    const { result } = renderHook(() => useScanLayout());
+    const useScanLayout = await loadUseScanLayout();
+    const { result } = renderHook(useScanLayout);
     expect(result.current).toBe("portrait");
   });
 
-  it("reports landscape on a short sideways viewport", () => {
+  it("reports landscape on a short sideways viewport", async () => {
     stubMatchMedia({ [LANDSCAPE]: true });
-    const { result } = renderHook(() => useScanLayout());
+    const useScanLayout = await loadUseScanLayout();
+    const { result } = renderHook(useScanLayout);
     expect(result.current).toBe("landscape");
   });
 
-  it("prefers landscape when a phone is narrow and sideways at once", () => {
+  it("prefers landscape when a phone is narrow and sideways at once", async () => {
     stubMatchMedia({ [LANDSCAPE]: true, [PORTRAIT]: true });
-    const { result } = renderHook(() => useScanLayout());
+    const useScanLayout = await loadUseScanLayout();
+    const { result } = renderHook(useScanLayout);
     expect(result.current).toBe("landscape");
   });
 
-  it("re-renders when the viewport rotates", () => {
+  it("re-renders when the viewport rotates", async () => {
     const queries = stubMatchMedia({ [PORTRAIT]: true });
-    const { result } = renderHook(() => useScanLayout());
+    const useScanLayout = await loadUseScanLayout();
+    const { result } = renderHook(useScanLayout);
     expect(result.current).toBe("portrait");
 
     act(() => {
@@ -93,9 +102,10 @@ describe("useScanLayout", () => {
     expect(result.current).toBe("boxed");
   });
 
-  it("drops its listeners on unmount", () => {
+  it("drops its listeners on unmount", async () => {
     const queries = stubMatchMedia({ [PORTRAIT]: true });
-    const { unmount } = renderHook(() => useScanLayout());
+    const useScanLayout = await loadUseScanLayout();
+    const { unmount } = renderHook(useScanLayout);
     expect(queries.get(PORTRAIT)?.listeners.size).toBe(1);
     expect(queries.get(LANDSCAPE)?.listeners.size).toBe(1);
 
@@ -104,9 +114,10 @@ describe("useScanLayout", () => {
     expect(queries.get(LANDSCAPE)?.listeners.size).toBe(0);
   });
 
-  it("falls back to boxed where matchMedia does not exist", () => {
+  it("falls back to boxed where matchMedia does not exist", async () => {
     vi.stubGlobal("matchMedia", undefined);
-    const { result } = renderHook(() => useScanLayout());
+    const useScanLayout = await loadUseScanLayout();
+    const { result } = renderHook(useScanLayout);
     expect(result.current).toBe("boxed");
   });
 });

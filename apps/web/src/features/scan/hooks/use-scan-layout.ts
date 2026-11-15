@@ -1,44 +1,22 @@
-import { useSyncExternalStore } from "react";
-
-import { MOBILE_QUERY as PORTRAIT_QUERY } from "@/lib/media-query";
+import { createMediaQueryHook } from "@/hooks/create-media-query-hook";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 
 export type ScanLayout = "boxed" | "portrait" | "landscape";
 
 // 600px keeps laptops/tablets boxed; the largest common tablet-in-landscape
 // short side is well above that, the largest phone (~430px) well below.
-const LANDSCAPE_QUERY = "(orientation: landscape) and (max-height: 600px)";
-
-function queryList(query: string): MediaQueryList | null {
-  return typeof globalThis.matchMedia === "function" ? globalThis.matchMedia(query) : null;
-}
-
-function subscribe(onChange: () => void): () => void {
-  const landscape = queryList(LANDSCAPE_QUERY);
-  const portrait = queryList(PORTRAIT_QUERY);
-  landscape?.addEventListener("change", onChange);
-  portrait?.addEventListener("change", onChange);
-  return () => {
-    landscape?.removeEventListener("change", onChange);
-    portrait?.removeEventListener("change", onChange);
-  };
-}
+const useShortLandscape = createMediaQueryHook(
+  "(orientation: landscape) and (max-height: 600px)",
+  false,
+);
 
 // Landscape wins over portrait: a rotated phone can still be under the width
 // cutoff, and the side panel is what actually fits there.
-function getSnapshot(): ScanLayout {
-  if (queryList(LANDSCAPE_QUERY)?.matches === true) {
+export function useScanLayout(): ScanLayout {
+  const landscape = useShortLandscape();
+  const portrait = useIsMobile();
+  if (landscape) {
     return "landscape";
   }
-  if (queryList(PORTRAIT_QUERY)?.matches === true) {
-    return "portrait";
-  }
-  return "boxed";
-}
-
-function getServerSnapshot(): ScanLayout {
-  return "boxed";
-}
-
-export function useScanLayout(): ScanLayout {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  return portrait ? "portrait" : "boxed";
 }

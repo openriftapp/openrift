@@ -6,11 +6,14 @@ import { catalogQueryOptions } from "@/features/cards/lib/catalog-queries";
 import { filterSearchSchema } from "@/features/cards/lib/search-schemas";
 import { loadCollection } from "@/features/collections/lib/collection-load";
 import { DeckPending } from "@/features/decks/components/deck-pending";
+import { TierListGoneState } from "@/features/stage/components/tier-list-gone-state";
 import { queueCardsSearchSchema } from "@/features/stage/lib/presentation-queue-search";
+import { tierListQueryOptions } from "@/features/stage/lib/tier-lists-queries";
 import { requireSession, sessionQueryOptions } from "@/lib/auth-session";
 import { initQueryOptions } from "@/lib/init-queries";
 import { lenient } from "@/lib/lenient-param";
 import { seoHead } from "@/lib/seo";
+import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
 import { getSiteUrl } from "@/lib/site-config";
 
 const DECK_ZONES = [
@@ -60,7 +63,7 @@ export const Route = createFileRoute("/_app/stage")({
     }
     await requireSession({ context, location });
   },
-  loaderDeps: ({ search }) => ({ deck: search.deck }),
+  loaderDeps: ({ search }) => ({ deck: search.deck, tier: search.tier }),
   loader: async ({ context, deps }) => {
     // Both the deck walk and the ad-hoc queue resolve their cards against the
     // catalog, and the stage reads zone labels off /init.
@@ -68,6 +71,22 @@ export const Route = createFileRoute("/_app/stage")({
       context.queryClient.query({ ...catalogQueryOptions, staleTime: "static" }),
       context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
     ]);
+    if (deps.tier !== undefined) {
+      const session = await context.queryClient.query({
+        ...sessionQueryOptions(),
+        staleTime: "static",
+      });
+      if (session?.user) {
+        // A cached list is reused as is: a list deleted elsewhere stays on
+        // screen until the cache drops it, and its next save reports the failure.
+        await notFoundOnSentinel(
+          context.queryClient.query({
+            ...tierListQueryOptions(session.user.id, deps.tier),
+            staleTime: "static",
+          }),
+        );
+      }
+    }
     if (deps.deck === undefined) {
       return null;
     }
@@ -91,4 +110,5 @@ export const Route = createFileRoute("/_app/stage")({
     return null;
   },
   pendingComponent: DeckPending,
+  notFoundComponent: TierListGoneState,
 });

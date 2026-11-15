@@ -23,7 +23,7 @@ export interface LockedCard {
   alternatives?: string[];
 }
 
-export interface PrintingUpdate {
+export interface ScanPrintingUpdate {
   artKey: string;
   key: string;
   label: string;
@@ -106,7 +106,7 @@ export function appendLock(locks: readonly LockedCard[], lock: LockedCard): Lock
 
 export function resolvePrintingIn(
   locks: readonly LockedCard[],
-  update: PrintingUpdate,
+  update: ScanPrintingUpdate,
 ): LockedCard[] | null {
   const id = lockIdOf(update);
   const index = locks.findIndex((lock) => lockIdOf(lock) === id);
