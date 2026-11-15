@@ -1174,7 +1174,7 @@ describe.skipIf(!ctx)("metaRepo", () => {
         for (const status of ["upcoming", "in_progress", "complete"] as const) {
           for (const rows of [0, 1]) {
             const eventDate = shiftUtcDay(today, offset);
-            const slug = `mta-runwin-${status}-${rows}-${offset + 2}`;
+            const slug = `mta-runwin-${status.replace("_", "-")}-${rows}-${offset + 2}`;
             const id = await seedEvent(repo, slug, { eventDate });
             await db.updateTable("metaEvents").set({ status }).where("id", "=", id).execute();
             if (rows > 0) {
