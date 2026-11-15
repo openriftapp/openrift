@@ -116,7 +116,7 @@ function BatchDialog({
           {outcome === null ? (
             <>
               <DialogCancel />
-              <Button disabled={run.isPending || names.length === 0} onClick={confirm}>
+              <Button disabled={names.length === 0} pending={run.isPending} onClick={confirm}>
                 {batchButtonLabel(kind, names.length)}
               </Button>
             </>

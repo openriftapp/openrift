@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback } from "@/components/error-message";
 import {
   ensureFriendGroupDetailCanonical,
   friendGroupMemberDetailQueryOptions,
@@ -25,6 +25,5 @@ export const Route = createFileRoute("/_app/_authenticated/groups/$slug_/members
       ),
     });
   },
-  errorComponent: RouteErrorFallback,
   notFoundComponent: NotFoundFallback,
 });

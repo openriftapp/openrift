@@ -10,8 +10,8 @@ import {
 import { PROSE_MARKUP } from "@/components/message-markup";
 import { Label } from "@/components/ui/label";
 import { SimpleSelect } from "@/components/ui/simple-select";
-import { TextLink } from "@/components/ui/text-link";
 import { ImportTextInput } from "@/features/collections/components/import-preview-chrome";
+import { DeckCodeSiteLink } from "@/features/decks/components/deck-code-site-link";
 import type { DeckImportMode } from "@/features/decks/lib/deck-import-modes";
 import {
   importModeLabels,
@@ -28,16 +28,7 @@ function importDescriptions(): Record<DeckImportMode, React.ReactNode> {
       <ParaglideMessage
         message={m.collections_import_deck_desc_piltover}
         markup={{
-          link: ({ children }) => (
-            <TextLink
-              variant="muted"
-              href="https://piltoverarchive.com"
-              target="_blank"
-              rel="noreferrer"
-            >
-              {children}
-            </TextLink>
-          ),
+          link: ({ children }) => <DeckCodeSiteLink>{children}</DeckCodeSiteLink>,
         }}
       />
     ),

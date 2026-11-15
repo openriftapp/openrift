@@ -10,7 +10,6 @@ import { ALL_MARKETPLACES, MARKETPLACE_CURRENCY } from "@openrift/shared/types/p
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { z } from "zod/mini";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cardDetailQueryOptions, ownFaces } from "@/features/cards/lib/card-detail-queries";
 import type { CardDetailPayload } from "@/features/cards/lib/card-detail-queries";
@@ -193,7 +192,6 @@ export const Route = createFileRoute("/_app/cards_/$cardSlug/{-$printingSlug}")(
   },
   component: () => null,
   pendingComponent: CardDetailPending,
-  errorComponent: RouteErrorFallback,
 });
 
 function CardDetailPending() {

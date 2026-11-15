@@ -6,7 +6,7 @@ import {
   TournamentParticipantsTab,
 } from "@/features/tournaments/components/tournament-participants-tab";
 import { useTournamentDetail } from "@/features/tournaments/hooks/use-tournaments";
-import { canManageTournament } from "@/features/tournaments/lib/tournament-display";
+import { canAddParticipants } from "@/features/tournaments/lib/tournament-display";
 
 export const Route = createLazyFileRoute("/_app/_authenticated/tournaments_/$id_/participants")({
   component: TournamentParticipantsRoute,
@@ -15,7 +15,7 @@ export const Route = createLazyFileRoute("/_app/_authenticated/tournaments_/$id_
 function TournamentParticipantsRoute() {
   const { id } = Route.useParams();
   const { data: detail } = useTournamentDetail(id);
-  const showAdd = canManageTournament(detail.myRoles);
+  const showAdd = canAddParticipants(detail);
   return (
     <TournamentSectionFrame
       id={id}

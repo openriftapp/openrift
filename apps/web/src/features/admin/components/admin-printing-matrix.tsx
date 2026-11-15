@@ -10,6 +10,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { CardIcon } from "@/components/card-icon";
 import { LanguageChip } from "@/components/language-chip";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Pressable } from "@/components/ui/pressable";
 import { useMarkers } from "@/features/admin/hooks/use-markers";
 import { usePrintingsByLanguage } from "@/features/admin/hooks/use-printings-by-language";
@@ -133,10 +134,11 @@ function PrintingCell({
       </HoverCardTrigger>
       {url && (
         <HoverCardContent side="right" className="w-auto p-1">
-          <img
+          <ImgWithFallback
             src={url}
             alt=""
             className="max-h-[70vh] max-w-[min(40rem,80vw)] rounded-md object-contain"
+            fallback={<span className="text-muted-foreground block p-2">Image failed to load</span>}
           />
         </HoverCardContent>
       )}

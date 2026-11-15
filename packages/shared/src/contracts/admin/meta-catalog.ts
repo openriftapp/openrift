@@ -534,7 +534,6 @@ export const adminMetaCatalogContract = {
     .input(idSweepWindowSchema)
     .output(metaSyncTriggerResultSchema),
 
-  /** The playloltcg and playriftbound rechecks cannot answer a Stop and are refused. */
   cancelRun: authedRoute
     .route({ method: "POST", path: `${BASE}/sync/cancel`, tags: [TAG] })
     .input(z.object({ source: metaSourceSchema, job: metaCancellableJobSchema }))

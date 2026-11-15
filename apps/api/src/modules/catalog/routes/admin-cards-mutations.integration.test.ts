@@ -354,6 +354,27 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
       expect(await readJson(res)).toEqual({ updated: 1, candidateCardIds: [cardShortCode] });
     });
 
+    it("checks a given candidate card whose name does not match the card", async () => {
+      await db
+        .updateTable("candidateCards")
+        .set({ checkedAt: null })
+        .where("id", "=", csUnmatchedId)
+        .execute();
+
+      const res = await app.fetch(
+        adminReq("POST", `${P}/${cardId}/check-all`, { candidateCardIds: [csUnmatchedId] }),
+      );
+      expect(res.status).toBe(200);
+      expect(await readJson(res)).toEqual({ updated: 1, candidateCardIds: [csUnmatchedId] });
+
+      const row = await db
+        .selectFrom("candidateCards")
+        .select("checkedAt")
+        .where("id", "=", csUnmatchedId)
+        .executeTakeFirstOrThrow();
+      expect(row.checkedAt).not.toBeNull();
+    });
+
     it("returns 404 for non-existent card slug", async () => {
       const res = await app.fetch(
         adminReq("POST", `${P}/00000000-0000-4000-a000-000000000000/check-all`),

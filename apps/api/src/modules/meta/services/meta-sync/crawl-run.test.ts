@@ -18,6 +18,41 @@ function fakeHeartbeat(cancelAfter = Number.POSITIVE_INFINITY) {
 }
 
 describe("createCrawlRun", () => {
+  it("stops once the time budget has run out and marks the crawl incomplete", async () => {
+    let at = 1000;
+    const run = createCrawlRun({
+      result: emptyMetaSyncResult(),
+      heartbeat: fakeHeartbeat().heartbeat,
+      requests: () => 0,
+      maxDurationMs: 5 * 60_000,
+      now: () => at,
+    });
+
+    at += 5 * 60_000 - 1;
+    expect(await run.tick()).toBe(true);
+    at += 1;
+
+    expect(run.withinTime()).toBe(false);
+    expect(await run.tick()).toBe(false);
+    expect(run.result.complete).toBe(false);
+    expect(run.result.errors).toEqual(["Stopped at the 5-minute time budget"]);
+  });
+
+  it("never stops on time without a time budget", async () => {
+    let at = 0;
+    const run = createCrawlRun({
+      result: emptyMetaSyncResult(),
+      heartbeat: fakeHeartbeat().heartbeat,
+      requests: () => 0,
+      now: () => at,
+    });
+
+    at += 10 * 24 * 60 * 60_000;
+
+    expect(run.withinTime()).toBe(true);
+    expect(await run.tick()).toBe(true);
+  });
+
   it("checkpoints every Nth tick with the requests spent since the run started", async () => {
     let requests = 40;
     const { heartbeat, beats } = fakeHeartbeat();

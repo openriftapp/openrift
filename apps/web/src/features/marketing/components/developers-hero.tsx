@@ -6,6 +6,7 @@ import type {
 } from "@openrift/shared/developers-showcase";
 import type { ReactNode } from "react";
 
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { m } from "@/paraglide/messages.js";
 
 export interface DevelopersShowcaseCard extends DevelopersShowcaseFacts {
@@ -139,7 +140,8 @@ export function DevelopersHero({
             <div className="relative" style={{ width: GAP_W }}>
               <Connectors rows={rows} />
             </div>
-            <img
+            <ImgWithFallback
+              fallback={null}
               src={card.imageSrc}
               alt={card.name}
               width={CARD_W}

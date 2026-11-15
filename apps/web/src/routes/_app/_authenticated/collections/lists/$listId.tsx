@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback } from "@/components/error-message";
 import { CollectionPending } from "@/features/collections/components/collection-pending";
 import { listDetailQueryOptions } from "@/features/lists/lib/lists-queries";
 import { privateSeoHead } from "@/lib/seo";
@@ -17,6 +17,5 @@ export const Route = createFileRoute("/_app/_authenticated/collections/lists/$li
     );
   },
   pendingComponent: CollectionPending,
-  errorComponent: RouteErrorFallback,
   notFoundComponent: NotFoundFallback,
 });

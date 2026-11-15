@@ -168,7 +168,8 @@ export function PodPairingsSection({
                   <Button
                     size="sm"
                     variant="destructive"
-                    disabled={anyReported || rerollRound.isPending}
+                    disabled={anyReported}
+                    pending={rerollRound.isPending}
                     onClick={() =>
                       void runReportedMutation(() =>
                         rerollRound.mutateAsync({ id, roundNumber: round.roundNumber }),

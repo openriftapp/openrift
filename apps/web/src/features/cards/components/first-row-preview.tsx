@@ -4,6 +4,7 @@ import { imageSrcSet, imageUrl } from "@openrift/shared/image-url";
 import { sideKey } from "@openrift/shared/printing-side";
 import { getRouteApi } from "@tanstack/react-router";
 
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { OrnamentRule } from "@/components/ui/ornament";
 import { ActiveFilters } from "@/features/cards/components/active-filters";
 import { CardBrowserLayout } from "@/features/cards/components/card-browser-layout";
@@ -178,7 +179,8 @@ export function FirstRowPreview() {
                           className="absolute top-1/2 left-1/2 overflow-hidden"
                           style={LANDSCAPE_ROTATION_STYLE}
                         >
-                          <img
+                          <ImgWithFallback
+                            fallback={null}
                             src={imageUrl(card.imageId, "400w")}
                             srcSet={srcSet}
                             sizes={sizes}
@@ -191,7 +193,14 @@ export function FirstRowPreview() {
                         </div>
                       </div>
                     ) : (
-                      <img
+                      <ImgWithFallback
+                        fallback={
+                          <div
+                            role="img"
+                            aria-label={card.cardName}
+                            className="aspect-card bg-muted w-full rounded-lg"
+                          />
+                        }
                         src={imageUrl(card.imageId, "400w")}
                         srcSet={srcSet}
                         sizes={sizes}

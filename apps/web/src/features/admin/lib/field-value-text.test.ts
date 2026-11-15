@@ -1,7 +1,12 @@
 import { labelMap } from "@openrift/shared/enum-label";
 import { describe, expect, it } from "vitest";
 
-import { formatCatalogFieldValue, formatFieldValue, formatRawValue } from "./field-value-text";
+import {
+  formatCatalogFieldValue,
+  formatFieldValue,
+  formatRawValue,
+  formatReleaseValue,
+} from "./field-value-text";
 
 describe("formatFieldValue", () => {
   it("renders a dash for every empty shape", () => {
@@ -67,6 +72,25 @@ describe("formatCatalogFieldValue", () => {
     expect(formatCatalogFieldValue("announcedAt", "2026-08-15T23:59:00.000Z")).toBe("2026-08-15");
     expect(formatCatalogFieldValue("releasedAt", "2026-08-15")).toBe("2026-08-15");
     expect(formatCatalogFieldValue("releasedAt", null)).toBe("—");
+  });
+});
+
+describe("formatReleaseValue", () => {
+  it("shows a release date at its precision", () => {
+    expect(formatReleaseValue("2026-07-01", "month")).toBe("2026-07");
+    expect(formatReleaseValue("2026-07-01", "quarter")).toBe("2026-Q3");
+    expect(formatReleaseValue("2026-01-01", "year")).toBe("2026");
+    expect(formatReleaseValue("2026-07-14", "day")).toBe("2026-07-14");
+  });
+
+  it("follows the input's shape when no precision is known", () => {
+    expect(formatReleaseValue("2026-07", null)).toBe("2026-07");
+    expect(formatReleaseValue("2026-07-14", null)).toBe("2026-07-14");
+  });
+
+  it("shows a value it cannot read as written", () => {
+    expect(formatReleaseValue(null, "month")).toBe("—");
+    expect(formatReleaseValue("2026-07", "day")).toBe("2026-07");
   });
 });
 

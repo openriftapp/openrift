@@ -17,7 +17,7 @@ import type {
   PlayriftboundRecheckRow,
   PlayriftboundUpsertInput,
 } from "../../repositories/playriftbound-events.js";
-import { createCrawlRun } from "./crawl-run.js";
+import { createCrawlRun, DAILY_SYNC_TIME_BUDGET_MS } from "./crawl-run.js";
 import { clock } from "./deps.js";
 import { autoAcceptPlayriftboundEvents } from "./playriftbound-accept.js";
 import { isRunStopping, PlayriftboundUnavailableError } from "./playriftbound-client.js";
@@ -278,7 +278,17 @@ export async function syncPlayriftboundCatalog(
     result.errors.push("No stores are known yet. Run the discovery sweep first.");
     return result;
   }
+  const budget = createCrawlRun({
+    result,
+    heartbeat: createRunHeartbeat(deps),
+    requests: () => deps.client.requests,
+    maxDurationMs: DAILY_SYNC_TIME_BUDGET_MS,
+    now: () => clock(deps).getTime(),
+  });
   for (const cell of cells) {
+    if (!budget.withinTime()) {
+      break;
+    }
     if (deps.client.requests >= SYNC_REQUEST_BUDGET) {
       result.complete = false;
       recordCapped(result.errors, [

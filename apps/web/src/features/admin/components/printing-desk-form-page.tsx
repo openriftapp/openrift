@@ -182,6 +182,7 @@ function usePrintingDeskFormState({
     existing?.releasePrecision === "quarter" ? "month" : (existing?.releasePrecision ?? "day"),
   );
   const [comment, setComment] = useState(existing?.comment ?? "");
+  const [flavorText, setFlavorText] = useState(existing?.flavorText ?? "");
   const [secondSide, setSecondSide] = useState<Printing | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -218,6 +219,7 @@ function usePrintingDeskFormState({
       releasedAt: release.releasedAt,
       releasePrecision: release.precision,
       comment: comment.trim().length > 0 ? comment.trim() : null,
+      flavorText: existing ? (flavorText.trim().length > 0 ? flavorText.trim() : null) : undefined,
     };
 
     const basePrintingId = base?.printingId;
@@ -281,6 +283,8 @@ function usePrintingDeskFormState({
     setPrecision,
     comment,
     setComment,
+    flavorText,
+    setFlavorText,
     isCreate: existing === null,
     scope,
     secondSide,
@@ -441,6 +445,17 @@ function PrintingDeskFields({
                   </FieldDescription>
                 </>
               )}
+            </Field>
+          )}
+
+          {showFace && !form.isCreate && (
+            <Field className="@3xl/desk-form:col-span-2">
+              <FieldLabel htmlFor="desk-flavor-text">Flavor text</FieldLabel>
+              <Textarea
+                id="desk-flavor-text"
+                value={form.flavorText}
+                onChange={(event) => form.setFlavorText(event.target.value)}
+              />
             </Field>
           )}
 

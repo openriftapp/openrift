@@ -120,6 +120,38 @@ describe("buildFaceSuggestions", () => {
     expect(model.enterCandidateIds).toEqual([]);
   });
 
+  it("compares a source's set slug with the face's set slug, and undoes to the slug", () => {
+    const source = makeCandidateCard({ provider: "provider-a" });
+    const printing = makeAdminPrinting({
+      id: "printing-1",
+      faceId: "f1",
+      setId: "019cfc3b-0369-7890-a450-7859471cc3f6",
+      setSlug: "OGN",
+    });
+    const detail = makeAdminCardDetail({
+      sources: [source],
+      printings: [printing],
+      candidatePrintings: [
+        makeCandidatePrinting({
+          candidateCardId: source.id,
+          printingId: "printing-1",
+          setId: "OGN",
+        }),
+        makeCandidatePrinting({
+          candidateCardId: source.id,
+          printingId: "printing-1",
+          setId: "SFD",
+        }),
+      ],
+    });
+
+    const model = buildFaceSuggestions(detail, "f1", CONTEXT);
+
+    expect(model.suggestions.filter((entry) => entry.field === "setId")).toEqual([
+      expect.objectContaining({ proposed: "SFD", current: "OGN" }),
+    ]);
+  });
+
   it("checks a source on Enter when every difference it carries is on the face", () => {
     const source = makeCandidateCard({ provider: "provider-a" });
     const printing = makeAdminPrinting({ id: "printing-1", faceId: "f1", artist: "" });

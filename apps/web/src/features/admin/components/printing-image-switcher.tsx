@@ -373,7 +373,8 @@ export function PrintingImageSwitcher({
           />
           <Button
             variant="outline"
-            disabled={!urlValue.trim() || addImageFromUrl.isPending}
+            disabled={!urlValue.trim()}
+            pending={addImageFromUrl.isPending}
             onClick={() => {
               addImageFromUrl.mutate(
                 {
@@ -473,7 +474,8 @@ export function PrintingImageSwitcher({
               />
               <Button
                 variant="outline"
-                disabled={!fallbackUrlValue.trim() || addFallbackArtUrl.isPending}
+                disabled={!fallbackUrlValue.trim()}
+                pending={addFallbackArtUrl.isPending}
                 onClick={() => {
                   addFallbackArtUrl.mutate(
                     { printingId, url: fallbackUrlValue.trim(), face },

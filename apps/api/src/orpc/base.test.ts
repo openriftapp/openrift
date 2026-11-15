@@ -1,3 +1,4 @@
+import { tradeCancelConflictError } from "@openrift/shared/contracts/fields";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { oc } from "@orpc/contract";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
@@ -7,7 +8,7 @@ import type { Context } from "hono";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
-import { AppError } from "../errors.js";
+import { AppError, TradeCancelConsentRequiredError } from "../errors.js";
 import { readJson } from "../test/read-json.js";
 import type { Variables } from "../types.js";
 import { requireAuthedUser, requireUser } from "./base";
@@ -103,6 +104,19 @@ const errorContract = {
     .meta({ auth: "public" })
     .errors({ VALIDATION_ERROR: { status: 422, message: "Invalid" } })
     .output(z.object({ ok: z.boolean() })),
+  tradeCancelConsent: oc
+    .route({ method: "GET", path: "/_e/trade-cancel-consent" })
+    .meta({ auth: "public" })
+    .errors({ CONFLICT: tradeCancelConflictError })
+    .output(z.object({ ok: z.boolean() })),
+};
+
+const CANCELLED_TRADE = {
+  id: "trade-1",
+  cardId: "card-1",
+  printingId: "printing-1",
+  quantity: 2,
+  counterpartyName: "Ezreal",
 };
 
 const errorOs = implement(errorContract).$context<ApiContext>().use(requireUser);
@@ -118,6 +132,9 @@ const errorRouter = {
   }),
   validationExplicitStatus: errorOs.validationExplicitStatus.handler(() => {
     throw new AppError(422, ERROR_CODES.VALIDATION_ERROR, "invalid");
+  }),
+  tradeCancelConsent: errorOs.tradeCancelConsent.handler(() => {
+    throw new TradeCancelConsentRequiredError({ trades: [CANCELLED_TRADE] });
   }),
 };
 const errorHandler = new OpenAPIHandler(errorRouter);
@@ -138,9 +155,17 @@ async function errorBody(path: string): Promise<{
   defined: boolean;
   code: string;
   status: number;
+  message: string;
+  data?: unknown;
 }> {
   const res = await errorApp.request(path);
-  return (await readJson(res)) as { defined: boolean; code: string; status: number };
+  return (await readJson(res)) as {
+    defined: boolean;
+    code: string;
+    status: number;
+    message: string;
+    data?: unknown;
+  };
 }
 
 describe("convertingAppErrors typed-error round-trip", () => {
@@ -162,5 +187,16 @@ describe("convertingAppErrors typed-error round-trip", () => {
   it("a non-standard code with a pinned matching status arrives defined", async () => {
     const body = await errorBody("/_e/validation-explicit");
     expect(body).toMatchObject({ defined: true, code: "VALIDATION_ERROR", status: 422 });
+  });
+
+  it("an unconfirmed trade cancel arrives as a defined 409 carrying the trades", async () => {
+    const body = await errorBody("/_e/trade-cancel-consent");
+    expect(body).toMatchObject({
+      defined: true,
+      code: "CONFLICT",
+      status: 409,
+      message: tradeCancelConflictError.message,
+      data: { trades: [CANCELLED_TRADE] },
+    });
   });
 });

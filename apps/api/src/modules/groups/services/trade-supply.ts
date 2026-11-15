@@ -3,7 +3,7 @@ import { pluralize } from "@openrift/shared/strings";
 
 import type { Repos, Transact } from "../../../deps.js";
 import type { AppError } from "../../../errors.js";
-import { conflict } from "../../../errors.js";
+import { conflict, TradeCancelConsentRequiredError } from "../../../errors.js";
 import { claimCopiesForOffers } from "../repositories/trade-offer-claims.js";
 
 export function tooFewAvailable(count: number): AppError {
@@ -127,31 +127,6 @@ export async function autoCancelUnfillablePendingTrades(
     trxRepos,
     await findUnfillablePendingTrades(trxRepos, giverUserId, printingId),
   );
-}
-
-/** Thrown inside the edit's transaction, so the edit rolls back with it. */
-export class TradeCancelConsentRequiredError extends Error {
-  readonly data: TradeCancelConflictData;
-
-  constructor(data: TradeCancelConflictData) {
-    super("This change would cancel pending trades");
-    this.name = "TradeCancelConsentRequiredError";
-    this.data = data;
-  }
-}
-
-export async function refusingUnconfirmedTradeCancels<T>(
-  run: Promise<T>,
-  refuse: (data: TradeCancelConflictData) => Error,
-): Promise<T> {
-  try {
-    return await run;
-  } catch (error) {
-    if (error instanceof TradeCancelConsentRequiredError) {
-      throw refuse(error.data);
-    }
-    throw error;
-  }
 }
 
 /**

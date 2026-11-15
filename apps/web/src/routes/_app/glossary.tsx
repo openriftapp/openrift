@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback } from "@/components/error-message";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { querySearchSchema } from "@/features/rules/lib/rules-search-schema";
 import { requireFeature } from "@/lib/feature-flags";
@@ -32,6 +32,5 @@ export const Route = createFileRoute("/_app/glossary")({
           path: "/glossary",
         })
       : privateSeoHead("Glossary"),
-  errorComponent: RouteErrorFallback,
   notFoundComponent: NotFoundFallback,
 });

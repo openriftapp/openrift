@@ -297,6 +297,22 @@ describe("source conventions", () => {
     expect(filesMatching(".", /pg_advisory/u, ["repositories/query-helpers.ts"])).toEqual([]);
   });
 
+  it("namespaces every advisory lock key", () => {
+    const call =
+      /\b(?:lockKey|withKeyLock)\(\s*[^,()]+(?:\([^)]*\))?,\s*(?<key>[^,)]+(?:\([^)]*\))?)/gu;
+    const namespaced = /^(?:["`][\w-]+:|`\$\{\w+\}[\w-]+:|(?:supplyKey|promoteLockKey)\()/u;
+    const offenders = sourceFiles(".")
+      .filter((file) => !file.endsWith(".test.ts") && file !== "repositories/query-helpers.ts")
+      .flatMap((file) =>
+        [...readFileSync(path.join(SRC, file), "utf-8").matchAll(call)]
+          .map((match) => match.groups?.key?.trim() ?? "")
+          .filter((key) => !namespaced.test(key))
+          .map((key) => `${file}: ${key}`),
+      );
+
+    expect(offenders).toEqual([]);
+  });
+
   it("refreshes prices without a per-marketplace upsert config", () => {
     expect(
       filesMatching("modules/marketplace", /\bUPSERT_CONFIG\b|\bPriceUpsertConfig\b/u, []),

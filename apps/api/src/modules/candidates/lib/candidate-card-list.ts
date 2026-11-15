@@ -2,6 +2,7 @@ import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submis
 import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
 import { WellKnown } from "@openrift/shared/well-known";
 
+import { buildCardNameIndex, cardNameKeys, resolveCardIdByNorm } from "../../../lib/card-names.js";
 import type { candidateCardsRepo } from "../repositories/candidate-cards.js";
 
 type Repo = ReturnType<typeof candidateCardsRepo>;
@@ -198,30 +199,17 @@ export async function buildCandidateCardList(
     return latest ?? new Date(0);
   }
 
-  const aliasNormNamesByCardId = new Map<string, string[]>();
-  for (const a of aliases) {
-    let arr = aliasNormNamesByCardId.get(a.cardId);
-    if (!arr) {
-      arr = [];
-      aliasNormNamesByCardId.set(a.cardId, arr);
-    }
-    arr.push(a.normName);
-  }
+  const aliasesByCardId = Map.groupBy(aliases, (alias) => alias.cardId);
+  const nameIndex = buildCardNameIndex({ cardNorms: cards, aliases });
 
-  // Match candidate card groups to cards by normName (+ aliases) and delete matched entries —
-  // whatever's left in ccGroupsByNormName afterwards has no card yet (candidates)
+  // Groups left in ccGroupsByNormName afterwards have no card yet.
   const results: CandidateCardSummaryResponse[] = cards.map((card) => {
     const allGroups: typeof candidateCards = [];
-    const directGroup = ccGroupsByNormName.get(card.normName);
-    if (directGroup) {
-      allGroups.push(...directGroup);
-      ccGroupsByNormName.delete(card.normName);
-    }
-    for (const aliasNorm of aliasNormNamesByCardId.get(card.id) ?? []) {
-      const aliasGroup = ccGroupsByNormName.get(aliasNorm);
-      if (aliasGroup) {
-        allGroups.push(...aliasGroup);
-        ccGroupsByNormName.delete(aliasNorm);
+    for (const key of cardNameKeys(card.normName, aliasesByCardId.get(card.id) ?? [])) {
+      const keyGroup = ccGroupsByNormName.get(key);
+      if (keyGroup && resolveCardIdByNorm(nameIndex, key) === card.id) {
+        allGroups.push(...keyGroup);
+        ccGroupsByNormName.delete(key);
       }
     }
     const group = allGroups.length > 0 ? allGroups : null;

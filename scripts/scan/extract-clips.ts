@@ -4,6 +4,8 @@
  *
  * Usage: bun scripts/scan/extract-clips.ts [--force]
  */
+// oxlint-disable-next-line import/no-unassigned-import -- checks argv before the heavy imports load
+import "./args-guard";
 import fs from "node:fs";
 import path from "node:path";
 

@@ -416,7 +416,8 @@ export function BuyCartPanel({
             </p>
             <Button
               variant="outline"
-              disabled={pending || !ready || !wantedReady}
+              disabled={!ready || !wantedReady}
+              pending={pending}
               onClick={() => void fileOrder()}
             >
               {m.trades_buy_ordered_cta({ count })}

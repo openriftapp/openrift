@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { validateWellKnownSlugs } from "../../modules/catalog/lib/validate-well-known.js";
 import { wellKnownRepo } from "../../modules/catalog/repositories/well-known.js";
-import { setupTestDb } from "../../test/integration-setup.js";
+import { DEV_DB_CONTAINER, setupTestDb } from "../../test/integration-setup.js";
 import { migrate, rollback } from "../migrate.js";
 import { loadMigrations } from "../migration-files.js";
 import type { Database } from "../tables.js";
@@ -201,7 +201,7 @@ describe.skipIf(!DATABASE_URL)("schema snapshot matches migrations", () => {
   it("migrations produce the same schema as docs/schema.sql", () => {
     // Dump the freshly-migrated test database
     const testDump = execSync(
-      `docker exec openrift-db-1 pg_dump -U openrift --schema-only --no-owner --no-privileges "${dbName}"`,
+      `docker exec ${DEV_DB_CONTAINER} pg_dump -U openrift --schema-only --no-owner --no-privileges "${dbName}"`,
       { encoding: "utf-8", timeout: 15_000 },
     );
 

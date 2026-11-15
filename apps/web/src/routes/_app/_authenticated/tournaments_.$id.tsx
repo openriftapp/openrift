@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { isTournamentStaff } from "@/features/tournaments/lib/tournament-display";
 import { loadTournamentDetail } from "@/features/tournaments/lib/tournament-route-guards";
 import { tournamentParticipantsQueryOptions } from "@/features/tournaments/lib/tournaments-queries";
@@ -20,5 +19,4 @@ export const Route = createFileRoute("/_app/_authenticated/tournaments_/$id")({
       });
     }
   },
-  errorComponent: RouteErrorFallback,
 });

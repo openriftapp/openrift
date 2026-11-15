@@ -16,6 +16,7 @@ import type {
 } from "@openrift/shared/types/api/admin";
 
 import { PRINTING_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
+import { printingAsAccepted } from "@/features/admin/lib/printing-fields";
 import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
 
 export interface CompareContext {
@@ -108,7 +109,7 @@ export function compareCandidate(
   provider: string,
 ): { suggestions: PrintingFieldSuggestion[]; agreeing: number } {
   const printedTotal = context.setTotals[row.setSlug] ?? null;
-  const live = row as unknown as Record<string, unknown>;
+  const live = printingAsAccepted(row) as unknown as Record<string, unknown>;
   const proposedRow = candidate as unknown as Record<string, unknown>;
   const suggestions: PrintingFieldSuggestion[] = [];
   let agreeing = 0;

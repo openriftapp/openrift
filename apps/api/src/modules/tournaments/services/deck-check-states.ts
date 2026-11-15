@@ -1,3 +1,4 @@
+import { submissionWindowOpen } from "@openrift/shared/deck-check";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 
 import type { Repos } from "../../../deps.js";
@@ -8,7 +9,6 @@ import {
   deadlineSubmittedAt,
   isExpiredEditable,
   storedCardLines,
-  submissionWindowOpen,
 } from "../lib/deck-check-deadline.js";
 import type { DeckCheckEntry } from "../repositories/deck-check-entries.js";
 

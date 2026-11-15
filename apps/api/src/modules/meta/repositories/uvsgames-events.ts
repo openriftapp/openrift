@@ -7,6 +7,7 @@ import type { Database } from "../../../db/tables.js";
 import type { UvsgamesEventsTable } from "../../../db/tables/meta-sources.js";
 import { keyBatches, rowBatches } from "../../../lib/bind-batches.js";
 import { containsPattern } from "../../../lib/like-pattern.js";
+import { META_PLAYER_NAME_MAX, MIRROR_NAME_MAX } from "../../../lib/meta-name-limits.js";
 import {
   normalizeFormatKey,
   UVSGAMES_PROVIDER,
@@ -293,7 +294,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
     ] as { id: number; name: string }[];
     stores.sort((a, b) => compareKeys(a.id, b.id));
     for (const batch of rowBatches(
-      stores.map((store) => ({ id: store.id, name: store.name.slice(0, 200) })),
+      stores.map((store) => ({ id: store.id, name: store.name.slice(0, MIRROR_NAME_MAX) })),
     )) {
       await db
         .insertInto("uvsgamesStores")
@@ -793,7 +794,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
       for (const batch of rowBatches(
         unique.map((player) => ({
           id: player.id,
-          displayName: player.displayName.slice(0, 80),
+          displayName: player.displayName.slice(0, META_PLAYER_NAME_MAX),
         })),
       )) {
         await db

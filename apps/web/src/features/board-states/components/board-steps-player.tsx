@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { Suspense, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import type { RulesPins } from "@/features/board-states/components/board-caption-text";
 import { BoardCaptionText } from "@/features/board-states/components/board-caption-text";
 import { cardImageId } from "@/features/board-states/components/board-card-parts";
@@ -231,7 +232,12 @@ function ChainListThumb({ imageId }: { imageId?: string }) {
       data-card-image={imageId}
     >
       {imageId === undefined ? null : (
-        <img src={imageUrl(imageId, "240w")} alt="" className="size-full object-cover" />
+        <ImgWithFallback
+          fallback={null}
+          src={imageUrl(imageId, "240w")}
+          alt=""
+          className="size-full object-cover"
+        />
       )}
     </span>
   );

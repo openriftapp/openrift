@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { tierListsQueryOptions } from "@/features/stage/lib/tier-lists-queries";
 import { privateSeoHead } from "@/lib/seo";
 
@@ -13,5 +12,4 @@ export const Route = createFileRoute("/_app/_authenticated/tier-lists")({
       staleTime: "static",
     });
   },
-  errorComponent: RouteErrorFallback,
 });

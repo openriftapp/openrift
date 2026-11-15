@@ -13,6 +13,8 @@ import { combineLocalDateTimeToUtc } from "@/lib/date-time-input";
 import {
   canManageTournament,
   applyFormatChange,
+  canAddParticipants,
+  participantsOpen,
   canOpenDeckCheck,
   formatChangePatch,
   hasPairing,
@@ -20,6 +22,7 @@ import {
   pairingFromRoundsChoice,
   pairingLabel,
   pairingPluralNoun,
+  pendingParticipantAction,
   roundsChoiceItems,
   roundsChoiceFor,
   compareParticipantsForList,
@@ -255,6 +258,28 @@ describe("canOpenDeckCheck", () => {
   it("stays closed without deck submission or for players", () => {
     expect(canOpenDeckCheck({ deckSubmission: "none", myRoles: ["host"] })).toBe(false);
     expect(canOpenDeckCheck({ deckSubmission: "required", myRoles: ["participant"] })).toBe(false);
+  });
+});
+
+describe("participantsOpen", () => {
+  it("is open until the event completes or is cancelled", () => {
+    expect(participantsOpen("setup")).toBe(true);
+    expect(participantsOpen("running")).toBe(true);
+    expect(participantsOpen("completed")).toBe(false);
+    expect(participantsOpen("cancelled")).toBe(false);
+  });
+});
+
+describe("canAddParticipants", () => {
+  it("lets staff add players until the event is over", () => {
+    expect(canAddParticipants({ status: "setup", myRoles: ["judge"] })).toBe(true);
+    expect(canAddParticipants({ status: "running", myRoles: ["host"] })).toBe(true);
+  });
+
+  it("refuses a completed or cancelled event, as the API does, and non-staff", () => {
+    expect(canAddParticipants({ status: "completed", myRoles: ["host"] })).toBe(false);
+    expect(canAddParticipants({ status: "cancelled", myRoles: ["organizer"] })).toBe(false);
+    expect(canAddParticipants({ status: "setup", myRoles: ["participant"] })).toBe(false);
   });
 });
 
@@ -715,5 +740,21 @@ describe("reportAcceptsResults", () => {
 
   it("is false for a view-only link", () => {
     expect(reportAcceptsResults({ canSubmit: false, status: "running", rounds: open })).toBe(false);
+  });
+});
+
+describe("pendingParticipantAction", () => {
+  const running = {
+    isPending: true,
+    variables: { participantId: "p-1", action: "deny" as const },
+  };
+
+  it("names the running action for its own row only", () => {
+    expect(pendingParticipantAction(running, "p-1")).toBe("deny");
+    expect(pendingParticipantAction(running, "p-2")).toBeNull();
+  });
+
+  it("is null once the request settled", () => {
+    expect(pendingParticipantAction({ ...running, isPending: false }, "p-1")).toBeNull();
   });
 });

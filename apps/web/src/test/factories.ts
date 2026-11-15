@@ -11,6 +11,7 @@ import type {
   CandidatePrintingResponse,
   ProviderSettingResponse,
 } from "@openrift/shared/types/api/admin";
+import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 import type { CollectionResponse, CopyResponse } from "@openrift/shared/types/api/collection";
 import type { MetaPlayerDetailResponse, MetaPlayerFinish } from "@openrift/shared/types/api/meta";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
@@ -391,7 +392,7 @@ export function makeCandidatePrinting(
     candidateCardId: nextId(),
     printingId: null,
     shortCode: "OGN-001",
-    setId: "set-origins",
+    setId: "ogn",
     setName: "Origins",
     rarity: "common",
     artVariant: "standard",
@@ -494,6 +495,39 @@ export function makeCardErrata(overrides: Partial<CardErrata> = {}): CardErrata 
     source: "Rules update, August 2026",
     sourceUrl: "https://rules.example.test/2026-08",
     effectiveDate: "2026-08-15",
+    ...overrides,
+  };
+}
+
+export function stubCardTrade(overrides: Partial<CardTradeResponse> = {}): CardTradeResponse {
+  return {
+    id: "trade-1",
+    groupId: "group-1",
+    groupSlug: "the-group",
+    groupName: "The Group",
+    role: "receiver",
+    initiator: "receiver",
+    counterparty: {
+      userId: "user-2",
+      name: "Robin",
+      image: null,
+      gravatarHash: "hash",
+      contactMethods: [],
+    },
+    printingId: "printing-1",
+    cardId: "card-1",
+    quantity: 1,
+    status: "pending",
+    createdAt: "2026-05-29T10:00:00.000Z",
+    updatedAt: "2026-05-29T10:00:00.000Z",
+    acceptedAt: null,
+    completedAt: null,
+    closedAt: null,
+    expiresAt: null,
+    viewerSyncAppliedAt: null,
+    counterpartySyncAppliedAt: null,
+    viewerWishEntryId: null,
+    actionNeeded: null,
     ...overrides,
   };
 }

@@ -1,7 +1,7 @@
+import { deckCardKey } from "@openrift/shared/deck-cards";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type * as UseEnums from "@/hooks/use-enums";
 import { stubDeckBuilderCard } from "@/test/factories";
 

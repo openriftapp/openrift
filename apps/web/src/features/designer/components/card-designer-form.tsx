@@ -55,7 +55,7 @@ export function CardDesignerForm() {
             <Input
               value={card.name}
               onChange={(e) => setCardField("name", e.target.value)}
-              placeholder="Sir Pounce, Lord of Naps"
+              placeholder={m.designer_name_placeholder()}
             />
           </FieldRow>
           <FieldRow label={m.designer_field_type()}>
@@ -130,7 +130,7 @@ export function CardDesignerForm() {
           <ChipInput
             value={card.tags}
             onChange={(value) => setCardField("tags", value)}
-            placeholder="Cat"
+            placeholder={m.designer_tags_placeholder()}
           />
         </FieldRow>
       </div>

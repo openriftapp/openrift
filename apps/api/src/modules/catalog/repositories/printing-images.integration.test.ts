@@ -1,3 +1,4 @@
+import type { ImageQuad } from "@openrift/shared/contracts/admin/card-images";
 import { imageRehostedUrl } from "@openrift/shared/image-url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -190,6 +191,34 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
       needsTrim: false,
       quad: null,
     });
+  });
+
+  it("leaves a row untouched when a setter writes the value it already holds", async () => {
+    const imageFileId = (await repo.getImageFileId(createdImageIds.at(-1)!))!;
+    const quad: ImageQuad = [
+      { x: 1, y: 2 },
+      { x: 3, y: 2 },
+      { x: 3, y: 4 },
+      { x: 1, y: 4 },
+    ];
+    const fingerprint = async () => {
+      const row = await db
+        .selectFrom("imageFiles")
+        .select("fingerprint")
+        .where("id", "=", imageFileId)
+        .executeTakeFirstOrThrow();
+      return row.fingerprint;
+    };
+
+    await repo.setQuad(imageFileId, quad);
+    await repo.setFingerprint(imageFileId, "fp-0034");
+    await repo.setQuad(imageFileId, quad);
+    await repo.setRotation(imageFileId, 0);
+    await repo.setNeedsTrim(imageFileId, false);
+    expect(await fingerprint()).toBe("fp-0034");
+
+    await repo.setQuad(imageFileId, null);
+    expect(await fingerprint()).toBeNull();
   });
 
   it("getImageFileById returns undefined for an unknown id", async () => {

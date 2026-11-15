@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { ShowMoreButton } from "@/components/show-more-button";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
@@ -56,7 +57,12 @@ export function MostExpensivePrintings({
                   </HoverCardTrigger>
                   {printing.fullImage && (
                     <HoverCardContent side="right" className="w-auto p-1">
-                      <img src={printing.fullImage} alt="" className="h-80 w-auto rounded-md" />
+                      <ImgWithFallback
+                        src={printing.fullImage}
+                        alt=""
+                        className="h-80 w-auto rounded-md"
+                        fallback={null}
+                      />
                     </HoverCardContent>
                   )}
                 </HoverCard>

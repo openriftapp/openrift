@@ -1,6 +1,7 @@
 import { useDraggable } from "@dnd-kit/core";
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
+import { deckCardKey } from "@openrift/shared/deck-cards";
 import type { DeckViolation } from "@openrift/shared/deck-rules";
 import { formatHasSideboard, SIDEBOARD_MAXIMUM, totalQuantity } from "@openrift/shared/deck-rules";
 import { isSingleSlotZone, isZoneShown, zoneExpected } from "@openrift/shared/deck-zones";
@@ -39,7 +40,6 @@ import { useDeckZoneDrop } from "@/features/decks/hooks/use-deck-zone-drop";
 import type { BattlefieldPlanTag } from "@/features/decks/lib/battlefield-plan-tags";
 import { orderByBattlefieldPlan } from "@/features/decks/lib/battlefield-plan-tags";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type { DeckCardGroup, DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
 import { copyRowGroups, groupDeckCards } from "@/features/decks/lib/deck-card-group";
 import { GROUPED_ZONES } from "@/features/decks/lib/deck-card-sort";

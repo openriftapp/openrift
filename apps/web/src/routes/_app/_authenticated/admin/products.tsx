@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
 import { productsListQueryOptions } from "@/features/cards/lib/products-queries";
 import { adminSeoHead } from "@/lib/seo";
@@ -10,5 +9,4 @@ export const Route = createFileRoute("/_app/_authenticated/admin/products")({
   loader: ({ context }) =>
     context.queryClient.query({ ...productsListQueryOptions, staleTime: "static" }),
   pendingComponent: AdminPending,
-  errorComponent: RouteErrorFallback,
 });

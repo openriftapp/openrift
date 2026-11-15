@@ -69,10 +69,12 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  closeDisabled, // custom: disables the X while the dialog's save runs
   onClick, // custom: composed below so callers can still pass onClick
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean;
+  closeDisabled?: boolean; // custom:
 }) {
   // custom: in button-only dialogs, land initial focus on the DialogForm's
   // custom: type="submit" primary so Enter confirms right after opening.
@@ -106,6 +108,7 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
+            disabled={closeDisabled} // custom:
             render={<Button variant="ghost" className="absolute top-2 right-2" size="icon-sm" />}
           >
             <XIcon />

@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { cardSubmissionsQueryOptions } from "@/features/contribute/lib/card-submissions-queries";
 import { privateSeoHead } from "@/lib/seo";
 
@@ -13,5 +12,4 @@ export const Route = createFileRoute("/_app/_authenticated/contribute_/submissio
       staleTime: "static",
     });
   },
-  errorComponent: RouteErrorFallback,
 });

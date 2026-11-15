@@ -8,7 +8,7 @@ const toast = vi.hoisted(() => ({
 }));
 vi.mock("sonner", () => ({ toast }));
 
-import { describeAcceptOutcome, showAcceptOutcome } from "./accept-outcome";
+import { acceptEachNewCard, describeAcceptOutcome, showAcceptOutcome } from "./accept-outcome";
 
 const SKIP = { label: "OGN-002", reason: "missing: artist" };
 
@@ -56,5 +56,28 @@ describe("showAcceptOutcome", () => {
     expect(toast.warning).toHaveBeenCalledWith(
       "Accepted 1 printing, skipped 1: OGN-002 (missing: artist)",
     );
+  });
+});
+
+describe("acceptEachNewCard", () => {
+  it("keeps the reason of every refused card and skipped printing", async () => {
+    const accept = vi.fn(async (name: string) => {
+      if (name === "zaun") {
+        throw new Error("Not accepted: the trusted source has no rarity");
+      }
+      return { cardSlug: name, skipped: [{ shortCode: "OGN-007", reason: "no artist" }] };
+    });
+    const progress = vi.fn();
+
+    const outcome = await acceptEachNewCard(["jinx", "zaun"], accept, progress);
+
+    expect(outcome).toEqual({
+      accepted: 1,
+      skipped: [
+        { label: "jinx OGN-007", reason: "no artist" },
+        { label: "zaun", reason: "Not accepted: the trusted source has no rarity" },
+      ],
+    });
+    expect(progress.mock.calls).toEqual([[1], [2]]);
   });
 });

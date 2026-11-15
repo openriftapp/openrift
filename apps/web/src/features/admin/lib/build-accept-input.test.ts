@@ -147,7 +147,7 @@ describe("buildAcceptSubmissionInput", () => {
       artist: printing.artist,
       publicCode: printing.publicCode,
       shortCode: printing.shortCode,
-      setId: printing.setId,
+      setId: printing.setSlug,
       rarity: printing.rarity,
       artVariant: printing.artVariant,
       finish: printing.finish,

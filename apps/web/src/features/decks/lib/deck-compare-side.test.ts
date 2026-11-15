@@ -61,4 +61,15 @@ describe("queryDeckLink", () => {
       [{ queryKey: ["share", "Abc123Xyz456"] }],
     ]);
   });
+
+  it("passes static staleness only when the caller asks for it", async () => {
+    const query = vi.fn().mockResolvedValue({ cards: [] });
+    const queryClient = { query } as unknown as Parameters<typeof queryDeckLink>[0];
+
+    await queryDeckLink(queryClient, "share", "Abc123Xyz456", "static");
+
+    expect(query.mock.calls).toEqual([
+      [{ queryKey: ["share", "Abc123Xyz456"], staleTime: "static" }],
+    ]);
+  });
 });

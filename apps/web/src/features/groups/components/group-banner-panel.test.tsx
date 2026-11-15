@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import type { FriendGroupResponse } from "@openrift/shared/types/api/friend-group";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";

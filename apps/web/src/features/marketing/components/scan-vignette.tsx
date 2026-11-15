@@ -2,6 +2,7 @@ import { ChevronDownIcon } from "lucide-react";
 import type { CSSProperties } from "react";
 
 import { buttonVariants } from "@/components/ui/button";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { CardMiniRow } from "@/features/cards/components/card-mini-row";
 import type { LandingThumbnailCard } from "@/features/marketing/lib/landing-thumbnails";
 import { formatPriceEur, priceColorClass } from "@/lib/format";
@@ -166,7 +167,8 @@ export function ScanVignette({ cards }: { cards: LandingThumbnailCard[] }) {
       <div className="relative grid aspect-[4/3] place-items-center bg-radial from-neutral-800 to-neutral-950">
         <div className="aspect-card relative h-[74%] overflow-hidden border-2 border-white/15">
           {scanned?.url && (
-            <img
+            <ImgWithFallback
+              fallback={null}
               src={scanned.url}
               alt=""
               loading="lazy"
@@ -185,7 +187,8 @@ export function ScanVignette({ cards }: { cards: LandingThumbnailCard[] }) {
           />
         </div>
         {scanned?.url && (
-          <img
+          <ImgWithFallback
+            fallback={null}
             src={scanned.url}
             alt=""
             aria-hidden="true"

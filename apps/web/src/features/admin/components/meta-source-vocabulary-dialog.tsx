@@ -198,7 +198,8 @@ function PlayerFloorField() {
           type="button"
           variant="outline"
           size="sm"
-          disabled={!changed || update.isPending}
+          disabled={!changed}
+          pending={update.isPending}
           onClick={() => {
             if (typeof floor === "number") {
               update.mutate({ competitivePlayerFloor: floor });

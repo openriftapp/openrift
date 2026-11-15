@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { labelMapOf } from "@openrift/shared/enum-label";
 import type { Domain } from "@openrift/shared/types/enums";
 import { render } from "@testing-library/react";

@@ -104,6 +104,11 @@ describe("MarkdownText", () => {
       expect(screen.getByText("(example.com)")).toBeInTheDocument();
     });
 
+    it("names the bare host for a www. link", () => {
+      render(<MarkdownText text="Meet at [the shop](https://WWW.Example.com)." links="labeled" />);
+      expect(screen.getByText("(example.com)")).toBeInTheDocument();
+    });
+
     it("stays quiet when the link text already names the host", () => {
       render(
         <MarkdownText

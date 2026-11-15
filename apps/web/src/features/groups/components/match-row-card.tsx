@@ -796,7 +796,7 @@ function BulkRequestRow({
 
   return (
     <div className="flex items-center justify-end">
-      <Button size="sm" variant="outline" disabled={pending} onClick={() => void requestAll()}>
+      <Button size="sm" variant="outline" pending={pending} onClick={() => void requestAll()}>
         {m.trades_match_request_all({ count: requests.length })}
       </Button>
     </div>

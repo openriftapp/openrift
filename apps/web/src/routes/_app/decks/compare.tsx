@@ -1,7 +1,7 @@
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { z } from "zod/mini";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback } from "@/components/error-message";
 import { loadCollection } from "@/features/collections/lib/collection-load";
 import { DeckPending } from "@/features/decks/components/deck-pending";
 import { parseCompareSide, queryDeckLink } from "@/features/decks/lib/deck-compare-side";
@@ -22,26 +22,28 @@ const compareSearchSchema = z.object({
 export const Route = createFileRoute("/_app/decks/compare")({
   ssr: false,
   validateSearch: compareSearchSchema,
-  head: () => privateSeoHead("Compare decks"),
+  beforeLoad: async ({ search }) => {
+    if (search.from === undefined && search.to === undefined) {
+      return;
+    }
+    const { bareLocalDeckId } = await import("@/features/decks/lib/local-deck-sanitize");
+    // An old link carries the retired `local:` prefix; it names the same deck.
+    const from = search.from === undefined ? undefined : bareLocalDeckId(search.from);
+    const to = search.to === undefined ? undefined : bareLocalDeckId(search.to);
+    if (from !== search.from || to !== search.to) {
+      throw redirect({ to: "/decks/compare", search: { from, to }, replace: true });
+    }
+  },
   loaderDeps: ({ search }) => ({ from: search.from, to: search.to }),
   // Local decks and deck links need no session; local sides resolve
   // client-side from the store.
   loader: async ({ context, location, deps }) => {
-    const { bareLocalDeckId } = await import("@/features/decks/lib/local-deck-sanitize");
     const { isLocalDeck, preloadLocalDecks } =
       await import("@/features/decks/lib/local-decks-collection");
     await Promise.all([
       context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
       preloadLocalDecks(),
     ]);
-    // An old link carries the retired `local:` prefix; it names the same deck.
-    if (deps.from !== undefined || deps.to !== undefined) {
-      const from = deps.from === undefined ? undefined : bareLocalDeckId(deps.from);
-      const to = deps.to === undefined ? undefined : bareLocalDeckId(deps.to);
-      if (from !== deps.from || to !== deps.to) {
-        throw redirect({ to: "/decks/compare", search: { from, to }, replace: true });
-      }
-    }
     const sides = [parseCompareSide(deps.from), parseCompareSide(deps.to)];
     const serverIds: string[] = [];
     const links: Promise<unknown>[] = [];
@@ -49,7 +51,7 @@ export const Route = createFileRoute("/_app/decks/compare")({
       if (side?.kind === "deck" && !isLocalDeck(side.deckId)) {
         serverIds.push(side.deckId);
       } else if (side?.kind === "meta" || side?.kind === "share") {
-        links.push(queryDeckLink(context.queryClient, side.kind, side.token));
+        links.push(queryDeckLink(context.queryClient, side.kind, side.token, "static"));
       }
     }
     await notFoundOnSentinel(Promise.all(links));
@@ -68,7 +70,7 @@ export const Route = createFileRoute("/_app/decks/compare")({
       throw notFound();
     }
   },
+  head: () => privateSeoHead("Compare decks"),
   pendingComponent: DeckPending,
-  errorComponent: RouteErrorFallback,
   notFoundComponent: NotFoundFallback,
 });

@@ -17,6 +17,7 @@ import {
   buildPricesSync,
   buildRulesSync,
 } from "../apps/api/src/db/catalog-sync.js";
+import { chunk } from "../packages/shared/src/collections.js";
 import { catalogResponseSchema } from "../packages/shared/src/contracts/catalog.js";
 import { initResponseSchema } from "../packages/shared/src/contracts/init.js";
 import {
@@ -56,8 +57,7 @@ async function fetchJson<T>(path: string, schema: { parse: (value: unknown) => T
 
 async function mapLimited<T, R>(items: readonly T[], fn: (item: T) => Promise<R>): Promise<R[]> {
   const results: R[] = [];
-  for (let start = 0; start < items.length; start += FETCH_CONCURRENCY) {
-    const batch = items.slice(start, start + FETCH_CONCURRENCY);
+  for (const batch of chunk(items, FETCH_CONCURRENCY)) {
     results.push(...(await Promise.all(batch.map((item) => fn(item)))));
   }
   return results;

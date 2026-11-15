@@ -79,7 +79,8 @@ function JoinAction({
       </Link>
       <Button
         onClick={() => void handleSubmit()}
-        disabled={!code || previewLoading || joinByCode.isPending}
+        disabled={!code || previewLoading}
+        pending={joinByCode.isPending}
       >
         {preview?.viewerStatus === "member"
           ? m.groups_join_open_group()

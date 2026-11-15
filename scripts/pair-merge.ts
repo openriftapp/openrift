@@ -13,6 +13,7 @@ import {
   planPairMerge,
 } from "../apps/api/src/modules/catalog/repositories/pair-merge.js";
 import { marketplacePricesRepo } from "../apps/api/src/modules/marketplace/repositories/marketplace-prices.js";
+import { escapeCsvField } from "../packages/shared/src/csv.js";
 import { parseScriptArgs, runWithDb, WRITE_OPTIONS } from "./env.js";
 
 const {
@@ -25,11 +26,6 @@ const {
 );
 
 const list = JSON.parse(readFileSync(file, "utf-8")) as PairMergeList;
-
-function csvCell(value: string | number | null): string {
-  const text = value === null ? "" : String(value);
-  return /[",\n]/u.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
-}
 
 await runWithDb(
   async (db) => {
@@ -58,7 +54,7 @@ await runWithDb(
       const header = "slug,home,user_id,group_id,email,copies";
       const lines = report.owners.map((owner) =>
         [owner.slug, owner.home, owner.userId, owner.groupId, owner.email, owner.copies]
-          .map((value) => csvCell(value))
+          .map((value) => escapeCsvField(value === null ? "" : String(value)))
           .join(","),
       );
       writeFileSync(ownersFile, `${[header, ...lines].join("\n")}\n`);

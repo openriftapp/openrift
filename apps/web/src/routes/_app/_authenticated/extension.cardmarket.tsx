@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { listsQueryOptions } from "@/features/lists/lib/lists-queries";
 import { privateSeoHead } from "@/lib/seo";
 
@@ -14,5 +13,4 @@ export const Route = createFileRoute("/_app/_authenticated/extension/cardmarket"
       staleTime: "static",
     });
   },
-  errorComponent: RouteErrorFallback,
 });

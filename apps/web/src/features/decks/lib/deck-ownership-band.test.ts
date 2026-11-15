@@ -1,6 +1,6 @@
+import { deckCardKey } from "@openrift/shared/deck-cards";
 import { describe, expect, it } from "vitest";
 
-import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type { OwnershipBandSources } from "@/features/decks/lib/deck-ownership-band";
 import {
   buildOwnershipCopies,

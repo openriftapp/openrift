@@ -1,6 +1,7 @@
 import type { ImageQuad } from "@openrift/shared/contracts/admin/card-images";
 import type { Point } from "@openrift/shared/scan/types";
 
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { imageToDisplayScale } from "@/features/admin/lib/straighten-quad";
 import { cn } from "@/lib/utils";
 
@@ -39,11 +40,12 @@ export function StraightenLoupe({
       )}
       style={{ width: LOUPE_SIZE, height: LOUPE_SIZE }}
     >
-      <img
+      <ImgWithFallback
         src={url}
         alt=""
         style={{ imageOrientation: "none", ...offset, ...size }}
         className="absolute max-w-none"
+        fallback={null}
       />
       <svg
         viewBox={`0 0 ${width} ${height}`}

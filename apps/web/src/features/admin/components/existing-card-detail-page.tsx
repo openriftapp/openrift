@@ -84,10 +84,10 @@ import { errorStatus } from "@/lib/server-fns/api-error";
 /** Stable placeholder so the filter hook can run before the detail lands. */
 const NO_PRINTINGS: AdminPrintingResponse[] = [];
 
-function MissingCard({ identifier, children }: { identifier: string; children: ReactNode }) {
+function MissingCard({ cardSlug, children }: { cardSlug: string; children: ReactNode }) {
   return (
     <>
-      <AdminPageTopBar title={identifier} />
+      <AdminPageTopBar title={cardSlug} />
       <div className="space-y-2">
         <Heading level={2}>Card not found</Heading>
         <p className="text-muted-foreground text-sm">{children}</p>
@@ -97,7 +97,7 @@ function MissingCard({ identifier, children }: { identifier: string; children: R
 }
 
 export function ExistingCardDetailPage({
-  identifier,
+  cardSlug,
   section,
   face,
   focusMarketplace,
@@ -108,7 +108,7 @@ export function ExistingCardDetailPage({
   listStatus,
   priceScope,
 }: {
-  identifier: string;
+  cardSlug: string;
   section?: CardSection;
   face?: string;
   focusMarketplace?: AdminMarketplaceName;
@@ -119,7 +119,6 @@ export function ExistingCardDetailPage({
   listStatus?: AdminCardListStatus;
   priceScope?: string;
 }) {
-  const cardId = identifier;
   const { data: access } = useAdminAccess();
   // card-review grant holders keep the per-field accept flow and image finishing;
   // triage, printing create/delete, rename, bans, errata, and marketplace stay full-admin.
@@ -128,7 +127,7 @@ export function ExistingCardDetailPage({
 
   // This card's detail, the admin card list and the printing pages, not all of `admin.cards`.
   const invalidateScope = [
-    adminKeys.cards.detail(cardId),
+    adminKeys.cards.detail(cardSlug),
     adminKeys.cards.list,
     adminKeys.printingDesk.all,
   ];
@@ -139,7 +138,7 @@ export function ExistingCardDetailPage({
     isError,
     error,
     refetch,
-  } = useAdminCardDetail(identifier) as {
+  } = useAdminCardDetail(cardSlug) as {
     data: AdminCardDetailResponse | undefined;
     isLoading: boolean;
     isError: boolean;
@@ -166,7 +165,7 @@ export function ExistingCardDetailPage({
     goToList,
     checkAllCardSources,
   } = useCardReviewNavigation({
-    identifier,
+    cardSlug,
     detail: existingData,
     setSlug,
     listStatus,
@@ -177,7 +176,7 @@ export function ExistingCardDetailPage({
   });
 
   const storedCollapsedPrintings = useAdminCardFoldStore((state) =>
-    getStoredCollapsedPrintings(state, cardId),
+    getStoredCollapsedPrintings(state, cardSlug),
   );
   const togglePrintingFold = useAdminCardFoldStore((state) => state.togglePrinting);
   const setCollapsedForCard = useAdminCardFoldStore((state) => state.setCollapsedForCard);
@@ -199,13 +198,13 @@ export function ExistingCardDetailPage({
   function goToSection(next: CardSection) {
     return navigate({
       to: "/admin/cards/$cardSlug",
-      params: { cardSlug: identifier },
+      params: { cardSlug },
       search: { ...navSearch, section: next === DEFAULT_CARD_SECTION ? undefined : next },
     });
   }
 
   const { revealPrinting, revealNewPrinting, focusAcceptedPrinting } = useCardPageFocus({
-    cardId,
+    cardSlug,
     detail: existingData,
     face,
     section,
@@ -221,7 +220,7 @@ export function ExistingCardDetailPage({
   const facesByLanguage = usePrintingsByLanguage(buildFaceRows(filteredPrintings));
 
   const { data: mappingsData } = useQuery({
-    ...unifiedMappingsForCardQueryOptions(identifier),
+    ...unifiedMappingsForCardQueryOptions(cardSlug),
     enabled: isAdmin,
   });
   const { data: bansData } = useCardBans(existingData?.card?.id ?? "");
@@ -243,12 +242,12 @@ export function ExistingCardDetailPage({
 
   if (isError) {
     return errorStatus(error) === 404 ? (
-      <MissingCard identifier={identifier}>
-        No card with ID &ldquo;{identifier}&rdquo; exists.
+      <MissingCard cardSlug={cardSlug}>
+        No card with ID &ldquo;{cardSlug}&rdquo; exists.
       </MissingCard>
     ) : (
       <>
-        <AdminPageTopBar title={identifier} />
+        <AdminPageTopBar title={cardSlug} />
         <RouteErrorFallback error={error} onRetry={() => void refetch()} />
       </>
     );
@@ -257,7 +256,7 @@ export function ExistingCardDetailPage({
   if (isLoading || !existingData) {
     return (
       <>
-        <AdminPageTopBar title={identifier} />
+        <AdminPageTopBar title={cardSlug} />
         <div className="space-y-4">
           <Skeleton className="h-8 w-64" />
           <Skeleton className="h-64" />
@@ -272,13 +271,11 @@ export function ExistingCardDetailPage({
   const printingImages = existingData.printingImages;
   const setTotals = existingData.setTotals ?? {};
   const setReleaseYears = buildSetReleaseYears(setsData.sets);
-  const expectedCardId = existingData.expectedCardId;
+  const expectedCardSlug = existingData.expectedCardId;
   const card = existingData.card;
   if (!card) {
     return (
-      <MissingCard identifier={identifier}>
-        No card data for &ldquo;{identifier}&rdquo;.
-      </MissingCard>
+      <MissingCard cardSlug={cardSlug}>No card data for &ldquo;{cardSlug}&rdquo;.</MissingCard>
     );
   }
   const canonicalName = card.name;
@@ -323,8 +320,8 @@ export function ExistingCardDetailPage({
     <div className="space-y-6">
       <CardDetailHeader
         card={card}
-        cardId={cardId}
-        expectedCardId={expectedCardId}
+        cardSlug={cardSlug}
+        expectedCardSlug={expectedCardSlug}
         hasUnchecked={hasUnchecked}
         prevNextCards={prevNextCards}
         listSearch={navSearch}
@@ -337,7 +334,7 @@ export function ExistingCardDetailPage({
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-[11rem_minmax(0,1fr)]">
         <CardSectionNav
-          cardSlug={cardId}
+          cardSlug={cardSlug}
           sections={sections}
           section={activeSection}
           counts={sectionCounts}
@@ -354,7 +351,7 @@ export function ExistingCardDetailPage({
               attentionCount={attentionTotal}
               invalidates={invalidateScope}
               isAdmin={isAdmin}
-              cardSlug={cardId}
+              cardSlug={cardSlug}
               listSearch={navSearch}
               onOpenPrinting={revealPrinting}
               onOpenAttention={() => void goToSection("attention")}
@@ -374,7 +371,7 @@ export function ExistingCardDetailPage({
               {!decisionsFolded && (
                 <CardAttentionSection
                   detail={existingData}
-                  cardSlug={cardId}
+                  cardSlug={cardSlug}
                   onOpenNewPrinting={revealNewPrinting}
                   onOpenPrinting={revealPrinting}
                   printingFields={printingSourceFields}
@@ -386,7 +383,7 @@ export function ExistingCardDetailPage({
 
           {activeSection === "marketplace" && (
             <AdminCardMarketplaceSection
-              cardId={identifier}
+              cardSlug={cardSlug}
               pairNames={pairNamesByPrinting(printings, canonicalName)}
               onOpenPrinting={revealPrinting}
             />
@@ -420,7 +417,10 @@ export function ExistingCardDetailPage({
                 <Button
                   variant="outline"
                   onClick={() => {
-                    setCollapsedForCard(cardId, allExpanded ? new Set(allPrintingKeys) : new Set());
+                    setCollapsedForCard(
+                      cardSlug,
+                      allExpanded ? new Set(allPrintingKeys) : new Set(),
+                    );
                   }}
                 >
                   {allExpanded ? "Collapse all" : "Expand all"}
@@ -428,7 +428,7 @@ export function ExistingCardDetailPage({
                 {isAdmin && (
                   <Link
                     to="/admin/cards/$cardSlug/printings/create"
-                    params={{ cardSlug: cardId }}
+                    params={{ cardSlug }}
                     className={buttonVariants()}
                   >
                     <PlusIcon />
@@ -447,7 +447,7 @@ export function ExistingCardDetailPage({
                           face={faceRow}
                           cardName={canonicalName}
                           canOpenPrintingPages={canOpenPrintingPages}
-                          cardId={cardId}
+                          cardSlug={cardSlug}
                           printings={printings}
                           candidatePrintings={candidatePrintings}
                           printingImages={printingImages}
@@ -522,7 +522,7 @@ export function ExistingCardDetailPage({
                       setTotals={setTotals}
                       setReleaseYears={setReleaseYears}
                       isExpanded={!collapsedPrintings.has(group.groupKey)}
-                      onToggle={() => togglePrintingFold(cardId, group.groupKey)}
+                      onToggle={() => togglePrintingFold(cardSlug, group.groupKey)}
                       onAccept={(printingFields, candidatePrintingIds) => {
                         acceptPrintingGroup.mutate(
                           {
@@ -580,7 +580,7 @@ export function ExistingCardDetailPage({
 
           {activeSection === "history" && (
             <CardHistorySection
-              cardSlug={cardId}
+              cardSlug={cardSlug}
               cardName={canonicalName}
               printingLabels={printingLabelsById}
               onOpen={(target) => {

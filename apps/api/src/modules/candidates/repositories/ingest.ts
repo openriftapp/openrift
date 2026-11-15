@@ -298,16 +298,9 @@ export function ingestRepo(db: Db) {
       return row ? Number(row.count) : 0;
     },
 
-    /**
-     * Serialize this user's submission ingests for the rest of the enclosing
-     * transaction. A plain COUNT under READ COMMITTED can't see concurrent
-     * uncommitted inserts, so without this lock N parallel submissions all
-     * pass the daily-cap check together. The lock releases automatically at
-     * transaction end; other users hash to different keys and don't block.
-     * Must be called inside a transaction.
-     */
-    async lockUserSubmissions(userId: string): Promise<void> {
-      await lockKey(db, userId);
+    /** Call inside a transaction. */
+    async lockCardAndMetaSubmissions(userId: string): Promise<void> {
+      await lockKey(db, `card-and-meta-submissions:${userId}`);
     },
 
     async updateCandidateCard(id: string, updates: Updateable<CandidateCardsTable>): Promise<void> {

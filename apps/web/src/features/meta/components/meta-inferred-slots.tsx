@@ -7,6 +7,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
 
 import { Badge } from "@/components/ui/badge";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Pressable } from "@/components/ui/pressable";
 import { TextLink } from "@/components/ui/text-link";
@@ -146,7 +147,8 @@ function InferredCardFrame({
       )}
     >
       {card.imageId !== null && (
-        <img
+        <ImgWithFallback
+          fallback={null}
           src={imageUrl(card.imageId, "400w")}
           alt=""
           draggable={false}

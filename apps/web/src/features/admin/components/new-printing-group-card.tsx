@@ -277,7 +277,7 @@ export function NewPrintingGroupCard({
             <Button
               variant="outline"
               size="sm"
-              disabled={checkAllCandidatePrintings.isPending}
+              pending={checkAllCandidatePrintings.isPending}
               onClick={(e) => {
                 e.stopPropagation();
                 checkAllCandidatePrintings.mutate({

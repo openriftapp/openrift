@@ -206,7 +206,7 @@ function stubDetail(overrides: Partial<AdminCardDetailResponse> = {}): AdminCard
 function renderNav(options: Partial<Parameters<typeof useCardReviewNavigation>[0]> = {}) {
   return renderHook(() =>
     useCardReviewNavigation({
-      identifier: "yasuo",
+      cardSlug: "yasuo",
       detail: stubDetail(),
       isAdmin: true,
       invalidates: [],

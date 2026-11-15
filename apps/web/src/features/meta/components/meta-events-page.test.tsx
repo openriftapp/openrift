@@ -337,6 +337,22 @@ describe("MetaEventsPage", () => {
     expect(screen.getByText("18 players · Not played yet")).toBeDefined();
   });
 
+  it("shows a known field size in the Players column of an event still to come", () => {
+    renderPage([event({ eventDate: "2099-01-10", playerRowCount: 0, deckCount: 0 })]);
+    const grid = document.querySelector("a > div");
+    const cells = [...(grid?.children ?? [])].map((cell) => cell.textContent);
+    expect(cells.slice(-2)).toEqual(["18", "Not played yet"]);
+  });
+
+  it("keeps the status across the result columns when no field size is known", () => {
+    renderPage([
+      event({ eventDate: "2099-01-10", playerCount: null, playerRowCount: 0, deckCount: 0 }),
+    ]);
+    const grid = document.querySelector("a > div");
+    expect(grid?.lastElementChild?.textContent).toBe("Not played yet");
+    expect(grid?.lastElementChild?.className).toContain("col-span-3");
+  });
+
   it("writes the chosen column and direction to the URL", async () => {
     renderPage([event()]);
     await userEvent.click(screen.getByRole("button", { name: /sort by players/iu }));

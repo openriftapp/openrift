@@ -3,9 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { Repos, Transact } from "../../../../deps.js";
 import type { UvsgamesListRow } from "../../repositories/uvsgames-events.js";
+import { promoteMetaEvent } from "../meta-promote.js";
 import { deepFetchEvent } from "./deep-fetch.js";
 import type { MetaSyncDeps } from "./deps.js";
-import { SourceBlockedError } from "./source-http.js";
+import { RunDeadlineError, SourceBlockedError } from "./source-http.js";
 import type { UvsClient, UvsQuery } from "./uvsgames-client.js";
 import { UvsHttpError } from "./uvsgames-client.js";
 
@@ -345,6 +346,43 @@ describe("deepFetchEvent", () => {
     ]);
   });
 
+  it("keeps the decks it read and promotes when the time budget ends mid-decks, then finishes next pass", async () => {
+    const promote = vi.mocked(promoteMetaEvent);
+    const registrations = ["d-1", "d-2", "d-3", "d-4"].map((deckId, index) => ({
+      id: `r${index + 1}`,
+      deck_id: deckId,
+    }));
+    const first = fakeDeps({
+      source: acceptedSource(),
+      outstandingDecks: ["d-1", "d-2", "d-3", "d-4"],
+      registrations,
+      deck: (deckId) => {
+        if (deckId === "d-3") {
+          throw new RunDeadlineError(`/decks/${deckId}/`);
+        }
+        return {};
+      },
+    });
+    promote.mockClear();
+
+    const firstPass = await deepFetchEvent(first.deps, catalogRow({ decklistStatus: "PUBLISHED" }));
+
+    expect(first.storedDecklists.map((entry) => entry.row.sourceDeckId)).toEqual(["d-1", "d-2"]);
+    expect(firstPass.decks).toBe(2);
+    expect(firstPass).toMatchObject({ cutShort: true, progressed: true });
+    expect(promote).toHaveBeenCalledOnce();
+
+    const second = fakeDeps({
+      source: acceptedSource(),
+      outstandingDecks: ["d-3", "d-4"],
+      registrations,
+    });
+    await deepFetchEvent(second.deps, catalogRow({ decklistStatus: "PUBLISHED" }));
+
+    expect(second.storedDecklists.map((entry) => entry.row.sourceDeckId)).toEqual(["d-3", "d-4"]);
+    expect(promote).toHaveBeenCalledTimes(2);
+  });
+
   it("records nothing for a throttled deck and stops reading the rest this pass", async () => {
     const asked: string[] = [];
     const { deps, storedDecklists } = fakeDeps({
@@ -452,6 +490,39 @@ describe("deepFetchEvent", () => {
       winnerUvsgamesId: 11,
     });
     expect(result.stagedMatches).toBe(1);
+  });
+
+  it("reports a cut during round staging, with progress once a round was staged", async () => {
+    const { deps, stagedRounds } = fakeDeps({
+      source: acceptedSource(),
+      detail: TWO_ROUND_DETAIL,
+      roundMatches: (roundId) => {
+        if (roundId === "902") {
+          throw new RunDeadlineError(`/rounds/${roundId}/`);
+        }
+        return [matchRow(21, 22)];
+      },
+    });
+
+    const result = await deepFetchEvent(deps, catalogRow());
+
+    expect(stagedRounds.map((round) => round.roundId)).toEqual(["901"]);
+    expect(result).toMatchObject({ cutShort: true, progressed: true, stagedMatches: 1 });
+  });
+
+  it("reports a cut with no progress when the first read already ran out of time", async () => {
+    const { deps, stagedRounds } = fakeDeps({
+      source: acceptedSource(),
+      detail: TWO_ROUND_DETAIL,
+      roundMatches: (roundId) => {
+        throw new RunDeadlineError(`/rounds/${roundId}/`);
+      },
+    });
+
+    const result = await deepFetchEvent(deps, catalogRow());
+
+    expect(stagedRounds).toEqual([]);
+    expect(result).toMatchObject({ cutShort: true, progressed: false });
   });
 
   it("leaves a round unstaged when one of its match pages fails", async () => {

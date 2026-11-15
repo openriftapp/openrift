@@ -13,7 +13,7 @@ import {
 import { RadioGroup } from "@/components/ui/radio-group";
 import { RadioOptionRow } from "@/components/ui/radio-option-row";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TextLink } from "@/components/ui/text-link";
+import { DeckCodeSiteLink } from "@/features/decks/components/deck-code-site-link";
 import { useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { useEncodeDeckCards, useExportDeck } from "@/features/decks/hooks/use-decks";
 import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
@@ -29,31 +29,14 @@ function formatDescriptions(): Record<ExportFormat, React.ReactNode> {
     piltover: (
       <>
         {m.decks_dialog_export_desc_piltover()}{" "}
-        <TextLink
-          variant="muted"
-          href="https://piltoverarchive.com"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Piltover Archive
-        </TextLink>
-        .
+        <DeckCodeSiteLink>Piltover Archive</DeckCodeSiteLink>.
       </>
     ),
     text: (
       <ParaglideMessage
         message={m.decks_dialog_export_desc_text}
         markup={{
-          link: ({ children }) => (
-            <TextLink
-              variant="muted"
-              href="https://piltoverarchive.com"
-              target="_blank"
-              rel="noreferrer"
-            >
-              {children}
-            </TextLink>
-          ),
+          link: ({ children }) => <DeckCodeSiteLink>{children}</DeckCodeSiteLink>,
           link2: ({ children }) => (
             <a
               href="https://tcg-arena.fr/decks"

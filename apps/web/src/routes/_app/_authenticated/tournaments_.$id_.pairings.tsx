@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import {
   loadTournamentDetail,
   loadTournamentRunState,
@@ -18,5 +17,4 @@ export const Route = createFileRoute("/_app/_authenticated/tournaments_/$id_/pai
     }
     await loadTournamentRunState(context.queryClient, context.userId, params.id);
   },
-  errorComponent: RouteErrorFallback,
 });

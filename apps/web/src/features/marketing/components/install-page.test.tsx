@@ -1,7 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { Root } from "react-dom/client";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { detectInstallPlatform } from "@/lib/install-platform";
 import type { BeforeInstallPromptEvent } from "@/stores/install-store";
 import { useInstallStore } from "@/stores/install-store";
 import { createStoreResetter } from "@/test/store-helpers";
@@ -23,6 +27,14 @@ function useUserAgent(userAgent: string) {
   vi.spyOn(navigator, "userAgent", "get").mockReturnValue(userAgent);
 }
 
+function Page() {
+  return (
+    <InstallPage
+      initialPlatform={detectInstallPlatform(navigator.userAgent, navigator.maxTouchPoints)}
+    />
+  );
+}
+
 describe("InstallPage", () => {
   let resetStore: () => void;
 
@@ -37,7 +49,7 @@ describe("InstallPage", () => {
 
   it("walks an iPhone through Safari's share sheet", () => {
     useUserAgent(IPHONE_SAFARI_26);
-    render(<InstallPage />);
+    render(<Page />);
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       "Put OpenRift on your home screen",
@@ -57,7 +69,7 @@ describe("InstallPage", () => {
         userChoice: Promise.resolve({ outcome: "accepted" as const }),
       }) as BeforeInstallPromptEvent,
     );
-    render(<InstallPage />);
+    render(<Page />);
 
     await user.click(screen.getByRole("button", { name: "Install OpenRift" }));
 
@@ -66,7 +78,7 @@ describe("InstallPage", () => {
 
   it("shows the menu steps on Android without the install button when no prompt arrived", () => {
     useUserAgent(ANDROID_CHROME);
-    render(<InstallPage />);
+    render(<Page />);
 
     expect(screen.queryByRole("button", { name: "Install OpenRift" })).toBeNull();
     expect(screen.getByText("Add to home screen")).toBeInTheDocument();
@@ -74,7 +86,7 @@ describe("InstallPage", () => {
 
   it("warns Samsung users about in-app viewers and points no arrow", () => {
     useUserAgent(ANDROID_SAMSUNG);
-    render(<InstallPage />);
+    render(<Page />);
 
     expect(screen.getByText(/choose Open in Samsung Internet first/u)).toBeInTheDocument();
     expect(screen.queryByText("Start here")).toBeNull();
@@ -82,7 +94,7 @@ describe("InstallPage", () => {
 
   it("sends in-app browsers to Safari first", () => {
     useUserAgent(IPHONE_INSTAGRAM);
-    render(<InstallPage />);
+    render(<Page />);
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       "Open this page in Safari first",
@@ -95,7 +107,7 @@ describe("InstallPage", () => {
   it("lets the visitor switch to the other phone's steps", async () => {
     const user = userEvent.setup();
     useUserAgent(IPHONE_SAFARI_26);
-    render(<InstallPage />);
+    render(<Page />);
 
     await user.click(screen.getByRole("button", { name: "Not your device?" }));
     await user.click(screen.getByRole("tab", { name: "Android" }));
@@ -106,12 +118,66 @@ describe("InstallPage", () => {
 
   it("shows a QR code and both phones' steps on a computer", () => {
     useUserAgent(WINDOWS_CHROME);
-    render(<InstallPage />);
+    render(<Page />);
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       "Get OpenRift on your phone",
     );
     expect(screen.getAllByRole("img", { name: "QR code for this page" })).toHaveLength(2);
     expect(screen.getByRole("tab", { name: "iPhone" })).toBeInTheDocument();
+  });
+
+  it("server-renders the phone steps the request asked for and hydrates without a swap", async () => {
+    useUserAgent(IPHONE_SAFARI_26);
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(<Page />);
+    document.body.append(container);
+
+    expect(container.querySelector("h1")?.textContent).toBe("Put OpenRift on your home screen");
+
+    const logged: string[] = [];
+    vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+      logged.push(args.map(String).join(" "));
+    });
+    let root: Root | undefined;
+    await act(async () => {
+      root = hydrateRoot(container, <Page />);
+    });
+
+    expect(logged.join("\n")).not.toMatch(/hydrat/iu);
+    expect(container.querySelector("h1")?.textContent).toBe("Put OpenRift on your home screen");
+
+    root?.unmount();
+    container.remove();
+  });
+
+  it("offers the computer install button only once hydrated", async () => {
+    useUserAgent(WINDOWS_CHROME);
+    useInstallStore.getState().setPromptEvent(
+      Object.assign(new Event("beforeinstallprompt"), {
+        prompt: vi.fn(async () => {}),
+        userChoice: Promise.resolve({ outcome: "accepted" as const }),
+      }) as BeforeInstallPromptEvent,
+    );
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(<Page />);
+    document.body.append(container);
+
+    expect(container.textContent).toContain("Look for the install icon");
+
+    const logged: string[] = [];
+    vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+      logged.push(args.map(String).join(" "));
+    });
+    let root: Root | undefined;
+    await act(async () => {
+      root = hydrateRoot(container, <Page />);
+    });
+
+    expect(logged.join("\n")).not.toMatch(/hydrat/iu);
+    expect(screen.getByRole("button", { name: "Install on this computer" })).toBeInTheDocument();
+
+    root?.unmount();
+    container.remove();
   });
 });

@@ -66,7 +66,7 @@ export function BanEditor({
         />
       </div>
 
-      <Button disabled={isPending || !isBanDraftComplete(draft)} onClick={onSubmit}>
+      <Button disabled={!isBanDraftComplete(draft)} pending={isPending} onClick={onSubmit}>
         <CheckIcon />
         {submitLabel}
       </Button>

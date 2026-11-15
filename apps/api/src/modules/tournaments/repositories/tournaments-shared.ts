@@ -15,5 +15,5 @@ export async function lockTournamentWrites(
   db: Kysely<Database>,
   tournamentId: string,
 ): Promise<void> {
-  await lockKey(db, tournamentId);
+  await lockKey(db, `tournament-writes:${tournamentId}`);
 }

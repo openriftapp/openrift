@@ -4,6 +4,9 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const updateMutateAsync = vi.fn();
+const toastSuccess = vi.fn();
+
+vi.mock("sonner", () => ({ toast: { success: toastSuccess, error: vi.fn() } }));
 
 vi.mock("@/features/groups/hooks/use-friend-groups", () => ({
   useFriendGroupDetail: () => ({ data: undefined }),
@@ -81,6 +84,7 @@ function makeDetail(
 }
 
 beforeEach(() => {
+  toastSuccess.mockReset();
   updateMutateAsync.mockReset();
   updateMutateAsync.mockResolvedValue({ slug: "bothfeld" });
 });
@@ -99,12 +103,27 @@ describe("AdminSettings group form", () => {
     );
   });
 
+  it("confirms a saved web address", async () => {
+    const user = userEvent.setup();
+    updateMutateAsync.mockResolvedValue({ slug: "shurima-sunday" });
+    render(<AdminSettings data={makeDetail()} slug="bothfeld" />);
+
+    await user.clear(screen.getByLabelText("Web address"));
+    await user.type(screen.getByLabelText("Web address"), "shurima-sunday");
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(updateMutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ slug: "bothfeld", newSlug: "shurima-sunday" }),
+    );
+    expect(toastSuccess).toHaveBeenCalledWith(expect.stringContaining("/groups/shurima-sunday"));
+  });
+
   it("blocks a slug the server would reject instead of sending it", async () => {
     const user = userEvent.setup();
     render(<AdminSettings data={makeDetail()} slug="bothfeld" />);
 
-    await user.clear(screen.getByLabelText("Slug"));
-    await user.type(screen.getByLabelText("Slug"), "-nope");
+    await user.clear(screen.getByLabelText("Web address"));
+    await user.type(screen.getByLabelText("Web address"), "-nope");
 
     expect(
       screen.getByText("Lowercase letters, digits, and dashes, starting with a letter or digit"),
@@ -118,8 +137,8 @@ describe("AdminSettings group form", () => {
     const user = userEvent.setup();
     render(<AdminSettings data={makeDetail()} slug="bothfeld" />);
 
-    await user.clear(screen.getByLabelText("Slug"));
-    await user.type(screen.getByLabelText("Slug"), "ab");
+    await user.clear(screen.getByLabelText("Web address"));
+    await user.type(screen.getByLabelText("Web address"), "ab");
 
     expect(screen.getByText("Use at least 3 characters")).toBeInTheDocument();
     expect(updateMutateAsync).not.toHaveBeenCalled();
@@ -129,7 +148,7 @@ describe("AdminSettings group form", () => {
     const user = userEvent.setup();
     render(<AdminSettings data={makeDetail()} slug="bothfeld" />);
 
-    await user.clear(screen.getByLabelText("Slug"));
+    await user.clear(screen.getByLabelText("Web address"));
 
     expect(screen.getByText("Pick a web address")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();

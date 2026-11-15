@@ -8,6 +8,7 @@ import type {
 import { imageUrl } from "@openrift/shared/image-url";
 
 import { CardIcon } from "@/components/card-icon";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import {
   CARD_CORNER_STYLE,
   CARD_TURNED,
@@ -115,13 +116,17 @@ export function CardGhost({
         borderColor: image === undefined ? PLAYER_COLOR[owner] : undefined,
       }}
     >
-      {image === undefined ? (
-        <span className="font-card text-card-foreground flex size-full items-center justify-center p-1 text-center text-xs leading-tight">
-          {name}
-        </span>
-      ) : (
-        <img src={image} alt="" aria-hidden className="size-full object-cover" />
-      )}
+      <ImgWithFallback
+        src={image}
+        alt=""
+        aria-hidden
+        className="size-full object-cover"
+        fallback={
+          <span className="font-card text-card-foreground flex size-full items-center justify-center p-1 text-center text-xs leading-tight">
+            {name}
+          </span>
+        }
+      />
     </span>
   );
 }
@@ -147,13 +152,16 @@ export function BattlefieldCardFrame({
       )}
       style={LANDSCAPE_CORNER_STYLE}
     >
-      {image === undefined ? (
-        <span className={cn("leading-tight", blank ? "text-xs" : "font-card font-semibold")}>
-          {cardName ?? m.board_states_battlefield({ number: index + 1 })}
-        </span>
-      ) : (
-        <img src={image} alt={cardName ?? ""} className="absolute inset-0 size-full object-cover" />
-      )}
+      <ImgWithFallback
+        src={image}
+        alt={cardName ?? ""}
+        className="absolute inset-0 size-full object-cover"
+        fallback={
+          <span className={cn("leading-tight", blank ? "text-xs" : "font-card font-semibold")}>
+            {cardName ?? m.board_states_battlefield({ number: index + 1 })}
+          </span>
+        }
+      />
     </span>
   );
 }

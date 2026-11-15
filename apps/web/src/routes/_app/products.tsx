@@ -1,7 +1,6 @@
 import { imageUrl } from "@openrift/shared/image-url";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { productsListQueryOptions } from "@/features/cards/lib/products-queries";
 import { collectionPageJsonLd, seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
@@ -54,5 +53,4 @@ export const Route = createFileRoute("/_app/products")({
       })),
     };
   },
-  errorComponent: RouteErrorFallback,
 });

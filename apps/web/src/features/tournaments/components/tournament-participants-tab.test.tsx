@@ -68,6 +68,10 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ to, children }: { to: string; children?: ReactNode }) => <a href={to}>{children}</a>,
 }));
 
+const toastSuccess = vi.fn();
+const toastError = vi.fn();
+vi.mock("sonner", () => ({ toast: { success: toastSuccess, error: toastError } }));
+
 const { AddParticipantButton, TournamentParticipantsTab } =
   await import("./tournament-participants-tab");
 
@@ -201,6 +205,14 @@ describe("TournamentParticipantsTab stat strip", () => {
 });
 
 describe("TournamentParticipantsTab roster groups", () => {
+  it("disables Approve on a completed event, which takes no more players", () => {
+    participants = [makeParticipant("p2", { displayName: "Braum", status: "requested" })];
+    renderTab(makeDetail({ status: "completed" }));
+
+    expect(screen.getByRole("button", { name: "Approve" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Deny" })).toBeEnabled();
+  });
+
   it("hoists join requests into their own group with working approve and deny", async () => {
     const user = userEvent.setup();
     participants = [
@@ -384,6 +396,18 @@ describe("TournamentParticipantsTab deck-check query gating", () => {
 });
 
 describe("TournamentParticipantsTab dialogs", () => {
+  it("confirms a copied claim link", async () => {
+    const user = userEvent.setup();
+    participants = [makeParticipant("p1", { displayName: "Ashe", claimToken: "claim-token" })];
+    renderTab();
+
+    await user.click(screen.getByRole("button", { name: "Participant actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: /Copy claim link/u }));
+
+    await vi.waitFor(() => expect(toastSuccess).toHaveBeenCalledWith("Claim link copied"));
+    expect(await navigator.clipboard.readText()).toContain("claim-token");
+  });
+
   it("keeps the remove confirm open when removing fails", async () => {
     participantActionMutateAsync.mockRejectedValueOnce(new Error("offline"));
     const user = userEvent.setup();

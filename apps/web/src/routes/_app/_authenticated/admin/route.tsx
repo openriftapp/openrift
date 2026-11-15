@@ -1,34 +1,12 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
-import { adminAccessQueryOptions } from "@/features/admin/lib/admin-queries";
-import {
-  ADMIN_SECTION_ROUTES,
-  adminSectionsForPathname,
-} from "@/features/admin/lib/admin-sections";
+import { requireAdminAccess } from "@/lib/admin-access-gate";
 import { privateSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin")({
-  head: () => privateSeoHead("Admin"),
   ssr: false,
   staticData: { hideFooter: true },
-  errorComponent: RouteErrorFallback,
   // Reruns on every /admin navigation, since grant holders are gated per section.
-  beforeLoad: async ({ context, location }) => {
-    const access = await context.queryClient.query({
-      ...adminAccessQueryOptions(context.userId),
-      staleTime: "static",
-    });
-    if (access.isAdmin) {
-      return;
-    }
-    const firstGranted = access.sections.at(0);
-    if (firstGranted === undefined) {
-      throw redirect({ to: "/cards" });
-    }
-    const sections = adminSectionsForPathname(location.pathname);
-    if (!access.sections.some((s) => sections.includes(s))) {
-      throw redirect({ to: ADMIN_SECTION_ROUTES[firstGranted] });
-    }
-  },
+  beforeLoad: requireAdminAccess,
+  head: () => privateSeoHead("Admin"),
 });

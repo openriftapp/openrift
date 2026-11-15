@@ -98,11 +98,6 @@ describe("candidateCardsRepo", () => {
     expect(await candidateCardsRepo(db).cardForDetailBySlug("OGS-001")).toBeDefined();
   });
 
-  it("cardNameAliases returns aliases", async () => {
-    const db = createMockDb([{ normName: "annie" }]);
-    expect(await candidateCardsRepo(db).cardNameAliases("c-1")).toHaveLength(1);
-  });
-
   it("printingsForDetail returns detail fields", async () => {
     const db = createMockDb([{ id: "p-1", slug: "OGS-001" }]);
     expect(await candidateCardsRepo(db).printingsForDetail("c-1")).toHaveLength(1);

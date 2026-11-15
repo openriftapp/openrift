@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
+import { requestInstallPlatform } from "@/lib/request-install-platform";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
 export const Route = createFileRoute("/_app/install")({
-  ssr: "data-only",
+  loader: () => ({ platform: requestInstallPlatform() }),
   head: () =>
     seoHead({
       siteUrl: getSiteUrl(),
@@ -14,5 +14,4 @@ export const Route = createFileRoute("/_app/install")({
         "Add OpenRift to your iPhone or Android home screen. It opens full screen like an app, with nothing to download from an app store.",
       path: "/install",
     }),
-  errorComponent: RouteErrorFallback,
 });

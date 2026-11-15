@@ -392,6 +392,134 @@ describe("processRechecks", () => {
     expect(result.fetched).toBe(1);
   });
 
+  it("resumes a visit cut short with progress within a minute from ladder stage 0, then runs the ladder again", async () => {
+    const fetch = vi.mocked(deepFetchEvent);
+    const complete = () =>
+      detailRow({
+        display_status: "complete",
+        start_datetime: "2026-08-19T09:00:00Z",
+        decklist_status: "PUBLISHED",
+        tournament_phases: [{ rounds: [{ id: 901, status: "complete", round_number: 1 }] }],
+      });
+    const row = dueRow({
+      displayStatus: "complete",
+      decklistStatus: "PUBLISHED",
+      checkStage: 2,
+      resultsFetchedAt: null,
+    });
+    fetch.mockClear();
+    fetch.mockResolvedValueOnce({
+      externalId: "4821",
+      requests: 0,
+      players: 0,
+      decks: 1,
+      dropped: 0,
+      stagedMatches: 0,
+      liveMatches: 0,
+      phases: 0,
+      acceptedPlayers: 0,
+      skippedPlayers: 0,
+      cutShort: true,
+      progressed: true,
+      errors: [],
+    });
+    const first = fakeDeps({
+      due: [row],
+      detail: complete,
+      heldRounds: [],
+      outstandingDecks: ["d-1"],
+    });
+
+    await processRechecks(first.deps);
+
+    expect(first.writes).toEqual([
+      { externalId: "4821", nextCheckAt: new Date(NOW.getTime() + 60_000), checkStage: 0 },
+    ]);
+
+    const resumed = { ...row, ...first.writes[0] };
+    const second = fakeDeps({ due: [resumed], detail: complete, heldRounds: [] });
+
+    await processRechecks(second.deps);
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(second.writes).toEqual([
+      {
+        externalId: "4821",
+        nextCheckAt: new Date(NOW.getTime() + 24 * HOUR_MS),
+        checkStage: 1,
+      },
+    ]);
+  });
+
+  it("leaves a completed event with an unstaged zero-match round on its ladder, without fetching", async () => {
+    const fetch = vi.mocked(deepFetchEvent);
+    fetch.mockClear();
+    const { deps, writes } = fakeDeps({
+      due: [dueRow({ displayStatus: "complete", checkStage: 2, resultsFetchedAt: FETCHED_AT })],
+      detail: () =>
+        detailRow({
+          display_status: "complete",
+          start_datetime: "2026-08-19T09:00:00Z",
+          tournament_phases: [{ rounds: [{ id: 901, status: "complete", round_number: 1 }] }],
+        }),
+      heldRounds: [],
+    });
+
+    await processRechecks(deps);
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(writes).toEqual([
+      {
+        externalId: "4821",
+        nextCheckAt: new Date(NOW.getTime() + 7 * 24 * HOUR_MS),
+        checkStage: 3,
+      },
+    ]);
+  });
+
+  it("keeps the ladder stage after a cut that made no progress, so the next visit still fetches", async () => {
+    const fetch = vi.mocked(deepFetchEvent);
+    fetch.mockClear();
+    fetch.mockResolvedValueOnce({
+      externalId: "4821",
+      requests: 0,
+      players: 0,
+      decks: 0,
+      dropped: 0,
+      stagedMatches: 0,
+      liveMatches: 0,
+      phases: 0,
+      acceptedPlayers: 0,
+      skippedPlayers: 0,
+      cutShort: true,
+      progressed: false,
+      errors: [],
+    });
+    const detail = () =>
+      detailRow({
+        display_status: "complete",
+        start_datetime: "2026-08-19T09:00:00Z",
+        tournament_phases: [{ rounds: [{ id: 901, status: "complete", round_number: 1 }] }],
+      });
+    const row = dueRow({ displayStatus: "complete", checkStage: 0, resultsFetchedAt: FETCHED_AT });
+    const first = fakeDeps({ due: [row], detail, heldRounds: [] });
+
+    await processRechecks(first.deps);
+
+    expect(first.writes).toEqual([
+      { externalId: "4821", nextCheckAt: new Date(NOW.getTime() + 24 * HOUR_MS), checkStage: 0 },
+    ]);
+
+    const second = fakeDeps({ due: [{ ...row, ...first.writes[0] }], detail, heldRounds: [] });
+
+    await processRechecks(second.deps);
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(second.writes).toEqual([
+      { externalId: "4821", nextCheckAt: new Date(NOW.getTime() + 24 * HOUR_MS), checkStage: 1 },
+    ]);
+  });
+
   it("reports an empty queue as a no-op run", async () => {
     const { deps, writes } = fakeDeps({ due: [], detail: () => detailRow() });
 

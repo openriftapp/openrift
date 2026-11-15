@@ -117,7 +117,7 @@ async function urlKeysByFile(): Promise<string[]> {
   return [...found].toSorted();
 }
 
-describe("public oRPC contract outputs (plain Hono routes have no contract and are not covered)", () => {
+describe("public oRPC contract outputs (plain Hono routes: apps/api/src/app-plain-routes.test.ts)", () => {
   let keys: string[] = [];
 
   beforeAll(async () => {

@@ -1,8 +1,8 @@
+import { deckCardKey } from "@openrift/shared/deck-cards";
 import { labelMapOf } from "@openrift/shared/enum-label";
 import { describe, expect, it } from "vitest";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
 import {
   buildOwnershipRows,

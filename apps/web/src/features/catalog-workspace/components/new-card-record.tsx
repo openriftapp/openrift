@@ -254,7 +254,7 @@ export function NewCardRecord({ name }: { name: string }) {
           {isAdmin && providerRows.length > 0 && (
             <Button
               variant="outline"
-              disabled={ignoreDrafts.isPending}
+              pending={ignoreDrafts.isPending}
               onClick={() => void ignoreDraft()}
             >
               Ignore

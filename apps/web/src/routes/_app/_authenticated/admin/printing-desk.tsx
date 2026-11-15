@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
 import { adminAccessQueryOptions } from "@/features/admin/lib/admin-queries";
 import { adminDistributionChannelsQueryOptions } from "@/features/admin/lib/distribution-channels-queries";
@@ -33,5 +32,4 @@ export const Route = createFileRoute("/_app/_authenticated/admin/printing-desk")
     ]);
   },
   pendingComponent: AdminPending,
-  errorComponent: RouteErrorFallback,
 });

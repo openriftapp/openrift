@@ -1,10 +1,10 @@
+import { deckCardKey } from "@openrift/shared/deck-cards";
 import type { VariantLabelEnumLabels } from "@openrift/shared/printing-label";
 import { formatPrintingVariantLabelParts } from "@openrift/shared/printing-label";
 import type { Printing } from "@openrift/shared/types/catalog";
 
 import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 
 export function printingRowLabel(
   printing: Printing,

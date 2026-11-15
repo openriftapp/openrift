@@ -104,7 +104,7 @@ function FolderRow({
           // oxlint-disable-next-line jsx-a11y/no-autofocus -- replaces the row's label in place, so focus must follow
           autoFocus
         />
-        <Button type="button" size="sm" onClick={commitRename} disabled={rename.isPending}>
+        <Button type="button" size="sm" onClick={commitRename} pending={rename.isPending}>
           {m.common_save()}
         </Button>
         <Button
@@ -180,7 +180,7 @@ function FolderRow({
         size="icon-sm"
         variant="ghost"
         aria-label={m.decks_dialog_folders_delete_label({ name: folder.name })}
-        disabled={remove.isPending}
+        pending={remove.isPending}
         onClick={() => remove.mutate({ id: folder.id })}
       >
         <TrashIcon className="size-4" />

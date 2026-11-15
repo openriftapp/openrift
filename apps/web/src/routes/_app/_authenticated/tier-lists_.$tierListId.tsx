@@ -1,6 +1,5 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { LinkGoneState } from "@/components/link-gone-state";
 import { buttonVariants } from "@/components/ui/button";
 import { cleanedSearchForRedirect, filterSearchSchema } from "@/features/cards/lib/search-schemas";
@@ -34,7 +33,6 @@ export const Route = createFileRoute("/_app/_authenticated/tier-lists_/$tierList
       }),
     );
   },
-  errorComponent: RouteErrorFallback,
   notFoundComponent: () => (
     <LinkGoneState
       title={m.tier_lists_not_found_title()}

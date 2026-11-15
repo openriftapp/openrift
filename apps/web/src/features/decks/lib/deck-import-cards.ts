@@ -1,3 +1,4 @@
+import { mergeDeckCards } from "@openrift/shared/deck-cards";
 import type { DeckZone } from "@openrift/shared/types/enums";
 
 import { m } from "@/paraglide/messages.js";
@@ -20,26 +21,19 @@ interface MatchedEntryLike {
   resolvedCard: { cardId: string; preferredPrintingId: string | null } | null;
 }
 
-/** Groups by cardId + zone + preferredPrintingId, so a printing-specific match (short code) stays a distinct row from a default-art match of the same card. */
 export function dedupeMatchedEntries(entries: readonly MatchedEntryLike[]): ImportedDeckCard[] {
-  const cardMap = new Map<string, ImportedDeckCard>();
-  for (const entry of entries) {
-    if (!entry.resolvedCard) {
-      continue;
-    }
-    const preferredPrintingId = entry.resolvedCard.preferredPrintingId;
-    const key = `${entry.resolvedCard.cardId}::${entry.zone}::${preferredPrintingId ?? ""}`;
-    const existing = cardMap.get(key);
-    if (existing) {
-      existing.quantity += entry.entry.quantity;
-    } else {
-      cardMap.set(key, {
-        cardId: entry.resolvedCard.cardId,
-        zone: entry.zone,
-        quantity: entry.entry.quantity,
-        preferredPrintingId,
-      });
-    }
-  }
-  return [...cardMap.values()];
+  return mergeDeckCards(
+    entries.flatMap((entry) =>
+      entry.resolvedCard
+        ? [
+            {
+              cardId: entry.resolvedCard.cardId,
+              zone: entry.zone,
+              quantity: entry.entry.quantity,
+              preferredPrintingId: entry.resolvedCard.preferredPrintingId,
+            },
+          ]
+        : [],
+    ),
+  );
 }

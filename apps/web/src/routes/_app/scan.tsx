@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback } from "@/components/error-message";
 import { catalogQueryOptions, ensureCatalogComplete } from "@/features/cards/lib/catalog-queries";
 import { CollectionPending } from "@/features/collections/components/collection-pending";
 import { loadCollection } from "@/features/collections/lib/collection-load";
@@ -53,6 +53,5 @@ export const Route = createFileRoute("/_app/scan")({
         })
       : privateSeoHead("Scan cards"),
   pendingComponent: () => <CollectionPending width="capped" />,
-  errorComponent: RouteErrorFallback,
   notFoundComponent: NotFoundFallback,
 });

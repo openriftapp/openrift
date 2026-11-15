@@ -43,64 +43,9 @@ import {
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { trackAuthGate } from "@/lib/analytics";
 import type { LockedFeatureKey, NavBadgeCounts, NavItemConfig } from "@/lib/nav-items";
+import { lockedFeatures } from "@/lib/nav-items";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { m } from "@/paraglide/messages.js";
-
-function lockedFeatures(): Record<
-  LockedFeatureKey,
-  { title: string; description: string; to: string; icon: typeof LibraryIcon }
-> {
-  return {
-    collections: {
-      title: m.nav_collection(),
-      description: m.nav_locked_collections_description(),
-      to: "/collections",
-      icon: LibraryIcon,
-    },
-    scan: {
-      title: m.nav_scan_full(),
-      description: m.nav_locked_scan_description(),
-      to: "/scan",
-      icon: CameraIcon,
-    },
-    groups: {
-      title: m.nav_groups(),
-      description: m.nav_locked_groups_description(),
-      to: "/groups",
-      icon: UsersIcon,
-    },
-    trades: {
-      title: m.nav_trades(),
-      description: m.nav_locked_trades_description(),
-      to: "/trades",
-      icon: HandshakeIcon,
-    },
-    loans: {
-      title: m.nav_lending(),
-      description: m.nav_locked_loans_description(),
-      to: "/loans",
-      icon: HandHeartIcon,
-    },
-    tournaments: {
-      title: m.nav_tournaments(),
-      description: m.nav_locked_tournaments_description(),
-      to: "/tournaments",
-      icon: TrophyIcon,
-    },
-    tierLists: {
-      title: m.nav_tier_lists(),
-      description: m.nav_locked_tier_lists_description(),
-      to: "/tier-lists",
-      icon: ListOrderedIcon,
-    },
-    contribute: {
-      title: m.nav_contribute(),
-      description: m.nav_locked_contribute_description(),
-      to: "/contribute",
-      icon: PencilLineIcon,
-    },
-  };
-}
 
 export interface NavSectionConfig {
   id: "play" | "organize" | "create" | "explore";
@@ -459,9 +404,9 @@ export function SignInRequiredDialog({
           <DialogHeader>
             <div className="flex items-center gap-2">
               <feature.icon className="text-primary size-5" />
-              <DialogTitle>{feature.title}</DialogTitle>
+              <DialogTitle>{feature.label}</DialogTitle>
             </div>
-            <DialogDescription>{feature.description}</DialogDescription>
+            <DialogDescription>{feature.lockedDescription}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <SignedOutAuthButtons

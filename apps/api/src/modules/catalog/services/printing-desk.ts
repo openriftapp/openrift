@@ -15,6 +15,7 @@ import { badRequest, conflict, forbidden } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import type { AdminAccess } from "../../../middleware/require-admin.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
+import { isUnchangedValue } from "../lib/field-values.js";
 import type { PrintingUpdate } from "../repositories/catalog-mutations.js";
 import type { NewPrinting } from "./printing-admin.js";
 import {
@@ -23,6 +24,10 @@ import {
   updatePrintingDistributionChannels,
   updatePrintingMarkers,
 } from "./printing-admin.js";
+import {
+  normalizePrintingFieldValue,
+  normalizeTypedPrintingValue,
+} from "./printing-field-writes.js";
 
 interface DeskRelease {
   releasedAt: string | null;
@@ -171,6 +176,13 @@ export async function assertImageUploader(
   throw forbidden("Only the admin can delete an image you did not upload");
 }
 
+function optionalText<T extends string | null>(
+  field: "shortCode" | "artist" | "flavorText",
+  value: T | undefined,
+): T | undefined {
+  return value === undefined ? undefined : (normalizeTypedPrintingValue(field, value) as T);
+}
+
 type CreateRepos = Pick<Repos, "adminEvents" | "catalogMutations" | "printingDesk" | "sets">;
 
 export async function createDeskPrinting(
@@ -179,7 +191,14 @@ export async function createDeskPrinting(
   userId: string,
   input: DeskCreateInput,
 ): Promise<NewPrinting> {
-  const { cardId, basePrintingId, codeTba, secondSideFaceId, ...fields } = input;
+  const { cardId, basePrintingId, codeTba, secondSideFaceId, ...given } = input;
+  const fields = {
+    ...given,
+    shortCode: optionalText("shortCode", given.shortCode),
+    artist: optionalText("artist", given.artist),
+    comment: normalizeTypedPrintingValue("comment", given.comment) as string | null,
+    flavorText: optionalText("flavorText", given.flavorText),
+  };
 
   const card = await repos.catalogMutations.getCardById(cardId);
   assertFound(card, "Card not found");
@@ -225,7 +244,7 @@ export async function createDeskPrinting(
       isSigned: false,
       printedRulesText: base?.printedRulesText ?? null,
       printedEffectText: base?.printedEffectText ?? null,
-      flavorText: base?.flavorText ?? null,
+      flavorText: fields.flavorText === undefined ? (base?.flavorText ?? null) : fields.flavorText,
       printedName: base?.printedName ?? null,
     },
     [],
@@ -274,11 +293,14 @@ const SCALAR_FIELDS = [
   "artist",
   "announcedAt",
   "comment",
+  "flavorText",
 ] as const;
 
 type UpdateRepos = Pick<
   Repos,
   | "adminEvents"
+  | "keywords"
+  | "rarities"
   | "catalog"
   | "catalogMutations"
   | "distributionChannels"
@@ -457,8 +479,18 @@ export async function updateDeskPrinting(
 
   const patch: PrintingUpdate = {};
   for (const field of SCALAR_FIELDS) {
-    if (fields[field] !== undefined) {
-      patch[field] = fields[field] as never;
+    if (fields[field] === undefined) {
+      continue;
+    }
+    const value = await normalizePrintingFieldValue(repos, {
+      printingId,
+      field,
+      value: fields[field],
+      source: "manual",
+      side,
+    });
+    if (!isUnchangedValue(before[field], value)) {
+      patch[field] = value as never;
     }
   }
   const nextSet =
@@ -472,8 +504,13 @@ export async function updateDeskPrinting(
       releasePrecision:
         fields.releasePrecision === undefined ? before.releasePrecision : fields.releasePrecision,
     });
-    patch.releasedAt = release.releasedAt;
-    patch.releasePrecision = release.releasePrecision;
+    if (
+      release.releasedAt !== before.releasedAt ||
+      release.releasePrecision !== before.releasePrecision
+    ) {
+      patch.releasedAt = release.releasedAt;
+      patch.releasePrecision = release.releasePrecision;
+    }
   }
 
   // A TBA code names its set, so moving the printing has to rewrite it.
@@ -487,11 +524,26 @@ export async function updateDeskPrinting(
       patch.shortCode = tbaShortCode(set.slug, card.slug);
       patch.publicCode = tbaPublicCode(set.slug);
     } else {
-      const nextShortCode = shortCode ?? before.shortCode;
+      const nextShortCode =
+        shortCode === undefined
+          ? before.shortCode
+          : (normalizeTypedPrintingValue("shortCode", shortCode) as string);
       const total = await repos.sets.getPrintedTotal(String(patch.setId ?? before.setId));
       patch.shortCode = nextShortCode;
       patch.publicCode = appendSetTotal(nextShortCode, total?.printedTotal ?? null);
     }
+    if (patch.shortCode === before.shortCode && patch.publicCode === before.publicCode) {
+      delete patch.shortCode;
+      delete patch.publicCode;
+    }
+  }
+
+  if (
+    Object.keys(patch).length === 0 &&
+    markerSlugs === undefined &&
+    distributionChannelSlugs === undefined
+  ) {
+    return;
   }
 
   try {

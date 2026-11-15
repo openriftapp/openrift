@@ -261,6 +261,27 @@ describe("isResumableCheckpoint", () => {
 });
 
 describe("syncCatalog", () => {
+  it("stops at the daily time budget before a second run could be claimed", async () => {
+    const events = Array.from({ length: 900 }, (_, i) => ({
+      id: i + 1,
+      at: new Date(NOW.getTime() - (i + 1) * 60_000).toISOString(),
+    }));
+    let at = NOW.getTime();
+    const { client, requests } = fakeClient((request) => {
+      at += 91 * 60_000;
+      return fakeSource(events)(request);
+    });
+    const { deps, markMissingCalls } = fakeDeps(client);
+    deps.now = () => new Date(at);
+
+    const result = await syncCatalog(deps);
+
+    expect(requests).toHaveLength(1);
+    expect(result.complete).toBe(false);
+    expect(result.errors).toContain("Stopped at the 90-minute time budget");
+    expect(markMissingCalls).toEqual([]);
+  });
+
   it("asks from a week back out to the horizon, once when it fits a page", async () => {
     const { client, requests } = fakeClient(() => pageOf([]));
     const { deps } = fakeDeps(client);
@@ -366,6 +387,33 @@ describe("syncCatalog", () => {
     ]);
     expect(result.missingFound).toBe(1);
     expect(result.errors).toEqual([]);
+  });
+
+  it("keeps a completed crawl complete when the time budget ends during the missing-row probes", async () => {
+    const details = {
+      "7": { ...listingRow(7, "2026-08-18T00:00:00Z"), game_type: "RIFTBOUND" },
+      "8": { ...listingRow(8, "2026-08-18T00:00:00Z"), game_type: "RIFTBOUND" },
+    };
+    const { client } = fakeClient(() => pageOf([]), details);
+    const { deps, refreshed, markMissingCalls } = fakeDeps(client, WATCHED_TEMPLATES, ["7", "8"]);
+    let at = NOW.getTime();
+    const get = deps.client.get.bind(deps.client);
+    deps.client.get = (<T>(path: string, query?: UvsQuery) => {
+      if (/\/api\/v2\/events\/\d+\/$/u.test(path)) {
+        at += 91 * 60_000;
+      }
+      return get<T>(path, query);
+    }) as typeof deps.client.get;
+    deps.now = () => new Date(at);
+
+    const result = await syncCatalog(deps);
+
+    expect(result.complete).toBe(true);
+    expect(markMissingCalls).toHaveLength(1);
+    expect(refreshed.map((row) => row.externalId)).toEqual(["7"]);
+    expect(
+      result.errors.some((message) => message.startsWith("Stopped probing missing events")),
+    ).toBe(true);
   });
 
   it("keeps probing past answers it cannot use, since the source is not refusing", async () => {

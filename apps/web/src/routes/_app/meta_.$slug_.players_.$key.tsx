@@ -2,7 +2,7 @@ import { formatRankEnglish } from "@openrift/shared/meta-standings";
 import type { MetaEventRunResponse } from "@openrift/shared/types/api/meta";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
 import { metaRunQueryOptions } from "@/features/meta/lib/meta-queries";
 import { initQueryOptions } from "@/lib/init-queries";
@@ -51,7 +51,6 @@ export const Route = createFileRoute("/_app/meta_/$slug_/players_/$key")({
     return { event: run.event, player: run.player };
   },
   pendingComponent: MetaEventRunPending,
-  errorComponent: RouteErrorFallback,
   notFoundComponent: NotFoundFallback,
 });
 

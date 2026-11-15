@@ -4,9 +4,8 @@ import { Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { PrintingCitationList } from "@/features/cards/components/card-detail/printing-citations";
+import { BREADCRUMB_SEP } from "@/lib/breadcrumb";
 import { m } from "@/paraglide/messages.js";
-
-const BREADCRUMB_SEP = " \u203A ";
 
 export function PrintingNotesSection({ printing }: { printing: Printing }) {
   const hasMarkers = printing.markers.length > 0;

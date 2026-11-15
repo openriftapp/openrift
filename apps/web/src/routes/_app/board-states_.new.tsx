@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback } from "@/components/error-message";
 import { ruleVersionsQueryOptions } from "@/features/rules/lib/rules-queries";
 import { requireFeature } from "@/lib/feature-flags";
 import { privateSeoHead } from "@/lib/seo";
@@ -15,6 +15,5 @@ export const Route = createFileRoute("/_app/board-states_/new")({
       context.queryClient.query({ ...ruleVersionsQueryOptions("tournament"), staleTime: "static" }),
     ]);
   },
-  errorComponent: RouteErrorFallback,
   notFoundComponent: NotFoundFallback,
 });

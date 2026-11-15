@@ -109,7 +109,12 @@ export function MetaEventCorrectionCard({ correction }: { correction: AdminMetaE
 
       {applicable && changed.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 pt-2">
-          <Button size="sm" disabled={kept.length === 0 || apply.isPending} onClick={handleApply}>
+          <Button
+            size="sm"
+            disabled={kept.length === 0}
+            pending={apply.isPending}
+            onClick={handleApply}
+          >
             Apply {kept.length} {pluralize(kept.length, "change")}
           </Button>
           <span className="text-muted-foreground min-w-0 text-sm">

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { createDbContext } from "../../../test/integration-context.js";
 import { createMockDb } from "../../../test/mock-db.js";
+import { createRecordingDb, onlyStatement } from "../../../test/recording-db.js";
 import { printingImagesRepo } from "./printing-images.js";
 
 describe("printingImagesRepo", () => {
@@ -199,4 +200,30 @@ describe("printingImagesRepo", () => {
       expect(result[0]).toHaveProperty("rehosted");
     }
   });
+});
+
+describe("printingImagesRepo setters skip a write that changes nothing", () => {
+  const quad: ImageQuad = [
+    { x: 1, y: 2 },
+    { x: 3, y: 2 },
+    { x: 3, y: 4 },
+    { x: 1, y: 4 },
+  ];
+
+  it.each([
+    ["setRotation", "rotation", (repo) => repo.setRotation("if-1", 90)],
+    ["setNeedsTrim", "needs_trim", (repo) => repo.setNeedsTrim("if-1", true)],
+    ["setQuad", "quad", (repo) => repo.setQuad("if-1", quad)],
+    ["setFingerprint", "fingerprint", (repo) => repo.setFingerprint("if-1", "abc")],
+    ["setActive", "is_active", (repo) => repo.setActive("fi-1", true)],
+  ] as [string, string, (repo: ReturnType<typeof printingImagesRepo>) => Promise<void>][])(
+    "%s updates only a row whose %s differs",
+    async (_name, column, write) => {
+      const recorded = createRecordingDb();
+      await write(printingImagesRepo(recorded.db));
+      expect(onlyStatement(recorded).sql).toMatch(
+        new RegExp(`where "id" = \\$\\d+ and "${column}" is distinct from \\$\\d+$`, "u"),
+      );
+    },
+  );
 });

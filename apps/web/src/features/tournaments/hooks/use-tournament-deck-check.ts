@@ -9,7 +9,10 @@ import { isDefinedError, safe } from "@orpc/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
-import { deckCheckEntriesRefetchInterval } from "@/features/tournaments/lib/open-round-polling";
+import {
+  deckCheckEntriesRefetchInterval,
+  deckCheckEntryRefetchInterval,
+} from "@/features/tournaments/lib/open-round-polling";
 import { deckCheckEntryInvalidationKeys } from "@/features/tournaments/lib/tournament-invalidation";
 import { tournamentDeckCheckKeys } from "@/features/tournaments/lib/tournaments-query-keys";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -18,8 +21,6 @@ import { reportMutationError } from "@/lib/query-client";
 import { orNotFound } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-
-const POLL_INTERVAL_MS = 5000;
 
 const fetchEntries = createServerFn({ method: "GET" })
   .validator((input: string) => input)
@@ -57,7 +58,7 @@ export function useTournamentDeckCheckEntry(tournamentId: string, entryId: strin
     queryKey: tournamentDeckCheckKeys.entry(userId, tournamentId, entryId),
     queryFn: () => fetchEntry({ data: { tournamentId, entryId } }),
     staleTime: 0,
-    refetchInterval: POLL_INTERVAL_MS,
+    refetchInterval: (query) => deckCheckEntryRefetchInterval(query.state.data),
     refetchOnWindowFocus: true,
   });
 }

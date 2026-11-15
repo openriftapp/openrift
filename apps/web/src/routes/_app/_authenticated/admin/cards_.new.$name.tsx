@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
 import { unmatchedCardDetailQueryOptions } from "@/features/admin/lib/admin-card-queries";
 import { adminLanguagesQueryOptions } from "@/features/admin/lib/languages-queries";
@@ -24,5 +23,4 @@ export const Route = createFileRoute("/_app/_authenticated/admin/cards_/new/$nam
     ]);
   },
   pendingComponent: AdminPending,
-  errorComponent: RouteErrorFallback,
 });

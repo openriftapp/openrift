@@ -1,6 +1,7 @@
 import { DicesIcon, Settings2Icon, ShieldIcon, SparklesIcon, SwordsIcon } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { FIXTURE_PEOPLE } from "@/features/marketing/lib/vignette-fixtures";
 import {
   PANEL_VIGNETTE_STYLE,
@@ -51,7 +52,8 @@ function Panel({
       )}
     >
       {art && (
-        <img
+        <ImgWithFallback
+          fallback={null}
           src={art}
           alt=""
           aria-hidden="true"

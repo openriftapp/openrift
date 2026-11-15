@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
 import { ignoredCandidatesQueryOptions } from "@/features/admin/lib/ignored-candidates-queries";
 import { adminSeoHead } from "@/lib/seo";
@@ -10,5 +9,4 @@ export const Route = createFileRoute("/_app/_authenticated/admin/ignored-sources
   loader: ({ context }) =>
     context.queryClient.query({ ...ignoredCandidatesQueryOptions, staleTime: "static" }),
   pendingComponent: AdminPending,
-  errorComponent: RouteErrorFallback,
 });

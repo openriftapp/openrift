@@ -82,10 +82,6 @@ interface SweepContext {
   stopped: boolean;
 }
 
-function record(ctx: SweepContext, message: string): void {
-  recordCapped(ctx.result.errors, [message]);
-}
-
 /** A failure isn't a probe: it stays undecided so the next run retries it. */
 export type ProbeOutcome<P = UvsgamesCatalogProjection> =
   | { kind: "event"; projection: P }
@@ -162,7 +158,7 @@ async function heartbeat(ctx: SweepContext): Promise<void> {
     ctx.stopped = true;
     ctx.result.cancelRequested = true;
     ctx.result.complete = false;
-    record(ctx, "Cancelled from the admin panel");
+    recordCapped(ctx.result.errors, ["Cancelled from the admin panel"]);
   }
 }
 
@@ -188,13 +184,15 @@ function apply(ctx: SweepContext, outcome: ProbeOutcome): void {
       break;
     }
     case "failed": {
-      record(ctx, outcome.error);
+      recordCapped(ctx.result.errors, [outcome.error]);
       ctx.result.failed++;
       ctx.result.complete = false;
       ctx.consecutiveFailures++;
       if (ctx.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
         ctx.stopped = true;
-        record(ctx, `Stopped after ${ctx.consecutiveFailures} probes failed in a row`);
+        recordCapped(ctx.result.errors, [
+          `Stopped after ${ctx.consecutiveFailures} probes failed in a row`,
+        ]);
       }
       return;
     }
@@ -234,7 +232,7 @@ async function sweepRange(
         }
         ctx.stopped = true;
         ctx.result.complete = false;
-        record(ctx, `Stopped at event ${id}: ${errorMessage(error)}`);
+        recordCapped(ctx.result.errors, [`Stopped at event ${id}: ${errorMessage(error)}`]);
         break;
       }
       if (ctx.pendingRows.length + ctx.pendingProbes.length >= FLUSH_PROBES) {
@@ -250,7 +248,7 @@ async function sweepRange(
 
   if (ctx.result.probed >= ctx.maxProbes) {
     ctx.result.complete = false;
-    record(ctx, `Stopped at the ${ctx.maxProbes}-probe budget`);
+    recordCapped(ctx.result.errors, [`Stopped at the ${ctx.maxProbes}-probe budget`]);
   }
 }
 
@@ -280,7 +278,7 @@ export async function sweepEventIds(
   const fromId = options.fromId ?? stored?.fromId;
   const toId = options.toId ?? stored?.toId;
   if (fromId === undefined || toId === undefined || fromId > toId) {
-    record(ctx, "No id range to sweep");
+    recordCapped(ctx.result.errors, ["No id range to sweep"]);
     ctx.result.complete = false;
     return ctx.result;
   }
@@ -293,7 +291,7 @@ export async function sweepEventIds(
   const auto = await autoAcceptCatalogEvents(deps, [...new Set(ctx.touched)]);
   ctx.result.autoAccepted = auto.accepted;
   for (const message of auto.errors) {
-    record(ctx, message);
+    recordCapped(ctx.result.errors, [message]);
   }
   ctx.result.remaining = await deps.repos.uvsgamesEvents.sweepRemaining(fromId, toId);
   ctx.result.requests = deps.client.requests - requestsBefore;

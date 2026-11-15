@@ -131,7 +131,8 @@ export function TeamsSection({
           />
           <Button
             size="sm"
-            disabled={!firstId || !secondId || firstId === secondId || createTeam.isPending}
+            disabled={!firstId || !secondId || firstId === secondId}
+            pending={createTeam.isPending}
             onClick={() => void handleCreate()}
           >
             {m.tournaments_teams_pair()}

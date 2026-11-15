@@ -21,6 +21,12 @@ const LINK_HOSTS: ReadonlyMap<string, LinkHost> = new Map([
   ["discord.gg", { label: "Discord", kind: "site" }],
 ]);
 
+// Stripping can't widen an allowlist keyed on the result: "www.youtube.com.evil.test" still misses.
+export function bareHostname(hostname: string): string {
+  const lower = hostname.toLowerCase();
+  return lower.startsWith("www.") ? lower.slice(4) : lower;
+}
+
 export function resolveLinkHost(value: string): LinkHost | null {
   let url: URL;
   try {
@@ -31,11 +37,7 @@ export function resolveLinkHost(value: string): LinkHost | null {
   if (url.protocol !== "https:") {
     return null;
   }
-  const hostname = url.hostname.toLowerCase();
-  // Bare host so www.X and X share an entry; stripping can't widen the
-  // allowlist ("www.youtube.com.evil.test" still misses).
-  const bare = hostname.startsWith("www.") ? hostname.slice(4) : hostname;
-  return LINK_HOSTS.get(bare) ?? null;
+  return LINK_HOSTS.get(bareHostname(url.hostname)) ?? null;
 }
 
 export function isAllowedLinkUrl(value: string): boolean {

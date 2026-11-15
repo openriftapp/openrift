@@ -160,7 +160,7 @@ function OrgRow({ org }: { org: OrganizationSummaryResponse }) {
             <Button
               size="sm"
               variant="destructive"
-              disabled={deleteOrg.isPending}
+              pending={deleteOrg.isPending}
               onClick={() => void handleDelete()}
             >
               Confirm
@@ -272,7 +272,8 @@ export function AdminOrganizationsPage() {
         </div>
         <Button
           className="w-fit"
-          disabled={!slug.trim() || !name.trim() || !ownerUserId || createOrg.isPending}
+          disabled={!slug.trim() || !name.trim() || !ownerUserId}
+          pending={createOrg.isPending}
           onClick={() => void handleCreate()}
         >
           Create

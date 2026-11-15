@@ -1,3 +1,4 @@
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { deckGlowStyle } from "@/lib/domain";
 
@@ -27,7 +28,8 @@ export function ArtBandBackdrop({
       {thumbnail !== null && thumbnail !== undefined && thumbnail !== "" && (
         <>
           {/* scale-110 hides the blur's soft edges. */}
-          <img
+          <ImgWithFallback
+            fallback={null}
             src={thumbnail}
             alt=""
             aria-hidden="true"

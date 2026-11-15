@@ -3,7 +3,6 @@
  * rows. Both ingest entry points map the same payload to the same columns, so
  * the mapping lives here once.
  */
-import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 import type { IngestCard, IngestPrinting } from "@openrift/shared/contracts/admin/card-mutations";
 import {
   candidateCardFieldRules,
@@ -18,11 +17,10 @@ import type {
   CandidateCardsTable,
   CandidatePrintingsTable,
 } from "../../../db/tables/candidates.js";
+import { cardNameRule } from "../../catalog/lib/field-values.js";
 
 export const candidateCardValidator = z.object({
-  name: candidateCardFieldRules.name.refine((name) => normalizeNameForIdentity(name) !== "", {
-    message: "needs at least one letter or digit",
-  }),
+  name: cardNameRule,
   types: candidateCardFieldRules.types,
   might: candidateCardFieldRules.might,
   energy: candidateCardFieldRules.energy,

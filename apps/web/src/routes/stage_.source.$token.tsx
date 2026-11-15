@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod/mini";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { catalogQueryOptions } from "@/features/cards/lib/catalog-queries";
 import { initQueryOptions } from "@/lib/init-queries";
 import { lenient } from "@/lib/lenient-param";
@@ -24,5 +23,4 @@ export const Route = createFileRoute("/stage_/source/$token")({
     ]);
     return null;
   },
-  errorComponent: RouteErrorFallback,
 });

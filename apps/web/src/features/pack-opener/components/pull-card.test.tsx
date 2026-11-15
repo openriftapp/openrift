@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import type { PackPrinting, PackPull } from "@openrift/shared/pack-opener/types";
 import { render } from "@testing-library/react";
 import type { ReactNode } from "react";

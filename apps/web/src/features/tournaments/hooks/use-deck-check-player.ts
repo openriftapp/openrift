@@ -1,16 +1,15 @@
-import { deckCheckClaimContract } from "@openrift/shared/contracts/deck-check-claim";
 import { deckCheckPlayerContract } from "@openrift/shared/contracts/deck-check-player";
 import type {
-  DeckCheckClaimLandingResponse,
   DeckCheckClaimResultResponse,
   DeckCheckSubmissionPageResponse,
   DeckCheckSubmissionResultResponse,
   PlayerDeckCheckEntryDetailResponse,
 } from "@openrift/shared/types/api/deck-check";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { myDeckRefetchInterval } from "@/features/tournaments/lib/open-round-polling";
+import { tournamentClaimLandingQueryOptions } from "@/features/tournaments/lib/tournaments-queries";
 import {
   tournamentDecksKeys,
   tournamentsKeys,
@@ -79,13 +78,6 @@ const submitTournamentDeckFn = createServerFn({ method: "POST" })
     apiOrpcClient(deckCheckPlayerContract, context.cookie).submitToToken(data),
   );
 
-const fetchClaimLanding = createServerFn({ method: "GET" })
-  .validator((input: string) => input)
-  .middleware([withCookies])
-  .handler(({ context, data: token }): Promise<DeckCheckClaimLandingResponse> =>
-    apiOrpcClient(deckCheckClaimContract, context.cookie).landing({ token }),
-  );
-
 const claimTournamentDeckFn = createServerFn({ method: "POST" })
   .validator((input: string) => input)
   .middleware([withCookies])
@@ -116,13 +108,8 @@ export function useTournamentSubmissionPage(token: string) {
   });
 }
 
-// The pre-claim landing (public): event + group for a claim token, or 404.
 export function useClaimLanding(token: string) {
-  return useQuery({
-    queryKey: tournamentDecksKeys.claim(token),
-    queryFn: () => fetchClaimLanding({ data: token }),
-    retry: false,
-  });
+  return useSuspenseQuery(tournamentClaimLandingQueryOptions(token));
 }
 
 /**

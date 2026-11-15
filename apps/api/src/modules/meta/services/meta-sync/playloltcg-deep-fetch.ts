@@ -3,9 +3,9 @@ import type { Insertable } from "kysely";
 
 import type { PlayloltcgEventStandingsTable } from "../../../../db/tables/meta-sources.js";
 import { coord, record } from "../../../../lib/json-coerce.js";
+import { META_PLAYER_NAME_MAX } from "../../../../lib/meta-name-limits.js";
 import { PLAYLOLTCG_PROVIDER } from "../../../../lib/meta-providers.js";
 import { legendFromDeckLines } from "../../lib/meta-deck-lines.js";
-import { META_PLAYER_NAME_MAX } from "../../lib/meta-event-naming.js";
 import type { PlayloltcgDeckLine } from "../../lib/playloltcg-catalog.js";
 import {
   normalizeCardNo,
@@ -17,7 +17,7 @@ import { promoteMetaEvent } from "../meta-promote.js";
 import { clock } from "./deps.js";
 import { PlayloltcgRefusedError } from "./playloltcg-client.js";
 import type { PlayloltcgSyncDeps } from "./playloltcg-deps.js";
-import { isPermanentRefusal, sourceStopOf } from "./source-http.js";
+import { isPermanentRefusal, RunDeadlineError, sourceStopOf } from "./source-http.js";
 
 // The source refuses a larger page with `code 500 网络繁忙` (network busy).
 const STANDINGS_PAGE_SIZE = 20;
@@ -46,7 +46,7 @@ export interface PlayloltcgDetailFacts {
 }
 
 function rethrowIfBlocked(error: unknown): void {
-  if (sourceStopOf(error) !== null) {
+  if (sourceStopOf(error) !== null || error instanceof RunDeadlineError) {
     throw error;
   }
 }
@@ -123,12 +123,14 @@ async function readStandings(
 
 const SKIPPED = Symbol("deck skipped");
 
+const OUT_OF_TIME = Symbol("out of time");
+
 /** A refusal is recorded as `refused` so the id is never retried; any other failure records nothing and retries next pass. */
 async function readDeck(
   deps: PlayloltcgSyncDeps,
   cardGroupId: string,
   errors: string[],
-): Promise<Record<string, unknown>[] | null | typeof SKIPPED> {
+): Promise<Record<string, unknown>[] | null | typeof SKIPPED | typeof OUT_OF_TIME> {
   try {
     const body = await deps.client.postList<Record<string, unknown>>(
       "/xcx/cardGroup/getActivityCardGroupCardListImage",
@@ -136,6 +138,9 @@ async function readDeck(
     );
     return body.items;
   } catch (error) {
+    if (error instanceof RunDeadlineError) {
+      return OUT_OF_TIME;
+    }
     rethrowIfBlocked(error);
     errors.push(`Deck ${cardGroupId}: ${errorMessage(error)}`);
     return error instanceof PlayloltcgRefusedError ? null : SKIPPED;
@@ -167,8 +172,16 @@ async function fetchDecks(
   }
   const bodies = new Map<string, Record<string, unknown>[]>();
   const refused: string[] = [];
+  let requested = 0;
   for (const id of wanted) {
     const body = await readDeck(deps, id, errors);
+    if (body === OUT_OF_TIME) {
+      errors.push(
+        `Event ${activityShopId}: stopped reading decks at the run's time budget; the rest follow shortly.`,
+      );
+      break;
+    }
+    requested++;
     if (body === SKIPPED) {
       continue;
     }
@@ -181,8 +194,8 @@ async function fetchDecks(
   return {
     bodies,
     refused,
-    requests: wanted.length,
-    remaining: missing.length - wanted.length,
+    requests: requested,
+    remaining: missing.length - requested,
   };
 }
 

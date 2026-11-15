@@ -381,7 +381,7 @@ export async function applyMetaEventCorrection(
     const found = await trx.metaSubmissions.byId(submissionId);
     assertFound(found, "Submission not found");
     // Serializes a concurrent apply of the same correction behind this commit.
-    await trx.ingest.lockUserSubmissions(found.userId);
+    await trx.ingest.lockCardAndMetaSubmissions(found.userId);
     const submission = (await trx.metaSubmissions.byId(submissionId)) ?? found;
     if (submission.kind !== "event_correction") {
       throw badRequest("That submission is not an event correction.");

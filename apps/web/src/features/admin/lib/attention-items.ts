@@ -5,8 +5,10 @@ import {
   sameFieldValue,
 } from "@openrift/shared/catalog-field-compare";
 import type { ImageMatch } from "@openrift/shared/contracts/admin/card-detail-schemas";
+import { deskReleasePrecisionSchema } from "@openrift/shared/contracts/admin/printing-desk";
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import { normalizeProvidedPrintingValue } from "@openrift/shared/printing-value-normalize";
+import type { ReleasePrecision } from "@openrift/shared/set-release";
 import type {
   AdminCardDetailResponse,
   AdminPrintingImageResponse,
@@ -24,6 +26,7 @@ import {
 } from "@/features/admin/lib/catalog-field-labels";
 import {
   buildPrintingFieldsFromCandidate,
+  printingAsAccepted,
   summarizeCandidatePrinting,
 } from "@/features/admin/lib/printing-fields";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
@@ -38,6 +41,7 @@ export interface AttentionChange {
   current: unknown;
   proposed: unknown;
   kind: AttentionChangeKind;
+  precision?: { current: ReleasePrecision | null; proposed: ReleasePrecision | null };
 }
 
 type AttentionGroupKind = "card" | "printing" | "new-printing";
@@ -64,6 +68,7 @@ interface ClosestPrintingRow {
   incoming: unknown;
   existing: unknown;
   differs: boolean;
+  precision?: { incoming: ReleasePrecision | null; existing: ReleasePrecision | null };
 }
 
 export interface ClosestPrinting {
@@ -148,6 +153,10 @@ function changeKind(field: string): AttentionChangeKind {
   return DIFFED_FIELDS.has(field) ? "text" : "value";
 }
 
+function releasePrecisionOf(value: unknown): ReleasePrecision | null {
+  return deskReleasePrecisionSchema.safeParse(value).data ?? null;
+}
+
 function compareFields(
   groupKey: string,
   fields: readonly string[],
@@ -176,6 +185,16 @@ function compareFields(
       current: currentValue,
       proposed: proposedValue,
       kind: changeKind(field),
+      ...(field === "releasedAt" && {
+        precision: {
+          current: releasePrecisionOf(current?.releasePrecision),
+          proposed: releasePrecisionOf(
+            normalize
+              ? normalize("releasePrecision", proposed.releasePrecision)
+              : proposed.releasePrecision,
+          ),
+        },
+      }),
     });
   }
   return { changes, unchangedFields };
@@ -225,7 +244,7 @@ function buildLinkedPrintingGroup(
     groupKey,
     COMPARABLE_PRINTING_FIELDS,
     PRINTING_FIELD_LABELS,
-    printing as unknown as Record<string, unknown>,
+    printingAsAccepted(printing) as unknown as Record<string, unknown>,
     candidate as unknown as Record<string, unknown>,
     (field, value) =>
       normalizeProvidedPrintingValue(field, value, {
@@ -299,6 +318,12 @@ function closestPrintingRows(
         differs:
           (hasFieldValue(incomingValue) || Array.isArray(incomingValue)) &&
           !sameFieldValue(existingValue, incomingValue, field),
+        ...(field === "releasedAt" && {
+          precision: {
+            incoming: releasePrecisionOf(incoming.releasePrecision),
+            existing: releasePrecisionOf(printing.releasePrecision),
+          },
+        }),
       },
     ];
   });

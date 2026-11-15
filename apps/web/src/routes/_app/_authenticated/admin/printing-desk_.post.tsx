@@ -3,7 +3,6 @@ import type { PostImageAspect, PostImageLabel } from "@openrift/shared/printing-
 import { POST_IMAGE_ASPECTS, POST_IMAGE_LABELS } from "@openrift/shared/printing-post-image";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
 import { POST_DATE_NONE } from "@/features/admin/lib/admin-search-values";
 import { adminDistributionChannelsQueryOptions } from "@/features/admin/lib/distribution-channels-queries";
@@ -75,5 +74,4 @@ export const Route = createFileRoute("/_app/_authenticated/admin/printing-desk_/
     ]);
   },
   pendingComponent: AdminPending,
-  errorComponent: RouteErrorFallback,
 });

@@ -23,6 +23,23 @@ export function canRequestChanges(entry: JudgeActionEntry): boolean {
   );
 }
 
+export interface PendingTransition {
+  state: DeckCheckEntryState;
+  reviewOutcome?: DeckCheckReviewOutcome | null;
+}
+
+export function isPendingTransition(
+  pending: PendingTransition | null,
+  state: DeckCheckEntryState,
+  reviewOutcome?: DeckCheckReviewOutcome,
+): boolean {
+  return (
+    pending !== null &&
+    pending.state === state &&
+    (pending.reviewOutcome ?? null) === (reviewOutcome ?? null)
+  );
+}
+
 export function primaryActionFor(state: DeckCheckEntryDetailResponse["entry"]["state"]): {
   label: string;
   icon: typeof CheckIcon;

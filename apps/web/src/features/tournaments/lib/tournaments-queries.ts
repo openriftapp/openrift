@@ -1,5 +1,7 @@
+import { deckCheckClaimContract } from "@openrift/shared/contracts/deck-check-claim";
 import { publicTournamentsContract } from "@openrift/shared/contracts/public-tournaments";
 import { tournamentsContract } from "@openrift/shared/contracts/tournaments";
+import type { DeckCheckClaimLandingResponse } from "@openrift/shared/types/api/deck-check";
 import type {
   PublicTournamentLandingResponse,
   TournamentDetailResponse,
@@ -11,7 +13,10 @@ import type {
 import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
-import { tournamentsKeys } from "@/features/tournaments/lib/tournaments-query-keys";
+import {
+  tournamentDecksKeys,
+  tournamentsKeys,
+} from "@/features/tournaments/lib/tournaments-query-keys";
 import { orNotFound } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
@@ -61,6 +66,13 @@ const fetchStaffInviteLanding = createServerFn({ method: "GET" })
     ),
   );
 
+const fetchClaimLanding = createServerFn({ method: "GET" })
+  .validator((input: string) => input)
+  .middleware([withCookies])
+  .handler(({ context, data: token }): Promise<DeckCheckClaimLandingResponse> =>
+    orNotFound(apiOrpcClient(deckCheckClaimContract, context.cookie).landing({ token })),
+  );
+
 /** The API scopes to the session user; `userId` here only keys the cache. */
 export function tournamentsQueryOptions(userId: string) {
   return infiniteQueryOptions({
@@ -98,6 +110,13 @@ export function tournamentSubmitLandingQueryOptions(token: string) {
   return queryOptions({
     queryKey: tournamentsKeys.submitLanding(token),
     queryFn: () => fetchSubmitLanding({ data: token }),
+  });
+}
+
+export function tournamentClaimLandingQueryOptions(token: string) {
+  return queryOptions({
+    queryKey: tournamentDecksKeys.claim(token),
+    queryFn: () => fetchClaimLanding({ data: token }),
   });
 }
 

@@ -2,7 +2,7 @@ import type { LookupRow } from "@openrift/shared/card-lookup";
 import { buildCardLookupIndex } from "@openrift/shared/card-lookup";
 import { legendDisplayName } from "@openrift/shared/card-name";
 import type { CardSearchIndex } from "@openrift/shared/card-search";
-import { findCard, searchCards } from "@openrift/shared/card-search";
+import { findCard, lookupCard, searchCards } from "@openrift/shared/card-search";
 import { parsePiltoverDeckCode } from "@openrift/shared/deck-code";
 import type { PrintingMarketplaceLinks } from "@openrift/shared/types/api/pricing";
 import { isDefinedError, safe } from "@orpc/client";
@@ -34,6 +34,7 @@ import {
   parseDetailsCustomId,
 } from "./card-details.js";
 import { buildCardEmbed } from "./card-embed.js";
+import { cardTieReply } from "./card-tie-reply.js";
 import type { CatalogCache, CatalogCard } from "./catalog-cache.js";
 import { buildDeckEmbed, deckImportUrl, fetchDeckImage, resolveDeckEntries } from "./deck-embed.js";
 import type { BotEnv } from "./env.js";
@@ -386,7 +387,15 @@ async function handleSearchCommand(ctx: BotContext, interaction: ChatInputComman
 async function handleCardCommand(ctx: BotContext, interaction: ChatInputCommandInteraction) {
   const index = indexFor(ctx.cache);
   const query = interaction.options.getString("name", true);
-  const card = index ? findCard(index, query) : undefined;
+  const found = index ? lookupCard(index, query) : undefined;
+  if (found?.status === "tied") {
+    await interaction.reply({
+      content: cardTieReply(query, found.cards),
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+  const card = found?.status === "found" ? found.card : undefined;
   if (!card) {
     await interaction.reply({
       content: `No card found matching “${query}”.`,

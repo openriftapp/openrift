@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import type { Fetch } from "../../../../io.js";
 import type { PacedHttpOptions } from "./paced-http.js";
-import { createPacedHttp, createPacingGate } from "./paced-http.js";
+import { createPacedHttp, createPacingGate, withRequestDeadline } from "./paced-http.js";
 import {
   isPermanentRefusal,
   isTransientSourceFailure,
+  RunDeadlineError,
   SourceBlockedError,
   SourceThrottledError,
 } from "./source-http.js";
@@ -43,7 +44,7 @@ function harness(responses: (() => Response)[], overrides: Partial<PacedHttpOpti
     refusedError: (code) => new RefusedError(String(code)),
     ...overrides,
   });
-  return { http, sleeps };
+  return { http, sleeps, now: () => clock };
 }
 
 const ok =
@@ -138,6 +139,58 @@ describe("createPacedHttp", () => {
     await expect(http.request("https://source.invalid/a")).resolves.toBe("done");
     expect(sleeps).toContain(7000);
     expect(http.blocked).toBe(false);
+  });
+
+  it("stops on a throttle whose wait would end after the request deadline, as a throttle", async () => {
+    const throttled = () =>
+      new Response("slow down", { status: 429, headers: { "retry-after": "7" } });
+    const { http, sleeps, now } = harness([throttled, ok("done")]);
+
+    await expect(
+      withRequestDeadline({ at: 1_000_000 + 5000, now }, () =>
+        http.request("https://source.invalid/a"),
+      ),
+    ).rejects.toBeInstanceOf(SourceThrottledError);
+    expect(sleeps).not.toContain(7000);
+    expect(http.requests).toBe(1);
+    expect(http.blocked).toBe(false);
+  });
+
+  it("latches a block whose retry wait would end after the request deadline", async () => {
+    const { http, sleeps, now } = harness([status(403), ok("done")]);
+
+    await expect(
+      withRequestDeadline({ at: 1_000_000 + 5000, now }, () =>
+        http.request("https://source.invalid/a"),
+      ),
+    ).rejects.toBeInstanceOf(BlockedError);
+    expect(sleeps).not.toContain(15_000);
+    expect(http.blocked).toBe(true);
+  });
+
+  it("waits out a throttle that ends before the request deadline", async () => {
+    const throttled = () =>
+      new Response("slow down", { status: 429, headers: { "retry-after": "7" } });
+    const { http, sleeps, now } = harness([throttled, ok("done")]);
+
+    await expect(
+      withRequestDeadline({ at: 1_000_000 + 60_000, now }, () =>
+        http.request("https://source.invalid/a"),
+      ),
+    ).resolves.toBe("done");
+    expect(sleeps).toContain(7000);
+  });
+
+  it("refuses a retry backoff that would end after the request deadline", async () => {
+    const { http, sleeps, now } = harness([status(503), ok("done")]);
+
+    await expect(
+      withRequestDeadline({ at: 1_000_000 + 500, now }, () =>
+        http.request("https://source.invalid/a"),
+      ),
+    ).rejects.toBeInstanceOf(RunDeadlineError);
+    expect(sleeps).toEqual([]);
+    expect(http.requests).toBe(1);
   });
 
   it("ends the call on a second throttle with a transient throttle error", async () => {

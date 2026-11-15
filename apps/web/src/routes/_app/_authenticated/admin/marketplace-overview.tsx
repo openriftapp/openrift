@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
 import { adminJobSchedulesQueryOptions } from "@/features/admin/lib/job-schedules-queries";
 import { marketplaceGroupsQueryOptions } from "@/features/admin/lib/marketplace-groups-queries";
@@ -14,5 +13,4 @@ export const Route = createFileRoute("/_app/_authenticated/admin/marketplace-ove
       context.queryClient.query({ ...adminJobSchedulesQueryOptions, staleTime: "static" }),
     ]),
   pendingComponent: AdminPending,
-  errorComponent: RouteErrorFallback,
 });

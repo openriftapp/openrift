@@ -1,7 +1,6 @@
 import { DEVELOPERS_SHOWCASE } from "@openrift/shared/developers-showcase";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { cardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
 import { seoHead } from "@/lib/seo";
 import { developersShareImageUrl } from "@/lib/share-image";
@@ -25,5 +24,4 @@ export const Route = createFileRoute("/_app/developers")({
       ogImage: developersShareImageUrl(siteUrl),
     });
   },
-  errorComponent: RouteErrorFallback,
 });

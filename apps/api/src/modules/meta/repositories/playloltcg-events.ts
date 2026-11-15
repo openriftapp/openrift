@@ -10,6 +10,7 @@ import type {
 } from "../../../db/tables/meta-sources.js";
 import { keyBatches, rowBatches } from "../../../lib/bind-batches.js";
 import { containsPattern } from "../../../lib/like-pattern.js";
+import { MIRROR_NAME_MAX } from "../../../lib/meta-name-limits.js";
 import { PLAYLOLTCG_PROVIDER, PLAYLOLTCG_STATUS_FINISHED } from "../../../lib/meta-providers.js";
 import { offsetPage } from "../../../repositories/query-helpers.js";
 import { dueBefore, TODAY } from "./meta-shared.js";
@@ -192,7 +193,7 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
         return 0;
       }
       for (const batch of rowBatches(
-        shops.map((shop) => ({ ...shop, name: shop.name.slice(0, 200) })),
+        shops.map((shop) => ({ ...shop, name: shop.name.slice(0, MIRROR_NAME_MAX) })),
       )) {
         await db
           .insertInto("playloltcgShops")
@@ -298,7 +299,7 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
     ): Promise<void> {
       await db
         .insertInto("playloltcgShops")
-        .values({ id: shop.id, name: shop.name.slice(0, 200) })
+        .values({ id: shop.id, name: shop.name.slice(0, MIRROR_NAME_MAX) })
         .onConflict((oc) =>
           oc.column("id").doUpdateSet((eb) => ({ name: eb.ref("excluded.name") })),
         )

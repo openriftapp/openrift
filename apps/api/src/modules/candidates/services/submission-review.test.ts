@@ -46,6 +46,9 @@ function createRepos(overrides: Record<string, unknown> = {}) {
       getCardBySlug: vi.fn().mockResolvedValue({ id: "card-9", name: "Ekko" }),
       updateCardById: vi.fn(),
       updatePrintingFieldById: vi.fn(),
+      getFullPrintingById: vi
+        .fn()
+        .mockResolvedValue({ id: "p-1", setId: "set-uuid-ogn", artist: "Kudos Productions" }),
       sideOfFace: vi.fn().mockResolvedValue(2),
       acceptNewCardFromSources: vi.fn(),
       syncSelfAliasOnRename: vi.fn(),
@@ -85,6 +88,7 @@ function createRepos(overrides: Record<string, unknown> = {}) {
       }),
     },
     distributionChannels: { listBySlugs: vi.fn().mockResolvedValue([]) },
+    sets: { getBySlug: vi.fn().mockResolvedValue({ id: "set-uuid-ogn" }) },
     ...overrides,
   };
   return repos as unknown as Repos;
@@ -479,6 +483,60 @@ describe("acceptSubmission", () => {
       acceptedCardId: null,
     });
     expect(repos.cardSubmissions.candidatePrintingImageUrls).toHaveBeenCalledWith("cc-1");
+  });
+
+  it("skips writing picks that hold the stored values and still records them as applied", async () => {
+    const repos = createRepos();
+
+    const result = await acceptSubmission(transactOn(repos), repos, io, {
+      ...baseArgs,
+      ...noPicks,
+      cardFields: [{ field: "name", value: "Jinx" }],
+      printingFields: [
+        { printingId: "p-1", field: "setId", value: "OGN", source: "manual" },
+        { printingId: "p-1", field: "artist", value: "Kudos Productions", source: "manual" },
+      ],
+    });
+
+    expect(repos.catalogMutations.updateCardById).not.toHaveBeenCalled();
+    expect(repos.catalogMutations.updatePrintingFieldById).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ status: "accepted", applied: 3 });
+  });
+
+  it("reads each printing once for a run of picks on it", async () => {
+    const repos = createRepos();
+
+    await acceptSubmission(transactOn(repos), repos, io, {
+      ...baseArgs,
+      ...noPicks,
+      printingFields: [
+        { printingId: "p-1", field: "artist", value: "Kudos Productions", source: "manual" },
+        { printingId: "p-1", field: "flavorText", value: "Boom.", source: "manual" },
+        { printingId: "p-1", field: "flavorText", value: "Boom.", source: "manual" },
+      ],
+    });
+
+    expect(repos.catalogMutations.getFullPrintingById).toHaveBeenCalledTimes(1);
+    expect(repos.catalogMutations.updatePrintingFieldById).toHaveBeenCalledTimes(1);
+  });
+
+  it("writes a set pick that names a different set", async () => {
+    const repos = createRepos({
+      sets: { getBySlug: vi.fn().mockResolvedValue({ id: "set-uuid-sfd" }) },
+    });
+
+    await acceptSubmission(transactOn(repos), repos, io, {
+      ...baseArgs,
+      ...noPicks,
+      printingFields: [{ printingId: "p-1", field: "setId", value: "SFD", source: "manual" }],
+    });
+
+    expect(repos.catalogMutations.updatePrintingFieldById).toHaveBeenCalledWith(
+      "p-1",
+      "setId",
+      "set-uuid-sfd",
+      1,
+    );
   });
 
   it("applies typography to an untouched printing pick", async () => {

@@ -27,6 +27,7 @@ function printing(printingId: string, language: string): DeskPrintingRow {
     releasedAt: null,
     releasePrecision: null,
     comment: null,
+    flavorText: null,
     imageCount: 0,
     faceId: "face-1",
     side: 1,

@@ -46,10 +46,12 @@ function TabsList({
   );
 }
 
-function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
+function TabsTrigger({ className, render, nativeButton, ...props }: TabsPrimitive.Tab.Props) {
   return (
     <TabsPrimitive.Tab
       data-slot="tabs-trigger"
+      render={render} // custom: a render swaps in a link, which is not a native button
+      nativeButton={nativeButton ?? render === undefined} // custom: see render
       className={cn(
         // custom: ring-2 focus ring — app-wide focus width (scaffold ships ring-3)
         // custom: px-2.5, height from the --control-h list instead of py-0.5 — control rows share one rhythm

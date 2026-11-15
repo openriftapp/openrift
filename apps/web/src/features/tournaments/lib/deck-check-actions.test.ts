@@ -4,7 +4,7 @@ import type {
 } from "@openrift/shared/types/api/deck-check";
 import { describe, expect, it } from "vitest";
 
-import { canRequestChanges } from "./deck-check-actions";
+import { canRequestChanges, isPendingTransition } from "./deck-check-actions";
 
 function entry(
   state: DeckCheckEntryState,
@@ -33,5 +33,23 @@ describe("canRequestChanges", () => {
     for (const state of ["editable", "approved", "checked", "withdrawn"] as const) {
       expect(canRequestChanges(entry(state, null, "user-1"))).toBe(false);
     }
+  });
+});
+
+describe("isPendingTransition", () => {
+  it("matches only the transition that is running", () => {
+    const running = { state: "checked", reviewOutcome: "issue" } as const;
+    expect(isPendingTransition(running, "checked", "issue")).toBe(true);
+    expect(isPendingTransition(running, "checked", "ok")).toBe(false);
+    expect(isPendingTransition(running, "submitted")).toBe(false);
+  });
+
+  it("treats a missing review outcome as no outcome", () => {
+    expect(isPendingTransition({ state: "editable" }, "editable")).toBe(true);
+    expect(isPendingTransition({ state: "editable" }, "editable", "issue")).toBe(false);
+  });
+
+  it("is false while nothing runs", () => {
+    expect(isPendingTransition(null, "submitted")).toBe(false);
   });
 });

@@ -1,18 +1,18 @@
+import { deckCardKey, mergeDeckCards } from "@openrift/shared/deck-cards";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Repos } from "../../../deps.js";
+import type { CardNameIndex } from "../../../lib/card-names.js";
 import {
   PLAYLOLTCG_PROVIDER,
   TOPDECK_PROVIDER,
   UVSGAMES_PROVIDER,
 } from "../../../lib/meta-providers.js";
-import type { CardNameIndex } from "../../candidates/services/candidate-links.js";
 import { resolveCardIdByName } from "../../candidates/services/candidate-links.js";
 import { defaultMetaDeckName } from "../lib/meta-event-naming.js";
 import { listStatusFor, withSingleChampion } from "../lib/uvsgames-transform.js";
 import type { MetaArchivedDeckInput, MetaDeckCardInput } from "../repositories/meta-decks.js";
-import { deckCardMergeKey, mergeDeckCards } from "../repositories/meta-decks.js";
 import type { MetaEventSourceRow } from "../repositories/meta-sources.js";
 import type { StandingFacts } from "./meta-promote-shared.js";
 
@@ -96,7 +96,7 @@ export function buildDeck(
       preferredPrintingId: null,
     };
     cards.push(card);
-    const key = deckCardMergeKey(card);
+    const key = deckCardKey(card);
     const names = sourceNames.get(key);
     if (names === undefined) {
       sourceNames.set(key, new Set([line.cardName]));
@@ -117,12 +117,12 @@ export function buildDeck(
 
   const lineCounts = new Map<string, number>();
   for (const card of cards) {
-    const key = deckCardMergeKey(card);
+    const key = deckCardKey(card);
     lineCounts.set(key, (lineCounts.get(key) ?? 0) + 1);
   }
   const folded = mergeDeckCards(cards);
   for (const card of folded) {
-    const key = deckCardMergeKey(card);
+    const key = deckCardKey(card);
     const count = lineCounts.get(key) ?? 1;
     if (count > 1) {
       const names = [...(sourceNames.get(key) ?? new Set([card.cardId]))].sort();

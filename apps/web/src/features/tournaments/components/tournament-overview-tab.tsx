@@ -45,6 +45,7 @@ import {
   isTournamentStaff,
   pairingLabel,
   pairingPluralNoun,
+  pendingParticipantAction,
   staffRoleLabels,
 } from "@/features/tournaments/lib/tournament-display";
 import { tournamentRunStateQueryOptions } from "@/features/tournaments/lib/tournament-run-queries";
@@ -194,47 +195,52 @@ function JoinRequestsSection({
         {m.tournaments_overview_join_requests()}
       </SectionHeading>
       <RowList>
-        {pending.map((participant) => (
-          <RowListItem key={participant.id} className="flex-wrap">
-            <span className="min-w-0 flex-1 truncate text-sm font-medium">
-              {participant.displayName}
-            </span>
-            <span className="flex items-center gap-1">
-              <Button
-                size="sm"
-                disabled={participantAction.isPending}
-                onClick={() =>
-                  void runReportedMutation(() =>
-                    participantAction.mutateAsync({
-                      id,
-                      participantId: participant.id,
-                      action: "approve",
-                    }),
-                  )
-                }
-              >
-                {m.tournaments_participant_approve()}
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-destructive"
-                disabled={participantAction.isPending}
-                onClick={() =>
-                  void runReportedMutation(() =>
-                    participantAction.mutateAsync({
-                      id,
-                      participantId: participant.id,
-                      action: "deny",
-                    }),
-                  )
-                }
-              >
-                {m.tournaments_participant_deny()}
-              </Button>
-            </span>
-          </RowListItem>
-        ))}
+        {pending.map((participant) => {
+          const rowPending = pendingParticipantAction(participantAction, participant.id);
+          return (
+            <RowListItem key={participant.id} className="flex-wrap">
+              <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                {participant.displayName}
+              </span>
+              <span className="flex items-center gap-1">
+                <Button
+                  size="sm"
+                  disabled={rowPending !== null}
+                  pending={rowPending === "approve"}
+                  onClick={() =>
+                    void runReportedMutation(() =>
+                      participantAction.mutateAsync({
+                        id,
+                        participantId: participant.id,
+                        action: "approve",
+                      }),
+                    )
+                  }
+                >
+                  {m.tournaments_participant_approve()}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive"
+                  disabled={rowPending !== null}
+                  pending={rowPending === "deny"}
+                  onClick={() =>
+                    void runReportedMutation(() =>
+                      participantAction.mutateAsync({
+                        id,
+                        participantId: participant.id,
+                        action: "deny",
+                      }),
+                    )
+                  }
+                >
+                  {m.tournaments_participant_deny()}
+                </Button>
+              </span>
+            </RowListItem>
+          );
+        })}
       </RowList>
     </section>
   );
@@ -596,15 +602,13 @@ export function TournamentOverviewTab({
 }
 
 function StaffOverviewTab({ id, detail }: { id: string; detail: TournamentDetailResponse }) {
-  const manage = canManageTournament(detail.myRoles);
   const { data: participants } = useTournamentParticipants(id);
 
   const pending = participants.items.filter((p) => p.status === "requested");
   const droppedCount = participants.items.filter((p) => p.status === "dropped").length;
-  const missingRegionCount =
-    manage && detail.regionsEnabled
-      ? participants.items.filter((p) => p.status === "active" && p.region === null).length
-      : 0;
+  const missingRegionCount = detail.regionsEnabled
+    ? participants.items.filter((p) => p.status === "active" && p.region === null).length
+    : 0;
 
   return (
     <OverviewTabBody

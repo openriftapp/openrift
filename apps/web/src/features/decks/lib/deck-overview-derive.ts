@@ -1,3 +1,4 @@
+import { deckCardKey } from "@openrift/shared/deck-cards";
 import { copyLimitFor } from "@openrift/shared/deck-rules";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
@@ -8,7 +9,6 @@ import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import {
   COPY_LIMIT_ZONES,
   copyLimitTotal,
-  deckCardKey,
   runeAddRoom,
 } from "@/features/decks/lib/deck-builder-card";
 import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";

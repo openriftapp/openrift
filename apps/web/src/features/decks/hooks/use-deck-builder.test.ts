@@ -1,10 +1,11 @@
+import { deckCardKey } from "@openrift/shared/deck-cards";
 import type { Domain } from "@openrift/shared/types/enums";
 import type { Collection } from "@tanstack/react-db";
 import { createCollection, localOnlyCollectionOptions } from "@tanstack/react-db";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { canAddRune, deckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { canAddRune } from "@/features/decks/lib/deck-builder-card";
 import { useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
 import { resetIdCounter, stubDeckBuilderCard } from "@/test/factories";
 import { createStoreResetter } from "@/test/store-helpers";

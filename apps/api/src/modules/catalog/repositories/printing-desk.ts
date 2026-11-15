@@ -38,6 +38,7 @@ export interface DeskPrintingDbRow {
   releasedAt: string | null;
   releasePrecision: ReleasePrecision | null;
   comment: string | null;
+  flavorText: string | null;
   imageCount: number;
   faceId: string;
   side: 1 | 2;
@@ -171,6 +172,7 @@ export function printingDeskRepo(db: Kysely<Database>) {
         "p.releasedAt",
         "p.releasePrecision",
         "p.comment",
+        "pf.flavorText",
         "imgf.id as activeImageFileId",
         imageUrlWithOriginal("imgf").as("activeImageUrl"),
         "p.createdAt",

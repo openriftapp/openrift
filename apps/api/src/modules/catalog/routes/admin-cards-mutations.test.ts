@@ -2,6 +2,7 @@ import { appendSetTotal, fixTypography } from "@openrift/shared/fix-typography";
 import { Hono } from "hono";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { badRequest } from "../../../errors.js";
 import { registerRouterForTest } from "../../../test/mount-router.js";
 import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
@@ -15,6 +16,7 @@ import {
   relinkCandidatePrintings,
   reresolveEditedCandidateLink,
 } from "../../candidates/services/relink-candidates.js";
+import { assertFavoriteNewCardEligible } from "../../candidates/services/trusted-accept-checks.js";
 import {
   deletePrinting,
   createNewPrinting,
@@ -34,6 +36,9 @@ vi.mock("../../candidates/services/accept-candidate-printings.js", () => ({
   finishPrintingAccepts: vi.fn(),
 }));
 vi.mock("../../candidates/services/accept-gallery.js", () => ({ acceptFavoriteNewCard: vi.fn() }));
+vi.mock("../../candidates/services/trusted-accept-checks.js", () => ({
+  assertFavoriteNewCardEligible: vi.fn(),
+}));
 vi.mock("../../candidates/services/import-errata.js", () => ({ importErrata: vi.fn() }));
 vi.mock("../../candidates/services/ingest-candidates.js", () => ({ ingestCandidates: vi.fn() }));
 vi.mock("../../candidates/services/accept-favorite-printings.js", () => ({
@@ -65,7 +70,6 @@ const mockAppendSetTotal = vi.mocked(appendSetTotal);
 
 const mockMut = {
   getCardById: vi.fn(),
-  getCardAliases: vi.fn(),
   getPrintingDifferentiatorsById: vi.fn(),
   renameCardSlugById: vi.fn(),
   getPrintingTextsForCardId: vi.fn(),
@@ -106,6 +110,7 @@ const mockIo = { fetch: vi.fn() };
 const mockSets = { getBySlug: vi.fn() };
 const mockRefreshCatalogViews = vi.fn();
 const mockCandidateCards = {
+  cardNameKeys: vi.fn(),
   checkCandidateCard: vi.fn(),
   uncheckCandidateCard: vi.fn(),
   uncheckCandidateCards: vi.fn(),
@@ -413,7 +418,7 @@ describe("POST /cards/:cardId/check-all", () => {
       name: "Fire Dragon",
       slug: "fire-dragon",
     });
-    mockMut.getCardAliases.mockResolvedValue([{ normName: "fire-dragon-alt" }]);
+    mockCandidateCards.cardNameKeys.mockResolvedValue(["firedragon", "firedragonalt"]);
     mockCandidateCards.checkAllCandidateCards.mockResolvedValue({
       updated: 3,
       candidateCardIds: ["cc-1"],
@@ -423,8 +428,9 @@ describe("POST /cards/:cardId/check-all", () => {
     expect(res.status).toBe(200);
     const json = await readJson(res);
     expect(json).toEqual({ updated: 3, candidateCardIds: ["cc-1"] });
+    expect(mockCandidateCards.cardNameKeys).toHaveBeenCalledWith("card-uuid");
     expect(mockCandidateCards.checkAllCandidateCards).toHaveBeenCalledWith(
-      expect.arrayContaining(["fire-dragon-alt"]),
+      ["firedragon", "firedragonalt"],
       "card-uuid",
     );
   });
@@ -435,7 +441,6 @@ describe("POST /cards/:cardId/check-all", () => {
       name: "Fire Dragon",
       slug: "fire-dragon",
     });
-    mockMut.getCardAliases.mockResolvedValue([]);
     mockCandidateCards.checkCandidateCards.mockResolvedValue({
       updated: 1,
       candidateCardIds: [CARD_ID],
@@ -457,21 +462,6 @@ describe("POST /cards/:cardId/check-all", () => {
 
     const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/check-all`, { method: "POST" });
     expect(res.status).toBe(404);
-  });
-
-  it("deduplicates normalized name variants", async () => {
-    mockMut.getCardById.mockResolvedValue({
-      id: "card-uuid",
-      name: "Fire Dragon",
-      slug: "fire-dragon",
-    });
-    mockMut.getCardAliases.mockResolvedValue([]);
-    mockCandidateCards.checkAllCandidateCards.mockResolvedValue(1);
-
-    await app.request(`/api/admin/v1/cards/${CARD_ID2}/check-all`, { method: "POST" });
-    const callArgs = mockCandidateCards.checkAllCandidateCards.mock.calls[0];
-    const uniqueVariants = new Set(callArgs![0]);
-    expect(uniqueVariants.size).toBe(callArgs![0].length);
   });
 });
 
@@ -1090,6 +1080,18 @@ describe("POST /cards/:cardId/accept-field", () => {
     expect(mockMut.updateCardById).toHaveBeenCalledWith(CARD_ID2, { might: 3 });
   });
 
+  it("rejects a name made only of punctuation", async () => {
+    const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/accept-field`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field: "name", value: "!?!" }),
+    });
+    expect(res.status).toBe(400);
+    const json = await readJson(res);
+    expect(json.message).toBe("Invalid value for name: needs at least one letter or digit");
+    expect(mockMut.updateCardById).not.toHaveBeenCalled();
+  });
+
   it("returns 400 (BAD_REQUEST) when a card field value fails the field rule", async () => {
     const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/accept-field`, {
       method: "POST",
@@ -1281,6 +1283,20 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
     );
   });
 
+  it("writes and audits nothing when the slug names the printing's current set", async () => {
+    mockSets.getBySlug.mockResolvedValue({ id: "set-uuid" });
+
+    const res = await app.request(`/api/admin/v1/cards/printing/${PRINTING_ID}/accept-field`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field: "setId", value: "origin-set" }),
+    });
+    expect(res.status).toBe(204);
+    expect(mockMut.updatePrintingFieldById).not.toHaveBeenCalled();
+    expect(mockAdminEvents.insert).not.toHaveBeenCalled();
+    expect(mockRefreshCatalogViews).not.toHaveBeenCalled();
+  });
+
   it("returns 404 when set slug not found", async () => {
     mockSets.getBySlug.mockResolvedValue(null);
 
@@ -1364,6 +1380,18 @@ describe("POST /cards/new/:name/accept", () => {
     expect(mockTrxMut.acceptNewCardFromSources).not.toHaveBeenCalled();
   });
 
+  it("returns 400 for a punctuation-only name on accept", async () => {
+    const res = await app.request("/api/admin/v1/cards/new/Fire%20Dragon/accept", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cardFields: { id: "fire-dragon", name: "...", types: ["unit"], domains: ["fury"] },
+      }),
+    });
+    expect(res.status).toBe(400);
+    expect(mockTrxMut.acceptNewCardFromSources).not.toHaveBeenCalled();
+  });
+
   it("returns 400 when cardFields is missing", async () => {
     const res = await app.request("/api/admin/v1/cards/new/Fire%20Dragon/accept", {
       method: "POST",
@@ -1403,6 +1431,18 @@ describe("POST /cards/new/:name/accept-favorites", () => {
     expect(mockFinishPrintingAccepts).toHaveBeenCalledWith(expect.anything(), mockIo, created, {
       catalogChanged: true,
     });
+  });
+
+  it("refuses a name the batch would hold back and creates nothing", async () => {
+    vi.mocked(assertFavoriteNewCardEligible).mockRejectedValue(
+      badRequest("Not accepted: a similar card exists: Fire Drake"),
+    );
+
+    const res = await app.request("/api/admin/v1/cards/new/Fire%20Dragon/accept-favorites", {
+      method: "POST",
+    });
+    expect(res.status).toBe(400);
+    expect(mockAcceptFavoriteNewCard).not.toHaveBeenCalled();
   });
 
   it("finishes the printings it created even when the accept then fails", async () => {
@@ -1695,6 +1735,36 @@ describe("POST /cards/create", () => {
     });
     expect(res.status).toBe(409);
     expect(await readJson(res)).toMatchObject({ message: "A card with this slug already exists" });
+  });
+
+  it("stores the trimmed name", async () => {
+    mockTrxMut.acceptNewCardFromSources.mockResolvedValue(undefined);
+
+    const res = await app.request("/api/admin/v1/cards/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: "fire-dragon",
+        name: " Fire Dragon  ",
+        types: ["unit"],
+        domains: ["fury"],
+      }),
+    });
+    expect(res.status).toBe(200);
+    expect(mockTrxMut.acceptNewCardFromSources).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Fire Dragon" }),
+      "firedragon",
+    );
+  });
+
+  it("rejects a name made only of punctuation", async () => {
+    const res = await app.request("/api/admin/v1/cards/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "fire-dragon", name: "—", types: ["unit"], domains: ["fury"] }),
+    });
+    expect(res.status).toBe(400);
+    expect(mockTrxMut.acceptNewCardFromSources).not.toHaveBeenCalled();
   });
 
   it("rejects a body missing required card fields", async () => {

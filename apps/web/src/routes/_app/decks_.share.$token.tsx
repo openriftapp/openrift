@@ -3,7 +3,6 @@ import { deckShareDescription, deckShareTitle } from "@openrift/shared/share-tit
 import type { PublicDeckDetailResponse } from "@openrift/shared/types/api/deck";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { LinkGoneState } from "@/components/link-gone-state";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -62,7 +61,6 @@ export const Route = createFileRoute("/_app/decks_/share/$token")({
     };
   },
   pendingComponent: SharedDeckPending,
-  errorComponent: RouteErrorFallback,
   notFoundComponent: () => (
     <LinkGoneState
       title={m.common_share_gone_title()}

@@ -5,7 +5,7 @@ import type {
 } from "@openrift/shared/types/enums";
 
 import type { Repos } from "../../../deps.js";
-import type { CardNameIndex } from "../../candidates/services/candidate-links.js";
+import type { CardNameIndex } from "../../../lib/card-names.js";
 
 /**
  * The rule tables a promote reads and never writes. A bulk pass builds this

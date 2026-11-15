@@ -17,10 +17,7 @@ import { toListEntryDetail } from "../../lists/lib/list-presenters.js";
 import { getFavoriteMarketplace } from "../../users/lib/preferences.js";
 import { toSharedList } from "../lib/friend-group-presenters.js";
 import { loadGroupBySlug, loadGroupForMember } from "../lib/group-access.js";
-import {
-  refusingUnconfirmedTradeCancels,
-  sweepGiverTradesInGroups,
-} from "../services/trade-supply.js";
+import { sweepGiverTradesInGroups } from "../services/trade-supply.js";
 
 const os = implement(friendGroupsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -71,7 +68,7 @@ export const friendGroupsSharesRouter = {
     await friendGroups.share(ctx.group.id, input.listId, viewerId);
   }),
 
-  unshareList: os.unshareList.handler(async ({ input, context, errors }): Promise<void> => {
+  unshareList: os.unshareList.handler(async ({ input, context }): Promise<void> => {
     const viewerId = context.userId;
     const { friendGroups, lists } = context.repos;
 
@@ -86,18 +83,15 @@ export const friendGroupsSharesRouter = {
     }
 
     // The unshare and the pending-trade supply recheck must run in the same transaction.
-    await refusingUnconfirmedTradeCancels(
-      context.transact(async (trxRepos) => {
-        await trxRepos.friendGroups.unshare(ctx.group.id, input.listId);
-        await sweepGiverTradesInGroups(
-          trxRepos,
-          viewerId,
-          [ctx.group.id],
-          input.cancelTradeIds ?? [],
-        );
-      }),
-      (data) => errors.CONFLICT({ data }),
-    );
+    await context.transact(async (trxRepos) => {
+      await trxRepos.friendGroups.unshare(ctx.group.id, input.listId);
+      await sweepGiverTradesInGroups(
+        trxRepos,
+        viewerId,
+        [ctx.group.id],
+        input.cancelTradeIds ?? [],
+      );
+    });
   }),
 
   getSharedList: os.getSharedList.handler(

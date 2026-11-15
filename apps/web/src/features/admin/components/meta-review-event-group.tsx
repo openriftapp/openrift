@@ -100,6 +100,7 @@ function EventOverlayCard({ overlay }: { overlay: MetaOverlayQueueRow }) {
           <Button
             size="sm"
             disabled={busy}
+            pending={accept.isPending}
             onClick={() => {
               void runAccept(null);
             }}
@@ -112,6 +113,7 @@ function EventOverlayCard({ overlay }: { overlay: MetaOverlayQueueRow }) {
           variant="ghost"
           size="sm"
           disabled={busy}
+          pending={reject.isPending}
           onClick={() => {
             void decline();
           }}

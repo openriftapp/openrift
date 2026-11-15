@@ -3,7 +3,12 @@ import { errorMessage } from "@openrift/shared/strings";
 
 import { recordCapped } from "../../../../lib/json-coerce.js";
 import { UVSGAMES_PROVIDER } from "../../../../lib/meta-providers.js";
-import { firstRevisit, lifecycleStatus, nextRecheck } from "../../lib/meta-recheck-schedule.js";
+import {
+  firstRevisit,
+  lifecycleStatus,
+  nextRecheck,
+  resumeSoon,
+} from "../../lib/meta-recheck-schedule.js";
 import { projectCatalogRow } from "../../lib/uvsgames-catalog.js";
 import { completedRounds } from "../../lib/uvsgames-transform.js";
 import type { UvsgamesListRow, UvsgamesRecheckRow } from "../../repositories/uvsgames-events.js";
@@ -15,7 +20,7 @@ import { clock } from "./deps.js";
 import type { RecheckPassResult, VisitOutcome } from "./recheck-pass.js";
 import { emptyRecheckPassResult, runRecheckPass } from "./recheck-pass.js";
 import { createRunHeartbeat } from "./run-heartbeat.js";
-import { isPermanentRefusal, sourceStopOf } from "./source-http.js";
+import { isPermanentRefusal, RunDeadlineError, sourceStopOf } from "./source-http.js";
 import { isRecheckPassNoop } from "./sync-noop.js";
 
 const RECHECK_BUDGET_MS = 5 * 60 * 1000;
@@ -159,6 +164,7 @@ async function visit(
     });
   }
 
+  let cut: "none" | "progressed" | "stalled" = "none";
   if (decision.deepFetch) {
     const fetched = await deepFetchEvent(deps, refreshed.row, runId, refreshed.detail, {
       stopOnSourceStop: true,
@@ -167,12 +173,20 @@ async function visit(
     result.players += fetched.players;
     result.acceptedPlayers += fetched.acceptedPlayers;
     recordCapped(result.errors, fetched.errors);
+    if (fetched.cutShort === true) {
+      cut = fetched.progressed === true ? "progressed" : "stalled";
+    }
   }
 
-  await deps.repos.uvsgamesEvents.setRecheck(row.externalId, {
-    nextCheckAt: decision.nextCheckAt,
-    checkStage: decision.checkStage,
-  });
+  await deps.repos.uvsgamesEvents.setRecheck(
+    row.externalId,
+    cut === "progressed"
+      ? resumeSoon(now, 0)
+      : {
+          nextCheckAt: decision.nextCheckAt,
+          checkStage: cut === "stalled" ? row.checkStage : decision.checkStage,
+        },
+  );
   // Counted here, not at entry, so a row that throws mid-visit lands in errors.
   result.processed++;
   return "ok";
@@ -254,7 +268,11 @@ async function readDetail(
   try {
     return await deps.client.get<unknown>(`/api/v2/events/${externalId}/`);
   } catch (error) {
-    if (sourceStopOf(error) !== null || isPermanentRefusal(error)) {
+    if (
+      sourceStopOf(error) !== null ||
+      isPermanentRefusal(error) ||
+      error instanceof RunDeadlineError
+    ) {
       throw error;
     }
     recordCapped(errors, [`Event ${externalId} detail: ${errorMessage(error)}`]);

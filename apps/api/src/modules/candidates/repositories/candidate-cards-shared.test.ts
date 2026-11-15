@@ -35,6 +35,74 @@ describe("acceptableCandidatePrinting", () => {
   });
 });
 
+describe("card name lookups", () => {
+  it("finds a card's candidate providers by its own name as well as its aliases", async () => {
+    const { db, queries } = createRecordingDb([[], []]);
+
+    await candidateCardDetailRepo(db).candidateProvidersForCard("card-1");
+
+    expect(queries[0]).toMatch(
+      /"candidate_cards"\."norm_name" in \(select k\.norm_name from .*from cards c where c\.id = \$\d+.*union.*from card_name_aliases a .*c\.norm_name = "k"\."norm_name"/su,
+    );
+  });
+
+  it("keeps the card's own name first and drops a key another card owns", async () => {
+    const { db, queries } = createRecordingDb([
+      [
+        { norm_name: "annietibbers", own: true },
+        { norm_name: "tibbers", own: false },
+      ],
+    ]);
+
+    await expect(candidateCardDetailRepo(db).cardNameKeys("card-b")).resolves.toEqual([
+      "annietibbers",
+      "tibbers",
+    ]);
+    expect(queries[0]).toMatch(
+      /order by c\.norm_name = "k"\."norm_name" desc, c\.id.*\) = \$\d+/su,
+    );
+  });
+
+  it("matches nothing for an empty name without querying", async () => {
+    const { db, queries } = createRecordingDb([]);
+    const repo = candidateCardDetailRepo(db);
+
+    await expect(repo.candidateCardsByNormName("")).resolves.toEqual([]);
+    await expect(repo.candidateProvidersForNormName("")).resolves.toEqual([]);
+    expect(queries).toEqual([]);
+  });
+});
+
+describe("visibleCandidateCard and visibleCandidatePrinting", () => {
+  function expectVisibleFilter(query: string | undefined, printing: boolean) {
+    expect(query).toContain('"ignored_candidate_cards"');
+    expect(query).toMatch(/"provider_settings".*"is_hidden"/su);
+    if (printing) {
+      expect(query).toContain('"ignored_candidate_printings"');
+    }
+  }
+
+  it("filters the automatic card check like the workspace queue", async () => {
+    const { db, queries } = createRecordingDb([[], []]);
+
+    await candidateMatchingRepo(db).listUncheckedCandidateCardsWithLive("user", null, 10);
+    await workspaceQueueRepo(db).uncheckedCardDifferences();
+
+    expectVisibleFilter(queries[0], false);
+    expectVisibleFilter(queries[1], false);
+  });
+
+  it("filters the automatic printing check like the workspace queue", async () => {
+    const { db, queries } = createRecordingDb([[], []]);
+
+    await candidateMatchingRepo(db).listUncheckedCandidatePrintingsWithLive("user", null, 10);
+    await workspaceQueueRepo(db).uncheckedLinkedPrintings();
+
+    expectVisibleFilter(queries[0], true);
+    expectVisibleFilter(queries[1], true);
+  });
+});
+
 describe("liveCardForNorm", () => {
   const guarded = /"cc"\."norm_name" <> ''.*c\.norm_name = "cc"\."norm_name".*card_name_aliases/su;
 

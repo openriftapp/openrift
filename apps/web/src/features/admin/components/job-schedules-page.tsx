@@ -43,7 +43,7 @@ function ScheduleEditor({
         placeholder="0 3 * * *"
         className="w-52 font-mono"
       />
-      <Button onClick={() => onSave(trimmed)} disabled={pending || trimmed === ""}>
+      <Button onClick={() => onSave(trimmed)} disabled={trimmed === ""} pending={pending}>
         Save
       </Button>
       <Button variant="ghost" onClick={onCancel} disabled={pending}>
@@ -99,6 +99,7 @@ function JobScheduleCard({ job }: { job: JobScheduleView }) {
         variant="outline"
         onClick={() => disableSchedule.mutate({ kind: job.kind })}
         disabled={busy}
+        pending={disableSchedule.isPending}
       >
         Disable
       </Button>

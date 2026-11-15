@@ -5,6 +5,7 @@ import {
   checkGroupPlayerCount,
   cutLineExplanation,
   cutStageIndex,
+  formatLegendCount,
   formatMetaShare,
 } from "./group-cut-display";
 
@@ -111,6 +112,14 @@ describe("cutLineExplanation", () => {
     expect(
       cutLineExplanation([row("Ashe", { qualified: true, seed: 8 }), row("Braum")], 8),
     ).toBeNull();
+  });
+});
+
+describe("formatLegendCount", () => {
+  it("shows the count and the same dash as the other stats when it is missing", () => {
+    expect(formatLegendCount(3)).toBe("3");
+    expect(formatLegendCount(0)).toBe("0");
+    expect(formatLegendCount(null)).toBe(formatMetaShare(null));
   });
 });
 

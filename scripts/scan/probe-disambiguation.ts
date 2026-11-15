@@ -1,5 +1,7 @@
 // Offline calibration probe for printing disambiguation. Temporary analysis
 // tool; run with: bun scripts/scan/probe-disambiguation.ts
+// oxlint-disable-next-line import/no-unassigned-import -- checks argv before the heavy imports load
+import "./args-guard";
 import { upperMedian } from "../../packages/shared/src/math.js";
 import type { PrintingSignature } from "../../packages/shared/src/scan/disambiguate.js";
 import {

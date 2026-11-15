@@ -15,6 +15,7 @@ import {
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
+import { CardHoldingsSection } from "@/features/cards/components/card-detail/card-holdings-section";
 import { PrintingsLightbox } from "@/features/cards/components/card-detail/printings-lightbox";
 import {
   CollectionSlot,
@@ -158,6 +159,8 @@ export function CardDetailPage() {
         />
 
         <RelatedCardsSection related={data.related} />
+
+        <CardHoldingsSection printing={selectedPrinting} printings={printings} />
       </div>
     </CatalogSubsetContext>
   );

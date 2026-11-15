@@ -4,6 +4,7 @@ import { matchesCardQuery } from "@openrift/shared/card-search";
 import { imageUrl } from "@openrift/shared/image-url";
 import { useRef, useState } from "react";
 
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Pressable } from "@/components/ui/pressable";
 import { Textarea } from "@/components/ui/textarea";
 import { chainEntryLabel, describeZone, pieceName } from "@/features/board-states/lib/board-labels";
@@ -71,7 +72,8 @@ function BoardCaptionOption({
       )}
     >
       {imageId === null ? null : (
-        <img
+        <ImgWithFallback
+          fallback={null}
           src={imageUrl(imageId, "240w")}
           alt=""
           className="h-8 w-6 min-w-0 shrink-0 rounded-sm object-cover"

@@ -1,7 +1,6 @@
 import { imageUrl } from "@openrift/shared/image-url";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { collectionPageJsonLd, seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
@@ -51,5 +50,4 @@ export const Route = createFileRoute("/_app/sets")({
   },
   component: () => null,
   pendingComponent: () => null,
-  errorComponent: RouteErrorFallback,
 });

@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
 import { marketplaceGroupsQueryOptions } from "@/features/admin/lib/marketplace-groups-queries";
 import { setsQueryOptions } from "@/features/cards/lib/sets-queries";
@@ -14,5 +13,4 @@ export const Route = createFileRoute("/_app/_authenticated/admin/marketplace-gro
       context.queryClient.query({ ...setsQueryOptions, staleTime: "static" }),
     ]),
   pendingComponent: AdminPending,
-  errorComponent: RouteErrorFallback,
 });

@@ -99,7 +99,8 @@ export interface ParticipantRowProps {
   teammateName?: string;
   deckEntryId?: string;
   deckWithdrawn?: boolean;
-  actionPending: boolean;
+  pendingAction: ParticipantAction | null;
+  approveOpen: boolean;
   onAction: (participantId: string, action: ParticipantAction) => void;
   onRename: (target: ParticipantTarget) => void;
   onSetLegend?: (target: ParticipantTarget & { legendName: string | null }) => void;
@@ -120,7 +121,8 @@ export function ParticipantRow({
   teammateName,
   deckEntryId,
   deckWithdrawn = false,
-  actionPending,
+  pendingAction,
+  approveOpen,
   onAction,
   onRename,
   onSetLegend,
@@ -262,7 +264,8 @@ export function ParticipantRow({
               <Button
                 size="sm"
                 aria-label={m.tournaments_participant_approve()}
-                disabled={actionPending}
+                disabled={pendingAction !== null || !approveOpen}
+                pending={pendingAction === "approve"}
                 onClick={() => onAction(participant.id, "approve")}
               >
                 <CheckIcon className="size-4" />
@@ -273,7 +276,8 @@ export function ParticipantRow({
                 variant="ghost"
                 aria-label={m.tournaments_participant_deny()}
                 className="text-destructive"
-                disabled={actionPending}
+                disabled={pendingAction !== null}
+                pending={pendingAction === "deny"}
                 onClick={() => onAction(participant.id, "deny")}
               >
                 <XIcon className="size-4" />
@@ -341,7 +345,7 @@ export function ParticipantRow({
               </DropdownMenuItem>
               {participant.status === "active" ? (
                 <DropdownMenuItem
-                  disabled={actionPending}
+                  disabled={pendingAction !== null}
                   onClick={() => onAction(participant.id, "drop")}
                 >
                   <UserMinusIcon className="size-4" />
@@ -349,7 +353,7 @@ export function ParticipantRow({
                 </DropdownMenuItem>
               ) : participant.status === "dropped" || participant.status === "no_show" ? (
                 <DropdownMenuItem
-                  disabled={actionPending}
+                  disabled={pendingAction !== null}
                   onClick={() => onAction(participant.id, "reactivate")}
                 >
                   <UserPlusIcon className="size-4" />
@@ -358,7 +362,7 @@ export function ParticipantRow({
               ) : null}
               {participant.userId ? (
                 <DropdownMenuItem
-                  disabled={actionPending}
+                  disabled={pendingAction !== null}
                   onClick={() => onAction(participant.id, "unlink")}
                 >
                   <UnlinkIcon className="size-4" />
@@ -366,7 +370,7 @@ export function ParticipantRow({
                 </DropdownMenuItem>
               ) : participant.claimBlocked ? (
                 <DropdownMenuItem
-                  disabled={actionPending}
+                  disabled={pendingAction !== null}
                   onClick={() => onAction(participant.id, "reissue")}
                 >
                   <RotateCcwIcon className="size-4" />

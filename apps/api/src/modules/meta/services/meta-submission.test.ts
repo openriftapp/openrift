@@ -63,7 +63,7 @@ function harness(
 
   const repos = {
     ingest: {
-      lockUserSubmissions: vi.fn().mockResolvedValue(undefined),
+      lockCardAndMetaSubmissions: vi.fn().mockResolvedValue(undefined),
       allCardNorms: vi
         .fn()
         .mockResolvedValue(

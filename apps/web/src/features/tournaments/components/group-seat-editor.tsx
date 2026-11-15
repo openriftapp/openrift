@@ -10,7 +10,7 @@ import {
 } from "@dnd-kit/core";
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import type { GroupStageView } from "@openrift/shared/types/api/pod-tournament";
-import { EllipsisVerticalIcon, GripVerticalIcon } from "lucide-react";
+import { EllipsisVerticalIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
 
@@ -26,6 +26,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { DragChip } from "@/features/tournaments/components/drag-chip";
 import { SaveError } from "@/features/tournaments/components/save-error";
 import { useReplaceGroupSeats } from "@/features/tournaments/hooks/use-tournament-run";
 import type { SeatGroup } from "@/features/tournaments/lib/group-seat-editor";
@@ -61,21 +62,20 @@ function SeatChip({ playerId, name }: { playerId: string; name: string }) {
     data: { type: "group-seat", playerId } satisfies SeatDragData,
   });
   return (
-    <span
+    <DragChip
       ref={(node) => {
         setDragRef(node);
         setDropRef(node);
       }}
       {...listeners}
       className={cn(
-        "bg-background flex cursor-grab touch-none items-center gap-1.5 rounded-md border px-2 py-1 text-sm",
+        "cursor-grab touch-none text-sm",
         isDragging && "opacity-40",
         isOver && !isDragging && "ring-primary ring-2",
       )}
     >
-      <GripVerticalIcon className="text-muted-foreground size-3.5 shrink-0" />
       <span className="min-w-0 truncate">{name}</span>
-    </span>
+    </DragChip>
   );
 }
 
@@ -267,10 +267,9 @@ export function GroupSeatEditor({
       </div>
       <DragOverlay>
         {draggingId ? (
-          <span className="bg-background flex items-center gap-1.5 rounded-md border px-2 py-1 text-sm shadow-lg">
-            <GripVerticalIcon className="text-muted-foreground size-3.5 shrink-0" />
-            {nameById.get(draggingId) ?? m.tournaments_pairing_editor_unknown_player()}
-          </span>
+          <DragChip overlay className="text-sm">
+            {nameOf(draggingId)}
+          </DragChip>
         ) : null}
       </DragOverlay>
     </DndContext>

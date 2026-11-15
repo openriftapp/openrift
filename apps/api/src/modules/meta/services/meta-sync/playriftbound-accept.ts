@@ -3,8 +3,8 @@ import { playriftboundEventUrl } from "@openrift/shared/playriftbound-links";
 import { errorMessage } from "@openrift/shared/strings";
 
 import { recordCapped } from "../../../../lib/json-coerce.js";
+import { META_NAME_MAX } from "../../../../lib/meta-name-limits.js";
 import { PLAYRIFTBOUND_PROVIDER } from "../../../../lib/meta-providers.js";
-import { META_NAME_MAX } from "../../lib/meta-event-naming.js";
 import { longitudeLocalDay } from "../../lib/meta-local-day.js";
 import { isTeamFormat, playriftboundFormat } from "../../lib/playriftbound-catalog.js";
 import type { PlayriftboundListRow } from "../../repositories/playriftbound-events.js";

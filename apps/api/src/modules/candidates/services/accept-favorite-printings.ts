@@ -1,14 +1,26 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
-
 import type { Repos, Transact } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import type { NewPrinting } from "../../catalog/services/printing-admin.js";
-import { acceptCandidateGroups } from "./accept-candidate-printings.js";
+import { trustedPrintingGroups } from "../lib/workspace-batch.js";
+import { acceptCandidateGroup } from "./accept-candidate-printings.js";
+import {
+  loadPrintingRefs,
+  markAcceptedCandidateCardsChecked,
+  trustedPrintingRefusal,
+} from "./trusted-accept-checks.js";
 
 export async function acceptFavoritePrintingsForCard(
   transact: Transact,
-  repos: Pick<Repos, "candidateCards" | "catalogMutations">,
+  repos: Pick<
+    Repos,
+    | "candidateCards"
+    | "catalogMutations"
+    | "distributionChannels"
+    | "enums"
+    | "keywords"
+    | "sets"
+    | "workspaceBatch"
+  >,
   cardSlug: string,
   favoriteProviders: Set<string>,
   created: NewPrinting[],
@@ -22,13 +34,9 @@ export async function acceptFavoritePrintingsForCard(
   const card = await mut.getCardBySlug(cardSlug);
   assertFound(card, `Card not found: ${cardSlug}`);
 
-  const aliases = await mut.getCardAliases(card.id);
-  if (aliases.length === 0) {
-    throw new AppError(500, ERROR_CODES.MISSING_ALIAS, `Card "${cardSlug}" has no name aliases`);
-  }
-  const allCandidates = await repos.candidateCards.candidateCardsForDetail(
-    aliases.map((a) => a.normName),
-  );
+  const keys = await repos.candidateCards.cardNameKeys(card.id);
+  const allCandidates =
+    keys.length > 0 ? await repos.candidateCards.candidateCardsForDetail(keys) : [];
   const favoriteCandidates = allCandidates.filter((cc) => favoriteProviders.has(cc.provider));
   if (favoriteCandidates.length === 0) {
     return { printingsCreated: 0, skipped: [], createdPrintingIds: [] };
@@ -40,16 +48,41 @@ export async function acceptFavoritePrintingsForCard(
   if (candidates.length === 0) {
     return { printingsCreated: 0, skipped: [], createdPrintingIds: [] };
   }
-  const accepted = await acceptCandidateGroups(transact, card.id, candidates);
-  created.push(...accepted.created);
+  const groups = trustedPrintingGroups(
+    candidates.map((cp) => ({ id: cp.id, cardId: card.id, cardSlug })),
+    candidates,
+  );
+  const [known, probes] = await Promise.all([
+    loadPrintingRefs(
+      repos,
+      groups.map((group) => group.first),
+    ),
+    repos.workspaceBatch.frontPrintingProbes([card.id]),
+  ]);
 
-  for (const cc of favoriteCandidates) {
-    await repos.candidateCards.checkCandidateCard(cc.id);
+  const accepted: NewPrinting[] = [];
+  const acceptedGroups: typeof groups = [];
+  const skipped: { shortCode: string; reason: string }[] = [];
+  for (const group of groups) {
+    const refusal = await trustedPrintingRefusal(repos, group, known, probes);
+    const outcome =
+      refusal === null
+        ? await acceptCandidateGroup(transact, card.id, group.candidates)
+        : { reason: refusal };
+    if ("printing" in outcome) {
+      created.push(outcome.printing);
+      accepted.push(outcome.printing);
+      acceptedGroups.push(group);
+    } else {
+      skipped.push({ shortCode: group.first.shortCode, reason: outcome.reason });
+    }
   }
 
+  await markAcceptedCandidateCardsChecked(repos, acceptedGroups);
+
   return {
-    printingsCreated: accepted.created.length,
-    skipped: accepted.skipped,
-    createdPrintingIds: accepted.created.map((printing) => printing.printingId),
+    printingsCreated: accepted.length,
+    skipped,
+    createdPrintingIds: accepted.map((printing) => printing.printingId),
   };
 }

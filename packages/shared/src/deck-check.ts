@@ -59,6 +59,24 @@ export function deckCheckEntrySource(externalId: string): DeckCheckEntrySource {
   return "api";
 }
 
+/**
+ * Judges are never bound by this; `allow_self_submission` gates only the
+ * creation of new entries, and is checked separately.
+ */
+export function submissionWindowOpen(
+  event: { status: string; submissionsCloseAt: Date | string | null },
+  now = Date.now(),
+): boolean {
+  if (event.status !== "active") {
+    return false;
+  }
+  const closeAt = event.submissionsCloseAt;
+  if (closeAt === null) {
+    return true;
+  }
+  return (typeof closeAt === "string" ? Date.parse(closeAt) : closeAt.getTime()) > now;
+}
+
 function lineKey(line: DeckCheckCardLine): string {
   return [normalizeNameForIdentity(line.name), line.zone].join("|");
 }

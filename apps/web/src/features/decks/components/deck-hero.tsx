@@ -269,12 +269,13 @@ export function DeckHero({
       />
       {hasBanner && (
         <div aria-hidden="true" className="absolute inset-x-0 top-0 h-44 sm:hidden">
-          <img
+          <ImgWithFallback
             src={backdropThumb}
             alt=""
             draggable={false}
             style={{ objectPosition: `50% ${cover?.position ?? 20}%` }}
             className="h-full w-full object-cover"
+            fallback={null}
           />
           <div className="via-card/85 to-card absolute inset-0 bg-linear-to-b from-transparent from-25% via-75%" />
         </div>

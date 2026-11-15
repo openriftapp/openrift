@@ -1,3 +1,5 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+
 import { toError } from "@openrift/shared/strings";
 
 import type { Fetch } from "../../../../io.js";
@@ -6,6 +8,7 @@ import {
   isHtmlChallenge,
   isPermanentRefusal,
   isTransientStatus,
+  RunDeadlineError,
   SourceBlockedError,
   SourceHttpError,
   SourceThrottledError,
@@ -17,6 +20,21 @@ const RETRY_BASE_DELAY_MS = 1000;
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_THROTTLE_WAIT_MS = 30_000;
 const MAX_THROTTLE_WAIT_MS = 120_000;
+
+interface RequestDeadline {
+  at: number;
+  now: () => number;
+}
+
+const requestDeadline = new AsyncLocalStorage<RequestDeadline>();
+
+/** Requests made inside `run` refuse any wait that would end after `at` on the `now` clock (ms). */
+export function withRequestDeadline<T>(
+  deadline: RequestDeadline,
+  run: () => Promise<T>,
+): Promise<T> {
+  return requestDeadline.run(deadline, run);
+}
 
 export interface PacingGate {
   lastStartedAt: number;
@@ -112,13 +130,34 @@ export function createPacedHttp(options: PacedHttpOptions): PacedHttp {
   const gate = options.gate ?? createPacingGate();
   let queue: Promise<unknown> = Promise.resolve();
 
-  async function pace(): Promise<void> {
+  async function waitWithin(url: string, ms: number, refusal?: () => Error): Promise<void> {
+    const deadline = requestDeadline.getStore();
+    if (deadline !== undefined && deadline.now() + ms > deadline.at) {
+      throw refusal?.() ?? new RunDeadlineError(url);
+    }
+    await sleep(ms);
+  }
+
+  function blockStop(url: string, detail: string): Error {
+    blocked = true;
+    return blockedError(url, detail);
+  }
+
+  function throttleStop(url: string): Error {
+    const error = throttledError(url);
+    if (error instanceof SourceBlockedError) {
+      blocked = true;
+    }
+    return error;
+  }
+
+  async function pace(url: string): Promise<void> {
     const previous = gate.turn;
     const turn = (async () => {
       await previous;
       const wait = gate.lastStartedAt + options.spacingMs + random() * options.jitterMs - now();
       if (wait > 0) {
-        await sleep(wait);
+        await waitWithin(url, wait);
       }
       gate.lastStartedAt = now();
     })();
@@ -207,7 +246,7 @@ export function createPacedHttp(options: PacedHttpOptions): PacedHttp {
     let blockTries = 0;
     let throttled = false;
     while (failures < MAX_ATTEMPTS) {
-      await pace();
+      await pace(url);
       requests++;
       const outcome = await attemptOnce(url, init, parse);
       if ("value" in outcome) {
@@ -216,32 +255,31 @@ export function createPacedHttp(options: PacedHttpOptions): PacedHttp {
       lastError = outcome.error;
       if ("throttleMs" in outcome) {
         if (throttled || options.waitOnThrottle === false) {
-          const error = throttledError(url);
-          if (error instanceof SourceBlockedError) {
-            blocked = true;
-          }
-          throw error;
+          throw throttleStop(url);
         }
         throttled = true;
-        await sleep(outcome.throttleMs);
+        await waitWithin(url, outcome.throttleMs, () => throttleStop(url));
         continue;
       }
       if (outcome.block) {
         if (blockTries === 0 && failures < MAX_ATTEMPTS - 1) {
           blockTries++;
           failures++;
-          await sleep(options.blockRetryDelayMs ?? 0);
+          const detail = outcome.error.message;
+          await waitWithin(url, options.blockRetryDelayMs ?? 0, () => blockStop(url, detail));
           continue;
         }
-        blocked = true;
-        throw blockedError(url, outcome.error.message);
+        throw blockStop(url, outcome.error.message);
       }
       if (!outcome.retryable) {
         throw lastError;
       }
       failures++;
       if (failures < MAX_ATTEMPTS) {
-        await sleep(RETRY_BASE_DELAY_MS * 2 ** (failures - 1) + random() * options.jitterMs);
+        await waitWithin(
+          url,
+          RETRY_BASE_DELAY_MS * 2 ** (failures - 1) + random() * options.jitterMs,
+        );
       }
     }
     throw lastError instanceof SourceHttpError

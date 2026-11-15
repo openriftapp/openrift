@@ -1,6 +1,9 @@
 import type { FriendGroupMatchRow } from "@openrift/shared/types/api/friend-group";
 import { describe, expect, it } from "vitest";
 
+import { stubCardTrade } from "@/test/factories";
+
+import { countTradeSuggestions, withoutLiveTradeMatches } from "./trade-derivation";
 import { dismissalKeys } from "./trade-dismissals";
 import type { TradeMarketGroup } from "./trade-market";
 import {
@@ -117,8 +120,57 @@ describe("openSuggestionCount", () => {
       stubGroup({ incoming: [{ ...stubRow(), liveOnly: true }], outgoing: [stubRow()] }),
     ]);
     expect(market.incoming).toHaveLength(1);
-    expect(openSuggestionCount(market.incoming)).toBe(0);
-    expect(openSuggestionCount(market.outgoing)).toBe(1);
+    expect(openSuggestionCount(market.incoming, "incoming", [])).toBe(0);
+    expect(openSuggestionCount(market.outgoing, "outgoing", [])).toBe(1);
+  });
+
+  it("counts one card offered by three members once", () => {
+    const market = buildTradeMarket([
+      stubGroup({
+        incoming: [
+          stubRow(),
+          stubRow({ counterpartyUserId: "user-3", buyEntryId: "buy-2" }),
+          stubRow({ counterpartyUserId: "user-4", buyEntryId: "buy-3" }),
+        ],
+      }),
+    ]);
+    expect(openSuggestionCount(market.incoming, "incoming", [])).toBe(1);
+  });
+
+  it("does not count a card whose only row is in a live trade", () => {
+    const market = buildTradeMarket([stubGroup({ incoming: [stubRow()] })]);
+    const live = [stubCardTrade({ role: "receiver", status: "pending" })];
+    expect(market.incoming).toHaveLength(1);
+    expect(openSuggestionCount(market.incoming, "incoming", live)).toBe(0);
+  });
+
+  it("counts a card with one live and one free row", () => {
+    const market = buildTradeMarket([
+      stubGroup({
+        incoming: [stubRow(), stubRow({ counterpartyUserId: "user-3", buyEntryId: "buy-2" })],
+      }),
+    ]);
+    const live = [stubCardTrade({ role: "receiver", status: "pending" })];
+    expect(openSuggestionCount(market.incoming, "incoming", live)).toBe(1);
+  });
+
+  it("never exceeds the hub's suggestion count for the same data", () => {
+    const rows = [
+      stubRow(),
+      stubRow({ counterpartyUserId: "user-3", buyEntryId: "buy-2" }),
+      stubRow({ printingId: "printing-2", cardId: "card-2", buyEntryId: "buy-3" }),
+      stubRow({ printingId: "printing-3", cardId: "card-3", buyEntryId: "buy-4" }),
+    ];
+    const trades = [
+      stubCardTrade({ role: "receiver", printingId: "printing-3", cardId: "card-3" }),
+    ];
+    const market = buildTradeMarket([stubGroup({ incoming: rows })]);
+    const hubSuggestions = countTradeSuggestions(
+      withoutLiveTradeMatches(rows, trades, "incoming"),
+      [],
+    );
+    expect(openSuggestionCount(market.incoming, "incoming", trades)).toBe(2);
+    expect(hubSuggestions).toBe(3);
   });
 });
 

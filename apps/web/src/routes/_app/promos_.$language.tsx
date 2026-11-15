@@ -2,17 +2,11 @@ import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import { RENAMED_LANGUAGES } from "@openrift/shared/well-known";
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { publicPromoListQueryOptions } from "@/features/cards/lib/public-promos-queries";
 import { cleanedSearchForRedirect, filterSearchSchema } from "@/features/cards/lib/search-schemas";
 import { initQueryOptions } from "@/lib/init-queries";
 import { cardJsonLdItems, collectionPageJsonLd, seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
-
-interface JsonLdItem {
-  name: string;
-  url: string;
-}
 
 function promosDescription(languageName: string): string {
   return `Browse all ${languageName} promotional card printings for the Riftbound trading card game, grouped by promo type.`;
@@ -21,12 +15,12 @@ function promosDescription(languageName: string): string {
 export const Route = createFileRoute("/_app/promos_/$language")({
   validateSearch: filterSearchSchema,
   beforeLoad: ({ search, location, params }) => {
-    // Old language codes would 404 in the loader; redirect to the current code.
-    const renamed = RENAMED_LANGUAGES[params.language.toUpperCase()];
-    if (renamed) {
+    const upper = params.language.toUpperCase();
+    const canonical = RENAMED_LANGUAGES[upper] ?? upper;
+    if (canonical !== params.language) {
       throw redirect({
         to: "/promos/$language",
-        params: { language: renamed },
+        params: { language: canonical },
         search,
         replace: true,
         statusCode: 301,
@@ -45,13 +39,28 @@ export const Route = createFileRoute("/_app/promos_/$language")({
       });
     }
   },
+  loader: async ({ params, context }) => {
+    // Only the JSON-LD items and language name are returned: the loaderData return value is
+    // serialized on top of the dehydrated queries, doubling the payload.
+    const [data, init] = await Promise.all([
+      context.queryClient.query({
+        ...publicPromoListQueryOptions(params.language),
+        staleTime: "static",
+      }),
+      context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
+    ]);
+    if (data.printings.length === 0) {
+      throw notFound();
+    }
+
+    const languageName = enumLabel(labelMap(init.enums.languages ?? []), params.language);
+    return { items: cardJsonLdItems(data.printings, data.cards), languageName };
+  },
   head: ({ params, loaderData }) => {
     const siteUrl = getSiteUrl();
     const path = `/promos/${params.language}`;
-    // beforeLoad throws a redirect, which narrows loaderData to never here.
-    const data = loaderData as { items: JsonLdItem[]; languageName: string } | undefined;
-    const items = data?.items ?? [];
-    const languageName = data?.languageName ?? params.language;
+    const items = loaderData?.items ?? [];
+    const languageName = loaderData?.languageName ?? params.language;
     const description = promosDescription(languageName);
     const head = seoHead({
       siteUrl,
@@ -73,22 +82,4 @@ export const Route = createFileRoute("/_app/promos_/$language")({
       ],
     };
   },
-  loader: async ({ params, context }) => {
-    // Only the JSON-LD items and language name are returned: the loaderData return value is
-    // serialized on top of the dehydrated queries, doubling the payload.
-    const [data, init] = await Promise.all([
-      context.queryClient.query({
-        ...publicPromoListQueryOptions(params.language),
-        staleTime: "static",
-      }),
-      context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
-    ]);
-    if (data.printings.length === 0) {
-      throw notFound();
-    }
-
-    const languageName = enumLabel(labelMap(init.enums.languages ?? []), params.language);
-    return { items: cardJsonLdItems(data.printings, data.cards), languageName };
-  },
-  errorComponent: RouteErrorFallback,
 });

@@ -2,7 +2,7 @@ import type { DeckZone, MetaListStatus } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Repos } from "../../../deps.js";
-import type { CardNameIndex } from "../../candidates/services/candidate-links.js";
+import type { CardNameIndex } from "../../../lib/card-names.js";
 import { resolveCardIdByName } from "../../candidates/services/candidate-links.js";
 import { defaultMetaDeckName } from "../lib/meta-event-naming.js";
 import type { MetaPlayerOverlayPatch } from "../lib/meta-overlay-apply.js";

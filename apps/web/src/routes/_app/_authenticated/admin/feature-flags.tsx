@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
 import {
   adminFeatureFlagOverridesQueryOptions,
@@ -18,5 +17,4 @@ export const Route = createFileRoute("/_app/_authenticated/admin/feature-flags")
       context.queryClient.query({ ...adminUsersQueryOptions, staleTime: "static" }),
     ]),
   pendingComponent: AdminPending,
-  errorComponent: RouteErrorFallback,
 });

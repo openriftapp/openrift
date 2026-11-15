@@ -27,6 +27,7 @@ function row(overrides: Partial<DeskPrintingRow> = {}): DeskPrintingRow {
     releasedAt: "2026-08-01",
     releasePrecision: "month",
     comment: null,
+    flavorText: null,
     imageCount: 2,
     faceId: "face-1",
     side: 1,

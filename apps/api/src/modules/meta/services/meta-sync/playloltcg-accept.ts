@@ -4,8 +4,8 @@ import { errorMessage } from "@openrift/shared/strings";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import { recordCapped } from "../../../../lib/json-coerce.js";
+import { META_NAME_MAX } from "../../../../lib/meta-name-limits.js";
 import { PLAYLOLTCG_PROVIDER } from "../../../../lib/meta-providers.js";
-import { META_NAME_MAX } from "../../lib/meta-event-naming.js";
 import { playloltcgEventUrl } from "../../lib/playloltcg-catalog.js";
 import type { PlayloltcgListRow } from "../../repositories/playloltcg-events.js";
 import { promoteNewEvent } from "../meta-promote.js";

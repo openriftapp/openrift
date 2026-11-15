@@ -34,6 +34,15 @@ describe("printingFieldRules.language", () => {
   });
 });
 
+describe("printingFieldRules.printedName", () => {
+  it("accepts text and null, and rejects anything else", () => {
+    expect(printingFieldRules.printedName.safeParse("Jinx, Loose Cannon").success).toBe(true);
+    expect(printingFieldRules.printedName.safeParse(null).success).toBe(true);
+    expect(printingFieldRules.printedName.safeParse(42).success).toBe(false);
+    expect(printingFieldRules.printedName.safeParse(["Jinx"]).success).toBe(false);
+  });
+});
+
 describe("candidateCardFieldRules.extraData", () => {
   it("passes for null", () => {
     expect(candidateCardFieldRules.extraData.safeParse(null).success).toBe(true);

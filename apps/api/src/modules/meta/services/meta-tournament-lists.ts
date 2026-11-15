@@ -2,8 +2,8 @@ import type { MetaEventOverlayField, MetaOverlayStatus } from "@openrift/shared/
 
 import type { Repos, Transact } from "../../../deps.js";
 import { conflict } from "../../../errors.js";
+import { META_NAME_MAX, META_PLAYER_NAME_MAX } from "../../../lib/meta-name-limits.js";
 import { TOURNAMENT_LIST_PROVIDER, UVSGAMES_PROVIDER } from "../../../lib/meta-providers.js";
-import { META_NAME_MAX, META_PLAYER_NAME_MAX } from "../lib/meta-event-naming.js";
 import {
   mapSourceFormat,
   uvsgamesStandingIdentity,

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { eyebrowClass } from "@/components/heading";
 import { MiniCardArt } from "@/components/mini-card-art";
 import { OrnamentRule } from "@/components/ui/ornament";
 import { StatFigure } from "@/components/ui/stat-figure";
@@ -8,8 +9,7 @@ import { cn, PAGE_WIDTH } from "@/lib/utils";
 // Hand-authored layout primitive: the alternative to PageTopBar for a page
 // that opens with an introduction. It does not stick.
 
-export const PAGE_HERO_EYEBROW_CLASS =
-  "text-primary font-heading text-sm font-semibold tracking-wide uppercase";
+export const PAGE_HERO_EYEBROW_CLASS = eyebrowClass("kicker");
 
 export function PageHero({
   eyebrow,

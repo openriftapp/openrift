@@ -1,6 +1,7 @@
+import { tradeCancelConflictError } from "@openrift/shared/contracts/fields";
 import { ORPCError, os } from "@orpc/server";
 
-import { AppError } from "../errors.js";
+import { AppError, TradeCancelConsentRequiredError } from "../errors.js";
 import type { ApiContext } from "./context.js";
 
 /**
@@ -16,6 +17,13 @@ async function convertingAppErrors<TResult>(run: () => TResult): Promise<Awaited
   } catch (error) {
     if (error instanceof AppError) {
       throw new ORPCError(error.code, { status: error.status, message: error.message });
+    }
+    if (error instanceof TradeCancelConsentRequiredError) {
+      throw new ORPCError("CONFLICT", {
+        status: 409,
+        message: tradeCancelConflictError.message,
+        data: error.data,
+      });
     }
     throw error;
   }

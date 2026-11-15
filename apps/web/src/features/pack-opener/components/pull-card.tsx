@@ -7,6 +7,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { FoilOverlay } from "@/features/cards/components/foil-overlay";
 import { PullVariantLine } from "@/features/pack-opener/components/pull-variant-line";
 import { packSlotLabel } from "@/features/pack-opener/lib/pack-pull-labels";
@@ -79,7 +80,8 @@ export function PullCard({ pull, image, className, shimmer = true }: PullCardPro
               className="absolute top-1/2 left-1/2 overflow-hidden"
               style={LANDSCAPE_ROTATION_STYLE}
             >
-              <img
+              <ImgWithFallback
+                fallback={null}
                 src={imageUrl(shownImage.imageId, "240w")}
                 srcSet={imageSrcSet(shownImage.imageId, ["240w", "400w"])}
                 sizes="(max-width: 640px) 40vw, 160px"
@@ -90,7 +92,8 @@ export function PullCard({ pull, image, className, shimmer = true }: PullCardPro
               />
             </div>
           ) : (
-            <img
+            <ImgWithFallback
+              fallback={null}
               src={imageUrl(shownImage.imageId, "240w")}
               srcSet={imageSrcSet(shownImage.imageId, ["240w", "400w"])}
               sizes="(max-width: 640px) 40vw, 160px"

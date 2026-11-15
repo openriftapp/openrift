@@ -41,15 +41,28 @@ vi.mock("@/features/cards/components/card-page-collection-slot", () => ({
 vi.mock("@/features/cards/components/card-page-fact-rows", () => ({
   CardPageFactRows: () => null,
 }));
+vi.mock("@/features/cards/components/card-detail/card-holdings-section", () => ({
+  CardHoldingsSection: ({
+    printing,
+    printings,
+  }: {
+    printing: { printingId: string };
+    printings: readonly unknown[];
+  }) => (
+    <p>
+      holdings for {printing.printingId} across {printings.length}
+    </p>
+  ),
+}));
 vi.mock("@/features/cards/components/card-page-hero", () => ({ CardPageHero: () => null }));
 vi.mock("@/features/cards/components/card-page-info-table", () => ({
   CardPageInfoTable: () => null,
 }));
 vi.mock("@/features/cards/components/card-page-price-history", () => ({
-  PriceHistorySection: () => null,
+  PriceHistorySection: () => <p>price history</p>,
 }));
 vi.mock("@/features/cards/components/card-page-related-cards", () => ({
-  RelatedCardsSection: () => null,
+  RelatedCardsSection: () => <p>related cards</p>,
 }));
 vi.mock("@/features/cards/components/card-page-share-button", () => ({
   ShareCardButton: () => null,
@@ -154,5 +167,26 @@ describe("CardDetailPage", () => {
     ).toBeTruthy();
     expect(screen.queryByText("suspended")).toBeNull();
     expect(client.getQueryCache().find({ queryKey: catalogKeys.all, exact: true })).toBeUndefined();
+  });
+
+  it("shows the viewer's loans and trades below every server-rendered section", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData(cardsKeys.detail("ezreal"), seedCardDetail());
+
+    render(
+      <QueryClientProvider client={client}>
+        <Suspense fallback={<p>suspended</p>}>
+          <CardDetailPage />
+        </Suspense>
+      </QueryClientProvider>,
+    );
+
+    const holdings = await screen.findByText(/^holdings for p-\w+ across 2$/u);
+    for (const earlier of ["price history", "related cards"]) {
+      expect(
+        screen.getByText(earlier).compareDocumentPosition(holdings) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
   });
 });

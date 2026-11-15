@@ -161,6 +161,12 @@ describe("toMetaEventSummary", () => {
     expect(summary.location).toBeNull();
   });
 
+  it("reads an event dated after today as upcoming, whatever status it stores", () => {
+    const row = eventRow({ eventDate: "2026-12-05", status: "complete" });
+    expect(toMetaEventSummary(row, [], "2026-12-04").status).toBe("upcoming");
+    expect(toMetaEventSummary(row, [], "2026-12-05").status).toBe("complete");
+  });
+
   it("keeps the standings count apart from the decks known for it", () => {
     const summary = toMetaEventSummary(eventRow({ playerRowCount: 128, deckCount: 0 }));
     expect(summary.playerRowCount).toBe(128);

@@ -1,4 +1,4 @@
-import { sameDeckCards } from "@openrift/shared/deck-cards";
+import { mergeDeckCards, sameDeckCards } from "@openrift/shared/deck-cards";
 import { MAX_FACET_VALUES } from "@openrift/shared/meta-query";
 import type { MetaScopeFacet } from "@openrift/shared/meta-query";
 import type { DeckFormatConfig } from "@openrift/shared/types/api/deck";
@@ -182,31 +182,6 @@ export interface MetaDeckCardInput {
   zone: DeckZone;
   quantity: number;
   preferredPrintingId: string | null;
-}
-
-/**
- * Folds repeated lines into one row per `uq_deck_cards` key, summing quantity.
- * The index is `NULLS NOT DISTINCT`, so the archive's null `preferred_printing_id`
- * does not separate two lines the way a null usually would, and a source that
- * lists a card across several lines (or under two names that resolve to one
- * card) would otherwise violate it.
- */
-export function deckCardMergeKey(card: MetaDeckCardInput): string {
-  return `${card.cardId} ${card.zone} ${card.preferredPrintingId ?? ""}`;
-}
-
-export function mergeDeckCards(cards: readonly MetaDeckCardInput[]): MetaDeckCardInput[] {
-  const merged = new Map<string, MetaDeckCardInput>();
-  for (const card of cards) {
-    const key = deckCardMergeKey(card);
-    const held = merged.get(key);
-    if (held === undefined) {
-      merged.set(key, { ...card });
-      continue;
-    }
-    held.quantity += card.quantity;
-  }
-  return [...merged.values()];
 }
 
 interface MetaStoredDeckCard {

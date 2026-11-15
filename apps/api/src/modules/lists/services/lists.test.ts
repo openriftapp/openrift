@@ -4,8 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { ListsTable } from "../../../db/tables/lists.js";
 import type { Repos, Transact } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
-import { TradeCancelConsentRequiredError } from "../../groups/services/trade-supply.js";
+import { AppError, TradeCancelConsentRequiredError } from "../../../errors.js";
 import type { MoveEntry } from "../repositories/lists-entries.js";
 import { moveListEntries, withTradeSupplySweep } from "./lists.js";
 

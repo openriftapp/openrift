@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dropzone } from "@/components/ui/dropzone";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -109,7 +110,8 @@ export function GroupBannerPanel({ group }: { group: FriendGroupResponse }) {
             onPointerUp={handlePointerEnd}
             onPointerCancel={handlePointerEnd}
           >
-            <img
+            <ImgWithFallback
+              fallback={null}
               ref={previewRef}
               src={group.bannerUrl}
               alt={m.groups_banner_alt()}
@@ -170,6 +172,7 @@ export function GroupBannerPanel({ group }: { group: FriendGroupResponse }) {
             size="sm"
             onClick={() => remove.mutate(group.slug)}
             disabled={busy}
+            pending={remove.isPending}
           >
             {m.groups_banner_remove()}
           </Button>
@@ -177,6 +180,7 @@ export function GroupBannerPanel({ group }: { group: FriendGroupResponse }) {
             size="sm"
             onClick={() => update.mutate({ slug: group.slug, bannerPosition: position })}
             disabled={busy || !positionChanged}
+            pending={update.isPending}
           >
             {m.groups_banner_save_focus()}
           </Button>

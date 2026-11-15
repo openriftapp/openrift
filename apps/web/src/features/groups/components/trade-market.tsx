@@ -237,8 +237,18 @@ export function TradeMarket() {
           : { kind: "market", card: pickedCard };
 
   const tabs: { value: MarketTab; label: string; count: number | null }[] = [
-    { value: "get", label: m.trades_market_tab_get(), count: openSuggestionCount(incoming) },
-    { value: "give", label: m.trades_market_tab_give(), count: openSuggestionCount(outgoing) },
+    {
+      value: "get",
+      label: m.trades_market_tab_get(),
+      count:
+        userTrades === undefined ? null : openSuggestionCount(incoming, "incoming", userTradeItems),
+    },
+    {
+      value: "give",
+      label: m.trades_market_tab_give(),
+      count:
+        userTrades === undefined ? null : openSuggestionCount(outgoing, "outgoing", userTradeItems),
+    },
     { value: "buy", label: m.trades_market_tab_buy(), count: wantedReady ? buyable.length : null },
   ];
   const groupItems = [

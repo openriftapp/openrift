@@ -1,5 +1,7 @@
 import { formatDayTime } from "@openrift/shared/format-date";
 
+import { formatCount } from "@/lib/format";
+
 const SUMMARY_LIMIT = 6;
 
 const BUDGET_COUNTER = "requests";
@@ -17,7 +19,7 @@ function coverageNote(result: Record<string, unknown> | null): CoverageNote {
   if (skipped === 0) {
     return { text: "incomplete", namesSkipped: false };
   }
-  return { text: `incomplete, ${skipped.toLocaleString()} skipped`, namesSkipped: true };
+  return { text: `incomplete, ${formatCount(skipped)} skipped`, namesSkipped: true };
 }
 
 function until(label: string, value: unknown): string {
@@ -72,6 +74,6 @@ export function summarizeRunResult(
     ...(note.text === null ? [] : [note.text]),
     ...[...budget, ...rest]
       .slice(0, SUMMARY_LIMIT)
-      .map(([key, value]) => `${value.toLocaleString()} ${key}`),
+      .map(([key, value]) => `${formatCount(value)} ${key}`),
   ].join(" · ");
 }

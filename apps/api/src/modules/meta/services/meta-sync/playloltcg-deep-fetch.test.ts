@@ -8,7 +8,7 @@ import { PlayloltcgBlockedError, PlayloltcgRefusedError } from "./playloltcg-cli
 import type { PlayloltcgDetailFacts } from "./playloltcg-deep-fetch.js";
 import { playloltcgDeepFetch } from "./playloltcg-deep-fetch.js";
 import type { PlayloltcgSyncDeps } from "./playloltcg-deps.js";
-import { SourceThrottledError } from "./source-http.js";
+import { RunDeadlineError, SourceThrottledError } from "./source-http.js";
 
 const NOW = new Date("2026-08-30T12:00:00Z");
 const ACTIVITY_SHOP_ID = 109_991;
@@ -357,6 +357,34 @@ describe("playloltcgDeepFetch", () => {
     expect(result.deckRequests).toBe(600);
     expect(result.decksRemaining).toBe(300);
     expect(result.errors.some((line) => line.includes("missing 900 decks"))).toBe(true);
+  });
+
+  it("keeps the decks it read when the time budget ends mid-decks, then finishes next pass", async () => {
+    const rows = [11, 12, 13].map((cardGroupId, index) =>
+      standingsRow({ name: `选手${index}`, finalRanking: index + 1, cardGroupId }),
+    );
+    const card = [{ cardNo: "OGN-001", number: 3 }];
+    const first = fakeDeps({
+      standings: rows,
+      decks: { 11: card, 12: card, 13: card },
+      deckErrors: { 12: new RunDeadlineError(DECK_PATH) },
+    });
+
+    const firstPass = await playloltcgDeepFetch(first.deps, catalogRow(), DETAIL, BUDGET);
+
+    expect(first.storedDecklists.map((entry) => entry.row.sourceDeckId)).toEqual(["11"]);
+    expect(first.mirrored).toHaveLength(3);
+    expect(firstPass.decksRemaining).toBe(2);
+
+    const second = fakeDeps({
+      standings: rows,
+      decks: { 12: card, 13: card },
+      heldDecks: ["11"],
+    });
+    const secondPass = await playloltcgDeepFetch(second.deps, catalogRow(), DETAIL, BUDGET);
+
+    expect(second.deckRequests).toEqual([12, 13]);
+    expect(secondPass.decksRemaining).toBe(0);
   });
 
   it("stops the run on a throttled deck read instead of recording the deck", async () => {

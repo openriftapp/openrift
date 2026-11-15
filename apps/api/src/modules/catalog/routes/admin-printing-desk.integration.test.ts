@@ -381,6 +381,30 @@ describe.skipIf(!adminCtx)("Admin printing-desk routes (integration)", () => {
       expect(row).toEqual({ artist: "PDK Guest Artist", shortCode: "PDK-P01" });
     });
 
+    it("writes trimmed flavor text to the face and reads it back", async () => {
+      const res = await app.fetch(
+        adminReq("PATCH", `/printing-desk/printings/${createdPrintingId}`, {
+          flavorText: "  Still crunchy.\n",
+        }),
+      );
+      expect(res.status).toBe(204);
+
+      const row = await db
+        .selectFrom("faces")
+        .select("flavorText")
+        .where("id", "=", (eb) =>
+          eb.selectFrom("printings").select("face1Id").where("id", "=", createdPrintingId),
+        )
+        .executeTakeFirstOrThrow();
+      expect(row.flavorText).toBe("Still crunchy.");
+
+      const read = await app.fetch(
+        adminReq("GET", `/printing-desk/printings/${createdPrintingId}`),
+      );
+      const json = await readJson(read);
+      expect(json.printing.flavorText).toBe("Still crunchy.");
+    });
+
     it("replaces the markers through the junction table", async () => {
       const res = await app.fetch(
         adminReq("PATCH", `/printing-desk/printings/${createdPrintingId}`, { markerSlugs: [] }),

@@ -1,5 +1,4 @@
 import { mostCommonValue } from "@openrift/shared/collections";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { resolveFinish } from "@openrift/shared/printing-accept";
 import { formatPrintingLabel } from "@openrift/shared/printing-label";
 import { slugifyName } from "@openrift/shared/strings";
@@ -11,7 +10,6 @@ import type {
 import { marketplaceEnum } from "@openrift/shared/types/pricing";
 import { WellKnown } from "@openrift/shared/well-known";
 
-import { AppError } from "../../../errors.js";
 import { classifyAgainstLive } from "../../../lib/image-fingerprint.js";
 import type { marketplaceMappingRepo } from "../../marketplace/repositories/marketplace-mapping.js";
 import type { candidateCardsRepo } from "../repositories/candidate-cards.js";
@@ -337,23 +335,8 @@ export async function buildCardDetail(
     return buildDetailResponse(repo, marketplaceRepo, null, [], [], cardSlug, allowedProviders);
   }
 
-  const aliases = await repo.cardNameAliases(card.id);
-  if (aliases.length === 0) {
-    throw new AppError(
-      500,
-      ERROR_CODES.MISSING_ALIAS,
-      `Card "${card.slug}" has no name aliases — this should never happen. Re-create the alias to fix.`,
-    );
-  }
-
   const errata = await repo.cardErrataForDetail(card.id);
-  // Always match candidates by the card's own normalized name too, not just its
-  // stored aliases. The list view (buildCandidateCardList) matches by
-  // card.normName directly plus aliases; mirroring that here keeps the two views
-  // consistent even when the self-alias row is missing (e.g. a rename left the
-  // old-name alias behind — the norm_name trigger updates cards.norm_name but
-  // nothing guarantees a matching alias row exists).
-  const normNames = [...new Set([card.normName, ...aliases.map((a) => a.normName)])];
+  const normNames = await repo.cardNameKeys(card.id);
   return buildDetailResponse(
     repo,
     marketplaceRepo,

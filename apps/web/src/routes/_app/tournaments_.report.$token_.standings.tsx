@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback } from "@/components/error-message";
 import { tournamentReportQueryOptions } from "@/features/tournaments/lib/tournament-run-queries";
 import { roundSearchSchema } from "@/lib/route-search";
 import { privateSeoHead } from "@/lib/seo";
@@ -17,6 +17,5 @@ export const Route = createFileRoute("/_app/tournaments_/report/$token_/standing
       }),
     );
   },
-  errorComponent: RouteErrorFallback,
   notFoundComponent: NotFoundFallback,
 });

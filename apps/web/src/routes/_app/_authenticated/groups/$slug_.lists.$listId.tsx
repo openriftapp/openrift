@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { z } from "zod/mini";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback } from "@/components/error-message";
 import { cleanedSearchForRedirect, filterSearchSchema } from "@/features/cards/lib/search-schemas";
 import {
   ensureFriendGroupDetailCanonical,
@@ -39,6 +39,5 @@ export const Route = createFileRoute("/_app/_authenticated/groups/$slug_/lists/$
       ),
     });
   },
-  errorComponent: RouteErrorFallback,
   notFoundComponent: NotFoundFallback,
 });

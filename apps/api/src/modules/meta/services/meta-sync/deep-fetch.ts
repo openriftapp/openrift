@@ -15,7 +15,7 @@ import { promoteMetaEvent } from "../meta-promote.js";
 import type { MetaSyncDeps } from "./deps.js";
 import { clock } from "./deps.js";
 import { createRunHeartbeat } from "./run-heartbeat.js";
-import { isPermanentRefusal, sourceStopOf } from "./source-http.js";
+import { isPermanentRefusal, RunDeadlineError, sourceStopOf } from "./source-http.js";
 import { MAX_PAGE_SIZE } from "./uvsgames-client.js";
 
 const MAX_DECK_FETCHES = 400;
@@ -34,6 +34,8 @@ export interface MetaDeepFetchResult {
   acceptedPlayers: number;
   skippedPlayers: number;
   stopped?: boolean;
+  cutShort?: boolean;
+  progressed?: boolean;
   errors: string[];
 }
 
@@ -281,15 +283,16 @@ async function fetchEvent(
   // Must run after the standings write, so a first pass sees the deck ids it
   // just mirrored.
   const coverage = await deps.repos.uvsgamesResults.deckCoverage(id);
-  const fetchedDecks = await fetchDecks(deps, row, id, coverage.outstanding, errors, runId);
-
-  const stagedMatches = await stageEventMatches(deps, id, rounds, errors);
+  const decks = await fetchDecks(deps, row, id, coverage.outstanding, errors, runId);
+  const matches = await stageEventMatches(deps, id, rounds, errors);
   const result: MetaDeepFetchResult = {
     ...emptyFetchResult(id, deps.client.requests - before, errors),
     players: projected.standings.length,
-    decks: fetchedDecks,
+    decks: decks.fetched,
     dropped: projected.dropped,
-    stagedMatches,
+    stagedMatches: matches.staged,
+    cutShort: decks.cutShort || matches.cutShort,
+    progressed: decks.recorded > 0 || matches.staged > 0,
   };
 
   const source = await deps.repos.meta.sourceByKey(UVSGAMES_PROVIDER, id);
@@ -315,9 +318,9 @@ async function stageEventMatches(
   externalId: string,
   rounds: readonly UvsRoundMeta[],
   errors: string[],
-): Promise<number> {
+): Promise<{ staged: number; cutShort: boolean }> {
   if (rounds.length === 0) {
-    return 0;
+    return { staged: 0, cutShort: false };
   }
   const held = new Set(await deps.repos.uvsgamesResults.heldRoundIds(externalId));
   let staged = 0;
@@ -326,6 +329,10 @@ async function stageEventMatches(
       continue;
     }
     const rows = await readRoundMatches(deps, round, errors);
+    if (rows === OUT_OF_TIME) {
+      errors.push("Stopped staging rounds at the run's time budget; the rest follow next pass.");
+      return { staged, cutShort: true };
+    }
     if (rows === null) {
       continue;
     }
@@ -352,14 +359,14 @@ async function stageEventMatches(
     }
     staged += projected.matches.length;
   }
-  return staged;
+  return { staged, cutShort: false };
 }
 
 async function readRoundMatches(
   deps: MetaSyncDeps,
   round: UvsRoundMeta,
   errors: string[],
-): Promise<unknown[] | null> {
+): Promise<unknown[] | null | typeof OUT_OF_TIME> {
   const rows: unknown[] = [];
   let page = 1;
   for (let guard = 0; guard < MAX_PAGES; guard++) {
@@ -372,6 +379,9 @@ async function readRoundMatches(
         MAX_PAGE_SIZE,
       );
     } catch (error) {
+      if (error instanceof RunDeadlineError) {
+        return OUT_OF_TIME;
+      }
       errors.push(`Round ${round.roundNumber} matches page ${page}: ${errorMessage(error)}`);
       return null;
     }
@@ -394,15 +404,22 @@ async function fetchDecks(
   outstanding: readonly string[],
   errors: string[],
   runId?: string,
-): Promise<number> {
+): Promise<{ fetched: number; recorded: number; cutShort: boolean }> {
   if (row.decklistStatus !== DECKLIST_PUBLISHED) {
-    return 0;
+    return { fetched: 0, recorded: 0, cutShort: false };
   }
   const wanted = outstanding.slice(0, MAX_DECK_FETCHES);
   const heartbeat = createRunHeartbeat(deps, runId);
   let fetched = 0;
+  let recorded = 0;
   for (const deckId of wanted) {
     const deck = await readDeck(deps, deckId, errors);
+    if (deck === OUT_OF_TIME) {
+      errors.push(
+        `Stopped reading decks at the run's time budget; ${wanted.length - fetched} left for the next pass.`,
+      );
+      return { fetched, recorded, cutShort: true };
+    }
     fetched++;
     if (deck === "block" || deck === "pause") {
       errors.push(
@@ -422,6 +439,7 @@ async function fetchDecks(
         },
         lines ?? [],
       );
+      recorded++;
     }
     if (fetched % DECK_HEARTBEAT === 0) {
       await heartbeat.beat({
@@ -432,11 +450,11 @@ async function fetchDecks(
       });
     }
   }
-  return fetched;
+  return { fetched, recorded, cutShort: false };
 }
 
 function rethrowSourceStop(error: unknown): void {
-  if (sourceStopOf(error) !== null) {
+  if (sourceStopOf(error) !== null || error instanceof RunDeadlineError) {
     throw error;
   }
 }
@@ -444,10 +462,15 @@ function rethrowSourceStop(error: unknown): void {
 /** Nothing is recorded: the failure looked transient, so the id stays fetchable. */
 const SKIPPED = Symbol("deck skipped");
 
+const OUT_OF_TIME = Symbol("out of time");
+
 async function readDeck(deps: MetaSyncDeps, deckId: string, errors: string[]): Promise<unknown> {
   try {
     return await deps.client.get<unknown>(`/api/v2/deckbuilder/decks/${deckId}/`);
   } catch (error) {
+    if (error instanceof RunDeadlineError) {
+      return OUT_OF_TIME;
+    }
     errors.push(`Deck ${deckId}: ${errorMessage(error)}`);
     return sourceStopOf(error) ?? (isPermanentRefusal(error) ? null : SKIPPED);
   }

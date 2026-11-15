@@ -12,10 +12,15 @@ import {
 } from "../../candidates/lib/card-review-scope.js";
 import { finishPrintingAccepts } from "../../candidates/services/accept-candidate-printings.js";
 import { acceptFavoriteNewCard } from "../../candidates/services/accept-gallery.js";
+import { assertFavoriteNewCardEligible } from "../../candidates/services/trusted-accept-checks.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 import { isUnchangedValue } from "../lib/field-values.js";
 import { deleteCard } from "../services/card-admin.js";
-import { normalizeCardFieldValue, writeCardField } from "../services/card-field-writes.js";
+import {
+  normalizeCardFieldValue,
+  normalizeCardName,
+  writeCardField,
+} from "../services/card-field-writes.js";
 import type { NewPrinting } from "../services/printing-admin.js";
 
 const CARD_SLUG_KEY = "cards_slug_key";
@@ -130,7 +135,7 @@ export const adminCardMutationsCardsRouter = {
     const { name } = input;
     const cardFields = {
       ...input.cardFields,
-      name: normalizeCardFieldValue("name", input.cardFields.name) as string,
+      name: normalizeCardName(input.cardFields.name),
     };
 
     // Grant holders may only accept names that have candidate data from an
@@ -175,6 +180,7 @@ export const adminCardMutationsCardsRouter = {
 
   acceptFavoriteNewCard: os.acceptFavoriteNewCard.handler(async ({ input, context }) => {
     const favoriteProviders = await context.repos.providerSettings.favoriteProviders();
+    await assertFavoriteNewCardEligible(context.repos, input.name, favoriteProviders);
 
     const created: NewPrinting[] = [];
     let result: Awaited<ReturnType<typeof acceptFavoriteNewCard>>;
@@ -232,7 +238,7 @@ export const adminCardMutationsCardsRouter = {
   }),
 
   createCard: os.createCard.handler(async ({ input, context }) => {
-    const cardFields = input;
+    const cardFields = { ...input, name: normalizeCardName(input.name) };
 
     await conflictOnUniqueViolation(CARD_SLUG_KEY, CARD_SLUG_TAKEN, () =>
       context.transact(async (trxRepos) => {

@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { META_LEGENDS_DESCRIPTION } from "@/features/meta/lib/meta-copy";
 import { metaLegendsSearchSchema } from "@/features/meta/lib/meta-legends-search";
@@ -53,5 +52,4 @@ export const Route = createFileRoute("/_app/meta_/legends")({
       context.queryClient.query({ ...metaLegendsQueryOptions(scope), staleTime: "static" }),
     ]);
   },
-  errorComponent: RouteErrorFallback,
 });

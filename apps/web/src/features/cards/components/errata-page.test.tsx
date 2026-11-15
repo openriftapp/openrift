@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import type { ErrataEntry, ErrataListResponse } from "@openrift/shared/contracts/errata";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen, within } from "@testing-library/react";

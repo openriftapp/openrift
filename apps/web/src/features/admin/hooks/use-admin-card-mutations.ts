@@ -15,8 +15,8 @@ import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import type { MutationMeta } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
-import { toast } from "sonner";
 
+import { acceptEachNewCard, showAcceptOutcome } from "@/features/admin/lib/accept-outcome";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { checkMatchingResultFromRun, waitForJobRun } from "@/features/admin/lib/job-run-wait";
 import { startJobFn } from "@/features/admin/lib/job-start";
@@ -705,28 +705,15 @@ export function useAcceptAllCards(
 ) {
   return useMutationWithInvalidation({
     mutationFn: async (names: string[]) => {
-      let done = 0;
-      let failed = 0;
       onProgress({ done: 0, total: names.length });
-
-      for (const name of names) {
-        try {
-          await acceptFavoritesFn({ data: { name } });
-        } catch {
-          failed++;
-        }
-        done++;
-        onProgress({ done, total: names.length });
-      }
-
+      const outcome = await acceptEachNewCard(
+        names,
+        (name) => acceptFavoritesFn({ data: { name } }),
+        (done) => onProgress({ done, total: names.length }),
+      );
       onProgress(null);
-      const accepted = done - failed;
-      if (failed === 0) {
-        toast.success(`Accepted ${accepted} new cards`);
-      } else {
-        toast.warning(`Accepted ${accepted}, failed ${failed}`);
-      }
-      return { accepted, failed };
+      showAcceptOutcome(outcome.accepted, outcome.skipped, { noun: "new card" });
+      return outcome;
     },
     invalidates: [adminKeys.cards.all],
   });

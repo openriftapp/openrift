@@ -9,7 +9,12 @@ import type { Repos, Transact } from "../../../deps.js";
 import type { AppError } from "../../../errors.js";
 import { badRequest } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
-import { asFieldWriteError, trimOptionalText, validateFieldValue } from "../lib/field-values.js";
+import {
+  asFieldWriteError,
+  isUnchangedValue,
+  trimOptionalText,
+  validateFieldValue,
+} from "../lib/field-values.js";
 import { updatePrintingDistributionChannels, updatePrintingMarkers } from "./printing-admin.js";
 
 export type PrintingFieldSource = "provider" | "manual";
@@ -105,6 +110,18 @@ async function normalizeReleaseValue(
   return { releasedAt: release.releasedAt, releasePrecision: release.precision };
 }
 
+export function normalizeTypedPrintingValue(field: AcceptPrintingField, value: unknown): unknown {
+  let normalized: unknown = OPTIONAL_TEXT_FIELDS.has(field) ? trimOptionalText(value) : value;
+  if (REQUIRED_TEXT_FIELDS.has(field) && typeof normalized === "string") {
+    normalized = normalized.trim();
+  }
+  return validateFieldValue(
+    printingFieldRules[field as keyof typeof printingFieldRules],
+    field,
+    normalized,
+  );
+}
+
 /** Typography is only applied to a value taken verbatim from a source, never to admin-typed text. */
 export async function normalizePrintingFieldValue(
   repos: NormalizeRepos,
@@ -122,21 +139,13 @@ export async function normalizePrintingFieldValue(
     return normalizeReleaseValue(repos, printingId, field, value);
   }
 
-  let normalized: unknown = OPTIONAL_TEXT_FIELDS.has(field) ? trimOptionalText(value) : value;
-  if (REQUIRED_TEXT_FIELDS.has(field) && typeof normalized === "string") {
-    normalized = normalized.trim();
-  }
+  let input = value;
   if (field === "rarity" && typeof value === "string") {
     const rarityRows = await repos.rarities.listAll();
     const raritySlugs = rarityRows.map((row) => row.slug);
-    normalized = raritySlugs.find((slug) => slug.toLowerCase() === value.toLowerCase()) ?? value;
+    input = raritySlugs.find((slug) => slug.toLowerCase() === value.toLowerCase()) ?? value;
   }
-
-  normalized = validateFieldValue(
-    printingFieldRules[field as keyof typeof printingFieldRules],
-    field,
-    normalized,
-  );
+  let normalized = normalizeTypedPrintingValue(field, input);
 
   if (source === "provider" && typeof normalized === "string") {
     const costKeywords = TYPOGRAPHY_TEXT_FIELDS.has(field)
@@ -153,6 +162,19 @@ export async function normalizePrintingFieldValue(
   }
 
   return normalized;
+}
+
+export async function isUnchangedPrintingValue(
+  repos: Pick<Repos, "sets">,
+  before: Record<string, unknown>,
+  field: AcceptPrintingField,
+  value: unknown,
+): Promise<boolean> {
+  if (field === "setId" && typeof value === "string") {
+    const set = await repos.sets.getBySlug(value);
+    return before.setId === set?.id;
+  }
+  return isUnchangedValue(before[field], value);
 }
 
 /** Returns the human-readable value to audit: for `setId` the slug, not the UUID written. */

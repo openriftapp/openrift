@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { isTournamentStaff } from "@/features/tournaments/lib/tournament-display";
 import {
   loadTournamentDetail,
@@ -24,5 +23,4 @@ export const Route = createFileRoute("/_app/_authenticated/tournaments_/$id_/par
       staleTime: "static",
     });
   },
-  errorComponent: RouteErrorFallback,
 });

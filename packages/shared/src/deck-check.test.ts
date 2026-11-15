@@ -6,6 +6,7 @@ import {
   deckCheckEntrySource,
   diffCardLines,
   mapSectionToZone,
+  submissionWindowOpen,
 } from "./deck-check.js";
 
 function line(overrides: Partial<DeckCheckCardLine> = {}): DeckCheckCardLine {
@@ -131,5 +132,35 @@ describe("deckCheckEntrySource", () => {
 
   it("classifies openrift: ids as self", () => {
     expect(deckCheckEntrySource("openrift:user-1")).toBe("self");
+  });
+});
+
+describe("submissionWindowOpen", () => {
+  const NOW = Date.parse("2026-06-01T12:00:00Z");
+
+  it("is open for an active event without a close time", () => {
+    expect(submissionWindowOpen({ status: "active", submissionsCloseAt: null }, NOW)).toBe(true);
+  });
+
+  it("is closed for any status other than active", () => {
+    expect(submissionWindowOpen({ status: "archived", submissionsCloseAt: null }, NOW)).toBe(false);
+  });
+
+  it("compares a Date close time against now", () => {
+    const later = new Date(NOW + 1000);
+    const earlier = new Date(NOW - 1000);
+    expect(submissionWindowOpen({ status: "active", submissionsCloseAt: later }, NOW)).toBe(true);
+    expect(submissionWindowOpen({ status: "active", submissionsCloseAt: earlier }, NOW)).toBe(
+      false,
+    );
+  });
+
+  it("compares an ISO string close time against now", () => {
+    expect(
+      submissionWindowOpen({ status: "active", submissionsCloseAt: "2026-06-01T12:00:01Z" }, NOW),
+    ).toBe(true);
+    expect(
+      submissionWindowOpen({ status: "active", submissionsCloseAt: "2026-06-01T12:00:00Z" }, NOW),
+    ).toBe(false);
   });
 });

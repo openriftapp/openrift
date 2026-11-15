@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { MetaRecheckState } from "./meta-recheck-schedule.js";
-import { firstRevisit, lifecycleStatus, nextRecheck } from "./meta-recheck-schedule.js";
+import { firstRevisit, lifecycleStatus, nextRecheck, resumeSoon } from "./meta-recheck-schedule.js";
 
 const NOW = new Date("2026-08-20T12:00:00Z");
 const HOUR_MS = 60 * 60 * 1000;
@@ -108,6 +108,13 @@ describe("nextRecheck", () => {
     expect(stage).toBe(5);
   });
 
+  it("does not fetch a completed event again for a finished round it holds no matches for", () => {
+    const decision = nextRecheck(state({ checkStage: 2, fetched: true, newRounds: true }));
+
+    expect(decision.deepFetch).toBe(false);
+    expect(decision.checkStage).toBe(3);
+  });
+
   it("leaves the queue once the ladder is exhausted", () => {
     const decision = nextRecheck(state({ checkStage: 5, fetched: true }));
 
@@ -210,6 +217,15 @@ describe("firstRevisit", () => {
     expect(firstRevisit(NOW)).toEqual({
       nextCheckAt: queued.nextCheckAt,
       checkStage: queued.checkStage,
+    });
+  });
+});
+
+describe("resumeSoon", () => {
+  it("comes back within a minute on the same ladder stage", () => {
+    expect(resumeSoon(NOW, 3)).toEqual({
+      nextCheckAt: new Date(NOW.getTime() + 60_000),
+      checkStage: 3,
     });
   });
 });

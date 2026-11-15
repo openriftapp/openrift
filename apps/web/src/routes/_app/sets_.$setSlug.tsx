@@ -1,7 +1,7 @@
 import type { SetDetailResponse } from "@openrift/shared/types/api/catalog";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback } from "@/components/error-message";
 import { publicSetDetailQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { breadcrumbJsonLd, cardJsonLdItems, collectionPageJsonLd, seoHead } from "@/lib/seo";
 import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
@@ -73,6 +73,5 @@ export const Route = createFileRoute("/_app/sets_/$setSlug")({
   },
   component: () => null,
   pendingComponent: () => null,
-  errorComponent: RouteErrorFallback,
   notFoundComponent: NotFoundFallback,
 });

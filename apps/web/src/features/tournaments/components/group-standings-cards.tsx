@@ -24,6 +24,7 @@ import { SeedBadge, StandingsIdentity } from "@/features/tournaments/components/
 import { TournamentLegend } from "@/features/tournaments/components/tournament-legend";
 import {
   cutLineExplanation,
+  formatLegendCount,
   formatMetaShare,
   formatWinRate,
   groupCutTierLabels,
@@ -236,7 +237,7 @@ function PlaceTierTable({
                 {legendTiebreak ? (
                   <>
                     <span className="tabular-nums">
-                      {m.tournaments_group_col_legend_count()} {row.legendCount ?? "-"}
+                      {m.tournaments_group_col_legend_count()} {formatLegendCount(row.legendCount)}
                     </span>
                     <span className="tabular-nums">
                       {m.tournaments_group_col_meta_share()} {formatMetaShare(row.metaShare)}
@@ -299,7 +300,7 @@ function PlaceTierTable({
                 {legendTiebreak ? (
                   <>
                     <TableCell className="text-right tabular-nums">
-                      {row.legendCount ?? "-"}
+                      {formatLegendCount(row.legendCount)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {formatMetaShare(row.metaShare)}

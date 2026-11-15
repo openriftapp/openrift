@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SimpleSelect } from "@/components/ui/simple-select";
@@ -336,10 +337,11 @@ function ProxyPrintPanel({
 
         {previewUrl && (
           <div className="flex justify-center">
-            <img
+            <ImgWithFallback
               src={previewUrl}
               alt={m.decks_dialog_print_preview_alt()}
               className="aspect-card w-48 rounded-md"
+              fallback={null}
             />
           </div>
         )}

@@ -3,7 +3,6 @@ import { imageUrl } from "@openrift/shared/image-url";
 import { cardPath } from "@openrift/shared/site-paths";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { errataListQueryOptions } from "@/features/cards/lib/errata-queries";
 import { errataContentVersion } from "@/features/cards/lib/errata-share-image";
 import { querySearchSchema } from "@/features/rules/lib/rules-search-schema";
@@ -71,5 +70,4 @@ export const Route = createFileRoute("/_app/errata")({
   },
   component: () => null,
   pendingComponent: () => null,
-  errorComponent: RouteErrorFallback,
 });

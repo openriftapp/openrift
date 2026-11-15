@@ -1,6 +1,5 @@
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import {
   cleanedSearchForRedirect,
   collectionDetailSearchSchema,
@@ -41,5 +40,4 @@ export const Route = createFileRoute("/_app/_authenticated/collections/$collecti
     }
   },
   pendingComponent: CollectionPending,
-  errorComponent: RouteErrorFallback,
 });

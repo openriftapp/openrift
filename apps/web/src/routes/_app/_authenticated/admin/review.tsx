@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod/mini";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
 import { REVIEW_FILTERS } from "@/features/admin/lib/admin-search-values";
 import { reviewQueueQueryOptions } from "@/features/admin/lib/catalog-review-queries";
@@ -22,5 +21,4 @@ export const Route = createFileRoute("/_app/_authenticated/admin/review")({
     ]);
   },
   pendingComponent: AdminPending,
-  errorComponent: RouteErrorFallback,
 });

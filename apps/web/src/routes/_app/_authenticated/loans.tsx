@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { loansQueryOptions } from "@/features/groups/lib/loans-queries";
 import { privateSeoHead } from "@/lib/seo";
 
@@ -10,5 +9,4 @@ export const Route = createFileRoute("/_app/_authenticated/loans")({
   loader: async ({ context }) => {
     await context.queryClient.query({ ...loansQueryOptions(context.userId), staleTime: "static" });
   },
-  errorComponent: RouteErrorFallback,
 });

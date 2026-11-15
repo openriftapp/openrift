@@ -2,7 +2,6 @@ import { boardShareDescription } from "@openrift/shared/share-titles";
 import type { PublicBoardStateDetailResponse } from "@openrift/shared/types/api/board-state";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { LinkGoneState } from "@/components/link-gone-state";
 import { buttonVariants } from "@/components/ui/button";
 import { publicBoardStateQueryOptions } from "@/features/board-states/lib/board-states-queries";
@@ -55,7 +54,6 @@ export const Route = createFileRoute("/_app/board/$token")({
       unlisted: true,
     });
   },
-  errorComponent: RouteErrorFallback,
   notFoundComponent: () => (
     <LinkGoneState
       title={m.board_states_share_gone_title()}

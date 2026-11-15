@@ -1,8 +1,8 @@
+import { deckCardKey } from "@openrift/shared/deck-cards";
 import { labelMapOf } from "@openrift/shared/enum-label";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { describe, expect, it } from "vitest";
 
-import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import {
   entryPrintingLabels,
   printingRowLabel,

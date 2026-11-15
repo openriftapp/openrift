@@ -585,6 +585,14 @@ function DeskFaceBody({
     { label: "Rarity", value: formatCatalogFieldValue("rarity", face.rarity, labels) },
     { label: "Markers", value: formatCatalogFieldValue("markerSlugs", face.markerSlugs, labels) },
     { label: "Artist", value: formatCatalogFieldValue("artist", face.artist, labels) },
+    ...(face.faceId === printing.faceId
+      ? [
+          {
+            label: "Flavor text",
+            value: formatCatalogFieldValue("flavorText", printing.flavorText),
+          },
+        ]
+      : []),
   ];
 
   return (

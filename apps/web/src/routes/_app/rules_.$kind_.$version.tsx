@@ -1,7 +1,6 @@
 import type { RuleKind, RuleLanguage } from "@openrift/shared/types/api/rules";
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { ruleVersionLabels } from "@/features/rules/lib/rule-version-label";
 import {
   ruleKindTitle,
@@ -85,5 +84,4 @@ export const Route = createFileRoute("/_app/rules_/$kind_/$version")({
           : undefined,
     });
   },
-  errorComponent: RouteErrorFallback,
 });

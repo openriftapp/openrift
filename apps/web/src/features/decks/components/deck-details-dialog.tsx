@@ -9,14 +9,7 @@ import { LinkRowsField } from "@/components/link-rows-field";
 import { MarkdownText } from "@/components/markdown-text";
 import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
 import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -25,6 +18,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useQuickAddSearch } from "@/features/collections/hooks/use-quick-add-search";
+import { DeckFormDialog, DeckFormFooter } from "@/features/decks/components/deck-form-dialog";
+import type { DeckFormControls } from "@/features/decks/components/deck-form-dialog";
 import type { DeckMetaPatch } from "@/features/decks/hooks/use-decks";
 import { useUpdateDeckMeta } from "@/features/decks/hooks/use-decks";
 import { errorText } from "@/lib/error-text";
@@ -76,7 +71,7 @@ function DeckDetailsForm({
   currentLinks,
   onClose,
   onSavingChange,
-}: DeckDetailsFields & { onClose: () => void; onSavingChange: (saving: boolean) => void }) {
+}: DeckDetailsFields & DeckFormControls) {
   const [name, setName] = useState(currentName);
   const [draft, setDraft] = useState(currentDescription ?? "");
   const [links, setLinks] = useState<LinkDraft[]>(() => toDrafts(currentLinks));
@@ -313,7 +308,7 @@ function DeckDetailsForm({
         <FieldError>{errorText(updateMeta.error, m.decks_dialog_details_save_failed())}</FieldError>
       )}
 
-      <DialogFooter>
+      <DeckFormFooter pending={updateMeta.isPending}>
         <Button
           type="submit"
           disabled={!linksValid || trimmedName === ""}
@@ -321,7 +316,7 @@ function DeckDetailsForm({
         >
           {m.common_save()}
         </Button>
-      </DialogFooter>
+      </DeckFormFooter>
     </DialogForm>
   );
 }
@@ -331,23 +326,9 @@ export function DeckDetailsDialog({
   onOpenChange,
   ...fields
 }: DeckDetailsFields & { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const [saving, setSaving] = useState(false);
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (nextOpen || !saving) {
-          onOpenChange(nextOpen);
-        }
-      }}
-    >
-      <DialogContent className="sm:max-w-4xl">
-        <DeckDetailsForm
-          {...fields}
-          onClose={() => onOpenChange(false)}
-          onSavingChange={setSaving}
-        />
-      </DialogContent>
-    </Dialog>
+    <DeckFormDialog open={open} onOpenChange={onOpenChange} className="sm:max-w-4xl">
+      {(controls) => <DeckDetailsForm {...fields} {...controls} />}
+    </DeckFormDialog>
   );
 }

@@ -110,7 +110,7 @@ export function PersonActions({
         <Button
           size="sm"
           variant="ghost"
-          disabled={dismiss.isPending}
+          pending={dismiss.isPending}
           onClick={() => dismiss.mutate(dismissals)}
         >
           <EyeOffIcon />

@@ -1,9 +1,8 @@
 import type { PromoGrouping, PromoSection } from "@/features/cards/lib/promo-groupings";
 import type { ChannelNode } from "@/features/cards/lib/promos-tree";
+import { BREADCRUMB_SEP } from "@/lib/breadcrumb";
 
 const COMPACT_LEAF_THRESHOLD = 4;
-
-const BREADCRUMB_SEP = " › ";
 
 export type FlatSectionKind = Exclude<PromoGrouping, "channel">;
 

@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod/mini";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { lenient } from "@/lib/lenient-param";
 import { privateSeoHead } from "@/lib/seo";
 
@@ -15,5 +14,4 @@ export const Route = createFileRoute("/_app/groups_/join")({
   ssr: "data-only",
   head: () => privateSeoHead("Join group"),
   validateSearch: searchSchema,
-  errorComponent: RouteErrorFallback,
 });

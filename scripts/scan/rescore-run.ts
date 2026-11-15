@@ -1,9 +1,3 @@
-/**
- * Re-scores a saved `run-clips.ts --json` (or device bench) result against the
- * current truth labels and printing catalogue, without replaying any frames.
- *
- * Usage: bun scripts/scan/rescore-run.ts in.json out.json [--language EN|any]
- */
 import fs from "node:fs";
 
 import {
@@ -13,11 +7,18 @@ import {
   wrongLocks,
 } from "../../packages/shared/src/scan/bench-score.js";
 import { appPrintingIndex, languageSetting, scoreAppLocks } from "./app-outcome";
+/**
+ * Re-scores a saved `run-clips.ts --json` (or device bench) result against the
+ * current truth labels and printing catalogue, without replaying any frames.
+ *
+ * Usage: bun scripts/scan/rescore-run.ts in.json out.json [--language EN|any]
+ */
+import { positionals } from "./args-guard";
 import { applyArtGroups, loadCatalog } from "./catalog";
 import { loadEmbedBank } from "./embed-bank";
 import { loadClipTruth, loadRun } from "./lib";
 
-const [inFile, outFile] = process.argv.slice(2);
+const [inFile, outFile] = positionals;
 if (!inFile || !outFile) {
   process.stderr.write(
     "usage: bun scripts/scan/rescore-run.ts in.json out.json [--language EN|any]\n",

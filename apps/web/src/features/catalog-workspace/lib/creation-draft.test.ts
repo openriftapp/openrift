@@ -49,6 +49,7 @@ function deskRow(overrides: Partial<DeskPrintingRow> = {}): DeskPrintingRow {
     releasedAt: null,
     releasePrecision: null,
     comment: null,
+    flavorText: null,
     imageCount: 1,
     faceId: "face-1",
     side: 1,

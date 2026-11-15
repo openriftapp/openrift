@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { LinkGoneState } from "@/components/link-gone-state";
 import { buttonVariants } from "@/components/ui/button";
 import { boardStateQueryOptions } from "@/features/board-states/lib/board-states-queries";
@@ -29,7 +28,6 @@ export const Route = createFileRoute("/_app/_authenticated/board-states_/$boardS
       ]),
     );
   },
-  errorComponent: RouteErrorFallback,
   notFoundComponent: () => (
     <LinkGoneState
       title={m.board_states_not_found_title()}

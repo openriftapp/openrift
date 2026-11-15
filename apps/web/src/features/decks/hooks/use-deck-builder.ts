@@ -1,5 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
-import { sameDeckCards } from "@openrift/shared/deck-cards";
+import { deckCardKey, sameDeckCards } from "@openrift/shared/deck-cards";
 import type { DeckViolation } from "@openrift/shared/deck-rules";
 import {
   battlefieldCapFor,
@@ -26,7 +26,6 @@ import {
   canAddRune,
   COPY_LIMIT_ZONES,
   copyLimitTotal,
-  deckCardKey,
   isBattlefieldZoneFull,
   isCardAllowedInZone,
   runeTotalOf,

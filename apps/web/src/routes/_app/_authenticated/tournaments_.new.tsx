@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { friendGroupsQueryOptions } from "@/features/groups/lib/friend-groups-queries";
 import { myOrganizationsQueryOptions } from "@/features/tournaments/lib/organizations-queries";
 import { privateSeoHead } from "@/lib/seo";
@@ -23,5 +22,4 @@ export const Route = createFileRoute("/_app/_authenticated/tournaments_/new")({
       }),
     ]);
   },
-  errorComponent: RouteErrorFallback,
 });

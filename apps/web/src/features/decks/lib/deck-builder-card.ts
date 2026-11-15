@@ -81,14 +81,6 @@ export interface DeckBuilderCard {
   power: number | null;
 }
 
-export function deckCardKey(card: {
-  cardId: string;
-  zone: string;
-  preferredPrintingId: string | null;
-}): string {
-  return `${card.cardId}|${card.zone}|${card.preferredPrintingId ?? ""}`;
-}
-
 /** Every field is already denormalized in the public payload; no catalog lookup needed. */
 export function toBuilderCardFromPublic(card: PublicDeckCardResponse): DeckBuilderCard {
   return {

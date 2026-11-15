@@ -1,9 +1,9 @@
+import { BREADCRUMB_SEP } from "@/lib/breadcrumb";
 import type { CardGroup } from "@/lib/card-group-types";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 
 export const NO_CHANNEL_ID = "_no-channel";
 export const NO_CHANNEL_LABEL = "(No distribution channel)";
-const BREADCRUMB_SEPARATOR = " → ";
 
 /** Items with no channel collect into a trailing "(No channel)" bucket that stays last regardless of direction. */
 export function groupItemsByChannel(items: CardViewerItem[], dir: "asc" | "desc"): CardGroup[] {
@@ -20,7 +20,7 @@ export function groupItemsByChannel(items: CardViewerItem[], dir: "asc" | "desc"
       if (existing) {
         existing.items.push(item);
       } else {
-        const label = [...pc.ancestorLabels, pc.channel.label].join(BREADCRUMB_SEPARATOR);
+        const label = [...pc.ancestorLabels, pc.channel.label].join(BREADCRUMB_SEP);
         buckets.set(pc.channel.id, { label, items: [item] });
       }
     }

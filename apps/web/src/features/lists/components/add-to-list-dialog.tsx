@@ -6,8 +6,8 @@ import { toast } from "sonner";
 import { PickerDialog } from "@/components/picker-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { QuantityStepperField } from "@/components/ui/quantity-stepper";
-import { listKindLabel } from "@/features/lists/components/move-to-list-dialog";
 import { useBulkAddCopiesToList, useCreateList, useLists } from "@/features/lists/hooks/use-lists";
+import { listKindLabel } from "@/features/lists/lib/list-kind-label";
 import { describeListAdd } from "@/features/lists/lib/list-toast";
 import { m } from "@/paraglide/messages.js";
 

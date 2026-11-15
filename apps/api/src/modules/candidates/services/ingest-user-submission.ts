@@ -209,7 +209,7 @@ export function ingestUserSubmission(
     //
     // Counted on the submission ledger, not candidate_cards: the ledger is
     // append-only, so purging staging can't reset the daily allowance.
-    await repo.lockUserSubmissions(userId);
+    await repo.lockCardAndMetaSubmissions(userId);
     const recent = await submissions.countRecentByUser(userId, since);
     if (recent >= USER_SUBMISSION_DAILY_LIMIT) {
       return { status: "rate_limited", limit: USER_SUBMISSION_DAILY_LIMIT };

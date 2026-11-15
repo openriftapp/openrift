@@ -1,3 +1,4 @@
+import { deckCardKey } from "@openrift/shared/deck-cards";
 import type { DeckViolation } from "@openrift/shared/deck-rules";
 import { totalQuantity } from "@openrift/shared/deck-rules";
 import { zoneExpected } from "@openrift/shared/deck-zones";
@@ -33,11 +34,7 @@ import {
   orderByBattlefieldPlan,
 } from "@/features/decks/lib/battlefield-plan-tags";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import {
-  canIncrementDeckEntry,
-  deckCardKey,
-  runeAddRoom,
-} from "@/features/decks/lib/deck-builder-card";
+import { canIncrementDeckEntry, runeAddRoom } from "@/features/decks/lib/deck-builder-card";
 import {
   compareGroupedCards,
   GROUPED_ZONES,

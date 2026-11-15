@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { CardTextInput } from "@/features/contribute/components/card-text-input";
 import type { CardTextVariant } from "@/features/contribute/components/card-text-input";
 
@@ -48,6 +49,12 @@ export function CardTextExpandDialog({
     setOpen(false);
   }
 
+  const noImage = (
+    <div className="text-muted-foreground border-input flex h-40 items-center justify-center rounded-md border border-dashed px-3 text-center">
+      No image available for this printing.
+    </div>
+  );
+
   return (
     <>
       <Button
@@ -74,15 +81,14 @@ export function CardTextExpandDialog({
             <div className="grid gap-4 sm:grid-cols-[minmax(0,20rem)_1fr]">
               <div className="self-start sm:sticky sm:top-0">
                 {imageUrl ? (
-                  <img
+                  <ImgWithFallback
                     src={imageUrl}
                     alt="Card reference"
                     className="max-h-[70vh] w-full rounded-md object-contain"
+                    fallback={noImage}
                   />
                 ) : (
-                  <div className="text-muted-foreground border-input flex h-40 items-center justify-center rounded-md border border-dashed px-3 text-center">
-                    No image available for this printing.
-                  </div>
+                  noImage
                 )}
               </div>
               <CardTextInput

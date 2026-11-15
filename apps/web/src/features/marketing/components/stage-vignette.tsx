@@ -1,6 +1,7 @@
 import { ChevronLeftIcon, ChevronRightIcon, CopyIcon } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { FIXTURE_CARDS, fixtureVariantLabel } from "@/features/marketing/lib/vignette-fixtures";
 import { getSiteHost, getSiteUrl } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,9 @@ const SOURCE_PATH = "/stage/source/Kf3nQ7ZaVb2p";
 // canvas it runs at, on purpose.
 export function StageVignette({ thumbnailUrls = [] }: { thumbnailUrls?: string[] }) {
   const art = thumbnailUrls[0];
+  const placeholder = (
+    <span className="aspect-card rounded-card h-[70%] shrink-0 bg-black/80 shadow-2xl" />
+  );
   return (
     <ClipFrame className="flex flex-col gap-6 p-5">
       <section className="flex flex-col gap-2">
@@ -55,15 +59,16 @@ export function StageVignette({ thumbnailUrls = [] }: { thumbnailUrls?: string[]
                 </span>
               </div>
               {art ? (
-                <img
+                <ImgWithFallback
                   src={art}
                   alt=""
                   loading="lazy"
                   draggable={false}
                   className="aspect-card rounded-card h-[70%] shrink-0 object-cover shadow-2xl"
+                  fallback={placeholder}
                 />
               ) : (
-                <span className="aspect-card rounded-card h-[70%] shrink-0 bg-black/80 shadow-2xl" />
+                placeholder
               )}
             </div>
           </div>

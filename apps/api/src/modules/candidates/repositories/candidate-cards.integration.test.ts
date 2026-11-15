@@ -6,7 +6,7 @@ import {
   PRINTING_1,
   PRINTING_2,
 } from "../../../test/fixtures/constants.js";
-import { createDbContext } from "../../../test/integration-context.js";
+import { createDbContext, insertCard } from "../../../test/integration-context.js";
 import { candidateCardsRepo } from "./candidate-cards.js";
 
 const ctx = createDbContext("a0000000-0034-4000-a000-000000000001");
@@ -494,3 +494,100 @@ describe.skipIf(!ctx)("candidateCardsRepo (integration)", () => {
     expect(rows.some((r) => r.externalId === OVERRIDE_EXTERNAL_ID)).toBe(false);
   });
 });
+
+describe.skipIf(!ctx)(
+  "card name keys with an alias that is another card's own name (integration)",
+  () => {
+    const { db } = ctx!;
+    const repo = candidateCardsRepo(db);
+    const PROVIDER = "test-cc-34-keys";
+    const cardIds: string[] = [];
+    let ownerId = "";
+    let otherId = "";
+
+    afterAll(async () => {
+      await db.deleteFrom("candidateCards").where("provider", "=", PROVIDER).execute();
+      await db.deleteFrom("cardNameAliases").where("cardId", "in", cardIds).execute();
+      await db.deleteFrom("cards").where("id", "in", cardIds).execute();
+    });
+
+    it("setup: one card's alias equals the other card's own name", async () => {
+      const card = (slug: string, name: string) =>
+        insertCard(db, {
+          slug,
+          name,
+          types: ["unit"],
+          might: 1,
+          energy: 1,
+          power: 1,
+          mightBonus: null,
+          keywords: [],
+          tags: [],
+        });
+      const owner = await card("cc34-keys-ember", "CC34 Ember");
+      const other = await card("cc34-keys-ember-wisp", "CC34 Ember Wisp");
+      ownerId = owner.id;
+      otherId = other.id;
+      cardIds.push(ownerId, otherId);
+      await db
+        .insertInto("cardNameAliases")
+        .values([
+          { cardId: otherId, normName: "cc34emberwisp" },
+          { cardId: otherId, normName: "cc34wisp" },
+        ])
+        .execute();
+      await db
+        .insertInto("cardNameAliases")
+        .values({ cardId: otherId, normName: "cc34ember" })
+        .onConflict((oc) => oc.column("normName").doUpdateSet({ cardId: otherId }))
+        .execute();
+      await db
+        .insertInto("candidateCards")
+        .values({
+          provider: PROVIDER,
+          name: "CC34 Ember",
+          types: ["unit"],
+          superTypes: [],
+          domains: [],
+          might: 1,
+          energy: 1,
+          power: 1,
+          mightBonus: null,
+          rulesText: null,
+          effectText: null,
+          tags: [],
+          externalId: "cc34-keys-ember",
+        })
+        .execute();
+    });
+
+    it("gives the name to the card that holds it as its own name", async () => {
+      await expect(repo.cardNameKeys(ownerId)).resolves.toEqual(["cc34ember"]);
+      await expect(repo.cardNameKeys(otherId)).resolves.toEqual(["cc34emberwisp", "cc34wisp"]);
+    });
+
+    it("counts the candidate's provider for the owner only", async () => {
+      await expect(repo.candidateProvidersForCard(ownerId)).resolves.toContain(PROVIDER);
+      await expect(repo.candidateProvidersForCard(otherId)).resolves.not.toContain(PROVIDER);
+    });
+
+    it("gives a name two cards share as their own name to the lower card id", async () => {
+      const twin = await insertCard(db, {
+        slug: "cc34-keys-ember-twin",
+        name: "CC34 Ember",
+        types: ["unit"],
+        might: 1,
+        energy: 1,
+        power: 1,
+        mightBonus: null,
+        keywords: [],
+        tags: [],
+      });
+      cardIds.push(twin.id);
+      const [lower, higher] = [ownerId, twin.id].toSorted();
+
+      await expect(repo.cardNameKeys(lower!)).resolves.toContain("cc34ember");
+      await expect(repo.cardNameKeys(higher!)).resolves.not.toContain("cc34ember");
+    });
+  },
+);

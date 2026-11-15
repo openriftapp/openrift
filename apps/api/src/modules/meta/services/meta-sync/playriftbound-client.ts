@@ -3,7 +3,7 @@ import { errorMessage } from "@openrift/shared/strings";
 import type { Fetch } from "../../../../io.js";
 import type { PacingGate } from "./paced-http.js";
 import { createPacedHttp, settled } from "./paced-http.js";
-import { httpFailureMessage, SourceBlockedError } from "./source-http.js";
+import { httpFailureMessage, RunDeadlineError, SourceBlockedError } from "./source-http.js";
 
 /**
  * The source answers only persisted queries, and their ids are not hashes of
@@ -248,6 +248,9 @@ export function createPlayriftboundClient(
     try {
       return await discoverOnce();
     } catch (error) {
+      if (error instanceof RunDeadlineError) {
+        throw error;
+      }
       discoveryFailure =
         error instanceof PlayriftboundBlockedError ||
         (error instanceof PlayriftboundRefusedError && error.stopsRun)
@@ -266,7 +269,7 @@ export function createPlayriftboundClient(
     try {
       return await http.request(url, { headers: { accept: "*/*" }, isBlock: () => false });
     } catch (error) {
-      if (error instanceof PlayriftboundBlockedError) {
+      if (error instanceof PlayriftboundBlockedError || error instanceof RunDeadlineError) {
         throw error;
       }
       if (!(error instanceof PlayriftboundRefusedError)) {

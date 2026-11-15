@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback } from "@/components/error-message";
 import {
   boardStatesQueryOptions,
   featuredBoardStatesQueryOptions,
@@ -42,6 +42,5 @@ export const Route = createFileRoute("/_app/board-states")({
           noIndex: true,
         })
       : privateSeoHead("Board states"),
-  errorComponent: RouteErrorFallback,
   notFoundComponent: NotFoundFallback,
 });

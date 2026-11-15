@@ -121,7 +121,7 @@ function PrintingSourceColumnActions({
 
 interface PrintingReviewCardProps {
   face: FaceRow;
-  cardId: string;
+  cardSlug: string;
   cardName: string;
   canOpenPrintingPages: boolean;
   printings: AdminPrintingResponse[];
@@ -150,7 +150,7 @@ interface PrintingReviewCardProps {
  */
 export function PrintingReviewCard({
   face,
-  cardId,
+  cardSlug,
   cardName,
   canOpenPrintingPages,
   printings,
@@ -176,7 +176,7 @@ export function PrintingReviewCard({
   const facePrintingIds = new Set(face.printings.map((row) => row.id));
 
   const isExpanded = useAdminCardFoldStore((state) => {
-    const collapsed = getStoredCollapsedPrintings(state, cardId);
+    const collapsed = getStoredCollapsedPrintings(state, cardSlug);
     return collapsed !== undefined && !collapsed.has(face.faceId);
   });
   const togglePrintingFold = useAdminCardFoldStore((state) => state.togglePrinting);
@@ -249,7 +249,7 @@ export function PrintingReviewCard({
       {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- contains nested buttons, can't use <button> */}
       <div
         className="hover:bg-muted/50 flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-sm font-medium"
-        onClick={() => togglePrintingFold(cardId, face.faceId)}
+        onClick={() => togglePrintingFold(cardSlug, face.faceId)}
       >
         <span className="flex min-w-0 flex-1 items-center gap-2">
           {isExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
@@ -310,7 +310,7 @@ export function PrintingReviewCard({
               <Button
                 variant="ghost"
                 size="xs"
-                disabled={checkAllCandidatePrintings.isPending}
+                pending={checkAllCandidatePrintings.isPending}
                 onClick={(e) => {
                   e.stopPropagation();
                   checkAllCandidatePrintings.mutate({
@@ -344,7 +344,7 @@ export function PrintingReviewCard({
                 render={
                   <Link
                     to="/admin/cards/$cardSlug/printings/create"
-                    params={{ cardSlug: cardId }}
+                    params={{ cardSlug }}
                     search={{ duplicateFrom: printingId }}
                   />
                 }

@@ -1,6 +1,7 @@
 import { RotateCcwIcon } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Kbd } from "@/components/ui/kbd";
 import { SectionHeading } from "@/components/ui/section-heading";
 import {
@@ -61,28 +62,33 @@ function HandCard({
   selected?: boolean;
   swap?: string;
 }) {
+  const placeholder = (
+    <span
+      style={{ borderRadius: CARD_BORDER_RADIUS }}
+      className="border-muted-foreground/25 aspect-card block h-24 border border-dashed sm:h-28"
+    />
+  );
   return (
     <span
       className="motion-safe:animate-test-deal relative inline-block"
       style={{ animationDelay: `${delay}ms`, borderRadius: CARD_BORDER_RADIUS }}
     >
       {art ? (
-        <img
+        <ImgWithFallback
           src={art}
           alt=""
           loading="lazy"
           draggable={false}
           style={{ borderRadius: CARD_BORDER_RADIUS }}
           className={cn(HAND_CARD_CLASS, swap && "motion-safe:animate-test-before opacity-0")}
+          fallback={placeholder}
         />
       ) : (
-        <span
-          style={{ borderRadius: CARD_BORDER_RADIUS }}
-          className="border-muted-foreground/25 aspect-card block h-24 border border-dashed sm:h-28"
-        />
+        placeholder
       )}
       {swap && (
-        <img
+        <ImgWithFallback
+          fallback={null}
           src={swap}
           alt=""
           loading="lazy"

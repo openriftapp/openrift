@@ -33,6 +33,7 @@ export const deskPrintingFieldsSchema = z
     releasedAt: isoDate.nullable(),
     releasePrecision: deskReleasePrecisionSchema.nullable(),
     comment: printingFieldRules.comment,
+    flavorText: printingFieldRules.flavorText.optional(),
   })
   .strict();
 
@@ -83,6 +84,7 @@ export const deskPrintingRowSchema = z.object({
   releasedAt: z.string().nullable(),
   releasePrecision: deskReleasePrecisionSchema.nullable(),
   comment: z.string().nullable(),
+  flavorText: z.string().nullable(),
   imageCount: z.number(),
   faceId: z.string(),
   side: z.union([z.literal(1), z.literal(2)]),

@@ -301,7 +301,7 @@ function FaceCard({
             <Button
               variant="ghost"
               size="sm"
-              disabled={removeFace.isPending}
+              pending={removeFace.isPending}
               onClick={() =>
                 removeFace.mutate({ printingId: printing.printingId, faceId: face.faceId })
               }
@@ -760,7 +760,7 @@ function DeskImageRow({
               size="icon-xs"
               aria-label="Delete image"
               onClick={() => deleteImage.mutate(image.printingImageId)}
-              disabled={deleteImage.isPending}
+              pending={deleteImage.isPending}
             >
               <Trash2Icon />
             </Button>

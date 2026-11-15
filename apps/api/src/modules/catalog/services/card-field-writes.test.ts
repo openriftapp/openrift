@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { normalizeCardFieldValue } from "./card-field-writes.js";
+import { normalizeCardFieldValue, normalizeCardName } from "./card-field-writes.js";
 
 describe("normalizeCardFieldValue comment", () => {
   it("stores whitespace-only text as null", () => {
@@ -27,8 +27,18 @@ describe("normalizeCardFieldValue name", () => {
     expect(normalizeCardFieldValue("name", "  Annie, Fiery  ")).toBe("Annie, Fiery");
   });
 
-  it("accepts a punctuation-only name as before", () => {
-    expect(normalizeCardFieldValue("name", "?!")).toBe("?!");
+  it("rejects a name made only of punctuation", () => {
+    expect(() => normalizeCardFieldValue("name", "?!")).toThrow(
+      "Invalid value for name: needs at least one letter or digit",
+    );
+  });
+});
+
+describe("normalizeCardName", () => {
+  it("trims the name and applies the same rule as a name edit", () => {
+    expect(normalizeCardName("  Annie, Fiery  ")).toBe("Annie, Fiery");
+    expect(() => normalizeCardName("   ")).toThrow("Invalid value for name");
+    expect(() => normalizeCardName("?!")).toThrow("Invalid value for name");
   });
 });
 

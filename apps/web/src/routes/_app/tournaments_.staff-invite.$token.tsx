@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback } from "@/components/error-message";
 import { tournamentStaffInviteLandingQueryOptions } from "@/features/tournaments/lib/tournaments-queries";
 import { privateSeoHead } from "@/lib/seo";
 import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
@@ -18,6 +18,5 @@ export const Route = createFileRoute("/_app/tournaments_/staff-invite/$token")({
       }),
     );
   },
-  errorComponent: RouteErrorFallback,
   notFoundComponent: NotFoundFallback,
 });

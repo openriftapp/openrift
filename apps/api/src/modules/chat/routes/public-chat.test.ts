@@ -31,6 +31,21 @@ const CARDS = [
   },
 ];
 
+function jinx(id: string, name: string) {
+  return {
+    id,
+    slug: id,
+    name,
+    superTypes: [],
+    types: ["unit"],
+    tags: ["Jinx"],
+    domains: ["chaos"],
+    energy: 2,
+    might: 2,
+    power: null,
+  };
+}
+
 const CODES = [
   { cardId: "c1", shortCode: "OGN-202", publicCode: "OGN-202/298" },
   { cardId: "c2", shortCode: "OGN-045", publicCode: "OGN-045/298" },
@@ -113,6 +128,39 @@ describe("GET /api/v1/chat/card", () => {
 
   it("resolves a printing code with the dashes left out", async () => {
     expect(await lookupText("ogn045")).toContain("https://openrift.app/cards/mecha-jinx");
+  });
+
+  it("names the tied cards when a query matches several equally well", async () => {
+    mockCatalogRepo.cards.mockResolvedValue([
+      ...CARDS,
+      jinx("c3", "Jinx, Loose Cannon"),
+      jinx("c4", "Jinx, Rebel"),
+    ]);
+
+    const text = await lookupText("jinx");
+
+    expect(text).toBe(
+      '"jinx" matches 2 cards: Jinx, Loose Cannon | Jinx, Rebel. Try https://openrift.app/cards?q=jinx',
+    );
+  });
+
+  it("caps the tied names and counts the rest", async () => {
+    const tied = Array.from({ length: 8 }, (_, i) => jinx(`t${i}`, `Jinx, Variant ${i + 1}`));
+    mockCatalogRepo.cards.mockResolvedValue(tied);
+
+    const text = await lookupText("jinx");
+
+    expect(text).toMatch(/^"jinx" matches 8 cards: Jinx, Variant 1 \| .* and 3 more\. Try /u);
+    expect(text.split(" | ")).toHaveLength(5);
+    expect(text.length).toBeLessThanOrEqual(400);
+  });
+
+  it("answers a unique match as before even when other cards match less well", async () => {
+    mockCatalogRepo.cards.mockResolvedValue([...CARDS, jinx("c3", "Jinx, Loose Cannon")]);
+
+    const text = await lookupText("jinx");
+
+    expect(text).toMatch(/^Jinx, Loose Cannon/u);
   });
 
   it("answers a miss with friendly text and a 200, not a 404", async () => {

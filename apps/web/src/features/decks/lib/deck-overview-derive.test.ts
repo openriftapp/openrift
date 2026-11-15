@@ -1,7 +1,7 @@
+import { deckCardKey } from "@openrift/shared/deck-cards";
 import { WellKnown } from "@openrift/shared/well-known";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import {
   buildAddRoom,
   copyOwnershipStatus,

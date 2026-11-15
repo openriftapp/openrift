@@ -1,10 +1,11 @@
 import { createLogger } from "@openrift/shared/logger";
 import { describe, expect, it } from "vitest";
 
+import { createPacedHttp } from "./paced-http.js";
 import type { RecheckPassSpec } from "./recheck-pass.js";
 import { emptyRecheckPassResult, runRecheckPass } from "./recheck-pass.js";
 import type { RunHeartbeat } from "./run-heartbeat.js";
-import { SourceHttpError } from "./source-http.js";
+import { SourceHttpError, SourceThrottledError } from "./source-http.js";
 
 const NOW = new Date("2026-11-12T10:00:00.000Z");
 
@@ -180,5 +181,86 @@ describe("runRecheckPass", () => {
     });
     const prepared = await runRecheckPass(spent.spec);
     expect(prepared.due).toBe(0);
+  });
+
+  it("ends like a spent budget when a visit's retry wait would outlast it", async () => {
+    const http = createPacedHttp({
+      fetch: () => Promise.resolve(new Response("unavailable", { status: 503 })),
+      sleep: () => Promise.resolve(),
+      spacingMs: 0,
+      jitterMs: 0,
+      refusedError: (code) => new Error(String(code)),
+    });
+    const visited: number[] = [];
+    const {
+      spec: pass,
+      graced,
+      deferred,
+    } = spec([{ id: 1 }, { id: 2 }], {
+      budgetMs: 500,
+      visit: async (row) => {
+        visited.push(row.id);
+        await http.request("https://source.invalid/event");
+        return "ok";
+      },
+    });
+
+    const result = await runRecheckPass(pass);
+
+    expect(visited).toEqual([1]);
+    expect(graced).toEqual([]);
+    expect(deferred).toEqual([]);
+    expect(result.errors).toEqual([]);
+    expect(result).toMatchObject({ backedOff: false, pausedUntil: null, blocked: false });
+  });
+
+  it("measures its deadline on the pass's own clock, whatever clock the client paces on", async () => {
+    let at = NOW.getTime();
+    const http = createPacedHttp({
+      fetch: () => Promise.resolve(new Response("unavailable", { status: 503 })),
+      sleep: () => Promise.resolve(),
+      now: () => 0,
+      spacingMs: 0,
+      jitterMs: 0,
+      refusedError: (code) => new Error(String(code)),
+    });
+    const { spec: pass, graced } = spec([{ id: 1 }], {
+      now: () => new Date(at),
+      visit: async () => {
+        at += 59_500;
+        await http.request("https://source.invalid/event");
+        return "ok";
+      },
+    });
+
+    const result = await runRecheckPass(pass);
+
+    expect(graced).toEqual([]);
+    expect(result.errors).toEqual([]);
+  });
+
+  it("stops as a throttle when a visit's throttle wait would outlast the budget", async () => {
+    const http = createPacedHttp({
+      fetch: () =>
+        Promise.resolve(
+          new Response("slow down", { status: 429, headers: { "retry-after": "120" } }),
+        ),
+      sleep: () => Promise.resolve(),
+      spacingMs: 0,
+      jitterMs: 0,
+      refusedError: (code) => new Error(String(code)),
+    });
+    const { spec: pass, deferred } = spec([{ id: 1 }, { id: 2 }], {
+      stopOf: (error) => (error instanceof SourceThrottledError ? "pause" : null),
+      visit: async () => {
+        await http.request("https://source.invalid/event");
+        return "ok";
+      },
+    });
+
+    const result = await runRecheckPass(pass);
+
+    expect(deferred).toEqual([1]);
+    expect(result.pausedUntil).not.toBeNull();
   });
 });

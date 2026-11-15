@@ -29,6 +29,13 @@ export class SourceThrottledError extends SourceHttpError {
   }
 }
 
+export class RunDeadlineError extends Error {
+  constructor(url: string) {
+    super(`The run's time budget ends before ${url} could be requested`);
+    this.name = "RunDeadlineError";
+  }
+}
+
 export class SourceBlockedError extends Error {
   constructor(message: string) {
     super(message);

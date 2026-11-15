@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { META_DESCRIPTION } from "@/features/meta/lib/meta-copy";
 import { metaOverviewSearchSchema } from "@/features/meta/lib/meta-deck-search";
@@ -73,5 +72,4 @@ export const Route = createFileRoute("/_app/meta")({
       context.queryClient.query({ ...metaActivityQueryOptions, staleTime: "static" }),
     ]);
   },
-  errorComponent: RouteErrorFallback,
 });

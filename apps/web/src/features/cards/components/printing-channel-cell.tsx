@@ -1,8 +1,7 @@
 import type { PrintingDistributionChannel } from "@openrift/shared/types/catalog";
 
+import { BREADCRUMB_SEP } from "@/lib/breadcrumb";
 import { cn } from "@/lib/utils";
-
-const BREADCRUMB_SEP = " › ";
 
 /**
  * Shared by the card table's channel column and the promo list's phone card

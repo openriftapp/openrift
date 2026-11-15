@@ -98,7 +98,7 @@ describe("groupItemsByChannel", () => {
 
     const [section] = groupItemsByChannel([item], "asc");
 
-    expect(section!.group.name).toBe("Riftbound → Worlds 2025 → Welcome Set");
+    expect(section!.group.name).toBe("Riftbound › Worlds 2025 › Welcome Set");
     expect(section!.group.slug).toBe("");
     expect(section!.group.id).toBe("welcome");
   });

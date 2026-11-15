@@ -118,10 +118,13 @@ describe("useCardRecordActions", () => {
       void result.current.actions.useSuggestion?.(1);
     });
 
-    expect(mutations.acceptCardField.mutate).toHaveBeenCalledWith(
-      { cardId: card.id, field: "might", value: 3, source: "provider" },
-      expect.anything(),
-    );
+    expect(mutations.acceptCardField.mutateAsync).toHaveBeenCalledWith({
+      cardId: card.id,
+      field: "might",
+      value: 3,
+      source: "provider",
+    });
+    await vi.waitFor(() => expect(latest()).toBeDefined());
     expect(latest()?.label).toBe("Used Might from scans on Jinx, Demolitionist");
     expect(latest()?.undoneLabel).toBe("Undone: Might restored on Jinx, Demolitionist");
     await latest()?.undo();
@@ -135,6 +138,7 @@ describe("useCardRecordActions", () => {
     act(() => {
       void result.current.actions.useSuggestion?.(1);
     });
+    await vi.waitFor(() => expect(toast.success).toHaveBeenCalled());
     const [[, options]] = vi.mocked(toast.success).mock.calls.slice(-1) as unknown as [
       [string, { action: { onClick: () => void } }],
     ];
@@ -276,6 +280,6 @@ describe("useCardRecordActions", () => {
     act(() => {
       void result.current.actions.useSuggestion?.(4);
     });
-    expect(mutations.acceptCardField.mutate).not.toHaveBeenCalled();
+    expect(mutations.acceptCardField.mutateAsync).not.toHaveBeenCalled();
   });
 });

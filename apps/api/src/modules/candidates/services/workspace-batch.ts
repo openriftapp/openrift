@@ -15,23 +15,12 @@ import type { Repos, Transact } from "../../../deps.js";
 import { forbidden } from "../../../errors.js";
 import type { Io } from "../../../io.js";
 import type { AdminAccess } from "../../../middleware/require-admin.js";
-import {
-  describeUnknownRefs,
-  loadKnownPrintingRefs,
-  unknownPrintingRefs,
-} from "../../catalog/lib/printing-refs.js";
 import type { NewPrinting } from "../../catalog/services/printing-admin.js";
-import { facePrintedFieldConflict } from "../../catalog/services/printing-admin.js";
 import type { MarketplaceConfigs } from "../../marketplace/lib/marketplace-configs.js";
 import type { UnassignedListings } from "../../marketplace/lib/unassigned-listings.js";
 import { saveMappings } from "../../marketplace/services/marketplace-mapping.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
-import { acceptFieldsFromCandidate } from "../lib/candidate-printing-accept.js";
-import {
-  eligibleTrustedCards,
-  findDuplicatePrinting,
-  trustedPrintingGroups,
-} from "../lib/workspace-batch.js";
+import { trustedPrintingGroups } from "../lib/workspace-batch.js";
 import type {
   IneligibleTrustedCard,
   TrustedCardDraft,
@@ -39,6 +28,12 @@ import type {
 } from "../lib/workspace-batch.js";
 import { acceptCandidateGroup, finishPrintingAccepts } from "./accept-candidate-printings.js";
 import { acceptFavoriteNewCard } from "./accept-gallery.js";
+import {
+  loadPrintingRefs,
+  markAcceptedCandidateCardsChecked,
+  trustedCardEligibility,
+  trustedPrintingRefusal,
+} from "./trusted-accept-checks.js";
 
 type BatchRepos = Pick<
   Repos,
@@ -74,14 +69,8 @@ async function loadTrustedCards(
   repos: BatchRepos,
 ): Promise<{ eligible: TrustedCardDraft[]; ineligible: IneligibleTrustedCard[] }> {
   const providers = [...(await repos.providerSettings.favoriteProviders())];
-  const [drafts, liveCards] = await Promise.all([
-    repos.workspaceBatch.trustedNewCardDrafts(providers),
-    repos.candidateCards.listCardsForSourceList(),
-  ]);
-  const printings = await repos.candidateCards.allCandidatePrintingsForCandidateCards(
-    drafts.map((draft) => draft.id),
-  );
-  return eligibleTrustedCards(drafts, printings, liveCards);
+  const drafts = await repos.workspaceBatch.trustedNewCardDrafts(providers);
+  return trustedCardEligibility(repos, drafts);
 }
 
 export async function previewTrustedCards(
@@ -154,44 +143,23 @@ async function loadTrustedPrintings(repos: BatchRepos): Promise<{
     repos.workspaceBatch.frontPrintingProbes([...new Set(rows.map((row) => row.cardId))]),
   ]);
   const groups = trustedPrintingGroups(rows, printings);
-  const known = await loadKnownPrintingRefs(
+  const known = await loadPrintingRefs(
     repos,
-    groups.flatMap((group) => group.first.distributionChannelSlugs),
+    groups.map((group) => group.first),
   );
   const eligible: TrustedPrintingGroup[] = [];
   const ineligible: IneligibleTrustedPrinting[] = [];
   for (const group of groups) {
-    const label = `${group.cardSlug} ${group.label}`;
-    const candidatePrintingId = group.first.id;
-    const accepted = acceptFieldsFromCandidate(group.first);
-    if (accepted.missing) {
+    const reason = await trustedPrintingRefusal(repos, group, known, probes);
+    if (reason === null) {
+      eligible.push(group);
+    } else {
       ineligible.push({
-        candidatePrintingId,
-        label,
-        reason: `missing: ${accepted.missing.join(", ")}`,
+        candidatePrintingId: group.first.id,
+        label: `${group.cardSlug} ${group.label}`,
+        reason,
       });
-      continue;
     }
-    const unknown = unknownPrintingRefs(accepted.fields, known);
-    if (unknown.length > 0) {
-      ineligible.push({ candidatePrintingId, label, reason: describeUnknownRefs(unknown) });
-      continue;
-    }
-    const duplicate = findDuplicatePrinting(group, probes);
-    if (duplicate) {
-      ineligible.push({
-        candidatePrintingId,
-        label,
-        reason: `possible duplicate of ${duplicate.shortCode}`,
-      });
-      continue;
-    }
-    const faceConflict = await facePrintedFieldConflict(repos, group.cardId, accepted.fields);
-    if (faceConflict) {
-      ineligible.push({ candidatePrintingId, label, reason: faceConflict });
-      continue;
-    }
-    eligible.push(group);
   }
   return { eligible, ineligible };
 }
@@ -224,25 +192,32 @@ export async function acceptTrustedPrintings(
   );
   const created: NewPrinting[] = [];
 
-  for (const group of eligible) {
-    const outcome = await acceptCandidateGroup(context.transact, group.cardId, group.candidates);
-    if (!("printing" in outcome)) {
-      skipped.push({ label: `${group.cardSlug} ${group.label}`, reason: outcome.reason });
-      continue;
+  const acceptedGroups: TrustedPrintingGroup[] = [];
+  try {
+    for (const group of eligible) {
+      const outcome = await acceptCandidateGroup(context.transact, group.cardId, group.candidates);
+      if (!("printing" in outcome)) {
+        skipped.push({ label: `${group.cardSlug} ${group.label}`, reason: outcome.reason });
+        continue;
+      }
+      created.push(outcome.printing);
+      acceptedGroups.push(group);
+      await recordAdminEvent(repos, context.userId, {
+        action: "printing.accept",
+        entityType: "printing",
+        entityId: outcome.printing.printingId,
+        entityLabel: outcome.fields.shortCode,
+        cardSlug: group.cardSlug,
+        newValues: {
+          printingFields: outcome.fields,
+          candidatePrintingIds: group.candidates.map((cp) => cp.id),
+        },
+      });
     }
-    created.push(outcome.printing);
-    const candidatePrintingIds = group.candidates.map((cp) => cp.id);
-    await recordAdminEvent(repos, context.userId, {
-      action: "printing.accept",
-      entityType: "printing",
-      entityId: outcome.printing.printingId,
-      entityLabel: outcome.fields.shortCode,
-      cardSlug: group.cardSlug,
-      newValues: { printingFields: outcome.fields, candidatePrintingIds },
-    });
+    await markAcceptedCandidateCardsChecked(repos, acceptedGroups);
+  } finally {
+    await finishPrintingAccepts(repos, context.io, created);
   }
-
-  await finishPrintingAccepts(repos, context.io, created);
   return { accepted: created.length, skipped };
 }
 

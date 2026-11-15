@@ -5,6 +5,7 @@ import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { Link } from "@tanstack/react-router";
 
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { CardBrowserLayout } from "@/features/cards/components/card-browser-layout";
 import { CatalogPrintingVariantLine } from "@/features/cards/components/printing-row";
 import { CARD_BORDER_RADIUS, LABEL_HEIGHT } from "@/features/cards/lib/card-grid-constants";
@@ -22,14 +23,16 @@ const SIZES =
 function PreviewArt({ printing }: { printing: Printing }) {
   const frontImage = printing.images[0] ?? null;
   const rotated = needsCssRotation(getOrientation(printing.card.types));
+  const placeholder = <div className="bg-muted aspect-card w-full rounded-lg" />;
   if (!frontImage) {
-    return <div className="bg-muted aspect-card w-full rounded-lg" />;
+    return placeholder;
   }
   const src = imageUrl(frontImage.imageId, "400w");
   const srcSet = imageSrcSet(frontImage.imageId);
   if (!rotated) {
     return (
-      <img
+      <ImgWithFallback
+        fallback={placeholder}
         src={src}
         srcSet={srcSet}
         sizes={SIZES}
@@ -46,7 +49,8 @@ function PreviewArt({ printing }: { printing: Printing }) {
     <div className="relative w-full overflow-hidden rounded-lg">
       <div className="aspect-card" />
       <div className="absolute top-1/2 left-1/2 overflow-hidden" style={LANDSCAPE_ROTATION_STYLE}>
-        <img
+        <ImgWithFallback
+          fallback={null}
           src={src}
           srcSet={srcSet}
           sizes={SIZES}

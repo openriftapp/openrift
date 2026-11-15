@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { friendGroupsQueryOptions } from "@/features/groups/lib/friend-groups-queries";
 import { privateSeoHead } from "@/lib/seo";
 
@@ -13,5 +12,4 @@ export const Route = createFileRoute("/_app/_authenticated/groups/")({
       staleTime: "static",
     });
   },
-  errorComponent: RouteErrorFallback,
 });

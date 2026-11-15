@@ -32,29 +32,29 @@ import { MarketplaceProductsTable } from "./marketplace-products-table";
 import { PrintingPairNamesContext } from "./printing-pair-names";
 
 export function AdminCardMarketplaceSection({
-  cardId,
+  cardSlug,
   pairNames,
   onOpenPrinting,
 }: {
-  cardId: string;
+  cardSlug: string;
   pairNames?: ReadonlyMap<string, string>;
   onOpenPrinting?: (printingId: string) => void;
 }) {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery(unifiedMappingsForCardQueryOptions(cardId));
+  const { data, isLoading } = useQuery(unifiedMappingsForCardQueryOptions(cardSlug));
 
   // Invalidates both the per-card cache this page reads and the corpus-wide
   // cache (coverage badges, unmatched products on /admin/cards) so they can't disagree.
   const mutateOpts = {
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: adminKeys.cards.detail(cardId) }),
+        queryClient.invalidateQueries({ queryKey: adminKeys.cards.detail(cardSlug) }),
         queryClient.invalidateQueries({ queryKey: adminKeys.unifiedMappings.all }),
       ]);
     },
   };
 
-  const cardKey = adminKeys.unifiedMappings.byCard(cardId);
+  const cardKey = adminKeys.unifiedMappings.byCard(cardSlug);
 
   // Optimistic path: without this, chips stay on screen until the
   // unifiedMappings refetch finishes. On error, rolls back to the pre-batch snapshot.
@@ -99,7 +99,7 @@ export function AdminCardMarketplaceSection({
           },
           onSuccess: () => {
             void queryClient.invalidateQueries({
-              queryKey: adminKeys.cards.detail(cardId),
+              queryKey: adminKeys.cards.detail(cardSlug),
             });
           },
         },
@@ -118,7 +118,7 @@ export function AdminCardMarketplaceSection({
   const unassigns = useUnassignFromCardByMarketplace();
   const saveMappings = useSaveMappingsByMarketplace();
   const unmapPrinting = useUnmapMarketplacePrinting([
-    adminKeys.cards.detail(cardId),
+    adminKeys.cards.detail(cardSlug),
     adminKeys.unifiedMappings.all,
   ]);
 

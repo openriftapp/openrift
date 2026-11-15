@@ -1,4 +1,4 @@
-import { pluralize } from "@openrift/shared/strings";
+import { errorMessage, pluralize } from "@openrift/shared/strings";
 import { toast } from "sonner";
 
 export interface AcceptSkip {
@@ -43,6 +43,36 @@ export function describeAcceptOutcome(
     kind: subject === undefined ? "info" : "success",
     message: `${lead}No ${pluralize(2, noun)} to accept`,
   };
+}
+
+interface NewCardAcceptResult {
+  cardSlug: string;
+  skipped: readonly { shortCode: string; reason: string }[];
+}
+
+export async function acceptEachNewCard(
+  names: readonly string[],
+  accept: (name: string) => Promise<NewCardAcceptResult>,
+  onProgress: (done: number) => void,
+): Promise<{ accepted: number; skipped: AcceptSkip[] }> {
+  let accepted = 0;
+  const skipped: AcceptSkip[] = [];
+  for (const [index, name] of names.entries()) {
+    try {
+      const result = await accept(name);
+      accepted++;
+      skipped.push(
+        ...result.skipped.map((entry) => ({
+          label: `${result.cardSlug} ${entry.shortCode}`,
+          reason: entry.reason,
+        })),
+      );
+    } catch (error) {
+      skipped.push({ label: name, reason: errorMessage(error) });
+    }
+    onProgress(index + 1);
+  }
+  return { accepted, skipped };
 }
 
 export function showAcceptOutcome(

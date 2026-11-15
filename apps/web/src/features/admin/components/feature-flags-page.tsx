@@ -241,7 +241,7 @@ function KnownFlagRow({
         size="sm"
         className="-mr-2.5"
         onClick={() => void handleCreate()}
-        disabled={pending}
+        pending={pending}
       >
         <PlusIcon className="size-3.5" />
         Set up

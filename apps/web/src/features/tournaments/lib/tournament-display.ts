@@ -297,6 +297,16 @@ export function canOpenDeckCheck(
   return detail.deckSubmission !== "none" && isTournamentStaff(detail.myRoles);
 }
 
+export function participantsOpen(status: TournamentDetailResponse["status"]): boolean {
+  return status !== "completed" && status !== "cancelled";
+}
+
+export function canAddParticipants(
+  detail: Pick<TournamentDetailResponse, "status" | "myRoles">,
+): boolean {
+  return isTournamentStaff(detail.myRoles) && participantsOpen(detail.status);
+}
+
 export type ParticipantAction =
   | "drop"
   | "reactivate"
@@ -305,6 +315,18 @@ export type ParticipantAction =
   | "remove"
   | "unlink"
   | "reissue";
+
+export function pendingParticipantAction(
+  mutation: {
+    isPending: boolean;
+    variables?: { participantId: string; action: ParticipantAction };
+  },
+  participantId: string,
+): ParticipantAction | null {
+  return mutation.isPending && mutation.variables?.participantId === participantId
+    ? mutation.variables.action
+    : null;
+}
 
 type TournamentTokenKind = "report" | "submit" | "staff-invite" | "claim";
 

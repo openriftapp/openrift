@@ -49,6 +49,8 @@ Two more workflow scripts work on photos:
 - `run-boards.ts [--max-side px] [--boards list.json] [--json out.json]` reads every card in each board photo and scores the names.
 - `outline-proposals.ts <frame-folder>` pre-draws card outlines for the outline-labels admin page and writes `proposals.json` into the folder.
 
+Every script here rejects an unknown flag, a stray argument and a flag without its value with exit status 2, and prints its usage for `--help`.
+
 ## run-clips flags
 
 `run-clips` builds its sessions from the scanner's own plans in `apps/web/src/features/scan/lib/scan-session.ts` and drives them with the app's own frame loop (`apps/web/src/features/scan/lib/scan-loop.ts`). Every clip replays through the same plan, whatever its truth file's mode label. Only `--slow-device` and `--set` change that plan.
@@ -59,6 +61,7 @@ Selection and output:
 
 | Flag                     | Effect                                                             |
 | ------------------------ | ------------------------------------------------------------------ |
+| `--help`, `-h`           | Print the usage and exit before any model or data loads.           |
 | `--clip <name>`          | Replay one clip.                                                   |
 | `--split tune\|holdout`  | Replay one split.                                                  |
 | `--only-mode <label>`    | Replay clips whose truth file has this mode label.                 |

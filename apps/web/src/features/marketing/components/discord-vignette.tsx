@@ -6,6 +6,7 @@ import { siDiscord } from "simple-icons";
 
 import { Badge } from "@/components/ui/badge";
 import { BrandGlyph } from "@/components/ui/brand-glyph";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import type { LandingThumbnailCard } from "@/features/marketing/lib/landing-thumbnails";
 import {
   FIXTURE_BOT,
@@ -92,7 +93,8 @@ export function DiscordVignette({ card }: { card?: LandingThumbnailCard }) {
               ))}
             </div>
             {named && (
-              <img
+              <ImgWithFallback
+                fallback={null}
                 src={named.url}
                 alt=""
                 loading="lazy"

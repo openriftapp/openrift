@@ -83,11 +83,7 @@ function PendingApprovalStub({ data }: { data: FriendGroupDetailResponse }) {
         <Heading level={1}>{data.group.name}</Heading>
         <p className="text-muted-foreground">{m.groups_pending_approval()}</p>
       </div>
-      <Button
-        variant="ghost"
-        onClick={() => void handleCancel()}
-        disabled={declineInvite.isPending}
-      >
+      <Button variant="ghost" onClick={() => void handleCancel()} pending={declineInvite.isPending}>
         {m.groups_cancel_request()}
       </Button>
     </div>

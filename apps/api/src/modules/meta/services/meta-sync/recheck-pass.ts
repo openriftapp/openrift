@@ -2,8 +2,9 @@ import type { Logger } from "@openrift/shared/logger";
 import { errorMessage } from "@openrift/shared/strings";
 
 import { recordCapped } from "../../../../lib/json-coerce.js";
+import { withRequestDeadline } from "./paced-http.js";
 import type { RunHeartbeat } from "./run-heartbeat.js";
-import { isGone, isPermanentRefusal } from "./source-http.js";
+import { isGone, isPermanentRefusal, RunDeadlineError } from "./source-http.js";
 import type { SourceStop, SourceStopFields } from "./source-stop.js";
 import { applySourceStop } from "./source-stop.js";
 
@@ -73,6 +74,8 @@ export async function runRecheckPass<Row, R extends RecheckPassResult>(
 ): Promise<R> {
   const { result } = spec;
   const deadline = performance.now() + spec.budgetMs;
+  const clockMs = () => spec.now().getTime();
+  const requestDeadline = { at: clockMs() + spec.budgetMs, now: clockMs };
   const before = spec.requests();
   const spent = () => spec.requests() - before;
   const startedAt = spec.now();
@@ -80,8 +83,11 @@ export async function runRecheckPass<Row, R extends RecheckPassResult>(
   async function visitContained(row: Row): Promise<VisitOutcome> {
     const now = spec.now();
     try {
-      return await spec.visit(row, now, spent());
+      return await withRequestDeadline(requestDeadline, () => spec.visit(row, now, spent()));
     } catch (error) {
+      if (error instanceof RunDeadlineError) {
+        throw error;
+      }
       const stop = spec.stopOf(error);
       if (stop !== null) {
         await spec.deferOnStop?.(row, stop, now);
@@ -144,6 +150,10 @@ export async function runRecheckPass<Row, R extends RecheckPassResult>(
       }
     }
   } catch (error) {
+    if (error instanceof RunDeadlineError) {
+      result.requests = spent();
+      return result;
+    }
     const stop = error instanceof PassStoppedError ? error.stop : spec.stopOf(error);
     const cause = error instanceof PassStoppedError ? error.origin : error;
     if (stop === null) {

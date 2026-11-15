@@ -1,8 +1,3 @@
-/**
- * Replays the bank build's shared-illustration grouping on the dev catalogue
- * and prints every cross-artKey pair of one card with its score. Run under
- * Node (Bun+sharp corrupts webp decodes): `node <jiti-cli> scripts/scan/illustration-groups.ts`.
- */
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -15,6 +10,12 @@ import {
   scanArtKey,
   SHARED_ILLUSTRATION_MIN_SCORE,
 } from "../../packages/shared/src/scan/art-groups";
+/**
+ * Replays the bank build's shared-illustration grouping on the dev catalogue
+ * and prints every cross-artKey pair of one card with its score. Run under
+ * Node (Bun+sharp corrupts webp decodes): `node <jiti-cli> scripts/scan/illustration-groups.ts`.
+ */
+import { positionals } from "./args-guard";
 import { MEDIA_CARDS, loadImage } from "./lib";
 
 const QUERY = `
@@ -118,7 +119,7 @@ for (const [card, cardRows] of byCard) {
 }
 
 pairs.sort((x, y) => y.best - x.best);
-const out = process.argv[2];
+const out = positionals[0];
 if (out) {
   fs.writeFileSync(out, `${JSON.stringify(pairs, null, 1)}\n`);
 }

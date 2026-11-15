@@ -1,13 +1,12 @@
-import { sameDeckCards } from "@openrift/shared/deck-cards";
+import { mergeDeckCards, sameDeckCards } from "@openrift/shared/deck-cards";
 import type { Selectable } from "kysely";
 
 import type { MetaEventPlayersTable } from "../../../db/tables/meta.js";
 import type { Repos } from "../../../deps.js";
-import type { CardNameIndex } from "../../candidates/services/candidate-links.js";
+import type { CardNameIndex } from "../../../lib/card-names.js";
 import { resolveCardIdByName } from "../../candidates/services/candidate-links.js";
 import { resolvedStandingName } from "../lib/meta-event-naming.js";
 import type { MetaArchivedDeckInput, MetaStoredPlayerDeck } from "../repositories/meta-decks.js";
-import { mergeDeckCards } from "../repositories/meta-decks.js";
 import type { MetaPlayerLinkRow } from "../repositories/meta-player-links.js";
 import type { MetaEventPlayerPatch, MetaEventPlayerUpdate } from "../repositories/meta-players.js";
 import type { MetaEventSourceRow } from "../repositories/meta-sources.js";

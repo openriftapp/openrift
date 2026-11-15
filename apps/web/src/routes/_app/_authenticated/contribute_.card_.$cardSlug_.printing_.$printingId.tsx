@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback } from "@/components/error-message";
 import { loadContributeCardName } from "@/features/contribute/lib/contribute-card-head";
 import { privateSeoHead } from "@/lib/seo";
 
@@ -16,6 +16,5 @@ export const Route = createFileRoute(
         : "Suggest a printing correction",
     ),
   component: () => null,
-  errorComponent: RouteErrorFallback,
   notFoundComponent: NotFoundFallback,
 });

@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { escapeCsvField } from "@openrift/shared/csv";
 import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import { formatDay } from "@openrift/shared/format-date";
@@ -76,13 +77,6 @@ const PILTOVER_HEADERS = [
   "Grading Label",
   "Notes",
 ] as const;
-
-export function escapeCsvField(value: string): string {
-  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
-    return `"${value.replaceAll('"', '""')}"`;
-  }
-  return value;
-}
 
 interface MetadataGroup {
   quantity: number;

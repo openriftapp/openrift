@@ -4,7 +4,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import { isNewCardName, liveCardForNorm } from "../../../repositories/candidate-card-sql.js";
-import { notHiddenSource, notIgnoredCard, notIgnoredPrinting } from "./candidate-cards-shared.js";
+import { visibleCandidateCard, visibleCandidatePrinting } from "./candidate-cards-shared.js";
 import type {
   CandidatePrintingComparison,
   ComparableCardValues,
@@ -108,8 +108,7 @@ export function workspaceQueueRepo(db: Kysely<Database>) {
         join mv_card_aggregates mca on mca.card_id = c.id
         where cc.checked_at is null
           and cc.provider <> ${USER_SUBMISSION_PROVIDER}
-          and ${notIgnoredCard("cc")}
-          and ${notHiddenSource("cc")}
+          and ${visibleCandidateCard("cc")}
       `.execute(db);
       return rows.rows;
     },
@@ -120,8 +119,7 @@ export function workspaceQueueRepo(db: Kysely<Database>) {
         from candidate_cards cc
         where ${isNewCardName(sql.ref("cc.norm_name"))}
           and ${reviewableProvider}
-          and ${notIgnoredCard("cc")}
-          and ${notHiddenSource("cc")}
+          and ${visibleCandidateCard("cc")}
       `.execute(db);
       return rows.rows;
     },
@@ -152,9 +150,7 @@ export function workspaceQueueRepo(db: Kysely<Database>) {
         join sets s on s.id = p.set_id
         where cp.checked_at is null
           and ${reviewableProvider}
-          and ${notIgnoredCard("cc")}
-          and ${notIgnoredPrinting("cp", "cc")}
-          and ${notHiddenSource("cc")}
+          and ${visibleCandidatePrinting("cp", "cc")}
       `.execute(db);
       return rows.rows;
     },
@@ -178,9 +174,7 @@ export function workspaceQueueRepo(db: Kysely<Database>) {
         join lateral (${cardForCandidate}) live_card on true
         where cp.printing_id is null
           and ${reviewableProvider}
-          and ${notIgnoredCard("cc")}
-          and ${notIgnoredPrinting("cp", "cc")}
-          and ${notHiddenSource("cc")}
+          and ${visibleCandidatePrinting("cp", "cc")}
       `.execute(db);
       return rows.rows;
     },

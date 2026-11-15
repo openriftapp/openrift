@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
 import { jobRunsSearchSchema } from "@/features/admin/lib/admin-job-runs-search";
 import {
@@ -19,5 +18,4 @@ export const Route = createFileRoute("/_app/_authenticated/admin/job-runs")({
       staleTime: "static",
     }),
   pendingComponent: AdminPending,
-  errorComponent: RouteErrorFallback,
 });

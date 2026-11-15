@@ -281,7 +281,12 @@ export function MetaReviewPlayerRow({ overlay }: { overlay: MetaOverlayQueueRow 
                 Add as a new row
               </ConfirmActionButton>
             ) : (
-              <Button size="sm" onClick={onAccept} disabled={busy || keepsNothing}>
+              <Button
+                size="sm"
+                onClick={onAccept}
+                disabled={busy || keepsNothing}
+                pending={accept.isPending}
+              >
                 <CheckIcon />
                 {confirming ? "Apply without a deck" : "Apply"}
               </Button>
@@ -297,6 +302,7 @@ export function MetaReviewPlayerRow({ overlay }: { overlay: MetaOverlayQueueRow 
                 void decline();
               }}
               disabled={busy}
+              pending={reject.isPending}
             >
               <XIcon />
               Reject

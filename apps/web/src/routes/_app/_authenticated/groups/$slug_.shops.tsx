@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { friendGroupShopEventsQueryOptions } from "@/features/groups/lib/friend-group-shops-queries";
 import { ensureFriendGroupDetailCanonical } from "@/features/groups/lib/friend-groups-queries";
 import { privateSeoHead } from "@/lib/seo";
@@ -20,5 +19,4 @@ export const Route = createFileRoute("/_app/_authenticated/groups/$slug_/shops")
       }),
     });
   },
-  errorComponent: RouteErrorFallback,
 });

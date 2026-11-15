@@ -1,10 +1,3 @@
-/**
- * Pre-draws card outlines for the outline-labels admin page: the outlines a tap
- * read proposes, snapped to edges. Writes
- * proposals.json into the frame folder.
- *
- * Usage: SCAN_BOARD_DETECTOR=... bun scripts/scan/outline-proposals.ts frame-folder
- */
 import fs from "node:fs";
 import path from "node:path";
 
@@ -14,10 +7,18 @@ import { snapQuadToEdges } from "../../packages/shared/src/scan/edge-snap.js";
 import { mapQuad } from "../../packages/shared/src/scan/geometry.js";
 import { toGray } from "../../packages/shared/src/scan/image.js";
 import type { Quad } from "../../packages/shared/src/scan/types.js";
+/**
+ * Pre-draws card outlines for the outline-labels admin page: the outlines a tap
+ * read proposes, snapped to edges. Writes
+ * proposals.json into the frame folder.
+ *
+ * Usage: SCAN_BOARD_DETECTOR=... bun scripts/scan/outline-proposals.ts frame-folder
+ */
+import { positionals } from "./args-guard";
 import { createBoardDetector } from "./board-model";
 import { listFrames, loadImage, servedModel } from "./lib";
 
-const folder = process.argv[2];
+const folder = positionals[0];
 const modelFile = servedModel("SCAN_BOARD_DETECTOR", "SCAN_BOARD_DETECTOR_FILE");
 if (!folder || !modelFile) {
   process.stderr.write(

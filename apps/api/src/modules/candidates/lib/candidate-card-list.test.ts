@@ -72,6 +72,28 @@ describe("buildCandidateCardList", () => {
     expect(result[0]!.uncheckedCardCount).toBe(1);
   });
 
+  it("gives a name to the card that holds it as its own name, not to another card's alias", async () => {
+    const repo = createMockRepo({
+      listCardsForSourceList: vi.fn().mockResolvedValue([
+        { id: "card-b", slug: "annie-tibbers", name: "Annie, Tibbers", normName: "annietibbers" },
+        { id: "card-a", slug: "annie", name: "Annie", normName: "annie" },
+      ]),
+      listCandidateCardsForSourceList: vi
+        .fn()
+        .mockResolvedValue([
+          { id: "cc-1", normName: "annie", name: "Annie", provider: "ocr", checkedAt: null },
+        ]),
+      listAliasesForSourceList: vi
+        .fn()
+        .mockResolvedValue([{ normName: "annie", cardId: "card-b" }]),
+    });
+
+    const result = await buildCandidateCardList(repo, new Set(["gallery"]));
+
+    expect(result.find((row) => row.cardSlug === "annie")?.candidateCount).toBe(1);
+    expect(result.find((row) => row.cardSlug === "annie-tibbers")?.candidateCount).toBe(0);
+  });
+
   it("matches candidate cards via aliases", async () => {
     const repo = createMockRepo({
       listCardsForSourceList: vi

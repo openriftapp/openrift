@@ -4,7 +4,7 @@ import type { MetaEntryStatus } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import { count, fraction, record, text } from "../../../lib/json-coerce.js";
-import { META_NAME_MAX, META_PLAYER_NAME_MAX } from "./meta-event-naming.js";
+import { META_NAME_MAX, META_PLAYER_NAME_MAX } from "../../../lib/meta-name-limits.js";
 
 /**
  * Projects one deep fetch's responses into the source mirror's columns.

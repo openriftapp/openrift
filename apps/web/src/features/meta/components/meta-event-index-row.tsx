@@ -29,6 +29,7 @@ export function MetaEventIndexRow({ event }: { event: MetaEventSummary }) {
   const counts = metaEventCounts(event);
   const winners = metaEventWinners(event);
   const emptyStatus = metaEventEmptyStatus(event);
+  const fieldSize = metaEventFieldSize(event);
 
   return (
     <RowListLink
@@ -53,10 +54,13 @@ export function MetaEventIndexRow({ event }: { event: MetaEventSummary }) {
         <span>
           <CountryFlag code={event.country} size="sm" />
         </span>
+        {emptyStatus !== null && fieldSize !== null && (
+          <span className="text-muted-foreground text-right text-sm tabular-nums">{fieldSize}</span>
+        )}
         {emptyStatus === null ? (
           <>
             <span className="text-muted-foreground text-right text-sm tabular-nums">
-              {metaEventFieldSize(event)}
+              {fieldSize}
             </span>
             {event.deckCount === 0 ? (
               <span aria-hidden className="text-muted-foreground/60 text-right text-sm">
@@ -70,7 +74,14 @@ export function MetaEventIndexRow({ event }: { event: MetaEventSummary }) {
             <WinnerCell winners={winners} />
           </>
         ) : (
-          <span className="text-muted-foreground/60 col-span-3 text-sm">{emptyStatus}</span>
+          <span
+            className={cn(
+              "text-muted-foreground/60 text-sm",
+              fieldSize === null ? "col-span-3" : "col-span-2",
+            )}
+          >
+            {emptyStatus}
+          </span>
         )}
       </div>
 

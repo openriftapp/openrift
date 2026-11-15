@@ -44,6 +44,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Pressable } from "@/components/ui/pressable";
@@ -503,7 +504,8 @@ function PostComposer({
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <Card>
           <CardContent className="space-y-2">
-            <img
+            <ImgWithFallback
+              fallback={null}
               src={previewUrl}
               alt={`Slide ${index + 1} for ${current.printing.cardName}`}
               width={POST_IMAGE_PREVIEW_WIDTH}

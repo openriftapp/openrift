@@ -286,6 +286,13 @@ export async function ingestCandidates(
       }
 
       const existingCandidateCard = ccByExternalId.get(card.external_id);
+      const takenBy = card.short_code ? undefined : codelessExternalIdByName.get(card.name);
+      if (takenBy !== undefined && takenBy !== card.external_id) {
+        errors.push(
+          `Card "${card.name}" (external_id "${card.external_id}"): this source already has a card with that name and no short code (external_id "${takenBy}") — skipped`,
+        );
+        continue;
+      }
 
       let candidateCardId: string;
 
@@ -314,22 +321,12 @@ export async function ingestCandidates(
         } else {
           unchanged++;
         }
-        if (
-          card.short_code &&
-          codelessExternalIdByName.get(existingCandidateCard.name) === card.external_id
-        ) {
+        if (codelessExternalIdByName.get(existingCandidateCard.name) === card.external_id) {
           codelessExternalIdByName.delete(existingCandidateCard.name);
         }
         candidateCardId = existingCandidateCard.id;
         seenCCIds.add(candidateCardId);
       } else {
-        const takenBy = card.short_code ? undefined : codelessExternalIdByName.get(card.name);
-        if (takenBy !== undefined) {
-          errors.push(
-            `Card "${card.name}" (external_id "${card.external_id}"): this source already has a card with that name and no short code (external_id "${takenBy}") — skipped`,
-          );
-          continue;
-        }
         const cardInsert: Insertable<CandidateCardsTable> = {
           provider,
           ...buildCandidateCardFields(card),

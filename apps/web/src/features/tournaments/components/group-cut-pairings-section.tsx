@@ -203,7 +203,7 @@ export function GroupCutPairingsSection({
           <Button
             size="sm"
             variant="destructive"
-            disabled={rerollRound.isPending}
+            pending={rerollRound.isPending}
             onClick={() =>
               void runReportedMutation(() => rerollRound.mutateAsync({ id, roundNumber: 1 }))
             }

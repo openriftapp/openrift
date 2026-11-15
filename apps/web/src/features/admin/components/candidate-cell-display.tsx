@@ -1,6 +1,7 @@
 import { hasFieldValue } from "@openrift/shared/catalog-field-compare";
 
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import type { FieldDef } from "@/features/admin/components/candidate-field-defs";
 import { resolveLabel } from "@/features/admin/components/candidate-field-defs";
 import { FilterIcon } from "@/features/cards/components/filter-icon";
@@ -82,7 +83,12 @@ export function ImageZoom({
         {children}
       </HoverCardTrigger>
       <HoverCardContent side="right" className="w-auto p-1">
-        <img src={url} alt={alt} className="max-h-[80vh] max-w-[40vw] rounded-md object-contain" />
+        <ImgWithFallback
+          src={url}
+          alt={alt}
+          className="max-h-[80vh] max-w-[40vw] rounded-md object-contain"
+          fallback={<span className="text-muted-foreground block p-2">Image failed to load</span>}
+        />
       </HoverCardContent>
     </HoverCard>
   );

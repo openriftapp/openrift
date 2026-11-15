@@ -3,7 +3,6 @@ import type { Marketplace } from "@openrift/shared/types/pricing";
 import { marketplaceEnum } from "@openrift/shared/types/pricing";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
 import {
   adminCardDetailQueryOptions,
@@ -107,5 +106,4 @@ export const Route = createFileRoute("/_app/_authenticated/admin/cards_/$cardSlu
     return detail;
   },
   pendingComponent: AdminPending,
-  errorComponent: RouteErrorFallback,
 });

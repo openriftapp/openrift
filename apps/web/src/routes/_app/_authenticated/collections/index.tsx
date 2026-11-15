@@ -1,6 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { cleanedSearchForRedirect, filterSearchSchema } from "@/features/cards/lib/search-schemas";
 import { CollectionPending } from "@/features/collections/components/collection-pending";
 import { loadCollection } from "@/features/collections/lib/collection-load";
@@ -22,5 +21,4 @@ export const Route = createFileRoute("/_app/_authenticated/collections/")({
     await loadCollection(getCollectionsCollection(context.queryClient, context.userId));
   },
   pendingComponent: CollectionPending,
-  errorComponent: RouteErrorFallback,
 });

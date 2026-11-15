@@ -1,22 +1,51 @@
+import { Progress as ProgressPrimitive } from "@base-ui/react/progress";
 import type { PodStandingRow } from "@openrift/shared/types/api/pod-tournament";
 
+import { ProgressIndicator, ProgressTrack } from "@/components/ui/progress";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { useRegionLabel } from "@/features/tournaments/hooks/use-region-label";
+import type { RegionOverview as RegionOverviewData } from "@/features/tournaments/lib/region-overview";
 import { computeRegionOverview } from "@/features/tournaments/lib/region-overview";
 import { formatScore } from "@/features/tournaments/lib/standings-display";
 import { m } from "@/paraglide/messages.js";
 
-// Guards against dividing by zero: a zero leading average leaves every track empty.
-function barWidth(avgScore: number, topAvgScore: number): string {
+// A zero leading average leaves every track empty.
+function barPercent(avgScore: number, topAvgScore: number): number {
   if (topAvgScore <= 0) {
-    return "0%";
+    return 0;
   }
-  return `${Math.max(0, (avgScore / topAvgScore) * 100)}%`;
+  return Math.max(0, (avgScore / topAvgScore) * 100);
 }
 
-function RegionName({ region }: { region: string }) {
+function RegionRow({
+  row,
+  topAvgScore,
+}: {
+  row: RegionOverviewData["rows"][number];
+  topAvgScore: number;
+}) {
   const regionLabel = useRegionLabel();
-  return <span className="truncate font-medium">{regionLabel(region)}</span>;
+  return (
+    <li className="flex flex-col gap-1">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="truncate font-medium">{regionLabel(row.region)}</span>
+        <span className="text-muted-foreground shrink-0 text-sm">
+          <span className="text-foreground font-semibold tabular-nums">
+            {formatScore(row.avgScore)}
+          </span>{" "}
+          {m.tournaments_region_overview_avg_players({ count: row.playerCount })}
+        </span>
+      </div>
+      <ProgressPrimitive.Root
+        value={barPercent(row.avgScore, topAvgScore)}
+        aria-label={regionLabel(row.region)}
+      >
+        <ProgressTrack className="h-1.5">
+          <ProgressIndicator className="bg-border-accent rounded-full" />
+        </ProgressTrack>
+      </ProgressPrimitive.Root>
+    </li>
+  );
 }
 
 export function RegionOverview({ standings }: { standings: PodStandingRow[] }) {
@@ -33,23 +62,7 @@ export function RegionOverview({ standings }: { standings: PodStandingRow[] }) {
       </SectionHeading>
       <ul className="flex flex-col gap-3">
         {rows.map((row) => (
-          <li key={row.region} className="flex flex-col gap-1">
-            <div className="flex items-baseline justify-between gap-3">
-              <RegionName region={row.region} />
-              <span className="text-muted-foreground shrink-0 text-sm">
-                <span className="text-foreground font-semibold tabular-nums">
-                  {formatScore(row.avgScore)}
-                </span>{" "}
-                {m.tournaments_region_overview_avg_players({ count: row.playerCount })}
-              </span>
-            </div>
-            <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
-              <div
-                className="bg-border-accent h-full rounded-full"
-                style={{ width: barWidth(row.avgScore, topAvgScore) }}
-              />
-            </div>
-          </li>
+          <RegionRow key={row.region} row={row} topAvgScore={topAvgScore} />
         ))}
       </ul>
       {unassignedCount > 0 ? (

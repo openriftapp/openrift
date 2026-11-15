@@ -1764,6 +1764,45 @@ describe("ingestCandidates code-less cards sharing a name", () => {
     expect((repos.ingest as any).insertCandidateCard).not.toHaveBeenCalled();
   });
 
+  it("skips renaming a kept card onto a name a kept code-less card still holds", async () => {
+    const repos = createMockRepos({
+      allCandidateCardsForProvider: vi.fn().mockResolvedValue([
+        { id: "cc-a", externalId: "a", name: "Fireball", shortCode: null, types: ["spell"] },
+        { id: "cc-b", externalId: "b", name: "Firestorm", shortCode: null, types: ["spell"] },
+      ]),
+    });
+    const result = await ingestCandidates(mockTransact(repos), "gallery", [
+      makeCard({ name: "Fireball", short_code: null, external_id: "b" }),
+      makeCard({ name: "Fireball", short_code: "OGN-001", external_id: "a" }),
+    ]);
+
+    expect(result.errors).toEqual([
+      'Card "Fireball" (external_id "b"): this source already has a card with that name and no short code (external_id "a") — skipped',
+    ]);
+    expect((repos.ingest as any).updateCandidateCard).not.toHaveBeenCalledWith(
+      "cc-b",
+      expect.anything(),
+    );
+    expect((repos.ingest as any).deleteCandidateCards).not.toHaveBeenCalled();
+  });
+
+  it("frees a code-less card's old name once it is renamed earlier in the upload", async () => {
+    const repos = createMockRepos({
+      allCandidateCardsForProvider: vi
+        .fn()
+        .mockResolvedValue([
+          { id: "cc-a", externalId: "a", name: "Fireball", shortCode: null, types: ["spell"] },
+        ]),
+    });
+    const result = await ingestCandidates(mockTransact(repos), "gallery", [
+      makeCard({ name: "Firestorm", short_code: null, external_id: "a" }),
+      makeCard({ name: "Fireball", short_code: null, external_id: "b" }),
+    ]);
+
+    expect(result.errors).toEqual([]);
+    expect((repos.ingest as any).insertCandidateCard).toHaveBeenCalledOnce();
+  });
+
   it("frees the name once a kept card gains a short code earlier in the upload", async () => {
     const repos = createMockRepos({
       allCandidateCardsForProvider: vi

@@ -8,6 +8,7 @@ import { cardUrl } from "@openrift/shared/site-paths";
 import { errorMessage } from "@openrift/shared/strings";
 import { WellKnown } from "@openrift/shared/well-known";
 
+import { discordRetryAfterMs } from "../../../lib/discord-rate-limit.js";
 import { DEFAULT_TIMEOUT_MS } from "../../../lib/http.js";
 import type { EnrichedPrintingEvent } from "../../catalog/repositories/printing-events.js";
 
@@ -19,7 +20,6 @@ const MAX_DESCRIPTION_LENGTH = 4000;
 const MESSAGE_INTERVAL_MS = 1000;
 const MAX_RATE_LIMIT_RETRIES = 3;
 const MAX_RETRY_AFTER_MS = 60_000;
-const DEFAULT_RETRY_AFTER_MS = 1000;
 
 const COLOR_NEW = 0x57_f2_87;
 
@@ -281,23 +281,6 @@ function buildNewPrintingSummary(
   }));
 }
 
-function parseRateLimitBody(body: string): { retry_after?: unknown } | null {
-  try {
-    return JSON.parse(body) as { retry_after?: unknown } | null;
-  } catch {
-    return null;
-  }
-}
-
-function retryAfterMs(response: Response, body: string): number {
-  const parsed = parseRateLimitBody(body);
-  if (typeof parsed?.retry_after === "number") {
-    return Math.ceil(parsed.retry_after * 1000);
-  }
-  const header = Number(response.headers.get("retry-after") ?? Number.NaN);
-  return Number.isFinite(header) ? header * 1000 : DEFAULT_RETRY_AFTER_MS;
-}
-
 async function postMessage(
   webhookUrl: string,
   body: DiscordWebhookPayload,
@@ -323,7 +306,7 @@ async function postMessage(
     }
     const text = await response.text().catch(() => "");
     if (response.status === 429 && attempt < MAX_RATE_LIMIT_RETRIES) {
-      const waitMs = retryAfterMs(response, text);
+      const waitMs = discordRetryAfterMs(response, text);
       if (waitMs <= MAX_RETRY_AFTER_MS) {
         log.warn({ waitMs, attempt }, "Discord webhook rate limited, waiting");
         await sleep(waitMs);

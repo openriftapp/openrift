@@ -1,7 +1,6 @@
 import type { RuleKind } from "@openrift/shared/types/api/rules";
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import {
   ruleKindDescription,
   ruleKindTitle,
@@ -64,5 +63,4 @@ export const Route = createFileRoute("/_app/rules_/$kind")({
       path: `/rules/${kind}`,
     });
   },
-  errorComponent: RouteErrorFallback,
 });

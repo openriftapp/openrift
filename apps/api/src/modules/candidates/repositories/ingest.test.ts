@@ -1,9 +1,22 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
+import type * as QueryHelpers from "../../../repositories/query-helpers.js";
+import { lockKey } from "../../../repositories/query-helpers.js";
 import { createMockDb } from "../../../test/mock-db.js";
 import { ingestRepo } from "./ingest.js";
 
+vi.mock("../../../repositories/query-helpers.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof QueryHelpers>()),
+  lockKey: vi.fn(() => Promise.resolve()),
+}));
+
 describe("ingestRepo", () => {
+  it("locks card and meta submissions of one user on one namespaced key", async () => {
+    const db = createMockDb([]);
+    await ingestRepo(db).lockCardAndMetaSubmissions("user-7");
+    expect(lockKey).toHaveBeenCalledWith(db, "card-and-meta-submissions:user-7");
+  });
+
   it("allCandidateCardsForProvider returns cards", async () => {
     const db = createMockDb([{ id: "cc-1", provider: "test" }]);
     expect(await ingestRepo(db).allCandidateCardsForProvider("test")).toHaveLength(1);

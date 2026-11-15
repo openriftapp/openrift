@@ -1,5 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
+import { deckCardKey } from "@openrift/shared/deck-cards";
 import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { VariantLabelEnumLabels, VariantLabelPrinting } from "@openrift/shared/printing-label";
@@ -39,7 +40,6 @@ import { useDeckBox } from "@/features/decks/hooks/use-deck-box";
 import type { DeckBoxCard, DeckBoxCopy, DeckBoxSlot } from "@/features/decks/lib/deck-box";
 import { toBoxCardFromDeck } from "@/features/decks/lib/deck-box";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type { DeckCardGroup, DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
 import { GROUPED_ZONES } from "@/features/decks/lib/deck-card-sort";
 import { DECK_ZONE_ORDER } from "@/features/decks/lib/deck-zone-order";

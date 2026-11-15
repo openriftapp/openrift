@@ -45,8 +45,8 @@ describe("reporting error interceptor: server-fault classification", () => {
     logError.mockClear();
   });
 
-  it("captures a 5xx ORPCError (a converted INTERNAL_ERROR / MISSING_ALIAS AppError)", async () => {
-    await runThrowing(new ORPCError("MISSING_ALIAS", { status: 500, message: "no aliases" }));
+  it("captures a 5xx ORPCError (a converted INTERNAL_ERROR AppError)", async () => {
+    await runThrowing(new ORPCError("INTERNAL_ERROR", { status: 500, message: "server fault" }));
     expect(captureException).toHaveBeenCalledTimes(1);
   });
 

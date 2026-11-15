@@ -1,5 +1,6 @@
 import { errorMessage } from "@openrift/shared/strings";
 
+import { recordCapped } from "../../../../lib/json-coerce.js";
 import { shiftDays } from "../../lib/meta-durations.js";
 import type {
   UvsgamesCatalogProjection,
@@ -8,7 +9,7 @@ import type {
 import { projectCatalogRow } from "../../lib/uvsgames-catalog.js";
 import { autoAcceptCatalogEvents, withdrawCancelledCatalogEvents } from "./accept.js";
 import type { CrawlRun } from "./crawl-run.js";
-import { createCrawlRun } from "./crawl-run.js";
+import { createCrawlRun, DAILY_SYNC_TIME_BUDGET_MS } from "./crawl-run.js";
 import type { MetaSyncDeps } from "./deps.js";
 import { clock, EVENTS_PATH, GAME_SLUG } from "./deps.js";
 import { probeMirroredId } from "./id-sweep.js";
@@ -51,8 +52,6 @@ const HEARTBEAT_RANGES = 25;
 const MAX_MISSING_PROBES = 1000;
 
 const HEARTBEAT_PROBES = 100;
-
-const MAX_SKIPPED = 50;
 
 export interface MetaCatalogSyncResult extends MetaSyncResultBase, SourceStopFields {
   ranges: number;
@@ -100,7 +99,13 @@ interface CrawlContext {
 
 function newContext(
   deps: MetaSyncDeps,
-  options: { filter?: UvsQuery; maxRequests: number; runId?: string; checkpoints?: boolean },
+  options: {
+    filter?: UvsQuery;
+    maxRequests: number;
+    maxDurationMs?: number;
+    runId?: string;
+    checkpoints?: boolean;
+  },
 ): CrawlContext {
   const result = emptyResult();
   return {
@@ -113,6 +118,8 @@ function newContext(
       heartbeat: createRunHeartbeat(deps, options.runId),
       requests: () => deps.client.requests,
       maxRequests: options.maxRequests,
+      maxDurationMs: options.maxDurationMs,
+      now: () => clock(deps).getTime(),
       beatEvery: HEARTBEAT_RANGES,
     }),
     checkpoints: options.checkpoints ?? false,
@@ -120,16 +127,10 @@ function newContext(
   };
 }
 
-function record(ctx: CrawlContext, message: string): void {
-  ctx.run.record(message);
-}
-
 // The counters alone cannot say a crawl fell short, so a gap is marked explicitly.
 function skip(ctx: CrawlContext, detail: string): void {
   ctx.result.complete = false;
-  if (ctx.result.skippedRanges.length < MAX_SKIPPED) {
-    ctx.result.skippedRanges.push(detail);
-  }
+  recordCapped(ctx.result.skippedRanges, [detail]);
 }
 
 // Ranges are visited in chronological order, so a finished range's end
@@ -183,7 +184,7 @@ async function readRange(
       return null;
     }
     ctx.consecutiveFailures++;
-    record(ctx, `${rangeLabel(from, to)} page ${page}: ${errorMessage(error)}`);
+    ctx.run.record(`${rangeLabel(from, to)} page ${page}: ${errorMessage(error)}`);
     return null;
   }
 }
@@ -335,7 +336,7 @@ async function finish(deps: MetaSyncDeps, ctx: CrawlContext): Promise<MetaCatalo
   ctx.result.autoAccepted = auto.accepted;
   ctx.result.autoHeld = auto.held;
   for (const message of auto.errors) {
-    record(ctx, message);
+    ctx.run.record(message);
   }
   ctx.result.withdrawn = await withdrawCancelledCatalogEvents(deps);
   if (!ctx.run.stopped) {
@@ -343,7 +344,7 @@ async function finish(deps: MetaSyncDeps, ctx: CrawlContext): Promise<MetaCatalo
     ctx.result.templatesNamed = templates.named;
     ctx.result.templatesRetired = templates.retired;
     for (const message of templates.errors) {
-      record(ctx, message);
+      ctx.run.record(message);
     }
   }
   return ctx.run.finish();
@@ -366,6 +367,12 @@ async function probeMissing(deps: MetaSyncDeps, ctx: CrawlContext): Promise<void
     if (ctx.run.stopped) {
       break;
     }
+    if (ctx.run.outOfTime()) {
+      ctx.run.record(
+        "Stopped probing missing events at the time budget; the rest follow next run.",
+      );
+      break;
+    }
     let outcome;
     try {
       outcome = await probeMirroredId(deps, Number(id));
@@ -385,13 +392,13 @@ async function probeMissing(deps: MetaSyncDeps, ctx: CrawlContext): Promise<void
       failures = 0;
     } else if (outcome.kind === "probe") {
       // The source answered, so this is no sign of a block worth stopping for.
-      record(ctx, `Event ${id}: ${outcome.probe.outcome}`);
+      ctx.run.record(`Event ${id}: ${outcome.probe.outcome}`);
       failures = 0;
     } else {
-      record(ctx, outcome.error);
+      ctx.run.record(outcome.error);
       failures++;
       if (failures >= MAX_CONSECUTIVE_FAILURES) {
-        record(ctx, `Stopped probing missing events after ${failures} failures in a row`);
+        ctx.run.record(`Stopped probing missing events after ${failures} failures in a row`);
         break;
       }
     }
@@ -410,7 +417,12 @@ export async function syncCatalog(
 ): Promise<MetaCatalogSyncResult> {
   const now = clock(deps);
   const from = shiftDays(now, -SYNC_LOOKBACK_DAYS);
-  const ctx = newContext(deps, { maxRequests: MAX_REQUESTS_PER_CRAWL, runId, checkpoints: true });
+  const ctx = newContext(deps, {
+    maxRequests: MAX_REQUESTS_PER_CRAWL,
+    maxDurationMs: DAILY_SYNC_TIME_BUDGET_MS,
+    runId,
+    checkpoints: true,
+  });
 
   await crawlRange(deps, ctx, from, shiftDays(now, FUTURE_HORIZON_DAYS));
 
@@ -443,7 +455,7 @@ export async function refreshRecentListing(deps: MetaSyncDeps): Promise<RecentLi
   const touched = [...new Set(ctx.touched)];
   const auto = await autoAcceptCatalogEvents(deps, touched);
   for (const message of auto.errors) {
-    record(ctx, message);
+    ctx.run.record(message);
   }
   const pulledForward = await deps.repos.uvsgamesEvents.pullForwardRechecks(touched, now);
   return {

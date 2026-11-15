@@ -2,7 +2,6 @@ import { userBundleShareDescription, userBundleShareTitle } from "@openrift/shar
 import type { PublicUserBundleResponse } from "@openrift/shared/types/api/user-share";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { LinkGoneState } from "@/components/link-gone-state";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -61,7 +60,6 @@ export const Route = createFileRoute("/_app/users_/share/$token")({
     };
   },
   pendingComponent: SharedUserBundlePending,
-  errorComponent: RouteErrorFallback,
   notFoundComponent: () => (
     <LinkGoneState
       title={m.common_share_gone_title()}

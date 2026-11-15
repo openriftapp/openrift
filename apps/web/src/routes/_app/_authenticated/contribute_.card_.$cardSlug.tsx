@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback } from "@/components/error-message";
 import { loadContributeCardName } from "@/features/contribute/lib/contribute-card-head";
 import { privateSeoHead } from "@/lib/seo";
 
@@ -11,6 +11,5 @@ export const Route = createFileRoute("/_app/_authenticated/contribute_/card_/$ca
       loaderData ? `Suggest a correction to ${loaderData.cardName}` : "Suggest a correction",
     ),
   component: () => null,
-  errorComponent: RouteErrorFallback,
   notFoundComponent: NotFoundFallback,
 });

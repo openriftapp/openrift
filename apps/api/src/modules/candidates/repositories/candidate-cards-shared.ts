@@ -86,6 +86,14 @@ export function notIgnoredPrinting(alias: string, csAlias: string): Expression<S
   );
 }
 
+export function visibleCandidateCard(ccAlias: string): Expression<SqlBool> {
+  return sql<SqlBool>`(${notIgnoredCard(ccAlias)} and ${notHiddenSource(ccAlias)})`;
+}
+
+export function visibleCandidatePrinting(cpAlias: string, ccAlias: string): Expression<SqlBool> {
+  return sql<SqlBool>`(${visibleCandidateCard(ccAlias)} and ${notIgnoredPrinting(cpAlias, ccAlias)})`;
+}
+
 export function acceptableCandidatePrinting(cpAlias: string, ccAlias: string): Expression<SqlBool> {
-  return sql<SqlBool>`(${sql.ref(`${cpAlias}.printingId`)} is null and ${notIgnoredCard(ccAlias)} and ${notIgnoredPrinting(cpAlias, ccAlias)} and ${notHiddenSource(ccAlias)})`;
+  return sql<SqlBool>`(${sql.ref(`${cpAlias}.printingId`)} is null and ${visibleCandidatePrinting(cpAlias, ccAlias)})`;
 }

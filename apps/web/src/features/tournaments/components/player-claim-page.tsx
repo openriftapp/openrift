@@ -1,12 +1,9 @@
 import { formatDayTimeLocal } from "@openrift/shared/format-date";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Building2Icon, CalendarIcon, LinkIcon, UsersIcon } from "lucide-react";
+import { Building2Icon, CalendarIcon, UsersIcon } from "lucide-react";
 
-import { EmptyState } from "@/components/empty-state";
 import { SignedOutAuthButtons } from "@/components/signed-out-cta";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { DeckCheckInfoCardSkeleton } from "@/features/tournaments/components/deck-check-skeletons";
 import { SaveError } from "@/features/tournaments/components/save-error";
 import {
   TokenLandingCard,
@@ -21,30 +18,10 @@ import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 export function PlayerClaimPage({ token }: { token: string }) {
-  const { data, isPending, isError } = useClaimLanding(token);
+  const { data } = useClaimLanding(token);
   const claim = useClaimTournamentDeck();
   const userId = useUserId();
   const navigate = useNavigate();
-
-  if (isPending) {
-    return (
-      <TokenLandingPage pageTitle={m.tournaments_claim_page_title_loading()}>
-        <DeckCheckInfoCardSkeleton />
-        <Skeleton className="h-4 w-full max-w-md" />
-        <Skeleton className="h-9 w-32" />
-      </TokenLandingPage>
-    );
-  }
-  if (isError || !data) {
-    return (
-      <EmptyState
-        className="py-12"
-        icon={LinkIcon}
-        title={m.tournaments_claim_invalid_title()}
-        description={m.tournaments_claim_invalid_description()}
-      />
-    );
-  }
 
   const onConfirm = async () => {
     let result: Awaited<ReturnType<typeof claim.mutateAsync>> | undefined;
@@ -70,7 +47,13 @@ export function PlayerClaimPage({ token }: { token: string }) {
   const outcome = claim.data?.status;
 
   return (
-    <TokenLandingPage pageTitle={m.tournaments_claim_page_title()}>
+    <TokenLandingPage
+      pageTitle={
+        data.deckSubmission === "none"
+          ? m.tournaments_claim_page_title_spot()
+          : m.tournaments_claim_page_title()
+      }
+    >
       <TokenLandingCard
         title={data.tournamentName}
         meta={

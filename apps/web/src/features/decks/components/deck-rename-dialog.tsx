@@ -1,18 +1,13 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogCancel,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
 import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DeckFormDialog, DeckFormFooter } from "@/features/decks/components/deck-form-dialog";
+import type { DeckFormControls } from "@/features/decks/components/deck-form-dialog";
 import { useUpdateDeckMeta } from "@/features/decks/hooks/use-decks";
 import { errorText } from "@/lib/error-text";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
@@ -28,7 +23,7 @@ function DeckRenameForm({
   currentName,
   onClose,
   onSavingChange,
-}: DeckRenameFields & { onClose: () => void; onSavingChange: (saving: boolean) => void }) {
+}: DeckRenameFields & DeckFormControls) {
   const [draft, setDraft] = useState(currentName);
   const updateMeta = useUpdateDeckMeta(deckId, { inlineError: true });
 
@@ -65,12 +60,11 @@ function DeckRenameForm({
       {updateMeta.isError && (
         <FieldError>{errorText(updateMeta.error, m.decks_dialog_details_save_failed())}</FieldError>
       )}
-      <DialogFooter>
-        <DialogCancel disabled={updateMeta.isPending} />
+      <DeckFormFooter pending={updateMeta.isPending}>
         <Button type="submit" disabled={!draft.trim()} pending={updateMeta.isPending}>
           {m.common_save()}
         </Button>
-      </DialogFooter>
+      </DeckFormFooter>
     </DialogForm>
   );
 }
@@ -80,23 +74,9 @@ export function DeckRenameDialog({
   onOpenChange,
   ...fields
 }: DeckRenameFields & { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const [saving, setSaving] = useState(false);
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (nextOpen || !saving) {
-          onOpenChange(nextOpen);
-        }
-      }}
-    >
-      <DialogContent>
-        <DeckRenameForm
-          {...fields}
-          onClose={() => onOpenChange(false)}
-          onSavingChange={setSaving}
-        />
-      </DialogContent>
-    </Dialog>
+    <DeckFormDialog open={open} onOpenChange={onOpenChange}>
+      {(controls) => <DeckRenameForm {...fields} {...controls} />}
+    </DeckFormDialog>
   );
 }

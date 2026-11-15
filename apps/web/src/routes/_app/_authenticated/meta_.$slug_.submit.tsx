@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { catalogQueryOptions } from "@/features/cards/lib/catalog-queries";
 import {
   metaDeckQueryOptions,
@@ -34,5 +33,4 @@ export const Route = createFileRoute("/_app/_authenticated/meta_/$slug_/submit")
             .catch(() => null),
     ]);
   },
-  errorComponent: RouteErrorFallback,
 });

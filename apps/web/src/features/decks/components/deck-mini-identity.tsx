@@ -2,6 +2,7 @@ import { legendDisplayName } from "@openrift/shared/card-name";
 import { formatDay } from "@openrift/shared/format-date";
 import { imageUrl } from "@openrift/shared/image-url";
 
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { DomainIcon } from "@/features/cards/components/domain-icon";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
@@ -28,20 +29,22 @@ function FanSlot({
   alt: string;
   className?: string;
 }) {
+  const placeholder = (
+    <span
+      aria-hidden
+      style={{ borderRadius: CARD_BORDER_RADIUS }}
+      className={cn(
+        "aspect-card border-muted-foreground/25 absolute top-1/2 h-9 -translate-y-1/2 border border-dashed",
+        className,
+      )}
+    />
+  );
   if (!imageId) {
-    return (
-      <span
-        aria-hidden
-        style={{ borderRadius: CARD_BORDER_RADIUS }}
-        className={cn(
-          "aspect-card border-muted-foreground/25 absolute top-1/2 h-9 -translate-y-1/2 border border-dashed",
-          className,
-        )}
-      />
-    );
+    return placeholder;
   }
   return (
-    <img
+    <ImgWithFallback
+      fallback={placeholder}
       src={imageUrl(imageId, "120w")}
       alt={alt}
       draggable={false}

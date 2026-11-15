@@ -326,7 +326,7 @@ export function candidateReviewRepo(db: Kysely<Database>) {
 
       const matches = (eb: ExpressionBuilder<Database, "candidateCards">) =>
         eb.or([
-          eb("candidateCards.normName", "in", normNames),
+          ...(normNames.length > 0 ? [eb("candidateCards.normName", "in", normNames)] : []),
           eb("candidateCards.id", "in", linkedByPrintingId),
           eb("candidateCards.id", "in", linkedByShortCode),
         ]);

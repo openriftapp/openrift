@@ -716,7 +716,7 @@ function SaveCancelButtons({
 }) {
   return (
     <div className="flex justify-end gap-1">
-      <Button variant="outline" onClick={onSave} disabled={isPending}>
+      <Button variant="outline" onClick={onSave} pending={isPending}>
         Save
       </Button>
       <Button variant="ghost" onClick={onCancel}>

@@ -2,9 +2,11 @@ import type { AnyRedirect } from "@tanstack/react-router";
 import { isRedirect } from "@tanstack/react-router";
 import { describe, expect, it } from "vitest";
 
+import { Route as PrintingDeskNewRoute } from "./_authenticated/admin/printing-desk_.new";
 import { Route as PrintingDeskPrintingRoute } from "./_authenticated/admin/printing-desk_.printings.$printingId";
 import { Route as ContributeCardRoute } from "./contribute_.$cardSlug";
 import { Route as ContributeImageRoute } from "./contribute_.$cardSlug_.image.$printingId";
+import { Route as DeckCompareRoute } from "./decks/compare";
 import { Route as PromosLanguageRoute } from "./promos_.$language";
 import { Route as RoadmapRoute } from "./roadmap";
 import { Route as RulesRoute } from "./rules";
@@ -61,6 +63,33 @@ describe("moved URLs answer with a permanent redirect", () => {
     expect(thrown.options).toMatchObject({ params: { language: "SC" }, statusCode: 301 });
   });
 
+  it("/promos with a lowercase language code moved to the upper-case code", async () => {
+    const thrown = await thrownBy(() =>
+      (PromosLanguageRoute.options.beforeLoad as unknown as Hook)({
+        params: { language: "en" },
+        search: { sets: ["ogn"] },
+        location: { searchStr: "?sets=ogn" },
+      }),
+    );
+
+    expect(thrown.options).toMatchObject({
+      to: "/promos/$language",
+      params: { language: "EN" },
+      search: { sets: ["ogn"] },
+      statusCode: 301,
+    });
+  });
+
+  it("/promos with the canonical language code stays", () => {
+    expect(
+      (PromosLanguageRoute.options.beforeLoad as unknown as Hook)({
+        params: { language: "EN" },
+        search: {},
+        location: { searchStr: "" },
+      }),
+    ).toBeUndefined();
+  });
+
   it("the old printing desk printing page moved to the printing page", async () => {
     const thrown = await thrownBy(() =>
       (PrintingDeskPrintingRoute.options.beforeLoad as unknown as Hook)({
@@ -90,5 +119,36 @@ describe("the rules hub forwards to the core rules", () => {
       search: { q: "might", lang: "de" },
       hash: "rule-101",
     });
+  });
+});
+
+describe("redirects that need only the search run before any loader", () => {
+  it("a comparison link with the retired local prefix drops it", async () => {
+    const thrown = await thrownBy(() =>
+      (DeckCompareRoute.options.beforeLoad as unknown as Hook)({
+        search: { from: "local:deck-1", to: "share:abc" },
+      }),
+    );
+
+    expect(thrown.options).toMatchObject({
+      to: "/decks/compare",
+      search: { from: "deck-1", to: "share:abc" },
+    });
+  });
+
+  it("a comparison link without the prefix stays", async () => {
+    await expect(
+      (DeckCompareRoute.options.beforeLoad as unknown as Hook)({
+        search: { from: "deck-1", to: "share:abc" },
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("a new printing without a card goes back to the printing desk", async () => {
+    const thrown = await thrownBy(() =>
+      (PrintingDeskNewRoute.options.beforeLoad as unknown as Hook)({ search: { card: "" } }),
+    );
+
+    expect(thrown.options).toMatchObject({ to: "/admin/printing-desk" });
   });
 });

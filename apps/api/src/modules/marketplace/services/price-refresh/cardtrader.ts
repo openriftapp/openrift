@@ -12,10 +12,10 @@ import type { StagingRow } from "../../lib/marketplace-configs.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
 import type { CrossRefCandidate } from "./cross-ref-match.js";
 import { autoMatchByCrossReference } from "./cross-ref-match.js";
-import { logFetchSummary, logUpsertCounts } from "./log.js";
+import { finishPriceRefresh } from "./finish.js";
 import { PRICE_FETCH_RETRIES } from "./types.js";
 import type { GroupRow } from "./types.js";
-import { loadIgnoredKeys, upsertMarketplaceGroups, upsertPriceData } from "./upsert.js";
+import { loadIgnoredKeys, upsertMarketplaceGroups } from "./upsert.js";
 
 const CT_API_BASE = "https://api.cardtrader.com/api/v2";
 const CT_GAME_ID = 22; // Riftbound
@@ -322,16 +322,9 @@ export async function refreshCardtraderPrices(
     prices: allStaging.length,
   };
 
-  logFetchSummary(
-    log,
-    transformedCounts,
-    ignoredKeys.productIds.size + ignoredKeys.variantKeys.size,
-  );
-
-  const counts = await upsertPriceData(repos.priceRefresh, log, "cardtrader", allStaging);
-  logUpsertCounts(log, counts);
-
-  await repos.marketplace.refreshLatestPrices();
-
-  return { transformed: transformedCounts, upserted: counts };
+  return finishPriceRefresh(repos, log, "cardtrader", {
+    ignoredKeys,
+    transformed: transformedCounts,
+    staging: allStaging,
+  });
 }

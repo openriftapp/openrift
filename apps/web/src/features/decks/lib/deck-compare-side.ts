@@ -38,8 +38,9 @@ export function queryDeckLink(
   queryClient: QueryClient,
   kind: DeckLinkKind,
   token: string,
+  staleTime?: "static",
 ): Promise<PublicDeckDetailResponse> {
   return kind === "meta"
-    ? queryClient.query(metaDeckQueryOptions(token))
-    : queryClient.query(publicDeckQueryOptions(token));
+    ? queryClient.query({ ...metaDeckQueryOptions(token), ...(staleTime && { staleTime }) })
+    : queryClient.query({ ...publicDeckQueryOptions(token), ...(staleTime && { staleTime }) });
 }

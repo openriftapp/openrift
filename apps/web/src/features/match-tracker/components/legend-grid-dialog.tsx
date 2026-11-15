@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Pressable } from "@/components/ui/pressable";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -122,7 +123,8 @@ function LegendGrid({
               )}
             >
               {option.thumbnail && (
-                <img
+                <ImgWithFallback
+                  fallback={null}
                   src={option.thumbnail}
                   alt=""
                   aria-hidden="true"

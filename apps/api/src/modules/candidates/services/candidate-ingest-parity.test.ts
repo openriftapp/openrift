@@ -78,7 +78,7 @@ async function linkedPrintingIds(
       updateCandidatePrinting: vi.fn().mockResolvedValue(undefined),
       deleteCandidateCards: vi.fn().mockResolvedValue(undefined),
       deleteCandidatePrintings: vi.fn().mockResolvedValue(undefined),
-      lockUserSubmissions: vi.fn().mockResolvedValue(undefined),
+      lockCardAndMetaSubmissions: vi.fn().mockResolvedValue(undefined),
       countRecentSubmissionsByUser: vi.fn().mockResolvedValue(0),
     },
     cardSubmissions: {

@@ -24,10 +24,7 @@ import type { ApiContext } from "../../../orpc/context.js";
 import { buildPatchUpdates } from "../../../patch.js";
 import type { FieldMapping } from "../../../patch.js";
 import { loadGroupForMember } from "../../groups/lib/group-access.js";
-import {
-  consentedTradeCancels,
-  refusingUnconfirmedTradeCancels,
-} from "../../groups/services/trade-supply.js";
+import { consentedTradeCancels } from "../../groups/services/trade-supply.js";
 import { getFavoriteMarketplace } from "../../users/lib/preferences.js";
 import { loadCollectionAccess, requireCollectionAdmin } from "../lib/collection-access.js";
 import type { HomeDeck } from "../lib/collection-presenters.js";
@@ -275,7 +272,7 @@ export const collectionsRouter = {
   // There is no group inbox, so a shared collection must be emptied before
   // deletion (the UI surfaces this); a personal collection's remaining copies
   // move to the owner's inbox.
-  remove: os.remove.handler(async ({ input, context, errors }): Promise<void> => {
+  remove: os.remove.handler(async ({ input, context }): Promise<void> => {
     const transact = context.transact;
     const plan = await planCollectionDelete(context, context.userId, input.id);
 
@@ -291,10 +288,7 @@ export const collectionsRouter = {
       return;
     }
 
-    await refusingUnconfirmedTradeCancels(
-      deleteCollection(transact, plan, consentedTradeCancels(input.cancelTradeIds)),
-      (data) => errors.CONFLICT({ data }),
-    );
+    await deleteCollection(transact, plan, consentedTradeCancels(input.cancelTradeIds));
   }),
 
   // A shared collection must be empty to be deleted, so nothing leaves anyone's supply.
@@ -309,18 +303,15 @@ export const collectionsRouter = {
   ),
 
   // Copies pinned by a live trade or loan stay put and are reported back.
-  clear: os.clear.handler(async ({ input, context, errors }): Promise<ClearCollectionResponse> => {
+  clear: os.clear.handler(async ({ input, context }): Promise<ClearCollectionResponse> => {
     const userId = context.userId;
 
     await requireCollectionAdmin(context.repos, input.id, userId, "clear this collection");
 
-    return refusingUnconfirmedTradeCancels(
-      clearCollection(
-        context.transact,
-        { collectionId: input.id, userId },
-        consentedTradeCancels(input.cancelTradeIds),
-      ),
-      (data) => errors.CONFLICT({ data }),
+    return clearCollection(
+      context.transact,
+      { collectionId: input.id, userId },
+      consentedTradeCancels(input.cancelTradeIds),
     );
   }),
 
@@ -407,14 +398,11 @@ export const collectionsRouter = {
   // Danger-zone reset: wipes personal collections only (inbox kept, created if
   // missing; group collections untouched) and prunes lists the wipe emptied.
   // 409s while copies are reserved in active trades or out on loans.
-  resetAll: os.resetAll.handler(({ input, context, errors }): Promise<ResetCollectionsResponse> =>
-    refusingUnconfirmedTradeCancels(
-      resetCollections(
-        context.transact,
-        context.userId,
-        consentedTradeCancels(input?.cancelTradeIds),
-      ),
-      (data) => errors.CONFLICT({ data }),
+  resetAll: os.resetAll.handler(({ input, context }): Promise<ResetCollectionsResponse> =>
+    resetCollections(
+      context.transact,
+      context.userId,
+      consentedTradeCancels(input?.cancelTradeIds),
     ),
   ),
 

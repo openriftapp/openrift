@@ -1,6 +1,7 @@
 import { HandIcon, RotateCcwIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Kbd } from "@/components/ui/kbd";
 import { Pressable } from "@/components/ui/pressable";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
@@ -140,20 +141,16 @@ export function DeckBenchHand({
                 )}
               >
                 {thumbnail ? (
-                  <img
+                  <ImgWithFallback
                     src={thumbnail}
                     alt={card.cardName}
                     style={{ borderRadius: CARD_BORDER_RADIUS }}
                     className="aspect-card h-40 object-cover shadow-sm sm:h-48"
                     draggable={false}
+                    fallback={<HandCardPlaceholder name={card.cardName} />}
                   />
                 ) : (
-                  <span
-                    style={{ borderRadius: CARD_BORDER_RADIUS }}
-                    className="aspect-card border-muted-foreground/25 flex h-40 items-center justify-center border border-dashed p-2 text-center text-xs sm:h-48"
-                  >
-                    {card.cardName}
-                  </span>
+                  <HandCardPlaceholder name={card.cardName} />
                 )}
               </Pressable>
             );
@@ -175,5 +172,16 @@ export function DeckBenchHand({
         <LibraryOddsLine lead={m.decks_editor_next_card()} rows={nextCardRows} />
       )}
     </>
+  );
+}
+
+function HandCardPlaceholder({ name }: { name: string }) {
+  return (
+    <span
+      style={{ borderRadius: CARD_BORDER_RADIUS }}
+      className="aspect-card border-muted-foreground/25 flex h-40 items-center justify-center border border-dashed p-2 text-center text-xs sm:h-48"
+    >
+      {name}
+    </span>
   );
 }

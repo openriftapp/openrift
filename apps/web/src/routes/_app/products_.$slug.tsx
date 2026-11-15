@@ -1,7 +1,7 @@
 import type { ProductDetailResponse } from "@openrift/shared/contracts/products";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
 import { productDetailQueryOptions } from "@/features/cards/lib/products-queries";
 import { cleanedSearchForRedirect, filterSearchSchema } from "@/features/cards/lib/search-schemas";
@@ -64,7 +64,6 @@ export const Route = createFileRoute("/_app/products_/$slug")({
     };
   },
   pendingComponent: ProductDetailPending,
-  errorComponent: RouteErrorFallback,
   notFoundComponent: NotFoundFallback,
 });
 

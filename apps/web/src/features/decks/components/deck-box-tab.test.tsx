@@ -1,10 +1,10 @@
+import { deckCardKey } from "@openrift/shared/deck-cards";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DeckBoxPlan } from "@/features/decks/lib/deck-box";
-import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import { stubDeckBuilderCard } from "@/test/factories";
 
 vi.mock("@tanstack/react-router", () => ({

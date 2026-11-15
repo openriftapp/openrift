@@ -1,14 +1,15 @@
-/**
- * Archives an /admin/scan recording as a bench clip (848 px, 30 fps), extracts its frames
- * and drafts a truth file from the phone's locks. A reviewed truth file is never overwritten.
- * Usage: bun scripts/scan/import-clip.ts <video> --name <clip> --split tune|holdout [--mode single|sweep] [--meta file] [--negative] [--force]
- */
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
 import type { ClipMeta } from "../../apps/web/src/features/admin/lib/scan-recorder";
 import type { ClipTruth, TruthCard } from "../../packages/shared/src/scan/bench-score.js";
+/**
+ * Archives an /admin/scan recording as a bench clip (848 px, 30 fps), extracts its frames
+ * and drafts a truth file from the phone's locks. A reviewed truth file is never overwritten.
+ * Usage: bun scripts/scan/import-clip.ts <video> --name <clip> --split tune|holdout [--mode single|sweep] [--meta file] [--negative] [--force]
+ */
+import { positionals } from "./args-guard";
 import { loadCatalog } from "./catalog";
 import {
   DEFAULT_FPS,
@@ -27,7 +28,7 @@ function fail(message: string): never {
   process.exit(1);
 }
 
-const video = process.argv[2];
+const video = positionals[0];
 const name = argValue("--name");
 const split = argValue("--split");
 if (!video || video.startsWith("--") || !name || (split !== "tune" && split !== "holdout")) {

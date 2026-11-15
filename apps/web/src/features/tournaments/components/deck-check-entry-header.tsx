@@ -51,7 +51,12 @@ import {
   useUnlinkTournamentDeckCheckEntry,
   useUpdateTournamentDeckCheckEntry,
 } from "@/features/tournaments/hooks/use-tournament-deck-check";
-import { canRequestChanges, primaryActionFor } from "@/features/tournaments/lib/deck-check-actions";
+import type { PendingTransition } from "@/features/tournaments/lib/deck-check-actions";
+import {
+  canRequestChanges,
+  isPendingTransition,
+  primaryActionFor,
+} from "@/features/tournaments/lib/deck-check-actions";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { getDomainGradientStyle } from "@/lib/domain";
 import { memberName } from "@/lib/member-name";
@@ -94,24 +99,26 @@ export function DeckEntryTopBar({
 export function EntryTopBarActions({
   entry,
   transition,
-  pending,
+  pendingTransition,
   canManage,
   onEdit,
   onDelete,
 }: {
   entry: DeckCheckEntryDetailResponse["entry"];
   transition: (state: DeckCheckEntryState, reviewOutcome?: DeckCheckReviewOutcome) => void;
-  pending: boolean;
+  pendingTransition: PendingTransition | null;
   canManage: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const primary = primaryActionFor(entry.state);
+  const pending = pendingTransition !== null;
   return (
     <>
       {primary ? (
         <PageTopBarPrimaryButton
           disabled={pending}
+          pending={isPendingTransition(pendingTransition, primary.state, primary.reviewOutcome)}
           onClick={() => transition(primary.state, primary.reviewOutcome)}
         >
           <primary.icon />
@@ -179,15 +186,16 @@ export function EntryHeader({
   entryId,
   detail,
   transition,
-  pending,
+  pendingTransition,
 }: {
   tournamentId: string;
   entryId: string;
   detail: DeckCheckEntryDetailResponse;
   transition: (state: DeckCheckEntryState, reviewOutcome?: DeckCheckReviewOutcome) => void;
-  pending: boolean;
+  pendingTransition: PendingTransition | null;
 }) {
   const { entry } = detail;
+  const pending = pendingTransition !== null;
   const denyUnlock = useDenyTournamentDeckCheckUnlock();
 
   return (
@@ -213,6 +221,7 @@ export function EntryHeader({
               size="sm"
               variant="outline"
               disabled={pending}
+              pending={isPendingTransition(pendingTransition, "editable", "issue")}
               onClick={() => transition("editable", "issue")}
             >
               <UndoIcon className="size-4" />
@@ -225,6 +234,7 @@ export function EntryHeader({
                 size="sm"
                 variant="outline"
                 disabled={pending}
+                pending={isPendingTransition(pendingTransition, "submitted")}
                 onClick={() => transition("submitted")}
               >
                 <RotateCcwIcon className="size-4" />
@@ -234,6 +244,7 @@ export function EntryHeader({
                 size="sm"
                 variant="outline"
                 disabled={pending}
+                pending={isPendingTransition(pendingTransition, "checked", "issue")}
                 onClick={() => transition("checked", "issue")}
               >
                 <TriangleAlertIcon className="size-4" />
@@ -251,7 +262,12 @@ export function EntryHeader({
               ? m.tournaments_deck_check_unlock_request_approved()
               : m.tournaments_deck_check_unlock_request_submitted()}
           </span>
-          <Button size="sm" disabled={pending} onClick={() => transition("editable")}>
+          <Button
+            size="sm"
+            disabled={pending}
+            pending={isPendingTransition(pendingTransition, "editable")}
+            onClick={() => transition("editable")}
+          >
             {m.tournaments_deck_check_allow_editing()}
           </Button>
           <Button

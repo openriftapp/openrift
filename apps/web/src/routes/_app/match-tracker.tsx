@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
@@ -15,5 +14,4 @@ export const Route = createFileRoute("/_app/match-tracker")({
       path: "/match-tracker",
       noIndex: true,
     }),
-  errorComponent: RouteErrorFallback,
 });

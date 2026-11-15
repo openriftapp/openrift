@@ -1,6 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { publicPromoListQueryOptions } from "@/features/cards/lib/public-promos-queries";
 import { initQueryOptions } from "@/lib/init-queries";
 import { seoHead } from "@/lib/seo";
@@ -46,5 +45,4 @@ export const Route = createFileRoute("/_app/promos")({
     }
     return null;
   },
-  errorComponent: RouteErrorFallback,
 });

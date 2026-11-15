@@ -3,7 +3,13 @@ import { labelMapOf } from "@openrift/shared/enum-label";
 import { describe, expect, it } from "vitest";
 
 import type { ChatCard } from "./chat-presenters.js";
-import { chatCardLine, chatErrorLine, chatMissLine, chatUsageLine } from "./chat-presenters.js";
+import {
+  chatCardLine,
+  chatErrorLine,
+  chatMissLine,
+  chatTieLine,
+  chatUsageLine,
+} from "./chat-presenters.js";
 
 const SITE = "https://openrift.app";
 
@@ -155,7 +161,7 @@ describe("chatMissLine", () => {
 describe("chatUsageLine", () => {
   it("explains the command and links the card browser", () => {
     expect(chatUsageLine(SITE)).toBe(
-      'Look up a Riftbound card by name or code, e.g. "viktor" or "OGN-202". Browse every card at https://openrift.app/cards',
+      'Look up a Riftbound card by name or code, e.g. "viktor, leader" or "OGN-202". Browse every card at https://openrift.app/cards',
     );
   });
 
@@ -173,5 +179,57 @@ describe("chatErrorLine", () => {
 
   it("drops the link when the deployment has no configured origin", () => {
     expect(chatErrorLine()).toBe("Card lookup is temporarily unavailable.");
+  });
+});
+
+describe("chatTieLine", () => {
+  it("keeps a tie of long names within the chat line limit and counts what it left out", () => {
+    const cards = Array.from({ length: 6 }, (_, i) =>
+      makeCard({ name: `Jinx ${String(i)} ${"x".repeat(90)}`, superTypes: [] }),
+    );
+
+    const line = chatTieLine("jinx", cards, SITE);
+
+    expect(line.length).toBeLessThanOrEqual(400);
+    expect(line).toMatch(
+      /^"jinx" matches 6 cards: .* and \d more\. Try https:\/\/openrift\.app\/cards\?q=jinx$/u,
+    );
+    expect(line).not.toContain("\n");
+  });
+
+  it("drops the search link when the deployment has no configured origin", () => {
+    const line = chatTieLine("jinx", [
+      makeCard({ name: "Jinx, Rebel" }),
+      makeCard({ name: "Jinx, Loose Cannon" }),
+    ]);
+    expect(line).toBe('"jinx" matches 2 cards: Jinx, Loose Cannon | Jinx, Rebel.');
+  });
+
+  it("drops the search link rather than the names when an encoded query would not fit", () => {
+    const cards = Array.from({ length: 6 }, (_, i) =>
+      makeCard({ name: `Jinx ${String(i)} ${"x".repeat(70)}`, superTypes: [] }),
+    );
+
+    const line = chatTieLine("金克丝".repeat(20), cards, SITE);
+
+    expect(line.length).toBeLessThanOrEqual(400);
+    expect(line).not.toContain("  ");
+    expect(line).not.toContain("/cards?q=");
+    expect(line).toMatch(/cards: Jinx 0 x+ \| /u);
+  });
+});
+
+describe("chatMissLine length", () => {
+  it("drops the search link when the encoded query would pass the chat line limit", () => {
+    const line = chatMissLine("金克丝".repeat(20), SITE);
+
+    expect(line.length).toBeLessThanOrEqual(400);
+    expect(line).toBe(`No Riftbound card found for "${"金克丝".repeat(20)}".`);
+  });
+
+  it("keeps the search link for an ordinary query", () => {
+    expect(chatMissLine("jinx", SITE)).toBe(
+      'No Riftbound card found for "jinx". Try https://openrift.app/cards?q=jinx',
+    );
   });
 });

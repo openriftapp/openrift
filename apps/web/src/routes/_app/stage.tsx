@@ -2,7 +2,6 @@ import type { DeckZone } from "@openrift/shared/types/enums";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod/mini";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { catalogQueryOptions } from "@/features/cards/lib/catalog-queries";
 import { filterSearchSchema } from "@/features/cards/lib/search-schemas";
 import { loadCollection } from "@/features/collections/lib/collection-load";
@@ -92,5 +91,4 @@ export const Route = createFileRoute("/_app/stage")({
     return null;
   },
   pendingComponent: DeckPending,
-  errorComponent: RouteErrorFallback,
 });

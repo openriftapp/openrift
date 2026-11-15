@@ -1,8 +1,7 @@
 import type { DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
+import { escapeCsvField } from "@openrift/shared/csv";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { cardUrl } from "@openrift/shared/site-paths";
-
-import { escapeCsvField } from "@/features/collections/lib/csv-export";
 
 import { deskImageSrc } from "./printing-desk-image";
 import { deskPrintingPeriod, deskPrintingStatus } from "./printing-desk-status";

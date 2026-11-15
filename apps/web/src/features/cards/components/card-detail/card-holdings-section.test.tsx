@@ -5,10 +5,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CardHoldingLine } from "@/features/cards/lib/card-holdings";
 import { stubPrinting } from "@/test/factories";
 
-const { linesMock, printingIdsSeen } = vi.hoisted(() => ({
+const { linesMock, printingIdsSeen, hydration } = vi.hoisted(() => ({
   linesMock: vi.fn((): CardHoldingLine[] => []),
   printingIdsSeen: [] as string[][],
+  hydration: { done: true },
 }));
+
+vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: () => hydration.done }));
 
 vi.mock("@/features/cards/hooks/use-card-holdings", () => ({
   useCardHoldingLines: (printingIds: readonly string[]) => {
@@ -33,9 +36,17 @@ describe("CardHoldingsSection", () => {
   beforeEach(() => {
     linesMock.mockReturnValue([]);
     printingIdsSeen.length = 0;
+    hydration.done = true;
   });
 
   it("renders nothing when no copies are in flight", () => {
+    const { container } = render(<CardHoldingsSection printing={stubPrinting()} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("renders nothing before hydration, as on the server", () => {
+    hydration.done = false;
+    linesMock.mockReturnValue([line()]);
     const { container } = render(<CardHoldingsSection printing={stubPrinting()} />);
     expect(container).toBeEmptyDOMElement();
   });

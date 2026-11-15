@@ -9,6 +9,7 @@ import {
   firstRevisit,
   lifecycleStatus,
   nextRecheck,
+  resumeSoon,
 } from "../../lib/meta-recheck-schedule.js";
 import {
   PLAYLOLTCG_STATUS_IN_PROGRESS,
@@ -20,7 +21,8 @@ import type {
   PlayloltcgRecheckRow,
   PlayloltcgUpsertInput,
 } from "../../repositories/playloltcg-events.js";
-import { createCrawlRun } from "./crawl-run.js";
+import type { CrawlRun } from "./crawl-run.js";
+import { createCrawlRun, DAILY_SYNC_TIME_BUDGET_MS } from "./crawl-run.js";
 import { clock } from "./deps.js";
 import { autoAcceptPlayloltcgEvents } from "./playloltcg-accept.js";
 import { MAX_PAGE_SIZE } from "./playloltcg-client.js";
@@ -56,8 +58,6 @@ const PLAYLOLTCG_RUN_REQUESTS = 60;
 const MIN_DECKS_PER_VISIT = 20;
 
 const RECHECK_PAGE_SIZE = 50;
-
-const DECK_CONTINUE_MS = 60 * 1000;
 
 export interface PlayloltcgSyncResult extends MetaSyncResultBase, SourceStopFields {
   shops: number;
@@ -131,7 +131,11 @@ async function crawlWindow(
   to: Date,
   seenAt: Date,
   touched: number[],
+  budget?: CrawlRun<PlayloltcgSyncResult>,
 ): Promise<void> {
+  if (budget !== undefined && !budget.withinTime()) {
+    return;
+  }
   const body = await deps.client.postList<unknown>(EVENTS_PATH, {
     pageNum: 1,
     pageSize: MAX_PAGE_SIZE,
@@ -169,8 +173,8 @@ async function crawlWindow(
     return;
   }
   const mid = shiftDays(from, Math.floor(days / 2));
-  await crawlWindow(deps, result, from, mid, seenAt, touched);
-  await crawlWindow(deps, result, shiftDays(mid, 1), to, seenAt, touched);
+  await crawlWindow(deps, result, from, mid, seenAt, touched, budget);
+  await crawlWindow(deps, result, shiftDays(mid, 1), to, seenAt, touched, budget);
 }
 
 async function syncShops(deps: PlayloltcgSyncDeps, result: PlayloltcgSyncResult): Promise<void> {
@@ -210,9 +214,24 @@ export async function syncPlayloltcgCatalog(
   const now = clock(deps);
   const from = shiftDays(now, -SYNC_LOOKBACK_DAYS);
   const touched: number[] = [];
+  const budget = createCrawlRun({
+    result,
+    heartbeat: createRunHeartbeat(deps),
+    requests: () => deps.client.requests,
+    maxDurationMs: DAILY_SYNC_TIME_BUDGET_MS,
+    now: () => clock(deps).getTime(),
+  });
   try {
     await syncShops(deps, result);
-    await crawlWindow(deps, result, from, shiftDays(now, FUTURE_HORIZON_DAYS), now, touched);
+    await crawlWindow(
+      deps,
+      result,
+      from,
+      shiftDays(now, FUTURE_HORIZON_DAYS),
+      now,
+      touched,
+      budget,
+    );
     // A gap in coverage looks identical to a row the source stopped listing, so
     // only a run that covered the whole window may mark a stored row missing.
     if (result.complete) {
@@ -242,19 +261,6 @@ async function grace(
 ): Promise<void> {
   await deps.repos.playloltcgEvents.setRecheck(activityShopId, {
     nextCheckAt: new Date(now.getTime() + HOUR_MS),
-    checkStage,
-  });
-}
-
-/** Holds the ladder: advancing it while decks are still owed left large fields permanently short. */
-async function resumeSoon(
-  deps: PlayloltcgSyncDeps,
-  activityShopId: number,
-  now: Date,
-  checkStage: number,
-): Promise<void> {
-  await deps.repos.playloltcgEvents.setRecheck(activityShopId, {
-    nextCheckAt: new Date(now.getTime() + DECK_CONTINUE_MS),
     checkStage,
   });
 }
@@ -415,8 +421,8 @@ async function visitPlayloltcgEvent(
     await grace(deps, row.activityShopId, now, row.checkStage);
     return "failed";
   }
-  await (fetched.decksRemaining > 0
-    ? resumeSoon(deps, row.activityShopId, now, row.checkStage)
+  await (fetched.decksRemaining > 0 && fetched.decks > 0
+    ? deps.repos.playloltcgEvents.setRecheck(row.activityShopId, resumeSoon(now, row.checkStage))
     : advance());
   result.processed++;
   return "ok";

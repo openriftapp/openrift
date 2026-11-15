@@ -25,6 +25,7 @@ import { useShareListWithFriendGroup } from "@/features/groups/hooks/use-friend-
 import { useFriendGroupsList } from "@/features/groups/hooks/use-friend-groups";
 import { useBulkAddListEntries, useCreateList } from "@/features/lists/hooks/use-lists";
 import type { InitialEntry } from "@/features/lists/lib/list-initial-entry";
+import { listKindLabel } from "@/features/lists/lib/list-kind-label";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -57,20 +58,6 @@ const KIND_OPTIONS: Record<ListKind, KindOption> = {
     icon: SquareStackIcon,
   },
 };
-
-function kindLabel(kind: ListKind): string {
-  switch (kind) {
-    case "card": {
-      return m.lists_create_kind_cards();
-    }
-    case "printing": {
-      return m.lists_create_kind_printings();
-    }
-    case "copy": {
-      return m.lists_create_kind_copies();
-    }
-  }
-}
 
 function kindHint(intent: ListIntent, kind: ListKind): string {
   const hints: Record<ListIntent, Record<ListKind, string>> = {
@@ -247,7 +234,7 @@ export function CreateListDialog({
                     >
                       <Icon className="mt-0.5 size-4 shrink-0" />
                       <div className="flex-1">
-                        <div className="font-medium">{kindLabel(meta.kind)}</div>
+                        <div className="font-medium">{listKindLabel(meta.kind)}</div>
                         <div className="text-muted-foreground text-xs">
                           {kindHints?.[option] ?? kindHint(intent, option)}
                         </div>

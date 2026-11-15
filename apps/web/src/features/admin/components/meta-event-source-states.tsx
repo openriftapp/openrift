@@ -72,7 +72,7 @@ function CollectAction({ row: state }: AdminCellSlotProps<AdminMetaSourceState>)
     <Button
       variant="ghost"
       size="sm"
-      disabled={collect.isPending}
+      pending={collect.isPending}
       onClick={() =>
         collect.mutate(
           { source: state.provider, key: state.externalId },

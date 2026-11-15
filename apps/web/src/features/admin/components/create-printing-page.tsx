@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Input } from "@/components/ui/input";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
@@ -366,10 +367,15 @@ export function CreatePrintingPage() {
           <Field className="lg:sticky lg:top-20 lg:self-start">
             <FieldLabel htmlFor="create-printing-image">Reference image</FieldLabel>
             {imageUrl.trim() ? (
-              <img
+              <ImgWithFallback
                 src={imageUrl.trim()}
                 alt="Card reference"
                 className="max-h-[70vh] w-full rounded-md object-contain"
+                fallback={
+                  <div className="text-muted-foreground border-input flex h-48 items-center justify-center rounded-md border border-dashed px-3 text-center">
+                    This URL did not load an image.
+                  </div>
+                }
               />
             ) : (
               <div className="text-muted-foreground border-input flex h-48 items-center justify-center rounded-md border border-dashed px-3 text-center">

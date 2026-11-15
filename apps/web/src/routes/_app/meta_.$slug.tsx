@@ -2,7 +2,7 @@ import { pluralize } from "@openrift/shared/strings";
 import type { MetaEventDetail } from "@openrift/shared/types/api/meta";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
 import { metaEventHasArchivedResults, metaEventSeoTitle } from "@/features/meta/lib/meta-format";
 import { LEGEND_GROUP_ROWS, legendGroups } from "@/features/meta/lib/meta-legend-groups";
@@ -92,7 +92,6 @@ export const Route = createFileRoute("/_app/meta_/$slug")({
     return detail.event;
   },
   pendingComponent: MetaEventPending,
-  errorComponent: RouteErrorFallback,
   notFoundComponent: NotFoundFallback,
 });
 

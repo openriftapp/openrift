@@ -160,7 +160,7 @@ function ClaimForm({
         size="sm"
         variant="ghost"
         aria-label="Save"
-        disabled={write.isPending}
+        pending={write.isPending}
         onClick={() => {
           void save();
         }}
@@ -195,7 +195,7 @@ function ReleaseButton({
       size="sm"
       variant="ghost"
       aria-label={`Hand ${field} back to the sources`}
-      disabled={release.isPending}
+      pending={release.isPending}
       onClick={() => {
         void handleRelease();
       }}

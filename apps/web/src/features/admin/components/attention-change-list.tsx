@@ -16,7 +16,7 @@ import type {
   AttentionGroup,
   ClosestPrinting,
 } from "@/features/admin/lib/attention-items";
-import { formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
+import { formatCatalogFieldValue, formatReleaseValue } from "@/features/admin/lib/field-value-text";
 import { CardText } from "@/features/cards/components/card-text";
 import { parseIntegerInput } from "@/lib/integer-input";
 import { textDiff } from "@/lib/text-diff";
@@ -222,10 +222,16 @@ function ChangeRow({
           ) : (
             <span>
               <span className="text-muted-foreground line-through">
-                {formatCatalogFieldValue(change.field, change.current)}
+                {change.precision
+                  ? formatReleaseValue(change.current, change.precision.current)
+                  : formatCatalogFieldValue(change.field, change.current)}
               </span>
               <span className="text-muted-foreground mx-2">&rarr;</span>
-              <span>{formatCatalogFieldValue(change.field, effective)}</span>
+              <span>
+                {change.precision
+                  ? formatReleaseValue(effective, change.precision.proposed)
+                  : formatCatalogFieldValue(change.field, effective)}
+              </span>
             </span>
           )}
         </div>
@@ -285,10 +291,14 @@ function ClosestPrintingTable({ closest }: { closest: ClosestPrinting }) {
         <Fragment key={row.field}>
           <span className="text-muted-foreground">{row.label}</span>
           <span className={cn("line-clamp-3 min-w-0", row.differs && "text-warning font-medium")}>
-            {formatCatalogFieldValue(row.field, row.incoming)}
+            {row.precision
+              ? formatReleaseValue(row.incoming, row.precision.incoming)
+              : formatCatalogFieldValue(row.field, row.incoming)}
           </span>
           <span className="text-muted-foreground line-clamp-3 min-w-0">
-            {formatCatalogFieldValue(row.field, row.existing)}
+            {row.precision
+              ? formatReleaseValue(row.existing, row.precision.existing)
+              : formatCatalogFieldValue(row.field, row.existing)}
           </span>
         </Fragment>
       ))}

@@ -75,7 +75,8 @@ function SourceHeader({
         size="sm"
         variant={source.contributes ? "outline" : "default"}
         className="ml-auto"
-        disabled={busy || contributes.isPending || (!source.contributes && progress.unreviewed > 0)}
+        disabled={busy || (!source.contributes && progress.unreviewed > 0)}
+        pending={contributes.isPending}
         onClick={() => {
           void toggle();
         }}

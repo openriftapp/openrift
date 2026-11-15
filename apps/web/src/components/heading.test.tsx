@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { Eyebrow, Heading } from "./heading";
+import { PAGE_HERO_EYEBROW_CLASS } from "./layout/page-hero";
 
 describe("Heading", () => {
   it("defaults to h2 with section typography when no level is given", () => {
@@ -95,5 +96,12 @@ describe("Eyebrow", () => {
     expect(label.tagName).toBe("SPAN");
     expect(label).toHaveClass("text-border-accent", "text-2xs", "uppercase");
     expect(screen.queryByRole("heading")).toBeNull();
+  });
+
+  it("sets the kicker on the same tier as the page hero kicker", () => {
+    render(<Eyebrow variant="kicker">Summoner Skirmish</Eyebrow>);
+    const kicker = screen.getByRole("heading", { level: 4 });
+    expect(kicker).toHaveClass(...PAGE_HERO_EYEBROW_CLASS.split(" "));
+    expect(kicker).toHaveClass("text-sm", "font-heading");
   });
 });

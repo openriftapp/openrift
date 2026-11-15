@@ -104,6 +104,15 @@ export function nextRecheck(state: MetaRecheckState): MetaRecheckDecision {
   };
 }
 
+const RESUME_SOON_MS = 60 * 1000;
+
+export function resumeSoon(
+  now: Date,
+  checkStage: number,
+): { nextCheckAt: Date; checkStage: number } {
+  return { nextCheckAt: new Date(now.getTime() + RESUME_SOON_MS), checkStage };
+}
+
 export function firstRevisit(now: Date): { nextCheckAt: Date; checkStage: number } {
   return { nextCheckAt: new Date(now.getTime() + RECHECK_LADDER_DAYS[0] * DAY_MS), checkStage: 1 };
 }

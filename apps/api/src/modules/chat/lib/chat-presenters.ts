@@ -7,6 +7,7 @@
  */
 
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { tiedNamesText } from "@openrift/shared/card-search";
 import type { CardStatLabels } from "@openrift/shared/card-stat-line";
 import { describeCardStats } from "@openrift/shared/card-stat-line";
 import { cardUrl } from "@openrift/shared/site-paths";
@@ -54,15 +55,34 @@ export function chatCardLine(card: ChatCard, labels: CardStatLabels, siteUrl?: s
   return description ? `${name}${SEPARATOR}${description}${tail}` : `${name}${tail}`;
 }
 
+function searchTail(query: string, siteUrl?: string): string {
+  return siteUrl ? ` Try ${siteUrl}/cards?q=${encodeURIComponent(query)}` : "";
+}
+
+export function chatTieLine(query: string, cards: readonly ChatCard[], siteUrl?: string): string {
+  const safe = truncateWithEllipsis(oneLine(query), QUERY_LIMIT);
+  const head = `"${safe}" matches ${cards.length} cards: `;
+  const names = cards.map((card) =>
+    truncateWithEllipsis(oneLine(legendDisplayName(card)), NAME_LIMIT),
+  );
+  const tail = searchTail(safe, siteUrl);
+  const withTail = tiedNamesText(names, CHAT_LINE_LIMIT - head.length - tail.length);
+  if (withTail !== "") {
+    return `${head}${withTail}${tail}`;
+  }
+  return `${head}${tiedNamesText(names, CHAT_LINE_LIMIT - head.length)}`;
+}
+
 export function chatMissLine(query: string, siteUrl?: string): string {
   const safe = truncateWithEllipsis(oneLine(query), QUERY_LIMIT);
-  const tail = siteUrl ? ` Try ${siteUrl}/cards?q=${encodeURIComponent(safe)}` : "";
-  return `No Riftbound card found for "${safe}".${tail}`;
+  const line = `No Riftbound card found for "${safe}".`;
+  const tail = searchTail(safe, siteUrl);
+  return line.length + tail.length <= CHAT_LINE_LIMIT ? `${line}${tail}` : line;
 }
 
 export function chatUsageLine(siteUrl?: string): string {
   const tail = siteUrl ? ` Browse every card at ${siteUrl}/cards` : "";
-  return `Look up a Riftbound card by name or code, e.g. "viktor" or "OGN-202".${tail}`;
+  return `Look up a Riftbound card by name or code, e.g. "viktor, leader" or "OGN-202".${tail}`;
 }
 
 /**

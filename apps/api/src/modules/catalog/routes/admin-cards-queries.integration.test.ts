@@ -567,14 +567,14 @@ describe.skipIf(!ctx)("Card-sources query routes (integration)", () => {
       expect(json.printingImages).toEqual(expect.any(Array));
     });
 
-    it("returns 500 when card exists but has no name alias", async () => {
+    it("loads a card that has no name alias by its own name", async () => {
       await testDb.deleteFrom("cardNameAliases").where("normName", "=", "csqtestcard").execute();
 
       const res = await app.fetch(adminReq("GET", "/cards/CSQ-001"));
-      expect(res.status).toBe(500);
+      expect(res.status).toBe(200);
 
       const json = await readJson(res);
-      expect(json.code).toBe("MISSING_ALIAS");
+      expect(json.card.slug).toBe("CSQ-001");
 
       await testDb
         .insertInto("cardNameAliases")

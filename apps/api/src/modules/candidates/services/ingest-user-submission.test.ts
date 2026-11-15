@@ -271,7 +271,7 @@ describe("ingestUserSubmission printing links", () => {
     });
     const repos = {
       ingest: {
-        lockUserSubmissions: vi.fn().mockResolvedValue(undefined),
+        lockCardAndMetaSubmissions: vi.fn().mockResolvedValue(undefined),
         allCardNorms: vi.fn().mockResolvedValue([{ id: CARD_ID, normName: "ahrialluring" }]),
         allCardNameAliases: vi.fn().mockResolvedValue([]),
         allPrintingKeys: vi.fn().mockResolvedValue(keyedPrintings),
@@ -355,7 +355,7 @@ describe("ingestUserSubmission duplicate printings", () => {
     const insertCandidateCard = vi.fn();
     const repos = {
       ingest: {
-        lockUserSubmissions: vi.fn().mockResolvedValue(undefined),
+        lockCardAndMetaSubmissions: vi.fn().mockResolvedValue(undefined),
         insertCandidateCard,
       },
       cardSubmissions: { countRecentByUser: vi.fn().mockResolvedValue(0) },

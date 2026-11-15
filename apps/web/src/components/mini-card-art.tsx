@@ -1,3 +1,4 @@
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import { cn } from "@/lib/utils";
 
@@ -7,21 +8,23 @@ const CARD_EDGE =
   "after:pointer-events-none after:absolute after:inset-0 after:z-10 after:rounded-[inherit] after:border-card-edge after:border";
 
 export function MiniCardArt({ url, className }: { url?: string; className?: string }) {
+  const placeholder = <span className="bg-muted aspect-card block w-full rounded-[inherit]" />;
   return (
     <span
       className={cn("relative block", CARD_EDGE, className)}
       style={{ borderRadius: CARD_BORDER_RADIUS }}
     >
       {url ? (
-        <img
+        <ImgWithFallback
           src={url}
           alt=""
           loading="lazy"
           draggable={false}
           className="aspect-card block w-full rounded-[inherit] object-cover"
+          fallback={placeholder}
         />
       ) : (
-        <span className="bg-muted aspect-card block w-full rounded-[inherit]" />
+        placeholder
       )}
     </span>
   );

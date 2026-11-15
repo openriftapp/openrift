@@ -3,6 +3,7 @@ import { EMPTY_CARD_FILTERS } from "@openrift/shared/types/search";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { createRepos, createTransact } from "../../../deps.js";
+import { TradeCancelConsentRequiredError } from "../../../errors.js";
 import { CARD_FURY_UNIT, PRINTING_1 } from "../../../test/fixtures/constants.js";
 import { createDbContext, seedTestUser } from "../../../test/integration-context.js";
 import {
@@ -25,7 +26,6 @@ import {
   CANCEL_WITHOUT_ASKING,
   consentedTradeCancels,
   sweepGiverTradesInGroups,
-  TradeCancelConsentRequiredError,
 } from "../services/trade-supply.js";
 import { friendGroupsRepo } from "./friend-groups.js";
 

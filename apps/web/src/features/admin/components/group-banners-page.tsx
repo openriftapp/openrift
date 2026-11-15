@@ -5,6 +5,7 @@ import { Trash2Icon } from "lucide-react";
 
 import { PageDescription } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { TextLink } from "@/components/ui/text-link";
 import { InstantCell } from "@/features/admin/components/admin-crud-shared";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
@@ -18,12 +19,13 @@ function BannerCell({ row }: AdminCellSlotProps<AdminGroupBanner>) {
   }
   return (
     <a href={row.bannerUrl} target="_blank" rel="noreferrer">
-      <img
+      <ImgWithFallback
         src={row.bannerUrl}
         alt={`Banner of ${row.groupName}`}
         loading="lazy"
         className="bg-muted h-12 w-40 rounded-md border object-cover"
         style={{ objectPosition: `50% ${row.bannerPosition}%` }}
+        fallback={<span className="bg-muted block h-12 w-40 rounded-md border" />}
       />
     </a>
   );
@@ -71,7 +73,7 @@ function RemoveAction({ row }: AdminCellSlotProps<AdminGroupBanner>) {
     return null;
   }
   return (
-    <Button variant="ghost" onClick={() => remove.mutate(row.groupId)} disabled={remove.isPending}>
+    <Button variant="ghost" onClick={() => remove.mutate(row.groupId)} pending={remove.isPending}>
       <Trash2Icon className="size-3.5" />
       Remove
     </Button>

@@ -105,12 +105,18 @@ export function cutMatchShortLabel(
     : m.tournaments_lib_cut_match_short({ label, number: podNumber });
 }
 
+const NO_STAT = "-";
+
 export function formatWinRate(rate: number | null): string {
-  return rate === null ? "-" : `${Math.round(rate * 100)}%`;
+  return rate === null ? NO_STAT : `${Math.round(rate * 100)}%`;
 }
 
 export function formatMetaShare(share: number | null): string {
-  return share === null ? "-" : `${(share * 100).toFixed(1)}%`;
+  return share === null ? NO_STAT : `${(share * 100).toFixed(1)}%`;
+}
+
+export function formatLegendCount(count: number | null): string {
+  return count === null ? NO_STAT : String(count);
 }
 
 export function groupPlaceLabel(place: number): string {

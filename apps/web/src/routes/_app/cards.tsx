@@ -2,7 +2,6 @@ import { labelMap } from "@openrift/shared/enum-label";
 import type { LabelMap } from "@openrift/shared/enum-label";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CardBrowserLayout } from "@/features/cards/components/card-browser-layout";
 import type {
@@ -175,7 +174,6 @@ export const Route = createFileRoute("/_app/cards")({
     };
   },
   pendingComponent: CardsPending,
-  errorComponent: RouteErrorFallback,
 });
 
 function CardsPending() {

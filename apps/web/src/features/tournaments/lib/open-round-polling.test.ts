@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   deckCheckEntriesRefetchInterval,
+  deckCheckEntryRefetchInterval,
   myDeckRefetchInterval,
   openRoundRefetchInterval,
 } from "./open-round-polling";
@@ -30,9 +31,13 @@ describe("openRoundRefetchInterval", () => {
 });
 
 describe("deckCheckEntriesRefetchInterval", () => {
+  const closed = { status: "archived", submissionsCloseAt: null };
+  const now = Date.parse("2026-06-01T12:00:00Z");
+
   it("polls while a deck waits for review or an unlock", () => {
     expect(
       deckCheckEntriesRefetchInterval({
+        event: closed,
         entries: [
           { state: "checked", unlockRequestedAt: null },
           { state: "submitted", unlockRequestedAt: null },
@@ -41,21 +46,72 @@ describe("deckCheckEntriesRefetchInterval", () => {
     ).toBeGreaterThan(0);
     expect(
       deckCheckEntriesRefetchInterval({
+        event: closed,
         entries: [{ state: "approved", unlockRequestedAt: "2026-06-01T10:00:00Z" }],
       }),
     ).toBeGreaterThan(0);
   });
 
-  it("stops when nothing waits on a judge", () => {
+  it("polls while the event accepts submissions, before any deck is in", () => {
     expect(
-      deckCheckEntriesRefetchInterval({
-        entries: [
-          { state: "checked", unlockRequestedAt: null },
-          { state: "editable", unlockRequestedAt: null },
-        ],
-      }),
+      deckCheckEntriesRefetchInterval(
+        { event: { status: "active", submissionsCloseAt: null }, entries: [] },
+        now,
+      ),
+    ).toBeGreaterThan(0);
+    expect(
+      deckCheckEntriesRefetchInterval(
+        { event: { status: "active", submissionsCloseAt: "2026-06-01T18:00:00Z" }, entries: [] },
+        now,
+      ),
+    ).toBeGreaterThan(0);
+  });
+
+  it("stops when nothing waits on a judge and submissions are closed", () => {
+    expect(
+      deckCheckEntriesRefetchInterval(
+        {
+          event: { status: "active", submissionsCloseAt: "2026-06-01T09:00:00Z" },
+          entries: [
+            { state: "checked", unlockRequestedAt: null },
+            { state: "editable", unlockRequestedAt: null },
+          ],
+        },
+        now,
+      ),
     ).toBe(false);
+    expect(deckCheckEntriesRefetchInterval({ event: closed, entries: [] }, now)).toBe(false);
     expect(deckCheckEntriesRefetchInterval(undefined)).toBe(false);
+  });
+});
+
+describe("deckCheckEntryRefetchInterval", () => {
+  const closed = { status: "archived", submissionsCloseAt: null };
+  const now = Date.parse("2026-06-01T12:00:00Z");
+
+  it("polls while the open deck waits for review or an unlock", () => {
+    expect(
+      deckCheckEntryRefetchInterval(
+        { event: closed, entry: { state: "submitted", unlockRequestedAt: null } },
+        now,
+      ),
+    ).toBeGreaterThan(0);
+    expect(
+      deckCheckEntryRefetchInterval(
+        { event: closed, entry: { state: "checked", unlockRequestedAt: "2026-06-01T10:00:00Z" } },
+        now,
+      ),
+    ).toBeGreaterThan(0);
+  });
+
+  it("stops for a settled deck once submissions are closed", () => {
+    expect(
+      deckCheckEntryRefetchInterval(
+        { event: closed, entry: { state: "checked", unlockRequestedAt: null } },
+        now,
+      ),
+    ).toBe(false);
+    expect(deckCheckEntryRefetchInterval(undefined)).toBe(false);
   });
 });
 

@@ -229,7 +229,7 @@ export function SourceBlock({
               : `${block.entries.length} sources · ${summaryText(block.changedFields, block.newPrintings)}`}
           </span>
           <div className="ml-auto flex items-center gap-2">
-            <Button variant="outline" disabled={isPending} onClick={() => void markChecked()}>
+            <Button variant="outline" pending={isPending} onClick={() => void markChecked()}>
               {isSingle ? "Mark checked" : "Mark all checked"}
             </Button>
           </div>

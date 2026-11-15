@@ -1,4 +1,4 @@
-import { diffCardLines } from "@openrift/shared/deck-check";
+import { diffCardLines, submissionWindowOpen } from "@openrift/shared/deck-check";
 import type { DeckCheckCardLine } from "@openrift/shared/deck-check";
 import type { DeckCheckChangeSummary } from "@openrift/shared/types/api/deck-check";
 
@@ -21,17 +21,6 @@ export function tournamentSubmissionWindow(tournament: {
     status: ended ? "archived" : "active",
     submissionsCloseAt: tournament.submissionsCloseAt,
   };
-}
-
-/**
- * Judges are never bound by this; `allow_self_submission` gates only the
- * creation of new entries, and is checked separately.
- */
-export function submissionWindowOpen(event: SubmissionWindow): boolean {
-  return (
-    event.status === "active" &&
-    (event.submissionsCloseAt === null || event.submissionsCloseAt.getTime() > Date.now())
-  );
 }
 
 export function storedCardLines(cards: DeckCheckEntryCard[]): DeckCheckCardLine[] {

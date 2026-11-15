@@ -425,8 +425,8 @@ describe("applyMetaEventCorrection", () => {
     });
   });
 
-  const lockUserSubmissions = vi.fn();
-  const trxRepos = { ...repos, ingest: { lockUserSubmissions } } as unknown as Repos;
+  const lockCardAndMetaSubmissions = vi.fn();
+  const trxRepos = { ...repos, ingest: { lockCardAndMetaSubmissions } } as unknown as Repos;
   const correctionTransact = vi.fn((fn: (r: Repos) => Promise<unknown>) => fn(trxRepos));
 
   function apply(fields: string[] | null = null) {
@@ -484,8 +484,8 @@ describe("applyMetaEventCorrection", () => {
       .mockResolvedValueOnce(correction({ status: "accepted" }));
 
     await expect(apply()).rejects.toMatchObject({ status: 409 });
-    expect(lockUserSubmissions).toHaveBeenCalledExactlyOnceWith("user-7");
-    expect(lockUserSubmissions.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(lockCardAndMetaSubmissions).toHaveBeenCalledExactlyOnceWith("user-7");
+    expect(lockCardAndMetaSubmissions.mock.invocationCallOrder[0]).toBeLessThan(
       mockSubmissions.byId.mock.invocationCallOrder[1]!,
     );
     expect(mockOverlays.insertEventOverlay).not.toHaveBeenCalled();

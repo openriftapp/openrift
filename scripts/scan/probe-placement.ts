@@ -4,6 +4,8 @@
  *
  * Usage: bun scripts/scan/probe-placement.ts [--clip 3d-print-scanner] [--all]
  */
+// oxlint-disable-next-line import/no-unassigned-import -- checks argv before the heavy imports load
+import "./args-guard";
 import path from "node:path";
 
 import { expectedCopies } from "../../packages/shared/src/scan/bench-score.js";

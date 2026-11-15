@@ -1,5 +1,5 @@
 import { deckCheckPlayerContract } from "@openrift/shared/contracts/deck-check-player";
-import { SELF_SUBMIT_EXTERNAL_ID_PREFIX } from "@openrift/shared/deck-check";
+import { SELF_SUBMIT_EXTERNAL_ID_PREFIX, submissionWindowOpen } from "@openrift/shared/deck-check";
 import type {
   DeckCheckClaimResultResponse,
   DeckCheckEntryCardResponse,
@@ -17,7 +17,7 @@ import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { retryOnClaimTokenCollision } from "../lib/claim-token.js";
 import { buildEntryAdvisories } from "../lib/deck-check-advisories.js";
-import { presentDeadlineSettledEntry, submissionWindowOpen } from "../lib/deck-check-deadline.js";
+import { presentDeadlineSettledEntry } from "../lib/deck-check-deadline.js";
 import { isoDate, toDeckCheckEntryCardResponse } from "../lib/deck-check-presenters.js";
 import type {
   DeckCheckEntry,

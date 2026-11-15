@@ -78,7 +78,7 @@ describe("buildAttentionSubmissions", () => {
           artist: printing.artist,
           publicCode: printing.publicCode,
           shortCode: printing.shortCode,
-          setId: printing.setId,
+          setId: printing.setSlug,
           rarity: printing.rarity,
           artVariant: printing.artVariant,
           finish: printing.finish,
@@ -128,7 +128,7 @@ describe("buildAttentionSubmissions", () => {
           artist: printing.artist,
           publicCode: printing.publicCode,
           shortCode: printing.shortCode,
-          setId: printing.setId,
+          setId: printing.setSlug,
           rarity: printing.rarity,
           artVariant: printing.artVariant,
           finish: printing.finish,
@@ -205,6 +205,29 @@ describe("buildAttentionSubmissions", () => {
     expect(groups[0]?.printingId).toBe(printing.id);
     expect(groups[0]?.printingLabel).toBe(printing.expectedPrintingId);
     expect(groups[0]?.changes.map((change) => change.field)).toEqual(["artist"]);
+  });
+
+  it("carries both release precisions on a release date change", () => {
+    const source = makeCandidateCard({ name: "Lux, Lady of Luminosity" });
+    const printing = makeAdminPrinting({ releasedAt: "2026-07-14", releasePrecision: "day" });
+    const detail = makeAdminCardDetail({
+      card: makeAdminCard({ name: source.name }),
+      sources: [source],
+      printings: [printing],
+      candidatePrintings: [
+        makeCandidatePrinting({
+          candidateCardId: source.id,
+          printingId: printing.id,
+          artist: printing.artist,
+          releasedAt: "2026-10-01",
+          releasePrecision: "quarter",
+        }),
+      ],
+    });
+    const changes = buildAttentionSubmissions(detail, [])[0]?.groups[0]?.changes ?? [];
+    const release = changes.find((change) => change.field === "releasedAt");
+    expect(release?.precision).toEqual({ current: "day", proposed: "quarter" });
+    expect(changes.find((change) => change.field === "artist")).toBeUndefined();
   });
 
   it("does not diff a source value the accept transforms would turn into the live value", () => {
@@ -307,7 +330,7 @@ describe("buildAttentionSubmissions", () => {
           artist: printing.artist,
           publicCode: printing.publicCode,
           shortCode: printing.shortCode,
-          setId: printing.setId,
+          setId: printing.setSlug,
           rarity: printing.rarity,
           artVariant: printing.artVariant,
           finish: printing.finish,
@@ -472,7 +495,7 @@ describe("buildAttentionSources image comparison", () => {
           artist: printing.artist,
           publicCode: printing.publicCode,
           shortCode: printing.shortCode,
-          setId: printing.setId,
+          setId: printing.setSlug,
           rarity: printing.rarity,
           artVariant: printing.artVariant,
           finish: printing.finish,

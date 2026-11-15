@@ -142,7 +142,7 @@ export function CandidateSpreadsheet<
   }
 
   return (
-    <div className="w-fit max-w-full overflow-x-auto rounded-md border">
+    <div className="relative w-fit max-w-full overflow-x-auto rounded-md border">
       <table
         ref={tableRef}
         className="table-fixed text-sm"

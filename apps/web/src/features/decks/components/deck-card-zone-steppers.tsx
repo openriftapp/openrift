@@ -1,11 +1,11 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { deckCardKey } from "@openrift/shared/deck-cards";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import { InlineCountStepper } from "@/components/ui/inline-count-stepper";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import { useZoneOrder } from "@/hooks/use-enums";
 import { m } from "@/paraglide/messages.js";
 

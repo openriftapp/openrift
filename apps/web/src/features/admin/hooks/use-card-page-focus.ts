@@ -22,7 +22,7 @@ import {
 } from "@/features/admin/stores/admin-card-fold-store";
 
 export function useCardPageFocus({
-  cardId,
+  cardSlug,
   detail,
   face,
   section,
@@ -31,7 +31,7 @@ export function useCardPageFocus({
   focusLanguage,
   goToSection,
 }: {
-  cardId: string;
+  cardSlug: string;
   detail?: AdminCardDetailResponse;
   face?: string;
   section?: CardSection;
@@ -61,8 +61,8 @@ export function useCardPageFocus({
     if (!detail) {
       return;
     }
-    initCollapsedForCard(cardId, new Set(cardFoldKeys(detail)));
-  }, [detail, cardId, initCollapsedForCard]);
+    initCollapsedForCard(cardSlug, new Set(cardFoldKeys(detail)));
+  }, [detail, cardSlug, initCollapsedForCard]);
 
   useEffect(() => {
     if (!acceptedPrinting || acceptedHandledRef.current === acceptedPrinting || !detail) {
@@ -73,9 +73,9 @@ export function useCardPageFocus({
       return;
     }
     acceptedHandledRef.current = acceptedPrinting;
-    setCollapsedForCard(cardId, foldsFocusing(detail, faceIds));
+    setCollapsedForCard(cardSlug, foldsFocusing(detail, faceIds));
     scrollToFace(faceIds[0]);
-  }, [acceptedPrinting, detail, cardId, setCollapsedForCard]);
+  }, [acceptedPrinting, detail, cardSlug, setCollapsedForCard]);
 
   useEffect(() => {
     if (face === undefined) {
@@ -86,9 +86,9 @@ export function useCardPageFocus({
       return;
     }
     faceHandledRef.current = face;
-    setCollapsedForCard(cardId, foldsFocusing(detail, [face]));
+    setCollapsedForCard(cardSlug, foldsFocusing(detail, [face]));
     scrollToFace(face);
-  }, [face, detail, cardId, setCollapsedForCard]);
+  }, [face, detail, cardSlug, setCollapsedForCard]);
 
   useEffect(() => {
     if (section !== "attention") {
@@ -119,16 +119,16 @@ export function useCardPageFocus({
       return;
     }
     marketplaceHandledRef.current = true;
-    setCollapsedForCard(cardId, foldsFocusing(detail, [faceId]));
+    setCollapsedForCard(cardSlug, foldsFocusing(detail, [faceId]));
     scrollToFace(faceId);
-  }, [focusMarketplace, focusFinish, focusLanguage, detail, cardId, setCollapsedForCard]);
+  }, [focusMarketplace, focusFinish, focusLanguage, detail, cardSlug, setCollapsedForCard]);
 
   function revealPrinting(printingId: string): void {
     if (!detail) {
       return;
     }
     const faceIds = faceIdsOfPrinting(detail.printings, printingId);
-    setCollapsedForCard(cardId, foldsFocusing(detail, faceIds));
+    setCollapsedForCard(cardSlug, foldsFocusing(detail, faceIds));
     void (async () => {
       await goToSection("printings");
       scrollToFace(faceIds[0]);
@@ -143,7 +143,7 @@ export function useCardPageFocus({
     if (groupKey === null) {
       return;
     }
-    focusPrintingFold(cardId, groupKey, cardFoldKeys(detail));
+    focusPrintingFold(cardSlug, groupKey, cardFoldKeys(detail));
     void (async () => {
       await goToSection("printings");
       scrollIntoViewNextFrame(`[data-printing-group="${groupKey}"]`, "center");

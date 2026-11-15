@@ -103,3 +103,7 @@ export function candidateRowSummary(candidate: CandidatePrintingResponse): strin
   );
   return parts.length > 0 ? parts.join(" · ") : "No details";
 }
+
+export function printingAsAccepted<T extends { setId: string; setSlug: string }>(printing: T): T {
+  return { ...printing, setId: printing.setSlug };
+}

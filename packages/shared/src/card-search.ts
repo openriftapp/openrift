@@ -169,6 +169,48 @@ export type CardResolution<TCard extends SearchableCard> =
   | { status: "ambiguous"; candidates: TCard[] }
   | { status: "unmatched" };
 
+export type CardLookup<TCard extends SearchableCard> =
+  | { status: "found"; card: TCard }
+  | { status: "tied"; cards: TCard[] }
+  | { status: "missing" };
+
+/** A tie at the best tier is reported, never picked; anything else answers as {@link findCard}. */
+export function lookupCard<TCard extends SearchableCard>(
+  index: CardSearchIndex<TCard>,
+  query: string,
+): CardLookup<TCard> {
+  if (!index.bySlug.has(query.trim())) {
+    const resolution = resolveCard(index, query);
+    if (resolution.status === "ambiguous") {
+      return { status: "tied", cards: resolution.candidates };
+    }
+  }
+  const card = findCard(index, query);
+  return card === undefined ? { status: "missing" } : { status: "found", card };
+}
+
+const TIED_NAME_CAP = 5;
+
+const TIED_NAME_SEPARATOR = " | ";
+
+/** Sorted names joined until `maxLength` or the cap, then "and N more."; empty when not even one name fits. */
+export function tiedNamesText(names: readonly string[], maxLength: number): string {
+  const sorted = names.toSorted((a, b) => a.localeCompare(b));
+  const moreText = (more: number) => (more > 0 ? ` and ${more} more.` : ".");
+  const shown: string[] = [];
+  for (const name of sorted.slice(0, TIED_NAME_CAP)) {
+    const candidate = [...shown, name].join(TIED_NAME_SEPARATOR);
+    if ((candidate + moreText(sorted.length - shown.length - 1)).length > maxLength) {
+      break;
+    }
+    shown.push(name);
+  }
+  if (shown.length === 0) {
+    return "";
+  }
+  return `${shown.join(TIED_NAME_SEPARATOR)}${moreText(sorted.length - shown.length)}`;
+}
+
 /** Does no fuzzy matching: cards tied at the best tier are reported `ambiguous`, never picked arbitrarily. */
 export function resolveCard<TCard extends SearchableCard>(
   index: CardSearchIndex<TCard>,

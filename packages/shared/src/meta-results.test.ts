@@ -1,6 +1,29 @@
 import { describe, expect, it } from "vitest";
 
-import { metaResultsState, mirrorResultsState } from "./meta-results.js";
+import { metaEventStatus, metaResultsState, mirrorResultsState } from "./meta-results.js";
+
+describe("metaEventStatus", () => {
+  const today = "2026-11-13";
+
+  it("reads an event dated after today as upcoming, whatever it stores", () => {
+    expect(metaEventStatus({ status: "complete", eventDate: "2026-11-14" }, today)).toBe(
+      "upcoming",
+    );
+    expect(metaEventStatus({ status: "in_progress", eventDate: "2026-11-14" }, today)).toBe(
+      "upcoming",
+    );
+  });
+
+  it("keeps the stored status from today on", () => {
+    expect(metaEventStatus({ status: "complete", eventDate: today }, today)).toBe("complete");
+    expect(metaEventStatus({ status: "in_progress", eventDate: "2026-11-01" }, today)).toBe(
+      "in_progress",
+    );
+    expect(metaEventStatus({ status: "upcoming", eventDate: "2026-11-01" }, today)).toBe(
+      "upcoming",
+    );
+  });
+});
 
 describe("metaResultsState", () => {
   const today = "2026-11-13";

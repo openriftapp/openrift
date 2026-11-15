@@ -195,7 +195,7 @@ function renderCard({
   return render(
     <PrintingReviewCard
       face={face}
-      cardId={CARD_ID}
+      cardSlug={CARD_ID}
       cardName="Annie"
       canOpenPrintingPages
       printings={[printing]}

@@ -213,6 +213,26 @@ beforeEach(() => {
 });
 
 describe("syncPlayloltcgCatalog", () => {
+  it("stops at the daily time budget before a second run could be claimed", async () => {
+    const { deps, windows, missing } = fakeDeps({ overflowOn: "2026-08-24" });
+    let at = NOW.getTime();
+    const postList = deps.client.postList.bind(deps.client);
+    deps.client.postList = ((path: string, body: Record<string, unknown>) => {
+      if (path !== SHOPS_PATH) {
+        at += 91 * 60_000;
+      }
+      return postList(path, body);
+    }) as typeof deps.client.postList;
+    deps.now = () => new Date(at);
+
+    const result = await syncPlayloltcgCatalog(deps);
+
+    expect(windows).toHaveLength(1);
+    expect(result.complete).toBe(false);
+    expect(result.errors).toContain("Stopped at the 90-minute time budget");
+    expect(missing).toEqual([]);
+  });
+
   it("crawls the lookback window and flags the past slice's dropped rows", async () => {
     const { deps, windows, missing } = fakeDeps({});
 
@@ -521,6 +541,33 @@ describe("processPlayloltcgRechecks", () => {
     ]);
     expect(result.processed).toBe(1);
     expect(result.decks).toBe(600);
+  });
+
+  it("takes the normal schedule when a visit with decks still owed read none, so it cannot spin", async () => {
+    vi.mocked(playloltcgDeepFetch).mockResolvedValueOnce({
+      activityShopId: 109_991,
+      requests: 1,
+      players: 3283,
+      decks: 0,
+      deckRequests: 0,
+      decksRemaining: 3283,
+      acceptedPlayers: 3283,
+      skippedPlayers: 0,
+      shopId: null,
+      publishedResults: true,
+      complete: true,
+      errors: [],
+    });
+    const { deps, rechecks } = fakeDeps({
+      due: [dueRow({ checkStage: 1, fetchedAt: NOW })],
+      outstandingDecks: ["5"],
+    });
+
+    await processPlayloltcgRechecks(deps);
+
+    expect(rechecks).toHaveLength(1);
+    expect(rechecks[0]?.checkStage).toBe(2);
+    expect(rechecks[0]?.nextCheckAt?.getTime()).toBeGreaterThan(NOW.getTime() + HOUR_MS);
   });
 
   it("starts no new visit once the run has spent its requests", async () => {

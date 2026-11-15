@@ -22,6 +22,17 @@
 - fix(Tournaments): **Pairings controls for organizers only** — participants and judges no longer see round buttons the server would refuse.
 - fix(Tournaments): **Failed saves say so** — a server error while saving a result keeps the form open and shows the error.
 - fix(Decks): **Deck rename keeps your text** — a failed save leaves the name dialog open with the error and what you typed.
+- fix(Decks): **Deck settings keep your changes when a save fails** — the storage, cover and format tag dialogs stay open and show what went wrong, and every deck dialog has a Cancel button.
+- fix(Tournaments): **Deck list updates while players submit** — the judges' deck list refreshes on its own while submissions are open, and the claim page names what you claim.
+- fix(Decks): **Variant rail opens in place** — on a phone the variant rail no longer opens scrolled sideways.
+- fix(Cards): **Lowercase promo links work** — a promos link with a lowercase language opens the right page.
+- fix(App): **Install page ready on first paint** — the install steps for your device show without waiting for the page to load its scripts.
+- fix(Cards): **Loans and trades on the card page** — a card's own page lists your copies that are lent out, borrowed or reserved for a trade, as the detail pane does.
+- fix(Trades): **Market counts leave out cards already in a trade** — the Get and Give counts on a group's trade market only count cards you can still act on.
+- fix(Decks): **Variant change counts no longer overlap** — the counts on the variant rail stay clear of each other and of the variants when a deck forks several times.
+- fix(App): **Buttons show when they are working** — row actions across decks, lists, groups and tournaments show a spinner while their request runs.
+- fix(Tournaments): **Judges can add players** — judges see "Add player" and the count of players without a region, which the server already allowed them. An invalid claim link shows the not-found page.
+- fix(Meta): **Player counts for upcoming events** — the events page shows an event's known field size before it is played.
 - fix(Decks): **Full variant dates** — the date under each deck variant is no longer cut off.
 - fix(App): **Help search in your language** — the command palette lists and searches help articles by their title in your language.
 - fix(App): **Help articles match the app** — the stage shortcuts, the import guide and the price sections describe what the app does today.

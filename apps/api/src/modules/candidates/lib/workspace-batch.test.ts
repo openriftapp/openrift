@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { candidatePrintingRow as cp } from "../../../test/candidate-printing-row.js";
+import type { KnownPrintingRefs } from "../../catalog/lib/printing-refs.js";
 import type {
   PrintingProbeRow,
   TrustedDraftRow,
@@ -26,6 +27,16 @@ function draft(id: string, over: Partial<TrustedDraftRow> = {}): TrustedDraftRow
 
 const LIVE = [{ id: "card-1", slug: "jinx-loose-cannon", name: "Jinx, Loose Cannon" }];
 
+const KNOWN: KnownPrintingRefs = {
+  languages: ["EN"],
+  rarities: ["rare"],
+  artVariants: ["normal"],
+  finishes: ["normal", "foil"],
+  cardSizes: ["standard"],
+  markers: [],
+  distributionChannels: [],
+};
+
 describe("nameHead", () => {
   it("keeps the part before the first comma", () => {
     expect(nameHead("Jinx, Rebel")).toBe("Jinx");
@@ -35,7 +46,7 @@ describe("nameHead", () => {
 
 describe("eligibleTrustedCards", () => {
   it("returns a complete draft without a similar live card", () => {
-    expect(eligibleTrustedCards([draft("cc-1")], [cp("p1")], LIVE)).toEqual({
+    expect(eligibleTrustedCards([draft("cc-1")], [cp("p1")], LIVE, KNOWN)).toEqual({
       eligible: [{ normName: "poroherder", name: "Poro Herder" }],
       ineligible: [],
     });
@@ -43,7 +54,7 @@ describe("eligibleTrustedCards", () => {
 
   it("holds back a draft whose name head matches a live card and names the match", () => {
     const jinx = draft("cc-1", { normName: "jinxrebel", name: "Jinx, Rebel" });
-    expect(eligibleTrustedCards([jinx], [cp("p1")], LIVE)).toEqual({
+    expect(eligibleTrustedCards([jinx], [cp("p1")], LIVE, KNOWN)).toEqual({
       eligible: [],
       ineligible: [{ name: "Jinx, Rebel", reason: "a similar card exists: Jinx, Loose Cannon" }],
     });
@@ -51,19 +62,39 @@ describe("eligibleTrustedCards", () => {
 
   it("holds back a draft without types", () => {
     expect(
-      eligibleTrustedCards([draft("cc-1", { types: [] })], [cp("p1")], LIVE).ineligible,
+      eligibleTrustedCards([draft("cc-1", { types: [] })], [cp("p1")], LIVE, KNOWN).ineligible,
     ).toEqual([{ name: "Poro Herder", reason: "no card type" }]);
   });
 
   it("holds back a draft without a complete printing", () => {
     const incomplete = [{ name: "Poro Herder", reason: "no printing has every required field" }];
     expect(
-      eligibleTrustedCards([draft("cc-1")], [cp("p1", { rarity: null })], LIVE).ineligible,
+      eligibleTrustedCards([draft("cc-1")], [cp("p1", { rarity: null })], LIVE, KNOWN).ineligible,
     ).toEqual(incomplete);
     expect(
-      eligibleTrustedCards([draft("cc-1")], [cp("p1", { publicCode: null })], LIVE).ineligible,
+      eligibleTrustedCards([draft("cc-1")], [cp("p1", { publicCode: null })], LIVE, KNOWN)
+        .ineligible,
     ).toEqual(incomplete);
-    expect(eligibleTrustedCards([draft("cc-1")], [], LIVE).ineligible).toEqual(incomplete);
+    expect(eligibleTrustedCards([draft("cc-1")], [], LIVE, KNOWN).ineligible).toEqual(incomplete);
+  });
+
+  it("holds back a draft whose complete printings all name unknown values", () => {
+    const printings = [
+      cp("p2", { finish: "glossy" }),
+      cp("p1", { language: "XX" }),
+      cp("p3", { finish: "glossy", language: "XX" }),
+    ];
+    expect(eligibleTrustedCards([draft("cc-1")], printings, LIVE, KNOWN).ineligible).toEqual([
+      {
+        name: "Poro Herder",
+        reason: 'not on an admin list: finish "glossy", language "XX"',
+      },
+    ]);
+  });
+
+  it("accepts a draft with one complete printing on known values beside unknown ones", () => {
+    const printings = [cp("p1", { finish: "glossy" }), cp("p2")];
+    expect(eligibleTrustedCards([draft("cc-1")], printings, LIVE, KNOWN).eligible).toHaveLength(1);
   });
 
   it("judges types on the first provider and printings across all trusted sources", () => {
@@ -72,11 +103,11 @@ describe("eligibleTrustedCards", () => {
       draft("cc-1", { provider: "alpha" }),
     ];
     expect(
-      eligibleTrustedCards(rows, [cp("p1", { candidateCardId: "cc-2" })], LIVE).eligible,
+      eligibleTrustedCards(rows, [cp("p1", { candidateCardId: "cc-2" })], LIVE, KNOWN).eligible,
     ).toHaveLength(1);
     const typeless = [draft("cc-1", { provider: "alpha", types: [] }), draft("cc-2")];
     expect(
-      eligibleTrustedCards(typeless, [cp("p1", { candidateCardId: "cc-2" })], LIVE).eligible,
+      eligibleTrustedCards(typeless, [cp("p1", { candidateCardId: "cc-2" })], LIVE, KNOWN).eligible,
     ).toEqual([]);
   });
 
@@ -87,9 +118,9 @@ describe("eligibleTrustedCards", () => {
       draft("cc-3", { normName: "blastcone", name: "Blast Cone" }),
     ];
     const printings = [cp("p1"), cp("p3", { candidateCardId: "cc-3" })];
-    expect(eligibleTrustedCards(rows, printings, LIVE).eligible.map((entry) => entry.name)).toEqual(
-      ["Blast Cone", "Poro Herder"],
-    );
+    expect(
+      eligibleTrustedCards(rows, printings, LIVE, KNOWN).eligible.map((entry) => entry.name),
+    ).toEqual(["Blast Cone", "Poro Herder"]);
   });
 });
 

@@ -1,7 +1,7 @@
+import { deckCardKey } from "@openrift/shared/deck-cards";
 import { isCountedZone } from "@openrift/shared/deck-zones";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import { m } from "@/paraglide/messages.js";
 
 /**

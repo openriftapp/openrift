@@ -2,14 +2,14 @@ import { imageUrl } from "@openrift/shared/image-url";
 import type { LandingSummaryResponse } from "@openrift/shared/types/api/catalog";
 
 import { Badge } from "@/components/ui/badge";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { OrnamentRule } from "@/components/ui/ornament";
 import { SectionDivider } from "@/features/cards/components/promo-section-divider";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
+import { BREADCRUMB_SEP } from "@/lib/breadcrumb";
 import { getFilterIconPath } from "@/lib/icons";
 
 import { ClipFrame } from "./clip-frame";
-
-const BREADCRUMB_SEP = " › ";
 
 type PromoSection = LandingSummaryResponse["promoSections"][number];
 type PromoPrinting = PromoSection["printings"][number];
@@ -34,22 +34,26 @@ function PendingDivider() {
 function Cell({ printing }: { printing: PromoPrinting }) {
   const rarityIcon = printing.rarity ? getFilterIconPath("rarities", printing.rarity) : undefined;
   const art = printing.imageId ? imageUrl(printing.imageId, "400w") : "";
+  const placeholder = (
+    <span
+      className="bg-muted aspect-card block w-full"
+      style={{ borderRadius: CARD_BORDER_RADIUS }}
+    />
+  );
   return (
     <div className="flex min-w-0 flex-col">
       {art ? (
-        <img
+        <ImgWithFallback
           src={art}
           alt=""
           loading="lazy"
           draggable={false}
           className="aspect-card w-full object-cover"
           style={{ borderRadius: CARD_BORDER_RADIUS }}
+          fallback={placeholder}
         />
       ) : (
-        <span
-          className="bg-muted aspect-card block w-full"
-          style={{ borderRadius: CARD_BORDER_RADIUS }}
-        />
+        placeholder
       )}
       <div className="bg-background mt-2.5 space-y-0.5 rounded-md px-1.5 py-0.5">
         <div className="text-muted-foreground flex min-h-4 items-center justify-between gap-1 text-xs">

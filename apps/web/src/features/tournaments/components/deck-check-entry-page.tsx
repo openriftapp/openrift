@@ -111,6 +111,8 @@ export function TournamentDeckCheckEntry({
     }
   }
 
+  const pendingTransition = setState.isPending ? (setState.variables ?? null) : null;
+
   // Folds in any unsaved notes so they survive advancing the entry's state.
   const transition = (state: DeckCheckEntryState, reviewOutcome?: DeckCheckReviewOutcome) => {
     setState.mutate(
@@ -167,7 +169,7 @@ export function TournamentDeckCheckEntry({
           <EntryTopBarActions
             entry={detail.entry}
             transition={transition}
-            pending={setState.isPending}
+            pendingTransition={pendingTransition}
             canManage={canManage}
             onEdit={() => setEditOpen(true)}
             onDelete={() => setDeleteOpen(true)}
@@ -180,7 +182,7 @@ export function TournamentDeckCheckEntry({
           entryId={entryId}
           detail={detail}
           transition={transition}
-          pending={setState.isPending}
+          pendingTransition={pendingTransition}
         />
         <div className="flex flex-col gap-4 md:flex-row">
           {listHidden ? null : <EntryPreview cards={detail.cards} />}

@@ -30,6 +30,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CardBansSection } from "@/features/admin/components/card-bans-section";
@@ -111,13 +112,17 @@ type SubmissionDialog = {
 } | null;
 
 function CardThumb({ url, className }: { url: string | null; className: string }) {
-  return url === null ? (
+  const placeholder = (
     <div className={cn("bg-muted aspect-card min-w-0 shrink-0 rounded-sm", className)} />
+  );
+  return url === null ? (
+    placeholder
   ) : (
-    <img
+    <ImgWithFallback
       src={url}
       alt=""
       className={cn("aspect-card min-w-0 shrink-0 rounded-sm object-cover", className)}
+      fallback={placeholder}
     />
   );
 }

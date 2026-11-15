@@ -481,8 +481,8 @@ describe("a deck read from the stores", () => {
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
     client.clear();
+    vi.unstubAllGlobals();
   });
 
   function wrapper({ children }: { children: React.ReactNode }) {
@@ -597,8 +597,8 @@ describe("useSaveDeckCards", () => {
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
     client.clear();
+    vi.unstubAllGlobals();
   });
 
   function renderSave() {
@@ -646,8 +646,8 @@ describe("a browser-local deck read while signed in", () => {
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
     client.clear();
+    vi.unstubAllGlobals();
   });
 
   it("reads the local store without starting the server stores", async () => {

@@ -3,7 +3,11 @@ import { WellKnown } from "@openrift/shared/well-known";
 
 import { stableKey } from "../../../lib/hash.js";
 import { coord, count, fraction, instant, record, text } from "../../../lib/json-coerce.js";
-import { META_NAME_MAX, META_PLAYER_NAME_MAX } from "./meta-event-naming.js";
+import {
+  META_NAME_MAX,
+  META_PLAYER_NAME_MAX,
+  MIRROR_NAME_MAX,
+} from "../../../lib/meta-name-limits.js";
 
 /**
  * The source publishes a GraphQL schema we cannot introspect, so every field is
@@ -101,7 +105,7 @@ function projectOrganizer(
   const address = record(location);
   return {
     id,
-    name: name.slice(0, 200),
+    name: name.slice(0, MIRROR_NAME_MAX),
     city: text(address?.city),
     adminArea: text(address?.adminArea1),
     address: text(address?.formattedAddress),
@@ -137,7 +141,7 @@ export function projectSearchResult(raw: unknown): {
   const fields = {
     tournamentId,
     organizerId: organizer?.id ?? null,
-    name: name.slice(0, 200),
+    name: name.slice(0, MIRROR_NAME_MAX),
     startAt,
     tournamentType: text(config?.tournamentType),
     format: text(config?.format),

@@ -18,7 +18,7 @@ describe("tournament write lock", () => {
 
     expect(rounds.statements).toHaveLength(1);
     expect(rounds.queries[0]).toBe("select pg_advisory_xact_lock(hashtext($1))");
-    expect(rounds.parameters[0]).toEqual(["t-1"]);
+    expect(rounds.parameters[0]).toEqual(["tournament-writes:t-1"]);
     expect(stage.queries[0]).toBe(rounds.queries[0]);
     expect(stage.parameters[0]).toEqual(rounds.parameters[0]);
   });

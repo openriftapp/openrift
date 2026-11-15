@@ -5,6 +5,8 @@
  *
  * Usage: SCAN_BOARD_DETECTOR=... bun scripts/scan/run-boards.ts [--max-side px] [--boards list.json] [--json out.json]
  */
+// oxlint-disable-next-line import/no-unassigned-import -- checks argv before the heavy imports load
+import "./args-guard";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -13,11 +15,11 @@ import { boardOptionsFor, readBoard } from "../../packages/shared/src/scan/board
 import { gatesForBank } from "../../packages/shared/src/scan/session-options.js";
 import { createBoardDetector } from "./board-model";
 import { applyArtGroups, benchDeps, loadCatalog } from "./catalog";
+import { RUN_BOARDS_USAGE } from "./cli-specs";
 import { CANONICAL_BANK, embedSize, loadEmbedBank } from "./embed-bank";
 import {
   DATA_DIR,
   argValue,
-  exitOnBadArgs,
   listReferenceImages,
   loadClipTruth,
   loadImage,
@@ -27,14 +29,9 @@ import {
 
 const BOARDS_DIR = path.join(DATA_DIR, "boards");
 
-const USAGE =
-  "usage: SCAN_BOARD_DETECTOR=... bun scripts/scan/run-boards.ts [--max-side px] [--boards list.json] [--json out.json]\n";
-
-exitOnBadArgs({ values: ["--max-side", "--boards", "--json"], flags: [] }, USAGE);
-
 const detectorFile = servedModel("SCAN_BOARD_DETECTOR", "SCAN_BOARD_DETECTOR_FILE");
 if (!detectorFile) {
-  process.stderr.write(USAGE);
+  process.stderr.write(RUN_BOARDS_USAGE);
   process.exit(2);
 }
 

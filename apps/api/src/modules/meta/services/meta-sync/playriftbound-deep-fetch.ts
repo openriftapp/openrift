@@ -12,6 +12,7 @@ import { promoteMetaEvent } from "../meta-promote.js";
 import { clock } from "./deps.js";
 import { isRunStopping, PlayriftboundRefusedError } from "./playriftbound-client.js";
 import type { PlayriftboundSyncDeps } from "./playriftbound-deps.js";
+import { RunDeadlineError } from "./source-http.js";
 
 const DETAIL_QUERY = "GetCompeteTournamentForRiftboundPlayer";
 const POLLER_QUERY = "GetCompeteRbRefreshPoller";
@@ -76,7 +77,7 @@ export async function playriftboundDeepFetch(
     raw = Array.isArray(tournaments) ? tournaments[0] : undefined;
     empty = Array.isArray(tournaments) && tournaments.length === 0;
   } catch (error) {
-    if (isRunStopping(error)) {
+    if (isRunStopping(error) || error instanceof RunDeadlineError) {
       throw error;
     }
     result.errors.push(`Event ${tournamentId} detail: ${errorMessage(error)}`);

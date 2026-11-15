@@ -178,6 +178,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
         .updateTable("imageFiles")
         .set({ rotation, fingerprint: null })
         .where("id", "=", imageFileId)
+        .where("rotation", "is distinct from", rotation)
         .execute();
     },
 
@@ -186,6 +187,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
         .updateTable("imageFiles")
         .set({ needsTrim, fingerprint: null })
         .where("id", "=", imageFileId)
+        .where("needsTrim", "is distinct from", needsTrim)
         .execute();
     },
 
@@ -194,6 +196,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
         .updateTable("imageFiles")
         .set({ quad, fingerprint: null })
         .where("id", "=", imageFileId)
+        .where("quad", "is distinct from", sql<ImageQuad | null>`${quad}`)
         .execute();
     },
 
@@ -246,6 +249,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
         .updateTable("imageFiles")
         .set({ fingerprint })
         .where("id", "=", imageFileId)
+        .where("fingerprint", "is distinct from", fingerprint)
         .execute();
     },
 
@@ -254,6 +258,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
         .updateTable("faceImages")
         .set({ isActive: active })
         .where("id", "=", imageId)
+        .where("isActive", "is distinct from", active)
         .execute();
     },
 

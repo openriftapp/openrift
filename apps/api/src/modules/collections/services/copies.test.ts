@@ -1,11 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { Repos, Transact } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { AppError, TradeCancelConsentRequiredError } from "../../../errors.js";
 import {
   CANCEL_WITHOUT_ASKING,
   consentedTradeCancels,
-  TradeCancelConsentRequiredError,
 } from "../../groups/services/trade-supply.js";
 import { addCopies, disposeCopies, moveCopies, previewDisposeTradeCancels } from "./copies.js";
 

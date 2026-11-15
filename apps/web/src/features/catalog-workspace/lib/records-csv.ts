@@ -1,7 +1,6 @@
 import type { WorkspaceRecordRow } from "@openrift/shared/contracts/admin/catalog-workspace";
+import { escapeCsvField } from "@openrift/shared/csv";
 import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
-
-import { escapeCsvField } from "@/features/collections/lib/csv-export";
 
 const LIST_SEPARATOR = "; ";
 

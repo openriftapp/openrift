@@ -5,10 +5,12 @@ import {
   buildCardIndex,
   buildCodeIndex,
   findCard,
+  lookupCard,
   lookupCode,
   matchesCardQuery,
   resolveCard,
   searchCards,
+  tiedNamesText,
 } from "./card-search.js";
 
 const cards: SearchableCard[] = [
@@ -336,5 +338,60 @@ describe("buildCodeIndex / lookupCode", () => {
   it("returns undefined for unknown or empty codes", () => {
     expect(lookupCode(codeIndex, "XXX-999")).toBeUndefined();
     expect(lookupCode(codeIndex, "---")).toBeUndefined();
+  });
+});
+
+describe("lookupCard", () => {
+  it("reports a tie at the best tier with every tied card", () => {
+    const result = lookupCard(index, "jinx");
+    expect(result.status).toBe("tied");
+    expect(result.status === "tied" ? result.cards.map((card) => card.id).toSorted() : []).toEqual([
+      "c1",
+      "c2",
+    ]);
+  });
+
+  it("answers an exact slug even where its name would tie", () => {
+    expect(lookupCard(index, "jinx-rebel")).toEqual({
+      status: "found",
+      card: expect.objectContaining({ id: "c1" }),
+    });
+  });
+
+  it("answers a unique match the way findCard does", () => {
+    expect(lookupCard(index, "viktor")).toEqual({
+      status: "found",
+      card: findCard(index, "viktor"),
+    });
+  });
+
+  it("reports a miss", () => {
+    expect(lookupCard(index, "zzzz nothing")).toEqual({ status: "missing" });
+  });
+});
+
+describe("tiedNamesText", () => {
+  it("sorts the names and ends with a full stop", () => {
+    expect(tiedNamesText(["Jinx, Rebel", "Jinx, Loose Cannon"], 400)).toBe(
+      "Jinx, Loose Cannon | Jinx, Rebel.",
+    );
+  });
+
+  it("shows at most five names and counts the rest", () => {
+    const names = Array.from({ length: 8 }, (_, i) => `Card ${String(i + 1)}`);
+    expect(tiedNamesText(names, 400)).toBe(
+      "Card 1 | Card 2 | Card 3 | Card 4 | Card 5 and 3 more.",
+    );
+  });
+
+  it("drops names that would pass the length limit", () => {
+    const names = ["a".repeat(30), "b".repeat(30), "c".repeat(30)];
+    const text = tiedNamesText(names, 75);
+    expect(text).toBe(`${"a".repeat(30)} | ${"b".repeat(30)} and 1 more.`);
+    expect(text.length).toBeLessThanOrEqual(75);
+  });
+
+  it("is empty when not even the first name fits", () => {
+    expect(tiedNamesText(["a".repeat(30), "b"], 10)).toBe("");
   });
 });

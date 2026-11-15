@@ -6,6 +6,8 @@ import { WellKnown } from "@openrift/shared/well-known";
 import type { Selectable } from "kysely";
 
 import type { CandidatePrintingsTable } from "../../../db/tables/candidates.js";
+import type { KnownPrintingRefs } from "../../catalog/lib/printing-refs.js";
+import { describeUnknownRefs, unknownPrintingRefs } from "../../catalog/lib/printing-refs.js";
 import type {
   PrintingProbeRow,
   TrustedDraftRow,
@@ -54,15 +56,19 @@ export function eligibleTrustedCards(
   drafts: readonly TrustedDraftRow[],
   printings: readonly CandidatePrintingRow[],
   liveCards: readonly SearchableCard[],
+  known: KnownPrintingRefs,
 ): { eligible: TrustedCardDraft[]; ineligible: IneligibleTrustedCard[] } {
   const index = buildCardLookupIndex(
     liveCards.map((card) => ({ ...card, types: [], tags: [] })),
     [],
   );
-  const completePrintingCardIds = new Set(
-    printings
-      .filter((cp) => acceptFieldsFromCandidate(cp).fields !== undefined)
-      .map((cp) => cp.candidateCardId),
+  const complete = printings.flatMap((cp) => {
+    const { fields } = acceptFieldsFromCandidate(cp);
+    return fields === undefined ? [] : [{ cp, unknown: unknownPrintingRefs(fields, known) }];
+  });
+  const completePrintingCardIds = new Set(complete.map(({ cp }) => cp.candidateCardId));
+  const acceptablePrintingCardIds = new Set(
+    complete.filter(({ unknown }) => unknown.length === 0).map(({ cp }) => cp.candidateCardId),
   );
   const eligible: TrustedCardDraft[] = [];
   const ineligible: IneligibleTrustedCard[] = [];
@@ -80,6 +86,20 @@ export function eligibleTrustedCards(
       ineligible.push({ name, reason: "no printing has every required field" });
       continue;
     }
+    if (!group.some((draft) => acceptablePrintingCardIds.has(draft.id))) {
+      const ids = new Set(group.map((draft) => draft.id));
+      const unknown = new Map(
+        complete
+          .filter(({ cp }) => ids.has(cp.candidateCardId))
+          .flatMap(({ unknown: refs }) => refs)
+          .map((ref) => [`${ref.field}\u0000${ref.value}`, ref]),
+      );
+      const ordered = [...unknown.values()].toSorted(
+        (a, b) => a.field.localeCompare(b.field) || a.value.localeCompare(b.value),
+      );
+      ineligible.push({ name, reason: describeUnknownRefs(ordered) });
+      continue;
+    }
     const similar = mergeCandidateName(index, name);
     if (similar !== null) {
       ineligible.push({ name, reason: `a similar card exists: ${similar}` });
@@ -92,7 +112,7 @@ export function eligibleTrustedCards(
 }
 
 export function trustedPrintingGroups(
-  rows: readonly TrustedNewPrintingRow[],
+  rows: readonly Pick<TrustedNewPrintingRow, "id" | "cardId" | "cardSlug">[],
   printings: readonly CandidatePrintingRow[],
 ): TrustedPrintingGroup[] {
   const printingById = new Map(printings.map((cp) => [cp.id, cp]));

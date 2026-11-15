@@ -1,4 +1,4 @@
-import { findCard } from "@openrift/shared/card-search";
+import { lookupCard } from "@openrift/shared/card-search";
 import * as Sentry from "@sentry/bun";
 import { Hono } from "hono";
 
@@ -9,6 +9,7 @@ import {
   chatCardLine,
   chatErrorLine,
   chatMissLine,
+  chatTieLine,
   chatUsageLine,
 } from "../lib/chat-presenters.js";
 
@@ -58,11 +59,14 @@ export function createPublicChatRoute() {
     try {
       loadIndex ??= createChatCardIndexLoader(c.get("repos"));
       const { index, labels } = await loadIndex();
-      const card = findCard(index, query);
-      if (!card) {
+      const found = lookupCard(index, query);
+      if (found.status === "tied") {
+        return chatResponse(chatTieLine(query, found.cards, siteUrl));
+      }
+      if (found.status === "missing") {
         return chatResponse(chatMissLine(query, siteUrl));
       }
-      return chatResponse(chatCardLine(card, labels, siteUrl));
+      return chatResponse(chatCardLine(found.card, labels, siteUrl));
     } catch (error) {
       Sentry.captureException(error, { extra: { path: c.req.path, query } });
       return chatResponse(chatErrorLine(siteUrl), false);

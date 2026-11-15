@@ -5,6 +5,7 @@ import { Suspense, useState } from "react";
 import { PickerDialogBody } from "@/components/picker-dialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ConnectedMoveEntryDialogBody } from "@/features/lists/components/move-entry-dialog";
+import { listKindLabel } from "@/features/lists/lib/list-kind-label";
 import type { MoveEntrySubject, MoveMode, MoveResolution } from "@/features/lists/lib/list-move";
 import { hasTwoCards, moveNeedsDialog, movePickFor } from "@/features/lists/lib/list-move";
 import { m } from "@/paraglide/messages.js";
@@ -21,20 +22,6 @@ function intentHeading(intent: ListIntent): string {
     }
     case "organize": {
       return m.collections_sidebar_organize_lists();
-    }
-  }
-}
-
-export function listKindLabel(kind: ListKind): string {
-  switch (kind) {
-    case "card": {
-      return m.lists_create_kind_cards();
-    }
-    case "printing": {
-      return m.lists_create_kind_printings();
-    }
-    case "copy": {
-      return m.lists_create_kind_copies();
     }
   }
 }

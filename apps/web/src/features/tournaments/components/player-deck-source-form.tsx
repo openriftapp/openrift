@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { Label } from "@/components/ui/label";
 import { SimpleSelect } from "@/components/ui/simple-select";
-import { TextLink } from "@/components/ui/text-link";
 import { Textarea } from "@/components/ui/textarea";
+import { DeckCodeSiteLink } from "@/features/decks/components/deck-code-site-link";
 import { useDecks } from "@/features/decks/hooks/use-decks";
 import { SaveError } from "@/features/tournaments/components/save-error";
 import type { SharingConsent } from "@/features/tournaments/components/sharing-consent-fields";
@@ -116,16 +116,7 @@ export function PlayerDeckSourceForm({
           <ParaglideMessage
             message={m.tournaments_player_deck_paste_hint}
             markup={{
-              link: ({ children }) => (
-                <TextLink
-                  variant="muted"
-                  href="https://piltoverarchive.com"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {children}
-                </TextLink>
-              ),
+              link: ({ children }) => <DeckCodeSiteLink>{children}</DeckCodeSiteLink>,
             }}
           />
         </p>

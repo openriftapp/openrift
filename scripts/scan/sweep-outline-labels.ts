@@ -1,8 +1,3 @@
-/**
- * Detector training only: proposes card outlines on the sweep and auto clips, keeping an outline
- * as a card when the recognizer names it and the aligned check agrees, else as an ignore region.
- * Usage: SCAN_BOARD_DETECTOR=... bun scripts/scan/sweep-outline-labels.ts out-dir [--every 5]
- */
 import fs from "node:fs";
 import path from "node:path";
 
@@ -21,6 +16,12 @@ import {
 } from "../../packages/shared/src/scan/session-options.js";
 import type { Quad } from "../../packages/shared/src/scan/types.js";
 import { unwarpCard } from "../../packages/shared/src/scan/unwarp.js";
+/**
+ * Detector training only: proposes card outlines on the sweep and auto clips, keeping an outline
+ * as a card when the recognizer names it and the aligned check agrees, else as an ignore region.
+ * Usage: SCAN_BOARD_DETECTOR=... bun scripts/scan/sweep-outline-labels.ts out-dir [--every 5]
+ */
+import { positionals } from "./args-guard";
 import { createBoardDetector } from "./board-model";
 import { embedSize, loadEmbedBank, nodeEmbedder } from "./embed-bank";
 import {
@@ -34,7 +35,7 @@ import {
   servedModel,
 } from "./lib";
 
-const outDir = process.argv[2];
+const outDir = positionals[0];
 const every = positiveIntArg("--every") ?? 5;
 const modelFile = servedModel("SCAN_BOARD_DETECTOR", "SCAN_BOARD_DETECTOR_FILE");
 if (!outDir || !modelFile) {

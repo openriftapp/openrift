@@ -2,7 +2,7 @@ import { execSync } from "node:child_process";
 
 import { createDb } from "../apps/api/src/db/connect.js";
 import { migrate } from "../apps/api/src/db/migrate.js";
-import { replaceDbName } from "../apps/api/src/test/integration-setup.js";
+import { DEV_DB_CONTAINER, replaceDbName } from "../apps/api/src/test/integration-setup.js";
 import { createLogger } from "../packages/shared/src/logger.js";
 import { requireEnv } from "./env.js";
 
@@ -11,10 +11,9 @@ import { requireEnv } from "./env.js";
 const log = createLogger("db:schema");
 const url = requireEnv("DATABASE_URL");
 const TEMP_DB = "openrift_schema_dump";
-const CONTAINER = "openrift-db-1";
 
 function psql(sql: string): void {
-  execSync(`docker exec ${CONTAINER} psql -U openrift -d postgres -c '${sql}'`, {
+  execSync(`docker exec ${DEV_DB_CONTAINER} psql -U openrift -d postgres -c '${sql}'`, {
     stdio: "ignore",
   });
 }
@@ -30,7 +29,7 @@ try {
 }
 
 execSync(
-  `docker exec ${CONTAINER} pg_dump -U openrift --schema-only --no-owner --no-privileges ${TEMP_DB} > docs/schema.sql`,
+  `docker exec ${DEV_DB_CONTAINER} pg_dump -U openrift --schema-only --no-owner --no-privileges ${TEMP_DB} > docs/schema.sql`,
   { stdio: "inherit" },
 );
 

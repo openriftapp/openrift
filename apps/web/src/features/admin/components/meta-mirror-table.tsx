@@ -189,7 +189,7 @@ function RowActionsFor({
       <Button
         variant="ghost"
         size="sm"
-        disabled={restore.isPending}
+        pending={restore.isPending}
         onClick={() => restore.mutate(target)}
       >
         <UndoIcon />
@@ -207,7 +207,7 @@ function RowActionsFor({
             size="icon-sm"
             aria-label="Collect results"
             title="Collect results"
-            disabled={collect.isPending}
+            pending={collect.isPending}
             onClick={() =>
               collect.mutate(target, {
                 onSuccess: (result) => announceSyncTrigger("Collect results", result),

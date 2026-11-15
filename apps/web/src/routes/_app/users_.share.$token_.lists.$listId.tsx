@@ -2,7 +2,6 @@ import { listShareDescription, listShareTitle } from "@openrift/shared/share-tit
 import type { PublicListDetailResponse } from "@openrift/shared/types/api/list";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { LinkGoneState } from "@/components/link-gone-state";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -61,7 +60,6 @@ export const Route = createFileRoute("/_app/users_/share/$token_/lists/$listId")
     return { list: { name, intent, updatedAt }, owner: { displayName: data.owner.displayName } };
   },
   pendingComponent: BundleListPending,
-  errorComponent: RouteErrorFallback,
   notFoundComponent: () => (
     <LinkGoneState
       title={m.common_share_gone_title()}

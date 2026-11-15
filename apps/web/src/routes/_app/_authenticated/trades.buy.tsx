@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { userTradesQueryOptions } from "@/features/groups/lib/card-trades-queries";
 import { privateSeoHead } from "@/lib/seo";
 
@@ -13,5 +12,4 @@ export const Route = createFileRoute("/_app/_authenticated/trades/buy")({
       staleTime: "static",
     });
   },
-  errorComponent: RouteErrorFallback,
 });

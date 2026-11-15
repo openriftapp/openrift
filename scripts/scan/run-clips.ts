@@ -4,6 +4,8 @@
  *
  * Usage: SCAN_DETECTOR=card.onnx SCAN_BOARD_DETECTOR=board.onnx bun scripts/scan/run-clips.ts [flags]
  */
+// oxlint-disable-next-line import/no-unassigned-import -- checks argv before the heavy imports load
+import "./args-guard";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -45,6 +47,7 @@ import { createBoardDetector } from "./board-model";
 import { createCardDetector } from "./card-model";
 import type { CardIdentity } from "./catalog";
 import { applyArtGroups, benchDeps, describe, loadCatalog } from "./catalog";
+import { RUN_CLIPS_USAGE } from "./cli-specs";
 import type { ClipReplay, Sighting } from "./clip-report";
 import { reportClip } from "./clip-report";
 import { CANONICAL_BANK, MODEL_FILE, embedSize, loadEmbedBank } from "./embed-bank";
@@ -54,7 +57,6 @@ import {
   RECORDINGS_DIR,
   REPO_ROOT,
   argValue,
-  exitOnBadArgs,
   hasFlag,
   listClips,
   listFrames,
@@ -68,51 +70,10 @@ import { createPlacementStats, recordPlacement } from "./placement-stats";
 
 type Catalog = Map<string, CardIdentity>;
 
-const USAGE = `usage: SCAN_DETECTOR=card.onnx SCAN_BOARD_DETECTOR=board.onnx bun scripts/scan/run-clips.ts [flags]
-selection:  --clip <name>  --split tune|holdout  --only-mode <label>
-output:     --json <file>  --verbose  --trace  --attribute  --min-sightings <n>
-scoring:    --language <code>|any  --no-art-groups  --no-illustration-groups
-caches:     --force-bank  --refresh-printings
-session:    --slow-device  --set <path>=<value> (repeatable)
-replay:     --no-catch-up  --no-rearm  --no-skip-disturbed  --no-relock-guard  --drop-to <fps>  --all-frames
-scripts/scan/README.md describes each flag.
-`;
-
-exitOnBadArgs(
-  {
-    values: [
-      "--clip",
-      "--split",
-      "--only-mode",
-      "--json",
-      "--min-sightings",
-      "--language",
-      "--set",
-      "--drop-to",
-    ],
-    flags: [
-      "--verbose",
-      "--trace",
-      "--attribute",
-      "--no-art-groups",
-      "--no-illustration-groups",
-      "--force-bank",
-      "--refresh-printings",
-      "--slow-device",
-      "--no-catch-up",
-      "--no-rearm",
-      "--no-skip-disturbed",
-      "--no-relock-guard",
-      "--all-frames",
-    ],
-  },
-  USAGE,
-);
-
 const cardDetectorFile = servedModel("SCAN_DETECTOR", "SCAN_DETECTOR_FILE");
 const boardDetectorFile = servedModel("SCAN_BOARD_DETECTOR", "SCAN_BOARD_DETECTOR_FILE");
 if (!cardDetectorFile || !boardDetectorFile) {
-  process.stderr.write(`both detectors are required\n${USAGE}`);
+  process.stderr.write(`both detectors are required\n${RUN_CLIPS_USAGE}`);
   process.exit(2);
 }
 const detectCard = createCardDetector(cardDetectorFile);

@@ -3,8 +3,8 @@ import { formatDay } from "@openrift/shared/format-date";
 
 import { stableKey } from "../../../lib/hash.js";
 import { count, instant, record, sourceId, text } from "../../../lib/json-coerce.js";
+import { META_NAME_MAX } from "../../../lib/meta-name-limits.js";
 import { normalizeFormatKey } from "../../../lib/meta-providers.js";
-import { META_NAME_MAX } from "./meta-event-naming.js";
 
 /**
  * Reads the official source's event listing into `uvsgames_events`. The

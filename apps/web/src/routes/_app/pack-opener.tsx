@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { initQueryOptions } from "@/lib/init-queries";
 import { seoHead } from "@/lib/seo";
@@ -22,5 +21,4 @@ export const Route = createFileRoute("/_app/pack-opener")({
       context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
     ]);
   },
-  errorComponent: RouteErrorFallback,
 });

@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
 import { adminSeoHead } from "@/lib/seo";
 
@@ -9,5 +8,4 @@ export const Route = createFileRoute(
 )({
   head: () => adminSeoHead("New Printing"),
   pendingComponent: AdminPending,
-  errorComponent: RouteErrorFallback,
 });

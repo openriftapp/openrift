@@ -1,6 +1,6 @@
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback } from "@/components/error-message";
 import { customTagsQueryOptions } from "@/features/cards/lib/custom-tags-queries";
 import { cleanedSearchForRedirect } from "@/features/cards/lib/search-schemas";
 import { loadCollection } from "@/features/collections/lib/collection-load";
@@ -77,6 +77,5 @@ export const Route = createFileRoute("/_app/decks/$deckId")({
     }
   },
   pendingComponent: DeckPending,
-  errorComponent: RouteErrorFallback,
   notFoundComponent: NotFoundFallback,
 });

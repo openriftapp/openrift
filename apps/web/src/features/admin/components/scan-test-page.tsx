@@ -448,8 +448,8 @@ export function ScanTestPage() {
       <AdminPageTopBar title="Scan Test" />
       <div className={cn(PAGE_WIDTH.capped, "px-safe pb-12")}>
         {deviceTooSlow && (
-          <Card className="border-warning mt-4">
-            <CardContent className="pt-6">
+          <Card className="mt-4">
+            <CardContent>
               <p className="font-medium">This device is too slow for live scanning.</p>
               <p className="text-muted-foreground mt-2">
                 Recognising a card live would take roughly {predictedLockSeconds} seconds instead of
@@ -471,8 +471,8 @@ export function ScanTestPage() {
         )}
 
         {loadError && (
-          <Card className="border-destructive mt-4">
-            <CardContent className="pt-6">
+          <Card className="mt-4">
+            <CardContent>
               <p className="font-medium">{loadError}</p>
             </CardContent>
           </Card>

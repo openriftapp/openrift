@@ -585,7 +585,7 @@ function CardsTable({
             <Button
               variant="outline"
               size="sm"
-              disabled={ignoreDrafts.isPending}
+              pending={ignoreDrafts.isPending}
               onClick={ignoreSelected}
             >
               Ignore

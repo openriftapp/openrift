@@ -8,6 +8,7 @@ import { LayoutDashboardIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Pressable } from "@/components/ui/pressable";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
@@ -62,13 +63,28 @@ function PanelIdentityHeader({
     ? getPreferredFrontImage(champion.cardId, champion.preferredPrintingId)
     : undefined;
 
+  const legendPlaceholder = (
+    <div
+      aria-hidden="true"
+      style={{ borderRadius: CARD_BORDER_RADIUS }}
+      className="aspect-card border-muted-foreground/25 absolute top-1/2 left-0 h-11 -translate-y-1/2 -rotate-7 border border-dashed"
+    />
+  );
+  const championPlaceholder = (
+    <div
+      aria-hidden="true"
+      style={{ borderRadius: CARD_BORDER_RADIUS }}
+      className="aspect-card border-muted-foreground/25 absolute top-1/2 right-0 h-11 -translate-y-1/2 rotate-7 border border-dashed"
+    />
+  );
   const body = (
     <>
       <div className="absolute inset-0" style={deckGlowStyle(legendDomains, domainColors)} />
       <div className="relative flex items-center gap-2.5 p-2.5">
         <div className="relative h-11 w-14 shrink-0">
           {legendImage ? (
-            <img
+            <ImgWithFallback
+              fallback={legendPlaceholder}
               src={imageUrl(legendImage.imageId, "120w")}
               alt={
                 legend
@@ -84,14 +100,11 @@ function PanelIdentityHeader({
               draggable={false}
             />
           ) : (
-            <div
-              aria-hidden="true"
-              style={{ borderRadius: CARD_BORDER_RADIUS }}
-              className="aspect-card border-muted-foreground/25 absolute top-1/2 left-0 h-11 -translate-y-1/2 -rotate-7 border border-dashed"
-            />
+            legendPlaceholder
           )}
           {championImage ? (
-            <img
+            <ImgWithFallback
+              fallback={championPlaceholder}
               src={imageUrl(championImage.imageId, "120w")}
               alt={champion?.cardName ?? m.decks_zone_champion_alt()}
               style={{ borderRadius: CARD_BORDER_RADIUS }}
@@ -99,11 +112,7 @@ function PanelIdentityHeader({
               draggable={false}
             />
           ) : (
-            <div
-              aria-hidden="true"
-              style={{ borderRadius: CARD_BORDER_RADIUS }}
-              className="aspect-card border-muted-foreground/25 absolute top-1/2 right-0 h-11 -translate-y-1/2 rotate-7 border border-dashed"
-            />
+            championPlaceholder
           )}
         </div>
         <div className="min-w-0">

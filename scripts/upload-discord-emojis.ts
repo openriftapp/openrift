@@ -10,6 +10,7 @@ import path from "node:path";
 
 import sharp from "sharp";
 
+import { discordRetryAfterMs } from "../apps/api/src/lib/discord-rate-limit.js";
 import { requireEnv } from "./env.js";
 
 const API = "https://discord.com/api/v10";
@@ -115,10 +116,9 @@ async function discord(token: string, method: string, route: string, body?: unkn
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     if (response.status === 429) {
-      const limit = (await response.json()) as { retry_after?: number };
-      const wait = limit.retry_after ?? 1;
-      console.log(`Rate limited, waiting ${wait}s`);
-      await Bun.sleep(wait * 1000);
+      const waitMs = discordRetryAfterMs(response, await response.text());
+      console.log(`Rate limited, waiting ${waitMs / 1000}s`);
+      await Bun.sleep(waitMs);
       continue;
     }
     if (!response.ok) {

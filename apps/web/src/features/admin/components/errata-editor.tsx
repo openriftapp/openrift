@@ -122,7 +122,7 @@ export function ErrataEditor({
       )}
 
       <div className="flex gap-2">
-        <Button disabled={isPending || !isErrataDraftComplete(draft)} onClick={onSubmit}>
+        <Button disabled={!isErrataDraftComplete(draft)} pending={isPending} onClick={onSubmit}>
           <CheckIcon />
           {submitLabel}
         </Button>

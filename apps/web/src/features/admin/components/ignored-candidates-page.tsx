@@ -125,7 +125,7 @@ function CardUnignoreAction({ row }: AdminCellSlotProps<IgnoredCard>) {
     <Button
       variant="ghost"
       onClick={() => unignoreCard.mutate({ provider: row.provider, externalId: row.externalId })}
-      disabled={unignoreCard.isPending}
+      pending={unignoreCard.isPending}
     >
       <Undo2Icon className="size-3.5" />
       Unignore
@@ -148,7 +148,7 @@ function PrintingUnignoreAction({ row }: AdminCellSlotProps<IgnoredPrinting>) {
           finish: row.finish ?? null,
         })
       }
-      disabled={unignorePrinting.isPending}
+      pending={unignorePrinting.isPending}
     >
       <Undo2Icon className="size-3.5" />
       Unignore

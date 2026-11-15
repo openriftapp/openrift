@@ -109,7 +109,7 @@ function mountTargets() {
 }
 
 function renderFocus(initial: Props) {
-  return renderHook((props: Props) => useCardPageFocus({ cardId: CARD, goToSection, ...props }), {
+  return renderHook((props: Props) => useCardPageFocus({ cardSlug: CARD, goToSection, ...props }), {
     initialProps: initial,
   });
 }

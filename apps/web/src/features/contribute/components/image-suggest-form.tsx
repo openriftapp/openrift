@@ -8,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dropzone } from "@/components/ui/dropzone";
 import { FieldError } from "@/components/ui/field";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -120,7 +121,8 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
           <figcaption className="text-sm font-medium">
             {m.contribute_image_current_label()}
           </figcaption>
-          <img
+          <ImgWithFallback
+            fallback={null}
             src={cardImageUrl(currentImage.imageId, "400w")}
             alt={card.name}
             className="ring-border max-h-80 w-fit rounded-lg object-contain ring-1"

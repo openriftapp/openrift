@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
 import {
   adminMetaEventPlayersQueryOptions,
@@ -29,5 +28,4 @@ export const Route = createFileRoute("/_app/_authenticated/admin/meta_/$eventId"
     ]);
   },
   pendingComponent: AdminPending,
-  errorComponent: RouteErrorFallback,
 });

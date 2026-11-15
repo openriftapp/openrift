@@ -2,6 +2,8 @@
 // code }` envelope — shared by the API and the web app — so they live in
 // @openrift/shared. Import them from there directly (not via this module);
 // errors.ts owns the server-side AppError, its helpers and codeForStatus.
+
+import type { TradeCancelConflictData } from "@openrift/shared/contracts/fields";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { ErrorCode } from "@openrift/shared/error-codes";
 
@@ -16,6 +18,17 @@ export class AppError extends Error {
     this.status = status;
     this.code = code;
     this.details = details;
+  }
+}
+
+/** Thrown inside the edit's transaction, so the edit rolls back with it. */
+export class TradeCancelConsentRequiredError extends Error {
+  readonly data: TradeCancelConflictData;
+
+  constructor(data: TradeCancelConflictData) {
+    super("This change would cancel pending trades");
+    this.name = "TradeCancelConsentRequiredError";
+    this.data = data;
   }
 }
 

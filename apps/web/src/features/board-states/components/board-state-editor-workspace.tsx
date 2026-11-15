@@ -25,6 +25,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -303,11 +304,14 @@ function ZoneAddPanel({
                 title={name}
                 onClick={() => place(pieceKindForCardTypes(card.types), toCardRef(cardId, card))}
               >
-                {image === undefined ? (
-                  <span className="font-card p-1 text-center text-xs leading-tight">{name}</span>
-                ) : (
-                  <img src={image} alt="" className="size-full object-cover" />
-                )}
+                <ImgWithFallback
+                  src={image}
+                  alt=""
+                  className="size-full object-cover"
+                  fallback={
+                    <span className="font-card p-1 text-center text-xs leading-tight">{name}</span>
+                  }
+                />
               </Pressable>
             );
           })}
@@ -357,11 +361,12 @@ function RuneTile({
         title={name}
         onClick={onAdd}
       >
-        {image === undefined ? (
-          <span className="font-card p-1 text-center text-xs leading-tight">{name}</span>
-        ) : (
-          <img src={image} alt="" className="size-full object-cover" />
-        )}
+        <ImgWithFallback
+          src={image}
+          alt=""
+          className="size-full object-cover"
+          fallback={<span className="font-card p-1 text-center text-xs leading-tight">{name}</span>}
+        />
       </Pressable>
       {count > 0 && (
         <>

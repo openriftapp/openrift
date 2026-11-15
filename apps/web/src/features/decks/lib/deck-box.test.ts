@@ -1,3 +1,4 @@
+import { deckCardKey } from "@openrift/shared/deck-cards";
 import { labelMapOf } from "@openrift/shared/enum-label";
 import { formatPrintingVariantLabelParts } from "@openrift/shared/printing-label";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
@@ -11,7 +12,6 @@ import type {
   DeckBoxPlan,
 } from "@/features/decks/lib/deck-box";
 import { computeDeckBoxPlan } from "@/features/decks/lib/deck-box";
-import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import { resetIdCounter, stubCopy, stubDeckBuilderCard, stubPrinting } from "@/test/factories";
 
 function missingSlots(plan: DeckBoxPlan): number {

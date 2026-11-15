@@ -3,7 +3,7 @@ import { pluralize } from "@openrift/shared/strings";
 import type { MetaLegendDetailResponse } from "@openrift/shared/types/api/meta";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { DECK_GRID_LIMIT } from "@/features/meta/lib/meta-deck-grid";
@@ -89,7 +89,6 @@ export const Route = createFileRoute("/_app/meta_/legends_/$slug")({
     };
   },
   pendingComponent: MetaLegendPending,
-  errorComponent: RouteErrorFallback,
   notFoundComponent: NotFoundFallback,
 });
 

@@ -20,6 +20,8 @@ export const noopLogger = {
   debug: noop,
 } as unknown as Logger;
 
+export const DEV_DB_CONTAINER = "openrift-db-1";
+
 export function replaceDbName(url: string, dbName: string): string {
   return url.replace(/\/[^/?]+(?<tail>\?|$)/u, `/${dbName}$<tail>`);
 }

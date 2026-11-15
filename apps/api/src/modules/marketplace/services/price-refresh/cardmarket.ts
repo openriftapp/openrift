@@ -16,10 +16,9 @@ import type { Fetch } from "../../../../io.js";
 import { fetchJson } from "../../../../lib/http.js";
 import type { StagingRow } from "../../lib/marketplace-configs.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
-import { logFetchSummary, logUpsertCounts } from "./log.js";
+import { refreshFetchedPrices } from "./finish.js";
 import { PRICE_FETCH_RETRIES } from "./types.js";
 import type { GroupRow } from "./types.js";
-import { loadIgnoredKeys, upsertMarketplaceGroups, upsertPriceData } from "./upsert.js";
 
 const CARDMARKET_BASE = "https://downloads.s3.cardmarket.com/productCatalog";
 const CARDMARKET_GAME = 22;
@@ -160,37 +159,15 @@ function buildCardmarketGroups(singles: CmProduct[]): GroupRow[] {
  * expansion metadata, and write snapshots for already-mapped sources. Unmatched
  * products are staged for manual admin mapping.
  */
-export async function refreshCardmarketPrices(
+export function refreshCardmarketPrices(
   fetchFn: Fetch,
   repos: Repos,
   log: Logger,
 ): Promise<PriceRefreshResponse> {
-  const ignoredKeys = await loadIgnoredKeys(repos.priceRefresh, "cardmarket");
-
-  const fetchResult = await fetchCardmarketData(fetchFn);
-  const { singles } = fetchResult;
-
-  const allStaging = buildCardmarketStaging(fetchResult, ignoredKeys);
-  const groupRows = buildCardmarketGroups(singles);
-
-  const transformedCounts = {
-    groups: groupRows.length,
-    products: singles.length,
-    prices: allStaging.length,
-  };
-
-  logFetchSummary(
-    log,
-    transformedCounts,
-    ignoredKeys.productIds.size + ignoredKeys.variantKeys.size,
-  );
-
-  await upsertMarketplaceGroups(repos.priceRefresh, "cardmarket", groupRows);
-
-  const counts = await upsertPriceData(repos.priceRefresh, log, "cardmarket", allStaging);
-  logUpsertCounts(log, counts);
-
-  await repos.marketplace.refreshLatestPrices();
-
-  return { transformed: transformedCounts, upserted: counts };
+  return refreshFetchedPrices(repos, log, "cardmarket", {
+    fetch: () => fetchCardmarketData(fetchFn),
+    staging: buildCardmarketStaging,
+    groups: (fetched) => buildCardmarketGroups(fetched.singles),
+    products: (fetched) => fetched.singles.length,
+  });
 }

@@ -13,11 +13,11 @@ import {
 import { finishPrintingAccepts } from "../../candidates/services/accept-candidate-printings.js";
 import { acceptFavoritePrintingsForCard } from "../../candidates/services/accept-favorite-printings.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
-import { isUnchangedValue } from "../lib/field-values.js";
 import type { NewPrinting } from "../services/printing-admin.js";
 import { createNewPrinting, deletePrinting } from "../services/printing-admin.js";
 import {
   changesCatalogViews,
+  isUnchangedPrintingValue,
   normalizePrintingFieldValue,
   writePrintingField,
 } from "../services/printing-field-writes.js";
@@ -81,7 +81,7 @@ export const adminCardMutationsPrintingsRouter = {
       source,
       side,
     });
-    if (isUnchangedValue((printingBefore as Record<string, unknown>)[field], normalizedValue)) {
+    if (await isUnchangedPrintingValue(context.repos, printingBefore, field, normalizedValue)) {
       return;
     }
 

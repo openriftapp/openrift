@@ -2,6 +2,7 @@ import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { WellKnown } from "@openrift/shared/well-known";
 
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { getDomainColor } from "@/lib/domain";
 import { getFilterIconPath } from "@/lib/icons";
 import { m } from "@/paraglide/messages.js";
@@ -20,7 +21,9 @@ export function PowerDomainIcon({
   const domain = domains[0] ?? WellKnown.domain.COLORLESS;
   if (domains.length === 1 && domain !== WellKnown.domain.COLORLESS) {
     const domainIcon = getFilterIconPath("domains", domain);
-    return domainIcon ? <img src={domainIcon} alt="" className="inline size-3" /> : null;
+    return domainIcon ? (
+      <ImgWithFallback src={domainIcon} alt="" className="inline size-3" fallback={null} />
+    ) : null;
   }
   // These glyphs are `currentColor` SVGs; inside an <img> that paints black
   // and vanishes in dark mode, so they're masked and tinted instead.

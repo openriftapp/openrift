@@ -227,7 +227,7 @@ export function submitMetaEventCorrection(
   args: MetaEventCorrectionArgs,
 ): Promise<MetaEventCorrectionResult> {
   return transact(async (repos) => {
-    await repos.ingest.lockUserSubmissions(args.userId);
+    await repos.ingest.lockCardAndMetaSubmissions(args.userId);
     const pending = await repos.metaSubmissions.countPendingByUser(args.userId);
     if (pending >= META_PENDING_SUBMISSION_LIMIT) {
       return { status: "rate_limited", limit: META_PENDING_SUBMISSION_LIMIT };
@@ -275,7 +275,7 @@ export function submitMetaDeck(
     // The advisory lock serializes this user's concurrent submissions: without
     // it, parallel requests all read the same COUNT under READ COMMITTED and
     // all pass the cap. It releases when the transaction ends.
-    await repos.ingest.lockUserSubmissions(args.userId);
+    await repos.ingest.lockCardAndMetaSubmissions(args.userId);
     const pending = await repos.metaSubmissions.countPendingByUser(args.userId);
     if (pending >= META_PENDING_SUBMISSION_LIMIT) {
       return { status: "rate_limited", limit: META_PENDING_SUBMISSION_LIMIT };

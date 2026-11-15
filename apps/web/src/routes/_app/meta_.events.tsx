@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { META_EVENTS_DESCRIPTION } from "@/features/meta/lib/meta-copy";
 import {
@@ -82,5 +81,4 @@ export const Route = createFileRoute("/_app/meta_/events")({
       context.queryClient.query({ ...metaCountsQueryOptions(), staleTime: "static" }),
     ]);
   },
-  errorComponent: RouteErrorFallback,
 });

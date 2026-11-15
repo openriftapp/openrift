@@ -311,7 +311,7 @@ function NewPrintingBody({
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={ignoreCandidate.isPending}
+                  pending={ignoreCandidate.isPending}
                   onClick={ignore}
                 >
                   Ignore <Kbd>X</Kbd>

@@ -27,8 +27,12 @@ const PAD_X = LABEL_WIDTH / 2;
 const RAIL_WIDTH = PAD_X + SLOT_WIDTH * 2 + PAD_X;
 const RAIL_HEIGHT = LANE_TOP_Y + LANE_GAP + LANE_BOTTOM_PAD;
 
+function railShare(px: number): number {
+  return (px / RAIL_WIDTH) * 100;
+}
+
 const SLIDE_STYLE = {
-  "--variant-slide-x": `${SLOT_WIDTH}px`,
+  "--variant-slide-x": `${railShare(SLOT_WIDTH)}cqw`,
   "--variant-slide-y": `${LANE_GAP}px`,
 } as CSSProperties;
 
@@ -59,7 +63,7 @@ function NodeLabel({
   return (
     <span
       className="text-2xs absolute bottom-full left-1/2 mb-2 flex -translate-x-1/2 items-center justify-center gap-1.5"
-      style={{ width: LABEL_WIDTH }}
+      style={{ width: `${railShare(LABEL_WIDTH)}cqw` }}
     >
       {emphasis === undefined ? (
         <span className="text-muted-foreground flex min-w-0 items-center gap-1.5">{name}</span>
@@ -94,7 +98,10 @@ function NodeLabel({
 
 function RailNode({ x, y, children }: { x: number; y: number; children: ReactNode }) {
   return (
-    <span className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: x, top: y }}>
+    <span
+      className="absolute -translate-x-1/2 -translate-y-1/2"
+      style={{ left: `${railShare(x)}%`, top: y }}
+    >
       {children}
     </span>
   );
@@ -114,10 +121,13 @@ function EdgeCounts({
   pulse?: boolean;
 }) {
   return (
-    <span className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: x, top: y }}>
+    <span
+      className="absolute -translate-x-1/2 -translate-y-1/2"
+      style={{ left: `${railShare(x)}%`, top: y }}
+    >
       <span
         className={cn(
-          "bg-background flex items-center gap-1 rounded-full px-1",
+          "bg-background flex flex-col items-stretch gap-0.5 rounded-md text-center",
           pulse && "motion-safe:animate-variant-chip",
         )}
       >
@@ -171,14 +181,16 @@ function StepDiff({
 export function VariantsVignette() {
   return (
     <ClipFrame className="flex flex-col gap-4 p-5">
-      <div className="min-w-0 overflow-x-auto overflow-y-hidden px-1">
-        <div className="relative" style={{ width: RAIL_WIDTH, height: RAIL_HEIGHT }}>
+      <div className="min-w-0 overflow-hidden px-1">
+        <div
+          className="@container relative w-full"
+          style={{ maxWidth: RAIL_WIDTH, height: RAIL_HEIGHT }}
+        >
           <svg
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0"
-            width={RAIL_WIDTH}
-            height={RAIL_HEIGHT}
+            className="pointer-events-none absolute inset-0 size-full"
             viewBox={`0 0 ${RAIL_WIDTH} ${RAIL_HEIGHT}`}
+            preserveAspectRatio="none"
             fill="none"
           >
             <path
@@ -186,12 +198,14 @@ export function VariantsVignette() {
               className="stroke-border"
               strokeWidth={2}
               strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
             />
             <path
               d={`M ${HEAD_X} ${LANE_0_Y} C ${HEAD_X + SLOT_WIDTH / 2} ${LANE_0_Y} ${FORK_X - SLOT_WIDTH / 2} ${LANE_1_Y} ${FORK_X} ${LANE_1_Y}`}
               className="stroke-border"
               strokeWidth={2}
               strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
             />
           </svg>
 
@@ -227,7 +241,7 @@ export function VariantsVignette() {
             className="bg-primary ring-primary/25 motion-safe:animate-variant-slide absolute block size-2 rounded-full ring-4"
             style={{
               ...SLIDE_STYLE,
-              left: HEAD_X - DOT_SIZE / 2,
+              left: `calc(${railShare(HEAD_X)}% - ${DOT_SIZE / 2}px)`,
               top: LANE_0_Y - DOT_SIZE / 2,
             }}
           />

@@ -201,6 +201,25 @@ const isHannover = (call: SearchCall) =>
   call.latitude === hannoverCell.latitude && call.longitude === hannoverCell.longitude;
 
 describe("syncPlayriftboundCatalog", () => {
+  it("stops at the daily time budget before a second run could be claimed", async () => {
+    let at = NOW.getTime();
+    const { deps, searches, missing } = fakeDeps({
+      organizers: [HANNOVER, BERLIN],
+      pages: () => {
+        at += 91 * 60_000;
+        return { nodes: [], next: null };
+      },
+    });
+    deps.now = () => new Date(at);
+
+    const result = await syncPlayriftboundCatalog(deps);
+
+    expect(searches).toHaveLength(1);
+    expect(result.complete).toBe(false);
+    expect(result.errors).toContain("Stopped at the 90-minute time budget");
+    expect(missing).toEqual([]);
+  });
+
   it("asks for the discovery sweep when no store is known yet", async () => {
     const { deps, searches } = fakeDeps({});
     const result = await syncPlayriftboundCatalog(deps);

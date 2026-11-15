@@ -1,8 +1,8 @@
+import { deckCardKey } from "@openrift/shared/deck-cards";
 import { labelMapOf } from "@openrift/shared/enum-label";
 import { WellKnown } from "@openrift/shared/well-known";
 import { describe, expect, it } from "vitest";
 
-import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import { chanceToDraw, OPENING_HAND_SIZE } from "@/features/decks/lib/deck-draw-odds";
 import {
   cardMatchesStatsFocus,

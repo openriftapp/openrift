@@ -8,6 +8,7 @@ import {
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Pressable } from "@/components/ui/pressable";
@@ -107,19 +108,18 @@ function SeatRow({
           legend ? "border-border-accent" : "border-border border-dashed",
         )}
       >
-        {legend?.thumbnail ? (
-          <img
-            src={legend.thumbnail}
-            alt=""
-            aria-hidden="true"
-            draggable={false}
-            className="absolute inset-0 size-full object-cover"
-          />
-        ) : (
-          <span className="text-muted-foreground grid size-full place-items-center">
-            <PlusIcon className="size-4" />
-          </span>
-        )}
+        <ImgWithFallback
+          src={legend?.thumbnail ?? undefined}
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          className="absolute inset-0 size-full object-cover"
+          fallback={
+            <span className="text-muted-foreground grid size-full place-items-center">
+              <PlusIcon className="size-4" />
+            </span>
+          }
+        />
       </Pressable>
       <Input
         value={name}

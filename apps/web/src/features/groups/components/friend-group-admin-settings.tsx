@@ -1,6 +1,7 @@
 import type { FriendGroupDetailResponse } from "@openrift/shared/types/api/friend-group";
 import { useNavigate } from "@tanstack/react-router";
 import { KeyIcon, TriangleAlertIcon } from "lucide-react";
+import { toast } from "sonner";
 
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,7 @@ export function AdminSettings({ data, slug }: { data: FriendGroupDetailResponse;
       updated = await update.mutateAsync(payload);
     });
     if (ok && updated && slugChanged) {
+      toast.success(m.groups_admin_slug_saved({ slug: updated.slug }));
       void navigate({ to: "/groups/$slug/manage", params: { slug: updated.slug } });
     }
   }
@@ -106,7 +108,8 @@ export function AdminSettings({ data, slug }: { data: FriendGroupDetailResponse;
         <div className="flex justify-end">
           <Button
             onClick={() => void handleSave()}
-            disabled={update.isPending || nameError !== null || slugError !== null}
+            disabled={nameError !== null || slugError !== null}
+            pending={update.isPending}
           >
             {m.groups_admin_save_changes()}
           </Button>
@@ -139,7 +142,7 @@ export function AdminSettings({ data, slug }: { data: FriendGroupDetailResponse;
               size="sm"
               variant="outline"
               onClick={() => enableCode.mutate(slug)}
-              disabled={enableCode.isPending}
+              pending={enableCode.isPending}
             >
               {m.groups_admin_enable_invites()}
             </Button>

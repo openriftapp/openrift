@@ -12,6 +12,7 @@ import { OVERLAY_SCALE } from "@openrift/shared/overlay-scale";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useEffect, useState } from "react";
 
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { QrCode } from "@/components/ui/qr-code";
 import { CardPlateContent, hasCardPlateContent } from "@/features/cards/components/card-plate";
 import { TierBoard } from "@/features/stage/components/tier-board";
@@ -74,14 +75,16 @@ function OverlayCardArt({
     >
       {rotated ? (
         <div className="absolute top-1/2 left-1/2 overflow-hidden" style={LANDSCAPE_ROTATION_STYLE}>
-          <img
+          <ImgWithFallback
+            fallback={null}
             src={imageUrl(image.imageId, "full")}
             alt={legendDisplayName(printing.card)}
             className="size-full object-cover"
           />
         </div>
       ) : (
-        <img
+        <ImgWithFallback
+          fallback={null}
           src={imageUrl(image.imageId, "full")}
           alt={legendDisplayName(printing.card)}
           className="absolute inset-0 size-full object-cover"

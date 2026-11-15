@@ -520,7 +520,8 @@ function VariantsDialogBody({
                 {m.common_cancel()}
               </Button>
               <Button
-                disabled={linkTargetId === null || linkVariant.isPending}
+                disabled={linkTargetId === null}
+                pending={linkVariant.isPending}
                 onClick={handleLink}
               >
                 {m.decks_dialog_variants_link_submit()}

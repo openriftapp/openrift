@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { Eyebrow } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Pressable } from "@/components/ui/pressable";
 import {
   PANEL_VIGNETTE_STYLE,
@@ -130,7 +131,8 @@ export function PlayerPanel({
       )}
     >
       {player.legend?.thumbnail && (
-        <img
+        <ImgWithFallback
+          fallback={null}
           src={player.legend.thumbnail}
           alt=""
           aria-hidden="true"

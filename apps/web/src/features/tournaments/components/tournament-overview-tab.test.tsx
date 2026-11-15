@@ -9,6 +9,10 @@ import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const participantActionMutate = vi.fn();
+let participantActionState: {
+  isPending: boolean;
+  variables?: { participantId: string; action: string };
+} = { isPending: false };
 let participants: TournamentParticipantResponse[] = [];
 // The real roster query is staff-gated on the API and 403s for anyone else, so
 // tests can flip this to prove a surface never subscribes for non-staff.
@@ -25,7 +29,7 @@ vi.mock("@/features/tournaments/hooks/use-tournaments", () => ({
 }));
 
 vi.mock("@/features/tournaments/hooks/use-tournament-mutations", () => ({
-  useParticipantAction: () => ({ mutateAsync: participantActionMutate, isPending: false }),
+  useParticipantAction: () => ({ mutateAsync: participantActionMutate, ...participantActionState }),
 }));
 
 vi.mock("@/features/tournaments/lib/tournament-run-queries", () => ({
@@ -344,6 +348,7 @@ function makeMyDeck(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  participantActionState = { isPending: false };
   participants = [makeParticipant("a"), makeParticipant("b")];
   participantsForbidden = false;
   runState = makeRunState();
@@ -527,6 +532,26 @@ describe("TournamentOverviewTab", () => {
     });
   });
 
+  it("spins only the pressed button of the row whose request runs", () => {
+    participants = [
+      makeParticipant("req-1", { status: "requested", displayName: "Ekko" }),
+      makeParticipant("req-2", { status: "requested", displayName: "Jinx" }),
+    ];
+    participantActionState = {
+      isPending: true,
+      variables: { participantId: "req-1", action: "approve" },
+    };
+    render(<TournamentOverviewTab id="t-1" detail={makeDetail()} />);
+
+    const [ekkoApprove, jinxApprove] = screen.getAllByRole("button", { name: "Approve" });
+    const [ekkoDeny, jinxDeny] = screen.getAllByRole("button", { name: "Deny" });
+    expect(ekkoApprove).toHaveAttribute("aria-busy", "true");
+    expect(ekkoDeny).toBeDisabled();
+    expect(ekkoDeny).not.toHaveAttribute("aria-busy");
+    expect(jinxApprove).toBeEnabled();
+    expect(jinxDeny).toBeEnabled();
+  });
+
   it("hides the join-requests band from viewers who cannot manage", () => {
     participants = [makeParticipant("req-1", { status: "requested", displayName: "Ekko" })];
     render(<TournamentOverviewTab id="t-1" detail={makeDetail({ myRoles: ["participant"] })} />);
@@ -585,6 +610,18 @@ describe("TournamentOverviewTab", () => {
     render(<TournamentOverviewTab id="t-1" detail={makeDetail({ regionsEnabled: true })} />);
 
     expect(screen.getByText("1 dropped · 1 without a region")).toBeInTheDocument();
+  });
+
+  it("hints at missing regions for a judge, who may set them", () => {
+    participants = [makeParticipant("a"), makeParticipant("c", { region: null })];
+    render(
+      <TournamentOverviewTab
+        id="t-1"
+        detail={makeDetail({ myRoles: ["judge"], regionsEnabled: true })}
+      />,
+    );
+
+    expect(screen.getByText(/1 without a region/u)).toBeInTheDocument();
   });
 
   describe("My deck tile", () => {

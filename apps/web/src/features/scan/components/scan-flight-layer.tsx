@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
 
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { planFlight } from "@/features/scan/lib/scan-flight";
 import type { FlightRect } from "@/features/scan/lib/scan-flight";
 import { prefersReducedMotion } from "@/lib/media-query";
@@ -114,7 +115,8 @@ function FlightCard({
   }, [id]);
 
   return (
-    <img
+    <ImgWithFallback
+      fallback={null}
       ref={nodeRef}
       src={flight.image}
       alt=""

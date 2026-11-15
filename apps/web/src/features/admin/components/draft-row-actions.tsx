@@ -54,7 +54,7 @@ export function DraftRowActions({
         <Button
           variant="outline"
           size="icon-sm"
-          disabled={linkCard.isPending}
+          pending={linkCard.isPending}
           aria-label={`Assign to ${suggested.slug}`}
           title={`Assign to ${suggested.slug}`}
           onClick={() =>

@@ -1,4 +1,5 @@
 import { compareCardDisplayName } from "@openrift/shared/card-name";
+import { deckCardKey } from "@openrift/shared/deck-cards";
 import { isCountedZone } from "@openrift/shared/deck-zones";
 import type { VariantLabelPrinting } from "@openrift/shared/printing-label";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
@@ -8,7 +9,6 @@ import { WellKnown } from "@openrift/shared/well-known";
 
 import { frontImageId } from "@/features/cards/lib/card-meta";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 
 export interface DeckBoxCard {
   cardId: string;

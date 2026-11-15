@@ -86,7 +86,8 @@ function CalendarFeedDialogBody({ slug, kind }: CalendarFeedProps) {
         <DialogCancel>{m.common_close()}</DialogCancel>
         {feedUrl === null ? (
           <Button
-            disabled={feeds.isPending || enableFeed.isPending}
+            disabled={feeds.isPending}
+            pending={enableFeed.isPending}
             onClick={() => enableFeed.mutate({ slug, kind })}
           >
             {m.groups_calendar_feed_enable()}
@@ -94,7 +95,7 @@ function CalendarFeedDialogBody({ slug, kind }: CalendarFeedProps) {
         ) : (
           <Button
             variant="outline"
-            disabled={disableFeed.isPending}
+            pending={disableFeed.isPending}
             onClick={() => disableFeed.mutate({ slug, kind })}
           >
             {m.groups_calendar_feed_disable()}

@@ -4,8 +4,8 @@ import { inferZone } from "@openrift/shared/zone-inference";
 
 import { stableKey } from "../../../lib/hash.js";
 import { coord, count, record, text } from "../../../lib/json-coerce.js";
+import { META_NAME_MAX, META_PLAYER_NAME_MAX } from "../../../lib/meta-name-limits.js";
 import { countryFromAddress } from "./meta-event-classify.js";
-import { META_NAME_MAX, META_PLAYER_NAME_MAX } from "./meta-event-naming.js";
 
 /**
  * Reading topdeck.gg's tournament search into the shapes `topdeck_*` stores.

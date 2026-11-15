@@ -113,6 +113,8 @@ function makeRepos(
     candidateCards: {
       listCardsForSourceList: vi.fn(async () => []),
       allCandidatePrintingsForCandidateCards: vi.fn(async () => over.printings ?? []),
+      checkCandidateCardsByIds: vi.fn(async () => 0),
+      acceptableCandidatePrintings: vi.fn(async () => over.printings ?? []),
     },
     catalog: { refreshCatalogViews: vi.fn(async () => {}) },
     catalogMutations: {
@@ -305,6 +307,21 @@ describe("trusted printings", () => {
     expect(finishPrintingAccepts).toHaveBeenCalledWith(repos, io, [created]);
   });
 
+  it("marks the candidate cards of accepted printings as checked", async () => {
+    vi.mocked(acceptCandidateGroup).mockResolvedValueOnce({
+      printing: { printingId: "printing-1", imageIds: [] },
+      fields: { shortCode: "OGN-027" } as never,
+    });
+    const repos = makeRepos({ printings, probes });
+
+    await acceptTrustedPrintings(asRepos(repos), context());
+
+    expect(repos.candidateCards.checkCandidateCardsByIds).toHaveBeenCalledWith(
+      ["cc-1"],
+      expect.any(Date),
+    );
+  });
+
   describe("an oversized candidate next to the standard printing", () => {
     const standardProbe = {
       printingId: "pr-standard",
@@ -443,11 +460,27 @@ describe("trusted printings", () => {
     expect(acceptCandidateGroup).not.toHaveBeenCalled();
   });
 
-  it("reports a conflict as skipped", async () => {
+  it("finishes the printings it created when marking checked throws", async () => {
+    const created = { printingId: "printing-1", imageIds: [] };
+    vi.mocked(acceptCandidateGroup).mockResolvedValueOnce({
+      printing: created,
+      fields: { shortCode: "OGN-027" } as never,
+    });
+    const repos = makeRepos({ printings: [printing("p1")] });
+    repos.candidateCards.checkCandidateCardsByIds.mockRejectedValue(new Error("connection reset"));
+
+    await expect(acceptTrustedPrintings(asRepos(repos), context())).rejects.toThrow(
+      "connection reset",
+    );
+    expect(finishPrintingAccepts).toHaveBeenCalledWith(repos, io, [created]);
+  });
+
+  it("reports a conflict as skipped and checks no candidate card", async () => {
     vi.mocked(acceptCandidateGroup).mockResolvedValueOnce({ reason: "already has a printing" });
     const repos = makeRepos({ printings: [printing("p1")] });
 
     const result = await acceptTrustedPrintings(asRepos(repos), context());
+    expect(repos.candidateCards.checkCandidateCardsByIds).not.toHaveBeenCalled();
 
     expect(result).toEqual({
       accepted: 0,

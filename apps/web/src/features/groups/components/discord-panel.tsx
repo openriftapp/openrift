@@ -84,7 +84,7 @@ export function DiscordPanel({ slug }: { slug: string }) {
             size="sm"
             variant="outline"
             onClick={() => void handleGenerate()}
-            disabled={createCode.isPending}
+            pending={createCode.isPending}
           >
             {m.groups_discord_generate()}
           </Button>

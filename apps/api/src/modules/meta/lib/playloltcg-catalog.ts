@@ -3,12 +3,12 @@ import { inferZone } from "@openrift/shared/zone-inference";
 
 import { stableKey } from "../../../lib/hash.js";
 import { coord, count, record, sourceId, text } from "../../../lib/json-coerce.js";
+import { META_NAME_MAX, MIRROR_NAME_MAX } from "../../../lib/meta-name-limits.js";
 import { PLAYLOLTCG_STATUS_FINISHED } from "../../../lib/meta-providers.js";
 import type {
   PlayloltcgShopInput,
   PlayloltcgUpsertInput,
 } from "../repositories/playloltcg-events.js";
-import { META_NAME_MAX } from "./meta-event-naming.js";
 
 /**
  * The source publishes no schema and its lists nest differently per endpoint.
@@ -55,7 +55,7 @@ export function projectShopRow(raw: unknown): PlayloltcgShopInput | null {
   }
   return {
     id,
-    name: name.slice(0, 200),
+    name: name.slice(0, MIRROR_NAME_MAX),
     province: text(row.province),
     city: text(row.city),
     area: text(row.area),

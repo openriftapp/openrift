@@ -7,17 +7,11 @@
 import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 import { resolveFinish } from "@openrift/shared/printing-accept";
 
+import type { CardNameIndex } from "../../../lib/card-names.js";
+import { buildCardNameIndex, resolveCardIdByNorm } from "../../../lib/card-names.js";
 import { buildPrintingLinkKey, buildSizedPrintingLinkKey } from "../../../lib/printing-link-key.js";
 import { candidateAcceptKey } from "../lib/candidate-printing-accept.js";
 import type { ingestRepo } from "../repositories/ingest.js";
-
-/** The live-catalog lookups that resolve a card *name* to a card id. */
-export interface CardNameIndex {
-  /** Normalized card name to live card id. */
-  cardIdByNorm: Map<string, string>;
-  /** Normalized alias to live card id, consulted after {@link cardIdByNorm}. */
-  cardIdByAliasNorm: Map<string, string>;
-}
 
 /** Live catalog lookups the candidate link resolution reads. */
 export interface CandidateLinkIndex extends CardNameIndex {
@@ -59,13 +53,6 @@ export type CardNameRepo = Pick<
 
 export type CandidateLinkRepo = CardNameRepo &
   Pick<ReturnType<typeof ingestRepo>, "allPrintingKeys" | "allPrintingLinkOverrides">;
-
-function buildCardNameIndex(sources: CardNameSources): CardNameIndex {
-  return {
-    cardIdByNorm: new Map(sources.cardNorms.map((c) => [c.normName, c.id])),
-    cardIdByAliasNorm: new Map(sources.aliases.map((a) => [a.normName, a.cardId])),
-  };
-}
 
 function cardScoped(cardId: string, key: string): string {
   return `${cardId}|${key}`;
@@ -129,14 +116,7 @@ export async function loadCandidateLinkIndex(repo: CandidateLinkRepo): Promise<C
 }
 
 export function resolveCardIdByName(index: CardNameIndex, name: string): string | null {
-  // An empty key means the name held no letters or digits at all, so it
-  // identifies nothing — resolving on it would link this candidate to whichever
-  // unrelated card normalized the same way.
-  const normName = normalizeNameForIdentity(name);
-  if (normName === "") {
-    return null;
-  }
-  return index.cardIdByNorm.get(normName) ?? index.cardIdByAliasNorm.get(normName) ?? null;
+  return resolveCardIdByNorm(index, normalizeNameForIdentity(name));
 }
 
 export function resolvePrintingLink(

@@ -110,7 +110,7 @@ function UnignoreAction({ row }: AdminCellSlotProps<IgnoredProductResponse>) {
               },
         )
       }
-      disabled={unignoreMutation.isPending}
+      pending={unignoreMutation.isPending}
     >
       <Undo2Icon className="size-3.5" />
       Unignore

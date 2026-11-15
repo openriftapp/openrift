@@ -4,10 +4,10 @@ import { uvsgamesEventUrl } from "@openrift/shared/uvsgames-links";
 
 import { badRequest } from "../../../../errors.js";
 import { recordCapped } from "../../../../lib/json-coerce.js";
+import { META_NAME_MAX } from "../../../../lib/meta-name-limits.js";
 import { UVSGAMES_PROVIDER, UVSGAMES_STATUS_CANCELED } from "../../../../lib/meta-providers.js";
 import type { MetaAutoAcceptRule, MetaAutoAcceptSettings } from "../../lib/meta-auto-accept.js";
 import { autoAcceptRule } from "../../lib/meta-auto-accept.js";
-import { META_NAME_MAX } from "../../lib/meta-event-naming.js";
 import { lifecycleStatus } from "../../lib/meta-recheck-schedule.js";
 import { mapSourceFormat, venueLocalDay } from "../../lib/uvsgames-catalog.js";
 import type { UvsgamesListRow } from "../../repositories/uvsgames-events.js";

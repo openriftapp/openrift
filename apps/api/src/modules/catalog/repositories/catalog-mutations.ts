@@ -421,14 +421,6 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    getCardAliases(cardId: string): Promise<{ normName: string }[]> {
-      return db
-        .selectFrom("cardNameAliases")
-        .select("normName")
-        .where("cardId", "=", cardId)
-        .execute();
-    },
-
     getSetIdBySlug(slug: string): Promise<{ id: string } | undefined> {
       return db.selectFrom("sets").select("id").where("slug", "=", slug).executeTakeFirst();
     },

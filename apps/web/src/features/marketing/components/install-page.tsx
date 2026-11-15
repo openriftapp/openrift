@@ -26,6 +26,7 @@ import { Callout } from "@/components/ui/callout";
 import { QrCode } from "@/components/ui/qr-code";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StepRow } from "@/features/marketing/components/article-cards";
+import { useHydrated } from "@/hooks/use-hydrated";
 import type { InstallGuide, InstallPlatform } from "@/lib/install-platform";
 import {
   detectInstallPlatform,
@@ -33,6 +34,7 @@ import {
   openInBrowserUrl,
   startHerePlacement,
 } from "@/lib/install-platform";
+import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_PADDING, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useInstallStore } from "@/stores/install-store";
@@ -252,9 +254,14 @@ function ViewerHint({ guide }: { guide: InstallGuide }) {
   );
 }
 
+function useInstallPageUrl(): string {
+  const hydrated = useHydrated();
+  return hydrated ? globalThis.location.href : `${getSiteUrl()}/install`;
+}
+
 function InAppGuide({ platform }: { platform: InstallPlatform }) {
   const ios = platform.os === "ios";
-  const openHref = openInBrowserUrl(ios ? "ios" : "android", globalThis.location.href);
+  const openHref = openInBrowserUrl(ios ? "ios" : "android", useInstallPageUrl());
   return (
     <div className="flex flex-col gap-4">
       <p className="text-muted-foreground">
@@ -429,7 +436,7 @@ function QrCard({ pageUrl, className }: { pageUrl: string; className?: string })
 function ComputerView() {
   const hasPrompt = useInstallStore((state) => state.promptEvent !== null);
   const promptInstall = useInstallStore((state) => state.promptInstall);
-  const pageUrl = globalThis.location.href;
+  const pageUrl = useInstallPageUrl();
   return (
     <>
       <PageHero
@@ -491,20 +498,29 @@ function InstalledView() {
   );
 }
 
-export function InstallPage() {
-  const [chosen, setChosen] = useState<PhoneDevice | null>(null);
-  const platform = detectInstallPlatform(globalThis.navigator.userAgent, navigator.maxTouchPoints);
+const PHONE_COLUMN = cn(PAGE_WIDTH.capped, "flex flex-1 flex-col", PAGE_PADDING);
 
-  if (!isStandaloneDisplay() && platform.os === "desktop") {
+export function InstallPage({ initialPlatform }: { initialPlatform: InstallPlatform }) {
+  const hydrated = useHydrated();
+  const [chosen, setChosen] = useState<PhoneDevice | null>(null);
+  const standalone = hydrated && isStandaloneDisplay();
+  const platform = hydrated
+    ? detectInstallPlatform(globalThis.navigator.userAgent, navigator.maxTouchPoints)
+    : initialPlatform;
+
+  if (standalone) {
+    return (
+      <div className={PHONE_COLUMN}>
+        <InstalledView />
+      </div>
+    );
+  }
+  if (platform.os === "desktop") {
     return <ComputerView />;
   }
   return (
-    <div className={cn(PAGE_WIDTH.capped, "flex flex-1 flex-col", PAGE_PADDING)}>
-      {isStandaloneDisplay() ? (
-        <InstalledView />
-      ) : (
-        <PhoneView platform={platform} chosen={chosen} onChoose={setChosen} />
-      )}
+    <div className={PHONE_COLUMN}>
+      <PhoneView platform={platform} chosen={chosen} onChoose={setChosen} />
     </div>
   );
 }

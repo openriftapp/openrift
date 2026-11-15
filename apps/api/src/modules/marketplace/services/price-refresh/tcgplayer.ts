@@ -16,10 +16,9 @@ import type { Fetch } from "../../../../io.js";
 import { fetchJson } from "../../../../lib/http.js";
 import type { StagingRow } from "../../lib/marketplace-configs.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
-import { logFetchSummary, logUpsertCounts } from "./log.js";
+import { refreshFetchedPrices } from "./finish.js";
 import { PRICE_FETCH_RETRIES } from "./types.js";
 import type { GroupRow } from "./types.js";
-import { loadIgnoredKeys, upsertMarketplaceGroups, upsertPriceData } from "./upsert.js";
 
 const TCGCSV_BASE = "https://tcgcsv.com/tcgplayer";
 const TCGCSV_CATEGORY = 89;
@@ -173,37 +172,15 @@ function buildTcgplayerGroups(groups: TcgcsvGroup[]): GroupRow[] {
  * upsert group metadata, and write snapshots for already-mapped sources. All
  * products are staged for manual admin mapping.
  */
-export async function refreshTcgplayerPrices(
+export function refreshTcgplayerPrices(
   fetchFn: Fetch,
   repos: Repos,
   log: Logger,
 ): Promise<PriceRefreshResponse> {
-  const ignoredKeys = await loadIgnoredKeys(repos.priceRefresh, "tcgplayer");
-
-  const fetchResult = await fetchTcgplayerData(fetchFn);
-  const { groups, totalProducts } = fetchResult;
-
-  const allStaging = buildTcgplayerStaging(fetchResult, ignoredKeys);
-  const groupRows = buildTcgplayerGroups(groups);
-
-  const transformedCounts = {
-    groups: groupRows.length,
-    products: totalProducts,
-    prices: allStaging.length,
-  };
-
-  logFetchSummary(
-    log,
-    transformedCounts,
-    ignoredKeys.productIds.size + ignoredKeys.variantKeys.size,
-  );
-
-  await upsertMarketplaceGroups(repos.priceRefresh, "tcgplayer", groupRows);
-
-  const counts = await upsertPriceData(repos.priceRefresh, log, "tcgplayer", allStaging);
-  logUpsertCounts(log, counts);
-
-  await repos.marketplace.refreshLatestPrices();
-
-  return { transformed: transformedCounts, upserted: counts };
+  return refreshFetchedPrices(repos, log, "tcgplayer", {
+    fetch: () => fetchTcgplayerData(fetchFn),
+    staging: buildTcgplayerStaging,
+    groups: (fetched) => buildTcgplayerGroups(fetched.groups),
+    products: (fetched) => fetched.totalProducts,
+  });
 }

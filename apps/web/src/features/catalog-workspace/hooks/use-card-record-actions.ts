@@ -10,6 +10,7 @@ import {
   useCheckCandidateCards,
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAcceptSubmission } from "@/features/admin/hooks/use-catalog-review";
+import { acceptFieldWithUndo } from "@/features/admin/lib/accept-undo";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import type { AttentionSubmission } from "@/features/admin/lib/attention-items";
 import {
@@ -84,20 +85,21 @@ export function useCardRecordActions({
       return;
     }
     const label = CARD_FIELD_LABELS[suggestion.field];
-    const previous = (detail?.card as Record<string, unknown> | null)?.[suggestion.field] ?? null;
-    const entry: WorkspaceUndoEntry = {
-      ...usedUndoText({ field: label, source: suggestion.sourceLabel, record }),
-      invalidates: undoScope(scope),
-      undo: async () => {
-        await acceptCardFieldFn({
-          data: { cardId, field: suggestion.field, value: previous, source: "manual" },
-        });
-      },
-    };
-    acceptCardField.mutate(
-      { cardId, field: suggestion.field, value: suggestion.value, source: "provider" },
-      { onSuccess: () => announce(entry) },
-    );
+    void acceptFieldWithUndo({
+      accept: acceptCardField.mutateAsync,
+      input: { cardId, field: suggestion.field, value: suggestion.value, source: "provider" },
+      fieldLabel: label,
+      sourceLabel: suggestion.sourceLabel,
+      previousValue: (detail?.card as Record<string, unknown> | null)?.[suggestion.field],
+      onAccepted: (revert) =>
+        announce({
+          ...usedUndoText({ field: label, source: suggestion.sourceLabel, record }),
+          invalidates: undoScope(scope),
+          undo: async () => {
+            await acceptCardFieldFn({ data: revert });
+          },
+        }),
+    });
   }
 
   function acceptFromSubmission(candidateCardId: string, ticked: ReadonlySet<string>) {

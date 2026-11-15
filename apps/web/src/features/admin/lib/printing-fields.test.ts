@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { resetIdCounter, makeCandidatePrinting } from "@/test/factories";
+import { makeAdminPrinting, makeCandidatePrinting, resetIdCounter } from "@/test/factories";
 
 import {
   buildPrintingFieldsFromCandidate,
   candidateRowSummary,
   missingPrintingFields,
+  printingAsAccepted,
   summarizeCandidatePrinting,
 } from "./printing-fields";
 
@@ -129,5 +130,12 @@ describe("candidateRowSummary", () => {
   it("says so when it has none", () => {
     const candidate = makeCandidatePrinting({ finish: null, rarity: null, artist: null });
     expect(candidateRowSummary(candidate)).toBe("No details");
+  });
+});
+
+describe("printingAsAccepted", () => {
+  it("states the set as the slug an accept takes", () => {
+    const printing = makeAdminPrinting({ setId: "019cfc3b-0369", setSlug: "OGN", artist: "Kudos" });
+    expect(printingAsAccepted(printing)).toMatchObject({ setId: "OGN", artist: "Kudos" });
   });
 });

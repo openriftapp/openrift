@@ -2,7 +2,7 @@ import { META_MAX_LIST_PAGE_SIZE } from "@openrift/shared/meta-query";
 import { pluralize } from "@openrift/shared/strings";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { metaDecksQueryOptions, metaPlayerQueryOptions } from "@/features/meta/lib/meta-queries";
@@ -79,7 +79,6 @@ export const Route = createFileRoute("/_app/meta_/players_/$key")({
     return { name: player.name, finishCount: player.finishes.length };
   },
   pendingComponent: MetaPlayerPending,
-  errorComponent: RouteErrorFallback,
   notFoundComponent: NotFoundFallback,
 });
 

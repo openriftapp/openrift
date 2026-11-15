@@ -2,30 +2,27 @@ import { legendDisplayName } from "@openrift/shared/card-name";
 import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogCancel,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FieldError } from "@/components/ui/field";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Label } from "@/components/ui/label";
 import { Pressable } from "@/components/ui/pressable";
 import { Slider } from "@/components/ui/slider";
+import { DeckFormDialog, DeckFormFooter } from "@/features/decks/components/deck-form-dialog";
+import type { DeckFormControls } from "@/features/decks/components/deck-form-dialog";
 import { useUpdateDeckMeta } from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { coverOverflowPx, coverPositionFromDrag } from "@/lib/cover-focus";
+import { errorText } from "@/lib/error-text";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 /** Default vertical crop focus, matching the legend backdrop's framing. */
 const DEFAULT_POSITION = 20;
 
-interface DeckCoverDialogProps {
+interface DeckCoverFields {
   deckId: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   cards: DeckBuilderCard[];
   coverCardId: string | null;
   coverFaceId: string | null;
@@ -36,9 +33,19 @@ interface DeckCoverDialogProps {
 }
 
 export function DeckCoverDialog({
-  deckId,
   open,
   onOpenChange,
+  ...fields
+}: DeckCoverFields & { open: boolean; onOpenChange: (open: boolean) => void }) {
+  return (
+    <DeckFormDialog open={open} onOpenChange={onOpenChange} className="sm:max-w-2xl">
+      {(controls) => <DeckCoverForm {...fields} {...controls} />}
+    </DeckFormDialog>
+  );
+}
+
+function DeckCoverForm({
+  deckId,
   cards,
   coverCardId,
   coverFaceId,
@@ -46,8 +53,10 @@ export function DeckCoverDialog({
   getThumbnail,
   getCoverThumbnail,
   faceOf,
-}: DeckCoverDialogProps) {
-  const { update, isPending } = useUpdateDeckMeta(deckId);
+  onClose,
+  onSavingChange,
+}: DeckCoverFields & DeckFormControls) {
+  const updateMeta = useUpdateDeckMeta(deckId, { inlineError: true });
   const [draftCardId, setDraftCardId] = useState<string | null>(coverCardId);
   const [draftFaceId, setDraftFaceId] = useState<string | null>(coverFaceId);
   const [draftPosition, setDraftPosition] = useState(coverPosition ?? DEFAULT_POSITION);
@@ -127,136 +136,126 @@ export function DeckCoverDialog({
     }
   };
 
-  const handleSave = () => {
-    if (draftCardId === null) {
-      update(
-        { coverCardId: null, coverFaceId: null, coverPosition: null },
-        { onSuccess: () => onOpenChange(false) },
-      );
-      return;
-    }
-    update(
-      {
-        coverCardId: draftCardId,
-        coverFaceId: draftFaceId,
-        coverPosition: draftPosition,
-      },
-      { onSuccess: () => onOpenChange(false) },
+  const handleSave = async () => {
+    onSavingChange(true);
+    const saved = await runReportedMutation(() =>
+      updateMeta.save(
+        draftCardId === null
+          ? { coverCardId: null, coverFaceId: null, coverPosition: null }
+          : { coverCardId: draftCardId, coverFaceId: draftFaceId, coverPosition: draftPosition },
+      ),
     );
+    onSavingChange(false);
+    if (saved) {
+      onClose();
+    }
   };
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (nextOpen) {
-          setDraftCardId(coverCardId);
-          setDraftFaceId(coverFaceId);
-          setDraftPosition(coverPosition ?? DEFAULT_POSITION);
-        }
-        onOpenChange(nextOpen);
-      }}
-    >
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{m.decks_dialog_cover_title()}</DialogTitle>
-        </DialogHeader>
+    <>
+      <DialogHeader>
+        <DialogTitle>{m.decks_dialog_cover_title()}</DialogTitle>
+      </DialogHeader>
 
-        <div className="flex flex-col gap-4">
-          {draftThumb && (
-            <div
-              className="bg-muted h-24 touch-none overflow-hidden rounded-lg border"
-              onPointerDown={handlePreviewPointerDown}
-              onPointerMove={handlePreviewPointerMove}
-              onPointerUp={handlePreviewPointerEnd}
-              onPointerCancel={handlePreviewPointerEnd}
-            >
-              <img
-                ref={previewRef}
-                src={draftThumb}
-                alt={m.decks_dialog_cover_preview_alt()}
-                draggable={false}
-                className="h-full w-full cursor-grab object-cover active:cursor-grabbing"
-                style={{ objectPosition: `50% ${draftPosition}%` }}
-              />
-            </div>
-          )}
-          {draftCardId === null && (
-            <div className="text-muted-foreground bg-muted/30 flex h-24 items-center justify-center rounded-lg border border-dashed text-sm">
-              {m.decks_dialog_cover_default_hint()}
-            </div>
-          )}
-
-          {draftCardId !== null && (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between gap-2">
-                <Label>{m.decks_dialog_cover_focus_label()}</Label>
-                <span className="text-muted-foreground text-sm">
-                  {m.decks_dialog_cover_focus_hint()}
-                </span>
-              </div>
-              <Slider
-                aria-label={m.decks_dialog_cover_focus_label()}
-                value={[draftPosition]}
-                min={0}
-                max={100}
-                onValueChange={(value) => {
-                  const next = Array.isArray(value) ? value[0] : value;
-                  if (typeof next === "number") {
-                    setDraftPosition(next);
-                  }
-                }}
-              />
-            </div>
-          )}
-
-          <div className="flex max-h-64 flex-wrap gap-2 overflow-y-auto p-1">
-            <Pressable
-              onClick={() => setDraftCardId(null)}
-              aria-pressed={draftCardId === null}
-              className={cn(
-                "aspect-card bg-muted/30 text-muted-foreground flex w-24 shrink-0 items-center justify-center rounded-md border border-dashed p-1 text-center text-xs",
-                draftCardId === null && "ring-primary ring-2",
-              )}
-            >
-              {m.decks_dialog_cover_legend_default()}
-            </Pressable>
-            {choices.map((choice) => {
-              const isActive = draftCardId === choice.cardId && draftFaceId === choice.faceId;
-              return (
-                <Pressable
-                  key={`${choice.cardId}|${choice.faceId ?? ""}`}
-                  onClick={() => {
-                    setDraftCardId(choice.cardId);
-                    setDraftFaceId(choice.faceId);
-                  }}
-                  aria-pressed={isActive}
-                  className={cn(
-                    "aspect-card w-24 shrink-0 overflow-hidden rounded-md",
-                    isActive && "ring-primary ring-2",
-                  )}
-                >
-                  <img
-                    src={choice.thumbnail}
-                    alt={choice.name}
-                    title={choice.name}
-                    loading="lazy"
-                    draggable={false}
-                    className="h-full w-full rounded-md object-cover"
-                  />
-                </Pressable>
-              );
-            })}
+      <div className="flex flex-col gap-4">
+        {draftThumb && (
+          <div
+            className="bg-muted h-24 touch-none overflow-hidden rounded-lg border"
+            onPointerDown={handlePreviewPointerDown}
+            onPointerMove={handlePreviewPointerMove}
+            onPointerUp={handlePreviewPointerEnd}
+            onPointerCancel={handlePreviewPointerEnd}
+          >
+            <ImgWithFallback
+              fallback={null}
+              ref={previewRef}
+              src={draftThumb}
+              alt={m.decks_dialog_cover_preview_alt()}
+              draggable={false}
+              className="h-full w-full cursor-grab object-cover active:cursor-grabbing"
+              style={{ objectPosition: `50% ${draftPosition}%` }}
+            />
           </div>
-        </div>
+        )}
+        {draftCardId === null && (
+          <div className="text-muted-foreground bg-muted/30 flex h-24 items-center justify-center rounded-lg border border-dashed text-sm">
+            {m.decks_dialog_cover_default_hint()}
+          </div>
+        )}
 
-        <DialogFooter>
-          <DialogCancel />
-          <Button type="button" onClick={handleSave} disabled={isPending}>
-            {m.common_save()}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        {draftCardId !== null && (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <Label>{m.decks_dialog_cover_focus_label()}</Label>
+              <span className="text-muted-foreground text-sm">
+                {m.decks_dialog_cover_focus_hint()}
+              </span>
+            </div>
+            <Slider
+              aria-label={m.decks_dialog_cover_focus_label()}
+              value={[draftPosition]}
+              min={0}
+              max={100}
+              onValueChange={(value) => {
+                const next = Array.isArray(value) ? value[0] : value;
+                if (typeof next === "number") {
+                  setDraftPosition(next);
+                }
+              }}
+            />
+          </div>
+        )}
+
+        <div className="flex max-h-64 flex-wrap gap-2 overflow-y-auto p-1">
+          <Pressable
+            onClick={() => setDraftCardId(null)}
+            aria-pressed={draftCardId === null}
+            className={cn(
+              "aspect-card bg-muted/30 text-muted-foreground flex w-24 shrink-0 items-center justify-center rounded-md border border-dashed p-1 text-center text-xs",
+              draftCardId === null && "ring-primary ring-2",
+            )}
+          >
+            {m.decks_dialog_cover_legend_default()}
+          </Pressable>
+          {choices.map((choice) => {
+            const isActive = draftCardId === choice.cardId && draftFaceId === choice.faceId;
+            return (
+              <Pressable
+                key={`${choice.cardId}|${choice.faceId ?? ""}`}
+                onClick={() => {
+                  setDraftCardId(choice.cardId);
+                  setDraftFaceId(choice.faceId);
+                }}
+                aria-pressed={isActive}
+                className={cn(
+                  "aspect-card w-24 shrink-0 overflow-hidden rounded-md",
+                  isActive && "ring-primary ring-2",
+                )}
+              >
+                <ImgWithFallback
+                  src={choice.thumbnail}
+                  alt={choice.name}
+                  title={choice.name}
+                  loading="lazy"
+                  draggable={false}
+                  className="h-full w-full rounded-md object-cover"
+                  fallback={<span className="bg-muted block h-full w-full rounded-md" />}
+                />
+              </Pressable>
+            );
+          })}
+        </div>
+      </div>
+
+      {updateMeta.isError && (
+        <FieldError>{errorText(updateMeta.error, m.decks_dialog_details_save_failed())}</FieldError>
+      )}
+
+      <DeckFormFooter pending={updateMeta.isPending}>
+        <Button type="button" onClick={() => void handleSave()} pending={updateMeta.isPending}>
+          {m.common_save()}
+        </Button>
+      </DeckFormFooter>
+    </>
   );
 }

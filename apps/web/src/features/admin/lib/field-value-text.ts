@@ -3,6 +3,8 @@ import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay } from "@openrift/shared/format-date";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
+import type { ReleasePrecision } from "@openrift/shared/set-release";
+import { formatReleasePeriod, parseReleaseInput } from "@openrift/shared/set-release";
 
 export const EMPTY_VALUE_TEXT = "—";
 
@@ -74,6 +76,14 @@ export function formatCatalogFieldValue(
   const group = LABEL_GROUPS[field];
   const map = group === undefined ? undefined : labels?.[group];
   return formatFieldValue(value, map ? (entry) => enumLabel(map, entry) : undefined);
+}
+
+export function formatReleaseValue(value: unknown, precision: ReleasePrecision | null): string {
+  if (typeof value !== "string" || value === "") {
+    return formatCatalogFieldValue("releasedAt", value);
+  }
+  const release = parseReleaseInput(value, precision);
+  return release?.releasedAt ? formatReleasePeriod(release) : value;
 }
 
 export function formatRawValue(value: unknown): string {

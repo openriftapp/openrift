@@ -17,8 +17,23 @@ export function liveCardForNorm(norm: RawBuilder<unknown>): RawBuilder<{
         c.norm_name = ${norm}
         or c.id in (select a.card_id from card_name_aliases a where a.norm_name = ${norm})
       )
-    order by c.norm_name = ${norm} desc
+    order by c.norm_name = ${norm} desc, c.id
     limit 1
+  `;
+}
+
+export function cardNameKeysSql(cardId: RawBuilder<unknown>): RawBuilder<{
+  norm_name: string;
+  own: boolean;
+}> {
+  return sql`
+    select k.norm_name, k.own from (
+      select c.norm_name, true as own from cards c where c.id = ${cardId}
+      union
+      select a.norm_name, false as own from card_name_aliases a where a.card_id = ${cardId}
+    ) k
+    where (select live_card.id from (${liveCardForNorm(sql.ref("k.norm_name"))}) live_card) = ${cardId}
+    order by k.own desc, k.norm_name
   `;
 }
 

@@ -48,6 +48,8 @@ import { teammateNamesById, unteamedActivePlayers } from "@/features/tournaments
 import type { ParticipantAction } from "@/features/tournaments/lib/tournament-display";
 import {
   canManageTournament,
+  participantsOpen,
+  pendingParticipantAction,
   isTournamentStaff,
 } from "@/features/tournaments/lib/tournament-display";
 import { useCustomTagList } from "@/hooks/use-enums";
@@ -341,7 +343,8 @@ export function TournamentParticipantsTab({
                   teammateName={teammateNames.get(participant.id)}
                   deckEntryId={entryByParticipant.get(participant.id)?.id}
                   deckWithdrawn={entryByParticipant.get(participant.id)?.state === "withdrawn"}
-                  actionPending={participantAction.isPending}
+                  pendingAction={pendingParticipantAction(participantAction, participant.id)}
+                  approveOpen={participantsOpen(detail.status)}
                   onAction={fireAction}
                   onRename={openRename}
                   onSetLegend={openLegend}

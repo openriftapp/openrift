@@ -2,6 +2,7 @@ import { todayUtc } from "@openrift/shared/format-date";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Repos } from "../../../deps.js";
+import { META_NAME_MAX } from "../../../lib/meta-name-limits.js";
 import {
   PLAYLOLTCG_PROVIDER,
   PLAYRIFTBOUND_PROVIDER,
@@ -9,7 +10,6 @@ import {
   UVSGAMES_PROVIDER,
 } from "../../../lib/meta-providers.js";
 import { classifyMetaEventTier, countryFromAddress } from "../lib/meta-event-classify.js";
-import { META_NAME_MAX } from "../lib/meta-event-naming.js";
 import { longitudeLocalDay } from "../lib/meta-local-day.js";
 import { playriftboundFormat } from "../lib/playriftbound-catalog.js";
 import { topdeckFormat } from "../lib/topdeck-catalog.js";

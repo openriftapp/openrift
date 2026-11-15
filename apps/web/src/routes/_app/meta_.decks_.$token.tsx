@@ -2,7 +2,7 @@ import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import type { MetaDeckDetailResponse } from "@openrift/shared/types/api/meta";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
 import { archivedDeckIdentity } from "@/features/meta/lib/meta-deck-identity";
 import { formatRank } from "@/features/meta/lib/meta-format";
@@ -76,7 +76,6 @@ export const Route = createFileRoute("/_app/meta_/decks_/$token")({
     };
   },
   pendingComponent: MetaDeckPending,
-  errorComponent: RouteErrorFallback,
   notFoundComponent: NotFoundFallback,
 });
 

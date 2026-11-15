@@ -1,7 +1,11 @@
-import type { TradeSuggestionDismissal } from "@openrift/shared/types/api/card-trade";
+import type {
+  CardTradeResponse,
+  TradeSuggestionDismissal,
+} from "@openrift/shared/types/api/card-trade";
 import type { FriendGroupMatchRow } from "@openrift/shared/types/api/friend-group";
 
 import type { MatchDirection } from "./trade-derivation";
+import { withoutLiveTradeMatches } from "./trade-derivation";
 import { dismissalKey } from "./trade-dismissals";
 import type { WantedCard } from "./wanted-cards";
 import { wantedMatchesPrinting } from "./wanted-cards";
@@ -236,6 +240,17 @@ export function wantedSources(
   return [...byUser.values()];
 }
 
-export function openSuggestionCount(cards: readonly TradeMarketCard[]): number {
-  return cards.filter((card) => card.rows.some((row) => row.liveOnly !== true)).length;
+export function openSuggestionCount(
+  cards: readonly TradeMarketCard[],
+  direction: MatchDirection,
+  trades: readonly CardTradeResponse[],
+): number {
+  return cards.filter(
+    (card) =>
+      withoutLiveTradeMatches(
+        card.rows.filter((row) => row.liveOnly !== true),
+        trades,
+        direction,
+      ).length > 0,
+  ).length;
 }

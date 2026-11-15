@@ -177,6 +177,10 @@ describe("normalizePrintingFieldValue optional text fields", () => {
   it.each(fields)("keeps null for %s", async (field) => {
     await expect(normalizeText(field, null)).resolves.toBeNull();
   });
+
+  it.each(fields)("rejects a value on %s that is not text", async (field) => {
+    await expect(normalizeText(field, 42)).rejects.toThrow(`Invalid value for ${field}`);
+  });
 });
 
 describe("normalizePrintingFieldValue required text fields", () => {
@@ -198,6 +202,36 @@ describe("normalizePrintingFieldValue required text fields", () => {
 
   it.each(fields)("rejects whitespace-only %s", async (field) => {
     await expect(normalizeRequired(field, "  \t ")).rejects.toThrow(`Invalid value for ${field}`);
+  });
+});
+
+describe("normalizePrintingFieldValue boolean fields", () => {
+  const fields = ["isSigned", "isOvernumbered"] as const;
+
+  function normalizeFlag(field: (typeof fields)[number], value: unknown) {
+    const { repos } = makeRepos(UNDATED);
+    return normalizePrintingFieldValue(repos, {
+      printingId: "printing-1",
+      field,
+      value,
+      source: "manual",
+    });
+  }
+
+  it.each(fields)("keeps true and false on %s", async (field) => {
+    await expect(normalizeFlag(field, true)).resolves.toBe(true);
+    await expect(normalizeFlag(field, false)).resolves.toBe(false);
+  });
+
+  it.each(fields)("rejects null on %s with a 400", async (field) => {
+    await expect(normalizeFlag(field, null)).rejects.toMatchObject({
+      status: 400,
+      message: expect.stringContaining(`Invalid value for ${field}`),
+    });
+  });
+
+  it.each(fields)("rejects a string on %s", async (field) => {
+    await expect(normalizeFlag(field, "yes")).rejects.toThrow(`Invalid value for ${field}`);
   });
 });
 

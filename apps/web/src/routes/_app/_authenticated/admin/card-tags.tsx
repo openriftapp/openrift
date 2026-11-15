@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
 import {
   adminCardTagsQueryOptions,
@@ -16,5 +15,4 @@ export const Route = createFileRoute("/_app/_authenticated/admin/card-tags")({
       context.queryClient.query({ ...adminTagCategoriesQueryOptions, staleTime: "static" }),
     ]),
   pendingComponent: AdminPending,
-  errorComponent: RouteErrorFallback,
 });

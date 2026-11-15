@@ -110,7 +110,7 @@ export function cardListSearch({ status, set, priceScope }: CardReviewNavSearch)
 }
 
 interface UseCardReviewNavigationOptions {
-  identifier: string;
+  cardSlug: string;
   detail?: AdminCardDetailResponse;
   setSlug?: string;
   listStatus?: AdminCardListStatus;
@@ -125,7 +125,7 @@ interface UseCardReviewNavigationOptions {
  * `checkAllCardSources` instance to share one pending state.
  */
 export function useCardReviewNavigation({
-  identifier,
+  cardSlug,
   detail,
   setSlug,
   listStatus,
@@ -142,7 +142,7 @@ export function useCardReviewNavigation({
   // Scoped to match the list page's set filter, so navigation stays inside the set.
   const scopedCards = setSlug ? allCards.filter((c) => c.setSlugs.includes(setSlug)) : allCards;
   const scopedSlugs = setSlug ? new Set(scopedCards.map((c) => c.slug)) : null;
-  const { fetchNext } = useNextUncheckedCard(identifier, scopedSlugs);
+  const { fetchNext } = useNextUncheckedCard(cardSlug, scopedSlugs);
 
   // Stays subscribed (not read once): the marketplace section invalidates this
   // query after every assignment, dropping a card once its last product is bound.
@@ -193,7 +193,7 @@ export function useCardReviewNavigation({
   // so the buttons keep working after this card itself falls out of the filter.
   const prevNextCards: PrevNextSlugs = selectAdminCardPrevNext(
     scopedCards.map((c) => c.slug),
-    identifier,
+    cardSlug,
     {
       priceScope: activePriceScope,
       assignBucketsBySlug,
@@ -207,14 +207,14 @@ export function useCardReviewNavigation({
     ...(priceFilterActive && priceScope ? { priceScope } : {}),
   };
 
-  function goToCard(cardSlug: string) {
+  function goToCard(targetSlug: string) {
     const targetSection =
-      reviewSections?.get(cardSlug) ??
-      (priceFilterActive ? "marketplace" : attentionSections.get(cardSlug)) ??
+      reviewSections?.get(targetSlug) ??
+      (priceFilterActive ? "marketplace" : attentionSections.get(targetSlug)) ??
       section;
     void navigate({
       to: "/admin/cards/$cardSlug",
-      params: { cardSlug },
+      params: { cardSlug: targetSlug },
       search: { ...navSearch, ...(targetSection ? { section: targetSection } : {}) },
     });
   }

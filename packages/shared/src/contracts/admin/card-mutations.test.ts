@@ -8,6 +8,8 @@ describe("required field keys", () => {
       "artVariant",
       "artist",
       "finish",
+      "isOvernumbered",
+      "isSigned",
       "language",
       "publicCode",
       "rarity",

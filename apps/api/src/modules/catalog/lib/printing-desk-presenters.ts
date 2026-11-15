@@ -33,6 +33,7 @@ export function toDeskPrintingRow(
     releasedAt: row.releasedAt,
     releasePrecision: row.releasePrecision,
     comment: row.comment,
+    flavorText: row.flavorText,
     imageCount: row.imageCount,
     faceId: row.faceId,
     side: row.side,

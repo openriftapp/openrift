@@ -18,7 +18,7 @@ import type {
   PodRoundResponse,
   PodSnapshotPlayer,
 } from "@openrift/shared/types/api/pod-tournament";
-import { EllipsisVerticalIcon, GripVerticalIcon, PlusIcon } from "lucide-react";
+import { EllipsisVerticalIcon, PlusIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
 
@@ -34,6 +34,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { DragChip, DragGrip } from "@/features/tournaments/components/drag-chip";
 import { SaveError } from "@/features/tournaments/components/save-error";
 import {
   useReplaceCutPairing,
@@ -359,11 +360,12 @@ export function PodPairingEditor({
       </div>
       <DragOverlay>
         {draggingId ? (
-          <ChipBody
-            name={nameById.get(draggingId) ?? m.tournaments_pairing_editor_unknown_player()}
-            score={scoreById.get(draggingId) ?? 0}
-            dragging
-          />
+          <DragChip overlay>
+            <ChipContent
+              name={nameById.get(draggingId) ?? m.tournaments_pairing_editor_unknown_player()}
+              score={scoreById.get(draggingId) ?? 0}
+            />
+          </DragChip>
         ) : null}
       </DragOverlay>
     </DndContext>
@@ -405,25 +407,11 @@ interface MoveOption {
 function ChipContent({ name, score }: { name: string; score: number }) {
   return (
     <>
-      <GripVerticalIcon className="text-muted-foreground size-3.5 shrink-0" />
       <span className="font-medium">{name}</span>
       <span className="text-muted-foreground tabular-nums">
         {m.tournaments_pod_points({ score })}
       </span>
     </>
-  );
-}
-
-function ChipBody({ name, score, dragging }: { name: string; score: number; dragging?: boolean }) {
-  return (
-    <span
-      className={cn(
-        "bg-background flex items-center gap-1.5 rounded-md border px-2 py-1",
-        dragging && "shadow-lg",
-      )}
-    >
-      <ChipContent name={name} score={score} />
-    </span>
   );
 }
 
@@ -458,6 +446,7 @@ function DraggablePlayer({
         className="flex min-w-0 flex-1 cursor-grab touch-none items-center gap-1.5 py-1 pl-2 active:cursor-grabbing"
         {...listeners}
       >
+        <DragGrip />
         <ChipContent name={name} score={score} />
       </div>
       <DropdownMenu>

@@ -6,12 +6,12 @@ import type {
   MetaOverlayReviewResult,
   MetaOverlayRowMatch,
 } from "@openrift/shared/types/api/meta";
-import { META_CATALOG_PROVIDERS, META_EVENT_OVERLAY_FIELDS } from "@openrift/shared/types/enums";
+import { META_EVENT_OVERLAY_FIELDS } from "@openrift/shared/types/enums";
 import { implement } from "@orpc/server";
 
 import type { Repos } from "../../../deps.js";
 import { assertExisted } from "../../../lib/assertions.js";
-import { TOURNAMENT_LIST_PROVIDER } from "../../../lib/meta-providers.js";
+import { MIRROR_PROVIDERS, TOURNAMENT_LIST_PROVIDER } from "../../../lib/meta-providers.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
@@ -61,8 +61,6 @@ import { sourceEventFacts } from "../services/meta-promote-sources.js";
  */
 
 const os = implement(adminMetaCandidatesContract).$context<ApiContext>().use(requireAuthedUser);
-
-const CRAWLED_PROVIDERS: ReadonlySet<string> = new Set(META_CATALOG_PROVIDERS);
 
 // Accepting an already-accepted overlay succeeds again, so only rows that were not accepted before earn a thank-you.
 // A tournament's lists earn one per organizer and event, not one per list.
@@ -448,7 +446,7 @@ export const adminMetaCandidatesRouter = os.router({
         externalId: source.externalId,
         label: source.label,
         priority: source.priority,
-        hasMirror: source.provider !== null && CRAWLED_PROVIDERS.has(source.provider),
+        hasMirror: source.provider !== null && MIRROR_PROVIDERS.has(source.provider),
       })),
       fields: META_EVENT_OVERLAY_FIELDS.map((field) => {
         const liveValue = display(liveValues[field] ?? null);

@@ -198,7 +198,8 @@ function ClassificationSection({
               variant="outline"
               size="sm"
               onClick={() => void detectLegendTags()}
-              disabled={!legendCategory || detectMutation.isPending}
+              disabled={!legendCategory}
+              pending={detectMutation.isPending}
               title={
                 legendCategory
                   ? "Classify every tag found on a Legend card as Legend"

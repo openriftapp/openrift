@@ -846,6 +846,15 @@ describe("routes and app shell", () => {
     expect(offenders(WEB_FILES, /as (?:FeatureFlags|SiteSettings)\b/u)).toEqual([]);
   });
 
+  it("leaves route errors to the router's default error component", () => {
+    expect(
+      offenders(
+        WEB_FILES.filter((file) => relative(file).startsWith(web("routes/"))),
+        /errorComponent: RouteErrorFallback\b/u,
+      ),
+    ).toEqual([]);
+  });
+
   it("gates flagged routes only through requireFeature", () => {
     expect(offenders(routeFiles, /featureEnabled\(/u)).toEqual([]);
   });

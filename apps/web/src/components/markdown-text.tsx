@@ -1,4 +1,4 @@
-import { isAllowedLinkUrl } from "@openrift/shared/link-hosts";
+import { bareHostname, isAllowedLinkUrl } from "@openrift/shared/link-hosts";
 import type { ReactNode } from "react";
 import { isValidElement } from "react";
 import type { Components } from "react-markdown";
@@ -38,8 +38,7 @@ function linkHost(href: string | undefined): string | null {
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     return null;
   }
-  const hostname = url.hostname.toLowerCase();
-  return hostname.startsWith("www.") ? hostname.slice(4) : hostname;
+  return bareHostname(url.hostname);
 }
 
 const HOSTNAME_CHAR = /[a-z0-9.-]/u;

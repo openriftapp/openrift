@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isAllowedLinkUrl, linkHostLabel, resolveLinkHost } from "./link-hosts.js";
+import { bareHostname, isAllowedLinkUrl, linkHostLabel, resolveLinkHost } from "./link-hosts.js";
 
 describe("resolveLinkHost", () => {
   it("resolves the allowlisted hosts", () => {
@@ -58,5 +58,17 @@ describe("linkHostLabel", () => {
 
   it("returns null for a host we don't allow", () => {
     expect(linkHostLabel("https://example.com")).toBeNull();
+  });
+});
+
+describe("bareHostname", () => {
+  it("lowercases and strips one leading www.", () => {
+    expect(bareHostname("WWW.YouTube.com")).toBe("youtube.com");
+    expect(bareHostname("www.www.example.test")).toBe("www.example.test");
+  });
+
+  it("leaves a host without a leading www. as it is, lowercased", () => {
+    expect(bareHostname("M.YouTube.com")).toBe("m.youtube.com");
+    expect(bareHostname("youtube.com.www.evil.test")).toBe("youtube.com.www.evil.test");
   });
 });

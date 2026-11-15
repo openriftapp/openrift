@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
 import { FieldError } from "@/components/ui/field";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -77,15 +78,16 @@ function GroupTileBanner({ url, position }: { url: string | null; position: numb
     <div
       aria-hidden="true"
       className={cn(GROUP_BANNER_FRAME, "-mx-5 -mt-5 overflow-hidden")}
-      style={url ? undefined : { backgroundImage: TILE_WASH }}
+      style={{ backgroundImage: TILE_WASH }}
     >
       {url ? (
-        <img
+        <ImgWithFallback
           src={url}
           alt=""
           loading="lazy"
           className="h-full w-full object-cover"
           style={{ objectPosition: `50% ${position}%` }}
+          fallback={null}
         />
       ) : null}
     </div>

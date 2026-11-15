@@ -50,8 +50,8 @@ function renderHeader(
   return render(
     <CardDetailHeader
       card={card}
-      cardId="yasuo"
-      expectedCardId="yasuo"
+      cardSlug="yasuo"
+      expectedCardSlug="yasuo"
       hasUnchecked={false}
       prevNextCards={{ prev: "ahri", next: "zed" }}
       listSearch={{}}
@@ -81,7 +81,7 @@ describe("CardDetailHeader", () => {
   });
 
   it("offers a regenerate when the stored slug no longer matches", () => {
-    const { getByText } = renderHeader({ cardId: "yasu", expectedCardId: "yasuo" });
+    const { getByText } = renderHeader({ cardSlug: "yasu", expectedCardSlug: "yasuo" });
 
     getByText("Regenerate ID (yasuo)").click();
     expect(captured.rename).toHaveBeenCalledWith(
@@ -98,8 +98,8 @@ describe("CardDetailHeader", () => {
 
   it("shows the drift to non-admins but hides the regenerate action", () => {
     const { getByText, queryByText } = renderHeader({
-      cardId: "yasu",
-      expectedCardId: "yasuo",
+      cardSlug: "yasu",
+      expectedCardSlug: "yasuo",
       isAdmin: false,
     });
 

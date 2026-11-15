@@ -11,10 +11,10 @@ import type { StagingRow } from "../../lib/marketplace-configs.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
 import type { CrossRefCandidate } from "./cross-ref-match.js";
 import { autoMatchByCrossReference } from "./cross-ref-match.js";
-import { logFetchSummary, logUpsertCounts } from "./log.js";
+import { finishPriceRefresh } from "./finish.js";
 import { PRICE_FETCH_RETRIES } from "./types.js";
 import type { GroupRow } from "./types.js";
-import { loadIgnoredKeys, upsertMarketplaceGroups, upsertPriceData } from "./upsert.js";
+import { loadIgnoredKeys, upsertMarketplaceGroups } from "./upsert.js";
 
 const CN_FEEDS_URL = "https://public-api.cardnexus.com/v1/feeds/riftbound";
 const FEED_TIMEOUT_MS = 30_000;
@@ -245,16 +245,9 @@ export async function refreshCardnexusPrices(
     products: fetchResult.cards.length,
     prices: staging.length,
   };
-  logFetchSummary(
-    log,
-    transformedCounts,
-    ignoredKeys.productIds.size + ignoredKeys.variantKeys.size,
-  );
-
-  const counts = await upsertPriceData(repos.priceRefresh, log, "cardnexus", staging);
-  logUpsertCounts(log, counts);
-
-  await repos.marketplace.refreshLatestPrices();
-
-  return { transformed: transformedCounts, upserted: counts };
+  return finishPriceRefresh(repos, log, "cardnexus", {
+    ignoredKeys,
+    transformed: transformedCounts,
+    staging,
+  });
 }

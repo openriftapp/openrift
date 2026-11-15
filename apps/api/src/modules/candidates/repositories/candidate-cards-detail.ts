@@ -10,6 +10,8 @@ import type {
   CandidatePrintingsTable,
 } from "../../../db/tables/candidates.js";
 import type { CardsTable } from "../../../db/tables/catalog.js";
+import { cardNameKeys } from "../../../lib/card-names.js";
+import { cardNameKeysSql } from "../../../repositories/candidate-card-sql.js";
 import {
   acceptableCandidatePrinting,
   CANONICAL_CANDIDATE_PRINTING_ORDER,
@@ -68,14 +70,6 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
         ])
         .where("cards.slug", "=", slug)
         .executeTakeFirst();
-    },
-
-    cardNameAliases(cardId: string): Promise<{ normName: string }[]> {
-      return db
-        .selectFrom("cardNameAliases")
-        .select("normName")
-        .where("cardId", "=", cardId)
-        .execute();
     },
 
     cardErrataForDetail(cardId: string) {
@@ -375,6 +369,9 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
     },
 
     candidateCardsByNormName(normName: string): Promise<Selectable<CandidateCardsTable>[]> {
+      if (normName === "") {
+        return Promise.resolve([]);
+      }
       return db
         .selectFrom("candidateCards")
         .selectAll()
@@ -463,6 +460,9 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
     },
 
     async candidateProvidersForNormName(normName: string): Promise<string[]> {
+      if (normName === "") {
+        return [];
+      }
       const rows = await db
         .selectFrom("candidateCards")
         .select("provider")
@@ -474,14 +474,26 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
       return rows.map((r) => r.provider);
     },
 
+    async cardNameKeys(cardId: string): Promise<string[]> {
+      const { rows } = await sql<{ normName: string; own: boolean }>`${cardNameKeysSql(
+        sql.val(cardId),
+      )}`.execute(db);
+      const own = rows.find((row) => row.own)?.normName ?? "";
+      return cardNameKeys(
+        own,
+        rows.filter((row) => !row.own),
+      );
+    },
+
     async candidateProvidersForCard(cardId: string): Promise<string[]> {
-      const [byAlias, byPrinting] = await Promise.all([
+      const [byName, byPrinting] = await Promise.all([
         db
           .selectFrom("candidateCards")
-          .innerJoin("cardNameAliases", "cardNameAliases.normName", "candidateCards.normName")
           .select("candidateCards.provider")
           .distinct()
-          .where("cardNameAliases.cardId", "=", cardId)
+          .where(
+            sql<boolean>`${sql.ref("candidateCards.normName")} in (select k.norm_name from (${cardNameKeysSql(sql.val(cardId))}) k)`,
+          )
           .where(notIgnoredCard("candidateCards"))
           .where(notHiddenSource("candidateCards"))
           .execute(),
@@ -494,7 +506,7 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
           .where("s.cardId", "=", cardId)
           .execute(),
       ]);
-      return [...new Set([...byAlias, ...byPrinting].map((r) => r.provider))];
+      return [...new Set([...byName, ...byPrinting].map((r) => r.provider))];
     },
   };
 }

@@ -82,7 +82,7 @@ function makeRepos() {
     printingDesk: {
       isDeskPrinting: vi.fn((_id: string) => Promise.resolve(false)),
       nonDeskPrintingIdsForImageFile: vi.fn(() => Promise.resolve([] as string[])),
-      getFullPrinting: vi.fn(() => Promise.resolve(BASE_PRINTING)),
+      getFullPrinting: vi.fn((_id: string, _side?: 1 | 2) => Promise.resolve(BASE_PRINTING)),
       getFullPrintingForCard: vi.fn(() => Promise.resolve(BASE_PRINTING)),
       getBasePrinting: vi.fn(() => Promise.resolve(BASE_PRINTING)),
       updatePrintingDeskFields: vi.fn(() => Promise.resolve()),
@@ -187,6 +187,31 @@ describe("createDeskPrinting", () => {
       artVariant: "normal",
       isSigned: false,
     });
+  });
+
+  it("prefers given flavor text over the base printing's, trimmed", async () => {
+    await create(repos, { flavorText: " Fresh from the oven. " });
+    expect(createNewPrinting.mock.calls[0]?.[2]).toMatchObject({
+      flavorText: "Fresh from the oven.",
+    });
+  });
+
+  it("trims the given code and artist and stores a blank comment as null", async () => {
+    await create(repos, { shortCode: " OGN-P01 ", artist: " Guest Artist ", comment: "  " });
+
+    expect(createNewPrinting.mock.calls[0]?.[2]).toMatchObject({
+      shortCode: "OGN-P01",
+      artist: "Guest Artist",
+    });
+    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith(
+      "new-printing",
+      expect.objectContaining({ comment: null }),
+    );
+  });
+
+  it("refuses a given artist that trims to nothing", async () => {
+    await expect(create(repos, { artist: "   " })).rejects.toMatchObject({ status: 400 });
+    expect(createNewPrinting).not.toHaveBeenCalled();
   });
 
   it("prefers an explicitly given artist over the base printing's", async () => {
@@ -459,6 +484,120 @@ describe("updateDeskPrinting", () => {
         newValues: { artist: "Guest Artist" },
       }),
     );
+  });
+
+  it("writes trimmed flavor text to the side and records the side's old value", async () => {
+    repos.printingDesk.getFullPrinting.mockImplementation((_id: string, side?: 1 | 2) =>
+      Promise.resolve(side === 2 ? { ...BASE_PRINTING, flavorText: "Back side." } : BASE_PRINTING),
+    );
+    await update(repos, FULL_ADMIN, { flavorText: "  Still crunchy.\n", side: 2 });
+
+    expect(repos.printingDesk.getFullPrinting).toHaveBeenCalledWith("p-1", 2);
+    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith(
+      "p-1",
+      { flavorText: "Still crunchy." },
+      2,
+    );
+    expect(recordAdminEvent).toHaveBeenCalledWith(
+      repos,
+      "user-1",
+      expect.objectContaining({
+        oldValues: { flavorText: "Back side." },
+        newValues: { flavorText: "Still crunchy." },
+      }),
+    );
+  });
+
+  it("compares flavor text with the stored value of the side it edits", async () => {
+    repos.printingDesk.getFullPrinting.mockImplementation((_id: string, side?: 1 | 2) =>
+      Promise.resolve(side === 2 ? { ...BASE_PRINTING, flavorText: "Back side." } : BASE_PRINTING),
+    );
+    await update(repos, FULL_ADMIN, { flavorText: "Back side.", side: 2 });
+    expect(repos.printingDesk.updatePrintingDeskFields).not.toHaveBeenCalled();
+
+    await update(repos, FULL_ADMIN, { flavorText: "Crunchy.", side: 2 });
+    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith(
+      "p-1",
+      { flavorText: "Crunchy." },
+      2,
+    );
+  });
+
+  it("checks a grant holder's reach over the side for a flavor text edit", async () => {
+    repos.printingDesk.getFaceLinks.mockResolvedValue({ face1Id: "face-1", face2Id: null });
+    repos.printingDesk.printingIdsShowingFace.mockResolvedValue(["p-1", "base-set"]);
+    repos.printingDesk.isDeskPrinting.mockImplementation((id: string) =>
+      Promise.resolve(id === "p-1"),
+    );
+    await expect(update(repos, GRANT_HOLDER, { flavorText: "New." })).rejects.toMatchObject({
+      status: 403,
+    });
+    expect(repos.printingDesk.printingIdsShowingFace).toHaveBeenCalledWith("face-1");
+  });
+
+  it("stores whitespace-only flavor text as null", async () => {
+    await update(repos, FULL_ADMIN, { flavorText: "  \t " });
+
+    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith(
+      "p-1",
+      { flavorText: null },
+      1,
+    );
+  });
+
+  it("writes nothing and records nothing for unchanged flavor text", async () => {
+    await update(repos, FULL_ADMIN, { flavorText: " Crunchy. " });
+
+    expect(repos.printingDesk.updatePrintingDeskFields).not.toHaveBeenCalled();
+    expect(recordAdminEvent).not.toHaveBeenCalled();
+    expect(repos.catalog.refreshCatalogViews).not.toHaveBeenCalled();
+  });
+
+  it("trims text fields and stores a blank comment as null", async () => {
+    await update(repos, FULL_ADMIN, { artist: "  Guest Artist ", comment: "   " });
+
+    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith(
+      "p-1",
+      { artist: "Guest Artist", comment: null },
+      1,
+    );
+  });
+
+  it("refuses an artist that trims to nothing", async () => {
+    await expect(update(repos, FULL_ADMIN, { artist: "  \t " })).rejects.toMatchObject({
+      status: 400,
+    });
+    expect(repos.printingDesk.updatePrintingDeskFields).not.toHaveBeenCalled();
+  });
+
+  it("writes and records only the fields that changed", async () => {
+    await update(repos, FULL_ADMIN, { artist: "Base Artist", comment: "Skirmish prize." });
+
+    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith(
+      "p-1",
+      { comment: "Skirmish prize." },
+      1,
+    );
+    expect(recordAdminEvent).toHaveBeenCalledWith(
+      repos,
+      "user-1",
+      expect.objectContaining({ newValues: { comment: "Skirmish prize." } }),
+    );
+  });
+
+  it("writes nothing and records nothing when every sent value is unchanged", async () => {
+    await update(repos, FULL_ADMIN, {
+      setId: OGN_SET_ID,
+      artist: "Base Artist",
+      shortCode: "OGN-001",
+      announcedAt: null,
+      releasedAt: null,
+      releasePrecision: null,
+    });
+
+    expect(repos.printingDesk.updatePrintingDeskFields).not.toHaveBeenCalled();
+    expect(recordAdminEvent).not.toHaveBeenCalled();
+    expect(repos.catalog.refreshCatalogViews).not.toHaveBeenCalled();
   });
 
   it("files a face edit under the face's card, so its card history shows it", async () => {

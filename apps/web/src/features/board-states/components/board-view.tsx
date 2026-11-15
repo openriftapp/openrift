@@ -27,6 +27,7 @@ import type { ReactNode } from "react";
 import { Suspense, useRef, useState } from "react";
 
 import { CardIcon } from "@/components/card-icon";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Pressable } from "@/components/ui/pressable";
 import {
   ArrowLegend,
@@ -907,13 +908,17 @@ function PieceToken({ piece, mirrored, context }: PieceProps) {
       }}
     >
       <span className="absolute inset-0 min-w-0 overflow-hidden rounded-[inherit]">
-        {image === undefined ? (
-          <span className="font-card text-card-foreground flex size-full items-center justify-center p-1 text-center text-xs leading-tight">
-            {pieceName(piece)}
-          </span>
-        ) : (
-          <img src={image} alt="" aria-hidden className="size-full object-cover" />
-        )}
+        <ImgWithFallback
+          src={image}
+          alt=""
+          aria-hidden
+          className="size-full object-cover"
+          fallback={
+            <span className="font-card text-card-foreground flex size-full items-center justify-center p-1 text-center text-xs leading-tight">
+              {pieceName(piece)}
+            </span>
+          }
+        />
         {piece.facedown && (
           <span className="absolute inset-0 transition-opacity group-hover/piece:opacity-0 group-focus/piece:opacity-0">
             <CardBack owner={piece.owner} className="size-full border-0" />

@@ -5,7 +5,7 @@ import type {
 } from "@openrift/shared/contracts/admin/meta-submissions";
 import { todayUtc } from "@openrift/shared/format-date";
 import { metaLegendSlug, metaPlayerKey } from "@openrift/shared/meta-keys";
-import { metaResultsState } from "@openrift/shared/meta-results";
+import { metaEventStatus, metaResultsState } from "@openrift/shared/meta-results";
 import type {
   AdminMetaEvent,
   AdminMetaPlayer,
@@ -213,6 +213,7 @@ function rowLegendRef(
 export function toMetaEventSummary(
   row: MetaEventWithCounts,
   topFinishes: readonly MetaEventFinish[] = [],
+  today = todayUtc(),
 ): MetaEventSummary {
   return {
     id: row.id,
@@ -221,7 +222,7 @@ export function toMetaEventSummary(
     eventDate: row.eventDate,
     format: row.format,
     tier: row.tier,
-    status: row.status,
+    status: metaEventStatus(row, today),
     country: row.country,
     location: row.location,
     playerCount: row.playerCount,

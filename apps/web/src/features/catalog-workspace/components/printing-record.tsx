@@ -12,11 +12,7 @@ import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
 import { computeProductSuggestions } from "@openrift/shared/marketplace-suggestions";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import type { ReleasePrecision } from "@openrift/shared/set-release";
-import {
-  formatReleasePeriod,
-  normalizeToPeriodStart,
-  parseReleaseInput,
-} from "@openrift/shared/set-release";
+import { formatReleasePeriod, normalizeToPeriodStart } from "@openrift/shared/set-release";
 import { pluralize } from "@openrift/shared/strings";
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import { useQuery } from "@tanstack/react-query";
@@ -70,7 +66,11 @@ import {
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { hasAdminSection } from "@/features/admin/lib/admin-sections";
 import { deskPrintingName } from "@/features/admin/lib/desk-face-options";
-import { EMPTY_VALUE_TEXT, formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
+import {
+  EMPTY_VALUE_TEXT,
+  formatCatalogFieldValue,
+  formatReleaseValue,
+} from "@/features/admin/lib/field-value-text";
 import { deskImageBust, deskImageSrc } from "@/features/admin/lib/printing-desk-image";
 import { deskPrintingPeriod } from "@/features/admin/lib/printing-desk-status";
 import type { PrintingFace } from "@/features/admin/lib/printing-faces";
@@ -261,9 +261,8 @@ function PrintingRecordBody({
     field: ComparablePrintingField,
     suggestion: Extract<PrintingChip, { kind: "field" }>["suggestion"],
   ): string {
-    if (field === "releasedAt" && typeof suggestion.proposed === "string") {
-      const release = parseReleaseInput(suggestion.proposed, suggestion.candidate.releasePrecision);
-      return release === null ? suggestion.proposed : formatReleasePeriod(release);
+    if (field === "releasedAt") {
+      return formatReleaseValue(suggestion.proposed, suggestion.candidate.releasePrecision);
     }
     if (field === "releasePrecision" && printing.releasedAt !== null) {
       return formatReleasePeriod({
@@ -705,7 +704,7 @@ function FaceSummary({
             <Button
               variant="outline"
               size="sm"
-              disabled={removeFace.isPending}
+              pending={removeFace.isPending}
               onClick={() =>
                 removeFace.mutate({ printingId: printing.printingId, faceId: face.faceId })
               }
@@ -907,7 +906,7 @@ function PrintingFieldEditor({
       <div className="flex flex-wrap items-center gap-2">
         <Button
           size="sm"
-          disabled={update.isPending}
+          pending={update.isPending}
           onClick={() =>
             update.mutate({ printingId: printing.printingId, ...patch() }, { onSuccess: onDone })
           }

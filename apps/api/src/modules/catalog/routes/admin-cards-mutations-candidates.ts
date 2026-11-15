@@ -1,4 +1,3 @@
-import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 import { adminCardMutationsContract } from "@openrift/shared/contracts/admin/card-mutations";
 import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import { implement } from "@orpc/server";
@@ -31,14 +30,6 @@ async function settleCheckedSubmissions(
   for (const submissionId of acceptedIds) {
     void context.services.notifySubmitterOfCardAcceptance(context.repos, submissionId);
   }
-}
-
-async function cardNameVariants(
-  mut: ApiContext["repos"]["catalogMutations"],
-  card: { id: string; name: string },
-): Promise<string[]> {
-  const aliasRows = await mut.getCardAliases(card.id);
-  return [...new Set([normalizeNameForIdentity(card.name), ...aliasRows.map((a) => a.normName)])];
 }
 
 export const adminCardMutationsCandidatesRouter = {
@@ -107,7 +98,10 @@ export const adminCardMutationsCandidatesRouter = {
 
     const { updated, candidateCardIds } =
       input.candidateCardIds === undefined
-        ? await candidateCards.checkAllCandidateCards(await cardNameVariants(mut, card), card.id)
+        ? await candidateCards.checkAllCandidateCards(
+            await candidateCards.cardNameKeys(card.id),
+            card.id,
+          )
         : await candidateCards.checkCandidateCards(input.candidateCardIds);
 
     await settleCheckedSubmissions(context, {

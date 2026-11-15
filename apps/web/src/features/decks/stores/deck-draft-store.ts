@@ -1,3 +1,4 @@
+import { deckCardKey } from "@openrift/shared/deck-cards";
 import { toError } from "@openrift/shared/strings";
 import type { Collection } from "@tanstack/react-db";
 import { createCollection, localOnlyCollectionOptions } from "@tanstack/react-db";
@@ -6,7 +7,6 @@ import type { QueryClient } from "@tanstack/react-query";
 import { cleanupWhenIdle, markOrphaned } from "@/features/collections/lib/collection-cleanup";
 import { loadCollection } from "@/features/collections/lib/collection-load";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type { PlanDraft } from "@/features/decks/lib/deck-plan";
 import { getDeckCardsCollection } from "@/features/decks/lib/decks-collection";
 import { saveDeckCards } from "@/features/decks/lib/decks-write";

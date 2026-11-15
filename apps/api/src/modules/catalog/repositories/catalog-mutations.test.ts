@@ -53,11 +53,6 @@ describe("catalogMutationsRepo", () => {
     expect(await catalogMutationsRepo(db).getCardIdBySlug("OGS-001")).toEqual({ id: "c-1" });
   });
 
-  it("getCardAliases returns aliases", async () => {
-    const db = createMockDb([{ normName: "annie" }]);
-    expect(await catalogMutationsRepo(db).getCardAliases("c-1")).toEqual([{ normName: "annie" }]);
-  });
-
   it("renameCardSlugById renames a card by UUID", async () => {
     const db = createMockDb([]);
     await expect(

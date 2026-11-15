@@ -7,6 +7,7 @@ import { CardFan, CardFanOutline } from "@/components/card-fan";
 import { Eyebrow, Heading } from "@/components/heading";
 import { MarkdownText } from "@/components/markdown-text";
 import { buttonVariants } from "@/components/ui/button";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { TextLink } from "@/components/ui/text-link";
 import { UserAvatarStack } from "@/components/user-avatar-stack";
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -77,11 +78,12 @@ export function FriendGroupHero({ slug, data }: { slug: string; data: FriendGrou
     <section className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col pt-4")}>
       {banner ? (
         <div className={cn(GROUP_BANNER_FRAME, "relative overflow-hidden rounded-lg")}>
-          <img
+          <ImgWithFallback
             src={banner}
             alt=""
             className="h-full w-full object-cover"
             style={{ objectPosition: `50% ${data.group.bannerPosition}%` }}
+            fallback={null}
           />
           <Link
             to="/groups/$slug/manage"

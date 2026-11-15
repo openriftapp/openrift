@@ -16,10 +16,7 @@ import {
 import { pinWatermark, takePage } from "../../../lib/xid-watermark.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
-import {
-  consentedTradeCancels,
-  refusingUnconfirmedTradeCancels,
-} from "../../groups/services/trade-supply.js";
+import { consentedTradeCancels } from "../../groups/services/trade-supply.js";
 import { clampCopiesLimit } from "../lib/copies-page-limit.js";
 import type { CopyDeltaCursor } from "../lib/copy-delta-cursor.js";
 import { buildCopyDeltaCursor, parseCopyDeltaCursor } from "../lib/copy-delta-cursor.js";
@@ -137,17 +134,14 @@ export const copiesRouter = {
     return { items: created };
   }),
 
-  move: os.move.handler(async ({ input, context, errors }): Promise<void> => {
-    await refusingUnconfirmedTradeCancels(
-      moveCopies(
-        context.repos,
-        context.transact,
-        context.userId,
-        input.copyIds,
-        input.toCollectionId,
-        consentedTradeCancels(input.cancelTradeIds),
-      ),
-      (data) => errors.CONFLICT({ data }),
+  move: os.move.handler(async ({ input, context }): Promise<void> => {
+    await moveCopies(
+      context.repos,
+      context.transact,
+      context.userId,
+      input.copyIds,
+      input.toCollectionId,
+      consentedTradeCancels(input.cancelTradeIds),
     );
   }),
 
@@ -174,15 +168,12 @@ export const copiesRouter = {
     }
   }),
 
-  dispose: os.dispose.handler(async ({ input, context, errors }): Promise<void> => {
-    await refusingUnconfirmedTradeCancels(
-      disposeCopies(
-        context.transact,
-        context.userId,
-        input.copyIds,
-        consentedTradeCancels(input.cancelTradeIds),
-      ),
-      (data) => errors.CONFLICT({ data }),
+  dispose: os.dispose.handler(async ({ input, context }): Promise<void> => {
+    await disposeCopies(
+      context.transact,
+      context.userId,
+      input.copyIds,
+      consentedTradeCancels(input.cancelTradeIds),
     );
   }),
 

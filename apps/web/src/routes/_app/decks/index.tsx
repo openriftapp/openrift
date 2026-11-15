@@ -1,6 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { cleanedSearchForRedirect } from "@/features/cards/lib/search-schemas";
 import { loadCollection } from "@/features/collections/lib/collection-load";
 import { DeckPending } from "@/features/decks/components/deck-pending";
@@ -37,5 +36,4 @@ export const Route = createFileRoute("/_app/decks/")({
     }
   },
   pendingComponent: DeckPending,
-  errorComponent: RouteErrorFallback,
 });

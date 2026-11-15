@@ -309,7 +309,7 @@ export function TradeSettleSection({ trades }: { trades: CardTradeResponse[] }) 
               targetLabel={target.label}
               onChangeTarget={() => setTargetOpen(true)}
             />
-            <Button className="w-full" disabled={busy || cards === 0} onClick={commit}>
+            <Button className="w-full" disabled={cards === 0} pending={busy} onClick={commit}>
               {m.trades_settle_button({ count: cards })}
             </Button>
             {rowsAtZero === 0 ? null : (

@@ -12,7 +12,7 @@ export function ScanNotices({ unavailable, scanError, cameraAvailable }: ScanNot
   return (
     <>
       {unavailable && (
-        <Card className="border-destructive mt-4">
+        <Card className="mt-4">
           <CardContent>
             <p className="font-medium">{m.scan_unavailable()}</p>
           </CardContent>

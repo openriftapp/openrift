@@ -401,7 +401,7 @@ function KnownSettingRow({
             size="sm"
             className="-mr-2.5"
             onClick={() => void handleCreateOn()}
-            disabled={pending}
+            pending={pending}
           >
             <PlusIcon className="size-3.5" />
             Set up
@@ -416,7 +416,7 @@ function KnownSettingRow({
             placeholder={known.placeholder}
             className="w-72 font-mono"
           />
-          <Button variant="outline" onClick={() => void handleSave()} disabled={pending}>
+          <Button variant="outline" onClick={() => void handleSave()} pending={pending}>
             Save
           </Button>
           <Button

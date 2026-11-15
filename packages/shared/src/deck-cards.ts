@@ -16,6 +16,33 @@ export function toDeckCard(row: DeckCardResponse): DeckCardResponse {
   };
 }
 
+export function deckCardKey(card: {
+  cardId: string;
+  zone: string;
+  preferredPrintingId: string | null;
+}): string {
+  return `${card.cardId}|${card.zone}|${card.preferredPrintingId ?? ""}`;
+}
+
+/**
+ * Folds repeated lines into one row per `uq_deck_cards` key, summing quantity.
+ * The index is `NULLS NOT DISTINCT`, so a null `preferred_printing_id` does not
+ * separate two lines the way a null usually would.
+ */
+export function mergeDeckCards<T extends DeckCardLine>(cards: readonly T[]): T[] {
+  const merged = new Map<string, T>();
+  for (const card of cards) {
+    const key = deckCardKey(card);
+    const held = merged.get(key);
+    if (held === undefined) {
+      merged.set(key, { ...card });
+      continue;
+    }
+    held.quantity += card.quantity;
+  }
+  return [...merged.values()];
+}
+
 function lineKey(card: DeckCardLine): string {
   return `${card.cardId} ${card.zone} ${card.quantity} ${card.preferredPrintingId ?? ""}`;
 }

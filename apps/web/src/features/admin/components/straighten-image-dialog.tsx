@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { StraightenLoupe } from "@/features/admin/components/straighten-loupe";
 import {
   useEnsurePrintingImageOriginal,
@@ -243,7 +244,10 @@ function StraightenDialogBody({
       <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:justify-center">
         {original !== null && corners !== null && (
           <div className="relative inline-block">
-            <img
+            <ImgWithFallback
+              fallback={
+                <span className="text-muted-foreground block p-4">Image failed to load</span>
+              }
               ref={imageRef}
               src={original.url}
               alt="Original scan"
@@ -323,13 +327,18 @@ function StraightenDialogBody({
             variant="ghost"
             className="text-destructive"
             disabled={setQuad.isPending}
+            pending={setQuad.isPending && setQuad.variables?.quad === null}
             onClick={() => setQuad.mutate({ imageId, quad: null }, { onSuccess: onDone })}
           >
             Remove straightening
           </Button>
         )}
         <DialogCancel />
-        <Button type="submit" disabled={corners === null} pending={setQuad.isPending}>
+        <Button
+          type="submit"
+          disabled={corners === null || setQuad.isPending}
+          pending={setQuad.isPending && setQuad.variables?.quad !== null}
+        >
           Save
         </Button>
       </DialogFooter>

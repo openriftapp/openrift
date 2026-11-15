@@ -1,5 +1,6 @@
 import { deckFoldersContract } from "@openrift/shared/contracts/deck-folders";
 import { decksContract } from "@openrift/shared/contracts/decks";
+import { deckCardKey } from "@openrift/shared/deck-cards";
 import { EMPTY_DECK_LIST_SUMMARY } from "@openrift/shared/deck-list-summary";
 import { descriptionSnippet } from "@openrift/shared/description-snippet";
 import type {
@@ -14,7 +15,6 @@ import { createTransaction } from "@tanstack/react-db";
 import type { QueryClient } from "@tanstack/react-query";
 
 import { writeSkippingMissing } from "@/features/collections/lib/copies-write";
-import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import { deckFoldersKeys, decksKeys } from "@/features/decks/lib/decks-query-keys";
 import { mutationTag } from "@/lib/mutation-metadata";
 import { watchForRefetchRace } from "@/lib/refetch-race";

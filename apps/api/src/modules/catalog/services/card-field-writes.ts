@@ -3,7 +3,12 @@ import type { AcceptCardField } from "@openrift/shared/contracts/admin/card-muta
 import { cardFieldRules } from "@openrift/shared/db-field-rules";
 
 import { cardUpdateFor } from "../lib/card-field-updates.js";
-import { asFieldWriteError, trimOptionalText, validateFieldValue } from "../lib/field-values.js";
+import {
+  asFieldWriteError,
+  cardNameRule,
+  trimOptionalText,
+  validateFieldValue,
+} from "../lib/field-values.js";
 import type { catalogMutationsRepo } from "../repositories/catalog-mutations.js";
 
 type CatalogMutationsRepo = ReturnType<typeof catalogMutationsRepo>;
@@ -19,10 +24,14 @@ export function normalizeCardFieldValue(field: AcceptCardField, value: unknown):
   }
 
   return validateFieldValue(
-    cardFieldRules[field as keyof typeof cardFieldRules],
+    field === "name" ? cardNameRule : cardFieldRules[field as keyof typeof cardFieldRules],
     field,
     normalized,
   );
+}
+
+export function normalizeCardName(name: string): string {
+  return validateFieldValue(cardNameRule, "name", name.trim());
 }
 
 /**

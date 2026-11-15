@@ -362,7 +362,7 @@ function WorkbenchContent({
                       <TooltipTrigger
                         render={
                           <PageTopBarButton
-                            disabled={setOwnFlag.isPending}
+                            pending={setOwnFlag.isPending}
                             onClick={() =>
                               setOwnFlag.mutate({ key: "deck-builder-beta", enabled: false })
                             }

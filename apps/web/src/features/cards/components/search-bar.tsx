@@ -135,7 +135,7 @@ export function SearchBar({
   };
 
   const cardCountLabel = isFiltered
-    ? `${filteredCount} / ${unitCount(view, totalCards)}`
+    ? m.cards_search_count_filtered({ matched: filteredCount, total: unitCount(view, totalCards) })
     : unitCount(view, totalCards);
 
   const showSuggestions = suggestions !== null && suggestions.suggestions.length > 0;

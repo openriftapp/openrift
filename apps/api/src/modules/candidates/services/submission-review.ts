@@ -14,6 +14,7 @@ import { badRequest, conflict, notFound } from "../../../errors.js";
 import type { Io } from "../../../io.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { buildSizedPrintingLinkKey } from "../../../lib/printing-link-key.js";
+import { isUnchangedValue } from "../../catalog/lib/field-values.js";
 import { faceForNewImage } from "../../catalog/lib/image-face.js";
 import {
   describeUnknownRefs,
@@ -36,6 +37,7 @@ import {
 } from "../../catalog/services/printing-admin.js";
 import type { PrintingFieldSource } from "../../catalog/services/printing-field-writes.js";
 import {
+  isUnchangedPrintingValue,
   normalizePrintingFieldValue,
   writePrintingField,
 } from "../../catalog/services/printing-field-writes.js";
@@ -279,16 +281,21 @@ export async function acceptSubmission(
     if (liveCard && cardFields.length > 0) {
       const before = await trx.catalogMutations.getFullCardById(liveCard.id);
       for (const pick of cardFields) {
+        const value = normalizeCardFieldValue(pick.field, pick.value);
+        if (isUnchangedValue(before?.[pick.field as keyof typeof before], value)) {
+          continue;
+        }
         await writeCardField(trx.catalogMutations, {
           cardId: liveCard.id,
           field: pick.field,
-          value: normalizeCardFieldValue(pick.field, pick.value),
+          value,
           previousName: before?.name ?? null,
         });
       }
       count += cardFields.length;
     }
 
+    const printingsBefore = new Map<string, Record<string, unknown> | undefined>();
     for (const pick of printingFields) {
       const side = await sideOfPick(trx, pick);
       const value = await normalizePrintingFieldValue(trx, {
@@ -298,13 +305,30 @@ export async function acceptSubmission(
         source: pick.source,
         side,
       });
+      count += 1;
+      const key = `${pick.printingId}:${side}`;
+      if (!printingsBefore.has(key)) {
+        printingsBefore.set(
+          key,
+          await trx.catalogMutations.getFullPrintingById(pick.printingId, side),
+        );
+      }
+      const printingBefore = printingsBefore.get(key);
+      if (
+        printingBefore !== undefined &&
+        (await isUnchangedPrintingValue(trx, printingBefore, pick.field, value))
+      ) {
+        continue;
+      }
       await writePrintingField(inner, trx, {
         printingId: pick.printingId,
         field: pick.field,
         value,
         side,
       });
-      count += 1;
+      if (printingBefore !== undefined) {
+        printingBefore[pick.field] = pick.field === "setId" ? undefined : value;
+      }
     }
 
     if (liveCard && usableNewPrintings.length > 0) {

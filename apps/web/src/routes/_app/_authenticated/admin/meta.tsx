@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
 import { adminMetaOverlaysQueryOptions } from "@/features/admin/lib/admin-meta-overlays-queries";
 import {
@@ -47,5 +46,4 @@ export const Route = createFileRoute("/_app/_authenticated/admin/meta")({
     ]);
   },
   pendingComponent: AdminPending,
-  errorComponent: RouteErrorFallback,
 });

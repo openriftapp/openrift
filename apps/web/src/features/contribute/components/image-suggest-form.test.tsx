@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import type { MissingImagePrinting } from "@openrift/shared/contracts/card-submissions";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";

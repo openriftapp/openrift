@@ -24,12 +24,17 @@ import {
   CHANGE_CHIP,
   CHIP_BASE,
   CUT_CHIP,
+  initialRailScroll,
   LABEL_MARGIN_X,
   LANE_BOTTOM_PAD,
   LANE_GAP,
   LANE_TOP_Y,
   PHONE_SLOT_WIDTH,
   SLOT_WIDTH,
+  edgeChipCenters,
+  newVariantBox,
+  newVariantSlot,
+  railNodeBoxes,
 } from "@/features/decks/lib/deck-variant-rail-geometry";
 import { useZoneOrder } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
@@ -105,22 +110,6 @@ function edgePath(
   }
   const bend = (x2 - x1) / 2;
   return `M ${x1} ${y1} C ${x1 + bend} ${y1} ${x2 - bend} ${y2} ${x2} ${y2}`;
-}
-
-function edgeCountsPosition(
-  edge: RailEdge,
-  byId: ReadonlyMap<string, RailNode>,
-  geometry: RailGeometry,
-): { left: number; top: number } | null {
-  const from = byId.get(edge.fromId);
-  const to = byId.get(edge.toId);
-  if (!from || !to) {
-    return null;
-  }
-  return {
-    left: (nodeX(from, geometry) + nodeX(to, geometry)) / 2,
-    top: (laneY(from.lane) + laneY(to.lane)) / 2,
-  };
 }
 
 // Both ends must be loaded before a count means anything; a half-loaded edge draws nothing.
@@ -433,11 +422,35 @@ function VariantRailBody({ deckId }: { deckId: string }) {
   }
 
   const nodesById = new Map(layout.nodes.map((node) => [node.id, node]));
-  const updatedById = new Map(members.map((member) => [member.id, member.updatedAt]));
-  const maxLane = layout.nodes.reduce((deepest, node) => Math.max(deepest, node.lane), 0);
-  const height = laneY(maxLane) + LANE_BOTTOM_PAD;
+  const railPoint = (node: { x: number; lane: number }) => ({
+    x: nodeX(node, geometry),
+    y: laneY(node.lane),
+  });
   const currentNode = layout.nodes.find((node) => node.isCurrent);
-  const ghost = currentNode ? { x: currentNode.x + 1, lane: currentNode.lane } : null;
+  const ghost = currentNode ? newVariantSlot(currentNode, layout.nodes) : null;
+  const chipCenters = edgeChipCenters(
+    layout.edges,
+    (id) => {
+      const node = nodesById.get(id);
+      return node ? railPoint(node) : undefined;
+    },
+    [
+      ...layout.nodes.flatMap((node) =>
+        railNodeBoxes(railPoint(node), {
+          text: node.label,
+          isDraft: node.isDraft,
+          maxWidth: geometry.labelWidth,
+        }),
+      ),
+      ...(ghost ? [newVariantBox(railPoint(ghost))] : []),
+    ],
+  );
+  const updatedById = new Map(members.map((member) => [member.id, member.updatedAt]));
+  const maxLane = layout.nodes.reduce(
+    (deepest, node) => Math.max(deepest, node.lane),
+    ghost?.lane ?? 0,
+  );
+  const height = laneY(maxLane) + LANE_BOTTOM_PAD;
   const maxX = layout.nodes.reduce((widest, node) => Math.max(widest, node.x), ghost?.x ?? 0);
   const width = geometry.padX * 2 + maxX * geometry.slotWidth;
   const compareFrom = defaultCompareFrom(layout, members, deckId);
@@ -451,7 +464,12 @@ function VariantRailBody({ deckId }: { deckId: string }) {
           edgesRef(element);
           if (element && currentNode && currentX.current !== currentNode.x) {
             currentX.current = currentNode.x;
-            element.scrollLeft = nodeX(currentNode, geometry) - element.clientWidth / 2;
+            element.scrollLeft = initialRailScroll({
+              nodeCenter: nodeX(currentNode, geometry),
+              labelHalfWidth: geometry.padX,
+              viewportWidth: element.clientWidth,
+              contentWidth: width,
+            });
           }
         }}
         aria-label={m.decks_dialog_rail_nav_label()}
@@ -498,7 +516,7 @@ function VariantRailBody({ deckId }: { deckId: string }) {
           </svg>
 
           {layout.edges.map((edge) => {
-            const position = edgeCountsPosition(edge, nodesById, geometry);
+            const position = chipCenters.get(`${edge.fromId}-${edge.toId}`);
             const counts = edgeCounts(cardsByDeck, cardsById, edge);
             if (!position || !counts) {
               return null;

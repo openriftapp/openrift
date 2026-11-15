@@ -335,7 +335,7 @@ export function SubmissionBlock({
               Reject
             </Button>
             <Button
-              disabled={acceptSubmission.isPending}
+              pending={acceptSubmission.isPending}
               title={
                 selectable
                   ? `Applies the ticked rows, marks this source checked and tells ${who} what happened.`

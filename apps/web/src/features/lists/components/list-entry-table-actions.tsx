@@ -64,7 +64,7 @@ export function ListEntryTableActions(props: ListEntryTableActionsProps) {
           event.stopPropagation();
           props.onRemove();
         }}
-        disabled={props.isRemovePending}
+        pending={props.isRemovePending}
         aria-label={m.lists_entry_remove_from_list()}
       >
         <XIcon className="size-3.5" />

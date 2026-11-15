@@ -5,6 +5,7 @@ import { HandIcon, SparklesIcon, ZapIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Pressable } from "@/components/ui/pressable";
 import type { ChainDropData } from "@/features/board-states/components/board-card-parts";
 import { ArrowHandle } from "@/features/board-states/components/board-card-parts";
@@ -120,7 +121,8 @@ function ChainEntryFace({ entry, position, view }: ChainEntryProps) {
         </span>
       ) : (
         <>
-          <img
+          <ImgWithFallback
+            fallback={null}
             src={image}
             alt=""
             className={cn("size-full object-cover", ability && "opacity-60")}

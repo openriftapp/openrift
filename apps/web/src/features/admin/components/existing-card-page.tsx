@@ -20,7 +20,7 @@ export function ExistingCardPage() {
   return (
     <ExistingCardDetailPage
       key={cardSlug}
-      identifier={cardSlug}
+      cardSlug={cardSlug}
       section={section}
       face={face}
       focusMarketplace={focusMarketplace}

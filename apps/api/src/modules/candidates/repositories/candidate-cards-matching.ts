@@ -3,6 +3,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import { liveCardForNorm } from "../../../repositories/candidate-card-sql.js";
+import { visibleCandidateCard, visibleCandidatePrinting } from "./candidate-cards-shared.js";
 import type {
   CandidatePrintingComparison,
   ComparableCardValues,
@@ -49,6 +50,7 @@ export function candidateMatchingRepo(db: Kysely<Database>) {
         from candidate_cards cc
         where cc.checked_at is null
           and cc.provider <> ${excludeProvider}
+          and ${visibleCandidateCard("cc")}
           ${afterId === null ? sql`` : sql`and cc.id > ${afterId}`}
         order by cc.id
         limit ${limit}
@@ -75,6 +77,7 @@ export function candidateMatchingRepo(db: Kysely<Database>) {
         join sets s on s.id = p.set_id
         where cp.checked_at is null
           and cc.provider <> ${excludeProvider}
+          and ${visibleCandidatePrinting("cp", "cc")}
           ${afterId === null ? sql`` : sql`and cp.id > ${afterId}`}
         order by cp.id
         limit ${limit}

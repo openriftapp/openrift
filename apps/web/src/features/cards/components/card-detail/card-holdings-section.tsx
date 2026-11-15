@@ -2,6 +2,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 
 import { SectionHeading } from "@/components/ui/section-heading";
 import { useCardHoldingLines } from "@/features/cards/hooks/use-card-holdings";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -15,8 +16,9 @@ export function CardHoldingsSection({
 }) {
   const siblingIds = (printings ?? []).map((sibling) => sibling.printingId);
   const lines = useCardHoldingLines(siblingIds.length > 0 ? siblingIds : [printing.printingId]);
+  const hydrated = useHydrated();
 
-  if (lines.length === 0) {
+  if (!hydrated || lines.length === 0) {
     return null;
   }
 

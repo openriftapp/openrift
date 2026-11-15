@@ -5,6 +5,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   EllipsisVerticalIcon,
+  EyeIcon,
   RefreshCwIcon,
   Trash2Icon,
 } from "lucide-react";
@@ -35,8 +36,8 @@ import type { PrevNextSlugs } from "@/features/admin/lib/admin-card-nav";
 
 interface CardDetailHeaderProps {
   card: AdminCardResponse;
-  cardId: string;
-  expectedCardId: string;
+  cardSlug: string;
+  expectedCardSlug: string;
   hasUnchecked: boolean;
   prevNextCards: PrevNextSlugs;
   listSearch: CardReviewNavSearch;
@@ -49,8 +50,8 @@ interface CardDetailHeaderProps {
 
 export function CardDetailHeader({
   card,
-  cardId,
-  expectedCardId,
+  cardSlug,
+  expectedCardSlug,
   hasUnchecked,
   prevNextCards,
   listSearch,
@@ -63,14 +64,14 @@ export function CardDetailHeader({
   const renameCard = useRenameCard();
   const deleteCardMutation = useDeleteCard();
   const canonicalName = card.name;
-  const isCardIdStale = cardId !== expectedCardId;
+  const isCardSlugStale = cardSlug !== expectedCardSlug;
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const checkAllLabel = (
     <>
       <CheckCheckIcon />
-      Check all & next
-      <Kbd className="bg-background/20 pointer-events-none ml-1 leading-none text-inherit opacity-60">
+      <span className="hidden sm:inline">Check all & next</span>
+      <Kbd className="bg-background/20 pointer-events-none ml-1 leading-none text-inherit opacity-60 max-sm:hidden">
         Ctrl ⇧ ↵
       </Kbd>
     </>
@@ -93,7 +94,15 @@ export function CardDetailHeader({
         }
         actions={
           <>
-            {isCardIdStale && <Badge variant="warning">ID &rarr; {expectedCardId}</Badge>}
+            {isCardSlugStale && (
+              <Badge
+                variant="warning"
+                title={`ID → ${expectedCardSlug}`}
+                className="max-w-20 shrink sm:max-w-48"
+              >
+                <span className="truncate">ID &rarr; {expectedCardSlug}</span>
+              </Badge>
+            )}
             <PageTopBarIconButton
               aria-label="Previous card"
               disabled={!prevNextCards.prev}
@@ -118,15 +127,18 @@ export function CardDetailHeader({
             </PageTopBarIconButton>
             <Link
               to="/cards/$cardSlug/{-$printingSlug}"
-              params={{ cardSlug: cardId }}
+              params={{ cardSlug }}
+              aria-label="View public page"
               className={buttonVariants({ variant: "ghost" })}
             >
-              View public page
+              <EyeIcon />
+              <span className="hidden sm:inline">View public page</span>
             </Link>
             {isAdmin &&
               (hasUnchecked ? (
                 <PageTopBarPrimaryButton
                   className="gap-1.5"
+                  aria-label="Check all & next"
                   pending={isCheckingAll}
                   onClick={onCheckAllAndNext}
                 >
@@ -135,6 +147,7 @@ export function CardDetailHeader({
               ) : (
                 <PageTopBarButton
                   className="gap-1.5"
+                  aria-label="Check all & next"
                   pending={isCheckingAll}
                   onClick={onCheckAllAndNext}
                 >
@@ -147,21 +160,21 @@ export function CardDetailHeader({
                   <EllipsisVerticalIcon />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {isCardIdStale && (
+                  {isCardSlugStale && (
                     <DropdownMenuItem
                       disabled={renameCard.isPending}
                       onClick={() =>
                         renameCard.mutate(
-                          { cardId: card.id, cardSlug: cardId, newId: expectedCardId },
-                          { onSuccess: () => goToCard(expectedCardId) },
+                          { cardId: card.id, cardSlug, newId: expectedCardSlug },
+                          { onSuccess: () => goToCard(expectedCardSlug) },
                         )
                       }
                     >
                       <RefreshCwIcon className="mr-2" />
-                      Regenerate ID ({expectedCardId})
+                      Regenerate ID ({expectedCardSlug})
                     </DropdownMenuItem>
                   )}
-                  {isCardIdStale && <DropdownMenuSeparator />}
+                  {isCardSlugStale && <DropdownMenuSeparator />}
                   <DropdownMenuItem
                     variant="destructive"
                     disabled={deleteCardMutation.isPending}

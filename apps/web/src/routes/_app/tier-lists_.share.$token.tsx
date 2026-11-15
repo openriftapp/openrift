@@ -2,7 +2,6 @@ import { tierListShareDescription } from "@openrift/shared/share-titles";
 import type { PublicTierListDetailResponse } from "@openrift/shared/types/api/tier-list";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
 import { LinkGoneState } from "@/components/link-gone-state";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -63,7 +62,6 @@ export const Route = createFileRoute("/_app/tier-lists_/share/$token")({
     };
   },
   pendingComponent: SharedTierListPending,
-  errorComponent: RouteErrorFallback,
   notFoundComponent: () => (
     <LinkGoneState
       title={m.common_share_gone_title()}

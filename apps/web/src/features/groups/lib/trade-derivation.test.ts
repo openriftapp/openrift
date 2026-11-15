@@ -5,7 +5,7 @@ import type {
 } from "@openrift/shared/types/api/card-trade";
 import { describe, expect, it } from "vitest";
 
-import { stubPrinting } from "@/test/factories";
+import { stubCardTrade, stubPrinting } from "@/test/factories";
 
 import type { MatchCopyDetail, MatchSuggestionFields } from "./trade-derivation";
 import {
@@ -36,50 +36,17 @@ const CONDITION_LABELS = labelMapOf({
   played: "Played",
 });
 
-function stubTrade(overrides: Partial<CardTradeResponse> = {}): CardTradeResponse {
-  return {
-    id: "trade-1",
-    groupId: "group-1",
-    groupSlug: "the-group",
-    groupName: "The Group",
-    role: "receiver",
-    initiator: "receiver",
-    counterparty: {
-      userId: "user-2",
-      name: "Robin",
-      image: null,
-      gravatarHash: "hash",
-      contactMethods: [],
-    },
-    printingId: "printing-1",
-    cardId: "card-1",
-    quantity: 1,
-    status: "pending",
-    createdAt: "2026-05-29T10:00:00.000Z",
-    updatedAt: "2026-05-29T10:00:00.000Z",
-    acceptedAt: null,
-    completedAt: null,
-    closedAt: null,
-    expiresAt: null,
-    viewerSyncAppliedAt: null,
-    counterpartySyncAppliedAt: null,
-    viewerWishEntryId: null,
-    actionNeeded: null,
-    ...overrides,
-  };
-}
-
 describe("liveTradesForCard", () => {
   it("finds a live request for any printing of the card", () => {
     const trades = [
-      stubTrade({ id: "a", printingId: "printing-foil" }),
-      stubTrade({ id: "b", cardId: "card-2" }),
+      stubCardTrade({ id: "a", printingId: "printing-foil" }),
+      stubCardTrade({ id: "b", cardId: "card-2" }),
     ];
     expect(liveTradesForCard(trades, "card-1", "incoming").map((trade) => trade.id)).toEqual(["a"]);
   });
 
   it("skips the trades a row already shows", () => {
-    const trades = [stubTrade({ id: "a" }), stubTrade({ id: "b" })];
+    const trades = [stubCardTrade({ id: "a" }), stubCardTrade({ id: "b" })];
     expect(liveTradesForCard(trades, "card-1", "incoming", ["a"]).map((trade) => trade.id)).toEqual(
       ["b"],
     );
@@ -87,9 +54,9 @@ describe("liveTradesForCard", () => {
 
   it("ignores closed trades and the other direction", () => {
     const trades = [
-      stubTrade({ id: "a", status: "declined" }),
-      stubTrade({ id: "b", role: "giver" }),
-      stubTrade({ id: "c", status: "reserved" }),
+      stubCardTrade({ id: "a", status: "declined" }),
+      stubCardTrade({ id: "b", role: "giver" }),
+      stubCardTrade({ id: "c", status: "reserved" }),
     ];
     expect(liveTradesForCard(trades, "card-1", "incoming").map((trade) => trade.id)).toEqual(["c"]);
     expect(liveTradesForCard(trades, "card-1", "outgoing").map((trade) => trade.id)).toEqual(["b"]);
@@ -98,23 +65,27 @@ describe("liveTradesForCard", () => {
 
 describe("tradeSection", () => {
   it("buckets a request awaiting the viewer into action-needed", () => {
-    expect(tradeSection(stubTrade({ status: "pending", actionNeeded: "accept-or-decline" }))).toBe(
-      "action-needed",
-    );
+    expect(
+      tradeSection(stubCardTrade({ status: "pending", actionNeeded: "accept-or-decline" })),
+    ).toBe("action-needed");
   });
 
   it("buckets the viewer's own pending request into active", () => {
-    expect(tradeSection(stubTrade({ status: "pending", actionNeeded: "cancel" }))).toBe("active");
+    expect(tradeSection(stubCardTrade({ status: "pending", actionNeeded: "cancel" }))).toBe(
+      "active",
+    );
   });
 
   it("buckets an agreed swap into active until the other side settles", () => {
-    expect(tradeSection(stubTrade({ status: "reserved", actionNeeded: "settle" }))).toBe("active");
+    expect(tradeSection(stubCardTrade({ status: "reserved", actionNeeded: "settle" }))).toBe(
+      "active",
+    );
   });
 
   it("buckets a swap the other side already settled into action-needed", () => {
     expect(
       tradeSection(
-        stubTrade({
+        stubCardTrade({
           status: "reserved",
           actionNeeded: "settle",
           counterpartySyncAppliedAt: "2026-08-08T10:00:00.000Z",
@@ -124,16 +95,18 @@ describe("tradeSection", () => {
   });
 
   it("keeps a reserved trade the viewer already settled in active", () => {
-    expect(tradeSection(stubTrade({ status: "reserved", actionNeeded: null }))).toBe("active");
+    expect(tradeSection(stubCardTrade({ status: "reserved", actionNeeded: null }))).toBe("active");
   });
 
   it("buckets a resolved completed trade into history", () => {
-    expect(tradeSection(stubTrade({ status: "completed", actionNeeded: null }))).toBe("history");
+    expect(tradeSection(stubCardTrade({ status: "completed", actionNeeded: null }))).toBe(
+      "history",
+    );
   });
 
   it("buckets terminal trades into history", () => {
     for (const status of ["declined", "cancelled", "expired"] as const) {
-      expect(tradeSection(stubTrade({ status, actionNeeded: null }))).toBe("history");
+      expect(tradeSection(stubCardTrade({ status, actionNeeded: null }))).toBe("history");
     }
   });
 });
@@ -230,7 +203,7 @@ describe("withoutLiveTradeMatches", () => {
   it("drops a match with a pending trade for the same member + printing", () => {
     const matches = [match("user-2", "printing-1")];
     const trades = [
-      stubTrade({
+      stubCardTrade({
         status: "pending",
         printingId: "printing-1",
         counterparty: {
@@ -248,7 +221,7 @@ describe("withoutLiveTradeMatches", () => {
   it("drops a match with a reserved trade for the same member + printing", () => {
     const matches = [match("user-2", "printing-1")];
     const trades = [
-      stubTrade({
+      stubCardTrade({
         status: "reserved",
         printingId: "printing-1",
         counterparty: {
@@ -265,14 +238,14 @@ describe("withoutLiveTradeMatches", () => {
 
   it("keeps a match when the live trade is for a different printing", () => {
     const matches = [match("user-2", "printing-1")];
-    const trades = [stubTrade({ status: "reserved", printingId: "printing-OTHER" })];
+    const trades = [stubCardTrade({ status: "reserved", printingId: "printing-OTHER" })];
     expect(withoutLiveTradeMatches(matches, trades, "incoming")).toEqual(matches);
   });
 
   it("keeps a match when the live trade is with a different member", () => {
     const matches = [match("user-2", "printing-1")];
     const trades = [
-      stubTrade({
+      stubCardTrade({
         status: "reserved",
         printingId: "printing-1",
         counterparty: {
@@ -291,7 +264,7 @@ describe("withoutLiveTradeMatches", () => {
     const matches = [match("user-2", "printing-1")];
     for (const status of ["completed", "declined", "cancelled", "expired"] as const) {
       const trades = [
-        stubTrade({
+        stubCardTrade({
           status,
           printingId: "printing-1",
           counterparty: {
@@ -310,7 +283,7 @@ describe("withoutLiveTradeMatches", () => {
   it("drops a match whose live trade sits in another shared group", () => {
     const matches = [match("user-2", "printing-1")];
     const trades = [
-      stubTrade({
+      stubCardTrade({
         status: "pending",
         printingId: "printing-1",
         groupSlug: "other-group",
@@ -329,7 +302,7 @@ describe("withoutLiveTradeMatches", () => {
   it("keeps a match when the live trade runs the other direction", () => {
     const matches = [match("user-2", "printing-1")];
     const trades = [
-      stubTrade({
+      stubCardTrade({
         status: "pending",
         role: "giver",
         printingId: "printing-1",
@@ -353,7 +326,7 @@ describe("withoutLiveTradeMatches", () => {
   it("filters only the matches with a live trade, keeping the rest", () => {
     const matches = [match("user-2", "printing-1"), match("user-3", "printing-2")];
     const trades = [
-      stubTrade({
+      stubCardTrade({
         status: "pending",
         printingId: "printing-1",
         counterparty: {
@@ -373,7 +346,7 @@ describe("withoutLiveTradeMatches", () => {
 
 describe("bucketMemberTrades", () => {
   const forMember = (userId: string, overrides: Partial<CardTradeResponse> = {}) =>
-    stubTrade({
+    stubCardTrade({
       ...overrides,
       counterparty: { userId, name: userId, image: null, gravatarHash: "h", contactMethods: [] },
     });
@@ -564,7 +537,7 @@ describe("groupSuggestionStripsBySlug", () => {
     const strips = groupSuggestionStripsBySlug(
       [{ slug: "tuesday-crew", incoming: [stubSuggestion()], outgoing: [] }],
       [
-        stubTrade({
+        stubCardTrade({
           status: "pending",
           printingId: "printing-1",
           counterparty: stubCounterparty("user-2", "Ashe"),
@@ -581,9 +554,9 @@ describe("groupSuggestionStripsBySlug", () => {
 
 describe("groupTradesByCounterparty", () => {
   it("groups trades by counterparty, preserving input order within a group", () => {
-    const alice1 = stubTrade({ id: "a1", counterparty: stubCounterparty("alice", "Alice") });
-    const alice2 = stubTrade({ id: "a2", counterparty: stubCounterparty("alice", "Alice") });
-    const bob = stubTrade({ id: "b1", counterparty: stubCounterparty("bob", "Bob") });
+    const alice1 = stubCardTrade({ id: "a1", counterparty: stubCounterparty("alice", "Alice") });
+    const alice2 = stubCardTrade({ id: "a2", counterparty: stubCounterparty("alice", "Alice") });
+    const bob = stubCardTrade({ id: "b1", counterparty: stubCounterparty("bob", "Bob") });
 
     const groups = groupTradesByCounterparty([alice1, bob, alice2]);
 
@@ -593,10 +566,10 @@ describe("groupTradesByCounterparty", () => {
 
   it("orders groups by trade count descending, then by name", () => {
     const trades = [
-      stubTrade({ id: "z1", counterparty: stubCounterparty("zoe", "Zoe") }),
-      stubTrade({ id: "a1", counterparty: stubCounterparty("alice", "Alice") }),
-      stubTrade({ id: "a2", counterparty: stubCounterparty("alice", "Alice") }),
-      stubTrade({ id: "m1", counterparty: stubCounterparty("mia", "Mia") }),
+      stubCardTrade({ id: "z1", counterparty: stubCounterparty("zoe", "Zoe") }),
+      stubCardTrade({ id: "a1", counterparty: stubCounterparty("alice", "Alice") }),
+      stubCardTrade({ id: "a2", counterparty: stubCounterparty("alice", "Alice") }),
+      stubCardTrade({ id: "m1", counterparty: stubCounterparty("mia", "Mia") }),
     ];
 
     const groups = groupTradesByCounterparty(trades);
@@ -609,8 +582,8 @@ describe("groupTradesByCounterparty", () => {
   });
 
   it("keeps two deleted counterparties with different names apart", () => {
-    const gone1 = stubTrade({ id: "g1", counterparty: stubCounterparty(null, "Ekko") });
-    const gone2 = stubTrade({ id: "g2", counterparty: stubCounterparty(null, "Jinx") });
+    const gone1 = stubCardTrade({ id: "g1", counterparty: stubCounterparty(null, "Ekko") });
+    const gone2 = stubCardTrade({ id: "g2", counterparty: stubCounterparty(null, "Jinx") });
 
     const groups = groupTradesByCounterparty([gone1, gone2]);
 
@@ -624,32 +597,32 @@ describe("groupTradesByCounterparty", () => {
 
 describe("tradeGroupKey", () => {
   it("identifies a live group by its id", () => {
-    expect(tradeGroupKey(stubTrade({ groupId: "group-7", groupName: "Rift Runners" }))).toBe(
+    expect(tradeGroupKey(stubCardTrade({ groupId: "group-7", groupName: "Rift Runners" }))).toBe(
       "group-7",
     );
   });
 
   it("falls back to the snapshotted name once the group is deleted", () => {
-    const key = tradeGroupKey(stubTrade({ groupId: null, groupName: "Rift Runners" }));
+    const key = tradeGroupKey(stubCardTrade({ groupId: null, groupName: "Rift Runners" }));
     expect(key).not.toBe("group-7");
     expect(key).toContain("Rift Runners");
   });
 
   it("keeps a deleted group apart from a live one of the same name", () => {
-    const live = tradeGroupKey(stubTrade({ groupId: "group-7", groupName: "Rift Runners" }));
-    const deleted = tradeGroupKey(stubTrade({ groupId: null, groupName: "Rift Runners" }));
+    const live = tradeGroupKey(stubCardTrade({ groupId: "group-7", groupName: "Rift Runners" }));
+    const deleted = tradeGroupKey(stubCardTrade({ groupId: null, groupName: "Rift Runners" }));
     expect(live).not.toBe(deleted);
   });
 
   it("tells two deleted groups with different names apart", () => {
-    const a = tradeGroupKey(stubTrade({ groupId: null, groupName: "Rift Runners" }));
-    const b = tradeGroupKey(stubTrade({ groupId: null, groupName: "Bandle Crew" }));
+    const a = tradeGroupKey(stubCardTrade({ groupId: null, groupName: "Rift Runners" }));
+    const b = tradeGroupKey(stubCardTrade({ groupId: null, groupName: "Bandle Crew" }));
     expect(a).not.toBe(b);
   });
 
   it("collapses two deleted groups that shared a name, which is the accepted trade-off", () => {
-    const a = tradeGroupKey(stubTrade({ groupId: null, groupName: "Playtest" }));
-    const b = tradeGroupKey(stubTrade({ groupId: null, groupName: "Playtest" }));
+    const a = tradeGroupKey(stubCardTrade({ groupId: null, groupName: "Playtest" }));
+    const b = tradeGroupKey(stubCardTrade({ groupId: null, groupName: "Playtest" }));
     expect(a).toBe(b);
   });
 });
@@ -659,8 +632,8 @@ describe("sumTradeValues", () => {
 
   it("splits value by direction: receiver into get, giver into give", () => {
     const trades = [
-      stubTrade({ role: "receiver", printingId: "p1", quantity: 2 }),
-      stubTrade({ role: "giver", printingId: "p2", quantity: 1 }),
+      stubCardTrade({ role: "receiver", printingId: "p1", quantity: 2 }),
+      stubCardTrade({ role: "giver", printingId: "p2", quantity: 1 }),
     ];
 
     const split = sumTradeValues(trades, price({ p1: 5, p2: 3 }));
@@ -673,8 +646,8 @@ describe("sumTradeValues", () => {
 
   it("counts unpriced copies beside each side's value", () => {
     const trades = [
-      stubTrade({ role: "receiver", printingId: "p1", quantity: 2 }),
-      stubTrade({ role: "receiver", printingId: "p2", quantity: 4 }),
+      stubCardTrade({ role: "receiver", printingId: "p1", quantity: 2 }),
+      stubCardTrade({ role: "receiver", printingId: "p2", quantity: 4 }),
     ];
 
     const split = sumTradeValues(trades, price({ p1: 5 }));
@@ -950,7 +923,7 @@ describe("liveOnlyMatchRows", () => {
 
   it("keeps a reserved request the server netted out of the matches", () => {
     const rows = liveOnlyMatchRows(
-      [stubTrade({ status: "reserved", quantity: 2 })],
+      [stubCardTrade({ status: "reserved", quantity: 2 })],
       [],
       "incoming",
       printingOf,
@@ -965,14 +938,14 @@ describe("liveOnlyMatchRows", () => {
     });
     expect(
       countTradeSuggestions(
-        withoutLiveTradeMatches(rows, [stubTrade({ status: "reserved" })], "incoming"),
+        withoutLiveTradeMatches(rows, [stubCardTrade({ status: "reserved" })], "incoming"),
         [],
       ),
     ).toBe(0);
   });
 
   it("keeps an offer of the giver's only copy on the outgoing side", () => {
-    const offer = stubTrade({ role: "giver", initiator: "giver" });
+    const offer = stubCardTrade({ role: "giver", initiator: "giver" });
     expect(liveOnlyMatchRows([offer], [], "outgoing", printingOf)).toHaveLength(1);
     expect(liveOnlyMatchRows([offer], [], "incoming", printingOf)).toEqual([]);
   });
@@ -980,7 +953,7 @@ describe("liveOnlyMatchRows", () => {
   it("adds nothing when a match row already carries the trade", () => {
     expect(
       liveOnlyMatchRows(
-        [stubTrade()],
+        [stubCardTrade()],
         [{ counterpartyUserId: "user-2", printingId: "printing-1" }],
         "incoming",
         printingOf,
@@ -990,7 +963,7 @@ describe("liveOnlyMatchRows", () => {
 
   it("adds nothing for a closed trade", () => {
     expect(
-      liveOnlyMatchRows([stubTrade({ status: "declined" })], [], "incoming", printingOf),
+      liveOnlyMatchRows([stubCardTrade({ status: "declined" })], [], "incoming", printingOf),
     ).toEqual([]);
   });
 });

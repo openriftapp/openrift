@@ -284,7 +284,8 @@ export function FaceImagesSection({
                   />
                   <Button
                     variant="outline"
-                    disabled={url.trim().length === 0 || addFromUrl.isPending}
+                    disabled={url.trim().length === 0}
+                    pending={addFromUrl.isPending}
                     onClick={() =>
                       addFromUrl.mutate(
                         {
@@ -615,7 +616,7 @@ function DeskWaitingImage({
               variant="ghost"
               size="icon-xs"
               aria-label="Turn right"
-              disabled={rotate.isPending}
+              pending={rotate.isPending}
               onClick={() =>
                 rotate.mutate({
                   imageId: image.printingImageId,
@@ -638,7 +639,7 @@ function DeskWaitingImage({
                 variant="ghost"
                 size="icon-xs"
                 aria-label="Move to the other face"
-                disabled={moveFace.isPending}
+                pending={moveFace.isPending}
                 onClick={() =>
                   moveFace.mutate({
                     printingImageId: image.printingImageId,
@@ -654,7 +655,7 @@ function DeskWaitingImage({
               variant="ghost"
               size="icon-xs"
               aria-label="Delete image"
-              disabled={remove.isPending}
+              pending={remove.isPending}
               onClick={() => remove.mutate(image.printingImageId)}
             >
               <Trash2Icon />
