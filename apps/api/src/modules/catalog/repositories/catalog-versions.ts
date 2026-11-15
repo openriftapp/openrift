@@ -6,8 +6,8 @@ import type { Database } from "../../../db/tables.js";
 const CATALOG_SHAPE_VERSION = "8";
 
 /**
- * Migrations 343 and 345 list which tables bump which scope. A table a catalog read
- * starts depending on needs the trigger in a new migration.
+ * Migrations 343, 345 and 360 list which tables and columns bump which scope. A table, or an
+ * image column outside 360's lists, that a catalog read starts depending on needs a new migration.
  */
 export function catalogVersionsRepo(db: Kysely<Database>) {
   return {

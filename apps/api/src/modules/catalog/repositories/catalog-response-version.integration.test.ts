@@ -11,7 +11,8 @@ const ctx = createDbContext("a0000000-0042-4000-a000-000000000001");
 /**
  * `catalogResponseVersion` is the ETag of `GET /catalog`, cached `immutable, max-age=1y`.
  * Nothing in the type system ties it to `assembleCatalogResponse`'s source tables: a field
- * sourced from a new table needs a version trigger (migrations 343, 345) and a case here.
+ * sourced from a new table, or from an `image_files`/`face_images` column outside migration
+ * 360's `UPDATE OF` lists, needs a version trigger (migrations 343, 345, 360) and a case here.
  *
  * Each case mutates and re-reads the token inside one rolled-back transaction that holds
  * the version rows, so other files' commits cannot move it. Version triggers are deferred
@@ -125,12 +126,23 @@ describe.skipIf(!ctx)("catalogResponseVersion (integration)", () => {
       statements: [touch("distribution_channels")],
     },
     { table: "faces", why: "printing fields", statements: [touch("faces")] },
-    { table: "face_images", why: "printing.images", statements: [touch("face_images")] },
+    {
+      table: "face_images",
+      why: "printing.images",
+      statements: [
+        `UPDATE face_images SET is_active = false
+          WHERE ctid = (SELECT ctid FROM face_images WHERE is_active LIMIT 1)`,
+      ],
+    },
     {
       table: "image_files",
       why: "printing.images credit",
-      statements: [touch("image_files")],
+      statements: [
+        `UPDATE image_files SET credit = coalesce(credit, 'Probe') || ' (probe)'
+          WHERE ctid = (SELECT ctid FROM image_files LIMIT 1)`,
+      ],
     },
+    { table: "face_images", why: "a removed image", statements: [dropOne("face_images")] },
     {
       table: "card_bans",
       why: "a ban's start day",
@@ -358,6 +370,36 @@ describe.skipIf(!ctx)("catalogResponseVersion (integration)", () => {
     expect(await affectedRows(refresh)).toBeGreaterThan(0);
 
     const { before, after } = await tokenAround(refresh);
+    expect(after).toBe(before);
+  });
+
+  const IMAGE_MAINTENANCE: { what: string; statements: string[] }[] = [
+    {
+      what: "a fingerprint sweep",
+      statements: [
+        `UPDATE image_files SET fingerprint = 'probe-' || id::text
+          WHERE ctid = (SELECT ctid FROM image_files LIMIT 1)`,
+      ],
+    },
+    {
+      what: "a rotation, trim or quad edit",
+      statements: [
+        `UPDATE image_files
+            SET rotation = CASE WHEN rotation = 90 THEN 180 ELSE 90 END,
+                needs_trim = NOT needs_trim,
+                quad = '[[0,0],[1,0],[1,1],[0,1]]'::jsonb,
+                fingerprint = NULL
+          WHERE ctid = (SELECT ctid FROM image_files LIMIT 1)`,
+      ],
+    },
+    { what: "an image_files updated_at touch", statements: [touch("image_files")] },
+    { what: "a face_images updated_at touch", statements: [touch("face_images")] },
+  ];
+
+  it.each(IMAGE_MAINTENANCE)("does not roll for $what", async ({ statements }) => {
+    expect(await affectedRows(statements)).toBeGreaterThan(0);
+
+    const { before, after } = await tokenAround(statements);
     expect(after).toBe(before);
   });
 

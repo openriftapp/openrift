@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict tHajgPXGJHXReLXjTquobIOlsakI7Ww1SKolGN1T2jUAtczE0sY1vif6Ozt1cLY
+\restrict Em9TOW0rLD27VJ9H7tJGms3tSv6KEl8r7GdMQCe118EGwjyb2ogfjdTO2GpY1zl
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -8577,7 +8577,14 @@ CREATE CONSTRAINT TRIGGER trg_errata_announcements_catalog_version AFTER INSERT 
 -- Name: face_images trg_face_images_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE CONSTRAINT TRIGGER trg_face_images_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.face_images DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
+CREATE CONSTRAINT TRIGGER trg_face_images_catalog_version AFTER INSERT OR DELETE ON public.face_images DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
+
+
+--
+-- Name: face_images trg_face_images_catalog_version_update; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE CONSTRAINT TRIGGER trg_face_images_catalog_version_update AFTER UPDATE OF face_id, image_file_id, is_active ON public.face_images DEFERRABLE INITIALLY DEFERRED FOR EACH ROW WHEN (((old.face_id IS DISTINCT FROM new.face_id) OR (old.image_file_id IS DISTINCT FROM new.image_file_id) OR (old.is_active IS DISTINCT FROM new.is_active))) EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -8640,7 +8647,14 @@ CREATE TRIGGER trg_graders_protect_well_known BEFORE DELETE OR UPDATE ON public.
 -- Name: image_files trg_image_files_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE CONSTRAINT TRIGGER trg_image_files_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.image_files DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
+CREATE CONSTRAINT TRIGGER trg_image_files_catalog_version AFTER INSERT OR DELETE ON public.image_files DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
+
+
+--
+-- Name: image_files trg_image_files_catalog_version_update; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE CONSTRAINT TRIGGER trg_image_files_catalog_version_update AFTER UPDATE OF rehosted_url, credit ON public.image_files DEFERRABLE INITIALLY DEFERRED FOR EACH ROW WHEN (((old.rehosted_url IS DISTINCT FROM new.rehosted_url) OR (old.credit IS DISTINCT FROM new.credit))) EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -11444,5 +11458,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict tHajgPXGJHXReLXjTquobIOlsakI7Ww1SKolGN1T2jUAtczE0sY1vif6Ozt1cLY
+\unrestrict Em9TOW0rLD27VJ9H7tJGms3tSv6KEl8r7GdMQCe118EGwjyb2ogfjdTO2GpY1zl
 
