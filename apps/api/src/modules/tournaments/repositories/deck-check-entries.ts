@@ -66,6 +66,7 @@ export interface PlayerDeckCheckEntryRow extends DeckCheckEntry {
   eventName: string;
   eventDate: Date | string | null;
   eventStatus: string;
+  participantStatus: TournamentParticipantStatus;
   submissionsCloseAt: Date | null;
   /** Null for a personally-hosted tournament with no owning friend group. */
   groupName: string | null;
@@ -138,6 +139,7 @@ export function deckCheckEntriesRepo(db: Kysely<Database>) {
           eb.ref("p.claimedAt").as("claimedAt"),
           eb.ref("p.claimBlockedAt").as("claimBlockedAt"),
           eb.ref("p.claimToken").as("claimToken"),
+          eb.ref("p.status").as("participantStatus"),
           eb.ref("ev.name").as("eventName"),
           eb.ref("ev.startsAt").as("eventDate"),
           eb.ref("ev.status").as("eventStatusRaw"),
@@ -156,6 +158,7 @@ export function deckCheckEntriesRepo(db: Kysely<Database>) {
       eventName: row.eventName,
       eventDate: row.eventDate,
       eventStatus: eventStatusForTournamentStatus(row.eventStatusRaw),
+      participantStatus: row.participantStatus,
       submissionsCloseAt: row.submissionsCloseAt,
       groupName: row.groupName,
       groupSlug: row.groupSlug,

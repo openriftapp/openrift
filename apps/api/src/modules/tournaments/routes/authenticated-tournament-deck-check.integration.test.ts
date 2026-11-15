@@ -313,6 +313,24 @@ describe.skipIf(!hostCtx)("Tournament-scoped deck-check + host keys (integration
       expect(after?.participantStatus).toBe("dropped");
     });
 
+    it.each(["dropped", "no_show"] as const)(
+      "lets a judge enter a deck for a %s participant",
+      async (status) => {
+        const participant = await repos.tournaments.createParticipant({
+          tournamentId,
+          displayName: `Benched ${status}`,
+          status,
+        });
+        const created = await judge.app.fetch(
+          req("POST", `/tournaments/${tournamentId}/deck-check/entries`, {
+            participantId: participant.id,
+            cards: [{ name: CARD_FURY_UNIT.name, quantity: 1, section: "main" }],
+          }),
+        );
+        expect(created.status).toBe(201);
+      },
+    );
+
     it("404s a deck-check action on a tournament without deck check enabled", async () => {
       const plain = await host.app.fetch(
         req("POST", "/tournaments", {

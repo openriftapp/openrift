@@ -23,7 +23,12 @@ import type { Tournament } from "../repositories/tournaments-shared.js";
 import { presentedEntryState } from "./deck-check-deadline.js";
 import { hasOrgRole } from "./org-access.js";
 import { isHost, loadTournament } from "./tournament-access.js";
-import { moduleFlags, toParticipant, toStaffMember } from "./tournament-presenters.js";
+import {
+  hasLeftEvent,
+  moduleFlags,
+  toParticipant,
+  toStaffMember,
+} from "./tournament-presenters.js";
 
 /**
  * Response assembly for the tournaments umbrella. Where
@@ -306,6 +311,7 @@ export async function buildDetail(
           reviewOutcome: deckEntry.reviewOutcome,
           unlockRequested: deckEntry.unlockRequestedAt !== null,
           hasPlayerMessage: deckEntry.playerMessage !== null,
+          leftEvent: hasLeftEvent(deckEntry.participantStatus),
         }
       : null,
     participantPreview: extras.participantPreview,

@@ -7936,6 +7936,7 @@
   "tournaments_overview_my_deck_changes": "A judge asked for changes.",
   "tournaments_overview_my_deck_unlock": "Waiting on a judge to unlock it.",
   "tournaments_overview_my_deck_withdrawn": "The organizer withdrew this entry.",
+  "tournaments_overview_my_deck_left": "You're no longer playing in this event.",
   "tournaments_overview_my_deck_message": "A judge left you a message.",
   "tournaments_overview_my_deck_view": "View your list.",
   "tournaments_overview_hint_dropped": "{count} dropped",

@@ -7929,6 +7929,7 @@
   "tournaments_overview_my_deck_changes": "심판이 수정을 요청했습니다.",
   "tournaments_overview_my_deck_unlock": "심판이 잠금을 해제하기를 기다리는 중입니다.",
   "tournaments_overview_my_deck_withdrawn": "주최자가 이 참가를 철회했습니다.",
+  "tournaments_overview_my_deck_left": "이 이벤트에서 더 이상 플레이하지 않습니다.",
   "tournaments_overview_my_deck_message": "심판이 메시지를 남겼습니다.",
   "tournaments_overview_my_deck_view": "내 리스트 보기.",
   "tournaments_overview_hint_dropped": "기권 {count}명",

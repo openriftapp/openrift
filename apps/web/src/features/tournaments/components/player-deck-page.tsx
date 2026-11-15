@@ -124,7 +124,10 @@ function PlayerDeckBody({ data }: { data: PlayerDeckCheckEntryDetailResponse }) 
           <p className="whitespace-pre-wrap">{entry.playerMessage}</p>
         </Callout>
       ) : null}
-      {entry.state === "editable" && entry.windowOpen ? (
+      {entry.leftEvent ? (
+        <p className="text-muted-foreground text-sm">{m.tournaments_submit_left_event()}</p>
+      ) : null}
+      {entry.state === "editable" && entry.windowOpen && !entry.leftEvent ? (
         <Alert variant="warning">
           <TriangleAlertIcon />
           <AlertDescription>
@@ -134,7 +137,7 @@ function PlayerDeckBody({ data }: { data: PlayerDeckCheckEntryDetailResponse }) 
           </AlertDescription>
         </Alert>
       ) : null}
-      {entry.state === "submitted" && entry.windowOpen ? (
+      {entry.state === "submitted" && entry.windowOpen && !entry.leftEvent ? (
         <p className="text-muted-foreground text-sm">
           {entry.canUnlock
             ? m.tournaments_my_deck_locked_unlock({
@@ -145,7 +148,7 @@ function PlayerDeckBody({ data }: { data: PlayerDeckCheckEntryDetailResponse }) 
               : m.tournaments_my_deck_submitted_locked()}
         </p>
       ) : null}
-      {entry.state === "approved" && entry.windowOpen ? (
+      {entry.state === "approved" && entry.windowOpen && !entry.leftEvent ? (
         <p className="text-muted-foreground text-sm">
           {entry.unlockRequested
             ? m.tournaments_my_deck_waiting_for_unlock()
@@ -329,7 +332,7 @@ function PlayerDeckActions({
   if (!entry.windowOpen) {
     return null;
   }
-  if (entry.state === "editable") {
+  if (entry.state === "editable" && !entry.leftEvent) {
     return (
       <>
         <ReplaceDeckButton

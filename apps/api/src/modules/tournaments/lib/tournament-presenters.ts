@@ -93,6 +93,10 @@ export function toParticipant(row: TournamentParticipantWithUser): TournamentPar
   };
 }
 
+export function hasLeftEvent(status: TournamentParticipantStatus | undefined): boolean {
+  return status === "dropped" || status === "no_show";
+}
+
 export function moduleFlags(tournament: Tournament): TournamentModuleFlags {
   return {
     pairing: tournament.pairingStyle !== "none",

@@ -19,12 +19,15 @@ import { retryOnClaimTokenCollision } from "../lib/claim-token.js";
 import { buildEntryAdvisories } from "../lib/deck-check-advisories.js";
 import { presentDeadlineSettledEntry } from "../lib/deck-check-deadline.js";
 import { dayOrNull, toDeckCheckEntryCardResponse } from "../lib/deck-check-presenters.js";
+import { assertStillPlaying, lockStillPlaying } from "../lib/tournament-access.js";
+import { hasLeftEvent } from "../lib/tournament-presenters.js";
 import type {
   DeckCheckEntry,
   PlayerDeckCheckEntryRow,
 } from "../repositories/deck-check-entries.js";
 import type { NewDeckCheckEntryCard } from "../repositories/deck-check-entry-cards.js";
 import type { DeckCheckEvent } from "../repositories/deck-check-events.js";
+import type { TournamentParticipant } from "../repositories/tournaments-shared.js";
 import type { PlayerSharingConsent } from "../services/deck-check-player.js";
 import {
   applyPlayerList,
@@ -51,13 +54,16 @@ async function buildPlayerDetail(
 ): Promise<PlayerDeckCheckEntryDetailResponse> {
   const cards = await repos.deckCheck.listCardsForEntry(row.id);
   const advisories = await buildEntryAdvisories(repos, event, cards);
+  const leftEvent = hasLeftEvent(row.participantStatus);
   const windowOpen = submissionWindowOpen(event);
+  const playerCanAct = windowOpen && !leftEvent;
   // In 'on_submit' mode submitting is the delivery (TR 401.3): the player can
   // only ever request an unlock. In 'at_deadline' mode a not-yet-reviewed
   // submission unlocks self-service until the window closes.
-  const canUnlock = windowOpen && row.state === "submitted" && event.listLockMode === "at_deadline";
+  const canUnlock =
+    playerCanAct && row.state === "submitted" && event.listLockMode === "at_deadline";
   const canRequestUnlock =
-    windowOpen &&
+    playerCanAct &&
     row.unlockRequestedAt === null &&
     (row.state === "approved" || (row.state === "submitted" && !canUnlock));
   return {
@@ -79,7 +85,8 @@ async function buildPlayerDetail(
       submissionsCloseAt: isoOrNull(event.submissionsCloseAt),
       updatedAt: row.updatedAt.toISOString(),
       windowOpen,
-      canEdit: windowOpen && row.state === "editable",
+      leftEvent,
+      canEdit: playerCanAct && row.state === "editable",
       canUnlock,
       canRequestUnlock,
     },
@@ -183,17 +190,18 @@ async function loadSubmissionEventForUser(
   repos: Repos,
   token: string,
   userId: string,
-): Promise<DeckCheckEvent & { groupName: string }> {
+): Promise<{
+  event: DeckCheckEvent & { groupName: string };
+  participant: TournamentParticipant | undefined;
+}> {
   const event = await loadOpenSubmissionEvent(repos, token);
-  if (!event.allowSelfSubmission) {
-    const participant = await repos.tournaments.getParticipantByUser(event.id, userId);
-    if (!participant) {
-      throw forbidden(
-        "Self-registration is closed for this event. Claim your spot with the link the organizer sent you, then submit your deck.",
-      );
-    }
+  const participant = await repos.tournaments.getParticipantByUser(event.id, userId);
+  if (!event.allowSelfSubmission && !participant) {
+    throw forbidden(
+      "Self-registration is closed for this event. Claim your spot with the link the organizer sent you, then submit your deck.",
+    );
   }
-  return event;
+  return { event, participant };
 }
 
 /**
@@ -215,6 +223,9 @@ async function persistSubmission(
 ): Promise<DeckCheckEntry> {
   await repos.deckCheck.lockSelfSubmission(event.id, userId);
   const found = await repos.deckCheck.getLinkedEntryForUser(event.id, userId);
+  if (found) {
+    await lockStillPlaying(repos, found.participantId);
+  }
   const linked = found && (await repos.deckCheck.getEntryForUpdate(event.id, found.id));
   if (linked) {
     if (linked.state === "withdrawn") {
@@ -274,6 +285,7 @@ export const deckCheckPlayerRouter = {
       const userId = context.userId;
 
       const { row, event } = await loadOwnEntry(repos, userId, input.entryId);
+      assertStillPlaying(row.participantStatus);
       if (!submissionWindowOpen(event)) {
         throw conflict("Submissions closed. Contact a judge.");
       }
@@ -301,6 +313,7 @@ export const deckCheckPlayerRouter = {
         // Re-load under the row lock: the state checked above may be stale by
         // now (a judge lock, a second tab), and the write must apply to the
         // entry as it is, not as it was.
+        await lockStillPlaying(txRepos, row.participantId);
         const fresh = await txRepos.deckCheck.getEntryForUpdate(event.id, row.id);
         if (!fresh || fresh.state !== "editable") {
           throw conflict("Your deck is locked. Unlock it before editing.");
@@ -338,12 +351,14 @@ export const deckCheckPlayerRouter = {
         }
         throw conflict("Submissions closed. Contact a judge.");
       }
+      assertStillPlaying(row.participantStatus);
       if (row.state !== "editable") {
         throw conflict("Only an editable deck can be submitted");
       }
       const submitted = await context.transact(async (txRepos) => {
         // Re-load under the row lock — the state above may be stale, and a
         // judge transition committed in the gap must not be overwritten.
+        await lockStillPlaying(txRepos, row.participantId);
         const fresh = await txRepos.deckCheck.getEntryForUpdate(event.id, row.id);
         if (!fresh || fresh.state !== "editable") {
           throw conflict("Only an editable deck can be submitted");
@@ -359,6 +374,7 @@ export const deckCheckPlayerRouter = {
       const repos = context.repos;
       const userId = context.userId;
       const { row, event } = await loadOwnEntry(repos, userId, input.entryId);
+      assertStillPlaying(row.participantStatus);
       if (!submissionWindowOpen(event)) {
         throw conflict("Submissions closed. Contact a judge.");
       }
@@ -369,6 +385,7 @@ export const deckCheckPlayerRouter = {
         const unlocked = await context.transact(async (txRepos) => {
           // Re-load under the row lock: an approval committed in the gap must
           // not be silently reverted by a stale self-unlock.
+          await lockStillPlaying(txRepos, row.participantId);
           const fresh = await txRepos.deckCheck.getEntryForUpdate(event.id, row.id);
           if (!fresh || fresh.state !== "submitted") {
             throw conflict("The deck's state changed in the meantime. Reload and try again.");
@@ -408,7 +425,8 @@ export const deckCheckPlayerRouter = {
     async ({ input, context }): Promise<DeckCheckSubmissionPageResponse> => {
       const repos = context.repos;
       const userId = context.userId;
-      const event = await loadSubmissionEventForUser(repos, input.token, userId);
+      const { event, participant } = await loadSubmissionEventForUser(repos, input.token, userId);
+      const leftEvent = hasLeftEvent(participant?.status);
       const linked = await repos.deckCheck.getLinkedEntryForUser(event.id, userId);
       return {
         eventName: event.name,
@@ -418,6 +436,7 @@ export const deckCheckPlayerRouter = {
         allowedSets: event.allowedSets,
         submissionsCloseAt: isoOrNull(event.submissionsCloseAt),
         submissionsOpen: submissionWindowOpen(event),
+        leftEvent,
         linkedEntry: linked
           ? (() => {
               const state =
@@ -428,8 +447,9 @@ export const deckCheckPlayerRouter = {
                 id: linked.id,
                 state,
                 canReplace:
-                  state === "editable" ||
-                  (state === "submitted" && event.listLockMode === "at_deadline"),
+                  !leftEvent &&
+                  (state === "editable" ||
+                    (state === "submitted" && event.listLockMode === "at_deadline")),
                 allowDeckPublishing: linked.allowDeckPublishing,
                 allowNameSharing: linked.allowNameSharing,
                 allowRiotIdSharing: linked.allowRiotIdSharing,
@@ -444,7 +464,8 @@ export const deckCheckPlayerRouter = {
     async ({ input, context }): Promise<DeckCheckSubmissionResultResponse> => {
       const repos = context.repos;
       const userId = context.userId;
-      const event = await loadSubmissionEventForUser(repos, input.token, userId);
+      const { event, participant } = await loadSubmissionEventForUser(repos, input.token, userId);
+      assertStillPlaying(participant?.status);
 
       const lines = await buildPlayerLines(repos, userId, input);
       const cardRows = await resolvePlayerCardRows(repos, lines);

@@ -7929,6 +7929,7 @@
   "tournaments_overview_my_deck_changes": "裁判要求你做出修改。",
   "tournaments_overview_my_deck_unlock": "等待裁判解锁。",
   "tournaments_overview_my_deck_withdrawn": "主办方撤销了这条参赛记录。",
+  "tournaments_overview_my_deck_left": "你已不再参加此赛事。",
   "tournaments_overview_my_deck_message": "裁判给你留了言。",
   "tournaments_overview_my_deck_view": "查看你的卡组表。",
   "tournaments_overview_hint_dropped": "{count} 人退赛",

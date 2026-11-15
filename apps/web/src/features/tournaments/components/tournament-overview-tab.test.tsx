@@ -342,6 +342,7 @@ function makeMyDeck(
     reviewOutcome: null,
     unlockRequested: false,
     hasPlayerMessage: false,
+    leftEvent: false,
     ...overrides,
   };
 }
@@ -663,6 +664,23 @@ describe("TournamentOverviewTab", () => {
       const tile = screen.getByRole("link", { name: /My deck/u });
       expect(within(tile).getByText("Not submitted")).toBeInTheDocument();
       expect(within(tile).getByText(/send it in for review/iu)).toBeInTheDocument();
+    });
+
+    it("says the player is no longer in the event in place of the submit nudge", () => {
+      render(
+        <TournamentOverviewTab
+          id="t-1"
+          detail={makeDetail({
+            ...PLAYER,
+            deckPhase: "open",
+            myDeckEntry: makeMyDeck({ state: "editable", leftEvent: true }),
+          })}
+        />,
+      );
+
+      const tile = screen.getByRole("link", { name: /My deck/u });
+      expect(within(tile).getByText("You're no longer playing in this event.")).toBeInTheDocument();
+      expect(within(tile).queryByText(/send it in for review/iu)).not.toBeInTheDocument();
     });
 
     it("stops nagging about an unsubmitted deck once the window shuts", () => {

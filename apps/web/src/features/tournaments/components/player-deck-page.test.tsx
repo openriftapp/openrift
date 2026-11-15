@@ -4,6 +4,7 @@ import type {
 } from "@openrift/shared/types/api/deck-check";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/hooks/use-enums", () => ({
@@ -39,7 +40,38 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
 }));
 
-const { PlayerCardGrid, SaveToDecksButton } = await import("./player-deck-page");
+const myDeck = vi.fn<() => { data: unknown; isPending: boolean; isError: boolean }>();
+const idleMutation = () => ({ mutate: vi.fn(), reset: vi.fn(), isPending: false, error: null });
+
+vi.mock("@/features/tournaments/hooks/use-deck-check-player", () => ({
+  useMyTournamentDeck: () => myDeck(),
+  useSubmitMyTournamentDeck: idleMutation,
+  useUnlockMyTournamentDeck: idleMutation,
+  useCancelUnlockRequest: idleMutation,
+  useEditMyTournamentDeck: idleMutation,
+  usePreviewTournamentDeck: idleMutation,
+}));
+
+vi.mock("@/features/tournaments/components/tournament-detail-frame", () => ({
+  TournamentSectionFrame: ({
+    actions,
+    render: renderBody,
+  }: {
+    actions?: ReactNode;
+    render: (data: unknown) => ReactNode;
+  }) => (
+    <>
+      <div data-testid="actions">{actions}</div>
+      {renderBody({})}
+    </>
+  ),
+}));
+
+vi.mock("@/features/tournaments/components/deck-check-entry-header", () => ({
+  DeckCheckStatsSummary: () => null,
+}));
+
+const { PlayerCardGrid, PlayerDeckPage, SaveToDecksButton } = await import("./player-deck-page");
 
 function card(id: string, zone: string): DeckCheckEntryCardResponse {
   return {
@@ -84,5 +116,65 @@ describe("SaveToDecksButton", () => {
     expect(createDeckMutateAsync).toHaveBeenCalledTimes(1);
     expect(saveCardsMutateAsync).toHaveBeenCalledTimes(1);
     expect(button).toBeDisabled();
+  });
+});
+
+describe("PlayerDeckPage", () => {
+  function detail(entry: Partial<PlayerDeckCheckEntryDetailResponse["entry"]>) {
+    return {
+      entry: {
+        id: "entry-1",
+        eventName: "Summoner Skirmish",
+        eventDate: null,
+        groupName: null,
+        format: null,
+        allowedSets: null,
+        state: "editable",
+        reviewOutcome: null,
+        unlockRequested: false,
+        playerMessage: null,
+        allowDeckPublishing: true,
+        allowNameSharing: true,
+        allowRiotIdSharing: true,
+        submittedAt: null,
+        submissionsCloseAt: null,
+        updatedAt: "2026-06-01T00:00:00.000Z",
+        windowOpen: true,
+        leftEvent: false,
+        canEdit: true,
+        canUnlock: false,
+        canRequestUnlock: false,
+        ...entry,
+      },
+      cards: [],
+      violations: [],
+      typeCounts: [],
+      domainDistribution: [],
+    } satisfies PlayerDeckCheckEntryDetailResponse;
+  }
+
+  it("offers replace and submit while the player is still in the event", () => {
+    myDeck.mockReturnValue({ data: detail({}), isPending: false, isError: false });
+    render(<PlayerDeckPage tournamentId="t-1" />);
+
+    expect(screen.getByRole("button", { name: "Replace deck" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Submit for review" })).toBeInTheDocument();
+  });
+
+  it("hides replace and submit and says so once the player left the event", () => {
+    myDeck.mockReturnValue({
+      data: detail({ leftEvent: true, canEdit: false }),
+      isPending: false,
+      isError: false,
+    });
+    render(<PlayerDeckPage tournamentId="t-1" />);
+
+    expect(screen.queryByRole("button", { name: "Replace deck" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Submit for review" })).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "You're no longer playing in this event. Ask the host if you want to rejoin.",
+      ),
+    ).toBeInTheDocument();
   });
 });

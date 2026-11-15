@@ -7930,6 +7930,7 @@
   "tournaments_overview_my_deck_changes": "Ein Judge hat Änderungen angefragt.",
   "tournaments_overview_my_deck_unlock": "Warten auf einen Judge, der es entsperrt.",
   "tournaments_overview_my_deck_withdrawn": "Der Organisator hat diesen Eintrag zurückgezogen.",
+  "tournaments_overview_my_deck_left": "Du spielst bei diesem Event nicht mehr mit.",
   "tournaments_overview_my_deck_message": "Ein Judge hat dir eine Nachricht hinterlassen.",
   "tournaments_overview_my_deck_view": "Deine Liste ansehen.",
   "tournaments_overview_hint_dropped": "{count} ausgestiegen",

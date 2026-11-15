@@ -95,6 +95,9 @@ function myDeckStatus(
   entry: NonNullable<TournamentDetailResponse["myDeckEntry"]>,
   deckPhase: TournamentDetailResponse["deckPhase"],
 ): { hint: string; needsViewer: boolean } {
+  if (entry.leftEvent) {
+    return { hint: m.tournaments_overview_my_deck_left(), needsViewer: false };
+  }
   const windowOpen = deckPhase === "open";
   if (entry.state === "editable" && windowOpen) {
     return { hint: m.tournaments_overview_my_deck_not_submitted(), needsViewer: true };

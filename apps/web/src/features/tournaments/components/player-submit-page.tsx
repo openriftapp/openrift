@@ -39,8 +39,9 @@ export function PlayerSubmitDeckSection({ token }: { token: string }) {
   // Local time zone is safe only because this route is `data-only`.
   const closesAt = data.submissionsCloseAt ? formatDayTimeLocal(data.submissionsCloseAt) : null;
   const linkedState = data.linkedEntry?.state;
-  const blockedMessage =
-    linkedState === "withdrawn"
+  const blockedMessage = data.leftEvent
+    ? m.tournaments_submit_left_event()
+    : linkedState === "withdrawn"
       ? m.tournaments_submit_blocked_withdrawn()
       : linkedState === "approved"
         ? m.tournaments_submit_blocked_approved()

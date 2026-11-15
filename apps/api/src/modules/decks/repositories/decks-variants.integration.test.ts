@@ -115,31 +115,32 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
   }
 
   describe("family creation", () => {
-    it("creates the family on the first copy and makes the copy primary", async () => {
+    it("creates the family on the first copy and makes the source primary", async () => {
       const source = await makeDeck("DV Family Source");
       expect(source.familyId).toBeNull();
       expect(source.isPrimary).toBe(false);
 
       const copy = await copyOf(source.id, {});
       expect(copy.familyId).toBeTypeOf("string");
-      expect(copy.isPrimary).toBe(true);
+      expect(copy.isPrimary).toBe(false);
 
       const reloadedSource = await reload(source.id);
       expect(reloadedSource.familyId).toBe(copy.familyId);
-      expect(reloadedSource.isPrimary).toBe(false);
+      expect(reloadedSource.isPrimary).toBe(true);
+      expect(reloadedSource.updatedAt.toISOString()).toBe(source.updatedAt.toISOString());
     });
 
-    it("reuses the existing family for later copies and hands the primary on", async () => {
+    it("reuses the existing family for later copies and keeps the primary", async () => {
       const source = await makeDeck("DV Family Reuse");
       const first = await copyOf(source.id, {});
       const second = await copyOf(source.id, {});
 
       expect(second.familyId).toBe(first.familyId);
-      expect(second.isPrimary).toBe(true);
+      expect(second.isPrimary).toBe(false);
       const reloadedFirst = await reload(first.id);
       expect(reloadedFirst.isPrimary).toBe(false);
       const reloadedSource = await reload(source.id);
-      expect(reloadedSource.isPrimary).toBe(false);
+      expect(reloadedSource.isPrimary).toBe(true);
       const members = await db
         .selectFrom("decks")
         .select("id")
@@ -157,6 +158,20 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
 
       const reloaded = await reload(foreign.id);
       expect(reloaded.familyId).toBeNull();
+    });
+  });
+
+  describe("primary on a copy of a non-primary member", () => {
+    it("leaves the family's primary where it is", async () => {
+      const source = await makeDeck("DV Family Branch Primary");
+      const variant = await copyOf(source.id, {});
+      const branch = await copyOf(variant.id, {});
+
+      expect(branch.isPrimary).toBe(false);
+      const reloadedVariant = await reload(variant.id);
+      expect(reloadedVariant.isPrimary).toBe(false);
+      const reloadedSource = await reload(source.id);
+      expect(reloadedSource.isPrimary).toBe(true);
     });
   });
 
@@ -432,12 +447,12 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
 
       const missing = await decks.promoteToPrimary(MISSING_DECK_ID, userId);
       expect(missing).toBe("not-found");
-      const notMine = await decks.promoteToPrimary(foreign.id, userId);
+      const notMine = await decks.promoteToPrimary(foreignCopy.id, userId);
       expect(notMine).toBe("not-found");
       const reloadedForeign = await reload(foreign.id);
-      expect(reloadedForeign.isPrimary).toBe(false);
+      expect(reloadedForeign.isPrimary).toBe(true);
       const reloadedCopy = await reload(foreignCopy.id);
-      expect(reloadedCopy.isPrimary).toBe(true);
+      expect(reloadedCopy.isPrimary).toBe(false);
     });
   });
 
@@ -448,7 +463,7 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
       const outsider = await makeDeck("DV Stamp Outsider");
       const before = await Promise.all([source.id, copy.id, outsider.id].map((id) => reload(id)));
 
-      await decks.promoteToPrimary(source.id, userId);
+      await decks.promoteToPrimary(copy.id, userId);
       await decks.setPredecessor(copy.id, userId, null);
       await linkOf(outsider.id, { otherDeckId: source.id });
       await unlinkOf(outsider.id);
@@ -628,9 +643,9 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
       expect(linked.familyId).toBe(sibling.familyId);
       expect(linked.isPrimary).toBe(false);
       const reloadedSibling = await reload(sibling.id);
-      expect(reloadedSibling.isPrimary).toBe(true);
+      expect(reloadedSibling.isPrimary).toBe(false);
       const reloadedSource = await reload(source.id);
-      expect(reloadedSource.isPrimary).toBe(false);
+      expect(reloadedSource.isPrimary).toBe(true);
     });
 
     it("pulls a standalone deck into this deck's family", async () => {
@@ -640,9 +655,9 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
 
       const linked = await linkOf(source.id, { otherDeckId: standalone.id });
       expect(linked.familyId).toBe(sibling.familyId);
-      expect(linked.isPrimary).toBe(false);
+      expect(linked.isPrimary).toBe(true);
       const reloadedSibling = await reload(sibling.id);
-      expect(reloadedSibling.isPrimary).toBe(true);
+      expect(reloadedSibling.isPrimary).toBe(false);
       const reloadedStandalone = await reload(standalone.id);
       expect(reloadedStandalone.familyId).toBe(linked.familyId);
       expect(reloadedStandalone.isPrimary).toBe(false);
@@ -656,9 +671,9 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
 
       const linked = await linkOf(leftSource.id, { otherDeckId: rightSource.id });
       expect(linked.familyId).toBe(leftSibling.familyId);
-      expect(linked.isPrimary).toBe(false);
+      expect(linked.isPrimary).toBe(true);
       const reloadedLeftSibling = await reload(leftSibling.id);
-      expect(reloadedLeftSibling.isPrimary).toBe(true);
+      expect(reloadedLeftSibling.isPrimary).toBe(false);
 
       const members = await familyMembers(linked.familyId);
       expect(members.map((member) => member.id).toSorted()).toEqual(
@@ -800,9 +815,9 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
       expect(notMine).toBe("not-found");
       const reloadedForeign = await reload(foreign.id);
       expect(reloadedForeign.familyId).not.toBeNull();
-      expect(reloadedForeign.isPrimary).toBe(false);
+      expect(reloadedForeign.isPrimary).toBe(true);
       const reloadedCopy = await reload(foreignCopy.id);
-      expect(reloadedCopy.isPrimary).toBe(true);
+      expect(reloadedCopy.isPrimary).toBe(false);
     });
   });
 
@@ -833,10 +848,10 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
       await decks.deleteByIdForUser(first.id, userId);
 
       const reloadedSecond = await reload(second.id);
-      expect(reloadedSecond.isPrimary).toBe(true);
+      expect(reloadedSecond.isPrimary).toBe(false);
       expect(reloadedSecond.familyId).not.toBeNull();
       const reloadedSource = await reload(source.id);
-      expect(reloadedSource.isPrimary).toBe(false);
+      expect(reloadedSource.isPrimary).toBe(true);
       expect(reloadedSource.familyId).toBe(reloadedSecond.familyId);
     });
 

@@ -143,6 +143,7 @@ export const tournamentMyDeckEntrySchema = z.object({
   reviewOutcome: deckCheckReviewOutcomeSchema.nullable(),
   unlockRequested: z.boolean(),
   hasPlayerMessage: z.boolean(),
+  leftEvent: z.boolean(),
 });
 
 export const tournamentDetailResponseSchema = tournamentSummaryResponseSchema.extend({

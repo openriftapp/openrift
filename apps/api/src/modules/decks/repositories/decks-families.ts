@@ -10,9 +10,10 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
   return {
     /**
      * Copies a deck into its variant family, creating the family on first use.
-     * The copy is an editable sibling descending from the source, becomes the
-     * family's primary, and joins the source's folders. Unlike `cloneDeck` this
-     * also copies the odds config, cover, and the full deck plan.
+     * The copy is an editable sibling descending from the source and joins the
+     * source's folders. The family's primary stays where it is; a new family
+     * makes the source its primary. Unlike `cloneDeck` this also copies the
+     * odds config, cover, and the full deck plan.
      */
     createVariantCopy(
       id: string,
@@ -36,19 +37,14 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
         if (familyId === null) {
           familyId = crypto.randomUUID();
           await trx.insertInto("deckFamilies").values({ id: familyId, userId }).execute();
-          await trx.updateTable("decks").set({ familyId }).where("id", "=", id).execute();
+          await trx
+            .updateTable("decks")
+            .set({ familyId, isPrimary: true })
+            .where("id", "=", id)
+            .execute();
         } else {
           await lockFamilies(trx, userId, [familyId]);
         }
-        // Demote before the insert: `uq_decks_family_primary` is not
-        // deferrable, so two primaries can't coexist inside the transaction.
-        await trx
-          .updateTable("decks")
-          .set({ isPrimary: false })
-          .where("familyId", "=", familyId)
-          .where("userId", "=", userId)
-          .where("isPrimary", "=", true)
-          .execute();
 
         const copy = await trx
           .insertInto("decks")
@@ -69,7 +65,7 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
             // hold cards nobody decided to store with it.
             isPublic: false,
             familyId,
-            isPrimary: true,
+            isPrimary: false,
             predecessorDeckId: source.id,
           })
           .returningAll()

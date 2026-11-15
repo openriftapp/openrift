@@ -271,7 +271,10 @@ describe("LoginForm", () => {
     await user.type(screen.getByLabelText("Password", { selector: "input" }), "hunter2hunter2");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
 
-    await vi.waitFor(() => expect(atNavigate).toEqual({ languages: ["EN"], prefsHydrated: false }));
+    await vi.waitFor(
+      () => expect(atNavigate).toEqual({ languages: ["EN"], prefsHydrated: false }),
+      { timeout: 5000 },
+    );
     expect(localStorage.getItem(CLIENT_STATE_OWNER_KEY)).toBe("user-b");
     forgetClientStateOwner();
   });

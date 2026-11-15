@@ -445,6 +445,30 @@ describe.skipIf(!ownerCtx)("deck-check player self-service (integration, ADR-026
       expect(secondBody.entryId).toBe(firstBody.entryId);
     });
 
+    it("refuses a deck from a dropped or no-show player until the host brings them back", async () => {
+      const spot = await repos.tournaments.getParticipantByUser(eventId, STRANGER_ID);
+      expect(spot).toBeDefined();
+      const submit = () =>
+        strangerApp.fetch(
+          req("POST", `/deck-check/submissions/${submissionToken}`, { deckId: strangerDeckId }),
+        );
+
+      for (const status of ["dropped", "no_show"] as const) {
+        await repos.tournaments.updateParticipant(spot!.id, { status });
+        const refused = await submit();
+        expect(refused.status).toBe(403);
+        const view = await strangerApp.fetch(req("GET", `/deck-check/mine/tournament/${eventId}`));
+        const body = (await readJson(view)) as {
+          entry: { leftEvent: boolean; canUnlock: boolean };
+        };
+        expect(body.entry).toMatchObject({ leftEvent: true, canUnlock: false });
+      }
+
+      await repos.tournaments.updateParticipant(spot!.id, { status: spot!.status });
+      const restored = await submit();
+      expect(restored.status).toBe(200);
+    });
+
     it("accepts a pasted card list and infers type-bound zones", async () => {
       const res = await strangerApp.fetch(
         req("POST", `/deck-check/submissions/${submissionToken}`, {

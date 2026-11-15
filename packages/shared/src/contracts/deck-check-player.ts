@@ -46,6 +46,7 @@ export const playerDeckCheckEntryDetailResponseSchema = z.object({
     submissionsCloseAt: z.string().nullable(),
     updatedAt: z.string(),
     windowOpen: z.boolean(),
+    leftEvent: z.boolean(),
     canEdit: z.boolean(),
     canUnlock: z.boolean(),
     canRequestUnlock: z.boolean(),
@@ -66,6 +67,7 @@ export const deckCheckSubmissionPageResponseSchema = z.object({
   allowedSets: z.array(z.string()).nullable(),
   submissionsCloseAt: z.string().nullable(),
   submissionsOpen: z.boolean(),
+  leftEvent: z.boolean(),
   linkedEntry: z
     .object({
       id: z.string(),
@@ -109,6 +111,7 @@ export const deckCheckPlayerContract = {
     .route({ method: "PUT", path: "/api/v1/deck-check/mine/{entryId}/list", tags: [TAG] })
     .errors({
       NOT_FOUND: { message: "Entry or deck not found" },
+      FORBIDDEN: { message: "The player is no longer playing in this event" },
       CONFLICT: { message: "Submissions are closed or the deck is locked" },
       VALIDATION_ERROR: { status: 422, message: "Invalid deck section or deck code" },
     })
@@ -122,6 +125,7 @@ export const deckCheckPlayerContract = {
     .route({ method: "POST", path: "/api/v1/deck-check/mine/{entryId}/submit", tags: [TAG] })
     .errors({
       NOT_FOUND: { message: "Entry not found" },
+      FORBIDDEN: { message: "The player is no longer playing in this event" },
       CONFLICT: { message: "Submissions are closed or the deck is not editable" },
     })
     .input(playerDeckCheckEntryParamSchema)
@@ -130,6 +134,7 @@ export const deckCheckPlayerContract = {
     .route({ method: "POST", path: "/api/v1/deck-check/mine/{entryId}/unlock", tags: [TAG] })
     .errors({
       NOT_FOUND: { message: "Entry not found" },
+      FORBIDDEN: { message: "The player is no longer playing in this event" },
       CONFLICT: { message: "Submissions are closed or the deck cannot be unlocked" },
     })
     .input(playerDeckCheckEntryParamSchema)
@@ -148,6 +153,9 @@ export const deckCheckPlayerContract = {
     .route({ method: "POST", path: "/api/v1/deck-check/submissions/{token}", tags: [TAG] })
     .errors({
       NOT_FOUND: { message: "Submission link or account not found" },
+      FORBIDDEN: {
+        message: "Self-registration is closed, or the player is no longer playing in this event",
+      },
       CONFLICT: { message: "Submissions are closed or the entry is locked" },
       VALIDATION_ERROR: { status: 422, message: "Invalid deck section or deck code" },
     })

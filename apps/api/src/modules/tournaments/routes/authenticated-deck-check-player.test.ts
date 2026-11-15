@@ -72,6 +72,7 @@ function playerRow(overrides: Record<string, any> = {}) {
     eventName: "Summoner Skirmish",
     eventDate: null,
     eventStatus: "active",
+    participantStatus: "active",
     submissionsCloseAt: null,
     groupName: "Noxus Locals",
     groupSlug: "noxus-locals",
@@ -157,6 +158,7 @@ function makeRepos() {
   };
   const tournaments = {
     getParticipantByUser: stub<any>(undefined),
+    getParticipantById: stub<any>({ id: "participant-1", status: "active" }),
     resolveOrCreateParticipant: stub({ id: "participant-new" }),
     lockParticipant: stub(true),
     getParticipantByClaimToken: stub<any>(undefined),
@@ -1274,4 +1276,314 @@ describe("POST /deck-check/claim/{token}", () => {
     expect(res.status).toBe(200);
     expect(body).toEqual({ status: "already", tournamentId: TOURNAMENT_ID, entryId: ENTRY_ID });
   });
+});
+
+describe("a player who dropped or was marked no-show", () => {
+  const LEFT_MESSAGE =
+    "You're no longer playing in this event. Ask the host if you want to rejoin.";
+  const LIST = { cards: [{ name: "Card", quantity: 1, section: "main" }] };
+
+  function ownEntry(
+    repos: ReturnType<typeof makeRepos>,
+    participantStatus: string,
+    state = "editable",
+    event = deckEvent(),
+  ) {
+    const row = playerRow({ state, participantStatus });
+    repos.deckCheck.getEntryForPlayer.mockResolvedValue(row);
+    repos.deckCheck.getEntryForPlayerByTournament.mockResolvedValue(row);
+    repos.deckCheck.getEntryForUpdate.mockResolvedValue(row);
+    repos.deckCheck.getEventById.mockResolvedValue(event);
+    repos.deckCheck.updateEntry.mockImplementation((_id: string, patch: Record<string, unknown>) =>
+      Promise.resolve({ ...row, ...patch }),
+    );
+    return row;
+  }
+
+  function tokenSpot(
+    repos: ReturnType<typeof makeRepos>,
+    status: string,
+    options: { allowSelfSubmission: boolean; linked?: unknown },
+  ) {
+    repos.deckCheck.getEventBySubmissionToken.mockResolvedValue(
+      deckEvent({ allowSelfSubmission: options.allowSelfSubmission, groupName: "Noxus Locals" }),
+    );
+    repos.tournaments.getParticipantByUser.mockResolvedValue({
+      id: "participant-1",
+      tournamentId: TOURNAMENT_ID,
+      userId: USER_ID,
+      status,
+    });
+    repos.tournaments.resolveOrCreateParticipant.mockResolvedValue({
+      id: "participant-1",
+      status,
+    } as never);
+    repos.tournaments.getParticipantById.mockResolvedValue({ id: "participant-1", status });
+    repos.deckCheck.getLinkedEntryForUser.mockResolvedValue(options.linked);
+    repos.deckCheck.getEntryForUpdate.mockResolvedValue(options.linked);
+    repos.deckCheck.getUserAccount.mockResolvedValue({
+      id: USER_ID,
+      name: "Player One",
+      email: "player@example.com",
+      riotId: null,
+    });
+    repos.deckCheck.createEntry.mockResolvedValue(entryRow({ state: "submitted" }));
+    repos.deckCheck.updateEntry.mockImplementation((_id: string, patch: Record<string, unknown>) =>
+      Promise.resolve({ ...entryRow(), ...patch }),
+    );
+  }
+
+  async function expectRefused(res: Response) {
+    const body = (await res.json()) as { message: string; code: string };
+    expect(res.status).toBe(403);
+    expect(body.code).toBe("FORBIDDEN");
+    expect(body.message).toBe(LEFT_MESSAGE);
+  }
+
+  describe.each(["dropped", "no_show"])("with status %s", (status) => {
+    it("refuses a deck through the join link while self-registration is open", async () => {
+      const repos = makeRepos();
+      tokenSpot(repos, status, { allowSelfSubmission: true });
+
+      await expectRefused(await makeApp(repos).fetch(req("POST", `/submissions/${TOKEN}`, LIST)));
+      expect(repos.tournaments.resolveOrCreateParticipant).not.toHaveBeenCalled();
+      expect(repos.deckCheck.createEntry).not.toHaveBeenCalled();
+    });
+
+    it("refuses a deck through the join link while self-registration is closed", async () => {
+      const repos = makeRepos();
+      tokenSpot(repos, status, { allowSelfSubmission: false });
+
+      await expectRefused(await makeApp(repos).fetch(req("POST", `/submissions/${TOKEN}`, LIST)));
+      expect(repos.deckCheck.createEntry).not.toHaveBeenCalled();
+    });
+
+    it("refuses a join-link preview", async () => {
+      const repos = makeRepos();
+      tokenSpot(repos, status, { allowSelfSubmission: true });
+
+      await expectRefused(
+        await makeApp(repos).fetch(req("POST", `/submissions/${TOKEN}`, { ...LIST, dryRun: true })),
+      );
+    });
+
+    it("refuses replacing an existing entry through the join link", async () => {
+      const repos = makeRepos();
+      tokenSpot(repos, status, {
+        allowSelfSubmission: true,
+        linked: entryRow({ state: "editable" }),
+      });
+
+      await expectRefused(await makeApp(repos).fetch(req("POST", `/submissions/${TOKEN}`, LIST)));
+      expect(repos.deckCheck.replaceEntryCards).not.toHaveBeenCalled();
+      expect(repos.deckCheck.updateEntry).not.toHaveBeenCalled();
+    });
+
+    it("refuses replacing the deck from the deck page", async () => {
+      const repos = makeRepos();
+      ownEntry(repos, status);
+
+      await expectRefused(await makeApp(repos).fetch(req("PUT", `/mine/${ENTRY_ID}/list`, LIST)));
+      expect(repos.deckCheck.replaceEntryCards).not.toHaveBeenCalled();
+    });
+
+    it("refuses submitting the deck from the deck page", async () => {
+      const repos = makeRepos();
+      ownEntry(repos, status);
+
+      await expectRefused(await makeApp(repos).fetch(req("POST", `/mine/${ENTRY_ID}/submit`)));
+      expect(repos.deckCheck.updateEntry).not.toHaveBeenCalled();
+    });
+
+    it("refuses unlocking the deck from the deck page", async () => {
+      const repos = makeRepos();
+      ownEntry(repos, status, "submitted", deckEvent({ listLockMode: "at_deadline" }));
+
+      await expectRefused(await makeApp(repos).fetch(req("POST", `/mine/${ENTRY_ID}/unlock`)));
+      expect(repos.deckCheck.updateEntry).not.toHaveBeenCalled();
+    });
+
+    it("reports the deck page as read-only", async () => {
+      const repos = makeRepos();
+      ownEntry(repos, status, "submitted", deckEvent({ listLockMode: "at_deadline" }));
+
+      const res = await makeApp(repos).fetch(req("GET", `/mine/tournament/${TOURNAMENT_ID}`));
+      const body = (await res.json()) as { entry: Record<string, boolean> };
+
+      expect(res.status).toBe(200);
+      expect(body.entry).toMatchObject({
+        leftEvent: true,
+        windowOpen: true,
+        canEdit: false,
+        canUnlock: false,
+        canRequestUnlock: false,
+      });
+    });
+  });
+
+  describe.each(["active", "requested", "invited"])("with status %s", (status) => {
+    it("takes a deck through the join link", async () => {
+      const repos = makeRepos();
+      tokenSpot(repos, status, {
+        allowSelfSubmission: false,
+        linked: entryRow({ state: "editable" }),
+      });
+
+      const res = await makeApp(repos).fetch(req("POST", `/submissions/${TOKEN}`, LIST));
+      expect(res.status).toBe(200);
+      expect(repos.deckCheck.replaceEntryCards).toHaveBeenCalled();
+    });
+
+    it("submits the deck from the deck page", async () => {
+      const repos = makeRepos();
+      ownEntry(repos, status);
+
+      const res = await makeApp(repos).fetch(req("POST", `/mine/${ENTRY_ID}/submit`));
+      const body = (await res.json()) as { entry: { leftEvent: boolean } };
+      expect(res.status).toBe(200);
+      expect(body.entry.leftEvent).toBe(false);
+    });
+  });
+
+  it("takes a deck again once the host brings the player back", async () => {
+    const repos = makeRepos();
+    tokenSpot(repos, "dropped", { allowSelfSubmission: true });
+    await expectRefused(await makeApp(repos).fetch(req("POST", `/submissions/${TOKEN}`, LIST)));
+
+    tokenSpot(repos, "active", { allowSelfSubmission: true });
+    repos.deckCheck.listCardsForEntry.mockResolvedValue([cardRow()]);
+    const res = await makeApp(repos).fetch(req("POST", `/submissions/${TOKEN}`, LIST));
+    expect(res.status).toBe(200);
+    expect(repos.deckCheck.createEntry).toHaveBeenCalledOnce();
+  });
+});
+
+describe("a drop that lands while a player's write is in flight", () => {
+  function staleActiveEntry(
+    repos: ReturnType<typeof makeRepos>,
+    state: string,
+    event = deckEvent(),
+  ) {
+    const row = playerRow({ state, participantStatus: "active" });
+    repos.deckCheck.getEntryForPlayer.mockResolvedValue(row);
+    repos.deckCheck.getEntryForUpdate.mockResolvedValue(row);
+    repos.deckCheck.getEventById.mockResolvedValue(event);
+    repos.tournaments.getParticipantById.mockResolvedValue({
+      id: "participant-1",
+      status: "dropped",
+    });
+  }
+
+  async function expectRefusedUnderLock(repos: ReturnType<typeof makeRepos>, res: Response) {
+    const body = (await res.json()) as { code: string };
+    expect(res.status).toBe(403);
+    expect(body.code).toBe("FORBIDDEN");
+    expect(repos.tournaments.lockParticipant).toHaveBeenCalledWith("participant-1");
+    expect(repos.deckCheck.updateEntry).not.toHaveBeenCalled();
+    expect(repos.deckCheck.replaceEntryCards).not.toHaveBeenCalled();
+  }
+
+  it("refuses the deck page's replace once the participant row says dropped", async () => {
+    const repos = makeRepos();
+    staleActiveEntry(repos, "editable");
+    const res = await makeApp(repos).fetch(
+      req("PUT", `/mine/${ENTRY_ID}/list`, {
+        cards: [{ name: "Card", quantity: 1, section: "main" }],
+      }),
+    );
+    await expectRefusedUnderLock(repos, res);
+  });
+
+  it("refuses the deck page's submit once the participant row says dropped", async () => {
+    const repos = makeRepos();
+    staleActiveEntry(repos, "editable");
+    const res = await makeApp(repos).fetch(req("POST", `/mine/${ENTRY_ID}/submit`));
+    await expectRefusedUnderLock(repos, res);
+  });
+
+  it("refuses a self-unlock once the participant row says dropped", async () => {
+    const repos = makeRepos();
+    staleActiveEntry(repos, "submitted", deckEvent({ listLockMode: "at_deadline" }));
+    const res = await makeApp(repos).fetch(req("POST", `/mine/${ENTRY_ID}/unlock`));
+    await expectRefusedUnderLock(repos, res);
+  });
+
+  it("refuses a join-link replace once the participant row says dropped", async () => {
+    const repos = makeRepos();
+    repos.deckCheck.getEventBySubmissionToken.mockResolvedValue(
+      deckEvent({ groupName: "Noxus Locals" }),
+    );
+    repos.tournaments.getParticipantByUser.mockResolvedValue({
+      id: "participant-1",
+      status: "active",
+    });
+    const linked = entryRow({ state: "editable" });
+    repos.deckCheck.getLinkedEntryForUser.mockResolvedValue(linked);
+    repos.deckCheck.getEntryForUpdate.mockResolvedValue(linked);
+    repos.tournaments.getParticipantById.mockResolvedValue({
+      id: "participant-1",
+      status: "no_show",
+    });
+    const res = await makeApp(repos).fetch(
+      req("POST", `/submissions/${TOKEN}`, {
+        cards: [{ name: "Card", quantity: 1, section: "main" }],
+      }),
+    );
+    await expectRefusedUnderLock(repos, res);
+  });
+});
+
+describe("the join-link page for a player who left", () => {
+  it.each([
+    ["dropped", true],
+    ["no_show", true],
+    ["active", false],
+  ])("reports leftEvent for %s and only lets a current player replace", async (status, left) => {
+    const repos = makeRepos();
+    repos.deckCheck.getEventBySubmissionToken.mockResolvedValue(
+      deckEvent({ groupName: "Noxus Locals", listLockMode: "at_deadline" }),
+    );
+    repos.tournaments.getParticipantByUser.mockResolvedValue({ id: "participant-1", status });
+    repos.deckCheck.getLinkedEntryForUser.mockResolvedValue(entryRow({ state: "editable" }));
+
+    const res = await makeApp(repos).fetch(req("GET", `/submissions/${TOKEN}`));
+    const body = (await res.json()) as {
+      leftEvent: boolean;
+      linkedEntry: { canReplace: boolean } | null;
+    };
+
+    expect(res.status).toBe(200);
+    expect(body.leftEvent).toBe(left);
+    expect(body.linkedEntry?.canReplace).toBe(!left);
+  });
+});
+
+describe("cancelling an unlock request after leaving", () => {
+  it.each(["dropped", "no_show"])(
+    "still clears a pending request for a %s player",
+    async (status) => {
+      const repos = makeRepos();
+      const row = playerRow({
+        state: "approved",
+        unlockRequestedAt: now,
+        participantStatus: status,
+      });
+      repos.deckCheck.getEntryForPlayer.mockResolvedValue(row);
+      repos.deckCheck.getEventById.mockResolvedValue(deckEvent());
+      repos.deckCheck.updateEntry.mockImplementation(
+        (_id: string, patch: Record<string, unknown>) => Promise.resolve({ ...row, ...patch }),
+      );
+
+      const res = await makeApp(repos).fetch(req("DELETE", `/mine/${ENTRY_ID}/unlock`));
+      const body = (await res.json()) as {
+        entry: { unlockRequested: boolean; leftEvent: boolean };
+      };
+
+      expect(res.status).toBe(200);
+      expect(body.entry).toMatchObject({ unlockRequested: false, leftEvent: true });
+      expect(repos.deckCheck.updateEntry).toHaveBeenCalledWith(ENTRY_ID, {
+        unlockRequestedAt: null,
+      });
+    },
+  );
 });

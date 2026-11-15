@@ -18,6 +18,7 @@ import { assertFound } from "../../../lib/assertions.js";
 import { sha256HexSync } from "../../../lib/hash.js";
 import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { createCardCodeIndexLoader } from "../../catalog/lib/card-lookup-index.js";
+import { lockStillPlaying } from "../lib/tournament-access.js";
 import type { DeckCheckEntry } from "../repositories/deck-check-entries.js";
 import type { NewDeckCheckEntryCard } from "../repositories/deck-check-entry-cards.js";
 import type { DeckCheckEvent } from "../repositories/deck-check-events.js";
@@ -350,7 +351,7 @@ export async function createSelfSubmittedEntry(
     // account above and keeps their existing status.
     status: "requested",
   });
-  await repos.tournaments.lockParticipant(participant.id);
+  await lockStillPlaying(repos, participant.id);
   if (await repos.deckCheck.participantHasDeck(participant.id)) {
     throw conflict("A judge already entered a deck for your spot. Contact a judge.");
   }

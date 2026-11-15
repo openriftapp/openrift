@@ -9,6 +9,7 @@ import type { TournamentParticipantWithUser } from "../repositories/tournaments-
 import type { Tournament } from "../repositories/tournaments-shared.js";
 import type { TournamentStaffWithName } from "../repositories/tournaments-staff.js";
 import {
+  hasLeftEvent,
   moduleFlags,
   toOrganizationMember,
   toOrganizationResponse,
@@ -143,6 +144,19 @@ describe("toParticipant", () => {
     expect(result.status).toBe("dropped");
     expect(result.droppedAfterRound).toBe(2);
     expect(result.createdAt).toBe(createdAt.toISOString());
+  });
+});
+
+describe("hasLeftEvent", () => {
+  it.each([
+    ["dropped", true],
+    ["no_show", true],
+    ["active", false],
+    ["requested", false],
+    ["invited", false],
+    [undefined, false],
+  ] as const)("reads %s as left: %s", (status, left) => {
+    expect(hasLeftEvent(status)).toBe(left);
   });
 });
 

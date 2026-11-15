@@ -6,8 +6,10 @@ import { AppError } from "../../../errors.js";
 import type { Organization, OrganizationMember } from "../repositories/organizations.js";
 import type { Tournament, TournamentParticipant } from "../repositories/tournaments-shared.js";
 import {
+  assertStillPlaying,
   isHost,
   loadParticipant,
+  lockStillPlaying,
   loadTournament,
   requireHost,
   requireManage,
@@ -65,11 +67,20 @@ function makeRepos(options: {
   const getParticipantById = vi.fn().mockResolvedValue(options.participant);
   const getOrgById = vi.fn().mockResolvedValue(options.org);
   const getMembership = vi.fn().mockResolvedValue(options.membership);
+  const lockParticipant = vi.fn().mockResolvedValue(true);
   const repos = {
-    tournaments: { getById, isHostOrStaff, getParticipantById },
+    tournaments: { getById, isHostOrStaff, getParticipantById, lockParticipant },
     organizations: { getById: getOrgById, getBySlug: vi.fn(), getMembership },
   } as unknown as Repos;
-  return { repos, getById, isHostOrStaff, getParticipantById, getOrgById, getMembership };
+  return {
+    repos,
+    getById,
+    isHostOrStaff,
+    getParticipantById,
+    lockParticipant,
+    getOrgById,
+    getMembership,
+  };
 }
 
 describe("loadTournament", () => {
@@ -258,5 +269,48 @@ describe("loadParticipant", () => {
       status: 404,
       message: "Participant not found",
     });
+  });
+});
+
+describe("assertStillPlaying", () => {
+  it.each(["dropped", "no_show"] as const)("throws 403 for %s", (status) => {
+    expect(() => assertStillPlaying(status)).toThrow(
+      expect.objectContaining({ status: 403, code: "FORBIDDEN" }),
+    );
+  });
+
+  it.each(["active", "requested", "invited", undefined] as const)("passes for %s", (status) => {
+    expect(() => assertStillPlaying(status)).not.toThrow();
+  });
+});
+
+describe("lockStillPlaying", () => {
+  it("locks the participant before reading its status", async () => {
+    const { repos, lockParticipant, getParticipantById } = makeRepos({
+      participant: participant({ id: "p1", status: "active" }),
+    });
+    await expect(lockStillPlaying(repos, "p1")).resolves.toBeUndefined();
+    expect(lockParticipant).toHaveBeenCalledWith("p1");
+    expect(lockParticipant.mock.invocationCallOrder[0]).toBeLessThan(
+      getParticipantById.mock.invocationCallOrder[0] ?? 0,
+    );
+  });
+
+  it.each(["dropped", "no_show"] as const)(
+    "throws 403 when the locked row says %s",
+    async (status) => {
+      const { repos } = makeRepos({ participant: participant({ id: "p1", status }) });
+      await expect(lockStillPlaying(repos, "p1")).rejects.toMatchObject({
+        status: 403,
+        code: "FORBIDDEN",
+      });
+    },
+  );
+
+  it("throws 404 for an entry without a participant or a participant that is gone", async () => {
+    const { repos, lockParticipant } = makeRepos({});
+    await expect(lockStillPlaying(repos, null)).rejects.toMatchObject({ status: 404 });
+    expect(lockParticipant).not.toHaveBeenCalled();
+    await expect(lockStillPlaying(repos, "p1")).rejects.toMatchObject({ status: 404 });
   });
 });

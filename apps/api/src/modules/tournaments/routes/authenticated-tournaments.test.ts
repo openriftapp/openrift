@@ -198,6 +198,7 @@ describe("GET /tournaments/{id}", () => {
       unlockRequestedAt: null,
       playerMessage: null,
       eventStatus: "active",
+      participantStatus: "active",
       submissionsCloseAt: new Date("2020-06-01T12:00:00Z"),
     } as never);
 
@@ -206,6 +207,30 @@ describe("GET /tournaments/{id}", () => {
 
     expect(res.status).toBe(200);
     expect(body.myDeckEntry?.state).toBe("submitted");
+  });
+
+  it.each([
+    ["dropped", true],
+    ["no_show", true],
+    ["active", false],
+  ])("marks the viewer's deck as left when their status is %s", async (status, leftEvent) => {
+    const { app, repos } = makeApp(tournamentRow({ deckSubmission: "required" }));
+    repos.deckCheck.getEntryForPlayerByTournament.mockResolvedValue({
+      id: "entry-1",
+      state: "editable",
+      reviewOutcome: null,
+      unlockRequestedAt: null,
+      playerMessage: null,
+      eventStatus: "active",
+      participantStatus: status,
+      submissionsCloseAt: null,
+    } as never);
+
+    const res = await app.fetch(req("GET", `/tournaments/${TOURNAMENT_ID}`));
+    const body = (await res.json()) as { myDeckEntry: { leftEvent: boolean } | null };
+
+    expect(res.status).toBe(200);
+    expect(body.myDeckEntry?.leftEvent).toBe(leftEvent);
   });
 });
 

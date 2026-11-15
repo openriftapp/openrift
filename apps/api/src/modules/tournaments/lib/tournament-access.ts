@@ -1,10 +1,14 @@
-import type { TournamentHostType } from "@openrift/shared/types/api/tournament";
+import type {
+  TournamentHostType,
+  TournamentParticipantStatus,
+} from "@openrift/shared/types/api/tournament";
 
 import type { Repos } from "../../../deps.js";
 import { forbidden, notFound } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import type { Tournament, TournamentParticipant } from "../repositories/tournaments-shared.js";
 import { hasOrgRole, loadOrg, requireOrgRole } from "./org-access.js";
+import { hasLeftEvent } from "./tournament-presenters.js";
 
 /**
  * Loaders and authorization gates for the tournaments umbrella, mirroring
@@ -109,4 +113,22 @@ export async function loadParticipant(
     throw notFound("Participant not found");
   }
   return participant;
+}
+
+const LEFT_EVENT_MESSAGE =
+  "You're no longer playing in this event. Ask the host if you want to rejoin.";
+
+export function assertStillPlaying(status: TournamentParticipantStatus | undefined): void {
+  if (hasLeftEvent(status)) {
+    throw forbidden(LEFT_EVENT_MESSAGE);
+  }
+}
+
+/** Call inside a transaction, before locking the participant's deck entry. */
+export async function lockStillPlaying(repos: Repos, participantId: string | null): Promise<void> {
+  assertFound(participantId, "Entry not found");
+  await repos.tournaments.lockParticipant(participantId);
+  const participant = await repos.tournaments.getParticipantById(participantId);
+  assertFound(participant, "Entry not found");
+  assertStillPlaying(participant.status);
 }
