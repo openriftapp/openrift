@@ -5,9 +5,11 @@ import { CountryFlag } from "@/components/ui/country-flag";
 import { DateLeaf } from "@/components/ui/date-leaf";
 import { RowListLink } from "@/components/ui/row-list";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
+import { metaEventOpenStateLabel } from "@/features/meta/lib/meta-format";
 import { m } from "@/paraglide/messages.js";
 
 export function MetaUpcomingRow({ event }: { event: MetaEventSummary }) {
+  const openState = metaEventOpenStateLabel(event);
   return (
     <RowListLink
       render={<Link to="/meta/$slug" params={{ slug: event.slug }} />}
@@ -25,6 +27,7 @@ export function MetaUpcomingRow({ event }: { event: MetaEventSummary }) {
               {m.meta_upcoming_registered({ count: event.playerCount })}
             </span>
           )}
+          {openState !== null && <span>{openState}</span>}
         </span>
       </span>
     </RowListLink>

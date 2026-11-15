@@ -16,7 +16,7 @@ import type { MetaSyncDeps } from "./deps.js";
 import { clock } from "./deps.js";
 import { createRunHeartbeat } from "./run-heartbeat.js";
 import { isPermanentRefusal, RunDeadlineError, sourceStopOf } from "./source-http.js";
-import { MAX_PAGE_SIZE } from "./uvsgames-client.js";
+import { UVSGAMES_MAX_PAGE_SIZE } from "./uvsgames-client.js";
 
 const MAX_DECK_FETCHES = 400;
 const COMPLETE = "complete";
@@ -73,7 +73,7 @@ async function allPages(
   path: string,
   errors: string[],
   label: string,
-  pageSize = MAX_PAGE_SIZE,
+  pageSize = UVSGAMES_MAX_PAGE_SIZE,
 ): Promise<unknown[] | null> {
   const rows: unknown[] = [];
   let page = 1;
@@ -376,7 +376,7 @@ async function readRoundMatches(
         `/api/v2/tournament-rounds/${round.roundId}/matches/paginated/`,
         {},
         page,
-        MAX_PAGE_SIZE,
+        UVSGAMES_MAX_PAGE_SIZE,
       );
     } catch (error) {
       if (error instanceof RunDeadlineError) {

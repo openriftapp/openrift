@@ -104,7 +104,7 @@ describe("metaEventCounts", () => {
   const TODAY = "2026-09-01";
   const event = (over: Partial<MetaCountedEvent>): MetaCountedEvent => ({
     eventDate: "2026-08-09",
-    status: "complete",
+    recordedStatus: "complete",
     playerCount: null,
     playerRowCount: 0,
     deckCount: 0,
@@ -150,10 +150,9 @@ describe("metaEventCounts", () => {
   });
 
   it("says a running event is in progress while its standings are still to land", () => {
-    expect(metaEventCounts(event({ status: "in_progress", playerCount: 82 }), TODAY)).toEqual([
-      "82 players",
-      "In progress",
-    ]);
+    expect(
+      metaEventCounts(event({ recordedStatus: "in_progress", playerCount: 82 }), TODAY),
+    ).toEqual(["82 players", "In progress"]);
   });
 
   it("keeps a one-player event singular, and its deckless field plural", () => {
@@ -168,7 +167,7 @@ describe("metaEventEmptyStatus", () => {
   const TODAY = "2026-09-01";
   const event = (over: Partial<MetaCountedEvent>): MetaCountedEvent => ({
     eventDate: "2026-08-09",
-    status: "complete",
+    recordedStatus: "complete",
     playerCount: null,
     playerRowCount: 0,
     deckCount: 0,
@@ -187,15 +186,46 @@ describe("metaEventEmptyStatus", () => {
     expect(metaEventEmptyStatus(event({ eventDate: "2026-09-26" }), TODAY)).toBe("Not played yet");
   });
 
-  it("trusts the source over the date for an event that started early or runs late", () => {
-    expect(metaEventEmptyStatus(event({ status: "in_progress" }), TODAY)).toBe("In progress");
-    expect(metaEventEmptyStatus(event({ status: "upcoming" }), TODAY)).toBe("Not played yet");
+  it("trusts the source over the date for an event that runs late", () => {
+    expect(metaEventEmptyStatus(event({ recordedStatus: "in_progress" }), TODAY)).toBe(
+      "In progress",
+    );
+  });
+
+  it("reads an event the source never closed as played once its window has passed", () => {
+    expect(metaEventEmptyStatus(event({ recordedStatus: "upcoming" }), TODAY)).toBe(
+      "No results on file",
+    );
   });
 
   it("reads a future date as upcoming whatever the stored status", () => {
     expect(
-      metaEventEmptyStatus(event({ status: "in_progress", eventDate: "2026-09-26" }), TODAY),
+      metaEventEmptyStatus(
+        event({ recordedStatus: "in_progress", eventDate: "2026-09-26" }),
+        TODAY,
+      ),
     ).toBe("Not played yet");
+  });
+
+  it.each([
+    ["2026-08-31", "In progress"],
+    [TODAY, "In progress"],
+    ["2026-09-02", "In progress"],
+    ["2026-09-03", "Not played yet"],
+    ["2026-08-30", "No results on file"],
+  ])("labels a source-upcoming event dated %s as %s", (eventDate, label) => {
+    expect(metaEventEmptyStatus(event({ recordedStatus: "upcoming", eventDate }), TODAY)).toBe(
+      label,
+    );
+  });
+
+  it.each([
+    ["2026-08-31", "No results on file"],
+    [TODAY, "No results on file"],
+    ["2026-09-02", "Not played yet"],
+    ["2026-09-03", "Not played yet"],
+  ])("labels a hand-entered event dated %s as %s", (eventDate, label) => {
+    expect(metaEventEmptyStatus(event({ eventDate }), TODAY)).toBe(label);
   });
 });
 

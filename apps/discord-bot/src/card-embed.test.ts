@@ -1,11 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import {
-  buildCardEmbed,
-  cardTextFields,
-  cardWarnings,
-  fallbackArtDifferences,
-} from "./card-embed.js";
+import { buildCardEmbed, cardTextFields, cardWarnings, fallbackArtNotes } from "./card-embed.js";
 import { buildSnapshot } from "./catalog-cache.js";
 import {
   makeBotCard,
@@ -31,7 +26,7 @@ function snapshotWithPrices(prices = makePricesResponse()) {
 
 const LABELS = snapshotWithPrices().labels;
 
-describe("fallbackArtDifferences", () => {
+describe("fallbackArtNotes", () => {
   it("mirrors the site's badge order: language, markers, art variant, overnumbered, signed, finish", () => {
     const printing = makeBotPrinting({
       printingId: "p-noimg",
@@ -44,7 +39,7 @@ describe("fallbackArtDifferences", () => {
       finish: "metal",
     });
     const artPrinting = makeBotPrinting();
-    expect(fallbackArtDifferences(printing, artPrinting, LABELS)).toEqual([
+    expect(fallbackArtNotes(printing, artPrinting, LABELS)).toEqual([
       "EN",
       "Promo",
       "Alt Art",
@@ -55,14 +50,14 @@ describe("fallbackArtDifferences", () => {
   });
 
   it("returns no tags when the printings only differ by image", () => {
-    expect(
-      fallbackArtDifferences(makeBotPrinting({ images: [] }), makeBotPrinting(), LABELS),
-    ).toEqual([]);
+    expect(fallbackArtNotes(makeBotPrinting({ images: [] }), makeBotPrinting(), LABELS)).toEqual(
+      [],
+    );
   });
 
   it("drops the language tag when the art has no printing behind it", () => {
     const printing = makeBotPrinting({ images: [], language: "DE", isSigned: true });
-    expect(fallbackArtDifferences(printing, null, LABELS)).toEqual(["Signed"]);
+    expect(fallbackArtNotes(printing, null, LABELS)).toEqual(["Signed"]);
   });
 });
 

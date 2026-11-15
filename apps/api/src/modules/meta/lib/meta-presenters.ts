@@ -5,6 +5,7 @@ import type {
 } from "@openrift/shared/contracts/admin/meta-submissions";
 import { todayUtc } from "@openrift/shared/format-date";
 import { metaLegendSlug, metaPlayerKey } from "@openrift/shared/meta-keys";
+import type { MetaEventLifecycle } from "@openrift/shared/meta-results";
 import { metaEventStatus, metaResultsState } from "@openrift/shared/meta-results";
 import type {
   AdminMetaEvent,
@@ -210,6 +211,14 @@ function rowLegendRef(
  * here re-formats it. The timestamptz columns never reach the wire — the
  * archive's public shapes carry no `createdAt` / `updatedAt`.
  */
+function lifecycleOf(row: MetaEventWithCounts): MetaEventLifecycle {
+  return {
+    recordedStatus: row.status,
+    eventDate: row.eventDate,
+    playerRowCount: row.playerRowCount,
+  };
+}
+
 export function toMetaEventSummary(
   row: MetaEventWithCounts,
   topFinishes: readonly MetaEventFinish[] = [],
@@ -222,7 +231,8 @@ export function toMetaEventSummary(
     eventDate: row.eventDate,
     format: row.format,
     tier: row.tier,
-    status: metaEventStatus(row, today),
+    status: metaEventStatus(lifecycleOf(row), today),
+    recordedStatus: row.status,
     country: row.country,
     location: row.location,
     playerCount: row.playerCount,
@@ -727,7 +737,7 @@ export function toAdminMetaEvent(
     location: row.location,
     playerRowCount: row.playerRowCount,
     deckCount: row.deckCount,
-    results: metaResultsState(row, today),
+    results: metaResultsState(lifecycleOf(row), today),
     sources: sources.map((source) => ({
       id: source.id,
       externalId: source.externalId,

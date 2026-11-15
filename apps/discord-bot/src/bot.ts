@@ -43,7 +43,7 @@ import { fetchGlyphEmojis, NO_GLYPH_EMOJIS } from "./glyph-emoji.js";
 import { fetchTradelistHolders } from "./group-tradelists.js";
 import { log } from "./log.js";
 import { extractCardReferences } from "./message-scan.js";
-import { printingChoices, resolvePrinting } from "./printing-choice.js";
+import { printingChoices, resolveChoicePrinting } from "./printing-choice.js";
 import { buildRuleEmbed } from "./rule-embed.js";
 import type { IndexedRule, RuleIndex } from "./rule-search.js";
 import {
@@ -241,7 +241,7 @@ async function embedForCard(
   if (!snapshot) {
     return null;
   }
-  const printing = resolvePrinting(snapshot, card, printingInput);
+  const printing = resolveChoicePrinting(snapshot, card, printingInput);
   const [marketplaceInfo, tradelists] = await Promise.all([
     marketplaceInfoFor(ctx.api, printing?.printingId),
     fetchTradelistHolders(ctx.api, guildId, card.id),

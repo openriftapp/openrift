@@ -23,7 +23,7 @@ import { applySourceStop, noSourceStop } from "./source-stop.js";
 import { isSyncNoop } from "./sync-noop.js";
 import { syncEventTemplates } from "./templates.js";
 import type { UvsQuery } from "./uvsgames-client.js";
-import { MAX_PAGE_SIZE } from "./uvsgames-client.js";
+import { UVSGAMES_MAX_PAGE_SIZE } from "./uvsgames-client.js";
 
 // Walked by date range, not page number: the listing has no stable sort and
 // ties heavily on start_datetime, so offset paging drops and duplicates rows.
@@ -209,7 +209,7 @@ async function absorb(deps: MetaSyncDeps, ctx: CrawlContext, rows: unknown[]): P
 
 // Never fewer than two: a split that handed back the same range would recurse forever.
 function splitParts(count: number): number {
-  return clamp(Math.ceil(count / MAX_PAGE_SIZE), 2, MAX_SPLIT);
+  return clamp(Math.ceil(count / UVSGAMES_MAX_PAGE_SIZE), 2, MAX_SPLIT);
 }
 
 // Contiguous inclusive sub-ranges covering [from, to] exactly once. A range
@@ -250,7 +250,7 @@ async function crawlRange(
     return;
   }
 
-  const body = await readRange(deps, ctx, from, to, 1, MAX_PAGE_SIZE);
+  const body = await readRange(deps, ctx, from, to, 1, UVSGAMES_MAX_PAGE_SIZE);
   if (body === null) {
     if (from.getTime() < to.getTime()) {
       await crawlSlices(deps, ctx, from, to, 2);
@@ -287,12 +287,12 @@ async function drainInstant(
   at: Date,
   count: number,
 ): Promise<void> {
-  const pages = Math.ceil(count / MAX_PAGE_SIZE);
+  const pages = Math.ceil(count / UVSGAMES_MAX_PAGE_SIZE);
   for (let page = 2; page <= pages; page++) {
     if (!(await keepGoing(ctx))) {
       return;
     }
-    const body = await readRange(deps, ctx, at, at, page, MAX_PAGE_SIZE);
+    const body = await readRange(deps, ctx, at, at, page, UVSGAMES_MAX_PAGE_SIZE);
     if (body === null) {
       skip(ctx, `${at.toISOString()} page ${page}`);
       continue;

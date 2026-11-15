@@ -7,15 +7,19 @@ import { cn } from "@/lib/utils";
 /** Nothing once an event is played: that is the archive's normal state. */
 export function MetaEventStatusBadge({
   state,
+  started,
   className,
 }: {
   state: MetaResultsState;
+  started: boolean;
   className?: string;
 }) {
-  if (state === "notStarted") {
+  if (state === "notStarted" || (state === "collecting" && !started)) {
     return (
       <Badge variant="outline" className={cn("shrink-0", className)}>
-        {metaEventStatusLabels().upcoming}
+        {state === "notStarted"
+          ? metaEventStatusLabels().upcoming
+          : metaEventStatusLabels().in_progress}
       </Badge>
     );
   }

@@ -28,9 +28,10 @@ import {
   JOINED_TRIAGE,
   metaSyncBucketCondition,
   metaSyncBucketCountSelections,
-  narrowedBucketCounts,
+  mirrorFieldConditions,
   mirrorListConditions,
   mirrorOverviewSelections,
+  narrowedBucketCounts,
   NEVER,
   pagedTriage,
   sizeRulePasses,
@@ -136,7 +137,7 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
   const bucketColumns: MetaSyncBucketColumns = {
     started: sql<SqlBool>`c.start_at <= ${TODAY}`,
     startAt: sql<Date | null>`c.start_at::timestamptz`,
-    hasResults: sql<SqlBool>`c.status = ${PLAYLOLTCG_STATUS_FINISHED}`,
+    hasResults: sql<SqlBool>`coalesce(c.status = ${PLAYLOLTCG_STATUS_FINISHED}, false)`,
     nextCheckAt: sql<Date | null>`ck.next_check_at`,
     passes: (rule) =>
       sizeRulePasses(
@@ -172,19 +173,7 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
     if (filters.status !== undefined) {
       conditions.push(sql<SqlBool>`c.status = ${filters.status}`);
     }
-    if (filters.minPlayers !== undefined) {
-      conditions.push(sql<SqlBool>`c.player_count >= ${filters.minPlayers}`);
-    }
-    if (filters.dateFrom !== undefined) {
-      conditions.push(sql<SqlBool>`c.start_at >= ${filters.dateFrom}`);
-    }
-    if (filters.dateTo !== undefined) {
-      conditions.push(sql<SqlBool>`c.start_at <= ${filters.dateTo}`);
-    }
-    if (filters.missing === true) {
-      conditions.push(sql<SqlBool>`c.missing_since is not null`);
-    }
-    return conditions;
+    return [...conditions, ...mirrorFieldConditions(filters)];
   }
 
   return {

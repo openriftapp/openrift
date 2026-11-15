@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { createRecordingDb } from "../../../test/recording-db.js";
 import { metaEventsRepo } from "./meta-events.js";
+import { PLAYED, RUNNING, UPCOMING } from "./meta-shared.js";
 
 const WINDOW = "at time zone 'UTC')::date - $1::int) at time zone 'UTC'";
 
@@ -43,5 +44,23 @@ describe("metaEventsRepo.recentActivity", () => {
     expect(bursts).toHaveLength(4);
     expect(bursts.filter((query) => query.includes(WINDOW))).toHaveLength(2);
     expect(bursts.filter((query) => !query.includes("now()"))).toHaveLength(2);
+  });
+});
+
+describe("metaEventsRepo.listCounts", () => {
+  it("counts a source-upcoming event within a day of its date as collecting", async () => {
+    const recording = createRecordingDb([[{ total: "0" }]]);
+
+    await metaEventsRepo(recording.db).listCounts({});
+
+    const sqlOf = (fragment: typeof UPCOMING) => fragment.compile(recording.db).sql;
+    const upcoming = sqlOf(UPCOMING);
+    const played = sqlOf(PLAYED);
+    const [statement] = recording.queries;
+    expect(statement).toContain(`count(*) filter (where ${upcoming}) as "not_started"`);
+    expect(statement).toContain(`count(*) filter (where ${sqlOf(RUNNING)}) as "collecting"`);
+    expect(statement).toContain(
+      `count(*) filter (where not ${upcoming} and ${played} and c.player_row_count = 0) as "no_results"`,
+    );
   });
 });

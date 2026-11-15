@@ -46,7 +46,6 @@ function spec(
     now: () => NOW,
     budgetMs: 60_000,
     requests: () => requests,
-    pageSize: 50,
     due: () => Promise.resolve(rows),
     keyOf: (row) => row.id,
     visit: (row) => {
@@ -80,6 +79,56 @@ describe("runRecheckPass", () => {
 
     expect(visited).toEqual([1, 2]);
     expect(result).toMatchObject({ due: 2, requests: 4, backedOff: false });
+  });
+
+  it("reads the due queue a hundred rows at a time, so rows that stay due fill a whole page", async () => {
+    const rows = Array.from({ length: 150 }, (_, index) => ({ id: index }));
+    const limits: number[] = [];
+    const { spec: pass, visited } = spec(rows, {
+      due: (_now, limit) => {
+        limits.push(limit);
+        return Promise.resolve(rows.slice(0, limit));
+      },
+    });
+
+    await runRecheckPass(pass);
+
+    expect(limits.every((limit) => limit === 100)).toBe(true);
+    expect(visited).toEqual(rows.slice(0, 100).map((row) => row.id));
+  });
+
+  it("visits every due row in the order the queue hands them out, page after page", async () => {
+    const rows = Array.from({ length: 150 }, (_, index) => ({ id: 1000 - index }));
+    const order: number[] = [];
+    const { spec: pass } = spec(rows, {
+      due: (_now, limit) =>
+        Promise.resolve(rows.filter((row) => !order.includes(row.id)).slice(0, limit)),
+      visit: (row) => {
+        order.push(row.id);
+        return Promise.resolve("ok");
+      },
+    });
+
+    await runRecheckPass(pass);
+
+    expect(order).toEqual(rows.map((row) => row.id));
+  });
+
+  it("stops at a request cap below the page size", async () => {
+    let requests = 0;
+    const rows = Array.from({ length: 150 }, (_, index) => ({ id: index }));
+    const { spec: pass } = spec(rows, {
+      maxRequests: 60,
+      requests: () => requests,
+      visit: () => {
+        requests++;
+        return Promise.resolve("ok");
+      },
+    });
+
+    const result = await runRecheckPass(pass);
+
+    expect(result).toMatchObject({ due: 60, requests: 60 });
   });
 
   it("pauses the job after five failed visits in a row", async () => {
@@ -212,6 +261,28 @@ describe("runRecheckPass", () => {
     expect(deferred).toEqual([]);
     expect(result.errors).toEqual([]);
     expect(result).toMatchObject({ backedOff: false, pausedUntil: null, blocked: false });
+  });
+
+  it("ends like a spent budget when the preparation's retry wait would outlast it", async () => {
+    const http = createPacedHttp({
+      fetch: () => Promise.resolve(new Response("unavailable", { status: 503 })),
+      sleep: () => Promise.resolve(),
+      spacingMs: 0,
+      jitterMs: 0,
+      refusedError: (code) => new Error(String(code)),
+    });
+    const { spec: pass, visited } = spec([{ id: 1 }], {
+      budgetMs: 500,
+      prepare: async () => {
+        await http.request("https://source.invalid/listing");
+      },
+    });
+
+    const result = await runRecheckPass(pass);
+
+    expect(visited).toEqual([]);
+    expect(result.errors).toEqual([]);
+    expect(result).toMatchObject({ due: 0, backedOff: false, pausedUntil: null, blocked: false });
   });
 
   it("measures its deadline on the pass's own clock, whatever clock the client paces on", async () => {

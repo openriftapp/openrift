@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { createRecordingDb } from "../../../test/recording-db.js";
 import { metaEventIndexRepo } from "./meta-event-index.js";
+import { PLAYED, RUNNING, UPCOMING } from "./meta-shared.js";
 
-const UPCOMING = "(me.status = 'upcoming' or me.event_date > (now() at time zone 'UTC')::date)";
+const sqlOf = (fragment: typeof UPCOMING) => fragment.compile(createRecordingDb().db).sql;
+const UPCOMING_SQL = sqlOf(UPCOMING);
+const PLAYED_SQL = sqlOf(PLAYED);
 
 describe("metaEventIndexRepo", () => {
   it("filters the players range on the reported size, falling back to the standings held", async () => {
@@ -48,14 +51,27 @@ describe("metaEventIndexRepo", () => {
     expect(recording.queries[0]).not.toContain("nulls last");
   });
 
-  it("reads upcoming from the status or the date, and keeps it out of the resultless set", async () => {
+  it("reads upcoming outside the day-either-side window, and keeps running events out of the resultless set", async () => {
     const recording = createRecordingDb([
       [{ all: 0, decks: 0, standings: 0, upcoming: 0, resultless: 0 }],
     ]);
 
     await metaEventIndexRepo(recording.db).eventHoldingsCounts({});
 
-    expect(recording.queries[0]).toContain(`count(*) filter (where ${UPCOMING})`);
-    expect(recording.queries[0]).toContain(`and not ${UPCOMING} and me.status <> 'in_progress'`);
+    expect(recording.queries[0]).toContain(`count(*) filter (where ${UPCOMING_SQL})`);
+    expect(recording.queries[0]).toContain(`and not ${UPCOMING_SQL} and ${PLAYED_SQL}`);
+  });
+
+  it("selects coming-up events in the query, so date order cannot starve them", async () => {
+    const recording = createRecordingDb([[], [{ total: "0" }]]);
+
+    await metaEventIndexRepo(recording.db).eventIndex(
+      { holds: "comingUp", from: "2026-11-14" },
+      { by: "date", dir: "asc" },
+      { limit: 6, offset: 0 },
+    );
+
+    expect(recording.queries[0]).toContain(`(${UPCOMING_SQL} or ${sqlOf(RUNNING)})`);
+    expect(recording.queries[0]).toContain("order by me.event_date asc");
   });
 });

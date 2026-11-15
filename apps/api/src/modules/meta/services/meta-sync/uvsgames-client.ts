@@ -7,7 +7,7 @@ import { httpFailureMessage, SourceHttpError } from "./source-http.js";
 // hand back players' real names and email addresses. The event detail still
 // carries the store's contact address, which the deep fetch strips before
 // anything is stored.
-export const MAX_PAGE_SIZE = 250;
+export const UVSGAMES_MAX_PAGE_SIZE = 250;
 
 const REQUEST_SPACING_MS = 600;
 
@@ -95,7 +95,12 @@ export function createUvsClient(options: UvsClientOptions): UvsClient {
     get: async <T>(path: string, query?: UvsQuery): Promise<T> =>
       (await getJson(buildUrl(options.baseUrl, path, query))) as T,
 
-    page: async <T>(path: string, query: UvsQuery, page: number, pageSize = MAX_PAGE_SIZE) =>
+    page: async <T>(
+      path: string,
+      query: UvsQuery,
+      page: number,
+      pageSize = UVSGAMES_MAX_PAGE_SIZE,
+    ) =>
       readPage<T>(
         await getJson(buildUrl(options.baseUrl, path, { ...query, page, page_size: pageSize })),
       ),

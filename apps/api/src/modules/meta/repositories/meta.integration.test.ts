@@ -1,4 +1,7 @@
+import { shiftUtcDay, todayUtc } from "@openrift/shared/format-date";
 import { NO_LEGEND } from "@openrift/shared/meta-query";
+import type { MetaResultsState } from "@openrift/shared/meta-results";
+import { META_RESULTS_STATES, metaResultsState } from "@openrift/shared/meta-results";
 import type {
   CardType,
   MetaCreditVisibility,
@@ -1134,6 +1137,72 @@ describe.skipIf(!ctx)("metaRepo", () => {
         resultless: 1,
       });
       expect(totals).toEqual({ events: 3, playerRows: 2, decks: 1 });
+    });
+
+    it("lists running and not-yet-played events soonest first, past a day of resultless ones", async () => {
+      const today = todayUtc();
+      const yesterday = shiftUtcDay(today, -1);
+      for (let index = 0; index < 30; index++) {
+        await seedEvent(repo, `mta-comingup-played-${index}`, { eventDate: yesterday });
+      }
+      const running = await seedEvent(repo, "mta-comingup-running", { eventDate: today });
+      await db
+        .updateTable("metaEvents")
+        .set({ status: "upcoming" })
+        .where("id", "=", running)
+        .execute();
+      const tomorrow = await seedEvent(repo, "mta-comingup-tomorrow", {
+        eventDate: shiftUtcDay(today, 1),
+      });
+      const later = await seedEvent(repo, "mta-comingup-later", {
+        eventDate: shiftUtcDay(today, 9),
+      });
+
+      const { rows } = await repo.eventIndex(
+        { q: "mta-comingup-", holds: "comingUp", from: yesterday },
+        { by: "date", dir: "asc" },
+        { limit: 6, offset: 0 },
+      );
+
+      expect(rows.map((row) => row.id)).toEqual([running, tomorrow, later]);
+    });
+
+    it("splits events by the day-either-side window exactly as the shared rule does", async () => {
+      const today = todayUtc();
+      const expected = new Map<string, MetaResultsState>();
+      for (const offset of [-2, -1, 0, 1, 2]) {
+        for (const status of ["upcoming", "in_progress", "complete"] as const) {
+          for (const rows of [0, 1]) {
+            const eventDate = shiftUtcDay(today, offset);
+            const slug = `mta-runwin-${status}-${rows}-${offset + 2}`;
+            const id = await seedEvent(repo, slug, { eventDate });
+            await db.updateTable("metaEvents").set({ status }).where("id", "=", id).execute();
+            if (rows > 0) {
+              await seedDecklessPlayer(repo, id, { playerName: `MTA Runwin ${slug}`, rank: 1 });
+            }
+            expected.set(
+              id,
+              metaResultsState({ recordedStatus: status, eventDate, playerRowCount: rows }, today),
+            );
+          }
+        }
+      }
+      const search = "mta-runwin-";
+
+      for (const state of META_RESULTS_STATES) {
+        const { rows } = await repo.listEvents(
+          { search, results: state },
+          { limit: 100, offset: 0 },
+        );
+        const wanted = [...expected].filter(([, value]) => value === state).map(([id]) => id);
+        expect(rows.map((row) => row.id).toSorted()).toEqual(wanted.toSorted());
+      }
+      const holdings = await repo.eventHoldingsCounts({ q: search });
+      expect(holdings).toMatchObject({
+        all: 30,
+        upcoming: [...expected.values()].filter((value) => value === "notStarted").length,
+        resultless: [...expected.values()].filter((value) => value === "noResults").length,
+      });
     });
 
     it("counts events per day under the tournaments page's narrowing", async () => {

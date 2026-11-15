@@ -64,6 +64,7 @@ export const metaEventSummarySchema = z.object({
   format: deckFormatSchema,
   tier: metaEventTierSchema,
   status: metaEventStatusSchema,
+  recordedStatus: metaEventStatusSchema,
   /** ISO 3166-1 alpha-2. */
   country: z.string().nullable(),
   location: z.string().nullable(),

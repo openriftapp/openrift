@@ -314,7 +314,7 @@ function renderStandings(
       bestPerLegend={bestPerLegendOf(players)}
       phases={extra.phases ?? []}
       slug={SLUG}
-      status={status}
+      recordedStatus={status}
       eventDate={eventDate}
       pending={pending}
     />,

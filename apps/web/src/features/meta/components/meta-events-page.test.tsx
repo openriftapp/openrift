@@ -115,6 +115,7 @@ function event(overrides: Partial<MetaEventSummary> = {}): MetaEventSummary {
     format: "constructed",
     tier: "local",
     status: "complete",
+    recordedStatus: overrides.status ?? "complete",
     country: "AT",
     location: "Vienna",
     playerCount: 18,

@@ -179,7 +179,7 @@ export function formatRankRuns(ranks: readonly number[], limit = 6): string {
 
 export interface MetaCountedEvent {
   eventDate: string;
-  status: MetaEventStatus;
+  recordedStatus: MetaEventStatus;
   playerCount: number | null;
   playerRowCount: number;
   deckCount: number;
@@ -191,6 +191,17 @@ function emptyStatusFor(event: MetaCountedEvent, today: string): string {
     return m.meta_event_not_played();
   }
   return state === "collecting" ? m.meta_event_status_in_progress() : m.meta_event_no_results();
+}
+
+export function metaEventOpenStateLabel(
+  event: Pick<MetaCountedEvent, "recordedStatus" | "eventDate" | "playerRowCount">,
+  today = todayUtc(),
+): string | null {
+  const state = metaResultsState(event, today);
+  if (state === "collecting") {
+    return m.meta_event_status_in_progress();
+  }
+  return state === "noResults" ? m.meta_event_no_results() : null;
 }
 
 export function metaEventHasArchivedResults(

@@ -42,7 +42,7 @@ function orderedPrintings(snapshot: CatalogSnapshot, card: CatalogCard): Catalog
   return [fallback, ...printings.filter((printing) => printing.printingId !== fallback.printingId)];
 }
 
-export function printingVariantParts(
+export function choiceVariantParts(
   snapshot: CatalogSnapshot,
   printing: CatalogPrinting,
   siblings: CatalogPrinting[],
@@ -61,7 +61,7 @@ function printingLabel(
   isDefault: boolean,
 ): string {
   const set = snapshot.setsById.get(printing.setId);
-  const variants = printingVariantParts(snapshot, printing, siblings).join(" · ");
+  const variants = choiceVariantParts(snapshot, printing, siblings).join(" · ");
   return fitChoiceName(printing.publicCode, set?.name, variants, isDefault ? DEFAULT_SUFFIX : "");
 }
 
@@ -86,7 +86,7 @@ export function printingChoices(
     .slice(0, MAX_CHOICES);
 }
 
-export function resolvePrinting(
+export function resolveChoicePrinting(
   snapshot: CatalogSnapshot,
   card: CatalogCard,
   input: string | undefined,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildSnapshot } from "./catalog-cache.js";
-import { printingChoices, resolvePrinting } from "./printing-choice.js";
+import { printingChoices, resolveChoicePrinting } from "./printing-choice.js";
 import {
   makeBotCard,
   makeCatalogResponse,
@@ -216,31 +216,31 @@ describe("printingChoices", () => {
   });
 });
 
-describe("resolvePrinting", () => {
+describe("resolveChoicePrinting", () => {
   it("returns the default printing for empty input", () => {
-    expect(resolvePrinting(snapshotWith(), card, undefined)?.printingId).toBe("p1");
-    expect(resolvePrinting(snapshotWith(), card, "  ")?.printingId).toBe("p1");
+    expect(resolveChoicePrinting(snapshotWith(), card, undefined)?.printingId).toBe("p1");
+    expect(resolveChoicePrinting(snapshotWith(), card, "  ")?.printingId).toBe("p1");
   });
 
   it("resolves a printing id from autocomplete", () => {
-    expect(resolvePrinting(snapshotWith(), card, "p2")?.printingId).toBe("p2");
+    expect(resolveChoicePrinting(snapshotWith(), card, "p2")?.printingId).toBe("p2");
   });
 
   it("resolves short codes and public codes case-insensitively", () => {
-    expect(resolvePrinting(snapshotWith(), card, "sfb-011")?.printingId).toBe("p2");
-    expect(resolvePrinting(snapshotWith(), card, "SFB-011/120")?.printingId).toBe("p2");
+    expect(resolveChoicePrinting(snapshotWith(), card, "sfb-011")?.printingId).toBe("p2");
+    expect(resolveChoicePrinting(snapshotWith(), card, "SFB-011/120")?.printingId).toBe("p2");
   });
 
   it("resolves codes typed without separators, like the site's search", () => {
-    expect(resolvePrinting(snapshotWith(), card, "sfb011")?.printingId).toBe("p2");
-    expect(resolvePrinting(snapshotWith(), card, "sfb011120")?.printingId).toBe("p2");
+    expect(resolveChoicePrinting(snapshotWith(), card, "sfb011")?.printingId).toBe("p2");
+    expect(resolveChoicePrinting(snapshotWith(), card, "sfb011120")?.printingId).toBe("p2");
   });
 
   it("falls back to the default printing for unrecognized input", () => {
-    expect(resolvePrinting(snapshotWith(), card, "nonsense")?.printingId).toBe("p1");
+    expect(resolveChoicePrinting(snapshotWith(), card, "nonsense")?.printingId).toBe("p1");
   });
 
   it("returns undefined for a card without printings", () => {
-    expect(resolvePrinting(snapshotWith([]), card, "anything")).toBeUndefined();
+    expect(resolveChoicePrinting(snapshotWith([]), card, "anything")).toBeUndefined();
   });
 });

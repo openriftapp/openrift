@@ -6,9 +6,11 @@ import { withRequestDeadline } from "./paced-http.js";
 import type { RunHeartbeat } from "./run-heartbeat.js";
 import { isGone, isPermanentRefusal, RunDeadlineError } from "./source-http.js";
 import type { SourceStop, SourceStopFields } from "./source-stop.js";
-import { applySourceStop } from "./source-stop.js";
+import { applySourceStop, cooldownUntil } from "./source-stop.js";
 
 const MAX_FAILED_VISITS_IN_A_ROW = 5;
+
+const RECHECK_PAGE_SIZE = 100;
 
 export type VisitOutcome = "ok" | "failed" | "answered";
 
@@ -46,7 +48,6 @@ export interface RecheckPassSpec<Row, R extends RecheckPassResult> {
   budgetMs: number;
   requests: () => number;
   maxRequests?: number;
-  pageSize: number;
   prepare?: () => Promise<void>;
   due: (now: Date, limit: number) => Promise<readonly Row[]>;
   keyOf: (row: Row) => string | number;
@@ -55,6 +56,22 @@ export interface RecheckPassSpec<Row, R extends RecheckPassResult> {
   drop: (row: Row) => Promise<void>;
   stopOf: (error: unknown) => SourceStop | null;
   deferOnStop?: (row: Row, stop: SourceStop, now: Date) => Promise<void>;
+}
+
+export interface RecheckSchedule {
+  nextCheckAt: Date;
+  checkStage: number;
+}
+
+export function deferBlockedVisit<Row extends { checkStage: number }>(
+  setRecheck: (row: Row, schedule: RecheckSchedule) => Promise<void>,
+  deferUntil: (at: Date) => Date = (at) => new Date(cooldownUntil(at)),
+): (row: Row, stop: SourceStop, at: Date) => Promise<void> {
+  return async (row, stop, at) => {
+    if (stop === "block") {
+      await setRecheck(row, { nextCheckAt: deferUntil(at), checkStage: row.checkStage });
+    }
+  };
 }
 
 class PassStoppedError extends Error {
@@ -112,13 +129,15 @@ export async function runRecheckPass<Row, R extends RecheckPassResult>(
   let failedInARow = 0;
   let stopped = false;
   try {
-    await spec.prepare?.();
+    if (spec.prepare !== undefined) {
+      await withRequestDeadline(requestDeadline, spec.prepare);
+    }
     while (
       !stopped &&
       performance.now() < deadline &&
       (spec.maxRequests === undefined || spent() < spec.maxRequests)
     ) {
-      const due = await spec.due(spec.now(), spec.pageSize);
+      const due = await spec.due(spec.now(), RECHECK_PAGE_SIZE);
       const fresh = due.filter((row) => !visited.has(spec.keyOf(row)));
       if (fresh.length === 0) {
         break;

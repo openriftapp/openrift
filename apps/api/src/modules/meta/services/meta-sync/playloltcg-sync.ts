@@ -25,12 +25,12 @@ import type { CrawlRun } from "./crawl-run.js";
 import { createCrawlRun, DAILY_SYNC_TIME_BUDGET_MS } from "./crawl-run.js";
 import { clock } from "./deps.js";
 import { autoAcceptPlayloltcgEvents } from "./playloltcg-accept.js";
-import { MAX_PAGE_SIZE } from "./playloltcg-client.js";
+import { PLAYLOLTCG_MAX_PAGE_SIZE } from "./playloltcg-client.js";
 import type { PlayloltcgDeepFetchResult, PlayloltcgDetailFacts } from "./playloltcg-deep-fetch.js";
 import { playloltcgDeepFetch, readPlayloltcgDetail } from "./playloltcg-deep-fetch.js";
 import type { PlayloltcgSyncDeps } from "./playloltcg-deps.js";
 import type { RecheckPassResult, VisitOutcome } from "./recheck-pass.js";
-import { emptyRecheckPassResult, runRecheckPass } from "./recheck-pass.js";
+import { deferBlockedVisit, emptyRecheckPassResult, runRecheckPass } from "./recheck-pass.js";
 import type { MetaSyncResultBase } from "./result.js";
 import { emptyMetaSyncResult, recordAutoAccept } from "./result.js";
 import { createRunHeartbeat } from "./run-heartbeat.js";
@@ -56,8 +56,6 @@ const PLAYLOLTCG_RECHECK_BUDGET_MS = 5 * MINUTE_MS;
 const PLAYLOLTCG_RUN_REQUESTS = 60;
 
 const MIN_DECKS_PER_VISIT = 20;
-
-const RECHECK_PAGE_SIZE = 50;
 
 export interface PlayloltcgSyncResult extends MetaSyncResultBase, SourceStopFields {
   shops: number;
@@ -119,7 +117,7 @@ function absorbStop(
 }
 
 /**
- * The source caps a page at {@link MAX_PAGE_SIZE} and sorts oldest day last:
+ * The source caps a page at {@link PLAYLOLTCG_MAX_PAGE_SIZE} and sorts oldest day last:
  * a full page means a gap at the window's start, not its end.
  */
 async function crawlWindow(
@@ -136,7 +134,7 @@ async function crawlWindow(
   }
   const body = await deps.client.postList<unknown>(EVENTS_PATH, {
     pageNum: 1,
-    pageSize: MAX_PAGE_SIZE,
+    pageSize: PLAYLOLTCG_MAX_PAGE_SIZE,
     searchContent: "",
     battleMode: "",
     isSubmitCardGroup: "",
@@ -159,14 +157,14 @@ async function crawlWindow(
   result.unchanged += written.unchanged.length;
   touched.push(...written.inserted, ...written.changed);
 
-  if (body.items.length < MAX_PAGE_SIZE) {
+  if (body.items.length < PLAYLOLTCG_MAX_PAGE_SIZE) {
     return;
   }
   const days = utcDayDiff(from, to) ?? 0;
   if (days < 1) {
     result.complete = false;
     recordCapped(result.errors, [
-      `${day(from)} alone returned ${MAX_PAGE_SIZE} rows, which is all the source will give for one query, so part of that day was not read.`,
+      `${day(from)} alone returned ${PLAYLOLTCG_MAX_PAGE_SIZE} rows, which is all the source will give for one query, so part of that day was not read.`,
     ]);
     return;
   }
@@ -178,17 +176,17 @@ async function crawlWindow(
 async function syncShops(deps: PlayloltcgSyncDeps, result: PlayloltcgSyncResult): Promise<void> {
   const body = await deps.client.postList<unknown>(SHOPS_PATH, {
     pageNum: 1,
-    pageSize: MAX_PAGE_SIZE,
+    pageSize: PLAYLOLTCG_MAX_PAGE_SIZE,
     name: "",
     lon: 116.4,
     lat: 39.9,
   });
   const shops = body.items.map((raw) => projectShopRow(raw)).filter((s) => s !== null);
   result.shops = await deps.repos.playloltcgEvents.upsertShops(shops);
-  if (body.items.length >= MAX_PAGE_SIZE) {
+  if (body.items.length >= PLAYLOLTCG_MAX_PAGE_SIZE) {
     result.complete = false;
     recordCapped(result.errors, [
-      `The store registry filled a ${MAX_PAGE_SIZE}-row page, so it is no longer one call and the directory is incomplete.`,
+      `The store registry filled a ${PLAYLOLTCG_MAX_PAGE_SIZE}-row page, so it is no longer one call and the directory is incomplete.`,
     ]);
   }
 }
@@ -313,7 +311,6 @@ export async function processPlayloltcgRechecks(
     budgetMs,
     requests: () => deps.client.requests,
     maxRequests: PLAYLOLTCG_RUN_REQUESTS,
-    pageSize: RECHECK_PAGE_SIZE,
     prepare: async () => {
       if (options.listing === true) {
         await refreshRecentListing(deps, now, result);
@@ -336,14 +333,10 @@ export async function processPlayloltcgRechecks(
         checkStage: row.checkStage,
       }),
     stopOf: sourceStopOf,
-    deferOnStop: async (row, stop, at) => {
-      if (stop === "block") {
-        await deps.repos.playloltcgEvents.setRecheck(row.activityShopId, {
-          nextCheckAt: new Date(at.getTime() + BLOCKED_EVENT_DEFER_MS),
-          checkStage: row.checkStage,
-        });
-      }
-    },
+    deferOnStop: deferBlockedVisit(
+      (row, schedule) => deps.repos.playloltcgEvents.setRecheck(row.activityShopId, schedule),
+      (at) => new Date(at.getTime() + BLOCKED_EVENT_DEFER_MS),
+    ),
   });
 }
 

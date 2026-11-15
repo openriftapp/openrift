@@ -1,3 +1,4 @@
+import { shiftUtcDay, todayUtc } from "@openrift/shared/format-date";
 import type { MetaEventSummary } from "@openrift/shared/types/api/meta";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
@@ -30,6 +31,7 @@ function event(overrides: Partial<MetaEventSummary> = {}): MetaEventSummary {
     format: "constructed",
     tier: "premier",
     status: "complete",
+    recordedStatus: overrides.status ?? "complete",
     country: "DE",
     location: "Rift Games, Berlin",
     playerCount: 1234,
@@ -58,6 +60,21 @@ describe("MetaUpcomingRow", () => {
     expect(screen.getByText("19")).toBeInTheDocument();
     expect(screen.getByText("Premier")).toBeInTheDocument();
     expect(screen.getByText("1,234 registered")).toBeInTheDocument();
+  });
+
+  it("labels an event running today as in progress", () => {
+    render(
+      <MetaUpcomingRow event={event({ eventDate: todayUtc(), recordedStatus: "upcoming" })} />,
+    );
+
+    expect(screen.getByText("In progress")).toBeInTheDocument();
+  });
+
+  it("adds no state label to an event still to come", () => {
+    render(<MetaUpcomingRow event={event({ eventDate: shiftUtcDay(todayUtc(), 5) })} />);
+
+    expect(screen.queryByText("In progress")).not.toBeInTheDocument();
+    expect(screen.queryByText("No results on file")).not.toBeInTheDocument();
   });
 
   it("says nothing about registration when no source published a field size", () => {

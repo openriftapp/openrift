@@ -137,6 +137,28 @@ export function mirrorListConditions(
   return conditions;
 }
 
+export function mirrorFieldConditions(filters: {
+  minPlayers?: number;
+  dateFrom?: Date | string;
+  dateTo?: Date | string;
+  missing?: boolean;
+}): RawBuilder<SqlBool>[] {
+  const conditions: RawBuilder<SqlBool>[] = [];
+  if (filters.minPlayers !== undefined) {
+    conditions.push(sql<SqlBool>`c.player_count >= ${filters.minPlayers}`);
+  }
+  if (filters.dateFrom !== undefined) {
+    conditions.push(sql<SqlBool>`c.start_at >= ${filters.dateFrom}`);
+  }
+  if (filters.dateTo !== undefined) {
+    conditions.push(sql<SqlBool>`c.start_at <= ${filters.dateTo}`);
+  }
+  if (filters.missing === true) {
+    conditions.push(sql<SqlBool>`c.missing_since is not null`);
+  }
+  return conditions;
+}
+
 export function catalogOrderBy(playerCount: RawBuilder<unknown>, order: MirrorListOrder) {
   const columns = { startAt: sql`c.start_at`, name: sql`lower(c.name)`, playerCount };
   const column = columns[order.sort ?? "startAt"];

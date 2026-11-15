@@ -7,7 +7,7 @@ import { refreshRecentListing } from "./catalog-sync.js";
 import { deepFetchEvent } from "./deep-fetch.js";
 import type { MetaSyncDeps } from "./deps.js";
 import { fetchEventNow, isRecheckNoop, processRechecks } from "./recheck.js";
-import { SourceThrottledError } from "./source-http.js";
+import { SourceBlockedError, SourceThrottledError } from "./source-http.js";
 import type { UvsClient } from "./uvsgames-client.js";
 import { UvsHttpError } from "./uvsgames-client.js";
 
@@ -625,6 +625,31 @@ describe("processRechecks", () => {
 
     expect(result).toMatchObject({ due: 150, processed: 150 });
     expect(new Set(writes.map((write) => write.externalId)).size).toBe(150);
+  });
+
+  it("defers a blocked event six hours without advancing its ladder, then visits it as before", async () => {
+    const blocked = fakeDeps({
+      due: [dueRow({ checkStage: 2 })],
+      detail: () => new SourceBlockedError("challenge page"),
+    });
+
+    const result = await processRechecks(blocked.deps);
+
+    expect(result.blocked).toBe(true);
+    expect(blocked.writes).toEqual([
+      {
+        externalId: "4821",
+        nextCheckAt: new Date(NOW.getTime() + 6 * 60 * 60 * 1000),
+        checkStage: 2,
+      },
+    ]);
+
+    const later = fakeDeps({ due: [dueRow({ checkStage: 2 })], detail: () => detailRow() });
+    await processRechecks(later.deps);
+
+    expect(later.writes).toEqual([
+      { externalId: "4821", nextCheckAt: new Date("2026-08-25T09:00:00Z"), checkStage: 0 },
+    ]);
   });
 
   it("visits a row once per pass even when its write leaves it due", async () => {

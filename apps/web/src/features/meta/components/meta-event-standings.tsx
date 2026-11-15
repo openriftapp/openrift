@@ -73,8 +73,8 @@ const routeApi = getRouteApi("/_app/meta_/$slug");
 
 const STANDINGS_ID = "meta-standings";
 
-function emptyStandingsCopy(status: MetaEventStatus, eventDate: string): string {
-  const state = metaResultsState({ status, eventDate, playerRowCount: 0 }, todayUtc());
+function emptyStandingsCopy(recordedStatus: MetaEventStatus, eventDate: string): string {
+  const state = metaResultsState({ recordedStatus, eventDate, playerRowCount: 0 }, todayUtc());
   if (state === "notStarted") {
     return m.meta_standings_upcoming();
   }
@@ -100,7 +100,7 @@ export function MetaEventStandings({
   phases,
   slug,
   eventDate,
-  status,
+  recordedStatus,
   pending,
 }: {
   firstPage: MetaEventStandingsResponse;
@@ -111,7 +111,7 @@ export function MetaEventStandings({
   pending: ReadonlyMap<string, MetaPendingRowMark>;
   /** UTC date. */
   eventDate: string;
-  status: MetaEventStatus;
+  recordedStatus: MetaEventStatus;
 }) {
   const search = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
@@ -179,7 +179,7 @@ export function MetaEventStandings({
         <Heading className="mb-3">{m.meta_standings_heading()}</Heading>
         <Empty>
           <EmptyHeader>
-            <EmptyDescription>{emptyStandingsCopy(status, eventDate)}</EmptyDescription>
+            <EmptyDescription>{emptyStandingsCopy(recordedStatus, eventDate)}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       </section>
@@ -240,8 +240,10 @@ export function MetaEventStandings({
           <p className="text-muted-foreground text-sm">
             {subtitleFor(firstPage.total, field.withLists)}
           </p>
-          {metaResultsState({ status, eventDate, playerRowCount: firstPage.total }, todayUtc()) ===
-            "collecting" && (
+          {metaResultsState(
+            { recordedStatus, eventDate, playerRowCount: firstPage.total },
+            todayUtc(),
+          ) === "collecting" && (
             <p className="text-foreground text-sm font-medium">
               {[describeEventProgress(field.progress, phases), "provisional"]
                 .filter(Boolean)

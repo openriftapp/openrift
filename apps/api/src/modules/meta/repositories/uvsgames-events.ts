@@ -29,9 +29,10 @@ import {
   JOINED_TRIAGE,
   metaSyncBucketCondition,
   metaSyncBucketCountSelections,
-  narrowedBucketCounts,
+  mirrorFieldConditions,
   mirrorListConditions,
   mirrorOverviewSelections,
+  narrowedBucketCounts,
   pagedTriage,
   toMirrorSyncOverview,
   TRIAGE_STATE,
@@ -320,19 +321,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
     if (filters.decklistPublished === true) {
       conditions.push(sql<SqlBool>`c.decklist_status = 'PUBLISHED'`);
     }
-    if (filters.minPlayers !== undefined) {
-      conditions.push(sql<SqlBool>`c.player_count >= ${filters.minPlayers}`);
-    }
-    if (filters.dateFrom !== undefined) {
-      conditions.push(sql<SqlBool>`c.start_at >= ${filters.dateFrom}`);
-    }
-    if (filters.dateTo !== undefined) {
-      conditions.push(sql<SqlBool>`c.start_at <= ${filters.dateTo}`);
-    }
-    if (filters.missing === true) {
-      conditions.push(sql<SqlBool>`c.missing_since is not null`);
-    }
-    return conditions;
+    return [...conditions, ...mirrorFieldConditions(filters)];
   }
 
   return {

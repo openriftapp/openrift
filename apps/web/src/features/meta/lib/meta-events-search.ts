@@ -1,4 +1,5 @@
-import { META_EVENT_HOLDINGS, META_EVENT_INDEX_SORTS } from "@openrift/shared/meta-query";
+import type { META_EVENT_HOLDINGS } from "@openrift/shared/meta-query";
+import { META_EVENT_INDEX_SORTS } from "@openrift/shared/meta-query";
 import { z } from "zod/mini";
 
 import { metaPageSlice, metaPagingSearchFields } from "@/features/meta/lib/meta-paging";
@@ -14,8 +15,14 @@ export type MetaEventIndexSortDirection = "asc" | "desc";
 
 export type MetaEventHoldings = (typeof META_EVENT_HOLDINGS)[number];
 
-/** `all` lifts the index's default of events with results; the API takes no `holds` for it. */
-const META_EVENT_INDEX_HOLDINGS = [...META_EVENT_HOLDINGS, "all"] as const;
+/** `all` lifts the default of events with results. The rail's `comingUp` is no page filter. */
+const META_EVENT_INDEX_HOLDINGS = [
+  "decks",
+  "standings",
+  "upcoming",
+  "resultless",
+  "all",
+] as const satisfies readonly (MetaEventHoldings | "all")[];
 
 export type MetaEventIndexHoldings = (typeof META_EVENT_INDEX_HOLDINGS)[number];
 

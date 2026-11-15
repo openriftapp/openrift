@@ -19,6 +19,7 @@ function event(overrides: Partial<MetaEventSummary> = {}): MetaEventSummary {
     format: "constructed",
     tier: "local",
     status: "complete",
+    recordedStatus: overrides.status ?? "complete",
     country: "DE",
     location: "Rift Games, Berlin",
     playerCount: 32,
@@ -109,14 +110,19 @@ describe("metaFrontSectionShown", () => {
 });
 
 describe("metaFrontUpcomingQuery", () => {
-  it("asks for what is still to come, soonest first", () => {
-    expect(metaFrontUpcomingQuery({ holds: "decks", q: "worlds" })).toEqual({
+  it("asks the server for running and not-yet-played events from yesterday on, soonest first", () => {
+    expect(metaFrontUpcomingQuery({ holds: "decks", q: "worlds" }, "2026-11-15")).toEqual({
       q: "worlds",
-      holds: "upcoming",
+      holds: "comingUp",
+      from: "2026-11-14",
       by: "date",
       dir: "asc",
       limit: META_FRONT_SECTION_LIMITS.upcoming,
     });
+  });
+
+  it("keeps a later scope start", () => {
+    expect(metaFrontUpcomingQuery({ from: "2026-12-01" }, "2026-11-15").from).toBe("2026-12-01");
   });
 });
 

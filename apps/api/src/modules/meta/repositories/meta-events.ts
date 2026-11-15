@@ -19,7 +19,7 @@ import { rowBatches } from "../../../lib/bind-batches.js";
 import { containsPattern } from "../../../lib/like-pattern.js";
 import { eventPromoteKey } from "../../../lib/meta-promote-keys.js";
 import { inTransaction, lockKey, offsetPage } from "../../../repositories/query-helpers.js";
-import { citedBy, NO_PROVIDER_CITATION, TODAY, UPCOMING } from "./meta-shared.js";
+import { citedBy, NO_PROVIDER_CITATION, PLAYED, RUNNING, TODAY, UPCOMING } from "./meta-shared.js";
 
 export type MetaEventMatchRow = Selectable<MetaEventMatchesTable>;
 
@@ -61,7 +61,7 @@ export interface MetaActivityRow {
   eventName: string;
 }
 
-export interface MetaEventInput {
+export interface MetaEventInsert {
   slug: string;
   name: string;
   eventDate: string;
@@ -106,9 +106,9 @@ const ACTIVITY_WINDOW_DAYS = 7;
 /** Mirrors `metaResultsState` from the shared package. */
 const RESULTS_CONDITION: Record<MetaResultsState, RawBuilder<SqlBool>> = {
   notStarted: UPCOMING,
-  collecting: sql<SqlBool>`not ${UPCOMING} and me.status = 'in_progress'`,
-  final: sql<SqlBool>`not ${UPCOMING} and me.status = 'complete' and c.player_row_count > 0`,
-  noResults: sql<SqlBool>`not ${UPCOMING} and me.status = 'complete' and c.player_row_count = 0`,
+  collecting: RUNNING,
+  final: sql<SqlBool>`not ${UPCOMING} and ${PLAYED} and c.player_row_count > 0`,
+  noResults: sql<SqlBool>`not ${UPCOMING} and ${PLAYED} and c.player_row_count = 0`,
 };
 
 /** Over `meta_event_players` as `p`. */
@@ -606,7 +606,7 @@ export function metaEventsRepo<R = never>(
     },
 
     /** Undefined when the slug is taken; a unique violation would abort the caller's transaction. */
-    async createEventIfSlugFree(input: MetaEventInput): Promise<MetaEventWithCounts | undefined> {
+    async createEventIfSlugFree(input: MetaEventInsert): Promise<MetaEventWithCounts | undefined> {
       const row = await db
         .insertInto("metaEvents")
         .values(input)
@@ -616,7 +616,7 @@ export function metaEventsRepo<R = never>(
       return row === undefined ? undefined : { ...row, playerRowCount: 0, deckCount: 0 };
     },
 
-    async createEvent(input: MetaEventInput): Promise<MetaEventWithCounts> {
+    async createEvent(input: MetaEventInsert): Promise<MetaEventWithCounts> {
       const row = await db
         .insertInto("metaEvents")
         .values(input)

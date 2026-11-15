@@ -23,9 +23,9 @@ import {
   JOINED_TRIAGE,
   metaSyncBucketCondition,
   metaSyncBucketCountSelections,
-  narrowedBucketCounts,
   mirrorListConditions,
   mirrorOverviewSelections,
+  narrowedBucketCounts,
   NEVER,
   pagedTriage,
   sizeRulePasses,
@@ -139,7 +139,7 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
   const bucketColumns: MetaSyncBucketColumns = {
     started: sql<SqlBool>`c.start_at <= now()`,
     startAt: sql<Date | null>`c.start_at`,
-    hasResults: sql<SqlBool>`c.player_count > 0`,
+    hasResults: sql<SqlBool>`coalesce(c.player_count, 0) > 0`,
     nextCheckAt: sql<Date | null>`null::timestamptz`,
     passes: (rule) =>
       sizeRulePasses(

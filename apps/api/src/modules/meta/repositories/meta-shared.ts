@@ -21,7 +21,14 @@ export const HAS_DECKS = sql<SqlBool>`exists (
 
 export const HAS_LIST = sql<SqlBool>`p.deck_id is not null`;
 
-export const UPCOMING = sql<SqlBool>`(me.status = 'upcoming' or me.event_date > ${TODAY})`;
+/** `UPCOMING`, `PLAYED` and `RUNNING` mirror `metaEventStatus` (`@openrift/shared/meta-results`). */
+export const UPCOMING = sql<SqlBool>`(me.event_date > ${TODAY} + 1
+  or (me.event_date > ${TODAY} and me.status = 'complete' and not ${HAS_STANDINGS}))`;
+
+export const PLAYED = sql<SqlBool>`(me.status = 'complete'
+  or (me.status = 'upcoming' and me.event_date < ${TODAY} - 1))`;
+
+export const RUNNING = sql<SqlBool>`(not ${UPCOMING} and not ${PLAYED})`;
 
 export function citedBy(provider: string): RawBuilder<SqlBool> {
   return sql<SqlBool>`exists (

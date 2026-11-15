@@ -25,7 +25,7 @@ import type { PlayriftboundDeepFetchResult } from "./playriftbound-deep-fetch.js
 import { playriftboundDeepFetch, readPlayriftboundUpdatedAt } from "./playriftbound-deep-fetch.js";
 import type { PlayriftboundSyncDeps } from "./playriftbound-deps.js";
 import type { RecheckPassResult, VisitOutcome } from "./recheck-pass.js";
-import { emptyRecheckPassResult, runRecheckPass } from "./recheck-pass.js";
+import { deferBlockedVisit, emptyRecheckPassResult, runRecheckPass } from "./recheck-pass.js";
 import type { MetaSyncResultBase } from "./result.js";
 import { emptyMetaSyncResult, recordAutoAccept } from "./result.js";
 import { createRunHeartbeat } from "./run-heartbeat.js";
@@ -51,7 +51,7 @@ const SWEEP_HEARTBEAT_CELLS = 50;
 const MAX_FAILURES_IN_A_ROW = 5;
 
 const RECHECK_BUDGET_MS = 5 * MINUTE_MS;
-const RECHECK_PAGE_SIZE = 50;
+
 const DROP_FAILING_AFTER_MS = 14 * DAY_MS;
 
 export interface PlayriftboundSyncResult extends MetaSyncResultBase, SourceStopFields {
@@ -575,7 +575,6 @@ export async function processPlayriftboundRechecks(
     now: () => clock(deps),
     budgetMs,
     requests: () => deps.client.requests,
-    pageSize: RECHECK_PAGE_SIZE,
     due: (at, limit) => deps.repos.playriftboundEvents.dueForRecheck(at, limit),
     keyOf: (row) => row.tournamentId,
     visit: (row, at) => visitPlayriftboundEvent(deps, row, at, result),
@@ -586,14 +585,9 @@ export async function processPlayriftboundRechecks(
         checkStage: row.checkStage,
       }),
     stopOf,
-    deferOnStop: async (row, stop, at) => {
-      if (stop === "block") {
-        await deps.repos.playriftboundEvents.setRecheck(row.tournamentId, {
-          nextCheckAt: new Date(cooldownUntil(at)),
-          checkStage: row.checkStage,
-        });
-      }
-    },
+    deferOnStop: deferBlockedVisit((row, schedule) =>
+      deps.repos.playriftboundEvents.setRecheck(row.tournamentId, schedule),
+    ),
   });
 }
 

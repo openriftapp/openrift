@@ -7,7 +7,7 @@ import { httpFailureMessage, SourceBlockedError, SourceHttpError } from "./sourc
  * The list endpoints' safe page ceiling: bigger pages return empty. A full
  * page on the event listing means the window was cut short, not exhausted.
  */
-export const MAX_PAGE_SIZE = 10_000;
+export const PLAYLOLTCG_MAX_PAGE_SIZE = 10_000;
 
 const REQUEST_SPACING_MS = 400;
 const REQUEST_JITTER_MS = 200;

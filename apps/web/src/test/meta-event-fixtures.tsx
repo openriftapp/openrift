@@ -87,6 +87,7 @@ export function metaEvent(overrides: Partial<MetaEventDetail> = {}): MetaEventDe
     organizer: "LGS Berlin",
     tier: "local",
     status: "complete",
+    recordedStatus: overrides.status ?? "complete",
     country: null,
     location: null,
     playerRowCount: 0,

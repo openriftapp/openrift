@@ -63,12 +63,18 @@ vi.mock("@tanstack/react-router", () => ({
 // ordered, capped read, and the page renders whatever comes back.
 vi.mock("@/features/meta/hooks/use-meta", () => {
   const today = new Date().toISOString().slice(0, 10);
-  const held = (row: MetaEventSummary, holds: unknown) => {
+  const held = (row: MetaEventSummary, holds: unknown, query: Record<string, unknown>) => {
     if (holds === "decks") {
       return row.deckCount > 0;
     }
     if (holds === "upcoming") {
       return row.eventDate > today;
+    }
+    if (holds === "comingUp") {
+      return (
+        (row.eventDate > today || row.recordedStatus !== "complete") &&
+        row.eventDate >= (typeof query.from === "string" ? query.from : "")
+      );
     }
     if (holds === "resultless") {
       return row.playerRowCount === 0 && row.eventDate <= today;
@@ -81,7 +87,7 @@ vi.mock("@/features/meta/hooks/use-meta", () => {
       const tiers = query.tiers as string[] | undefined;
       const matching = captured.events.filter(
         (row) =>
-          held(row, query.holds) &&
+          held(row, query.holds, query) &&
           (tiers === undefined || tiers.includes(row.tier)) &&
           (typeof query.q !== "string" || row.name.toLowerCase().includes(query.q.toLowerCase())),
       );
@@ -203,6 +209,7 @@ function event(overrides: Partial<MetaEventSummary> = {}): MetaEventSummary {
     format: "constructed",
     tier: "premier",
     status: "complete",
+    recordedStatus: overrides.status ?? "complete",
     country: "ES",
     location: "Fira de Barcelona",
     playerCount: 588,
@@ -575,7 +582,10 @@ describe("MetaFrontPage", () => {
 
     render(<MetaFrontPage />);
 
-    expect(captured.queries.at(-1)).toMatchObject({ from: "2026-03-01", to: "2026-09-30" });
+    expect(captured.queries.find((query) => query.holds === "standings")).toMatchObject({
+      from: "2026-03-01",
+      to: "2026-09-30",
+    });
   });
 
   it("holds an event with no results out of the tier sections and in the rail", () => {

@@ -1,56 +1,67 @@
 import { describe, expect, it } from "vitest";
 
-import { metaEventStatus, metaResultsState, mirrorResultsState } from "./meta-results.js";
+import type { MetaResultsState } from "./meta-results.js";
+import {
+  metaEventSourceStarted,
+  metaEventStatus,
+  metaResultsState,
+  mirrorResultsState,
+} from "./meta-results.js";
 
-describe("metaEventStatus", () => {
-  const today = "2026-11-13";
+const TODAY = "2026-11-13";
+const DATES = ["2026-11-11", "2026-11-12", TODAY, "2026-11-14", "2026-11-15"] as const;
 
-  it("reads an event dated after today as upcoming, whatever it stores", () => {
-    expect(metaEventStatus({ status: "complete", eventDate: "2026-11-14" }, today)).toBe(
-      "upcoming",
-    );
-    expect(metaEventStatus({ status: "in_progress", eventDate: "2026-11-14" }, today)).toBe(
-      "upcoming",
-    );
-  });
+type Recorded = "upcoming" | "in_progress" | "complete";
 
-  it("keeps the stored status from today on", () => {
-    expect(metaEventStatus({ status: "complete", eventDate: today }, today)).toBe("complete");
-    expect(metaEventStatus({ status: "in_progress", eventDate: "2026-11-01" }, today)).toBe(
-      "in_progress",
-    );
-    expect(metaEventStatus({ status: "upcoming", eventDate: "2026-11-01" }, today)).toBe(
-      "upcoming",
-    );
-  });
+const STATES_BY_DATE: Record<Recorded, Record<0 | 5, MetaResultsState[]>> = {
+  upcoming: {
+    0: ["noResults", "collecting", "collecting", "collecting", "notStarted"],
+    5: ["final", "collecting", "collecting", "collecting", "notStarted"],
+  },
+  in_progress: {
+    0: ["collecting", "collecting", "collecting", "collecting", "notStarted"],
+    5: ["collecting", "collecting", "collecting", "collecting", "notStarted"],
+  },
+  complete: {
+    0: ["noResults", "noResults", "noResults", "notStarted", "notStarted"],
+    5: ["final", "final", "final", "final", "notStarted"],
+  },
+};
+
+const STATUS_OF_STATE: Record<MetaResultsState, string> = {
+  notStarted: "upcoming",
+  collecting: "in_progress",
+  final: "complete",
+  noResults: "complete",
+};
+
+describe("metaResultsState over the day-either-side window", () => {
+  for (const recordedStatus of ["upcoming", "in_progress", "complete"] as const) {
+    for (const playerRowCount of [0, 5] as const) {
+      it(`reads a ${recordedStatus} event holding ${playerRowCount} rows by its date`, () => {
+        const states = DATES.map((eventDate) =>
+          metaResultsState({ recordedStatus, eventDate, playerRowCount }, TODAY),
+        );
+        expect(states).toEqual(STATES_BY_DATE[recordedStatus][playerRowCount]);
+      });
+
+      it(`gives a ${recordedStatus} event holding ${playerRowCount} rows the status its state names`, () => {
+        const statuses = DATES.map((eventDate) =>
+          metaEventStatus({ recordedStatus, eventDate, playerRowCount }, TODAY),
+        );
+        expect(statuses).toEqual(
+          STATES_BY_DATE[recordedStatus][playerRowCount].map((state) => STATUS_OF_STATE[state]),
+        );
+      });
+    }
+  }
 });
 
-describe("metaResultsState", () => {
-  const today = "2026-11-13";
-  const event = (
-    status: "upcoming" | "in_progress" | "complete",
-    playerRowCount: number,
-    eventDate = "2026-11-01",
-  ) => ({ status, playerRowCount, eventDate });
-
-  it("reads an upcoming event as not started, whatever it holds", () => {
-    expect(metaResultsState(event("upcoming", 0), today)).toBe("notStarted");
-    expect(metaResultsState(event("upcoming", 12), today)).toBe("notStarted");
-  });
-
-  it("reads an event dated after today as not started, whatever its status", () => {
-    expect(metaResultsState(event("complete", 0, "2026-11-14"), today)).toBe("notStarted");
-    expect(metaResultsState(event("in_progress", 0, "2026-11-14"), today)).toBe("notStarted");
-  });
-
-  it("reads a running event as collecting", () => {
-    expect(metaResultsState(event("in_progress", 0), today)).toBe("collecting");
-    expect(metaResultsState(event("in_progress", 0, today), today)).toBe("collecting");
-  });
-
-  it("splits a finished event on whether it holds standings", () => {
-    expect(metaResultsState(event("complete", 82), today)).toBe("final");
-    expect(metaResultsState(event("complete", 0), today)).toBe("noResults");
+describe("metaEventSourceStarted", () => {
+  it("is false only while the source still records the event as upcoming", () => {
+    expect(metaEventSourceStarted({ recordedStatus: "upcoming" })).toBe(false);
+    expect(metaEventSourceStarted({ recordedStatus: "in_progress" })).toBe(true);
+    expect(metaEventSourceStarted({ recordedStatus: "complete" })).toBe(true);
   });
 });
 

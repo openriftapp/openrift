@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { todayUtc } from "@openrift/shared/format-date";
 import type { MetaEventSource } from "@openrift/shared/types/api/meta";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
@@ -322,6 +323,23 @@ describe("a running event", () => {
     renderHeader({ event: metaEvent({ status: "in_progress", sourceCheckedAt: checked }) });
 
     expect(screen.getByText("Round 1 under way · checked 12m ago")).toBeInTheDocument();
+  });
+
+  it("reads in progress on its day without a round line or warning while the source has not started it", () => {
+    const today = todayUtc();
+    renderHeader({
+      event: metaEvent({
+        status: "in_progress",
+        recordedStatus: "upcoming",
+        eventDate: today,
+        sourceCheckedAt: new Date().toISOString(),
+      }),
+    });
+
+    const badge = screen.getByText("In progress");
+    expect(badge).toHaveAttribute("data-variant", "outline");
+    expect(screen.queryByText(/under way/u)).toBeNull();
+    expect(screen.queryByText(/checked/u)).toBeNull();
   });
 
   it("wears no badge once the event is complete", () => {

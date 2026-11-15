@@ -18,14 +18,12 @@ import { deepFetchEvent } from "./deep-fetch.js";
 import type { MetaSyncDeps } from "./deps.js";
 import { clock } from "./deps.js";
 import type { RecheckPassResult, VisitOutcome } from "./recheck-pass.js";
-import { emptyRecheckPassResult, runRecheckPass } from "./recheck-pass.js";
+import { deferBlockedVisit, emptyRecheckPassResult, runRecheckPass } from "./recheck-pass.js";
 import { createRunHeartbeat } from "./run-heartbeat.js";
 import { isPermanentRefusal, RunDeadlineError, sourceStopOf } from "./source-http.js";
 import { isRecheckPassNoop } from "./sync-noop.js";
 
 const RECHECK_BUDGET_MS = 5 * MINUTE_MS;
-
-const RECHECK_PAGE_SIZE = 100;
 
 export interface RecheckOptions {
   runId?: string;
@@ -78,7 +76,6 @@ export async function processRechecks(
     now: () => clock(deps),
     budgetMs,
     requests: () => deps.client.requests,
-    pageSize: RECHECK_PAGE_SIZE,
     due: (now, limit) => deps.repos.uvsgamesEvents.dueForRecheck(now, limit),
     keyOf: (row) => row.externalId,
     visit: (row, now) => visit(deps, row, watched, result, now, runId),
@@ -89,6 +86,9 @@ export async function processRechecks(
         checkStage: row.checkStage,
       }),
     stopOf: sourceStopOf,
+    deferOnStop: deferBlockedVisit((row, schedule) =>
+      deps.repos.uvsgamesEvents.setRecheck(row.externalId, schedule),
+    ),
   });
 }
 

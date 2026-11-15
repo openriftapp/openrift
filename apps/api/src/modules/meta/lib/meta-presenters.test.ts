@@ -142,6 +142,7 @@ describe("toMetaEventSummary", () => {
       format: "constructed",
       tier: "local",
       status: "complete",
+      recordedStatus: "complete",
       country: "DE",
       location: "Kartenstraße 1, 10115 Berlin, DE",
       playerCount: 64,
@@ -161,8 +162,24 @@ describe("toMetaEventSummary", () => {
     expect(summary.location).toBeNull();
   });
 
-  it("reads an event dated after today as upcoming, whatever status it stores", () => {
+  it("reads an event dated two days or more ahead as upcoming, whatever status it stores", () => {
     const row = eventRow({ eventDate: "2026-12-05", status: "complete" });
+    expect(toMetaEventSummary(row, [], "2026-12-03").status).toBe("upcoming");
+    expect(toMetaEventSummary(row, [], "2026-12-04").status).toBe("complete");
+  });
+
+  it("reads a source-upcoming event as in progress from the day before its date to the day after", () => {
+    const row = eventRow({ eventDate: "2026-12-05", status: "upcoming" });
+    expect(toMetaEventSummary(row, [], "2026-12-03").status).toBe("upcoming");
+    expect(toMetaEventSummary(row, [], "2026-12-04").status).toBe("in_progress");
+    expect(toMetaEventSummary(row, [], "2026-12-05").status).toBe("in_progress");
+    expect(toMetaEventSummary(row, [], "2026-12-06").status).toBe("in_progress");
+    expect(toMetaEventSummary(row, [], "2026-12-07").status).toBe("complete");
+    expect(toMetaEventSummary(row, [], "2026-12-05").recordedStatus).toBe("upcoming");
+  });
+
+  it("reads a hand-entered event without standings as upcoming until its date", () => {
+    const row = eventRow({ eventDate: "2026-12-05", status: "complete", playerRowCount: 0 });
     expect(toMetaEventSummary(row, [], "2026-12-04").status).toBe("upcoming");
     expect(toMetaEventSummary(row, [], "2026-12-05").status).toBe("complete");
   });
@@ -306,6 +323,7 @@ describe("toMetaEventDetail", () => {
       format: "constructed",
       tier: "local",
       status: "complete",
+      recordedStatus: "complete",
       country: "DE",
       playerCount: 64,
       organizer: "LGS Berlin",

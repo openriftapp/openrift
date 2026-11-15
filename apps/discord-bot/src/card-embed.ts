@@ -8,10 +8,7 @@ import { MARKETPLACE_LINKS } from "@openrift/shared/marketplace";
 import { memberNameEnglish } from "@openrift/shared/member-name";
 import { formatCents } from "@openrift/shared/money";
 import { cardUrl } from "@openrift/shared/site-paths";
-import {
-  fallbackArtDifferences as sharedFallbackArtDifferences,
-  findStandardArtFallback,
-} from "@openrift/shared/standard";
+import { fallbackArtDifferences, findStandardArtFallback } from "@openrift/shared/standard";
 import { truncateWithEllipsis } from "@openrift/shared/strings";
 import type { PrintingMarketplaceLinks } from "@openrift/shared/types/api/pricing";
 import type { CardErrata } from "@openrift/shared/types/catalog";
@@ -24,7 +21,7 @@ import { formatCardText } from "./card-text.js";
 import type { CatalogCard, CatalogPrinting, CatalogSnapshot, EnumLabels } from "./catalog-cache.js";
 import type { GlyphEmojis } from "./glyph-emoji.js";
 import type { TradelistHolderPrinting, TradelistHolders } from "./group-tradelists.js";
-import { printingVariantParts } from "./printing-choice.js";
+import { choiceVariantParts } from "./printing-choice.js";
 
 /** Discord's per-field value cap. */
 export const FIELD_LIMIT = 1024;
@@ -71,7 +68,7 @@ function printingBreakdown(
     const printing = byId.get(entry.printingId);
     let label = "Unknown printing";
     if (printing) {
-      const variant = printingVariantParts(snapshot, printing, siblings);
+      const variant = choiceVariantParts(snapshot, printing, siblings);
       const code = printing.publicCode === previousCode ? null : printing.publicCode;
       label = [code, ...variant].filter((part) => part !== null).join(" ") || printing.publicCode;
       previousCode = printing.publicCode;
@@ -124,12 +121,12 @@ function priceLink(
   return MARKETPLACE_LINKS[marketplace].searchUrl(card.name);
 }
 
-export function fallbackArtDifferences(
+export function fallbackArtNotes(
   printing: CatalogPrinting,
   artPrinting: CatalogPrinting | null,
   labels: EnumLabels,
 ): string[] {
-  return sharedFallbackArtDifferences(printing, artPrinting).flatMap((tag) => {
+  return fallbackArtDifferences(printing, artPrinting).flatMap((tag) => {
     switch (tag.kind) {
       case "language": {
         return [tag.language];
@@ -170,7 +167,7 @@ function resolveEmbedArt(
   if (!fallback) {
     return {};
   }
-  const tags = fallbackArtDifferences(printing, fallback.printing, snapshot.labels);
+  const tags = fallbackArtNotes(printing, fallback.printing, snapshot.labels);
   // A pinned substitute can be any artwork an admin chose, so only the
   // derived case may claim the art comes from the standard printing.
   const source =
@@ -189,7 +186,7 @@ export function printingFooter(printing: CatalogPrinting, snapshot: CatalogSnaps
   if (set) {
     parts.push(set.name);
   }
-  parts.push(...printingVariantParts(snapshot, printing, siblings));
+  parts.push(...choiceVariantParts(snapshot, printing, siblings));
   return parts.join(" · ");
 }
 

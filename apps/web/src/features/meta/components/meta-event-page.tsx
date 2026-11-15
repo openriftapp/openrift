@@ -118,7 +118,7 @@ export function MetaEventPage({ slug }: { slug: string }) {
           phases={phases}
           slug={slug}
           eventDate={event.eventDate}
-          status={event.status}
+          recordedStatus={event.recordedStatus}
           pending={pending.byPlayer}
         />
 

@@ -19,4 +19,20 @@ describe("playloltcgEventsRepo buckets", () => {
 
     expect(recording.queries[0]).toContain("not (c.start_at <= (now() at time zone 'UTC')::date)");
   });
+
+  it("reads an event without a status as holding no results, so it lands in one published bucket", async () => {
+    const recording = createRecordingDb([[], [{ total: "0" }]]);
+
+    await playloltcgEventsRepo(recording.db).list(
+      {
+        bucket: {
+          name: "noResults",
+          rule: { autoAcceptMinPlayers: 16, autoAcceptOfficial: false, autoAcceptNotable: false },
+        },
+      },
+      { limit: 10, offset: 0 },
+    );
+
+    expect(recording.queries[0]).toContain("and not (coalesce(c.status = $");
+  });
 });

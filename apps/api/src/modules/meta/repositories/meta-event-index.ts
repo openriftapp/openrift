@@ -1,4 +1,4 @@
-import type { MetaScopeFacet } from "@openrift/shared/meta-query";
+import type { META_EVENT_HOLDINGS, MetaScopeFacet } from "@openrift/shared/meta-query";
 import type { Kysely, RawBuilder, SqlBool } from "kysely";
 import { sql } from "kysely";
 
@@ -8,12 +8,19 @@ import { offsetPage } from "../../../repositories/query-helpers.js";
 import type { MetaEventWithCounts } from "./meta-events.js";
 import { EVENT_COUNT_COLUMNS, withEventCounts } from "./meta-events.js";
 import type { MetaScopeFilters } from "./meta-shared.js";
-import { HAS_DECKS, HAS_STANDINGS, scopeConditions, UPCOMING } from "./meta-shared.js";
+import {
+  HAS_DECKS,
+  HAS_STANDINGS,
+  PLAYED,
+  RUNNING,
+  scopeConditions,
+  UPCOMING,
+} from "./meta-shared.js";
 
 export interface MetaEventIndexFilters extends MetaScopeFilters {
   slug?: string;
   q?: string;
-  holds?: "decks" | "standings" | "upcoming" | "resultless";
+  holds?: (typeof META_EVENT_HOLDINGS)[number];
   playersMin?: number;
   playersMax?: number;
 }
@@ -52,7 +59,8 @@ const HOLDS_CONDITIONS = {
   decks: HAS_DECKS,
   standings: HAS_STANDINGS,
   upcoming: UPCOMING,
-  resultless: sql<SqlBool>`not ${HAS_STANDINGS} and not ${UPCOMING} and me.status <> 'in_progress'`,
+  comingUp: sql<SqlBool>`(${UPCOMING} or ${RUNNING})`,
+  resultless: sql<SqlBool>`not ${HAS_STANDINGS} and not ${UPCOMING} and ${PLAYED}`,
 } as const;
 
 function unreportedHolding(held: RawBuilder<SqlBool>): RawBuilder<SqlBool> {

@@ -7,7 +7,7 @@ import type { PlayloltcgRecheckRow } from "../../repositories/playloltcg-events.
 import { autoAcceptPlayloltcgEvents } from "./playloltcg-accept.js";
 import type { PlayloltcgClient, PlayloltcgList } from "./playloltcg-client.js";
 import {
-  MAX_PAGE_SIZE,
+  PLAYLOLTCG_MAX_PAGE_SIZE,
   PlayloltcgBlockedError,
   PlayloltcgRefusedError,
 } from "./playloltcg-client.js";
@@ -56,7 +56,7 @@ const DAY_MS = 24 * HOUR_MS;
 const SHOPS_PATH = "/xcx/shop/searchShop";
 
 // Rows carry no id and project to nothing; these tests check which pages are requested, not what lands.
-const FULL_PAGE = Array.from({ length: MAX_PAGE_SIZE }, () => ({}));
+const FULL_PAGE = Array.from({ length: PLAYLOLTCG_MAX_PAGE_SIZE }, () => ({}));
 
 interface WindowRequest {
   startTime: string;

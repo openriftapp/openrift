@@ -1,4 +1,4 @@
-import { formatShortDayYear } from "@openrift/shared/format-date";
+import { formatShortDayYear, shiftUtcDay, todayUtc } from "@openrift/shared/format-date";
 import type {
   MetaEventFilterQuery,
   MetaEventFinish,
@@ -47,10 +47,15 @@ export function metaFrontSectionQuery(
   };
 }
 
-export function metaFrontUpcomingQuery(filters: MetaEventFilterQuery): MetaEventListQuery {
+export function metaFrontUpcomingQuery(
+  filters: MetaEventFilterQuery,
+  today = todayUtc(),
+): MetaEventListQuery {
+  const first = shiftUtcDay(today, -1);
   return {
     ...filters,
-    holds: "upcoming",
+    holds: "comingUp",
+    from: filters.from !== undefined && filters.from > first ? filters.from : first,
     by: "date",
     dir: "asc",
     limit: META_FRONT_SECTION_LIMITS.upcoming,
