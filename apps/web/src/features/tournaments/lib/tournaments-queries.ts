@@ -53,8 +53,9 @@ const fetchParticipants = createServerFn({ method: "GET" })
 
 const fetchSubmitLanding = createServerFn({ method: "GET" })
   .validator((input: string) => input)
-  .handler(({ data: token }): Promise<PublicTournamentLandingResponse> =>
-    orNotFound(apiOrpcClient(publicTournamentsContract).landing({ token })),
+  .middleware([withCookies])
+  .handler(({ context, data: token }): Promise<PublicTournamentLandingResponse> =>
+    orNotFound(apiOrpcClient(publicTournamentsContract, context.cookie).landing({ token })),
   );
 
 const fetchStaffInviteLanding = createServerFn({ method: "GET" })

@@ -79,7 +79,7 @@ describe("useRequestJoinTournament", () => {
     expect(result.current.mutateAsync).toBeInstanceOf(Function);
   });
 
-  it("invalidates no user-scoped keys when signed out", async () => {
+  it("refreshes only the landing when signed out", async () => {
     stubFetch({ alreadyJoined: false });
     const { invalidateSpy, wrapper } = setup();
 
@@ -89,10 +89,10 @@ describe("useRequestJoinTournament", () => {
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(invalidateSpy.mock.calls).toEqual([[{ queryKey: ["tournaments", "submit", "tok"] }]]);
   });
 
-  it("invalidates the tournament list when signed in", async () => {
+  it("invalidates the tournament list and the landing when signed in", async () => {
     currentUserId = "user-1";
     stubFetch({ alreadyJoined: false });
     const { invalidateSpy, wrapper } = setup();
@@ -104,6 +104,7 @@ describe("useRequestJoinTournament", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["tournaments", "user-1"] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["tournaments", "submit", "tok"] });
   });
 });
 

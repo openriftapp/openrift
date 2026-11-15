@@ -160,6 +160,7 @@ const columns: AdminColumnDef<AdminSetResponse, SetDraft>[] = [
   },
   {
     header: "Name",
+    wrap: true,
     cell: <NameCell />,
     editCell: <DraftTextInput<SetDraft> field="name" placeholder="Name" />,
     addCell: <DraftTextInput<SetDraft> field="name" placeholder="Name" />,

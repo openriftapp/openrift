@@ -47,6 +47,13 @@ vi.mock("@/hooks/use-enums", () => ({ useLanguageList: () => [] }));
 
 const { SetsPage } = await import("./sets-page");
 
+describe("SetsPage sets table", () => {
+  it("lets a long set name wrap so the table fits beside the admin sidebar", () => {
+    render(<SetsPage />);
+    expect(screen.getByRole("cell", { name: "Origins" })).toHaveClass("whitespace-normal");
+  });
+});
+
 describe("SetsPage release dates", () => {
   it("puts the stored date back when saving an edited date fails", () => {
     render(<SetsPage />);

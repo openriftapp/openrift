@@ -105,8 +105,13 @@ export function TournamentSubmitPage({ token }: { token: string }) {
     );
   }
 
+  const leftEvent =
+    data.viewerParticipantStatus === "dropped" || data.viewerParticipantStatus === "no_show";
   const canSubmitDeck =
-    Boolean(userId) && data.deckExpected && (data.selfRegistrationOpen || data.viewerIsParticipant);
+    Boolean(userId) &&
+    data.deckExpected &&
+    !leftEvent &&
+    (data.selfRegistrationOpen || data.viewerIsParticipant);
 
   return (
     <TokenLandingPage pageTitle={m.tournaments_submit_title()}>
@@ -120,7 +125,7 @@ export function TournamentSubmitPage({ token }: { token: string }) {
       >
         {data.deckExpected && canSubmitDeck ? (
           <p className="text-muted-foreground text-sm">
-            {data.selfRegistrationOpen
+            {data.selfRegistrationOpen && !data.viewerIsParticipant
               ? m.tournaments_submit_deck_expected_register()
               : m.tournaments_submit_deck_below()}
           </p>

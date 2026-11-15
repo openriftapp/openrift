@@ -14,7 +14,7 @@ vi.mock("@/features/tournaments/hooks/use-tournament-mutations", () => ({
 }));
 
 vi.mock("@/features/tournaments/components/player-submit-page", () => ({
-  PlayerSubmitDeckSection: () => null,
+  PlayerSubmitDeckSection: () => <form aria-label="Submit your deck" />,
 }));
 
 vi.mock("@/hooks/use-session", () => ({ useUserId: () => "user-1" }));
@@ -60,4 +60,35 @@ describe("TournamentSubmitPage", () => {
     expect(screen.getByText(text)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Request to join" })).not.toBeInTheDocument();
   });
+
+  it.each([
+    [null, "This event expects a decklist. Request a spot, then submit your deck below."],
+    ["active", "Submit your deck for this event below."],
+    ["invited", "Submit your deck for this event below."],
+    ["requested", "Submit your deck for this event below."],
+  ] as const)("words the decklist hint of an open event for a %s viewer", (status, hint) => {
+    landing.deckExpected = true;
+    landing.viewerIsParticipant = status !== null;
+    landing.viewerParticipantStatus = status;
+    render(<TournamentSubmitPage token="submit-token" />);
+    expect(screen.getByText(hint)).toBeInTheDocument();
+    expect(screen.getByRole("form", { name: "Submit your deck" })).toBeInTheDocument();
+  });
+
+  it.each(["dropped", "no_show"] as const)(
+    "gives a %s viewer of a decklist event only the left-the-event line",
+    (status) => {
+      landing.deckExpected = true;
+      landing.viewerIsParticipant = true;
+      landing.viewerParticipantStatus = status;
+      render(<TournamentSubmitPage token="submit-token" />);
+      expect(
+        screen.getByText(
+          "You're no longer playing in this event. Ask the host if you want to rejoin.",
+        ),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/submit your deck/iu)).toBeNull();
+      expect(screen.queryByRole("form", { name: "Submit your deck" })).toBeNull();
+    },
+  );
 });

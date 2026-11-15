@@ -7753,7 +7753,6 @@
   "meta_standings_heading": "순위",
   "meta_standings_in_progress": "이 이벤트는 진행 중입니다. 첫 라운드가 끝나면 순위가 여기에 표시됩니다.",
   "meta_standings_upcoming": "이 이벤트는 아직 진행되지 않았습니다. 진행이 끝나면 순위가 여기에 표시됩니다.",
-  "meta_standings_none": "아직 이 이벤트의 순위 기록이 없습니다.",
   "meta_standings_which_entries": "표시할 참가자",
   "meta_standings_all_entries": "모든 참가자",
   "meta_standings_with_decklist": [

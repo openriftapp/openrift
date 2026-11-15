@@ -78,7 +78,7 @@ function emptyStandingsCopy(recordedStatus: MetaEventStatus, eventDate: string):
   if (state === "notStarted") {
     return m.meta_standings_upcoming();
   }
-  return state === "collecting" ? m.meta_standings_in_progress() : m.meta_standings_none();
+  return state === "collecting" ? m.meta_standings_in_progress() : m.meta_event_no_results();
 }
 
 /** A cost bound narrows the page on screen, so an emptied page is not an emptied field. */

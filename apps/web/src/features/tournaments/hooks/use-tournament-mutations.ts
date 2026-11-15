@@ -315,7 +315,10 @@ export function useRequestJoinTournament() {
   return useMutationWithInvalidation<PublicTournamentJoinResponse, { token: string }>({
     mutationFn: (data) => requestJoinFn({ data: data.token }),
     meta: { inlineError: true },
-    invalidates: () => (userId ? [tournamentsKeys.all(userId)] : []),
+    invalidates: (variables) => [
+      tournamentsKeys.submitLanding(variables.token),
+      ...(userId ? [tournamentsKeys.all(userId)] : []),
+    ],
   });
 }
 

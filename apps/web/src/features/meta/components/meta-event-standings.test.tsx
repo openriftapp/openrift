@@ -441,8 +441,13 @@ describe("MetaEventStandings", () => {
 
   it("says nothing is on file rather than showing an empty field", () => {
     renderStandings([]);
-    expect(screen.getByText("No standings on file for this event yet.")).toBeInTheDocument();
+    expect(screen.getByText("No results on file")).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
+
+  it("says nothing is on file for a past event its source never closed", () => {
+    renderStandings([], "2020-01-01", {}, "upcoming");
+    expect(screen.getByText("No results on file")).toBeInTheDocument();
   });
 
   it("says a running event is under way rather than that results are missing", () => {

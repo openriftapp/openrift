@@ -343,8 +343,30 @@ describe("a running event", () => {
   });
 
   it("wears no badge once the event is complete", () => {
-    renderHeader({ event: metaEvent({ status: "complete" }) });
+    renderHeader({ event: metaEvent({ status: "complete", playerRowCount: 12 }) });
 
+    expect(screen.queryByText("In progress")).toBeNull();
+  });
+});
+
+describe("a past event with nothing on file", () => {
+  it("wears the no-results badge when the source never closed it", () => {
+    renderHeader({
+      event: metaEvent({
+        status: "upcoming",
+        recordedStatus: "upcoming",
+        eventDate: "2020-01-01",
+        playerRowCount: 0,
+      }),
+    });
+
+    expect(screen.getByText("No results on file")).toHaveAttribute("data-variant", "outline");
+  });
+
+  it("wears no badge once results are on file", () => {
+    renderHeader({ event: metaEvent({ status: "complete", playerRowCount: 12 }) });
+
+    expect(screen.queryByText("No results on file")).toBeNull();
     expect(screen.queryByText("In progress")).toBeNull();
   });
 });

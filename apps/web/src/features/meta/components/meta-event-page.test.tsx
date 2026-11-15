@@ -242,7 +242,7 @@ describe("MetaEventPage", () => {
 
   it("still reads as a finished page when the archive holds nothing but the event", () => {
     renderPage({}, []);
-    expect(screen.getByText("No standings on file for this event yet.")).toBeInTheDocument();
+    expect(screen.getAllByText("No results on file")).toHaveLength(2);
     expect(screen.queryByText("Were you at Summoner Skirmish?")).toBeNull();
   });
 
