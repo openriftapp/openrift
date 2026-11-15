@@ -79,7 +79,6 @@ export const updatePreferencesSchema = z.object({
     .refine((arr) => new Set(arr).size === arr.length, { message: "Duplicate languages" })
     .nullable()
     .optional(),
-  completionScope: z.unknown().optional(),
   defaultCardView: defaultCardViewEnum.nullable().optional(),
   defaultCurrency: currencySchema.nullable().optional(),
   hiddenFilterSections: z

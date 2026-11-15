@@ -196,7 +196,7 @@ describe("usePreferencesSync", () => {
     expect(patches()[0]?.body).toMatchObject({ showImages: false });
   });
 
-  it("sends the retired completionScope as null so the account copy is cleared", async () => {
+  it("does not send the removed completionScope field", async () => {
     const { patches } = stubFetch({ showImages: true } as UserPreferencesResponse);
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
@@ -205,7 +205,7 @@ describe("usePreferencesSync", () => {
     act(() => useDisplayStore.getState().setShowImages(false));
     await flushSaveDebounce();
 
-    expect(patches()[0]?.body).toMatchObject({ completionScope: null });
+    expect(patches()[0]?.body).not.toHaveProperty("completionScope");
   });
 
   it("ignores device-local store changes that carry no preference", async () => {

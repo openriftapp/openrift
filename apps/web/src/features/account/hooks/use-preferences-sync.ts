@@ -97,7 +97,6 @@ function getPrefsSnapshot(): UserPreferencesResponse & {
     // Retired fields; always null to clear them.
     hiddenFilterSections: null,
     compactFilterView: null,
-    completionScope: null,
     theme: themePreference,
     palette: palettePreference,
     // Response type has no nulls (PATCH-only "remove this key" markers), hence the cast.
