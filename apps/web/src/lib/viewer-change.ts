@@ -25,8 +25,21 @@ export async function refreshViewer(queryClient: QueryClient): Promise<void> {
   ]);
   const userId = sessionUserId(queryClient);
   if (userId !== undefined && userId !== previousUserId) {
-    clearViewerQueries(queryClient, previousUserId);
+    resetViewerQueries(queryClient, previousUserId);
   }
+}
+
+function resetViewerQueries(queryClient: QueryClient, previousUserId: string | undefined): void {
+  if (previousUserId !== undefined) {
+    queryClient.removeQueries({
+      predicate: (query) =>
+        query.queryKey.includes(previousUserId) &&
+        isSignedOutViewerQuery(query.queryKey, previousUserId),
+    });
+  }
+  void queryClient.resetQueries({
+    predicate: (query) => isSignedOutViewerQuery(query.queryKey, previousUserId),
+  });
 }
 
 const VIEWER_DEPENDENT_FAMILIES: ReadonlySet<unknown> = new Set([

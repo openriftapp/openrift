@@ -1,4 +1,4 @@
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryObserver } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { sessionQueryOptions } from "./auth-session";
@@ -64,6 +64,57 @@ describe("refreshViewer", () => {
     expect(client.getQueryData(["tournaments", "submit", "token-1"])).toBeUndefined();
     expect(client.getQueryData(["tournaments", "staff-invite", "token-2"])).toBeUndefined();
     expect(client.getQueryData(["catalog"])).toEqual({ cards: [] });
+  });
+
+  it("refetches a mounted viewer query for the new account when its first fetch was in flight", async () => {
+    const client = clientWithAnonymousFlags();
+    fetchFlags.mockResolvedValue({});
+    const fetchAccess = vi
+      .fn()
+      .mockReturnValueOnce(new Promise(() => {}))
+      .mockResolvedValue({ isAdmin: true });
+    const observer = new QueryObserver(client, {
+      queryKey: ["admin", "me", "user-2"],
+      queryFn: fetchAccess,
+    });
+    const unsubscribe = observer.subscribe(() => {});
+    vi.spyOn(client, "invalidateQueries").mockImplementation(async () => {
+      client.setQueryData(sessionQueryOptions().queryKey, { user: { id: "user-2" } } as never);
+    });
+
+    await refreshViewer(client);
+
+    await vi.waitFor(() => {
+      expect(observer.getCurrentResult().data).toEqual({ isAdmin: true });
+    });
+    unsubscribe();
+  });
+
+  it("never refetches the previous account's mounted queries under the new account", async () => {
+    const client = clientWithAnonymousFlags();
+    fetchFlags.mockResolvedValue({});
+    client.setQueryData(sessionQueryOptions().queryKey, { user: { id: "user-1" } } as never);
+    const fetchTrades = vi.fn().mockResolvedValue([]);
+    const observer = new QueryObserver(client, {
+      queryKey: ["trades", "user-1"],
+      queryFn: fetchTrades,
+    });
+    const unsubscribe = observer.subscribe(() => {});
+    await vi.waitFor(() => {
+      expect(fetchTrades).toHaveBeenCalledTimes(1);
+    });
+    vi.spyOn(client, "invalidateQueries").mockImplementation(async () => {
+      client.setQueryData(sessionQueryOptions().queryKey, { user: { id: "user-2" } } as never);
+    });
+
+    await refreshViewer(client);
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 0);
+    });
+
+    expect(fetchTrades).toHaveBeenCalledTimes(1);
+    expect(client.getQueryData(["trades", "user-1"])).toBeUndefined();
+    unsubscribe();
   });
 
   it("keeps the mounted page's queries when the session expires", async () => {

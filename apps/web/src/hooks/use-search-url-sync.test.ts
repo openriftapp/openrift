@@ -103,6 +103,25 @@ describe("useSearchUrlSync", () => {
     expect(result.current[0]).toBe("");
   });
 
+  it("commits a query retyped right after an external change cleared it", () => {
+    const onCommit = vi.fn();
+    const { result, rerender } = renderHook<readonly [string, (value: string) => void], HookArgs>(
+      ({ urlValue }) => useSearchUrlSync({ urlValue, onCommit }),
+      { initialProps: { urlValue: "Annie", onCommit } },
+    );
+
+    rerender({ urlValue: "", onCommit });
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    act(() => result.current[1]("Annie"));
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(onCommit).toHaveBeenCalledWith("Annie");
+  });
+
   it("does not re-commit the same value twice", () => {
     let pendingUrlValue = "";
     const onCommit = vi.fn((value: string) => {

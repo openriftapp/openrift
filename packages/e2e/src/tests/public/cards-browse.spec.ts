@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { typeSearch } from "../../helpers/catalog.js";
+import { typeSearch, waitForCatalogLoaded } from "../../helpers/catalog.js";
 import { scrollUntilVisible } from "../../helpers/virtualized.js";
 
 test.describe("card browser", () => {
@@ -16,8 +16,7 @@ test.describe("card browser", () => {
 
   test("has a working search/filter UI", async ({ page }) => {
     await page.goto("/cards");
-
-    await scrollUntilVisible(page, page.getByRole("img", { name: "Annie, Fiery" }));
+    await waitForCatalogLoaded(page);
 
     await typeSearch(page, "Garen");
 

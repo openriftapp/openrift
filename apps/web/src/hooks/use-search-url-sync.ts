@@ -1,5 +1,4 @@
-import { useDebouncedValue } from "@tanstack/react-pacer";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 interface Options {
   urlValue: string;
@@ -13,26 +12,33 @@ interface Options {
  */
 export function useSearchUrlSync({ urlValue, onCommit, delay = 200 }: Options) {
   const [localValue, setLocalValue] = useState(urlValue);
-  const [debouncedValue] = useDebouncedValue(localValue, { wait: delay });
 
   const prevUrlValue = useRef(urlValue);
   const lastSentValue = useRef(urlValue);
 
+  const commit = useEffectEvent((value: string) => {
+    lastSentValue.current = value;
+    onCommit(value);
+  });
+
   useEffect(() => {
-    if (urlValue !== prevUrlValue.current) {
-      prevUrlValue.current = urlValue;
-      if (urlValue !== lastSentValue.current) {
-        lastSentValue.current = urlValue;
-        setLocalValue(urlValue);
-      }
+    if (urlValue === prevUrlValue.current) {
       return;
     }
-
-    if (debouncedValue !== urlValue && debouncedValue !== lastSentValue.current) {
-      lastSentValue.current = debouncedValue;
-      onCommit(debouncedValue);
+    prevUrlValue.current = urlValue;
+    if (urlValue !== lastSentValue.current) {
+      lastSentValue.current = urlValue;
+      setLocalValue(urlValue);
     }
-  }, [debouncedValue, urlValue, onCommit]);
+  }, [urlValue]);
+
+  useEffect(() => {
+    if (localValue === lastSentValue.current) {
+      return;
+    }
+    const timer = setTimeout(() => commit(localValue), delay);
+    return () => clearTimeout(timer);
+  }, [localValue, delay]);
 
   return [localValue, setLocalValue] as const;
 }

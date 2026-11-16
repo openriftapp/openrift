@@ -41,52 +41,19 @@ function activeFilterChip(page: Page, label: RegExp): Locator {
     .filter({ has: page.locator('[data-slot="chip-remove-button"]') });
 }
 
-/**
- * Clicks a filter badge and waits for its effect to land on the URL. Only
- * clicks while the target URL state isn't reached yet — a badge toggles and a
- * flag badge cycles, so a blind repeat click would undo the change.
- */
 async function toggleDrawerFilter(
   page: Page,
   drawer: Locator,
   labelPrefix: RegExp,
   urlSignal: RegExp,
 ) {
-  await expect(async () => {
-    if (!urlSignal.test(page.url())) {
-      // dispatchEvent fires onClick synchronously without a visibility/stability
-      // wait; a stale node throws and the fresh locator retries.
-      await drawerBadge(drawer, labelPrefix)
-        .dispatchEvent("click")
-        .catch(() => {});
-    }
-    await expect(page).toHaveURL(urlSignal, { timeout: 1500 });
-  }).toPass({ timeout: 20_000 });
-}
-
-/**
- * Expands the drawer's "More filters" fold.
- * The panel re-renders while counts settle; a real click never stabilizes.
- */
-async function openMoreFilters(drawer: Locator) {
-  const trigger = drawer.getByRole("button", { name: "More filters" });
-  if ((await trigger.getAttribute("aria-expanded")) === "true") {
-    return;
-  }
-  await trigger.dispatchEvent("click").catch(() => {});
+  await drawerBadge(drawer, labelPrefix).click();
+  await expect(page).toHaveURL(urlSignal);
 }
 
 async function closeFilterDrawer(page: Page) {
-  // The footer button re-renders as the live result count settles; a real click never stabilizes.
-  const drawer = page.locator('[data-slot="drawer-content"]');
-  await expect(async () => {
-    await page
-      .getByRole("button", { name: FOOTER_BUTTON })
-      .first()
-      .dispatchEvent("click")
-      .catch(() => {});
-    await expect(drawer).toBeHidden({ timeout: 2000 });
-  }).toPass({ timeout: 15_000 });
+  await page.getByRole("button", { name: FOOTER_BUTTON }).first().click();
+  await expect(page.locator('[data-slot="drawer-content"]')).toBeHidden();
 }
 
 test.describe("card filters (mobile drawer)", () => {
@@ -212,23 +179,15 @@ test.describe("card filters (mobile drawer)", () => {
     await waitForCatalogLoaded(page);
 
     const drawer = await openFilterDrawer(page);
-    await openMoreFilters(drawer);
+    const moreFilters = drawer.getByRole("button", { name: "More filters" });
+    await moreFilters.click();
+    await expect(moreFilters).toHaveAttribute("aria-expanded", "true");
 
-    // Tri-state cycle: null → true → false → null. Each filter change
-    // re-renders and collapses the fold, so re-open it before each step.
     await toggleDrawerFilter(page, drawer, /^Errata/u, /[?&]errata=true/u);
-    await openMoreFilters(drawer);
+    await expect(moreFilters).toHaveAttribute("aria-expanded", "true");
     await toggleDrawerFilter(page, drawer, /^Errata/u, /[?&]errata=false/u);
-    await openMoreFilters(drawer);
-
-    await expect(async () => {
-      await openMoreFilters(drawer);
-      if (/[?&]errata=/u.test(page.url())) {
-        await drawerBadge(drawer, /^Errata/u)
-          .dispatchEvent("click")
-          .catch(() => {});
-      }
-      await expect(page).not.toHaveURL(/[?&]errata=/u, { timeout: 1500 });
-    }).toPass({ timeout: 20_000 });
+    await expect(moreFilters).toHaveAttribute("aria-expanded", "true");
+    await drawerBadge(drawer, /^Errata/u).click();
+    await expect(page).not.toHaveURL(/[?&]errata=/u);
   });
 });

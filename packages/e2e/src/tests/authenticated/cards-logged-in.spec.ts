@@ -81,18 +81,10 @@ async function waitForOwnedCountToggle(page: Page) {
   await expect(catalogModeButton(page)).toBeVisible({ timeout: 15_000 });
 }
 
-// A single keypress can be dropped while handlers settle under load (Meta+k
-// is especially unreliable on headless Linux), so retry until visible.
 async function openGlobalPalette(page: Page, shortcut: "Control+k" | "Meta+k"): Promise<Locator> {
-  // Retry on the frame, not its input: the body is a lazy chunk, and a second
-  // keypress while it compiles would toggle the palette shut again.
   const frame = page.getByRole("dialog", { name: "Search OpenRift" });
-  await expect(async () => {
-    if (!(await frame.isVisible())) {
-      await page.keyboard.press(shortcut);
-    }
-    await expect(frame).toBeVisible({ timeout: 2000 });
-  }).toPass({ timeout: 15_000 });
+  await page.keyboard.press(shortcut);
+  await expect(frame).toBeVisible();
 
   const input = frame.getByRole("combobox", { name: "Search cards, pages and help" });
   await expect(input).toBeVisible({ timeout: 20_000 });
@@ -110,8 +102,7 @@ async function openQuickAddPalette(page: Page, shortcut: "Control+k" | "Meta+k")
   return paletteInput;
 }
 
-// The Ctrl+K handler in card-browser.tsx is gated on `inboxId`, so pressing
-// the shortcut before collections loads silently drops the event.
+// The palette's "Add to Inbox" row registers only once collections name the inbox.
 function waitForCollectionsLoaded(page: Page) {
   return page.waitForResponse(
     (res) =>
@@ -130,7 +121,9 @@ test.describe("cards /cards (logged in)", () => {
     }
   });
 
-  test("Show owned count toggle shows an owned-count strip on cards", async ({ page }) => {
+  test("the owned-count strip shows by default and the toggle hides and restores it", async ({
+    page,
+  }) => {
     userEmail = await createAndLogin(page);
     await seedInboxCopy(userEmail, ANNIE_FIERY_TILE_PRINTING);
     await page.goto("/cards");
@@ -138,23 +131,21 @@ test.describe("cards /cards (logged in)", () => {
 
     await typeSearch(page, "Annie, Fiery");
 
-    // An early click can be dropped while the toolbar re-hydrates after the
-    // search, so retry while it still reads "Show owned count".
-    await expect(async () => {
-      if (await page.getByRole("button", { name: "Show owned count" }).isVisible()) {
-        await catalogModeButton(page).click();
-      }
-      await expect(page.getByRole("button", { name: "Hide owned count" })).toBeVisible({
-        timeout: 1000,
-      });
-    }).toPass({ timeout: 15_000 });
-
     // With a quick-add target the pill opens the variants popover instead of
     // the owned-collections one, and takes its aria-label from that.
     const ownedPill = page.getByRole("button", {
       name: "Variants and collections for Annie, Fiery",
     });
-    await expect(ownedPill).toBeVisible({ timeout: 10_000 });
+    const toggle = catalogModeButton(page);
+    await expect(toggle).toHaveAccessibleName("Hide owned count");
+    await expect(ownedPill).toHaveText("1");
+
+    await toggle.click();
+    await expect(toggle).toHaveAccessibleName("Show owned count");
+    await expect(ownedPill).toBeHidden();
+
+    await toggle.click();
+    await expect(toggle).toHaveAccessibleName("Hide owned count");
     await expect(ownedPill).toHaveText("1");
 
     await ownedPill.click();

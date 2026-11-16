@@ -104,17 +104,9 @@ async function waitForCardsLoaded(page: Page) {
   await page.waitForLoadState("networkidle");
 }
 
-// Search debounces and syncs to the URL; Playwright's atomic fill() can be
-// dropped before hydration, so retry real keystrokes until the URL commits.
 async function searchFor(page: Page, query: string) {
-  await page.waitForLoadState("networkidle");
-  const search = page.getByPlaceholder(/search/iu);
-  await expect(async () => {
-    await search.click();
-    await search.fill("");
-    await search.pressSequentially(query, { delay: 20 });
-    await expect(page).toHaveURL(/[?&]q=/u, { timeout: 2000 });
-  }).toPass({ timeout: 15_000 });
+  await page.getByPlaceholder(/search/iu).fill(query);
+  await expect(page).toHaveURL(/[?&]q=/u);
 }
 
 const ZONE_SLUGS: Record<string, string> = {

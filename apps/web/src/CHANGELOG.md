@@ -33,6 +33,7 @@
 - fix(Designer): **One background zoom handle** — the background zoom slider in the card designer shows a single handle, so keyboard users no longer tab through a second one.
 - fix(Tournaments): **Custom settings open when creating an event** — the Custom section on the new tournament page shows its region option without having to expand it first.
 - fix(Cards): **Cleared languages stay cleared** — removing every language from the filter while the page is still loading your settings no longer brings your default languages back.
+- fix(Cards): **Retyped searches apply** — typing a search again right after switching a deck zone or clearing filters removed it now filters the cards.
 
 ## 2026-11-15
 

@@ -214,16 +214,8 @@ test.describe("sign out", () => {
     }
 
     await loginViaForm(page, email, password);
-    // isAdmin is cached false (401, 5-min staleTime) from the logged-out
-    // /login page; reload to rebuild the query cache with the new session.
-    await page.reload();
-    // Match by href since the Admin entry may expose a menuitem or link role;
-    // isAdmin resolves asynchronously, so retry re-opening the menu.
-    const adminEntry = page.locator('a[href="/admin"]');
-    await expect(async () => {
-      await openUserMenu(page);
-      await expect(adminEntry).toBeVisible({ timeout: 2000 });
-    }).toPass({ timeout: 20_000 });
+    await openUserMenu(page);
+    await expect(page.locator('a[href="/admin"]')).toBeVisible();
 
     await page.getByRole("menuitem", { name: "Sign out" }).click();
     await expect(page).toHaveURL(/\/cards(?:\?|$)/u, { timeout: 15_000 });

@@ -6,6 +6,7 @@ import { expect, test } from "../../fixtures/test.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb } from "../../helpers/db.js";
+import { waitForHydrated } from "../../helpers/hydration.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -60,20 +61,10 @@ async function setupUser(
 }
 
 async function openDialog(page: Page) {
-  await expect(
-    page.getByRole("heading", { name: "Danger Zone", exact: true, level: 2 }),
-  ).toBeVisible({
-    timeout: 15_000,
-  });
-  // The component tree remounts when useSession() resolves, detaching the
-  // trigger; poll the click+visibility check until it sticks.
-  await expect(async () => {
-    // The "Delete account" trigger is unique on the profile page.
-    const trigger = page.getByRole("button", { name: "Delete account", exact: true });
-    await trigger.scrollIntoViewIfNeeded();
-    await trigger.click();
-    await expect(page.getByRole("alertdialog")).toBeVisible({ timeout: 1000 });
-  }).toPass({ timeout: 15_000 });
+  const trigger = page.getByRole("button", { name: "Delete account", exact: true });
+  await waitForHydrated(trigger);
+  await trigger.click();
+  await expect(page.getByRole("alertdialog")).toBeVisible();
   return page.getByRole("alertdialog");
 }
 

@@ -34,19 +34,10 @@ export async function waitForCatalogLoaded(page: Page, cardName = "Annie, Fiery"
   await scrollUntilVisible(page, cardImage(page, cardName));
 }
 
-// The card-browser toolbar is useHydrated-gated: its handlers wire a beat after
-// the grid becomes visible, so an early click or keystroke is silently dropped.
-// These helpers retry the interaction until it demonstrably takes effect.
-
-// The search input is a debounced two-way URL sync that ignores Playwright's
-// atomic fill(); retry keystrokes until the query commits to the URL.
+// Call after waitForCatalogLoaded: the live browser replaces the SSR preview and its input.
 export async function typeSearch(page: Page, query: string): Promise<Locator> {
   const search = page.getByPlaceholder(/search/iu);
-  await expect(async () => {
-    await search.click();
-    await search.fill("");
-    await search.pressSequentially(query, { delay: 30 });
-    await expect(page).toHaveURL(/[?&]q=/u, { timeout: 2000 });
-  }).toPass({ timeout: 15_000 });
+  await search.fill(query);
+  await expect(page).toHaveURL(/[?&]q=/u);
   return search;
 }
