@@ -6,7 +6,8 @@ import type {
 } from "@openrift/shared/types/api/tournament";
 import { implement } from "@orpc/server";
 
-import type { Repos } from "../../../deps.js";
+import type { Repos, Transact } from "../../../deps.js";
+import { conflict, forbidden, notFound } from "../../../errors.js";
 import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
@@ -40,49 +41,56 @@ export function participantDisplayName(name: string | null | undefined, email: s
   return localPart || "Player";
 }
 
+function assertSelfJoinOpen(tournament: Tournament | undefined, token: string): Tournament {
+  if (!tournament || tournament.submissionToken !== token) {
+    throw notFound("Not found");
+  }
+  if (tournament.status === "completed" || tournament.status === "cancelled") {
+    throw conflict("This tournament is no longer accepting entries");
+  }
+  if (!tournament.selfRegistration) {
+    throw forbidden("Self-registration is not open");
+  }
+  return tournament;
+}
+
 /**
  * The one-participant-per-account index rejects a concurrent double-submit's
  * insert; that case resolves to the winning row.
  */
 export async function resolveSelfJoin(
   repos: Repos,
+  transact: Transact,
   tournamentId: string,
+  token: string,
   user: { id: string; name: string | null; email: string },
 ): Promise<PublicTournamentJoinResponse> {
-  const existing = await repos.tournaments.getParticipantByUser(tournamentId, user.id);
-  if (existing) {
-    return {
-      participantId: existing.id,
-      status: existing.status,
-      alreadyJoined: true,
-    };
-  }
   try {
-    const created = await withUniqueClaimToken((claimToken) =>
-      repos.tournaments.createParticipant({
-        tournamentId,
-        userId: user.id,
-        displayName: participantDisplayName(user.name, user.email),
-        status: "requested",
-        claimSource: "self_submit",
-        claimToken,
-        claimedAt: new Date(),
+    return await withUniqueClaimToken((claimToken) =>
+      transact(async (trxRepos) => {
+        await trxRepos.tournaments.lockRounds(tournamentId);
+        assertSelfJoinOpen(await trxRepos.tournaments.getById(tournamentId), token);
+        const existing = await trxRepos.tournaments.getParticipantByUser(tournamentId, user.id);
+        if (existing) {
+          return { participantId: existing.id, status: existing.status, alreadyJoined: true };
+        }
+        const created = await trxRepos.tournaments.createParticipant({
+          tournamentId,
+          userId: user.id,
+          displayName: participantDisplayName(user.name, user.email),
+          status: "requested",
+          claimSource: "self_submit",
+          claimToken,
+          claimedAt: new Date(),
+        });
+        return { participantId: created.id, status: created.status, alreadyJoined: false };
       }),
     );
-    return {
-      participantId: created.id,
-      status: created.status,
-      alreadyJoined: false,
-    };
   } catch (error) {
     if (isUniqueViolationOn(error, "uq_tournament_participants_user")) {
       const raced = await repos.tournaments.getParticipantByUser(tournamentId, user.id);
       if (raced) {
-        return {
-          participantId: raced.id,
-          status: raced.status,
-          alreadyJoined: true,
-        };
+        return { participantId: raced.id, status: raced.status, alreadyJoined: true };
       }
     }
     throw error;
@@ -121,18 +129,11 @@ export const publicTournamentsRouter = {
       if (!user) {
         throw errors.UNAUTHORIZED({ message: "Unauthorized" });
       }
-      const tournament = await repos.tournaments.getBySubmissionToken(input.token);
-      if (!tournament) {
-        throw errors.NOT_FOUND({ message: "Not found" });
-      }
-      const status = tournament.status;
-      if (status === "completed" || status === "cancelled") {
-        throw errors.CONFLICT({ message: "This tournament is no longer accepting entries" });
-      }
-      if (!tournament.selfRegistration) {
-        throw errors.FORBIDDEN({ message: "Self-registration is not open" });
-      }
-      return resolveSelfJoin(repos, tournament.id, user);
+      const tournament = assertSelfJoinOpen(
+        await repos.tournaments.getBySubmissionToken(input.token),
+        input.token,
+      );
+      return resolveSelfJoin(repos, context.transact, tournament.id, input.token, user);
     },
   ),
 

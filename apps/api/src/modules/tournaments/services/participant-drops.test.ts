@@ -176,6 +176,21 @@ describe("dropLiveSpotsOfUser", () => {
     expect(setWalkoverResult).not.toHaveBeenCalled();
   });
 
+  it("leaves a spot whose event was cancelled while this waited for the lock", async () => {
+    const { repos, transact, updateParticipant } = setup({
+      spots: [spot()],
+      tournaments: [tournament()],
+    });
+    vi.mocked(repos.tournaments.lockRounds).mockImplementation(() => {
+      vi.mocked(repos.tournaments.getById).mockResolvedValue(tournament({ status: "cancelled" }));
+      return Promise.resolve();
+    });
+
+    await dropLiveSpotsOfUser(repos, transact, USER_ID, NOW);
+
+    expect(updateParticipant).not.toHaveBeenCalled();
+  });
+
   it("drops the active teammate of a 2v2 team too", async () => {
     const own = spot({ teamId: "team-1" });
     const teammate = spot({ id: "p-2", userId: null, teamId: "team-1" });

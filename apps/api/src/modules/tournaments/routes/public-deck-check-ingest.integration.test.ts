@@ -1,3 +1,4 @@
+import { sql } from "kysely";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createRepos } from "../../../deps.js";
@@ -9,6 +10,7 @@ import {
   req,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
+import { holdRow, waitUntilBlockedBy } from "../../../test/row-locks.js";
 
 // Fresh ids, not in run-integration.ts's TEST_USERS registry: the suite seeds
 // its own users (like the deck-check-player suite) so the FK targets exist.
@@ -393,6 +395,37 @@ describe.skipIf(!ownerCtx)("deck-check ingest push (integration, ADR-033)", () =
     }
     // Restore the shared fixture to its pushable state for later tests.
     await repos.tournaments.updateSettings(eventId, { status: "setup" });
+  });
+
+  it("rejects a push that waited for a cancellation", async () => {
+    const canceller = await holdRow(
+      db,
+      sql`WITH locked AS (
+        SELECT pg_advisory_xact_lock(hashtext(${`tournament-writes:${eventId}`}))
+      ), written AS (
+        UPDATE tournaments SET status = 'cancelled' WHERE id = ${eventId} RETURNING id
+      ) SELECT 1 FROM locked, written`,
+    );
+    let pushed: Promise<Response> | undefined;
+    try {
+      pushed = push([entryPayload({ externalId: "entry-cancel-race" })]);
+      await waitUntilBlockedBy(db, canceller.pid);
+    } finally {
+      await canceller.release();
+    }
+    try {
+      const pushedRes = await pushed;
+      expect(pushedRes?.status).toBe(409);
+      const entries = await db
+        .selectFrom("deckCheckEntries")
+        .select("id")
+        .where("tournamentId", "=", eventId)
+        .where("externalId", "=", "entry-cancel-race")
+        .execute();
+      expect(entries).toEqual([]);
+    } finally {
+      await repos.tournaments.updateSettings(eventId, { status: "setup" });
+    }
   });
 
   it("re-resolves unmatched lines once the card exists in the catalog", async () => {

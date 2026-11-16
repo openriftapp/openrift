@@ -35,7 +35,7 @@ const event = {
   format: "constructed",
   playMode: "1v1" as const,
   allowedSets: null,
-  status: "active" as const,
+  status: "active" as "active" | "archived",
   listLockMode: "manual" as const,
   allowSelfSubmission: true,
   submissionToken: null,
@@ -246,7 +246,8 @@ describe("POST /tournaments/{tournamentId}/deck-check/entries", () => {
         getParticipantById: vi.fn(() =>
           Promise.resolve({ id: PARTICIPANT_ID, tournamentId: TOURNAMENT_ID }),
         ),
-        lockParticipant: vi.fn(() => Promise.resolve()),
+        lockParticipant: vi.fn(() => Promise.resolve(true)),
+        lockRounds: vi.fn(() => Promise.resolve()),
       },
     };
     const app = new Hono<{ Variables: Variables }>();
@@ -263,7 +264,7 @@ describe("POST /tournaments/{tournamentId}/deck-check/entries", () => {
       }
       throw err;
     });
-    return app;
+    return { app, repos };
   }
 
   function post(app: Hono<{ Variables: Variables }>, body: unknown) {
@@ -281,7 +282,7 @@ describe("POST /tournaments/{tournamentId}/deck-check/entries", () => {
     ]);
     mockCreateManualDeckCheckEntry.mockRejectedValueOnce(conflict("stop"));
 
-    const res = await post(makeCreateApp(), {
+    const res = await post(makeCreateApp().app, {
       participantId: PARTICIPANT_ID,
       deckCode: "CMAAAAABAEAABJQB",
     });
@@ -298,13 +299,29 @@ describe("POST /tournaments/{tournamentId}/deck-check/entries", () => {
   });
 
   it("rejects a deck code sent together with a card list", async () => {
-    const res = await post(makeCreateApp(), {
+    const res = await post(makeCreateApp().app, {
       participantId: PARTICIPANT_ID,
       deckCode: "CMAAAAABAEAABJQB",
       cards: [{ name: "Some Card", quantity: 1, section: "main" }],
     });
 
     expect(res.status).toBe(400);
+    expect(mockCreateManualDeckCheckEntry).not.toHaveBeenCalled();
+  });
+
+  it("refuses a deck for an event archived while it waited for the rounds lock", async () => {
+    const { app, repos } = makeCreateApp();
+    repos.tournaments.lockRounds.mockImplementation(() => {
+      repos.deckCheck.getEventById.mockResolvedValue({ ...event, status: "archived" });
+      return Promise.resolve();
+    });
+
+    const res = await post(app, {
+      participantId: PARTICIPANT_ID,
+      cards: [{ name: "Some Card", quantity: 1, section: "main" }],
+    });
+
+    expect(res.status).toBe(409);
     expect(mockCreateManualDeckCheckEntry).not.toHaveBeenCalled();
   });
 });

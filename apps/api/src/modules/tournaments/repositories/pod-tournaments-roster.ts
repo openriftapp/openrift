@@ -133,6 +133,7 @@ export function podRosterRepo(db: Kysely<Database>) {
             .where("id", "in", participantIds)
             .where("tournamentId", "=", tournamentId)
             .where("teamId", "is", null)
+            .where("status", "=", "active")
             .executeTakeFirst();
           if (updated.numUpdatedRows !== 2n) {
             throw new TeamRaceLostError("player_taken");

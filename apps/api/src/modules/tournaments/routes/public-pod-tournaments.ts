@@ -3,12 +3,14 @@ import type { PodReportResponse } from "@openrift/shared/types/api/pod-tournamen
 import { implement } from "@orpc/server";
 
 import type { Repos } from "../../../deps.js";
+import { forbidden, notFound } from "../../../errors.js";
 import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { buildGroupStageBundle } from "../lib/group-cut-builders.js";
 import { scoringOf } from "../lib/pod-scoring.js";
 import { buildStandingsSnapshot } from "../lib/pod-tournament-builders.js";
 import { toRoundResponse } from "../lib/pod-tournament-presenters.js";
+import { loadTournamentForWrite } from "../lib/tournament-access.js";
 import type { Tournament } from "../repositories/tournaments-shared.js";
 import { assertGroupCutRun, startGroupRound } from "../services/group-cut.js";
 import { submitPodPlayerResult, submitPodResult } from "../services/pod-pairing.js";
@@ -63,6 +65,16 @@ async function buildReport(
   };
 }
 
+function requireReportLink(tournament: Tournament | undefined, token: string): Tournament {
+  if (!tournament || tournament.pairingStyle === "none") {
+    throw notFound("Not found");
+  }
+  if (tournament.reportToken !== token) {
+    throw forbidden("This link is follow-only");
+  }
+  return tournament;
+}
+
 const os = implement(publicPodTournamentsContract).$context<ApiContext>().use(requireUser);
 
 export const publicPodTournamentsRouter = {
@@ -85,36 +97,28 @@ export const publicPodTournamentsRouter = {
     return buildStandingsSnapshot(context.repos, tournament, input.throughRound);
   }),
 
-  submitResult: os.submitResult.handler(
-    async ({ input, context, errors }): Promise<PodReportResponse> => {
-      const repos = context.repos;
-      const tournament = await repos.tournaments.getByShareToken(input.token);
-      if (!tournament || tournament.pairingStyle === "none") {
-        throw errors.NOT_FOUND({ message: "Not found" });
-      }
-      if (tournament.reportToken !== input.token) {
-        throw errors.FORBIDDEN({ message: "This link is follow-only" });
-      }
-      await context.transact((trxRepos) =>
-        submitPodResult(trxRepos, tournament.id, input.podId, input.results, {
-          allowFinalized: false,
-          drawnGames: input.drawnGames,
-        }),
-      );
-      return buildReport(repos, tournament, true);
-    },
-  ),
+  submitResult: os.submitResult.handler(async ({ input, context }): Promise<PodReportResponse> => {
+    const repos = context.repos;
+    const tournament = requireReportLink(
+      await repos.tournaments.getByShareToken(input.token),
+      input.token,
+    );
+    await context.transact((trxRepos) =>
+      submitPodResult(trxRepos, tournament.id, input.podId, input.results, {
+        allowFinalized: false,
+        drawnGames: input.drawnGames,
+      }),
+    );
+    return buildReport(repos, tournament, true);
+  }),
 
   submitPlayerResult: os.submitPlayerResult.handler(
-    async ({ input, context, errors }): Promise<PodReportResponse> => {
+    async ({ input, context }): Promise<PodReportResponse> => {
       const repos = context.repos;
-      const tournament = await repos.tournaments.getByShareToken(input.token);
-      if (!tournament || tournament.pairingStyle === "none") {
-        throw errors.NOT_FOUND({ message: "Not found" });
-      }
-      if (tournament.reportToken !== input.token) {
-        throw errors.FORBIDDEN({ message: "This link is follow-only" });
-      }
+      const tournament = requireReportLink(
+        await repos.tournaments.getByShareToken(input.token),
+        input.token,
+      );
       await context.transact((trxRepos) =>
         submitPodPlayerResult(
           trxRepos,
@@ -129,21 +133,25 @@ export const publicPodTournamentsRouter = {
   ),
 
   startGroupRound: os.startGroupRound.handler(
-    async ({ input, context, errors }): Promise<PodReportResponse> => {
+    async ({ input, context }): Promise<PodReportResponse> => {
       const repos = context.repos;
-      const tournament = await repos.tournaments.getByShareToken(input.token);
-      if (!tournament || tournament.pairingStyle === "none") {
-        throw errors.NOT_FOUND({ message: "Not found" });
-      }
-      if (tournament.reportToken !== input.token) {
-        throw errors.FORBIDDEN({ message: "This link is follow-only" });
-      }
-      if (!tournament.groupsSelfPaced) {
-        throw errors.FORBIDDEN({ message: "Only staff can start rounds in this tournament" });
-      }
-      assertGroupCutRun(tournament);
-      await startGroupRound(repos, tournament, input.groupId);
-      return buildReport(repos, tournament, true);
+      const tournament = requireReportLink(
+        await repos.tournaments.getByShareToken(input.token),
+        input.token,
+      );
+      const started = await context.transact(async (trxRepos) => {
+        const current = requireReportLink(
+          await loadTournamentForWrite(trxRepos, tournament.id),
+          input.token,
+        );
+        if (!current.groupsSelfPaced) {
+          throw forbidden("Only staff can start rounds in this tournament");
+        }
+        assertGroupCutRun(current);
+        await startGroupRound(trxRepos, current, input.groupId);
+        return current;
+      });
+      return buildReport(repos, started, true);
     },
   ),
 };

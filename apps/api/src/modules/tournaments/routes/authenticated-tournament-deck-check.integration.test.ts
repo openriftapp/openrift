@@ -1,9 +1,11 @@
+import { sql } from "kysely";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createRepos } from "../../../deps.js";
 import { CARD_FURY_RUNE, CARD_FURY_UNIT } from "../../../test/fixtures/constants.js";
 import { createTestContext, req } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
+import { holdRow, waitUntilBlockedBy } from "../../../test/row-locks.js";
 
 const HOST_ID = crypto.randomUUID();
 const JUDGE_ID = crypto.randomUUID();
@@ -571,6 +573,54 @@ describe.skipIf(!hostCtx)("Tournament-scoped deck-check + host keys (integration
         }),
       );
       expect(res.status).toBe(409);
+    });
+
+    it("rejects a deck that waited for the tournament to be cancelled", async () => {
+      const created = await host.app.fetch(
+        req("POST", "/tournaments", {
+          name: "Summoner Skirmish Deck Race",
+          host: { type: "user" },
+          pairingStyle: "none",
+          deckSubmission: "required",
+          startsAt: "2026-06-01T12:00:00Z",
+        }),
+      );
+      const raceId = ((await readJson(created)) as { id: string }).id;
+      await repos.tournaments.addStaff(raceId, JUDGE_ID, "judge");
+      const participant = await repos.tournaments.createParticipant({
+        tournamentId: raceId,
+        displayName: "Racing Rumble",
+        status: "active",
+      });
+
+      const canceller = await holdRow(
+        host.db,
+        sql`WITH locked AS (
+          SELECT pg_advisory_xact_lock(hashtext(${`tournament-writes:${raceId}`}))
+        ), written AS (
+          UPDATE tournaments SET status = 'cancelled' WHERE id = ${raceId} RETURNING id
+        ) SELECT 1 FROM locked, written`,
+      );
+      let added: Promise<Response> | Response | undefined;
+      try {
+        added = judge.app.fetch(
+          req("POST", `/tournaments/${raceId}/deck-check/entries`, {
+            participantId: participant.id,
+            cards: [{ name: CARD_FURY_UNIT.name, quantity: 1, section: "main" }],
+          }),
+        );
+        await waitUntilBlockedBy(host.db, canceller.pid);
+      } finally {
+        await canceller.release();
+      }
+      const addedRes = await added;
+      expect(addedRes?.status).toBe(409);
+      const entries = await host.db
+        .selectFrom("deckCheckEntries")
+        .select("id")
+        .where("tournamentId", "=", raceId)
+        .execute();
+      expect(entries).toEqual([]);
     });
   });
 

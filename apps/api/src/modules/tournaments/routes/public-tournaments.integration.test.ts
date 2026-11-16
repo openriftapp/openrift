@@ -1,3 +1,4 @@
+import { sql } from "kysely";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
@@ -6,6 +7,7 @@ import {
   req,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
+import { holdRow, waitUntilBlockedBy } from "../../../test/row-locks.js";
 
 const HOST_ID = crypto.randomUUID();
 const JOINER_ID = crypto.randomUUID();
@@ -145,6 +147,46 @@ describe.skipIf(!hostCtx || !joinerCtx || !anonCtx)(
         req("POST", `/tournaments/submit/${closedToken}/request`),
       );
       expect(afterCancel.status).toBe(409);
+    });
+
+    it("rejects a request-to-join that waited for a cancellation", async () => {
+      const create = await host.app.fetch(
+        req("POST", "/tournaments", {
+          name: "Summoner Skirmish Join Race",
+          host: { type: "user" },
+          pairingStyle: "none",
+          deckSubmission: "optional",
+          startsAt: "2026-06-01T12:00:00Z",
+          selfRegistration: true,
+        }),
+      );
+      const raceId = ((await readJson(create)) as { id: string }).id;
+      const enabled = await host.app.fetch(req("POST", `/tournaments/${raceId}/submission-token`));
+      const raceToken = ((await readJson(enabled)) as { submissionToken: string }).submissionToken;
+
+      const canceller = await holdRow(
+        host.db,
+        sql`WITH locked AS (
+          SELECT pg_advisory_xact_lock(hashtext(${`tournament-writes:${raceId}`}))
+        ), written AS (
+          UPDATE tournaments SET status = 'cancelled' WHERE id = ${raceId} RETURNING id
+        ) SELECT 1 FROM locked, written`,
+      );
+      let joined: Promise<Response> | Response | undefined;
+      try {
+        joined = joiner.app.fetch(req("POST", `/tournaments/submit/${raceToken}/request`));
+        await waitUntilBlockedBy(host.db, canceller.pid);
+      } finally {
+        await canceller.release();
+      }
+      const joinedRes = await joined;
+      expect(joinedRes?.status).toBe(409);
+      const spots = await host.db
+        .selectFrom("tournamentParticipants")
+        .select("id")
+        .where("tournamentId", "=", raceId)
+        .execute();
+      expect(spots).toEqual([]);
     });
 
     it("rejects request-to-join when self-registration is closed", async () => {

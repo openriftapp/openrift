@@ -134,7 +134,15 @@ export const tournamentDeckCheckRouter = {
       // No unique constraint on participant_id; the has-deck check re-runs under a
       // participant row lock to close the judge-double-click race.
       const created = await context.transact(async (trxRepos) => {
-        await trxRepos.tournaments.lockParticipant(participant.id);
+        await trxRepos.tournaments.lockRounds(event.id);
+        const current = await trxRepos.deckCheck.getEventById(event.id);
+        assertFound(current, "Tournament not found");
+        if (current.status === "archived") {
+          throw conflict("Event is archived. Un-archive it before adding decks.");
+        }
+        if (!(await trxRepos.tournaments.lockParticipant(participant.id))) {
+          throw notFound("Participant not found");
+        }
         if (await trxRepos.deckCheck.participantHasDeck(participant.id)) {
           throw conflict("This participant already has a deck");
         }

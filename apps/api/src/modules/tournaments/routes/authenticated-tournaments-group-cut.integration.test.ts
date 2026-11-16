@@ -1226,5 +1226,104 @@ describe.skipIf(!hostCtx)("Group stage with a fixed top cut (integration)", () =
       expect(res?.status).toBe(400);
       expect(((await readJson(res!)) as { message: string }).message).toMatch(/no Legend on file/u);
     });
+
+    it("keeps a cancellation that committed while the final's finalize waited", async () => {
+      const id = await createTournament({ name: "Skirmish final race", cutSize: 4 });
+      await addPlayers(id, 16);
+      const groups = await host.app.fetch(req("POST", `/tournaments/${id}/rounds`, {}));
+      expect(groups.status).toBe(200);
+      await reportRound(id, 1);
+      for (const roundNumber of [2, 3]) {
+        await startEveryGroup(id);
+        await reportRound(id, roundNumber);
+      }
+      const cut = await host.app.fetch(req("POST", `/tournaments/${id}/rounds`, {}));
+      expect(cut.status).toBe(200);
+      await reportRound(id, 4);
+      const semis = await host.app.fetch(req("POST", `/tournaments/${id}/rounds/4/finalize`));
+      expect(semis.status).toBe(200);
+      const final = await host.app.fetch(req("POST", `/tournaments/${id}/rounds`, {}));
+      expect(final.status).toBe(200);
+      await reportRound(id, 5);
+
+      const canceller = await holdRoundsLock(
+        id,
+        sql`UPDATE tournaments SET status = 'cancelled' WHERE id = ${id} RETURNING id`,
+      );
+      let finalized: Promise<Response> | Response | undefined;
+      try {
+        finalized = host.app.fetch(req("POST", `/tournaments/${id}/rounds/5/finalize`));
+        await waitUntilBlockedBy(host.db, canceller.pid);
+      } finally {
+        await canceller.release();
+      }
+      const finalizedRes = await finalized;
+      expect(finalizedRes?.status).toBe(200);
+
+      const row = await host.db
+        .selectFrom("tournaments")
+        .select("status")
+        .where("id", "=", id)
+        .executeTakeFirstOrThrow();
+      expect(row.status).toBe("cancelled");
+    });
+
+    it("re-rolls a round against a format committed while it waited", async () => {
+      const id = await createTournament({ name: "Skirmish reroll race", cutSize: 4 });
+      await addPlayers(id, 16);
+      const groups = await host.app.fetch(req("POST", `/tournaments/${id}/rounds`, {}));
+      expect(groups.status).toBe(200);
+
+      const editor = await holdRoundsLock(
+        id,
+        sql`UPDATE tournaments SET legend_tiebreak = true WHERE id = ${id} RETURNING id`,
+      );
+      let rerolled: Promise<Response> | Response | undefined;
+      try {
+        rerolled = host.app.fetch(req("POST", `/tournaments/${id}/rounds/1/reroll`));
+        await waitUntilBlockedBy(host.db, editor.pid);
+      } finally {
+        await editor.release();
+      }
+      const res = await rerolled;
+      expect(res?.status).toBe(400);
+      expect(((await readJson(res!)) as { message: string }).message).toMatch(/no Legend on file/u);
+    });
+
+    it("refuses a self-paced group start whose report link was revoked while it waited", async () => {
+      const id = await createTournament({ name: "Skirmish link race", cutSize: 4 });
+      await addPlayers(id, 16);
+      const generated = await host.app.fetch(req("POST", `/tournaments/${id}/rounds`, {}));
+      expect(generated.status).toBe(200);
+      await reportRound(id, 1);
+      const enabled = await host.app.fetch(req("POST", `/tournaments/${id}/report-token`));
+      expect(enabled.status).toBe(200);
+      const { reportToken } = await host.db
+        .selectFrom("tournaments")
+        .select("reportToken")
+        .where("id", "=", id)
+        .executeTakeFirstOrThrow();
+      const beforeStart = await run(id);
+      const group = beforeStart.groupStage?.groups[0];
+      expect(reportToken && group).toBeTruthy();
+
+      const revoker = await holdRoundsLock(
+        id,
+        sql`UPDATE tournaments SET report_token = NULL WHERE id = ${id} RETURNING id`,
+      );
+      let started: Promise<Response> | Response | undefined;
+      try {
+        started = host.app.fetch(
+          req("POST", `/pod-tournaments/report/${reportToken}/groups/${group!.id}/rounds`),
+        );
+        await waitUntilBlockedBy(host.db, revoker.pid);
+      } finally {
+        await revoker.release();
+      }
+      const startedRes = await started;
+      expect(startedRes?.status).toBe(403);
+      const state = await run(id);
+      expect(state.groupStage?.groups[0]?.roundsStarted).toBe(1);
+    });
   });
 });

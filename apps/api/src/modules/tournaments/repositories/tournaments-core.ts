@@ -166,6 +166,16 @@ export function tournamentsCoreRepo(db: Kysely<Database>) {
       return row;
     },
 
+    /** Leaves a completed or cancelled tournament as it is. */
+    async completeIfOpen(id: string): Promise<void> {
+      await db
+        .updateTable("tournaments")
+        .set({ status: "completed", updatedAt: new Date() })
+        .where("id", "=", id)
+        .where("status", "in", ["setup", "running"])
+        .execute();
+    },
+
     async deleteById(id: string): Promise<boolean> {
       const result = await db.deleteFrom("tournaments").where("id", "=", id).executeTakeFirst();
       return result.numDeletedRows > 0n;

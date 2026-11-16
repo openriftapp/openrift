@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { describe, expect, it, vi } from "vitest";
 
-import type { Repos } from "../../../deps.js";
+import type { Repos, Transact } from "../../../deps.js";
 import { registerRouterForTest } from "../../../test/mount-router.js";
 import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
@@ -13,15 +13,33 @@ import {
 
 const USER = { id: "user-1", name: "Ashe", email: "ashe@example.com" };
 const TOURNAMENT_ID = "tournament-1";
+const SUBMIT_TOKEN = "submit-token";
+
+const OPEN_TOURNAMENT = {
+  id: TOURNAMENT_ID,
+  status: "setup",
+  selfRegistration: true,
+  submissionToken: SUBMIT_TOKEN,
+};
 
 function reposStub(overrides: {
   findByUser: (...args: unknown[]) => Promise<unknown>;
   createParticipant: (...args: unknown[]) => Promise<unknown>;
+  lockedTournament?: Record<string, unknown>;
 }) {
   const getParticipantByUser = vi.fn(overrides.findByUser);
   const createParticipant = vi.fn(overrides.createParticipant);
-  const repos = { tournaments: { getParticipantByUser, createParticipant } } as unknown as Repos;
-  return { repos, getParticipantByUser, createParticipant };
+  const lockRounds = vi.fn(() => Promise.resolve());
+  const getById = vi.fn(() => Promise.resolve(overrides.lockedTournament ?? OPEN_TOURNAMENT));
+  const repos = {
+    tournaments: { getParticipantByUser, createParticipant, lockRounds, getById },
+  } as unknown as Repos;
+  const transact: Transact = (fn) => fn(repos);
+  return { repos, transact, getParticipantByUser, createParticipant, lockRounds, getById };
+}
+
+function join(stub: { repos: Repos; transact: Transact }) {
+  return resolveSelfJoin(stub.repos, stub.transact, TOURNAMENT_ID, SUBMIT_TOKEN, USER);
 }
 
 describe("participantDisplayName", () => {
@@ -46,26 +64,52 @@ describe("participantDisplayName", () => {
 
 describe("resolveSelfJoin", () => {
   it("returns the existing spot without inserting", async () => {
-    const { repos, createParticipant } = reposStub({
+    const stub = reposStub({
       findByUser: async () => ({ id: "p-existing", status: "approved" }),
       createParticipant: async () => ({ id: "p-new", status: "requested" }),
     });
-    const result = await resolveSelfJoin(repos, TOURNAMENT_ID, USER);
+    const result = await join(stub);
     expect(result).toEqual({
       participantId: "p-existing",
       status: "approved",
       alreadyJoined: true,
     });
-    expect(createParticipant).not.toHaveBeenCalled();
+    expect(stub.createParticipant).not.toHaveBeenCalled();
   });
 
   it("creates a requested participant when none exists", async () => {
-    const { repos } = reposStub({
+    const stub = reposStub({
       findByUser: async () => undefined,
       createParticipant: async () => ({ id: "p-new", status: "requested" }),
     });
-    const result = await resolveSelfJoin(repos, TOURNAMENT_ID, USER);
+    const result = await join(stub);
     expect(result).toEqual({ participantId: "p-new", status: "requested", alreadyJoined: false });
+  });
+
+  it("checks the tournament it read under the rounds lock", async () => {
+    const stub = reposStub({
+      findByUser: async () => undefined,
+      createParticipant: async () => ({ id: "p-new", status: "requested" }),
+      lockedTournament: { ...OPEN_TOURNAMENT, status: "cancelled" },
+    });
+    await expect(join(stub)).rejects.toMatchObject({ status: 409 });
+    const lockOrder = stub.lockRounds.mock.invocationCallOrder[0] ?? 0;
+    expect(lockOrder).toBeGreaterThan(0);
+    expect(lockOrder).toBeLessThan(stub.getById.mock.invocationCallOrder[0] ?? 0);
+    expect(stub.createParticipant).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["self-registration closed", { selfRegistration: false }, 403],
+    ["the link turned off", { submissionToken: null }, 404],
+  ])("refuses a join once %s while it waited", async (_label, change, status) => {
+    const stub = reposStub({
+      findByUser: async () => undefined,
+      createParticipant: async () => ({ id: "p-new", status: "requested" }),
+      lockedTournament: { ...OPEN_TOURNAMENT, ...change },
+    });
+    await expect(join(stub)).rejects.toMatchObject({ status });
+    expect(stub.createParticipant).not.toHaveBeenCalled();
   });
 
   it("resolves to the race winner when the insert hits a unique violation", async () => {
@@ -73,18 +117,16 @@ describe("resolveSelfJoin", () => {
       .fn()
       .mockResolvedValueOnce(undefined)
       .mockResolvedValueOnce({ id: "p-race", status: "requested" });
-    const repos = {
-      tournaments: {
-        getParticipantByUser: findByUser,
-        createParticipant: vi.fn(async () => {
-          throw Object.assign(new Error("duplicate key"), {
-            code: "23505",
-            constraint_name: "uq_tournament_participants_user",
-          });
-        }),
+    const stub = reposStub({
+      findByUser,
+      createParticipant: async () => {
+        throw Object.assign(new Error("duplicate key"), {
+          code: "23505",
+          constraint_name: "uq_tournament_participants_user",
+        });
       },
-    } as unknown as Repos;
-    const result = await resolveSelfJoin(repos, TOURNAMENT_ID, USER);
+    });
+    const result = await join(stub);
     expect(result).toEqual({ participantId: "p-race", status: "requested", alreadyJoined: true });
   });
 
@@ -93,24 +135,24 @@ describe("resolveSelfJoin", () => {
       code: "23505",
       constraint_name: "tournament_participants_pkey",
     });
-    const { repos } = reposStub({
+    const stub = reposStub({
       findByUser: async () => undefined,
       createParticipant: async () => {
         throw other;
       },
     });
-    await expect(resolveSelfJoin(repos, TOURNAMENT_ID, USER)).rejects.toBe(other);
+    await expect(join(stub)).rejects.toBe(other);
   });
 
   it("re-throws a non-unique insert error", async () => {
     const boom = new Error("connection reset");
-    const { repos } = reposStub({
+    const stub = reposStub({
       findByUser: async () => undefined,
       createParticipant: async () => {
         throw boom;
       },
     });
-    await expect(resolveSelfJoin(repos, TOURNAMENT_ID, USER)).rejects.toBe(boom);
+    await expect(join(stub)).rejects.toBe(boom);
   });
 });
 

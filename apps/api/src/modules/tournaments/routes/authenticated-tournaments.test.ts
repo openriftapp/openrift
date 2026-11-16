@@ -73,6 +73,7 @@ function makeApp(tournament: Tournament) {
     isHostOrStaff: vi.fn(() => Promise.resolve(true)),
     hasRounds: vi.fn(() => Promise.resolve(false)),
     lockRounds: vi.fn(() => Promise.resolve()),
+    lockParticipant: vi.fn(() => Promise.resolve(true)),
     hasRelationship: vi.fn(() => Promise.resolve(true)),
     updateSettings: vi.fn(() => Promise.resolve()),
     addStaff: vi.fn(() => Promise.resolve()),
@@ -506,4 +507,59 @@ describe("POST /tournaments/:id/teams", () => {
     );
     expect(res.status).toBe(status);
   });
+});
+
+describe("round writers", () => {
+  it.each([
+    ["finalize", "POST", "finalize", undefined],
+    ["replace the pairing of", "PUT", "pairing", { pods: [], byes: [] }],
+  ])(
+    "%s a round against the row read under the rounds lock",
+    async (_label, method, action, body) => {
+      const { app, repos } = makeApp(tournamentRow({ status: "running" }));
+      repos.tournaments.lockRounds.mockImplementation(() => {
+        repos.tournaments.getById.mockResolvedValue(
+          tournamentRow({ status: "running", format: "group_cut" }),
+        );
+        return Promise.resolve();
+      });
+
+      const res = await app.fetch(
+        req(method, `/tournaments/${TOURNAMENT_ID}/rounds/1/${action}`, body),
+      );
+
+      expect(res.status).toBe(400);
+      expect(repos.podTournaments.getRoundByNumber).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ["edit the cut bracket", "PUT", "/rounds/4/cut-pairing", { pods: [{ playerIds: ["a", "b"] }] }],
+    [
+      "move group seats",
+      "PUT",
+      "/groups",
+      { groups: [{ label: "A", playerIds: ["a", "b", "c"] }] },
+    ],
+    [
+      "set meta shares",
+      "PUT",
+      "/legend-meta-shares",
+      { shares: [{ legendCardId: "x", share: 1 }] },
+    ],
+  ])(
+    "refuses to %s once the format left the group stage under the lock",
+    async (_label, method, path, body) => {
+      const { app, repos } = makeApp(tournamentRow({ status: "running", format: "group_cut" }));
+      repos.tournaments.lockRounds.mockImplementation(() => {
+        repos.tournaments.getById.mockResolvedValue(tournamentRow({ status: "running" }));
+        return Promise.resolve();
+      });
+
+      const res = await app.fetch(req(method, `/tournaments/${TOURNAMENT_ID}${path}`, body));
+
+      expect(res.status).toBe(400);
+      expect(repos.podTournaments.getRoundByNumber).not.toHaveBeenCalled();
+    },
+  );
 });

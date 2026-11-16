@@ -626,11 +626,6 @@ export function deckCheckEntriesRepo(db: Kysely<Database>) {
     },
 
     /** Call inside a transaction. */
-    async lockIngest(tournamentId: string): Promise<void> {
-      await lockKey(db, `deck-check-ingest:${tournamentId}`);
-    },
-
-    /** Call inside a transaction. */
     async lockSelfSubmission(tournamentId: string, userId: string): Promise<void> {
       await lockKey(db, `deck-check-self-submit:${tournamentId}:${userId}`);
     },

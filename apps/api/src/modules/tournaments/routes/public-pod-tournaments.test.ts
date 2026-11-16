@@ -5,6 +5,7 @@ import { AppError } from "../../../errors.js";
 import { registerRouterForTest } from "../../../test/mount-router.js";
 import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
+import type * as GroupCutService from "../services/group-cut.js";
 import { publicPodTournamentsRouter } from "./public-pod-tournaments";
 
 const mockSubmitPodResult = vi.fn(() => Promise.resolve());
@@ -14,12 +15,20 @@ vi.mock("../services/pod-pairing.js", () => ({
   submitPodPlayerResult: (...args: unknown[]) => mockSubmitPodPlayerResult(...(args as [])),
 }));
 
+const mockStartGroupRound = vi.fn(() => Promise.resolve());
+vi.mock("../services/group-cut.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof GroupCutService>()),
+  startGroupRound: (...args: unknown[]) => mockStartGroupRound(...(args as [])),
+}));
+
 // The tournaments row itself belongs to `tournamentsRepo`; `podTournamentsRepo`
 // owns only the pod tables (rounds, pods, standings).
 const mockTournamentsRepo = {
   getByShareToken: vi.fn(
     () => Promise.resolve(undefined) as Promise<Record<string, unknown> | undefined>,
   ),
+  lockRounds: vi.fn(() => Promise.resolve()),
+  getById: vi.fn(() => Promise.resolve(undefined) as Promise<Record<string, unknown> | undefined>),
 };
 
 const mockPodTournamentsRepo = {
@@ -415,6 +424,37 @@ describe("PUT /api/v1/pod-tournaments/report/:token/pods/:podId/players/:playerI
     const json = await readJson(res);
     expect(json.message).toBe("This player is not in this pod.");
   });
+});
+
+describe("POST /api/v1/pod-tournaments/report/:token/groups/:groupId/rounds", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  const startRequest = () =>
+    app.request(`/api/v1/pod-tournaments/report/${TOKEN}/groups/${POD_ID}/rounds`, {
+      method: "POST",
+    });
+
+  it.each([
+    ["self-paced groups were turned off", { groupsSelfPaced: false }, 403],
+    ["the report link was revoked", { reportToken: null }, 403],
+  ])(
+    "checks the row read under the rounds lock: refuses once %s",
+    async (_label, change, status) => {
+      const groupCut = { ...dbTournament, format: "group_cut" as const, pairingStyle: "swiss" };
+      mockTournamentsRepo.getByShareToken.mockResolvedValue(groupCut);
+      mockTournamentsRepo.getById.mockResolvedValue({ ...groupCut, ...change });
+
+      const res = await startRequest();
+
+      expect(res.status).toBe(status);
+      const lockOrder = mockTournamentsRepo.lockRounds.mock.invocationCallOrder[0] ?? 0;
+      expect(lockOrder).toBeGreaterThan(0);
+      expect(lockOrder).toBeLessThan(mockTournamentsRepo.getById.mock.invocationCallOrder[0] ?? 0);
+      expect(mockStartGroupRound).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe("pod-tournaments route registration", () => {

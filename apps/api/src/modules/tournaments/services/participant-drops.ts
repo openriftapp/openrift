@@ -70,33 +70,24 @@ function isLive(tournament: Tournament, now: Date): boolean {
 }
 
 async function dropLiveSpot(
-  repos: Repos,
   transact: Transact,
   spot: TournamentParticipant,
   now: Date,
 ): Promise<void> {
-  const tournament = await repos.tournaments.getById(spot.tournamentId);
-  if (tournament === undefined || !isLive(tournament, now)) {
-    return;
-  }
-  if (spot.status === "requested" || spot.status === "invited") {
-    await transact(async (trxRepos) => {
-      await trxRepos.tournaments.lockParticipant(spot.id);
-      const locked = await trxRepos.tournaments.getParticipantById(spot.id);
-      if (locked?.status === "requested" || locked?.status === "invited") {
-        await withdrawPendingSpot(trxRepos, spot.id);
-      }
-    });
-  } else if (spot.status === "active") {
-    await transact(async (trxRepos) => {
-      await trxRepos.tournaments.lockRounds(tournament.id);
-      await trxRepos.tournaments.lockParticipant(spot.id);
-      const locked = await trxRepos.tournaments.getParticipantById(spot.id);
-      if (locked?.status === "active") {
-        await dropParticipant(trxRepos, tournament.id, spot.id);
-      }
-    });
-  }
+  await transact(async (trxRepos) => {
+    await trxRepos.tournaments.lockRounds(spot.tournamentId);
+    const tournament = await trxRepos.tournaments.getById(spot.tournamentId);
+    if (tournament === undefined || !isLive(tournament, now)) {
+      return;
+    }
+    await trxRepos.tournaments.lockParticipant(spot.id);
+    const locked = await trxRepos.tournaments.getParticipantById(spot.id);
+    if (locked?.status === "requested" || locked?.status === "invited") {
+      await withdrawPendingSpot(trxRepos, spot.id);
+    } else if (locked?.status === "active") {
+      await dropParticipant(trxRepos, tournament.id, spot.id);
+    }
+  });
 }
 
 /**
@@ -117,7 +108,7 @@ export async function dropLiveSpotsOfUser(
   }
   for (const spot of spots) {
     try {
-      await dropLiveSpot(repos, transact, spot, now);
+      await dropLiveSpot(transact, spot, now);
     } catch (error) {
       log.error(
         { userId, participantId: spot.id, error: errorMessage(error) },

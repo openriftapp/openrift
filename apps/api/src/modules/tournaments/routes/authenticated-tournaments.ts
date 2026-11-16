@@ -29,6 +29,7 @@ import {
   assertIdentityEditable,
   loadParticipant,
   loadTournament,
+  loadTournamentForWrite,
   requireHost,
   requireManage,
   requireStaff,
@@ -237,8 +238,7 @@ export const tournamentsRouter = {
     // Under the rounds lock, the round guard and the team dissolve see the
     // rounds as they are at the write, never a round generated in between.
     const tournament = await context.transact(async (trxRepos) => {
-      await trxRepos.tournaments.lockRounds(id);
-      const current = await loadTournament(trxRepos, id);
+      const current = await loadTournamentForWrite(trxRepos, id);
       await applySettingsPatch(trxRepos, current, patch, userId);
       return current;
     });
@@ -390,16 +390,18 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireStaff(repos, tournament, userId);
-      assertParticipantsOpen(tournament);
       await assertValidRegion(repos, input.region);
       await withUniqueClaimToken((claimToken) =>
-        repos.tournaments.createParticipant({
-          tournamentId: input.id,
-          displayName: input.displayName,
-          region: input.region ?? null,
-          fixedTable: input.fixedTable ?? null,
-          claimToken,
-          status: "active",
+        context.transact(async (trxRepos) => {
+          assertParticipantsOpen(await loadTournamentForWrite(trxRepos, input.id));
+          await trxRepos.tournaments.createParticipant({
+            tournamentId: input.id,
+            displayName: input.displayName,
+            region: input.region ?? null,
+            fixedTable: input.fixedTable ?? null,
+            claimToken,
+            status: "active",
+          });
         }),
       );
       return buildParticipantList(repos, input.id);
@@ -419,14 +421,15 @@ export const tournamentsRouter = {
       await (touchesManagedFields
         ? requireManage(repos, tournament, userId)
         : requireStaff(repos, tournament, userId));
-      const participant = await loadParticipant(repos, input.id, input.participantId);
-      assertIdentityEditable(participant.displayName, input.displayName !== undefined);
+      await loadParticipant(repos, input.id, input.participantId);
       await assertValidRegion(repos, input.region);
       await context.transact(async (trxRepos) => {
         // The Legend and seed guards read the group stage, so they run under
         // the lock the group and cut writers hold.
-        await trxRepos.tournaments.lockRounds(input.id);
-        const current = await loadTournament(trxRepos, input.id);
+        const current = await loadTournamentForWrite(trxRepos, input.id);
+        await trxRepos.tournaments.lockParticipant(input.participantId);
+        const participant = await loadParticipant(trxRepos, input.id, input.participantId);
+        assertIdentityEditable(participant.displayName, input.displayName !== undefined);
         if (input.legendCardId !== undefined) {
           await assertLegendAssignable(trxRepos, current, input.legendCardId);
         }
@@ -473,8 +476,7 @@ export const tournamentsRouter = {
       await requireManage(repos, tournament, userId);
       await loadParticipant(repos, input.id, input.participantId);
       await context.transact(async (trxRepos) => {
-        await trxRepos.tournaments.lockRounds(input.id);
-        const current = await loadTournament(trxRepos, input.id);
+        const current = await loadTournamentForWrite(trxRepos, input.id);
         const participant = await loadParticipant(trxRepos, input.id, input.participantId);
         await trxRepos.tournaments.updateParticipant(input.participantId, {
           status: "active",
@@ -508,8 +510,8 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      assertParticipantsOpen(tournament);
       await context.transact(async (trxRepos) => {
+        assertParticipantsOpen(await loadTournamentForWrite(trxRepos, input.id));
         await trxRepos.tournaments.lockParticipant(input.participantId);
         const participant = await loadParticipant(trxRepos, input.id, input.participantId);
         if (participant.status !== "requested") {
@@ -689,8 +691,7 @@ export const tournamentsRouter = {
       await context.transact(async (trxRepos) => {
         // Re-read under the lock: a settings edit committed while this waited
         // may have changed the play mode or the format.
-        await trxRepos.tournaments.lockRounds(input.id);
-        const current = await loadTournament(trxRepos, input.id);
+        const current = await loadTournamentForWrite(trxRepos, input.id);
         await (isGroupCut(current)
           ? generateGroupCutRound(trxRepos, current)
           : pairNextRound(trxRepos, current, input.byes));
@@ -705,10 +706,9 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireStaff(repos, tournament, userId);
-      assertGroupCutRun(tournament);
       await context.transact(async (trxRepos) => {
-        await trxRepos.tournaments.lockRounds(input.id);
-        const current = await loadTournament(trxRepos, input.id);
+        const current = await loadTournamentForWrite(trxRepos, input.id);
+        assertGroupCutRun(current);
         await startGroupRoundEngine(trxRepos, current, input.groupId);
       });
       return podRunDetailById(repos, input.id);
@@ -721,10 +721,9 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      assertGroupCutRun(tournament);
       await context.transact(async (trxRepos) => {
-        await trxRepos.tournaments.lockRounds(input.id);
-        const current = await loadTournament(trxRepos, input.id);
+        const current = await loadTournamentForWrite(trxRepos, input.id);
+        assertGroupCutRun(current);
         await startGroupStageRoundEngine(trxRepos, current);
       });
       return podRunDetailById(repos, input.id);
@@ -737,7 +736,13 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      await setLegendMetaShares(repos, tournament, input.shares);
+      await context.transact(async (trxRepos) =>
+        setLegendMetaShares(
+          trxRepos,
+          await loadTournamentForWrite(trxRepos, input.id),
+          input.shares,
+        ),
+      );
       return podRunDetailById(repos, input.id);
     },
   ),
@@ -747,7 +752,9 @@ export const tournamentsRouter = {
       const repos = context.repos;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, context.userId);
-      await context.transact((trxRepos) => replaceGroupSeats(trxRepos, tournament, input.groups));
+      await context.transact(async (trxRepos) =>
+        replaceGroupSeats(trxRepos, await loadTournamentForWrite(trxRepos, input.id), input.groups),
+      );
       return podRunDetailById(repos, input.id);
     },
   ),
@@ -757,8 +764,13 @@ export const tournamentsRouter = {
       const repos = context.repos;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, context.userId);
-      await context.transact((trxRepos) =>
-        replaceCutRoundPairing(trxRepos, tournament, input.roundNumber, input.pods),
+      await context.transact(async (trxRepos) =>
+        replaceCutRoundPairing(
+          trxRepos,
+          await loadTournamentForWrite(trxRepos, input.id),
+          input.roundNumber,
+          input.pods,
+        ),
       );
       return podRunDetailById(repos, input.id);
     },
@@ -770,10 +782,11 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      assertCutRoundEditable(tournament, input.roundNumber);
-      await context.transact((trxRepos) =>
-        replaceRoundPairing(trxRepos, tournament, input.roundNumber, input.pods, input.byes),
-      );
+      await context.transact(async (trxRepos) => {
+        const current = await loadTournamentForWrite(trxRepos, input.id);
+        assertCutRoundEditable(current, input.roundNumber);
+        await replaceRoundPairing(trxRepos, current, input.roundNumber, input.pods, input.byes);
+      });
       return podRunDetailById(repos, input.id);
     },
   ),
@@ -785,9 +798,10 @@ export const tournamentsRouter = {
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
       await context.transact(async (trxRepos) => {
-        await (isGroupCut(tournament)
-          ? rerollGroupCutRound(trxRepos, tournament, input.roundNumber)
-          : rerollRoundEngine(trxRepos, tournament, input.roundNumber));
+        const current = await loadTournamentForWrite(trxRepos, input.id);
+        await (isGroupCut(current)
+          ? rerollGroupCutRound(trxRepos, current, input.roundNumber)
+          : rerollRoundEngine(trxRepos, current, input.roundNumber));
       });
       return podRunDetailById(repos, input.id);
     },
@@ -799,10 +813,11 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      assertCutRoundEditable(tournament, input.roundNumber);
       await context.transact(async (trxRepos) => {
-        await finalizeRoundEngine(trxRepos, tournament, input.roundNumber);
-        await completeAfterFinal(trxRepos, tournament, input.roundNumber);
+        const current = await loadTournamentForWrite(trxRepos, input.id);
+        assertCutRoundEditable(current, input.roundNumber);
+        await finalizeRoundEngine(trxRepos, current, input.roundNumber);
+        await completeAfterFinal(trxRepos, current, input.roundNumber);
       });
       return podRunDetailById(repos, input.id);
     },

@@ -542,11 +542,16 @@ export async function completeAfterFinal(
   tournament: Tournament,
   roundNumber: number,
 ): Promise<void> {
-  if (!isGroupCut(tournament) || isGroupStageRound(roundNumber)) {
+  if (
+    !isGroupCut(tournament) ||
+    isGroupStageRound(roundNumber) ||
+    tournament.status === "completed" ||
+    tournament.status === "cancelled"
+  ) {
     return;
   }
   const pods = await repos.tournamentGroups.podCountForRound(tournament.id, roundNumber);
-  if (pods === 1 && tournament.status !== "completed") {
-    await repos.tournaments.updateSettings(tournament.id, { status: "completed" });
+  if (pods === 1) {
+    await repos.tournaments.completeIfOpen(tournament.id);
   }
 }

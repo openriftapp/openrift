@@ -1,7 +1,9 @@
+import { sql } from "kysely";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createRepos } from "../../../deps.js";
 import { createDbContext } from "../../../test/integration-context.js";
+import { holdRow, waitUntilBlockedBy } from "../../../test/row-locks.js";
 import { scoringOf } from "../lib/pod-scoring.js";
 import { toRoundResponse } from "../lib/pod-tournament-presenters.js";
 import {
@@ -804,5 +806,46 @@ describe.skipIf(!ctx)("podTournamentsRepo (integration)", () => {
       created: false,
       reason: "player_taken",
     });
+  });
+
+  it("refuses a team with a player dropped after the caller's check", async () => {
+    const { tournament, players } = await freshTournament(2);
+    await db
+      .updateTable("tournaments")
+      .set({ playMode: "2v2" })
+      .where("id", "=", tournament.id)
+      .execute();
+    await tournamentsRepo.updateParticipant(players[1]!.id, { status: "dropped" });
+
+    await expect(
+      podRepo.createTeam(tournament.id, [players[0]!.id, players[1]!.id]),
+    ).resolves.toEqual({ created: false, reason: "player_taken" });
+  });
+
+  it("waits out a play-mode change that holds the rounds lock and refuses the team", async () => {
+    const { tournament, players } = await freshTournament(2);
+    await db
+      .updateTable("tournaments")
+      .set({ playMode: "2v2" })
+      .where("id", "=", tournament.id)
+      .execute();
+
+    const editor = await holdRow(
+      db,
+      sql`WITH locked AS (
+        SELECT pg_advisory_xact_lock(hashtext(${`tournament-writes:${tournament.id}`}))
+      ), written AS (
+        UPDATE tournaments SET play_mode = '1v1' WHERE id = ${tournament.id} RETURNING id
+      ) SELECT 1 FROM locked, written`,
+    );
+    let team: ReturnType<typeof podRepo.createTeam> | undefined;
+    try {
+      team = podRepo.createTeam(tournament.id, [players[0]!.id, players[1]!.id]);
+      await waitUntilBlockedBy(db, editor.pid);
+    } finally {
+      await editor.release();
+    }
+
+    await expect(team).resolves.toEqual({ created: false, reason: "not_2v2" });
   });
 });

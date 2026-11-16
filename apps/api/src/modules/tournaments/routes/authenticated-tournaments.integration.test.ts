@@ -1,7 +1,9 @@
+import { sql } from "kysely";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestContext, req } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
+import { holdRow, waitUntilBlockedBy } from "../../../test/row-locks.js";
 import { tournamentsCoreRepo } from "../repositories/tournaments-core.js";
 
 const HOST_ID = crypto.randomUUID();
@@ -706,6 +708,58 @@ describe.skipIf(!hostCtx || !otherCtx || !judgeCtx)(
         req("POST", `/tournaments/${closedId}/participants`, { displayName: "TooLate2" }),
       );
       expect(onCancelled.status).toBe(409);
+    });
+
+    it("refuses a walk-in and an approval that waited for a cancellation", async () => {
+      const created = await host.app.fetch(
+        req("POST", "/tournaments", {
+          name: "Summoner Skirmish Cancel Race",
+          host: { type: "user" },
+          pairingStyle: "pod",
+          deckSubmission: "none",
+          startsAt: "2026-06-01T12:00:00Z",
+        }),
+      );
+      const raceId = ((await readJson(created)) as { id: string }).id;
+      const pending = await host.db
+        .insertInto("tournamentParticipants")
+        .values({ tournamentId: raceId, displayName: "Waiting Yuumi", status: "requested" })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+
+      const canceller = await holdRow(
+        host.db,
+        sql`WITH locked AS (
+          SELECT pg_advisory_xact_lock(hashtext(${`tournament-writes:${raceId}`}))
+        ), written AS (
+          UPDATE tournaments SET status = 'cancelled' WHERE id = ${raceId} RETURNING id
+        ) SELECT 1 FROM locked, written`,
+      );
+      let walkIn: Promise<Response> | Response | undefined;
+      let approval: Promise<Response> | Response | undefined;
+      try {
+        walkIn = host.app.fetch(
+          req("POST", `/tournaments/${raceId}/participants`, { displayName: "Late Teemo" }),
+        );
+        approval = host.app.fetch(
+          req("POST", `/tournaments/${raceId}/participants/${pending.id}/approve`),
+        );
+        await waitUntilBlockedBy(host.db, canceller.pid);
+      } finally {
+        await canceller.release();
+      }
+      const walkInRes = await walkIn;
+      expect(walkInRes?.status).toBe(409);
+      const approvalRes = await approval;
+      expect(approvalRes?.status).toBe(409);
+
+      const rows = await host.db
+        .selectFrom("tournamentParticipants")
+        .select(["displayName", "status"])
+        .where("tournamentId", "=", raceId)
+        .execute();
+      expect(rows).toEqual([{ displayName: "Waiting Yuumi", status: "requested" }]);
+      await host.db.deleteFrom("tournaments").where("id", "=", raceId).execute();
     });
 
     it("drops and reactivates a participant", async () => {

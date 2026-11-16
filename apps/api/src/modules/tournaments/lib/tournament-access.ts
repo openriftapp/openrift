@@ -23,6 +23,12 @@ export async function loadTournament(repos: Repos, id: string): Promise<Tourname
   return tournament;
 }
 
+/** Call inside a transaction: takes the rounds lock, then reads the row every later check uses. */
+export async function loadTournamentForWrite(repos: Repos, id: string): Promise<Tournament> {
+  await repos.tournaments.lockRounds(id);
+  return loadTournament(repos, id);
+}
+
 export async function isHost(
   repos: Repos,
   tournament: Tournament,

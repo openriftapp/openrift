@@ -21,6 +21,7 @@ import type {
   PendingGroupPod,
 } from "../repositories/tournament-groups.js";
 import {
+  completeAfterFinal,
   generateGroupCutRound,
   reportGroupStageWalkovers,
   rerollGroupCutRound,
@@ -786,5 +787,46 @@ describe("rerollGroupCutRound", () => {
     const { repos } = mockRepos({ players: roster, roundRows: rows });
     const message = await messageOf(rerollGroupCutRound(repos, groupCutTournament(), 2));
     expect(message).toContain("fixed schedule");
+  });
+});
+
+describe("completeAfterFinal", () => {
+  function finalRepos(pods: number) {
+    const completeIfOpen = vi.fn(() => Promise.resolve());
+    const updateSettings = vi.fn(() => Promise.resolve());
+    const repos = {
+      tournaments: { completeIfOpen, updateSettings },
+      tournamentGroups: { podCountForRound: vi.fn(() => Promise.resolve(pods)) },
+    } as unknown as Repos;
+    return { repos, completeIfOpen, updateSettings };
+  }
+
+  it("completes a running tournament through the write that skips a closed one", async () => {
+    const { repos, completeIfOpen, updateSettings } = finalRepos(1);
+
+    await completeAfterFinal(repos, groupCutTournament(), 5);
+
+    expect(completeIfOpen).toHaveBeenCalledWith("t-1");
+    expect(updateSettings).not.toHaveBeenCalled();
+  });
+
+  it.each(["cancelled", "completed"] as const)(
+    "leaves a %s tournament as it is",
+    async (status) => {
+      const { repos, completeIfOpen, updateSettings } = finalRepos(1);
+
+      await completeAfterFinal(repos, groupCutTournament({ status }), 5);
+
+      expect(completeIfOpen).not.toHaveBeenCalled();
+      expect(updateSettings).not.toHaveBeenCalled();
+    },
+  );
+
+  it("leaves the tournament running after a cut round with several matches", async () => {
+    const { repos, completeIfOpen } = finalRepos(2);
+
+    await completeAfterFinal(repos, groupCutTournament(), 4);
+
+    expect(completeIfOpen).not.toHaveBeenCalled();
   });
 });

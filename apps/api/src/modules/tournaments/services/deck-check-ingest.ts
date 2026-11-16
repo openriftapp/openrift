@@ -83,9 +83,12 @@ export async function ingestDeckCheckPush(
   payload: DeckCheckIngestPayload,
   appBaseUrl: string,
 ): Promise<DeckCheckIngestResultResponse> {
+  const unknownEvent = "Unknown tournament id. Create the deck-check tournament in OpenRift first.";
+  const found = await repos.deckCheck.getEventForHost(host, payload.tournamentId);
+  assertFound(found, unknownEvent);
+  await repos.tournaments.lockRounds(found.id);
   const event = await repos.deckCheck.getEventForHost(host, payload.tournamentId);
-  assertFound(event, "Unknown tournament id. Create the deck-check tournament in OpenRift first.");
-  await repos.deckCheck.lockIngest(event.id);
+  assertFound(event, unknownEvent);
   if (event.status === "archived") {
     throw conflict("Event is archived. Un-archive it before pushing.");
   }

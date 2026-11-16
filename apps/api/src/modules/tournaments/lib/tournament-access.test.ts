@@ -12,6 +12,7 @@ import {
   loadParticipant,
   lockStillPlaying,
   loadTournament,
+  loadTournamentForWrite,
   requireHost,
   requireManage,
   requireStaff,
@@ -69,8 +70,9 @@ function makeRepos(options: {
   const getOrgById = vi.fn().mockResolvedValue(options.org);
   const getMembership = vi.fn().mockResolvedValue(options.membership);
   const lockParticipant = vi.fn().mockResolvedValue(true);
+  const lockRounds = vi.fn().mockResolvedValue(undefined);
   const repos = {
-    tournaments: { getById, isHostOrStaff, getParticipantById, lockParticipant },
+    tournaments: { getById, isHostOrStaff, getParticipantById, lockParticipant, lockRounds },
     organizations: { getById: getOrgById, getBySlug: vi.fn(), getMembership },
   } as unknown as Repos;
   return {
@@ -79,6 +81,7 @@ function makeRepos(options: {
     isHostOrStaff,
     getParticipantById,
     lockParticipant,
+    lockRounds,
     getOrgById,
     getMembership,
   };
@@ -97,6 +100,25 @@ describe("loadTournament", () => {
     await expect(loadTournament(repos, TOURNAMENT_ID)).rejects.toMatchObject({
       status: 404,
       message: "Tournament not found",
+    });
+  });
+});
+
+describe("loadTournamentForWrite", () => {
+  it("reads the tournament after taking the rounds lock", async () => {
+    const row = tournament();
+    const { repos, getById, lockRounds } = makeRepos({ tournament: row });
+    await expect(loadTournamentForWrite(repos, TOURNAMENT_ID)).resolves.toBe(row);
+    expect(lockRounds).toHaveBeenCalledWith(TOURNAMENT_ID);
+    expect(lockRounds.mock.invocationCallOrder[0]).toBeLessThan(
+      getById.mock.invocationCallOrder[0] ?? 0,
+    );
+  });
+
+  it("throws 404 when the tournament is gone under the lock", async () => {
+    const { repos } = makeRepos({});
+    await expect(loadTournamentForWrite(repos, TOURNAMENT_ID)).rejects.toMatchObject({
+      status: 404,
     });
   });
 });

@@ -12,6 +12,7 @@
 - fix(Meta): **Credits follow the review** — a decklist or event correction that is taken back after being accepted shows as rejected on your submissions page and no longer credits you on the event.
 - fix(Rules): **Rule links land on the rule** — following a rule link after a search, or into a folded section, scrolls to that rule.
 - fix(Packs): **New packs open face down** — opening another pack after "Reveal all" no longer shows it already revealed.
+- fix(Tournaments): **Cancelled events stay cancelled** — finishing the final, adding players or joining no longer slips through while an organizer cancels.
 
 ## 2026-11-16
 
