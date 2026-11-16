@@ -138,11 +138,8 @@ export function batchPreviewQueryKey(kind: BatchKind) {
 }
 
 export function toBatchOutcome(response: RunResponse): BatchOutcome {
-  if ("assigned" in response) {
-    return { done: response.assigned, skipped: [] };
-  }
   return {
-    done: response.accepted,
+    done: "assigned" in response ? response.assigned : response.accepted,
     skipped: response.skipped.map((entry, index) => {
       const label = "name" in entry ? entry.name : entry.label;
       return { key: `${index}:${label}`, label, reason: entry.reason };

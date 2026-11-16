@@ -158,6 +158,19 @@ describe("printingImagesRepo", () => {
     expect(await printingImagesRepo(db).listUnrehosted(10)).toHaveLength(1);
   });
 
+  it("listUnrehosted backs off failed files and takes the least recently tried first", async () => {
+    const recorded = createRecordingDb();
+    await printingImagesRepo(recorded.db).listUnrehosted(10);
+    const query = onlyStatement(recorded).sql.replaceAll(/\s+/gu, " ");
+    expect(query).toContain('left join "image_rehost_failures" as "rf"');
+    expect(query).toContain(
+      "rf.image_file_id IS NULL OR date_trunc('milliseconds', rf.last_attempt_at)",
+    );
+    expect(query).toMatch(
+      /order by rf\.last_attempt_at asc nulls first, "imgf"\."id" limit \$\d+$/u,
+    );
+  });
+
   it("rehostStatusBySet returns per-set stats", async () => {
     const db = createMockDb([{ setId: "OGS", setName: "Proving Grounds", total: 10, rehosted: 5 }]);
     expect(await printingImagesRepo(db).rehostStatusBySet()).toHaveLength(1);

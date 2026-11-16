@@ -1,7 +1,10 @@
+import { createLogger } from "@openrift/shared/logger";
 import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+
+const log = createLogger("health");
 
 export type HealthStatus = "ok" | "db_empty" | "db_not_migrated" | "db_unreachable";
 
@@ -45,9 +48,7 @@ export function healthRepo(db: Kysely<Database>) {
 
         return await Promise.race([check(), timeout]);
       } catch (error) {
-        if (error instanceof HealthTimeoutError) {
-          return "db_unreachable";
-        }
+        log.warn({ err: error }, "database health check failed");
         return "db_unreachable";
       } finally {
         clearTimeout(timer);

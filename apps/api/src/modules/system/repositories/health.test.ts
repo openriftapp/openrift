@@ -5,6 +5,9 @@ import { describe, expect, it, vi } from "vitest";
 import type { Database } from "../../../db/tables.js";
 import { healthRepo } from "./health.js";
 
+const warn = vi.hoisted(() => vi.fn());
+vi.mock("@openrift/shared/logger", () => ({ createLogger: () => ({ warn }) }));
+
 function createHealthMockDb(results: { rows: unknown[] }[]) {
   let callIndex = 0;
   const mockDriver = {
@@ -49,6 +52,16 @@ describe("healthRepo", () => {
     const repo = healthRepo(mockDb);
     const status = await repo.healthCheck(5000);
     expect(status).toBe("db_unreachable");
+  });
+
+  it("logs the failure behind 'db_unreachable'", async () => {
+    warn.mockClear();
+    const mockDb = {
+      executeQuery: vi.fn().mockRejectedValue(new Error("password authentication failed")),
+    } as any;
+
+    expect(await healthRepo(mockDb).healthCheck(5000)).toBe("db_unreachable");
+    expect(warn).toHaveBeenCalledWith({ err: expect.any(Error) }, "database health check failed");
   });
 
   it("returns 'db_unreachable' on timeout", async () => {

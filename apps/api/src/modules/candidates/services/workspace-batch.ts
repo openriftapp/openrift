@@ -272,20 +272,26 @@ export async function assignSuggestedListings(
     (item) => wanted === null || wanted.has(item.listingKey),
   );
   let assigned = 0;
-  for (const { listing } of items) {
+  const skipped: WorkspaceAssignSuggestedListingsResponse["skipped"] = [];
+  for (const { label, listing } of items) {
     try {
-      const { saved } = await saveMappings(options.transact, options.configs[listing.marketplace], [
-        {
-          printingId: listing.printingId,
-          externalId: listing.externalId,
-          finish: listing.finish,
-          language: listing.language,
-        },
-      ]);
+      const { saved, skipped: refused } = await saveMappings(
+        options.transact,
+        options.configs[listing.marketplace],
+        [
+          {
+            printingId: listing.printingId,
+            externalId: listing.externalId,
+            finish: listing.finish,
+            language: listing.language,
+          },
+        ],
+      );
       assigned += saved;
-    } catch {
-      // A failed listing stays in the queue for a person to assign.
+      skipped.push(...refused.map(({ reason }) => ({ label, reason })));
+    } catch (error) {
+      skipped.push({ label, reason: errorMessage(error) });
     }
   }
-  return { assigned };
+  return { assigned, skipped };
 }

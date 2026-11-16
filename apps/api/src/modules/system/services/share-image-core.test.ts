@@ -1,13 +1,17 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Io } from "../../../io.js";
 import { defaultIo } from "../../../io.js";
 import {
   CARD_RADIUS_FRACTION,
+  artFailureLog,
   cardRadiusPx,
   elideTitle,
   tileArtDataUri,
 } from "./share-image-core.js";
+
+const warn = vi.hoisted(() => vi.fn());
+vi.mock("@openrift/shared/logger", () => ({ createLogger: () => ({ warn }) }));
 
 describe("cardRadiusPx", () => {
   it("rounds to 5% of the tile's short edge", () => {
@@ -57,16 +61,51 @@ describe("tileArtDataUri", () => {
   }
 
   it("turns landscape art -90° to fill a portrait tile, like the web app", async () => {
-    const raw = await decode(await tileArtDataUri(await landscapeArtIo(), "id", 72, 102, 1));
+    const raw = await decode(
+      await tileArtDataUri(await landscapeArtIo(), "id", 72, 102, 1, artFailureLog("test")),
+    );
     expect(raw.info.width).toBeLessThan(raw.info.height);
     expect(pixel(raw, 35, 20)).toEqual([0, 0, 255]);
     expect(pixel(raw, 35, 80)).toEqual([255, 0, 0]);
   });
 
   it("keeps landscape art upright in a landscape tile", async () => {
-    const raw = await decode(await tileArtDataUri(await landscapeArtIo(), "id", 102, 72, 1));
+    const raw = await decode(
+      await tileArtDataUri(await landscapeArtIo(), "id", 102, 72, 1, artFailureLog("test")),
+    );
     expect(pixel(raw, 20, 35)).toEqual([255, 0, 0]);
     expect(pixel(raw, 80, 35)).toEqual([0, 0, 255]);
+  });
+});
+
+describe("art failures", () => {
+  beforeEach(() => {
+    warn.mockClear();
+  });
+
+  function ioReading(readFile: () => Promise<Buffer>): Io {
+    return { ...defaultIo, fs: { ...defaultIo.fs, readFile: readFile as never } };
+  }
+
+  it("keeps a missing art file silent", async () => {
+    const missing = Object.assign(new Error("ENOENT: no such file"), { code: "ENOENT" });
+    const io = ioReading(() => Promise.reject(missing));
+
+    expect(await tileArtDataUri(io, "img-1", 72, 102, 1, artFailureLog("deck"))).toBeNull();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("logs the first other failure of one image once", async () => {
+    const io = ioReading(() => Promise.resolve(Buffer.from("not an image")));
+    const failures = artFailureLog("deck");
+
+    expect(await tileArtDataUri(io, "img-1", 72, 102, 1, failures)).toBeNull();
+    expect(await tileArtDataUri(io, "img-2", 72, 102, 1, failures)).toBeNull();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(
+      { err: expect.any(Error), image: "deck", subject: "img-1" },
+      "share image art failed",
+    );
   });
 });
 

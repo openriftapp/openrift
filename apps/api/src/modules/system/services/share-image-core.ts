@@ -1,3 +1,4 @@
+import { createLogger } from "@openrift/shared/logger";
 import { clamp } from "@openrift/shared/math";
 import { qrPngDataUri } from "@openrift/shared/qr";
 import { SHARE_IMAGE_COLORS } from "@openrift/shared/share-image-palette";
@@ -19,6 +20,32 @@ export const QR_SIZE = 84;
 const QR_RADIUS = 6;
 
 const CARD_ART_VARIANT = "full";
+
+const log = createLogger("share-image");
+
+export interface ArtFailureLog {
+  report: (error: unknown, subject: string) => void;
+}
+
+function isMissingFile(error: unknown): boolean {
+  return (
+    typeof error === "object" && error !== null && (error as { code?: unknown }).code === "ENOENT"
+  );
+}
+
+/** One per rendered image: a missing file stays silent, the first other art failure is logged. */
+export function artFailureLog(image: string): ArtFailureLog {
+  let logged = false;
+  return {
+    report(error, subject) {
+      if (logged || isMissingFile(error)) {
+        return;
+      }
+      logged = true;
+      log.warn({ err: error, image, subject }, "share image art failed");
+    },
+  };
+}
 
 export const CARD_RADIUS_FRACTION = 0.05;
 
@@ -102,6 +129,7 @@ async function cardArtDataUri(
   widthPx: number,
   heightPx: number,
   radiusPx: number,
+  failures: ArtFailureLog,
 ): Promise<string | null> {
   try {
     const path = `${CARD_MEDIA_DIR}/${imageId.slice(-2)}/${imageId}-${CARD_ART_VARIANT}.webp`;
@@ -121,8 +149,8 @@ async function cardArtDataUri(
       .png()
       .toBuffer();
     return `data:image/png;base64,${png.toString("base64")}`;
-  } catch {
-    // Falls back to a name-only tile on read/decode failure.
+  } catch (error) {
+    failures.report(error, imageId);
     return null;
   }
 }
@@ -135,6 +163,7 @@ export async function blurredArtBackdropDataUri(
   imageId: string,
   widthPx: number,
   heightPx: number,
+  failures: ArtFailureLog,
 ): Promise<string | null> {
   try {
     const path = `${CARD_MEDIA_DIR}/${imageId.slice(-2)}/${imageId}-${CARD_ART_VARIANT}.webp`;
@@ -150,7 +179,8 @@ export async function blurredArtBackdropDataUri(
       .png()
       .toBuffer();
     return `data:image/png;base64,${png.toString("base64")}`;
-  } catch {
+  } catch (error) {
+    failures.report(error, imageId);
     return null;
   }
 }
@@ -160,6 +190,7 @@ export async function svgToPngDataUri(
   io: Io,
   svg: Buffer,
   sizePx: number,
+  failures: ArtFailureLog,
   intrinsicPx = 24,
 ): Promise<string | null> {
   try {
@@ -170,7 +201,8 @@ export async function svgToPngDataUri(
       .png()
       .toBuffer();
     return `data:image/png;base64,${png.toString("base64")}`;
-  } catch {
+  } catch (error) {
+    failures.report(error, "svg");
     return null;
   }
 }
@@ -181,6 +213,7 @@ export function tileArtDataUri(
   tileW: number,
   tileH: number,
   scale: number,
+  failures: ArtFailureLog,
 ): Promise<string | null> {
   if (!imageId) {
     return Promise.resolve(null);
@@ -193,6 +226,7 @@ export function tileArtDataUri(
     contentW * scale,
     contentH * scale,
     cardRadiusPx(contentW, contentH) * scale,
+    failures,
   );
 }
 
@@ -288,8 +322,18 @@ export function elideTitle(title: string, max: number): string {
  * Dark-on-white: a light-on-dark code is inverted polarity, which older
  * scanners refuse. The white quiet zone doubles as the plate the code needs.
  */
-export function qrDataUri(url: string, scale: number, size = QR_SIZE): Promise<string | null> {
-  return qrPngDataUri(url, { width: size * scale }).catch(() => null);
+export async function qrDataUri(
+  url: string,
+  scale: number,
+  failures: ArtFailureLog,
+  size = QR_SIZE,
+): Promise<string | null> {
+  try {
+    return await qrPngDataUri(url, { width: size * scale });
+  } catch (error) {
+    failures.report(error, "qr");
+    return null;
+  }
 }
 
 /**

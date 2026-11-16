@@ -10,10 +10,11 @@ import { toCents } from "@openrift/shared/money";
 import { headlinePrice } from "@openrift/shared/price-headline";
 import type { PriceRefreshResponse } from "@openrift/shared/types/api/admin";
 import { WellKnown } from "@openrift/shared/well-known";
+import { z } from "zod";
 
 import type { Repos } from "../../../../deps.js";
 import type { Fetch } from "../../../../io.js";
-import { fetchJson } from "../../../../lib/http.js";
+import { fetchJson, parseBody } from "../../../../lib/http.js";
 import type { StagingRow } from "../../lib/marketplace-configs.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
 import { refreshFetchedPrices } from "./finish.js";
@@ -24,30 +25,35 @@ const TCGCSV_BASE = "https://tcgcsv.com/tcgplayer";
 const TCGCSV_CATEGORY = 89;
 const TCGCSV_HEADERS = { "User-Agent": "OpenRift/1.0.0" };
 
-interface TcgcsvGroup {
-  groupId: number;
-  name: string;
-  abbreviation: string;
-}
+const price = z.number().nullish();
 
-interface TcgcsvProduct {
-  productId: number;
-  name: string;
-  cleanName: string;
-  url: string;
-  groupId: number;
-  extendedData: { name: string; value: string }[];
-}
+const tcgcsvGroupSchema = z.object({
+  groupId: z.number().int(),
+  name: z.string(),
+  abbreviation: z.string().nullish(),
+});
 
-interface TcgcsvPrice {
-  productId: number;
-  subTypeName: string;
-  lowPrice: number | null;
-  midPrice: number | null;
-  highPrice: number | null;
-  marketPrice: number | null;
-  directLowPrice: number | null;
-}
+const tcgcsvProductSchema = z.object({
+  productId: z.number().int(),
+  cleanName: z.string(),
+});
+
+const tcgcsvPriceSchema = z.object({
+  productId: z.number().int(),
+  subTypeName: z.string(),
+  lowPrice: price,
+  midPrice: price,
+  highPrice: price,
+  marketPrice: price,
+});
+
+const groupsFeedSchema = z.object({ results: z.array(tcgcsvGroupSchema).min(1) });
+const productsFeedSchema = z.object({ results: z.array(tcgcsvProductSchema) });
+const pricesFeedSchema = z.object({ results: z.array(tcgcsvPriceSchema) });
+
+type TcgcsvGroup = z.infer<typeof tcgcsvGroupSchema>;
+type TcgcsvProduct = z.infer<typeof tcgcsvProductSchema>;
+type TcgcsvPrice = z.infer<typeof tcgcsvPriceSchema>;
 
 interface TcgplayerFetchResult {
   groups: TcgcsvGroup[];
@@ -58,10 +64,14 @@ interface TcgplayerFetchResult {
 }
 
 async function fetchTcgplayerData(fetchFn: Fetch): Promise<TcgplayerFetchResult> {
-  const { data: groupsData } = await fetchJson<{ results: TcgcsvGroup[] }>(
+  const { data: groupsData } = await fetchJson(
     fetchFn,
     `${TCGCSV_BASE}/${TCGCSV_CATEGORY}/groups`,
-    { headers: TCGCSV_HEADERS, retries: PRICE_FETCH_RETRIES },
+    {
+      headers: TCGCSV_HEADERS,
+      retries: PRICE_FETCH_RETRIES,
+      transform: parseBody(groupsFeedSchema, "TCGCSV groups"),
+    },
   );
   const groups = groupsData.results;
 
@@ -73,26 +83,29 @@ async function fetchTcgplayerData(fetchFn: Fetch): Promise<TcgplayerFetchResult>
   await Promise.all(
     groups.map(async (group) => {
       const [productsRes, pricesRes] = await Promise.all([
-        fetchJson<{ results: TcgcsvProduct[] }>(
-          fetchFn,
-          `${TCGCSV_BASE}/${TCGCSV_CATEGORY}/${group.groupId}/products`,
-          { headers: TCGCSV_HEADERS, retries: PRICE_FETCH_RETRIES },
-        ),
-        fetchJson<{ results: TcgcsvPrice[] }>(
-          fetchFn,
-          `${TCGCSV_BASE}/${TCGCSV_CATEGORY}/${group.groupId}/prices`,
-          { headers: TCGCSV_HEADERS, retries: PRICE_FETCH_RETRIES },
-        ),
+        fetchJson(fetchFn, `${TCGCSV_BASE}/${TCGCSV_CATEGORY}/${group.groupId}/products`, {
+          headers: TCGCSV_HEADERS,
+          retries: PRICE_FETCH_RETRIES,
+          transform: parseBody(productsFeedSchema, `TCGCSV products of group ${group.groupId}`),
+        }),
+        fetchJson(fetchFn, `${TCGCSV_BASE}/${TCGCSV_CATEGORY}/${group.groupId}/prices`, {
+          headers: TCGCSV_HEADERS,
+          retries: PRICE_FETCH_RETRIES,
+          transform: parseBody(pricesFeedSchema, `TCGCSV prices of group ${group.groupId}`),
+        }),
       ]);
 
-      const products = productsRes.data.results || [];
+      const products = productsRes.data.results;
       groupProducts.set(group.groupId, products);
       totalProducts += products.length;
 
       groupRecordedAt.set(group.groupId, pricesRes.lastModified ?? new Date());
-      groupPrices.set(group.groupId, pricesRes.data.results || []);
+      groupPrices.set(group.groupId, pricesRes.data.results);
     }),
   );
+  if (totalProducts === 0) {
+    throw new Error(`TCGCSV listed ${groups.length} groups but no products in any of them`);
+  }
 
   return {
     groups,
@@ -163,7 +176,7 @@ function buildTcgplayerGroups(groups: TcgcsvGroup[]): GroupRow[] {
   return groups.map((g) => ({
     groupId: g.groupId,
     name: g.name,
-    abbreviation: g.abbreviation,
+    abbreviation: g.abbreviation ?? undefined,
   }));
 }
 

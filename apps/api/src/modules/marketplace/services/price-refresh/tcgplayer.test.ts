@@ -148,7 +148,15 @@ interface MockApiData {
   lastModifiedByGroup?: Map<number, Date | null>;
 }
 
-function setupFetchJson(fetchJsonSpy: ReturnType<typeof vi.spyOn>, data: MockApiData = {}) {
+const ONE_PRODUCT: MockApiData = {
+  groups: [GROUP_A],
+  productsByGroup: new Map([[101, [PRODUCT_FLAME]]]),
+};
+
+function setupFetchJson(
+  fetchJsonSpy: ReturnType<typeof vi.spyOn>,
+  data: MockApiData = ONE_PRODUCT,
+) {
   const groups = data.groups ?? [];
   const productsByGroup = data.productsByGroup ?? new Map();
   const pricesByGroup = data.pricesByGroup ?? new Map();
@@ -222,18 +230,68 @@ describe("refreshTcgplayerPrices", () => {
       expect(urls).toContainEqual("https://tcgcsv.com/tcgplayer/89/101/prices");
     });
 
-    it("handles empty groups gracefully", async () => {
+    function feedFetch(bodies: { groups: unknown; products?: unknown; prices?: unknown }): Fetch {
+      return (async (url: string) => {
+        if (url.endsWith("/groups")) {
+          return Response.json(bodies.groups);
+        }
+        return Response.json(
+          url.endsWith("/products") ? bodies.products : (bodies.prices ?? { results: [] }),
+        );
+      }) as Fetch;
+    }
+
+    it("fails the run when the groups feed is empty", async () => {
+      fetchJsonSpy.mockRestore();
       const { repos } = createMockRepos();
       const { log } = makeMockLogger();
-      setupFetchJson(fetchJsonSpy);
 
-      const result = await refreshTcgplayerPrices(stubFetch, repos, log);
+      await expect(
+        refreshTcgplayerPrices(feedFetch({ groups: { results: [] } }), repos, log),
+      ).rejects.toThrow("TCGCSV groups returned an unexpected payload");
+      expect(upsertSpy).not.toHaveBeenCalled();
+    });
 
-      const staging = upsertStaging(upsertSpy);
-      expect(staging).toHaveLength(0);
-      expect(result.transformed.groups).toBe(0);
-      expect(result.transformed.products).toBe(0);
-      expect(result.transformed.prices).toBe(0);
+    it("fails the run on a renamed feed field and writes no prices", async () => {
+      fetchJsonSpy.mockRestore();
+      const { repos } = createMockRepos();
+      const { log } = makeMockLogger();
+      const fetchFn = feedFetch({
+        groups: { results: [GROUP_A] },
+        products: { products: [PRODUCT_FLAME] },
+      });
+
+      await expect(refreshTcgplayerPrices(fetchFn, repos, log)).rejects.toThrow(
+        "TCGCSV products of group 101 returned an unexpected payload",
+      );
+      expect(upsertSpy).not.toHaveBeenCalled();
+    });
+
+    it("fails the run when no group lists a product", async () => {
+      fetchJsonSpy.mockRestore();
+      const { repos } = createMockRepos();
+      const { log } = makeMockLogger();
+      const fetchFn = feedFetch({ groups: { results: [GROUP_A] }, products: { results: [] } });
+
+      await expect(refreshTcgplayerPrices(fetchFn, repos, log)).rejects.toThrow(
+        "no products in any of them",
+      );
+      expect(upsertSpy).not.toHaveBeenCalled();
+    });
+
+    it("reads well-formed feeds through the validator", async () => {
+      fetchJsonSpy.mockRestore();
+      const { repos } = createMockRepos();
+      const { log } = makeMockLogger();
+      const fetchFn = feedFetch({
+        groups: { results: [GROUP_A] },
+        products: { results: [PRODUCT_FLAME] },
+        prices: { results: [PRICE_FLAME_NORMAL] },
+      });
+
+      const result = await refreshTcgplayerPrices(fetchFn, repos, log);
+
+      expect(result.transformed).toEqual({ groups: 1, products: 1, prices: 1 });
     });
 
     it("fetches products and prices for each group", async () => {
@@ -263,7 +321,7 @@ describe("refreshTcgplayerPrices", () => {
     it("asks every fetch to retry a transient failure", async () => {
       const { repos } = createMockRepos();
       const { log } = makeMockLogger();
-      setupFetchJson(fetchJsonSpy, { groups: [GROUP_A] });
+      setupFetchJson(fetchJsonSpy);
 
       await refreshTcgplayerPrices(stubFetch, repos, log);
 
@@ -474,7 +532,7 @@ describe("refreshTcgplayerPrices", () => {
       expect(wasUpsertGroupsCalled()).toBe(true);
     });
 
-    it("does not upsert groups when there are no groups", async () => {
+    it("upserts the fetched groups", async () => {
       const { repos, wasUpsertGroupsCalled } = createMockRepos();
       const { log } = makeMockLogger();
       setupFetchJson(fetchJsonSpy);
@@ -674,12 +732,10 @@ describe("refreshTcgplayerPrices", () => {
   });
 
   describe("edge cases", () => {
-    it("handles groups with missing products or prices gracefully", async () => {
+    it("stages nothing for a product without prices", async () => {
       const { repos } = createMockRepos();
       const { log } = makeMockLogger();
-      setupFetchJson(fetchJsonSpy, {
-        groups: [GROUP_A],
-      });
+      setupFetchJson(fetchJsonSpy);
 
       await refreshTcgplayerPrices(stubFetch, repos, log);
 

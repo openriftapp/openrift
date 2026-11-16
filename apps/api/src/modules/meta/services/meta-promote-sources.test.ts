@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Repos } from "../../../deps.js";
-import { factsFor } from "./meta-promote-sources.js";
+import { factsFor, sourceEventFacts, sourceStandings } from "./meta-promote-sources.js";
 
 const CONTEXT = {
   formatMappings: new Map<string, string>(),
@@ -88,5 +88,48 @@ describe("keyed source standings", () => {
     const facts = await factsFor(reposFor(), "topdeck", "tid-1", CONTEXT);
 
     expect(facts?.standings).toEqual(expected("t7", "topdeck"));
+  });
+});
+
+function uvsgamesRepos(byKey: () => Promise<unknown>): Repos {
+  return {
+    uvsgamesEvents: {
+      byKey,
+      formatMappings: () => Promise.resolve(new Map()),
+      templateTiers: () => Promise.resolve(new Map()),
+      settings: () => Promise.resolve({ competitivePlayerFloor: 128 }),
+    },
+    uvsgamesResults: { standings: () => Promise.resolve([]) },
+  } as unknown as Repos;
+}
+
+const UNMAPPED_LISTING = {
+  name: "Summoner Skirmish",
+  eventFormat: "Arena Brawl",
+  startAt: new Date("2026-10-18T02:00:00Z"),
+  timezone: null,
+  playerCount: 16,
+  location: null,
+  storeName: null,
+  eventConfigurationTemplate: null,
+};
+
+describe("source reads for the admin views", () => {
+  it("reads an unmapped format as no facts and no standings", async () => {
+    const repos = uvsgamesRepos(() => Promise.resolve(UNMAPPED_LISTING));
+
+    await expect(sourceEventFacts(repos, "uvsgames", "e-1")).resolves.toBeNull();
+    await expect(sourceStandings(repos, "uvsgames", "e-1")).resolves.toEqual([]);
+  });
+
+  it("lets a database failure through", async () => {
+    const repos = uvsgamesRepos(() => Promise.reject(new Error("connection terminated")));
+
+    await expect(sourceEventFacts(repos, "uvsgames", "e-1")).rejects.toThrow(
+      "connection terminated",
+    );
+    await expect(sourceStandings(repos, "uvsgames", "e-1")).rejects.toThrow(
+      "connection terminated",
+    );
   });
 });

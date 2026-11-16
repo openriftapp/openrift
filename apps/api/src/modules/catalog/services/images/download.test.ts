@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { mockFetch, mockIo, resetImageMocks } from "../../../../test/image-mocks.js";
-import { MAX_IMAGE_BYTES, downloadImage, isPrivateIp } from "./download.js";
+import { DownloadError, MAX_IMAGE_BYTES, downloadImage, isPrivateIp } from "./download.js";
+import { rehostFailureReason } from "./rehost-error.js";
 
 let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
@@ -50,6 +51,32 @@ describe("downloadImage", () => {
     await expect(downloadImage(mockIo, "https://example.com/x")).rejects.toThrow(
       "Download failed (404)",
     );
+  });
+
+  it("classifies by the failure, not by words in the URL", async () => {
+    mockFetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
+    const notFound = await downloadImage(
+      mockIo,
+      "https://cdn.example.com/timeout-redirect/larger than.png",
+    ).catch((error: unknown) => error);
+    expect(rehostFailureReason(notFound)).toBe("HTTP 404");
+
+    mockFetch.mockRejectedValueOnce(new TypeError("network down"));
+    const offline = await downloadImage(mockIo, "https://cdn.example.com/timeout.png").catch(
+      (error: unknown) => error,
+    );
+    expect(rehostFailureReason(offline)).toBe("connection failed");
+  });
+
+  it("marks a fetch timeout as a timeout and keeps the cause", async () => {
+    const timeout = Object.assign(new Error("The operation timed out."), { name: "TimeoutError" });
+    mockFetch.mockRejectedValueOnce(timeout);
+    const error = await downloadImage(mockIo, "https://example.com/x").catch(
+      (error_: unknown) => error_,
+    );
+    expect(error).toBeInstanceOf(DownloadError);
+    expect((error as DownloadError).failure).toEqual({ kind: "timeout" });
+    expect((error as DownloadError).cause).toBe(timeout);
   });
 
   it("handles content-type with extra params (charset)", async () => {

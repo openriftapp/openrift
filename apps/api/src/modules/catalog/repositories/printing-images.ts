@@ -31,6 +31,15 @@ const IMAGE_FACE = sql<CardFace>`(
   LIMIT 1
 )`;
 
+/** Over `rf` (image_rehost_failures): a failed file waits 1 h, doubling per attempt, at most a day. */
+const REHOST_RETRY_DUE = sql<boolean>`(
+  rf.image_file_id IS NULL
+  OR date_trunc('milliseconds', rf.last_attempt_at) < now() - least(
+    interval '1 hour' * power(2, least(rf.attempts - 1, 10)),
+    interval '1 day'
+  )
+)`;
+
 export function printingImagesRepo(db: Kysely<Database>) {
   async function requireFaceId(printingId: string, face: CardFace): Promise<string> {
     const row = await db
@@ -600,13 +609,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
               )
               OR EXISTS (SELECT 1 FROM faces fc WHERE fc.fallback_image_file_id = f.id)
             )
-            AND (
-              rf.image_file_id IS NULL
-              OR date_trunc('milliseconds', rf.last_attempt_at) < now() - least(
-                interval '1 hour' * power(2, least(rf.attempts - 1, 10)),
-                interval '1 day'
-              )
-            )
+            AND ${REHOST_RETRY_DUE}
           )
         ORDER BY rf.last_attempt_at ASC NULLS FIRST, f.id
         LIMIT ${limit}
@@ -616,8 +619,8 @@ export function printingImagesRepo(db: Kysely<Database>) {
 
     listUnrehosted(limit: number) {
       return db
-        .selectFrom("faceImages as pi")
-        .innerJoin("imageFiles as imgf", "imgf.id", "pi.imageFileId")
+        .selectFrom("imageFiles as imgf")
+        .leftJoin("imageRehostFailures as rf", "rf.imageFileId", "imgf.id")
         .select([
           "imgf.id as imageId",
           "imgf.originalUrl",
@@ -627,7 +630,17 @@ export function printingImagesRepo(db: Kysely<Database>) {
         ])
         .where("imgf.rehostedUrl", "is", null)
         .where("imgf.originalUrl", "is not", null)
-        .groupBy(["imgf.id", "imgf.originalUrl", "imgf.rotation", "imgf.needsTrim", "imgf.quad"])
+        .where((eb) =>
+          eb.exists(
+            eb
+              .selectFrom("faceImages as pi")
+              .select("pi.id")
+              .whereRef("pi.imageFileId", "=", "imgf.id"),
+          ),
+        )
+        .where(REHOST_RETRY_DUE)
+        .orderBy(sql`rf.last_attempt_at asc nulls first`)
+        .orderBy("imgf.id")
         .limit(limit)
         .execute();
     },

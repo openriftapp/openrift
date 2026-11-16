@@ -10,10 +10,11 @@ import { toCents } from "@openrift/shared/money";
 import { headlinePrice } from "@openrift/shared/price-headline";
 import type { PriceRefreshResponse } from "@openrift/shared/types/api/admin";
 import { WellKnown } from "@openrift/shared/well-known";
+import { z } from "zod";
 
 import type { Repos } from "../../../../deps.js";
 import type { Fetch } from "../../../../io.js";
-import { fetchJson } from "../../../../lib/http.js";
+import { fetchJson, parseBody } from "../../../../lib/http.js";
 import type { StagingRow } from "../../lib/marketplace-configs.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
 import { refreshFetchedPrices } from "./finish.js";
@@ -23,27 +24,39 @@ import type { GroupRow } from "./types.js";
 const CARDMARKET_BASE = "https://downloads.s3.cardmarket.com/productCatalog";
 const CARDMARKET_GAME = 22;
 
-interface CmProduct {
-  idProduct: number;
-  name: string;
-  idExpansion: number;
-}
+const price = z.number().nullish();
 
-interface CmPriceGuide {
-  idProduct: number;
-  avg: number;
-  low: number;
-  trend: number;
-  "avg-foil": number;
-  "low-foil": number;
-  "trend-foil": number;
-  avg1: number;
-  avg7: number;
-  avg30: number;
-  "avg1-foil": number;
-  "avg7-foil": number;
-  "avg30-foil": number;
-}
+const cmProductSchema = z.object({
+  idProduct: z.number().int(),
+  name: z.string(),
+  idExpansion: z.number().int(),
+});
+
+const cmPriceGuideSchema = z.object({
+  idProduct: z.number().int(),
+  avg: price,
+  low: price,
+  trend: price,
+  "avg-foil": price,
+  "low-foil": price,
+  "trend-foil": price,
+  avg1: price,
+  avg7: price,
+  avg30: price,
+  "avg1-foil": price,
+  "avg7-foil": price,
+  "avg30-foil": price,
+});
+
+const cmPriceGuideFeedSchema = z.object({
+  createdAt: z.string().optional(),
+  priceGuides: z.array(cmPriceGuideSchema).min(1),
+});
+
+const cmSinglesFeedSchema = z.object({ products: z.array(cmProductSchema).min(1) });
+
+type CmProduct = z.infer<typeof cmProductSchema>;
+type CmPriceGuide = z.infer<typeof cmPriceGuideSchema>;
 
 interface CardmarketFetchResult {
   singles: CmProduct[];
@@ -53,16 +66,14 @@ interface CardmarketFetchResult {
 
 async function fetchCardmarketData(fetchFn: Fetch): Promise<CardmarketFetchResult> {
   const [cmPriceGuideRes, cmSinglesRes] = await Promise.all([
-    fetchJson<{ createdAt?: string; priceGuides: CmPriceGuide[] }>(
-      fetchFn,
-      `${CARDMARKET_BASE}/priceGuide/price_guide_${CARDMARKET_GAME}.json`,
-      { retries: PRICE_FETCH_RETRIES },
-    ),
-    fetchJson<{ products: CmProduct[] }>(
-      fetchFn,
-      `${CARDMARKET_BASE}/productList/products_singles_${CARDMARKET_GAME}.json`,
-      { retries: PRICE_FETCH_RETRIES },
-    ),
+    fetchJson(fetchFn, `${CARDMARKET_BASE}/priceGuide/price_guide_${CARDMARKET_GAME}.json`, {
+      retries: PRICE_FETCH_RETRIES,
+      transform: parseBody(cmPriceGuideFeedSchema, "Cardmarket price guide"),
+    }),
+    fetchJson(fetchFn, `${CARDMARKET_BASE}/productList/products_singles_${CARDMARKET_GAME}.json`, {
+      retries: PRICE_FETCH_RETRIES,
+      transform: parseBody(cmSinglesFeedSchema, "Cardmarket singles list"),
+    }),
   ]);
 
   const recordedAt = cmPriceGuideRes.data.createdAt
@@ -70,8 +81,8 @@ async function fetchCardmarketData(fetchFn: Fetch): Promise<CardmarketFetchResul
     : (cmPriceGuideRes.lastModified ?? new Date());
 
   return {
-    singles: cmSinglesRes.data.products || [],
-    priceGuides: cmPriceGuideRes.data.priceGuides || [],
+    singles: cmSinglesRes.data.products,
+    priceGuides: cmPriceGuideRes.data.priceGuides,
     recordedAt,
   };
 }

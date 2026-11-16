@@ -565,14 +565,14 @@ describe("suggested listings", () => {
       async () => LISTINGS,
     );
 
-    expect(result).toEqual({ assigned: 1 });
+    expect(result).toEqual({ assigned: 1, skipped: [] });
     expect(saveMappings).toHaveBeenCalledTimes(1);
     expect(saveMappings).toHaveBeenCalledWith(transact, configs.tcgplayer, [
       { printingId: "pr-4", externalId: 4, finish: "normal", language: null },
     ]);
   });
 
-  it("counts only saved listings and survives a failing one", async () => {
+  it("reports a failing listing with its reason and keeps going", async () => {
     vi.mocked(saveMappings)
       .mockRejectedValueOnce(new Error("boom"))
       .mockResolvedValueOnce({ saved: 1, skipped: [], applied: [] });
@@ -583,8 +583,35 @@ describe("suggested listings", () => {
       async () => LISTINGS,
     );
 
-    expect(result).toEqual({ assigned: 1 });
+    expect(result).toEqual({
+      assigned: 1,
+      skipped: [{ label: "Product 1 → Poro Herder OGN-027 normal EN", reason: "boom" }],
+    });
     expect(saveMappings).toHaveBeenCalledTimes(2);
+  });
+
+  it("reports a listing the mapping save refused", async () => {
+    vi.mocked(saveMappings).mockResolvedValueOnce({
+      saved: 0,
+      skipped: [{ externalId: 4, reason: "no marketplace product found" }],
+      applied: [],
+    });
+    const configs = { tcgplayer: {} } as unknown as MarketplaceConfigs;
+
+    const result = await assignSuggestedListings(
+      { access: ADMIN, transact, configs, input: { listingKeys: ["tcgplayer::4::normal::"] } },
+      async () => LISTINGS,
+    );
+
+    expect(result).toEqual({
+      assigned: 0,
+      skipped: [
+        {
+          label: "Product 4 → Poro Herder OGN-027 normal EN",
+          reason: "no marketplace product found",
+        },
+      ],
+    });
   });
 
   it("rejects non-admins", async () => {

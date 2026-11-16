@@ -7,6 +7,7 @@ import type { Io } from "../../../io.js";
 import type { Child, Element } from "./share-image-core.js";
 import {
   QR_SIZE,
+  artFailureLog,
   cardRadiusPx,
   cardTile,
   element,
@@ -258,9 +259,12 @@ async function renderLandscapeShareImage(
   const areaH = placement === "footer" ? fullAreaH - footerH - GAP : fullAreaH;
   const { cols, cellW, cellH } = computeGrid(Math.max(cellCount, 1), areaW, areaH);
 
+  const failures = artFailureLog("share");
   const [dataUris, qrUri] = await Promise.all([
-    Promise.all(shown.map((card) => tileArtDataUri(io, card.imageId, cellW, cellH, scale))),
-    withQr && input.shareUrl ? qrDataUri(input.shareUrl, scale) : Promise.resolve(null),
+    Promise.all(
+      shown.map((card) => tileArtDataUri(io, card.imageId, cellW, cellH, scale, failures)),
+    ),
+    withQr && input.shareUrl ? qrDataUri(input.shareUrl, scale, failures) : Promise.resolve(null),
   ]);
 
   const cells: Child[] = shown.map((card, index) =>
@@ -343,9 +347,14 @@ async function renderVerticalShareImage(
   const cellCount = shown.length + (overflow ? 1 : 0);
   const { cols, cellW, cellH } = bestGridForArea(Math.max(cellCount, 1), areaW, areaH, V_GRID_GAP);
 
+  const failures = artFailureLog("share");
   const [dataUris, qrUri] = await Promise.all([
-    Promise.all(shown.map((card) => tileArtDataUri(io, card.imageId, cellW, cellH, scale))),
-    hasQr && input.shareUrl ? qrDataUri(input.shareUrl, scale, V_HEADER_QR) : Promise.resolve(null),
+    Promise.all(
+      shown.map((card) => tileArtDataUri(io, card.imageId, cellW, cellH, scale, failures)),
+    ),
+    hasQr && input.shareUrl
+      ? qrDataUri(input.shareUrl, scale, failures, V_HEADER_QR)
+      : Promise.resolve(null),
   ]);
 
   const cells: Child[] = shown.map((card, index) =>

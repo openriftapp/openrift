@@ -6,6 +6,7 @@ import { pluralize } from "@openrift/shared/strings";
 import type { Io } from "../../../io.js";
 import type { Element } from "../../system/services/share-image-core.js";
 import {
+  artFailureLog,
   cardTile,
   element,
   renderTreeToPng,
@@ -50,8 +51,9 @@ export async function renderErrataImage(
 ): Promise<Buffer> {
   const { width, height } = SHARE_IMAGE_CANVAS.landscape;
   const cards = input.cards.slice(0, FAN_SLOTS.length);
+  const failures = artFailureLog("errata");
   const arts = await Promise.all(
-    cards.map((card) => tileArtDataUri(io, card.imageId, CARD_W, CARD_H, scale)),
+    cards.map((card) => tileArtDataUri(io, card.imageId, CARD_W, CARD_H, scale, failures)),
   );
   const fanCards = cards
     .map((card, index) => ({ card, art: arts[index] ?? null, slot: FAN_SLOTS[index] }))

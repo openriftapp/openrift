@@ -54,6 +54,7 @@ export const workspaceAssignSuggestedListingsInputSchema = z.object({
 
 export const workspaceAssignSuggestedListingsResponseSchema = z.object({
   assigned: z.number().int().min(0),
+  skipped: z.array(z.object({ label: z.string(), reason: z.string() })),
 });
 
 export const adminCatalogWorkspaceBatchContract = {

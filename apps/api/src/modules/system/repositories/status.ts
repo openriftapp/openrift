@@ -1,9 +1,12 @@
 import type { AdminGrowthDay, AdminGrowthMetric } from "@openrift/shared/contracts/admin/dashboard";
+import { createLogger } from "@openrift/shared/logger";
 import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import { META_ARCHIVE_USER_ID } from "../../meta/repositories/meta-shared.js";
+
+const log = createLogger("status");
 
 interface DbStatus {
   status: string;
@@ -79,7 +82,8 @@ export function statusRepo(db: Kysely<Database>) {
           latestMigration,
           totalMigrations,
         };
-      } catch {
+      } catch (error) {
+        log.warn({ err: error }, "database status query failed");
         return {
           status: "unreachable",
           sizeMb: null,

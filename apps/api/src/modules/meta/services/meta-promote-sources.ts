@@ -1,4 +1,5 @@
 import { todayUtc } from "@openrift/shared/format-date";
+import { createLogger } from "@openrift/shared/logger";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Repos } from "../../../deps.js";
@@ -32,6 +33,8 @@ import {
   unkeyedIdentityOf,
   UnmappableFormatError,
 } from "./meta-promote-shared.js";
+
+const log = createLogger("meta-promote");
 
 async function uvsgamesFacts(
   repos: Repos,
@@ -308,7 +311,14 @@ async function playriftboundFacts(
   };
 }
 
-/** Never throws: an unreadable mirror row returns null. */
+function unmappedOrThrow(error: unknown, provider: string, externalId: string): void {
+  if (!(error instanceof UnmappableFormatError)) {
+    throw error;
+  }
+  log.info({ provider, externalId, reason: error.message }, "mirror event has an unmapped format");
+}
+
+/** A mirror row whose format has no mapping returns null. */
 export async function sourceEventFacts(
   repos: Repos,
   provider: string,
@@ -323,15 +333,13 @@ export async function sourceEventFacts(
       context ?? (await createMetaSourceContext(repos)),
     );
     return facts === null ? null : { values: facts.event, raw: facts.raw };
-  } catch {
+  } catch (error) {
+    unmappedOrThrow(error, provider, externalId);
     return null;
   }
 }
 
-/**
- * One mirror's standings as promotion would read them, identities included.
- * Never throws, for the same reason {@link sourceEventFacts} does not.
- */
+/** One mirror's standings as promotion would read them, identities included; none when its format is unmapped. */
 export async function sourceStandings(
   repos: Repos,
   provider: string,
@@ -340,7 +348,8 @@ export async function sourceStandings(
   try {
     const facts = await factsFor(repos, provider, externalId, await createMetaSourceContext(repos));
     return facts?.standings ?? [];
-  } catch {
+  } catch (error) {
+    unmappedOrThrow(error, provider, externalId);
     return [];
   }
 }

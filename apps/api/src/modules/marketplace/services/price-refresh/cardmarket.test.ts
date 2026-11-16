@@ -205,19 +205,60 @@ describe("refreshCardmarketPrices", () => {
       await refreshCardmarketPrices(stubFetch, repos, log);
 
       const options = fetchJsonSpy.mock.calls.map((c: unknown[]) => c[2]);
-      expect(options).toEqual([{ retries: PRICE_FETCH_RETRIES }, { retries: PRICE_FETCH_RETRIES }]);
+      expect(options).toEqual([
+        expect.objectContaining({ retries: PRICE_FETCH_RETRIES }),
+        expect.objectContaining({ retries: PRICE_FETCH_RETRIES }),
+      ]);
     });
 
-    it("handles empty API responses gracefully", async () => {
+    function feedFetch(priceGuideBody: unknown, singlesBody: unknown): Fetch {
+      return (async (url: string) =>
+        Response.json(url.includes("priceGuide") ? priceGuideBody : singlesBody)) as Fetch;
+    }
+
+    it("fails the run on a renamed feed field and writes no prices", async () => {
+      fetchJsonSpy.mockRestore();
       const { repos } = createMockRepos();
       const { log } = makeMockLogger();
+      const fetchFn = feedFetch(
+        { createdAt: CREATED_AT, priceGuides: [PRICE_BLAZING] },
+        { singles: [PRODUCT_BLAZING] },
+      );
 
-      const result = await refreshCardmarketPrices(stubFetch, repos, log);
+      await expect(refreshCardmarketPrices(fetchFn, repos, log)).rejects.toThrow(
+        "Cardmarket singles list returned an unexpected payload",
+      );
+      expect(upsertSpy).not.toHaveBeenCalled();
+    });
 
-      const staging = upsertStaging();
-      expect(staging).toHaveLength(0);
-      expect(result.transformed.products).toBe(0);
-      expect(result.transformed.prices).toBe(0);
+    it("fails the run on an empty price guide", async () => {
+      fetchJsonSpy.mockRestore();
+      const { repos } = createMockRepos();
+      const { log } = makeMockLogger();
+      const fetchFn = feedFetch(
+        { createdAt: CREATED_AT, priceGuides: [] },
+        { products: [PRODUCT_BLAZING] },
+      );
+
+      await expect(refreshCardmarketPrices(fetchFn, repos, log)).rejects.toThrow(
+        "Cardmarket price guide returned an unexpected payload",
+      );
+      expect(upsertSpy).not.toHaveBeenCalled();
+    });
+
+    it("reads a well-formed feed through the validator", async () => {
+      fetchJsonSpy.mockRestore();
+      const { repos } = createMockRepos();
+      const { log } = makeMockLogger();
+      const fetchFn = feedFetch(
+        { createdAt: CREATED_AT, priceGuides: [PRICE_BLAZING] },
+        { products: [PRODUCT_BLAZING] },
+      );
+
+      const result = await refreshCardmarketPrices(fetchFn, repos, log);
+
+      expect(result.transformed.products).toBe(1);
+      expect(upsertStaging()).toHaveLength(2);
     });
   });
 

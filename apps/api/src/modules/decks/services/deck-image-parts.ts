@@ -7,8 +7,9 @@ import { SHARE_IMAGE_COLORS } from "@openrift/shared/share-image-palette";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Io } from "../../../io.js";
-import type { Child, Element } from "../../system/services/share-image-core.js";
+import type { ArtFailureLog, Child, Element } from "../../system/services/share-image-core.js";
 import {
+  artFailureLog,
   blurredArtBackdropDataUri,
   element,
   qrDataUri,
@@ -212,13 +213,15 @@ async function glyphUri(
   domain: string,
   sizePx: number,
   scale: number,
+  failures: ArtFailureLog,
 ): Promise<string | null> {
   try {
     const svg = await io.fs.readFile(
       `${import.meta.dirname}/../../../assets/glyphs/rune-${domain}.svg`,
     );
-    return await svgToPngDataUri(io, svg, sizePx * scale);
-  } catch {
+    return await svgToPngDataUri(io, svg, sizePx * scale, failures);
+  } catch (error) {
+    failures.report(error, `rune-${domain}`);
     return null;
   }
 }
@@ -307,6 +310,7 @@ function deckBackdropUri(
   width: number,
   height: number,
   scale: number,
+  failures: ArtFailureLog,
 ): Promise<string | null> {
   if (!imageId) {
     return Promise.resolve(null);
@@ -316,6 +320,7 @@ function deckBackdropUri(
     imageId,
     Math.round((width / 2) * scale),
     Math.round((height / 2) * scale),
+    failures,
   );
 }
 
@@ -380,8 +385,11 @@ export async function loadDeckArt(
   canvas: { width: number; height: number; domainIcon: number; headerQr: number },
   scale: number,
 ) {
+  const failures = artFailureLog("deck");
   const tiles = (list: readonly WithArt[], size: TileSize) =>
-    Promise.all(list.map((card) => tileArtDataUri(io, card.imageId, size.w, size.h, scale)));
+    Promise.all(
+      list.map((card) => tileArtDataUri(io, card.imageId, size.w, size.h, scale, failures)),
+    );
   const [
     legendUri,
     legendOptionUris,
@@ -394,7 +402,7 @@ export async function loadDeckArt(
     qrUri,
   ] = await Promise.all([
     cards.legend
-      ? tileArtDataUri(io, cards.legend.imageId, sizes.legend.w, sizes.legend.h, scale)
+      ? tileArtDataUri(io, cards.legend.imageId, sizes.legend.w, sizes.legend.h, scale, failures)
       : Promise.resolve(null),
     sizes.legendOption ? tiles(cards.legendOptions, sizes.legendOption) : Promise.resolve([]),
     deckBackdropUri(
@@ -403,6 +411,7 @@ export async function loadDeckArt(
       canvas.width,
       canvas.height,
       scale,
+      failures,
     ),
     sizes.grid
       ? tiles(cards.gridCards, { w: sizes.grid.tileW, h: sizes.grid.tileH })
@@ -410,8 +419,12 @@ export async function loadDeckArt(
     tiles(cards.battlefields, sizes.battlefield),
     tiles(cards.sideboard, sizes.sideboard),
     tiles(cards.runeCards, sizes.rune),
-    Promise.all(cards.domains.map((domain) => glyphUri(io, domain, canvas.domainIcon, scale))),
-    input.shareUrl ? qrDataUri(input.shareUrl, scale, canvas.headerQr) : Promise.resolve(null),
+    Promise.all(
+      cards.domains.map((domain) => glyphUri(io, domain, canvas.domainIcon, scale, failures)),
+    ),
+    input.shareUrl
+      ? qrDataUri(input.shareUrl, scale, failures, canvas.headerQr)
+      : Promise.resolve(null),
   ]);
   return {
     legendUri,

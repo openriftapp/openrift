@@ -5,9 +5,10 @@ import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
 import type { Io } from "../../../io.js";
 import type { Element } from "../../system/services/share-image-core.js";
 import {
+  artFailureLog,
   cardTile,
-  elideTitle,
   element,
+  elideTitle,
   qrDataUri,
   qrMark,
   renderTreeToPng,
@@ -41,10 +42,15 @@ export async function renderCardShareImage(
   withQr = true,
 ): Promise<Buffer> {
   const { width, height } = SHARE_IMAGE_CANVAS.landscape;
+  const failures = artFailureLog("card-share");
   const [art, thumbs, qr] = await Promise.all([
-    tileArtDataUri(io, input.imageId, CARD_W, CARD_H, scale),
-    Promise.all(input.otherImageIds.map((id) => tileArtDataUri(io, id, THUMB_W, THUMB_H, scale))),
-    withQr && input.shareUrl ? qrDataUri(input.shareUrl, scale, QR) : Promise.resolve(null),
+    tileArtDataUri(io, input.imageId, CARD_W, CARD_H, scale, failures),
+    Promise.all(
+      input.otherImageIds.map((id) => tileArtDataUri(io, id, THUMB_W, THUMB_H, scale, failures)),
+    ),
+    withQr && input.shareUrl
+      ? qrDataUri(input.shareUrl, scale, failures, QR)
+      : Promise.resolve(null),
   ]);
 
   const header = element(

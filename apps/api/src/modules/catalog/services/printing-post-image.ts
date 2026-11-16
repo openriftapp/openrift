@@ -9,9 +9,10 @@ import { SHARE_IMAGE_COLORS } from "@openrift/shared/share-image-palette";
 
 import type { Io } from "../../../io.js";
 import {
+  artFailureLog,
   blurredArtBackdropDataUri,
-  elideTitle,
   element,
+  elideTitle,
   renderTreeToPng,
   tileArtDataUri,
 } from "../../system/services/share-image-core.js";
@@ -259,14 +260,16 @@ export async function renderPrintingPostImage(
   const photoH = Math.floor(Math.min(availH, availW / photoAspect));
   const photoW = Math.floor(photoH * photoAspect);
 
+  const failures = artFailureLog("printing-post");
   const [photoUri, backdropUri] = await Promise.all([
-    tileArtDataUri(io, input.imageFileId, photoW, photoH, scale),
+    tileArtDataUri(io, input.imageFileId, photoW, photoH, scale, failures),
     input.imageFileId
       ? blurredArtBackdropDataUri(
           io,
           input.imageFileId,
           Math.round(canvasW / 2),
           Math.round(canvasH / 2),
+          failures,
         )
       : Promise.resolve(null),
   ]);

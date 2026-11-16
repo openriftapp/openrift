@@ -1,8 +1,11 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createMockDb } from "../../../test/mock-db.js";
 import { createRecordingDb } from "../../../test/recording-db.js";
 import { statusRepo } from "./status.js";
+
+const warn = vi.hoisted(() => vi.fn());
+vi.mock("@openrift/shared/logger", () => ({ createLogger: () => ({ warn }) }));
 
 const captured = createRecordingDb();
 
@@ -73,5 +76,17 @@ describe("statusRepo.getPricingStats", () => {
     const stats = await statusRepo(createMockDb([])).getPricingStats();
 
     expect(stats).toEqual({ totalPrices: 0, sources: [] });
+  });
+});
+
+describe("statusRepo.getDatabaseStatus", () => {
+  it("logs the failure behind an unreachable status", async () => {
+    const failure = new Error("permission denied for table kysely_migration");
+    const recorded = createRecordingDb([[{ size_mb: 12 }], [{ count: 3 }], failure]);
+
+    const status = await statusRepo(recorded.db).getDatabaseStatus();
+
+    expect(status.status).toBe("unreachable");
+    expect(warn).toHaveBeenCalledWith({ err: failure }, "database status query failed");
   });
 });

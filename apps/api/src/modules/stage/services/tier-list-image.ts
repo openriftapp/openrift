@@ -9,9 +9,10 @@ import { tierRowColor } from "@openrift/shared/tier-colors";
 
 import type { Repos } from "../../../deps.js";
 import type { Io } from "../../../io.js";
-import type { Child, Element } from "../../system/services/share-image-core.js";
+import type { ArtFailureLog, Child, Element } from "../../system/services/share-image-core.js";
 import {
   TILE_BORDER,
+  artFailureLog,
   cardRadiusPx,
   cardTile,
   element,
@@ -432,13 +433,14 @@ function boardArtUris(
   tileW: number,
   tileH: number,
   scale: number,
+  failures: ArtFailureLog,
 ): Promise<(string | null)[][]> {
   return Promise.all(
     rows.map((row, index) =>
       Promise.all(
         row.cards
           .slice(0, capacityForRow(index))
-          .map((card) => tileArtDataUri(io, card.imageId, tileW, tileH, scale)),
+          .map((card) => tileArtDataUri(io, card.imageId, tileW, tileH, scale, failures)),
       ),
     ),
   );
@@ -474,6 +476,7 @@ export async function renderTierListImage(
       )
     : null;
 
+  const failures = artFailureLog("tier-list");
   const [rowUris, qrUri] = await Promise.all([
     boardArtUris(
       io,
@@ -483,8 +486,11 @@ export async function renderTierListImage(
       wrapped?.tileW ?? flat.tileW,
       wrapped?.tileH ?? flat.tileH,
       scale,
+      failures,
     ),
-    input.shareUrl ? qrDataUri(input.shareUrl, scale, type.headerQr) : Promise.resolve(null),
+    input.shareUrl
+      ? qrDataUri(input.shareUrl, scale, failures, type.headerQr)
+      : Promise.resolve(null),
   ]);
 
   const titleRow = titleBlock({

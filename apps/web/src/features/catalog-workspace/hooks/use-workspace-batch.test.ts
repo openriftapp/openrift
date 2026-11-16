@@ -84,9 +84,24 @@ describe("batch outcomes", () => {
   });
 
   it("reads assigned listings", () => {
-    const outcome = toBatchOutcome({ assigned: 4 });
+    const outcome = toBatchOutcome({ assigned: 4, skipped: [] });
     expect(outcome).toEqual({ done: 4, skipped: [] });
     expect(batchOutcomeText("suggested-listings", outcome)).toBe("Assigned 4 listings.");
+  });
+
+  it("reads listings that failed to assign", () => {
+    const outcome = toBatchOutcome({
+      assigned: 1,
+      skipped: [{ label: "Poro Herder OGN-027", reason: "no marketplace product found" }],
+    });
+    expect(outcome.skipped).toEqual([
+      {
+        key: "0:Poro Herder OGN-027",
+        label: "Poro Herder OGN-027",
+        reason: "no marketplace product found",
+      },
+    ]);
+    expect(batchOutcomeText("suggested-listings", outcome)).toBe("Assigned 1 listing. 1 skipped.");
   });
 });
 

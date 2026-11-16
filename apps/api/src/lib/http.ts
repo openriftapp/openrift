@@ -1,5 +1,7 @@
 import { setTimeout as sleep } from "node:timers/promises";
 
+import { z } from "zod";
+
 import type { Fetch } from "../io.js";
 
 export const DEFAULT_TIMEOUT_MS = 10_000;
@@ -74,4 +76,15 @@ export async function fetchJson<T>(
   const lastModified = lm ? new Date(lm) : null;
   const body: unknown = await res.json();
   return { data: options?.transform ? options.transform(body) : (body as T), lastModified };
+}
+
+/** A `transform` that refuses a body not shaped like `schema`. */
+export function parseBody<T>(schema: z.ZodType<T>, label: string): (body: unknown) => T {
+  return (body) => {
+    const result = schema.safeParse(body);
+    if (!result.success) {
+      throw new Error(`${label} returned an unexpected payload: ${z.prettifyError(result.error)}`);
+    }
+    return result.data;
+  };
 }

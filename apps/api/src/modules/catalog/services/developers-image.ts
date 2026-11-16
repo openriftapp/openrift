@@ -6,6 +6,7 @@ import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
 import type { Io } from "../../../io.js";
 import type { Child, Element } from "../../system/services/share-image-core.js";
 import {
+  artFailureLog,
   cardTile,
   element,
   elideTitle,
@@ -204,17 +205,21 @@ export async function renderDevelopersImage(
   const { width, height } = SHARE_IMAGE_CANVAS.landscape;
   const fields = input.showcase ? showcaseFields(input.showcase) : [];
 
+  const failures = artFailureLog("developers");
   const [logo, showcaseArt, ...backdropArts] = await Promise.all([
     io.fs
       .readFile(`${import.meta.dirname}/../../../assets/logo-color.svg`)
-      .then((svg) => svgToPngDataUri(io, svg, 36 * scale, 1024))
-      .catch(() => null),
+      .then((svg) => svgToPngDataUri(io, svg, 36 * scale, failures, 1024))
+      .catch((error: unknown) => {
+        failures.report(error, "logo");
+        return null;
+      }),
     input.showcase
-      ? tileArtDataUri(io, input.showcase.imageId, CARD.w, CARD.h, scale)
+      ? tileArtDataUri(io, input.showcase.imageId, CARD.w, CARD.h, scale, failures)
       : Promise.resolve(null),
     ...input.backdropImageIds
       .slice(0, BACKDROPS.length)
-      .map((imageId) => tileArtDataUri(io, imageId, CARD.w, CARD.h, scale)),
+      .map((imageId) => tileArtDataUri(io, imageId, CARD.w, CARD.h, scale, failures)),
   ]);
 
   const connectors =

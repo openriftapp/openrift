@@ -7,6 +7,38 @@ const DOWNLOAD_TIMEOUT_MS = 15_000;
 const MAX_REDIRECTS = 5;
 export const MAX_IMAGE_BYTES = 50 * 1024 * 1024;
 
+export type DownloadFailure =
+  | { kind: "blocked" }
+  | { kind: "http"; status: number }
+  | { kind: "not-an-image" }
+  | { kind: "too-large" }
+  | { kind: "redirect" }
+  | { kind: "timeout" }
+  | { kind: "connection" };
+
+export class DownloadError extends Error {
+  override readonly name = "DownloadError";
+  readonly failure: DownloadFailure;
+
+  constructor(failure: DownloadFailure, message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.failure = failure;
+  }
+}
+
+function transportFailure(error: unknown, url: string): unknown {
+  if (error instanceof DownloadError) {
+    return error;
+  }
+  const name = error instanceof Error ? error.name : "";
+  if (name === "TimeoutError" || name === "AbortError") {
+    return new DownloadError({ kind: "timeout" }, `Download timed out: ${url}`, { cause: error });
+  }
+  return new DownloadError({ kind: "connection" }, `Download connection failed: ${url}`, {
+    cause: error,
+  });
+}
+
 function guessExtension(contentType: string | null, url: string): string {
   if (contentType?.includes("png")) {
     return ".png";
@@ -80,7 +112,10 @@ export function isPrivateIp(ip: string): boolean {
 async function assertPublicImageUrl(io: Io, url: string): Promise<void> {
   const parsed = new URL(url);
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-    throw new Error(`Blocked download (unsupported protocol ${parsed.protocol}): ${url}`);
+    throw new DownloadError(
+      { kind: "blocked" },
+      `Blocked download (unsupported protocol ${parsed.protocol}): ${url}`,
+    );
   }
   const host = parsed.hostname.replaceAll(/^\[|\]$/gu, "");
   let addresses = [host];
@@ -89,11 +124,11 @@ async function assertPublicImageUrl(io: Io, url: string): Promise<void> {
     addresses = resolved.map((entry) => entry.address);
   }
   if (addresses.length === 0) {
-    throw new Error(`Blocked download (host did not resolve): ${url}`);
+    throw new DownloadError({ kind: "blocked" }, `Blocked download (host did not resolve): ${url}`);
   }
   for (const address of addresses) {
     if (isPrivateIp(address)) {
-      throw new Error(`Blocked download (private address): ${url}`);
+      throw new DownloadError({ kind: "blocked" }, `Blocked download (private address): ${url}`);
     }
   }
 }
@@ -105,7 +140,10 @@ function isImageContentType(contentType: string): boolean {
 
 async function readCapped(res: Response, url: string): Promise<Buffer> {
   const tooLarge = () =>
-    new Error(`Download failed (larger than ${MAX_IMAGE_BYTES} bytes): ${url}`);
+    new DownloadError(
+      { kind: "too-large" },
+      `Download failed (larger than ${MAX_IMAGE_BYTES} bytes): ${url}`,
+    );
   if (Number(res.headers.get("content-length") ?? 0) > MAX_IMAGE_BYTES) {
     await res.body?.cancel();
     throw tooLarge();
@@ -136,30 +174,45 @@ export async function downloadImage(io: Io, url: string): Promise<{ buffer: Buff
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     await assertPublicImageUrl(io, current);
     const { origin } = new URL(current);
-    const res = await io.fetch(current, {
-      headers: { Referer: `${origin}/` },
-      signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
-      redirect: "manual",
-    });
+    const res = await io
+      .fetch(current, {
+        headers: { Referer: `${origin}/` },
+        signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
+        redirect: "manual",
+      })
+      .catch((error: unknown) => {
+        throw transportFailure(error, url);
+      });
     if (res.status >= 300 && res.status < 400) {
       const location = res.headers.get("location");
       if (!location) {
-        throw new Error(`Download failed (redirect without location): ${url}`);
+        throw new DownloadError(
+          { kind: "redirect" },
+          `Download failed (redirect without location): ${url}`,
+        );
       }
       current = new URL(location, current).toString();
       continue;
     }
     if (!res.ok) {
-      throw new Error(`Download failed (${res.status}): ${url}`);
+      throw new DownloadError(
+        { kind: "http", status: res.status },
+        `Download failed (${res.status}): ${url}`,
+      );
     }
     const contentType = res.headers.get("content-type");
     if (contentType && !isImageContentType(contentType)) {
       await res.body?.cancel();
-      throw new Error(`Download failed (not an image: ${contentType}): ${url}`);
+      throw new DownloadError(
+        { kind: "not-an-image" },
+        `Download failed (not an image: ${contentType}): ${url}`,
+      );
     }
-    const buffer = await readCapped(res, url);
+    const buffer = await readCapped(res, url).catch((error: unknown) => {
+      throw transportFailure(error, url);
+    });
     const ext = guessExtension(contentType, current);
     return { buffer, ext };
   }
-  throw new Error(`Download failed (too many redirects): ${url}`);
+  throw new DownloadError({ kind: "redirect" }, `Download failed (too many redirects): ${url}`);
 }

@@ -170,7 +170,7 @@ describe.skipIf(!adminCtx)("Admin catalog workspace batch routes (integration)",
       }),
     );
     expect(res.status).toBe(200);
-    expect(await readJson(res)).toEqual({ assigned: 0 });
+    expect(await readJson(res)).toEqual({ assigned: 0, skipped: [] });
   });
 
   it("returns 403 for a card-review holder", async () => {

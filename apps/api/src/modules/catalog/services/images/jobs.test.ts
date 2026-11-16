@@ -28,6 +28,10 @@ import {
 
 let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
+function fetchTimeout(): Error {
+  return Object.assign(new Error("The operation timed out."), { name: "TimeoutError" });
+}
+
 beforeEach(() => {
   resetImageMocks();
   consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -89,7 +93,7 @@ describe("rehostImages", () => {
     });
     const result = await rehostImages(mockIo, repo);
     expect(result.failed).toBe(1);
-    expect(result.errors[0]).toContain("could not process the image");
+    expect(result.errors[0]).toContain("connection failed");
   });
 
   it("processes a mixed batch of success, skip, and failure", async () => {
@@ -97,7 +101,7 @@ describe("rehostImages", () => {
       .mockResolvedValueOnce(
         new Response(Buffer.from("ok"), { headers: { "content-type": "image/png" } }),
       )
-      .mockRejectedValueOnce(new Error("timeout"));
+      .mockRejectedValueOnce(fetchTimeout());
 
     const repo = makeMockRepo({
       selectResult: [
@@ -201,7 +205,7 @@ describe("rehostImageFile", () => {
   });
 
   it("records a failed download for the retry job and activates nothing", async () => {
-    mockFetch.mockRejectedValue(new Error("timeout"));
+    mockFetch.mockRejectedValue(fetchTimeout());
     const repo = makeRehostRepo({ originalUrl: "https://example.com/img.png" });
 
     const outcome = await rehostImageFile(mockIo, repo, FILE_ID);
@@ -276,7 +280,7 @@ describe("rehostImageFile", () => {
   });
 
   it("throws the failure as a readable error for admin actions", async () => {
-    mockFetch.mockRejectedValue(new Error("timeout"));
+    mockFetch.mockRejectedValue(fetchTimeout());
     const repo = makeRehostRepo({ originalUrl: "https://example.com/img.png" });
 
     await expect(rehostImageFileOrThrow(mockIo, repo, FILE_ID)).rejects.toThrow(
@@ -448,7 +452,7 @@ describe("retryDueRehosts", () => {
       .mockResolvedValueOnce(
         new Response(Buffer.from("ok"), { headers: { "content-type": "image/png" } }),
       )
-      .mockRejectedValueOnce(new Error("timeout"));
+      .mockRejectedValueOnce(fetchTimeout());
     const repo = makeRetryRepo({
       "file-01": "https://example.com/a.png",
       "file-02": "https://example.com/b.png",
@@ -520,7 +524,7 @@ describe("refetchImages", () => {
   });
 
   it("reports uploads, unknown files and failed downloads per item", async () => {
-    mockFetch.mockRejectedValue(new Error("timeout"));
+    mockFetch.mockRejectedValue(fetchTimeout());
     const repo = makeRefetchRepo({
       "file-up": null,
       "file-dl": "https://example.com/x.png",
@@ -602,7 +606,7 @@ describe("regenerateImagesBatch", () => {
       },
     });
     mockReaddir.mockImplementation(async () => ["card-001-400w.webp"]);
-    mockFetch.mockRejectedValue(new Error("timeout"));
+    mockFetch.mockRejectedValue(fetchTimeout());
     const result = await regenerateImagesBatch(mockIo, repo, [snap("card-001")]);
     expect(result.failed).toBe(1);
     expect(result.errors[0]).toContain("re-fetch failed");
