@@ -5,12 +5,15 @@ import { describe, expect, it } from "vitest";
 import { defaultIo } from "../../../io.js";
 import { textsOf } from "../../../test/share-image-tree.js";
 import {
+  boardStateImage,
   boardStateTree,
   chainEntryText,
   keywordsFit,
   pieceText,
   readableBadges,
   renderBoardStateImage,
+  wrappedLineCount,
+  wrappedName,
 } from "./board-state-image.js";
 
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -109,8 +112,40 @@ describe("keywordsFit", () => {
   });
 });
 
+describe("wrappedName", () => {
+  const card = {
+    cardId: "00000000-0000-4000-8000-000000000001",
+    name: "Kai'Sa, Daughter of the Void",
+  };
+
+  it.each([false, true])(
+    "keeps a long name inside the lines left beside stats and keywords (exhausted: %s)",
+    (exhausted) => {
+      const named = piece({ card, might: 2, keywords: ["Tank"], exhausted });
+      const { text, lines, perLine } = wrappedName(named, 96);
+
+      expect(wrappedLineCount(text, perLine)).toBeLessThanOrEqual(lines);
+      expect(text === card.name || text.endsWith("…")).toBe(true);
+    },
+  );
+
+  it("leaves the keyword row out of the count when there are no keywords", () => {
+    expect(wrappedName(piece({ card, might: 2 }), 96).lines).toBeGreaterThan(
+      wrappedName(piece({ card, might: 2, keywords: ["Tank"] }), 96).lines,
+    );
+  });
+});
+
+describe("wrappedLineCount", () => {
+  it("wraps by word and breaks a word longer than a line", () => {
+    expect(wrappedLineCount("Darius, Trifarian", 10)).toBe(2);
+    expect(wrappedLineCount("Sett, The Boss", 10)).toBe(2);
+    expect(wrappedLineCount("Unbreakable", 5)).toBe(3);
+  });
+});
+
 describe("renderBoardStateImage", () => {
-  it("renders a valid 1200x630 PNG for a four-player board", async () => {
+  it("renders a valid PNG at the fitted size for a four-player board", async () => {
     const card = { cardId: "00000000-0000-4000-8000-000000000001", name: "Jinx, Loose Cannon" };
     const document = doc({
       playerCount: 4,
@@ -146,15 +181,75 @@ describe("renderBoardStateImage", () => {
       ],
     });
 
-    const png = await renderBoardStateImage(defaultIo, {
-      title: "Summoner Skirmish showdown",
-      document,
-      siteHost: "openrift.app",
-    });
+    const input = { title: "Summoner Skirmish showdown", document, siteHost: "openrift.app" };
+    const png = await renderBoardStateImage(defaultIo, input);
     expect(png.subarray(0, 8)).toEqual(PNG_MAGIC);
     const meta = await defaultIo.sharp(png).metadata();
     expect(meta.width).toBe(1200);
+    expect(meta.height).toBe(boardStateImage(input).height);
+    expect(meta.height).toBeGreaterThan(630);
+    expect(meta.height).toBeLessThanOrEqual(1260);
+  });
+
+  it("renders a two-player board at 1200x630", async () => {
+    const png = await renderBoardStateImage(defaultIo, { title: "Lethal", document: doc() });
+    const meta = await defaultIo.sharp(png).metadata();
+    expect(meta.width).toBe(1200);
     expect(meta.height).toBe(630);
+  });
+});
+
+describe("boardStateTree canvas", () => {
+  const names = ["Darius, Trifarian", "Yasuo, Remorseless", "Sett, The Boss", "Lux, Lady of Light"];
+
+  function crowded(playerCount: number): BoardDocument {
+    const owners = (["A", "B", "C", "D"] as const).slice(0, playerCount);
+    const pieces = owners.flatMap((owner) => [
+      ...names.map((name, index) =>
+        piece({
+          id: `${owner}-u${index}`,
+          owner,
+          card: { cardId: `00000000-0000-4000-8000-00000000000${index}`, name },
+          exhausted: index === 3,
+          might: index % 2 === 0 ? 2 : 0,
+          keywords: index < 2 ? ["Tank"] : [],
+        }),
+      ),
+      ...["Fury", "Calm", "Mind", "Body"].map((rune) =>
+        piece({ id: `${owner}-${rune}`, owner, kind: "rune", zone: { kind: "runes" } }),
+      ),
+    ]);
+    return doc({
+      playerCount,
+      zones: { ...allZones, chain: false },
+      steps: [{ ...emptyBoardStep(2), pieces }],
+    });
+  }
+
+  function canvasSize(playerCount: number) {
+    const tree = boardStateTree({ title: "Lethal", document: crowded(playerCount) });
+    const { width, height } = tree.props.style as Record<string, unknown>;
+    return { width, height };
+  }
+
+  it("keeps one and two players on the 1200x630 canvas", () => {
+    expect(canvasSize(1)).toEqual({ width: 1200, height: 630 });
+    expect(canvasSize(2)).toEqual({ width: 1200, height: 630 });
+  });
+
+  it.each([3, 4])("fits the canvas of %i players to its content, at most 1260 high", (count) => {
+    const { width, height } = canvasSize(count);
+    expect(width).toBe(1200);
+    expect(height).toBeGreaterThan(630);
+    expect(height).toBeLessThanOrEqual(1260);
+  });
+
+  it.each([3, 4])("shows typical card names in full on %i seats", (playerCount) => {
+    const texts = textsOf(boardStateTree({ title: "Lethal", document: crowded(playerCount) }));
+    for (const name of names) {
+      expect(texts.filter((text) => text === name)).toHaveLength(playerCount);
+    }
+    expect(texts.some((text) => text.endsWith("…"))).toBe(false);
   });
 });
 

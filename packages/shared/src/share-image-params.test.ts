@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   aspectFromQuery,
+  boardImageCanvas,
+  boardImageVersionParam,
   deckImageBodySchema,
   MAX_IMAGE_SCALE,
   qrFromQuery,
@@ -132,5 +134,23 @@ describe("shareImageVersionParam", () => {
   it("adds the renderer revision to the content version", () => {
     expect(shareImageVersionParam(42)).toBe("42-r2");
     expect(shareImageVersionParam("1700-3")).toBe("1700-3-r2");
+  });
+});
+
+describe("boardImageVersionParam", () => {
+  it("adds the board renderer revision after the shared one", () => {
+    expect(boardImageVersionParam(42)).toBe("42-r2b3");
+  });
+});
+
+describe("boardImageCanvas", () => {
+  it("keeps the landscape canvas for one and two players", () => {
+    expect(boardImageCanvas(1)).toEqual({ width: 1200, height: 630 });
+    expect(boardImageCanvas(2)).toEqual({ width: 1200, height: 630 });
+  });
+
+  it("doubles the height for three and four players", () => {
+    expect(boardImageCanvas(3)).toEqual({ width: 1200, height: 1260 });
+    expect(boardImageCanvas(4)).toEqual({ width: 1200, height: 1260 });
   });
 });

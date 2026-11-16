@@ -12,6 +12,7 @@ import {
 } from "./board-image-layout.js";
 
 const AREA = { width: 1152, height: 440 };
+const TALL_AREA = { width: 1152, height: 440 + 630 };
 
 const PLAYERS: readonly BoardPlayer[] = ["A", "B", "C", "D"];
 
@@ -59,6 +60,21 @@ function fullestBoard(playerCount: number): BoardDocument {
   };
 }
 
+function crowdedBoard(playerCount: number): BoardDocument {
+  const document = fullestBoard(playerCount);
+  const extra = PLAYERS.slice(0, playerCount).flatMap((owner) => [
+    piece({ id: `${owner}-u2`, owner }),
+    piece({ id: `${owner}-u3`, owner }),
+    piece({ id: `${owner}-u4`, owner, exhausted: true }),
+    piece({ id: `${owner}-r3`, owner, kind: "rune", zone: { kind: "runes" } }),
+    piece({ id: `${owner}-r4`, owner, kind: "rune", zone: { kind: "runes" } }),
+  ]);
+  return {
+    ...document,
+    steps: document.steps.map((step) => ({ ...step, pieces: [...step.pieces, ...extra] })),
+  };
+}
+
 describe("planBoardImage", () => {
   it.each([1, 2, 3, 4])(
     "keeps every seat, zone and label inside the canvas for %i players with every zone on",
@@ -88,5 +104,43 @@ describe("planBoardImage", () => {
   it("keeps a two-player table on one row of zones", () => {
     const plan = planBoardImage(fullestBoard(2), seatsFor(2), AREA);
     expect(plan.slotRows).toBe(1);
+  });
+
+  it.each([3, 4])(
+    "gives %i players' seats at least the piece size a two-player seat gets",
+    (playerCount) => {
+      const two = planBoardImage(crowdedBoard(2), seatsFor(2), AREA);
+      const tall = planBoardImage(crowdedBoard(playerCount), seatsFor(playerCount), TALL_AREA);
+      expect(tall.pieceH).toBeGreaterThanOrEqual(two.pieceH);
+      expect(
+        planBoardImage(crowdedBoard(playerCount), seatsFor(playerCount), AREA).pieceH,
+      ).toBeLessThan(two.pieceH);
+    },
+  );
+
+  it.each([3, 4])(
+    "keeps the seats of %i players apart and inside the tall canvas",
+    (playerCount) => {
+      const document = crowdedBoard(playerCount);
+      const plan = planBoardImage(document, seatsFor(playerCount), TALL_AREA);
+
+      expect(boardHeightUsed(document, plan)).toBeLessThanOrEqual(TALL_AREA.height);
+      for (const side of [plan.seats.top, plan.seats.bottom]) {
+        for (const [index, seat] of side.entries()) {
+          expect(seat.x + seat.width).toBeLessThanOrEqual(side[index + 1]?.x ?? TALL_AREA.width);
+        }
+      }
+    },
+  );
+
+  it("keeps each battlefield half at one row of pieces when the height is not filled", () => {
+    const document = crowdedBoard(4);
+    const plan = planBoardImage(document, seatsFor(4), TALL_AREA, {
+      maxPieceH: 120,
+      fillHeight: false,
+    });
+    expect(plan.halfH).toBe(plan.pieceH + 4);
+    expect(plan.pieceH).toBeGreaterThan(72);
+    expect(boardHeightUsed(document, plan)).toBeLessThanOrEqual(TALL_AREA.height);
   });
 });

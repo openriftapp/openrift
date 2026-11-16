@@ -6894,6 +6894,8 @@
   "help_discord_bot_rule_inline": "답장은 규칙을 하위 규칙과 함께 인용하고 OpenRift의 규칙에서 그 자리로 바로 이어 주므로, 게임 중 생긴 다툼을 메시지 하나로 정리할 수 있습니다. 규칙도 인라인으로 동작합니다. 일반 메시지에 {#code}[[CR 103.1]]{/code}이나 그냥 {#code}[[103.1]]{/code}을 적으면 카드와 마찬가지로 봇이 규칙을 인용합니다.",
   "help_discord_bot_search_heading": "/search로 검색",
   "help_discord_bot_search": "OpenRift 검색창과 같은 문법으로 /search를 입력하세요. 예: {#code}/search t:unit d:fury e<=3{/code}. 답글에는 일치하는 카드가 최대 열 장까지 각 페이지 링크와 함께 나오고, OpenRift의 전체 결과 링크도 붙습니다.",
+  "help_discord_bot_link_heading": "/link로 그룹 트레이드 리스트 보기",
+  "help_discord_bot_link": "서버를 OpenRift 그룹에 연결하면 그 서버의 카드 한 장 답글(/card와 {#code}[[카드 이름]]{/code})에 공유된 트레이드 리스트에 그 카드를 가진 그룹 멤버와 장수가 함께 표시됩니다. 그룹 관리자가 그룹 관리 페이지의 Discord 봇 항목에서 {#strong}연결 코드 생성{/strong}을 누르고, {#strong}서버 관리{/strong} 권한이 있는 사람이 15분 안에 서버에서 {#code}/link code:…{/code}를 실행하세요. 서버를 읽을 수 있는 사람은 누구나 그 이름과 장수를 볼 수 있습니다. 연결 해제도 같은 페이지에서 합니다.",
   "help_discord_bot_mention_heading": "채팅에서 카드 언급하기",
   "help_discord_bot_mention": "일반 메시지 어디에서든 카드 이름을 겹대괄호로 감싸면, 예를 들어 {#code}[[Doran's Shield]]{/code}처럼 적으면 봇이 그 카드로 답합니다. 메시지당 최대 세 장이며, {#code}[[OGN-202]]{/code} 같은 카드 번호는 그 인쇄판을 정확히 보여 줍니다. 봇이 알아보지 못한 이름은 그냥 무시되므로 오류 메시지로 대화를 끊는 일이 없습니다.",
   "help_discord_bot_prices_alert": "가격은 {marketplaces}에서 가져오며 각 마켓플레이스의 통화로 매일 갱신됩니다. 일부 가격 링크는 제휴 링크이며, 추가 비용 없이 OpenRift를 후원하게 됩니다.",

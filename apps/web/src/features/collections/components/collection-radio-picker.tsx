@@ -46,7 +46,7 @@ export function CollectionRadioPicker({
                   </Badge>
                 ) : null}
                 <span className="text-muted-foreground text-xs">
-                  {m.common_cards({ count: collection.copyCount })}
+                  {m.common_copies({ count: collection.copyCount })}
                 </span>
               </>
             }

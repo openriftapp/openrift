@@ -6894,6 +6894,8 @@
   "help_discord_bot_rule_inline": "回覆會連同子規則一起引用該規則，並直接連到 OpenRift 規則中的那個位置，所以解決一場遊戲中的爭議只要一則訊息。規則也支援行內用法：在一般訊息中寫 {#code}[[CR 103.1]]{/code} 或直接寫 {#code}[[103.1]]{/code}，機器人就會引用規則，和查卡牌一樣。",
   "help_discord_bot_search_heading": "用 /search 搜尋",
   "help_discord_bot_search": "輸入 /search 加上與 OpenRift 搜尋框相同語法的查詢，例如 {#code}/search t:unit d:fury e<=3{/code}。回覆最多列出十張符合的卡牌，每張都連結到其頁面，並附上 OpenRift 上完整結果的連結。",
+  "help_discord_bot_link_heading": "用 /link 顯示群組交換清單",
+  "help_discord_bot_link": "將你的伺服器連結到 OpenRift 群組後，該伺服器中的單張卡牌回覆（/card 和 {#code}[[卡牌名稱]]{/code}）會同時列出在共享交換清單上擁有這張卡的群組成員及份數。群組管理員在群組管理頁面的 Discord 機器人區塊點擊{#strong}產生連結代碼{/strong}，接著擁有{#strong}管理伺服器{/strong}權限的人在 15 分鐘內於伺服器中執行 {#code}/link code:…{/code}。所有能閱讀該伺服器的人都能看到這些名字和數量。在同一頁面可以解除連結。",
   "help_discord_bot_mention_heading": "在聊天中提到卡牌",
   "help_discord_bot_mention": "在一般訊息的任何地方用雙層方括號包住卡牌名稱，例如 {#code}[[Doran's Shield]]{/code}，機器人就會回覆該卡牌。每則訊息最多三張卡牌，而像 {#code}[[OGN-202]]{/code} 這樣的卡牌編號會顯示那個確切的印刷版本。機器人認不出來的名稱會直接忽略，所以它絕不會用錯誤訊息打斷對話。",
   "help_discord_bot_prices_alert": "價格來自 {marketplaces}，每日更新，並以各交易平台自己的幣別顯示。部分價格連結為聯盟連結，可在不增加你任何費用的情況下支持 OpenRift。",

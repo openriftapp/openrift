@@ -70,4 +70,15 @@ describe("help articles", () => {
     expect(screen.getByText("Fury (admin)")).toBeTruthy();
     expect(screen.getByText("Calm (admin)")).toBeTruthy();
   });
+
+  it("documents the server link command of the Discord bot", () => {
+    const DiscordBot = articles.find(([slug]) => slug === "discord-bot")?.[1];
+    if (!DiscordBot) {
+      throw new Error("discord-bot article missing");
+    }
+    renderArticle(DiscordBot);
+
+    expect(screen.getByRole("heading", { name: "Show group tradelists with /link" })).toBeTruthy();
+    expect(screen.getByText("/link code:…")).toBeTruthy();
+  });
 });

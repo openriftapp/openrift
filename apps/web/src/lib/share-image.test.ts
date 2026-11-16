@@ -214,13 +214,13 @@ describe("deckOwnerImageUrl", () => {
 describe("boardStateShareImageUrl", () => {
   it("builds an absolute /api/v1 board state image URL with the version param", () => {
     expect(boardStateShareImageUrl("https://openrift.app", "tok123", 42)).toBe(
-      "https://openrift.app/api/v1/board-states/share/tok123/image.png?v=42-r2",
+      "https://openrift.app/api/v1/board-states/share/tok123/image.png?v=42-r2b3",
     );
   });
 
   it("appends size=hq for the high-resolution download variant", () => {
     expect(boardStateShareImageUrl("https://openrift.app", "tok123", 42, "hq")).toBe(
-      "https://openrift.app/api/v1/board-states/share/tok123/image.png?v=42-r2&size=hq",
+      "https://openrift.app/api/v1/board-states/share/tok123/image.png?v=42-r2b3&size=hq",
     );
   });
 });

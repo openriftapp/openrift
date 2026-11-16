@@ -2,7 +2,11 @@
 // version must change whenever the underlying content changes.
 
 import type { ShareImageQuery } from "@openrift/shared/share-image-params";
-import { shareImageVersionParam, shareImageQueryParams } from "@openrift/shared/share-image-params";
+import {
+  boardImageVersionParam,
+  shareImageVersionParam,
+  shareImageQueryParams,
+} from "@openrift/shared/share-image-params";
 
 import { downloadBlob } from "@/lib/download";
 import { m } from "@/paraglide/messages.js";
@@ -136,7 +140,7 @@ export function boardStateShareImageUrl(
   version: number,
   size?: "hq",
 ): string {
-  const base = `${siteUrl}${API_BASE}/board-states/share/${shareToken}/image.png?v=${shareImageVersionParam(version)}`;
+  const base = `${siteUrl}${API_BASE}/board-states/share/${shareToken}/image.png?v=${boardImageVersionParam(version)}`;
   return size === "hq" ? `${base}&size=hq` : base;
 }
 

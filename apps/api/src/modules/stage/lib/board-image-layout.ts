@@ -195,6 +195,11 @@ export function boardHeightUsed(
   return 2 * side + battlefields;
 }
 
+export interface BoardPlanOptions {
+  maxPieceH?: number;
+  fillHeight?: boolean;
+}
+
 function planAt(
   document: BoardDocument,
   seats: BoardSeats,
@@ -202,6 +207,7 @@ function planAt(
   slotRows: number,
   area: { width: number; height: number },
   enforceHeight = true,
+  fillHeight = true,
 ): BoardPlan | null {
   const pieces = document.steps[0]?.pieces ?? [];
   const slots = seatSlots(document.zones);
@@ -222,7 +228,7 @@ function planAt(
   return {
     ...draft,
     pieceH,
-    halfH: halfMin + Math.max(0, Math.floor(spare / 2)),
+    halfH: fillHeight ? halfMin + Math.max(0, Math.floor(spare / 2)) : halfMin,
     seats: { top, bottom },
   };
 }
@@ -231,16 +237,17 @@ export function planBoardImage(
   document: BoardDocument,
   seats: BoardSeats,
   area: { width: number; height: number },
+  { maxPieceH = MAX_PIECE_H, fillHeight = true }: BoardPlanOptions = {},
 ): BoardPlan {
-  for (let pieceH = MAX_PIECE_H; pieceH >= MIN_PIECE_H; pieceH--) {
+  for (let pieceH = maxPieceH; pieceH >= MIN_PIECE_H; pieceH--) {
     for (const slotRows of [1, 2]) {
-      const plan = planAt(document, seats, pieceH, slotRows, area);
+      const plan = planAt(document, seats, pieceH, slotRows, area, true, fillHeight);
       if (plan !== null) {
         return plan;
       }
     }
   }
-  const smallest = planAt(document, seats, MIN_PIECE_H, 2, area, false);
+  const smallest = planAt(document, seats, MIN_PIECE_H, 2, area, false, fillHeight);
   if (smallest === null) {
     throw new Error("A board seat cannot fit the share image at the smallest piece size");
   }

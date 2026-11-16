@@ -8,6 +8,11 @@ export const SHARE_IMAGE_CANVAS: Record<ShareImageAspect, { width: number; heigh
   vertical: { width: 1080, height: 1920 },
 };
 
+export function boardImageCanvas(playerCount: number): { width: number; height: number } {
+  const { width, height } = SHARE_IMAGE_CANVAS.landscape;
+  return playerCount >= 3 ? { width, height: height * 2 } : { width, height };
+}
+
 export const MAX_IMAGE_SCALE = 3;
 
 /** Bump when a renderer change should replace images already cached under their `?v=` URLs. */
@@ -15,6 +20,13 @@ const SHARE_IMAGE_RENDER_VERSION = 2;
 
 export function shareImageVersionParam(contentVersion: number | string): string {
   return `${contentVersion}-r${SHARE_IMAGE_RENDER_VERSION}`;
+}
+
+/** Bump when only the board renderer changes, so other share images keep their cached URLs. */
+const BOARD_IMAGE_RENDER_VERSION = 3;
+
+export function boardImageVersionParam(contentVersion: number | string): string {
+  return `${shareImageVersionParam(contentVersion)}b${BOARD_IMAGE_RENDER_VERSION}`;
 }
 
 export interface ShareImageQuery {

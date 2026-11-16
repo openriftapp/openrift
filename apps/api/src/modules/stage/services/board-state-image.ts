@@ -18,7 +18,7 @@ import { chainEntryName, isDeckZone, shownBattlefields } from "@openrift/shared/
 import { CARD_ASPECT, LANDSCAPE_CARD_ASPECT } from "@openrift/shared/card-orientation";
 import { clamp } from "@openrift/shared/math";
 import { SHARE_IMAGE_COLORS } from "@openrift/shared/share-image-palette";
-import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
+import { boardImageCanvas } from "@openrift/shared/share-image-params";
 
 import type { Io } from "../../../io.js";
 import type { Child, Element } from "../../system/services/share-image-core.js";
@@ -34,6 +34,7 @@ import {
   BOARD_GAP,
   LABEL_H,
   MAX_LABEL_SIZE,
+  boardHeightUsed,
   SEAT_INSET,
   SEAT_ROW_GAP,
   SLOT_GAP,
@@ -46,6 +47,9 @@ const GAP = BOARD_GAP;
 const CHAIN_H = 40;
 const MIN_FRAME_W = 110;
 const KEYWORD_COLOR = "#707070";
+const WRAP_MAX_PIECE_H = 120;
+const WRAP_FONT_MAX = 11;
+const MAX_NAME_LINES = 4;
 
 /** Hex equivalents of the web board's oklch player colors; satori has no oklch. */
 const PLAYER_COLORS: Record<BoardPlayer, string> = {
@@ -128,14 +132,62 @@ function keywordBadge(text: string, fontSize: number): Element {
   );
 }
 
-function pieceTile(piece: BoardPiece, pieceH: number, numeral?: number): Element {
+function tileFontSize(pieceH: number, wrap: boolean): number {
+  return wrap
+    ? clamp(Math.round(pieceH / 8), 8, WRAP_FONT_MAX)
+    : Math.max(8, Math.round(pieceH / 5.5));
+}
+
+export function wrappedLineCount(text: string, perLine: number): number {
+  let lines = 0;
+  let used = perLine;
+  for (const word of text.split(" ")) {
+    if (used + 1 + word.length <= perLine) {
+      used += 1 + word.length;
+    } else {
+      lines += Math.ceil(Math.max(1, word.length) / perLine);
+      used = word.length % perLine || perLine;
+    }
+  }
+  return lines;
+}
+
+export interface WrappedName {
+  text: string;
+  lines: number;
+  perLine: number;
+}
+
+export function wrappedName(piece: BoardPiece, pieceH: number): WrappedName {
+  const width = tileWidth(piece, pieceH);
+  const height = Math.round(piece.exhausted ? pieceH * CARD_ASPECT : pieceH);
+  const fontSize = tileFontSize(pieceH, true);
+  const badgeRow =
+    readableBadges(piece, Math.floor((width - 10) / (fontSize * 0.62))).length > 0 &&
+    keywordsFit(piece, height, fontSize);
+  const rows = (piece.might !== 0 || piece.damage > 0 ? 1 : 0) + 1 + (badgeRow ? 1 : 0);
+  const lines = clamp(
+    Math.floor((height - 10 - rows * fontSize * 1.2) / (fontSize * 1.1)),
+    1,
+    MAX_NAME_LINES,
+  );
+  const perLine = Math.max(1, Math.floor((width - 10) / (fontSize * 0.55)));
+  const full = pieceText(piece, Number.POSITIVE_INFINITY);
+  let text = full;
+  for (let max = full.length - 1; max >= 2 && wrappedLineCount(text, perLine) > lines; max--) {
+    text = elideTitle(full, max);
+  }
+  return { text, lines, perLine };
+}
+
+function pieceTile(piece: BoardPiece, pieceH: number, wrap: boolean, numeral?: number): Element {
   const color = PLAYER_COLORS[piece.owner];
   if (piece.facedown) {
     return cardBack(pieceH, piece.highlight ? SHARE_IMAGE_COLORS.gold : color);
   }
   const width = tileWidth(piece, pieceH);
   const height = Math.round(piece.exhausted ? pieceH * CARD_ASPECT : pieceH);
-  const fontSize = Math.max(8, Math.round(pieceH / 5.5));
+  const fontSize = tileFontSize(pieceH, wrap);
   const badges = readableBadges(piece, Math.floor((width - 10) / (fontSize * 0.62)));
   return element(
     "div",
@@ -184,8 +236,11 @@ function pieceTile(piece: BoardPiece, pieceH: number, numeral?: number): Element
         lineHeight: 1.1,
         color: SHARE_IMAGE_COLORS.text,
         overflow: "hidden",
+        ...(wrap ? { wordBreak: "break-word" } : {}),
       },
-      pieceText(piece, Math.max(6, Math.floor((width / fontSize) * 2.5))),
+      wrap
+        ? wrappedName(piece, pieceH).text
+        : pieceText(piece, Math.max(6, Math.floor((width / fontSize) * 2.5))),
     ),
     badges.length > 0 &&
       keywordsFit(piece, height, fontSize) &&
@@ -222,6 +277,7 @@ function pieceTile(piece: BoardPiece, pieceH: number, numeral?: number): Element
 function pieceRow(
   pieces: readonly BoardPiece[],
   pieceH: number,
+  wrap: boolean,
   numerals: Map<string, number>,
 ): Element {
   return element(
@@ -235,7 +291,7 @@ function pieceRow(
       flexGrow: 1,
       overflow: "hidden",
     },
-    ...pieces.map((piece) => pieceTile(piece, pieceH, numerals.get(piece.id))),
+    ...pieces.map((piece) => pieceTile(piece, pieceH, wrap, numerals.get(piece.id))),
   );
 }
 
@@ -256,6 +312,7 @@ function seatSlotBox(
   player: BoardPlayer,
   pieces: readonly BoardPiece[],
   pieceH: number,
+  wrap: boolean,
   numerals: Map<string, number>,
 ): Element {
   const color = PLAYER_COLORS[player];
@@ -276,7 +333,7 @@ function seatSlotBox(
     upperLabel(box.label, box.labelSize),
     isDeckZone({ kind: box.zone }) && held.length === 0
       ? cardBack(pieceH, color)
-      : pieceRow(held, pieceH, numerals),
+      : pieceRow(held, pieceH, wrap, numerals),
   );
 }
 
@@ -284,6 +341,7 @@ function seatBlock(
   seat: SeatPlan,
   plan: BoardPlan,
   pieces: readonly BoardPiece[],
+  wrap: boolean,
   numerals: Map<string, number>,
 ): Element {
   const rows = Array.from({ length: plan.slotRows }, (_, row) =>
@@ -304,7 +362,7 @@ function seatBlock(
       element(
         "div",
         { display: "flex", flexDirection: "row", height: plan.rowH, gap: SLOT_GAP },
-        ...boxes.map((box) => seatSlotBox(box, seat.player, pieces, plan.pieceH, numerals)),
+        ...boxes.map((box) => seatSlotBox(box, seat.player, pieces, plan.pieceH, wrap, numerals)),
       ),
     ),
   );
@@ -316,6 +374,7 @@ function handStrip(
   players: readonly BoardPlayer[],
   pieceH: number,
   handH: number,
+  wrap: boolean,
   numerals: Map<string, number>,
 ): Child {
   if (!document.zones.hand) {
@@ -336,7 +395,7 @@ function handStrip(
           overflow: "hidden",
         },
         upperLabel(`${player} · ${BOARD_ZONE_LABEL_EN.hand}`),
-        pieceRow(piecesAt({ pieces }, { kind: "hand" }, player), pieceH, numerals),
+        pieceRow(piecesAt({ pieces }, { kind: "hand" }, player), pieceH, wrap, numerals),
       ),
     ),
   );
@@ -349,6 +408,7 @@ function battlefieldRow(
   pieceH: number,
   halfH: number,
   frameH: number,
+  wrap: boolean,
   numerals: Map<string, number>,
 ): Child {
   if (document.battlefields.length === 0) {
@@ -370,7 +430,7 @@ function battlefieldRow(
             borderLeft: `2px solid ${PLAYER_COLORS[player]}`,
             overflow: "hidden",
           },
-          pieceRow(piecesAt({ pieces }, zone, player), pieceH, numerals),
+          pieceRow(piecesAt({ pieces }, zone, player), pieceH, wrap, numerals),
         ),
       ),
     );
@@ -424,7 +484,7 @@ function battlefieldRow(
             elideTitle(battlefield?.card?.name ?? `Battlefield ${index + 1}`, 34),
           ),
           ...piecesAt({ pieces }, { kind: "facedown", index }).map((piece) =>
-            pieceTile(piece, Math.min(pieceH, frameH)),
+            pieceTile(piece, Math.min(pieceH, frameH), wrap),
           ),
         ),
         half(seats.bottom, zone),
@@ -493,17 +553,33 @@ function chainRow(document: BoardDocument): Child {
   );
 }
 
-export function boardStateTree(input: BoardStateImageInput): Element {
-  const { width, height } = SHARE_IMAGE_CANVAS.landscape;
+export interface BoardStateImage {
+  tree: Element;
+  width: number;
+  height: number;
+}
+
+export function boardStateImage(input: BoardStateImageInput): BoardStateImage {
   const { document } = input;
+  const canvas = boardImageCanvas(document.playerCount);
+  const { width } = canvas;
+  const wrap = document.playerCount >= 3;
   const step = document.steps[0];
   const pieces = step?.pieces ?? [];
   const numerals = pieceNumerals(pieces);
   const seats = seatsFor(document.playerCount);
   const hasFooter = Boolean(input.siteHost);
   const chainH = document.zones.chain ? CHAIN_H + GAP : 0;
-  const boardH = height - PAD * 2 - TITLE_H - GAP - chainH - (hasFooter ? FOOTER_H + GAP : 0);
-  const plan = planBoardImage(document, seats, { width: width - PAD * 2, height: boardH });
+  const maxBoardH =
+    canvas.height - PAD * 2 - TITLE_H - GAP - chainH - (hasFooter ? FOOTER_H + GAP : 0);
+  const plan = planBoardImage(
+    document,
+    seats,
+    { width: width - PAD * 2, height: maxBoardH },
+    wrap ? { maxPieceH: WRAP_MAX_PIECE_H, fillHeight: false } : {},
+  );
+  const boardH = wrap ? Math.min(maxBoardH, boardHeightUsed(document, plan)) : maxBoardH;
+  const height = canvas.height - (maxBoardH - boardH);
   const { pieceH, handH, halfH, frameH } = plan;
 
   const side = (which: "top" | "bottom"): Element => {
@@ -512,9 +588,9 @@ export function boardStateTree(input: BoardStateImageInput): Element {
       element(
         "div",
         { display: "flex", flexDirection: "row", flexShrink: 0, gap: GAP },
-        ...plan.seats[which].map((seat) => seatBlock(seat, plan, pieces, numerals)),
+        ...plan.seats[which].map((seat) => seatBlock(seat, plan, pieces, wrap, numerals)),
       ),
-      handStrip(document, pieces, players, pieceH, handH, numerals),
+      handStrip(document, pieces, players, pieceH, handH, wrap, numerals),
     ];
     return element(
       "div",
@@ -535,11 +611,11 @@ export function boardStateTree(input: BoardStateImageInput): Element {
     },
     chainRow(document),
     side("top"),
-    battlefieldRow(document, pieces, seats, pieceH, halfH, frameH, numerals),
+    battlefieldRow(document, pieces, seats, pieceH, halfH, frameH, wrap, numerals),
     side("bottom"),
   );
 
-  return shareCanvas(
+  const tree = shareCanvas(
     width,
     height,
     {
@@ -565,6 +641,11 @@ export function boardStateTree(input: BoardStateImageInput): Element {
         color: "rgba(255,255,255,0.6)",
       }),
   );
+  return { tree, width, height };
+}
+
+export function boardStateTree(input: BoardStateImageInput): Element {
+  return boardStateImage(input).tree;
 }
 
 export function renderBoardStateImage(
@@ -572,6 +653,6 @@ export function renderBoardStateImage(
   input: BoardStateImageInput,
   scale = 1,
 ): Promise<Buffer> {
-  const { width, height } = SHARE_IMAGE_CANVAS.landscape;
-  return renderTreeToPng(io, boardStateTree(input), width, height, scale);
+  const { tree, width, height } = boardStateImage(input);
+  return renderTreeToPng(io, tree, width, height, scale);
 }
