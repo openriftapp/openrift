@@ -1,6 +1,6 @@
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 import { createTransaction } from "@tanstack/react-db";
-import { QueryClient } from "@tanstack/react-query";
+import { notifyManager, QueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { stubCopy } from "@/test/factories";
@@ -358,8 +358,10 @@ describe("confirmed writes survive a copies refetch that started before them", (
     release();
     await refetching.catch(() => {});
     await vi.waitFor(() => expect(queryClient.isFetching()).toBe(0));
-    await new Promise((resolve) => {
-      setTimeout(resolve, 20);
+    // The collection hears about the refetch through notifyManager's queue; a callback
+    // scheduled now runs after that notification.
+    await new Promise<void>((resolve) => {
+      notifyManager.schedule(resolve);
     });
   }
 

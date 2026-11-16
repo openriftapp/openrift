@@ -148,10 +148,10 @@ test.describe("collections CRUD", () => {
       await page.goto("/collections");
       await expect(page.getByRole("link", { name: "Inbox" })).toBeVisible({ timeout: 15_000 });
 
-      let apiCallFired = false;
+      let createCalls = 0;
       page.on("request", (req) => {
         if (isApiCall(req, "POST", "/api/v1/collections")) {
-          apiCallFired = true;
+          createCalls += 1;
         }
       });
 
@@ -159,13 +159,19 @@ test.describe("collections CRUD", () => {
       const input = page.getByPlaceholder("Collection name");
       await input.fill("   ");
       await input.press("Enter");
-
-      // Give the event loop a beat to fire any request that would have gone out.
-      await page.waitForTimeout(500);
-
-      expect(apiCallFired).toBe(false);
       // Input is still open (handleCreate returns without flipping isCreating).
       await expect(input).toBeVisible();
+
+      // A create from the whitespace submit would go out before this one.
+      const name = `After Blank ${Date.now()}`;
+      await input.fill(name);
+      const createRequest = page.waitForRequest((req) =>
+        isApiCall(req, "POST", "/api/v1/collections"),
+      );
+      await input.press("Enter");
+      await createRequest;
+      expect(createCalls).toBe(1);
+      await expect(page.getByRole("link", { name })).toBeVisible();
     });
 
     test("Escape closes the create dialog and restores the button", async ({ page }) => {
@@ -194,8 +200,9 @@ test.describe("collections CRUD", () => {
       const input = page.getByPlaceholder("Collection name");
       await input.fill("Pending name");
 
-      // onBlur only closes when the trimmed value is empty; typed text keeps it open.
-      await input.evaluate((el: HTMLInputElement) => el.blur());
+      // Moving focus off the field keeps the typed name and the dialog open.
+      await input.press("Tab");
+      await expect(input).not.toBeFocused();
 
       await expect(input).toBeVisible();
       await expect(input).toHaveValue("Pending name");

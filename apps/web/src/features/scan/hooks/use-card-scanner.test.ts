@@ -10,7 +10,7 @@ import type { ScanSessionOptions } from "@openrift/shared/scan/session-options";
 import { centeredGuideQuad, gatesForEmbedDim } from "@openrift/shared/scan/session-options";
 import type { CardCandidate, RgbaImage } from "@openrift/shared/scan/types";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import type * as CameraInfoModule from "@/features/scan/lib/camera-info";
 import type { CameraInfo } from "@/features/scan/lib/camera-info";
@@ -228,8 +228,12 @@ function createFakeVideo(): HTMLVideoElement {
  * One macrotask hop, which flushes every pending microtask that the frame
  * pipeline's internal awaits need to run to completion.
  */
-function flushAsync(): Promise<void> {
-  return new Promise((resolve) => {
+async function flushAsync(): Promise<void> {
+  if (vi.isFakeTimers()) {
+    await vi.advanceTimersByTimeAsync(0);
+    return;
+  }
+  await new Promise((resolve) => {
     setTimeout(resolve, 0);
   });
 }
@@ -958,6 +962,11 @@ describe("useCardScanner", () => {
       await act(async () => {
         await hook.result.current.start();
       });
+      // From here the paused polls run on a fake clock the test advances.
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      onTestFinished(() => {
+        vi.useRealTimers();
+      });
       await runFrames(1);
 
       await act(async () => {
@@ -967,9 +976,7 @@ describe("useCardScanner", () => {
       await runFrames(1);
       await act(async () => {
         hook.rerender({ settings: DEFAULT_SCANNER_SETTINGS });
-        await new Promise((resolve) => {
-          setTimeout(resolve, PAUSED_POLL_MS + 50);
-        });
+        await vi.advanceTimersByTimeAsync(PAUSED_POLL_MS);
       });
 
       const framesBefore = liveFrames.length;

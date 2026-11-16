@@ -1,4 +1,4 @@
-import { QueryClient, QueryObserver } from "@tanstack/react-query";
+import { notifyManager, QueryClient, QueryObserver } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { sessionQueryOptions } from "./auth-session";
@@ -108,8 +108,10 @@ describe("refreshViewer", () => {
     });
 
     await refreshViewer(client);
+    // Observers hear about removed and reset queries through notifyManager's queue;
+    // a callback scheduled now runs after those notifications.
     await new Promise<void>((resolve) => {
-      setTimeout(resolve, 0);
+      notifyManager.schedule(resolve);
     });
 
     expect(fetchTrades).toHaveBeenCalledTimes(1);

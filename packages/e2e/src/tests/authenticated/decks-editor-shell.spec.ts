@@ -198,11 +198,6 @@ test.describe("deck editor shell", () => {
 
       await expect(page.getByText("Constructed · Draft")).toBeVisible();
     });
-
-    test.skip("unsaved + saving states require card edits (chunks 3/4)", () => {
-      // isDirty only flips on card-zone edits in the deck-builder store, not
-      // on rename mutations.
-    });
   });
 
   test.describe("zones sidebar", () => {
@@ -264,12 +259,6 @@ test.describe("deck editor shell", () => {
       await expect(page.getByRole("heading", { name: "Deck Zones" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Close" })).toBeVisible();
     });
-  });
-
-  test.describe("hovered card preview", () => {
-    // HoveredCardPreview renders empty alt text and no role, so there is no
-    // locator for it without a card seeded into the deck to trigger it.
-    test.skip("hovering a card row shows the preview (chunks 3/4)", () => {});
   });
 
   test.describe("SEO", () => {

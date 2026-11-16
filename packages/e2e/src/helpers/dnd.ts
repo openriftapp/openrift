@@ -1,28 +1,41 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
-// A small intermediate move transitions dnd-kit's PointerSensor from
-// "pending" to "active" before the final move; a single long move sometimes
-// misses its 8px activation threshold.
+interface Point {
+  x: number;
+  y: number;
+}
+
 // page.mouse needs viewport coordinates; scrollIntoViewIfNeeded detaches the
-// tile mid-scroll on this window-virtualized grid, so nudge and re-measure.
+// tile mid-scroll on this window-virtualized grid, so re-measure after each scroll.
 export async function scrollIntoViewport(page: Page, locator: Locator, timeout = 15_000) {
-  const deadline = Date.now() + timeout;
-  while (Date.now() < deadline) {
-    const box = await locator.boundingBox();
-    const viewport = page.viewportSize();
-    if (!box || !viewport) {
-      await page.waitForTimeout(100);
-      continue;
-    }
-    if (box.y >= 0 && box.y + box.height <= viewport.height) {
-      return;
-    }
-    const delta = box.y < 0 ? box.y - 80 : box.y + box.height - viewport.height + 80;
-    await page.evaluate((d) => window.scrollBy(0, d), delta);
-    await page.waitForTimeout(100);
+  await expect
+    .poll(
+      async () => {
+        const box = await locator.boundingBox();
+        const viewport = page.viewportSize();
+        if (box && viewport && box.y >= 0 && box.y + box.height <= viewport.height) {
+          return true;
+        }
+        await locator.evaluate((element) => element.scrollIntoView({ block: "center" }));
+        return false;
+      },
+      { timeout, message: "element never settled inside the viewport" },
+    )
+    .toBe(true);
+}
+
+async function centerOf(locator: Locator): Promise<Point> {
+  const box = await locator.boundingBox();
+  if (!box) {
+    throw new Error("dnd locator has no layout box");
   }
-  throw new Error("scrollIntoViewport: element never settled inside the viewport");
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+
+// dnd-kit marks the dragged node aria-pressed once its sensor activates.
+function activeDraggable(page: Page): Locator {
+  return page.locator('[aria-roledescription="draggable"][aria-pressed="true"]');
 }
 
 // A drop that should land: the drop target's ring shows once dnd-kit has measured
@@ -31,31 +44,49 @@ export async function expectDropTargetArmed(dropRing: Locator) {
   await expect(dropRing).toHaveClass(/ring-primary/u);
 }
 
+/**
+ * Presses on the source and moves past dnd-kit's 8px activation distance. With
+ * `activates: false` the drag must not start (drag listeners are off on phones).
+ */
+export async function startDrag(
+  page: Page,
+  source: Locator,
+  options: { activates?: boolean } = {},
+): Promise<Point> {
+  await expect(source).toBeVisible({ timeout: 15_000 });
+  await scrollIntoViewport(page, source);
+  const start = await centerOf(source);
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(start.x + 20, start.y, { steps: 5 });
+  await (options.activates === false
+    ? expect(activeDraggable(page)).toHaveCount(0)
+    : expect(activeDraggable(page)).not.toHaveCount(0));
+  return start;
+}
+
+export async function moveDragTo(page: Page, target: Locator | Point, steps = 20) {
+  const point = "x" in target ? target : await centerOf(target);
+  await page.mouse.move(point.x, point.y, { steps });
+}
+
 export async function dndDrag(
   page: Page,
   source: Locator,
   target: Locator,
-  options: { dropRing?: Locator; rejectingZone?: Locator } = {},
+  options: {
+    dropRing?: Locator;
+    rejectingZone?: Locator;
+    shift?: boolean;
+    activates?: boolean;
+  } = {},
 ) {
-  await expect(source).toBeVisible({ timeout: 15_000 });
   await expect(target).toBeVisible({ timeout: 15_000 });
-  await scrollIntoViewport(page, source);
-  const sourceBox = await source.boundingBox();
-  const targetBox = await target.boundingBox();
-  if (!sourceBox || !targetBox) {
-    throw new Error("dnd source/target not visible");
+  await startDrag(page, source, { activates: options.activates });
+  if (options.shift) {
+    await page.keyboard.down("Shift");
   }
-  const startX = sourceBox.x + sourceBox.width / 2;
-  const startY = sourceBox.y + sourceBox.height / 2;
-  const endX = targetBox.x + targetBox.width / 2;
-  const endY = targetBox.y + targetBox.height / 2;
-  await page.mouse.move(startX, startY);
-  await page.mouse.down();
-  await page.mouse.move(startX + 20, startY, { steps: 5 });
-  // dnd-kit measures droppable rects when the drag starts; moving on before
-  // that lands leaves the collision detection with nothing to hit.
-  await page.waitForTimeout(100);
-  await page.mouse.move(endX, endY, { steps: 20 });
+  await moveDragTo(page, target);
   if (options.dropRing) {
     await expectDropTargetArmed(options.dropRing);
   }
@@ -64,19 +95,24 @@ export async function dndDrag(
     await expect(options.rejectingZone).toHaveClass(/opacity-40/u);
   }
   await page.mouse.up();
+  if (options.shift) {
+    await page.keyboard.up("Shift");
+  }
 }
 
-export async function dndDragToPoint(page: Page, source: Locator, endX: number, endY: number) {
-  await expect(source).toBeVisible({ timeout: 15_000 });
-  const sourceBox = await source.boundingBox();
-  if (!sourceBox) {
-    throw new Error("dnd source not visible");
+export async function dndDragToPoint(
+  page: Page,
+  source: Locator,
+  end: Point,
+  options: { shift?: boolean } = {},
+) {
+  await startDrag(page, source);
+  if (options.shift) {
+    await page.keyboard.down("Shift");
   }
-  const startX = sourceBox.x + sourceBox.width / 2;
-  const startY = sourceBox.y + sourceBox.height / 2;
-  await page.mouse.move(startX, startY);
-  await page.mouse.down();
-  await page.mouse.move(startX + 20, startY, { steps: 5 });
-  await page.mouse.move(endX, endY, { steps: 20 });
+  await moveDragTo(page, end);
   await page.mouse.up();
+  if (options.shift) {
+    await page.keyboard.up("Shift");
+  }
 }

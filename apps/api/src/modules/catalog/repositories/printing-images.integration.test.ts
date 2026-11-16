@@ -1,9 +1,13 @@
 import type { ImageQuad } from "@openrift/shared/contracts/admin/card-images";
 import { imageRehostedUrl } from "@openrift/shared/image-url";
+import type { Kysely } from "kysely";
+import { sql } from "kysely";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import type { Database } from "../../../db/tables.js";
 import { PRINTING_1 } from "../../../test/fixtures/constants.js";
 import { createDbContext } from "../../../test/integration-context.js";
+import { waitUntilBlockedBy } from "../../../test/row-locks.js";
 import { printingImagesRepo } from "./printing-images.js";
 
 const ctx = createDbContext("a0000000-0034-4000-a000-000000000001");
@@ -30,10 +34,9 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
     additionalEdit: "https://example.com/additional-edit-0034.jpg",
   };
 
-  async function settle(): Promise<void> {
-    await new Promise((resolve) => {
-      setTimeout(resolve, 200);
-    });
+  async function backendPid(trx: Kysely<Database>): Promise<number> {
+    const { rows } = await sql<{ pid: number }>`SELECT pg_backend_pid() AS pid`.execute(trx);
+    return rows[0]!.pid;
   }
 
   async function activeImageId(): Promise<string | undefined> {
@@ -280,7 +283,7 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
       const trxRepo = printingImagesRepo(trx);
       await trxRepo.deactivateActiveFace(seedPrintingId);
       promotion = repo.completeRehost(pendingFileId, imageRehostedUrl(pendingFileId));
-      await settle();
+      await waitUntilBlockedBy(db, await backendPid(trx));
       await trxRepo.setActive(otherId, true);
     });
     await promotion;
@@ -299,7 +302,7 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
     await db.transaction().execute(async (trx) => {
       await printingImagesRepo(trx).deleteById(pendingId);
       promotion = repo.completeRehost(pendingFileId, imageRehostedUrl(pendingFileId));
-      await settle();
+      await waitUntilBlockedBy(db, await backendPid(trx));
     });
     await promotion;
 

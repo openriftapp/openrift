@@ -1,8 +1,22 @@
 // @vitest-environment jsdom
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import type * as GravatarModule from "@/lib/gravatar";
+
 import { useGravatarHash } from "./use-gravatar-hash";
+
+const digestOverride = vi.hoisted(() => ({
+  current: undefined as ((input: string) => Promise<string>) | undefined,
+}));
+
+vi.mock("@/lib/gravatar", async (importOriginal) => {
+  const actual = await importOriginal<typeof GravatarModule>();
+  return {
+    ...actual,
+    sha256Hex: (input: string) => digestOverride.current?.(input) ?? actual.sha256Hex(input),
+  };
+});
 
 describe("useGravatarHash", () => {
   it("resolves to the sha256 hex digest of the trimmed, lowercased email", async () => {
@@ -36,17 +50,30 @@ describe("useGravatarHash", () => {
     await waitFor(() => expect(result.current).not.toBe(first));
   });
 
-  it("does not update state after unmount", async () => {
-    const errors: unknown[] = [];
-    const spy = vi.spyOn(console, "error").mockImplementation((...args) => errors.push(args));
-    const { unmount } = renderHook(() => useGravatarHash("a@example.com"));
-
-    unmount();
-    await new Promise((resolve) => {
-      setTimeout(resolve, 10);
+  it("drops a digest that lands after the email changed", async () => {
+    let resolveStale = (_hash: string) => {};
+    const stale = new Promise<string>((resolve) => {
+      resolveStale = resolve;
     });
+    digestOverride.current = (input) =>
+      input === "a@example.com" ? stale : Promise.resolve(`hash-of-${input}`);
+    try {
+      const { result, rerender } = renderHook(({ email }) => useGravatarHash(email), {
+        initialProps: { email: "a@example.com" },
+      });
+      rerender({ email: "b@example.com" });
+      await waitFor(() => expect(result.current).toBe("hash-of-b@example.com"));
 
-    expect(errors).toHaveLength(0);
-    spy.mockRestore();
+      await act(async () => {
+        resolveStale("hash-of-a@example.com");
+        // Same chain shape as the hook's `await sha256Hex(...).catch(...)`, registered
+        // later, so the hook's continuation has run when this one does.
+        await stale.catch(() => null);
+      });
+
+      expect(result.current).toBe("hash-of-b@example.com");
+    } finally {
+      digestOverride.current = undefined;
+    }
   });
 });

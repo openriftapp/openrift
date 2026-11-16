@@ -7,7 +7,7 @@ import { cardTile as cardTileFrame } from "../../helpers/catalog.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb, deleteUser } from "../../helpers/db.js";
-import { dndDrag, expectDropTargetArmed } from "../../helpers/dnd.js";
+import { dndDrag, expectDropTargetArmed, moveDragTo, startDrag } from "../../helpers/dnd.js";
 import { waitForHydrated } from "../../helpers/hydration.js";
 
 type Sql = ReturnType<typeof connectToDb>;
@@ -242,23 +242,11 @@ test.describe("collections drag-drop", () => {
       const cardTile = await settledCardTile(page, cardName);
       const targetLink = page.getByRole("link", { name: "Target" });
 
-      const sourceBox = await cardTile.boundingBox();
-      const targetBox = await targetLink.boundingBox();
-      if (!sourceBox || !targetBox) {
-        throw new Error("source or Target row not visible");
-      }
-      const startX = sourceBox.x + sourceBox.width / 2;
-      const startY = sourceBox.y + sourceBox.height / 2;
-      const endX = targetBox.x + targetBox.width / 2;
-      const endY = targetBox.y + targetBox.height / 2;
-
       // Press Shift before releasing so the collection DnD handler sees
       // shiftHeld=true at drop time and keeps every copy in the batch.
       const moveRequest = page.waitForRequest(isMoveRequest);
-      await page.mouse.move(startX, startY);
-      await page.mouse.down();
-      await page.mouse.move(startX + 20, startY, { steps: 5 });
-      await page.mouse.move(endX, endY, { steps: 20 });
+      await startDrag(page, cardTile);
+      await moveDragTo(page, targetLink);
       await page.keyboard.down("Shift");
       await expect(page.getByText("3 copies").first()).toBeVisible();
       await expectDropTargetArmed(collectionRow(targetLink));
@@ -296,18 +284,9 @@ test.describe("collections drag-drop", () => {
       await expect(page.getByRole("link", { name: "Target" })).toBeVisible({ timeout: 15_000 });
 
       const cardTile = await settledCardTile(page, cardName);
-      const sourceBox = await cardTile.boundingBox();
-      if (!sourceBox) {
-        throw new Error("source tile not visible");
-      }
-
-      const startX = sourceBox.x + sourceBox.width / 2;
-      const startY = sourceBox.y + sourceBox.height / 2;
-      await page.mouse.move(startX, startY);
-      await page.mouse.down();
-      await page.mouse.move(startX + 20, startY, { steps: 5 });
+      const start = await startDrag(page, cardTile);
       // Move further into empty grid space so the overlay is clear of the tile.
-      await page.mouse.move(startX + 200, startY + 50, { steps: 10 });
+      await moveDragTo(page, { x: start.x + 200, y: start.y + 50 }, 10);
       // Without Shift the default drag represents only 1 copy.
       await page.keyboard.down("Shift");
 
@@ -366,27 +345,12 @@ test.describe("collections drag-drop", () => {
       const targetLink = page.getByRole("link", { name: "Target" });
       const targetRow = collectionRow(targetLink);
 
-      const sourceBox = await cardTile.boundingBox();
-      const inboxBox = await inboxLink.boundingBox();
-      const targetBox = await targetLink.boundingBox();
-      if (!sourceBox || !inboxBox || !targetBox) {
-        throw new Error("source, Inbox or Target row not visible");
-      }
-      const startX = sourceBox.x + sourceBox.width / 2;
-      const startY = sourceBox.y + sourceBox.height / 2;
-
-      await page.mouse.move(startX, startY);
-      await page.mouse.down();
-      await page.mouse.move(startX + 20, startY, { steps: 5 });
+      await startDrag(page, cardTile);
       // Hovering Target first proves the drag resolves hover targets, so the
       // missing ring on Inbox below means Inbox refuses the drop.
-      await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, {
-        steps: 20,
-      });
+      await moveDragTo(page, targetLink);
       await expectDropTargetArmed(targetRow);
-      await page.mouse.move(inboxBox.x + inboxBox.width / 2, inboxBox.y + inboxBox.height / 2, {
-        steps: 10,
-      });
+      await moveDragTo(page, inboxLink, 10);
       await expect(targetRow).not.toHaveClass(/ring-primary/u);
       await expect(inboxRow).not.toHaveClass(/ring-primary/u);
       await page.mouse.up();
@@ -423,18 +387,9 @@ test.describe("collections drag-drop", () => {
 
       const moves = watchMoveRequests(page);
 
-      const sourceBox = await cardTile.boundingBox();
-      if (!sourceBox) {
-        throw new Error("source tile not visible");
-      }
-      const startX = sourceBox.x + sourceBox.width / 2;
-      const startY = sourceBox.y + sourceBox.height / 2;
-
-      await page.mouse.move(startX, startY);
-      await page.mouse.down();
-      await page.mouse.move(startX + 20, startY, { steps: 5 });
+      const start = await startDrag(page, cardTile);
       // Release in grid whitespace, clear of sidebar and any card tile.
-      await page.mouse.move(startX + 400, startY + 200, { steps: 20 });
+      await moveDragTo(page, { x: start.x + 400, y: start.y + 200 });
       await page.mouse.up();
 
       await page.waitForTimeout(500);
@@ -470,20 +425,8 @@ test.describe("collections drag-drop", () => {
       const targetLink = page.getByRole("link", { name: "Target" });
       const targetRow = collectionRow(targetLink);
 
-      const sourceBox = await cardTile.boundingBox();
-      const targetBox = await targetLink.boundingBox();
-      if (!sourceBox || !targetBox) {
-        throw new Error("source or Target row not visible");
-      }
-      const startX = sourceBox.x + sourceBox.width / 2;
-      const startY = sourceBox.y + sourceBox.height / 2;
-      const endX = targetBox.x + targetBox.width / 2;
-      const endY = targetBox.y + targetBox.height / 2;
-
-      await page.mouse.move(startX, startY);
-      await page.mouse.down();
-      await page.mouse.move(startX + 20, startY, { steps: 5 });
-      await page.mouse.move(endX, endY, { steps: 20 });
+      await startDrag(page, cardTile);
+      await moveDragTo(page, targetLink);
 
       // The ring class is the actual visible drop affordance; there is no
       // role/aria alternative for a drag-hover state.
@@ -518,19 +461,10 @@ test.describe("collections drag-drop", () => {
 
       const moves = watchMoveRequests(page);
 
-      const sourceBox = await cardTile.boundingBox();
-      if (!sourceBox) {
-        throw new Error("source tile not visible");
-      }
-      const startX = sourceBox.x + sourceBox.width / 2;
-      const startY = sourceBox.y + sourceBox.height / 2;
-
       // On mobile, DraggableCard returns children without any dnd-kit listeners,
       // so pointer events never activate a drag regardless of where we move.
-      await page.mouse.move(startX, startY);
-      await page.mouse.down();
-      await page.mouse.move(startX + 20, startY, { steps: 5 });
-      await page.mouse.move(startX + 200, startY + 100, { steps: 20 });
+      const start = await startDrag(page, cardTile, { activates: false });
+      await moveDragTo(page, { x: start.x + 200, y: start.y + 100 });
       await page.mouse.up();
 
       await page.waitForTimeout(500);

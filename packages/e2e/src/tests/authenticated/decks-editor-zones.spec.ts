@@ -6,12 +6,7 @@ import { expect, test } from "../../fixtures/test.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb } from "../../helpers/db.js";
-import {
-  dndDrag,
-  dndDragToPoint,
-  expectDropTargetArmed,
-  scrollIntoViewport,
-} from "../../helpers/dnd.js";
+import { dndDrag, dndDragToPoint } from "../../helpers/dnd.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -137,33 +132,15 @@ async function searchBrowserFor(page: Page, cardName: string) {
   await expect(browserCardTile(page, cardName)).toBeVisible({ timeout: 10_000 });
 }
 
-// dnd-kit only mounts the keydown listener once a drag activates, so Shift is
-// pressed after the activation move and released after mouseup.
 async function dndDragWithShift(page: Page, source: Locator, target: Locator) {
-  // Both ends re-render while the deck settles after a previous edit, which
-  // can hand back a null box; wait for each to be laid out before measuring.
-  await expect(source).toBeVisible({ timeout: 15_000 });
-  await expect(target).toBeVisible({ timeout: 15_000 });
-  await scrollIntoViewport(page, source);
-  const sourceBox = await source.boundingBox();
-  const targetBox = await target.boundingBox();
-  if (!sourceBox || !targetBox) {
-    throw new Error("dnd source/target not visible");
-  }
-  const startX = sourceBox.x + sourceBox.width / 2;
-  const startY = sourceBox.y + sourceBox.height / 2;
-  const endX = targetBox.x + targetBox.width / 2;
-  const endY = targetBox.y + targetBox.height / 2;
-  await page.mouse.move(startX, startY);
-  await page.mouse.down();
-  await page.mouse.move(startX + 20, startY, { steps: 5 });
-  // Let the DndContext's useEffect attach its keydown listener before pressing Shift.
-  await page.waitForTimeout(100);
-  await page.keyboard.down("Shift");
-  await page.mouse.move(endX, endY, { steps: 20 });
-  await expectDropTargetArmed(target);
-  await page.mouse.up();
-  await page.keyboard.up("Shift");
+  await dndDrag(page, source, target, { dropRing: target, shift: true });
+}
+
+// Every card edit records an undo step synchronously with the edit, before any
+// save is scheduled, so a disabled Undo after the drop means nothing changed.
+async function expectNoDeckEdit(page: Page) {
+  const undo = page.getByRole("button", { name: "Undo", exact: true, includeHidden: true });
+  await expect(undo.first()).toBeDisabled();
 }
 
 test.describe("deck editor zones + drag-drop", () => {
@@ -423,8 +400,7 @@ test.describe("deck editor zones + drag-drop", () => {
 
       await dndDrag(page, deckCardRow(main, unit.name), main, { dropRing: main });
 
-      // Wait out the auto-save debounce so a wrongly-fired mutation would land.
-      await page.waitForTimeout(1500);
+      await expectNoDeckEdit(page);
       const rows = await readDeckCards(deckId);
       expect(rows.filter((row) => row.cardId === unit.id)).toEqual([
         expect.objectContaining({ cardId: unit.id, zone: "main", quantity: 2 }),
@@ -455,7 +431,7 @@ test.describe("deck editor zones + drag-drop", () => {
         await dndDrag(page, deckCardRow(main, unit.name), target, { rejectingZone: target });
       }
 
-      await page.waitForTimeout(1500);
+      await expectNoDeckEdit(page);
       const rows = await readDeckCards(deckId);
       expect(rows.filter((row) => row.cardId === unit.id)).toEqual([
         expect.objectContaining({ cardId: unit.id, zone: "main", quantity: 2 }),
@@ -488,7 +464,7 @@ test.describe("deck editor zones + drag-drop", () => {
       const dropX = Math.min(viewport.width - 80, viewport.width / 2 + 200);
       const dropY = viewport.height / 2;
 
-      await dndDragToPoint(page, deckCardRow(mainA, unit.name), dropX, dropY);
+      await dndDragToPoint(page, deckCardRow(mainA, unit.name), { x: dropX, y: dropY });
 
       await expect
         .poll(
@@ -513,20 +489,7 @@ test.describe("deck editor zones + drag-drop", () => {
       const rowB = deckCardRow(mainB, unit.name);
       await expect(rowB).toBeVisible({ timeout: 15_000 });
 
-      const sourceBox = await rowB.boundingBox();
-      if (!sourceBox) {
-        throw new Error("row not visible");
-      }
-      const startX = sourceBox.x + sourceBox.width / 2;
-      const startY = sourceBox.y + sourceBox.height / 2;
-      await page.mouse.move(startX, startY);
-      await page.mouse.down();
-      await page.mouse.move(startX + 20, startY, { steps: 5 });
-      await page.waitForTimeout(100);
-      await page.keyboard.down("Shift");
-      await page.mouse.move(dropX, dropY, { steps: 20 });
-      await page.mouse.up();
-      await page.keyboard.up("Shift");
+      await dndDragToPoint(page, rowB, { x: dropX, y: dropY }, { shift: true });
 
       await expect
         .poll(
@@ -558,31 +521,8 @@ test.describe("deck editor zones + drag-drop", () => {
       const tile = browserCardTile(page, unit.name);
       const mainSection = zoneSection(page, "Main");
 
-      // page.mouse works in viewport coordinates, so the tile has to be on
-      // screen before its box is read.
-      await scrollIntoViewport(page, tile);
-      const sourceBox = await tile.boundingBox();
-      const targetBox = await mainSection.boundingBox();
-      if (!sourceBox || !targetBox) {
-        throw new Error("source/target not visible");
-      }
-      const startX = sourceBox.x + sourceBox.width / 2;
-      const startY = sourceBox.y + sourceBox.height / 2;
-      const endX = targetBox.x + targetBox.width / 2;
-      const endY = targetBox.y + targetBox.height / 2;
-
-      await page.mouse.move(startX, startY);
-      await page.mouse.down();
-      await page.mouse.move(startX + 20, startY, { steps: 5 });
-      // dnd-kit measures droppable rects when the drag starts; moving on before
-      // that lands leaves the collision detection with nothing to hit.
-      await page.waitForTimeout(100);
-      await page.mouse.move(endX, endY, { steps: 20 });
-
       // ring-primary is the visible drop affordance; no role/aria alternative.
-      await expect(mainSection).toHaveClass(/ring-primary/u);
-
-      await page.mouse.up();
+      await dndDrag(page, tile, mainSection, { dropRing: mainSection });
     });
   });
 
@@ -616,8 +556,8 @@ test.describe("deck editor zones + drag-drop", () => {
 
       // DeckCardRow disables dnd-kit listeners on mobile; pointer events never
       // activate a drag.
-      await dndDrag(page, row, sideboard);
-      await page.waitForTimeout(1500);
+      await dndDrag(page, row, sideboard, { activates: false });
+      await expectNoDeckEdit(page);
 
       const deckRows = await readDeckCards(deckId);
       expect(deckRows.filter((deckRow) => deckRow.cardId === unit.id)).toEqual([

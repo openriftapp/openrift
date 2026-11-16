@@ -1,4 +1,4 @@
-import type { APIRequestContext, Download, Page } from "@playwright/test";
+import type { APIRequestContext, Page } from "@playwright/test";
 
 import { expect, test } from "../../fixtures/test.js";
 import { isApiPath } from "../../helpers/api-endpoint.js";
@@ -69,14 +69,6 @@ async function openPrintDialog(page: Page, tab: "Proxies" | "Registration" | "De
 
 function readClipboard(page: Page): Promise<string> {
   return page.evaluate(() => navigator.clipboard.readText());
-}
-
-async function waitForOptionalDownload(page: Page, timeout: number): Promise<Download | null> {
-  try {
-    return await page.waitForEvent("download", { timeout });
-  } catch {
-    return null;
-  }
 }
 
 test.describe("deck editor exports", () => {
@@ -228,27 +220,22 @@ test.describe("deck editor exports", () => {
     }) => {
       const page = authenticatedPage;
       await grantClipboard(page);
-      const deckName = `Regform ${Date.now()}`;
+      const stamp = Date.now();
+      const deckName = `Regform ${stamp}`;
       const deckId = await createDeckViaApi(page.request, { name: deckName });
       await setDeckCardsViaApi(page.request, deckId, [
         { cardId: ANNIE_CARD_ID, zone: "main", quantity: 3 },
       ]);
       await page.goto(`/decks/${deckId}`);
 
-      let exportRequestFired = false;
-      await page.route(
-        (url) => isServerFn(url.toString(), "exportDeckFn"),
-        async (route) => {
-          exportRequestFired = true;
-          await route.continue();
-        },
-      );
+      const exportRequests: string[] = [];
+      page.on("request", (request) => {
+        if (isServerFn(request.url(), "exportDeckFn")) {
+          exportRequests.push(request.url());
+        }
+      });
 
       const dialog = await openPrintDialog(page, "Registration");
-
-      // Registration builds its PDF from the in-memory draft, not an export.
-      await page.waitForTimeout(500);
-      expect(exportRequestFired).toBe(false);
 
       await expect(dialog.getByLabel("Deck Name")).toHaveValue(deckName);
       // E2E user's display name is "E2E User"; the component splits on whitespace.
@@ -265,22 +252,17 @@ test.describe("deck editor exports", () => {
       // page-size select.
       await expect(dialog.locator("#registration-page-size")).toContainText("A4");
 
-      const downloadPromise = waitForOptionalDownload(page, 30_000);
-      await dialog.getByRole("button", { name: "Download PDF" }).click();
+      const downloadButton = dialog.getByRole("button", { name: "Download PDF" });
+      const [download] = await Promise.all([
+        page.waitForEvent("download", { timeout: 30_000 }),
+        downloadButton.click(),
+      ]);
+      expect(download.suggestedFilename()).toBe(`regform-${stamp}-registration.pdf`);
+      await expect(downloadButton).toBeEnabled();
 
-      const download = await downloadPromise;
-      if (download) {
-        expect(download.suggestedFilename()).toMatch(/\.pdf$/u);
-        expect(download.suggestedFilename()).toContain("registration");
-      }
-
-      await expect(async () => {
-        const stillGenerating = await dialog
-          .getByRole("button", { name: /Generating/u })
-          .isVisible()
-          .catch(() => false);
-        expect(stillGenerating).toBe(false);
-      }).toPass({ timeout: 30_000 });
+      // Registration builds its PDF from the in-memory draft; the window spans
+      // the whole flow up to the finished download.
+      expect(exportRequests).toEqual([]);
     });
   });
 
@@ -344,7 +326,8 @@ test.describe("deck editor exports", () => {
       authenticatedPage,
     }) => {
       const page = authenticatedPage;
-      const deckId = await createDeckViaApi(page.request, { name: `Proxy Gen ${Date.now()}` });
+      const stamp = Date.now();
+      const deckId = await createDeckViaApi(page.request, { name: `Proxy Gen ${stamp}` });
       await setDeckCardsViaApi(page.request, deckId, [
         { cardId: ANNIE_CARD_ID, zone: "main", quantity: 3 },
       ]);
@@ -352,29 +335,29 @@ test.describe("deck editor exports", () => {
 
       const dialog = await openPrintDialog(page, "Proxies");
 
-      const downloadPromise = waitForOptionalDownload(page, 60_000);
-
-      await dialog.getByRole("button", { name: "Generate PDF" }).click();
-
-      // Loading label is "Generating…" or "Rendering N/M…"; either is fine, so
-      // just assert the Generate PDF label is gone.
-      await expect(dialog.getByRole("button", { name: "Generate PDF" })).toBeHidden({
-        timeout: 15_000,
+      // Card images are held until the in-flight state is asserted, so the
+      // generation cannot finish first.
+      let releaseImages = () => {};
+      const imagesReleased = new Promise<void>((resolve) => {
+        releaseImages = resolve;
+      });
+      await page.route("**/media/cards/**", async (route) => {
+        await imagesReleased;
+        await route.continue();
       });
 
-      const download = await downloadPromise;
-      if (download) {
-        expect(download.suggestedFilename()).toMatch(/\.pdf$/u);
-      }
+      const downloadPromise = page.waitForEvent("download", { timeout: 60_000 });
+      await dialog.getByRole("button", { name: "Generate PDF" }).click();
 
-      await expect(async () => {
-        const closed = await dialog.isHidden().catch(() => true);
-        const reenabled = await dialog
-          .getByRole("button", { name: "Generate PDF" })
-          .isVisible()
-          .catch(() => false);
-        expect(closed || reenabled).toBe(true);
-      }).toPass({ timeout: 60_000 });
+      const busyButton = dialog.getByRole("button", { name: /Generating|Rendering/u });
+      await expect(busyButton).toBeDisabled();
+      await expect(busyButton).toHaveAttribute("aria-busy", "true");
+      releaseImages();
+
+      const download = await downloadPromise;
+      expect(download.suggestedFilename()).toBe(`proxy-gen-${stamp}-proxies.pdf`);
+      // A finished generation closes the dialog; a failed one leaves it open.
+      await expect(dialog).toBeHidden();
     });
   });
 

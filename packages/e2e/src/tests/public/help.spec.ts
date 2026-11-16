@@ -238,8 +238,4 @@ test.describe("help", () => {
       await expect(page).toHaveURL(/\/help\/does-not-exist$/u);
     });
   });
-
-  test.describe("feature-flag gating", () => {
-    test.skip("no feature-flagged help articles currently — add one to cover this branch", () => {});
-  });
 });

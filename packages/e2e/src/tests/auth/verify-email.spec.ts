@@ -7,6 +7,7 @@ import { test } from "../../fixtures/test.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb } from "../../helpers/db.js";
+import { waitForHydrated } from "../../helpers/hydration.js";
 import { fetchLatestOtp } from "../../helpers/otp.js";
 
 type Sql = ReturnType<typeof connectToDb>;
@@ -263,14 +264,7 @@ test.describe("verify email page", () => {
       await page.goto(`/verify-email?email=${encodeURIComponent(email)}`);
       // The Resend button's onClick isn't attached until hydration, so
       // clicking before then fires into the void.
-      await expect(page.getByRole("button", { name: /^resend code$/iu })).toBeVisible();
-      await page.waitForFunction(
-        () => {
-          const btn = document.querySelector("button");
-          return btn !== null && Object.keys(btn).some((k) => k.startsWith("__react"));
-        },
-        { timeout: 10_000 },
-      );
+      await waitForHydrated(page.getByRole("button", { name: /^resend code$/iu }));
 
       const resendRequest = page.waitForRequest((req) => SEND_URL_REGEX.test(req.url()));
       await page.getByRole("button", { name: /^resend code$/iu }).click();

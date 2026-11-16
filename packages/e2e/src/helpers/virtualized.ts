@@ -10,25 +10,28 @@ export async function scrollUntilVisible(
 ) {
   const { timeout = 15_000, step = 600, direction = "down" } = options;
   const delta = direction === "down" ? step : -step;
-  const deadline = Date.now() + timeout;
-  while (Date.now() < deadline) {
-    if ((await locator.count()) > 0) {
-      await expect(locator.first()).toBeVisible();
-      return;
-    }
-    await page.evaluate(
-      ({ delta: d, dir }) => {
-        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-        const atEnd = dir === "down" ? window.scrollY >= maxScroll - 2 : window.scrollY <= 2;
-        if (atEnd) {
-          window.scrollTo({ top: dir === "down" ? 0 : maxScroll });
-        } else {
-          window.scrollBy(0, d);
+  await expect
+    .poll(
+      async () => {
+        if ((await locator.count()) > 0) {
+          return true;
         }
+        await page.evaluate(
+          ({ delta: d, dir }) => {
+            const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+            const atEnd = dir === "down" ? window.scrollY >= maxScroll - 2 : window.scrollY <= 2;
+            if (atEnd) {
+              window.scrollTo({ top: dir === "down" ? 0 : maxScroll });
+            } else {
+              window.scrollBy(0, d);
+            }
+          },
+          { delta, dir: direction },
+        );
+        return false;
       },
-      { delta, dir: direction },
-    );
-    await page.waitForTimeout(100);
-  }
-  throw new Error(`scrollUntilVisible: locator not found within ${timeout}ms`);
+      { timeout, message: "scrollUntilVisible: locator never rendered" },
+    )
+    .toBe(true);
+  await expect(locator.first()).toBeVisible();
 }

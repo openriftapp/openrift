@@ -29,6 +29,15 @@ describe("loadMigrations", () => {
     }
   });
 
+  it("gives every migration file its own number", async () => {
+    // Both are applied everywhere already; renaming either would re-run it.
+    const allowedPair = ["364-infinity-deck-format.ts", "364-tournament-deck-format-required.ts"];
+    const byNumber = Map.groupBy(await migrationFileNames(), (name) => name.slice(0, 3));
+    const shared = [...byNumber.values()].filter((names) => names.length > 1);
+
+    expect(shared.map((names) => names.toSorted())).toEqual([allowedPair]);
+  });
+
   it("sorts 001-core-schema first", async () => {
     const names = Object.keys(await loadMigrations()).toSorted();
     expect(names[0]).toBe("001-core-schema");

@@ -14,15 +14,18 @@ describe("restartInFlightCopiesRefetch", () => {
       release = resolve;
     });
     let calls = 0;
+    let staleFetch: Promise<string> | undefined;
+    let staleSignal: AbortSignal | undefined;
     const observer = new QueryObserver(client, {
       queryKey,
-      queryFn: async () => {
+      queryFn: ({ signal }) => {
         calls++;
         if (calls === 1) {
-          await gate;
-          return "stale";
+          staleSignal = signal;
+          staleFetch = gate.then(() => "stale");
+          return staleFetch;
         }
-        return "fresh";
+        return Promise.resolve("fresh");
       },
     });
     const unsubscribe = observer.subscribe(() => {});
@@ -30,10 +33,10 @@ describe("restartInFlightCopiesRefetch", () => {
 
     restartInFlightCopiesRefetch(client, "user-1");
     await vi.waitFor(() => expect(client.getQueryData(queryKey)).toBe("fresh"));
+    // A cancelled fetch's retryer has already rejected, so its late result has nowhere to land.
+    expect(staleSignal?.aborted).toBe(true);
     release();
-    await new Promise((resolve) => {
-      setTimeout(resolve, 10);
-    });
+    await staleFetch;
 
     expect(client.getQueryData(queryKey)).toBe("fresh");
     unsubscribe();

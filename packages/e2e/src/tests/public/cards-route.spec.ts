@@ -49,10 +49,6 @@ test.describe("/cards route essentials", () => {
     await expect(twitterImage).toHaveAttribute("content", `${WEB_BASE_URL}/og-image.png`);
   });
 
-  // Playwright hovers before clicking, so `/cards` links preload on intent and
-  // the pendingComponent never mounts: unobservable in this harness.
-  test.skip("renders the pending skeleton while the catalog query is in flight", () => {});
-
   test("renders the error fallback when the catalog fetch fails", async ({ page }) => {
     // Client navigations hit /api/v1/catalog directly; SSR hits _serverFn.
     // Fail both so the test works regardless of which path the loader takes.

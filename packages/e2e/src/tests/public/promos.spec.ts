@@ -103,7 +103,7 @@ test.describe("promos", () => {
     test("renders the language counts and channel section dividers", async ({ page }) => {
       const data = await fetchPromoList();
       const enPrintings = data.printings.filter((printing) => printing.language === "EN");
-      test.skip(enPrintings.length === 0, "seed has no EN promo printings");
+      expect(enPrintings.length, "seed should have EN promo printings").toBeGreaterThan(0);
 
       await page.goto("/promos");
       await expect(page.getByRole("heading", { level: 1, name: "Riftbound Promos" })).toBeVisible();

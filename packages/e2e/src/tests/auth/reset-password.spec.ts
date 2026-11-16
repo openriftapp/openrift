@@ -36,7 +36,7 @@ test.describe("reset password", () => {
       await waitForHydration(page);
 
       await expect(page.getByRole("heading", { name: "Reset your password" })).toBeVisible();
-      await expect(page.locator("#reset-email")).toBeVisible();
+      await expect(page.getByRole("textbox", { name: "Email", exact: true })).toBeVisible();
       await expect(page.getByRole("button", { name: /send code/iu })).toBeVisible();
     });
 
@@ -47,14 +47,14 @@ test.describe("reset password", () => {
       await page.getByRole("button", { name: /send code/iu }).click();
 
       await expect(page.getByText("Please enter a valid email address.")).toBeVisible();
-      await expect(page.locator("#reset-email")).toBeVisible();
+      await expect(page.getByRole("textbox", { name: "Email", exact: true })).toBeVisible();
     });
 
     test("malformed email shows the same inline error", async ({ page }) => {
       await page.goto("/reset-password");
       await waitForHydration(page);
 
-      await page.locator("#reset-email").fill("foo");
+      await page.getByRole("textbox", { name: "Email", exact: true }).fill("foo");
       await page.getByRole("button", { name: /send code/iu }).click();
 
       await expect(page.getByText("Please enter a valid email address.")).toBeVisible();
@@ -71,7 +71,7 @@ test.describe("reset password", () => {
 
       await page.goto("/reset-password");
       await waitForHydration(page);
-      await page.locator("#reset-email").fill(email);
+      await page.getByRole("textbox", { name: "Email", exact: true }).fill(email);
 
       const otpRequest = page.waitForRequest((req) =>
         req.url().includes("/api/auth/email-otp/send-verification-otp"),
@@ -98,7 +98,9 @@ test.describe("reset password", () => {
 
       await page.goto("/reset-password");
       await waitForHydration(page);
-      await page.locator("#reset-email").fill("loading-state@test.com");
+      await page
+        .getByRole("textbox", { name: "Email", exact: true })
+        .fill("loading-state@test.com");
       await page.getByRole("button", { name: /send code/iu }).click();
 
       const sending = page.getByRole("button", { name: /^send code$/iu });
@@ -123,7 +125,7 @@ test.describe("reset password", () => {
     test("Reset password is disabled when OTP is empty", async ({ page }) => {
       await gotoStep2(page, "foo@test.com");
 
-      await page.locator("#new-password").fill("NewPassword1!");
+      await page.getByLabel("New password", { exact: true }).fill("NewPassword1!");
       await expect(page.getByRole("button", { name: /reset password/iu })).toBeDisabled();
     });
 
@@ -131,7 +133,7 @@ test.describe("reset password", () => {
       await gotoStep2(page, "foo@test.com");
 
       await fillOtp(page, "12345");
-      await page.locator("#new-password").fill("NewPassword1!");
+      await page.getByLabel("New password", { exact: true }).fill("NewPassword1!");
       await expect(page.getByRole("button", { name: /reset password/iu })).toBeDisabled();
     });
 
@@ -157,7 +159,7 @@ test.describe("reset password", () => {
       await gotoStep2(page, "foo@test.com");
 
       await fillOtp(page, "123456");
-      await page.locator("#new-password").fill("NewPassword1!");
+      await page.getByLabel("New password", { exact: true }).fill("NewPassword1!");
       await expect(page.getByRole("button", { name: /reset password/iu })).toBeEnabled();
     });
   });
@@ -167,8 +169,8 @@ test.describe("reset password", () => {
       await gotoStep2(page, "foo@test.com");
 
       await fillOtp(page, "123456");
-      await page.locator("#new-password").fill("Short1!");
-      await page.locator("#confirm-password").fill("Short1!");
+      await page.getByLabel("New password", { exact: true }).fill("Short1!");
+      await page.getByLabel("Confirm password", { exact: true }).fill("Short1!");
       await page.getByRole("button", { name: /reset password/iu }).click();
 
       await expect(page.getByText("Password must be at least 8 characters.")).toBeVisible();
@@ -178,8 +180,8 @@ test.describe("reset password", () => {
       await gotoStep2(page, "foo@test.com");
 
       await fillOtp(page, "123456");
-      await page.locator("#new-password").fill("NewPassword1!");
-      await page.locator("#confirm-password").fill("Different1!");
+      await page.getByLabel("New password", { exact: true }).fill("NewPassword1!");
+      await page.getByLabel("Confirm password", { exact: true }).fill("Different1!");
       await page.getByRole("button", { name: /reset password/iu }).click();
 
       await expect(page.getByText("Passwords do not match.")).toBeVisible();
@@ -199,8 +201,8 @@ test.describe("reset password", () => {
       await gotoStep2(page, email, { realSend: true });
 
       await fillOtp(page, "000000");
-      await page.locator("#new-password").fill("NewPassword1!");
-      await page.locator("#confirm-password").fill("NewPassword1!");
+      await page.getByLabel("New password", { exact: true }).fill("NewPassword1!");
+      await page.getByLabel("Confirm password", { exact: true }).fill("NewPassword1!");
       await page.getByRole("button", { name: /reset password/iu }).click();
 
       await expect(page.getByText("Incorrect code. Please try again.")).toBeVisible({
@@ -228,8 +230,8 @@ test.describe("reset password", () => {
       }
 
       await fillOtp(page, otp);
-      await page.locator("#new-password").fill("NewPassword1!");
-      await page.locator("#confirm-password").fill("NewPassword1!");
+      await page.getByLabel("New password", { exact: true }).fill("NewPassword1!");
+      await page.getByLabel("Confirm password", { exact: true }).fill("NewPassword1!");
       await page.getByRole("button", { name: /reset password/iu }).click();
 
       // better-auth's expired-row sweep race decides whether the code reports
@@ -253,8 +255,8 @@ test.describe("reset password", () => {
       await gotoStep2(page, "too-many@test.com");
 
       await fillOtp(page, "123456");
-      await page.locator("#new-password").fill("NewPassword1!");
-      await page.locator("#confirm-password").fill("NewPassword1!");
+      await page.getByLabel("New password", { exact: true }).fill("NewPassword1!");
+      await page.getByLabel("Confirm password", { exact: true }).fill("NewPassword1!");
       await page.getByRole("button", { name: /reset password/iu }).click();
 
       await expect(page.getByText("Too many attempts. Please request a new code.")).toBeVisible();
@@ -274,8 +276,8 @@ test.describe("reset password", () => {
       await gotoStep2(page, "unknown-error@test.com");
 
       await fillOtp(page, "123456");
-      await page.locator("#new-password").fill("NewPassword1!");
-      await page.locator("#confirm-password").fill("NewPassword1!");
+      await page.getByLabel("New password", { exact: true }).fill("NewPassword1!");
+      await page.getByLabel("Confirm password", { exact: true }).fill("NewPassword1!");
       await page.getByRole("button", { name: /reset password/iu }).click();
 
       await expect(page.getByText("Something went wrong. Please try again.")).toBeVisible();
@@ -303,8 +305,8 @@ test.describe("reset password", () => {
       }
 
       await fillOtp(page, otp);
-      await page.locator("#new-password").fill(newPassword);
-      await page.locator("#confirm-password").fill(newPassword);
+      await page.getByLabel("New password", { exact: true }).fill(newPassword);
+      await page.getByLabel("Confirm password", { exact: true }).fill(newPassword);
       await page.getByRole("button", { name: /reset password/iu }).click();
 
       await expect(page).toHaveURL(/\/login\?/u, { timeout: 15_000 });
@@ -313,7 +315,7 @@ test.describe("reset password", () => {
       expect(loginUrl.searchParams.get("email")).toBe(email);
 
       await waitForHydration(page);
-      await page.locator("#password").fill(newPassword);
+      await page.getByLabel("Password", { exact: true }).fill(newPassword);
       await page.getByRole("button", { name: /^sign in$/iu }).click();
 
       await expect(page).not.toHaveURL(/\/login/u, { timeout: 15_000 });
@@ -336,14 +338,14 @@ test.describe("reset password", () => {
       }
 
       await fillOtp(page, otp);
-      await page.locator("#new-password").fill(newPassword);
-      await page.locator("#confirm-password").fill(newPassword);
+      await page.getByLabel("New password", { exact: true }).fill(newPassword);
+      await page.getByLabel("Confirm password", { exact: true }).fill(newPassword);
       await page.getByRole("button", { name: /reset password/iu }).click();
 
       await expect(page).toHaveURL(/\/login\?/u, { timeout: 15_000 });
       await waitForHydration(page);
 
-      await page.locator("#password").fill(oldPassword);
+      await page.getByLabel("Password", { exact: true }).fill(oldPassword);
       await page.getByRole("button", { name: /^sign in$/iu }).click();
 
       await expect(page.getByText("Invalid email or password")).toBeVisible({ timeout: 10_000 });
@@ -376,8 +378,8 @@ test.describe("reset password", () => {
       await gotoStep2(page, email, { realSend: true });
 
       await fillOtp(page, "000000");
-      await page.locator("#new-password").fill("NewPassword1!");
-      await page.locator("#confirm-password").fill("NewPassword1!");
+      await page.getByLabel("New password", { exact: true }).fill("NewPassword1!");
+      await page.getByLabel("Confirm password", { exact: true }).fill("NewPassword1!");
       await page.getByRole("button", { name: /reset password/iu }).click();
       await expect(page.getByText("Incorrect code. Please try again.")).toBeVisible({
         timeout: 10_000,
@@ -406,7 +408,7 @@ test.describe("reset password", () => {
       await waitForHydration(page);
 
       const typed = `typed-${Date.now()}@test.com`;
-      await page.locator("#reset-email").fill(typed);
+      await page.getByRole("textbox", { name: "Email", exact: true }).fill(typed);
       await page.getByRole("link", { name: /back to login/iu }).click();
 
       await expect(page).toHaveURL(/\/login\?/u);

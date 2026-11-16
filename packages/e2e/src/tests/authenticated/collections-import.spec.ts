@@ -701,10 +701,4 @@ test.describe("collections import/export", () => {
       expect(targetCopies).toHaveLength(0);
     });
   });
-
-  test.describe("batching", () => {
-    // Skipped: a >500-copy CSV exercising the batching loop is expensive to
-    // run end-to-end; the batching logic is already covered by unit tests.
-    test.skip("submits copies in 500-count batches", async () => {});
-  });
 });

@@ -233,6 +233,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   // Suspense boundaries hydrates in later commits.
   useEffect(() => {
     markHydrationSettled();
+    // E2E waits on this attribute before interacting with server-rendered markup.
+    document.documentElement.dataset.hydrated = "";
     void refetchUnknownFeatureFlags(queryClient);
   }, [queryClient]);
   const umamiOrigin = safeOrigin(siteSettings["umami-url"]);

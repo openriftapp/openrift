@@ -31,16 +31,9 @@ async function createVerifiedUser(
 
 async function loginViaForm(page: Page, email: string, password: string) {
   await page.goto("/login");
-  await page.locator("form").first().waitFor({ state: "attached" });
-  await page.waitForFunction(
-    () => {
-      const formEl = document.querySelector("form");
-      return formEl !== null && Object.keys(formEl).some((key) => key.startsWith("__react"));
-    },
-    { timeout: 10_000 },
-  );
-  await page.locator("#email").fill(email);
-  await page.locator("#password").fill(password);
+  await waitForHydrated(page.locator("form").first());
+  await page.getByRole("textbox", { name: "Email", exact: true }).fill(email);
+  await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: /^sign in$/iu }).click();
   await expect(page).not.toHaveURL(/\/login/u, { timeout: 15_000 });
 }
@@ -290,17 +283,9 @@ test.describe("profile danger zone", () => {
       }
 
       await page.goto("/login");
-      await page.locator("form").first().waitFor({ state: "attached" });
-      // SSR renders the form before React attaches event handlers.
-      await page.waitForFunction(
-        () => {
-          const formEl = document.querySelector("form");
-          return formEl !== null && Object.keys(formEl).some((key) => key.startsWith("__react"));
-        },
-        { timeout: 10_000 },
-      );
-      await page.locator("#email").fill(email);
-      await page.locator("#password").fill(password);
+      await waitForHydrated(page.locator("form").first());
+      await page.getByRole("textbox", { name: "Email", exact: true }).fill(email);
+      await page.getByLabel("Password", { exact: true }).fill(password);
       await page.getByRole("button", { name: /^sign in$/iu }).click();
       await expect(page.getByText(/invalid email or password/iu)).toBeVisible({ timeout: 15_000 });
     });

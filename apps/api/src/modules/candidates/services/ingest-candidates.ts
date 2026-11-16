@@ -7,6 +7,7 @@ import type {
   CandidatePrintingsTable,
 } from "../../../db/tables/candidates.js";
 import type { Transact } from "../../../deps.js";
+import { jsonValuesEqual } from "../../../lib/json-equal.js";
 import {
   buildCandidateCardFields,
   buildCandidatePrintingFields,
@@ -121,7 +122,7 @@ function getChangedFields(
     }
     const a = normalize(existing[f]);
     const b = normalize(incoming[f]);
-    if (!Bun.deepEquals(a, b)) {
+    if (!jsonValuesEqual(a, b)) {
       diffs.push({ field: f, from: toDiffValue(a), to: toDiffValue(b) });
     }
   }

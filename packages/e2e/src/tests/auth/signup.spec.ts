@@ -7,6 +7,7 @@ import { test } from "../../fixtures/test.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb } from "../../helpers/db.js";
+import { waitForHydrated } from "../../helpers/hydration.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -16,14 +17,7 @@ function loadDb(): Sql {
 }
 
 async function waitForHydration(page: Page) {
-  await page.locator("form").first().waitFor({ state: "attached" });
-  await page.waitForFunction(
-    () => {
-      const formEl = document.querySelector("form");
-      return formEl !== null && Object.keys(formEl).some((key) => key.startsWith("__react"));
-    },
-    { timeout: 10_000 },
-  );
+  await waitForHydrated(page.locator("form").first());
 }
 
 async function signUpViaApi(
@@ -127,7 +121,7 @@ test.describe("signup page", () => {
         .click();
       await expect(page).toHaveURL(/\/login\?/u);
       expect(new URL(page.url()).searchParams.get("email")).toBe(typed);
-      await expect(page.locator("#email")).toHaveValue(typed);
+      await expect(page.getByRole("textbox", { name: "Email", exact: true })).toHaveValue(typed);
     });
 
     test("sign-in link carries the redirect param through when present", async ({ page }) => {
@@ -192,7 +186,7 @@ test.describe("signup page", () => {
   });
 
   test.describe("errors", () => {
-    test("surfaces an error or resend-verification flow for an already-registered email", async ({
+    test("an already-registered email continues to verify-email without revealing the account", async ({
       page,
       request,
     }) => {
@@ -208,22 +202,10 @@ test.describe("signup page", () => {
       await page.getByLabel("Password").fill(password);
       await page.getByRole("button", { name: /^sign up$/iu }).click();
 
-      // An unverified duplicate re-sends the OTP and navigates to
-      // /verify-email; a verified one shows an inline error. Accept either.
-      await expect(async () => {
-        const url = page.url();
-        const hasError = await page
-          .getByText(/already exists/iu)
-          .isVisible()
-          .catch(() => false);
-        if (hasError) {
-          return;
-        }
-        if (/\/verify-email/u.test(url)) {
-          return;
-        }
-        throw new Error(`Expected duplicate-signup error or /verify-email, got ${url}`);
-      }).toPass({ timeout: 10_000 });
+      // requireEmailVerification makes better-auth answer a duplicate like a new
+      // sign-up, so the page cannot reveal that the address is registered.
+      await expect(page).toHaveURL(/\/verify-email/u, { timeout: 10_000 });
+      await expect(page.getByText(/already exists/iu)).toHaveCount(0);
     });
   });
 

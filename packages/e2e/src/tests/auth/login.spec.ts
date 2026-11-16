@@ -10,8 +10,8 @@ test.describe("login page", () => {
       await page.goto("/login");
 
       await expect(page.getByText("Welcome back")).toBeVisible();
-      await expect(page.locator("#email")).toBeVisible();
-      await expect(page.locator("#password")).toBeVisible();
+      await expect(page.getByRole("textbox", { name: "Email", exact: true })).toBeVisible();
+      await expect(page.getByLabel("Password", { exact: true })).toBeVisible();
       await expect(page.getByRole("button", { name: /^sign in$/iu })).toBeVisible();
     });
 
@@ -19,8 +19,8 @@ test.describe("login page", () => {
       await page.goto("/login");
       await waitForHydration(page);
 
-      await page.locator("#email").fill("nonexistent@test.com");
-      await page.locator("#password").fill("WrongPassword123!");
+      await page.getByRole("textbox", { name: "Email", exact: true }).fill("nonexistent@test.com");
+      await page.getByLabel("Password", { exact: true }).fill("WrongPassword123!");
       await page.getByRole("button", { name: /^sign in$/iu }).click();
 
       await expect(page.getByText("Invalid email or password")).toBeVisible({ timeout: 10_000 });
@@ -39,8 +39,8 @@ test.describe("login page", () => {
       await page.goto("/login");
       await waitForHydration(page);
 
-      await page.locator("#email").fill(email);
-      await page.locator("#password").fill(password);
+      await page.getByRole("textbox", { name: "Email", exact: true }).fill(email);
+      await page.getByLabel("Password", { exact: true }).fill(password);
       await page.getByRole("button", { name: /^sign in$/iu }).click();
 
       await expect(page).not.toHaveURL(/\/login/u, { timeout: 15_000 });
@@ -50,8 +50,8 @@ test.describe("login page", () => {
       await page.goto("/login");
       await waitForHydration(page);
 
-      await page.locator("#email").fill("not-an-email");
-      await page.locator("#password").fill("Whatever1!");
+      await page.getByRole("textbox", { name: "Email", exact: true }).fill("not-an-email");
+      await page.getByLabel("Password", { exact: true }).fill("Whatever1!");
       await page.getByRole("button", { name: /^sign in$/iu }).click();
 
       await expect(page.getByText("Please enter a valid email address.")).toBeVisible();
@@ -61,7 +61,7 @@ test.describe("login page", () => {
       await page.goto("/login");
       await waitForHydration(page);
 
-      await page.locator("#email").fill("someone@test.com");
+      await page.getByRole("textbox", { name: "Email", exact: true }).fill("someone@test.com");
       await page.getByRole("button", { name: /^sign in$/iu }).click();
 
       await expect(page.getByText("Password is required.")).toBeVisible();
@@ -78,8 +78,8 @@ test.describe("login page", () => {
       await page.goto("/login");
       await waitForHydration(page);
 
-      await page.locator("#email").fill(email);
-      await page.locator("#password").fill(password);
+      await page.getByRole("textbox", { name: "Email", exact: true }).fill(email);
+      await page.getByLabel("Password", { exact: true }).fill(password);
       await page.getByRole("button", { name: /^sign in$/iu }).click();
 
       await expect(page.getByText(/Please verify your email/iu)).toBeVisible({ timeout: 10_000 });
@@ -101,7 +101,7 @@ test.describe("login page", () => {
       await waitForHydration(page);
 
       const typed = `typed-${Date.now()}@test.com`;
-      await page.locator("#email").fill(typed);
+      await page.getByRole("textbox", { name: "Email", exact: true }).fill(typed);
 
       await page.getByRole("link", { name: /forgot your password/iu }).click();
       await expect(page).toHaveURL(/\/reset-password\?/u);
@@ -114,7 +114,7 @@ test.describe("login page", () => {
       await waitForHydration(page);
 
       const typed = `typed-${Date.now()}@test.com`;
-      await page.locator("#email").fill(typed);
+      await page.getByRole("textbox", { name: "Email", exact: true }).fill(typed);
 
       await page.getByRole("link", { name: /^sign up$/iu }).click();
       await expect(page).toHaveURL(/\/signup\?/u);
@@ -136,8 +136,8 @@ test.describe("login page", () => {
       await page.goto("/login?redirect=%2Fcollections");
       await waitForHydration(page);
 
-      await page.locator("#email").fill(email);
-      await page.locator("#password").fill(password);
+      await page.getByRole("textbox", { name: "Email", exact: true }).fill(email);
+      await page.getByLabel("Password", { exact: true }).fill(password);
       await page.getByRole("button", { name: /^sign in$/iu }).click();
 
       await expect(page).toHaveURL(/\/collections/u, { timeout: 15_000 });
@@ -156,8 +156,8 @@ test.describe("login page", () => {
       await page.goto("/login?redirect=https%3A%2F%2Fevil.com");
       await waitForHydration(page);
 
-      await page.locator("#email").fill(email);
-      await page.locator("#password").fill(password);
+      await page.getByRole("textbox", { name: "Email", exact: true }).fill(email);
+      await page.getByLabel("Password", { exact: true }).fill(password);
       await page.getByRole("button", { name: /^sign in$/iu }).click();
 
       await expect(page).toHaveURL(/\/collections/u, { timeout: 15_000 });
@@ -167,7 +167,9 @@ test.describe("login page", () => {
       const prefilled = "prefilled@test.com";
       await page.goto(`/login?email=${encodeURIComponent(prefilled)}`);
 
-      await expect(page.locator("#email")).toHaveValue(prefilled);
+      await expect(page.getByRole("textbox", { name: "Email", exact: true })).toHaveValue(
+        prefilled,
+      );
     });
   });
 
@@ -179,17 +181,17 @@ test.describe("login page", () => {
       await waitForHydration(page);
 
       const typed = `tab-switch-${Date.now()}@test.com`;
-      await page.locator("#email").fill(typed);
+      await page.getByRole("textbox", { name: "Email", exact: true }).fill(typed);
 
       await page.getByRole("tab", { name: "Email code" }).click();
-      const otpEmail = page.locator("#otp-email");
+      const otpEmail = page.getByRole("textbox", { name: "Email", exact: true });
       await expect(otpEmail).toHaveValue(typed);
 
       const updated = `tab-switch-2-${Date.now()}@test.com`;
       await otpEmail.fill(updated);
 
       await page.getByRole("tab", { name: "Password" }).click();
-      await expect(page.locator("#email")).toHaveValue(updated);
+      await expect(page.getByRole("textbox", { name: "Email", exact: true })).toHaveValue(updated);
     });
 
     test("send-code with invalid email shows inline error", async ({ page }) => {
@@ -197,7 +199,7 @@ test.describe("login page", () => {
       await waitForHydration(page);
 
       await page.getByRole("tab", { name: "Email code" }).click();
-      await page.locator("#otp-email").fill("not-an-email");
+      await page.getByRole("textbox", { name: "Email", exact: true }).fill("not-an-email");
       await page.getByRole("button", { name: /send code/iu }).click();
 
       await expect(page.getByText("Please enter a valid email address.")).toBeVisible();
@@ -216,7 +218,7 @@ test.describe("login page", () => {
       await waitForHydration(page);
 
       await page.getByRole("tab", { name: "Email code" }).click();
-      await page.locator("#otp-email").fill(email);
+      await page.getByRole("textbox", { name: "Email", exact: true }).fill(email);
       await page.getByRole("button", { name: /send code/iu }).click();
 
       await expect(page.getByRole("button", { name: /verify/iu })).toBeVisible({ timeout: 10_000 });
@@ -236,7 +238,7 @@ test.describe("login page", () => {
       await waitForHydration(page);
 
       await page.getByRole("tab", { name: "Email code" }).click();
-      await page.locator("#otp-email").fill(email);
+      await page.getByRole("textbox", { name: "Email", exact: true }).fill(email);
       await page.getByRole("button", { name: /send code/iu }).click();
       await expect(page.getByRole("button", { name: /verify/iu })).toBeVisible({ timeout: 10_000 });
 
@@ -259,7 +261,7 @@ test.describe("login page", () => {
         await waitForHydration(page);
 
         await page.getByRole("tab", { name: "Email code" }).click();
-        await page.locator("#otp-email").fill(email);
+        await page.getByRole("textbox", { name: "Email", exact: true }).fill(email);
         await page.getByRole("button", { name: /send code/iu }).click();
         await expect(page.getByRole("button", { name: /verify/iu })).toBeVisible({
           timeout: 10_000,
@@ -294,7 +296,7 @@ test.describe("login page", () => {
         await waitForHydration(page);
 
         await page.getByRole("tab", { name: "Email code" }).click();
-        await page.locator("#otp-email").fill(email);
+        await page.getByRole("textbox", { name: "Email", exact: true }).fill(email);
         await page.getByRole("button", { name: /send code/iu }).click();
         await expect(page.getByRole("button", { name: /verify/iu })).toBeVisible({
           timeout: 10_000,
@@ -327,7 +329,7 @@ test.describe("login page", () => {
       await waitForHydration(page);
 
       await page.getByRole("tab", { name: "Email code" }).click();
-      await page.locator("#otp-email").fill(email);
+      await page.getByRole("textbox", { name: "Email", exact: true }).fill(email);
       await page.getByRole("button", { name: /send code/iu }).click();
       await expect(page.getByRole("button", { name: /verify/iu })).toBeVisible({ timeout: 10_000 });
 
@@ -335,8 +337,8 @@ test.describe("login page", () => {
 
       await page.getByRole("button", { name: "Use a different email" }).click();
 
-      await expect(page.locator("#otp-email")).toBeVisible();
-      await expect(page.locator("#otp-email")).toHaveValue(email);
+      await expect(page.getByRole("textbox", { name: "Email", exact: true })).toBeVisible();
+      await expect(page.getByRole("textbox", { name: "Email", exact: true })).toHaveValue(email);
       await expect(page.getByRole("button", { name: /send code/iu })).toBeVisible();
 
       await page.getByRole("button", { name: /send code/iu }).click();
@@ -358,8 +360,10 @@ test.describe("login page", () => {
       await authenticatedPage.goto("/login");
 
       await expect(authenticatedPage.getByText("Welcome back")).toBeVisible();
-      await expect(authenticatedPage.locator("#email")).toBeVisible();
-      await expect(authenticatedPage.locator("#password")).toBeVisible();
+      await expect(
+        authenticatedPage.getByRole("textbox", { name: "Email", exact: true }),
+      ).toBeVisible();
+      await expect(authenticatedPage.getByLabel("Password", { exact: true })).toBeVisible();
       await expect(authenticatedPage).toHaveURL(/\/login/u);
     });
   });
@@ -369,11 +373,11 @@ test.describe("login page", () => {
       await page.goto("/login");
       await waitForHydration(page);
 
-      await page.locator("#email").focus();
-      await expect(page.locator("#email")).toBeFocused();
+      await page.getByRole("textbox", { name: "Email", exact: true }).focus();
+      await expect(page.getByRole("textbox", { name: "Email", exact: true })).toBeFocused();
 
       await page.keyboard.press("Tab");
-      await expect(page.locator("#password")).toBeFocused();
+      await expect(page.getByLabel("Password", { exact: true })).toBeFocused();
 
       await page.keyboard.press("Tab");
       await expect(page.getByRole("link", { name: /forgot your password/iu })).toBeFocused();

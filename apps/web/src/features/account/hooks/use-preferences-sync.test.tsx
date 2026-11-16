@@ -3,7 +3,7 @@ import path from "node:path";
 
 import type { UserPreferencesResponse } from "@openrift/shared/types/api/preferences";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -114,14 +114,18 @@ function wrap() {
   return { client, Wrapper };
 }
 
-// Real timers, not fake: waitFor does not drive vitest's fake clock.
 const SAVE_DEBOUNCE_MS = 1000;
+const SAVE_RETRY_MS = 2000;
 
 async function flushSaveDebounce() {
   await act(async () => {
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, SAVE_DEBOUNCE_MS + 250);
-    });
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+  });
+}
+
+async function flushSaveRetry() {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(SAVE_RETRY_MS);
   });
 }
 
@@ -163,12 +167,22 @@ describe("applyDisplayLocale", () => {
 });
 
 describe("usePreferencesSync", () => {
+  // vi.waitFor advances the fake clock by its interval on each check, so a wait
+  // with a timeout under SAVE_DEBOUNCE_MS cannot be satisfied by the debounce.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("hydrates the stores from the first server payload", async () => {
     stubFetch({ showImages: false, theme: "dark" } as UserPreferencesResponse);
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
 
-    await waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
     expect(useDisplayStore.getState().showImages).toBe(false);
     expect(useThemeStore.getState().preference).toBe("dark");
   });
@@ -178,7 +192,7 @@ describe("usePreferencesSync", () => {
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
 
-    await waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
     await flushSaveDebounce();
 
     expect(patches()).toHaveLength(0);
@@ -189,7 +203,7 @@ describe("usePreferencesSync", () => {
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
 
-    await waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
     act(() => useDisplayStore.getState().setShowImages(false));
     await flushSaveDebounce();
 
@@ -202,7 +216,7 @@ describe("usePreferencesSync", () => {
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
 
-    await waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
     act(() => useDisplayStore.getState().setShowImages(false));
     await flushSaveDebounce();
 
@@ -214,7 +228,7 @@ describe("usePreferencesSync", () => {
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
 
-    await waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
     act(() => useDisplayStore.getState().setMaxColumns(4));
     act(() => useDisplayStore.getState().setFiltersExpanded(true));
     await flushSaveDebounce();
@@ -227,7 +241,7 @@ describe("usePreferencesSync", () => {
     const { client, Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
 
-    await waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
 
     act(() => {
       client.setQueryData(preferencesKeys.all("test-user-id"), {
@@ -248,7 +262,7 @@ describe("usePreferencesSync", () => {
     const { client, Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
 
-    await waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
     act(() => useDisplayStore.getState().setShowImages(false));
 
     setServerPrefs({ showImages: true } as UserPreferencesResponse);
@@ -271,7 +285,7 @@ describe("usePreferencesSync", () => {
       wrapper: Wrapper,
     });
 
-    await waitFor(() => expect(useThemeStore.getState().preference).toBe("dark"));
+    await vi.waitFor(() => expect(useThemeStore.getState().preference).toBe("dark"));
 
     act(() => {
       useDisplayStore.getState().reset();
@@ -311,7 +325,7 @@ describe("usePreferencesSync", () => {
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(false), { wrapper: Wrapper });
 
-    await waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
     expect(calls).toHaveLength(0);
   });
 
@@ -320,7 +334,7 @@ describe("usePreferencesSync", () => {
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
 
-    await waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
 
     vi.stubGlobal(
       "fetch",
@@ -337,7 +351,7 @@ describe("usePreferencesSync", () => {
     const { patches } = stubFetch({ showImages: true } as UserPreferencesResponse);
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
-    await waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
 
     act(() => useDisplayStore.getState().setShowImages(false));
     Object.defineProperty(document, "visibilityState", { configurable: true, value: "hidden" });
@@ -345,7 +359,7 @@ describe("usePreferencesSync", () => {
       act(() => {
         document.dispatchEvent(new Event("visibilitychange"));
       });
-      await waitFor(() => expect(patches()).toHaveLength(1), { timeout: 500 });
+      await vi.waitFor(() => expect(patches()).toHaveLength(1), { timeout: 500 });
     } finally {
       Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
     }
@@ -367,14 +381,14 @@ describe("usePreferencesSync", () => {
     const { patches } = stubFetch({ showImages: true } as UserPreferencesResponse);
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
-    await waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
 
     act(() => useDisplayStore.getState().setShowImages(false));
     act(() => {
       globalThis.dispatchEvent(new Event("pagehide"));
     });
 
-    await waitFor(() => expect(patches()).toHaveLength(1), { timeout: 500 });
+    await vi.waitFor(() => expect(patches()).toHaveLength(1), { timeout: 500 });
     expect(patches()[0]?.body).toMatchObject({ showImages: false });
     await flushSaveDebounce();
     expect(patches()).toHaveLength(1);
@@ -384,7 +398,7 @@ describe("usePreferencesSync", () => {
     stubFetch({ showImages: true } as UserPreferencesResponse);
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
-    await waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
 
     const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
     callerFetch.enabled = true;
@@ -408,11 +422,11 @@ describe("usePreferencesSync", () => {
     log.mockRestore();
   });
 
-  it("retries a failed save once", { timeout: 10_000 }, async () => {
+  it("retries a failed save once", async () => {
     stubFetch({ showImages: true } as UserPreferencesResponse);
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
-    await waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
 
     const patchStatuses = [500, 200];
     const attempts: number[] = [];
@@ -426,28 +440,28 @@ describe("usePreferencesSync", () => {
     );
     act(() => useDisplayStore.getState().setShowImages(false));
     await flushSaveDebounce();
-    expect(attempts).toEqual([500]);
+    await vi.waitFor(() => expect(attempts).toEqual([500]), { timeout: 500 });
 
-    await waitFor(() => expect(attempts).toEqual([500, 200]), { timeout: 3000 });
+    await flushSaveRetry();
+    await vi.waitFor(() => expect(attempts).toEqual([500, 200]), { timeout: 500 });
   });
 
-  it("gives up after one retry", { timeout: 10_000 }, async () => {
+  it("gives up after one retry", async () => {
     stubFetch({ showImages: true } as UserPreferencesResponse);
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
-    await waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
 
     const failing = vi.fn(async () => new Response("{}", { status: 500 }));
     vi.stubGlobal("fetch", failing);
     act(() => useDisplayStore.getState().setShowImages(false));
     await flushSaveDebounce();
-    await waitFor(() => expect(failing).toHaveBeenCalledTimes(2), { timeout: 3000 });
-    await act(async () => {
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, 2500);
-      });
-    });
+    await vi.waitFor(() => expect(failing).toHaveBeenCalledTimes(1), { timeout: 500 });
+    await flushSaveRetry();
+    await vi.waitFor(() => expect(failing).toHaveBeenCalledTimes(2), { timeout: 500 });
 
+    // A second retry would be scheduled SAVE_RETRY_MS after the first one failed.
+    await flushSaveRetry();
     expect(failing).toHaveBeenCalledTimes(2);
   });
 
@@ -456,7 +470,7 @@ describe("usePreferencesSync", () => {
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
 
-    await waitFor(() => expect(languagesCookie()).toBe("test-user-id|DE"));
+    await vi.waitFor(() => expect(languagesCookie()).toBe("test-user-id|DE"));
   });
 
   it("leaves no languages cookie after signing out", async () => {
@@ -466,7 +480,7 @@ describe("usePreferencesSync", () => {
       initialProps: { enabled: true },
       wrapper: Wrapper,
     });
-    await waitFor(() => expect(languagesCookie()).toBe("test-user-id|DE"));
+    await vi.waitFor(() => expect(languagesCookie()).toBe("test-user-id|DE"));
 
     await act(async () => {
       await leaveAsSignedOut(client, async () => {
@@ -482,14 +496,14 @@ describe("usePreferencesSync", () => {
     const server = stubFetch({ languages: ["DE"] } as UserPreferencesResponse);
     const { Wrapper } = wrap();
     const { rerender } = renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
-    await waitFor(() => expect(languagesCookie()).toBe("test-user-id|DE"));
+    await vi.waitFor(() => expect(languagesCookie()).toBe("test-user-id|DE"));
 
     server.setServerPrefs({ languages: ["FR"] } as UserPreferencesResponse);
     signedInUser.id = "other-user-id";
     rerender();
 
     expect(languagesCookie()).toBe("");
-    await waitFor(() => expect(languagesCookie()).toBe("other-user-id|FR"));
+    await vi.waitFor(() => expect(languagesCookie()).toBe("other-user-id|FR"));
   });
 
   describe("signing in as another account without signing out", () => {
@@ -515,7 +529,7 @@ describe("usePreferencesSync", () => {
       const server = stubFetch({ languages: ["SC", "EN"] } as UserPreferencesResponse);
       const { Wrapper } = wrap();
       const hook = renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
-      await waitFor(() => expect(languagesCookie()).toBe("test-user-id|SC,EN"));
+      await vi.waitFor(() => expect(languagesCookie()).toBe("test-user-id|SC,EN"));
       await flushSaveDebounce();
       return { server, ...hook };
     }
@@ -537,7 +551,7 @@ describe("usePreferencesSync", () => {
       signedInUser.id = "other-user-id";
       rerender();
 
-      await waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+      await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
       expect(useDisplayStore.getState().languages).toEqual(["EN"]);
       expect(languagesCookie()).toBe("other-user-id|EN");
       expect(writes.filter((write) => write.includes("SC"))).toEqual([]);
@@ -555,7 +569,7 @@ describe("usePreferencesSync", () => {
       signedInUser.id = "other-user-id";
       rerender();
 
-      await waitFor(() => expect(languagesCookie()).toBe("other-user-id|FR"));
+      await vi.waitFor(() => expect(languagesCookie()).toBe("other-user-id|FR"));
       await flushSaveDebounce();
       expect(useDisplayStore.getState().languages).toEqual(["FR"]);
       expect(server.patches()).toHaveLength(0);
@@ -570,7 +584,7 @@ describe("usePreferencesSync", () => {
 
       renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
 
-      await waitFor(() => expect(languagesCookie()).toBe("other-user-id|EN"));
+      await vi.waitFor(() => expect(languagesCookie()).toBe("other-user-id|EN"));
       expect(useDisplayStore.getState().languages).toEqual(["EN"]);
       await flushSaveDebounce();
       expect(server.patches()).toHaveLength(0);

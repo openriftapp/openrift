@@ -16,6 +16,14 @@ const SEED_CARD_NAME = "Annie, Fiery";
 // the virtualized /cards grid tile click isn't drivable in the harness.
 const ANNIE_PRINTING_ID = "019cfc3b-03d6-74cf-adec-1dce41f631eb";
 
+// The seed is deterministic, so a missing fixture is a failure, not a skip.
+function seeded<T>(value: T | null | undefined, message: string): T {
+  if (value === null || value === undefined) {
+    throw new Error(`Seed fixture missing: ${message}`);
+  }
+  return value;
+}
+
 interface MarketplacePrices {
   tcgplayer?: number;
   cardmarket?: number;
@@ -345,7 +353,7 @@ test.describe("card detail route — head / SEO / JSON-LD", () => {
     const tcgPrices = detail.printings
       .map((p) => prices[p.id]?.tcgplayer)
       .filter((p): p is number => typeof p === "number" && p > 0);
-    test.skip(tcgPrices.length === 0, "Annie, Fiery should have at least one TCG snapshot in seed");
+    expect(tcgPrices.length, "Annie, Fiery should have a TCG snapshot in seed").toBeGreaterThan(0);
 
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
 
@@ -446,16 +454,17 @@ test.describe("card detail route — info panel", () => {
     page,
   }) => {
     const detail = await fetchCardDetail(SEED_CARD_SLUG);
-    const enPrinting = detail.printings.find(
-      (p) => p.language === "EN" && (!p.printedName || p.printedName === detail.card.name),
+    seeded(
+      detail.printings.find(
+        (p) => p.language === "EN" && (!p.printedName || p.printedName === detail.card.name),
+      ),
+      "an EN printing without a differing printedName",
     );
-    const altPrinting = detail.printings.find(
-      (p) => p.printedName && p.printedName !== detail.card.name,
+    const altPrinting = seeded(
+      detail.printings.find((p) => p.printedName && p.printedName !== detail.card.name),
+      "a printing with a differing printedName",
     );
-    if (!enPrinting || !altPrinting?.printedName) {
-      test.skip(true, "expected EN + alt-language seed printings with differing printedName");
-      return;
-    }
+    const altPrintedName = seeded(altPrinting.printedName, "the alt printing's printedName");
 
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
 
@@ -466,25 +475,24 @@ test.describe("card detail route — info panel", () => {
     await waitForHydrated(altButton);
     await altButton.click();
     await expect(page.getByText("Printed name", { exact: true })).toBeVisible();
-    await expect(page.getByText(altPrinting.printedName)).toBeVisible();
+    await expect(page.getByText(altPrintedName)).toBeVisible();
   });
 
   test("art-variant and promo rows hide for normal printings and show for the foil promo", async ({
     page,
   }) => {
     const detail = await fetchCardDetail(SEED_CARD_SLUG);
-    const promoPrinting = detail.printings.find((p) => p.finish === "foil" && p.markers.length > 0);
-    const plainPrinting = detail.printings.find(
-      (p) => p.finish === "normal" && p.markers.length === 0 && p.artVariant === "normal",
+    const promoPrinting = seeded(
+      detail.printings.find((p) => p.finish === "foil" && p.markers.length > 0),
+      "a foil promo printing",
     );
-    const promoMarker = promoPrinting?.markers[0];
-    if (!promoMarker || !plainPrinting) {
-      test.skip(
-        true,
-        "expected both a foil promo and a plain (no marker, normal art) seed printing",
-      );
-      return;
-    }
+    seeded(
+      detail.printings.find(
+        (p) => p.finish === "normal" && p.markers.length === 0 && p.artVariant === "normal",
+      ),
+      "a plain printing (no marker, normal art)",
+    );
+    const promoMarker = seeded(promoPrinting.markers[0], "the promo printing's marker");
 
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
     // Scope to the info panel's terms; getByText("Promo") also matches a
@@ -536,10 +544,7 @@ test.describe("card detail route — info panel", () => {
         break;
       }
     }
-    if (!chosen) {
-      test.skip(true, "no Legend without stats found in seed data");
-      return;
-    }
+    chosen = seeded(chosen, "a Legend without stats");
 
     await page.goto(`/cards/${chosen.card.slug}`);
     await expect(
@@ -589,11 +594,10 @@ test.describe("card detail route — rules / effect / flavor / errata / bans", (
     page,
   }) => {
     const detail = await fetchCardDetail(SEED_CARD_SLUG);
-    const errata = detail.card.errata.find((entry) => entry.language === "EN");
-    if (!errata) {
-      test.skip(true, "Annie, Fiery should carry seeded errata");
-      return;
-    }
+    const errata = seeded(
+      detail.card.errata.find((entry) => entry.language === "EN"),
+      "EN errata on Annie, Fiery",
+    );
 
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
 
@@ -606,13 +610,12 @@ test.describe("card detail route — rules / effect / flavor / errata / bans", (
     page,
   }) => {
     const slug = "annie-stubborn";
-    const detail = await fetchCardDetailOrNull(slug);
-    const errata = detail?.card.errata.find((entry) => entry.language === "EN");
-    const sourceUrl = errata?.sourceUrl;
-    if (!errata || !sourceUrl) {
-      test.skip(true, `expected ${slug} to have errata with a sourceUrl`);
-      return;
-    }
+    const detail = await fetchCardDetail(slug);
+    const errata = seeded(
+      detail.card.errata.find((entry) => entry.language === "EN"),
+      `EN errata on ${slug}`,
+    );
+    const sourceUrl = seeded(errata.sourceUrl, `a sourceUrl on ${slug}'s errata`);
 
     await page.goto(`/cards/${slug}`);
 
@@ -625,12 +628,8 @@ test.describe("card detail route — rules / effect / flavor / errata / bans", (
 
   test("a banned card shows the Bans block with format, date, and reason", async ({ page }) => {
     const slug = "blast-of-power";
-    const detail = await fetchCardDetailOrNull(slug);
-    const ban = detail?.card.bans[0];
-    if (!ban) {
-      test.skip(true, `expected ${slug} to be banned in seed`);
-      return;
-    }
+    const detail = await fetchCardDetail(slug);
+    const ban = seeded(detail.card.bans[0], `a ban on ${slug}`);
 
     await page.goto(`/cards/${slug}`);
 
@@ -642,7 +641,7 @@ test.describe("card detail route — rules / effect / flavor / errata / bans", (
 
   test("an unbanned card hides the Bans block", async ({ page }) => {
     const detail = await fetchCardDetail(SEED_CARD_SLUG);
-    test.skip(detail.card.bans.length > 0, "Annie, Fiery should not be banned in seed");
+    expect(detail.card.bans, "Annie, Fiery should not be banned in seed").toEqual([]);
 
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
     await expect(page.getByRole("heading", { level: 1, name: SEED_CARD_NAME })).toBeVisible();
@@ -654,34 +653,37 @@ test.describe("card detail route — rules / effect / flavor / errata / bans", (
 test.describe("card detail route — printings list", () => {
   test("printings that differ only in language share one row", async ({ page }) => {
     const detail = await fetchCardDetail(SEED_CARD_SLUG);
-    const en = detail.printings.find((p) => p.language === "EN");
-    const sibling = detail.printings.find(
-      (p) =>
-        p.language !== "EN" &&
-        en !== undefined &&
-        p.shortCode === en.shortCode &&
-        p.finish === en.finish &&
-        p.artVariant === en.artVariant &&
-        p.markers.length === 0 &&
-        en.markers.length === 0,
+    const en = seeded(
+      detail.printings.find((p) => p.language === "EN"),
+      "an EN printing",
     );
-    test.skip(!en || !sibling, "expected an EN printing with a same-design sibling language");
+    const sibling = seeded(
+      detail.printings.find(
+        (p) =>
+          p.language !== "EN" &&
+          p.shortCode === en.shortCode &&
+          p.finish === en.finish &&
+          p.artVariant === en.artVariant &&
+          p.markers.length === 0 &&
+          en.markers.length === 0,
+      ),
+      "a same-design sibling language of the EN printing",
+    );
 
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
 
     const row = page
       .getByRole("listitem")
-      .filter({ has: page.locator(`button[data-printing-id="${en?.id}"]`) });
-    await expect(row.locator(`button[data-printing-id="${sibling?.id}"]`)).toBeVisible();
+      .filter({ has: page.locator(`button[data-printing-id="${en.id}"]`) });
+    await expect(row.locator(`button[data-printing-id="${sibling.id}"]`)).toBeVisible();
   });
 
   test("clicking a sibling printing updates the info panel", async ({ page }) => {
     const detail = await fetchCardDetail(SEED_CARD_SLUG);
-    const altLang = detail.printings.find((p) => p.language !== "EN");
-    if (!altLang) {
-      test.skip(true, "expected at least one non-EN printing on the seed card");
-      return;
-    }
+    const altLang = seeded(
+      detail.printings.find((p) => p.language !== "EN"),
+      "a non-EN printing on Annie, Fiery",
+    );
 
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
 
@@ -697,12 +699,11 @@ test.describe("card detail route — printings list", () => {
 
   test("foil and promo badges appear on the matching printing row", async ({ page }) => {
     const detail = await fetchCardDetail(SEED_CARD_SLUG);
-    const foilPromo = detail.printings.find((p) => p.finish === "foil" && p.markers.length > 0);
-    const foilMarker = foilPromo?.markers[0];
-    if (!foilPromo || !foilMarker) {
-      test.skip(true, "expected a foil promo seed printing");
-      return;
-    }
+    const foilPromo = seeded(
+      detail.printings.find((p) => p.finish === "foil" && p.markers.length > 0),
+      "a foil promo printing",
+    );
+    const foilMarker = seeded(foilPromo.markers[0], "the foil promo's marker");
 
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
 
@@ -716,10 +717,8 @@ test.describe("card detail route — printings list", () => {
   test("default-selected printing matches the EN language preference", async ({ page }) => {
     const detail = await fetchCardDetail(SEED_CARD_SLUG);
     const languages = new Set(detail.printings.map((p) => p.language));
-    test.skip(
-      languages.size < 2 || !languages.has("EN"),
-      "need a multi-language card with at least one EN printing",
-    );
+    expect(languages.size, "Annie, Fiery should have several languages").toBeGreaterThan(1);
+    expect(languages.has("EN"), "Annie, Fiery should have an EN printing").toBe(true);
 
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
 
@@ -733,7 +732,7 @@ test.describe("card detail route — price history", () => {
     const detail = await fetchCardDetail(SEED_CARD_SLUG);
     const prices = await fetchPrices();
     const hasTcg = detail.printings.some((p) => prices[p.id]?.tcgplayer);
-    test.skip(!hasTcg, "Annie, Fiery should have TCG snapshots in seed");
+    expect(hasTcg, "Annie, Fiery should have TCG snapshots in seed").toBe(true);
 
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
 
@@ -772,8 +771,4 @@ test.describe("card detail route — price history", () => {
     await expect(second).toHaveAttribute("aria-pressed", "true");
     await expect(rows.first()).toHaveAttribute("aria-pressed", "false");
   });
-
-  // visx renders the chart via SVG mouse events that don't reproduce reliably
-  // in headless playwright.
-  test.skip("hovering a chart point highlights the matching table row", () => {});
 });

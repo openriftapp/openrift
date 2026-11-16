@@ -1,7 +1,48 @@
+import type { Locator, Page } from "@playwright/test";
+
 import { expect, test } from "../../fixtures/test.js";
 import { urlWithLanguagesDefault } from "../../helpers/catalog.js";
 import { IS_PRODUCTION_BUILD } from "../../helpers/constants.js";
 import { waitForHydrated } from "../../helpers/hydration.js";
+
+// The fan cards overlap, so a click at a card's center can land on the card
+// stacked above it. Click the first sampled point the card itself receives.
+async function clickExposedPart(page: Page, fanCard: Locator) {
+  const fan = page.locator("[data-fan-index]");
+  // Deal-in, fly-away and hover-lean move the cards, so a sampled point is only
+  // valid once they end; the looping foil shimmer moves nothing.
+  await expect
+    .poll(() =>
+      fan.evaluateAll(
+        (cards) =>
+          cards
+            .flatMap((card) => card.getAnimations({ subtree: true }))
+            .filter(
+              (animation) =>
+                animation.playState === "running" &&
+                animation.effect?.getComputedTiming().iterations !== Infinity,
+            ).length,
+      ),
+    )
+    .toBe(0);
+  const button = fanCard.locator("button");
+  const position = await button.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    for (const fy of [0.5, 0.4, 0.6, 0.3, 0.7, 0.2, 0.8]) {
+      for (const fx of [0.5, 0.4, 0.6, 0.3, 0.7, 0.2, 0.8, 0.1, 0.9]) {
+        const hit = document.elementFromPoint(box.left + box.width * fx, box.top + box.height * fy);
+        if (hit && element.contains(hit)) {
+          return { x: box.width * fx, y: box.height * fy };
+        }
+      }
+    }
+    return null;
+  });
+  if (!position) {
+    throw new Error("fan card has no exposed point to click");
+  }
+  await button.click({ position });
+}
 
 test.describe("landing page", () => {
   test("renders the homepage with title and navigation", async ({ page }) => {
@@ -216,11 +257,7 @@ test.describe("landing page", () => {
     const dealt = await cards.count();
     expect(dealt).toBeGreaterThan(1);
 
-    // Click via evaluate: the fan cards overlap, so a real mouse click at the
-    // center can land on the sibling stacked above it.
-    await page.locator('[data-fan-index="0"] button').evaluate((button: HTMLElement) => {
-      button.click();
-    });
+    await clickExposedPart(page, page.locator('[data-fan-index="0"]'));
 
     await expect(cards).toHaveCount(dealt - 1);
     await expect(page.locator('[data-fan-index="0"]')).toHaveCount(0);
@@ -239,18 +276,15 @@ test.describe("landing page", () => {
       .locator('img[src*="logo-color.svg"].animate-logo-spin')
       .waitFor({ state: "attached", timeout: 15_000 });
 
-    // A frame apart so React commits each collect before the next click.
-    await page.evaluate(async () => {
-      async function nextFrame() {
-        await new Promise<void>((resolve) => {
-          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-        });
+    // Each collect has to land before the next click, and the last one re-deals
+    // the same indexes, so only the earlier cards are awaited out of the hand.
+    for (let index = 0; index < dealt; index++) {
+      const card = page.locator(`[data-fan-index="${index}"]`);
+      await clickExposedPart(page, card);
+      if (index < dealt - 1) {
+        await expect(card).toHaveCount(0);
       }
-      for (const wrapper of document.querySelectorAll<HTMLElement>("[data-fan-index]")) {
-        wrapper.querySelector<HTMLButtonElement>("button")?.click();
-        await nextFrame();
-      }
-    });
+    }
 
     await spun;
 

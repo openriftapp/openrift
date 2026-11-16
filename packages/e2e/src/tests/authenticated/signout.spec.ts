@@ -16,13 +16,7 @@ function loadDb(): Sql {
 }
 
 async function waitForHydration(page: Page) {
-  await page.waitForFunction(
-    () => {
-      const root = document.querySelector("header");
-      return root !== null && Object.keys(root).some((key) => key.startsWith("__react"));
-    },
-    { timeout: 10_000 },
-  );
+  await waitForHydrated(page.locator("header").first());
 }
 
 async function createVerifiedUser(
@@ -49,16 +43,9 @@ async function promoteToAdmin(sql: Sql, email: string) {
 
 async function loginViaForm(page: Page, email: string, password: string) {
   await page.goto("/login");
-  await page.locator("form").first().waitFor({ state: "attached" });
-  await page.waitForFunction(
-    () => {
-      const formEl = document.querySelector("form");
-      return formEl !== null && Object.keys(formEl).some((key) => key.startsWith("__react"));
-    },
-    { timeout: 10_000 },
-  );
-  await page.locator("#email").fill(email);
-  await page.locator("#password").fill(password);
+  await waitForHydrated(page.locator("form").first());
+  await page.getByRole("textbox", { name: "Email", exact: true }).fill(email);
+  await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: /^sign in$/iu }).click();
   await expect(page).not.toHaveURL(/\/login/u, { timeout: 15_000 });
 }
