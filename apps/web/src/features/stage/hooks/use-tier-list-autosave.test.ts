@@ -6,10 +6,16 @@ interface MutateOptions {
   onSuccess?: () => void;
 }
 
+interface MutateBody {
+  id: string;
+  tiers: TierRow[];
+}
+
 const { mutation } = vi.hoisted(() => ({
   mutation: {
-    mutate: vi.fn((_body: unknown, options?: MutateOptions) => options?.onSuccess?.()),
+    mutate: vi.fn((_body: MutateBody, options?: MutateOptions) => options?.onSuccess?.()),
     isPending: false,
+    isError: false,
   },
 }));
 
@@ -28,7 +34,7 @@ const BOARD: TierRow[] = [
 ];
 
 function loadBoard(listId = LIST_ID) {
-  act(() => useTierListBuilderStore.getState().load(listId, BOARD));
+  act(() => useTierListBuilderStore.getState().adopt(listId, BOARD));
 }
 
 function settle() {
@@ -38,14 +44,14 @@ function settle() {
 }
 
 function lastSavedRows(): TierRow[] | undefined {
-  const body = mutation.mutate.mock.calls.at(-1)?.[0] as { tiers: TierRow[] } | undefined;
-  return body?.tiers;
+  return mutation.mutate.mock.calls.at(-1)?.[0].tiers;
 }
 
 beforeEach(() => {
   vi.useFakeTimers();
   resetStore();
   mutation.isPending = false;
+  mutation.isError = false;
   mutation.mutate.mockClear();
 });
 
@@ -140,12 +146,55 @@ describe("useTierListAutosave", () => {
   it("reports the board as saving until the server has it", () => {
     const { result } = renderHook(() => useTierListAutosave(LIST_ID));
     loadBoard();
-    expect(result.current.saving).toBe(false);
+    expect(result.current.status).toBe("saved");
 
     act(() => useTierListBuilderStore.getState().assign("card-1", 0));
-    expect(result.current.saving).toBe(true);
+    expect(result.current.status).toBe("saving");
 
     settle();
-    expect(result.current.saving).toBe(false);
+    expect(result.current.status).toBe("saved");
+  });
+
+  it("reports a failed save and sends the current board again on retry", () => {
+    mutation.mutate.mockImplementationOnce(() => {
+      mutation.isError = true;
+    });
+    const { result, rerender } = renderHook(() => useTierListAutosave(LIST_ID));
+    loadBoard();
+
+    act(() => useTierListBuilderStore.getState().assign("card-1", 0));
+    settle();
+    rerender();
+    expect(result.current.status).toBe("failed");
+
+    mutation.isError = false;
+    act(() => result.current.retry());
+
+    expect(mutation.mutate).toHaveBeenCalledTimes(2);
+    expect(lastSavedRows()?.[0]?.cards).toEqual([{ cardId: "card-1", printingId: null }]);
+    expect(useTierListBuilderStore.getState().dirty).toBe(false);
+  });
+
+  it("does not retry when nothing is left unsaved", () => {
+    const { result } = renderHook(() => useTierListAutosave(LIST_ID));
+    loadBoard();
+
+    act(() => result.current.retry());
+
+    expect(mutation.mutate).not.toHaveBeenCalled();
+  });
+
+  it("saves a queued draft under the list it was made on after the stage switches lists", () => {
+    const { rerender, unmount } = renderHook(({ id }) => useTierListAutosave(id), {
+      initialProps: { id: LIST_ID },
+    });
+    loadBoard();
+
+    act(() => useTierListBuilderStore.getState().assign("card-1", 0));
+    rerender({ id: "list-2" });
+    unmount();
+
+    expect(mutation.mutate).toHaveBeenCalledTimes(1);
+    expect(mutation.mutate.mock.calls[0]?.[0].id).toBe(LIST_ID);
   });
 });

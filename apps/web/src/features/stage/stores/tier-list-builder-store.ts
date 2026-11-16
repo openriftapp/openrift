@@ -9,12 +9,14 @@ import { create } from "zustand";
 
 interface TierListBuilderState {
   listId: string | null;
+  source: readonly TierRow[] | null;
   rows: TierRow[];
   /** Card id → the index of the row holding it. Absent means unranked. */
   rowIndexByCardId: Map<string, number>;
   dirty: boolean;
 
-  load: (listId: string, rows: readonly TierRow[]) => void;
+  /** Loads `rows` for another list, or when the draft has no unsaved edits and `rows` is new. */
+  adopt: (listId: string, rows: readonly TierRow[]) => void;
   /**
    * Clears `dirty` only if `savedRows` is still reference-equal to the
    * current `rows`, so a drag landing mid-save doesn't get marked saved.
@@ -76,8 +78,32 @@ function withRows(
   return { rows, rowIndexByCardId: indexRows(rows), dirty: true };
 }
 
-const EMPTY: Pick<TierListBuilderState, "listId" | "rows" | "rowIndexByCardId" | "dirty"> = {
+function loaded(
+  listId: string,
+  rows: readonly TierRow[],
+): Pick<TierListBuilderState, "listId" | "source" | "rows" | "rowIndexByCardId" | "dirty"> {
+  // `unranked` is carried only when true, never stamped on as `false`,
+  // so an ordinary board round-trips exactly as it arrived.
+  const copied = rows.map((row) => ({
+    ...(row.unranked === true ? { unranked: true } : {}),
+    label: row.label,
+    cards: row.cards.map((card) => ({ ...card })),
+  }));
+  return {
+    listId,
+    source: rows,
+    rows: copied,
+    rowIndexByCardId: indexRows(copied),
+    dirty: false,
+  };
+}
+
+const EMPTY: Pick<
+  TierListBuilderState,
+  "listId" | "source" | "rows" | "rowIndexByCardId" | "dirty"
+> = {
   listId: null,
+  source: null,
   rows: [],
   rowIndexByCardId: new Map(),
   dirty: false,
@@ -86,15 +112,12 @@ const EMPTY: Pick<TierListBuilderState, "listId" | "rows" | "rowIndexByCardId" |
 export const useTierListBuilderStore = create<TierListBuilderState>()((set) => ({
   ...EMPTY,
 
-  load: (listId, rows) => {
-    // `unranked` is carried only when true, never stamped on as `false`,
-    // so an ordinary board round-trips exactly as it arrived.
-    const copied = rows.map((row) => ({
-      ...(row.unranked === true ? { unranked: true } : {}),
-      label: row.label,
-      cards: row.cards.map((card) => ({ ...card })),
-    }));
-    set({ listId, rows: copied, rowIndexByCardId: indexRows(copied), dirty: false });
+  adopt: (listId, rows) => {
+    set((state) =>
+      state.listId !== listId || (!state.dirty && state.source !== rows)
+        ? loaded(listId, rows)
+        : state,
+    );
   },
 
   markSaved: (savedRows) => {

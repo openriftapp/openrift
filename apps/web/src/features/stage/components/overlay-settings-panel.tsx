@@ -23,6 +23,7 @@ import {
   useUpdateOverlaySettings,
 } from "@/features/stage/hooks/use-overlay";
 import { plateFieldOptions } from "@/features/stage/lib/plate-fields";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { getSiteUrl } from "@/lib/site-config";
 import { m } from "@/paraglide/messages.js";
 
@@ -70,7 +71,23 @@ export function OverlaySettingsPanel({
   const enableToken = useEnableOverlayToken();
   const disableToken = useDisableOverlayToken();
   const [confirmDisable, setConfirmDisable] = useState(false);
+  // Null while the field is not being edited, so it follows the stored URL (a preset applied).
+  const [qrDraft, setQrDraft] = useState<string | null>(null);
   const { payload } = channel;
+
+  const commitQrUrl = async () => {
+    if (qrDraft === null) {
+      return;
+    }
+    const submitted = qrDraft;
+    const next = submitted.trim();
+    if (next !== (payload.qrUrl ?? "")) {
+      await runReportedMutation(() =>
+        updateSettings.mutateAsync({ qrUrl: next === "" ? null : next }),
+      );
+    }
+    setQrDraft((draft) => (draft === submitted ? null : draft));
+  };
 
   // Written only on release, not on drag: each write bumps the version the browser source polls for.
   const shownScale = draftScale ?? payload.scale;
@@ -232,15 +249,10 @@ export function OverlaySettingsPanel({
           <Input
             id="overlay-qr-url"
             type="url"
-            defaultValue={payload.qrUrl ?? ""}
+            value={qrDraft ?? payload.qrUrl ?? ""}
             placeholder={`${getSiteUrl()}/decks/share/…`}
-            onBlur={(event) => {
-              const next = event.target.value.trim();
-              const current = payload.qrUrl ?? "";
-              if (next !== current) {
-                updateSettings.mutate({ qrUrl: next === "" ? null : next });
-              }
-            }}
+            onChange={(event) => setQrDraft(event.target.value)}
+            onBlur={() => void commitQrUrl()}
           />
           <p className="text-muted-foreground text-sm">{m.stage_qr_url_hint()}</p>
         </div>

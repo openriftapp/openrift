@@ -5,13 +5,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { mockPushBoard, mockSetReveal, mockClear } = vi.hoisted(() => ({
   mockPushBoard: vi.fn(() => Promise.resolve()),
   mockSetReveal: vi.fn(() => Promise.resolve()),
-  mockClear: vi.fn(),
+  mockClear: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock("@/features/stage/hooks/use-overlay", () => ({
   usePushOverlayBoard: () => ({ mutateAsync: mockPushBoard }),
   useSetOverlayBoardReveal: () => ({ mutateAsync: mockSetReveal }),
-  useClearOverlay: () => ({ mutate: mockClear }),
+  useClearOverlay: () => ({ mutateAsync: mockClear }),
 }));
 
 import { useOverlayBoardSync } from "./use-overlay-board-sync";
@@ -47,8 +47,9 @@ function renderSync(props: Partial<SyncProps> = {}) {
 
 /** Only the first call of a run goes out synchronously; this drains the rest. */
 async function settle() {
-  await Promise.resolve();
-  await Promise.resolve();
+  for (let tick = 0; tick < 6; tick += 1) {
+    await Promise.resolve();
+  }
 }
 
 beforeEach(() => {
@@ -113,12 +114,52 @@ describe("useOverlayBoardSync switched on", () => {
     });
   });
 
-  it("takes the board down when it is switched off", () => {
+  it("takes the board down when it is switched off", async () => {
     const { rerender } = renderSync({ enabled: true });
 
     rerender({ ...BASE, enabled: false });
+    await settle();
 
     expect(mockClear).toHaveBeenCalledTimes(1);
+  });
+
+  it("pushes the whole board again on the next step when the push was refused", async () => {
+    mockPushBoard.mockImplementationOnce(() => Promise.reject(new Error("offline")));
+    const { rerender } = renderSync({ enabled: true });
+    await settle();
+
+    rerender({ ...BASE, enabled: true, revealCount: 1 });
+    await settle();
+
+    expect(mockSetReveal).not.toHaveBeenCalled();
+    expect(mockPushBoard).toHaveBeenLastCalledWith({
+      board: expect.objectContaining({ tiers: TIERS, revealCount: 1 }),
+    });
+  });
+
+  it("takes the board down after a push still in flight, not before it", async () => {
+    let land: () => void = () => {};
+    const order: string[] = [];
+    mockPushBoard.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          land = () => {
+            order.push("push");
+            resolve();
+          };
+        }),
+    );
+    mockClear.mockImplementationOnce(() => {
+      order.push("clear");
+      return Promise.resolve();
+    });
+    const { rerender } = renderSync({ enabled: true });
+
+    rerender({ ...BASE, enabled: false });
+    land();
+    await settle();
+
+    expect(order).toEqual(["push", "clear"]);
   });
 
   it("leaves the board up when the stage closes", () => {
@@ -159,11 +200,12 @@ describe("useOverlayBoardSync while editing", () => {
     });
   });
 
-  it("still takes the board down if the switch goes off mid-edit", () => {
+  it("still takes the board down if the switch goes off mid-edit", async () => {
     const { rerender } = renderSync({ enabled: true });
 
     rerender({ ...BASE, enabled: true, paused: true });
     rerender({ ...BASE, enabled: false, paused: true });
+    await settle();
 
     expect(mockClear).toHaveBeenCalledTimes(1);
   });

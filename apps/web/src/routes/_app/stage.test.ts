@@ -161,15 +161,19 @@ describe("/stage owned tier-list loader", () => {
     expect(Route.options.notFoundComponent).toBeDefined();
   });
 
-  it("loads the owner's list under their id", async () => {
+  it("fetches the owner's list under their id even when the cache holds it", async () => {
     const { query, result } = runLoader(Promise.resolve({ id: "list-1", tiers: [] }));
 
     await expect(result).resolves.toBeNull();
     expect(query).toHaveBeenCalledWith(
       expect.objectContaining({
         queryKey: ["tier-lists", "user-1", "list-1"],
-        staleTime: "static",
+        staleTime: 0,
       }),
     );
+  });
+
+  it("does not let a hover preload stand in for the fetch on entry", () => {
+    expect(Route.options.preloadStaleTime).toBe(0);
   });
 });

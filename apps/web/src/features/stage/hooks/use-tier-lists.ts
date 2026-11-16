@@ -57,6 +57,8 @@ export function useUpdateTierList() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation<TierListResponse, UpdateTierListBody>({
     mutationFn: (body) => updateTierListFn({ data: body }),
+    // Each save carries the whole board, so a slow one landing late would undo a newer one.
+    scope: { id: "tier-list-update" },
     // Invalidates the index too: it shows the card count and preview strip.
     invalidates: (variables) => [
       tierListsKeys.detail(userId, variables.id),

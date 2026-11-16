@@ -23,11 +23,13 @@ export const Route = createFileRoute("/_app/_authenticated/tier-lists_/$tierList
       });
     }
   },
+  // A hover preload must not stand in for the fetch on entry: the stage may have saved since.
+  preloadStaleTime: 0,
   loader: async ({ context, params }) => {
     await notFoundOnSentinel(
       context.queryClient.query({
         ...tierListQueryOptions(context.userId, params.tierListId),
-        staleTime: "static",
+        staleTime: 0,
       }),
     );
   },

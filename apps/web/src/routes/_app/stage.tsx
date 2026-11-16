@@ -64,6 +64,8 @@ export const Route = createFileRoute("/_app/stage")({
     await requireSession({ context, location });
   },
   loaderDeps: ({ search }) => ({ deck: search.deck, tier: search.tier }),
+  // A hover preload must not stand in for the fetch on entry: the builder may have saved since.
+  preloadStaleTime: 0,
   loader: async ({ context, deps }) => {
     // Both the deck walk and the ad-hoc queue resolve their cards against the
     // catalog, and the stage reads zone labels off /init.
@@ -77,12 +79,10 @@ export const Route = createFileRoute("/_app/stage")({
         staleTime: "static",
       });
       if (session?.user) {
-        // A cached list is reused as is: a list deleted elsewhere stays on
-        // screen until the cache drops it, and its next save reports the failure.
         await notFoundOnSentinel(
           context.queryClient.query({
             ...tierListQueryOptions(session.user.id, deps.tier),
-            staleTime: "static",
+            staleTime: 0,
           }),
         );
       }

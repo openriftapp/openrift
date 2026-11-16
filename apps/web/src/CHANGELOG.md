@@ -67,6 +67,9 @@
 - fix(Decks): **Deck box remembers where copies came from** — unticking a copy after switching tabs returns it to the collection it came from, not the Inbox.
 - fix(Decks): **Game plan follows saves from other tabs** — an unedited plan shows a plan saved in another tab, and no longer warns about unsaved changes or overwrites it.
 - fix(Decks): **Proxy PDF export keeps going in a background tab** — text-mode proxies render while you are in another tab, and each card gets its own image.
+- fix(Stage): **Tier list edits never get lost between stage and builder** — switching between ranking on stage and the builder always shows the latest saved board, saves land in the order you made them, and a failed save says so with a Retry button.
+- fix(Stage): **Dialogs open fresh** — renaming a tier list, a board or a stage preset starts from the saved name each time, so saving a second preset no longer fails.
+- fix(Stage): **QR link follows presets** — after applying a preset, clicking into the QR link field no longer puts the old link back.
 
 ## 2026-11-15
 

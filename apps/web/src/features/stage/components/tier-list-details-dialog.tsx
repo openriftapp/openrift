@@ -28,6 +28,25 @@ export function TierListDetailsDialog({
   open,
   onOpenChange,
 }: TierListDetailsDialogProps) {
+  // The form remounts on each open, so it starts from what is saved.
+  const [session, setSession] = useState({ open, id: 0 });
+  if (session.open !== open) {
+    setSession({ open, id: open ? session.id + 1 : session.id });
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <TierListDetailsForm key={session.id} tierList={tierList} onOpenChange={onOpenChange} />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function TierListDetailsForm({
+  tierList,
+  onOpenChange,
+}: Pick<TierListDetailsDialogProps, "tierList" | "onOpenChange">) {
   const [title, setTitle] = useState(tierList.title);
   const [description, setDescription] = useState(tierList.description ?? "");
   const updateTierList = useUpdateTierList();
@@ -45,55 +64,40 @@ export function TierListDetailsDialog({
   };
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        // Reopening starts from what is saved, so an abandoned edit doesn't
-        // linger in the fields.
-        if (next) {
-          setTitle(tierList.title);
-          setDescription(tierList.description ?? "");
-        }
-        onOpenChange(next);
-      }}
-    >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{m.tier_lists_details_title()}</DialogTitle>
-          <DialogDescription>{m.tier_lists_details_description()}</DialogDescription>
-        </DialogHeader>
+    <>
+      <DialogHeader>
+        <DialogTitle>{m.tier_lists_details_title()}</DialogTitle>
+        <DialogDescription>{m.tier_lists_details_description()}</DialogDescription>
+      </DialogHeader>
 
-        <Field>
-          <FieldLabel htmlFor="tier-list-title">{m.tier_lists_field_title()}</FieldLabel>
-          <Input
-            id="tier-list-title"
-            value={title}
-            maxLength={120}
-            placeholder={m.tier_lists_field_title_placeholder()}
-            onChange={(event) => setTitle(event.target.value)}
-          />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="tier-list-description">
-            {m.tier_lists_field_description()}
-          </FieldLabel>
-          <Textarea
-            id="tier-list-description"
-            value={description}
-            maxLength={2000}
-            rows={3}
-            placeholder={m.tier_lists_field_description_placeholder()}
-            onChange={(event) => setDescription(event.target.value)}
-          />
-        </Field>
+      <Field>
+        <FieldLabel htmlFor="tier-list-title">{m.tier_lists_field_title()}</FieldLabel>
+        <Input
+          id="tier-list-title"
+          value={title}
+          maxLength={120}
+          placeholder={m.tier_lists_field_title_placeholder()}
+          onChange={(event) => setTitle(event.target.value)}
+        />
+      </Field>
+      <Field>
+        <FieldLabel htmlFor="tier-list-description">{m.tier_lists_field_description()}</FieldLabel>
+        <Textarea
+          id="tier-list-description"
+          value={description}
+          maxLength={2000}
+          rows={3}
+          placeholder={m.tier_lists_field_description_placeholder()}
+          onChange={(event) => setDescription(event.target.value)}
+        />
+      </Field>
 
-        <DialogFooter>
-          <DialogCancel />
-          <Button onClick={handleSave} disabled={trimmedTitle === "" || updateTierList.isPending}>
-            {m.common_save()}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <DialogFooter>
+        <DialogCancel />
+        <Button onClick={handleSave} disabled={trimmedTitle === "" || updateTierList.isPending}>
+          {m.common_save()}
+        </Button>
+      </DialogFooter>
+    </>
   );
 }

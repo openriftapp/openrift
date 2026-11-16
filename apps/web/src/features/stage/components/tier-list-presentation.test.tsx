@@ -1,6 +1,6 @@
 import type { TierRow } from "@openrift/shared/types/api/tier-list";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
-import { act, render } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -44,7 +44,12 @@ vi.mock("@/features/stage/hooks/use-tier-lists", () => ({
 }));
 
 const flush = vi.fn();
-const autosave = { saving: false, flush };
+const retry = vi.fn();
+const autosave: { status: "saving" | "saved" | "failed"; flush: () => void; retry: () => void } = {
+  status: "saved",
+  flush,
+  retry,
+};
 vi.mock("@/features/stage/hooks/use-tier-list-autosave", () => ({
   useTierListAutosave: () => autosave,
 }));
@@ -110,7 +115,7 @@ const resetPresentation = createStoreResetter(usePresentationStore);
 
 beforeEach(() => {
   stageCalls.length = 0;
-  autosave.saving = false;
+  autosave.status = "saved";
   useTierListBuilderStore.getState().reset();
   resetPresentation();
 });
@@ -180,6 +185,26 @@ describe("OwnedTierListPresentation draft as the single source of truth", () => 
     tierListData.data = { id: LIST_ID, title: "Best legends", tiers: savedTiers };
   });
 
+  it("takes a newer saved board while the draft has no unsaved edits", () => {
+    const { rerender } = renderOwned();
+    const newer: TierRow[] = [
+      { label: "S", cards: [{ cardId: "card-b", printingId: printingB.printingId }] },
+    ];
+    tierListData.data = { ...tierListData.data, tiers: newer };
+    rerender(
+      <OwnedTierListPresentation
+        tierListId={LIST_ID}
+        index={0}
+        editing={false}
+        onEditingChange={vi.fn()}
+        onIndexChange={vi.fn()}
+        onExit={vi.fn()}
+      />,
+    );
+    expect(queuedCardIds()).toEqual(["card-b"]);
+    tierListData.data = { id: LIST_ID, title: "Best legends", tiers: savedTiers };
+  });
+
   it("keeps the index inside a queue the editor shrank", () => {
     renderOwned({ index: 1 });
     act(() => {
@@ -225,9 +250,18 @@ describe("OwnedTierListPresentation edit switch", () => {
   });
 
   it("reports the save state so the creator can see the ranking land", () => {
-    autosave.saving = true;
+    autosave.status = "saving";
     renderOwned({ editing: true });
-    expect(lastStage().edit?.status).toBe("Saving…");
+    render(<div>{lastStage().edit?.status}</div>);
+    expect(screen.getByText("Saving…")).toBeInTheDocument();
+  });
+
+  it("offers a retry when a save failed", () => {
+    autosave.status = "failed";
+    renderOwned({ editing: true });
+    render(<div>{lastStage().edit?.status}</div>);
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(retry).toHaveBeenCalledTimes(1);
   });
 
   it.each([

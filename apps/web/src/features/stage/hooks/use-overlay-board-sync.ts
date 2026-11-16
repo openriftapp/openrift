@@ -1,5 +1,6 @@
-import type { OverlayBoardDirection } from "@openrift/shared/contracts/overlay";
+import type { OverlayBoard, OverlayBoardDirection } from "@openrift/shared/contracts/overlay";
 import type { TierRow } from "@openrift/shared/types/api/tier-list";
+import type { RefObject } from "react";
 import { useEffect, useRef } from "react";
 
 import {
@@ -10,10 +11,25 @@ import {
 import type { OverlayBoardSync } from "@/features/stage/lib/overlay-board-sync";
 import { createOverlayBoardSync } from "@/features/stage/lib/overlay-board-sync";
 
-interface SentBoard {
-  title: string;
-  tiers: readonly TierRow[];
-  direction: OverlayBoardDirection;
+interface SyncCalls {
+  pushAsync: (input: { board: OverlayBoard }) => Promise<unknown>;
+  revealAsync: (input: { revealCount: number }) => Promise<unknown>;
+  clearAsync: () => Promise<unknown>;
+}
+
+function ensureSync(
+  syncRef: RefObject<OverlayBoardSync | null>,
+  calls: RefObject<SyncCalls>,
+): OverlayBoardSync {
+  // React Compiler cannot lower `??=` and would ship this file unoptimized.
+  if (syncRef.current === null) {
+    syncRef.current = createOverlayBoardSync({
+      pushBoard: (board) => calls.current.pushAsync({ board }),
+      setReveal: (count) => calls.current.revealAsync({ revealCount: count }),
+      clear: () => calls.current.clearAsync(),
+    });
+  }
+  return syncRef.current;
 }
 
 /**
@@ -41,47 +57,27 @@ export function useOverlayBoardSync({
 
   const pushAsync = pushBoard.mutateAsync;
   const revealAsync = setReveal.mutateAsync;
-  const clear = clearOverlay.mutate;
+  const clearAsync = clearOverlay.mutateAsync;
 
-  // Built lazily in the effect, not a useState initializer: a render-scope
+  // Built lazily in the effects, not a useState initializer: a render-scope
   // ref read trips the React Compiler's bailout and ships the file unoptimized.
-  const calls = useRef({ pushAsync, revealAsync });
+  const calls = useRef<SyncCalls>({ pushAsync, revealAsync, clearAsync });
   useEffect(() => {
-    calls.current = { pushAsync, revealAsync };
-  }, [pushAsync, revealAsync]);
+    calls.current = { pushAsync, revealAsync, clearAsync };
+  }, [pushAsync, revealAsync, clearAsync]);
 
   const syncRef = useRef<OverlayBoardSync | null>(null);
-  const sent = useRef<SentBoard | null>(null);
   const wasEnabled = useRef(false);
 
   const active = enabled && !paused;
 
   useEffect(() => {
     if (!active) {
-      // Dropping the record means coming back is always a fresh push.
-      sent.current = null;
+      // Coming back is always a fresh push.
+      syncRef.current?.forget();
       return;
     }
-    // React Compiler cannot lower `??=` and would ship this file unoptimized.
-    if (syncRef.current === null) {
-      syncRef.current = createOverlayBoardSync({
-        pushBoard: (board) => calls.current.pushAsync({ board }),
-        setReveal: (count) => calls.current.revealAsync({ revealCount: count }),
-      });
-    }
-    const sync = syncRef.current;
-    const last = sent.current;
-    if (
-      last !== null &&
-      last.title === title &&
-      last.tiers === tiers &&
-      last.direction === direction
-    ) {
-      sync.send({ board: null, revealCount });
-      return;
-    }
-    sent.current = { title, tiers, direction };
-    sync.send({ board: { title, tiers: [...tiers], direction }, revealCount });
+    ensureSync(syncRef, calls).send({ board: { title, tiers, direction }, revealCount });
   }, [active, direction, revealCount, tiers, title]);
 
   useEffect(() => {
@@ -93,9 +89,6 @@ export function useOverlayBoardSync({
       return;
     }
     wasEnabled.current = false;
-    // Cancels a step still in flight; the sender may never have been built
-    // if the mirror spent its whole run paused.
-    syncRef.current?.cancel();
-    clear();
-  }, [clear, enabled]);
+    ensureSync(syncRef, calls).clear();
+  }, [enabled]);
 }

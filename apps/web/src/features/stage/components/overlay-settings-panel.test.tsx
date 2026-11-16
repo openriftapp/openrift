@@ -4,12 +4,15 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockDisable } = vi.hoisted(() => ({ mockDisable: vi.fn() }));
+const { mockDisable, mockUpdate } = vi.hoisted(() => ({
+  mockDisable: vi.fn(),
+  mockUpdate: vi.fn(() => Promise.resolve({})),
+}));
 
 vi.mock("@/features/stage/hooks/use-overlay", () => ({
   useEnableOverlayToken: () => ({ mutate: vi.fn(), isPending: false }),
   useDisableOverlayToken: () => ({ mutate: mockDisable, isPending: false }),
-  useUpdateOverlaySettings: () => ({ mutate: vi.fn(), isPending: false }),
+  useUpdateOverlaySettings: () => ({ mutate: vi.fn(), mutateAsync: mockUpdate, isPending: false }),
 }));
 
 vi.mock("@/features/stage/components/overlay-presets-section", () => ({
@@ -59,5 +62,48 @@ describe("OverlaySettingsPanel disable link", () => {
     await confirmDisable();
 
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
+});
+
+describe("OverlaySettingsPanel QR link", () => {
+  beforeEach(() => {
+    mockUpdate.mockClear();
+  });
+
+  function panel(qrUrl: string | null) {
+    return (
+      <OverlaySettingsPanel
+        channel={{ ...CHANNEL, payload: { ...DEFAULT_OVERLAY_PAYLOAD, qrUrl } }}
+        draftScale={null}
+        onDraftScaleChange={vi.fn()}
+      />
+    );
+  }
+
+  it("follows a URL a preset put in place, and a focus and blur writes nothing", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(panel("https://preview.example.test/decks/share/old"));
+
+    rerender(panel("https://preview.example.test/decks/share/preset"));
+    const field = screen.getByLabelText("Link to put on screen");
+    expect(field).toHaveValue("https://preview.example.test/decks/share/preset");
+
+    await user.click(field);
+    await user.tab();
+
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it("writes an edited URL on blur", async () => {
+    const user = userEvent.setup();
+    render(panel(null));
+    const field = screen.getByLabelText("Link to put on screen");
+
+    await user.type(field, "https://preview.example.test/decks/share/new");
+    await user.tab();
+
+    expect(mockUpdate).toHaveBeenCalledWith({
+      qrUrl: "https://preview.example.test/decks/share/new",
+    });
   });
 });

@@ -1,9 +1,26 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { QueryClient } from "@tanstack/react-query";
+import { describe, expect, it, vi } from "vitest";
 
-import { Route } from "./tier-lists_.$tierListId";
+const { fetchTierList } = vi.hoisted(() => ({
+  fetchTierList: vi.fn(() => Promise.resolve({ id: "list-1", tiers: [{ label: "S", cards: [] }] })),
+}));
+
+vi.mock("@/features/stage/lib/tier-lists-queries", () => ({
+  tierListQueryOptions: (userId: string, id: string) => ({
+    queryKey: ["tier-lists", userId, id],
+    queryFn: fetchTierList,
+  }),
+}));
+
+const { Route } = await import("./tier-lists_.$tierListId");
+
+type LoaderFn = (ctx: {
+  context: { queryClient: QueryClient; userId: string };
+  params: { tierListId: string };
+}) => Promise<void>;
 
 const validateSearch = Route.options.validateSearch as unknown as {
   parse: (search: Record<string, unknown>) => Record<string, unknown>;
@@ -28,5 +45,27 @@ describe("/tier-lists/$tierListId filter search", () => {
       "utf-8",
     );
     expect(source).toMatch(/<FilterSearchProvider value=\{search\}>/u);
+  });
+});
+
+describe("/tier-lists/$tierListId loader", () => {
+  it("fetches the list even when the cache already holds it", async () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(["tier-lists", "user-1", "list-1"], { id: "list-1", tiers: [] });
+
+    await (Route.options.loader as unknown as LoaderFn)({
+      context: { queryClient, userId: "user-1" },
+      params: { tierListId: "list-1" },
+    });
+
+    expect(fetchTierList).toHaveBeenCalledOnce();
+    expect(queryClient.getQueryData(["tier-lists", "user-1", "list-1"])).toEqual({
+      id: "list-1",
+      tiers: [{ label: "S", cards: [] }],
+    });
+  });
+
+  it("does not let a hover preload stand in for the fetch on entry", () => {
+    expect(Route.options.preloadStaleTime).toBe(0);
   });
 });

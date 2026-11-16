@@ -38,12 +38,12 @@ function pinnedPrinting(cardId: string): string | null | undefined {
 
 beforeEach(() => {
   reset();
-  state().load("list-1", board());
+  state().adopt("list-1", board());
 });
 
 afterEach(reset);
 
-describe("load", () => {
+describe("adopt of a new list", () => {
   it("adopts the list's saved board without carrying a dirty flag", () => {
     expect(state().listId).toBe("list-1");
     expect(state().rows).toHaveLength(3);
@@ -60,16 +60,70 @@ describe("load", () => {
 
   it("copies the incoming rows rather than aliasing them", () => {
     const incoming = board();
-    state().load("list-2", incoming);
+    state().adopt("list-2", incoming);
     state().assign("card-9", 0);
     expect(incoming[0]?.cards.map((card) => card.cardId)).toEqual(["card-1", "card-2"]);
   });
 
   it("replaces a previous draft wholesale", () => {
-    state().load("list-2", [tier("Only", ["card-9"])]);
+    state().adopt("list-2", [tier("Only", ["card-9"])]);
     expect(state().listId).toBe("list-2");
     expect(state().rows).toHaveLength(1);
     expect([...state().rowIndexByCardId.keys()]).toEqual(["card-9"]);
+  });
+});
+
+describe("adopt", () => {
+  it("takes newer server rows while the draft has no unsaved edits", () => {
+    state().adopt("list-1", [tier("S", ["card-7"])]);
+    expect(rowsByLabel()).toEqual({ S: ["card-7"] });
+    expect(state().dirty).toBe(false);
+  });
+
+  it("keeps unsaved edits when newer server rows arrive", () => {
+    state().assign("card-9", 2);
+    state().adopt("list-1", [tier("S", ["card-7"])]);
+    expect(rowsByLabel().B).toEqual(["card-9"]);
+    expect(state().dirty).toBe(true);
+  });
+
+  it("keeps the saved draft when the echo of an earlier save arrived during the save", () => {
+    state().assign("card-8", 1);
+    const echoOfFirst = [tier("S", ["card-1", "card-2"]), tier("A", ["card-3", "card-8"])];
+    state().assign("card-9", 2);
+    const saved = state().rows;
+    state().adopt("list-1", echoOfFirst);
+
+    state().markSaved(saved);
+
+    expect(state().rows).toBe(saved);
+    expect(state().dirty).toBe(false);
+  });
+
+  it("takes server rows that arrive after the save landed", () => {
+    state().assign("card-9", 2);
+    state().markSaved(state().rows);
+    const echo = [tier("S", ["card-1", "card-2"]), tier("A", ["card-3"]), tier("B", ["card-9"])];
+
+    state().adopt("list-1", echo);
+
+    expect(state().source).toBe(echo);
+    expect(rowsByLabel().B).toEqual(["card-9"]);
+  });
+
+  it("leaves the draft untouched when the server rows are the ones it was loaded from", () => {
+    const incoming = board();
+    state().adopt("list-1", incoming);
+    const rows = state().rows;
+    state().adopt("list-1", incoming);
+    expect(state().rows).toBe(rows);
+  });
+
+  it("switches to another list even over unsaved edits", () => {
+    state().assign("card-9", 2);
+    state().adopt("list-2", [tier("Only", [])]);
+    expect(state().listId).toBe("list-2");
+    expect(state().dirty).toBe(false);
   });
 });
 
@@ -79,21 +133,21 @@ describe("assign caps", () => {
   }
 
   it("refuses to grow a row past the per-tier cap", () => {
-    state().load("list-caps", [tier("S", ids("full", MAX_CARDS_PER_TIER)), tier("A", [])]);
+    state().adopt("list-caps", [tier("S", ids("full", MAX_CARDS_PER_TIER)), tier("A", [])]);
     state().assign("card-9", 0);
     expect(rowsByLabel().S).toHaveLength(MAX_CARDS_PER_TIER);
     expect(state().dirty).toBe(false);
   });
 
   it("still allows reordering within a full row", () => {
-    state().load("list-caps", [tier("S", ids("full", MAX_CARDS_PER_TIER))]);
+    state().adopt("list-caps", [tier("S", ids("full", MAX_CARDS_PER_TIER))]);
     state().assign(`full-${MAX_CARDS_PER_TIER - 1}`, 0, { position: 0 });
     expect(rowsByLabel().S?.[0]).toBe(`full-${MAX_CARDS_PER_TIER - 1}`);
     expect(rowsByLabel().S).toHaveLength(MAX_CARDS_PER_TIER);
   });
 
   it("refuses to grow the board past the total cap, while still allowing moves", () => {
-    state().load("list-total", [
+    state().adopt("list-total", [
       tier("S", ids("a", MAX_CARDS_PER_TIER)),
       tier("A", ids("b", MAX_CARDS_PER_TIER)),
       tier("B", ids("c", MAX_TIER_LIST_CARDS - 2 * MAX_CARDS_PER_TIER)),
@@ -132,13 +186,13 @@ describe("assign", () => {
   });
 
   it("lands before the target when dragging rightwards within a row", () => {
-    state().load("list-4", [tier("S", ["a", "b", "c"])]);
+    state().adopt("list-4", [tier("S", ["a", "b", "c"])]);
     state().assign("a", 0, { position: 2 });
     expect(rowsByLabel().S).toEqual(["b", "a", "c"]);
   });
 
   it("does not shift when the card comes from a different row", () => {
-    state().load("list-4", [tier("S", ["a", "b", "c"]), tier("A", ["x"])]);
+    state().adopt("list-4", [tier("S", ["a", "b", "c"]), tier("A", ["x"])]);
     state().assign("x", 0, { position: 2 });
     expect(rowsByLabel().S).toEqual(["a", "b", "x", "c"]);
     expect(rowsByLabel().A).toEqual([]);
@@ -268,7 +322,7 @@ describe("addRow", () => {
   });
 
   it("still finds a free letter on a board one short of the cap", () => {
-    state().load(
+    state().adopt(
       "list-3",
       [..."ABCDEFGHIJK"].map((label) => tier(label, [])),
     );
@@ -426,10 +480,10 @@ describe("the unranked row", () => {
   });
 
   it("survives a load, and a board without one has no flagged rows", () => {
-    state().load("list-2", [tier("S", []), { ...tier("Cut", []), unranked: true }]);
+    state().adopt("list-2", [tier("S", []), { ...tier("Cut", []), unranked: true }]);
     expect(state().rows.at(-1)?.unranked).toBe(true);
 
-    state().load("list-3", board());
+    state().adopt("list-3", board());
     expect(state().rows.some((row) => row.unranked === true)).toBe(false);
   });
 });

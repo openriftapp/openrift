@@ -59,7 +59,6 @@ export function TierListBuilderPage({ tierList }: TierListBuilderPageProps) {
 
   const { cardsById, printingsByCardId } = useCards();
   const dirty = useTierListBuilderStore((state) => state.dirty);
-  const loadedListId = useTierListBuilderStore((state) => state.listId);
   // Counted from the saved board, not the draft state.
   const rankedCount = tierList.tiers.reduce((sum, tier) => sum + tier.cards.length, 0);
   const introDismissed = useOnboardingStore((state) => state.dismissedIntros.includes("tier-list"));
@@ -81,13 +80,9 @@ export function TierListBuilderPage({ tierList }: TierListBuilderPageProps) {
   const updateTierList = useUpdateTierList();
   const deleteTierList = useDeleteTierList();
 
-  // Keyed on the id, not the response object, so a background refetch of an
-  // unchanged list can't discard an in-progress draft.
   useEffect(() => {
-    if (loadedListId !== tierList.id) {
-      useTierListBuilderStore.getState().load(tierList.id, tierList.tiers);
-    }
-  }, [tierList.id, tierList.tiers, loadedListId]);
+    useTierListBuilderStore.getState().adopt(tierList.id, tierList.tiers);
+  }, [tierList.id, tierList.tiers]);
 
   useEffect(() => useTierListBuilderStore.getState().reset, []);
 

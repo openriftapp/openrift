@@ -2,6 +2,7 @@ import type { TierRow } from "@openrift/shared/types/api/tier-list";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 
+import { Button } from "@/components/ui/button";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { CardStageMain } from "@/features/stage/components/card-stage-main";
 import { PresentationStage } from "@/features/stage/components/presentation-stage";
@@ -11,6 +12,7 @@ import { TierBoardEditor } from "@/features/stage/components/tier-board-editor";
 import { TierListDndContext } from "@/features/stage/components/tier-list-dnd-context";
 import { TierStageMain } from "@/features/stage/components/tier-stage-main";
 import { useChromaPlate } from "@/features/stage/hooks/use-chroma-plate";
+import type { TierListAutosave } from "@/features/stage/hooks/use-tier-list-autosave";
 import { useTierListAutosave } from "@/features/stage/hooks/use-tier-list-autosave";
 import { usePublicTierList, useTierList } from "@/features/stage/hooks/use-tier-lists";
 import { clampIndex } from "@/features/stage/lib/presentation-queue";
@@ -47,13 +49,9 @@ export function OwnedTierListPresentation({
   // the autosave flush must fire before the reset drops the draft.
   const autosave = useTierListAutosave(tierListId);
 
-  // Keyed on id, not the response object: a background refetch must not
-  // discard ranking that is still mid-air.
   useEffect(() => {
-    if (loadedListId !== tierListId) {
-      useTierListBuilderStore.getState().load(tierListId, data.tiers);
-    }
-  }, [tierListId, data.tiers, loadedListId]);
+    useTierListBuilderStore.getState().adopt(tierListId, data.tiers);
+  }, [tierListId, data.tiers]);
 
   useEffect(() => useTierListBuilderStore.getState().reset, []);
 
@@ -69,7 +67,7 @@ export function OwnedTierListPresentation({
       edit={{
         editing,
         onToggle: () => onEditingChange(!editing),
-        status: autosave.saving ? m.common_saving() : m.tier_lists_autosave_saved(),
+        status: <AutosaveStatus autosave={autosave} />,
       }}
       {...rest}
       onExit={() => {
@@ -78,6 +76,20 @@ export function OwnedTierListPresentation({
       }}
     />
   );
+}
+
+function AutosaveStatus({ autosave }: { autosave: TierListAutosave }) {
+  if (autosave.status === "failed") {
+    return (
+      <span className="inline-flex items-center gap-2">
+        {m.tier_lists_unsaved_changes()}
+        <Button variant="outline" size="xs" onClick={() => autosave.retry()}>
+          {m.common_retry()}
+        </Button>
+      </span>
+    );
+  }
+  return autosave.status === "saving" ? m.common_saving() : m.tier_lists_autosave_saved();
 }
 
 function TierStageEditor() {
