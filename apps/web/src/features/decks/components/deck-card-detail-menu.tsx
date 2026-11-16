@@ -16,12 +16,7 @@ interface DeckCardDetailMenuProps {
 export function DeckCardDetailMenu({ onViewDetail, children }: DeckCardDetailMenuProps) {
   return (
     <ContextMenu>
-      <ContextMenuTrigger
-        className="block select-none [-webkit-touch-callout:none]"
-        render={<div />}
-      >
-        {children}
-      </ContextMenuTrigger>
+      <ContextMenuTrigger render={<div />}>{children}</ContextMenuTrigger>
       <ContextMenuContent className="w-44">
         <ContextMenuItem
           onClick={(event) => {

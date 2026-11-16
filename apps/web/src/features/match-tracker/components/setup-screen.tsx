@@ -256,11 +256,7 @@ export function SetupScreen() {
             type="number"
             min={1}
             {...pointsTargetProps}
-            className={cn(
-              "w-24 [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:m-0",
-              "[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0",
-              "[&::-webkit-outer-spin-button]:appearance-none",
-            )}
+            className="no-spinner w-24"
           />
           <p className="text-muted-foreground text-xs">{m.tracker_setup_points_hint()}</p>
         </div>

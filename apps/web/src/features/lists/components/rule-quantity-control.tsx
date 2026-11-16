@@ -49,7 +49,7 @@ export function QuantityControl({
       />
       <Input
         type="number"
-        className="w-20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        className="no-spinner w-20"
         min={value.mode === "fixed" ? 0 : 1}
         aria-label={m.lists_rule_quantity_amount_aria()}
         {...inputProps}

@@ -38,12 +38,7 @@ export function TierCardPrintingMenu({
 
   return (
     <ContextMenu onOpenChange={(open) => !open && reset()}>
-      <ContextMenuTrigger
-        className="block select-none [-webkit-touch-callout:none]"
-        render={<div />}
-      >
-        {children}
-      </ContextMenuTrigger>
+      <ContextMenuTrigger render={<div />}>{children}</ContextMenuTrigger>
       <ContextMenuContent ref={popupRef} className="max-h-[70vh] w-72 overflow-y-auto">
         <ContextMenuItem onClick={() => unassign(cardId)}>
           {m.tier_lists_unrank_card()}

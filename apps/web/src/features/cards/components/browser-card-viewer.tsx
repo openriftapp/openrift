@@ -2,14 +2,14 @@ import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { GroupByField } from "@openrift/shared/types/search";
 import type { ReactNode } from "react";
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 
 import type { CardTableProps } from "@/features/cards/components/card-viewer";
 import { CardViewer } from "@/features/cards/components/card-viewer";
 import { useGridFocusStore } from "@/features/cards/stores/grid-focus-store";
+import { useResolvedSelection } from "@/hooks/use-resolved-selection";
 import type { GroupInfo } from "@/lib/card-group-types";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
-import { useSelectionStore } from "@/stores/selection-store";
 
 const EMPTY_SIBLINGS: Printing[] = [];
 
@@ -44,18 +44,7 @@ export function BrowserCardViewer({
   view,
   ...rest
 }: BrowserCardViewerProps) {
-  const selectedCard = useSelectionStore((s) => s.selectedCard);
-  const selectedIndex = useSelectionStore((s) => s.selectedIndex);
-
-  // Without this, the highlight follows the index onto the next card after a
-  // reshape (a moved copy, a filter) while the detail pane still shows the one that left.
-  useEffect(() => {
-    useSelectionStore.getState().reconcileSelection(items);
-  }, [items]);
-
-  // Stays stable when the detail panel swaps to a sibling printing via setSelectedCard.
-  const indexAnchor =
-    selectedIndex >= 0 && selectedIndex < items.length ? items[selectedIndex] : undefined;
+  const { card: selectedCard, item: selectedItem } = useResolvedSelection(items);
 
   // Falls back to cardId in cards-only view, where chevron-picked variants aren't in the grid items.
   const gridSelectedCard = selectedCard
@@ -66,9 +55,10 @@ export function BrowserCardViewer({
       selectedCard)
     : undefined;
   const gridSelectedId =
-    indexAnchor?.id ?? (gridSelectedCard ? sideKey(gridSelectedCard) : undefined);
+    selectedItem?.id ?? (gridSelectedCard ? sideKey(gridSelectedCard) : undefined);
 
-  useEffect(() => {
+  // Cells subscribe per item id; publishing before paint keeps the highlight in step with the grid.
+  useLayoutEffect(() => {
     useGridFocusStore.getState().setSelectedItemId(gridSelectedId ?? null);
   }, [gridSelectedId]);
 

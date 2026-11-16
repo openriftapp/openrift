@@ -146,7 +146,7 @@ export function CreateCardPage() {
                     aria-invalid={parseIntegerInput(draft.numeric[key]) === undefined}
                     value={draft.numeric[key]}
                     onChange={(e) => draft.setStat(key, e.target.value)}
-                    className="[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
+                    className="no-spinner"
                   />
                   {parseIntegerInput(draft.numeric[key]) === undefined && (
                     <FieldError>Whole number</FieldError>

@@ -56,8 +56,8 @@ export type GroupCard = Pick<
   "zone" | "quantity" | "cardTypes" | "keywords" | "tags" | "energy" | "might" | "power"
 >;
 
-// A numeric condition never matches a card with a null stat: "2 or less
-// energy" must not include cards with no cost at all.
+// A null energy or might never matches: "2 or less energy" must not include
+// cards with no cost at all. Missing power counts as 0, as in the deck stats.
 export function cardMatchesOddsGroup(card: GroupCard, def: OddsGroupDef): boolean {
   if (def.types && !def.types.some((type) => card.cardTypes.includes(type))) {
     return false;
@@ -77,7 +77,7 @@ export function cardMatchesOddsGroup(card: GroupCard, def: OddsGroupDef): boolea
   if (def.mightMin !== undefined && (card.might === null || card.might < def.mightMin)) {
     return false;
   }
-  if (def.powerMin !== undefined && (card.power === null || card.power < def.powerMin)) {
+  if (def.powerMin !== undefined && (card.power ?? 0) < def.powerMin) {
     return false;
   }
   return true;

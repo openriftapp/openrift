@@ -9,7 +9,7 @@ import { m } from "@/paraglide/messages.js";
 // `undefined` means there is no host, so a standalone consumer stays inline.
 export const PlanTabActionsContext = createContext<HTMLElement | null | undefined>(undefined);
 
-export const SECTION_SCROLL_MARGIN = "calc(var(--sticky-top, 57px) + 3.5rem)";
+export const SECTION_SCROLL_MARGIN = "calc(var(--sticky-top) + 3.5rem)";
 
 export function TabStrip({
   tab,

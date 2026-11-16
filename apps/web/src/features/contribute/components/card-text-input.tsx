@@ -21,6 +21,7 @@ import { CardText } from "@/features/cards/components/card-text";
 import type { PlaceholderField } from "@/features/cards/lib/card-placeholder-regions";
 import { useFieldLink } from "@/features/contribute/components/contribute-field-focus";
 import { useKeywordStyles } from "@/hooks/use-keyword-styles";
+import { useScopeLayoutEffect } from "@/hooks/use-scope-effect";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -102,21 +103,25 @@ export function CardTextInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const id = useId();
   const link = useFieldLink(field);
+  const pendingCaret = useRef<number | null>(null);
+  useScopeLayoutEffect(value, () => {
+    const caret = pendingCaret.current;
+    const el = textareaRef.current;
+    if (caret === null || !el) {
+      return;
+    }
+    pendingCaret.current = null;
+    el.focus();
+    el.setSelectionRange(caret, caret);
+  });
 
   const insert = (token: string) => {
     const ta = textareaRef.current;
     const start = ta?.selectionStart ?? value.length;
     const end = ta?.selectionEnd ?? value.length;
     const next = insertAtCaret(value, start, end, token);
+    pendingCaret.current = next.caret;
     onChange(next.value);
-    queueMicrotask(() => {
-      const el = textareaRef.current;
-      if (!el) {
-        return;
-      }
-      el.focus();
-      el.setSelectionRange(next.caret, next.caret);
-    });
   };
 
   const wrap = (prefix: string, suffix: string) => {
@@ -124,15 +129,8 @@ export function CardTextInput({
     const start = ta?.selectionStart ?? value.length;
     const end = ta?.selectionEnd ?? value.length;
     const next = wrapAtCaret(value, start, end, prefix, suffix);
+    pendingCaret.current = next.caret;
     onChange(next.value);
-    queueMicrotask(() => {
-      const el = textareaRef.current;
-      if (!el) {
-        return;
-      }
-      el.focus();
-      el.setSelectionRange(next.caret, next.caret);
-    });
   };
 
   return (

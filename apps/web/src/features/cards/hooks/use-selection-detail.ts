@@ -3,6 +3,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import { useApplyTagFilter } from "@/hooks/use-apply-tag-filter";
+import { useResolvedSelection } from "@/hooks/use-resolved-selection";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import { useSelectionStore } from "@/stores/selection-store";
 
@@ -148,21 +149,20 @@ export function useSelectionDetail({
   onSearchAndClose,
   onDismiss,
 }: UseSelectionDetailParams) {
-  const selectedCard = useSelectionStore((s) => s.selectedCard);
-  const selectedIndex = useSelectionStore((s) => s.selectedIndex);
+  const selection = useResolvedSelection(items);
   const detailOpen = useSelectionStore((s) => s.detailOpen);
   const setSelectedCard = useSelectionStore((s) => s.setSelectedCard);
-  const navigateToIndex = useSelectionStore((s) => s.navigateToIndex);
+  const navigateToItem = useSelectionStore((s) => s.navigateToItem);
 
   const detail = useCardDetailNavigation({
     items,
     printingsByCardId,
     onSearchAndClose,
     onDismiss,
-    selectedCard,
-    selectedIndex,
+    selectedCard: selection.card,
+    selectedIndex: selection.index,
     setSelectedCard,
-    navigateToIndex,
+    navigateToIndex: (index, printing) => navigateToItem(items, index, printing),
   });
 
   return { ...detail, detailOpen };

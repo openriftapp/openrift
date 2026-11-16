@@ -45,6 +45,8 @@ export function BulkTradeActions({
     targets.some((trade) => state.pending.has(trade.id)),
   );
   const waitingForChoice = targets.filter((trade) => awaitingChoice.includes(trade.id)).length;
+  // A trade waiting for a copy choice is settled in its own row, so accept-all leaves it out.
+  const acceptTargets = targets.filter((trade) => !awaitingChoice.includes(trade.id));
 
   // Declared above the early returns for the React Compiler.
   async function runAll(mutation: {
@@ -62,10 +64,10 @@ export function BulkTradeActions({
   }
 
   async function acceptAll(): Promise<void> {
-    for (const trade of targets) {
+    for (const trade of acceptTargets) {
       begin(trade.id);
     }
-    const waiting = await runAcceptBatch(targets, {
+    const waiting = await runAcceptBatch(acceptTargets, {
       accept: (variables) => accept.mutateAsync(variables),
       readCopyOptions: (tradeId) =>
         readCopyOptionsReported(() =>
@@ -73,7 +75,7 @@ export function BulkTradeActions({
         ),
       onTradeDone: settle,
     });
-    setAwaitingChoice(waiting);
+    setAwaitingChoice((previous) => [...previous, ...waiting]);
   }
 
   const choiceLine =
@@ -96,8 +98,8 @@ export function BulkTradeActions({
   }
   // A big accept-all reserves real copies on both shelves; above the
   // threshold the button confirms once before firing.
-  const needsConfirm = targets.length > BULK_ACCEPT_CONFIRM_THRESHOLD;
-  const counterpartyName = memberName(targets[0]?.counterparty.name);
+  const needsConfirm = acceptTargets.length > BULK_ACCEPT_CONFIRM_THRESHOLD;
+  const counterpartyName = memberName(acceptTargets[0]?.counterparty.name);
 
   return (
     <div className="flex shrink-0 flex-col items-end gap-1">
@@ -105,13 +107,15 @@ export function BulkTradeActions({
         <Button size="sm" variant="outline" disabled={acting} onClick={() => void runAll(decline)}>
           {m.trades_decline_all()}
         </Button>
-        <Button
-          size="sm"
-          disabled={acting}
-          onClick={() => (needsConfirm ? setConfirmOpen(true) : void acceptAll())}
-        >
-          {m.trades_accept_all({ count: targets.length })}
-        </Button>
+        {acceptTargets.length >= 2 && (
+          <Button
+            size="sm"
+            disabled={acting}
+            onClick={() => (needsConfirm ? setConfirmOpen(true) : void acceptAll())}
+          >
+            {m.trades_accept_all({ count: acceptTargets.length })}
+          </Button>
+        )}
       </div>
       {choiceLine}
       {needsConfirm ? (
@@ -123,11 +127,11 @@ export function BulkTradeActions({
             void acceptAll();
           }}
           title={m.trades_accept_all_confirm_title({
-            count: targets.length,
+            count: acceptTargets.length,
             name: counterpartyName,
           })}
           description={m.trades_accept_all_confirm_description()}
-          confirmLabel={m.trades_accept_all({ count: targets.length })}
+          confirmLabel={m.trades_accept_all({ count: acceptTargets.length })}
           destructive={false}
         />
       ) : null}

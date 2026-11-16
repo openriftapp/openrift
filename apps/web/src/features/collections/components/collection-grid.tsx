@@ -206,17 +206,15 @@ export function CollectionGrid({
   const quickAdd = useQuickAddActions(addTarget, collectionId);
   const handleQuickAdd = quickAdd.handleQuickAdd;
   const toggleShowLibrary = () => {
-    setShowLibrary((prev) => {
-      const next = !prev;
-      if (next && selectMode) {
-        setSelectMode(false);
-        clearSelection();
-      }
-      if (!next) {
-        globalThis.scrollTo(0, 0);
-      }
-      return next;
-    });
+    const next = !showLibrary;
+    if (next && selectMode) {
+      setSelectMode(false);
+      clearSelection();
+    }
+    if (!next) {
+      globalThis.scrollTo(0, 0);
+    }
+    setShowLibrary(next);
   };
 
   const enterSelectMode = () => setSelectMode(true);

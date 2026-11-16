@@ -96,7 +96,7 @@ export function NumberInput({
         const parsed = Number.parseInt(next, 10);
         onChange(Number.isNaN(parsed) ? null : parsed);
       }}
-      className="[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
+      className="no-spinner"
     />
   );
 }

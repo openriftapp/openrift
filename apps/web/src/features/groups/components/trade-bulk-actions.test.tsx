@@ -131,6 +131,32 @@ describe("BulkTradeActions", () => {
     expect(screen.queryByText(/pick which cop/iu)).not.toBeInTheDocument();
   });
 
+  it("leaves trades waiting for a copy choice out of the next accept-all", async () => {
+    const user = userEvent.setup();
+    const { rerender } = renderBulk();
+    await user.click(screen.getByRole("button", { name: /accept all/iu }));
+    await waitFor(() => expect(useTradeActionStore.getState().pending.size).toBe(0));
+    acceptFn.mockClear();
+    copyOptionsFn.mockClear();
+
+    rerender([trade("t2"), trade("t4"), trade("t5")]);
+    await user.click(screen.getByRole("button", { name: /accept all/iu }));
+
+    await waitFor(() => expect(useTradeActionStore.getState().pending.size).toBe(0));
+    expect(acceptFn.mock.calls.map(([variables]) => variables.tradeId)).toEqual(["t4", "t5"]);
+    expect(copyOptionsFn).not.toHaveBeenCalledWith("t2");
+  });
+
+  it("counts only the trades accept-all can settle", async () => {
+    const { rerender } = renderBulk();
+    await userEvent.setup().click(screen.getByRole("button", { name: /accept all/iu }));
+    await waitFor(() => expect(useTradeActionStore.getState().pending.size).toBe(0));
+
+    rerender([trade("t2"), trade("t4"), trade("t5")]);
+
+    expect(screen.getByRole("button", { name: /accept all/iu })).toHaveTextContent("2");
+  });
+
   it("accepts the receiver's side without reading copy options", async () => {
     renderBulk([trade("t1", "receiver"), trade("t2", "receiver")]);
     await userEvent.setup().click(screen.getByRole("button", { name: /accept all/iu }));

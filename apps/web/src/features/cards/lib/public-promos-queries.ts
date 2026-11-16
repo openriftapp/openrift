@@ -9,16 +9,14 @@ import { createServerFn } from "@tanstack/react-start";
 import { promosKeys } from "@/features/cards/lib/cards-query-keys";
 import { serverCacheKeys } from "@/lib/query-keys";
 import { serverCache } from "@/lib/server-cache";
-import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 const fetchPromoList = createServerFn({ method: "GET" })
   .validator((language: string) => language)
-  .middleware([withCookies])
-  .handler(({ context, data: language }): Promise<PromosListResponse> =>
+  .handler(({ data: language }): Promise<PromosListResponse> =>
     serverCache.query({
       queryKey: serverCacheKeys.promos(language),
-      queryFn: () => apiOrpcClient(promosContract, context.cookie).list({ language }),
+      queryFn: () => apiOrpcClient(promosContract).list({ language }),
     }),
   );
 

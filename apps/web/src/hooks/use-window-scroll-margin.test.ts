@@ -63,7 +63,7 @@ describe("useWindowScrollMargin", () => {
   it("re-measures when the body resizes", () => {
     const { el, move } = elementAt(100);
     const { result } = renderHook(() => useWindowScrollMargin(el));
-    expect(observer.observed).toEqual([document.body]);
+    expect(observer.observed).toEqual([document.body, el]);
 
     move(148);
     act(() => observer.callback?.());
@@ -85,13 +85,24 @@ describe("useWindowScrollMargin", () => {
     parent.remove();
   });
 
-  it("seeds a new instance with the last measured top", () => {
+  it("does not take another instance's top before it has an element", () => {
     const { el } = elementAt(90);
     renderHook(() => useWindowScrollMargin(el));
 
     const { result } = renderHook(() => useWindowScrollMargin(null, 10));
 
-    expect(result.current).toBe(100);
+    expect(result.current).toBe(10);
+  });
+
+  it("re-measures an element that was mounted hidden once it shows", () => {
+    const { el, move } = elementAt(0);
+    const { result } = renderHook(() => useWindowScrollMargin(el));
+
+    move(240);
+    act(() => observer.callback?.());
+
+    expect(observer.observed).toContain(el);
+    expect(result.current).toBe(240);
   });
 
   it("disconnects on unmount", () => {

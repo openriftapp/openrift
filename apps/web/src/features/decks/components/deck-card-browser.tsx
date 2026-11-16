@@ -97,6 +97,7 @@ import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-s
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
 import { useChannelRegistry, useZoneOrder } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useResolvedSelection } from "@/hooks/use-resolved-selection";
 import { useSeedLanguagesFromPrefs } from "@/hooks/use-seed-languages-from-prefs";
 import { useSession } from "@/hooks/use-session";
 import { useShiftHeld } from "@/hooks/use-shift-held";
@@ -313,7 +314,7 @@ function DeckOverviewForEditor({
   // Mirrors the parent editor's deckItems so arrow-key nav and the detail
   // pane's prev/next walk the same dedup'd visual-order list on both paths.
   const { items, printingsByCardId } = useDeckItems(cards);
-  const selectedCard = useSelectionStore((state) => state.selectedCard);
+  const { card: selectedCard } = useResolvedSelection(items);
   const siblingPrintings = selectedCard
     ? (printingsByCardId.get(selectedCard.cardId) ?? EMPTY_SIBLINGS)
     : EMPTY_SIBLINGS;
@@ -446,31 +447,6 @@ function DeckCardBrowserInner({
     cardId: string;
     zone: DeckZone;
   }>();
-  const detailOpen = useSelectionStore((state) => state.detailOpen);
-  const selectedCard = useSelectionStore((state) => state.selectedCard);
-  const detailReplacesCatalog = workbench && !isMobile;
-  const showCatalogDetail = detailReplacesCatalog && detailOpen && selectedCard !== null;
-  const catalogReturn = useRef<{ scrollY: number; printingId: string } | null>(null);
-  const openedPrintingId = showCatalogDetail ? selectedCard.printingId : null;
-  // Layout effect: it must read the scroll position before the detail scrolls to the top.
-  useLayoutEffect(() => {
-    if (openedPrintingId !== null) {
-      catalogReturn.current = {
-        scrollY: catalogReturn.current?.scrollY ?? globalThis.scrollY,
-        printingId: openedPrintingId,
-      };
-      return;
-    }
-    const pending = catalogReturn.current;
-    if (!pending) {
-      return;
-    }
-    catalogReturn.current = null;
-    requestAnimationFrame(() => {
-      globalThis.scrollTo({ top: pending.scrollY });
-      focusCatalogCard(pending.printingId);
-    });
-  }, [openedPrintingId]);
   const showAllCardsZones = useWorkbenchStore((state) => state.showAllCardsZones);
   const setReplaceTarget = useWorkbenchStore((state) => state.setReplaceTarget);
   // Every deck edit rebuilds the zone preset; holding equal filters stops an add
@@ -550,13 +526,31 @@ function DeckCardBrowserInner({
     printing,
   }));
 
-  // A deck-list click indexes into the deck's items; the catalog's reconcile
-  // would otherwise swap the detail to whatever catalog card sits at that index.
+  const detailOpen = useSelectionStore((state) => state.detailOpen);
+  const { card: selectedCard } = useResolvedSelection(items);
+  const detailReplacesCatalog = workbench && !isMobile;
+  const showCatalogDetail = detailReplacesCatalog && detailOpen && selectedCard !== null;
+  const catalogReturn = useRef<{ scrollY: number; printingId: string } | null>(null);
+  const openedPrintingId = showCatalogDetail ? selectedCard.printingId : null;
+  // Layout effect: it must read the scroll position before the detail scrolls to the top.
   useLayoutEffect(() => {
-    if (showCatalogDetail && selectedCard !== null) {
-      useSelectionStore.getState().reanchorSelection(items);
+    if (openedPrintingId !== null) {
+      catalogReturn.current = {
+        scrollY: catalogReturn.current?.scrollY ?? globalThis.scrollY,
+        printingId: openedPrintingId,
+      };
+      return;
     }
-  }, [showCatalogDetail, selectedCard, items]);
+    const pending = catalogReturn.current;
+    if (!pending) {
+      return;
+    }
+    catalogReturn.current = null;
+    requestAnimationFrame(() => {
+      globalThis.scrollTo({ top: pending.scrollY });
+      focusCatalogCard(pending.printingId);
+    });
+  }, [openedPrintingId]);
 
   const findBy = selectionFindBy(view, groupBy);
 

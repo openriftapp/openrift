@@ -1,4 +1,4 @@
-import { Outlet, useLocation, useMatches } from "@tanstack/react-router";
+import { Outlet, useMatches, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 
 import { CommandPalette } from "@/components/command-palette/command-palette";
@@ -9,7 +9,6 @@ import { SiteBanner } from "@/components/layout/site-banner";
 import { usePreferencesSync } from "@/features/account/hooks/use-preferences-sync";
 import { TradeCancelConsentHost } from "@/features/groups/components/trade-cancel-consent-host";
 import { useIdleAreaPrefetch } from "@/hooks/use-idle-area-prefetch";
-import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { useSession } from "@/hooks/use-session";
 import { setSentryUser } from "@/lib/report-error";
 import { cn, CONTAINER_WIDTH, FOOTER_PADDING_NO_TOP } from "@/lib/utils";
@@ -27,12 +26,18 @@ export function AppLayout() {
   const matches = useMatches();
   const hideFooter = matches.some((match) => match.staticData?.hideFooter);
 
-  // The selection store is a singleton, so without this a printing selected
-  // on one surface re-appears in the next surface's detail pane.
-  const pathname = useLocation({ select: (loc) => loc.pathname });
-  useScopeEffect(pathname, () => {
-    useSelectionStore.getState().closeDetail();
-  });
+  // The selection store is a singleton: a path change clears it in the same
+  // transition that mounts the next surface. Filters live in search, so those keep it.
+  const router = useRouter();
+  useEffect(
+    () =>
+      router.subscribe("onBeforeRouteMount", (event) => {
+        if (event.pathChanged) {
+          useSelectionStore.getState().closeDetail();
+        }
+      }),
+    [router],
+  );
 
   return (
     <>

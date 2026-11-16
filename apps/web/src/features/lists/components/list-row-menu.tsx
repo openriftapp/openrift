@@ -70,12 +70,7 @@ export function ListRowMenu({ list, isActive, children }: ListRowMenuProps) {
   return (
     <>
       <ContextMenu>
-        <ContextMenuTrigger
-          className="block select-none [-webkit-touch-callout:none]"
-          render={<div />}
-        >
-          {children}
-        </ContextMenuTrigger>
+        <ContextMenuTrigger render={<div />}>{children}</ContextMenuTrigger>
         <ContextMenuContent className="w-56">
           <ContextMenuItem onClick={() => setEditOpen(true)}>
             <PencilIcon />

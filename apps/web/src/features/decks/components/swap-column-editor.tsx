@@ -34,7 +34,7 @@ function SwapQuantityField({
         type="number"
         min={1}
         max={max}
-        className="w-5 min-w-0 bg-transparent text-right tabular-nums outline-none [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
+        className="no-spinner w-5 min-w-0 bg-transparent text-right tabular-nums outline-none"
         aria-label={m.decks_editor_quantity()}
         {...inputProps}
       />

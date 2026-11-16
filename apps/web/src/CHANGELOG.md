@@ -13,6 +13,9 @@
 - fix(Rules): **Rule links land on the rule** — following a rule link after a search, or into a folded section, scrolls to that rule.
 - fix(Packs): **New packs open face down** — opening another pack after "Reveal all" no longer shows it already revealed.
 - fix(Tournaments): **Cancelled events stay cancelled** — finishing the final, adding players or joining no longer slips through while an organizer cancels.
+- fix(Collection): **Right card on copy lists** — clicking a later copy of the same printing in a list opens that copy, and the highlight never jumps to the wrong card after a filter or a move.
+- fix(Collection): **Sidebar reorder with hidden rows** — dragging a collection or list onto a revealed hidden row lands where you dropped it.
+- fix(Decks): **Editor sidebar under the header** — the zone sidebar in the deck editor no longer slides under the header in the installed iOS app or on touch screens.
 
 ## 2026-11-16
 

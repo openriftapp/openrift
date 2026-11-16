@@ -58,7 +58,6 @@ describe("DetailPaneToggle", () => {
     useDisplayStore.setState({ paneDocked: true });
     useSelectionStore.setState({
       selectedCard: stubPrinting(),
-      selectedIndex: 0,
       detailOpen: true,
     });
     render(<DetailPaneToggle />);

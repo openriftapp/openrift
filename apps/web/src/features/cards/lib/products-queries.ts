@@ -17,14 +17,12 @@ import { orNotFound } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
-const fetchProducts = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<ProductsListResponse> =>
-    serverCache.query({
-      queryKey: serverCacheKeys.products,
-      queryFn: () => apiOrpcClient(productsContract, context.cookie).list(),
-    }),
-  );
+const fetchProducts = createServerFn({ method: "GET" }).handler((): Promise<ProductsListResponse> =>
+  serverCache.query({
+    queryKey: serverCacheKeys.products,
+    queryFn: () => apiOrpcClient(productsContract).list(),
+  }),
+);
 
 export const productsListQueryOptions = queryOptions({
   queryKey: productsKeys.all,

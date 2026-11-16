@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 
-import { useScopeLayoutEffect } from "@/hooks/use-scope-effect";
+import { useWindowScrollMargin } from "@/hooks/use-window-scroll-margin";
 import { useWindowVirtualizerFresh } from "@/lib/virtualizer-fresh";
 
 const OVERSCAN = 20;
@@ -8,15 +8,8 @@ const OVERSCAN = 20;
 /** `useWindowVirtualizer` reports item start/end in document space, so callers
  *  subtract this `scrollMargin` in their spacer rows. */
 export function useVirtualizedRows(rowCount: number, rowHeight: number, enabled = true) {
-  const tableAnchorRef = useRef<HTMLTableSectionElement>(null);
-  const [scrollMargin, setScrollMargin] = useState(0);
-  // A changed row count moves the anchor, so the margin is measured again.
-  useScopeLayoutEffect(rowCount, () => {
-    const el = tableAnchorRef.current;
-    if (el) {
-      setScrollMargin(Math.round(el.getBoundingClientRect().top + globalThis.scrollY));
-    }
-  });
+  const [tableAnchor, setTableAnchor] = useState<HTMLTableSectionElement | null>(null);
+  const scrollMargin = useWindowScrollMargin(tableAnchor);
 
   const { virtualItems, totalSize } = useWindowVirtualizerFresh({
     enabled,
@@ -26,5 +19,5 @@ export function useVirtualizedRows(rowCount: number, rowHeight: number, enabled 
     scrollMargin,
   });
 
-  return { tableAnchorRef, virtualItems, totalSize, scrollMargin };
+  return { tableAnchorRef: setTableAnchor, virtualItems, totalSize, scrollMargin };
 }

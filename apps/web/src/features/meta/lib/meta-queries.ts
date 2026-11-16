@@ -58,11 +58,10 @@ function cacheKeyFor(query: Record<string, unknown>): unknown[] {
 
 const fetchMetaEvents = createServerFn({ method: "GET" })
   .validator(optionalQuery<MetaEventListQuery>)
-  .middleware([withCookies])
-  .handler(({ context, data: query }): Promise<MetaEventListResponse> =>
+  .handler(({ data: query }): Promise<MetaEventListResponse> =>
     serverCache.query({
       queryKey: serverCacheKeys.meta("events", ...cacheKeyFor(query)),
-      queryFn: () => apiOrpcClient(metaContract, context.cookie).events(query),
+      queryFn: () => apiOrpcClient(metaContract).events(query),
     }),
   );
 
@@ -91,11 +90,10 @@ export function metaEventSearchQuery(query: string): MetaEventListQuery {
 
 const fetchMetaEventFacets = createServerFn({ method: "GET" })
   .validator(optionalQuery<MetaEventFilterQuery>)
-  .middleware([withCookies])
-  .handler(({ context, data: query }): Promise<MetaEventFacetsResponse> =>
+  .handler(({ data: query }): Promise<MetaEventFacetsResponse> =>
     serverCache.query({
       queryKey: serverCacheKeys.meta("event-facets", ...cacheKeyFor(query)),
-      queryFn: () => apiOrpcClient(metaContract, context.cookie).eventFacets(query),
+      queryFn: () => apiOrpcClient(metaContract).eventFacets(query),
     }),
   );
 
@@ -110,11 +108,10 @@ export function metaEventFacetsQueryOptions(query: MetaEventFilterQuery = {}) {
 
 const fetchMetaEventDayCounts = createServerFn({ method: "GET" })
   .validator(optionalQuery<MetaEventDayCountsQuery>)
-  .middleware([withCookies])
-  .handler(({ context, data: query }): Promise<MetaEventDayCountsResponse> =>
+  .handler(({ data: query }): Promise<MetaEventDayCountsResponse> =>
     serverCache.query({
       queryKey: serverCacheKeys.meta("event-day-counts", ...cacheKeyFor(query)),
-      queryFn: () => apiOrpcClient(metaContract, context.cookie).eventDayCounts(query),
+      queryFn: () => apiOrpcClient(metaContract).eventDayCounts(query),
     }),
   );
 
@@ -129,11 +126,10 @@ export function metaEventDayCountsQueryOptions(query?: MetaEventDayCountsQuery) 
 
 const fetchMetaCounts = createServerFn({ method: "GET" })
   .validator(optionalQuery<MetaScopeQuery>)
-  .middleware([withCookies])
-  .handler(({ context, data: query }): Promise<MetaCountsResponse> =>
+  .handler(({ data: query }): Promise<MetaCountsResponse> =>
     serverCache.query({
       queryKey: serverCacheKeys.meta("counts", ...cacheKeyFor(query)),
-      queryFn: () => apiOrpcClient(metaContract, context.cookie).counts(query),
+      queryFn: () => apiOrpcClient(metaContract).counts(query),
     }),
   );
 
@@ -146,14 +142,13 @@ export function metaCountsQueryOptions(query?: MetaScopeQuery) {
   });
 }
 
-const fetchMetaActivity = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<MetaActivityResponse> =>
+const fetchMetaActivity = createServerFn({ method: "GET" }).handler(
+  (): Promise<MetaActivityResponse> =>
     serverCache.query({
       queryKey: serverCacheKeys.meta("activity"),
-      queryFn: () => apiOrpcClient(metaContract, context.cookie).activity(),
+      queryFn: () => apiOrpcClient(metaContract).activity(),
     }),
-  );
+);
 
 export const metaActivityQueryOptions = queryOptions({
   queryKey: metaKeys.activity,
@@ -186,11 +181,10 @@ const LIVE_EVENT_REFETCH_MS = 5 * MINUTE_MS;
 
 const fetchMetaStandings = createServerFn({ method: "GET" })
   .validator((input: MetaEventStandingsQuery) => input)
-  .middleware([withCookies])
-  .handler(({ context, data: query }): Promise<MetaEventStandingsResponse> =>
+  .handler(({ data: query }): Promise<MetaEventStandingsResponse> =>
     serverCache.query({
       queryKey: serverCacheKeys.meta("standings", query.slug, ...cacheKeyFor(query)),
-      queryFn: () => orNotFound(apiOrpcClient(metaContract, context.cookie).standings(query)),
+      queryFn: () => orNotFound(apiOrpcClient(metaContract).standings(query)),
     }),
   );
 
@@ -240,11 +234,10 @@ export function metaPendingSubmissionsQueryOptions(slug: string, userId: string 
 
 const fetchMetaDecks = createServerFn({ method: "GET" })
   .validator(optionalQuery<MetaDeckQuery>)
-  .middleware([withCookies])
-  .handler(({ context, data: query }): Promise<MetaDeckListResponse> =>
+  .handler(({ data: query }): Promise<MetaDeckListResponse> =>
     serverCache.query({
       queryKey: serverCacheKeys.meta("decks", ...cacheKeyFor(query)),
-      queryFn: () => apiOrpcClient(metaContract, context.cookie).decks(query),
+      queryFn: () => apiOrpcClient(metaContract).decks(query),
     }),
   );
 
@@ -259,11 +252,10 @@ export function metaDecksQueryOptions(query?: MetaDeckQuery) {
 
 const fetchMetaDeckFacets = createServerFn({ method: "GET" })
   .validator(optionalQuery<MetaDeckFacetsQuery>)
-  .middleware([withCookies])
-  .handler(({ context, data: query }): Promise<MetaDeckFacetsResponse> =>
+  .handler(({ data: query }): Promise<MetaDeckFacetsResponse> =>
     serverCache.query({
       queryKey: serverCacheKeys.meta("deck-facets", ...cacheKeyFor(query)),
-      queryFn: () => apiOrpcClient(metaContract, context.cookie).deckFacets(query),
+      queryFn: () => apiOrpcClient(metaContract).deckFacets(query),
     }),
   );
 
@@ -278,11 +270,10 @@ export function metaDeckFacetsQueryOptions(query?: MetaDeckFacetsQuery) {
 
 const fetchMetaDeckCards = createServerFn({ method: "GET" })
   .validator(optionalQuery<MetaDeckCardsQuery>)
-  .middleware([withCookies])
-  .handler(({ context, data: query }): Promise<MetaDeckCardIndexResponse> =>
+  .handler(({ data: query }): Promise<MetaDeckCardIndexResponse> =>
     serverCache.query({
       queryKey: serverCacheKeys.meta("deck-cards", ...cacheKeyFor(query)),
-      queryFn: () => apiOrpcClient(metaContract, context.cookie).deckCards(query),
+      queryFn: () => apiOrpcClient(metaContract).deckCards(query),
     }),
   );
 
@@ -312,11 +303,10 @@ export function metaDeckQueryOptions(token: string) {
 
 const fetchMetaLegends = createServerFn({ method: "GET" })
   .validator(optionalQuery<MetaScopeQuery>)
-  .middleware([withCookies])
-  .handler(({ context, data: query }): Promise<MetaLegendListResponse> =>
+  .handler(({ data: query }): Promise<MetaLegendListResponse> =>
     serverCache.query({
       queryKey: serverCacheKeys.meta("legends", ...cacheKeyFor(query)),
-      queryFn: () => apiOrpcClient(metaContract, context.cookie).legends(query),
+      queryFn: () => apiOrpcClient(metaContract).legends(query),
     }),
   );
 

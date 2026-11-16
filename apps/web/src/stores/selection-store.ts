@@ -4,6 +4,7 @@ import type { DeckZone } from "@openrift/shared/types/enums";
 import { create } from "zustand";
 
 import type { CardViewerItem } from "@/lib/card-viewer-types";
+import type { SelectionAnchorState } from "@/lib/resolve-selection";
 
 /**
  * Where a click landed, when the caller knows more than which printing it was.
@@ -13,27 +14,22 @@ interface SelectionAnchor {
   itemId?: string;
 }
 
-interface SelectionState {
-  selectedCard: Printing | null;
-  selectedIndex: number;
+interface SelectionState extends SelectionAnchorState {
   detailOpen: boolean;
-  selectedZone: DeckZone | null;
 
   selectCard: (
     printing: Printing,
-    items: CardViewerItem[],
+    items: readonly CardViewerItem[],
     findBy: "card" | "printing",
     anchor?: SelectionAnchor,
   ) => void;
-  navigateToIndex: (index: number, printing: Printing, zone?: DeckZone) => void;
+  navigateToItem: (items: readonly CardViewerItem[], index: number, printing?: Printing) => void;
   setSelectedCard: (printing: Printing) => void;
-  reconcileSelection: (items: CardViewerItem[]) => void;
-  reanchorSelection: (items: CardViewerItem[]) => void;
   closeDetail: () => void;
 }
 
 function findAnchorIndex(
-  items: CardViewerItem[],
+  items: readonly CardViewerItem[],
   printing: Printing,
   findBy: "card" | "printing",
   anchor?: SelectionAnchor,
@@ -55,78 +51,42 @@ function findAnchorIndex(
   );
 }
 
-export const useSelectionStore = create<SelectionState>()((set, get) => ({
+const CLEARED = {
   selectedCard: null,
-  selectedIndex: -1,
-  detailOpen: false,
+  selectedItemId: null,
   selectedZone: null,
+  sourceIds: [],
+  detailOpen: false,
+} satisfies Partial<SelectionState>;
+
+export const useSelectionStore = create<SelectionState>()((set) => ({
+  ...CLEARED,
 
   selectCard: (printing, items, findBy, anchor) => {
+    const item = items[findAnchorIndex(items, printing, findBy, anchor)];
     set({
       selectedCard: printing,
-      selectedIndex: findAnchorIndex(items, printing, findBy, anchor),
+      selectedItemId: item?.id ?? null,
+      sourceIds: items.map((entry) => entry.id),
       selectedZone: anchor?.zone ?? null,
       detailOpen: true,
     });
   },
 
-  navigateToIndex: (index, printing, zone) =>
-    set({ selectedCard: printing, selectedIndex: index, selectedZone: zone ?? null }),
-
-  setSelectedCard: (printing) => set({ selectedCard: printing }),
-
-  reconcileSelection: (items) => {
-    const { selectedCard, selectedIndex, selectedZone } = get();
-    if (selectedCard === null || selectedIndex < 0) {
-      return;
-    }
-    const inZone = (item: CardViewerItem) => selectedZone === null || item.zone === selectedZone;
-
-    const anchored = items[selectedIndex];
-    if (anchored && inZone(anchored) && anchored.printing.cardId === selectedCard.cardId) {
-      return;
-    }
-
-    const byPrinting = items.findIndex(
-      (item) => inZone(item) && sideKey(item.printing) === sideKey(selectedCard),
-    );
-    const moved =
-      byPrinting === -1
-        ? items.findIndex((item) => inZone(item) && item.printing.cardId === selectedCard.cardId)
-        : byPrinting;
-    if (moved !== -1) {
-      set({ selectedIndex: moved });
-      return;
-    }
-
-    if (items.length === 0) {
-      set({ selectedCard: null, selectedIndex: -1, selectedZone: null, detailOpen: false });
-      return;
-    }
-    const index = Math.min(selectedIndex, items.length - 1);
+  navigateToItem: (items, index, printing) => {
     const item = items[index];
     if (!item) {
       return;
     }
-    set({ selectedCard: item.printing, selectedIndex: index, selectedZone: item.zone ?? null });
+    set({
+      selectedCard: printing ?? item.printing,
+      selectedItemId: item.id,
+      sourceIds: items.map((entry) => entry.id),
+      selectedZone: item.zone ?? null,
+    });
   },
 
-  reanchorSelection: (items) => {
-    const { selectedCard, selectedIndex } = get();
-    if (selectedCard === null) {
-      return;
-    }
-    if (items[selectedIndex]?.printing.cardId === selectedCard.cardId) {
-      return;
-    }
-    const byPrinting = items.findIndex((item) => sideKey(item.printing) === sideKey(selectedCard));
-    const index =
-      byPrinting === -1
-        ? items.findIndex((item) => item.printing.cardId === selectedCard.cardId)
-        : byPrinting;
-    set({ selectedIndex: index, selectedZone: null });
-  },
+  setSelectedCard: (printing) => set({ selectedCard: printing }),
 
-  closeDetail: () =>
-    set({ selectedCard: null, selectedIndex: -1, selectedZone: null, detailOpen: false }),
+  closeDetail: () => set(CLEARED),
 }));

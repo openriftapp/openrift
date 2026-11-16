@@ -11,12 +11,7 @@ import {
 export function CardContextMenu({ menu, children }: { menu: ReactNode; children?: ReactNode }) {
   return (
     <ContextMenu>
-      <ContextMenuTrigger
-        className="block select-none [-webkit-touch-callout:none]"
-        render={<div />}
-      >
-        {children}
-      </ContextMenuTrigger>
+      <ContextMenuTrigger render={<div />}>{children}</ContextMenuTrigger>
       <ContextMenuContent className="w-56">{menu}</ContextMenuContent>
     </ContextMenu>
   );

@@ -18,6 +18,12 @@ const main = (overrides: Parameters<typeof stubDeckBuilderCard>[0] = {}) =>
   stubDeckBuilderCard({ zone: WellKnown.deckZone.MAIN, ...overrides });
 
 describe("cardMatchesOddsGroup", () => {
+  it("counts a card without power as power 0, matching the power curve", () => {
+    const group = { key: "p", label: "p", powerMin: 0 };
+    expect(cardMatchesOddsGroup(main({ power: null }), group)).toBe(true);
+    expect(cardMatchesOddsGroup(main({ power: null }), { ...group, powerMin: 1 })).toBe(false);
+  });
+
   it("requires every provided condition (AND across fields)", () => {
     const trick = { key: "t", label: "t", types: ["spell"], keywords: ["Action", "Reaction"] };
     expect(

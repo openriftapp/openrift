@@ -83,12 +83,7 @@ export function CollectionRowMenu({ collection, isActive, children }: Collection
   return (
     <>
       <ContextMenu>
-        <ContextMenuTrigger
-          className="block select-none [-webkit-touch-callout:none]"
-          render={<div />}
-        >
-          {children}
-        </ContextMenuTrigger>
+        <ContextMenuTrigger render={<div />}>{children}</ContextMenuTrigger>
         <ContextMenuContent className="w-56">
           {canAdmin && (
             <ContextMenuItem onClick={() => setEditOpen(true)}>

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 
 import { useCardRowActionsStore } from "@/features/cards/stores/card-row-actions-store";
 import { useAddModeStore } from "@/features/collections/stores/add-mode-store";
+import { useResolvedSelection } from "@/hooks/use-resolved-selection";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import { parseDigitKey } from "@/lib/parse-digit-key";
 import { useSelectionStore } from "@/stores/selection-store";
@@ -21,9 +22,8 @@ const isIncrementKey = (key: string) => key === "+" || key === "=";
 const isAddRemoveKey = (key: string) => isIncrementKey(key) || key === "-";
 
 export function useGridKeyboardNav({ items, siblingPrintings }: UseGridKeyboardNavParams) {
-  const selectedCard = useSelectionStore((s) => s.selectedCard);
-  const selectedIndex = useSelectionStore((s) => s.selectedIndex);
-  const navigateToIndex = useSelectionStore((s) => s.navigateToIndex);
+  const { card: selectedCard, index: selectedIndex } = useResolvedSelection(items);
+  const navigateToItem = useSelectionStore((s) => s.navigateToItem);
   const setSelectedCard = useSelectionStore((s) => s.setSelectedCard);
 
   useEffect(() => {
@@ -86,18 +86,12 @@ export function useGridKeyboardNav({ items, siblingPrintings }: UseGridKeyboardN
 
       if (e.key === "ArrowLeft" && selectedIndex > 0) {
         e.preventDefault();
-        const target = items[selectedIndex - 1];
-        if (target) {
-          navigateToIndex(selectedIndex - 1, target.printing, target.zone);
-        }
+        navigateToItem(items, selectedIndex - 1);
         return;
       }
       if (e.key === "ArrowRight" && selectedIndex >= 0 && selectedIndex < items.length - 1) {
         e.preventDefault();
-        const target = items[selectedIndex + 1];
-        if (target) {
-          navigateToIndex(selectedIndex + 1, target.printing, target.zone);
-        }
+        navigateToItem(items, selectedIndex + 1);
         return;
       }
 
@@ -120,16 +114,15 @@ export function useGridKeyboardNav({ items, siblingPrintings }: UseGridKeyboardN
           return;
         }
         const siblingIdx = items.findIndex((i) => sideKey(i.printing) === sideKey(sibling));
-        const siblingItem = items[siblingIdx];
-        if (siblingItem) {
-          navigateToIndex(siblingIdx, sibling, siblingItem.zone);
-        } else {
+        if (siblingIdx === -1) {
           setSelectedCard(sibling);
+        } else {
+          navigateToItem(items, siblingIdx, sibling);
         }
       }
     };
 
     globalThis.addEventListener("keydown", handler);
     return () => globalThis.removeEventListener("keydown", handler);
-  }, [items, siblingPrintings, selectedCard, selectedIndex, navigateToIndex, setSelectedCard]);
+  }, [items, siblingPrintings, selectedCard, selectedIndex, navigateToItem, setSelectedCard]);
 }

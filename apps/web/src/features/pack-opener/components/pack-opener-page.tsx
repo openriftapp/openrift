@@ -290,7 +290,7 @@ function CountField({
             min={1}
             max={500}
             // Hides the native up/down spinner (Firefox via -moz-appearance, others via the webkit selectors).
-            className="w-20 [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
+            className="no-spinner w-20"
             aria-label={m.packs_custom_count_aria()}
             {...inputProps}
           />

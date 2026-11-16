@@ -17,7 +17,7 @@ function ContextMenuTrigger({ className, ...props }: ContextMenuPrimitive.Trigge
   return (
     <ContextMenuPrimitive.Trigger
       data-slot="context-menu-trigger"
-      className={cn("select-none", className)}
+      className={cn("block select-none [-webkit-touch-callout:none]", className)} // custom: long-press opens the menu, not iOS's callout
       {...props}
     />
   );

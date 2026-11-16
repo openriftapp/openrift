@@ -82,7 +82,7 @@ export function DeckOddsCustomGroupForm({
           value={energyMin}
           onChange={(event) => setEnergyMin(event.target.value)}
           aria-label={m.decks_odds_energy_min()}
-          className="h-7 w-14 [appearance:textfield] text-sm [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          className="no-spinner h-7 w-14 text-sm"
         />
         {m.decks_odds_energy_to()}
         <Input
@@ -91,7 +91,7 @@ export function DeckOddsCustomGroupForm({
           value={energyMax}
           onChange={(event) => setEnergyMax(event.target.value)}
           aria-label={m.decks_odds_energy_max()}
-          className="h-7 w-14 [appearance:textfield] text-sm [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          className="no-spinner h-7 w-14 text-sm"
         />
         <Button
           type="button"

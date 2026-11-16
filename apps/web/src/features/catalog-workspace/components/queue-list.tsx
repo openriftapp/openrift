@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { deskImageSrc } from "@/features/admin/lib/printing-desk-image";
@@ -8,7 +8,8 @@ import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import type { ListEntry, WorkspaceTarget } from "@/features/catalog-workspace/lib/owner-items";
 import { compactAge } from "@/features/catalog-workspace/lib/owner-items";
 import type { WorkspaceSearch } from "@/features/catalog-workspace/lib/workspace-search";
-import { useScopeEffect, useScopeLayoutEffect } from "@/hooks/use-scope-effect";
+import { useScopeEffect } from "@/hooks/use-scope-effect";
+import { useWindowScrollMargin } from "@/hooks/use-window-scroll-margin";
 import { cn } from "@/lib/utils";
 import { useWindowVirtualizerFresh } from "@/lib/virtualizer-fresh";
 
@@ -146,22 +147,8 @@ export function WorkspaceQueueList({
   emptyText: string;
   label: string;
 }) {
-  const anchorRef = useRef<HTMLDivElement>(null);
-  const [scrollMargin, setScrollMargin] = useState(0);
-
-  useScopeLayoutEffect(entries.length, () => {
-    const element = anchorRef.current;
-    if (!element) {
-      return;
-    }
-    const measure = () =>
-      setScrollMargin(Math.round(element.getBoundingClientRect().top + globalThis.scrollY));
-    measure();
-    // A list mounted hidden on narrow screens measures 0 until it is shown.
-    const observer = new ResizeObserver(measure);
-    observer.observe(element);
-    return () => observer.disconnect();
-  });
+  const [anchor, setAnchor] = useState<HTMLDivElement | null>(null);
+  const scrollMargin = useWindowScrollMargin(anchor);
 
   const { virtualizer, virtualItems, totalSize } = useWindowVirtualizerFresh<HTMLDivElement>({
     count: entries.length,
@@ -183,7 +170,7 @@ export function WorkspaceQueueList({
 
   return (
     <div
-      ref={anchorRef}
+      ref={setAnchor}
       role="list"
       aria-label={label}
       className="relative"

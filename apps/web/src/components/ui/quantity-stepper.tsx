@@ -81,7 +81,7 @@ function QuantityStepper({
           disabled={disabled}
           aria-label={m.ui_quantity_label()}
           // Hide the native number spinners — the +/- buttons drive the value.
-          className="w-16 [appearance:textfield] text-center [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          className="no-spinner w-16 text-center"
           {...inputProps}
         />
       ) : (

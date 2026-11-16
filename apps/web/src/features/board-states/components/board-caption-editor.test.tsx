@@ -99,6 +99,17 @@ describe("BoardCaptionEditor", () => {
     expect(onChange).toHaveBeenLastCalledWith("[[card:p2]]");
   });
 
+  it("puts the caret after the inserted reference in the same commit", () => {
+    const { textarea } = renderEditor();
+    type(textarea, "Exhaust @as now");
+    (textarea as HTMLTextAreaElement).setSelectionRange(11, 11);
+    fireEvent.click(textarea);
+    fireEvent.keyDown(textarea, { key: "Enter" });
+
+    expect((textarea as HTMLTextAreaElement).value).toBe("Exhaust [[card:p1]] now");
+    expect((textarea as HTMLTextAreaElement).selectionStart).toBe("Exhaust [[card:p1]]".length);
+  });
+
   it("inserts on a click without losing the surrounding text", () => {
     const { textarea, onChange } = renderEditor();
     type(textarea, "Move @poro");

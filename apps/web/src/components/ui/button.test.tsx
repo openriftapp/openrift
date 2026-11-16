@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { renderToString } from "react-dom/server";
+import { describe, expect, it, vi } from "vitest";
 
 import { Button, buttonVariants } from "./button";
 
@@ -122,5 +123,15 @@ describe("autocomplete", () => {
     const link = screen.getByText("Decks");
     expect(link.tagName).toBe("A");
     expect(link).not.toHaveAttribute("autocomplete");
+  });
+});
+
+describe("server rendering", () => {
+  it("writes the disabled attribute into the server HTML", () => {
+    vi.stubGlobal("document", undefined);
+    const html = renderToString(<Button disabled>Save</Button>);
+    vi.unstubAllGlobals();
+
+    expect(html).toMatch(/<button[^>]* disabled=""/u);
   });
 });

@@ -99,11 +99,6 @@ function Button({
         buttonVariants({ variant, size, className }),
         pending && "[&>[data-slot=spinner]+svg]:hidden", // custom: the spinner stands in for the leading icon
       )}
-      // custom: BaseUI's useRenderElement conditionally skips useMergedRefs on
-      // the server (typeof document check), which causes the native <button>'s
-      // `disabled` attribute to be absent from SSR HTML while present on the
-      // client, triggering a React 19 hydration mismatch warning.
-      suppressHydrationWarning
       render={render}
       nativeButton={resolvedNativeButton}
       // custom: without autocomplete off, Firefox restores a native button's disabled state

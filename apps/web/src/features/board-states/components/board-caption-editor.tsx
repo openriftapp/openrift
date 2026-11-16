@@ -11,6 +11,7 @@ import { chainEntryLabel, describeZone, pieceName } from "@/features/board-state
 import { PLAYER_COLOR } from "@/features/board-states/lib/board-style";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { frontImageId } from "@/features/cards/lib/card-meta";
+import { useScopeLayoutEffect } from "@/hooks/use-scope-effect";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -114,6 +115,15 @@ export function BoardCaptionEditor({
 }) {
   const { printingsById, printingsByCardId } = useCards();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const pendingCaret = useRef<number | null>(null);
+  useScopeLayoutEffect(value, () => {
+    const caret = pendingCaret.current;
+    if (caret === null) {
+      return;
+    }
+    pendingCaret.current = null;
+    textareaRef.current?.setSelectionRange(caret, caret);
+  });
   const [mention, setMention] = useState<Mention | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -167,8 +177,8 @@ export function BoardCaptionEditor({
       target.kind === "piece" ? `[[card:${target.piece.id}]]` : `[[chain:${target.entry.id}]]`;
     const before = current.slice(0, mention.start);
     const caret = before.length + reference.length;
+    pendingCaret.current = caret;
     onChange(`${before}${reference}${current.slice(mention.end)}`);
-    requestAnimationFrame(() => textareaRef.current?.setSelectionRange(caret, caret));
     setMention(null);
     setActiveIndex(0);
   }

@@ -7,7 +7,7 @@ import type {
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { GroupByField } from "@openrift/shared/types/search";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { useCardSelection } from "@/features/cards/hooks/use-card-selection";
@@ -53,6 +53,7 @@ import type {
 import { hasTwoCards, ruleEntryCopyInputs, ruleEntryRef } from "@/features/lists/lib/list-move";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
 import type { RuleDropTarget } from "@/features/rules/lib/rule-drop";
+import { useResolvedSelection } from "@/hooks/use-resolved-selection";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { useUserId } from "@/hooks/use-session";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
@@ -186,26 +187,21 @@ export function useListEntryBrowserSelection({
 
   const findBy = selectionFindBy(view, groupBy);
 
-  const handleCardClick = (printing: Printing) => {
-    useSelectionStore.getState().selectCard(printing, items, findBy);
+  // `itemId` pins the click to its tile: a copy list has one tile per copy.
+  const handleCardClick = (printing: Printing, itemId?: string) => {
+    useSelectionStore.getState().selectCard(printing, items, findBy, { itemId });
   };
 
-  const selectedCard = useSelectionStore((s) => s.selectedCard);
-  const selectedIndex = useSelectionStore((s) => s.selectedIndex);
-  useEffect(() => {
-    useSelectionStore.getState().reconcileSelection(items);
-  }, [items]);
-  const indexAnchor =
-    selectedIndex >= 0 && selectedIndex < items.length ? items[selectedIndex] : undefined;
+  const { card: selectedCard, item: selectedItem } = useResolvedSelection(items);
   const gridSelectedId =
-    indexAnchor?.id ??
+    selectedItem?.id ??
     (selectedCard
       ? (items.find((item) => sideKey(item.printing) === sideKey(selectedCard))?.id ??
         (view === "cards"
           ? items.find((item) => item.printing.cardId === selectedCard.cardId)?.id
           : undefined))
       : undefined);
-  useEffect(() => {
+  useLayoutEffect(() => {
     useGridFocusStore.getState().setSelectedItemId(gridSelectedId ?? null);
   }, [gridSelectedId]);
 
@@ -443,7 +439,7 @@ export function useListEntryBrowserSelection({
     onDecrement: handleDecrement,
     onItemClick: (itemId, printing, modifiers) => {
       if (mode === "browse") {
-        handleCardClick(printing);
+        handleCardClick(printing, itemId);
         return;
       }
       const entry = entryByItemId.get(itemId);

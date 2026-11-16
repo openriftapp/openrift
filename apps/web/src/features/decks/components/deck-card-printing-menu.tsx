@@ -192,12 +192,7 @@ export function DeckCardPrintingMenu({
   return (
     <DeckRowMenuContext value={menuHandle}>
       <ContextMenu onOpenChange={(open) => !open && reset()}>
-        <ContextMenuTrigger
-          className="block select-none [-webkit-touch-callout:none]"
-          render={<div />}
-        >
-          {children}
-        </ContextMenuTrigger>
+        <ContextMenuTrigger render={<div />}>{children}</ContextMenuTrigger>
         <ContextMenuContent ref={popupRef} className={POPUP_CLASS}>
           {items}
         </ContextMenuContent>

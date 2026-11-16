@@ -1,22 +1,21 @@
 import { useLayoutEffect, useState } from "react";
 
-let lastTop = 0;
-
 /** Document-space top of `el` plus `extra`, for a window virtualizer's `scrollMargin`. */
 export function useWindowScrollMargin(el: HTMLElement | null, extra = 0): number {
-  const [top, setTop] = useState(lastTop);
+  const [top, setTop] = useState(0);
   useLayoutEffect(() => {
     if (!el) {
       return;
     }
     const measure = () => {
       const next = Math.round(el.getBoundingClientRect().top + globalThis.scrollY);
-      lastTop = next;
       setTop(next);
     };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(document.body);
+    // An element mounted hidden measures 0 until it is shown.
+    observer.observe(el);
     // A min-height page keeps the body's size when content above `el` grows,
     // so watch everything that sits above it as well.
     for (let node: Element | null = el; node && node !== document.body; node = node.parentElement) {

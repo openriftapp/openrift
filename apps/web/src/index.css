@@ -481,7 +481,7 @@ html {
      Island), so the inset is folded in here; it resolves to 0 everywhere else.
      JS reads the live header height via lib/header-height.ts (this calc string
      does not resolve through getComputedStyle on an unregistered property). */
-  --header-height: calc(57px + env(safe-area-inset-top, 0px));
+  --header-height: calc(3.5rem + 1px + env(safe-area-inset-top, 0px));
   --sticky-top: calc(var(--header-height) + 1rem);
   --rules-anchor-offset: 7rem;
   --breakpoint-wide: 107.5rem;
@@ -1558,6 +1558,16 @@ html {
     calc(100% - var(--btn-cut, 8px)) 100%,
     0 100%
   );
+}
+
+@utility no-spinner {
+  appearance: textfield;
+  -moz-appearance: textfield;
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button {
+    margin: 0;
+    appearance: none;
+  }
 }
 
 @utility font-condensed {

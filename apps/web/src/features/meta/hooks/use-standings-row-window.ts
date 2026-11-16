@@ -1,8 +1,9 @@
 import type { MetaStandingsRow } from "@openrift/shared/types/api/meta";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import type { RowSlot } from "@/features/meta/lib/meta-event-standings";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { useWindowScrollMargin } from "@/hooks/use-window-scroll-margin";
 import { useWindowVirtualizerFresh } from "@/lib/virtualizer-fresh";
 
 const ROWS_SHOWN = 16;
@@ -24,21 +25,7 @@ export interface RowWindow {
 export function useRowWindow(players: readonly MetaStandingsRow[]): RowWindow {
   const hydrated = useHydrated();
   const [container, setContainer] = useState<HTMLElement | null>(null);
-  const [scrollMargin, setScrollMargin] = useState(0);
-
-  useEffect(() => {
-    if (container === null) {
-      return;
-    }
-    const measure = () => {
-      const next = Math.round(container.getBoundingClientRect().top + globalThis.scrollY);
-      setScrollMargin((current) => (current === next ? current : next));
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(document.body);
-    return () => observer.disconnect();
-  }, [container]);
+  const scrollMargin = useWindowScrollMargin(container);
 
   const { virtualizer, virtualItems, totalSize } = useWindowVirtualizerFresh<HTMLElement>({
     count: players.length,

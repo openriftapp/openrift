@@ -54,6 +54,7 @@ import {
   COLLECTION_DRAG_TYPES,
   SIDEBAR_REORDER_DRAG_TYPES,
 } from "@/features/collections/lib/dnd-types";
+import { sidebarReorder } from "@/features/collections/lib/sidebar-reorder";
 import { deckBoxLabel } from "@/features/decks/lib/deck-box-label";
 import { CreateListDialog, LIST_KIND_ICON } from "@/features/lists/components/create-list-dialog";
 import { DroppableSidebarList } from "@/features/lists/components/droppable-sidebar-list";
@@ -541,11 +542,11 @@ function SharedCollectionsGroup({
 // Must live as a child of the route-level DndContext so useDndMonitor sees
 // the same events the route does; non-reorder drags are left to it.
 function SidebarReorderMonitor({
-  personalSortableIds,
-  listIdsByIntent,
+  personalRows,
+  listsByIntent,
 }: {
-  personalSortableIds: string[];
-  listIdsByIntent: Map<ListIntent, string[]>;
+  personalRows: readonly CollectionResponse[];
+  listsByIntent: Map<ListIntent, ListResponse[]>;
 }) {
   const reorderCollections = useReorderCollections();
   const reorderLists = useReorderLists();
@@ -583,15 +584,10 @@ function SidebarReorderMonitor({
     if (!overCollectionId) {
       return;
     }
-    const oldIndex = personalSortableIds.indexOf(dragData.collectionId);
-    const newIndex = personalSortableIds.indexOf(overCollectionId);
-    if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) {
-      return;
+    const orderedIds = sidebarReorder(personalRows, dragData.collectionId, overCollectionId);
+    if (orderedIds) {
+      reorderCollections.mutate({ orderedIds });
     }
-    const orderedIds = [...personalSortableIds];
-    orderedIds.splice(oldIndex, 1);
-    orderedIds.splice(newIndex, 0, dragData.collectionId);
-    reorderCollections.mutate({ orderedIds });
   }
 
   function handleListReorder(event: DragEndEvent, dragData: SidebarReorderListDragData) {
@@ -605,16 +601,11 @@ function SidebarReorderMonitor({
     if (!overListId) {
       return;
     }
-    const bucket = listIdsByIntent.get(dragData.intent) ?? [];
-    const oldIndex = bucket.indexOf(dragData.listId);
-    const newIndex = bucket.indexOf(overListId);
-    if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) {
-      return;
+    const bucket = listsByIntent.get(dragData.intent) ?? [];
+    const orderedIds = sidebarReorder(bucket, dragData.listId, overListId);
+    if (orderedIds) {
+      reorderLists.mutate({ intent: dragData.intent, orderedIds });
     }
-    const orderedIds = [...bucket];
-    orderedIds.splice(oldIndex, 1);
-    orderedIds.splice(newIndex, 0, dragData.listId);
-    reorderLists.mutate({ intent: dragData.intent, orderedIds });
   }
 
   return null;
@@ -655,15 +646,7 @@ export function CollectionSidebar() {
   // server query) — reorder applies to non-inbox personal collections only.
   const personalNonInbox = personal.filter((col) => !col.isInbox);
   const inbox = personal.find((col) => col.isInbox);
-  const personalSortableIds = personalNonInbox.map((col) => col.id);
-
-  const listIdsByIntent = new Map<ListIntent, string[]>();
-  for (const intent of ["wish", "trade", "organize"] as const) {
-    listIdsByIntent.set(
-      intent,
-      lists.filter((list: ListResponse) => list.intent === intent).map((list) => list.id),
-    );
-  }
+  const listsByIntent = Map.groupBy(lists, (list: ListResponse) => list.intent);
 
   return (
     <NestedSidebar className="ml-safe">
@@ -757,10 +740,7 @@ export function CollectionSidebar() {
         groupSlug={createInGroup?.slug}
         groupName={createInGroup?.name}
       />
-      <SidebarReorderMonitor
-        personalSortableIds={personalSortableIds}
-        listIdsByIntent={listIdsByIntent}
-      />
+      <SidebarReorderMonitor personalRows={personalNonInbox} listsByIntent={listsByIntent} />
     </NestedSidebar>
   );
 }

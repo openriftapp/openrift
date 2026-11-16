@@ -696,10 +696,10 @@ function NestedSidebar({
       )}
       style={{
         // top inline because extraOffset is dynamic — Tailwind can't JIT a class with an interpolated value.
-        top: `calc(3.5rem + 1px + ${extraOffset})`,
+        top: `calc(var(--header-height) + ${extraOffset})`, // custom: header height incl. safe-area inset
         // Height fills viewport below header + border, minus any extra offset (e.g. a sticky top bar
         // that stays pinned and never returns its space) and the caller's margin-top.
-        height: `calc(100svh - 3.5rem - 1px - ${extraOffset} - ${marginTop})`,
+        height: `calc(100svh - var(--header-height) - ${extraOffset} - ${marginTop})`, // custom: header height incl. safe-area inset
         ...style,
       }}
       {...props}

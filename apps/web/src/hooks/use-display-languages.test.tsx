@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
+import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -34,21 +35,27 @@ describe("useDisplayLanguages", () => {
     expect(renderToString(<Languages />)).not.toContain("FR");
   });
 
-  it("keeps the same list across hydration when the languages are equal", () => {
-    let server: readonly string[] = [];
-    let hydrated: readonly string[] = [];
-    function Capture({ onLanguages }: { onLanguages: (languages: readonly string[]) => void }) {
-      onLanguages(useDisplayLanguages());
+  it("keeps the same list across hydration when the languages are equal", async () => {
+    const seen: (readonly string[])[] = [];
+    function Capture() {
+      seen.push(useDisplayLanguages());
       return null;
     }
-    renderToString(
+    const tree = (
       <ServerDisplayLanguagesProvider value={["DE", "EN"]}>
-        <Capture onLanguages={(languages) => (server = languages)} />
-      </ServerDisplayLanguagesProvider>,
+        <Capture />
+      </ServerDisplayLanguagesProvider>
     );
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(tree);
     useDisplayStore.getState().setLanguages(["DE", "EN"]);
-    render(<Capture onLanguages={(languages) => (hydrated = languages)} />);
-    expect(hydrated).toBe(server);
+
+    await act(async () => {
+      hydrateRoot(container, tree);
+    });
+
+    expect(seen.length).toBeGreaterThan(2);
+    expect(seen.at(-1)).toBe(seen[1]);
   });
 
   it("follows the store once hydrated", () => {

@@ -55,7 +55,7 @@ describe("SelectionDetailPane", () => {
     const items = [stubCardViewerItem()];
     useSelectionStore.setState({
       selectedCard: items[0]!.printing,
-      selectedIndex: 0,
+      selectedItemId: items[0]!.id,
       detailOpen: true,
     });
     renderPane(items);
@@ -75,7 +75,7 @@ describe("SelectionDetailPane", () => {
     useDisplayStore.setState({ paneDocked: true });
     useSelectionStore.setState({
       selectedCard: items[0]!.printing,
-      selectedIndex: 0,
+      selectedItemId: items[0]!.id,
       detailOpen: true,
     });
     renderPane(items);
@@ -90,7 +90,7 @@ describe("SelectionDetailPane", () => {
     useDisplayStore.setState({ paneDocked: true });
     useSelectionStore.setState({
       selectedCard: items[0]!.printing,
-      selectedIndex: 0,
+      selectedItemId: items[0]!.id,
       detailOpen: true,
     });
     renderPane(items);

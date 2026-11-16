@@ -106,7 +106,7 @@ function DeckEditorContent({
 
   // Switching between overview and zone mode swaps the items array under the
   // detail pane (deck items vs catalog items), so clear the selection at the
-  // boundary to avoid an orphaned selectedIndex.
+  // boundary to avoid an orphaned selection.
   useScopeEffect(activeZone, () => {
     useSelectionStore.getState().closeDetail();
   });
@@ -240,7 +240,11 @@ function DeckEditorContent({
           ) : (
             <NestedSidebar
               className="w-(--sidebar-width)!"
-              extraOffset="calc(0.75rem + 2rem + 0.75rem)"
+              extraOffset={
+                topBarHeight > 0
+                  ? `${topBarHeight}px`
+                  : "calc(0.75rem + var(--control-h) + 0.75rem)"
+              }
               style={{ "--sidebar-width": "18rem" } as React.CSSProperties}
             >
               <SidebarContent>

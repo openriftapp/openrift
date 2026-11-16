@@ -116,7 +116,7 @@ function renderModal(
 function selectFirst(items: ReturnType<typeof stubCardViewerItem>[]) {
   useSelectionStore.setState({
     selectedCard: items[0]!.printing,
-    selectedIndex: 0,
+    selectedItemId: items[0]!.id,
     detailOpen: true,
   });
 }
@@ -166,7 +166,7 @@ describe("SelectionDetailModal", () => {
     const items = [stubCardViewerItem(), stubCardViewerItem(), stubCardViewerItem()];
     useSelectionStore.setState({
       selectedCard: items[1]!.printing,
-      selectedIndex: 1,
+      selectedItemId: items[1]!.id,
       detailOpen: true,
     });
     renderModal(items);
@@ -211,7 +211,7 @@ describe("SelectionDetailModal", () => {
       const items = [stubCardViewerItem(), stubCardViewerItem(), stubCardViewerItem()];
       useSelectionStore.setState({
         selectedCard: items[1]!.printing,
-        selectedIndex: 1,
+        selectedItemId: items[1]!.id,
         detailOpen: true,
       });
       renderModal(items);
@@ -220,12 +220,12 @@ describe("SelectionDetailModal", () => {
       const inside = await screen.findByText("Card detail stub");
 
       fireEvent.keyDown(inside, { key: "ArrowRight" });
-      expect(useSelectionStore.getState().selectedIndex).toBe(2);
+      expect(useSelectionStore.getState().selectedItemId).toBe(items[2]!.id);
       expect(useSelectionStore.getState().selectedCard).toBe(items[2]!.printing);
 
       fireEvent.keyDown(inside, { key: "ArrowLeft" });
       fireEvent.keyDown(inside, { key: "ArrowLeft" });
-      expect(useSelectionStore.getState().selectedIndex).toBe(0);
+      expect(useSelectionStore.getState().selectedItemId).toBe(items[0]!.id);
       expect(useSelectionStore.getState().selectedCard).toBe(items[0]!.printing);
     });
 
@@ -237,7 +237,7 @@ describe("SelectionDetailModal", () => {
 
       fireEvent.keyDown(inside, { key: "ArrowLeft" });
 
-      expect(useSelectionStore.getState().selectedIndex).toBe(0);
+      expect(useSelectionStore.getState().selectedItemId).toBe(items[0]!.id);
     });
 
     it("leaves left/right to the language tabs when the key comes from them", async () => {
@@ -247,7 +247,7 @@ describe("SelectionDetailModal", () => {
 
       fireEvent.keyDown(await screen.findByRole("tab"), { key: "ArrowRight" });
 
-      expect(useSelectionStore.getState().selectedIndex).toBe(0);
+      expect(useSelectionStore.getState().selectedItemId).toBe(items[0]!.id);
     });
   });
 

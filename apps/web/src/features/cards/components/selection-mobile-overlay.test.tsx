@@ -91,21 +91,20 @@ describe("SelectionMobileOverlay neighbor navigation", () => {
     const items = [stubCardViewerItem(), stubCardViewerItem(), stubCardViewerItem()];
     useSelectionStore.setState({
       selectedCard: items[1]!.printing,
-      selectedIndex: 1,
+      selectedItemId: items[1]!.id,
       detailOpen: true,
     });
     renderOverlay(items);
 
     await user.click(await screen.findByRole("button", { name: "Previous card" }));
-    expect(useSelectionStore.getState().selectedIndex).toBe(0);
+    expect(useSelectionStore.getState().selectedItemId).toBe(items[0]!.id);
     expect(useSelectionStore.getState().selectedCard).toBe(items[0]!.printing);
   });
 
-  it("offers no neighbor navigation when the stored index is stale", async () => {
+  it("offers no neighbor navigation when the selected card is not in the list", async () => {
     const items = [stubCardViewerItem()];
     useSelectionStore.setState({
       selectedCard: stubCardViewerItem().printing,
-      selectedIndex: 5,
       detailOpen: true,
     });
     renderOverlay(items);
@@ -119,7 +118,7 @@ describe("SelectionMobileOverlay neighbor navigation", () => {
     const items = [stubCardViewerItem(), stubCardViewerItem()];
     useSelectionStore.setState({
       selectedCard: items[0]!.printing,
-      selectedIndex: 0,
+      selectedItemId: items[0]!.id,
       detailOpen: true,
     });
     renderOverlay(items);
