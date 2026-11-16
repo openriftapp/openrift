@@ -59,7 +59,7 @@ function PoolCardCell({
   const dragData: PoolCardDragData = { type: "tier-pool-card", cardId, printingId };
   // Destructure before JSX: member access on the hook's return object in render
   // makes the React Compiler bail.
-  const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
+  const { setNodeRef, listeners, isDragging } = useDraggable({
     id: `tier-pool-card-${cardId}`,
     data: dragData,
     disabled: isMobile,
@@ -90,7 +90,6 @@ function PoolCardCell({
           <div
             ref={setNodeRef}
             {...listeners}
-            {...attributes}
             className="touch-none"
             style={isDragging ? { opacity: 0.4 } : undefined}
           />

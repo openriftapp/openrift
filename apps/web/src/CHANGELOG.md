@@ -22,6 +22,8 @@
 - fix(Collection): **Copy counts in the collection picker** — choosing a collection for a product or for incoming trade cards counts copies, like the share dialog.
 - fix(Meta): **Wins without losses** — a player whose losses were not published shows "5 wins" in standings, deck tiles and event pages.
 - fix(Tournaments): **Turning off pairings asks first** — on a group stage and top cut event, the settings confirm before resetting the format to plain rounds.
+- fix(Stage): **Queue builder stays open** — adding the first card to the queue keeps the builder open, and the show starts only when you press Start.
+- fix(Collection): **New wishlist from the card picker** — choosing "New wishlist" while adding a card opens the create dialog and puts the card on the new wishlist.
 
 ## 2026-11-15
 

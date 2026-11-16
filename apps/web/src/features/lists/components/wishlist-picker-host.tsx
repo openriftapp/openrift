@@ -3,7 +3,10 @@ import type { ListKind } from "@openrift/shared/types/api/list";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useState } from "react";
 
-import { AddToWishlistDialog } from "@/features/lists/components/add-to-wishlist-dialog";
+import {
+  AddToWishlistDialog,
+  toastAddedToWishlist,
+} from "@/features/lists/components/add-to-wishlist-dialog";
 import { CreateListDialog } from "@/features/lists/components/create-list-dialog";
 import { m } from "@/paraglide/messages.js";
 
@@ -14,7 +17,7 @@ export function WishlistPickerHost({
   target: Printing | null;
   onClose: () => void;
 }) {
-  const [creating, setCreating] = useState(false);
+  const [step, setStep] = useState<"picking" | "creating">("picking");
 
   if (!target) {
     return null;
@@ -25,26 +28,26 @@ export function WishlistPickerHost({
   const cardName = legendDisplayName(target.card);
 
   const close = () => {
-    setCreating(false);
+    setStep("picking");
     onClose();
   };
 
   return (
     <>
       <AddToWishlistDialog
-        open={!creating}
+        open={step === "picking"}
         onOpenChange={(open) => {
           if (!open) {
             close();
           }
         }}
         entriesFor={entriesFor}
-        onCreateNew={() => setCreating(true)}
+        onCreateNew={() => setStep("creating")}
         onAdded={close}
       />
       <CreateListDialog
         intent="wish"
-        open={creating}
+        open={step === "creating"}
         onOpenChange={(open) => {
           if (!open) {
             close();
@@ -57,7 +60,10 @@ export function WishlistPickerHost({
           card: m.lists_add_new_wishlist_hint_card(),
           printing: m.lists_add_new_wishlist_hint_printing(),
         }}
-        onCreated={close}
+        onCreated={(_listId, listName) => {
+          toastAddedToWishlist(1, listName);
+          close();
+        }}
       />
     </>
   );

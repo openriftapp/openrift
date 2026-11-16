@@ -84,7 +84,7 @@ function QueueCardCell({
   const dragData: StagePoolCardDragData = { type: "stage-pool-card", printing: item.printing };
   // Destructure before JSX: member access on the hook's return object in
   // render makes the React Compiler bail.
-  const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
+  const { setNodeRef, listeners, isDragging } = useDraggable({
     id: `stage-pool-card-${sideKey(item.printing)}`,
     data: dragData,
     disabled: isMobile || isFull,
@@ -109,7 +109,6 @@ function QueueCardCell({
           <div
             ref={setNodeRef}
             {...listeners}
-            {...attributes}
             className="touch-none"
             style={isDragging ? { opacity: 0.4 } : undefined}
           />

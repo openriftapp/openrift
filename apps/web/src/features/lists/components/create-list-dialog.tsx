@@ -3,6 +3,7 @@ import type { Currency, TradePreference } from "@openrift/shared/types/api/trade
 import { CopyIcon, SquareIcon, SquareStackIcon } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { Disclosure } from "@/components/disclosure";
 import { Button } from "@/components/ui/button";
@@ -104,7 +105,7 @@ interface CreateListDialogProps {
   intent: ListIntent;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated?: (listId: string) => void;
+  onCreated?: (listId: string, listName: string) => void;
   defaultName?: string;
   initialEntries?: (kind: ListKind) => InitialEntry[];
   title?: string;
@@ -158,6 +159,8 @@ export function CreateListDialog({
       entries.length > 0 &&
       !(await runReportedMutation(() => bulkAdd.mutateAsync({ listId: list.id, entries })))
     ) {
+      toast.warning(m.lists_create_entries_failed({ count: entries.length, list: list.name }));
+      handleOpenChange(false);
       return;
     }
     // allSettled: one group's share failing shouldn't block the others or the create.
@@ -167,7 +170,7 @@ export function CreateListDialog({
         shareWithGroup.mutateAsync({ slug: group.slug, listId: list.id }),
       ),
     );
-    onCreated?.(list.id);
+    onCreated?.(list.id, list.name);
     handleOpenChange(false);
   };
 

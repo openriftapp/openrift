@@ -2461,6 +2461,16 @@
   "lists_create_title_wish": "Neue Wunschliste",
   "lists_create_title_trade": "Neue Tauschliste",
   "lists_create_title_organize": "Neue Sortierliste",
+  "lists_create_entries_failed": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "„{list}“ erstellt, aber die Karte konnte nicht hinzugefügt werden",
+        "countPlural=*": "„{list}“ erstellt, aber die Karten konnten nicht hinzugefügt werden"
+      }
+    }
+  ],
   "lists_create_description_single": "Liste bestimmte Exemplare, die du verkaufen oder tauschen willst.",
   "lists_create_description_multi": "Du kannst das später nicht mehr ändern, aber jederzeit eine neue Liste anlegen.",
   "lists_create_name_placeholder": "Listenname",

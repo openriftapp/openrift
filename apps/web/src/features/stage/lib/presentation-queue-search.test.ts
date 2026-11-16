@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { MAX_QUEUE_LENGTH } from "./presentation-queue";
 import {
+  presentedQueue,
   queueCardsSearchSchema,
   queueDraftSearch,
   startPresentingSearch,
@@ -76,8 +77,15 @@ describe("queueDraftSearch", () => {
     expect(next.search).toBe("ekko");
   });
 
-  it("drops the param for an empty queue", () => {
-    expect(queueDraftSearch({ cards: ["a"] }, []).cards).toBeUndefined();
+  it("drops the param and the edit flag for an empty queue", () => {
+    const next = queueDraftSearch({ cards: ["a"], edit: true }, []);
+
+    expect(next.cards).toBeUndefined();
+    expect(next.edit).toBeUndefined();
+  });
+
+  it("marks a non-empty draft as being edited", () => {
+    expect(queueDraftSearch({}, ["a"]).edit).toBe(true);
   });
 
   it("copies the ids rather than aliasing the store's array", () => {
@@ -86,5 +94,26 @@ describe("queueDraftSearch", () => {
 
     expect(next.cards).toEqual(queued);
     expect(next.cards).not.toBe(queued);
+  });
+});
+
+describe("presentedQueue", () => {
+  it("keeps the builder open when the first card is queued", () => {
+    expect(presentedQueue(queueDraftSearch({}, ["a"]))).toBeUndefined();
+  });
+
+  it("presents the queue once the show is started from the builder", () => {
+    const building = queueDraftSearch({}, ["a", "b"]);
+
+    expect(presentedQueue(startPresentingSearch(building, ["a", "b"]))).toEqual(["a", "b"]);
+  });
+
+  it("presents a shared queue link that carries no edit flag", () => {
+    expect(presentedQueue({ cards: ["a"] })).toEqual(["a"]);
+  });
+
+  it("shows the builder for an empty or missing queue", () => {
+    expect(presentedQueue({})).toBeUndefined();
+    expect(presentedQueue({ cards: [] })).toBeUndefined();
   });
 });

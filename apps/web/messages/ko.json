@@ -2461,6 +2461,16 @@
   "lists_create_title_wish": "새 위시리스트",
   "lists_create_title_trade": "새 교환 목록",
   "lists_create_title_organize": "새 정리 목록",
+  "lists_create_entries_failed": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "\"{list}\"을(를) 만들었지만 카드를 추가하지 못했습니다",
+        "countPlural=*": "\"{list}\"을(를) 만들었지만 카드를 추가하지 못했습니다"
+      }
+    }
+  ],
   "lists_create_description_single": "판매하거나 교환해 내보낼 사본을 지정해 올립니다.",
   "lists_create_description_multi": "나중에 바꿀 수는 없지만, 언제든 새 목록을 만들 수 있습니다.",
   "lists_create_name_placeholder": "목록 이름",

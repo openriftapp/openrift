@@ -25,6 +25,15 @@ export function startPresentingSearch<T extends object>(
 export function queueDraftSearch<T extends object>(
   prev: T,
   ids: readonly string[],
-): Omit<T, "cards"> & { cards: string[] | undefined } {
-  return { ...prev, cards: ids.length > 0 ? [...ids] : undefined };
+): Omit<T, "cards" | "edit"> & { cards: string[] | undefined; edit: true | undefined } {
+  return ids.length > 0
+    ? { ...prev, cards: [...ids], edit: true }
+    : { ...prev, cards: undefined, edit: undefined };
+}
+
+export function presentedQueue(search: {
+  cards?: readonly string[];
+  edit?: boolean;
+}): readonly string[] | undefined {
+  return search.cards && search.cards.length > 0 && search.edit !== true ? search.cards : undefined;
 }

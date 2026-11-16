@@ -21,6 +21,10 @@ function kindLabel(kind: ListKind): string {
   }
 }
 
+export function toastAddedToWishlist(count: number, listName: string) {
+  toast.success(m.lists_add_added_cards({ count, list: listName }));
+}
+
 interface AddToWishlistDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -29,7 +33,7 @@ interface AddToWishlistDialogProps {
   onAdded?: (listId: string) => void;
 }
 
-/** Adds a prepared set of cards to an existing wishlist, or hands off to the create-wishlist flow. */
+/** Adds a prepared set of cards to an existing wishlist, or hands off to the create-wishlist flow; the caller closes this picker when it opens the create dialog. */
 export function AddToWishlistDialog({
   open,
   onOpenChange,
@@ -50,18 +54,12 @@ export function AddToWishlistDialog({
       { listId, entries },
       {
         onSuccess: (result) => {
-          const total = result.added + result.updated;
-          toast.success(m.lists_add_added_cards({ count: total, list: listName }));
+          toastAddedToWishlist(result.added + result.updated, listName);
           onAdded?.(listId);
           onOpenChange(false);
         },
       },
     );
-  };
-
-  const handleCreateNew = () => {
-    onOpenChange(false);
-    onCreateNew();
   };
 
   return (
@@ -84,7 +82,7 @@ export function AddToWishlistDialog({
         }
       }}
       create={{
-        actions: [{ key: "wish", label: m.lists_add_new_wishlist(), onClick: handleCreateNew }],
+        actions: [{ key: "wish", label: m.lists_add_new_wishlist(), onClick: onCreateNew }],
         disabled: bulkAdd.isPending,
       }}
     />

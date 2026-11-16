@@ -27,6 +27,7 @@ import {
 import { useStagePresets } from "@/features/stage/hooks/use-stage-presets";
 import { MAX_QUEUE_LENGTH } from "@/features/stage/lib/presentation-queue";
 import {
+  presentedQueue,
   queueDraftSearch,
   startPresentingSearch,
 } from "@/features/stage/lib/presentation-queue-search";
@@ -44,7 +45,7 @@ function StageFallback() {
 
 export function StagePage() {
   const search = routeApi.useSearch();
-  const { deck, tier, tierShare, cards, zone, i, edit, mode, preset } = search;
+  const { deck, tier, tierShare, cards, zone, i, mode, preset } = search;
   const navigate = useNavigate();
   const { data: presets } = useStagePresets();
   const presetApplied = useRef(false);
@@ -126,11 +127,12 @@ export function StagePage() {
     );
   }
 
-  if (cards && cards.length > 0 && edit !== true) {
+  const presented = presentedQueue(search);
+  if (presented) {
     return (
       <Suspense fallback={<StageFallback />}>
         <QueuePresentation
-          printingIds={cards}
+          printingIds={presented}
           index={i ?? 0}
           onIndexChange={setIndex}
           onExit={() => {

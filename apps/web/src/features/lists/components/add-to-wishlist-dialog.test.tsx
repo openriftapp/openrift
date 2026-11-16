@@ -122,15 +122,15 @@ describe("AddToWishlistDialog", () => {
     expect(toastInfo).toHaveBeenCalled();
   });
 
-  it("hands off to the create flow and closes itself", () => {
+  it("hands off to the create flow without closing the flow", () => {
     const onCreateNew = vi.fn();
     const onOpenChange = vi.fn();
     renderDialog({ entriesFor: () => [], onCreateNew, onOpenChange });
 
     fireEvent.click(screen.getByRole("button", { name: "New wishlist" }));
 
-    expect(onOpenChange).toHaveBeenCalledWith(false);
     expect(onCreateNew).toHaveBeenCalledTimes(1);
+    expect(onOpenChange).not.toHaveBeenCalled();
   });
 
   it("shows an empty state when the user has no wishlists", () => {

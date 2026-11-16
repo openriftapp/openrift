@@ -2461,6 +2461,16 @@
   "lists_create_title_wish": "New wishlist",
   "lists_create_title_trade": "New tradelist",
   "lists_create_title_organize": "New organize list",
+  "lists_create_entries_failed": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Created \"{list}\", but the card could not be added",
+        "countPlural=*": "Created \"{list}\", but the cards could not be added"
+      }
+    }
+  ],
   "lists_create_description_single": "List specific copies you want to sell or trade away.",
   "lists_create_description_multi": "You can't change it later, but you can always create a new list.",
   "lists_create_name_placeholder": "List name",

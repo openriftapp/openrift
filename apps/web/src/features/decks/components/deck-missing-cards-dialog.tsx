@@ -377,7 +377,10 @@ function MissingCardsDialogBody({
           open={wishlistPickerOpen}
           onOpenChange={setWishlistPickerOpen}
           entriesFor={buildWishlistEntries}
-          onCreateNew={() => setWishlistOpen(true)}
+          onCreateNew={() => {
+            setWishlistPickerOpen(false);
+            setWishlistOpen(true);
+          }}
           onAdded={() => onOpenChange(false)}
         />
       )}
