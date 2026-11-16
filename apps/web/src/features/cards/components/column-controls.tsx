@@ -2,24 +2,22 @@ import { MinusIcon, PlusIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
+import { clampColumns, MAX_COLUMNS, MIN_COLUMNS } from "@/features/cards/lib/column-range";
 import { m } from "@/paraglide/messages.js";
 
-/** `maxColumns === null` means "Auto"; a number is the user's override, clamped to `[minColumns, maxColumnsLimit]`. */
+/** `maxColumns === null` means "Auto"; a number is the user's override within `[MIN_COLUMNS, MAX_COLUMNS]`. */
 export function ColumnControls({
   compact,
-  maxColumns,
+  maxColumns: storedMaxColumns,
   autoColumns,
-  minColumns,
-  maxColumnsLimit,
   onMaxColumnsChange,
 }: {
   compact?: boolean;
   maxColumns: number | null;
   autoColumns: number;
-  minColumns: number;
-  maxColumnsLimit: number;
   onMaxColumnsChange: (value: number | null) => void;
 }) {
+  const maxColumns = storedMaxColumns === null ? null : clampColumns(storedMaxColumns);
   return (
     <ButtonGroup aria-label={m.cards_columns()}>
       <Button
@@ -28,16 +26,16 @@ export function ColumnControls({
         onClick={() => {
           if (maxColumns === null) {
             const next = autoColumns - 1;
-            if (next >= minColumns) {
+            if (next >= MIN_COLUMNS) {
               onMaxColumnsChange(next);
             }
-          } else if (maxColumns > minColumns) {
+          } else if (maxColumns > MIN_COLUMNS) {
             onMaxColumnsChange(maxColumns - 1);
           }
         }}
         disabled={
-          (maxColumns !== null && maxColumns <= minColumns) ||
-          (maxColumns === null && autoColumns <= minColumns)
+          (maxColumns !== null && maxColumns <= MIN_COLUMNS) ||
+          (maxColumns === null && autoColumns <= MIN_COLUMNS)
         }
         aria-label={m.cards_columns_fewer()}
       >
@@ -64,13 +62,11 @@ export function ColumnControls({
         size={compact ? "icon-sm" : "icon"}
         onClick={() => {
           const next = maxColumns === null ? autoColumns + 1 : maxColumns + 1;
-          if (next <= maxColumnsLimit) {
+          if (next <= MAX_COLUMNS) {
             onMaxColumnsChange(next);
           }
         }}
-        disabled={
-          maxColumns === null ? autoColumns >= maxColumnsLimit : maxColumns >= maxColumnsLimit
-        }
+        disabled={maxColumns === null ? autoColumns >= MAX_COLUMNS : maxColumns >= MAX_COLUMNS}
         aria-label={m.cards_columns_more()}
       >
         <PlusIcon className={compact ? "size-3.5" : "size-4"} />

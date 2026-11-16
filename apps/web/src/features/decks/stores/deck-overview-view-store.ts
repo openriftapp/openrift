@@ -1,14 +1,13 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { MAX_COLUMNS, MIN_COLUMNS } from "@/features/cards/lib/column-range";
 import type { DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
 import type { DeckOverviewSort } from "@/features/decks/lib/deck-overview-list-sort";
 import type { FieldPicker } from "@/lib/persist-merge";
 import { mergeFields, pickBoolean, pickEnum } from "@/lib/persist-merge";
 
 export type DeckOverviewDisplayMode = "grid" | "list";
-
-const MAX_PERSISTED_COLUMNS = 24;
 
 interface DeckOverviewViewState {
   displayMode: DeckOverviewDisplayMode;
@@ -60,7 +59,7 @@ const DIRECTIONS: readonly ("asc" | "desc")[] = ["asc", "desc"];
 
 // Anything that isn't a usable count, including the `thumbSize` step this replaced, falls back to Auto.
 const pickColumnCount: FieldPicker<number | null> = (raw) =>
-  typeof raw === "number" && Number.isInteger(raw) && raw >= 1 && raw <= MAX_PERSISTED_COLUMNS
+  typeof raw === "number" && Number.isInteger(raw) && raw >= MIN_COLUMNS && raw <= MAX_COLUMNS
     ? raw
     : undefined;
 

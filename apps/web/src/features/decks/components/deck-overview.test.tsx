@@ -37,8 +37,6 @@ vi.mock("@/features/cards/hooks/use-responsive-columns", () => ({
     containerRef: () => {},
     columns: 4,
     autoColumns: 4,
-    physicalMin: 1,
-    physicalMax: 8,
     containerWidth: 0,
     measured: false,
   }),

@@ -14,6 +14,7 @@
 
 ### Other
 
+- feat(Cards): **Same column choices on every screen** — the column buttons on card grids, deck pages and deck checks go from 1 to 12 at any window size, and the grid shows the count you pick.
 - feat(Packs): **Pack opener on the booster rates** — packs open with the slots and rates of the booster pages, so alt arts and Overnumbered cards now sit in the Rare slots.
 - feat(Rules): **Changes behind view options** — the rules page shows the changes since the previous version from a view options button next to the version select, with a short description for each mode.
 - feat(Groups): **Copy counts when sharing** — the dialog for sharing collections with a group shows how many copies each collection holds.

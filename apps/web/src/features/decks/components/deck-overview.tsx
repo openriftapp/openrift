@@ -267,7 +267,7 @@ export function DeckOverview({
   const groupDir = hydrated ? storedGroupDir : "asc";
 
   const columnOverride = hydrated ? storedColumns : null;
-  const { containerRef, columns, autoColumns, physicalMin, physicalMax, containerWidth, measured } =
+  const { containerRef, columns, autoColumns, containerWidth, measured } =
     useResponsiveColumns(columnOverride);
   const cardWidth =
     measured && columns > 0 && containerWidth > 0
@@ -276,15 +276,12 @@ export function DeckOverview({
   const cardWidthStyle = { "--deck-card-w": cardWidth } as React.CSSProperties;
   const tileColumns = measured && !phone ? columns : 1;
   const phoneAutoColumns = readOnly ? 4 : 3;
-  const phoneMaxColumns = Math.max(physicalMax, 4);
   const phoneZoneStyle = (zone: DeckZone): React.CSSProperties | undefined => {
     if (!phone || !measured || containerWidth <= 0) {
       return undefined;
     }
     const perRow =
-      columnOverride === null || SMALL_ZONES.includes(zone)
-        ? phoneAutoColumns
-        : Math.min(columnOverride, phoneMaxColumns);
+      columnOverride === null || SMALL_ZONES.includes(zone) ? phoneAutoColumns : columnOverride;
     return {
       "--deck-card-w": `${phoneZoneCardWidth(zone, containerWidth, perRow)}px`,
     } as React.CSSProperties;
@@ -454,8 +451,6 @@ export function DeckOverview({
         ordering={ordering}
         columnOverride={columnOverride}
         autoColumns={phone ? phoneAutoColumns : autoColumns}
-        minColumns={physicalMin}
-        maxColumnsLimit={phone ? phoneMaxColumns : physicalMax}
         showAllCopies={showAllCopies}
         showAllRuneCopies={showAllRuneCopies}
         showBands={showBands}

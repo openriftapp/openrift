@@ -85,8 +85,7 @@ export function TournamentDeckCheckEntry({
   const setSortDir = useDeckCheckViewStore((state) => state.setSortDir);
   const maxColumns = useDeckCheckViewStore((state) => state.maxColumns);
   const setMaxColumns = useDeckCheckViewStore((state) => state.setMaxColumns);
-  const { containerRef, columns, physicalMax, physicalMin, autoColumns, containerWidth } =
-    useResponsiveColumns(maxColumns);
+  const { containerRef, columns, autoColumns, containerWidth } = useResponsiveColumns(maxColumns);
   const [notes, setNotes] = useState("");
   const {
     dirty: notesDirty,
@@ -252,8 +251,6 @@ export function TournamentDeckCheckEntry({
               <ColumnControls
                 maxColumns={maxColumns}
                 autoColumns={autoColumns}
-                minColumns={physicalMin}
-                maxColumnsLimit={physicalMax}
                 onMaxColumnsChange={setMaxColumns}
               />
             ) : null}

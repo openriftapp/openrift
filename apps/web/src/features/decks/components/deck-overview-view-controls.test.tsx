@@ -47,8 +47,6 @@ function renderControls(
       }}
       columnOverride={null}
       autoColumns={5}
-      minColumns={2}
-      maxColumnsLimit={8}
       showAllCopies={false}
       showAllRuneCopies={false}
       showBands={showBands}

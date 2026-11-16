@@ -2,6 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { gridGapCss } from "@/features/cards/lib/card-grid-metrics";
+import { MAX_COLUMNS, MIN_COLUMNS } from "@/features/cards/lib/column-range";
 
 import {
   COLUMN_BANDS,
@@ -74,10 +75,23 @@ describe("useResponsiveColumns", () => {
     });
 
     expect(result.current.measured).toBe(true);
-    // width 300 → physical max = floor((300+GRID_GAP_MIN)/(100+GRID_GAP_MIN)) = 2,
-    // so 6 clamps to 2.
-    expect(result.current.columns).toBe(2);
+    expect(result.current.columns).toBe(6);
     expect(result.current.containerWidth).toBe(300);
+  });
+
+  it.each([
+    [0, MIN_COLUMNS],
+    [MAX_COLUMNS + 5, MAX_COLUMNS],
+  ])("clamps an override of %i to the fixed range", (override, expected) => {
+    const { result } = renderHook(() => useResponsiveColumns(override));
+    const element = document.createElement("div");
+    Object.defineProperty(element, "offsetWidth", { configurable: true, value: 1920 });
+
+    act(() => {
+      result.current.containerRef(element);
+    });
+
+    expect(result.current.columns).toBe(expected);
   });
 });
 

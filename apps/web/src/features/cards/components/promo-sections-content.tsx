@@ -52,15 +52,15 @@ export function PromoSectionsContent({
   const { stickyOffset } = useCardBrowserLayoutOffsets();
 
   const maxColumns = useDisplayStore((s) => s.maxColumns);
-  const setMeasurements = useGridViewportStore((s) => s.setMeasurements);
-  const { containerRef, columns, autoColumns, physicalMax, physicalMin, containerWidth, measured } =
+  const setAutoColumns = useGridViewportStore((s) => s.setAutoColumns);
+  const { containerRef, columns, autoColumns, containerWidth, measured } =
     useResponsiveColumns(maxColumns);
   // Resolved once and spread onto every section grid, so the column count and
   // the gap can't drift apart between sections.
   const sectionGrid = buildGridProps(columns, containerWidth, measured);
   useEffect(() => {
-    setMeasurements({ physicalMax, physicalMin, autoColumns });
-  }, [autoColumns, physicalMax, physicalMin, setMeasurements]);
+    setAutoColumns(autoColumns);
+  }, [autoColumns, setAutoColumns]);
 
   const sectionEntries: { id: string; label: string; count: number }[] =
     grouping === "channel"

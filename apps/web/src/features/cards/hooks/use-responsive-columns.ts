@@ -1,6 +1,6 @@
 import { useLayoutEffect, useState } from "react";
 
-import { GRID_GAP_MAX, GRID_GAP_MIN } from "@/features/cards/lib/card-grid-metrics";
+import { clampColumns } from "@/features/cards/lib/column-range";
 
 /**
  * Drives the measured grid below and the `SSR_RESPONSIVE_GRID_COLS` /
@@ -17,9 +17,6 @@ export const COLUMN_BANDS = [
   { minWidth: 1920, columns: 8 },
 ] as const;
 
-const MIN_CARD_WIDTH = 100;
-const MAX_CARD_WIDTH = 500;
-
 // Must match server and client to avoid a hydration mismatch on
 // `style.gridTemplateColumns`; /promos SSRs this for crawlers.
 const SSR_SAFE_COLUMNS = 2;
@@ -30,8 +27,6 @@ export function useResponsiveColumns(maxColumns?: number | null) {
   // never notify the effect below of that late mount.
   const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null);
   const [columns, setColumns] = useState(() => maxColumns ?? SSR_SAFE_COLUMNS);
-  const [physicalMax, setPhysicalMax] = useState(8);
-  const [physicalMin, setPhysicalMin] = useState(1);
   const [autoColumns, setAutoColumns] = useState(SSR_SAFE_COLUMNS);
   const [containerWidth, setContainerWidth] = useState(400);
   const [measured, setMeasured] = useState(false);
@@ -42,8 +37,6 @@ export function useResponsiveColumns(maxColumns?: number | null) {
       return;
     }
 
-    let prevPMax = -1;
-    let prevPMin = -1;
     let prevAuto = -1;
     let prevCols = -1;
     let prevWidth = -1;
@@ -51,39 +44,21 @@ export function useResponsiveColumns(maxColumns?: number | null) {
 
     const updateColumns = () => {
       const width = el.offsetWidth;
-      // The gap shrinks with the card (card-grid-metrics.ts), so each bound uses
-      // the gap it will actually be laid out with.
-      const pMax = Math.max(
-        1,
-        Math.floor((width + GRID_GAP_MIN) / (MIN_CARD_WIDTH + GRID_GAP_MIN)),
-      );
-      const pMin = Math.max(1, Math.ceil((width + GRID_GAP_MAX) / (MAX_CARD_WIDTH + GRID_GAP_MAX)));
 
       const match = COLUMN_BANDS.findLast((band) => width >= band.minWidth);
       const auto = match?.columns ?? SSR_SAFE_COLUMNS;
 
       const cols =
-        maxColumns !== undefined && maxColumns !== null
-          ? Math.max(pMin, Math.min(maxColumns, pMax))
-          : auto;
+        maxColumns !== undefined && maxColumns !== null ? clampColumns(maxColumns) : auto;
 
-      const changed =
-        pMax !== prevPMax ||
-        pMin !== prevPMin ||
-        auto !== prevAuto ||
-        cols !== prevCols ||
-        width !== prevWidth;
+      const changed = auto !== prevAuto || cols !== prevCols || width !== prevWidth;
       if (!changed) {
         return;
       }
 
-      prevPMin = pMin;
-      prevPMax = pMax;
       prevAuto = auto;
       prevCols = cols;
       prevWidth = width;
-      setPhysicalMax(pMax);
-      setPhysicalMin(pMin);
       setAutoColumns(auto);
       setColumns(cols);
       setContainerWidth(width);
@@ -108,8 +83,6 @@ export function useResponsiveColumns(maxColumns?: number | null) {
     containerRef: setContainerEl,
     containerEl,
     columns,
-    physicalMax,
-    physicalMin,
     autoColumns,
     containerWidth,
     measured,

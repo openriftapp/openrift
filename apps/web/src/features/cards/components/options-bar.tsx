@@ -217,17 +217,11 @@ function useOptionsBarState() {
   const displayMode = useDisplayStore((s) => s.displayMode);
   const maxColumns = useDisplayStore((s) => s.maxColumns);
   const setMaxColumns = useDisplayStore((s) => s.setMaxColumns);
-  const maxColumnsLimit = useGridViewportStore((s) => s.physicalMax);
-  const minColumnsLimit = useGridViewportStore((s) => s.physicalMin);
   const autoColumns = useGridViewportStore((s) => s.autoColumns);
-
-  const minColumns = minColumnsLimit;
 
   const columnProps = {
     maxColumns,
     autoColumns,
-    minColumns,
-    maxColumnsLimit,
     onMaxColumnsChange: setMaxColumns,
   };
 

@@ -228,24 +228,17 @@ export function CardGrid({
   const stickyOffset = stickyOffsetProp ?? headerHeight;
 
   const maxColumns = useDisplayStore((s) => s.maxColumns);
-  const setMeasurements = useGridViewportStore((s) => s.setMeasurements);
+  const setAutoColumns = useGridViewportStore((s) => s.setAutoColumns);
 
   const adminSettings = useAdminSettings();
   const debugOverlayEnabled = adminSettings?.debugOverlay === true;
 
-  const {
-    containerRef,
-    containerEl,
-    columns,
-    physicalMax,
-    physicalMin,
-    autoColumns,
-    containerWidth,
-  } = useResponsiveColumns(maxColumns);
+  const { containerRef, containerEl, columns, autoColumns, containerWidth } =
+    useResponsiveColumns(maxColumns);
 
   useLayoutEffect(() => {
-    setMeasurements({ physicalMax, physicalMin, autoColumns });
-  }, [physicalMax, physicalMin, autoColumns, setMeasurements]);
+    setAutoColumns(autoColumns);
+  }, [autoColumns, setAutoColumns]);
 
   const { gap, cardWidth: thumbWidth } = computeGridMetrics(containerWidth, columns);
 

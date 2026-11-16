@@ -101,8 +101,6 @@ interface DeckOverviewViewControlsProps {
   ordering: DeckOrderingControls;
   columnOverride: number | null;
   autoColumns: number;
-  minColumns: number;
-  maxColumnsLimit: number;
   showAllCopies: boolean;
   showAllRuneCopies: boolean;
   showBands: boolean;
@@ -121,8 +119,6 @@ export function DeckOverviewViewControls({
   ordering,
   columnOverride,
   autoColumns,
-  minColumns,
-  maxColumnsLimit,
   showAllCopies,
   showAllRuneCopies,
   showBands,
@@ -287,8 +283,6 @@ export function DeckOverviewViewControls({
               compact
               maxColumns={columnOverride}
               autoColumns={autoColumns}
-              minColumns={minColumns}
-              maxColumnsLimit={maxColumnsLimit}
               onMaxColumnsChange={setColumns}
             />
           </div>
@@ -336,8 +330,6 @@ export function DeckOverviewViewControls({
               compact
               maxColumns={columnOverride}
               autoColumns={autoColumns}
-              minColumns={minColumns}
-              maxColumnsLimit={maxColumnsLimit}
               onMaxColumnsChange={setColumns}
             />
           </div>
@@ -371,8 +363,6 @@ export function DeckOverviewViewControls({
           <ColumnControls
             maxColumns={columnOverride}
             autoColumns={autoColumns}
-            minColumns={minColumns}
-            maxColumnsLimit={maxColumnsLimit}
             onMaxColumnsChange={setColumns}
           />
         </div>

@@ -6,14 +6,7 @@ import { ColumnControls } from "./column-controls";
 describe("ColumnControls", () => {
   it("sizes every compact button from the touch-aware small control height", () => {
     render(
-      <ColumnControls
-        compact
-        maxColumns={null}
-        autoColumns={4}
-        minColumns={1}
-        maxColumnsLimit={8}
-        onMaxColumnsChange={vi.fn()}
-      />,
+      <ColumnControls compact maxColumns={null} autoColumns={4} onMaxColumnsChange={vi.fn()} />,
     );
 
     const buttons = screen.getAllByRole("button");
