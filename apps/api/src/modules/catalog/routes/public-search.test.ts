@@ -1,7 +1,7 @@
 import { makeCatalogReference } from "@openrift/shared/test-factories";
 import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
 import { Hono } from "hono";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { registerRouterForTest } from "../../../test/mount-router.js";
 import { readJson } from "../../../test/read-json.js";
@@ -184,5 +184,51 @@ describe("GET /api/v1/search", () => {
   it("refuses a missing query", async () => {
     const res = await app.request("/api/v1/search");
     expect(res.status).toBe(400);
+  });
+});
+
+describe("GET /api/v1/search across a ban's start day", () => {
+  const scheduled = {
+    ...catalog,
+    cards: {
+      ...catalog.cards,
+      jinx: {
+        ...catalog.cards.jinx,
+        bans: [
+          { formatId: "standard", formatName: "Constructed", bannedAt: "2026-11-17", reason: null },
+        ],
+      },
+    },
+  } as CatalogResponse;
+  const banApp = new Hono<{ Variables: Variables }>();
+  banApp.use("*", async (c, next) => {
+    c.set("repos", {
+      catalogResponse: {
+        current: () => Promise.resolve({ version: "scheduled-ban", value: scheduled }),
+      },
+      cardBans: { listFormats: () => Promise.resolve([{ id: "standard", name: "Constructed" }]) },
+      marketplace: mockMarketplace,
+    } as never);
+    await next();
+  });
+  registerRouterForTest(banApp, searchRouter);
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("applies the ban from its day on without a catalog change", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const banned = `/api/v1/search?q=${encodeURIComponent("banned:standard")}`;
+
+    vi.setSystemTime(new Date("2026-11-16T23:00:00.000Z"));
+    const before = await banApp.request(banned);
+    expect(before.status).toBe(404);
+
+    vi.setSystemTime(new Date("2026-11-17T01:00:00.000Z"));
+    const res = await banApp.request(banned);
+    expect(res.status).toBe(200);
+    const json = await readJson(res);
+    expect(json.printingIds).toEqual(["jinx-1"]);
   });
 });

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { Repos } from "../../../deps.js";
 import {
+  assertCollectionsAccessible,
   loadCollectionAccess,
   loadWritableCopies,
   requireCollectionAdmin,
@@ -40,6 +41,22 @@ describe("loadCollectionAccess", () => {
     await expect(loadCollectionAccess(reposWith({}), "c-1", "u-1")).rejects.toMatchObject({
       status: 404,
     });
+  });
+});
+
+describe("assertCollectionsAccessible", () => {
+  it("passes when every collection is accessible, counting a repeated id once", async () => {
+    const repos = reposWith({ writable: ["c-1", "c-2"] });
+    await expect(
+      assertCollectionsAccessible(repos, ["c-1", "c-2", "c-1"], "u-1"),
+    ).resolves.toBeUndefined();
+    expect(repos.collections.filterWritableByViewer).toHaveBeenCalledWith(["c-1", "c-2"], "u-1");
+  });
+
+  it("throws 404 when any collection is out of the viewer's reach", async () => {
+    await expect(
+      assertCollectionsAccessible(reposWith({ writable: ["c-1"] }), ["c-1", "c-2"], "u-1"),
+    ).rejects.toMatchObject({ status: 404 });
   });
 });
 

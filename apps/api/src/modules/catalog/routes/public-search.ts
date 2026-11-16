@@ -1,6 +1,7 @@
 import { joinCatalogPrintings } from "@openrift/shared/catalog-join";
 import type { SearchResponse } from "@openrift/shared/contracts/search";
 import { searchContract } from "@openrift/shared/contracts/search";
+import { todayUtc } from "@openrift/shared/format-date";
 import { priceLookupFromMap } from "@openrift/shared/price-lookup";
 import type { SearchOrder } from "@openrift/shared/search-query/keys";
 import { parseSearchQuery } from "@openrift/shared/search-query/parse";
@@ -27,11 +28,18 @@ import {
 
 const os = implement(searchContract).$context<ApiContext>().use(requireUser);
 
-let joined: { version: string; printings: Printing[]; names?: NamedCardIndex } | null = null;
+let joined: {
+  version: string;
+  day: string;
+  printings: Printing[];
+  names?: NamedCardIndex;
+} | null = null;
 
+/** The join splits bans and set releases by the UTC day, so a new day rebuilds it. */
 function joinedCatalog(version: string, catalog: CatalogResponse) {
-  if (joined?.version !== version) {
-    joined = { version, printings: joinCatalogPrintings(catalog) };
+  const day = todayUtc();
+  if (joined?.version !== version || joined.day !== day) {
+    joined = { version, day, printings: joinCatalogPrintings(catalog) };
   }
   return joined;
 }

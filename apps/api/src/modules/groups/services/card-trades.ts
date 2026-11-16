@@ -559,6 +559,32 @@ export function cancelTrade(
   });
 }
 
+/**
+ * An offer never grows past the receiver's demand, as at creation. Only an increase is checked:
+ * the match view drops the giver's copies this offer already claims, so a shrink can find no row.
+ */
+async function assertWithinOfferDemand(
+  repos: Repos,
+  trade: LiveCardTrade,
+  quantity: number,
+): Promise<void> {
+  const matchRows = await repos.friendGroupMatches.othersWantYourHaves({
+    groupId: trade.groupId,
+    viewerUserId: trade.giverUserId,
+    counterpartyUserId: trade.receiverUserId,
+  });
+  const onPrinting = matchRows.filter((row) => row.printingId === trade.printingId);
+  const match =
+    onPrinting.find((row) => row.buyEntryId === trade.receiverWishEntryId) ??
+    onPrinting.find((row) => row.cardId === trade.cardId);
+  if (!match) {
+    throw conflict("They no longer want more of this card");
+  }
+  if (quantity > match.buyQuantity) {
+    throw badRequest(`They only want ${match.buyQuantity} of this card`);
+  }
+}
+
 /** `uq_card_trades_live` forbids two live trades per printing; this bumps the existing one. */
 export function setTradeQuantity(
   transact: Transact,
@@ -588,9 +614,13 @@ export function setTradeQuantity(
       trade.id,
     );
 
-    // Keep the receiver's wish entry >= the request, or trade-sync's decrement
-    // by the trade quantity would go negative.
-    if (trade.receiverWishEntryId !== null) {
+    if (trade.initiator === "giver") {
+      if (quantity > trade.quantity) {
+        await assertWithinOfferDemand(trxRepos, trade, quantity);
+      }
+    } else if (trade.receiverWishEntryId !== null) {
+      // Keep the receiver's wish entry >= the request, or trade-sync's decrement
+      // by the trade quantity would go negative.
       await trxRepos.lists.raiseEntryQuantityTo(
         trade.receiverWishEntryId,
         trade.receiverUserId,

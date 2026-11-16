@@ -668,6 +668,82 @@ const REQUEST = {
   initiator: "receiver",
 } as unknown as LiveCardTrade;
 
+describe("setTradeQuantity against the receiver's demand", () => {
+  const FOUR = { [GROUP.id]: ["copy-1", "copy-2", "copy-3", "copy-4"] };
+
+  it("refuses to grow an offer past what the receiver wants and leaves their wish alone", async () => {
+    const { repos, setPendingQuantity } = supplyRepos(FOUR, [
+      { id: OFFER.id, groupId: GROUP.id, quantity: OFFER.quantity, initiator: "giver" },
+    ]);
+
+    const result = await setTradeQuantity(
+      mockTransact(repos),
+      OFFER.id,
+      OFFER.giverUserId,
+      4,
+    ).catch((error: unknown) => error);
+
+    expect((result as AppError).status).toBe(400);
+    expect((result as AppError).message).toBe("They only want 3 of this card");
+    expect(repos.lists.raiseEntryQuantityTo).not.toHaveBeenCalled();
+    expect(setPendingQuantity).not.toHaveBeenCalled();
+  });
+
+  it("grows an offer within the receiver's demand without touching their wish", async () => {
+    const { repos, setPendingQuantity } = supplyRepos(FOUR, [
+      { id: OFFER.id, groupId: GROUP.id, quantity: OFFER.quantity, initiator: "giver" },
+    ]);
+
+    await setTradeQuantity(mockTransact(repos), OFFER.id, OFFER.giverUserId, 3);
+
+    expect(repos.friendGroupMatches.othersWantYourHaves).toHaveBeenCalledWith({
+      groupId: GROUP.id,
+      viewerUserId: "giver-1",
+      counterpartyUserId: "receiver-1",
+    });
+    expect(repos.lists.raiseEntryQuantityTo).not.toHaveBeenCalled();
+    expect(setPendingQuantity).toHaveBeenCalledWith(OFFER.id, OFFER.giverUserId, 3);
+  });
+
+  it("refuses to grow an offer the receiver no longer wants", async () => {
+    const { repos, setPendingQuantity } = supplyRepos(FOUR);
+    vi.mocked(repos.friendGroupMatches.othersWantYourHaves).mockResolvedValueOnce([]);
+
+    const result = await setTradeQuantity(
+      mockTransact(repos),
+      OFFER.id,
+      OFFER.giverUserId,
+      2,
+    ).catch((error: unknown) => error);
+
+    expect((result as AppError).status).toBe(409);
+    expect(setPendingQuantity).not.toHaveBeenCalled();
+  });
+
+  it("shrinks an offer without looking up demand", async () => {
+    const { repos, setPendingQuantity } = supplyRepos(FOUR);
+    vi.mocked(repos.cardTrades.getById).mockResolvedValueOnce({ ...OFFER, quantity: 3 } as never);
+
+    await setTradeQuantity(mockTransact(repos), OFFER.id, OFFER.giverUserId, 2);
+
+    expect(repos.friendGroupMatches.othersWantYourHaves).not.toHaveBeenCalled();
+    expect(setPendingQuantity).toHaveBeenCalledWith(OFFER.id, OFFER.giverUserId, 2);
+  });
+
+  it("still raises the requester's own wish when they grow their request", async () => {
+    const { repos, setPendingQuantity } = supplyRepos(FOUR);
+    vi.mocked(repos.cardTrades.getById).mockResolvedValueOnce({
+      ...OFFER,
+      initiator: "receiver",
+    } as never);
+
+    await setTradeQuantity(mockTransact(repos), OFFER.id, "receiver-1", 4);
+
+    expect(repos.lists.raiseEntryQuantityTo).toHaveBeenCalledWith("wish-1", "receiver-1", 4);
+    expect(setPendingQuantity).toHaveBeenCalledWith(OFFER.id, "receiver-1", 4);
+  });
+});
+
 function candidate(id: string, overrides: Record<string, unknown> = {}) {
   return {
     id,

@@ -6,6 +6,7 @@ import { implement } from "@orpc/server";
 
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { assertCollectionsAccessible } from "../lib/collection-access.js";
 
 const os = implement(collectionValueHistoryContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -17,12 +18,15 @@ export const collectionValueHistoryRouter = {
     const days = TIME_RANGE_DAYS[query.range as TimeRange];
     const cutoff = days ? new Date(Date.now() - days * DAY_MS) : null;
 
-    const collectionIds = query.collectionIds?.split(",").filter(Boolean) ?? null;
+    const collectionIds = query.collectionIds?.split(",").filter(Boolean) ?? [];
+    if (collectionIds.length > 0) {
+      await assertCollectionsAccessible(context.repos, collectionIds, userId);
+    }
 
     const series = await repos.collectionValueTimeSeries({
       userId,
       marketplace: query.marketplace,
-      collectionIds: collectionIds?.length ? collectionIds : null,
+      collectionIds: collectionIds.length > 0 ? collectionIds : null,
       cutoff,
       scope: {
         sets: query.sets?.split(",").filter(Boolean),

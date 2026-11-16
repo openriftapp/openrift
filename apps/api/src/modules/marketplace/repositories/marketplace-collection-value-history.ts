@@ -193,9 +193,17 @@ export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
       // anchor has to draw the same line or the two figures disagree on day
       // one. Scoped to explicit collection ids, every copy in them counts (a
       // group collection is viewed via its own id).
-      const anchorCollectionClause = collectionIds
-        ? sql`cp.collection_id IN (${sql.join(collectionIds.map((id) => sql`${id}::uuid`))})`
+      const scopedIds = collectionIds
+        ? sql.join(collectionIds.map((id) => sql`${id}::uuid`))
+        : null;
+      const anchorCollectionClause = scopedIds
+        ? sql`cp.collection_id IN (${scopedIds})`
         : sql`col.user_id = ${userId} AND col.group_id IS NULL`;
+      // Scoped to collections, the anchor holds every member's copies, so the walk-back
+      // has to undo every member's events in them too.
+      const eventOwnerClause = scopedIds
+        ? sql`(ce.to_collection_id IN (${scopedIds}) OR ce.from_collection_id IN (${scopedIds}))`
+        : sql`ce.user_id = ${userId}`;
 
       // Grouped by acquisition day and printing: two copies of one printing
       // bought on different days carry different baseline prices.
@@ -267,7 +275,7 @@ export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
         INNER JOIN printings pr ON pr.id = ce.printing_id
         LEFT JOIN collections cf ON cf.id = ce.from_collection_id
         LEFT JOIN collections ctc ON ctc.id = ce.to_collection_id
-        WHERE ce.user_id = ${userId}
+        WHERE ${eventOwnerClause}
           ${windowClause}
           ${scopeFragment}
         ORDER BY ce.created_at ASC

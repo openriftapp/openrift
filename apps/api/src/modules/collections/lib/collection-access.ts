@@ -14,6 +14,19 @@ export async function loadCollectionAccess(
   return access;
 }
 
+/** 404 when any of the collections is one the viewer neither owns nor shares through a group. */
+export async function assertCollectionsAccessible(
+  repos: Repos,
+  collectionIds: readonly string[],
+  userId: string,
+): Promise<void> {
+  const unique = [...new Set(collectionIds)];
+  const accessible = await repos.collections.filterWritableByViewer(unique, userId);
+  if (accessible.length !== unique.length) {
+    throw notFound("Not found");
+  }
+}
+
 /** `action` completes "Only admins can …" in the 403 message. */
 export async function requireCollectionAdmin(
   repos: Repos,

@@ -51,6 +51,9 @@
 - fix(Trades): **Bulk trade buttons stay usable** — after "Accept all", "Decline all" or "Cancel all", every trade's buttons come back as soon as its own request finishes, even when one of them fails.
 - fix(Trades): **No copies given away without your pick** — if the list of your copies cannot be loaded when you accept or settle a trade, you see the error and the trade waits for you.
 - fix(Contribute): **Jumping to a field works every time** — clicking the same spot on the preview card or the same error twice moves to that field again, and an error on a later printing opens that printing.
+- fix(Trades): **Offers stay within what the other side wants** — raising the quantity of a card you offered no longer goes past the other member's wishlist count or changes their wishlist.
+- fix(Collections): **Group collection value chart** — the value chart for a group collection counts copies other members added from the day they were added.
+- fix(Search): **Scheduled bans apply on their start day** — ban searches pick up a scheduled ban on the day it starts.
 
 ## 2026-11-15
 

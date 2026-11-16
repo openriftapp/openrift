@@ -12,6 +12,7 @@ import { friendGroupsRepo } from "../../groups/repositories/friend-groups.js";
 import { marketplaceRepo } from "../../marketplace/repositories/marketplace.js";
 
 const userId = crypto.randomUUID();
+const memberId = crypto.randomUUID();
 const normalPrintingId = crypto.randomUUID();
 const ctPrintingId = crypto.randomUUID();
 
@@ -28,6 +29,7 @@ describe.skipIf(!ctx)("collection value history (integration)", () => {
 
   let collectionId = "";
   let groupCollectionId = "";
+  let sharedBoxId = "";
   let groupId = "";
 
   function dayOffset(daysAgo: number): Date {
@@ -228,21 +230,70 @@ describe.skipIf(!ctx)("collection value history (integration)", () => {
       })
       .execute();
 
+    await seedTestUser(db, { id: memberId });
+    await db
+      .insertInto("friendGroupMembers")
+      .values({ groupId: group.id, userId: memberId, role: "member" })
+      .execute();
+    const sharedBox = await db
+      .insertInto("collections")
+      .values({
+        userId: null,
+        groupId: group.id,
+        name: "Shared Trade Box",
+        isInbox: false,
+        sortOrder: 2,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    sharedBoxId = sharedBox.id;
+    const [ownBoxCopy, memberBoxCopy] = await db
+      .insertInto("copies")
+      .values([
+        { printingId: normalPrintingId, collectionId: sharedBoxId },
+        { printingId: normalPrintingId, collectionId: sharedBoxId },
+      ])
+      .returning("id")
+      .execute();
+    await db
+      .insertInto("collectionEvents")
+      .values([
+        {
+          userId,
+          action: "added" as const,
+          printingId: normalPrintingId,
+          copyId: ownBoxCopy!.id,
+          toCollectionId: sharedBoxId,
+          toCollectionName: "Shared Trade Box",
+          createdAt: dayOffset(3),
+        },
+        {
+          userId: memberId,
+          action: "added" as const,
+          printingId: normalPrintingId,
+          copyId: memberBoxCopy!.id,
+          toCollectionId: sharedBoxId,
+          toCollectionName: "Shared Trade Box",
+          createdAt: dayOffset(1),
+        },
+      ])
+      .execute();
+
     await repo.refreshLatestPrices();
   });
 
   afterAll(async () => {
-    await db.deleteFrom("collectionEvents").where("userId", "=", userId).execute();
+    await db.deleteFrom("collectionEvents").where("userId", "in", [userId, memberId]).execute();
     await db
       .deleteFrom("copies")
-      .where("collectionId", "in", [collectionId, groupCollectionId])
+      .where("collectionId", "in", [collectionId, groupCollectionId, sharedBoxId])
       .execute();
     await db
       .deleteFrom("collections")
-      .where("id", "in", [collectionId, groupCollectionId])
+      .where("id", "in", [collectionId, groupCollectionId, sharedBoxId])
       .execute();
     await db.deleteFrom("friendGroups").where("id", "=", groupId).execute();
-    await db.deleteFrom("users").where("id", "=", userId).execute();
+    await db.deleteFrom("users").where("id", "in", [userId, memberId]).execute();
     await sql`
       DELETE FROM marketplace_product_prices pp
       USING marketplace_products mp
@@ -318,6 +369,18 @@ describe.skipIf(!ctx)("collection value history (integration)", () => {
 
     expect(series.at(-1)!.copyCount).toBe(1);
     expect(series.at(-1)!.valueCents).toBe(value!.totalValueCents);
+  });
+
+  it("walks back another member's recent addition to a selected group collection", async () => {
+    const series = await repo.collectionValueTimeSeries({
+      userId,
+      marketplace: mpTcg,
+      collectionIds: [sharedBoxId],
+      cutoff: null,
+      scope: {},
+    });
+
+    expect(series.map((point) => point.copyCount)).toEqual([1, 1, 2, 2]);
   });
 
   it("spans the whole requested range even with no events inside it", async () => {
