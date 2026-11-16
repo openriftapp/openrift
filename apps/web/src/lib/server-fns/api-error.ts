@@ -52,13 +52,22 @@ export function errorStatus(error: unknown): number | undefined {
   return typeof status === "number" ? status : undefined;
 }
 
-/** The sentinel a server function throws for a typed 404, whose message route loaders match on. */
+const NOT_FOUND_SENTINEL_NAME = "NotFoundSentinel";
+
+/**
+ * The sentinel a server function throws for a typed 404. `status-error-adapter.ts` carries its
+ * name and status across the server-function boundary; the message stays for Sentry's ignore list.
+ */
 export function notFoundError(): Error {
-  return Object.assign(new Error("NOT_FOUND"), { status: 404 });
+  const error = Object.assign(new Error("NOT_FOUND"), { status: 404 });
+  error.name = NOT_FOUND_SENTINEL_NAME;
+  return error;
 }
 
 export function isNotFoundSentinel(error: unknown): boolean {
-  return error instanceof Error && error.message === "NOT_FOUND";
+  return (
+    errorStatus(error) === 404 && (error as { name?: unknown }).name === NOT_FOUND_SENTINEL_NAME
+  );
 }
 
 /** Resolves an oRPC call, turning the contract's typed NOT_FOUND into {@link notFoundError}. */

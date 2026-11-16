@@ -8,6 +8,7 @@ import { createQueryClient } from "./query-client";
 import { captureHandledError } from "./report-error";
 import { notFoundError } from "./server-fns/api-error";
 import { _resetReloadStateForTesting } from "./stale-bundle-reload";
+import { StaleServerFnError } from "./stale-server-fn-signal";
 import { loadSonner, PERSISTENT_ERROR_TOAST } from "./toast";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
@@ -26,11 +27,7 @@ const unauthorized = {
   diagnostic: "GET /api/v1/decks/1 → 401 Unauthorized\nUnauthorized",
 } as unknown as Error;
 
-// What getServerFnById throws when a manifest entry isn't on the deployed server.
-const staleServerFn = {
-  name: "Error",
-  message: "Server function info not found for deadbeefcafef00d",
-} as unknown as Error;
+const staleServerFn = new StaleServerFnError("/_serverFn/deadbeefcafef00d");
 
 const reloadSpy = vi.fn();
 beforeEach(() => {

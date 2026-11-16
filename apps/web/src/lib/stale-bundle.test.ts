@@ -1,24 +1,20 @@
 // @vitest-environment jsdom
-import { API_FORMAT_VERSION } from "@openrift/shared/contracts/api-format";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { apiFetch } from "./api-fetch";
 import { CHUNK_LOAD_ERROR_PATTERN } from "./error-text";
 // Importing ./stale-bundle also installs the reload module's stale notifier,
 // exactly like the real entry does.
-import {
-  _resetReloadFlagForTesting,
-  initStaleBundleWatcher,
-  initVisibilityVersionCheck,
-} from "./stale-bundle";
+import { _resetReloadFlagForTesting, initVisibilityVersionCheck } from "./stale-bundle";
 import {
   initChunkErrorReloader,
   initVersionStaleNavigationReload,
   isStaleServerFnError,
   reloadIfStaleServerFnError,
   reloadIfUncaughtBareThrow,
-  STALE_SERVER_FN_ERROR_PATTERN,
 } from "./stale-bundle-reload";
+import { StaleServerFnError } from "./stale-server-fn-signal";
 import { loadSonner } from "./toast";
 
 vi.mock("sonner", () => ({ toast: vi.fn() }));
@@ -57,198 +53,6 @@ afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 
-describe("initStaleBundleWatcher", () => {
-  test("reloads once when X-Build-Id differs", async () => {
-    globalThis.fetch = vi
-      .fn()
-      .mockResolvedValue(new Response("ok", { headers: { "X-Build-Id": "deadbeef" } }));
-    initStaleBundleWatcher();
-
-    await globalThis.fetch("/api/v1/cards");
-
-    expect(reloadSpy).toHaveBeenCalledTimes(1);
-    expect(toast).not.toHaveBeenCalled();
-  });
-
-  test("a mismatch after the automatic reload was spent prompts instead of reloading again", async () => {
-    sessionStorage.setItem("openrift:reload-attempted", "1");
-    globalThis.fetch = vi
-      .fn()
-      .mockResolvedValue(new Response("ok", { headers: { "X-Build-Id": "deadbeef" } }));
-    initStaleBundleWatcher();
-
-    await globalThis.fetch("/api/v1/cards");
-
-    expect(reloadSpy).not.toHaveBeenCalled();
-    expect(toast).toHaveBeenCalledTimes(1);
-    lastToastAction().onClick();
-    expect(reloadSpy).toHaveBeenCalledTimes(1);
-  });
-
-  test("does not prompt when X-Build-Id matches", async () => {
-    globalThis.fetch = vi
-      .fn()
-      .mockResolvedValue(new Response("ok", { headers: { "X-Build-Id": "test" } }));
-    initStaleBundleWatcher();
-
-    await globalThis.fetch("/api/v1/cards");
-
-    expect(reloadSpy).not.toHaveBeenCalled();
-    expect(toast).not.toHaveBeenCalled();
-  });
-
-  test("ignores responses without X-Build-Id", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(new Response("ok"));
-    initStaleBundleWatcher();
-
-    await globalThis.fetch("/api/v1/cards");
-
-    expect(reloadSpy).not.toHaveBeenCalled();
-    expect(toast).not.toHaveBeenCalled();
-  });
-
-  test("ignores a mismatched X-Build-Id on a cacheable response (browser-cache replay)", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response("ok", {
-        headers: {
-          "X-Build-Id": "deadbeef",
-          "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
-        },
-      }),
-    );
-    initStaleBundleWatcher();
-
-    await globalThis.fetch("/api/v1/catalog");
-
-    expect(reloadSpy).not.toHaveBeenCalled();
-    expect(toast).not.toHaveBeenCalled();
-  });
-
-  test("a matching X-Build-Id on a cacheable response does not confirm the bundle", async () => {
-    vi.useFakeTimers();
-    try {
-      initChunkErrorReloader();
-      globalThis.fetch = vi.fn().mockResolvedValue(
-        new Response("ok", {
-          headers: { "X-Build-Id": "test", "Cache-Control": "public, max-age=3600" },
-        }),
-      );
-      initStaleBundleWatcher();
-
-      globalThis.dispatchEvent(
-        new ErrorEvent("error", {
-          message: "Failed to fetch dynamically imported module: /assets/foo-OLD.js",
-        }),
-      );
-      expect(reloadSpy).toHaveBeenCalledTimes(1);
-
-      await globalThis.fetch("/api/v1/catalog");
-      vi.advanceTimersByTime(10_000);
-
-      globalThis.dispatchEvent(
-        new ErrorEvent("error", {
-          message: "Failed to fetch dynamically imported module: /assets/foo-OLD.js",
-        }),
-      );
-      expect(reloadSpy).toHaveBeenCalledTimes(1);
-      expect(toast).toHaveBeenCalled();
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  test("reloads only once even on repeated mismatches", async () => {
-    globalThis.fetch = vi
-      .fn()
-      .mockResolvedValue(new Response("ok", { headers: { "X-Build-Id": "deadbeef" } }));
-    initStaleBundleWatcher();
-
-    await globalThis.fetch("/api/v1/cards");
-    await globalThis.fetch("/api/v1/cards");
-    await globalThis.fetch("/api/v1/cards");
-
-    expect(reloadSpy).toHaveBeenCalledTimes(1);
-    expect(toast).not.toHaveBeenCalled();
-  });
-});
-
-describe("initStaleBundleWatcher API format check", () => {
-  function formatResponse(format: number | string, body = "cached"): Response {
-    return new Response(body, { headers: { "X-Api-Format": String(format) } });
-  }
-
-  test("does nothing when the format matches", async () => {
-    const fetchSpy = vi.fn().mockResolvedValue(formatResponse(API_FORMAT_VERSION));
-    globalThis.fetch = fetchSpy;
-    initStaleBundleWatcher();
-
-    const response = await globalThis.fetch("/api/v1/catalog");
-
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(await response.text()).toBe("cached");
-    expect(toast).not.toHaveBeenCalled();
-  });
-
-  test("transparently refetches an older-format body with cache: no-store", async () => {
-    const fetchSpy = vi
-      .fn()
-      .mockResolvedValueOnce(formatResponse(API_FORMAT_VERSION - 1, "stale"))
-      .mockResolvedValueOnce(formatResponse(API_FORMAT_VERSION, "fresh"));
-    globalThis.fetch = fetchSpy;
-    initStaleBundleWatcher();
-
-    const response = await globalThis.fetch("/api/v1/catalog");
-
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
-    expect(fetchSpy).toHaveBeenLastCalledWith("/api/v1/catalog", { cache: "no-store" });
-    expect(await response.text()).toBe("fresh");
-    expect(toast).not.toHaveBeenCalled();
-    expect(reloadSpy).not.toHaveBeenCalled();
-  });
-
-  test("does not refetch when the request already bypassed caches", async () => {
-    const fetchSpy = vi.fn().mockResolvedValue(formatResponse(API_FORMAT_VERSION - 1, "stale"));
-    globalThis.fetch = fetchSpy;
-    initStaleBundleWatcher();
-
-    const response = await globalThis.fetch("/api/v1/catalog", { cache: "no-store" });
-
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(await response.text()).toBe("stale");
-  });
-
-  test("does not refetch non-GET requests", async () => {
-    const fetchSpy = vi.fn().mockResolvedValue(formatResponse(API_FORMAT_VERSION - 1));
-    globalThis.fetch = fetchSpy;
-    initStaleBundleWatcher();
-
-    await globalThis.fetch("/api/v1/catalog", { method: "POST" });
-
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-  });
-
-  test("reloads once when the body format is newer than the bundle", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(formatResponse(API_FORMAT_VERSION + 1));
-    initStaleBundleWatcher();
-
-    await globalThis.fetch("/api/v1/catalog");
-
-    expect(reloadSpy).toHaveBeenCalledTimes(1);
-    expect(toast).not.toHaveBeenCalled();
-  });
-
-  test("ignores a malformed format header", async () => {
-    const fetchSpy = vi.fn().mockResolvedValue(formatResponse("not-a-number"));
-    globalThis.fetch = fetchSpy;
-    initStaleBundleWatcher();
-
-    await globalThis.fetch("/api/v1/catalog");
-
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(toast).not.toHaveBeenCalled();
-  });
-});
-
 describe("reload loop guard", () => {
   function dispatchChunkError(): void {
     globalThis.dispatchEvent(
@@ -263,12 +67,11 @@ describe("reload loop guard", () => {
     globalThis.fetch = vi
       .fn()
       .mockResolvedValue(new Response("ok", { headers: { "X-Build-Id": "deadbeef" } }));
-    initStaleBundleWatcher();
 
     dispatchChunkError();
     expect(reloadSpy).toHaveBeenCalledTimes(1);
 
-    await globalThis.fetch("/api/v1/cards");
+    await apiFetch("/api/v1/cards");
     expect(reloadSpy).toHaveBeenCalledTimes(1);
     expect(toast).toHaveBeenCalledTimes(1);
     lastToastAction().onClick();
@@ -298,12 +101,11 @@ describe("reload loop guard", () => {
       globalThis.fetch = vi
         .fn()
         .mockResolvedValue(new Response("ok", { headers: { "X-Build-Id": "test" } }));
-      initStaleBundleWatcher();
 
       dispatchChunkError();
       expect(reloadSpy).toHaveBeenCalledTimes(1);
 
-      await globalThis.fetch("/api/v1/cards");
+      await apiFetch("/api/v1/cards");
       vi.advanceTimersByTime(10_000);
 
       dispatchChunkError();
@@ -321,13 +123,12 @@ describe("reload loop guard", () => {
         .fn()
         .mockResolvedValueOnce(new Response("ok", { headers: { "X-Build-Id": "test" } }))
         .mockResolvedValueOnce(new Response("ok", { headers: { "X-Build-Id": "deadbeef" } }));
-      initStaleBundleWatcher();
 
       dispatchChunkError();
       expect(reloadSpy).toHaveBeenCalledTimes(1);
 
-      await globalThis.fetch("/api/health");
-      await globalThis.fetch("/api/v1/catalog");
+      await apiFetch("/api/health");
+      await apiFetch("/api/v1/catalog");
       vi.advanceTimersByTime(10_000);
 
       dispatchChunkError();
@@ -346,13 +147,12 @@ describe("reload loop guard", () => {
         .fn()
         .mockResolvedValueOnce(new Response("ok", { headers: { "X-Build-Id": "deadbeef" } }))
         .mockResolvedValueOnce(new Response("ok", { headers: { "X-Build-Id": "test" } }));
-      initStaleBundleWatcher();
 
       dispatchChunkError();
       expect(reloadSpy).toHaveBeenCalledTimes(1);
 
-      await globalThis.fetch("/api/v1/catalog");
-      await globalThis.fetch("/api/health");
+      await apiFetch("/api/v1/catalog");
+      await apiFetch("/api/health");
       vi.advanceTimersByTime(10_000);
 
       dispatchChunkError();
@@ -384,9 +184,8 @@ describe("initVersionStaleNavigationReload", () => {
     globalThis.fetch = vi
       .fn()
       .mockResolvedValue(new Response("ok", { headers: { "X-Build-Id": "deadbeef" } }));
-    initStaleBundleWatcher();
 
-    await globalThis.fetch("/api/v1/cards");
+    await apiFetch("/api/v1/cards");
     expect(reloadSpy).not.toHaveBeenCalled();
 
     router.navigate();
@@ -401,9 +200,8 @@ describe("initVersionStaleNavigationReload", () => {
     globalThis.fetch = vi
       .fn()
       .mockResolvedValue(new Response("ok", { headers: { "X-Build-Id": "deadbeef" } }));
-    initStaleBundleWatcher();
 
-    await globalThis.fetch("/api/v1/cards");
+    await apiFetch("/api/v1/cards");
     expect(reloadSpy).toHaveBeenCalledTimes(1);
 
     router.navigate();
@@ -652,30 +450,26 @@ describe("CHUNK_LOAD_ERROR_PATTERN", () => {
 });
 
 describe("reloadIfStaleServerFnError", () => {
-  const staleServerFnError = {
-    name: "Error",
-    message:
-      "Server function info not found for 2797c9278a55a67df69797542baaeb2f888fa18af118d45946919c284e3d5f73",
-  } as unknown as Error;
+  const staleServerFnError = new StaleServerFnError("/_serverFn/abc");
 
-  test("reloads once on the stale-server-fn message and reports it handled", () => {
+  test("reloads once on the stale-server-fn error and reports it handled", () => {
     expect(reloadIfStaleServerFnError(staleServerFnError)).toBe(true);
     expect(reloadSpy).toHaveBeenCalledTimes(1);
   });
 
-  test("matches a real Error instance too, not only the post-boundary plain object", () => {
-    expect(
-      reloadIfStaleServerFnError(new Error("Server function module not resolved for abc123")),
-    ).toBe(true);
-    expect(reloadSpy).toHaveBeenCalledTimes(1);
+  test("ignores an error that only carries Start's missing-function wording", () => {
+    expect(reloadIfStaleServerFnError(new Error("Server function info not found for abc"))).toBe(
+      false,
+    );
+    expect(reloadSpy).not.toHaveBeenCalled();
   });
 
-  test("ignores unrelated errors — no reload, reports unhandled", () => {
+  test("ignores unrelated errors, reports unhandled", () => {
     expect(reloadIfStaleServerFnError(new Error("Collection not found"))).toBe(false);
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
-  test("respects the once-per-session loop guard on repeated stale calls", () => {
+  test("respects the loop guard on repeated stale calls", () => {
     reloadIfStaleServerFnError(staleServerFnError);
     reloadIfStaleServerFnError(staleServerFnError);
     reloadIfStaleServerFnError(staleServerFnError);
@@ -684,7 +478,7 @@ describe("reloadIfStaleServerFnError", () => {
     expect(toast).toHaveBeenCalledTimes(1);
   });
 
-  test("isStaleServerFnError narrows on message without reloading", () => {
+  test("isStaleServerFnError narrows on the error's name without reloading", () => {
     expect(isStaleServerFnError(staleServerFnError)).toBe(true);
     expect(isStaleServerFnError(new Error("network down"))).toBe(false);
     expect(isStaleServerFnError(undefined)).toBe(false);
@@ -718,18 +512,5 @@ describe("reloadIfUncaughtBareThrow", () => {
 
     expect(reloadSpy).toHaveBeenCalledTimes(1);
     expect(toast).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe("STALE_SERVER_FN_ERROR_PATTERN", () => {
-  test.each([
-    ["missing manifest entry", "Server function info not found for deadbeefcafe"],
-    ["module not resolved", "Server function module not resolved for deadbeefcafe"],
-  ])("matches the %s phrasing", (_label, message) => {
-    expect(STALE_SERVER_FN_ERROR_PATTERN.test(message)).toBe(true);
-  });
-
-  test("does not match unrelated server errors", () => {
-    expect(STALE_SERVER_FN_ERROR_PATTERN.test("Internal server error")).toBe(false);
   });
 });

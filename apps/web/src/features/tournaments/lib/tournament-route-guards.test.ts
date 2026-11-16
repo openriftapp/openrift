@@ -2,6 +2,8 @@ import type { QueryClient } from "@tanstack/react-query";
 import { isNotFound, isRedirect } from "@tanstack/react-router";
 import { describe, expect, it, vi } from "vitest";
 
+import { notFoundError } from "@/lib/server-fns/api-error";
+
 import {
   loadTournamentDetail,
   loadTournamentRunState,
@@ -35,7 +37,7 @@ describe("loadTournamentDetail", () => {
   });
 
   it("converts the NOT_FOUND sentinel into the router's notFound", async () => {
-    const query = vi.fn().mockRejectedValue(new Error("NOT_FOUND"));
+    const query = vi.fn().mockRejectedValue(notFoundError());
     const queryClient = { query } as unknown as QueryClient;
 
     await expect(loadTournamentDetail(queryClient, "user-1", "t-gone")).rejects.toSatisfy(

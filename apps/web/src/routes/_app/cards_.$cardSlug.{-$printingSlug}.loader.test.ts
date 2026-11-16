@@ -2,6 +2,8 @@ import type { AnyRedirect } from "@tanstack/react-router";
 import { isNotFound, isRedirect } from "@tanstack/react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { notFoundError } from "@/lib/server-fns/api-error";
+
 vi.mock("@/features/cards/lib/card-detail-queries", () => ({
   cardDetailQueryOptions: (cardSlug: string) => ({ queryKey: ["cards", "detail", cardSlug] }),
 }));
@@ -180,7 +182,7 @@ describe("/cards/$cardSlug loader — unknown cards", () => {
   }
 
   it("throws notFound for a slug the API does not know, so the page renders as a 404", async () => {
-    const thrown = await runLoader(contextFailingWith(new Error("NOT_FOUND"))).catch(
+    const thrown = await runLoader(contextFailingWith(notFoundError())).catch(
       (error: unknown) => error,
     );
 

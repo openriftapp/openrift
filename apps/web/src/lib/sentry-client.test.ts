@@ -8,6 +8,7 @@ import {
   INJECTED_SCRIPT_PATTERN,
   initClientSentry,
 } from "./sentry-client";
+import { StaleServerFnError } from "./stale-server-fn-signal";
 
 const { captureExceptionMock, getAppDiagnosticsMock, initMock } = vi.hoisted(() => ({
   captureExceptionMock: vi.fn(),
@@ -218,6 +219,19 @@ describe("initClientSentry", () => {
 
     const options = initMock.mock.calls[0]?.[0] as { ignoreErrors: unknown[] };
     expect(options.ignoreErrors).toContain(INJECTED_SCRIPT_PATTERN);
+  });
+
+  test("drops the stale server-function error by its type and enriches other events", () => {
+    initClientSentry({} as Parameters<typeof initClientSentry>[0]);
+
+    const options = initMock.mock.calls[0]?.[0] as {
+      beforeSend: (event: object, hint: { originalException?: unknown }) => object | null;
+    };
+    const { beforeSend } = options;
+    expect(
+      beforeSend({}, { originalException: new StaleServerFnError("/_serverFn/abc") }),
+    ).toBeNull();
+    expect(beforeSend({}, { originalException: new Error("boom") })).not.toBeNull();
   });
 
   test("does not init without a DSN", () => {

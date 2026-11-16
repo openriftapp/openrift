@@ -9,7 +9,7 @@ import { hydrateRoot } from "react-dom/client";
 import { isHydrationSettled } from "./lib/app-diagnostics";
 import { bufferHydrationError } from "./lib/hydration-error-buffer";
 import type { HydrationErrorPhase } from "./lib/hydration-error-buffer";
-import { initStaleBundleWatcher, initVisibilityVersionCheck } from "./lib/stale-bundle";
+import { initVisibilityVersionCheck } from "./lib/stale-bundle";
 import {
   initChunkErrorReloader,
   reloadIfChunkLoadError,
@@ -50,9 +50,6 @@ function reportHydrationError(
   }
 }
 
-// Wraps window.fetch, so it must run before hydrateRoot to cover the first
-// API calls made during route loaders.
-initStaleBundleWatcher();
 initChunkErrorReloader();
 initVisibilityVersionCheck();
 initInstallPromptCapture();

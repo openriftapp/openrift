@@ -124,16 +124,14 @@ export function initVersionStaleNavigationReload(router: RouterSubscribe): void 
   });
 }
 
-// TanStack Start's getServerFnById throws these two messages when a server
-// function's hashed ID isn't in the deployed server's manifest;
-// middleware/stale-server-fn.ts relays the message to the client as `error.message`.
-export const STALE_SERVER_FN_ERROR_PATTERN =
-  /Server function (?:info not found|module not resolved)/u;
-
-// Exported so the query layer can also skip retrying this error: re-hammering
-// a missing manifest entry can't succeed.
+// serverFnFetch throws StaleServerFnError (lib/stale-server-fn-signal.ts) for the
+// server's stale-function signal. Exported so the query layer can skip retrying it.
 export function isStaleServerFnError(error: unknown): boolean {
-  return STALE_SERVER_FN_ERROR_PATTERN.test(thrownMessage(error));
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { name?: unknown }).name === "StaleServerFnError"
+  );
 }
 
 // A polling query never navigates, so the soft toast + reload-on-navigation

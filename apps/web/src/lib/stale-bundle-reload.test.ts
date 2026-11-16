@@ -12,6 +12,7 @@ import {
   scheduleReloadFlagClear,
   setStaleNotifier,
 } from "./stale-bundle-reload";
+import { StaleServerFnError } from "./stale-server-fn-signal";
 
 const reloadSpy = vi.fn();
 const notifierSpy = vi.fn();
@@ -138,15 +139,14 @@ describe("forceReload", () => {
 });
 
 describe("isStaleServerFnError / reloadIfStaleServerFnError", () => {
-  it("matches the missing-manifest-entry message", () => {
-    expect(isStaleServerFnError(new Error("Server function info not found for deadbeef"))).toBe(
-      true,
-    );
+  it("matches the error serverFnFetch throws for the stale signal", () => {
+    expect(isStaleServerFnError(new StaleServerFnError("/_serverFn/abc"))).toBe(true);
   });
 
-  it("matches a plain object surviving the seroval boundary", () => {
-    const boundaryError = { message: "Server function module not resolved for deadbeef" };
-    expect(isStaleServerFnError(boundaryError)).toBe(true);
+  it("does not match Start's missing-function wording on its own", () => {
+    expect(isStaleServerFnError(new Error("Server function info not found for deadbeef"))).toBe(
+      false,
+    );
   });
 
   it("returns false for unrelated errors, strings, and undefined", () => {
@@ -157,9 +157,7 @@ describe("isStaleServerFnError / reloadIfStaleServerFnError", () => {
   });
 
   it("reloads once and reports handled for a stale server-fn error", () => {
-    expect(reloadIfStaleServerFnError(new Error("Server function info not found for abc"))).toBe(
-      true,
-    );
+    expect(reloadIfStaleServerFnError(new StaleServerFnError("/_serverFn/abc"))).toBe(true);
     expect(reloadSpy).toHaveBeenCalledTimes(1);
   });
 

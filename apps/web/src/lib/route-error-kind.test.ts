@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { isNetworkError } from "./error-text";
 import { needsFullReload, routeErrorKind } from "./route-error-kind";
+import { StaleServerFnError } from "./stale-server-fn-signal";
 
 function statusError(status: number): Error {
   return Object.assign(new Error("request failed"), { status });
@@ -70,7 +71,7 @@ describe("needsFullReload", () => {
   });
 
   it("is true for a stale server function", () => {
-    expect(needsFullReload(new Error("Server function info not found for abc"))).toBe(true);
+    expect(needsFullReload(new StaleServerFnError("/_serverFn/abc"))).toBe(true);
   });
 
   it("is false for other errors", () => {

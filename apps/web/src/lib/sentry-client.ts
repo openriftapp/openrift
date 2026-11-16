@@ -15,7 +15,7 @@ import { COMMIT_HASH, PROD } from "./env";
 import { CHUNK_LOAD_ERROR_PATTERN, NETWORK_ERROR_MESSAGES } from "./error-text";
 import { drainHydrationErrors } from "./hydration-error-buffer";
 import { isKnownBot } from "./known-bot";
-import { STALE_SERVER_FN_ERROR_PATTERN } from "./stale-bundle-reload";
+import { isStaleServerFnError } from "./stale-bundle-reload";
 
 type TanstackRouter = Parameters<typeof tanstackRouterBrowserTracingIntegration>[0];
 
@@ -101,7 +101,8 @@ export function initClientSentry(router: TanstackRouter): void {
     tracesSampleRate: 0.1,
     attachStacktrace: true,
     dataCollection: SENTRY_DATA_COLLECTION,
-    beforeSend: enrichEvent,
+    beforeSend: (event, hint) =>
+      isStaleServerFnError(hint.originalException) ? null : enrichEvent(event, hint),
     beforeBreadcrumb: dropScanFrameBreadcrumb,
     // Each is already handled elsewhere or external; Sentry's global handlers
     // fire before those handlers do, so they're filtered here too.
@@ -109,7 +110,6 @@ export function initClientSentry(router: TanstackRouter): void {
       "NOT_FOUND",
       ...NETWORK_ERROR_MESSAGES,
       CHUNK_LOAD_ERROR_PATTERN,
-      STALE_SERVER_FN_ERROR_PATTERN,
       INJECTED_SCRIPT_PATTERN,
     ],
     // Own-origin tunnel so Firefox ETP / ad-blockers (which list

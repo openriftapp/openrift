@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/workspace-undo";
 import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
+import { StaleServerFnError } from "@/lib/stale-server-fn-signal";
 import { createStoreResetter } from "@/test/store-helpers";
 
 const reported = vi.hoisted(() => vi.fn());
@@ -96,9 +97,7 @@ describe("runWorkspaceUndo", () => {
   });
 
   it("keeps the entry when the 404 comes from a stale client bundle", async () => {
-    const stale = Object.assign(new Error("Server function info not found for abc"), {
-      status: 404,
-    });
+    const stale = new StaleServerFnError("/_serverFn/abc");
     const kept = entry("Ignored Ekko", () => Promise.reject(stale));
     useWorkspaceSelectionStore.getState().pushUndo(kept);
 

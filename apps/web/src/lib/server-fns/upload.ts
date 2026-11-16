@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api-fetch";
 import { ApiError } from "@/lib/server-fns/api-error";
 
 /**
@@ -9,7 +10,7 @@ export async function postMultipart<T>(
   formData: FormData,
   { messageForStatus }: { messageForStatus: (status: number) => string },
 ): Promise<T> {
-  const response = await fetch(`${globalThis.location.origin}${path}`, {
+  const response = await apiFetch(`${globalThis.location.origin}${path}`, {
     method: "POST",
     body: formData,
     credentials: "include",

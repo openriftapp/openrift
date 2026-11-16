@@ -84,11 +84,7 @@ function photo() {
 }
 
 function respondWith(status: number, body: unknown) {
-  return vi.fn().mockResolvedValue({
-    ok: status < 400,
-    status,
-    json: () => Promise.resolve(body),
-  });
+  return vi.fn().mockResolvedValue(Response.json(body, { status }));
 }
 
 beforeEach(() => {

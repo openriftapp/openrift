@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { STALE_SERVER_FN_ERROR_PATTERN } from "@/lib/stale-bundle-reload";
+import { STALE_SERVER_FN_HEADER, STALE_SERVER_FN_STATUS } from "@/lib/stale-server-fn-signal";
 
 import { staleServerFnMiddleware } from "./stale-server-fn";
 
@@ -11,17 +11,16 @@ async function run(handlerType: string, next: () => Promise<unknown>): Promise<u
 }
 
 describe("staleServerFnMiddleware", () => {
-  it("answers an unknown server function id with a plain-text 404", async () => {
+  it("answers an unknown server function id with the stale signal", async () => {
     const result = await run("serverFn", () =>
       Promise.reject(new Error("Server function info not found for abc123")),
     );
 
     expect(result).toBeInstanceOf(Response);
     const response = result as Response;
-    expect(response.status).toBe(404);
-    expect(response.headers.get("Content-Type")).toContain("text/plain");
+    expect(response.status).toBe(STALE_SERVER_FN_STATUS);
+    expect(response.headers.get(STALE_SERVER_FN_HEADER)).toBe("1");
     expect(response.headers.get("Cache-Control")).toBe("no-store");
-    expect(await response.text()).toMatch(STALE_SERVER_FN_ERROR_PATTERN);
   });
 
   it("rethrows other server function errors", async () => {

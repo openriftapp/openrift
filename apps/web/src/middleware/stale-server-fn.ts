@@ -1,9 +1,13 @@
 import { createMiddleware } from "@tanstack/react-start";
 
-import { STALE_SERVER_FN_ERROR_PATTERN } from "@/lib/stale-bundle-reload";
+import {
+  isStartMissingServerFnError,
+  STALE_SERVER_FN_HEADER,
+  STALE_SERVER_FN_STATUS,
+} from "@/lib/stale-server-fn-signal";
 
-// TanStack Start answers an unknown server-function id with a 500 JSON body the client
-// decodes to `undefined`; a plain-text 404 makes the client throw the message instead.
+// Start answers an unknown server-function id with a 500 JSON body the client decodes to
+// `undefined`. The text body serves bundles built before the header; drop it after one release.
 export const staleServerFnMiddleware = createMiddleware().server(async ({ next, handlerType }) => {
   if (handlerType !== "serverFn") {
     return next();
@@ -11,10 +15,14 @@ export const staleServerFnMiddleware = createMiddleware().server(async ({ next, 
   try {
     return await next();
   } catch (error) {
-    if (error instanceof Error && STALE_SERVER_FN_ERROR_PATTERN.test(error.message)) {
+    if (isStartMissingServerFnError(error)) {
       return new Response(error.message, {
-        status: 404,
-        headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+        status: STALE_SERVER_FN_STATUS,
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-store",
+          [STALE_SERVER_FN_HEADER]: "1",
+        },
       });
     }
     throw error;

@@ -14,6 +14,7 @@ import {
   notFoundOnSentinel,
   orNotFound,
 } from "./api-error";
+import { statusErrorAdapter } from "./status-error-adapter";
 
 function mockResponse(body: string, init: { status?: number; statusText?: string } = {}) {
   const { status = 500, statusText = "Internal Server Error" } = init;
@@ -65,8 +66,25 @@ describe("isNotFoundSentinel", () => {
     expect(isNotFoundSentinel(notFoundError())).toBe(true);
   });
 
-  it("matches a sentinel rebuilt after the server-function boundary", () => {
-    expect(isNotFoundSentinel(new Error("NOT_FOUND"))).toBe(true);
+  it("matches a sentinel rebuilt by the status-error adapter after the server-function boundary", () => {
+    const adapted = statusErrorAdapter.fromSerializable(
+      statusErrorAdapter.toSerializable(notFoundError() as Error & { status: number }),
+    );
+    expect(isNotFoundSentinel(adapted)).toBe(true);
+  });
+
+  it("matches on name and status, not on the message", () => {
+    expect(isNotFoundSentinel(new Error("NOT_FOUND"))).toBe(false);
+    expect(isNotFoundSentinel(Object.assign(new Error("NOT_FOUND"), { status: 404 }))).toBe(false);
+  });
+
+  it("rejects an API 404 and an undeclared oRPC NOT_FOUND", () => {
+    expect(
+      isNotFoundSentinel(
+        new ApiError("Deck not found", { status: 404, code: "NOT_FOUND", diagnostic: "" }),
+      ),
+    ).toBe(false);
+    expect(isNotFoundSentinel(new ORPCError("NOT_FOUND"))).toBe(false);
   });
 
   it("rejects other errors and non-errors", () => {
@@ -118,12 +136,10 @@ describe("notFoundOnSentinel", () => {
     expect(isNotFound(thrown)).toBe(true);
   });
 
-  it("matches the sentinel after the server-function boundary dropped its status", async () => {
-    const thrown = await notFoundOnSentinel(Promise.reject(new Error("NOT_FOUND"))).catch(
-      (error: unknown) => error,
-    );
+  it("passes an error that only shares the sentinel's message through unchanged", async () => {
+    const failure = new Error("NOT_FOUND");
 
-    expect(isNotFound(thrown)).toBe(true);
+    await expect(notFoundOnSentinel(Promise.reject(failure))).rejects.toBe(failure);
   });
 
   it("passes any other failure through unchanged", async () => {

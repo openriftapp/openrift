@@ -7,6 +7,7 @@ import type {
 } from "@orpc/contract";
 import { OpenAPILink } from "@orpc/openapi-client/fetch";
 
+import { apiFetch } from "@/lib/api-fetch";
 import { tagProcedure } from "@/lib/orpc-procedure-tag";
 
 import { fetchWithDeadline } from "./api-deadline";
@@ -45,7 +46,10 @@ export function apiOrpcClient<TContract extends AnyContractRouter>(
 export function browserApiOrpcClient<TContract extends AnyContractRouter>(
   contract: TContract,
 ): ContractRouterClient<TContract> {
-  const link = new OpenAPILink(contract, { url: () => globalThis.location.origin });
+  const link = new OpenAPILink(contract, {
+    url: () => globalThis.location.origin,
+    fetch: (request, init) => apiFetch(request, init),
+  });
   return createORPCClient(withProcedureTag(link));
 }
 

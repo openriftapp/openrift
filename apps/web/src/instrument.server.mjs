@@ -8,6 +8,7 @@ import { SENTRY_DATA_COLLECTION } from "@openrift/shared/sentry-data-collection"
 import * as Sentry from "@sentry/tanstackstart-react";
 
 import { dropExpectedClientErrors, fingerprintApiFaults } from "./lib/sentry-server-filter";
+import { START_MISSING_SERVER_FN_PATTERN } from "./lib/stale-server-fn-signal";
 
 // Skip in local dev to keep stray dev events out of the shared Sentry project.
 const appEnv = parseAppEnv(process.env.APP_ENV);
@@ -26,7 +27,7 @@ if (dsn && appEnv !== "development") {
     ignoreErrors: [
       "NOT_FOUND",
       /^AbortError: The connection was closed/u,
-      /^Server function (?:info not found|module not resolved)/u,
+      START_MISSING_SERVER_FN_PATTERN,
     ],
     beforeSend: (event, hint) => {
       const kept = dropExpectedClientErrors(event, hint);

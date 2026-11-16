@@ -5,6 +5,7 @@ import { createClientRpc } from "@tanstack/react-start/client-rpc";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { isStaleServerFnError } from "@/lib/stale-bundle-reload";
+import { STALE_SERVER_FN_HEADER } from "@/lib/stale-server-fn-signal";
 
 import { isApiError } from "./api-error";
 import { serverFnFetch } from "./server-fn-fetch";
@@ -13,6 +14,13 @@ const URL = "/_serverFn/abc";
 
 function stubFetch(response: Response) {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response));
+}
+
+function staleResponse(body = "") {
+  return new Response(body, {
+    status: 404,
+    headers: { "content-type": "text/plain; charset=utf-8", [STALE_SERVER_FN_HEADER]: "1" },
+  });
 }
 
 const HTML_PAGE = "<html><body><h1>500 Internal Server Error</h1></body></html>";
@@ -58,13 +66,8 @@ describe("a server-function call through Start's client", () => {
     await expect(call({})).rejects.toThrow(HTML_PAGE);
   });
 
-  it("rejects the stale-function 404 with its message through the app's fetch", async () => {
-    stubFetch(
-      new Response("Server function info not found for abc", {
-        status: 404,
-        headers: { "content-type": "text/plain; charset=utf-8" },
-      }),
-    );
+  it("rejects the stale-function signal with the stale error through the app's fetch", async () => {
+    stubFetch(staleResponse());
     const error: unknown = await call({ fetch: serverFnFetch }).catch((error_: unknown) => error_);
     expect(isStaleServerFnError(error)).toBe(true);
   });
@@ -147,13 +150,28 @@ describe("serverFnFetch", () => {
     expect(logged.body.length).toBeLessThanOrEqual(500);
   });
 
-  it("returns the stale-function 404 so Start rejects with its message and the page reloads", async () => {
-    const response = new Response("Server function info not found for abc", {
-      status: 404,
-      headers: { "content-type": "text/plain; charset=utf-8" },
-    });
-    stubFetch(response);
-    await expect(serverFnFetch(URL, { method: "POST" })).resolves.toBe(response);
+  it("rejects the stale-function signal by its header, whatever the body says", async () => {
+    stubFetch(staleResponse("anything"));
+    const error: unknown = await serverFnFetch(URL, { method: "POST" }).catch(
+      (error_: unknown) => error_,
+    );
+    expect(isStaleServerFnError(error)).toBe(true);
+    expect(isApiError(error)).toBe(false);
+  });
+
+  it("treats a plain-text 404 without the header as an ordinary failure", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    stubFetch(
+      new Response("Server function info not found for abc", {
+        status: 404,
+        headers: { "content-type": "text/plain; charset=utf-8" },
+      }),
+    );
+    const error: unknown = await serverFnFetch(URL, { method: "POST" }).catch(
+      (error_: unknown) => error_,
+    );
+    expect(isStaleServerFnError(error)).toBe(false);
+    expect(error).toMatchObject({ status: 404 });
   });
 
   it("returns an ok non-JSON response untouched", async () => {

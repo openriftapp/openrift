@@ -2,6 +2,7 @@ import { isNotFound } from "@tanstack/react-router";
 import { describe, expect, it, vi } from "vitest";
 
 import { metaKeys } from "@/features/meta/lib/meta-query-keys";
+import { notFoundError } from "@/lib/server-fns/api-error";
 import { metaEvent, metaField, metaRow, metaStandings } from "@/test/meta-event-fixtures";
 
 import { Route } from "./meta_.$slug";
@@ -37,7 +38,7 @@ function runLoader(
   const query = vi.fn((options: { queryKey: readonly unknown[] }) => {
     if (options.queryKey[0] === "meta") {
       if (overrides.missing === true) {
-        return Promise.reject(new Error("NOT_FOUND"));
+        return Promise.reject(notFoundError());
       }
       return Promise.resolve({
         event: metaEvent(),

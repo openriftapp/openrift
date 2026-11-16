@@ -43,6 +43,11 @@ vi.mock("@opentelemetry/api", () => ({
   },
 }));
 
+const apiFetchSpy = vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+  globalThis.fetch(input, init),
+);
+vi.mock("@/lib/api-fetch", () => ({ apiFetch: apiFetchSpy }));
+
 const { apiOrpcClient, browserApiOrpcClient } = await import("./orpc-client");
 const { taggedProcedure } = await import("@/lib/orpc-procedure-tag");
 
@@ -128,6 +133,18 @@ describe("browserApiOrpcClient", () => {
     expect(typeof url).toBe("function");
     expect((url as () => string)()).toBe(globalThis.location.origin);
     expect(linkOptions[0]!.headers).toBeUndefined();
+  });
+
+  it("sends requests through apiFetch, so responses get the build id and format check", async () => {
+    const response = new Response("ok", { headers: { "X-Api-Format": "1" } });
+    const fetchSpy = vi.fn().mockResolvedValue(response);
+    vi.stubGlobal("fetch", fetchSpy);
+    browserApiOrpcClient(dummyContract);
+    const request = new Request("https://openrift.test/api/v1/prices");
+
+    await expect(linkOptions[0]!.fetch!(request, {})).resolves.toBe(response);
+    expect(apiFetchSpy).toHaveBeenCalledWith(request, {});
+    vi.unstubAllGlobals();
   });
 
   it("does not read location while building the link", () => {

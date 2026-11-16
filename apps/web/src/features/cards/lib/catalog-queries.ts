@@ -16,6 +16,7 @@ import {
   seedCatalogVersion,
   versionFromEtag,
 } from "@/features/cards/lib/catalog-version";
+import { apiFetch } from "@/lib/api-fetch";
 import type { GroupInfo } from "@/lib/card-group-types";
 import { serverCacheKeys } from "@/lib/query-keys";
 import { captureHandledError } from "@/lib/report-error";
@@ -31,7 +32,7 @@ async function fetchCatalogResponse(
   url: string,
   headers?: Record<string, string>,
 ): Promise<Response> {
-  const res = await fetch(url, headers ? { headers } : undefined);
+  const res = await apiFetch(url, headers ? { headers } : undefined);
   if (!res.ok) {
     throw await apiErrorFromResponse(res, "Couldn't load catalog", { method: "GET", url });
   }

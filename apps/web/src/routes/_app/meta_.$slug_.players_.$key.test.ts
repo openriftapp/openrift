@@ -2,6 +2,7 @@ import type { MetaRunRound } from "@openrift/shared/types/api/meta";
 import { isNotFound } from "@tanstack/react-router";
 import { describe, expect, it, vi } from "vitest";
 
+import { notFoundError } from "@/lib/server-fns/api-error";
 import { metaEvent, metaPhase, metaRow } from "@/test/meta-event-fixtures";
 
 import { Route } from "./meta_.$slug_.players_.$key";
@@ -34,7 +35,7 @@ function runLoader(
       // The endpoint 404s a key no standings row answers to; the server
       // function turns that into this error.
       if (overrides.missing === true) {
-        return Promise.reject(new Error("NOT_FOUND"));
+        return Promise.reject(notFoundError());
       }
       return Promise.resolve({
         event: metaEvent(),
