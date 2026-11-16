@@ -1,3 +1,4 @@
+import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import { describe, expect, it, vi } from "vitest";
 
 import type { Repos } from "../../../deps.js";
@@ -5,6 +6,7 @@ import type { TradeMatchDigestDeps } from "./trade-match-digest.js";
 import {
   extractDigestWatermark,
   isTradeMatchDigestNoop,
+  runTradeMatchDigest,
   sendTradeMatchDigest,
 } from "./trade-match-digest.js";
 
@@ -157,5 +159,46 @@ describe("sendTradeMatchDigest", () => {
       failed: 0,
       matchesDropped: 0,
     });
+  });
+});
+
+describe("runTradeMatchDigest", () => {
+  function runDeps(overrides: Record<string, unknown> = {}) {
+    const jobRuns = {
+      getLatestForResume: vi.fn(async () => ({
+        result: { lastRunAt: "2026-06-17T00:00:00.000Z" },
+      })),
+      mergeResult: vi.fn(async () => {}),
+    };
+    const { sinceTimestamp: _since, ...deps } = digestDeps(
+      vi.fn(() => Promise.resolve()) as unknown as TradeMatchDigestDeps["sendEmail"],
+    );
+    const repos = { ...deps.repos, jobRuns, ...overrides } as unknown as Repos;
+    return { deps: { ...deps, repos }, jobRuns };
+  }
+
+  it("starts at the previous run's watermark and returns its own", async () => {
+    const { deps, jobRuns } = runDeps();
+    const result = await runTradeMatchDigest(deps, "run-1");
+
+    expect(jobRuns.getLatestForResume).toHaveBeenCalledWith(JOB_KIND.emailTradeMatchDigest);
+    expect(result.emailsSent).toBe(2);
+    expect(Number.isNaN(Date.parse(result.lastRunAt))).toBe(false);
+  });
+
+  it("records its watermark when the run throws partway", async () => {
+    const { deps, jobRuns } = runDeps({
+      catalog: { printingNamesByIds: () => Promise.reject(new Error("db gone")) },
+    });
+
+    await expect(runTradeMatchDigest(deps, "run-1")).rejects.toThrow("db gone");
+    expect(jobRuns.mergeResult).toHaveBeenCalledWith("run-1", { lastRunAt: expect.any(String) });
+  });
+
+  it("takes an explicit start without reading the previous run", async () => {
+    const { deps, jobRuns } = runDeps();
+    await runTradeMatchDigest(deps, "run-1", new Date("2026-06-17T00:00:00.000Z"));
+
+    expect(jobRuns.getLatestForResume).not.toHaveBeenCalled();
   });
 });

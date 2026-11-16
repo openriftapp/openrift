@@ -53,6 +53,7 @@ export const adminSetSchema = z.object({
 export const adminCatalogContract = {
   listSets: authedRoute
     .route({ method: "GET", path: SETS, tags: [TAG] })
+    .meta({ adminSections: ["card-review", "printing-desk"] })
     .output(z.object({ sets: z.array(adminSetSchema) })),
   updateSet: authedRoute
     .route({ method: "PATCH", path: `${SETS}/{id}`, tags: [TAG], successStatus: 204 })

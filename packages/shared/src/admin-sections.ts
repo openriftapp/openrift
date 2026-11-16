@@ -1,8 +1,7 @@
 /**
- * Adding a section here also requires mapping it in
- * `apps/api/src/middleware/admin-section-paths.ts` (`sectionAllowsRequest`)
- * and `ADMIN_SECTION_ROUTES` in `apps/web/src/lib/admin-sections.ts`; both
- * fail closed for unmapped slugs.
+ * A section opens an admin procedure through `.meta({ adminSections: [...] })` on its
+ * contract; a procedure without one is admin-only. A new section also needs
+ * `ADMIN_SECTION_ROUTES` in `apps/web/src/lib/admin-sections.ts`, which fails closed.
  */
 export const ADMIN_SECTION_SLUGS = [
   "card-review",

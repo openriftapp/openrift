@@ -16,7 +16,11 @@ import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from "@opentelemetry/semantic
 
 let provider: TracerProvider | undefined;
 
-export function startTracing(serviceName: string): TracerProvider | undefined {
+/** `serviceVersion` is the deploy's build id (short commit hash); "dev" outside a build. */
+export function startTracing(
+  serviceName: string,
+  serviceVersion = "dev",
+): TracerProvider | undefined {
   const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
   if (!endpoint) {
     return undefined;
@@ -25,7 +29,7 @@ export function startTracing(serviceName: string): TracerProvider | undefined {
   provider = new TracerProvider({
     resource: resourceFromAttributes({
       [ATTR_SERVICE_NAME]: process.env.OTEL_SERVICE_NAME ?? serviceName,
-      [ATTR_SERVICE_VERSION]: process.env.BUILD_ID ?? "dev",
+      [ATTR_SERVICE_VERSION]: serviceVersion,
     }),
     spanProcessors: [
       new BatchSpanProcessor({

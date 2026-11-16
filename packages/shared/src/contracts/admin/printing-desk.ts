@@ -163,24 +163,28 @@ const deskUpdateInputSchema = printingIdParam
 export const adminPrintingDeskContract = {
   list: authedRoute
     .route({ method: "GET", path: `${BASE}/printings`, tags: [TAG] })
+    .meta({ adminSections: ["printing-desk"] })
     .input(deskListInputSchema)
     .output(deskListOutputSchema),
 
   // Every printing of the card, in every language, not only the desk's own.
   cardPrintings: authedRoute
     .route({ method: "GET", path: `${BASE}/cards/{cardSlug}`, tags: [TAG] })
+    .meta({ adminSections: ["printing-desk"] })
     .errors({ NOT_FOUND: { message: "Card not found" } })
     .input(cardSlugParam)
     .output(deskCardPrintingsOutputSchema),
 
   get: authedRoute
     .route({ method: "GET", path: `${BASE}/printings/{printingId}`, tags: [TAG] })
+    .meta({ adminSections: ["card-review", "printing-desk"] })
     .errors({ NOT_FOUND: { message: "Printing not found" } })
     .input(printingIdParam.extend({ side: z.coerce.number().int().min(1).max(2).optional() }))
     .output(deskGetOutputSchema),
 
   create: authedRoute
     .route({ method: "POST", path: `${BASE}/printings`, tags: [TAG], successStatus: 201 })
+    .meta({ adminSections: ["printing-desk"] })
     .errors({
       NOT_FOUND: { message: "Card or set not found" },
       BAD_REQUEST: { message: "Invalid printing fields" },
@@ -198,6 +202,7 @@ export const adminPrintingDeskContract = {
       tags: [TAG],
       successStatus: 204,
     })
+    .meta({ adminSections: ["printing-desk"] })
     .errors({
       NOT_FOUND: { message: "Printing not found" },
       BAD_REQUEST: { message: "Invalid printing fields" },
@@ -213,6 +218,7 @@ export const adminPrintingDeskContract = {
       tags: [TAG],
       successStatus: 204,
     })
+    .meta({ adminSections: ["printing-desk"] })
     .errors({
       NOT_FOUND: { message: "Printing not found" },
       BAD_REQUEST: { message: "The two faces must be different" },
@@ -228,6 +234,7 @@ export const adminPrintingDeskContract = {
       tags: [TAG],
       successStatus: 204,
     })
+    .meta({ adminSections: ["printing-desk"] })
     .errors({
       NOT_FOUND: { message: "Printing not found" },
       BAD_REQUEST: { message: "That face is not on the printing" },
@@ -245,6 +252,7 @@ export const adminPrintingDeskContract = {
       tags: [TAG],
       successStatus: 204,
     })
+    .meta({ adminSections: ["printing-desk"] })
     .errors({
       NOT_FOUND: { message: "Image file not found" },
       BAD_REQUEST: { message: "Invalid credit fields" },
@@ -260,6 +268,7 @@ export const adminPrintingDeskContract = {
       tags: [TAG],
       successStatus: 204,
     })
+    .meta({ adminSections: ["printing-desk"] })
     .errors({ NOT_FOUND: { message: "Printing image not found" } })
     .input(deskSetImageFaceInputSchema),
 };

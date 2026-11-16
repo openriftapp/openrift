@@ -10,11 +10,19 @@ function flattenCardText(text: string): string {
 }
 
 /** Keyed by name: ids are per-database. A name matching no catalog card is skipped. */
-const IMPLICIT_TOKEN_RULES: { tokenName: string; pattern: RegExp }[] = [
-  { tokenName: "Buff", pattern: /\bbuffs?\b/iu },
+const IMPLICIT_TOKEN_RULES: { tokenName: string; pattern: RegExp; mentions: string[] }[] = [
+  { tokenName: "Buff", pattern: /\bbuffs?\b/iu, mentions: ["buff"] },
   // Case-sensitive on purpose: "XP" is an initialism, "xp" is not.
-  { tokenName: "XP Tracker", pattern: /\bXP\b|\[Level\b/u },
+  { tokenName: "XP Tracker", pattern: /\bXP\b|\[Level\b/u, mentions: ["XP", "[Level"] },
 ];
+
+/** Substrings, compared without case, that any text referencing the token contains. */
+export function tokenMentions(tokenName: string): string[] {
+  const rule = IMPLICIT_TOKEN_RULES.find(
+    (candidate) => candidate.tokenName.toLowerCase() === tokenName.toLowerCase(),
+  );
+  return [tokenName, ...(rule?.mentions ?? [])];
+}
 
 /**
  * Must never be pointed at a localized printing: the anchor word and type words are English.

@@ -1,3 +1,4 @@
+import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import { groupPath } from "@openrift/shared/site-paths";
 
 import type { Repos } from "../../../deps.js";
@@ -38,6 +39,33 @@ export function extractDigestWatermark(result: unknown): Date | null {
   }
   const parsed = new Date(candidate);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+/**
+ * One digest job run. The run's start becomes the next run's watermark, also when the run
+ * throws partway, so a recipient already mailed is not mailed the same matches again.
+ * Without `sinceTimestamp`, the window starts at the previous run's watermark.
+ */
+export async function runTradeMatchDigest(
+  deps: Omit<TradeMatchDigestDeps, "sinceTimestamp">,
+  runId: string,
+  sinceTimestamp?: Date,
+): Promise<TradeMatchDigestResult & { lastRunAt: string }> {
+  const previousRun =
+    sinceTimestamp === undefined
+      ? await deps.repos.jobRuns.getLatestForResume(JOB_KIND.emailTradeMatchDigest)
+      : null;
+  const prior = sinceTimestamp ?? extractDigestWatermark(previousRun?.result);
+  // From the run start, not its end, so matches created mid-run are not skipped.
+  const watermark = { lastRunAt: new Date().toISOString() };
+  let result: TradeMatchDigestResult;
+  try {
+    result = await sendTradeMatchDigest({ ...deps, sinceTimestamp: prior });
+  } catch (error) {
+    await deps.repos.jobRuns.mergeResult(runId, watermark);
+    throw error;
+  }
+  return { ...result, ...watermark };
 }
 
 interface PendingGroup {

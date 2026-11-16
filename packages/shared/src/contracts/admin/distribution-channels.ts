@@ -32,6 +32,7 @@ export const channelSchema = z.object({
 export const adminDistributionChannelsContract = {
   list: authedRoute
     .route({ method: "GET", path: DC, tags: [TAG] })
+    .meta({ adminSections: ["card-review", "printing-desk"] })
     .output(z.object({ distributionChannels: z.array(channelSchema) })),
   reorder: authedRoute
     .route({ method: "PUT", path: `${DC}/reorder`, tags: [TAG], successStatus: 204 })
@@ -39,6 +40,7 @@ export const adminDistributionChannelsContract = {
     .input(z.object({ ids: z.array(z.string().min(1)).min(1) })),
   create: authedRoute
     .route({ method: "POST", path: DC, tags: [TAG], successStatus: 201 })
+    .meta({ adminSections: ["printing-desk"] })
     .errors({ CONFLICT: { message: "A distribution channel with that slug already exists" } })
     .input(
       z.object({

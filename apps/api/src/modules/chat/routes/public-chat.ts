@@ -2,8 +2,8 @@ import { lookupCard } from "@openrift/shared/card-search";
 import * as Sentry from "@sentry/bun";
 import { Hono } from "hono";
 
+import type { Repos } from "../../../deps.js";
 import type { Variables } from "../../../types.js";
-import type { ChatCardIndex } from "../lib/chat-card-index.js";
 import { createChatCardIndexLoader } from "../lib/chat-card-index.js";
 import {
   chatCardLine,
@@ -38,14 +38,8 @@ function chatResponse(line: string, cacheable = true): Response {
   });
 }
 
-/**
- * The lookup index memo is scoped to one app's `repos`; a module-level memo
- * would leak one app's catalogue into another's in tests.
- */
-export function createPublicChatRoute() {
-  // `repos` isn't available until the first request; it's fixed for the
-  // life of an app, so the memo stays valid after that.
-  let loadIndex: (() => Promise<ChatCardIndex>) | null = null;
+export function createPublicChatRoute(repos: Repos) {
+  const loadIndex = createChatCardIndexLoader(repos);
 
   return new Hono<{ Variables: Variables }>().get("/chat/card", async (c) => {
     const config = c.get("config");
@@ -57,7 +51,6 @@ export function createPublicChatRoute() {
     }
 
     try {
-      loadIndex ??= createChatCardIndexLoader(c.get("repos"));
       const { index, labels } = await loadIndex();
       const found = lookupCard(index, query);
       if (found.status === "tied") {

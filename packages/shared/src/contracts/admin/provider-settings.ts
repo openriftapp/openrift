@@ -20,6 +20,7 @@ const providerParamSchema = z.object({ provider: z.string().min(1) });
 export const adminProviderSettingsContract = {
   list: authedRoute
     .route({ method: "GET", path: PS, tags: [TAG] })
+    .meta({ adminSections: ["card-review"] })
     .output(z.object({ providerSettings: z.array(providerSettingSchema) })),
   reorder: authedRoute
     .route({ method: "PUT", path: `${PS}/reorder`, tags: [TAG], successStatus: 204 })

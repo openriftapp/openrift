@@ -49,6 +49,45 @@ describe("TradeChannelCache", () => {
     expect(cache.isTradeChannel("guild-1", "chan-2")).toBe(true);
   });
 
+  it("keeps a /tradechannel change made while a refresh was in flight", async () => {
+    const pending = Promise.withResolvers<unknown>();
+    const cache = new TradeChannelCache(clientsWith(() => pending.promise));
+    const refreshing = cache.refresh();
+    cache.set("guild-1", ["chan-9"]);
+    cache.set("guild-2", []);
+    pending.resolve({
+      guilds: [...GUILDS.guilds, { guildId: "guild-2", channelIds: ["chan-5"] }],
+    });
+    await refreshing;
+
+    expect(cache.isTradeChannel("guild-1", "chan-9")).toBe(true);
+    expect(cache.isTradeChannel("guild-1", "chan-1")).toBe(false);
+    expect(cache.isTradeChannel("guild-2", "chan-5")).toBe(false);
+  });
+
+  it("ignores a refresh that answers after a newer one", async () => {
+    const older = Promise.withResolvers<unknown>();
+    const fetcher = vi
+      .fn()
+      .mockReturnValueOnce(older.promise)
+      .mockResolvedValueOnce({ guilds: [{ guildId: "guild-1", channelIds: ["chan-2"] }] });
+    const cache = new TradeChannelCache(clientsWith(fetcher));
+    const first = cache.refresh();
+    await cache.refresh();
+    older.resolve(GUILDS);
+    await first;
+
+    expect(cache.isTradeChannel("guild-1", "chan-1")).toBe(false);
+    expect(cache.isTradeChannel("guild-1", "chan-2")).toBe(true);
+  });
+
+  it("takes the server's list again once a refresh starts after the change", async () => {
+    const cache = new TradeChannelCache(clientsWith(() => Promise.resolve(GUILDS)));
+    cache.set("guild-1", ["chan-9"]);
+    await cache.refresh();
+    expect(cache.isTradeChannel("guild-1", "chan-1")).toBe(true);
+  });
+
   it("forgets a guild whose last channel was turned off", async () => {
     const cache = new TradeChannelCache(clientsWith(() => Promise.resolve(GUILDS)));
     await cache.refresh();

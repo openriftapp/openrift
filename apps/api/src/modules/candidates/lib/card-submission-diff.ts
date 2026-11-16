@@ -2,13 +2,13 @@
  * What a user submission actually proposed to change, expressed as field paths.
  * Not compared: `domains`/`superTypes` (junction tables), `setId` (slug vs uuid),
  * and rules/effect text (not `cards` columns). Printings match by linked printing
- * id, else by `buildPrintingLinkKey` (never hand-roll it); paths always use the
- * matched live side's key.
+ * id, else by `buildSizedPrintingLinkKey` (never hand-roll it); paths always use the
+ * matched live side's unsized key.
  */
 import { hasFieldValue } from "@openrift/shared/catalog-field-compare";
 import { resolveFinish } from "@openrift/shared/printing-accept";
 
-import { buildPrintingLinkKey } from "../../../lib/printing-link-key.js";
+import { buildPrintingLinkKey, buildSizedPrintingLinkKey } from "../../../lib/printing-link-key.js";
 import type { ProposedCard, ProposedPrinting } from "../repositories/candidate-cards-review.js";
 import type { LivePrintingSnapshot, LiveSnapshot } from "../repositories/card-submissions.js";
 
@@ -113,13 +113,16 @@ export function computeProposedDiff(
       if (!finish) {
         continue;
       }
-      key = buildPrintingLinkKey({
+      const identity = {
         shortCode: printing.shortCode,
         finish,
         markerSlugs: printing.markerSlugs ?? [],
         language: printing.language ?? null,
-      });
-      livePrinting = live.printings.get(key);
+      };
+      key = buildPrintingLinkKey(identity);
+      livePrinting = live.printings.get(
+        buildSizedPrintingLinkKey({ ...identity, size: printing.size ?? null }),
+      );
     }
     if (!livePrinting) {
       // An unmatched printing is entirely new, whether or not the card exists.

@@ -22,6 +22,9 @@ export interface JobRun {
   noop: boolean | null;
 }
 
+/** A run's last sign of life: its newest heartbeat, else its start. */
+const lastSeenAt = sql<Date>`greatest(started_at, (result ->> 'heartbeatAt')::timestamptz)`;
+
 export function jobRunsRepo(db: Kysely<Database>) {
   return {
     /**
@@ -58,6 +61,7 @@ export function jobRunsRepo(db: Kysely<Database>) {
           noop: params.noop ?? null,
         })
         .where("id", "=", id)
+        .where("status", "=", "running")
         .execute();
     },
 
@@ -71,13 +75,14 @@ export function jobRunsRepo(db: Kysely<Database>) {
           errorMessage: params.errorMessage,
         })
         .where("id", "=", id)
+        .where("status", "=", "running")
         .execute();
     },
 
-    async getRunning(kind: string): Promise<{ id: string; startedAt: Date } | null> {
+    async getRunning(kind: string): Promise<{ id: string; lastSeenAt: Date } | null> {
       const row = await db
         .selectFrom("jobRuns")
-        .select(["id", "startedAt"])
+        .select(["id", lastSeenAt.as("lastSeenAt")])
         .where("kind", "=", kind)
         .where("status", "=", "running")
         .orderBy("startedAt", "desc")
@@ -167,6 +172,17 @@ export function jobRunsRepo(db: Kysely<Database>) {
         .limit(1)
         .executeTakeFirst();
       return row ?? null;
+    },
+
+    /** The newest ISO instant a run of `kind` started since `since` stored under `key` in its result. */
+    async latestResultInstant(kind: string, key: string, since: Date): Promise<Date | null> {
+      const row = await db
+        .selectFrom("jobRuns")
+        .select(sql<Date | null>`max((result ->> ${key})::timestamptz)`.as("latest"))
+        .where("kind", "=", kind)
+        .where("startedAt", ">=", since)
+        .executeTakeFirst();
+      return row?.latest ?? null;
     },
 
     listRecent(params: { kind?: string; limit?: number }): Promise<JobRun[]> {
@@ -346,8 +362,8 @@ export function jobRunsRepo(db: Kysely<Database>) {
       return Number(result.numUpdatedRows);
     },
 
-    /** Fails the run only while it is still `running` and started before `startedBefore`. */
-    async failStale(id: string, startedBefore: Date, errorMessage: string): Promise<boolean> {
+    /** Fails the run only while it is still `running` and was last seen before `seenBefore`. */
+    async failStale(id: string, seenBefore: Date, errorMessage: string): Promise<boolean> {
       const result = await db
         .updateTable("jobRuns")
         .set({
@@ -358,7 +374,7 @@ export function jobRunsRepo(db: Kysely<Database>) {
         })
         .where("id", "=", id)
         .where("status", "=", "running")
-        .where("startedAt", "<", startedBefore)
+        .where(lastSeenAt, "<", seenBefore)
         .executeTakeFirst();
       return result.numUpdatedRows > 0n;
     },

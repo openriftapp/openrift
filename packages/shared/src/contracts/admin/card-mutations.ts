@@ -509,6 +509,7 @@ export const adminCardMutationsContract = {
       tags: [TAG],
       successStatus: 204,
     })
+    .meta({ adminSections: ["card-review"] })
     .errors({
       NOT_FOUND: { message: "Candidate printing not found" },
       BAD_REQUEST: { message: "No valid fields to update" },
@@ -628,10 +629,12 @@ export const adminCardMutationsContract = {
     .input(cardIdParam.extend({ language: cardErrataFieldRules.language })),
   acceptField: authedRoute
     .route({ method: "POST", path: `${CARDS}/{cardId}/accept-field`, tags: [TAG] })
+    .meta({ adminSections: ["card-review"] })
     .input(cardIdParam.extend(acceptCardFieldBodySchema.shape))
     .output(acceptFieldResultSchema),
   acceptPrintingField: authedRoute
     .route({ method: "POST", path: `${CARDS}/printing/{printingId}/accept-field`, tags: [TAG] })
+    .meta({ adminSections: ["card-review"] })
     .errors({ NOT_FOUND: { message: "Printing or set not found" } })
     .input(printingIdParam.extend(acceptPrintingFieldBodySchema.shape))
     .output(acceptFieldResultSchema),
@@ -646,6 +649,7 @@ export const adminCardMutationsContract = {
     .output(uploadErrataResponseSchema),
   acceptNewCard: authedRoute
     .route({ method: "POST", path: `${CARDS}/new/{name}/accept`, tags: [TAG], successStatus: 204 })
+    .meta({ adminSections: ["card-review"] })
     .input(z.object({ name: z.string(), cardFields: cardFieldsSchema })),
   acceptFavoriteNewCard: authedRoute
     .route({ method: "POST", path: `${CARDS}/new/{name}/accept-favorites`, tags: [TAG] })
@@ -671,6 +675,7 @@ export const adminCardMutationsContract = {
     .input(z.object({ name: z.string(), cardId: z.string() })),
   acceptPrinting: authedRoute
     .route({ method: "POST", path: `${CARDS}/{cardId}/accept-printing`, tags: [TAG] })
+    .meta({ adminSections: ["card-review"] })
     .errors({
       NOT_FOUND: { message: "Card or printing not found" },
       BAD_REQUEST: { message: "Invalid printing fields" },

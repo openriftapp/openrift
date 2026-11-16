@@ -1,11 +1,13 @@
 import { WellKnown } from "@openrift/shared/well-known";
 import type { Kysely } from "kysely";
+import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import { rowBatches } from "../../../lib/bind-batches.js";
+import { containsPattern } from "../../../lib/like-pattern.js";
 import { inTransaction } from "../../../repositories/query-helpers.js";
 import type { TokenCardName } from "../lib/card-tokens.js";
-import { findTokenReferences } from "../lib/card-tokens.js";
+import { findTokenReferences, tokenMentions } from "../lib/card-tokens.js";
 
 interface TokenTextSources {
   errata: { correctedRulesText: string | null; correctedEffectText: string | null } | undefined;
@@ -92,8 +94,51 @@ export function cardTokensRepo(db: Kysely<Database>) {
     await writeDerived(db, cardId, tokenCardIds);
   }
 
+  /**
+   * After a card is created, renamed or gains or loses the token super type: recomputes the cards
+   * linked to it and, while it is a token, the cards whose English text mentions its name.
+   */
+  async function recomputeForTokenCard(tokenCardId: string): Promise<void> {
+    const tokens = await tokenCards();
+    const token = tokens.find((row) => row.cardId === tokenCardId);
+    const patterns = token ? tokenMentions(token.name).map((term) => containsPattern(term)) : [];
+    const mentionedIn = (...columns: string[]) =>
+      columns.flatMap((column) =>
+        patterns.map((pattern) => sql<boolean>`${sql.ref(column)} ilike ${pattern}`),
+      );
+
+    const linked = db
+      .selectFrom("cardTokens")
+      .select("cardId")
+      .where("tokenCardId", "=", tokenCardId)
+      .where("source", "=", "derived");
+    const query =
+      patterns.length === 0
+        ? linked
+        : linked
+            .union(
+              db
+                .selectFrom("faces")
+                .select("cardId")
+                .where("language", "=", WellKnown.language.EN)
+                .where((eb) => eb.or(mentionedIn("printedRulesText", "printedEffectText"))),
+            )
+            .union(
+              db
+                .selectFrom("cardErrata")
+                .select("cardId")
+                .where("language", "=", WellKnown.language.EN)
+                .where((eb) => eb.or(mentionedIn("correctedRulesText", "correctedEffectText"))),
+            );
+    const rows = await query.execute();
+    for (const { cardId } of rows) {
+      await recomputeForCard(cardId);
+    }
+  }
+
   return {
     recomputeForCard,
+    recomputeForTokenCard,
 
     async recomputeForPrintingCard(printingId: string): Promise<void> {
       const rows = await db

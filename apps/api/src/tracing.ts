@@ -8,4 +8,6 @@
 
 import { startTracing } from "@openrift/shared/otel-node";
 
-startTracing("openrift-api");
+import { readBuildId } from "./lib/build-id.js";
+
+startTracing("openrift-api", readBuildId(process.env));

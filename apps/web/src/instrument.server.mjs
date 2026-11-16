@@ -7,6 +7,7 @@ import { parseAppEnv } from "@openrift/shared/app-env";
 import { SENTRY_DATA_COLLECTION } from "@openrift/shared/sentry-data-collection";
 import * as Sentry from "@sentry/tanstackstart-react";
 
+import { COMMIT_HASH } from "./lib/env";
 import { dropExpectedClientErrors, fingerprintApiFaults } from "./lib/sentry-server-filter";
 import { START_MISSING_SERVER_FN_PATTERN } from "./lib/stale-server-fn-signal";
 
@@ -17,7 +18,7 @@ if (dsn && appEnv !== "development") {
   Sentry.init({
     dsn,
     environment: appEnv,
-    release: process.env.COMMIT_HASH,
+    release: COMMIT_HASH,
     dataCollection: SENTRY_DATA_COLLECTION,
     // Our own OTel SDK (tracing.server.ts) owns tracing; Sentry events take the
     // trace id of the active OTel span so an issue pivots to its Tempo trace.

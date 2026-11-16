@@ -1,4 +1,5 @@
 import { execSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { createReadStream, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
@@ -16,6 +17,7 @@ import Sonda from "sonda/vite";
 import type { Plugin, ViteDevServer } from "vite";
 import { defineConfig, loadEnv } from "vite";
 
+import { serverFnId } from "./src/lib/server-fn-id.ts";
 import { adminRouteSplitBehavior } from "./vite-plugins/admin-route-split.ts";
 import { bootChunkGuardPlugin } from "./vite-plugins/boot-chunk-guard.ts";
 import { latestMilestonePlugin } from "./vite-plugins/latest-milestone.ts";
@@ -307,20 +309,22 @@ export default defineConfig(({ mode, command }) => {
       // job's `tsr generate` read the same routeFileIgnorePattern.
       tanstackStart({
         router: { codeSplittingOptions: { splitBehavior: adminRouteSplitBehavior } },
-        // E2E builds use dev-style ids so specs can match a server fn by its export name.
-        ...(process.env.E2E_READABLE_SERVER_FN_IDS
-          ? {
-              serverFns: {
-                generateFunctionId: ({ filename, functionName }) =>
-                  Buffer.from(
-                    JSON.stringify({
-                      file: path.relative(repoRoot, filename),
-                      export: functionName,
-                    }),
-                  ).toString("base64url"),
-              },
-            }
-          : {}),
+        serverFns: {
+          // E2E builds use dev-style ids so specs can match a server fn by its export name.
+          generateFunctionId: process.env.E2E_READABLE_SERVER_FN_IDS
+            ? ({ filename, functionName }) =>
+                Buffer.from(
+                  JSON.stringify({
+                    file: path.relative(repoRoot, filename),
+                    export: functionName,
+                  }),
+                ).toString("base64url")
+            : ({ filename, functionName }) =>
+                serverFnId(
+                  functionName,
+                  createHash("sha256").update(`${filename}--${functionName}`).digest("hex"),
+                ),
+        },
       }),
       // Build only: in dev, Nitro caches stale SSR HTML after HMR, causing
       // hydration mismatches. https://github.com/TanStack/router/issues/6556

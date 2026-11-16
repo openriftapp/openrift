@@ -15,6 +15,7 @@ const BASE = "/api/admin/v1/finishes";
 export const adminFinishesContract = {
   list: authedRoute
     .route({ method: "GET", path: BASE, tags: [TAG] })
+    .meta({ adminSections: ["printing-desk"] })
     .output(z.object({ finishes: z.array(taxonomyEntitySchema) })),
   reorder: authedRoute
     .route({ method: "PUT", path: `${BASE}/reorder`, tags: [TAG], successStatus: 204 })

@@ -56,18 +56,21 @@ export const candidateCardSummarySchema = z.object({
 export const adminCardQueriesContract = {
   allCards: authedRoute
     .route({ method: "GET", path: `${CARDS}/all-cards`, tags: [TAG] })
+    .meta({ adminSections: ["card-review", "custom-tags", "printing-desk"] })
     .output(z.array(allCardsItemSchema)),
   providerNames: authedRoute
     .route({ method: "GET", path: `${CARDS}/provider-names`, tags: [TAG] })
     .output(z.array(z.string())),
   distinctArtists: authedRoute
     .route({ method: "GET", path: `${CARDS}/distinct-artists`, tags: [TAG] })
+    .meta({ adminSections: ["card-review", "printing-desk"] })
     .output(z.array(z.string())),
   providerStats: authedRoute
     .route({ method: "GET", path: `${CARDS}/provider-stats`, tags: [TAG] })
     .output(z.array(providerStatsItemSchema)),
   listCandidates: authedRoute
     .route({ method: "GET", path: CARDS, tags: [TAG] })
+    .meta({ adminSections: ["card-review"] })
     .output(z.array(candidateCardSummarySchema)),
   exportCandidates: authedRoute
     .route({ method: "GET", path: `${CARDS}/export`, tags: [TAG] })
@@ -77,10 +80,12 @@ export const adminCardQueriesContract = {
     .output(z.array(errataAnnouncementSchema)),
   getCandidateCard: authedRoute
     .route({ method: "GET", path: `${CARDS}/{cardSlug}`, tags: [TAG] })
+    .meta({ adminSections: ["card-review", "printing-desk"] })
     .input(z.object({ cardSlug: z.string() }))
     .output(adminCardDetailResponseSchema),
   getUnmatchedDetail: authedRoute
     .route({ method: "GET", path: `${CARDS}/new/{name}`, tags: [TAG] })
+    .meta({ adminSections: ["card-review"] })
     .input(z.object({ name: z.string() }))
     .output(unmatchedCardDetailResponseSchema),
 };

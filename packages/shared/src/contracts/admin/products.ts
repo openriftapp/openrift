@@ -27,9 +27,11 @@ const updateProductInput = z.object({
 export const adminProductsContract = {
   printingIds: authedRoute
     .route({ method: "GET", path: `${PRODUCTS}/printing-ids`, tags: [TAG] })
+    .meta({ adminSections: ["products"] })
     .output(z.object({ printingIds: z.array(z.string()) })),
   create: authedRoute
     .route({ method: "POST", path: PRODUCTS, tags: [TAG], successStatus: 201 })
+    .meta({ adminSections: ["products"] })
     .errors({
       CONFLICT: { message: "Slug already in use" },
       NOT_FOUND: { message: "List not found" },
@@ -39,6 +41,7 @@ export const adminProductsContract = {
     .output(z.object({ product: productSummarySchema })),
   resyncContents: authedRoute
     .route({ method: "PUT", path: `${PRODUCTS}/{id}/contents`, tags: [TAG], successStatus: 204 })
+    .meta({ adminSections: ["products"] })
     .errors({
       NOT_FOUND: { message: "Product or list not found" },
       BAD_REQUEST: { message: "List cannot be snapshotted" },
@@ -46,6 +49,7 @@ export const adminProductsContract = {
     .input(withParams(idParamSchema, { listId: z.uuid() })),
   update: authedRoute
     .route({ method: "PATCH", path: `${PRODUCTS}/{id}`, tags: [TAG], successStatus: 204 })
+    .meta({ adminSections: ["products"] })
     .errors({
       NOT_FOUND: { message: "Product not found" },
       CONFLICT: { message: "Slug already in use" },
@@ -53,6 +57,7 @@ export const adminProductsContract = {
     .input(withParams(idParamSchema, updateProductInput)),
   remove: authedRoute
     .route({ method: "DELETE", path: `${PRODUCTS}/{id}`, tags: [TAG], successStatus: 204 })
+    .meta({ adminSections: ["products"] })
     .errors({ NOT_FOUND: { message: "Product not found" } })
     .input(idParamSchema),
 };

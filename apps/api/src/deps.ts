@@ -5,8 +5,12 @@ import type { Database } from "./db/tables.js";
 import type { EmailDeps } from "./email.js";
 import { createCandidatesRepos, createCandidatesServices } from "./modules/candidates/wiring.js";
 import type { CandidatesRepos, CandidatesServices } from "./modules/candidates/wiring.js";
-import { createCatalogRepos, createCatalogRuleSources } from "./modules/catalog/wiring.js";
-import type { CatalogRepos } from "./modules/catalog/wiring.js";
+import {
+  createCatalogCaches,
+  createCatalogRepos,
+  createCatalogRuleSources,
+} from "./modules/catalog/wiring.js";
+import type { CatalogCaches, CatalogRepos } from "./modules/catalog/wiring.js";
 import { createCollectionsRepos, createOwnedCopiesReader } from "./modules/collections/wiring.js";
 import type { CollectionsRepos } from "./modules/collections/wiring.js";
 import { createDecksRepos } from "./modules/decks/wiring.js";
@@ -46,7 +50,16 @@ export type Repos = CandidatesRepos &
 
 export type Services = CandidatesServices & GroupsServices & MetaServices & ScanServices;
 
-function instrumentModules(modules: readonly object[]): Repos {
+type Intersection<Modules extends readonly object[]> = Modules extends readonly [
+  infer Head,
+  ...infer Rest extends readonly object[],
+]
+  ? Head & Intersection<Rest>
+  : unknown;
+
+function instrumentModules<const Modules extends readonly object[]>(
+  modules: Modules,
+): Intersection<Modules> {
   const slots: Record<string, unknown> = {};
   for (const module of modules) {
     for (const [name, repo] of Object.entries(module)) {
@@ -56,11 +69,23 @@ function instrumentModules(modules: readonly object[]): Repos {
       slots[name] = instrumentRepo(name, repo as Record<string, unknown>);
     }
   }
-  return slots as unknown as Repos;
+  return slots as Intersection<Modules>;
 }
 
-export function createRepos(db: Kysely<Database>): Repos {
-  const catalogSources = createCatalogRuleSources(db, () => createRepos(db));
+const catalogCachesByPool = new WeakMap<Kysely<Database>, CatalogCaches>();
+
+function catalogCachesFor(db: Kysely<Database>): CatalogCaches {
+  let caches = catalogCachesByPool.get(db);
+  if (!caches) {
+    let poolRepos: Repos | undefined;
+    caches = createCatalogCaches(db, () => (poolRepos ??= createRepos(db)));
+    catalogCachesByPool.set(db, caches);
+  }
+  return caches;
+}
+
+function buildRepos(db: Kysely<Database>, caches: CatalogCaches): Repos {
+  const catalogSources = createCatalogRuleSources(db, caches);
   const ruleProviders = {
     assembleCatalog: catalogSources.assembleCatalog,
     ownedCopies: createOwnedCopiesReader(db),
@@ -76,7 +101,7 @@ export function createRepos(db: Kysely<Database>): Repos {
     createGroupsRepos(db, ruleProviders),
     createListsRepos(db, ruleProviders),
     createMarketplaceRepos(db),
-    createMetaRepos(db, (trx) => (trx === db ? repos : createRepos(trx))),
+    createMetaRepos(db, (trx) => (trx === db ? repos : buildRepos(trx, caches))),
     createScanRepos(db),
     createStageRepos(db),
     createSystemRepos(db),
@@ -86,11 +111,17 @@ export function createRepos(db: Kysely<Database>): Repos {
   return repos;
 }
 
+/** Catalog caches are built once per pool and shared with every transaction `createTransact` opens on it. */
+export function createRepos(db: Kysely<Database>): Repos {
+  return buildRepos(db, catalogCachesFor(db));
+}
+
 export type Transact = <T>(fn: (repos: Repos) => Promise<T>) => Promise<T>;
 
 export function createTransact(db: Kysely<Database>): Transact {
+  const caches = catalogCachesFor(db);
   return <T>(fn: (repos: Repos) => Promise<T>) =>
-    db.transaction().execute((trx) => fn(createRepos(trx)));
+    db.transaction().execute((trx) => fn(buildRepos(trx, caches)));
 }
 
 export function createServices(emailDeps?: EmailDeps): Services {

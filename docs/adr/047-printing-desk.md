@@ -42,7 +42,7 @@ Option 1 keeps the admin as the bottleneck for every promo, which is the problem
 
 ### Confirmation
 
-`admin-section-paths.test.ts` pins the desk's allowlist. `require-admin` integration coverage shows a desk grant reaching the desk and image endpoints and being refused elsewhere. The renderer has unit tests per label and aspect producing a valid PNG. The ownership rule has a test where a grant holder updating a printing created by someone else gets a 403 and updating their own succeeds.
+`admin-sections.test.ts` pins the desk's allowlist. `require-admin` integration coverage shows a desk grant reaching the desk and image endpoints and being refused elsewhere. The renderer has unit tests per label and aspect producing a valid PNG. The ownership rule has a test where a grant holder updating a printing created by someone else gets a 403 and updating their own succeeds.
 
 ## Design
 

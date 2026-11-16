@@ -4,6 +4,7 @@ import type { BoosterRow, ResolvedBooster } from "@openrift/shared/boosters/type
 import { joinCatalogPrintings } from "@openrift/shared/catalog-join";
 import type { ProductCoverCard } from "@openrift/shared/contracts/products";
 import { PRODUCT_COVER_CARD_COUNT } from "@openrift/shared/contracts/products";
+import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Repos } from "../../../deps.js";
@@ -13,7 +14,7 @@ interface BoosterIndex {
   covers: Record<string, ProductCoverCard[]>;
 }
 
-const built = new WeakMap<Repos, { version: string; index: BoosterIndex }>();
+const built = new WeakMap<CatalogResponse, BoosterIndex>();
 
 const COVER_OUTCOMES = ["alt-art", "epic"];
 
@@ -33,25 +34,23 @@ function coverCards(booster: ResolvedBooster): ProductCoverCard[] {
     .slice(0, PRODUCT_COVER_CARD_COUNT);
 }
 
-async function boosterIndex(repos: Repos): Promise<BoosterIndex> {
-  const { version, value: catalog } = await repos.catalogResponse.current();
-  let entry = built.get(repos);
-  if (entry?.version !== version) {
+/** Keyed by the cached response object, which the catalog cache shares for one version across the app and its transactions. */
+async function boosterIndex(repos: Pick<Repos, "catalogResponse">): Promise<BoosterIndex> {
+  const { value: catalog } = await repos.catalogResponse.current();
+  let index = built.get(catalog);
+  if (!index) {
     const boosters = resolveAllBoosters(toBoosterPrintings(joinCatalogPrintings(catalog)));
-    entry = {
-      version,
-      index: {
-        rows: boosterRowsByPrinting(boosters),
-        covers: Object.fromEntries(
-          boosters
-            .filter((booster) => booster.language === WellKnown.language.EN)
-            .map((booster) => [booster.slug, coverCards(booster)]),
-        ),
-      },
+    index = {
+      rows: boosterRowsByPrinting(boosters),
+      covers: Object.fromEntries(
+        boosters
+          .filter((booster) => booster.language === WellKnown.language.EN)
+          .map((booster) => [booster.slug, coverCards(booster)]),
+      ),
     };
-    built.set(repos, entry);
+    built.set(catalog, index);
   }
-  return entry.index;
+  return index;
 }
 
 export async function boosterRowsFor(

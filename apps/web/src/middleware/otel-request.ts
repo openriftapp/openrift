@@ -9,45 +9,13 @@ import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { createMiddleware } from "@tanstack/react-start";
 
+import { serverFnNameFromPath } from "@/lib/server-fn-id";
 import { contextWithClientIp } from "@/lib/server-fns/client-ip-context";
 import { routeTree } from "@/routeTree.gen";
 
 const tracer = trace.getTracer("openrift-web/http");
 
 const SERVER_FN_PREFIX = "/_serverFn/";
-// Production builds address server functions by a SHA-256 id instead of the dev payload.
-const HASHED_SERVER_FN = /^\/_serverFn\/[0-9a-f]{64}$/u;
-
-interface ServerFnIdentity {
-  name: string;
-  file: string;
-}
-
-// TanStack Start identifies server functions via a base64-encoded JSON payload
-// appended to `/_serverFn/`: `{ file: "/src/...", export: "<fnName>_createServerFn_handler" }`.
-const decodeServerFn = (path: string): ServerFnIdentity | undefined => {
-  if (!path.startsWith(SERVER_FN_PREFIX)) {
-    return undefined;
-  }
-  const encoded = path.slice(SERVER_FN_PREFIX.length);
-  try {
-    const decoded: unknown = JSON.parse(Buffer.from(encoded, "base64").toString("utf-8"));
-    if (
-      decoded === null ||
-      typeof decoded !== "object" ||
-      typeof (decoded as { export?: unknown }).export !== "string"
-    ) {
-      return undefined;
-    }
-    const exportName = (decoded as { export: string }).export;
-    const fileName = (decoded as { file?: string }).file ?? "";
-    const name = exportName.replace(/_createServerFn_handler$/u, "");
-    const file = fileName.split("?")[0] ?? "";
-    return { name, file };
-  } catch {
-    return undefined;
-  }
-};
 
 let matcher: ReturnType<typeof createMatcher> | undefined;
 
@@ -57,9 +25,6 @@ const createMatcher = () =>
 // Tempo turns http.route and the span name into metric labels, so both carry
 // the route template; the concrete path stays on url.path.
 const routeTemplate = (pathname: string): string => {
-  if (HASHED_SERVER_FN.test(pathname)) {
-    return pathname;
-  }
   matcher ??= createMatcher();
   const [, rawParams, route] = matcher.getMatchedRoutes(pathname);
   if (!route || rawParams["**"] !== undefined) {
@@ -74,9 +39,9 @@ export const otelRequestMiddleware = createMiddleware().server(({ next, request 
   const url = new URL(request.url);
   const parentCtx = propagation.extract(ROOT_CONTEXT, headersToRecord(request.headers));
 
-  const serverFn = decodeServerFn(url.pathname);
-  const route = serverFn ? `${SERVER_FN_PREFIX}${serverFn.name}` : routeTemplate(url.pathname);
-  const spanName = serverFn ? `serverFn:${serverFn.name}` : `${request.method} ${route}`;
+  const serverFn = serverFnNameFromPath(url.pathname);
+  const route = serverFn ? `${SERVER_FN_PREFIX}${serverFn}` : routeTemplate(url.pathname);
+  const spanName = serverFn ? `serverFn:${serverFn}` : `${request.method} ${route}`;
 
   const attributes: Record<string, string> = {
     [ATTR_HTTP_REQUEST_METHOD]: request.method,
@@ -84,10 +49,7 @@ export const otelRequestMiddleware = createMiddleware().server(({ next, request 
     [ATTR_HTTP_ROUTE]: route,
   };
   if (serverFn) {
-    attributes["serverfn.name"] = serverFn.name;
-    if (serverFn.file) {
-      attributes["serverfn.file"] = serverFn.file;
-    }
+    attributes["serverfn.name"] = serverFn;
   }
 
   // Restored by the host nginx (CF-Connecting-IP via the realip module) and

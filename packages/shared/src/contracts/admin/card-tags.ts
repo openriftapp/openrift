@@ -61,14 +61,17 @@ const printedTag = z
 export const adminCardTagsContract = {
   listCategories: authedRoute
     .route({ method: "GET", path: CATEGORIES, tags: [TAG] })
+    .meta({ adminSections: ["card-tags"] })
     .output(adminTagCategoryListResponseSchema),
   createCategory: authedRoute
     .route({ method: "POST", path: CATEGORIES, tags: [TAG], successStatus: 201 })
+    .meta({ adminSections: ["card-tags"] })
     .errors({ CONFLICT: { message: "Category already exists" } })
     .input(createTagCategoryInput)
     .output(z.object({ category: tagCategoryResponseSchema })),
   updateCategory: authedRoute
     .route({ method: "PATCH", path: `${CATEGORIES}/{id}`, tags: [TAG], successStatus: 204 })
+    .meta({ adminSections: ["card-tags"] })
     .errors({
       NOT_FOUND: { message: "Category not found" },
       CONFLICT: { message: "Slug already in use" },
@@ -76,6 +79,7 @@ export const adminCardTagsContract = {
     .input(withParams(idParamSchema, updateTagCategoryInput)),
   removeCategory: authedRoute
     .route({ method: "DELETE", path: `${CATEGORIES}/{id}`, tags: [TAG], successStatus: 204 })
+    .meta({ adminSections: ["card-tags"] })
     .errors({
       NOT_FOUND: { message: "Category not found" },
       CONFLICT: { message: "Category is in use by one or more tags" },
@@ -84,13 +88,16 @@ export const adminCardTagsContract = {
 
   listTags: authedRoute
     .route({ method: "GET", path: TAGS, tags: [TAG] })
+    .meta({ adminSections: ["card-tags"] })
     .output(adminCardTagListResponseSchema),
   setTagCategory: authedRoute
     .route({ method: "PUT", path: `${TAGS}/classification`, tags: [TAG], successStatus: 204 })
+    .meta({ adminSections: ["card-tags"] })
     .errors({ BAD_REQUEST: { message: "Unknown category" } })
     .input(z.object({ tag: printedTag, categoryId: z.uuid().nullable() })),
   detectLegendTags: authedRoute
     .route({ method: "POST", path: `${TAGS}/detect-legends`, tags: [TAG] })
+    .meta({ adminSections: ["card-tags"] })
     .errors({ BAD_REQUEST: { message: "Unknown category" } })
     .input(z.object({ categoryId: z.uuid() }))
     .output(

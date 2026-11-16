@@ -223,4 +223,25 @@ describe.skipIf(!ctx)("cardTokensRepo derivation", () => {
     expect(await tokensFor(buffId)).toEqual([]);
     expect(await tokensFor(summonerId)).toEqual([spriteId]);
   });
+
+  it("links the cards naming a card once it becomes a token, and unlinks them after", async () => {
+    const repo = cardTokensRepo(ctx!.db);
+    const wispId = await seedCard("CTK Wisp", "unit", "ctk-wisp");
+    await seedPrinting(plainId, "CTK-005", { printedRulesText: "Play a CTK Wisp unit token." });
+    await repo.recomputeForCard(plainId);
+    expect(await tokensFor(plainId)).toEqual([]);
+
+    await ctx!.db
+      .insertInto("cardSuperTypes")
+      .values({ cardId: wispId, superTypeSlug: "token" })
+      .execute();
+    await repo.recomputeForTokenCard(wispId);
+    expect(await tokensFor(plainId)).toEqual([wispId]);
+
+    await ctx!.db.deleteFrom("cardSuperTypes").where("cardId", "=", wispId).execute();
+    await repo.recomputeForTokenCard(wispId);
+    expect(await tokensFor(plainId)).toEqual([]);
+
+    await ctx!.db.deleteFrom("cards").where("id", "=", wispId).execute();
+  });
 });

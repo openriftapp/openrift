@@ -75,14 +75,17 @@ const updateCustomTagInput = z.object({
 export const adminCustomTagsContract = {
   listCategories: authedRoute
     .route({ method: "GET", path: CATEGORIES, tags: [TAG] })
+    .meta({ adminSections: ["custom-tags"] })
     .output(adminCustomTagCategoryListResponseSchema),
   createCategory: authedRoute
     .route({ method: "POST", path: CATEGORIES, tags: [TAG], successStatus: 201 })
+    .meta({ adminSections: ["custom-tags"] })
     .errors({ CONFLICT: { message: "Category already exists" } })
     .input(createCustomTagCategoryInput)
     .output(z.object({ category: customTagCategorySchema })),
   updateCategory: authedRoute
     .route({ method: "PATCH", path: `${CATEGORIES}/{id}`, tags: [TAG], successStatus: 204 })
+    .meta({ adminSections: ["custom-tags"] })
     .errors({
       NOT_FOUND: { message: "Category not found" },
       CONFLICT: { message: "Slug already in use" },
@@ -90,6 +93,7 @@ export const adminCustomTagsContract = {
     .input(withParams(idParamSchema, updateCustomTagCategoryInput)),
   removeCategory: authedRoute
     .route({ method: "DELETE", path: `${CATEGORIES}/{id}`, tags: [TAG], successStatus: 204 })
+    .meta({ adminSections: ["custom-tags"] })
     .errors({
       NOT_FOUND: { message: "Category not found" },
       CONFLICT: { message: "Category is in use by one or more tags" },
@@ -98,12 +102,15 @@ export const adminCustomTagsContract = {
 
   listTags: authedRoute
     .route({ method: "GET", path: TAGS, tags: [TAG] })
+    .meta({ adminSections: ["custom-tags"] })
     .output(adminCustomTagListResponseSchema),
   listAssignments: authedRoute
     .route({ method: "GET", path: `${TAGS}/assignments`, tags: [TAG] })
+    .meta({ adminSections: ["custom-tags"] })
     .output(adminCustomTagAssignmentsResponseSchema),
   createTag: authedRoute
     .route({ method: "POST", path: TAGS, tags: [TAG], successStatus: 201 })
+    .meta({ adminSections: ["custom-tags"] })
     .errors({
       BAD_REQUEST: { message: "Unknown category" },
       CONFLICT: { message: "Custom tag already exists" },
@@ -112,6 +119,7 @@ export const adminCustomTagsContract = {
     .output(z.object({ tag: customTagSchema })),
   updateTag: authedRoute
     .route({ method: "PATCH", path: `${TAGS}/{id}`, tags: [TAG], successStatus: 204 })
+    .meta({ adminSections: ["custom-tags"] })
     .errors({
       NOT_FOUND: { message: "Custom tag not found" },
       CONFLICT: { message: "Slug already in use" },
@@ -120,21 +128,25 @@ export const adminCustomTagsContract = {
     .input(withParams(idParamSchema, updateCustomTagInput)),
   removeTag: authedRoute
     .route({ method: "DELETE", path: `${TAGS}/{id}`, tags: [TAG], successStatus: 204 })
+    .meta({ adminSections: ["custom-tags"] })
     .errors({ NOT_FOUND: { message: "Custom tag not found" } })
     .input(idParamSchema),
   addCards: authedRoute
     .route({ method: "POST", path: `${TAGS}/{id}/cards`, tags: [TAG] })
+    .meta({ adminSections: ["custom-tags"] })
     .errors({ NOT_FOUND: { message: "Custom tag not found" } })
     .input(withParams(idParamSchema, { cardIds: z.array(z.uuid()) }))
     .output(z.object({ added: z.number(), requested: z.number() })),
   clearCards: authedRoute
     .route({ method: "DELETE", path: `${TAGS}/{id}/cards`, tags: [TAG] })
+    .meta({ adminSections: ["custom-tags"] })
     .errors({ NOT_FOUND: { message: "Custom tag not found" } })
     .input(idParamSchema)
     .output(z.object({ removed: z.number() })),
 
   getCardTags: authedRoute
     .route({ method: "GET", path: `${BASE}/cards/{id}/custom-tags`, tags: [TAG] })
+    .meta({ adminSections: ["custom-tags"] })
     .errors({ NOT_FOUND: { message: "Card not found" } })
     .input(idParamSchema)
     .output(z.object({ customTagIds: z.array(z.string()) })),
@@ -145,6 +157,7 @@ export const adminCustomTagsContract = {
       tags: [TAG],
       successStatus: 204,
     })
+    .meta({ adminSections: ["custom-tags"] })
     .errors({
       NOT_FOUND: { message: "Card not found" },
       BAD_REQUEST: { message: "Unknown custom tag" },

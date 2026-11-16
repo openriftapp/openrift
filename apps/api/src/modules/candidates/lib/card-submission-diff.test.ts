@@ -56,10 +56,14 @@ function proposedPrinting(overrides: Partial<ProposedPrinting> = {}): ProposedPr
 const EN_NORMAL = "OGN-042:normal::EN";
 const FR_NORMAL = "OGN-042:normal::FR";
 
+function sized(key: string, size = "standard"): string {
+  return `${key}|${size}`;
+}
+
 function liveSnapshot(overrides: Partial<LivePrintingSnapshot> = {}): LiveSnapshot {
   return {
     card: LIVE_CARD,
-    printings: new Map([[EN_NORMAL, { ...LIVE_PRINTING, ...overrides }]]),
+    printings: new Map([[sized(EN_NORMAL), { ...LIVE_PRINTING, ...overrides }]]),
     printingsById: new Map(),
   };
 }
@@ -109,12 +113,34 @@ describe("computeProposedDiff", () => {
     expect(diff).toEqual([]);
   });
 
+  it("compares a proposal against the live printing of its own size", () => {
+    const live: LiveSnapshot = {
+      card: LIVE_CARD,
+      printings: new Map([
+        [sized(EN_NORMAL), { ...LIVE_PRINTING, artist: "Standard Artist" }],
+        [sized(EN_NORMAL, "oversized"), { ...LIVE_PRINTING, size: "oversized" }],
+      ]),
+      printingsById: new Map(),
+    };
+    const diff = computeProposedDiff(
+      {
+        card: { name: "Jinx" },
+        printings: [
+          proposedPrinting({ size: "oversized" }),
+          proposedPrinting({ artist: "Standard Artist", size: null }),
+        ],
+      },
+      live,
+    );
+    expect(diff).toEqual([]);
+  });
+
   it("keeps a card's finishes and languages apart", () => {
     const live: LiveSnapshot = {
       card: LIVE_CARD,
       printings: new Map([
-        [EN_NORMAL, { ...LIVE_PRINTING, artist: "Fixed Artist" }],
-        [FR_NORMAL, { ...LIVE_PRINTING, printedName: "Jinx (FR)" }],
+        [sized(EN_NORMAL), { ...LIVE_PRINTING, artist: "Fixed Artist" }],
+        [sized(FR_NORMAL), { ...LIVE_PRINTING, printedName: "Jinx (FR)" }],
       ]),
       printingsById: new Map(),
     };
@@ -242,8 +268,8 @@ describe("computeProposedDiff with a linked printing", () => {
     return {
       card: LIVE_CARD,
       printings: new Map([
-        [EN_NORMAL, BASE],
-        [PROMO_KEY, PROMO],
+        [sized(EN_NORMAL), BASE],
+        [sized(PROMO_KEY), PROMO],
       ]),
       printingsById: new Map([
         ["base-id", [BASE]],
@@ -320,8 +346,8 @@ describe("computeProposedDiff with a linked printing", () => {
       {
         card: LIVE_CARD,
         printings: new Map([
-          [front.key, front],
-          [back.key, back],
+          [sized(front.key), front],
+          [sized(back.key), back],
         ]),
         printingsById: new Map([["pair-id", [front, back]]]),
       },
@@ -350,7 +376,7 @@ describe("computeProposedDiff with a linked printing", () => {
       },
       {
         card: LIVE_CARD,
-        printings: new Map([[PROMO_KEY, signed]]),
+        printings: new Map([[sized(PROMO_KEY), signed]]),
         printingsById: new Map([["signed-id", [signed]]]),
       },
     );

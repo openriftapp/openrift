@@ -79,14 +79,20 @@ const DEFAULT_SITE_ORIGIN = "https://openrift.app";
  * A test can pass `{}` to exercise the unset site-origin path; the
  * default only applies when `config` is omitted entirely.
  */
-function makeApp(config: { siteOrigin?: string } = { siteOrigin: DEFAULT_SITE_ORIGIN }) {
+function makeApp(
+  config: { siteOrigin?: string } = { siteOrigin: DEFAULT_SITE_ORIGIN },
+  requestRepos: unknown = undefined,
+) {
   return new Hono<{ Variables: Variables }>()
     .use("*", async (c, next) => {
-      c.set("repos", { catalog: mockCatalogRepo, enums: mockEnumsRepo } as never);
+      c.set("repos", requestRepos as never);
       c.set("config", config as never);
       await next();
     })
-    .route("/api/v1", createPublicChatRoute());
+    .route(
+      "/api/v1",
+      createPublicChatRoute({ catalog: mockCatalogRepo, enums: mockEnumsRepo } as never),
+    );
 }
 
 async function lookup(
@@ -192,6 +198,14 @@ describe("GET /api/v1/chat/card", () => {
     const body = await lookupText("viktor", makeApp({}));
     expect(body).toContain("Viktor, Herald of Change");
     expect(body).not.toContain("http");
+  });
+
+  it("reads the repos it was created with, not the request's", async () => {
+    const requestCatalog = { ...mockCatalogRepo, cards: vi.fn().mockResolvedValue([]) };
+    const app = makeApp(undefined, { catalog: requestCatalog, enums: mockEnumsRepo });
+
+    expect(await lookupText("viktor", app)).toContain("/cards/viktor-herald-of-change");
+    expect(requestCatalog.cards).not.toHaveBeenCalled();
   });
 
   it("caches a lookup answer so a popular chat command need not reach the origin", async () => {

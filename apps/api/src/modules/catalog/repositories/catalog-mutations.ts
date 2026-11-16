@@ -14,6 +14,7 @@ import type { ExpressionBuilder, Kysely, Selectable, Updateable } from "kysely";
 import type { Database } from "../../../db/tables.js";
 import type { CardsTable, FacesTable, PrintingsTable } from "../../../db/tables/catalog.js";
 import { inTransaction, withFace1 } from "../../../repositories/query-helpers.js";
+import { cardTokensRepo } from "./card-tokens.js";
 
 export interface PrintingIdentityKey {
   cardId: string;
@@ -445,8 +446,12 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
       return db.selectFrom("sets").select("id").where("slug", "=", slug).executeTakeFirst();
     },
 
+    /** A rename relinks the derived token references to the card. */
     async updateCardById(id: string, updates: Updateable<CardsTable>): Promise<void> {
       await db.updateTable("cards").set(updates).where("id", "=", id).execute();
+      if (updates.name !== undefined) {
+        await cardTokensRepo(db).recomputeForTokenCard(id);
+      }
     },
 
     async renameCardSlugById(cardId: string, newSlug: string): Promise<void> {
@@ -506,6 +511,7 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
             .execute();
         }
       });
+      await cardTokensRepo(db).recomputeForTokenCard(cardId);
     },
 
     async deleteCardBansByCardId(cardId: string): Promise<void> {
@@ -788,6 +794,10 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
         .values({ normName: normalizedName, cardId: cardUuid })
         .onConflict((oc) => oc.column("normName").doUpdateSet({ cardId: cardUuid }))
         .execute();
+
+      if (superTypes.includes(WellKnown.superType.TOKEN)) {
+        await cardTokensRepo(db).recomputeForTokenCard(cardUuid);
+      }
 
       return cardUuid;
     },

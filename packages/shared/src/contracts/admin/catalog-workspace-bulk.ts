@@ -29,6 +29,7 @@ export const workspaceDiscardSameDifferenceResponseSchema = z.object({
 export const adminCatalogWorkspaceBulkContract = {
   workspaceSameDifference: authedRoute
     .route({ method: "GET", path: SAME_DIFFERENCE, tags: [TAG] })
+    .meta({ adminSections: ["card-review"] })
     .errors({ BAD_REQUEST: { message: "Invalid value" } })
     .input(workspaceSameDifferenceInputSchema)
     .output(workspaceSameDifferenceResponseSchema),

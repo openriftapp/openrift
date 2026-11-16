@@ -15,12 +15,14 @@ export type CardLookupIndex = CardSearchIndex<LookupRow<CatalogCardRow>>;
 
 export type CardCodeIndex = CodeIndex<CatalogCardRow, SearchablePrintingCodes>;
 
-interface CardLookup {
+export interface CardLookup {
   names: CardLookupIndex;
   codes: CardCodeIndex;
 }
 
-async function assembleCardLookup(repos: Repos): Promise<CardLookup> {
+type CardLookupRepos = Pick<Repos, "catalog"> & Partial<Pick<Repos, "cardLookup">>;
+
+export async function assembleCardLookup(repos: Pick<Repos, "catalog">): Promise<CardLookup> {
   const [cards, printings] = await Promise.all([
     repos.catalog.cards(),
     repos.catalog.printingLookupRows(),
@@ -37,37 +39,36 @@ async function assembleCardLookup(repos: Repos): Promise<CardLookup> {
   };
 }
 
-function createCardLookupLoader(repos: Repos): () => Promise<CardLookup> {
-  return createContentAddressedCache(
-    () => assembleCardLookup(repos),
-    () => repos.catalog.catalogContentVersion(),
-  );
-}
+const handBuiltLoaders = new WeakMap<object, () => Promise<CardLookup>>();
 
-const loaders = new WeakMap<Repos, () => Promise<CardLookup>>();
-
-/** Cache key is a content-version probe, not a clock: an edit invalidates it immediately. */
-function cardLookupFor(repos: Repos): () => Promise<CardLookup> {
-  let loader = loaders.get(repos);
-  if (!loader) {
-    loader = createCardLookupLoader(repos);
-    loaders.set(repos, loader);
+/** Repos from `createRepos` share one lookup per pool; a hand-built `repos` without it keeps its own memo. */
+function loadCardLookup(repos: CardLookupRepos): Promise<CardLookup> {
+  if (repos.cardLookup) {
+    return repos.cardLookup.current();
   }
-  return loader;
+  let load = handBuiltLoaders.get(repos);
+  if (!load) {
+    load = createContentAddressedCache(
+      () => assembleCardLookup(repos),
+      () => repos.catalog.catalogContentVersion(),
+    );
+    handBuiltLoaders.set(repos, load);
+  }
+  return load();
 }
 
-export function createCardLookupIndexLoader(repos: Repos): () => Promise<CardLookupIndex> {
-  const load = cardLookupFor(repos);
+export function createCardLookupIndexLoader(
+  repos: CardLookupRepos,
+): () => Promise<CardLookupIndex> {
   return async () => {
-    const lookup = await load();
+    const lookup = await loadCardLookup(repos);
     return lookup.names;
   };
 }
 
-export function createCardCodeIndexLoader(repos: Repos): () => Promise<CardCodeIndex> {
-  const load = cardLookupFor(repos);
+export function createCardCodeIndexLoader(repos: CardLookupRepos): () => Promise<CardCodeIndex> {
   return async () => {
-    const lookup = await load();
+    const lookup = await loadCardLookup(repos);
     return lookup.codes;
   };
 }

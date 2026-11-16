@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createRepos, createTransact, services } from "./deps.js";
+import { createCardLookupIndexLoader } from "./modules/catalog/lib/card-lookup-index.js";
+import { createRecordingDb } from "./test/recording-db.js";
 
 describe("createRepos", () => {
   it("returns an object with all expected repo keys", () => {
@@ -63,6 +65,29 @@ describe("createTransact", () => {
     expect(result).toBe("transaction-result");
     expect(mockTransaction).toHaveBeenCalledTimes(1);
     expect(mockExecute).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("catalog caches", () => {
+  it("serves a transaction the lookup the pool built, probing the version only", async () => {
+    const recorded = createRecordingDb();
+    await createCardLookupIndexLoader(createRepos(recorded.db))();
+    expect(recorded.queries.length).toBeGreaterThan(1);
+
+    recorded.reset();
+    await createTransact(recorded.db)((trx) => createCardLookupIndexLoader(trx)());
+
+    expect(recorded.queries).toEqual([expect.stringContaining("catalog_versions")]);
+  });
+
+  it("serves a transaction the enum rows the pool loaded", async () => {
+    const recorded = createRecordingDb();
+    await createRepos(recorded.db).enums.all();
+
+    recorded.reset();
+    await createTransact(recorded.db)((trx) => trx.enums.all());
+
+    expect(recorded.queries).toHaveLength(1);
   });
 });
 

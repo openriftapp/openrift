@@ -158,7 +158,7 @@ describe("POST /api/admin/v1/refresh-materialized-views", () => {
   it("returns 'already_running' when a refresh is already in flight", async () => {
     mockJobRuns.getRunning.mockResolvedValueOnce({
       id: "019d4999-4219-72f6-b7bb-64004e1b1c00",
-      startedAt: new Date(),
+      lastSeenAt: new Date(),
     });
 
     const res = await app.request("/api/admin/v1/refresh-materialized-views", {
@@ -257,7 +257,7 @@ describe("POST /api/admin/v1/recompute-card-tokens", () => {
   it("returns 'already_running' when a recompute is already in flight", async () => {
     mockJobRuns.getRunning.mockResolvedValueOnce({
       id: "019d4999-4219-72f6-b7bb-64004e1b1c00",
-      startedAt: new Date(),
+      lastSeenAt: new Date(),
     });
 
     const res = await app.request("/api/admin/v1/recompute-card-tokens", {

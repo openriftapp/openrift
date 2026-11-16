@@ -4,11 +4,13 @@ import type { Kysely } from "kysely";
 
 import type { Database } from "../../db/tables.js";
 import type { Repos } from "../../deps.js";
-import type { Versioned } from "../../lib/content-addressed-cache.js";
+import type { Versioned, VersionProbe } from "../../lib/content-addressed-cache.js";
 import {
   createContentAddressedCache,
   createVersionedCache,
 } from "../../lib/content-addressed-cache.js";
+import type { CardLookup } from "./lib/card-lookup-index.js";
+import { assembleCardLookup } from "./lib/card-lookup-index.js";
 import { artVariantsRepo } from "./repositories/art-variants.js";
 import { canonicalPrintingsRepo } from "./repositories/canonical-printings.js";
 import { cardBansRepo } from "./repositories/card-bans.js";
@@ -17,9 +19,11 @@ import { cardTokensRepo } from "./repositories/card-tokens.js";
 import { cardTypesRepo } from "./repositories/card-types.js";
 import { catalogDeleteGuardsRepo } from "./repositories/catalog-delete-guards.js";
 import { catalogMutationsRepo } from "./repositories/catalog-mutations.js";
+import { catalogVersionsRepo } from "./repositories/catalog-versions.js";
 import { catalogRepo } from "./repositories/catalog.js";
 import { distributionChannelsRepo } from "./repositories/distribution-channels.js";
 import { domainsRepo } from "./repositories/domains.js";
+import type { AllEnumRows } from "./repositories/enums.js";
 import { enumsRepo } from "./repositories/enums.js";
 import { finishesRepo } from "./repositories/finishes.js";
 import { keywordsRepo } from "./repositories/keywords.js";
@@ -47,6 +51,7 @@ export interface CatalogRepos {
   canonicalPrintings: ReturnType<typeof canonicalPrintingsRepo>;
   catalog: ReturnType<typeof catalogRepo>;
   catalogResponse: { current: () => Promise<Versioned<CatalogResponse>> };
+  cardLookup: { current: () => Promise<CardLookup> };
   catalogDeleteGuards: ReturnType<typeof catalogDeleteGuardsRepo>;
   catalogMutations: ReturnType<typeof catalogMutationsRepo>;
   domains: ReturnType<typeof domainsRepo>;
@@ -72,45 +77,74 @@ export interface CatalogRuleSources {
   enums: ReturnType<typeof enumsRepo>;
   assembleCatalog: () => Promise<RuleCatalog>;
   catalogResponse: () => Promise<Versioned<CatalogResponse>>;
+  cardLookup: () => Promise<CardLookup>;
   enumOrders: () => Promise<KeepPriorityOrders>;
 }
 
+export interface CatalogCaches {
+  db: Kysely<Database>;
+  enums: (probe?: VersionProbe) => Promise<AllEnumRows>;
+  ruleCatalog: (probe?: VersionProbe) => Promise<RuleCatalog>;
+  catalogResponse: (probe?: VersionProbe) => Promise<Versioned<CatalogResponse>>;
+  cardLookup: (probe?: VersionProbe) => Promise<CardLookup>;
+}
+
+/**
+ * One per pool, shared by its transactions. Loads read committed rows through the pool, so a
+ * transaction's own uncommitted catalog writes never reach the cache, and it never reads them back.
+ */
+export function createCatalogCaches(db: Kysely<Database>, poolRepos: () => Repos): CatalogCaches {
+  const enums = enumsRepo(db);
+  const versions = catalogVersionsRepo(db);
+  return {
+    db,
+    enums: createContentAddressedCache(
+      () => enums.all(),
+      () => enums.contentVersion(),
+    ),
+    ruleCatalog: createContentAddressedCache(
+      () => assembleRuleCatalog(poolRepos()),
+      () => versions.catalogContentVersion(),
+    ),
+    catalogResponse: createVersionedCache(
+      () => assembleCatalogResponse(poolRepos()),
+      () => versions.catalogResponseVersion(),
+    ),
+    cardLookup: createContentAddressedCache(
+      () => assembleCardLookup(poolRepos()),
+      () => versions.catalogContentVersion(),
+    ),
+  };
+}
+
+/** A transaction probes the version on its own connection, so a cache hit takes no second connection from the pool. */
 export function createCatalogRuleSources(
   db: Kysely<Database>,
-  resolveRepos: () => Repos,
+  caches: CatalogCaches,
 ): CatalogRuleSources {
-  const assembleCatalog = createContentAddressedCache(
-    () => assembleRuleCatalog(resolveRepos()),
-    () => catalogRepo(db).catalogContentVersion(),
-  );
-  const catalogResponse = createVersionedCache(
-    () => assembleCatalogResponse(resolveRepos()),
-    () => catalogRepo(db).catalogResponseVersion(),
-  );
-
   const enums = enumsRepo(db);
-  const loadEnums = createContentAddressedCache(
-    () => enums.all(),
-    () => enums.contentVersion(),
-  );
-  const cachedEnums = {
-    ...enums,
-    all: loadEnums,
-    keepPriorityOrders: async () => {
-      const rows = await loadEnums();
-      return {
-        finishes: rows.finishes.map((row) => row.slug),
-        rarities: rows.rarities.map((row) => row.slug),
-        artVariants: rows.artVariants.map((row) => row.slug),
-      };
-    },
+  const versions = catalogVersionsRepo(db);
+  const onPool = db === caches.db;
+  const ownProbe = (version: VersionProbe) => (onPool ? undefined : version);
+  const contentVersion = ownProbe(() => versions.catalogContentVersion());
+
+  const loadEnums = () => caches.enums(ownProbe(() => enums.contentVersion()));
+  const keepPriorityOrders = async (): Promise<KeepPriorityOrders> => {
+    const rows = await loadEnums();
+    return {
+      finishes: rows.finishes.map((row) => row.slug),
+      rarities: rows.rarities.map((row) => row.slug),
+      artVariants: rows.artVariants.map((row) => row.slug),
+    };
   };
 
   return {
-    enums: cachedEnums,
-    assembleCatalog,
-    catalogResponse,
-    enumOrders: () => cachedEnums.keepPriorityOrders(),
+    enums: { ...enums, all: loadEnums, keepPriorityOrders },
+    assembleCatalog: () => caches.ruleCatalog(contentVersion),
+    catalogResponse: () =>
+      caches.catalogResponse(ownProbe(() => versions.catalogResponseVersion())),
+    cardLookup: () => caches.cardLookup(contentVersion),
+    enumOrders: keepPriorityOrders,
   };
 }
 
@@ -127,6 +161,7 @@ export function createCatalogRepos(
     canonicalPrintings: canonicalPrintingsRepo(db),
     catalog: catalogRepo(db),
     catalogResponse: { current: sources.catalogResponse },
+    cardLookup: { current: sources.cardLookup },
     catalogDeleteGuards: catalogDeleteGuardsRepo(db),
     catalogMutations: catalogMutationsRepo(db),
     domains: domainsRepo(db),

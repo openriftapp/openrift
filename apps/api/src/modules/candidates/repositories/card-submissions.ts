@@ -10,7 +10,7 @@ import { sql } from "kysely";
 import { primaryCardTypeSql } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import type { CardSubmissionsTable } from "../../../db/tables/candidates.js";
-import { buildPrintingLinkKey } from "../../../lib/printing-link-key.js";
+import { buildPrintingLinkKey, buildSizedPrintingLinkKey } from "../../../lib/printing-link-key.js";
 import { liveCardForNorm } from "../../../repositories/candidate-card-sql.js";
 import {
   hasActiveFaceImage,
@@ -69,11 +69,12 @@ export interface LivePrintingSnapshot {
 export interface LiveSnapshot {
   card: LiveCardSnapshot | null;
   /**
-   * Keyed by {@link buildPrintingLinkKey}, **not** by short code. One short code
+   * Keyed by {@link buildSizedPrintingLinkKey}, **not** by short code. One short code
    * covers every finish and language of a printing (a card with 4 languages ×
    * 2 finishes has 8 rows all reading `OGN-002`), so a short-code map collapses
    * them onto whichever row was written last and every proposed printing then
-   * compares against an arbitrary sibling.
+   * compares against an arbitrary sibling. Size is in the key: a standard and an
+   * oversized printing share every other identity field.
    */
   printings: Map<string, LivePrintingSnapshot>;
   printingsById: Map<string, LivePrintingSnapshot[]>;
@@ -417,7 +418,7 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
             // image suggestion is offering to fix.
             hasImage: row.imageId !== null,
           };
-          printings.set(key, side);
+          printings.set(buildSizedPrintingLinkKey(row), side);
           if (requestedIds.has(row.printingId)) {
             printingsById.set(row.printingId, [...(printingsById.get(row.printingId) ?? []), side]);
           }

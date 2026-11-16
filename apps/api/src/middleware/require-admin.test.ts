@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AppError } from "../errors.js";
-import { requireAdmin } from "./require-admin.js";
+import { createApiRouteResolver } from "../orpc/router.js";
+import { requireAdmin, requireAdminSections, sectionsFromRoute } from "./require-admin.js";
+
+const resolveApiRoute = createApiRouteResolver();
+const gate = requireAdmin(sectionsFromRoute(resolveApiRoute));
 
 const mockIsAdmin = vi.fn<(userId: string) => Promise<boolean>>();
 const mockSectionsForUser = vi.fn<(userId: string) => Promise<string[]>>();
@@ -52,7 +56,7 @@ describe("require-admin middleware", () => {
       const next = vi.fn(() => Promise.resolve());
 
       try {
-        await requireAdmin(ctx, next);
+        await gate(ctx, next);
         expect.unreachable("Should have thrown");
       } catch (error: any) {
         expect(error).toBeInstanceOf(AppError);
@@ -67,7 +71,7 @@ describe("require-admin middleware", () => {
       const next = vi.fn(() => Promise.resolve());
 
       try {
-        await requireAdmin(ctx, next);
+        await gate(ctx, next);
         expect.unreachable("Should have thrown");
       } catch (error: any) {
         expect(error).toBeInstanceOf(AppError);
@@ -81,7 +85,7 @@ describe("require-admin middleware", () => {
       const ctx = createMockContext({ user: { id: "admin-user" } });
       const next = vi.fn(() => Promise.resolve());
 
-      await requireAdmin(ctx, next);
+      await gate(ctx, next);
       expect(next).toHaveBeenCalledTimes(1);
     });
 
@@ -90,10 +94,10 @@ describe("require-admin middleware", () => {
       const ctx = createMockContext({ user: { id: "cached-admin" } });
       const next = vi.fn(() => Promise.resolve());
 
-      await requireAdmin(ctx, next);
+      await gate(ctx, next);
       expect(mockIsAdmin).toHaveBeenCalledTimes(1);
 
-      await requireAdmin(ctx, next);
+      await gate(ctx, next);
       expect(mockIsAdmin).toHaveBeenCalledTimes(1);
     });
   });
@@ -108,7 +112,7 @@ describe("require-admin middleware", () => {
       });
       const next = vi.fn(() => Promise.resolve());
 
-      await requireAdmin(ctx, next);
+      await gate(ctx, next);
       expect(next).toHaveBeenCalledTimes(1);
     });
 
@@ -121,7 +125,7 @@ describe("require-admin middleware", () => {
       });
       const next = vi.fn(() => Promise.resolve());
 
-      await requireAdmin(ctx, next);
+      await gate(ctx, next);
       expect(next).toHaveBeenCalledTimes(1);
     });
 
@@ -135,7 +139,7 @@ describe("require-admin middleware", () => {
       const next = vi.fn(() => Promise.resolve());
 
       try {
-        await requireAdmin(ctx, next);
+        await gate(ctx, next);
         expect.unreachable("Should have thrown");
       } catch (error: any) {
         expect(error).toBeInstanceOf(AppError);
@@ -155,7 +159,7 @@ describe("require-admin middleware", () => {
       const next = vi.fn(() => Promise.resolve());
 
       try {
-        await requireAdmin(ctx, next);
+        await gate(ctx, next);
         expect.unreachable("Should have thrown");
       } catch (error: any) {
         expect(error).toBeInstanceOf(AppError);
@@ -172,8 +176,8 @@ describe("require-admin middleware", () => {
       });
       const next = vi.fn(() => Promise.resolve());
 
-      await requireAdmin(ctx, next);
-      await requireAdmin(ctx, next);
+      await gate(ctx, next);
+      await gate(ctx, next);
       expect(mockIsAdmin).toHaveBeenCalledTimes(1);
       expect(mockSectionsForUser).toHaveBeenCalledTimes(1);
       expect(next).toHaveBeenCalledTimes(2);
@@ -190,7 +194,7 @@ describe("require-admin middleware", () => {
         method: "PATCH",
       });
       const next = vi.fn(() => Promise.resolve());
-      await requireAdmin(patchCtx, next);
+      await gate(patchCtx, next);
       expect(next).toHaveBeenCalledTimes(1);
 
       const deleteCtx = createMockContext({
@@ -199,12 +203,39 @@ describe("require-admin middleware", () => {
         method: "DELETE",
       });
       try {
-        await requireAdmin(deleteCtx, next);
+        await gate(deleteCtx, next);
         expect.unreachable("Should have thrown");
       } catch (error: any) {
         expect(error).toBeInstanceOf(AppError);
         expect(error.status).toBe(403);
       }
+    });
+  });
+
+  describe("route section declarations", () => {
+    it("checks a HEAD request against the GET procedure", async () => {
+      mockIsAdmin.mockResolvedValue(false);
+      mockSectionsForUser.mockResolvedValue(["card-review"]);
+      const ctx = createMockContext({
+        user: { id: "grant-user-head" },
+        path: "/api/admin/v1/cards",
+        method: "HEAD",
+      });
+      const next = vi.fn(() => Promise.resolve());
+
+      await gate(ctx, next);
+      expect(next).toHaveBeenCalledTimes(1);
+    });
+
+    it("lets a non-oRPC route open itself to the sections it declares", async () => {
+      mockIsAdmin.mockResolvedValue(false);
+      mockSectionsForUser.mockResolvedValue(["printing-desk"]);
+      const ctx = createMockContext({ user: { id: "grant-user-hono" }, path: "/anything" });
+      const next = vi.fn(() => Promise.resolve());
+
+      await requireAdminSections("printing-desk")(ctx, next);
+      expect(next).toHaveBeenCalledTimes(1);
+      await expect(requireAdminSections()(ctx, next)).rejects.toMatchObject({ status: 403 });
     });
   });
 
@@ -214,7 +245,7 @@ describe("require-admin middleware", () => {
       const ctx = createMockContext({ user: { id: "expose-admin" } });
       const next = vi.fn(() => Promise.resolve());
 
-      await requireAdmin(ctx, next);
+      await gate(ctx, next);
       expect(ctx.get("adminAccess")).toEqual({ isAdmin: true, sections: [] });
     });
 
@@ -227,7 +258,7 @@ describe("require-admin middleware", () => {
       });
       const next = vi.fn(() => Promise.resolve());
 
-      await requireAdmin(ctx, next);
+      await gate(ctx, next);
       expect(ctx.get("adminAccess")).toEqual({ isAdmin: false, sections: ["card-review"] });
     });
   });

@@ -3,11 +3,16 @@ export interface Versioned<T> {
   value: T;
 }
 
-/** Returns the version probed before the load, so a concurrent write can only make the value newer than it. */
+export type VersionProbe = () => Promise<string>;
+
+/**
+ * Returns the version probed before the load, so a concurrent write can only make the value newer than it.
+ * A caller holding its own connection passes `probe` to read the version there; concurrent default probes share one query.
+ */
 export function createVersionedCache<T>(
   load: () => Promise<T>,
-  getVersion: () => Promise<string>,
-): () => Promise<Versioned<T>> {
+  getVersion: VersionProbe,
+): (probe?: VersionProbe) => Promise<Versioned<T>> {
   let cached: { version: string; value: Promise<T> } | null = null;
   let inflightProbe: Promise<string> | null = null;
 
@@ -28,10 +33,10 @@ export function createVersionedCache<T>(
     value: await entry.value,
   });
 
-  return async () => {
+  return async (probe = probeVersion) => {
     let version: string;
     try {
-      version = await probeVersion();
+      version = await probe();
     } catch (error) {
       // A transient probe failure must not break reads: serve the last good
       // catalog if we have one, else surface the error.
@@ -60,11 +65,11 @@ export function createVersionedCache<T>(
 
 export function createContentAddressedCache<T>(
   load: () => Promise<T>,
-  getVersion: () => Promise<string>,
-): () => Promise<T> {
+  getVersion: VersionProbe,
+): (probe?: VersionProbe) => Promise<T> {
   const get = createVersionedCache(load, getVersion);
-  return async () => {
-    const { value } = await get();
+  return async (probe) => {
+    const { value } = await get(probe);
     return value;
   };
 }

@@ -57,30 +57,18 @@ export function enumsRepo(db: Kysely<Database>) {
 
   return {
     /**
-     * A token that changes whenever any reference table's content changes.
-     * Only `languages` and `markers` carry `updated_at`, so this hashes each
-     * table's whole row set instead.
+     * A token that changes whenever any reference table's content changes. The catalog
+     * `response` version covers the tables with a catalog-version trigger; the rest are hashed.
      */
     async contentVersion(): Promise<string> {
       const digest = (table: string) =>
         sql`coalesce((SELECT md5(string_agg(t::text, ',' ORDER BY t::text)) FROM ${sql.raw(table)} t), '')`;
-      const tables = [
-        "card_types",
-        "super_types",
-        "finishes",
-        "art_variants",
-        "card_sizes",
-        "deck_formats",
-        "deck_zones",
-        "conditions",
-        "graders",
-        "rarities",
-        "domains",
-        "languages",
-        "markers",
-      ];
+      const untriggered = ["deck_formats", "deck_zones", "conditions", "graders"];
       const result = await sql<{ token: string }>`SELECT ${sql.join(
-        tables.map((t) => digest(t)),
+        [
+          sql`coalesce((SELECT version::text FROM catalog_versions WHERE scope = 'response'), '')`,
+          ...untriggered.map((t) => digest(t)),
+        ],
         sql` || '|' || `,
       )} AS token`.execute(db);
       return result.rows[0]?.token ?? "";

@@ -26,6 +26,7 @@ const codeParamSchema = z.object({ code: z.string().min(1) });
 export const adminLanguagesContract = {
   list: authedRoute
     .route({ method: "GET", path: LANG, tags: [TAG] })
+    .meta({ adminSections: ["card-review", "printing-desk"] })
     .output(z.object({ languages: z.array(languageSchema) })),
   reorder: authedRoute
     .route({ method: "PUT", path: `${LANG}/reorder`, tags: [TAG], successStatus: 204 })

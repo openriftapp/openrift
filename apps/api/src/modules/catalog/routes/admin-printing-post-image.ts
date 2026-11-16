@@ -14,7 +14,7 @@ import { badRequest } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { pngResponse } from "../../../lib/http-response.js";
 import { siteHostFromOrigin } from "../../../lib/site-url.js";
-import { requireAdmin } from "../../../middleware/require-admin.js";
+import { requireAdminSections } from "../../../middleware/require-admin.js";
 import type { Variables } from "../../../types.js";
 import { renderPrintingPostImage } from "../services/printing-post-image.js";
 
@@ -25,7 +25,7 @@ const PATH = "/api/admin/v1/printing-desk/printings/:printingId/post-image.png";
  * middleware is registered after this route wins the path match.
  */
 export function mountAdminPrintingPostImage(app: Hono<{ Variables: Variables }>): void {
-  app.use(PATH, requireAdmin);
+  app.use(PATH, requireAdminSections("printing-desk"));
   app.get(PATH, async (c) => {
     const repos = c.get("repos");
     const io = c.get("io");

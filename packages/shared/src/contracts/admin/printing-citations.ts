@@ -29,12 +29,14 @@ const createPrintingCitationFields = z.object({
 export const adminPrintingCitationsContract = {
   list: authedRoute
     .route({ method: "GET", path: BASE, tags: [TAG] })
+    .meta({ adminSections: ["printing-desk"] })
     .input(printingIdParamSchema)
     .errors({ NOT_FOUND: { message: "Printing not found" } })
     .output(z.object({ citations: z.array(adminPrintingCitationSchema) })),
 
   create: authedRoute
     .route({ method: "POST", path: BASE, tags: [TAG], successStatus: 201 })
+    .meta({ adminSections: ["printing-desk"] })
     .input(printingIdParamSchema.extend(createPrintingCitationFields.shape).strict())
     .errors({
       NOT_FOUND: { message: "Printing not found" },
@@ -44,6 +46,7 @@ export const adminPrintingCitationsContract = {
 
   update: authedRoute
     .route({ method: "PATCH", path: `${BASE}/{citationId}`, tags: [TAG], successStatus: 204 })
+    .meta({ adminSections: ["printing-desk"] })
     // Omit a field to leave it unchanged; `null` on sourceUrl drops the link
     // without deleting the citation.
     .input(
@@ -60,6 +63,7 @@ export const adminPrintingCitationsContract = {
   // Nested under the printing so removal is scoped to the printing that owns it.
   remove: authedRoute
     .route({ method: "DELETE", path: `${BASE}/{citationId}`, tags: [TAG], successStatus: 204 })
+    .meta({ adminSections: ["printing-desk"] })
     .input(printingIdParamSchema.extend({ citationId: z.uuid() }))
     .errors({ NOT_FOUND: { message: "Citation not found" } }),
 };

@@ -6,4 +6,6 @@
 
 import { startTracing } from "@openrift/shared/otel-node";
 
-startTracing("openrift-web");
+import { COMMIT_HASH } from "./lib/env";
+
+startTracing("openrift-web", COMMIT_HASH);

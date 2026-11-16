@@ -1,4 +1,4 @@
-import { DAY_MS } from "@openrift/shared/format-date";
+import { DAY_MS, HOUR_MS, MINUTE_MS } from "@openrift/shared/format-date";
 import { JOB_KIND, META_SOURCE_JOB_KINDS } from "@openrift/shared/job-run-kinds";
 import type { Logger } from "@openrift/shared/logger";
 import type { Kysely } from "kysely";
@@ -22,9 +22,8 @@ import {
 import { isRehostRetryNoop, retryDueRehosts } from "./modules/catalog/services/images/jobs.js";
 import { COPY_DELETION_RETENTION_MS } from "./modules/collections/lib/copy-deletion-retention.js";
 import {
-  extractDigestWatermark,
   isTradeMatchDigestNoop,
-  sendTradeMatchDigest,
+  runTradeMatchDigest,
 } from "./modules/groups/services/trade-match-digest.js";
 import {
   flushCoalescedTradeRequests,
@@ -71,9 +70,28 @@ import type { Config } from "./types.js";
 
 const JOB_RUNS_RETENTION_DAYS = 30;
 
-// The recheck crons tick every ten minutes; one tick an hour also reads the listing.
-function isFirstTickOfHour(now: Date): boolean {
-  return now.getUTCMinutes() < 10;
+// Slack for run start jitter, so an hourly pass on a ten-minute schedule does not slip a tick.
+const LISTING_INTERVAL_MS = HOUR_MS - 5 * MINUTE_MS;
+const LISTED_AT_KEY = "listedAt";
+
+/**
+ * Runs `run` with the hourly listing pass when the last run that listed is an hour old,
+ * whatever the schedule, and records the pass in the result for the next run to read.
+ */
+export async function withHourlyListing<T extends object>(
+  jobRuns: Pick<Repos["jobRuns"], "latestResultInstant">,
+  kind: string,
+  run: (listing: boolean) => Promise<T>,
+  now = new Date(),
+): Promise<T & { listedAt?: string }> {
+  const lastListedAt = await jobRuns.latestResultInstant(
+    kind,
+    LISTED_AT_KEY,
+    new Date(now.getTime() - LISTING_INTERVAL_MS),
+  );
+  const listing = lastListedAt === null;
+  const result = await run(listing);
+  return listing ? { ...result, [LISTED_AT_KEY]: now.toISOString() } : result;
 }
 
 interface JobDefinitionDeps {
@@ -273,20 +291,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       title: "Trade match digest",
       description: "Emails each member the new trade matches found since the last digest.",
       suggestedSchedule: "0 8 * * *",
-      execute: async (_runId, jobLog) => {
-        const prior = await repos.jobRuns.getLatestForResume(JOB_KIND.emailTradeMatchDigest);
-        const sinceTimestamp = extractDigestWatermark(prior?.result);
-        // Watermark from the run start, not its end, so matches created mid-run
-        // aren't skipped (at worst re-sent next day).
-        const runStartedAt = new Date();
-        const result = await sendTradeMatchDigest({
-          ...emailDeps,
-          repos,
-          log: jobLog,
-          sinceTimestamp,
-        });
-        return { ...result, lastRunAt: runStartedAt.toISOString() };
-      },
+      execute: (runId, jobLog) => runTradeMatchDigest({ ...emailDeps, repos, log: jobLog }, runId),
       classifyNoop: isTradeMatchDigestNoop,
     }),
     defineJob(log, {
@@ -323,7 +328,9 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       suggestedSchedule: "*/10 * * * *",
       skipCronTick: skipMetaTick(META_SOURCE_JOB_KINDS.uvsgames.recheck),
       execute: (runId, jobLog) =>
-        processRechecks(metaDeps(jobLog), { runId, listing: isFirstTickOfHour(new Date()) }),
+        withHourlyListing(repos.jobRuns, META_SOURCE_JOB_KINDS.uvsgames.recheck, (listing) =>
+          processRechecks(metaDeps(jobLog), { runId, listing }),
+        ),
       classifyNoop: isRecheckNoop,
     }),
     defineJob(log, {
@@ -343,10 +350,9 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       suggestedSchedule: "*/10 * * * *",
       skipCronTick: skipMetaTick(META_SOURCE_JOB_KINDS.playloltcg.recheck),
       execute: (runId, jobLog) =>
-        processPlayloltcgRechecks(playloltcgDeps(jobLog), {
-          runId,
-          listing: isFirstTickOfHour(new Date()),
-        }),
+        withHourlyListing(repos.jobRuns, META_SOURCE_JOB_KINDS.playloltcg.recheck, (listing) =>
+          processPlayloltcgRechecks(playloltcgDeps(jobLog), { runId, listing }),
+        ),
       classifyNoop: isPlayloltcgRecheckNoop,
     }),
     defineJob(log, {
@@ -378,10 +384,9 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       suggestedSchedule: "*/10 * * * *",
       skipCronTick: skipMetaTick(META_SOURCE_JOB_KINDS.playriftbound.recheck),
       execute: (runId, jobLog) =>
-        processPlayriftboundRechecks(playriftboundDeps(jobLog), {
-          runId,
-          rearm: isFirstTickOfHour(new Date()),
-        }),
+        withHourlyListing(repos.jobRuns, META_SOURCE_JOB_KINDS.playriftbound.recheck, (rearm) =>
+          processPlayriftboundRechecks(playriftboundDeps(jobLog), { runId, rearm }),
+        ),
       classifyNoop: isPlayriftboundRecheckNoop,
     }),
     defineJob(log, {

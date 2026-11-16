@@ -13,7 +13,7 @@ vi.mock("../services/printing-post-image.js", () => ({
 }));
 
 vi.mock("../../../middleware/require-admin.js", () => ({
-  requireAdmin: (_c: unknown, next: () => Promise<void>) => next(),
+  requireAdminSections: () => (_c: unknown, next: () => Promise<void>) => next(),
 }));
 
 const renderMock = vi.mocked(renderPrintingPostImage);

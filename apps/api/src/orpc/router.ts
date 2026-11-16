@@ -269,11 +269,23 @@ export function createApiHandler(log: Logger) {
   });
 }
 
-export function createApiRouteResolver() {
+export interface MatchedApiRoute {
+  path: string | undefined;
+  meta: Readonly<Record<string, unknown>>;
+}
+
+export type ApiRouteResolver = (
+  method: string,
+  pathname: string,
+) => Promise<MatchedApiRoute | undefined>;
+
+/** The handler's own matcher, so a gate reading a procedure's meta sees the procedure that will run. */
+export function createApiRouteResolver(): ApiRouteResolver {
   const matcher = new StandardOpenAPIMatcher();
   matcher.init(apiRouter);
-  return async (method: string, pathname: string): Promise<string | undefined> => {
+  return async (method, pathname) => {
     const match = await matcher.match(method, `/${pathname.replaceAll(/^\/|\/$/gu, "")}`);
-    return match?.procedure["~orpc"].route.path;
+    const procedure = match?.procedure["~orpc"];
+    return procedure && { path: procedure.route.path, meta: procedure.meta };
   };
 }

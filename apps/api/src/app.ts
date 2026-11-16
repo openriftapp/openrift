@@ -29,7 +29,7 @@ import { clientAddress } from "./lib/client-address.js";
 import { loadSession } from "./middleware/load-session.js";
 import { createMetricsMiddleware } from "./middleware/metrics.js";
 import { otelRequestMiddleware } from "./middleware/otel-request.js";
-import { requireAdmin } from "./middleware/require-admin.js";
+import { requireAdmin, sectionsFromRoute } from "./middleware/require-admin.js";
 import { versionHeadersMiddleware } from "./middleware/version-headers.js";
 import { mountCardSubmissionsMiddleware } from "./modules/candidates/routes/authenticated-card-submissions.js";
 import { mountAdminPrintingPostImage } from "./modules/catalog/routes/admin-printing-post-image.js";
@@ -356,7 +356,7 @@ export function createApp(deps: AppDeps) {
     .route("/api", swaggerAssetsRoute)
     .route("/api/v1", publicShareImagesRoute)
     .route("/api/v1", publicOembedRoute)
-    .route("/api/v1", createPublicChatRoute())
+    .route("/api/v1", createPublicChatRoute(repos))
     .route("/api/v1", sentryTunnelRoute)
     .route("/api/v1", unsubscribeOneClickRoute)
     .route("/api/v1", publicFriendGroupCalendarFeedsRoute)
@@ -365,7 +365,7 @@ export function createApp(deps: AppDeps) {
     .route("/api/v1", deckImageRoute)
     .route("/api/v1", tierListImageRoute);
 
-  app.use(`${ADMIN_API_PREFIX}/*`, requireAdmin);
+  app.use(`${ADMIN_API_PREFIX}/*`, requireAdmin(sectionsFromRoute(resolveApiRoute)));
   for (const path of VIEWER_VARYING_PATHS) {
     app.use(path, loadSession);
   }
@@ -399,7 +399,8 @@ export function createApp(deps: AppDeps) {
     if (!matched || !response) {
       return next();
     }
-    c.set("apiRoute", await resolveApiRoute(request.method, new URL(request.url).pathname));
+    const apiRoute = await resolveApiRoute(request.method, new URL(request.url).pathname);
+    c.set("apiRoute", apiRoute?.path);
     // The method guard keeps a private mutation sharing a cacheable prefix (e.g. POST
     // /decks/share/{token}/clone under the public /decks/share/ read) from being cached.
     if (response.ok && (c.req.method === "GET" || isHead) && apiContext.cacheControl) {

@@ -15,7 +15,7 @@ export type JobOutcome<T> =
   | { status: "already_running"; runId: string };
 
 export const STALE_RUN_MS = 2 * HOUR_MS;
-const STALE_RUN_MESSAGE = "still running after 2 h, presumed dead";
+const STALE_RUN_MESSAGE = "no heartbeat for 2 h, presumed dead";
 
 let shuttingDown = false;
 
@@ -61,7 +61,7 @@ async function claimRun(
     const existing = await repos.jobRuns.getRunning(kind);
     if (existing !== null) {
       const staleBefore = new Date(Date.now() - STALE_RUN_MS);
-      if (existing.startedAt >= staleBefore) {
+      if (existing.lastSeenAt >= staleBefore) {
         return { alreadyRunning: existing.id };
       }
       if (await repos.jobRuns.failStale(existing.id, staleBefore, STALE_RUN_MESSAGE)) {

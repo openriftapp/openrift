@@ -122,9 +122,11 @@ export const catalogSourcesResponseSchema = z.object({
 export const adminCatalogReviewContract = {
   reviewQueue: authedRoute
     .route({ method: "GET", path: `${CATALOG}/review`, tags: [TAG] })
+    .meta({ adminSections: ["card-review"] })
     .output(reviewQueueResponseSchema),
   acceptSubmission: authedRoute
     .route({ method: "POST", path: `${CATALOG}/submissions/{candidateCardId}/accept`, tags: [TAG] })
+    .meta({ adminSections: ["card-review"] })
     .errors({
       NOT_FOUND: { message: "Submission not found" },
       BAD_REQUEST: { message: "Invalid pick" },
@@ -139,6 +141,7 @@ export const adminCatalogReviewContract = {
       tags: [TAG],
       successStatus: 204,
     })
+    .meta({ adminSections: ["card-review"] })
     .errors({
       NOT_FOUND: { message: "Submission not found" },
       CONFLICT: { message: "Submission already settled" },
@@ -155,6 +158,7 @@ export const adminCatalogReviewContract = {
     .output(moveSubmissionResponseSchema),
   catalogSources: authedRoute
     .route({ method: "GET", path: `${CATALOG}/sources`, tags: [TAG] })
+    .meta({ adminSections: ["card-review"] })
     .output(catalogSourcesResponseSchema),
 };
 

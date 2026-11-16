@@ -98,5 +98,6 @@ export async function writeCardField(
     );
   }
 
-  return { refreshViews: false };
+  // A rename can relink derived token references, which the catalog reads from a view.
+  return { refreshViews: field === "name" };
 }

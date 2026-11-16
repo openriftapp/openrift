@@ -45,6 +45,7 @@ export const adminCardImagesContract = {
       tags: [TAG],
       successStatus: 204,
     })
+    .meta({ adminSections: ["card-review"] })
     .errors({
       NOT_FOUND: { message: "Candidate printing not found" },
       BAD_REQUEST: { message: "Candidate printing is not ready for image assignment" },
@@ -57,6 +58,7 @@ export const adminCardImagesContract = {
       tags: [TAG],
       successStatus: 204,
     })
+    .meta({ adminSections: ["printing-desk"] })
     .errors({ NOT_FOUND: { message: "Printing image not found" } })
     .input(imageIdParam),
   activateImage: authedRoute
@@ -66,6 +68,7 @@ export const adminCardImagesContract = {
       tags: [TAG],
       successStatus: 204,
     })
+    .meta({ adminSections: ["card-review", "printing-desk"] })
     .errors({
       NOT_FOUND: { message: "Printing image not found" },
       BAD_REQUEST: { message: "Image could not be rehosted" },
@@ -90,6 +93,7 @@ export const adminCardImagesContract = {
       path: "/api/admin/v1/cards/printing-images/{imageId}/rehost",
       tags: [TAG],
     })
+    .meta({ adminSections: ["card-review"] })
     .errors({
       NOT_FOUND: { message: "Printing image not found" },
       BAD_REQUEST: { message: "Image has no original URL to rehost" },
@@ -103,6 +107,7 @@ export const adminCardImagesContract = {
       tags: [TAG],
       successStatus: 204,
     })
+    .meta({ adminSections: ["card-review", "printing-desk"] })
     .errors({ NOT_FOUND: { message: "Printing image not found" } })
     .input(
       imageIdParam.extend({
@@ -116,6 +121,7 @@ export const adminCardImagesContract = {
       tags: [TAG],
       successStatus: 204,
     })
+    .meta({ adminSections: ["card-review"] })
     .errors({ NOT_FOUND: { message: "Printing image not found" } })
     .input(imageIdParam.extend({ needsTrim: z.boolean() })),
   setQuad: authedRoute
@@ -125,6 +131,7 @@ export const adminCardImagesContract = {
       tags: [TAG],
       successStatus: 204,
     })
+    .meta({ adminSections: ["printing-desk"] })
     .errors({
       NOT_FOUND: { message: "Printing image not found" },
       BAD_REQUEST: { message: "Quad does not fit the original image" },
@@ -136,6 +143,7 @@ export const adminCardImagesContract = {
       path: "/api/admin/v1/cards/printing-images/{imageId}/original",
       tags: [TAG],
     })
+    .meta({ adminSections: ["printing-desk"] })
     .errors({
       NOT_FOUND: { message: "Printing image not found" },
       BAD_REQUEST: { message: "Image has no original to straighten" },
@@ -166,6 +174,7 @@ export const adminCardImagesContract = {
       path: "/api/admin/v1/cards/printing/{printingId}/upload-image",
       tags: [TAG],
     })
+    .meta({ adminSections: ["printing-desk"] })
     .errors({
       NOT_FOUND: { message: "Printing not found" },
       PAYLOAD_TOO_LARGE: { message: "File exceeds 50 MB limit" },

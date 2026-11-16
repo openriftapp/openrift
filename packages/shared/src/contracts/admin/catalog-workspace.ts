@@ -169,22 +169,27 @@ export const workspaceEventsResponseSchema = z.object({
 export const adminCatalogWorkspaceContract = {
   workspaceQueue: authedRoute
     .route({ method: "GET", path: `${WORKSPACE}/queue`, tags: [TAG] })
+    .meta({ adminSections: ["card-review", "printing-desk"] })
     .input(workspaceQueueInputSchema)
     .output(workspaceQueueResponseSchema),
   workspaceRecords: authedRoute
     .route({ method: "GET", path: `${WORKSPACE}/records`, tags: [TAG] })
+    .meta({ adminSections: ["card-review", "printing-desk"] })
     .errors({ BAD_REQUEST: { message: "Invalid cursor" } })
     .input(workspaceRecordsInputSchema)
     .output(workspaceRecordsResponseSchema),
   workspaceUploads: authedRoute
     .route({ method: "GET", path: `${WORKSPACE}/uploads`, tags: [TAG] })
+    .meta({ adminSections: ["card-review"] })
     .output(workspaceUploadsResponseSchema),
   workspaceDecisions: authedRoute
     .route({ method: "GET", path: `${WORKSPACE}/decisions`, tags: [TAG] })
+    .meta({ adminSections: ["card-review"] })
     .input(workspaceDecisionsInputSchema)
     .output(workspaceEventsResponseSchema),
   workspaceHistory: authedRoute
     .route({ method: "GET", path: `${WORKSPACE}/history`, tags: [TAG] })
+    .meta({ adminSections: ["card-review", "printing-desk"] })
     .errors({ FORBIDDEN: { message: "Forbidden" }, NOT_FOUND: { message: "Not found" } })
     .input(workspaceHistoryInputSchema)
     .output(workspaceEventsResponseSchema),

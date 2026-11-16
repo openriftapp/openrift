@@ -13,24 +13,42 @@ export function requireEnv(name: string): string {
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 
-export function isLocalDatabase(connectionString: string): boolean {
-  return LOCAL_HOSTS.has(new URL(connectionString).hostname);
+/**
+ * A loopback host alone also matches an SSH tunnel, so the port and database name must be the dev
+ * database's too (`DB_PORT` and `POSTGRES_DB` from `.env`). A tunnel bound to exactly that port
+ * and name, with the dev database stopped, still passes: nothing a client sees tells them apart.
+ */
+export function isLocalDatabase(
+  connectionString: string,
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  const url = new URL(connectionString);
+  const port = url.port || "5432";
+  const database = decodeURIComponent(url.pathname.replace(/^\//u, ""));
+  return (
+    LOCAL_HOSTS.has(url.hostname) &&
+    port === (env.DB_PORT || "5432") &&
+    database === (env.POSTGRES_DB || "openrift")
+  );
+}
+
+function describeDatabase(connectionString: string): string {
+  const url = new URL(connectionString);
+  return `${url.hostname}:${url.port || "5432"}${url.pathname}`;
 }
 
 function assertLocalDatabase(connectionString: string): void {
   if (!isLocalDatabase(connectionString)) {
-    const host = new URL(connectionString).hostname;
     throw new Error(
-      `Refusing to run against a non-local database (host: ${host}). This script is for local dev only.`,
+      `Refusing to run against a database other than the local dev one (${describeDatabase(connectionString)}). This script is for local dev only.`,
     );
   }
 }
 
 export function assertWritableDatabase(connectionString: string, allowRemote: boolean): void {
   if (!allowRemote && !isLocalDatabase(connectionString)) {
-    const host = new URL(connectionString).hostname;
     throw new Error(
-      `Refusing to run against a non-local database (host: ${host}). Pass --allow-remote to run it anyway.`,
+      `Refusing to run against a database other than the local dev one (${describeDatabase(connectionString)}). Pass --allow-remote to run it anyway.`,
     );
   }
 }

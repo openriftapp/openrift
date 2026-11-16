@@ -17,7 +17,7 @@ ADR-032 kept admin authorization as one binary role behind the `requireAdmin` ga
 
 ## Decision Outcome
 
-A grant is a row in `admin_grants(user_id, section)`, where `section` is a slug from the shared registry `ADMIN_SECTION_SLUGS` (`packages/shared/src/admin-sections.ts`). The prefix gate stays the single enforcement point: `requireAdmin` resolves `{ isAdmin, sections }` (30s cache), full admins pass everything, and grant holders pass only the API paths their sections map to (`apps/api/src/middleware/admin-section-paths.ts`) plus the `/me` probe, which reports the access so the web app can scope its route guard, sidebar, and header entry. Full admins manage grants on `/admin/users`.
+A grant is a row in `admin_grants(user_id, section)`, where `section` is a slug from the shared registry `ADMIN_SECTION_SLUGS` (`packages/shared/src/admin-sections.ts`). The prefix gate stays the single enforcement point: `requireAdmin` resolves `{ isAdmin, sections }` (30s cache), full admins pass everything, and grant holders pass only the procedures whose contract lists one of their sections in its `adminSections` meta (non-oRPC routes declare theirs with `requireAdminSections` where they are mounted) plus the `/me` probe, which reports the access so the web app can scope its route guard, sidebar, and header entry. Full admins manage grants on `/admin/users`.
 
 Adding a grantable section means one registry slug, one API path matcher, and one web route entry; the latter two are exhaustive `Record<AdminSectionSlug, …>` types, so the compiler forces them. RBAC was rejected because one section-scoped helper still gives no evidence for permission taxonomy boundaries; feature flags were rejected because they are a product-experiment mechanism, and using them for authorization muddies both.
 
@@ -31,4 +31,4 @@ Adding a grantable section means one registry slug, one API path matcher, and on
 ## More Information
 
 - ADR-032 documents why authorization stays in the prefix gate rather than contract `meta`, and the RBAC plan this ADR deliberately does not start.
-- `apps/api/src/middleware/require-admin.test.ts` and `admin-section-paths.test.ts` pin the gate behavior and the per-section path allowlist.
+- `apps/api/src/middleware/require-admin.test.ts` and `admin-sections.test.ts` pin the gate behavior and the per-section procedure allowlist.

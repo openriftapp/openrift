@@ -11,6 +11,7 @@ const mockCatalog = {
   cardErrata: vi.fn(),
   printings: vi.fn(),
   getPrintingById: vi.fn(),
+  refreshCatalogViews: vi.fn(),
 };
 
 const mockMutations = {

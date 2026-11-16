@@ -7,6 +7,10 @@ const REFRESH_INTERVAL_MS = 30 * MINUTE_MS;
 
 export class TradeChannelCache {
   private channels = new Map<string, Set<string>>();
+  // Local write order: a server list fetched before a write-through must not undo it.
+  private sequence = 0;
+  private readonly setAt = new Map<string, number>();
+  private appliedRefreshAt = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
   private readonly api: ApiClients;
 
@@ -20,6 +24,7 @@ export class TradeChannelCache {
   }
 
   set(guildId: string, channelIds: string[]): void {
+    this.setAt.set(guildId, ++this.sequence);
     if (channelIds.length === 0) {
       this.channels.delete(guildId);
       return;
@@ -32,11 +37,29 @@ export class TradeChannelCache {
     if (!this.api.discordBot) {
       return false;
     }
+    const startedAt = ++this.sequence;
     try {
       const response = await this.api.discordBot.tradeChannels({});
-      this.channels = new Map(
+      if (startedAt < this.appliedRefreshAt) {
+        return true;
+      }
+      this.appliedRefreshAt = startedAt;
+      const next = new Map(
         response.guilds.map((guild) => [guild.guildId, new Set(guild.channelIds)]),
       );
+      for (const [guildId, writtenAt] of this.setAt) {
+        if (writtenAt < startedAt) {
+          this.setAt.delete(guildId);
+          continue;
+        }
+        const local = this.channels.get(guildId);
+        if (local) {
+          next.set(guildId, local);
+        } else {
+          next.delete(guildId);
+        }
+      }
+      this.channels = next;
       return true;
     } catch (error) {
       log.error({ err: error }, "trade-channel refresh failed");

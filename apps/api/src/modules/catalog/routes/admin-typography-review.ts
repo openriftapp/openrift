@@ -155,6 +155,7 @@ export const adminTypographyReviewRouter = {
       const { id, field } = target;
       if (field === "name") {
         await mut.updateCardById(id, { name: proposed });
+        await catalog.refreshCatalogViews();
         return;
       }
       if (field === "tags") {

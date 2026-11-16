@@ -6,7 +6,6 @@ import type { MiddlewareHandler } from "hono";
 import type { Repos } from "../deps.js";
 import { AppError, forbidden } from "../errors.js";
 import type { Variables } from "../types.js";
-import { sectionAllowsRequest } from "./admin-section-paths.js";
 import { resolveSession } from "./load-session.js";
 
 export interface AdminAccess {
@@ -44,27 +43,71 @@ export async function getAdminAccess(repos: Repos, userId: string): Promise<Admi
 // learn which sections they hold; users with no access get 403 from it too.
 const ME_PATH = "/api/admin/v1/me";
 
-export const requireAdmin: MiddlewareHandler<{ Variables: Variables }> = async (c, next) => {
-  await resolveSession(c);
-  const user = c.get("user");
-  if (!user) {
-    throw new AppError(401, ERROR_CODES.UNAUTHORIZED, "Unauthorized");
-  }
+/** The sections a route opens to grant holders, from its contract's `adminSections` meta; none means admin-only. */
+export function adminSectionsOf(
+  meta: Readonly<Record<string, unknown>> | undefined,
+): AdminSectionSlug[] {
+  const sections = meta?.adminSections;
+  return Array.isArray(sections)
+    ? sections.filter(
+        (section): section is AdminSectionSlug =>
+          typeof section === "string" && isAdminSectionSlug(section),
+      )
+    : [];
+}
 
-  const access = await getAdminAccess(c.get("repos"), user.id);
-  // adminAccess is read downstream (card-review's candidate allowlist); do not remove as unused.
-  c.set("adminAccess", access);
-  if (!access.isAdmin) {
-    const path = c.req.path;
-    const method = c.req.method;
-    const allowed =
-      access.sections.length > 0 &&
-      (path === ME_PATH ||
-        access.sections.some((section) => sectionAllowsRequest(section, method, path)));
-    if (!allowed) {
-      throw forbidden("Forbidden");
+export type AdminSectionsResolver = (
+  method: string,
+  path: string,
+) => Promise<readonly AdminSectionSlug[]>;
+
+/** Reads the sections from the meta of the procedure a request resolves to. */
+export function sectionsFromRoute(
+  resolveRoute: (
+    method: string,
+    path: string,
+  ) => Promise<{ meta: Readonly<Record<string, unknown>> } | undefined>,
+): AdminSectionsResolver {
+  return async (method, path) => {
+    const route = await resolveRoute(method, path);
+    return adminSectionsOf(route?.meta);
+  };
+}
+
+/** HEAD resolves as GET, the way the API handler runs it. */
+export function requireAdmin(
+  sectionsFor: AdminSectionsResolver,
+): MiddlewareHandler<{ Variables: Variables }> {
+  return async (c, next) => {
+    await resolveSession(c);
+    const user = c.get("user");
+    if (!user) {
+      throw new AppError(401, ERROR_CODES.UNAUTHORIZED, "Unauthorized");
     }
-  }
 
-  await next();
-};
+    const access = await getAdminAccess(c.get("repos"), user.id);
+    // adminAccess is read downstream (card-review's candidate allowlist); do not remove as unused.
+    c.set("adminAccess", access);
+    if (!access.isAdmin) {
+      const path = c.req.path;
+      const method = c.req.method === "HEAD" ? "GET" : c.req.method;
+      const routeSections =
+        access.sections.length > 0 && path !== ME_PATH ? await sectionsFor(method, path) : [];
+      const allowed =
+        access.sections.length > 0 &&
+        (path === ME_PATH || routeSections.some((section) => access.sections.includes(section)));
+      if (!allowed) {
+        throw forbidden("Forbidden");
+      }
+    }
+
+    await next();
+  };
+}
+
+/** For a Hono route outside oRPC, which declares its sections where it is mounted. */
+export function requireAdminSections(
+  ...sections: AdminSectionSlug[]
+): MiddlewareHandler<{ Variables: Variables }> {
+  return requireAdmin(() => Promise.resolve(sections));
+}

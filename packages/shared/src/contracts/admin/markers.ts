@@ -25,6 +25,7 @@ export const adminMarkerSchema = z.object({
 export const adminMarkersContract = {
   list: authedRoute
     .route({ method: "GET", path: MARKERS, tags: [TAG] })
+    .meta({ adminSections: ["card-review", "printing-desk"] })
     .output(z.object({ markers: z.array(adminMarkerSchema) })),
   reorder: authedRoute
     .route({ method: "PUT", path: `${MARKERS}/reorder`, tags: [TAG], successStatus: 204 })
@@ -32,6 +33,7 @@ export const adminMarkersContract = {
     .input(z.object({ ids: z.array(z.string().min(1)).min(1) })),
   create: authedRoute
     .route({ method: "POST", path: MARKERS, tags: [TAG], successStatus: 201 })
+    .meta({ adminSections: ["printing-desk"] })
     .errors({ CONFLICT: { message: "A marker with that slug already exists" } })
     .input(
       z.object({

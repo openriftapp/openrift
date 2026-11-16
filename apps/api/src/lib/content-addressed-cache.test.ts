@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { createContentAddressedCache, createVersionedCache } from "./content-addressed-cache.js";
 
@@ -130,5 +130,20 @@ describe("createVersionedCache", () => {
     );
 
     await expect(cache()).resolves.toEqual({ version: "v1", value: "body-loaded-under-v1" });
+  });
+
+  it("probes through a caller's own probe and shares the entry with default callers", async () => {
+    let loads = 0;
+    const defaultProbe = vi.fn(async () => "v1");
+    const cache = createVersionedCache(async () => {
+      loads += 1;
+      return loads;
+    }, defaultProbe);
+    const ownProbe = vi.fn(async () => "v1");
+
+    await cache();
+    await expect(cache(ownProbe)).resolves.toEqual({ version: "v1", value: 1 });
+    expect(ownProbe).toHaveBeenCalledTimes(1);
+    expect(defaultProbe).toHaveBeenCalledTimes(1);
   });
 });

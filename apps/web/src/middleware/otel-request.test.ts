@@ -78,17 +78,21 @@ describe("otelRequestMiddleware (web)", () => {
     expect(span?.attributes["http.route"]).toBe("<unmatched>");
   });
 
-  it("keeps a production server function id and drops a malformed one", async () => {
-    const hashed = `/_serverFn/${"c0846484".repeat(8)}`;
-    for (const path of [hashed, "/_serverFn/not-a-real-id"]) {
+  it("names a production server function by its id's name and drops a malformed id", async () => {
+    for (const path of ["/_serverFn/fetchCatalog.c0846484c0846484", "/_serverFn/not-a-real-id"]) {
       await handler({
         request: new Request(`https://example.com${path}`),
         next: async () => undefined,
       } as never);
     }
 
-    const routes = exporter.getFinishedSpans().map((s) => s.attributes["http.route"]);
-    expect(routes).toEqual([hashed, "<unmatched>"]);
+    const spans = exporter.getFinishedSpans();
+    expect(spans.map((s) => s.attributes["http.route"])).toEqual([
+      "/_serverFn/fetchCatalog",
+      "<unmatched>",
+    ]);
+    expect(spans[0]?.name).toBe("serverFn:fetchCatalog");
+    expect(spans[0]?.attributes["serverfn.name"]).toBe("fetchCatalog");
   });
 
   it("maps the site root to its index route", async () => {

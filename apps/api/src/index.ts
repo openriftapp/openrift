@@ -15,6 +15,7 @@ import { migrate } from "./db/migrate.js";
 import { createRepos } from "./deps.js";
 import { createEmailSender } from "./email.js";
 import { createJobDefinitions } from "./jobs.js";
+import { readBuildId } from "./lib/build-id.js";
 import { gracefulShutdown } from "./lib/graceful-shutdown.js";
 import { isDroppableTransientRejection } from "./lib/transient-network-error.js";
 import { validateWellKnownSlugs } from "./modules/catalog/lib/validate-well-known.js";
@@ -24,15 +25,10 @@ import { configureRenderPool, shutdownRenderPool } from "./modules/system/servic
 import { setJobsShuttingDown } from "./modules/system/services/run-job.js";
 
 const env = process.env as Record<string, string | undefined>;
-// In containers, the deploy SHA is written to /app/.build-id by the Dockerfile.
 // Absent outside containers, which disables X-Build-Id stamping.
-if (!env.BUILD_ID) {
-  try {
-    const buildIdText = await Bun.file("/app/.build-id").text();
-    env.BUILD_ID = buildIdText.trim();
-  } catch {
-    // not in a container, leave unset
-  }
+const buildId = readBuildId(env);
+if (buildId) {
+  env.BUILD_ID = buildId;
 }
 validateConfig(env);
 const config = createConfig(env);
@@ -44,6 +40,7 @@ if (config.sentryDsn) {
   Sentry.init({
     dsn: config.sentryDsn,
     environment: config.appEnv,
+    release: config.buildId || undefined,
     dataCollection: SENTRY_DATA_COLLECTION,
     // Our own OTel SDK (./tracing.ts) owns tracing; Sentry events take the
     // trace id of the active OTel span so an issue pivots to its Tempo trace.

@@ -16,6 +16,9 @@
 - fix(Collection): **Right card on copy lists** — clicking a later copy of the same printing in a list opens that copy, and the highlight never jumps to the wrong card after a filter or a move.
 - fix(Collection): **Sidebar reorder with hidden rows** — dragging a collection or list onto a revealed hidden row lands where you dropped it.
 - fix(Decks): **Editor sidebar under the header** — the zone sidebar in the deck editor no longer slides under the header in the installed iOS app or on touch screens.
+- fix(Trades): **Trade match digest** — a digest run that fails partway, or one started by hand, no longer resends the same matches the next day.
+- fix(Cards): **Token links** — a card that mentions a token links to it when the token is added or renamed later.
+- fix(Discord): **Trade channels** — turning a trade channel on or off sticks even when the bot was reloading its channel list at that moment.
 
 ## 2026-11-16
 
