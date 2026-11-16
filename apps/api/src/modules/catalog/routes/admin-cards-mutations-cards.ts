@@ -47,7 +47,9 @@ export const adminCardMutationsCardsRouter = {
     }
 
     // UUID PK is immutable -- only the slug changes
-    await mut.renameCardSlugById(card.id, newId.trim());
+    await conflictOnUniqueViolation(CARD_SLUG_KEY, CARD_SLUG_TAKEN, () =>
+      mut.renameCardSlugById(card.id, newId.trim()),
+    );
 
     await recordAdminEvent(context.repos, context.userId, {
       action: "card.rename",

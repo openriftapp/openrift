@@ -1045,6 +1045,40 @@ describe("PUT /api/v1/decks/:id/cards — returned cards", () => {
     });
     expect(res.status).toBe(400);
   });
+
+  it("returns 400 when the same card, zone and printing appear twice", async () => {
+    mockRepo.getIdAndFormat.mockResolvedValue({ id: DECK_ID, format: "freeform" });
+    mockRepo.replaceCards.mockRejectedValue(
+      Object.assign(new Error("duplicate key"), {
+        code: "23505",
+        constraint_name: "uq_deck_cards",
+      }),
+    );
+    const card = { cardId: "c0000000-0001-4000-a000-000000000001", zone: "main", quantity: 1 };
+    const res = await app.request(`/api/v1/decks/${DECK_ID}/cards`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cards: [card, card] }),
+    });
+    expect(res.status).toBe(400);
+    const body = await readJson(res);
+    expect(body.message).toBe("A card is listed twice in one zone with the same printing");
+  });
+});
+
+describe("PUT /api/v1/decks/:id/plan", () => {
+  it("returns 400 when a matchup swaps the same card twice in one direction", async () => {
+    mockRepo.getIdAndFormat.mockResolvedValue({ id: DECK_ID, format: "freeform" });
+    const swap = { cardId: "c0000000-0001-4000-a000-000000000001", direction: "in", quantity: 1 };
+    const res = await app.request(`/api/v1/decks/${DECK_ID}/plan`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ matchups: [{ opponentLabel: "Jinx", swaps: [swap, swap] }] }),
+    });
+    expect(res.status).toBe(400);
+    const body = await readJson(res);
+    expect(body.message).toBe("Duplicate swap: a card is swapped twice in the same direction");
+  });
 });
 
 describe("PATCH /api/v1/decks/:id — cover face", () => {

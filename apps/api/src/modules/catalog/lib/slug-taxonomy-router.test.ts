@@ -94,6 +94,30 @@ describe("createSlugTaxonomyHandlers", () => {
   });
 
   describe("create", () => {
+    it("answers a slug taken after the pre-check with a 409", async () => {
+      const repo = mockRepo();
+      repo.getBySlug.mockResolvedValue(undefined);
+      repo.create.mockRejectedValue(
+        Object.assign(new Error("duplicate key"), {
+          code: "23505",
+          constraint_name: "finishes_pkey",
+        }),
+      );
+      const handlers = createSlugTaxonomyHandlers({
+        repoKey: "finishes",
+        entityName: "Finish",
+        createKey: "finish",
+        inUseBy: "one or more printings",
+      });
+
+      await expect(
+        handlers.create({
+          input: { slug: "primary", label: "Primary" },
+          context: contextWith("finishes", repo),
+        }),
+      ).rejects.toMatchObject({ status: 409, message: 'Finish "primary" already exists' });
+    });
+
     it("omits color when hasColor is not set", async () => {
       const repo = mockRepo();
       repo.getBySlug.mockResolvedValue(undefined);

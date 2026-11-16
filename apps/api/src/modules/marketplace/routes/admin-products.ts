@@ -1,13 +1,17 @@
 import { adminProductsContract } from "@openrift/shared/contracts/admin/products";
 import { implement } from "@orpc/server";
 
-import { assertFound } from "../../../lib/assertions.js";
+import { assertFound, conflictOnUniqueViolation } from "../../../lib/assertions.js";
 import { auditChange } from "../../../lib/audit-change.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 import { toCoverCards, toProductSummary } from "../lib/product-presenters.js";
-import { createProductFromList, resyncProductContents } from "../services/products.js";
+import {
+  createProductFromList,
+  PRODUCT_SLUG_KEY,
+  resyncProductContents,
+} from "../services/products.js";
 
 const os = implement(adminProductsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -66,7 +70,9 @@ export const adminProductsRouter = {
     if (patch.setId !== null && patch.setId !== undefined) {
       assertFound(await sets.getRef(patch.setId), "Set not found");
     }
-    await products.update(id, patch);
+    await conflictOnUniqueViolation(PRODUCT_SLUG_KEY, `Slug "${patch.slug}" already in use`, () =>
+      products.update(id, patch),
+    );
     await recordAdminEvent(context.repos, context.userId, {
       action: "product.update",
       entityType: "product",

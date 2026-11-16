@@ -5,7 +5,7 @@ import type {
 } from "@openrift/shared/types/api/admin";
 import { implement } from "@orpc/server";
 
-import { assertExisted, assertFound } from "../../../lib/assertions.js";
+import { assertExisted, assertFound, conflictOnUniqueViolation } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { createTagCategoryHandlers } from "../../catalog/lib/tag-category-handlers.js";
@@ -14,10 +14,13 @@ import { toCustomTag } from "../lib/custom-tag-presenters.js";
 
 const os = implement(adminCustomTagsContract).$context<ApiContext>().use(requireAuthedUser);
 
+const CUSTOM_TAG_SLUG_KEY = "custom_tags_slug_key";
+
 const categoryHandlers = createTagCategoryHandlers({
   repo: (context) => context.repos.customTagCategories,
   listTags: (context) => context.repos.customTags.listAll(),
   entityLabel: "Custom-tag category",
+  slugConstraint: "custom_tag_categories_slug_key",
 });
 
 export const adminCustomTagsRouter = {
@@ -56,17 +59,22 @@ export const adminCustomTagsRouter = {
     if (await repo.getBySlug(slug)) {
       throw errors.CONFLICT({ message: `Custom tag "${slug}" already exists` });
     }
-    const created = await context.transact(async ({ customTags }) => {
-      await customTags.lockSortOrder(categoryId);
-      const maxSortOrder = await customTags.getMaxSortOrder(categoryId);
-      return customTags.create({
-        slug,
-        label,
-        categoryId,
-        description,
-        sortOrder: maxSortOrder + 1,
-      });
-    });
+    const created = await conflictOnUniqueViolation(
+      CUSTOM_TAG_SLUG_KEY,
+      `Custom tag "${slug}" already exists`,
+      () =>
+        context.transact(async ({ customTags }) => {
+          await customTags.lockSortOrder(categoryId);
+          const maxSortOrder = await customTags.getMaxSortOrder(categoryId);
+          return customTags.create({
+            slug,
+            label,
+            categoryId,
+            description,
+            sortOrder: maxSortOrder + 1,
+          });
+        }),
+    );
     return { tag: toCustomTag(created, 0) };
   }),
 
@@ -82,7 +90,9 @@ export const adminCustomTagsRouter = {
         throw errors.BAD_REQUEST({ message: `Unknown category id: ${body.categoryId}` });
       }
     }
-    await repo.update(id, body);
+    await conflictOnUniqueViolation(CUSTOM_TAG_SLUG_KEY, `Slug "${body.slug}" already in use`, () =>
+      repo.update(id, body),
+    );
   }),
 
   removeTag: os.removeTag.handler(async ({ input, context }): Promise<void> => {

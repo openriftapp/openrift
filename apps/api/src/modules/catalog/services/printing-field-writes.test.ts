@@ -3,7 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import type { Repos, Transact } from "../../../deps.js";
 import { normalizePrintingFieldValue, writePrintingField } from "./printing-field-writes.js";
 
-vi.mock("./printing-admin.js", () => ({
+vi.mock("./printing-admin.js", async (importOriginal) => ({
+  ...(await importOriginal()),
   updatePrintingMarkers: vi.fn(),
   updatePrintingDistributionChannels: vi.fn(),
 }));
@@ -131,6 +132,27 @@ describe("writePrintingField release fields", () => {
       "2026-10-18",
       1,
     );
+  });
+
+  it("answers an edit onto another printing's identity with a 409", async () => {
+    const { repos, updatePrintingFieldById } = makeRepos(UNDATED);
+    updatePrintingFieldById.mockRejectedValue(
+      Object.assign(new Error("duplicate key"), {
+        code: "23505",
+        constraint_name: "uq_faces_identity",
+      }),
+    );
+    await expect(
+      writePrintingField(transact, repos, {
+        printingId: "printing-1",
+        field: "shortCode",
+        value: "OGN-002",
+      }),
+    ).rejects.toMatchObject({
+      status: 409,
+      message:
+        "Another printing already has that code, finish, size, language and marker combination.",
+    });
   });
 
   it("rejects an announcedAt that is not a date", async () => {

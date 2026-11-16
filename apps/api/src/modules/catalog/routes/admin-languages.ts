@@ -1,7 +1,7 @@
 import { adminLanguagesContract } from "@openrift/shared/contracts/admin/languages";
 import { implement } from "@orpc/server";
 
-import { assertSlugAvailable } from "../../../lib/assertions.js";
+import { assertSlugAvailable, conflictOnUniqueViolation } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { createKeyedTaxonomyHandlers } from "../lib/slug-taxonomy-router.js";
@@ -41,7 +41,11 @@ export const adminLanguagesRouter = {
     const existing = await repo.getByCode(code);
     assertSlugAvailable(existing, code, "Language");
 
-    const created = await repo.create({ code, name, color, sortOrder });
+    const created = await conflictOnUniqueViolation(
+      "languages_pkey",
+      `Language "${code}" already exists`,
+      () => repo.create({ code, name, color, sortOrder }),
+    );
     return { language: toLanguageResponse(created) };
   }),
 

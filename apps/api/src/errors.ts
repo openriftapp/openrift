@@ -7,8 +7,6 @@ import type { TradeCancelConflictData } from "@openrift/shared/contracts/fields"
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { ErrorCode } from "@openrift/shared/error-codes";
 
-import { isUniqueViolation } from "./lib/pg-errors.js";
-
 export class AppError extends Error {
   readonly status: number;
   readonly code: ErrorCode;
@@ -48,13 +46,6 @@ export function notFound(message: string, details?: unknown): AppError {
 
 export function conflict(message: string, details?: unknown): AppError {
   return new AppError(409, ERROR_CODES.CONFLICT, message, details);
-}
-
-/** The 409 for a unique violation that no service mapped to a specific message. */
-export function asUnmappedUniqueConflict<E>(error: E): E | AppError {
-  return isUniqueViolation(error)
-    ? conflict("This change conflicts with an existing record.")
-    : error;
 }
 
 const STATUS_TO_CODE: Readonly<Record<number, ErrorCode>> = {

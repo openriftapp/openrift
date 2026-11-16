@@ -40,6 +40,11 @@ const mockCatalog = {
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
 
+const customTagSlugViolation = Object.assign(new Error("duplicate key"), {
+  code: "23505",
+  constraint_name: "custom_tags_slug_key",
+});
+
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
@@ -274,6 +279,21 @@ describe("POST /custom-tags", () => {
     expect(mockTagRepo.create).not.toHaveBeenCalled();
   });
 
+  it("returns 409 when the slug is taken after the pre-check", async () => {
+    mockCatRepo.getById.mockResolvedValue(catRow);
+    mockTagRepo.getBySlug.mockResolvedValue(undefined);
+    mockTagRepo.getMaxSortOrder.mockResolvedValue(0);
+    mockTagRepo.create.mockRejectedValue(customTagSlugViolation);
+    const res = await app.request("/api/admin/v1/custom-tags", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: "bandle-city", label: "Bandle City", categoryId: CAT_ID }),
+    });
+    expect(res.status).toBe(409);
+    const body = await readJson(res);
+    expect(body.message).toBe('Custom tag "bandle-city" already exists');
+  });
+
   it("returns 400 for an unknown category", async () => {
     mockCatRepo.getById.mockResolvedValue(undefined);
     const res = await app.request("/api/admin/v1/custom-tags", {
@@ -316,6 +336,20 @@ describe("PATCH /custom-tags/:id", () => {
     const lintBody = await readJson(res);
     expect(lintBody.message).toContain("not found");
     expect(mockTagRepo.update).not.toHaveBeenCalled();
+  });
+
+  it("returns 409 when the new slug is taken after the pre-check", async () => {
+    mockTagRepo.getById.mockResolvedValue(tagRow);
+    mockTagRepo.getBySlug.mockResolvedValue(undefined);
+    mockTagRepo.update.mockRejectedValue(customTagSlugViolation);
+    const res = await app.request(`/api/admin/v1/custom-tags/${TAG_ID}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: "piltover" }),
+    });
+    expect(res.status).toBe(409);
+    const body = await readJson(res);
+    expect(body.message).toBe('Slug "piltover" already in use');
   });
 });
 

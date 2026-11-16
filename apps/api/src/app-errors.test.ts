@@ -57,6 +57,10 @@ function buildApp(isDev: boolean) {
     throw new Error("Something unexpected");
   });
 
+  a.get("/api/test-error/unique-violation", () => {
+    throw Object.assign(new Error("duplicate key value"), { code: "23505" });
+  });
+
   a.post("/api/test-error/json-body", async (c) => {
     await c.req.json();
     return c.json({ ok: true });
@@ -133,6 +137,13 @@ describe("onError handler", () => {
     const details = json.details as { message: string; stack: string };
     expect(details.message).toBe("Something unexpected");
     expect(details.stack).toContain("Something unexpected");
+  });
+
+  it("answers an unmapped unique violation with a 500", async () => {
+    const res = await app.fetch(new Request("http://localhost/api/test-error/unique-violation"));
+    expect(res.status).toBe(500);
+    const json = (await readJson(res)) as Record<string, unknown>;
+    expect(json.code).toBe("INTERNAL_ERROR");
   });
 
   it("handles SyntaxError from malformed JSON", async () => {

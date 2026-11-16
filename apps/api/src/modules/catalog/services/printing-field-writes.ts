@@ -15,7 +15,11 @@ import {
   trimOptionalText,
   validateFieldValue,
 } from "../lib/field-values.js";
-import { updatePrintingDistributionChannels, updatePrintingMarkers } from "./printing-admin.js";
+import {
+  asPrintingIdentityConflict,
+  updatePrintingDistributionChannels,
+  updatePrintingMarkers,
+} from "./printing-admin.js";
 
 export type PrintingFieldSource = "provider" | "manual";
 
@@ -186,11 +190,30 @@ export async function isUnchangedPrintingValue(
   return isUnchangedValue(before[field], value, field);
 }
 
+interface WritePrintingFieldArgs {
+  printingId: string;
+  field: AcceptPrintingField;
+  value: unknown;
+  side?: 1 | 2;
+}
+
 /** Returns the human-readable value to audit: for `setId` the slug, not the UUID written. */
 export async function writePrintingField(
   transact: Transact,
   repos: WriteRepos,
-  args: { printingId: string; field: AcceptPrintingField; value: unknown; side?: 1 | 2 },
+  args: WritePrintingFieldArgs,
+): Promise<{ auditValue: unknown }> {
+  try {
+    return await applyPrintingField(transact, repos, args);
+  } catch (error) {
+    throw asPrintingIdentityConflict(error);
+  }
+}
+
+async function applyPrintingField(
+  transact: Transact,
+  repos: WriteRepos,
+  args: WritePrintingFieldArgs,
 ): Promise<{ auditValue: unknown }> {
   const { printingId, field, value, side = 1 } = args;
   const mut = repos.catalogMutations;

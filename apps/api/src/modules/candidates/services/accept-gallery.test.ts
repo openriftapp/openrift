@@ -106,6 +106,20 @@ describe("acceptFavoriteNewCard", () => {
     expect(catalogMutations.acceptNewCardFromSources).not.toHaveBeenCalled();
   });
 
+  it("409s when a concurrent accept created the card's slug first", async () => {
+    const { repos, catalogMutations } = createMockRepos();
+    catalogMutations.acceptNewCardFromSources.mockRejectedValue(
+      Object.assign(new Error("duplicate key"), {
+        code: "23505",
+        constraint_name: "cards_slug_key",
+      }),
+    );
+
+    await expect(
+      acceptFavoriteNewCard(mockTransact(repos), repos, "flamestriker", FAVORITE_PROVIDERS, []),
+    ).rejects.toMatchObject({ status: 409, message: "A card with this slug already exists" });
+  });
+
   it("creates a new card and accepts its candidates onto it", async () => {
     const { repos, catalogMutations, candidateCards, printings } = createMockRepos();
 

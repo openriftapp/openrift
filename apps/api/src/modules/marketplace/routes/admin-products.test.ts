@@ -84,6 +84,32 @@ describe("admin products audit events", () => {
   });
 });
 
+describe("admin product update", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockProducts.getById.mockResolvedValue(existing);
+    mockProducts.slugTaken.mockResolvedValue(false);
+  });
+
+  it("answers a slug taken after the pre-check with a 409", async () => {
+    mockProducts.update.mockRejectedValue(
+      Object.assign(new Error("duplicate key"), {
+        code: "23505",
+        constraint_name: "products_slug_key",
+      }),
+    );
+
+    const res = await app.request(`/api/admin/v1/products/${PRODUCT_ID}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: "origins-box" }),
+    });
+
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ message: 'Slug "origins-box" already in use' });
+  });
+});
+
 describe("admin product printing ids", () => {
   it("lists every printing any product holds", async () => {
     mockProducts.allPrintingIds.mockResolvedValue(["p-1", "p-2"]);

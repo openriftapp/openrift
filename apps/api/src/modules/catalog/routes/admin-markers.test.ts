@@ -21,6 +21,11 @@ const mockRepo = {
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
 
+const slugViolation = Object.assign(new Error("duplicate key"), {
+  code: "23505",
+  constraint_name: "markers_slug_key",
+});
+
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
@@ -175,6 +180,20 @@ describe("POST /markers", () => {
     expect(lintBody.message).toContain("already exists");
     expect(mockRepo.create).not.toHaveBeenCalled();
   });
+
+  it("returns 409 when the slug is taken after the pre-check", async () => {
+    mockRepo.getBySlug.mockResolvedValue(undefined);
+    mockRepo.getMaxSortOrder.mockResolvedValue(0);
+    mockRepo.create.mockRejectedValue(slugViolation);
+    const res = await app.request("/api/admin/v1/markers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: "top-8", label: "Top 8" }),
+    });
+    expect(res.status).toBe(409);
+    const body = await readJson(res);
+    expect(body.message).toBe('Marker "top-8" already exists');
+  });
 });
 
 describe("PATCH /markers/:id", () => {
@@ -223,6 +242,20 @@ describe("PATCH /markers/:id", () => {
     const lintBody = await readJson(res);
     expect(lintBody.message).toContain("already in use");
     expect(mockRepo.update).not.toHaveBeenCalled();
+  });
+
+  it("returns 409 when the slug is taken after the pre-check", async () => {
+    mockRepo.getById.mockResolvedValue(markerA);
+    mockRepo.getBySlug.mockResolvedValue(undefined);
+    mockRepo.update.mockRejectedValue(slugViolation);
+    const res = await app.request(`/api/admin/v1/markers/${ID_A}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: "champion" }),
+    });
+    expect(res.status).toBe(409);
+    const body = await readJson(res);
+    expect(body.message).toBe('Slug "champion" already in use');
   });
 });
 

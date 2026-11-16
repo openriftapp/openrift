@@ -1,7 +1,7 @@
 import { adminCardBansContract } from "@openrift/shared/contracts/admin/card-bans";
 import { implement } from "@orpc/server";
 
-import { assertFound } from "../../../lib/assertions.js";
+import { assertFound, conflictOnUniqueViolation } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
@@ -37,7 +37,11 @@ export const adminCardBansRouter = {
       throw errors.CONFLICT({ message: `Card is already banned in ${formatId}` });
     }
 
-    const row = await cardBans.create({ cardId: id, formatId, bannedAt, reason: reason ?? null });
+    const row = await conflictOnUniqueViolation(
+      "uq_card_bans_active",
+      `Card is already banned in ${formatId}`,
+      () => cardBans.create({ cardId: id, formatId, bannedAt, reason: reason ?? null }),
+    );
 
     await recordAdminEvent(context.repos, context.userId, {
       action: "ban.add",

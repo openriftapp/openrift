@@ -3,6 +3,7 @@ import type { CardType, Domain, SuperType } from "@openrift/shared/types/enums";
 
 import type { Repos, Transact } from "../../../deps.js";
 import { badRequest, notFound } from "../../../errors.js";
+import { conflictOnUniqueViolation } from "../../../lib/assertions.js";
 import type { NewPrinting } from "../../catalog/services/printing-admin.js";
 import { acceptCandidateGroups } from "./accept-candidate-printings.js";
 import { relinkCandidatePrintings } from "./relink-candidates.js";
@@ -43,22 +44,27 @@ export async function acceptFavoriteNewCard(
     });
     await relinkCandidatePrintings(repos);
   } else {
-    cardId = await transact((trxRepos) =>
-      trxRepos.catalogMutations.acceptNewCardFromSources(
-        {
-          id: cardSlug,
-          name: primaryCandidate.name,
-          types: primaryCandidate.types as CardType[],
-          superTypes: (primaryCandidate.superTypes ?? []) as SuperType[],
-          domains: (primaryCandidate.domains ?? []) as Domain[],
-          might: primaryCandidate.might,
-          energy: primaryCandidate.energy,
-          power: primaryCandidate.power,
-          mightBonus: primaryCandidate.mightBonus,
-          tags: primaryCandidate.tags ?? [],
-        },
-        normalizedName,
-      ),
+    cardId = await conflictOnUniqueViolation(
+      "cards_slug_key",
+      "A card with this slug already exists",
+      () =>
+        transact((trxRepos) =>
+          trxRepos.catalogMutations.acceptNewCardFromSources(
+            {
+              id: cardSlug,
+              name: primaryCandidate.name,
+              types: primaryCandidate.types as CardType[],
+              superTypes: (primaryCandidate.superTypes ?? []) as SuperType[],
+              domains: (primaryCandidate.domains ?? []) as Domain[],
+              might: primaryCandidate.might,
+              energy: primaryCandidate.energy,
+              power: primaryCandidate.power,
+              mightBonus: primaryCandidate.mightBonus,
+              tags: primaryCandidate.tags ?? [],
+            },
+            normalizedName,
+          ),
+        ),
     );
   }
 

@@ -21,7 +21,7 @@ import type { Services } from "./deps.js";
 import { createRepos, createServices, createTransact } from "./deps.js";
 import { createEmailDeps } from "./email.js";
 import type { SendEmail } from "./email.js";
-import { AppError, asUnmappedUniqueConflict, codeForStatus } from "./errors.js";
+import { AppError, codeForStatus } from "./errors.js";
 import { defaultIo } from "./io.js";
 import type { Io } from "./io.js";
 import { ADMIN_API_PREFIX } from "./lib/admin-api-prefix.js";
@@ -124,8 +124,8 @@ export function createApp(deps: AppDeps) {
   const apiHandler = createApiHandler(log);
   const resolveApiRoute = createApiRouteResolver();
 
-  app.onError((thrown, c) => {
-    const err = asUnmappedUniqueConflict(thrown);
+  // oxlint-disable-next-line promise/prefer-await-to-callbacks -- Hono's onError API takes a callback
+  app.onError((err, c) => {
     if (err instanceof AppError) {
       if (err.status >= 500) {
         Sentry.captureException(err, { extra: { method: c.req.method, path: c.req.path } });

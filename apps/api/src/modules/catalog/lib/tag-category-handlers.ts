@@ -1,7 +1,11 @@
 import type { TagCategoryResponse } from "@openrift/shared/types/api/admin";
 
 import { conflict } from "../../../errors.js";
-import { assertFound, assertSlugAvailable } from "../../../lib/assertions.js";
+import {
+  assertFound,
+  assertSlugAvailable,
+  conflictOnUniqueViolation,
+} from "../../../lib/assertions.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { assertSlugFreeForRename } from "./taxonomy-assertions.js";
 import { toTagCategoryResponse } from "./taxonomy-presenters.js";
@@ -35,6 +39,7 @@ export interface TagCategoryHandlersConfig {
   repo: (context: ApiContext) => TagCategoryRepo;
   listTags: (context: ApiContext) => Promise<readonly { categoryId: string }[]>;
   entityLabel: string;
+  slugConstraint: string;
 }
 
 export interface TagCategoryHandlers {
@@ -51,7 +56,7 @@ export interface TagCategoryHandlers {
 }
 
 export function createTagCategoryHandlers(config: TagCategoryHandlersConfig): TagCategoryHandlers {
-  const { repo: repoOf, listTags, entityLabel } = config;
+  const { repo: repoOf, listTags, entityLabel, slugConstraint } = config;
   const notFoundMessage = `${entityLabel} not found`;
 
   return {
@@ -68,12 +73,17 @@ export function createTagCategoryHandlers(config: TagCategoryHandlersConfig): Ta
       const repo = repoOf(context);
       const { slug, label, description } = input;
       assertSlugAvailable(await repo.getBySlug(slug), slug, "Category");
-      const created = await context.transact(async (trxRepos) => {
-        const trxRepo = repoOf({ ...context, repos: trxRepos });
-        await trxRepo.lockSortOrder();
-        const maxSortOrder = await trxRepo.getMaxSortOrder();
-        return trxRepo.create({ slug, label, description, sortOrder: maxSortOrder + 1 });
-      });
+      const created = await conflictOnUniqueViolation(
+        slugConstraint,
+        `Category "${slug}" already exists`,
+        () =>
+          context.transact(async (trxRepos) => {
+            const trxRepo = repoOf({ ...context, repos: trxRepos });
+            await trxRepo.lockSortOrder();
+            const maxSortOrder = await trxRepo.getMaxSortOrder();
+            return trxRepo.create({ slug, label, description, sortOrder: maxSortOrder + 1 });
+          }),
+      );
       return { category: toTagCategoryResponse(created, 0) };
     },
 
@@ -83,7 +93,9 @@ export function createTagCategoryHandlers(config: TagCategoryHandlersConfig): Ta
       const existing = await repo.getById(id);
       assertFound(existing, notFoundMessage);
       await assertSlugFreeForRename((slug) => repo.getBySlug(slug), existing.slug, body.slug);
-      await repo.update(id, body);
+      await conflictOnUniqueViolation(slugConstraint, `Slug "${body.slug}" already in use`, () =>
+        repo.update(id, body),
+      );
     },
 
     async removeCategory({ input, context }) {

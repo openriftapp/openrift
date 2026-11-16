@@ -2,9 +2,24 @@ import type { Selectable } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import { conflict } from "../../../errors.js";
-import { assertFound, assertSlugAvailable, assertValidReorder } from "../../../lib/assertions.js";
+import {
+  assertFound,
+  assertSlugAvailable,
+  assertValidReorder,
+  conflictOnUniqueViolation,
+} from "../../../lib/assertions.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import type { SlugTaxonomyRepo, SlugTaxonomyTable } from "../repositories/slug-taxonomy.js";
+
+const SLUG_TAXONOMY_PKEYS: Readonly<Record<SlugTaxonomyTable, string>> = {
+  artVariants: "art_variants_pkey",
+  cardTypes: "card_types_pkey",
+  deckFormats: "deck_formats_pkey",
+  domains: "domains_pkey",
+  finishes: "finishes_pkey",
+  rarities: "rarities_pkey",
+  superTypes: "super_types_pkey",
+};
 
 /** Per-router config for the seven slug-keyed admin taxonomy routers; shared behavior lives in {@link createSlugTaxonomyHandlers}. */
 export interface SlugTaxonomyRouterConfig<T extends SlugTaxonomyTable, CreateKey extends string> {
@@ -156,8 +171,10 @@ export function createSlugTaxonomyHandlers<T extends SlugTaxonomyTable, CreateKe
       const existing = await repo.getBySlug(slug);
       assertSlugAvailable(existing, slug, entityName);
 
-      const created = await repo.create(
-        (hasColor ? { slug, label, color } : { slug, label }) as never,
+      const created = await conflictOnUniqueViolation(
+        SLUG_TAXONOMY_PKEYS[repoKey],
+        `${entityName} "${slug}" already exists`,
+        () => repo.create((hasColor ? { slug, label, color } : { slug, label }) as never),
       );
       return keyed(createKey, created);
     },

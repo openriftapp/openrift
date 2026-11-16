@@ -28,7 +28,7 @@ import type { z } from "zod";
 import type { Repos } from "../../../deps.js";
 import { badRequest } from "../../../errors.js";
 import { assertExisted, assertFound } from "../../../lib/assertions.js";
-import { isForeignKeyViolation } from "../../../lib/pg-errors.js";
+import { isForeignKeyViolation, isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { enableShare } from "../../../lib/share-token.js";
 import {
   decodeXidKeyset,
@@ -69,6 +69,10 @@ async function validateDeckPlan(
       throw badRequest("Duplicate matchup: the same opponent appears twice");
     }
     seen.add(key);
+    const swapKeys = new Set(matchup.swaps.map((swap) => `${swap.cardId}:${swap.direction}`));
+    if (swapKeys.size !== matchup.swaps.length) {
+      throw badRequest("Duplicate swap: a card is swapped twice in the same direction");
+    }
   }
 
   const opponentIds = body.matchups
@@ -433,6 +437,9 @@ export const decksRouter = {
     } catch (error) {
       if (isForeignKeyViolation(error)) {
         throw badRequest("A preferred printing must show its card on one side");
+      }
+      if (isUniqueViolationOn(error, "uq_deck_cards")) {
+        throw badRequest("A card is listed twice in one zone with the same printing");
       }
       throw error;
     }

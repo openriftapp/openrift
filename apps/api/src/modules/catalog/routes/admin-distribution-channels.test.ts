@@ -13,6 +13,7 @@ const mockRepo = {
   getBySlug: vi.fn(),
   getMaxSortOrderForParent: vi.fn(),
   lockSortOrder: vi.fn(async () => undefined),
+  create: vi.fn(),
   update: vi.fn(),
   hasChildren: vi.fn(),
   countInUse: vi.fn(),
@@ -21,6 +22,11 @@ const mockRepo = {
 };
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
+
+const slugViolation = Object.assign(new Error("duplicate key"), {
+  code: "23505",
+  constraint_name: "distribution_channels_slug_key",
+});
 
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
@@ -142,6 +148,38 @@ describe("PATCH /distribution-channels/:id", () => {
     const res = await patchChannel({ label: "Nexus Night 2026" });
     expect(res.status).toBe(404);
     expect(mockRepo.update).not.toHaveBeenCalled();
+  });
+
+  it("returns 409 when the new slug is taken after the pre-check", async () => {
+    mockRepo.getById.mockResolvedValue(baseRow);
+    mockRepo.getBySlug.mockResolvedValue(undefined);
+    mockRepo.update.mockRejectedValue(slugViolation);
+
+    const res = await patchChannel({ slug: "nexus-night-2026" });
+    expect(res.status).toBe(409);
+    const body = await readJson(res);
+    expect(body.message).toBe('Slug "nexus-night-2026" already in use');
+  });
+});
+
+describe("POST /distribution-channels", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("returns 409 when the slug is taken after the pre-check", async () => {
+    mockRepo.getBySlug.mockResolvedValue(undefined);
+    mockRepo.getMaxSortOrderForParent.mockResolvedValue(0);
+    mockRepo.create.mockRejectedValue(slugViolation);
+
+    const res = await app.request("/api/admin/v1/distribution-channels", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: "nexus-night-2025", label: "Nexus Night 2025" }),
+    });
+    expect(res.status).toBe(409);
+    const body = await readJson(res);
+    expect(body.message).toBe('Distribution channel "nexus-night-2025" already exists');
   });
 });
 

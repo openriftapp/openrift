@@ -24,6 +24,11 @@ describe("appErrorInterceptor", () => {
     expect(error).toMatchObject({ code: "CONFLICT", status: 409, message: "Already there" });
   });
 
+  it("passes an unmapped unique violation through unchanged", async () => {
+    const uniqueViolation = Object.assign(new Error("duplicate key value"), { code: "23505" });
+    expect(await thrownBy(uniqueViolation)).toBe(uniqueViolation);
+  });
+
   it("trims an input validation failure to path and message per issue", async () => {
     const cause = new ValidationError({
       message: "Input validation failed",

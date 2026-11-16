@@ -154,6 +154,31 @@ describe("POST /api/admin/v1/cards/:id/bans", () => {
     expect(json.message).toContain("already banned");
     expect(mockCardBans.create).not.toHaveBeenCalled();
   });
+
+  it("409s when a concurrent ban wins the race past the pre-check", async () => {
+    mockCatalogMutations.getCardById.mockResolvedValue({
+      id: CARD_ID,
+      name: "Fireball",
+      slug: "fireball",
+    });
+    mockCardBans.getActiveBan.mockResolvedValue(undefined);
+    mockCardBans.create.mockRejectedValue(
+      Object.assign(new Error("duplicate key"), {
+        code: "23505",
+        constraint_name: "uq_card_bans_active",
+      }),
+    );
+
+    const res = await app.request(`/api/admin/v1/cards/${CARD_ID}/bans`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ formatId: "standard", bannedAt: "2026-01-15" }),
+    });
+
+    expect(res.status).toBe(409);
+    const body = await readJson(res);
+    expect(body.message).toBe("Card is already banned in standard");
+  });
 });
 
 describe("PATCH /api/admin/v1/cards/:id/bans", () => {

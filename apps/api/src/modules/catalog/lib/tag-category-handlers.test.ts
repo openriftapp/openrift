@@ -23,6 +23,12 @@ const handlers = createTagCategoryHandlers({
   repo: () => repo,
   listTags,
   entityLabel: "Custom-tag category",
+  slugConstraint: "custom_tag_categories_slug_key",
+});
+
+const slugViolation = Object.assign(new Error("duplicate key"), {
+  code: "23505",
+  constraint_name: "custom_tag_categories_slug_key",
 });
 
 const now = new Date("2026-03-17T00:00:00.000Z");
@@ -83,6 +89,16 @@ describe("createCategory", () => {
     ).rejects.toMatchObject({ status: 409, message: 'Category "species" already exists' });
     expect(repo.create).not.toHaveBeenCalled();
   });
+
+  it("answers a slug taken after the pre-check with a 409", async () => {
+    repo.getBySlug.mockResolvedValue(undefined);
+    repo.getMaxSortOrder.mockResolvedValue(0);
+    repo.create.mockRejectedValue(slugViolation);
+
+    await expect(
+      handlers.createCategory({ input: { slug: "species", label: "Species" }, context }),
+    ).rejects.toMatchObject({ status: 409, message: 'Category "species" already exists' });
+  });
 });
 
 describe("updateCategory", () => {
@@ -102,6 +118,16 @@ describe("updateCategory", () => {
       handlers.updateCategory({ input: { id: "cat-1", slug: "region" }, context }),
     ).rejects.toMatchObject({ status: 409, message: 'Slug "region" already in use' });
     expect(repo.update).not.toHaveBeenCalled();
+  });
+
+  it("answers a rename onto a slug taken after the pre-check with a 409", async () => {
+    repo.getById.mockResolvedValue(category);
+    repo.getBySlug.mockResolvedValue(undefined);
+    repo.update.mockRejectedValue(slugViolation);
+
+    await expect(
+      handlers.updateCategory({ input: { id: "cat-1", slug: "region" }, context }),
+    ).rejects.toMatchObject({ status: 409, message: 'Slug "region" already in use' });
   });
 
   it("passes the body without the id to the repo", async () => {

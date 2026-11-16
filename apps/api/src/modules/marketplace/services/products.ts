@@ -1,7 +1,9 @@
 import type { Repos, Transact } from "../../../deps.js";
 import { badRequest, conflict } from "../../../errors.js";
-import { assertFound } from "../../../lib/assertions.js";
+import { assertFound, conflictOnUniqueViolation } from "../../../lib/assertions.js";
 import type { ProductContentRow, ProductWithCounts } from "../repositories/products.js";
+
+export const PRODUCT_SLUG_KEY = "products_slug_key";
 
 /**
  * List must be printing-kind: card-kind entries have no printing identity,
@@ -56,22 +58,24 @@ export async function createProductFromList(
   }
   const contents = await resolveListContents(repos, userId, input.listId);
 
-  return transact(async (trx) => {
-    const product = await trx.products.create({
-      slug: input.slug,
-      name: input.name,
-      description: input.description ?? null,
-      setId,
-    });
-    await trx.products.replaceContents(product.id, contents);
-    return {
-      ...product,
-      printingCount: contents.length,
-      cardTotal: contents.reduce((sum, row) => sum + row.quantity, 0),
-      setSlug: setRef?.slug ?? null,
-      setName: setRef?.name ?? null,
-    };
-  });
+  return conflictOnUniqueViolation(PRODUCT_SLUG_KEY, `Slug "${input.slug}" already in use`, () =>
+    transact(async (trx) => {
+      const product = await trx.products.create({
+        slug: input.slug,
+        name: input.name,
+        description: input.description ?? null,
+        setId,
+      });
+      await trx.products.replaceContents(product.id, contents);
+      return {
+        ...product,
+        printingCount: contents.length,
+        cardTotal: contents.reduce((sum, row) => sum + row.quantity, 0),
+        setSlug: setRef?.slug ?? null,
+        setName: setRef?.name ?? null,
+      };
+    }),
+  );
 }
 
 export async function resyncProductContents(

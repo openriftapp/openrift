@@ -1,7 +1,7 @@
 import { adminMarkersContract } from "@openrift/shared/contracts/admin/markers";
 import { implement } from "@orpc/server";
 
-import { assertSlugAvailable } from "../../../lib/assertions.js";
+import { assertSlugAvailable, conflictOnUniqueViolation } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { createKeyedTaxonomyHandlers } from "../lib/slug-taxonomy-router.js";
@@ -9,6 +9,8 @@ import { assertSlugFreeForRename } from "../lib/taxonomy-assertions.js";
 import { toMarkerResponse } from "../lib/taxonomy-presenters.js";
 
 const os = implement(adminMarkersContract).$context<ApiContext>().use(requireAuthedUser);
+
+const MARKER_SLUG_KEY = "markers_slug_key";
 
 const handlers = createKeyedTaxonomyHandlers({
   keyColumn: "id",
@@ -39,11 +41,16 @@ export const adminMarkersRouter = {
     const { slug, label, description } = input;
     const existing = await repo.getBySlug(slug);
     assertSlugAvailable(existing, slug, "Marker");
-    const created = await context.transact(async ({ markers }) => {
-      await markers.lockSortOrder();
-      const maxSortOrder = await markers.getMaxSortOrder();
-      return markers.create({ slug, label, description, sortOrder: maxSortOrder + 1 });
-    });
+    const created = await conflictOnUniqueViolation(
+      MARKER_SLUG_KEY,
+      `Marker "${slug}" already exists`,
+      () =>
+        context.transact(async ({ markers }) => {
+          await markers.lockSortOrder();
+          const maxSortOrder = await markers.getMaxSortOrder();
+          return markers.create({ slug, label, description, sortOrder: maxSortOrder + 1 });
+        }),
+    );
     return { marker: toMarkerResponse(created) };
   }),
 
@@ -55,7 +62,9 @@ export const adminMarkersRouter = {
       throw errors.NOT_FOUND({ message: "Marker not found" });
     }
     await assertSlugFreeForRename((next) => repo.getBySlug(next), existing.slug, slug);
-    await repo.update(id, { slug, label, description });
+    await conflictOnUniqueViolation(MARKER_SLUG_KEY, `Slug "${slug}" already in use`, () =>
+      repo.update(id, { slug, label, description }),
+    );
   }),
 
   remove: os.remove.handler(handlers.remove),

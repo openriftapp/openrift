@@ -12,6 +12,7 @@ const categoryHandlers = createTagCategoryHandlers({
   repo: (context) => context.repos.tagCategories,
   listTags: (context) => context.repos.tagDefinitions.listAll(),
   entityLabel: "Tag category",
+  slugConstraint: "tag_categories_slug_key",
 });
 
 /**

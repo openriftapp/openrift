@@ -171,6 +171,24 @@ describe("POST /languages", () => {
     expect(lintBody.message).toContain("already exists");
     expect(mockRepo.create).not.toHaveBeenCalled();
   });
+
+  it("returns 409 when the code is taken after the pre-check", async () => {
+    mockRepo.getByCode.mockResolvedValue(undefined);
+    mockRepo.create.mockRejectedValue(
+      Object.assign(new Error("duplicate key"), {
+        code: "23505",
+        constraint_name: "languages_pkey",
+      }),
+    );
+    const res = await app.request("/api/admin/v1/languages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: "en", name: "English" }),
+    });
+    expect(res.status).toBe(409);
+    const body = await readJson(res);
+    expect(body.message).toBe('Language "en" already exists');
+  });
 });
 
 describe("PATCH /languages/:code", () => {

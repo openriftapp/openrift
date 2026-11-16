@@ -2,8 +2,12 @@ import { adminDistributionChannelsContract } from "@openrift/shared/contracts/ad
 import { countNoun } from "@openrift/shared/strings";
 import { implement } from "@orpc/server";
 
-import { assertSlugAvailable, assertValidReorder } from "../../../lib/assertions.js";
-import { raisedExceptionMessage } from "../../../lib/pg-errors.js";
+import {
+  assertSlugAvailable,
+  assertValidReorder,
+  conflictOnUniqueViolation,
+} from "../../../lib/assertions.js";
+import { isUniqueViolationOn, raisedExceptionMessage } from "../../../lib/pg-errors.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { assertSlugFreeForRename } from "../lib/taxonomy-assertions.js";
@@ -12,6 +16,8 @@ import { toDistributionChannelResponse } from "../lib/taxonomy-presenters.js";
 const os = implement(adminDistributionChannelsContract)
   .$context<ApiContext>()
   .use(requireAuthedUser);
+
+const CHANNEL_SLUG_KEY = "distribution_channels_slug_key";
 
 /**
  * Maps a hierarchy-trigger rejection (cycle, kind mismatch, depth cap, parent
@@ -58,23 +64,27 @@ export const adminDistributionChannelsRouter = {
     const existing = await repo.getBySlug(slug);
     assertSlugAvailable(existing, slug, "Distribution channel");
     const resolvedParentId = parentId ?? null;
-    const created = await context
-      .transact(async ({ distributionChannels }) => {
-        await distributionChannels.lockSortOrder(resolvedParentId);
-        const maxSortOrder = await distributionChannels.getMaxSortOrderForParent(resolvedParentId);
-        return distributionChannels.create({
-          slug,
-          label,
-          description,
-          kind,
-          parentId: resolvedParentId,
-          childrenLabel: childrenLabel ?? null,
-          sortOrder: maxSortOrder + 1,
-        });
-      })
-      .catch((error: unknown) => {
-        throw asHierarchyConflict(error, (message) => errors.CONFLICT({ message }));
-      });
+    const created = await conflictOnUniqueViolation(
+      CHANNEL_SLUG_KEY,
+      `Distribution channel "${slug}" already exists`,
+      () =>
+        context.transact(async ({ distributionChannels }) => {
+          await distributionChannels.lockSortOrder(resolvedParentId);
+          const maxSortOrder =
+            await distributionChannels.getMaxSortOrderForParent(resolvedParentId);
+          return distributionChannels.create({
+            slug,
+            label,
+            description,
+            kind,
+            parentId: resolvedParentId,
+            childrenLabel: childrenLabel ?? null,
+            sortOrder: maxSortOrder + 1,
+          });
+        }),
+    ).catch((error: unknown) => {
+      throw asHierarchyConflict(error, (message) => errors.CONFLICT({ message }));
+    });
     return { distributionChannel: toDistributionChannelResponse(created, 0) };
   }),
 
@@ -110,6 +120,9 @@ export const adminDistributionChannelsRouter = {
         await repo.update(id, updates);
       }
     } catch (error) {
+      if (isUniqueViolationOn(error, CHANNEL_SLUG_KEY)) {
+        throw errors.CONFLICT({ message: `Slug "${body.slug}" already in use` });
+      }
       throw asHierarchyConflict(error, (message) => errors.CONFLICT({ message }));
     }
   }),

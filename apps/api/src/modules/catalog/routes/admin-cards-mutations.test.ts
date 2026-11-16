@@ -25,7 +25,8 @@ import {
 } from "../services/printing-admin.js";
 import { adminCardMutationsRouter } from "./admin-cards-mutations";
 
-vi.mock("../services/printing-admin.js", () => ({
+vi.mock("../services/printing-admin.js", async (importOriginal) => ({
+  ...(await importOriginal()),
   createNewPrinting: vi.fn(),
   deletePrinting: vi.fn(),
   updatePrintingMarkers: vi.fn(),
@@ -757,6 +758,28 @@ describe("POST /cards/:cardId/rename", () => {
     });
     expect(res.status).toBe(204);
     expect(mockMut.renameCardSlugById).toHaveBeenCalledWith("card-uuid", "flame-drake");
+  });
+
+  it("answers a rename onto a taken slug with a 409", async () => {
+    mockMut.getCardById.mockResolvedValue({
+      id: "card-uuid",
+      name: "Fire Dragon",
+      slug: "fire-dragon",
+    });
+    mockMut.renameCardSlugById.mockRejectedValue(
+      Object.assign(new Error("duplicate key"), {
+        code: "23505",
+        constraint_name: "cards_slug_key",
+      }),
+    );
+
+    const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/rename`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ newId: "flame-drake" }),
+    });
+    expect(res.status).toBe(409);
+    expect(await readJson(res)).toMatchObject({ message: "A card with this slug already exists" });
   });
 
   it("returns 204 without renaming when newId matches current slug", async () => {
