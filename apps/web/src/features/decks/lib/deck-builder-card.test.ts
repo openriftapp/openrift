@@ -4,7 +4,7 @@ import type { CardType, DeckZone, SuperType } from "@openrift/shared/types/enums
 import { WellKnown } from "@openrift/shared/well-known";
 import { describe, expect, it } from "vitest";
 
-import { stubDeckBuilderCard } from "@/test/factories";
+import { stubCard, stubDeckBuilderCard } from "@/test/factories";
 
 import {
   buildDeckQuantityByCell,
@@ -17,9 +17,11 @@ import {
   isCardAllowedInZone,
   isCardBanned,
   isDeckZoneFullForDrag,
+  isUnknownDeckCard,
   canIncrementDeckEntry,
   runeAddRoom,
   toBuilderCardFromPublic,
+  toDraftDeckCard,
 } from "./deck-builder-card";
 
 function ban(formatId: string): CardBan {
@@ -906,5 +908,34 @@ describe("canIncrementDeckEntry", () => {
   it("blocks a fourth copy in the main deck", () => {
     const unit = stubDeckBuilderCard({ zone: "main" as DeckZone, quantity: 3 });
     expect(canIncrementDeckEntry(unit, [unit], { freeform: false, relaxed: false })).toBe(false);
+  });
+});
+
+describe("toDraftDeckCard", () => {
+  const row = {
+    cardId: "card-1",
+    zone: "main" as DeckZone,
+    quantity: 2,
+    preferredPrintingId: "p-1",
+  };
+
+  it("fills a known card from the catalog", () => {
+    const card = toDraftDeckCard(row, { "card-1": stubCard({ name: "Viktor" }) });
+
+    expect(card.cardName).toBe("Viktor");
+    expect(isUnknownDeckCard(card)).toBe(false);
+  });
+
+  it("keeps a card the catalog lacks as a placeholder with its stored fields", () => {
+    const card = toDraftDeckCard(row, {});
+
+    expect(card).toMatchObject({
+      cardId: "card-1",
+      zone: "main",
+      quantity: 2,
+      preferredPrintingId: "p-1",
+    });
+    expect(card.cardName).toBe("Unknown card");
+    expect(isUnknownDeckCard(card)).toBe(true);
   });
 });

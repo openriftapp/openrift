@@ -20,6 +20,7 @@ import type {
 import { WellKnown, isBaseBanFormat } from "@openrift/shared/well-known";
 
 import { DECK_ZONE_ORDER } from "@/features/decks/lib/deck-zone-order";
+import { m } from "@/paraglide/messages.js";
 
 const EMPTY_ARRAY: string[] = [];
 
@@ -379,6 +380,40 @@ export function toDeckBuilderCard(
     might: card.might,
     power: card.power,
   };
+}
+
+const UNKNOWN_CARD_TYPE: CardType = "unknown";
+
+/** A deck card missing from this client's catalog. */
+export function isUnknownDeckCard(card: Pick<DeckBuilderCard, "cardTypes">): boolean {
+  return card.cardTypes.length === 0;
+}
+
+export function toDraftDeckCard(
+  deckCard: DeckCardResponse,
+  cardsById: Record<string, Card>,
+): DeckBuilderCard {
+  return (
+    toDeckBuilderCard(deckCard, cardsById) ?? {
+      cardId: deckCard.cardId,
+      zone: deckCard.zone,
+      quantity: deckCard.quantity,
+      preferredPrintingId: deckCard.preferredPrintingId,
+      cardName: m.decks_editor_unknown_card(),
+      cardType: UNKNOWN_CARD_TYPE,
+      cardTypes: [],
+      superTypes: [],
+      domains: [],
+      tags: EMPTY_ARRAY,
+      keywords: EMPTY_ARRAY,
+      maxCopiesOverride: null,
+      additionalLegendCount: null,
+      banned: false,
+      energy: null,
+      might: null,
+      power: null,
+    }
+  );
 }
 
 export function runeTotalOf(cards: readonly { zone: string; quantity: number }[]): number {

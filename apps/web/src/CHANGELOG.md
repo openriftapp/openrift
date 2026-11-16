@@ -60,6 +60,7 @@
 - fix(Collection): **Wizard picks add up across sellers** — Pick for OpenRift takes the full quantity of a card the Shopping Wizard splits across several sellers.
 - fix(Collection): **Extension stops repainting Cardmarket pages** — the companion no longer redraws a Cardmarket page over and over once the page has changed, and says when it cannot read the cards on it.
 - fix(App): **Pages after a brief outage** — when settings failed to load for a moment, pages like Scan and Glossary offer a retry and no longer show "not found".
+- fix(Decks): **Deck edits from another device are kept** — reopening a deck picks up changes saved elsewhere, asks which version to keep if you have unsaved edits, and no longer drops cards your app does not know yet.
 
 ## 2026-11-15
 

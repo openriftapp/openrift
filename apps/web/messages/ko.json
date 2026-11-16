@@ -2920,6 +2920,10 @@
   "decks_editor_tokens_hint": "이 덱의 카드가 생성합니다. 덱 자체의 일부는 아닙니다.",
   "decks_editor_undo": "실행 취소",
   "decks_editor_undo_tooltip": "실행 취소 (Ctrl+Z)",
+  "decks_editor_conflict_description": "여기서 편집하는 동안 다른 기기나 탭에서 덱이 저장되었습니다. 내 버전을 유지해 그 위에 저장하거나, 저장된 버전을 불러오고 저장하지 않은 변경 사항을 버리세요.",
+  "decks_editor_conflict_keep": "내 버전 유지",
+  "decks_editor_conflict_load": "저장된 버전 불러오기",
+  "decks_editor_conflict_title": "다른 곳에서 이 덱이 변경되었습니다",
   "decks_editor_unknown_card": "알 수 없는 카드",
   "decks_editor_you_have": [
     {

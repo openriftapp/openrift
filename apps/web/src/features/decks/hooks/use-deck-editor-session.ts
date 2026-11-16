@@ -11,12 +11,16 @@ import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
 import { useDeckOwnership } from "@/features/decks/hooks/use-deck-ownership";
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
 import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
-import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { toDeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
+import { toDraftDeckCard } from "@/features/decks/lib/deck-builder-card";
 import { buildRunesByDomain } from "@/features/decks/lib/deck-runes-by-domain";
+import { getDeckCardsCollection } from "@/features/decks/lib/decks-collection";
 import { useDeckBenchSessionStore } from "@/features/decks/stores/deck-bench-session-store";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
-import { flushDeckDraft, hydrateDeckDraft } from "@/features/decks/stores/deck-draft-store";
+import {
+  flushDeckDraft,
+  getDeckDraftHydrated,
+  syncDeckDraft,
+} from "@/features/decks/stores/deck-draft-store";
 import { useIncomingTradeCounts } from "@/features/groups/hooks/use-card-trades";
 import { useBorrowedCounts } from "@/features/groups/hooks/use-loans";
 import { useRegisterQuickAdd } from "@/hooks/use-command-palette";
@@ -72,16 +76,23 @@ export function useDeckEditorSession(deckId: string) {
     setRunesByDomain(buildRunesByDomain(allPrintings));
   }, [allPrintings, setRunesByDomain]);
 
+  // A draft kept from an earlier visit is only as fresh as the cards store, which another device may have outdated.
   useEffect(() => {
-    if (data && !hydrated) {
-      const builderCards = data.cards
-        .map((card) => toDeckBuilderCard(card, cardsById))
-        .filter((card): card is DeckBuilderCard => card !== null);
-      hydrateDeckDraft(queryClient, scope, deckId, builderCards);
+    if (!isLocal && userId && getDeckDraftHydrated(queryClient, scope, deckId)) {
+      void getDeckCardsCollection(queryClient, userId).utils.refetch();
     }
-  }, [data, deckId, hydrated, queryClient, scope, cardsById]);
+  }, [deckId, isLocal, queryClient, scope, userId]);
 
-  // The draft stays cached per user, so re-entering the deck skips hydration.
+  const serverCards = data.cards;
+  useEffect(() => {
+    syncDeckDraft(
+      queryClient,
+      scope,
+      deckId,
+      serverCards.map((card) => toDraftDeckCard(card, cardsById)),
+    );
+  }, [serverCards, deckId, queryClient, scope, cardsById]);
+
   useEffect(
     () => () => {
       resetUi();

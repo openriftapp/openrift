@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   flushDeckDraft: vi.fn(),
-  hydrateDeckDraft: vi.fn(),
+  syncDeckDraft: vi.fn(),
+  refetchDeckCards: vi.fn(() => Promise.resolve()),
   registerQuickAdd: vi.fn(),
   hydrated: false,
   saveStatus: { isDirty: false, isSaving: false },
@@ -12,7 +13,11 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/features/decks/stores/deck-draft-store", () => ({
   flushDeckDraft: mocks.flushDeckDraft,
-  hydrateDeckDraft: mocks.hydrateDeckDraft,
+  syncDeckDraft: mocks.syncDeckDraft,
+  getDeckDraftHydrated: () => mocks.hydrated,
+}));
+vi.mock("@/features/decks/lib/decks-collection", () => ({
+  getDeckCardsCollection: () => ({ utils: { refetch: mocks.refetchDeckCards } }),
 }));
 vi.mock("@/features/decks/hooks/use-deck-draft", () => ({
   useDeckDraftHydrated: () => mocks.hydrated,
@@ -80,15 +85,26 @@ afterEach(() => {
 });
 
 describe("useDeckEditorSession", () => {
-  it("hydrates the draft under the user's scope until it is hydrated", () => {
+  it("syncs the draft with the stored cards under the user's scope", () => {
     renderSession();
-    expect(mocks.hydrateDeckDraft).toHaveBeenCalledWith(expect.anything(), "user-1", "deck-1", []);
+    expect(mocks.syncDeckDraft).toHaveBeenCalledWith(expect.anything(), "user-1", "deck-1", []);
   });
 
-  it("leaves an already hydrated draft alone", () => {
+  it("syncs an already hydrated draft so a re-entered editor sees changes made elsewhere", () => {
     mocks.hydrated = true;
     renderSession();
-    expect(mocks.hydrateDeckDraft).not.toHaveBeenCalled();
+    expect(mocks.syncDeckDraft).toHaveBeenCalledWith(expect.anything(), "user-1", "deck-1", []);
+  });
+
+  it("rereads the stored cards when a draft from an earlier visit is reopened", () => {
+    mocks.hydrated = true;
+    renderSession();
+    expect(mocks.refetchDeckCards).toHaveBeenCalledOnce();
+  });
+
+  it("does not reread the stored cards on a first visit", () => {
+    renderSession();
+    expect(mocks.refetchDeckCards).not.toHaveBeenCalled();
   });
 
   it("registers the deck's quick add", () => {

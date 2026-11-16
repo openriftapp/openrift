@@ -2920,6 +2920,10 @@
   "decks_editor_tokens_hint": "由這副牌組中的卡牌產生。本身不屬於牌組的一部分。",
   "decks_editor_undo": "復原",
   "decks_editor_undo_tooltip": "復原（Ctrl+Z）",
+  "decks_editor_conflict_description": "你在此編輯時，牌組已在其他裝置或分頁中儲存。保留你的版本以覆蓋儲存，或載入已儲存的版本並捨棄未儲存的變更。",
+  "decks_editor_conflict_keep": "保留我的版本",
+  "decks_editor_conflict_load": "載入已儲存的版本",
+  "decks_editor_conflict_title": "此牌組已在別處變更",
   "decks_editor_unknown_card": "未知卡牌",
   "decks_editor_you_have": [
     {

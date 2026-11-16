@@ -6,7 +6,8 @@ const flushDeckDraft = vi.hoisted(() => vi.fn());
 
 vi.mock("@/features/decks/stores/deck-draft-store", () => ({
   flushDeckDraft,
-  hydrateDeckDraft: vi.fn(),
+  syncDeckDraft: vi.fn(),
+  getDeckDraftHydrated: () => false,
 }));
 vi.mock("@/features/decks/hooks/use-deck-draft", () => ({
   useDeckDraftHydrated: () => false,

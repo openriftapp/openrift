@@ -7,11 +7,13 @@ import type { QueryClient } from "@tanstack/react-query";
 import { cleanupWhenIdle, markOrphaned } from "@/features/collections/lib/collection-cleanup";
 import { loadCollection } from "@/features/collections/lib/collection-load";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
+import { isUnknownDeckCard } from "@/features/decks/lib/deck-builder-card";
 import type { PlanDraft } from "@/features/decks/lib/deck-plan";
 import { getDeckCardsCollection } from "@/features/decks/lib/decks-collection";
 import { saveDeckCards } from "@/features/decks/lib/decks-write";
 import { isLocalDeck, setLocalDeckCards } from "@/features/decks/lib/local-decks-collection";
 import { useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
+import { mutationTag } from "@/lib/mutation-metadata";
 import { withTimeout } from "@/lib/with-timeout";
 import { m } from "@/paraglide/messages.js";
 
@@ -27,6 +29,13 @@ export interface DeckSaveStatus {
 
 export const CLEAN_STATUS: DeckSaveStatus = { isSaving: false, isDirty: false, error: null };
 
+interface ServerCards {
+  cards: DeckBuilderCard[];
+  signature: string;
+}
+
+export type DeckDraftConflictChoice = "keep" | "load";
+
 interface DraftEntry {
   deckId: string;
   collection: Collection<DeckBuilderCard, string | number>;
@@ -36,9 +45,12 @@ interface DraftEntry {
   saveController: AbortController | null;
   saveSeq: number;
   lastAppliedSeq: number;
-  suppressSave: boolean;
   hydrated: boolean;
   planDraft: PlanDraft | null;
+  base: string | null;
+  sent: string[];
+  server: ServerCards | null;
+  conflict: ServerCards | null;
 }
 
 interface CacheEntry {
@@ -47,6 +59,22 @@ interface CacheEntry {
 }
 
 const cache = new WeakMap<QueryClient, CacheEntry>();
+
+const rebaseWrites = mutationTag<true>();
+
+function cardsSignature(
+  cards: readonly {
+    cardId: string;
+    zone: string;
+    quantity: number;
+    preferredPrintingId: string | null;
+  }[],
+): string {
+  return cards
+    .map((card) => `${deckCardKey(card)}*${card.quantity}`)
+    .toSorted()
+    .join("\n");
+}
 
 function notify(entry: DraftEntry): void {
   for (const listener of entry.subscribers) {
@@ -92,12 +120,19 @@ async function runSave(queryClient: QueryClient, userId: string, entry: DraftEnt
     return;
   }
 
+  if (entry.conflict) {
+    setStatus(entry, { isDirty: true });
+    return;
+  }
+
   entry.saveController?.abort();
   const controller = new AbortController();
   entry.saveController = controller;
   const seq = ++entry.saveSeq;
 
   const cards = collectionCards(entry);
+  const signature = cardsSignature(cards);
+  entry.sent.push(signature);
 
   setStatus(entry, { isSaving: true, error: null });
 
@@ -113,6 +148,8 @@ async function runSave(queryClient: QueryClient, userId: string, entry: DraftEnt
       return;
     }
     entry.lastAppliedSeq = seq;
+    entry.base = signature;
+    entry.sent = entry.sent.slice(entry.sent.indexOf(signature) + 1);
 
     const stillDirty = entry.saveTimer !== null;
     setStatus(entry, { isSaving: false, isDirty: stillDirty, error: null });
@@ -125,12 +162,10 @@ async function runSave(queryClient: QueryClient, userId: string, entry: DraftEnt
       error: toError(error),
     });
   }
+  reconcile(entry);
 }
 
 function scheduleSave(queryClient: QueryClient, userId: string, entry: DraftEntry): void {
-  if (entry.suppressSave) {
-    return;
-  }
   setStatus(entry, { isDirty: true, error: null });
   if (entry.saveTimer) {
     clearTimeout(entry.saveTimer);
@@ -151,27 +186,32 @@ function createEntry(queryClient: QueryClient, userId: string, deckId: string): 
     saveController: null,
     saveSeq: 0,
     lastAppliedSeq: 0,
-    suppressSave: false,
     hydrated: false,
     planDraft: null,
+    base: null,
+    sent: [],
+    server: null,
+    conflict: null,
+  };
+
+  const onWrite = ({
+    transaction,
+  }: {
+    transaction: { mutations: readonly { metadata: unknown }[] };
+  }): Promise<void> => {
+    if (!transaction.mutations.every((mutation) => rebaseWrites.read(mutation.metadata))) {
+      scheduleSave(queryClient, userId, entry);
+    }
+    return Promise.resolve();
   };
 
   entry.collection = createCollection(
     localOnlyCollectionOptions<DeckBuilderCard>({
       id: `deck-draft:${userId}:${deckId}`,
       getKey: deckCardKey,
-      onInsert: () => {
-        scheduleSave(queryClient, userId, entry);
-        return Promise.resolve();
-      },
-      onUpdate: () => {
-        scheduleSave(queryClient, userId, entry);
-        return Promise.resolve();
-      },
-      onDelete: () => {
-        scheduleSave(queryClient, userId, entry);
-        return Promise.resolve();
-      },
+      onInsert: onWrite,
+      onUpdate: onWrite,
+      onDelete: onWrite,
     }),
   );
 
@@ -226,7 +266,11 @@ function getOrCreateEntry(queryClient: QueryClient, userId: string, deckId: stri
   return entry;
 }
 
-function replaceDraftCards(entry: DraftEntry, cards: DeckBuilderCard[]): void {
+function replaceDraftCards(
+  entry: DraftEntry,
+  cards: DeckBuilderCard[],
+  metadata?: Record<string, unknown>,
+): void {
   const existingKeys = new Set<string | number>();
   for (const key of entry.collection.keys()) {
     existingKeys.add(key);
@@ -235,27 +279,88 @@ function replaceDraftCards(entry: DraftEntry, cards: DeckBuilderCard[]): void {
 
   for (const key of existingKeys) {
     if (!incomingKeys.has(key)) {
-      entry.collection.delete(key);
+      entry.collection.delete(key, { metadata });
     }
   }
   for (const card of cards) {
     const key = deckCardKey(card);
     if (existingKeys.has(key)) {
-      entry.collection.update(key, (draft) => {
-        draft.quantity = card.quantity;
-        draft.cardName = card.cardName;
-        draft.cardType = card.cardType;
-        draft.superTypes = card.superTypes;
-        draft.domains = card.domains;
-        draft.tags = card.tags;
-        draft.keywords = card.keywords;
-        draft.energy = card.energy;
-        draft.might = card.might;
-        draft.power = card.power;
+      entry.collection.update(key, { metadata }, (draft) => {
+        Object.assign(draft, card);
       });
     } else {
-      entry.collection.insert(card);
+      entry.collection.insert(card, { metadata });
     }
+  }
+}
+
+function setConflict(entry: DraftEntry, conflict: ServerCards | null): void {
+  if (entry.conflict === conflict) {
+    return;
+  }
+  entry.conflict = conflict;
+  notify(entry);
+}
+
+function rebase(entry: DraftEntry, cards: DeckBuilderCard[], signature: string): void {
+  if (entry.saveTimer) {
+    clearTimeout(entry.saveTimer);
+    entry.saveTimer = null;
+  }
+  entry.saveController?.abort();
+  entry.saveController = null;
+  entry.base = signature;
+  entry.sent = [];
+
+  replaceDraftCards(entry, cards, rebaseWrites.tag(true));
+
+  setStatus(entry, { isSaving: false, isDirty: false, error: null });
+  setConflict(entry, null);
+
+  if (!entry.hydrated) {
+    entry.hydrated = true;
+    notify(entry);
+  }
+
+  useDeckUndoStore.getState().reset(entry.deckId);
+}
+
+function refreshCardDetails(entry: DraftEntry, cards: readonly DeckBuilderCard[]): void {
+  for (const card of cards) {
+    const key = deckCardKey(card);
+    const row = entry.collection.get(key);
+    if (row && isUnknownDeckCard(row) && !isUnknownDeckCard(card)) {
+      entry.collection.update(key, { metadata: rebaseWrites.tag(true) }, (draft) => {
+        Object.assign(draft, { ...card, quantity: draft.quantity });
+      });
+    }
+  }
+}
+
+function reconcile(entry: DraftEntry): void {
+  const server = entry.server;
+  if (!server || !entry.hydrated) {
+    return;
+  }
+  if (server.signature === entry.base || entry.sent.includes(server.signature)) {
+    setConflict(entry, null);
+    return;
+  }
+  if (server.signature === cardsSignature(collectionCards(entry))) {
+    entry.base = server.signature;
+    setConflict(entry, null);
+    return;
+  }
+  // The replace in flight decides the stored list; it reconciles again when it settles.
+  if (entry.status.isSaving) {
+    return;
+  }
+  if (!entry.status.isDirty && entry.saveTimer === null) {
+    rebase(entry, server.cards, server.signature);
+    return;
+  }
+  if (entry.conflict?.signature !== server.signature) {
+    setConflict(entry, server);
   }
 }
 
@@ -265,30 +370,65 @@ export function hydrateDeckDraft(
   deckId: string,
   cards: DeckBuilderCard[],
 ): void {
+  rebase(getOrCreateEntry(queryClient, userId, deckId), cards, cardsSignature(cards));
+}
+
+/**
+ * Brings the draft in line with the deck's stored cards: a clean draft follows them,
+ * a draft with unsaved edits holds a conflict until `resolveDeckDraftConflict`.
+ */
+export function syncDeckDraft(
+  queryClient: QueryClient,
+  userId: string,
+  deckId: string,
+  cards: DeckBuilderCard[],
+): void {
   const entry = getOrCreateEntry(queryClient, userId, deckId);
-
-  if (entry.saveTimer) {
-    clearTimeout(entry.saveTimer);
-    entry.saveTimer = null;
-  }
-  entry.saveController?.abort();
-  entry.saveController = null;
-
-  entry.suppressSave = true;
-  try {
-    replaceDraftCards(entry, cards);
-  } finally {
-    entry.suppressSave = false;
-  }
-
-  setStatus(entry, { isSaving: false, isDirty: false, error: null });
-
   if (!entry.hydrated) {
-    entry.hydrated = true;
-    notify(entry);
+    hydrateDeckDraft(queryClient, userId, deckId, cards);
+    return;
   }
+  if (isLocalDeck(deckId)) {
+    return;
+  }
+  entry.server = { cards, signature: cardsSignature(cards) };
+  reconcile(entry);
+  refreshCardDetails(entry, cards);
+}
 
-  useDeckUndoStore.getState().reset(deckId);
+export function resolveDeckDraftConflict(
+  queryClient: QueryClient,
+  userId: string,
+  deckId: string,
+  choice: DeckDraftConflictChoice,
+): void {
+  const cached = cache.get(queryClient);
+  const entry = cached?.userId === userId ? cached.drafts.get(deckId) : undefined;
+  const conflict = entry?.conflict;
+  if (!entry || !conflict) {
+    return;
+  }
+  if (choice === "load") {
+    rebase(entry, conflict.cards, conflict.signature);
+    return;
+  }
+  entry.base = conflict.signature;
+  setConflict(entry, null);
+  if (entry.status.isDirty && entry.saveTimer === null) {
+    void runSave(queryClient, userId, entry);
+  }
+}
+
+export function getDeckDraftHasConflict(
+  queryClient: QueryClient,
+  userId: string,
+  deckId: string,
+): boolean {
+  const cached = cache.get(queryClient);
+  if (!cached || cached.userId !== userId) {
+    return false;
+  }
+  return Boolean(cached.drafts.get(deckId)?.conflict);
 }
 
 /**
@@ -311,6 +451,10 @@ export function resetDeckDraft(queryClient: QueryClient, scope: string, deckId: 
   entry.saveSeq += 1;
   entry.status = CLEAN_STATUS;
   entry.hydrated = false;
+  entry.base = null;
+  entry.sent = [];
+  entry.server = null;
+  entry.conflict = null;
   notify(entry);
 }
 

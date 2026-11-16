@@ -2920,6 +2920,10 @@
   "decks_editor_tokens_hint": "由此卡组中的卡牌产生，不属于卡组本身。",
   "decks_editor_undo": "撤销",
   "decks_editor_undo_tooltip": "撤销（Ctrl+Z）",
+  "decks_editor_conflict_description": "你在此编辑时，卡组已在其他设备或标签页中保存。保留你的版本以覆盖保存，或载入已保存的版本并放弃未保存的更改。",
+  "decks_editor_conflict_keep": "保留我的版本",
+  "decks_editor_conflict_load": "载入已保存的版本",
+  "decks_editor_conflict_title": "此卡组已在别处更改",
   "decks_editor_unknown_card": "未知卡牌",
   "decks_editor_you_have": [
     {

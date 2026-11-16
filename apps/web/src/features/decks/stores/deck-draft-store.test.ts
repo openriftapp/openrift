@@ -3,23 +3,29 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { QueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { toDraftDeckCard } from "@/features/decks/lib/deck-builder-card";
 import { createEmptyPlanDraft } from "@/features/decks/lib/deck-plan";
 import {
   createLocalDeck,
   getLocalDecksCollection,
   preloadLocalDecks,
 } from "@/features/decks/lib/local-decks-collection";
+import { useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
 import { resetIdCounter, stubDeckBuilderCard } from "@/test/factories";
+import { createStoreResetter } from "@/test/store-helpers";
 
 import {
   flushDeckDraft,
   getDeckDraftCollection,
   getDeckDraftHydrated,
+  getDeckDraftHasConflict,
   getDeckDraftStatus,
   getDeckPlanDraft,
   hydrateDeckDraft,
   resetDeckDraft,
+  resolveDeckDraftConflict,
   setDeckPlanDraft,
+  syncDeckDraft,
 } from "./deck-draft-store";
 
 await preloadLocalDecks();
@@ -327,5 +333,222 @@ describe("plan draft", () => {
     setDeckPlanDraft(queryClient, userA, "deck-plan-user", createEmptyPlanDraft());
 
     expect(getDeckPlanDraft(queryClient, userB, "deck-plan-user")).toBeNull();
+  });
+});
+
+describe("syncDeckDraft", () => {
+  const resetUndo = createStoreResetter(useDeckUndoStore);
+  const deckId = "deck-sync";
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    saveDeckCardsSpy.mockClear();
+    resetUndo();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    clearLocalDecks();
+  });
+
+  function draftCards(scope = userA, id = deckId): string[] {
+    return [...getDeckDraftCollection(queryClient, scope, id).values()]
+      .map((card) => `${card.cardId}x${card.quantity}`)
+      .toSorted();
+  }
+
+  function deferredSave(): { settle: () => void; fail: () => void } {
+    const handle = { settle: () => {}, fail: () => {} };
+    saveDeckCardsSpy.mockImplementationOnce(() => ({
+      when: () =>
+        new Promise<void>((resolve, reject) => {
+          handle.settle = resolve;
+          handle.fail = () => reject(new Error("offline"));
+        }),
+    }));
+    return handle;
+  }
+
+  function editDraft(card: ReturnType<typeof stubDeckBuilderCard>): void {
+    getDeckDraftCollection(queryClient, userA, deckId).insert(card);
+  }
+
+  const viktor = stubDeckBuilderCard({ cardId: "viktor", quantity: 3 });
+  const jinx = stubDeckBuilderCard({ cardId: "jinx", quantity: 2 });
+  const ahri = stubDeckBuilderCard({ cardId: "ahri", quantity: 1 });
+
+  it("rebuilds a clean draft from changed stored cards without saving", async () => {
+    syncDeckDraft(queryClient, userA, deckId, [viktor]);
+    useDeckUndoStore.getState().record(deckId, [viktor]);
+
+    syncDeckDraft(queryClient, userA, deckId, [viktor, jinx]);
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(draftCards()).toEqual(["jinxx2", "viktorx3"]);
+    expect(getDeckDraftHasConflict(queryClient, userA, deckId)).toBe(false);
+    expect(useDeckUndoStore.getState().past).toEqual([]);
+    expect(saveDeckCardsSpy).not.toHaveBeenCalled();
+  });
+
+  it("holds a conflict for a dirty draft and its save until the player decides", async () => {
+    syncDeckDraft(queryClient, userA, deckId, [viktor]);
+    editDraft(ahri);
+
+    syncDeckDraft(queryClient, userA, deckId, [viktor, jinx]);
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(getDeckDraftHasConflict(queryClient, userA, deckId)).toBe(true);
+    expect(draftCards()).toEqual(["ahrix1", "viktorx3"]);
+    expect(saveDeckCardsSpy).not.toHaveBeenCalled();
+    expect(getDeckDraftStatus(queryClient, userA, deckId).isDirty).toBe(true);
+  });
+
+  it("asks once per stored version", () => {
+    syncDeckDraft(queryClient, userA, deckId, [viktor]);
+    editDraft(ahri);
+    syncDeckDraft(queryClient, userA, deckId, [viktor, jinx]);
+
+    resolveDeckDraftConflict(queryClient, userA, deckId, "keep");
+    syncDeckDraft(queryClient, userA, deckId, [viktor, jinx]);
+
+    expect(getDeckDraftHasConflict(queryClient, userA, deckId)).toBe(false);
+  });
+
+  it("saves the player's version when they keep it", async () => {
+    syncDeckDraft(queryClient, userA, deckId, [viktor]);
+    editDraft(ahri);
+    syncDeckDraft(queryClient, userA, deckId, [viktor, jinx]);
+    await vi.advanceTimersByTimeAsync(1000);
+
+    resolveDeckDraftConflict(queryClient, userA, deckId, "keep");
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(saveDeckCardsSpy).toHaveBeenCalledOnce();
+    expect(saveDeckCardsSpy.mock.calls[0]?.[2]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ cardId: "ahri" }),
+        expect.objectContaining({ cardId: "viktor" }),
+      ]),
+    );
+  });
+
+  it("replaces the draft and its undo history when the player loads the stored version", async () => {
+    syncDeckDraft(queryClient, userA, deckId, [viktor]);
+    editDraft(ahri);
+    useDeckUndoStore.getState().record(deckId, [viktor]);
+    syncDeckDraft(queryClient, userA, deckId, [viktor, jinx]);
+
+    resolveDeckDraftConflict(queryClient, userA, deckId, "load");
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(draftCards()).toEqual(["jinxx2", "viktorx3"]);
+    expect(getDeckDraftHasConflict(queryClient, userA, deckId)).toBe(false);
+    expect(getDeckDraftStatus(queryClient, userA, deckId).isDirty).toBe(false);
+    expect(useDeckUndoStore.getState().past).toEqual([]);
+    expect(saveDeckCardsSpy).not.toHaveBeenCalled();
+  });
+
+  it("ignores the echo of its own save while it is in flight and after it lands", async () => {
+    const save = deferredSave();
+    syncDeckDraft(queryClient, userA, deckId, [viktor]);
+    editDraft(jinx);
+    await vi.advanceTimersByTimeAsync(1000);
+
+    syncDeckDraft(queryClient, userA, deckId, [viktor, jinx]);
+    editDraft(ahri);
+    save.settle();
+    await vi.advanceTimersByTimeAsync(0);
+    syncDeckDraft(queryClient, userA, deckId, [viktor, jinx]);
+
+    expect(getDeckDraftHasConflict(queryClient, userA, deckId)).toBe(false);
+    expect(draftCards()).toEqual(["ahrix1", "jinxx2", "viktorx3"]);
+  });
+
+  it("keeps the player's edits when a failed save rolls the stored cards back", async () => {
+    const save = deferredSave();
+    syncDeckDraft(queryClient, userA, deckId, [viktor]);
+    editDraft(jinx);
+    await vi.advanceTimersByTimeAsync(1000);
+    syncDeckDraft(queryClient, userA, deckId, [viktor, jinx]);
+
+    save.fail();
+    await vi.advanceTimersByTimeAsync(0);
+    syncDeckDraft(queryClient, userA, deckId, [viktor]);
+
+    expect(getDeckDraftHasConflict(queryClient, userA, deckId)).toBe(false);
+    expect(draftCards()).toEqual(["jinxx2", "viktorx3"]);
+  });
+
+  it("decides on a change that arrived during a save once the save settles", async () => {
+    const save = deferredSave();
+    syncDeckDraft(queryClient, userA, deckId, [viktor]);
+    editDraft(jinx);
+    await vi.advanceTimersByTimeAsync(1000);
+
+    syncDeckDraft(queryClient, userA, deckId, [viktor, ahri]);
+    expect(getDeckDraftHasConflict(queryClient, userA, deckId)).toBe(false);
+    save.fail();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(getDeckDraftHasConflict(queryClient, userA, deckId)).toBe(true);
+  });
+
+  it("lets a successful save replace a change that arrived while it was in flight", async () => {
+    const save = deferredSave();
+    syncDeckDraft(queryClient, userA, deckId, [viktor]);
+    editDraft(jinx);
+    await vi.advanceTimersByTimeAsync(1000);
+
+    syncDeckDraft(queryClient, userA, deckId, [viktor, ahri]);
+    save.settle();
+    await vi.advanceTimersByTimeAsync(0);
+    syncDeckDraft(queryClient, userA, deckId, [viktor, jinx]);
+
+    expect(getDeckDraftHasConflict(queryClient, userA, deckId)).toBe(false);
+    expect(draftCards()).toEqual(["jinxx2", "viktorx3"]);
+  });
+
+  it("keeps a card the catalog does not know through hydrate and save", async () => {
+    const unknown = toDraftDeckCard(
+      { cardId: "newer-set-card", zone: "main", quantity: 2, preferredPrintingId: null },
+      {},
+    );
+    syncDeckDraft(queryClient, userA, deckId, [unknown, viktor]);
+    editDraft(jinx);
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(draftCards()).toEqual(["jinxx2", "newer-set-cardx2", "viktorx3"]);
+    expect(saveDeckCardsSpy.mock.calls[0]?.[2]).toContainEqual({
+      cardId: "newer-set-card",
+      zone: "main",
+      quantity: 2,
+      preferredPrintingId: null,
+    });
+  });
+
+  it("fills in an unknown card once the catalog knows it", async () => {
+    const unknown = toDraftDeckCard(
+      { cardId: "viktor", zone: "main", quantity: 3, preferredPrintingId: null },
+      {},
+    );
+    syncDeckDraft(queryClient, userA, deckId, [unknown]);
+
+    syncDeckDraft(queryClient, userA, deckId, [viktor]);
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(getDeckDraftCollection(queryClient, userA, deckId).get("viktor|main|")?.cardName).toBe(
+      "Test Card",
+    );
+    expect(saveDeckCardsSpy).not.toHaveBeenCalled();
+  });
+
+  it("leaves a browser-local deck's draft to the player", () => {
+    const localId = createLocalDeck(WellKnown.deckFormat.CONSTRUCTED);
+    syncDeckDraft(queryClient, "local", localId, [viktor]);
+
+    syncDeckDraft(queryClient, "local", localId, [jinx]);
+
+    expect(draftCards("local", localId)).toEqual(["viktorx3"]);
+    expect(getDeckDraftHasConflict(queryClient, "local", localId)).toBe(false);
   });
 });

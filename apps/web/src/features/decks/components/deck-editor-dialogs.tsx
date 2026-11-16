@@ -7,6 +7,7 @@ import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { DeckCoverDialog } from "@/features/decks/components/deck-cover-dialog";
 import { DeckDetailsDialog } from "@/features/decks/components/deck-details-dialog";
+import { DeckDraftConflictDialog } from "@/features/decks/components/deck-draft-conflict-dialog";
 import { DeckExportDialog } from "@/features/decks/components/deck-export-dialog";
 import { DeckHomeCollectionDialog } from "@/features/decks/components/deck-home-collection-dialog";
 import { DeckMissingCardsDialog } from "@/features/decks/components/deck-missing-cards-dialog";
@@ -83,6 +84,7 @@ export function DeckEditorDialogs({
           onOpenChange={(next) => setDialogOpen("rename", next)}
         />
       )}
+      {!isLocal && <DeckDraftConflictDialog deckId={deckId} />}
       {!isLocal && (
         <DeckDetailsDialog
           deckId={deckId}

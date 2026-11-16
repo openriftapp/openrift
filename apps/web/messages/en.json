@@ -2921,6 +2921,10 @@
   "decks_editor_tokens_hint": "Created by cards in this deck. Not part of the deck itself.",
   "decks_editor_undo": "Undo",
   "decks_editor_undo_tooltip": "Undo (Ctrl+Z)",
+  "decks_editor_conflict_description": "The deck was saved on another device or tab while you were editing here. Keep your version to save it over that one, or load the saved version and drop your unsaved changes.",
+  "decks_editor_conflict_keep": "Keep my version",
+  "decks_editor_conflict_load": "Load saved version",
+  "decks_editor_conflict_title": "This deck changed somewhere else",
   "decks_editor_unknown_card": "Unknown card",
   "decks_editor_you_have": [
     {

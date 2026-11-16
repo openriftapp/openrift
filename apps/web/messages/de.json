@@ -2920,6 +2920,10 @@
   "decks_editor_tokens_hint": "Werden von Karten in diesem Deck erzeugt. Nicht Teil des Decks selbst.",
   "decks_editor_undo": "Rückgängig",
   "decks_editor_undo_tooltip": "Rückgängig (Strg+Z)",
+  "decks_editor_conflict_description": "Das Deck wurde auf einem anderen Gerät oder in einem anderen Tab gespeichert, während du hier bearbeitet hast. Behalte deine Version, um sie darüber zu speichern, oder lade die gespeicherte Version und verwirf deine ungespeicherten Änderungen.",
+  "decks_editor_conflict_keep": "Meine Version behalten",
+  "decks_editor_conflict_load": "Gespeicherte Version laden",
+  "decks_editor_conflict_title": "Dieses Deck wurde woanders geändert",
   "decks_editor_unknown_card": "Unbekannte Karte",
   "decks_editor_you_have": [
     {
