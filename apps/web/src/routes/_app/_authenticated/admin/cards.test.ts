@@ -23,10 +23,9 @@ describe("/admin/cards search", () => {
     });
   });
 
-  it("still validates the older tab and status values", () => {
-    expect(validateSearch.parse({ tab: "unmatched", status: "unchecked" })).toEqual({
-      tab: "unmatched",
-      status: "unchecked",
+  it("drops a removed tab value and the removed status param", () => {
+    expect(validateSearch.parse({ tab: "unmatched", status: "unchecked", q: "jinx" })).toEqual({
+      q: "jinx",
     });
   });
 
