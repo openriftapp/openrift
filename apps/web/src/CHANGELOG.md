@@ -27,6 +27,7 @@
 - fix(Collection): **Card menu on missing cards** — long-pressing or right-clicking a card you don't own opens a menu to add it, wishlist it or open its card page.
 - fix(Cards): **Range filters on phones** — the Energy, Power and Might sliders in the Options drawer show their handles again.
 - fix(Decks): **Quick drops land in the zone** — a card dropped onto a zone right after you start dragging it goes into that zone when the zone takes it, and is never removed from the deck.
+- fix(Designer): **One background zoom handle** — the background zoom slider in the card designer shows a single handle, so keyboard users no longer tab through a second one.
 - fix(Cards): **Cleared languages stay cleared** — removing every language from the filter while the page is still loading your settings no longer brings your default languages back.
 
 ## 2026-11-15

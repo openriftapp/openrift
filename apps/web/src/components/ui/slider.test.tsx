@@ -48,6 +48,30 @@ afterEach(() => {
 });
 
 describe("Slider", () => {
+  it("renders one thumb for a numeric value", () => {
+    const { container } = render(<Slider aria-label="Zoom" min={1} max={3} value={2} />);
+
+    expect(thumbs(container)).toHaveLength(1);
+  });
+
+  it("renders one thumb for a numeric default value", () => {
+    const { container } = render(<Slider aria-label="Zoom" defaultValue={5} />);
+
+    expect(thumbs(container)).toHaveLength(1);
+  });
+
+  it("renders one thumb per array entry", () => {
+    const { container } = render(<Slider aria-label="Max energy" defaultValue={[3]} max={10} />);
+
+    expect(thumbs(container)).toHaveLength(1);
+  });
+
+  it("renders a range of two thumbs when no value is given", () => {
+    const { container } = render(<Slider aria-label="Energy range" />);
+
+    expect(thumbs(container)).toHaveLength(2);
+  });
+
   it("shows its thumbs once a control that mounted hidden gets a width", async () => {
     const { container } = render(
       <Slider aria-label="Energy range" min={0} max={10} value={[2, 8]} />,

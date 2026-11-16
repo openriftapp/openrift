@@ -11,11 +11,8 @@ function Slider({
   "aria-label": ariaLabel, // custom: extract aria-label to forward to thumbs
   ...props
 }: SliderPrimitive.Root.Props) {
-  const _values = Array.isArray(value)
-    ? value
-    : Array.isArray(defaultValue)
-      ? defaultValue
-      : [min, max];
+  const _values = value ?? defaultValue ?? [min, max]; // custom: a numeric value is one thumb
+  const thumbCount = Array.isArray(_values) ? _values.length : 1; // custom: a numeric value is one thumb
 
   return (
     <SliderPrimitive.Root
@@ -44,7 +41,7 @@ function Slider({
             className="bg-primary select-none data-horizontal:h-full data-vertical:w-full"
           />
         </SliderPrimitive.Track>
-        {Array.from({ length: _values.length }, (_, index) => (
+        {Array.from({ length: thumbCount }, (_, index) => (
           <SliderPrimitive.Thumb
             data-slot="slider-thumb"
             key={index}

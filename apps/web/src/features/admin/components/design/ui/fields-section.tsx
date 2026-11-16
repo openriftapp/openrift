@@ -219,7 +219,9 @@ export function FieldsSection() {
               </div>
             </Demo>
             <Demo name="Slider" hint="Numeric range entry, like column count or max energy.">
-              <Slider defaultValue={[3]} max={10} className="w-40" aria-label="Max energy" />
+              <div className="w-40">
+                <Slider defaultValue={[3]} max={10} aria-label="Max energy" />
+              </div>
             </Demo>
           </DemoGrid>
         </DemoGroup>
