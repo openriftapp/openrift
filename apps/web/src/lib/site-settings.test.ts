@@ -1,3 +1,4 @@
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { QueryClient } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -52,5 +53,21 @@ describe("siteSettingsQueryOptions", () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
     await expect(client.query(options)).rejects.toThrow("site-settings unavailable");
+  });
+});
+
+describe("prefetchSiteSettings", () => {
+  it("renders without settings after a failed fetch and leaves them stale for a refetch", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    get.mockRejectedValue(new Error("site-settings unavailable"));
+    vi.resetModules();
+    const { prefetchSiteSettings, siteSettingsQueryOptions } = await import("./site-settings");
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+    await prefetchSiteSettings(client);
+
+    const query = client.getQueryCache().find({ queryKey: siteSettingsQueryOptions.queryKey });
+    expect(query?.state.data).toEqual({});
+    expect(query?.isStaleByTime(5 * MINUTE_MS)).toBe(true);
   });
 });

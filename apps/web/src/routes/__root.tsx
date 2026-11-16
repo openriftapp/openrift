@@ -16,22 +16,19 @@ import {
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 
 import { Analytics } from "@/components/analytics";
 import { RouteNotFoundFallback } from "@/components/error-message";
-// Installs a dev-only stack-dumper for React Compiler useMemoCache size-mismatch
-// warnings; body is `if (DEV)` so it's stripped from production bundles.
-// oxlint-disable-next-line import/no-unassigned-import -- side-effect tracer
-import "@/lib/debug/memo-cache-trace";
 import { useReferralCapture } from "@/features/account/hooks/use-referral";
 import { useBrowserLocale } from "@/hooks/use-browser-locale";
 import { ServerDisplayLanguagesProvider } from "@/hooks/use-display-languages";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useUserId } from "@/hooks/use-session";
 import { ResolvedViewPrefsProvider } from "@/hooks/use-view-prefs";
+import { markHydrationSettled } from "@/lib/app-diagnostics";
 import { sessionQueryOptions } from "@/lib/auth-session";
-import { featureFlagsQueryOptions } from "@/lib/feature-flags";
+import { prefetchFeatureFlags, refetchUnknownFeatureFlags } from "@/lib/feature-flags";
 import { getOperatorLinks } from "@/lib/operator-links";
 import { getShellCookie, rendersDefaultShell } from "@/lib/page-cache";
 import { runtimeConfigScript } from "@/lib/runtime-config";
@@ -44,7 +41,7 @@ import {
   systemPrefersDark,
 } from "@/lib/shell-prefs";
 import { getIsPreview, getSiteUrl } from "@/lib/site-config";
-import { siteSettingsQueryOptions } from "@/lib/site-settings";
+import { prefetchSiteSettings, siteSettingsQueryOptions } from "@/lib/site-settings";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import type { CookieViewSurface, ViewPrefsBlob } from "@/lib/view-prefs";
 import { resolveViewPrefsFromCookie, VIEW_PREFS_COOKIE } from "@/lib/view-prefs";
@@ -172,22 +169,8 @@ export const Route = createRootRouteWithContext<{
         throw redirect({ to: "/cards" });
       }
     }
-    const flagsReady = (async () => {
-      try {
-        await context.queryClient.query({ ...featureFlagsQueryOptions, staleTime: "static" });
-      } catch {
-        // Non-critical: seed with empty defaults so useSuspenseQuery in
-        // components doesn't re-throw the cached error.
-        context.queryClient.setQueryData(featureFlagsQueryOptions.queryKey, {});
-      }
-    })();
-    const settingsReady = (async () => {
-      try {
-        await context.queryClient.query({ ...siteSettingsQueryOptions, staleTime: "static" });
-      } catch {
-        context.queryClient.setQueryData(siteSettingsQueryOptions.queryKey, {});
-      }
-    })();
+    const flagsReady = prefetchFeatureFlags(context.queryClient);
+    const settingsReady = prefetchSiteSettings(context.queryClient);
     // beforeLoad re-runs on every navigation (including search-param-only ones)
     // and blocks until it resolves, so these three values must never go over
     // the network on the client.
@@ -243,8 +226,15 @@ export const Route = createRootRouteWithContext<{
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-  const { resolvedTheme, resolvedPalette, sentryDsn, appEnv } = Route.useRouteContext();
+  const { resolvedTheme, resolvedPalette, sentryDsn, appEnv, queryClient } =
+    Route.useRouteContext();
   const { data: siteSettings } = useSuspenseQuery(siteSettingsQueryOptions);
+  // Runs after the shell's hydration commit reports its errors; route content inside
+  // Suspense boundaries hydrates in later commits.
+  useEffect(() => {
+    markHydrationSettled();
+    void refetchUnknownFeatureFlags(queryClient);
+  }, [queryClient]);
   const umamiOrigin = safeOrigin(siteSettings["umami-url"]);
   const operatorLinks = getOperatorLinks();
 
@@ -304,37 +294,29 @@ function RootComponent() {
         </Suspense>
       )}
       {import.meta.env.VITE_DEVTOOLS && (
-        // Workaround for TanStack/devtools#444: devtools-vite 0.7.0 strips only
-        // <TanStackDevtools>, leaving `&& ( )`; this wraps it into valid `<>{ }</>`.
-        /* oxlint-disable react/jsx-no-useless-fragment, react/jsx-curly-brace-presence -- part of the workaround above */
-        <>
-          {
-            <TanStackDevtools
-              config={{
-                position: "top-right",
-              }}
-              plugins={[
-                {
-                  name: "Tanstack Router",
-                  render: <TanStackRouterDevtoolsPanel />,
-                },
-                {
-                  name: "Tanstack Query",
-                  render: <ReactQueryDevtoolsPanel />,
-                },
-                {
-                  name: "TanStack Pacer",
-                  render: (
-                    <Suspense fallback={null}>
-                      <PacerDevtoolsPanel />
-                    </Suspense>
-                  ),
-                },
-              ]}
-            />
-          }
-        </>
-        /* oxlint-enable react/jsx-no-useless-fragment, react/jsx-curly-brace-presence */
+        <TanStackDevtools
+          config={{
+            position: "top-right",
+          }}
+          plugins={[
+            {
+              name: "Tanstack Router",
+              render: <TanStackRouterDevtoolsPanel />,
+            },
+            {
+              name: "Tanstack Query",
+              render: <ReactQueryDevtoolsPanel />,
+            },
+            {
+              name: "TanStack Pacer",
+              render: (
+                <Suspense fallback={null}>
+                  <PacerDevtoolsPanel />
+                </Suspense>
+              ),
+            },
+          ]}
+        />
       )}
       <Analytics />
     </>

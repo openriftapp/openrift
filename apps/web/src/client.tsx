@@ -6,7 +6,7 @@ import { StartClient } from "@tanstack/react-start/client";
 import { StrictMode } from "react";
 import { hydrateRoot } from "react-dom/client";
 
-import { isHydrationSettled, markHydrationSettled } from "./lib/app-diagnostics";
+import { isHydrationSettled } from "./lib/app-diagnostics";
 import { bufferHydrationError } from "./lib/hydration-error-buffer";
 import type { HydrationErrorPhase } from "./lib/hydration-error-buffer";
 import { initStaleBundleWatcher, initVisibilityVersionCheck } from "./lib/stale-bundle";
@@ -23,7 +23,7 @@ if (import.meta.env.DEV && import.meta.env.VITE_DEVTOOLS) {
 }
 
 // These callbacks fire for the app's whole lifetime, not just hydration, so
-// reports are stamped with whether they landed before first paint (below).
+// reports are stamped with whether they landed before the root shell's first effect.
 function reportHydrationError(
   phase: HydrationErrorPhase,
   error: unknown,
@@ -68,9 +68,3 @@ hydrateRoot(
     onCaughtError: (error, errorInfo) => reportHydrationError("caught", error, errorInfo),
   },
 );
-
-requestAnimationFrame(() => {
-  requestAnimationFrame(() => {
-    markHydrationSettled();
-  });
-});

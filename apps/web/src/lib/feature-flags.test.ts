@@ -1,4 +1,4 @@
-import { QueryClient } from "@tanstack/react-query";
+import { dehydrate, hydrate, QueryClient } from "@tanstack/react-query";
 import { isNotFound } from "@tanstack/react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -7,9 +7,30 @@ vi.mock("@/lib/server-cache", async () => {
   return { serverCache: new QC({ defaultOptions: { queries: { retry: false } } }) };
 });
 
+vi.mock("@tanstack/react-start", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  createServerFn: () => {
+    const chain = {
+      middleware: () => chain,
+      handler: (fn: (input: { context: { cookie: string } }) => unknown) => (): unknown =>
+        fn({ context: { cookie: "" } }),
+    };
+    return chain;
+  },
+}));
+
+vi.mock("./server-fns/middleware", () => ({ withCookies: () => undefined }));
+
 // Must import after mocks so they take effect.
-const { featureFlagsQueryOptions, loadFeatureFlags, requireFeature } =
-  await import("./feature-flags");
+const {
+  FeatureFlagsUnavailableError,
+  featureFlagsQueryOptions,
+  featureFlagsUnknown,
+  loadFeatureFlags,
+  prefetchFeatureFlags,
+  refetchUnknownFeatureFlags,
+  requireFeature,
+} = await import("./feature-flags");
 const { serverCache } = (await import("./server-cache")) as { serverCache: QueryClient };
 
 const SESSION_COOKIE = "better-auth.session_token=abc123; theme=dark";
@@ -119,5 +140,114 @@ describe("requireFeature", () => {
     );
 
     expect(isNotFound(thrown)).toBe(true);
+  });
+});
+
+describe("flags after a failed fetch", () => {
+  beforeEach(() => {
+    serverCache.clear();
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  function stubBrowser(): void {
+    vi.stubGlobal("window", {});
+    vi.stubGlobal("location", { origin: "http://localhost:3000" });
+  }
+
+  async function clientAfterFailedFetch(): Promise<QueryClient> {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("fetch failed")));
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    await prefetchFeatureFlags(queryClient);
+    serverCache.clear();
+    return queryClient;
+  }
+
+  it("renders with every flag off and marks the flags unknown", async () => {
+    const queryClient = await clientAfterFailedFetch();
+
+    expect(queryClient.getQueryData(featureFlagsQueryOptions.queryKey)).toEqual({});
+    expect(featureFlagsUnknown(queryClient)).toBe(true);
+  });
+
+  it("keeps the flags unknown across dehydration into the browser", async () => {
+    const browserClient = new QueryClient();
+    hydrate(browserClient, dehydrate(await clientAfterFailedFetch()));
+
+    expect(browserClient.getQueryData(featureFlagsQueryOptions.queryKey)).toEqual({});
+    expect(featureFlagsUnknown(browserClient)).toBe(true);
+  });
+
+  it("knows flags that loaded", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockFlagsResponse({ scanner: true })));
+    const queryClient = new QueryClient();
+
+    await prefetchFeatureFlags(queryClient);
+
+    expect(featureFlagsUnknown(queryClient)).toBe(false);
+  });
+
+  it("answers a flagged page on the server with a retryable error, not a 404", async () => {
+    const queryClient = await clientAfterFailedFetch();
+
+    const thrown = await requireFeature(queryClient, "scanner").catch((error: unknown) => error);
+
+    expect(isNotFound(thrown)).toBe(false);
+    expect(thrown).toBeInstanceOf(FeatureFlagsUnavailableError);
+  });
+
+  it("refetches unknown flags in the browser before deciding", async () => {
+    const queryClient = await clientAfterFailedFetch();
+    stubBrowser();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockFlagsResponse({ scanner: true })));
+
+    await expect(requireFeature(queryClient, "scanner")).resolves.toBeUndefined();
+    expect(featureFlagsUnknown(queryClient)).toBe(false);
+  });
+
+  it("throws the fetch error in the browser while the flags stay unreachable", async () => {
+    const queryClient = await clientAfterFailedFetch();
+    stubBrowser();
+
+    const thrown = await requireFeature(queryClient, "scanner").catch((error: unknown) => error);
+
+    expect(isNotFound(thrown)).toBe(false);
+    expect(thrown).toBeInstanceOf(Error);
+    expect(queryClient.getQueryData(featureFlagsQueryOptions.queryKey)).toEqual({});
+    expect(featureFlagsUnknown(queryClient)).toBe(true);
+  });
+
+  it("refetches unknown flags after hydration", async () => {
+    const queryClient = await clientAfterFailedFetch();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockFlagsResponse({ glossary: true })));
+
+    await refetchUnknownFeatureFlags(queryClient);
+
+    expect(queryClient.getQueryData(featureFlagsQueryOptions.queryKey)).toEqual({
+      glossary: true,
+    });
+  });
+
+  it("keeps rendering with flags off when the refetch after hydration fails", async () => {
+    const queryClient = await clientAfterFailedFetch();
+
+    await expect(refetchUnknownFeatureFlags(queryClient)).resolves.toBeUndefined();
+    expect(queryClient.getQueryData(featureFlagsQueryOptions.queryKey)).toEqual({});
+    expect(featureFlagsUnknown(queryClient)).toBe(true);
+  });
+
+  it("leaves known flags alone after hydration", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(featureFlagsQueryOptions.queryKey, { glossary: true });
+
+    await refetchUnknownFeatureFlags(queryClient);
+
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
