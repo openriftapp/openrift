@@ -20,21 +20,12 @@ import { Label } from "@/components/ui/label";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { SaveError } from "@/features/tournaments/components/save-error";
 import { useSetLegendMetaShares } from "@/features/tournaments/hooks/use-tournament-run";
+import { parseMetaShare } from "@/features/tournaments/lib/group-cut-display";
 import { legendNameFor } from "@/features/tournaments/lib/player-run";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 type PendingShares = GroupStageView["pendingMetaShares"];
-
-/** Percent with at most one decimal, 0 to 100. */
-function parseMetaShare(draft: string): number | null {
-  const trimmed = draft.trim();
-  if (!/^\d{1,3}(?:\.\d)?$/u.test(trimmed)) {
-    return null;
-  }
-  const value = Number(trimmed);
-  return value >= 0 && value <= 100 ? value : null;
-}
 
 function SharesForm({
   id,
@@ -91,22 +82,19 @@ function SharesForm({
               <Label htmlFor={`meta-${entry.legendCardId}`} className="min-w-0 truncate">
                 {name}
               </Label>
-              <span className="flex shrink-0 items-center gap-1.5">
-                <Input
-                  id={`meta-${entry.legendCardId}`}
-                  inputMode="decimal"
-                  value={drafts[entry.legendCardId] ?? ""}
-                  onChange={(event) =>
-                    setDrafts((current) => ({
-                      ...current,
-                      [entry.legendCardId]: event.target.value,
-                    }))
-                  }
-                  className="w-20 tabular-nums"
-                  aria-label={m.tournaments_legend_meta_share_aria({ name })}
-                />
-                <span className="text-muted-foreground text-sm">%</span>
-              </span>
+              <Input
+                id={`meta-${entry.legendCardId}`}
+                inputMode="decimal"
+                value={drafts[entry.legendCardId] ?? ""}
+                onChange={(event) =>
+                  setDrafts((current) => ({
+                    ...current,
+                    [entry.legendCardId]: event.target.value,
+                  }))
+                }
+                className="w-24 shrink-0 tabular-nums"
+                aria-label={m.tournaments_legend_meta_share_aria({ name })}
+              />
             </div>
           );
         })}

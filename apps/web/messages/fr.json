@@ -8360,7 +8360,7 @@
       }
     }
   ],
-  "tournaments_legend_meta_shares_description": "Saisissez la part de méta actuelle de chaque légende d'après la source que vous utilisez ; la part la plus faible est mieux classée. Ces chiffres restent dans ce tournoi et ne sont affichés nulle part ailleurs.",
+  "tournaments_legend_meta_shares_description": "Saisissez le nombre de decks de chaque légende recensés par la source que vous utilisez, ou sa part de méta. Utilisez la même mesure pour chaque légende ; le nombre le plus faible est classé plus haut. Les nombres restent dans ce tournoi et ne sont affichés nulle part ailleurs.",
   "tournaments_legend_meta_share_aria": "Part de méta pour {name}",
   "tournaments_legend_picker_title": "Définir la légende de {name}",
   "tournaments_legend_picker_loading": "Chargement des cartes…",

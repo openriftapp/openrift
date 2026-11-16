@@ -8358,7 +8358,7 @@
       }
     }
   ],
-  "tournaments_legend_meta_shares_description": "사용하시는 자료를 기준으로 각 전설의 현재 메타 점유율을 입력하세요. 점유율이 낮을수록 순위가 높습니다. 입력한 수치는 이 대회에만 남고 다른 곳에는 표시되지 않습니다.",
+  "tournaments_legend_meta_shares_description": "사용하시는 자료에 기록된 각 전설의 덱 수 또는 메타 점유율을 입력하세요. 모든 전설에 같은 기준을 사용하세요. 숫자가 낮을수록 순위가 높습니다. 이 숫자는 이 토너먼트에만 남고 다른 곳에는 표시되지 않습니다.",
   "tournaments_legend_meta_share_aria": "{name}의 메타 점유율",
   "tournaments_legend_picker_title": "{name}님의 전설 설정",
   "tournaments_legend_picker_loading": "카드를 불러오는 중…",

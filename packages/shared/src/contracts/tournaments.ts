@@ -282,7 +282,7 @@ const groupParamSchema = z.object({ id: z.uuid(), groupId: z.uuid() });
 
 const legendMetaSharesSchema = z.object({
   shares: z
-    .array(z.object({ legendCardId: z.string().min(1), share: z.number().min(0).max(100) }))
+    .array(z.object({ legendCardId: z.string().min(1), share: z.number().min(0).max(999_999_999) }))
     .min(1)
     .max(64),
 });

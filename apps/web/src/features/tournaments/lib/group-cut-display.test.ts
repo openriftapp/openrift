@@ -7,6 +7,7 @@ import {
   cutStageIndex,
   formatLegendCount,
   formatMetaShare,
+  parseMetaShare,
 } from "./group-cut-display";
 
 describe("cutStageIndex", () => {
@@ -77,13 +78,13 @@ describe("cutLineExplanation", () => {
   it("walks through the tied criteria down to the meta share", () => {
     const result = cutLineExplanation(
       [
-        row("Ashe", { qualified: true, seed: 8, metaShare: 0.12 }),
-        row("Braum", { decidedBy: "meta_share", metaShare: 0.25 }),
+        row("Ashe", { qualified: true, seed: 8, metaShare: 12 }),
+        row("Braum", { decidedBy: "meta_share", metaShare: 25 }),
       ],
       8,
     );
     expect(result?.body).toBe(
-      "Both are Runners-up. They are level on match win rate (67%) and game win rate (50%), and their Legends are equally common in the field. Ashe takes the spot on the lower meta share (12.0% against 25.0%).",
+      "Both are Runners-up. They are level on match win rate (67%) and game win rate (50%), and their Legends are equally common in the field. Ashe takes the spot on the lower meta share (12 against 25).",
     );
   });
 
@@ -124,8 +125,25 @@ describe("formatLegendCount", () => {
 });
 
 describe("formatMetaShare", () => {
-  it("shows one decimal and a dash for a missing share", () => {
-    expect(formatMetaShare(0.1234)).toBe("12.3%");
+  it("shows the number as entered, one decimal at most, and a dash for a missing share", () => {
+    expect(formatMetaShare(12.34)).toBe("12.3");
+    expect(formatMetaShare(140)).toBe("140");
     expect(formatMetaShare(null)).toBe("-");
+  });
+});
+
+describe("parseMetaShare", () => {
+  it("accepts deck counts above 100 and percents with one decimal", () => {
+    expect(parseMetaShare("340")).toBe(340);
+    expect(parseMetaShare(" 12.5 ")).toBe(12.5);
+    expect(parseMetaShare("12,5")).toBe(12.5);
+    expect(parseMetaShare("0")).toBe(0);
+  });
+
+  it("rejects empty, negative, and over-precise values", () => {
+    expect(parseMetaShare("")).toBeNull();
+    expect(parseMetaShare("-3")).toBeNull();
+    expect(parseMetaShare("12.55")).toBeNull();
+    expect(parseMetaShare("12%")).toBeNull();
   });
 });

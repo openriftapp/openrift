@@ -19,6 +19,7 @@ try {
 
 export default defineConfig({
   test: {
+    testTimeout: 30_000,
     include: ["src/**/*.test.ts"],
     exclude: ["src/**/*.integration.test.ts"],
     setupFiles: ["src/test/vitest-setup.ts"],

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict RSHsMOyfjR936zhq6Pb2uoQfvm3pH04FCVJFe2FdIj8KA1YjM3DKhFRQ5yo6lF0
+\restrict IENUU5QWgp6VSkbE4E7OLYMfsibDwqnIjN8gEu9jwCyMWdLp5Q8AVS35qUmtZkT
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -4418,8 +4418,8 @@ CREATE TABLE public.tournament_groups (
 CREATE TABLE public.tournament_legend_meta_shares (
     tournament_id uuid NOT NULL,
     legend_card_id uuid NOT NULL,
-    share numeric(6,3) NOT NULL,
-    CONSTRAINT chk_tournament_legend_meta_shares_share CHECK (((share >= (0)::numeric) AND (share <= (100)::numeric)))
+    share numeric(12,3) NOT NULL,
+    CONSTRAINT chk_tournament_legend_meta_shares_share CHECK ((share >= (0)::numeric))
 );
 
 
@@ -11510,5 +11510,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict RSHsMOyfjR936zhq6Pb2uoQfvm3pH04FCVJFe2FdIj8KA1YjM3DKhFRQ5yo6lF0
+\unrestrict IENUU5QWgp6VSkbE4E7OLYMfsibDwqnIjN8gEu9jwCyMWdLp5Q8AVS35qUmtZkT
 

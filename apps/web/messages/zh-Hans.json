@@ -8358,7 +8358,7 @@
       }
     }
   ],
-  "tournaments_legend_meta_shares_description": "按你使用的数据来源填写每张传奇当前的 meta 占比；占比越低排名越靠前。这些数字只保留在本赛事内，不会在别处显示。",
+  "tournaments_legend_meta_shares_description": "按你使用的数据来源填写每张传奇的卡组数量或 meta 占比。所有传奇请使用同一种衡量方式；数字越低排名越靠前。这些数字只保留在本赛事中，不会在其他地方显示。",
   "tournaments_legend_meta_share_aria": "{name} 的 meta 占比",
   "tournaments_legend_picker_title": "为 {name} 设置传奇",
   "tournaments_legend_picker_loading": "正在加载卡牌…",

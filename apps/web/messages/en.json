@@ -8565,7 +8565,7 @@
       }
     }
   ],
-  "tournaments_legend_meta_shares_description": "Enter the current meta share of each Legend from the source you use; the lower share ranks higher. The numbers stay in this tournament and are not shown anywhere else.",
+  "tournaments_legend_meta_shares_description": "Enter how many decks of each Legend the source you use lists, or its meta share. Use the same measure for every Legend; the lower number ranks higher. The numbers stay in this tournament and are not shown anywhere else.",
   "tournaments_legend_meta_share_aria": "Meta share for {name}",
   "tournaments_legend_picker_title": "Set Legend for {name}",
   "tournaments_legend_picker_loading": "Loading cards…",

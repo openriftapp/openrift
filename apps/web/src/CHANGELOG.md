@@ -16,6 +16,7 @@
 - feat(Groups): **Copy counts when sharing** — the dialog for sharing collections with a group shows how many copies each collection holds.
 - feat(Stage): **Taller share images for three and four players** — card names on shared boards with three or four players wrap and read in full.
 - feat(App): **Discord bot: /link** — the bot help explains how to link your server to a group so single card replies show who has the card for trade.
+- feat(Tournaments): **Deck counts as meta shares** — the meta share dialog takes deck counts as well as percents, and standings show the number as entered.
 - feat(Tournaments): **Unconfirmed rounds marked in standings** — results from rounds that are not finalized yet show muted in the Run column.
 - fix(Tournaments): **No draws in the top cut** — bracket matches offer only win scorelines, and the seats drop the player avatar to leave room for names. Match cards show their full outline, and seats show the Legend without its domain icons.
 - fix(Trades): **Trade badges readable over card art** — the "Requested", "Offered" and "In a trade" badges on market cards now use a solid colour.

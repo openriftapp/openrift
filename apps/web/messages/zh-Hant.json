@@ -8358,7 +8358,7 @@
       }
     }
   ],
-  "tournaments_legend_meta_shares_description": "依你使用的來源輸入各張傳奇目前的 meta 占比；占比較低者排名較前。這些數字只留在這場賽事中，不會顯示在其他任何地方。",
+  "tournaments_legend_meta_shares_description": "依你使用的來源輸入各張傳奇的牌組數量或 meta 占比。所有傳奇請使用同一種衡量方式；數字較低者排名較前。這些數字只保留在本賽事中，不會在其他地方顯示。",
   "tournaments_legend_meta_share_aria": "{name} 的 meta 占比",
   "tournaments_legend_picker_title": "設定 {name} 的傳奇",
   "tournaments_legend_picker_loading": "載入卡牌中…",

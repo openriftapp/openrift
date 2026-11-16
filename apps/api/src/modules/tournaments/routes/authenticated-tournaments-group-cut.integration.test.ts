@@ -655,7 +655,7 @@ describe.skipIf(!hostCtx)("Group stage with a fixed top cut (integration)", () =
     const shares = await host.app.fetch(
       req("PUT", `/tournaments/${id}/legend-meta-shares`, {
         shares: [
-          { legendCardId, share: 30 },
+          { legendCardId, share: 340 },
           { legendCardId: rare, share: 1 },
           { legendCardId: legendX, share: 5 },
           { legendCardId: legendY, share: 20 },

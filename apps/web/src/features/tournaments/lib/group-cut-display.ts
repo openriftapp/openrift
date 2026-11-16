@@ -113,7 +113,13 @@ export function formatWinRate(rate: number | null): string {
 }
 
 export function formatMetaShare(share: number | null): string {
-  return share === null ? NO_STAT : `${(share * 100).toFixed(1)}%`;
+  return share === null ? NO_STAT : String(Number(share.toFixed(1)));
+}
+
+/** Deck count or percent, with at most one decimal. Accepts a decimal comma. */
+export function parseMetaShare(draft: string): number | null {
+  const trimmed = draft.trim().replace(",", ".");
+  return /^\d{1,9}(?:\.\d)?$/u.test(trimmed) ? Number(trimmed) : null;
 }
 
 export function formatLegendCount(count: number | null): string {

@@ -8359,7 +8359,7 @@
       }
     }
   ],
-  "tournaments_legend_meta_shares_description": "Trag für jede Legend den aktuellen Meta-Anteil aus der Quelle ein, die du nutzt; der niedrigere Anteil steht höher. Die Zahlen bleiben in diesem Turnier und werden sonst nirgends gezeigt.",
+  "tournaments_legend_meta_shares_description": "Trag für jede Legend ein, wie viele Decks die Quelle, die du nutzt, aufführt, oder ihren Meta-Anteil. Nimm für jede Legend dasselbe Maß; die niedrigere Zahl steht höher. Die Zahlen bleiben in diesem Turnier und werden nirgendwo sonst angezeigt.",
   "tournaments_legend_meta_share_aria": "Meta-Anteil für {name}",
   "tournaments_legend_picker_title": "Legend für {name} festlegen",
   "tournaments_legend_picker_loading": "Karten werden geladen…",
