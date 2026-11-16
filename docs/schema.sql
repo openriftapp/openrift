@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict MMQgLBePouct8mAF5K6rpOgl6Ukwmad7gqSoZ8B5azWtJ7SGKFZOyrXwtN8ENuY
+\restrict rqSvazl5qsnUoFKQPnFWsCYSTu8Lr3GTwV15R5gipLai9A4n5bM6ecFk4sXuGcH
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -3913,6 +3913,8 @@ CREATE TABLE public.pods (
     size integer NOT NULL,
     penalty_breakdown jsonb NOT NULL,
     result_status text DEFAULT 'pending'::text NOT NULL,
+    drawn_games integer DEFAULT 0 NOT NULL,
+    CONSTRAINT chk_pods_drawn_games CHECK ((drawn_games >= 0)),
     CONSTRAINT chk_pods_number CHECK ((pod_number > 0)),
     CONSTRAINT chk_pods_penalty_breakdown_shape CHECK (((penalty_breakdown IS NULL) OR (jsonb_typeof(penalty_breakdown) = 'object'::text))),
     CONSTRAINT chk_pods_result_status CHECK ((result_status = ANY (ARRAY['pending'::text, 'reported'::text]))),
@@ -11511,5 +11513,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict MMQgLBePouct8mAF5K6rpOgl6Ukwmad7gqSoZ8B5azWtJ7SGKFZOyrXwtN8ENuY
+\unrestrict rqSvazl5qsnUoFKQPnFWsCYSTu8Lr3GTwV15R5gipLai9A4n5bM6ecFk4sXuGcH
 

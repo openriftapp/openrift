@@ -11,6 +11,7 @@ function makePod(id: string, resultStatus: PodResponse["resultStatus"]): PodResp
     podNumber: Number(id.at(-1)),
     size: 4,
     resultStatus,
+    drawnGames: 0,
     members: [],
     penalty: null,
   };

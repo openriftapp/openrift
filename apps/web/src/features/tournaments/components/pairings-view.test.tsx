@@ -11,6 +11,7 @@ function makePod(overrides: Partial<PodResponse> = {}): PodResponse {
     podNumber: 1,
     size: 4,
     resultStatus: "pending",
+    drawnGames: 0,
     members: [
       {
         playerId: "p1",
@@ -170,6 +171,7 @@ describe("PairingsView", () => {
               id: "pod-1",
               podNumber: 1,
               resultStatus: "reported",
+              drawnGames: 0,
               members: makePod().members.map((member, index) => ({
                 ...member,
                 gamePoints: 3 - index,
@@ -308,6 +310,7 @@ describe("PairingsView", () => {
           pods: [
             makePod({
               resultStatus: "reported",
+              drawnGames: 0,
               members: [
                 {
                   playerId: "p1",
@@ -352,6 +355,7 @@ describe("PairingsView", () => {
             makePod({
               size: 2,
               resultStatus: "reported",
+              drawnGames: 0,
               members: [
                 {
                   playerId: "p1",
@@ -540,10 +544,9 @@ describe("PairingsView 2v2 team matches", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Enter result" }));
-    expect(screen.getByText("Ashe & Braum")).toBeInTheDocument();
-    expect(screen.getByText("Caitlyn & Darius")).toBeInTheDocument();
-    expect(screen.getByText("Draw")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Ashe & Braum wins 1–0" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Game 1: Ashe & Braum" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Game 1: Caitlyn & Darius" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Game 1: Draw" })).toBeInTheDocument();
   });
 
   it("submits the chosen scoreline mirrored across each side's players", async () => {
@@ -557,14 +560,17 @@ describe("PairingsView 2v2 team matches", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Enter result" }));
-    await user.click(screen.getByRole("button", { name: "Ashe & Braum wins" }));
+    await user.click(screen.getByRole("button", { name: "Game 1: Ashe & Braum" }));
     await user.click(screen.getByRole("button", { name: "Save result" }));
 
-    expect(onSubmitResult).toHaveBeenCalledWith("pod-1", [
-      { playerId: "p1", gamePoints: 1 },
-      { playerId: "p2", gamePoints: 1 },
-      { playerId: "p3", gamePoints: 0 },
-      { playerId: "p4", gamePoints: 0 },
-    ]);
+    expect(onSubmitResult).toHaveBeenCalledWith("pod-1", {
+      results: [
+        { playerId: "p1", gamePoints: 1 },
+        { playerId: "p2", gamePoints: 1 },
+        { playerId: "p3", gamePoints: 0 },
+        { playerId: "p4", gamePoints: 0 },
+      ],
+      drawnGames: 0,
+    });
   });
 });

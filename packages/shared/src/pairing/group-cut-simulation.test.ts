@@ -49,17 +49,23 @@ function resultOf(pair: readonly [string, string], roll: number, pick: number): 
   if (roll < 0.08) {
     const winner = pick % 2 === 0 ? first : second;
     const loser = winner === first ? second : first;
-    return { playerIds: [winner, loser], placements: [1, 2], gamePoints: [null, null] };
+    return {
+      playerIds: [winner, loser],
+      placements: [1, 2],
+      gamePoints: [null, null],
+      drawnGames: 0,
+    };
   }
   const games = pickAt(SCORELINES, pick);
   const [firstGames, secondGames] = games;
   if (firstGames === secondGames) {
-    return { playerIds: [first, second], placements: [1, 1], gamePoints: games };
+    return { playerIds: [first, second], placements: [1, 1], gamePoints: games, drawnGames: 0 };
   }
   return {
     playerIds: [first, second],
     placements: firstGames > secondGames ? [1, 2] : [2, 1],
     gamePoints: games,
+    drawnGames: 0,
   };
 }
 

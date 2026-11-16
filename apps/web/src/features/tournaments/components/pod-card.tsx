@@ -26,7 +26,7 @@ import {
 } from "@/features/tournaments/lib/group-cut-units";
 import { participantName } from "@/features/tournaments/lib/participant-name";
 import { formatScore } from "@/features/tournaments/lib/standings-display";
-import type { PodResultEntry } from "@/features/tournaments/lib/swiss-results";
+import type { PodResultSubmission } from "@/features/tournaments/lib/swiss-results";
 import { groupPodMembersByTeam, teamDisplayName } from "@/features/tournaments/lib/team-display";
 import { isMatchPairing, pairingLabel } from "@/features/tournaments/lib/tournament-display";
 import { parseIntegerInput } from "@/lib/integer-input";
@@ -129,7 +129,7 @@ export function PodCard({
   /** Rendered before the player's face; the bracket puts the seed pill here. */
   renderMemberLeading?: (playerId: string) => ReactNode;
   renderMemberBadge?: (playerId: string) => ReactNode;
-  onSubmit: (podId: string, results: PodResultEntry[]) => Promise<unknown>;
+  onSubmit: (podId: string, submission: PodResultSubmission) => Promise<unknown>;
   onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<unknown>;
 }) {
   const pod = podForDisplay(rawPod);
@@ -145,18 +145,18 @@ export function PodCard({
   const [scoreDraft, setScoreDraft] = useState("");
   const reported = pod.resultStatus === "reported";
   const walkover = isWalkoverPod(pod);
-  const selfEntry = canEnter && onSubmitPlayerResult !== undefined && !walkover;
+  const selfEntry = canEnter && onSubmitPlayerResult !== undefined && !walkover && !isMatch;
   const enteredCount = pod.members.filter((member) => member.gamePoints !== null).length;
   const penaltySummary = pod.penalty ? podPenaltySummary(pod.penalty) : null;
   const stacked = layout === "stacked";
 
-  async function handleSubmit(results: PodResultEntry[]) {
+  async function handleSubmit(submission: PodResultSubmission) {
     setSaving(true);
     setSaveError(null);
-    const ok = await runReportedMutation(() => onSubmit(pod.id, results), setSaveError);
+    const ok = await runReportedMutation(() => onSubmit(pod.id, submission), setSaveError);
     setSaving(false);
     if (ok) {
-      adoptSaved(results);
+      adoptSaved(submission.results, submission.drawnGames);
       setEditing(false);
     }
   }
@@ -403,7 +403,7 @@ export function PodCard({
               winPoints={winPoints}
               drawPoints={drawPoints}
               allowDraws={allowDraws}
-              onSubmit={(results) => void handleSubmit(results)}
+              onSubmit={(submission) => void handleSubmit(submission)}
               submitting={saving}
               error={saveError}
               onCancel={() => setEditing(false)}
@@ -412,7 +412,7 @@ export function PodCard({
             <PodResultForm
               pod={pod}
               scheme={scheme}
-              onSubmit={(results) => void handleSubmit(results)}
+              onSubmit={(results) => void handleSubmit({ results })}
               submitting={saving}
               error={saveError}
               onCancel={() => setEditing(false)}

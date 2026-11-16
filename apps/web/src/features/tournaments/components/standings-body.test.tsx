@@ -48,6 +48,7 @@ const ROUND: PodRoundResponse = {
       podNumber: 1,
       size: 2,
       resultStatus: "reported",
+      drawnGames: 0,
       penalty: null,
       members: [
         {

@@ -152,6 +152,7 @@ export function roundRows(
         podNumber: spec.podNumber,
         size: 2,
         resultStatus: spec.outcome === "open" ? "pending" : "reported",
+        drawnGames: 0,
         penaltyBreakdown: NO_PENALTY_BREAKDOWN,
       },
       members: podMembers(`p-${roundNumber}-${spec.podNumber}`, spec.playerIds, spec.outcome),

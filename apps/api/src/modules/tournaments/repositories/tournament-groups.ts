@@ -9,6 +9,7 @@ import { sql } from "kysely";
 import type { Database } from "../../../db/tables.js";
 import type { TournamentGroupsTable } from "../../../db/tables/tournaments.js";
 import { inTransaction } from "../../../repositories/query-helpers.js";
+import { CUT_PAIRING_STRATEGY } from "./pod-tournaments-shared.js";
 import { lockTournamentWrites } from "./tournaments-shared.js";
 
 export type TournamentGroup = Selectable<TournamentGroupsTable>;
@@ -50,7 +51,6 @@ export interface PendingGroupPod {
 }
 
 const GROUP_STAGE_STRATEGY = "group_stage";
-const CUT_STRATEGY = "cut";
 
 export function tournamentGroupsRepo(db: Kysely<Database>) {
   async function roundExistsFrom(
@@ -298,7 +298,7 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
             roundNumber: input.roundNumber,
             status: "reporting",
             penaltyTotal: 0,
-            pairingStrategy: CUT_STRATEGY,
+            pairingStrategy: CUT_PAIRING_STRATEGY,
           })
           .returning("id")
           .executeTakeFirstOrThrow();
@@ -335,7 +335,7 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
             roundNumber,
             status: "reporting",
             penaltyTotal: 0,
-            pairingStrategy: CUT_STRATEGY,
+            pairingStrategy: CUT_PAIRING_STRATEGY,
           })
           .returning("id")
           .executeTakeFirstOrThrow();
@@ -414,7 +414,7 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
         }
         await trx
           .updateTable("pods")
-          .set({ resultStatus: "reported" })
+          .set({ resultStatus: "reported", drawnGames: 0 })
           .where("id", "=", podId)
           .execute();
       });

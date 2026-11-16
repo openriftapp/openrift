@@ -10,7 +10,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { useTournamentDetailMutation } from "@/features/tournaments/hooks/use-tournament-mutations";
-import type { PodResultEntry } from "@/features/tournaments/lib/swiss-results";
+import type { PodResultSubmission } from "@/features/tournaments/lib/swiss-results";
 import { podRoundMutationInvalidationKeys } from "@/features/tournaments/lib/tournament-invalidation";
 import {
   tournamentReportQueryOptions,
@@ -151,7 +151,7 @@ const finalizeRoundFn = createServerFn({ method: "POST" })
   );
 
 const submitResultFn = createServerFn({ method: "POST" })
-  .validator((input: { id: string; podId: string; results: PodResultEntry[] }) => input)
+  .validator((input: { id: string; podId: string } & PodResultSubmission) => input)
   .middleware([withCookies])
   .handler(({ context, data }): Promise<PodTournamentDetailResponse> =>
     apiOrpcClient(tournamentsContract, context.cookie).submitResult(data),
@@ -192,12 +192,13 @@ const startReportGroupRoundFn = createServerFn({ method: "POST" })
   );
 
 const submitReportResultFn = createServerFn({ method: "POST" })
-  .validator((input: { token: string; podId: string; results: PodResultEntry[] }) => input)
+  .validator((input: { token: string; podId: string } & PodResultSubmission) => input)
   .handler(({ data }): Promise<PodReportResponse> =>
     apiOrpcClient(publicPodTournamentsContract).submitResult({
       token: data.token,
       podId: data.podId,
       results: data.results,
+      drawnGames: data.drawnGames,
     }),
   );
 
@@ -271,7 +272,7 @@ export function useFinalizeTournamentRound() {
 }
 
 export function useSubmitTournamentResult() {
-  return useRunMutation<{ id: string; podId: string; results: PodResultEntry[] }>(
+  return useRunMutation<{ id: string; podId: string } & PodResultSubmission>(
     (data) => submitResultFn({ data }),
     true,
   );
@@ -310,10 +311,7 @@ export function useStartReportGroupRound(token: string) {
 }
 
 export function useSubmitTournamentReportResult(token: string) {
-  return useMutationWithInvalidation<
-    PodReportResponse,
-    { podId: string; results: PodResultEntry[] }
-  >({
+  return useMutationWithInvalidation<PodReportResponse, { podId: string } & PodResultSubmission>({
     mutationFn: (data) => submitReportResultFn({ data: { token, ...data } }),
     meta: { inlineError: true },
     invalidates: () => [podTournamentsKeys.report(token)],

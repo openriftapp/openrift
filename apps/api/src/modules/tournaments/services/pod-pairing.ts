@@ -18,6 +18,7 @@ import { badRequest, conflict, notFound } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { scoringOf } from "../lib/pod-scoring.js";
+import { CUT_PAIRING_STRATEGY } from "../repositories/pod-tournaments-shared.js";
 import type { PodRound } from "../repositories/pod-tournaments-shared.js";
 import type { Tournament } from "../repositories/tournaments-shared.js";
 
@@ -347,7 +348,7 @@ export async function submitPodResult(
   tournamentId: string,
   podId: string,
   results: { playerId: string; gamePoints: number }[],
-  options: { allowFinalized: boolean },
+  options: { allowFinalized: boolean; drawnGames?: number },
 ): Promise<void> {
   await repos.podTournaments.lockRoundOfPod(podId);
   const found = await repos.podTournaments.getPodForResult(podId);
@@ -379,6 +380,11 @@ export async function submitPodResult(
   if (seen.size !== memberIds.size) {
     throw badRequest("Every player in the pod needs a result.");
   }
+  const isMatch = size === 2 || found.tournament.playMode === "2v2";
+  const drawnGames = options.drawnGames ?? 0;
+  if (drawnGames > 0 && !isMatch) {
+    throw badRequest("Only a match can have drawn games.");
+  }
   if (found.tournament.playMode === "2v2") {
     // A 2v2 result is a team result: both members of a side carry the same
     // game score, so the derived placements collapse to two team placements.
@@ -393,6 +399,27 @@ export async function submitPodResult(
       }
     }
   }
+  if (isMatch) {
+    const sides =
+      found.tournament.playMode === "2v2"
+        ? [
+            ...Map.groupBy(results, (result) => found.teamByPlayer.get(result.playerId)).values(),
+          ].map((team) => team[0]?.gamePoints ?? 0)
+        : results.map((result) => result.gamePoints);
+    const [first = 0, second = 0] = sides;
+    if (
+      drawnGames > 0 &&
+      first + second + drawnGames > (found.tournament.matchFormat === "bo1" ? 1 : 3)
+    ) {
+      throw badRequest("More games than the match format allows.");
+    }
+    if (
+      found.round.pairingStrategy === CUT_PAIRING_STRATEGY &&
+      (drawnGames > 0 || first === second)
+    ) {
+      throw badRequest("A top cut match needs a winner and has no drawn games.");
+    }
+  }
 
   const placements = placementsFromGamePoints(results.map((result) => result.gamePoints));
   await repos.podTournaments.setPodResult(
@@ -402,6 +429,7 @@ export async function submitPodResult(
       placement: placements[index] ?? 1,
       gamePoints: result.gamePoints,
     })),
+    drawnGames,
   );
 }
 
@@ -427,15 +455,11 @@ export async function submitPodPlayerResult(
   if (!found.memberPlayerIds.includes(playerId)) {
     throw badRequest("This player is not in this pod.");
   }
+  if (found.pod.size === 2 || found.tournament.playMode === "2v2") {
+    throw badRequest("A match result is entered for the whole table at once.");
+  }
   if (gamePoints < 0) {
     throw badRequest("Game points cannot be negative.");
   }
-  // A 2v2 self-report is the team's result: mirror it onto the teammate, so
-  // the pod completes once each side has reported (any member of either team).
-  const teamId = found.teamByPlayer.get(playerId);
-  const targets =
-    found.tournament.playMode === "2v2" && teamId !== undefined
-      ? found.memberPlayerIds.filter((memberId) => found.teamByPlayer.get(memberId) === teamId)
-      : [playerId];
-  await repos.podTournaments.setMemberGamePoints(podId, targets, gamePoints);
+  await repos.podTournaments.setMemberGamePoints(podId, playerId, gamePoints);
 }

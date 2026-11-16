@@ -28,6 +28,7 @@ function toPodResponse(pod: PodRow, memberRows: PodMemberRow[], scoring: PodScor
     podNumber: pod.podNumber,
     size,
     resultStatus: pod.resultStatus,
+    drawnGames: pod.drawnGames,
     members: memberRows.map((member, index) => ({
       playerId: member.playerId,
       displayName: member.displayName,

@@ -12,6 +12,7 @@ function match(gamePoints: [number | null, number | null]): PodResponse {
     podNumber: 1,
     size: 2,
     resultStatus: "pending",
+    drawnGames: 0,
     penalty: null,
     members: (["Ashe", "Braum"] as const).map((name, index) => ({
       playerId: name.toLowerCase(),
@@ -23,6 +24,23 @@ function match(gamePoints: [number | null, number | null]): PodResponse {
       placement: null,
       points: null,
     })),
+  };
+}
+
+function threePlayerPod(gamePoints: [number | null, number | null, number | null]): PodResponse {
+  const pod = match([gamePoints[0], gamePoints[1]]);
+  return {
+    ...pod,
+    size: 3,
+    members: [
+      ...pod.members,
+      {
+        ...pod.members[0]!,
+        playerId: "caitlyn",
+        displayName: "Caitlyn",
+        gamePoints: gamePoints[2],
+      },
+    ],
   };
 }
 
@@ -50,7 +68,7 @@ describe("PodCard", () => {
     render(<PodCard {...props(match([null, null]), onSubmit)} />);
 
     await user.click(screen.getByRole("button", { name: "Enter result" }));
-    await user.click(screen.getByRole("button", { name: "Ashe wins" }));
+    await user.click(screen.getByRole("button", { name: "Game 1: Ashe" }));
     await user.click(screen.getByRole("button", { name: "Save result" }));
 
     expect(await screen.findByText("The round is already finalized.")).toBeInTheDocument();
@@ -84,12 +102,39 @@ describe("PodCard", () => {
     const walkover: PodResponse = {
       ...pod,
       resultStatus: "reported",
+      drawnGames: 0,
       members: pod.members.map((member, index) => ({ ...member, placement: index + 1 })),
     };
     render(<PodCard {...props(walkover, vi.fn())} onSubmitPlayerResult={vi.fn()} />);
 
     expect(screen.getByText("Walkover")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Add score" })).not.toBeInTheDocument();
+  });
+
+  it("offers only the whole-match result form on a 1v1 match, even with per-player entry", () => {
+    render(<PodCard {...props(match([null, null]), vi.fn())} onSubmitPlayerResult={vi.fn()} />);
+
+    expect(screen.queryByRole("button", { name: "Add score" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Enter all scores" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Enter result" })).toBeInTheDocument();
+  });
+
+  it("offers only the whole-match result form on a 2v2 team match", () => {
+    const pod = threePlayerPod([null, null, null]);
+    const teamPod: PodResponse = {
+      ...pod,
+      size: 4,
+      members: [
+        { ...pod.members[0]!, teamId: "team-a" },
+        { ...pod.members[1]!, teamId: "team-a" },
+        { ...pod.members[2]!, teamId: "team-b" },
+        { ...pod.members[2]!, playerId: "draven", displayName: "Draven", teamId: "team-b" },
+      ],
+    };
+    render(<PodCard {...props(teamPod, vi.fn())} teamMode onSubmitPlayerResult={vi.fn()} />);
+
+    expect(screen.queryByRole("button", { name: "Add score" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Enter result" })).toBeInTheDocument();
   });
 
   it("keeps the table label on one line and lets long badges wrap", () => {
@@ -106,14 +151,17 @@ describe("PodCard", () => {
     const onSubmitPlayerResult = vi.fn().mockResolvedValue(undefined);
     const { rerender } = render(
       <PodCard
-        {...props(match([null, null]), vi.fn())}
+        {...props(threePlayerPod([null, null, null]), vi.fn())}
         onSubmitPlayerResult={onSubmitPlayerResult}
       />,
     );
 
     await user.click(screen.getAllByRole("button", { name: "Add score" })[0]!);
     rerender(
-      <PodCard {...props(match([null, 2]), vi.fn())} onSubmitPlayerResult={onSubmitPlayerResult} />,
+      <PodCard
+        {...props(threePlayerPod([null, 2, null]), vi.fn())}
+        onSubmitPlayerResult={onSubmitPlayerResult}
+      />,
     );
 
     expect(screen.queryByText(/Someone else saved scores/u)).not.toBeInTheDocument();

@@ -19,6 +19,7 @@ function makePod(podNumber: number): PodResponse {
     podNumber,
     size: 2,
     resultStatus: "pending",
+    drawnGames: 0,
     members: [],
     penalty: null,
   };

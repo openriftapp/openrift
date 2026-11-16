@@ -7,8 +7,12 @@ import {
   useSubmitTournamentReportResult,
 } from "@/features/tournaments/hooks/use-tournament-run";
 import { bracketMode } from "@/features/tournaments/lib/cut-bracket-display";
-import type { PodResultEntry } from "@/features/tournaments/lib/swiss-results";
-import { reportAcceptsResults, reportCanEdit } from "@/features/tournaments/lib/tournament-display";
+import type { PodResultSubmission } from "@/features/tournaments/lib/swiss-results";
+import {
+  isMatchPairing,
+  reportAcceptsResults,
+  reportCanEdit,
+} from "@/features/tournaments/lib/tournament-display";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
@@ -27,10 +31,13 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
   const swiss = data.pairingStyle === "swiss";
   const showEntryHint = reportAcceptsResults(data);
   const canEdit = reportCanEdit(data);
+  const hasOpenMatchTable = data.rounds.some(
+    (round) => round.status === "reporting" && round.pods.some((pod) => isMatchPairing(pod.size)),
+  );
   const groupStage = data.groupStage;
 
-  const submit = (podId: string, results: PodResultEntry[]) =>
-    submitResult.mutateAsync({ podId, results });
+  const submit = (podId: string, submission: PodResultSubmission) =>
+    submitResult.mutateAsync({ podId, ...submission });
   const submitPlayer = (podId: string, playerId: string, gamePoints: number) =>
     submitPlayerResult.mutateAsync({ podId, playerId, gamePoints });
 
@@ -39,7 +46,9 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
     return (
       <div className="flex flex-col gap-6">
         {showEntryHint ? (
-          <p className="text-muted-foreground text-sm">{m.tournaments_report_enter_games_won()}</p>
+          <p className="text-muted-foreground text-sm">
+            {m.tournaments_report_enter_match_result()}
+          </p>
         ) : null}
         {bracketRounds.length > 0 &&
         bracketMode({ completed: data.status === "completed", canEnter: canEdit }) === "compact" ? (
@@ -91,11 +100,12 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
     <div className="flex flex-col gap-4">
       {showEntryHint ? (
         <p className="text-muted-foreground text-sm">
-          {data.playMode === "2v2"
-            ? m.tournaments_report_enter_team_games_won()
-            : swiss
-              ? m.tournaments_report_enter_games_won()
-              : m.tournaments_report_enter_game_points()}
+          {data.playMode === "2v2" || swiss
+            ? m.tournaments_report_enter_match_result()
+            : m.tournaments_report_enter_game_points()}
+          {hasOpenMatchTable && data.playMode !== "2v2" && !swiss
+            ? ` ${m.tournaments_report_match_table_hint()}`
+            : null}
         </p>
       ) : null}
       <PairingsView

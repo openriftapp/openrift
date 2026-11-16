@@ -883,6 +883,7 @@ export const tournamentsRouter = {
       await context.transact((trxRepos) =>
         submitPodResult(trxRepos, tournament.id, input.podId, input.results, {
           allowFinalized: true,
+          drawnGames: input.drawnGames,
         }),
       );
       return podRunDetailById(repos, input.id);

@@ -111,7 +111,9 @@ export function GroupCutPairingsSection({
           winPoints={tournament.winPoints}
           drawPoints={tournament.drawPoints}
           canEnterResult={(round) => !completed && round.status === "reporting"}
-          onSubmitResult={(podId, results) => submitResult.mutateAsync({ id, podId, results })}
+          onSubmitResult={(podId, submission) =>
+            submitResult.mutateAsync({ id, podId, ...submission })
+          }
         />
       );
   }
@@ -224,7 +226,9 @@ export function GroupCutPairingsSection({
           winPoints={tournament.winPoints}
           drawPoints={tournament.drawPoints}
           canEnterResult={manage && !completed}
-          onSubmitResult={(podId, results) => submitResult.mutateAsync({ id, podId, results })}
+          onSubmitResult={(podId, submission) =>
+            submitResult.mutateAsync({ id, podId, ...submission })
+          }
           onStartUnit={
             staff && tournament.groupsSelfPaced
               ? (unit) =>

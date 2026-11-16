@@ -30,6 +30,7 @@ function pod(id: string, podNumber: number, members: PodMemberResponse[]): PodRe
     podNumber,
     size: 2,
     resultStatus: reported ? "reported" : "pending",
+    drawnGames: 0,
     members,
     penalty: null,
   };

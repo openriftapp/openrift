@@ -277,6 +277,7 @@ export function podRoundsRepo(db: Kysely<Database>) {
     async setPodResult(
       podId: string,
       results: { playerId: string; placement: number; gamePoints: number }[],
+      drawnGames: number,
     ): Promise<void> {
       await inTransaction(db, async (trx) => {
         await trx.selectFrom("pods").select("id").where("id", "=", podId).forUpdate().execute();
@@ -290,30 +291,21 @@ export function podRoundsRepo(db: Kysely<Database>) {
         }
         await trx
           .updateTable("pods")
-          .set({ resultStatus: "reported" })
+          .set({ resultStatus: "reported", drawnGames })
           .where("id", "=", podId)
           .execute();
       });
     },
 
-    /**
-     * Per-player self-reporting; 2v2 passes both members of the reporter's
-     * team, since a team shares one game score. The pod row is locked for the
-     * transaction so two players submitting at the same time serialize and the
-     * second one sees the first one's points.
-     */
-    async setMemberGamePoints(
-      podId: string,
-      playerIds: string[],
-      gamePoints: number,
-    ): Promise<void> {
+    // The pod row lock serializes two players submitting at once, so the second sees the first's points.
+    async setMemberGamePoints(podId: string, playerId: string, gamePoints: number): Promise<void> {
       await inTransaction(db, async (trx) => {
         await trx.selectFrom("pods").select("id").where("id", "=", podId).forUpdate().execute();
         await trx
           .updateTable("podMembers")
           .set({ gamePoints })
           .where("podId", "=", podId)
-          .where("playerId", "in", playerIds)
+          .where("playerId", "=", playerId)
           .execute();
         const members = await trx
           .selectFrom("podMembers")

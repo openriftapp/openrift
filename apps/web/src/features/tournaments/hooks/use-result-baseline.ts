@@ -18,21 +18,23 @@ export function useResultBaseline(
   changedRemotely: boolean;
   acceptLatest: () => void;
   resync: () => void;
-  adoptSaved: (results: readonly PodResultEntry[]) => void;
+  adoptSaved: (results: readonly PodResultEntry[], drawnGames?: number) => void;
 } {
   const [known, setKnown] = useState(() => knownPoints(pod));
   const [saved, setSaved] = useState<Record<string, number>>({});
-  const compared =
-    playerId === undefined || playerId === null
-      ? pod.members
-      : pod.members.filter((member) => member.playerId === playerId);
-  const changedRemotely = compared.some(
-    (member) => !(known[member.playerId] ?? []).includes(member.gamePoints),
-  );
+  const [knownDraws, setKnownDraws] = useState(() => [pod.drawnGames]);
+  const wholePod = playerId === undefined || playerId === null;
+  const compared = wholePod
+    ? pod.members
+    : pod.members.filter((member) => member.playerId === playerId);
+  const changedRemotely =
+    compared.some((member) => !(known[member.playerId] ?? []).includes(member.gamePoints)) ||
+    (wholePod && !knownDraws.includes(pod.drawnGames));
 
   function acceptLatest() {
     setKnown(knownPoints(pod));
     setSaved({});
+    setKnownDraws([pod.drawnGames]);
   }
 
   function resync() {
@@ -55,7 +57,10 @@ export function useResultBaseline(
     setSaved(nextSaved);
   }
 
-  function adoptSaved(results: readonly PodResultEntry[]) {
+  function adoptSaved(results: readonly PodResultEntry[], drawnGames?: number) {
+    if (drawnGames !== undefined) {
+      setKnownDraws((current) => [...current, drawnGames]);
+    }
     setKnown((current) => {
       const next = { ...current };
       for (const entry of results) {

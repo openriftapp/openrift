@@ -21,6 +21,7 @@ function pod(
     podNumber,
     size: 2,
     resultStatus: seats.every((seat) => seat[2] !== null) ? "reported" : "pending",
+    drawnGames: 0,
     members: seats.map(([playerId, gamePoints, placement, points]) => ({
       playerId,
       displayName: playerId,
@@ -166,12 +167,12 @@ describe("CutBracketView", () => {
     expect(screen.queryByText("A")).not.toBeInTheDocument();
   });
 
-  it("offers no draw scorelines in a bracket match", async () => {
+  it("offers no drawn games or intentional draw in a bracket match", async () => {
     const user = userEvent.setup();
     renderBracket([semifinals, openFinal], false, true);
     await user.click(screen.getByRole("button", { name: "Enter result" }));
-    expect(screen.getByRole("button", { name: "Ashe wins 2–1" })).toBeInTheDocument();
-    expect(screen.queryByText("Draw")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^Draw/u })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Game 1: Ashe" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Game 1: Draw" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Intentional draw" })).not.toBeInTheDocument();
   });
 });

@@ -31,7 +31,7 @@ import { StatStrip } from "@/components/ui/stat-strip";
 import { PlayerChip } from "@/features/tournaments/components/player-chip";
 import { participantName } from "@/features/tournaments/lib/participant-name";
 import { snapshotToPlayers } from "@/features/tournaments/lib/pod-pairing-editor";
-import type { PodResultEntry } from "@/features/tournaments/lib/swiss-results";
+import type { PodResultSubmission } from "@/features/tournaments/lib/swiss-results";
 import { teamNamesById } from "@/features/tournaments/lib/team-display";
 import { isAllMatchRound } from "@/features/tournaments/lib/tournament-display";
 import { m } from "@/paraglide/messages.js";
@@ -51,7 +51,7 @@ interface PairingsViewProps {
   snapshot?: PodSnapshotPlayer[] | null;
   warningsExpanded?: boolean;
   canEnterResult: (round: PodRoundResponse, pod: PodResponse) => boolean;
-  onSubmitResult: (podId: string, results: PodResultEntry[]) => Promise<unknown>;
+  onSubmitResult: (podId: string, submission: PodResultSubmission) => Promise<unknown>;
   onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<unknown>;
   renderRoundActions?: (round: PodRoundResponse) => ReactNode;
   emptyMessage: string;

@@ -31,6 +31,7 @@ const POD: PodRow = {
   podNumber: 1,
   size: 4,
   resultStatus: "reported",
+  drawnGames: 0,
   penaltyBreakdown: {
     total: 9,
     rematch: 4,
@@ -82,6 +83,7 @@ describe("toRoundResponse", () => {
           podNumber: 1,
           size: 4,
           resultStatus: "reported",
+          drawnGames: 0,
           members: [
             {
               playerId: "a",

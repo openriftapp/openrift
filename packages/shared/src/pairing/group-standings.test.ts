@@ -22,19 +22,24 @@ function group(
 }
 
 function win(winner: string, loser: string, games: [number, number] = [2, 0]): GroupMatch {
-  return { playerIds: [winner, loser], placements: [1, 2], gamePoints: games };
+  return { playerIds: [winner, loser], placements: [1, 2], gamePoints: games, drawnGames: 0 };
 }
 
 function drew(first: string, second: string, games: [number, number] = [1, 1]): GroupMatch {
-  return { playerIds: [first, second], placements: [1, 1], gamePoints: games };
+  return { playerIds: [first, second], placements: [1, 1], gamePoints: games, drawnGames: 0 };
 }
 
 function walkover(winner: string, dropped: string): GroupMatch {
-  return { playerIds: [winner, dropped], placements: [1, 2], gamePoints: [null, null] };
+  return {
+    playerIds: [winner, dropped],
+    placements: [1, 2],
+    gamePoints: [null, null],
+    drawnGames: 0,
+  };
 }
 
 function unreported(first: string, second: string): GroupMatch {
-  return { playerIds: [first, second], placements: null, gamePoints: [null, null] };
+  return { playerIds: [first, second], placements: null, gamePoints: [null, null], drawnGames: 0 };
 }
 
 function alphabetical(playerId: string): number {
@@ -85,6 +90,7 @@ function scored(first: string, second: string, games: [number, number]): GroupMa
     playerIds: [first, second],
     placements: placementsFor(games[0], games[1]),
     gamePoints: games,
+    drawnGames: 0,
   };
 }
 
@@ -586,12 +592,30 @@ describe("computeGroupStage: walkovers", () => {
     const result = computeGroupStage(
       standingsInput(
         [group("A", ["a", "b", "c", "d"])],
-        [{ playerIds: ["a", "b"], placements: [1, 1], gamePoints: [null, null] }],
+        [{ playerIds: ["a", "b"], placements: [1, 1], gamePoints: [null, null], drawnGames: 0 }],
       ),
     );
     const rowA = result.groups[0]?.rows.find((row) => row.playerId === "a");
     expect(rowA).toMatchObject({ points: 1, draws: 1, gamesPlayed: 0 });
     expect(rowA?.gameWinRate).toBeNull();
+  });
+
+  it("counts drawn games as played", () => {
+    const result = computeGroupStage(
+      standingsInput(
+        [group("A", ["a", "b", "c", "d"])],
+        [
+          { playerIds: ["a", "b"], placements: [1, 1], gamePoints: [1, 1], drawnGames: 1 },
+          { playerIds: ["c", "d"], placements: [1, 1], gamePoints: [0, 0], drawnGames: 3 },
+        ],
+      ),
+    );
+    const row = (playerId: string) =>
+      result.groups[0]?.rows.find((candidate) => candidate.playerId === playerId);
+    expect(row("a")).toMatchObject({ draws: 1, gamesPlayed: 3 });
+    expect(row("a")?.gameWinRate).toBeCloseTo(1 / 3);
+    expect(row("c")).toMatchObject({ draws: 1, gamesPlayed: 3 });
+    expect(row("c")?.gameWinRate).toBe(0);
   });
 });
 

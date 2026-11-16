@@ -10,6 +10,7 @@
 - feat(Decks): **Infinity format** — decks follow the Constructed rules with every card allowed, banned cards included, and deck checks at Infinity events skip the banlist.
 - feat(Tournaments): **Deleted accounts show as "Former member"** — results stay in standings and pairings, the name and Riot ID of a player who deleted their account are removed, and their spots in upcoming or running events are dropped.
 - feat(Tournaments): **Prepare a tournament before the group sees it** — a "Published to the group" switch keeps a linked tournament off the group page and calendar until you turn it on.
+- feat(Tournaments): **Match results game by game** — a match result is entered per game with drawn games and an intentional draw, and the report link takes it for the whole table at once.
 
 ### Other
 

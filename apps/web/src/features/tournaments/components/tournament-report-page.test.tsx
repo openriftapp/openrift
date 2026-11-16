@@ -34,6 +34,7 @@ function pod(id: string, players: [string, number][]): PodResponse {
     podNumber: 1,
     size: 2,
     resultStatus: "reported",
+    drawnGames: 0,
     members: players.map(([playerId, gamePoints], index) => ({
       playerId,
       displayName: playerId,
@@ -121,16 +122,27 @@ function report(
 }
 
 describe("ReportRoundsContent", () => {
-  it("asks for games won and offers edits while a round is open", () => {
+  it("asks for the match result and offers an edit while a round is open", () => {
     render(<ReportRoundsContent token="t" data={report("running", "reporting")} />);
-    expect(screen.getByText(/Enter your games won/u)).toBeInTheDocument();
+    expect(screen.getByText(/enter the result at your table/u)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Edit result" })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: /Edit score/u })).toHaveLength(2);
+    expect(screen.queryByRole("button", { name: /Edit score/u })).not.toBeInTheDocument();
+  });
+
+  it("tells a pod event that a two-player table enters one result for the table", () => {
+    const data: PodReportResponse = {
+      ...report("running", "reporting"),
+      pairingStyle: "pod",
+      format: "rounds",
+      groupStage: null,
+    };
+    render(<ReportRoundsContent token="t" data={data} />);
+    expect(screen.getByText(/two-player table enters one result/u)).toBeInTheDocument();
   });
 
   it("hides the hint and every edit control once the event is completed", () => {
     render(<ReportRoundsContent token="t" data={report("completed", "reporting")} />);
-    expect(screen.queryByText(/Enter your games won/u)).not.toBeInTheDocument();
+    expect(screen.queryByText(/enter the result at your table/u)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Edit result" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Edit score/u })).not.toBeInTheDocument();
   });
@@ -150,7 +162,8 @@ describe("ReportRoundsContent failed submissions", () => {
     render(<ReportRoundsContent token="t" data={report("running", "reporting")} />);
 
     await user.click(screen.getByRole("button", { name: "Edit result" }));
-    await user.click(screen.getAllByRole("button", { name: /wins/u })[0]!);
+    await user.click(screen.getByRole("button", { name: "Game 2: Garen" }));
+    await user.click(screen.getByRole("button", { name: "Game 3: Ashe" }));
     await user.click(screen.getByRole("button", { name: "Save result" }));
 
     expect(submitResultMutateAsync).toHaveBeenCalledTimes(1);
@@ -162,7 +175,8 @@ describe("ReportRoundsContent failed submissions", () => {
     render(<ReportRoundsContent token="t" data={report("running", "reporting")} />);
 
     await user.click(screen.getByRole("button", { name: "Edit result" }));
-    await user.click(screen.getAllByRole("button", { name: /wins/u })[0]!);
+    await user.click(screen.getByRole("button", { name: "Game 2: Garen" }));
+    await user.click(screen.getByRole("button", { name: "Game 3: Ashe" }));
     await user.click(screen.getByRole("button", { name: "Save result" }));
 
     expect(screen.queryByRole("button", { name: "Save result" })).not.toBeInTheDocument();

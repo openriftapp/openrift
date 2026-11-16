@@ -612,6 +612,7 @@ export const podResponseSchema = z.object({
   podNumber: z.number().int().positive(),
   size: z.union([z.literal(2), z.literal(3), z.literal(4)]),
   resultStatus: podResultStatusSchema,
+  drawnGames: z.number().int().nonnegative(),
   members: z.array(podMemberResponseSchema),
   penalty: podPenaltyViewSchema.nullable(),
 });

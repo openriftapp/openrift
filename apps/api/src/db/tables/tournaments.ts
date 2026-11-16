@@ -154,6 +154,7 @@ export interface PodsTable {
   size: number;
   penaltyBreakdown: PodPenaltyBreakdown;
   resultStatus: Generated<PodResultStatus>;
+  drawnGames: Generated<number>;
 }
 
 export interface PodMembersTable {

@@ -67,6 +67,7 @@ function makePod(
     podNumber,
     size: 2,
     resultStatus: "pending",
+    drawnGames: 0,
     members,
     penalty: null,
     ...overrides,

@@ -116,7 +116,7 @@ Computed in `packages/shared/src/pairing/group-standings.ts` from the pod rows o
 2. Two players tied: head-to-head, then intra-group game win rate, then the two Legend tiers if enabled (field count, then meta share), then the deterministic id hash already used as the final key in `sortedStandingRows`. Participant ids are uuidv7 values assigned at registration that nobody can pick, so the hash order is unpredictable beforehand and stable afterwards, which is what a recorded draw would give.
 3. Three or more tied: a mini-table over matches among the tied players, ranked by match points then game win rate. A partition that separates some players keeps that order and recurses into each remaining tied subset (a two-player subset uses rule 2). A mini-table that separates nobody falls through to intra-group game win rate, the Legend tiers, id hash.
 
-Game win rate is games won over games played, from `pod_members.game_points`. Walkovers carry no game points and are excluded from it, while they count in match points and match win rate.
+Game win rate is games won over games played. Games won come from `pod_members.game_points`; games played add the match's `pods.drawn_games`. Walkovers carry no game points and are excluded from it, while they count in match points and match win rate.
 
 The first Legend tier compares how many active participants share the same `legend_card_id`. Fewer is better. Every participant has one when the tier is reachable, and the column does not change after group generation, so the counts need no snapshot.
 

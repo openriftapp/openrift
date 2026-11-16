@@ -211,6 +211,7 @@ function makeRunState(
             podNumber: 1,
             size: 4,
             resultStatus: "reported",
+            drawnGames: 0,
             members: [],
             penalty: null,
           },
@@ -219,6 +220,7 @@ function makeRunState(
             podNumber: 2,
             size: 4,
             resultStatus: "reported",
+            drawnGames: 0,
             members: [],
             penalty: null,
           },
@@ -227,6 +229,7 @@ function makeRunState(
             podNumber: 3,
             size: 4,
             resultStatus: "pending",
+            drawnGames: 0,
             members: [
               {
                 playerId: "p1",

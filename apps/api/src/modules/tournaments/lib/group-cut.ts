@@ -147,6 +147,7 @@ export function groupStageMatches(roundRows: readonly PodRoundRows[]): GroupMatc
           playerIds: [first.playerId, second.playerId] as [string, string],
           placements: reported ? ([first.placement, second.placement] as [number, number]) : null,
           gamePoints: [first.gamePoints, second.gamePoints] as [number | null, number | null],
+          drawnGames: entry.pod.drawnGames,
         },
       ];
     }),

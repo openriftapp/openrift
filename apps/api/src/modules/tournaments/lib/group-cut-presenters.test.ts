@@ -58,6 +58,7 @@ function round(roundNumber: number, pods: [string, string][], reported: boolean)
         podNumber: index + 1,
         size: 2,
         resultStatus: reported ? "reported" : "pending",
+        drawnGames: 0,
         penaltyBreakdown: {
           total: 0,
           rematch: 0,

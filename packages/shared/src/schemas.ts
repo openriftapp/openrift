@@ -176,6 +176,7 @@ export const podResultSchema = z.object({
     )
     .min(2)
     .max(4),
+  drawnGames: z.number().int().min(0).max(3).optional(),
 });
 
 export const podReportTokenParamSchema = z.object({

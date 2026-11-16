@@ -71,7 +71,7 @@ function buildTallies(
     }
     const [firstGames, secondGames] = match.gamePoints;
     if (firstGames !== null && secondGames !== null) {
-      const total = firstGames + secondGames;
+      const total = firstGames + secondGames + match.drawnGames;
       firstTally.gamesWon += firstGames;
       firstTally.gamesPlayed += total;
       secondTally.gamesWon += secondGames;

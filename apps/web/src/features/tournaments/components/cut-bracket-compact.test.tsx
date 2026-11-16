@@ -20,6 +20,7 @@ function pod(
     podNumber,
     size: 2,
     resultStatus: seats.every((seat) => seat[2] !== null) ? "reported" : "pending",
+    drawnGames: 0,
     members: seats.map(([playerId, gamePoints, placement]) => ({
       playerId,
       displayName: playerId,

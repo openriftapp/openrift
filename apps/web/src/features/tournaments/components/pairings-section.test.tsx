@@ -83,6 +83,7 @@ function runState(
             podNumber: 1,
             size: 4,
             resultStatus: "pending",
+            drawnGames: 0,
             members: ["p1", "p2", "p3", "p4"].map((playerId) => member(playerId)),
             penalty: null,
           },

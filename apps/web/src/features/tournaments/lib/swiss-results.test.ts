@@ -1,39 +1,136 @@
 import { describe, expect, it } from "vitest";
 
-import { swissPointsPreview, swissResultPresets } from "./swiss-results";
+import type { GameOutcome } from "./swiss-results";
+import {
+  INTENTIONAL_DRAW,
+  countsFromGames,
+  emptyGameRows,
+  formatMatchCounts,
+  gamesFromCounts,
+  setGame,
+  swissPointsPreview,
+  visibleGameCount,
+} from "./swiss-results";
 
-describe("swissResultPresets", () => {
-  it("offers win, draw, and loss for Bo1", () => {
-    const presets = swissResultPresets("bo1");
-    expect(presets.map((preset) => preset.gamePoints)).toEqual([
-      [1, 0],
-      [0, 0],
-      [0, 1],
+describe("game rows", () => {
+  it("shows game 2 once game 1 is played and game 3 only while the match is open", () => {
+    let rows = emptyGameRows("bo3");
+    expect(visibleGameCount(rows, "bo3")).toBe(1);
+    rows = setGame(rows, 0, "first", "bo3");
+    expect(visibleGameCount(rows, "bo3")).toBe(2);
+    rows = setGame(rows, 1, "first", "bo3");
+    expect(visibleGameCount(rows, "bo3")).toBe(2);
+    rows = setGame(rows, 1, "second", "bo3");
+    expect(visibleGameCount(rows, "bo3")).toBe(3);
+  });
+
+  it("clears game 3 when changing game 2 decides the match", () => {
+    let rows = emptyGameRows("bo3");
+    rows = setGame(rows, 0, "first", "bo3");
+    rows = setGame(rows, 1, "second", "bo3");
+    rows = setGame(rows, 2, "draw", "bo3");
+    rows = setGame(rows, 1, "first", "bo3");
+    expect(rows).toEqual(["first", "first", null]);
+  });
+
+  it("hides the later games behind a game that was not played", () => {
+    let rows = emptyGameRows("bo3");
+    rows = setGame(rows, 0, "first", "bo3");
+    rows = setGame(rows, 1, "draw", "bo3");
+    rows = setGame(rows, 2, "second", "bo3");
+    rows = setGame(rows, 1, "unplayed", "bo3");
+    expect(rows).toEqual(["first", "unplayed", null]);
+  });
+
+  it("counts wins and drawn games once every shown game is filled in", () => {
+    let rows = emptyGameRows("bo3");
+    rows = setGame(rows, 0, "draw", "bo3");
+    expect(countsFromGames(rows, "bo3", true)).toBeNull();
+    rows = setGame(rows, 1, "first", "bo3");
+    rows = setGame(rows, 2, "unplayed", "bo3");
+    expect(countsFromGames(rows, "bo3", true)).toEqual({ gamePoints: [1, 0], drawnGames: 1 });
+  });
+
+  it("needs a played first game", () => {
+    const rows = setGame(emptyGameRows("bo3"), 0, "unplayed", "bo3");
+    expect(countsFromGames(rows, "bo3", true)).toBeNull();
+  });
+
+  it("needs a winner when draws are off", () => {
+    let rows = emptyGameRows("bo3");
+    rows = setGame(rows, 0, "first", "bo3");
+    rows = setGame(rows, 1, "second", "bo3");
+    rows = setGame(rows, 2, "unplayed", "bo3");
+    expect(countsFromGames(rows, "bo3", false)).toBeNull();
+    expect(countsFromGames(rows, "bo3", true)).toEqual({ gamePoints: [1, 1], drawnGames: 0 });
+  });
+});
+
+describe("gamesFromCounts", () => {
+  it("puts drawn games first and the deciding win last", () => {
+    expect(gamesFromCounts({ gamePoints: [2, 0], drawnGames: 1 }, "bo3", true)).toEqual([
+      "draw",
+      "first",
+      "first",
+    ]);
+    expect(gamesFromCounts({ gamePoints: [1, 2], drawnGames: 0 }, "bo3", true)).toEqual([
+      "first",
+      "second",
+      "second",
     ]);
   });
 
-  it("offers clean finishes, time-limit scorelines, draws, and a mirror for each Bo3 win", () => {
-    const presets = swissResultPresets("bo3");
-    const pairs = presets.map((preset) => preset.gamePoints);
-    expect(pairs).toContainEqual([2, 0]);
-    expect(pairs).toContainEqual([2, 1]);
-    expect(pairs).toContainEqual([1, 0]);
-    expect(pairs).toContainEqual([1, 1]);
-    expect(pairs).toContainEqual([0, 2]);
-    for (const [p1, p2] of pairs) {
-      if (p1 !== p2) {
-        expect(pairs).toContainEqual([p2, p1]);
+  it("marks the next game as not played after a time-limit result", () => {
+    expect(gamesFromCounts({ gamePoints: [1, 0], drawnGames: 0 }, "bo3", true)).toEqual([
+      "first",
+      "unplayed",
+      null,
+    ]);
+    expect(gamesFromCounts({ gamePoints: [1, 1], drawnGames: 0 }, "bo3", true)).toEqual([
+      "first",
+      "second",
+      "unplayed",
+    ]);
+  });
+
+  it("round-trips every result the rows can produce", () => {
+    const outcomes: GameOutcome[] = ["first", "second", "draw", "unplayed"];
+    for (const one of outcomes) {
+      for (const two of outcomes) {
+        for (const three of outcomes) {
+          let rows = emptyGameRows("bo3");
+          rows = setGame(rows, 0, one, "bo3");
+          rows = setGame(rows, 1, two, "bo3");
+          rows = setGame(rows, 2, three, "bo3");
+          const counts = countsFromGames(rows, "bo3", true);
+          if (counts === null) {
+            continue;
+          }
+          const rebuilt = gamesFromCounts(counts, "bo3", true);
+          expect(rebuilt === null ? null : countsFromGames(rebuilt, "bo3", true)).toEqual(counts);
+        }
       }
     }
   });
 
-  it("labels draws as draws", () => {
-    for (const format of ["bo1", "bo3"] as const) {
-      for (const preset of swissResultPresets(format)) {
-        const [p1, p2] = preset.gamePoints;
-        expect(preset.label.startsWith("Draw")).toBe(p1 === p2);
-      }
-    }
+  it("leaves a result the rows cannot express unselected", () => {
+    expect(gamesFromCounts({ gamePoints: [77, 0], drawnGames: 0 }, "bo3", true)).toBeNull();
+    expect(gamesFromCounts({ gamePoints: [3, 1], drawnGames: 0 }, "bo3", true)).toBeNull();
+    expect(gamesFromCounts({ gamePoints: [0, 0], drawnGames: 0 }, "bo3", true)).toBeNull();
+    expect(gamesFromCounts({ gamePoints: [2, 0], drawnGames: 1 }, "bo3", false)).toBeNull();
+    expect(gamesFromCounts({ gamePoints: [2, 1], drawnGames: 0 }, "bo1", true)).toBeNull();
+  });
+
+  it("rebuilds a Bo1 game", () => {
+    expect(gamesFromCounts({ gamePoints: [0, 1], drawnGames: 0 }, "bo1", true)).toEqual(["second"]);
+    expect(gamesFromCounts({ gamePoints: [0, 0], drawnGames: 1 }, "bo1", true)).toEqual(["draw"]);
+  });
+});
+
+describe("formatMatchCounts", () => {
+  it("writes wins, losses and draws", () => {
+    expect(formatMatchCounts(INTENTIONAL_DRAW)).toBe("0–0–3");
+    expect(formatMatchCounts({ gamePoints: [2, 1], drawnGames: 0 })).toBe("2–1–0");
   });
 });
 

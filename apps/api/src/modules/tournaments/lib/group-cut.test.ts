@@ -60,6 +60,7 @@ function round(
         podNumber: entry.podNumber,
         size: 2,
         resultStatus: entry.reported ? "reported" : "pending",
+        drawnGames: 0,
         penaltyBreakdown: {
           total: 0,
           rematch: 0,
@@ -212,6 +213,7 @@ describe("groupStageMatches", () => {
       playerIds: ["a", "b"],
       placements: [1, 2],
       gamePoints: [1, 0],
+      drawnGames: 0,
     });
     expect(matches[1]?.placements).toBeNull();
   });
@@ -220,8 +222,8 @@ describe("groupStageMatches", () => {
 describe("opponentsByPlayer", () => {
   it("maps both sides of every match", () => {
     const opponents = opponentsByPlayer([
-      { playerIds: ["a", "b"], placements: null, gamePoints: [null, null] },
-      { playerIds: ["a", "c"], placements: null, gamePoints: [null, null] },
+      { playerIds: ["a", "b"], placements: null, gamePoints: [null, null], drawnGames: 0 },
+      { playerIds: ["a", "c"], placements: null, gamePoints: [null, null], drawnGames: 0 },
     ]);
     expect(opponents.get("a")).toEqual(["b", "c"]);
     expect(opponents.get("b")).toEqual(["a"]);

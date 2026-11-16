@@ -98,6 +98,7 @@ export const publicPodTournamentsRouter = {
       await context.transact((trxRepos) =>
         submitPodResult(trxRepos, tournament.id, input.podId, input.results, {
           allowFinalized: false,
+          drawnGames: input.drawnGames,
         }),
       );
       return buildReport(repos, tournament, true);
@@ -108,7 +109,6 @@ export const publicPodTournamentsRouter = {
     async ({ input, context, errors }): Promise<PodReportResponse> => {
       const repos = context.repos;
       const tournament = await repos.tournaments.getByShareToken(input.token);
-      // Swiss also seats players in pods, so per-player entry applies to it too.
       if (!tournament || tournament.pairingStyle === "none") {
         throw errors.NOT_FOUND({ message: "Not found" });
       }

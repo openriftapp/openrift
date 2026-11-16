@@ -1,6 +1,5 @@
-// Preset result options for Swiss 1v1 matches. Results are stored as raw game
-// points per player (like pods), so a preset is just a labeled pair of game
-// points; the server derives placement and match points from them.
+// Match results are entered game by game and stored as games won per side plus
+// the pod's drawn games; the server derives placement and match points.
 
 import {
   placementsFromGamePoints,
@@ -8,43 +7,130 @@ import {
 } from "@openrift/shared/pairing/points";
 import type { TournamentMatchFormat } from "@openrift/shared/types/api/tournament";
 
-import { m } from "@/paraglide/messages.js";
-
 export interface PodResultEntry {
   playerId: string;
   gamePoints: number;
 }
 
-export interface SwissResultPreset {
-  label: string;
+export interface PodResultSubmission {
+  results: PodResultEntry[];
+  drawnGames?: number;
+}
+
+export type GameOutcome = "first" | "second" | "draw" | "unplayed";
+
+export type GameRows = (GameOutcome | null)[];
+
+export interface MatchCounts {
   gamePoints: [number, number];
+  drawnGames: number;
 }
 
-/**
- * Result options for one match, ordered player-1 wins, draws, player-2 wins.
- * Bo3 includes the time-limit scorelines (1–0, 1–1) alongside 2–0 / 2–1.
- */
-export function swissResultPresets(matchFormat: TournamentMatchFormat): SwissResultPreset[] {
-  if (matchFormat === "bo1") {
-    return [
-      { label: "1–0", gamePoints: [1, 0] },
-      { label: m.tournaments_submit_draw(), gamePoints: [0, 0] },
-      { label: "0–1", gamePoints: [0, 1] },
-    ];
+export const INTENTIONAL_DRAW: MatchCounts = { gamePoints: [0, 0], drawnGames: 3 };
+
+function gameCount(matchFormat: TournamentMatchFormat): number {
+  return matchFormat === "bo1" ? 1 : 3;
+}
+
+function winsNeeded(matchFormat: TournamentMatchFormat): number {
+  return matchFormat === "bo1" ? 1 : 2;
+}
+
+export function emptyGameRows(matchFormat: TournamentMatchFormat): GameRows {
+  return Array.from({ length: gameCount(matchFormat) }, () => null);
+}
+
+function decidedBefore(rows: GameRows, index: number, matchFormat: TournamentMatchFormat): boolean {
+  const before = rows.slice(0, index);
+  const needed = winsNeeded(matchFormat);
+  return (
+    before.filter((game) => game === "first").length >= needed ||
+    before.filter((game) => game === "second").length >= needed
+  );
+}
+
+export function visibleGameCount(rows: GameRows, matchFormat: TournamentMatchFormat): number {
+  let visible = 1;
+  while (visible < rows.length) {
+    const previous = rows[visible - 1];
+    if (previous === null || previous === "unplayed" || decidedBefore(rows, visible, matchFormat)) {
+      break;
+    }
+    visible += 1;
   }
-  return [
-    { label: "2–0", gamePoints: [2, 0] },
-    { label: "2–1", gamePoints: [2, 1] },
-    { label: "1–0", gamePoints: [1, 0] },
-    { label: m.tournaments_lib_swiss_preset_draw_1_1(), gamePoints: [1, 1] },
-    { label: m.tournaments_lib_swiss_preset_draw_0_0(), gamePoints: [0, 0] },
-    { label: "0–1", gamePoints: [0, 1] },
-    { label: "1–2", gamePoints: [1, 2] },
-    { label: "0–2", gamePoints: [0, 2] },
-  ];
+  return visible;
 }
 
-/** The match points a game-point pair yields, for the preview next to a preset ("+3 / +0"). */
+export function setGame(
+  rows: GameRows,
+  index: number,
+  outcome: GameOutcome,
+  matchFormat: TournamentMatchFormat,
+): GameRows {
+  const next = rows.map((game, gameIndex) => (gameIndex === index ? outcome : game));
+  const visible = visibleGameCount(next, matchFormat);
+  return next.map((game, gameIndex) => (gameIndex < visible ? game : null));
+}
+
+export function countsFromGames(
+  rows: GameRows,
+  matchFormat: TournamentMatchFormat,
+  allowDraws: boolean,
+): MatchCounts | null {
+  const shown = rows.slice(0, visibleGameCount(rows, matchFormat));
+  if (shown.some((game) => game === null) || shown[0] === "unplayed") {
+    return null;
+  }
+  const first = shown.filter((game) => game === "first").length;
+  const second = shown.filter((game) => game === "second").length;
+  if (!allowDraws && first === second) {
+    return null;
+  }
+  return {
+    gamePoints: [first, second],
+    drawnGames: shown.filter((game) => game === "draw").length,
+  };
+}
+
+/** Null when the rows cannot express the result. */
+export function gamesFromCounts(
+  counts: MatchCounts,
+  matchFormat: TournamentMatchFormat,
+  allowDraws: boolean,
+): GameRows | null {
+  const [first, second] = counts.gamePoints;
+  const draws = counts.drawnGames;
+  const total = gameCount(matchFormat);
+  const needed = winsNeeded(matchFormat);
+  if (
+    first + second + draws === 0 ||
+    first + second + draws > total ||
+    (first >= needed && second >= needed) ||
+    (!allowDraws && (draws > 0 || first === second))
+  ) {
+    return null;
+  }
+  const winner: GameOutcome = first > second ? "first" : "second";
+  const loser: GameOutcome = winner === "first" ? "second" : "first";
+  const played: GameOutcome[] = [
+    ...Array.from({ length: draws }, (): GameOutcome => "draw"),
+    ...Array.from({ length: Math.min(first, second) }, () => loser),
+    ...Array.from({ length: Math.max(first, second) }, () => winner),
+  ];
+  let rows: GameRows = emptyGameRows(matchFormat);
+  for (const [index, outcome] of played.entries()) {
+    rows = setGame(rows, index, outcome, matchFormat);
+  }
+  if (played.length < total && visibleGameCount(rows, matchFormat) > played.length) {
+    rows = setGame(rows, played.length, "unplayed", matchFormat);
+  }
+  return countsFromGames(rows, matchFormat, allowDraws) === null ? null : rows;
+}
+
+export function formatMatchCounts(counts: MatchCounts): string {
+  return `${counts.gamePoints[0]}–${counts.gamePoints[1]}–${counts.drawnGames}`;
+}
+
 export function swissPointsPreview(
   gamePoints: [number, number],
   winPoints: number,

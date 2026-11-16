@@ -24,7 +24,7 @@ import {
 import { participantName } from "@/features/tournaments/lib/participant-name";
 import type { PlayerLegend } from "@/features/tournaments/lib/player-run";
 import { legendsByPlayer } from "@/features/tournaments/lib/player-run";
-import type { PodResultEntry } from "@/features/tournaments/lib/swiss-results";
+import type { PodResultSubmission } from "@/features/tournaments/lib/swiss-results";
 import { m } from "@/paraglide/messages.js";
 
 import { PodCard } from "./pod-card";
@@ -39,7 +39,7 @@ interface GroupStageSectionsProps {
   winPoints: number;
   drawPoints: number;
   canEnterResult: boolean;
-  onSubmitResult: (podId: string, results: PodResultEntry[]) => Promise<unknown>;
+  onSubmitResult: (podId: string, submission: PodResultSubmission) => Promise<unknown>;
   onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<unknown>;
   /** Absent when the viewer cannot start a group's round. */
   onStartUnit?: (unit: GroupUnit) => void;
@@ -142,7 +142,7 @@ function GroupUnitSection({
   drawPoints: number;
   canEnterResult: boolean;
   canEditEarlier: boolean;
-  onSubmitResult: (podId: string, results: PodResultEntry[]) => Promise<unknown>;
+  onSubmitResult: (podId: string, submission: PodResultSubmission) => Promise<unknown>;
   onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<unknown>;
   onStartUnit?: (unit: GroupUnit) => void;
   starting: boolean;
@@ -258,7 +258,7 @@ function EarlierRound({
   winPoints: number;
   drawPoints: number;
   canEnter: boolean;
-  onSubmitResult: (podId: string, results: PodResultEntry[]) => Promise<unknown>;
+  onSubmitResult: (podId: string, submission: PodResultSubmission) => Promise<unknown>;
   onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<unknown>;
 }) {
   const [expanded, setExpanded] = useState(false);

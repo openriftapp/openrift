@@ -27,6 +27,7 @@ function round(
       podNumber: index + 1,
       size: 2,
       resultStatus: placeA === null ? "pending" : "reported",
+      drawnGames: 0,
       penalty: null,
       members: [
         {

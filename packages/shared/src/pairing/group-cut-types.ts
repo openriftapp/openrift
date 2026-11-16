@@ -40,6 +40,7 @@ export interface GroupMatch {
   placements: [number, number] | null;
   /** Null on a walkover: the match counts, its games do not. */
   gamePoints: [number | null, number | null];
+  drawnGames: number;
 }
 
 export interface LegendTiebreakInput {

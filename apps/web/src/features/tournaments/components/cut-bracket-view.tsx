@@ -23,7 +23,7 @@ import { cutMatchShortLabel } from "@/features/tournaments/lib/group-cut-display
 import { groupLabelByPlayer } from "@/features/tournaments/lib/group-cut-units";
 import type { PlayerLegend } from "@/features/tournaments/lib/player-run";
 import { legendsByPlayer } from "@/features/tournaments/lib/player-run";
-import type { PodResultEntry } from "@/features/tournaments/lib/swiss-results";
+import type { PodResultSubmission } from "@/features/tournaments/lib/swiss-results";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -51,7 +51,7 @@ export function CutBracketView({
   winPoints: number;
   drawPoints: number;
   canEnterResult: (round: PodRoundResponse, pod: PodResponse) => boolean;
-  onSubmitResult: (podId: string, results: PodResultEntry[]) => Promise<unknown>;
+  onSubmitResult: (podId: string, submission: PodResultSubmission) => Promise<unknown>;
   onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<unknown>;
   completed?: boolean;
 }) {

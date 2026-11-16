@@ -380,16 +380,141 @@ describe("submitPodResult 2v2 team results", () => {
   });
 });
 
-describe("submitPodPlayerResult 2v2 self-reporting", () => {
-  function reposWithPod(playMode: "1v1" | "2v2") {
-    const setMemberGamePoints = vi.fn(async () => undefined);
+describe("submitPodResult drawn games", () => {
+  function reposWithPod(size: number, matchFormat: "bo1" | "bo3", pairingStrategy = "swiss") {
+    const setPodResult = vi.fn(
+      async (..._args: Parameters<Repos["podTournaments"]["setPodResult"]>) => undefined,
+    );
+    const memberPlayerIds = ["a", "b", "c"].slice(0, size);
     const repos = {
       podTournaments: {
         getPodForResult: vi.fn(async () => ({
-          pod: { id: "pod-x", size: 4 },
+          pod: { id: "pod-x", size },
+          round: { status: "reporting", pairingStrategy },
+          tournament: { ...SWISS_TOURNAMENT, matchFormat },
+          memberPlayerIds,
+          teamByPlayer: new Map(),
+        })),
+        lockRoundOfPod: vi.fn(async () => undefined),
+        setPodResult,
+      },
+    } as unknown as Repos;
+    const results = memberPlayerIds.map((playerId) => ({ playerId, gamePoints: 0 }));
+    return { repos, setPodResult, results };
+  }
+
+  it("stores an intentional draw as 0–0 with three drawn games", async () => {
+    const { repos, setPodResult, results } = reposWithPod(2, "bo3");
+    await submitPodResult(repos, SWISS_TOURNAMENT.id, "pod-x", results, {
+      allowFinalized: false,
+      drawnGames: 3,
+    });
+    expect(setPodResult.mock.calls[0]![2]).toBe(3);
+  });
+
+  it("clears drawn games when a result is saved without them", async () => {
+    const { repos, setPodResult, results } = reposWithPod(2, "bo3");
+    await submitPodResult(repos, SWISS_TOURNAMENT.id, "pod-x", results, {
+      allowFinalized: false,
+    });
+    expect(setPodResult.mock.calls[0]![2]).toBe(0);
+  });
+
+  it("rejects drawn games in a multiplayer pod", async () => {
+    const { repos, setPodResult, results } = reposWithPod(3, "bo3");
+    await expect(
+      submitPodResult(repos, SWISS_TOURNAMENT.id, "pod-x", results, {
+        allowFinalized: false,
+        drawnGames: 1,
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(setPodResult).not.toHaveBeenCalled();
+  });
+
+  it("rejects more games than a Bo3 has once drawn games are added to the wins", async () => {
+    const { repos, setPodResult } = reposWithPod(2, "bo3");
+    await expect(
+      submitPodResult(
+        repos,
+        SWISS_TOURNAMENT.id,
+        "pod-x",
+        [
+          { playerId: "a", gamePoints: 2 },
+          { playerId: "b", gamePoints: 1 },
+        ],
+        { allowFinalized: false, drawnGames: 1 },
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(setPodResult).not.toHaveBeenCalled();
+  });
+
+  it("rejects drawn games and a tied result in a top cut match", async () => {
+    const { repos, setPodResult } = reposWithPod(2, "bo3", "cut");
+    await expect(
+      submitPodResult(
+        repos,
+        SWISS_TOURNAMENT.id,
+        "pod-x",
+        [
+          { playerId: "a", gamePoints: 2 },
+          { playerId: "b", gamePoints: 0 },
+        ],
+        { allowFinalized: false, drawnGames: 1 },
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(
+      submitPodResult(
+        repos,
+        SWISS_TOURNAMENT.id,
+        "pod-x",
+        [
+          { playerId: "a", gamePoints: 1 },
+          { playerId: "b", gamePoints: 1 },
+        ],
+        { allowFinalized: false },
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(setPodResult).not.toHaveBeenCalled();
+  });
+
+  it("takes a decided top cut match", async () => {
+    const { repos, setPodResult } = reposWithPod(2, "bo3", "cut");
+    await submitPodResult(
+      repos,
+      SWISS_TOURNAMENT.id,
+      "pod-x",
+      [
+        { playerId: "a", gamePoints: 2 },
+        { playerId: "b", gamePoints: 1 },
+      ],
+      { allowFinalized: false },
+    );
+    expect(setPodResult).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects more drawn games than a Bo1 has games", async () => {
+    const { repos, setPodResult, results } = reposWithPod(2, "bo1");
+    await expect(
+      submitPodResult(repos, SWISS_TOURNAMENT.id, "pod-x", results, {
+        allowFinalized: false,
+        drawnGames: 2,
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(setPodResult).not.toHaveBeenCalled();
+  });
+});
+
+describe("submitPodPlayerResult", () => {
+  function reposWithPod(playMode: "1v1" | "2v2", size: number) {
+    const setMemberGamePoints = vi.fn(async () => undefined);
+    const memberPlayerIds = ["a1", "a2", "b1", "b2"].slice(0, size);
+    const repos = {
+      podTournaments: {
+        getPodForResult: vi.fn(async () => ({
+          pod: { id: "pod-x", size },
           round: { status: "reporting" },
           tournament: { ...TEAM_TOURNAMENT, playMode },
-          memberPlayerIds: ["a1", "a2", "b1", "b2"],
+          memberPlayerIds,
           teamByPlayer: new Map([
             ["a1", "A"],
             ["a2", "A"],
@@ -404,15 +529,25 @@ describe("submitPodPlayerResult 2v2 self-reporting", () => {
     return { repos, setMemberGamePoints };
   }
 
-  it("mirrors a member's report onto their teammate", async () => {
-    const { repos, setMemberGamePoints } = reposWithPod("2v2");
-    await submitPodPlayerResult(repos, TEAM_TOURNAMENT.id, "pod-x", "b1", 2);
-    expect(setMemberGamePoints).toHaveBeenCalledWith("pod-x", ["b1", "b2"], 2);
+  it("rejects a half result for a 1v1 match", async () => {
+    const { repos, setMemberGamePoints } = reposWithPod("1v1", 2);
+    await expect(
+      submitPodPlayerResult(repos, TEAM_TOURNAMENT.id, "pod-x", "a1", 77),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(setMemberGamePoints).not.toHaveBeenCalled();
   });
 
-  it("writes only the reporter's own row in 1v1", async () => {
-    const { repos, setMemberGamePoints } = reposWithPod("1v1");
+  it("rejects a half result for a 2v2 team match", async () => {
+    const { repos, setMemberGamePoints } = reposWithPod("2v2", 4);
+    await expect(
+      submitPodPlayerResult(repos, TEAM_TOURNAMENT.id, "pod-x", "b1", 2),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(setMemberGamePoints).not.toHaveBeenCalled();
+  });
+
+  it("writes only the reporter's own row in a multiplayer pod", async () => {
+    const { repos, setMemberGamePoints } = reposWithPod("1v1", 4);
     await submitPodPlayerResult(repos, TEAM_TOURNAMENT.id, "pod-x", "b1", 2);
-    expect(setMemberGamePoints).toHaveBeenCalledWith("pod-x", ["b1"], 2);
+    expect(setMemberGamePoints).toHaveBeenCalledWith("pod-x", "b1", 2);
   });
 });

@@ -10,6 +10,7 @@ function pod(gamePoints: [number | null, number | null]): PodResponse {
     podNumber: 1,
     size: 2,
     resultStatus: "pending",
+    drawnGames: 0,
     penalty: null,
     members: gamePoints.map((points, index) => ({
       playerId: `p${index}`,
@@ -25,6 +26,36 @@ function pod(gamePoints: [number | null, number | null]): PodResponse {
 }
 
 describe("useResultBaseline", () => {
+  it("flags a drawn-games change someone else saved while the form was open", () => {
+    const { result, rerender } = renderHook(({ current }) => useResultBaseline(current), {
+      initialProps: { current: pod([1, 0]) },
+    });
+
+    rerender({ current: { ...pod([1, 0]), drawnGames: 1 } });
+    expect(result.current.changedRemotely).toBe(true);
+
+    act(() => result.current.acceptLatest());
+    expect(result.current.changedRemotely).toBe(false);
+  });
+
+  it("does not flag drawn games the viewer saved", () => {
+    const { result, rerender } = renderHook(({ current }) => useResultBaseline(current), {
+      initialProps: { current: pod([1, 0]) },
+    });
+
+    act(() =>
+      result.current.adoptSaved(
+        [
+          { playerId: "p0", gamePoints: 1 },
+          { playerId: "p1", gamePoints: 0 },
+        ],
+        1,
+      ),
+    );
+    rerender({ current: { ...pod([1, 0]), drawnGames: 1 } });
+    expect(result.current.changedRemotely).toBe(false);
+  });
+
   it("flags a result someone else saved while the form was open", () => {
     const { result, rerender } = renderHook(({ current }) => useResultBaseline(current), {
       initialProps: { current: pod([null, null]) },
