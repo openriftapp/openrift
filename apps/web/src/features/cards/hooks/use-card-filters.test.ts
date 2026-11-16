@@ -18,9 +18,12 @@ import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import { QueryFilterContext } from "@/features/cards/lib/query-filter-context";
 import type { QueryFilterOptions } from "@/features/cards/lib/query-filters";
 import { filterSearchSchema } from "@/features/cards/lib/search-schemas";
+import { ResolvedViewPrefsProvider, ViewSurfaceProvider } from "@/hooks/use-view-prefs";
+import { COOKIE_VIEW_SURFACES, sanitizeViewPrefsBlob } from "@/lib/view-prefs";
 import { useDisplayStore } from "@/stores/display-store";
+import { useCookieViewPrefsStore } from "@/stores/view-prefs-store";
 
-import { useFilterActions, useFilterValues, useStaleGroupByGuard } from "./use-card-filters";
+import { useFilterActions, useFilterValues } from "./use-card-filters";
 
 function useCardFilters() {
   return { ...useFilterValues(), ...useFilterActions() };
@@ -638,13 +641,13 @@ describe("useCardFilters", () => {
     expect(lastNavigateSearch()).toMatchObject({ view: "cards" });
   });
 
-  it("setView('cards') resets a printings-only grouping (marker) to the Set default", () => {
+  it("setView('cards') keeps a printings-only grouping (marker) in the URL", () => {
     mockSearch = { view: "printings", groupBy: "marker" };
     const { result } = renderHook(() => useCardFilters(), { wrapper });
 
     act(() => result.current.setView("cards"));
 
-    expect(lastNavigateSearch()).not.toHaveProperty("groupBy");
+    expect(lastNavigateSearch()).toMatchObject({ groupBy: "marker" });
   });
 
   it("setView('cards') keeps a grouping that works in cards view (rarity)", () => {
@@ -800,58 +803,66 @@ describe("useCardFilters", () => {
   });
 });
 
-describe("useStaleGroupByGuard", () => {
+describe("printings-only grouping in cards view", () => {
+  const savedPrefs = sanitizeViewPrefsBlob(undefined, COOKIE_VIEW_SURFACES);
+  savedPrefs.cards = { ...savedPrefs.cards, groupBy: "marker" };
+
+  function prefsWrapper({ children }: { children: ReactNode }) {
+    return createElement(
+      ResolvedViewPrefsProvider,
+      { value: savedPrefs },
+      createElement(
+        ViewSurfaceProvider,
+        { value: "cards" },
+        createElement(FilterSearchProvider, { value: mockSearch }, children),
+      ),
+    );
+  }
+
   beforeEach(() => {
     mockSearch = defaultSearchState();
     mockNavigate.mockClear();
     useDisplayStore.setState({ defaultCardView: "cards" });
   });
 
-  it("rewrites the URL to drop a printings-only grouping (marker) in cards view", () => {
+  it("reads a URL marker grouping as set in cards view without navigating", () => {
     mockSearch = { view: "cards", groupBy: "marker" };
-    renderHook(() => useStaleGroupByGuard(), { wrapper });
+    const { result } = renderHook(() => useCardFilters(), { wrapper });
 
-    expect(mockNavigate).toHaveBeenCalledTimes(1);
-    expect(lastNavigateSearch()).not.toHaveProperty("groupBy");
+    expect(result.current.groupBy).toBe("set");
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it("rewrites the URL to drop a printings-only grouping (channel) in cards view", () => {
-    mockSearch = { view: "cards", groupBy: "channel" };
-    renderHook(() => useStaleGroupByGuard(), { wrapper });
+  it("reads a channel grouping from a unique:cards query as set", () => {
+    mockSearch = { view: "printings", groupBy: "channel", q: "unique:cards" };
+    const { result } = renderHook(() => useCardFilters(), { wrapper });
 
-    expect(mockNavigate).toHaveBeenCalledTimes(1);
-    expect(lastNavigateSearch()).not.toHaveProperty("groupBy");
+    expect(result.current.groupBy).toBe("set");
   });
 
-  it("leaves a printings-only grouping alone in printings view", () => {
+  it("keeps a printings-only grouping in printings view", () => {
     mockSearch = { view: "printings", groupBy: "marker" };
-    renderHook(() => useStaleGroupByGuard(), { wrapper });
+    const { result } = renderHook(() => useCardFilters(), { wrapper });
 
-    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(result.current.groupBy).toBe("marker");
   });
 
-  it("leaves a grouping that works in cards view (rarity) alone", () => {
-    mockSearch = { view: "cards", groupBy: "rarity" };
-    renderHook(() => useStaleGroupByGuard(), { wrapper });
+  it("keeps the saved marker grouping across printings, cards and printings view", () => {
+    const cookieWrites = vi.spyOn(useCookieViewPrefsStore.getState(), "setGroupBy");
+    mockSearch = { view: "printings" };
+    const { result, rerender } = renderHook(() => useCardFilters(), { wrapper: prefsWrapper });
+    expect(result.current.groupBy).toBe("marker");
 
-    expect(mockNavigate).not.toHaveBeenCalled();
-  });
-
-  it("does nothing for the default cards view with no grouping", () => {
-    mockSearch = { view: "cards" };
-    renderHook(() => useStaleGroupByGuard(), { wrapper });
-
-    expect(mockNavigate).not.toHaveBeenCalled();
-  });
-
-  it("fires the correction only once while the stale URL persists (no loop)", () => {
-    mockSearch = { view: "cards", groupBy: "marker" };
-    const { rerender } = renderHook(() => useStaleGroupByGuard(), { wrapper });
-
+    mockSearch = {};
     rerender();
-    rerender();
+    expect(result.current.groupBy).toBe("set");
 
-    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    mockSearch = { view: "printings" };
+    rerender();
+    expect(result.current.groupBy).toBe("marker");
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(cookieWrites).not.toHaveBeenCalled();
+    cookieWrites.mockRestore();
   });
 });
 

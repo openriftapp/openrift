@@ -46,6 +46,8 @@
 - fix(Cards): **Cleared languages stay cleared** — removing every language from the filter while the page is still loading your settings no longer brings your default languages back.
 - fix(Cards): **Retyped searches apply** — typing a search again right after switching a deck zone or clearing filters removed it now filters the cards.
 - fix(General): **Saves wait for fresh data** — buttons stay busy until the page has reloaded the saved data, so a quick second edit no longer overwrites the first.
+- fix(Cards): **Grouping preference kept** — switching to the cards view no longer replaces a saved Marker, Channel or Card grouping with Set, and the grouping comes back in the printings view.
+- fix(Search): **No lost keystrokes while typing** — fast typing in a search field no longer jumps back to an earlier query when the page updates late.
 
 ## 2026-11-15
 

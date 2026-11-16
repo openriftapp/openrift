@@ -7,17 +7,19 @@ interface Options {
 }
 
 /**
- * `onCommit` triggers an async navigate, so `urlValue` lags behind. `lastSentValue`
- * lets a commit-echoing `urlValue` update be told apart from a real external change.
+ * `onCommit` navigates asynchronously, so echoes of earlier commits can land after newer ones.
+ * `pendingSent` holds commits not yet echoed; any other `urlValue` change is external.
  */
 export function useSearchUrlSync({ urlValue, onCommit, delay = 200 }: Options) {
   const [localValue, setLocalValue] = useState(urlValue);
 
   const prevUrlValue = useRef(urlValue);
   const lastSentValue = useRef(urlValue);
+  const pendingSent = useRef<string[]>([]);
 
   const commit = useEffectEvent((value: string) => {
     lastSentValue.current = value;
+    pendingSent.current.push(value);
     onCommit(value);
   });
 
@@ -26,9 +28,13 @@ export function useSearchUrlSync({ urlValue, onCommit, delay = 200 }: Options) {
       return;
     }
     prevUrlValue.current = urlValue;
-    if (urlValue !== lastSentValue.current) {
+    const echoIndex = pendingSent.current.indexOf(urlValue);
+    if (echoIndex === -1) {
+      pendingSent.current = [];
       lastSentValue.current = urlValue;
       setLocalValue(urlValue);
+    } else {
+      pendingSent.current = pendingSent.current.slice(echoIndex + 1);
     }
   }, [urlValue]);
 

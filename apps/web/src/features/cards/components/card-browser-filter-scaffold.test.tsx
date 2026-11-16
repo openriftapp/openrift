@@ -2,10 +2,9 @@ import type { AvailableFilters } from "@openrift/shared/filters-available";
 import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { mockUseDisplayStore, mockUseFilterValues, mockUseStaleGroupByGuard } = vi.hoisted(() => ({
+const { mockUseDisplayStore, mockUseFilterValues } = vi.hoisted(() => ({
   mockUseDisplayStore: vi.fn(),
   mockUseFilterValues: vi.fn(),
-  mockUseStaleGroupByGuard: vi.fn(),
 }));
 
 vi.mock("@/stores/display-store", () => ({
@@ -14,7 +13,6 @@ vi.mock("@/stores/display-store", () => ({
 
 vi.mock("@/features/cards/hooks/use-card-filters", () => ({
   useFilterValues: mockUseFilterValues,
-  useStaleGroupByGuard: mockUseStaleGroupByGuard,
 }));
 
 // Each slot is stubbed with distinctive text; internals are covered elsewhere.

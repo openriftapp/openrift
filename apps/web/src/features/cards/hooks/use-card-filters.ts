@@ -19,7 +19,7 @@ import type {
   SortOption,
 } from "@openrift/shared/types/search";
 import { useRouter } from "@tanstack/react-router";
-import { use, useEffect, useRef } from "react";
+import { use } from "react";
 
 import { useFilterSearch } from "@/features/cards/hooks/use-filter-search";
 import type { ArrayFilterParam } from "@/features/cards/lib/filter-dimensions";
@@ -32,7 +32,7 @@ import {
   PRESENCE_VALUE_PARAMS,
   toFilterState,
 } from "@/features/cards/lib/filter-dimensions";
-import { isPrintingsOnlyGrouping } from "@/features/cards/lib/group-by-field";
+import { effectiveGroupBy } from "@/features/cards/lib/group-by-field";
 import { QueryFilterContext } from "@/features/cards/lib/query-filter-context";
 import { absorbQueryFilters, showQueryFilters } from "@/features/cards/lib/query-filters";
 import type { FilterSearch, OwnedBucket } from "@/features/cards/lib/search-schemas";
@@ -162,7 +162,7 @@ export function useFilterValues() {
         ? "printings"
         : filterState.view
   ) as "cards" | "printings" | "copies";
-  const groupBy = filterState.groupBy as GroupByField;
+  const groupBy = effectiveGroupBy(view, filterState.groupBy as GroupByField);
   const groupDir = filterState.groupDir as SortDirection;
 
   // Language survives clearAllFilters, so it counts as active but not clearable.
@@ -193,14 +193,6 @@ export function useFilterActions() {
   const defaultView = useDisplayStore((s) => s.defaultCardView);
   const viewDefaults = useSurfaceViewDefaults();
   const viewPrefs = useViewPrefsWriter();
-  const filterState = toFilterState(
-    raw,
-    defaultView,
-    viewDefaults.sort,
-    viewDefaults.sortDir,
-    viewDefaults.groupBy,
-    viewDefaults.groupDir,
-  );
   const router = useRouter();
   const queryFilterOptions = use(QueryFilterContext);
 
@@ -405,13 +397,7 @@ export function useFilterActions() {
   };
 
   const setView = (v: "cards" | "printings" | "copies") => {
-    // Marker/channel grouping is unavailable in cards view.
-    const resetGrouping =
-      v === "cards" && isPrintingsOnlyGrouping(filterState.groupBy as GroupByField);
-    updateSearch({
-      view: v === defaultView ? undefined : v,
-      ...(resetGrouping ? { groupBy: undefined } : {}),
-    });
+    updateSearch({ view: v === defaultView ? undefined : v });
   };
 
   const setGroupBy = (groupBy: GroupByField) => {
@@ -456,26 +442,4 @@ export function useFilterActions() {
     setGroupDir,
     clearAllFilters,
   };
-}
-
-/**
- * The effect below must key on the stale-state predicate, not `setGroupBy`
- * itself, or it refires on every render during the reset navigation.
- */
-export function useStaleGroupByGuard() {
-  const { view, groupBy } = useFilterValues();
-  const { setGroupBy } = useFilterActions();
-
-  const setGroupByRef = useRef(setGroupBy);
-  useEffect(() => {
-    setGroupByRef.current = setGroupBy;
-  });
-
-  const isStaleGrouping = view === "cards" && isPrintingsOnlyGrouping(groupBy);
-
-  useEffect(() => {
-    if (isStaleGrouping) {
-      setGroupByRef.current("set");
-    }
-  }, [isStaleGrouping]);
 }

@@ -14,7 +14,7 @@ import {
 } from "@/features/cards/components/options-bar";
 import { SearchBar } from "@/features/cards/components/search-bar";
 import { SearchQueryLine } from "@/features/cards/components/search-query-line";
-import { useFilterValues, useStaleGroupByGuard } from "@/features/cards/hooks/use-card-filters";
+import { useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { useQueryFilterOptions } from "@/features/cards/hooks/use-query-filter-options";
 import { useSearchVocabulary } from "@/features/cards/hooks/use-search-vocabulary";
 import { resolveTopLevelUnits } from "@/features/cards/lib/filter-sections";
@@ -64,7 +64,6 @@ interface CardBrowserFilterProviderProps extends CardBrowserFilterMeta {
  * `BrowserMobileFilters`, and `BrowserActiveFilters` can read filter meta
  * without each surface threading it through the toolbar / aboveGrid JSX. */
 export function CardBrowserFilterProvider({ children, ...meta }: CardBrowserFilterProviderProps) {
-  useStaleGroupByGuard();
   const topLevelFilters = useDisplayStore((state) => state.topLevelFilters);
   const topLevelUnits = resolveTopLevelUnits(topLevelFilters);
   const queryFilters = useQueryFilterOptions(meta);

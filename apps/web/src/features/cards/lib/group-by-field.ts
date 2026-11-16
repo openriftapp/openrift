@@ -60,6 +60,11 @@ export function isPrintingsOnlyGrouping(groupBy: GroupByField): boolean {
   return PRINTINGS_ONLY_GROUP_BY.has(groupBy);
 }
 
+/** A printings-only grouping falls back to "set" in cards view; the URL and saved preference keep it. */
+export function effectiveGroupBy(view: string, groupBy: GroupByField): GroupByField {
+  return view === "cards" && isPrintingsOnlyGrouping(groupBy) ? "set" : groupBy;
+}
+
 const FIELD_GROUPINGS = ["type", "superType", "domain", "rarity"] as const;
 
 export type FieldGrouping = (typeof FIELD_GROUPINGS)[number];

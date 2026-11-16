@@ -6,7 +6,7 @@ import type { CardViewerItem } from "@/lib/card-viewer-types";
 import type { EnumLabels } from "@/lib/enum-labels";
 import { resetIdCounter, stubPrinting } from "@/test/factories";
 
-import { groupItemsByField, isPrintingsOnlyGrouping } from "./group-by-field";
+import { effectiveGroupBy, groupItemsByField, isPrintingsOnlyGrouping } from "./group-by-field";
 
 beforeEach(() => {
   resetIdCounter();
@@ -36,6 +36,23 @@ const LABELS: EnumLabels = {
 function item(printing: ReturnType<typeof stubPrinting>): CardViewerItem {
   return { id: printing.printingId, printing };
 }
+
+describe("effectiveGroupBy", () => {
+  it("falls back to set for a printings-only grouping in cards view", () => {
+    expect(effectiveGroupBy("cards", "marker")).toBe("set");
+    expect(effectiveGroupBy("cards", "channel")).toBe("set");
+    expect(effectiveGroupBy("cards", "card")).toBe("set");
+  });
+
+  it("keeps a printings-only grouping in printings and copies view", () => {
+    expect(effectiveGroupBy("printings", "marker")).toBe("marker");
+    expect(effectiveGroupBy("copies", "channel")).toBe("channel");
+  });
+
+  it("keeps a grouping that works in cards view", () => {
+    expect(effectiveGroupBy("cards", "rarity")).toBe("rarity");
+  });
+});
 
 describe("isPrintingsOnlyGrouping", () => {
   it("is true for card, marker and distribution channel", () => {

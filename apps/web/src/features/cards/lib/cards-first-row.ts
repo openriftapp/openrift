@@ -27,6 +27,7 @@ import {
   readCatalogFromServerCache,
   ssrCatalogPreloadLangs,
 } from "@/features/cards/lib/catalog-queries";
+import { effectiveGroupBy } from "@/features/cards/lib/group-by-field";
 import { readPricesFromServerCache } from "@/features/cards/lib/prices-queries";
 import { ssrCardSearchContext } from "@/features/cards/lib/search-context";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
@@ -81,7 +82,7 @@ export function extractFirstRow(
       : requestedView === "printings"
         ? "printings"
         : SSR_DEFAULT_VIEW;
-  const groupBy = (search.groupBy ?? viewDefaults.groupBy) as GroupByField;
+  const groupBy = effectiveGroupBy(view, (search.groupBy ?? viewDefaults.groupBy) as GroupByField);
   const groupDir: SortDirection =
     (search.groupDir ?? viewDefaults.groupDir) === "desc" ? "desc" : "asc";
   const sortBy: SearchOrder =

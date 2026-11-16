@@ -81,6 +81,58 @@ describe("useSearchUrlSync", () => {
     expect(commits.at(-1)).toBe("This is not");
   });
 
+  it("keeps typing when an older commit's echo lands after a newer commit", () => {
+    const onCommit = vi.fn();
+    const { result, rerender } = renderHook<readonly [string, (value: string) => void], HookArgs>(
+      ({ urlValue }) => useSearchUrlSync({ urlValue, onCommit }),
+      { initialProps: { urlValue: "", onCommit } },
+    );
+
+    act(() => result.current[1]("a"));
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    act(() => result.current[1]("ab"));
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(onCommit.mock.calls.map(([value]) => value)).toEqual(["a", "ab"]);
+
+    act(() => result.current[1]("abc"));
+    rerender({ urlValue: "a", onCommit });
+    expect(result.current[0]).toBe("abc");
+
+    rerender({ urlValue: "ab", onCommit });
+    expect(result.current[0]).toBe("abc");
+
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(onCommit).toHaveBeenLastCalledWith("abc");
+  });
+
+  it("adopts an external change that arrives after its own echoes landed", () => {
+    const onCommit = vi.fn();
+    const { result, rerender } = renderHook<readonly [string, (value: string) => void], HookArgs>(
+      ({ urlValue }) => useSearchUrlSync({ urlValue, onCommit }),
+      { initialProps: { urlValue: "", onCommit } },
+    );
+
+    act(() => result.current[1]("a"));
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    act(() => result.current[1]("ab"));
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    rerender({ urlValue: "a", onCommit });
+    rerender({ urlValue: "ab", onCommit });
+
+    rerender({ urlValue: "a", onCommit });
+    expect(result.current[0]).toBe("a");
+  });
+
   it("treats a URL change that doesn't match our last commit as external", () => {
     let pendingUrlValue = "";
     const onCommit = vi.fn((value: string) => {

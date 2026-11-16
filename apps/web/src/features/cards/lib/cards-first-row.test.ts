@@ -10,6 +10,7 @@ import type { PricesResponse } from "@openrift/shared/types/api/pricing";
 import { describe, expect, it } from "vitest";
 
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
+import { VIEW_SURFACE_CONFIGS } from "@/lib/view-prefs";
 
 import { extractFirstRow } from "./cards-first-row";
 
@@ -589,6 +590,33 @@ describe("extractFirstRow", () => {
       };
       const result = extractFirstRow(sources(cards, printings), { groupBy: "rarity" }, 10);
       expect(result.map((r) => r.printingId)).toEqual(["p-common", "p-rare"]);
+    });
+
+    it("groups by set in cards view when the saved grouping is printings-only", () => {
+      const cards = { "card-a": makeCard(), "card-b": makeCard() };
+      const printings = {
+        "p-ogn": makePrinting({ cardId: "card-a", shortCode: "OGN-001", setId: "set-ogn" }),
+        "p-arc": makePrinting({
+          cardId: "card-b",
+          shortCode: "ARC-001",
+          setId: "set-arc",
+          markers: ["promo"],
+        }),
+      };
+      const catalog = {
+        ...makeCatalog(cards, printings, sets),
+        markers: [{ id: "promo", slug: "promo", label: "Promo", description: null }],
+      };
+      const result = extractFirstRow(
+        { catalog, init: NO_INIT, prices: NO_PRICES },
+        NO_FILTERS,
+        10,
+        {
+          ...VIEW_SURFACE_CONFIGS.cards.defaults,
+          groupBy: "marker",
+        },
+      );
+      expect(result.map((r) => r.printingId)).toEqual(["p-ogn", "p-arc"]);
     });
 
     it("finds a keyword typed in another language", () => {
