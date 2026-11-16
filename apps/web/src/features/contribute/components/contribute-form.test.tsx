@@ -303,6 +303,78 @@ describe("ContributeForm", () => {
     });
   });
 
+  it("focuses the field again when its preview region is clicked a second time", async () => {
+    const user = userEvent.setup();
+    renderForm(emptyFormState());
+
+    await user.click(screen.getByRole("button", { name: "Add Card name" }));
+    expect(cardNameInput()).toHaveFocus();
+    await user.click(screen.getByRole("button", { name: "Add printing" }));
+
+    await user.click(screen.getByRole("button", { name: "Add Card name" }));
+    expect(cardNameInput()).toHaveFocus();
+  });
+
+  it("reopens collapsed card details when the same region is clicked again", async () => {
+    const user = userEvent.setup();
+    renderForm(emptyFormState());
+
+    await user.click(screen.getByRole("button", { name: "Add Tags" }));
+    expect(screen.getByLabelText("Tags")).toHaveFocus();
+    await user.click(screen.getByRole("button", { name: "Card details" }));
+    expect(screen.queryByLabelText("Tags")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Add Tags" }));
+    expect(screen.getByLabelText("Tags")).toHaveFocus();
+  });
+
+  it("does not refocus a field when its section is reopened by hand", async () => {
+    const user = userEvent.setup();
+    renderForm(emptyFormState());
+
+    await user.click(screen.getByRole("button", { name: "Add Tags" }));
+    await user.click(screen.getByRole("button", { name: "Card details" }));
+    await user.click(screen.getByRole("button", { name: "Card details" }));
+
+    expect(screen.getByLabelText("Tags")).not.toHaveFocus();
+  });
+
+  it("jumps to the printing an error belongs to while every printing is collapsed", async () => {
+    const user = userEvent.setup();
+    const state = twoCodedPrintings();
+    state.card.name = "Ahri, Alluring";
+    state.slug = "ahri-alluring";
+    state.printings[1]!.publicCode = null;
+    renderForm(state);
+
+    await user.click(screen.getByRole("button", { name: /Submit your contribution/u }));
+    const toggles = screen.getAllByRole("button", { name: /printing/iu });
+    const openToggle = toggles.find((toggle) => toggle.getAttribute("aria-expanded") === "true");
+    if (openToggle) {
+      await user.click(openToggle);
+    }
+    await user.click(screen.getByRole("button", { name: "Printing 2: Code" }));
+
+    expect(screen.getByLabelText("Code *")).toHaveFocus();
+    expect(screen.getByLabelText("Code *")).toHaveValue("");
+  });
+
+  it("jumps to the same validation error twice", async () => {
+    const user = userEvent.setup();
+    const state = emptyFormState();
+    state.card.name = "Ahri, Alluring";
+    state.slug = "ahri-alluring";
+    renderForm(state);
+
+    await user.click(screen.getByRole("button", { name: /Submit your contribution/u }));
+    await user.click(screen.getByRole("button", { name: "Printing 1: Code" }));
+    expect(screen.getByLabelText("Code *")).toHaveFocus();
+    await user.click(cardNameInput());
+
+    await user.click(screen.getByRole("button", { name: "Printing 1: Code" }));
+    expect(screen.getByLabelText("Code *")).toHaveFocus();
+  });
+
   it("submits a valid minimal form", async () => {
     const user = userEvent.setup();
     const state = emptyFormState();

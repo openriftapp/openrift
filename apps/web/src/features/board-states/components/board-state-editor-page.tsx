@@ -9,7 +9,6 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { EllipsisVerticalIcon, EyeIcon, PencilIcon, Trash2Icon, UndoIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 
 import { ConfirmActionButton } from "@/components/confirm-action-dialog";
 import { CopyTextButton } from "@/components/copy-text-button";
@@ -210,11 +209,9 @@ function SavedEditor({
               confirmLabel={m.board_states_editor_delete()}
               onConfirm={async () => {
                 await remove.mutateAsync(boardState.id);
-                flushSync(() => {
-                  setMetaDirty(false);
-                  useBoardEditorStore.setState({ dirty: false });
-                });
-                await navigate({ to: "/board-states" });
+                setMetaDirty(false);
+                useBoardEditorStore.setState({ dirty: false });
+                await navigate({ to: "/board-states", ignoreBlocker: true });
               }}
             >
               <Trash2Icon />
@@ -274,12 +271,10 @@ function DraftEditor() {
   }, []);
 
   const markClean = (revision: number, savedMetaRevision: number) => {
-    flushSync(() => {
-      if (metaRevision.current === savedMetaRevision) {
-        setMetaDirty(false);
-      }
-      useBoardEditorStore.getState().markSaved(revision);
-    });
+    if (metaRevision.current === savedMetaRevision) {
+      setMetaDirty(false);
+    }
+    useBoardEditorStore.getState().markSaved(revision);
   };
 
   const save = async () => {
@@ -299,7 +294,11 @@ function DraftEditor() {
       saveDraft({ ...meta, document: result.document });
       markClean(savedRevision, savedMetaRevision);
       trackAuthGate("board-state-save");
-      await navigate({ to: "/login", search: { redirect: "/board-states/new", email: undefined } });
+      await navigate({
+        to: "/login",
+        search: { redirect: "/board-states/new", email: undefined },
+        ignoreBlocker: true,
+      });
       return;
     }
     const title = meta.title.trim() === "" ? m.board_states_untitled() : meta.title;
@@ -319,7 +318,7 @@ function DraftEditor() {
     if (!mounted.current) {
       return;
     }
-    flushSync(() => setCreatedId(boardId));
+    setCreatedId(boardId);
     markClean(savedRevision, savedMetaRevision);
     const metaChanged = metaRevision.current !== savedMetaRevision;
     useBoardEditorStore.getState().adopt({
@@ -327,7 +326,11 @@ function DraftEditor() {
       ...(metaChanged ? latestMeta.current : { ...meta, title }),
       metaDirty: metaChanged,
     });
-    await navigate({ to: "/board-states/$boardStateId", params: { boardStateId: boardId } });
+    await navigate({
+      to: "/board-states/$boardStateId",
+      params: { boardStateId: boardId },
+      ignoreBlocker: true,
+    });
   };
 
   return (

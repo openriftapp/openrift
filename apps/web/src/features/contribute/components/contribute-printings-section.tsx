@@ -4,9 +4,9 @@ import { PlusIcon } from "lucide-react";
 
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
-import type { PlaceholderField } from "@/features/cards/lib/card-placeholder-regions";
 import { buildChannelTree, leafChannels } from "@/features/cards/lib/distribution-channel-tree";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
+import type { FieldFocusRequest } from "@/features/contribute/components/contribute-field-focus";
 import type { ContributeFormScope } from "@/features/contribute/components/contribute-form";
 import { PrintingCard } from "@/features/contribute/components/contribute-printing-card";
 import type { ContributeFormApi } from "@/features/contribute/hooks/use-contribute-form";
@@ -32,7 +32,7 @@ interface ContributePrintingsSectionProps extends Pick<
   | "removePrinting"
 > {
   scope?: ContributeFormScope;
-  reveal?: PlaceholderField | null;
+  reveal?: FieldFocusRequest | null;
 }
 
 export function ContributePrintingsSection({

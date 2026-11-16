@@ -10,7 +10,6 @@ import {
   Trash2Icon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { BuilderWorkbench } from "@/components/layout/builder-workbench";
@@ -111,8 +110,8 @@ export function TierListBuilderPage({ tierList }: TierListBuilderPageProps) {
   const handleDelete = () => {
     deleteTierList.mutate(tierList.id, {
       onSuccess: () => {
-        flushSync(() => useTierListBuilderStore.getState().reset());
-        void navigate({ to: "/tier-lists" });
+        useTierListBuilderStore.getState().reset();
+        void navigate({ to: "/tier-lists", ignoreBlocker: true });
       },
     });
   };

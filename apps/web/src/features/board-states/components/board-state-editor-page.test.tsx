@@ -2,7 +2,7 @@ import { emptyBoardDocument } from "@openrift/shared/board-state";
 import type { BoardStateResponse } from "@openrift/shared/types/api/board-state";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type * as ReactRouter from "@tanstack/react-router";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useBoardDraftStore } from "@/features/board-states/stores/board-draft-store";
@@ -172,6 +172,20 @@ describe("saved board editor", () => {
 
     expect(screen.getByText("guard: blocking")).toBeInTheDocument();
   });
+
+  it("leaves past the guard after a confirmed delete", async () => {
+    renderWithClient(<BoardStateEditorPage boardState={BOARD_STATE} />);
+    act(() => addUnit());
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await act(async () =>
+      fireEvent.click(
+        within(screen.getByRole("alertdialog")).getByRole("button", { name: "Delete" }),
+      ),
+    );
+
+    expect(mutations.navigate).toHaveBeenCalledWith({ to: "/board-states", ignoreBlocker: true });
+  });
 });
 
 describe("saved board editor after a create", () => {
@@ -297,6 +311,7 @@ describe("new board editor", () => {
     expect(mutations.navigate).toHaveBeenCalledWith({
       to: "/board-states/$boardStateId",
       params: { boardStateId: "board-2" },
+      ignoreBlocker: true,
     });
     expect(
       mutations.allowNavigation?.(
@@ -349,6 +364,7 @@ describe("new board editor", () => {
     expect(mutations.navigate).toHaveBeenCalledWith({
       to: "/board-states/$boardStateId",
       params: { boardStateId: "board-2" },
+      ignoreBlocker: true,
     });
   });
 });

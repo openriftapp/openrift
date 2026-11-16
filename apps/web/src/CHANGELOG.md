@@ -50,6 +50,7 @@
 - fix(Search): **No lost keystrokes while typing** — fast typing in a search field no longer jumps back to an earlier query when the page updates late.
 - fix(Trades): **Bulk trade buttons stay usable** — after "Accept all", "Decline all" or "Cancel all", every trade's buttons come back as soon as its own request finishes, even when one of them fails.
 - fix(Trades): **No copies given away without your pick** — if the list of your copies cannot be loaded when you accept or settle a trade, you see the error and the trade waits for you.
+- fix(Contribute): **Jumping to a field works every time** — clicking the same spot on the preview card or the same error twice moves to that field again, and an error on a later printing opens that printing.
 
 ## 2026-11-15
 

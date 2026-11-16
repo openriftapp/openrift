@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { PrintingVariantLabel } from "@/features/cards/components/printing-label";
 import type { PlaceholderField } from "@/features/cards/lib/card-placeholder-regions";
 import { CardTextInput } from "@/features/contribute/components/card-text-input";
+import type { FieldFocusRequest } from "@/features/contribute/components/contribute-field-focus";
 import type { LabelledControlProps } from "@/features/contribute/components/form-fields";
 import {
   FieldRow,
@@ -52,7 +53,7 @@ interface PrintingCardProps {
   onCopy?: () => void;
   onRemove?: () => void;
   collapsible?: boolean;
-  reveal?: PlaceholderField | null;
+  reveal?: FieldFocusRequest | null;
 }
 
 const PRINTING_DETAIL_FIELDS = new Set<PlaceholderField>([
@@ -88,7 +89,7 @@ export function PrintingCard({
   const [lastReveal, setLastReveal] = useState(reveal ?? null);
   if (reveal !== undefined && reveal !== lastReveal) {
     setLastReveal(reveal);
-    if (reveal !== null && PRINTING_DETAIL_FIELDS.has(reveal)) {
+    if (reveal !== null && PRINTING_DETAIL_FIELDS.has(reveal.field)) {
       setDetailsOpen(true);
     }
   }

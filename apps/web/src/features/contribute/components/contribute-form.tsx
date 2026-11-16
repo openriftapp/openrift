@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
 
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import type { PlaceholderField } from "@/features/cards/lib/card-placeholder-regions";
@@ -8,7 +7,6 @@ import { ContributeCardSection } from "@/features/contribute/components/contribu
 import { ContributeCardSummary } from "@/features/contribute/components/contribute-card-summary";
 import {
   FieldFocusProvider,
-  focusFormFieldSoon,
   useFieldFocusState,
 } from "@/features/contribute/components/contribute-field-focus";
 import { ContributePrintingsSection } from "@/features/contribute/components/contribute-printings-section";
@@ -39,24 +37,15 @@ export function ContributeForm({
   const contribute = useContributeForm({ initial, lockedSlug });
   const { form, activePrinting } = contribute;
   const focus = useFieldFocusState();
-  const [reveal, setReveal] = useState<PlaceholderField | null>(null);
+  const reveal = focus.request;
 
-  useEffect(() => {
-    if (reveal === null) {
-      return;
-    }
-    const cancel = focusFormFieldSoon(reveal);
-    return () => {
-      cancel();
-    };
-  }, [reveal]);
-
-  const revealField = (field: PlaceholderField) => {
-    if (field.startsWith("printing.") && activePrinting === null) {
+  const revealField = (field: PlaceholderField, printingIndex?: number) => {
+    if (printingIndex !== undefined) {
+      contribute.setActivePrinting(printingIndex);
+    } else if (field.startsWith("printing.") && activePrinting === null) {
       contribute.setActivePrinting(0);
     }
-    setReveal(null);
-    setReveal(field);
+    focus.requestFocus(field);
   };
 
   return (
@@ -115,7 +104,6 @@ export function ContributeForm({
           lockedSlug={lockedSlug}
           submitLabel={submitLabel}
           onJumpToError={revealField}
-          setActivePrinting={contribute.setActivePrinting}
         />
       </form>
     </FieldFocusProvider>

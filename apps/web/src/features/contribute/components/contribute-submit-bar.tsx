@@ -21,8 +21,7 @@ interface ContributeSubmitBarProps extends Pick<
 > {
   lockedSlug?: string;
   submitLabel?: string;
-  onJumpToError?: (field: PlaceholderField) => void;
-  setActivePrinting?: (index: number | null) => void;
+  onJumpToError?: (field: PlaceholderField, printingIndex?: number) => void;
 }
 
 export function ContributeSubmitBar({
@@ -35,7 +34,6 @@ export function ContributeSubmitBar({
   lockedSlug,
   submitLabel,
   onJumpToError,
-  setActivePrinting,
 }: ContributeSubmitBarProps) {
   return (
     <>
@@ -52,13 +50,9 @@ export function ContributeSubmitBar({
                     {field && onJumpToError ? (
                       <Pressable
                         className="underline underline-offset-2"
-                        onClick={() => {
-                          const index = errorPrintingIndex(e.path);
-                          if (index !== null) {
-                            setActivePrinting?.(index);
-                          }
-                          onJumpToError(field);
-                        }}
+                        onClick={() =>
+                          onJumpToError(field, errorPrintingIndex(e.path) ?? undefined)
+                        }
                       >
                         {label}
                       </Pressable>

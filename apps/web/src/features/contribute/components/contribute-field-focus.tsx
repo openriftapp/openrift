@@ -1,10 +1,18 @@
-import { createContext, use, useState } from "react";
+import { createContext, use, useEffect, useRef, useState } from "react";
 
 import type { PlaceholderField } from "@/features/cards/lib/card-placeholder-regions";
+
+/** Each request is a new object, so asking for the same field twice still registers. */
+export interface FieldFocusRequest {
+  field: PlaceholderField;
+}
 
 interface FieldFocusValue {
   active: PlaceholderField | null;
   setActive: (field: PlaceholderField | null) => void;
+  request: FieldFocusRequest | null;
+  requestFocus: (field: PlaceholderField) => void;
+  settleRequest: (request: FieldFocusRequest) => void;
 }
 
 const FieldFocusContext = createContext<FieldFocusValue | null>(null);
@@ -15,7 +23,14 @@ function useFieldFocus(): FieldFocusValue | null {
 
 export function useFieldFocusState(): FieldFocusValue {
   const [active, setActive] = useState<PlaceholderField | null>(null);
-  return { active, setActive };
+  const [request, setRequest] = useState<FieldFocusRequest | null>(null);
+  return {
+    active,
+    setActive,
+    request,
+    requestFocus: (field) => setRequest({ field }),
+    settleRequest: (settled) => setRequest((current) => (current === settled ? null : current)),
+  };
 }
 
 export function FieldFocusProvider({
@@ -29,6 +44,7 @@ export function FieldFocusProvider({
 }
 
 interface FieldLinkProps {
+  ref?: React.RefObject<HTMLDivElement | null>;
   "data-field"?: PlaceholderField;
   "data-linked-active"?: true;
   onPointerEnter?: () => void;
@@ -37,11 +53,28 @@ interface FieldLinkProps {
   onBlurCapture?: () => void;
 }
 
+/**
+ * Links a form row to its preview region. The row also takes keyboard focus when a focus request
+ * names its field, on mount if the request opened the section holding it.
+ */
 export function useFieldLink(field?: PlaceholderField): {
   props: FieldLinkProps;
   active: boolean;
 } {
   const focus = useFieldFocus();
+  const ref = useRef<HTMLDivElement>(null);
+  const request = focus?.request ?? null;
+  const settleRequest = focus?.settleRequest;
+
+  useEffect(() => {
+    const row = ref.current;
+    if (request === null || request.field !== field || row === null) {
+      return;
+    }
+    focusRowControl(row);
+    settleRequest?.(request);
+  }, [request, field, settleRequest]);
+
   if (field === undefined || focus === null) {
     return { props: {}, active: false };
   }
@@ -49,6 +82,7 @@ export function useFieldLink(field?: PlaceholderField): {
   return {
     active,
     props: {
+      ref,
       "data-field": field,
       "data-linked-active": active || undefined,
       onPointerEnter: () => focus.setActive(field),
@@ -59,17 +93,7 @@ export function useFieldLink(field?: PlaceholderField): {
   };
 }
 
-/**
- * Moves keyboard focus to the control a preview region stands for. Printing rows only render their
- * fields while open, so the caller opens the owning printing before this runs.
- */
-function focusFormField(field: PlaceholderField): boolean {
-  const row = document.querySelector<HTMLElement>(
-    `[data-field="${field}"]:not([data-slot="pressable"])`,
-  );
-  if (!row) {
-    return false;
-  }
+function focusRowControl(row: HTMLElement) {
   // The hint popover's trigger sits before the control in the row, so text entry is looked for first.
   const control =
     row.querySelector<HTMLElement>(
@@ -80,22 +104,4 @@ function focusFormField(field: PlaceholderField): boolean {
     );
   row.scrollIntoView?.({ block: "center", behavior: "smooth" });
   control?.focus();
-  return true;
-}
-
-/** Retries across frames because the section holding the field may still be opening. */
-export function focusFormFieldSoon(field: PlaceholderField, attempts = 12): () => void {
-  let frame = 0;
-  let left = attempts;
-  const tick = () => {
-    left -= 1;
-    if (focusFormField(field) || left <= 0) {
-      return;
-    }
-    frame = requestAnimationFrame(tick);
-  };
-  frame = requestAnimationFrame(tick);
-  return () => {
-    cancelAnimationFrame(frame);
-  };
 }

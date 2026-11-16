@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CatalogCardPicker } from "@/features/cards/components/catalog-card-picker";
 import { DomainIcon } from "@/features/cards/components/domain-icon";
-import type { PlaceholderField } from "@/features/cards/lib/card-placeholder-regions";
+import type { FieldFocusRequest } from "@/features/contribute/components/contribute-field-focus";
 import { ChipInput, FieldRow, NumberInput } from "@/features/contribute/components/form-fields";
 import type { ContributeFormApi } from "@/features/contribute/hooks/use-contribute-form";
 import type { ContributeFormCard } from "@/features/contribute/lib/contribute-json";
@@ -21,7 +21,7 @@ interface ContributeCardSectionProps extends Pick<
   "form" | "errorAt" | "setCardField" | "prefillFromExisting"
 > {
   lockedSlug?: string;
-  reveal?: PlaceholderField | null;
+  reveal?: FieldFocusRequest | null;
 }
 
 function hasCardDetails(card: ContributeFormCard): boolean {
@@ -49,7 +49,7 @@ export function ContributeCardSection({
   const [lastReveal, setLastReveal] = useState(reveal ?? null);
   if (reveal !== undefined && reveal !== lastReveal) {
     setLastReveal(reveal);
-    if (reveal !== null && reveal !== "card.name") {
+    if (reveal !== null && reveal.field !== "card.name") {
       setOpen(true);
     }
   }

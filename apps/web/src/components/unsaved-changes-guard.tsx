@@ -14,8 +14,8 @@ interface UnsavedChangesGuardProps {
   allowNavigation?: (current: GuardLocation, next: GuardLocation) => boolean;
 }
 
-// The blocker sees `dirty` as of the last commit: clear it inside `flushSync`
-// before a programmatic navigation that follows a state change.
+// The blocker reads `dirty` from the last commit. A navigation after a confirmed leave,
+// save or delete passes `ignoreBlocker: true`.
 export function UnsavedChangesGuard({ dirty, onLeave, allowNavigation }: UnsavedChangesGuardProps) {
   const blocker = useBlocker({
     shouldBlockFn: ({ current, next }) => dirty && !allowNavigation?.(current, next),
