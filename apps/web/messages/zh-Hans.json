@@ -4041,7 +4041,6 @@
   "groups_admin_slug_label": "网址",
   "groups_admin_slug_required": "选择一个网址",
   "groups_admin_slug_warning": "更改网址会让指向这个小组的旧书签失效。",
-  "groups_admin_slug_saved": "网址已保存。小组现在位于 /groups/{slug}。",
   "groups_banner_add": "添加横幅",
   "groups_banner_alt": "小组横幅",
   "groups_banner_choose_different": "换一张图片",

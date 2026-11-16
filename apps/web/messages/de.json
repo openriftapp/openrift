@@ -4041,7 +4041,6 @@
   "groups_admin_slug_label": "Webadresse",
   "groups_admin_slug_required": "Wähle eine Webadresse",
   "groups_admin_slug_warning": "Eine neue Webadresse macht alle vorhandenen Lesezeichen zu dieser Gruppe kaputt.",
-  "groups_admin_slug_saved": "Webadresse gespeichert. Die Gruppe ist jetzt unter /groups/{slug} erreichbar.",
   "groups_banner_add": "Banner hinzufügen",
   "groups_banner_alt": "Gruppenbanner",
   "groups_banner_choose_different": "Anderes Bild wählen",

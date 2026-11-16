@@ -295,7 +295,7 @@ Each date splits into `### Highlights` and `### Other`. The panel shows Highligh
 
 An entry is `type(Area):`, then a bold title of 3–6 words, then an em dash with a space on each side, then one plain sentence. Group `feat:` entries above `fix:` entries within each section, newest date at the top.
 
-**Area** is exactly one tag from this list, spelled as written: `Cards` (browser, search, card detail), `Collection` (owning cards, wishlists/tradelists, import/export), `Decks`, `Groups` (friend groups, sharing, activity feed), `Trades`, `Tournaments`, `Rules`, `Packs`, `Products` (the sealed-products catalog), `Designer`, `Meta` (the meta archive: events, standings, decklists), `Account`, `App`. Use `App` for anything cross-cutting (performance, theming, navigation, offline, release updates).
+**Area** is exactly one tag from this list, spelled as written: `Cards` (browser, search, card detail), `Collection` (owning cards, wishlists/tradelists, import/export), `Decks`, `Groups` (friend groups, sharing, activity feed), `Trades`, `Tournaments`, `Rules`, `Packs`, `Products` (the sealed-products catalog), `Designer`, `Meta` (the meta archive: events, standings, decklists), `Stage` (tier list stages), `Account`, `App`. Use `App` for anything cross-cutting (performance, theming, navigation, offline, release updates).
 
 **Highlights vs Other** — Highlights are what a user would actually care about on that release: new surfaces, visible behavior changes, fixes to something painful. Polish, wording tweaks, and edge cases go under Other. There is no quota; a quiet release can have none, and a date may have only one of the two sections.
 

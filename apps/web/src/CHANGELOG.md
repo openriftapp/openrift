@@ -9,6 +9,11 @@
 ### Other
 
 - feat(Rules): **Changes behind view options** — the rules page shows the changes since the previous version from a view options button next to the version select, with a short description for each mode.
+- feat(Groups): **Copy counts when sharing** — the dialog for sharing collections with a group shows how many copies each collection holds.
+- fix(Trades): **Trade badges readable over card art** — the "Requested", "Offered" and "In a trade" badges on market cards now use a solid colour.
+- fix(Decks): **Fresh deck dialogs** — reopening a deck dialog right after closing it no longer shows the text you typed before.
+- fix(Decks): **Old comparison links** — a comparison link from before the deck id change now opens the right decks straight away.
+- fix(Stage): **Stage errors keep the site around them** — when sign-in can't be checked, a tier list stage shows the usual error page with navigation.
 - fix(Rules): **Penalty badges in Chinese** — the Chinese tournament rules now mark each penalty like the other languages.
 
 ## 2026-11-15

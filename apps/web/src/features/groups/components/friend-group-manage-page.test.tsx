@@ -103,7 +103,7 @@ describe("AdminSettings group form", () => {
     );
   });
 
-  it("confirms a saved web address", async () => {
+  it("saves a new web address without a toast", async () => {
     const user = userEvent.setup();
     updateMutateAsync.mockResolvedValue({ slug: "shurima-sunday" });
     render(<AdminSettings data={makeDetail()} slug="bothfeld" />);
@@ -115,7 +115,7 @@ describe("AdminSettings group form", () => {
     expect(updateMutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({ slug: "bothfeld", newSlug: "shurima-sunday" }),
     );
-    expect(toastSuccess).toHaveBeenCalledWith(expect.stringContaining("/groups/shurima-sunday"));
+    expect(toastSuccess).not.toHaveBeenCalled();
   });
 
   it("blocks a slug the server would reject instead of sending it", async () => {

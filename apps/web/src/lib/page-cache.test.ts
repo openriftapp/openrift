@@ -203,6 +203,12 @@ describe("applyPageCacheControl", () => {
     }
   });
 
+  it("keeps /install private because it renders per user agent", () => {
+    const result = applyPageCacheControl(getRequest("/install"), htmlResponse());
+    expect(result.headers.get("Cache-Control")).toBe(PRIVATE);
+    expect(rendersDefaultShell(getRequest("/install"))).toBe(false);
+  });
+
   it("still caches the /rules index itself", () => {
     const index = applyPageCacheControl(getRequest("/rules"), htmlResponse());
     expect(index.headers.get("Cache-Control")).toBe(PUBLIC);

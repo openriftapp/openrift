@@ -4047,7 +4047,6 @@
   "groups_admin_slug_label": "Web address",
   "groups_admin_slug_required": "Pick a web address",
   "groups_admin_slug_warning": "Changing the web address breaks any existing bookmarks to this group.",
-  "groups_admin_slug_saved": "Web address saved. The group now lives at /groups/{slug}.",
   "groups_banner_add": "Add a banner",
   "groups_banner_alt": "Group banner",
   "groups_banner_choose_different": "Choose a different picture",

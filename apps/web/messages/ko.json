@@ -4041,7 +4041,6 @@
   "groups_admin_slug_label": "웹 주소",
   "groups_admin_slug_required": "웹 주소를 정하세요",
   "groups_admin_slug_warning": "웹 주소를 바꾸면 이 그룹의 기존 북마크가 모두 작동하지 않습니다.",
-  "groups_admin_slug_saved": "웹 주소를 저장했습니다. 이제 그룹 주소는 /groups/{slug}입니다.",
   "groups_banner_add": "배너 추가",
   "groups_banner_alt": "그룹 배너",
   "groups_banner_choose_different": "다른 사진 선택",

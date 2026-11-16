@@ -4042,7 +4042,6 @@
   "groups_admin_slug_label": "Adresse web",
   "groups_admin_slug_required": "Choisissez une adresse web",
   "groups_admin_slug_warning": "Changer l'adresse web casse tous les favoris existants vers ce groupe.",
-  "groups_admin_slug_saved": "Adresse web enregistrée. Le groupe se trouve maintenant sur /groups/{slug}.",
   "groups_banner_add": "Ajouter une bannière",
   "groups_banner_alt": "Bannière du groupe",
   "groups_banner_choose_different": "Choisir une autre image",

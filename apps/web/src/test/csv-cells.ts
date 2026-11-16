@@ -1,4 +1,4 @@
-export const FORMULA_LIKE_CELLS = [
+const FORMULA_LIKE_CELLS = [
   "=SUM(A1)",
   "+1 foil",
   "@Teemo",
@@ -9,9 +9,9 @@ export const FORMULA_LIKE_CELLS = [
   "=a,b",
 ] as const;
 
-export const NUMBER_CELLS = ["-1", "-0.5", "-.5", "+3", "0", "9.5"] as const;
+const NUMBER_CELLS = ["-1", "-0.5", "-.5", "+3", "0", "9.5"] as const;
 
-export const TEXT_CELLS = [
+const TEXT_CELLS = [
   "Jinx, Loose Cannon",
   'the "Rebel" deck',
   "line one\nline two",

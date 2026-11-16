@@ -4041,7 +4041,6 @@
   "groups_admin_slug_label": "網址",
   "groups_admin_slug_required": "請選擇一個網址",
   "groups_admin_slug_warning": "更改網址會讓現有指向這個社團的書籤失效。",
-  "groups_admin_slug_saved": "網址已儲存。社團現在位於 /groups/{slug}。",
   "groups_banner_add": "新增橫幅圖片",
   "groups_banner_alt": "社團橫幅",
   "groups_banner_choose_different": "改選其他圖片",
