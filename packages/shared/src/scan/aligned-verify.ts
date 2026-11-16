@@ -1,5 +1,5 @@
 /** Patch-wise normalised correlation of a rectified card's grayscale thumbnail against its reference render. */
-import { upperMedian } from "../math";
+import { clamp, upperMedian } from "../math";
 import { downscaleGray, rotateRgbaCw, toCanonicalFrame, toGray } from "./image";
 import type { RgbaImage } from "./types";
 
@@ -49,10 +49,10 @@ function patchCorrelation(
   const n = PATCH * PATCH;
   for (let py = 0; py < PATCH; py++) {
     const ry = y + py;
-    const qy = Math.min(query.height - 1, Math.max(0, ry + dy));
+    const qy = clamp(ry + dy, 0, query.height - 1);
     for (let px = 0; px < PATCH; px++) {
       const rx = x + px;
-      const qx = Math.min(query.width - 1, Math.max(0, rx + dx));
+      const qx = clamp(rx + dx, 0, query.width - 1);
       const q = query.data[qy * query.width + qx] ?? 0;
       const r = reference.data[ry * reference.width + rx] ?? 0;
       sumQ += q;

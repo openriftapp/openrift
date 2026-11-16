@@ -5,11 +5,13 @@ import type { Marketplace } from "@openrift/shared/types/pricing";
 import type { Repos } from "../../../../deps.js";
 import type { StagingRow } from "../../lib/marketplace-configs.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
+import type { CrossRefCandidate } from "./cross-ref-match.js";
+import { autoMatchByCrossReference } from "./cross-ref-match.js";
 import { logFetchSummary, logUpsertCounts } from "./log.js";
 import type { GroupRow } from "./types.js";
 import { loadIgnoredKeys, upsertMarketplaceGroups, upsertPriceData } from "./upsert.js";
 
-export async function finishPriceRefresh(
+async function finishPriceRefresh(
   repos: Repos,
   log: Logger,
   marketplace: Marketplace,
@@ -39,13 +41,18 @@ export async function refreshFetchedPrices<T>(
     staging: (fetched: T, ignoredKeys: LoadedIgnoredKeys) => StagingRow[];
     groups: (fetched: T) => GroupRow[];
     products: (fetched: T) => number;
+    crossReferences?: (fetched: T) => CrossRefCandidate[];
   },
 ): Promise<PriceRefreshResponse> {
   const ignoredKeys = await loadIgnoredKeys(repos.priceRefresh, marketplace);
   const fetched = await source.fetch();
-  const staging = source.staging(fetched, ignoredKeys);
   const groupRows = source.groups(fetched);
+  // Before the auto-match: the products it inserts reference these groups.
   await upsertMarketplaceGroups(repos.priceRefresh, marketplace, groupRows);
+  if (source.crossReferences !== undefined) {
+    await autoMatchByCrossReference(repos, marketplace, source.crossReferences(fetched), log);
+  }
+  const staging = source.staging(fetched, ignoredKeys);
   return finishPriceRefresh(repos, log, marketplace, {
     ignoredKeys,
     transformed: {

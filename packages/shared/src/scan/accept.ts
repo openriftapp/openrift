@@ -1,5 +1,7 @@
 /** The accept layer: turn per-frame verification results into locked cards. */
 
+import { clamp } from "../math";
+
 export interface FrameWinner {
   key: string;
   artKey: string;
@@ -62,7 +64,7 @@ export function pickAlignedWinner(
 export function alignedFrameWeight(winner: FrameWinner, options: AlignedOptions): number {
   const strength =
     (winner.score / 100 - options.minScore) / (ALIGNED_FULL_WEIGHT_SCORE - options.minScore);
-  return 1 + (MAX_FRAME_WEIGHT - 1) * Math.max(0, Math.min(1, strength));
+  return 1 + (MAX_FRAME_WEIGHT - 1) * clamp(strength, 0, 1);
 }
 
 export interface AcceptOptions {

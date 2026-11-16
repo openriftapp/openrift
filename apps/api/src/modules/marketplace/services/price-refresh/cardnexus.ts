@@ -10,11 +10,9 @@ import { fetchJson, fetchOk } from "../../../../lib/http.js";
 import type { StagingRow } from "../../lib/marketplace-configs.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
 import type { CrossRefCandidate } from "./cross-ref-match.js";
-import { autoMatchByCrossReference } from "./cross-ref-match.js";
-import { finishPriceRefresh } from "./finish.js";
+import { refreshFetchedPrices } from "./finish.js";
 import { PRICE_FETCH_RETRIES } from "./types.js";
 import type { GroupRow } from "./types.js";
-import { loadIgnoredKeys, upsertMarketplaceGroups } from "./upsert.js";
 
 const CN_FEEDS_URL = "https://public-api.cardnexus.com/v1/feeds/riftbound";
 const FEED_TIMEOUT_MS = 30_000;
@@ -224,30 +222,17 @@ function buildCardnexusGroups(expansions: CnExpansion[]): GroupRow[] {
   }));
 }
 
-export async function refreshCardnexusPrices(
+export function refreshCardnexusPrices(
   fetchFn: Fetch,
   repos: Repos,
   log: Logger,
   apiKey: string,
 ): Promise<PriceRefreshResponse> {
-  const ignoredKeys = await loadIgnoredKeys(repos.priceRefresh, "cardnexus");
-  const fetchResult = await fetchCardnexusData(fetchFn, apiKey, log);
-
-  // Groups must exist before auto-match inserts products that reference them.
-  const groupRows = buildCardnexusGroups(fetchResult.expansions);
-  await upsertMarketplaceGroups(repos.priceRefresh, "cardnexus", groupRows);
-
-  await autoMatchByCrossReference(repos, "cardnexus", crossRefCandidates(fetchResult), log);
-
-  const staging = buildCardnexusStaging(fetchResult, ignoredKeys);
-  const transformedCounts = {
-    groups: groupRows.length,
-    products: fetchResult.cards.length,
-    prices: staging.length,
-  };
-  return finishPriceRefresh(repos, log, "cardnexus", {
-    ignoredKeys,
-    transformed: transformedCounts,
-    staging,
+  return refreshFetchedPrices(repos, log, "cardnexus", {
+    fetch: () => fetchCardnexusData(fetchFn, apiKey, log),
+    staging: buildCardnexusStaging,
+    groups: (fetched) => buildCardnexusGroups(fetched.expansions),
+    products: (fetched) => fetched.cards.length,
+    crossReferences: crossRefCandidates,
   });
 }

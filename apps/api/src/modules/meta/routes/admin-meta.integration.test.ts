@@ -530,6 +530,68 @@ describe.skipIf(!ctx)("Meta archive routes (integration)", () => {
       expect(again.status).toBe(404);
     });
   });
+
+  describe("catalogue accept racing a dismiss", () => {
+    const provider = "uvsgames";
+    const externalId = `mtr-race-${crypto.randomUUID()}`;
+
+    afterAll(async () => {
+      await db
+        .deleteFrom("ignoredMetaSourceEvents")
+        .where("provider", "=", provider)
+        .where("externalId", "=", externalId)
+        .execute();
+      await db.deleteFrom("uvsgamesEvents").where("externalId", "=", externalId).execute();
+    });
+
+    it("lets exactly one of the two requests triage the event", async () => {
+      await db
+        .insertInto("uvsgamesEvents")
+        .values({
+          externalId,
+          name: "MTR Race Cup",
+          startAt: new Date("2026-08-15T09:00:00Z"),
+          displayStatus: "complete",
+          contentHash: "mtr-race-hash",
+          lastSeenAt: new Date("2026-08-16T00:00:00Z"),
+        })
+        .execute();
+
+      const [accepted, dismissed] = await Promise.all([
+        app.fetch(adminReq("POST", "/meta/catalogue/accept", { externalId, format: FORMAT })),
+        app.fetch(adminReq("POST", "/meta/catalogue/dismiss", { externalId })),
+      ]);
+      const acceptWon = accepted.status === 200;
+      const acceptedJson = acceptWon ? await readJson(accepted) : undefined;
+      const acceptedEventId = acceptedJson?.metaEventId;
+      if (acceptedEventId !== undefined) {
+        createdEventIds.push(acceptedEventId);
+      }
+      expect(acceptWon ? dismissed.status : accepted.status).toBe(409);
+
+      const citations = await db
+        .selectFrom("metaEventSources")
+        .select("metaEventId")
+        .where("provider", "=", provider)
+        .where("externalId", "=", externalId)
+        .execute();
+      const ignored = await db
+        .selectFrom("ignoredMetaSourceEvents")
+        .select("externalId")
+        .where("provider", "=", provider)
+        .where("externalId", "=", externalId)
+        .execute();
+
+      if (acceptWon) {
+        expect(citations).toEqual([{ metaEventId: acceptedEventId }]);
+        expect(ignored).toEqual([]);
+      } else {
+        expect(dismissed.status).toBe(204);
+        expect(citations).toEqual([]);
+        expect(ignored).toEqual([{ externalId }]);
+      }
+    });
+  });
 });
 
 // Public reads, from a request with no session at all.

@@ -11,11 +11,9 @@ import { fetchJson } from "../../../../lib/http.js";
 import type { StagingRow } from "../../lib/marketplace-configs.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
 import type { CrossRefCandidate } from "./cross-ref-match.js";
-import { autoMatchByCrossReference } from "./cross-ref-match.js";
-import { finishPriceRefresh } from "./finish.js";
+import { refreshFetchedPrices } from "./finish.js";
 import { PRICE_FETCH_RETRIES } from "./types.js";
 import type { GroupRow } from "./types.js";
-import { loadIgnoredKeys, upsertMarketplaceGroups } from "./upsert.js";
 
 const CT_API_BASE = "https://api.cardtrader.com/api/v2";
 const CT_GAME_ID = 22; // Riftbound
@@ -291,36 +289,19 @@ function crossRefCandidates(
     }));
 }
 
-export async function refreshCardtraderPrices(
+export function refreshCardtraderPrices(
   fetchFn: Fetch,
   repos: Repos,
   log: Logger,
   apiToken: string,
 ): Promise<PriceRefreshResponse> {
   const authHeaders = { Authorization: `Bearer ${apiToken}` };
-  const ignoredKeys = await loadIgnoredKeys(repos.priceRefresh, "cardtrader");
-
-  const fetchResult = await fetchCardtraderData(fetchFn, authHeaders, log);
-  const { expansions, blueprints, prices } = fetchResult;
-
-  // Groups must be upserted before auto-match: the variant rows need the FK.
-  const groupRows = buildCardtraderGroups(expansions);
-  await upsertMarketplaceGroups(repos.priceRefresh, "cardtrader", groupRows);
-
-  // Auto-match before transform so newly matched products get snapshots.
-  await autoMatchByCrossReference(repos, "cardtrader", crossRefCandidates(blueprints, prices), log);
-
-  const allStaging = buildCardtraderStaging(fetchResult, ignoredKeys);
-
-  const transformedCounts = {
-    groups: groupRows.length,
-    products: blueprints.filter((bp) => bp.category_id === CT_SINGLES_CATEGORY).length,
-    prices: allStaging.length,
-  };
-
-  return finishPriceRefresh(repos, log, "cardtrader", {
-    ignoredKeys,
-    transformed: transformedCounts,
-    staging: allStaging,
+  return refreshFetchedPrices(repos, log, "cardtrader", {
+    fetch: () => fetchCardtraderData(fetchFn, authHeaders, log),
+    staging: buildCardtraderStaging,
+    groups: (fetched) => buildCardtraderGroups(fetched.expansions),
+    products: (fetched) =>
+      fetched.blueprints.filter((bp) => bp.category_id === CT_SINGLES_CATEGORY).length,
+    crossReferences: (fetched) => crossRefCandidates(fetched.blueprints, fetched.prices),
   });
 }

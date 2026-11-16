@@ -1,4 +1,5 @@
 import type { ImageQuad } from "@openrift/shared/contracts/admin/card-images";
+import { clamp } from "@openrift/shared/math";
 import { canonicalizeQuad } from "@openrift/shared/scan/geometry";
 import type { Point, Quad } from "@openrift/shared/scan/types";
 
@@ -36,11 +37,11 @@ export function scaleQuad(quad: ImageQuad, factor: number): ImageQuad {
 }
 
 export function clampQuad(quad: ImageQuad, width: number, height: number): ImageQuad {
-  const clamp = (point: Point): Point => ({
-    x: Math.min(Math.max(point.x, 0), width),
-    y: Math.min(Math.max(point.y, 0), height),
+  const clampPoint = (point: Point): Point => ({
+    x: clamp(point.x, 0, width),
+    y: clamp(point.y, 0, height),
   });
-  return [clamp(quad[0]), clamp(quad[1]), clamp(quad[2]), clamp(quad[3])];
+  return [clampPoint(quad[0]), clampPoint(quad[1]), clampPoint(quad[2]), clampPoint(quad[3])];
 }
 
 export function orderQuadFromOrigin(quad: Quad): ImageQuad {

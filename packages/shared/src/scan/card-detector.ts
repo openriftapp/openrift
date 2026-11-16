@@ -2,6 +2,7 @@
  * Decoding for the learned single-card corner detector: the guide window it
  * reads, and the quad recovered from its corner heatmap.
  */
+import { clamp } from "../math";
 import { candidateFromQuad } from "./geometry";
 import { heatmapPeaks } from "./heatmap";
 import { centeredGuideQuad } from "./session-options";
@@ -78,9 +79,9 @@ export function fillCardDetectorInput(frame: RgbaImage, input: Float32Array): De
   const scaleX = window.width / CARD_DETECTOR_VIEW_WIDTH;
   const scaleY = window.height / CARD_DETECTOR_VIEW_HEIGHT;
   for (let y = 0; y < CARD_DETECTOR_VIEW_HEIGHT; y++) {
-    const sy = Math.min(frame.height - 1, Math.max(0, Math.floor(window.y + (y + 0.5) * scaleY)));
+    const sy = clamp(Math.floor(window.y + (y + 0.5) * scaleY), 0, frame.height - 1);
     for (let x = 0; x < CARD_DETECTOR_VIEW_WIDTH; x++) {
-      const sx = Math.min(frame.width - 1, Math.max(0, Math.floor(window.x + (x + 0.5) * scaleX)));
+      const sx = clamp(Math.floor(window.x + (x + 0.5) * scaleX), 0, frame.width - 1);
       const source = (sy * frame.width + sx) * 4;
       const target = y * CARD_DETECTOR_VIEW_WIDTH + x;
       input[target] = (frame.data[source] ?? 0) / 255;

@@ -1,3 +1,4 @@
+import { clamp } from "@openrift/shared/math";
 import { errorMessage } from "@openrift/shared/strings";
 import type { Insertable } from "kysely";
 
@@ -195,7 +196,7 @@ async function readEmptyDecks(
   reads: PlayloltcgDeckReads,
   errors: string[],
 ): Promise<void> {
-  const asked = sourceDeckIds.slice(0, Math.max(Math.min(budget, EMPTY_RETRIES_PER_VISIT), 0));
+  const asked = sourceDeckIds.slice(0, clamp(budget, 0, EMPTY_RETRIES_PER_VISIT));
   await deps.repos.playloltcgResults.markDecksAsked(activityShopId, asked, clock(deps));
   await readDecks(deps, asked, reads, errors);
 }

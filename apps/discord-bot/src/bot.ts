@@ -170,6 +170,10 @@ let glyphEmojis: GlyphEmojis = NO_GLYPH_EMOJIS;
 let cachedIndex: { snapshot: unknown; index: CardSearchIndex<LookupRow<CatalogCard>> } | null =
   null;
 
+function retryLater(problem: string): string {
+  return `${problem}, try again in a moment.`;
+}
+
 function indexFor(cache: CatalogCache): CardSearchIndex<LookupRow<CatalogCard>> | null {
   const snapshot = cache.snapshot;
   if (!snapshot) {
@@ -336,7 +340,7 @@ async function handleRuleCommand(ctx: BotContext, interaction: ChatInputCommandI
   const entry = index ? findRule(index, query) : undefined;
   if (!index) {
     await interaction.reply({
-      content: "Rules data is still loading, try again in a moment.",
+      content: retryLater("Rules data is still loading"),
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -375,7 +379,7 @@ async function handleSearchCommand(ctx: BotContext, interaction: ChatInputComman
     const content =
       isDefinedError(error) && error.code === "BAD_REQUEST"
         ? searchErrorText(query, error.data.warnings)
-        : "Search failed, try again in a moment.";
+        : retryLater("Search failed");
     await interaction.editReply({ content });
     return;
   }
@@ -414,7 +418,7 @@ async function handleCardCommand(ctx: BotContext, interaction: ChatInputCommandI
     interaction.inGuild() ? interaction.guildLocale : interaction.locale,
   );
   if (!reply) {
-    await interaction.editReply("Card data is still loading, try again in a moment.");
+    await interaction.editReply(retryLater("Card data is still loading"));
     return;
   }
   await interaction.editReply({
@@ -450,7 +454,7 @@ async function handleLinkCommand(ctx: BotContext, interaction: ChatInputCommandI
         ? "That code isn't valid (anymore). Generate a fresh one on the group's Manage page."
         : isDefinedError(error) && error.code === "CONFLICT"
           ? "This server is already linked to a different OpenRift group. Unlink it there first."
-          : "Linking failed, try again in a moment.";
+          : retryLater("Linking failed");
     await interaction.reply({ content, flags: MessageFlags.Ephemeral });
     return;
   }
@@ -484,7 +488,7 @@ async function handleTradeChannelCommand(
   if (error) {
     log.error({ err: error }, "set-trade-channel failed");
     await interaction.reply({
-      content: "Couldn't save that, try again in a moment.",
+      content: retryLater("Couldn't save that"),
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -514,7 +518,7 @@ async function handleDeckCommand(ctx: BotContext, interaction: ChatInputCommandI
   const snapshot = ctx.cache.snapshot;
   if (!snapshot) {
     await interaction.reply({
-      content: "Card data is still loading, try again in a moment.",
+      content: retryLater("Card data is still loading"),
       flags: MessageFlags.Ephemeral,
     });
     return;

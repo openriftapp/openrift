@@ -1,6 +1,7 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { buildCodeIndex, lookupCode } from "@openrift/shared/card-search";
 import type { CodeEntry, CodeIndex } from "@openrift/shared/card-search";
+import { clamp } from "@openrift/shared/math";
 import { memberNameEnglish } from "@openrift/shared/member-name";
 import { foldForSearch } from "@openrift/shared/search-fold";
 import { cardUrl } from "@openrift/shared/site-paths";
@@ -53,7 +54,7 @@ export function buildScanIndex(
     }
     const key = tokens.join(" ");
     byName.set(key, [...(byName.get(key) ?? []), card]);
-    maxTokens = Math.min(Math.max(maxTokens, tokens.length), MAX_NAME_TOKENS);
+    maxTokens = clamp(tokens.length, maxTokens, MAX_NAME_TOKENS);
     for (const printing of printingsByCardId.get(card.id) ?? []) {
       codeEntries.push({ card, printing });
     }

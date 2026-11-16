@@ -3,6 +3,7 @@
  * marked and plain references' stamp box over a wide window, so a few percent of outline error
  * does not move the stamp out of view. Both are then compared on the pixels where they differ.
  */
+import { clamp } from "../math";
 import { toGray } from "./image";
 import { SESSION_UNWARP_HEIGHT, SESSION_UNWARP_WIDTH } from "./session-options";
 import type { RgbaImage } from "./types";
@@ -71,12 +72,12 @@ function cropPlane(src: Raster, box: Box): Plane {
 function resizePlane(src: Raster, width: number, height: number): Plane {
   const data = new Float32Array(width * height);
   for (let row = 0; row < height; row++) {
-    const sy = Math.min(src.height - 1, Math.max(0, ((row + 0.5) * src.height) / height - 0.5));
+    const sy = clamp(((row + 0.5) * src.height) / height - 0.5, 0, src.height - 1);
     const y0 = Math.floor(sy);
     const y1 = Math.min(src.height - 1, y0 + 1);
     const fy = sy - y0;
     for (let col = 0; col < width; col++) {
-      const sx = Math.min(src.width - 1, Math.max(0, ((col + 0.5) * src.width) / width - 0.5));
+      const sx = clamp(((col + 0.5) * src.width) / width - 0.5, 0, src.width - 1);
       const x0 = Math.floor(sx);
       const x1 = Math.min(src.width - 1, x0 + 1);
       const fx = sx - x0;
@@ -94,8 +95,7 @@ function edges(src: Plane): Plane {
   const { width, height } = src;
   const data = new Float32Array(width * height);
   const at = (x: number, y: number) =>
-    src.data[Math.min(height - 1, Math.max(0, y)) * width + Math.min(width - 1, Math.max(0, x))] ??
-    0;
+    src.data[clamp(y, 0, height - 1) * width + clamp(x, 0, width - 1)] ?? 0;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const gx =
@@ -271,8 +271,8 @@ export function stampPair(plainReference: RgbaImage, markedReference: RgbaImage)
           let on = 0;
           for (let dy = -1; dy <= 1 && !on; dy++) {
             for (let dx = -1; dx <= 1 && !on; dx++) {
-              const yy = Math.min(height - 1, Math.max(0, y + dy));
-              const xx = Math.min(width - 1, Math.max(0, x + dx));
+              const yy = clamp(y + dy, 0, height - 1);
+              const xx = clamp(x + dx, 0, width - 1);
               on = differs[yy * width + xx] ?? 0;
             }
           }

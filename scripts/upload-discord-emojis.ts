@@ -10,10 +10,11 @@ import path from "node:path";
 
 import sharp from "sharp";
 
-import { discordRetryAfterMs } from "../apps/api/src/lib/discord-rate-limit.js";
+import { sendWithDiscordRetry } from "../packages/shared/src/discord-rate-limit.js";
 import { requireEnv } from "./env.js";
 
 const API = "https://discord.com/api/v10";
+const REQUEST_TIMEOUT_MS = 10_000;
 const GLYPH_DIR = path.join(import.meta.dirname, "../apps/web/public/images/glyphs");
 
 const SIZE = 128;
@@ -106,26 +107,27 @@ async function renderGlyphs(): Promise<GlyphAsset[]> {
 }
 
 async function discord(token: string, method: string, route: string, body?: unknown) {
-  for (;;) {
-    const response = await fetch(`${API}${route}`, {
-      method,
-      headers: {
-        Authorization: `Bot ${token}`,
-        ...(body === undefined ? {} : { "Content-Type": "application/json" }),
-      },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    if (response.status === 429) {
-      const waitMs = discordRetryAfterMs(response, await response.text());
-      console.log(`Rate limited, waiting ${waitMs / 1000}s`);
-      await Bun.sleep(waitMs);
-      continue;
-    }
-    if (!response.ok) {
-      throw new Error(`${method} ${route} failed: ${response.status} ${await response.text()}`);
-    }
-    return response.status === 204 ? undefined : await response.json();
+  const result = await sendWithDiscordRetry(
+    (signal) =>
+      fetch(`${API}${route}`, {
+        method,
+        headers: {
+          Authorization: `Bot ${token}`,
+          ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+        },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal,
+      }),
+    {
+      timeoutMs: REQUEST_TIMEOUT_MS,
+      sleep: (ms) => Bun.sleep(ms),
+      onRateLimited: (waitMs) => console.log(`Rate limited, waiting ${waitMs / 1000}s`),
+    },
+  );
+  if (!result.ok) {
+    throw new Error(`${method} ${route} failed: ${result.status} ${result.body}`);
   }
+  return result.response.status === 204 ? undefined : await result.response.json();
 }
 
 const force = process.argv.includes("--force");

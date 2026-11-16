@@ -96,9 +96,10 @@ export function textRegionSignature(card: RgbaImage, band: TextBand = TEXT_REGIO
     return null;
   }
   const crop = cropGray(toGray(card), band);
-  const height = Math.max(
+  const height = clamp(
+    Math.round((SIGNATURE_WIDTH * crop.height) / Math.max(1, crop.width)),
     24,
-    Math.min(96, Math.round((SIGNATURE_WIDTH * crop.height) / Math.max(1, crop.width))),
+    96,
   );
   return normalizeSignature(downscaleGray(crop, SIGNATURE_WIDTH, height));
 }
@@ -112,10 +113,7 @@ export function codeStripSignature(card: RgbaImage): GrayImage | null {
   if (crop.width < CODE_SIGNATURE_WIDTH) {
     return null;
   }
-  const height = Math.max(
-    12,
-    Math.min(32, Math.round((CODE_SIGNATURE_WIDTH * crop.height) / crop.width)),
-  );
+  const height = clamp(Math.round((CODE_SIGNATURE_WIDTH * crop.height) / crop.width), 12, 32);
   if (crop.height < height) {
     return null;
   }
@@ -131,10 +129,7 @@ export function stampBandSignature(card: RgbaImage): GrayImage | null {
   if (crop.width < STAMP_SIGNATURE_WIDTH) {
     return null;
   }
-  const height = Math.max(
-    16,
-    Math.min(44, Math.round((STAMP_SIGNATURE_WIDTH * crop.height) / crop.width)),
-  );
+  const height = clamp(Math.round((STAMP_SIGNATURE_WIDTH * crop.height) / crop.width), 16, 44);
   if (crop.height < height) {
     return null;
   }
@@ -230,9 +225,9 @@ export function shiftGray(src: GrayImage, dx: number, dy: number): GrayImage {
   const { width, height } = src;
   const data = new Uint8Array(width * height);
   for (let y = 0; y < height; y++) {
-    const sy = Math.min(height - 1, Math.max(0, y + dy));
+    const sy = clamp(y + dy, 0, height - 1);
     for (let x = 0; x < width; x++) {
-      const sx = Math.min(width - 1, Math.max(0, x + dx));
+      const sx = clamp(x + dx, 0, width - 1);
       data[y * width + x] = src.data[sy * width + sx] ?? 0;
     }
   }

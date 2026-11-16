@@ -1,7 +1,8 @@
 import { chunk } from "@openrift/shared/collections";
+import type { DiscordSendResult } from "@openrift/shared/discord-rate-limit";
+import { sendWithDiscordRetry } from "@openrift/shared/discord-rate-limit";
 import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
-import { MINUTE_MS } from "@openrift/shared/format-date";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { Logger } from "@openrift/shared/logger";
 import { printingVariantPartsEnglish } from "@openrift/shared/printing-label";
@@ -9,7 +10,6 @@ import { cardUrl } from "@openrift/shared/site-paths";
 import { errorMessage } from "@openrift/shared/strings";
 import { WellKnown } from "@openrift/shared/well-known";
 
-import { discordRetryAfterMs } from "../../../lib/discord-rate-limit.js";
 import { DEFAULT_TIMEOUT_MS } from "../../../lib/http.js";
 import type { EnrichedPrintingEvent } from "../../catalog/repositories/printing-events.js";
 
@@ -19,8 +19,6 @@ const SUMMARY_THRESHOLD = 20;
 // Discord caps an embed description at 4096 characters.
 const MAX_DESCRIPTION_LENGTH = 4000;
 const MESSAGE_INTERVAL_MS = 1000;
-const MAX_RATE_LIMIT_RETRIES = 3;
-const MAX_RETRY_AFTER_MS = MINUTE_MS;
 
 const COLOR_NEW = 0x57_f2_87;
 
@@ -288,33 +286,31 @@ async function postMessage(
   log: Logger,
   sleep: (ms: number) => Promise<unknown>,
 ): Promise<{ status?: number; detail: string } | null> {
-  for (let attempt = 0; ; attempt++) {
-    let response: Response;
-    try {
-      response = await fetch(webhookUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
-      });
-    } catch (error) {
-      const detail = errorMessage(error);
-      log.warn({ error }, "Discord webhook request error");
-      return { detail };
-    }
-    if (response.ok) {
-      return null;
-    }
-    const text = await response.text().catch(() => "");
-    if (response.status === 429 && attempt < MAX_RATE_LIMIT_RETRIES) {
-      const waitMs = discordRetryAfterMs(response, text);
-      if (waitMs <= MAX_RETRY_AFTER_MS) {
-        log.warn({ waitMs, attempt }, "Discord webhook rate limited, waiting");
-        await sleep(waitMs);
-        continue;
-      }
-    }
-    log.warn({ status: response.status, body: text }, "Discord webhook request failed");
-    return { status: response.status, detail: text };
+  let result: DiscordSendResult;
+  try {
+    result = await sendWithDiscordRetry(
+      (signal) =>
+        fetch(webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+          signal,
+        }),
+      {
+        timeoutMs: DEFAULT_TIMEOUT_MS,
+        sleep,
+        onRateLimited: (waitMs, attempt) =>
+          log.warn({ waitMs, attempt }, "Discord webhook rate limited, waiting"),
+      },
+    );
+  } catch (error) {
+    const detail = errorMessage(error);
+    log.warn({ error }, "Discord webhook request error");
+    return { detail };
   }
+  if (result.ok) {
+    return null;
+  }
+  log.warn({ status: result.status, body: result.body }, "Discord webhook request failed");
+  return { status: result.status, detail: result.body };
 }
