@@ -20,6 +20,7 @@
 - feat(Tournaments): **Deck counts as meta shares** — the meta share dialog takes deck counts as well as percents, and standings show the number as entered.
 - feat(Tournaments): **Unconfirmed rounds marked in standings** — results from rounds that are not finalized yet show muted in the Run column.
 - fix(Tournaments): **No draws in the top cut** — bracket matches offer only win scorelines, and the seats drop the player avatar to leave room for names. Match cards show their full outline, and seats show the Legend without its domain icons.
+- fix(Tournaments): **Legend from the decklist** — adding or editing a player's decklist sets their Legend to the one in the list, until the groups are drawn.
 - fix(Trades): **Trade badges readable over card art** — the "Requested", "Offered" and "In a trade" badges on market cards now use a solid colour.
 - fix(Decks): **Fresh deck dialogs** — reopening a deck dialog right after closing it no longer shows the text you typed before.
 - fix(Decks): **Old comparison links** — a comparison link from before the deck id change now opens the right decks straight away.

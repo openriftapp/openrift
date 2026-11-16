@@ -24,11 +24,16 @@ export function podRoundMutationInvalidationKeys(userId: string, id: string) {
   ];
 }
 
+/** Includes the participants: a list write can change a participant's legend. */
 export function deckCheckEntryInvalidationKeys(
   userId: string,
   vars: { tournamentId: string; entryId?: string },
 ): (readonly unknown[])[] {
-  const keys: (readonly unknown[])[] = [tournamentDeckCheckKeys.entries(userId, vars.tournamentId)];
+  const keys: (readonly unknown[])[] = [
+    tournamentDeckCheckKeys.entries(userId, vars.tournamentId),
+    tournamentsKeys.participants(userId, vars.tournamentId),
+    podTournamentsKeys.detail(userId, vars.tournamentId),
+  ];
   if (vars.entryId) {
     keys.push(tournamentDeckCheckKeys.entry(userId, vars.tournamentId, vars.entryId));
   }

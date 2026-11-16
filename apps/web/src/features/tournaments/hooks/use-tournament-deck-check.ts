@@ -268,7 +268,7 @@ export function useReResolveTournamentDeckCheck() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation({
     mutationFn: (vars: { tournamentId: string }) => reResolveFn({ data: vars.tournamentId }),
-    invalidates: (vars) => [tournamentDeckCheckKeys.entries(userId, vars.tournamentId)],
+    invalidates: (vars) => deckCheckEntryInvalidationKeys(userId, vars),
   });
 }
 

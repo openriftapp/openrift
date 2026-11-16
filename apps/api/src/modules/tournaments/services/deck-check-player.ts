@@ -23,6 +23,7 @@ import type { DeckCheckEntry } from "../repositories/deck-check-entries.js";
 import type { NewDeckCheckEntryCard } from "../repositories/deck-check-entry-cards.js";
 import type { DeckCheckEvent } from "../repositories/deck-check-events.js";
 import { cardResolutionKey, resolveDeckCheckCards } from "./deck-check-card-resolution.js";
+import { syncDeckCheckLegend } from "./deck-check-legend.js";
 
 /**
  * Claims a participant (a tournament "spot") via its claim token. Rooted on
@@ -322,6 +323,7 @@ export async function applyPlayerList(
     ...consentPatch(consent),
   });
   await repos.deckCheck.replaceEntryCards(entry.id, cardRows);
+  await syncDeckCheckLegend(repos, entry);
   return updated ?? entry;
 }
 
@@ -369,5 +371,6 @@ export async function createSelfSubmittedEntry(
     state: "submitted",
   });
   await repos.deckCheck.replaceEntryCards(entry.id, cardRows);
+  await syncDeckCheckLegend(repos, entry);
   return entry;
 }

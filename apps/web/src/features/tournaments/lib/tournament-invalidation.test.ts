@@ -55,15 +55,21 @@ describe("deckCheckEntryInvalidationKeys", () => {
     expect(keys).toContainEqual(tournamentDeckCheckKeys.entries(userId, tournamentId));
   });
 
-  it("invalidates only the list when no entry id is given", () => {
+  it("invalidates the participants and pod detail, whose legends follow the list", () => {
     const keys = deckCheckEntryInvalidationKeys(userId, { tournamentId });
-    expect(keys).toHaveLength(1);
+    expect(keys).toContainEqual(tournamentsKeys.participants(userId, tournamentId));
+    expect(keys).toContainEqual(podTournamentsKeys.detail(userId, tournamentId));
+  });
+
+  it("leaves out the entry detail when no entry id is given", () => {
+    const keys = deckCheckEntryInvalidationKeys(userId, { tournamentId });
+    expect(keys).toHaveLength(3);
   });
 
   it("also invalidates the single entry's detail when an entry id is given", () => {
     const keys = deckCheckEntryInvalidationKeys(userId, { tournamentId, entryId });
     expect(keys).toContainEqual(tournamentDeckCheckKeys.entries(userId, tournamentId));
     expect(keys).toContainEqual(tournamentDeckCheckKeys.entry(userId, tournamentId, entryId));
-    expect(keys).toHaveLength(2);
+    expect(keys).toHaveLength(4);
   });
 });

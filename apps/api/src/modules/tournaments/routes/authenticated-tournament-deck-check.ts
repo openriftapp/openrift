@@ -22,7 +22,8 @@ import {
   cardResolutionKey,
   resolveDeckCheckCards,
 } from "../services/deck-check-card-resolution.js";
-import { createManualDeckCheckEntry, recomputeEntryHash } from "../services/deck-check-ingest.js";
+import { createManualDeckCheckEntry, refreshEditedEntry } from "../services/deck-check-ingest.js";
+import { syncDeckCheckLegend } from "../services/deck-check-legend.js";
 import { linesFromDeckCode } from "../services/deck-check-player.js";
 import {
   applyJudgeTransition,
@@ -168,12 +169,16 @@ export const tournamentDeckCheckRouter = {
         const fresh = await txRepos.deckCheck.getEntryForUpdate(event.id, input.entryId);
         assertFound(fresh, "Entry not found");
         const settled = await settleExpiredEditable(txRepos, event, fresh);
-        return applyJudgeTransition(txRepos, context.userId, settled, {
+        const transitioned = await applyJudgeTransition(txRepos, context.userId, settled, {
           state: input.state,
           reviewOutcome: input.reviewOutcome,
           notes: input.notes,
           playerMessage: input.playerMessage,
         });
+        if (settled.state === "withdrawn" || transitioned.state === "withdrawn") {
+          await syncDeckCheckLegend(txRepos, transitioned);
+        }
+        return transitioned;
       });
       return buildEntryDetail(repos, event, updated);
     },
@@ -256,7 +261,7 @@ export const tournamentDeckCheckRouter = {
         ...resolution,
       });
     });
-    await recomputeEntryHash(repos, entry.id);
+    await refreshEditedEntry(repos, entry);
     const reloaded = await loadEntry(repos, event, input.entryId);
     return buildEntryDetail(repos, event, reloaded);
   }),
@@ -293,7 +298,7 @@ export const tournamentDeckCheckRouter = {
         });
       }
       assertExisted(updated, "Card not found");
-      await recomputeEntryHash(repos, entry.id);
+      await refreshEditedEntry(repos, entry);
       const reloaded = await loadEntry(repos, event, input.entryId);
       return buildEntryDetail(repos, event, reloaded);
     },
@@ -336,7 +341,7 @@ export const tournamentDeckCheckRouter = {
         applied += 1;
       }
       if (applied > 0) {
-        await recomputeEntryHash(repos, entry.id);
+        await refreshEditedEntry(repos, entry);
       }
       const reloaded = await loadEntry(repos, event, input.entryId);
       return buildEntryDetail(repos, event, reloaded);
@@ -346,7 +351,8 @@ export const tournamentDeckCheckRouter = {
   removeCardCopy: os.removeCardCopy.handler(async ({ input, context }): Promise<void> => {
     const repos = context.repos;
     const event = await authorizeJudge(repos, input.tournamentId, context.userId);
-    requireListVisible(await loadEntryForWrite(repos, event, input.entryId));
+    const entry = await loadEntryForWrite(repos, event, input.entryId);
+    requireListVisible(entry);
 
     const removed = await repos.deckCheck.deleteEntryCardCopy(
       input.entryId,
@@ -354,7 +360,7 @@ export const tournamentDeckCheckRouter = {
       input.copyIndex,
     );
     assertExisted(removed, "Card not found");
-    await recomputeEntryHash(repos, input.entryId);
+    await refreshEditedEntry(repos, entry);
   }),
 
   tickCard: os.tickCard.handler(async ({ input, context }): Promise<void> => {
@@ -404,6 +410,9 @@ export const tournamentDeckCheckRouter = {
       }
       await repos.deckCheck.updateCardResolution(card.id, resolution);
       updatedLines += 1;
+    }
+    if (updatedLines > 0) {
+      await repos.tournamentGroups.syncParticipantLegendsFromDeckCheck(event.id);
     }
     return { updatedLines };
   }),

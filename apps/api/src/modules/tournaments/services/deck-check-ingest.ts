@@ -25,6 +25,7 @@ import type { DeckCheckEntry } from "../repositories/deck-check-entries.js";
 import type { NewDeckCheckEntryCard } from "../repositories/deck-check-entry-cards.js";
 import type { DeckCheckHost } from "../repositories/deck-check-shared.js";
 import { cardResolutionKey, resolveDeckCheckCards } from "./deck-check-card-resolution.js";
+import { syncDeckCheckLegend } from "./deck-check-legend.js";
 
 export type DeckCheckIngestPayload = z.infer<typeof deckCheckIngestSchema>;
 
@@ -60,12 +61,16 @@ function mapAllSections(entries: IngestEntry[]): DeckCheckCardLine[][] {
   return mapped;
 }
 
-/** Recomputes from stored lines after a manual edit, so a later provider re-push diffs against what the judge sees. */
-export async function recomputeEntryHash(repos: Repos, entryId: string): Promise<void> {
-  const cards = await repos.deckCheck.listCardsForEntry(entryId);
-  await repos.deckCheck.updateEntry(entryId, {
+/** Recomputes the hash from stored lines so a later provider re-push diffs against what the judge sees. */
+export async function refreshEditedEntry(
+  repos: Repos,
+  entry: Pick<DeckCheckEntry, "id" | "tournamentId" | "participantId">,
+): Promise<void> {
+  const cards = await repos.deckCheck.listCardsForEntry(entry.id);
+  await repos.deckCheck.updateEntry(entry.id, {
     contentHash: sha256HexSync(buildContentHashInput(storedCardLines(cards))),
   });
+  await syncDeckCheckLegend(repos, entry);
 }
 
 /**
@@ -134,6 +139,7 @@ export async function ingestDeckCheckPush(
     });
   };
 
+  const touched = new Set<string>();
   for (const [index, entry] of payload.entries.entries()) {
     const lines = mappedLines[index] ?? [];
     const contentHash = sha256HexSync(buildContentHashInput(lines));
@@ -190,6 +196,7 @@ export async function ingestDeckCheckPush(
         withdrawnAt: entry.withdrawn ? new Date() : null,
       });
       await repos.deckCheck.replaceEntryCards(created.id, cardRows);
+      touched.add(participant.id);
       await recordEntry(entry.externalId, created);
       result.entriesCreated += 1;
       continue;
@@ -198,6 +205,9 @@ export async function ingestDeckCheckPush(
     // A push without the withdrawn flag returns a withdrawn entry to
     // 'submitted'; it does not restore the pre-withdrawal state.
     const wasWithdrawn = existing.state === "withdrawn";
+    if (existing.participantId !== null) {
+      touched.add(existing.participantId);
+    }
     const storedIdentity =
       existing.playerName === null ? { submittedAt: identity.submittedAt } : identity;
     const withdrawalChange = entry.withdrawn
@@ -253,6 +263,10 @@ export async function ingestDeckCheckPush(
       result.checksInvalidated += 1;
     }
     result.entriesUpdated += 1;
+  }
+
+  if (touched.size > 0) {
+    await repos.tournamentGroups.syncParticipantLegendsFromDeckCheck(event.id, [...touched]);
   }
 
   return result;
@@ -313,5 +327,6 @@ export async function createManualDeckCheckEntry(
     withdrawnAt: null,
   });
   await repos.deckCheck.replaceEntryCards(created.id, cardRows);
+  await syncDeckCheckLegend(repos, created);
   return created;
 }

@@ -99,6 +99,57 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
     }
   }
 
+  /** Newest non-withdrawn list per participant; a list without a resolved Legend yields no entry. */
+  async function legendCardIdsFromDeckCheck(
+    tournamentId: string,
+    participantIds?: readonly string[],
+  ): Promise<Map<string, string>> {
+    if (participantIds?.length === 0) {
+      return new Map();
+    }
+    const rows = await db
+      .with("newest", (qb) =>
+        qb
+          .selectFrom("deckCheckEntries as en")
+          .select(["en.id as entryId", "en.participantId as participantId"])
+          .distinctOn("en.participantId")
+          .where("en.tournamentId", "=", tournamentId)
+          .where("en.withdrawnAt", "is", null)
+          .where("en.participantId", "is not", null)
+          .$if(participantIds !== undefined, (q) =>
+            q.where("en.participantId", "in", participantIds ?? []),
+          )
+          .orderBy("en.participantId")
+          .orderBy(sql`en.submitted_at desc nulls last`)
+          .orderBy("en.createdAt", "desc"),
+      )
+      .selectFrom("newest as n")
+      .innerJoin("deckCheckEntryCards as c", "c.entryId", "n.entryId")
+      .select(["n.participantId as participantId", "c.resolvedCardId as cardId"])
+      .distinctOn("n.participantId")
+      .where("c.zone", "=", WellKnown.deckZone.LEGEND)
+      .where("c.resolvedCardId", "is not", null)
+      .where((eb) =>
+        eb.exists(
+          eb
+            .selectFrom("cardCardTypes as cct")
+            .select("cct.cardId")
+            .whereRef("cct.cardId", "=", "c.resolvedCardId")
+            .where("cct.typeSlug", "=", WellKnown.cardType.LEGEND),
+        ),
+      )
+      .orderBy("n.participantId")
+      .orderBy("c.sortOrder")
+      .execute();
+    const legends = new Map<string, string>();
+    for (const row of rows) {
+      if (row.participantId && row.cardId) {
+        legends.set(row.participantId, row.cardId);
+      }
+    }
+    return legends;
+  }
+
   return {
     listGroups(tournamentId: string): Promise<TournamentGroup[]> {
       return db
@@ -437,30 +488,34 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
       return new Map(rows.map((row) => [row.id, legendName(row)]));
     },
 
-    async legendCardIdsFromDeckCheck(tournamentId: string): Promise<Map<string, string>> {
-      const rows = await db
-        .selectFrom("deckCheckEntries as en")
-        .innerJoin("deckCheckEntryCards as c", "c.entryId", "en.id")
-        .select([
-          "en.participantId as participantId",
-          "c.resolvedCardId as cardId",
-          sql<number>`(row_number() over (
-            partition by en.participant_id
-            order by en.submitted_at desc nulls last, en.created_at desc, c.sort_order
-          ))::int`.as("rank"),
-        ])
-        .where("en.tournamentId", "=", tournamentId)
-        .where("en.withdrawnAt", "is", null)
-        .where("c.zone", "=", WellKnown.deckZone.LEGEND)
-        .where("c.resolvedCardId", "is not", null)
-        .execute();
-      const legends = new Map<string, string>();
-      for (const row of rows) {
-        if (row.rank === 1 && row.participantId && row.cardId) {
-          legends.set(row.participantId, row.cardId);
-        }
+    legendCardIdsFromDeckCheck,
+
+    /** Skipped once groups exist, matching the manual-assignment lock. */
+    async syncParticipantLegendsFromDeckCheck(
+      tournamentId: string,
+      participantIds?: readonly string[],
+    ): Promise<void> {
+      const groups = await db
+        .selectFrom("tournamentGroups")
+        .select("id")
+        .where("tournamentId", "=", tournamentId)
+        .limit(1)
+        .executeTakeFirst();
+      if (groups) {
+        return;
       }
-      return legends;
+      const legends = await legendCardIdsFromDeckCheck(tournamentId, participantIds);
+      for (const [participantId, legendCardId] of legends) {
+        await db
+          .updateTable("tournamentParticipants")
+          .set({ legendCardId, updatedAt: new Date() })
+          .where("id", "=", participantId)
+          .where("tournamentId", "=", tournamentId)
+          .where((eb) =>
+            eb.or([eb("legendCardId", "is", null), eb("legendCardId", "!=", legendCardId)]),
+          )
+          .execute();
+      }
     },
 
     async setParticipantLegends(

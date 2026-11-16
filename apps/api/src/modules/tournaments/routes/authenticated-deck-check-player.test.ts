@@ -176,7 +176,8 @@ function makeRepos() {
     catalogContentVersion: stub("catalog-v1"),
   };
   const cardBans = { listActiveForCards: stub([] as unknown[]) };
-  return { deckCheck, tournaments, decks, enums, catalog, cardBans };
+  const tournamentGroups = { syncParticipantLegendsFromDeckCheck: stub<any>(undefined) };
+  return { deckCheck, tournaments, decks, enums, catalog, cardBans, tournamentGroups };
 }
 
 function catalogCards(
@@ -485,6 +486,10 @@ describe("PUT /deck-check/mine/{entryId}/list (editList)", () => {
     expect(repos.deckCheck.replaceEntryCards).toHaveBeenCalledWith(
       ENTRY_ID,
       expect.arrayContaining([expect.objectContaining({ rawName: "Card" })]),
+    );
+    expect(repos.tournamentGroups.syncParticipantLegendsFromDeckCheck).toHaveBeenCalledWith(
+      TOURNAMENT_ID,
+      ["participant-1"],
     );
   });
 
