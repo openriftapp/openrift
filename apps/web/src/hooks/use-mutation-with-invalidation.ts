@@ -13,11 +13,12 @@ export function useMutationWithInvalidation<TData = unknown, TVariables = void>(
 
   return useMutation<TData, Error, TVariables>({
     ...rest,
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
       const keys = typeof invalidates === "function" ? invalidates(variables, data) : invalidates;
-      for (const key of keys) {
-        void queryClient.invalidateQueries({ queryKey: [...key] });
-      }
+      // A rejected onSuccess fails the mutation, so a failed refetch must not reject.
+      await Promise.allSettled(
+        keys.map((key) => queryClient.invalidateQueries({ queryKey: [...key] })),
+      );
     },
   });
 }

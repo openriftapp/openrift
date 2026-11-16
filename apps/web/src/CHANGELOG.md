@@ -45,6 +45,7 @@
 - fix(Tournaments): **Custom settings open when creating an event** — the Custom section on the new tournament page shows its region option without having to expand it first.
 - fix(Cards): **Cleared languages stay cleared** — removing every language from the filter while the page is still loading your settings no longer brings your default languages back.
 - fix(Cards): **Retyped searches apply** — typing a search again right after switching a deck zone or clearing filters removed it now filters the cards.
+- fix(General): **Saves wait for fresh data** — buttons stay busy until the page has reloaded the saved data, so a quick second edit no longer overwrites the first.
 
 ## 2026-11-15
 
