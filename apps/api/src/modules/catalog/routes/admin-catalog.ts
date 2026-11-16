@@ -47,7 +47,22 @@ export const adminCatalogRouter = {
     if (!updated) {
       throw errors.NOT_FOUND({ message: `Set "${id}" not found` });
     }
-    await setsRepo.replaceReleases(id, releases);
+    if (releases) {
+      await setsRepo.replaceReleases(id, releases);
+    }
+  }),
+
+  putSetRelease: os.putSetRelease.handler(async ({ input, context, errors }): Promise<void> => {
+    const { sets: setsRepo } = context.repos;
+    const { id, language, release } = input;
+    if (!(await setsRepo.getRef(id))) {
+      throw errors.NOT_FOUND({ message: `Set "${id}" not found` });
+    }
+    await setsRepo.putRelease(id, language, release);
+  }),
+
+  deleteSetRelease: os.deleteSetRelease.handler(async ({ input, context }): Promise<void> => {
+    await context.repos.sets.deleteRelease(input.id, input.language);
   }),
 
   createSet: os.createSet.handler(async ({ input, context, errors }) => {

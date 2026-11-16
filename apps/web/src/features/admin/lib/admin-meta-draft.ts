@@ -302,6 +302,21 @@ export function metaPlayerOverlayList(
   };
 }
 
+/** A list's status travels with its cards, so moving a stored list between full and partial
+ *  needs the list pasted again; without it the change would be dropped. */
+export function metaPlayerStatusChangeNeedsList(
+  player: AdminMetaPlayer,
+  draft: MetaPlayerDraft,
+  cards: readonly ImportedDeckCard[],
+): boolean {
+  return (
+    cards.length === 0 &&
+    player.listStatus !== "none" &&
+    draft.listStatus !== "none" &&
+    draft.listStatus !== player.listStatus
+  );
+}
+
 /** A direct durable write: an overlay claim on the field would drop the name on promotion. */
 export function metaPlayerDeckRename(
   player: AdminMetaPlayer,

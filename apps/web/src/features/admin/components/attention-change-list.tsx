@@ -64,6 +64,33 @@ function fromEditText(change: AttentionChange, text: string, current: unknown): 
   return text;
 }
 
+/** Shows the text as typed and passes the parsed value up, so a trailing comma or an emptied
+ *  number stays visible while typing. */
+function ChangeEditField({
+  change,
+  effective,
+  onEdit,
+}: {
+  change: AttentionChange;
+  effective: unknown;
+  onEdit: (value: unknown) => void;
+}) {
+  const [text, setText] = useState(() => toEditText(effective));
+  const edit = (next: string) => {
+    setText(next);
+    onEdit(fromEditText(change, next, effective));
+  };
+  return change.kind === "text" ? (
+    <Textarea rows={4} value={text} onChange={(event) => edit(event.target.value)} />
+  ) : (
+    <Input
+      aria-label={`New ${change.label}`}
+      value={text}
+      onChange={(event) => edit(event.target.value)}
+    />
+  );
+}
+
 function Thumb({
   url,
   label,
@@ -250,18 +277,7 @@ function ChangeRow({
 
       {isEditing && (
         <div className="pl-8">
-          {change.kind === "text" ? (
-            <Textarea
-              rows={4}
-              value={toEditText(effective)}
-              onChange={(event) => onEdit(fromEditText(change, event.target.value, effective))}
-            />
-          ) : (
-            <Input
-              value={toEditText(effective)}
-              onChange={(event) => onEdit(fromEditText(change, event.target.value, effective))}
-            />
-          )}
+          <ChangeEditField change={change} effective={effective} onEdit={onEdit} />
         </div>
       )}
 

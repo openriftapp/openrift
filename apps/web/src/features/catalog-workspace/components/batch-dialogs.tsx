@@ -22,6 +22,7 @@ import {
   useWorkspaceBatch,
 } from "@/features/catalog-workspace/hooks/use-workspace-batch";
 import { errorText } from "@/lib/error-text";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 const CONFIRM_TITLES: Record<BatchKind, string> = {
   "trusted-cards": "Accept trusted new cards",
@@ -67,8 +68,14 @@ function BatchDialog({
   const { run } = useWorkspaceBatch(kind, false);
   const [outcome, setOutcome] = useState<BatchOutcome | null>(null);
 
-  function confirm() {
-    run.mutate(keys, { onSuccess: setOutcome });
+  async function confirm() {
+    let result: BatchOutcome | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await run.mutateAsync(keys);
+    });
+    if (ok && result) {
+      setOutcome(result);
+    }
   }
 
   return (
@@ -116,7 +123,11 @@ function BatchDialog({
           {outcome === null ? (
             <>
               <DialogCancel />
-              <Button disabled={names.length === 0} pending={run.isPending} onClick={confirm}>
+              <Button
+                disabled={names.length === 0}
+                pending={run.isPending}
+                onClick={() => void confirm()}
+              >
                 {batchButtonLabel(kind, names.length)}
               </Button>
             </>

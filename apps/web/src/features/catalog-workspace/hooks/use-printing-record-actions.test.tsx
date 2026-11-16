@@ -1,6 +1,6 @@
 import type { StagedProductResponse } from "@openrift/shared/types/api/admin";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -67,6 +67,8 @@ vi.mock("@/features/admin/hooks/use-unified-mappings", () => ({
 }));
 vi.mock("@/features/admin/lib/accept-undo", () => ({
   acceptFieldWithUndo: vi.fn(async () => true),
+  revertAcceptedField: (revert: unknown, write: (revert: unknown) => Promise<unknown>) =>
+    write(revert),
 }));
 vi.mock("@/features/catalog-workspace/hooks/use-register-record-actions", () => ({
   useRegisterRecordActions: (actions: RecordActions) => {
@@ -204,12 +206,6 @@ describe("usePrintingRecordActions", () => {
 
   it("Discard pushes an undo that unchecks the row", async () => {
     const { model, candidate } = setup();
-    mocks.generic.current = {
-      ...mutation(),
-      mutate: vi.fn((_input: unknown, options?: { onSuccess?: () => void }) =>
-        options?.onSuccess?.(),
-      ),
-    };
     const client = new QueryClient();
     const { result } = renderHook(
       () =>
@@ -224,7 +220,8 @@ describe("usePrintingRecordActions", () => {
       { wrapper: wrapper(client) },
     );
 
-    result.current.discard(candidate.id);
+    await act(() => result.current.discard(candidate.id));
+    expect(mocks.generic.current?.mutateAsync).toHaveBeenCalledWith(candidate.id);
     expect(toast.success).toHaveBeenCalledWith(
       "Discarded 1 suggestion on Kai'Sa · OGN-001",
       expect.anything(),
@@ -409,17 +406,23 @@ describe("usePrintingRecordActions", () => {
       { wrapper: wrapper(client) },
     );
 
-    result.current.ignoreListing(LISTING);
-    expect(mocks.ignore.current?.mutate).toHaveBeenCalledWith(
-      [{ externalId: 7, finish: "normal", language: null }],
-      expect.objectContaining({ onSettled: expect.any(Function) }),
+    const gate = { open: () => {} };
+    mocks.ignore.current!.mutateAsync.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          gate.open = resolve;
+        }),
     );
+    let run = Promise.resolve();
+    act(() => {
+      run = result.current.ignoreListing(LISTING);
+    });
+    expect(mocks.ignore.current?.mutateAsync).toHaveBeenCalledWith([
+      { externalId: 7, finish: "normal", language: null },
+    ]);
     expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([]);
-    const [, ignoreOptions] = mocks.ignore.current!.mutate.mock.lastCall as [
-      unknown,
-      { onSuccess: () => void },
-    ];
-    ignoreOptions.onSuccess();
+    gate.open();
+    await act(() => run);
     expect(latest()?.label).toBe("Ignored TCGplayer #7 on Kai'Sa · OGN-001");
     await latest()?.undo();
     expect(mocks.unignoreFn).toHaveBeenCalledWith({

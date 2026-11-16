@@ -174,9 +174,16 @@ describe.skipIf(!adminCtx)("Admin catalog workspace batch routes (integration)",
   });
 
   it("returns 403 for a card-review holder", async () => {
-    for (const path of ["trusted-cards", "trusted-printings", "suggested-listings"]) {
+    const bodies = {
+      "trusted-cards": { names: [] },
+      "trusted-printings": { candidatePrintingIds: [] },
+      "suggested-listings": {},
+    };
+    for (const [path, body] of Object.entries(bodies)) {
       const read = await reviewApp.fetch(adminReq("GET", `/catalog/workspace/batch/${path}`));
-      const write = await reviewApp.fetch(adminReq("POST", `/catalog/workspace/batch/${path}`, {}));
+      const write = await reviewApp.fetch(
+        adminReq("POST", `/catalog/workspace/batch/${path}`, body),
+      );
       expect(read.status).toBe(403);
       expect(write.status).toBe(403);
     }

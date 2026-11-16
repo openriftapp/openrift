@@ -20,6 +20,7 @@ const mockKeywords = {
   listAllTranslations: vi.fn(),
   createStyle: vi.fn(),
   upsertStyle: vi.fn(),
+  patchStyleFlags: vi.fn(),
   deleteStyle: vi.fn(),
   upsertTranslation: vi.fn(),
   deleteTranslation: vi.fn(),
@@ -156,6 +157,26 @@ describe("PUT /keywords/:name (updateStyle)", () => {
       darkText: true,
       costKeyword: true,
       cardModifier: true,
+    });
+  });
+});
+
+describe("PATCH /keywords/:name (patchStyleFlags)", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("passes on only the flag that was sent", async () => {
+    const res = await app.request("/api/admin/v1/keywords/Accelerate", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ insertColor: "#112233", costKeyword: true }),
+    });
+    expect(res.status).toBe(204);
+    expect(mockKeywords.patchStyleFlags).toHaveBeenCalledWith("Accelerate", "#112233", {
+      darkText: undefined,
+      costKeyword: true,
+      cardModifier: undefined,
     });
   });
 });

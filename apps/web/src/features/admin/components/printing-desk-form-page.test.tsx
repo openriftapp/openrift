@@ -5,6 +5,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const updateMutateAsync = vi.hoisted(() => vi.fn());
 let flavorText: string | null = null;
+let release: Pick<DeskPrintingRow, "releasedAt" | "releasePrecision"> = {
+  releasedAt: null,
+  releasePrecision: null,
+};
 
 function row(): DeskPrintingRow {
   return {
@@ -27,8 +31,7 @@ function row(): DeskPrintingRow {
     markerSlugs: [],
     distributionChannelSlugs: [],
     announcedAt: null,
-    releasedAt: null,
-    releasePrecision: null,
+    ...release,
     comment: null,
     flavorText,
     imageCount: 0,
@@ -99,6 +102,27 @@ beforeEach(() => {
   vi.clearAllMocks();
   updateMutateAsync.mockResolvedValue(undefined);
   flavorText = null;
+  release = { releasedAt: null, releasePrecision: null };
+});
+
+describe("PrintingDeskEditFields release precision", () => {
+  it("keeps a stored quarter instead of saving it as a month", async () => {
+    release = { releasedAt: "2026-04-01", releasePrecision: "quarter" };
+    const user = userEvent.setup();
+    render(
+      <PrintingDeskEditFields
+        printingId="p-1"
+        scope="printing"
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Quarter" })).toHaveAttribute("aria-pressed", "true");
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(updateMutateAsync.mock.calls[0]?.[0]).not.toHaveProperty("releasePrecision", "month");
+  });
 });
 
 describe("PrintingDeskEditFields flavor text", () => {

@@ -1,5 +1,3 @@
-import type { SourceMappingConfig } from "@/features/admin/lib/price-mappings-types";
-
 export const adminKeys = {
   // `null` is the signed-out slot, so an anonymous "no access" answer can
   // never shadow a user's real one after sign-in.
@@ -57,7 +55,6 @@ export const adminKeys = {
     actions: ["admin", "audit-actions"] as const,
   },
   printingEvents: ["admin", "printing-events"] as const,
-  marketplace: (marketplace: string) => ["admin", marketplace] as const,
   marketplaceGroups: ["admin", "marketplace-groups"] as const,
   groupBanners: ["admin", "group-banners"] as const,
   boardStates: ["admin", "board-states"] as const,
@@ -79,11 +76,6 @@ export const adminKeys = {
   brokenImages: ["admin", "broken-images"] as const,
   lowResImages: ["admin", "low-res-images"] as const,
   missingImages: ["admin", "missing-images"] as const,
-  priceMappings: {
-    bySource: (config: SourceMappingConfig) => ["admin", config.source] as const,
-    bySourceAndFilter: (config: SourceMappingConfig, showAll: boolean) =>
-      ["admin", config.source, "mappings", { all: showAll }] as const,
-  },
   unifiedMappings: {
     all: ["admin", "unified-mappings"] as const,
     list: ["admin", "unified-mappings", "list"] as const,
@@ -177,3 +169,10 @@ export const adminKeys = {
   },
   users: ["admin", "users"] as const,
 } as const;
+
+/** Every view that counts candidate rows: the card pages, the review inbox and the workspace. */
+export const CANDIDATE_REVIEW_SCOPE = [
+  adminKeys.cards.all,
+  adminKeys.reviewQueue,
+  adminKeys.workspace,
+] as const;

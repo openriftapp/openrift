@@ -61,10 +61,33 @@ export const adminCatalogContract = {
       withParams(idParamSchema, {
         name: setFieldRules.name,
         printedTotal: setFieldRules.printedTotal,
-        releases: setReleasesSchema,
+        releases: setReleasesSchema.optional(),
         setType: setFieldRules.setType,
       }),
     ),
+  putSetRelease: authedRoute
+    .route({
+      method: "PUT",
+      path: `${SETS}/{id}/releases/{language}`,
+      tags: [TAG],
+      successStatus: 204,
+    })
+    .errors({ NOT_FOUND: { message: "Set not found" } })
+    .input(
+      z.object({
+        id: z.uuid(),
+        language: z.string().min(1),
+        release: setReleaseInputSchema,
+      }),
+    ),
+  deleteSetRelease: authedRoute
+    .route({
+      method: "DELETE",
+      path: `${SETS}/{id}/releases/{language}`,
+      tags: [TAG],
+      successStatus: 204,
+    })
+    .input(z.object({ id: z.uuid(), language: z.string().min(1) })),
   createSet: authedRoute
     .route({ method: "POST", path: SETS, tags: [TAG], successStatus: 201 })
     .errors({ CONFLICT: { message: "Set already exists" } })

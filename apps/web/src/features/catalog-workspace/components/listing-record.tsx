@@ -52,6 +52,7 @@ import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspa
 import { workspaceQueueQueryOptions } from "@/features/catalog-workspace/lib/workspace-queries";
 import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/workspace-undo";
 import { formatCentsInLocale } from "@/lib/format";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 const MAX_MATCHES = 8;
 const MIN_QUERY_LENGTH = 3;
@@ -133,36 +134,41 @@ function ListingBody({ sku, item }: { sku: ListingSku; item: WorkspaceQueueItem 
     void queryClient.invalidateQueries({ queryKey: adminKeys.workspace });
     navigation.goNext();
   };
-  const doneWith = (entry: WorkspaceUndoEntry) => ({ onSuccess: () => settle(entry) });
-  const assign = (printingId: string) => {
+  const doneWith = async (run: () => Promise<unknown>, entry: WorkspaceUndoEntry) => {
+    if (await runReportedMutation(run)) {
+      settle(entry);
+    }
+  };
+  const assign = async (printingId: string) => {
     const printing = candidates.find((entry) => entry.printing.printingId === printingId);
     const target =
       printing === undefined ? item.cardName : formatPrintingCode(printing.printing.shortCode);
     const entry = assignedListingUndo(sku.marketplace, skuValues, printingId, target);
-    save.mutate(
-      { mappings: [{ ...skuValues, printingId }] },
-      { onSuccess: (result) => settle(result.skipped.length === 0 ? entry : null) },
-    );
+    let result: Awaited<ReturnType<typeof save.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await save.mutateAsync({ mappings: [{ ...skuValues, printingId }] });
+    });
+    if (ok && result) {
+      settle(result.skipped.length === 0 ? entry : null);
+    }
   };
-  const ignore = () => {
-    ignoreVariant.mutate(
-      [skuValues],
-      doneWith(ignoredVariantsUndo(sku.marketplace, [skuValues], record)),
+  const ignore = () =>
+    void doneWith(
+      () => ignoreVariant.mutateAsync([skuValues]),
+      ignoredVariantsUndo(sku.marketplace, [skuValues], record),
     );
-  };
-  const ignoreWholeProduct = () => {
-    ignoreProduct.mutate(
-      [{ externalId: sku.externalId }],
-      doneWith(ignoredProductUndo(sku.marketplace, sku.externalId, record)),
+  const ignoreWholeProduct = () =>
+    void doneWith(
+      () => ignoreProduct.mutateAsync([{ externalId: sku.externalId }]),
+      ignoredProductUndo(sku.marketplace, sku.externalId, record),
     );
-  };
 
   useRegisterRecordActions({
     ignore: pending ? undefined : ignore,
     useSuggestion: (n) => {
       const candidate = candidates[n - 1];
       if (candidate !== undefined && !pending) {
-        assign(candidate.printing.printingId);
+        void assign(candidate.printing.printingId);
       }
     },
   });
@@ -256,7 +262,7 @@ function ListingBody({ sku, item }: { sku: ListingSku; item: WorkspaceQueueItem 
                     size="sm"
                     className="ml-auto"
                     disabled={pending}
-                    onClick={() => assign(candidate.printing.printingId)}
+                    onClick={() => void assign(candidate.printing.printingId)}
                   >
                     Map here {index < 9 && <Kbd>{index + 1}</Kbd>}
                   </Button>
@@ -269,7 +275,10 @@ function ListingBody({ sku, item }: { sku: ListingSku; item: WorkspaceQueueItem 
 
       <RecordSection title="Assign to printing…">
         <Suspense fallback={<Skeleton className="h-9" />}>
-          <ListingPrintingCombobox disabled={pending} onPick={assign} />
+          <ListingPrintingCombobox
+            disabled={pending}
+            onPick={(printingId) => void assign(printingId)}
+          />
         </Suspense>
       </RecordSection>
     </RecordPane>

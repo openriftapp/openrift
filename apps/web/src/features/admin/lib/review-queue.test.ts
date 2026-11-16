@@ -6,6 +6,7 @@ import {
   countReviewKinds,
   matchesReviewFilter,
   reviewItemTarget,
+  nextReviewSlug,
   reviewSectionsBySlug,
   selectReviewItems,
   summarizeReviewItem,
@@ -155,5 +156,25 @@ describe("reviewSectionsBySlug", () => {
     );
 
     expect([...sections]).toEqual([["OGN-001", "attention"]]);
+  });
+});
+
+describe("nextReviewSlug", () => {
+  const ordered = ["OGN-001", "OGN-002", "OGN-003", "OGN-004"];
+
+  it("opens the next card with an inbox item after the current one", () => {
+    const items = [
+      makeReviewQueueItem({ cardSlug: "OGN-001" }),
+      makeReviewQueueItem({ cardSlug: "OGN-002" }),
+      makeReviewQueueItem({ cardSlug: "OGN-004" }),
+    ];
+    expect(nextReviewSlug(ordered, "OGN-002", items, new Set())).toBe("OGN-004");
+  });
+
+  it("wraps to an earlier card and gives null once only the current card is left", () => {
+    const earlier = [makeReviewQueueItem({ cardSlug: "OGN-001" })];
+    expect(nextReviewSlug(ordered, "OGN-003", earlier, new Set())).toBe("OGN-001");
+    const onlyCurrent = [makeReviewQueueItem({ cardSlug: "OGN-003" })];
+    expect(nextReviewSlug(ordered, "OGN-003", onlyCurrent, new Set())).toBeNull();
   });
 });

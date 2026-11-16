@@ -2,7 +2,7 @@ import type { ProductSuggestion } from "@openrift/shared/marketplace-suggestions
 import { suggestionStrength } from "@openrift/shared/marketplace-suggestions";
 import type { UnifiedMappingPrintingResponse } from "@openrift/shared/types/api/admin";
 import { WandSparklesIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
@@ -23,23 +23,21 @@ export function ProductSuggestionChip({
   highlightFinish?: string;
   highlightLanguage?: string;
   highlightMarkers?: boolean;
-  onAssign: (externalId: number, printingId: string) => void;
+  onAssign: (externalId: number, printingId: string) => Promise<unknown>;
   disabled: boolean;
 }) {
   const { printing } = suggestion;
   const strength = suggestionStrength(suggestion);
   const isWeak = strength === "weak";
   const isStrong = strength === "strong";
-  // The parent's `disabled` transitions later and is shared across every chip in
-  // the marketplace, so this local flag gives the clicked chip synchronous feedback.
+  // The parent's `disabled` is shared across every chip in the marketplace, so
+  // this local flag marks the clicked chip until its own save settles.
   const [pending, setPending] = useState(false);
-  useEffect(() => {
-    if (!pending) {
-      return;
-    }
-    const handle = globalThis.setTimeout(() => setPending(false), 5000);
-    return () => globalThis.clearTimeout(handle);
-  }, [pending]);
+  const assign = async () => {
+    setPending(true);
+    await onAssign(productExternalId, printing.printingId);
+    setPending(false);
+  };
   const busy = pending || disabled;
   const tooltip = isWeak
     ? "Accept weak suggestion (mirrors a sibling SKU's mapping)"
@@ -50,10 +48,7 @@ export function ProductSuggestionChip({
       type="button"
       title={tooltip}
       disabled={busy}
-      onClick={() => {
-        setPending(true);
-        onAssign(productExternalId, printing.printingId);
-      }}
+      onClick={() => void assign()}
       className={cn(
         "inline-flex h-5 items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium disabled:opacity-50",
         isStrong &&

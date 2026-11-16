@@ -102,6 +102,31 @@ export function keywordsRepo(db: Kysely<Database>) {
         .execute();
     },
 
+    async patchStyleFlags(
+      name: string,
+      insertColor: string,
+      flags: { darkText?: boolean; costKeyword?: boolean; cardModifier?: boolean },
+    ): Promise<void> {
+      const changed = Object.fromEntries(
+        Object.entries(flags).filter(([, value]) => value !== undefined),
+      );
+      if (Object.keys(changed).length === 0) {
+        return;
+      }
+      await db
+        .insertInto("keywords")
+        .values({
+          name,
+          color: insertColor,
+          darkText: flags.darkText ?? false,
+          costKeyword: flags.costKeyword ?? false,
+          cardModifier: flags.cardModifier ?? false,
+          isWellKnown: false,
+        })
+        .onConflict((oc) => oc.column("name").doUpdateSet(changed))
+        .execute();
+    },
+
     async createStyle(values: {
       name: string;
       color: string;

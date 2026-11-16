@@ -2,6 +2,7 @@ import type { WorkspaceQueueItem } from "@openrift/shared/contracts/admin/catalo
 import { enumLabel } from "@openrift/shared/enum-label";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import { computeProductSuggestions } from "@openrift/shared/marketplace-suggestions";
+import type { AdminMarketplaceName } from "@openrift/shared/types/api/admin";
 import { parseListingCardOwnerId } from "@openrift/shared/workspace-listing-key";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -69,24 +70,31 @@ function skuOf(row: CardListingRow) {
 async function ignoreVariantGroup(
   group: ListingVariantGroup,
   ignores: IgnoreVariants,
-  onDone: () => Promise<void>,
-): Promise<boolean> {
+): Promise<{
+  ignored: { marketplace: AdminMarketplaceName; rows: CardListingRow[] }[];
+  complete: boolean;
+}> {
   const byMarketplace = Map.groupBy(group.rows, (row) => row.marketplace);
-  const runs = [...byMarketplace].map(([marketplace, rows]) =>
-    ignores[marketplace].mutateAsync(rows.map((row) => skuOf(row))),
+  const runs = await Promise.all(
+    [...byMarketplace].map(async ([marketplace, rows]) => {
+      const ok = await runReportedMutation(() =>
+        ignores[marketplace].mutateAsync(rows.map((row) => skuOf(row))),
+      );
+      return ok ? { marketplace, rows } : null;
+    }),
   );
-  const ok = await runReportedMutation(() => Promise.all(runs));
-  if (ok) {
-    await onDone();
-  }
-  return ok;
+  const ignored = runs.filter((run) => run !== null);
+  return { ignored, complete: ignored.length === runs.length };
 }
 
-function groupIgnoreUndo(group: ListingVariantGroup, what: string, record: string) {
-  const byMarketplace = Map.groupBy(group.rows, (row) => row.marketplace);
+function groupIgnoreUndo(
+  ignored: readonly { marketplace: AdminMarketplaceName; rows: CardListingRow[] }[],
+  what: string,
+  record: string,
+) {
   return combinedUndo(
     ignoredUndoText({ what, record }),
-    [...byMarketplace].map(([marketplace, rows]) =>
+    ignored.map(({ marketplace, rows }) =>
       ignoredVariantsUndo(
         marketplace,
         rows.map((row) => skuOf(row)),
@@ -143,15 +151,14 @@ function CardListingsBody({ cardSlug, item }: { cardSlug: string; item: Workspac
   const refresh = () => queryClient.invalidateQueries({ queryKey: adminKeys.workspace });
   const ignoreGroup = async (group: ListingVariantGroup, what: string) => {
     const last = groups.length === 1;
-    const entry = groupIgnoreUndo(group, what, item.cardName);
-    const ignored = await ignoreVariantGroup(group, ignores, async () => {
-      await refresh();
-      if (last) {
-        navigation.goNext();
-      }
-    });
-    if (ignored) {
-      announce(entry);
+    const { ignored, complete } = await ignoreVariantGroup(group, ignores);
+    if (ignored.length === 0) {
+      return;
+    }
+    announce(groupIgnoreUndo(ignored, what, item.cardName));
+    await refresh();
+    if (last && complete) {
+      navigation.goNext();
     }
   };
 
@@ -250,12 +257,24 @@ function ListingLine({
   const pending = disabled || save.isPending || ignoreVariant.isPending || ignoreProduct.isPending;
   const price = listingPriceCents(marketplace, product);
   const { announce } = useWorkspaceUndo();
-  const doneWith = (entry: WorkspaceUndoEntry) => ({
-    onSuccess: () => {
+  const finish = async (run: () => Promise<unknown>, entry: WorkspaceUndoEntry) => {
+    if (await runReportedMutation(run)) {
       announce(entry);
-      void onDone();
-    },
-  });
+      await onDone();
+    }
+  };
+  const assign = async (printingId: string) => {
+    let result: Awaited<ReturnType<typeof save.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await save.mutateAsync({ mappings: [listingAssignment(row, printingId)] });
+    });
+    if (ok && result && result.skipped.length === 0) {
+      announce(assignedListingUndo(marketplace, skuOf(row), printingId, record));
+    }
+    if (ok) {
+      await onDone();
+    }
+  };
 
   return (
     <li className="flex flex-col gap-2 border-t py-1.5 first:border-t-0">
@@ -296,9 +315,9 @@ function ListingLine({
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() =>
-                ignoreVariant.mutate(
-                  [skuOf(row)],
-                  doneWith(ignoredVariantsUndo(marketplace, [skuOf(row)], record)),
+                void finish(
+                  () => ignoreVariant.mutateAsync([skuOf(row)]),
+                  ignoredVariantsUndo(marketplace, [skuOf(row)], record),
                 )
               }
             >
@@ -307,9 +326,9 @@ function ListingLine({
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() =>
-                ignoreProduct.mutate(
-                  [{ externalId: product.externalId }],
-                  doneWith(ignoredProductUndo(marketplace, product.externalId, record)),
+                void finish(
+                  () => ignoreProduct.mutateAsync([{ externalId: product.externalId }]),
+                  ignoredProductUndo(marketplace, product.externalId, record),
                 )
               }
             >
@@ -323,19 +342,7 @@ function ListingLine({
         <Suspense fallback={<Skeleton className="h-9" />}>
           <ListingPrintingCombobox
             disabled={pending}
-            onPick={(printingId) =>
-              save.mutate(
-                { mappings: [listingAssignment(row, printingId)] },
-                {
-                  onSuccess: (result) => {
-                    if (result.skipped.length === 0) {
-                      announce(assignedListingUndo(marketplace, skuOf(row), printingId, record));
-                    }
-                    void onDone();
-                  },
-                },
-              )
-            }
+            onPick={(printingId) => void assign(printingId)}
           />
         </Suspense>
       )}

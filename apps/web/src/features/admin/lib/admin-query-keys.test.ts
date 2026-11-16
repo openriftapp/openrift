@@ -1,15 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import type { SourceMappingConfig } from "@/features/admin/lib/price-mappings-types";
+import { adminKeys, CANDIDATE_REVIEW_SCOPE } from "./admin-query-keys";
 
-import { adminKeys } from "./admin-query-keys";
-
-const mockConfig: SourceMappingConfig = {
-  source: "tcgplayer",
-  displayName: "TCGplayer",
-  shortName: "TCG",
-  productUrl: (id: number) => `https://tcgplayer.com/product/${id}`,
-};
+describe("CANDIDATE_REVIEW_SCOPE", () => {
+  it("covers the card pages, the review inbox and the workspace", () => {
+    expect(CANDIDATE_REVIEW_SCOPE).toEqual([
+      ["admin", "cards"],
+      ["admin", "review-queue"],
+      ["admin", "workspace"],
+    ]);
+  });
+});
 
 describe("adminKeys", () => {
   it("workspace prefixes the queue, the records lists and same-difference counts", () => {
@@ -45,9 +46,8 @@ describe("adminKeys", () => {
     expect(adminKeys.audit.actions).toEqual(["admin", "audit-actions"]);
   });
 
-  it("printingEvents and marketplace", () => {
+  it("printingEvents", () => {
     expect(adminKeys.printingEvents).toEqual(["admin", "printing-events"]);
-    expect(adminKeys.marketplace("tcgplayer")).toEqual(["admin", "tcgplayer"]);
   });
 
   it("marketplaceGroups", () => {
@@ -132,30 +132,6 @@ describe("adminKeys.printingDesk", () => {
     ]) {
       expect(key.slice(0, prefix.length)).toEqual(prefix);
     }
-  });
-});
-
-describe("adminKeys.priceMappings", () => {
-  it("bySource returns tuple with config source", () => {
-    expect(adminKeys.priceMappings.bySource(mockConfig)).toEqual(["admin", "tcgplayer"]);
-  });
-
-  it("bySourceAndFilter returns tuple with source, mappings, and showAll flag", () => {
-    expect(adminKeys.priceMappings.bySourceAndFilter(mockConfig, true)).toEqual([
-      "admin",
-      "tcgplayer",
-      "mappings",
-      { all: true },
-    ]);
-  });
-
-  it("bySourceAndFilter with showAll=false", () => {
-    expect(adminKeys.priceMappings.bySourceAndFilter(mockConfig, false)).toEqual([
-      "admin",
-      "tcgplayer",
-      "mappings",
-      { all: false },
-    ]);
   });
 });
 

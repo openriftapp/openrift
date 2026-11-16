@@ -108,7 +108,7 @@ describe("runWorkspaceUndo", () => {
     expect(toast).not.toHaveBeenCalled();
   });
 
-  it("runs one undo at a time and skips entries that left the stack", async () => {
+  it("queues an undo asked for while another runs and skips entries that left the stack", async () => {
     const gate = { open: () => {} };
     const slow = entry(
       "Slow",
@@ -123,12 +123,39 @@ describe("runWorkspaceUndo", () => {
 
     const first = runWorkspaceUndo(slow, queryClient);
     await runWorkspaceUndo(other, queryClient);
+    await runWorkspaceUndo(slow, queryClient);
     await runWorkspaceUndo(entry("Never pushed"), queryClient);
+    expect(other.undo).not.toHaveBeenCalled();
     gate.open();
     await first;
 
-    expect(other.undo).not.toHaveBeenCalled();
-    expect(stack()).toEqual([other]);
+    expect(slow.undo).toHaveBeenCalledOnce();
+    expect(other.undo).toHaveBeenCalledOnce();
+    expect(stack()).toEqual([]);
+    expect(useWorkspaceSelectionStore.getState().undoing).toBe(false);
+  });
+
+  it("drops the queued undos when the running one fails", async () => {
+    const gate = { fail: (_error: unknown) => {} };
+    const failing = entry(
+      "Failing",
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          gate.fail = reject;
+        }),
+    );
+    const older = entry("Older");
+    useWorkspaceSelectionStore.getState().pushUndo(older);
+    useWorkspaceSelectionStore.getState().pushUndo(failing);
+
+    const first = runWorkspaceUndo(failing, queryClient);
+    await runWorkspaceUndo(older, queryClient);
+    gate.fail(Object.assign(new Error("Network down"), { status: 503 }));
+    await first;
+
+    expect(older.undo).not.toHaveBeenCalled();
+    expect(stack()).toEqual([older, failing]);
+    expect(useWorkspaceSelectionStore.getState().undoQueue).toEqual([]);
   });
 });
 
@@ -151,6 +178,34 @@ describe("useWorkspaceUndo", () => {
     await vi.waitFor(() => expect(stack()).toEqual([older]));
     expect(newer.undo).toHaveBeenCalledOnce();
     expect(older.undo).not.toHaveBeenCalled();
+  });
+
+  it("undoes the next entry down when Z is pressed again before the first undo lands", async () => {
+    const gate = { open: () => {} };
+    const older = entry("Older");
+    const newer = entry(
+      "Newer",
+      () =>
+        new Promise<void>((resolve) => {
+          gate.open = resolve;
+        }),
+    );
+    const { result } = renderHook(() => useWorkspaceUndo(), { wrapper });
+    act(() => {
+      for (const pushed of [older, newer]) {
+        result.current.push(pushed);
+      }
+    });
+
+    act(() => {
+      result.current.undoLatest();
+      result.current.undoLatest();
+    });
+    gate.open();
+
+    await vi.waitFor(() => expect(stack()).toEqual([]));
+    expect(newer.undo).toHaveBeenCalledOnce();
+    expect(older.undo).toHaveBeenCalledOnce();
   });
 
   it("announces an entry with a toast whose Undo runs that entry", async () => {

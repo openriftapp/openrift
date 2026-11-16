@@ -27,7 +27,7 @@ export interface MarketplaceHandlers {
     finish: string,
     language: string | null,
     printingId: string,
-  ) => void;
+  ) => Promise<unknown>;
   onBatchAssignToPrintings: (mappings: PrintingAssignment[]) => void;
   onUnassign: (externalId: number, finish: string, language: string | null) => void;
   onUnmapPrinting: (

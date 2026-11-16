@@ -1,11 +1,9 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-const update = vi.hoisted(() => ({
-  mutate: vi.fn((_input: unknown, options?: { onError?: (error: Error) => void }) => {
-    options?.onError?.(new Error("The request was aborted"));
-  }),
+const releases = vi.hoisted(() => ({
+  put: vi.fn((_input: unknown): Promise<void> => Promise.reject(new Error("aborted"))),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -37,10 +35,15 @@ vi.mock("@/features/cards/hooks/use-sets", () => ({
       ],
     },
   }),
-  useUpdateSet: () => ({ mutate: update.mutate, mutateAsync: vi.fn(), isPending: false }),
+  useUpdateSet: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useCreateSet: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useReorderSets: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useDeleteSet: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}));
+
+vi.mock("@/features/admin/hooks/use-set-releases", () => ({
+  usePutSetRelease: () => ({ mutateAsync: releases.put, isPending: false }),
+  useDeleteSetRelease: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 vi.mock("@/hooks/use-enums", () => ({ useLanguageList: () => [] }));
@@ -55,14 +58,35 @@ describe("SetsPage sets table", () => {
 });
 
 describe("SetsPage release dates", () => {
-  it("puts the stored date back when saving an edited date fails", () => {
+  it("puts the stored date back when saving an edited date fails", async () => {
     render(<SetsPage />);
     const input = screen.getByDisplayValue("2026-01-01");
 
     fireEvent.change(input, { target: { value: "2026-02-02" } });
 
-    expect(update.mutate).toHaveBeenCalled();
-    expect(screen.getByDisplayValue("2026-01-01")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByDisplayValue("2026-01-01")).toBeInTheDocument());
     expect(screen.queryByDisplayValue("2026-02-02")).not.toBeInTheDocument();
+  });
+
+  it("writes only the edited language and locks its row until the write lands", async () => {
+    const gate = { open: () => {} };
+    releases.put.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          gate.open = resolve;
+        }),
+    );
+    render(<SetsPage />);
+
+    fireEvent.change(screen.getByDisplayValue("2026-01-01"), { target: { value: "2026-02-02" } });
+
+    expect(releases.put).toHaveBeenCalledWith({
+      id: "s1",
+      language: "EN",
+      release: { releasedAt: "2026-02-02", precision: "day" },
+    });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Month" })).toBeDisabled());
+    gate.open();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Month" })).toBeEnabled());
   });
 });

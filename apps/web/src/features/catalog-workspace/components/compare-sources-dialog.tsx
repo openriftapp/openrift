@@ -36,7 +36,7 @@ import {
   useCheckCandidatePrinting,
   useUncheckCandidatePrinting,
 } from "@/features/admin/hooks/use-admin-card-mutations";
-import { acceptFieldWithUndo } from "@/features/admin/lib/accept-undo";
+import { acceptFieldWithUndo, revertAcceptedField } from "@/features/admin/lib/accept-undo";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { getProviderLabel } from "@/features/admin/lib/candidate-rows";
 import { activeImageSourceUrl, imagesOnSide } from "@/features/admin/lib/printing-side-images";
@@ -97,9 +97,7 @@ export function CompareSourcesDialog({
             announce({
               ...usedUndoText({ field: fieldLabel, source: sourceLabel, record: card.name }),
               invalidates: undoScope(invalidates),
-              undo: async () => {
-                await acceptCardFieldFn({ data: revert });
-              },
+              undo: () => revertAcceptedField(revert, (data) => acceptCardFieldFn({ data })),
             })
           }
         />
@@ -329,9 +327,7 @@ function SourceSpreadsheet({
                 record: detail.displayName,
               }),
               invalidates: undoScope(scope),
-              undo: async () => {
-                await acceptPrintingFieldFn({ data: revert });
-              },
+              undo: () => revertAcceptedField(revert, (data) => acceptPrintingFieldFn({ data })),
             }),
         });
       }}

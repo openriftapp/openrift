@@ -79,6 +79,7 @@ import {
 import { useCardBans } from "@/features/cards/hooks/use-card-bans";
 import { useSets } from "@/features/cards/hooks/use-sets";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { errorStatus } from "@/lib/server-fns/api-error";
 
 /** Stable placeholder so the filter hook can run before the detail lands. */
@@ -125,11 +126,13 @@ export function ExistingCardDetailPage({
   const isAdmin = access?.isAdmin === true;
   const canOpenPrintingPages = hasAdminSection(access, "printing-desk");
 
-  // This card's detail, the admin card list and the printing pages, not all of `admin.cards`.
+  // This card's detail and the lists that count it, not all of `admin.cards`.
   const invalidateScope = [
     adminKeys.cards.detail(cardSlug),
     adminKeys.cards.list,
     adminKeys.printingDesk.all,
+    adminKeys.reviewQueue,
+    adminKeys.workspace,
   ];
 
   const {
@@ -309,6 +312,24 @@ export function ExistingCardDetailPage({
     marketplace: { waiting: unassignedProducts },
     bans: { total: (bansData?.length ?? 0) + card.errata.length },
   };
+
+  async function acceptGroup(
+    cardId: string,
+    printingFields: Record<string, unknown>,
+    candidatePrintingIds: string[],
+  ) {
+    let accepted: { printingId: string } | undefined;
+    const ok = await runReportedMutation(async () => {
+      accepted = (await acceptPrintingGroup.mutateAsync({
+        cardId,
+        printingFields: printingFields as AcceptPrintingBody["printingFields"],
+        candidatePrintingIds,
+      })) as { printingId: string };
+    });
+    if (ok && accepted) {
+      focusAcceptedPrinting(accepted.printingId);
+    }
+  }
 
   const allPrintingKeys = [...faceIds, ...ambiguousGroups.map((g) => g.groupKey)];
   // Until the seeding effect lands, read the folds the card is about to get.
@@ -523,20 +544,9 @@ export function ExistingCardDetailPage({
                       setReleaseYears={setReleaseYears}
                       isExpanded={!collapsedPrintings.has(group.groupKey)}
                       onToggle={() => togglePrintingFold(cardSlug, group.groupKey)}
-                      onAccept={(printingFields, candidatePrintingIds) => {
-                        acceptPrintingGroup.mutate(
-                          {
-                            cardId: card.id,
-                            printingFields: printingFields as AcceptPrintingBody["printingFields"],
-                            candidatePrintingIds,
-                          },
-                          {
-                            onSuccess: (data) => {
-                              focusAcceptedPrinting((data as { printingId: string }).printingId);
-                            },
-                          },
-                        );
-                      }}
+                      onAccept={(printingFields, candidatePrintingIds) =>
+                        void acceptGroup(card.id, printingFields, candidatePrintingIds)
+                      }
                       onLink={(pid, candidatePrintingIds) => {
                         linkPrintingSources.mutate({ printingId: pid, candidatePrintingIds });
                       }}

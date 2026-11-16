@@ -65,6 +65,16 @@ export const adminKeywordsContract = {
         cardModifier: z.boolean(),
       }),
     ),
+  patchStyleFlags: authedRoute
+    .route({ method: "PATCH", path: `${BASE}/keywords/{name}`, tags: [TAG], successStatus: 204 })
+    .input(
+      withParams(nameParamSchema, {
+        insertColor: hexColor,
+        darkText: z.boolean().optional(),
+        costKeyword: z.boolean().optional(),
+        cardModifier: z.boolean().optional(),
+      }),
+    ),
   removeStyle: authedRoute
     .route({ method: "DELETE", path: `${BASE}/keywords/{name}`, tags: [TAG], successStatus: 204 })
     .input(nameParamSchema),

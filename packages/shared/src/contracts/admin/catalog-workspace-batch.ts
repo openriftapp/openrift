@@ -48,6 +48,14 @@ export const workspaceSuggestedListingsPreviewSchema = z.object({
   items: z.array(workspaceSuggestedListingSchema),
 });
 
+export const workspaceAcceptTrustedCardsInputSchema = z.object({
+  names: z.array(z.string().min(1)),
+});
+
+export const workspaceAcceptTrustedPrintingsInputSchema = z.object({
+  candidatePrintingIds: z.array(z.string().min(1)),
+});
+
 export const workspaceAssignSuggestedListingsInputSchema = z.object({
   listingKeys: z.array(z.string().min(1)).optional(),
 });
@@ -63,12 +71,14 @@ export const adminCatalogWorkspaceBatchContract = {
     .output(workspaceTrustedCardsPreviewSchema),
   workspaceAcceptTrustedCards: authedRoute
     .route({ method: "POST", path: `${BATCH}/trusted-cards`, tags: [TAG] })
+    .input(workspaceAcceptTrustedCardsInputSchema)
     .output(workspaceAcceptTrustedCardsResponseSchema),
   workspaceTrustedPrintingsPreview: authedRoute
     .route({ method: "GET", path: `${BATCH}/trusted-printings`, tags: [TAG] })
     .output(workspaceTrustedPrintingsPreviewSchema),
   workspaceAcceptTrustedPrintings: authedRoute
     .route({ method: "POST", path: `${BATCH}/trusted-printings`, tags: [TAG] })
+    .input(workspaceAcceptTrustedPrintingsInputSchema)
     .output(workspaceAcceptTrustedPrintingsResponseSchema),
   workspaceSuggestedListingsPreview: authedRoute
     .route({ method: "GET", path: `${BATCH}/suggested-listings`, tags: [TAG] })

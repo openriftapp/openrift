@@ -52,9 +52,12 @@ const fetchTrustedCardsPreview = createServerFn({ method: "GET" })
   );
 
 const acceptTrustedCardsFn = createServerFn({ method: "POST" })
+  .validator((input: { names: string[] }) => input)
   .middleware([withCookies])
-  .handler(({ context }): Promise<WorkspaceAcceptTrustedCardsResponse> =>
-    apiOrpcClient(adminCatalogWorkspaceBatchContract, context.cookie).workspaceAcceptTrustedCards(),
+  .handler(({ context, data }): Promise<WorkspaceAcceptTrustedCardsResponse> =>
+    apiOrpcClient(adminCatalogWorkspaceBatchContract, context.cookie).workspaceAcceptTrustedCards(
+      data,
+    ),
   );
 
 const fetchTrustedPrintingsPreview = createServerFn({ method: "GET" })
@@ -67,12 +70,13 @@ const fetchTrustedPrintingsPreview = createServerFn({ method: "GET" })
   );
 
 const acceptTrustedPrintingsFn = createServerFn({ method: "POST" })
+  .validator((input: { candidatePrintingIds: string[] }) => input)
   .middleware([withCookies])
-  .handler(({ context }): Promise<WorkspaceAcceptTrustedPrintingsResponse> =>
+  .handler(({ context, data }): Promise<WorkspaceAcceptTrustedPrintingsResponse> =>
     apiOrpcClient(
       adminCatalogWorkspaceBatchContract,
       context.cookie,
-    ).workspaceAcceptTrustedPrintings(),
+    ).workspaceAcceptTrustedPrintings(data),
   );
 
 const fetchSuggestedListingsPreview = createServerFn({ method: "GET" })
@@ -176,10 +180,12 @@ export function batchOutcomeText(kind: BatchKind, outcome: BatchOutcome): string
 async function runBatch(kind: BatchKind, keys: string[]): Promise<BatchOutcome> {
   switch (kind) {
     case "trusted-cards": {
-      return toBatchOutcome(await acceptTrustedCardsFn());
+      return toBatchOutcome(await acceptTrustedCardsFn({ data: { names: keys } }));
     }
     case "trusted-printings": {
-      return toBatchOutcome(await acceptTrustedPrintingsFn());
+      return toBatchOutcome(
+        await acceptTrustedPrintingsFn({ data: { candidatePrintingIds: keys } }),
+      );
     }
     case "suggested-listings": {
       return toBatchOutcome(await assignSuggestedListingsFn({ data: { listingKeys: keys } }));

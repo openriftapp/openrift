@@ -6,7 +6,7 @@ import type {
 } from "@openrift/shared/types/api/admin";
 import { describe, expect, it } from "vitest";
 
-import { applyOptimisticAssignmentForCard } from "./admin-card-marketplace-section";
+import { applyOptimisticAssignmentForCard } from "./optimistic-card-assignment";
 
 function printing(
   overrides: Partial<UnifiedMappingPrintingResponse> = {},

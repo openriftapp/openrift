@@ -246,28 +246,28 @@ function NewPrintingBody({
     });
   };
 
-  const ignore = () => {
+  const ignore = async () => {
     if (candidate === undefined) {
       return;
     }
     const ignored = { provider, externalId: candidate.externalId, finish: candidate.finish };
     const entry = ignoredPrintingUndo(ignored, detail?.displayName ?? cardSlug);
-    ignoreCandidate.mutate(ignored, {
-      onSuccess: () => {
-        announce(entry);
-        navigation.goNext();
-      },
-    });
+    if (await runReportedMutation(() => ignoreCandidate.mutateAsync(ignored))) {
+      announce(entry);
+      navigation.goNext();
+    }
   };
 
-  const merge = (printingId: string) => {
+  const merge = async (printingId: string) => {
     if (draft === null) {
       return;
     }
-    linkCandidates.mutate(
-      { candidatePrintingIds: draft.candidatePrintingIds, printingId },
-      { onSuccess: navigation.goNext },
+    const ok = await runReportedMutation(() =>
+      linkCandidates.mutateAsync({ candidatePrintingIds: draft.candidatePrintingIds, printingId }),
     );
+    if (ok) {
+      navigation.goNext();
+    }
   };
 
   useRegisterRecordActions({
@@ -312,7 +312,7 @@ function NewPrintingBody({
                   variant="outline"
                   size="sm"
                   pending={ignoreCandidate.isPending}
-                  onClick={ignore}
+                  onClick={() => void ignore()}
                 >
                   Ignore <Kbd>X</Kbd>
                 </Button>
@@ -329,7 +329,7 @@ function NewPrintingBody({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     {existing.map((printing) => (
-                      <DropdownMenuItem key={printing.id} onClick={() => merge(printing.id)}>
+                      <DropdownMenuItem key={printing.id} onClick={() => void merge(printing.id)}>
                         {printing.expectedPrintingId}
                       </DropdownMenuItem>
                     ))}
@@ -353,7 +353,7 @@ function NewPrintingBody({
         draft={draft}
         onChange={setDraftEdit}
         duplicateCandidates={duplicates}
-        onMergeDuplicate={isAdmin ? (duplicate) => merge(duplicate.printingId) : undefined}
+        onMergeDuplicate={isAdmin ? (duplicate) => void merge(duplicate.printingId) : undefined}
         disabled={working}
       />
       {issues.length > 0 && (

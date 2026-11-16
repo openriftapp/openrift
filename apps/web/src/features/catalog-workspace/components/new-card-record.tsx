@@ -220,12 +220,14 @@ export function NewCardRecord({ name }: { name: string }) {
     }
   }
 
-  function mergeInto(targetId: string) {
+  async function mergeInto(targetId: string) {
     const targetSlug = allCards.find((card) => card.id === targetId)?.slug ?? targetId;
-    linkCard.mutate(
-      { name, cardId: targetId, cardSlug: targetSlug },
-      { onSuccess: () => openCard(targetSlug) },
+    const ok = await runReportedMutation(() =>
+      linkCard.mutateAsync({ name, cardId: targetId, cardSlug: targetSlug }),
     );
+    if (ok) {
+      openCard(targetSlug);
+    }
   }
 
   useRegisterRecordActions({
@@ -304,7 +306,7 @@ export function NewCardRecord({ name }: { name: string }) {
                   variant="outline"
                   size="sm"
                   disabled={linkCard.isPending}
-                  onClick={() => mergeInto(card.id)}
+                  onClick={() => void mergeInto(card.id)}
                 >
                   Merge here
                 </Button>
@@ -423,7 +425,7 @@ export function NewCardRecord({ name }: { name: string }) {
           <Button
             disabled={mergeTarget.length === 0}
             pending={linkCard.isPending}
-            onClick={() => mergeInto(mergeTarget)}
+            onClick={() => void mergeInto(mergeTarget)}
           >
             <LinkIcon />
             Merge

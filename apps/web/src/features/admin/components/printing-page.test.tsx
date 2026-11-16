@@ -19,6 +19,7 @@ const state = vi.hoisted(() => ({
 const activate = vi.hoisted(() => vi.fn());
 const removeFace = vi.hoisted(() => vi.fn());
 const createCitation = vi.hoisted(() => vi.fn());
+const updateImage = vi.hoisted(() => vi.fn());
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ to, children }: { to?: string; children?: ReactNode }) => (
@@ -62,7 +63,7 @@ vi.mock("@/features/admin/hooks/use-admin", () => ({
 vi.mock("@/features/admin/hooks/use-printing-desk", () => ({
   useDeskPrinting: () => ({ data: { printing: row(), images: state.images } }),
   useSetDeskImageFace: () => ({ mutate: vi.fn() }),
-  useUpdateDeskImage: () => ({ mutate: vi.fn() }),
+  useUpdateDeskImage: () => ({ mutate: updateImage }),
   useSetDeskSecondSide: () => ({ mutate: vi.fn(), isPending: false, error: null }),
   useRemoveDeskSecondSide: () => ({ mutate: removeFace, isPending: false, error: null }),
 }));
@@ -199,6 +200,23 @@ beforeEach(() => {
   activate.mockClear();
   removeFace.mockClear();
   createCitation.mockReset().mockResolvedValue(undefined);
+  updateImage.mockClear();
+});
+
+describe("PrintingPage image credit", () => {
+  it("saves a credit once when Enter is followed by leaving the field", async () => {
+    state.images = [image()];
+    const user = userEvent.setup();
+    render(<PrintingPage printingId="p-1" />);
+
+    await user.type(screen.getByLabelText("Image credit"), "Riot Games{Enter}");
+    await user.tab();
+
+    expect(updateImage).toHaveBeenCalledExactlyOnceWith({
+      imageFileId: "if-1",
+      credit: "Riot Games",
+    });
+  });
 });
 
 describe("PrintingPage links", () => {

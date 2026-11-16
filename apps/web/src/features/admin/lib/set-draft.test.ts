@@ -1,7 +1,6 @@
-import type { AdminSetResponse } from "@openrift/shared/types/api/admin";
 import { describe, expect, it } from "vitest";
 
-import { parseSetDraft, requireSetDraft, setReleasesUpdate } from "./set-draft";
+import { parseSetDraft, requireSetDraft } from "./set-draft";
 
 describe("parseSetDraft", () => {
   it("maps a blank printed total to null", () => {
@@ -36,25 +35,6 @@ describe("parseSetDraft", () => {
   it("rejects a blank name", () => {
     expect(parseSetDraft({ name: "   ", printedTotal: "5" })).toEqual({
       error: "Name is required",
-    });
-  });
-});
-
-describe("setReleasesUpdate", () => {
-  it("keeps a missing printed total missing", () => {
-    const set = {
-      id: "s1",
-      name: "Origins",
-      printedTotal: null,
-      releases: {},
-      setType: "main",
-    } as unknown as AdminSetResponse;
-    expect(setReleasesUpdate(set, { EN: { releasedAt: null, precision: null } })).toEqual({
-      id: "s1",
-      name: "Origins",
-      printedTotal: null,
-      releases: { EN: { releasedAt: null, precision: null } },
-      setType: "main",
     });
   });
 });

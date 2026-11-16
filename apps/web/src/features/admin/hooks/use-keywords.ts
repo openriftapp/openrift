@@ -8,6 +8,7 @@ import { keywordStatsQueryOptions } from "@/features/admin/lib/keywords-queries"
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { initKeys } from "@/lib/query-keys";
 import { withCookies } from "@/lib/server-fns/middleware";
+import type { ContractInput } from "@/lib/server-fns/orpc-client";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 const STYLE_INVALIDATES = [adminKeys.keywordStats, initKeys.all] as const;
@@ -52,6 +53,23 @@ export function useUpdateKeywordStyle(meta?: MutationMeta) {
       costKeyword: boolean;
       cardModifier: boolean;
     }) => updateKeywordStyleFn({ data: params }),
+    invalidates: STYLE_INVALIDATES,
+  });
+}
+
+type KeywordFlagsInput = ContractInput<typeof adminKeywordsContract, "patchStyleFlags">;
+
+const patchKeywordFlagsFn = createServerFn({ method: "POST" })
+  .validator((input: KeywordFlagsInput) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminKeywordsContract, context.cookie).patchStyleFlags(data);
+  });
+
+/** Writes only the flags passed, so two quick ticks on one row do not undo each other. */
+export function usePatchKeywordFlags() {
+  return useMutationWithInvalidation({
+    mutationFn: (params: KeywordFlagsInput) => patchKeywordFlagsFn({ data: params }),
     invalidates: STYLE_INVALIDATES,
   });
 }

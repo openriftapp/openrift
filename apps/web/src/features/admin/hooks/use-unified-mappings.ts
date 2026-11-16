@@ -2,17 +2,20 @@ import { adminIgnoredProductsContract } from "@openrift/shared/contracts/admin/i
 import { adminStagingCardOverridesContract } from "@openrift/shared/contracts/admin/staging-card-overrides";
 import { adminUnifiedMappingsContract } from "@openrift/shared/contracts/admin/unified-mappings";
 import type { UnifiedMappingsSummaryResponse } from "@openrift/shared/contracts/admin/unified-mappings";
+import type { UnifiedMappingsCardResponse } from "@openrift/shared/types/api/admin";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { keepPreviousData, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { applyOptimisticAssignmentForCard } from "@/features/admin/lib/optimistic-card-assignment";
 import {
   unifiedMappingsQueryOptions,
   unifiedMappingsSummaryQueryOptions,
 } from "@/features/admin/lib/unified-mappings-queries";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useOptimisticMutation } from "@/hooks/use-optimistic-mutation";
 import { withCookies } from "@/lib/server-fns/middleware";
 import type { ContractInput } from "@/lib/server-fns/orpc-client";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
@@ -42,13 +45,10 @@ export function useUnifiedMappingsSummaryWhen(enabled: boolean, set?: string) {
   });
 }
 
-function useUnifiedMutation<TInput, TResult>(
-  marketplace: Marketplace,
-  mutationFn: (input: TInput) => Promise<TResult>,
-) {
+function useUnifiedMutation<TInput, TResult>(mutationFn: (input: TInput) => Promise<TResult>) {
   return useMutationWithInvalidation({
     mutationFn,
-    invalidates: [adminKeys.unifiedMappings.all, adminKeys.marketplace(marketplace)],
+    invalidates: [adminKeys.unifiedMappings.all],
   });
 }
 
@@ -68,16 +68,22 @@ const saveMappingsFn = createServerFn({ method: "POST" })
     }),
   );
 
+/** Saves the mappings and toasts each SKU the server skipped. */
+export async function saveUnifiedMappings(
+  marketplace: Marketplace,
+  mappings: SaveMappingsBody["mappings"],
+): Promise<SaveMappingsResult> {
+  const result = await saveMappingsFn({ data: { marketplace, mappings } });
+  for (const skipped of result.skipped) {
+    toast.error(`#${skipped.externalId}: ${skipped.reason}`);
+  }
+  return result;
+}
+
 export function useUnifiedSaveMappings(marketplace: Marketplace) {
-  return useUnifiedMutation(marketplace, async (body: SaveMappingsBody) => {
-    const result = await saveMappingsFn({
-      data: { marketplace, mappings: body.mappings },
-    });
-    for (const skipped of result.skipped) {
-      toast.error(`#${skipped.externalId}: ${skipped.reason}`);
-    }
-    return result;
-  });
+  return useUnifiedMutation((body: SaveMappingsBody) =>
+    saveUnifiedMappings(marketplace, body.mappings),
+  );
 }
 
 const ignoreVariantsFn = createServerFn({ method: "POST" })
@@ -110,7 +116,6 @@ const ignoreProductsFn = createServerFn({ method: "POST" })
 /** Level-3 ignore: deny a specific SKU (finish × language) of an upstream product. */
 export function useUnifiedIgnoreVariants(marketplace: Marketplace) {
   return useUnifiedMutation(
-    marketplace,
     async (products: { externalId: number; finish: string; language: string | null }[]) => {
       await ignoreVariantsFn({ data: { marketplace, products } });
     },
@@ -119,7 +124,7 @@ export function useUnifiedIgnoreVariants(marketplace: Marketplace) {
 
 /** Level-2 ignore: deny an entire upstream product regardless of finish/language. */
 export function useUnifiedIgnoreProducts(marketplace: Marketplace) {
-  return useUnifiedMutation(marketplace, async (products: { externalId: number }[]) => {
+  return useUnifiedMutation(async (products: { externalId: number }[]) => {
     await ignoreProductsFn({ data: { marketplace, products } });
   });
 }
@@ -141,7 +146,6 @@ const assignToCardFn = createServerFn({ method: "POST" })
 
 export function useUnifiedAssignToCard(marketplace: Marketplace) {
   return useUnifiedMutation(
-    marketplace,
     async (override: {
       externalId: number;
       finish: string;
@@ -176,7 +180,6 @@ const unassignFromCardFn = createServerFn({ method: "POST" })
 
 export function useUnifiedUnassignFromCard(marketplace: Marketplace) {
   return useUnifiedMutation(
-    marketplace,
     async (params: { externalId: number; finish: string; language: string | null }) => {
       await unassignFromCardFn({ data: { marketplace, ...params } });
     },
@@ -189,6 +192,39 @@ export function useSaveMappingsByMarketplace() {
     cardmarket: useUnifiedSaveMappings("cardmarket"),
     cardtrader: useUnifiedSaveMappings("cardtrader"),
     cardnexus: useUnifiedSaveMappings("cardnexus"),
+  } satisfies Record<Marketplace, unknown>;
+}
+
+type CardAssignment = SaveMappingsBody["mappings"][number];
+
+function optimisticSave(cardSlug: string, marketplace: Marketplace) {
+  return {
+    queryKey: adminKeys.unifiedMappings.byCard(cardSlug),
+    mutationFn: (mappings: CardAssignment[]) => saveUnifiedMappings(marketplace, mappings),
+    apply: (cached: UnifiedMappingsCardResponse, mappings: CardAssignment[]) =>
+      mappings.reduce(
+        (next, m) =>
+          applyOptimisticAssignmentForCard(
+            next,
+            marketplace,
+            m.externalId,
+            m.finish,
+            m.language,
+            m.printingId,
+          ),
+        cached,
+      ),
+    invalidates: [adminKeys.cards.detail(cardSlug), adminKeys.unifiedMappings.all],
+  };
+}
+
+/** Saves on one card's page show the assignment at once and roll it back on failure. */
+export function useOptimisticSaveMappingsByMarketplace(cardSlug: string) {
+  return {
+    tcgplayer: useOptimisticMutation(optimisticSave(cardSlug, "tcgplayer")),
+    cardmarket: useOptimisticMutation(optimisticSave(cardSlug, "cardmarket")),
+    cardtrader: useOptimisticMutation(optimisticSave(cardSlug, "cardtrader")),
+    cardnexus: useOptimisticMutation(optimisticSave(cardSlug, "cardnexus")),
   } satisfies Record<Marketplace, unknown>;
 }
 

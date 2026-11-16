@@ -71,6 +71,7 @@ import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { downloadCsv } from "@/lib/download";
 import { errorText } from "@/lib/error-text";
 import { formatCount } from "@/lib/format";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { getSiteUrl } from "@/lib/site-config";
 
 const ROW_HEIGHT = 57;
@@ -510,31 +511,28 @@ function CardsTable({
   );
   const selectedDrafts = split.selected;
 
-  function ignoreSelected() {
+  async function ignoreSelected() {
     const selectedCount = selectedDrafts.length;
-    ignoreDrafts.mutate(
-      selectedDrafts.map((row) => row.normalizedName),
-      {
-        onSuccess: ({ ignored, sources }) => {
-          selection.clear();
-          if (ignored > 0) {
-            pushUndo(
-              ignoredCardsUndo(
-                sources,
-                `${ignored} new ${pluralize(ignored, "card")}`,
-                ignored > 1,
-              ),
-            );
-          }
-          const message = ignoredDraftsMessage(ignored, selectedCount - ignored);
-          if (ignored === 0) {
-            toast(message);
-          } else {
-            toast.success(message);
-          }
-        },
-      },
-    );
+    let result: Awaited<ReturnType<typeof ignoreDrafts.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await ignoreDrafts.mutateAsync(selectedDrafts.map((row) => row.normalizedName));
+    });
+    if (!ok || !result) {
+      return;
+    }
+    const { ignored, sources } = result;
+    selection.clear();
+    if (ignored > 0) {
+      pushUndo(
+        ignoredCardsUndo(sources, `${ignored} new ${pluralize(ignored, "card")}`, ignored > 1),
+      );
+    }
+    const message = ignoredDraftsMessage(ignored, selectedCount - ignored);
+    if (ignored === 0) {
+      toast(message);
+    } else {
+      toast.success(message);
+    }
   }
 
   const columns: AdminColumnDef<CandidateCardSummaryResponse>[] = [
@@ -586,7 +584,7 @@ function CardsTable({
               variant="outline"
               size="sm"
               pending={ignoreDrafts.isPending}
-              onClick={ignoreSelected}
+              onClick={() => void ignoreSelected()}
             >
               Ignore
             </Button>

@@ -11,6 +11,7 @@ import {
   metaPlayerOverlayList,
   metaPlayerRank,
   metaPlayerRecordPart,
+  metaPlayerStatusChangeNeedsList,
   metaPlayerToDraft,
   countDeckRowsAndCopies,
   validateMetaEventDraft,
@@ -495,6 +496,16 @@ describe("metaPlayerOverlayList", () => {
 
   it("says nothing about a deck the edit did not touch", () => {
     expect(metaPlayerOverlayList(withList, draftFor(withList), [])).toBeUndefined();
+  });
+
+  it("asks for the list again when only a stored list's status changes", () => {
+    const partial = draftFor(withList, { listStatus: "partial" });
+    expect(metaPlayerStatusChangeNeedsList(withList, partial, [])).toBe(true);
+    expect(metaPlayerStatusChangeNeedsList(withList, partial, cards)).toBe(false);
+    expect(metaPlayerStatusChangeNeedsList(withList, draftFor(withList), [])).toBe(false);
+    expect(
+      metaPlayerStatusChangeNeedsList(deckless, draftFor(deckless, { listStatus: "full" }), []),
+    ).toBe(false);
   });
 
   it("says nothing when a deckless row stays deckless", () => {

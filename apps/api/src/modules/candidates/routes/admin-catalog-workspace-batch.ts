@@ -32,16 +32,17 @@ export const adminCatalogWorkspaceBatchRouter = {
     previewTrustedCards(context.repos, context.adminAccess),
   ),
 
-  workspaceAcceptTrustedCards: os.workspaceAcceptTrustedCards.handler(({ context }) =>
-    acceptTrustedCards(context.repos, mutationContext(context)),
+  workspaceAcceptTrustedCards: os.workspaceAcceptTrustedCards.handler(({ input, context }) =>
+    acceptTrustedCards(context.repos, mutationContext(context), input.names),
   ),
 
   workspaceTrustedPrintingsPreview: os.workspaceTrustedPrintingsPreview.handler(({ context }) =>
     previewTrustedPrintings(context.repos, context.adminAccess),
   ),
 
-  workspaceAcceptTrustedPrintings: os.workspaceAcceptTrustedPrintings.handler(({ context }) =>
-    acceptTrustedPrintings(context.repos, mutationContext(context)),
+  workspaceAcceptTrustedPrintings: os.workspaceAcceptTrustedPrintings.handler(
+    ({ input, context }) =>
+      acceptTrustedPrintings(context.repos, mutationContext(context), input.candidatePrintingIds),
   ),
 
   workspaceSuggestedListingsPreview: os.workspaceSuggestedListingsPreview.handler(({ context }) =>

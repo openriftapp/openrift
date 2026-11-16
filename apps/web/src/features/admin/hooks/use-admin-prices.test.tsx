@@ -42,6 +42,6 @@ describe("useClearPrices", () => {
       .mocked(client.invalidateQueries)
       .mock.calls.map((call) => (call[0] as { queryKey: unknown[] }).queryKey);
     expect(keys).toContainEqual(["admin", "marketplace-groups"]);
-    expect(keys).toContainEqual(["admin", "tcgplayer"]);
+    expect(keys).toContainEqual(["admin", "unified-mappings"]);
   });
 });

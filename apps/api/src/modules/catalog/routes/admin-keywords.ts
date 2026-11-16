@@ -43,6 +43,15 @@ export const adminKeywordsRouter = {
     });
   }),
 
+  patchStyleFlags: os.patchStyleFlags.handler(async ({ input, context }): Promise<void> => {
+    const { name, insertColor, darkText, costKeyword, cardModifier } = input;
+    await context.repos.keywords.patchStyleFlags(name, insertColor, {
+      darkText,
+      costKeyword,
+      cardModifier,
+    });
+  }),
+
   removeStyle: os.removeStyle.handler(async ({ input, context }): Promise<void> => {
     await context.repos.keywords.deleteStyle(input.name);
   }),

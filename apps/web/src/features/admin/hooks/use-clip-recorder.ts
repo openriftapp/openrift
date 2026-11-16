@@ -49,6 +49,7 @@ export function useClipRecorder(videoRef: RefObject<HTMLVideoElement | null>): C
   const contextRef = useRef<ClipRecorderContext | null>(null);
   const framesRef = useRef<ClipFrame[]>([]);
   const startedAtRef = useRef(0);
+  const startingRef = useRef(false);
   const [recording, setRecording] = useState(false);
   const [pending, setPending] = useState<File[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +66,9 @@ export function useClipRecorder(videoRef: RefObject<HTMLVideoElement | null>): C
   );
 
   async function start(restart: () => Promise<void>): Promise<void> {
+    if (startingRef.current || recorderRef.current !== null) {
+      return;
+    }
     const stream = videoRef.current?.srcObject;
     if (!(stream instanceof MediaStream) || typeof MediaRecorder === "undefined") {
       setError("Start the camera first; this browser may not support recording.");
@@ -120,7 +124,12 @@ export function useClipRecorder(videoRef: RefObject<HTMLVideoElement | null>): C
     });
     setError(null);
     setPending(null);
-    await restart();
+    startingRef.current = true;
+    await restart().catch((error_: unknown) => {
+      startingRef.current = false;
+      throw error_;
+    });
+    startingRef.current = false;
     recorderRef.current = recorder;
     contextRef.current = null;
     framesRef.current = [];

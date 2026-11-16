@@ -1,15 +1,10 @@
 import { computeProductSuggestions } from "@openrift/shared/marketplace-suggestions";
 import { pluralize } from "@openrift/shared/strings";
-import type {
-  AdminMarketplaceName,
-  UnifiedMappingGroupResponse,
-  UnifiedMappingsCardResponse,
-} from "@openrift/shared/types/api/admin";
+import type { AdminMarketplaceName } from "@openrift/shared/types/api/admin";
 import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { WandSparklesIcon } from "lucide-react";
-import { useEffect, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
@@ -20,11 +15,13 @@ import {
   useAssignToCardByMarketplace,
   useIgnoreProductsByMarketplace,
   useIgnoreVariantsByMarketplace,
-  useSaveMappingsByMarketplace,
+  useOptimisticSaveMappingsByMarketplace,
   useUnassignFromCardByMarketplace,
 } from "@/features/admin/hooks/use-unified-mappings";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import type { PrintingAssignment } from "@/features/admin/lib/printing-assignment";
 import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 import type { MarketplaceHandlers } from "./marketplace-product-entries";
 import { collectSuggestedMappings } from "./marketplace-product-entries";
@@ -43,113 +40,57 @@ export function AdminCardMarketplaceSection({
   const queryClient = useQueryClient();
   const { data, isLoading } = useQuery(unifiedMappingsForCardQueryOptions(cardSlug));
 
-  // Invalidates both the per-card cache this page reads and the corpus-wide
+  // Refreshes both the per-card cache this page reads and the corpus-wide
   // cache (coverage badges, unmatched products on /admin/cards) so they can't disagree.
-  const mutateOpts = {
-    onSuccess: async () => {
+  const refreshAfter = async (run: () => Promise<unknown>) => {
+    if (await runReportedMutation(run)) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: adminKeys.cards.detail(cardSlug) }),
         queryClient.invalidateQueries({ queryKey: adminKeys.unifiedMappings.all }),
       ]);
-    },
+    }
   };
 
-  const cardKey = adminKeys.unifiedMappings.byCard(cardSlug);
+  const saveMappings = useOptimisticSaveMappingsByMarketplace(cardSlug);
 
-  // Optimistic path: without this, chips stay on screen until the
-  // unifiedMappings refetch finishes. On error, rolls back to the pre-batch snapshot.
   const applyAssignments =
     (marketplace: AdminMarketplaceName) =>
-    (
-      mappings: {
-        externalId: number;
-        finish: string;
-        language: string | null;
-        printingId: string;
-      }[],
-    ) => {
-      if (mappings.length === 0) {
-        return;
+    async (mappings: PrintingAssignment[]): Promise<void> => {
+      if (mappings.length > 0) {
+        await runReportedMutation(() => saveMappings[marketplace].mutateAsync(mappings));
       }
-      const previous = queryClient.getQueryData<UnifiedMappingsCardResponse>(cardKey);
-      if (previous) {
-        let next = previous;
-        for (const m of mappings) {
-          next = applyOptimisticAssignmentForCard(
-            next,
-            marketplace,
-            m.externalId,
-            m.finish,
-            m.language,
-            m.printingId,
-          );
-        }
-        if (next !== previous) {
-          queryClient.setQueryData(cardKey, next);
-        }
-      }
-      const save = saveMappings[marketplace];
-      save.mutate(
-        { mappings },
-        {
-          onError: () => {
-            if (previous) {
-              queryClient.setQueryData(cardKey, previous);
-            }
-          },
-          onSuccess: () => {
-            void queryClient.invalidateQueries({
-              queryKey: adminKeys.cards.detail(cardSlug),
-            });
-          },
-        },
-      );
     };
 
   const assignToPrinting =
     (marketplace: AdminMarketplaceName) =>
-    (eid: number, finish: string, language: string | null, pid: string) => {
+    (eid: number, finish: string, language: string | null, pid: string) =>
       applyAssignments(marketplace)([{ externalId: eid, finish, language, printingId: pid }]);
-    };
 
   const ignoreVariants = useIgnoreVariantsByMarketplace();
   const ignoreProducts = useIgnoreProductsByMarketplace();
   const assignToCards = useAssignToCardByMarketplace();
   const unassigns = useUnassignFromCardByMarketplace();
-  const saveMappings = useSaveMappingsByMarketplace();
   const unmapPrinting = useUnmapMarketplacePrinting([
     adminKeys.cards.detail(cardSlug),
     adminKeys.unifiedMappings.all,
   ]);
 
-  // oxlint-disable-next-line no-empty-function -- default no-op until the effect below installs the real handler
-  const acceptAllRef = useRef<() => void>(() => {});
   const isSaving = ALL_MARKETPLACES.some((marketplace) => saveMappings[marketplace].isPending);
-  useHotkey("Mod+Enter", () => acceptAllRef.current(), { enabled: !isSaving });
-  // Install the latest accept-all closure every render so the hotkey fires
-  // against the current data/handlers without needing a stale dep list.
-  useEffect(() => {
+  const acceptAll = () => {
     const group = data?.group;
     if (!group) {
-      // oxlint-disable-next-line no-empty-function -- no-op when there's no data yet
-      acceptAllRef.current = () => {};
       return;
     }
-    const suggestions = computeProductSuggestions(group);
-    const { strong, weak } = collectSuggestedMappings(group, suggestions);
+    const { strong, weak } = collectSuggestedMappings(group, computeProductSuggestions(group));
     // Strong wins when both are present, so Ctrl+Enter never accepts a
     // low-confidence match while a strong one is still on the page.
     const totalStrong = ALL_MARKETPLACES.reduce((sum, mp) => sum + strong[mp].length, 0);
-    acceptAllRef.current = () => {
-      const target = totalStrong > 0 ? strong : weak;
-      for (const mp of ALL_MARKETPLACES) {
-        const mappings = target[mp];
-        if (mappings.length > 0) {
-          applyAssignments(mp)(mappings);
-        }
-      }
-    };
-  });
+    const target = totalStrong > 0 ? strong : weak;
+    for (const mp of ALL_MARKETPLACES) {
+      void applyAssignments(mp)(target[mp]);
+    }
+  };
+  useHotkey("Mod+Enter", acceptAll, { enabled: !isSaving });
 
   if (isLoading || !data) {
     return <Skeleton className="h-40 w-full" />;
@@ -178,21 +119,30 @@ export function AdminCardMarketplaceSection({
     },
   ): MarketplaceHandlers => ({
     onIgnoreVariant: (eid, fin, lang) =>
-      m.ignoreVariant.mutate([{ externalId: eid, finish: fin, language: lang }], mutateOpts),
-    onIgnoreProduct: (eid) => m.ignoreProduct.mutate([{ externalId: eid }], mutateOpts),
+      void refreshAfter(() =>
+        m.ignoreVariant.mutateAsync([{ externalId: eid, finish: fin, language: lang }]),
+      ),
+    onIgnoreProduct: (eid) =>
+      void refreshAfter(() => m.ignoreProduct.mutateAsync([{ externalId: eid }])),
     onAssignToCard: (eid, fin, lang, cid) =>
-      m.assignToCard.mutate(
-        { externalId: eid, finish: fin, language: lang, cardId: cid },
-        mutateOpts,
+      void refreshAfter(() =>
+        m.assignToCard.mutateAsync({ externalId: eid, finish: fin, language: lang, cardId: cid }),
       ),
     onAssignToPrinting: assignToPrinting(marketplace),
-    onBatchAssignToPrintings: applyAssignments(marketplace),
+    onBatchAssignToPrintings: (mappings) => void applyAssignments(marketplace)(mappings),
     onUnassign: (eid, fin, lang) =>
-      m.unassign.mutate({ externalId: eid, finish: fin, language: lang }, mutateOpts),
+      void refreshAfter(() =>
+        m.unassign.mutateAsync({ externalId: eid, finish: fin, language: lang }),
+      ),
     onUnmapPrinting: (pid, eid, fin, lang) =>
-      unmapPrinting.mutate(
-        { marketplace, printingId: pid, externalId: eid, finish: fin, language: lang },
-        mutateOpts,
+      void refreshAfter(() =>
+        unmapPrinting.mutateAsync({
+          marketplace,
+          printingId: pid,
+          externalId: eid,
+          finish: fin,
+          language: lang,
+        }),
       ),
     isIgnoring: m.ignoreVariant.isPending || m.ignoreProduct.isPending,
     isAssigning: m.assignToCard.isPending,
@@ -225,7 +175,7 @@ export function AdminCardMarketplaceSection({
       <div className="space-y-3">
         {offered > 0 && (
           <div className="flex justify-end">
-            <Button disabled={isSaving} onClick={() => acceptAllRef.current()}>
+            <Button disabled={isSaving} onClick={acceptAll}>
               <WandSparklesIcon />
               Accept {offered} {strongCount > 0 ? "strong" : "weak"}{" "}
               {pluralize(offered, "suggestion")}
@@ -255,85 +205,3 @@ export function AdminCardMarketplaceSection({
 }
 
 const NO_PAIR_NAMES: ReadonlyMap<string, string> = new Map();
-
-/**
- * SKU is matched by the `(externalId, finish, language)` tuple the caller
- * passes through — finish/language describe the marketplace's SKU, not the printing's.
- */
-function applyOptimisticAssignmentToGroup(
-  group: UnifiedMappingGroupResponse,
-  marketplace: AdminMarketplaceName,
-  externalId: number,
-  finish: string,
-  language: string | null,
-  printingId: string,
-): UnifiedMappingGroupResponse {
-  const printing = group.printings.find((p) => p.printingId === printingId);
-  if (!printing) {
-    return group;
-  }
-  const mk = group[marketplace];
-  const alreadyAssigned = mk.assignments.some(
-    (a) =>
-      a.externalId === externalId &&
-      a.finish === finish &&
-      a.printingId === printingId &&
-      (a.language === null || a.language === language),
-  );
-  if (alreadyAssigned) {
-    return group;
-  }
-  const variantIdx = mk.stagedProducts.findIndex(
-    (p) => p.externalId === externalId && p.finish === finish && p.language === language,
-  );
-  const variant = variantIdx === -1 ? undefined : mk.stagedProducts[variantIdx];
-  const nextStaged =
-    variantIdx === -1
-      ? mk.stagedProducts
-      : [...mk.stagedProducts.slice(0, variantIdx), ...mk.stagedProducts.slice(variantIdx + 1)];
-  const nextAssigned = variant ? [...mk.assignedProducts, variant] : mk.assignedProducts;
-  const nextAssignments = [
-    ...mk.assignments,
-    {
-      externalId,
-      printingId,
-      finish,
-      language,
-    },
-  ];
-  return {
-    ...group,
-    [marketplace]: {
-      ...mk,
-      stagedProducts: nextStaged,
-      assignedProducts: nextAssigned,
-      assignments: nextAssignments,
-    },
-  };
-}
-
-/** Folds a single (product SKU → printing) assignment into the cached {@link UnifiedMappingsCardResponse}. */
-export function applyOptimisticAssignmentForCard(
-  response: UnifiedMappingsCardResponse,
-  marketplace: AdminMarketplaceName,
-  externalId: number,
-  finish: string,
-  language: string | null,
-  printingId: string,
-): UnifiedMappingsCardResponse {
-  if (!response.group) {
-    return response;
-  }
-  const nextGroup = applyOptimisticAssignmentToGroup(
-    response.group,
-    marketplace,
-    externalId,
-    finish,
-    language,
-    printingId,
-  );
-  if (nextGroup === response.group) {
-    return response;
-  }
-  return { ...response, group: nextGroup };
-}

@@ -4,7 +4,7 @@ import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-q
 import { createServerFn } from "@tanstack/react-start";
 
 import { unmatchedCardDetailQueryOptions } from "@/features/admin/lib/admin-card-queries";
-import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { adminKeys, CANDIDATE_REVIEW_SCOPE } from "@/features/admin/lib/admin-query-keys";
 import { ignorableSources } from "@/features/admin/lib/ignorable-sources";
 import { ignoredCandidatesQueryOptions } from "@/features/admin/lib/ignored-candidates-queries";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -13,11 +13,7 @@ import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 type Scope = readonly (readonly unknown[])[];
 
-const IGNORE_INVALIDATES = [
-  adminKeys.ignoredCandidates,
-  adminKeys.cards.all,
-  adminKeys.reviewQueue,
-] as const;
+const IGNORE_INVALIDATES = [adminKeys.ignoredCandidates, ...CANDIDATE_REVIEW_SCOPE] as const;
 
 export function useIgnoredCandidates() {
   return useSuspenseQuery(ignoredCandidatesQueryOptions);
@@ -63,9 +59,12 @@ export function useIgnoreNewCardDrafts(invalidates: Scope = []) {
       return { ignored: drafts.length, sources };
     },
     onSettled: () => {
-      for (const key of [...IGNORE_INVALIDATES, ...invalidates]) {
-        void queryClient.invalidateQueries({ queryKey: [...key] });
-      }
+      const keys = new Map(
+        [...IGNORE_INVALIDATES, ...invalidates].map((key) => [JSON.stringify(key), key]),
+      );
+      return Promise.allSettled(
+        [...keys.values()].map((key) => queryClient.invalidateQueries({ queryKey: [...key] })),
+      );
     },
   });
 }

@@ -1,9 +1,10 @@
 import { adminPrintingEventsContract } from "@openrift/shared/contracts/admin/printing-events";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { adminPrintingEventsQueryOptions } from "@/features/admin/lib/flush-printing-events-queries";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -39,9 +40,8 @@ const retryPrintingEventsFn = createServerFn({ method: "POST" })
   );
 
 export function useRetryPrintingEvents() {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: (ids: string[]) => retryPrintingEventsFn({ data: { ids } }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: adminKeys.printingEvents }),
+    invalidates: [adminKeys.printingEvents],
   });
 }

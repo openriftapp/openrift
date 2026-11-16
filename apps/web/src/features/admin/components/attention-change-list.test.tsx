@@ -5,6 +5,7 @@ import type {
 } from "@openrift/shared/types/api/admin";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 // The real chip reads language colors from the /init suspense query.
@@ -177,6 +178,41 @@ describe("AttentionChangeList", () => {
     onEdit.mockClear();
     await userEvent.type(input, "x");
     expect(onEdit).toHaveBeenLastCalledWith("card:c1:might", 5);
+  });
+
+  it("keeps a trailing comma in a list while typing and passes the parsed list up", async () => {
+    const listGroup: AttentionGroup = {
+      ...cardGroup,
+      changes: [
+        {
+          key: "card:c1:domains",
+          field: "domains",
+          label: "Domains",
+          current: ["fury"],
+          proposed: ["fury", "calm"],
+          kind: "value",
+        },
+      ],
+    };
+    function Stateful() {
+      const [edits, setEdits] = useState<Map<string, unknown>>(new Map());
+      return (
+        <AttentionChangeList
+          groups={[listGroup]}
+          ticked={new Set(["card:c1:domains"])}
+          edits={edits}
+          onToggle={vi.fn()}
+          onEdit={(key, value) => setEdits((prev) => new Map(prev).set(key, value))}
+        />
+      );
+    }
+    render(<Stateful />);
+    await userEvent.click(screen.getByRole("button", { name: "Edit Domains" }));
+    const input = screen.getByDisplayValue("fury, calm");
+
+    await userEvent.type(input, ", ");
+
+    expect(input).toHaveValue("fury, calm, ");
   });
 
   it("links a new printing straight from the menu", async () => {

@@ -5,6 +5,7 @@ import type {
 } from "@openrift/shared/contracts/admin/catalog-review";
 import { countNoun } from "@openrift/shared/strings";
 
+import { selectAdminCardPrevNext } from "@/features/admin/lib/admin-card-nav";
 import type { ReviewFilter } from "@/features/admin/lib/admin-search-values";
 
 export { REVIEW_FILTERS } from "@/features/admin/lib/admin-search-values";
@@ -135,4 +136,19 @@ export function reviewSectionsBySlug(
     }
   }
   return sections;
+}
+
+/** The card a review run opens after `currentSlug`: the next card with an inbox item, wrapping to an earlier one. */
+export function nextReviewSlug(
+  orderedSlugs: readonly string[],
+  currentSlug: string,
+  items: readonly ReviewQueueItem[],
+  trustedProviders: ReadonlySet<string>,
+): string | null {
+  const waiting = new Set(reviewSectionsBySlug(items, trustedProviders).keys());
+  waiting.delete(currentSlug);
+  const { prev, next } = selectAdminCardPrevNext(orderedSlugs, currentSlug, {
+    matchingSlugs: waiting,
+  });
+  return next ?? prev;
 }

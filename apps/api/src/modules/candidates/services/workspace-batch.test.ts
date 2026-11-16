@@ -154,6 +154,9 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+const CARD_NAMES = ["Blast Cone", "Poro Herder"];
+const PRINTING_IDS = ["p1", "p2", "p3", "p4"];
+
 describe("trusted cards", () => {
   const printings = [printing("p1"), printing("p2", { candidateCardId: "cc-2" })];
 
@@ -161,9 +164,25 @@ describe("trusted cards", () => {
     await expect(previewTrustedCards(asRepos(makeRepos()), HELPER)).rejects.toMatchObject({
       status: 403,
     });
-    await expect(acceptTrustedCards(asRepos(makeRepos()), context(null))).rejects.toMatchObject({
+    await expect(
+      acceptTrustedCards(asRepos(makeRepos()), context(null), CARD_NAMES),
+    ).rejects.toMatchObject({
       status: 403,
     });
+  });
+
+  it("accepts only the drafts the confirmed preview named", async () => {
+    vi.mocked(acceptFavoriteNewCard).mockResolvedValue({
+      cardSlug: "poro-herder",
+      printingsCreated: 0,
+      skipped: [],
+    });
+    const repos = makeRepos({ printings });
+
+    const result = await acceptTrustedCards(asRepos(repos), context(), ["Poro Herder"]);
+
+    expect(result).toEqual({ accepted: 1, skipped: [] });
+    expect(acceptFavoriteNewCard).toHaveBeenCalledOnce();
   });
 
   it("previews complete drafts", async () => {
@@ -186,7 +205,7 @@ describe("trusted cards", () => {
       });
     const repos = makeRepos({ printings });
 
-    const result = await acceptTrustedCards(asRepos(repos), context());
+    const result = await acceptTrustedCards(asRepos(repos), context(), CARD_NAMES);
 
     expect(result).toEqual({
       accepted: 1,
@@ -212,7 +231,7 @@ describe("trusted cards", () => {
     );
     const repos = makeRepos({ printings });
 
-    const result = await acceptTrustedCards(asRepos(repos), context());
+    const result = await acceptTrustedCards(asRepos(repos), context(), CARD_NAMES);
 
     expect(result.accepted).toBe(0);
     expect(result.skipped).toContainEqual({ name: "Poro Herder", reason: "connection reset" });
@@ -229,7 +248,7 @@ describe("trusted cards", () => {
     });
     const repos = makeRepos({ printings });
 
-    await acceptTrustedCards(asRepos(repos), context());
+    await acceptTrustedCards(asRepos(repos), context(), CARD_NAMES);
 
     expect(finishPrintingAccepts).toHaveBeenCalledWith(repos, io, [], { catalogChanged: true });
   });
@@ -237,7 +256,7 @@ describe("trusted cards", () => {
   it("reports ineligible drafts as skipped and skips the view refresh when nothing was accepted", async () => {
     const repos = makeRepos();
     const incomplete = "no printing has every required field";
-    expect(await acceptTrustedCards(asRepos(repos), context())).toEqual({
+    expect(await acceptTrustedCards(asRepos(repos), context(), CARD_NAMES)).toEqual({
       accepted: 0,
       skipped: [
         { name: "Blast Cone", reason: incomplete },
@@ -305,7 +324,7 @@ describe("trusted printings", () => {
     });
     const repos = makeRepos({ printings, probes });
 
-    const result = await acceptTrustedPrintings(asRepos(repos), context());
+    const result = await acceptTrustedPrintings(asRepos(repos), context(), PRINTING_IDS);
 
     expect(result.accepted).toBe(1);
     expect(result.skipped).toEqual([
@@ -322,6 +341,18 @@ describe("trusted printings", () => {
     expect(finishPrintingAccepts).toHaveBeenCalledWith(repos, io, [created]);
   });
 
+  it("accepts only the groups the confirmed preview listed", async () => {
+    const repos = makeRepos({ printings, probes });
+
+    const result = await acceptTrustedPrintings(asRepos(repos), context(), ["p3"]);
+
+    expect(result).toEqual({
+      accepted: 0,
+      skipped: [{ label: "poro OGN-030 normal EN", reason: "missing: rarity" }],
+    });
+    expect(acceptCandidateGroup).not.toHaveBeenCalled();
+  });
+
   it("marks the candidate cards of accepted printings as checked", async () => {
     vi.mocked(acceptCandidateGroup).mockResolvedValueOnce({
       printing: { printingId: "printing-1", imageIds: [] },
@@ -329,7 +360,7 @@ describe("trusted printings", () => {
     });
     const repos = makeRepos({ printings, probes });
 
-    await acceptTrustedPrintings(asRepos(repos), context());
+    await acceptTrustedPrintings(asRepos(repos), context(), PRINTING_IDS);
 
     expect(repos.candidateCards.checkCandidateCardsByIds).toHaveBeenCalledWith(
       ["cc-1"],
@@ -371,7 +402,7 @@ describe("trusted printings", () => {
       });
 
       const preview = await previewTrustedPrintings(asRepos(repos), ADMIN);
-      const run = await acceptTrustedPrintings(asRepos(repos), context());
+      const run = await acceptTrustedPrintings(asRepos(repos), context(), PRINTING_IDS);
 
       const reason =
         "The existing OGN-027 normal EN face differs in artist. Edit that face or the source first.";
@@ -392,7 +423,7 @@ describe("trusted printings", () => {
       });
 
       const preview = await previewTrustedPrintings(asRepos(repos), ADMIN);
-      const run = await acceptTrustedPrintings(asRepos(repos), context());
+      const run = await acceptTrustedPrintings(asRepos(repos), context(), PRINTING_IDS);
 
       expect(preview).toMatchObject({ count: 1, ineligible: [] });
       expect(run).toEqual({ accepted: 1, skipped: [] });
@@ -458,7 +489,7 @@ describe("trusted printings", () => {
         },
       ],
     });
-    const result = await acceptTrustedPrintings(asRepos(repos), context());
+    const result = await acceptTrustedPrintings(asRepos(repos), context(), PRINTING_IDS);
     expect(result.skipped).toEqual([
       { label: "poro OGN-027 glossy EN", reason: 'not on an admin list: finish "glossy"' },
     ]);
@@ -468,7 +499,7 @@ describe("trusted printings", () => {
   it("skips a group without a public code", async () => {
     const repos = makeRepos({ printings: [printing("p1", { publicCode: null })] });
 
-    const result = await acceptTrustedPrintings(asRepos(repos), context());
+    const result = await acceptTrustedPrintings(asRepos(repos), context(), PRINTING_IDS);
 
     expect(result.skipped).toEqual([
       { label: "poro OGN-027 normal EN", reason: "missing: publicCode" },
@@ -485,7 +516,7 @@ describe("trusted printings", () => {
     const repos = makeRepos({ printings: [printing("p1")] });
     repos.candidateCards.checkCandidateCardsByIds.mockRejectedValue(new Error("connection reset"));
 
-    await expect(acceptTrustedPrintings(asRepos(repos), context())).rejects.toThrow(
+    await expect(acceptTrustedPrintings(asRepos(repos), context(), PRINTING_IDS)).rejects.toThrow(
       "connection reset",
     );
     expect(finishPrintingAccepts).toHaveBeenCalledWith(repos, io, [created]);
@@ -495,7 +526,7 @@ describe("trusted printings", () => {
     vi.mocked(acceptCandidateGroup).mockResolvedValueOnce({ reason: "already has a printing" });
     const repos = makeRepos({ printings: [printing("p1")] });
 
-    const result = await acceptTrustedPrintings(asRepos(repos), context());
+    const result = await acceptTrustedPrintings(asRepos(repos), context(), PRINTING_IDS);
     expect(repos.candidateCards.checkCandidateCardsByIds).not.toHaveBeenCalled();
 
     expect(result).toEqual({

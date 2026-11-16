@@ -39,6 +39,7 @@ import type { DeskFieldScope } from "@/features/admin/lib/desk-field-scope";
 import { fieldsInScope } from "@/features/admin/lib/desk-field-scope";
 import {
   basePrintingForLanguage,
+  reseedFromBase,
   defaultCardLanguage,
 } from "@/features/admin/lib/printing-desk-base";
 import { useDistinctArtists } from "@/features/cards/hooks/use-distinct-artists";
@@ -180,12 +181,26 @@ function usePrintingDeskFormState({
   const [announcedAt, setAnnouncedAt] = useState<string | null>(existing?.announcedAt ?? null);
   const [releasedAt, setReleasedAt] = useState<string | null>(existing?.releasedAt ?? null);
   const [precision, setPrecision] = useState<DeskReleasePrecision>(
-    existing?.releasePrecision === "quarter" ? "month" : (existing?.releasePrecision ?? "day"),
+    existing?.releasePrecision ?? "day",
   );
   const [comment, setComment] = useState(existing?.comment ?? "");
   const [flavorText, setFlavorText] = useState(existing?.flavorText ?? "");
   const [secondSide, setSecondSide] = useState<Printing | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const changeLanguage = (next: string) => {
+    if (existing === null) {
+      const seed = reseedFromBase(
+        { setId, finish, size },
+        base,
+        basePrintingForLanguage(cardPrintings, next),
+      );
+      setSetId(seed.setId);
+      setFinish(seed.finish);
+      setSize(seed.size);
+    }
+    setLanguage(next);
+  };
 
   const artist = artistOverride ?? base?.artist ?? "";
   const isPending = createPrinting.isPending || updatePrinting.isPending;
@@ -273,7 +288,7 @@ function usePrintingDeskFormState({
     finish,
     setFinish,
     language,
-    setLanguage,
+    setLanguage: changeLanguage,
     size,
     setSize,
     announcedAt,
@@ -281,6 +296,7 @@ function usePrintingDeskFormState({
     releasedAt,
     setReleasedAt,
     precision,
+    storedQuarter: existing?.releasePrecision === "quarter",
     setPrecision,
     comment,
     setComment,
@@ -499,6 +515,7 @@ function PrintingDeskFields({
                   onClear={() => form.setReleasedAt(null)}
                 />
                 <DatePrecisionControl
+                  includeQuarter={form.storedQuarter}
                   value={form.precision}
                   onChange={(next) => form.setPrecision(next)}
                 />

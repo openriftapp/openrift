@@ -49,6 +49,7 @@ import {
   buildCardListings,
   listingAssignment,
 } from "@/features/catalog-workspace/lib/card-listing-rows";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 const STRENGTH_VARIANT: Record<ListingStrength, "success" | "warning" | "neutral"> = {
   strong: "success",
@@ -58,14 +59,15 @@ const STRENGTH_VARIANT: Record<ListingStrength, "success" | "warning" | "neutral
 
 function useListingDone(cardSlug: string) {
   const queryClient = useQueryClient();
-  return {
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: adminKeys.cards.detail(cardSlug) }),
-        queryClient.invalidateQueries({ queryKey: adminKeys.unifiedMappings.all }),
-        queryClient.invalidateQueries({ queryKey: adminKeys.workspace }),
-      ]);
-    },
+  return async (run: () => Promise<unknown>) => {
+    if (!(await runReportedMutation(run))) {
+      return;
+    }
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: adminKeys.cards.detail(cardSlug) }),
+      queryClient.invalidateQueries({ queryKey: adminKeys.unifiedMappings.all }),
+      queryClient.invalidateQueries({ queryKey: adminKeys.workspace }),
+    ]);
   };
 }
 
@@ -150,17 +152,21 @@ function ListingRow({
   const canUnassign = row.isAssigned || product.isOverride === true;
 
   function assign(printingId: string) {
-    save.mutate({ mappings: [listingAssignment(row, printingId)] }, done);
+    void done(() => save.mutateAsync({ mappings: [listingAssignment(row, printingId)] }));
   }
 
   function runUnassign() {
     if (!row.isAssigned) {
-      unassign.mutate(sku, done);
+      void done(() => unassign.mutateAsync(sku));
       return;
     }
-    for (const printing of row.assignedPrintings) {
-      unmap.mutate({ marketplace, printingId: printing.printingId, ...sku });
-    }
+    void done(() =>
+      Promise.all(
+        row.assignedPrintings.map((printing) =>
+          unmap.mutateAsync({ marketplace, printingId: printing.printingId, ...sku }),
+        ),
+      ),
+    );
   }
 
   function closeDialog(open: boolean) {
@@ -262,12 +268,14 @@ function ListingRow({
             {!row.isAssigned && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => ignoreVariant.mutate([sku], done)}>
+                <DropdownMenuItem onClick={() => void done(() => ignoreVariant.mutateAsync([sku]))}>
                   <BanIcon />
                   Ignore this variant
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => ignoreProduct.mutate([{ externalId: product.externalId }], done)}
+                  onClick={() =>
+                    void done(() => ignoreProduct.mutateAsync([{ externalId: product.externalId }]))
+                  }
                 >
                   <BanIcon />
                   Ignore the whole product
@@ -296,7 +304,7 @@ function ListingRow({
           onOpenChange={closeDialog}
           onPick={(cardId) => {
             setDialog(null);
-            assignToCard.mutate({ ...sku, cardId }, done);
+            void done(() => assignToCard.mutateAsync({ ...sku, cardId }));
           }}
         />
       )}
@@ -325,7 +333,7 @@ export function CardListingsSection({
     for (const marketplace of ALL_MARKETPLACES) {
       const mappings = strong[marketplace];
       if (mappings.length > 0) {
-        saves[marketplace].mutate({ mappings }, done);
+        void done(() => saves[marketplace].mutateAsync({ mappings }));
       }
     }
   }

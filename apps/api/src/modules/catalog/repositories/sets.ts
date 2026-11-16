@@ -1,4 +1,4 @@
-import type { SetReleases } from "@openrift/shared/set-release";
+import type { SetRelease, SetReleases } from "@openrift/shared/set-release";
 import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
 
@@ -141,6 +141,27 @@ export function setsRepo(db: Kysely<Database>) {
           )
           .execute();
       });
+    },
+
+    async putRelease(setId: string, language: string, release: SetRelease): Promise<void> {
+      await db
+        .insertInto("setReleases")
+        .values({ setId, language, releasedAt: release.releasedAt, precision: release.precision })
+        .onConflict((oc) =>
+          oc.columns(["setId", "language"]).doUpdateSet({
+            releasedAt: release.releasedAt,
+            precision: release.precision,
+          }),
+        )
+        .execute();
+    },
+
+    async deleteRelease(setId: string, language: string): Promise<void> {
+      await db
+        .deleteFrom("setReleases")
+        .where("setId", "=", setId)
+        .where("language", "=", language)
+        .execute();
     },
 
     async deleteById(id: string): Promise<boolean> {

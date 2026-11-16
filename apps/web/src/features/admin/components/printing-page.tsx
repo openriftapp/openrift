@@ -650,7 +650,7 @@ function DeskImageRow({
           onBlur={saveCredit}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
-              saveCredit();
+              event.currentTarget.blur();
             }
           }}
         />

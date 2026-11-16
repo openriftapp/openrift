@@ -59,7 +59,7 @@ export function SameDifferenceLine({
         destructive={false}
         isPending={isPending}
         onConfirm={() =>
-          discard(input, `${sourceLabel}'s ${fieldLabel} suggestion`, {
+          void discard(input, `${sourceLabel}'s ${fieldLabel} suggestion`, {
             onSuccess: () => setOpen(false),
           })
         }

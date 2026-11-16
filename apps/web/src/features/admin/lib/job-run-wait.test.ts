@@ -34,6 +34,14 @@ describe("waitForJobRun", () => {
     expect(wait).toHaveBeenCalledWith(2000);
   });
 
+  it("gives up with an error once the run has stayed running for every poll", async () => {
+    const listRuns = vi.fn().mockResolvedValue([run({})]);
+    const wait = vi.fn(async () => {});
+
+    await expect(waitForJobRun("run-1", listRuns, wait, 3)).rejects.toThrow(/still going/u);
+    expect(listRuns).toHaveBeenCalledTimes(3);
+  });
+
   it("resolves null when the run is no longer listed", async () => {
     const listRuns = vi.fn().mockResolvedValue([run({ id: "other" })]);
 

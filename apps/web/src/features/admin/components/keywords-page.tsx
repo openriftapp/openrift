@@ -31,6 +31,7 @@ import {
   useDiscoverTranslations,
   useKeywordStats,
   useRecomputeKeywords,
+  usePatchKeywordFlags,
   useUpdateKeywordStyle,
   useUpsertTranslation,
 } from "@/features/admin/hooks/use-keywords";
@@ -73,7 +74,7 @@ function KeywordCell({ row }: AdminCellSlotProps<KeywordRow>) {
 }
 
 function DarkTextCell({ row }: AdminCellSlotProps<KeywordRow>) {
-  const updateStyle = useUpdateKeywordStyle();
+  const patchFlags = usePatchKeywordFlags();
   if (!row || !row.color) {
     return null;
   }
@@ -82,13 +83,7 @@ function DarkTextCell({ row }: AdminCellSlotProps<KeywordRow>) {
     <Checkbox
       checked={row.darkText}
       onCheckedChange={(checked) =>
-        updateStyle.mutate({
-          name: row.keyword,
-          color,
-          darkText: checked,
-          costKeyword: row.costKeyword,
-          cardModifier: row.cardModifier,
-        })
+        patchFlags.mutate({ name: row.keyword, insertColor: color, darkText: checked })
       }
     />
   );
@@ -146,7 +141,7 @@ function DarkTextInput({ draft, setDraft }: AdminDraftSlotProps<KeywordDraft>) {
 }
 
 function CostKeywordCell({ row }: AdminCellSlotProps<KeywordRow>) {
-  const updateStyle = useUpdateKeywordStyle();
+  const patchFlags = usePatchKeywordFlags();
   if (!row) {
     return null;
   }
@@ -156,12 +151,10 @@ function CostKeywordCell({ row }: AdminCellSlotProps<KeywordRow>) {
     <Checkbox
       checked={row.costKeyword}
       onCheckedChange={(checked) =>
-        updateStyle.mutate({
+        patchFlags.mutate({
           name: row.keyword,
-          color: row.color ?? FALLBACK_KEYWORD_COLOR,
-          darkText: row.darkText,
+          insertColor: row.color ?? FALLBACK_KEYWORD_COLOR,
           costKeyword: checked,
-          cardModifier: row.cardModifier,
         })
       }
     />
@@ -181,7 +174,7 @@ function CostKeywordInput({ draft, setDraft }: AdminDraftSlotProps<KeywordDraft>
 }
 
 function CardModifierCell({ row }: AdminCellSlotProps<KeywordRow>) {
-  const updateStyle = useUpdateKeywordStyle();
+  const patchFlags = usePatchKeywordFlags();
   if (!row) {
     return null;
   }
@@ -189,11 +182,9 @@ function CardModifierCell({ row }: AdminCellSlotProps<KeywordRow>) {
     <Checkbox
       checked={row.cardModifier}
       onCheckedChange={(checked) =>
-        updateStyle.mutate({
+        patchFlags.mutate({
           name: row.keyword,
-          color: row.color ?? FALLBACK_KEYWORD_COLOR,
-          darkText: row.darkText,
-          costKeyword: row.costKeyword,
+          insertColor: row.color ?? FALLBACK_KEYWORD_COLOR,
           cardModifier: checked,
         })
       }

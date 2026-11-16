@@ -12,6 +12,7 @@ import {
 } from "@/features/catalog-workspace/lib/workspace-same-difference";
 import { undoScope } from "@/features/catalog-workspace/lib/workspace-undo";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 const BULK_SCOPE = [adminKeys.workspace, adminKeys.cards.all];
 
@@ -26,27 +27,31 @@ export function useDiscardSameDifference() {
     invalidates: BULK_SCOPE,
   });
 
-  function discard(
+  async function discard(
     input: WorkspaceSameDifferenceInput,
     what: string,
     options?: { onSuccess?: () => void },
-  ) {
-    mutation.mutate(input, {
-      onSuccess: ({ checked, candidateCardIds }) => {
-        options?.onSuccess?.();
-        if (candidateCardIds.length === 0) {
-          toast.success("Nothing left to discard");
-          return;
-        }
-        const record = `${checked} ${pluralize(checked, "card")}`;
-        announce({
-          label: `Discarded ${what} on ${record}`,
-          undoneLabel: `Undone: ${what} restored on ${record}`,
-          invalidates: undoScope(BULK_SCOPE),
-          undo: async () => {
-            await uncheckCandidateCardsFn({ data: { candidateCardIds } });
-          },
-        });
+  ): Promise<void> {
+    let result: Awaited<ReturnType<typeof mutation.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await mutation.mutateAsync(input);
+    });
+    if (!ok || !result) {
+      return;
+    }
+    const { checked, candidateCardIds } = result;
+    options?.onSuccess?.();
+    if (candidateCardIds.length === 0) {
+      toast.success("Nothing left to discard");
+      return;
+    }
+    const record = `${checked} ${pluralize(checked, "card")}`;
+    announce({
+      label: `Discarded ${what} on ${record}`,
+      undoneLabel: `Undone: ${what} restored on ${record}`,
+      invalidates: undoScope(BULK_SCOPE),
+      undo: async () => {
+        await uncheckCandidateCardsFn({ data: { candidateCardIds } });
       },
     });
   }

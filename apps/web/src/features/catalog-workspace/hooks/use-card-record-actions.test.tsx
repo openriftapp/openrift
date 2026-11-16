@@ -43,13 +43,26 @@ const serverFns = vi.hoisted(() => ({
   uncheckCandidateCards: vi.fn((_input: unknown) => Promise.resolve()),
 }));
 
-vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
-  acceptCardFieldFn: serverFns.acceptCardField,
-  uncheckCandidateCardsFn: serverFns.uncheckCandidateCards,
-  useAcceptCardField: () => mutations.acceptCardField,
-  useCheckCandidateCard: () => mutations.check,
-  useCheckCandidateCards: () => mutations.checkMany,
+const realCheck = vi.hoisted(() => ({
+  fn: null as ((candidateCardId: string) => Promise<void>) | null,
 }));
+
+vi.mock("@/features/admin/hooks/use-admin-card-mutations", async () => {
+  const { useMutation } = await import("@tanstack/react-query");
+  return {
+    acceptCardFieldFn: serverFns.acceptCardField,
+    uncheckCandidateCardsFn: serverFns.uncheckCandidateCards,
+    useAcceptCardField: () => mutations.acceptCardField,
+    useCheckCandidateCard: () => {
+      const real = useMutation({
+        mutationFn: (candidateCardId: string) =>
+          realCheck.fn?.(candidateCardId) ?? Promise.resolve(),
+      });
+      return realCheck.fn === null ? mutations.check : real;
+    },
+    useCheckCandidateCards: () => mutations.checkMany,
+  };
+});
 
 vi.mock("@/features/admin/hooks/use-catalog-review", () => ({
   useAcceptSubmission: () => mutations.acceptSubmission,
@@ -71,6 +84,7 @@ beforeEach(() => {
   mutations.acceptSubmission = fakeMutation();
   serverFns.acceptCardField.mockClear();
   serverFns.uncheckCandidateCards.mockClear();
+  realCheck.fn = null;
   vi.mocked(toast.success).mockClear();
 });
 
@@ -161,6 +175,41 @@ describe("useCardRecordActions", () => {
     expect(later.undo).not.toHaveBeenCalled();
   });
 
+  it("pushes an undo for each of two discards made before either lands", async () => {
+    const first = source({ might: 3, name: "Jinx A" });
+    const second = source({ provider: "gallery", might: 2, name: "Jinx B" });
+    const gates: (() => void)[] = [];
+    realCheck.fn = () =>
+      new Promise<void>((resolve) => {
+        gates.push(resolve);
+      });
+    const { result } = setup([first, second]);
+    const model = buildCardSuggestions(
+      makeAdminCardDetail({ card, sources: [first, second] }),
+      [],
+      [],
+    );
+    const [a, b] = model.suggestions.filter(
+      (suggestion, index, all) =>
+        all.findIndex((other) => other.candidateRowId === suggestion.candidateRowId) === index,
+    );
+    if (a === undefined || b === undefined) {
+      throw new Error("expected two suggestions");
+    }
+
+    let runs: Promise<void>[] = [];
+    act(() => {
+      runs = [result.current.discardSuggestion(a), result.current.discardSuggestion(b)];
+    });
+    await vi.waitFor(() => expect(gates).toHaveLength(2));
+    for (const open of gates) {
+      open();
+    }
+    await act(() => Promise.all(runs));
+
+    expect(useWorkspaceSelectionStore.getState().undoStack).toHaveLength(2);
+  });
+
   it("Discard checks that source's row and undo unchecks it", async () => {
     const row = source({ might: 3, name: "Jinx A" });
     const { result } = setup([row]);
@@ -169,9 +218,9 @@ describe("useCardRecordActions", () => {
     if (first === undefined) {
       throw new Error("expected a suggestion");
     }
-    act(() => result.current.discardSuggestion(first));
+    await act(() => result.current.discardSuggestion(first));
 
-    expect(mutations.check.mutate).toHaveBeenCalledWith(row.id, expect.anything());
+    expect(mutations.check.mutateAsync).toHaveBeenCalledWith(row.id);
     expect(latest()?.label).toBe("Discarded 2 suggestions on Jinx, Demolitionist");
     await latest()?.undo();
     expect(serverFns.uncheckCandidateCards).toHaveBeenCalledWith({
@@ -247,9 +296,9 @@ describe("useCardRecordActions", () => {
     );
     const first = model.suggestions[0];
     if (first !== undefined) {
-      act(() => result.current.discardSuggestion(first));
+      await act(() => result.current.discardSuggestion(first));
     }
-    expect(mutations.check.mutate).not.toHaveBeenCalled();
+    expect(mutations.check.mutateAsync).not.toHaveBeenCalled();
   });
 
   it("Use on a contributor chip accepts only that change of the submission", () => {
@@ -266,12 +315,11 @@ describe("useCardRecordActions", () => {
       void result.current.actions.useSuggestion?.(1);
     });
 
-    expect(mutations.acceptSubmission.mutate).toHaveBeenCalledWith(
+    expect(mutations.acceptSubmission.mutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({
         candidateCardId: "sub-1",
         cardFields: [{ field: "might", value: 2 }],
       }),
-      expect.anything(),
     );
     expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([]);
   });

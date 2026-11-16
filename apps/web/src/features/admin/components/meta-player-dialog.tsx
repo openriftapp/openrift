@@ -38,6 +38,7 @@ import {
   metaPlayerOverlayList,
   metaPlayerRank,
   metaPlayerRecordPart,
+  metaPlayerStatusChangeNeedsList,
   metaPlayerToDraft,
   countDeckRowsAndCopies,
   validateMetaPlayerDraft,
@@ -248,6 +249,10 @@ export function MetaPlayerDialog({ eventId, eventFormat, player, onClose }: Meta
       setFormError("Paste a decklist and parse it, or file this player with no list.");
       return;
     }
+    if (player && metaPlayerStatusChangeNeedsList(player, draft, cards)) {
+      setFormError("Paste and parse the list again to change whether it is full or partial.");
+      return;
+    }
 
     // Creating still writes the whole row: there is nothing there yet to leave
     // alone.
@@ -450,7 +455,10 @@ export function MetaPlayerDialog({ eventId, eventFormat, player, onClose }: Meta
               <Textarea
                 id="meta-player-list"
                 value={rawText}
-                onChange={(e) => setRawText(e.target.value)}
+                onChange={(e) => {
+                  setRawText(e.target.value);
+                  setParsed(null);
+                }}
                 placeholder={
                   hasStoredList
                     ? "Paste a replacement list, or leave empty to keep the stored cards…"

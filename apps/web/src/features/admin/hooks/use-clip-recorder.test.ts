@@ -91,6 +91,18 @@ describe("useClipRecorder", () => {
     expect(FakeRecorder.instances.at(-1)?.state).toBe("recording");
   });
 
+  it("a second start while the first is still restarting records nothing extra", async () => {
+    const { result } = renderHook(() => useClipRecorder(videoRef(new FakeMediaStream())));
+
+    await act(() => Promise.all([result.current.start(restart), result.current.start(restart)]));
+
+    expect(
+      FakeRecorder.instances.filter((recorder) => recorder.state === "recording"),
+    ).toHaveLength(1);
+    act(() => result.current.stop(context));
+    expect(FakeRecorder.instances.every((recorder) => recorder.state === "inactive")).toBe(true);
+  });
+
   it("start without a camera stream sets an error", async () => {
     const { result } = renderHook(() => useClipRecorder(videoRef(null)));
     await act(() => result.current.start(restart));

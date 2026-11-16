@@ -7,7 +7,7 @@ import { pluralize } from "@openrift/shared/strings";
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { ArrowRightIcon, CheckIcon, EllipsisVerticalIcon, MessageSquareIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -215,12 +215,6 @@ export function SubmissionBlock({
   const kindLabel = KIND_LABELS[submission.kind];
   const who = submission.submitterName ?? "a contributor";
 
-  // oxlint-disable-next-line no-empty-function -- default no-op until the effect below installs the real handler
-  const acceptRef = useRef<() => void>(() => {});
-  useHotkey("Mod+Enter", () => acceptRef.current(), {
-    enabled: hotkeyEnabled && settled === null && !acceptSubmission.isPending,
-  });
-
   function linkGroup(group: AttentionGroup, printingId: string) {
     const candidate = group.candidate;
     if (candidate === null) {
@@ -272,8 +266,8 @@ export function SubmissionBlock({
     onSettled?.();
   }
 
-  useEffect(() => {
-    acceptRef.current = () => void runAccept();
+  useHotkey("Mod+Enter", () => void runAccept(), {
+    enabled: hotkeyEnabled && settled === null && !acceptSubmission.isPending,
   });
 
   if (settled) {

@@ -5,7 +5,10 @@ import type {
   CandidateCardResponse,
   CandidatePrintingResponse,
 } from "@openrift/shared/types/api/admin";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
+import type { ReactNode } from "react";
+import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -204,19 +207,27 @@ function stubDetail(overrides: Partial<AdminCardDetailResponse> = {}): AdminCard
   } as unknown as AdminCardDetailResponse;
 }
 
+let queryClient: QueryClient;
+
 function renderNav(options: Partial<Parameters<typeof useCardReviewNavigation>[0]> = {}) {
-  return renderHook(() =>
-    useCardReviewNavigation({
-      cardSlug: "yasuo",
-      detail: stubDetail(),
-      isAdmin: true,
-      invalidates: [],
-      ...options,
-    }),
+  return renderHook(
+    () =>
+      useCardReviewNavigation({
+        cardSlug: "yasuo",
+        detail: stubDetail(),
+        isAdmin: true,
+        invalidates: [],
+        ...options,
+      }),
+    {
+      wrapper: ({ children }: { children: ReactNode }) =>
+        createElement(QueryClientProvider, { client: queryClient }, children),
+    },
   );
 }
 
 beforeEach(() => {
+  queryClient = new QueryClient();
   vi.clearAllMocks();
   mocks.hotkeys.clear();
   mocks.nextUncheckedArgs.current = null;
@@ -410,6 +421,24 @@ describe("useCardReviewNavigation", () => {
       params: { cardSlug: "zoe" },
       search: { status: "review", section: "printings" },
     });
+  });
+
+  it("Check all & next in a review run opens the next card still in the refreshed inbox", async () => {
+    mocks.reviewItems = [makeReviewQueueItem({ cardSlug: "yasuo" })];
+    queryClient.setQueryData(["admin", "review-queue"], {
+      items: [makeReviewQueueItem({ cardSlug: "zed" })],
+    });
+    const { result } = renderNav({ listStatus: "review" });
+
+    await act(async () => {
+      await result.current.checkAllAndNext();
+    });
+
+    expect(mocks.fetchNext).not.toHaveBeenCalled();
+    expect(mocks.toastSuccess).not.toHaveBeenCalled();
+    expect(mocks.navigate).toHaveBeenCalledWith(
+      expect.objectContaining({ params: { cardSlug: "zed" } }),
+    );
   });
 
   it("returns to the review inbox from a review run", () => {

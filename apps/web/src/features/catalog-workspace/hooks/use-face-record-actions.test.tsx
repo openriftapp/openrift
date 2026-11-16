@@ -66,7 +66,11 @@ vi.mock("@/hooks/use-enums", () => ({
   useEnumOrders: () => ({ labels: {} }),
   useLanguageLabels: () => ({}),
 }));
-vi.mock("@/features/admin/lib/accept-undo", () => ({ acceptFieldWithUndo: mocks.toast }));
+vi.mock("@/features/admin/lib/accept-undo", () => ({
+  acceptFieldWithUndo: mocks.toast,
+  revertAcceptedField: (revert: unknown, write: (revert: unknown) => Promise<unknown>) =>
+    write(revert),
+}));
 vi.mock("@/features/catalog-workspace/hooks/use-register-record-actions", () => ({
   useRegisterRecordActions: (actions: RecordActions) => {
     mocks.registered.current = actions;
@@ -306,12 +310,9 @@ describe("useFaceRecordActions", () => {
       { wrapper },
     );
 
-    act(() => result.current.discard(candidate.id));
+    await act(() => result.current.discard(candidate.id));
 
-    expect(mocks.checkCandidate.current?.mutate).toHaveBeenCalledWith(
-      candidate.id,
-      expect.anything(),
-    );
+    expect(mocks.checkCandidate.current?.mutateAsync).toHaveBeenCalledWith(candidate.id);
     expect(toast.success).toHaveBeenCalledWith(
       "Discarded 1 suggestion and 1 image on Teemo, Scout",
       expect.objectContaining({ action: expect.objectContaining({ label: "Undo (Z)" }) }),
@@ -336,7 +337,7 @@ describe("useFaceRecordActions", () => {
         }),
       { wrapper },
     );
-    act(() => result.current.discard(candidate.id));
+    await act(() => result.current.discard(candidate.id));
     const [[, options]] = vi.mocked(toast.success).mock.calls as unknown as [
       [string, { action: { onClick: () => void } }],
     ];

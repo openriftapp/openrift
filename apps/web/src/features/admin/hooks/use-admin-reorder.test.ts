@@ -61,6 +61,17 @@ describe("useAdminReorder", () => {
     settle();
   });
 
+  it("unlocks once the save settles even when the data prop never changes", async () => {
+    const onReorder = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderReorder({ moves: makeMoves(), onReorder });
+
+    await act(async () => {
+      await result.current.commitReorder(swapped);
+    });
+
+    expect(result.current.locked).toBe(false);
+  });
+
   it("drops the pending order once the data prop lands in the order that was requested", () => {
     const pending = new Promise<void>(() => {});
     const { result, rerender } = renderReorder({ moves: makeMoves(), onReorder: () => pending });

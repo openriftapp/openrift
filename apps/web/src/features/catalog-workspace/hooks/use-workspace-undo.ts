@@ -16,36 +16,55 @@ function refresh(entry: WorkspaceUndoEntry, queryClient: QueryClient) {
   }
 }
 
-export async function runWorkspaceUndo(
-  entry: WorkspaceUndoEntry,
-  queryClient: QueryClient,
-): Promise<void> {
-  const store = useWorkspaceSelectionStore.getState();
-  if (store.undoing || !store.undoStack.includes(entry)) {
-    return;
-  }
-  store.setUndoing(true);
+async function undoOne(entry: WorkspaceUndoEntry, queryClient: QueryClient): Promise<boolean> {
   let failure: unknown = null;
   try {
     await entry.undo();
   } catch (error) {
     failure = error ?? new Error("Undo failed");
   }
-  const after = useWorkspaceSelectionStore.getState();
-  after.setUndoing(false);
+  const store = useWorkspaceSelectionStore.getState();
   if (failure === null) {
-    after.removeUndo(entry);
+    store.removeUndo(entry);
     toast.success(entry.undoneLabel);
     refresh(entry, queryClient);
-    return;
+    return true;
   }
   if (errorStatus(failure) === 404 && !isStaleServerFnError(failure)) {
-    after.removeUndo(entry);
+    store.removeUndo(entry);
     toast(goneNotice(entry));
     refresh(entry, queryClient);
-    return;
+    return true;
   }
   reportMutationError(toError(failure), queryClient);
+  return false;
+}
+
+/** An undo asked for while another runs waits its turn; a failed undo drops the waiting ones. */
+export async function runWorkspaceUndo(
+  entry: WorkspaceUndoEntry,
+  queryClient: QueryClient,
+): Promise<void> {
+  const store = useWorkspaceSelectionStore.getState();
+  if (!store.undoStack.includes(entry) || store.undoQueue.includes(entry)) {
+    return;
+  }
+  store.setUndoQueue([...store.undoQueue, entry]);
+  if (store.undoing) {
+    return;
+  }
+  store.setUndoing(true);
+  let next: WorkspaceUndoEntry | undefined = entry;
+  while (next !== undefined) {
+    const ok = await undoOne(next, queryClient);
+    const after = useWorkspaceSelectionStore.getState();
+    const rest = ok
+      ? after.undoQueue.slice(1).filter((queued) => after.undoStack.includes(queued))
+      : [];
+    after.setUndoQueue(rest);
+    next = rest[0];
+  }
+  useWorkspaceSelectionStore.getState().setUndoing(false);
 }
 
 export function useWorkspaceUndo() {
@@ -57,7 +76,8 @@ export function useWorkspaceUndo() {
   };
 
   const undoLatest = (): boolean => {
-    const entry = useWorkspaceSelectionStore.getState().undoStack.at(-1);
+    const { undoStack, undoQueue } = useWorkspaceSelectionStore.getState();
+    const entry = undoStack.findLast((candidate) => !undoQueue.includes(candidate));
     if (entry === undefined) {
       return false;
     }

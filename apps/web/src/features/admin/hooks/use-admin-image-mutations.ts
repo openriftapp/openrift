@@ -9,7 +9,7 @@ import type { MutationMeta, QueryClient } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
-import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { adminKeys, CANDIDATE_REVIEW_SCOPE } from "@/features/admin/lib/admin-query-keys";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { reportMutationError } from "@/lib/query-client";
 import { getApiUrl } from "@/lib/server-fns/api-url";
@@ -181,7 +181,7 @@ const uploadCandidatesFn = createServerFn({ method: "POST" })
   );
 
 type Scope = readonly (readonly unknown[])[];
-const defaultScope: Scope = [adminKeys.cards.all, adminKeys.workspace];
+const defaultScope: Scope = CANDIDATE_REVIEW_SCOPE;
 
 function refetchScope(queryClient: QueryClient, scope: Scope) {
   for (const key of scope) {
@@ -440,11 +440,6 @@ export function useUploadCandidates() {
   return useMutationWithInvalidation({
     meta: { inlineError: true },
     mutationFn: (payload: UploadCandidatesBody) => uploadCandidatesFn({ data: payload }),
-    invalidates: [
-      adminKeys.cards.all,
-      adminKeys.sources,
-      adminKeys.reviewQueue,
-      adminKeys.workspace,
-    ],
+    invalidates: [...CANDIDATE_REVIEW_SCOPE, adminKeys.sources],
   });
 }

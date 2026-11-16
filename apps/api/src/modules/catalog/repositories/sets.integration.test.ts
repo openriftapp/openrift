@@ -111,6 +111,31 @@ describe.skipIf(!ctx)("setsRepo (integration)", () => {
     expect(result).toBe(false);
   });
 
+  it("putRelease and deleteRelease touch only their own language row", async () => {
+    const id = createdSetIds[0]!;
+    await repo.replaceReleases(id, {
+      EN: { releasedAt: "2026-01-15", precision: "day" },
+      FR: { releasedAt: null, precision: null },
+    });
+
+    await repo.putRelease(id, "FR", { releasedAt: "2026-04-01", precision: "quarter" });
+    await repo.putRelease(id, "KR", { releasedAt: null, precision: null });
+    const afterPut = await repo.releasesBySet();
+    expect(afterPut.get(id)).toEqual({
+      EN: { releasedAt: "2026-01-15", precision: "day" },
+      FR: { releasedAt: "2026-04-01", precision: "quarter" },
+      KR: { releasedAt: null, precision: null },
+    });
+
+    await repo.deleteRelease(id, "KR");
+    const afterDelete = await repo.releasesBySet();
+    expect(afterDelete.get(id)).toEqual({
+      EN: { releasedAt: "2026-01-15", precision: "day" },
+      FR: { releasedAt: "2026-04-01", precision: "quarter" },
+    });
+    await repo.replaceReleases(id, {});
+  });
+
   it("replaceReleases writes, updates and deletes language rows", async () => {
     const id = createdSetIds[0]!;
 

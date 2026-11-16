@@ -1,4 +1,4 @@
-import type { SetRelease, SetReleases } from "@openrift/shared/set-release";
+import type { SetRelease } from "@openrift/shared/set-release";
 import {
   formatReleasePeriod,
   isReleased,
@@ -27,8 +27,9 @@ import { CountBadge } from "@/features/admin/components/count-badge";
 import { DatePrecisionControl } from "@/features/admin/components/date-precision-control";
 import { LanguageSelect } from "@/features/admin/components/language-select";
 import { SetPicker } from "@/features/admin/components/set-picker";
+import { useDeleteSetRelease, usePutSetRelease } from "@/features/admin/hooks/use-set-releases";
 import { flatReorder } from "@/features/admin/lib/admin-reorder";
-import { parseSetDraft, requireSetDraft, setReleasesUpdate } from "@/features/admin/lib/set-draft";
+import { parseSetDraft, requireSetDraft } from "@/features/admin/lib/set-draft";
 import {
   useCreateSet,
   useDeleteSet,
@@ -37,6 +38,7 @@ import {
   useUpdateSet,
 } from "@/features/cards/hooks/use-sets";
 import { useLanguageList } from "@/hooks/use-enums";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 interface SetDraft {
   id: string;
@@ -259,11 +261,18 @@ function ReleaseLanguageCell({ row }: AdminCellSlotProps<ReleaseRow>) {
   return <span className="text-muted-foreground font-mono">{row.language}</span>;
 }
 
+type RowBusy = (row: ReleaseRow) => boolean;
+
+function releaseRowKey(setId: string, language: string) {
+  return `${setId}-${language}`;
+}
+
 function ReleaseDateCell({
   row,
   write,
   resetKey,
-}: AdminCellSlotProps<ReleaseRow> & { write?: WriteRelease; resetKey?: number }) {
+  busy,
+}: AdminCellSlotProps<ReleaseRow> & { write?: WriteRelease; resetKey?: number; busy?: RowBusy }) {
   if (!row || !write) {
     return null;
   }
@@ -271,6 +280,7 @@ function ReleaseDateCell({
     <DatePicker
       key={resetKey}
       value={row.release.releasedAt}
+      disabled={busy?.(row)}
       onValueChange={(iso) =>
         write(row.setId, row.language, {
           releasedAt: iso,
@@ -286,7 +296,8 @@ function ReleaseDateCell({
 function ReleasePrecisionCell({
   row,
   write,
-}: AdminCellSlotProps<ReleaseRow> & { write?: WriteRelease }) {
+  busy,
+}: AdminCellSlotProps<ReleaseRow> & { write?: WriteRelease; busy?: RowBusy }) {
   if (!row || !write) {
     return null;
   }
@@ -294,7 +305,7 @@ function ReleasePrecisionCell({
     <DatePrecisionControl
       includeQuarter
       value={row.release.precision ?? "day"}
-      disabled={row.release.releasedAt === null}
+      disabled={row.release.releasedAt === null || busy?.(row) === true}
       onChange={(precision) =>
         write(row.setId, row.language, { releasedAt: row.release.releasedAt, precision })
       }
@@ -316,7 +327,11 @@ function ReleaseShownCell({ row }: AdminCellSlotProps<ReleaseRow>) {
 function RemoveReleaseAction({
   row,
   remove,
-}: AdminCellSlotProps<ReleaseRow> & { remove?: (setId: string, language: string) => void }) {
+  busy,
+}: AdminCellSlotProps<ReleaseRow> & {
+  remove?: (setId: string, language: string) => void;
+  busy?: RowBusy;
+}) {
   if (!row || !remove) {
     return null;
   }
@@ -326,6 +341,7 @@ function RemoveReleaseAction({
       size="icon"
       className="text-destructive"
       aria-label={`Remove the ${row.language} release of ${row.setSlug}`}
+      disabled={busy?.(row)}
       onClick={() => remove(row.setId, row.language)}
     >
       <Trash2Icon className="size-4" />
@@ -381,53 +397,35 @@ function AddedUndatedNote({ draft }: AdminDraftSlotProps<ReleaseDraft>) {
  * the date leaves the language announced-undated; removing the row means not announced.
  */
 function SetReleasesTable({ sets }: { sets: AdminSetResponse[] }) {
-  const updateMutation = useUpdateSet();
-  const addMutation = useUpdateSet({ inlineError: true });
-  const setsById = new Map(sets.map((set) => [set.id, set]));
+  const putRelease = usePutSetRelease();
+  const deleteRelease = useDeleteSetRelease();
+  const addRelease = usePutSetRelease({ inlineError: true });
 
   const [lastAddedSetId, setLastAddedSetId] = useState("");
   const [failedWrites, setFailedWrites] = useState(0);
+  const [writing, setWriting] = useState<ReadonlySet<string>>(new Set());
 
-  function saveReleases(setId: string, releases: SetReleases) {
-    const set = setsById.get(setId);
-    if (!set) {
-      return;
+  async function track(setId: string, language: string, run: () => Promise<unknown>) {
+    const key = releaseRowKey(setId, language);
+    setWriting((prev) => new Set(prev).add(key));
+    const ok = await runReportedMutation(run);
+    setWriting((prev) => new Set([...prev].filter((entry) => entry !== key)));
+    if (!ok) {
+      setFailedWrites((count) => count + 1);
     }
-    updateMutation.mutate(setReleasesUpdate(set, releases), {
-      onError: () => setFailedWrites((count) => count + 1),
-    });
   }
 
   function writeRelease(setId: string, language: string, release: SetRelease) {
-    const set = setsById.get(setId);
-    if (!set) {
-      return;
-    }
-    saveReleases(setId, { ...set.releases, [language]: normalizeToPeriodStart(release) });
-  }
-
-  function addedRelease(draft: ReleaseDraft) {
-    const set = setsById.get(draft.setId);
-    if (!set) {
-      throw new Error("Pick a set");
-    }
-    return setReleasesUpdate(set, {
-      ...set.releases,
-      [draft.language]: { releasedAt: null, precision: null },
-    });
+    void track(setId, language, () =>
+      putRelease.mutateAsync({ id: setId, language, release: normalizeToPeriodStart(release) }),
+    );
   }
 
   function removeRelease(setId: string, language: string) {
-    const set = setsById.get(setId);
-    if (!set) {
-      return;
-    }
-    // A computed key in an object destructure bails the React Compiler out of the whole file.
-    saveReleases(
-      setId,
-      Object.fromEntries(Object.entries(set.releases).filter(([code]) => code !== language)),
-    );
+    void track(setId, language, () => deleteRelease.mutateAsync({ id: setId, language }));
   }
+
+  const isWriting = (row: ReleaseRow) => writing.has(releaseRowKey(row.setId, row.language));
 
   return (
     <div className="space-y-3">
@@ -456,29 +454,33 @@ function SetReleasesTable({ sets }: { sets: AdminSetResponse[] }) {
           {
             header: "Date",
             width: "w-44",
-            cell: <ReleaseDateCell write={writeRelease} resetKey={failedWrites} />,
+            cell: <ReleaseDateCell write={writeRelease} resetKey={failedWrites} busy={isWriting} />,
           },
           {
             header: "Precision",
-            cell: <ReleasePrecisionCell write={writeRelease} />,
+            cell: <ReleasePrecisionCell write={writeRelease} busy={isWriting} />,
             addCell: <AddedUndatedNote />,
           },
           { header: "Shown as", width: "w-32", cell: <ReleaseShownCell /> },
         ]}
         data={toReleaseRows(sets)}
-        getRowKey={(row) => `${row.setId}-${row.language}`}
+        getRowKey={(row) => releaseRowKey(row.setId, row.language)}
         emptyText="No release dates yet."
         groupBy={{ key: (row) => row.language, label: (language) => language }}
-        actions={<RemoveReleaseAction remove={removeRelease} />}
+        actions={<RemoveReleaseAction remove={removeRelease} busy={isWriting} />}
         add={{
           label: "Add release",
           emptyDraft: { setId: lastAddedSetId, language: "" },
           validate: (draft) =>
             draft.setId === "" || draft.language === "" ? "Pick a set and a language" : null,
-          onSave: (draft) =>
-            addMutation.mutateAsync(addedRelease(draft), {
-              onSuccess: () => setLastAddedSetId(draft.setId),
-            }),
+          onSave: async (draft) => {
+            await addRelease.mutateAsync({
+              id: draft.setId,
+              language: draft.language,
+              release: { releasedAt: null, precision: null },
+            });
+            setLastAddedSetId(draft.setId);
+          },
         }}
       />
     </div>
@@ -492,10 +494,6 @@ export function SetsPage() {
   const reorderMutation = useReorderSets();
   const deleteMutation = useDeleteSet();
   const { sets } = data;
-
-  // Release rows are edited in their own table below; a set edit re-sends
-  // the map it already had.
-  const releasesById = new Map(sets.map((set) => [set.id, set.releases]));
 
   return (
     <div className="space-y-6">
@@ -556,7 +554,6 @@ export function SetsPage() {
             updateMutation.mutateAsync({
               id: d.id,
               ...requireSetDraft(d),
-              releases: releasesById.get(d.id) ?? {},
               setType: d.setType,
             }),
           validate: (d) => {

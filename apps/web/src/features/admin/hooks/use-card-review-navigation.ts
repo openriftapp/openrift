@@ -5,8 +5,9 @@ import type {
   CandidatePrintingResponse,
 } from "@openrift/shared/types/api/admin";
 import { useHotkey } from "@tanstack/react-hotkeys";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -28,7 +29,8 @@ import { favoriteProviderSet } from "@/features/admin/lib/candidate-rows";
 import type { AdminCardListStatus, CardIssue } from "@/features/admin/lib/card-attention";
 import { attentionSectionFor, hasIssue, needsAttention } from "@/features/admin/lib/card-attention";
 import type { CardSection } from "@/features/admin/lib/card-sections";
-import { reviewSectionsBySlug } from "@/features/admin/lib/review-queue";
+import { reviewQueueQueryOptions } from "@/features/admin/lib/catalog-review-queries";
+import { nextReviewSlug, reviewSectionsBySlug } from "@/features/admin/lib/review-queue";
 import {
   ALL_ASSIGNABLE_SCOPE,
   unlinkedProductCount,
@@ -136,6 +138,7 @@ export function useCardReviewNavigation({
   invalidates,
 }: UseCardReviewNavigationOptions) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: allCards } = useAllCards();
   const checkAllCardSources = useCheckAllCandidateCards(invalidates);
   const checkAllCandidatePrintings = useCheckAllCandidatePrintings(invalidates);
@@ -231,6 +234,16 @@ export function useCardReviewNavigation({
 
   const [isCheckingAll, setIsCheckingAll] = useState(false);
 
+  async function fetchNextInReview(): Promise<string | null> {
+    const queue = await queryClient.query(reviewQueueQueryOptions);
+    return nextReviewSlug(
+      scopedCards.map((c) => c.slug),
+      cardSlug,
+      queue.items,
+      favoriteProviderSet(providerSettings.providerSettings),
+    );
+  }
+
   async function runCheckAllAndNext() {
     if (isCheckingAll || !detail) {
       return;
@@ -259,7 +272,7 @@ export function useCardReviewNavigation({
       setIsCheckingAll(false);
       return;
     }
-    const next = await fetchNext()
+    const next = await (reviewFilterActive ? fetchNextInReview() : fetchNext())
       .then((slug) => ({ slug }))
       .catch(() => null);
     setIsCheckingAll(false);
@@ -273,32 +286,18 @@ export function useCardReviewNavigation({
     }
   }
 
-  // oxlint-disable-next-line no-empty-function -- default no-op until the effect below installs the real handler
-  const checkAllAndNextRef = useRef<() => void>(() => {});
-  // oxlint-disable-next-line no-empty-function -- default no-op until the effect below installs the real handler
-  const prevNextRef = useRef<(dir: "prev" | "next") => void>(() => {});
-  useHotkey("Mod+Shift+Enter", () => checkAllAndNextRef.current(), {
+  useHotkey("Mod+Shift+Enter", () => void runCheckAllAndNext(), {
     enabled: !isCheckingAll && isAdmin,
   });
-  useHotkey("Mod+ArrowLeft", () => prevNextRef.current("prev"));
-  useHotkey("Mod+ArrowRight", () => prevNextRef.current("next"));
-
-  // Re-point the ref-backed hotkey handlers every render, in effects (react-compiler
-  // forbids ref mutation during render).
-  useEffect(() => {
-    checkAllAndNextRef.current = () => void runCheckAllAndNext();
-  });
-  // Same selection as the < / > buttons — both read `prevNextCards`, so the
-  // hotkeys can never drift from what the buttons do.
-  useEffect(() => {
-    prevNextRef.current = (dir) => {
-      const slug = dir === "prev" ? prevNextCards.prev : prevNextCards.next;
-      if (!slug) {
-        return;
-      }
+  // Same selection as the < / > buttons, so the hotkeys never drift from what the buttons do.
+  const goToNeighbour = (dir: "prev" | "next") => {
+    const slug = dir === "prev" ? prevNextCards.prev : prevNextCards.next;
+    if (slug) {
       goToCard(slug);
-    };
-  });
+    }
+  };
+  useHotkey("Mod+ArrowLeft", () => goToNeighbour("prev"));
+  useHotkey("Mod+ArrowRight", () => goToNeighbour("next"));
 
   return {
     prevNextCards,

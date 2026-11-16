@@ -71,7 +71,7 @@ describe("useDiscardSameDifference", () => {
     const onSuccess = vi.fn();
     const { result } = renderHook(() => useDiscardSameDifference(), { wrapper });
 
-    act(() => result.current.discard(INPUT, "gallery's might suggestion", { onSuccess }));
+    await act(() => result.current.discard(INPUT, "gallery's might suggestion", { onSuccess }));
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
     expect(state.discard).toHaveBeenCalledWith({ data: INPUT });
@@ -88,12 +88,41 @@ describe("useDiscardSameDifference", () => {
     expect(state.uncheck.mock.calls).toEqual([[{ data: { candidateCardIds: ["cc-1", "cc-2"] } }]]);
   });
 
+  it("pushes an undo for each of two discards made before either lands", async () => {
+    const gates: (() => void)[] = [];
+    state.discard.mockImplementation(
+      ({ data }: { data: typeof INPUT }) =>
+        new Promise((resolve) => {
+          gates.push(() => resolve({ checked: 1, candidateCardIds: [data.field] }));
+        }),
+    );
+    const { result } = renderHook(() => useDiscardSameDifference(), { wrapper });
+
+    let runs: Promise<void>[] = [];
+    act(() => {
+      runs = [
+        result.current.discard(INPUT, "gallery's might suggestion"),
+        result.current.discard({ ...INPUT, field: "energy" }, "gallery's energy suggestion"),
+      ];
+    });
+    await waitFor(() => expect(gates).toHaveLength(2));
+    for (const open of gates) {
+      open();
+    }
+    await act(() => Promise.all(runs));
+
+    expect(useWorkspaceSelectionStore.getState().undoStack.map((entry) => entry.label)).toEqual([
+      "Discarded gallery's might suggestion on 1 card",
+      "Discarded gallery's energy suggestion on 1 card",
+    ]);
+  });
+
   it("pushes no undo when nothing was left to discard", async () => {
     state.discard.mockResolvedValue({ checked: 0, candidateCardIds: [] });
     const onSuccess = vi.fn();
     const { result } = renderHook(() => useDiscardSameDifference(), { wrapper });
 
-    act(() => result.current.discard(INPUT, "gallery's might suggestion", { onSuccess }));
+    await act(() => result.current.discard(INPUT, "gallery's might suggestion", { onSuccess }));
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
     expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([]);

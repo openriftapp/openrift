@@ -9,18 +9,12 @@ import type {
   CandidatePrintingResponse,
   ProviderSettingResponse,
 } from "@openrift/shared/types/api/admin";
-import {
-  ArrowRightIcon,
-  CheckCheckIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
-  PlusIcon,
-  TriangleAlertIcon,
-} from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowRightIcon, CheckCheckIcon, PlusIcon, TriangleAlertIcon } from "lucide-react";
+import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ExpandToggle } from "@/components/ui/expand-toggle";
 import type {
   CandidatePrintingFieldKey,
   FieldDef,
@@ -159,10 +153,9 @@ export function NewPrintingGroupCard({
 }) {
   const { checkPrintingSource, uncheckPrintingSource, checkAllCandidatePrintings } =
     useCardDetailData(invalidates);
-  const [activePrinting, setActivePrinting] = useState<Record<string, unknown>>({});
-  // Once the admin edits the Active column the pre-seed stops re-applying and
+  // Once the admin edits the Active column the pre-seed stops applying and
   // the "Pre-filled" marker clears.
-  const [touched, setTouched] = useState(false);
+  const [edited, setEdited] = useState<Record<string, unknown> | null>(null);
 
   // appendSetTotal skips runes/tokens and codes that already carry a slash, so
   // a full code like `VEN-R02-EN` is left untouched.
@@ -189,35 +182,22 @@ export function NewPrintingGroupCard({
     );
   }
 
-  // Re-runs while untouched, so the pre-seed converges once the enum/provider
-  // lists finish loading.
-  useEffect(() => {
-    if (touched) {
-      return;
-    }
-    const seed = normalizeRecord(
-      buildPreseededActivePrinting(
-        group.candidates,
-        printingFields,
-        providerSettings,
-        providerLabels,
-        setReleaseYears,
-      ),
-    );
-    // Bail out when the seed is unchanged so an unstable dep reference can't spin
-    // the effect into a render loop (React skips the update when we return `prev`).
-    setActivePrinting((prev) => (JSON.stringify(prev) === JSON.stringify(seed) ? prev : seed));
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- normalizeRecord is a render-local closure; its inputs (setTotals, costKeywords, candidates) are in deps
-  }, [
-    touched,
-    group.candidates,
-    printingFields,
-    providerSettings,
-    providerLabels,
-    setReleaseYears,
-    setTotals,
-    costKeywords,
-  ]);
+  // Derived every render while untouched, so the pre-seed follows the enum and
+  // provider lists as they finish loading.
+  const seed = normalizeRecord(
+    buildPreseededActivePrinting(
+      group.candidates,
+      printingFields,
+      providerSettings,
+      providerLabels,
+      setReleaseYears,
+    ),
+  );
+  const activePrinting = edited ?? seed;
+  const touched = edited !== null;
+  const editPrinting = (update: (prev: Record<string, unknown>) => Record<string, unknown>) => {
+    setEdited((prev) => update(prev ?? seed));
+  };
 
   const unknownValues = unknownOptionValues(group.candidates, printingFields, providerLabels);
 
@@ -250,17 +230,8 @@ export function NewPrintingGroupCard({
 
   return (
     <div data-printing-group={group.groupKey}>
-      {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- contains nested buttons, can't use <button> */}
-      <div
-        className="hover:bg-muted/50 flex cursor-pointer flex-wrap items-center gap-3 px-3 py-2"
-        onClick={onToggle}
-      >
-        <span className="flex items-center gap-2 text-sm font-medium">
-          {isExpanded ? (
-            <ChevronDownIcon className="size-4" />
-          ) : (
-            <ChevronRightIcon className="size-4" />
-          )}
+      <div className="hover:bg-muted/50 flex flex-wrap items-center gap-3 px-3 py-2">
+        <ExpandToggle expanded={isExpanded} className="text-sm font-medium" onClick={onToggle}>
           <span className="inline-flex items-center gap-1">
             New:
             <PrintingIdLabel
@@ -270,9 +241,8 @@ export function NewPrintingGroupCard({
             />
             ({group.candidates.length} {pluralize(group.candidates.length, "source")})
           </span>
-        </span>
-        {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stopPropagation wrapper, not interactive */}
-        <div className="flex flex-wrap items-end gap-2" onClick={(e) => e.stopPropagation()}>
+        </ExpandToggle>
+        <div className="flex flex-wrap items-end gap-2">
           {isAdmin && group.candidates.some((s) => !s.checkedAt) && (
             <Button
               variant="outline"
@@ -359,7 +329,6 @@ export function NewPrintingGroupCard({
           <div className="flex flex-col gap-3 px-3 pb-3">
             <div className="min-w-0 flex-1">
               <CandidateSpreadsheet
-                key={group.candidates.map((s) => s.id).join(",")}
                 fields={printingFields}
                 requiredKeys={REQUIRED_ACCEPT_PRINTING_FIELDS}
                 activeRow={Object.keys(activePrinting).length > 0 ? activePrinting : null}
@@ -413,8 +382,7 @@ export function NewPrintingGroupCard({
                           variant="outline"
                           size="xs"
                           onClick={() => {
-                            setTouched(true);
-                            setActivePrinting((prev) => ({ ...prev, imageUrl: url }));
+                            editPrinting((prev) => ({ ...prev, imageUrl: url }));
                           }}
                         >
                           Use this
@@ -425,12 +393,10 @@ export function NewPrintingGroupCard({
                 }}
                 normalizeCandidate={normalizePrinting}
                 onCellClick={(field, value) => {
-                  setTouched(true);
-                  setActivePrinting((prev) => withSetTotal({ ...prev, [field]: value }));
+                  editPrinting((prev) => withSetTotal({ ...prev, [field]: value }));
                 }}
                 onActiveChange={(field, value) => {
-                  setTouched(true);
-                  setActivePrinting((prev) =>
+                  editPrinting((prev) =>
                     value === null || value === undefined
                       ? Object.fromEntries(Object.entries(prev).filter(([k]) => k !== field))
                       : withSetTotal({ ...prev, [field]: value }),
@@ -445,10 +411,7 @@ export function NewPrintingGroupCard({
                     onLink={onLink}
                     onCopy={onCopy}
                     onAcceptAllForRow={(_rowId, values) => {
-                      setTouched(true);
-                      setActivePrinting((prev) =>
-                        withSetTotal({ ...prev, ...normalizeRecord(values) }),
-                      );
+                      editPrinting((prev) => withSetTotal({ ...prev, ...normalizeRecord(values) }));
                     }}
                     onIgnore={onIgnore}
                     onDelete={onDelete}

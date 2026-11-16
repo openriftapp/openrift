@@ -17,13 +17,8 @@ export interface ListingSkuValues {
   language: string | null;
 }
 
-function listingScope(marketplace: AdminMarketplaceName) {
-  return undoScope([
-    adminKeys.unifiedMappings.all,
-    adminKeys.marketplace(marketplace),
-    adminKeys.ignoredProducts,
-    adminKeys.cards.all,
-  ]);
+function listingScope() {
+  return undoScope([adminKeys.unifiedMappings.all, adminKeys.ignoredProducts, adminKeys.cards.all]);
 }
 
 export function listingName(marketplace: AdminMarketplaceName, skus: readonly ListingSkuValues[]) {
@@ -42,7 +37,7 @@ export function ignoredVariantsUndo(
       record,
       plural: new Set(skus.map((sku) => sku.externalId)).size > 1,
     }),
-    invalidates: listingScope(marketplace),
+    invalidates: listingScope(),
     undo: async () => {
       await Promise.all(
         skus.map((sku) => unignoreProductFn({ data: { level: "variant", marketplace, ...sku } })),
@@ -61,7 +56,7 @@ export function ignoredProductUndo(
       what: `every SKU of ${marketplaceLabel(marketplace)} #${externalId}`,
       record,
     }),
-    invalidates: listingScope(marketplace),
+    invalidates: listingScope(),
     undo: async () => {
       await unignoreProductFn({ data: { level: "product", marketplace, externalId } });
     },
@@ -76,7 +71,7 @@ export function assignedListingUndo(
 ): WorkspaceUndoEntry {
   return {
     ...mappedUndoText({ listing: listingName(marketplace, [sku]), record }),
-    invalidates: listingScope(marketplace),
+    invalidates: listingScope(),
     undo: async () => {
       await unmapMarketplacePrintingFn({ data: { marketplace, printingId, ...sku } });
     },

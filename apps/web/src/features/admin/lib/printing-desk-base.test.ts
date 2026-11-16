@@ -1,7 +1,7 @@
 import type { DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
 import { describe, expect, it } from "vitest";
 
-import { basePrintingForLanguage, defaultCardLanguage } from "./printing-desk-base";
+import { basePrintingForLanguage, defaultCardLanguage, reseedFromBase } from "./printing-desk-base";
 
 function printing(printingId: string, language: string): DeskPrintingRow {
   return {
@@ -70,5 +70,22 @@ describe("defaultCardLanguage", () => {
 
   it("falls back to English when the card has no languages", () => {
     expect(defaultCardLanguage([], ["ja"])).toBe("en");
+  });
+});
+
+describe("reseedFromBase", () => {
+  const english = { ...printing("p-en", "EN"), setId: "s-1", finish: "normal", size: "standard" };
+  const chinese = { ...printing("p-zh", "ZH"), setId: "s-2", finish: "foil", size: "standard" };
+
+  it("moves the values the admin left at the old base to the new base", () => {
+    expect(
+      reseedFromBase({ setId: "s-1", finish: "normal", size: "standard" }, english, chinese),
+    ).toEqual({ setId: "s-2", finish: "foil", size: "standard" });
+  });
+
+  it("keeps a value the admin changed", () => {
+    expect(
+      reseedFromBase({ setId: "s-9", finish: "normal", size: "oversized" }, english, chinese),
+    ).toEqual({ setId: "s-9", finish: "foil", size: "oversized" });
   });
 });

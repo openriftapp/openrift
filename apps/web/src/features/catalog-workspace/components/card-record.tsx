@@ -491,7 +491,7 @@ function CardRecordBody({
         hotkey={suggestion.hotkey}
         pending={isPending}
         onUse={() => applySuggestion(suggestion)}
-        onDiscard={isAdmin ? () => discardSuggestion(suggestion) : undefined}
+        onDiscard={isAdmin ? () => void discardSuggestion(suggestion) : undefined}
         discardLabel={discardLabel(suggestion.rowDifferences, suggestion.sourceLabel)}
         discardDisabledReason={isAdmin ? undefined : "Only admins can discard source suggestions"}
         bulk={

@@ -1,6 +1,3 @@
-import type { SetReleases } from "@openrift/shared/set-release";
-import type { AdminSetResponse } from "@openrift/shared/types/api/admin";
-
 import { parseIntegerInput } from "@/lib/integer-input";
 
 export interface SetDraftFields {
@@ -31,14 +28,4 @@ export function requireSetDraft(draft: SetDraftFields): ParsedSetDraft {
     throw new Error(parsed.error);
   }
   return parsed;
-}
-
-export function setReleasesUpdate(set: AdminSetResponse, releases: SetReleases) {
-  return {
-    id: set.id,
-    name: set.name,
-    printedTotal: set.printedTotal,
-    releases,
-    setType: set.setType,
-  };
 }

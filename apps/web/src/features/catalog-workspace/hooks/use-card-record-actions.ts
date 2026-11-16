@@ -10,7 +10,7 @@ import {
   useCheckCandidateCards,
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAcceptSubmission } from "@/features/admin/hooks/use-catalog-review";
-import { acceptFieldWithUndo } from "@/features/admin/lib/accept-undo";
+import { acceptFieldWithUndo, revertAcceptedField } from "@/features/admin/lib/accept-undo";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import type { AttentionSubmission } from "@/features/admin/lib/attention-items";
 import {
@@ -35,6 +35,7 @@ import {
   undoScope,
   usedUndoText,
 } from "@/features/catalog-workspace/lib/workspace-undo";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 interface UseCardRecordActionsOptions {
   cardSlug: string;
@@ -95,32 +96,32 @@ export function useCardRecordActions({
         announce({
           ...usedUndoText({ field: label, source: suggestion.sourceLabel, record }),
           invalidates: undoScope(scope),
-          undo: async () => {
-            await acceptCardFieldFn({ data: revert });
-          },
+          undo: () => revertAcceptedField(revert, (data) => acceptCardFieldFn({ data })),
         }),
     });
   }
 
-  function acceptFromSubmission(candidateCardId: string, ticked: ReadonlySet<string>) {
+  async function acceptFromSubmission(candidateCardId: string, ticked: ReadonlySet<string>) {
     const submission = submissions.find((entry) => entry.candidateCardId === candidateCardId);
     if (submission === undefined) {
       return;
     }
     const { input } = buildAcceptSubmissionInput(submission, { ticked, edits: new Map() });
-    acceptSubmission.mutate(input, {
-      onSuccess: (result) => {
-        toast.success(
-          `Accepted ${result.applied} ${pluralize(result.applied, "change")} from ${submission.submitterName ?? "the contributor"}`,
-        );
-      },
+    let result: Awaited<ReturnType<typeof acceptSubmission.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await acceptSubmission.mutateAsync(input);
     });
+    if (ok && result) {
+      toast.success(
+        `Accepted ${result.applied} ${pluralize(result.applied, "change")} from ${submission.submitterName ?? "the contributor"}`,
+      );
+    }
   }
 
   function applySuggestion(suggestion: FieldSuggestion) {
     if (suggestion.tone === "contributor") {
       if (suggestion.changeKey !== undefined) {
-        acceptFromSubmission(suggestion.candidateRowId, new Set([suggestion.changeKey]));
+        void acceptFromSubmission(suggestion.candidateRowId, new Set([suggestion.changeKey]));
       }
       return;
     }
@@ -130,17 +131,20 @@ export function useCardRecordActions({
   function acceptWholeSubmission(candidateCardId: string) {
     const submission = submissions.find((entry) => entry.candidateCardId === candidateCardId);
     if (submission !== undefined) {
-      acceptFromSubmission(candidateCardId, new Set(submissionTickKeys(submission)));
+      void acceptFromSubmission(candidateCardId, new Set(submissionTickKeys(submission)));
     }
   }
 
-  function discardSuggestion(suggestion: FieldSuggestion) {
+  async function discardSuggestion(suggestion: FieldSuggestion) {
     if (!canCheck || suggestion.tone !== "source") {
       return;
     }
     const candidateCardId = suggestion.candidateRowId;
     const entry = uncheckEntry([candidateCardId], suggestion.rowDifferences);
-    checkCandidateCard.mutate(candidateCardId, { onSuccess: () => announce(entry) });
+    const ok = await runReportedMutation(() => checkCandidateCard.mutateAsync(candidateCardId));
+    if (ok) {
+      announce(entry);
+    }
   }
 
   async function discardRemaining() {

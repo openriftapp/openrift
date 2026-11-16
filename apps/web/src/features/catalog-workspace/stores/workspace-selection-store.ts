@@ -8,11 +8,13 @@ interface WorkspaceSelectionState {
   listCollapsed: boolean;
   undoStack: WorkspaceUndoEntry[];
   undoing: boolean;
+  undoQueue: WorkspaceUndoEntry[];
   setListCollapsed: (collapsed: boolean) => void;
   toggleListCollapsed: () => void;
   pushUndo: (entry: WorkspaceUndoEntry) => void;
   removeUndo: (entry: WorkspaceUndoEntry) => boolean;
   setUndoing: (undoing: boolean) => void;
+  setUndoQueue: (queue: WorkspaceUndoEntry[]) => void;
   clearUndo: () => void;
 }
 
@@ -20,6 +22,7 @@ export const useWorkspaceSelectionStore = create<WorkspaceSelectionState>()((set
   listCollapsed: false,
   undoStack: [],
   undoing: false,
+  undoQueue: [],
 
   setListCollapsed: (collapsed) => set({ listCollapsed: collapsed }),
 
@@ -37,6 +40,8 @@ export const useWorkspaceSelectionStore = create<WorkspaceSelectionState>()((set
   },
 
   setUndoing: (undoing) => set({ undoing }),
+
+  setUndoQueue: (undoQueue) => set({ undoQueue }),
 
   clearUndo: () => set({ undoStack: [] }),
 }));

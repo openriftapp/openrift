@@ -263,7 +263,7 @@ function ReviewFaceRecord({
         discardLabelOf={discardLabelOf}
         pending={actions.pending}
         onUse={(chip) => void actions.applyChip(chip)}
-        onDiscard={(id) => actions.discard(id)}
+        onDiscard={(id) => void actions.discard(id)}
         onReject={(id) => setRejecting({ candidateCardId: id, kindLabel: "Image" })}
         onReply={setReplyTo}
         landscape={landscape}
@@ -343,7 +343,7 @@ function ReviewFaceRecord({
                               onDiscard={
                                 suggestion.isContributor || !isAdmin
                                   ? undefined
-                                  : () => actions.discard(suggestion.candidate.id)
+                                  : () => void actions.discard(suggestion.candidate.id)
                               }
                               discardDisabledReason={
                                 suggestion.isContributor ? undefined : ADMIN_ONLY_DISCARD

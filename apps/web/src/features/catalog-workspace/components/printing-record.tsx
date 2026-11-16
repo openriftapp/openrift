@@ -283,7 +283,7 @@ function PrintingRecordBody({
           onDiscard={
             suggestion.isContributor || !isAdmin
               ? undefined
-              : () => actions.discard(suggestion.candidate.id)
+              : () => void actions.discard(suggestion.candidate.id)
           }
           discardDisabledReason={suggestion.isContributor ? undefined : ADMIN_ONLY_DISCARD}
           discardLabel={discardLabel(
@@ -489,7 +489,7 @@ function PrintingRecordBody({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => actions.ignoreListing(chip.listing)}
+                onClick={() => void actions.ignoreListing(chip.listing)}
               >
                 Ignore
               </Button>
@@ -766,7 +766,7 @@ function PrintingFieldEditor({
   const [announcedAt, setAnnouncedAt] = useState(printing.announcedAt);
   const [releasedAt, setReleasedAt] = useState(printing.releasedAt);
   const [precision, setPrecision] = useState<DeskReleasePrecision>(
-    printing.releasePrecision === "quarter" ? "month" : (printing.releasePrecision ?? "day"),
+    printing.releasePrecision ?? "day",
   );
   const [comment, setComment] = useState(printing.comment ?? "");
 
@@ -830,7 +830,11 @@ function PrintingFieldEditor({
             onValueChange={setReleasedAt}
             onClear={() => setReleasedAt(null)}
           />
-          <DatePrecisionControl value={precision} onChange={setPrecision} />
+          <DatePrecisionControl
+            includeQuarter={printing.releasePrecision === "quarter"}
+            value={precision}
+            onChange={setPrecision}
+          />
         </div>
       )}
       {field === "comment" && (

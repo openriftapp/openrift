@@ -17,7 +17,7 @@ import type { MutationMeta } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { acceptEachNewCard, showAcceptOutcome } from "@/features/admin/lib/accept-outcome";
-import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { adminKeys, CANDIDATE_REVIEW_SCOPE } from "@/features/admin/lib/admin-query-keys";
 import { checkMatchingResultFromRun, waitForJobRun } from "@/features/admin/lib/job-run-wait";
 import { startJobFn } from "@/features/admin/lib/job-start";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -279,7 +279,7 @@ const deleteProviderFn = createServerFn({ method: "POST" })
 // slug; card-detail callers pass a narrower `invalidates` list.
 
 type Scope = readonly (readonly unknown[])[];
-const defaultScope: Scope = [adminKeys.cards.all, adminKeys.workspace];
+const defaultScope: Scope = CANDIDATE_REVIEW_SCOPE;
 
 export function useCheckCandidateCard(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
@@ -718,6 +718,6 @@ export function useAcceptAllCards(
       showAcceptOutcome(outcome.accepted, outcome.skipped, { noun: "new card" });
       return outcome;
     },
-    invalidates: [adminKeys.cards.all],
+    invalidates: CANDIDATE_REVIEW_SCOPE,
   });
 }

@@ -10,7 +10,7 @@ import {
   useIgnoreVariantsByMarketplace,
   useSaveMappingsByMarketplace,
 } from "@/features/admin/hooks/use-unified-mappings";
-import { acceptFieldWithUndo } from "@/features/admin/lib/accept-undo";
+import { acceptFieldWithUndo, revertAcceptedField } from "@/features/admin/lib/accept-undo";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import {
   assignedListingUndo,
@@ -126,9 +126,7 @@ export function usePrintingRecordActions({
         announce({
           ...usedUndoText({ field: suggestion.label, source: suggestion.provider, record }),
           invalidates: undoScope(scope),
-          undo: async () => {
-            await acceptPrintingFieldFn({ data: revert });
-          },
+          undo: () => revertAcceptedField(revert, (data) => acceptPrintingFieldFn({ data })),
         }),
     });
   }
@@ -145,12 +143,13 @@ export function usePrintingRecordActions({
     }
   }
 
-  function ignoreListing(listing: ListingSuggestion) {
+  async function ignoreListing(listing: ListingSuggestion): Promise<void> {
     const sku = skuOf(listing);
-    ignore[listing.marketplace].mutate([sku], {
-      onSuccess: () => announce(ignoredVariantsUndo(listing.marketplace, [sku], record)),
-      onSettled: settleCards,
-    });
+    const ok = await runReportedMutation(() => ignore[listing.marketplace].mutateAsync([sku]));
+    settleCards();
+    if (ok) {
+      announce(ignoredVariantsUndo(listing.marketplace, [sku], record));
+    }
   }
 
   function applyChip(chip: PrintingChip): Promise<void> {

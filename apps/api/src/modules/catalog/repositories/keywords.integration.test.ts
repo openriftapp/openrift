@@ -52,6 +52,20 @@ describe.skipIf(!ctx)("keywordsRepo (integration)", () => {
     }
   });
 
+  it("patchStyleFlags inserts with the given color and then changes only the sent flag", async () => {
+    try {
+      await repo.patchStyleFlags("KW-PatchFlag", "#abcdef", { costKeyword: true });
+      await repo.patchStyleFlags("KW-PatchFlag", "#000000", { cardModifier: true });
+      expect(await repo.listCostKeywords()).toContain("KW-PatchFlag");
+      expect(await repo.listCardModifierKeywords()).toContain("KW-PatchFlag");
+      const keywords = await repo.listAll();
+      const row = keywords.find((keyword) => keyword.name === "KW-PatchFlag");
+      expect(row?.color).toBe("#abcdef");
+    } finally {
+      await repo.deleteStyle("KW-PatchFlag");
+    }
+  });
+
   it("listCardModifierKeywords returns only keywords flagged as card modifiers", async () => {
     await repo.upsertStyle({
       name: "KW-ModifierFlag",

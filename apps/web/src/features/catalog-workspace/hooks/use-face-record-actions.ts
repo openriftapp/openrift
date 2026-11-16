@@ -12,7 +12,7 @@ import { useSetCandidatePrintingImage } from "@/features/admin/hooks/use-admin-i
 import { useAcceptSubmission } from "@/features/admin/hooks/use-catalog-review";
 import { useDistributionChannels } from "@/features/admin/hooks/use-distribution-channels";
 import { useMarkers } from "@/features/admin/hooks/use-markers";
-import { acceptFieldWithUndo } from "@/features/admin/lib/accept-undo";
+import { acceptFieldWithUndo, revertAcceptedField } from "@/features/admin/lib/accept-undo";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import type { PrintingValueLabels } from "@/features/admin/lib/field-value-text";
 import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
@@ -100,9 +100,12 @@ export function useCandidateDiscards({
     };
   }
 
-  function discard(candidatePrintingId: string) {
+  async function discard(candidatePrintingId: string): Promise<void> {
     const entry = entryFor([candidatePrintingId]);
-    checkCandidate.mutate(candidatePrintingId, { onSuccess: () => announce(entry) });
+    const ok = await runReportedMutation(() => checkCandidate.mutateAsync(candidatePrintingId));
+    if (ok) {
+      announce(entry);
+    }
   }
 
   async function discardAll(ids: readonly string[]) {
@@ -215,9 +218,7 @@ export function useFaceRecordActions({
         announce({
           ...usedUndoText({ field: suggestion.label, source: suggestion.provider, record }),
           invalidates: undoScope(scope),
-          undo: async () => {
-            await acceptPrintingFieldFn({ data: revert });
-          },
+          undo: () => revertAcceptedField(revert, (data) => acceptPrintingFieldFn({ data })),
         }),
     });
   }

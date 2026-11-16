@@ -42,12 +42,11 @@ export function useAdminReorder({
       return;
     }
     setPendingOrder({ keys, from: orderSignature });
-    const saved = await runReportedMutation(async () => {
+    await runReportedMutation(async () => {
       await reorder.onReorder(keys);
     });
-    if (!saved) {
-      setPendingOrder(null);
-    }
+    // `onReorder` settles after its refetch, so a refetch that failed must not keep the table locked.
+    setPendingOrder(null);
   }
 
   function handleDragStart(event: DragStartEvent) {

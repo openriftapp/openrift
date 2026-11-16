@@ -20,6 +20,6 @@ const clearPricesFn = createServerFn({ method: "POST" })
 export function useClearPrices(marketplace: Marketplace) {
   return useMutationWithInvalidation({
     mutationFn: (): Promise<ClearPricesResponse> => clearPricesFn({ data: { marketplace } }),
-    invalidates: [adminKeys.marketplaceGroups, adminKeys.marketplace(marketplace)],
+    invalidates: [adminKeys.marketplaceGroups, adminKeys.unifiedMappings.all],
   });
 }

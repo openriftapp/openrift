@@ -123,7 +123,8 @@ function StraightenDialogBody({
   invalidates?: Scope;
   onDone: () => void;
 }) {
-  const boardDetectorUrl = useScanServing().assets?.boardDetectorUrl ?? null;
+  const serving = useScanServing();
+  const boardDetectorUrl = serving.assets?.boardDetectorUrl ?? null;
   const prepareOriginal = useEnsurePrintingImageOriginal();
   const setQuad = useSetPrintingImageQuad(invalidates);
   const prepare = prepareOriginal.mutateAsync;
@@ -135,6 +136,7 @@ function StraightenDialogBody({
   const [displayWidth, setDisplayWidth] = useState(0);
   const [pointer, setPointer] = useState<Point | null>(null);
   const [previewSource, setPreviewSource] = useState<PreviewSource | null>(null);
+  const [awaitingDetection, setAwaitingDetection] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
   const previewRef = useRef<HTMLCanvasElement>(null);
 
@@ -179,14 +181,24 @@ function StraightenDialogBody({
         return;
       }
       setCorners(defaultQuad(result.original.width, result.original.height));
-      await detect(result.original);
+      setAwaitingDetection(true);
     }
     void load();
     return () => {
       cancelled = true;
     };
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- runs once per opened image; the detector and the stored quad are read as they were on open
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- runs once per opened image; the stored quad is read as it was on open
   }, [imageId]);
+
+  // Detection waits for the scan manifest, which can still be loading when the original lands.
+  useEffect(() => {
+    if (!awaitingDetection || original === null || serving.status === "loading") {
+      return;
+    }
+    setAwaitingDetection(false);
+    void detect(original);
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- detect is a render-local closure over the inputs listed here
+  }, [awaitingDetection, original, serving.status, boardDetectorUrl]);
 
   useEffect(() => {
     const image = imageRef.current;

@@ -276,7 +276,12 @@ export function MarketplaceActionsCell({
           highlightLanguage={displayedProductLanguage(marketplace, product.language) ?? undefined}
           highlightSpecialMarkers={product.groupKind === "special"}
           onAssignToPrinting={(externalId, printingId) =>
-            handlers.onAssignToPrinting(externalId, product.finish, product.language, printingId)
+            void handlers.onAssignToPrinting(
+              externalId,
+              product.finish,
+              product.language,
+              printingId,
+            )
           }
           isAssigning={handlers.isAssigningToPrinting}
         />

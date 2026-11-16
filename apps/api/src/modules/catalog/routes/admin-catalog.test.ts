@@ -12,6 +12,9 @@ const mockSetsRepo = {
   printingCountsBySet: vi.fn(),
   releasesBySet: vi.fn(),
   replaceReleases: vi.fn(),
+  putRelease: vi.fn(),
+  deleteRelease: vi.fn(),
+  getRef: vi.fn(),
   update: vi.fn(),
   createIfNotExists: vi.fn(),
   printingCount: vi.fn(),
@@ -229,6 +232,79 @@ describe("PATCH /api/admin/v1/sets/:id", () => {
       setType: "supplemental",
     });
     expect(mockSetsRepo.replaceReleases).toHaveBeenCalledWith(setId1, {});
+  });
+});
+
+describe("PATCH /api/admin/v1/sets/:id without releases", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("leaves the release rows alone", async () => {
+    mockSetsRepo.update.mockResolvedValue(true);
+    const res = await app.request(`/api/admin/v1/sets/${setId1}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Updated Name", printedTotal: 200, setType: "main" }),
+    });
+    expect(res.status).toBe(204);
+    expect(mockSetsRepo.replaceReleases).not.toHaveBeenCalled();
+  });
+});
+
+describe("PUT /api/admin/v1/sets/:id/releases/:language", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("writes only that language's row", async () => {
+    mockSetsRepo.getRef.mockResolvedValue({ slug: "origin-set", name: "Origin Set" });
+    const res = await app.request(`/api/admin/v1/sets/${setId1}/releases/FR`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ release: { releasedAt: "2026-04-01", precision: "quarter" } }),
+    });
+    expect(res.status).toBe(204);
+    expect(mockSetsRepo.putRelease).toHaveBeenCalledWith(setId1, "FR", {
+      releasedAt: "2026-04-01",
+      precision: "quarter",
+    });
+    expect(mockSetsRepo.replaceReleases).not.toHaveBeenCalled();
+  });
+
+  it("rejects a coarse period whose date is not the period start", async () => {
+    const res = await app.request(`/api/admin/v1/sets/${setId1}/releases/FR`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ release: { releasedAt: "2026-04-15", precision: "month" } }),
+    });
+    expect(res.status).toBe(400);
+    expect(mockSetsRepo.putRelease).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when the set does not exist", async () => {
+    mockSetsRepo.getRef.mockResolvedValue(undefined);
+    const res = await app.request(`/api/admin/v1/sets/${setId1}/releases/FR`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ release: { releasedAt: null, precision: null } }),
+    });
+    expect(res.status).toBe(404);
+    expect(mockSetsRepo.putRelease).not.toHaveBeenCalled();
+  });
+});
+
+describe("DELETE /api/admin/v1/sets/:id/releases/:language", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("removes only that language's row", async () => {
+    const res = await app.request(`/api/admin/v1/sets/${setId1}/releases/FR`, {
+      method: "DELETE",
+    });
+    expect(res.status).toBe(204);
+    expect(mockSetsRepo.deleteRelease).toHaveBeenCalledWith(setId1, "FR");
   });
 });
 

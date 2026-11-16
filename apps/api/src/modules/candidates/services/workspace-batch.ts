@@ -82,12 +82,17 @@ export async function previewTrustedCards(
   return { count: eligible.length, names: eligible.map((draft) => draft.name), ineligible };
 }
 
+/** Acts only on the drafts named in the preview the admin confirmed. */
 export async function acceptTrustedCards(
   repos: BatchRepos,
   context: MutationContext,
+  names: readonly string[],
 ): Promise<WorkspaceAcceptTrustedCardsResponse> {
   assertAdmin(context.access);
-  const { eligible: drafts, ineligible } = await loadTrustedCards(repos);
+  const wanted = new Set(names);
+  const loaded = await loadTrustedCards(repos);
+  const drafts = loaded.eligible.filter((draft) => wanted.has(draft.name));
+  const ineligible = loaded.ineligible.filter((entry) => wanted.has(entry.name));
   const favoriteProviders = await repos.providerSettings.favoriteProviders();
   let accepted = 0;
   const skipped: WorkspaceAcceptTrustedCardsResponse["skipped"] = [...ineligible];
@@ -181,12 +186,17 @@ export async function previewTrustedPrintings(
   };
 }
 
+/** Acts only on the groups whose first candidate printing the confirmed preview listed. */
 export async function acceptTrustedPrintings(
   repos: BatchRepos,
   context: MutationContext,
+  candidatePrintingIds: readonly string[],
 ): Promise<WorkspaceAcceptTrustedPrintingsResponse> {
   assertAdmin(context.access);
-  const { eligible, ineligible } = await loadTrustedPrintings(repos);
+  const wanted = new Set(candidatePrintingIds);
+  const loaded = await loadTrustedPrintings(repos);
+  const eligible = loaded.eligible.filter((group) => wanted.has(group.first.id));
+  const ineligible = loaded.ineligible.filter((entry) => wanted.has(entry.candidatePrintingId));
   const skipped: WorkspaceAcceptTrustedPrintingsResponse["skipped"] = ineligible.map(
     ({ label, reason }) => ({ label, reason }),
   );

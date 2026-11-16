@@ -16,8 +16,6 @@ import { Link } from "@tanstack/react-router";
 import {
   ArrowRightIcon,
   CheckCheckIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
   CopyIcon,
   EllipsisVerticalIcon,
   QuoteIcon,
@@ -34,6 +32,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ExpandToggle } from "@/components/ui/expand-toggle";
 import type {
   CandidatePrintingFieldKey,
   FieldDef,
@@ -246,47 +245,48 @@ export function PrintingReviewCard({
 
   return (
     <div data-face-id={face.faceId}>
-      {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- contains nested buttons, can't use <button> */}
-      <div
-        className="hover:bg-muted/50 flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-sm font-medium"
-        onClick={() => togglePrintingFold(cardSlug, face.faceId)}
-      >
-        <span className="flex min-w-0 flex-1 items-center gap-2">
-          {isExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
-          <PrintingImageBox
-            url={thumbnailUrl}
-            alt={printingLabel}
-            className={landscape ? "w-11 shrink-0" : "w-8 shrink-0"}
-            iconClassName="size-3"
-            landscape={landscape}
-          />
-          <span className="min-w-0">
-            <span className="flex flex-wrap items-center gap-2">
-              <PrintingIdLabel label={printingLabel} language={printing.language} />
-              {!activeImage && printing.fallbackArtMode === "pinned" && (
-                <Badge variant="destructive">substitute image</Badge>
-              )}
-              {shared && <Badge variant="subtle">On {face.printings.length} printings</Badge>}
-            </span>
-            <span className="text-muted-foreground flex flex-wrap items-center gap-1.5 font-normal">
-              <RarityIcon rarity={printing.rarity} labelled />
-              <span>{setAndFinish}</span>
-              <span aria-hidden>·</span>
-              <span>{printingKindLabel(printing, summaryLabels)}</span>
-            </span>
-            {canOpenPrintingPages && (
-              <span className="mt-1 flex flex-wrap items-center gap-1.5 font-normal">
-                {face.printings.map((row) => (
-                  <FacePrintingLink
-                    key={row.id}
-                    printing={row}
-                    cardName={cardName}
-                    code={printing.publicCode}
-                  />
-                ))}
+      <div className="hover:bg-muted/50 flex w-full items-center gap-2 px-3 py-2 text-sm font-medium">
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
+          <ExpandToggle
+            expanded={isExpanded}
+            className="min-w-0"
+            onClick={() => togglePrintingFold(cardSlug, face.faceId)}
+          >
+            <PrintingImageBox
+              url={thumbnailUrl}
+              alt={printingLabel}
+              className={landscape ? "w-11 shrink-0" : "w-8 shrink-0"}
+              iconClassName="size-3"
+              landscape={landscape}
+            />
+            <span className="min-w-0">
+              <span className="flex flex-wrap items-center gap-2">
+                <PrintingIdLabel label={printingLabel} language={printing.language} />
+                {!activeImage && printing.fallbackArtMode === "pinned" && (
+                  <Badge variant="destructive">substitute image</Badge>
+                )}
+                {shared && <Badge variant="subtle">On {face.printings.length} printings</Badge>}
               </span>
-            )}
-          </span>
+              <span className="text-muted-foreground flex flex-wrap items-center gap-1.5 font-normal">
+                <RarityIcon rarity={printing.rarity} labelled />
+                <span>{setAndFinish}</span>
+                <span aria-hidden>·</span>
+                <span>{printingKindLabel(printing, summaryLabels)}</span>
+              </span>
+            </span>
+          </ExpandToggle>
+          {canOpenPrintingPages && (
+            <span className="flex flex-wrap items-center gap-1.5 pl-6 font-normal">
+              {face.printings.map((row) => (
+                <FacePrintingLink
+                  key={row.id}
+                  printing={row}
+                  cardName={cardName}
+                  code={printing.publicCode}
+                />
+              ))}
+            </span>
+          )}
         </span>
         {isAdmin && uncheckedSources.length > 0 && (
           <span className="flex flex-wrap items-center gap-1">
@@ -404,7 +404,6 @@ export function PrintingReviewCard({
               </div>
             )}
             <CandidateSpreadsheet
-              key={allSources.map((s) => s.id).join(",")}
               fields={fields}
               requiredKeys={REQUIRED_PRINTING_FIELD_KEYS}
               activeRow={printingWithImage}
