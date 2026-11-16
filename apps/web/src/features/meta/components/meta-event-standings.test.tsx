@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { hasShownRecord } from "@openrift/shared/meta-standings";
 import type {
   MetaEventPhase,
   MetaEventStandingsQuery,
@@ -255,7 +256,7 @@ function fieldOf(
   return metaField({
     withLists: players.filter((player) => player.shareToken !== null).length,
     hasLegends: players.some((player) => player.legend !== null || player.champion !== null),
-    hasRecords: players.some((player) => player.wins !== null && player.losses !== null),
+    hasRecords: players.some((player) => hasShownRecord(player.wins)),
     hasRuns: players.some((player) => player.rounds.length > 0),
     legends: [...legends.values()].toSorted((a, b) => a.name.localeCompare(b.name)),
     progress: extra.progress ?? null,

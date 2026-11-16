@@ -7,6 +7,7 @@ import {
   formatRankEnglish,
   formatRecord,
   formatRecordEnglish,
+  hasShownRecord,
 } from "./meta-standings.js";
 
 describe("formatRankEnglish", () => {
@@ -74,6 +75,19 @@ describe("formatRecordEnglish", () => {
   it("renders nothing without the wins", () => {
     expect(formatRecordEnglish(null, 1, 0)).toBeNull();
   });
+});
+
+describe("hasShownRecord", () => {
+  const parts = [null, 0, 3] as const;
+  for (const wins of parts) {
+    for (const losses of parts) {
+      for (const draws of parts) {
+        it(`matches the formatter for ${wins}-${losses}-${draws}`, () => {
+          expect(hasShownRecord(wins)).toBe(formatRecordEnglish(wins, losses, draws) !== null);
+        });
+      }
+    }
+  }
 });
 
 function phase(overrides: Partial<CutPhase> = {}): CutPhase {

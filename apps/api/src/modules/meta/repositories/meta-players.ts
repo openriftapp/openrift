@@ -343,7 +343,7 @@ export function metaPlayersRepo(db: Kysely<Database>) {
             sql<boolean>`bool_or(p.legend_card_id is not null or p.champion_card_id is not null)`.as(
               "hasLegends",
             ),
-            sql<boolean>`bool_or(p.wins is not null and p.losses is not null)`.as("hasRecords"),
+            sql<boolean>`bool_or(p.wins is not null)`.as("hasRecords"),
           ])
           .where("p.metaEventId", "=", eventId)
           .executeTakeFirstOrThrow(),

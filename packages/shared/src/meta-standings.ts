@@ -64,13 +64,18 @@ export function formatRecord(
   return `${wins}-${losses}-${draws ?? 0}`;
 }
 
+/** Mirrored by the `hasRecords` condition in the meta players repository. */
+export function hasShownRecord(wins: number | null): wins is number {
+  return wins !== null;
+}
+
 export function formatRecordEnglish(
   wins: number | null,
   losses: number | null,
   draws: number | null,
 ): string | null {
   const record = formatRecord(wins, losses, draws);
-  if (record !== null || wins === null) {
+  if (record !== null || !hasShownRecord(wins)) {
     return record;
   }
   return wins === 1 ? "1 win" : `${wins} wins`;

@@ -1,6 +1,6 @@
 import { todayUtc } from "@openrift/shared/format-date";
 import { metaResultsState } from "@openrift/shared/meta-results";
-import { formatRecord } from "@openrift/shared/meta-standings";
+import { formatRecord, hasShownRecord } from "@openrift/shared/meta-standings";
 import type {
   MetaEventStatus,
   MetaEventTier,
@@ -22,7 +22,7 @@ export function formatStandingsRecord(
   draws: number | null,
 ): string | null {
   const record = formatRecord(wins, losses, draws);
-  if (record !== null || wins === null) {
+  if (record !== null || !hasShownRecord(wins)) {
     return record;
   }
   return m.meta_record_wins_only({ count: wins });

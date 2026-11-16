@@ -2,6 +2,7 @@ import { shiftUtcDay, todayUtc } from "@openrift/shared/format-date";
 import { NO_LEGEND } from "@openrift/shared/meta-query";
 import type { MetaResultsState } from "@openrift/shared/meta-results";
 import { META_RESULTS_STATES, metaResultsState } from "@openrift/shared/meta-results";
+import { formatRecordEnglish } from "@openrift/shared/meta-standings";
 import type {
   CardType,
   MetaCreditVisibility,
@@ -1502,6 +1503,30 @@ describe.skipIf(!ctx)("metaRepo", () => {
       expect(field.legends).toEqual([expect.objectContaining({ cardId: legendCardId, count: 2 })]);
       expect(field.hasRuns).toBe(false);
       expect(field.progress).toBeNull();
+    });
+
+    it("has records exactly when some row's record would be printed", async () => {
+      const parts = [null, 3] as const;
+      let index = 0;
+      for (const wins of parts) {
+        for (const losses of parts) {
+          for (const draws of parts) {
+            index++;
+            const eventId = await seedEvent(repo, `mta-field-records-${index}`);
+            await seedDecklessPlayer(repo, eventId, {
+              playerName: `MTA Field Records ${index}`,
+              rank: 1,
+              wins,
+              losses,
+              draws,
+            });
+
+            const field = await repo.fieldSummaryForEvent(eventId);
+
+            expect(field.hasRecords).toBe(formatRecordEnglish(wins, losses, draws) !== null);
+          }
+        }
+      }
     });
 
     it("names the best finish per legend and the row on the cut line", async () => {

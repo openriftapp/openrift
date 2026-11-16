@@ -1,3 +1,4 @@
+import { hasShownRecord } from "@openrift/shared/meta-standings";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { getLocale, overwriteGetLocale } from "@/paraglide/runtime.js";
@@ -68,6 +69,17 @@ describe("formatStandingsRecord", () => {
   it("shows nothing without the wins", () => {
     expect(formatStandingsRecord(null, 1, 0)).toBeNull();
     expect(formatStandingsRecord(null, null, null)).toBeNull();
+  });
+
+  it("prints exactly when the shared record predicate holds", () => {
+    const parts = [null, 0, 3] as const;
+    for (const wins of parts) {
+      for (const losses of parts) {
+        for (const draws of parts) {
+          expect(formatStandingsRecord(wins, losses, draws) !== null).toBe(hasShownRecord(wins));
+        }
+      }
+    }
   });
 });
 
