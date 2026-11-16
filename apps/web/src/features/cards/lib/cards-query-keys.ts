@@ -3,6 +3,7 @@ import type { TimeRange } from "@openrift/shared/types/pricing";
 export const catalogKeys = {
   all: ["catalog"] as const,
   none: ["catalog", "none"] as const,
+  version: ["catalog", "version"] as const,
   tail: (version: string | null, exceptLangs: readonly string[]) =>
     ["catalog", "tail", version, exceptLangs.join(",")] as const,
 } as const;

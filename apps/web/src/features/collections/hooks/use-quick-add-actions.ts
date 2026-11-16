@@ -191,10 +191,6 @@ export function useQuickAddActions(
     }
   };
 
-  // Closing a pill click-throughs into a reopen call: suppress reopen within a short window of the close.
-  const justClosedRef = useRef<{ cardId: string; at: number } | null>(null);
-  const REOPEN_SUPPRESS_MS = 350;
-
   const handleOpenVariants = addTarget
     ? (
         printing: Printing,
@@ -203,16 +199,8 @@ export function useQuickAddActions(
         scopeToSet = false,
         scopeToPrinting = false,
       ) => {
-        const jc = justClosedRef.current;
-        const recentlyClosed =
-          jc?.cardId === printing.cardId && performance.now() - jc.at < REOPEN_SUPPRESS_MS;
-        if (recentlyClosed) {
-          justClosedRef.current = null;
-          return;
-        }
         const current = useAddModeStore.getState().variantPopover;
         if (current?.cardId === printing.cardId) {
-          justClosedRef.current = { cardId: printing.cardId, at: performance.now() };
           useAddModeStore.getState().closeVariants();
           return;
         }
@@ -228,12 +216,11 @@ export function useQuickAddActions(
       }
     : undefined;
 
-  // pressTarget is unused; kept so the popover host can pass BaseUI's close
-  // details without caring how we suppress reopening.
-  const closeVariants = (_pressTarget?: EventTarget | null) => {
-    const current = useAddModeStore.getState().variantPopover;
-    if (current) {
-      justClosedRef.current = { cardId: current.cardId, at: performance.now() };
+  // A press on the popover's own anchor is left to that control's click, which toggles the popover.
+  const closeVariants = (pressTarget?: EventTarget | null) => {
+    const anchor = useAddModeStore.getState().variantPopover?.anchorEl;
+    if (anchor && pressTarget instanceof Node && anchor.contains(pressTarget)) {
+      return;
     }
     useAddModeStore.getState().closeVariants();
   };

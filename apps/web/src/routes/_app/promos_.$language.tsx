@@ -29,7 +29,9 @@ export const Route = createFileRoute("/_app/promos_/$language")({
 
     // Strip unknown / malformed search params so bots following share links
     // land on a clean canonical URL.
-    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, location.searchStr);
+    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, location.searchStr, {
+      legacySearchToQ: true,
+    });
     if (cleaned) {
       throw redirect({
         to: "/promos/$language",

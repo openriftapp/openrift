@@ -20,8 +20,10 @@ import { cardsSearchSchema } from "@/features/cards/lib/cards-search-schema";
 import {
   catalogFetchUrl,
   catalogQueryOptions,
-  ssrCatalogPreloadLangs,
+  catalogQueryOptionsFor,
   readCatalogVersionFromServerCache,
+  seedCatalogVersion,
+  ssrCatalogPreloadLangs,
 } from "@/features/cards/lib/catalog-queries";
 import { pricesQueryOptions } from "@/features/cards/lib/prices-queries";
 import { cleanedSearchForRedirect } from "@/features/cards/lib/search-schemas";
@@ -43,7 +45,9 @@ const CARDS_DESCRIPTION =
 export const Route = createFileRoute("/_app/cards")({
   validateSearch: cardsSearchSchema,
   beforeLoad: ({ search, location }) => {
-    const cleaned = cleanedSearchForRedirect(cardsSearchSchema, search, location.searchStr);
+    const cleaned = cleanedSearchForRedirect(cardsSearchSchema, search, location.searchStr, {
+      legacySearchToQ: true,
+    });
     if (cleaned) {
       throw redirect({
         to: "/cards",
@@ -102,7 +106,10 @@ export const Route = createFileRoute("/_app/cards")({
       }
       return (async () => {
         await Promise.all([
-          context.queryClient.query({ ...catalogQueryOptions, staleTime: "static" }),
+          context.queryClient.query({
+            ...catalogQueryOptionsFor(cardsSearchSchema.parse(location.search).languages),
+            staleTime: "static",
+          }),
           context.queryClient.query({ ...pricesQueryOptions, staleTime: "static" }),
           context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
         ]);
@@ -123,6 +130,7 @@ export const Route = createFileRoute("/_app/cards")({
       ]);
       // location.search is untyped in the loader; re-validate to read the
       // languages filter.
+      seedCatalogVersion(context.queryClient, catalogVersion);
       const catalogPreloadLangs = ssrCatalogPreloadLangs(
         cardsSearchSchema.parse(ssrSearch).languages,
         context.displayLanguages,

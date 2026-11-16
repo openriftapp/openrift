@@ -100,13 +100,15 @@ export function PrintingsLightbox({
     }
   }, [open, hostExpanded]);
 
+  const requested = requestedSideKey !== null && requestedSideKey === shownSideKey;
+  if (requested && hasTiles && !open) {
+    setOpen(true);
+  }
   useEffect(() => {
-    if (requestedSideKey !== null && requestedSideKey === shownSideKey) {
+    if (requested) {
       usePrintingLightboxStore.getState().clear();
-      // oxlint-disable-next-line react/set-state-in-effect -- opening a commit later pushes this history entry above the detail's
-      setOpen(hasTiles);
     }
-  }, [requestedSideKey, shownSideKey, hasTiles]);
+  }, [requested]);
 
   if (!hasTiles) {
     return null;

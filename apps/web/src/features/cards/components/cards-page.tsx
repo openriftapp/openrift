@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { CardBrowser } from "@/features/cards/components/card-browser";
 import { FirstRowPreview } from "@/features/cards/components/first-row-preview";
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
-import { seedCatalogVersion } from "@/features/cards/lib/catalog-version";
+import { CatalogLanguagesContext } from "@/features/cards/lib/catalog-languages-context";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { ViewSurfaceProvider } from "@/hooks/use-view-prefs";
 import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";
@@ -28,18 +28,14 @@ function CardBrowserShell() {
 
 export function CardsPage() {
   const search = routeApi.useSearch();
-  const { catalogVersion } = routeApi.useLoaderData();
-  // Seed during render: the catalog query fires from useSuspenseQuery right
-  // after useHydrated's own effect, before an effect here would run.
-  if (globalThis.window !== undefined) {
-    seedCatalogVersion(catalogVersion);
-  }
   return (
     <ViewSurfaceProvider value="cards">
       <FilterSearchProvider value={search}>
-        <div className={cn("flex flex-1 flex-col", PAGE_PADDING_NO_TOP)}>
-          <CardBrowserShell />
-        </div>
+        <CatalogLanguagesContext value={search.languages ?? null}>
+          <div className={cn("flex flex-1 flex-col", PAGE_PADDING_NO_TOP)}>
+            <CardBrowserShell />
+          </div>
+        </CatalogLanguagesContext>
       </FilterSearchProvider>
     </ViewSurfaceProvider>
   );

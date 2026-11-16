@@ -10,6 +10,7 @@ import {
   useOverlayHistoryEntry,
 } from "@/features/cards/hooks/use-overlay-history-entry";
 import { useSelectionDetail } from "@/features/cards/hooks/use-selection-detail";
+import { OverlayHistoryLayerContext } from "@/features/cards/lib/overlay-history-layer";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import { getDomainTintStyle } from "@/lib/domain";
@@ -77,7 +78,7 @@ export function SelectionDetailModal({
   // without the pop being read as a dismissal.
   const dockingRef = useRef(false);
 
-  useOverlayHistoryEntry({
+  const historyLayer = useOverlayHistoryEntry({
     active: open,
     stateKey: "cardDetail",
     onPop: () => {
@@ -110,22 +111,24 @@ export function SelectionDetailModal({
       style={getDomainTintStyle(selectedCard.card.domains, domainColors)}
       onKeyDown={handleKeyDown}
     >
-      <CardDetail
-        printing={selectedCard}
-        layout="modal"
-        showImages={showImages}
-        onPrevCard={handlePrevCard}
-        onNextCard={handleNextCard}
-        onTagClick={handleTagClick}
-        onKeywordClick={handleKeywordClick}
-        printings={siblingPrintings}
-        onSelectPrinting={handleSelectPrinting}
-        actions={building ? undefined : actions?.(selectedCard)}
-        deckBuilding={building}
-        collectionId={collectionId}
-        navLabel={navLabel}
-        onDock={docking ? handleDock : undefined}
-      />
+      <OverlayHistoryLayerContext value={historyLayer}>
+        <CardDetail
+          printing={selectedCard}
+          layout="modal"
+          showImages={showImages}
+          onPrevCard={handlePrevCard}
+          onNextCard={handleNextCard}
+          onTagClick={handleTagClick}
+          onKeywordClick={handleKeywordClick}
+          printings={siblingPrintings}
+          onSelectPrinting={handleSelectPrinting}
+          actions={building ? undefined : actions?.(selectedCard)}
+          deckBuilding={building}
+          collectionId={collectionId}
+          navLabel={navLabel}
+          onDock={docking ? handleDock : undefined}
+        />
+      </OverlayHistoryLayerContext>
     </CardDetailDialogShell>
   );
 }

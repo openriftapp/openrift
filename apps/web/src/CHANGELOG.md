@@ -19,6 +19,12 @@
 - fix(Trades): **Trade match digest** — a digest run that fails partway, or one started by hand, no longer resends the same matches the next day.
 - fix(Cards): **Token links** — a card that mentions a token links to it when the token is added or renamed later.
 - fix(Discord): **Trade channels** — turning a trade channel on or off sticks even when the bot was reloading its channel list at that moment.
+- fix(Cards): **Printings gallery and Back** — opening a card's other printings from the grid stacks the gallery above the card, and Back closes only the gallery.
+- fix(Cards): **Empty card lists** — an empty list no longer claims the cards failed to load or offers a page reload.
+- fix(Cards): **Search suggestion caret** — picking a suggestion in the middle of a query puts the caret right after it.
+- fix(Cards): **Linked errata entries** — a link to a card's errata opens its update and scrolls to it once.
+- fix(App): **Picker keyboard scrolling** — moving through a grouped picker with the arrow keys no longer scrolls the page.
+- fix(Collection): **Variant picker toggle** — the button that opened the variant picker closes it, and another button opens its own picker at once.
 
 ## 2026-11-16
 

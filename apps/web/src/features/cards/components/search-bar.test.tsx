@@ -1,5 +1,5 @@
 import type { SearchVocabulary } from "@openrift/shared/search-query/bind";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -134,6 +134,20 @@ describe("SearchBar suggestions", () => {
     await user.click(screen.getByRole("option", { name: /domain:/u }));
 
     expect(screen.getByRole("textbox")).toHaveValue("domain:");
+  });
+
+  it("puts the caret right after a suggestion picked in the middle of the query", async () => {
+    const user = userEvent.setup();
+    setup();
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+
+    await user.click(input);
+    await user.keyboard(" fury{Home}dom");
+    fireEvent.click(screen.getByRole("option", { name: /domain:/u }));
+
+    expect(input).toHaveValue("domain: fury");
+    expect(input.selectionStart).toBe(7);
+    expect(input.selectionEnd).toBe(7);
   });
 
   it("offers vocabulary values after a key and accepts with Tab", async () => {

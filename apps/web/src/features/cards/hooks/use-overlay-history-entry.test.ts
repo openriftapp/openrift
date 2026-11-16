@@ -1,5 +1,8 @@
-import { renderHook } from "@testing-library/react";
+import { render, renderHook } from "@testing-library/react";
+import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { OverlayHistoryLayerContext } from "@/features/cards/lib/overlay-history-layer";
 
 import {
   closeOverlayHistoryEntry,
@@ -159,6 +162,88 @@ describe("useOverlayHistoryEntry", () => {
     unmount();
     firstNavigation.resolve();
     await firstNavigation.promise;
+    await Promise.resolve();
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("pushes a nested overlay's entry above its parent's when both open in one commit", async () => {
+    let routerState: Record<string, unknown> = {};
+    navigateMock.mockImplementation(
+      async (options: { state: (prev: Record<string, unknown>) => Record<string, unknown> }) => {
+        routerState = options.state(routerState);
+      },
+    );
+    function Lightbox() {
+      useOverlayHistoryEntry({ active: true, stateKey: "printingLightbox", onPop: vi.fn() });
+      return null;
+    }
+    function Detail() {
+      const layer = useOverlayHistoryEntry({
+        active: true,
+        stateKey: "cardDetail",
+        onPop: vi.fn(),
+      });
+      return createElement(OverlayHistoryLayerContext, { value: layer }, createElement(Lightbox));
+    }
+
+    render(createElement(Detail));
+
+    await vi.waitFor(() => expect(navigateMock).toHaveBeenCalledTimes(2));
+    const order = navigateMock.mock.calls.map((call) => Object.keys(call[0].state({})));
+    expect(order).toEqual([
+      ["cardDetail", "overlayEntry"],
+      ["printingLightbox", "overlayEntry"],
+    ]);
+    expect(routerState).toHaveProperty("cardDetail");
+  });
+
+  it("pushes a nested overlay right away once its parent's entry is already on the stack", async () => {
+    function Lightbox({ open }: { open: boolean }) {
+      useOverlayHistoryEntry({ active: open, stateKey: "printingLightbox", onPop: vi.fn() });
+      return null;
+    }
+    function Detail({ lightboxOpen }: { lightboxOpen: boolean }) {
+      const layer = useOverlayHistoryEntry({
+        active: true,
+        stateKey: "cardDetail",
+        onPop: vi.fn(),
+      });
+      return createElement(
+        OverlayHistoryLayerContext,
+        { value: layer },
+        createElement(Lightbox, { open: lightboxOpen }),
+      );
+    }
+
+    const { rerender } = render(createElement(Detail, { lightboxOpen: false }));
+    await vi.waitFor(() => expect(navigateMock).toHaveBeenCalledTimes(1));
+    rerender(createElement(Detail, { lightboxOpen: true }));
+
+    await vi.waitFor(() => expect(navigateMock).toHaveBeenCalledTimes(2));
+    expect(navigateMock.mock.calls[1]?.[0].state({})).toHaveProperty("printingLightbox");
+  });
+
+  it("drops a nested overlay's pending entry when its parent closes first", async () => {
+    const parentNavigation = deferred();
+    navigateMock.mockImplementationOnce(() => parentNavigation.promise);
+    function Lightbox() {
+      useOverlayHistoryEntry({ active: true, stateKey: "printingLightbox", onPop: vi.fn() });
+      return null;
+    }
+    function Detail() {
+      const layer = useOverlayHistoryEntry({
+        active: true,
+        stateKey: "cardDetail",
+        onPop: vi.fn(),
+      });
+      return createElement(OverlayHistoryLayerContext, { value: layer }, createElement(Lightbox));
+    }
+
+    const { unmount } = render(createElement(Detail));
+    unmount();
+    parentNavigation.resolve();
+    await parentNavigation.promise;
     await Promise.resolve();
 
     expect(navigateMock).toHaveBeenCalledTimes(1);

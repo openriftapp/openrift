@@ -29,6 +29,7 @@ import { printingName } from "@/features/cards/lib/card-meta";
 import { isPlainPrimaryClick } from "@/features/cards/lib/card-row-interactions";
 import { groupPrintingDesigns } from "@/features/cards/lib/printing-designs";
 import { NO_TILE_ART, tileArt } from "@/features/cards/lib/tile-art";
+import { useGridFocusStore } from "@/features/cards/stores/grid-focus-store";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { getDomainGradientStyle } from "@/lib/domain";
 import { priceColorClass } from "@/lib/format";
@@ -618,19 +619,11 @@ export const CardThumbnail = memo(function CardThumbnail({
     : [];
   const fanStep = cardWidth === undefined ? 2 : Math.max(1, cardWidth * 0.01);
   const fanAngle = fancyFan ? 8 : 1.5;
-  const [fanReady, setFanReady] = useState(false);
+  const [fanOpen, setFanOpen] = useState(false);
+  const [fanSettled, setFanSettled] = useState(false);
+  const fanReady = fanOpen && fanSettled;
   // Latches true on first hover and never resets, so re-entering doesn't remount sibling faces.
   const [fanHovered, setFanHovered] = useState(false);
-  const fanTimer = useRef<ReturnType<typeof setTimeout>>(null);
-  // Unmounting mid-hover (before the 200ms fan timer fires) would setState on a gone component.
-  useEffect(
-    () => () => {
-      if (fanTimer.current) {
-        clearTimeout(fanTimer.current);
-      }
-    },
-    [],
-  );
 
   // Base-list bans apply to all constructed play; mode-scoped bans (e.g. 2v2-only)
   // leave the card legal elsewhere, so only base bans get the full "unusable" treatment.
@@ -692,6 +685,11 @@ export const CardThumbnail = memo(function CardThumbnail({
                 opacity: hiddenWhenClosed ? "var(--fan, 0)" : undefined,
                 transition:
                   "rotate 200ms ease-out, translate 200ms ease-out, scale 150ms ease-out, opacity 200ms ease-out",
+              }}
+              onTransitionEnd={(event) => {
+                if (event.target === event.currentTarget && event.propertyName === "rotate") {
+                  setFanSettled(fanOpen);
+                }
               }}
             >
               <div
@@ -841,26 +839,25 @@ export const CardThumbnail = memo(function CardThumbnail({
         ...getDomainGradientStyle(card.domains, "C0", domainColors),
         animation: "selection-flash 800ms ease-out forwards",
       }}
+      onAnimationEnd={() => useGridFocusStore.getState().setFlashCardId(null)}
     />
   );
 
   const fanMouseEnter =
     otherPrintings.length > 0
       ? () => {
-          // Mounted immediately so images are requested before the 200ms fan-open
+          // Mounted immediately so images are requested before the fan-open
           // transition reveals anything behind the front card.
           setFanHovered(true);
-          fanTimer.current = setTimeout(() => setFanReady(true), 200);
+          setFanOpen(true);
         }
       : undefined;
 
   const fanMouseLeave =
     otherPrintings.length > 0
       ? () => {
-          if (fanTimer.current) {
-            clearTimeout(fanTimer.current);
-          }
-          setFanReady(false);
+          setFanOpen(false);
+          setFanSettled(false);
         }
       : undefined;
 

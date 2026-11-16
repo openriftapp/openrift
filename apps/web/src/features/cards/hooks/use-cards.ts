@@ -2,9 +2,11 @@ import { sortByLanguageAndCanonicalRank } from "@openrift/shared/printing-select
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { use } from "react";
 
+import { CatalogLanguagesContext } from "@/features/cards/lib/catalog-languages-context";
 import type { CatalogEntry, UseCardsResult } from "@/features/cards/lib/catalog-queries";
 import {
   catalogQueryOptions,
+  catalogQueryOptionsFor,
   catalogTailQueryOptions,
   ensureCatalogComplete,
   noCatalogQueryOptions,
@@ -25,10 +27,11 @@ export function useFullCatalog(): UseCardsResult {
 function useCatalog(subset: UseCardsResult | null): UseCardsResult {
   // `queryOptions` bakes each literal query key into its own option type, so
   // the stand-in is unrelated to the real one even though the call takes either.
+  const languages = use(CatalogLanguagesContext);
   const options =
     subset === null
-      ? catalogQueryOptions
-      : (noCatalogQueryOptions as unknown as typeof catalogQueryOptions);
+      ? catalogQueryOptionsFor(languages)
+      : (noCatalogQueryOptions as unknown as ReturnType<typeof catalogQueryOptionsFor>);
 
   // React Query's structural sharing can't preserve identity for a shape
   // containing a Map; `enrichCatalog` memoizes by input identity instead.
@@ -42,7 +45,8 @@ export function useCatalogOnDemand(enabled: boolean): {
   catalog: UseCardsResult | undefined;
   error: Error | null;
 } {
-  const { data, error } = useQuery({ ...catalogQueryOptions, enabled });
+  const languages = use(CatalogLanguagesContext);
+  const { data, error } = useQuery({ ...catalogQueryOptionsFor(languages), enabled });
   const userLanguages = useDisplayLanguages();
   useCatalogTail(data ?? null);
   return { catalog: data && inLanguageOrder(data, userLanguages), error };

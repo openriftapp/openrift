@@ -3,8 +3,8 @@ import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type { Collection, PendingMutation, Transaction } from "@tanstack/react-db";
 import type { QueryClient } from "@tanstack/react-query";
 
+import { copiesKeys } from "@/features/collections/lib/collections-query-keys";
 import { getCopiesCollection } from "@/features/collections/lib/copies-collection";
-import { restartInFlightCopiesRefetch } from "@/features/collections/lib/copies-in-flight-refetch";
 import { writeSkippingMissing } from "@/features/collections/lib/copies-write";
 import { badgesKeys, tradesKeys } from "@/features/groups/lib/groups-query-keys";
 import {
@@ -12,6 +12,7 @@ import {
   tradeCancelConsentOf,
 } from "@/features/groups/lib/trade-cancel-conflict";
 import { mutationTag } from "@/lib/mutation-metadata";
+import { watchForRefetchRace } from "@/lib/refetch-race";
 import { browserApiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 export type CollectionsCollection = Collection<CollectionResponse, string | number>;
@@ -92,11 +93,12 @@ async function persistDelete(
   const copies = getCopiesCollection(context.queryClient, context.userId);
   const moved = copies.toArray.filter((copy) => copy.collectionId === id);
   if (inboxId !== undefined && moved.length > 0) {
+    const settle = watchForRefetchRace(context.queryClient, copiesKeys.syncedStore(context.userId));
     await writeSkippingMissing(
       moved.map((copy) => ({ id: copy.id, collectionId: inboxId, groupId: null })),
       (rows) => copies.utils.writeUpdate(rows),
     );
-    restartInFlightCopiesRefetch(context.queryClient, context.userId);
+    settle();
   }
 }
 

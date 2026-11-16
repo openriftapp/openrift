@@ -11,7 +11,9 @@ export const Route = createFileRoute("/_app/decks/")({
   ssr: false,
   validateSearch: deckListSearchSchema,
   beforeLoad: ({ search, location }) => {
-    const cleaned = cleanedSearchForRedirect(deckListSearchSchema, search, location.searchStr);
+    const cleaned = cleanedSearchForRedirect(deckListSearchSchema, search, location.searchStr, {
+      legacySearchToQ: false,
+    });
     if (cleaned) {
       throw redirect({ to: "/decks", search: cleaned, replace: true });
     }

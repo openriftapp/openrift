@@ -13,7 +13,9 @@ export const Route = createFileRoute("/_app/_authenticated/tier-lists_/$tierList
   validateSearch: filterSearchSchema,
   head: () => privateSeoHead("Tier list"),
   beforeLoad: ({ search, location, params }) => {
-    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, location.searchStr);
+    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, location.searchStr, {
+      legacySearchToQ: true,
+    });
     if (cleaned) {
       throw redirect({
         to: "/tier-lists/$tierListId",

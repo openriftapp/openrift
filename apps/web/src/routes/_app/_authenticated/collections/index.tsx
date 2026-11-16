@@ -9,7 +9,9 @@ export const Route = createFileRoute("/_app/_authenticated/collections/")({
   beforeLoad: ({ search, location }) => {
     // Strip unknown / malformed search params — same canonicalization as
     // /cards. (The filter schema is validated by the collections layout route.)
-    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, location.searchStr);
+    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, location.searchStr, {
+      legacySearchToQ: true,
+    });
     if (cleaned) {
       throw redirect({ to: "/collections", search: cleaned, replace: true });
     }

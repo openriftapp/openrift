@@ -107,7 +107,7 @@ Creates send a UUIDv7 the client generated. The repositories insert with `onConf
 
 ### The refetch race
 
-`watchForRefetchRace(queryClient, queryKey)` subscribes to the query cache for the duration of a write and counts only real fetches, not the store's own write-backs, which reach the cache as manual successes. If a fetch landed while the write was in flight, the watcher restarts it afterwards, so the store ends on server state that includes the write instead of the snapshot that was in flight when it started.
+`watchForRefetchRace(queryClient, queryKey)` subscribes to the query cache for the duration of a write and counts only fetches, one already running when the write starts or one starting during it, not the store's own write-backs, which reach the cache as data updates without a fetch. If a fetch ran while the write was in flight, the watcher restarts it afterwards, so the store ends on server state that includes the write instead of the snapshot that was in flight when it started.
 
 ### Browser-local decks
 

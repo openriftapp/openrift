@@ -1,43 +1,6 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import {
-  consumeSeededCatalogVersion,
-  seedCatalogVersion,
-  versionFromEtag,
-} from "./catalog-version";
-
-describe("seedCatalogVersion / consumeSeededCatalogVersion", () => {
-  beforeEach(() => {
-    consumeSeededCatalogVersion();
-  });
-
-  it("returns null when nothing was seeded", () => {
-    expect(consumeSeededCatalogVersion()).toBeNull();
-  });
-
-  it("returns the seeded token", () => {
-    seedCatalogVersion("abc123");
-    expect(consumeSeededCatalogVersion()).toBe("abc123");
-  });
-
-  it("consumes the seed — a second read returns null", () => {
-    seedCatalogVersion("abc123");
-    consumeSeededCatalogVersion();
-    expect(consumeSeededCatalogVersion()).toBeNull();
-  });
-
-  it("ignores a null seed and keeps the previous token", () => {
-    seedCatalogVersion("abc123");
-    seedCatalogVersion(null);
-    expect(consumeSeededCatalogVersion()).toBe("abc123");
-  });
-
-  it("overwrites an unconsumed token with a newer one", () => {
-    seedCatalogVersion("old");
-    seedCatalogVersion("new");
-    expect(consumeSeededCatalogVersion()).toBe("new");
-  });
-});
+import { versionFromEtag } from "./catalog-version";
 
 describe("versionFromEtag", () => {
   it("strips surrounding quotes from a strong ETag", () => {

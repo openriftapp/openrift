@@ -154,7 +154,7 @@ export function PickerCardBrowser({
       <div ref={containerRef} className={cn("flex min-w-0 flex-1 flex-col", className)}>
         <CardViewer
           items={items}
-          totalItems={sortedCards.length}
+          totalItems={allPrintings.length}
           renderCard={renderCard}
           setOrder={sets}
           groupBy={groupBy}

@@ -1,8 +1,17 @@
 import { CARD_ASPECT } from "@openrift/shared/card-orientation";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { GroupByField } from "@openrift/shared/types/search";
+import type { Virtualizer } from "@tanstack/react-virtual";
 import type { ReactNode } from "react";
-import { Fragment, memo, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  Fragment,
+  memo,
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { OrnamentRule } from "@/components/ui/ornament";
 import { Pressable } from "@/components/ui/pressable";
@@ -85,16 +94,24 @@ const GroupHeaderLabel = memo(function GroupHeaderLabel({
   );
 });
 
+function scrollToRow(virtualizer: Virtualizer<Window, Element>, rowIndex: number): void {
+  if (rowIndex !== -1) {
+    virtualizer.scrollToIndex(rowIndex, { align: "start", behavior: "auto" });
+  }
+}
+
 // Explicit memo: rendered inside the virtualizer's items.map() which re-runs every
 // scroll frame. React Compiler cannot memoize JSX created in dynamic .map() callbacks.
 // ⚠ pt-4 / pb-2 are mirrored as HEADER_PT / HEADER_PB above — update both together
 // oxlint-disable-next-line eslint/prefer-arrow-callback -- named for React DevTools
 const HeaderRow = memo(function HeaderRow({
   row,
-  onScrollToGroup,
+  rowIndex,
+  virtualizer,
 }: {
   row: VRow & { kind: "header" };
-  onScrollToGroup: (groupId: string) => void;
+  rowIndex: number;
+  virtualizer: Virtualizer<Window, Element>;
 }) {
   return (
     <OrnamentRule fade="tips" className="pt-4 pb-2">
@@ -102,7 +119,7 @@ const HeaderRow = memo(function HeaderRow({
         slug={row.group.slug}
         name={row.group.name}
         groupId={row.group.id}
-        onSelect={onScrollToGroup}
+        onSelect={() => scrollToRow(virtualizer, rowIndex)}
       />
     </OrnamentRule>
   );
@@ -284,27 +301,16 @@ export function CardGrid({
     headerHeight: HEADER_PT + HEADER_CONTENT_HEIGHT + HEADER_PB,
   });
 
-  const virtualRowsRef = useRef(virtualRows);
-  const virtualizerRef = useRef(virtualizer);
-  const stickyOffsetRef = useRef(stickyOffset);
-
-  useEffect(() => {
-    virtualRowsRef.current = virtualRows;
-    virtualizerRef.current = virtualizer;
-    stickyOffsetRef.current = stickyOffset;
-  });
-
   const scrollToCard = (cardId: string) => {
-    const rows = virtualRowsRef.current;
-    for (const [i, row] of rows.entries()) {
+    for (const [i, row] of virtualRows.entries()) {
       if (
         row.kind === "cards" &&
         row.items.some((item) => item.id === cardId || sideKey(item.printing) === cardId)
       ) {
-        const vItems = virtualizerRef.current.getVirtualItems();
+        const vItems = virtualizer.getVirtualItems();
         const vItem = vItems.find((vi) => vi.index === i);
         if (vItem) {
-          const viewportTop = globalThis.scrollY + stickyOffsetRef.current;
+          const viewportTop = globalThis.scrollY + stickyOffset;
           const viewportBottom = globalThis.scrollY + globalThis.innerHeight;
           const rowTop = vItem.start;
           const rowBottom = vItem.start + vItem.size;
@@ -312,7 +318,7 @@ export function CardGrid({
             return;
           }
         }
-        virtualizerRef.current.scrollToIndex(i, { align: "start" });
+        virtualizer.scrollToIndex(i, { align: "start" });
         return;
       }
     }
@@ -329,25 +335,28 @@ export function CardGrid({
       scrollToCard(itemId);
     }
     useGridFocusStore.getState().setFlashCardId(itemId);
-    const timer = setTimeout(() => useGridFocusStore.getState().setFlashCardId(null), 800);
-    return () => clearTimeout(timer);
+    return () => {
+      if (useGridFocusStore.getState().flashCardId === itemId) {
+        useGridFocusStore.getState().setFlashCardId(null);
+      }
+    };
   });
 
   const topVisibleCardRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    const onScroll = () => {
-      const rows = virtualRowsRef.current;
-      const vItems = virtualizerRef.current.getVirtualItems();
-      const viewportTop = globalThis.scrollY + stickyOffsetRef.current;
-      for (const vItem of vItems) {
-        const row = rows[vItem.index];
-        if (row?.kind === "cards" && vItem.start + vItem.size > viewportTop) {
-          topVisibleCardRef.current = row.items[0]?.id ?? null;
-          return;
-        }
+  const trackTopVisibleCard = useEffectEvent(() => {
+    const viewportTop = globalThis.scrollY + stickyOffset;
+    for (const vItem of virtualizer.getVirtualItems()) {
+      const row = virtualRows[vItem.index];
+      if (row?.kind === "cards" && vItem.start + vItem.size > viewportTop) {
+        topVisibleCardRef.current = row.items[0]?.id ?? null;
+        return;
       }
-    };
+    }
+  });
+
+  useEffect(() => {
+    const onScroll = () => trackTopVisibleCard();
     globalThis.addEventListener("scroll", onScroll, { passive: true });
     return () => globalThis.removeEventListener("scroll", onScroll);
   }, []);
@@ -356,7 +365,7 @@ export function CardGrid({
   // count identical, leaving stale/mis-stacked row heights until measure() runs.
   const rowKindSignature = virtualRows.map((row) => (row.kind === "header" ? "h" : "c")).join("");
   useScopeLayoutEffect(`${rowKindSignature} ${columns} ${containerWidth} ${addStripHeight}`, () =>
-    virtualizerRef.current.measure(),
+    virtualizer.measure(),
   );
 
   useScopeEffect(columns, () => {
@@ -365,17 +374,6 @@ export function CardGrid({
       scrollToCard(anchor);
     }
   });
-
-  // Reads only mirror refs, so the compiler keeps this reference stable and
-  // HeaderRow's memo doesn't bust on every scroll tick.
-  const scrollToGroup = (groupId: string) => {
-    const rowIndex = virtualRowsRef.current.findIndex(
-      (r) => r.kind === "header" && r.group.id === groupId,
-    );
-    if (rowIndex !== -1) {
-      virtualizerRef.current.scrollToIndex(rowIndex, { align: "start", behavior: "auto" });
-    }
-  };
 
   const eagerCount = columns;
 
@@ -416,7 +414,14 @@ export function CardGrid({
                 slug={activeHeaderRow.group.slug}
                 name={activeHeaderRow.group.name}
                 groupId={activeHeaderRow.group.id}
-                onSelect={scrollToGroup}
+                onSelect={(groupId) =>
+                  scrollToRow(
+                    virtualizer,
+                    virtualRows.findIndex(
+                      (row) => row.kind === "header" && row.group.id === groupId,
+                    ),
+                  )
+                }
                 className={cn(
                   STICKY_SURFACE,
                   "ring-border/70 pointer-events-auto rounded-lg px-3 py-1 shadow-sm ring-1",
@@ -447,7 +452,7 @@ export function CardGrid({
               }}
             >
               {row.kind === "header" ? (
-                <HeaderRow row={row} onScrollToGroup={scrollToGroup} />
+                <HeaderRow row={row} rowIndex={vItem.index} virtualizer={virtualizer} />
               ) : (
                 <CardRowContent
                   row={row}

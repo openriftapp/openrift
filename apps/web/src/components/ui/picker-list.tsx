@@ -63,6 +63,8 @@ export function PickerList({
   // a window-virtualized grid, that scroll jumps the whole grid and detaches the
   // popover from its anchor. Focus explicitly with `preventScroll` instead.
   const rootRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const scrollPendingRef = useRef(true);
   useLayoutEffect(() => {
     const root = rootRef.current;
     // In a bottom drawer, focusing the input opens the phone keyboard over the list.
@@ -70,6 +72,20 @@ export function PickerList({
     const input = inDrawer ? null : root?.querySelector<HTMLElement>("[cmdk-input]");
     (input ?? root)?.focus({ preventScroll: true });
   }, []);
+
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!scrollPendingRef.current || !list || !highlightedId) {
+      return;
+    }
+    scrollPendingRef.current = false;
+    const row = list.querySelector<HTMLElement>(
+      `[data-picker-value="${CSS.escape(highlightedId)}"]`,
+    );
+    if (row) {
+      scrollRowWithinList(list, row);
+    }
+  }, [highlightedId]);
 
   const searchable = searchPlaceholder !== undefined;
   return (
@@ -82,7 +98,13 @@ export function PickerList({
       value={highlightedId}
       onValueChange={onHighlightChange}
       filter={searchable ? keywordFilter : undefined}
-      onKeyDown={(event) => onKeyDown?.(event, highlightedId)}
+      onKeyDown={(event) => {
+        scrollPendingRef.current = true;
+        onKeyDown?.(event, highlightedId);
+      }}
+      onPointerMove={() => {
+        scrollPendingRef.current = false;
+      }}
     >
       {searchable ? <CommandInput placeholder={searchPlaceholder} /> : null}
       {header}
@@ -91,7 +113,9 @@ export function PickerList({
           rows go straight into the list here. Without it the input pill (inset by Command's p-1 plus
           the input wrapper's own) sits 4px narrower per side than the rows, and its bottom border
           touches the first row. */}
-      <CommandList className={cn("max-h-72 p-1", listClassName)}>{children}</CommandList>
+      <CommandList ref={listRef} className={cn("max-h-72 p-1", listClassName)}>
+        {children}
+      </CommandList>
     </Command>
   );
 }
@@ -109,27 +133,36 @@ interface PickerRowProps {
   children: ReactNode;
 }
 
-/**
- * Scroll a row into view within its own cmdk list container only — never
- * bubbling to the window. cmdk keeps the highlighted item visible by calling the
- * native `element.scrollIntoView({ block: "nearest" })`, which walks the whole
- * ancestor scroll chain. When the picker lives in a portaled, `position: fixed`
- * popover on a window-scrolled page, that reaches the window and yanks it to the
- * top (jumping the grid and detaching the popover from its anchor). We override
- * the row's `scrollIntoView` to adjust only the `[cmdk-list]` scroll container,
- * so a non-overflowing list is a no-op and the window never moves.
- */
-function scrollRowWithinList(el: HTMLElement): void {
-  const container = el.closest<HTMLElement>("[cmdk-list]");
-  if (!container) {
-    return;
+function skipScrollIntoView(): void {
+  // PickerList scrolls the highlighted row itself (scrollRowWithinList).
+}
+
+// cmdk 1.1 keeps the highlighted row, and the heading above a group's first row, visible with a
+// native scrollIntoView that also scrolls the window, and has no option to turn it off.
+function muteCmdkScroll(node: HTMLElement | null): void {
+  if (node) {
+    node.scrollIntoView = skipScrollIntoView;
   }
-  const elRect = el.getBoundingClientRect();
-  const cRect = container.getBoundingClientRect();
-  if (elRect.top < cRect.top) {
-    container.scrollTop -= cRect.top - elRect.top;
-  } else if (elRect.bottom > cRect.bottom) {
-    container.scrollTop += elRect.bottom - cRect.bottom;
+}
+
+const ROW_SCROLL_MARGIN_PX = 32;
+
+function scrollRowWithinList(list: HTMLElement, row: HTMLElement): void {
+  const heading =
+    row.parentElement?.firstElementChild === row
+      ? row.closest("[cmdk-group]")?.querySelector("[cmdk-group-heading]")
+      : null;
+  const rowRect = row.getBoundingClientRect();
+  const listRect = list.getBoundingClientRect();
+  const top = Math.min(
+    rowRect.top - ROW_SCROLL_MARGIN_PX,
+    heading?.getBoundingClientRect().top ?? Infinity,
+  );
+  const bottom = rowRect.bottom + ROW_SCROLL_MARGIN_PX;
+  if (top < listRect.top) {
+    list.scrollTop -= listRect.top - top;
+  } else if (bottom > listRect.bottom) {
+    list.scrollTop += bottom - listRect.bottom;
   }
 }
 
@@ -151,10 +184,7 @@ export function PickerRow({
   children,
 }: PickerRowProps) {
   const setRef = (node: HTMLDivElement | null) => {
-    if (node) {
-      // Contain cmdk's scroll-into-view to the list (see scrollRowWithinList).
-      node.scrollIntoView = () => scrollRowWithinList(node);
-    }
+    muteCmdkScroll(node);
     if (typeof ref === "function") {
       ref(node);
     } else if (ref) {
@@ -166,14 +196,14 @@ export function PickerRow({
     <CommandPrimitive.Item
       ref={setRef}
       data-slot="picker-row"
+      data-picker-value={value}
       value={value}
       keywords={keywords}
       onSelect={onSelect}
       disabled={disabled}
       data-checked={selected || undefined}
       className={cn(
-        // scroll-my-2 gives cmdk's scrollIntoView({block:"nearest"}) explicit breathing room around the row, so keyboard nav doesn't park the active row flush against (or partly under) the list edge.
-        "data-selected:bg-muted data-selected:text-foreground flex scroll-my-8 items-center gap-2 rounded-md px-1.5 py-1 text-sm outline-hidden data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50",
+        "data-selected:bg-muted data-selected:text-foreground flex items-center gap-2 rounded-md px-1.5 py-1 text-sm outline-hidden data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50",
         selected && PICKER_ROW_SELECTED,
         className,
       )}
@@ -204,6 +234,9 @@ export function PickerGroup({
 }) {
   return (
     <CommandGroup
+      ref={(node: HTMLDivElement | null) =>
+        muteCmdkScroll(node?.querySelector<HTMLElement>("[cmdk-group-heading]") ?? null)
+      }
       heading={label}
       className={cn(
         "p-0 **:[[cmdk-group-heading]]:px-1.5 **:[[cmdk-group-heading]]:pt-2 **:[[cmdk-group-heading]]:pb-0.5",

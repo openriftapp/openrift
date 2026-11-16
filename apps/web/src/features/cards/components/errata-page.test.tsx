@@ -240,6 +240,38 @@ describe("ErrataPage", () => {
     globalThis.location.hash = "";
   });
 
+  it("scrolls a linked card into view as soon as its update unfolds", async () => {
+    const scrolled: Element[] = [];
+    const native = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function recordScroll(this: Element) {
+      scrolled.push(this);
+    };
+    const frame = vi.spyOn(globalThis, "requestAnimationFrame").mockImplementation(() => 0);
+    const user = userEvent.setup();
+    const { container } = renderPage();
+    await user.click(
+      container.querySelector("[aria-controls='origins-card-errata-list']") as HTMLElement,
+    );
+
+    scrolled.length = 0;
+    act(() => {
+      history.replaceState(null, "", "#arise");
+      globalThis.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
+
+    expect(scrolled.map((element) => element.id)).toEqual(["arise"]);
+
+    const toggle = container.querySelector(
+      "[aria-controls='origins-card-errata-list']",
+    ) as HTMLElement;
+    await user.click(toggle);
+    await user.click(toggle);
+    expect(scrolled.map((element) => element.id)).toEqual(["arise"]);
+    Element.prototype.scrollIntoView = native;
+    frame.mockRestore();
+    history.replaceState(null, "", "#");
+  });
+
   it("shows an empty state when nothing matches", async () => {
     const user = userEvent.setup();
     renderPage();

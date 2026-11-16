@@ -66,6 +66,13 @@ function anyArgument(name: string): unknown {
 
 function collectKeys(value: unknown, keys: QueryKey[]): void {
   if (Array.isArray(value)) {
+    // A list of keys (an invalidation scope) holds arrays; a key starts with a string.
+    if (value.length > 0 && value.every((entry) => Array.isArray(entry))) {
+      for (const entry of value) {
+        collectKeys(entry, keys);
+      }
+      return;
+    }
     keys.push(value);
     return;
   }

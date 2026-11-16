@@ -22,7 +22,9 @@ interface SharedListHeadData {
 export const Route = createFileRoute("/_app/lists_/share/$token")({
   validateSearch: filterSearchSchema,
   beforeLoad: ({ search, location, params }) => {
-    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, location.searchStr);
+    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, location.searchStr, {
+      legacySearchToQ: true,
+    });
     if (cleaned) {
       throw redirect({ to: "/lists/share/$token", params, search: cleaned, replace: true });
     }

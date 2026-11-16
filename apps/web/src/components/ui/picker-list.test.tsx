@@ -1,7 +1,28 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { useState } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { PickerList, PickerRow } from "./picker-list";
+import { PickerGroup, PickerList, PickerRow } from "./picker-list";
+
+function GroupedPicker({ initial }: { initial: string }) {
+  const [highlighted, setHighlighted] = useState(initial);
+  return (
+    <PickerList highlightedId={highlighted} onHighlightChange={setHighlighted}>
+      <PickerGroup label="Owned">
+        <PickerRow value="a">Alpha</PickerRow>
+        <PickerRow value="b">Beta</PickerRow>
+      </PickerGroup>
+      <PickerGroup label="Missing">
+        <PickerRow value="c">Gamma</PickerRow>
+        <PickerRow value="d">Delta</PickerRow>
+      </PickerGroup>
+    </PickerList>
+  );
+}
+
+function rect(top: number, bottom: number): DOMRect {
+  return { top, bottom, left: 0, right: 100, width: 100, height: bottom - top } as DOMRect;
+}
 
 describe("PickerList", () => {
   // cmdk's keyboard handling only works while focus lives inside the Command
@@ -164,5 +185,60 @@ describe("PickerRow", () => {
     fireEvent.click(row);
     expect(onSelect).not.toHaveBeenCalled();
     expect(row).toHaveAttribute("aria-disabled", "true");
+  });
+
+  describe("keyboard scrolling", () => {
+    const nativeScrollIntoView = Element.prototype.scrollIntoView;
+    afterEach(() => {
+      Element.prototype.scrollIntoView = nativeScrollIntoView;
+    });
+
+    it("never runs a native scrollIntoView, so moving onto a group's first row leaves the window alone", () => {
+      const native = vi.fn();
+      Element.prototype.scrollIntoView = native;
+      const { container } = render(<GroupedPicker initial="b" />);
+      const root = container.querySelector('[data-slot="command"]') as HTMLElement;
+
+      fireEvent.keyDown(root, { key: "ArrowDown" });
+
+      expect(screen.getByRole("option", { name: "Gamma" })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+      expect(native).not.toHaveBeenCalled();
+    });
+
+    it("scrolls the list, heading included, when the keyboard lands on a group's first row above the fold", () => {
+      Element.prototype.scrollIntoView = vi.fn();
+      const { container } = render(<GroupedPicker initial="d" />);
+      const root = container.querySelector('[data-slot="command"]') as HTMLElement;
+      const list = container.querySelector("[cmdk-list]") as HTMLElement;
+      list.scrollTop = 200;
+      list.getBoundingClientRect = () => rect(100, 300);
+      const gamma = screen.getByRole("option", { name: "Gamma" });
+      gamma.getBoundingClientRect = () => rect(80, 110);
+      const missingHeading = screen.getByText("Missing");
+      missingHeading.getBoundingClientRect = () => rect(60, 80);
+
+      fireEvent.keyDown(root, { key: "ArrowUp" });
+
+      expect(gamma).toHaveAttribute("aria-selected", "true");
+      expect(list.scrollTop).toBe(148);
+    });
+
+    it("leaves the list where it is when the pointer moves the highlight", () => {
+      Element.prototype.scrollIntoView = vi.fn();
+      const { container } = render(<GroupedPicker initial="a" />);
+      const list = container.querySelector("[cmdk-list]") as HTMLElement;
+      list.scrollTop = 0;
+      list.getBoundingClientRect = () => rect(100, 300);
+      const delta = screen.getByRole("option", { name: "Delta" });
+      delta.getBoundingClientRect = () => rect(320, 350);
+
+      fireEvent.pointerMove(delta);
+
+      expect(delta).toHaveAttribute("aria-selected", "true");
+      expect(list.scrollTop).toBe(0);
+    });
   });
 });

@@ -9,6 +9,7 @@ import {
   useOverlayHistoryEntry,
 } from "@/features/cards/hooks/use-overlay-history-entry";
 import { useSelectionDetail } from "@/features/cards/hooks/use-selection-detail";
+import { OverlayHistoryLayerContext } from "@/features/cards/lib/overlay-history-layer";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
@@ -62,7 +63,7 @@ export function SelectionMobileOverlay({
     onDismiss: handleClose,
   });
 
-  useOverlayHistoryEntry({
+  const historyLayer = useOverlayHistoryEntry({
     active: detailOpen && isMobile,
     stateKey: "cardDetail",
     onPop: closeDetail,
@@ -79,20 +80,22 @@ export function SelectionMobileOverlay({
       onClose={handleClose}
       style={getDomainTintStyle(selectedCard.card.domains, domainColors)}
     >
-      <CardDetail
-        printing={selectedCard}
-        onClose={handleClose}
-        showImages={showImages}
-        onPrevCard={handlePrevCard}
-        onNextCard={handleNextCard}
-        onTagClick={handleTagClick}
-        onKeywordClick={handleKeywordClick}
-        printings={siblingPrintings}
-        onSelectPrinting={handleSelectPrinting}
-        actions={building ? undefined : actions?.(selectedCard)}
-        deckBuilding={building}
-        collectionId={collectionId}
-      />
+      <OverlayHistoryLayerContext value={historyLayer}>
+        <CardDetail
+          printing={selectedCard}
+          onClose={handleClose}
+          showImages={showImages}
+          onPrevCard={handlePrevCard}
+          onNextCard={handleNextCard}
+          onTagClick={handleTagClick}
+          onKeywordClick={handleKeywordClick}
+          printings={siblingPrintings}
+          onSelectPrinting={handleSelectPrinting}
+          actions={building ? undefined : actions?.(selectedCard)}
+          deckBuilding={building}
+          collectionId={collectionId}
+        />
+      </OverlayHistoryLayerContext>
     </CardDetailDrawerShell>
   );
 }

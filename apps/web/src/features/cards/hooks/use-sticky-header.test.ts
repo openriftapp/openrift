@@ -147,6 +147,33 @@ describe("useStickyHeader", () => {
     expect(result.current).toBeNull();
   });
 
+  it("subscribes to scroll once however often the grid re-renders", () => {
+    const addListener = vi.spyOn(globalThis, "addEventListener");
+    const { rerender } = renderHook(() => useStickyHeader(params()));
+    rerender();
+    rerender();
+
+    const scrollSubscriptions = addListener.mock.calls.filter(([type]) => type === "scroll");
+    expect(scrollSubscriptions).toHaveLength(1);
+    expect(frames).toHaveLength(1);
+    addListener.mockRestore();
+  });
+
+  it("reads the newest rows on scroll without resubscribing", () => {
+    const { result, rerender } = renderHook(
+      (props: { rows: VRow[] }) => useStickyHeader({ ...params(), virtualRows: props.rows }),
+      { initialProps: { rows: VIRTUAL_ROWS } },
+    );
+    flushFrames();
+
+    rerender({ rows: [header("c"), cards(), header("d"), cards()] });
+    vi.stubGlobal("scrollY", 550);
+    act(() => {
+      globalThis.dispatchEvent(new Event("scroll"));
+    });
+    expect(result.current?.group.id).toBe("d");
+  });
+
   it("drops the pending frame when it unmounts first", () => {
     const { unmount } = renderHook(() => useStickyHeader(params()));
     unmount();

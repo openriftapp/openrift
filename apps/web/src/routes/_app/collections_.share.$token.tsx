@@ -25,7 +25,9 @@ interface SharedCollectionHeadData {
 export const Route = createFileRoute("/_app/collections_/share/$token")({
   validateSearch: filterSearchSchema,
   beforeLoad: ({ search, location, params }) => {
-    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, location.searchStr);
+    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, location.searchStr, {
+      legacySearchToQ: true,
+    });
     if (cleaned) {
       throw redirect({ to: "/collections/share/$token", params, search: cleaned, replace: true });
     }

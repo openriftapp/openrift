@@ -76,6 +76,12 @@ function hoverTile(container: HTMLElement) {
   fireEvent.mouseOver(tile);
 }
 
+function transitionEnd(propertyName: string): Event {
+  const event = new Event("transitionend", { bubbles: true });
+  Object.defineProperty(event, "propertyName", { value: propertyName });
+  return event;
+}
+
 // A closed sibling layer is its bare black clipper: the face mounts inside it on hover.
 function queryStandin(container: HTMLElement) {
   const layers = [...container.querySelectorAll(".aspect-card.bg-black")];
@@ -278,29 +284,53 @@ describe("CardThumbnail siblings", () => {
     expect(container.querySelector('[data-slot="count-pill"]')).toBeNull();
   });
 
-  it("clears the pending fan timer when unmounted mid-hover", () => {
-    vi.useFakeTimers();
-    try {
-      const front = makePrintingWithImage("RB1-001");
-      const sibling = makePrintingWithImage("RB1-001-foil");
-      const { container, unmount } = render(
-        <CardThumbnail
-          printing={front}
-          onClick={() => {}}
-          showImages
-          siblings={[front, sibling]}
-          display={{ ...baseDisplay, coarsePointer: false }}
-        />,
-      );
+  it("lets fanned siblings take clicks once the fan has finished opening", () => {
+    const front = makePrintingWithImage("RB1-001");
+    const sibling = makePrintingWithImage("RB1-001-foil");
+    const { container } = render(
+      <CardThumbnail
+        printing={front}
+        onClick={() => {}}
+        showImages
+        siblings={[front, sibling]}
+        display={{ ...baseDisplay, coarsePointer: false }}
+      />,
+    );
+    const rotating = container.querySelector(".origin-bottom") as HTMLElement;
+    const layer = rotating.parentElement as HTMLElement;
 
-      hoverTile(container);
-      expect(vi.getTimerCount()).toBeGreaterThan(0);
+    hoverTile(container);
+    expect(layer).not.toHaveClass("pointer-events-auto");
 
-      unmount();
-      expect(vi.getTimerCount()).toBe(0);
-    } finally {
-      vi.useRealTimers();
-    }
+    fireEvent(rotating, transitionEnd("opacity"));
+    expect(layer).not.toHaveClass("pointer-events-auto");
+
+    fireEvent(rotating, transitionEnd("rotate"));
+    expect(layer).toHaveClass("pointer-events-auto");
+
+    fireEvent.mouseOut(container.querySelector("[data-printing-id]") as HTMLElement);
+    expect(layer).not.toHaveClass("pointer-events-auto");
+  });
+
+  it("keeps fanned siblings inert when the closing transition ends", () => {
+    const front = makePrintingWithImage("RB1-001");
+    const sibling = makePrintingWithImage("RB1-001-foil");
+    const { container } = render(
+      <CardThumbnail
+        printing={front}
+        onClick={() => {}}
+        showImages
+        siblings={[front, sibling]}
+        display={{ ...baseDisplay, coarsePointer: false }}
+      />,
+    );
+    const rotating = container.querySelector(".origin-bottom") as HTMLElement;
+
+    hoverTile(container);
+    fireEvent.mouseOut(container.querySelector("[data-printing-id]") as HTMLElement);
+    fireEvent(rotating, transitionEnd("rotate"));
+
+    expect(rotating.parentElement).not.toHaveClass("pointer-events-auto");
   });
 
   it("re-covers mounted sibling faces in black while the fan is closed", () => {

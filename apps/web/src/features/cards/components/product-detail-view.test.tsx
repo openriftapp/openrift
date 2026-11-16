@@ -54,9 +54,15 @@ vi.mock("@/features/cards/hooks/use-cards", async (importOriginal) => ({
 }));
 vi.mock("@/features/cards/lib/catalog-queries", async (importOriginal) => {
   const actual = await importOriginal<{ catalogQueryOptions: object }>();
+  const catalogQueryOptions = {
+    ...actual.catalogQueryOptions,
+    queryFn: fetchCatalog,
+    retry: false,
+  };
   return {
     ...actual,
-    catalogQueryOptions: { ...actual.catalogQueryOptions, queryFn: fetchCatalog, retry: false },
+    catalogQueryOptions,
+    catalogQueryOptionsFor: () => catalogQueryOptions,
   };
 });
 vi.mock("@/lib/report-error", () => ({ captureHandledError }));

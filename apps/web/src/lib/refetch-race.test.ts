@@ -35,6 +35,26 @@ describe("watchForRefetchRace", () => {
     unsubscribe();
   });
 
+  it("refetches when a fetch already running as the write began lands during it", async () => {
+    const client = new QueryClient();
+    let finish = (_value: string) => {};
+    const running = client.query({
+      queryKey,
+      queryFn: () =>
+        new Promise<string>((resolve) => {
+          finish = resolve;
+        }),
+    });
+    const settle = watchForRefetchRace(client, queryKey);
+    finish("fetched before the write");
+    await running;
+    const refetchSpy = vi.spyOn(client, "refetchQueries").mockResolvedValue();
+
+    settle();
+
+    expect(refetchSpy).toHaveBeenCalledOnce();
+  });
+
   it("refetches once when the write itself asks for a reread", () => {
     const client = new QueryClient();
     client.setQueryData(queryKey, "before");

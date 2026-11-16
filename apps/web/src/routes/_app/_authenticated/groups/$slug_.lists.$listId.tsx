@@ -19,7 +19,9 @@ export const Route = createFileRoute("/_app/_authenticated/groups/$slug_/lists/$
   ssr: "data-only",
   validateSearch: sharedListSearchSchema,
   beforeLoad: ({ search, location, params }) => {
-    const cleaned = cleanedSearchForRedirect(sharedListSearchSchema, search, location.searchStr);
+    const cleaned = cleanedSearchForRedirect(sharedListSearchSchema, search, location.searchStr, {
+      legacySearchToQ: true,
+    });
     if (cleaned) {
       throw redirect({ to: "/groups/$slug/lists/$listId", params, search: cleaned, replace: true });
     }

@@ -1,22 +1,23 @@
 import { makeCatalogReference } from "@openrift/shared/test-factories";
 // @vitest-environment jsdom
 import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryObserver } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
 import { setPreferredCatalogLanguages } from "@/features/cards/lib/catalog-languages";
-import { seedCatalogVersion } from "@/features/cards/lib/catalog-version";
 import { stubPrinting } from "@/test/factories";
 
 import type { CatalogEntry } from "./catalog-queries";
 import {
   buildCardsResult,
   catalogQueryOptions,
+  catalogQueryOptionsFor,
   completeCatalogEntry,
   ensureCatalogComplete,
   hasPrintingsOutside,
   primaryCatalogLanguages,
+  seedCatalogVersion,
   ssrCatalogPreloadLangs,
 } from "./catalog-queries";
 
@@ -73,21 +74,21 @@ describe("primaryCatalogLanguages", () => {
     expect(primaryCatalogLanguages()).toEqual(["EN", "FR"]);
   });
 
-  it("lets the URL languages filter win over the preference (matches the SSR preload)", () => {
+  it("lets the page's languages win over the preference (matches the SSR preload)", () => {
     setPreferredLanguages(["EN"]);
     setUrl(`/cards?languages=${encodeURIComponent('["SC"]')}`);
-    expect(primaryCatalogLanguages()).toEqual(["SC"]);
+    expect(primaryCatalogLanguages(["sc"])).toEqual(["SC"]);
+    expect(primaryCatalogLanguages(["sc"])).toEqual(ssrCatalogPreloadLangs(["sc"], ["EN"]));
   });
 
-  it("uses the /promos route language", () => {
+  it("falls back to the preference for an empty page language list", () => {
     setPreferredLanguages(["EN"]);
-    setUrl("/promos/kr");
-    expect(primaryCatalogLanguages()).toEqual(["KR"]);
+    expect(primaryCatalogLanguages([])).toEqual(["EN"]);
   });
 
-  it("ignores a malformed languages param", () => {
+  it("ignores the address of whatever page is showing", () => {
     setPreferredLanguages(["EN"]);
-    setUrl("/cards?languages=not-json");
+    setUrl(`/promos/kr?languages=${encodeURIComponent('["SC"]')}`);
     expect(primaryCatalogLanguages()).toEqual(["EN"]);
   });
 
@@ -155,9 +156,9 @@ describe("split fetch + tail merge", () => {
       primary({ p1: { language: "EN" } }, "v-1"),
       tail({ p2: { language: "SC" } }, "v-1"),
     );
-    seedCatalogVersion("v-1");
 
     const queryClient = newClient();
+    seedCatalogVersion(queryClient, "v-1");
     await queryClient.query(catalogQueryOptions);
     expect(calls[0]).toContain("langs=EN");
     expect(calls[0]).toContain("v=v-1");
@@ -176,9 +177,9 @@ describe("split fetch + tail merge", () => {
   it("treats a full response to a variant request as complete (deploy skew)", async () => {
     setPreferredLanguages(["EN"]);
     const calls = stubResponses(primary({ p1: { language: "EN" }, p2: { language: "SC" } }, "v-2"));
-    seedCatalogVersion("v-2");
 
     const queryClient = newClient();
+    seedCatalogVersion(queryClient, "v-2");
     await queryClient.query(catalogQueryOptions);
     await ensureCatalogComplete(queryClient);
 
@@ -192,14 +193,55 @@ describe("split fetch + tail merge", () => {
       primary({ p1: { language: "EN" } }, "v-served-3"),
       tail({ p2: { language: "SC" } }, "v-served-3"),
     );
-    seedCatalogVersion("v-requested-3");
 
     const queryClient = newClient();
+    seedCatalogVersion(queryClient, "v-requested-3");
     await queryClient.query(catalogQueryOptions);
     await ensureCatalogComplete(queryClient);
 
     expect(calls[1]).toContain("v=v-served-3");
     expect(printingIds(queryClient)).toEqual(["p1", "p2"]);
+  });
+
+  it("asks for the languages the fetching page passes, not the address's", async () => {
+    setPreferredLanguages(["EN"]);
+    setUrl(`/stage?languages=${encodeURIComponent('["FR"]')}`);
+    const calls = stubResponses(primary({ p1: { language: "KR" } }, "v-9"));
+    const queryClient = newClient();
+    seedCatalogVersion(queryClient, "v-9");
+
+    await queryClient.query(catalogQueryOptionsFor(["kr"]));
+
+    expect(calls[0]).toContain("langs=KR");
+  });
+
+  it("keeps the fetching page's languages when a reader without them observes the query", async () => {
+    setPreferredLanguages(["EN"]);
+    const calls = stubResponses(primary({ p1: { language: "KR" } }, "v-11"));
+    const queryClient = newClient();
+    seedCatalogVersion(queryClient, "v-11");
+    const reader = new QueryObserver(queryClient, { ...catalogQueryOptions, enabled: false });
+    const unsubscribe = reader.subscribe(() => {});
+
+    await queryClient.query(catalogQueryOptionsFor(["kr"]));
+    unsubscribe();
+
+    expect(calls[0]).toContain("langs=KR");
+  });
+
+  it("uses a seeded version for one fetch only", async () => {
+    setPreferredLanguages(["EN"]);
+    const calls = stubResponses(
+      primary({ p1: { language: "EN" } }, "v-10"),
+      tail({ p2: { language: "SC" } }, "v-10"),
+    );
+    const queryClient = newClient();
+    seedCatalogVersion(queryClient, "v-10");
+
+    await queryClient.query(catalogQueryOptions);
+
+    expect(calls[0]).toContain("v=v-10");
+    expect(queryClient.getQueryData(catalogKeys.version)).toBeUndefined();
   });
 
   it("loads the tail again after a refetch under a new catalog version", async () => {
@@ -210,12 +252,12 @@ describe("split fetch + tail merge", () => {
       primary({ p1: { language: "EN" }, p3: { language: "EN" } }, "v-new"),
       tail({ p2: { language: "SC" }, p4: { language: "FR" } }, "v-new"),
     );
-    seedCatalogVersion("v-old");
     const queryClient = newClient();
+    seedCatalogVersion(queryClient, "v-old");
     await queryClient.query(catalogQueryOptions);
     await ensureCatalogComplete(queryClient);
 
-    seedCatalogVersion("v-new");
+    seedCatalogVersion(queryClient, "v-new");
     await queryClient.refetchQueries({ queryKey: catalogKeys.all, exact: true });
     expect(printingIds(queryClient)).toEqual(["p1", "p3"]);
     await ensureCatalogComplete(queryClient);
@@ -230,13 +272,13 @@ describe("split fetch + tail merge", () => {
       primary({ p1: { language: "EN" } }, "v-5"),
       tail({ p2: { language: "SC" } }, "v-5"),
     );
-    seedCatalogVersion("v-5");
     const queryClient = newClient();
+    seedCatalogVersion(queryClient, "v-5");
     await queryClient.query(catalogQueryOptions);
     await ensureCatalogComplete(queryClient);
     const complete = entryOf(queryClient);
 
-    seedCatalogVersion("v-5");
+    seedCatalogVersion(queryClient, "v-5");
     await queryClient.refetchQueries({ queryKey: catalogKeys.all, exact: true });
 
     expect(calls).toHaveLength(2);
@@ -251,8 +293,8 @@ describe("split fetch + tail merge", () => {
       primary({ p1: { language: "EN" } }, "v-newer-6"),
       tail({ p2: { language: "SC" } }, "v-newer-6"),
     );
-    seedCatalogVersion("v-6");
     const queryClient = newClient();
+    seedCatalogVersion(queryClient, "v-6");
     await queryClient.query(catalogQueryOptions);
 
     await ensureCatalogComplete(queryClient);
@@ -274,8 +316,8 @@ describe("split fetch + tail merge", () => {
       { body: {}, status: 503 },
       tail({ p2: { language: "SC" } }, "v-7"),
     );
-    seedCatalogVersion("v-7");
     const queryClient = newClient();
+    seedCatalogVersion(queryClient, "v-7");
     await queryClient.query(catalogQueryOptions);
     await ensureCatalogComplete(queryClient);
 
@@ -289,8 +331,8 @@ describe("split fetch + tail merge", () => {
       primary({ p1: { language: "EN" } }, "v-8"),
       ...Array.from({ length: 4 }, () => ({ body: {}, status: 503 })),
     );
-    seedCatalogVersion("v-8");
     const queryClient = newClient();
+    seedCatalogVersion(queryClient, "v-8");
     await queryClient.query(catalogQueryOptions);
     await ensureCatalogComplete(queryClient);
 

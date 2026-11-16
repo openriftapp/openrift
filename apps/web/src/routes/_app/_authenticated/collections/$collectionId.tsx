@@ -19,6 +19,7 @@ export const Route = createFileRoute("/_app/_authenticated/collections/$collecti
       collectionDetailSearchSchema,
       search,
       location.searchStr,
+      { legacySearchToQ: true },
     );
     if (cleaned) {
       throw redirect({

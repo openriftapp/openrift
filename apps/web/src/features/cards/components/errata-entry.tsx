@@ -6,6 +6,7 @@ import { imageSrcSet, imageUrl } from "@openrift/shared/image-url";
 import { WellKnown } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
 import { InfoIcon } from "lucide-react";
+import { useEffectEvent, useLayoutEffect, useRef } from "react";
 
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { TextLink } from "@/components/ui/text-link";
@@ -50,7 +51,25 @@ function sourceNote(entry: ErrataEntryData): string | null {
     : `${entry.source}, ${m.errata_first_seen({ date: formatDay(entry.effectiveDate) })}`;
 }
 
-export function ErrataEntry({ entry, view }: { entry: ErrataEntryData; view: ErrataView }) {
+export function ErrataEntry({
+  entry,
+  view,
+  scrollTarget = false,
+  onScrolledTo,
+}: {
+  entry: ErrataEntryData;
+  view: ErrataView;
+  scrollTarget?: boolean;
+  onScrolledTo?: () => void;
+}) {
+  const articleRef = useRef<HTMLElement>(null);
+  const scrolledTo = useEffectEvent(() => onScrolledTo?.());
+  useLayoutEffect(() => {
+    if (scrollTarget) {
+      articleRef.current?.scrollIntoView();
+      scrolledTo();
+    }
+  }, [scrollTarget]);
   const { labels } = useEnumOrders();
   const domainColors = useDomainColors();
   const languageLabels = useLanguageLabels();
@@ -66,6 +85,7 @@ export function ErrataEntry({ entry, view }: { entry: ErrataEntryData; view: Err
 
   return (
     <article
+      ref={articleRef}
       id={errataEntryAnchor(entry.card.slug, entry.language)}
       className="grid scroll-mt-40 grid-cols-[4rem_minmax(0,1fr)] gap-3.5 border-b py-5 sm:grid-cols-[6rem_minmax(0,1fr)] sm:gap-5"
     >

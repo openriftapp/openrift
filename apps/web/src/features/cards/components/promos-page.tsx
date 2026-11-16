@@ -32,6 +32,7 @@ import { useCatalogOnDemand } from "@/features/cards/hooks/use-cards";
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import { useSearchAndCloseDetail } from "@/features/cards/hooks/use-search-and-close-detail";
 import { buildGroups } from "@/features/cards/lib/card-groups";
+import { CatalogLanguagesContext } from "@/features/cards/lib/catalog-languages-context";
 import { groupByOptionsFor } from "@/features/cards/lib/group-by-field";
 import {
   buildPromoTreeFromMatches,
@@ -72,10 +73,13 @@ const PROMOS_BASE_HIDDEN_SECTIONS: ReadonlySet<string> = new Set(["promo"]);
 
 export function PromosPage() {
   const search = routeApi.useSearch();
+  const { language } = routeApi.useParams();
   return (
     <ViewSurfaceProvider value="promos">
       <FilterSearchProvider value={{ ...search, view: "printings" }}>
-        <PromosBrowser />
+        <CatalogLanguagesContext value={[...(search.languages ?? []), language]}>
+          <PromosBrowser />
+        </CatalogLanguagesContext>
       </FilterSearchProvider>
     </ViewSurfaceProvider>
   );

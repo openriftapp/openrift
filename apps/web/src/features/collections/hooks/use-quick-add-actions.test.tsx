@@ -120,3 +120,50 @@ describe("useQuickAddActions handleQuickAdd quantity", () => {
     expect(batchedAdd).toHaveBeenCalledOnce();
   });
 });
+
+describe("useQuickAddActions variant popover", () => {
+  const resetAddMode = createStoreResetter(useAddModeStore);
+
+  beforeEach(() => {
+    resetAddMode();
+  });
+
+  afterEach(() => {
+    resetAddMode();
+    document.body.replaceChildren();
+  });
+
+  function pill(): HTMLElement {
+    const element = document.createElement("button");
+    element.append(document.createElement("span"));
+    document.body.append(element);
+    return element;
+  }
+
+  it("leaves the popover to its anchor's click when the outside press lands on the anchor", () => {
+    const printing = stubPrinting();
+    const anchor = pill();
+    const { result } = renderHook(() => useQuickAddActions(COLLECTION_ID, COLLECTION_ID));
+    result.current.handleOpenVariants?.(printing, anchor, "add");
+
+    result.current.closeVariants(anchor.firstElementChild);
+    expect(useAddModeStore.getState().variantPopover?.cardId).toBe(printing.cardId);
+
+    result.current.handleOpenVariants?.(printing, anchor, "add");
+    expect(useAddModeStore.getState().variantPopover).toBeNull();
+  });
+
+  it("reopens right away after an outside press elsewhere closed it", () => {
+    const printing = stubPrinting();
+    const anchor = pill();
+    const elsewhere = pill();
+    const { result } = renderHook(() => useQuickAddActions(COLLECTION_ID, COLLECTION_ID));
+    result.current.handleOpenVariants?.(printing, anchor, "add");
+
+    result.current.closeVariants(elsewhere);
+    expect(useAddModeStore.getState().variantPopover).toBeNull();
+
+    result.current.handleOpenVariants?.(printing, elsewhere, "remove");
+    expect(useAddModeStore.getState().variantPopover?.intent).toBe("remove");
+  });
+});

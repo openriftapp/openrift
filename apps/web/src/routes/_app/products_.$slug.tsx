@@ -24,7 +24,9 @@ interface ProductHeadData {
 export const Route = createFileRoute("/_app/products_/$slug")({
   validateSearch: filterSearchSchema,
   beforeLoad: ({ search, location, params }) => {
-    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, location.searchStr);
+    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, location.searchStr, {
+      legacySearchToQ: true,
+    });
     if (cleaned) {
       throw redirect({ to: "/products/$slug", params, search: cleaned, replace: true });
     }

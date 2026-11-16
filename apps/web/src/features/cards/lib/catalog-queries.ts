@@ -11,11 +11,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
 import { preferredCatalogLanguages } from "@/features/cards/lib/catalog-languages";
-import {
-  consumeSeededCatalogVersion,
-  seedCatalogVersion,
-  versionFromEtag,
-} from "@/features/cards/lib/catalog-version";
+import { versionFromEtag } from "@/features/cards/lib/catalog-version";
 import { apiFetch } from "@/lib/api-fetch";
 import type { GroupInfo } from "@/lib/card-group-types";
 import { serverCacheKeys } from "@/lib/query-keys";
@@ -168,13 +164,30 @@ export function hasPrintingsOutside(catalog: CatalogResponse, langs: readonly st
   return false;
 }
 
+/** Seeds the version token the next catalogue fetch asks for (the SSR loader, a skewed tail). */
+export function seedCatalogVersion(client: QueryClient, version: string | null): void {
+  if (version !== null) {
+    client.setQueryData<string>(catalogKeys.version, version);
+  }
+}
+
+// A seed serves exactly one fetch; every later fetch asks the server for a fresh token.
+function catalogVersionFor(client: QueryClient): Promise<string | null> {
+  const seeded = client.getQueryData<string>(catalogKeys.version);
+  if (seeded !== undefined) {
+    client.removeQueries({ queryKey: catalogKeys.version, exact: true });
+    return Promise.resolve(seeded);
+  }
+  return fetchCatalogVersion().catch(() => null);
+}
+
 // Fetches /api/v1/catalog directly (bypasses the Start server) so Cloudflare edge-caches it.
 // `?v=<ETag>` must change with the catalog or max-age + stale-while-revalidate serves a stale body.
 async function fetchCatalogFromEdge(
   client: QueryClient,
   langs: string[] | null,
 ): Promise<CatalogEntry> {
-  const version = consumeSeededCatalogVersion() ?? (await fetchCatalogVersion().catch(() => null));
+  const version = await catalogVersionFor(client);
   const current = client.getQueryData<CatalogEntry>(catalogKeys.all);
   // The enrich memo depends on reference identity, so an unchanged complete catalog is kept.
   if (version !== null && current?.version === version && current.partialLanguages === null) {
@@ -231,7 +244,7 @@ export async function ensureCatalogComplete(queryClient: QueryClient): Promise<v
     if (error instanceof CatalogVersionSkewError) {
       // The server's version token lags a new catalog by up to its cache lifetime,
       // so the refetch asks for the version the tail came from.
-      seedCatalogVersion(error.servedVersion);
+      seedCatalogVersion(queryClient, error.servedVersion);
       await queryClient.invalidateQueries({ queryKey: catalogKeys.all, exact: true });
     } else {
       captureHandledError(error, { query: "catalog-tail" });
@@ -345,37 +358,25 @@ export const noCatalogQueryOptions: UseSuspenseQueryOptions<CatalogEntry, Error,
 };
 
 // Exported for tests; not part of the module's real surface.
-export function primaryCatalogLanguages(): string[] | null {
-  let urlLanguages: string[] = [];
-  try {
-    const raw = new URLSearchParams(globalThis.location.search).get("languages");
-    if (raw !== null) {
-      const parsed: unknown = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        urlLanguages = parsed.filter((entry): entry is string => typeof entry === "string");
-      }
-    }
-  } catch {
-    // Malformed param: contributes nothing, the router's search validation owns erroring.
-  }
-  // /promos/<language> may render a language outside the user's preferences.
-  const promosLanguage = /^\/promos\/(?<lang>[A-Za-z]{2})(?:\/|$)/u.exec(
-    globalThis.location.pathname,
-  )?.groups?.lang;
-  if (promosLanguage !== undefined) {
-    urlLanguages.push(promosLanguage);
-  }
-  const base = urlLanguages.length > 0 ? urlLanguages : preferredCatalogLanguages();
+export function primaryCatalogLanguages(requested?: readonly string[] | null): string[] | null {
+  const base = requested && requested.length > 0 ? requested : preferredCatalogLanguages();
   const merged = normalizeCatalogLangs(base);
   return merged.length > 0 ? merged : null;
 }
 
+function requestedLanguages(meta: Record<string, unknown> | undefined): readonly string[] | null {
+  const value = meta?.primaryLanguages;
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === "string")
+    : null;
+}
+
 export const catalogQueryOptions = queryOptions({
   queryKey: catalogKeys.all,
-  queryFn: async ({ client }): Promise<CatalogEntry> =>
+  queryFn: async ({ client, meta }): Promise<CatalogEntry> =>
     globalThis.window === undefined
       ? completeCatalogEntry(await fetchCatalog())
-      : fetchCatalogFromEdge(client, primaryCatalogLanguages()),
+      : fetchCatalogFromEdge(client, primaryCatalogLanguages(requestedLanguages(meta))),
   staleTime: 5 * MINUTE_MS,
   refetchOnWindowFocus: false,
   // Entry identity carries the enrich memo and the tail merge's staleness check.
@@ -384,3 +385,8 @@ export const catalogQueryOptions = queryOptions({
   retry: 1,
   retryDelay: 500,
 });
+
+/** The catalogue query for a page that shows `languages` first; the fetch it starts asks for those. */
+export function catalogQueryOptionsFor(languages: readonly string[] | null | undefined) {
+  return { ...catalogQueryOptions, meta: { primaryLanguages: languages ?? null } };
+}

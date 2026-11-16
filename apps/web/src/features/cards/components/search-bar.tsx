@@ -2,7 +2,7 @@ import type { SearchVocabulary } from "@openrift/shared/search-query/bind";
 import { Link } from "@tanstack/react-router";
 import { CircleHelpIcon } from "lucide-react";
 import type { KeyboardEvent } from "react";
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 
 import { SearchInput } from "@/components/search-input";
 import { TextLink } from "@/components/ui/text-link";
@@ -51,15 +51,12 @@ export function SearchBar({
   const [suggestionsDismissed, setSuggestionsDismissed] = useState(false);
   const listId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
-  const filteredCountRef = useRef(filteredCount);
-  useEffect(() => {
-    filteredCountRef.current = filteredCount;
-  }, [filteredCount]);
+  const pendingCaretRef = useRef<{ value: string; caret: number } | null>(null);
 
   const commitSearch = (value: string) => {
     setSearch(value);
     if (value) {
-      trackEvent("search", { query: value, resultCount: filteredCountRef.current });
+      trackEvent("search", { query: value, resultCount: filteredCount });
     }
   };
 
@@ -67,6 +64,14 @@ export function SearchBar({
     urlValue: filterState.search,
     onCommit: commitSearch,
   });
+
+  useLayoutEffect(() => {
+    const pending = pendingCaretRef.current;
+    if (pending?.value === localSearch) {
+      pendingCaretRef.current = null;
+      inputRef.current?.setSelectionRange(pending.caret, pending.caret);
+    }
+  }, [localSearch]);
 
   const isFiltered = hasActiveFilters && filteredCount !== totalCards;
   const countInField = countInPlaceholder && !isFiltered;
@@ -95,11 +100,12 @@ export function SearchBar({
       return;
     }
     const applied = applySuggestion(localSearch, suggestions, suggestion);
-    updateQuery(applied.query, applied.caret);
-    const input = inputRef.current;
-    if (input) {
-      requestAnimationFrame(() => input.setSelectionRange(applied.caret, applied.caret));
+    if (applied.query === localSearch) {
+      inputRef.current?.setSelectionRange(applied.caret, applied.caret);
+    } else {
+      pendingCaretRef.current = { value: applied.query, caret: applied.caret };
     }
+    updateQuery(applied.query, applied.caret);
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {

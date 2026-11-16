@@ -2,7 +2,7 @@ import { getOrientation } from "@openrift/shared/card-orientation";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { RefObject } from "react";
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 
 import { useProgressiveCardImage } from "@/features/cards/hooks/use-progressive-card-image";
@@ -60,7 +60,10 @@ export function ImageHoverPreview({
   const cursorXRef = useRef(0);
   const dockSideRef = useRef<DockSide | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (thumbnail === null || thumbnailFailed) {
+      return;
+    }
     const previewWidth = landscape ? 560 : 400;
     const previewHeight = landscape ? 400 : 560;
     const cursorTracked = cursorX !== undefined;
@@ -113,7 +116,7 @@ export function ImageHoverPreview({
       globalThis.removeEventListener("resize", applyPosition);
       globalThis.removeEventListener("mousemove", followCursor);
     };
-  }, [anchorRef, landscape, cursorX]);
+  }, [thumbnail, thumbnailFailed, anchorRef, landscape, cursorX]);
 
   if (!thumbnail || thumbnailFailed) {
     return null;
@@ -122,7 +125,7 @@ export function ImageHoverPreview({
   return createPortal(
     <div
       ref={previewRef}
-      className={cn("pointer-events-none fixed z-[100]", landscape ? "w-[560px]" : "w-[400px]")}
+      className={cn("pointer-events-none fixed z-50", landscape ? "w-[560px]" : "w-[400px]")}
     >
       <div className="relative">
         <img

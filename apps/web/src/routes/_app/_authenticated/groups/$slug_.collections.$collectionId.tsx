@@ -15,7 +15,9 @@ export const Route = createFileRoute(
   ssr: "data-only",
   validateSearch: filterSearchSchema,
   beforeLoad: ({ search, location, params }) => {
-    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, location.searchStr);
+    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, location.searchStr, {
+      legacySearchToQ: true,
+    });
     if (cleaned) {
       throw redirect({
         to: "/groups/$slug/collections/$collectionId",

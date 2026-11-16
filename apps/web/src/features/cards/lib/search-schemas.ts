@@ -91,19 +91,19 @@ export const collectionDetailSearchSchema = z.extend(filterSearchSchema, {
 /**
  * TanStack merges raw URL keys onto the validated search (Object.assign in
  * buildLocation), so re-parsing with the schema is needed to get the clean set.
+ * `legacySearchToQ` moves an old `?search=` into `q` for schemas that have one.
  */
 export function cleanedSearchForRedirect<Output extends Record<string, unknown>>(
   schema: z.core.$ZodType<Output>,
   search: unknown,
   searchStr: string,
+  options: { legacySearchToQ: boolean },
 ): Output | null {
   const parsed = z.safeParse(schema, search);
   let cleaned = parsed.success ? parsed.data : ({} as Output);
   const legacy = (search as { search?: unknown }).search;
   if (
-    schema instanceof z.core.$ZodObject &&
-    "q" in schema._zod.def.shape &&
-    !("search" in schema._zod.def.shape) &&
+    options.legacySearchToQ &&
     (typeof legacy === "string" || typeof legacy === "number") &&
     (cleaned as { q?: string }).q === undefined
   ) {

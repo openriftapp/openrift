@@ -45,9 +45,7 @@ export function PrintingSearch({
         </div>
       )}
       renderActivePreview={(row, anchorRef) => (
-        // Keyed per printing: without a fresh mount, the position effect won't
-        // re-run after an imageless entry unmounts the preview.
-        <PrintingHoverPreview key={row.id} printing={row.printing} anchorRef={anchorRef} />
+        <PrintingHoverPreview printing={row.printing} anchorRef={anchorRef} />
       )}
       onSelect={(row) => onSelect(row.printing)}
     />

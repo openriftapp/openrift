@@ -52,9 +52,7 @@ export function PrintingChoicePreview({
   if (!hovered) {
     return null;
   }
-  // Remount per printing: an imageless entry unmounts the preview, and without
-  // a fresh key the position effect won't re-run for the next hover.
-  return <PrintingHoverPreview key={sideKey(hovered)} printing={hovered} anchorRef={anchorRef} />;
+  return <PrintingHoverPreview printing={hovered} anchorRef={anchorRef} />;
 }
 
 /**

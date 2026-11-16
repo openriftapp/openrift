@@ -67,12 +67,16 @@ describe("filterSearchSchema enum params", () => {
 describe("cleanedSearchForRedirect", () => {
   it("returns null when the URL is already clean", () => {
     const search = filterSearchSchema.parse({ sort: "name" });
-    expect(cleanedSearchForRedirect(filterSearchSchema, search, "?sort=name")).toBeNull();
+    expect(
+      cleanedSearchForRedirect(filterSearchSchema, search, "?sort=name", { legacySearchToQ: true }),
+    ).toBeNull();
   });
 
   it("returns the cleaned params when the URL carries an unknown key", () => {
     const search = { ...filterSearchSchema.parse({ sort: "name" }), promo: "true" };
-    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, "?sort=name&promo=true");
+    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, "?sort=name&promo=true", {
+      legacySearchToQ: true,
+    });
     expect(cleaned).not.toBeNull();
     expect(cleaned?.sort).toBe("name");
     expect(cleaned && "promo" in cleaned).toBe(false);
@@ -80,38 +84,64 @@ describe("cleanedSearchForRedirect", () => {
 
   it("returns the cleaned params when a known key carries an unknown value", () => {
     const search = filterSearchSchema.parse({ groupBy: "garbage" });
-    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, "?groupBy=garbage");
+    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, "?groupBy=garbage", {
+      legacySearchToQ: true,
+    });
     expect(cleaned).not.toBeNull();
     expect(cleaned?.groupBy).toBeUndefined();
   });
 
   it("moves a legacy search param to q with its prefixes renamed", () => {
     const search = { ...filterSearchSchema.parse({}), search: "fire d:stun ty:unit" };
-    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, "?search=x");
+    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, "?search=x", {
+      legacySearchToQ: true,
+    });
     expect(cleaned?.q).toBe("fire o:stun t:unit");
     expect(cleaned && "search" in cleaned).toBe(false);
   });
 
   it("keeps an explicit q over a legacy search param", () => {
     const search = { ...filterSearchSchema.parse({ q: "garen" }), search: "annie" };
-    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, "?q=garen&search=annie");
+    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, "?q=garen&search=annie", {
+      legacySearchToQ: true,
+    });
     expect(cleaned?.q).toBe("garen");
   });
 
   it("reads a number-looking legacy search value", () => {
     const search = { ...filterSearchSchema.parse({}), search: 269 };
-    expect(cleanedSearchForRedirect(filterSearchSchema, search, "?search=269")?.q).toBe("269");
+    expect(
+      cleanedSearchForRedirect(filterSearchSchema, search, "?search=269", { legacySearchToQ: true })
+        ?.q,
+    ).toBe("269");
   });
 
   it("moves a legacy search param on a classic zod schema too", () => {
     const classic = classicZ.object({ q: classicZ.string().optional() });
-    expect(cleanedSearchForRedirect(classic, { search: "annie" }, "?search=annie")).toEqual({
+    expect(
+      cleanedSearchForRedirect(classic, { search: "annie" }, "?search=annie", {
+        legacySearchToQ: true,
+      }),
+    ).toEqual({
       q: "annie",
     });
   });
 
-  it("leaves a schema without q alone", () => {
+  it("leaves a legacy search param alone when the caller opts out", () => {
     const noQ = z.object({ sort: z.optional(z.string()) });
-    expect(cleanedSearchForRedirect(noQ, { search: "annie" }, "?search=annie")).toEqual({});
+    expect(
+      cleanedSearchForRedirect(noQ, { search: "annie" }, "?search=annie", {
+        legacySearchToQ: false,
+      }),
+    ).toEqual({});
+  });
+
+  it("keeps a schema's own search param when the caller opts out", () => {
+    const ownSearch = z.object({ search: z.optional(z.string()) });
+    expect(
+      cleanedSearchForRedirect(ownSearch, { search: "annie" }, "?search=annie", {
+        legacySearchToQ: false,
+      }),
+    ).toBeNull();
   });
 });

@@ -90,11 +90,15 @@ function GroupSection({
   open,
   onToggle,
   view,
+  hashTarget,
+  onHashTargetReached,
 }: {
   group: ErrataGroup;
   open: boolean;
   onToggle: () => void;
   view: ErrataView;
+  hashTarget: string | null;
+  onHashTargetReached: () => void;
 }) {
   const headingId = `${group.id}-heading`;
   const listId = `${group.id}-list`;
@@ -142,13 +146,18 @@ function GroupSection({
         </div>
       </div>
       <div id={listId} hidden={!open}>
-        {group.entries.map((entry) => (
-          <ErrataEntry
-            key={errataEntryAnchor(entry.card.slug, entry.language)}
-            entry={entry}
-            view={view}
-          />
-        ))}
+        {group.entries.map((entry) => {
+          const anchor = errataEntryAnchor(entry.card.slug, entry.language);
+          return (
+            <ErrataEntry
+              key={anchor}
+              entry={entry}
+              view={view}
+              scrollTarget={open && anchor === hashTarget}
+              onScrolledTo={onHashTargetReached}
+            />
+          );
+        })}
       </div>
     </section>
   );
@@ -175,6 +184,7 @@ export function ErrataPage() {
   const [setSlug, setSetSlug] = useState(ALL_SETS);
   const [view, setView] = useState<ErrataView>("side");
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
+  const [hashTarget, setHashTarget] = useState<string | null>(null);
 
   const filtering = query.trim() !== "" || setSlug !== ALL_SETS;
   const groups = groupErrata(data, { query, setSlug: setSlug === ALL_SETS ? null : setSlug });
@@ -196,16 +206,15 @@ export function ErrataPage() {
       const anchor = decodeURIComponent(globalThis.location.hash.slice(1));
       const groupId = errataGroupIdForCard(data, anchor);
       if (groupId === null) {
+        setHashTarget(null);
         return;
       }
+      setHashTarget(anchor);
       setCollapsed((current) => {
         const next = new Set(current);
         next.delete(groupId);
         return next;
       });
-      requestAnimationFrame(() =>
-        document.querySelector(`#${CSS.escape(anchor)}`)?.scrollIntoView(),
-      );
     };
     openLinkedCard();
     globalThis.addEventListener("hashchange", openLinkedCard);
@@ -298,6 +307,8 @@ export function ErrataPage() {
                   open={isOpen(group)}
                   onToggle={() => toggle(group.id)}
                   view={view}
+                  hashTarget={hashTarget}
+                  onHashTargetReached={() => setHashTarget(null)}
                 />
               ))
             )}

@@ -10,12 +10,13 @@ import {
   CardDetailDrawerShell,
 } from "@/features/cards/components/card-detail/card-detail-shells";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import type { OverlayHistoryKey } from "@/features/cards/hooks/use-overlay-history-entry";
 import {
   closeOverlayHistoryEntry,
   useOverlayHistoryEntry,
 } from "@/features/cards/hooks/use-overlay-history-entry";
 import { useCardDetailNavigation } from "@/features/cards/hooks/use-selection-detail";
+import { OverlayHistoryLayerContext } from "@/features/cards/lib/overlay-history-layer";
+import type { OverlayHistoryKey } from "@/features/cards/lib/overlay-history-layer";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
@@ -120,7 +121,7 @@ function CardDetailOverlayContent({
     },
   });
 
-  useOverlayHistoryEntry({
+  const historyLayer = useOverlayHistoryEntry({
     active: true,
     stateKey: historyKey,
     onPop: () => onOpenPrintingIdChange(null),
@@ -163,7 +164,9 @@ function CardDetailOverlayContent({
   if (isMobile) {
     return (
       <CardDetailDrawerShell onClose={handleClose} style={tint} after={after}>
-        <CardDetail {...detailProps} onClose={handleClose} />
+        <OverlayHistoryLayerContext value={historyLayer}>
+          <CardDetail {...detailProps} onClose={handleClose} />
+        </OverlayHistoryLayerContext>
       </CardDetailDrawerShell>
     );
   }
@@ -175,7 +178,9 @@ function CardDetailOverlayContent({
       onKeyDown={handleKeyDown}
       after={after}
     >
-      <CardDetail {...detailProps} layout="modal" navLabel={navLabel} />
+      <OverlayHistoryLayerContext value={historyLayer}>
+        <CardDetail {...detailProps} layout="modal" navLabel={navLabel} />
+      </OverlayHistoryLayerContext>
     </CardDetailDialogShell>
   );
 }
