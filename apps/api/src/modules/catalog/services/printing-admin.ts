@@ -101,13 +101,19 @@ export async function updatePrintingDistributionChannels(
 
 export async function deletePrintingRows(
   trxRepos: { catalogMutations: CatalogMutationsRepo; candidateCards: CandidateCardsRepo },
-  printingId: string,
+  printingIds: string[],
+  cardId?: string,
 ): Promise<string[]> {
-  await trxRepos.candidateCards.unlinkCandidatePrintingsByPrintingId(printingId);
-  const images = await trxRepos.catalogMutations.deletePrintingImagesByPrintingId(printingId);
-  await trxRepos.candidateCards.deletePrintingLinkOverridesById(printingId);
-  await trxRepos.catalogMutations.deletePrintingById(printingId);
-  return images.map((img) => img.imageFileId);
+  await trxRepos.catalogMutations.detachDecksBeforeCatalogDeletion(printingIds, cardId);
+  const imageFileIds: string[] = [];
+  for (const printingId of printingIds) {
+    await trxRepos.candidateCards.unlinkCandidatePrintingsByPrintingId(printingId);
+    const images = await trxRepos.catalogMutations.deletePrintingImagesByPrintingId(printingId);
+    await trxRepos.candidateCards.deletePrintingLinkOverridesById(printingId);
+    await trxRepos.catalogMutations.deletePrintingById(printingId);
+    imageFileIds.push(...images.map((img) => img.imageFileId));
+  }
+  return imageFileIds;
 }
 
 /**
@@ -173,7 +179,7 @@ export async function deletePrinting(
 
   let deletedImageFileIds: string[];
   try {
-    deletedImageFileIds = await transact((trxRepos) => deletePrintingRows(trxRepos, printing.id));
+    deletedImageFileIds = await transact((trxRepos) => deletePrintingRows(trxRepos, [printing.id]));
   } catch (error: unknown) {
     // 23503 foreign_key_violation: a row appeared between the blocker check
     // and the delete; re-check so the client still gets a clean CONFLICT.

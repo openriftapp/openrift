@@ -11,6 +11,7 @@ import {
   PRINTING_1,
 } from "../../../test/fixtures/constants.js";
 import { createDbContext, seedTestUser } from "../../../test/integration-context.js";
+import { holdRow, waitUntilBlockedBy } from "../../../test/row-locks.js";
 import { deckFoldersRepo } from "./deck-folders.js";
 import { deckPlansRepo } from "./deck-plans.js";
 import { decksRepo } from "./decks.js";
@@ -882,39 +883,6 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
   });
 
   describe("lock order against cascading deletes", () => {
-    async function holdRow(lockSql: ReturnType<typeof sql>) {
-      const holding = Promise.withResolvers<number>();
-      const release = Promise.withResolvers<void>();
-      const done = db.transaction().execute(async (trx) => {
-        await lockSql.execute(trx);
-        const { rows } = await sql<{ pid: number }>`SELECT pg_backend_pid() AS pid`.execute(trx);
-        holding.resolve(rows[0]!.pid);
-        await release.promise;
-      });
-      const pid = await holding.promise;
-      return {
-        pid,
-        release: async () => {
-          release.resolve();
-          await done;
-        },
-      };
-    }
-
-    async function waitUntilBlockedBy(pid: number): Promise<void> {
-      for (let attempt = 0; attempt < 60; attempt++) {
-        const { rows } = await sql<{ waiting: number }>`
-          SELECT count(*)::int AS waiting FROM pg_stat_activity
-          WHERE ${pid}::int = ANY(pg_blocking_pids(pid))
-        `.execute(db);
-        if (rows[0]!.waiting > 0) {
-          return;
-        }
-        await sleep(50);
-      }
-      throw new Error("the operation never waited on the held row");
-    }
-
     async function lockableDeckIds(ids: string[]): Promise<string[]> {
       return db.transaction().execute(async (trx) => {
         const { rows } = await sql<{ id: string }>`
@@ -928,11 +896,11 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
       deckIds: string[],
       run: () => Promise<T>,
     ): Promise<T> {
-      const owner = await holdRow(sql`SELECT 1 FROM users WHERE id = ${userId} FOR UPDATE`);
+      const owner = await holdRow(db, sql`SELECT 1 FROM users WHERE id = ${userId} FOR UPDATE`);
       let pending: Promise<T> | undefined;
       try {
         pending = run();
-        await waitUntilBlockedBy(owner.pid);
+        await waitUntilBlockedBy(db, owner.pid);
         expect(await lockableDeckIds(deckIds)).toEqual(deckIds.toSorted());
       } finally {
         await owner.release();
@@ -942,6 +910,7 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
 
     async function finishesWhileCollectionHeld<T>(run: () => Promise<T>): Promise<T | "blocked"> {
       const collection = await holdRow(
+        db,
         sql`SELECT 1 FROM collections WHERE id = ${collectionId} FOR UPDATE`,
       );
       const pending = run();

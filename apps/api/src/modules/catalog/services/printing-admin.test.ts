@@ -132,10 +132,12 @@ describe("deletePrinting", () => {
     const deletePrintingImagesByPrintingId = vi.fn(async () => []);
     const deletePrintingLinkOverridesById = vi.fn(async () => {});
     const deletePrintingById = vi.fn(async () => {});
+    const detachDecksBeforeCatalogDeletion = vi.fn(async () => {});
 
     const repos = {
       catalogMutations: {
         getPrintingById: vi.fn(async () => ({ id: "p-uuid" })),
+        detachDecksBeforeCatalogDeletion,
         deletePrintingImagesByPrintingId,
         deletePrintingById,
       },
@@ -151,6 +153,10 @@ describe("deletePrinting", () => {
 
     await deletePrinting(transact, {} as Io, repos as any, "p-uuid");
 
+    expect(detachDecksBeforeCatalogDeletion).toHaveBeenCalledExactlyOnceWith(["p-uuid"], undefined);
+    expect(detachDecksBeforeCatalogDeletion.mock.invocationCallOrder[0]).toBeLessThan(
+      unlinkCandidatePrintingsByPrintingId.mock.invocationCallOrder[0]!,
+    );
     expect(unlinkCandidatePrintingsByPrintingId).toHaveBeenCalledWith("p-uuid");
     expect(deletePrintingImagesByPrintingId).toHaveBeenCalledWith("p-uuid");
     expect(deletePrintingLinkOverridesById).toHaveBeenCalledWith("p-uuid");
@@ -187,6 +193,7 @@ describe("deletePrinting", () => {
     const repos = {
       catalogMutations: {
         getPrintingById: vi.fn(async () => ({ id: "p-uuid" })),
+        detachDecksBeforeCatalogDeletion: vi.fn(async () => {}),
         deletePrintingImagesByPrintingId: vi.fn(async () => [
           { imageFileId: "ci-1" },
           { imageFileId: "ci-2" },

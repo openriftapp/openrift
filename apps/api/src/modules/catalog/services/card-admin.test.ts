@@ -35,6 +35,7 @@ function baseRepos(overrides: Record<string, unknown> = {}) {
     getCardById: vi.fn(async () => ({ id: "card-uuid", name: "Test", slug: "test" })),
     countForCard: vi.fn(async () => noBlockers()),
     getPrintingIdsByCardId: vi.fn(async () => [{ id: "p-1" }, { id: "p-2" }]),
+    detachDecksBeforeCatalogDeletion: vi.fn(async () => {}),
     unlinkCandidatePrintingsByPrintingId: vi.fn(async () => {}),
     deletePrintingImagesByPrintingId: vi.fn(async () => []),
     deletePrintingLinkOverridesById: vi.fn(async () => {}),
@@ -52,6 +53,7 @@ function baseRepos(overrides: Record<string, unknown> = {}) {
     catalogMutations: pick(
       "getCardById",
       "getPrintingIdsByCardId",
+      "detachDecksBeforeCatalogDeletion",
       "deletePrintingImagesByPrintingId",
       "deletePrintingById",
       "deleteCardBansByCardId",
@@ -98,6 +100,13 @@ describe("deleteCard", () => {
 
     await deleteCard(mockTransact(repos), {} as Io, repos as any, "card-uuid");
 
+    expect(mut.detachDecksBeforeCatalogDeletion).toHaveBeenCalledExactlyOnceWith(
+      ["p-1", "p-2"],
+      "card-uuid",
+    );
+    expect(mut.detachDecksBeforeCatalogDeletion.mock.invocationCallOrder[0]).toBeLessThan(
+      mut.unlinkCandidatePrintingsByPrintingId.mock.invocationCallOrder[0]!,
+    );
     expect(mut.unlinkCandidatePrintingsByPrintingId).toHaveBeenCalledWith("p-1");
     expect(mut.unlinkCandidatePrintingsByPrintingId).toHaveBeenCalledWith("p-2");
     expect(mut.deletePrintingById).toHaveBeenCalledTimes(2);

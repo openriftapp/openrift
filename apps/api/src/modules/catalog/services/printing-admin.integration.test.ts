@@ -1,14 +1,21 @@
+import { sleep } from "@openrift/shared/async";
+import { sql } from "kysely";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTransact } from "../../../deps.js";
+import type { Io } from "../../../io.js";
 import {
   createDbContext,
   deletePrintingsByFace,
   deletePrintingsById,
   insertCards,
   insertPrintings,
+  seedTestUser,
 } from "../../../test/integration-context.js";
-import { insertNewPrinting, updatePrintingMarkers } from "./printing-admin.js";
+import { holdRow, waitUntilBlockedBy } from "../../../test/row-locks.js";
+import { catalogDeleteGuardsRepo } from "../repositories/catalog-delete-guards.js";
+import { catalogMutationsRepo } from "../repositories/catalog-mutations.js";
+import { deletePrinting, insertNewPrinting, updatePrintingMarkers } from "./printing-admin.js";
 
 // Editing one sibling printing's markers must not trip the
 // `uq_printings_identity` constraint even when another printing already has
@@ -288,5 +295,206 @@ describe.skipIf(!ctx)("insertNewPrinting (integration)", () => {
       .where("id", "=", printingId)
       .executeTakeFirstOrThrow();
     expect(face.artist).toBe("Original Artist");
+  });
+});
+
+describe.skipIf(!ctx)("deletePrinting lock order (integration)", () => {
+  const { db } = ctx!;
+  const transact = createTransact(db);
+  const repos = {
+    catalogMutations: catalogMutationsRepo(db),
+    catalogDeleteGuards: catalogDeleteGuardsRepo(db),
+  };
+  const ownerId = crypto.randomUUID();
+
+  let setId = "";
+  let cardId = "";
+  let printingId = "";
+  let deckId = "";
+
+  beforeAll(async () => {
+    await seedTestUser(db, { id: ownerId });
+    const [setRow] = await db
+      .insertInto("sets")
+      .values({
+        slug: "PADM3-TEST",
+        name: "Printing Admin Lock Set",
+        printedTotal: 1,
+        sortOrder: 953,
+      })
+      .returning("id")
+      .execute();
+    setId = setRow!.id;
+
+    const [cardRow] = await insertCards(db, {
+      slug: "PADM3-001",
+      name: "Printing Admin Lock Card",
+      types: ["unit"],
+      might: null,
+      energy: 1,
+      power: null,
+      mightBonus: null,
+      keywords: [],
+      tags: [],
+    });
+    cardId = cardRow!.id;
+    await db.insertInto("cardDomains").values({ cardId, domainSlug: "fury", ordinal: 0 }).execute();
+
+    const [printingRow] = await insertPrintings(db, {
+      cardId,
+      setId,
+      shortCode: "PADM3-001",
+      rarity: "common",
+      artVariant: "normal",
+      isSigned: false,
+      finish: "normal",
+      artist: "Test",
+      publicCode: "PADM3-001/1",
+      language: "EN",
+      size: "standard",
+    });
+    printingId = printingRow!.id;
+
+    const [deck] = await db
+      .insertInto("decks")
+      .values({ userId: ownerId, name: "Printing Admin Lock Deck", format: "constructed" } as never)
+      .returning("id")
+      .execute();
+    deckId = deck!.id;
+    await db
+      .insertInto("deckCards")
+      .values([
+        { deckId, cardId, zone: "main", quantity: 1, preferredPrintingId: printingId },
+        { deckId, cardId, zone: "main", quantity: 2, preferredPrintingId: null },
+      ])
+      .execute();
+  });
+
+  afterAll(async () => {
+    await db.deleteFrom("decks").where("userId", "=", ownerId).execute();
+    await db.deleteFrom("collections").where("userId", "=", ownerId).execute();
+    await db.deleteFrom("users").where("id", "=", ownerId).execute();
+    await deletePrintingsByFace(db, "cardId", "=", cardId);
+    await db.deleteFrom("cards").where("id", "=", cardId).execute();
+    await db.deleteFrom("sets").where("id", "=", setId).execute();
+  });
+
+  it("takes the deck showing the printing before the printing itself", async () => {
+    const deck = await holdRow(db, sql`SELECT 1 FROM decks WHERE id = ${deckId} FOR UPDATE`);
+    let pending: Promise<void> | undefined;
+    try {
+      pending = deletePrinting(transact, {} as Io, repos, printingId);
+      await waitUntilBlockedBy(db, deck.pid);
+      const lockable = await db.transaction().execute(async (trx) => {
+        const { rows } = await sql<{ id: string }>`
+          SELECT id FROM printings WHERE id = ${printingId} FOR UPDATE SKIP LOCKED
+        `.execute(trx);
+        return rows;
+      });
+      expect(lockable).toEqual([{ id: printingId }]);
+    } finally {
+      await deck.release();
+    }
+    await pending;
+
+    const slots = await db
+      .selectFrom("deckCards")
+      .select(["preferredPrintingId", "quantity"])
+      .where("deckId", "=", deckId)
+      .execute();
+    expect(slots).toEqual([{ preferredPrintingId: null, quantity: 3 }]);
+    const printing = await db
+      .selectFrom("printings")
+      .select("id")
+      .where("id", "=", printingId)
+      .executeTakeFirst();
+    expect(printing).toBeUndefined();
+  });
+
+  it("finishes while a collection deletion holds the deck's collection", async () => {
+    const [coverPrinting] = await insertPrintings(db, {
+      cardId,
+      setId,
+      shortCode: "PADM3-002",
+      rarity: "common",
+      artVariant: "normal",
+      isSigned: false,
+      finish: "normal",
+      artist: "Test",
+      publicCode: "PADM3-002/1",
+      language: "EN",
+      size: "standard",
+    });
+    const coverPrintingId = coverPrinting!.id;
+    const { face1Id } = await db
+      .selectFrom("printings")
+      .select("face1Id")
+      .where("id", "=", coverPrintingId)
+      .executeTakeFirstOrThrow();
+    const [collection] = await db
+      .insertInto("collections")
+      .values({
+        userId: ownerId,
+        groupId: null,
+        name: "Printing Admin Lock Collection",
+        description: null,
+        isInbox: false,
+        sortOrder: 0,
+      })
+      .returning("id")
+      .execute();
+    const collectionId = collection!.id;
+    const [boxed] = await db
+      .insertInto("decks")
+      .values({
+        userId: ownerId,
+        name: "Printing Admin Boxed Deck",
+        format: "constructed",
+        collectionId,
+        coverFaceId: face1Id,
+        coverCardId: cardId,
+      } as never)
+      .returning("id")
+      .execute();
+    const boxedId = boxed!.id;
+    await db
+      .insertInto("deckCards")
+      .values({
+        deckId: boxedId,
+        cardId,
+        zone: "main",
+        quantity: 1,
+        preferredPrintingId: coverPrintingId,
+      })
+      .execute();
+
+    const held = await holdRow(
+      db,
+      sql`SELECT 1 FROM collections WHERE id = ${collectionId} FOR UPDATE`,
+    );
+    const pending = deletePrinting(transact, {} as Io, repos, coverPrintingId).then(
+      () => "deleted" as const,
+    );
+    try {
+      expect(await Promise.race([pending, sleep(3000).then(() => "blocked" as const)])).toBe(
+        "deleted",
+      );
+    } finally {
+      await held.release();
+      await pending.catch(() => null);
+    }
+
+    const deck = await db
+      .selectFrom("decks")
+      .select(["coverFaceId", "coverCardId", "collectionId"])
+      .where("id", "=", boxedId)
+      .executeTakeFirstOrThrow();
+    expect(deck).toEqual({ coverFaceId: null, coverCardId: cardId, collectionId });
+    const slots = await db
+      .selectFrom("deckCards")
+      .select(["preferredPrintingId", "quantity"])
+      .where("deckId", "=", boxedId)
+      .execute();
+    expect(slots).toEqual([{ preferredPrintingId: null, quantity: 1 }]);
   });
 });

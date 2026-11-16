@@ -217,7 +217,7 @@ test.describe("reset password", () => {
 
         await gotoStep2(page, email, { realSend: true });
 
-        otp = await fetchLatestOtp(sql, email);
+        otp = await fetchLatestOtp(sql, "forget-password", email);
         await sql`
           UPDATE verifications
           SET expires_at = now() - interval '1 minute'
@@ -297,7 +297,7 @@ test.describe("reset password", () => {
 
         await gotoStep2(page, email, { realSend: true });
 
-        otp = await fetchLatestOtp(sql, email);
+        otp = await fetchLatestOtp(sql, "forget-password", email);
       } finally {
         await sql.end();
       }
@@ -330,7 +330,7 @@ test.describe("reset password", () => {
 
         await gotoStep2(page, email, { realSend: true });
 
-        otp = await fetchLatestOtp(sql, email);
+        otp = await fetchLatestOtp(sql, "forget-password", email);
       } finally {
         await sql.end();
       }

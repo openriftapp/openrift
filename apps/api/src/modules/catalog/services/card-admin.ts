@@ -50,10 +50,11 @@ export async function deleteCard(
   try {
     orphanCandidateImageIds = await transact(async (trxRepos) => {
       const trxMut = trxRepos.catalogMutations;
-      const imageFileIds: string[] = [];
-      for (const printing of printings) {
-        imageFileIds.push(...(await deletePrintingRows(trxRepos, printing.id)));
-      }
+      const imageFileIds = await deletePrintingRows(
+        trxRepos,
+        printings.map((printing) => printing.id),
+        card.id,
+      );
       await trxMut.deleteCardBansByCardId(card.id);
       await trxMut.deleteMarketplaceCardOverridesByCardId(card.id);
       await trxMut.deleteCardById(card.id);

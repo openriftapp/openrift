@@ -654,6 +654,7 @@ export function metaDecksRepo(db: Kysely<Database>) {
           .selectFrom("decks")
           .select(["name", "format"])
           .where("id", "=", player.deckId)
+          .forNoKeyUpdate()
           .executeTakeFirst();
         const name = options?.preserveName === true ? (current?.name ?? deck.name) : deck.name;
         const formatChanged = current?.format !== deck.format;

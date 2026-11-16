@@ -9,7 +9,7 @@ import type {
 } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { sql } from "kysely";
-import type { Kysely, Selectable, Updateable } from "kysely";
+import type { ExpressionBuilder, Kysely, Selectable, Updateable } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { CardsTable, FacesTable, PrintingsTable } from "../../../db/tables/catalog.js";
@@ -515,6 +515,75 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
       side: 1 | 2 = 1,
     ): Promise<void> {
       await updatePrintingAndFace(db, id, { [field]: value }, side);
+    },
+
+    // A deck writer holds its deck while it key-shares a printing: lock owners, then decks, in
+    // id order, and clear covers here so the deletion's triggers write each deck row once.
+    async detachDecksBeforeCatalogDeletion(printingIds: string[], cardId?: string): Promise<void> {
+      const covers = (eb: ExpressionBuilder<Database, "decks">) =>
+        eb.or([
+          ...(printingIds.length > 0 ? [eb("coverFaceId", "in", facesOnlyOn(printingIds))] : []),
+          ...(cardId === undefined ? [] : [eb("coverCardId", "=", cardId)]),
+        ]);
+      const decks = await db
+        .selectFrom("decks")
+        .select(["id", "userId"])
+        .where((eb) =>
+          eb.or([
+            ...(printingIds.length > 0
+              ? [
+                  eb(
+                    "id",
+                    "in",
+                    eb
+                      .selectFrom("deckCards")
+                      .select("deckId")
+                      .where("preferredPrintingId", "in", printingIds),
+                  ),
+                ]
+              : []),
+            covers(eb),
+          ]),
+        )
+        .execute();
+      if (decks.length === 0) {
+        return;
+      }
+      await db
+        .selectFrom("users")
+        .select("id")
+        .where("id", "in", [...new Set(decks.map((deck) => deck.userId))])
+        .orderBy("id")
+        .forKeyShare()
+        .execute();
+      await db
+        .selectFrom("decks")
+        .select("id")
+        .where(
+          "id",
+          "in",
+          decks.map((deck) => deck.id),
+        )
+        .orderBy("id")
+        .forNoKeyUpdate()
+        .execute();
+      await db
+        .updateTable("decks")
+        .set((eb) => ({
+          coverFaceId: null,
+          ...(cardId === undefined
+            ? {}
+            : {
+                coverCardId: eb
+                  .case()
+                  .when("coverCardId", "=", cardId)
+                  .then(sql<string | null>`null`)
+                  .else(eb.ref("coverCardId"))
+                  .end(),
+              }),
+        }))
+        .where(covers)
+        .execute();
     },
 
     async deletePrintingById(id: string): Promise<{ id: string } | undefined> {

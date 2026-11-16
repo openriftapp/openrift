@@ -103,7 +103,7 @@ test.describe("verify email page", () => {
       let otp: string;
       try {
         await signUp(request, email, "VerifyTestPassword1!");
-        otp = await fetchLatestOtp(sql, email);
+        otp = await fetchLatestOtp(sql, "email-verification", email);
         await sql`
           UPDATE verifications
           SET expires_at = now() - interval '1 minute'
@@ -193,7 +193,7 @@ test.describe("verify email page", () => {
       let otp: string;
       try {
         await signUp(request, email, "VerifyTestPassword1!");
-        otp = await fetchLatestOtp(sql, email);
+        otp = await fetchLatestOtp(sql, "email-verification", email);
 
         await page.goto(`/verify-email?email=${encodeURIComponent(email)}`);
         await page.locator(OTP_INPUT).fill(otp);
@@ -218,7 +218,7 @@ test.describe("verify email page", () => {
       let otp: string;
       try {
         await signUp(request, email, "VerifyTestPassword1!");
-        otp = await fetchLatestOtp(sql, email);
+        otp = await fetchLatestOtp(sql, "email-verification", email);
 
         await page.goto(`/verify-email?email=${encodeURIComponent(email)}&redirect=%2Fcards`);
         await page.locator(OTP_INPUT).fill(otp);
@@ -238,7 +238,7 @@ test.describe("verify email page", () => {
       let otp: string;
       try {
         await signUp(request, email, "VerifyTestPassword1!");
-        otp = await fetchLatestOtp(sql, email);
+        otp = await fetchLatestOtp(sql, "email-verification", email);
 
         await page.goto(
           `/verify-email?email=${encodeURIComponent(email)}&redirect=https%3A%2F%2Fevil.com`,

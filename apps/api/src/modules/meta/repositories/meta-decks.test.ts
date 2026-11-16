@@ -54,6 +54,13 @@ describe("metaDecksRepo.setPlayerDeck", () => {
     expect(deckUpdate(recording.queries)).toContain('"format_config" = $');
   });
 
+  it("locks the deck row before it touches the deck's cards", async () => {
+    const { recording, written } = replace({ name: "Kai'Sa Aggro", format: "constructed" }, deck());
+
+    await written;
+    expect(recording.queries[1]).toMatch(/^select .* from "decks" .* for no key update$/u);
+  });
+
   it("writes no deck row when name and format are unchanged", async () => {
     const { recording, written } = replace({ name: "Kai'Sa Aggro", format: "constructed" }, deck());
 

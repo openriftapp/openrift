@@ -396,8 +396,15 @@ export const deckCheckPlayerRouter = {
       }
       if (row.state === "submitted" || row.state === "approved") {
         // Judge-gated (TR 401.3): file (or refresh) the unlock request.
-        const requested = await repos.deckCheck.updateEntry(row.id, {
-          unlockRequestedAt: row.unlockRequestedAt ?? new Date(),
+        const requested = await context.transact(async (txRepos) => {
+          await lockStillPlaying(txRepos, row.participantId);
+          const fresh = await txRepos.deckCheck.getEntryForUpdate(event.id, row.id);
+          if (!fresh || (fresh.state !== "submitted" && fresh.state !== "approved")) {
+            throw conflict("The deck's state changed in the meantime. Reload and try again.");
+          }
+          return txRepos.deckCheck.updateEntry(fresh.id, {
+            unlockRequestedAt: fresh.unlockRequestedAt ?? new Date(),
+          });
         });
         return buildPlayerDetail(repos, { ...row, ...requested }, event);
       }

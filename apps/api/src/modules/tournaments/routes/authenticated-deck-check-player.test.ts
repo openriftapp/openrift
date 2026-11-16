@@ -787,6 +787,7 @@ describe("POST/DELETE /deck-check/mine/{entryId}/unlock", () => {
     const repos = makeRepos();
     const row = playerRow({ state: "submitted", unlockRequestedAt: null });
     repos.deckCheck.getEntryForPlayer.mockResolvedValue(row);
+    repos.deckCheck.getEntryForUpdate.mockResolvedValue(row);
     repos.deckCheck.getEventById.mockResolvedValue(deckEvent({ listLockMode: "on_submit" }));
     repos.deckCheck.updateEntry.mockImplementation((_id: string, patch: Record<string, unknown>) =>
       Promise.resolve({ ...row, ...patch }),
@@ -805,6 +806,7 @@ describe("POST/DELETE /deck-check/mine/{entryId}/unlock", () => {
     const repos = makeRepos();
     const row = playerRow({ state: "approved", unlockRequestedAt: null });
     repos.deckCheck.getEntryForPlayer.mockResolvedValue(row);
+    repos.deckCheck.getEntryForUpdate.mockResolvedValue(row);
     repos.deckCheck.getEventById.mockResolvedValue(deckEvent());
     repos.deckCheck.updateEntry.mockImplementation((_id: string, patch: Record<string, unknown>) =>
       Promise.resolve({ ...row, ...patch }),
@@ -815,6 +817,37 @@ describe("POST/DELETE /deck-check/mine/{entryId}/unlock", () => {
 
     expect(res.status).toBe(200);
     expect(body.entry.unlockRequested).toBe(true);
+  });
+
+  it("files the unlock request when a judge approved the submitted entry in the meantime", async () => {
+    const repos = makeRepos();
+    const row = playerRow({ state: "submitted", unlockRequestedAt: null });
+    const approved = { ...row, state: "approved" };
+    repos.deckCheck.getEntryForPlayer.mockResolvedValue(row);
+    repos.deckCheck.getEntryForUpdate.mockResolvedValue(approved);
+    repos.deckCheck.getEventById.mockResolvedValue(deckEvent({ listLockMode: "on_submit" }));
+    repos.deckCheck.updateEntry.mockImplementation((_id: string, patch: Record<string, unknown>) =>
+      Promise.resolve({ ...approved, ...patch }),
+    );
+
+    const res = await makeApp(repos).fetch(req("POST", `/mine/${ENTRY_ID}/unlock`));
+    const body = (await res.json()) as { entry: { state: string; unlockRequested: boolean } };
+
+    expect(res.status).toBe(200);
+    expect(body.entry).toMatchObject({ state: "approved", unlockRequested: true });
+  });
+
+  it("files no unlock request when a judge unlocked the entry in the meantime", async () => {
+    const repos = makeRepos();
+    const row = playerRow({ state: "approved", unlockRequestedAt: null });
+    repos.deckCheck.getEntryForPlayer.mockResolvedValue(row);
+    repos.deckCheck.getEntryForUpdate.mockResolvedValue({ ...row, state: "editable" });
+    repos.deckCheck.getEventById.mockResolvedValue(deckEvent());
+
+    const res = await makeApp(repos).fetch(req("POST", `/mine/${ENTRY_ID}/unlock`));
+
+    expect(res.status).toBe(409);
+    expect(repos.deckCheck.updateEntry).not.toHaveBeenCalled();
   });
 
   it("409s an already-editable entry with its own message", async () => {
@@ -1504,6 +1537,13 @@ describe("a drop that lands while a player's write is in flight", () => {
   it("refuses a self-unlock once the participant row says dropped", async () => {
     const repos = makeRepos();
     staleActiveEntry(repos, "submitted", deckEvent({ listLockMode: "at_deadline" }));
+    const res = await makeApp(repos).fetch(req("POST", `/mine/${ENTRY_ID}/unlock`));
+    await expectRefusedUnderLock(repos, res);
+  });
+
+  it("refuses an unlock request once the participant row says dropped", async () => {
+    const repos = makeRepos();
+    staleActiveEntry(repos, "approved");
     const res = await makeApp(repos).fetch(req("POST", `/mine/${ENTRY_ID}/unlock`));
     await expectRefusedUnderLock(repos, res);
   });

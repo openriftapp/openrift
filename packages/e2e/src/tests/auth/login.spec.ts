@@ -265,7 +265,7 @@ test.describe("login page", () => {
           timeout: 10_000,
         });
 
-        otp = await fetchLatestOtp(sql, email);
+        otp = await fetchLatestOtp(sql, "sign-in", email);
         await sql`
           UPDATE verifications
           SET expires_at = now() - interval '1 minute'
@@ -300,7 +300,7 @@ test.describe("login page", () => {
           timeout: 10_000,
         });
 
-        otp = await fetchLatestOtp(sql, email);
+        otp = await fetchLatestOtp(sql, "sign-in", email);
       } finally {
         await sql.end();
       }

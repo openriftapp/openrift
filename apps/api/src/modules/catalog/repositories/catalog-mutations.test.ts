@@ -67,6 +67,52 @@ describe("catalogMutationsRepo", () => {
     });
   });
 
+  it("detachDecksBeforeCatalogDeletion locks the owners, then the decks, in id order", async () => {
+    const recording = createRecordingDb([
+      [
+        { id: "d-2", user_id: "u-1" },
+        { id: "d-1", user_id: "u-1" },
+      ],
+      [{ id: "u-1" }],
+      [{ id: "d-1" }, { id: "d-2" }],
+    ]);
+    await catalogMutationsRepo(recording.db).detachDecksBeforeCatalogDeletion(["p-1"]);
+
+    expect(recording.queries).toHaveLength(4);
+    expect(recording.queries[0]).toContain('"preferred_printing_id" in');
+    expect(recording.queries[0]).toContain('"cover_face_id" in');
+    expect(recording.queries[1]).toMatch(
+      /^select "id" from "users" .* order by "id" for key share$/u,
+    );
+    expect(recording.parameters[1]).toEqual(["u-1"]);
+    expect(recording.queries[2]).toMatch(
+      /^select "id" from "decks" .* order by "id" for no key update$/u,
+    );
+    expect(recording.queries[3]).toMatch(/^update "decks" set "cover_face_id" = \$1 where/u);
+    expect(recording.queries[3]).not.toContain("cover_card_id");
+  });
+
+  it("detachDecksBeforeCatalogDeletion clears the card's covers in the same write", async () => {
+    const recording = createRecordingDb([
+      [{ id: "d-1", user_id: "u-1" }],
+      [{ id: "u-1" }],
+      [{ id: "d-1" }],
+    ]);
+    await catalogMutationsRepo(recording.db).detachDecksBeforeCatalogDeletion(["p-1"], "c-1");
+
+    expect(recording.queries).toHaveLength(4);
+    expect(recording.queries[0]).toContain('"cover_card_id" =');
+    expect(recording.queries[3]).toContain('"cover_card_id" = case when "cover_card_id" =');
+    expect(recording.queries[3]).toContain('or "cover_card_id" =');
+  });
+
+  it("detachDecksBeforeCatalogDeletion takes no lock when no deck shows the printings", async () => {
+    const recording = createRecordingDb([[]]);
+    await catalogMutationsRepo(recording.db).detachDecksBeforeCatalogDeletion(["p-1"]);
+
+    expect(recording.queries).toHaveLength(1);
+  });
+
   it("deletePrintingImagesByPrintingId returns image file IDs", async () => {
     const db = createMockDb([{ imageFileId: "ci-1" }]);
     expect(await catalogMutationsRepo(db).deletePrintingImagesByPrintingId("p-1")).toHaveLength(1);

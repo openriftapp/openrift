@@ -214,7 +214,7 @@ test.describe("profile account & security", () => {
       ).toBeVisible({ timeout: 10_000 });
 
       try {
-        const currentOtp = await fetchLatestOtp(sql, oldEmail);
+        const currentOtp = await fetchLatestOtp(sql, "email-verification", oldEmail);
         await page.locator('input[autocomplete="one-time-code"]').first().fill(currentOtp);
         const requestEmailChange = page.waitForResponse((res) =>
           res.url().includes("/api/auth/email-otp/request-email-change"),
@@ -226,7 +226,7 @@ test.describe("profile account & security", () => {
           page.getByText(new RegExp(`Enter the 6-digit code sent to ${newEmail}`, "iu")),
         ).toBeVisible({ timeout: 10_000 });
 
-        const newOtp = await fetchLatestOtp(sql, newEmail);
+        const newOtp = await fetchLatestOtp(sql, "change-email", newEmail);
         await page.locator('input[autocomplete="one-time-code"]').first().fill(newOtp);
 
         const changeEmail = page.waitForResponse((res) =>
@@ -268,7 +268,7 @@ test.describe("profile account & security", () => {
 
       let otp: string;
       try {
-        otp = await fetchLatestOtp(sql, oldEmail);
+        otp = await fetchLatestOtp(sql, "email-verification", oldEmail);
         await sql`
           UPDATE verifications
           SET expires_at = now() - interval '1 minute'
