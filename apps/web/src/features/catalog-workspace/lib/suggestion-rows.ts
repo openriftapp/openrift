@@ -92,7 +92,7 @@ export function buildCardSuggestions(
   const enterTargets: EnterTarget[] = [];
 
   for (const source of openSources) {
-    const proposed = source as unknown as Record<string, unknown>;
+    const proposed = source;
     const differing = COMPARABLE_CARD_FIELDS.filter(
       (field) =>
         hasFieldValue(proposed[field]) &&

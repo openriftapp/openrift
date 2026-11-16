@@ -238,7 +238,7 @@ function PromosBrowser() {
     if (!location.hash) {
       return;
     }
-    // oxlint-disable-next-line prefer-query-selector -- section ids may start with a digit after the "ch-" prefix; getElementById avoids CSS-escape gymnastics.
+    // oxlint-disable-next-line unicorn/prefer-query-selector -- section ids may start with a digit after the "ch-" prefix; getElementById avoids CSS-escape gymnastics.
     const element = document.getElementById(location.hash);
     if (element) {
       element.scrollIntoView({ behavior: "auto", block: "start" });

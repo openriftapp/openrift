@@ -109,8 +109,8 @@ export function compareCandidate(
   provider: string,
 ): { suggestions: PrintingFieldSuggestion[]; agreeing: number } {
   const printedTotal = context.setTotals[row.setSlug] ?? null;
-  const live = printingAsAccepted(row) as unknown as Record<string, unknown>;
-  const proposedRow = candidate as unknown as Record<string, unknown>;
+  const live = printingAsAccepted(row);
+  const proposedRow = candidate;
   const suggestions: PrintingFieldSuggestion[] = [];
   let agreeing = 0;
   for (const field of fields) {

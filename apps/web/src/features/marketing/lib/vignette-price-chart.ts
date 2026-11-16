@@ -21,7 +21,7 @@ export function priceSeries(source: VignettePriceSource, days: number): number[]
     const wobble = Math.sin(source.phase + t * 7.5) + 0.5 * Math.sin(source.phase * 1.7 + t * 17.3);
     return source.price - drift * (1 - t) + source.price * 0.012 * source.swing * wobble;
   });
-  // oxlint-disable-next-line no-non-null-assertion -- PRICE_SAMPLE_COUNT is a positive literal
+  // oxlint-disable-next-line typescript/no-non-null-assertion -- PRICE_SAMPLE_COUNT is a positive literal
   const shift = source.price - raw.at(-1)!;
   return raw.map((value) => value + shift);
 }

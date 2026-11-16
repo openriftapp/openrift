@@ -13,15 +13,17 @@ import type { JobScheduleMeta } from "../lib/job-schedule-presenters.js";
 import { toJobScheduleView } from "../lib/job-schedule-presenters.js";
 import { runJob, runJobAsync } from "./run-job.js";
 
-interface JobDefinition<T = unknown> extends JobScheduleMeta {
+interface JobDefinition<T> extends JobScheduleMeta {
   skipCronTick?: () => Promise<string | null>;
   execute: (runId: string) => Promise<T>;
-  summarize?: (result: T) => unknown;
-  classifyNoop?: (result: T) => boolean;
+  // oxlint-disable-next-line typescript/method-signature-style -- a bivariant `result` lets every JobDefinition<T> fit AnyJobDefinition
+  summarize?(result: T): unknown;
+  // oxlint-disable-next-line typescript/method-signature-style -- same as summarize
+  classifyNoop?(result: T): boolean;
   log: Logger;
 }
 
-export type AnyJobDefinition = JobDefinition<any>;
+export type AnyJobDefinition = JobDefinition<unknown>;
 
 export interface JobSpec<T> extends JobScheduleMeta {
   skipCronTick?: (log: Logger) => Promise<string | null>;

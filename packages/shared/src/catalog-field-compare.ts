@@ -72,16 +72,14 @@ export function sameFieldValue(a: unknown, b: unknown, field?: string): boolean 
 }
 
 /** Fields the proposal has a value for that differ from the live value. */
-export function differingFields(
-  fields: readonly string[],
-  live: object,
-  proposed: object,
-): string[] {
-  const liveValues = live as Record<string, unknown>;
-  const proposedValues = proposed as Record<string, unknown>;
+export function differingFields<K extends string>(
+  fields: readonly K[],
+  live: Readonly<Record<K, unknown>>,
+  proposed: Readonly<Record<K, unknown>>,
+): K[] {
   return fields.filter(
     (field) =>
-      hasFieldValue(proposedValues[field]) &&
-      !sameFieldValue(liveValues[field] ?? null, proposedValues[field], field),
+      hasFieldValue(proposed[field]) &&
+      !sameFieldValue(live[field] ?? null, proposed[field], field),
   );
 }

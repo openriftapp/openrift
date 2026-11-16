@@ -27,7 +27,7 @@ export function usePriceHistory(printingId: string | null, range: TimeRange = "3
     queryKey: priceHistoryKeys.byPrinting(printingId ?? "", range),
     queryFn: () =>
       fetchPrintingPricesFn({
-        // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- guarded by enabled: Boolean(printingId)
+        // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by enabled: Boolean(printingId)
         data: { printingId: printingId!, range },
       }),
     select: (data): PriceHistory => ({

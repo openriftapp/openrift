@@ -7,6 +7,8 @@ import type { ErrataListResponse } from "@openrift/shared/contracts/errata";
 import type { SetListResponse, SitemapDataResponse } from "@openrift/shared/types/api/catalog";
 import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
 
+import { paraglideMiddleware } from "@/paraglide/server.js";
+
 import changelogMd from "./CHANGELOG.md?raw";
 import { helpArticleList } from "./features/marketing/components/articles";
 import { deriveSetEras } from "./features/meta/lib/meta-scope";
@@ -29,7 +31,6 @@ import { getSiteUrl } from "./lib/site-config";
 import type { SitemapInput } from "./lib/sitemap";
 import { latestChangelogDate, latestErrataDate } from "./lib/sitemap";
 import { createSitemapResponder } from "./lib/sitemap-response";
-import { paraglideMiddleware } from "./paraglide/server.js";
 
 const LOG_SSR_TIMINGS = process.env.LOG_SSR_TIMINGS === "true";
 

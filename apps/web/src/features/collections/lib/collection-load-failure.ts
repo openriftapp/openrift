@@ -1,10 +1,8 @@
-import type { Collection } from "@tanstack/react-db";
 import { toast } from "sonner";
 
+import type { AnyCollection } from "@/features/collections/lib/collection-load";
 import { isRetryableError } from "@/lib/server-fns/api-error";
 import { m } from "@/paraglide/messages.js";
-
-type AnyCollection = Collection<any, any, any, any, any>;
 
 // About 5.5 s in all: an API restart during a release refuses connections for 2 to 5 s.
 const STORE_RETRY_DELAYS_MS = [1000, 2000, 2500] as const;

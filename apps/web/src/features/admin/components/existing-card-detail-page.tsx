@@ -366,7 +366,7 @@ export function ExistingCardDetailPage({
           {activeSection === "overview" && (
             <CardOverviewSection
               detail={existingData}
-              card={card as unknown as Record<string, unknown>}
+              card={card}
               cardFields={candidateCardFields}
               sourceGroups={buildOverviewSourceGroups(existingData, providerSettings)}
               attentionCount={attentionTotal}

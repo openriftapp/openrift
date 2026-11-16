@@ -21,6 +21,7 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "paths": {
+      "@/paraglide/*": ["./.paraglide-types/*"],
       "@/*": ["./src/*"]
     }
   },

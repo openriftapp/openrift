@@ -24,8 +24,6 @@ import { latestMilestonePlugin } from "./vite-plugins/latest-milestone.ts";
 
 const commitHash = execSync("git rev-parse --short HEAD").toString().trim();
 const mediaDir = path.resolve(import.meta.dirname, "../../media");
-// ALPN wire format: one length-prefixed protocol name.
-const HTTP1_ONLY_ALPN = Buffer.from([8, ...Buffer.from("http/1.1")]);
 const repoRoot = path.resolve(import.meta.dirname, "../..");
 
 const MEDIA_MIME_TYPES: Record<string, string> = {
@@ -223,6 +221,7 @@ const BASE_UI_SUBPATHS = [
 
 const paraglideOptions = {
   project: "./project.inlang",
+  outdir: "./src/paraglide",
   outputStructure: "virtual-modules",
 } as const;
 
@@ -243,6 +242,9 @@ export default defineConfig(({ mode, command }) => {
       __COMMIT_HASH__: JSON.stringify(commitHash),
     },
     resolve: {
+      // tsconfig points @/paraglide at the CLI compile that typecheck and lint read; the app
+      // ships this plugin's output. Aliases resolve before tsconfig paths.
+      alias: { "@/paraglide": path.resolve(import.meta.dirname, paraglideOptions.outdir) },
       tsconfigPaths: true,
     },
     optimizeDeps: {
@@ -293,9 +295,14 @@ export default defineConfig(({ mode, command }) => {
             // (vitejs/vite#21569); stay on HTTP/1.1 over TLS until that is fixed.
             {
               name: "dev-https-http1",
-              configureServer(server: ViteDevServer) {
-                Object.assign(server.httpServer ?? {}, { ALPNProtocols: HTTP1_ONLY_ALPN });
-              },
+              config: () => ({
+                server: {
+                  https: {
+                    ALPNCallback: ({ protocols }: { protocols: string[] }) =>
+                      protocols.includes("http/1.1") ? "http/1.1" : undefined,
+                  },
+                },
+              }),
             },
           ]
         : []),

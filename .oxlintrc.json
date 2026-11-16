@@ -123,7 +123,8 @@
     "typescript/prefer-promise-reject-errors": "error",
     "typescript/prefer-readonly-parameter-types": "off", // 20k findings; every parameter in the codebase
     "typescript/related-getter-setter-pairs": "error",
-    "typescript/require-await": "off", // 463, style
+    "typescript/require-await": "error",
+    "require-await": "off", // the typed rule above covers it and accepts an async function that returns a promise
     "typescript/restrict-plus-operands": [
       "error",
       {
@@ -164,6 +165,7 @@
     "no-empty-function": "error",
     "jsdoc/check-access": "warn",
     "typescript/no-dynamic-delete": "error",
+    "typescript/no-explicit-any": "error",
     "typescript/no-empty-object-type": "error",
     "typescript/no-namespace": "error",
     "typescript/no-non-null-asserted-nullish-coalescing": "error",
@@ -419,7 +421,8 @@
     {
       "files": ["**/*.test.ts", "**/*.test.tsx"],
       "rules": {
-        "require-await": "off",
+        "typescript/require-await": "off",
+        "typescript/no-explicit-any": "off",
         "no-empty-function": "off",
         "typescript/no-non-null-assertion": "off",
         "promise/prefer-await-to-then": "off",
@@ -449,6 +452,20 @@
       "files": ["packages/e2e/**", "**/src/test/**", "scripts/**"],
       "rules": {
         "typescript/no-unsafe-member-access": "off"
+      }
+    },
+    {
+      // createServerFn's serializable return check rejects the detail schemas' `z.unknown()` fields.
+      "files": ["apps/web/src/features/admin/lib/admin-card-queries.ts"],
+      "rules": {
+        "typescript/no-explicit-any": "off"
+      }
+    },
+    {
+      // Test doubles stand in for loosely typed APIs (better-auth, Kysely drivers, sharp).
+      "files": ["**/src/test/**"],
+      "rules": {
+        "typescript/no-explicit-any": "off"
       }
     },
     {

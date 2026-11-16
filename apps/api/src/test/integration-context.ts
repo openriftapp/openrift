@@ -75,7 +75,7 @@ export function createTestContext(
   const mockAuth = {
     handler: () => new Response("ok"),
     api: {
-      // oxlint-disable-next-line require-await -- must return a Promise to match better-auth's API shape
+      // oxlint-disable-next-line typescript/require-await -- must return a Promise to match better-auth's API shape
       getSession: async () => ({
         user: { id: userId, email: resolvedEmail, name: "Test User" },
         session: { id: `sess-${userId.slice(14, 18)}` },
@@ -103,7 +103,7 @@ export function createUnauthenticatedTestContext(): TestContext | null {
 
   const mockAuth = {
     handler: () => new Response("ok"),
-    // oxlint-disable-next-line require-await -- must return a Promise to match better-auth's API shape
+    // oxlint-disable-next-line typescript/require-await -- must return a Promise to match better-auth's API shape
     api: { getSession: async () => null },
     $Infer: { Session: { user: null, session: null } },
   } as any;

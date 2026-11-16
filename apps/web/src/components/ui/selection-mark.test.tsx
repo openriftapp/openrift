@@ -59,7 +59,7 @@ describe("SelectionMark", () => {
     const onCheckedChange = vi.fn();
     const onCardClick = vi.fn();
     render(
-      // oxlint-disable-next-line eslint-plugin-jsx-a11y/no-static-element-interactions, eslint-plugin-jsx-a11y/click-events-have-key-events -- stands in for the card's own click target
+      // oxlint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events -- stands in for the card's own click target
       <div onClick={onCardClick}>
         <SelectionMark label="Select card" checked={false} onCheckedChange={onCheckedChange} />
       </div>,

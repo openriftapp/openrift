@@ -45,7 +45,7 @@ export class TracingDialect implements Dialect {
   createDriver(): Driver {
     return new TracingDriver(this.inner.createDriver());
   }
-  createIntrospector(db: Kysely<any>): DatabaseIntrospector {
+  createIntrospector(db: Kysely<unknown>): DatabaseIntrospector {
     return this.inner.createIntrospector(db);
   }
   createQueryCompiler(): QueryCompiler {

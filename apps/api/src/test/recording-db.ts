@@ -58,7 +58,7 @@ export function createRecordingDb(results: StubResult[] = []): RecordingDb {
           : { numAffectedRows: shaped.numAffectedRows }),
       });
     },
-    // oxlint-disable-next-line require-yield -- streaming is never exercised here
+    // oxlint-disable-next-line require-yield, typescript/require-await -- streaming is never exercised here
     async *streamQuery() {
       throw new Error("streamQuery is not supported by the recording db");
     },

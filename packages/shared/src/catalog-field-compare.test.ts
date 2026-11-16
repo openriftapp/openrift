@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  COMPARABLE_PRINTING_FIELDS,
-  differingFields,
-  hasFieldValue,
-  sameFieldValue,
-} from "./catalog-field-compare.js";
+import { differingFields, hasFieldValue, sameFieldValue } from "./catalog-field-compare.js";
 
 describe("hasFieldValue", () => {
   it("rejects null, undefined, the empty string and the empty array", () => {
@@ -64,8 +59,13 @@ describe("differingFields", () => {
     expect(differingFields(["name", "might", "markerSlugs"], live, proposed)).toEqual(["might"]);
   });
 
-  it("treats a live value the proposal lacks as no difference", () => {
-    expect(differingFields(["artist"], { artist: "Someone" }, {})).toEqual([]);
+  it("treats a live value the proposal has no value for as no difference", () => {
+    expect(differingFields(["artist"], { artist: "Someone" }, { artist: null })).toEqual([]);
+  });
+
+  it("refuses a record that lacks a compared field", () => {
+    // @ts-expect-error -- a renamed column must not drop out of the diff
+    expect(differingFields(["artist"], { artist: "Someone" }, { painter: "Someone" })).toEqual([]);
   });
 
   it("compares the release fields of a printing", () => {
@@ -75,11 +75,12 @@ describe("differingFields", () => {
       releasePrecision: "month",
       announcedAt: "2026-10-18",
     };
-    expect(differingFields(COMPARABLE_PRINTING_FIELDS, live, proposed)).toEqual([
+    const fields = ["releasedAt", "releasePrecision", "announcedAt"] as const;
+    expect(differingFields(fields, live, proposed)).toEqual([
       "releasedAt",
       "releasePrecision",
       "announcedAt",
     ]);
-    expect(differingFields(COMPARABLE_PRINTING_FIELDS, live, { ...live })).toEqual([]);
+    expect(differingFields(fields, live, { ...live })).toEqual([]);
   });
 });

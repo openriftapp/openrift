@@ -421,7 +421,7 @@ function CardRecordBody({
     }
   }
   const submissionById = new Map(submissions.map((entry) => [entry.candidateCardId, entry]));
-  const cardValues = card as unknown as Record<string, unknown>;
+  const cardValues = card;
 
   function closeDialog(open: boolean) {
     if (!open) {

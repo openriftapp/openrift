@@ -26,7 +26,7 @@ describe("dialog click isolation", () => {
     const user = userEvent.setup();
     const ancestorClick = vi.fn();
     render(
-      // oxlint-disable-next-line click-events-have-key-events, no-static-element-interactions -- stand-in for a clickable <Link> ancestor
+      // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stand-in for a clickable <Link> ancestor
       <div onClick={ancestorClick}>
         <Dialog defaultOpen>
           <DialogContent showCloseButton={false}>
@@ -47,7 +47,7 @@ describe("dialog click isolation", () => {
     const ancestorClick = vi.fn();
     const onAction = vi.fn();
     render(
-      // oxlint-disable-next-line click-events-have-key-events, no-static-element-interactions -- stand-in for a clickable <Link> ancestor
+      // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stand-in for a clickable <Link> ancestor
       <div onClick={ancestorClick}>
         <AlertDialog defaultOpen>
           <AlertDialogContent>

@@ -1,9 +1,11 @@
 import type { Printing } from "./types/catalog.js";
 
-export function sortByLanguageAndCanonicalRank(
-  printings: readonly Printing[],
+type LanguageRanked = Pick<Printing, "language" | "canonicalRank">;
+
+export function sortByLanguageAndCanonicalRank<T extends LanguageRanked>(
+  printings: readonly T[],
   languageOrder: readonly string[],
-): Printing[] {
+): T[] {
   const rankByLang = new Map(languageOrder.map((lang, i) => [lang, i]));
   const unlistedRank = languageOrder.length;
   return printings.toSorted((a, b) => {
@@ -16,8 +18,8 @@ export function sortByLanguageAndCanonicalRank(
 // languageOrder must be the caller's effective order (user preference, or
 // languages.sort_order); this function has no hardcoded fallback.
 export function compareWithLanguagePreference(
-  a: Printing,
-  b: Printing,
+  a: LanguageRanked,
+  b: LanguageRanked,
   languageOrder: readonly string[],
 ): number {
   const aIdx = languageOrder.indexOf(a.language);
@@ -55,11 +57,11 @@ export function deduplicateByCard(
   return [...seen.values()];
 }
 
-export function preferredPrinting(
-  printings: Printing[],
+export function preferredPrinting<T extends LanguageRanked>(
+  printings: readonly T[],
   languageOrder: readonly string[],
-): Printing | undefined {
-  let best: Printing | undefined;
+): T | undefined {
+  let best: T | undefined;
   for (const printing of printings) {
     if (best === undefined || compareWithLanguagePreference(printing, best, languageOrder) < 0) {
       best = printing;

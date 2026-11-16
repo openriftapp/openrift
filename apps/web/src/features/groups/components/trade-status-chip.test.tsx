@@ -263,7 +263,7 @@ describe("TradeStatusChip", () => {
     const user = userEvent.setup();
     const onCellClick = vi.fn();
     render(
-      // oxlint-disable-next-line eslint/jsx-a11y/click-events-have-key-events, eslint/jsx-a11y/no-static-element-interactions -- stands in for the card cell around the strip
+      // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stands in for the card cell around the strip
       <div onClick={onCellClick}>
         <TradeStatusChip
           annotation={annotation({ role: "receiver", phase: "reserved" })}

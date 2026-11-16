@@ -39,12 +39,11 @@ export function matchSameDifference(
       if (row.provider !== input.provider) {
         return false;
       }
-      const candidate = row.candidate as unknown as Record<string, unknown>;
-      const live = row.live as unknown as Record<string, unknown>;
       return (
         differingFields(COMPARABLE_CARD_FIELDS, row.live, row.candidate).includes(input.field) &&
-        sameFieldValue(candidate[input.field], value, input.field) &&
-        (current === undefined || sameFieldValue(live[input.field] ?? null, current, input.field))
+        sameFieldValue(row.candidate[input.field], value, input.field) &&
+        (current === undefined ||
+          sameFieldValue(row.live[input.field] ?? null, current, input.field))
       );
     })
     .toSorted((a, b) => a.cardSlug.localeCompare(b.cardSlug));

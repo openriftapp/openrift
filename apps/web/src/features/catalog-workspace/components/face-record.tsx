@@ -317,11 +317,7 @@ function ReviewFaceRecord({
               <RecordFieldRow
                 key={field}
                 label={PRINTING_FIELD_LABELS[field]}
-                value={formatCatalogFieldValue(
-                  field,
-                  (face as unknown as Record<string, unknown>)[field],
-                  labels,
-                )}
+                value={formatCatalogFieldValue(field, face[field], labels)}
                 suggestions={
                   differingFields.has(field) ? (
                     <>

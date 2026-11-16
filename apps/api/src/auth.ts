@@ -217,7 +217,7 @@ export function createAuth(deps: {
     databaseHooks: {
       user: {
         create: {
-          // oxlint-disable-next-line require-await -- better-auth hook signature requires Promise return
+          // oxlint-disable-next-line typescript/require-await -- better-auth hook signature requires Promise return
           async before(user) {
             const fallback = typeof user.email === "string" ? user.email.split("@")[0] : "";
             const cleaned = sanitizeDisplayName(user.name, fallback ?? "");
@@ -243,7 +243,7 @@ export function createAuth(deps: {
           },
         },
         update: {
-          // oxlint-disable-next-line require-await -- better-auth hook signature requires Promise return
+          // oxlint-disable-next-line typescript/require-await -- better-auth hook signature requires Promise return
           async before(user) {
             const updates: { name?: string; riotId?: string | null; bio?: string | null } = {};
             // better-auth passes every top-level field, absent ones as

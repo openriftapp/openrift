@@ -3,7 +3,7 @@
   "extends": ["//"],
   "tasks": {
     "typecheck": {
-      "outputs": ["src/paraglide/**"]
+      "outputs": [".paraglide-types/**", "src/routeTree.gen.ts"]
     }
   }
 }

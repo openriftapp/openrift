@@ -94,11 +94,57 @@ function jsonOrNull(value: unknown): unknown {
   return value;
 }
 
-export type CandidateCardFields = Omit<Insertable<CandidateCardsTable>, "provider">;
+export const CANDIDATE_CARD_FIELDS = [
+  "name",
+  "types",
+  "superTypes",
+  "domains",
+  "might",
+  "energy",
+  "power",
+  "mightBonus",
+  "rulesText",
+  "effectText",
+  "tags",
+  "shortCode",
+  "externalId",
+  "extraData",
+] as const;
 
-export type CandidatePrintingFields = Omit<
-  Insertable<CandidatePrintingsTable>,
-  "candidateCardId" | "printingId"
+export type CandidateCardFields = Required<
+  Pick<Insertable<CandidateCardsTable>, (typeof CANDIDATE_CARD_FIELDS)[number]>
+>;
+
+export const CANDIDATE_PRINTING_FIELDS = [
+  "shortCode",
+  "setId",
+  "setName",
+  "rarity",
+  "artVariant",
+  "isSigned",
+  "isOvernumbered",
+  "markerSlugs",
+  "distributionChannelSlugs",
+  "finish",
+  "size",
+  "artist",
+  "publicCode",
+  "printedRulesText",
+  "printedEffectText",
+  "imageUrl",
+  "flavorText",
+  "language",
+  "printedName",
+  "printedYear",
+  "releasedAt",
+  "releasePrecision",
+  "announcedAt",
+  "externalId",
+  "extraData",
+] as const;
+
+export type CandidatePrintingFields = Required<
+  Pick<Insertable<CandidatePrintingsTable>, (typeof CANDIDATE_PRINTING_FIELDS)[number]>
 >;
 
 /** Callers add `provider` and, for user submissions, the submitter attribution. */

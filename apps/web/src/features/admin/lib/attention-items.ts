@@ -199,7 +199,7 @@ function buildCardGroup(
     COMPARABLE_CARD_FIELDS,
     CARD_FIELD_LABELS,
     detail.card as Record<string, unknown> | null,
-    source as unknown as Record<string, unknown>,
+    source,
   );
   if (changes.length === 0) {
     return null;
@@ -233,8 +233,8 @@ function buildLinkedPrintingGroup(
     groupKey,
     COMPARABLE_PRINTING_FIELDS,
     PRINTING_FIELD_LABELS,
-    printingAsAccepted(printing) as unknown as Record<string, unknown>,
-    candidate as unknown as Record<string, unknown>,
+    printingAsAccepted(printing),
+    candidate,
     (field, value) =>
       normalizeProvidedPrintingValue(field, value, {
         costKeywords: accept.costKeywords,
@@ -287,7 +287,7 @@ function closestPrintingRows(
   printing: AdminPrintingResponse,
   accept: AcceptTransforms,
 ): ClosestPrintingRow[] {
-  const existing = printing as unknown as Record<string, unknown>;
+  const existing = printing;
   const printedTotal = accept.setTotals[printing.setSlug] ?? null;
   return CLOSEST_FIELDS.flatMap((field) => {
     const incomingValue = normalizeProvidedPrintingValue(field, incoming[field], {

@@ -20,7 +20,7 @@ export function useActiveSection(
       const limit = thresholdRef.current + 4;
       let active: string | null = null;
       for (const entry of list) {
-        // oxlint-disable-next-line prefer-query-selector -- ids derive from channel ids that may start with a digit; getElementById skips CSS-escape gymnastics.
+        // oxlint-disable-next-line unicorn/prefer-query-selector -- ids derive from channel ids that may start with a digit; getElementById skips CSS-escape gymnastics.
         const el = document.getElementById(entry.id);
         if (!el) {
           continue;

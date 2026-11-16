@@ -11,6 +11,8 @@ import { jsonValuesEqual } from "../../../lib/json-equal.js";
 import {
   buildCandidateCardFields,
   buildCandidatePrintingFields,
+  CANDIDATE_CARD_FIELDS,
+  CANDIDATE_PRINTING_FIELDS,
   candidateCardValidator,
   candidateCardValidatorInput,
   candidatePrintingValidator,
@@ -51,23 +53,6 @@ interface IngestResult {
   removedPrintingDetails: ItemDetail[];
   updatedPrintings: UpdatedCardDetail[];
 }
-
-const CARD_FIELDS = [
-  "name",
-  "types",
-  "superTypes",
-  "domains",
-  "might",
-  "energy",
-  "power",
-  "mightBonus",
-  "rulesText",
-  "effectText",
-  "tags",
-  "shortCode",
-  "externalId",
-  "extraData",
-] as const;
 
 function camelCaseKeys(obj: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
@@ -110,16 +95,13 @@ function toDiffValue(value: unknown): DiffValue {
   return JSON.stringify(value);
 }
 
-function getChangedFields(
-  existing: Record<string, unknown>,
-  incoming: Record<string, unknown>,
-  fields: readonly string[],
-): { field: string; from: DiffValue; to: DiffValue }[] {
-  const diffs: { field: string; from: DiffValue; to: DiffValue }[] = [];
+function getChangedFields<K extends string>(
+  existing: Readonly<Record<K, unknown>>,
+  incoming: Readonly<Record<K, unknown>>,
+  fields: readonly K[],
+): { field: K; from: DiffValue; to: DiffValue }[] {
+  const diffs: { field: K; from: DiffValue; to: DiffValue }[] = [];
   for (const f of fields) {
-    if (!(f in incoming)) {
-      continue;
-    }
     const a = normalize(existing[f]);
     const b = normalize(incoming[f]);
     if (!jsonValuesEqual(a, b)) {
@@ -300,9 +282,9 @@ export async function ingestCandidates(
       if (existingCandidateCard) {
         const cardFields = buildCandidateCardFields(card);
         const changedFields = getChangedFields(
-          existingCandidateCard as unknown as Record<string, unknown>,
-          cardFields as unknown as Record<string, unknown>,
-          CARD_FIELDS,
+          existingCandidateCard,
+          cardFields,
+          CANDIDATE_CARD_FIELDS,
         );
 
         if (changedFields.length > 0) {
@@ -374,9 +356,9 @@ export async function ingestCandidates(
         if (existingCP) {
           seenCPIds.add(existingCP.id);
           const pChangedFields = getChangedFields(
-            existingCP as unknown as Record<string, unknown>,
-            printingFields as unknown as Record<string, unknown>,
-            Object.keys(printingFields),
+            existingCP,
+            printingFields,
+            CANDIDATE_PRINTING_FIELDS,
           );
 
           if (pChangedFields.length > 0) {

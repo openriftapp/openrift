@@ -47,11 +47,7 @@ export function pickCardMetaPrinting<T extends MetaPrinting>(
   if (printings.length === 0) {
     return undefined;
   }
-  // preferredPrinting only reads `language` and `canonicalRank`, so this structural cast is safe.
-  return (
-    (preferredPrinting(printings as unknown as Printing[], languageOrder) as T | undefined) ??
-    printings[0]
-  );
+  return preferredPrinting(printings, languageOrder) ?? printings[0];
 }
 
 // A `?printingId=` that exists on the card wins; otherwise (or if it

@@ -37,10 +37,9 @@ export function largestRepeatedDifference(
     if (row.provider !== provider) {
       continue;
     }
-    const candidate = row.candidate as unknown as Record<string, unknown>;
     const differing = new Set(differingFields(COMPARABLE_CARD_FIELDS, row.live, row.candidate));
     for (const field of COMPARABLE_CARD_FIELDS.filter((name) => differing.has(name))) {
-      const value = JSON.stringify(candidate[field] ?? null);
+      const value = JSON.stringify(row.candidate[field] ?? null);
       const key = `${field}\u0000${value}`;
       const group = groups.get(key);
       if (group === undefined) {

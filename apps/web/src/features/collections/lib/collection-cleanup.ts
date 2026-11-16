@@ -1,9 +1,7 @@
 // cleanup() rejects while a reader is attached, so evicted stores go through cleanupWhenIdle.
 // LocalOnlyCollections have gcTime: 0 and never auto-GC; QueryCollections would only after gcTime.
 
-import type { Collection } from "@tanstack/react-db";
-
-type AnyCollection = Collection<any, any, any, any, any>;
+import type { AnyCollection } from "@/features/collections/lib/collection-load";
 
 /** Dev-only: traces an orphaned collection's subscriber detach and warns if none occurs within 3s. */
 export function markOrphaned(collection: AnyCollection, label: string): void {

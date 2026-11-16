@@ -19,24 +19,17 @@
     "apps/web": {
       "entry": [
         "src/routes/**/*.tsx",
-        "src/features/cards/components/card-detail/card-detail.tsx",
-        "src/client.tsx",
-        "src/router.ts",
-        "src/server.ts",
-        "src/start.ts",
         "src/instrument.server.mjs",
         "src/tracing.server.ts",
         "src/components/error-fallback.tsx",
         "nitro/*.ts",
         "project.inlang/paraglide.config.ts"
       ],
-      "ignore": [
-        "src/components/ui/**",
-        "public/sw.js",
-        "src/test/paraglide-en.js",
-        "src/test/paraglide-all.js"
-      ],
-      "ignoreDependencies": ["flag-icons"]
+      "ignore": ["public/sw.js", "src/test/paraglide-en.js"],
+      "ignoreDependencies": ["flag-icons"],
+      "ignoreIssues": {
+        "src/components/ui/**": ["exports", "types"]
+      }
     },
     "packages/shared": {},
     "packages/e2e": {
@@ -44,5 +37,5 @@
       "ignore": []
     }
   },
-  "ignoreBinaries": ["ffmpeg", "wait"]
+  "ignoreBinaries": ["ffmpeg"]
 }

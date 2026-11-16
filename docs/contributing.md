@@ -188,7 +188,7 @@ import { useCardFilters } from "./use-card-filters";
 
 Always include a `-- reason` after the rule name to explain the suppression.
 
-Test files turn off `import/first` (vitest hoists `vi.mock`), `promise/avoid-new` and `import/no-nodejs-modules`, and Bun and Node code (`apps/api`, `apps/discord-bot`, `scripts/`, `*.config.ts`) turns off `import/no-nodejs-modules`, so none of these need a comment there. Lint and the pre-commit hook pass `--report-unused-disable-directives`, so a directive that suppresses nothing fails. A disable for ESLint's React Compiler rule is configured in `apps/web/eslint.config.js`, because oxlint reports an inline `eslint-disable` as unused.
+Test files turn off `import/first` (vitest hoists `vi.mock`), `promise/avoid-new`, `import/no-nodejs-modules`, `typescript/require-await` and `typescript/no-explicit-any`, the `src/test/` harnesses turn off `typescript/no-explicit-any`, and Bun and Node code (`apps/api`, `apps/discord-bot`, `scripts/`, `*.config.ts`) turns off `import/no-nodejs-modules`, so none of these need a comment there. Lint and the pre-commit hook pass `--report-unused-disable-directives`, so a directive that suppresses nothing fails. A disable for ESLint's React Compiler rule is configured in `apps/web/eslint.config.js`, because oxlint reports an inline `eslint-disable` as unused.
 
 ## Duplication checks
 
