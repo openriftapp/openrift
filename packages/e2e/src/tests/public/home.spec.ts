@@ -104,14 +104,27 @@ test.describe("landing page", () => {
 
   test("showcase rows navigate to their targets", async ({ page }) => {
     // Unauthenticated redirects put the target URL-encoded in the query string.
-    const rows: { name: RegExp; url: RegExp }[] = [
-      { name: /a collection that keeps itself current/iu, url: /\/collections/u },
-      { name: /see who has what you need/iu, url: /\/groups/u },
-      { name: /know what your cards are worth/iu, url: /\/cards/u },
+    const rows: { title: string; cta: string; url: RegExp }[] = [
+      {
+        title: "A collection that keeps itself current",
+        cta: "Open collections",
+        url: /\/collections/u,
+      },
+      { title: "See who has what you need", cta: "Open groups", url: /\/groups/u },
+      { title: "Know what your cards are worth", cta: "Open the catalog", url: /\/cards/u },
     ];
     for (const row of rows) {
       await page.goto("/");
-      await page.getByRole("link", { name: row.name }).click();
+      await page.getByRole("link", { name: row.cta }).click();
+      await expect.poll(() => decodeURIComponent(page.url())).toMatch(row.url);
+
+      // The call to action stretches over its row, so a click on the title follows it too.
+      await page.goto("/");
+      const title = page.getByRole("heading", { name: row.title, level: 2 });
+      await title.scrollIntoViewIfNeeded();
+      const box = await title.boundingBox();
+      expect(box).not.toBeNull();
+      await page.mouse.click((box?.x ?? 0) + 5, (box?.y ?? 0) + 5);
       await expect.poll(() => decodeURIComponent(page.url())).toMatch(row.url);
     }
   });

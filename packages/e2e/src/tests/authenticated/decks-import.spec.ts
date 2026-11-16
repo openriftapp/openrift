@@ -308,8 +308,13 @@ test.describe("deck import", () => {
       const createPromise = page.waitForRequest((request) =>
         isApiCall(request, "POST", "/api/v1/decks"),
       );
+      const savePromise = page.waitForResponse((response) =>
+        isApiCall(response.request(), "PUT", "/api/v1/decks/{id}/cards"),
+      );
       await importButton.click();
       const createRequest = await createPromise;
+      const saveResponse = await savePromise;
+      expect(saveResponse.ok()).toBe(true);
 
       const body = createRequest.postDataJSON() as { name?: string };
       expect(body.name).toBe("Named By Hand");
@@ -326,9 +331,14 @@ test.describe("deck import", () => {
       const createPromise = page.waitForRequest((request) =>
         isApiCall(request, "POST", "/api/v1/decks"),
       );
+      const savePromise = page.waitForResponse((response) =>
+        isApiCall(response.request(), "PUT", "/api/v1/decks/{id}/cards"),
+      );
 
       await page.getByRole("button", { name: /^Import \d+ cards?$/u }).click();
       const createRequest = await createPromise;
+      const saveResponse = await savePromise;
+      expect(saveResponse.ok()).toBe(true);
 
       const body = createRequest.postDataJSON() as { format?: string };
       expect(body.format).toBe("freeform");
@@ -368,7 +378,7 @@ test.describe("deck import", () => {
       // The badge is a control, not a label: it scrolls the list back to the
       // first unresolved row, which is ordered among the matched ones.
       const jump = page.getByRole("button", { name: /Jump to the first of 1 row/u });
-      await expect(jump).toHaveText("1 need attention");
+      await expect(jump).toHaveText("1 needs attention");
       await jump.click();
       // Name shows in the row and in the unresolved entry's search-field
       // placeholder; scope to the first occurrence.
@@ -382,7 +392,7 @@ test.describe("deck import", () => {
       await advanceFromMixedText(page);
 
       await expect(page.getByText("1 ready")).toBeVisible();
-      await expect(page.getByText("1 need attention")).toBeVisible();
+      await expect(page.getByText("1 needs attention")).toBeVisible();
 
       // Rows are sorted exact → needs-review → unresolved, so the last Skip
       // button corresponds to the unresolved "Totally Fake" row.
@@ -392,7 +402,7 @@ test.describe("deck import", () => {
 
       await expect(page.getByText("1 ready")).toBeVisible();
       await expect(page.getByText("1 skipped")).toBeVisible();
-      await expect(page.getByText(/\d+ need attention/u)).toHaveCount(0);
+      await expect(page.getByText(/\d+ needs? attention/u)).toHaveCount(0);
     });
 
     test("resolving an unresolved entry via search flips it to ready", async ({ page }) => {
@@ -412,7 +422,7 @@ test.describe("deck import", () => {
       await garenOption.click();
 
       await expect(page.getByText("2 ready")).toBeVisible();
-      await expect(page.getByText(/\d+ need attention/u)).toHaveCount(0);
+      await expect(page.getByText(/\d+ needs? attention/u)).toHaveCount(0);
     });
 
     test("changing an entry's zone via the zone picker updates it", async ({ page }) => {

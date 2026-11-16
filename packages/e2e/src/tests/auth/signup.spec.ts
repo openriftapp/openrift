@@ -121,15 +121,13 @@ test.describe("signup page", () => {
       const typed = `typed-${Date.now()}@test.com`;
       await page.getByLabel("Email").fill(typed);
 
-      const signInLink = page
+      await page
         .getByText(/Already have an account/iu)
-        .getByRole("link", { name: /sign in/iu });
-      const href = await signInLink.getAttribute("href");
-      expect(href).not.toBeNull();
-      const linkUrl = new URL(href ?? "", WEB_BASE_URL);
-      expect(linkUrl.pathname).toBe("/login");
-      expect(linkUrl.searchParams.get("email")).toBe(typed);
-      expect(href).toContain(`email=${encodeURIComponent(typed)}`);
+        .getByRole("link", { name: /sign in/iu })
+        .click();
+      await expect(page).toHaveURL(/\/login\?/u);
+      expect(new URL(page.url()).searchParams.get("email")).toBe(typed);
+      await expect(page.locator("#email")).toHaveValue(typed);
     });
 
     test("sign-in link carries the redirect param through when present", async ({ page }) => {
@@ -230,7 +228,7 @@ test.describe("signup page", () => {
   });
 
   test.describe("loading state", () => {
-    test("disables the button and shows 'Signing up...' while the request is in flight", async ({
+    test("keeps the Sign up label and disables the button while the request is in flight", async ({
       page,
     }) => {
       const { promise: released, resolve: release } = Promise.withResolvers<void>();
@@ -248,9 +246,9 @@ test.describe("signup page", () => {
       await page.getByLabel("Password").fill("SignupTestPassword1!");
       await page.getByRole("button", { name: /^sign up$/iu }).click();
 
-      const loadingButton = page.getByRole("button", { name: /signing up/iu });
+      const loadingButton = page.getByRole("button", { name: /^sign up$/iu });
       try {
-        await expect(loadingButton).toBeVisible();
+        await expect(loadingButton).toHaveAttribute("aria-busy", "true");
         await expect(loadingButton).toBeDisabled();
       } finally {
         release();

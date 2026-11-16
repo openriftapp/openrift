@@ -85,9 +85,7 @@ test.describe("reset password", () => {
       await expect(page.getByText(email, { exact: true })).toBeVisible();
     });
 
-    test("Send code button shows a 'Sending...' loading state while in flight", async ({
-      page,
-    }) => {
+    test("Send code button keeps its label and is busy while in flight", async ({ page }) => {
       const { promise: released, resolve: release } = Promise.withResolvers<void>();
       await page.route("**/api/auth/email-otp/send-verification-otp", async (route) => {
         await released;
@@ -103,9 +101,9 @@ test.describe("reset password", () => {
       await page.locator("#reset-email").fill("loading-state@test.com");
       await page.getByRole("button", { name: /send code/iu }).click();
 
-      const sending = page.getByRole("button", { name: "Sending…" });
+      const sending = page.getByRole("button", { name: /^send code$/iu });
       try {
-        await expect(sending).toBeVisible();
+        await expect(sending).toHaveAttribute("aria-busy", "true");
         await expect(sending).toBeDisabled();
       } finally {
         release();
@@ -137,11 +135,20 @@ test.describe("reset password", () => {
       await expect(page.getByRole("button", { name: /reset password/iu })).toBeDisabled();
     });
 
-    test("Reset password is disabled when new password is empty", async ({ page }) => {
+    test("an empty new password shows its error at submit and sends nothing", async ({ page }) => {
       await gotoStep2(page, "foo@test.com");
+      const resetRequests: string[] = [];
+      page.on("request", (request) => {
+        if (request.url().includes("/api/auth/email-otp/reset-password")) {
+          resetRequests.push(request.url());
+        }
+      });
 
       await fillOtp(page, "123456");
-      await expect(page.getByRole("button", { name: /reset password/iu })).toBeDisabled();
+      await page.getByRole("button", { name: /reset password/iu }).click();
+
+      await expect(page.getByText("Password must be at least 8 characters.")).toBeVisible();
+      expect(resetRequests).toEqual([]);
     });
 
     test("Reset password is enabled with a 6-digit OTP and a non-empty password", async ({

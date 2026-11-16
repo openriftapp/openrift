@@ -174,11 +174,13 @@ export function decksCardsRepo(db: Kysely<Database>) {
       }[],
     ): Promise<boolean> {
       return inTransaction(db, async (trx) => {
+        // A second UPDATE of a deck row this transaction already rewrote re-runs its
+        // FK checks and key-share locks the user row, deadlocking with account deletion.
         const deck = await trx
-          .selectFrom("decks")
-          .select("id")
+          .updateTable("decks")
+          .set({ updatedAt: sql`now()` })
           .where("id", "=", deckId)
-          .forUpdate()
+          .returning("id")
           .executeTakeFirst();
         if (!deck) {
           return false;
@@ -191,12 +193,6 @@ export function decksCardsRepo(db: Kysely<Database>) {
             .values(cards.map((card) => ({ deckId, ...card })))
             .execute();
         }
-
-        await trx
-          .updateTable("decks")
-          .set({ updatedAt: sql`now()` })
-          .where("id", "=", deckId)
-          .execute();
         return true;
       });
     },

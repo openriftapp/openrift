@@ -519,7 +519,7 @@ test.describe("collections import/export", () => {
       await skipButtons.nth(0).click();
 
       await expect(page.getByText("1 ready")).toBeVisible();
-      await expect(page.getByText("1 need attention")).toBeVisible();
+      await expect(page.getByText("1 needs attention")).toBeVisible();
       await expect(page.getByText("1 skipped")).toBeVisible();
 
       await page.getByRole("button", { name: /^Unskip$/u }).click();
@@ -541,7 +541,7 @@ test.describe("collections import/export", () => {
       await page.getByRole("option").first().click();
 
       await expect(page.getByText("2 ready")).toBeVisible();
-      await expect(page.getByText("1 need attention")).toBeVisible();
+      await expect(page.getByText("1 needs attention")).toBeVisible();
       await expect(page.getByRole("button", { name: /^Import 3 copies$/u })).toBeVisible();
     });
 

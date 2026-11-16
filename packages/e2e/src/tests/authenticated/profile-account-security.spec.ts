@@ -385,9 +385,17 @@ test.describe("profile account & security", () => {
       await page.getByRole("button", { name: /^cancel$/iu }).click();
 
       await expect(page.getByLabel(/^new email$/iu)).toHaveValue("");
-      await expect(
-        page.getByRole("button", { name: /send code to current email/iu }),
-      ).toBeDisabled();
+      await expect(page.locator('input[autocomplete="one-time-code"]')).toHaveCount(0);
+
+      const sendRequests: string[] = [];
+      page.on("request", (request) => {
+        if (request.url().includes("/api/auth/email-otp/send-verification-otp")) {
+          sendRequests.push(request.url());
+        }
+      });
+      await page.getByRole("button", { name: /send code to current email/iu }).click();
+      await expect(page.getByText("Please enter a valid email address.")).toBeVisible();
+      expect(sendRequests).toEqual([]);
     });
   });
 

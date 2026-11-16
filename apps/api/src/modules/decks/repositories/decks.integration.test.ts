@@ -1,3 +1,4 @@
+import { sleep } from "@openrift/shared/async";
 import { sql } from "kysely";
 import { afterAll, describe, expect, it } from "vitest";
 
@@ -317,6 +318,34 @@ describe.skipIf(!ctx)("decksRepo (integration)", () => {
 
     expect(results.filter((result) => result.status === "rejected")).toEqual([]);
     expect(await repo.cardsWithDetails(deckId, userId)).toHaveLength(1);
+  });
+
+  it("replaces deck cards without locking the owner's user row", async () => {
+    const deckId = createdDeckIds[0]!;
+    const cards = [
+      { cardId: seedCardId, zone: "main" as const, quantity: 3, preferredPrintingId: null },
+    ];
+    await repo.replaceCards(deckId, cards);
+
+    const holding = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    const userLock = db.transaction().execute(async (trx) => {
+      await sql`SELECT 1 FROM users WHERE id = ${userId} FOR UPDATE`.execute(trx);
+      holding.resolve();
+      await release.promise;
+    });
+
+    try {
+      await holding.promise;
+      const outcome = await Promise.race([
+        repo.replaceCards(deckId, cards).then(() => "replaced"),
+        sleep(3000).then(() => "blocked"),
+      ]);
+      expect(outcome).toBe("replaced");
+    } finally {
+      release.resolve();
+      await userLock;
+    }
   });
 
   it("stamps the deck when a card row alone changes, as an admin printing deletion does", async () => {

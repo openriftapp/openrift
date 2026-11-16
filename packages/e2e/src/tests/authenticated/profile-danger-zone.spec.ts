@@ -316,7 +316,7 @@ test.describe("profile danger zone", () => {
   });
 
   test.describe("loading state", () => {
-    test("confirm button reads Deleting... and stays disabled during flight", async ({
+    test("confirm button keeps its label and stays disabled and busy during flight", async ({
       page,
       request,
     }) => {
@@ -334,11 +334,12 @@ test.describe("profile danger zone", () => {
       const dialog = await openDialog(page);
       await dialog.getByPlaceholder("Your password").fill(password);
 
-      const confirmButton = dialog.getByRole("button", { name: /delete account|deleting/iu });
+      const confirmButton = dialog.getByRole("button", { name: /^delete account$/iu });
       await confirmButton.click();
 
       try {
-        await expect(confirmButton).toHaveText("Deleting…", { timeout: 5000 });
+        await expect(confirmButton).toHaveAttribute("aria-busy", "true", { timeout: 5000 });
+        await expect(confirmButton).toHaveText("Delete account");
         await expect(confirmButton).toBeDisabled();
         await expect(dialog).toBeVisible();
       } finally {
