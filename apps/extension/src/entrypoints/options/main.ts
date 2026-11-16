@@ -1,3 +1,4 @@
+import { errorMessage } from "@openrift/shared/strings";
 import { browser } from "wxt/browser";
 
 import { CARDMARKET_MATCH_PATTERN } from "@/lib/cardmarket-url";
@@ -22,7 +23,13 @@ const enableButton = element<HTMLButtonElement>("enable");
 const openSyncButton = element<HTMLButtonElement>("open-sync");
 
 async function renderPermission(): Promise<void> {
-  const granted = await browser.permissions.contains({ origins: ORIGINS }).catch(() => false);
+  let granted: boolean;
+  try {
+    granted = await browser.permissions.contains({ origins: ORIGINS });
+  } catch (error) {
+    permissionStatus.textContent = `The browser rejected the permission check: ${errorMessage(error)}`;
+    return;
+  }
   permissionStatus.textContent = granted
     ? "Allowed. Counts arrive on their own, on the OpenRift page and on seller offers."
     : "Not allowed yet. Until you allow it, the counts only update when you click the OpenRift icon on the page you are looking at.";
@@ -42,8 +49,8 @@ enableButton.addEventListener("click", () => {
     try {
       await browser.permissions.request({ origins: ORIGINS });
       await renderPermission();
-    } catch {
-      permissionStatus.textContent = "The browser refused that permission.";
+    } catch (error) {
+      permissionStatus.textContent = `The browser refused that permission: ${errorMessage(error)}`;
     }
   })();
 });

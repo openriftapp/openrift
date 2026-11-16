@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { extractArticleRows, extractCardmarketRows, extractWizardRows } from "./cardmarket-rows";
+import {
+  extractArticleRows,
+  extractCardmarketRows,
+  extractWizardRows,
+  rowCoverage,
+} from "./cardmarket-rows";
 
 // Trimmed from a saved seller offers page: the SVG rarity icon, the sprite URLs
 // and the cart form are dropped, every attribute that matters is verbatim.
@@ -163,6 +168,40 @@ describe("extractWizardRows", () => {
 
   it("has no product link to offer", () => {
     expect(extractWizardRows(documentFrom(WIZARD_CARD))[0]?.productLink).toBeUndefined();
+  });
+
+  it("leaves the quantity open when the quantity cell no longer holds a count", () => {
+    const doc = documentFrom(WIZARD_CARD);
+    const cell = doc.querySelector("tbody tr")?.children.item(2);
+    if (cell !== null && cell !== undefined) {
+      cell.textContent = "Undertitan";
+    }
+
+    expect(extractWizardRows(doc)[0]?.quantity).toBeUndefined();
+  });
+});
+
+describe("rowCoverage", () => {
+  it("counts rows read apart from rows whose card could be resolved", () => {
+    const drifted = documentFrom(
+      PLAIN_ROW.replaceAll("product-images.s3.cardmarket.com", "images.example.test"),
+    );
+
+    expect(rowCoverage(extractCardmarketRows(documentFrom(PLAIN_ROW + FOIL_ROW)))).toEqual({
+      rows: 2,
+      resolved: 2,
+    });
+    expect(rowCoverage(extractCardmarketRows(drifted))).toEqual({ rows: 1, resolved: 0 });
+  });
+
+  it("counts a wizard row without a readable quantity as unresolved", () => {
+    const doc = documentFrom(WIZARD_CARD);
+    const cell = doc.querySelector("tbody tr")?.children.item(2);
+    if (cell !== null && cell !== undefined) {
+      cell.textContent = "";
+    }
+
+    expect(rowCoverage(extractWizardRows(doc))).toEqual({ rows: 2, resolved: 1 });
   });
 });
 

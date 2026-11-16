@@ -1,5 +1,6 @@
 import { countNoun } from "@openrift/shared/strings";
 
+import type { RowCoverage } from "./cardmarket-rows";
 import { cardmarketPageKind } from "./cardmarket-url";
 import type { PageDeckExtract } from "./deck-extract";
 import { countTextCards } from "./deck-extract";
@@ -74,12 +75,34 @@ export function deckSummary(deck: PageDeckExtract | undefined): string | undefin
   return deck.name === undefined ? `A decklist with ${counted}` : `${deck.name} · ${counted}`;
 }
 
-export function annotateResult(annotated: number | undefined): string {
+/** `annotated` is absent when nothing has been synchronized. */
+export interface AnnotateReport extends RowCoverage {
+  annotated?: number;
+}
+
+const UNSYNCED_RESULT = "Pick buttons added. Synchronize to see what you own and want.";
+
+function markedText(annotated: number | undefined): string {
   if (annotated === undefined) {
-    return "Counts shown on this page.";
+    return UNSYNCED_RESULT;
   }
   if (annotated === 0) {
     return "Nothing on this page is on your lists.";
   }
   return `Marked ${countNoun(annotated, "card")}.`;
+}
+
+export function annotateResult(report: AnnotateReport | undefined, synced: boolean): string {
+  if (report === undefined) {
+    return synced ? "Counts shown on this page." : UNSYNCED_RESULT;
+  }
+  if (report.rows === 0) {
+    return "Found no cards on this page.";
+  }
+  if (report.resolved === 0) {
+    return "Could not read the cards on this page. Cardmarket may have changed its layout.";
+  }
+  const marked = markedText(report.annotated);
+  const unread = report.rows - report.resolved;
+  return unread === 0 ? marked : `${marked} ${countNoun(unread, "card")} could not be read.`;
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { countsForProduct, readSnapshotFromPage } from "./overlay-snapshot";
+import { countsForProduct, readSnapshotFromPage, watchSnapshots } from "./overlay-snapshot";
 
 const CAPTURED_AT = "2026-09-09T12:00:00.000Z";
 
@@ -114,5 +114,64 @@ describe("countsForProduct", () => {
       wanted: 0,
       cardtraderCents: null,
     });
+  });
+});
+
+describe("watchSnapshots", () => {
+  async function settle(): Promise<void> {
+    await Promise.resolve();
+    await Promise.resolve();
+  }
+
+  it("hands over the block already there and every later one, but not a repeat", async () => {
+    const doc = pageWith(VALID);
+    const seen: string[] = [];
+    const stop = watchSnapshots(doc, (snapshot) => seen.push(snapshot.generatedAt));
+    const block = doc.querySelector("script");
+
+    block?.append("");
+    await settle();
+    if (block !== null) {
+      block.textContent = VALID.replace("11:59", "12:30");
+    }
+    await settle();
+    block?.firstChild?.replaceWith(VALID.replace("11:59", "12:45"));
+    await settle();
+
+    expect(seen).toEqual([
+      "2026-09-09T11:59:00.000Z",
+      "2026-09-09T12:30:00.000Z",
+      "2026-09-09T12:45:00.000Z",
+    ]);
+    stop();
+  });
+
+  it("catches a text update made in place", async () => {
+    const doc = pageWith(VALID);
+    const seen: string[] = [];
+    const stop = watchSnapshots(doc, (snapshot) => seen.push(snapshot.generatedAt));
+
+    const text = doc.querySelector("script")?.firstChild;
+    if (text instanceof Text) {
+      text.data = VALID.replace("11:59", "13:00");
+    }
+    await settle();
+
+    expect(seen).toEqual(["2026-09-09T11:59:00.000Z", "2026-09-09T13:00:00.000Z"]);
+    stop();
+  });
+
+  it("waits for a block that arrives late and stops when told", async () => {
+    const doc = new DOMParser().parseFromString("<html><body></body></html>", "text/html");
+    const seen: string[] = [];
+    const stop = watchSnapshots(doc, (snapshot) => seen.push(snapshot.generatedAt));
+
+    doc.body.innerHTML = pageWith(VALID).body.innerHTML;
+    await settle();
+    stop();
+    doc.body.innerHTML = pageWith(VALID.replace("11:59", "14:00")).body.innerHTML;
+    await settle();
+
+    expect(seen).toEqual(["2026-09-09T11:59:00.000Z"]);
   });
 });

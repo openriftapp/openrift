@@ -56,6 +56,9 @@
 - fix(Search): **Scheduled bans apply on their start day** — ban searches pick up a scheduled ban on the day it starts.
 - fix(Tournaments): **Drops keep reported results** — dropping a player no longer replaces a group match result that was entered at the same moment with a walkover.
 - fix(Deck checks): **Bans judged on the event day** — deck lists are checked against bans in effect on the event's start date, so a ban that starts before the event is flagged ahead of time.
+- fix(Collection): **Picks survive the sign-in** — sending Cardmarket picks to OpenRift keeps them in the extension until you clear them, so a login on the way no longer loses them.
+- fix(Collection): **Wizard picks add up across sellers** — Pick for OpenRift takes the full quantity of a card the Shopping Wizard splits across several sellers.
+- fix(Collection): **Extension stops repainting Cardmarket pages** — the companion no longer redraws a Cardmarket page over and over once the page has changed, and says when it cannot read the cards on it.
 
 ## 2026-11-15
 

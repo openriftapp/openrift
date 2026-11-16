@@ -74,15 +74,47 @@ describe("deckSummary", () => {
 
 describe("annotateResult", () => {
   it("counts what it marked", () => {
-    expect(annotateResult(4)).toBe("Marked 4 cards.");
-    expect(annotateResult(1)).toBe("Marked 1 card.");
+    expect(annotateResult({ rows: 6, resolved: 6, annotated: 4 }, true)).toBe("Marked 4 cards.");
+    expect(annotateResult({ rows: 6, resolved: 6, annotated: 1 }, true)).toBe("Marked 1 card.");
   });
 
   it("says so when nothing on the page is on a list", () => {
-    expect(annotateResult(0)).toBe("Nothing on this page is on your lists.");
+    expect(annotateResult({ rows: 6, resolved: 6, annotated: 0 }, true)).toBe(
+      "Nothing on this page is on your lists.",
+    );
   });
 
-  it("stays positive when the count did not survive injection", () => {
-    expect(annotateResult(undefined)).toBe("Counts shown on this page.");
+  it("asks for a sync when the page was marked without counts", () => {
+    expect(annotateResult({ rows: 6, resolved: 6 }, false)).toBe(
+      "Pick buttons added. Synchronize to see what you own and want.",
+    );
+  });
+
+  it("says the page could not be read when rows were found but no card in them", () => {
+    expect(annotateResult({ rows: 6, resolved: 0, annotated: 0 }, true)).toBe(
+      "Could not read the cards on this page. Cardmarket may have changed its layout.",
+    );
+    expect(annotateResult({ rows: 6, resolved: 0 }, false)).toBe(
+      "Could not read the cards on this page. Cardmarket may have changed its layout.",
+    );
+  });
+
+  it("names the rows it could not read beside the ones it marked", () => {
+    expect(annotateResult({ rows: 6, resolved: 4, annotated: 3 }, true)).toBe(
+      "Marked 3 cards. 2 cards could not be read.",
+    );
+  });
+
+  it("finds no cards on a page without rows", () => {
+    expect(annotateResult({ rows: 0, resolved: 0, annotated: 0 }, true)).toBe(
+      "Found no cards on this page.",
+    );
+  });
+
+  it("stays positive when the report did not survive injection", () => {
+    expect(annotateResult(undefined, true)).toBe("Counts shown on this page.");
+    expect(annotateResult(undefined, false)).toBe(
+      "Pick buttons added. Synchronize to see what you own and want.",
+    );
   });
 });

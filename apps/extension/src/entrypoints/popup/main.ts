@@ -1,4 +1,3 @@
-import { sleep } from "@openrift/shared/async";
 import { errorMessage } from "@openrift/shared/strings";
 import { browser } from "wxt/browser";
 
@@ -8,6 +7,7 @@ import {
   annotateTab,
   captureSnapshot,
   extractDeck,
+  snapshotChange,
   storeBasket,
   storedBasket,
   storedSnapshot,
@@ -25,7 +25,6 @@ import { annotateResult, deckSummary, popupPlan } from "@/lib/popup-actions";
 
 const ORIGINS = [CARDMARKET_MATCH_PATTERN, openriftMatchPattern()];
 const REFRESH_TIMEOUT_MS = 20_000;
-const REFRESH_POLL_MS = 400;
 
 function element<T extends HTMLElement>(id: string): T {
   const found = document.querySelector<T>(`#${id}`);
@@ -105,8 +104,8 @@ async function renderSync(): Promise<void> {
 async function granted(): Promise<boolean> {
   try {
     return await browser.permissions.contains({ origins: ORIGINS });
-  } catch {
-    // An origin the browser will not accept is a bug, not a denial.
+  } catch (error) {
+    showResult(`The browser rejected the permission check: ${errorMessage(error)}`, true);
     return false;
   }
 }
@@ -114,18 +113,6 @@ async function granted(): Promise<boolean> {
 async function activeTab(): Promise<Tab | undefined> {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
   return tab?.id === undefined ? undefined : { id: tab.id, index: tab.index, url: tab.url ?? "" };
-}
-
-async function waitForCapture(before: string | undefined): Promise<boolean> {
-  const deadline = Date.now() + REFRESH_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    await sleep(REFRESH_POLL_MS);
-    const current = await storedSnapshot();
-    if (current?.capturedAt !== before) {
-      return true;
-    }
-  }
-  return false;
 }
 
 async function capture(tabId: number, quiet: boolean): Promise<void> {
@@ -141,12 +128,8 @@ async function capture(tabId: number, quiet: boolean): Promise<void> {
 }
 
 async function annotate(tabId: number): Promise<void> {
-  const annotated = await annotateTab(tabId);
-  if ((await storedSnapshot()) === undefined) {
-    showResult("Pick buttons added. Synchronize to see what you own and want.");
-    return;
-  }
-  showResult(annotateResult(annotated));
+  const report = await annotateTab(tabId);
+  showResult(annotateResult(report, (await storedSnapshot()) !== undefined));
 }
 
 function actionButton(label: string, onClick: () => Promise<void>): HTMLButtonElement {
@@ -170,7 +153,6 @@ async function sendPicks(seller: string, tab: Tab | undefined): Promise<void> {
     url: picksImportUrl(payload),
     ...(tab === undefined ? {} : { index: tab.index + 1 }),
   });
-  await storeBasket(removeSeller(basket, seller));
   window.close();
 }
 
@@ -207,10 +189,10 @@ async function refresh(): Promise<void> {
 
   showResult("Fetching from OpenRift…");
   const previous = await storedSnapshot();
-  const before = previous?.capturedAt;
+  const captured = snapshotChange(previous?.capturedAt, REFRESH_TIMEOUT_MS);
   const tab = await browser.tabs.create({ url: overlaySyncUrl(), active: false });
 
-  if (await waitForCapture(before)) {
+  if (await captured) {
     if (tab.id !== undefined) {
       await browser.tabs.remove(tab.id);
     }

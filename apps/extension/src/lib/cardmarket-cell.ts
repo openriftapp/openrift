@@ -143,22 +143,35 @@ function buildHeader(cell: HTMLElement, doc: Document): void {
   toggle.setAttribute("aria-expanded", "false");
   toggle.textContent = "i";
 
-  const box = helpBox(doc);
-  toggle.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    box.hidden = !box.hidden;
-    toggle.setAttribute("aria-expanded", String(!box.hidden));
-  });
-  doc.addEventListener("click", (event) => {
-    if (!box.hidden && !(event.target instanceof Node && cell.contains(event.target))) {
-      box.hidden = true;
-      toggle.setAttribute("aria-expanded", "false");
-    }
-  });
-
   cell.style.setProperty("position", "relative");
-  cell.replaceChildren(label, toggle, box);
+  cell.replaceChildren(label, toggle, helpBox(doc));
+}
+
+function setHelpOpen(toggle: Element, box: HTMLElement, open: boolean): void {
+  box.hidden = !open;
+  toggle.setAttribute("aria-expanded", String(open));
+}
+
+/**
+ * Opens or closes the column help for a click anywhere on the page. True when the
+ * click was on a help toggle and belongs to the extension alone.
+ */
+export function helpClick(doc: Document, target: EventTarget | null): boolean {
+  const clicked = target instanceof Element ? target : null;
+  const toggle = clicked?.closest(`[${HELP_TOGGLE_ATTRIBUTE}]`) ?? null;
+  for (const box of doc.querySelectorAll<HTMLElement>(`[${HELP_ATTRIBUTE}]`)) {
+    const cell = box.parentElement;
+    const own = cell?.querySelector(`[${HELP_TOGGLE_ATTRIBUTE}]`);
+    if (cell === null || own === null || own === undefined) {
+      continue;
+    }
+    if (own === toggle) {
+      setHelpOpen(own, box, box.hidden !== false);
+    } else if (!box.hidden && !(target instanceof Node && cell.contains(target))) {
+      setHelpOpen(own, box, false);
+    }
+  }
+  return toggle !== null;
 }
 
 /** A column label in the table header, placed the same way as the row cells. */

@@ -85,16 +85,24 @@ describe("wizardLines", () => {
 });
 
 describe("relayoutSellerCards", () => {
-  it("fires a resize on the page's window", () => {
+  it("fires a resize only when a seller card's height changed since the last one", () => {
     // A DOMParser document has no window; the live one does.
     let resized = 0;
     window.addEventListener("resize", () => {
       resized += 1;
     });
+    document.body.innerHTML = card(wizardRow(1, 866_920, "Undertitan", 2, "0,35 €"));
+    const sellerCard = document.querySelector<HTMLElement>(".detailed-result-card");
+    let height = 300;
+    Object.defineProperty(sellerCard, "offsetHeight", { get: () => height });
 
-    relayoutSellerCards(document);
+    expect(relayoutSellerCards(document, document)).toBe(true);
+    expect(relayoutSellerCards(document, document)).toBe(false);
+    height = 324;
+    expect(relayoutSellerCards(document, document)).toBe(true);
 
-    expect(resized).toBe(1);
+    expect(resized).toBe(2);
+    document.body.replaceChildren();
   });
 });
 

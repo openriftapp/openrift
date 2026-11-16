@@ -49,14 +49,13 @@ const COLUMN_TOTAL_STYLE = "margin:0 0 6px;font-size:13px;font-weight:600";
 const BELOW_STYLE = "margin-top:12px;padding-top:10px;border-top:1px solid rgba(128,128,128,0.35)";
 
 function setText(element: Element, text: string): void {
-  // Equal text still replaces the node, which the page observer would take for a change.
   if (element.textContent !== text) {
     element.textContent = text;
   }
 }
 
 function lineOf(row: CardmarketArticleRow, snapshot: OverlaySnapshot): WizardLine | undefined {
-  if (row.idProduct === undefined || row.priceCents === undefined) {
+  if (row.idProduct === undefined || row.priceCents === undefined || row.quantity === undefined) {
     return undefined;
   }
   return {
@@ -326,12 +325,23 @@ export function zeroShippingToggle(target: EventTarget | null): boolean | undefi
     : undefined;
 }
 
-/**
- * Cardmarket positions the seller cards with Bootstrap's masonry, measured once at load.
- * Taller cards overlap until it measures again, which it does on a window resize.
- */
-export function relayoutSellerCards(document: Document): void {
-  document.defaultView?.dispatchEvent(new Event("resize"));
+const measuredHeights = new WeakMap<Element, number>();
+
+// Cardmarket's masonry measures the seller cards only at load and on a window resize,
+// and an isolated content script cannot call it, so a changed height needs the event.
+export function relayoutSellerCards(root: ParentNode, document: Document): boolean {
+  let changed = false;
+  for (const card of root.querySelectorAll<HTMLElement>(CARD_SELECTOR)) {
+    const height = card.offsetHeight;
+    if (measuredHeights.get(card) !== height) {
+      measuredHeights.set(card, height);
+      changed = true;
+    }
+  }
+  if (changed) {
+    document.defaultView?.dispatchEvent(new Event("resize"));
+  }
+  return changed;
 }
 
 /** True when the click landed on the "Pick for OpenRift" button. */

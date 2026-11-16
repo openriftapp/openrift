@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { overlayCell, overlayHeader } from "./cardmarket-cell";
+import { helpClick, overlayCell, overlayHeader } from "./cardmarket-cell";
 
 function documentFrom(bodyHtml: string): Document {
   return new DOMParser().parseFromString(`<html><body>${bodyHtml}</body></html>`, "text/html");
@@ -73,13 +73,29 @@ describe("overlayHeader", () => {
     const help = doc.querySelector<HTMLElement>("[data-openrift-help]");
 
     expect(help?.hidden).toBe(true);
-    toggle?.click();
+    expect(helpClick(doc, toggle)).toBe(true);
     expect(help?.hidden).toBe(false);
     expect(toggle?.getAttribute("aria-expanded")).toBe("true");
     expect(help?.textContent).toContain("own · want");
 
-    rowOf(doc, "#stockRow1").click();
+    expect(helpClick(doc, help)).toBe(false);
+    expect(help?.hidden).toBe(false);
+
+    expect(helpClick(doc, rowOf(doc, "#stockRow1"))).toBe(false);
     expect(help?.hidden).toBe(true);
+    expect(toggle?.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("adds no listener of its own when the header is built again", () => {
+    const doc = documentFrom(TABLE);
+    const added = vi.spyOn(doc, "addEventListener");
+
+    overlayHeader(doc, doc);
+    doc.querySelector(".table-header [data-openrift-cell]")?.replaceChildren();
+    overlayHeader(doc, doc);
+
+    expect(doc.querySelectorAll("[data-openrift-help-toggle]")).toHaveLength(1);
+    expect(added).not.toHaveBeenCalled();
   });
 
   it("does nothing on a page without a table header", () => {

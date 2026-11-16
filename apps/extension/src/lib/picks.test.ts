@@ -13,6 +13,7 @@ import {
   removeSeller,
   sellerPicks,
   sellerPicksText,
+  setPickQuantities,
 } from "./picks";
 
 const VOLIBEAR: PickIdentity = {
@@ -66,6 +67,28 @@ describe("adjustPick", () => {
     expect(pickedQuantity(basket, "a", VOLIBEAR)).toBe(1);
     expect(pickedQuantity(basket, "b", VOLIBEAR)).toBe(3);
     expect(removeSeller(basket, "a").sellers).toEqual({ b: basket.sellers.b });
+  });
+});
+
+describe("setPickQuantities", () => {
+  it("sums lines that share a basket key, as a product split across two wizard sellers", () => {
+    const basket = setPickQuantities(emptyBasket(), "wizard", [
+      { ...VOLIBEAR, quantity: 2 },
+      { ...MARAUDER, quantity: 1 },
+      { ...VOLIBEAR, quantity: 3 },
+    ]);
+
+    expect(pickedQuantity(basket, "wizard", VOLIBEAR)).toBe(5);
+    expect(pickedQuantity(basket, "wizard", MARAUDER)).toBe(1);
+  });
+
+  it("replaces what was picked before and stores only the pick's own fields", () => {
+    const before = adjustPick(emptyBasket(), "wizard", VOLIBEAR, 7);
+    const line = { ...VOLIBEAR, quantity: 2, seller: "card-1", cardmarketCents: 120 };
+
+    const basket = setPickQuantities(before, "wizard", [line]);
+
+    expect(basket.sellers.wizard?.[pickKey(VOLIBEAR)]).toEqual({ ...VOLIBEAR, quantity: 2 });
   });
 });
 

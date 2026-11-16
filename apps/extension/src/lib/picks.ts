@@ -146,3 +146,28 @@ export function sellerPicksText(entry: SellerPicks): string {
   const copies = entry.copies === entry.cards ? "" : ` (${entry.copies} copies)`;
   return `${cards}${copies} from ${entry.seller}`;
 }
+
+/** Sets each pick to the summed quantity of every line sharing its basket key. */
+export function setPickQuantities(
+  basket: PicksBasket,
+  seller: string,
+  lines: readonly (PickIdentity & { quantity: number })[],
+): PicksBasket {
+  const totals = new Map<string, CardmarketPick>();
+  for (const line of lines) {
+    const key = pickKey(line);
+    totals.set(key, {
+      idProduct: line.idProduct,
+      finish: line.finish,
+      idLanguage: line.idLanguage,
+      languageLabel: line.languageLabel,
+      productName: line.productName,
+      quantity: (totals.get(key)?.quantity ?? 0) + line.quantity,
+    });
+  }
+  let next = basket;
+  for (const pick of totals.values()) {
+    next = adjustPick(next, seller, pick, pick.quantity - pickedQuantity(next, seller, pick));
+  }
+  return next;
+}

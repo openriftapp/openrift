@@ -13,7 +13,7 @@ export interface CardmarketArticleRow {
   idLanguage: number | undefined;
   languageLabel: string | undefined;
   /** Copies the row stands for: one on an offers page, the wanted amount in the wizard. */
-  quantity: number;
+  quantity: number | undefined;
   /** The seller's asking price per copy, in euro cents. */
   priceCents: number | undefined;
   priceElements: HTMLElement[];
@@ -147,10 +147,10 @@ export function extractArticleRows(root: ParentNode): CardmarketArticleRow[] {
   });
 }
 
-function wizardQuantity(element: HTMLElement): number {
+function wizardQuantity(element: HTMLElement): number | undefined {
   const cell = element.children.item(WIZARD_QUANTITY_CELL);
-  const value = Math.trunc(Number(cell?.textContent?.trim()));
-  return Number.isInteger(value) && value > 0 ? value : 1;
+  const value = Number(cell?.textContent?.trim());
+  return Number.isInteger(value) && value > 0 ? value : undefined;
 }
 
 /**
@@ -180,4 +180,18 @@ export function extractWizardRows(root: ParentNode): CardmarketArticleRow[] {
 export function extractCardmarketRows(root: ParentNode): CardmarketArticleRow[] {
   const offers = extractArticleRows(root);
   return offers.length > 0 ? offers : extractWizardRows(root);
+}
+
+export interface RowCoverage {
+  rows: number;
+  resolved: number;
+}
+
+/** Resolved rows have a product id and, in the wizard, a readable quantity. */
+export function rowCoverage(rows: readonly CardmarketArticleRow[]): RowCoverage {
+  return {
+    rows: rows.length,
+    resolved: rows.filter((row) => row.idProduct !== undefined && row.quantity !== undefined)
+      .length,
+  };
 }

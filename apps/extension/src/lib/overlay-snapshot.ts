@@ -117,6 +117,34 @@ export function readSnapshotFromPage(
   };
 }
 
+/**
+ * Hands every valid hand-off block to `onSnapshot`, the one already there and each one the
+ * page renders later, until the returned stop is called. An unchanged block is not re-read.
+ */
+export function watchSnapshots(
+  doc: Document,
+  onSnapshot: (snapshot: OverlaySnapshot) => void,
+): () => void {
+  let lastText: string | null | undefined;
+  const check = () => {
+    const text = doc.querySelector(PAYLOAD_SELECTOR)?.textContent;
+    if (text === lastText) {
+      return;
+    }
+    lastText = text;
+    const snapshot = readSnapshotFromPage(doc, new Date().toISOString());
+    if (snapshot !== undefined) {
+      onSnapshot(snapshot);
+    }
+  };
+  const observer = new MutationObserver(check);
+  observer.observe(doc.documentElement, { childList: true, subtree: true, characterData: true });
+  check();
+  return () => {
+    observer.disconnect();
+  };
+}
+
 export function countsForProduct(
   snapshot: OverlaySnapshot,
   idProduct: number | undefined,

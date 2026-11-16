@@ -15,14 +15,17 @@ async function hasPermission(origin: string): Promise<boolean> {
 
 /** Everything here needs a granted host permission; the popup covers the rest by hand. */
 async function handlePageLoad(tabId: number, url: string): Promise<void> {
+  let inject: (() => Promise<unknown>) | undefined;
+  if (cardmarketPageKind(url) !== undefined && (await hasPermission(CARDMARKET_MATCH_PATTERN))) {
+    inject = () => annotateTab(tabId);
+  } else if (isOverlaySyncUrl(url) && (await hasPermission(openriftMatchPattern()))) {
+    inject = () => captureSnapshot(tabId);
+  }
+  if (inject === undefined) {
+    return;
+  }
   try {
-    if (cardmarketPageKind(url) !== undefined && (await hasPermission(CARDMARKET_MATCH_PATTERN))) {
-      await annotateTab(tabId);
-      return;
-    }
-    if (isOverlaySyncUrl(url) && (await hasPermission(openriftMatchPattern()))) {
-      await captureSnapshot(tabId);
-    }
+    await inject();
   } catch {
     // A page that navigated away mid-injection is not worth reporting.
   }
