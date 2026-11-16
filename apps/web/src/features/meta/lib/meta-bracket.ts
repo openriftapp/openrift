@@ -5,7 +5,7 @@ import type {
   MetaEventPlayer,
 } from "@openrift/shared/types/api/meta";
 
-import { bracketRoundLabel } from "@/lib/bracket-round-label";
+import { bracketMatchShortLabel, bracketRoundLabel } from "@/lib/bracket-round-label";
 import { m } from "@/paraglide/messages.js";
 
 export interface MetaBracketSeat {
@@ -16,6 +16,7 @@ export interface MetaBracketSeat {
 
 interface MetaBracketMatch {
   key: string;
+  label: string | undefined;
   seats: [MetaBracketSeat, MetaBracketSeat];
 }
 
@@ -45,8 +46,9 @@ export function bracketPlayers(
   return [...byId.values()];
 }
 
-function toBracketMatch(match: MetaEventMatch): MetaBracketMatch {
+function toBracketMatch(match: MetaEventMatch, label: string | undefined): MetaBracketMatch {
   return {
+    label,
     key: `${match.phaseOrder}:${match.roundNumber}:${match.tableNumber ?? "x"}:${match.player1Id}`,
     seats: [
       {
@@ -93,6 +95,34 @@ function cutPhase(
 }
 
 /**
+ * Sources list a round's matches in their own order; each goes to the slot its winner takes
+ * next round. `placed` is false for a round where some match had no such slot.
+ */
+function inSlotOrder(rounds: readonly MetaEventMatch[][]): {
+  rounds: MetaEventMatch[][];
+  placed: boolean[];
+} {
+  const ordered = rounds.map((round) => [...round]);
+  const placed = rounds.map(() => true);
+  for (let index = ordered.length - 2; index >= 0; index -= 1) {
+    const remaining = [...(ordered[index] ?? [])];
+    const slots: (MetaEventMatch | undefined)[] = [];
+    for (const next of ordered[index + 1] ?? []) {
+      for (const playerId of [next.player1Id, next.player2Id]) {
+        const at = remaining.findIndex((match) => playerId !== null && match.winnerId === playerId);
+        slots.push(at === -1 ? undefined : remaining.splice(at, 1)[0]);
+      }
+    }
+    placed[index] = remaining.length === 0;
+    const leftovers = remaining.values();
+    ordered[index] = [...slots.map((slot) => slot ?? leftovers.next().value), ...leftovers].filter(
+      (match) => match !== undefined,
+    );
+  }
+  return { rounds: ordered, placed };
+}
+
+/**
  * Fallback for a source with no phase list: accepted only when the last
  * phase's rounds halve down to a single match, so Swiss rounds never render as a bracket.
  */
@@ -128,11 +158,19 @@ export function metaEventBracket(
   }
 
   const lastIndex = rounds.length - 1;
+  const slotted = inSlotOrder(rounds);
   return {
     title: m.meta_bracket_top_n({ size: String(phase?.rankRequired ?? 2 ** rounds.length) }),
-    rounds: rounds.map((round, index) => ({
+    rounds: slotted.rounds.map((round, index) => ({
       label: bracketRoundLabel(lastIndex - index),
-      matches: round.map((match) => toBracketMatch(match)),
+      matches: round.map((match, slot) =>
+        toBracketMatch(
+          match,
+          round.length === 2 ** (lastIndex - index) && slotted.placed[index]
+            ? bracketMatchShortLabel(lastIndex - index, slot + 1)
+            : undefined,
+        ),
+      ),
       // A last round with a third-place match beside the final isn't marked:
       // nothing in the payload says which of the two is which.
       isFinal: index === lastIndex && round.length === 1,

@@ -22,7 +22,13 @@ const players = ["Ana", "Bo", "Cy", "Dee"].map((playerName, index) =>
 /** A top 4: two semifinals into a final Ana takes. */
 const topFour: MetaEventMatch[] = [
   metaMatch({ roundNumber: 1, tableNumber: 1, player1Id: "p-1", player2Id: "p-4" }),
-  metaMatch({ roundNumber: 1, tableNumber: 2, player1Id: "p-2", player2Id: "p-3" }),
+  metaMatch({
+    roundNumber: 1,
+    tableNumber: 2,
+    player1Id: "p-2",
+    player2Id: "p-3",
+    winnerId: "p-2",
+  }),
   metaMatch({
     roundNumber: 2,
     tableNumber: 1,
@@ -65,7 +71,8 @@ describe("MetaEventBracket", () => {
     render(<MetaEventBracket matches={topFour} phases={topFourPhases} players={players} />);
     expect(screen.getByRole("heading", { name: "Top 4" })).toBeInTheDocument();
     expect(screen.getByText("Semifinals")).toBeInTheDocument();
-    expect(screen.getByText("Final")).toBeInTheDocument();
+    expect(screen.getAllByText("Final")).toHaveLength(2);
+    expect(screen.getByText("SF 1")).toBeInTheDocument();
   });
 
   it("names each seat's player and their champion", () => {
@@ -169,7 +176,9 @@ describe("MetaEventBracket", () => {
       metaMatch({ roundNumber: 2, player1Id: "p-1", player2Id: "gone", winnerId: "p-1" }),
     ];
     render(<MetaEventBracket matches={orphan} phases={topFourPhases} players={players} />);
-    const finalColumn = screen.getByText("Final").parentElement as HTMLElement;
+    const finalColumn = screen
+      .getAllByText("Final")[0]!
+      .closest("[data-slot=bracket-column]") as HTMLElement;
     expect(within(finalColumn).getByText("Unknown")).toBeInTheDocument();
     expect(within(finalColumn).queryByText("Bye")).toBeNull();
   });

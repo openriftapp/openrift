@@ -8,6 +8,7 @@ import {
   BracketSeedMark,
 } from "@/components/bracket/bracket";
 import { LegendFinishGrid, LegendFinishTile } from "@/components/deck-identity/legend-finish-tile";
+import { Button } from "@/components/ui/button";
 import { Medal, Podium } from "@/components/ui/podium";
 import type { PodiumSeat } from "@/components/ui/podium";
 import { RankBand } from "@/components/ui/rank-band";
@@ -160,11 +161,11 @@ export function PeopleSection() {
 
       <DemoGroup
         {...GROUPS.bracket}
-        hint="Columns stack final-first on phones. A seat row without a mark keeps the mark column so names line up."
+        hint="Columns stack in bracket order on phones; a collapsed round folds behind a toggle there. A seat row without a mark keeps the mark column so names line up."
       >
         <DemoRow label="Top 4" className="block">
           <BracketColumns columnCount={2}>
-            <BracketColumn label="Semifinal">
+            <BracketColumn label="Semifinal" collapsed>
               <BracketMatchCard label="Table 1" aside="Best of 3">
                 <BracketSeatRow
                   winner
@@ -185,7 +186,15 @@ export function PeopleSection() {
               </BracketMatchCard>
             </BracketColumn>
             <BracketColumn label="Final">
-              <BracketMatchCard isFinal label="Final">
+              <BracketMatchCard
+                isFinal
+                label="Final"
+                footer={
+                  <Button variant="secondary" size="sm">
+                    Enter result
+                  </Button>
+                }
+              >
                 <BracketSeatRow
                   winner
                   mark={<BracketRankMark rank={1} text="1" />}

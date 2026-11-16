@@ -14,14 +14,12 @@ import {
   useStartGroupStageRound,
   useSubmitTournamentResult,
 } from "@/features/tournaments/hooks/use-tournament-run";
-import { bracketMode } from "@/features/tournaments/lib/cut-bracket-display";
 import { cutMatchShortLabel } from "@/features/tournaments/lib/group-cut-display";
 import { groupUnitViews } from "@/features/tournaments/lib/group-cut-units";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 import { CutBracketCompact } from "./cut-bracket-compact";
-import { CutBracketView } from "./cut-bracket-view";
 import { CutGenerateBand, NextCutRoundBand } from "./cut-generate-band";
 import { GenerateGroupsBand } from "./group-generate-band";
 import { GroupSeatEditor } from "./group-seat-editor";
@@ -94,28 +92,25 @@ export function GroupCutPairingsSection({
     ) : null;
   let bracket: ReactNode = null;
   if (editor === null && bracketRounds.length > 0) {
-    bracket =
-      bracketMode({ completed, canEnter: manage }) === "compact" ? (
-        <CutBracketCompact
-          rounds={bracketRounds}
-          cutSize={tournament.cutSize}
-          groupStage={groupStage}
-        />
-      ) : (
-        <CutBracketView
-          rounds={bracketRounds}
-          cutSize={tournament.cutSize}
-          groupStage={groupStage}
-          scheme={tournament.scoringScheme}
-          matchFormat={tournament.matchFormat}
-          winPoints={tournament.winPoints}
-          drawPoints={tournament.drawPoints}
-          canEnterResult={(round) => !completed && round.status === "reporting"}
-          onSubmitResult={(podId, submission) =>
-            submitResult.mutateAsync({ id, podId, ...submission })
-          }
-        />
-      );
+    bracket = (
+      <CutBracketCompact
+        rounds={bracketRounds}
+        cutSize={tournament.cutSize}
+        groupStage={groupStage}
+        entry={
+          manage && !completed
+            ? {
+                matchFormat: tournament.matchFormat,
+                winPoints: tournament.winPoints,
+                drawPoints: tournament.drawPoints,
+                canEnterResult: (round) => round.status === "reporting",
+                onSubmitResult: (podId, submission) =>
+                  submitResult.mutateAsync({ id, podId, ...submission }),
+              }
+            : undefined
+        }
+      />
+    );
   }
 
   return (

@@ -63,16 +63,6 @@ export function seedsByPlayer(groupStage: Pick<GroupStageView, "ranking">): Map<
   );
 }
 
-export function bracketMode({
-  completed,
-  canEnter,
-}: {
-  completed: boolean;
-  canEnter: boolean;
-}): "compact" | "editable" {
-  return completed || !canEnter ? "compact" : "editable";
-}
-
 export function isHigherSeed(
   pod: { members: readonly { playerId: string }[] },
   playerId: string,
@@ -86,19 +76,17 @@ export function isHigherSeed(
   return own !== undefined && seeds.length > 0 && own === Math.min(...seeds);
 }
 
-export function defaultBracketRound(
-  columns: readonly BracketColumn[],
-  rounds: readonly PodRoundResponse[],
-  completed: boolean,
-): number | undefined {
-  const first = columns[0]?.roundNumber;
-  if (completed) {
-    return columns.at(-1)?.roundNumber;
+/** While the cut runs, every round before the latest drawn one; none once the final is decided. */
+export function collapsedBracketRounds(columns: readonly BracketColumn[]): Set<number> {
+  const final = columns.at(-1)?.matches[0]?.pod;
+  if (final?.resultStatus === "reported") {
+    return new Set();
   }
-  const byRoundNumber = new Map(rounds.map((round) => [round.roundNumber, round]));
-  const drawn = columns.filter((column) => byRoundNumber.has(column.roundNumber));
-  const open = drawn.findLast(
-    (column) => byRoundNumber.get(column.roundNumber)?.status === "reporting",
+  return new Set(
+    columns
+      .filter((_, index) =>
+        columns.slice(index + 1).some((later) => later.matches.some((match) => match.pod)),
+      )
+      .map((column) => column.roundNumber),
   );
-  return open?.roundNumber ?? drawn.at(-1)?.roundNumber ?? first;
 }

@@ -70,7 +70,7 @@ export function MetaEventBracket({
         {bracket.rounds.map((round) => (
           <BracketColumn key={round.label} label={round.label}>
             {round.matches.map((match) => (
-              <BracketMatchCard key={match.key} isFinal={round.isFinal}>
+              <BracketMatchCard key={match.key} isFinal={round.isFinal} label={match.label}>
                 {match.seats.map((seat, index) => (
                   <Seat
                     key={`${match.key}:${index}`}

@@ -6,9 +6,8 @@ import type {
 import { describe, expect, it } from "vitest";
 
 import {
-  bracketMode,
   buildBracketColumns,
-  defaultBracketRound,
+  collapsedBracketRounds,
   isHigherSeed,
   seedsByPlayer,
 } from "./cut-bracket-display";
@@ -72,14 +71,6 @@ describe("buildBracketColumns", () => {
   });
 });
 
-describe("bracketMode", () => {
-  it("shows the read-only bracket once the event is finished or the viewer cannot enter", () => {
-    expect(bracketMode({ completed: true, canEnter: true })).toBe("compact");
-    expect(bracketMode({ completed: false, canEnter: false })).toBe("compact");
-    expect(bracketMode({ completed: false, canEnter: true })).toBe("editable");
-  });
-});
-
 describe("seedsByPlayer", () => {
   it("maps seeded players and skips unseeded ones", () => {
     const seeds = seedsByPlayer({
@@ -114,37 +105,36 @@ describe("isHigherSeed", () => {
   });
 });
 
-describe("defaultBracketRound", () => {
-  const finalized = (roundNumber: number) => ({
-    ...makeRound(roundNumber, [1]),
+describe("collapsedBracketRounds", () => {
+  const finalized = (roundNumber: number, podNumbers: number[]) => ({
+    ...makeRound(roundNumber, podNumbers),
     status: "finalized" as const,
   });
-
-  it("opens a completed event on its final", () => {
-    const rounds = [finalized(4), finalized(5), finalized(6)];
-    expect(defaultBracketRound(buildBracketColumns(rounds, 8), rounds, true)).toBe(6);
+  const reported = (round: PodRoundResponse): PodRoundResponse => ({
+    ...round,
+    pods: round.pods.map((pod) => ({ ...pod, resultStatus: "reported" as const })),
   });
 
-  it("opens a completed event on its final even when a round is still marked open", () => {
-    const rounds = [finalized(4), makeRound(5, [1, 2]), finalized(6)];
-    expect(defaultBracketRound(buildBracketColumns(rounds, 8), rounds, true)).toBe(6);
+  it("folds every round before the latest drawn one while the cut runs", () => {
+    const rounds = [reported(finalized(4, [1, 2, 3, 4])), makeRound(5, [1, 2])];
+    expect([...collapsedBracketRounds(buildBracketColumns(rounds, 8))]).toEqual([4]);
   });
 
-  it("has no round to open for a completed event without a bracket", () => {
-    expect(defaultBracketRound([], [], true)).toBeUndefined();
+  it("keeps a reported round open until the next one is drawn", () => {
+    const rounds = [reported(makeRound(4, [1, 2, 3, 4]))];
+    expect(collapsedBracketRounds(buildBracketColumns(rounds, 8)).size).toBe(0);
   });
 
-  it("picks the round that takes results", () => {
-    const rounds = [finalized(4), makeRound(5, [1, 2])];
-    expect(defaultBracketRound(buildBracketColumns(rounds, 8), rounds, false)).toBe(5);
+  it("unfolds every round once the final is decided", () => {
+    const rounds = [
+      reported(finalized(4, [1, 2, 3, 4])),
+      reported(finalized(5, [1, 2])),
+      reported(finalized(6, [1])),
+    ];
+    expect(collapsedBracketRounds(buildBracketColumns(rounds, 8)).size).toBe(0);
   });
 
-  it("falls back to the latest drawn round when none is open", () => {
-    const rounds = [finalized(4), finalized(5)];
-    expect(defaultBracketRound(buildBracketColumns(rounds, 8), rounds, false)).toBe(5);
-  });
-
-  it("falls back to the first round before the cut is drawn", () => {
-    expect(defaultBracketRound(buildBracketColumns([], 8), [], false)).toBe(4);
+  it("folds nothing before the cut is drawn", () => {
+    expect(collapsedBracketRounds(buildBracketColumns([], 8)).size).toBe(0);
   });
 });

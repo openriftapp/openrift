@@ -11,6 +11,7 @@
 - feat(Tournaments): **Deleted accounts show as "Former member"** — results stay in standings and pairings, the name and Riot ID of a player who deleted their account are removed, and their spots in upcoming or running events are dropped.
 - feat(Tournaments): **Prepare a tournament before the group sees it** — a "Published to the group" switch keeps a linked tournament off the group page and calendar until you turn it on.
 - feat(Tournaments): **Match results game by game** — a match result is entered per game with drawn games and an intentional draw, and the report link takes it for the whole table at once.
+- feat(Tournaments): **One bracket for the top cut** — pairings, the report link and standings show the same bracket, results are entered right in its match cards, and on phones finished rounds fold away so the round being played comes first.
 
 ### Other
 
@@ -23,6 +24,7 @@
 - feat(Decks): **Domains in the deck stats** — hovering a bar in the Energy, Power or Types chart colours it by domain, and "Domain colors in stats" in the display options colours every bar.
 - feat(Tournaments): **Deck counts as meta shares** — the meta share dialog takes deck counts as well as percents, and standings show the number as entered.
 - feat(Tournaments): **Unconfirmed rounds marked in standings** — results from rounds that are not finalized yet show muted in the Run column.
+- feat(Meta): **Bracket matches in bracket order** — event top cuts label each match ("QF 1", "SF 2") and line every match up under the two it was fed by.
 - fix(Tournaments): **No draws in the top cut** — bracket matches offer only win scorelines, and the seats drop the player avatar to leave room for names. Match cards show their full outline, and seats show the Legend without its domain icons.
 - fix(Tournaments): **Legend from the decklist** — adding or editing a player's decklist sets their Legend to the one in the list, until the groups are drawn.
 - fix(Trades): **Trade badges readable over card art** — the "Requested", "Offered" and "In a trade" badges on market cards now use a solid colour.

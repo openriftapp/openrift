@@ -139,6 +139,72 @@ describe("metaEventBracket with the source's phase list", () => {
   });
 });
 
+describe("metaEventBracket slot order", () => {
+  it("lines each match up under the matches that feed it, by winner", () => {
+    const quarters = [
+      match({ roundNumber: 1, tableNumber: 1, player1Id: "a", player2Id: "h", winnerId: "a" }),
+      match({ roundNumber: 1, tableNumber: 2, player1Id: "b", player2Id: "g", winnerId: "b" }),
+      match({ roundNumber: 1, tableNumber: 3, player1Id: "c", player2Id: "f", winnerId: "c" }),
+      match({ roundNumber: 1, tableNumber: 4, player1Id: "d", player2Id: "e", winnerId: "d" }),
+    ];
+    const semis = [
+      match({ roundNumber: 2, tableNumber: 1, player1Id: "a", player2Id: "d", winnerId: "a" }),
+      match({ roundNumber: 2, tableNumber: 2, player1Id: "b", player2Id: "c", winnerId: "c" }),
+    ];
+    const final = match({ roundNumber: 3, player1Id: "a", player2Id: "c", winnerId: "a" });
+    const bracket = metaEventBracket([...quarters, ...semis, final], [SWISS, phase()]);
+    expect(
+      bracket?.rounds[0]?.matches.map(
+        (entry) => entry.seats.find((seat) => seat.isWinner)?.playerId,
+      ),
+    ).toEqual(["a", "d", "b", "c"]);
+    expect(bracket?.rounds.map((entry) => entry.matches.map((slot) => slot.label))).toEqual([
+      ["QF 1", "QF 2", "QF 3", "QF 4"],
+      ["SF 1", "SF 2"],
+      ["Final"],
+    ]);
+  });
+
+  it("keeps a match without a recorded winner in the slot it was listed, unlabelled", () => {
+    const quarters = [
+      match({ roundNumber: 1, tableNumber: 1, player1Id: "a", player2Id: "h", winnerId: "a" }),
+      match({ roundNumber: 1, tableNumber: 2, player1Id: "b", player2Id: "g", winnerId: null }),
+      match({ roundNumber: 1, tableNumber: 3, player1Id: "c", player2Id: "f", winnerId: "c" }),
+      match({ roundNumber: 1, tableNumber: 4, player1Id: "d", player2Id: "e", winnerId: "d" }),
+    ];
+    const semis = [
+      match({ roundNumber: 2, tableNumber: 1, player1Id: "a", player2Id: "b", winnerId: "a" }),
+      match({ roundNumber: 2, tableNumber: 2, player1Id: "c", player2Id: "d", winnerId: "c" }),
+    ];
+    const final = match({ roundNumber: 3, player1Id: "a", player2Id: "c", winnerId: "a" });
+    const bracket = metaEventBracket([...quarters, ...semis, final], [SWISS, phase()]);
+    expect(bracket?.rounds[0]?.matches.map((entry) => entry.seats[0].playerId)).toEqual([
+      "a",
+      "b",
+      "c",
+      "d",
+    ]);
+    expect(bracket?.rounds[0]?.matches.map((entry) => entry.label)).toEqual([
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ]);
+    expect(bracket?.rounds[1]?.matches.map((entry) => entry.label)).toEqual(["SF 1", "SF 2"]);
+  });
+
+  it("leaves a round unlabelled when it does not hold the matches its place implies", () => {
+    const bracket = metaEventBracket(
+      [...round(1, 2), ...round(2, 2)],
+      [phase({ rankRequired: 4 })],
+    );
+    expect(bracket?.rounds.at(-1)?.matches.map((entry) => entry.label)).toEqual([
+      undefined,
+      undefined,
+    ]);
+  });
+});
+
 describe("metaEventBracket without a phase list", () => {
   it("reads a top 8 out of the shape of its rounds", () => {
     const bracket = metaEventBracket(TOP_8, []);

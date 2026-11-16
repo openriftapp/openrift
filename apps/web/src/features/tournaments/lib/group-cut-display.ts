@@ -7,7 +7,7 @@ import type {
 } from "@openrift/shared/types/api/pod-tournament";
 
 import { participantName } from "@/features/tournaments/lib/participant-name";
-import { bracketRoundLabels } from "@/lib/bracket-round-label";
+import { bracketMatchShortLabel, bracketRoundLabels } from "@/lib/bracket-round-label";
 import { m } from "@/paraglide/messages.js";
 
 export function groupCutTierLabels(): Record<GroupCutTierView, string> {
@@ -95,15 +95,12 @@ export function cutMatchShortLabel(
   roundNumber: number,
   podNumber: number,
 ): string {
-  const labels = bracketRoundLabels(Math.log2(cutSize), true);
+  const roundCount = Math.log2(cutSize);
   const index = roundNumber - GROUP_STAGE_ROUNDS - 1;
-  const label = labels[index];
-  if (label === undefined) {
+  if (index < 0 || index >= roundCount) {
     return m.tournaments_lib_pairing_label_match({ number: podNumber });
   }
-  return index === labels.length - 1
-    ? label
-    : m.tournaments_lib_cut_match_short({ label, number: podNumber });
+  return bracketMatchShortLabel(roundCount - 1 - index, podNumber);
 }
 
 const NO_STAT = "-";

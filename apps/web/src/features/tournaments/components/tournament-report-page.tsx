@@ -6,7 +6,6 @@ import {
   useSubmitTournamentReportPlayerResult,
   useSubmitTournamentReportResult,
 } from "@/features/tournaments/hooks/use-tournament-run";
-import { bracketMode } from "@/features/tournaments/lib/cut-bracket-display";
 import type { PodResultSubmission } from "@/features/tournaments/lib/swiss-results";
 import {
   isMatchPairing,
@@ -17,7 +16,6 @@ import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 import { CutBracketCompact } from "./cut-bracket-compact";
-import { CutBracketView } from "./cut-bracket-view";
 import { GroupStageSections } from "./group-stage-sections";
 import { PairingsView } from "./pairings-view";
 
@@ -50,26 +48,22 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
             {m.tournaments_report_enter_match_result()}
           </p>
         ) : null}
-        {bracketRounds.length > 0 &&
-        bracketMode({ completed: data.status === "completed", canEnter: canEdit }) === "compact" ? (
+        {bracketRounds.length > 0 ? (
           <CutBracketCompact
             rounds={bracketRounds}
             cutSize={data.cutSize}
             groupStage={groupStage}
-          />
-        ) : bracketRounds.length > 0 ? (
-          <CutBracketView
-            rounds={bracketRounds}
-            cutSize={data.cutSize}
-            groupStage={groupStage}
-            scheme={data.scoringScheme}
-            matchFormat={data.matchFormat}
-            winPoints={data.winPoints}
-            drawPoints={data.drawPoints}
-            completed={data.status === "completed"}
-            canEnterResult={(round) => canEdit && round.status === "reporting"}
-            onSubmitResult={submit}
-            onSubmitPlayerResult={canEdit ? submitPlayer : undefined}
+            entry={
+              canEdit && data.status !== "completed"
+                ? {
+                    matchFormat: data.matchFormat,
+                    winPoints: data.winPoints,
+                    drawPoints: data.drawPoints,
+                    canEnterResult: (round) => round.status === "reporting",
+                    onSubmitResult: submit,
+                  }
+                : undefined
+            }
           />
         ) : null}
         <GroupStageSections

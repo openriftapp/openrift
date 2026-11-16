@@ -22,7 +22,14 @@ export function bracketRoundShortLabel(fromEnd: number): string {
 }
 
 /** Ordered from the first round to the final. */
-export function bracketRoundLabels(roundCount: number, short = false): string[] {
-  const label = short ? bracketRoundShortLabel : bracketRoundLabel;
-  return Array.from({ length: roundCount }, (_, index) => label(roundCount - 1 - index));
+export function bracketRoundLabels(roundCount: number): string[] {
+  return Array.from({ length: roundCount }, (_, index) =>
+    bracketRoundLabel(roundCount - 1 - index),
+  );
+}
+
+/** "QF 2"; the final carries no number. */
+export function bracketMatchShortLabel(fromEnd: number, number: number): string {
+  const label = bracketRoundShortLabel(fromEnd);
+  return fromEnd === 0 ? label : m.tournaments_lib_cut_match_short({ label, number });
 }

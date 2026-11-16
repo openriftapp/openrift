@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  bracketMatchShortLabel,
   bracketRoundLabel,
   bracketRoundLabels,
   bracketRoundShortLabel,
@@ -33,10 +34,20 @@ describe("bracketRoundShortLabel", () => {
   });
 });
 
+describe("bracketMatchShortLabel", () => {
+  it("numbers a match within its round", () => {
+    expect(bracketMatchShortLabel(2, 3)).toBe("QF 3");
+    expect(bracketMatchShortLabel(1, 1)).toBe("SF 1");
+  });
+
+  it("leaves the final unnumbered", () => {
+    expect(bracketMatchShortLabel(0, 1)).toBe("Final");
+  });
+});
+
 describe("bracketRoundLabels", () => {
   it("orders the rounds from the first to the final", () => {
     expect(bracketRoundLabels(3)).toEqual(["Quarterfinals", "Semifinals", "Final"]);
-    expect(bracketRoundLabels(2, true)).toEqual(["SF", "Final"]);
   });
 
   it("returns nothing for a bracket without rounds", () => {

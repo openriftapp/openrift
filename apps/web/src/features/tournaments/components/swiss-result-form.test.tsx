@@ -26,7 +26,10 @@ function match(gamePoints: [number | null, number | null], drawnGames = 0): PodR
   };
 }
 
-function renderForm(pod: PodResponse, overrides: { allowDraws?: boolean } = {}) {
+function renderForm(
+  pod: PodResponse,
+  overrides: { allowDraws?: boolean; showPoints?: boolean } = {},
+) {
   const onSubmit = vi.fn();
   render(
     <SwissResultForm
@@ -59,6 +62,17 @@ describe("SwissResultForm", () => {
       ],
       drawnGames: 1,
     });
+  });
+
+  it("shows the match score without points when points are off", async () => {
+    const user = userEvent.setup();
+    renderForm(match([null, null]), { allowDraws: false, showPoints: false });
+
+    await user.click(screen.getByRole("button", { name: "Game 1: Ashe" }));
+    await user.click(screen.getByRole("button", { name: "Game 2: Ashe" }));
+
+    expect(screen.getByText("2–0–0")).toBeInTheDocument();
+    expect(screen.queryByText(/points/u)).not.toBeInTheDocument();
   });
 
   it("hides game 3 once a 2–0 decides the match", async () => {

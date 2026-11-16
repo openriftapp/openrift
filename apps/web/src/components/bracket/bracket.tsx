@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
+import { useState } from "react";
 
 import { Card } from "@/components/ui/card";
+import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { RankBand } from "@/components/ui/rank-band";
 import { FINAL_GLOW } from "@/lib/accent-wash";
 import { cn } from "@/lib/utils";
@@ -17,22 +19,62 @@ export function BracketColumns({
   className?: string;
 }) {
   return (
-    // flex-col-reverse renders the rounds final-first on phones without duplicate markup.
     <div
       data-slot="bracket-columns"
-      className={cn("flex flex-col-reverse gap-4 lg:grid lg:gap-5", className)}
-      style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}
+      className={cn(
+        "flex flex-col gap-4 lg:-m-px lg:grid lg:gap-5 lg:overflow-x-auto lg:p-px lg:pb-2",
+        className,
+      )}
+      style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(18rem, 1fr))` }}
     >
       {children}
     </div>
   );
 }
 
-export function BracketColumn({ label, children }: { label: ReactNode; children: ReactNode }) {
+/**
+ * A `collapsed` round folds to its label below `lg`; the reader's toggle lasts
+ * until the round stops being collapsed. Wide layouts show every round.
+ */
+export function BracketColumn({
+  label,
+  collapsed,
+  children,
+}: {
+  label: ReactNode;
+  collapsed?: true;
+  children: ReactNode;
+}) {
+  const [override, setOverride] = useState<boolean | null>(null);
+  if (!collapsed && override !== null) {
+    setOverride(null);
+  }
+  const open = !collapsed || (override ?? false);
   return (
     <div data-slot="bracket-column" className="flex flex-col justify-center gap-2.5">
-      <span className="text-muted-foreground text-xs font-semibold">{label}</span>
-      {children}
+      {collapsed === undefined ? (
+        <span className="text-muted-foreground text-xs font-semibold">{label}</span>
+      ) : (
+        <>
+          <span className="text-muted-foreground hidden text-xs font-semibold lg:inline">
+            {label}
+          </span>
+          <ExpandToggle
+            expanded={open}
+            chevronPosition="end"
+            onClick={() => setOverride(!open)}
+            className="bg-card min-h-11 w-full justify-between rounded-xl border px-3 text-sm lg:hidden"
+          >
+            <span className="font-semibold">{label}</span>
+          </ExpandToggle>
+        </>
+      )}
+      <div
+        data-slot="bracket-column-matches"
+        className={cn("flex-col gap-2.5 lg:flex", open ? "flex" : "hidden")}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -41,11 +83,13 @@ export function BracketMatchCard({
   isFinal = false,
   label,
   aside,
+  footer,
   children,
 }: {
   isFinal?: boolean;
   label?: ReactNode;
   aside?: ReactNode;
+  footer?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -56,10 +100,11 @@ export function BracketMatchCard({
       {label === undefined && aside === undefined ? null : (
         <div className="text-muted-foreground flex items-center justify-between border-b px-3 py-1.5 text-xs font-semibold">
           <span>{label}</span>
-          <span className="font-normal">{aside}</span>
+          <span className="flex items-center gap-2 font-normal">{aside}</span>
         </div>
       )}
       {children}
+      {footer ? <div className="flex justify-end border-t px-3 py-2">{footer}</div> : null}
     </Card>
   );
 }

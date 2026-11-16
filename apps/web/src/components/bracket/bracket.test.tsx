@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -12,7 +13,7 @@ import {
 } from "./bracket";
 
 describe("BracketColumns", () => {
-  it("lays out one grid column per round with its label", () => {
+  it("lays out one grid column per round, scrolling sideways once they hit their floor", () => {
     const { container } = render(
       <BracketColumns columnCount={2}>
         <BracketColumn label="Semifinals">semis</BracketColumn>
@@ -20,13 +21,66 @@ describe("BracketColumns", () => {
       </BracketColumns>,
     );
     const grid = container.querySelector<HTMLElement>("[data-slot=bracket-columns]");
-    expect(grid?.style.gridTemplateColumns).toBe("repeat(2, minmax(0, 1fr))");
+    expect(grid?.style.gridTemplateColumns).toBe("repeat(2, minmax(18rem, 1fr))");
+    expect(grid).toHaveClass("lg:overflow-x-auto");
     expect(screen.getByText("Semifinals")).toBeInTheDocument();
     expect(screen.getByText("final")).toBeInTheDocument();
   });
 });
 
+describe("BracketColumn", () => {
+  it("shows a round without a collapsed state as a plain label", () => {
+    render(<BracketColumn label="Final">final</BracketColumn>);
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.getByText("final")).toBeVisible();
+  });
+
+  it("folds a collapsed round behind a toggle below the wide layout", async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <BracketColumn label="Semifinals" collapsed>
+        semis
+      </BracketColumn>,
+    );
+    const toggle = screen.getByRole("button", { name: /Semifinals/u });
+    const matches = container.querySelector("[data-slot=bracket-column-matches]");
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle).toHaveClass("lg:hidden");
+    expect(matches).toHaveClass("hidden", "lg:flex");
+
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(matches).not.toHaveClass("hidden");
+  });
+
+  it("forgets the reader's choice once the default changes", async () => {
+    const user = userEvent.setup();
+    const { rerender, container } = render(
+      <BracketColumn label="Semifinals" collapsed>
+        semis
+      </BracketColumn>,
+    );
+    await user.click(screen.getByRole("button", { name: /Semifinals/u }));
+    rerender(<BracketColumn label="Semifinals">semis</BracketColumn>);
+    rerender(
+      <BracketColumn label="Semifinals" collapsed>
+        semis
+      </BracketColumn>,
+    );
+    expect(container.querySelector("[data-slot=bracket-column-matches]")).toHaveClass("hidden");
+  });
+});
+
 describe("BracketMatchCard", () => {
+  it("renders a footer only when given one", () => {
+    const { rerender } = render(
+      <BracketMatchCard footer={<span>Enter result</span>}>seats</BracketMatchCard>,
+    );
+    expect(screen.getByText("Enter result").parentElement).toHaveClass("border-t");
+    rerender(<BracketMatchCard>seats</BracketMatchCard>);
+    expect(screen.queryByText("Enter result")).not.toBeInTheDocument();
+  });
+
   it("renders the label row only when given one", () => {
     const { rerender } = render(
       <BracketMatchCard label="SF 1" aside="Table 1">

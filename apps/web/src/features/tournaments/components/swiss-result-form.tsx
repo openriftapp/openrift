@@ -26,6 +26,7 @@ import {
   visibleGameCount,
 } from "@/features/tournaments/lib/swiss-results";
 import { groupPodMembersByTeam, teamDisplayName } from "@/features/tournaments/lib/team-display";
+import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 interface SwissResultFormProps {
@@ -36,6 +37,7 @@ interface SwissResultFormProps {
   winPoints: number;
   drawPoints: number;
   allowDraws?: boolean;
+  showPoints?: boolean;
   onSubmit: (submission: PodResultSubmission) => void;
   submitting: boolean;
   error?: unknown;
@@ -58,6 +60,7 @@ export function SwissResultForm({
   winPoints,
   drawPoints,
   allowDraws = true,
+  showPoints = true,
   onSubmit,
   submitting,
   error,
@@ -192,12 +195,19 @@ export function SwissResultForm({
         <p className="text-muted-foreground text-sm">{m.tournaments_submit_needs_winner()}</p>
       ) : null}
       {counts && preview ? (
-        <div className="text-muted-foreground grid max-w-full grid-cols-[minmax(0,auto)_auto_auto] gap-x-4 text-sm tabular-nums">
+        <div
+          className={cn(
+            "text-muted-foreground grid max-w-full gap-x-4 text-sm tabular-nums",
+            showPoints ? "grid-cols-[minmax(0,auto)_auto_auto]" : "grid-cols-[minmax(0,auto)_auto]",
+          )}
+        >
           <span className="min-w-0 truncate">{side1Name}</span>
           <span>{formatMatchCounts(counts)}</span>
-          <span className="text-right">
-            {m.tournaments_submit_points_preview({ points: preview[0] })}
-          </span>
+          {showPoints ? (
+            <span className="text-right">
+              {m.tournaments_submit_points_preview({ points: preview[0] })}
+            </span>
+          ) : null}
           <span className="min-w-0 truncate">{side2Name}</span>
           <span>
             {formatMatchCounts({
@@ -205,9 +215,11 @@ export function SwissResultForm({
               drawnGames: counts.drawnGames,
             })}
           </span>
-          <span className="text-right">
-            {m.tournaments_submit_points_preview({ points: preview[1] })}
-          </span>
+          {showPoints ? (
+            <span className="text-right">
+              {m.tournaments_submit_points_preview({ points: preview[1] })}
+            </span>
+          ) : null}
         </div>
       ) : null}
       {changedRemotely ? <ChangedRemotelyNotice match onShowLatest={loadLatest} /> : null}

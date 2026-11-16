@@ -16,8 +16,8 @@ import { IconChip } from "@/components/ui/icon-chip";
 import { Input } from "@/components/ui/input";
 import { formatRank } from "@/features/meta/lib/meta-format";
 import { PlayerChip } from "@/features/tournaments/components/player-chip";
-import { RegionBadge } from "@/features/tournaments/components/region-badge";
 import { SaveError } from "@/features/tournaments/components/save-error";
+import { usePodResultEditor } from "@/features/tournaments/hooks/use-pod-result-editor";
 import { useResultBaseline } from "@/features/tournaments/hooks/use-result-baseline";
 import {
   isDoubleForfeitPod,
@@ -30,8 +30,6 @@ import type { PodResultSubmission } from "@/features/tournaments/lib/swiss-resul
 import { groupPodMembersByTeam, teamDisplayName } from "@/features/tournaments/lib/team-display";
 import { isMatchPairing, pairingLabel } from "@/features/tournaments/lib/tournament-display";
 import { parseIntegerInput } from "@/lib/integer-input";
-import { runReportedMutation } from "@/lib/run-reported-mutation";
-import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 import { WarningBadge, WarningList } from "./pairing-warnings";
@@ -102,9 +100,6 @@ export function PodCard({
   canEnter,
   crossGroup = false,
   allowDraws = true,
-  title,
-  layout = "row",
-  renderMemberLeading,
   renderMemberBadge,
   onSubmit,
   onSubmitPlayerResult,
@@ -124,19 +119,12 @@ export function PodCard({
   /** The paired 3-player groups' shared match. */
   crossGroup?: boolean;
   allowDraws?: boolean;
-  title?: string;
-  layout?: "row" | "stacked";
-  /** Rendered before the player's face; the bracket puts the seed pill here. */
-  renderMemberLeading?: (playerId: string) => ReactNode;
   renderMemberBadge?: (playerId: string) => ReactNode;
   onSubmit: (podId: string, submission: PodResultSubmission) => Promise<unknown>;
   onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<unknown>;
 }) {
   const pod = podForDisplay(rawPod);
   const isMatch = teamMode || isMatchPairing(pod.size);
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<unknown>(null);
   const [scoringPlayerId, setScoringPlayerId] = useState<string | null>(null);
   const { changedRemotely, acceptLatest, resync, adoptSaved } = useResultBaseline(
     pod,
@@ -148,27 +136,14 @@ export function PodCard({
   const selfEntry = canEnter && onSubmitPlayerResult !== undefined && !walkover && !isMatch;
   const enteredCount = pod.members.filter((member) => member.gamePoints !== null).length;
   const penaltySummary = pod.penalty ? podPenaltySummary(pod.penalty) : null;
-  const stacked = layout === "stacked";
-
-  async function handleSubmit(submission: PodResultSubmission) {
-    setSaving(true);
-    setSaveError(null);
-    const ok = await runReportedMutation(() => onSubmit(pod.id, submission), setSaveError);
-    setSaving(false);
-    if (ok) {
-      adoptSaved(submission.results, submission.drawnGames);
-      setEditing(false);
-    }
-  }
-
-  function startEditing() {
-    setSaveError(null);
-    setEditing(true);
-  }
+  const editor = usePodResultEditor(
+    (submission) => onSubmit(pod.id, submission),
+    (submission) => adoptSaved(submission.results, submission.drawnGames),
+  );
 
   function startScoring(member: PodMemberResponse) {
     resync();
-    setSaveError(null);
+    editor.clearError();
     setScoringPlayerId(member.playerId);
     setScoreDraft(member.gamePoints === null ? "" : String(member.gamePoints));
   }
@@ -186,13 +161,7 @@ export function PodCard({
     if (typeof parsed !== "number" || scoringPlayerId === null || !onSubmitPlayerResult) {
       return;
     }
-    setSaving(true);
-    setSaveError(null);
-    const ok = await runReportedMutation(
-      () => onSubmitPlayerResult(pod.id, scoringPlayerId, parsed),
-      setSaveError,
-    );
-    setSaving(false);
+    const ok = await editor.run(() => onSubmitPlayerResult(pod.id, scoringPlayerId, parsed));
     if (ok) {
       adoptSaved([{ playerId: scoringPlayerId, gamePoints: parsed }]);
       setScoringPlayerId(null);
@@ -231,7 +200,7 @@ export function PodCard({
           <Button
             size="icon-sm"
             onClick={() => void handleSaveScore()}
-            disabled={saving || typeof parseIntegerInput(scoreDraft, 0) !== "number"}
+            disabled={editor.saving || typeof parseIntegerInput(scoreDraft, 0) !== "number"}
             aria-label={m.tournaments_pod_save_score_aria({ name })}
           >
             <CheckIcon />
@@ -240,7 +209,7 @@ export function PodCard({
             size="icon-sm"
             variant="ghost"
             onClick={() => setScoringPlayerId(null)}
-            disabled={saving}
+            disabled={editor.saving}
             aria-label={m.tournaments_pod_cancel_score_aria()}
           >
             <XIcon />
@@ -250,7 +219,7 @@ export function PodCard({
     const pointsFigure =
       lead.points === null ? null : (
         <span
-          className={cn("font-semibold", stacked && "text-muted-foreground")}
+          className="font-semibold"
           title={m.tournaments_pod_round_points_title({ points: formatScore(lead.points) })}
         >
           +{formatScore(lead.points)}
@@ -273,53 +242,9 @@ export function PodCard({
       )
     ) : null;
 
-    if (stacked) {
-      const winner = lead.placement === 1;
-      const notes = renderMemberBadge?.(lead.playerId);
-      return (
-        <li key={lead.teamId ?? lead.playerId} className="flex items-center gap-2">
-          {renderMemberLeading?.(lead.playerId)}
-          <div className="flex min-w-0 flex-1 flex-col">
-            <span className="flex min-w-0 items-center gap-2">
-              <span
-                data-slot="bracket-seat-name"
-                className={cn("truncate", winner ? "font-semibold" : "font-medium")}
-              >
-                {name}
-              </span>
-              {region ? <RegionBadge region={region} /> : null}
-            </span>
-            {notes ? (
-              <span className="text-muted-foreground flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
-                {notes}
-              </span>
-            ) : null}
-          </div>
-          {scoreEntry ?? (
-            <span className="flex shrink-0 items-center gap-2 tabular-nums">
-              {pointsFigure}
-              {lead.gamePoints === null ? null : (
-                <span
-                  className={cn(
-                    "w-6 text-right text-sm tabular-nums",
-                    winner ? "font-semibold" : "text-muted-foreground",
-                  )}
-                  title={m.tournaments_pod_game_points_title({ points: lead.gamePoints })}
-                >
-                  {lead.gamePoints}
-                </span>
-              )}
-              {scoreAction}
-            </span>
-          )}
-        </li>
-      );
-    }
-
     return (
       <li key={lead.teamId ?? lead.playerId} className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
-          {renderMemberLeading?.(lead.playerId)}
           {isMatch ? (
             lead.gamePoints === null ? null : (
               <Badge
@@ -364,7 +289,7 @@ export function PodCard({
             size="sm"
             shape="round"
           />
-          <span className="whitespace-nowrap">{title ?? pairingLabel(pod.podNumber)}</span>
+          <span className="whitespace-nowrap">{pairingLabel(pod.podNumber)}</span>
           <span className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
             {crossGroup ? <Badge variant="info">{m.tournaments_pod_cross_group()}</Badge> : null}
             {showPenalty && !warningsExpanded ? (
@@ -394,7 +319,7 @@ export function PodCard({
         ) : null}
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        {editing ? (
+        {editor.editing ? (
           isMatch ? (
             <SwissResultForm
               pod={pod}
@@ -403,19 +328,19 @@ export function PodCard({
               winPoints={winPoints}
               drawPoints={drawPoints}
               allowDraws={allowDraws}
-              onSubmit={(submission) => void handleSubmit(submission)}
-              submitting={saving}
-              error={saveError}
-              onCancel={() => setEditing(false)}
+              onSubmit={(submission) => void editor.submit(submission)}
+              submitting={editor.saving}
+              error={editor.error}
+              onCancel={editor.handleCancel}
             />
           ) : (
             <PodResultForm
               pod={pod}
               scheme={scheme}
-              onSubmit={(results) => void handleSubmit({ results })}
-              submitting={saving}
-              error={saveError}
-              onCancel={() => setEditing(false)}
+              onSubmit={(results) => void editor.submit({ results })}
+              submitting={editor.saving}
+              error={editor.error}
+              onCancel={editor.handleCancel}
             />
           )
         ) : (
@@ -442,13 +367,13 @@ export function PodCard({
             {scoringPlayerId !== null && changedRemotely ? (
               <ChangedRemotelyNotice match={isMatch} onShowLatest={showLatestScore} />
             ) : null}
-            {scoringPlayerId === null ? null : <SaveError error={saveError} />}
+            {scoringPlayerId === null ? null : <SaveError error={editor.error} />}
             {canEnter ? (
               <Button
                 variant={reported ? "destructive" : "secondary"}
                 size="sm"
-                className={cn("self-end")}
-                onClick={startEditing}
+                className="self-end"
+                onClick={editor.handleStart}
               >
                 {reported
                   ? m.tournaments_pod_edit_result()

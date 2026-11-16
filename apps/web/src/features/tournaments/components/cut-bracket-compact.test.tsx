@@ -4,8 +4,10 @@ import type {
   PodRoundResponse,
 } from "@openrift/shared/types/api/pod-tournament";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+import type { CutBracketEntry } from "./cut-bracket-compact";
 import { CutBracketCompact } from "./cut-bracket-compact";
 
 vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: () => false }));
@@ -35,11 +37,15 @@ function pod(
   };
 }
 
-function round(roundNumber: number, pods: PodResponse[]): PodRoundResponse {
+function round(
+  roundNumber: number,
+  pods: PodResponse[],
+  status: PodRoundResponse["status"] = "finalized",
+): PodRoundResponse {
   return {
     id: `r-${roundNumber}`,
     roundNumber,
-    status: "finalized",
+    status,
     pairingStrategy: "cut",
     penaltyTotal: null,
     createdAt: "2026-09-09T10:00:00Z",
@@ -103,6 +109,50 @@ const stage: GroupStageView = {
   finalStandings: null,
 };
 
+const semifinals = round(4, [
+  pod("p1", 1, [
+    ["Ashe", 2, 1],
+    ["Sett", 0, 2],
+  ]),
+  pod("p2", 2, [
+    ["Garen", 1, 2],
+    ["Jinx", 2, 1],
+  ]),
+]);
+
+function entry(onSubmitResult: CutBracketEntry["onSubmitResult"]): CutBracketEntry {
+  return {
+    matchFormat: "bo3",
+    winPoints: 3,
+    drawPoints: 1,
+    canEnterResult: (current) => current.status === "reporting",
+    onSubmitResult,
+  };
+}
+
+function renderOpenFinal(onSubmitResult: CutBracketEntry["onSubmitResult"] | undefined) {
+  return render(
+    <CutBracketCompact
+      cutSize={4}
+      groupStage={stage}
+      rounds={[
+        semifinals,
+        round(
+          5,
+          [
+            pod("p3", 1, [
+              ["Ashe", null, null],
+              ["Jinx", null, null],
+            ]),
+          ],
+          "reporting",
+        ),
+      ]}
+      entry={onSubmitResult ? entry(onSubmitResult) : undefined}
+    />,
+  );
+}
+
 describe("CutBracketCompact", () => {
   it("shows one column per cut round with seeds, legends and scores", () => {
     render(
@@ -130,7 +180,7 @@ describe("CutBracketCompact", () => {
       />,
     );
     expect(screen.getByText("Top 4")).toBeInTheDocument();
-    expect(screen.getByText("Semifinals")).toBeInTheDocument();
+    expect(screen.getAllByText("Semifinals").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Final")).toHaveLength(2);
     expect(screen.getByText("#4")).toBeInTheDocument();
     expect(screen.getByText("SF 1")).toBeInTheDocument();
@@ -208,6 +258,81 @@ describe("CutBracketCompact", () => {
       />,
     );
     expect(screen.getByText("Both forfeited")).toBeInTheDocument();
+  });
+
+  it("enters a result in the card, without draws", async () => {
+    const user = userEvent.setup();
+    const onSubmitResult = vi.fn(async () => {});
+    renderOpenFinal(onSubmitResult);
+    await user.click(screen.getByRole("button", { name: "Enter result" }));
+    expect(screen.queryByRole("button", { name: "Game 1: Draw" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Intentional draw" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Game 1: Ashe" }));
+    await user.click(screen.getByRole("button", { name: "Game 2: Ashe" }));
+    await user.click(screen.getByRole("button", { name: "Save result" }));
+    expect(onSubmitResult).toHaveBeenCalledWith("p3", {
+      results: [
+        { playerId: "Ashe", gamePoints: 2 },
+        { playerId: "Jinx", gamePoints: 0 },
+      ],
+      drawnGames: 0,
+    });
+    expect(screen.queryByRole("button", { name: "Save result" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the form open when the save fails", async () => {
+    const user = userEvent.setup();
+    renderOpenFinal(async () => {
+      throw new Error("offline");
+    });
+    await user.click(screen.getByRole("button", { name: "Enter result" }));
+    await user.click(screen.getByRole("button", { name: "Game 1: Ashe" }));
+    await user.click(screen.getByRole("button", { name: "Game 2: Ashe" }));
+    await user.click(screen.getByRole("button", { name: "Save result" }));
+    expect(screen.getByRole("button", { name: "Save result" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Enter result" })).not.toBeInTheDocument();
+  });
+
+  it("offers an edit with a reported badge while the round still takes results", () => {
+    render(
+      <CutBracketCompact
+        cutSize={4}
+        groupStage={stage}
+        rounds={[
+          round(
+            5,
+            [
+              pod("p3", 1, [
+                ["Ashe", 2, 1],
+                ["Jinx", 0, 2],
+              ]),
+            ],
+            "reporting",
+          ),
+        ]}
+        entry={entry(vi.fn())}
+      />,
+    );
+    expect(screen.getByText("Reported")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit result" })).toBeInTheDocument();
+  });
+
+  it("offers no entry in a read-only bracket", () => {
+    renderOpenFinal(undefined);
+    expect(screen.queryByRole("button", { name: "Enter result" })).not.toBeInTheDocument();
+  });
+
+  it("folds a finished round behind a toggle while a later one is played", async () => {
+    const user = userEvent.setup();
+    const { container } = renderOpenFinal(undefined);
+    const toggle = screen.getByRole("button", { name: /Semifinals/u });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    const matches = () =>
+      container.querySelectorAll<HTMLElement>("[data-slot=bracket-column-matches]")[0];
+    expect(matches()).toHaveClass("hidden", "lg:flex");
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(matches()).not.toHaveClass("hidden");
   });
 
   it("renders nothing before the cut is generated", () => {
