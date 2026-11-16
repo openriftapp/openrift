@@ -22,9 +22,11 @@ export function createConfig(env: Record<string, string | undefined>) {
 
     corsOrigin: env.CORS_ORIGIN,
 
+    // The e2e harness signs in and up in quick succession; validateConfig refuses it in production.
+    authRateLimitDisabled: env.DISABLE_AUTH_RATE_LIMIT === "1",
+
     auth: {
       secret: env.BETTER_AUTH_SECRET ?? "",
-      adminEmail: env.ADMIN_EMAIL,
       google:
         env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
           ? { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET }
@@ -113,6 +115,10 @@ export function validateConfig(env: Record<string, string | undefined>): void {
 
   if (missing.length > 0) {
     throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
+  }
+
+  if (env.DISABLE_AUTH_RATE_LIMIT === "1" && (isProd || env.NODE_ENV === "production")) {
+    throw new Error("DISABLE_AUTH_RATE_LIMIT is only allowed in development.");
   }
 
   // Credentialed CORS with origin "*" reflects the request origin, letting any

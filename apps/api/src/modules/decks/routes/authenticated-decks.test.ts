@@ -1046,23 +1046,27 @@ describe("PUT /api/v1/decks/:id/cards — returned cards", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 400 when the same card, zone and printing appear twice", async () => {
+  it("sums lines that repeat a card, zone and printing before saving", async () => {
     mockRepo.getIdAndFormat.mockResolvedValue({ id: DECK_ID, format: "freeform" });
-    mockRepo.replaceCards.mockRejectedValue(
-      Object.assign(new Error("duplicate key"), {
-        code: "23505",
-        constraint_name: "uq_deck_cards",
-      }),
-    );
-    const card = { cardId: "c0000000-0001-4000-a000-000000000001", zone: "main", quantity: 1 };
+    mockRepo.replaceCards.mockResolvedValue(true);
+    mockRepo.cardsForDeck.mockResolvedValue([]);
+    const cardId = "c0000000-0001-4000-a000-000000000001";
     const res = await app.request(`/api/v1/decks/${DECK_ID}/cards`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cards: [card, card] }),
+      body: JSON.stringify({
+        cards: [
+          { cardId, zone: "main", quantity: 1 },
+          { cardId, zone: "sideboard", quantity: 1 },
+          { cardId, zone: "main", quantity: 2, preferredPrintingId: null },
+        ],
+      }),
     });
-    expect(res.status).toBe(400);
-    const body = await readJson(res);
-    expect(body.message).toBe("A card is listed twice in one zone with the same printing");
+    expect(res.status).toBe(200);
+    expect(mockRepo.replaceCards).toHaveBeenCalledWith(DECK_ID, [
+      { cardId, zone: "main", quantity: 3, preferredPrintingId: null },
+      { cardId, zone: "sideboard", quantity: 1, preferredPrintingId: null },
+    ]);
   });
 });
 

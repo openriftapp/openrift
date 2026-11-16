@@ -40,7 +40,7 @@ const markAutoCancelled = vi.fn((_id: string) => Promise.resolve(1));
 
 const repos = {
   collections: {
-    filterWritableByViewer: vi.fn((ids: readonly string[]) => Promise.resolve([...ids])),
+    filterAccessibleByViewer: vi.fn((ids: readonly string[]) => Promise.resolve([...ids])),
     listIdNameGroupByIds: vi.fn(() =>
       Promise.resolve([{ id: TARGET_ID, name: "Trade Binder", groupId: null }]),
     ),

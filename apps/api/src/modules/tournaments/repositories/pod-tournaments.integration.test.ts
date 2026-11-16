@@ -776,4 +776,33 @@ describe.skipIf(!ctx)("podTournamentsRepo (integration)", () => {
     expect(afterRounds[0]!.pairingStrategy).toBe("manual");
     expect(afterRounds[0]!.pods.every((pod) => pod.size === 2)).toBe(true);
   });
+
+  it("creates a team only while the tournament is 2v2", async () => {
+    const { tournament, players } = await freshTournament(2);
+    const pair: [string, string] = [players[0]!.id, players[1]!.id];
+
+    await expect(podRepo.createTeam(tournament.id, pair)).resolves.toEqual({
+      created: false,
+      reason: "not_2v2",
+    });
+    const stillSolo = await db
+      .selectFrom("tournamentTeams")
+      .select("id")
+      .where("tournamentId", "=", tournament.id)
+      .execute();
+    expect(stillSolo).toEqual([]);
+
+    await db
+      .updateTable("tournaments")
+      .set({ playMode: "2v2" })
+      .where("id", "=", tournament.id)
+      .execute();
+    await expect(podRepo.createTeam(tournament.id, pair)).resolves.toMatchObject({
+      created: true,
+    });
+    await expect(podRepo.createTeam(tournament.id, pair)).resolves.toEqual({
+      created: false,
+      reason: "player_taken",
+    });
+  });
 });

@@ -77,12 +77,29 @@ describe("resolveSelfJoin", () => {
       tournaments: {
         getParticipantByUser: findByUser,
         createParticipant: vi.fn(async () => {
-          throw Object.assign(new Error("duplicate key"), { code: "23505" });
+          throw Object.assign(new Error("duplicate key"), {
+            code: "23505",
+            constraint_name: "uq_tournament_participants_user",
+          });
         }),
       },
     } as unknown as Repos;
     const result = await resolveSelfJoin(repos, TOURNAMENT_ID, USER);
     expect(result).toEqual({ participantId: "p-race", status: "requested", alreadyJoined: true });
+  });
+
+  it("re-throws a unique violation on another constraint", async () => {
+    const other = Object.assign(new Error("duplicate key"), {
+      code: "23505",
+      constraint_name: "tournament_participants_pkey",
+    });
+    const { repos } = reposStub({
+      findByUser: async () => undefined,
+      createParticipant: async () => {
+        throw other;
+      },
+    });
+    await expect(resolveSelfJoin(repos, TOURNAMENT_ID, USER)).rejects.toBe(other);
   });
 
   it("re-throws a non-unique insert error", async () => {

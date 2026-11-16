@@ -14,7 +14,7 @@ export function adminsRepo(db: Kysely<Database>) {
     },
 
     /** Insert the user as an admin (no-op on conflict). */
-    async autoPromote(userId: string): Promise<void> {
+    async promote(userId: string): Promise<void> {
       await db
         .insertInto("admins")
         .values({ userId })

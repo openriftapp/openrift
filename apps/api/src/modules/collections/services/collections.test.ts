@@ -211,7 +211,7 @@ function createClearMockRepos(
   const repos = {
     collections: {
       listCopiesInCollection: vi.fn(async () => copies),
-      filterWritableByViewer: vi.fn(async (ids: string[]) => ids),
+      filterAccessibleByViewer: vi.fn(async (ids: string[]) => ids),
     },
     copies: {
       listWithCollectionContext: vi.fn(async (ids: string[]) =>

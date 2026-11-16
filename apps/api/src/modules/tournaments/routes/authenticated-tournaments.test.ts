@@ -477,3 +477,33 @@ describe("POST /tournaments/{id}/cancel", () => {
     );
   });
 });
+
+describe("POST /tournaments/:id/teams", () => {
+  const FIRST = "c0000000-0001-4000-a000-000000000001";
+  const SECOND = "c0000000-0001-4000-a000-000000000002";
+
+  function teamApp(result: unknown) {
+    const { app, repos } = makeApp(tournamentRow({ playMode: "2v2" }));
+    repos.tournaments.getParticipantById.mockImplementation(((id: string) =>
+      Promise.resolve({
+        id,
+        tournamentId: TOURNAMENT_ID,
+        displayName: "Vi",
+        status: "active",
+        teamId: null,
+      })) as never);
+    Object.assign(repos.podTournaments, { createTeam: vi.fn(() => Promise.resolve(result)) });
+    return app;
+  }
+
+  it.each([
+    { reason: "not_2v2", status: 400 },
+    { reason: "player_taken", status: 409 },
+  ])("answers $status when the write finds $reason", async ({ reason, status }) => {
+    const app = teamApp({ created: false, reason });
+    const res = await app.fetch(
+      req("POST", `/tournaments/${TOURNAMENT_ID}/teams`, { participantIds: [FIRST, SECOND] }),
+    );
+    expect(res.status).toBe(status);
+  });
+});

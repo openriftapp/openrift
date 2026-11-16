@@ -5,10 +5,21 @@ import type {
 } from "@openrift/shared/types/api/tournament";
 import { implement } from "@orpc/server";
 
-import { assertExisted, assertFound, assertSlugAvailable } from "../../../lib/assertions.js";
+import {
+  assertExisted,
+  assertFound,
+  assertSlugAvailable,
+  conflictOnUniqueViolation,
+} from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { toOrganizationResponse, toOrganizationSummary } from "../lib/tournament-presenters.js";
+
+const ORGANIZATION_SLUG_KEY = "organizations_slug_key";
+
+function slugTakenMessage(slug: string): string {
+  return `Organization "${slug}" already exists`;
+}
 
 const os = implement(adminOrganizationsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -30,12 +41,17 @@ export const adminOrganizationsRouter = {
     assertSlugAvailable(existing, input.slug, "Organization");
     const owner = await users.getById(input.ownerUserId);
     assertFound(owner, "Owner user not found");
-    const org = await organizations.create({
-      slug: input.slug,
-      name: input.name,
-      description: input.description ?? null,
-      ownerUserId: input.ownerUserId,
-    });
+    const org = await conflictOnUniqueViolation(
+      ORGANIZATION_SLUG_KEY,
+      slugTakenMessage(input.slug),
+      () =>
+        organizations.create({
+          slug: input.slug,
+          name: input.name,
+          description: input.description ?? null,
+          ownerUserId: input.ownerUserId,
+        }),
+    );
     return toOrganizationResponse(org);
   }),
 
@@ -48,7 +64,11 @@ export const adminOrganizationsRouter = {
       const clash = await organizations.getBySlug(patch.slug);
       assertSlugAvailable(clash, patch.slug, "Organization");
     }
-    const updated = await organizations.update(id, patch);
+    const updated = await conflictOnUniqueViolation(
+      ORGANIZATION_SLUG_KEY,
+      slugTakenMessage(patch.slug ?? org.slug),
+      () => organizations.update(id, patch),
+    );
     assertFound(updated, "Organization not found");
     return toOrganizationResponse(updated);
   }),

@@ -1,7 +1,4 @@
 import { apiKey } from "@better-auth/api-key";
-// better-auth 1.7.3 leaks SchemaCheck into betterAuth()'s inferred type. The import
-// makes it nameable for declaration emit. Drop once better-auth re-exports it.
-import type { SchemaCheck as _SchemaCheck } from "@better-auth/core/db/internal";
 import { sanitizeDisplayName, validateDisplayName } from "@openrift/shared/display-name";
 import { HOUR_MS } from "@openrift/shared/format-date";
 import { validateProfileBio } from "@openrift/shared/profile-bio";
@@ -20,7 +17,6 @@ import { emailMessages } from "./emails/messages.js";
 import { displayLocaleFromRequest } from "./lib/display-locale.js";
 import { collectionsRepo } from "./modules/collections/repositories/collections.js";
 import { dropLiveSpotsOfUser } from "./modules/tournaments/services/participant-drops.js";
-import { adminsRepo } from "./modules/users/repositories/admins.js";
 import { userPreferencesRepo } from "./modules/users/repositories/user-preferences.js";
 
 export function createAuth(deps: {
@@ -34,6 +30,8 @@ export function createAuth(deps: {
   const auth = betterAuth({
     database: { dialect, type: "postgres" },
     basePath: "/api/auth",
+    // The app's own limiter in app.ts keys on x-real-ip; better-auth's would bucket every visitor together.
+    rateLimit: { enabled: false },
     secret: config.auth.secret,
     socialProviders: {
       ...(config.auth.google && { google: config.auth.google }),
@@ -242,10 +240,6 @@ export function createAuth(deps: {
               isInbox: false,
               sortOrder: 1,
             });
-            const adminEmail = config.auth.adminEmail;
-            if (adminEmail && user.email === adminEmail) {
-              await adminsRepo(db).autoPromote(user.id);
-            }
           },
         },
         update: {

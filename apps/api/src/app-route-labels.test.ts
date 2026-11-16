@@ -45,7 +45,7 @@ function buildApp() {
       databaseUrl: "postgres://mock",
       isDev: false,
       corsOrigin: undefined,
-      auth: { secret: "test-secret", adminEmail: undefined, google: undefined, discord: undefined },
+      auth: { secret: "test-secret", google: undefined, discord: undefined },
       smtp: { configured: false },
     } as any,
     log: createLogger("test", "silent"),

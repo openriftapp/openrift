@@ -18,14 +18,14 @@ describe.skipIf(!ctx)("adminsRepo (integration)", () => {
     expect(result).toBe(false);
   });
 
-  it("autoPromote promotes a user to admin", async () => {
-    await repo.autoPromote(userId);
+  it("promote promotes a user to admin", async () => {
+    await repo.promote(userId);
     const result = await repo.isAdmin(userId);
     expect(result).toBe(true);
   });
 
-  it("autoPromote is a no-op for already-admin user", async () => {
-    await repo.autoPromote(userId);
+  it("promote is a no-op for already-admin user", async () => {
+    await repo.promote(userId);
     const result = await repo.isAdmin(userId);
     expect(result).toBe(true);
   });

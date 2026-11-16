@@ -14,7 +14,7 @@ describe.skipIf(!conn)("updateUser profile fields (integration)", () => {
   const config = {
     isDev: true,
     corsOrigin: undefined,
-    auth: { secret: "test-secret", adminEmail: undefined, google: undefined, discord: undefined },
+    auth: { secret: "test-secret", google: undefined, discord: undefined },
     smtp: { configured: false },
   } as never as Parameters<typeof createAuth>[0]["config"];
   const auth = createAuth({

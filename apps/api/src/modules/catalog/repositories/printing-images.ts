@@ -638,7 +638,6 @@ export function printingImagesRepo(db: Kysely<Database>) {
               .whereRef("pi.imageFileId", "=", "imgf.id"),
           ),
         )
-        .where(REHOST_RETRY_DUE)
         .orderBy(sql`rf.last_attempt_at asc nulls first`)
         .orderBy("imgf.id")
         .limit(limit)

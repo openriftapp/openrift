@@ -18,7 +18,7 @@ describe("createAuth account deletion", () => {
       config: {
         isDev: true,
         corsOrigin: undefined,
-        auth: { secret: "test-secret", adminEmail: undefined },
+        auth: { secret: "test-secret" },
         smtp: { configured: false },
       },
       db: {},
@@ -33,5 +33,23 @@ describe("createAuth account deletion", () => {
       expect.anything(),
       "user-1",
     );
+  });
+});
+
+describe("createAuth rate limiting", () => {
+  it("turns better-auth's own limiter off whatever NODE_ENV says", () => {
+    const options = createAuth({
+      config: {
+        isDev: false,
+        corsOrigin: undefined,
+        auth: { secret: "test-secret" },
+        smtp: { configured: false },
+      },
+      db: {},
+      dialect: {},
+      sendEmail: vi.fn(),
+    } as never) as unknown as { rateLimit?: { enabled?: boolean } };
+
+    expect(options.rateLimit).toEqual({ enabled: false });
   });
 });

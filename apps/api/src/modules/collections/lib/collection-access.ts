@@ -21,7 +21,7 @@ export async function assertCollectionsAccessible(
   userId: string,
 ): Promise<void> {
   const unique = [...new Set(collectionIds)];
-  const accessible = await repos.collections.filterWritableByViewer(unique, userId);
+  const accessible = await repos.collections.filterAccessibleByViewer(unique, userId);
   if (accessible.length !== unique.length) {
     throw notFound("Not found");
   }
@@ -54,7 +54,7 @@ export async function loadWritableCopies(
     throw notFound("One or more copies not found");
   }
   const sourceIds = [...new Set(copies.map((row) => row.collectionId))];
-  const writableSources = await repos.collections.filterWritableByViewer(sourceIds, userId);
+  const writableSources = await repos.collections.filterAccessibleByViewer(sourceIds, userId);
   if (writableSources.length !== sourceIds.length) {
     throw forbidden("One or more copies are not writable by you");
   }

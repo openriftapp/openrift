@@ -11,6 +11,7 @@ import {
   RunDeadlineError,
   SourceBlockedError,
   SourceHttpError,
+  SourceMalformedBodyError,
   SourceThrottledError,
 } from "./source-http.js";
 import { metaSyncUserAgent } from "./user-agent.js";
@@ -104,6 +105,14 @@ function retryAfterMs(headers: Headers): number | null {
   }
   const at = Date.parse(raw);
   return Number.isNaN(at) ? null : Math.max(0, at - Date.now());
+}
+
+function isSourceError(error: unknown): boolean {
+  return (
+    error instanceof SourceHttpError ||
+    error instanceof SourceBlockedError ||
+    error instanceof RunDeadlineError
+  );
 }
 
 type Outcome<T> =
@@ -222,7 +231,14 @@ export function createPacedHttp(options: PacedHttpOptions): PacedHttp {
         if (isPermanentRefusal(error)) {
           return { error: error as Error, retryable: false, block: false };
         }
-        throw error;
+        if (text.trim() === "" || isSourceError(error)) {
+          return { error: toError(error), retryable: true, block: false };
+        }
+        return {
+          error: new SourceMalformedBodyError(response.status, url, error),
+          retryable: false,
+          block: false,
+        };
       }
     } catch (error) {
       return {

@@ -16,7 +16,7 @@ import { implement } from "@orpc/server";
 import type { Repos, Transact } from "../../../deps.js";
 import { badRequest } from "../../../errors.js";
 import { assertDeleted, assertExisted, assertFound } from "../../../lib/assertions.js";
-import { isUniqueViolation } from "../../../lib/pg-errors.js";
+import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { enableShare } from "../../../lib/share-token.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
@@ -196,8 +196,14 @@ export const listsRouter = {
           tradeType: input.tradeOverride.tradeType,
         });
       } catch (error) {
-        // The partial unique index rejects a duplicate target.
-        if (isUniqueViolation(error)) {
+        if (
+          isUniqueViolationOn(
+            error,
+            "uq_list_entries_card",
+            "uq_list_entries_printing",
+            "uq_list_entries_copy",
+          )
+        ) {
           throw errors.CONFLICT({ message: "That item is already in the list" });
         }
         throw error;

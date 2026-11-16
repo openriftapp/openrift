@@ -5,7 +5,7 @@ import type { Repos, Transact } from "../../../deps.js";
 import type { AppError } from "../../../errors.js";
 import { badRequest, conflict } from "../../../errors.js";
 import { assertExisted, assertFound } from "../../../lib/assertions.js";
-import { isUniqueViolation } from "../../../lib/pg-errors.js";
+import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { disposeCopiesInTransaction } from "../../collections/services/copies.js";
 import { toLoanResponse } from "../lib/loan-presenters.js";
 import { CANCEL_WITHOUT_ASKING } from "./trade-supply.js";
@@ -110,9 +110,9 @@ export function createLoan(transact: Transact, input: CreateLoanInput): Promise<
     try {
       await trxRepos.loans.pinCopies(loan.id, availableCopyIds.slice(0, quantity));
     } catch (error) {
-      // UNIQUE(copy_id) on loan_copies: a concurrent loan pinned one of these
-      // copies first. At least one was lost, so report one fewer than we had.
-      if (isUniqueViolation(error)) {
+      // A concurrent loan pinned one of these copies first. At least one was
+      // lost, so report one fewer than we had.
+      if (isUniqueViolationOn(error, "uq_loan_copies_copy")) {
         throw tooFewAvailable(Math.max(0, availableCopyIds.length - 1));
       }
       throw error;
@@ -221,7 +221,7 @@ export function reopenBorrowerReturn(
     try {
       await trxRepos.loans.pinCopies(loanId, availableCopyIds.slice(0, count));
     } catch (error) {
-      if (isUniqueViolation(error)) {
+      if (isUniqueViolationOn(error, "uq_loan_copies_copy")) {
         throw conflict("Loan state has changed");
       }
       throw error;

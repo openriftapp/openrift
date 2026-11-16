@@ -36,10 +36,16 @@ const INPUT = {
 
 describe("createLoan copy-pin race", () => {
   it("maps a unique-violation on pinCopies to a 409, not a raw 500", async () => {
-    const repos = reposWithPinError({ code: "23505" });
+    const repos = reposWithPinError({ code: "23505", constraint_name: "uq_loan_copies_copy" });
     const result = await createLoan(mockTransact(repos), INPUT).catch((error: unknown) => error);
     expect(result).toBeInstanceOf(AppError);
     expect((result as AppError).status).toBe(409);
+  });
+
+  it("re-throws a unique violation on another constraint unchanged", async () => {
+    const other = { code: "23505", constraint_name: "loan_copies_pkey" };
+    const repos = reposWithPinError(other);
+    await expect(createLoan(mockTransact(repos), INPUT)).rejects.toBe(other);
   });
 
   it("re-throws a non-unique error unchanged", async () => {

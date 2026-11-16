@@ -59,7 +59,7 @@ export async function addCopies(
 
   const explicitIds = [...new Set(copies.map((c) => c.collectionId).filter(Boolean))] as string[];
   if (explicitIds.length > 0) {
-    const writable = await repos.collections.filterWritableByViewer(explicitIds, userId);
+    const writable = await repos.collections.filterAccessibleByViewer(explicitIds, userId);
     if (writable.length !== explicitIds.length) {
       throw forbidden("One or more collections are not writable by you");
     }
@@ -209,7 +209,7 @@ async function resolveMoveTarget(
   userId: string,
   toCollectionId: string,
 ): Promise<MoveTarget> {
-  const targetWritable = await repos.collections.filterWritableByViewer([toCollectionId], userId);
+  const targetWritable = await repos.collections.filterAccessibleByViewer([toCollectionId], userId);
   if (targetWritable.length === 0) {
     throw notFound("Target collection not found");
   }

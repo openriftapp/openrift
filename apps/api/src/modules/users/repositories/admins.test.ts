@@ -16,9 +16,9 @@ describe("adminsRepo", () => {
     expect(await repo.isAdmin("u1")).toBe(false);
   });
 
-  it("autoPromote inserts without throwing", async () => {
+  it("promote inserts without throwing", async () => {
     const db = createMockDb([]);
     const repo = adminsRepo(db);
-    await expect(repo.autoPromote("u1")).resolves.toBeUndefined();
+    await expect(repo.promote("u1")).resolves.toBeUndefined();
   });
 });

@@ -1039,3 +1039,48 @@ describe("otherCardWishDecrements", () => {
     ]);
   });
 });
+
+describe("unique violations in trade writes", () => {
+  const violation = (constraint: string) =>
+    Object.assign(new Error("duplicate key"), { code: "23505", constraint_name: constraint });
+
+  it.each([
+    { constraint: "uq_card_trades_live", mapped: true },
+    { constraint: "card_trades_pkey", mapped: false },
+  ])(
+    "create maps $constraint only when it is the live-trade index",
+    async ({ constraint, mapped }) => {
+      const { repos, create } = supplyRepos({ [GROUP.id]: ["copy-1"] });
+      const error = violation(constraint);
+      create.mockRejectedValue(error);
+
+      const result = await runCreate(repos, "giver", 1);
+
+      if (mapped) {
+        expect((result as AppError).status).toBe(409);
+      } else {
+        expect(result).toBe(error);
+      }
+    },
+  );
+
+  it.each([
+    { constraint: "uq_card_trade_copies_copy", mapped: true },
+    { constraint: "card_trade_copies_pkey", mapped: false },
+  ])(
+    "accept maps $constraint only when another trade took the copy",
+    async ({ constraint, mapped }) => {
+      const { repos, pinCopies } = acceptRepos(REQUEST, [candidate("copy-plain")]);
+      const error = violation(constraint);
+      pinCopies.mockRejectedValue(error);
+
+      const result = await runAccept(repos, REQUEST);
+
+      if (mapped) {
+        expect((result as AppError).status).toBe(409);
+      } else {
+        expect(result).toBe(error);
+      }
+    },
+  );
+});

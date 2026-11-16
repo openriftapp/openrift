@@ -1,3 +1,5 @@
+import { errorMessage } from "@openrift/shared/strings";
+
 import type { SourceStop } from "./source-stop.js";
 
 export function isTransientStatus(status: number): boolean {
@@ -11,8 +13,8 @@ export function httpFailureMessage(status: number, url: string, body: string): s
 export class SourceHttpError extends Error {
   readonly status: number;
 
-  constructor(status: number, message: string) {
-    super(message);
+  constructor(status: number, message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = "SourceHttpError";
     this.status = status;
   }
@@ -26,6 +28,14 @@ export class SourceThrottledError extends SourceHttpError {
   constructor(url: string, message = `The source kept throttling: ${url}`) {
     super(429, message);
     this.name = "SourceThrottledError";
+  }
+}
+
+/** A successful answer whose non-empty body the caller could not parse. */
+export class SourceMalformedBodyError extends SourceHttpError {
+  constructor(status: number, url: string, cause: unknown) {
+    super(status, `Unreadable answer from ${url}: ${errorMessage(cause)}`, { cause });
+    this.name = "SourceMalformedBodyError";
   }
 }
 

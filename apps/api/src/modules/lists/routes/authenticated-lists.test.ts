@@ -576,6 +576,22 @@ describe("POST /api/v1/lists/:id/entries", () => {
     });
   });
 
+  it.each([
+    { constraint: "uq_list_entries_card", status: 409 },
+    { constraint: "list_entries_pkey", status: 500 },
+  ])("answers $status when the insert hits $constraint", async ({ constraint, status }) => {
+    mockListsRepo.getIdKindIntent.mockResolvedValue({ id: LIST_ID, kind: "card", intent: "wish" });
+    mockListsRepo.createEntry.mockRejectedValue(
+      Object.assign(new Error("duplicate key"), { code: "23505", constraint_name: constraint }),
+    );
+    const res = await app.request(`/api/v1/lists/${LIST_ID}/entries`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ cardId: CARD_ID }),
+    });
+    expect(res.status).toBe(status);
+  });
+
   it("rejects mismatched target (card-kind list, printing in body)", async () => {
     mockListsRepo.getIdKindIntent.mockResolvedValue({ id: LIST_ID, kind: "card", intent: "wish" });
     const res = await app.request(`/api/v1/lists/${LIST_ID}/entries`, {

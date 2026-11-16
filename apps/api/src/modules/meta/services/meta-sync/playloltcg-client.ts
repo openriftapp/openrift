@@ -76,7 +76,7 @@ function unwrap(body: unknown, url: string): unknown {
     const message = `playloltcg code ${row.code} for ${url}: ${detail}`;
     throw REFUSING_CODES.has(row.code)
       ? new PlayloltcgRefusedError(message, row.code)
-      : new Error(message);
+      : new SourceHttpError(0, message);
   }
   return row.result;
 }

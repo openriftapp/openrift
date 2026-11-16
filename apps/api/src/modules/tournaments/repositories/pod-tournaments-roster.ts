@@ -5,10 +5,20 @@ import type { Database } from "../../../db/tables.js";
 import type { PodPlayer, PodRosterPlayer } from "./pod-tournaments-shared.js";
 import { ROSTER_STATUSES } from "./pod-tournaments-shared.js";
 
+type CreateTeamResult =
+  | { created: true; teamId: string }
+  | { created: false; reason: "not_2v2" | "player_taken" };
+
 // Kysely commits a transaction unless the callback throws; this lets a race
 // roll the transaction back without surfacing a transport-level AppError.
 class TeamRaceLostError extends Error {
   override name = "TeamRaceLostError";
+  readonly reason: "not_2v2" | "player_taken";
+
+  constructor(reason: "not_2v2" | "player_taken") {
+    super(reason);
+    this.reason = reason;
+  }
 }
 
 /**
@@ -86,21 +96,32 @@ export function podRosterRepo(db: Kysely<Database>) {
     },
 
     /**
-     * Create a team from two participants, atomically. Eligibility (2v2
-     * tournament, both active and unteamed) is the service's job.
-     * @returns The new team id, or null when a participant was taken meanwhile.
+     * Create a team from two participants, atomically. Eligibility (both active
+     * and unteamed) is the service's job; the write re-checks both and the play mode.
      */
     async createTeam(
       tournamentId: string,
       participantIds: [string, string],
-    ): Promise<string | null> {
+    ): Promise<CreateTeamResult> {
       try {
         return await db.transaction().execute(async (trx) => {
+          // FOR SHARE waits out a concurrent settings write and re-reads its play mode.
           const team = await trx
             .insertInto("tournamentTeams")
-            .values({ tournamentId })
+            .columns(["tournamentId"])
+            .expression(
+              trx
+                .selectFrom("tournaments")
+                .select("id as tournamentId")
+                .where("id", "=", tournamentId)
+                .where("playMode", "=", "2v2")
+                .forShare(),
+            )
             .returning("id")
-            .executeTakeFirstOrThrow();
+            .executeTakeFirst();
+          if (team === undefined) {
+            throw new TeamRaceLostError("not_2v2");
+          }
           // The teamId IS NULL guard makes concurrent creates sharing a
           // participant safe: the loser updates fewer than two rows, throws, and
           // its team row rolls back with the transaction — no half-team remains.
@@ -114,13 +135,13 @@ export function podRosterRepo(db: Kysely<Database>) {
             .where("teamId", "is", null)
             .executeTakeFirst();
           if (updated.numUpdatedRows !== 2n) {
-            throw new TeamRaceLostError();
+            throw new TeamRaceLostError("player_taken");
           }
-          return team.id;
+          return { created: true as const, teamId: team.id };
         });
       } catch (error) {
         if (error instanceof TeamRaceLostError) {
-          return null;
+          return { created: false, reason: error.reason };
         }
         throw error;
       }

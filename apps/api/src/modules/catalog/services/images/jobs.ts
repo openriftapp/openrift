@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { chunk } from "@openrift/shared/collections";
 import { isRegenerateImagesCheckpoint } from "@openrift/shared/contracts/admin/job-results";
 import { imageRehostedUrl } from "@openrift/shared/image-url";
+import { createLogger } from "@openrift/shared/logger";
 import type { Logger } from "@openrift/shared/logger";
 import { errorMessage } from "@openrift/shared/strings";
 import type {
@@ -25,6 +26,8 @@ import {
   origFileOnDisk,
   processAndSave,
 } from "./variants.js";
+
+const imageLog = createLogger("images");
 
 type PrintingImagesRepo = ReturnType<typeof printingImagesRepo>;
 type JobRunsRepo = ReturnType<typeof jobRunsRepo>;
@@ -74,7 +77,7 @@ export async function rehostImageFile(
     }
     return { status: "rehosted" };
   } catch (error) {
-    console.error(`[rehost] Rehost failed for image file ${imageFileId}:`, errorMessage(error));
+    imageLog.error({ err: error, imageFileId }, "Rehost failed");
     const message = rehostFailureReason(error);
     if (mayHaveWritten && file.rehostedUrl === null) {
       await deleteRehostFiles(io, rehostedUrl);
@@ -127,7 +130,7 @@ export async function rehostFaceImage(
       : await rehostImageFile(io, repo, imageFileId);
   } catch (error) {
     const message = errorMessage(error);
-    console.error(`[rehost] Rehost failed for image ${imageId}:`, message);
+    imageLog.error({ err: error, imageId }, "Rehost failed");
     return { status: "failed", error: message };
   }
 }
@@ -313,7 +316,7 @@ export async function regenerateImagesBatch(
       out.failed++;
       const message = errorMessage(result.reason);
       out.errors.push(`${imageId}: ${message}`);
-      console.error(`[regenerate] ${imageId}:`, message);
+      imageLog.error({ err: result.reason, imageId }, "Regenerate failed");
     }
   }
 

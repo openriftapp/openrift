@@ -20,7 +20,7 @@ import {
   processPlayloltcgRechecks,
   syncPlayloltcgCatalog,
 } from "./playloltcg-sync.js";
-import { SourceHttpError, SourceThrottledError } from "./source-http.js";
+import { SourceHttpError, SourceMalformedBodyError, SourceThrottledError } from "./source-http.js";
 
 vi.mock("./playloltcg-accept.js", () => ({
   autoAcceptPlayloltcgEvents: vi.fn(() =>
@@ -124,7 +124,7 @@ function fakeDeps(options: {
   overflowOn?: string;
   blockOn?: string;
   throttleOn?: string;
-  shopsFail?: boolean;
+  shopsFail?: boolean | Error;
   due?: PlayloltcgRecheckRow[];
   outstandingDecks?: string[];
   priorResult?: unknown;
@@ -146,6 +146,9 @@ function fakeDeps(options: {
   const client = {
     requests: 0,
     postList: <T>(path: string, body: Record<string, unknown>): Promise<PlayloltcgList<T>> => {
+      if (path === SHOPS_PATH && options.shopsFail instanceof Error) {
+        return Promise.reject(options.shopsFail);
+      }
       if (path === SHOPS_PATH && options.shopsFail === true) {
         return Promise.reject(
           new SourceHttpError(502, "HTTP 502 for /xcx/shop/searchShop: <html>"),
@@ -372,6 +375,24 @@ describe("backfillPlayloltcg", () => {
     expect(result.complete).toBe(false);
     expect(result.blocked).toBe(false);
     expect(result.errors).toEqual([expect.stringContaining("HTTP 502")]);
+    expect(isResumableCheckpoint(result)).toBe(true);
+  });
+
+  it("ends short without a refusal when the source answers a body it cannot read", async () => {
+    const resumeFrom = new Date("2026-03-01T00:00:00.000Z");
+    const malformed = new SourceMalformedBodyError(
+      200,
+      "/xcx/shop/searchShop",
+      new SyntaxError("Unexpected token"),
+    );
+    const { deps, windows } = fakeDeps({ shopsFail: malformed });
+
+    const result = await backfillPlayloltcg(deps, undefined, { resumeFrom });
+
+    expect(windows).toEqual([]);
+    expect(result.complete).toBe(false);
+    expect(result.blocked).toBe(false);
+    expect(result.errors).toEqual([expect.stringContaining("Unreadable answer")]);
     expect(isResumableCheckpoint(result)).toBe(true);
   });
 

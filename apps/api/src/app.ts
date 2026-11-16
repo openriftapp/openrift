@@ -103,7 +103,13 @@ const rateLimitedAuthPrefixes = [
   "/api/auth/sign-up",
   "/api/auth/email-otp",
   "/api/auth/forget-password",
+  "/api/auth/request-password-reset",
   "/api/auth/reset-password",
+  "/api/auth/send-verification-email",
+  "/api/auth/change-email",
+  "/api/auth/change-password",
+  "/api/auth/delete-user",
+  "/api/auth/verify-password",
 ];
 
 export function createApp(deps: AppDeps) {
@@ -313,11 +319,11 @@ export function createApp(deps: AppDeps) {
     await next();
   });
 
-  // DISABLE_AUTH_RATE_LIMIT lets the e2e harness opt out; auth.setup re-runs in
-  // tight succession would otherwise trip the limiter and fail.
-  const authRateLimitDisabled = process.env.DISABLE_AUTH_RATE_LIMIT === "1";
   app.use("/api/auth/*", async (c, next) => {
-    if (!authRateLimitDisabled && rateLimitedAuthPrefixes.some((p) => c.req.path.startsWith(p))) {
+    if (
+      !config.authRateLimitDisabled &&
+      rateLimitedAuthPrefixes.some((p) => c.req.path.startsWith(p))
+    ) {
       return authRateLimit(c, next);
     }
     await next();

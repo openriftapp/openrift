@@ -3,6 +3,11 @@ import { describe, expect, it } from "vitest";
 import { createConfig, validateConfig } from "./config.js";
 
 describe("createConfig", () => {
+  it("reads DISABLE_AUTH_RATE_LIMIT=1 as a disabled auth limiter", () => {
+    expect(createConfig({ DISABLE_AUTH_RATE_LIMIT: "1" }).authRateLimitDisabled).toBe(true);
+    expect(createConfig({}).authRateLimitDisabled).toBe(false);
+  });
+
   it("returns defaults when env vars are missing", () => {
     const config = createConfig({});
     expect(typeof config.port).toBe("number");
@@ -65,6 +70,32 @@ describe("createConfig", () => {
 });
 
 describe("validateConfig", () => {
+  const devEnv = { DATABASE_URL: "postgres://x", BETTER_AUTH_SECRET: "s" };
+  const prodEnv = {
+    ...devEnv,
+    APP_ENV: "production",
+    CORS_ORIGIN: "https://site.test",
+    BETTER_AUTH_URL: "https://site.test",
+  };
+
+  it("allows DISABLE_AUTH_RATE_LIMIT in development", () => {
+    expect(() => validateConfig({ ...devEnv, DISABLE_AUTH_RATE_LIMIT: "1" })).not.toThrow();
+  });
+
+  it.each([
+    { name: "APP_ENV production", env: { ...prodEnv, DISABLE_AUTH_RATE_LIMIT: "1" } },
+    {
+      name: "APP_ENV preview",
+      env: { ...prodEnv, APP_ENV: "preview", DISABLE_AUTH_RATE_LIMIT: "1" },
+    },
+    {
+      name: "NODE_ENV production",
+      env: { ...devEnv, NODE_ENV: "production", DISABLE_AUTH_RATE_LIMIT: "1" },
+    },
+  ])("refuses DISABLE_AUTH_RATE_LIMIT under $name", ({ env }) => {
+    expect(() => validateConfig(env)).toThrow("DISABLE_AUTH_RATE_LIMIT");
+  });
+
   it("throws when DATABASE_URL is missing", () => {
     expect(() => validateConfig({ BETTER_AUTH_SECRET: "s" })).toThrow(
       "Missing required environment variables: DATABASE_URL",

@@ -7,7 +7,7 @@ import type {
 import { implement } from "@orpc/server";
 
 import type { Repos } from "../../../deps.js";
-import { isUniqueViolation } from "../../../lib/pg-errors.js";
+import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { withUniqueClaimToken } from "../lib/claim-token.js";
@@ -75,7 +75,7 @@ export async function resolveSelfJoin(
       alreadyJoined: false,
     };
   } catch (error) {
-    if (isUniqueViolation(error)) {
+    if (isUniqueViolationOn(error, "uq_tournament_participants_user")) {
       const raced = await repos.tournaments.getParticipantByUser(tournamentId, user.id);
       if (raced) {
         return {

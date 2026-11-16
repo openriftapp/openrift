@@ -4,6 +4,7 @@ import { TOPDECK_FORMATS } from "@openrift/shared/types/enums";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Repos, Transact } from "../../../../deps.js";
+import { SourceMalformedBodyError } from "./source-http.js";
 import { autoAcceptTopdeckEvents } from "./topdeck-accept.js";
 import type { TopdeckClient, TopdeckSearchBody } from "./topdeck-client.js";
 import { TopdeckThrottledError } from "./topdeck-client.js";
@@ -63,6 +64,7 @@ function fakeDeps(options: {
   unchanged?: boolean;
   failWrites?: boolean;
   throttleOn?: string;
+  malformedOn?: string;
   cancelled?: boolean;
   heartbeatFails?: boolean;
   bridge?: Map<string, { cardId: string; name: string; type: string }>;
@@ -80,6 +82,11 @@ function fakeDeps(options: {
       searches.push(body);
       if (options.throttleOn === body.format) {
         return Promise.reject(new TopdeckThrottledError("search"));
+      }
+      if (options.malformedOn === body.format) {
+        return Promise.reject(
+          new SourceMalformedBodyError(200, "search", new SyntaxError("Unexpected token")),
+        );
       }
       return Promise.resolve(options.byFormat?.[body.format] ?? []);
     },
@@ -263,6 +270,18 @@ describe("syncTopdeckCatalog", () => {
       expect.stringContaining(`this job pauses until ${result.pausedUntil}`),
     ]);
     expect(searches.map((body) => body.format)).toEqual(["Constructed", "Limited", "Sealed"]);
+  });
+
+  it("stops short on an unreadable answer without pausing or refusing", async () => {
+    const { deps, searches } = fakeDeps({ malformedOn: "Limited" });
+
+    const result = await syncTopdeckCatalog(deps);
+
+    expect(result.complete).toBe(false);
+    expect(result.throttled).toBe(false);
+    expect(result.pausedUntil ?? null).toBeNull();
+    expect(result.errors).toEqual([expect.stringContaining("Stopped: Unreadable answer")]);
+    expect(searches.map((body) => body.format)).toEqual(["Constructed", "Limited"]);
   });
 
   it("hands the keys it touched to the auto-accept sweep", async () => {

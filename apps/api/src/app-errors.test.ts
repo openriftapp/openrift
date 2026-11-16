@@ -18,7 +18,7 @@ const baseMockConfig = {
   port: 3000,
   databaseUrl: "postgres://mock",
   corsOrigin: undefined,
-  auth: { secret: "test-secret", adminEmail: undefined, google: undefined, discord: undefined },
+  auth: { secret: "test-secret", google: undefined, discord: undefined },
   smtp: { configured: false },
 };
 

@@ -8,6 +8,8 @@ import {
   isTransientSourceFailure,
   RunDeadlineError,
   SourceBlockedError,
+  SourceHttpError,
+  SourceMalformedBodyError,
   SourceThrottledError,
 } from "./source-http.js";
 
@@ -103,6 +105,36 @@ describe("createPacedHttp", () => {
     const { http } = harness([ok(""), ok('{"a":1}')]);
     const parsed = await http.request("https://source.invalid/a", {}, (text) => JSON.parse(text));
     expect(parsed).toEqual({ a: 1 });
+    expect(http.requests).toBe(2);
+  });
+
+  it("fails a non-empty body the caller cannot parse once, as a transient failure with its cause", async () => {
+    const { http } = harness([ok("<html>maintenance</html>"), ok('{"a":1}')]);
+
+    const error = await http
+      .request("https://source.invalid/a", {}, (text) => JSON.parse(text))
+      .catch((error_: unknown) => error_);
+
+    expect(error).toBeInstanceOf(SourceMalformedBodyError);
+    expect((error as Error).cause).toBeInstanceOf(SyntaxError);
+    expect(isPermanentRefusal(error)).toBe(false);
+    expect(isTransientSourceFailure(error)).toBe(true);
+    expect(http.requests).toBe(1);
+    expect(http.blocked).toBe(false);
+  });
+
+  it("retries a transient source error the parser raises from a readable body", async () => {
+    const { http } = harness([ok('{"busy":true}'), ok('{"busy":false}')]);
+
+    const parsed = await http.request("https://source.invalid/a", {}, (text) => {
+      const body = JSON.parse(text) as { busy: boolean };
+      if (body.busy) {
+        throw new SourceHttpError(0, "busy");
+      }
+      return body;
+    });
+
+    expect(parsed).toEqual({ busy: false });
     expect(http.requests).toBe(2);
   });
 

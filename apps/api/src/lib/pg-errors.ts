@@ -24,14 +24,18 @@ export function isForeignKeyViolation(error: unknown): boolean {
 }
 
 /**
- * True if the violation is on the named constraint specifically. Use over
+ * True if the violation is on one of the named constraints. Use over
  * {@link isUniqueViolation} when a block can raise 23505 from more than one index.
  */
-export function isUniqueViolationOn(error: unknown, constraintName: string): boolean {
-  return (
-    isUniqueViolation(error) &&
-    (error as { constraint_name?: unknown }).constraint_name === constraintName
-  );
+export function isUniqueViolationOn(
+  error: unknown,
+  ...constraintNames: [string, ...string[]]
+): boolean {
+  if (!isUniqueViolation(error)) {
+    return false;
+  }
+  const name = (error as { constraint_name?: unknown }).constraint_name;
+  return typeof name === "string" && constraintNames.includes(name);
 }
 
 export function isForeignKeyViolationOn(error: unknown, constraintName: string): boolean {

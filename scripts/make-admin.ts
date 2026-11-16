@@ -14,6 +14,6 @@ await runWithDb(async (db) => {
     throw new Error(`No user found with email: ${email}`);
   }
 
-  await adminsRepo(db).autoPromote(user.id);
+  await adminsRepo(db).promote(user.id);
   console.log(`Admin granted to ${user.email} (${user.id})`);
 });

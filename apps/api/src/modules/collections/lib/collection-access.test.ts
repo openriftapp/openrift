@@ -16,7 +16,7 @@ function reposWith(options: {
   return {
     collections: {
       getAccessForUser: vi.fn(() => Promise.resolve(options.access)),
-      filterWritableByViewer: vi.fn(() => Promise.resolve(options.writable ?? [])),
+      filterAccessibleByViewer: vi.fn(() => Promise.resolve(options.writable ?? [])),
     },
     copies: {
       listWithCollectionContext: vi.fn(() => Promise.resolve(options.copies ?? [])),
@@ -50,7 +50,7 @@ describe("assertCollectionsAccessible", () => {
     await expect(
       assertCollectionsAccessible(repos, ["c-1", "c-2", "c-1"], "u-1"),
     ).resolves.toBeUndefined();
-    expect(repos.collections.filterWritableByViewer).toHaveBeenCalledWith(["c-1", "c-2"], "u-1");
+    expect(repos.collections.filterAccessibleByViewer).toHaveBeenCalledWith(["c-1", "c-2"], "u-1");
   });
 
   it("throws 404 when any collection is out of the viewer's reach", async () => {
@@ -91,7 +91,7 @@ describe("loadWritableCopies", () => {
     const copies = [copy("cp-1", "c-1"), copy("cp-2", "c-1")];
     const repos = reposWith({ copies, writable: ["c-1"] });
     await expect(loadWritableCopies(repos, "u-1", ["cp-1", "cp-2"])).resolves.toBe(copies);
-    expect(repos.collections.filterWritableByViewer).toHaveBeenCalledWith(["c-1"], "u-1");
+    expect(repos.collections.filterAccessibleByViewer).toHaveBeenCalledWith(["c-1"], "u-1");
   });
 
   it("throws 404 when a copy is missing", async () => {

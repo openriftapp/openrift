@@ -40,9 +40,10 @@ const mockConfig = {
   port: 3000,
   databaseUrl: "",
   corsOrigin: undefined,
+  authRateLimitDisabled: process.env.DISABLE_AUTH_RATE_LIMIT === "1",
   appBaseUrl: "http://localhost:5173",
   siteOrigin: "http://localhost:5173",
-  auth: { secret: "test", adminEmail: undefined, google: undefined, discord: undefined },
+  auth: { secret: "test", google: undefined, discord: undefined },
   smtp: { configured: false },
   metaSync: {
     baseUrl: "https://uvsgames.example.invalid",

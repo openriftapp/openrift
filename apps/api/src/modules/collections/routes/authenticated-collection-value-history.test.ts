@@ -12,7 +12,7 @@ const mockMarketplaceRepo = {
 };
 
 const mockCollectionsRepo = {
-  filterWritableByViewer: vi.fn((ids: string[]) => Promise.resolve(ids)),
+  filterAccessibleByViewer: vi.fn((ids: string[]) => Promise.resolve(ids)),
 };
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
@@ -85,12 +85,12 @@ describe("GET /api/v1/collection-value-history", () => {
   it("answers 404 for a collection the viewer cannot read, without reading its history", async () => {
     const own = "a0000000-0001-4000-a000-000000000010";
     const foreign = "a0000000-0001-4000-a000-000000000099";
-    mockCollectionsRepo.filterWritableByViewer.mockResolvedValue([own]);
+    mockCollectionsRepo.filterAccessibleByViewer.mockResolvedValue([own]);
     const res = await app.request(
       `/api/v1/collection-value-history?collectionIds=${own},${foreign}`,
     );
     expect(res.status).toBe(404);
-    expect(mockCollectionsRepo.filterWritableByViewer).toHaveBeenCalledWith(
+    expect(mockCollectionsRepo.filterAccessibleByViewer).toHaveBeenCalledWith(
       [own, foreign],
       USER_ID,
     );
@@ -99,7 +99,7 @@ describe("GET /api/v1/collection-value-history", () => {
 
   it("splits collectionIds and scope CSV filters into arrays", async () => {
     mockMarketplaceRepo.collectionValueTimeSeries.mockResolvedValue([]);
-    mockCollectionsRepo.filterWritableByViewer.mockImplementation((ids: string[]) =>
+    mockCollectionsRepo.filterAccessibleByViewer.mockImplementation((ids: string[]) =>
       Promise.resolve(ids),
     );
     const colA = "a0000000-0001-4000-a000-000000000010";

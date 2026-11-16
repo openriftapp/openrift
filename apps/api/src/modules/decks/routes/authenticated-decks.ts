@@ -2,7 +2,7 @@ import { isBanInEffect } from "@openrift/shared/card-ban";
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { decksContract } from "@openrift/shared/contracts/decks";
 import type { updateDeckPlanSchema } from "@openrift/shared/contracts/decks";
-import { toDeckCard } from "@openrift/shared/deck-cards";
+import { mergeDeckCards, toDeckCard } from "@openrift/shared/deck-cards";
 import { isValidInDeckList, summarizeDeckCards } from "@openrift/shared/deck-list-summary";
 import { requiredZoneProgress } from "@openrift/shared/deck-zones";
 import type {
@@ -28,7 +28,7 @@ import type { z } from "zod";
 import type { Repos } from "../../../deps.js";
 import { badRequest } from "../../../errors.js";
 import { assertExisted, assertFound } from "../../../lib/assertions.js";
-import { isForeignKeyViolation, isUniqueViolationOn } from "../../../lib/pg-errors.js";
+import { isForeignKeyViolation } from "../../../lib/pg-errors.js";
 import { enableShare } from "../../../lib/share-token.js";
 import {
   decodeXidKeyset,
@@ -427,19 +427,18 @@ export const decksRouter = {
     try {
       replaced = await decks.replaceCards(
         input.id,
-        input.cards.map((card) => ({
-          cardId: card.cardId,
-          zone: card.zone as DeckZone,
-          quantity: card.quantity,
-          preferredPrintingId: card.preferredPrintingId ?? null,
-        })),
+        mergeDeckCards(
+          input.cards.map((card) => ({
+            cardId: card.cardId,
+            zone: card.zone as DeckZone,
+            quantity: card.quantity,
+            preferredPrintingId: card.preferredPrintingId ?? null,
+          })),
+        ),
       );
     } catch (error) {
       if (isForeignKeyViolation(error)) {
         throw badRequest("A preferred printing must show its card on one side");
-      }
-      if (isUniqueViolationOn(error, "uq_deck_cards")) {
-        throw badRequest("A card is listed twice in one zone with the same printing");
       }
       throw error;
     }

@@ -57,7 +57,7 @@ function createMockRepos(overrides: {
     collections: {
       lockAsMoveTarget: () => Promise.resolve(overrides.targetCollection !== undefined),
       ensureInbox: () => Promise.resolve(overrides.inboxId ?? "inbox-id"),
-      filterWritableByViewer: (ids: readonly string[]) => {
+      filterAccessibleByViewer: (ids: readonly string[]) => {
         const writable = new Set<string>(overrides.writableCollections);
         if (targetExists && overrides.targetCollection) {
           writable.add(overrides.targetCollection.id);
@@ -631,7 +631,7 @@ describe("copy mutations sweep unfillable pending trades", () => {
     const repos = {
       collections: {
         lockAsMoveTarget: () => Promise.resolve(true),
-        filterWritableByViewer: (ids: readonly string[]) => Promise.resolve([...ids]),
+        filterAccessibleByViewer: (ids: readonly string[]) => Promise.resolve([...ids]),
         listIdNameGroupByIds: () =>
           Promise.resolve([{ id: "col-2", name: "Target", groupId: null }]),
       },

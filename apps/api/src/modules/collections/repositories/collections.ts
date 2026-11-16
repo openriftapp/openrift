@@ -152,7 +152,7 @@ export function collectionsRepo(db: Kysely<Database>) {
       };
     },
 
-    async filterWritableByViewer(ids: readonly string[], userId: string): Promise<string[]> {
+    async filterAccessibleByViewer(ids: readonly string[], userId: string): Promise<string[]> {
       if (ids.length === 0) {
         return [];
       }

@@ -64,6 +64,14 @@ describe("isForeignKeyViolationOn", () => {
 });
 
 describe("isUniqueViolationOn", () => {
+  it("matches any of several named constraints", () => {
+    const error = { code: "23505", constraint_name: "uq_list_entries_copy" };
+    expect(isUniqueViolationOn(error, "uq_list_entries_card", "uq_list_entries_copy")).toBe(true);
+    expect(isUniqueViolationOn(error, "uq_list_entries_card", "uq_list_entries_printing")).toBe(
+      false,
+    );
+  });
+
   it("is true only when the 23505 names the given constraint", () => {
     const error = Object.assign(new Error("duplicate key"), {
       code: "23505",

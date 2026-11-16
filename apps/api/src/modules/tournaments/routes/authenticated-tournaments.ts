@@ -75,6 +75,7 @@ import { applySettingsPatch } from "../services/tournament-settings.js";
 const os = implement(tournamentsContract).$context<ApiContext>().use(requireAuthedUser);
 
 const DEFAULT_PAST_PAGE_SIZE = 25;
+const TEAMS_NEED_2V2 = "Teams exist only in 2v2 tournaments.";
 
 // Handlers own request shape and ordering only; access, invariants, and
 // response assembly live in tournament-access/-invariants/-builders.ts.
@@ -602,7 +603,7 @@ export const tournamentsRouter = {
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
       if (tournament.playMode !== "2v2") {
-        throw badRequest("Teams exist only in 2v2 tournaments.");
+        throw badRequest(TEAMS_NEED_2V2);
       }
       const [firstId, secondId] = input.participantIds;
       if (firstId === secondId || firstId === undefined || secondId === undefined) {
@@ -622,8 +623,11 @@ export const tournamentsRouter = {
           });
         }
       }
-      const teamId = await repos.podTournaments.createTeam(input.id, [firstId, secondId]);
-      if (teamId === null) {
+      const team = await repos.podTournaments.createTeam(input.id, [firstId, secondId]);
+      if (!team.created && team.reason === "not_2v2") {
+        throw badRequest(TEAMS_NEED_2V2);
+      }
+      if (!team.created) {
         throw conflict("A player is already on a team or no longer in this tournament.");
       }
       return buildParticipantList(repos, input.id);

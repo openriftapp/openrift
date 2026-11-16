@@ -1,5 +1,5 @@
 import { isRegenerateImagesCheckpoint } from "@openrift/shared/contracts/admin/job-results";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   makeMockRepo,
@@ -26,19 +26,12 @@ import {
   unrehostImageFile,
 } from "./jobs.js";
 
-let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
-
 function fetchTimeout(): Error {
   return Object.assign(new Error("The operation timed out."), { name: "TimeoutError" });
 }
 
 beforeEach(() => {
   resetImageMocks();
-  consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-});
-
-afterEach(() => {
-  consoleErrorSpy.mockRestore();
 });
 
 describe("rehostImages", () => {

@@ -12,7 +12,7 @@ import type { Repos, Transact } from "../../../deps.js";
 import type { EmailDeps } from "../../../email.js";
 import { badRequest, conflict, forbidden } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
-import { isUniqueViolation } from "../../../lib/pg-errors.js";
+import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { disposeCopiesInTransaction } from "../../collections/services/copies.js";
 import { logEvents } from "../../system/services/event-logger.js";
 import type { TradeCopyRow } from "../lib/card-trade-presenters.js";
@@ -303,8 +303,7 @@ async function createCheckedTrade(
       expiresAt,
     });
   } catch (error) {
-    // Lost a race to the unique partial index uq_card_trades_live.
-    if (isUniqueViolation(error)) {
+    if (isUniqueViolationOn(error, "uq_card_trades_live")) {
       throw conflict("A live trade for this card already exists");
     }
     throw error;
@@ -492,8 +491,8 @@ export function acceptTrade(
     try {
       await trxRepos.cardTrades.pinCopies(tradeId, pinnedCopyIds);
     } catch (error) {
-      // A concurrent accept claimed one of these copies first (UNIQUE(copy_id)).
-      if (isUniqueViolation(error)) {
+      // A concurrent accept claimed one of these copies first.
+      if (isUniqueViolationOn(error, "uq_card_trade_copies_copy")) {
         throw tooFewAvailable(Math.max(0, availableCopyIds.length - 1));
       }
       throw error;
@@ -688,7 +687,7 @@ async function applyReceiverSync(
   if (targetCollectionId === undefined) {
     collectionId = await trxRepos.collections.ensureInbox(trade.receiverUserId);
   } else {
-    const writable = await trxRepos.collections.filterWritableByViewer(
+    const writable = await trxRepos.collections.filterAccessibleByViewer(
       [targetCollectionId],
       trade.receiverUserId,
     );
