@@ -7389,6 +7389,7 @@
   "help_deck_building_rules_sideboard_detail": "최대 10장입니다. 장수 제한은 주 덱 및 선발 챔피언과 공유됩니다. 예를 들어 주 덱에 같은 카드가 2장 있다면 보조 덱에는 1장만 더 넣을 수 있습니다.",
   "help_deck_building_rules_freeform": "Freeform에서는 이런 규칙이 적용되지 않습니다. Freeform으로 전환해 자유롭게 구상한 뒤 다시 사전 구성 형식으로 돌아와 검증하세요. 구역 사이드바에 구역별 위반 사항이 강조되어 표시됩니다.",
   "help_deck_building_rules_custom_region": "모든 카드가 선택한 지역에 속해야 하고, 전장은 한 장만 사용하며, 보조 덱은 없고, 시그니처 카드는 해당 챔피언이 덱에 있어야 합니다. 위반 사항은 만드는 동안 바로 표시됩니다.",
+  "help_deck_building_rules_infinity": "Infinity는 사전 구성 형식 규칙을 따르지만, 금지 카드를 포함한 모든 카드를 사용할 수 있습니다.",
   "help_deck_building_runes_heading": "룬 자동 채우기",
   "help_deck_building_runes_body": "전설을 고르면 에디터가 전설의 두 영역에 6장씩 고르게 나눈 룬 12장으로 룬 구역을 자동으로 채웁니다. 이후 개별 룬을 교체하거나 비율을 조정할 수 있습니다. 룬을 제거해 12장 아래로 내려가면 에디터가 균형을 맞추기 위해 다른 영역의 룬을 한 장 추가합니다.",
   "help_deck_building_domain_heading": "영역 필터",

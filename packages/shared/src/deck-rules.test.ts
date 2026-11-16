@@ -109,7 +109,7 @@ function makeConstructedShell(): DeckCard[] {
 
 function makeState(
   cards: DeckCard[],
-  format: "constructed" | "freeform" | "custom-region" = "constructed",
+  format: "constructed" | "freeform" | "custom-region" | "infinity" = "constructed",
   formatConfig?: { tagSlugs?: string[] } | null,
   championIdentifierTags?: ReadonlySet<string>,
 ): DeckState {
@@ -1127,6 +1127,23 @@ describe("banned cards via validateDeck", () => {
 
   it("does not enforce bans in freeform", () => {
     expect(validateDeck(makeState([makeCard({ banned: true })], "freeform"))).toEqual([]);
+  });
+
+  it("accepts a complete deck with banned cards in infinity", () => {
+    const mainCards = Array.from({ length: 13 }, (_, index) =>
+      makeCard({ cardId: `main-${index}`, quantity: 3, banned: index === 0 }),
+    );
+    expect(validateDeck(makeState([...makeConstructedShell(), ...mainCards], "infinity"))).toEqual(
+      [],
+    );
+  });
+
+  it("keeps the constructed deck shape in infinity", () => {
+    const codes = validateDeck(makeState([makeCard({ banned: true })], "infinity")).map(
+      (violation) => violation.code,
+    );
+    expect(codes).not.toContain("CARD_BANNED");
+    expect(codes).toContain("LEGEND_REQUIRED");
   });
 
   it("emits one violation when a banned card is split across printing rows", () => {

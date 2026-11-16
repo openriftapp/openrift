@@ -188,6 +188,7 @@ export default function DeckBuildingArticle() {
 
         <p className="text-muted-foreground mt-3">{m.help_deck_building_rules_freeform()}</p>
         <p className="text-muted-foreground mt-2">{m.help_deck_building_rules_custom_region()}</p>
+        <p className="text-muted-foreground mt-2">{m.help_deck_building_rules_infinity()}</p>
       </section>
 
       <section>

@@ -7396,6 +7396,7 @@
   "help_deck_building_rules_sideboard_detail": "Up to 10 cards. Copy limits are shared with the main deck and the Chosen Champion (e.g. if you have 2 copies of a card in main, you can only have 1 more in the sideboard).",
   "help_deck_building_rules_freeform": "In Freeform, none of these rules are enforced. Switch to Freeform to theorycraft, then back to Constructed to validate. The zone sidebar highlights violations per zone.",
   "help_deck_building_rules_custom_region": "Every card must belong to your chosen regions, one battlefield is played, there is no sideboard, and signature cards need their champion in the deck. Violations show up as you build.",
+  "help_deck_building_rules_infinity": "Infinity uses the Constructed rules, but every card is allowed, banned ones included.",
   "help_deck_building_runes_heading": "Rune auto-population",
   "help_deck_building_runes_body": "When you pick a legend, the editor automatically fills the rune zone with 12 runes split evenly across the legend's two domains (6 per domain). You can then swap individual runes or adjust the split. If you remove a rune and the count drops below 12, the editor adds a replacement from the other domain to keep the balance.",
   "help_deck_building_domain_heading": "Domain filtering",

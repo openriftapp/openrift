@@ -7390,6 +7390,7 @@
   "help_deck_building_rules_sideboard_detail": "Bis zu 10 Karten. Die Exemplargrenzen gelten gemeinsam mit dem Hauptdeck und dem Auserwählten Champion (hast du z. B. 2 Exemplare einer Karte im Hauptdeck, darf nur noch 1 weiteres ins Sideboard).",
   "help_deck_building_rules_freeform": "Im Format Freeform gilt keine dieser Regeln. Wechsel zu Freeform, um zu tüfteln, und zurück zu Constructed, um zu prüfen. Die Zonenleiste hebt Verstöße je Zone hervor.",
   "help_deck_building_rules_custom_region": "Jede Karte muss zu deinen gewählten Regionen gehören, es wird ein Schlachtfeld gespielt, es gibt kein Sideboard, und Signaturkarten brauchen ihren Champion im Deck. Verstöße erscheinen beim Bauen.",
+  "help_deck_building_rules_infinity": "Infinity nutzt die Constructed-Regeln, erlaubt aber jede Karte, auch gebannte.",
   "help_deck_building_runes_heading": "Runen automatisch füllen",
   "help_deck_building_runes_body": "Wenn du eine Legende wählst, füllt der Editor die Runenzone automatisch mit 12 Runen, gleichmäßig auf die beiden Domänen der Legende verteilt (6 je Domäne). Danach kannst du einzelne Runen tauschen oder die Aufteilung anpassen. Entfernst du eine Rune und die Zahl fällt unter 12, ergänzt der Editor eine Rune aus der anderen Domäne, um die Balance zu halten.",
   "help_deck_building_domain_heading": "Domänenfilter",

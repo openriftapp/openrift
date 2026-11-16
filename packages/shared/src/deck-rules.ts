@@ -883,6 +883,12 @@ const REGION_LOCKED_RULES: DeckRule[] = [
   signatureChampionCopiesInDeck,
 ];
 
+const INFINITY_RULES: DeckRule[] = CONSTRUCTED_RULES.filter((rule) => rule !== noBannedCards);
+
+export function formatIgnoresBans(format: string | null | undefined): boolean {
+  return format === WellKnown.deckFormat.INFINITY;
+}
+
 export function formatHasSideboard(format: DeckFormat): boolean {
   return format !== WellKnown.deckFormat.CUSTOM_REGION;
 }
@@ -895,6 +901,10 @@ export function validateDeck(state: DeckState): DeckViolation[] {
     }
     case WellKnown.deckFormat.CUSTOM_REGION: {
       rules = REGION_LOCKED_RULES;
+      break;
+    }
+    case WellKnown.deckFormat.INFINITY: {
+      rules = INFINITY_RULES;
       break;
     }
     default: {

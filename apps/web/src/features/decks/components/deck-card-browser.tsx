@@ -1,5 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
-import { copyLimitFor, formatHasSideboard } from "@openrift/shared/deck-rules";
+import { copyLimitFor, formatHasSideboard, formatIgnoresBans } from "@openrift/shared/deck-rules";
 import { isSingleSlotZone } from "@openrift/shared/deck-zones";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
@@ -425,6 +425,7 @@ function DeckCardBrowserInner({
   const { addCard, removeCard, setLegend, setQuantity } = useDeckBuilderActions(deckId);
   const isFreeform = deckDetail.deck.format === WellKnown.deckFormat.FREEFORM;
   const isCustomRegion = deckDetail.deck.format === WellKnown.deckFormat.CUSTOM_REGION;
+  const ignoresBans = formatIgnoresBans(deckDetail.deck.format);
   const formatTagConfig = getFormatTagConfig(deckDetail.deck.format);
   const visibleCustomTagCategories: ReadonlySet<string> | undefined = formatTagConfig
     ? new Set([formatTagConfig.category])
@@ -914,7 +915,7 @@ function DeckCardBrowserInner({
             />
           ) : undefined
         }
-        banDisplay={isCustomRegion ? "none" : "overlay"}
+        banDisplay={isCustomRegion || ignoresBans ? "none" : "overlay"}
         dragData={{
           type: "browser-card",
           card: {

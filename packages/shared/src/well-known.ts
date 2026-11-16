@@ -61,6 +61,7 @@ export const WellKnown = {
     CONSTRUCTED: "constructed",
     FREEFORM: "freeform",
     CUSTOM_REGION: "custom-region",
+    INFINITY: "infinity",
   },
   banFormat: {
     CONSTRUCTED: "standard",

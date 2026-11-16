@@ -152,6 +152,13 @@ describe("isValidInDeckList", () => {
     );
   });
 
+  it("judges infinity by deck shape and ignores bans", () => {
+    expect(isValidInDeckList(WellKnown.deckFormat.INFINITY, [])).toBe(false);
+    expect(isValidInDeckList(WellKnown.deckFormat.INFINITY, [ruleCard({ banned: true })])).toBe(
+      false,
+    );
+  });
+
   it("reports an empty constructed deck as invalid", () => {
     expect(isValidInDeckList(WellKnown.deckFormat.CONSTRUCTED, [])).toBe(false);
   });

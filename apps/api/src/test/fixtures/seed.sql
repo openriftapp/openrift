@@ -68,7 +68,8 @@ INSERT INTO formats (id, name) VALUES
 INSERT INTO deck_formats (slug, label, sort_order, is_well_known) VALUES
   ('constructed', 'Constructed', 0, TRUE),
   ('freeform', 'Freeform', 1, TRUE),
-  ('custom-region', 'Custom - Region', 2, TRUE)
+  ('custom-region', 'Custom - Region', 2, TRUE),
+  ('infinity', 'Infinity', 3, TRUE)
   ON CONFLICT (slug) DO UPDATE SET label = EXCLUDED.label, sort_order = EXCLUDED.sort_order, is_well_known = EXCLUDED.is_well_known;
 
 INSERT INTO deck_zones (slug, label, sort_order, is_well_known) VALUES

@@ -151,7 +151,8 @@ describe("buildEntryAdvisories", () => {
         getCardSetSlugs: () => Promise.resolve(new Map<string, string[]>()),
       },
       cardBans: {
-        listActiveForCards: () => Promise.resolve(bans),
+        listActiveForCards: (_cardIds: string[], formatIds: string[]) =>
+          Promise.resolve(bans.filter((ban) => formatIds.includes(ban.formatId))),
       },
       catalog: {
         championIdentifierTags: () => {
@@ -249,6 +250,17 @@ describe("buildEntryAdvisories", () => {
       [line({ id: "a", resolvedCardId: "banned", zone: "main" })],
     );
     expect(advisories.violations).toEqual([]);
+  });
+
+  it("flags no banned cards at an infinity event", async () => {
+    const advisories = await buildEntryAdvisories(
+      stubRepos(new Map(), null, [
+        { cardId: "banned", formatId: WellKnown.banFormat.CONSTRUCTED, bannedAt: "2026-01-01" },
+      ]),
+      { format: "infinity", playMode: "1v1" as const, allowedSets: null },
+      [line({ id: "a", resolvedCardId: "banned", zone: "main" })],
+    );
+    expect(advisories.violations.some((v) => v.code === "banned-card")).toBe(false);
   });
 
   it("suppresses the region-config rules a checked list can't satisfy", async () => {

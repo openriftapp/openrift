@@ -98,16 +98,16 @@ export function summarizeDeckCards(
 }
 
 /**
- * Only Constructed is judged: the list query does not load per-card custom
- * tag assignments, and the tag-membership rule would mis-report without them.
+ * Only Constructed and Infinity are judged: the list query does not load
+ * per-card custom tag assignments, and the tag-membership rule would mis-report without them.
  */
 export function isValidInDeckList(format: string, cards: readonly DeckCard[]): boolean {
-  if (format !== WellKnown.deckFormat.CONSTRUCTED) {
+  if (format !== WellKnown.deckFormat.CONSTRUCTED && format !== WellKnown.deckFormat.INFINITY) {
     return true;
   }
   return (
     validateDeck({
-      format: WellKnown.deckFormat.CONSTRUCTED as DeckFormat,
+      format: format as DeckFormat,
       cards: [...cards],
     }).length === 0
   );

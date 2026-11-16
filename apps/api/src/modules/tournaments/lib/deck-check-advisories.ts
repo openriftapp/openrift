@@ -1,6 +1,6 @@
 import { isBanInEffect } from "@openrift/shared/card-ban";
 import { primaryCardType } from "@openrift/shared/card-primary-type";
-import { validateDeck } from "@openrift/shared/deck-rules";
+import { formatIgnoresBans, validateDeck } from "@openrift/shared/deck-rules";
 import type { DeckViolation } from "@openrift/shared/deck-rules";
 import type { DeckCheckMatchStatus, ZoneSuggestion } from "@openrift/shared/types/api/deck-check";
 import type { TournamentPlayMode } from "@openrift/shared/types/api/tournament";
@@ -105,8 +105,9 @@ export async function buildEntryAdvisories(
   const freeform = event.format === WellKnown.deckFormat.FREEFORM;
   // Banlists are additive per play mode: the base list covers all constructed
   // play, and a 2v2 event checks the 2v2-only additions on top.
-  const banFormatIds =
-    event.playMode === "2v2"
+  const banFormatIds = formatIgnoresBans(event.format)
+    ? []
+    : event.playMode === "2v2"
       ? [WellKnown.banFormat.CONSTRUCTED, WellKnown.banFormat.TWO_V_TWO]
       : [WellKnown.banFormat.CONSTRUCTED];
   const [enumRows, details, setSlugsByCard, championIdentifierTags, banRows] = await Promise.all([

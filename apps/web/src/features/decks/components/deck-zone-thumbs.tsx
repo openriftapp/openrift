@@ -218,6 +218,7 @@ export function ZoneThumb({
   onHoverCard,
   readOnly,
   onCardClick,
+  hideBans = false,
 }: {
   deckId: string;
   card: DeckBuilderCard;
@@ -235,6 +236,7 @@ export function ZoneThumb({
   onHoverCard?: HoverHandler;
   readOnly?: boolean;
   onCardClick?: (card: CardOpenTarget) => void;
+  hideBans?: boolean;
 }) {
   const isMobile = useIsMobile();
   const coarsePointer = useCoarsePointer();
@@ -315,7 +317,9 @@ export function ZoneThumb({
           />
         )}
       </DeckCardPageLink>
-      {catalogCard && <BanRibbon bans={catalogCard.bans} upcomingBans={catalogCard.upcomingBans} />}
+      {catalogCard && !hideBans && (
+        <BanRibbon bans={catalogCard.bans} upcomingBans={catalogCard.upcomingBans} />
+      )}
       {hasCustomPrinting && (
         <span
           title={m.decks_editor_pinned_printing()}

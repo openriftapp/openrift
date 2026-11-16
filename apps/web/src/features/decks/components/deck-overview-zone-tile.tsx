@@ -1,5 +1,5 @@
 import { deckCardKey } from "@openrift/shared/deck-cards";
-import { totalQuantity } from "@openrift/shared/deck-rules";
+import { formatIgnoresBans, totalQuantity } from "@openrift/shared/deck-rules";
 import type { DeckViolation } from "@openrift/shared/deck-rules";
 import { isSingleSlotZone } from "@openrift/shared/deck-zones";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
@@ -184,6 +184,7 @@ export function ZoneTile({
         onHoverCard={onHoverCard}
         readOnly={readOnly}
         onCardClick={onCardClick}
+        hideBans={formatIgnoresBans(format)}
       />
     );
   };
