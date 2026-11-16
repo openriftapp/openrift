@@ -12,6 +12,16 @@ vi.mock("@/features/tournaments/hooks/use-tournament-mutations", () => ({
   useUpdateTournament: () => ({ mutateAsync: updateMutateAsync, isPending: false }),
 }));
 
+vi.mock("@/hooks/use-enums", () => ({
+  useDeckFormatList: () => ({
+    formats: [
+      { slug: "constructed", label: "Constructed" },
+      { slug: "freeform", label: "Freeform" },
+    ],
+    labels: { constructed: "Constructed", freeform: "Freeform" },
+  }),
+}));
+
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -33,6 +43,7 @@ function makeDetail(overrides: Partial<TournamentDetailResponse> = {}): Tourname
     deckSubmission: "required",
     deckPhase: "open",
     listLockMode: "on_submit",
+    deckFormat: "constructed",
     endsAt: endsAtUtc,
     submissionsCloseAt: null,
     ...overrides,
@@ -197,5 +208,23 @@ describe("DecksSection locked state", () => {
     expect(deadlineDate()).toBeDisabled();
     expect(deadlineTime()).toBeDisabled();
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+  });
+});
+
+describe("DecksSection deck format", () => {
+  it("saves a picked deck format", async () => {
+    const user = userEvent.setup();
+    render(<DecksSection detail={makeDetail()} locked={false} />);
+
+    await user.click(screen.getByRole("combobox", { name: "Deck format" }));
+    await user.click(await screen.findByRole("option", { name: "Freeform" }));
+
+    expect(updateMutateAsync).toHaveBeenCalledWith({ id: "tournament-1", deckFormat: "freeform" });
+  });
+
+  it("hides the deck format when no decks are collected", () => {
+    render(<DecksSection detail={makeDetail({ deckSubmission: "none" })} locked={false} />);
+
+    expect(screen.queryByRole("combobox", { name: "Deck format" })).not.toBeInTheDocument();
   });
 });

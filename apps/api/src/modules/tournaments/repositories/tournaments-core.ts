@@ -50,7 +50,7 @@ export interface NewTournament {
   deckPhase?: TournamentDeckPhase;
   submissionsCloseAt?: Date | null;
   listLockMode?: TournamentListLockMode;
-  deckFormat?: string | null;
+  deckFormat?: string;
   allowedSets?: string[] | null;
   selfRegistration?: boolean;
 }
@@ -86,7 +86,7 @@ export interface TournamentPatch {
   deckPhase?: TournamentDeckPhase;
   submissionsCloseAt?: Date | null;
   listLockMode?: TournamentListLockMode;
-  deckFormat?: string | null;
+  deckFormat?: string;
   allowedSets?: string[] | null;
   selfRegistration?: boolean;
   uvsgamesEventId?: string | null;

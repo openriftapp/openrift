@@ -9136,6 +9136,8 @@
   "tournaments_settings_decks_title": "덱",
   "tournaments_settings_decks_description": "목록을 모으면 심판이 덱 점검 탭에서 확인할 수 있습니다. 현재 단계: {phase}.",
   "tournaments_settings_deck_submission_label": "덱 제출",
+  "tournaments_settings_deck_format_label": "덱 포맷",
+  "tournaments_settings_deck_format_hint": "덱 체크가 이 포맷의 규칙을 어기는 리스트를 표시합니다. 검사를 끄려면 Freeform을 선택하세요.",
   "tournaments_settings_deadline_label": "제출 마감 (선택)",
   "tournaments_settings_deadline_time_aria": "마감 시각 (24시간제)",
   "tournaments_settings_deadline_incomplete": "날짜(YYYY-MM-DD)와 24시간제 시각(HH:mm)을 입력하거나 둘 다 비워 두세요.",

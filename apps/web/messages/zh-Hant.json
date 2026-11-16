@@ -9136,6 +9136,8 @@
   "tournaments_settings_decks_title": "牌組",
   "tournaments_settings_decks_description": "收集清單之後，裁判可以在「牌堆檢查」分頁驗證。目前階段：{phase}。",
   "tournaments_settings_deck_submission_label": "牌組清單繳交",
+  "tournaments_settings_deck_format_label": "牌組賽制",
+  "tournaments_settings_deck_format_hint": "牌組檢查會標出違反該賽制規則的牌組清單。選擇 Freeform 可關閉檢查。",
   "tournaments_settings_deadline_label": "繳交截止時間（選填）",
   "tournaments_settings_deadline_time_aria": "截止時間（24 小時制）",
   "tournaments_settings_deadline_incomplete": "請輸入日期（YYYY-MM-DD）與 24 小時制時間（HH:mm），或兩者都清空。",

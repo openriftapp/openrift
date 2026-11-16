@@ -35,7 +35,7 @@ function page(overrides: Partial<DeckCheckSubmissionPageResponse>) {
     eventName: "Summoner Skirmish",
     eventDate: null,
     groupName: "Noxus Locals",
-    format: null,
+    format: "constructed",
     allowedSets: null,
     submissionsCloseAt: null,
     submissionsOpen: true,

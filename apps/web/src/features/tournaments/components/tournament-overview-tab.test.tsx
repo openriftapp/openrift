@@ -295,7 +295,7 @@ function makeDetail(overrides: Partial<TournamentDetailResponse> = {}): Tourname
     groupName: null,
     pairingStyle: "pod",
     deckSubmission: "required",
-    deckFormat: null,
+    deckFormat: "constructed",
     startsAt: new Date(Date.now() - HOUR_MS).toISOString(),
     endsAt: new Date(Date.now() + 24 * HOUR_MS).toISOString(),
     modules: { pairing: true, deckSubmission: true, deckCheck: true, staff: true },

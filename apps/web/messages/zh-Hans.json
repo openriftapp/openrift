@@ -9136,6 +9136,8 @@
   "tournaments_settings_decks_title": "卡组",
   "tournaments_settings_decks_description": "开始收集列表后，裁判可以在“卡组检查”标签页中核对。当前阶段：{phase}。",
   "tournaments_settings_deck_submission_label": "卡组提交",
+  "tournaments_settings_deck_format_label": "卡组赛制",
+  "tournaments_settings_deck_format_hint": "卡组检查会标出违反该赛制规则的卡表。选择 Freeform 可关闭检查。",
   "tournaments_settings_deadline_label": "提交截止时间（选填）",
   "tournaments_settings_deadline_time_aria": "截止时间（24 小时制）",
   "tournaments_settings_deadline_incomplete": "请填写日期（YYYY-MM-DD）和 24 小时制时间（HH:mm），或两者都清空。",

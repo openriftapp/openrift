@@ -92,7 +92,7 @@ export function computeZoneSuggestions(
 /** Type counts use main+champion zones only; legend/rune/battlefield types are excluded. */
 export async function buildEntryAdvisories(
   repos: Repos,
-  event: { format: string | null; playMode: TournamentPlayMode; allowedSets: string[] | null },
+  event: { format: string; playMode: TournamentPlayMode; allowedSets: string[] | null },
   cards: AdvisoryCardLine[],
 ): Promise<EntryAdvisories> {
   const matchedIds = [
@@ -102,6 +102,7 @@ export async function buildEntryAdvisories(
       ),
     ),
   ];
+  const freeform = event.format === WellKnown.deckFormat.FREEFORM;
   // Banlists are additive per play mode: the base list covers all constructed
   // play, and a 2v2 event checks the 2v2-only additions on top.
   const banFormatIds =
@@ -119,7 +120,7 @@ export async function buildEntryAdvisories(
     event.format === WellKnown.deckFormat.CUSTOM_REGION
       ? repos.catalog.championIdentifierTags()
       : Promise.resolve([] as string[]),
-    repos.cardBans.listActiveForCards(matchedIds, banFormatIds),
+    freeform ? Promise.resolve([]) : repos.cardBans.listActiveForCards(matchedIds, banFormatIds),
   ]);
 
   const violations: DeckViolation[] = [];
@@ -157,41 +158,39 @@ export async function buildEntryAdvisories(
     });
   }
 
-  if (event.format) {
-    const deckCards = cards.flatMap((card) => {
-      const detail = card.resolvedCardId ? details.get(card.resolvedCardId) : undefined;
-      if (!detail) {
-        return [];
-      }
-      return [
-        {
-          cardId: detail.id,
-          zone: card.zone as DeckZone,
-          quantity: card.quantity,
-          cardName: detail.name,
-          cardType: primaryCardType(detail.types as CardType[]),
-          cardTypes: detail.types as CardType[],
-          superTypes: detail.superTypes as SuperType[],
-          domains: detail.domains as Domain[],
-          tags: detail.tags,
-          customTagSlugs: [],
-          keywords: detail.keywords,
-          maxCopiesOverride: detail.maxCopiesOverride,
-          additionalLegendCount: detail.additionalLegendCount,
-          // Always false: the banned-card violation is emitted above already,
-          // and CARD_BANNED from the rule engine would double it.
-          banned: false,
-        },
-      ];
-    });
-    violations.push(
-      ...validateDeck({
-        format: event.format,
-        cards: deckCards,
-        championIdentifierTags: new Set(championIdentifierTags),
-      }).filter((violation) => !REGION_CONFIG_CODES.has(violation.code)),
-    );
-  }
+  const deckCards = cards.flatMap((card) => {
+    const detail = card.resolvedCardId ? details.get(card.resolvedCardId) : undefined;
+    if (!detail) {
+      return [];
+    }
+    return [
+      {
+        cardId: detail.id,
+        zone: card.zone as DeckZone,
+        quantity: card.quantity,
+        cardName: detail.name,
+        cardType: primaryCardType(detail.types as CardType[]),
+        cardTypes: detail.types as CardType[],
+        superTypes: detail.superTypes as SuperType[],
+        domains: detail.domains as Domain[],
+        tags: detail.tags,
+        customTagSlugs: [],
+        keywords: detail.keywords,
+        maxCopiesOverride: detail.maxCopiesOverride,
+        additionalLegendCount: detail.additionalLegendCount,
+        // Always false: the banned-card violation is emitted above already,
+        // and CARD_BANNED from the rule engine would double it.
+        banned: false,
+      },
+    ];
+  });
+  violations.push(
+    ...validateDeck({
+      format: event.format,
+      cards: deckCards,
+      championIdentifierTags: new Set(championIdentifierTags),
+    }).filter((violation) => !REGION_CONFIG_CODES.has(violation.code)),
+  );
 
   if (event.allowedSets && event.allowedSets.length > 0) {
     const allowed = new Set(event.allowedSets.map((setId) => setId.toLowerCase()));

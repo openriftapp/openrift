@@ -73,7 +73,7 @@ export const deckCheckEventSummaryResponseSchema = z.object({
   id: z.string(),
   name: z.string(),
   eventDate: z.string().nullable(),
-  format: z.string().nullable(),
+  format: z.string(),
   allowedSets: z.array(z.string()).nullable(),
   status: deckCheckEventStatusSchema,
   entryCount: z.number().int().nonnegative(),

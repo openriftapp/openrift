@@ -17,7 +17,7 @@ export interface DeckCheckEvent {
   groupId: string | null;
   name: string;
   eventDate: Date | null;
-  format: string | null;
+  format: string;
   /** A 2v2 event's decks are additionally checked against the 2v2 banlist. */
   playMode: TournamentPlayMode;
   allowedSets: string[] | null;

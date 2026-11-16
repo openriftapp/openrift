@@ -467,7 +467,7 @@ export function DeckCheckStatsSummary({
 }: {
   cards: DeckCheckEntryCardResponse[];
   typeCounts: DeckCheckEntryDetailResponse["typeCounts"];
-  format: string | null;
+  format: string;
   isValid: boolean;
   domainDistribution: DeckCheckEntryDetailResponse["domainDistribution"];
 }) {
@@ -507,7 +507,7 @@ export function DeckCheckStatsSummary({
             <span className="text-muted-foreground text-2xs ml-1">{typeSummary}</span>
           ) : null}
         </span>
-        {format ? <FormatStateBadge format={format} isValid={isValid} /> : null}
+        <FormatStateBadge format={format} isValid={isValid} />
       </div>
       {domainDistribution.length > 0 ? <DeckDomainBar distribution={domainDistribution} /> : null}
     </div>

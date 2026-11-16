@@ -86,7 +86,7 @@ function deckEvent(overrides: Record<string, any> = {}) {
     groupId: null,
     name: "Summoner Skirmish",
     eventDate: null,
-    format: null,
+    format: "constructed",
     playMode: "1v1",
     allowedSets: null,
     status: "active",
@@ -404,11 +404,10 @@ describe("PUT /deck-check/mine/{entryId}/list (editList)", () => {
     const res = await makeApp(repos).fetch(
       req("PUT", `/mine/${ENTRY_ID}/list`, { deckId, dryRun: true }),
     );
-    const body = (await res.json()) as { cards: unknown[]; violations: unknown[] };
+    const body = (await res.json()) as { cards: unknown[] };
 
     expect(res.status).toBe(200);
     expect(body.cards).toEqual([]);
-    expect(body.violations).toEqual([]);
   });
 
   it("409s once submissions have closed, even for an editable entry", async () => {

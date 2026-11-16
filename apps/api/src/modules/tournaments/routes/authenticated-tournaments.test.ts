@@ -46,7 +46,7 @@ function tournamentRow(overrides: Partial<Tournament> = {}): Tournament {
     deckPhase: "closed",
     submissionsCloseAt: null,
     listLockMode: "on_submit",
-    deckFormat: null,
+    deckFormat: "constructed",
     allowedSets: null,
     selfRegistration: false,
     uvsgamesEventId: null,
@@ -91,7 +91,12 @@ function makeApp(tournament: Tournament) {
     setFollowToken: vi.fn(() => Promise.resolve()),
     dissolveAllTeams: vi.fn(() => Promise.resolve()),
   };
-  const repos = { tournaments, deckCheck, podTournaments };
+  const deckFormats = {
+    getBySlug: vi.fn((slug: string) =>
+      Promise.resolve(["constructed", "freeform"].includes(slug) ? { slug } : undefined),
+    ),
+  };
+  const repos = { tournaments, deckCheck, podTournaments, deckFormats };
 
   const app = new Hono<{ Variables: Variables }>();
   app.use("*", async (c, next) => {
@@ -295,6 +300,44 @@ describe("POST /tournaments", () => {
     expect(res.status).toBe(201);
     expect(((await res.json()) as { playMode: string }).playMode).toBe("2v2");
     expect(repos.tournaments.create).toHaveBeenCalled();
+  });
+});
+
+describe("deck format", () => {
+  it("rejects creating a tournament with an unknown deck format", async () => {
+    const { app, repos } = makeApp(tournamentRow());
+
+    const res = await app.fetch(
+      req("POST", "/tournaments", { ...CREATE_BASE, deckFormat: "homebrew" }),
+    );
+
+    expect(res.status).toBe(400);
+    expect(repos.tournaments.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects a null deck format on update", async () => {
+    const { app, repos } = makeApp(tournamentRow());
+
+    const res = await app.fetch(
+      req("PATCH", `/tournaments/${TOURNAMENT_ID}`, { deckFormat: null }),
+    );
+
+    expect(res.status).toBe(400);
+    expect(repos.tournaments.updateSettings).not.toHaveBeenCalled();
+  });
+
+  it("switches a tournament to freeform", async () => {
+    const { app, repos } = makeApp(tournamentRow());
+
+    const res = await app.fetch(
+      req("PATCH", `/tournaments/${TOURNAMENT_ID}`, { deckFormat: "freeform" }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(repos.tournaments.updateSettings).toHaveBeenCalledWith(
+      TOURNAMENT_ID,
+      expect.objectContaining({ deckFormat: "freeform" }),
+    );
   });
 });
 

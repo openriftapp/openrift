@@ -2,7 +2,22 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { AllowDeckEditsField, DeckDeadlineField, DeckSubmissionField } from "./decks-fields";
+import {
+  AllowDeckEditsField,
+  DeckDeadlineField,
+  DeckFormatField,
+  DeckSubmissionField,
+} from "./decks-fields";
+
+vi.mock("@/hooks/use-enums", () => ({
+  useDeckFormatList: () => ({
+    formats: [
+      { slug: "constructed", label: "Constructed" },
+      { slug: "freeform", label: "Freeform" },
+    ],
+    labels: { constructed: "Constructed", freeform: "Freeform" },
+  }),
+}));
 
 describe("DeckSubmissionField", () => {
   it("reports a picked policy", async () => {
@@ -20,6 +35,21 @@ describe("DeckSubmissionField", () => {
     render(<DeckSubmissionField value="optional" disabled onChange={vi.fn()} />);
 
     expect(screen.getByRole("combobox", { name: "Deck submission" })).toBeDisabled();
+  });
+});
+
+describe("DeckFormatField", () => {
+  it("shows the stored format and reports a picked one", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<DeckFormatField value="constructed" onChange={onChange} />);
+
+    const select = screen.getByRole("combobox", { name: "Deck format" });
+    expect(select).toHaveTextContent("Constructed");
+    await user.click(select);
+    await user.click(await screen.findByRole("option", { name: "Freeform" }));
+
+    expect(onChange).toHaveBeenCalledWith("freeform");
   });
 });
 

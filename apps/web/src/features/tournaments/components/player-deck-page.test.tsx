@@ -127,7 +127,7 @@ describe("PlayerDeckPage", () => {
         eventName: "Summoner Skirmish",
         eventDate: null,
         groupName: null,
-        format: null,
+        format: "constructed",
         allowedSets: null,
         state: "editable",
         reviewOutcome: null,

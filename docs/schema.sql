@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 08iaGgZyN7eTIWM9HsdPeh8NwI4jBpvTOPrL33PkwTE8HhE0nUgPRqTSWY1xIcg
+\restrict RSHsMOyfjR936zhq6Pb2uoQfvm3pH04FCVJFe2FdIj8KA1YjM3DKhFRQ5yo6lF0
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -4511,7 +4511,7 @@ CREATE TABLE public.tournaments (
     deck_phase text DEFAULT 'open'::text NOT NULL,
     submissions_close_at timestamp with time zone,
     list_lock_mode text DEFAULT 'on_submit'::text NOT NULL,
-    deck_format text,
+    deck_format text DEFAULT 'constructed'::text NOT NULL,
     allowed_sets jsonb,
     self_registration boolean DEFAULT false NOT NULL,
     submission_token text,
@@ -11510,5 +11510,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 08iaGgZyN7eTIWM9HsdPeh8NwI4jBpvTOPrL33PkwTE8HhE0nUgPRqTSWY1xIcg
+\unrestrict RSHsMOyfjR936zhq6Pb2uoQfvm3pH04FCVJFe2FdIj8KA1YjM3DKhFRQ5yo6lF0
 

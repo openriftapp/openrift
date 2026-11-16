@@ -465,7 +465,10 @@ describe.skipIf(!ownerCtx)("deck-check ingest push (integration, ADR-033)", () =
     );
     expect(detail.typeCounts.some((count) => count.cardType === "unit")).toBe(true);
 
-    await repos.tournaments.updateSettings(eventId, { deckFormat: null, allowedSets: null });
+    await repos.tournaments.updateSettings(eventId, {
+      deckFormat: "constructed",
+      allowedSets: null,
+    });
   });
 
   it("removes a key only after it is revoked, and only its own host", async () => {

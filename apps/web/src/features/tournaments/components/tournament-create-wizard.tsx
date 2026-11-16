@@ -2,6 +2,7 @@ import type {
   TournamentDeckSubmission,
   TournamentListLockMode,
 } from "@openrift/shared/types/api/tournament";
+import { WellKnown } from "@openrift/shared/well-known";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
@@ -17,6 +18,7 @@ import { SaveError } from "@/features/tournaments/components/save-error";
 import {
   AllowDeckEditsField,
   DeckDeadlineField,
+  DeckFormatField,
   DeckSubmissionField,
 } from "@/features/tournaments/components/settings/decks-fields";
 import {
@@ -97,6 +99,7 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
   const [closeDate, setCloseDate] = useState("");
   const [closeTime, setCloseTime] = useState("");
   const [lockMode, setLockMode] = useState<TournamentListLockMode>("at_deadline");
+  const [deckFormat, setDeckFormat] = useState<string>(WellKnown.deckFormat.CONSTRUCTED);
 
   const wantsDeck = deckSubmission !== "none";
   const { playMode, pairingStyle, matchFormat, format, regionsEnabled } = formatState;
@@ -154,6 +157,7 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
       groupId: linkedGroupId,
       submissionsCloseAt,
       listLockMode,
+      deckFormat: wantsDeck ? deckFormat : undefined,
     };
     let created: Awaited<ReturnType<typeof createTournament.mutateAsync>> | undefined;
     const ok = await runReportedMutation(async () => {
@@ -276,7 +280,12 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
                 />
               ) : null}
             </div>
-            {wantsDeck ? <AllowDeckEditsField value={lockMode} onChange={setLockMode} /> : null}
+            {wantsDeck ? (
+              <>
+                <DeckFormatField value={deckFormat} className="max-w-sm" onChange={setDeckFormat} />
+                <AllowDeckEditsField value={lockMode} onChange={setLockMode} />
+              </>
+            ) : null}
           </SettingsSection>
         </SettingsGroup>
 

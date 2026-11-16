@@ -16,6 +16,7 @@ import { buildKeysetCursor } from "../../../lib/keyset-cursor.js";
 import { withUniqueShareToken } from "../../../lib/share-token.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { assertKnownFormat } from "../../decks/lib/deck-format-validation.js";
 import { loadGroupForMember } from "../../groups/lib/group-access.js";
 import { withUniqueClaimToken } from "../lib/claim-token.js";
 import { isGroupCut } from "../lib/group-cut.js";
@@ -149,6 +150,9 @@ export const tournamentsRouter = {
       input.regionsEnabled ?? false,
     );
     assertGroupCutCompatible(input.format ?? "rounds", input.pairingStyle, input.playMode ?? "1v1");
+    if (input.deckFormat !== undefined) {
+      await assertKnownFormat(repos.deckFormats, input.deckFormat);
+    }
 
     const host: TournamentHostColumns =
       input.host.type === "user"
@@ -187,7 +191,7 @@ export const tournamentsRouter = {
               ? new Date(input.submissionsCloseAt)
               : null,
             listLockMode: input.listLockMode,
-            deckFormat: input.deckFormat ?? null,
+            deckFormat: input.deckFormat,
             allowedSets: input.allowedSets ?? null,
             selfRegistration: input.selfRegistration,
             startsAt: new Date(input.startsAt),
@@ -226,6 +230,9 @@ export const tournamentsRouter = {
     }
     // Status moves follow the forward-only lifecycle; an unchanged value is a no-op.
     assertStatusTransition(currentStatus, patch.status);
+    if (patch.deckFormat !== undefined) {
+      await assertKnownFormat(repos.deckFormats, patch.deckFormat);
+    }
     // Rounds/pods depend on the pairing engine, so it can change only before any round exists.
     const pairingChanging =
       patch.pairingStyle !== undefined && patch.pairingStyle !== tournament.pairingStyle;

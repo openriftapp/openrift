@@ -44,7 +44,7 @@ import {
 } from "@/features/tournaments/hooks/use-deck-check-player";
 import { deckCardsFromCheckEntry } from "@/features/tournaments/lib/deck-check-save";
 import { resolvedSide } from "@/features/tournaments/lib/deck-check-side";
-import { useDeckFormatList, useZoneOrder } from "@/hooks/use-enums";
+import { useZoneOrder } from "@/hooks/use-enums";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
@@ -273,7 +273,6 @@ export function SaveToDecksButton({ data }: { data: PlayerDeckCheckEntryDetailRe
   const createDeck = useCreateDeck();
   const saveDeckCards = useSaveDeckCards();
   const navigate = useNavigate();
-  const { formats } = useDeckFormatList();
   const [saving, setSaving] = useState(false);
 
   const { cards, skippedCount } = deckCardsFromCheckEntry(data.cards);
@@ -283,7 +282,7 @@ export function SaveToDecksButton({ data }: { data: PlayerDeckCheckEntryDetailRe
 
   const save = async () => {
     const name = data.entry.eventName;
-    const format = data.entry.format ?? formats[0]?.slug ?? "";
+    const format = data.entry.format;
     setSaving(true);
     let deckId: string | undefined;
     const created = await runReportedMutation(async () => {

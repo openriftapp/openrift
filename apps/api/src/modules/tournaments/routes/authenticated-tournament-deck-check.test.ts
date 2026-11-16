@@ -32,7 +32,7 @@ const event = {
   groupId: null,
   name: "Summoner Skirmish",
   eventDate: null,
-  format: null,
+  format: "constructed",
   playMode: "1v1" as const,
   allowedSets: null,
   status: "active" as const,

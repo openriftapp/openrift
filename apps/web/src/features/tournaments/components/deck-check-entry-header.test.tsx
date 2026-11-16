@@ -6,6 +6,10 @@ vi.mock("@/features/cards/hooks/use-preferred-printing", () => ({
   usePreferredPrinting: () => ({ getPreferredPrinting: () => undefined }),
 }));
 
+vi.mock("@/features/decks/components/deck-format-badge", () => ({
+  FormatStateBadge: () => null,
+}));
+
 const { DeckCheckStatsSummary } = await import("./deck-check-entry-header");
 
 function line(zone: string, rawName: string): DeckCheckEntryCardResponse {
@@ -26,7 +30,7 @@ describe("DeckCheckStatsSummary", () => {
       <DeckCheckStatsSummary
         cards={[line("legend", "Jinx, Loose Canon"), line("champion", "Jinx, Rebel")]}
         typeCounts={[]}
-        format={null}
+        format="constructed"
         isValid
         domainDistribution={[]}
       />,

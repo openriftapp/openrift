@@ -10,6 +10,7 @@ import { SaveError } from "@/features/tournaments/components/save-error";
 import {
   AllowDeckEditsField,
   DeckDeadlineField,
+  DeckFormatField,
   DeckSubmissionField,
 } from "@/features/tournaments/components/settings/decks-fields";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
@@ -64,6 +65,17 @@ export function DecksSection({
 
       {deckExpected ? (
         <>
+          <DeckFormatField
+            value={detail.deckFormat}
+            disabled={locked || updateTournament.isPending}
+            className="max-w-sm"
+            onChange={(deckFormat) =>
+              void runReportedMutation(() =>
+                updateTournament.mutateAsync({ id: detail.id, deckFormat }),
+              )
+            }
+          />
+
           <DeckDeadlineField
             date={closeDate}
             time={closeTime}

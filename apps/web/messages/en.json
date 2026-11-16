@@ -9343,6 +9343,8 @@
   "tournaments_settings_decks_title": "Decks",
   "tournaments_settings_decks_description": "When lists are collected, judges can verify them on the Deck check tab. Current phase: {phase}.",
   "tournaments_settings_deck_submission_label": "Deck submission",
+  "tournaments_settings_deck_format_label": "Deck format",
+  "tournaments_settings_deck_format_hint": "Deck check flags lists that break this format's rules. Pick Freeform to turn the checks off.",
   "tournaments_settings_deadline_label": "Submission deadline (optional)",
   "tournaments_settings_deadline_time_aria": "Deadline time (24h)",
   "tournaments_settings_deadline_incomplete": "Enter a date (YYYY-MM-DD) and a 24-hour time (HH:mm), or clear both.",

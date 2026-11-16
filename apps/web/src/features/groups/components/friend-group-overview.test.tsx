@@ -172,7 +172,7 @@ function makeTournament(
     pairingStyle: "pod",
     playMode: "1v1",
     deckSubmission: "none",
-    deckFormat: null,
+    deckFormat: "constructed",
     // Far future so partitionTournaments keeps it in the current bucket.
     startsAt: "2099-01-01T18:00:00Z",
     endsAt: null,

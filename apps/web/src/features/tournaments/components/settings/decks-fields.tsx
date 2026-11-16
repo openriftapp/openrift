@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { SwitchField } from "@/features/tournaments/components/settings/switch-field";
 import { deckSubmissionItems } from "@/features/tournaments/lib/tournament-display";
+import { useDeckFormatList } from "@/hooks/use-enums";
 import { localTimeZoneLabel } from "@/lib/date-time-input";
 import { m } from "@/paraglide/messages.js";
 
@@ -41,6 +42,38 @@ export function DeckSubmissionField({
         placeholder={m.tournaments_settings_deck_submission_label()}
         className={className ?? "w-full"}
       />
+    </div>
+  );
+}
+
+export function DeckFormatField({
+  value,
+  disabled = false,
+  className,
+  onChange,
+}: {
+  value: string;
+  disabled?: boolean;
+  className?: string;
+  onChange: (value: string) => void;
+}) {
+  const { formats } = useDeckFormatList();
+  const items = formats.map((format) => ({ value: format.slug, label: format.label }));
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label>{m.tournaments_settings_deck_format_label()}</Label>
+      <SimpleSelect
+        items={items}
+        value={value}
+        disabled={disabled}
+        onChange={onChange}
+        label={m.tournaments_settings_deck_format_label()}
+        placeholder={m.tournaments_settings_deck_format_label()}
+        className={className ?? "w-full"}
+      />
+      <span className="text-muted-foreground text-sm">
+        {m.tournaments_settings_deck_format_hint()}
+      </span>
     </div>
   );
 }

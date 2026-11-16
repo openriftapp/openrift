@@ -9137,6 +9137,8 @@
   "tournaments_settings_decks_title": "Decks",
   "tournaments_settings_decks_description": "Wenn Listen eingesammelt werden, können Judges sie im Tab Deck-Check prüfen. Aktuelle Phase: {phase}.",
   "tournaments_settings_deck_submission_label": "Deck-Einreichung",
+  "tournaments_settings_deck_format_label": "Deckformat",
+  "tournaments_settings_deck_format_hint": "Der Deck-Check markiert Listen, die gegen die Regeln dieses Formats verstoßen. Mit Freeform sind die Prüfungen aus.",
   "tournaments_settings_deadline_label": "Einreichungsfrist (optional)",
   "tournaments_settings_deadline_time_aria": "Uhrzeit der Frist (24 h)",
   "tournaments_settings_deadline_incomplete": "Gib ein Datum (JJJJ-MM-TT) und eine Uhrzeit im 24-Stunden-Format (HH:mm) ein oder lösche beides.",

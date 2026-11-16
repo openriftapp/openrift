@@ -6,6 +6,7 @@
 
 - feat(Products): **Booster packs with their odds** — each set's booster has a page of slots, rates and printings per language, and card pages say how often a printing turns up in one.
 - feat(Rules): **Tournament infractions at a glance** — a new Infractions view lists every infraction with its penalty and remedies.
+- feat(Tournaments): **Deck format for deck checks** — tournaments that collect decks are Constructed by default, so deck checks flag lists that break the rules, and hosts can pick another format or Freeform to turn the checks off.
 - feat(Tournaments): **Deleted accounts show as "Former member"** — results stay in standings and pairings, the name and Riot ID of a player who deleted their account are removed, and their spots in upcoming or running events are dropped.
 
 ### Other

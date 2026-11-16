@@ -91,12 +91,10 @@ export function NextEventHero({ tournament, showContext = false }: NextEventHero
                 <CalendarIcon className="size-4 shrink-0" />
                 {formatDayTimeLocal(tournament.startsAt)}
               </span>
-              {tournament.deckFormat ? (
-                <span className="flex items-center gap-1.5">
-                  <LayersIcon className="size-4 shrink-0" />
-                  {enumLabel(formatLabels, tournament.deckFormat)}
-                </span>
-              ) : null}
+              <span className="flex items-center gap-1.5">
+                <LayersIcon className="size-4 shrink-0" />
+                {enumLabel(formatLabels, tournament.deckFormat)}
+              </span>
             </div>
           </div>
         </div>

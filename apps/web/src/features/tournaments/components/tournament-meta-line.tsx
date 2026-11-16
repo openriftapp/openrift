@@ -24,9 +24,7 @@ export function TournamentMetaLine({
       )}
     >
       <MetaItem icon={CalendarIcon}>{formatDayTimeLocal(tournament.startsAt)}</MetaItem>
-      {tournament.deckFormat ? (
-        <MetaItem icon={LayersIcon}>{enumLabel(formatLabels, tournament.deckFormat)}</MetaItem>
-      ) : null}
+      <MetaItem icon={LayersIcon}>{enumLabel(formatLabels, tournament.deckFormat)}</MetaItem>
       <MetaItem icon={UsersIcon}>
         {m.tournaments_card_participants({ count: tournament.participantCount })}
       </MetaItem>

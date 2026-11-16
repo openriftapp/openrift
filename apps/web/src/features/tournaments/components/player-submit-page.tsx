@@ -65,11 +65,9 @@ export function PlayerSubmitDeckSection({ token }: { token: string }) {
     <div className="flex flex-col gap-4">
       <Card className="gap-1 p-4">
         <h2 className="font-medium">{m.tournaments_submit_heading()}</h2>
-        {data.format ? (
-          <p className="text-muted-foreground text-sm">
-            {m.tournaments_submit_format({ format: enumLabel(formatLabels, data.format) })}
-          </p>
-        ) : null}
+        <p className="text-muted-foreground text-sm">
+          {m.tournaments_submit_format({ format: enumLabel(formatLabels, data.format) })}
+        </p>
         {data.allowedSets && data.allowedSets.length > 0 ? (
           <p className="text-muted-foreground text-sm">
             {m.tournaments_submit_allowed_sets({ sets: data.allowedSets.join(", ") })}

@@ -68,7 +68,7 @@ export interface TournamentsTable {
   deckPhase: Generated<TournamentDeckPhase>;
   submissionsCloseAt: Date | null;
   listLockMode: Generated<TournamentListLockMode>;
-  deckFormat: string | null;
+  deckFormat: Generated<string>;
   allowedSets: string[] | null;
   selfRegistration: Generated<boolean>;
 

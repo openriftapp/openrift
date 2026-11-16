@@ -85,7 +85,7 @@ function makeTournament(
     pairingStyle: "pod",
     playMode: "1v1",
     deckSubmission: "none",
-    deckFormat: null,
+    deckFormat: "constructed",
     startsAt: "2026-06-28T18:00:00Z",
     endsAt: null,
     modules: { pairing: true, deckSubmission: false },

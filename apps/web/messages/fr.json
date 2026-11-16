@@ -9138,6 +9138,8 @@
   "tournaments_settings_decks_title": "Decks",
   "tournaments_settings_decks_description": "Lorsque les listes sont collectées, les arbitres peuvent les vérifier dans l'onglet Contrôle de deck. Phase actuelle : {phase}.",
   "tournaments_settings_deck_submission_label": "Soumission des decks",
+  "tournaments_settings_deck_format_label": "Format de deck",
+  "tournaments_settings_deck_format_hint": "La vérification des decks signale les listes qui enfreignent les règles de ce format. Choisissez Freeform pour désactiver les vérifications.",
   "tournaments_settings_deadline_label": "Date limite de soumission (facultatif)",
   "tournaments_settings_deadline_time_aria": "Heure limite (format 24 h)",
   "tournaments_settings_deadline_incomplete": "Saisissez une date (AAAA-MM-JJ) et une heure au format 24 h (HH:mm), ou effacez les deux.",
