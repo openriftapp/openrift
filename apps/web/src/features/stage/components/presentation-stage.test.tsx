@@ -12,7 +12,7 @@ const { mockPushBoard, mockSetReveal, mockClear, mockSetHidden, channelHidden } 
   () => ({
     mockPushBoard: vi.fn(() => Promise.resolve()),
     mockSetReveal: vi.fn(() => Promise.resolve()),
-    mockClear: vi.fn(),
+    mockClear: vi.fn(() => Promise.resolve()),
     mockSetHidden: vi.fn(),
     // Undefined stands for a channel that has not loaded yet.
     channelHidden: vi.fn<() => boolean | undefined>(() => false),
@@ -23,7 +23,7 @@ vi.mock("@/features/stage/hooks/use-overlay", () => ({
   usePushOverlayCard: () => ({ mutate: vi.fn() }),
   usePushOverlayBoard: () => ({ mutateAsync: mockPushBoard }),
   useSetOverlayBoardReveal: () => ({ mutateAsync: mockSetReveal }),
-  useClearOverlay: () => ({ mutate: mockClear }),
+  useClearOverlay: () => ({ mutateAsync: mockClear }),
   useSetOverlayHidden: () => ({ mutate: mockSetHidden }),
   useOverlayChannel: () => {
     const hidden = channelHidden();
@@ -232,13 +232,13 @@ describe("PresentationStage board on OBS", () => {
     });
   });
 
-  it("takes it back down when the switch goes off again", () => {
+  it("takes it back down when the switch goes off again", async () => {
     renderStage();
 
     press("o");
     press("o");
 
-    expect(mockClear).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(mockClear).toHaveBeenCalledTimes(1));
   });
 
   it("lists the key while a board can be mirrored", () => {

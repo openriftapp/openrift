@@ -427,7 +427,7 @@ describe("source conventions", () => {
     expect(
       offenders(
         WEB_FILES,
-        /function (?:resolveClipPaths|waitForRender)\b|from "html2canvas-pro"/u,
+        /function (?:resolveClipPaths|createRenderHandoff)\b|from "html2canvas-pro"/u,
         ["apps/web/src/lib/html-capture.ts"],
       ),
     ).toEqual([]);

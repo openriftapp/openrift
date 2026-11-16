@@ -2831,6 +2831,7 @@
       "selectors": ["slug"],
       "match": {
         "slug=gear": "{type}",
+        "slug=unknown": "Unknown cards",
         "slug=*": "{type}s"
       }
     }
@@ -4899,6 +4900,16 @@
   "trades_accept_all": "Accept all ({count})",
   "trades_accept_all_confirm_title": "Accept all {count} requests from {name}?",
   "trades_accept_all_confirm_description": "Each accepted request reserves your copies for the swap. You can still cancel individual trades afterwards.",
+  "trades_accept_all_awaiting_choice": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} request needs you to pick which copy you give. Accept it on its row.",
+        "countPlural=*": "{count} requests need you to pick which copies you give. Accept them on their rows."
+      }
+    }
+  ],
   "trades_cancel_consent_title": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

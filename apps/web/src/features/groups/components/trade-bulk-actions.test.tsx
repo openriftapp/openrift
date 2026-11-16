@@ -20,17 +20,31 @@ const declineFn = vi.fn(
     }),
 );
 
+const acceptFn = vi.fn(async (_variables: { tradeId: string }) => undefined);
+const copyOptionsFn = vi.fn(async (tradeId: string) => ({
+  tradeId,
+  quantity: 1,
+  choiceMatters: tradeId === "t2",
+  copies: [],
+}));
+
+vi.mock("@/hooks/use-session", () => ({ useRequiredUserId: () => "user-1" }));
 vi.mock("@/features/groups/hooks/use-card-trades", () => ({
-  useAcceptTrade: () => useMutation({ mutationFn: async () => undefined }),
+  tradeCopyOptionsQueryOptions: (_userId: string, tradeId: string) => ({
+    queryKey: ["copy-options", tradeId],
+    queryFn: () => copyOptionsFn(tradeId),
+  }),
+  useAcceptTrade: () => useMutation({ mutationFn: acceptFn }),
   useCancelTrade: () => useMutation({ mutationFn: async () => undefined }),
   useDeclineTrade: () => useMutation({ mutationFn: declineFn }),
 }));
 
 const { BulkTradeActions } = await import("./trade-bulk-actions");
 
-function trade(id: string): CardTradeResponse {
+function trade(id: string, role: "giver" | "receiver" = "giver"): CardTradeResponse {
   return {
     id,
+    role,
     groupSlug: "friday-night",
     actionNeeded: "accept-or-decline",
     counterparty: { name: "Jinx" },
@@ -40,13 +54,21 @@ function trade(id: string): CardTradeResponse {
 const TRADES = [trade("t1"), trade("t2"), trade("t3")];
 const resetActions = createStoreResetter(useTradeActionStore);
 
-function renderBulk() {
+function renderBulk(trades = TRADES) {
   const client = new QueryClient({ defaultOptions: { mutations: { onError: () => {} } } });
-  render(
+  const view = render(
     <QueryClientProvider client={client}>
-      <BulkTradeActions trades={TRADES} mode="accept-decline" />
+      <BulkTradeActions trades={trades} mode="accept-decline" />
     </QueryClientProvider>,
   );
+  return {
+    rerender: (next: CardTradeResponse[]) =>
+      view.rerender(
+        <QueryClientProvider client={client}>
+          <BulkTradeActions trades={next} mode="accept-decline" />
+        </QueryClientProvider>,
+      ),
+  };
 }
 
 async function settleNext(tradeId: string, outcome: "ok" | "fail") {
@@ -63,6 +85,8 @@ async function settleNext(tradeId: string, outcome: "ok" | "fail") {
 beforeEach(() => {
   inFlight.clear();
   declineFn.mockClear();
+  acceptFn.mockClear();
+  copyOptionsFn.mockClear();
 });
 afterEach(resetActions);
 
@@ -89,5 +113,29 @@ describe("BulkTradeActions", () => {
     await settleNext("t1", "ok");
     await waitFor(() => expect(declineFn).toHaveBeenCalledTimes(2));
     expect([...useTradeActionStore.getState().pending]).toEqual(["t2", "t3"]);
+  });
+
+  it("accepts only the trades whose copy choice does not matter and says how many wait", async () => {
+    const { rerender } = renderBulk();
+    await userEvent.setup().click(screen.getByRole("button", { name: /accept all/iu }));
+
+    await waitFor(() => expect(useTradeActionStore.getState().pending.size).toBe(0));
+    expect(acceptFn.mock.calls.map(([variables]) => variables.tradeId)).toEqual(["t1", "t3"]);
+    expect(acceptFn.mock.calls.every(([variables]) => !("copyIds" in variables))).toBe(true);
+
+    rerender([trade("t2")]);
+    expect(
+      screen.getByText("1 request needs you to pick which copy you give. Accept it on its row."),
+    ).toBeInTheDocument();
+    rerender([]);
+    expect(screen.queryByText(/pick which cop/iu)).not.toBeInTheDocument();
+  });
+
+  it("accepts the receiver's side without reading copy options", async () => {
+    renderBulk([trade("t1", "receiver"), trade("t2", "receiver")]);
+    await userEvent.setup().click(screen.getByRole("button", { name: /accept all/iu }));
+
+    await waitFor(() => expect(acceptFn).toHaveBeenCalledTimes(2));
+    expect(copyOptionsFn).not.toHaveBeenCalled();
   });
 });

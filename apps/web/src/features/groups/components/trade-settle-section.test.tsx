@@ -15,9 +15,19 @@ const TRADE = {
   groupSlug: "bothfeld",
 } as CardTradeResponse;
 
+const PENDING_CHOICE = {
+  trade: TRADE,
+  quantity: 2,
+  options: { tradeId: "trade-1", quantity: 2, choiceMatters: true, copies: [] },
+};
+
 const mocks = vi.hoisted(() => ({
   syncFails: false,
+  batch: { settledTradeIds: [] as string[], failed: false, withChoice: true },
+  warning: vi.fn(),
 }));
+
+vi.mock("sonner", () => ({ toast: { warning: mocks.warning } }));
 
 vi.mock("@/features/groups/hooks/use-card-trades", () => ({
   tradeCopyOptionsQueryOptions: () => ({ queryKey: ["copy-options"], queryFn: () => null }),
@@ -39,15 +49,9 @@ vi.mock("@/features/groups/hooks/use-card-trades", () => ({
 }));
 vi.mock("@/features/groups/lib/trade-settle-batch", () => ({
   runSettleBatch: async () => ({
-    settledTradeIds: [],
-    failed: false,
-    pendingChoices: [
-      {
-        trade: TRADE,
-        quantity: 2,
-        options: { tradeId: "trade-1", quantity: 2, choiceMatters: true, copies: [] },
-      },
-    ],
+    settledTradeIds: mocks.batch.settledTradeIds,
+    failed: mocks.batch.failed,
+    pendingChoices: mocks.batch.withChoice ? [PENDING_CHOICE] : [],
   }),
 }));
 vi.mock("@/features/groups/components/trade-copy-picker-dialog", () => ({
@@ -88,13 +92,15 @@ let resetTally: () => void;
 beforeEach(() => {
   resetTally = createStoreResetter(useTradeTallyStore);
   mocks.syncFails = false;
+  mocks.batch = { settledTradeIds: [], failed: false, withChoice: true };
+  mocks.warning.mockClear();
 });
 
 afterEach(() => {
   resetTally();
 });
 
-async function openCopyChoice() {
+async function commitTally() {
   useTradeTallyStore.getState().setCount("trade-1", 1);
   render(
     <QueryClientProvider client={new QueryClient()}>
@@ -103,6 +109,11 @@ async function openCopyChoice() {
   );
   fireEvent.click(await screen.findByRole("button", { name: "Resume" }));
   fireEvent.click(screen.getByRole("button", { name: "Settle 1 card" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Settle 1 card" })).toBeEnabled());
+}
+
+async function openCopyChoice() {
+  await commitTally();
   return screen.findByRole("button", { name: "Confirm copies" });
 }
 
@@ -122,5 +133,21 @@ describe("TradeSettleSection copy choice", () => {
       expect(screen.queryByRole("button", { name: "Confirm copies" })).not.toBeInTheDocument(),
     );
     expect(useTradeTallyStore.getState().counts["trade-1"]).toBeUndefined();
+  });
+});
+
+describe("TradeSettleSection batch outcome", () => {
+  it("says the rest went through when some rows settled and some failed", async () => {
+    mocks.batch = { settledTradeIds: ["trade-2"], failed: true, withChoice: false };
+    await commitTally();
+
+    expect(mocks.warning).toHaveBeenCalledOnce();
+  });
+
+  it("stays quiet when no row settled", async () => {
+    mocks.batch = { settledTradeIds: [], failed: true, withChoice: false };
+    await commitTally();
+
+    expect(mocks.warning).not.toHaveBeenCalled();
   });
 });

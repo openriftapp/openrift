@@ -31,11 +31,14 @@ export function useOptimisticMutation<TCache, TVariables = void, TData = unknown
       }
       reportMutationError(error, queryClient);
     },
-    onSettled: (_data, _error, variables) => {
+    onSettled: async (_data, _error, variables) => {
       const extra = typeof invalidates === "function" ? invalidates(variables) : invalidates;
-      for (const key of [keyFor(variables), ...extra]) {
-        void queryClient.invalidateQueries({ queryKey: [...key] });
-      }
+      // A rejected onSettled fails the mutation, so a failed refetch must not reject.
+      await Promise.allSettled(
+        [keyFor(variables), ...extra].map((key) =>
+          queryClient.invalidateQueries({ queryKey: [...key] }),
+        ),
+      );
     },
   });
 }

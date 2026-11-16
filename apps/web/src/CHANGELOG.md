@@ -5,6 +5,9 @@
 ### Other
 
 - fix(Cards): **Clearer banned filter** — the banned filter on the cards page and in list rules is labelled "Banned in any format", since it also matches cards banned only in 2v2.
+- fix(Trades): **Accept all asks before choosing your copies** — requests where your copies differ stay open with their own Accept button, and a line says how many are waiting for you to pick.
+- fix(Trades): **Accurate settle-up message** — "The rest went through" only shows when some cards did settle.
+- fix(Decks): **Unknown cards kept in exports** — export and share from the deck menu keep cards the app does not recognise yet, and grouping by type lists them under "Unknown cards".
 
 ## 2026-11-16
 

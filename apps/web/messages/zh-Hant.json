@@ -2830,6 +2830,7 @@
       "declarations": ["input type", "input slug"],
       "selectors": ["slug"],
       "match": {
+        "slug=unknown": "未知卡牌",
         "slug=*": "{type}"
       }
     }
@@ -4892,6 +4893,16 @@
   "trades_accept_all": "全部接受（{count}）",
   "trades_accept_all_confirm_title": "要接受 {name} 的全部 {count} 筆邀請嗎？",
   "trades_accept_all_confirm_description": "每接受一筆邀請，就會為該次交換保留你的卡牌。之後你仍然可以個別取消交換。",
+  "trades_accept_all_awaiting_choice": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 筆邀請需要你選擇要給出的卡牌。請在對應列中接受。",
+        "countPlural=*": "{count} 筆邀請需要你選擇要給出的卡牌。請在對應列中接受。"
+      }
+    }
+  ],
   "trades_cancel_consent_title": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

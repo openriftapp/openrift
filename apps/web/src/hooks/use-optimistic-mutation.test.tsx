@@ -1,5 +1,5 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook } from "@testing-library/react";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -173,5 +173,88 @@ describe("useOptimisticMutation", () => {
 
     expect(apply).not.toHaveBeenCalled();
     expect(client.getQueryData(KEY)).toBeUndefined();
+  });
+
+  it("stays pending until the refetch of an observed key lands", async () => {
+    const { client, wrapper } = setup();
+    let fetches = 0;
+    let releaseRefetch = () => {};
+    const { result } = renderHook(
+      () => {
+        const query = useQuery({
+          queryKey: KEY,
+          queryFn: () => {
+            fetches += 1;
+            if (fetches === 1) {
+              return { items: [{ id: "a", hidden: false }] };
+            }
+            return new Promise<Lists>((resolve) => {
+              releaseRefetch = () => resolve({ items: [{ id: "a", hidden: true }] });
+            });
+          },
+        });
+        const mutation = useOptimisticMutation<Lists, string>({
+          queryKey: KEY,
+          mutationFn: () => Promise.resolve(),
+          apply: hide,
+        });
+        return { query, mutation };
+      },
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.query.data).toBeDefined());
+
+    let settled = false;
+    let mutation: Promise<unknown> = Promise.resolve();
+    act(() => {
+      mutation = result.current.mutation.mutateAsync("a").then((value) => {
+        settled = true;
+        return value;
+      });
+    });
+
+    await waitFor(() => expect(fetches).toBe(2));
+    expect(result.current.mutation.isPending).toBe(true);
+    expect(settled).toBe(false);
+
+    await act(async () => {
+      releaseRefetch();
+      await mutation;
+    });
+    expect(settled).toBe(true);
+    expect(client.getQueryData(KEY)).toEqual({ items: [{ id: "a", hidden: true }] });
+  });
+
+  it("stays successful when the refetch fails", async () => {
+    const { wrapper } = setup();
+    let fetches = 0;
+    const { result } = renderHook(
+      () => {
+        const query = useQuery({
+          queryKey: KEY,
+          queryFn: (): Lists => {
+            fetches += 1;
+            if (fetches === 1) {
+              return { items: [{ id: "a", hidden: false }] };
+            }
+            throw new Error("refetch failed");
+          },
+        });
+        const mutation = useOptimisticMutation<Lists, string>({
+          queryKey: KEY,
+          mutationFn: () => Promise.resolve("done"),
+          apply: hide,
+        });
+        return { query, mutation };
+      },
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.query.data).toBeDefined());
+
+    await act(async () => {
+      await expect(result.current.mutation.mutateAsync("a")).resolves.toBe("done");
+    });
+    expect(fetches).toBe(2);
+    await waitFor(() => expect(result.current.mutation.isSuccess).toBe(true));
   });
 });

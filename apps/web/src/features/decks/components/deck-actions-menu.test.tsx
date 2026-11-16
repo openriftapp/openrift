@@ -213,6 +213,27 @@ describe("DeckActionsMenu", () => {
     expect(cards.map((card) => [card.cardId, card.quantity])).toEqual([["card-own", 3]]);
   });
 
+  it("exports a card this client's catalog does not know", async () => {
+    cardsCollection.insert(cardRow("deck-own", "card-gone", 2));
+    const user = userEvent.setup();
+    render(<DeckActionsMenu item={ITEM} source="server" />);
+
+    await user.click(screen.getByRole("button", { name: "Deck actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Export…" }));
+
+    await vi.waitFor(() => {
+      expect(dialogProps.export?.cards).toBeDefined();
+    });
+    const cards = dialogProps.export?.cards as DeckBuilderCard[];
+    expect(cards.map((card) => [card.cardId, card.quantity])).toEqual(
+      expect.arrayContaining([
+        ["card-own", 3],
+        ["card-gone", 2],
+      ]),
+    );
+    expect(cards).toHaveLength(2);
+  });
+
   it("keeps the delete confirmation open until the delete succeeds", async () => {
     const user = userEvent.setup();
     noopMutation.mutate.mockClear();

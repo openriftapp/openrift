@@ -43,7 +43,8 @@ function clientFor({
     }
     return Promise.resolve(undefined);
   });
-  return { query } as unknown as QueryClient;
+  const getQueryState = vi.fn(() => ({ dataUpdatedAt: 1 }));
+  return { query, getQueryState } as unknown as QueryClient;
 }
 
 function runBeforeLoad(queryClient: QueryClient): Promise<unknown> {

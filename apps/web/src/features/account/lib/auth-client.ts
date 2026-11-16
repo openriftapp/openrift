@@ -2,11 +2,14 @@ import { apiKeyClient } from "@better-auth/api-key/client";
 import { emailOTPClient, inferAdditionalFields } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
+import { apiFetch } from "@/lib/api-fetch";
+
 const baseURL =
   "location" in globalThis ? globalThis.location.origin : process.env.API_INTERNAL_URL;
 
 export const authClient = createAuthClient({
   baseURL,
+  fetchOptions: { customFetchImpl: apiFetch },
   plugins: [
     emailOTPClient(),
     apiKeyClient(),

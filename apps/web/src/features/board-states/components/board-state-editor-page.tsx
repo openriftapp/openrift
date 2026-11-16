@@ -337,9 +337,6 @@ function DraftEditor() {
     <>
       <UnsavedChangesGuard
         dirty={dirty}
-        allowNavigation={(_, next) =>
-          createdId !== null && next.pathname === `/board-states/${createdId}`
-        }
         onLeave={() => useBoardEditorStore.getState().adopt(null)}
       />
       <EditorLayout

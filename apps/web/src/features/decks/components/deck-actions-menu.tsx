@@ -51,7 +51,7 @@ import {
 } from "@/features/decks/hooks/use-decks";
 import { useLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { toDeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
+import { toDraftDeckCard } from "@/features/decks/lib/deck-builder-card";
 import type { DeckFamilyEntry } from "@/features/decks/lib/deck-family";
 import type {
   DeckMenuCapabilities,
@@ -94,12 +94,10 @@ interface DeckMenuBodyProps {
 }
 
 function toBuilderCards(
-  rows: readonly Parameters<typeof toDeckBuilderCard>[0][],
+  rows: readonly Parameters<typeof toDraftDeckCard>[0][],
   cardsById: ReturnType<typeof useCards>["cardsById"],
 ): DeckBuilderCard[] {
-  return rows
-    .map((card) => toDeckBuilderCard(card, cardsById))
-    .filter((card): card is DeckBuilderCard => card !== null);
+  return rows.map((card) => toDraftDeckCard(card, cardsById));
 }
 
 export function DeckActionsMenu({

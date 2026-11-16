@@ -58,7 +58,12 @@ vi.mock("@/hooks/use-session", () => ({
   useUserId: () => "user-1",
 }));
 
+import { useDeckBoxOriginsStore } from "@/features/decks/stores/deck-box-origins-store";
+import { createStoreResetter } from "@/test/store-helpers";
+
 import { useDeckEditorSession } from "./use-deck-editor-session";
+
+const resetBoxOrigins = createStoreResetter(useDeckBoxOriginsStore);
 
 function renderSession(deckId = "deck-1") {
   const queryClient = new QueryClient();
@@ -82,6 +87,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.clearAllMocks();
+  resetBoxOrigins();
 });
 
 describe("useDeckEditorSession", () => {
@@ -129,5 +135,16 @@ describe("useDeckEditorSession", () => {
     expect(mocks.flushDeckDraft).not.toHaveBeenCalled();
     view.unmount();
     expect(mocks.flushDeckDraft).toHaveBeenCalledWith(expect.anything(), "user-1", "deck-1");
+  });
+
+  it("forgets the box origins of the deck when the editor unmounts", () => {
+    const { remember } = useDeckBoxOriginsStore.getState();
+    remember("deck-1", "copy-1", "collection-1");
+    remember("deck-2", "copy-2", "collection-2");
+    const view = renderSession();
+    view.unmount();
+    expect(useDeckBoxOriginsStore.getState().byDeck).toEqual({
+      "deck-2": { "copy-2": "collection-2" },
+    });
   });
 });

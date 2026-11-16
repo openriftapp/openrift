@@ -2830,6 +2830,7 @@
       "declarations": ["input type", "input slug"],
       "selectors": ["slug"],
       "match": {
+        "slug=unknown": "未知卡牌",
         "slug=*": "{type}"
       }
     }
@@ -4892,6 +4893,16 @@
   "trades_accept_all": "全部接受（{count}）",
   "trades_accept_all_confirm_title": "接受来自 {name} 的全部 {count} 项请求？",
   "trades_accept_all_confirm_description": "每接受一项请求，就会为这次交换预留你的实体卡。之后你仍可以单独取消某笔交换。",
+  "trades_accept_all_awaiting_choice": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 项请求需要你选择要给出的实体卡。请在对应行中接受。",
+        "countPlural=*": "{count} 项请求需要你选择要给出的实体卡。请在对应行中接受。"
+      }
+    }
+  ],
   "trades_cancel_consent_title": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

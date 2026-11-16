@@ -5,7 +5,6 @@ import type {
 import { useNavigate } from "@tanstack/react-router";
 import { ExpandIcon, PlusIcon, ShrinkIcon } from "lucide-react";
 import { useState } from "react";
-import { flushSync } from "react-dom";
 
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Button } from "@/components/ui/button";
@@ -91,7 +90,6 @@ export function TournamentDeckCheckEntry({
     dirty: notesDirty,
     markEdited: markNotesEdited,
     beginSave: beginNotesSave,
-    reset: resetNotesDirty,
   } = useDraftRevision();
   const [addCardOpen, setAddCardOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -102,11 +100,12 @@ export function TournamentDeckCheckEntry({
 
   async function handleDelete() {
     if (await runReportedMutation(() => deleteEntry.mutateAsync({ tournamentId, entryId }))) {
-      flushSync(() => {
-        setDeleteOpen(false);
-        resetNotesDirty();
+      setDeleteOpen(false);
+      void navigate({
+        to: "/tournaments/$id/decks",
+        params: { id: tournamentId },
+        ignoreBlocker: true,
       });
-      void navigate({ to: "/tournaments/$id/decks", params: { id: tournamentId } });
     }
   }
 

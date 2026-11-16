@@ -15,6 +15,7 @@ import { toDraftDeckCard } from "@/features/decks/lib/deck-builder-card";
 import { buildRunesByDomain } from "@/features/decks/lib/deck-runes-by-domain";
 import { getDeckCardsCollection } from "@/features/decks/lib/decks-collection";
 import { useDeckBenchSessionStore } from "@/features/decks/stores/deck-bench-session-store";
+import { useDeckBoxOriginsStore } from "@/features/decks/stores/deck-box-origins-store";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
 import {
   flushDeckDraft,
@@ -44,6 +45,7 @@ export function useDeckEditorSession(deckId: string) {
   const resetUi = useDeckBuilderUiStore((state) => state.reset);
   const setRunesByDomain = useDeckBuilderUiStore((state) => state.setRunesByDomain);
   const clearBenchSession = useDeckBenchSessionStore((state) => state.clear);
+  const clearBoxOrigins = useDeckBoxOriginsStore((state) => state.clear);
 
   const { data: session } = useSession();
   const signedIn = Boolean(session?.user);
@@ -108,6 +110,7 @@ export function useDeckEditorSession(deckId: string) {
   );
 
   useEffect(() => () => clearBenchSession(deckId), [clearBenchSession, deckId]);
+  useEffect(() => () => clearBoxOrigins(deckId), [clearBoxOrigins, deckId]);
 
   const unsavedWarning = saveStatus.isDirty || saveStatus.isSaving;
   useEffect(() => {

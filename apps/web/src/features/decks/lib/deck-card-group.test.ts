@@ -2,6 +2,7 @@ import { labelMapOf } from "@openrift/shared/enum-label";
 import type { CardType, Domain } from "@openrift/shared/types/enums";
 import { describe, expect, it } from "vitest";
 
+import { toDraftDeckCard } from "@/features/decks/lib/deck-builder-card";
 import type { DeckCardGroupContext } from "@/features/decks/lib/deck-card-group";
 import { copyRowGroups, groupDeckCards } from "@/features/decks/lib/deck-card-group";
 import { stubCardOwnership, stubDeckBuilderCard } from "@/test/factories";
@@ -27,6 +28,20 @@ describe("groupDeckCards", () => {
     const groups = groupDeckCards(cards, "type", "asc", ctx);
     expect(groups.map((group) => group.key)).toEqual(["unit", "spell", "gear", "rune"]);
     expect(groups.map((group) => group.label)).toEqual(["Units", "Spells", "Gear", "Runes"]);
+  });
+
+  it("names the group of cards missing from the catalog", () => {
+    const unknown = toDraftDeckCard(
+      { cardId: "card-gone", zone: "main", quantity: 1, preferredPrintingId: null },
+      {},
+    );
+    const groups = groupDeckCards(
+      [stubDeckBuilderCard({ cardTypes: ["unit" as CardType] }), unknown],
+      "type",
+      "asc",
+      ctx,
+    );
+    expect(groups.map((group) => group.label)).toEqual(["Units", "Unknown cards"]);
   });
 
   it("groups by energy ascending with costless cards last", () => {

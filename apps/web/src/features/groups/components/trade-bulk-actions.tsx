@@ -1,14 +1,19 @@
 import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Button } from "@/components/ui/button";
 import {
+  tradeCopyOptionsQueryOptions,
   useAcceptTrade,
   useCancelTrade,
   useDeclineTrade,
 } from "@/features/groups/hooks/use-card-trades";
+import { runAcceptBatch } from "@/features/groups/lib/trade-accept-batch";
+import { readCopyOptionsReported } from "@/features/groups/lib/trade-settle-batch";
 import { useTradeActionStore } from "@/features/groups/stores/trade-action-store";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { memberName } from "@/lib/member-name";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
@@ -17,7 +22,6 @@ type BulkMode = "accept-decline" | "cancel" | "none";
 
 const BULK_ACCEPT_CONFIRM_THRESHOLD = 10;
 
-/** Bulk accept sends no `copyIds`; the server defaults to plainest copies when none are given. */
 export function BulkTradeActions({
   trades,
   mode,
@@ -25,21 +29,24 @@ export function BulkTradeActions({
   trades: CardTradeResponse[];
   mode: BulkMode;
 }) {
+  const userId = useRequiredUserId();
+  const queryClient = useQueryClient();
   const accept = useAcceptTrade();
   const decline = useDeclineTrade();
   const cancel = useCancelTrade();
   const begin = useTradeActionStore((state) => state.begin);
   const settle = useTradeActionStore((state) => state.settle);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [awaitingChoice, setAwaitingChoice] = useState<readonly string[]>([]);
 
   const needle = mode === "accept-decline" ? "accept-or-decline" : "cancel";
   const targets = mode === "none" ? [] : trades.filter((trade) => trade.actionNeeded === needle);
   const acting = useTradeActionStore((state) =>
     targets.some((trade) => state.pending.has(trade.id)),
   );
+  const waitingForChoice = targets.filter((trade) => awaitingChoice.includes(trade.id)).length;
 
-  // Declared above the early returns for the React Compiler. Sequential: accept
-  // reads the giver's unreserved copies before locking, so parallel accepts collide.
+  // Declared above the early returns for the React Compiler.
   async function runAll(mutation: {
     mutateAsync: (variables: { tradeId: string; groupSlug?: string }) => Promise<unknown>;
   }): Promise<void> {
@@ -54,8 +61,30 @@ export function BulkTradeActions({
     }
   }
 
+  async function acceptAll(): Promise<void> {
+    for (const trade of targets) {
+      begin(trade.id);
+    }
+    const waiting = await runAcceptBatch(targets, {
+      accept: (variables) => accept.mutateAsync(variables),
+      readCopyOptions: (tradeId) =>
+        readCopyOptionsReported(() =>
+          queryClient.query(tradeCopyOptionsQueryOptions(userId, tradeId)),
+        ),
+      onTradeDone: settle,
+    });
+    setAwaitingChoice(waiting);
+  }
+
+  const choiceLine =
+    waitingForChoice === 0 ? null : (
+      <p className="text-muted-foreground text-xs">
+        {m.trades_accept_all_awaiting_choice({ count: waitingForChoice })}
+      </p>
+    );
+
   if (targets.length < 2) {
-    return null;
+    return choiceLine;
   }
 
   if (mode === "cancel") {
@@ -71,24 +100,27 @@ export function BulkTradeActions({
   const counterpartyName = memberName(targets[0]?.counterparty.name);
 
   return (
-    <div className="flex shrink-0 items-center gap-1.5">
-      <Button size="sm" variant="outline" disabled={acting} onClick={() => void runAll(decline)}>
-        {m.trades_decline_all()}
-      </Button>
-      <Button
-        size="sm"
-        disabled={acting}
-        onClick={() => (needsConfirm ? setConfirmOpen(true) : void runAll(accept))}
-      >
-        {m.trades_accept_all({ count: targets.length })}
-      </Button>
+    <div className="flex shrink-0 flex-col items-end gap-1">
+      <div className="flex items-center gap-1.5">
+        <Button size="sm" variant="outline" disabled={acting} onClick={() => void runAll(decline)}>
+          {m.trades_decline_all()}
+        </Button>
+        <Button
+          size="sm"
+          disabled={acting}
+          onClick={() => (needsConfirm ? setConfirmOpen(true) : void acceptAll())}
+        >
+          {m.trades_accept_all({ count: targets.length })}
+        </Button>
+      </div>
+      {choiceLine}
       {needsConfirm ? (
         <ConfirmActionDialog
           open={confirmOpen}
           onOpenChange={setConfirmOpen}
           onConfirm={() => {
             setConfirmOpen(false);
-            void runAll(accept);
+            void acceptAll();
           }}
           title={m.trades_accept_all_confirm_title({
             count: targets.length,

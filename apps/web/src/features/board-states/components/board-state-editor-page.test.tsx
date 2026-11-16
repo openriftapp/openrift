@@ -16,9 +16,6 @@ const mutations = vi.hoisted(() => ({
   create: vi.fn<(body: unknown) => Promise<{ id: string }>>(),
   navigate: vi.fn(async () => {}),
   onLeave: undefined as (() => void) | undefined,
-  allowNavigation: undefined as
-    | ((current: { pathname: string }, next: { pathname: string }) => boolean)
-    | undefined,
 }));
 
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
@@ -26,16 +23,7 @@ vi.mock("@tanstack/react-router", async (importOriginal) => ({
   useNavigate: () => mutations.navigate,
 }));
 vi.mock("@/components/unsaved-changes-guard", () => ({
-  UnsavedChangesGuard: ({
-    dirty,
-    allowNavigation,
-    onLeave,
-  }: {
-    dirty: boolean;
-    onLeave?: () => void;
-    allowNavigation?: (current: { pathname: string }, next: { pathname: string }) => boolean;
-  }) => {
-    mutations.allowNavigation = allowNavigation;
+  UnsavedChangesGuard: ({ dirty, onLeave }: { dirty: boolean; onLeave?: () => void }) => {
     mutations.onLeave = onLeave;
     return <output>{dirty ? "guard: blocking" : "guard: open"}</output>;
   },
@@ -126,7 +114,6 @@ beforeEach(() => {
   mutations.update.mockReset();
   mutations.create.mockReset();
   mutations.navigate.mockClear();
-  mutations.allowNavigation = undefined;
   mutations.onLeave = undefined;
 });
 
@@ -313,15 +300,6 @@ describe("new board editor", () => {
       params: { boardStateId: "board-2" },
       ignoreBlocker: true,
     });
-    expect(
-      mutations.allowNavigation?.(
-        { pathname: "/board-states/new" },
-        { pathname: "/board-states/board-2" },
-      ),
-    ).toBe(true);
-    expect(
-      mutations.allowNavigation?.({ pathname: "/board-states/new" }, { pathname: "/cards" }),
-    ).toBe(false);
   });
 
   it("keeps a board edit made during creation unsaved", async () => {

@@ -2830,6 +2830,7 @@
       "declarations": ["input type", "input slug"],
       "selectors": ["slug"],
       "match": {
+        "slug=unknown": "Unbekannte Karten",
         "slug=*": "{type}"
       }
     }
@@ -4893,6 +4894,16 @@
   "trades_accept_all": "Alle annehmen ({count})",
   "trades_accept_all_confirm_title": "Alle {count} Anfragen von {name} annehmen?",
   "trades_accept_all_confirm_description": "Jede angenommene Anfrage reserviert deine Exemplare für den Tausch. Einzelne Tauschgeschäfte kannst du danach weiterhin abbrechen.",
+  "trades_accept_all_awaiting_choice": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Anfrage wartet darauf, dass du das Exemplar auswählst. Nimm sie in ihrer Zeile an.",
+        "countPlural=*": "{count} Anfragen warten darauf, dass du die Exemplare auswählst. Nimm sie in ihren Zeilen an."
+      }
+    }
+  ],
   "trades_cancel_consent_title": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

@@ -2831,6 +2831,7 @@
       "selectors": ["slug"],
       "match": {
         "slug=gear": "{type}",
+        "slug=unknown": "Cartes inconnues",
         "slug=*": "{type}s"
       }
     }
@@ -4894,6 +4895,16 @@
   "trades_accept_all": "Tout accepter ({count})",
   "trades_accept_all_confirm_title": "Accepter les {count} demandes de {name} ?",
   "trades_accept_all_confirm_description": "Chaque demande acceptée réserve vos exemplaires pour l'échange. Vous pourrez encore annuler des échanges individuels ensuite.",
+  "trades_accept_all_awaiting_choice": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} demande attend que vous choisissiez l'exemplaire à donner. Acceptez-la sur sa ligne.",
+        "countPlural=*": "{count} demandes attendent que vous choisissiez les exemplaires à donner. Acceptez-les sur leurs lignes."
+      }
+    }
+  ],
   "trades_cancel_consent_title": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

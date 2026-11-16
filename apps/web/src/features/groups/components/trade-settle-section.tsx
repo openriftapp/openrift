@@ -195,8 +195,7 @@ export function TradeSettleSection({ trades }: { trades: CardTradeResponse[] }) 
     clearCounts(result.settledTradeIds);
     setPendingChoices(result.pendingChoices);
     setBusy(false);
-    if (result.failed) {
-      // The global mutation toast won't fire: this batch partially succeeded.
+    if (result.failed && result.settledTradeIds.length > 0) {
       toast.warning(m.trades_settle_partial_failure());
     }
   }
