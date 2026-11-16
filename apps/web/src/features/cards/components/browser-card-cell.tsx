@@ -39,9 +39,8 @@ interface BrowserCardCellProps {
   priceRange: { min: number; max: number } | undefined;
   showStrip: boolean;
   canAdd: boolean;
-  canMenuAdd: boolean;
   canWish: boolean;
-  addTargetName: string;
+  addTargetName?: string;
   wishEntries?: readonly WishEntryFlat[];
   inCardsView: boolean;
 }
@@ -61,7 +60,6 @@ export const BrowserCardCell = memo(function BrowserCardCell({
   priceRange,
   showStrip,
   canAdd,
-  canMenuAdd,
   canWish,
   addTargetName,
   wishEntries,
@@ -164,7 +162,6 @@ export const BrowserCardCell = memo(function BrowserCardCell({
       contextMenu={
         <CatalogCardContextMenu
           printing={displayPrinting}
-          canAdd={canMenuAdd}
           canWish={canWish}
           addTargetName={addTargetName}
         />

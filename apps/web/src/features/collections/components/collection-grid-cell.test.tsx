@@ -70,12 +70,21 @@ vi.mock("@/features/cards/components/card-cell", () => ({
     imageOverlay,
     strip,
     wrap,
+    contextMenu,
   }: {
     imageOverlay?: ReactNode;
     strip?: ReactElement<StripProbeProps>;
     wrap?: ReactNode;
+    contextMenu?: ReactElement<{ addTargetName?: string }>;
   }) => (
     <div>
+      {contextMenu ? (
+        <div
+          data-testid="cell-menu"
+          data-menu-kind={typeof contextMenu.type === "function" ? contextMenu.type.name : ""}
+          data-add-target={contextMenu.props.addTargetName ?? ""}
+        />
+      ) : null}
       {wrap}
       {imageOverlay}
       {strip ? (
@@ -346,5 +355,54 @@ describe("CollectionGridCell drag payload", () => {
       fromSelection: true,
       sourceAllGroupCopies: false,
     });
+  });
+});
+
+describe("CollectionGridCell context menu", () => {
+  beforeEach(resetSelection);
+  afterEach(resetSelection);
+
+  const unownedPrinting = stubPrinting({
+    printingId: "p-unowned",
+    cardId: "card-falling-star",
+    card: { name: "Falling Star" },
+  });
+
+  function renderMenuCell(props: { printing: Printing; mode: "browse" | "select" }) {
+    return render(
+      <CollectionGridCell
+        printing={props.printing}
+        itemId={props.printing.printingId}
+        cardWidth={200}
+        priority={false}
+        dataView="printings"
+        mode={props.mode}
+        showLibrary
+        stacked
+        siblings={undefined}
+        collectionId={collectionId}
+        sourceCollectionIsGroup={false}
+        display={display}
+        showImages
+        addTargetName="Binder"
+      />,
+    );
+  }
+
+  it("gives an unowned tile the catalog menu with the collection as add target", () => {
+    renderMenuCell({ printing: unownedPrinting, mode: "browse" });
+    const menu = screen.getByTestId("cell-menu");
+    expect(menu.dataset.menuKind).toBe("CatalogCardContextMenu");
+    expect(menu.dataset.addTarget).toBe("Binder");
+  });
+
+  it("keeps the catalog menu on an unowned tile in select mode", () => {
+    renderMenuCell({ printing: unownedPrinting, mode: "select" });
+    expect(screen.getByTestId("cell-menu").dataset.menuKind).toBe("CatalogCardContextMenu");
+  });
+
+  it("gives an owned tile the copy actions menu", () => {
+    renderMenuCell({ printing: printingX, mode: "browse" });
+    expect(screen.getByTestId("cell-menu").dataset.menuKind).toBe("CollectionCardContextMenu");
   });
 });

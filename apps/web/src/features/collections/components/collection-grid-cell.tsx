@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { CardCell } from "@/features/cards/components/card-cell";
 import { CardCountStrip } from "@/features/cards/components/card-count-strip";
 import { OwnedCollectionsPopover } from "@/features/cards/components/card-detail/owned-collections-popover";
+import { CatalogCardContextMenu } from "@/features/cards/components/catalog-card-context-menu";
 import { WishlistHeart } from "@/features/cards/components/wishlist-heart";
 import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCellDisplayState } from "@/features/cards/hooks/use-cell-display-state";
@@ -60,6 +61,7 @@ interface CollectionGridCellProps {
   priceRange?: { min: number; max: number };
   wishEntries?: readonly WishEntryFlat[];
   canTake?: boolean;
+  addTargetName?: string;
 }
 
 // oxlint-disable-next-line eslint/prefer-arrow-callback -- named for React DevTools
@@ -80,6 +82,7 @@ export const CollectionGridCell = memo(function CollectionGridCell({
   priceRange,
   wishEntries,
   canTake,
+  addTargetName,
 }: CollectionGridCellProps) {
   const inCardsView = dataView === "cards";
 
@@ -308,13 +311,19 @@ export const CollectionGridCell = memo(function CollectionGridCell({
         cardTotalInCollection > 0 ? (
           <CollectionCardContextMenu
             itemId={itemId}
+            printing={displayPrinting}
             canTake={canTake}
             takeAllCount={takeAllCount}
             stacked={stacked}
             canLend={!sourceCollectionIsGroup}
-            lendPrinting={displayPrinting}
           />
-        ) : undefined
+        ) : (
+          <CatalogCardContextMenu
+            printing={displayPrinting}
+            canWish
+            addTargetName={addTargetName}
+          />
+        )
       }
       wrap={wrap}
     />

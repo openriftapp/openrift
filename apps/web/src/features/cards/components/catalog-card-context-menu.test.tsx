@@ -45,13 +45,36 @@ const printing = stubPrinting({ printingId: "printing-1", card: { slug: "annie-f
 async function openMenu() {
   const user = userEvent.setup();
   render(
-    <CatalogCardContextMenu printing={printing} canAdd={false} canWish={false} addTargetName="">
+    <CatalogCardContextMenu printing={printing} canWish={false}>
       <span>Annie tile</span>
     </CatalogCardContextMenu>,
   );
   await user.pointer({ keys: "[MouseRight]", target: screen.getByText("Annie tile") });
   return user;
 }
+
+describe("CatalogCardContextMenu add item", () => {
+  async function openWithTarget(addTargetName?: string) {
+    const user = userEvent.setup();
+    render(
+      <CatalogCardContextMenu printing={printing} canWish addTargetName={addTargetName}>
+        <span>Annie tile</span>
+      </CatalogCardContextMenu>,
+    );
+    await user.pointer({ keys: "[MouseRight]", target: screen.getByText("Annie tile") });
+  }
+
+  it("names the add target", async () => {
+    await openWithTarget("Binder");
+    expect(await screen.findByRole("menuitem", { name: "Add to Binder" })).toBeInTheDocument();
+  });
+
+  it("leaves out the add item without a target", async () => {
+    await openWithTarget();
+    await screen.findByRole("menuitem", { name: "Add to wishlist…" });
+    expect(screen.queryByRole("menuitem", { name: /^Add to (?!wishlist)/u })).toBeNull();
+  });
+});
 
 describe("CatalogCardContextMenu link items", () => {
   it("opens the shown printing's card page", async () => {

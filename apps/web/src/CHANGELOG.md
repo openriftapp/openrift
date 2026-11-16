@@ -24,6 +24,7 @@
 - fix(Tournaments): **Turning off pairings asks first** — on a group stage and top cut event, the settings confirm before resetting the format to plain rounds.
 - fix(Stage): **Queue builder stays open** — adding the first card to the queue keeps the builder open, and the show starts only when you press Start.
 - fix(Collection): **New wishlist from the card picker** — choosing "New wishlist" while adding a card opens the create dialog and puts the card on the new wishlist.
+- fix(Collection): **Card menu on missing cards** — long-pressing or right-clicking a card you don't own opens a menu to add it, wishlist it or open its card page.
 
 ## 2026-11-15
 

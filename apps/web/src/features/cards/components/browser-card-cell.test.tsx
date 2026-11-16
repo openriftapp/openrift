@@ -73,7 +73,6 @@ const display = { getFallbackArt: () => null } as unknown as CardThumbnailDispla
 
 function renderCell(props: {
   canAdd: boolean;
-  canMenuAdd?: boolean;
   canWish?: boolean;
   showStrip?: boolean;
   inCardsView?: boolean;
@@ -94,9 +93,8 @@ function renderCell(props: {
       priceRange={undefined}
       showStrip={props.showStrip ?? true}
       canAdd={props.canAdd}
-      canMenuAdd={props.canMenuAdd ?? props.canAdd}
       canWish={props.canWish ?? false}
-      addTargetName="Inbox"
+      addTargetName={props.canAdd ? "Inbox" : undefined}
       wishEntries={props.wishEntries}
       inCardsView={inCardsView}
     />,

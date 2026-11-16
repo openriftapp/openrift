@@ -179,6 +179,7 @@ export function CollectionGrid({
   const sourceCollectionIsGroup = isGroupCollection;
   const addTarget = collectionId ?? inboxId;
   const quickAddCollectionName = currentCollection?.name ?? m.collections_fallback_title();
+  const addTargetName = collectionId ? currentCollection?.name : inboxName;
   useRegisterQuickAdd({
     key: addTarget ? `collection:${addTarget}` : null,
     label: m.collections_quick_add_label({ collection: quickAddCollectionName }),
@@ -280,6 +281,7 @@ export function CollectionGrid({
     handleTake: actions.handleTake,
     setLendTarget: actions.setLendTarget,
     openAction: actions.openAction,
+    onAddToWishlist: setWishTarget,
   });
 
   const renderCard = (item: CardViewerItem, ctx: CardRenderContext) => {
@@ -314,6 +316,7 @@ export function CollectionGrid({
         priceRange={catalogPriceRangeByCardId?.get(item.printing.cardId)}
         wishEntries={wishEntries}
         canTake={canTake}
+        addTargetName={addTargetName}
       />
     );
   };

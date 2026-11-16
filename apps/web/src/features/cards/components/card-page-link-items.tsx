@@ -1,10 +1,10 @@
 import type { Printing } from "@openrift/shared/types/catalog";
-import { useRouter } from "@tanstack/react-router";
-import { AppWindowIcon, LinkIcon } from "lucide-react";
+import { Link, useRouter } from "@tanstack/react-router";
+import { AppWindowIcon, ExternalLinkIcon, LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { CardMenuItem } from "@/features/cards/components/card-context-menu";
-import { cardPageHref } from "@/features/cards/lib/card-page-href";
+import { cardPageHref, cardPageLinkOptions } from "@/features/cards/lib/card-page-href";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { getSiteUrl } from "@/lib/site-config";
 import { m } from "@/paraglide/messages.js";
@@ -24,6 +24,9 @@ export function CardPageLinkItems({ printing }: { printing: Printing }) {
 
   return (
     <>
+      <CardMenuItem icon={ExternalLinkIcon} render={<Link {...cardPageLinkOptions(printing)} />}>
+        {m.cards_context_open_card_page()}
+      </CardMenuItem>
       <CardMenuItem
         icon={AppWindowIcon}
         render={

@@ -66,6 +66,7 @@ interface UseCollectionGridSelectionParams {
   handleTake: (itemId: string, count: number, printing?: Printing) => void;
   setLendTarget: (target: { printing: Printing; maxQuantity: number } | null) => void;
   openAction: (action: CollectionContextAction, copyIds: string[]) => void;
+  onAddToWishlist: (printing: Printing) => void;
 }
 
 export function useCollectionGridSelection({
@@ -92,6 +93,7 @@ export function useCollectionGridSelection({
   handleTake,
   setLendTarget,
   openAction,
+  onAddToWishlist,
 }: UseCollectionGridSelectionParams) {
   // Keyed by tile (cardId, or cardId|set / cardId|rarity when split) so a card
   // owned across sets keeps each set tile's copies separate.
@@ -298,6 +300,7 @@ export function useCollectionGridSelection({
       setLastSelectedItemId(itemId);
     },
     onContextAction: handleContextAction,
+    onAddToWishlist,
     onTake: handleTake,
   });
 

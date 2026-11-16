@@ -306,9 +306,8 @@ export function CardBrowser() {
         priceRange={priceRangeByCardId?.get(cardId)}
         showStrip={showStrip}
         canAdd={canAdd}
-        canMenuAdd={hasAddTarget}
         canWish={isLoggedIn}
-        addTargetName={inbox?.name ?? "Inbox"}
+        addTargetName={inbox?.name}
         wishEntries={cardWishEntries?.length ? cardWishEntries : undefined}
         inCardsView={inCardsView}
       />
