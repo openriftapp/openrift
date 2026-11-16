@@ -281,12 +281,7 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
         </SettingsGroup>
 
         {showRegions ? (
-          <SettingsGroup
-            id="custom"
-            title={m.tournaments_new_custom_group()}
-            collapsible
-            defaultCollapsed
-          >
+          <SettingsGroup id="custom" title={m.tournaments_new_custom_group()}>
             <SettingsSection
               title={m.tournaments_region_overview_heading()}
               description={m.tournaments_new_regions_description()}
