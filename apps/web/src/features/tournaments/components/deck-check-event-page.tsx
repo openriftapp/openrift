@@ -56,7 +56,7 @@ import {
   useTournamentDeckCheckEntries,
 } from "@/features/tournaments/hooks/use-tournament-deck-check";
 import { useTournamentParticipants } from "@/features/tournaments/hooks/use-tournaments";
-import { parseManualDecklist } from "@/features/tournaments/lib/deck-check-manual-entry";
+import { parseDeckPaste } from "@/features/tournaments/lib/deck-check-manual-entry";
 import { participantName } from "@/features/tournaments/lib/participant-name";
 import {
   compareParticipantsForList,
@@ -385,9 +385,10 @@ function AddDeckDialog({
     label: `${participantName(participant.displayName)} (${participantStatusLabels()[participant.status]})`,
   }));
 
-  const parsed = parseManualDecklist(decklist);
+  const parsed = parseDeckPaste(decklist);
   const warnings = decklist.trim() === "" ? [] : parsed.warnings;
-  const perZone = [...Map.groupBy(parsed.cards, (card) => card.section).entries()].map(
+  const listCards = parsed.kind === "list" ? parsed.cards : [];
+  const perZone = [...Map.groupBy(listCards, (card) => card.section).entries()].map(
     ([section, cards]) => ({
       section,
       copies: cards.reduce((sum, card) => sum + card.quantity, 0),
@@ -403,10 +404,10 @@ function AddDeckDialog({
     if (!participantId) {
       return;
     }
-    const cards = parsed.cards;
+    const source = parsed.kind === "code" ? { deckCode: parsed.deckCode } : { cards: parsed.cards };
     if (
       !(await runReportedMutation(() =>
-        createEntry.mutateAsync({ tournamentId, participantId, cards }),
+        createEntry.mutateAsync({ tournamentId, participantId, ...source }),
       ))
     ) {
       return;
@@ -475,12 +476,14 @@ function AddDeckDialog({
                   markup={PROSE_MARKUP}
                 />
               </p>
-              {parsed.cards.length > 0 ? (
+              {parsed.totalCopies > 0 ? (
                 <p className="text-muted-foreground text-sm">
-                  {m.common_copies({ count: parsed.totalCopies })} ·{" "}
-                  {perZone
-                    .map(({ section, copies }) => `${enumLabel(zoneLabels, section)} ${copies}`)
-                    .join(" · ")}
+                  {[
+                    m.common_copies({ count: parsed.totalCopies }),
+                    ...perZone.map(
+                      ({ section, copies }) => `${enumLabel(zoneLabels, section)} ${copies}`,
+                    ),
+                  ].join(" · ")}
                 </p>
               ) : null}
               {warnings.map((warning) => (

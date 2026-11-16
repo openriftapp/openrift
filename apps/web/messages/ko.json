@@ -6452,7 +6452,7 @@
   "tournaments_deck_check_choose_participant": "참가자를 선택하세요",
   "tournaments_deck_check_decklist_label": "덱 목록",
   "tournaments_deck_check_decklist_placeholder": "Champion:\n1 챔피언 이름\nMain:\n3 카드 이름\nSideboard:\n2 테크 카드",
-  "tournaments_deck_check_manual_format": "한 줄에 카드 하나씩 {#code}2 Card Name{/code} 형식으로 쓰고, 구역 머리글은 선택입니다. 저장하면 일치 여부를 확인합니다.",
+  "tournaments_deck_check_manual_format": "덱 코드를 붙여 넣거나, 한 줄에 카드 하나씩 {#code}2 Card Name{/code} 형식으로 쓰세요. 구역 머리글은 선택입니다. 저장하면 일치 여부를 확인합니다.",
   "marketing_collections_binder": "바인더",
   "marketing_collections_bulk_box": "벌크 박스",
   "marketing_collections_main_binder": "메인 바인더",

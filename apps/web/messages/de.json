@@ -6453,7 +6453,7 @@
   "tournaments_deck_check_choose_participant": "Teilnehmer auswählen",
   "tournaments_deck_check_decklist_label": "Deckliste",
   "tournaments_deck_check_decklist_placeholder": "Champion:\n1 Ein Champion\nMain:\n3 Eine Karte\nSideboard:\n2 Tech-Karte",
-  "tournaments_deck_check_manual_format": "Eine Karte pro Zeile als {#code}2 Card Name{/code}, mit optionalen Zonen-Überschriften. Die Treffer werden nach dem Speichern geprüft.",
+  "tournaments_deck_check_manual_format": "Füge einen Deckcode ein oder eine Karte pro Zeile als {#code}2 Card Name{/code}, mit optionalen Zonen-Überschriften. Die Treffer werden nach dem Speichern geprüft.",
   "marketing_collections_binder": "Binder",
   "marketing_collections_bulk_box": "Bulk-Box",
   "marketing_collections_main_binder": "Hauptbinder",

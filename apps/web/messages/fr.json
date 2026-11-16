@@ -6454,7 +6454,7 @@
   "tournaments_deck_check_choose_participant": "Choisissez un participant",
   "tournaments_deck_check_decklist_label": "Decklist",
   "tournaments_deck_check_decklist_placeholder": "Champion:\n1 Un champion\nMain:\n3 Une carte\nSideboard:\n2 Carte tech",
-  "tournaments_deck_check_manual_format": "Une carte par ligne, sous la forme {#code}2 Card Name{/code}, avec des en-têtes de zone facultatifs. Les correspondances sont vérifiées après l'enregistrement.",
+  "tournaments_deck_check_manual_format": "Collez un code de deck, ou une carte par ligne sous la forme {#code}2 Card Name{/code}, avec des en-têtes de zone facultatifs. Les correspondances sont vérifiées après l'enregistrement.",
   "marketing_collections_binder": "Classeur",
   "marketing_collections_bulk_box": "Boîte de vrac",
   "marketing_collections_main_binder": "Classeur principal",

@@ -23,6 +23,7 @@ import {
   resolveDeckCheckCards,
 } from "../services/deck-check-card-resolution.js";
 import { createManualDeckCheckEntry, recomputeEntryHash } from "../services/deck-check-ingest.js";
+import { linesFromDeckCode } from "../services/deck-check-player.js";
 import {
   applyJudgeTransition,
   settleExpiredEditable,
@@ -120,6 +121,15 @@ export const tournamentDeckCheckRouter = {
       if (!participant || participant.tournamentId !== event.id) {
         throw notFound("Participant not found");
       }
+      let cards = input.cards;
+      if (input.deckCode !== undefined) {
+        const lines = await linesFromDeckCode(repos, input.deckCode);
+        cards = lines.map((line) => ({
+          name: line.name,
+          quantity: line.quantity,
+          section: line.zone,
+        }));
+      }
       // No unique constraint on participant_id; the has-deck check re-runs under a
       // participant row lock to close the judge-double-click race.
       const created = await context.transact(async (trxRepos) => {
@@ -129,7 +139,7 @@ export const tournamentDeckCheckRouter = {
         }
         return createManualDeckCheckEntry(trxRepos, event.id, {
           participantId: participant.id,
-          cards: input.cards,
+          cards,
         });
       });
       return buildEntryDetail(repos, event, created);

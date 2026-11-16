@@ -1,3 +1,4 @@
+import { parsePiltoverDeckCode } from "@openrift/shared/deck-code";
 import { parseDeckImportData } from "@openrift/shared/deck-codecs/parse";
 import { WellKnown } from "@openrift/shared/well-known";
 
@@ -39,4 +40,18 @@ export function parseManualDecklist(text: string): ParsedManualDecklist {
   const cards = [...merged.values()];
   const totalCopies = cards.reduce((sum, card) => sum + card.quantity, 0);
   return { cards, totalCopies, warnings };
+}
+
+export type DeckPaste =
+  | { kind: "code"; deckCode: string; totalCopies: number; warnings: string[] }
+  | ({ kind: "list" } & ParsedManualDecklist);
+
+export function parseDeckPaste(text: string): DeckPaste {
+  const trimmed = text.trim();
+  if (trimmed.length > 0 && !/\s/u.test(trimmed)) {
+    const { entries, warnings } = parsePiltoverDeckCode(trimmed);
+    const totalCopies = entries.reduce((sum, entry) => sum + entry.quantity, 0);
+    return { kind: "code", deckCode: trimmed, totalCopies, warnings };
+  }
+  return { kind: "list", ...parseManualDecklist(trimmed) };
 }

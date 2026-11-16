@@ -84,7 +84,7 @@ function ConfirmActionBody({
         }
       }}
     >
-      <AlertDialogHeader>
+      <AlertDialogHeader className="wrap-anywhere">
         <AlertDialogTitle>{title}</AlertDialogTitle>
         <AlertDialogDescription>{description}</AlertDialogDescription>
       </AlertDialogHeader>

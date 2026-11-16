@@ -1,6 +1,51 @@
-import { describe, expect, it } from "vitest";
+import { getDeckFromCode } from "@piltoverarchive/riftbound-deck-codes";
+import { describe, expect, it, vi } from "vitest";
 
-import { parseManualDecklist } from "./deck-check-manual-entry";
+import { parseDeckPaste, parseManualDecklist } from "./deck-check-manual-entry";
+
+vi.mock("@piltoverarchive/riftbound-deck-codes", () => ({
+  getDeckFromCode: vi.fn(),
+}));
+
+const mockGetDeckFromCode = vi.mocked(getDeckFromCode);
+
+describe("parseDeckPaste", () => {
+  it("treats a single token as a deck code and counts its copies", () => {
+    mockGetDeckFromCode.mockReturnValueOnce({
+      mainDeck: [
+        { cardCode: "OGN-001", count: 3 },
+        { cardCode: "OGN-002", count: 2 },
+      ],
+      sideboard: [{ cardCode: "OGN-003", count: 1 }],
+    });
+
+    expect(parseDeckPaste("  CMAAAAABAEAABJQB  ")).toEqual({
+      kind: "code",
+      deckCode: "CMAAAAABAEAABJQB",
+      totalCopies: 6,
+      warnings: [],
+    });
+  });
+
+  it("warns on a token that does not decode", () => {
+    mockGetDeckFromCode.mockImplementation(() => {
+      throw new Error("invalid code");
+    });
+
+    const parsed = parseDeckPaste("NOTACODE");
+    expect(parsed).toMatchObject({ kind: "code", deckCode: "NOTACODE", totalCopies: 0 });
+    expect(parsed.warnings.length).toBeGreaterThan(0);
+  });
+
+  it("parses a multi-line paste as a text list", () => {
+    expect(parseDeckPaste("Main:\n3 Some Card")).toEqual({
+      kind: "list",
+      cards: [{ name: "Some Card", quantity: 3, section: "main" }],
+      totalCopies: 3,
+      warnings: [],
+    });
+  });
+});
 
 describe("parseManualDecklist", () => {
   it("parses zone headers into section slugs", () => {

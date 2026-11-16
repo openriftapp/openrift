@@ -207,7 +207,10 @@ async function linesFromOwnDeck(
 }
 
 /** An unknown short code becomes an unmatched line carrying the code as its raw name, not a silently dropped card. */
-async function linesFromDeckCode(repos: Repos, deckCode: string): Promise<DeckCheckCardLine[]> {
+export async function linesFromDeckCode(
+  repos: Repos,
+  deckCode: string,
+): Promise<DeckCheckCardLine[]> {
   // parsePiltoverDeckCode owns the decode and the champion split (the encoder
   // counts the chosen champion inside mainDeck, since it is a marker rather
   // than an extra slot), so this only maps its entries onto catalog cards.

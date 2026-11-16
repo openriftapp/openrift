@@ -5,6 +5,7 @@ import { authedRoute } from "./_base.js";
 import {
   applyDeckCheckZoneFixesSchema,
   createDeckCheckEntrySchema,
+  deckCodeOrCards,
   deckCheckEntryDetailResponseSchema,
   deckCheckEntryStateChangeSchema,
   deckCheckEventDetailResponseSchema,
@@ -45,9 +46,13 @@ export const tournamentDeckCheckContract = {
     .errors({
       NOT_FOUND: { message: "Tournament not found" },
       CONFLICT: { message: "Event is archived" },
-      VALIDATION_ERROR: { status: 422, message: "Unknown deck section" },
+      VALIDATION_ERROR: { status: 422, message: "Unknown deck section or unreadable deck code" },
     })
-    .input(withParams(tournamentParamSchema, createDeckCheckEntrySchema))
+    .input(
+      withParams(tournamentParamSchema, createDeckCheckEntrySchema).refine(deckCodeOrCards, {
+        message: "Provide either a deck code or a card list",
+      }),
+    )
     .output(deckCheckEntryDetailResponseSchema),
   getEntry: authedRoute
     .route({ method: "GET", path: `${BASE}/entries/{entryId}`, tags: [TAG] })

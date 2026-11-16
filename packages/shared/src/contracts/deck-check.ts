@@ -42,8 +42,12 @@ export const applyDeckCheckZoneFixesSchema = z.object({
 
 export const createDeckCheckEntrySchema = z.object({
   participantId: z.uuid(),
+  deckCode: z.string().min(1).max(4000).optional(),
   cards: z.array(addDeckCheckCardSchema).max(DECK_CHECK_MAX_CARD_LINES_PER_ENTRY).default([]),
 });
+
+export const deckCodeOrCards = (value: { deckCode?: string; cards: unknown[] }): boolean =>
+  value.deckCode === undefined || value.cards.length === 0;
 
 export const deckCheckTickSchema = z.object({
   /** 0-based physical copy within the card line. */

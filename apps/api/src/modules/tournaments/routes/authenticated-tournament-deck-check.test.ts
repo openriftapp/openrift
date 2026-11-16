@@ -1,11 +1,25 @@
 import { Hono } from "hono";
 import { describe, expect, it, vi } from "vitest";
 
-import { AppError } from "../../../errors.js";
+import { AppError, conflict } from "../../../errors.js";
 import { registerRouterForTest } from "../../../test/mount-router.js";
 import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
+import { createManualDeckCheckEntry } from "../services/deck-check-ingest.js";
+import { linesFromDeckCode } from "../services/deck-check-player.js";
 import { tournamentDeckCheckRouter } from "./authenticated-tournament-deck-check.js";
+
+vi.mock("../services/deck-check-ingest.js", async (importOriginal) => ({
+  ...(await importOriginal()),
+  createManualDeckCheckEntry: vi.fn(),
+}));
+vi.mock("../services/deck-check-player.js", async (importOriginal) => ({
+  ...(await importOriginal()),
+  linesFromDeckCode: vi.fn(),
+}));
+
+const mockCreateManualDeckCheckEntry = vi.mocked(createManualDeckCheckEntry);
+const mockLinesFromDeckCode = vi.mocked(linesFromDeckCode);
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
 const TOURNAMENT_ID = "b0000000-0001-4000-a000-000000000001";
@@ -215,5 +229,82 @@ describe("deadline auto-submit", () => {
     ]);
     expect(deckCheck.updateEntry).not.toHaveBeenCalled();
     expect(deckCheck.setCardCopyFound).toHaveBeenCalledWith(ENTRY_ID, CARD_ID, 0, true);
+  });
+});
+
+describe("POST /tournaments/{tournamentId}/deck-check/entries", () => {
+  const PARTICIPANT_ID = "e0000000-0001-4000-a000-000000000001";
+
+  function makeCreateApp() {
+    const repos = {
+      deckCheck: {
+        getEventById: vi.fn(() => Promise.resolve(event)),
+        participantHasDeck: vi.fn(() => Promise.resolve(false)),
+      },
+      tournaments: {
+        isHostOrStaff: vi.fn(() => Promise.resolve(true)),
+        getParticipantById: vi.fn(() =>
+          Promise.resolve({ id: PARTICIPANT_ID, tournamentId: TOURNAMENT_ID }),
+        ),
+        lockParticipant: vi.fn(() => Promise.resolve()),
+      },
+    };
+    const app = new Hono<{ Variables: Variables }>();
+    app.use("*", async (c, next) => {
+      c.set("user", { id: USER_ID } as never);
+      c.set("repos", repos as never);
+      c.set("transact", (async (fn: (r: typeof repos) => unknown) => fn(repos)) as never);
+      await next();
+    });
+    registerRouterForTest(app, tournamentDeckCheckRouter);
+    app.onError((err, c) => {
+      if (err instanceof AppError) {
+        return c.json({ error: err.message, code: err.code }, err.status as 409);
+      }
+      throw err;
+    });
+    return app;
+  }
+
+  function post(app: Hono<{ Variables: Variables }>, body: unknown) {
+    return app.request(`/api/v1/tournaments/${TOURNAMENT_ID}/deck-check/entries`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  it("decodes a deck code into card lines with their zones", async () => {
+    mockLinesFromDeckCode.mockResolvedValueOnce([
+      { name: "Some Legend", zone: "legend", quantity: 1 },
+      { name: "Some Card", zone: "main", quantity: 3 },
+    ]);
+    mockCreateManualDeckCheckEntry.mockRejectedValueOnce(conflict("stop"));
+
+    const res = await post(makeCreateApp(), {
+      participantId: PARTICIPANT_ID,
+      deckCode: "CMAAAAABAEAABJQB",
+    });
+
+    expect(res.status).toBe(409);
+    expect(mockLinesFromDeckCode).toHaveBeenCalledWith(expect.anything(), "CMAAAAABAEAABJQB");
+    expect(mockCreateManualDeckCheckEntry).toHaveBeenCalledWith(expect.anything(), TOURNAMENT_ID, {
+      participantId: PARTICIPANT_ID,
+      cards: [
+        { name: "Some Legend", quantity: 1, section: "legend" },
+        { name: "Some Card", quantity: 3, section: "main" },
+      ],
+    });
+  });
+
+  it("rejects a deck code sent together with a card list", async () => {
+    const res = await post(makeCreateApp(), {
+      participantId: PARTICIPANT_ID,
+      deckCode: "CMAAAAABAEAABJQB",
+      cards: [{ name: "Some Card", quantity: 1, section: "main" }],
+    });
+
+    expect(res.status).toBe(400);
+    expect(mockCreateManualDeckCheckEntry).not.toHaveBeenCalled();
   });
 });

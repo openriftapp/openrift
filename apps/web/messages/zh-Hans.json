@@ -6452,7 +6452,7 @@
   "tournaments_deck_check_choose_participant": "选择参赛者",
   "tournaments_deck_check_decklist_label": "卡组表",
   "tournaments_deck_check_decklist_placeholder": "Champion:\n1 某个英雄\nMain:\n3 某张卡牌\nSideboard:\n2 针对卡",
-  "tournaments_deck_check_manual_format": "每行一张卡，格式为 {#code}2 Card Name{/code}，可选填区域标题。保存后会检查匹配结果。",
+  "tournaments_deck_check_manual_format": "粘贴卡组代码，或每行一张卡，格式为 {#code}2 Card Name{/code}，可选填区域标题。保存后会检查匹配结果。",
   "marketing_collections_binder": "卡册",
   "marketing_collections_bulk_box": "散卡盒",
   "marketing_collections_main_binder": "主卡册",

@@ -13,7 +13,7 @@ import { useDecks } from "@/features/decks/hooks/use-decks";
 import { SaveError } from "@/features/tournaments/components/save-error";
 import type { SharingConsent } from "@/features/tournaments/components/sharing-consent-fields";
 import { SharingConsentFields } from "@/features/tournaments/components/sharing-consent-fields";
-import { parseManualDecklist } from "@/features/tournaments/lib/deck-check-manual-entry";
+import { parseDeckPaste } from "@/features/tournaments/lib/deck-check-manual-entry";
 import { m } from "@/paraglide/messages.js";
 
 export interface DeckSourceInput extends SharingConsent {
@@ -27,14 +27,13 @@ const NO_DECK = "__none__";
 type DeckSource = Omit<DeckSourceInput, keyof SharingConsent>;
 
 function pasteToInput(paste: string): DeckSource | null {
-  const trimmed = paste.trim();
-  if (trimmed.length === 0) {
+  if (paste.trim().length === 0) {
     return null;
   }
-  if (!/\s/u.test(trimmed)) {
-    return { deckCode: trimmed };
+  const parsed = parseDeckPaste(paste);
+  if (parsed.kind === "code") {
+    return { deckCode: parsed.deckCode };
   }
-  const parsed = parseManualDecklist(trimmed);
   return parsed.cards.length > 0 ? { cards: parsed.cards } : null;
 }
 

@@ -258,7 +258,10 @@ export async function ingestDeckCheckPush(
   return result;
 }
 
-export type CreateDeckCheckEntryPayload = z.infer<typeof createDeckCheckEntrySchema>;
+export type CreateDeckCheckEntryPayload = Pick<
+  z.infer<typeof createDeckCheckEntrySchema>,
+  "participantId" | "cards"
+>;
 
 /**
  * External id is `manual:`-prefixed, so a later provider push for the same

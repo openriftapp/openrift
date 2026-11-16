@@ -6459,7 +6459,7 @@
   "tournaments_deck_check_choose_participant": "Choose a participant",
   "tournaments_deck_check_decklist_label": "Decklist",
   "tournaments_deck_check_decklist_placeholder": "Champion:\n1 Some Champion\nMain:\n3 Some Card\nSideboard:\n2 Tech Card",
-  "tournaments_deck_check_manual_format": "One card per line as {#code}2 Card Name{/code}, with optional zone headers. Matches are checked after you save.",
+  "tournaments_deck_check_manual_format": "Paste a deck code, or one card per line as {#code}2 Card Name{/code} with optional zone headers. Matches are checked after you save.",
   "marketing_collections_binder": "Binder",
   "marketing_collections_bulk_box": "Bulk box",
   "marketing_collections_main_binder": "Main binder",

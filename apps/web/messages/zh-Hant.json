@@ -6452,7 +6452,7 @@
   "tournaments_deck_check_choose_participant": "選擇參賽者",
   "tournaments_deck_check_decklist_label": "牌組清單",
   "tournaments_deck_check_decklist_placeholder": "Champion:\n1 某個英雄\nMain:\n3 某張卡牌\nSideboard:\n2 針對卡",
-  "tournaments_deck_check_manual_format": "每行一張卡牌，格式為 {#code}2 Card Name{/code}，可加上區域標題。儲存後會進行比對。",
+  "tournaments_deck_check_manual_format": "貼上牌組代碼，或每行一張卡牌，格式為 {#code}2 Card Name{/code}，可加上區域標題。儲存後會進行比對。",
   "marketing_collections_binder": "卡冊",
   "marketing_collections_bulk_box": "散卡箱",
   "marketing_collections_main_binder": "主卡冊",

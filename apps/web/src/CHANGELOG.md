@@ -29,6 +29,7 @@
 - fix(Collection): **New wishlist from the card picker** — choosing "New wishlist" while adding a card opens the create dialog and puts the card on the new wishlist.
 - fix(Collection): **Card menu on missing cards** — long-pressing or right-clicking a card you don't own opens a menu to add it, wishlist it or open its card page.
 - fix(Cards): **Range filters on phones** — the Energy, Power and Might sliders in the Options drawer show their handles again.
+- fix(Tournaments): **Deck codes in Add deck** — pasting a deck code when adding a player's deck on the Decks tab now loads the deck's cards, and long card names wrap in the remove dialog.
 - fix(Decks): **Quick drops land in the zone** — a card dropped onto a zone right after you start dragging it goes into that zone when the zone takes it, and is never removed from the deck.
 - fix(Designer): **One background zoom handle** — the background zoom slider in the card designer shows a single handle, so keyboard users no longer tab through a second one.
 - fix(Tournaments): **Custom settings open when creating an event** — the Custom section on the new tournament page shows its region option without having to expand it first.

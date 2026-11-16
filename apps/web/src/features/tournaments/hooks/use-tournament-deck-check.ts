@@ -68,7 +68,8 @@ const createEntryFn = createServerFn({ method: "POST" })
     (input: {
       tournamentId: string;
       participantId: string;
-      cards: { name: string; quantity: number; section: string }[];
+      deckCode?: string;
+      cards?: { name: string; quantity: number; section: string }[];
     }) => input,
   )
   .middleware([withCookies])
