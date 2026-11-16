@@ -4,6 +4,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { describe, expect, it } from "vitest";
 
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
+import { ROUND_TRIP_CELLS } from "@/test/csv-cells";
 import { stubCopy } from "@/test/factories";
 
 import type { CsvExportLabels } from "./csv-export";
@@ -647,5 +648,57 @@ describe("OpenRift CSV round trip through the matcher", () => {
     const results = matchEntries(parsed.entries, printings);
     expect(results.map((result) => result.status)).toEqual(stacks.map(() => "exact"));
     expect(results.map((result) => result.resolvedPrinting)).toEqual(printings);
+  });
+});
+
+describe("CSV round trip of formula-like and special cells", () => {
+  function stackWithNotes(value: string): {
+    stack: StackedEntry;
+    copiesById: Map<string, CopyResponse>;
+  } {
+    const stack = makeStack({ shortCode: "OGN-001", name: value, copyCount: 1 });
+    stack.copyIds = ["c1"];
+    return {
+      stack,
+      copiesById: new Map([
+        ["c1", stubCopy({ id: "c1", notesPublic: value, notesPrivate: value })],
+      ]),
+    };
+  }
+
+  it.each(ROUND_TRIP_CELLS)("OpenRift gives back %j as name and notes", (value) => {
+    const { stack, copiesById } = stackWithNotes(value);
+    const [entry] = parseImportData(generateExportCSV([stack], copiesById)).entries;
+    expect(entry?.cardName).toBe(value);
+    expect(entry?.metadata).toEqual({ notesPublic: value, notesPrivate: value });
+  });
+
+  it.each(ROUND_TRIP_CELLS)("Piltover Archive gives back %j as name and notes", (value) => {
+    const { stack, copiesById } = stackWithNotes(value);
+    const [entry] = parseImportData(
+      generatePiltoverArchiveCSV([stack], LABELS, copiesById),
+    ).entries;
+    expect(entry?.cardName).toBe(value);
+    expect(entry?.metadata).toEqual({ notesPublic: value });
+  });
+
+  it.each(ROUND_TRIP_CELLS)("RiftMana gives back %j as the name", (value) => {
+    const { stack } = stackWithNotes(value);
+    const [entry] = parseImportData(generateRiftManaCSV([stack], LABELS)).entries;
+    expect(entry?.cardName).toBe(value);
+  });
+
+  it.each(ROUND_TRIP_CELLS)("RiftCore gives back %j as the name", (value) => {
+    const { stack } = stackWithNotes(value);
+    const [entry] = parseImportData(generateRiftCoreCSV([stack], LABELS)).entries;
+    expect(entry?.cardName).toBe(value);
+  });
+
+  it("writes quantities and grades as plain numbers", () => {
+    const stack = makeStack({ shortCode: "OGN-001", copyCount: 1 });
+    stack.copyIds = ["c1"];
+    const copiesById = new Map([["c1", stubCopy({ id: "c1", grader: "psa", grade: 9.5 })]]);
+    const [, row] = generateExportCSV([stack], copiesById).split("\n");
+    expect(row?.split(",").slice(10, 14)).toEqual(["1", "", "psa", "9.5"]);
   });
 });

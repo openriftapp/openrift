@@ -92,6 +92,14 @@ describe("buildPrintingsCsv", () => {
   });
 });
 
+describe("formula-like cells", () => {
+  it("neutralises text and keeps counts as numbers", () => {
+    expect(body(buildFacesCsv([row({ cardName: "=Bird", artist: "+x", printingCount: 4 })]))).toBe(
+      "'=Bird,jinx-loose-cannon,OGN-030,Origins,en,foil,,,'+x,,4,2026-10-20T10:00:00.000Z",
+    );
+  });
+});
+
 describe("buildFacesCsv", () => {
   it("writes the face columns", () => {
     const csv = buildFacesCsv([

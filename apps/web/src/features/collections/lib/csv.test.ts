@@ -1,4 +1,7 @@
+import { escapeCsvField, unescapeCsvField } from "@openrift/shared/csv";
 import { describe, expect, it } from "vitest";
+
+import { ROUND_TRIP_CELLS } from "@/test/csv-cells";
 
 import { parseCSV, parseCSVWithHeaders } from "./csv";
 
@@ -96,5 +99,16 @@ describe("parseCSVWithHeaders", () => {
 
   it("fills missing trailing columns with empty strings", () => {
     expect(parseCSVWithHeaders("a,b,c\n1,2")).toEqual([{ a: "1", b: "2", c: "" }]);
+  });
+});
+
+describe("escapeCsvField and parseCSV round trip", () => {
+  it("reads every written cell back as the original value", () => {
+    const cells = ["", ...ROUND_TRIP_CELLS, "", " =x", "\t-x", " padded "];
+    const line = cells.map((cell) => escapeCsvField(cell)).join(",");
+    const rows = parseCSV(`${line}\r\n${line}`).map((row) =>
+      row.map((cell) => unescapeCsvField(cell)),
+    );
+    expect(rows).toEqual([cells, cells]);
   });
 });

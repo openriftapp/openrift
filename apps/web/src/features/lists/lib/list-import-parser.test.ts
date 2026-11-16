@@ -3,6 +3,7 @@ import { labelMap } from "@openrift/shared/enum-label";
 import type { ListEntryDetailResponse } from "@openrift/shared/types/api/list";
 import { describe, expect, it } from "vitest";
 
+import { generateExportCSV } from "@/features/collections/lib/csv-export";
 import { matchEntries } from "@/features/collections/lib/import-matcher";
 import { formatListShareText } from "@/features/lists/lib/list-export";
 import { formatCardListAsDeckText, formatCardListWithDetails } from "@/lib/export-text";
@@ -347,6 +348,13 @@ describe("parseListImport", () => {
       finish: "foil",
       sourceCode: "OGN-001",
     });
+  });
+
+  it("gives back a formula-like card name from an OpenRift CSV export", () => {
+    const printing = stubPrinting({ shortCode: "OGN-001", card: { name: "=Teemo, Scout" } });
+    const csv = generateExportCSV([{ printingId: printing.printingId, printing, copyIds: ["x"] }]);
+    expect(csv).toContain(`"'=Teemo, Scout"`);
+    expect(parseListImport(csv, LABELS).entries[0]?.cardName).toBe("=Teemo, Scout");
   });
 
   it("routes an OpenRift CSV through the rich parser", () => {

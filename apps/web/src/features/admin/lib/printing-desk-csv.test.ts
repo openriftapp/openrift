@@ -166,6 +166,21 @@ describe("buildPrintingDeskCsv", () => {
     expect(csv).toContain('"Signed, ""in person""\nat the booth"');
   });
 
+  it("neutralises formula-like text and keeps numbers and dates as written", () => {
+    const values = parseFirstDataRow(
+      buildPrintingDeskCsv([row({ cardName: "-Teemo", comment: "=HYPERLINK(1)", artist: "@x" })], {
+        channelPaths,
+      }),
+    );
+
+    expect([values[0], values[14], values[15]]).toEqual(["'-Teemo", "'@x", "'=HYPERLINK(1)"]);
+    expect([values[11], values[16], values[19]]).toEqual([
+      "2026-07-15",
+      "2",
+      "2026-09-01T10:00:00.000Z",
+    ]);
+  });
+
   it("links the card page with the printing preselected", () => {
     const csv = buildPrintingDeskCsv([row()], {
       channelPaths,

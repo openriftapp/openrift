@@ -614,6 +614,16 @@ describe("parseImportData — neutralised formula cells", () => {
     expect(publicNote("'Teemo's hat")).toBe("'Teemo's hat");
   });
 
+  it("reads a file written before cells were neutralised with its values as written", () => {
+    for (const cell of ["-1", "-0.5", "+3", "=name", "@Teemo", "-signed"]) {
+      expect(publicNote(cell)).toBe(cell);
+    }
+    expect(publicNote('"=a,b"')).toBe("=a,b");
+    expect(publicNote("")).toBeUndefined();
+    const csv = `${header}\nOGN-001,=name,Common,Unit,Arcane,normal,normal,,1,`;
+    expect(parseImportData(csv).entries[0]!.cardName).toBe("=name");
+  });
+
   it("strips one apostrophe of an escaped apostrophe-led formula", () => {
     expect(publicNote("''=x")).toBe("'=x");
   });
