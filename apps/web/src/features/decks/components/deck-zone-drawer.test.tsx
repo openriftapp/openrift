@@ -186,4 +186,35 @@ describe("DeckZoneDrawer", () => {
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(sidebar.setOpenMobile).toHaveBeenCalledWith(false);
   });
+
+  it("scrolls the target zone into view as the content mounts, and again when the target changes", () => {
+    const scrolled: string[] = [];
+    Object.defineProperty(Element.prototype, "scrollIntoView", {
+      configurable: true,
+      value: function scrollIntoView(this: Element) {
+        scrolled.push((this as HTMLElement).dataset.zone ?? "");
+      },
+    });
+    const zones = (
+      <>
+        <section data-zone="main">main</section>
+        <section data-zone="sideboard">sideboard</section>
+      </>
+    );
+
+    const view = render(
+      <DeckZoneDrawer deckId="deck-1" target="sideboard">
+        {zones}
+      </DeckZoneDrawer>,
+    );
+    expect(scrolled).toEqual(["sideboard"]);
+
+    view.rerender(
+      <DeckZoneDrawer deckId="deck-1" target="main">
+        {zones}
+      </DeckZoneDrawer>,
+    );
+    expect(scrolled).toEqual(["sideboard", "main"]);
+    Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+  });
 });

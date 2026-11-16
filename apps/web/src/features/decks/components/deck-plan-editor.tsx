@@ -343,9 +343,20 @@ export function DeckPlanEditor({
   const { getPreferredPrinting } = usePreferredPrinting();
   const queryClient = useQueryClient();
   const userId = useRequiredUserId();
+  const savedDraft = planResponseToDraft(data.plan);
+  const savedPayload = JSON.stringify(planDraftToSaveInput(savedDraft));
   const [draft, setDraft] = useState<PlanDraft>(
-    () => getDeckPlanDraft(queryClient, userId, deckId) ?? planResponseToDraft(data.plan),
+    () => getDeckPlanDraft(queryClient, userId, deckId) ?? savedDraft,
   );
+  const [basePayload, setBasePayload] = useState(savedPayload);
+  const draftPayload = JSON.stringify(planDraftToSaveInput(draft));
+  // A save from elsewhere moves the base; an unedited draft follows it.
+  if (savedPayload !== basePayload) {
+    setBasePayload(savedPayload);
+    if (draftPayload === basePayload) {
+      setDraft(savedDraft);
+    }
+  }
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
 
   const singleBattlefield = zoneExpected(WellKnown.deckZone.BATTLEFIELD, format) === 1;
@@ -382,9 +393,7 @@ export function DeckPlanEditor({
     .filter((card) => card.zone === WellKnown.deckZone.BATTLEFIELD)
     .map((card) => ({ cardId: card.cardId, cardName: card.cardName }));
 
-  const savedPayload = JSON.stringify(planDraftToSaveInput(planResponseToDraft(data.plan)));
-  const draftPayload = JSON.stringify(planDraftToSaveInput(draft));
-  const isDirty = savedPayload !== draftPayload;
+  const isDirty = draftPayload !== basePayload;
 
   useEffect(() => {
     setDeckPlanDraft(queryClient, userId, deckId, isDirty ? draft : null);

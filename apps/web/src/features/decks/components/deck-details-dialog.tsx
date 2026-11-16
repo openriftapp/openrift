@@ -2,7 +2,7 @@ import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { MAX_DECK_LINKS } from "@openrift/shared/contracts/decks";
 import { ALLOWED_LINK_SITE_NAMES, isAllowedLinkUrl } from "@openrift/shared/link-hosts";
 import type { DeckLink } from "@openrift/shared/types/api/deck";
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import type { LinkDraft } from "@/components/link-rows-field";
 import { LinkRowsField } from "@/components/link-rows-field";
@@ -79,6 +79,7 @@ function DeckDetailsForm({
   const [token, setToken] = useState<string | null>(null);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const pendingCaret = useRef<number | null>(null);
   const updateMeta = useUpdateDeckMeta(deckId, { inlineError: true });
   const { printingsByCardId } = useCards();
 
@@ -113,13 +114,20 @@ function DeckDetailsForm({
     const next = `${draft.slice(0, start)}[[${cardName}]]${draft.slice(caret)}`;
     setDraft(next);
     setToken(null);
-    // requestAnimationFrame waits for the controlled value to commit before the caret moves.
-    const position = start + cardName.length + 4;
-    requestAnimationFrame(() => {
-      element.focus();
-      element.setSelectionRange(position, position);
-    });
+    pendingCaret.current = start + cardName.length + 4;
   };
+
+  useLayoutEffect(() => {
+    const position = pendingCaret.current;
+    const element = textareaRef.current;
+    if (position === null || element === null) {
+      return;
+    }
+    pendingCaret.current = null;
+    element.focus();
+    element.setSelectionRange(position, position);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- runs after each committed description value
+  }, [draft]);
 
   const handleTextareaKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (suggestions.length === 0) {

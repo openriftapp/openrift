@@ -30,13 +30,49 @@ function resolveClipPaths(element: HTMLElement): void {
   }
 }
 
-export function waitForRender(): Promise<void> {
-  // oxlint-disable-next-line promise/avoid-new -- wrapping requestAnimationFrame callback API
-  return new Promise<void>((resolve) => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => resolve());
-    });
-  });
+async function assetsReady(element: HTMLElement): Promise<void> {
+  // A broken image still captures (as its fallback or nothing); it must not stall the export.
+  await Promise.all(
+    [...element.querySelectorAll("img")].map((image) => image.decode().catch(() => null)),
+  );
+  await document.fonts.ready;
+}
+
+export interface RenderHandoff {
+  /** Ref callback for the element rendered for `key`. */
+  report: (key: string, element: HTMLElement | null) => (() => void) | undefined;
+  /** Resolves with the element rendered for `key` once its images are decoded and fonts loaded. */
+  waitFor: (key: string) => Promise<HTMLElement>;
+}
+
+export function createRenderHandoff(): RenderHandoff {
+  const mounted = new Map<string, HTMLElement>();
+  const waiters = new Map<string, (element: HTMLElement) => void>();
+  return {
+    report: (key, element) => {
+      if (element === null) {
+        return;
+      }
+      mounted.set(key, element);
+      waiters.get(key)?.(element);
+      waiters.delete(key);
+      return () => {
+        if (mounted.get(key) === element) {
+          mounted.delete(key);
+        }
+      };
+    },
+    waitFor: async (key) => {
+      const element =
+        mounted.get(key) ??
+        // oxlint-disable-next-line promise/avoid-new -- resolved by the ref callback of the element rendered for this key
+        (await new Promise<HTMLElement>((resolve) => {
+          waiters.set(key, resolve);
+        }));
+      await assetsReady(element);
+      return element;
+    },
+  };
 }
 
 /** Loads html2canvas-pro on demand: a static import would put it on every deck tile's page. */

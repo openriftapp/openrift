@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -9,8 +10,13 @@ import { createStoreResetter } from "@/test/store-helpers";
 vi.mock("@/hooks/use-enums", async (importOriginal) => {
   const actual = await importOriginal<typeof UseEnums>();
   const { useZoneOrderStub } = await import("@/test/zone-order-stub");
-  return { ...actual, useZoneOrder: useZoneOrderStub };
+  return {
+    ...actual,
+    useZoneOrder: useZoneOrderStub,
+    useEnumOrders: () => ({ labels: { domains: labelMapOf({}) } }),
+  };
 });
+vi.mock("@/hooks/use-domain-colors", () => ({ useDomainColors: () => ({}) }));
 vi.mock("@/features/decks/hooks/use-deck-builder", () => ({
   useDeckBuilderActions: () => ({
     changePreferredPrinting: vi.fn(),
@@ -32,6 +38,7 @@ vi.mock("@/features/cards/hooks/use-printing-choices", () => ({
 }));
 
 const { DeckCardPrintingMenu } = await import("./deck-card-printing-menu");
+const { DeckCardRow } = await import("./deck-card-row");
 
 const resetStore = createStoreResetter(useWorkbenchStore);
 
@@ -83,5 +90,33 @@ describe("DeckCardPrintingMenu", () => {
     );
 
     expect(onOpenPlan).toHaveBeenCalledOnce();
+  });
+
+  function renderWorkbenchRow() {
+    const card = stubDeckBuilderCard({ cardName: "Iron Ballista", quantity: 2 });
+    render(
+      <DeckCardPrintingMenu deckId="deck-1" card={card}>
+        <DeckCardRow card={card} menuButton onClick={() => {}} />
+      </DeckCardPrintingMenu>,
+    );
+  }
+
+  it("opens the row's items from the menu button as a menu of that button", () => {
+    renderWorkbenchRow();
+    const button = screen.getByRole("button", { name: "More actions for Iron Ballista" });
+
+    fireEvent.click(button);
+
+    expect(button).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("menuitem", { name: "Remove all 2" })).toBeInTheDocument();
+  });
+
+  it("leaves the keyboard context-menu keys to the browser", () => {
+    renderWorkbenchRow();
+    const row = screen.getByRole("button", { name: "View details for Iron Ballista" });
+
+    expect(fireEvent.keyDown(row, { key: "F10", shiftKey: true })).toBe(true);
+    expect(fireEvent.keyDown(row, { key: "ContextMenu" })).toBe(true);
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
 });

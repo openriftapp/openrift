@@ -1,5 +1,5 @@
 import { WellKnown } from "@openrift/shared/well-known";
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 import { TYPE_ICON_COLOR } from "@/features/cards/components/card-placeholder-image";
 import type { ExportAction } from "@/features/cards/lib/card-export";
@@ -13,7 +13,7 @@ import { useCardDesignerStore } from "@/features/designer/stores/card-designer-s
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { getPipGlyphTint } from "@/lib/domain";
 import { downloadFilename } from "@/lib/download";
-import { waitForRender } from "@/lib/html-capture";
+import { createRenderHandoff } from "@/lib/html-capture";
 import { getFilterIconPath, getTypeIconPath } from "@/lib/icons";
 import { prewarmTintedIcons, TINT_BLACK, TINT_WHITE } from "@/lib/white-icon";
 import { m } from "@/paraglide/messages.js";
@@ -59,10 +59,13 @@ function designerTintedIcons(
   return icons;
 }
 
+const CLONE_KEY = "designer-export";
+
 export function CardDesignerPage() {
   const cardName = useCardDesignerStore((state) => state.card.name);
   const domainColors = useDomainColors();
-  const cloneRef = useRef<HTMLDivElement>(null);
+  // oxlint-disable-next-line react/hook-use-state -- a stable per-mount handoff, never replaced
+  const [cloneHandoff] = useState(createRenderHandoff);
   const [renderClone, setRenderClone] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -79,12 +82,9 @@ export function CardDesignerPage() {
       designerTintedIcons(useCardDesignerStore.getState().card, domainColors),
     );
     setRenderClone(true);
-    await waitForRender();
-    const element = cloneRef.current;
+    const element = await cloneHandoff.waitFor(CLONE_KEY);
     const filename = `${downloadFilename({ base: cardName, fallback: "riftbound-card" })}.png`;
-    const outcome = element
-      ? await exportCardImage(element, action, filename).catch(() => null)
-      : null;
+    const outcome = await exportCardImage(element, action, filename).catch(() => null);
     setRenderClone(false);
     setBusy(false);
     if (outcome === "copied") {
@@ -121,7 +121,7 @@ export function CardDesignerPage() {
       </div>
       {renderClone && (
         <div
-          ref={cloneRef}
+          ref={(element) => cloneHandoff.report(CLONE_KEY, element)}
           aria-hidden="true"
           style={{
             position: "fixed",

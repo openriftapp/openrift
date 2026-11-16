@@ -2,10 +2,12 @@ import { deckCardKey } from "@openrift/shared/deck-cards";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DeckBoxPlan } from "@/features/decks/lib/deck-box";
+import { useDeckBoxOriginsStore } from "@/features/decks/stores/deck-box-origins-store";
 import { stubDeckBuilderCard } from "@/test/factories";
+import { createStoreResetter } from "@/test/store-helpers";
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, ...rest }: { children: ReactNode }) => <a {...rest}>{children}</a>,
@@ -72,6 +74,8 @@ vi.mock("@/hooks/use-enums", async () => {
 
 const { DeckBoxTab } = await import("./deck-box-tab");
 
+const resetOrigins = createStoreResetter(useDeckBoxOriginsStore);
+
 function renderTab(onCardClick: () => void, missingCount = 0) {
   render(
     <DeckBoxTab
@@ -89,7 +93,9 @@ function renderTab(onCardClick: () => void, missingCount = 0) {
 }
 
 describe("DeckBoxTab", () => {
+  afterEach(resetOrigins);
   beforeEach(() => {
+    resetOrigins();
     mutate.mockClear();
     mdUp.value = true;
     plan.slots = [];
@@ -179,4 +185,44 @@ describe("DeckBoxTab", () => {
       expect(useDeckBox.mock.lastCall?.[3]).toEqual(new Map([["slot-1", "copy-2"]]));
     },
   );
+
+  it("returns a copy to the collection it came from after the tab remounts", () => {
+    const [extra] = plan.extras;
+    const shelfCopy = extra!.copies[0]!;
+    const deckCard = stubDeckBuilderCard({
+      cardId: "card-1",
+      cardName: "Jinx",
+      preferredPrintingId: "printing-1",
+    });
+    const slot = {
+      key: "slot-1",
+      cardId: "card-1",
+      cardKey: deckCardKey(deckCard),
+      copy: shelfCopy,
+      alternatives: [],
+    };
+    const tab = (
+      <DeckBoxTab
+        deckId="deck-1"
+        cards={[deckCard]}
+        homeCollectionId="box"
+        homeCollectionName="Deck box"
+        missingCount={0}
+        sortCards={(zoneCards) => zoneCards}
+        groupCards={(zoneCards) => [{ key: "unit", label: null, cards: zoneCards }]}
+        groupBy="type"
+      />
+    );
+
+    plan.slots = [{ ...slot, state: "available" }];
+    const first = render(tab);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Put Jinx in the box" }));
+    first.unmount();
+
+    plan.slots = [{ ...slot, state: "in-box" }];
+    render(tab);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Take Jinx back out of the box" }));
+
+    expect(mutate).toHaveBeenLastCalledWith({ copyIds: ["copy-1"], toCollectionId: "shelf" });
+  });
 });

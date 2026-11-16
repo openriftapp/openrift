@@ -1,6 +1,8 @@
+import { Menu } from "@base-ui/react/menu";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { MouseEvent, ReactNode } from "react";
+import { createContext, useState } from "react";
 
 import {
   ContextMenu,
@@ -11,6 +13,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { DropdownMenu, DropdownMenuContent } from "@/components/ui/dropdown-menu";
 import {
   PrintingChoiceMenuSection,
   PrintingChoicePreview,
@@ -35,11 +38,16 @@ interface DeckCardPrintingMenuProps {
   onOpenPlan?: () => void;
 }
 
+const POPUP_CLASS = "max-h-[70vh] w-72 overflow-y-auto";
+
 function SplitHint({ children }: { children: ReactNode }) {
   return (
     <span className="text-muted-foreground/70 ml-1 hidden normal-case md:inline">{children}</span>
   );
 }
+
+/** Read by the row's "⋮" button, which opens the same items as the right-click menu. */
+export const DeckRowMenuContext = createContext<Menu.Handle<unknown> | null>(null);
 
 // On mobile (no drag, no shift key) a multi-copy row gets an extra "move 1" entry per zone.
 export function DeckCardPrintingMenu({
@@ -57,6 +65,8 @@ export function DeckCardPrintingMenu({
   const isMobile = useIsMobile();
   const printings = usePrintingChoices(card.cardId, card.preferredPrintingId);
   const { hoveredId, popupRef, hoverProps, reset } = usePrintingChoiceHover();
+  // oxlint-disable-next-line react/hook-use-state -- a stable per-mount handle, never replaced
+  const [menuHandle] = useState(() => Menu.createHandle());
 
   const { data: deckDetail } = useDeckDetail(deckId);
   const deckCards = useDeckCards(deckId);
@@ -100,90 +110,104 @@ export function DeckCardPrintingMenu({
     }
   };
 
-  return (
-    <ContextMenu onOpenChange={(open) => !open && reset()}>
-      <ContextMenuTrigger
-        className="block select-none [-webkit-touch-callout:none]"
-        render={<div />}
-      >
-        {children}
-      </ContextMenuTrigger>
-      <ContextMenuContent ref={popupRef} className="max-h-[70vh] w-72 overflow-y-auto">
-        {(onViewCard || onSwitch || onOpenPlan) && (
-          <>
-            {onViewCard && (
-              <ContextMenuItem onClick={onViewCard}>
-                {m.decks_card_menu_view_details()}
-              </ContextMenuItem>
-            )}
-            {onSwitch && (
-              <ContextMenuItem onClick={onSwitch}>
-                {m.decks_card_menu_switch({ zone: enumLabel(zoneLabels, card.zone) })}
-              </ContextMenuItem>
-            )}
-            {onOpenPlan && (
-              <ContextMenuItem onClick={onOpenPlan}>
-                {m.decks_card_menu_plan_battlefields()}
-              </ContextMenuItem>
-            )}
-            <ContextMenuSeparator />
-          </>
-        )}
-        {moveTargets.length > 0 && (
-          <>
-            <ContextMenuGroup className="flex flex-col gap-0.5">
-              <ContextMenuLabel>
-                {m.decks_card_menu_move_to()}
-                {card.quantity > 1 && !explicitSplit && (
-                  <SplitHint>{m.decks_card_menu_shift_move_hint()}</SplitHint>
-                )}
-              </ContextMenuLabel>
-              {moveRows.map((row) => (
-                <ContextMenuItem
-                  key={`${row.zone}:${row.splitOne}`}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    handleMove(row.zone, row.splitOne || (event.shiftKey && card.quantity > 1));
-                  }}
-                >
-                  {enumLabel(zoneLabels, row.zone)}
-                  {splitRowsShown && (
-                    <span className="text-muted-foreground/70 ml-1">
-                      {row.splitOne
-                        ? m.decks_card_menu_move_one()
-                        : m.decks_card_menu_move_all({ count: card.quantity })}
-                    </span>
-                  )}
-                </ContextMenuItem>
-              ))}
-            </ContextMenuGroup>
-            {printings.length > 0 && <ContextMenuSeparator />}
-          </>
-        )}
-        <PrintingChoiceMenuSection
-          printings={printings}
-          activePrintingId={card.preferredPrintingId}
-          hoverProps={hoverProps}
-          hint={card.quantity > 1 && <SplitHint>{m.decks_card_menu_shift_split_hint()}</SplitHint>}
-          onSelect={handleSelect}
-          onSelectDefault={handleSelectDefault}
-        />
-        {workbench && (
-          <>
-            <ContextMenuSeparator />
-            <ContextMenuItem
-              variant="destructive"
-              onClick={(event) => {
-                event.stopPropagation();
-                setQuantity(card.cardId, card.zone, 0, card.preferredPrintingId);
-              }}
-            >
-              {m.decks_workbench_remove_all({ count: card.quantity })}
+  // BaseUI's context-menu item parts are its menu parts, so one item list serves both popups.
+  const items = (
+    <>
+      {(onViewCard || onSwitch || onOpenPlan) && (
+        <>
+          {onViewCard && (
+            <ContextMenuItem onClick={onViewCard}>
+              {m.decks_card_menu_view_details()}
             </ContextMenuItem>
-          </>
-        )}
-      </ContextMenuContent>
+          )}
+          {onSwitch && (
+            <ContextMenuItem onClick={onSwitch}>
+              {m.decks_card_menu_switch({ zone: enumLabel(zoneLabels, card.zone) })}
+            </ContextMenuItem>
+          )}
+          {onOpenPlan && (
+            <ContextMenuItem onClick={onOpenPlan}>
+              {m.decks_card_menu_plan_battlefields()}
+            </ContextMenuItem>
+          )}
+          <ContextMenuSeparator />
+        </>
+      )}
+      {moveTargets.length > 0 && (
+        <>
+          <ContextMenuGroup className="flex flex-col gap-0.5">
+            <ContextMenuLabel>
+              {m.decks_card_menu_move_to()}
+              {card.quantity > 1 && !explicitSplit && (
+                <SplitHint>{m.decks_card_menu_shift_move_hint()}</SplitHint>
+              )}
+            </ContextMenuLabel>
+            {moveRows.map((row) => (
+              <ContextMenuItem
+                key={`${row.zone}:${row.splitOne}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleMove(row.zone, row.splitOne || (event.shiftKey && card.quantity > 1));
+                }}
+              >
+                {enumLabel(zoneLabels, row.zone)}
+                {splitRowsShown && (
+                  <span className="text-muted-foreground/70 ml-1">
+                    {row.splitOne
+                      ? m.decks_card_menu_move_one()
+                      : m.decks_card_menu_move_all({ count: card.quantity })}
+                  </span>
+                )}
+              </ContextMenuItem>
+            ))}
+          </ContextMenuGroup>
+          {printings.length > 0 && <ContextMenuSeparator />}
+        </>
+      )}
+      <PrintingChoiceMenuSection
+        printings={printings}
+        activePrintingId={card.preferredPrintingId}
+        hoverProps={hoverProps}
+        hint={card.quantity > 1 && <SplitHint>{m.decks_card_menu_shift_split_hint()}</SplitHint>}
+        onSelect={handleSelect}
+        onSelectDefault={handleSelectDefault}
+      />
+      {workbench && (
+        <>
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            variant="destructive"
+            onClick={(event) => {
+              event.stopPropagation();
+              setQuantity(card.cardId, card.zone, 0, card.preferredPrintingId);
+            }}
+          >
+            {m.decks_workbench_remove_all({ count: card.quantity })}
+          </ContextMenuItem>
+        </>
+      )}
+    </>
+  );
+
+  return (
+    <DeckRowMenuContext value={menuHandle}>
+      <ContextMenu onOpenChange={(open) => !open && reset()}>
+        <ContextMenuTrigger
+          className="block select-none [-webkit-touch-callout:none]"
+          render={<div />}
+        >
+          {children}
+        </ContextMenuTrigger>
+        <ContextMenuContent ref={popupRef} className={POPUP_CLASS}>
+          {items}
+        </ContextMenuContent>
+      </ContextMenu>
+      <DropdownMenu handle={menuHandle} onOpenChange={(open) => !open && reset()}>
+        <DropdownMenuContent ref={popupRef} align="end" className={POPUP_CLASS}>
+          {items}
+        </DropdownMenuContent>
+      </DropdownMenu>
       <PrintingChoicePreview hoveredId={hoveredId} printings={printings} anchorRef={popupRef} />
-    </ContextMenu>
+    </DeckRowMenuContext>
   );
 }

@@ -43,6 +43,10 @@ import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import type { DeckCardGroup, DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
 import { GROUPED_ZONES } from "@/features/decks/lib/deck-card-sort";
 import { DECK_ZONE_ORDER } from "@/features/decks/lib/deck-zone-order";
+import {
+  useDeckBoxOrigins,
+  useDeckBoxOriginsStore,
+} from "@/features/decks/stores/deck-box-origins-store";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders, useZoneOrder } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
@@ -92,8 +96,10 @@ export function DeckBoxTab({
 }: DeckBoxTabProps) {
   // Preference for this pull run only; not persisted.
   const [slotCopyIds, setSlotCopyIds] = useState<ReadonlyMap<string, string>>(new Map());
-  // Remembered only for this tab session; lost on reload the move dialog asks instead.
-  const [originById, setOriginById] = useState<ReadonlyMap<string, string>>(new Map());
+  // Origins live until the deck's editor session ends; without one, an untick sends the copy to the Inbox.
+  const origins = useDeckBoxOrigins(deckId);
+  const rememberOrigin = useDeckBoxOriginsStore((state) => state.remember);
+  const forgetOrigins = useDeckBoxOriginsStore((state) => state.forget);
   const plan = useDeckBox(deckId, cards, homeCollectionId, slotCopyIds);
   const moveCopies = useMoveCopies();
   const { data: collections } = useCollections();
@@ -117,7 +123,7 @@ export function DeckBoxTab({
 
   // No toast: the tick going green is the feedback, unticking it is the undo.
   const putIn = (copy: DeckBoxCopy) => {
-    setOriginById(new Map([...originById, [copy.copyId, copy.collectionId]]));
+    rememberOrigin(deckId, copy.copyId, copy.collectionId);
     moveCopies.mutate({ copyIds: [copy.copyId], toCollectionId: homeCollectionId });
   };
 
@@ -127,10 +133,11 @@ export function DeckBoxTab({
     if (inboxId === undefined) {
       return;
     }
-    const byTarget = [...Map.groupBy(copyIds, (copyId) => originById.get(copyId) ?? inboxId)];
+    const byTarget = [...Map.groupBy(copyIds, (copyId) => origins[copyId] ?? inboxId)];
     for (const [toCollectionId, ids] of byTarget) {
       moveCopies.mutate({ copyIds: ids, toCollectionId });
     }
+    forgetOrigins(deckId, copyIds);
     if (!announce) {
       return;
     }
@@ -145,6 +152,11 @@ export function DeckBoxTab({
         action: {
           label: m.decks_overview_box_undo(),
           onClick: () => {
+            for (const [fromCollectionId, ids] of byTarget) {
+              for (const copyId of ids) {
+                rememberOrigin(deckId, copyId, fromCollectionId);
+              }
+            }
             moveCopies.mutate({ copyIds: [...copyIds], toCollectionId: homeCollectionId });
           },
         },

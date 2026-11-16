@@ -9,13 +9,16 @@ import {
   PlusIcon,
   XIcon,
 } from "lucide-react";
+import { use } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { InlineCountStepper } from "@/components/ui/inline-count-stepper";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { cardHoverProps, rowActivateProps } from "@/features/cards/lib/card-row-interactions";
+import { DeckRowMenuContext } from "@/features/decks/components/deck-card-printing-menu";
 import { EnergyGlyph, PowerPips } from "@/features/decks/components/deck-stat-glyphs";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import type { DeckCardDragData } from "@/features/decks/lib/deck-dnd-data";
@@ -28,25 +31,6 @@ import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 type ControlMode = "quantity" | "remove-only" | "none";
-
-function openRowMenu(element: Element): void {
-  const rect = element.getBoundingClientRect();
-  element.dispatchEvent(
-    new MouseEvent("contextmenu", {
-      bubbles: true,
-      cancelable: true,
-      clientX: rect.left + rect.width / 2,
-      clientY: rect.bottom,
-    }),
-  );
-}
-
-function handleMenuKey(event: React.KeyboardEvent<HTMLElement>): void {
-  if ((event.shiftKey && event.key === "F10") || event.key === "ContextMenu") {
-    event.preventDefault();
-    openRowMenu(event.target instanceof Element ? event.target : event.currentTarget);
-  }
-}
 
 interface DeckCardRowProps {
   card: DeckBuilderCard;
@@ -168,6 +152,7 @@ export function DeckCardRow({
   onContextMenu,
 }: DeckCardRowProps) {
   const coarsePointer = useCoarsePointer();
+  const menuHandle = use(DeckRowMenuContext);
   const isMobile = useIsMobile();
   const domainColors = useDomainColors();
   const { labels } = useEnumOrders();
@@ -291,24 +276,26 @@ export function DeckCardRow({
         </Tooltip>
       )}
 
-      {menuButton && (
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className={cn(
-            "shrink-0",
-            coarsePointer
-              ? "text-muted-foreground size-8 [&_svg]:size-4"
-              : "hidden size-5 group-focus-within/card:inline-flex group-hover/card:inline-flex",
-          )}
-          aria-label={m.decks_workbench_row_menu({ card: cardName })}
-          onClick={(event) => {
-            event.stopPropagation();
-            openRowMenu(event.currentTarget);
-          }}
+      {menuButton && menuHandle && (
+        <DropdownMenuTrigger
+          handle={menuHandle}
+          render={
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className={cn(
+                "shrink-0",
+                coarsePointer
+                  ? "text-muted-foreground size-8 [&_svg]:size-4"
+                  : "hidden size-5 group-focus-within/card:inline-flex group-hover/card:inline-flex data-popup-open:inline-flex",
+              )}
+              aria-label={m.decks_workbench_row_menu({ card: cardName })}
+              onClick={(event) => event.stopPropagation()}
+            />
+          }
         >
           <EllipsisVerticalIcon className="size-3.5" />
-        </Button>
+        </DropdownMenuTrigger>
       )}
     </>
   );
@@ -323,7 +310,6 @@ export function DeckCardRow({
         className={cn(enableDrag && "cursor-grab active:cursor-grabbing")}
         {...dragProps}
         {...hoverProps}
-        onKeyDownCapture={menuButton ? handleMenuKey : undefined}
       >
         <div
           data-deck-card-id={card.cardId}
@@ -347,7 +333,6 @@ export function DeckCardRow({
       onContextMenu={onContextMenu}
       {...dragProps}
       {...hoverProps}
-      onKeyDownCapture={menuButton ? handleMenuKey : undefined}
     >
       {content}
     </div>

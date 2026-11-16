@@ -1,6 +1,6 @@
 import { ORPCError } from "@orpc/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -25,8 +25,9 @@ vi.mock("@/features/decks/hooks/use-decks", async () => {
 vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => ({ printingsByCardId: new Map() }),
 }));
+const quickAdd = vi.hoisted(() => ({ suggestions: [] as { cardName: string }[] }));
 vi.mock("@/features/collections/hooks/use-quick-add-search", () => ({
-  useQuickAddSearch: () => [],
+  useQuickAddSearch: (query: string) => (query === "" ? [] : quickAdd.suggestions),
 }));
 
 const { cardTokenAtCaret, DeckDetailsDialog } = await import("./deck-details-dialog");
@@ -267,5 +268,30 @@ describe("DeckDetailsDialog while a save is pending", () => {
     settle.resolve();
 
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+});
+
+describe("DeckDetailsDialog card autocomplete", () => {
+  it("puts the caret after the inserted card reference, before the text that followed", async () => {
+    quickAdd.suggestions = [{ cardName: "Shadow Assault" }];
+    const user = userEvent.setup();
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <Harness />
+      </QueryClientProvider>,
+    );
+    const field = screen.getByLabelText<HTMLTextAreaElement>("Description");
+    await user.type(field, "Open with  then attack");
+    await user.type(field, "[[[[Sha", {
+      initialSelectionStart: "Open with ".length,
+      initialSelectionEnd: "Open with ".length,
+    });
+
+    fireEvent.keyDown(field, { key: "Enter" });
+
+    expect(field).toHaveValue("Open with [[Shadow Assault]] then attack");
+    const caret = "Open with [[Shadow Assault]]".length;
+    expect([field.selectionStart, field.selectionEnd]).toEqual([caret, caret]);
+    quickAdd.suggestions = [];
   });
 });

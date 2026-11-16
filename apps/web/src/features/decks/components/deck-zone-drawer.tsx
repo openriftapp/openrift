@@ -1,7 +1,7 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { Undo2Icon, XIcon } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerClose, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
@@ -15,6 +15,22 @@ import { DeckZonePanelHeader } from "@/features/decks/components/deck-zone-panel
 import { useZoneOrder } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
+
+// Mounts with the drawer's content, which the portal renders a commit after `open` flips.
+function ScrollToZone({
+  containerRef,
+  zone,
+}: {
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  zone: DeckZone;
+}) {
+  useLayoutEffect(() => {
+    containerRef.current
+      ?.querySelector(`[data-zone="${zone}"]`)
+      ?.scrollIntoView({ block: "start", behavior: "instant" });
+  }, [containerRef, zone]);
+  return null;
+}
 
 export function DeckZoneDrawer({
   deckId,
@@ -38,18 +54,6 @@ export function DeckZoneDrawer({
     stateKey: "deckSheet",
     onPop: () => setOpenMobile(false),
   });
-
-  useEffect(() => {
-    if (!openMobile || target === undefined) {
-      return;
-    }
-    const frame = requestAnimationFrame(() => {
-      scrollRef.current
-        ?.querySelector(`[data-zone="${target}"]`)
-        ?.scrollIntoView({ block: "start", behavior: "instant" });
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [openMobile, target]);
 
   const handleWorkbenchOpenChange = (open: boolean) => {
     if (open) {
@@ -93,6 +97,8 @@ export function DeckZoneDrawer({
         >
           {children}
         </div>
+        {/* A sibling after the container: its ref is attached before this layout effect runs. */}
+        {target !== undefined && <ScrollToZone containerRef={scrollRef} zone={target} />}
       </DrawerContent>
     </Drawer>
   );

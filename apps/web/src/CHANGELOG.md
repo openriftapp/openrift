@@ -64,6 +64,9 @@
 - fix(Collection): **Quick rule exclusions all stick** — excluding several cards from a dynamic list in a row, or keeping several tradelist copies, no longer undoes the earlier ones.
 - fix(Trades): **Fast repeat copy requests** — requesting copies from a shared tradelist waits for each request to land, so a quick second click no longer goes missing.
 - fix(Rules): **Rule editor keeps your draft** — a background refresh no longer resets unsaved rule edits, and removing a rule keeps the other rules' filter fields intact.
+- fix(Decks): **Deck box remembers where copies came from** — unticking a copy after switching tabs returns it to the collection it came from, not the Inbox.
+- fix(Decks): **Game plan follows saves from other tabs** — an unedited plan shows a plan saved in another tab, and no longer warns about unsaved changes or overwrites it.
+- fix(Decks): **Proxy PDF export keeps going in a background tab** — text-mode proxies render while you are in another tab, and each card gets its own image.
 
 ## 2026-11-15
 

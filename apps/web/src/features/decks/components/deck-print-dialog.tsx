@@ -2,7 +2,7 @@ import { legendDisplayName } from "@openrift/shared/card-name";
 import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
 import { useQueryClient } from "@tanstack/react-query";
 import { FileTextIcon, PrinterIcon } from "lucide-react";
-import { Suspense, useRef, useState } from "react";
+import { Suspense, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 
@@ -40,7 +40,8 @@ import type {
 } from "@/features/decks/lib/registration-pdf";
 import { useSession } from "@/hooks/use-session";
 import { downloadFilename } from "@/lib/download";
-import { captureElementCanvas, waitForRender } from "@/lib/html-capture";
+import type { RenderHandoff } from "@/lib/html-capture";
+import { captureElementCanvas, createRenderHandoff } from "@/lib/html-capture";
 import { initQueryOptions } from "@/lib/init-queries";
 import { effectiveLanguageOrder } from "@/lib/language-order";
 import type { ProxyCard, ProxyPageSize, ProxyRenderMode, RenderedCard } from "@/lib/proxy-pdf";
@@ -102,6 +103,11 @@ async function captureElement(element: HTMLElement): Promise<string> {
   return canvas.toDataURL("image/png");
 }
 
+interface RenderingCard {
+  card: ProxyCard;
+  key: string;
+}
+
 interface GenerateProxyPdfParams {
   cards: DeckBuilderCard[];
   catalog: CatalogResponse;
@@ -113,9 +119,9 @@ interface GenerateProxyPdfParams {
   deckName: string | undefined;
   deckId: string;
   queryClient: ReturnType<typeof useQueryClient>;
-  cardElementRef: React.RefObject<HTMLDivElement | null>;
+  renderHandoff: RenderHandoff;
   setProgress: (progress: { current: number; total: number }) => void;
-  setRenderingCard: (card: ProxyCard | null) => void;
+  setRendering: (rendering: RenderingCard | null) => void;
   setPreviewUrl: (url: string | null) => void;
 }
 
@@ -132,9 +138,9 @@ async function generateProxyPdf({
   deckName,
   deckId,
   queryClient,
-  cardElementRef,
+  renderHandoff,
   setProgress,
-  setRenderingCard,
+  setRendering,
   setPreviewUrl,
 }: GenerateProxyPdfParams): Promise<void> {
   const { assembleProxyPdf, prerenderImageCards, proxyRenderKey, resolveProxyCards } =
@@ -173,22 +179,19 @@ async function generateProxyPdf({
     for (const [cardIdx, proxyCard] of uniqueCards.entries()) {
       setProgress({ current: cardIdx + 1, total: uniqueCards.length });
 
-      setRenderingCard(proxyCard);
-      await waitForRender();
-
-      const element = cardElementRef.current;
-      if (element) {
-        try {
-          const dataUrl = await captureElement(element);
-          renderedCards.set(proxyRenderKey(proxyCard), { dataUrl, rotated: false });
-          setPreviewUrl(dataUrl);
-        } catch (error) {
-          console.error(`Failed to capture card "${proxyCard.name}":`, error);
-        }
+      const key = proxyRenderKey(proxyCard);
+      setRendering({ card: proxyCard, key });
+      const element = await renderHandoff.waitFor(key);
+      try {
+        const dataUrl = await captureElement(element);
+        renderedCards.set(key, { dataUrl, rotated: false });
+        setPreviewUrl(dataUrl);
+      } catch (error) {
+        console.error(`Failed to capture card "${proxyCard.name}":`, error);
       }
     }
 
-    setRenderingCard(null);
+    setRendering(null);
   }
 
   if (renderMode === "image") {
@@ -204,20 +207,18 @@ async function generateProxyPdf({
     }
 
     for (const proxyCard of uniqueMissing.values()) {
-      setRenderingCard(proxyCard);
-      await waitForRender();
-      const element = cardElementRef.current;
-      if (element) {
-        try {
-          const dataUrl = await captureElement(element);
-          renderedCards.set(proxyRenderKey(proxyCard), { dataUrl, rotated: false });
-          setPreviewUrl(dataUrl);
-        } catch (error) {
-          console.error(`Failed to capture fallback card "${proxyCard.name}":`, error);
-        }
+      const key = proxyRenderKey(proxyCard);
+      setRendering({ card: proxyCard, key });
+      const element = await renderHandoff.waitFor(key);
+      try {
+        const dataUrl = await captureElement(element);
+        renderedCards.set(key, { dataUrl, rotated: false });
+        setPreviewUrl(dataUrl);
+      } catch (error) {
+        console.error(`Failed to capture fallback card "${proxyCard.name}":`, error);
       }
     }
-    setRenderingCard(null);
+    setRendering(null);
   }
 
   await assembleProxyPdf(proxyCards, renderedCards, {
@@ -247,9 +248,10 @@ function ProxyPrintPanel({
   const [watermark, setWatermark] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
-  const [renderingCard, setRenderingCard] = useState<ProxyCard | null>(null);
+  const [rendering, setRendering] = useState<RenderingCard | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const cardElementRef = useRef<HTMLDivElement>(null);
+  // oxlint-disable-next-line react/hook-use-state -- a stable per-mount handoff, never replaced
+  const [renderHandoff] = useState(createRenderHandoff);
   const queryClient = useQueryClient();
   const languages = useDisplayStore((state) => state.languages);
 
@@ -279,19 +281,19 @@ function ProxyPrintPanel({
         deckName,
         deckId,
         queryClient,
-        cardElementRef,
+        renderHandoff,
         setProgress,
-        setRenderingCard,
+        setRendering,
         setPreviewUrl,
       });
       onDone();
     } catch (error) {
       setGenerating(false);
-      setRenderingCard(null);
+      setRendering(null);
       throw error;
     }
     setGenerating(false);
-    setRenderingCard(null);
+    setRendering(null);
   };
 
   return (
@@ -365,11 +367,12 @@ function ProxyPrintPanel({
       </div>
 
       {/* Portalled out of the dialog so the popup's transform/scroll box can't clip it. */}
-      {renderingCard &&
+      {rendering &&
         createPortal(
           <Suspense fallback={null}>
             <div
-              ref={cardElementRef}
+              key={rendering.key}
+              ref={(element) => renderHandoff.report(rendering.key, element)}
               style={{
                 position: "fixed",
                 left: -9999,
@@ -379,21 +382,21 @@ function ProxyPrintPanel({
               }}
             >
               <CardPlaceholderImage
-                name={legendDisplayName(renderingCard.card)}
-                domain={renderingCard.card.domains}
-                energy={renderingCard.card.energy}
-                might={renderingCard.card.might}
-                power={renderingCard.card.power}
-                types={renderingCard.card.types}
-                superTypes={renderingCard.card.superTypes}
-                tags={renderingCard.card.tags}
-                rulesText={renderingCard.rulesText}
-                effectText={renderingCard.effectText}
-                mightBonus={renderingCard.card.mightBonus}
-                flavorText={renderingCard.flavorText}
-                rarity={renderingCard.rarity}
-                publicCode={renderingCard.publicCode}
-                artist={renderingCard.artist}
+                name={legendDisplayName(rendering.card.card)}
+                domain={rendering.card.card.domains}
+                energy={rendering.card.card.energy}
+                might={rendering.card.card.might}
+                power={rendering.card.card.power}
+                types={rendering.card.card.types}
+                superTypes={rendering.card.card.superTypes}
+                tags={rendering.card.card.tags}
+                rulesText={rendering.card.rulesText}
+                effectText={rendering.card.effectText}
+                mightBonus={rendering.card.card.mightBonus}
+                flavorText={rendering.card.flavorText}
+                rarity={rendering.card.rarity}
+                publicCode={rendering.card.publicCode}
+                artist={rendering.card.artist}
               />
             </div>
           </Suspense>,

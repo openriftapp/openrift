@@ -8,7 +8,6 @@ const html2canvas = vi.fn();
 vi.mock("html2canvas-pro", () => ({ html2canvas }));
 
 const { CARD_EXPORT_WIDTH, exportCardImage } = await import("./card-export");
-const { waitForRender } = await import("@/lib/html-capture");
 
 const PNG = new Blob(["png"], { type: "image/png" });
 
@@ -75,12 +74,6 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   removeClipboard();
-});
-
-describe("waitForRender", () => {
-  it("resolves once the browser has painted", async () => {
-    await expect(waitForRender()).resolves.toBeUndefined();
-  });
 });
 
 describe("exportCardImage", () => {
