@@ -5,16 +5,23 @@
 ### Highlights
 
 - feat(Rules): **Tournament infractions at a glance** — a new Infractions view lists every infraction with its penalty and remedies.
+- feat(Tournaments): **Deleted accounts show as "Former member"** — results stay in standings and pairings, the name and Riot ID of a player who deleted their account are removed, and their spots in upcoming or running events are dropped.
 
 ### Other
 
 - feat(Rules): **Changes behind view options** — the rules page shows the changes since the previous version from a view options button next to the version select, with a short description for each mode.
 - feat(Groups): **Copy counts when sharing** — the dialog for sharing collections with a group shows how many copies each collection holds.
+- feat(Stage): **Taller share images for three and four players** — card names on shared boards with three or four players wrap and read in full.
+- feat(App): **Discord bot: /link** — the bot help explains how to link your server to a group so single card replies show who has the card for trade.
+- feat(Tournaments): **Unconfirmed rounds marked in standings** — results from rounds that are not finalized yet show muted in the Run column.
 - fix(Trades): **Trade badges readable over card art** — the "Requested", "Offered" and "In a trade" badges on market cards now use a solid colour.
 - fix(Decks): **Fresh deck dialogs** — reopening a deck dialog right after closing it no longer shows the text you typed before.
 - fix(Decks): **Old comparison links** — a comparison link from before the deck id change now opens the right decks straight away.
 - fix(Stage): **Stage errors keep the site around them** — when sign-in can't be checked, a tier list stage shows the usual error page with navigation.
 - fix(Rules): **Penalty badges in Chinese** — the Chinese tournament rules now mark each penalty like the other languages.
+- fix(Collection): **Copy counts in the collection picker** — choosing a collection for a product or for incoming trade cards counts copies, like the share dialog.
+- fix(Meta): **Wins without losses** — a player whose losses were not published shows "5 wins" in standings, deck tiles and event pages.
+- fix(Tournaments): **Turning off pairings asks first** — on a group stage and top cut event, the settings confirm before resetting the format to plain rounds.
 
 ## 2026-11-15
 
