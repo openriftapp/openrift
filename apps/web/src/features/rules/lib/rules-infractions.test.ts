@@ -7,6 +7,7 @@ import {
   infractionPenaltyCounts,
   nestedRuleDepth,
   ruleHeadlineName,
+  splitRuleHeadline,
   withLinksTo,
   withoutPenaltyBadges,
 } from "./rules-infractions";
@@ -170,6 +171,54 @@ describe("ruleHeadlineName", () => {
         '*Unsporting Major <span data-penalty="Disqualification">[Disqualification]</span>: A threat.',
       ),
     ).toBe("Unsporting Major");
+  });
+});
+
+describe("splitRuleHeadline", () => {
+  it("splits the italic name from the description at the colon", () => {
+    expect(splitRuleHeadline("<em>Missed Trigger:</em> A trigger is missed.")).toEqual({
+      titleHtml: "Missed Trigger",
+      bodyHtml: "A trigger is missed.",
+    });
+    expect(splitRuleHeadline("<em>Late to Match</em>: A player arrives late.")).toEqual({
+      titleHtml: "Late to Match",
+      bodyHtml: "A player arrives late.",
+    });
+    expect(splitRuleHeadline("<em>Jeu lent :</em> un joueur est lent.")).toEqual({
+      titleHtml: "Jeu lent",
+      bodyHtml: "un joueur est lent.",
+    });
+    expect(splitRuleHeadline("<em>迟到</em>：玩家迟到。")).toEqual({
+      titleHtml: "迟到",
+      bodyHtml: "玩家迟到。",
+    });
+  });
+
+  it("splits an unemphasized headline and keeps markup in the description", () => {
+    expect(splitRuleHeadline('Mispayment: See <a href="#rule-201">CR 201</a>. Costs.')).toEqual({
+      titleHtml: "Mispayment",
+      bodyHtml: 'See <a href="#rule-201">CR 201</a>. Costs.',
+    });
+  });
+
+  it("ignores a colon inside a tag", () => {
+    expect(
+      splitRuleHeadline('<em>Outside Help:</em> See <a href="https://example.com">this</a>.'),
+    ).toEqual({
+      titleHtml: "Outside Help",
+      bodyHtml: 'See <a href="https://example.com">this</a>.',
+    });
+  });
+
+  it("treats a headline without a colon as all title", () => {
+    expect(splitRuleHeadline("<em>Overview</em>")).toEqual({ titleHtml: "Overview", bodyHtml: "" });
+  });
+
+  it("returns an empty description when nothing follows the colon", () => {
+    expect(splitRuleHeadline("Unsporting Minor:")).toEqual({
+      titleHtml: "Unsporting Minor",
+      bodyHtml: "",
+    });
   });
 });
 

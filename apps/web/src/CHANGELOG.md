@@ -8,6 +8,7 @@
 
 ### Other
 
+- feat(Rules): **Changes behind view options** — the rules page shows the changes since the previous version from a view options button next to the version select, with a short description for each mode.
 - fix(Rules): **Penalty badges in Chinese** — the Chinese tournament rules now mark each penalty like the other languages.
 
 ## 2026-11-15

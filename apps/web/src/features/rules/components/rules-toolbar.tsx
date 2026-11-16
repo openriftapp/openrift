@@ -4,7 +4,7 @@ import type {
   RuleVersionsListResponse,
 } from "@openrift/shared/types/api/rules";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { ChevronDownIcon, FileClockIcon } from "lucide-react";
+import { ChevronDownIcon, FileClockIcon, SlidersHorizontalIcon } from "lucide-react";
 import { useState } from "react";
 import type { ReactNode } from "react";
 
@@ -17,6 +17,9 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { RadioGroup } from "@/components/ui/radio-group";
+import { RadioOptionRow } from "@/components/ui/radio-option-row";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -79,6 +82,86 @@ export function ChangesViewToggle({
       <TooltipTrigger render={<span className="inline-flex" />}>{control}</TooltipTrigger>
       <TooltipContent>{m.rules_show_changes_unavailable()}</TooltipContent>
     </Tooltip>
+  );
+}
+
+export function ChangesViewOptions({
+  kind,
+  hasPreviousVersion,
+}: {
+  kind: RuleKind;
+  hasPreviousVersion: boolean;
+}) {
+  const view = useRulesChangesViewStore((state) => state.byKind[kind]);
+  const setView = useRulesChangesViewStore((state) => state.setView);
+  const changed = hasPreviousVersion && view !== "off";
+  const label = changed ? m.rules_view_options_changed() : m.rules_view_options();
+
+  if (!hasPreviousVersion) {
+    return (
+      <Tooltip>
+        {/* A disabled control takes no pointer events: the tooltip trigger wraps it. */}
+        <TooltipTrigger render={<span className="inline-flex shrink-0" />}>
+          <Button variant="outline" size="icon" disabled aria-label={label}>
+            <SlidersHorizontalIcon className="size-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{m.rules_show_changes_unavailable()}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Popover>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <PopoverTrigger
+              render={<Button variant="outline" size="icon" />}
+              className="relative shrink-0"
+              aria-label={label}
+            />
+          }
+        >
+          <SlidersHorizontalIcon className="size-4" />
+          {changed && (
+            <span className="bg-primary ring-background absolute top-0.5 right-0.5 size-2 rounded-full ring-2" />
+          )}
+        </TooltipTrigger>
+        <TooltipContent>{m.rules_view_options()}</TooltipContent>
+      </Tooltip>
+      <PopoverContent align="end" className="w-72 gap-1.5">
+        <p className="text-muted-foreground px-2 pb-1 text-xs font-medium">
+          {m.rules_changes_heading()}
+        </p>
+        <RadioGroup
+          aria-label={m.rules_show_changes()}
+          value={view}
+          onValueChange={(next) => {
+            if (isRulesChangesView(next)) {
+              setView(kind, next);
+            }
+          }}
+          className="gap-1"
+        >
+          <RadioOptionRow
+            value="off"
+            title={m.rules_changes_off()}
+            description={m.rules_changes_off_hint()}
+          />
+          <RadioOptionRow
+            value="inline"
+            title={m.rules_changes_inline()}
+            description={m.rules_changes_inline_hint()}
+          />
+          <RadioOptionRow
+            value="side"
+            title={m.rules_changes_side()}
+            description={m.rules_changes_side_hint()}
+          />
+        </RadioGroup>
+      </PopoverContent>
+    </Popover>
   );
 }
 

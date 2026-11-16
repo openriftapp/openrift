@@ -27,6 +27,7 @@ import {
   infractionPenaltyCounts,
   nestedRuleDepth,
   ruleHeadlineName,
+  splitRuleHeadline,
   withLinksTo,
   withoutPenaltyBadges,
 } from "@/features/rules/lib/rules-infractions";
@@ -323,6 +324,7 @@ function DisclosureRow({
   const toggle = useInfractionsOpenStore((state) => state.toggle);
   const rule = formatRuleNumber(entry.ruleNumber);
   const name = ruleHeadlineName(headlineHtml);
+  const headline = splitRuleHeadline(headlineHtml);
   return (
     <div
       id={`rule-${entry.ruleNumber}`}
@@ -331,13 +333,22 @@ function DisclosureRow({
       <div className="relative flex items-start gap-3 py-3">
         <span className="text-muted-foreground w-12 shrink-0 pt-0.5 font-mono text-xs">{rule}</span>
         <div className="flex min-w-0 flex-1 flex-col gap-1.5 sm:flex-row sm:items-baseline sm:gap-3">
-          <div
-            lang={language}
-            className="rule-html min-w-0 flex-1 [&_a]:relative [&_a]:z-10"
-            dangerouslySetInnerHTML={{
-              __html: withLinksTo(headlineHtml, links.onPage, links.fullRules),
-            }}
-          />
+          <div lang={language} className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <div
+              className="rule-html font-semibold [&_a]:relative [&_a]:z-10"
+              dangerouslySetInnerHTML={{
+                __html: withLinksTo(headline.titleHtml, links.onPage, links.fullRules),
+              }}
+            />
+            {headline.bodyHtml !== "" && (
+              <div
+                className="rule-html text-muted-foreground [&_a]:relative [&_a]:z-10"
+                dangerouslySetInnerHTML={{
+                  __html: withLinksTo(headline.bodyHtml, links.onPage, links.fullRules),
+                }}
+              />
+            )}
+          </div>
           {aside}
         </div>
         <ExpandToggle

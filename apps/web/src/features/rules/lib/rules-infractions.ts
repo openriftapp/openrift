@@ -122,11 +122,37 @@ export function withoutPenaltyBadges(html: string): string {
   return html.replaceAll(PENALTY_BADGE_REGEX, "");
 }
 
-const HEADLINE_NAME_REGEX = /^[\s*]*(?<name>[^:：]+)/u;
+const EMPHASIS_TAG_REGEX = /<\/?em>/gu;
+const LEADING_ASTERISK_REGEX = /^[\s*]+/u;
+const LEADING_EMPHASIS_CLOSE_REGEX = /^\s*<\/em>/u;
+
+function headlineColonIndex(html: string): number {
+  let inTag = false;
+  for (let index = 0; index < html.length; index++) {
+    const char = html[index];
+    if (char === "<") {
+      inTag = true;
+    } else if (char === ">") {
+      inTag = false;
+    } else if (!inTag && (char === ":" || char === "：")) {
+      return index;
+    }
+  }
+  return -1;
+}
+
+export function splitRuleHeadline(html: string): { titleHtml: string; bodyHtml: string } {
+  const index = headlineColonIndex(html);
+  const title = index === -1 ? html : html.slice(0, index);
+  const body = index === -1 ? "" : html.slice(index + 1);
+  return {
+    titleHtml: title.replaceAll(EMPHASIS_TAG_REGEX, "").replace(LEADING_ASTERISK_REGEX, "").trim(),
+    bodyHtml: body.replace(LEADING_EMPHASIS_CLOSE_REGEX, "").trim(),
+  };
+}
 
 export function ruleHeadlineName(html: string): string {
-  const text = ruleHtmlToText(withoutPenaltyBadges(html));
-  return HEADLINE_NAME_REGEX.exec(text)?.groups?.name?.trim() ?? text;
+  return ruleHtmlToText(splitRuleHeadline(withoutPenaltyBadges(html)).titleHtml).trim();
 }
 
 const HASH_HREF_REGEX = /href="#(?<id>[^"]+)"/gu;

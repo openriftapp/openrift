@@ -61,6 +61,7 @@ import { handleRuleHtmlClick, VersionComments } from "./rule-content";
 import { RuleRow } from "./rule-row";
 import { ChangesSummary } from "./rules-changes-summary";
 import {
+  ChangesViewOptions,
   ChangesViewToggle,
   KindTabs,
   RulesDocumentSelects,
@@ -317,21 +318,16 @@ function RulesContent({
       ? undefined
       : m.rules_count_filtered({ matched: searchResult.matchSet.size, count: rules.length });
 
-  const renderSettings = (triggerClassName?: string) => (
-    <>
-      <RulesDocumentSelects
-        kind={kind}
-        language={language}
-        version={version}
-        view="document"
-        versions={versionsData}
-        englishVersions={englishVersionsData}
-        className={triggerClassName}
-      />
-      {!isSearching && (
-        <ChangesViewToggle kind={kind} hasPreviousVersion={previousVersion !== null} />
-      )}
-    </>
+  const documentSelects = (triggerClassName?: string) => (
+    <RulesDocumentSelects
+      kind={kind}
+      language={language}
+      version={version}
+      view="document"
+      versions={versionsData}
+      englishVersions={englishVersionsData}
+      className={triggerClassName}
+    />
   );
 
   return (
@@ -366,7 +362,12 @@ function RulesContent({
             trailing={ruleCountLabel}
             className="max-sm:order-first"
           />
-          <div className="hidden md:contents">{renderSettings()}</div>
+          <div className="hidden md:contents">
+            {documentSelects()}
+            {!isSearching && (
+              <ChangesViewOptions kind={kind} hasPreviousVersion={previousVersion !== null} />
+            )}
+          </div>
           <RulesSettingsSheet
             label={rulesSettingsLabel(
               currentVersion ?? { version, documentVersion: null },
@@ -374,7 +375,10 @@ function RulesContent({
               versionsData.languages.length > 1,
             )}
           >
-            {renderSettings("w-full")}
+            {documentSelects("w-full")}
+            {!isSearching && (
+              <ChangesViewToggle kind={kind} hasPreviousVersion={previousVersion !== null} />
+            )}
           </RulesSettingsSheet>
         </div>
 
