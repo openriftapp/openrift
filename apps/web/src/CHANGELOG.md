@@ -61,6 +61,9 @@
 - fix(Collection): **Extension stops repainting Cardmarket pages** — the companion no longer redraws a Cardmarket page over and over once the page has changed, and says when it cannot read the cards on it.
 - fix(App): **Pages after a brief outage** — when settings failed to load for a moment, pages like Scan and Glossary offer a retry and no longer show "not found".
 - fix(Decks): **Deck edits from another device are kept** — reopening a deck picks up changes saved elsewhere, asks which version to keep if you have unsaved edits, and no longer drops cards your app does not know yet.
+- fix(Collection): **Quick rule exclusions all stick** — excluding several cards from a dynamic list in a row, or keeping several tradelist copies, no longer undoes the earlier ones.
+- fix(Trades): **Fast repeat copy requests** — requesting copies from a shared tradelist waits for each request to land, so a quick second click no longer goes missing.
+- fix(Rules): **Rule editor keeps your draft** — a background refresh no longer resets unsaved rule edits, and removing a rule keeps the other rules' filter fields intact.
 
 ## 2026-11-15
 

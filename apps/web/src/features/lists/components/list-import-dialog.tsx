@@ -1,6 +1,5 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { useEffect } from "react";
 
 import { PROSE_MARKUP } from "@/components/message-markup";
 import { Button } from "@/components/ui/button";
@@ -39,15 +38,15 @@ interface ListImportDialogProps {
 export function ListImportDialog({ listId, listKind, open, onOpenChange }: ListImportDialogProps) {
   const flow = useListImportFlow(listId, listKind, () => onOpenChange(false));
 
-  useEffect(() => {
-    if (!open) {
+  const handleOpenChange = (next: boolean) => {
+    if (!next) {
       flow.reset();
     }
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- reacting to flow.reset would clobber an active session
-  }, [open]);
+    onOpenChange(next);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{m.lists_import_title()}</DialogTitle>

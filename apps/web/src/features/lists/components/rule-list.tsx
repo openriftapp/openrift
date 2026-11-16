@@ -47,6 +47,7 @@ export function RuleList({
   footer?: ReactNode;
 }) {
   const rules = useRuleEditorStore((state) => state.rules);
+  const ruleKeys = useRuleEditorStore((state) => state.ruleKeys);
   const addRule = useRuleEditorStore((state) => state.addRule);
   const addDrafts = useRuleEditorStore((state) => state.addDrafts);
   const preferredLanguages = useDisplayStore((state) => state.languages);
@@ -83,7 +84,7 @@ export function RuleList({
 
       {rules.map((_, index) => (
         <RuleBlock
-          key={index}
+          key={ruleKeys[index]}
           index={index}
           kind={kind}
           title={m.lists_rule_block_title({ number: index + 1 })}

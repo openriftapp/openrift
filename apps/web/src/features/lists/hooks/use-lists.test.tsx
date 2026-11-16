@@ -39,6 +39,7 @@ const {
   useBulkAddListEntries,
   useCreateList,
   useDeleteList,
+  useDropFromListRules,
   useRemoveListEntry,
   useReorderLists,
   useSetListSidebarHidden,
@@ -154,6 +155,24 @@ describe("useUpdateList", () => {
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: ["lists", "test-user-id", "lst-1"],
     });
+  });
+});
+
+describe("useDropFromListRules", () => {
+  it("posts only the target, never the rules, and invalidates list and detail", async () => {
+    const fetchMock = stubFetchJson(LIST);
+    const { client, invalidateSpy } = makeClient();
+    const { result } = renderHook(() => useDropFromListRules(), { wrapper: wrap(client) });
+
+    await act(async () => {
+      await result.current.mutateAsync({ listId: "lst-1", cardId: "card-1" });
+    });
+
+    const request = fetchMock.mock.calls[0]?.[0] as Request;
+    expect(new URL(request.url).pathname).toBe("/api/v1/lists/lst-1/rules/drop");
+    expect(await request.json()).toEqual({ cardId: "card-1" });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["lists", "test-user-id"] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["lists", "test-user-id", "lst-1"] });
   });
 });
 

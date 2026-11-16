@@ -26,6 +26,12 @@ import type { ContractInput } from "@/lib/server-fns/orpc-client";
 import { browserApiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 type CreateListInput = ContractInput<typeof listsContract, "create">;
+type DropFromListRulesInput = Omit<
+  ContractInput<typeof listsContract, "dropFromRules">,
+  "id" | "cancelTradeIds"
+> & {
+  listId: string;
+};
 type UpdateListInput = Omit<ContractInput<typeof listsContract, "update">, "id"> & {
   listId: string;
 };
@@ -77,6 +83,17 @@ export function useUpdateList() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation<ListResponse, UpdateListInput>({
     mutationFn: (input) => updateList(input),
+    invalidates: (variables) => [listsKeys.all(userId), listsKeys.detail(userId, variables.listId)],
+  });
+}
+
+export function useDropFromListRules() {
+  const userId = useRequiredUserId();
+  return useMutationWithInvalidation<ListResponse, DropFromListRulesInput>({
+    mutationFn: ({ listId, ...target }) =>
+      withTradeCancelConsent((cancelTradeIds) =>
+        listsApi().dropFromRules({ id: listId, ...target, cancelTradeIds }),
+      ),
     invalidates: (variables) => [listsKeys.all(userId), listsKeys.detail(userId, variables.listId)],
   });
 }

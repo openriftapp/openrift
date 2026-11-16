@@ -530,3 +530,30 @@ describe("listsRepo.expandedCounts", () => {
     expect(counts.size).toBe(0);
   });
 });
+
+describe("listsRepo.ruleMatchContext", () => {
+  it("loads nothing for a copy list, whose pins match no catalog", async () => {
+    const { providers, counts } = countingProviders();
+    const ctx = await listsRepo(createMockDb([]), providers).ruleMatchContext("copy", [
+      CATCH_ALL_WISH_RULE,
+    ]);
+    expect(ctx.catalog).toEqual([]);
+    expect(counts()).toEqual({ catalogCalls: 0, priceCalls: 0, enumCalls: 0 });
+  });
+
+  it("loads prices only when a rule filters on price", async () => {
+    const { providers, counts } = countingProviders();
+    const repo = listsRepo(createMockDb([]), providers);
+    const plain = await repo.ruleMatchContext("card", [CATCH_ALL_WISH_RULE]);
+    expect(plain.catalog).toBe(CATALOG);
+    expect(plain.priceLookup).toBeUndefined();
+    await repo.ruleMatchContext("card", [
+      {
+        ...CATCH_ALL_WISH_RULE,
+        filter: { ...EMPTY_CARD_FILTERS, price: { min: 1, max: null } },
+        priceMarketplace: "cardtrader",
+      },
+    ]);
+    expect(counts()).toEqual({ catalogCalls: 2, priceCalls: 1, enumCalls: 0 });
+  });
+});

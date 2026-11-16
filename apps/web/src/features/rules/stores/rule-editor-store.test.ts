@@ -386,4 +386,34 @@ describe("useRuleEditorStore", () => {
     expect(serializeRules([unbounded], "card")[0]?.priceMarketplace).toBeUndefined();
     expect(serializeRules([unbounded], "copy")[0]?.priceMarketplace).toBeUndefined();
   });
+
+  it("keeps each rule's key through a removal before it", () => {
+    const store = useRuleEditorStore.getState();
+    store.addRule();
+    store.addDrafts([draft(), draft()]);
+    const [first, second, third] = useRuleEditorStore.getState().ruleKeys;
+    expect(new Set([first, second, third]).size).toBe(3);
+
+    useRuleEditorStore.getState().removeRule(0);
+    expect(useRuleEditorStore.getState().ruleKeys).toEqual([second, third]);
+  });
+
+  it("gives a reloaded draft fresh keys and clears them on reset", () => {
+    useRuleEditorStore.getState().addRule();
+    const [before] = useRuleEditorStore.getState().ruleKeys;
+    useRuleEditorStore.getState().load([
+      {
+        kind: "wish",
+        filter: EMPTY_CARD_FILTERS,
+        quantity: { mode: "fixed", n: 1 },
+        excludeIds: [],
+      },
+    ]);
+    const { ruleKeys } = useRuleEditorStore.getState();
+    expect(ruleKeys).toHaveLength(1);
+    expect(ruleKeys[0]).not.toBe(before);
+
+    useRuleEditorStore.getState().reset();
+    expect(useRuleEditorStore.getState().ruleKeys).toEqual([]);
+  });
 });

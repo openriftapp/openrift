@@ -1,7 +1,7 @@
 import type { ListIntent, ListKind } from "@openrift/shared/types/api/list";
 import type { ListRule, ListRuleCombine } from "@openrift/shared/types/list-rule";
 import { useQueryClient } from "@tanstack/react-query";
-import { Suspense, useLayoutEffect } from "react";
+import { Suspense, useEffectEvent, useLayoutEffect } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -52,13 +52,15 @@ export function RuleEditorDialog({
   const reset = useRuleEditorStore((state) => state.reset);
   const buildRules = useRuleEditorStore((state) => state.buildRules);
 
+  const loadDraft = useEffectEvent(() => load(currentRules, currentRuleCombine));
+
   // Prewarms queries so a rule block's useSuspenseQuery doesn't suspend cold
   // and collapse the pending boundary, resetting `open` and closing the dialog.
   useLayoutEffect(() => {
     if (!open) {
       return;
     }
-    load(currentRules, currentRuleCombine);
+    loadDraft();
     void (async () => {
       await queryClient.query({ ...catalogQueryOptions, staleTime: "static" });
       await ensureCatalogComplete(queryClient);
@@ -67,7 +69,7 @@ export function RuleEditorDialog({
     void queryClient.query({ ...customTagsQueryOptions, staleTime: "static" });
     void queryClient.query({ ...pricesQueryOptions, staleTime: "static" });
     return () => reset();
-  }, [open, currentRules, currentRuleCombine, load, reset, queryClient]);
+  }, [open, reset, queryClient]);
 
   const wording = ruleWording(intent, kind);
 

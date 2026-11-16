@@ -23,7 +23,7 @@ import type { ApiContext } from "../../../orpc/context.js";
 import { toList, toListDetail, toListEntry, toListEntryDetail } from "../lib/list-presenters.js";
 import type { ListUpdate } from "../repositories/lists-core.js";
 import type { ListEntryUpdate, NewEntryValues } from "../repositories/lists-entries.js";
-import { moveListEntries, withTradeSupplySweep } from "../services/lists.js";
+import { dropFromListRules, moveListEntries, withTradeSupplySweep } from "../services/lists.js";
 
 const os = implement(listsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -140,6 +140,19 @@ export const listsRouter = {
       (repos) => repos.lists.update(input.id, userId, updates),
     );
     assertFound(row, "Not found");
+    return toList(row);
+  }),
+
+  dropFromRules: os.dropFromRules.handler(async ({ input, context }): Promise<ListResponse> => {
+    const { id, cancelTradeIds, ...target } = input;
+    const row = await dropFromListRules(
+      context.repos,
+      context.transact,
+      context.userId,
+      id,
+      target,
+      cancelTradeIds,
+    );
     return toList(row);
   }),
 

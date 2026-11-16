@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  dropTargetFromRules,
   evaluateListRule,
   evaluateListRules,
   expandList,
@@ -1902,5 +1903,110 @@ describe("trade rules — pinned copies and keep order", () => {
     expect(
       evaluateListRules([{ ...keepNone, keepCopyIds: ["d1"] } as ListRule], "copy", dsCtx),
     ).toEqual([]);
+  });
+});
+
+describe("dropTargetFromRules", () => {
+  const commonA = makePrinting("p-a", "card-a", { rarity: "common" });
+  const rareB = makePrinting("p-b", "card-b", { rarity: "rare" });
+  const ctx = { catalog: [commonA, rareB] };
+
+  function wishRule(overrides: Partial<Extract<ListRule, { kind: "wish" }>> = {}): ListRule {
+    return {
+      kind: "wish",
+      filter: filters({ rarities: ["common"] }),
+      quantity: { mode: "fixed", n: 1 },
+      excludeIds: [],
+      netOwned: false,
+      ...overrides,
+    };
+  }
+
+  function tradeRule(overrides: Partial<Extract<ListRule, { kind: "trade" }>> = {}): ListRule {
+    return {
+      kind: "trade",
+      filter: EMPTY_CARD_FILTERS,
+      collectionIds: null,
+      keepPerCard: { mode: "fixed", n: 0 },
+      keepCopyIds: [],
+      ...overrides,
+    };
+  }
+
+  it("excludes a card from the wish rule whose filter matches it", () => {
+    expect(dropTargetFromRules([wishRule()], "card", "card-a", ctx)).toEqual([
+      expect.objectContaining({ excludeIds: ["card-a"] }),
+    ]);
+  });
+
+  it("excludes a printing by printing id on a printing list", () => {
+    expect(dropTargetFromRules([wishRule()], "printing", "p-a", ctx)?.[0]).toMatchObject({
+      excludeIds: ["p-a"],
+    });
+  });
+
+  it("adds the id to every matching wish rule and leaves the others untouched", () => {
+    const rules = [
+      wishRule(),
+      wishRule({ filter: EMPTY_CARD_FILTERS }),
+      wishRule({ filter: filters({ rarities: ["rare"] }) }),
+    ];
+    const next = dropTargetFromRules(rules, "card", "card-a", ctx);
+    expect(next?.map((rule) => (rule.kind === "wish" ? rule.excludeIds : []))).toEqual([
+      ["card-a"],
+      ["card-a"],
+      [],
+    ]);
+  });
+
+  it("keeps exclusions already on the rule when adding another", () => {
+    const next = dropTargetFromRules(
+      [wishRule({ filter: EMPTY_CARD_FILTERS, excludeIds: ["card-b"] })],
+      "card",
+      "card-a",
+      ctx,
+    );
+    expect(next?.[0]).toMatchObject({ excludeIds: ["card-b", "card-a"] });
+  });
+
+  it("matches a price-bounded rule against the rule's marketplace price", () => {
+    const priced = wishRule({
+      filter: filters({ price: { min: 0.5, max: null } }),
+      priceMarketplace: "cardtrader",
+    });
+    const priceLookup = priceLookupFromMap({ "p-a": { cardtrader: 100 } });
+    expect(dropTargetFromRules([priced], "card", "card-a", { ...ctx, priceLookup })).toEqual([
+      expect.objectContaining({ excludeIds: ["card-a"] }),
+    ]);
+    expect(dropTargetFromRules([priced], "card", "card-b", { ...ctx, priceLookup })).toBeNull();
+  });
+
+  it("returns null when no rule produces the target", () => {
+    expect(dropTargetFromRules([wishRule()], "card", "card-b", ctx)).toBeNull();
+  });
+
+  it("returns null when the id is already excluded", () => {
+    expect(
+      dropTargetFromRules([wishRule({ excludeIds: ["card-a"] })], "card", "card-a", ctx),
+    ).toBeNull();
+  });
+
+  it("pins a copy as kept on every trade rule", () => {
+    expect(dropTargetFromRules([tradeRule(), tradeRule()], "copy", "copy-1", ctx)).toEqual([
+      expect.objectContaining({ keepCopyIds: ["copy-1"] }),
+      expect.objectContaining({ keepCopyIds: ["copy-1"] }),
+    ]);
+  });
+
+  it("returns null when the copy is already pinned as kept", () => {
+    expect(
+      dropTargetFromRules([tradeRule({ keepCopyIds: ["copy-1"] })], "copy", "copy-1", ctx),
+    ).toBeNull();
+  });
+
+  it("does not mutate the input rules", () => {
+    const rules = [wishRule()];
+    dropTargetFromRules(rules, "card", "card-a", ctx);
+    expect(rules[0]).toMatchObject({ excludeIds: [] });
   });
 });

@@ -73,6 +73,11 @@ import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
 
+interface PendingTradeAction {
+  printingId: string;
+  action: "request" | "release";
+}
+
 function SharedListQuantityCell({
   itemId,
   entryByItemId,
@@ -210,12 +215,16 @@ function SharedListGrid({
 
   // Claim/release resize the single live trade per printing; the backend's
   // unique-live-trade index forbids opening a second one.
+  // Both writes send absolute quantities read from the polled trades, so every control waits
+  // for the write and its refetch.
   const setTradeQuantity = useSetTradeQuantity();
   const cancelTrade = useCancelTrade();
-  const tradeMutating = setTradeQuantity.isPending || cancelTrade.isPending;
+  const [pendingTradeAction, setPendingTradeAction] = useState<PendingTradeAction | null>(null);
+  const tradeMutating =
+    pendingTradeAction !== null || setTradeQuantity.isPending || cancelTrade.isPending;
 
   const handleClaim = async (printing: Printing) => {
-    if (exchange?.mode !== "request") {
+    if (exchange?.mode !== "request" || tradeMutating) {
       return;
     }
     const pending = pendingByPrinting.get(printing.printingId);
@@ -223,6 +232,7 @@ function SharedListGrid({
       setRequestPrinting(printing);
       return;
     }
+    setPendingTradeAction({ printingId: printing.printingId, action: "request" });
     await runReportedMutation(() =>
       setTradeQuantity.mutateAsync({
         tradeId: pending.tradeId,
@@ -230,16 +240,18 @@ function SharedListGrid({
         groupSlug: exchange.groupSlug,
       }),
     );
+    setPendingTradeAction(null);
   };
 
   const handleRelease = async (printing: Printing) => {
-    if (exchange?.mode !== "request") {
+    if (exchange?.mode !== "request" || tradeMutating) {
       return;
     }
     const pending = pendingByPrinting.get(printing.printingId);
     if (pending === undefined) {
       return;
     }
+    setPendingTradeAction({ printingId: printing.printingId, action: "release" });
     await runReportedMutation(() =>
       pending.quantity > 1
         ? setTradeQuantity.mutateAsync({
@@ -249,6 +261,7 @@ function SharedListGrid({
           })
         : cancelTrade.mutateAsync({ tradeId: pending.tradeId, groupSlug: exchange.groupSlug }),
     );
+    setPendingTradeAction(null);
   };
 
   const { filters, sortBy, sortDir, groupBy, hasActiveFilters } = useFilterValues();
@@ -482,6 +495,7 @@ function SharedListGrid({
                       entryByItemId={entryByItemId}
                       requestedItemIds={requestedItemIds}
                       disabled={tradeMutating}
+                      pendingAction={pendingTradeAction}
                       onRequest={(printing) => void handleClaim(printing)}
                       onRelease={(printing) => void handleRelease(printing)}
                     />
@@ -662,6 +676,7 @@ function TradelistRequestActionsCell({
   entryByItemId,
   requestedItemIds,
   disabled,
+  pendingAction,
   onRequest,
   onRelease,
 }: {
@@ -670,12 +685,14 @@ function TradelistRequestActionsCell({
   entryByItemId: Map<string, ListEntryDetailResponse>;
   requestedItemIds: ReadonlySet<string>;
   disabled?: boolean;
+  pendingAction: PendingTradeAction | null;
   onRequest: (printing: Printing) => void;
   onRelease: (printing: Printing) => void;
 }) {
   if (!printing) {
     return null;
   }
+  const pendingOnRow = pendingAction?.printingId === printing.printingId;
   if (itemId && requestedItemIds.has(itemId)) {
     return (
       <Button
@@ -683,6 +700,7 @@ function TradelistRequestActionsCell({
         size="sm"
         variant="ghost"
         disabled={disabled}
+        pending={pendingOnRow && pendingAction.action === "release"}
         aria-label={m.lists_share_cancel_copy_aria()}
         onClick={() => onRelease(printing)}
       >
@@ -701,6 +719,7 @@ function TradelistRequestActionsCell({
       size="sm"
       variant="outline"
       disabled={disabled}
+      pending={pendingOnRow && pendingAction.action === "request"}
       onClick={() => onRequest(printing)}
     >
       {m.lists_share_request()}

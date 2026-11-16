@@ -1,4 +1,5 @@
 import {
+  dropTargetFromRules,
   evaluateListRules,
   expandList,
   ownedCopyPrintingScope,
@@ -7,6 +8,7 @@ import type {
   KeepPriorityOrders,
   ManualEntryRow,
   OwnedCopyRow,
+  RuleEvalContext,
 } from "@openrift/shared/list-rule-eval";
 import type { SearchVocabulary } from "@openrift/shared/search-query/bind";
 import type { ListKind } from "@openrift/shared/types/api/list";
@@ -17,7 +19,7 @@ import type { ListRules } from "@openrift/shared/types/list-rule";
 import type { Kysely, Selectable } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import type { ListEntriesTable } from "../../../db/tables/lists.js";
+import type { ListEntriesTable, ListsTable } from "../../../db/tables/lists.js";
 import { buildRuleOnlyRow, fetchEnrichedEntries, loadRuleOnlyDetails } from "./lists-entry-rows.js";
 import type { ListEntryRow } from "./lists-shared.js";
 import { tradeOverrideFromRow } from "./lists-shared.js";
@@ -57,6 +59,54 @@ export function listRulesRepo(db: Kysely<Database>, providers?: ListRuleProvider
   return {
     entriesWithDetails(listId: string, kind: ListKind, userId: string): Promise<ListEntryRow[]> {
       return expandAndEnrich(db, providers, kind, { listId, userId });
+    },
+
+    /** The catalog and prices a wish rule matches against; trade-rule pins need neither. */
+    async ruleMatchContext(kind: ListKind, rules: ListRules): Promise<RuleEvalContext> {
+      if (kind === "copy" || rules.length === 0 || !providers) {
+        return { catalog: [] };
+      }
+      const [catalogData, priceLookup] = await Promise.all([
+        providers.assembleCatalog(),
+        rules.some((rule) => ruleFiltersOnPrice(rule)) ? providers.priceLookup() : undefined,
+      ]);
+      return {
+        catalog: catalogData.printings,
+        customTagAssignments: catalogData.customTagAssignments,
+        vocabulary: catalogData.vocabulary,
+        keywordReverseMap: catalogData.keywordReverseMap,
+        priceLookup,
+      };
+    },
+
+    /** Read-modify-write of the rules under a row lock; call it inside a transaction. */
+    async dropFromRules(
+      listId: string,
+      userId: string,
+      targetId: string,
+      ctx: RuleEvalContext,
+    ): Promise<Selectable<ListsTable> | undefined> {
+      const row = await db
+        .selectFrom("lists")
+        .selectAll()
+        .where("id", "=", listId)
+        .where("userId", "=", userId)
+        .forNoKeyUpdate()
+        .executeTakeFirst();
+      if (!row) {
+        return undefined;
+      }
+      const next = dropTargetFromRules(hydrateListRules(row.rules), row.kind, targetId, ctx);
+      if (!next) {
+        return row;
+      }
+      return db
+        .updateTable("lists")
+        .set({ rules: next })
+        .where("id", "=", listId)
+        .where("userId", "=", userId)
+        .returningAll()
+        .executeTakeFirst();
     },
 
     /** No user scoping — the caller has already verified access (e.g. by share token). */

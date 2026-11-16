@@ -83,6 +83,12 @@ function mutationStub() {
   return { mutate: vi.fn(), isPending: false, variables: undefined };
 }
 
+const dropFromRules = mutationStub();
+type EntryMutationStub = Omit<ReturnType<typeof mutationStub>, "variables"> & {
+  variables?: { entryId: string };
+};
+let updateListEntry: EntryMutationStub = mutationStub();
+
 vi.mock("@tanstack/react-start", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => {
@@ -122,8 +128,9 @@ vi.mock("@/features/lists/hooks/use-lists", () => ({
   useCreateList: () => mutationStub(),
   useDeleteList: () => mutationStub(),
   useRemoveListEntry: () => mutationStub(),
-  useUpdateListEntry: () => mutationStub(),
+  useUpdateListEntry: () => updateListEntry,
   useUpdateList: () => mutationStub(),
+  useDropFromListRules: () => dropFromRules,
   useMoveListEntries: () => mutationStub(),
   useBulkAddListEntries: () => mutationStub(),
   useBulkRemoveListEntries: () => mutationStub(),
@@ -279,7 +286,8 @@ vi.mock("@/features/lists/components/rule-editor-dialog", () => ({ RuleEditorDia
 const { ListPage } = await import("./list-page");
 const { TopBarSlotContext } = await import("@/components/layout/top-bar-slot");
 const { FilterSearchProvider } = await import("@/features/cards/hooks/use-filter-search");
-const { useCardRowActionsStore } = await import("@/features/cards/stores/card-row-actions-store");
+const { dispatchDecrement, dispatchDropFromRule, useCardRowActionsStore } =
+  await import("@/features/cards/stores/card-row-actions-store");
 const { useGridFocusStore } = await import("@/features/cards/stores/grid-focus-store");
 const { useGridSelectionStore } = await import("@/features/cards/stores/grid-selection-store");
 const { useListEntriesStore } = await import("@/features/lists/stores/list-entries-store");
@@ -321,6 +329,7 @@ describe("ListPage", () => {
       reset();
     }
     listDetail = cardKindListDetail;
+    updateListEntry = mutationStub();
     sortedCards = [];
     selectedIds = new Set();
     document.body.innerHTML = "";
@@ -389,6 +398,51 @@ describe("ListPage", () => {
       await screen.findByRole("menuitem", { name: "Move copies to collection…" }),
     ).toHaveAttribute("aria-disabled", "true");
     await closeOpenMenu(user);
+  });
+
+  it("sends each rule exclusion as its own delta, so a second one never drops the first", () => {
+    dropFromRules.mutate.mockClear();
+    const { view } = renderListPage();
+
+    dispatchDropFromRule({ kind: "card", cardId: "card-a" });
+    dispatchDropFromRule({ kind: "card", cardId: "card-b" });
+
+    expect(dropFromRules.mutate.mock.calls).toEqual([
+      [{ listId: "list-1", cardId: "card-a", printingId: undefined, copyId: undefined }],
+      [{ listId: "list-1", cardId: "card-b", printingId: undefined, copyId: undefined }],
+    ]);
+    view.unmount();
+  });
+
+  it("decrements an entry from the grid through the quantity control's write", () => {
+    listDetail = {
+      ...cardKindListDetail,
+      entries: [{ ...cardKindListDetail.entries[0]!, quantity: 2 }],
+    };
+    const { view } = renderListPage();
+
+    dispatchDecrement(printingOnList, document.body);
+
+    expect(updateListEntry.mutate).toHaveBeenCalledWith({
+      listId: "list-1",
+      entryId: "entry-1",
+      quantity: 1,
+    });
+    view.unmount();
+  });
+
+  it("ignores a grid decrement while that entry's quantity write is pending", () => {
+    listDetail = {
+      ...cardKindListDetail,
+      entries: [{ ...cardKindListDetail.entries[0]!, quantity: 2 }],
+    };
+    updateListEntry = { ...mutationStub(), isPending: true, variables: { entryId: "entry-1" } };
+    const { view } = renderListPage();
+
+    dispatchDecrement(printingOnList, document.body);
+
+    expect(updateListEntry.mutate).not.toHaveBeenCalled();
+    view.unmount();
   });
 
   it("moves every shown copy, rule-produced ones included, from the actions menu", async () => {

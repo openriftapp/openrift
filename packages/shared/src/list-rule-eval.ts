@@ -596,6 +596,44 @@ export function evaluateListRules(
   ];
 }
 
+/**
+ * Excludes a card or printing id from every wish rule whose filter matches it, or pins a copy id
+ * on every trade rule, per the list kind. Returns null when nothing would change.
+ */
+export function dropTargetFromRules(
+  rules: readonly ListRule[],
+  listKind: ListKind,
+  targetId: string,
+  ctx: RuleEvalContext,
+): ListRule[] | null {
+  let changed = false;
+  const next = rules.map((rule): ListRule => {
+    if (rule.kind === "trade") {
+      if (listKind !== "copy" || rule.keepCopyIds.includes(targetId)) {
+        return rule;
+      }
+      changed = true;
+      return { ...rule, keepCopyIds: [...rule.keepCopyIds, targetId] };
+    }
+    if (listKind === "copy" || rule.excludeIds.includes(targetId)) {
+      return rule;
+    }
+    const matches = filterCards(
+      ctx.catalog,
+      rule.filter,
+      ruleSearchContext(ctx, rulePriceResolver(rule, ctx)),
+    ).some(
+      (printing) => (listKind === "card" ? printing.cardId : printing.printingId) === targetId,
+    );
+    if (!matches) {
+      return rule;
+    }
+    changed = true;
+    return { ...rule, excludeIds: [...rule.excludeIds, targetId] };
+  });
+  return changed ? next : null;
+}
+
 /** A persisted (manual) `list_entries` row, fed into {@link expandList}. */
 export interface ManualEntryRow {
   id: string;

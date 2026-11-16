@@ -5,13 +5,11 @@ import type {
   ListResponse,
 } from "@openrift/shared/types/api/list";
 import type { Printing } from "@openrift/shared/types/catalog";
-import type { ListRule } from "@openrift/shared/types/list-rule";
 import type { GroupByField } from "@openrift/shared/types/search";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { useCardSearchContext } from "@/features/cards/hooks/use-card-search-context";
 import { useCardSelection } from "@/features/cards/hooks/use-card-selection";
 import { useSearchAndCloseDetail } from "@/features/cards/hooks/use-search-and-close-detail";
 import { useSelectAllHotkey } from "@/features/cards/hooks/use-select-all-hotkey";
@@ -29,10 +27,9 @@ import { resolveContextActionTarget } from "@/features/collections/lib/stack-sel
 import {
   useBulkAddListEntries,
   useBulkRemoveListEntries,
+  useDropFromListRules,
   useLists,
   useMoveListEntries,
-  useUpdateList,
-  useUpdateListEntry,
 } from "@/features/lists/hooks/use-lists";
 import {
   entrySelectionId,
@@ -56,7 +53,6 @@ import type {
 import { hasTwoCards, ruleEntryCopyInputs, ruleEntryRef } from "@/features/lists/lib/list-move";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
 import type { RuleDropTarget } from "@/features/rules/lib/rule-drop";
-import { dropEntryFromRules } from "@/features/rules/lib/rule-drop";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { useUserId } from "@/hooks/use-session";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
@@ -69,12 +65,10 @@ export interface UseListEntryBrowserSelectionParams {
   listId: string;
   kind: ListKind;
   intent: "wish" | "trade" | "organize";
-  rules: ListRule[];
   entries: ListEntryDetailResponse[];
   showLibrary: boolean;
   view: "cards" | "printings" | "copies";
   groupBy: GroupByField;
-  allPrintings: Printing[];
   items: CardViewerItem[];
   entryByItemId: Map<string, ListEntryDetailResponse>;
   entryByKey: Map<string, ListEntryDetailResponse>;
@@ -90,12 +84,10 @@ export function useListEntryBrowserSelection({
   listId,
   kind,
   intent,
-  rules,
   entries,
   showLibrary,
   view,
   groupBy,
-  allPrintings,
   items,
   entryByItemId,
   entryByKey,
@@ -127,17 +119,15 @@ export function useListEntryBrowserSelection({
   const { data: allLists } = useLists();
   const moveEntries = useMoveListEntries();
   const bulkRemove = useBulkRemoveListEntries();
-  const updateList = useUpdateList();
-  const searchContext = useCardSearchContext();
+  const dropFromRules = useDropFromListRules();
 
   const handleDropFromRule = (target: RuleDropTarget) => {
-    const next = dropEntryFromRules(rules, target, allPrintings, searchContext);
-    if (!next) {
-      return;
-    }
-    // No onError here: a per-call handler runs in addition to the global mutation
-    // onError, which already toasts the server's message.
-    updateList.mutate({ listId, rules: next });
+    dropFromRules.mutate({
+      listId,
+      cardId: target.cardId,
+      printingId: target.printingId,
+      copyId: target.copyId,
+    });
   };
 
   // Take-off's sold outcome reuses the /collections dispose flow: it hard-deletes the
@@ -193,7 +183,6 @@ export function useListEntryBrowserSelection({
   });
 
   const bulkAddEntries = useBulkAddListEntries();
-  const updateEntryMutation = useUpdateListEntry();
 
   const findBy = selectionFindBy(view, groupBy);
 
@@ -247,10 +236,10 @@ export function useListEntryBrowserSelection({
     const key = kind === "card" ? printing.cardId : printing.printingId;
     const entry = entryByKey.get(key);
     // Rule-derived entries (null id) can't be decremented.
-    if (!entry || entry.id === null || entry.quantity <= 1) {
+    if (!entry || entry.id === null || entry.quantity <= 1 || isQuantityPendingFor(entry.id)) {
       return;
     }
-    updateEntryMutation.mutate({ listId, entryId: entry.id, quantity: entry.quantity - 1 });
+    onQuantityChange(entry.id, entry.quantity - 1);
   };
 
   const enterSelectMode = () => setSelectMode(true);
@@ -358,36 +347,27 @@ export function useListEntryBrowserSelection({
     const resolutions = resolution
       ? entryIds.map((entryId) => ({ entryId, ...resolution }))
       : undefined;
-    const movePromise =
-      entryIds.length > 0
-        ? moveEntries.mutateAsync({
-            fromListId: listId,
-            toListId: toList.id,
-            entryIds,
-            mode: moveMode,
-            resolutions,
-          })
-        : // oxlint-disable-next-line unicorn/no-useless-undefined -- typed as Promise<undefined>, not Promise<void>
-          Promise.resolve(undefined);
-
     // Sequential, so a move declined in the trade prompt leaves no adds behind.
     let moveResult: Awaited<ReturnType<typeof moveEntries.mutateAsync>> | undefined;
     if (
+      entryIds.length > 0 &&
       !(await runReportedMutation(async () => {
-        moveResult = await movePromise;
+        moveResult = await moveEntries.mutateAsync({
+          fromListId: listId,
+          toListId: toList.id,
+          entryIds,
+          mode: moveMode,
+          resolutions,
+        });
       }))
     ) {
       return;
     }
-    const addPromise =
-      added.length > 0
-        ? bulkAddEntries.mutateAsync({ listId: toList.id, entries: added })
-        : // oxlint-disable-next-line unicorn/no-useless-undefined -- typed as Promise<undefined>, not Promise<void>
-          Promise.resolve(undefined);
     let addResult: Awaited<ReturnType<typeof bulkAddEntries.mutateAsync>> | undefined;
     if (
+      added.length > 0 &&
       !(await runReportedMutation(async () => {
-        addResult = await addPromise;
+        addResult = await bulkAddEntries.mutateAsync({ listId: toList.id, entries: added });
       }))
     ) {
       return;

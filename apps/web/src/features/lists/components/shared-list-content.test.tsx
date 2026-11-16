@@ -1,7 +1,7 @@
 import type { PublicListDetailResponse } from "@openrift/shared/types/api/list";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type * as ReactRouter from "@tanstack/react-router";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { EMPTY_TRADE_PREFERENCE, stubPrinting } from "@/test/factories";
@@ -66,9 +66,12 @@ vi.mock("@/features/cards/hooks/use-card-filters", () => ({
   useFilterActions: () => ({ setSearch: vi.fn() }),
 }));
 
+let userTrades: { items: unknown[] } | undefined;
+const setTradeQuantity = mutationStub();
+
 vi.mock("@/features/groups/hooks/use-card-trades", () => ({
-  useUserTrades: () => ({ data: undefined }),
-  useSetTradeQuantity: () => mutationStub(),
+  useUserTrades: () => ({ data: userTrades }),
+  useSetTradeQuantity: () => setTradeQuantity,
   useCancelTrade: () => mutationStub(),
 }));
 
@@ -239,6 +242,8 @@ const REQUEST_EXCHANGE = {
 
 describe("SharedListContent", () => {
   afterEach(() => {
+    userTrades = undefined;
+    setTradeQuantity.mutateAsync.mockReset();
     resetSelectionStore();
     document.body.innerHTML = "";
   });
@@ -276,5 +281,46 @@ describe("SharedListContent", () => {
 
     expect(screen.queryByText(/Poppy/u)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /request/iu })).not.toBeInTheDocument();
+  });
+
+  it("sends one request per click while the previous one is still settling", () => {
+    const copy = reservedCopyTradelist.entries[0]!;
+    const twoCopies: PublicListDetailResponse = {
+      ...reservedCopyTradelist,
+      entries: [
+        { ...copy, id: "entry-1", copyId: "copy-1", reserved: false },
+        { ...copy, id: "entry-2", copyId: "copy-2", reserved: false },
+      ] as PublicListDetailResponse["entries"],
+    };
+    userTrades = {
+      items: [
+        {
+          id: "trade-1",
+          groupSlug: REQUEST_EXCHANGE.groupSlug,
+          counterparty: { userId: REQUEST_EXCHANGE.counterpartyUserId },
+          role: "receiver",
+          status: "pending",
+          printingId: printingOnList.printingId,
+          quantity: 1,
+        },
+      ],
+    };
+    setTradeQuantity.mutateAsync.mockReturnValue(new Promise(() => {}));
+    render(
+      <FilterSearchProvider value={{}}>
+        <SharedListContent data={twoCopies} exchange={REQUEST_EXCHANGE} />
+      </FilterSearchProvider>,
+    );
+
+    const [request] = screen.getAllByRole("button", { name: /^Request$/u });
+    fireEvent.click(request!);
+    fireEvent.click(request!);
+
+    expect(setTradeQuantity.mutateAsync).toHaveBeenCalledTimes(1);
+    expect(setTradeQuantity.mutateAsync).toHaveBeenCalledWith({
+      tradeId: "trade-1",
+      quantity: 2,
+      groupSlug: REQUEST_EXCHANGE.groupSlug,
+    });
   });
 });

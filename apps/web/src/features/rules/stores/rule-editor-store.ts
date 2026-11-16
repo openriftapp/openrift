@@ -15,6 +15,7 @@ import { draftFromRule, emptyDraft, serializeRules } from "@/features/rules/lib/
 
 export interface RuleEditorState {
   rules: DraftRule[];
+  ruleKeys: string[];
   ruleCombine: ListRuleCombine | null;
 
   load: (rules: ListRule[], ruleCombine?: ListRuleCombine | null) => void;
@@ -45,20 +46,42 @@ function patchRule(
   return rules.map((rule, i) => (i === index ? update(rule) : rule));
 }
 
+let nextRuleKey = 0;
+function newRuleKeys(count: number): string[] {
+  return Array.from({ length: count }, () => `rule-${nextRuleKey++}`);
+}
+
 export const useRuleEditorStore = create<RuleEditorState>()((set, get) => ({
   rules: [],
+  ruleKeys: [],
   ruleCombine: null,
 
   load: (rules, ruleCombine = null) =>
-    set({ rules: rules.map((rule) => draftFromRule(rule)), ruleCombine }),
+    set({
+      rules: rules.map((rule) => draftFromRule(rule)),
+      ruleKeys: newRuleKeys(rules.length),
+      ruleCombine,
+    }),
 
   setRuleCombine: (ruleCombine) => set({ ruleCombine }),
 
-  addRule: (languages) => set((state) => ({ rules: [...state.rules, emptyDraft(languages)] })),
+  addRule: (languages) =>
+    set((state) => ({
+      rules: [...state.rules, emptyDraft(languages)],
+      ruleKeys: [...state.ruleKeys, ...newRuleKeys(1)],
+    })),
 
-  addDrafts: (drafts) => set((state) => ({ rules: [...state.rules, ...drafts] })),
+  addDrafts: (drafts) =>
+    set((state) => ({
+      rules: [...state.rules, ...drafts],
+      ruleKeys: [...state.ruleKeys, ...newRuleKeys(drafts.length)],
+    })),
 
-  removeRule: (index) => set((state) => ({ rules: state.rules.filter((_, i) => i !== index) })),
+  removeRule: (index) =>
+    set((state) => ({
+      rules: state.rules.filter((_, i) => i !== index),
+      ruleKeys: state.ruleKeys.filter((_, i) => i !== index),
+    })),
 
   setFilter: (index, filter) =>
     set((state) => ({ rules: patchRule(state.rules, index, (rule) => ({ ...rule, filter })) })),
@@ -125,7 +148,7 @@ export const useRuleEditorStore = create<RuleEditorState>()((set, get) => ({
       })),
     })),
 
-  reset: () => set({ rules: [], ruleCombine: null }),
+  reset: () => set({ rules: [], ruleKeys: [], ruleCombine: null }),
 
   buildRules: (kind) => serializeRules(get().rules, kind),
 }));

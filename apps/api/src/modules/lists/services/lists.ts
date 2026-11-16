@@ -1,5 +1,6 @@
 import type { MoveListEntriesResolution } from "@openrift/shared/contracts/lists";
 import type { ListIntent, ListKind, ListMoveResponse } from "@openrift/shared/types/api/list";
+import { hydrateListRules } from "@openrift/shared/types/list-rule";
 
 import type { Repos, Transact } from "../../../deps.js";
 import { badRequest } from "../../../errors.js";
@@ -39,6 +40,46 @@ export function withTradeSupplySweep<T>(
     await sweepGiverTradesInGroups(trxRepos, userId, groupIds, cancelTradeIds);
     return result;
   });
+}
+
+function dropTargetId(
+  kind: ListKind,
+  target: { cardId?: string; printingId?: string; copyId?: string },
+): string {
+  const id =
+    kind === "card" ? target.cardId : kind === "printing" ? target.printingId : target.copyId;
+  if (!id) {
+    throw badRequest("Entry target does not match list kind");
+  }
+  return id;
+}
+
+/** Excludes one card or printing from the list's wish rules, or pins one copy on its trade rules,
+ * against the rules stored when the write runs. */
+export async function dropFromListRules(
+  repos: Repos,
+  transact: Transact,
+  userId: string,
+  listId: string,
+  target: { cardId?: string; printingId?: string; copyId?: string },
+  cancelTradeIds: readonly string[] = [],
+) {
+  const list = await repos.lists.getByIdForUser(listId, userId);
+  assertFound(list, "Not found");
+  const targetId = dropTargetId(list.kind, target);
+  const ctx = await repos.lists.ruleMatchContext(list.kind, hydrateListRules(list.rules));
+  const row = await transact((trxRepos) =>
+    withTradeSupplySweep(
+      trxRepos,
+      (edit) => edit(trxRepos),
+      userId,
+      [list],
+      cancelTradeIds,
+      (editRepos) => editRepos.lists.dropFromRules(listId, userId, targetId, ctx),
+    ),
+  );
+  assertFound(row, "Not found");
+  return row;
 }
 
 /** Merge semantics mirror `bulkCreateEntries`: card/printing entries absorb into an

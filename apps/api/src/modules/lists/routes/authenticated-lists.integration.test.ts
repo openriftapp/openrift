@@ -174,6 +174,34 @@ describe.skipIf(!ctx)("Lists routes (integration)", () => {
     });
   });
 
+  describe("POST /lists/:id/rules/drop", () => {
+    it("keeps both pins from two concurrent drops", async () => {
+      const id = await createList("Binder sort", "organize", "copy");
+      const rule = {
+        kind: "trade",
+        filter: {},
+        collectionIds: null,
+        keepPerCard: { mode: "fixed", n: 0 },
+        keepCopyIds: [],
+      };
+      const patched = await app.fetch(req("PATCH", `/lists/${id}`, { rules: [rule] }));
+      expect(patched.status).toBe(200);
+      const [copyA, copyB] = [await createCopy(), await createCopy()];
+
+      const responses = await Promise.all(
+        [copyA, copyB].map(async (copyId) =>
+          app.fetch(req("POST", `/lists/${id}/rules/drop`, { copyId })),
+        ),
+      );
+      expect(responses.map((res) => res.status)).toEqual([200, 200]);
+
+      const detail = (await readJson(await app.fetch(req("GET", `/lists/${id}`)))) as {
+        list: { rules: { keepCopyIds: string[] }[] };
+      };
+      expect(detail.list.rules[0]?.keepCopyIds.toSorted()).toEqual([copyA, copyB].toSorted());
+    });
+  });
+
   describe("DELETE /lists/:id", () => {
     it("deletes a list", async () => {
       const id = await createList("Doomed", "organize", "card");

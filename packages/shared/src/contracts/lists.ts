@@ -103,6 +103,14 @@ export const updateListSchema = z.object({
   cancelTradeIds: cancelTradeIdsField,
 });
 
+/** The one id matching the list kind: a card or printing to exclude, or a copy to keep. */
+const dropFromListRulesSchema = z.object({
+  cardId: z.uuid().optional(),
+  printingId: z.uuid().optional(),
+  copyId: z.uuid().optional(),
+  cancelTradeIds: cancelTradeIdsField,
+});
+
 /** Server renumbers sort_order to match orderedIds, scoped to one intent bucket. */
 export const reorderListsSchema = z.object({
   intent: listIntentSchema,
@@ -256,6 +264,19 @@ export const listsContract = {
     .errors({
       NOT_FOUND: { message: "List not found" },
       BAD_REQUEST: { message: "No fields to update" },
+      CONFLICT: tradeCancelConflictError,
+    })
+    .output(listResponseSchema),
+  dropFromRules: authedRoute
+    .route({ method: "POST", path: "/api/v1/lists/{id}/rules/drop", tags: [TAG] })
+    .input(
+      withParams(idParamSchema, dropFromListRulesSchema).refine(oneListEntryTarget, {
+        message: "Exactly one of cardId, printingId, or copyId must be provided",
+      }),
+    )
+    .errors({
+      NOT_FOUND: { message: "List not found" },
+      BAD_REQUEST: { message: "Entry target does not match list kind" },
       CONFLICT: tradeCancelConflictError,
     })
     .output(listResponseSchema),

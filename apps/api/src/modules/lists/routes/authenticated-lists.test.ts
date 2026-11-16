@@ -16,6 +16,8 @@ const mockListsRepo = {
   ),
   create: vi.fn(() => Promise.resolve({} as object)),
   update: vi.fn(() => Promise.resolve(undefined as object | undefined)),
+  ruleMatchContext: vi.fn(() => Promise.resolve({ catalog: [] } as object)),
+  dropFromRules: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   deleteByIdForUser: vi.fn(() => Promise.resolve(false)),
   setShare: vi.fn((..._args: Parameters<Repos["lists"]["setShare"]>) =>
     Promise.resolve(undefined as object | undefined),
@@ -465,6 +467,62 @@ describe("PATCH /api/v1/lists/:id", () => {
     });
     expect(res.status).toBe(200);
     expect(mockListsRepo.update).toHaveBeenCalledWith(LIST_ID, USER_ID, { name: "Org" });
+  });
+});
+
+describe("POST /api/v1/lists/:id/rules/drop", () => {
+  const ctx = { catalog: [] };
+
+  beforeEach(() => {
+    mockListsRepo.getByIdForUser.mockReset();
+    mockListsRepo.ruleMatchContext.mockReset();
+    mockListsRepo.ruleMatchContext.mockResolvedValue(ctx);
+    mockListsRepo.dropFromRules.mockReset();
+    mockFriendGroupsRepo.listGroupsSharingList.mockClear();
+  });
+
+  function drop(body: object) {
+    return app.request(`/api/v1/lists/${LIST_ID}/rules/drop`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  it("applies the exclusion to the stored rules with the matching context", async () => {
+    mockListsRepo.getByIdForUser.mockResolvedValue(dbList);
+    mockListsRepo.dropFromRules.mockResolvedValue(dbList);
+    const res = await drop({ cardId: CARD_ID });
+    expect(res.status).toBe(200);
+    expect(mockListsRepo.dropFromRules).toHaveBeenCalledWith(LIST_ID, USER_ID, CARD_ID, ctx);
+  });
+
+  it("pins a copy on a trade list and sweeps the groups sharing it", async () => {
+    const tradeList = { ...dbList, intent: "trade" as const, kind: "copy" as const };
+    mockListsRepo.getByIdForUser.mockResolvedValue(tradeList);
+    mockListsRepo.dropFromRules.mockResolvedValue(tradeList);
+    const res = await drop({ copyId: COPY_ID });
+    expect(res.status).toBe(200);
+    expect(mockListsRepo.dropFromRules).toHaveBeenCalledWith(LIST_ID, USER_ID, COPY_ID, ctx);
+    expect(mockFriendGroupsRepo.listGroupsSharingList).toHaveBeenCalledWith(LIST_ID);
+  });
+
+  it("rejects a target that does not match the list kind", async () => {
+    mockListsRepo.getByIdForUser.mockResolvedValue(dbList);
+    const res = await drop({ printingId: PRINTING_ID });
+    expect(res.status).toBe(400);
+    expect(mockListsRepo.dropFromRules).not.toHaveBeenCalled();
+  });
+
+  it("rejects a body with two targets", async () => {
+    const res = await drop({ cardId: CARD_ID, printingId: PRINTING_ID });
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 404 when the list is not the caller's", async () => {
+    mockListsRepo.getByIdForUser.mockResolvedValue(undefined);
+    const res = await drop({ cardId: CARD_ID });
+    expect(res.status).toBe(404);
   });
 });
 
