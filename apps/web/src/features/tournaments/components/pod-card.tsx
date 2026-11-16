@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconChip } from "@/components/ui/icon-chip";
 import { Input } from "@/components/ui/input";
-import { UserAvatar } from "@/components/user-avatar";
 import { formatRank } from "@/features/meta/lib/meta-format";
 import { PlayerChip } from "@/features/tournaments/components/player-chip";
 import { RegionBadge } from "@/features/tournaments/components/region-badge";
@@ -102,6 +101,7 @@ export function PodCard({
   nameById,
   canEnter,
   crossGroup = false,
+  allowDraws = true,
   title,
   layout = "row",
   renderMemberLeading,
@@ -123,6 +123,7 @@ export function PodCard({
   canEnter: boolean;
   /** The paired 3-player groups' shared match. */
   crossGroup?: boolean;
+  allowDraws?: boolean;
   title?: string;
   layout?: "row" | "stacked";
   /** Rendered before the player's face; the bracket puts the seed pill here. */
@@ -278,13 +279,6 @@ export function PodCard({
       return (
         <li key={lead.teamId ?? lead.playerId} className="flex items-center gap-2">
           {renderMemberLeading?.(lead.playerId)}
-          <UserAvatar
-            name={name}
-            image={solo ? lead.image : null}
-            gravatarHash={solo ? lead.gravatarHash : null}
-            size="sm"
-            className="shrink-0"
-          />
           <div className="flex min-w-0 flex-1 flex-col">
             <span className="flex min-w-0 items-center gap-2">
               <span
@@ -408,6 +402,7 @@ export function PodCard({
               matchFormat={matchFormat}
               winPoints={winPoints}
               drawPoints={drawPoints}
+              allowDraws={allowDraws}
               onSubmit={(results) => void handleSubmit(results)}
               submitting={saving}
               error={saveError}

@@ -93,7 +93,7 @@ const openFinal = round(5, "reporting", [
   ]),
 ]);
 
-function renderBracket(rounds: PodRoundResponse[], completed: boolean) {
+function renderBracket(rounds: PodRoundResponse[], completed: boolean, canEnter = false) {
   return render(
     <CutBracketView
       rounds={rounds}
@@ -104,7 +104,7 @@ function renderBracket(rounds: PodRoundResponse[], completed: boolean) {
       winPoints={3}
       drawPoints={1}
       completed={completed}
-      canEnterResult={() => false}
+      canEnterResult={() => canEnter}
       onSubmitResult={async () => {}}
     />,
   );
@@ -159,5 +159,19 @@ describe("CutBracketView", () => {
   it("drops the starter note once the match is reported", () => {
     renderBracket([semifinals, openFinal], false);
     expect(screen.getAllByText("chooses starter")).toHaveLength(1);
+  });
+
+  it("shows no avatar initials on the seats", () => {
+    renderBracket([semifinals], true);
+    expect(screen.queryByText("A")).not.toBeInTheDocument();
+  });
+
+  it("offers no draw scorelines in a bracket match", async () => {
+    const user = userEvent.setup();
+    renderBracket([semifinals, openFinal], false, true);
+    await user.click(screen.getByRole("button", { name: "Enter result" }));
+    expect(screen.getByRole("button", { name: "Ashe wins 2–1" })).toBeInTheDocument();
+    expect(screen.queryByText("Draw")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Draw/u })).not.toBeInTheDocument();
   });
 });

@@ -21,6 +21,7 @@ interface SwissResultFormProps {
   matchFormat: TournamentMatchFormat;
   winPoints: number;
   drawPoints: number;
+  allowDraws?: boolean;
   onSubmit: (results: PodResultEntry[]) => void;
   submitting: boolean;
   error?: unknown;
@@ -34,6 +35,7 @@ export function SwissResultForm({
   matchFormat,
   winPoints,
   drawPoints,
+  allowDraws = true,
   onSubmit,
   submitting,
   error,
@@ -109,6 +111,9 @@ export function SwissResultForm({
   presets.forEach((preset, index) => {
     const [one, two] = preset.gamePoints;
     const draw = one === two;
+    if (draw && !allowDraws) {
+      return;
+    }
     const group = one > two ? outcomeGroups[0] : draw ? outcomeGroups[1] : outcomeGroups[2];
     if (!group) {
       return;
@@ -136,31 +141,33 @@ export function SwissResultForm({
         disabled={submitting}
         className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center"
       >
-        {outcomeGroups.map((group) => (
-          <Fragment key={group.aria}>
-            <span
-              className="text-muted-foreground truncate text-sm"
-              title={group.label || undefined}
-            >
-              {group.label}
-            </span>
-            <div className="flex flex-wrap justify-end gap-1.5">
-              {group.entries.map((entry) => (
-                <ToggleGroupItem
-                  key={entry.index}
-                  value={String(entry.index)}
-                  className="tabular-nums"
-                  // The visible label repeats across the win rows ("1–0" or
-                  // "Win" on either side), so the accessible name carries the
-                  // outcome.
-                  aria-label={entry.aria}
-                >
-                  {entry.label}
-                </ToggleGroupItem>
-              ))}
-            </div>
-          </Fragment>
-        ))}
+        {outcomeGroups
+          .filter((group) => group.entries.length > 0)
+          .map((group) => (
+            <Fragment key={group.aria}>
+              <span
+                className="text-muted-foreground truncate text-sm"
+                title={group.label || undefined}
+              >
+                {group.label}
+              </span>
+              <div className="flex flex-wrap justify-end gap-1.5">
+                {group.entries.map((entry) => (
+                  <ToggleGroupItem
+                    key={entry.index}
+                    value={String(entry.index)}
+                    className="tabular-nums"
+                    // The visible label repeats across the win rows ("1–0" or
+                    // "Win" on either side), so the accessible name carries the
+                    // outcome.
+                    aria-label={entry.aria}
+                  >
+                    {entry.label}
+                  </ToggleGroupItem>
+                ))}
+              </div>
+            </Fragment>
+          ))}
       </ToggleGroup>
       {preview ? (
         <div className="text-muted-foreground grid w-fit grid-cols-[auto_auto] gap-x-4 text-sm tabular-nums">

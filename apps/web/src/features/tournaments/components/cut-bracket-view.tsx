@@ -129,6 +129,7 @@ export function CutBracketView({
                     warningsExpanded={false}
                     nameById={new Map()}
                     canEnter={canEnterResult(round, pod)}
+                    allowDraws={false}
                     layout="stacked"
                     title={m.tournaments_cut_match_table_label({
                       match: cutMatchShortLabel(cutSize, column.roundNumber, match.podNumber),
