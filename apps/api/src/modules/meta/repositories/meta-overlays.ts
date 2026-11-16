@@ -1,5 +1,5 @@
 import type { MetaEventOverlayField, MetaOverlayStatus } from "@openrift/shared/types/enums";
-import type { Insertable, Kysely, Selectable, SqlBool } from "kysely";
+import type { ExpressionBuilder, Insertable, Kysely, Selectable, SqlBool } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
@@ -53,6 +53,32 @@ export function sourceEventKeyPrefix(eventExternalId: string): string {
 
 export interface MetaPlayerOverlayWithCards extends MetaPlayerOverlayRow {
   cards: MetaOverlayCardRow[];
+}
+
+/**
+ * An admin's own field edit: no provider, no note and, for a standings row, no
+ * ledger row. A contributor's list may carry no note but always has a ledger row.
+ */
+function adminEditEvent(eb: ExpressionBuilder<Database, "metaEventOverlays">) {
+  return eb.and([
+    eb("metaEventOverlays.provider", "is", null),
+    eb("metaEventOverlays.submissionNote", "is", null),
+  ]);
+}
+
+function adminEditPlayer(eb: ExpressionBuilder<Database, "metaEventPlayerOverlays">) {
+  return eb.and([
+    eb("metaEventPlayerOverlays.provider", "is", null),
+    eb("metaEventPlayerOverlays.submissionNote", "is", null),
+    eb.not(
+      eb.exists(
+        eb
+          .selectFrom("metaSubmissions")
+          .select(sql.lit(1).as("one"))
+          .whereRef("metaSubmissions.playerOverlayId", "=", "metaEventPlayerOverlays.id"),
+      ),
+    ),
+  ]);
 }
 
 export function metaOverlaysRepo(db: Kysely<Database>) {
@@ -159,9 +185,48 @@ export function metaOverlaysRepo(db: Kysely<Database>) {
         .where("metaEventId", "=", metaEventId)
         .where("submittedByUserId", "=", userId)
         .where("status", "=", "accepted")
-        .where("provider", "is", null)
-        .where("submissionNote", "is", null)
+        .where((eb) => adminEditEvent(eb))
         .executeTakeFirst();
+    },
+
+    async adminEditEventOverlayIds(ids: readonly string[]): Promise<Set<string>> {
+      const found = new Set<string>();
+      for (const batch of keyBatches(ids)) {
+        const rows = await db
+          .selectFrom("metaEventOverlays")
+          .select("id")
+          .where("id", "in", batch)
+          .where((eb) => adminEditEvent(eb))
+          .execute();
+        for (const row of rows) {
+          found.add(row.id);
+        }
+      }
+      return found;
+    },
+
+    /** Call inside a transaction; the row stays locked until it ends. */
+    lockEventOverlay(id: string): Promise<MetaEventOverlayRow | undefined> {
+      return db
+        .selectFrom("metaEventOverlays")
+        .selectAll()
+        .where("id", "=", id)
+        .forUpdate()
+        .executeTakeFirst();
+    },
+
+    async eventOverlaysByIds(ids: readonly string[]): Promise<MetaEventOverlayRow[]> {
+      const rows: MetaEventOverlayRow[] = [];
+      for (const batch of keyBatches(ids)) {
+        rows.push(
+          ...(await db
+            .selectFrom("metaEventOverlays")
+            .selectAll()
+            .where("id", "in", batch)
+            .execute()),
+        );
+      }
+      return rows;
     },
 
     /**
@@ -395,9 +460,68 @@ export function metaOverlaysRepo(db: Kysely<Database>) {
         .where("metaEventPlayerId", "=", metaEventPlayerId)
         .where("submittedByUserId", "=", userId)
         .where("status", "=", "accepted")
-        .where("provider", "is", null)
-        .where("submissionNote", "is", null)
+        .where((eb) => adminEditPlayer(eb))
         .executeTakeFirst();
+    },
+
+    async adminEditPlayerOverlayIds(ids: readonly string[]): Promise<Set<string>> {
+      const found = new Set<string>();
+      for (const batch of keyBatches(ids)) {
+        const rows = await db
+          .selectFrom("metaEventPlayerOverlays")
+          .select("id")
+          .where("id", "in", batch)
+          .where((eb) => adminEditPlayer(eb))
+          .execute();
+        for (const row of rows) {
+          found.add(row.id);
+        }
+      }
+      return found;
+    },
+
+    /** Call inside a transaction. Locked in id order, so two callers never deadlock on a shared set. */
+    async lockPlayerOverlays(ids: readonly string[]): Promise<MetaPlayerOverlayRow[]> {
+      const rows: MetaPlayerOverlayRow[] = [];
+      for (const batch of keyBatches([...new Set(ids)].toSorted())) {
+        rows.push(
+          ...(await db
+            .selectFrom("metaEventPlayerOverlays")
+            .selectAll()
+            .where("id", "in", batch)
+            .orderBy("id", "asc")
+            .forUpdate()
+            .execute()),
+        );
+      }
+      return rows;
+    },
+
+    /** The live event each overlay applies to, through whichever of its three anchors is set. */
+    async eventIdsForPlayerOverlays(
+      ids: readonly string[],
+      options: { acceptedOnly?: boolean } = {},
+    ): Promise<Map<string, string | null>> {
+      const events = new Map<string, string | null>();
+      for (const batch of keyBatches(ids)) {
+        let query = db
+          .selectFrom("metaEventPlayerOverlays as o")
+          .leftJoin("metaEventPlayers as p", "p.id", "o.metaEventPlayerId")
+          .leftJoin("metaEventOverlays as eo", "eo.id", "o.eventOverlayId")
+          .select((eb) => [
+            "o.id",
+            eb.fn.coalesce("o.metaEventId", "p.metaEventId", "eo.metaEventId").as("metaEventId"),
+          ])
+          .where("o.id", "in", batch);
+        if (options.acceptedOnly === true) {
+          query = query.where("o.status", "=", "accepted");
+        }
+        const rows = await query.execute();
+        for (const row of rows) {
+          events.set(row.id, row.metaEventId);
+        }
+      }
+      return events;
     },
 
     /** See {@link deleteEventOverlay}: reserved for an emptied admin edit row. */
@@ -418,18 +542,41 @@ export function metaOverlaysRepo(db: Kysely<Database>) {
       return Number(result.numUpdatedRows) > 0;
     },
 
+    /** {@link linkPlayerOverlay} for many overlays in one statement. */
+    async linkPlayerOverlays(
+      links: readonly { id: string; metaEventPlayerId: string }[],
+    ): Promise<void> {
+      if (links.length === 0) {
+        return;
+      }
+      const rows = links.map((link) => ({
+        id: link.id,
+        meta_event_player_id: link.metaEventPlayerId,
+      }));
+      await sql`
+        update meta_event_player_overlays as o
+        set meta_event_player_id = v.meta_event_player_id, meta_event_id = null, event_overlay_id = null
+        from jsonb_to_recordset(${rows}::jsonb) as v(id uuid, meta_event_player_id uuid)
+        where o.id = v.id
+      `.execute(db);
+    },
+
     /**
      * The reviewer's fix for an unmatched card name; settles the lines
      * already queued, while an alias table keeps future fetches from re-asking.
      */
-    async resolveCardName(cardName: string, cardId: string): Promise<number> {
-      const result = await db
+    async resolveCardName(
+      cardName: string,
+      cardId: string,
+    ): Promise<{ updated: number; overlayIds: string[] }> {
+      const rows = await db
         .updateTable("metaEventPlayerOverlayCards")
         .set({ cardId })
         .where("cardName", "=", cardName)
         .where("cardId", "is", null)
-        .executeTakeFirst();
-      return Number(result.numUpdatedRows);
+        .returning("overlayId")
+        .execute();
+      return { updated: rows.length, overlayIds: [...new Set(rows.map((row) => row.overlayId))] };
     },
 
     /** The standings overlays of several uploads in one query; group them by {@link sourceEventKeyPrefix}. */

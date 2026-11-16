@@ -7,11 +7,13 @@ import { resolveCardIdByName } from "../../candidates/services/candidate-links.j
 import { defaultMetaDeckName } from "../lib/meta-event-naming.js";
 import type { MetaPlayerOverlayPatch } from "../lib/meta-overlay-apply.js";
 import { applyOverlays } from "../lib/meta-overlay-apply.js";
-import type { MetaDeckCardInput } from "../repositories/meta-decks.js";
-import type { MetaPlayerOverlayRow } from "../repositories/meta-overlays.js";
+import type { MetaDeckCardInput, MetaStoredPlayerDeck } from "../repositories/meta-decks.js";
+import type { MetaOverlayCardRow, MetaPlayerOverlayRow } from "../repositories/meta-overlays.js";
+import type { MetaEventPlayerUpdate } from "../repositories/meta-players.js";
 import { createMetaEventPlayer, setMetaPlayerList } from "./meta-event-players.js";
 import type { MetaPromoteResult } from "./meta-promote-shared.js";
 import { normalizedName } from "./meta-promote-shared.js";
+import { sameStoredDeck } from "./meta-promote-standings.js";
 
 /**
  * Overlays apply after sources so a correction survives a re-fetch; one
@@ -33,10 +35,15 @@ export async function applyPlayerOverlays(
   const names = hasLooseOverlays ? await repos.meta.standingsNamesForEvent(metaEventId) : [];
 
   const byPlayer = new Map<string, MetaPlayerOverlayRow[]>();
+  const links: { id: string; metaEventPlayerId: string }[] = [];
   for (const overlay of overlays) {
-    const playerId =
-      overlay.metaEventPlayerId ??
-      (await resolveOverlayTarget(repos, metaEventId, overlay, names, result));
+    let playerId = overlay.metaEventPlayerId;
+    if (playerId === null) {
+      playerId = await resolveOverlayTarget(repos, metaEventId, overlay, names, result);
+      if (playerId !== null) {
+        links.push({ id: overlay.id, metaEventPlayerId: playerId });
+      }
+    }
     if (playerId === null) {
       continue;
     }
@@ -47,8 +54,22 @@ export async function applyPlayerOverlays(
       bucket.push(overlay);
     }
   }
+  await repos.metaOverlays.linkPlayerOverlays(links);
 
   const players = await repos.meta.rawStandingsForEvent(metaEventId);
+  const latestLists = new Map<string, MetaPlayerOverlayRow>();
+  for (const [playerId, patches] of byPlayer) {
+    const latest = patches.filter((overlay) => overlay.claimedFields.includes("cards")).at(-1);
+    if (latest !== undefined) {
+      latestLists.set(playerId, latest);
+    }
+  }
+  const linesByOverlay = await repos.metaOverlays.cardsByOverlayIds(
+    [...latestLists.values()].map((overlay) => overlay.id),
+  );
+
+  const updates: MetaEventPlayerUpdate[] = [];
+  const lists = new Map<string, ResolvedOverlayList | null>();
   for (const player of players) {
     const patches = byPlayer.get(player.id);
     if (patches === undefined || patches.length === 0) {
@@ -97,10 +118,11 @@ export async function applyPlayerOverlays(
       })),
     );
 
-    const withList = patches.filter((overlay) => overlay.claimedFields.includes("cards"));
-    const latest = withList.at(-1);
+    const latest = latestLists.get(player.id);
     const list =
-      latest === undefined ? undefined : await resolveOverlayList(repos, latest.id, cardIndex);
+      latest === undefined
+        ? undefined
+        : resolveOverlayList(latest, linesByOverlay.get(latest.id) ?? [], cardIndex);
     if (list !== undefined && list !== null) {
       // The archive files an entry under the standings row's legend, so a
       // list's own legend and champion zones win over the row's fields.
@@ -108,12 +130,32 @@ export async function applyPlayerOverlays(
       applied.legendCardId = inZone(WellKnown.deckZone.LEGEND) ?? applied.legendCardId;
       applied.championCardId = inZone(WellKnown.deckZone.CHAMPION) ?? applied.championCardId;
     }
-    await repos.meta.updatePlayer(player.id, applied);
+    const changed = Object.entries(applied).some(
+      ([key, value]) => value !== undefined && base[key as keyof typeof base] !== value,
+    );
+    if (changed) {
+      updates.push({ id: player.id, ...applied });
+    }
+    if (list !== undefined) {
+      lists.set(player.id, list);
+    }
+  }
+  await repos.meta.updatePlayers(updates);
 
+  const deckStates =
+    lists.size === 0
+      ? new Map<string, MetaStoredPlayerDeck>()
+      : await repos.meta.deckStatesForEvent(metaEventId);
+  for (const [playerId, list] of lists) {
+    const stored = deckStates.get(playerId);
     if (list === null) {
-      await repos.meta.clearPlayerDeck(player.id);
-    } else if (list !== undefined) {
-      await applyOverlayList(repos, player.id, list, format);
+      if (stored !== undefined) {
+        await repos.meta.clearPlayerDeck(playerId);
+      }
+      continue;
+    }
+    if (!sameStoredDeck(stored, { format, ...list })) {
+      await applyOverlayList(repos, playerId, list, format, stored?.name);
     }
   }
 }
@@ -121,6 +163,7 @@ export async function applyPlayerOverlays(
 /**
  * Matches an event-anchored overlay onto the row whose rendered name it names
  * (rank breaks a tie), or mints a new row; an unplaceable overlay is reported, not silently dropped.
+ * The caller writes the link back.
  */
 async function resolveOverlayTarget(
   repos: Repos,
@@ -137,7 +180,6 @@ async function resolveOverlayTarget(
         ? named[0]
         : named.find((row) => overlay.rank !== null && row.rank === overlay.rank);
     if (matched !== undefined) {
-      await repos.metaOverlays.linkPlayerOverlay(overlay.id, matched.id);
       return matched.id;
     }
   }
@@ -168,7 +210,6 @@ async function resolveOverlayTarget(
   if (created === undefined) {
     return null;
   }
-  await repos.metaOverlays.linkPlayerOverlay(overlay.id, created.metaEventPlayerId);
   names.push({ id: created.metaEventPlayerId, name: overlay.playerName, rank: overlay.rank });
   result.players++;
   return created.metaEventPlayerId;
@@ -197,20 +238,16 @@ interface ResolvedOverlayList {
  * A submitted list becomes the live deck only once every line resolves
  * (`undefined` until then); a `cards` claim with no lines is `null`, since it claims there is none.
  */
-async function resolveOverlayList(
-  repos: Repos,
-  overlayId: string,
+function resolveOverlayList(
+  overlay: MetaPlayerOverlayRow,
+  lines: readonly MetaOverlayCardRow[],
   cardIndex: CardNameIndex,
-): Promise<ResolvedOverlayList | null | undefined> {
-  const overlay = await repos.metaOverlays.playerOverlayById(overlayId);
-  if (overlay === undefined) {
-    return undefined;
-  }
-  if (overlay.cards.length === 0) {
+): ResolvedOverlayList | null | undefined {
+  if (lines.length === 0) {
     return null;
   }
   const cards: MetaDeckCardInput[] = [];
-  for (const line of overlay.cards) {
+  for (const line of lines) {
     const cardId = line.cardId ?? resolveCardIdByName(cardIndex, line.cardName);
     if (cardId === null) {
       return undefined;
@@ -233,13 +270,18 @@ async function applyOverlayList(
   metaEventPlayerId: string,
   list: ResolvedOverlayList,
   format: string,
+  storedName: string | undefined,
 ): Promise<void> {
-  const player = await repos.meta.playerById(metaEventPlayerId);
-  if (player === undefined) {
-    return;
+  let name = storedName;
+  if (name === undefined) {
+    const player = await repos.meta.playerById(metaEventPlayerId);
+    if (player === undefined) {
+      return;
+    }
+    name = player.deckName ?? defaultMetaDeckName(player.legendName, player.playerName, "");
   }
   await setMetaPlayerList(repos.meta, metaEventPlayerId, {
-    name: player.deckName ?? defaultMetaDeckName(player.legendName, player.playerName, ""),
+    name,
     format,
     cards: list.cards,
     listStatus: list.listStatus,

@@ -51,7 +51,45 @@ const mockOverlays = {
   unignoreEvent: vi.fn(),
   listIgnored: vi.fn(),
   resolveCardName: vi.fn(),
+  lockEventOverlay: vi.fn(),
+  lockPlayerOverlays: vi.fn(),
+  eventOverlaysByIds: vi.fn(),
+  eventIdsForPlayerOverlays: vi.fn(),
+  adminEditEventOverlayIds: vi.fn(),
+  adminEditPlayerOverlayIds: vi.fn(),
 };
+
+interface OverlayStub {
+  id: string;
+  provider: string | null;
+  submissionNote: string | null;
+}
+
+async function knownEventOverlays(ids: readonly string[]): Promise<OverlayStub[]> {
+  const accepted = ((await mockOverlays.acceptedEventOverlays(LIVE_EVENT_ID)) ??
+    []) as OverlayStub[];
+  const rows = await Promise.all(
+    ids.map(
+      async (id) =>
+        accepted.find((row) => row.id === id) ??
+        ((await mockOverlays.eventOverlayById(id)) as OverlayStub | undefined),
+    ),
+  );
+  return rows.filter((row) => row !== undefined);
+}
+
+async function knownPlayerOverlays(ids: readonly string[]): Promise<OverlayStub[]> {
+  const accepted = ((await mockOverlays.acceptedPlayerOverlays(LIVE_EVENT_ID)) ??
+    []) as OverlayStub[];
+  const rows = await Promise.all(
+    ids.map(
+      async (id) =>
+        accepted.find((row) => row.id === id) ??
+        ((await mockOverlays.playerOverlayById(id)) as OverlayStub | undefined),
+    ),
+  );
+  return rows.filter((row) => row !== undefined);
+}
 
 const mockMeta = {
   withPromoteLock: vi.fn((_key: string, run: (locked: unknown) => Promise<unknown>) =>
@@ -98,14 +136,17 @@ const TOPDECK_SOURCE_ID = "e0000000-0001-4000-a000-000000000002";
 
 const mockMetaSubmissions = {
   byPlayerOverlayId: vi.fn(),
+  byPlayerOverlayIds: vi.fn(),
   recordAcceptance: vi.fn(),
+  revokeAcceptance: vi.fn(),
+  acceptedCorrectionForOverlay: vi.fn(),
   resolve: vi.fn(),
 };
 
 const mockNotifySubmitterOfMetaAcceptance = vi.fn(async () => {});
 
-function metaSubmission(status: string) {
-  return { id: "sub-1", userId: "user-2", status };
+function metaSubmission(status: string, playerOverlayId = PLAYER_OVERLAY_ID) {
+  return { id: "sub-1", userId: "user-2", status, playerOverlayId };
 }
 
 const mockRepos = {
@@ -245,6 +286,39 @@ beforeEach(() => {
   mockOverlays.adminPlayerEditOverlay.mockResolvedValue(undefined);
   mockOverlays.acceptedPlayerOverlays.mockResolvedValue([]);
   mockMetaSubmissions.byPlayerOverlayId.mockResolvedValue(null);
+  mockMetaSubmissions.byPlayerOverlayIds.mockImplementation(async (ids: string[]) => {
+    const rows = await Promise.all(ids.map((id) => mockMetaSubmissions.byPlayerOverlayId(id)));
+    return rows.filter((row) => row !== null);
+  });
+  mockMetaSubmissions.acceptedCorrectionForOverlay.mockResolvedValue(null);
+  mockOverlays.lockEventOverlay.mockImplementation(async (id: string) => {
+    const [row] = await knownEventOverlays([id]);
+    return row;
+  });
+  mockOverlays.lockPlayerOverlays.mockImplementation((ids: string[]) => knownPlayerOverlays(ids));
+  mockOverlays.eventOverlaysByIds.mockImplementation((ids: string[]) => knownEventOverlays(ids));
+  mockOverlays.eventIdsForPlayerOverlays.mockImplementation((ids: string[]) =>
+    Promise.resolve(new Map(ids.map((id) => [id, LIVE_EVENT_ID]))),
+  );
+  mockOverlays.adminEditEventOverlayIds.mockImplementation(async (ids: string[]) => {
+    const rows = await knownEventOverlays(ids);
+    return new Set(
+      rows
+        .filter((row) => row.provider === null && row.submissionNote === null)
+        .map((row) => row.id),
+    );
+  });
+  mockOverlays.adminEditPlayerOverlayIds.mockImplementation(async (ids: string[]) => {
+    const rows = await knownPlayerOverlays(ids);
+    const edits = new Set<string>();
+    for (const row of rows) {
+      const submission = await mockMetaSubmissions.byPlayerOverlayId(row.id);
+      if (row.provider === null && row.submissionNote === null && submission === null) {
+        edits.add(row.id);
+      }
+    }
+    return edits;
+  });
   mockMeta.eventIdForPlayer.mockResolvedValue(LIVE_EVENT_ID);
   mockMeta.rawStandingsForEvent.mockResolvedValue([{ id: LIVE_PLAYER_ID, uvsgamesPlayerId: 4821 }]);
   mockCatalog.cardNamesByIds.mockResolvedValue(new Map([[CARD_ID, "Yasuo"]]));
@@ -1207,6 +1281,17 @@ describe("POST /meta/overlays/players/{id}/accept", () => {
     expect(response.status).toBe(200);
     expect(mockNotifySubmitterOfMetaAcceptance).not.toHaveBeenCalled();
   });
+
+  it("answers a second click 409 and sends no second thank-you", async () => {
+    mockMetaSubmissions.byPlayerOverlayId.mockResolvedValue(metaSubmission("pending"));
+    mockOverlays.playerOverlayById.mockResolvedValue(playerOverlay({ status: "accepted" }));
+
+    const response = await accept({ metaEventPlayerId: LIVE_PLAYER_ID });
+
+    expect(response.status).toBe(409);
+    expect(mockMetaSubmissions.recordAcceptance).not.toHaveBeenCalled();
+    expect(mockNotifySubmitterOfMetaAcceptance).not.toHaveBeenCalled();
+  });
 });
 
 describe("POST /meta/overlays/players/accept", () => {
@@ -1797,7 +1882,9 @@ describe("POST /overlays/player/:id/reject", () => {
     mockOverlays.playerOverlayById.mockResolvedValue(
       playerOverlay({ id: REJECTED_OVERLAY_ID, status: "pending", provider: null }),
     );
-    mockMetaSubmissions.byPlayerOverlayId.mockResolvedValue(metaSubmission("pending"));
+    mockMetaSubmissions.byPlayerOverlayId.mockResolvedValue(
+      metaSubmission("pending", REJECTED_OVERLAY_ID),
+    );
 
     const res = await reject({ reason: "unverified" });
 
@@ -1817,11 +1904,35 @@ describe("POST /overlays/player/:id/reject", () => {
     mockOverlays.playerOverlayById.mockResolvedValue(
       playerOverlay({ id: REJECTED_OVERLAY_ID, status: "pending", provider: null }),
     );
-    mockMetaSubmissions.byPlayerOverlayId.mockResolvedValue(metaSubmission("rejected"));
+    mockMetaSubmissions.byPlayerOverlayId.mockResolvedValue(
+      metaSubmission("rejected", REJECTED_OVERLAY_ID),
+    );
     mockMetaSubmissions.resolve.mockClear();
 
     await reject();
 
     expect(mockMetaSubmissions.resolve).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /meta/overlays/resolve-name", () => {
+  it("re-promotes the event an accepted list on that name belongs to", async () => {
+    mockOverlays.resolveCardName.mockResolvedValue({
+      updated: 2,
+      overlayIds: [PLAYER_OVERLAY_ID],
+    });
+
+    const response = await app.request("/api/admin/v1/meta/overlays/resolve-name", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "Yasuo, Unforgiven", cardId: CARD_ID }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(await readJson(response)).toEqual({ updated: 2 });
+    expect(mockOverlays.eventIdsForPlayerOverlays).toHaveBeenCalledWith([PLAYER_OVERLAY_ID], {
+      acceptedOnly: true,
+    });
+    expect(promoteMetaEvent).toHaveBeenCalledTimes(1);
   });
 });

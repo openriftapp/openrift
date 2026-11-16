@@ -5,7 +5,8 @@ import type {
   MetaSubmissionReason,
   MetaSubmissionStatus,
 } from "@openrift/shared/types/enums";
-import type { Kysely, Selectable } from "kysely";
+import type { Kysely, Selectable, SqlBool } from "kysely";
+import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { MetaEventsTable, MetaSubmissionsTable } from "../../../db/tables/meta.js";
@@ -206,6 +207,100 @@ export function metaSubmissionsRepo(db: Kysely<Database>) {
         .where("playerOverlayId", "=", playerOverlayId)
         .executeTakeFirst();
       return row ?? null;
+    },
+
+    async byPlayerOverlayIds(playerOverlayIds: readonly string[]): Promise<MetaSubmissionRow[]> {
+      const rows: MetaSubmissionRow[] = [];
+      for (const batch of keyBatches(playerOverlayIds)) {
+        rows.push(
+          ...(await db
+            .selectFrom("metaSubmissions")
+            .selectAll()
+            .where("playerOverlayId", "in", batch)
+            .execute()),
+        );
+      }
+      return rows;
+    },
+
+    /**
+     * The accepted correction an event overlay was applied from. No column links
+     * the two: the apply stamps the overlay's `accepted_at` and the row's `resolved_at` from one clock reading.
+     */
+    async acceptedCorrectionForOverlay(overlay: {
+      metaEventId: string | null;
+      submittedByUserId: string;
+      acceptedAt: Date | null;
+    }): Promise<MetaSubmissionRow | null> {
+      if (overlay.metaEventId === null || overlay.acceptedAt === null) {
+        return null;
+      }
+      const row = await db
+        .selectFrom("metaSubmissions")
+        .selectAll()
+        .where("kind", "=", "event_correction")
+        .where("status", "=", "accepted")
+        .where("userId", "=", overlay.submittedByUserId)
+        .where("metaEventId", "=", overlay.metaEventId)
+        .where(sql<SqlBool>`date_trunc('milliseconds', resolved_at) = ${overlay.acceptedAt}`)
+        .orderBy("id", "asc")
+        .executeTakeFirst();
+      return row ?? null;
+    },
+
+    /**
+     * Takes an accepted submission back to rejected and drops its credit, unless
+     * another accepted contribution by the same person earns that same credit.
+     */
+    async revokeAcceptance(values: {
+      submissionId: string;
+      credit: { metaEventId: string; metaEventPlayerId: string | null; userId: string };
+      resolvedAt: Date;
+      reason: MetaSubmissionReason | null;
+      note: string | null;
+      resolvedByUserId: string | null;
+    }): Promise<void> {
+      const run = async (trx: Kysely<Database>): Promise<void> => {
+        await trx
+          .updateTable("metaSubmissions")
+          .set({
+            status: "rejected",
+            resolvedAt: values.resolvedAt,
+            resolutionReason: values.reason,
+            resolutionNote: values.note,
+            resolvedByUserId: values.resolvedByUserId,
+            acceptedDeckId: null,
+          })
+          .where("id", "=", values.submissionId)
+          .execute();
+
+        // An entry accepted before promotion placed it was credited to the event,
+        // and the event credit stands while any accepted contribution to the event does.
+        const { metaEventId, metaEventPlayerId, userId } = values.credit;
+        const keys = metaEventPlayerId === null ? [null] : [metaEventPlayerId, null];
+        for (const playerId of keys) {
+          const stillEarned =
+            playerId === null
+              ? sql`coalesce(o.meta_event_id, p.meta_event_id, s.meta_event_id) = ${metaEventId}::uuid`
+              : sql`o.meta_event_player_id = ${playerId}::uuid`;
+          await sql`
+            delete from meta_credits mc
+            where mc.meta_event_id = ${metaEventId}::uuid
+              and mc.user_id = ${userId}
+              and mc.meta_event_player_id is not distinct from ${playerId}::uuid
+              and not exists (
+                select 1
+                from meta_submissions s
+                left join meta_event_player_overlays o on o.id = s.player_overlay_id
+                left join meta_event_players p on p.id = o.meta_event_player_id
+                where s.user_id = ${userId}
+                  and s.status = 'accepted'
+                  and (${stillEarned})
+              )
+          `.execute(trx);
+        }
+      };
+      await inTransaction(db, run);
     },
 
     /**

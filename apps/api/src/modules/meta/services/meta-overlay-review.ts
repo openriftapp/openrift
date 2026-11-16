@@ -10,7 +10,6 @@ import type {
   MetaEventOverlayField,
   MetaListStatus,
   MetaPlayerOverlayField,
-  MetaSubmissionReason,
 } from "@openrift/shared/types/enums";
 import { META_EVENT_TIERS } from "@openrift/shared/types/enums";
 import type { Insertable } from "kysely";
@@ -21,10 +20,17 @@ import { badRequest, conflict, notFound } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { isoOrNull } from "../../../lib/iso-date.js";
 import { TOURNAMENT_LIST_PROVIDER } from "../../../lib/meta-providers.js";
-import type { MetaPlayerOverlayRow } from "../repositories/meta-overlays.js";
+import type { MetaEventOverlayRow, MetaPlayerOverlayRow } from "../repositories/meta-overlays.js";
 import { sourceEventKeyPrefix } from "../repositories/meta-overlays.js";
 import type { MetaEventPlayerRow } from "../repositories/meta-players.js";
+import type { MetaSubmissionRow } from "../repositories/meta-submissions.js";
 import { splitSourcePlayerKey } from "./ingest-meta-overlays.js";
+import type { MetaSubmissionResolution } from "./meta-overlay-ledger.js";
+import {
+  recordOverlayAcceptance,
+  revokeEventCorrection,
+  settleRejectedSubmissions,
+} from "./meta-overlay-ledger.js";
 import { promoteMetaEvent, promoteNewEvent } from "./meta-promote.js";
 import { acceptCatalogEvent } from "./meta-sync/accept.js";
 
@@ -68,8 +74,11 @@ export async function acceptMetaEventOverlay(
   return await transact((trx) =>
     // Read under the lock, so a concurrent accept of one proposal sees the event the first one minted.
     trx.meta.withPromoteLock(`event-overlay:${overlayId}`, async (repos) => {
-      const overlay = await repos.metaOverlays.eventOverlayById(overlayId);
+      const overlay = await repos.metaOverlays.lockEventOverlay(overlayId);
       assertFound(overlay, "That overlay no longer exists.");
+      if (overlay.status === "accepted") {
+        throw conflict("That overlay was already accepted.");
+      }
 
       if (overlay.metaEventId !== null) {
         await repos.metaOverlays.setEventOverlayStatus(overlayId, "accepted", now);
@@ -209,7 +218,7 @@ export async function moveMetaEventOverlay(
   intoMetaEventId: string,
 ): Promise<MetaOverlayReviewResult> {
   return await transact(async (repos) => {
-    const overlay = await repos.metaOverlays.eventOverlayById(overlayId);
+    const overlay = await repos.metaOverlays.lockEventOverlay(overlayId);
     assertFound(overlay, "That overlay no longer exists.");
     if (overlay.provider === null || overlay.externalId === null) {
       throw badRequest(
@@ -274,19 +283,22 @@ export async function revertMetaUpload(
   now: Date = new Date(),
 ): Promise<MetaUploadRevertResult> {
   return await transact(async (repos) => {
-    const players = await repos.metaOverlays.playerOverlaysForSourceEvents([
+    const [found] = await repos.metaOverlays.eventOverlaysBySourceKeys(provider, [eventExternalId]);
+    const eventOverlay =
+      found === undefined ? undefined : await repos.metaOverlays.lockEventOverlay(found.id);
+    const listed = await repos.metaOverlays.playerOverlaysForSourceEvents([
       { provider, externalId: eventExternalId },
     ]);
-    const [eventOverlay] = await repos.metaOverlays.eventOverlaysBySourceKeys(provider, [
-      eventExternalId,
-    ]);
+    const players = await repos.metaOverlays.lockPlayerOverlays(listed.map((player) => player.id));
     if (eventOverlay === undefined && players.length === 0) {
       throw notFound("No upload with that source key exists.");
     }
 
+    const eventIds = await repos.metaOverlays.eventIdsForPlayerOverlays(
+      players.map((player) => player.id),
+    );
     const affected = new Set<string>();
-    for (const player of players) {
-      const metaEventId = await eventIdForPlayerOverlay(repos, player);
+    for (const metaEventId of eventIds.values()) {
       if (metaEventId !== null) {
         affected.add(metaEventId);
       }
@@ -296,15 +308,18 @@ export async function revertMetaUpload(
     }
 
     const settled = players.filter((player) => player.status !== "rejected");
+    const eventRejected = eventOverlay !== undefined && eventOverlay.status !== "rejected";
+    if (settled.length === 0 && !eventRejected) {
+      throw conflict("That upload is already reverted.");
+    }
+    await settleRejectedSubmissions(repos, settled, eventIds, {}, now);
     await repos.metaOverlays.setPlayerOverlayStatuses(
       settled.map((player) => player.id),
       "rejected",
       now,
     );
-    let eventRejected = false;
-    if (eventOverlay !== undefined && eventOverlay.status !== "rejected") {
+    if (eventRejected) {
       await repos.metaOverlays.setEventOverlayStatus(eventOverlay.id, "rejected", now);
-      eventRejected = true;
     }
 
     for (const metaEventId of [...affected].toSorted()) {
@@ -445,24 +460,36 @@ export async function releaseEventOverlayField(
   transact: Transact,
   metaEventId: string,
   field: MetaEventOverlayField,
+  reviewedByUserId: string | null = null,
   now: Date = new Date(),
 ): Promise<MetaOverlayReviewResult> {
   return await transact(async (repos) => {
     const live = await repos.meta.eventById(metaEventId);
     assertFound(live, "That archived event no longer exists.");
 
-    const overlays = await repos.metaOverlays.acceptedEventOverlays(metaEventId);
-    for (const overlay of overlays) {
-      if (!overlay.claimedFields.includes(field)) {
-        continue;
+    const accepted = await repos.metaOverlays.acceptedEventOverlays(metaEventId);
+    const claiming = accepted
+      .filter((overlay) => overlay.claimedFields.includes(field))
+      .map((overlay) => overlay.id)
+      .toSorted();
+    const overlays: MetaEventOverlayRow[] = [];
+    for (const id of claiming) {
+      const locked = await repos.metaOverlays.lockEventOverlay(id);
+      if (locked?.status === "accepted" && locked.claimedFields.includes(field)) {
+        overlays.push(locked);
       }
+    }
+    const adminEdits = await repos.metaOverlays.adminEditEventOverlayIds(
+      overlays.map((overlay) => overlay.id),
+    );
+    for (const overlay of overlays) {
       const remaining = overlay.claimedFields.filter((claimed) => claimed !== field);
-      const isAdminEdit = overlay.provider === null && overlay.submissionNote === null;
-      if (remaining.length === 0 && isAdminEdit) {
+      if (remaining.length === 0 && adminEdits.has(overlay.id)) {
         await repos.metaOverlays.deleteEventOverlay(overlay.id);
         continue;
       }
       if (remaining.length === 0) {
+        await revokeEventCorrection(repos, overlay, { resolvedByUserId: reviewedByUserId }, now);
         await repos.metaOverlays.setEventOverlayStatus(overlay.id, "rejected", now);
         continue;
       }
@@ -689,6 +716,7 @@ export async function releaseMetaPlayerOverlayField(
   transact: Transact,
   metaEventPlayerId: string,
   field: MetaPlayerOverlayField,
+  reviewedByUserId: string | null = null,
   now: Date = new Date(),
 ): Promise<MetaOverlayReviewResult> {
   return await transact(async (repos) => {
@@ -697,22 +725,45 @@ export async function releaseMetaPlayerOverlayField(
 
     const released: MetaPlayerOverlayField[] =
       field === "cards" || field === "listStatus" ? ["cards", "listStatus"] : [field];
+    const claimsReleased = (overlay: MetaPlayerOverlayRow): boolean =>
+      overlay.status === "accepted" &&
+      overlay.metaEventPlayerId === metaEventPlayerId &&
+      overlay.claimedFields.some((claim) => released.includes(claim));
     const accepted = await repos.metaOverlays.acceptedPlayerOverlays(metaEventId);
-    const overlays = accepted.filter(
-      (overlay) =>
-        overlay.metaEventPlayerId === metaEventPlayerId &&
-        overlay.claimedFields.some((claim) => released.includes(claim)),
+    const locked = await repos.metaOverlays.lockPlayerOverlays(
+      accepted.filter((overlay) => claimsReleased(overlay)).map((overlay) => overlay.id),
     );
+    const overlays = locked.filter((overlay) => claimsReleased(overlay));
+    const adminEdits = await repos.metaOverlays.adminEditPlayerOverlayIds(
+      overlays.map((overlay) => overlay.id),
+    );
+    const emptied = overlays.filter(
+      (overlay) =>
+        !adminEdits.has(overlay.id) &&
+        overlay.claimedFields.every((claim) => released.includes(claim)),
+    );
+    await settleRejectedSubmissions(
+      repos,
+      emptied,
+      new Map(emptied.map((overlay) => [overlay.id, metaEventId])),
+      { resolvedByUserId: reviewedByUserId },
+      now,
+    );
+    if (emptied.length > 0) {
+      await repos.metaOverlays.setPlayerOverlayStatuses(
+        emptied.map((overlay) => overlay.id),
+        "rejected",
+        now,
+      );
+    }
 
     for (const overlay of overlays) {
       const remaining = overlay.claimedFields.filter((claim) => !released.includes(claim));
-      const isAdminEdit = overlay.provider === null && overlay.submissionNote === null;
-      if (remaining.length === 0 && isAdminEdit) {
-        await repos.metaOverlays.deletePlayerOverlay(overlay.id);
-        continue;
-      }
+      const isAdminEdit = adminEdits.has(overlay.id);
       if (remaining.length === 0) {
-        await repos.metaOverlays.setPlayerOverlayStatuses([overlay.id], "rejected", now);
+        if (isAdminEdit) {
+          await repos.metaOverlays.deletePlayerOverlay(overlay.id);
+        }
         continue;
       }
       const cleared = Object.fromEntries(
@@ -735,6 +786,25 @@ interface PendingPlayerAccept {
   player: MetaEventPlayerRow | null;
   metaEventId: string;
   fields?: MetaPlayerOverlayField[] | null;
+}
+
+/** The submissions an accept moved to accepted: the ones whose contributor is owed a thank-you. */
+export type MetaOverlayAcceptOutcome<T> = T & { acceptedSubmissions: MetaSubmissionRow[] };
+
+/** Holds the rows until the accept commits, so a second accept of one row waits and then refuses. */
+async function lockForTransition(
+  repos: Repos,
+  overlayIds: readonly string[],
+  target: "accepted" | "rejected",
+): Promise<MetaPlayerOverlayRow[]> {
+  const locked = await repos.metaOverlays.lockPlayerOverlays(overlayIds);
+  if (locked.length !== new Set(overlayIds).size) {
+    throw notFound("That overlay no longer exists.");
+  }
+  if (locked.some((overlay) => overlay.status === target)) {
+    throw conflict(`That entry was already ${target}.`);
+  }
+  return locked;
 }
 
 async function loadPlayerAccept(
@@ -823,34 +893,6 @@ async function narrowPlayerClaims(
   });
 }
 
-/**
- * Settles the ledger row and credit behind an accepted overlay. Must run
- * after promotion, which resolves the overlay's live player row.
- */
-async function recordOverlayAcceptance(
-  repos: Repos,
-  overlayId: string,
-  metaEventId: string,
-  reviewedByUserId: string | null,
-  now: Date,
-): Promise<void> {
-  const submission = await repos.metaSubmissions.byPlayerOverlayId(overlayId);
-  if (submission === null) {
-    return;
-  }
-  const settled = await repos.metaOverlays.playerOverlayById(overlayId);
-  const metaEventPlayerId = settled?.metaEventPlayerId ?? null;
-  const player =
-    metaEventPlayerId === null ? undefined : await repos.meta.playerById(metaEventPlayerId);
-  await repos.metaSubmissions.recordAcceptance({
-    submissionId: submission.id,
-    credit: { metaEventId, metaEventPlayerId, userId: submission.userId },
-    acceptedDeckId: player?.deckId ?? null,
-    resolvedAt: now,
-    resolvedByUserId: reviewedByUserId,
-  });
-}
-
 export async function acceptMetaPlayerOverlay(
   transact: Transact,
   overlayId: string,
@@ -860,8 +902,9 @@ export async function acceptMetaPlayerOverlay(
     reviewedByUserId?: string | null;
   } = {},
   now: Date = new Date(),
-): Promise<MetaOverlayReviewResult> {
+): Promise<MetaOverlayAcceptOutcome<MetaOverlayReviewResult>> {
   return await transact(async (repos) => {
+    await lockForTransition(repos, [overlayId], "accepted");
     const { overlay, player, metaEventId } = await loadPlayerAccept(
       repos,
       overlayId,
@@ -874,14 +917,18 @@ export async function acceptMetaPlayerOverlay(
     await narrowPlayerClaims(repos, overlayId, claimed, options.fields ?? null);
     await repos.metaOverlays.setPlayerOverlayStatuses([overlayId], "accepted", now);
     await promoteMetaEvent(repos, metaEventId);
-    await recordOverlayAcceptance(
+    const submission = await recordOverlayAcceptance(
       repos,
       overlayId,
       metaEventId,
       options.reviewedByUserId ?? null,
       now,
     );
-    return { metaEventId, created: false };
+    return {
+      metaEventId,
+      created: false,
+      acceptedSubmissions: submission === null ? [] : [submission],
+    };
   });
 }
 
@@ -898,8 +945,13 @@ export async function acceptMetaPlayerOverlays(
   }[],
   reviewedByUserId: string | null = null,
   now: Date = new Date(),
-): Promise<MetaOverlayBulkAcceptResult> {
+): Promise<MetaOverlayAcceptOutcome<MetaOverlayBulkAcceptResult>> {
   return await transact(async (repos) => {
+    await lockForTransition(
+      repos,
+      items.map((item) => item.id),
+      "accepted",
+    );
     const pending: PendingPlayerAccept[] = [];
     for (const item of items) {
       pending.push({
@@ -919,10 +971,20 @@ export async function acceptMetaPlayerOverlays(
     for (const metaEventId of metaEventIds.toSorted()) {
       await promoteMetaEvent(repos, metaEventId);
     }
+    const acceptedSubmissions: MetaSubmissionRow[] = [];
     for (const { overlay, metaEventId } of pending) {
-      await recordOverlayAcceptance(repos, overlay.id, metaEventId, reviewedByUserId, now);
+      const submission = await recordOverlayAcceptance(
+        repos,
+        overlay.id,
+        metaEventId,
+        reviewedByUserId,
+        now,
+      );
+      if (submission !== null) {
+        acceptedSubmissions.push(submission);
+      }
     }
-    return { accepted: pending.length, metaEventIds };
+    return { accepted: pending.length, metaEventIds, acceptedSubmissions };
   });
 }
 
@@ -936,7 +998,7 @@ export async function linkMetaPlayerOverlay(
   metaEventPlayerId: string,
 ): Promise<MetaOverlayReviewResult> {
   return await transact(async (repos) => {
-    const overlay = await repos.metaOverlays.playerOverlayById(overlayId);
+    const [overlay] = await repos.metaOverlays.lockPlayerOverlays([overlayId]);
     assertFound(overlay, "That overlay no longer exists.");
     const player = await repos.meta.playerById(metaEventPlayerId);
     assertFound(player, "That standings row no longer exists.");
@@ -951,49 +1013,66 @@ export async function linkMetaPlayerOverlay(
 }
 
 /**
+ * Maps an unmatched card name on every queued line, then re-promotes the
+ * events whose accepted lists that completes: a list stays off the live row
+ * until all of its lines resolve.
+ */
+export async function resolveMetaCardName(
+  transact: Transact,
+  cardName: string,
+  cardId: string,
+): Promise<{ updated: number; metaEventIds: string[] }> {
+  return await transact(async (repos) => {
+    const { updated, overlayIds } = await repos.metaOverlays.resolveCardName(cardName, cardId);
+    const eventIds = await repos.metaOverlays.eventIdsForPlayerOverlays(overlayIds, {
+      acceptedOnly: true,
+    });
+    const metaEventIds = [...new Set(eventIds.values())].filter((id) => id !== null).toSorted();
+    for (const metaEventId of metaEventIds) {
+      await promoteMetaEvent(repos, metaEventId);
+    }
+    return { updated, metaEventIds };
+  });
+}
+
+/**
  * Promotion runs afterward only if the overlay had been applied:
  * un-accepting a patch must put the promoted value back, which a re-promote does.
  */
 export async function rejectMetaOverlay(
   transact: Transact,
   target: { kind: "event" | "player"; id: string },
-  resolution: {
-    reason?: MetaSubmissionReason | null;
-    note?: string | null;
-    resolvedByUserId?: string | null;
-  } = {},
+  resolution: MetaSubmissionResolution = {},
   now: Date = new Date(),
 ): Promise<MetaOverlayReviewResult> {
   return await transact(async (repos) => {
     if (target.kind === "event") {
-      const overlay = await repos.metaOverlays.eventOverlayById(target.id);
+      const overlay = await repos.metaOverlays.lockEventOverlay(target.id);
       assertFound(overlay, "That overlay no longer exists.");
-      const wasApplied = overlay.status === "accepted";
+      if (overlay.status === "rejected") {
+        throw conflict("That overlay was already rejected.");
+      }
+      await revokeEventCorrection(repos, overlay, resolution, now);
       await repos.metaOverlays.setEventOverlayStatus(target.id, "rejected", now);
-      if (wasApplied && overlay.metaEventId !== null) {
+      if (overlay.status === "accepted" && overlay.metaEventId !== null) {
         await promoteMetaEvent(repos, overlay.metaEventId);
       }
       return { metaEventId: overlay.metaEventId, created: false };
     }
 
-    const overlay = await repos.metaOverlays.playerOverlayById(target.id);
+    const [overlay] = await lockForTransition(repos, [target.id], "rejected");
     assertFound(overlay, "That overlay no longer exists.");
-    const wasApplied = overlay.status === "accepted";
     const metaEventId = await eventIdForPlayerOverlay(repos, overlay);
+    await settleRejectedSubmissions(
+      repos,
+      [overlay],
+      new Map([[overlay.id, metaEventId]]),
+      resolution,
+      now,
+    );
     await repos.metaOverlays.setPlayerOverlayStatuses([target.id], "rejected", now);
-    if (wasApplied && metaEventId !== null) {
+    if (overlay.status === "accepted" && metaEventId !== null) {
       await promoteMetaEvent(repos, metaEventId);
-    }
-    const submission = await repos.metaSubmissions.byPlayerOverlayId(target.id);
-    if (submission?.status === "pending") {
-      await repos.metaSubmissions.resolve(submission.id, {
-        status: "rejected",
-        resolvedAt: now,
-        reason: resolution.reason ?? null,
-        note: resolution.note ?? null,
-        resolvedByUserId: resolution.resolvedByUserId ?? null,
-        acceptedDeckId: null,
-      });
     }
     return { metaEventId, created: false };
   });

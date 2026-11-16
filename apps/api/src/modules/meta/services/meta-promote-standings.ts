@@ -250,9 +250,9 @@ function samePlayerColumns(row: MetaEventPlayerPatch, patch: MetaEventPlayerPatc
  * Whether `setPlayerDeck` would write nothing for this list. Mirrors that
  * method's own comparison under `preserveName`, and has to keep mirroring it.
  */
-function sameStoredDeck(
+export function sameStoredDeck(
   stored: MetaStoredPlayerDeck | undefined,
-  deck: MetaArchivedDeckInput,
+  deck: Pick<MetaArchivedDeckInput, "format" | "listStatus" | "cards">,
 ): boolean {
   return (
     stored !== undefined &&

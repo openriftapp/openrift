@@ -17,8 +17,10 @@ import { playerSourceKey } from "./ingest-meta-overlays.js";
 import {
   acceptMetaEventOverlay,
   acceptMetaPlayerOverlay,
+  applyMetaEventCorrection,
   linkMetaPlayerOverlay,
   moveMetaEventOverlay,
+  rejectMetaOverlay,
   releaseEventOverlayField,
   releaseMetaPlayerOverlayField,
   revertMetaUpload,
@@ -968,6 +970,181 @@ describe.skipIf(!ctx)("overlay review", () => {
         id: listed?.metaEventPlayerId,
         playerName: "MOR Lsted",
       });
+    });
+  });
+
+  describe("taking a contribution back", () => {
+    async function seedContributor(): Promise<string> {
+      const user = await seedTestUser(db);
+      createdUserIds.push(user.id);
+      return user.id;
+    }
+
+    /** A contributor's standings correction sent without a note, as the submit form allows. */
+    async function submitWins(
+      metaEventPlayerId: string,
+      metaEventId: string,
+      userId: string,
+    ): Promise<{ overlayId: string; submissionId: string }> {
+      const overlayId = await repos.metaOverlays.insertPlayerOverlay(
+        {
+          metaEventPlayerId,
+          wins: 9,
+          claimedFields: ["wins"],
+          submittedByUserId: userId,
+          submissionNote: null,
+        },
+        [],
+      );
+      const submissionId = await repos.metaSubmissions.insert({
+        userId,
+        provider: "usersubmission",
+        externalId: `mor-${crypto.randomUUID()}`,
+        playerOverlayId: overlayId,
+        metaEventId,
+        metaEventPlayerId,
+        eventName: "MOR Rune Cup",
+        playerName: "MOR Ashe",
+        kind: "correction",
+        note: null,
+      });
+      return { overlayId, submissionId };
+    }
+
+    function creditsFor(userId: string) {
+      return db
+        .selectFrom("metaCredits")
+        .select(["metaEventId", "metaEventPlayerId"])
+        .where("userId", "=", userId)
+        .execute();
+    }
+
+    it("rejects a noteless contribution whose last claim is released, with its credit", async () => {
+      const { metaEventId, metaEventPlayerId } = await seedMirroredPlayer("mor-noteless-release");
+      const userId = await seedContributor();
+      const { overlayId, submissionId } = await submitWins(metaEventPlayerId, metaEventId, userId);
+      await acceptMetaPlayerOverlay(transact, overlayId, { reviewedByUserId: otherAdminId });
+      expect(await creditsFor(userId)).toHaveLength(1);
+
+      await releaseMetaPlayerOverlayField(transact, metaEventPlayerId, "wins", otherAdminId);
+
+      expect(await repos.metaOverlays.playerOverlayById(overlayId)).toMatchObject({
+        status: "rejected",
+        claimedFields: ["wins"],
+        wins: 9,
+      });
+      expect(await repos.metaSubmissions.byId(submissionId)).toMatchObject({ status: "rejected" });
+      expect(await creditsFor(userId)).toEqual([]);
+      const [player] = await repo.rawStandingsForEvent(metaEventId);
+      expect(player!.wins).toBe(4);
+    });
+
+    it("keeps an admin's later edit out of a contributor's noteless overlay", async () => {
+      const { metaEventId, metaEventPlayerId } = await seedMirroredPlayer("mor-noteless-merge");
+      const { overlayId } = await submitWins(metaEventPlayerId, metaEventId, otherAdminId);
+      await acceptMetaPlayerOverlay(transact, overlayId);
+
+      await writeMetaPlayerOverlayFields(
+        transact,
+        metaEventPlayerId,
+        { fields: { losses: 2 } },
+        otherAdminId,
+      );
+
+      const overlays = await repos.metaOverlays.acceptedPlayerOverlays(metaEventId);
+      expect(overlays).toHaveLength(2);
+      expect(overlays.find((overlay) => overlay.id === overlayId)).toMatchObject({
+        claimedFields: ["wins"],
+      });
+    });
+
+    it("moves an accepted submission back to rejected and drops the credit on reject", async () => {
+      const { metaEventId, metaEventPlayerId } = await seedMirroredPlayer("mor-unaccept-reject");
+      const userId = await seedContributor();
+      const { overlayId, submissionId } = await submitWins(metaEventPlayerId, metaEventId, userId);
+      await acceptMetaPlayerOverlay(transact, overlayId, { reviewedByUserId: otherAdminId });
+
+      await rejectMetaOverlay(
+        transact,
+        { kind: "player", id: overlayId },
+        { reason: "unverified", resolvedByUserId: otherAdminId },
+      );
+
+      expect(await repos.metaSubmissions.byId(submissionId)).toMatchObject({
+        status: "rejected",
+        resolutionReason: "unverified",
+        acceptedDeckId: null,
+      });
+      expect(await creditsFor(userId)).toEqual([]);
+    });
+
+    it("keeps the credit another accepted contribution to the same entry still earns", async () => {
+      const { metaEventId, metaEventPlayerId } = await seedMirroredPlayer("mor-credit-shared");
+      const userId = await seedContributor();
+      const first = await submitWins(metaEventPlayerId, metaEventId, userId);
+      const second = await submitWins(metaEventPlayerId, metaEventId, userId);
+      await acceptMetaPlayerOverlay(transact, first.overlayId);
+      await acceptMetaPlayerOverlay(transact, second.overlayId);
+
+      await rejectMetaOverlay(transact, { kind: "player", id: first.overlayId });
+
+      expect(await creditsFor(userId)).toEqual([{ metaEventId, metaEventPlayerId }]);
+    });
+
+    it("takes an applied event correction back with its credit when it is rejected", async () => {
+      const metaEventId = await seedLiveEvent("mor-correction-reject");
+      const userId = await seedContributor();
+      const submissionId = await repos.metaSubmissions.insert({
+        userId,
+        provider: "usersubmission",
+        externalId: `mor-${crypto.randomUUID()}`,
+        playerOverlayId: null,
+        metaEventId,
+        eventName: "MOR Summoner Skirmish",
+        playerName: null,
+        kind: "event_correction",
+        fieldEdits: { organizer: "MOR Piltover Games" },
+        note: "The flyer names the store.",
+      });
+      await applyMetaEventCorrection(transact, submissionId, {
+        fields: null,
+        reviewedByUserId: otherAdminId,
+      });
+      expect(await creditsFor(userId)).toHaveLength(1);
+      const [overlay] = await repos.metaOverlays.acceptedEventOverlays(metaEventId);
+
+      await rejectMetaOverlay(transact, { kind: "event", id: overlay!.id });
+
+      expect(await repos.metaSubmissions.byId(submissionId)).toMatchObject({ status: "rejected" });
+      expect(await creditsFor(userId)).toEqual([]);
+    });
+
+    it("lets one of two concurrent accepts through and refuses the other with 409", async () => {
+      const { metaEventId, metaEventPlayerId } = await seedMirroredPlayer("mor-double-accept");
+      const userId = await seedContributor();
+      const { overlayId } = await submitWins(metaEventPlayerId, metaEventId, userId);
+
+      const results = await Promise.allSettled([
+        acceptMetaPlayerOverlay(transact, overlayId),
+        acceptMetaPlayerOverlay(transact, overlayId),
+      ]);
+
+      const fulfilled = results.filter((result) => result.status === "fulfilled");
+      const rejected = results.filter((result) => result.status === "rejected");
+      expect(fulfilled).toHaveLength(1);
+      expect(fulfilled[0]!.value.acceptedSubmissions).toHaveLength(1);
+      expect(rejected).toHaveLength(1);
+      expect(rejected[0]!.reason).toMatchObject({ status: 409 });
+    });
+
+    it("refuses a second reject of the same entry", async () => {
+      const { metaEventId, metaEventPlayerId } = await seedMirroredPlayer("mor-double-reject");
+      const { overlayId } = await submitWins(metaEventPlayerId, metaEventId, otherAdminId);
+      await rejectMetaOverlay(transact, { kind: "player", id: overlayId });
+
+      await expect(
+        rejectMetaOverlay(transact, { kind: "player", id: overlayId }),
+      ).rejects.toMatchObject({ status: 409 });
     });
   });
 });

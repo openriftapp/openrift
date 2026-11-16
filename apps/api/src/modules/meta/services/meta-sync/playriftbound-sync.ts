@@ -1,7 +1,8 @@
 import { MINUTE_MS } from "@openrift/shared/format-date";
 import { errorMessage } from "@openrift/shared/strings";
+import { z } from "zod";
 
-import { recordCapped, record } from "../../../../lib/json-coerce.js";
+import { recordCapped } from "../../../../lib/json-coerce.js";
 import { shiftDays } from "../../lib/meta-durations.js";
 import { firstRevisit, lifecycleStatus, nextRecheck } from "../../lib/meta-recheck-schedule.js";
 import type { PlayriftboundCell } from "../../lib/playriftbound-catalog.js";
@@ -20,7 +21,11 @@ import type {
 import { createCrawlRun, DAILY_SYNC_TIME_BUDGET_MS } from "./crawl-run.js";
 import { clock } from "./deps.js";
 import { autoAcceptPlayriftboundEvents } from "./playriftbound-accept.js";
-import { isRunStopping, PlayriftboundUnavailableError } from "./playriftbound-client.js";
+import {
+  isRunStopping,
+  PlayriftboundRefusedError,
+  PlayriftboundUnavailableError,
+} from "./playriftbound-client.js";
 import type { PlayriftboundDeepFetchResult } from "./playriftbound-deep-fetch.js";
 import { playriftboundDeepFetch, readPlayriftboundUpdatedAt } from "./playriftbound-deep-fetch.js";
 import type { PlayriftboundSyncDeps } from "./playriftbound-deps.js";
@@ -103,6 +108,13 @@ export function isPlayriftboundRecheckNoop(result: PlayriftboundRecheckResult): 
   return isRecheckPassNoop(result);
 }
 
+const searchResponseSchema = z.object({
+  competeTournamentSearch: z.object({
+    edges: z.array(z.object({ node: z.unknown() })),
+    pageInfo: z.object({ hasNextPage: z.boolean(), endCursor: z.string().nullish() }),
+  }),
+});
+
 interface SearchPage {
   nodes: unknown[];
   endCursor: string | null;
@@ -128,14 +140,24 @@ async function searchPage(
     sortBy: { rb: "DATE" },
     ...(after === null ? {} : { after }),
   });
-  const connection = record(record(data)?.competeTournamentSearch);
-  const edges = Array.isArray(connection?.edges) ? connection.edges : [];
-  const pageInfo = record(connection?.pageInfo);
-  const endCursor =
-    pageInfo?.hasNextPage === true && typeof pageInfo.endCursor === "string"
-      ? pageInfo.endCursor
-      : null;
-  return { nodes: edges.map((edge) => record(edge)?.node), endCursor };
+  const parsed = searchResponseSchema.safeParse(data);
+  if (!parsed.success) {
+    throw new PlayriftboundRefusedError(
+      `${SEARCH_QUERY} answered in an unknown shape: ${z.prettifyError(parsed.error)}`,
+      true,
+    );
+  }
+  const { edges, pageInfo } = parsed.data.competeTournamentSearch;
+  if (pageInfo.hasNextPage && typeof pageInfo.endCursor !== "string") {
+    throw new PlayriftboundRefusedError(
+      `${SEARCH_QUERY} reported a next page without a cursor`,
+      true,
+    );
+  }
+  return {
+    nodes: edges.map((edge) => edge.node),
+    endCursor: pageInfo.hasNextPage ? (pageInfo.endCursor ?? null) : null,
+  };
 }
 
 interface CrawlState {
@@ -165,11 +187,13 @@ async function crawlCell(
     const events: PlayriftboundUpsertInput[] = [];
     const organizers = [];
     let pastHorizon = false;
+    let projectedAny = false;
     for (const node of body.nodes) {
       const projected = projectSearchResult(node);
       if (projected === null) {
         continue;
       }
+      projectedAny = true;
       found = true;
       if (projected.event.startAt.getTime() > horizon.getTime()) {
         pastHorizon = true;
@@ -184,6 +208,13 @@ async function crawlCell(
       }
       state.seen.add(projected.event.tournamentId);
       events.push(projected.event);
+    }
+    if (body.nodes.length > 0 && !projectedAny) {
+      // A reshaped event would read as every row gone, so the run must not mark any missing.
+      result.complete = false;
+      recordCapped(result.errors, [
+        `None of the ${body.nodes.length} events around ${cell.latitude.toFixed(2)}, ${cell.longitude.toFixed(2)} could be read.`,
+      ]);
     }
     await deps.repos.playriftboundEvents.upsertOrganizers(organizers);
     const written = await deps.repos.playriftboundEvents.upsertBatch(events, state.seenAt);

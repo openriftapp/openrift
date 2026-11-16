@@ -401,8 +401,6 @@ const UVSGAMES = {
     (deps, runId) => processRechecks(deps, { runId, listing: true }),
     isRecheckNoop,
   ),
-  // Five upstream requests at 30s each outlive the proxy's read timeout: the
-  // gateway 405s the dead POST, but the run keeps going and reports its runId.
   fetchEvent: uvsgamesJobs.eventFetch(META_SOURCE_JOB_KINDS.uvsgames.eventFetch, fetchEventNow),
 } satisfies CatalogSource<CatalogQuery<"dismiss">, string, UvsgamesListRow, CatalogQuery<"list">>;
 

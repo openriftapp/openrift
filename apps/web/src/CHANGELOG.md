@@ -9,6 +9,7 @@
 - fix(Trades): **Accurate settle-up message** — "The rest went through" only shows when some cards did settle.
 - fix(Decks): **Unknown cards kept in exports** — export and share from the deck menu keep cards the app does not recognise yet, and grouping by type lists them under "Unknown cards".
 - fix(Decks): **Repeated cards are summed** — a deck card list that names the same card, zone and printing twice is saved with the quantities added together.
+- fix(Meta): **Credits follow the review** — a decklist or event correction that is taken back after being accepted shows as rejected on your submissions page and no longer credits you on the event.
 
 ## 2026-11-16
 

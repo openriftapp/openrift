@@ -69,6 +69,7 @@ interface SearchCall {
 function fakeDeps(options: {
   organizers?: { latitude: number; longitude: number }[];
   pages?: (call: SearchCall) => { nodes: unknown[]; next: string | null } | Error;
+  body?: unknown;
   due?: PlayriftboundRecheckRow[];
   cancelAfter?: number;
 }) {
@@ -100,6 +101,9 @@ function fakeDeps(options: {
         after: (variables.after as string | undefined) ?? null,
       };
       searches.push(call);
+      if (options.body !== undefined) {
+        return Promise.resolve(options.body as T);
+      }
       const page = options.pages?.(call) ?? { nodes: [], next: null };
       if (page instanceof Error) {
         return Promise.reject(page);
@@ -345,6 +349,29 @@ describe("syncPlayriftboundCatalog", () => {
       blockedUntil: null,
       pausedUntil: new Date(NOW.getTime() + HOUR_MS / 2).toISOString(),
     });
+  });
+
+  it("stops without marking anything missing when the search answers in a shape it does not know", async () => {
+    const { deps, searches, missing } = fakeDeps({
+      organizers: [HANNOVER, BERLIN],
+      body: { competeTournamentSearch: { results: [] } },
+    });
+    const result = await syncPlayriftboundCatalog(deps);
+    expect(searches).toHaveLength(1);
+    expect(missing).toEqual([]);
+    expect(result.complete).toBe(false);
+    expect(result.errors[0]).toMatch(/unknown shape/u);
+  });
+
+  it("marks nothing missing when events came back but none of them could be read", async () => {
+    const { deps, missing } = fakeDeps({
+      organizers: [HANNOVER],
+      pages: () => ({ nodes: [{ event: { id: "1" } }], next: null }),
+    });
+    const result = await syncPlayriftboundCatalog(deps);
+    expect(missing).toEqual([]);
+    expect(result.complete).toBe(false);
+    expect(result.errors[0]).toMatch(/could be read/u);
   });
 
   it("treats a refusal tied to one area as that area failing", async () => {

@@ -23,6 +23,7 @@ import type {
   MetaPlayerOverlayRow,
 } from "../repositories/meta-overlays.js";
 import type { AdminMetaPlayerRow, LiveMetaPlayerRow } from "../repositories/meta-players.js";
+import type { MetaSubmissionRow } from "../repositories/meta-submissions.js";
 import { ingestMetaOverlays, splitSourcePlayerKey } from "../services/ingest-meta-overlays.js";
 import {
   linkMetaCrossSourcePlayers,
@@ -48,6 +49,7 @@ import {
   rejectMetaOverlay,
   releaseEventOverlayField,
   releaseMetaPlayerOverlayField,
+  resolveMetaCardName,
   revertMetaUpload,
   writeEventOverlayFields,
   writeMetaPlayerOverlayFields,
@@ -62,19 +64,11 @@ import { sourceEventFacts } from "../services/meta-promote-sources.js";
 
 const os = implement(adminMetaCandidatesContract).$context<ApiContext>().use(requireAuthedUser);
 
-// Accepting an already-accepted overlay succeeds again, so only rows that were not accepted before earn a thank-you.
-// A tournament's lists earn one per organizer and event, not one per list.
-async function unacceptedSubmissionIds(
-  repos: Repos,
-  overlayIds: readonly string[],
-): Promise<string[]> {
+// A tournament's lists earn one thank-you per organizer and event, not one per list.
+function thankedSubmissionIds(submissions: readonly MetaSubmissionRow[]): string[] {
   const ids: string[] = [];
   const thankedSends = new Set<string>();
-  for (const overlayId of overlayIds) {
-    const submission = await repos.metaSubmissions.byPlayerOverlayId(overlayId);
-    if (submission === null || submission.status === "accepted") {
-      continue;
-    }
+  for (const submission of submissions) {
     if (submission.provider === TOURNAMENT_LIST_PROVIDER) {
       const send = `${submission.userId}:${splitSourcePlayerKey(submission.externalId).eventExternalId}`;
       if (thankedSends.has(send)) {
@@ -252,13 +246,8 @@ async function queueRows(
       .map((row) => row.eventOverlayId)
       .filter((id): id is string => id !== null),
   );
-  const parents = new Map(
-    await Promise.all(
-      [...parentIds].map(
-        async (id) => [id, (await metaOverlays.eventOverlayById(id)) ?? null] as const,
-      ),
-    ),
-  );
+  const parentRows = await metaOverlays.eventOverlaysByIds([...parentIds]);
+  const parents = new Map(parentRows.map((row) => [row.id, row]));
 
   const eventIdFor = (overlay: MetaPlayerOverlayRow): string | null => {
     if (overlay.metaEventId !== null) {
@@ -478,7 +467,7 @@ export const adminMetaCandidatesRouter = os.router({
 
   releaseEventOverlayField: os.releaseEventOverlayField.handler(
     ({ input, context }): Promise<MetaOverlayReviewResult> =>
-      releaseEventOverlayField(context.transact, input.id, input.field),
+      releaseEventOverlayField(context.transact, input.id, input.field, context.userId),
   ),
 
   writePlayerOverlayFields: os.writePlayerOverlayFields.handler(
@@ -493,7 +482,7 @@ export const adminMetaCandidatesRouter = os.router({
 
   releasePlayerOverlayField: os.releasePlayerOverlayField.handler(
     ({ input, context }): Promise<MetaOverlayReviewResult> =>
-      releaseMetaPlayerOverlayField(context.transact, input.id, input.field),
+      releaseMetaPlayerOverlayField(context.transact, input.id, input.field, context.userId),
   ),
 
   setSourcePriority: os.setSourcePriority.handler(async ({ input, context }): Promise<void> => {
@@ -504,7 +493,7 @@ export const adminMetaCandidatesRouter = os.router({
   }),
 
   resolveName: os.resolveName.handler(async ({ input, context }) => {
-    const updated = await context.repos.metaOverlays.resolveCardName(input.name, input.cardId);
+    const { updated } = await resolveMetaCardName(context.transact, input.name, input.cardId);
     return { updated };
   }),
 
@@ -520,23 +509,26 @@ export const adminMetaCandidatesRouter = os.router({
 
   acceptPlayerOverlay: os.acceptPlayerOverlay.handler(
     async ({ input, context }): Promise<MetaOverlayReviewResult> => {
-      const submissionIds = await unacceptedSubmissionIds(context.repos, [input.id]);
-      const result = await acceptMetaPlayerOverlay(context.transact, input.id, {
-        metaEventPlayerId: input.metaEventPlayerId,
-        fields: input.fields,
-        reviewedByUserId: context.userId,
-      });
-      void thankSubmitters(context, submissionIds);
+      const { acceptedSubmissions, ...result } = await acceptMetaPlayerOverlay(
+        context.transact,
+        input.id,
+        {
+          metaEventPlayerId: input.metaEventPlayerId,
+          fields: input.fields,
+          reviewedByUserId: context.userId,
+        },
+      );
+      void thankSubmitters(context, thankedSubmissionIds(acceptedSubmissions));
       return result;
     },
   ),
   acceptPlayerOverlays: os.acceptPlayerOverlays.handler(async ({ input, context }) => {
-    const submissionIds = await unacceptedSubmissionIds(
-      context.repos,
-      input.items.map((item) => item.id),
+    const { acceptedSubmissions, ...result } = await acceptMetaPlayerOverlays(
+      context.transact,
+      input.items,
+      context.userId,
     );
-    const result = await acceptMetaPlayerOverlays(context.transact, input.items, context.userId);
-    void thankSubmitters(context, submissionIds);
+    void thankSubmitters(context, thankedSubmissionIds(acceptedSubmissions));
     return result;
   }),
 
