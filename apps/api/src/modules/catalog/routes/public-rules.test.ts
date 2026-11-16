@@ -289,6 +289,51 @@ describe("GET /api/v1/rules/page", () => {
     expect(mockRulesRepo.listCardNames).not.toHaveBeenCalled();
   });
 
+  it("marks a translation's infractions and remedies headings from the English text by rule number", async () => {
+    const rule = (language: string, ruleNumber: string, content: string) => ({
+      ...dbRule,
+      kind: "tournament",
+      language,
+      id: `r-${language}-${ruleNumber}`,
+      ruleNumber,
+      content,
+    });
+    mockRulesRepo.listAtVersion.mockImplementation((_kind: string, language: string) =>
+      Promise.resolve(
+        language === "en"
+          ? [
+              rule("en", "702.1", "*Overview*"),
+              rule("en", "702.2", "*Missed Trigger [No Penalty]:* A trigger is missed."),
+              rule("en", "702.2.f", "Remedies:"),
+            ]
+          : [
+              rule("ko", "702.1", "개요"),
+              rule("ko", "702.2", "유발 스킬 놓침 [페널티 없음]: 유발을 놓친 경우"),
+              rule("ko", "702.2.f", "구제책:"),
+            ],
+      ),
+    );
+
+    const ko = await readJson(
+      await app.request("/api/v1/rules/page?kind=tournament&version=1.2.0&language=ko"),
+    );
+
+    expect(ko.rules[0]).not.toHaveProperty("infraction");
+    expect(ko.rules[1].infraction).toEqual({ penalties: ["No Penalty"], stated: true });
+    expect(ko.rules[2].block).toBe("remedies");
+  });
+
+  it("marks no infractions in the core rules", async () => {
+    mockRulesRepo.listAtVersion.mockResolvedValue([
+      { ...dbRule, ruleNumber: "702.1", content: "*Overview*" },
+      { ...dbRule, ruleNumber: "702.2", content: "*Missed Trigger [No Penalty]:* A trigger." },
+    ]);
+
+    const json = await readJson(await app.request("/api/v1/rules/page?kind=core&version=1.2.0"));
+
+    expect(json.rules[1]).not.toHaveProperty("infraction");
+  });
+
   it("requires a version", async () => {
     const res = await app.request("/api/v1/rules/page?kind=core");
     expect(res.status).toBe(400);

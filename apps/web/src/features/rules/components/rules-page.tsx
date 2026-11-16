@@ -1,7 +1,8 @@
 import { formatDay } from "@openrift/shared/format-date";
 import { formatRuleNumber } from "@openrift/shared/rules";
+import { hasInfractions } from "@openrift/shared/rules-infractions";
 import { searchTerms } from "@openrift/shared/search-fold";
-import type { RuleKind, RuleLanguage } from "@openrift/shared/types/api/rules";
+import type { RuleKind, RuleLanguage, RuleVersionResponse } from "@openrift/shared/types/api/rules";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { BookOpenIcon } from "lucide-react";
@@ -62,10 +63,10 @@ import { ChangesSummary } from "./rules-changes-summary";
 import {
   ChangesViewToggle,
   KindTabs,
-  RulesLanguageSelect,
+  RulesDocumentSelects,
   RulesSearchBar,
   RulesSettingsSheet,
-  RulesVersionSelect,
+  RulesViewToggle,
 } from "./rules-toolbar";
 
 function buildRulesTocItems(rules: RuleEntry[]): PageTocItem[] {
@@ -120,10 +121,14 @@ function NoRulesYet() {
 
 function RulesHero({
   kind,
+  title = ruleKindTitle(kind),
+  lead = ruleKindDescription(kind),
   phoneFacts,
   children,
 }: {
   kind: RuleKind;
+  title?: string;
+  lead?: string;
   phoneFacts?: readonly string[];
   children?: ReactNode;
 }) {
@@ -139,13 +144,55 @@ function RulesHero({
           </span>
         </>
       }
-      title={ruleKindTitle(kind)}
-      lead={ruleKindDescription(kind)}
+      title={title}
+      lead={lead}
       compactOnPhone
       phoneFacts={phoneFacts}
     >
       {children}
     </PageHero>
+  );
+}
+
+export function RulesVersionHero({
+  kind,
+  language,
+  version,
+  currentVersion,
+  title,
+  lead,
+}: {
+  kind: RuleKind;
+  language: RuleLanguage;
+  version: string;
+  currentVersion?: RuleVersionResponse;
+  title?: string;
+  lead?: string;
+}) {
+  const languageCount = (currentVersion?.languages ?? [language]).length;
+  const stats = [
+    ...(currentVersion?.documentVersion
+      ? [{ key: "version", value: currentVersion.documentVersion, label: m.rules_stat_version() }]
+      : []),
+    { key: "languages", value: languageCount, label: m.rules_stat_languages() },
+    {
+      key: "published",
+      value: <time dateTime={version}>{formatDay(version)}</time>,
+      label: m.rules_stat_published(),
+    },
+  ];
+  return (
+    <RulesHero
+      kind={kind}
+      title={title}
+      lead={lead}
+      phoneFacts={rulesPhoneFacts(
+        currentVersion ?? { version, documentVersion: null },
+        languageCount,
+      )}
+    >
+      <PageHeroStats stats={stats} className="max-md:hidden" />
+    </RulesHero>
   );
 }
 
@@ -213,9 +260,6 @@ function RulesContent({
     getPreviousVersion(versions, version) ??
     (language === "en" ? null : getPreviousVersion(englishVersionsData.versions, version));
   const versionLabels = ruleVersionLabels([...englishVersionsData.versions, ...versions]);
-  const versionItems = versions
-    .toReversed()
-    .map((entry) => ({ value: entry.version, label: versionLabels.get(entry.version) }));
 
   const isSearching =
     searchTerms(debouncedSearchQuery).length > 0 &&
@@ -275,19 +319,13 @@ function RulesContent({
 
   const renderSettings = (triggerClassName?: string) => (
     <>
-      <RulesLanguageSelect
-        kind={kind}
-        language={language}
-        languages={versionsData.languages}
-        versionLanguages={currentVersion?.languages ?? [language]}
-        className={triggerClassName}
-      />
-      <RulesVersionSelect
+      <RulesDocumentSelects
         kind={kind}
         language={language}
         version={version}
-        items={versionItems}
-        fallbackLabel={versionLabels.get(version)}
+        view="document"
+        versions={versionsData}
+        englishVersions={englishVersionsData}
         className={triggerClassName}
       />
       {!isSearching && (
@@ -296,34 +334,20 @@ function RulesContent({
     </>
   );
 
-  const stats = [
-    ...(currentVersion?.documentVersion
-      ? [{ key: "version", value: currentVersion.documentVersion, label: m.rules_stat_version() }]
-      : []),
-    {
-      key: "languages",
-      value: (currentVersion?.languages ?? [language]).length,
-      label: m.rules_stat_languages(),
-    },
-    {
-      key: "published",
-      value: <time dateTime={version}>{formatDay(version)}</time>,
-      label: m.rules_stat_published(),
-    },
-  ];
-
   return (
     <>
-      <RulesHero
+      <RulesVersionHero
         kind={kind}
-        phoneFacts={rulesPhoneFacts(
-          currentVersion ?? { version, documentVersion: null },
-          (currentVersion?.languages ?? [language]).length,
-        )}
-      >
-        <PageHeroStats stats={stats} className="max-md:hidden" />
-      </RulesHero>
+        language={language}
+        version={version}
+        currentVersion={currentVersion}
+      />
       <div className={cn(PAGE_WIDTH.capped, "pt-3", PAGE_PADDING_NO_TOP)}>
+        {kind === "tournament" && hasInfractions(rulesData.rules) && (
+          <div className="mb-2">
+            <RulesViewToggle view="document" version={version} language={language} />
+          </div>
+        )}
         <div
           ref={setToolbarEl}
           className={cn(

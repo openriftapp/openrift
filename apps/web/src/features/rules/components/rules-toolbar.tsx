@@ -1,4 +1,8 @@
-import type { RuleKind, RuleLanguage } from "@openrift/shared/types/api/rules";
+import type {
+  RuleKind,
+  RuleLanguage,
+  RuleVersionsListResponse,
+} from "@openrift/shared/types/api/rules";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { ChevronDownIcon, FileClockIcon } from "lucide-react";
 import { useState } from "react";
@@ -17,6 +21,8 @@ import { SimpleSelect } from "@/components/ui/simple-select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ruleVersionLabels } from "@/features/rules/lib/rule-version-label";
+import type { RulesView } from "@/features/rules/lib/rules-version-loader";
 import {
   isRulesChangesView,
   useRulesChangesViewStore,
@@ -76,17 +82,21 @@ export function ChangesViewToggle({
   );
 }
 
-export function RulesLanguageSelect({
+function RulesLanguageSelect({
   kind,
   language,
   languages,
   versionLanguages,
+  view,
+  englishVersions,
   className,
 }: {
   kind: RuleKind;
   language: RuleLanguage;
   languages: readonly RuleLanguage[];
   versionLanguages: readonly RuleLanguage[];
+  view: RulesView;
+  englishVersions: RuleVersionsListResponse;
   className?: string;
 }) {
   const navigate = useNavigate();
@@ -108,9 +118,18 @@ export function RulesLanguageSelect({
         }
         if (versionLanguages.includes(next)) {
           void navigate({ to: ".", search: (prev) => ({ ...prev, lang: next }) });
-        } else {
-          void navigate({ to: "/rules/$kind", params: { kind }, search: { lang: next } });
+          return;
         }
+        const newest = englishVersions.versions.findLast((entry) => entry.languages.includes(next));
+        if (view === "infractions" && newest !== undefined) {
+          void navigate({
+            to: "/rules/$kind/$version/infractions",
+            params: { kind, version: newest.version },
+            search: { lang: next },
+          });
+          return;
+        }
+        void navigate({ to: "/rules/$kind", params: { kind }, search: { lang: next } });
       }}
       label={m.rules_language_label()}
       className={cn("text-muted-foreground", className)}
@@ -151,12 +170,48 @@ export function KindTabs({ kind }: { kind: RuleKind | "glossary" }) {
   );
 }
 
-export function RulesVersionSelect({
+export function RulesViewToggle({
+  view,
+  version,
+  language,
+}: {
+  view: RulesView;
+  version: string;
+  language: RuleLanguage;
+}) {
+  const navigate = useNavigate();
+  return (
+    <ToggleGroup
+      variant="outline"
+      spacing={0}
+      aria-label={m.rules_view_label()}
+      value={[view]}
+      onValueChange={([next]) => {
+        if (next === view || (next !== "document" && next !== "infractions")) {
+          return;
+        }
+        void navigate({
+          to:
+            next === "infractions" ? "/rules/$kind/$version/infractions" : "/rules/$kind/$version",
+          params: { kind: "tournament", version },
+          search: { lang: language },
+        });
+      }}
+      className="shrink-0"
+    >
+      <ToggleGroupItem value="document">{m.rules_view_document()}</ToggleGroupItem>
+      <ToggleGroupItem value="infractions">{m.rules_view_infractions()}</ToggleGroupItem>
+    </ToggleGroup>
+  );
+}
+
+function RulesVersionSelect({
   kind,
   language,
   version,
   items,
   fallbackLabel,
+  view,
   className,
 }: {
   kind: RuleKind;
@@ -164,6 +219,7 @@ export function RulesVersionSelect({
   version: string;
   items: readonly { value: string; label: string | undefined }[];
   fallbackLabel: string | undefined;
+  view: RulesView;
   className?: string;
 }) {
   const navigate = useNavigate();
@@ -179,7 +235,8 @@ export function RulesVersionSelect({
           return;
         }
         void navigate({
-          to: "/rules/$kind/$version",
+          to:
+            view === "infractions" ? "/rules/$kind/$version/infractions" : "/rules/$kind/$version",
           params: { kind, version: nextVersion },
           search: { lang: language },
         });
@@ -187,6 +244,52 @@ export function RulesVersionSelect({
       label={m.rules_version_label()}
       className={cn("text-muted-foreground", className)}
     />
+  );
+}
+
+export function RulesDocumentSelects({
+  kind,
+  language,
+  version,
+  view,
+  versions,
+  englishVersions,
+  className,
+}: {
+  kind: RuleKind;
+  language: RuleLanguage;
+  version: string;
+  view: RulesView;
+  versions: RuleVersionsListResponse;
+  englishVersions: RuleVersionsListResponse;
+  className?: string;
+}) {
+  const current = versions.versions.find((entry) => entry.version === version);
+  const labels = ruleVersionLabels([...englishVersions.versions, ...versions.versions]);
+  const items = versions.versions
+    .toReversed()
+    .map((entry) => ({ value: entry.version, label: labels.get(entry.version) }));
+  return (
+    <>
+      <RulesLanguageSelect
+        kind={kind}
+        language={language}
+        languages={versions.languages}
+        versionLanguages={current?.languages ?? [language]}
+        view={view}
+        englishVersions={englishVersions}
+        className={className}
+      />
+      <RulesVersionSelect
+        kind={kind}
+        language={language}
+        version={version}
+        items={items}
+        fallbackLabel={labels.get(version)}
+        view={view}
+        className={className}
+      />
+    </>
   );
 }
 

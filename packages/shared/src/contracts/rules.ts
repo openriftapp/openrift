@@ -1,6 +1,7 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
+import { RULE_BLOCK_KINDS, RULE_PENALTIES } from "../rules-infractions.js";
 import { RULE_LANGUAGES } from "../rules.js";
 
 /** Which rulebook a rule belongs to. Mirrors the `rules.kind` CHECK. */
@@ -31,10 +32,14 @@ export const ruleResponseSchema = z.object({
   changeType: ruleChangeTypeSchema,
 });
 
+const rulePenaltySchema = z.enum(RULE_PENALTIES);
+
 export const rulePageEntrySchema = ruleResponseSchema.omit({ content: true }).extend({
   contentHtml: z.string().meta({
     examples: ['A player loses the game. See <a href="#rule-540">rule 540</a>.'],
   }),
+  infraction: z.object({ penalties: z.array(rulePenaltySchema), stated: z.boolean() }).optional(),
+  block: z.enum(RULE_BLOCK_KINDS).optional(),
 });
 
 export const ruleVersionResponseSchema = z.object({

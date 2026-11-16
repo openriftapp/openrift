@@ -25,6 +25,14 @@ const PENALTY_STYLES: Record<string, string> = {
   Disqualification: "bg-destructive text-destructive-foreground",
 };
 
+export function PenaltyBadge({ penalty, children }: { penalty: string; children: ReactNode }) {
+  return (
+    <span className={cn("rounded-md px-1.5 py-0.5 text-sm font-semibold", PENALTY_STYLES[penalty])}>
+      {children}
+    </span>
+  );
+}
+
 function handleSamePageAnchorClick(event: MouseEvent<Element>, href: string): void {
   if (event.defaultPrevented || event.button !== 0) {
     return;
@@ -139,13 +147,7 @@ function RuleMarkdownSpan({
   children?: ReactNode;
 }) {
   if (penalty && PENALTY_STYLES[penalty]) {
-    return (
-      <span
-        className={cn("rounded-md px-1.5 py-0.5 text-sm font-semibold", PENALTY_STYLES[penalty])}
-      >
-        {children}
-      </span>
-    );
+    return <PenaltyBadge penalty={penalty}>{children}</PenaltyBadge>;
   }
   if (diff === "added") {
     return <mark className="bg-success-soft text-success rounded-xs px-0.5">{children}</mark>;

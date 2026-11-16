@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-16
+
+### Highlights
+
+- feat(Rules): **Tournament infractions at a glance** — a new Infractions view lists every infraction with its penalty and remedies.
+
+### Other
+
+- fix(Rules): **Penalty badges in Chinese** — the Chinese tournament rules now mark each penalty like the other languages.
+
 ## 2026-11-15
 
 ### Highlights

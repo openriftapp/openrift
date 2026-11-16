@@ -157,6 +157,26 @@ describe("sitemapSectionFiles", () => {
     expect(paths).toContain("/rules/tournament");
   });
 
+  it("lists the infractions view of each tournament rules version, never of the core rules", () => {
+    const base = input();
+    const [file] = sitemapSectionFiles(
+      "site",
+      input({
+        data: {
+          ...base.data,
+          rules: [
+            ...base.data.rules,
+            { kind: "tournament", language: "ko", version: "2026-10-09", updatedAt: "2026-10-10" },
+          ],
+        },
+      }),
+    );
+    const infractions = file!.filter((url) => url.path.endsWith("/infractions"));
+    expect(infractions.map((url) => [url.path, url.search, url.lastmod])).toEqual([
+      ["/rules/tournament/2026-10-09/infractions", "lang=ko", "2026-10-09"],
+    ]);
+  });
+
   it("leaves a rules version that is not a date undated", () => {
     const base = input();
     const [file] = sitemapSectionFiles(

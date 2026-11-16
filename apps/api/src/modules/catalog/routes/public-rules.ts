@@ -12,6 +12,8 @@ import {
 } from "@openrift/shared/rules";
 import type { CardMentions, RuleHtmlOptions } from "@openrift/shared/rules-html";
 import { renderCommentHtml, renderRuleHtml } from "@openrift/shared/rules-html";
+import type { RuleInfractionMarks } from "@openrift/shared/rules-infractions";
+import { findRuleInfractions } from "@openrift/shared/rules-infractions";
 import type { KeywordBadge } from "@openrift/shared/rules-markdown";
 import { escapeHtml } from "@openrift/shared/strings";
 import type {
@@ -80,7 +82,14 @@ function toPageEntry(row: RuleRow, html: Omit<RuleHtmlOptions, "ruleNumber">): R
   };
 }
 
+function withInfractionMarks(entry: RulePageEntry, marks: RuleInfractionMarks): RulePageEntry {
+  const infraction = marks.infractions.get(entry.ruleNumber);
+  const block = marks.blocks.get(entry.ruleNumber);
+  return { ...entry, ...(infraction ? { infraction } : {}), ...(block ? { block } : {}) };
+}
+
 const NO_TERM_ANCHORS: ReadonlyMap<string, string> = new Map();
+const NO_INFRACTIONS: RuleInfractionMarks = { infractions: new Map(), blocks: new Map() };
 
 const os = implement(rulesContract).$context<ApiContext>().use(requireUser);
 
@@ -173,21 +182,24 @@ export const rulesRouter = {
     const { rules: repo } = context.repos;
     const { kind, version, language } = input;
     const rows = await repo.listAtVersion(kind, language, version);
+    const englishRows = language === "en" ? rows : await repo.listAtVersion(kind, "en", version);
     const termAnchors =
       language === "en"
         ? buildTermAnchors(rows)
-        : buildTranslatedTermAnchors(
-            buildTermAnchors(await repo.listAtVersion(kind, "en", version)),
-            rows,
-            language,
-          );
+        : buildTranslatedTermAnchors(buildTermAnchors(englishRows), rows, language);
+    const marks = kind === "tournament" ? findRuleInfractions(englishRows) : NO_INFRACTIONS;
     const html = {
       language,
       termAnchors,
       cardMentions: await loadCardMentions(repo, language, rows),
       keywords: await loadKeywordBadges(repo, language),
     };
-    return { kind, language, version, rules: rows.map((row) => toPageEntry(row, html)) };
+    return {
+      kind,
+      language,
+      version,
+      rules: rows.map((row) => withInfractionMarks(toPageEntry(row, html), marks)),
+    };
   }),
 
   source: os.source.handler(async ({ input, context }): Promise<RuleSourceResponse> => {

@@ -121,6 +121,13 @@ function siteUrls(input: SitemapInput): SitemapUrl[] {
       search: `lang=${entry.language}`,
       lastmod: rulesVersionDate(entry.version),
     })),
+    ...data.rules
+      .filter((entry) => entry.kind === "tournament")
+      .map((entry) => ({
+        path: `/rules/${entry.kind}/${entry.version}/infractions`,
+        search: `lang=${entry.language}`,
+        lastmod: rulesVersionDate(entry.version),
+      })),
     ...entryUrls("/cards", data.cards),
     ...entryUrls("/sets", data.sets),
     ...entryUrls("/products", data.products),

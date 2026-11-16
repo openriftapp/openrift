@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { defaultRuleLanguage, querySearchSchema, rulesSearchSchema } from "./rules-search-schema";
+import {
+  defaultRuleLanguage,
+  infractionsSearchSchema,
+  PENALTY_SLUGS,
+  penaltySlug,
+  querySearchSchema,
+  rulesSearchSchema,
+} from "./rules-search-schema";
 
 describe("querySearchSchema", () => {
   it("keeps a query and drops everything else", () => {
@@ -53,5 +60,29 @@ describe("defaultRuleLanguage", () => {
   it("falls back to English when the UI locale has no rules", () => {
     expect(defaultRuleLanguage(["en", "fr"], "ko")).toBe("en");
     expect(defaultRuleLanguage(["en", "fr", "ko"], "de")).toBe("en");
+  });
+});
+
+describe("infractionsSearchSchema", () => {
+  it("keeps a known penalty next to the query and language", () => {
+    expect(infractionsSearchSchema({ q: "trigger", lang: "fr", penalty: "game-loss" })).toEqual({
+      q: "trigger",
+      lang: "fr",
+      penalty: "game-loss",
+    });
+  });
+
+  it("drops an unknown or non-string penalty", () => {
+    expect(infractionsSearchSchema({ penalty: "Game Loss" })).toEqual({});
+    expect(infractionsSearchSchema({ penalty: "toString" })).toEqual({});
+    expect(infractionsSearchSchema({ penalty: ["warning"] })).toEqual({});
+  });
+});
+
+describe("penaltySlug", () => {
+  it("is the inverse of the slug table", () => {
+    for (const [slug, penalty] of Object.entries(PENALTY_SLUGS)) {
+      expect(penaltySlug(penalty)).toBe(slug);
+    }
   });
 });

@@ -95,6 +95,11 @@ const PENALTY_KEYS: Readonly<Record<string, string>> = {
   "페널티 없음": "No Penalty",
   "경기 패배": "Match Loss",
   실격: "Disqualification",
+  无惩罚: "No Penalty",
+  警告: "Warning",
+  单局判负: "Game Loss",
+  单轮判负: "Match Loss",
+  取消资格: "Disqualification",
 };
 
 export function penaltyKey(label: string): string | undefined {

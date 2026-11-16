@@ -131,6 +131,9 @@ describe("renderRuleHtml in French and Korean", () => {
       '<span data-penalty="Game Loss">[Perte de partie]</span>',
     );
     expect(render("[경고]", { language: "ko" })).toBe('<span data-penalty="Warning">[경고]</span>');
+    expect(render("错过触发[单轮判负]：", { language: "zh-Hans" })).toBe(
+      '错过触发<span data-penalty="Match Loss">[单轮判负]</span>：',
+    );
   });
 
   it("puts French and Korean examples in their own block", () => {

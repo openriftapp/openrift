@@ -20,7 +20,7 @@ import { m } from "@/paraglide/messages.js";
 
 import { InlineDiff } from "./rule-content";
 
-const GUIDE_DEPTH_CLASS: Record<number, string> = {
+export const GUIDE_DEPTH_CLASS: Record<number, string> = {
   1: "rule-guides [--rule-depth:1]",
   2: "rule-guides [--rule-depth:2]",
   3: "rule-guides [--rule-depth:3]",
