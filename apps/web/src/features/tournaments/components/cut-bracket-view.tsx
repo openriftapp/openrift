@@ -64,7 +64,10 @@ export function CutBracketView({
   const roundByNumber = new Map(rounds.map((round) => [round.roundNumber, round]));
 
   return (
-    <div data-slot="cut-bracket-list" className="flex flex-col gap-3 md:overflow-x-auto">
+    <div
+      data-slot="cut-bracket-list"
+      className="flex flex-col gap-3 md:-m-px md:overflow-x-auto md:p-px"
+    >
       {columns.length > 1 ? (
         <ToggleGroup
           variant="outline"
@@ -188,6 +191,7 @@ function MemberNotes({
           legendCardId={legend.legendCardId}
           fallback={legend}
           championOnly
+          hideDomains
           className="text-muted-foreground shrink-0 text-xs"
         />
       ) : null}

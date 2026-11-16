@@ -290,7 +290,7 @@ export function PodCard({
               {region ? <RegionBadge region={region} /> : null}
             </span>
             {notes ? (
-              <span className="text-muted-foreground flex min-w-0 items-center gap-1.5 text-xs">
+              <span className="text-muted-foreground flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
                 {notes}
               </span>
             ) : null}
