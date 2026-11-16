@@ -82,10 +82,7 @@ describe("useScanPrefsStore", () => {
 
     it("keeps a persisted inbox destination", () => {
       const merge = useScanPrefsStore.persist.getOptions().merge;
-      const result = merge?.(
-        { destinationCollectionId: null, targetCollectionId: "col-7" },
-        useScanPrefsStore.getState(),
-      );
+      const result = merge?.({ destinationCollectionId: null }, useScanPrefsStore.getState());
       expect(result?.destinationCollectionId).toBeNull();
     });
 
@@ -113,18 +110,6 @@ describe("useScanPrefsStore", () => {
       expect(result?.destinationCollectionId).toBeNull();
       expect(result?.cardLanguage).toBe("EN");
       expect(result?.tapToScan).toBe(false);
-    });
-
-    it("carries an old target collection over as the destination", () => {
-      const merge = useScanPrefsStore.persist.getOptions().merge;
-      const result = merge?.({ targetCollectionId: "col-7" }, useScanPrefsStore.getState());
-      expect(result?.destinationCollectionId).toBe("col-7");
-    });
-
-    it("reads an old identify-only target as the inbox", () => {
-      const merge = useScanPrefsStore.persist.getOptions().merge;
-      const result = merge?.({ targetCollectionId: "identify-only" }, useScanPrefsStore.getState());
-      expect(result?.destinationCollectionId).toBeNull();
     });
 
     it("drops the retired count-every-copy setting", () => {

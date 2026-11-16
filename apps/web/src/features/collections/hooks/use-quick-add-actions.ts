@@ -228,9 +228,6 @@ export function useQuickAddActions(
       }
     : undefined;
 
-  // Kept for API compatibility; counts now come from useOwnedCount directly.
-  const adjustedCount = (_printingId: string, baseCount: number) => baseCount;
-
   // pressTarget is unused; kept so the popover host can pass BaseUI's close
   // details without caring how we suppress reopening.
   const closeVariants = (_pressTarget?: EventTarget | null) => {
@@ -248,7 +245,6 @@ export function useQuickAddActions(
     handleOpenVariants,
     handleDisposeFromCollection,
     closeVariants,
-    adjustedCount,
     pendingAnnotatedDispose,
     confirmAnnotatedDispose,
     cancelAnnotatedDispose,

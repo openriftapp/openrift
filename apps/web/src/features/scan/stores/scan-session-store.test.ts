@@ -413,23 +413,6 @@ describe("useScanSessionStore", () => {
         expect(merged?.rows.size).toBe(0);
       });
 
-      it("counts only the readings a copy-per-scan blob never wrote to a collection", () => {
-        const merge = useScanSessionStore.persist.getOptions().merge;
-        const merged = merge?.(
-          {
-            rows: [
-              { printingId: "p1", copyIds: ["copy-1"], identifiedCount: 2 },
-              { printingId: "p2", copyIds: ["copy-2", "copy-3"], identifiedCount: 0 },
-            ],
-            scans: 5,
-            lastScanAt: 42,
-          },
-          state(),
-        );
-
-        expect(merged?.restored?.rows).toEqual([{ printingId: "p1", count: 2 }]);
-      });
-
       it("filters malformed rows and stages nothing when none survive", () => {
         const merge = useScanSessionStore.persist.getOptions().merge;
         const merged = merge?.(

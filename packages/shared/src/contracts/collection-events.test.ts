@@ -19,10 +19,10 @@ describe("collectionEventsQuerySchema", () => {
     ).toBe(false);
   });
 
-  it("accepts a legacy timestamp-only cursor", () => {
+  it("rejects a timestamp-only cursor", () => {
     expect(
       collectionEventsQuerySchema.safeParse({ cursor: "2025-01-01T00:00:00.000Z" }).success,
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("accepts a composite timestamp_id cursor, the shape buildKeysetCursor produces", () => {

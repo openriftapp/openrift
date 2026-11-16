@@ -306,7 +306,7 @@ export const CLIENT_STATE: readonly ClientStateEntry[] = [
   {
     sources: ["features/decks/lib/local-decks-collection.ts"],
     storage: "localStorage",
-    keys: ["openrift-local-decks-v2", "openrift-local-decks", "openrift-local-decks-migrated"],
+    keys: ["openrift-local-decks-v2"],
     keep: "Decks built signed out belong to this device, not to an account (ADR-035). Signing in offers to import them, and an import removes them here.",
   },
   {

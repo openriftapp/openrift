@@ -10,21 +10,16 @@ export function buildKeysetCursor(createdAt: Date, id: string): string {
   return `${createdAt.toISOString()}${CURSOR_SEPARATOR}${id}`;
 }
 
-export function parseKeysetCursor(cursor: string): { time: Date; id: string | null } {
+export function parseKeysetCursor(cursor: string): { time: Date; id: string } {
   const separatorIndex = cursor.indexOf(CURSOR_SEPARATOR);
-  // Legacy timestamp-only cursor (backward compat during deploys) has no
-  // separator; either way, the leading part must be a parseable timestamp.
-  const rawTime = separatorIndex === -1 ? cursor : cursor.slice(0, separatorIndex);
-  const time = new Date(rawTime);
-  if (Number.isNaN(time.getTime())) {
+  const time = new Date(cursor.slice(0, separatorIndex));
+  const id = cursor.slice(separatorIndex + 1);
+  if (separatorIndex === -1 || id === "" || Number.isNaN(time.getTime())) {
     // keysetCursorSchema already rejects invalid cursors before this runs;
     // this is a backstop for any caller passing one through unvalidated.
     throw badRequest("Invalid cursor");
   }
-  return {
-    time,
-    id: separatorIndex === -1 ? null : cursor.slice(separatorIndex + 1),
-  };
+  return { time, id };
 }
 
 export interface KeysetPage<TItem> {

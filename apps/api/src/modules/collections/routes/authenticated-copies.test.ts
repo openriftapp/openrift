@@ -120,11 +120,11 @@ describe("GET /api/v1/copies", () => {
 
   it("passes cursor and limit to repo", async () => {
     mockRepo.listForAccessibleCollections.mockResolvedValue([]);
-    await app.request("/api/v1/copies?limit=10&cursor=2026-03-17T00:00:00.000Z");
+    await app.request("/api/v1/copies?limit=10&cursor=2026-03-17T00:00:00.000Z_cp-1");
     expect(mockRepo.listForAccessibleCollections).toHaveBeenCalledWith(
       USER_ID,
       10,
-      "2026-03-17T00:00:00.000Z",
+      "2026-03-17T00:00:00.000Z_cp-1",
     );
   });
 });

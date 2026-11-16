@@ -2667,8 +2667,6 @@
   "decks_dialog_local_copy_name": "{name} (Kopie)",
   "decks_dialog_local_new_deck_name": "Neues Deck",
   "decks_dialog_local_quota_full": "Deine Decks konnten nicht gespeichert werden: der Speicher dieses Browsers ist voll. Melde dich an, um deine Decks zu synchronisieren, oder entferne ein paar lokale Decks.",
-  "decks_dialog_local_recovered_name": "Wiederhergestelltes Deck",
-  "decks_dialog_local_video_guide": "Video-Guide",
   "decks_dialog_print_cut_lines": "Schnittlinien",
   "decks_dialog_print_desc_proxies": "Erzeugt ein druckbares PDF mit Proxy-Karten aus diesem Deck.",
   "decks_dialog_print_desc_registration": "Erzeugt einen druckbaren Turnier-Registrierungsbogen.",

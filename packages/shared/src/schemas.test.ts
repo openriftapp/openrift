@@ -776,7 +776,8 @@ describe("collectionEventsQuerySchema", () => {
 
   it("accepts cursor and limit", () => {
     expect(
-      collectionEventsQuerySchema.safeParse({ cursor: "2025-01-01T00:00:00Z", limit: 25 }).success,
+      collectionEventsQuerySchema.safeParse({ cursor: "2025-01-01T00:00:00Z_cp-1", limit: 25 })
+        .success,
     ).toBe(true);
   });
 
@@ -801,7 +802,7 @@ describe("copiesQuerySchema", () => {
 
   it("accepts cursor and limit", () => {
     expect(
-      copiesQuerySchema.safeParse({ cursor: "2025-01-01T00:00:00Z", limit: 100 }).success,
+      copiesQuerySchema.safeParse({ cursor: "2025-01-01T00:00:00Z_cp-1", limit: 100 }).success,
     ).toBe(true);
   });
 
@@ -837,8 +838,8 @@ describe("copiesQuerySchema", () => {
     );
   });
 
-  it("accepts a legacy timestamp-only cursor", () => {
-    expect(copiesQuerySchema.safeParse({ cursor: "2025-01-01T00:00:00.000Z" }).success).toBe(true);
+  it("rejects a timestamp-only cursor", () => {
+    expect(copiesQuerySchema.safeParse({ cursor: "2025-01-01T00:00:00.000Z" }).success).toBe(false);
   });
 
   it("accepts a composite timestamp_id cursor", () => {

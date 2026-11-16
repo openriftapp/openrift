@@ -2667,8 +2667,6 @@
   "decks_dialog_local_copy_name": "{name}（複本）",
   "decks_dialog_local_new_deck_name": "新牌組",
   "decks_dialog_local_quota_full": "無法儲存你的牌組：此瀏覽器的儲存空間已滿。請登入以同步牌組，或刪除部分本機牌組。",
-  "decks_dialog_local_recovered_name": "已復原的牌組",
-  "decks_dialog_local_video_guide": "影片教學",
   "decks_dialog_print_cut_lines": "裁切線",
   "decks_dialog_print_desc_proxies": "以這副牌組產生可列印的替代牌 PDF。",
   "decks_dialog_print_desc_registration": "產生可列印的賽事牌組登記單。",

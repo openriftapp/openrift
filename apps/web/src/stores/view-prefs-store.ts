@@ -42,15 +42,10 @@ function patchSurface<Surface extends ViewSurface>(
   return { [surface]: next } as Partial<ViewPrefsState<Surface>>;
 }
 
-/** `legacyMerge` lets a store adopt values from a store it replaced. */
 function createViewPrefsStore<Surface extends ViewSurface>(
   name: string,
   surfaces: readonly Surface[],
   storage?: PersistStorage<unknown>,
-  legacyMerge?: (
-    blob: Record<Surface, SurfaceViewPrefs>,
-    persisted: Record<string, unknown>,
-  ) => Record<Surface, SurfaceViewPrefs>,
 ) {
   const initializer: StateCreator<ViewPrefsState<Surface>> = (set) => ({
     ...sanitizeViewPrefsBlob(undefined, surfaces),
@@ -83,8 +78,7 @@ function createViewPrefsStore<Surface extends ViewSurface>(
       merge: (persisted, current) => {
         const raw =
           persisted && typeof persisted === "object" ? (persisted as Record<string, unknown>) : {};
-        const blob = sanitizeViewPrefsBlob(raw, surfaces);
-        return { ...current, ...(legacyMerge ? legacyMerge(blob, raw) : blob) };
+        return { ...current, ...sanitizeViewPrefsBlob(raw, surfaces) };
       },
     }),
   );
@@ -100,43 +94,6 @@ export const useCookieViewPrefsStore = createViewPrefsStore<CookieViewSurface>(
   cookieStorage,
 );
 
-const LEGACY_DECK_LIST_KEY = "openrift-deck-list-prefs";
-
-function adoptLegacyDeckListPrefs(
-  blob: Record<LocalViewSurface, SurfaceViewPrefs>,
-  persisted: Record<string, unknown>,
-): Record<LocalViewSurface, SurfaceViewPrefs> {
-  // Must not overwrite `decks` once this store has stored its own value.
-  if (persisted.decks !== undefined || typeof localStorage === "undefined") {
-    return blob;
-  }
-  try {
-    const raw = localStorage.getItem(LEGACY_DECK_LIST_KEY);
-    if (!raw) {
-      return blob;
-    }
-    const legacy = (JSON.parse(raw) as { state?: Record<string, unknown> } | null)?.state;
-    if (!legacy) {
-      return blob;
-    }
-    return {
-      ...blob,
-      // The legacy store called the field `sortField`; everything else lines up.
-      decks: sanitizeSurfacePrefs(
-        {
-          sort: legacy.sortField,
-          sortDir: legacy.sortDir,
-          groupBy: legacy.groupBy,
-          groupDir: legacy.groupDir,
-        },
-        "decks",
-      ),
-    };
-  } catch {
-    return blob;
-  }
-}
-
 /**
  * For `ssr: "data-only"` surfaces: no server HTML means no first paint to
  * disagree with, so localStorage is fine here.
@@ -144,6 +101,4 @@ function adoptLegacyDeckListPrefs(
 export const useLocalViewPrefsStore = createViewPrefsStore<LocalViewSurface>(
   "view-prefs-local",
   LOCAL_VIEW_SURFACES,
-  undefined,
-  adoptLegacyDeckListPrefs,
 );

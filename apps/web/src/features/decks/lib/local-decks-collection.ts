@@ -1,7 +1,5 @@
 // Logged-out deck storage. Decks built without an account live in
-// `localStorage` under their own uuid, never on the server. Ids written before
-// this store carried a `local:` prefix; the migration keeps the uuid they
-// wrapped so an old bookmark resolves to the same deck.
+// `localStorage` under their own uuid, never on the server.
 
 import type { DeckFormat } from "@openrift/shared/types/enums";
 import { createCollection, localStorageCollectionOptions } from "@tanstack/react-db";
@@ -9,12 +7,9 @@ import { toast } from "sonner";
 import { v7 as uuidv7 } from "uuid";
 
 import type { LocalDeck, LocalDeckCard, LocalDeckPatch } from "@/features/decks/lib/local-deck";
-import { sanitizeDecks } from "@/features/decks/lib/local-deck-sanitize";
 import { m } from "@/paraglide/messages.js";
 
 const LOCAL_DECKS_STORAGE_KEY = "openrift-local-decks-v2";
-const LEGACY_STORAGE_KEY = "openrift-local-decks";
-const LEGACY_MIGRATED_KEY = "openrift-local-decks-migrated";
 
 function isQuotaExceeded(error: unknown): boolean {
   // Browsers throw a DOMException named "QuotaExceededError" (legacy code 22,
@@ -80,22 +75,6 @@ export function getLocalDecksCollection() {
   return localDecks;
 }
 
-function legacyDecks(): LocalDeck[] {
-  const raw = quotaAwareStorage.getItem(LEGACY_STORAGE_KEY);
-  if (raw === null) {
-    return [];
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return [];
-  }
-  // zustand's persist envelope wrapped the decks in `state`.
-  const envelope = parsed as { state?: { decks?: unknown } } | null;
-  return Object.values(sanitizeDecks(envelope?.state?.decks));
-}
-
 async function ignoreWriteFailure(write: {
   when: (state: "settled") => Promise<unknown>;
 }): Promise<void> {
@@ -106,51 +85,9 @@ async function ignoreWriteFailure(write: {
   }
 }
 
-let migration: Promise<void> | null = null;
-
-// Ids already taken from the legacy blob, so a deck deleted after migrating is
-// not resurrected. "1" is the flag an earlier build wrote, meaning "all of them".
-function claimedLegacyIds(legacy: readonly LocalDeck[]): Set<string> {
-  const raw = quotaAwareStorage.getItem(LEGACY_MIGRATED_KEY);
-  if (raw === null) {
-    return new Set();
-  }
-  if (raw === "1") {
-    return new Set(legacy.map((deck) => deck.id));
-  }
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    return new Set(Array.isArray(parsed) ? parsed.filter((id) => typeof id === "string") : []);
-  } catch {
-    return new Set();
-  }
-}
-
 /** Route loaders await this before rendering anything that branches on a deck being local. */
 export async function preloadLocalDecks(): Promise<void> {
   await localDecks.preload();
-  await (migration ??= migrateLegacyDecks());
-}
-
-async function migrateLegacyDecks(): Promise<void> {
-  const legacy = legacyDecks();
-  const claimed = claimedLegacyIds(legacy);
-  const carried = legacy.filter((deck) => claimed.has(deck.id) || localDecks.has(deck.id));
-  const rows = legacy.filter((deck) => !claimed.has(deck.id) && !localDecks.has(deck.id));
-  const stored: string[] = [];
-  if (rows.length > 0) {
-    try {
-      await localDecks.insert(rows).when("settled");
-      stored.push(...rows.map((deck) => deck.id));
-    } catch {
-      // Storage refused the write, so these ids stay unclaimed and the next load retries them.
-    }
-  }
-  // The legacy key is left in place so a rollback still finds its decks.
-  if (typeof localStorage !== "undefined") {
-    const seen = [...new Set([...claimed, ...carried.map((deck) => deck.id), ...stored])];
-    writeLocalDecksItem(localStorage, LEGACY_MIGRATED_KEY, JSON.stringify(seen));
-  }
 }
 
 export function isLocalDeck(deckId: string): boolean {

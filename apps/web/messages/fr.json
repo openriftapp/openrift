@@ -2667,8 +2667,6 @@
   "decks_dialog_local_copy_name": "{name} (copie)",
   "decks_dialog_local_new_deck_name": "Nouveau deck",
   "decks_dialog_local_quota_full": "Impossible d’enregistrer vos decks : le stockage de ce navigateur est plein. Connectez-vous pour synchroniser vos decks, ou supprimez quelques decks locaux.",
-  "decks_dialog_local_recovered_name": "Deck récupéré",
-  "decks_dialog_local_video_guide": "Guide vidéo",
   "decks_dialog_print_cut_lines": "Lignes de découpe",
   "decks_dialog_print_desc_proxies": "Génère un PDF imprimable de cartes proxy à partir de ce deck.",
   "decks_dialog_print_desc_registration": "Génère une feuille d’enregistrement de deck imprimable pour un tournoi.",

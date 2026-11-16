@@ -1,6 +1,6 @@
 import { isRecord } from "@openrift/shared/type-guards";
 /** Reads one persisted field; `undefined` keeps the store's current value. */
-export type FieldPicker<T> = (value: unknown, persisted?: Record<string, unknown>) => T | undefined;
+export type FieldPicker<T> = (value: unknown) => T | undefined;
 
 export const pickBoolean: FieldPicker<boolean> = (value) =>
   typeof value === "boolean" ? value : undefined;
@@ -64,7 +64,7 @@ export function mergeFields<S extends object>(spec: { [K in keyof S]?: FieldPick
     const raw = persisted as Record<string, unknown>;
     const next = { ...current };
     for (const key of Object.keys(spec) as (keyof S & string)[]) {
-      const picked = spec[key]?.(raw[key], raw);
+      const picked = spec[key]?.(raw[key]);
       if (picked !== undefined) {
         next[key] = picked;
       }

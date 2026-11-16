@@ -81,19 +81,12 @@ export const updatePreferencesSchema = z.object({
     .optional(),
   defaultCardView: defaultCardViewEnum.nullable().optional(),
   defaultCurrency: currencySchema.nullable().optional(),
-  hiddenFilterSections: z
-    .array(z.string().min(1).max(40))
-    .max(40)
-    .refine((arr) => new Set(arr).size === arr.length, { message: "Duplicate filter sections" })
-    .nullable()
-    .optional(),
   topLevelFilters: z
     .array(z.string().min(1).max(40))
     .max(40)
     .refine((arr) => new Set(arr).size === arr.length, { message: "Duplicate filter units" })
     .nullable()
     .optional(),
-  compactFilterView: z.boolean().nullable().optional(),
   countExcludedCollections: z.boolean().nullable().optional(),
   emailNotifications: emailNotificationPreferenceSchema.nullable().optional(),
 });

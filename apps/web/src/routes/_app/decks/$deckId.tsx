@@ -6,8 +6,7 @@ import { cleanedSearchForRedirect } from "@/features/cards/lib/search-schemas";
 import { loadCollection } from "@/features/collections/lib/collection-load";
 import { DeckPending } from "@/features/decks/components/deck-pending";
 import { deckEditorSearchSchema } from "@/features/decks/lib/deck-editor-search";
-import { bareLocalDeckId } from "@/features/decks/lib/local-deck";
-import { requireSession, sessionQueryOptions } from "@/lib/auth-session";
+import { requireSession } from "@/lib/auth-session";
 import { initQueryOptions } from "@/lib/init-queries";
 import { privateSeoHead } from "@/lib/seo";
 
@@ -33,25 +32,6 @@ export const Route = createFileRoute("/_app/decks/$deckId")({
     const { isLocalDeck, preloadLocalDecks } =
       await import("@/features/decks/lib/local-decks-collection");
     await preloadLocalDecks();
-    // An old bookmark carries the retired `local:` prefix; it names the same deck.
-    const bareId = bareLocalDeckId(params.deckId);
-    if (bareId !== params.deckId) {
-      if (!isLocalDeck(bareId)) {
-        const session = await context.queryClient.query({
-          ...sessionQueryOptions(),
-          staleTime: "static",
-        });
-        if (!session?.user) {
-          throw notFound();
-        }
-      }
-      throw redirect({
-        to: "/decks/$deckId",
-        params: { deckId: bareId },
-        search: (prev) => prev,
-        replace: true,
-      });
-    }
     if (isLocalDeck(params.deckId)) {
       await Promise.all([
         context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),

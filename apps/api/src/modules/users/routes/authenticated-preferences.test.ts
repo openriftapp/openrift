@@ -212,6 +212,21 @@ describe("PATCH /api/v1/preferences", () => {
     expect(res.status).toBe(200);
   });
 
+  it("accepts an older client's retired filter keys and stores nothing for them", async () => {
+    mockRepo.upsert.mockResolvedValue({ languages: ["en"] });
+    const res = await app.request("/api/v1/preferences", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        languages: ["en"],
+        hiddenFilterSections: null,
+        compactFilterView: null,
+      }),
+    });
+    expect(res.status).toBe(200);
+    expect(mockRepo.upsert).toHaveBeenCalledWith(USER_ID, { languages: ["en"] });
+  });
+
   it("accepts an older client's completionScope and stores nothing for it", async () => {
     mockRepo.upsert.mockResolvedValue({ languages: ["en"] });
     const res = await app.request("/api/v1/preferences", {
@@ -235,12 +250,7 @@ describe("preferences read/write schema parity", () => {
     const { updatePreferencesSchema, userPreferencesResponseSchema } =
       await import("@openrift/shared/contracts/preferences");
 
-    // Retired preferences stay writable so clients can still send `null` to clear them.
-    const retiredWriteOnlyKeys = new Set(["hiddenFilterSections", "compactFilterView"]);
-
-    const writeKeys = Object.keys(updatePreferencesSchema.shape).filter(
-      (key) => !retiredWriteOnlyKeys.has(key),
-    );
+    const writeKeys = Object.keys(updatePreferencesSchema.shape);
     const readKeys = new Set(Object.keys(userPreferencesResponseSchema.shape));
 
     const missingFromRead = writeKeys.filter((key) => !readKeys.has(key));

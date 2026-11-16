@@ -186,9 +186,6 @@ export function keysetCursorPredicate(
   const truncatedTime = sql<Date>`date_trunc('milliseconds', ${timeRef})`;
   const upperBound = new Date(time.getTime() + 1);
   const sargableBound = sql<SqlBool>`${timeRef} < ${upperBound}`;
-  if (id === null) {
-    return sql<SqlBool>`(${sargableBound} and ${truncatedTime} < ${time})`;
-  }
   const idRef = sql.ref(options.idColumn);
   const tieBreak =
     options.idDirection === "asc" ? sql<SqlBool>`${idRef} > ${id}` : sql<SqlBool>`${idRef} < ${id}`;

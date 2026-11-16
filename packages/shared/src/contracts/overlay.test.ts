@@ -51,24 +51,6 @@ describe("normalizeOverlayPayload", () => {
     expect(normalizeOverlayPayload({ printingId: "p-1", hidden: true }).hidden).toBe(true);
   });
 
-  it("carries a link set under the old deck-only key over to the QR field", () => {
-    const result = normalizeOverlayPayload({
-      deckShareUrl: "https://openrift.app/decks/share/abc",
-    });
-
-    expect(result.qrUrl).toBe("https://openrift.app/decks/share/abc");
-    expect("deckShareUrl" in result).toBe(false);
-  });
-
-  it("prefers a set qrUrl over the old key", () => {
-    const result = normalizeOverlayPayload({
-      qrUrl: "https://openrift.app/cards",
-      deckShareUrl: "https://openrift.app/decks/share/abc",
-    });
-
-    expect(result.qrUrl).toBe("https://openrift.app/cards");
-  });
-
   it("fills in only the plate lines that are missing", () => {
     const result = normalizeOverlayPayload({ plateFields: { name: false, rulesText: true } });
 

@@ -25,8 +25,12 @@ describe("parseKeysetCursor", () => {
     expect(parseKeysetCursor(`${TIME.toISOString()}_a_b`)).toEqual({ time: TIME, id: "a_b" });
   });
 
-  it("reads a legacy timestamp-only cursor as having no id", () => {
-    expect(parseKeysetCursor(TIME.toISOString())).toEqual({ time: TIME, id: null });
+  it("rejects a timestamp-only cursor with a 400", () => {
+    expect(() => parseKeysetCursor(TIME.toISOString())).toThrow(/Invalid cursor/u);
+  });
+
+  it("rejects a cursor with an empty id with a 400", () => {
+    expect(() => parseKeysetCursor(`${TIME.toISOString()}_`)).toThrow(/Invalid cursor/u);
   });
 
   it("rejects an unparseable cursor with a 400", () => {

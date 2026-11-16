@@ -72,21 +72,20 @@ export const marketplaceGroupParamSchema = z.object({
   id: z.coerce.number().int(),
 });
 
-/**
- * Either a bare ISO 8601 timestamp (legacy form) or `"<ISO timestamp>_<id>"`,
- * as produced by `buildKeysetCursor`.
- */
+/** `"<ISO timestamp>_<id>"`, as produced by `buildKeysetCursor`. */
 export const keysetCursorSchema = z
   .string()
   .min(1)
   .refine(
     (cursor) => {
       const separatorIndex = cursor.indexOf("_");
-      const timePart = separatorIndex === -1 ? cursor : cursor.slice(0, separatorIndex);
-      const idPart = separatorIndex === -1 ? null : cursor.slice(separatorIndex + 1);
-      return isoDateTime.safeParse(timePart).success && idPart !== "";
+      return (
+        separatorIndex !== -1 &&
+        isoDateTime.safeParse(cursor.slice(0, separatorIndex)).success &&
+        cursor.slice(separatorIndex + 1) !== ""
+      );
     },
-    { message: 'cursor must be an ISO 8601 timestamp, optionally suffixed with "_<id>"' },
+    { message: 'cursor must be an ISO 8601 timestamp suffixed with "_<id>"' },
   );
 
 const XID8_MAX = 18_446_744_073_709_551_615n;

@@ -2667,8 +2667,6 @@
   "decks_dialog_local_copy_name": "{name} (copy)",
   "decks_dialog_local_new_deck_name": "New Deck",
   "decks_dialog_local_quota_full": "Couldn't save your decks: this browser's storage is full. Sign in to sync your decks, or remove some local decks.",
-  "decks_dialog_local_recovered_name": "Recovered deck",
-  "decks_dialog_local_video_guide": "Video guide",
   "decks_dialog_print_cut_lines": "Cut lines",
   "decks_dialog_print_desc_proxies": "Generate a printable PDF of proxy cards from this deck.",
   "decks_dialog_print_desc_registration": "Generate a printable tournament deck registration sheet.",

@@ -69,7 +69,7 @@ describe.skipIf(!ctx)("overlayChannelsRepo (integration)", () => {
         payload: {
           printingId: "printing-1",
           showPlate: true,
-          deckShareUrl: "https://openrift.app/decks/share/legacy",
+          qrUrl: "https://openrift.app/decks/share/legacy",
           corner: "top-left",
           scale: 45,
         } as unknown as OverlayPayload,
@@ -86,7 +86,6 @@ describe.skipIf(!ctx)("overlayChannelsRepo (integration)", () => {
       scale: 45,
       qrUrl: "https://openrift.app/decks/share/legacy",
     });
-    expect("deckShareUrl" in (read?.payload ?? {})).toBe(false);
   });
 
   it("bumps the version on every payload write", async () => {

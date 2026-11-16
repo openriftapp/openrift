@@ -64,24 +64,10 @@ interface SanitizedOverrides {
 }
 
 export function sanitizeOverrides(data: unknown): SanitizedOverrides {
-  if (typeof data !== "object" || data === null) {
-    return { overrides: { ...NULL_OVERRIDES } };
-  }
-  const record = data as Record<string, unknown>;
-
-  if (typeof record.overrides === "object" && record.overrides !== null) {
-    const raw = record.overrides as Record<string, unknown>;
-    return {
-      overrides: sanitizeOverrideFields(raw),
-      maxColumns:
-        record.maxColumns === null || typeof record.maxColumns === "number"
-          ? record.maxColumns
-          : undefined,
-    };
-  }
-
+  const record = asRecord(data);
+  const overrides = asRecord(record.overrides);
   return {
-    overrides: sanitizeLegacyFlat(record),
+    overrides: sanitizeOverrideFields(overrides),
     maxColumns:
       record.maxColumns === null || typeof record.maxColumns === "number"
         ? record.maxColumns
@@ -104,12 +90,7 @@ export function sanitizeServerResponse(data: unknown): Partial<DisplayOverrides>
     result.fancyFan = typeof record.fancyFan === "boolean" ? record.fancyFan : null;
   }
   if ("foilEffect" in record) {
-    result.foilEffect =
-      typeof record.foilEffect === "boolean"
-        ? record.foilEffect
-        : typeof record.foilEffect === "string"
-          ? record.foilEffect !== "none"
-          : null;
+    result.foilEffect = typeof record.foilEffect === "boolean" ? record.foilEffect : null;
   }
   if ("marketplaceOrder" in record) {
     result.marketplaceOrder = sanitizeMarketplaceOrder(record.marketplaceOrder);
@@ -149,20 +130,9 @@ export function sanitizePalette(value: unknown): Palette | null {
 
 // Shape migrations go through zustand's `merge`, never a `version` bump: a version bump discards a newer persisted blob.
 
-/** Migrates the legacy `catalogMode` tri-state: "off" meant no overlay, "count" and "add" both meant show counts. */
 export function sanitizeCardsShowCounts(data: unknown, fallback: boolean): boolean {
-  const record = asRecord(data);
-  if (typeof record.cardsShowCounts === "boolean") {
-    return record.cardsShowCounts;
-  }
-  const legacy = record.catalogMode;
-  if (legacy === "off") {
-    return false;
-  }
-  if (legacy === "count" || legacy === "add") {
-    return true;
-  }
-  return fallback;
+  const raw = asRecord(data).cardsShowCounts;
+  return typeof raw === "boolean" ? raw : fallback;
 }
 
 export function sanitizeDisplayMode(data: unknown, fallback: DisplayMode): DisplayMode {
@@ -204,10 +174,8 @@ export function sanitizeTierTileStep(data: unknown, stepCount: number, fallback:
     : fallback;
 }
 
-/** Migrates the legacy `theme` key, used before the store split preference from resolved theme. */
 export function sanitizeThemePreference(data: unknown): Theme | null {
-  const record = asRecord(data);
-  return sanitizeTheme(record.preference === undefined ? record.theme : record.preference);
+  return sanitizeTheme(asRecord(data).preference);
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -239,19 +207,10 @@ function sanitizeFilterKeyList(value: unknown): string[] | null {
 }
 
 function sanitizeOverrideFields(record: Record<string, unknown>): DisplayOverrides {
-  const legacyRich = typeof record.richEffects === "boolean" ? record.richEffects : undefined;
-
   const showImages = typeof record.showImages === "boolean" ? record.showImages : null;
 
-  const fancyFan = typeof record.fancyFan === "boolean" ? record.fancyFan : (legacyRich ?? null);
-  const foilEffect: boolean | null =
-    typeof record.foilEffect === "boolean"
-      ? record.foilEffect
-      : typeof record.foilEffect === "string"
-        ? record.foilEffect !== "none"
-        : legacyRich === false
-          ? false
-          : null;
+  const fancyFan = typeof record.fancyFan === "boolean" ? record.fancyFan : null;
+  const foilEffect = typeof record.foilEffect === "boolean" ? record.foilEffect : null;
 
   const safeOrder = sanitizeMarketplaceOrder(record.marketplaceOrder);
 
@@ -275,8 +234,4 @@ function sanitizeOverrideFields(record: Record<string, unknown>): DisplayOverrid
     countExcludedCollections:
       typeof record.countExcludedCollections === "boolean" ? record.countExcludedCollections : null,
   };
-}
-
-function sanitizeLegacyFlat(record: Record<string, unknown>): DisplayOverrides {
-  return sanitizeOverrideFields(record);
 }

@@ -81,11 +81,11 @@ describe("GET /api/v1/collection-events", () => {
 
   it("passes cursor and limit query params", async () => {
     mockCollectionEventsRepo.listForUser.mockResolvedValue([]);
-    await app.request("/api/v1/collection-events?limit=10&cursor=2026-03-17T00:00:00.000Z");
+    await app.request("/api/v1/collection-events?limit=10&cursor=2026-03-17T00:00:00.000Z_ce-1");
     expect(mockCollectionEventsRepo.listForUser).toHaveBeenCalledWith(
       USER_ID,
       10,
-      "2026-03-17T00:00:00.000Z",
+      "2026-03-17T00:00:00.000Z_ce-1",
     );
   });
 

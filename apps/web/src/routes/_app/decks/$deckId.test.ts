@@ -1,4 +1,4 @@
-import { isNotFound, isRedirect } from "@tanstack/react-router";
+import { isNotFound } from "@tanstack/react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { isLocalDeck, preloadLocalDecks } = vi.hoisted(() => ({
@@ -67,26 +67,6 @@ describe("/decks/$deckId loader", () => {
     deckInStore.mockReset();
     deckInStore.mockReturnValue(true);
     refreshDeckStores.mockClear();
-  });
-
-  it("shows not found for a `local:` bookmark the browser no longer holds", async () => {
-    expect(isNotFound(await thrownBy(runLoader(`local:${DECK_ID}`, null)))).toBe(true);
-  });
-
-  it("redirects a `local:` bookmark to the bare id while the deck is still here", async () => {
-    isLocalDeck.mockReturnValue(true);
-
-    const thrown = await thrownBy(runLoader(`local:${DECK_ID}`, null));
-
-    expect(isRedirect(thrown)).toBe(true);
-    expect(thrown).toMatchObject({ options: { params: { deckId: DECK_ID } } });
-  });
-
-  it("redirects a signed-in owner's `local:` bookmark to the deck they claimed", async () => {
-    const thrown = await thrownBy(runLoader(`local:${DECK_ID}`, { user: { id: "user-1" } }));
-
-    expect(isRedirect(thrown)).toBe(true);
-    expect(thrown).toMatchObject({ options: { params: { deckId: DECK_ID } } });
   });
 
   it("sends a signed-out visitor to sign in for a bare id", async () => {

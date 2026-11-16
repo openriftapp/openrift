@@ -18,17 +18,12 @@ export const Route = createFileRoute("/_app/_authenticated/admin/cards")({
   head: () => adminSeoHead("Cards"),
   validateSearch: z.object({
     set: lenient(z.string()),
-    // "cards", "candidates" and "unmatched" are older values, kept so a stale
-    // bookmark still validates.
-    tab: lenient(z.enum(["attention", "drafts", "cards", "candidates", "unmatched"])),
+    tab: lenient(z.enum(["attention", "drafts"])),
     q: lenient(z.string()),
     tableSort: lenient(z.string()),
     issue: lenient(z.enum(CARD_ISSUES)),
-    // Older filter params, still read so old links keep filtering.
-    status: lenient(z.enum(["unchecked", "new-printings", "prices-to-assign"])),
     // Only meaningful while `issue` is "unlinked-products", e.g. "cardtrader:FR".
     priceScope: lenient(z.string()),
-    source: lenient(z.enum(["usersubmission"])),
   }),
   loaderDeps: ({ search }) => ({ set: search.set }),
   loader: async ({ context, deps, cause }) => {

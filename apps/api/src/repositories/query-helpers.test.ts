@@ -241,19 +241,13 @@ describe("keysetCursorPredicate", () => {
     expect(parameters).toEqual([BOUND, TIME, TIME, "cp-9"]);
   });
 
-  // date_trunc is STABLE: the truncated comparison alone is unsargable, so
-  // the bare-column bound must be present in both branches.
+  // date_trunc is STABLE: the truncated comparison alone is unsargable.
   it("adds a bare-column upper bound an index can seek on", () => {
-    const withId = compileWhere(
+    const compiled = compileWhere(
       keysetCursorPredicate(buildKeysetCursor(TIME, "cp-9"), { ...OPTIONS, idDirection: "asc" }),
     );
-    const legacy = compileWhere(
-      keysetCursorPredicate(TIME.toISOString(), { ...OPTIONS, idDirection: "asc" }),
-    );
-    for (const compiled of [withId, legacy]) {
-      expect(compiled.where).toContain(`"cp"."created_at" < $1`);
-      expect(compiled.parameters[0]).toEqual(BOUND);
-    }
+    expect(compiled.where).toContain(`"cp"."created_at" < $1`);
+    expect(compiled.parameters[0]).toEqual(BOUND);
   });
 
   // A row one microsecond past the cursor still truncates back onto it, so
@@ -265,16 +259,10 @@ describe("keysetCursorPredicate", () => {
     expect(parameters[0]).toEqual(new Date(TIME.getTime() + 1));
   });
 
-  // A cursor minted before the id suffix shipped is still in flight during a
-  // deploy: it must degrade to the timestamp-only comparison, not throw.
-  it("compares on time alone for a legacy timestamp-only cursor", () => {
-    const { where, parameters } = compileWhere(
-      keysetCursorPredicate(TIME.toISOString(), { ...OPTIONS, idDirection: "asc" }),
-    );
-    expect(where).toBe(
-      `("cp"."created_at" < $1 and date_trunc('milliseconds', "cp"."created_at") < $2)`,
-    );
-    expect(parameters).toEqual([BOUND, TIME]);
+  it("rejects a timestamp-only cursor with a 400", () => {
+    const parse = () =>
+      keysetCursorPredicate(TIME.toISOString(), { ...OPTIONS, idDirection: "asc" });
+    expect(parse).toThrow(/Invalid cursor/u);
   });
 
   it("keeps the id when it contains the separator", () => {

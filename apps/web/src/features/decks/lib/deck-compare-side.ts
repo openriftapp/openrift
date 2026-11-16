@@ -6,7 +6,7 @@ import { metaDeckQueryOptions } from "@/features/meta/lib/meta-queries";
 
 /**
  * One side of `/decks/compare?from=&to=`. A bare value is a deck id (server
- * or `local:`); `meta:<token>` and `share:<token>` name a public deck.
+ * or browser-local); `meta:<token>` and `share:<token>` name a public deck.
  */
 export type CompareSide =
   | { kind: "deck"; deckId: string }

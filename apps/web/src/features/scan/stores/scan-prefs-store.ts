@@ -2,12 +2,9 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import { SCAN_ZOOMS } from "@/features/scan/lib/scan-zoom";
-import type { FieldPicker } from "@/lib/persist-merge";
 import { mergeFields, pickBoolean, pickNullableString } from "@/lib/persist-merge";
 
 const DEFAULT_SCAN_LANGUAGE = "EN";
-
-const LEGACY_IDENTIFY_ONLY = "identify-only";
 
 interface ScanPrefsState {
   muted: boolean;
@@ -25,15 +22,6 @@ interface ScanPrefsState {
 function isScanZoom(value: unknown): value is number {
   return SCAN_ZOOMS.some((zoom) => zoom === value);
 }
-
-const pickDestination: FieldPicker<string | null> = (value, persisted) => {
-  const stored = pickNullableString(value, persisted);
-  if (stored !== undefined) {
-    return stored;
-  }
-  const legacy = persisted?.targetCollectionId;
-  return typeof legacy === "string" && legacy !== LEGACY_IDENTIFY_ONLY ? legacy : undefined;
-};
 
 export const useScanPrefsStore = create<ScanPrefsState>()(
   persist(
@@ -60,7 +48,7 @@ export const useScanPrefsStore = create<ScanPrefsState>()(
       }),
       merge: mergeFields<ScanPrefsState>({
         muted: pickBoolean,
-        destinationCollectionId: pickDestination,
+        destinationCollectionId: pickNullableString,
         cardLanguage: pickNullableString,
         tapToScan: pickBoolean,
         zoom: (value) => (isScanZoom(value) ? value : undefined),

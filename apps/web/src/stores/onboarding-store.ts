@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import type { FieldPicker } from "@/lib/persist-merge";
 import { mergeFields, pickStringArray } from "@/lib/persist-merge";
 
 export type GroupNudgeKind = "contacts" | "lists";
@@ -20,28 +21,10 @@ const INTRO_KEYS = [
 
 type IntroKey = (typeof INTRO_KEYS)[number];
 
-const LEGACY_INTRO_FLAGS = {
-  deckBuilderIntroDismissed: "deck-builder",
-  collectionIntroDismissed: "collection",
-} as const satisfies Record<string, IntroKey>;
-
-function persistedIntros(persisted: unknown): IntroKey[] | undefined {
-  if (typeof persisted !== "object" || persisted === null) {
-    return;
-  }
-  const raw = persisted as Record<string, unknown>;
-  const intros = Array.isArray(raw.dismissedIntros)
-    ? raw.dismissedIntros.filter((entry): entry is IntroKey =>
-        INTRO_KEYS.includes(entry as IntroKey),
-      )
-    : [];
-  for (const [flag, key] of Object.entries(LEGACY_INTRO_FLAGS)) {
-    if (raw[flag] === true && !intros.includes(key)) {
-      intros.push(key);
-    }
-  }
-  return Array.isArray(raw.dismissedIntros) || intros.length > 0 ? intros : undefined;
-}
+const pickIntros: FieldPicker<IntroKey[]> = (value) =>
+  Array.isArray(value)
+    ? value.filter((entry): entry is IntroKey => INTRO_KEYS.includes(entry as IntroKey))
+    : undefined;
 
 interface OnboardingState {
   dismissedMissingImagePrintings: string[];
@@ -82,16 +65,11 @@ export const useOnboardingStore = create<OnboardingState>()(
         dismissedIntros: state.dismissedIntros,
         dismissedGroupNudges: state.dismissedGroupNudges,
       }),
-      merge: (persisted, current) => {
-        const merged = mergeFields<OnboardingState>({
-          dismissedMissingImagePrintings: pickStringArray,
-          dismissedGroupNudges: pickStringArray,
-        })(persisted, current);
-        return {
-          ...merged,
-          dismissedIntros: persistedIntros(persisted) ?? current.dismissedIntros,
-        };
-      },
+      merge: mergeFields<OnboardingState>({
+        dismissedMissingImagePrintings: pickStringArray,
+        dismissedIntros: pickIntros,
+        dismissedGroupNudges: pickStringArray,
+      }),
     },
   ),
 );

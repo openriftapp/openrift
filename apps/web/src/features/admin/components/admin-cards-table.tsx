@@ -52,38 +52,6 @@ export const ALL_SETS = "__all__";
 
 type Row = CandidateCardSummaryResponse;
 
-/** Older links carry this filter as `status` or `source`. */
-function readIssue(search: {
-  issue?: CardIssue;
-  status?: "unchecked" | "new-printings" | "prices-to-assign";
-  source?: "usersubmission";
-}): CardIssue | undefined {
-  if (search.issue) {
-    return search.issue;
-  }
-  if (search.status === "unchecked") {
-    return "unchecked-source";
-  }
-  if (search.status === "new-printings") {
-    return "new-printings";
-  }
-  if (search.status === "prices-to-assign") {
-    return "unlinked-products";
-  }
-  if (search.source === "usersubmission") {
-    return "proposals";
-  }
-  return undefined;
-}
-
-function readSegment(tab: string | undefined): CardSegment | null {
-  // "candidates" is the older value for the drafts tab.
-  if (tab === "candidates") {
-    return "drafts";
-  }
-  return CARD_SEGMENTS.find((option) => option === tab) ?? null;
-}
-
 /** The filter's set options arrive in release order, so their index is the rank. */
 function describeSets(
   slugs: string[],
@@ -290,9 +258,9 @@ export function AdminCardsTable({
   const { globalFilter, segment, setSlug, issue, priceScope } = cardsRouteApi.useSearch({
     select: (s) => ({
       globalFilter: s.q ?? "",
-      segment: readSegment(s.tab),
+      segment: s.tab ?? null,
       setSlug: s.set,
-      issue: readIssue(s),
+      issue: s.issue,
       priceScope: s.priceScope ?? ALL_ASSIGNABLE_SCOPE,
     }),
   });
@@ -388,9 +356,6 @@ export function AdminCardsTable({
       search: (prev) => ({
         ...prev,
         issue: next ?? undefined,
-        // The legacy params feed the same filter, so clearing one clears both.
-        status: undefined,
-        source: undefined,
         priceScope: next === "unlinked-products" ? prev.priceScope : undefined,
       }),
       replace: true,

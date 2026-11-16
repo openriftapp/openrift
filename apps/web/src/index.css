@@ -88,15 +88,6 @@ html {
   scroll-padding-top: calc(var(--header-height) + 0.5rem);
 }
 
-html.hide-scrollbar,
-html.hide-scrollbar body {
-  scrollbar-width: none;
-}
-
-html.hide-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
 /*
  * Theme variables live on two orthogonal axes:
  *  - Scheme:  light (`:root`) vs dark (`.dark`)

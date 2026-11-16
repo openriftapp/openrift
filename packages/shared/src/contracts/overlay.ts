@@ -111,16 +111,13 @@ export const DEFAULT_OVERLAY_PAYLOAD: OverlayPayload = {
   scale: 70,
 };
 
-/** Carries the legacy `deckShareUrl` key over to `qrUrl` so a link set before the field was renamed still survives. */
 export function normalizeOverlayPayload(stored: unknown): OverlayPayload {
-  const { deckShareUrl, ...raw } = (stored ?? {}) as Partial<OverlayPayload> & {
-    deckShareUrl?: string | null;
-  };
+  const raw = (stored ?? {}) as Partial<OverlayPayload>;
   return {
     ...DEFAULT_OVERLAY_PAYLOAD,
     ...raw,
     plateFields: { ...DEFAULT_OVERLAY_PAYLOAD.plateFields, ...raw.plateFields },
-    qrUrl: raw.qrUrl ?? deckShareUrl ?? null,
+    qrUrl: raw.qrUrl ?? null,
     board: raw.board ?? null,
   };
 }

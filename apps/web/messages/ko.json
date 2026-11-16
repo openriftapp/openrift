@@ -2667,8 +2667,6 @@
   "decks_dialog_local_copy_name": "{name} (복사본)",
   "decks_dialog_local_new_deck_name": "새 덱",
   "decks_dialog_local_quota_full": "덱을 저장하지 못했습니다. 이 브라우저의 저장 공간이 가득 찼습니다. 로그인해 덱을 동기화하거나 로컬 덱을 일부 삭제하세요.",
-  "decks_dialog_local_recovered_name": "복구된 덱",
-  "decks_dialog_local_video_guide": "영상 가이드",
   "decks_dialog_print_cut_lines": "재단선",
   "decks_dialog_print_desc_proxies": "이 덱의 대용 카드를 인쇄용 PDF로 만듭니다.",
   "decks_dialog_print_desc_registration": "인쇄용 대회 덱 등록지를 만듭니다.",

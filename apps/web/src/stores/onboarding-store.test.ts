@@ -106,7 +106,7 @@ describe("useOnboardingStore", () => {
     it("keeps the missing-images nudge when an older persisted blob omits it", () => {
       const store = useOnboardingStore;
       const current = store.getState();
-      const persisted = { collectionIntroDismissed: true, dismissedGroupNudges: [] };
+      const persisted = { dismissedIntros: ["collection"], dismissedGroupNudges: [] };
       const merge = store.persist?.getOptions()?.merge;
       const result = merge?.(persisted, current);
       if (result) {
@@ -159,41 +159,6 @@ describe("useOnboardingStore", () => {
       if (result) {
         expect(result.dismissedIntros).toEqual(["stage"]);
       }
-    });
-
-    it("folds the legacy intro booleans of an old blob into the dismissed intros", () => {
-      const current = useOnboardingStore.getState();
-      const persisted = {
-        deckBuilderIntroDismissed: true,
-        collectionIntroDismissed: true,
-        dismissedIntros: ["stage"],
-      };
-      const result = useOnboardingStore.persist.getOptions().merge?.(persisted, current);
-      expect(result?.dismissedIntros).toEqual(["stage", "deck-builder", "collection"]);
-    });
-
-    it("ignores legacy intro booleans that are false or not booleans", () => {
-      const current = useOnboardingStore.getState();
-      const persisted = { deckBuilderIntroDismissed: false, collectionIntroDismissed: "yes" };
-      const result = useOnboardingStore.persist.getOptions().merge?.(persisted, current);
-      expect(result?.dismissedIntros).toEqual([]);
-    });
-
-    it("does not duplicate an intro both flagged and listed", () => {
-      const current = useOnboardingStore.getState();
-      const persisted = { deckBuilderIntroDismissed: true, dismissedIntros: ["deck-builder"] };
-      const result = useOnboardingStore.persist.getOptions().merge?.(persisted, current);
-      expect(result?.dismissedIntros).toEqual(["deck-builder"]);
-    });
-
-    it("rehydrates an old blob from storage into the dismissed intros", async () => {
-      localStorage.setItem(
-        "openrift-onboarding",
-        JSON.stringify({ state: { deckBuilderIntroDismissed: true }, version: 0 }),
-      );
-      await useOnboardingStore.persist.rehydrate();
-      expect(useOnboardingStore.getState().dismissedIntros).toEqual(["deck-builder"]);
-      localStorage.removeItem("openrift-onboarding");
     });
 
     it("keeps current intro dismissals when the persisted value isn't an array", () => {

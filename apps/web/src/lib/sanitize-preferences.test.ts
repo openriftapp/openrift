@@ -175,69 +175,33 @@ describe("sanitize-preferences — maxColumns", () => {
     expect(sanitizeOverrides({ overrides: {}, maxColumns: "6" }).maxColumns).toBeUndefined();
     expect(sanitizeOverrides({ overrides: {} }).maxColumns).toBeUndefined();
   });
-
-  it("reads maxColumns from the legacy flat shape too", () => {
-    expect(sanitizeOverrides({ showImages: true, maxColumns: 4 }).maxColumns).toBe(4);
-  });
 });
 
-describe("sanitize-preferences — legacy flat persisted shape", () => {
-  it("reads top-level fields when there is no overrides key", () => {
-    const { overrides } = sanitizeOverrides({ showImages: false, defaultCurrency: "EUR" });
-
-    expect(overrides.showImages).toBe(false);
-    expect(overrides.defaultCurrency).toBe("EUR");
-  });
-
-  it("expands the retired richEffects flag onto the granular settings", () => {
-    const { overrides } = sanitizeOverrides({ richEffects: false });
-
-    expect(overrides.fancyFan).toBe(false);
-    expect(overrides.foilEffect).toBe(false);
-  });
-
-  it("lets an explicit granular value win over richEffects", () => {
-    const { overrides } = sanitizeOverrides({ richEffects: false, fancyFan: true });
-
-    expect(overrides.fancyFan).toBe(true);
-    expect(overrides.foilEffect).toBe(false);
-  });
-
+describe("sanitize-preferences — persisted overrides", () => {
   it("drops a stored card tilt preference", () => {
-    const { overrides } = sanitizeOverrides({ cardTilt: true });
+    const { overrides } = sanitizeOverrides({ overrides: { cardTilt: true } });
 
     expect("cardTilt" in overrides).toBe(false);
   });
 
-  it("leaves foilEffect unset when richEffects was on, since it has no tri-state answer", () => {
-    const { overrides } = sanitizeOverrides({ richEffects: true });
-
-    expect(overrides.fancyFan).toBe(true);
-    expect(overrides.foilEffect).toBeNull();
-  });
-
-  it("collapses the old foilEffect tri-state onto a boolean", () => {
-    expect(sanitizeOverrides({ foilEffect: "none" }).overrides.foilEffect).toBe(false);
-    expect(sanitizeOverrides({ foilEffect: "static" }).overrides.foilEffect).toBe(true);
-    expect(sanitizeOverrides({ foilEffect: "animated" }).overrides.foilEffect).toBe(true);
-  });
-
   it("drops marketplaces that are not in the known set, keeping the stored order", () => {
     const { overrides } = sanitizeOverrides({
-      marketplaceOrder: ["cardmarket", "ebay", "cardtrader"],
+      overrides: { marketplaceOrder: ["cardmarket", "ebay", "cardtrader"] },
     });
 
     expect(overrides.marketplaceOrder).toEqual(["cardmarket", "cardtrader"]);
   });
 
   it("falls back to the default order when no stored marketplace is known", () => {
-    const { overrides } = sanitizeOverrides({ marketplaceOrder: ["ebay", "abugames"] });
+    const { overrides } = sanitizeOverrides({
+      overrides: { marketplaceOrder: ["ebay", "abugames"] },
+    });
 
     expect(overrides.marketplaceOrder).toEqual(PREFERENCE_DEFAULTS.marketplaceOrder);
   });
 
   it("falls back to the default order for an empty stored order", () => {
-    const { overrides } = sanitizeOverrides({ marketplaceOrder: [] });
+    const { overrides } = sanitizeOverrides({ overrides: { marketplaceOrder: [] } });
 
     expect(overrides.marketplaceOrder).toEqual(PREFERENCE_DEFAULTS.marketplaceOrder);
   });
@@ -255,20 +219,8 @@ describe("sanitizeCardsShowCounts", () => {
     expect(sanitizeCardsShowCounts({ cardsShowCounts: true }, false)).toBe(true);
   });
 
-  it("migrates the legacy catalogMode tri-state", () => {
-    expect(sanitizeCardsShowCounts({ catalogMode: "off" }, true)).toBe(false);
-    expect(sanitizeCardsShowCounts({ catalogMode: "count" }, false)).toBe(true);
-    expect(sanitizeCardsShowCounts({ catalogMode: "add" }, false)).toBe(true);
-  });
-
-  it("lets the new key win over a contradicting legacy one", () => {
-    expect(sanitizeCardsShowCounts({ cardsShowCounts: false, catalogMode: "add" }, true)).toBe(
-      false,
-    );
-  });
-
-  it("falls back for an unknown catalogMode, a missing key or a non-object blob", () => {
-    expect(sanitizeCardsShowCounts({ catalogMode: "sideways" }, true)).toBe(true);
+  it("falls back for a non-boolean value, a missing key or a non-object blob", () => {
+    expect(sanitizeCardsShowCounts({ cardsShowCounts: "off" }, true)).toBe(true);
     expect(sanitizeCardsShowCounts({}, true)).toBe(true);
     expect(sanitizeCardsShowCounts(null, false)).toBe(false);
     expect(sanitizeCardsShowCounts("off", true)).toBe(true);
@@ -370,21 +322,9 @@ describe("sanitizeThemePreference", () => {
     expect(sanitizeThemePreference({ preference: "auto" })).toBe("auto");
   });
 
-  it("migrates the legacy theme key", () => {
-    expect(sanitizeThemePreference({ theme: "dark" })).toBe("dark");
-  });
-
-  it("lets the new key win when both are present", () => {
-    expect(sanitizeThemePreference({ preference: "light", theme: "dark" })).toBe("light");
-  });
-
-  it("treats an explicit null preference as set, not as a missing key", () => {
-    expect(sanitizeThemePreference({ preference: null, theme: "dark" })).toBeNull();
-  });
-
   it("coerces an invalid value to null so the default applies", () => {
     expect(sanitizeThemePreference({ preference: "sepia" })).toBeNull();
-    expect(sanitizeThemePreference({ theme: 1 })).toBeNull();
+    expect(sanitizeThemePreference({ preference: 1 })).toBeNull();
     expect(sanitizeThemePreference({})).toBeNull();
     expect(sanitizeThemePreference(null)).toBeNull();
   });

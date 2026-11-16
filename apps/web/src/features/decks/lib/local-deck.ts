@@ -1,12 +1,6 @@
 import type { DeckFormatConfig, DeckLink } from "@openrift/shared/types/api/deck";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 
-const LOCAL_DECK_PREFIX = "local:";
-
-export function bareLocalDeckId(id: string): string {
-  return id.startsWith(LOCAL_DECK_PREFIX) ? id.slice(LOCAL_DECK_PREFIX.length) : id;
-}
-
 export interface LocalDeckCard {
   zone: DeckZone;
   cardId: string;

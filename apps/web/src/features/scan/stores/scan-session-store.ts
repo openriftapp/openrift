@@ -59,9 +59,7 @@ function readPersistedRow(value: unknown): PersistedScanRow | null {
   if (typeof row.printingId !== "string") {
     return null;
   }
-  // A blob from the copy-per-scan shape counts only what it never wrote to a
-  // collection; the copies behind `copyIds` are already there.
-  const count = typeof row.count === "number" ? row.count : row.identifiedCount;
+  const count = row.count;
   if (typeof count !== "number" || !Number.isFinite(count) || count <= 0) {
     return null;
   }

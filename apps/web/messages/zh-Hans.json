@@ -2667,8 +2667,6 @@
   "decks_dialog_local_copy_name": "{name}（副本）",
   "decks_dialog_local_new_deck_name": "新卡组",
   "decks_dialog_local_quota_full": "无法保存你的卡组：此浏览器的存储空间已满。请登录以同步卡组，或删除一些本地卡组。",
-  "decks_dialog_local_recovered_name": "已恢复的卡组",
-  "decks_dialog_local_video_guide": "视频指南",
   "decks_dialog_print_cut_lines": "裁切线",
   "decks_dialog_print_desc_proxies": "用此卡组生成可打印的替代卡 PDF。",
   "decks_dialog_print_desc_registration": "生成可打印的赛事卡组登记表。",
