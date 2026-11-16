@@ -80,6 +80,7 @@ function makeTournament(
     status,
     host: { type: "user", userId: "u1", orgId: null, displayName: "Host", orgSlug: null },
     groupId: null,
+    published: true,
     groupSlug: null,
     groupName: null,
     pairingStyle: "pod",

@@ -41,13 +41,13 @@ export function tournamentLookupsRepo(db: Kysely<Database>) {
     },
 
     /**
-     * Any relationship (host, staff, participant, or linked-group member) —
-     * the in-app visibility gate for the detail read.
+     * Any relationship (host, staff, participant, or linked-group member while
+     * published): the in-app visibility gate for the detail read.
      */
     async hasRelationship(tournamentId: string, userId: string): Promise<boolean> {
       const tournament = await db
         .selectFrom("tournaments")
-        .select(["hostType", "hostUserId", "hostOrgId", "groupId"])
+        .select(["hostType", "hostUserId", "hostOrgId", "groupId", "published"])
         .where("id", "=", tournamentId)
         .executeTakeFirst();
       if (!tournament) {
@@ -67,7 +67,7 @@ export function tournamentLookupsRepo(db: Kysely<Database>) {
           return true;
         }
       }
-      if (tournament.groupId) {
+      if (tournament.groupId && tournament.published) {
         const groupMember = await db
           .selectFrom("friendGroupMembers")
           .select("userId")

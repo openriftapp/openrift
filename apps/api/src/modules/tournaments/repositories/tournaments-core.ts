@@ -26,6 +26,7 @@ export interface NewTournament {
   hostUserId?: string | null;
   hostOrgId?: string | null;
   groupId?: string | null;
+  published?: boolean;
   name: string;
   status?: TournamentStatus;
   /** Omit to fall back to the DB default of now(); the wizard always sets it. */
@@ -70,6 +71,7 @@ export interface TournamentPatch {
   startsAt?: Date;
   endsAt?: Date | null;
   groupId?: string | null;
+  published?: boolean;
   scoringScheme?: PodScoringScheme;
   byePoints?: number;
   /** The Swiss result-entry format. The route guards that it only changes before any round. */
@@ -118,6 +120,7 @@ export function tournamentsCoreRepo(db: Kysely<Database>) {
         .selectFrom("tournaments")
         .selectAll()
         .where("groupId", "=", groupId)
+        .where("published", "=", true)
         .orderBy("startsAt", "desc")
         .orderBy("createdAt", "desc")
         .execute();

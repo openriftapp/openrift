@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestContext, req } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
+import { tournamentsCoreRepo } from "../repositories/tournaments-core.js";
 
 const HOST_ID = crypto.randomUUID();
 const OTHER_ID = crypto.randomUUID();
@@ -989,6 +990,62 @@ describe.skipIf(!hostCtx || !otherCtx || !judgeCtx)(
       expect(good.status).toBe(200);
 
       await host.app.fetch(req("DELETE", `/tournaments/${reschedId}`));
+    });
+
+    it("hides an unpublished tournament from group members until it is published", async () => {
+      const group = await host.db
+        .insertInto("friendGroups")
+        .values({ slug: `trn-pub-${Date.now()}`, name: "Publish Group" })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+      await host.db
+        .insertInto("friendGroupMembers")
+        .values([
+          { groupId: group.id, userId: HOST_ID, role: "owner" },
+          { groupId: group.id, userId: OTHER_ID, role: "member" },
+        ])
+        .execute();
+
+      const create = await host.app.fetch(
+        req("POST", "/tournaments", {
+          name: "Prep Event",
+          host: { type: "user" },
+          pairingStyle: "none",
+          deckSubmission: "none",
+          groupId: group.id,
+          published: false,
+          startsAt: "2026-06-01T10:00:00.000Z",
+        }),
+      );
+      expect(create.status).toBe(200);
+      const prepId = ((await readJson(create)) as { id: string }).id;
+
+      async function groupListIds(ctx: typeof host): Promise<string[]> {
+        const res = await ctx.app.fetch(req("GET", `/friend-groups/${group.slug}/tournaments`));
+        expect(res.status).toBe(200);
+        return ((await readJson(res)) as { items: { id: string }[] }).items.map((t) => t.id);
+      }
+
+      const hiddenDetail = await other.app.fetch(req("GET", `/tournaments/${prepId}`));
+      expect(hiddenDetail.status).toBe(404);
+      expect(await groupListIds(other)).not.toContain(prepId);
+      expect(await groupListIds(host)).toContain(prepId);
+      const feedRows = await tournamentsCoreRepo(host.db).listForGroup(group.id);
+      expect(feedRows.map((t) => t.id)).not.toContain(prepId);
+
+      const publish = await host.app.fetch(
+        req("PATCH", `/tournaments/${prepId}`, { published: true }),
+      );
+      expect(((await readJson(publish)) as { published: boolean }).published).toBe(true);
+
+      const publishedDetail = await other.app.fetch(req("GET", `/tournaments/${prepId}`));
+      expect(publishedDetail.status).toBe(200);
+      expect(await groupListIds(other)).toContain(prepId);
+      const publishedFeedRows = await tournamentsCoreRepo(host.db).listForGroup(group.id);
+      expect(publishedFeedRows.map((t) => t.id)).toContain(prepId);
+
+      await host.db.deleteFrom("tournaments").where("id", "=", prepId).execute();
+      await host.db.deleteFrom("friendGroups").where("id", "=", group.id).execute();
     });
 
     it("cancels and then blocks edits and deletes (host only)", async () => {

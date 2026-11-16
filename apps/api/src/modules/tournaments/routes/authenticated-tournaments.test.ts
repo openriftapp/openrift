@@ -42,6 +42,7 @@ function tournamentRow(overrides: Partial<Tournament> = {}): Tournament {
     cutRematchAvoidance: false,
     legendTiebreak: false,
     groupsSelfPaced: true,
+    published: true,
     deckSubmission: "none",
     deckPhase: "closed",
     submissionsCloseAt: null,

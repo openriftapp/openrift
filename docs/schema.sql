@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict IENUU5QWgp6VSkbE4E7OLYMfsibDwqnIjN8gEu9jwCyMWdLp5Q8AVS35qUmtZkT
+\restrict MMQgLBePouct8mAF5K6rpOgl6Ukwmad7gqSoZ8B5azWtJ7SGKFZOyrXwtN8ENuY
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -4530,6 +4530,7 @@ CREATE TABLE public.tournaments (
     legend_tiebreak boolean DEFAULT false NOT NULL,
     groups_self_paced boolean DEFAULT true NOT NULL,
     uvsgames_event_id text,
+    published boolean DEFAULT true NOT NULL,
     CONSTRAINT chk_tournaments_allowed_sets_shape CHECK (((allowed_sets IS NULL) OR (jsonb_typeof(allowed_sets) = 'array'::text))),
     CONSTRAINT chk_tournaments_bye_points CHECK ((bye_points >= 0)),
     CONSTRAINT chk_tournaments_cut_size CHECK ((cut_size = ANY (ARRAY[4, 8, 16]))),
@@ -11510,5 +11511,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict IENUU5QWgp6VSkbE4E7OLYMfsibDwqnIjN8gEu9jwCyMWdLp5Q8AVS35qUmtZkT
+\unrestrict MMQgLBePouct8mAF5K6rpOgl6Ukwmad7gqSoZ8B5azWtJ7SGKFZOyrXwtN8ENuY
 

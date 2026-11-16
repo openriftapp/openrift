@@ -167,6 +167,7 @@ function makeTournament(
     status: "running",
     host: { type: "user", userId: "host-1", orgId: null, displayName: "Host", orgSlug: null },
     groupId: "group-1",
+    published: true,
     groupSlug: "bothfeld",
     groupName: "Bothfeld Connection",
     pairingStyle: "pod",

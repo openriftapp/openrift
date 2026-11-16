@@ -97,6 +97,7 @@ export const tournamentSummaryResponseSchema = z.object({
   status: tournamentStatusSchema,
   host: tournamentHostInfoSchema,
   groupId: z.string().nullable(),
+  published: z.boolean(),
   groupSlug: z.string().nullable(),
   groupName: z.string().nullable(),
   pairingStyle: tournamentPairingStyleSchema,
@@ -248,6 +249,7 @@ const tournamentSettingsShape = {
   allowedSets: z.array(z.string()).nullable().optional(),
   selfRegistration: z.boolean().optional(),
   groupId: z.uuid().nullable().optional(),
+  published: z.boolean().optional(),
   startsAt: isoDateTime,
   endsAt: isoDateTime.nullable().optional(),
 };

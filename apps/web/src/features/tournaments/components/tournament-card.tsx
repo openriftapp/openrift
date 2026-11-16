@@ -35,6 +35,9 @@ export function TournamentCard({ tournament }: { tournament: TournamentSummaryRe
           {tournament.host.type === "organization" ? (
             <Badge variant="outline">{tournament.host.displayName}</Badge>
           ) : null}
+          {tournament.groupId && !tournament.published ? (
+            <Badge variant="outline">{m.tournaments_card_unpublished()}</Badge>
+          ) : null}
           {tournament.pendingRequestCount > 0 ? (
             <Badge variant="warning">
               {m.tournaments_card_pending_requests({ count: tournament.pendingRequestCount })}

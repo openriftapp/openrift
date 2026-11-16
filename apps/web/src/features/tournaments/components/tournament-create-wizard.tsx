@@ -91,6 +91,7 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
   );
   const [selfRegistration, setSelfRegistration] = useState(false);
   const [groupId, setGroupId] = useState(initialGroupId);
+  const [published, setPublished] = useState(true);
   // Reads the viewer's clock, which only works because the route is `ssr: "data-only"`.
   const [schedule, setSchedule] = useState<ScheduleInput>(() => {
     const nowLocal = splitUtcToLocalDateTime(new Date().toISOString());
@@ -155,6 +156,7 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
       deckSubmission,
       selfRegistration,
       groupId: linkedGroupId,
+      published: linkedGroupId ? published : undefined,
       submissionsCloseAt,
       listLockMode,
       deckFormat: wantsDeck ? deckFormat : undefined,
@@ -192,6 +194,17 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
               <Label>{m.tournaments_new_group_label()}</Label>
               <GroupField value={groupId} onChange={setGroupId} />
             </div>
+            {groupId === "none" ? null : (
+              <div className="sm:col-span-2">
+                <SwitchField
+                  id="t-published"
+                  label={m.tournaments_settings_group_published_label()}
+                  hint={m.tournaments_settings_group_published_hint()}
+                  checked={published}
+                  onCheckedChange={setPublished}
+                />
+              </div>
+            )}
           </SettingsSection>
 
           <SettingsSection

@@ -9,6 +9,7 @@
 - feat(Tournaments): **Deck format for deck checks** — tournaments that collect decks are Constructed by default, so deck checks flag lists that break the rules, and hosts can pick another format or Freeform to turn the checks off.
 - feat(Decks): **Infinity format** — decks follow the Constructed rules with every card allowed, banned cards included, and deck checks at Infinity events skip the banlist.
 - feat(Tournaments): **Deleted accounts show as "Former member"** — results stay in standings and pairings, the name and Riot ID of a player who deleted their account are removed, and their spots in upcoming or running events are dropped.
+- feat(Tournaments): **Prepare a tournament before the group sees it** — a "Published to the group" switch keeps a linked tournament off the group page and calendar until you turn it on.
 
 ### Other
 

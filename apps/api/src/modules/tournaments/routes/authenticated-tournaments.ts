@@ -132,7 +132,7 @@ export const tournamentsRouter = {
         new Set(orgIds),
         new Set(judgeOrgIds),
       );
-      return { items };
+      return { items: items.filter((item) => item.published || item.myRoles.length > 0) };
     },
   ),
 
@@ -172,6 +172,7 @@ export const tournamentsRouter = {
           const tournament = await txRepos.tournaments.create({
             ...host,
             groupId: input.groupId ?? null,
+            published: input.published,
             name: input.name,
             pairingStyle: input.pairingStyle,
             playMode: input.playMode,
@@ -303,6 +304,7 @@ export const tournamentsRouter = {
       startsAt: patch.startsAt === undefined ? undefined : new Date(patch.startsAt),
       endsAt: patch.endsAt === undefined ? undefined : patch.endsAt ? new Date(patch.endsAt) : null,
       groupId: patch.groupId,
+      published: patch.published,
       scoringScheme: patch.scoringScheme,
       byePoints: patch.byePoints,
       matchFormat: matchFormatChanging ? patch.matchFormat : undefined,

@@ -62,6 +62,7 @@ export interface TournamentsTable {
   cutRematchAvoidance: Generated<boolean>;
   legendTiebreak: Generated<boolean>;
   groupsSelfPaced: Generated<boolean>;
+  published: Generated<boolean>;
 
   deckSubmission: Generated<TournamentDeckSubmission>;
 

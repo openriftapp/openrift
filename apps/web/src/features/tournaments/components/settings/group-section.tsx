@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { SettingsSection } from "@/components/layout/settings-section";
 import { SaveError } from "@/features/tournaments/components/save-error";
 import { GroupField } from "@/features/tournaments/components/settings/group-field";
+import { SwitchField } from "@/features/tournaments/components/settings/switch-field";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
@@ -28,6 +29,17 @@ export function GroupSection({
     }
   }
 
+  async function changePublished(published: boolean) {
+    const successMessage = published
+      ? m.tournaments_settings_group_published_toast()
+      : m.tournaments_settings_group_unpublished_toast();
+    if (
+      await runReportedMutation(() => updateTournament.mutateAsync({ id: detail.id, published }))
+    ) {
+      toast.success(successMessage);
+    }
+  }
+
   return (
     <SettingsSection
       id="group"
@@ -41,6 +53,16 @@ export function GroupSection({
         className="max-w-sm"
         onChange={(value) => void changeGroup(value)}
       />
+      {detail.groupId ? (
+        <SwitchField
+          id="t-published"
+          label={m.tournaments_settings_group_published_label()}
+          hint={m.tournaments_settings_group_published_hint()}
+          checked={detail.published}
+          disabled={locked || updateTournament.isPending}
+          onCheckedChange={(checked) => void changePublished(checked)}
+        />
+      ) : null}
       <SaveError error={updateTournament.error} />
     </SettingsSection>
   );
