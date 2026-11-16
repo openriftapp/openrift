@@ -12,6 +12,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useHeaderHeight } from "@/hooks/use-header-height";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { usePageTocStore } from "@/stores/page-toc-store";
@@ -22,25 +23,40 @@ export interface PageTocItem {
   level?: number;
 }
 
+/** Takes over a jump to an item that is hidden or not rendered, e.g. folded or filtered out. */
+export type PageTocJump = (id: string) => void;
+
 function TocLink({
   id,
   label,
   level,
+  itemIds,
+  onJump,
   onSelect,
 }: {
   id: string;
   label: string;
   level: number;
+  itemIds: readonly string[];
+  onJump?: PageTocJump;
   onSelect?: () => void;
 }) {
-  const isActive = usePageTocStore((state) => state.activeId === id);
+  const isActive = usePageTocStore((state) =>
+    state.activeId !== null && itemIds.includes(state.activeId)
+      ? state.activeId === id
+      : itemIds[0] === id,
+  );
   const setActiveId = usePageTocStore((state) => state.setActiveId);
 
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
     const element = document.querySelector<HTMLElement>(`#${CSS.escape(id)}`);
-    if (element) {
+    if (element && (onJump === undefined || element.getClientRects().length > 0)) {
       event.preventDefault();
       element.scrollIntoView({ behavior: "smooth", block: "start" });
+      setActiveId(id);
+    } else if (onJump) {
+      event.preventDefault();
+      onJump(id);
       setActiveId(id);
     }
     onSelect?.();
@@ -63,14 +79,9 @@ function TocLink({
   );
 }
 
-// The store is global, so reset activeId on items change or it keeps a stale
-// id from the previous page until the observer fires.
 function useActiveTocItem(items: PageTocItem[]) {
   const setActiveId = usePageTocStore((state) => state.setActiveId);
-
-  useEffect(() => {
-    setActiveId(items[0]?.id ?? null);
-  }, [items, setActiveId]);
+  const headerHeight = Math.round(useHeaderHeight());
 
   useEffect(() => {
     if (items.length === 0) {
@@ -93,18 +104,27 @@ function useActiveTocItem(items: PageTocItem[]) {
           setActiveId(first.target.id);
         }
       },
-      { rootMargin: "-80px 0px -60% 0px", threshold: 0 },
+      { rootMargin: `-${headerHeight}px 0px -60% 0px`, threshold: 0 },
     );
 
     for (const element of elements) {
       observer.observe(element);
     }
     return () => observer.disconnect();
-  }, [items, setActiveId]);
+  }, [items, setActiveId, headerHeight]);
 }
 
-export function PageToc({ items, className }: { items: PageTocItem[]; className?: string }) {
+export function PageToc({
+  items,
+  onJump,
+  className,
+}: {
+  items: PageTocItem[];
+  onJump?: PageTocJump;
+  className?: string;
+}) {
   useActiveTocItem(items);
+  const itemIds = items.map((item) => item.id);
 
   return (
     <aside
@@ -116,7 +136,14 @@ export function PageToc({ items, className }: { items: PageTocItem[]; className?
       <ScrollArea className="h-full">
         <nav className="space-y-1.5">
           {items.map((item) => (
-            <TocLink key={item.id} id={item.id} label={item.label} level={item.level ?? 0} />
+            <TocLink
+              key={item.id}
+              id={item.id}
+              label={item.label}
+              level={item.level ?? 0}
+              itemIds={itemIds}
+              onJump={onJump}
+            />
           ))}
         </nav>
       </ScrollArea>
@@ -128,14 +155,17 @@ export function PageToc({ items, className }: { items: PageTocItem[]; className?
 // on PageToc's observer to keep activeId in sync.
 export function PageTocMobileTrigger({
   items,
+  onJump,
   className,
   labelClassName,
 }: {
   items: PageTocItem[];
+  onJump?: PageTocJump;
   className?: string;
   labelClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const itemIds = items.map((item) => item.id);
 
   if (items.length === 0) {
     return null;
@@ -173,6 +203,8 @@ export function PageTocMobileTrigger({
               id={item.id}
               label={item.label}
               level={item.level ?? 0}
+              itemIds={itemIds}
+              onJump={onJump}
               onSelect={() => setOpen(false)}
             />
           ))}

@@ -1,14 +1,18 @@
 import { formatRuleNumber } from "@openrift/shared/rules";
 import { Link } from "@tanstack/react-router";
+import { createContext, useContext } from "react";
 
 import { CountPillButton } from "@/components/ui/count-pill";
-import { useRuleExamplesStore } from "@/features/rules/stores/rule-examples-store";
+import type { RuleExample } from "@/features/rules/lib/rule-examples";
+import { useRulesPageStore } from "@/features/rules/stores/rules-page-store";
 import { m } from "@/paraglide/messages.js";
 
+export const RuleExamplesContext = createContext<ReadonlyMap<string, RuleExample[]>>(new Map());
+
 export function RuleExamplesMarker({ ruleNumber }: { ruleNumber: string }) {
-  const count = useRuleExamplesStore((state) => state.examplesByRule.get(ruleNumber)?.length ?? 0);
-  const isExpanded = useRuleExamplesStore((state) => state.expandedRules.has(ruleNumber));
-  const toggle = useRuleExamplesStore((state) => state.toggle);
+  const count = useContext(RuleExamplesContext).get(ruleNumber)?.length ?? 0;
+  const isExpanded = useRulesPageStore((state) => state.expandedExamples.has(ruleNumber));
+  const toggle = useRulesPageStore((state) => state.toggleExamples);
 
   if (count === 0) {
     return null;
@@ -32,8 +36,8 @@ export function RuleExamplesMarker({ ruleNumber }: { ruleNumber: string }) {
 }
 
 export function RuleExamplesList({ ruleNumber }: { ruleNumber: string }) {
-  const isExpanded = useRuleExamplesStore((state) => state.expandedRules.has(ruleNumber));
-  const examples = useRuleExamplesStore((state) => state.examplesByRule.get(ruleNumber));
+  const isExpanded = useRulesPageStore((state) => state.expandedExamples.has(ruleNumber));
+  const examples = useContext(RuleExamplesContext).get(ruleNumber);
 
   if (!isExpanded || !examples || examples.length === 0) {
     return null;

@@ -2,7 +2,7 @@ import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ChevronDownIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ import { HeroCtas } from "./hero-ctas";
 import { LandingClosing } from "./landing-closing";
 
 const HINT_DURATION_MS = 400;
-const SPIN_DURATION_MS = 1000;
+const SPIN_DELAY_MS = 500;
 
 function HeroStats({
   cardCount,
@@ -50,7 +50,8 @@ export function LandingPage() {
   const { data } = useQuery(landingSummaryQueryOptions);
   const [spinning, setSpinning] = useState(false);
   const [resetKey, setResetKey] = useState(0);
-  const [hinting, setHinting] = useState(false);
+  const [hintTap, setHintTap] = useState(0);
+  const hinting = hintTap !== 0;
 
   useIdlePreloadRoute("/cards");
 
@@ -58,17 +59,17 @@ export function LandingPage() {
   const animatedPrintings = useCountUp(data?.printingCount ?? 0);
   const animatedCopies = useCountUp(data?.copyCount ?? 0);
 
-  function handleLogoTap() {
-    setHinting(true);
-    setTimeout(() => setHinting(false), HINT_DURATION_MS);
-  }
+  useEffect(() => {
+    if (hintTap === 0) {
+      return;
+    }
+    const timer = setTimeout(() => setHintTap(0), HINT_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [hintTap]);
 
-  function handleAllCollected() {
-    setSpinning(true);
-    setTimeout(() => {
-      setSpinning(false);
-      setResetKey((key) => key + 1);
-    }, SPIN_DURATION_MS);
+  function handleSpinEnd() {
+    setSpinning(false);
+    setResetKey((key) => key + 1);
   }
 
   const samples = landingSamples(data);
@@ -86,13 +87,15 @@ export function LandingPage() {
                 variant="ghost"
                 aria-label="OpenRift"
                 className="h-auto cursor-pointer rounded-2xl p-0 hover:bg-transparent dark:hover:bg-transparent"
-                onClick={handleLogoTap}
+                onClick={() => setHintTap((tap) => tap + 1)}
               >
                 <img
                   src="/logo-color.svg"
                   alt=""
                   fetchPriority="high"
                   className={cn("size-16", spinning && "animate-logo-spin")}
+                  style={spinning ? { animationDelay: `${SPIN_DELAY_MS}ms` } : undefined}
+                  onAnimationEnd={spinning ? handleSpinEnd : undefined}
                 />
               </Button>
               <span className="font-heading text-4xl font-bold md:text-5xl">OpenRift</span>
@@ -126,7 +129,7 @@ export function LandingPage() {
             key={resetKey}
             imageUrls={samples.fanUrls}
             hinting={hinting}
-            onAllCollected={handleAllCollected}
+            onAllCollected={() => setSpinning(true)}
           />
         </div>
         <span

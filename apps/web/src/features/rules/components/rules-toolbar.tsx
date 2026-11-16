@@ -5,7 +5,6 @@ import type {
 } from "@openrift/shared/types/api/rules";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { ChevronDownIcon, FileClockIcon, SlidersHorizontalIcon } from "lucide-react";
-import { useState } from "react";
 import type { ReactNode } from "react";
 
 import { SearchInput } from "@/components/search-input";
@@ -30,9 +29,7 @@ import {
   isRulesChangesView,
   useRulesChangesViewStore,
 } from "@/features/rules/stores/rules-changes-view-store";
-import { useRulesSearchStore } from "@/features/rules/stores/rules-search-store";
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
-import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { useSearchUrlSync } from "@/hooks/use-search-url-sync";
 import { DISPLAY_LOCALE_LABELS } from "@/lib/display-locale";
 import { cn } from "@/lib/utils";
@@ -200,7 +197,14 @@ function RulesLanguageSelect({
           return;
         }
         if (versionLanguages.includes(next)) {
-          void navigate({ to: ".", search: (prev) => ({ ...prev, lang: next }) });
+          void navigate({
+            to: ".",
+            search: (prev) => ({
+              ...prev,
+              lang: next,
+              q: view === "document" ? undefined : prev.q,
+            }),
+          });
           return;
         }
         const newest = englishVersions.versions.findLast((entry) => entry.languages.includes(next));
@@ -240,7 +244,7 @@ export function KindTabs({ kind }: { kind: RuleKind | "glossary" }) {
         void navigate({
           to: "/rules/$kind",
           params: { kind: value },
-          search: kind === "glossary" ? {} : (prev) => prev,
+          search: kind === "glossary" ? {} : (prev) => ({ ...prev, q: undefined }),
         });
       }}
     >
@@ -412,52 +416,19 @@ export function RulesSearchBar({
 }) {
   const urlQuery = useSearch({ strict: false, select: (search) => search.q });
   const urlValue = typeof urlQuery === "string" ? urlQuery : "";
-  const setQuery = useRulesSearchStore((state) => state.setQuery);
-  const resetSignal = useRulesSearchStore((state) => state.resetSignal);
   const navigate = useNavigate();
-  const [resetPending, setResetPending] = useState(false);
 
   const [draft, setDraft] = useSearchUrlSync({
     urlValue,
     delay: 150,
     onCommit: (next) => {
-      setQuery(next);
-      const search = (prev: Record<string, unknown>) => ({
-        ...prev,
-        q: next === "" ? undefined : next,
+      void navigate({
+        to: ".",
+        search: (prev) => ({ ...prev, q: next === "" ? undefined : next }),
+        replace: true,
       });
-      if (resetPending) {
-        setResetPending(false);
-        // A reset can follow a raw history.pushState anchor jump the router has not seen.
-        const hash = globalThis.location.hash.slice(1);
-        void navigate({
-          to: ".",
-          search,
-          hash: hash === "" ? undefined : hash,
-          replace: true,
-          resetScroll: false,
-          hashScrollIntoView: false,
-        });
-        return;
-      }
-      void navigate({ to: ".", search, replace: true });
     },
   });
-
-  useScopeEffect(urlValue, (query) => {
-    setQuery(query);
-  });
-
-  // Gated on resetSignal, not the query value: during normal typing the store
-  // is briefly empty until the debounce fires, which would wipe the draft.
-  const [handledSignal, setHandledSignal] = useState(resetSignal);
-  if (handledSignal !== resetSignal) {
-    setHandledSignal(resetSignal);
-    if (resetSignal > 0 && draft !== "") {
-      setResetPending(true);
-      setDraft("");
-    }
-  }
 
   return (
     <SearchInput

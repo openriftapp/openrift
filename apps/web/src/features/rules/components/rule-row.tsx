@@ -13,7 +13,7 @@ import { ruleLinkUrl } from "@/features/rules/lib/rule-link";
 import { ruleHtmlToText } from "@/features/rules/lib/rule-text";
 import type { ChangeKind, RuleEntry } from "@/features/rules/lib/rules-changes";
 import { changeKindBadge } from "@/features/rules/lib/rules-changes";
-import { useRulesFoldStore } from "@/features/rules/stores/rules-fold-store";
+import { isFoldShut, useRulesPageStore } from "@/features/rules/stores/rules-page-store";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -26,10 +26,14 @@ export const GUIDE_DEPTH_CLASS: Record<number, string> = {
   3: "rule-guides [--rule-depth:3]",
 };
 
+const NO_REVEALED: ReadonlySet<string> = new Set();
+
 export function RuleRow({
   rule,
   ancestors,
   hasChildren,
+  hash = "",
+  revealed = NO_REVEALED,
   isContext,
   changeKind,
   previousContent,
@@ -41,6 +45,8 @@ export function RuleRow({
   rule: RuleEntry;
   ancestors: readonly string[];
   hasChildren: boolean;
+  hash?: string;
+  revealed?: ReadonlySet<string>;
   isContext?: boolean;
   changeKind?: ChangeKind;
   previousContent?: string;
@@ -51,11 +57,13 @@ export function RuleRow({
 }) {
   // Fold state is subscribed per-row, not by the parent, so its `.map()`
   // result stays cached across fold toggles.
-  const isFolded = useRulesFoldStore((state) => state.foldedRules.has(rule.ruleNumber));
-  const isHidden = useRulesFoldStore((state) =>
-    ancestors.some((ancestor) => state.foldedRules.has(ancestor)),
+  const isFolded = useRulesPageStore((state) =>
+    isFoldShut(state.folds, rule.ruleNumber, hash, revealed),
   );
-  const toggle = useRulesFoldStore((state) => state.toggle);
+  const isHidden = useRulesPageStore((state) =>
+    ancestors.some((ancestor) => isFoldShut(state.folds, ancestor, hash, revealed)),
+  );
+  const setFolded = useRulesPageStore((state) => state.setFolded);
   const { copied, copy } = useCopyToClipboard();
   const copyLink = async () => {
     const ok = await copy(ruleLinkUrl(rule.ruleNumber, globalThis.location));
@@ -173,7 +181,7 @@ export function RuleRow({
           >
             <ExpandToggle
               expanded={!isFolded}
-              onClick={() => toggle(rule.ruleNumber)}
+              onClick={() => setFolded(rule.ruleNumber, !isFolded, hash)}
               aria-label={isFolded ? m.rules_expand_group() : m.rules_collapse_group()}
               className="text-muted-foreground hover:text-foreground size-4 justify-center gap-0 rounded-md no-underline"
               chevronClassName="size-3 text-inherit"

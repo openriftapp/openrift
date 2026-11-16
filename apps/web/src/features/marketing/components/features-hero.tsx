@@ -11,7 +11,7 @@ import { m } from "@/paraglide/messages.js";
 
 import { ClipFrame } from "./clip-frame";
 import { SectionRule } from "./feature-section";
-import { smoothAnchorClick } from "./features-nav";
+import { useSmoothAnchorClick } from "./features-nav";
 
 const SPREAD_CARD_WIDTH = 100;
 
@@ -83,6 +83,7 @@ export function ChapterTileBody({ chapter }: { chapter: FeatureChapter }) {
 }
 
 function ChapterTile({ chapter }: { chapter: FeatureChapter }) {
+  const smoothAnchorClick = useSmoothAnchorClick();
   return (
     <ClipFrame tone="border" cut={12} className="h-full p-0">
       <a
@@ -104,6 +105,7 @@ export function FeaturesHero({
   /** May be empty until the query resolves. */
   thumbnailUrls: string[];
 }) {
+  const smoothAnchorClick = useSmoothAnchorClick();
   return (
     // Full-bleed: the gradient spans the viewport, the inner column matches
     // the page column.

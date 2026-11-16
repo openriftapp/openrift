@@ -18,6 +18,7 @@ vi.mock("@tanstack/react-router", () => ({
   Link: MockLink,
   createLink: () => MockLink,
   useRouter: () => ({ preloadRoute: vi.fn() }),
+  useNavigate: () => vi.fn(),
 }));
 vi.mock("@/hooks/use-feature-flags", () => ({ useFeatureEnabled: () => true }));
 vi.mock("@/hooks/use-session", () => ({

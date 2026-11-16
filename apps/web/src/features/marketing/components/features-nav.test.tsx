@@ -2,7 +2,14 @@ import { act, renderHook } from "@testing-library/react";
 import type { MouseEvent } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { smoothAnchorClick, useActiveChapter } from "./features-nav";
+const navigate = vi.hoisted(() => vi.fn());
+
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => navigate,
+  createLink: (Component: unknown) => Component,
+}));
+
+const { useActiveChapter, useSmoothAnchorClick } = await import("./features-nav");
 
 const CHAPTER_IDS = ["collect", "build", "play"];
 
@@ -141,18 +148,22 @@ describe("useActiveChapter", () => {
   });
 });
 
-describe("smoothAnchorClick", () => {
+describe("useSmoothAnchorClick", () => {
   let reducedMotion = false;
   const nativeMatchMedia = globalThis.matchMedia;
   const nativeRaf = globalThis.requestAnimationFrame;
   const nativeCancelRaf = globalThis.cancelAnimationFrame;
+  const nativeResizeObserver = globalThis.ResizeObserver;
   let rafClock = 0;
   let rafCalls = 0;
+  let resizeCallbacks: (() => void)[] = [];
+  let targetTop = 0;
 
   function mountTarget(id: string, top: number): HTMLElement {
+    targetTop = top;
     const element = document.createElement("div");
     element.id = id;
-    element.getBoundingClientRect = () => ({ top }) as unknown as DOMRect;
+    element.getBoundingClientRect = () => ({ top: targetTop }) as unknown as DOMRect;
     document.body.append(element);
     return element;
   }
@@ -171,10 +182,18 @@ describe("smoothAnchorClick", () => {
     } as unknown as MouseEvent<HTMLAnchorElement>;
   }
 
+  function resizePage() {
+    for (const callback of resizeCallbacks) {
+      callback();
+    }
+  }
+
   beforeEach(() => {
     reducedMotion = false;
     rafClock = 0;
     rafCalls = 0;
+    resizeCallbacks = [];
+    navigate.mockReset();
     globalThis.matchMedia = ((query: string) => ({
       matches: query.includes("reduce") && reducedMotion,
     })) as unknown as typeof matchMedia;
@@ -185,52 +204,126 @@ describe("smoothAnchorClick", () => {
       return rafCalls;
     }) as typeof requestAnimationFrame;
     globalThis.cancelAnimationFrame = (() => {}) as typeof cancelAnimationFrame;
+    globalThis.ResizeObserver = class {
+      private active = true;
+      constructor(callback: () => void) {
+        resizeCallbacks.push(() => {
+          if (this.active) {
+            callback();
+          }
+        });
+      }
+      observe() {}
+      disconnect() {
+        this.active = false;
+      }
+    } as unknown as typeof ResizeObserver;
     window.scrollTo = vi.fn();
-    vi.spyOn(history, "pushState").mockImplementation(() => {});
   });
 
   afterEach(() => {
     globalThis.matchMedia = nativeMatchMedia;
     globalThis.requestAnimationFrame = nativeRaf;
     globalThis.cancelAnimationFrame = nativeCancelRaf;
+    globalThis.ResizeObserver = nativeResizeObserver;
     vi.restoreAllMocks();
     document.body.innerHTML = "";
   });
 
   it("animates the window to the target instead of the default jump", () => {
     mountTarget("chapter-collect", 1000);
+    const { result } = renderHook(() => useSmoothAnchorClick());
     const event = clickEvent("#chapter-collect");
 
-    smoothAnchorClick(event);
+    result.current(event);
 
     expect(event.preventDefault).toHaveBeenCalled();
     expect(rafCalls).toBeGreaterThan(1);
     expect(vi.mocked(window.scrollTo).mock.lastCall).toEqual([0, 1000]);
   });
 
-  it("jumps to the target without animating when the viewer prefers reduced motion", () => {
+  it("records the hash through the router without a scroll of its own", () => {
+    const pushSpy = vi.spyOn(history, "pushState");
+    mountTarget("chapter-collect", 1000);
+    const { result } = renderHook(() => useSmoothAnchorClick());
+
+    result.current(clickEvent("#chapter-collect"));
+
+    expect(navigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hash: "chapter-collect",
+        resetScroll: false,
+        hashScrollIntoView: false,
+      }),
+    );
+    expect(pushSpy).not.toHaveBeenCalled();
+  });
+
+  it("jumps without polling frames when the viewer prefers reduced motion", () => {
     reducedMotion = true;
     mountTarget("chapter-collect", 1000);
+    const { result } = renderHook(() => useSmoothAnchorClick());
 
-    smoothAnchorClick(clickEvent("#chapter-collect"));
+    result.current(clickEvent("#chapter-collect"));
 
-    expect(vi.mocked(window.scrollTo).mock.calls[0]).toEqual([0, 1000]);
+    expect(vi.mocked(window.scrollTo).mock.calls).toEqual([[0, 1000]]);
+    expect(rafCalls).toBe(0);
+  });
+
+  it("follows the target when sections above it resize", () => {
+    reducedMotion = true;
+    mountTarget("chapter-collect", 1000);
+    const { result } = renderHook(() => useSmoothAnchorClick());
+    result.current(clickEvent("#chapter-collect"));
+
+    targetTop = 1400;
+    resizePage();
+
+    expect(vi.mocked(window.scrollTo).mock.lastCall).toEqual([0, 1400]);
+  });
+
+  it("lets go once the user scrolls", () => {
+    reducedMotion = true;
+    mountTarget("chapter-collect", 1000);
+    const { result } = renderHook(() => useSmoothAnchorClick());
+    result.current(clickEvent("#chapter-collect"));
+
+    globalThis.dispatchEvent(new Event("wheel"));
+    targetTop = 1400;
+    resizePage();
+
+    expect(vi.mocked(window.scrollTo).mock.lastCall).toEqual([0, 1000]);
+  });
+
+  it("stops holding the position after the page unmounts", () => {
+    reducedMotion = true;
+    mountTarget("chapter-collect", 1000);
+    const { result, unmount } = renderHook(() => useSmoothAnchorClick());
+    result.current(clickEvent("#chapter-collect"));
+
+    unmount();
+    targetTop = 1400;
+    resizePage();
+
+    expect(vi.mocked(window.scrollTo).mock.lastCall).toEqual([0, 1000]);
   });
 
   it("keeps the browser default for modified clicks", () => {
     mountTarget("chapter-collect", 1000);
+    const { result } = renderHook(() => useSmoothAnchorClick());
     const event = clickEvent("#chapter-collect", { ctrlKey: true });
 
-    smoothAnchorClick(event);
+    result.current(event);
 
     expect(event.preventDefault).not.toHaveBeenCalled();
     expect(window.scrollTo).not.toHaveBeenCalled();
   });
 
   it("keeps the browser default when the anchor target does not exist", () => {
+    const { result } = renderHook(() => useSmoothAnchorClick());
     const event = clickEvent("#chapter-missing");
 
-    smoothAnchorClick(event);
+    result.current(event);
 
     expect(event.preventDefault).not.toHaveBeenCalled();
   });

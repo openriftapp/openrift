@@ -1,45 +1,39 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { createStoreResetter } from "@/test/store-helpers";
+import { createInfractionsOpenStore } from "./infractions-open-store";
 
-import { useInfractionsOpenStore } from "./infractions-open-store";
-
-let resetStore: () => void;
-
-beforeEach(() => {
-  resetStore = createStoreResetter(useInfractionsOpenStore);
-});
-
-afterEach(() => {
-  resetStore();
-});
-
-const openRules = () => [...useInfractionsOpenStore.getState().openRules];
-
-describe("useInfractionsOpenStore", () => {
+describe("createInfractionsOpenStore", () => {
   it("starts with every row closed", () => {
-    expect(openRules()).toEqual([]);
+    expect([...createInfractionsOpenStore().getState().openRules]).toEqual([]);
+  });
+
+  it("gives each page its own open rows", () => {
+    createInfractionsOpenStore().getState().toggle("702.2");
+    expect([...createInfractionsOpenStore().getState().openRules]).toEqual([]);
   });
 
   it("toggles one row open and closed", () => {
-    useInfractionsOpenStore.getState().toggle("702.2");
-    expect(openRules()).toEqual(["702.2"]);
-    useInfractionsOpenStore.getState().toggle("702.2");
-    expect(openRules()).toEqual([]);
+    const store = createInfractionsOpenStore();
+    store.getState().toggle("702.2");
+    expect([...store.getState().openRules]).toEqual(["702.2"]);
+    store.getState().toggle("702.2");
+    expect([...store.getState().openRules]).toEqual([]);
   });
 
   it("opens the given rows and keeps the ones already open", () => {
-    useInfractionsOpenStore.getState().toggle("702.1");
-    useInfractionsOpenStore.getState().openAll(["702.2", "702.3"]);
-    expect(openRules()).toEqual(["702.1", "702.2", "702.3"]);
+    const store = createInfractionsOpenStore();
+    store.getState().toggle("702.1");
+    store.getState().openAll(["702.2", "702.3"]);
+    expect([...store.getState().openRules]).toEqual(["702.1", "702.2", "702.3"]);
   });
 
   it("closes every row, keeping the same state object when none is open", () => {
-    const before = useInfractionsOpenStore.getState();
-    useInfractionsOpenStore.getState().closeAll();
-    expect(useInfractionsOpenStore.getState()).toBe(before);
-    useInfractionsOpenStore.getState().openAll(["702.2"]);
-    useInfractionsOpenStore.getState().closeAll();
-    expect(openRules()).toEqual([]);
+    const store = createInfractionsOpenStore();
+    const before = store.getState();
+    store.getState().closeAll();
+    expect(store.getState()).toBe(before);
+    store.getState().openAll(["702.2"]);
+    store.getState().closeAll();
+    expect([...store.getState().openRules]).toEqual([]);
   });
 });

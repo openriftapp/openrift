@@ -4,11 +4,9 @@ import { FoilOverlay } from "@/features/cards/components/foil-overlay";
 import { useCardTilt } from "@/features/cards/hooks/use-card-tilt";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { prefersReducedMotion } from "@/lib/media-query";
 import { cn } from "@/lib/utils";
 
-// Must match the `animate-fly-away` CSS keyframe duration.
-const FLY_AWAY_MS = 800;
-const ALL_COLLECTED_DELAY_MS = 500;
 const DEAL_STAGGER_MS = 70;
 const SPREAD_DEG = 9;
 const HOVER_SPREAD_DEG = 3;
@@ -25,6 +23,7 @@ function FanCard({
   dealDelayMs,
   onHoverChange,
   onCollect,
+  onFlownAway,
 }: {
   src: string;
   baseAngle: number;
@@ -34,6 +33,7 @@ function FanCard({
   dealDelayMs: number;
   onHoverChange: (hovered: boolean) => void;
   onCollect: () => void;
+  onFlownAway: () => void;
 }) {
   const { containerRef, innerRef } = useCardTilt({ mode: "pointer", enabled: true });
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
@@ -55,6 +55,11 @@ function FanCard({
         "absolute top-4 left-1/2 motion-reduce:animate-none",
         flyingAway ? "animate-fly-away" : "animate-fly-in",
       )}
+      onAnimationEnd={(event) => {
+        if (flyingAway && event.target === event.currentTarget) {
+          onFlownAway();
+        }
+      }}
       style={
         flyingAway
           ? undefined
@@ -153,6 +158,7 @@ export function CollectCardFan({
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [flyingAway, setFlyingAway] = useState<Set<number>>(() => new Set());
   const [gone, setGone] = useState<Set<number>>(() => new Set());
+  const [lastCollected, setLastCollected] = useState<number | null>(null);
 
   const [prevMobile, setPrevMobile] = useState(isMobile);
   if (prevMobile !== isMobile) {
@@ -160,6 +166,7 @@ export function CollectCardFan({
     setHoverIndex(null);
     setFlyingAway(new Set());
     setGone(new Set());
+    setLastCollected(null);
   }
 
   if (fanUrls.length === 0) {
@@ -170,19 +177,31 @@ export function CollectCardFan({
     if (gone.has(index)) {
       return;
     }
-    setHoverIndex(null);
-    setFlyingAway((prev) => new Set(prev).add(index));
     const nextGone = new Set(gone).add(index);
+    const isLast = nextGone.size >= fanUrls.length;
+    setHoverIndex(null);
     setGone(nextGone);
-    setTimeout(() => {
-      setFlyingAway((prev) => {
-        const next = new Set(prev);
-        next.delete(index);
-        return next;
-      });
-    }, FLY_AWAY_MS);
-    if (nextGone.size >= fanUrls.length) {
-      setTimeout(() => onAllCollected?.(), FLY_AWAY_MS + ALL_COLLECTED_DELAY_MS);
+    // `motion-reduce:animate-none` drops the fly-away, so no animationend follows.
+    if (prefersReducedMotion()) {
+      if (isLast) {
+        onAllCollected?.();
+      }
+      return;
+    }
+    setFlyingAway((prev) => new Set(prev).add(index));
+    if (isLast) {
+      setLastCollected(index);
+    }
+  }
+
+  function flownAway(index: number) {
+    setFlyingAway((prev) => {
+      const next = new Set(prev);
+      next.delete(index);
+      return next;
+    });
+    if (index === lastCollected) {
+      onAllCollected?.();
     }
   }
 
@@ -227,6 +246,7 @@ export function CollectCardFan({
               dealDelayMs={index * DEAL_STAGGER_MS}
               onHoverChange={(hovered) => setHoverIndex(hovered ? index : null)}
               onCollect={() => collect(index)}
+              onFlownAway={() => flownAway(index)}
             />
           </div>
         );

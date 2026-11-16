@@ -32,11 +32,13 @@ import {
   withoutPenaltyBadges,
 } from "@/features/rules/lib/rules-infractions";
 import { PENALTY_SLUGS, penaltySlug } from "@/features/rules/lib/rules-search-schema";
-import { useInfractionsOpenStore } from "@/features/rules/stores/infractions-open-store";
-import { useRulesSearchStore } from "@/features/rules/stores/rules-search-store";
+import {
+  createInfractionsOpenStore,
+  InfractionsOpenStoreContext,
+  useInfractionsOpenStore,
+} from "@/features/rules/stores/infractions-open-store";
 import { useIsStuck } from "@/hooks/use-is-stuck";
 import { useMeasuredHeight } from "@/hooks/use-measured-height";
-import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -76,6 +78,20 @@ export function InfractionsPage({
   language: RuleLanguage;
   version: string;
 }) {
+  return <InfractionsScope key={`${language} ${version}`} language={language} version={version} />;
+}
+
+function InfractionsScope({ language, version }: { language: RuleLanguage; version: string }) {
+  // oxlint-disable-next-line react/hook-use-state -- a stable per-page store, never replaced
+  const [store] = useState(createInfractionsOpenStore);
+  return (
+    <InfractionsOpenStoreContext value={store}>
+      <InfractionsContent language={language} version={version} />
+    </InfractionsOpenStoreContext>
+  );
+}
+
+function InfractionsContent({ language, version }: { language: RuleLanguage; version: string }) {
   const navigate = useNavigate();
   const [toolbarEl, setToolbarEl] = useState<HTMLDivElement | null>(null);
   const isToolbarStuck = useIsStuck(toolbarEl);
@@ -83,14 +99,11 @@ export function InfractionsPage({
   const { data: rulesData } = useRulesAtVersion(KIND, language, version);
   const { data: versionsData } = useRuleVersions(KIND, language);
   const { data: englishVersionsData } = useRuleVersions(KIND, "en");
-  const query = useRulesSearchStore((state) => state.query);
+  const query = routeApi.useSearch({ select: (search) => search.q }) ?? "";
   const penaltyParam = routeApi.useSearch({ select: (search) => search.penalty });
   const cardPreview = useRuleCardPreview();
   const openAll = useInfractionsOpenStore((state) => state.openAll);
   const closeAll = useInfractionsOpenStore((state) => state.closeAll);
-  useScopeEffect(`${language} ${version}`, () => {
-    closeAll();
-  });
 
   const sections = buildInfractionSections(rulesData.rules);
   const penaltyCounts = infractionPenaltyCounts(sections);
@@ -210,7 +223,13 @@ export function InfractionsPage({
         </div>
         {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- delegated link handling */}
         <div
-          onClick={(event) => handleRuleHtmlClick(event, (href) => void navigate({ href }))}
+          onClick={(event) =>
+            handleRuleHtmlClick(event, {
+              navigate: (href) => void navigate({ href }),
+              jump: (targetId) =>
+                void navigate({ to: ".", search: (prev) => prev, hash: targetId }),
+            })
+          }
           onPointerOver={cardPreview.handlePointerOver}
           onPointerOut={cardPreview.handlePointerOut}
           className="flex flex-col gap-8"

@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { usePageTocStore } from "@/stores/page-toc-store";
 import { createStoreResetter } from "@/test/store-helpers";
 
-import { PageTocMobileTrigger } from "./page-toc";
+import { PageToc, PageTocMobileTrigger } from "./page-toc";
 
 const ITEMS = [
   { id: "rule-100", label: "100. Game Concepts", level: 0 },
@@ -88,5 +88,65 @@ describe("PageTocMobileTrigger", () => {
     const activeLink = screen.getByRole("link", { name: "200. Parts of a Card" });
     expect(activeLink.className).toContain("text-foreground");
     expect(activeLink.className).toContain("font-medium");
+  });
+});
+
+describe("PageToc", () => {
+  const nativeIntersectionObserver = globalThis.IntersectionObserver;
+  let rootMargins: string[] = [];
+
+  beforeEach(() => {
+    rootMargins = [];
+    globalThis.IntersectionObserver = class {
+      constructor(_callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+        rootMargins.push(options?.rootMargin ?? "");
+      }
+      observe() {}
+      disconnect() {}
+    } as unknown as typeof IntersectionObserver;
+  });
+
+  afterEach(() => {
+    globalThis.IntersectionObserver = nativeIntersectionObserver;
+    document.querySelector("header[data-app-header]")?.remove();
+  });
+
+  it("clears the live header height when picking the active heading", () => {
+    const header = document.createElement("header");
+    header.dataset.appHeader = "";
+    header.getBoundingClientRect = () => ({ height: 64 }) as DOMRect;
+    document.body.append(header);
+
+    render(<PageToc items={ITEMS} />);
+
+    expect(rootMargins.at(-1)).toBe("-64px 0px -60% 0px");
+  });
+
+  it("highlights the first item while the active id belongs to another page", () => {
+    usePageTocStore.getState().setActiveId("glossary-keywords");
+    render(<PageToc items={ITEMS} />);
+
+    expect(screen.getByRole("link", { name: "100. Game Concepts" }).className).toContain(
+      "font-medium",
+    );
+  });
+
+  it("hands a jump to a hidden heading to the page", async () => {
+    const user = userEvent.setup();
+    const onJump = vi.fn();
+    const scrollSpy = vi
+      .spyOn(globalThis.Element.prototype, "scrollIntoView")
+      .mockImplementation(() => {});
+    const hidden = document.querySelector("#rule-100-1");
+    if (hidden) {
+      hidden.getClientRects = () => [] as unknown as DOMRectList;
+    }
+    render(<PageToc items={ITEMS} onJump={onJump} />);
+
+    await user.click(screen.getByRole("link", { name: "100.1 Players" }));
+
+    expect(onJump).toHaveBeenCalledWith("rule-100-1");
+    expect(scrollSpy).not.toHaveBeenCalled();
+    scrollSpy.mockRestore();
   });
 });

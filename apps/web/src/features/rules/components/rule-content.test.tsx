@@ -1,9 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-import { useRulesSearchStore } from "@/features/rules/stores/rules-search-store";
-import { createStoreResetter } from "@/test/store-helpers";
+import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({
@@ -36,10 +33,18 @@ vi.mock("@tanstack/react-router", () => ({
 
 const { InlineDiff, VersionComments, handleRuleHtmlClick } = await import("./rule-content");
 
-function RuleHtml({ html, navigate }: { html: string; navigate?: (href: string) => void }) {
+function RuleHtml({
+  html,
+  navigate = vi.fn(),
+  jump = vi.fn(),
+}: {
+  html: string;
+  navigate?: (href: string) => void;
+  jump?: (targetId: string, rendered: boolean) => void;
+}) {
   return (
     // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- mirrors the rules page delegation
-    <div onClick={(event) => handleRuleHtmlClick(event, navigate ?? vi.fn())}>
+    <div onClick={(event) => handleRuleHtmlClick(event, { navigate, jump })}>
       <div className="rule-html" dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   );
@@ -89,65 +94,61 @@ describe("InlineDiff", () => {
 });
 
 describe("same-page anchor click handler", () => {
-  let resetStore: () => void;
+  it("hands a rule the search filtered out to the router as not rendered", () => {
+    const jump = vi.fn();
+    render(<RuleHtml html={RULE_540_LINK} jump={jump} />);
 
-  beforeEach(() => {
-    resetStore = createStoreResetter(useRulesSearchStore);
+    const event = new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 });
+    screen.getByRole("link", { name: "rule 540" }).dispatchEvent(event);
+
+    expect(jump).toHaveBeenCalledWith("rule-540", false);
+    expect(event.defaultPrevented).toBe(true);
   });
 
-  afterEach(() => {
-    resetStore();
-  });
-
-  it("clears the search when the target rule is not in the DOM", () => {
-    useRulesSearchStore.getState().setQuery("trigger");
-    render(<RuleHtml html={RULE_540_LINK} />);
-
-    const link = screen.getByRole("link", { name: "rule 540" });
-    fireEvent.click(link);
-
-    expect(useRulesSearchStore.getState().query).toBe("");
-    expect(useRulesSearchStore.getState().resetSignal).toBe(1);
-  });
-
-  it("leaves the search untouched when the target rule is in the DOM", () => {
-    useRulesSearchStore.getState().setQuery("trigger");
+  it("routes a rendered target through the router too", () => {
+    const jump = vi.fn();
     const target = document.createElement("div");
     target.id = "rule-540";
     document.body.append(target);
 
-    render(<RuleHtml html={RULE_540_LINK} />);
-    const link = screen.getByRole("link", { name: "rule 540" });
-    fireEvent.click(link);
+    render(<RuleHtml html={RULE_540_LINK} jump={jump} />);
+    fireEvent.click(screen.getByRole("link", { name: "rule 540" }));
 
-    expect(useRulesSearchStore.getState().query).toBe("trigger");
-    expect(useRulesSearchStore.getState().resetSignal).toBe(0);
+    expect(jump).toHaveBeenCalledWith("rule-540", true);
     target.remove();
   });
 
-  it("pushes a history entry (not replace) so browser back returns to origin", () => {
-    const unsubscribe = useRulesSearchStore.subscribe((state, prev) => {
-      if (state.resetSignal !== prev.resetSignal) {
-        const target = document.createElement("div");
-        target.id = "rule-540";
-        target.scrollIntoView = vi.fn();
-        document.body.append(target);
-      }
-    });
+  it("writes no history entry of its own", () => {
     const pushSpy = vi.spyOn(globalThis.history, "pushState");
-    const replaceSpy = vi.spyOn(globalThis.history, "replaceState");
-    useRulesSearchStore.getState().setQuery("trigger");
-
     render(<RuleHtml html={RULE_540_LINK} />);
+
     fireEvent.click(screen.getByRole("link", { name: "rule 540" }));
 
-    expect(pushSpy).toHaveBeenCalledWith(null, "", "#rule-540");
-    expect(replaceSpy).not.toHaveBeenCalled();
-
-    unsubscribe();
+    expect(pushSpy).not.toHaveBeenCalled();
     pushSpy.mockRestore();
-    replaceSpy.mockRestore();
-    document.querySelector("#rule-540")?.remove();
+  });
+
+  it("leaves a modified click to the browser", () => {
+    const jump = vi.fn();
+    render(<RuleHtml html={RULE_540_LINK} jump={jump} />);
+
+    fireEvent.click(screen.getByRole("link", { name: "rule 540" }), { metaKey: true });
+
+    expect(jump).not.toHaveBeenCalled();
+  });
+
+  it("catches anchors inside a rendered diff", () => {
+    const jump = vi.fn();
+    render(
+      // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- mirrors the rules page delegation
+      <div onClick={(event) => handleRuleHtmlClick(event, { navigate: vi.fn(), jump })}>
+        <InlineDiff oldText="See [rule 540](#rule-540)." newText="See [rule 540](#rule-540) now." />
+      </div>,
+    );
+
+    fireEvent.click(screen.getByRole("link", { name: "rule 540" }));
+
+    expect(jump).toHaveBeenCalledWith("rule-540", false);
   });
 });
 
@@ -190,7 +191,7 @@ describe("delegated rule link clicks", () => {
     const navigate = vi.fn();
     render(
       // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- test fixture
-      <div onClick={(event) => handleRuleHtmlClick(event, navigate)}>
+      <div onClick={(event) => handleRuleHtmlClick(event, { navigate, jump: vi.fn() })}>
         <a href="/cards/flash">Flash</a>
       </div>,
     );

@@ -4,9 +4,9 @@ import { hasInfractions } from "@openrift/shared/rules-infractions";
 import { searchTerms } from "@openrift/shared/search-fold";
 import type { RuleKind, RuleLanguage, RuleVersionResponse } from "@openrift/shared/types/api/rules";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { getRouteApi, useLocation, useNavigate } from "@tanstack/react-router";
 import { BookOpenIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
 import { EmptyState } from "@/components/empty-state";
@@ -42,15 +42,15 @@ import {
 import type { RuleEntry } from "@/features/rules/lib/rules-changes";
 import { ruleKindDescription, ruleKindTitle } from "@/features/rules/lib/rules-kinds";
 import { rulesSourceQueryOptions } from "@/features/rules/lib/rules-queries";
-import { useRuleExamplesStore } from "@/features/rules/stores/rule-examples-store";
 import { useRulesChangesViewStore } from "@/features/rules/stores/rules-changes-view-store";
-import { useRulesFoldStore } from "@/features/rules/stores/rules-fold-store";
-import { useRulesSearchStore } from "@/features/rules/stores/rules-search-store";
+import {
+  createRulesPageStore,
+  RulesPageStoreContext,
+} from "@/features/rules/stores/rules-page-store";
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsStuck } from "@/hooks/use-is-stuck";
 import { useMeasuredHeight } from "@/hooks/use-measured-height";
-import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { formatCount } from "@/lib/format";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
@@ -58,6 +58,7 @@ import { m } from "@/paraglide/messages.js";
 
 import { useRuleCardPreview } from "./rule-card-preview";
 import { handleRuleHtmlClick, VersionComments } from "./rule-content";
+import { RuleExamplesContext } from "./rule-examples";
 import { RuleRow } from "./rule-row";
 import { ChangesSummary } from "./rules-changes-summary";
 import {
@@ -69,6 +70,10 @@ import {
   RulesSettingsSheet,
   RulesViewToggle,
 } from "./rules-toolbar";
+
+const routeApi = getRouteApi("/_app/rules_/$kind_/$version");
+
+const NO_REVEALED: ReadonlySet<string> = new Set();
 
 function buildRulesTocItems(rules: RuleEntry[]): PageTocItem[] {
   return rules
@@ -107,7 +112,14 @@ export function RulesPage({
   if (version === null) {
     return <RulesEmpty kind={kind} />;
   }
-  return <RulesContent kind={kind} language={language} version={version} />;
+  return (
+    <RulesContent
+      key={`${kind} ${language} ${version}`}
+      kind={kind}
+      language={language}
+      version={version}
+    />
+  );
 }
 
 function NoRulesYet() {
@@ -226,21 +238,11 @@ function RulesContent({
   const { data: rulesData } = useRulesAtVersion(kind, language, version);
   const { data: versionsData } = useRuleVersions(kind, language);
   const { data: englishVersionsData } = useRuleVersions(kind, "en");
-  const debouncedSearchQuery = useRulesSearchStore((state) => state.query);
-
-  // Reset fold state when navigating between rules documents — the store is
-  // global, so without this it would leak across pages.
-  const expandAll = useRulesFoldStore((state) => state.expandAll);
-  const resetSearch = useRulesSearchStore((state) => state.reset);
-  const searchScope = useRef<string | null>(null);
-  useScopeEffect(`${kind} ${language} ${version}`, (scope) => {
-    expandAll();
-    // The first scope keeps a deep-linked `?q=`; the search bar seeds the store from the URL.
-    if (searchScope.current !== null && searchScope.current !== scope) {
-      resetSearch();
-    }
-    searchScope.current = scope;
-  });
+  const searchParam = routeApi.useSearch({ select: (search) => search.q });
+  const searchQuery = searchParam ?? "";
+  const hash = useLocation({ select: (location) => location.hash });
+  // oxlint-disable-next-line react/hook-use-state -- a stable per-page store, never replaced
+  const [store] = useState(createRulesPageStore);
 
   const isHydrated = useHydrated();
   const cardPreview = useRuleCardPreview();
@@ -249,10 +251,7 @@ function RulesContent({
     ...featuredBoardStatesQueryOptions(),
     enabled: isHydrated && boardStatesEnabled,
   });
-  const setExamplesByRule = useRuleExamplesStore((state) => state.setExamplesByRule);
-  useEffect(() => {
-    setExamplesByRule(buildRuleExamplesMap(featuredBoardStates ?? [], kind, version));
-  }, [featuredBoardStates, kind, version, setExamplesByRule]);
+  const examplesByRule = buildRuleExamplesMap(featuredBoardStates ?? [], kind, version);
 
   const versions = versionsData.versions;
   const currentVersion = versions.find((v) => v.version === version);
@@ -263,9 +262,8 @@ function RulesContent({
   const versionLabels = ruleVersionLabels([...englishVersionsData.versions, ...versions]);
 
   const isSearching =
-    searchTerms(debouncedSearchQuery).length > 0 &&
-    (debouncedSearchQuery.trim().length >= 2 ||
-      parseRuleNumberQuery(debouncedSearchQuery) !== null);
+    searchTerms(searchQuery).length > 0 &&
+    (searchQuery.trim().length >= 2 || parseRuleNumberQuery(searchQuery) !== null);
   const isEmpty = rulesData.rules.length === 0;
 
   const changesView = useRulesChangesViewStore((state) => state.byKind[kind]);
@@ -309,7 +307,10 @@ function RulesContent({
 
   const foldGroups = computeFoldGroups(rules);
   const ancestorsByRule = computeAncestorsByRule(rules, foldGroups);
-  const searchResult = isSearching ? computeSearchResult(rules, debouncedSearchQuery) : null;
+  const hashRule = hash.startsWith("rule-") ? hash.slice("rule-".length) : null;
+  const revealed =
+    hashRule === null ? NO_REVEALED : new Set(ancestorsByRule.get(hashRule) ?? EMPTY_ANCESTORS);
+  const searchResult = isSearching ? computeSearchResult(rules, searchQuery) : null;
   const noSearchResults =
     isSearching && searchResult !== null && searchResult.visibleIndices.length === 0;
   const tocItems = buildRulesTocItems(rules);
@@ -317,6 +318,21 @@ function RulesContent({
     searchResult === null
       ? undefined
       : m.rules_count_filtered({ matched: searchResult.matchSet.size, count: rules.length });
+
+  const jumpToRule = (targetId: string, rendered: boolean) => {
+    const ruleNumber = targetId.startsWith("rule-") ? targetId.slice("rule-".length) : null;
+    if (ruleNumber !== null) {
+      store.getState().unfold(ancestorsByRule.get(ruleNumber) ?? EMPTY_ANCESTORS);
+    }
+    void navigate({
+      to: ".",
+      search: (prev) => (rendered ? prev : { ...prev, q: undefined }),
+      hash: targetId,
+    });
+  };
+
+  const jumpToTocItem = (id: string) =>
+    jumpToRule(id, document.querySelector(`#${CSS.escape(id)}`) !== null);
 
   const documentSelects = (triggerClassName?: string) => (
     <RulesDocumentSelects
@@ -331,141 +347,151 @@ function RulesContent({
   );
 
   return (
-    <>
-      <RulesVersionHero
-        kind={kind}
-        language={language}
-        version={version}
-        currentVersion={currentVersion}
-      />
-      <div className={cn(PAGE_WIDTH.capped, "pt-3", PAGE_PADDING_NO_TOP)}>
-        {kind === "tournament" && hasInfractions(rulesData.rules) && (
-          <div className="mb-2">
-            <RulesViewToggle view="document" version={version} language={language} />
-          </div>
-        )}
-        <div
-          ref={setToolbarEl}
-          className={cn(
-            PAGE_TOP_BAR_GEOMETRY,
-            isToolbarStuck && STICKY_SURFACE,
-            "px-safe mx-safe-neg z-20 mb-4 flex items-center gap-2 md:flex-wrap",
+    <RulesPageStoreContext value={store}>
+      <RuleExamplesContext value={examplesByRule}>
+        <RulesVersionHero
+          kind={kind}
+          language={language}
+          version={version}
+          currentVersion={currentVersion}
+        />
+        <div className={cn(PAGE_WIDTH.capped, "pt-3", PAGE_PADDING_NO_TOP)}>
+          {kind === "tournament" && hasInfractions(rulesData.rules) && (
+            <div className="mb-2">
+              <RulesViewToggle view="document" version={version} language={language} />
+            </div>
           )}
-        >
-          <PageTocMobileTrigger
-            items={tocItems}
-            className="sm:w-auto sm:gap-1.5 sm:px-2.5"
-            labelClassName="hidden sm:inline"
-          />
-          <RulesSearchBar
-            placeholder={m.rules_search_placeholder_count({ count: formatCount(rules.length) })}
-            trailing={ruleCountLabel}
-            className="max-sm:order-first"
-          />
-          <div className="hidden md:contents">
-            {documentSelects()}
-            {!isSearching && (
-              <ChangesViewOptions kind={kind} hasPreviousVersion={previousVersion !== null} />
-            )}
-          </div>
-          <RulesSettingsSheet
-            label={rulesSettingsLabel(
-              currentVersion ?? { version, documentVersion: null },
-              language,
-              versionsData.languages.length > 1,
-            )}
-          >
-            {documentSelects("w-full")}
-            {!isSearching && (
-              <ChangesViewToggle kind={kind} hasPreviousVersion={previousVersion !== null} />
-            )}
-          </RulesSettingsSheet>
-        </div>
-
-        {isEmpty ? (
-          <NoRulesYet />
-        ) : (
           <div
-            className="flex gap-6"
-            style={
-              anchorOffset === undefined
-                ? undefined
-                : ({
-                    "--rules-anchor-offset": anchorOffset,
-                    "--sticky-top": `calc(var(--header-height) + ${anchorOffset} + 1rem)`,
-                  } as CSSProperties)
-            }
+            ref={setToolbarEl}
+            className={cn(
+              PAGE_TOP_BAR_GEOMETRY,
+              isToolbarStuck && STICKY_SURFACE,
+              "px-safe mx-safe-neg z-20 mb-4 flex items-center gap-2 md:flex-wrap",
+            )}
           >
-            <PageToc items={tocItems} />
-            {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- delegated link handling */}
-            <div
-              className="min-w-0 flex-1"
-              lang={language}
-              onClick={(event) => handleRuleHtmlClick(event, (href) => void navigate({ href }))}
-              onPointerOver={cardPreview.handlePointerOver}
-              onPointerOut={cardPreview.handlePointerOut}
-            >
-              {cardPreview.preview}
-              {commentsHtml && !isSearching && <VersionComments html={commentsHtml} />}
-              {showChanges && previousVersion && changes && moves && (
-                <ChangesSummary
-                  previousVersionLabel={versionLabels.get(previousVersion) ?? previousVersion}
-                  changes={changes}
-                  moves={moves}
-                  silentChanges={silentChanges}
-                />
+            <PageTocMobileTrigger
+              items={tocItems}
+              onJump={jumpToTocItem}
+              className="sm:w-auto sm:gap-1.5 sm:px-2.5"
+              labelClassName="hidden sm:inline"
+            />
+            <RulesSearchBar
+              placeholder={m.rules_search_placeholder_count({ count: formatCount(rules.length) })}
+              trailing={ruleCountLabel}
+              className="max-sm:order-first"
+            />
+            <div className="hidden md:contents">
+              {documentSelects()}
+              {!isSearching && (
+                <ChangesViewOptions kind={kind} hasPreviousVersion={previousVersion !== null} />
               )}
-              {noSearchResults ? (
-                <Empty>
-                  <EmptyDescription>{m.rules_search_no_matches()}</EmptyDescription>
-                </Empty>
-              ) : searchResult === null ? (
-                rules.map((rule) => (
-                  <RuleRow
-                    key={rule.id}
-                    rule={rule}
-                    ancestors={ancestorsByRule.get(rule.ruleNumber) ?? EMPTY_ANCESTORS}
-                    hasChildren={foldGroups.has(rule.ruleNumber)}
-                    changeKind={changeKindByRule?.get(rule.ruleNumber)}
-                    previousContent={
-                      showChanges && changes && !moves?.displacedSet.has(rule.ruleNumber)
-                        ? changes.modifiedPrev[rule.ruleNumber]
-                        : undefined
-                    }
-                    relatedRuleNumber={
-                      moves?.newToOld.get(rule.ruleNumber) ?? moves?.oldToNew.get(rule.ruleNumber)
-                    }
-                    changesView={changesView === "off" || !showChanges ? undefined : changesView}
-                    previousVersionLabel={
-                      previousVersion === null ? undefined : versionLabels.get(previousVersion)
-                    }
-                    versionLabel={versionLabels.get(version)}
+            </div>
+            <RulesSettingsSheet
+              label={rulesSettingsLabel(
+                currentVersion ?? { version, documentVersion: null },
+                language,
+                versionsData.languages.length > 1,
+              )}
+            >
+              {documentSelects("w-full")}
+              {!isSearching && (
+                <ChangesViewToggle kind={kind} hasPreviousVersion={previousVersion !== null} />
+              )}
+            </RulesSettingsSheet>
+          </div>
+
+          {isEmpty ? (
+            <NoRulesYet />
+          ) : (
+            <div
+              className="flex gap-6"
+              style={
+                anchorOffset === undefined
+                  ? undefined
+                  : ({
+                      "--rules-anchor-offset": anchorOffset,
+                      "--sticky-top": `calc(var(--header-height) + ${anchorOffset} + 1rem)`,
+                    } as CSSProperties)
+              }
+            >
+              <PageToc items={tocItems} onJump={jumpToTocItem} />
+              {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- delegated link handling */}
+              <div
+                className="min-w-0 flex-1"
+                lang={language}
+                onClick={(event) =>
+                  handleRuleHtmlClick(event, {
+                    navigate: (href) => void navigate({ href }),
+                    jump: jumpToRule,
+                  })
+                }
+                onPointerOver={cardPreview.handlePointerOver}
+                onPointerOut={cardPreview.handlePointerOut}
+              >
+                {cardPreview.preview}
+                {commentsHtml && !isSearching && <VersionComments html={commentsHtml} />}
+                {showChanges && previousVersion && changes && moves && (
+                  <ChangesSummary
+                    previousVersionLabel={versionLabels.get(previousVersion) ?? previousVersion}
+                    changes={changes}
+                    moves={moves}
+                    silentChanges={silentChanges}
                   />
-                ))
-              ) : (
-                searchResult.visibleIndices.map((index) => {
-                  const rule = rules[index];
-                  if (!rule) {
-                    return null;
-                  }
-                  const isContext =
-                    searchResult.ancestorSet.has(index) && !searchResult.matchSet.has(index);
-                  return (
+                )}
+                {noSearchResults ? (
+                  <Empty>
+                    <EmptyDescription>{m.rules_search_no_matches()}</EmptyDescription>
+                  </Empty>
+                ) : searchResult === null ? (
+                  rules.map((rule) => (
                     <RuleRow
                       key={rule.id}
                       rule={rule}
-                      ancestors={EMPTY_ANCESTORS}
-                      hasChildren={false}
-                      isContext={isContext}
+                      ancestors={ancestorsByRule.get(rule.ruleNumber) ?? EMPTY_ANCESTORS}
+                      hasChildren={foldGroups.has(rule.ruleNumber)}
+                      hash={hash}
+                      revealed={revealed}
+                      changeKind={changeKindByRule?.get(rule.ruleNumber)}
+                      previousContent={
+                        showChanges && changes && !moves?.displacedSet.has(rule.ruleNumber)
+                          ? changes.modifiedPrev[rule.ruleNumber]
+                          : undefined
+                      }
+                      relatedRuleNumber={
+                        moves?.newToOld.get(rule.ruleNumber) ?? moves?.oldToNew.get(rule.ruleNumber)
+                      }
+                      changesView={changesView === "off" || !showChanges ? undefined : changesView}
+                      previousVersionLabel={
+                        previousVersion === null ? undefined : versionLabels.get(previousVersion)
+                      }
+                      versionLabel={versionLabels.get(version)}
                     />
-                  );
-                })
-              )}
+                  ))
+                ) : (
+                  searchResult.visibleIndices.map((index) => {
+                    const rule = rules[index];
+                    if (!rule) {
+                      return null;
+                    }
+                    const isContext =
+                      searchResult.ancestorSet.has(index) && !searchResult.matchSet.has(index);
+                    return (
+                      <RuleRow
+                        key={rule.id}
+                        rule={rule}
+                        ancestors={EMPTY_ANCESTORS}
+                        hasChildren={false}
+                        isContext={isContext}
+                      />
+                    );
+                  })
+                )}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
-      <ScrollToTopButton />
-    </>
+          )}
+        </div>
+        <ScrollToTopButton />
+      </RuleExamplesContext>
+    </RulesPageStoreContext>
   );
 }

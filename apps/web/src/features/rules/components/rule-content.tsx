@@ -4,13 +4,11 @@ import type { RuleLanguage } from "@openrift/shared/types/api/rules";
 import { Link } from "@tanstack/react-router";
 import { useId, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
-import { flushSync } from "react-dom";
 
 import { Callout } from "@/components/ui/callout";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { TextLink } from "@/components/ui/text-link";
 import { diffRuleMarkdown, diffRuleSide } from "@/features/rules/lib/rules-markdown-diff";
-import { useRulesSearchStore } from "@/features/rules/stores/rules-search-store";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -33,71 +31,57 @@ export function PenaltyBadge({ penalty, children }: { penalty: string; children:
   );
 }
 
-function handleSamePageAnchorClick(event: MouseEvent<Element>, href: string): void {
-  if (event.defaultPrevented || event.button !== 0) {
-    return;
-  }
-  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-    return;
-  }
-  const targetId = href.slice(1);
-  if (!targetId) {
-    return;
-  }
-  // Rule IDs contain dots (e.g. `rule-540.4.b`); escape so CSS doesn't read
-  // them as class separators.
-  const targetSelector = `#${CSS.escape(targetId)}`;
-  if (document.querySelector(targetSelector)) {
-    return;
-  }
-  // The rule is filtered out by an active search: reset it, then scroll and
-  // pushState (not replaceState) so browser back returns to where we were.
-  event.preventDefault();
-  flushSync(() => {
-    useRulesSearchStore.getState().reset();
-  });
-  const target = document.querySelector(targetSelector);
-  if (target instanceof HTMLElement) {
-    target.scrollIntoView({ block: "start" });
-    history.pushState(null, "", href);
-  }
+export interface RuleLinkHandlers {
+  navigate: (href: string) => void;
+  /** `rendered` is false when an active search filters the target out. */
+  jump: (targetId: string, rendered: boolean) => void;
+}
+
+function isPlainClick(event: MouseEvent<Element>): boolean {
+  return (
+    !event.defaultPrevented &&
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey
+  );
 }
 
 export function handleRuleHtmlClick(
   event: MouseEvent<HTMLElement>,
-  navigate: (href: string) => void,
+  { navigate, jump }: RuleLinkHandlers,
 ): void {
   if (!(event.target instanceof Element)) {
     return;
   }
   const anchor = event.target.closest("a[href]");
-  if (anchor === null || anchor.closest(".rule-html") === null) {
+  if (anchor === null || anchor.closest(".rule-html, [data-rule-diff]") === null) {
     return;
   }
   const href = anchor.getAttribute("href") ?? "";
+  if (!isPlainClick(event)) {
+    return;
+  }
   if (href.startsWith("#")) {
-    handleSamePageAnchorClick(event, href);
+    const targetId = href.slice(1);
+    if (targetId) {
+      event.preventDefault();
+      jump(targetId, document.querySelector(`#${CSS.escape(targetId)}`) !== null);
+    }
     return;
   }
-  if (!href.startsWith("/") || event.defaultPrevented || event.button !== 0) {
-    return;
+  if (href.startsWith("/")) {
+    event.preventDefault();
+    navigate(href);
   }
-  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-    return;
-  }
-  event.preventDefault();
-  navigate(href);
 }
 
 const CORE_RULE_HREF_REGEX = /^\/rules\/core(?:\?lang=(?<lang>[A-Za-z-]+))?#(?<hash>.+)$/u;
 
 function RuleMarkdownAnchor({ href, children }: { href?: string; children?: ReactNode }) {
   if (typeof href === "string" && href.startsWith("#")) {
-    return (
-      <TextLink href={href} onClick={(event) => handleSamePageAnchorClick(event, href)}>
-        {children}
-      </TextLink>
-    );
+    return <TextLink href={href}>{children}</TextLink>;
   }
   if (typeof href === "string" && href.startsWith("/cards/")) {
     return (
@@ -242,5 +226,5 @@ export function InlineDiff({
 }) {
   const merged = diffRuleMarkdown(oldText, newText, language);
   const nodes = side === undefined ? merged : diffRuleSide(merged, side);
-  return <>{nodes.map((node, index) => renderDiffNode(node, index))}</>;
+  return <span data-rule-diff>{nodes.map((node, index) => renderDiffNode(node, index))}</span>;
 }

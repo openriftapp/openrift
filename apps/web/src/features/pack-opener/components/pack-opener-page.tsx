@@ -63,7 +63,8 @@ export function PackOpenerPage() {
   const [language, setLanguage] = useState<string>(WellKnown.language.EN);
   const [countChoice, setCountChoice] = useState<string>("1");
   const [customCount, setCustomCount] = useState<number>(5);
-  const [packs, setPacks] = useState<PackResult[]>([]);
+  const [opening, setOpening] = useState<PackOpening>({ id: 0, packs: [] });
+  const clearPacks = () => setOpening((current) => ({ id: current.id, packs: [] }));
   const [shimmer, setShimmer] = useState(true);
   const [autoReveal, setAutoReveal] = useState(false);
 
@@ -103,7 +104,7 @@ export function PackOpenerPage() {
             value={setSlug}
             onChange={(slug) => {
               setSetSlug(slug);
-              setPacks([]);
+              clearPacks();
             }}
           />
           <LanguageField
@@ -111,7 +112,7 @@ export function PackOpenerPage() {
             value={language}
             onChange={(value) => {
               setLanguage(value);
-              setPacks([]);
+              clearPacks();
             }}
           />
           <CountField
@@ -129,7 +130,12 @@ export function PackOpenerPage() {
               onChange={setAutoReveal}
             />
           </div>
-          <OpenAction setSlug={setSlug} language={language} count={count} onOpened={setPacks} />
+          <OpenAction
+            setSlug={setSlug}
+            language={language}
+            count={count}
+            onOpened={(packs) => setOpening((current) => ({ id: current.id + 1, packs }))}
+          />
           {boosterSlug && (
             <p className="sm:col-span-2 md:col-span-3">
               <TextLink render={<Link to="/products/$slug" params={{ slug: boosterSlug }} />}>
@@ -140,22 +146,12 @@ export function PackOpenerPage() {
         </div>
       </PackOpenerHero>
       <div className={cn(PAGE_PADDING_NO_TOP, "flex flex-col gap-8 pt-3")}>
-        {packs.length === 1 && packs[0] && (
-          <SinglePackResult
-            pack={packs[0]}
-            setSlug={setSlug}
-            shimmer={shimmer}
-            autoReveal={autoReveal}
-          />
-        )}
-        {packs.length > 1 && (
-          <BulkPackResult
-            packs={packs}
-            setSlug={setSlug}
-            shimmer={shimmer}
-            autoReveal={autoReveal}
-          />
-        )}
+        <PackResults
+          opening={opening}
+          setSlug={setSlug}
+          shimmer={shimmer}
+          autoReveal={autoReveal}
+        />
       </div>
     </>
   );
@@ -339,6 +335,48 @@ function OpenAction({
   );
 }
 
+export interface PackOpening {
+  id: number;
+  packs: PackResult[];
+}
+
+export function PackResults({
+  opening,
+  setSlug,
+  shimmer,
+  autoReveal,
+}: {
+  opening: PackOpening;
+  setSlug: string;
+  shimmer: boolean;
+  autoReveal: boolean;
+}) {
+  const [first] = opening.packs;
+  if (opening.packs.length === 1 && first) {
+    return (
+      <SinglePackResult
+        key={opening.id}
+        pack={first}
+        setSlug={setSlug}
+        shimmer={shimmer}
+        autoReveal={autoReveal}
+      />
+    );
+  }
+  if (opening.packs.length > 1) {
+    return (
+      <BulkPackResult
+        key={opening.id}
+        packs={opening.packs}
+        setSlug={setSlug}
+        shimmer={shimmer}
+        autoReveal={autoReveal}
+      />
+    );
+  }
+  return null;
+}
+
 function SinglePackResult({
   pack,
   setSlug,
@@ -354,9 +392,9 @@ function SinglePackResult({
   const imagesByPrintingId = new Map(data.printings.map((p) => [sideKey(p), p.images] as const));
   const [statsVisible, setStatsVisible] = useState(autoReveal);
   // Reset during render, not an effect, so the gate is armed before this render paints.
-  const [gateArmedFor, setGateArmedFor] = useState({ pack, autoReveal });
-  if (gateArmedFor.pack !== pack || gateArmedFor.autoReveal !== autoReveal) {
-    setGateArmedFor({ pack, autoReveal });
+  const [gateArmedFor, setGateArmedFor] = useState(autoReveal);
+  if (gateArmedFor !== autoReveal) {
+    setGateArmedFor(autoReveal);
     setStatsVisible(autoReveal);
   }
   return (
@@ -388,9 +426,9 @@ function BulkPackResult({
   const imagesByPrintingId = new Map(data.printings.map((p) => [sideKey(p), p.images] as const));
   const [revealedCount, setRevealedCount] = useState(autoReveal ? packs.length : 0);
   // Reset during render, not an effect, so the gate is armed before this render paints.
-  const [countArmedFor, setCountArmedFor] = useState({ packs, autoReveal });
-  if (countArmedFor.packs !== packs || countArmedFor.autoReveal !== autoReveal) {
-    setCountArmedFor({ packs, autoReveal });
+  const [countArmedFor, setCountArmedFor] = useState(autoReveal);
+  if (countArmedFor !== autoReveal) {
+    setCountArmedFor(autoReveal);
     setRevealedCount(autoReveal ? packs.length : 0);
   }
   const statsVisible = revealedCount >= packs.length;

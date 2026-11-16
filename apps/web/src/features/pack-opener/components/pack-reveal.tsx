@@ -1,5 +1,5 @@
 import type { CatalogPrintingResponse } from "@openrift/shared/types/api/catalog";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
@@ -35,21 +35,24 @@ export function PackReveal({
     }
   }
 
+  const allRevealed = revealed.every(Boolean);
+
+  function reveal(next: boolean[]) {
+    setRevealed(next);
+    if (!allRevealed && next.every(Boolean)) {
+      onAllRevealed?.();
+    }
+  }
+
   function flip(index: number) {
-    setRevealed((current) => current.map((value, i) => (i === index ? true : value)));
+    reveal(revealed.map((value, i) => (i === index ? true : value)));
   }
 
   function revealAll() {
-    setRevealed((current) => current.map(() => true));
+    reveal(revealed.map(() => true));
   }
 
   const coarsePointer = useCoarsePointer();
-  const allRevealed = revealed.every(Boolean);
-  useEffect(() => {
-    if (allRevealed) {
-      onAllRevealed?.();
-    }
-  }, [allRevealed, onAllRevealed]);
 
   return (
     <div>

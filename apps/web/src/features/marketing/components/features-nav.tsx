@@ -1,5 +1,6 @@
+import { useNavigate } from "@tanstack/react-router";
 import type { CSSProperties, MouseEvent } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { usePageTopBarHeight } from "@/components/layout/page-top-bar";
 import type { FeatureChapter } from "@/features/marketing/lib/features-chapters";
@@ -15,7 +16,9 @@ const READING_LINE = 1 / 3;
 
 const SCROLL_DURATION_MS = 450;
 
-let scrollFrame = 0;
+const USER_SCROLL_INPUTS = ["wheel", "touchstart", "keydown", "pointerdown"] as const;
+
+let stopActiveScroll: (() => void) | null = null;
 
 /** The window offset that lands `target` where its scroll-margin/-padding put an anchor jump. */
 function scrollDestination(target: HTMLElement): number {
@@ -27,10 +30,40 @@ function scrollDestination(target: HTMLElement): number {
   return target.getBoundingClientRect().top + window.scrollY - offset;
 }
 
-// Re-reads the destination every frame: content-visibility sections render in
-// during the scroll and shift it, so a fixed destination would land short.
-function animateScrollTo(target: HTMLElement) {
-  cancelAnimationFrame(scrollFrame);
+// content-visibility sections above the target render in at their real height
+// and move it, so every page resize re-applies the position until the user takes over.
+function startAnchorScroll(target: HTMLElement, animate: boolean): () => void {
+  stopActiveScroll?.();
+  let frame = 0;
+  const holdPosition = () => window.scrollTo(0, scrollDestination(target));
+  const observer = new ResizeObserver(() => {
+    if (frame === 0) {
+      holdPosition();
+    }
+  });
+
+  function stop() {
+    cancelAnimationFrame(frame);
+    frame = 0;
+    observer.disconnect();
+    for (const type of USER_SCROLL_INPUTS) {
+      globalThis.removeEventListener(type, stop, true);
+    }
+    if (stopActiveScroll === stop) {
+      stopActiveScroll = null;
+    }
+  }
+
+  for (const type of USER_SCROLL_INPUTS) {
+    globalThis.addEventListener(type, stop, { capture: true, passive: true });
+  }
+  observer.observe(document.body);
+  stopActiveScroll = stop;
+
+  if (!animate) {
+    holdPosition();
+    return stop;
+  }
   const from = window.scrollY;
   let startedAt: number | undefined;
   function step(now: number) {
@@ -38,58 +71,43 @@ function animateScrollTo(target: HTMLElement) {
     const t = Math.min((now - startedAt) / SCROLL_DURATION_MS, 1);
     const eased = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
     window.scrollTo(0, from + (scrollDestination(target) - from) * eased);
-    if (t < 1) {
-      scrollFrame = requestAnimationFrame(step);
-    }
+    frame = t < 1 ? requestAnimationFrame(step) : 0;
   }
-  scrollFrame = requestAnimationFrame(step);
-}
-
-// Reduced motion jumps once, then re-reads the destination until it holds:
-// content-visibility sections above the target render in after the jump.
-function jumpScrollTo(target: HTMLElement) {
-  cancelAnimationFrame(scrollFrame);
-  window.scrollTo(0, scrollDestination(target));
-  let frames = 0;
-  let stable = 0;
-  function step() {
-    const destination = scrollDestination(target);
-    if (Math.abs(destination - window.scrollY) < 1) {
-      stable += 1;
-    } else {
-      stable = 0;
-      window.scrollTo(0, destination);
-    }
-    frames += 1;
-    if (stable < 5 && frames < 90) {
-      scrollFrame = requestAnimationFrame(step);
-    }
-  }
-  scrollFrame = requestAnimationFrame(step);
+  frame = requestAnimationFrame(step);
+  return stop;
 }
 
 // Hand-animated: browsers silently disable native smooth scroll under OS
 // animation settings, and `scroll-behavior: smooth` on the root would also
 // smooth the router's scroll restoration.
-export function smoothAnchorClick(event: MouseEvent<HTMLAnchorElement>) {
-  if (event.defaultPrevented || event.button !== 0) {
-    return;
-  }
-  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-    return;
-  }
-  const hash = event.currentTarget.hash;
-  const target = hash ? document.querySelector<HTMLElement>(`#${CSS.escape(hash.slice(1))}`) : null;
-  if (!target) {
-    return;
-  }
-  event.preventDefault();
-  history.pushState(null, "", hash);
-  if (prefersReducedMotion()) {
-    jumpScrollTo(target);
-    return;
-  }
-  animateScrollTo(target);
+export function useSmoothAnchorClick() {
+  const navigate = useNavigate();
+  const stopScroll = useRef<(() => void) | null>(null);
+
+  useEffect(() => () => stopScroll.current?.(), []);
+
+  return (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.defaultPrevented || event.button !== 0) {
+      return;
+    }
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      return;
+    }
+    const hash = event.currentTarget.hash.slice(1);
+    const target = hash ? document.querySelector<HTMLElement>(`#${CSS.escape(hash)}`) : null;
+    if (!target) {
+      return;
+    }
+    event.preventDefault();
+    void navigate({
+      to: ".",
+      search: true,
+      hash,
+      resetScroll: false,
+      hashScrollIntoView: false,
+    });
+    stopScroll.current = startAnchorScroll(target, !prefersReducedMotion());
+  };
 }
 
 const CHIP_CUT = 8;
@@ -153,6 +171,7 @@ export function useActiveChapter(chapterIds: string[]): string | null {
 
 export function FeaturesRail({ chapters }: { chapters: FeatureChapter[] }) {
   const activeId = useActiveChapter(chapters.map((chapter) => chapter.id));
+  const smoothAnchorClick = useSmoothAnchorClick();
 
   return (
     <nav
@@ -189,6 +208,7 @@ export function FeaturesRail({ chapters }: { chapters: FeatureChapter[] }) {
 export function FeaturesChipNav({ chapters }: { chapters: FeatureChapter[] }) {
   const activeId = useActiveChapter(chapters.map((chapter) => chapter.id));
   const topBarHeight = usePageTopBarHeight();
+  const smoothAnchorClick = useSmoothAnchorClick();
   const [scroller, setScroller] = useState<HTMLElement | null>(null);
 
   useEffect(() => {

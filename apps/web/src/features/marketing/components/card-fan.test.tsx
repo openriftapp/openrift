@@ -1,4 +1,4 @@
-import { act, fireEvent, render } from "@testing-library/react";
+import { fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CollectCardFan } from "./card-fan";
@@ -11,15 +11,27 @@ const IMAGE_URLS = [
   "https://img.example/e.webp",
 ];
 
-const COLLECT_SETTLE_MS = 1500;
+function finishFlyAways(container: HTMLElement) {
+  for (const card of container.querySelectorAll(".animate-fly-away")) {
+    fireEvent.animationEnd(card);
+  }
+}
 
 describe("CollectCardFan", () => {
+  let reducedMotion = false;
+  const nativeMatchMedia = globalThis.matchMedia;
+
   beforeEach(() => {
-    vi.useFakeTimers();
+    reducedMotion = false;
+    globalThis.matchMedia = ((query: string) => ({
+      matches: query.includes("reduce") && reducedMotion,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof matchMedia;
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    globalThis.matchMedia = nativeMatchMedia;
   });
 
   it("renders nothing until image URLs are available", () => {
@@ -41,7 +53,7 @@ describe("CollectCardFan", () => {
     }
   });
 
-  it("fires onAllCollected once every card is collected", () => {
+  it("fires onAllCollected when the last card's fly-away animation ends", () => {
     const onAllCollected = vi.fn();
     const { container } = render(
       <CollectCardFan imageUrls={IMAGE_URLS} onAllCollected={onAllCollected} />,
@@ -50,10 +62,11 @@ describe("CollectCardFan", () => {
       fireEvent.click(button);
     }
     expect(onAllCollected).not.toHaveBeenCalled();
-    act(() => {
-      vi.advanceTimersByTime(COLLECT_SETTLE_MS);
-    });
+
+    finishFlyAways(container);
+
     expect(onAllCollected).toHaveBeenCalledTimes(1);
+    expect(container.querySelectorAll("button")).toHaveLength(0);
   });
 
   it("does not fire onAllCollected while cards remain", () => {
@@ -64,9 +77,34 @@ describe("CollectCardFan", () => {
     const firstButton = container.querySelector("button");
     expect(firstButton).not.toBeNull();
     fireEvent.click(firstButton as HTMLButtonElement);
-    act(() => {
-      vi.advanceTimersByTime(COLLECT_SETTLE_MS);
-    });
+
+    finishFlyAways(container);
+
     expect(onAllCollected).not.toHaveBeenCalled();
+    expect(container.querySelectorAll("button")).toHaveLength(IMAGE_URLS.length - 1);
+  });
+
+  it("ignores the deal-in animation ending", () => {
+    const { container } = render(<CollectCardFan imageUrls={IMAGE_URLS} />);
+
+    for (const card of container.querySelectorAll(".animate-fly-in")) {
+      fireEvent.animationEnd(card);
+    }
+
+    expect(container.querySelectorAll("button")).toHaveLength(IMAGE_URLS.length);
+  });
+
+  it("collects at once when the viewer prefers reduced motion", () => {
+    reducedMotion = true;
+    const onAllCollected = vi.fn();
+    const { container } = render(
+      <CollectCardFan imageUrls={IMAGE_URLS} onAllCollected={onAllCollected} />,
+    );
+    for (const button of container.querySelectorAll("button")) {
+      fireEvent.click(button);
+    }
+
+    expect(onAllCollected).toHaveBeenCalledTimes(1);
+    expect(container.querySelectorAll("button")).toHaveLength(0);
   });
 });
