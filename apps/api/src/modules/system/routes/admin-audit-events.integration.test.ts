@@ -51,7 +51,7 @@ describe.skipIf(!adminCtx || !grantCtx)("audit-events routes (integration)", () 
     const mutation = await adminApp.fetch(
       adminReq("POST", `/cards/${cardId}/accept-field`, { field: "energy", value: 5 }),
     );
-    expect(mutation.status).toBe(204);
+    expect(mutation.status).toBe(200);
 
     const res = await adminApp.fetch(
       adminReq("GET", `/audit-events?actorUserId=${ADMIN_ID}&search=AER`),

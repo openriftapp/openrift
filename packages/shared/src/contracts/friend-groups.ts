@@ -346,6 +346,7 @@ export const friendGroupShareableListsResponseSchema = z.object({
 export const friendGroupShareableCollectionResponseSchema = z.object({
   collectionId: z.string(),
   collectionName: z.string(),
+  copyCount: z.number(),
   sharedAt: z.string().nullable(),
 });
 

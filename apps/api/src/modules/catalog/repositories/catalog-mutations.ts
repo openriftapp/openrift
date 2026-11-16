@@ -316,6 +316,26 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
       return rows.map((row) => row.typeSlug);
     },
 
+    async getCardDomainsById(cardId: string): Promise<string[]> {
+      const rows = await db
+        .selectFrom("cardDomains")
+        .select("domainSlug")
+        .where("cardId", "=", cardId)
+        .orderBy("ordinal")
+        .execute();
+      return rows.map((row) => row.domainSlug);
+    },
+
+    async getCardSuperTypesById(cardId: string): Promise<string[]> {
+      const rows = await db
+        .selectFrom("cardSuperTypes")
+        .select("superTypeSlug")
+        .where("cardId", "=", cardId)
+        .orderBy("superTypeSlug")
+        .execute();
+      return rows.map((row) => row.superTypeSlug);
+    },
+
     getPrintingCardIdByComposite(
       shortCode: string,
       finish: Finish,

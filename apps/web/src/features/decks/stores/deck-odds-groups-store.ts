@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import type { OddsGroupDef } from "@/features/decks/lib/deck-odds-groups";
-import { bareLocalDeckId } from "@/features/decks/lib/local-deck-sanitize";
+import { bareLocalDeckId } from "@/features/decks/lib/local-deck";
 
 interface DeckOddsGroupsState {
   selectionByDeck: Record<string, string[]>;

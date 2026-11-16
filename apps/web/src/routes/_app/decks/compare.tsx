@@ -1,4 +1,4 @@
-import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { z } from "zod/mini";
 
 import { NotFoundFallback } from "@/components/error-message";
@@ -22,18 +22,6 @@ const compareSearchSchema = z.object({
 export const Route = createFileRoute("/_app/decks/compare")({
   ssr: false,
   validateSearch: compareSearchSchema,
-  beforeLoad: async ({ search }) => {
-    if (search.from === undefined && search.to === undefined) {
-      return;
-    }
-    const { bareLocalDeckId } = await import("@/features/decks/lib/local-deck-sanitize");
-    // An old link carries the retired `local:` prefix; it names the same deck.
-    const from = search.from === undefined ? undefined : bareLocalDeckId(search.from);
-    const to = search.to === undefined ? undefined : bareLocalDeckId(search.to);
-    if (from !== search.from || to !== search.to) {
-      throw redirect({ to: "/decks/compare", search: { from, to }, replace: true });
-    }
-  },
   loaderDeps: ({ search }) => ({ from: search.from, to: search.to }),
   // Local decks and deck links need no session; local sides resolve
   // client-side from the store.

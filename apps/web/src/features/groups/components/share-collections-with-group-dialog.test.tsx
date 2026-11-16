@@ -1,13 +1,10 @@
+import type { FriendGroupShareableCollectionResponse } from "@openrift/shared/types/api/friend-group";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-interface MockCollectionItem {
-  collectionId: string;
-  collectionName: string;
-  sharedAt: string | null;
-}
+type MockCollectionItem = FriendGroupShareableCollectionResponse;
 
 // Mutated per test before rendering; read lazily inside the mock factory.
 let currentItems: MockCollectionItem[] = [];
@@ -45,11 +42,13 @@ function renderDialog() {
 const BINDER: MockCollectionItem = {
   collectionId: "c1",
   collectionName: "Main Binder",
+  copyCount: 42,
   sharedAt: null,
 };
 const SPARES: MockCollectionItem = {
   collectionId: "c2",
   collectionName: "Spares Box",
+  copyCount: 1,
   sharedAt: null,
 };
 
@@ -58,6 +57,12 @@ describe("ShareCollectionsWithGroupDialog", () => {
     currentItems = [BINDER, SPARES];
     shareMutateAsync.mockClear();
     onOpenChange.mockClear();
+  });
+
+  it("shows how many copies each collection holds", () => {
+    renderDialog();
+    expect(screen.getByRole("checkbox", { name: /Main Binder.*42 copies/u })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /Spares Box.*1 copy/u })).toBeInTheDocument();
   });
 
   it("starts with nothing pre-selected, so the confirm button is disabled", () => {

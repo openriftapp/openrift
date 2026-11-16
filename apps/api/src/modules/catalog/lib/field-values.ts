@@ -1,4 +1,5 @@
 import { normalizeNameForIdentity } from "@openrift/shared/card-name";
+import { sameFieldValue } from "@openrift/shared/catalog-field-compare";
 import { cardFieldRules } from "@openrift/shared/db-field-rules";
 import { trimToNull } from "@openrift/shared/strings";
 import type { ZodType } from "zod";
@@ -16,8 +17,11 @@ export function trimOptionalText(value: unknown): unknown {
   return typeof value === "string" ? trimToNull(value) : value;
 }
 
-/** True when a scalar write would store what the row already holds. */
-export function isUnchangedValue(before: unknown, after: unknown): boolean {
+/** True when a write would store what the row already holds. */
+export function isUnchangedValue(before: unknown, after: unknown, field?: string): boolean {
+  if (Array.isArray(before) && Array.isArray(after)) {
+    return sameFieldValue(before, after, field);
+  }
   return after !== undefined && (after === null || typeof after !== "object") && before === after;
 }
 

@@ -120,14 +120,14 @@ export const acceptCardFieldFn = createServerFn({ method: "POST" })
     }) => input,
   )
   .middleware([withCookies])
-  .handler(async ({ context, data }) => {
-    await apiOrpcClient(adminCardMutationsContract, context.cookie).acceptField({
+  .handler(({ context, data }) =>
+    apiOrpcClient(adminCardMutationsContract, context.cookie).acceptField({
       cardId: data.cardId,
       field: data.field,
       value: data.value,
       source: data.source,
-    });
-  });
+    }),
+  );
 
 export const acceptPrintingFieldFn = createServerFn({ method: "POST" })
   .validator(
@@ -141,16 +141,16 @@ export const acceptPrintingFieldFn = createServerFn({ method: "POST" })
     }) => input,
   )
   .middleware([withCookies])
-  .handler(async ({ context, data }) => {
-    await apiOrpcClient(adminCardMutationsContract, context.cookie).acceptPrintingField({
+  .handler(({ context, data }) =>
+    apiOrpcClient(adminCardMutationsContract, context.cookie).acceptPrintingField({
       printingId: data.printingId,
       side: data.side,
       faceId: data.faceId,
       field: data.field,
       value: data.value,
       source: data.source,
-    });
-  });
+    }),
+  );
 
 const acceptNewCardFn = createServerFn({ method: "POST" })
   .validator((input: { name: string; cardFields: AcceptNewCardBody["cardFields"] }) => input)
@@ -360,7 +360,7 @@ export function useRenameCard() {
 
 export function useAcceptCardField(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: async ({
+    mutationFn: ({
       cardId,
       field,
       value,
@@ -370,16 +370,14 @@ export function useAcceptCardField(invalidates: Scope = defaultScope) {
       field: AcceptCardField;
       value: unknown;
       source?: "provider" | "manual";
-    }) => {
-      await acceptCardFieldFn({ data: { cardId, field, value, source } });
-    },
+    }) => acceptCardFieldFn({ data: { cardId, field, value, source } }),
     invalidates,
   });
 }
 
 export function useAcceptPrintingField(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: async ({
+    mutationFn: ({
       printingId,
       side = 1,
       faceId,
@@ -393,9 +391,7 @@ export function useAcceptPrintingField(invalidates: Scope = defaultScope) {
       field: AcceptPrintingField;
       value: unknown;
       source?: "provider" | "manual";
-    }) => {
-      await acceptPrintingFieldFn({ data: { printingId, side, faceId, field, value, source } });
-    },
+    }) => acceptPrintingFieldFn({ data: { printingId, side, faceId, field, value, source } }),
     invalidates,
   });
 }

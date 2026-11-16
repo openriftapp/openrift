@@ -126,6 +126,7 @@ export const friendGroupsSharesRouter = {
         items: rows.map((row) => ({
           collectionId: row.collectionId,
           collectionName: row.collectionName,
+          copyCount: row.copyCount,
           sharedAt: row.sharedAt ? row.sharedAt.toISOString() : null,
         })),
       };

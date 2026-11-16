@@ -54,6 +54,7 @@ function ShareCollectionsBody({
         id: item.collectionId,
         name: item.collectionName,
         icon: BookOpenIcon,
+        detail: m.common_copies({ count: item.copyCount }),
       }))}
       flow="manage"
       idPrefix="share-collection"

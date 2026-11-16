@@ -75,6 +75,9 @@ const mockMut = {
   getPrintingTextsForCardId: vi.fn(),
   updateCardById: vi.fn(),
   replaceCardDomainsById: vi.fn(),
+  getCardDomainsById: vi.fn(),
+  getCardSuperTypesById: vi.fn(),
+  getCardTypesById: vi.fn(),
   replaceCardSuperTypesById: vi.fn(),
   getFullPrintingById: vi.fn(),
   sideOfFace: vi.fn(),
@@ -95,6 +98,12 @@ const mockKeywords = { recomputeForPrintingCard: vi.fn() };
 const mockCatalogDeleteGuards = { countForCard: vi.fn(), countForPrinting: vi.fn() };
 
 const mockAdminEvents = { insert: vi.fn() };
+
+const mockDistributionChannels = {
+  listBySlugs: vi.fn(async () => []),
+  setForPrinting: vi.fn(),
+  listForPrintingIds: vi.fn(async (): Promise<{ channelSlug: string }[]> => []),
+};
 
 const mockScheduler = { runNow: vi.fn() };
 let scheduler: typeof mockScheduler | undefined = mockScheduler;
@@ -181,7 +190,7 @@ app.use("*", async (c, next) => {
     },
     cardTokens: { recomputeForCard: vi.fn(), recomputeForPrintingCard: vi.fn() },
     sets: mockSets,
-    distributionChannels: { listBySlugs: vi.fn(async () => []), setForPrinting: vi.fn() },
+    distributionChannels: mockDistributionChannels,
     printingEvents: { recordNewPrinting: vi.fn(), recordPrintingChange: vi.fn() },
     rarities: {
       listAll: vi
@@ -1078,7 +1087,7 @@ describe("POST /cards/:cardId/accept-field", () => {
     mockKeywords.recomputeForPrintingCard.mockResolvedValue(undefined);
   });
 
-  it("returns 204 and updates card field", async () => {
+  it("updates the card field and answers that it wrote", async () => {
     mockMut.updateCardById.mockResolvedValue(undefined);
 
     const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/accept-field`, {
@@ -1086,8 +1095,34 @@ describe("POST /cards/:cardId/accept-field", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ field: "name", value: "Flame Drake" }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual({ written: true });
     expect(mockMut.updateCardById).toHaveBeenCalledWith(CARD_ID2, { name: "Flame Drake" });
+  });
+
+  it("writes nothing for domains equal to the card's, in the same order", async () => {
+    mockMut.getCardDomainsById.mockResolvedValue(["fury", "calm"]);
+
+    const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/accept-field`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field: "domains", value: ["fury", "calm"] }),
+    });
+    expect(await readJson(res)).toEqual({ written: false });
+    expect(mockMut.replaceCardDomainsById).not.toHaveBeenCalled();
+    expect(mockAdminEvents.insert).not.toHaveBeenCalled();
+  });
+
+  it("writes reordered domains, since their order is part of the card", async () => {
+    mockMut.getCardDomainsById.mockResolvedValue(["fury", "calm"]);
+
+    const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/accept-field`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field: "domains", value: ["calm", "fury"] }),
+    });
+    expect(await readJson(res)).toEqual({ written: true });
+    expect(mockMut.replaceCardDomainsById).toHaveBeenCalledWith(CARD_ID2, ["calm", "fury"]);
   });
 
   it("returns 400 when field is empty (not in the enum)", async () => {
@@ -1118,7 +1153,7 @@ describe("POST /cards/:cardId/accept-field", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ field: "superTypes", value: null }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
     expect(mockMut.replaceCardSuperTypesById).toHaveBeenCalledWith(CARD_ID2, []);
   });
 
@@ -1130,7 +1165,7 @@ describe("POST /cards/:cardId/accept-field", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ field: "tags", value: null }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
     expect(mockMut.updateCardById).toHaveBeenCalledWith(CARD_ID2, { tags: [] });
   });
 
@@ -1142,7 +1177,7 @@ describe("POST /cards/:cardId/accept-field", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ field: "might", value: 3 }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
     expect(mockMut.updateCardById).toHaveBeenCalledWith(CARD_ID2, { might: 3 });
   });
 
@@ -1209,7 +1244,7 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ field: "artist", value: "Alice" }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
     expect(mockMut.updatePrintingFieldById).toHaveBeenCalledWith(PRINTING_ID, "artist", "Alice", 1);
     expect(mockRefreshCatalogViews).not.toHaveBeenCalled();
   });
@@ -1222,7 +1257,7 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ field: "finish", value: "foil" }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
     expect(mockRefreshCatalogViews).toHaveBeenCalledTimes(1);
   });
 
@@ -1235,7 +1270,7 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ field: "artist", value: "Alice", side: 2 }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
     expect(mockMut.getCardById).toHaveBeenCalledWith("card-uuid");
     expect(mockAdminEvents.insert).toHaveBeenCalledWith(
       expect.objectContaining({ action: "printing.accept-field", cardSlug: "tentacle" }),
@@ -1256,7 +1291,7 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
         faceId: "d0000000-0001-4000-a000-0000000000f1",
       }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
     expect(mockMut.updatePrintingFieldById).toHaveBeenCalledWith(PRINTING_ID, "artist", "Alice", 1);
   });
 
@@ -1268,7 +1303,7 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ field: "artist", value: "Alice", side: 2 }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
     expect(mockMut.getFullPrintingById).toHaveBeenCalledWith(PRINTING_ID, 2);
     expect(mockMut.updatePrintingFieldById).toHaveBeenCalledWith(PRINTING_ID, "artist", "Alice", 2);
   });
@@ -1282,6 +1317,40 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
     expect(res.status).toBe(400);
   });
 
+  it("writes nothing for a reordered set of marker slugs", async () => {
+    mockMut.getFullPrintingById.mockResolvedValue({
+      id: PRINTING_ID,
+      cardId: "card-uuid",
+      shortCode: "OGS-001",
+      markerSlugs: ["foil", "promo"],
+    });
+
+    const res = await app.request(`/api/admin/v1/cards/printing/${PRINTING_ID}/accept-field`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field: "markerSlugs", value: ["promo", "foil"] }),
+    });
+    expect(await readJson(res)).toEqual({ written: false });
+    expect(mockUpdatePrintingMarkers).not.toHaveBeenCalled();
+    expect(mockAdminEvents.insert).not.toHaveBeenCalled();
+  });
+
+  it("writes nothing for the distribution channels the printing already has", async () => {
+    mockDistributionChannels.listForPrintingIds.mockResolvedValue([
+      { channelSlug: "launch" },
+      { channelSlug: "league" },
+    ]);
+
+    const res = await app.request(`/api/admin/v1/cards/printing/${PRINTING_ID}/accept-field`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field: "distributionChannelSlugs", value: ["league", "launch"] }),
+    });
+    expect(await readJson(res)).toEqual({ written: false });
+    expect(vi.mocked(updatePrintingDistributionChannels)).not.toHaveBeenCalled();
+    expect(mockAdminEvents.insert).not.toHaveBeenCalled();
+  });
+
   it("delegates to updatePrintingMarkers when field is markerSlugs", async () => {
     mockUpdatePrintingMarkers.mockResolvedValue(undefined);
 
@@ -1290,7 +1359,7 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ field: "markerSlugs", value: ["promo"] }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
     expect(mockUpdatePrintingMarkers).toHaveBeenCalledWith(mockTransact, PRINTING_ID, ["promo"], 1);
     expect(mockMut.updatePrintingFieldById).not.toHaveBeenCalled();
   });
@@ -1304,7 +1373,7 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ field: "printedRulesText", value: "Raw text", source: "provider" }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
     expect(mockFixTypography).toHaveBeenCalledWith("Raw text", {
       costKeywords: ["Equip", "Repeat"],
     });
@@ -1326,7 +1395,7 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ field: "publicCode", value: "OGS-001", source: "provider" }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
     expect(mockAppendSetTotal).toHaveBeenCalledWith("OGS-001", 100);
   });
 
@@ -1339,7 +1408,7 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ field: "setId", value: "origin-set" }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
     expect(mockSets.getBySlug).toHaveBeenCalledWith("origin-set");
     expect(mockMut.updatePrintingFieldById).toHaveBeenCalledWith(
       PRINTING_ID,
@@ -1357,7 +1426,7 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ field: "setId", value: "origin-set" }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
     expect(mockMut.updatePrintingFieldById).not.toHaveBeenCalled();
     expect(mockAdminEvents.insert).not.toHaveBeenCalled();
     expect(mockRefreshCatalogViews).not.toHaveBeenCalled();
@@ -1565,6 +1634,37 @@ describe("POST /cards/new/:name/link", () => {
     });
     expect(res.status).toBe(204);
     expect(mockTrxMut.createNameAliases).toHaveBeenCalledWith("Fire Dragon", "card-uuid");
+  });
+
+  it("relinks the name's unlinked candidate printings inside the alias transaction", async () => {
+    mockMut.getCardById.mockResolvedValue({ id: "card-uuid", name: "Fire Dragon", slug: "fd" });
+    const repos = trxRepos();
+    mockTransact.mockImplementation(async (cb) => cb(repos));
+
+    await app.request("/api/admin/v1/cards/new/firedragon/link", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cardId: "card-uuid" }),
+    });
+
+    expect(mockRelinkCandidatePrintings).toHaveBeenCalledWith(repos, { normName: "firedragon" });
+    expect(mockTrxMut.createNameAliases.mock.invocationCallOrder[0]).toBeLessThan(
+      mockRelinkCandidatePrintings.mock.invocationCallOrder[0] ?? 0,
+    );
+  });
+
+  it("scopes the relink to the normalized form of a raw name", async () => {
+    mockMut.getCardById.mockResolvedValue({ id: "card-uuid", name: "Fire Dragon", slug: "fd" });
+    const repos = trxRepos();
+    mockTransact.mockImplementation(async (cb) => cb(repos));
+
+    await app.request("/api/admin/v1/cards/new/Fire%20Dragon/link", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cardId: "card-uuid" }),
+    });
+
+    expect(mockRelinkCandidatePrintings).toHaveBeenCalledWith(repos, { normName: "firedragon" });
   });
 
   it("returns 400 when cardId is empty", async () => {
@@ -1961,7 +2061,7 @@ describe("audit events", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ field: "energy", value: 4 }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
     expect(mockAdminEvents.insert).toHaveBeenCalledWith(
       expect.objectContaining({
         actorUserId: USER_ID,
@@ -1990,7 +2090,7 @@ describe("audit events", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ field: "artist", value: "New Artist" }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
     expect(mockAdminEvents.insert).toHaveBeenCalledWith(
       expect.objectContaining({
         action: "printing.accept-field",
@@ -2016,7 +2116,8 @@ describe("audit events", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ field: "comment", value: "   " }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual({ written: false });
     expect(mockMut.updateCardById).not.toHaveBeenCalled();
     expect(mockAdminEvents.insert).not.toHaveBeenCalled();
   });
@@ -2034,7 +2135,8 @@ describe("audit events", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ field: "flavorText", value: "  " }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual({ written: false });
     expect(mockMut.updatePrintingFieldById).not.toHaveBeenCalled();
     expect(mockAdminEvents.insert).not.toHaveBeenCalled();
   });
@@ -2045,13 +2147,15 @@ describe("audit events", () => {
       cardId: CARD_ID2,
       shortCode: "OGN-001",
     });
+    mockDistributionChannels.listForPrintingIds.mockResolvedValue([{ channelSlug: "launch" }]);
 
     const res = await app.request(`/api/admin/v1/cards/printing/${PRINTING_ID}/accept-field`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ field: "distributionChannelSlugs", value: null }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual({ written: true });
     expect(vi.mocked(updatePrintingDistributionChannels)).toHaveBeenCalledWith(
       expect.anything(),
       PRINTING_ID,

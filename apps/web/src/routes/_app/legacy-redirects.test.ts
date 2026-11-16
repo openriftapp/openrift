@@ -6,7 +6,7 @@ import { Route as PrintingDeskNewRoute } from "./_authenticated/admin/printing-d
 import { Route as PrintingDeskPrintingRoute } from "./_authenticated/admin/printing-desk_.printings.$printingId";
 import { Route as ContributeCardRoute } from "./contribute_.$cardSlug";
 import { Route as ContributeImageRoute } from "./contribute_.$cardSlug_.image.$printingId";
-import { Route as DeckCompareRoute } from "./decks/compare";
+import { Route as DecksRoute } from "./decks/route";
 import { Route as PromosLanguageRoute } from "./promos_.$language";
 import { Route as RoadmapRoute } from "./roadmap";
 import { Route as RulesRoute } from "./rules";
@@ -125,8 +125,11 @@ describe("the rules hub forwards to the core rules", () => {
 describe("redirects that need only the search run before any loader", () => {
   it("a comparison link with the retired local prefix drops it", async () => {
     const thrown = await thrownBy(() =>
-      (DeckCompareRoute.options.beforeLoad as unknown as Hook)({
-        search: { from: "local:deck-1", to: "share:abc" },
+      (DecksRoute.options.beforeLoad as unknown as Hook)({
+        location: {
+          pathname: "/decks/compare",
+          search: { from: "local:deck-1", to: "share:abc" },
+        },
       }),
     );
 
@@ -136,12 +139,12 @@ describe("redirects that need only the search run before any loader", () => {
     });
   });
 
-  it("a comparison link without the prefix stays", async () => {
-    await expect(
-      (DeckCompareRoute.options.beforeLoad as unknown as Hook)({
-        search: { from: "deck-1", to: "share:abc" },
+  it("a comparison link without the prefix stays", () => {
+    expect(
+      (DecksRoute.options.beforeLoad as unknown as Hook)({
+        location: { pathname: "/decks/compare", search: { from: "deck-1", to: "share:abc" } },
       }),
-    ).resolves.toBeUndefined();
+    ).toBeUndefined();
   });
 
   it("a new printing without a card goes back to the printing desk", async () => {

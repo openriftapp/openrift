@@ -165,7 +165,8 @@ export async function normalizePrintingFieldValue(
 }
 
 export async function isUnchangedPrintingValue(
-  repos: Pick<Repos, "sets">,
+  repos: Pick<Repos, "sets" | "distributionChannels">,
+  printingId: string,
   before: Record<string, unknown>,
   field: AcceptPrintingField,
   value: unknown,
@@ -174,7 +175,15 @@ export async function isUnchangedPrintingValue(
     const set = await repos.sets.getBySlug(value);
     return before.setId === set?.id;
   }
-  return isUnchangedValue(before[field], value);
+  if (field === "distributionChannelSlugs" && Array.isArray(value)) {
+    const links = await repos.distributionChannels.listForPrintingIds([printingId]);
+    return isUnchangedValue(
+      links.map((link) => link.channelSlug),
+      value,
+      field,
+    );
+  }
+  return isUnchangedValue(before[field], value, field);
 }
 
 /** Returns the human-readable value to audit: for `setId` the slug, not the UUID written. */

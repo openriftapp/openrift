@@ -23,6 +23,7 @@ import {
   unknownPrintingRefs,
 } from "../../catalog/lib/printing-refs.js";
 import {
+  cardFieldBefore,
   normalizeCardFieldValue,
   writeCardField,
 } from "../../catalog/services/card-field-writes.js";
@@ -282,7 +283,13 @@ export async function acceptSubmission(
       const before = await trx.catalogMutations.getFullCardById(liveCard.id);
       for (const pick of cardFields) {
         const value = normalizeCardFieldValue(pick.field, pick.value);
-        if (isUnchangedValue(before?.[pick.field as keyof typeof before], value)) {
+        const valueBefore = await cardFieldBefore(
+          trx.catalogMutations,
+          liveCard.id,
+          pick.field,
+          before,
+        );
+        if (isUnchangedValue(valueBefore, value, pick.field)) {
           continue;
         }
         await writeCardField(trx.catalogMutations, {
@@ -316,7 +323,7 @@ export async function acceptSubmission(
       const printingBefore = printingsBefore.get(key);
       if (
         printingBefore !== undefined &&
-        (await isUnchangedPrintingValue(trx, printingBefore, pick.field, value))
+        (await isUnchangedPrintingValue(trx, pick.printingId, printingBefore, pick.field, value))
       ) {
         continue;
       }

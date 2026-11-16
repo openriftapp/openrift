@@ -18,18 +18,18 @@ type CandidateCardsRepo = ReturnType<typeof candidateCardsRepo>;
  * Ingest only links candidates at upload time, so a printing accepted after a
  * provider's last upload leaves matching candidates unlinked until re-upload.
  */
-export async function relinkCandidatePrintings(repos: {
-  ingest: IngestRepo;
-  candidateCards: CandidateCardsRepo;
-}): Promise<{ examined: number; linked: number }> {
+export async function relinkCandidatePrintings(
+  repos: { ingest: IngestRepo; candidateCards: CandidateCardsRepo },
+  scope?: { normName: string },
+): Promise<{ examined: number; linked: number }> {
   const [unlinked, linkIndex] = await Promise.all([
-    repos.ingest.allUnlinkedCandidatePrintings(),
+    repos.ingest.allUnlinkedCandidatePrintings(scope?.normName),
     loadCandidateLinkIndex(repos.ingest),
   ]);
 
-  const idsByPrinting = new Map<string, string[]>();
+  const links: { id: string; printingId: string }[] = [];
   for (const cp of unlinked) {
-    const resolvedId = resolvePrintingLink(linkIndex, {
+    const printingId = resolvePrintingLink(linkIndex, {
       provider: cp.provider,
       externalId: cp.externalId,
       shortCode: cp.shortCode,
@@ -40,22 +40,25 @@ export async function relinkCandidatePrintings(repos: {
       size: cp.size,
       cardId: resolveCardIdByName(linkIndex, cp.cardName),
     });
-
-    if (resolvedId) {
-      const ids = idsByPrinting.get(resolvedId);
-      if (ids) {
-        ids.push(cp.id);
-      } else {
-        idsByPrinting.set(resolvedId, [cp.id]);
-      }
+    if (printingId) {
+      links.push({ id: cp.id, printingId });
     }
   }
 
-  let linked = 0;
-  for (const [printingId, ids] of idsByPrinting) {
-    await repos.candidateCards.linkCandidatePrintings(ids, printingId);
-    linked += ids.length;
+  // Id order, so concurrent relinks lock the rows they share in the same order.
+  const runs: { ids: string[]; printingId: string }[] = [];
+  for (const link of links.toSorted((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))) {
+    const last = runs.at(-1);
+    if (last?.printingId === link.printingId) {
+      last.ids.push(link.id);
+    } else {
+      runs.push({ ids: [link.id], printingId: link.printingId });
+    }
   }
+  for (const run of runs) {
+    await repos.candidateCards.linkCandidatePrintings(run.ids, run.printingId);
+  }
+  const linked = links.length;
 
   return { examined: unlinked.length, linked };
 }

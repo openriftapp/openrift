@@ -974,11 +974,22 @@ describe.skipIf(!ctx)("friendGroupsRepo (integration)", () => {
     const colA = await createPersonalCollection(VIEWER_ID, "Binder A");
     const colB = await createPersonalCollection(VIEWER_ID, "Binder B");
     await repo.shareCollection(group.id, colA.id, VIEWER_ID);
+    const copies = await db
+      .insertInto("copies")
+      .values([
+        { printingId: PRINTING_1.id, collectionId: colA.id },
+        { printingId: PRINTING_2.id, collectionId: colA.id },
+      ])
+      .returning("id")
+      .execute();
+    createdCopyIds.push(...copies.map((copy) => copy.id));
 
     const rows = await repo.collectionShareableForUserInGroup(group.id, VIEWER_ID);
     const byId = new Map(rows.map((row) => [row.collectionId, row]));
     expect(byId.get(colA.id)?.sharedAt).toBeInstanceOf(Date);
     expect(byId.get(colB.id)?.sharedAt).toBeNull();
+    expect(byId.get(colA.id)?.copyCount).toBe(2);
+    expect(byId.get(colB.id)?.copyCount).toBe(0);
   });
 
   it("groupsSharingCollection returns each group the collection is in", async () => {

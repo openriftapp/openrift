@@ -228,6 +228,7 @@ beforeEach(() => {
   captured.checkSource.mockReset();
   captured.deletePrinting.mockReset();
   captured.acceptField.mockReset();
+  captured.acceptField.mockResolvedValue({ written: true });
   captured.toastSuccess.mockReset();
   captured.sourceImageCells = [];
 });

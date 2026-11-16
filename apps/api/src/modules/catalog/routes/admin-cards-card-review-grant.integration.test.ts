@@ -448,7 +448,7 @@ describe.skipIf(!adminCtx || !grantCtx)("card-review grant (integration)", () =>
       const res = await grantApp.fetch(
         adminReq("POST", `/cards/${card1Id}/accept-field`, { field: "energy", value: 4 }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
 
       const row = await db
         .selectFrom("cards")
@@ -465,7 +465,7 @@ describe.skipIf(!adminCtx || !grantCtx)("card-review grant (integration)", () =>
           value: "CRG Artist Updated",
         }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
     });
 
     it("sets a printing image from an allowed candidate printing", async () => {

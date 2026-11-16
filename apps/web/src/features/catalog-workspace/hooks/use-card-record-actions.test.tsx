@@ -65,6 +65,7 @@ beforeEach(() => {
   resetIdCounter();
   resetStore = createStoreResetter(useWorkspaceSelectionStore);
   mutations.acceptCardField = fakeMutation();
+  mutations.acceptCardField.mutateAsync.mockResolvedValue({ written: true });
   mutations.check = fakeMutation();
   mutations.checkMany = fakeMutation();
   mutations.acceptSubmission = fakeMutation();

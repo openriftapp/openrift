@@ -12,11 +12,13 @@ import {
 } from "../../candidates/lib/card-review-scope.js";
 import { finishPrintingAccepts } from "../../candidates/services/accept-candidate-printings.js";
 import { acceptFavoriteNewCard } from "../../candidates/services/accept-gallery.js";
+import { relinkCandidatePrintings } from "../../candidates/services/relink-candidates.js";
 import { assertFavoriteNewCardEligible } from "../../candidates/services/trusted-accept-checks.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 import { isUnchangedValue } from "../lib/field-values.js";
 import { deleteCard } from "../services/card-admin.js";
 import {
+  cardFieldBefore,
   normalizeCardFieldValue,
   normalizeCardName,
   writeCardField,
@@ -78,7 +80,7 @@ export const adminCardMutationsCardsRouter = {
     });
   }),
 
-  acceptField: os.acceptField.handler(async ({ input, context }): Promise<void> => {
+  acceptField: os.acceptField.handler(async ({ input, context }) => {
     const { catalogMutations: mut, candidateCards, providerSettings } = context.repos;
     const { cardId, field, value } = input;
 
@@ -92,13 +94,11 @@ export const adminCardMutationsCardsRouter = {
 
     const finalValue = normalizeCardFieldValue(field, value);
 
-    // Snapshot before the write for the audit event. domains/superTypes have no
-    // cheap before-read, so their old is null.
     const cardBefore = await mut.getFullCardById(cardId);
-    if (isUnchangedValue(cardBefore?.[field as keyof typeof cardBefore], finalValue)) {
-      return;
+    const valueBefore = await cardFieldBefore(mut, cardId, field, cardBefore);
+    if (isUnchangedValue(valueBefore, finalValue, field)) {
+      return { written: false };
     }
-    const typesBefore = field === "types" ? await mut.getCardTypesById(cardId) : null;
     const auditEvent = () =>
       recordAdminEvent(context.repos, context.userId, {
         action: "card.accept-field",
@@ -106,15 +106,7 @@ export const adminCardMutationsCardsRouter = {
         entityId: cardId,
         entityLabel: cardBefore?.name ?? null,
         cardSlug: cardBefore?.slug ?? null,
-        oldValues:
-          field === "domains" || field === "superTypes"
-            ? null
-            : {
-                [field]:
-                  field === "types"
-                    ? typesBefore
-                    : (cardBefore as Record<string, unknown> | undefined)?.[field],
-              },
+        oldValues: { [field]: valueBefore },
         newValues: { [field]: finalValue },
       });
 
@@ -129,6 +121,7 @@ export const adminCardMutationsCardsRouter = {
     }
 
     await auditEvent();
+    return { written: true };
   }),
 
   acceptNewCard: os.acceptNewCard.handler(async ({ input, context }): Promise<void> => {
@@ -225,6 +218,7 @@ export const adminCardMutationsCardsRouter = {
 
     await context.transact(async (trxRepos) => {
       await trxRepos.catalogMutations.createNameAliases(name, card.id);
+      await relinkCandidatePrintings(trxRepos, { normName: normalizeNameForIdentity(name) });
     });
 
     await recordAdminEvent(context.repos, context.userId, {

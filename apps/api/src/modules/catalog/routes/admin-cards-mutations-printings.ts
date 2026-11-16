@@ -52,7 +52,7 @@ export const adminCardMutationsPrintingsRouter = {
     });
   }),
 
-  acceptPrintingField: os.acceptPrintingField.handler(async ({ input, context }): Promise<void> => {
+  acceptPrintingField: os.acceptPrintingField.handler(async ({ input, context }) => {
     const { catalogMutations: mut } = context.repos;
     const { printingId, field, value, source, faceId } = input;
     const side = faceId === undefined ? input.side : await mut.sideOfFace(printingId, faceId);
@@ -81,8 +81,16 @@ export const adminCardMutationsPrintingsRouter = {
       source,
       side,
     });
-    if (await isUnchangedPrintingValue(context.repos, printingBefore, field, normalizedValue)) {
-      return;
+    if (
+      await isUnchangedPrintingValue(
+        context.repos,
+        printingId,
+        printingBefore,
+        field,
+        normalizedValue,
+      )
+    ) {
+      return { written: false };
     }
 
     // Audit snapshot: distributionChannelSlugs lives only in a junction table
@@ -113,6 +121,7 @@ export const adminCardMutationsPrintingsRouter = {
     }
 
     await auditEvent(auditValue);
+    return { written: true };
   }),
 
   acceptPrinting: os.acceptPrinting.handler(async ({ input, context }) => {

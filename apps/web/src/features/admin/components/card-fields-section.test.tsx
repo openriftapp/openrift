@@ -88,6 +88,7 @@ function renderSection(
 beforeEach(() => {
   captured.spreadsheet = null;
   captured.acceptCardField.mockReset();
+  captured.acceptCardField.mockResolvedValue({ written: true });
   captured.toastSuccess.mockReset();
 });
 

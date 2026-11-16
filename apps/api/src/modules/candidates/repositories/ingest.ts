@@ -222,7 +222,7 @@ export function ingestRepo(db: Db) {
 
     // Joined with the candidate card's name so the relink pass can resolve
     // the card by normalized name the same way ingest does.
-    allUnlinkedCandidatePrintings(): Promise<
+    allUnlinkedCandidatePrintings(normName?: string): Promise<
       {
         id: string;
         shortCode: string;
@@ -236,7 +236,7 @@ export function ingestRepo(db: Db) {
         provider: string;
       }[]
     > {
-      return db
+      let query = db
         .selectFrom("candidatePrintings as cp")
         .innerJoin("candidateCards as cc", "cc.id", "cp.candidateCardId")
         .select([
@@ -251,8 +251,11 @@ export function ingestRepo(db: Db) {
           "cc.name as cardName",
           "cc.provider",
         ])
-        .where("cp.printingId", "is", null)
-        .execute();
+        .where("cp.printingId", "is", null);
+      if (normName !== undefined) {
+        query = query.where("cc.normName", "=", normName);
+      }
+      return query.execute();
     },
 
     ignoredCandidateCards(provider: string): Promise<{ externalId: string }[]> {

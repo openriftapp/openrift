@@ -199,6 +199,10 @@ const acceptPrintingFieldBodySchema = z.object({
 export type AcceptCardFieldBody = z.infer<typeof acceptCardFieldBodySchema>;
 export type AcceptPrintingFieldBody = z.infer<typeof acceptPrintingFieldBodySchema>;
 
+const acceptFieldResultSchema = z.object({ written: z.boolean() });
+
+export type AcceptFieldResult = z.infer<typeof acceptFieldResultSchema>;
+
 export type AcceptCardField = AcceptCardFieldBody["field"];
 export type AcceptPrintingField = AcceptPrintingFieldBody["field"];
 
@@ -623,22 +627,14 @@ export const adminCardMutationsContract = {
     .route({ method: "DELETE", path: `${CARDS}/{cardId}/errata`, tags: [TAG], successStatus: 204 })
     .input(cardIdParam.extend({ language: cardErrataFieldRules.language })),
   acceptField: authedRoute
-    .route({
-      method: "POST",
-      path: `${CARDS}/{cardId}/accept-field`,
-      tags: [TAG],
-      successStatus: 204,
-    })
-    .input(cardIdParam.extend(acceptCardFieldBodySchema.shape)),
+    .route({ method: "POST", path: `${CARDS}/{cardId}/accept-field`, tags: [TAG] })
+    .input(cardIdParam.extend(acceptCardFieldBodySchema.shape))
+    .output(acceptFieldResultSchema),
   acceptPrintingField: authedRoute
-    .route({
-      method: "POST",
-      path: `${CARDS}/printing/{printingId}/accept-field`,
-      tags: [TAG],
-      successStatus: 204,
-    })
+    .route({ method: "POST", path: `${CARDS}/printing/{printingId}/accept-field`, tags: [TAG] })
     .errors({ NOT_FOUND: { message: "Printing or set not found" } })
-    .input(printingIdParam.extend(acceptPrintingFieldBodySchema.shape)),
+    .input(printingIdParam.extend(acceptPrintingFieldBodySchema.shape))
+    .output(acceptFieldResultSchema),
   uploadErrata: authedRoute
     .route({ method: "POST", path: `${CARDS}/errata/upload`, tags: [TAG] })
     .input(

@@ -1,12 +1,7 @@
-import { sameFieldValue } from "@openrift/shared/catalog-field-compare";
+import type { AcceptFieldResult } from "@openrift/shared/contracts/admin/card-mutations";
 import { toast } from "sonner";
 
 import { runReportedMutation } from "@/lib/run-reported-mutation";
-
-function isUnchanged(previousValue: unknown, value: unknown, field?: string): boolean {
-  const comparable = value === null || typeof value !== "object" || Array.isArray(value);
-  return comparable && sameFieldValue(previousValue ?? null, value, field);
-}
 
 /** The undo writes the previous value as a manual edit, so the source's value
  *  stays available to accept again. `onAccepted` replaces the Undo toast.
@@ -21,15 +16,18 @@ export async function acceptFieldWithUndo<
   previousValue,
   onAccepted,
 }: {
-  accept: (input: TInput) => Promise<unknown>;
+  accept: (input: TInput) => Promise<AcceptFieldResult>;
   input: NoInfer<TInput>;
   fieldLabel: string;
   sourceLabel: string;
   previousValue: unknown;
   onAccepted?: (revert: NoInfer<TInput>) => void;
 }): Promise<boolean> {
-  const accepted = await runReportedMutation(() => accept(input));
-  if (accepted && !isUnchanged(previousValue, input.value, input.field)) {
+  let result: AcceptFieldResult | undefined;
+  const accepted = await runReportedMutation(async () => {
+    result = await accept(input);
+  });
+  if (accepted && result?.written) {
     const undo = { ...input, value: previousValue ?? null, source: "manual" as const };
     if (onAccepted !== undefined) {
       onAccepted(undo);

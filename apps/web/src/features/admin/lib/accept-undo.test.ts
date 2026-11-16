@@ -20,7 +20,9 @@ beforeEach(() => {
 describe("acceptFieldWithUndo", () => {
   it("toasts with Undo once the accept succeeds, and Undo writes the previous value", async () => {
     const accept = vi.fn(
-      async (_input: { cardId: string; value: unknown; source?: "provider" | "manual" }) => {},
+      async (_input: { cardId: string; value: unknown; source?: "provider" | "manual" }) => ({
+        written: true,
+      }),
     );
 
     const accepted = await acceptFieldWithUndo({
@@ -39,7 +41,9 @@ describe("acceptFieldWithUndo", () => {
 
   it("hands the revert input to onAccepted and skips its own toast", async () => {
     const accept = vi.fn(
-      async (_input: { cardId: string; value: unknown; source?: "provider" | "manual" }) => {},
+      async (_input: { cardId: string; value: unknown; source?: "provider" | "manual" }) => ({
+        written: true,
+      }),
     );
     const onAccepted = vi.fn();
 
@@ -56,27 +60,25 @@ describe("acceptFieldWithUndo", () => {
     expect(toast.success).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ["the same text", "Rare", "Rare"],
-    ["the same number", 4, 4],
-    ["an empty field cleared again", undefined, null],
-  ])("offers no undo after accepting %s", async (_case, previousValue, value) => {
-    const accept = vi.fn(async (_input: { value: unknown; source?: "provider" | "manual" }) => {});
+  it("offers no undo when the API wrote nothing", async () => {
+    const accept = vi.fn(async (_input: { value: unknown; source?: "provider" | "manual" }) => ({
+      written: false,
+    }));
     const onAccepted = vi.fn();
 
     const accepted = await acceptFieldWithUndo({
       accept,
-      input: { value, source: "provider" },
+      input: { value: "Rare", source: "provider" },
       fieldLabel: "Rarity",
       sourceLabel: "Provider A",
-      previousValue,
+      previousValue: "Rare",
     });
     await acceptFieldWithUndo({
       accept,
-      input: { value, source: "provider" },
+      input: { value: "Rare", source: "provider" },
       fieldLabel: "Rarity",
       sourceLabel: "Provider A",
-      previousValue,
+      previousValue: "Rare",
       onAccepted,
     });
 
@@ -87,15 +89,16 @@ describe("acceptFieldWithUndo", () => {
   });
 
   it.each([
-    ["the same list", "domains", ["fury", "calm"], ["fury", "calm"], false],
-    ["a reordered list", "domains", ["calm", "fury"], ["fury", "calm"], true],
-    ["a reordered set", "markerSlugs", ["promo", "foil"], ["foil", "promo"], false],
-  ])("after accepting %s offers undo: %s", async (_case, field, value, previousValue, offered) => {
+    ["the same list", "domains", ["fury", "calm"], ["fury", "calm"]],
+    ["a reordered set", "markerSlugs", ["promo", "foil"], ["foil", "promo"]],
+  ])("offers no undo after accepting %s", async (_case, field, value, previousValue) => {
     const onAccepted = vi.fn();
 
     await acceptFieldWithUndo({
       accept: vi.fn(
-        async (_input: { field: string; value: unknown; source?: "provider" | "manual" }) => {},
+        async (_input: { field: string; value: unknown; source?: "provider" | "manual" }) => ({
+          written: false,
+        }),
       ),
       input: { field, value, source: "provider" },
       fieldLabel: "Domains",
@@ -104,27 +107,40 @@ describe("acceptFieldWithUndo", () => {
       onAccepted,
     });
 
-    expect(onAccepted).toHaveBeenCalledTimes(offered ? 1 : 0);
+    expect(onAccepted).not.toHaveBeenCalled();
   });
 
-  it("offers undo for a release date even when the day matches", async () => {
+  it.each([
+    ["text over an empty string", "", null],
+    ["a number over its text form", "4", 4],
+  ])("offers undo when the API wrote %s", async (_case, previousValue, value) => {
+    const accept = vi.fn(async (_input: { value: unknown; source?: "provider" | "manual" }) => ({
+      written: true,
+    }));
     const onAccepted = vi.fn();
-    const release = { releasedAt: "2025-10-31", releasePrecision: "day" };
 
     await acceptFieldWithUndo({
-      accept: vi.fn(async (_input: { value: unknown; source?: "provider" | "manual" }) => {}),
-      input: { value: release, source: "provider" },
-      fieldLabel: "Released",
+      accept,
+      input: { value, source: "provider" },
+      fieldLabel: "Rarity",
       sourceLabel: "Provider A",
-      previousValue: { ...release, releasePrecision: "month" },
+      previousValue,
+    });
+    await acceptFieldWithUndo({
+      accept,
+      input: { value, source: "provider" },
+      fieldLabel: "Rarity",
+      sourceLabel: "Provider A",
+      previousValue,
       onAccepted,
     });
 
-    expect(onAccepted).toHaveBeenCalledOnce();
+    expect(toast.success).toHaveBeenCalledOnce();
+    expect(onAccepted).toHaveBeenCalledWith({ value: previousValue, source: "manual" });
   });
 
   it("shows no success toast when the accept fails", async () => {
-    const accept = vi.fn(async (_input: { value: unknown }) => {
+    const accept = vi.fn(async (_input: { value: unknown }): Promise<{ written: boolean }> => {
       throw new Error("conflict");
     });
 

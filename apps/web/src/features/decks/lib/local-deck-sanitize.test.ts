@@ -2,7 +2,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { describe, expect, it } from "vitest";
 
 import type { LocalDeck, LocalDeckCard } from "@/features/decks/lib/local-deck";
-import { bareLocalDeckId, sanitizeDecks } from "@/features/decks/lib/local-deck-sanitize";
+import { sanitizeDecks } from "@/features/decks/lib/local-deck-sanitize";
 
 const sampleCards: LocalDeckCard[] = [
   { zone: "legend", cardId: "card-legend", quantity: 1, preferredPrintingId: null },
@@ -23,18 +23,6 @@ const validDeck: LocalDeck = {
   createdAt: "2026-07-01T00:00:00.000Z",
   updatedAt: "2026-07-02T00:00:00.000Z",
 };
-
-describe("bareLocalDeckId", () => {
-  it("strips the retired prefix and leaves a bare id alone", () => {
-    expect(bareLocalDeckId("local:abc")).toBe("abc");
-    expect(bareLocalDeckId("abc")).toBe("abc");
-  });
-
-  it("only strips a leading prefix", () => {
-    expect(bareLocalDeckId("deck-local:1")).toBe("deck-local:1");
-    expect(bareLocalDeckId("LOCAL:abc")).toBe("LOCAL:abc");
-  });
-});
 
 describe("sanitizeDecks", () => {
   it("keeps a well-formed deck untouched", () => {

@@ -6,6 +6,7 @@ import { cleanedSearchForRedirect } from "@/features/cards/lib/search-schemas";
 import { loadCollection } from "@/features/collections/lib/collection-load";
 import { DeckPending } from "@/features/decks/components/deck-pending";
 import { deckEditorSearchSchema } from "@/features/decks/lib/deck-editor-search";
+import { bareLocalDeckId } from "@/features/decks/lib/local-deck";
 import { requireSession, sessionQueryOptions } from "@/lib/auth-session";
 import { initQueryOptions } from "@/lib/init-queries";
 import { privateSeoHead } from "@/lib/seo";
@@ -29,7 +30,6 @@ export const Route = createFileRoute("/_app/decks/$deckId")({
   // Auth is optional: a browser-local deck needs no server fetch; a server id
   // with no session redirects to /login, preserving `redirect` for the return.
   loader: async ({ context, params, location }) => {
-    const { bareLocalDeckId } = await import("@/features/decks/lib/local-deck-sanitize");
     const { isLocalDeck, preloadLocalDecks } =
       await import("@/features/decks/lib/local-decks-collection");
     await preloadLocalDecks();

@@ -674,7 +674,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
           value: "CSM Test Card Updated",
         }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
 
       const row = await db
         .selectFrom("cards")
@@ -704,7 +704,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
           value: "CSM Test Card",
         }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
     });
 
     it("returns 400 when updating rulesText (no longer an allowed field)", async () => {
@@ -734,7 +734,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
           value: 5,
         }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
 
       const row = await db
         .selectFrom("cards")
@@ -753,7 +753,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
           value: ["spell", "gear"],
         }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
 
       const junction = await db
         .selectFrom("cardCardTypes")
@@ -773,7 +773,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
           value: ["unit"],
         }),
       );
-      expect(restore.status).toBe(204);
+      expect(restore.status).toBe(200);
     });
 
     it("returns 400 for validation error on types", async () => {
@@ -805,7 +805,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
           value: "Artist B",
         }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
 
       const row = await db
         .selectFrom("faces")
@@ -822,7 +822,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
           value: "rare",
         }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
 
       const row = await db
         .selectFrom("faces")
@@ -855,7 +855,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
           value: "foil",
         }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
 
       const row = await db
         .selectFrom("faces")
@@ -888,7 +888,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
           value: "Test comment",
         }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
 
       const row = await db
         .selectFrom("printings")
@@ -965,7 +965,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
           value: [PROMO_MARKER_SLUG],
         }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
 
       const updated = await db
         .selectFrom("faces")
@@ -1051,6 +1051,73 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
         .executeTakeFirst();
       expect(alias).toBeDefined();
       expect(alias!.cardId).toBe(cardId);
+    });
+
+    it("relinks only the linked name's candidate printings", async () => {
+      const candidatePrinting = (candidateCardId: string, externalId: string) => ({
+        candidateCardId,
+        printingId: null,
+        shortCode: "CSM-002",
+        setId: "CSM-TEST",
+        setName: "CSM Test Set",
+        rarity: "rare",
+        artVariant: "normal",
+        isSigned: false,
+        finish: "foil",
+        artist: "Artist A",
+        publicCode: "CSM",
+        printedRulesText: null,
+        printedEffectText: null,
+        imageUrl: null,
+        flavorText: null,
+        externalId,
+        extraData: null,
+      });
+      const candidateCard = (name: string, externalId: string) => ({
+        provider: "csm-gallery",
+        name,
+        types: ["unit"],
+        superTypes: [],
+        domains: ["mind"],
+        might: null,
+        energy: 2,
+        power: null,
+        mightBonus: null,
+        rulesText: null,
+        effectText: null,
+        tags: [],
+        shortCode: null,
+        externalId,
+        extraData: null,
+      });
+      const [linkedCard, otherCard] = await db
+        .insertInto("candidateCards")
+        .values([
+          candidateCard("CSM Relink Unmatched", "csm-relink-unmatched"),
+          candidateCard("CSM Test Card", "csm-relink-elsewhere"),
+        ])
+        .returning("id")
+        .execute();
+      const [linkedRow, otherRow] = await db
+        .insertInto("candidatePrintings")
+        .values([
+          candidatePrinting(linkedCard!.id, "csm-relink-unmatched-p"),
+          candidatePrinting(otherCard!.id, "csm-relink-elsewhere-p"),
+        ])
+        .returning("id")
+        .execute();
+
+      const res = await app.fetch(adminReq("POST", `${P}/new/csmrelinkunmatched/link`, { cardId }));
+      expect(res.status).toBe(204);
+
+      const rows = await db
+        .selectFrom("candidatePrintings")
+        .select(["id", "printingId"])
+        .where("id", "in", [linkedRow!.id, otherRow!.id])
+        .execute();
+      const linkOf = new Map(rows.map((row) => [row.id, row.printingId]));
+      expect(linkOf.get(linkedRow!.id)).toBe(printing2Id);
+      expect(linkOf.get(otherRow!.id)).toBeNull();
     });
 
     it("returns 404 for non-existent target card", async () => {
@@ -1469,7 +1536,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
           source: "provider",
         }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
 
       const row = await db
         .selectFrom("cards")
@@ -1493,7 +1560,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
           value: null,
         }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
 
       const rows = await db
         .selectFrom("cardSuperTypes")
@@ -1510,7 +1577,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
           value: null,
         }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
 
       const row = await db
         .selectFrom("cards")
@@ -1550,7 +1617,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
           source: "provider",
         }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
 
       // Verify the value was set (typography may have changed quotes)
       const row = await db
@@ -1575,7 +1642,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
           source: "provider",
         }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
 
       await db
         .updateTable("faces")
@@ -1592,7 +1659,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
           source: "provider",
         }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
 
       await db
         .updateTable("faces")
@@ -1609,7 +1676,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
           source: "provider",
         }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
 
       // The set has printedTotal=2, so publicCode should be appended
       const row = await db
@@ -1633,7 +1700,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
           value: "CSM-TEST",
         }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
     });
 
     it("returns 404 when setting setId to non-existent slug", async () => {
@@ -1653,7 +1720,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
           value: [PROMO_MARKER_SLUG],
         }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
 
       const row = await db
         .selectFrom("faces")
@@ -1662,13 +1729,21 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
         .executeTakeFirstOrThrow();
       expect(row.markerSlugs).toEqual([PROMO_MARKER_SLUG]);
 
+      const again = await app.fetch(
+        adminReq("POST", `${P}/printing/${printingId}/accept-field`, {
+          field: "markerSlugs",
+          value: [PROMO_MARKER_SLUG],
+        }),
+      );
+      expect(await again.json()).toEqual({ written: false });
+
       const restoreRes = await app.fetch(
         adminReq("POST", `${P}/printing/${printingId}/accept-field`, {
           field: "markerSlugs",
           value: [],
         }),
       );
-      expect(restoreRes.status).toBe(204);
+      expect(restoreRes.status).toBe(200);
     });
 
     it("returns 400 for missing field", async () => {

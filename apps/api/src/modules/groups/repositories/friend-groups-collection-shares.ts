@@ -46,6 +46,7 @@ export function friendGroupCollectionSharesRepo(db: Kysely<Database>) {
       {
         collectionId: string;
         collectionName: string;
+        copyCount: number;
         sharedAt: Date | null;
       }[]
     > {
@@ -54,7 +55,14 @@ export function friendGroupCollectionSharesRepo(db: Kysely<Database>) {
         .leftJoin("friendGroupCollectionShares as s", (join) =>
           join.onRef("s.collectionId", "=", "c.id").on("s.groupId", "=", groupId),
         )
-        .select(["c.id as collectionId", "c.name as collectionName", "s.sharedAt as sharedAt"])
+        .select([
+          "c.id as collectionId",
+          "c.name as collectionName",
+          sql<number>`(select count(*)::int from copies cp where cp.collection_id = c.id)`.as(
+            "copyCount",
+          ),
+          "s.sharedAt as sharedAt",
+        ])
         .where("c.userId", "=", userId)
         .orderBy("c.sortOrder", "asc")
         .orderBy("c.name", "asc")

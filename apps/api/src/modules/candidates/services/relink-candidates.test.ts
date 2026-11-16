@@ -10,10 +10,11 @@ function makeRepos({
   overrides = [] as unknown[],
 } = {}) {
   const linkCandidatePrintings = vi.fn().mockResolvedValue(undefined);
+  const allUnlinkedCandidatePrintings = vi.fn().mockResolvedValue(unlinked);
   return {
     repos: {
       ingest: {
-        allUnlinkedCandidatePrintings: vi.fn().mockResolvedValue(unlinked),
+        allUnlinkedCandidatePrintings,
         allCardNorms: vi.fn().mockResolvedValue(cardNorms),
         allCardNameAliases: vi.fn().mockResolvedValue(aliases),
         allPrintingKeys: vi.fn().mockResolvedValue(printingKeys),
@@ -24,6 +25,7 @@ function makeRepos({
       },
     } as never,
     linkCandidatePrintings,
+    allUnlinkedCandidatePrintings,
   };
 }
 
@@ -63,6 +65,26 @@ describe("relinkCandidatePrintings", () => {
       printingKeys: [fireballKey],
     });
     expect(await relinkCandidatePrintings(repos)).toEqual({ examined: 1, linked: 1 });
+    expect(linkCandidatePrintings).toHaveBeenCalledWith(["cp-1"], "printing-uuid");
+  });
+
+  it("reads only the scoped name's unlinked rows when given a name", async () => {
+    const { repos, allUnlinkedCandidatePrintings } = makeRepos();
+    await relinkCandidatePrintings(repos, { normName: "fireball" });
+    expect(allUnlinkedCandidatePrintings).toHaveBeenCalledWith("fireball");
+  });
+
+  it("links a row through a name alias", async () => {
+    const { repos, linkCandidatePrintings } = makeRepos({
+      unlinked: [makeUnlinked({ cardName: "Fire Ball" })],
+      cardNorms: [{ id: "card-uuid", normName: "fireball2" }],
+      aliases: [{ cardId: "card-uuid", normName: "fireball" }],
+      printingKeys: [fireballKey],
+    });
+    expect(await relinkCandidatePrintings(repos, { normName: "fireball" })).toEqual({
+      examined: 1,
+      linked: 1,
+    });
     expect(linkCandidatePrintings).toHaveBeenCalledWith(["cp-1"], "printing-uuid");
   });
 
@@ -133,6 +155,24 @@ describe("relinkCandidatePrintings", () => {
     });
     expect(await relinkCandidatePrintings(repos)).toEqual({ examined: 3, linked: 0 });
     expect(linkCandidatePrintings).not.toHaveBeenCalled();
+  });
+
+  it("writes the links in candidate printing id order", async () => {
+    const { repos, linkCandidatePrintings } = makeRepos({
+      unlinked: [
+        makeUnlinked({ id: "cp-3", externalId: "ext-3" }),
+        makeUnlinked({ id: "cp-2", externalId: "ext-2", finish: "foil" }),
+        makeUnlinked({ id: "cp-1" }),
+      ],
+      cardNorms: [{ id: "card-uuid", normName: "fireball" }],
+      printingKeys: [fireballKey, { ...fireballKey, id: "foil-uuid", finish: "foil" }],
+    });
+    await relinkCandidatePrintings(repos);
+    expect(linkCandidatePrintings.mock.calls).toEqual([
+      [["cp-1"], "printing-uuid"],
+      [["cp-2"], "foil-uuid"],
+      [["cp-3"], "printing-uuid"],
+    ]);
   });
 
   it("bulk-links per target printing across rows", async () => {

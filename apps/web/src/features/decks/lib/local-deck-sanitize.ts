@@ -4,7 +4,7 @@ import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { LocalDeck, LocalDeckCard } from "@/features/decks/lib/local-deck";
-import { LOCAL_DECK_PREFIX } from "@/features/decks/lib/local-deck";
+import { bareLocalDeckId } from "@/features/decks/lib/local-deck";
 import { m } from "@/paraglide/messages.js";
 
 function nowIso(): string {
@@ -76,10 +76,6 @@ function sanitizeLinks(candidate: Record<string, unknown>): DeckLink[] {
 function storedCoverFaceId(candidate: Record<string, unknown>): string | null {
   const stored = candidate.coverFaceId ?? candidate.coverPrintingId;
   return typeof stored === "string" ? stored : null;
-}
-
-export function bareLocalDeckId(id: string): string {
-  return id.startsWith(LOCAL_DECK_PREFIX) ? id.slice(LOCAL_DECK_PREFIX.length) : id;
 }
 
 // A malformed entry degrades to the valid subset; it does not crash /decks.

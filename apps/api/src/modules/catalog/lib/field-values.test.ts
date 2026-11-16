@@ -51,10 +51,17 @@ describe("isUnchangedValue", () => {
     expect(isUnchangedValue("a", "a")).toBe(true);
   });
 
+  it("compares lists in order, and set-like slug lists as sets", () => {
+    expect(isUnchangedValue(["a", "b"], ["a", "b"], "domains")).toBe(true);
+    expect(isUnchangedValue(["a", "b"], ["b", "a"], "domains")).toBe(false);
+    expect(isUnchangedValue(["a", "b"], ["b", "a"], "markerSlugs")).toBe(true);
+    expect(isUnchangedValue(["a"], ["a", "b"], "markerSlugs")).toBe(false);
+    expect(isUnchangedValue(undefined, ["a"], "domains")).toBe(false);
+  });
+
   it("is false for different scalars, a missing column and structured values", () => {
     expect(isUnchangedValue("a", null)).toBe(false);
     expect(isUnchangedValue(undefined, null)).toBe(false);
-    expect(isUnchangedValue(["a"], ["a"])).toBe(false);
     expect(isUnchangedValue(undefined, undefined)).toBe(false);
   });
 });

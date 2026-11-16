@@ -1207,16 +1207,24 @@ describe("friend-groups route", () => {
         getMembership: vi.fn(() => Promise.resolve(memberMembership)),
         collectionShareableForUserInGroup: vi.fn(() =>
           Promise.resolve([
-            { collectionId: COLLECTION_ID, collectionName: "Binder A", sharedAt: now },
-            { collectionId: "other-col", collectionName: "Binder B", sharedAt: null },
+            {
+              collectionId: COLLECTION_ID,
+              collectionName: "Binder A",
+              copyCount: 12,
+              sharedAt: now,
+            },
+            { collectionId: "other-col", collectionName: "Binder B", copyCount: 0, sharedAt: null },
           ]),
         ),
       },
     });
     const res = await app.request("/api/v1/friend-groups/playgroup/shareable-collections");
     expect(res.status).toBe(200);
-    const body = (await readJson(res)) as { items: { sharedAt: string | null }[] };
+    const body = (await readJson(res)) as {
+      items: { copyCount: number; sharedAt: string | null }[];
+    };
     expect(body.items).toHaveLength(2);
+    expect(body.items.map((item) => item.copyCount)).toEqual([12, 0]);
     expect(body.items[0]?.sharedAt).toBe(now.toISOString());
     expect(body.items[1]?.sharedAt).toBeNull();
   });

@@ -30,6 +30,24 @@ export function normalizeCardFieldValue(field: AcceptCardField, value: unknown):
   );
 }
 
+export function cardFieldBefore(
+  mut: CatalogMutationsRepo,
+  cardId: string,
+  field: AcceptCardField,
+  cardBefore: object | undefined,
+): Promise<unknown> {
+  if (field === "types") {
+    return mut.getCardTypesById(cardId);
+  }
+  if (field === "domains") {
+    return mut.getCardDomainsById(cardId);
+  }
+  if (field === "superTypes") {
+    return mut.getCardSuperTypesById(cardId);
+  }
+  return Promise.resolve((cardBefore as Record<string, unknown> | undefined)?.[field]);
+}
+
 export function normalizeCardName(name: string): string {
   return validateFieldValue(cardNameRule, "name", name.trim());
 }
