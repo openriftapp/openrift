@@ -45,6 +45,9 @@ vi.mock("@/features/groups/hooks/use-card-trades", () => ({
   }),
 }));
 
+const { toastError } = vi.hoisted(() => ({ toastError: vi.fn() }));
+vi.mock("@/lib/toast", () => ({ PERSISTENT_ERROR_TOAST: {}, toastError }));
+
 vi.mock("@/hooks/use-session", () => ({
   useRequiredUserId: () => "user-1",
 }));
@@ -134,6 +137,7 @@ beforeEach(() => {
   acceptMutate.mockClear();
   syncMutate.mockClear();
   settled.mockClear();
+  toastError.mockClear();
   confirmed.mockClear();
   cancelled.mockClear();
   optionsFail = false;
@@ -297,17 +301,14 @@ describe("useTradeAcceptFlow", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("falls back to a plain accept when the copy options cannot be read", async () => {
+  it("shows the error and does not accept when the copy options cannot be read", async () => {
     optionsFail = true;
     renderFlow();
     await startAccept();
 
-    await waitFor(() => expect(acceptMutate).toHaveBeenCalledTimes(1));
-    expect(acceptMutate.mock.calls[0]![0]).toEqual({
-      tradeId: "trade-1",
-      groupSlug: "bothfeld",
-      copyIds: undefined,
-    });
+    await waitFor(() => expect(settled).toHaveBeenCalled());
+    expect(toastError).toHaveBeenCalledWith("copy options unavailable", expect.anything());
+    expect(acceptMutate).not.toHaveBeenCalled();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 

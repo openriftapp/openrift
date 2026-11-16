@@ -10,6 +10,7 @@ import {
 } from "@/features/groups/hooks/use-card-trades";
 import { useTradeActionStore } from "@/features/groups/stores/trade-action-store";
 import { memberName } from "@/lib/member-name";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 type BulkMode = "accept-decline" | "cancel" | "none";
@@ -37,20 +38,19 @@ export function BulkTradeActions({
     targets.some((trade) => state.pending.has(trade.id)),
   );
 
-  // Declared ahead of the early returns below: the React Compiler bails on a
-  // function declaration it reaches only after a `return`.
-  function runAll(mutation: {
-    mutate: (
-      variables: { tradeId: string; groupSlug?: string },
-      options?: { onSettled?: () => void },
-    ) => void;
-  }): void {
+  // Declared above the early returns for the React Compiler. Sequential: accept
+  // reads the giver's unreserved copies before locking, so parallel accepts collide.
+  async function runAll(mutation: {
+    mutateAsync: (variables: { tradeId: string; groupSlug?: string }) => Promise<unknown>;
+  }): Promise<void> {
     for (const trade of targets) {
       begin(trade.id);
-      mutation.mutate(
-        { tradeId: trade.id, groupSlug: trade.groupSlug ?? undefined },
-        { onSettled: () => settle(trade.id) },
+    }
+    for (const trade of targets) {
+      await runReportedMutation(() =>
+        mutation.mutateAsync({ tradeId: trade.id, groupSlug: trade.groupSlug ?? undefined }),
       );
+      settle(trade.id);
     }
   }
 
@@ -60,7 +60,7 @@ export function BulkTradeActions({
 
   if (mode === "cancel") {
     return (
-      <Button size="sm" variant="outline" disabled={acting} onClick={() => runAll(cancel)}>
+      <Button size="sm" variant="outline" disabled={acting} onClick={() => void runAll(cancel)}>
         {m.trades_cancel_all({ count: targets.length })}
       </Button>
     );
@@ -72,13 +72,13 @@ export function BulkTradeActions({
 
   return (
     <div className="flex shrink-0 items-center gap-1.5">
-      <Button size="sm" variant="outline" disabled={acting} onClick={() => runAll(decline)}>
+      <Button size="sm" variant="outline" disabled={acting} onClick={() => void runAll(decline)}>
         {m.trades_decline_all()}
       </Button>
       <Button
         size="sm"
         disabled={acting}
-        onClick={() => (needsConfirm ? setConfirmOpen(true) : runAll(accept))}
+        onClick={() => (needsConfirm ? setConfirmOpen(true) : void runAll(accept))}
       >
         {m.trades_accept_all({ count: targets.length })}
       </Button>
@@ -88,7 +88,7 @@ export function BulkTradeActions({
           onOpenChange={setConfirmOpen}
           onConfirm={() => {
             setConfirmOpen(false);
-            runAll(accept);
+            void runAll(accept);
           }}
           title={m.trades_accept_all_confirm_title({
             count: targets.length,

@@ -3,9 +3,16 @@ import type {
   CardTradeResponse,
   CardTradeRole,
 } from "@openrift/shared/types/api/card-trade";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { runSettleBatch } from "./trade-settle-batch";
+const { toastError } = vi.hoisted(() => ({ toastError: vi.fn() }));
+
+vi.mock("@/lib/toast", () => ({ PERSISTENT_ERROR_TOAST: {}, toastError }));
+vi.mock("@/lib/stale-bundle-reload", () => ({
+  isStaleServerFnError: (error: unknown) => error instanceof Error && error.message === "stale",
+}));
+
+const { readCopyOptionsReported, runSettleBatch } = await import("./trade-settle-batch");
 
 function trade(id: string, role: CardTradeRole, quantity: number): CardTradeResponse {
   return { id, role, quantity, groupSlug: "friday-night" } as unknown as CardTradeResponse;
@@ -105,12 +112,21 @@ describe("runSettleBatch", () => {
     expect(result.pendingChoices).toEqual([]);
   });
 
-  it("settles a giver's row when the options read failed", async () => {
-    const d = deps({ readCopyOptions: vi.fn(async () => null) });
-    const result = await runSettleBatch([{ trade: trade("t1", "giver", 1), quantity: 1 }], d);
+  it("leaves a giver's row unsettled, with its tally, when the options read failed", async () => {
+    const d = deps({
+      readCopyOptions: vi.fn(async (tradeId: string) => (tradeId === "t1" ? null : options(false))),
+    });
+    const result = await runSettleBatch(
+      [
+        { trade: trade("t1", "giver", 1), quantity: 1 },
+        { trade: trade("t2", "giver", 1), quantity: 1 },
+      ],
+      d,
+    );
 
     expect(d.settle).toHaveBeenCalledTimes(1);
-    expect(result.failed).toBe(false);
+    expect(d.settle).toHaveBeenCalledWith(expect.objectContaining({ tradeId: "t2" }));
+    expect(result).toEqual({ pendingChoices: [], settledTradeIds: ["t2"], failed: true });
   });
 
   it("keeps going after a row fails, and says that it did", async () => {
@@ -139,5 +155,35 @@ describe("runSettleBatch", () => {
 
     expect(d.settle).not.toHaveBeenCalled();
     expect(result).toEqual({ pendingChoices: [], settledTradeIds: [], failed: false });
+  });
+});
+
+describe("readCopyOptionsReported", () => {
+  beforeEach(() => {
+    toastError.mockClear();
+  });
+
+  it("hands back the options when the read succeeds", async () => {
+    const read = options(true);
+    await expect(readCopyOptionsReported(async () => read)).resolves.toBe(read);
+    expect(toastError).not.toHaveBeenCalled();
+  });
+
+  it("shows the error and resolves null when the read fails", async () => {
+    const result = await readCopyOptionsReported(async () => {
+      throw new Error("Trade not found");
+    });
+
+    expect(result).toBeNull();
+    expect(toastError).toHaveBeenCalledWith("Trade not found", expect.anything());
+  });
+
+  it("stays quiet while a stale bundle reloads", async () => {
+    const result = await readCopyOptionsReported(async () => {
+      throw new Error("stale");
+    });
+
+    expect(result).toBeNull();
+    expect(toastError).not.toHaveBeenCalled();
   });
 });

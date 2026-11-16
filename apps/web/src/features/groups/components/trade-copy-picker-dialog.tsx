@@ -26,6 +26,7 @@ import {
   tradeCopyOptionsQueryOptions,
   useAcceptTrade,
 } from "@/features/groups/hooks/use-card-trades";
+import { readCopyOptionsReported } from "@/features/groups/lib/trade-settle-batch";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useRequiredUserId } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
@@ -94,17 +95,16 @@ export function useTradeAcceptFlow({ onSettled }: { onSettled?: () => void } = {
       }
       setBusy(true);
       void (async () => {
-        try {
-          const options = await queryClient.query(
-            tradeCopyOptionsQueryOptions(userId, target.tradeId),
-          );
-          if (options.choiceMatters) {
-            setChoice({ target, options });
-            return;
-          }
-        } catch {
-          // Options read failure falls through to a plain accept; a real
-          // failure resurfaces on the accept mutation itself.
+        const options = await readCopyOptionsReported(() =>
+          queryClient.query(tradeCopyOptionsQueryOptions(userId, target.tradeId)),
+        );
+        if (options === null) {
+          finish();
+          return;
+        }
+        if (options.choiceMatters) {
+          setChoice({ target, options });
+          return;
         }
         acceptWith(target);
       })();

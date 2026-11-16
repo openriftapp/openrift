@@ -48,6 +48,8 @@
 - fix(General): **Saves wait for fresh data** — buttons stay busy until the page has reloaded the saved data, so a quick second edit no longer overwrites the first.
 - fix(Cards): **Grouping preference kept** — switching to the cards view no longer replaces a saved Marker, Channel or Card grouping with Set, and the grouping comes back in the printings view.
 - fix(Search): **No lost keystrokes while typing** — fast typing in a search field no longer jumps back to an earlier query when the page updates late.
+- fix(Trades): **Bulk trade buttons stay usable** — after "Accept all", "Decline all" or "Cancel all", every trade's buttons come back as soon as its own request finishes, even when one of them fails.
+- fix(Trades): **No copies given away without your pick** — if the list of your copies cannot be loaded when you accept or settle a trade, you see the error and the trade waits for you.
 
 ## 2026-11-15
 

@@ -1,10 +1,7 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { sideKey } from "@openrift/shared/printing-side";
-import type {
-  CardTradeCopyOptionsResponse,
-  CardTradeResponse,
-} from "@openrift/shared/types/api/card-trade";
+import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 import { useQueryClient } from "@tanstack/react-query";
 import { EllipsisVerticalIcon, HandshakeIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
@@ -42,23 +39,12 @@ import type {
   SettleBatchResult,
   SettleStep,
 } from "@/features/groups/lib/trade-settle-batch";
-import { runSettleBatch } from "@/features/groups/lib/trade-settle-batch";
+import { readCopyOptionsReported, runSettleBatch } from "@/features/groups/lib/trade-settle-batch";
 import { stepSequence } from "@/features/groups/lib/trade-sheet";
 import { talliedCount, useTradeTallyStore } from "@/features/groups/stores/trade-tally-store";
 import { useLanguageLabels } from "@/hooks/use-enums";
 import { useRequiredUserId } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
-
-async function copyOptionsOrNull(
-  read: () => Promise<CardTradeCopyOptionsResponse>,
-): Promise<CardTradeCopyOptionsResponse | null> {
-  try {
-    return await read();
-  } catch {
-    // The global query error handling has already reported it.
-    return null;
-  }
-}
 
 function TallyRow({
   trade,
@@ -221,7 +207,9 @@ export function TradeSettleSection({ trades }: { trades: CardTradeResponse[] }) 
       const result = await runSettleBatch(steps, {
         settle: (variables) => applySync.mutateAsync(variables),
         readCopyOptions: (tradeId) =>
-          copyOptionsOrNull(() => queryClient.query(tradeCopyOptionsQueryOptions(userId, tradeId))),
+          readCopyOptionsReported(() =>
+            queryClient.query(tradeCopyOptionsQueryOptions(userId, tradeId)),
+          ),
         targetCollectionId: target.collectionId,
       });
       finishBatch(result);
