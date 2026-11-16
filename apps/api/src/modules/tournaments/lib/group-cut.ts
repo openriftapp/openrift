@@ -1,5 +1,7 @@
 import { groupStageRounds } from "@openrift/shared/pairing/group-cut-rounds";
+import { GROUP_CUT_TIERS } from "@openrift/shared/pairing/group-cut-types";
 import type {
+  GroupCutTier,
   GroupMatch,
   GroupPlan,
   GroupPlanGroup,
@@ -213,8 +215,18 @@ export function qualificationOrder(
     .toSorted((a, b) => a - b)
     .flatMap((place) => {
       const rows = byPlace.get(place) ?? [];
+      const active: QualificationRow[] = [];
+      let skipped: GroupCutTier | null = null;
+      for (const row of rows) {
+        if (dropped.has(row.playerId)) {
+          skipped = strongerTier(skipped, row.decidedBy);
+          continue;
+        }
+        active.push({ ...row, decidedBy: strongerTier(skipped, row.decidedBy) });
+        skipped = null;
+      }
       const tier = [
-        ...rows.filter((row) => !dropped.has(row.playerId)),
+        ...active,
         ...rows
           .filter((row) => dropped.has(row.playerId))
           .map((row) => ({ ...row, decidedBy: null })),
@@ -222,6 +234,14 @@ export function qualificationOrder(
       return tier.map((row, index) => (index === 0 ? { ...row, decidedBy: null } : row));
     });
   return { ordered, eligible: ordered.filter((row) => !dropped.has(row.playerId)) };
+}
+
+/** The ranking is lexicographic, so two rows are separated by the earliest tier between them. */
+function strongerTier(a: GroupCutTier | null, b: GroupCutTier | null): GroupCutTier | null {
+  if (a === null || b === null) {
+    return a ?? b;
+  }
+  return GROUP_CUT_TIERS.indexOf(a) <= GROUP_CUT_TIERS.indexOf(b) ? a : b;
 }
 
 export function podWinnerId(members: readonly { playerId: string; placement: number | null }[]) {

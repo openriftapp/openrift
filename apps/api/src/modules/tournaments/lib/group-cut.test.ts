@@ -423,4 +423,24 @@ describe("qualificationOrder", () => {
     expect(ordered[0]?.decidedBy).toBeNull();
     expect(ordered[1]?.decidedBy).toBeNull();
   });
+
+  it("names the tier that separates a row from its new neighbour once a drop moved out from between them", () => {
+    const ranking: QualificationRow[] = [
+      { ...row("a1", 1), decidedBy: null },
+      { ...row("b1", 1), decidedBy: "mw" },
+      { ...row("c1", 1), decidedBy: "gw" },
+      { ...row("d1", 1), decidedBy: "draw" },
+    ];
+    const roster = ["a1", "b1", "c1", "d1"].map((id, slot) => ({
+      ...player(id, "A", slot),
+      status: id === "b1" ? "dropped" : "active",
+    }));
+    const { ordered } = qualificationOrder(ranking, roster);
+    expect(ordered.map((entry) => [entry.playerId, entry.decidedBy])).toEqual([
+      ["a1", null],
+      ["c1", "mw"],
+      ["d1", "draw"],
+      ["b1", null],
+    ]);
+  });
 });

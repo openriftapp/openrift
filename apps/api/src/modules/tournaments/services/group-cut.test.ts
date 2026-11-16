@@ -549,6 +549,41 @@ describe("generateGroupCutRound: group generation and drops", () => {
   });
 });
 
+describe("group-stage writers take the rounds lock before reading", () => {
+  function lockedFirst(repos: Repos): boolean {
+    const lock = vi.mocked(repos.tournaments.lockRounds).mock.invocationCallOrder[0] ?? 0;
+    const read = vi.mocked(repos.podTournaments.listPlayers).mock.invocationCallOrder[0] ?? 0;
+    return lock > 0 && read > 0 && lock < read;
+  }
+
+  it("generateGroupCutRound", async () => {
+    const roster = Array.from({ length: 16 }, (_, index) =>
+      playerRow(`p${index + 1}`, "A", 0, { groupId: null, groupSlot: null }),
+    );
+    const { repos } = mockRepos({ players: roster, roundRows: [] });
+    await generateGroupCutRound(repos, groupCutTournament());
+    expect(lockedFirst(repos)).toBe(true);
+  });
+
+  it("startGroupRound", async () => {
+    const { repos } = mockRepos({
+      ...fourGroups(),
+      roundRows: fourGroupStage({ A: ["first"], B: ["open"], C: ["open"], D: ["open"] }),
+    });
+    await startGroupRound(repos, groupCutTournament(), "g-A");
+    expect(lockedFirst(repos)).toBe(true);
+  });
+
+  it("startGroupStageRound", async () => {
+    const { repos } = mockRepos({
+      ...fourGroups(),
+      roundRows: fourGroupStage({ A: ["first"], B: ["first"], C: ["first"], D: ["first"] }),
+    });
+    await startGroupStageRound(repos, groupCutTournament({ groupsSelfPaced: false }));
+    expect(lockedFirst(repos)).toBe(true);
+  });
+});
+
 describe("reportGroupStageWalkovers", () => {
   it("forfeits every open group match of the dropped player, the cross-group one included", async () => {
     const pending: PendingGroupPod[] = [

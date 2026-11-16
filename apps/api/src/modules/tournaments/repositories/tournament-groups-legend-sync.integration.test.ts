@@ -1,8 +1,10 @@
+import { sql } from "kysely";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { createRepos } from "../../../deps.js";
 import { createTestContext, insertCard, req } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
+import { holdRow, waitUntilBlockedBy } from "../../../test/row-locks.js";
 import type { NewDeckCheckEntryCard } from "./deck-check-entry-cards.js";
 
 const HOST_ID = crypto.randomUUID();
@@ -170,6 +172,29 @@ describe.skipIf(!ctx)("syncParticipantLegendsFromDeckCheck (integration)", () =>
     await addList([line(0, "legend", jinx)]);
 
     await repos.tournamentGroups.syncParticipantLegendsFromDeckCheck(tournamentId, [participantId]);
+
+    expect(await storedLegend()).toBeNull();
+  });
+
+  it("leaves the legend alone when the groups were drawn while it waited", async () => {
+    await addList([line(0, "legend", jinx)]);
+    const generator = await holdRow(
+      db,
+      sql`WITH drawn AS (
+        INSERT INTO tournament_groups (tournament_id, label) VALUES (${tournamentId}, 'A') RETURNING id
+      ) UPDATE tournament_participants SET group_id = (SELECT id FROM drawn), group_slot = 0
+        WHERE id = ${participantId}`,
+    );
+    let synced: Promise<void> | undefined;
+    try {
+      synced = repos.tournamentGroups.syncParticipantLegendsFromDeckCheck(tournamentId, [
+        participantId,
+      ]);
+      await waitUntilBlockedBy(db, generator.pid);
+    } finally {
+      await generator.release();
+    }
+    await synced;
 
     expect(await storedLegend()).toBeNull();
   });

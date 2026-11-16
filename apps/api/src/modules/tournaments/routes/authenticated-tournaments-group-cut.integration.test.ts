@@ -1,7 +1,10 @@
+import type { RawBuilder } from "kysely";
+import { sql } from "kysely";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestContext, insertCard, req } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
+import { holdRow, waitUntilBlockedBy } from "../../../test/row-locks.js";
 
 const HOST_ID = crypto.randomUUID();
 const LEGEND_SLUG = `group-cut-legend-${HOST_ID.slice(0, 8)}`;
@@ -1125,5 +1128,103 @@ describe.skipIf(!hostCtx)("Group stage with a fixed top cut (integration)", () =
       .execute();
     expect(seeded).toHaveLength(4);
     expect(seeded.map((row) => row.id)).not.toContain(leader.playerId);
+  });
+
+  describe("concurrent writes", () => {
+    function holdRoundsLock(tournamentId: string, write: RawBuilder<unknown>) {
+      return holdRow(
+        host.db,
+        sql`WITH locked AS (
+          SELECT pg_advisory_xact_lock(hashtext(${`tournament-writes:${tournamentId}`}))
+        ), written AS (${write}) SELECT 1 FROM locked, written`,
+      );
+    }
+
+    it("keeps a result reported while a drop waited for the pod", async () => {
+      const id = await createTournament({ name: "Skirmish drop race", cutSize: 4 });
+      await addPlayers(id, 16);
+      const generated = await host.app.fetch(req("POST", `/tournaments/${id}/rounds`, {}));
+      expect(generated.status).toBe(200);
+      const state = await run(id);
+      const pod = state.rounds.find((round) => round.roundNumber === 1)?.pods[0];
+      const [leaver, opponent] = pod?.members ?? [];
+      expect(pod && leaver && opponent).toBeTruthy();
+
+      const reporter = await holdRow(
+        host.db,
+        sql`WITH reported AS (
+          UPDATE pods SET result_status = 'reported' WHERE id = ${pod!.id} RETURNING id
+        ), members AS (
+          UPDATE pod_members
+          SET placement = CASE WHEN player_id = ${leaver!.playerId} THEN 1 ELSE 2 END,
+              game_points = CASE WHEN player_id = ${leaver!.playerId} THEN 2 ELSE 0 END
+          WHERE pod_id = ${pod!.id}
+          RETURNING pod_id
+        ) SELECT 1 FROM reported`,
+      );
+      let dropped: Promise<Response> | Response | undefined;
+      try {
+        dropped = host.app.fetch(
+          req("POST", `/tournaments/${id}/participants/${leaver!.playerId}/drop`),
+        );
+        await waitUntilBlockedBy(host.db, reporter.pid);
+      } finally {
+        await reporter.release();
+      }
+      const dropRes = await dropped;
+      expect(dropRes?.status).toBe(200);
+
+      const members = await host.db
+        .selectFrom("podMembers")
+        .select(["playerId", "placement", "gamePoints"])
+        .where("podId", "=", pod!.id)
+        .execute();
+      expect(members).toEqual(
+        expect.arrayContaining([
+          { playerId: leaver!.playerId, placement: 1, gamePoints: 2 },
+          { playerId: opponent!.playerId, placement: 2, gamePoints: 0 },
+        ]),
+      );
+    });
+
+    it("refuses a format edit that waited for a group stage generated in the meantime", async () => {
+      const id = await createTournament({ name: "Skirmish settings race", cutSize: 4 });
+      await addPlayers(id, 16);
+
+      const generator = await holdRoundsLock(
+        id,
+        sql`INSERT INTO pod_rounds (tournament_id, round_number, status, penalty_total, pairing_strategy)
+          VALUES (${id}, 1, 'reporting', 0, 'group_stage') RETURNING id`,
+      );
+      let edited: Promise<Response> | Response | undefined;
+      try {
+        edited = host.app.fetch(req("PATCH", `/tournaments/${id}`, { cutSize: 8 }));
+        await waitUntilBlockedBy(host.db, generator.pid);
+      } finally {
+        await generator.release();
+      }
+      const editRes = await edited;
+      expect(editRes?.status).toBe(409);
+    });
+
+    it("generates the groups from settings committed while it waited", async () => {
+      const id = await createTournament({ name: "Skirmish generate race", cutSize: 4 });
+      await addPlayers(id, 16);
+
+      const editor = await holdRoundsLock(
+        id,
+        sql`UPDATE tournaments SET legend_tiebreak = true WHERE id = ${id} RETURNING id`,
+      );
+      let generated: Promise<Response> | Response | undefined;
+      try {
+        generated = host.app.fetch(req("POST", `/tournaments/${id}/rounds`, {}));
+        await waitUntilBlockedBy(host.db, editor.pid);
+      } finally {
+        await editor.release();
+      }
+      const res = await generated;
+      expect(res?.status).toBe(400);
+      expect(((await readJson(res!)) as { message: string }).message).toMatch(/no Legend on file/u);
+    });
   });
 });

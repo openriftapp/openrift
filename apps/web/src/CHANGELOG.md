@@ -54,6 +54,8 @@
 - fix(Trades): **Offers stay within what the other side wants** — raising the quantity of a card you offered no longer goes past the other member's wishlist count or changes their wishlist.
 - fix(Collections): **Group collection value chart** — the value chart for a group collection counts copies other members added from the day they were added.
 - fix(Search): **Scheduled bans apply on their start day** — ban searches pick up a scheduled ban on the day it starts.
+- fix(Tournaments): **Drops keep reported results** — dropping a player no longer replaces a group match result that was entered at the same moment with a walkover.
+- fix(Deck checks): **Bans judged on the event day** — deck lists are checked against bans in effect on the event's start date, so a ban that starts before the event is flagged ahead of time.
 
 ## 2026-11-15
 

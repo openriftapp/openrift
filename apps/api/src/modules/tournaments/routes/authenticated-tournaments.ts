@@ -48,7 +48,6 @@ import {
   assertLegendAssignable,
   assertParticipantsOpen,
   assertPlayModeCompatible,
-  assertStatusTransition,
   assertValidRegion,
 } from "../lib/tournament-invariants.js";
 import {
@@ -71,6 +70,7 @@ import {
   rerollRound as rerollRoundEngine,
   submitPodResult,
 } from "../services/pod-pairing.js";
+import { applySettingsPatch } from "../services/tournament-settings.js";
 
 const os = implement(tournamentsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -223,125 +223,24 @@ export const tournamentsRouter = {
     const repos = context.repos;
     const userId = context.userId;
     const { id, ...patch } = input;
-    const tournament = await loadTournament(repos, id);
-    await requireManage(repos, tournament, userId);
-    const currentStatus = tournament.status;
-    if (currentStatus === "cancelled") {
-      throw conflict("A cancelled tournament cannot be edited");
-    }
-    // Status moves follow the forward-only lifecycle; an unchanged value is a no-op.
-    assertStatusTransition(currentStatus, patch.status);
+    await requireManage(repos, await loadTournament(repos, id), userId);
     if (patch.deckFormat !== undefined) {
       await assertKnownFormat(repos.deckFormats, patch.deckFormat);
     }
-    // Rounds/pods depend on the pairing engine, so it can change only before any round exists.
-    const pairingChanging =
-      patch.pairingStyle !== undefined && patch.pairingStyle !== tournament.pairingStyle;
-    // The match format and play mode shape result entry, so they freeze with
-    // the pairing engine once rounds exist.
-    const matchFormatChanging =
-      patch.matchFormat !== undefined && patch.matchFormat !== tournament.matchFormat;
-    const playModeChanging = patch.playMode !== undefined && patch.playMode !== tournament.playMode;
-    const formatChanging =
-      (patch.format !== undefined && patch.format !== tournament.format) ||
-      (patch.cutSize !== undefined && patch.cutSize !== tournament.cutSize) ||
-      (patch.cutRematchAvoidance !== undefined &&
-        patch.cutRematchAvoidance !== tournament.cutRematchAvoidance) ||
-      (patch.legendTiebreak !== undefined && patch.legendTiebreak !== tournament.legendTiebreak) ||
-      (patch.groupsSelfPaced !== undefined && patch.groupsSelfPaced !== tournament.groupsSelfPaced);
-    if (
-      (pairingChanging || matchFormatChanging || playModeChanging || formatChanging) &&
-      (await repos.tournaments.hasRounds(id))
-    ) {
-      throw conflict("The pairing engine can't change once a round has been generated");
-    }
-    assertPlayModeCompatible(
-      patch.playMode ?? tournament.playMode,
-      patch.pairingStyle ?? tournament.pairingStyle,
-      patch.regionsEnabled ?? tournament.regionsEnabled,
-    );
-    assertGroupCutCompatible(
-      patch.format ?? tournament.format,
-      patch.pairingStyle ?? tournament.pairingStyle,
-      patch.playMode ?? tournament.playMode,
-    );
-    // Validate the merged schedule: a patch may touch only one of the three
-    // instants, so the order check needs the existing row to fill the rest.
-    assertDateOrder(
-      patch.startsAt === undefined ? tournament.startsAt : new Date(patch.startsAt),
-      patch.endsAt === undefined ? tournament.endsAt : patch.endsAt ? new Date(patch.endsAt) : null,
-      patch.submissionsCloseAt === undefined
-        ? tournament.submissionsCloseAt
-        : patch.submissionsCloseAt
-          ? new Date(patch.submissionsCloseAt)
-          : null,
-    );
     if (patch.groupId) {
       const membership = await repos.friendGroups.getMembership(patch.groupId, userId);
       if (!membership) {
         throw forbidden("Not a member of that group");
       }
     }
-    // Host reassignment is host-only; the target binds to the caller (personal = themselves).
-    let hostPatch: Partial<TournamentHostColumns> = {};
-    const hostChanging =
-      patch.host !== undefined &&
-      (patch.host.type !== tournament.hostType ||
-        (patch.host.type === "organization" && patch.host.orgId !== tournament.hostOrgId));
-    if (hostChanging && patch.host) {
-      await requireHost(repos, tournament, userId);
-      hostPatch =
-        patch.host.type === "user"
-          ? { hostType: "user", hostUserId: userId, hostOrgId: null }
-          : await resolveOrgHost(repos, patch.host.orgId, userId);
-    }
-    await repos.tournaments.updateSettings(id, {
-      ...hostPatch,
-      name: patch.name,
-      status: patch.status,
-      pairingStyle: pairingChanging ? patch.pairingStyle : undefined,
-      playMode: playModeChanging ? patch.playMode : undefined,
-      startsAt: patch.startsAt === undefined ? undefined : new Date(patch.startsAt),
-      endsAt: patch.endsAt === undefined ? undefined : patch.endsAt ? new Date(patch.endsAt) : null,
-      groupId: patch.groupId,
-      published: patch.published,
-      scoringScheme: patch.scoringScheme,
-      byePoints: patch.byePoints,
-      matchFormat: matchFormatChanging ? patch.matchFormat : undefined,
-      winPoints: patch.winPoints,
-      drawPoints: patch.drawPoints,
-      regionsEnabled: patch.regionsEnabled,
-      format: patch.format,
-      cutSize: patch.cutSize,
-      cutRematchAvoidance: patch.cutRematchAvoidance,
-      legendTiebreak: patch.legendTiebreak,
-      groupsSelfPaced: patch.groupsSelfPaced,
-      deckSubmission: patch.deckSubmission,
-      submissionsCloseAt:
-        patch.submissionsCloseAt === undefined
-          ? undefined
-          : patch.submissionsCloseAt
-            ? new Date(patch.submissionsCloseAt)
-            : null,
-      listLockMode: patch.listLockMode,
-      deckFormat: patch.deckFormat,
-      allowedSets: patch.allowedSets,
-      selfRegistration: patch.selfRegistration,
-      uvsgamesEventId: patch.uvsgamesEventId,
+    // Under the rounds lock, the round guard and the team dissolve see the
+    // rounds as they are at the write, never a round generated in between.
+    const tournament = await context.transact(async (trxRepos) => {
+      await trxRepos.tournaments.lockRounds(id);
+      const current = await loadTournament(trxRepos, id);
+      await applySettingsPatch(trxRepos, current, patch, userId);
+      return current;
     });
-    // The rounds guard above means these teams never played.
-    if (playModeChanging && patch.playMode === "1v1") {
-      await repos.podTournaments.dissolveAllTeams(id);
-    }
-    // Leaving the pod engine revokes the follow-along report token.
-    if (pairingChanging && patch.pairingStyle !== "pod" && patch.pairingStyle !== "swiss") {
-      if (tournament.reportToken) {
-        await repos.tournaments.setReportToken(id, null);
-      }
-      if (tournament.followToken) {
-        await repos.tournaments.setFollowToken(id, null);
-      }
-    }
     // Mint the share link the first time it's needed (self-registration opened
     // or decks now expected); turning self-registration off keeps the link.
     const willSelfRegister = patch.selfRegistration ?? tournament.selfRegistration;
@@ -357,7 +256,11 @@ export const tournamentsRouter = {
     const userId = context.userId;
     const tournament = await loadTournament(repos, input.id);
     await requireManage(repos, tournament, userId);
-    await repos.tournaments.updateSettings(input.id, { status: "cancelled" });
+    // Locked so a round generated concurrently cannot write "running" over the cancellation.
+    await context.transact(async (trxRepos) => {
+      await trxRepos.tournaments.lockRounds(input.id);
+      await trxRepos.tournaments.updateSettings(input.id, { status: "cancelled" });
+    });
     return detailById(repos, input.id, userId);
   }),
 
@@ -518,24 +421,30 @@ export const tournamentsRouter = {
       const participant = await loadParticipant(repos, input.id, input.participantId);
       assertIdentityEditable(participant.displayName, input.displayName !== undefined);
       await assertValidRegion(repos, input.region);
-      if (input.legendCardId !== undefined) {
-        await assertLegendAssignable(repos, tournament, input.legendCardId);
-      }
-      if (input.seed !== undefined && isGroupCut(tournament)) {
-        const cutRound = await repos.podTournaments.getRoundByNumber(
-          tournament.id,
-          GROUP_STAGE_ROUNDS + 1,
-        );
-        if (cutRound) {
-          throw conflict("Seeds were locked when the cut was generated");
+      await context.transact(async (trxRepos) => {
+        // The Legend and seed guards read the group stage, so they run under
+        // the lock the group and cut writers hold.
+        await trxRepos.tournaments.lockRounds(input.id);
+        const current = await loadTournament(trxRepos, input.id);
+        if (input.legendCardId !== undefined) {
+          await assertLegendAssignable(trxRepos, current, input.legendCardId);
         }
-      }
-      await repos.tournaments.updateParticipant(input.participantId, {
-        displayName: input.displayName,
-        seed: input.seed,
-        region: input.region,
-        legendCardId: input.legendCardId,
-        fixedTable: input.fixedTable,
+        if (input.seed !== undefined && isGroupCut(current)) {
+          const cutRound = await trxRepos.podTournaments.getRoundByNumber(
+            current.id,
+            GROUP_STAGE_ROUNDS + 1,
+          );
+          if (cutRound) {
+            throw conflict("Seeds were locked when the cut was generated");
+          }
+        }
+        await trxRepos.tournaments.updateParticipant(input.participantId, {
+          displayName: input.displayName,
+          seed: input.seed,
+          region: input.region,
+          legendCardId: input.legendCardId,
+          fixedTable: input.fixedTable,
+        });
       });
       return buildParticipantList(repos, input.id);
     },
@@ -547,8 +456,10 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      const participant = await loadParticipant(repos, input.id, input.participantId);
-      await dropParticipant(repos, tournament, participant);
+      await loadParticipant(repos, input.id, input.participantId);
+      await context.transact((trxRepos) =>
+        dropParticipant(trxRepos, input.id, input.participantId),
+      );
       return buildParticipantList(repos, input.id);
     },
   ),
@@ -559,28 +470,33 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      const participant = await loadParticipant(repos, input.id, input.participantId);
-      await repos.tournaments.updateParticipant(input.participantId, {
-        status: "active",
-        droppedAfterRound: null,
-      });
-      // Team drops are symmetric (see dropParticipant), so a team returns
-      // whole too: bring the dropped teammate back with them.
-      if (tournament.playMode === "2v2" && participant.teamId !== null) {
-        const participants = await repos.tournaments.listParticipants(input.id);
-        const teammate = participants.find(
-          (row) =>
-            row.teamId === participant.teamId &&
-            row.id !== participant.id &&
-            row.status === "dropped",
-        );
-        if (teammate) {
-          await repos.tournaments.updateParticipant(teammate.id, {
-            status: "active",
-            droppedAfterRound: null,
-          });
+      await loadParticipant(repos, input.id, input.participantId);
+      await context.transact(async (trxRepos) => {
+        await trxRepos.tournaments.lockRounds(input.id);
+        const current = await loadTournament(trxRepos, input.id);
+        const participant = await loadParticipant(trxRepos, input.id, input.participantId);
+        await trxRepos.tournaments.updateParticipant(input.participantId, {
+          status: "active",
+          droppedAfterRound: null,
+        });
+        // Team drops are symmetric (see dropParticipant), so a team returns
+        // whole too: bring the dropped teammate back with them.
+        if (current.playMode === "2v2" && participant.teamId !== null) {
+          const participants = await trxRepos.tournaments.listParticipants(input.id);
+          const teammate = participants.find(
+            (row) =>
+              row.teamId === participant.teamId &&
+              row.id !== participant.id &&
+              row.status === "dropped",
+          );
+          if (teammate) {
+            await trxRepos.tournaments.updateParticipant(teammate.id, {
+              status: "active",
+              droppedAfterRound: null,
+            });
+          }
         }
-      }
+      });
       return buildParticipantList(repos, input.id);
     },
   ),
@@ -766,9 +682,15 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      await (isGroupCut(tournament)
-        ? generateGroupCutRound(repos, tournament)
-        : context.transact((trxRepos) => pairNextRound(trxRepos, tournament, input.byes)));
+      await context.transact(async (trxRepos) => {
+        // Re-read under the lock: a settings edit committed while this waited
+        // may have changed the play mode or the format.
+        await trxRepos.tournaments.lockRounds(input.id);
+        const current = await loadTournament(trxRepos, input.id);
+        await (isGroupCut(current)
+          ? generateGroupCutRound(trxRepos, current)
+          : pairNextRound(trxRepos, current, input.byes));
+      });
       return podRunDetailById(repos, input.id);
     },
   ),
@@ -780,7 +702,11 @@ export const tournamentsRouter = {
       const tournament = await loadTournament(repos, input.id);
       await requireStaff(repos, tournament, userId);
       assertGroupCutRun(tournament);
-      await startGroupRoundEngine(repos, tournament, input.groupId);
+      await context.transact(async (trxRepos) => {
+        await trxRepos.tournaments.lockRounds(input.id);
+        const current = await loadTournament(trxRepos, input.id);
+        await startGroupRoundEngine(trxRepos, current, input.groupId);
+      });
       return podRunDetailById(repos, input.id);
     },
   ),
@@ -792,7 +718,11 @@ export const tournamentsRouter = {
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
       assertGroupCutRun(tournament);
-      await startGroupStageRoundEngine(repos, tournament);
+      await context.transact(async (trxRepos) => {
+        await trxRepos.tournaments.lockRounds(input.id);
+        const current = await loadTournament(trxRepos, input.id);
+        await startGroupStageRoundEngine(trxRepos, current);
+      });
       return podRunDetailById(repos, input.id);
     },
   ),

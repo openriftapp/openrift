@@ -156,31 +156,44 @@ function metaShareOf(legend: LegendTiebreakInput, playerId: string): number | nu
   return legendId === null ? null : (legend.metaShareByLegend.get(legendId) ?? null);
 }
 
-function legendCounts(legend: LegendTiebreakInput): Map<string, number> {
+interface LegendField {
+  legend: LegendTiebreakInput;
+  counts: ReadonlyMap<string, number>;
+}
+
+/** Only players placed in a group are the field; someone who left before the draw is not. */
+function legendField(
+  legend: LegendTiebreakInput | null,
+  field: ReadonlySet<string>,
+): LegendField | null {
+  if (legend === null) {
+    return null;
+  }
   const counts = new Map<string, number>();
-  for (const legendId of legend.legendByPlayer.values()) {
+  for (const playerId of field) {
+    const legendId = legendOf(legend, playerId);
     if (legendId !== null) {
       counts.set(legendId, (counts.get(legendId) ?? 0) + 1);
     }
   }
-  return counts;
+  return { legend, counts };
 }
 
-function legendCountOf(legend: LegendTiebreakInput | null, playerId: string): number | null {
-  if (legend === null) {
+function legendCountOf(field: LegendField | null, playerId: string): number | null {
+  if (field === null) {
     return null;
   }
-  const legendId = legendOf(legend, playerId);
-  return legendId === null ? null : (legendCounts(legend).get(legendId) ?? 0);
+  const legendId = legendOf(field.legend, playerId);
+  return legendId === null ? null : (field.counts.get(legendId) ?? 0);
 }
 
-function legendSteps(legend: LegendTiebreakInput | null): Step[] {
-  if (legend === null) {
+function legendSteps(field: LegendField | null): Step[] {
+  if (field === null) {
     return [];
   }
   return [
-    { kind: "key", tier: "legend_count", key: (playerId) => legendCountOf(legend, playerId) },
-    { kind: "meta", legend },
+    { kind: "key", tier: "legend_count", key: (playerId) => legendCountOf(field, playerId) },
+    { kind: "meta", legend: field.legend },
   ];
 }
 
@@ -303,7 +316,8 @@ export function computeGroupStage(input: GroupStandingsInput): GroupStageRanking
   const field = new Set(input.groups.flatMap((group) => group.playerIds));
   const overall = buildTallies(input.matches, field, input.winPoints, input.drawPoints);
   const pending = new Set<string>();
-  const legend = legendSteps(input.legend);
+  const legendInField = legendField(input.legend, field);
+  const legend = legendSteps(legendInField);
   const byKey = (a: string, b: string): number => input.tieBreakKey(a) - input.tieBreakKey(b);
 
   const groups: GroupStandings[] = [];
@@ -358,7 +372,7 @@ export function computeGroupStage(input: GroupStandingsInput): GroupStageRanking
         place: row.place,
         matchWinRate: 0,
         gameWinRate: null,
-        legendCount: legendCountOf(input.legend, row.playerId),
+        legendCount: legendCountOf(legendInField, row.playerId),
         metaShare: input.legend === null ? null : metaShareOf(input.legend, row.playerId),
         decidedBy: null,
       });

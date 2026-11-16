@@ -473,6 +473,27 @@ describe("computeGroupStage: Legend tiers", () => {
     expect(tiers(result.groups[0])[1]).toBe("legend_count");
   });
 
+  it("counts only the Legends of players placed in a group", () => {
+    const result = computeGroupStage(
+      standingsInput(legendGroup, legendMatches, {
+        legend: {
+          legendByPlayer: new Map([
+            ["a", "ahri"],
+            ["b", "garen"],
+            ["c", "garen"],
+            ["d", "teemo"],
+            ["left-before-draw-1", "ahri"],
+            ["left-before-draw-2", "ahri"],
+          ]),
+          metaShareByLegend: new Map(),
+        },
+      }),
+    );
+    expect(order(result.groups[0]).slice(0, 2)).toEqual(["a", "b"]);
+    expect(tiers(result.groups[0])[1]).toBe("legend_count");
+    expect(result.ranking.find((row) => row.playerId === "a")?.legendCount).toBe(1);
+  });
+
   it("ranks a missing Legend below a known one", () => {
     const result = computeGroupStage(
       standingsInput(legendGroup, legendMatches, {

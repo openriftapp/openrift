@@ -279,6 +279,7 @@ async function generateNextCutRound(
 
 /** The `generateRound` action of a `group_cut` tournament: groups, then the cut, then the bracket. */
 export async function generateGroupCutRound(repos: Repos, tournament: Tournament): Promise<void> {
+  await repos.tournaments.lockRounds(tournament.id);
   const { players, roundRows } = await loadState(repos, tournament);
   const highest = highestRoundNumber(roundRows);
   if (highest === 0) {
@@ -345,6 +346,7 @@ export async function startGroupRound(
   tournament: Tournament,
   groupId: string,
 ): Promise<void> {
+  await repos.tournaments.lockRounds(tournament.id);
   const { players, roundRows } = await loadState(repos, tournament);
   const { units, offsets, groupIdByLabel } = await loadUnits(repos, tournament, players, roundRows);
   const entry = units.find((unit) =>
@@ -369,6 +371,7 @@ export async function startGroupRound(
 
 /** Lockstep mode: the organizer starts the next round for every group at once. */
 export async function startGroupStageRound(repos: Repos, tournament: Tournament): Promise<void> {
+  await repos.tournaments.lockRounds(tournament.id);
   const { players, roundRows } = await loadState(repos, tournament);
   const { units, offsets } = await loadUnits(repos, tournament, players, roundRows);
   if (units.length === 0) {

@@ -48,6 +48,7 @@ function setup(options: {
       listParticipantsOfUser: vi.fn(() => Promise.resolve(options.spots)),
       getById: vi.fn((id: string) => Promise.resolve(byId.get(id))),
       listParticipants: vi.fn(() => Promise.resolve(options.roster ?? [])),
+      lockRounds: vi.fn(() => Promise.resolve()),
       lockParticipant: vi.fn(() => Promise.resolve(true)),
       getParticipantById: vi.fn((id: string) => {
         const row = spotById.get(id);
@@ -63,8 +64,12 @@ function setup(options: {
       setWalkoverResult,
     },
   } as unknown as Repos;
-  const transact: Transact = (fn) => fn(repos);
-  return { repos, transact, updateParticipant, deleteParticipant, setWalkoverResult };
+  const transactions = { count: 0 };
+  const transact: Transact = (fn) => {
+    transactions.count++;
+    return fn(repos);
+  };
+  return { repos, transact, transactions, updateParticipant, deleteParticipant, setWalkoverResult };
 }
 
 describe("dropLiveSpotsOfUser", () => {
@@ -129,6 +134,46 @@ describe("dropLiveSpotsOfUser", () => {
       droppedAfterRound: 2,
     });
     expect(deleteParticipant).not.toHaveBeenCalled();
+  });
+
+  it("drops in a transaction that takes the rounds lock before any write", async () => {
+    const { repos, transact, transactions, updateParticipant, setWalkoverResult } = setup({
+      spots: [spot()],
+      tournaments: [tournament({ format: "group_cut", pairingStyle: "swiss", currentRound: 1 })],
+      pendingPods: [
+        {
+          podId: "pod-1",
+          members: [
+            { playerId: "p-1", status: "dropped" },
+            { playerId: "p-9", status: "active" },
+          ],
+        },
+      ],
+    });
+
+    await dropLiveSpotsOfUser(repos, transact, USER_ID, NOW);
+
+    expect(transactions.count).toBe(1);
+    const lockOrder = vi.mocked(repos.tournaments.lockRounds).mock.invocationCallOrder[0] ?? 0;
+    expect(lockOrder).toBeGreaterThan(0);
+    expect(lockOrder).toBeLessThan(updateParticipant.mock.invocationCallOrder[0] ?? 0);
+    expect(lockOrder).toBeLessThan(
+      vi.mocked(repos.tournamentGroups.listPendingGroupStagePods).mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(setWalkoverResult).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves a spot the host dropped while this waited for the lock", async () => {
+    const { repos, transact, updateParticipant, setWalkoverResult } = setup({
+      spots: [spot()],
+      tournaments: [tournament({ format: "group_cut", pairingStyle: "swiss", currentRound: 1 })],
+      lockedStatus: "dropped",
+    });
+
+    await dropLiveSpotsOfUser(repos, transact, USER_ID, NOW);
+
+    expect(updateParticipant).not.toHaveBeenCalled();
+    expect(setWalkoverResult).not.toHaveBeenCalled();
   });
 
   it("drops the active teammate of a 2v2 team too", async () => {

@@ -14,6 +14,8 @@ import { tournamentsRouter } from "./authenticated-tournaments.js";
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
 const TOURNAMENT_ID = "b0000000-0001-4000-a000-000000000001";
+const PARTICIPANT_ID = "c0000000-0001-4000-a000-000000000001";
+const LEGEND_ID = "d0000000-0001-4000-a000-000000000001";
 
 const now = new Date("2026-06-01T00:00:00Z");
 
@@ -70,6 +72,7 @@ function makeApp(tournament: Tournament) {
     create: vi.fn(() => Promise.resolve(tournament)),
     isHostOrStaff: vi.fn(() => Promise.resolve(true)),
     hasRounds: vi.fn(() => Promise.resolve(false)),
+    lockRounds: vi.fn(() => Promise.resolve()),
     hasRelationship: vi.fn(() => Promise.resolve(true)),
     updateSettings: vi.fn(() => Promise.resolve()),
     addStaff: vi.fn(() => Promise.resolve()),
@@ -80,6 +83,11 @@ function makeApp(tournament: Tournament) {
     listStaffWithNames: vi.fn(() => Promise.resolve([])),
     getParticipantByUser: vi.fn(() => Promise.resolve(undefined)),
     participantPreviewAcross: vi.fn(() => Promise.resolve([])),
+    getParticipantById: vi.fn(() =>
+      Promise.resolve({ id: PARTICIPANT_ID, tournamentId: TOURNAMENT_ID, displayName: "Vi" }),
+    ),
+    updateParticipant: vi.fn(() => Promise.resolve()),
+    listParticipantsWithUser: vi.fn(() => Promise.resolve([])),
   };
   const deckCheck = {
     coverLegendsAcross: vi.fn(() => Promise.resolve([])),
@@ -91,13 +99,18 @@ function makeApp(tournament: Tournament) {
     setReportToken: vi.fn(() => Promise.resolve()),
     setFollowToken: vi.fn(() => Promise.resolve()),
     dissolveAllTeams: vi.fn(() => Promise.resolve()),
+    getRoundByNumber: vi.fn(() => Promise.resolve(undefined)),
   };
   const deckFormats = {
     getBySlug: vi.fn((slug: string) =>
       Promise.resolve(["constructed", "freeform"].includes(slug) ? { slug } : undefined),
     ),
   };
-  const repos = { tournaments, deckCheck, podTournaments, deckFormats };
+  const tournamentGroups = {
+    listGroups: vi.fn(() => Promise.resolve([])),
+    legendCardNames: vi.fn((ids: string[]) => Promise.resolve(new Map(ids.map((id) => [id, {}])))),
+  };
+  const repos = { tournaments, deckCheck, podTournaments, deckFormats, tournamentGroups };
 
   const app = new Hono<{ Variables: Variables }>();
   app.use("*", async (c, next) => {
@@ -343,6 +356,24 @@ describe("deck format", () => {
 });
 
 describe("PATCH /tournaments/{id}", () => {
+  it("checks for rounds and writes under the rounds lock, against the row read under it", async () => {
+    const { app, repos } = makeApp(tournamentRow());
+    const locked = tournamentRow({ playMode: "2v2" });
+    repos.tournaments.getById.mockResolvedValueOnce(tournamentRow()).mockResolvedValue(locked);
+
+    const res = await app.fetch(req("PATCH", `/tournaments/${TOURNAMENT_ID}`, { playMode: "1v1" }));
+
+    expect(res.status).toBe(200);
+    const lockOrder = repos.tournaments.lockRounds.mock.invocationCallOrder[0] ?? 0;
+    expect(lockOrder).toBeGreaterThan(0);
+    expect(lockOrder).toBeLessThan(repos.tournaments.hasRounds.mock.invocationCallOrder[0] ?? 0);
+    expect(repos.tournaments.updateSettings).toHaveBeenCalledWith(
+      TOURNAMENT_ID,
+      expect.objectContaining({ playMode: "1v1" }),
+    );
+    expect(repos.podTournaments.dissolveAllTeams).toHaveBeenCalledWith(TOURNAMENT_ID);
+  });
+
   it("rejects a play-mode switch that contradicts the stored pairing style", async () => {
     // The patch carries no pairingStyle, so the invariant only catches this if
     // it is merged against the stored row.
@@ -401,6 +432,48 @@ describe("PATCH /tournaments/{id}", () => {
     expect(repos.tournaments.updateSettings).toHaveBeenCalledWith(
       TOURNAMENT_ID,
       expect.objectContaining({ status: "cancelled" }),
+    );
+  });
+});
+
+describe("PATCH /tournaments/{id}/participants/{participantId}", () => {
+  it("checks the group stage for a Legend and seed edit under the rounds lock", async () => {
+    const { app, repos } = makeApp(tournamentRow({ format: "group_cut" }));
+
+    const res = await app.fetch(
+      req("PATCH", `/tournaments/${TOURNAMENT_ID}/participants/${PARTICIPANT_ID}`, {
+        legendCardId: LEGEND_ID,
+        seed: 2,
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const lockOrder = repos.tournaments.lockRounds.mock.invocationCallOrder[0] ?? 0;
+    expect(lockOrder).toBeGreaterThan(0);
+    expect(lockOrder).toBeLessThan(
+      repos.tournamentGroups.listGroups.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(lockOrder).toBeLessThan(
+      repos.podTournaments.getRoundByNumber.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(repos.tournaments.updateParticipant).toHaveBeenCalledWith(
+      PARTICIPANT_ID,
+      expect.objectContaining({ legendCardId: LEGEND_ID, seed: 2 }),
+    );
+  });
+});
+
+describe("POST /tournaments/{id}/cancel", () => {
+  it("writes the cancellation under the rounds lock", async () => {
+    const { app, repos } = makeApp(tournamentRow());
+
+    const res = await app.fetch(req("POST", `/tournaments/${TOURNAMENT_ID}/cancel`));
+
+    expect(res.status).toBe(200);
+    const lockOrder = repos.tournaments.lockRounds.mock.invocationCallOrder[0] ?? 0;
+    expect(lockOrder).toBeGreaterThan(0);
+    expect(lockOrder).toBeLessThan(
+      repos.tournaments.updateSettings.mock.invocationCallOrder[0] ?? 0,
     );
   });
 });

@@ -2,6 +2,7 @@ import { isBanInEffect } from "@openrift/shared/card-ban";
 import { primaryCardType } from "@openrift/shared/card-primary-type";
 import { formatIgnoresBans, validateDeck } from "@openrift/shared/deck-rules";
 import type { DeckViolation } from "@openrift/shared/deck-rules";
+import { formatDay, todayUtc } from "@openrift/shared/format-date";
 import type { DeckCheckMatchStatus, ZoneSuggestion } from "@openrift/shared/types/api/deck-check";
 import type { TournamentPlayMode } from "@openrift/shared/types/api/tournament";
 import type { CardType, DeckZone, Domain, SuperType } from "@openrift/shared/types/enums";
@@ -92,7 +93,12 @@ export function computeZoneSuggestions(
 /** Type counts use main+champion zones only; legend/rune/battlefield types are excluded. */
 export async function buildEntryAdvisories(
   repos: Repos,
-  event: { format: string; playMode: TournamentPlayMode; allowedSets: string[] | null },
+  event: {
+    format: string;
+    playMode: TournamentPlayMode;
+    allowedSets: string[] | null;
+    eventDate: Date | null;
+  },
   cards: AdvisoryCardLine[],
 ): Promise<EntryAdvisories> {
   const matchedIds = [
@@ -126,7 +132,9 @@ export async function buildEntryAdvisories(
 
   const violations: DeckViolation[] = [];
 
-  const activeBans = banRows.filter((ban) => isBanInEffect(ban));
+  // A list is legal for the day it is played, so a ban scheduled before the event already counts.
+  const eventDay = event.eventDate === null ? todayUtc() : formatDay(event.eventDate);
+  const activeBans = banRows.filter((ban) => isBanInEffect(ban, eventDay));
   const banned2v2 = new Set(
     activeBans
       .filter((ban) => ban.formatId === WellKnown.banFormat.TWO_V_TWO)

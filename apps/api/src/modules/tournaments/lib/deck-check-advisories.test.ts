@@ -194,7 +194,7 @@ describe("buildEntryAdvisories", () => {
     ]);
     const advisories = await buildEntryAdvisories(
       stubRepos(cardDetails, ["Karma", "Ivern"]),
-      { format: "custom-region", playMode: "1v1" as const, allowedSets: null },
+      { format: "custom-region", playMode: "1v1" as const, allowedSets: null, eventDate: null },
       [
         line({ id: "a", resolvedCardId: "legend-karma", zone: "legend" }),
         line({ id: "b", resolvedCardId: "sig-daisy", zone: "main" }),
@@ -207,7 +207,7 @@ describe("buildEntryAdvisories", () => {
   it("does not query champion tags for non-custom-region formats", async () => {
     const advisories = await buildEntryAdvisories(
       stubRepos(new Map(), null),
-      { format: "constructed", playMode: "1v1" as const, allowedSets: null },
+      { format: "constructed", playMode: "1v1" as const, allowedSets: null, eventDate: null },
       [],
     );
     expect(advisories.violations.some((v) => v.code === "SIGNATURE_CHAMPION_COPIES")).toBe(false);
@@ -222,7 +222,7 @@ describe("buildEntryAdvisories", () => {
         { cardId: "banned-now", formatId: constructed, bannedAt: "2026-09-17" },
         { cardId: "banned-soon", formatId: constructed, bannedAt: "2026-09-18" },
       ]),
-      { format: "constructed", playMode: "1v1" as const, allowedSets: null },
+      { format: "constructed", playMode: "1v1" as const, allowedSets: null, eventDate: null },
       [
         line({ id: "a", resolvedCardId: "banned-now", zone: "main" }),
         line({ id: "b", resolvedCardId: "banned-soon", zone: "main" }),
@@ -232,10 +232,36 @@ describe("buildEntryAdvisories", () => {
     expect(banned.map((violation) => violation.cardId)).toEqual(["banned-now"]);
   });
 
+  it("judges bans by the event's start day, not by today", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-17T12:00:00.000Z"));
+    const constructed = WellKnown.banFormat.CONSTRUCTED;
+    const repos = stubRepos(new Map(), null, [
+      { cardId: "banned-before-event", formatId: constructed, bannedAt: "2026-09-19" },
+      { cardId: "banned-after-event", formatId: constructed, bannedAt: "2026-09-21" },
+    ]);
+    const lines = [
+      line({ id: "a", resolvedCardId: "banned-before-event", zone: "main" }),
+      line({ id: "b", resolvedCardId: "banned-after-event", zone: "main" }),
+    ];
+    const advisories = await buildEntryAdvisories(
+      repos,
+      {
+        format: "constructed",
+        playMode: "1v1" as const,
+        allowedSets: null,
+        eventDate: new Date("2026-09-20T09:00:00.000Z"),
+      },
+      lines,
+    );
+    const banned = advisories.violations.filter((violation) => violation.code === "banned-card");
+    expect(banned.map((violation) => violation.cardId)).toEqual(["banned-before-event"]);
+  });
+
   it("flags a constructed deck that breaks the deck rules", async () => {
     const advisories = await buildEntryAdvisories(
       stubRepos(new Map(), null),
-      { format: "constructed", playMode: "1v1" as const, allowedSets: null },
+      { format: "constructed", playMode: "1v1" as const, allowedSets: null, eventDate: null },
       [],
     );
     expect(advisories.violations.length).toBeGreaterThan(0);
@@ -246,7 +272,7 @@ describe("buildEntryAdvisories", () => {
       stubRepos(new Map(), null, [
         { cardId: "banned", formatId: WellKnown.banFormat.CONSTRUCTED, bannedAt: "2020-01-01" },
       ]),
-      { format: "freeform", playMode: "1v1" as const, allowedSets: null },
+      { format: "freeform", playMode: "1v1" as const, allowedSets: null, eventDate: null },
       [line({ id: "a", resolvedCardId: "banned", zone: "main" })],
     );
     expect(advisories.violations).toEqual([]);
@@ -257,7 +283,7 @@ describe("buildEntryAdvisories", () => {
       stubRepos(new Map(), null, [
         { cardId: "banned", formatId: WellKnown.banFormat.CONSTRUCTED, bannedAt: "2026-01-01" },
       ]),
-      { format: "infinity", playMode: "1v1" as const, allowedSets: null },
+      { format: "infinity", playMode: "1v1" as const, allowedSets: null, eventDate: null },
       [line({ id: "a", resolvedCardId: "banned", zone: "main" })],
     );
     expect(advisories.violations.some((v) => v.code === "banned-card")).toBe(false);
@@ -282,7 +308,7 @@ describe("buildEntryAdvisories", () => {
     ]);
     const advisories = await buildEntryAdvisories(
       stubRepos(cardDetails, []),
-      { format: "custom-region", playMode: "1v1" as const, allowedSets: null },
+      { format: "custom-region", playMode: "1v1" as const, allowedSets: null, eventDate: null },
       [line({ id: "a", resolvedCardId: "legend-karma", zone: "legend" })],
     );
     const codes = advisories.violations.map((violation) => violation.code);

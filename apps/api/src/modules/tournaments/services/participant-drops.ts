@@ -23,11 +23,19 @@ async function findActiveTeammate(
   );
 }
 
+/** Call inside a transaction: the drop and its walkovers commit together under the rounds lock. */
 export async function dropParticipant(
   repos: Repos,
-  tournament: Tournament,
-  participant: TournamentParticipant,
+  tournamentId: string,
+  participantId: string,
 ): Promise<void> {
+  await repos.tournaments.lockRounds(tournamentId);
+  const tournament = await repos.tournaments.getById(tournamentId);
+  await repos.tournaments.lockParticipant(participantId);
+  const participant = await repos.tournaments.getParticipantById(participantId);
+  if (tournament === undefined || participant === undefined) {
+    return;
+  }
   await repos.tournaments.updateParticipant(participant.id, {
     status: "dropped",
     droppedAfterRound: tournament.currentRound,
@@ -80,7 +88,14 @@ async function dropLiveSpot(
       }
     });
   } else if (spot.status === "active") {
-    await dropParticipant(repos, tournament, spot);
+    await transact(async (trxRepos) => {
+      await trxRepos.tournaments.lockRounds(tournament.id);
+      await trxRepos.tournaments.lockParticipant(spot.id);
+      const locked = await trxRepos.tournaments.getParticipantById(spot.id);
+      if (locked?.status === "active") {
+        await dropParticipant(trxRepos, tournament.id, spot.id);
+      }
+    });
   }
 }
 

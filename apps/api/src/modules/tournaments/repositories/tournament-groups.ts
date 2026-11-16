@@ -403,7 +403,17 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
           .where("p.id", "=", podId)
           .forShare("r")
           .execute();
-        await trx.selectFrom("pods").select("id").where("id", "=", podId).forUpdate().execute();
+        // A result reported while the drop waited for the pod row stays.
+        const claimed = await trx
+          .updateTable("pods")
+          .set({ resultStatus: "reported", drawnGames: 0 })
+          .where("id", "=", podId)
+          .where("resultStatus", "=", "pending")
+          .returning("id")
+          .executeTakeFirst();
+        if (claimed === undefined) {
+          return;
+        }
         for (const { playerId, placement } of results) {
           await trx
             .updateTable("podMembers")
@@ -412,11 +422,6 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
             .where("playerId", "=", playerId)
             .execute();
         }
-        await trx
-          .updateTable("pods")
-          .set({ resultStatus: "reported", drawnGames: 0 })
-          .where("id", "=", podId)
-          .execute();
       });
     },
 
@@ -490,7 +495,7 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
 
     legendCardIdsFromDeckCheck,
 
-    /** Skipped once groups exist, matching the manual-assignment lock. */
+    /** Skipped once groups exist, matching the manual-assignment lock; a grouped participant is never written. */
     async syncParticipantLegendsFromDeckCheck(
       tournamentId: string,
       participantIds?: readonly string[],
@@ -511,6 +516,7 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
           .set({ legendCardId, updatedAt: new Date() })
           .where("id", "=", participantId)
           .where("tournamentId", "=", tournamentId)
+          .where("groupId", "is", null)
           .where((eb) =>
             eb.or([eb("legendCardId", "is", null), eb("legendCardId", "!=", legendCardId)]),
           )
