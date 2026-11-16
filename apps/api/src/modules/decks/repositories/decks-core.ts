@@ -13,7 +13,7 @@ import {
   selectShareState,
   updateShareRow,
 } from "../../../repositories/query-helpers.js";
-import { dropFamilyIfEmpty, lockFamilies, lockUserFamilies } from "./decks-shared.js";
+import { dropFamilyIfEmpty, lockFamilies, lockOwnerFamilies } from "./decks-shared.js";
 
 /**
  * The jsonb columns are required, not optional, so `"links" in updates`
@@ -161,7 +161,7 @@ export function decksCoreRepo(db: Kysely<Database>) {
      */
     deleteByIdForUser(id: string, userId: string): Promise<boolean> {
       return inTransaction(db, async (trx) => {
-        await lockUserFamilies(trx, userId);
+        await lockOwnerFamilies(trx, userId);
         // Peek the family without a lock, then lock the whole family in id
         // order (target included). Locking the target row first and the
         // family second would deadlock two concurrent deletes of siblings.
@@ -192,7 +192,7 @@ export function decksCoreRepo(db: Kysely<Database>) {
         const survivors = target.familyId
           ? await trx
               .selectFrom("decks")
-              .select(["id", "isPrimary"])
+              .select(["id", "predecessorDeckId"])
               .where("familyId", "=", target.familyId)
               .where("userId", "=", userId)
               .where("id", "!=", id)
@@ -200,8 +200,8 @@ export function decksCoreRepo(db: Kysely<Database>) {
               .execute()
           : [];
 
-        await trx.deleteFrom("decks").where("id", "=", id).where("userId", "=", userId).execute();
-
+        // The repair runs before the delete: its predecessor cascade writes the
+        // survivors still pointing here, and no row may be written twice.
         const [firstSurvivor] = survivors;
         if (target.familyId && firstSurvivor) {
           if (survivors.length === 1) {
@@ -211,14 +211,22 @@ export function decksCoreRepo(db: Kysely<Database>) {
               .set({ familyId: null, isPrimary: false, predecessorDeckId: null })
               .where("id", "=", firstSurvivor.id)
               .execute();
-          } else if (target.isPrimary && survivors.length > 1) {
+          } else if (target.isPrimary) {
+            // Demote first, or the promotion trips `uq_decks_family_primary`.
+            await trx.updateTable("decks").set({ isPrimary: false }).where("id", "=", id).execute();
             await trx
               .updateTable("decks")
-              .set({ isPrimary: true })
+              .set({
+                isPrimary: true,
+                ...(firstSurvivor.predecessorDeckId === id ? { predecessorDeckId: null } : {}),
+              })
               .where("id", "=", firstSurvivor.id)
               .execute();
           }
         }
+
+        await trx.deleteFrom("decks").where("id", "=", id).where("userId", "=", userId).execute();
+
         if (target.familyId) {
           await dropFamilyIfEmpty(trx, target.familyId);
         }

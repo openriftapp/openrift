@@ -4,7 +4,12 @@ import type { Database } from "../../../db/tables.js";
 import type { DecksTable } from "../../../db/tables/decks.js";
 import { inTransaction } from "../../../repositories/query-helpers.js";
 import { createsCycle } from "./deck-lineage.js";
-import { dropFamilyIfEmpty, lockFamilies, lockUserFamilies } from "./decks-shared.js";
+import {
+  dropFamilyIfEmpty,
+  lockFamilies,
+  lockOwnerFamilies,
+  lockUserFamilies,
+} from "./decks-shared.js";
 
 export function decksFamiliesRepo(db: Kysely<Database>) {
   return {
@@ -21,7 +26,7 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
       input: { name?: string },
     ): Promise<Selectable<DecksTable> | undefined> {
       return inTransaction(db, async (trx) => {
-        await lockUserFamilies(trx, userId);
+        await lockOwnerFamilies(trx, userId);
         const source = await trx
           .selectFrom("decks")
           .selectAll()
@@ -173,7 +178,7 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
       input: { otherDeckId: string; markAsPreviousVersion?: boolean },
     ): Promise<Selectable<DecksTable> | "not-found" | "invalid"> {
       return inTransaction(db, async (trx) => {
-        await lockUserFamilies(trx, userId);
+        await lockOwnerFamilies(trx, userId);
         if (id === input.otherDeckId) {
           return "invalid" as const;
         }
@@ -215,44 +220,34 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
         const keeperId =
           primaries.find((row) => row.familyId === familyId)?.id ?? primaries[0]?.id ?? id;
 
-        // Demote before moving: `uq_decks_family_primary` rejects a second
-        // primary the moment the absorbed rows land in the surviving family.
-        const demoteIds = [...primaries.map((row) => row.id), ...standaloneIds];
-        if (demoteIds.length > 0) {
-          await trx
-            .updateTable("decks")
-            .set({ isPrimary: false })
-            .where("id", "in", demoteIds)
-            .execute();
-        }
-        if (absorbedFamilyIds.length > 0) {
-          await trx
-            .updateTable("decks")
-            .set({ familyId })
-            .where("familyId", "in", absorbedFamilyIds)
-            .where("userId", "=", userId)
-            .execute();
-          await mergeFamilyNames(trx, familyId, absorbedFamilyIds);
-        }
-        if (standaloneIds.length > 0) {
-          await trx
-            .updateTable("decks")
-            .set({ familyId })
-            .where("id", "in", standaloneIds)
-            .execute();
-        }
+        const predecessorDeckId =
+          input.markAsPreviousVersion && current.predecessorDeckId === null ? other.id : null;
         await trx
           .updateTable("decks")
-          .set({ isPrimary: true })
-          .where("id", "=", keeperId)
+          .set((eb) => ({
+            familyId,
+            isPrimary: eb("id", "=", keeperId).$castTo<boolean>(),
+            ...(predecessorDeckId === null
+              ? {}
+              : {
+                  predecessorDeckId: eb
+                    .case()
+                    .when("id", "=", id)
+                    .then(predecessorDeckId)
+                    .else(eb.ref("predecessorDeckId"))
+                    .end(),
+                }),
+          }))
+          .where("userId", "=", userId)
+          .where((eb) =>
+            eb.or([
+              eb("id", "in", [...new Set([keeperId, id, ...standaloneIds])]),
+              ...(absorbedFamilyIds.length > 0 ? [eb("familyId", "in", absorbedFamilyIds)] : []),
+            ]),
+          )
           .execute();
-
-        if (input.markAsPreviousVersion && current.predecessorDeckId === null) {
-          await trx
-            .updateTable("decks")
-            .set({ predecessorDeckId: other.id })
-            .where("id", "=", id)
-            .execute();
+        if (absorbedFamilyIds.length > 0) {
+          await mergeFamilyNames(trx, familyId, absorbedFamilyIds);
         }
 
         const row = await trx
@@ -277,7 +272,7 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
       userId: string,
     ): Promise<Selectable<DecksTable> | "not-found" | "no-family"> {
       return inTransaction(db, async (trx) => {
-        await lockUserFamilies(trx, userId);
+        await lockOwnerFamilies(trx, userId);
         const departing = await trx
           .selectFrom("decks")
           .select(["id", "familyId", "isPrimary", "predecessorDeckId"])
@@ -297,20 +292,11 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
 
         const survivors = await trx
           .selectFrom("decks")
-          .select(["id", "isPrimary"])
+          .select(["id", "predecessorDeckId"])
           .where("familyId", "=", departing.familyId)
           .where("userId", "=", userId)
           .where("id", "!=", id)
           .orderBy("updatedAt", "desc")
-          .execute();
-
-        // Splice the chain: B -> A -> C becomes B -> C when A leaves.
-        await trx
-          .updateTable("decks")
-          .set({ predecessorDeckId: departing.predecessorDeckId })
-          .where("familyId", "=", departing.familyId)
-          .where("userId", "=", userId)
-          .where("predecessorDeckId", "=", id)
           .execute();
 
         // Clearing the departing row first frees the family's primary slot, so
@@ -329,12 +315,29 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
             .set({ familyId: null, isPrimary: false, predecessorDeckId: null })
             .where("id", "=", newest.id)
             .execute();
-        } else if (newest && departing.isPrimary) {
-          await trx
-            .updateTable("decks")
-            .set({ isPrimary: true })
-            .where("id", "=", newest.id)
-            .execute();
+        } else if (newest) {
+          // Splice the chain: B -> A -> C becomes B -> C when A leaves.
+          const promotedId = departing.isPrimary ? newest.id : null;
+          const changedIds = survivors
+            .filter((survivor) => survivor.predecessorDeckId === id || survivor.id === promotedId)
+            .map((survivor) => survivor.id);
+          if (changedIds.length > 0) {
+            await trx
+              .updateTable("decks")
+              .set((eb) => ({
+                predecessorDeckId: eb
+                  .case()
+                  .when("predecessorDeckId", "=", id)
+                  .then(departing.predecessorDeckId)
+                  .else(eb.ref("predecessorDeckId"))
+                  .end(),
+                ...(promotedId === null
+                  ? {}
+                  : { isPrimary: eb("id", "=", promotedId).$castTo<boolean>() }),
+              }))
+              .where("id", "in", changedIds)
+              .execute();
+          }
         }
         await dropFamilyIfEmpty(trx, departing.familyId);
 
@@ -353,7 +356,7 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
       predecessorDeckId: string | null,
     ): Promise<Selectable<DecksTable> | "not-found" | "invalid"> {
       return inTransaction(db, async (trx) => {
-        await lockUserFamilies(trx, userId);
+        await lockOwnerFamilies(trx, userId);
         if (id === predecessorDeckId) {
           return "invalid" as const;
         }

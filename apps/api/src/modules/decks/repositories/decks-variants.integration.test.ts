@@ -1,3 +1,4 @@
+import { sleep } from "@openrift/shared/async";
 import type { Selectable } from "kysely";
 import { sql } from "kysely";
 import { afterAll, describe, expect, it } from "vitest";
@@ -877,6 +878,228 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
       expect(await decks.deleteByIdForUser(foreign.id, userId)).toBe(false);
       const survivor = await reload(foreign.id);
       expect(survivor.id).toBe(foreign.id);
+    });
+  });
+
+  describe("lock order against cascading deletes", () => {
+    async function holdRow(lockSql: ReturnType<typeof sql>) {
+      const holding = Promise.withResolvers<number>();
+      const release = Promise.withResolvers<void>();
+      const done = db.transaction().execute(async (trx) => {
+        await lockSql.execute(trx);
+        const { rows } = await sql<{ pid: number }>`SELECT pg_backend_pid() AS pid`.execute(trx);
+        holding.resolve(rows[0]!.pid);
+        await release.promise;
+      });
+      const pid = await holding.promise;
+      return {
+        pid,
+        release: async () => {
+          release.resolve();
+          await done;
+        },
+      };
+    }
+
+    async function waitUntilBlockedBy(pid: number): Promise<void> {
+      for (let attempt = 0; attempt < 60; attempt++) {
+        const { rows } = await sql<{ waiting: number }>`
+          SELECT count(*)::int AS waiting FROM pg_stat_activity
+          WHERE ${pid}::int = ANY(pg_blocking_pids(pid))
+        `.execute(db);
+        if (rows[0]!.waiting > 0) {
+          return;
+        }
+        await sleep(50);
+      }
+      throw new Error("the operation never waited on the held row");
+    }
+
+    async function lockableDeckIds(ids: string[]): Promise<string[]> {
+      return db.transaction().execute(async (trx) => {
+        const { rows } = await sql<{ id: string }>`
+          SELECT id FROM decks WHERE id IN (${sql.join(ids)}) FOR UPDATE SKIP LOCKED
+        `.execute(trx);
+        return rows.map((row) => row.id).toSorted();
+      });
+    }
+
+    async function waitsForOwnerBeforeDecks<T>(
+      deckIds: string[],
+      run: () => Promise<T>,
+    ): Promise<T> {
+      const owner = await holdRow(sql`SELECT 1 FROM users WHERE id = ${userId} FOR UPDATE`);
+      let pending: Promise<T> | undefined;
+      try {
+        pending = run();
+        await waitUntilBlockedBy(owner.pid);
+        expect(await lockableDeckIds(deckIds)).toEqual(deckIds.toSorted());
+      } finally {
+        await owner.release();
+      }
+      return pending;
+    }
+
+    async function finishesWhileCollectionHeld<T>(run: () => Promise<T>): Promise<T | "blocked"> {
+      const collection = await holdRow(
+        sql`SELECT 1 FROM collections WHERE id = ${collectionId} FOR UPDATE`,
+      );
+      const pending = run();
+      try {
+        return await Promise.race([pending, sleep(3000).then(() => "blocked" as const)]);
+      } finally {
+        await collection.release();
+        await pending.catch(() => null);
+      }
+    }
+
+    it("createVariantCopy waits for the owner row before locking the source deck", async () => {
+      const source = await makeDeck("DV Lock Copy Source");
+      const copy = await waitsForOwnerBeforeDecks([source.id], () =>
+        decks.createVariantCopy(source.id, userId, {}),
+      );
+      expect(copy?.familyId).toBeTypeOf("string");
+    });
+
+    it("linkAsVariant waits for the owner row before locking either deck", async () => {
+      const current = await makeDeck("DV Lock Link Current");
+      const other = await makeDeck("DV Lock Link Other");
+      const linked = await waitsForOwnerBeforeDecks([current.id, other.id], () =>
+        decks.linkAsVariant(current.id, userId, { otherDeckId: other.id }),
+      );
+      expect(linked).toMatchObject({ id: current.id, isPrimary: true });
+    });
+
+    it("unlinkVariant waits for the owner row before locking the departing deck", async () => {
+      const source = await makeDeck("DV Lock Unlink Source");
+      const copy = await copyOf(source.id, {});
+      const departed = await waitsForOwnerBeforeDecks([source.id, copy.id], () =>
+        decks.unlinkVariant(source.id, userId),
+      );
+      expect(departed).toMatchObject({ id: source.id, familyId: null });
+    });
+
+    it("linkAsVariant finishes while a deck's collection is held by a deletion", async () => {
+      const current = await makeDeck("DV Lock Link Boxed");
+      const other = await makeDeck("DV Lock Link Boxed Other");
+      await decks.update(current.id, userId, { collectionId });
+      await decks.update(other.id, userId, { collectionId });
+
+      const outcome = await finishesWhileCollectionHeld(() =>
+        decks.linkAsVariant(current.id, userId, {
+          otherDeckId: other.id,
+          markAsPreviousVersion: true,
+        }),
+      );
+      expect(outcome).toMatchObject({
+        id: current.id,
+        isPrimary: true,
+        predecessorDeckId: other.id,
+      });
+      const reloadedOther = await reload(other.id);
+      expect(reloadedOther.familyId).toBe((outcome as Selectable<DecksTable>).familyId);
+    });
+
+    it("linkAsVariant merges two families while a member's collection is held", async () => {
+      const leftSource = await makeDeck("DV Lock Merge Left");
+      const leftSibling = await copyOf(leftSource.id, {});
+      const rightSource = await makeDeck("DV Lock Merge Right");
+      const rightSibling = await copyOf(rightSource.id, {});
+      for (const deck of [leftSource, leftSibling, rightSource, rightSibling]) {
+        await decks.update(deck.id, userId, { collectionId });
+      }
+
+      const outcome = await finishesWhileCollectionHeld(() =>
+        decks.linkAsVariant(leftSource.id, userId, { otherDeckId: rightSource.id }),
+      );
+      expect(outcome).toMatchObject({
+        id: leftSource.id,
+        familyId: leftSibling.familyId,
+        isPrimary: true,
+      });
+      const members = await familyMembers(leftSibling.familyId);
+      expect(members.map((member) => member.id).toSorted()).toEqual(
+        [leftSource.id, leftSibling.id, rightSource.id, rightSibling.id].toSorted(),
+      );
+      expect(members.filter((member) => member.isPrimary).map((member) => member.id)).toEqual([
+        leftSource.id,
+      ]);
+    });
+
+    it("unlinkVariant finishes while a survivor's collection is held by a deletion", async () => {
+      const source = await makeDeck("DV Lock Unlink Boxed");
+      const copy = await copyOf(source.id, {});
+      await decks.update(copy.id, userId, { collectionId });
+
+      const outcome = await finishesWhileCollectionHeld(() =>
+        decks.unlinkVariant(source.id, userId),
+      );
+      expect(outcome).toMatchObject({ id: source.id, familyId: null });
+      const survivor = await reload(copy.id);
+      expect(survivor.familyId).toBeNull();
+      expect(survivor.predecessorDeckId).toBeNull();
+    });
+
+    it("unlinkVariant finishes while a promoted survivor's collection is held", async () => {
+      const source = await makeDeck("DV Lock Unlink Promote");
+      const older = await copyOf(source.id, {});
+      const newer = await copyOf(source.id, {});
+      await decks.update(older.id, userId, { collectionId });
+      await decks.update(newer.id, userId, { collectionId });
+
+      const outcome = await finishesWhileCollectionHeld(() =>
+        decks.unlinkVariant(source.id, userId),
+      );
+      expect(outcome).toMatchObject({ id: source.id, familyId: null });
+      const promoted = await reload(newer.id);
+      expect(promoted.isPrimary).toBe(true);
+      expect(promoted.predecessorDeckId).toBeNull();
+      const reloadedOlder = await reload(older.id);
+      expect(reloadedOlder.isPrimary).toBe(false);
+    });
+
+    it("deleteByIdForUser waits for the owner row before locking the family", async () => {
+      const source = await makeDeck("DV Lock Delete Source");
+      const older = await copyOf(source.id, {});
+      const newer = await copyOf(source.id, {});
+      const deleted = await waitsForOwnerBeforeDecks([source.id, older.id, newer.id], () =>
+        decks.deleteByIdForUser(source.id, userId),
+      );
+      expect(deleted).toBe(true);
+    });
+
+    it("deleteByIdForUser finishes while a promoted survivor's collection is held", async () => {
+      const source = await makeDeck("DV Lock Delete Promote");
+      const older = await copyOf(source.id, {});
+      const newer = await copyOf(source.id, {});
+      await decks.update(older.id, userId, { collectionId });
+      await decks.update(newer.id, userId, { collectionId });
+
+      const outcome = await finishesWhileCollectionHeld(() =>
+        decks.deleteByIdForUser(source.id, userId),
+      );
+      expect(outcome).toBe(true);
+      const promoted = await reload(newer.id);
+      expect(promoted.isPrimary).toBe(true);
+      expect(promoted.predecessorDeckId).toBeNull();
+      const sibling = await reload(older.id);
+      expect(sibling.isPrimary).toBe(false);
+      expect(sibling.predecessorDeckId).toBeNull();
+    });
+
+    it("deleteByIdForUser finishes while a sole survivor's collection is held", async () => {
+      const source = await makeDeck("DV Lock Delete To One");
+      const copy = await copyOf(source.id, {});
+      await decks.update(copy.id, userId, { collectionId });
+
+      const outcome = await finishesWhileCollectionHeld(() =>
+        decks.deleteByIdForUser(source.id, userId),
+      );
+      expect(outcome).toBe(true);
+      const survivor = await reload(copy.id);
+      expect(survivor.familyId).toBeNull();
+      expect(survivor.isPrimary).toBe(false);
+      expect(survivor.predecessorDeckId).toBeNull();
     });
   });
 });
