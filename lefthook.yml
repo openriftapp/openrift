@@ -61,7 +61,7 @@ pre-push:
           - name: typescript-check
             # Runs everywhere, including constrained remote/CI runners.
             # The turbo half covers all packages (shared, api, web) and is a cache hit
-            # after a /done that already typechecked. The scripts/ half runs uncached.
+            # after a /done that already typechecked. The scripts/ half is the cached typecheck:scripts task.
             glob: "*.{ts,tsx}"
             run: bun run typecheck
           - name: knip-check

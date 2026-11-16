@@ -16,6 +16,7 @@
     "test:watch": "vitest",
     "build": "tsgo",
     "typecheck": "tsgo",
+    "typecheck:scripts": "tsgo --noEmit -p ../../scripts/tsconfig.json",
     "dev": "tsgo --watch",
     "db:migrate": "bun --env-file=../../.env ../../scripts/run-migrations.ts",
     "db:rollback": "bun --env-file=../../.env ../../scripts/run-migrations.ts down",
