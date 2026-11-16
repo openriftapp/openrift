@@ -502,7 +502,9 @@ describe("FilterMoreMenu", () => {
       />,
     );
     await user.click(screen.getByRole("button", { name: "More" }));
-    expect(await screen.findByRole("menuitem", { name: "Banned" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("menuitem", { name: "Banned in any format" }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("menuitem", { name: "Signed" })).not.toBeInTheDocument();
   });
 

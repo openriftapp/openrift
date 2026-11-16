@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-17
+
+### Other
+
+- fix(Cards): **Clearer banned filter** — the banned filter on the cards page and in list rules is labelled "Banned in any format", since it also matches cards banned only in 2v2.
+
 ## 2026-11-16
 
 ### Highlights

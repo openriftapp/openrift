@@ -227,10 +227,10 @@ describe("activeFilterDimensionLabels", () => {
   it("names a flag, and negates it while it forbids", () => {
     expect(
       activeFilterDimensionLabels(state({ banned: true }), IDENTITY_LABELS, everything),
-    ).toEqual(["Banned"]);
+    ).toEqual(["Banned in any format"]);
     expect(
       activeFilterDimensionLabels(state({ banned: false }), IDENTITY_LABELS, everything),
-    ).toEqual(["−Banned"]);
+    ).toEqual(["−Banned in any format"]);
   });
 
   it("names the overnumbered flag inside the Variant unit", () => {
