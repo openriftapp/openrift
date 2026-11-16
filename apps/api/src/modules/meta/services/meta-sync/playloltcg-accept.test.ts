@@ -160,7 +160,9 @@ describe("autoAcceptPlayloltcgEvents", () => {
     const summary = await autoAcceptPlayloltcgEvents(deps, [109_991]);
 
     expect(summary.accepted).toBe(1);
-    expect(rechecks).toEqual([{ activityShopId: 109_991, nextCheckAt: NOW, checkStage: 0 }]);
+    expect(rechecks).toEqual([
+      { activityShopId: 109_991, nextCheckAt: NOW, checkStage: 0, failingSince: null },
+    ]);
     expect(promoteNewEvent).toHaveBeenCalled();
   });
 

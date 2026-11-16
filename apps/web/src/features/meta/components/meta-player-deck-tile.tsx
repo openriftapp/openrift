@@ -1,12 +1,15 @@
 import { formatDay } from "@openrift/shared/format-date";
-import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaDeckSummary } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
 
 import { LegendFinishTile } from "@/components/deck-identity/legend-finish-tile";
 import { TextLink } from "@/components/ui/text-link";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
-import { finishBracketLabel, formatRank } from "@/features/meta/lib/meta-format";
+import {
+  finishBracketLabel,
+  formatRank,
+  formatStandingsRecord,
+} from "@/features/meta/lib/meta-format";
 import { m } from "@/paraglide/messages.js";
 
 export function MetaPlayerDeckTile({
@@ -17,7 +20,7 @@ export function MetaPlayerDeckTile({
   legendDomains?: readonly string[];
 }) {
   const facts = [
-    formatRecord(deck.wins, deck.losses, deck.draws),
+    formatStandingsRecord(deck.wins, deck.losses, deck.draws),
     formatDay(deck.event.eventDate),
   ].filter((fact) => fact !== null);
 

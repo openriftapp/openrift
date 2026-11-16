@@ -51,6 +51,7 @@ function throttledDeps(rows: UvsgamesListRow[]) {
           rechecks.push({ externalId, values });
           return Promise.resolve();
         },
+        clearFailing: () => Promise.resolve(),
       },
     } as unknown as Repos,
     transact: (() => Promise.reject(new Error("no writes here"))) as unknown as Transact,

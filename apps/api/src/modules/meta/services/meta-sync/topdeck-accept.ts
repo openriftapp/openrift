@@ -31,7 +31,7 @@ export interface AcceptedTopdeckEvent {
 
 /** The results are already mirrored, so `promoteNewEvent` fills the live event in the same call. */
 export async function acceptTopdeckEvent(
-  deps: TopdeckSyncDeps,
+  deps: Pick<TopdeckSyncDeps, "repos">,
   row: TopdeckListRow,
 ): Promise<AcceptedTopdeckEvent> {
   return await promoteNewEvent(deps.repos, TOPDECK_PROVIDER, row.tid, {

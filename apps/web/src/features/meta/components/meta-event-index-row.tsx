@@ -1,6 +1,5 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { formatDay } from "@openrift/shared/format-date";
-import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaEventFinish, MetaEventSummary } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
 
@@ -14,6 +13,7 @@ import {
   metaEventCounts,
   metaEventEmptyStatus,
   metaEventFieldSize,
+  formatStandingsRecord,
 } from "@/features/meta/lib/meta-format";
 import { metaEventWinners } from "@/features/meta/lib/meta-front-page";
 import { cn } from "@/lib/utils";
@@ -129,7 +129,8 @@ function WinnerLine({ winners }: { winners: readonly MetaEventFinish[] }) {
     return null;
   }
   const only = winners.length === 1 ? winners.at(0) : undefined;
-  const record = only === undefined ? null : formatRecord(only.wins, only.losses, only.draws);
+  const record =
+    only === undefined ? null : formatStandingsRecord(only.wins, only.losses, only.draws);
   return (
     <span className="flex min-w-0 items-center gap-2 text-sm">
       <LegendThumbs winners={winners} />

@@ -16,6 +16,18 @@ export function formatRank(rank: number, rankIsTier: boolean): string {
   return rankIsTier && rank > 2 ? m.meta_rank_tier({ rank }) : m.meta_rank_ordinal({ rank });
 }
 
+export function formatStandingsRecord(
+  wins: number | null,
+  losses: number | null,
+  draws: number | null,
+): string | null {
+  const record = formatRecord(wins, losses, draws);
+  if (record !== null || wins === null) {
+    return record;
+  }
+  return m.meta_record_wins_only({ count: wins });
+}
+
 export function metaDeckLinkLabel(deck: { playerName: string; legendName: string | null }): string {
   return deck.legendName === null
     ? m.meta_deck_label({ player: deck.playerName })
@@ -39,7 +51,7 @@ export function metaOpponentFinishLine(
   const parts: string[] = [
     m.meta_run_opponent_finished({ rank: formatRank(opponent.rank, opponent.rankIsTier) }),
   ];
-  const record = formatRecord(opponent.wins, opponent.losses, opponent.draws);
+  const record = formatStandingsRecord(opponent.wins, opponent.losses, opponent.draws);
   if (record !== null) {
     parts.push(record);
   }

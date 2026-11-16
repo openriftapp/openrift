@@ -1,6 +1,6 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay } from "@openrift/shared/format-date";
-import { formatRankEnglish, formatRecord } from "@openrift/shared/meta-standings";
+import { formatRankEnglish } from "@openrift/shared/meta-standings";
 import { pluralize } from "@openrift/shared/strings";
 import type { AdminMetaEvent, AdminMetaPlayer } from "@openrift/shared/types/api/meta";
 import type { MetaPlayerOverlayField } from "@openrift/shared/types/enums";
@@ -46,6 +46,7 @@ import {
   metaPlayerClaimChips,
   recordSortValue,
   standingsGaps,
+  formatStandingsRecord,
 } from "@/features/meta/lib/meta-format";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { formatCount } from "@/lib/format";
@@ -71,7 +72,7 @@ function RecordCell({ row }: AdminCellSlotProps<AdminMetaPlayer>) {
   }
   return (
     <span className="text-muted-foreground tabular-nums">
-      {formatRecord(row.wins, row.losses, row.draws) ?? "Not given"}
+      {formatStandingsRecord(row.wins, row.losses, row.draws) ?? "Not given"}
     </span>
   );
 }

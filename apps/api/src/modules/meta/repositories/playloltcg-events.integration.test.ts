@@ -34,6 +34,7 @@ const KEYS = {
   dismissedAfterAccept: 990_014,
   pulledStarted: 990_015,
   pulledUpcoming: 990_016,
+  failing: 990_017,
 } as const;
 const ALL_KEYS = Object.values(KEYS);
 
@@ -283,6 +284,30 @@ describe.skipIf(!ctx)("playloltcgEventsRepo", () => {
     await repo().setRecheck(KEYS.queued, { nextCheckAt: null, checkStage: 5 });
     const drained = await repo().dueForRecheck(new Date("2027-01-01T00:00:00Z"), 50);
     expect(drained.map((entry) => entry.activityShopId)).not.toContain(KEYS.queued);
+  });
+
+  it("keeps a failure's start until a visit or a manual fetch succeeds", async () => {
+    await repo().upsertBatch(
+      [row({ activityShopId: KEYS.failing, contentHash: "h-failing" })],
+      SEEN,
+    );
+    await seedAcceptedCandidate(KEYS.failing);
+    const due = new Date("2026-08-25T00:00:00Z");
+    const failingOf = async () => {
+      const ready = await repo().dueForRecheck(new Date("2026-08-26T00:00:00Z"), 50);
+      return ready.find((entry) => entry.activityShopId === KEYS.failing)?.failingSince;
+    };
+
+    await repo().setRecheck(KEYS.failing, { nextCheckAt: due, checkStage: 2, failingSince: due });
+    await repo().setRecheck(KEYS.failing, { nextCheckAt: due, checkStage: 2 });
+    expect(await failingOf()).toEqual(due);
+
+    await repo().setRecheck(KEYS.failing, { nextCheckAt: due, checkStage: 2, failingSince: null });
+    expect(await failingOf()).toBeNull();
+
+    await repo().setRecheck(KEYS.failing, { nextCheckAt: due, checkStage: 2, failingSince: due });
+    await repo().clearFailing(KEYS.failing);
+    expect(await failingOf()).toBeNull();
   });
 
   it("pulls a started event forward and leaves an upcoming one waiting", async () => {

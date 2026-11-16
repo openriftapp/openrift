@@ -675,6 +675,22 @@ describe.skipIf(!ctx)("uvsgamesEventsRepo", () => {
     expect(due.find((entry) => entry.externalId === "mtc-1")?.checkStage).toBe(2);
   });
 
+  it("keeps a failure's start until a visit succeeds", async () => {
+    const now = new Date("2026-08-25T00:00:00Z");
+    const since = new Date("2026-08-20T00:00:00Z");
+    const failingOf = async () => {
+      const due = await repo().dueForRecheck(now, 10);
+      return due.find((entry) => entry.externalId === "mtc-1")?.failingSince;
+    };
+
+    await repo().setRecheck("mtc-1", { nextCheckAt: since, checkStage: 2, failingSince: since });
+    await repo().setRecheck("mtc-1", { nextCheckAt: since, checkStage: 2 });
+    expect(await failingOf()).toEqual(since);
+
+    await repo().setRecheck("mtc-1", { nextCheckAt: since, checkStage: 2, failingSince: null });
+    expect(await failingOf()).toBeNull();
+  });
+
   it("reads and writes the singleton sync settings", async () => {
     const updated = await repo().updateSettings({
       autoAcceptMinPlayers: 64,

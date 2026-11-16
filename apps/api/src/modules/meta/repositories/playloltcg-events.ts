@@ -77,6 +77,7 @@ export interface PlayloltcgListRow extends PlayloltcgEventRow {
 
 export interface PlayloltcgRecheckRow extends PlayloltcgListRow {
   important: boolean;
+  failingSince: Date | null;
 }
 
 export interface PlayloltcgListFilters {
@@ -349,7 +350,7 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
     async dueForRecheck(now: Date, limit: number): Promise<PlayloltcgRecheckRow[]> {
       const important = sql<boolean>`coalesce(me.tier in ('premier', 'competitive'), false)`;
       return await listSelect()
-        .select(important.as("important"))
+        .select([important.as("important"), "ck.failingSince"])
         .where("ck.nextCheckAt", "is not", null)
         .where("ck.nextCheckAt", "<", dueBefore(now))
         .orderBy(sql`${important} desc`)
@@ -390,12 +391,20 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
 
     async setRecheck(
       activityShopId: number,
-      values: { nextCheckAt: Date | null; checkStage: number },
+      values: { nextCheckAt: Date | null; checkStage: number; failingSince?: Date | null },
     ): Promise<void> {
       await db
         .insertInto("playloltcgEventChecks")
         .values({ activityShopId, ...values })
         .onConflict((oc) => oc.column("activityShopId").doUpdateSet(values))
+        .execute();
+    },
+
+    async clearFailing(activityShopId: number): Promise<void> {
+      await db
+        .updateTable("playloltcgEventChecks")
+        .set({ failingSince: null })
+        .where("activityShopId", "=", activityShopId)
         .execute();
     },
 

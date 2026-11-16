@@ -1,5 +1,4 @@
 import { formatDay } from "@openrift/shared/format-date";
-import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaLegendFinish } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
@@ -8,7 +7,7 @@ import { RankBand } from "@/components/ui/rank-band";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { TextLink } from "@/components/ui/text-link";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
-import { formatRank } from "@/features/meta/lib/meta-format";
+import { formatRank, formatStandingsRecord } from "@/features/meta/lib/meta-format";
 import type { MetaSubmitSearch } from "@/features/meta/lib/meta-submit-link";
 import { m } from "@/paraglide/messages.js";
 
@@ -87,7 +86,7 @@ export function FinishTableRow({
   identityClassName: string;
   submitSearch: MetaSubmitSearch | null;
 }) {
-  const record = formatRecord(finish.wins, finish.losses, finish.draws);
+  const record = formatStandingsRecord(finish.wins, finish.losses, finish.draws);
 
   return (
     <TableRow>
@@ -125,7 +124,7 @@ export function FinishPhoneRow({
   identity: ReactNode;
   submitSearch: MetaSubmitSearch | null;
 }) {
-  const record = formatRecord(finish.wins, finish.losses, finish.draws);
+  const record = formatStandingsRecord(finish.wins, finish.losses, finish.draws);
 
   return (
     <li>

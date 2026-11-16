@@ -7,6 +7,7 @@ import {
   finishBracketLabel,
   formatRank,
   formatRankRuns,
+  formatStandingsRecord,
   joinNames,
   metaDeckLinkLabel,
   metaEventCounts,
@@ -49,6 +50,24 @@ describe("finishBracketLabel", () => {
 
   it("leaves a tier finish to its own T-number", () => {
     expect(finishBracketLabel(4, true, 8)).toBeNull();
+  });
+});
+
+describe("formatStandingsRecord", () => {
+  it("prints a record whose wins and losses are known as the shared W-L-D", () => {
+    expect(formatStandingsRecord(5, 1, 2)).toBe("5-1-2");
+    expect(formatStandingsRecord(5, 1, null)).toBe("5-1-0");
+  });
+
+  it("shows the wins alone when the losses are unknown", () => {
+    expect(formatStandingsRecord(5, null, null)).toBe("5 wins");
+    expect(formatStandingsRecord(1, null, 0)).toBe("1 win");
+    expect(formatStandingsRecord(0, null, null)).toBe("0 wins");
+  });
+
+  it("shows nothing without the wins", () => {
+    expect(formatStandingsRecord(null, 1, 0)).toBeNull();
+    expect(formatStandingsRecord(null, null, null)).toBeNull();
   });
 });
 

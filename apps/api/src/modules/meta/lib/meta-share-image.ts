@@ -1,4 +1,4 @@
-import { formatRankEnglish, formatRecord } from "@openrift/shared/meta-standings";
+import { formatRankEnglish, formatRecordEnglish } from "@openrift/shared/meta-standings";
 
 import type { MetaDeckContextRow } from "../repositories/meta-decks.js";
 
@@ -19,7 +19,7 @@ export function metaDeckImageFraming(
     fieldSize !== null && fieldSize > 0
       ? `${finish} of ${fieldSize.toLocaleString("en-US")}`
       : finish,
-    formatRecord(context.wins, context.losses, context.draws),
+    formatRecordEnglish(context.wins, context.losses, context.draws),
     context.eventName,
   ];
 

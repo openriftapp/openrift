@@ -148,7 +148,13 @@ interface SourceCase {
   factory: ReturnType<typeof vi.fn>;
   env: Record<string, unknown>;
   events: ReturnType<typeof eventsRepo>;
-  paths: { accept: string; dismiss: string; undismiss: string; fetch?: string };
+  paths: {
+    accept: string;
+    autoAccept: string;
+    dismiss: string;
+    undismiss: string;
+    fetch?: string;
+  };
   body: Record<string, unknown>;
   key: string | number;
   externalId: string;
@@ -166,6 +172,7 @@ const CASES: SourceCase[] = [
     events: uvsgamesEvents,
     paths: {
       accept: "/accept",
+      autoAccept: "/sync/auto-accept",
       dismiss: "/dismiss",
       undismiss: "/undismiss",
       fetch: "/sync/fetch",
@@ -190,6 +197,7 @@ const CASES: SourceCase[] = [
     events: playloltcgEvents,
     paths: {
       accept: "/playloltcg/events/accept",
+      autoAccept: "/playloltcg/auto-accept",
       dismiss: "/playloltcg/events/dismiss",
       undismiss: "/playloltcg/events/undismiss",
       fetch: "/playloltcg/events/fetch",
@@ -214,6 +222,7 @@ const CASES: SourceCase[] = [
     events: topdeckEvents,
     paths: {
       accept: "/topdeck/events/accept",
+      autoAccept: "/topdeck/auto-accept",
       dismiss: "/topdeck/events/dismiss",
       undismiss: "/topdeck/events/undismiss",
     },
@@ -231,6 +240,7 @@ const CASES: SourceCase[] = [
     events: playriftboundEvents,
     paths: {
       accept: "/playriftbound/events/accept",
+      autoAccept: "/playriftbound/auto-accept",
       dismiss: "/playriftbound/events/dismiss",
       undismiss: "/playriftbound/events/undismiss",
       fetch: "/playriftbound/events/fetch",
@@ -287,8 +297,7 @@ describe.each(CASES)("$source event writes", (c) => {
     });
     expect(c.events.byKey).toHaveBeenCalledWith(c.key);
     expect(c.accept).toHaveBeenCalledWith(expect.anything(), row, ...c.acceptArgs);
-    expect(lastDeps(c.accept).repos).toBe(requestRepos);
-    expect(lastDeps(c.accept).transact).toBe(requestTransact);
+    expect(lastDeps(c.accept)).toEqual({ repos: requestRepos });
     expect(adminEvents.insert).toHaveBeenCalledTimes(1);
     expect(adminEvents.insert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -302,18 +311,25 @@ describe.each(CASES)("$source event writes", (c) => {
     );
   });
 
-  it("builds the source's deps from its own config", async () => {
+  it("accepts without building the source's sync client", async () => {
     c.events.byKey.mockResolvedValue(rowFor(c));
     c.accept.mockResolvedValue({ metaEventId: "live-1", slug: "s", created: true });
 
-    await post(c.paths.accept, c.body);
+    const res = await post(c.paths.accept, c.body);
+
+    expect(res.status).toBe(200);
+    expect(c.factory).not.toHaveBeenCalled();
+  });
+
+  it("builds the source's deps from its own config", async () => {
+    await post(c.paths.autoAccept);
 
     expect(c.factory).toHaveBeenCalledTimes(1);
     const env = c.factory.mock.calls[0]?.[0] as Record<string, unknown>;
     expect(Object.keys(env).toSorted()).toEqual(
       ["repos", "transact", "fetch", "log", ...Object.keys(c.env)].toSorted(),
     );
-    expect(env).toMatchObject({ repos: requestRepos, transact: requestTransact, ...c.env });
+    expect(env).toMatchObject({ repos: backgroundRepos, transact: backgroundTransact, ...c.env });
   });
 
   it("404s an accept for a key the mirror does not carry", async () => {

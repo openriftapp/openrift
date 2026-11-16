@@ -1,4 +1,3 @@
-import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaEventFinish, MetaEventSummary } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
 import { ChevronRightIcon } from "lucide-react";
@@ -10,7 +9,11 @@ import { RowListLink } from "@/components/ui/row-list";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
-import { formatRank, metaEventCounts } from "@/features/meta/lib/meta-format";
+import {
+  formatRank,
+  metaEventCounts,
+  formatStandingsRecord,
+} from "@/features/meta/lib/meta-format";
 import { metaEventWinners } from "@/features/meta/lib/meta-front-page";
 import { cn } from "@/lib/utils";
 
@@ -50,7 +53,7 @@ export function MetaFinishRow({
   finish: MetaEventFinish;
   showArt?: boolean;
 }) {
-  const record = formatRecord(finish.wins, finish.losses, finish.draws);
+  const record = formatStandingsRecord(finish.wins, finish.losses, finish.draws);
 
   return (
     <span className="flex items-center gap-2.5 rounded-md px-2.5 py-1">

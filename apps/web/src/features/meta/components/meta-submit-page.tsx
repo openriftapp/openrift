@@ -1,6 +1,5 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay } from "@openrift/shared/format-date";
-import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaEventSummary, MetaSubmissionResult } from "@openrift/shared/types/api/meta";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { Link } from "@tanstack/react-router";
@@ -30,7 +29,7 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 import { useMetaEventPage, useMetaEventSearch } from "@/features/meta/hooks/use-meta";
 import type { MetaSubmissionOutcome } from "@/features/meta/hooks/use-meta-submissions";
 import { useSubmitMetaDeck } from "@/features/meta/hooks/use-meta-submissions";
-import { formatRank } from "@/features/meta/lib/meta-format";
+import { formatRank, formatStandingsRecord } from "@/features/meta/lib/meta-format";
 import { metaSubmitEventQuery } from "@/features/meta/lib/meta-queries";
 import {
   metaSubmissionCompletenessLabels,
@@ -410,7 +409,7 @@ export function MetaSubmitPage({
     formatItems[format.slug] = format.label;
   }
 
-  const record = formatRecord(row.wins ?? null, row.losses ?? null, row.draws ?? null);
+  const record = formatStandingsRecord(row.wins ?? null, row.losses ?? null, row.draws ?? null);
   const finish = finishLabel(row.rank, row.rankIsTier);
   const cancelSlug = lockedToEvent ? slug : undefined;
   const deckHint = startedFromArchivedList

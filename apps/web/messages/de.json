@@ -7112,6 +7112,7 @@
   "meta_standings_col_player": "Spieler",
   "meta_standings_col_run": "Verlauf",
   "meta_standings_col_value": "Wert",
+  "meta_standings_provisional": "vorläufig",
   "meta_standings_decklist": "Deckliste",
   "meta_ban_chip_upcoming": "Bann {date}",
   "meta_ban_chip_format_upcoming": "{format}-Bann {date}",
@@ -9522,6 +9523,16 @@
     }
   ],
   "meta_rank_tier": "T{rank}",
+  "meta_record_wins_only": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Sieg",
+        "countPlural=*": "{count} Siege"
+      }
+    }
+  ],
   "rules_examples_count": "{count} Beispiele",
   "rules_examples_show_aria": "Beispiele für Regel {rule} anzeigen",
   "rules_examples_hide_aria": "Beispiele für Regel {rule} ausblenden",

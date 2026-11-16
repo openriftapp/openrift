@@ -74,12 +74,14 @@ interface RecheckWrite {
   activityShopId: number;
   nextCheckAt: Date | null;
   checkStage: number;
+  failingSince?: Date | null;
 }
 
 function dueRow(overrides: Partial<PlayloltcgRecheckRow> = {}): PlayloltcgRecheckRow {
   return {
     heldBy: null,
     activityShopId: 109_991,
+    failingSince: null,
     shopId: null,
     shopName: "卡之域卡牌",
     name: "本命传奇挑战",
@@ -133,11 +135,13 @@ function fakeDeps(options: {
   missing: MissingCall[];
   rechecks: RecheckWrite[];
   pulled: number[][];
+  cleared: number[];
 } {
   const pulled: number[][] = [];
   const windows: WindowRequest[] = [];
   const missing: MissingCall[] = [];
   const rechecks: RecheckWrite[] = [];
+  const cleared: number[] = [];
 
   const client = {
     requests: 0,
@@ -192,6 +196,10 @@ function fakeDeps(options: {
       rechecks.push({ activityShopId, ...values });
       return Promise.resolve();
     },
+    clearFailing: (activityShopId: number) => {
+      cleared.push(activityShopId);
+      return Promise.resolve();
+    },
   };
 
   const deps: PlayloltcgSyncDeps = {
@@ -209,7 +217,7 @@ function fakeDeps(options: {
     log: createLogger("test"),
     now: () => NOW,
   };
-  return { deps, windows, missing, rechecks, pulled };
+  return { deps, windows, missing, rechecks, pulled, cleared };
 }
 
 beforeEach(() => {
@@ -437,7 +445,12 @@ describe("processPlayloltcgRechecks", () => {
 
     expect(result).toMatchObject({ due: 1, processed: 1, fetched: 1, players: 8 });
     expect(rechecks).toEqual([
-      { activityShopId: 109_991, nextCheckAt: new Date(NOW.getTime() + DAY_MS), checkStage: 1 },
+      {
+        activityShopId: 109_991,
+        nextCheckAt: new Date(NOW.getTime() + DAY_MS),
+        checkStage: 1,
+        failingSince: null,
+      },
     ]);
   });
 
@@ -452,7 +465,12 @@ describe("processPlayloltcgRechecks", () => {
     await processPlayloltcgRechecks(deps);
 
     expect(rechecks).toEqual([
-      { activityShopId: 109_991, nextCheckAt: new Date(NOW.getTime() + DAY_MS), checkStage: 1 },
+      {
+        activityShopId: 109_991,
+        nextCheckAt: new Date(NOW.getTime() + DAY_MS),
+        checkStage: 1,
+        failingSince: null,
+      },
     ]);
   });
 
@@ -463,7 +481,12 @@ describe("processPlayloltcgRechecks", () => {
     const result = await processPlayloltcgRechecks(deps);
 
     expect(rechecks).toEqual([
-      { activityShopId: 109_991, nextCheckAt: new Date(NOW.getTime() + HOUR_MS), checkStage: 3 },
+      {
+        activityShopId: 109_991,
+        nextCheckAt: new Date(NOW.getTime() + HOUR_MS),
+        checkStage: 3,
+        failingSince: NOW,
+      },
     ]);
     expect(result.processed).toBe(0);
     expect(playloltcgDeepFetch).not.toHaveBeenCalled();
@@ -489,10 +512,49 @@ describe("processPlayloltcgRechecks", () => {
     const result = await processPlayloltcgRechecks(deps);
 
     expect(rechecks).toEqual([
-      { activityShopId: 109_991, nextCheckAt: new Date(NOW.getTime() + HOUR_MS), checkStage: 2 },
+      {
+        activityShopId: 109_991,
+        nextCheckAt: new Date(NOW.getTime() + HOUR_MS),
+        checkStage: 2,
+        failingSince: NOW,
+      },
     ]);
     expect(result.processed).toBe(0);
     expect(result.errors).toHaveLength(1);
+  });
+
+  it("keeps the day a failure streak began on its next failed visit", async () => {
+    vi.mocked(readPlayloltcgDetail).mockResolvedValueOnce(null);
+    const failingSince = new Date(NOW.getTime() - 13 * DAY_MS);
+    const { deps, rechecks } = fakeDeps({ due: [dueRow({ checkStage: 3, failingSince })] });
+
+    const result = await processPlayloltcgRechecks(deps);
+
+    expect(rechecks).toEqual([
+      {
+        activityShopId: 109_991,
+        nextCheckAt: new Date(NOW.getTime() + HOUR_MS),
+        checkStage: 3,
+        failingSince,
+      },
+    ]);
+    expect(result.dropped).toBe(0);
+  });
+
+  it("drops an event whose visits have failed for two weeks", async () => {
+    vi.mocked(readPlayloltcgDetail).mockResolvedValueOnce(null);
+    const failingSince = new Date(NOW.getTime() - 15 * DAY_MS);
+    const { deps, rechecks } = fakeDeps({ due: [dueRow({ checkStage: 2, failingSince })] });
+
+    const result = await processPlayloltcgRechecks(deps);
+
+    expect(rechecks).toEqual([
+      { activityShopId: 109_991, nextCheckAt: null, checkStage: 2, failingSince: null },
+    ]);
+    expect(result.dropped).toBe(1);
+    expect(result.errors).toContain(
+      "Event 109991 has failed for two weeks and is no longer rechecked.",
+    );
   });
 
   it("revisits a fetched event whose deck bodies are not all held", async () => {
@@ -541,7 +603,12 @@ describe("processPlayloltcgRechecks", () => {
     const result = await processPlayloltcgRechecks(deps);
 
     expect(rechecks).toEqual([
-      { activityShopId: 109_991, nextCheckAt: new Date(NOW.getTime() + 60_000), checkStage: 1 },
+      {
+        activityShopId: 109_991,
+        nextCheckAt: new Date(NOW.getTime() + 60_000),
+        checkStage: 1,
+        failingSince: null,
+      },
     ]);
     expect(result.processed).toBe(1);
     expect(result.decks).toBe(600);
@@ -716,5 +783,13 @@ describe("fetchPlayloltcgEvent", () => {
     await fetchPlayloltcgEvent(deps, dueRow({ checkStage: 2 }));
 
     expect(rechecks).toEqual([]);
+  });
+
+  it("clears an earlier failure streak once a manual fetch succeeds", async () => {
+    const { deps, cleared } = fakeDeps({});
+
+    await fetchPlayloltcgEvent(deps, dueRow({ failingSince: new Date(NOW.getTime() - DAY_MS) }));
+
+    expect(cleared).toEqual([109_991]);
   });
 });

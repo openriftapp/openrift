@@ -7111,6 +7111,7 @@
   "meta_standings_col_player": "選手",
   "meta_standings_col_run": "戰績歷程",
   "meta_standings_col_value": "價值",
+  "meta_standings_provisional": "暫定",
   "meta_standings_decklist": "牌組清單",
   "meta_ban_chip_upcoming": "{date} 禁用",
   "meta_ban_chip_format_upcoming": "{date} {format} 禁用",
@@ -9524,6 +9525,16 @@
     }
   ],
   "meta_rank_tier": "T{rank}",
+  "meta_record_wins_only": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 勝",
+        "countPlural=*": "{count} 勝"
+      }
+    }
+  ],
   "rules_examples_count": "{count} 個範例",
   "rules_examples_show_aria": "顯示規則 {rule} 的範例",
   "rules_examples_hide_aria": "隱藏規則 {rule} 的範例",

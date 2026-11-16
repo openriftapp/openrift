@@ -1,8 +1,7 @@
-import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaDeckDetailResponse } from "@openrift/shared/types/api/meta";
 
 import { archivedDeckIdentity } from "@/features/meta/lib/meta-deck-identity";
-import { formatRank } from "@/features/meta/lib/meta-format";
+import { formatRank, formatStandingsRecord } from "@/features/meta/lib/meta-format";
 import { getSiteUrl } from "@/lib/site-config";
 import { m } from "@/paraglide/messages.js";
 
@@ -37,7 +36,7 @@ export function metaDeckCopyFields(
       ? m.meta_deck_copy_played_anonymous({ event, date })
       : m.meta_deck_copy_played({ player: meta.playerName, event, date });
   const rank = formatRank(meta.rank, meta.rankIsTier);
-  const record = formatRecord(meta.wins, meta.losses, meta.draws);
+  const record = formatStandingsRecord(meta.wins, meta.losses, meta.draws);
   const finish =
     record === null
       ? m.meta_deck_copy_finish({ rank })

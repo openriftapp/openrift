@@ -189,7 +189,9 @@ describe("acceptCatalogEvent", () => {
       eventDate: "2026-02-20",
       format: "constructed",
     });
-    expect(rechecks).toEqual([{ externalId: "365708", nextCheckAt: NOW, checkStage: 0 }]);
+    expect(rechecks).toEqual([
+      { externalId: "365708", nextCheckAt: NOW, checkStage: 0, failingSince: null },
+    ]);
   });
 
   it("arms the recheck of an upcoming event for its start time", async () => {
@@ -198,7 +200,9 @@ describe("acceptCatalogEvent", () => {
 
     await acceptCatalogEvent(deps, catalogRow({ displayStatus: "upcoming", startAt }));
 
-    expect(rechecks).toEqual([{ externalId: "365708", nextCheckAt: startAt, checkStage: 0 }]);
+    expect(rechecks).toEqual([
+      { externalId: "365708", nextCheckAt: startAt, checkStage: 0, failingSince: null },
+    ]);
   });
 
   it("takes the admin's hand-picked format over the source's own", async () => {

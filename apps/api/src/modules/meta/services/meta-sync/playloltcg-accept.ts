@@ -39,7 +39,7 @@ function eventDate(row: PlayloltcgListRow, now: Date): string {
 }
 
 export async function acceptPlayloltcgEvent(
-  deps: PlayloltcgSyncDeps,
+  deps: Pick<PlayloltcgSyncDeps, "repos" | "now">,
   row: PlayloltcgListRow,
 ): Promise<AcceptedPlayloltcgEvent> {
   const promoted = await promoteNewEvent(
@@ -57,6 +57,7 @@ export async function acceptPlayloltcgEvent(
   await deps.repos.playloltcgEvents.setRecheck(row.activityShopId, {
     nextCheckAt: clock(deps),
     checkStage: 0,
+    failingSince: null,
   });
   return promoted;
 }

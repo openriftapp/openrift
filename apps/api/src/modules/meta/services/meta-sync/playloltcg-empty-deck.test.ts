@@ -50,6 +50,7 @@ function world(options: {
   let now = START;
   const row: PlayloltcgRecheckRow = {
     activityShopId: 109_991,
+    failingSince: null,
     shopId: null,
     shopName: "卡之域卡牌",
     name: "本命传奇挑战",

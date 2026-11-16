@@ -1,3 +1,4 @@
+import { DAY_MS, HOUR_MS } from "@openrift/shared/format-date";
 import type { Logger } from "@openrift/shared/logger";
 import { errorMessage } from "@openrift/shared/strings";
 
@@ -61,6 +62,38 @@ export interface RecheckPassSpec<Row, R extends RecheckPassResult> {
 export interface RecheckSchedule {
   nextCheckAt: Date;
   checkStage: number;
+}
+
+const DROP_FAILING_AFTER_MS = 14 * DAY_MS;
+
+interface FailingSchedule {
+  nextCheckAt: Date | null;
+  checkStage: number;
+  failingSince: Date | null;
+}
+
+// Callers write `failingSince: null` on every successful visit, or the streak never ends.
+export async function graceFailingVisit(
+  row: { checkStage: number; failingSince: Date | null },
+  key: string | number,
+  now: Date,
+  result: Pick<RecheckPassResult, "dropped" | "errors">,
+  setRecheck: (schedule: FailingSchedule) => Promise<void>,
+): Promise<void> {
+  const failingSince = row.failingSince ?? now;
+  if (now.getTime() - failingSince.getTime() >= DROP_FAILING_AFTER_MS) {
+    await setRecheck({ nextCheckAt: null, checkStage: row.checkStage, failingSince: null });
+    result.dropped++;
+    recordCapped(result.errors, [
+      `Event ${key} has failed for two weeks and is no longer rechecked.`,
+    ]);
+    return;
+  }
+  await setRecheck({
+    nextCheckAt: new Date(now.getTime() + HOUR_MS),
+    checkStage: row.checkStage,
+    failingSince,
+  });
 }
 
 export function deferBlockedVisit<Row extends { checkStage: number }>(

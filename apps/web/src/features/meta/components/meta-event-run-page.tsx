@@ -1,5 +1,4 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
-import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaEventPlayer, MetaRunRound } from "@openrift/shared/types/api/meta";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { ChevronRightIcon } from "lucide-react";
@@ -19,7 +18,11 @@ import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
 import { MetaResultChip } from "@/features/meta/components/meta-result-chip";
 import { useMetaRun } from "@/features/meta/hooks/use-meta";
 import { describeEventStructure } from "@/features/meta/lib/meta-event-structure";
-import { formatRank, metaOpponentFinishLine } from "@/features/meta/lib/meta-format";
+import {
+  formatRank,
+  metaOpponentFinishLine,
+  formatStandingsRecord,
+} from "@/features/meta/lib/meta-format";
 import { metaRunRecord } from "@/features/meta/lib/meta-player-run";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { FINAL_GLOW } from "@/lib/accent-wash";
@@ -115,7 +118,9 @@ function RunRow({ round, opponent, label, shortLabel, grid, isFinal }: RunRowPro
   const isBye = round.opponentId === null;
   const finish = opponent === undefined ? null : formatRank(opponent.rank, opponent.rankIsTier);
   const record =
-    opponent === undefined ? null : formatRecord(opponent.wins, opponent.losses, opponent.draws);
+    opponent === undefined
+      ? null
+      : formatStandingsRecord(opponent.wins, opponent.losses, opponent.draws);
 
   return (
     <li className="-mx-2" style={isFinal ? { backgroundImage: FINAL_GLOW } : undefined}>
@@ -201,7 +206,7 @@ function RunRow({ round, opponent, label, shortLabel, grid, isFinal }: RunRowPro
 function sectionSubtitle(rounds: readonly MetaRunRound[], bestOf: number | null): string {
   const parts: string[] = [m.meta_run_count_rounds({ count: rounds.length })];
   const record = metaRunRecord(rounds);
-  const formatted = formatRecord(record.wins, record.losses, record.draws);
+  const formatted = formatStandingsRecord(record.wins, record.losses, record.draws);
   if (formatted !== null) {
     parts.push(formatted);
   }
@@ -294,7 +299,7 @@ export function MetaEventRunPage() {
   const champion =
     player.legend === null ? null : (player.legend.character ?? player.legend.epithet);
   const fieldSize = data.event.playerCount ?? data.event.playerRowCount;
-  const record = formatRecord(player.wins, player.losses, player.draws);
+  const record = formatStandingsRecord(player.wins, player.losses, player.draws);
   const roundsPlayed = run.swiss.length + run.cut.length;
 
   return (

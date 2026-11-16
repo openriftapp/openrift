@@ -39,6 +39,7 @@ const FETCHED_AT = new Date("2026-08-19T18:00:00Z");
 function dueRow(overrides: Partial<UvsgamesRecheckRow> = {}): UvsgamesRecheckRow {
   return {
     externalId: "4821",
+    failingSince: null,
     name: "MTC Regional",
     startAt: new Date("2026-08-25T09:00:00Z"),
     endAtEstimate: null,
@@ -73,6 +74,7 @@ interface RecheckWrite {
   externalId: string;
   nextCheckAt: Date | null;
   checkStage: number;
+  failingSince?: Date | null;
 }
 
 interface LifecycleWrite {
@@ -97,8 +99,10 @@ function fakeDeps(options: {
   writes: RecheckWrite[];
   lifecycles: LifecycleWrite[];
   progress: unknown[];
+  cleared: string[];
 } {
   const writes: RecheckWrite[] = [];
+  const cleared: string[] = [];
 
   const client: UvsClient = {
     get: <T>(path: string) => {
@@ -125,6 +129,10 @@ function fakeDeps(options: {
     upsertBatch: () => Promise.resolve({ inserted: [], changed: [], unchanged: [] }),
     setRecheck: (externalId: string, values: Omit<RecheckWrite, "externalId">) => {
       writes.push({ externalId, ...values });
+      return Promise.resolve();
+    },
+    clearFailing: (externalId: string) => {
+      cleared.push(externalId);
       return Promise.resolve();
     },
     formatMappings: () => Promise.resolve(new Map<string, string>()),
@@ -165,7 +173,7 @@ function fakeDeps(options: {
     log: createLogger("test"),
     now: () => NOW,
   };
-  return { deps, writes, lifecycles, progress };
+  return { deps, writes, lifecycles, progress, cleared };
 }
 
 function detailRow(overrides: Record<string, unknown> = {}): Record<string, unknown> {
@@ -191,6 +199,7 @@ describe("processRechecks", () => {
         externalId: "4821",
         nextCheckAt: new Date("2026-08-25T09:00:00Z"),
         checkStage: 0,
+        failingSince: null,
       },
     ]);
   });
@@ -323,8 +332,51 @@ describe("processRechecks", () => {
     expect(result.processed).toBe(0);
     expect(result.errors[0]).toContain("HTTP 503");
     expect(writes).toEqual([
-      { externalId: "4821", nextCheckAt: new Date(NOW.getTime() + HOUR_MS), checkStage: 3 },
+      {
+        externalId: "4821",
+        nextCheckAt: new Date(NOW.getTime() + HOUR_MS),
+        checkStage: 3,
+        failingSince: NOW,
+      },
     ]);
+  });
+
+  it("keeps the day a failure streak began on its next failed visit", async () => {
+    const failingSince = new Date(NOW.getTime() - 13 * 24 * HOUR_MS);
+    const { deps, writes } = fakeDeps({
+      due: [dueRow({ checkStage: 3, failingSince })],
+      detail: () => new Error("HTTP 503"),
+    });
+
+    const result = await processRechecks(deps);
+
+    expect(writes).toEqual([
+      {
+        externalId: "4821",
+        nextCheckAt: new Date(NOW.getTime() + HOUR_MS),
+        checkStage: 3,
+        failingSince,
+      },
+    ]);
+    expect(result.dropped).toBe(0);
+  });
+
+  it("drops an event whose visits have failed for two weeks", async () => {
+    const failingSince = new Date(NOW.getTime() - 15 * 24 * HOUR_MS);
+    const { deps, writes } = fakeDeps({
+      due: [dueRow({ checkStage: 3, failingSince })],
+      detail: () => new Error("HTTP 503"),
+    });
+
+    const result = await processRechecks(deps);
+
+    expect(writes).toEqual([
+      { externalId: "4821", nextCheckAt: null, checkStage: 3, failingSince: null },
+    ]);
+    expect(result.dropped).toBe(1);
+    expect(result.errors).toContain(
+      "Event 4821 has failed for two weeks and is no longer rechecked.",
+    );
   });
 
   it("treats a detail row it cannot read the same way", async () => {
@@ -433,7 +485,12 @@ describe("processRechecks", () => {
     await processRechecks(first.deps);
 
     expect(first.writes).toEqual([
-      { externalId: "4821", nextCheckAt: new Date(NOW.getTime() + 60_000), checkStage: 0 },
+      {
+        externalId: "4821",
+        nextCheckAt: new Date(NOW.getTime() + 60_000),
+        checkStage: 0,
+        failingSince: null,
+      },
     ]);
 
     const resumed = { ...row, ...first.writes[0] };
@@ -447,6 +504,7 @@ describe("processRechecks", () => {
         externalId: "4821",
         nextCheckAt: new Date(NOW.getTime() + 24 * HOUR_MS),
         checkStage: 1,
+        failingSince: null,
       },
     ]);
   });
@@ -473,6 +531,7 @@ describe("processRechecks", () => {
         externalId: "4821",
         nextCheckAt: new Date(NOW.getTime() + 7 * 24 * HOUR_MS),
         checkStage: 3,
+        failingSince: null,
       },
     ]);
   });
@@ -507,7 +566,12 @@ describe("processRechecks", () => {
     await processRechecks(first.deps);
 
     expect(first.writes).toEqual([
-      { externalId: "4821", nextCheckAt: new Date(NOW.getTime() + 24 * HOUR_MS), checkStage: 0 },
+      {
+        externalId: "4821",
+        nextCheckAt: new Date(NOW.getTime() + 24 * HOUR_MS),
+        checkStage: 0,
+        failingSince: null,
+      },
     ]);
 
     const second = fakeDeps({ due: [{ ...row, ...first.writes[0] }], detail, heldRounds: [] });
@@ -516,7 +580,12 @@ describe("processRechecks", () => {
 
     expect(fetch).toHaveBeenCalledTimes(2);
     expect(second.writes).toEqual([
-      { externalId: "4821", nextCheckAt: new Date(NOW.getTime() + 24 * HOUR_MS), checkStage: 1 },
+      {
+        externalId: "4821",
+        nextCheckAt: new Date(NOW.getTime() + 24 * HOUR_MS),
+        checkStage: 1,
+        failingSince: null,
+      },
     ]);
   });
 
@@ -586,8 +655,18 @@ describe("processRechecks", () => {
 
     expect(result.errors[0]).toContain("MAX_PARAMETERS_EXCEEDED");
     expect(writes).toEqual([
-      { externalId: "4821", nextCheckAt: new Date(NOW.getTime() + HOUR_MS), checkStage: 2 },
-      { externalId: "4822", nextCheckAt: new Date("2026-08-25T09:00:00Z"), checkStage: 0 },
+      {
+        externalId: "4821",
+        nextCheckAt: new Date(NOW.getTime() + HOUR_MS),
+        checkStage: 2,
+        failingSince: NOW,
+      },
+      {
+        externalId: "4822",
+        nextCheckAt: new Date("2026-08-25T09:00:00Z"),
+        checkStage: 0,
+        failingSince: null,
+      },
     ]);
     expect(result.processed).toBe(1);
   });
@@ -648,7 +727,12 @@ describe("processRechecks", () => {
     await processRechecks(later.deps);
 
     expect(later.writes).toEqual([
-      { externalId: "4821", nextCheckAt: new Date("2026-08-25T09:00:00Z"), checkStage: 0 },
+      {
+        externalId: "4821",
+        nextCheckAt: new Date("2026-08-25T09:00:00Z"),
+        checkStage: 0,
+        failingSince: null,
+      },
     ]);
   });
 
@@ -741,5 +825,29 @@ describe("fetchEventNow", () => {
 
     expect(running.writes).toEqual([]);
     expect(revisited.writes).toEqual([]);
+  });
+
+  it("clears an earlier failure streak once the fetch stored results", async () => {
+    const { deps, cleared } = fakeDeps({
+      due: [],
+      detail: () => detailRow(),
+      byKey: finished({ checkStage: 2 }),
+    });
+
+    await fetchEventNow(deps, finished());
+
+    expect(cleared).toEqual(["4821"]);
+  });
+
+  it("keeps the failure streak when the fetch stored no results", async () => {
+    const { deps, cleared } = fakeDeps({
+      due: [],
+      detail: () => detailRow(),
+      byKey: finished({ resultsFetchedAt: FETCHED_AT }),
+    });
+
+    await fetchEventNow(deps, finished());
+
+    expect(cleared).toEqual([]);
   });
 });

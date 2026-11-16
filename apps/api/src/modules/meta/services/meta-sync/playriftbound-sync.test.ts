@@ -643,7 +643,7 @@ describe("processPlayriftboundRechecks", () => {
     const { deps, rechecks } = fakeDeps({ due: [dueRow({ failingSince, checkStage: 2 })] });
     const result = await processPlayriftboundRechecks(deps);
     expect(rechecks).toEqual([
-      { tournamentId: "117000000000000001", nextCheckAt: null, checkStage: 2 },
+      { tournamentId: "117000000000000001", nextCheckAt: null, checkStage: 2, failingSince: null },
     ]);
     expect(result.dropped).toBe(1);
   });

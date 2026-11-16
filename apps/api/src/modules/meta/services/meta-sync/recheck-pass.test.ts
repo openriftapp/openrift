@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { createPacedHttp } from "./paced-http.js";
 import type { RecheckPassSpec } from "./recheck-pass.js";
-import { emptyRecheckPassResult, runRecheckPass } from "./recheck-pass.js";
+import { emptyRecheckPassResult, graceFailingVisit, runRecheckPass } from "./recheck-pass.js";
 import type { RunHeartbeat } from "./run-heartbeat.js";
 import { SourceHttpError, SourceThrottledError } from "./source-http.js";
 
@@ -333,5 +333,44 @@ describe("runRecheckPass", () => {
 
     expect(deferred).toEqual([1]);
     expect(result.pausedUntil).not.toBeNull();
+  });
+});
+
+describe("graceFailingVisit", () => {
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  async function graceOf(failingSince: Date | null) {
+    const writes: Parameters<Parameters<typeof graceFailingVisit>[4]>[0][] = [];
+    const result = emptyRecheckPassResult();
+    await graceFailingVisit({ checkStage: 2, failingSince }, 7, NOW, result, (schedule) => {
+      writes.push(schedule);
+      return Promise.resolve();
+    });
+    return { writes, result };
+  }
+
+  it("starts a streak at the first failure and retries in an hour on the same stage", async () => {
+    const { writes, result } = await graceOf(null);
+
+    expect(writes).toEqual([
+      { nextCheckAt: new Date(NOW.getTime() + 60 * 60 * 1000), checkStage: 2, failingSince: NOW },
+    ]);
+    expect(result.dropped).toBe(0);
+  });
+
+  it("drops the row at two weeks and clears the streak for a later re-arm", async () => {
+    const { writes, result } = await graceOf(new Date(NOW.getTime() - 14 * DAY_MS));
+
+    expect(writes).toEqual([{ nextCheckAt: null, checkStage: 2, failingSince: null }]);
+    expect(result.dropped).toBe(1);
+    expect(result.errors).toEqual(["Event 7 has failed for two weeks and is no longer rechecked."]);
+  });
+
+  it("keeps retrying a streak just short of two weeks", async () => {
+    const failingSince = new Date(NOW.getTime() - 14 * DAY_MS + 1);
+    const { writes } = await graceOf(failingSince);
+
+    expect(writes[0]?.failingSince).toBe(failingSince);
+    expect(writes[0]?.nextCheckAt).not.toBeNull();
   });
 });

@@ -1,4 +1,4 @@
-import { DAY_MS, HOUR_MS, MINUTE_MS } from "@openrift/shared/format-date";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { errorMessage } from "@openrift/shared/strings";
 
 import { recordCapped, record } from "../../../../lib/json-coerce.js";
@@ -25,7 +25,12 @@ import type { PlayriftboundDeepFetchResult } from "./playriftbound-deep-fetch.js
 import { playriftboundDeepFetch, readPlayriftboundUpdatedAt } from "./playriftbound-deep-fetch.js";
 import type { PlayriftboundSyncDeps } from "./playriftbound-deps.js";
 import type { RecheckPassResult, VisitOutcome } from "./recheck-pass.js";
-import { deferBlockedVisit, emptyRecheckPassResult, runRecheckPass } from "./recheck-pass.js";
+import {
+  deferBlockedVisit,
+  emptyRecheckPassResult,
+  graceFailingVisit,
+  runRecheckPass,
+} from "./recheck-pass.js";
 import type { MetaSyncResultBase } from "./result.js";
 import { emptyMetaSyncResult, recordAutoAccept } from "./result.js";
 import { createRunHeartbeat } from "./run-heartbeat.js";
@@ -51,8 +56,6 @@ const SWEEP_HEARTBEAT_CELLS = 50;
 const MAX_FAILURES_IN_A_ROW = 5;
 
 const RECHECK_BUDGET_MS = 5 * MINUTE_MS;
-
-const DROP_FAILING_AFTER_MS = 14 * DAY_MS;
 
 export interface PlayriftboundSyncResult extends MetaSyncResultBase, SourceStopFields {
   cells: number;
@@ -408,29 +411,15 @@ export async function backfillPlayriftbound(
   return result;
 }
 
-async function grace(
+function grace(
   deps: PlayriftboundSyncDeps,
   row: PlayriftboundRecheckRow,
   now: Date,
   result: PlayriftboundRecheckResult,
 ): Promise<void> {
-  const failingSince = row.failingSince ?? now;
-  if (now.getTime() - failingSince.getTime() >= DROP_FAILING_AFTER_MS) {
-    await deps.repos.playriftboundEvents.setRecheck(row.tournamentId, {
-      nextCheckAt: null,
-      checkStage: row.checkStage,
-    });
-    result.dropped++;
-    recordCapped(result.errors, [
-      `Event ${row.tournamentId} has failed for two weeks and is no longer rechecked.`,
-    ]);
-    return;
-  }
-  await deps.repos.playriftboundEvents.setRecheck(row.tournamentId, {
-    nextCheckAt: new Date(now.getTime() + HOUR_MS),
-    checkStage: row.checkStage,
-    failingSince,
-  });
+  return graceFailingVisit(row, row.tournamentId, now, result, (schedule) =>
+    deps.repos.playriftboundEvents.setRecheck(row.tournamentId, schedule),
+  );
 }
 
 /**

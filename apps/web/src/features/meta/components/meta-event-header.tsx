@@ -2,7 +2,6 @@ import { enumLabel } from "@openrift/shared/enum-label";
 import { formatRelativeTime, todayUtc } from "@openrift/shared/format-date";
 import { imageUrl } from "@openrift/shared/image-url";
 import { metaEventSourceStarted, metaResultsState } from "@openrift/shared/meta-results";
-import { formatRecord } from "@openrift/shared/meta-standings";
 import type {
   MetaEventDetail,
   MetaEventField,
@@ -30,6 +29,7 @@ import {
   describeEventProgress,
   describeEventStructure,
 } from "@/features/meta/lib/meta-event-structure";
+import { formatStandingsRecord } from "@/features/meta/lib/meta-format";
 import { metaEventWinners } from "@/features/meta/lib/meta-front-page";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -76,7 +76,7 @@ function ChampionPlate({
   slug: string;
   hasRun: boolean;
 }) {
-  const record = formatRecord(player.wins, player.losses, player.draws);
+  const record = formatStandingsRecord(player.wins, player.losses, player.draws);
 
   return (
     <div className="flex w-full shrink-0 items-center gap-4 sm:w-auto">
@@ -150,7 +150,7 @@ export function MetaEventHeader({
   const cutLineRecord =
     field.cutLine === null
       ? null
-      : formatRecord(field.cutLine.wins, field.cutLine.losses, field.cutLine.draws);
+      : formatStandingsRecord(field.cutLine.wins, field.cutLine.losses, field.cutLine.draws);
   const championHasRun = champion !== null && champion.rounds.length > 0;
 
   const byline: string[] = [];

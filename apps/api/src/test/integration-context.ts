@@ -44,6 +44,13 @@ const mockConfig = {
   siteOrigin: "http://localhost:5173",
   auth: { secret: "test", adminEmail: undefined, google: undefined, discord: undefined },
   smtp: { configured: false },
+  metaSync: {
+    baseUrl: "https://uvsgames.example.invalid",
+    playloltcgBaseUrl: "https://playloltcg.example.invalid",
+    topdeckBaseUrl: "https://topdeck.example.invalid",
+    topdeckApiKey: null,
+    playriftboundBaseUrl: "https://playriftbound.example.invalid",
+  },
 } as any;
 
 export interface TestContext {

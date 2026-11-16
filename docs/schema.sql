@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict OFKkfZjd3BAQUskFuPDEsFEp84Szc7akcBSbn980D4cAFyfZzHfrhzmGMBkK5YD
+\restrict 9pvEbX3u1MKhHA5VkdC34cv9fbajCOwfIhZ69d52FCy6AYfpcc8Z6PHa5ksCxCv
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -3621,6 +3621,7 @@ CREATE TABLE public.playloltcg_event_checks (
     check_stage smallint DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    failing_since timestamp with time zone,
     CONSTRAINT chk_playloltcg_event_checks_stage CHECK ((check_stage >= 0))
 );
 
@@ -4665,6 +4666,7 @@ CREATE TABLE public.uvsgames_event_checks (
     check_stage smallint DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    failing_since timestamp with time zone,
     CONSTRAINT chk_uvsgames_event_checks_stage CHECK ((check_stage >= 0))
 );
 
@@ -11495,5 +11497,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict OFKkfZjd3BAQUskFuPDEsFEp84Szc7akcBSbn980D4cAFyfZzHfrhzmGMBkK5YD
+\unrestrict 9pvEbX3u1MKhHA5VkdC34cv9fbajCOwfIhZ69d52FCy6AYfpcc8Z6PHa5ksCxCv
 

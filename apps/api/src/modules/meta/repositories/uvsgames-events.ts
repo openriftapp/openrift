@@ -94,6 +94,7 @@ export interface UvsgamesListRow extends UvsgamesEventRow {
 
 export interface UvsgamesRecheckRow extends UvsgamesListRow {
   important: boolean;
+  failingSince: Date | null;
 }
 
 /** The counts are zero, never null, for a row nothing was fetched for yet. */
@@ -613,6 +614,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
           "src.metaEventId as metaEventId",
           "me.slug as metaEventSlug",
           important.as("important"),
+          "ck.failingSince",
           ...joinedColumns,
         ])
         .where("ck.nextCheckAt", "is not", null)
@@ -666,12 +668,20 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
     // state), so it still records that the event was accepted.
     async setRecheck(
       externalId: string,
-      values: { nextCheckAt: Date | null; checkStage: number },
+      values: { nextCheckAt: Date | null; checkStage: number; failingSince?: Date | null },
     ): Promise<void> {
       await db
         .insertInto("uvsgamesEventChecks")
         .values({ externalId, ...values })
         .onConflict((oc) => oc.column("externalId").doUpdateSet(values))
+        .execute();
+    },
+
+    async clearFailing(externalId: string): Promise<void> {
+      await db
+        .updateTable("uvsgamesEventChecks")
+        .set({ failingSince: null })
+        .where("externalId", "=", externalId)
         .execute();
     },
 

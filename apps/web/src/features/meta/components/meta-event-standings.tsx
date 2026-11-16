@@ -245,7 +245,7 @@ export function MetaEventStandings({
             todayUtc(),
           ) === "collecting" && (
             <p className="text-foreground text-sm font-medium">
-              {[describeEventProgress(field.progress, phases), "provisional"]
+              {[describeEventProgress(field.progress, phases), m.meta_standings_provisional()]
                 .filter(Boolean)
                 .join(" · ")}
             </p>

@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import type { CutPhase } from "./meta-standings.js";
-import { cutPhaseOrders, cutSizeOf, formatRankEnglish, formatRecord } from "./meta-standings.js";
+import {
+  cutPhaseOrders,
+  cutSizeOf,
+  formatRankEnglish,
+  formatRecord,
+  formatRecordEnglish,
+} from "./meta-standings.js";
 
 describe("formatRankEnglish", () => {
   it("renders an exact standing as an ordinal", () => {
@@ -51,6 +57,22 @@ describe("formatRecord", () => {
     expect(formatRecord(null, null, null)).toBeNull();
     expect(formatRecord(5, null, null)).toBeNull();
     expect(formatRecord(null, 1, 0)).toBeNull();
+  });
+});
+
+describe("formatRecordEnglish", () => {
+  it("prints a full record as W-L-D", () => {
+    expect(formatRecordEnglish(5, 1, null)).toBe("5-1-0");
+  });
+
+  it("shows the wins alone when the losses are unknown", () => {
+    expect(formatRecordEnglish(5, null, null)).toBe("5 wins");
+    expect(formatRecordEnglish(1, null, null)).toBe("1 win");
+    expect(formatRecordEnglish(0, null, null)).toBe("0 wins");
+  });
+
+  it("renders nothing without the wins", () => {
+    expect(formatRecordEnglish(null, 1, 0)).toBeNull();
   });
 });
 

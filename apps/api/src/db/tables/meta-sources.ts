@@ -73,6 +73,7 @@ export interface UvsgamesEventChecksTable {
   externalId: string;
   nextCheckAt: Date | null;
   checkStage: Generated<number>;
+  failingSince: Date | null;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
 }
@@ -121,6 +122,7 @@ export interface PlayloltcgEventChecksTable {
   activityShopId: number;
   nextCheckAt: Date | null;
   checkStage: Generated<number>;
+  failingSince: Date | null;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
 }

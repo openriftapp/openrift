@@ -1,5 +1,4 @@
 import { formatDay } from "@openrift/shared/format-date";
-import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaDeckSummary } from "@openrift/shared/types/api/meta";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { Link } from "@tanstack/react-router";
@@ -15,7 +14,11 @@ import { MetaListStatusBadge } from "@/features/meta/components/meta-list-status
 import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
-import { formatRank, metaDeckLinkLabel } from "@/features/meta/lib/meta-format";
+import {
+  formatRank,
+  metaDeckLinkLabel,
+  formatStandingsRecord,
+} from "@/features/meta/lib/meta-format";
 import { eitherName } from "@/features/meta/lib/meta-inferred";
 import { compactFormatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -92,7 +95,7 @@ export function MetaDeckIndexRow({
   grouped?: boolean;
   withCollection?: boolean;
 }) {
-  const record = formatRecord(deck.wins, deck.losses, deck.draws);
+  const record = formatStandingsRecord(deck.wins, deck.losses, deck.draws);
   const value = cost?.value;
   const unpricedNote =
     cost !== undefined && cost.unpriced > 0

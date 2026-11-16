@@ -63,3 +63,15 @@ export function formatRecord(
   }
   return `${wins}-${losses}-${draws ?? 0}`;
 }
+
+export function formatRecordEnglish(
+  wins: number | null,
+  losses: number | null,
+  draws: number | null,
+): string | null {
+  const record = formatRecord(wins, losses, draws);
+  if (record !== null || wins === null) {
+    return record;
+  }
+  return wins === 1 ? "1 win" : `${wins} wins`;
+}

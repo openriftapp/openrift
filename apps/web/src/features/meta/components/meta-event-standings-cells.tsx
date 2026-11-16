@@ -1,4 +1,3 @@
-import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaEventPlayer, MetaStandingsRow } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
 import { ChevronRightIcon, ClockIcon } from "lucide-react";
@@ -17,7 +16,11 @@ import { MetaRunStrip } from "@/features/meta/components/meta-run-strip";
 import { useMetaPriceFormat } from "@/features/meta/hooks/use-meta-price-format";
 import type { MetaBanGroup } from "@/features/meta/lib/meta-deck-bans";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
-import { finishBracketLabel, formatRank } from "@/features/meta/lib/meta-format";
+import {
+  finishBracketLabel,
+  formatRank,
+  formatStandingsRecord,
+} from "@/features/meta/lib/meta-format";
 import type { MetaPendingRowMark } from "@/features/meta/lib/meta-pending-submissions";
 import { metaSubmitSearchForPlayer } from "@/features/meta/lib/meta-submit-link";
 import { cn } from "@/lib/utils";
@@ -167,7 +170,7 @@ export function RunCell({
   layout?: "stacked" | "inline";
   className?: string;
 }) {
-  const record = formatRecord(player.wins, player.losses, player.draws);
+  const record = formatStandingsRecord(player.wins, player.losses, player.draws);
   const charted = player.rounds.length > 0;
   if (!charted && record === null) {
     return null;

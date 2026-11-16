@@ -70,6 +70,7 @@ export async function acceptCatalogEvent(
   await deps.repos.uvsgamesEvents.setRecheck(row.externalId, {
     nextCheckAt: row.startAt.getTime() > now.getTime() ? row.startAt : now,
     checkStage: 0,
+    failingSince: null,
   });
   return promoted;
 }

@@ -33,7 +33,7 @@ export interface AcceptedPlayriftboundEvent {
 }
 
 export async function acceptPlayriftboundEvent(
-  deps: PlayriftboundSyncDeps,
+  deps: Pick<PlayriftboundSyncDeps, "repos" | "now">,
   row: PlayriftboundListRow,
 ): Promise<AcceptedPlayriftboundEvent> {
   const promoted = await promoteNewEvent(deps.repos, PLAYRIFTBOUND_PROVIDER, row.tournamentId, {

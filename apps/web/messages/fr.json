@@ -7113,6 +7113,7 @@
   "meta_standings_col_player": "Joueur",
   "meta_standings_col_run": "Parcours",
   "meta_standings_col_value": "Valeur",
+  "meta_standings_provisional": "provisoire",
   "meta_standings_decklist": "Decklist",
   "meta_ban_chip_upcoming": "Ban {date}",
   "meta_ban_chip_format_upcoming": "Ban {format} {date}",
@@ -9524,6 +9525,16 @@
     }
   ],
   "meta_rank_tier": "Top {rank}",
+  "meta_record_wins_only": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} victoire",
+        "countPlural=*": "{count} victoires"
+      }
+    }
+  ],
   "rules_examples_count": "{count} exemples",
   "rules_examples_show_aria": "Afficher les exemples pour la règle {rule}",
   "rules_examples_hide_aria": "Masquer les exemples pour la règle {rule}",

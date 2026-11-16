@@ -1,5 +1,4 @@
 import { formatDay } from "@openrift/shared/format-date";
-import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaDeckDetailResponse } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
 
@@ -13,14 +12,14 @@ import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
 import { medalRank } from "@/features/meta/lib/meta-deck-archive";
 import type { ArchivedDeckIdentity } from "@/features/meta/lib/meta-deck-identity";
-import { formatRank } from "@/features/meta/lib/meta-format";
+import { formatRank, formatStandingsRecord } from "@/features/meta/lib/meta-format";
 import { m } from "@/paraglide/messages.js";
 
 type MetaDeckContext = MetaDeckDetailResponse["meta"];
 
 export function MetaDeckFinish({ meta }: { meta: MetaDeckContext }) {
   const medal = medalRank(meta.rank, meta.rankIsTier);
-  const record = formatRecord(meta.wins, meta.losses, meta.draws);
+  const record = formatStandingsRecord(meta.wins, meta.losses, meta.draws);
   const field = meta.event.playerCount;
   return (
     <div className="flex shrink-0 items-center gap-3 self-start sm:flex-col sm:items-start sm:gap-1 sm:self-center sm:pr-3">

@@ -54,9 +54,9 @@ describe("metaDeckImageFraming", () => {
     );
   });
 
-  it("leaves the record out when the source published wins only", () => {
+  it("shows the wins alone when the source published no losses", () => {
     expect(metaDeckImageFraming(context({ wins: 5 }), "Legend").resultLine).toBe(
-      "1st of 3,283 · Summoner Skirmish Wuhan",
+      "1st of 3,283 · 5 wins · Summoner Skirmish Wuhan",
     );
   });
 

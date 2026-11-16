@@ -330,22 +330,20 @@ interface AcceptOptions {
   format?: string;
 }
 
-interface MirrorEvents<TKey, TRow extends MirroredEvent, TDeps> {
+interface MirrorEvents<TKey, TRow extends MirroredEvent> {
   provider: string;
   byKey: (repos: Repos, key: TKey) => Promise<TRow | undefined>;
   parseKey: (key: string) => TKey | undefined;
   keyText: (key: TKey) => string;
-  deps: (context: ApiContext) => TDeps;
-  accept: (deps: TDeps, row: TRow, options: AcceptOptions) => Promise<AcceptedEvent>;
+  accept: (repos: Repos, row: TRow, options: AcceptOptions) => Promise<AcceptedEvent>;
 }
 
 interface CatalogSource<
   TKeyInput,
   TKey,
   TRow extends MirroredEvent,
-  TDeps,
   TListQuery,
-> extends MirrorEvents<TKey, TRow, TDeps> {
+> extends MirrorEvents<TKey, TRow> {
   keyOf: (input: TKeyInput) => TKey;
   list: (options: { input: TListQuery; context: ApiContext }) => Promise<unknown>;
   sync: SourceJob;
@@ -364,8 +362,7 @@ const UVSGAMES = {
   byKey: (repos, key) => repos.uvsgamesEvents.byKey(key),
   parseKey: (key) => key,
   keyText: (key) => key,
-  deps: syncDeps,
-  accept: (deps, row, options) => acceptCatalogEvent(deps, row, options),
+  accept: (repos, row, options) => acceptCatalogEvent({ repos }, row, options),
   list: catalogList({
     events: (repos: Repos) => repos.uvsgamesEvents,
     filters: (query: CatalogQuery<"list">, bucket) => ({
@@ -407,13 +404,7 @@ const UVSGAMES = {
   // Five upstream requests at 30s each outlive the proxy's read timeout: the
   // gateway 405s the dead POST, but the run keeps going and reports its runId.
   fetchEvent: uvsgamesJobs.eventFetch(META_SOURCE_JOB_KINDS.uvsgames.eventFetch, fetchEventNow),
-} satisfies CatalogSource<
-  CatalogQuery<"dismiss">,
-  string,
-  UvsgamesListRow,
-  MetaSyncDeps,
-  CatalogQuery<"list">
->;
+} satisfies CatalogSource<CatalogQuery<"dismiss">, string, UvsgamesListRow, CatalogQuery<"list">>;
 
 const playloltcgJobs = sourceJobs(playloltcgDeps);
 
@@ -426,8 +417,7 @@ const PLAYLOLTCG = {
     return Number.isSafeInteger(id) ? id : undefined;
   },
   keyText: String,
-  deps: playloltcgDeps,
-  accept: (deps, row) => acceptPlayloltcgEvent(deps, row),
+  accept: (repos, row) => acceptPlayloltcgEvent({ repos }, row),
   list: catalogList({
     events: (repos: Repos) => repos.playloltcgEvents,
     filters: (query: CatalogQuery<"playloltcgList">, bucket) => ({
@@ -466,7 +456,6 @@ const PLAYLOLTCG = {
   CatalogQuery<"playloltcgDismiss">,
   number,
   PlayloltcgListRow,
-  PlayloltcgSyncDeps,
   CatalogQuery<"playloltcgList">
 >;
 
@@ -478,8 +467,7 @@ const TOPDECK = {
   byKey: (repos, key) => repos.topdeckEvents.byKey(key),
   parseKey: (key) => key,
   keyText: (key) => key,
-  deps: topdeckDeps,
-  accept: (deps, row) => acceptTopdeckEvent(deps, row),
+  accept: (repos, row) => acceptTopdeckEvent({ repos }, row),
   list: catalogList({
     events: (repos: Repos) => repos.topdeckEvents,
     filters: (query: CatalogQuery<"topdeckList">, bucket) => ({
@@ -510,7 +498,6 @@ const TOPDECK = {
   CatalogQuery<"topdeckDismiss">,
   string,
   TopdeckListRow,
-  TopdeckSyncDeps,
   CatalogQuery<"topdeckList">
 >;
 
@@ -522,8 +509,7 @@ const PLAYRIFTBOUND = {
   byKey: (repos, key) => repos.playriftboundEvents.byKey(key),
   parseKey: (key) => key,
   keyText: (key) => key,
-  deps: playriftboundDeps,
-  accept: (deps, row) => acceptPlayriftboundEvent(deps, row),
+  accept: (repos, row) => acceptPlayriftboundEvent({ repos }, row),
   list: catalogList({
     events: (repos: Repos) => repos.playriftboundEvents,
     filters: (query: CatalogQuery<"playriftboundList">, bucket) => ({
@@ -565,12 +551,11 @@ const PLAYRIFTBOUND = {
   CatalogQuery<"playriftboundDismiss">,
   string,
   PlayriftboundListRow,
-  PlayriftboundSyncDeps,
   CatalogQuery<"playriftboundList">
 >;
 
-async function requireMirrored<TKey, TRow extends MirroredEvent, TDeps>(
-  source: MirrorEvents<TKey, TRow, TDeps>,
+async function requireMirrored<TKey, TRow extends MirroredEvent>(
+  source: MirrorEvents<TKey, TRow>,
   context: ApiContext,
   key: TKey,
 ): Promise<TRow> {
@@ -583,8 +568,8 @@ function alreadyTriaged(): AppError {
   return conflict("This event is already published or dismissed.");
 }
 
-async function claimAccept<TRow extends MirroredEvent, TDeps>(
-  source: Pick<MirrorEvents<unknown, TRow, TDeps>, "provider" | "deps" | "accept">,
+async function claimAccept<TRow extends MirroredEvent>(
+  source: Pick<MirrorEvents<unknown, TRow>, "provider" | "accept">,
   context: ApiContext,
   row: TRow,
   keyText: string,
@@ -596,7 +581,7 @@ async function claimAccept<TRow extends MirroredEvent, TDeps>(
       if (!(await locked.meta.sourceKeyUntriaged(source.provider, keyText))) {
         return null;
       }
-      return await source.accept(source.deps({ ...context, repos: locked }), row, options);
+      return await source.accept(locked, row, options);
     },
   );
 }
@@ -607,8 +592,8 @@ function claimDismiss(context: ApiContext, provider: string, keyText: string): P
   );
 }
 
-async function acceptMirrored<TKey, TRow extends MirroredEvent, TDeps>(
-  source: MirrorEvents<TKey, TRow, TDeps>,
+async function acceptMirrored<TKey, TRow extends MirroredEvent>(
+  source: MirrorEvents<TKey, TRow>,
   context: AuthedContext,
   key: TKey,
   options: AcceptOptions = {},
@@ -631,8 +616,8 @@ async function acceptMirrored<TKey, TRow extends MirroredEvent, TDeps>(
   return accepted;
 }
 
-async function dismissMirrored<TKey, TRow extends MirroredEvent, TDeps>(
-  source: MirrorEvents<TKey, TRow, TDeps>,
+async function dismissMirrored<TKey, TRow extends MirroredEvent>(
+  source: MirrorEvents<TKey, TRow>,
   context: AuthedContext,
   key: TKey,
 ): Promise<void> {
@@ -664,8 +649,8 @@ async function undismissMirrored<TKey>(
   });
 }
 
-function eventHandlers<TKeyInput, TKey, TRow extends MirroredEvent, TDeps>(
-  source: MirrorEvents<TKey, TRow, TDeps> & { keyOf: (input: TKeyInput) => TKey },
+function eventHandlers<TKeyInput, TKey, TRow extends MirroredEvent>(
+  source: MirrorEvents<TKey, TRow> & { keyOf: (input: TKeyInput) => TKey },
 ) {
   return {
     accept: ({ input, context }: { input: TKeyInput; context: AuthedContext }) =>
@@ -677,8 +662,8 @@ function eventHandlers<TKeyInput, TKey, TRow extends MirroredEvent, TDeps>(
   };
 }
 
-function fetchHandler<TKeyInput, TKey, TRow extends MirroredEvent, TDeps>(
-  source: MirrorEvents<TKey, TRow, TDeps> & {
+function fetchHandler<TKeyInput, TKey, TRow extends MirroredEvent>(
+  source: MirrorEvents<TKey, TRow> & {
     keyOf: (input: TKeyInput) => TKey;
     fetchEvent: (context: ApiContext, row: TRow) => Promise<MetaSyncTriggerResult>;
   },
@@ -709,8 +694,8 @@ interface MirrorAccess {
   row: (context: ApiContext, key: string) => Promise<MirrorRowHandle | undefined>;
 }
 
-function mirrorAccess<TKey, TRow extends MirroredEvent, TDeps>(
-  source: MirrorEvents<TKey, TRow, TDeps>,
+function mirrorAccess<TKey, TRow extends MirroredEvent>(
+  source: MirrorEvents<TKey, TRow>,
 ): MirrorAccess {
   return {
     provider: source.provider,

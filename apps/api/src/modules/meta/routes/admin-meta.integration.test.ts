@@ -1,7 +1,9 @@
 import { RESERVED_META_EVENT_SLUGS } from "@openrift/shared/contracts/admin/meta-events";
 import type { CardType } from "@openrift/shared/types/enums";
+import { sql } from "kysely";
 import { afterAll, describe, expect, it } from "vitest";
 
+import { sourcePromoteKey } from "../../../lib/meta-promote-keys.js";
 import {
   adminReq,
   createTestContext,
@@ -12,6 +14,7 @@ import {
   seedTestUser,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
+import { holdRow, waitUntilBlockedBy } from "../../../test/row-locks.js";
 import { META_ARCHIVE_USER_ID } from "../repositories/meta-shared.js";
 
 // Uses prefix mtr- / MTR for everything it creates. The user starts as a
@@ -533,18 +536,23 @@ describe.skipIf(!ctx)("Meta archive routes (integration)", () => {
 
   describe("catalogue accept racing a dismiss", () => {
     const provider = "uvsgames";
-    const externalId = `mtr-race-${crypto.randomUUID()}`;
+    const externalIds: string[] = [];
 
     afterAll(async () => {
+      if (externalIds.length === 0) {
+        return;
+      }
       await db
         .deleteFrom("ignoredMetaSourceEvents")
         .where("provider", "=", provider)
-        .where("externalId", "=", externalId)
+        .where("externalId", "in", externalIds)
         .execute();
-      await db.deleteFrom("uvsgamesEvents").where("externalId", "=", externalId).execute();
+      await db.deleteFrom("uvsgamesEvents").where("externalId", "in", externalIds).execute();
     });
 
-    it("lets exactly one of the two requests triage the event", async () => {
+    async function seedMirrorEvent(): Promise<string> {
+      const externalId = `mtr-race-${crypto.randomUUID()}`;
+      externalIds.push(externalId);
       await db
         .insertInto("uvsgamesEvents")
         .values({
@@ -556,19 +564,10 @@ describe.skipIf(!ctx)("Meta archive routes (integration)", () => {
           lastSeenAt: new Date("2026-08-16T00:00:00Z"),
         })
         .execute();
+      return externalId;
+    }
 
-      const [accepted, dismissed] = await Promise.all([
-        app.fetch(adminReq("POST", "/meta/catalogue/accept", { externalId, format: FORMAT })),
-        app.fetch(adminReq("POST", "/meta/catalogue/dismiss", { externalId })),
-      ]);
-      const acceptWon = accepted.status === 200;
-      const acceptedJson = acceptWon ? await readJson(accepted) : undefined;
-      const acceptedEventId = acceptedJson?.metaEventId;
-      if (acceptedEventId !== undefined) {
-        createdEventIds.push(acceptedEventId);
-      }
-      expect(acceptWon ? dismissed.status : accepted.status).toBe(409);
-
+    async function triageRows(externalId: string) {
       const citations = await db
         .selectFrom("metaEventSources")
         .select("metaEventId")
@@ -581,15 +580,52 @@ describe.skipIf(!ctx)("Meta archive routes (integration)", () => {
         .where("provider", "=", provider)
         .where("externalId", "=", externalId)
         .execute();
+      return { citations, ignored };
+    }
 
-      if (acceptWon) {
-        expect(citations).toEqual([{ metaEventId: acceptedEventId }]);
-        expect(ignored).toEqual([]);
-      } else {
-        expect(dismissed.status).toBe(204);
-        expect(citations).toEqual([]);
-        expect(ignored).toEqual([{ externalId }]);
+    // Postgres grants a contended advisory lock in queue order, so the request fired first wins.
+    async function queuedBehindLock(externalId: string, first: Request, second: Request) {
+      const lockName = `meta-promote:${sourcePromoteKey(provider, externalId)}`;
+      const held = await holdRow(db, sql`SELECT pg_advisory_xact_lock(hashtext(${lockName}))`);
+      try {
+        const firstResponse = app.fetch(first);
+        await waitUntilBlockedBy(db, held.pid);
+        const secondResponse = app.fetch(second);
+        await held.release();
+        return await Promise.all([firstResponse, secondResponse]);
+      } finally {
+        await held.release();
       }
+    }
+
+    it("refuses the dismiss once the accept has published the event", async () => {
+      const externalId = await seedMirrorEvent();
+
+      const [accepted, dismissed] = await queuedBehindLock(
+        externalId,
+        adminReq("POST", "/meta/catalogue/accept", { externalId, format: FORMAT }),
+        adminReq("POST", "/meta/catalogue/dismiss", { externalId }),
+      );
+
+      expect(accepted.status).toBe(200);
+      const { metaEventId } = await readJson(accepted);
+      createdEventIds.push(metaEventId);
+      expect(dismissed.status).toBe(409);
+      expect(await triageRows(externalId)).toEqual({ citations: [{ metaEventId }], ignored: [] });
+    });
+
+    it("refuses the accept once the dismiss has written the ignore row", async () => {
+      const externalId = await seedMirrorEvent();
+
+      const [dismissed, accepted] = await queuedBehindLock(
+        externalId,
+        adminReq("POST", "/meta/catalogue/dismiss", { externalId }),
+        adminReq("POST", "/meta/catalogue/accept", { externalId, format: FORMAT }),
+      );
+
+      expect(dismissed.status).toBe(204);
+      expect(accepted.status).toBe(409);
+      expect(await triageRows(externalId)).toEqual({ citations: [], ignored: [{ externalId }] });
     });
   });
 });

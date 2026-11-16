@@ -7118,6 +7118,7 @@
   "meta_standings_col_player": "Player",
   "meta_standings_col_run": "Run",
   "meta_standings_col_value": "Value",
+  "meta_standings_provisional": "provisional",
   "meta_standings_decklist": "Decklist",
   "meta_ban_chip_upcoming": "Ban {date}",
   "meta_ban_chip_format_upcoming": "{format} ban {date}",
@@ -9731,6 +9732,16 @@
     }
   ],
   "meta_rank_tier": "T{rank}",
+  "meta_record_wins_only": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} win",
+        "countPlural=*": "{count} wins"
+      }
+    }
+  ],
   "tournaments_settings_toc_uvsgames": "UVS Games",
   "tournaments_settings_uvsgames_title": "UVS Games event",
   "tournaments_settings_uvsgames_description": "If this tournament also runs on UVS Games, link its event here. The tournament page then links to it, and after the event you can send the decklists to the Meta Archive under its official standings.",

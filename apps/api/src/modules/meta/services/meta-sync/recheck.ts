@@ -1,4 +1,4 @@
-import { HOUR_MS, MINUTE_MS } from "@openrift/shared/format-date";
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import { errorMessage } from "@openrift/shared/strings";
 
 import { recordCapped } from "../../../../lib/json-coerce.js";
@@ -18,7 +18,12 @@ import { deepFetchEvent } from "./deep-fetch.js";
 import type { MetaSyncDeps } from "./deps.js";
 import { clock } from "./deps.js";
 import type { RecheckPassResult, VisitOutcome } from "./recheck-pass.js";
-import { deferBlockedVisit, emptyRecheckPassResult, runRecheckPass } from "./recheck-pass.js";
+import {
+  deferBlockedVisit,
+  emptyRecheckPassResult,
+  graceFailingVisit,
+  runRecheckPass,
+} from "./recheck-pass.js";
 import { createRunHeartbeat } from "./run-heartbeat.js";
 import { isPermanentRefusal, RunDeadlineError, sourceStopOf } from "./source-http.js";
 import { isRecheckPassNoop } from "./sync-noop.js";
@@ -79,7 +84,7 @@ export async function processRechecks(
     due: (now, limit) => deps.repos.uvsgamesEvents.dueForRecheck(now, limit),
     keyOf: (row) => row.externalId,
     visit: (row, now) => visit(deps, row, watched, result, now, runId),
-    grace: (row, now) => reschedule(deps, row, now, row.checkStage),
+    grace: (row, now) => grace(deps, row, now, result),
     drop: (row) =>
       deps.repos.uvsgamesEvents.setRecheck(row.externalId, {
         nextCheckAt: null,
@@ -111,12 +116,13 @@ export async function settleAfterManualFetch(
   const row = await deps.repos.uvsgamesEvents.byKey(externalId);
   if (
     row === undefined ||
-    row.nextCheckAt === null ||
-    row.checkStage !== 0 ||
-    row.displayStatus !== "complete" ||
     row.resultsFetchedAt === null ||
     row.resultsFetchedAt.getTime() < startedAt.getTime()
   ) {
+    return;
+  }
+  await deps.repos.uvsgamesEvents.clearFailing(externalId);
+  if (row.nextCheckAt === null || row.checkStage !== 0 || row.displayStatus !== "complete") {
     return;
   }
   await deps.repos.uvsgamesEvents.setRecheck(externalId, firstRevisit(clock(deps)));
@@ -132,8 +138,7 @@ async function visit(
 ): Promise<VisitOutcome> {
   const refreshed = await refreshStatus(deps, row, now, result.errors);
   if (refreshed === null) {
-    // Failed read: retry in an hour, not the ten-minute cadence.
-    await reschedule(deps, row, now, row.checkStage);
+    await grace(deps, row, now, result);
     return "failed";
   }
 
@@ -181,10 +186,11 @@ async function visit(
   await deps.repos.uvsgamesEvents.setRecheck(
     row.externalId,
     cut === "progressed"
-      ? resumeSoon(now, 0)
+      ? { ...resumeSoon(now, 0), failingSince: null }
       : {
           nextCheckAt: decision.nextCheckAt,
           checkStage: cut === "stalled" ? row.checkStage : decision.checkStage,
+          failingSince: null,
         },
   );
   // Counted here, not at entry, so a row that throws mid-visit lands in errors.
@@ -280,14 +286,13 @@ async function readDetail(
   }
 }
 
-async function reschedule(
+function grace(
   deps: MetaSyncDeps,
-  row: UvsgamesListRow,
+  row: UvsgamesRecheckRow,
   now: Date,
-  checkStage: number,
+  result: MetaRecheckResult,
 ): Promise<void> {
-  await deps.repos.uvsgamesEvents.setRecheck(row.externalId, {
-    nextCheckAt: new Date(now.getTime() + HOUR_MS),
-    checkStage,
-  });
+  return graceFailingVisit(row, row.externalId, now, result, (schedule) =>
+    deps.repos.uvsgamesEvents.setRecheck(row.externalId, schedule),
+  );
 }

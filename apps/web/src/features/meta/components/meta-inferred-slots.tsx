@@ -1,5 +1,4 @@
 import { imageUrl } from "@openrift/shared/image-url";
-import { formatRecord } from "@openrift/shared/meta-standings";
 import type { PublicDeckCardResponse } from "@openrift/shared/types/api/deck";
 import type { MetaDeckInference, MetaInferenceNeighbour } from "@openrift/shared/types/api/meta";
 import type { DeckZone } from "@openrift/shared/types/enums";
@@ -18,7 +17,7 @@ import {
   PORTRAIT_THUMB_CLASS,
   PORTRAIT_THUMB_STYLE,
 } from "@/features/decks/lib/deck-thumb-metrics";
-import { formatRank, joinNames } from "@/features/meta/lib/meta-format";
+import { formatRank, joinNames, formatStandingsRecord } from "@/features/meta/lib/meta-format";
 import { inferredCardLabel } from "@/features/meta/lib/meta-inferred";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -38,7 +37,7 @@ function NeighbourRow({
       : neighbour.battlefieldNames.length > 0
         ? joinNames(neighbour.battlefieldNames)
         : null;
-  const record = formatRecord(neighbour.wins, neighbour.losses, neighbour.draws);
+  const record = formatStandingsRecord(neighbour.wins, neighbour.losses, neighbour.draws);
   const finish = [formatRank(neighbour.rank, neighbour.rankIsTier), record]
     .filter((part) => part !== null)
     .join(" · ");

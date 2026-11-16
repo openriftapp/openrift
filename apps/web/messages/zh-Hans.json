@@ -7111,6 +7111,7 @@
   "meta_standings_col_player": "选手",
   "meta_standings_col_run": "战况",
   "meta_standings_col_value": "价值",
+  "meta_standings_provisional": "暂定",
   "meta_standings_decklist": "卡组表",
   "meta_ban_chip_upcoming": "{date} 禁用",
   "meta_ban_chip_format_upcoming": "{date} {format} 禁用",
@@ -9524,6 +9525,16 @@
     }
   ],
   "meta_rank_tier": "T{rank}",
+  "meta_record_wins_only": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 胜",
+        "countPlural=*": "{count} 胜"
+      }
+    }
+  ],
   "rules_examples_count": "{count} 个示例",
   "rules_examples_show_aria": "显示规则 {rule} 的示例",
   "rules_examples_hide_aria": "隐藏规则 {rule} 的示例",

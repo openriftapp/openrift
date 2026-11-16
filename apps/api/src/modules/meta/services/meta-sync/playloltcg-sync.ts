@@ -35,7 +35,12 @@ import {
 } from "./playloltcg-deep-fetch.js";
 import type { PlayloltcgSyncDeps } from "./playloltcg-deps.js";
 import type { RecheckPassResult, VisitOutcome } from "./recheck-pass.js";
-import { deferBlockedVisit, emptyRecheckPassResult, runRecheckPass } from "./recheck-pass.js";
+import {
+  deferBlockedVisit,
+  emptyRecheckPassResult,
+  graceFailingVisit,
+  runRecheckPass,
+} from "./recheck-pass.js";
 import type { MetaSyncResultBase } from "./result.js";
 import { emptyMetaSyncResult, recordAutoAccept } from "./result.js";
 import { createRunHeartbeat } from "./run-heartbeat.js";
@@ -251,16 +256,15 @@ export async function syncPlayloltcgCatalog(
 }
 
 /** Advances the ladder on neither success nor decay: that would either decay a finished event's revisits or rewind a completed one to the event-day poll. */
-async function grace(
+function grace(
   deps: PlayloltcgSyncDeps,
-  activityShopId: number,
+  row: PlayloltcgRecheckRow,
   now: Date,
-  checkStage: number,
+  result: PlayloltcgRecheckResult,
 ): Promise<void> {
-  await deps.repos.playloltcgEvents.setRecheck(activityShopId, {
-    nextCheckAt: new Date(now.getTime() + HOUR_MS),
-    checkStage,
-  });
+  return graceFailingVisit(row, row.activityShopId, now, result, (schedule) =>
+    deps.repos.playloltcgEvents.setRecheck(row.activityShopId, schedule),
+  );
 }
 
 function displayStatusOf(detail: PlayloltcgDetailFacts, status: number | null): string {
@@ -331,7 +335,7 @@ export async function processPlayloltcgRechecks(
         result,
         Math.max(MIN_DECKS_PER_VISIT, PLAYLOLTCG_RUN_REQUESTS - spent),
       ),
-    grace: (row, at) => grace(deps, row.activityShopId, at, row.checkStage),
+    grace: (row, at) => grace(deps, row, at, result),
     drop: (row) =>
       deps.repos.playloltcgEvents.setRecheck(row.activityShopId, {
         nextCheckAt: null,
@@ -358,7 +362,7 @@ async function visitPlayloltcgEvent(
   });
   recordCapped(result.errors, detailErrors);
   if (detail === null) {
-    await grace(deps, row.activityShopId, now, row.checkStage);
+    await grace(deps, row, now, result);
     return "failed";
   }
   if (detail.shopId !== null) {
@@ -396,6 +400,7 @@ async function visitPlayloltcgEvent(
     deps.repos.playloltcgEvents.setRecheck(row.activityShopId, {
       nextCheckAt: decision.nextCheckAt,
       checkStage: decision.checkStage,
+      failingSince: null,
     });
 
   // An empty deck is asked again at most once per UTC day and per stage from stage 1, and is
@@ -446,14 +451,14 @@ async function visitPlayloltcgEvent(
   result.acceptedPlayers += fetched.acceptedPlayers;
   recordCapped(result.errors, fetched.errors);
   if (!fetched.complete) {
-    await grace(deps, row.activityShopId, now, row.checkStage);
+    await grace(deps, row, now, result);
     return "failed";
   }
   if (decision.deepFetch && fetched.decksRemaining > 0 && fetched.decks > 0) {
-    await deps.repos.playloltcgEvents.setRecheck(
-      row.activityShopId,
-      resumeSoon(now, row.checkStage),
-    );
+    await deps.repos.playloltcgEvents.setRecheck(row.activityShopId, {
+      ...resumeSoon(now, row.checkStage),
+      failingSince: null,
+    });
     result.processed++;
     return "ok";
   }
@@ -497,6 +502,9 @@ export async function fetchPlayloltcgEvent(
     row.checkStage === 0
   ) {
     await deps.repos.playloltcgEvents.setRecheck(row.activityShopId, firstRevisit(clock(deps)));
+  }
+  if (result.complete) {
+    await deps.repos.playloltcgEvents.clearFailing(row.activityShopId);
   }
   return { ...result, errors: [...errors, ...result.errors] };
 }
