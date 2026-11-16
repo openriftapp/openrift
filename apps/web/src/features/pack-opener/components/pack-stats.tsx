@@ -1,6 +1,4 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
-import type { LabelMap } from "@openrift/shared/enum-label";
-import type { PackPrinting, PackPull, PackResult } from "@openrift/shared/pack-opener/types";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -15,9 +13,11 @@ import {
   compareRarityDesc,
   packRarityColor,
   packRarityKey,
+  PREMIUM_OUTCOMES,
+  packPullLabel,
   packRarityLabel,
-  packSlotLabel,
 } from "@/features/pack-opener/lib/pack-pull-labels";
+import type { PackPrinting, PackPull, PackResult } from "@/features/pack-opener/lib/pack-types";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { compactFormatterForMarketplace, formatterForMarketplace } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
@@ -87,10 +87,10 @@ export function PackStats({ packs, prices, marketplace }: PackStatsProps) {
 
   const totalPulls = allPulls.length;
   const averageValue = packs.length > 0 ? totalValue / packs.length : 0;
-  // A single 13-card pack is too few pulls for a meaningful distribution bar.
+  // A single pack is too few pulls for a meaningful distribution bar.
   const showRarityBar = packs.length > 1;
 
-  const notable = buildNotablePulls(allPulls, labels.rarities);
+  const notable = buildNotablePulls(allPulls);
 
   const fullFmt = marketplace ? formatterForMarketplace(marketplace) : null;
   const compactFmt = marketplace ? compactFormatterForMarketplace(marketplace) : null;
@@ -129,7 +129,6 @@ export function PackStats({ packs, prices, marketplace }: PackStatsProps) {
 
 function buildNotablePulls(
   allPulls: readonly { pull: PackPull; rarity: string; value: number | undefined }[],
-  rarityLabels: LabelMap,
 ): NotablePull[] {
   const seen = new Set<string>();
   const notable: NotablePull[] = [];
@@ -140,10 +139,7 @@ function buildNotablePulls(
       continue;
     }
     const isNotableRarity =
-      NOTABLE_RARITIES.has(rarity) ||
-      pull.slot === WellKnown.packSlot.FOIL ||
-      pull.slot === WellKnown.packSlot.SHOWCASE ||
-      pull.slot === WellKnown.packSlot.ULTIMATE;
+      NOTABLE_RARITIES.has(rarity) || pull.slot === "foil" || PREMIUM_OUTCOMES.has(pull.outcome);
     if (!isNotableRarity) {
       continue;
     }
@@ -160,7 +156,7 @@ function buildNotablePulls(
       }),
       printing: pull.printing,
       rarity,
-      slotLabel: packSlotLabel(pull, rarityLabels),
+      slotLabel: packPullLabel(pull),
       value,
     });
   }

@@ -4,11 +4,13 @@
 
 ### Highlights
 
+- feat(Products): **Booster packs with their odds** — each set's booster has a page of slots, rates and printings per language, and card pages say how often a printing turns up in one.
 - feat(Rules): **Tournament infractions at a glance** — a new Infractions view lists every infraction with its penalty and remedies.
 - feat(Tournaments): **Deleted accounts show as "Former member"** — results stay in standings and pairings, the name and Riot ID of a player who deleted their account are removed, and their spots in upcoming or running events are dropped.
 
 ### Other
 
+- feat(Packs): **Pack opener on the booster rates** — packs open with the slots and rates of the booster pages, so alt arts and Overnumbered cards now sit in the Rare slots.
 - feat(Rules): **Changes behind view options** — the rules page shows the changes since the previous version from a view options button next to the version select, with a short description for each mode.
 - feat(Groups): **Copy counts when sharing** — the dialog for sharing collections with a group shows how many copies each collection holds.
 - feat(Stage): **Taller share images for three and four players** — card names on shared boards with three or four players wrap and read in full.

@@ -98,6 +98,7 @@ function runHeadFull(
       markers: [],
       distributionChannels: [],
       products: [],
+      boosters: [],
       related: [],
     } satisfies CardDetailPayload,
     languageOrder: ["EN", "DE", "JA"] as const,

@@ -25,6 +25,9 @@ const updateProductInput = z.object({
 
 // Contents are only ever written by snapshotting a list, not edited row by row.
 export const adminProductsContract = {
+  printingIds: authedRoute
+    .route({ method: "GET", path: `${PRODUCTS}/printing-ids`, tags: [TAG] })
+    .output(z.object({ printingIds: z.array(z.string()) })),
   create: authedRoute
     .route({ method: "POST", path: PRODUCTS, tags: [TAG], successStatus: 201 })
     .errors({

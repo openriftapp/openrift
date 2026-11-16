@@ -84,6 +84,7 @@ describe("CardTableRow", () => {
           },
           distributionNote: null,
           ancestorLabels: ["Events", "Championships"],
+          ancestorSlugs: ["events", "championships"],
         },
         {
           channel: {
@@ -97,6 +98,7 @@ describe("CardTableRow", () => {
           },
           distributionNote: null,
           ancestorLabels: [],
+          ancestorSlugs: [],
         },
       ],
     });

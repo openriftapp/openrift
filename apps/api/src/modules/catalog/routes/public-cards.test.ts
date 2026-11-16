@@ -41,6 +41,19 @@ app.use("*", async (c, next) => {
     distributionChannels: mockDistributionChannelsRepo,
     printingCitations: mockPrintingCitationsRepo,
     products: mockProductsRepo,
+    catalogResponse: {
+      current: () =>
+        Promise.resolve({
+          version: "v1",
+          value: {
+            sets: [],
+            cards: {},
+            printings: {},
+            markers: [],
+            distributionChannels: [],
+          },
+        }),
+    },
   } as any);
   await next();
 });
@@ -204,6 +217,7 @@ describe("GET /api/v1/cards/:cardSlug", () => {
     expect(printing.images).toEqual([]);
     expect(json.sets).toEqual([dbSet]);
     expect(json.products).toEqual([]);
+    expect(json.boosters).toEqual([]);
     expect(json).not.toHaveProperty("related");
   });
 

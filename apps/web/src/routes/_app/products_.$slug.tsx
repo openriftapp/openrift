@@ -1,9 +1,14 @@
+import { BOOSTERS, cardsPerPack } from "@openrift/shared/boosters/definitions";
 import type { ProductDetailResponse } from "@openrift/shared/contracts/products";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { NotFoundFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
 import { productDetailQueryOptions } from "@/features/cards/lib/products-queries";
+import {
+  publicSetDetailQueryOptions,
+  publicSetListQueryOptions,
+} from "@/features/cards/lib/public-sets-queries";
 import { cleanedSearchForRedirect, filterSearchSchema } from "@/features/cards/lib/search-schemas";
 import { breadcrumbJsonLd, cardJsonLdItems, collectionPageJsonLd, seoHead } from "@/lib/seo";
 import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
@@ -13,6 +18,7 @@ import { cn, PAGE_WIDTH, PAGE_PADDING } from "@/lib/utils";
 interface ProductHeadData {
   product: Pick<ProductDetailResponse["product"], "name" | "description" | "cardTotal">;
   items: { name: string; url: string }[];
+  isBooster?: true;
 }
 
 export const Route = createFileRoute("/_app/products_/$slug")({
@@ -31,9 +37,10 @@ export const Route = createFileRoute("/_app/products_/$slug")({
       return seoHead({ siteUrl, title: "Product", path, unlisted: true });
     }
     const { product, items } = data;
-    const description =
-      product.description ??
-      `Every card in ${product.name}, a fixed-content Riftbound product (${product.cardTotal} cards).`;
+    const description = data.isBooster
+      ? `Slots, pull rates and printings of the ${product.name}, per language.`
+      : (product.description ??
+        `Every card in ${product.name}, a fixed-content Riftbound product (${product.cardTotal} cards).`);
     const head = seoHead({ siteUrl, title: product.name, description, path });
 
     return {
@@ -50,6 +57,26 @@ export const Route = createFileRoute("/_app/products_/$slug")({
   // Returns only what head reads: loader data is dehydrated beside the query
   // cache, and returning the whole response would ship every printing twice.
   loader: async ({ context, params }): Promise<ProductHeadData> => {
+    const booster = BOOSTERS[params.slug];
+    if (booster) {
+      const [setList] = await Promise.all([
+        context.queryClient.query({ ...publicSetListQueryOptions, staleTime: "static" }),
+        context.queryClient.query({
+          ...publicSetDetailQueryOptions(booster.set),
+          staleTime: "static",
+        }),
+      ]);
+      const setName = setList.sets.find((set) => set.slug === booster.set)?.name ?? booster.set;
+      return {
+        product: {
+          name: `${setName} Booster Pack`,
+          description: null,
+          cardTotal: cardsPerPack(booster),
+        },
+        items: [],
+        isBooster: true,
+      };
+    }
     const data: ProductDetailResponse = await notFoundOnSentinel(
       context.queryClient.query({
         ...productDetailQueryOptions(params.slug),

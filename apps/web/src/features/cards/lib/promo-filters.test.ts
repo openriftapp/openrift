@@ -41,6 +41,7 @@ function makeChannelLink(channelId: string): PrintingDistributionChannel {
     },
     distributionNote: null,
     ancestorLabels: [],
+    ancestorSlugs: [],
   };
 }
 

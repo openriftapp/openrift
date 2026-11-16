@@ -17,6 +17,7 @@ function stubChannel(label: string, ancestorLabels: string[] = []): PrintingDist
     },
     distributionNote: null,
     ancestorLabels,
+    ancestorSlugs: [],
   };
 }
 

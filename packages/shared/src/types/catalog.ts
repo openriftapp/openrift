@@ -54,6 +54,7 @@ export interface PrintingDistributionChannel {
   distributionNote: string | null;
   /** Ordered labels of the channel's ancestors (root → direct parent), excluding the channel itself. */
   ancestorLabels: string[];
+  ancestorSlugs: string[];
 }
 
 export interface PrintingCitation {

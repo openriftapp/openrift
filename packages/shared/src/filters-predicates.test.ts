@@ -39,7 +39,9 @@ describe("filterCards predicates", () => {
     const onlyBasic = makeFilterPrinting({ cardId: "basic-only", card: { superTypes: ["basic"] } });
     const withChannel = makeFilterPrinting({
       cardId: "has-channel",
-      distributionChannels: [{ channel, distributionNote: null, ancestorLabels: [] }],
+      distributionChannels: [
+        { channel, distributionNote: null, ancestorLabels: [], ancestorSlugs: [] },
+      ],
     });
     const withoutChannel = makeFilterPrinting({ cardId: "no-channel", distributionChannels: [] });
     const withKeyword = makeFilterPrinting({ cardId: "has-kw", card: { keywords: ["Shield"] } });

@@ -141,6 +141,7 @@ const printingDistributionChannelSchema = z.object({
     .nullable()
     .meta({ examples: [null] }),
   ancestorLabels: z.array(z.string()).meta({ examples: [[]] }),
+  ancestorSlugs: z.array(z.string()).meta({ examples: [[]] }),
 });
 
 export const imageIdSchema = z

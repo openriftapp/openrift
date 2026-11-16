@@ -31,6 +31,7 @@ function linkTo(channel: DistributionChannel): PrintingDistributionChannel {
     channel,
     distributionNote: null,
     ancestorLabels: [],
+    ancestorSlugs: [],
   };
 }
 

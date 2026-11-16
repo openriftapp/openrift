@@ -278,7 +278,7 @@ describe("source conventions", () => {
       const starts = [...source.matchAll(handler)];
       for (const [index, match] of starts.entries()) {
         const name = match.groups?.name ?? "";
-        if (["list", "summary", "card"].includes(name)) {
+        if (["list", "summary", "card", "printingIds"].includes(name)) {
           continue;
         }
         writers += 1;

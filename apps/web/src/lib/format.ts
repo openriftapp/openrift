@@ -61,6 +61,12 @@ function numberFormat(key: string, options: Intl.NumberFormatOptions): Intl.Numb
   return format;
 }
 
+export function formatPercent(share: number): string {
+  return share < 0.01
+    ? numberFormat("percent-small", { style: "percent", maximumSignificantDigits: 2 }).format(share)
+    : numberFormat("percent", { style: "percent", maximumFractionDigits: 1 }).format(share);
+}
+
 export function formatCount(value: number): string {
   return numberFormat("count", {}).format(value);
 }

@@ -1,3 +1,4 @@
+import { BOOSTERS } from "@openrift/shared/boosters/definitions";
 import {
   catalogCardResponseSchema,
   catalogPrintingResponseSchema,
@@ -17,7 +18,7 @@ export const productSlugSchema = z
   .string()
   .regex(productSlugRegex, "Slug must be 3-80 chars of lowercase letters, digits, and dashes")
   .refine(
-    (slug) => !(RESERVED_PRODUCT_SLUGS as readonly string[]).includes(slug),
+    (slug) => !(RESERVED_PRODUCT_SLUGS as readonly string[]).includes(slug) && !(slug in BOOSTERS),
     "This slug is reserved",
   );
 
@@ -52,7 +53,13 @@ export const productContentSchema = z.object({
   quantity: z.number(),
 });
 
-export const productsListResponseSchema = z.object({ products: z.array(productSummarySchema) });
+export const productsListResponseSchema = z.object({
+  products: z.array(productSummarySchema),
+  boosterCovers: z.record(z.string(), z.array(productCoverCardSchema)).meta({
+    description: "Cover cards per booster pack slug, from the English pack's alt arts.",
+    examples: [{}],
+  }),
+});
 
 export const variantSiblingSummarySchema = z.object({
   languages: z.array(z.string()).meta({ examples: [["EN", "FR"]] }),

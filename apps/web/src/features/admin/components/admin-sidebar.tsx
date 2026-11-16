@@ -94,6 +94,7 @@ const taxonomyPages = [
   { to: "/admin/card-tags" as const, icon: TagsIcon, title: "Card Tags" },
   { to: "/admin/custom-tags" as const, icon: TagIcon, title: "Custom Tags" },
   { to: "/admin/distribution-channels" as const, icon: MapIcon, title: "Distribution Channels" },
+  { to: "/admin/booster-pools" as const, icon: PackageIcon, title: "Booster Pools" },
   { to: "/admin/domains" as const, icon: PaletteIcon, title: "Domains" },
   { to: "/admin/card-types" as const, icon: ShapesIcon, title: "Card Types" },
   { to: "/admin/super-types" as const, icon: CrownIcon, title: "Supertypes" },

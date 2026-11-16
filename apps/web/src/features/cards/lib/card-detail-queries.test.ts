@@ -64,6 +64,7 @@ describe("cardDetailQueryOptions", () => {
       markers: [],
       distributionChannels: [],
       products: [],
+      boosters: [],
     };
     const related = [{ slug: "yasuo-windrider" }];
     const fetchMock = vi.fn((input: string | Request) =>
@@ -110,7 +111,7 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
     name,
     quantity,
   });
-  const slice = { cards: {}, markers: [], distributionChannels: [], related: [] };
+  const slice = { cards: {}, markers: [], distributionChannels: [], related: [], boosters: [] };
 
   const runSelect = (response: unknown) => {
     const { select } = cardDetailQueryOptions("ezreal");
@@ -161,6 +162,7 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
       printings: { p1: printing("s1") },
       sets: [{ id: "s1", slug: "ogn", releases }],
       products: [],
+      boosters: [],
     });
 
     expect(result.productsByPrinting.get("p1")).toBeUndefined();
@@ -195,6 +197,7 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
       printings: { p1: printing("s1") },
       sets: [{ id: "s1", slug: "ogn", releases }],
       products: [],
+      boosters: [],
     });
 
     expect(result.printings).toHaveLength(1);
@@ -215,6 +218,7 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
       printings: { p1: printing("s1"), p2: printing("missing-set") },
       sets: [{ id: "s1", slug: "ogn", releases: {} }],
       products: [],
+      boosters: [],
     });
 
     expect(result.printings.map((p) => p.printingId)).toEqual(["p1"]);
@@ -229,6 +233,7 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
       printings: { p1: { ...printing("s1"), markers: ["promo", "gone"] } },
       sets: [{ id: "s1", slug: "ogn", releases }],
       products: [],
+      boosters: [],
     });
 
     expect(result.printings[0]?.markers).toEqual([promo]);
@@ -247,6 +252,7 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
       },
       sets: [{ id: "s1", slug: "ogn", releases }],
       products: [],
+      boosters: [],
     });
 
     expect(result.printings.map((p) => [p.side, p.card.slug, p.otherSide?.cardSlug])).toEqual([
@@ -269,6 +275,7 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
       },
       sets: [{ id: "s1", slug: "ogn", releases }],
       products: [],
+      boosters: [],
     });
 
     expect(result.printings.map((p) => [p.side, p.card.slug, p.otherSide?.cardSlug])).toEqual([
@@ -285,6 +292,7 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
       },
       sets: [{ id: "s1", slug: "ogn", releases }],
       products: [],
+      boosters: [],
     });
 
     expect(result.printings.map((p) => [p.side, p.otherSide?.cardSlug])).toEqual([
@@ -301,6 +309,7 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
       printings: {},
       sets: [],
       products: [],
+      boosters: [],
       related,
     });
 
@@ -314,6 +323,7 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
       printings: { p1: printing("s1", "EN"), p2: printing("s1", "FR") },
       sets: [{ id: "s1", slug: "ogn", releases }],
       products: [],
+      boosters: [],
     });
 
     expect(result.printings[0]).toMatchObject({ setSlug: "ogn", setReleased: true });
@@ -334,6 +344,7 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
       printings: { p1: printing("s1") },
       sets: [{ id: "s1", slug: "ogn", releases }],
       products: [],
+      boosters: [],
     });
 
     expect(result.card.bans).toEqual([current]);

@@ -2,6 +2,7 @@ import { imageUrl } from "@openrift/shared/image-url";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { productsListQueryOptions } from "@/features/cards/lib/products-queries";
+import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { collectionPageJsonLd, seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
@@ -41,10 +42,10 @@ export const Route = createFileRoute("/_app/products")({
     };
   },
   loader: async ({ context }): Promise<ProductsHeadData> => {
-    const data = await context.queryClient.query({
-      ...productsListQueryOptions,
-      staleTime: "static",
-    });
+    const [data] = await Promise.all([
+      context.queryClient.query({ ...productsListQueryOptions, staleTime: "static" }),
+      context.queryClient.query({ ...publicSetListQueryOptions, staleTime: "static" }),
+    ]);
     return {
       items: data.products.map((product) => ({
         url: `/products/${product.slug}`,

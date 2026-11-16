@@ -298,6 +298,7 @@ function channelLink(slug: string): Printing["distributionChannels"][number] {
     },
     distributionNote: null,
     ancestorLabels: [],
+    ancestorSlugs: [],
   };
 }
 const MARKERS = [[], [], [marker("stamp")], [marker("galaxy")]];

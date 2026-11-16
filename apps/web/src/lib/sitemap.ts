@@ -1,5 +1,6 @@
 // oxlint-disable-next-line import/no-unassigned-import -- import-protection marker
 import "@tanstack/react-start/server-only";
+import { BOOSTERS } from "@openrift/shared/boosters/definitions";
 import { chunk } from "@openrift/shared/collections";
 import type { ErrataListResponse } from "@openrift/shared/contracts/errata";
 import type { SitemapDataResponse } from "@openrift/shared/types/api/catalog";
@@ -131,6 +132,7 @@ function siteUrls(input: SitemapInput): SitemapUrl[] {
     ...entryUrls("/cards", data.cards),
     ...entryUrls("/sets", data.sets),
     ...entryUrls("/products", data.products),
+    ...Object.keys(BOOSTERS).map((slug) => ({ path: `/products/${slug}` })),
   ];
 }
 

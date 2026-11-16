@@ -1,7 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { imageSrcSet, imageUrl } from "@openrift/shared/image-url";
-import type { PackPull } from "@openrift/shared/pack-opener/types";
 import type { CatalogPrintingResponse } from "@openrift/shared/types/api/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
@@ -10,30 +9,23 @@ import { useState } from "react";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { FoilOverlay } from "@/features/cards/components/foil-overlay";
 import { PullVariantLine } from "@/features/pack-opener/components/pull-variant-line";
-import { packSlotLabel } from "@/features/pack-opener/lib/pack-pull-labels";
-import { useEnumOrders } from "@/hooks/use-enums";
+import { PREMIUM_OUTCOMES, packPullLabel } from "@/features/pack-opener/lib/pack-pull-labels";
+import type { PackPull } from "@/features/pack-opener/lib/pack-types";
 import { LANDSCAPE_ROTATION_STYLE, needsCssRotation } from "@/lib/images";
 import { cn } from "@/lib/utils";
 
-const SLOT_BORDER: Record<PackPull["slot"], string> = {
-  common: "ring-border",
-  uncommon: "ring-border",
-  token: "ring-border",
-  flex: "ring-border",
-  foil: "ring-info/60",
-  showcase: "ring-border-accent/70",
-  ultimate: "ring-violet/80",
-};
-
-const SLOT_GLOW: Record<PackPull["slot"], string> = {
-  common: "",
-  uncommon: "",
-  token: "",
-  flex: "",
-  foil: "",
-  showcase: "shadow-[0_0_28px_-6px_rgba(245,158,11,0.55)]",
-  ultimate: "shadow-[0_0_36px_-4px_rgba(217,70,239,0.75)]",
-};
+function pullHighlight(pull: PackPull): { ring: string; glow: string } {
+  if (pull.outcome === "ultimate") {
+    return { ring: "ring-violet/80", glow: "shadow-[0_0_36px_-4px_rgba(217,70,239,0.75)]" };
+  }
+  if (PREMIUM_OUTCOMES.has(pull.outcome)) {
+    return { ring: "ring-border-accent/70", glow: "shadow-[0_0_28px_-6px_rgba(245,158,11,0.55)]" };
+  }
+  if (pull.slot === "foil") {
+    return { ring: "ring-info/60", glow: "" };
+  }
+  return { ring: "ring-border", glow: "" };
+}
 
 interface PullCardProps {
   pull: PackPull;
@@ -44,9 +36,7 @@ interface PullCardProps {
 
 export function PullCard({ pull, image, className, shimmer = true }: PullCardProps) {
   const { printing } = pull;
-  const { labels } = useEnumOrders();
-  const highlight = SLOT_BORDER[pull.slot];
-  const glow = SLOT_GLOW[pull.slot];
+  const { ring: highlight, glow } = pullHighlight(pull);
   // Always shows the holo effect on foil-finish pulls, ignoring the user's global foil preference.
   const showFoil = printing.finish === WellKnown.finish.FOIL;
   const rotated = needsCssRotation(getOrientation(printing.cardTypes));
@@ -114,7 +104,7 @@ export function PullCard({ pull, image, className, shimmer = true }: PullCardPro
         <div className="text-foreground truncate">{displayName}</div>
         <div className="text-muted-foreground flex items-center justify-between tabular-nums">
           <PullVariantLine printing={printing} className="min-w-0 flex-nowrap overflow-hidden" />
-          <span>{packSlotLabel(pull, labels.rarities)}</span>
+          <span>{packPullLabel(pull)}</span>
         </div>
       </div>
     </Link>

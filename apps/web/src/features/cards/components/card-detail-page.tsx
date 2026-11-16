@@ -138,6 +138,8 @@ export function CardDetailPage() {
               card={card}
               printing={selectedPrinting}
               products={data.productsByPrinting.get(selectedPrinting.printingId) ?? []}
+              boosters={data.boostersByPrinting.get(selectedPrinting.printingId) ?? []}
+              sets={sets}
             />
           </div>
         </div>

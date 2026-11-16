@@ -8,6 +8,7 @@ import { implement } from "@orpc/server";
 import { assertFound } from "../../../lib/assertions.js";
 import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { boosterCoverCards } from "../../catalog/lib/booster-index.js";
 import {
   buildCardsResponse,
   buildPrintingsResponse,
@@ -21,12 +22,16 @@ const os = implement(productsContract).$context<ApiContext>().use(requireUser);
 export const productsRouter = {
   list: os.list.handler(async ({ context }): Promise<ProductsListResponse> => {
     const products = await context.repos.products.listWithCounts();
-    const covers = await context.repos.products.coverCards(products.map((p) => p.id));
+    const [covers, boosterCovers] = await Promise.all([
+      context.repos.products.coverCards(products.map((p) => p.id)),
+      boosterCoverCards(context.repos),
+    ]);
     const coversByProduct = Map.groupBy(covers, (row) => row.productId);
     return {
       products: products.map((product) =>
         toProductSummary(product, toCoverCards(coversByProduct.get(product.id))),
       ),
+      boosterCovers,
     };
   }),
 

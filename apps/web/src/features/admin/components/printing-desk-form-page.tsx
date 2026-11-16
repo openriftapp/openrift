@@ -25,6 +25,7 @@ import { DatePrecisionControl } from "@/features/admin/components/date-precision
 import { LanguageSelect } from "@/features/admin/components/language-select";
 import { PrintingDeskChannelPicker } from "@/features/admin/components/printing-desk-channel-picker";
 import { PrintingDeskMarkerPicker } from "@/features/admin/components/printing-desk-marker-picker";
+import { PrintingDeskPackOdds } from "@/features/admin/components/printing-desk-pack-odds";
 import { DeskSegmented, DeskThumb } from "@/features/admin/components/printing-desk-shared";
 import { SetPicker } from "@/features/admin/components/set-picker";
 import { SideSearch } from "@/features/admin/components/side-search";
@@ -286,6 +287,7 @@ function usePrintingDeskFormState({
     flavorText,
     setFlavorText,
     isCreate: existing === null,
+    existing,
     scope,
     secondSide,
     setSecondSide,
@@ -329,6 +331,21 @@ function PrintingDeskFields({
               <PrintingDeskMarkerPicker
                 value={form.markerSlugs}
                 onChange={(next) => form.setMarkerSlugs(next)}
+              />
+            </div>
+          )}
+          {form.existing && (
+            <div className="@3xl/desk-form:col-span-2">
+              <PrintingDeskPackOdds
+                existing={form.existing}
+                draft={{
+                  setId: form.setId,
+                  language: form.language,
+                  size: form.size,
+                  finish: form.finish,
+                  markerSlugs: form.markerSlugs,
+                  channelSlugs: form.channelSlugs,
+                }}
               />
             </div>
           )}

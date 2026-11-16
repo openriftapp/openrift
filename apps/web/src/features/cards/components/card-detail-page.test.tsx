@@ -145,6 +145,7 @@ function seedCardDetail() {
     markers: [],
     distributionChannels: [],
     products: [],
+    boosters: [],
     related: [],
   };
 }

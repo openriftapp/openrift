@@ -1,4 +1,3 @@
-import type { PackResult } from "@openrift/shared/pack-opener/types";
 import type { CatalogPrintingResponse } from "@openrift/shared/types/api/catalog";
 import { useEffect, useState } from "react";
 
@@ -6,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
 import { CardBack } from "@/features/decks/components/card-back";
 import { PullCard } from "@/features/pack-opener/components/pull-card";
+import type { PackResult } from "@/features/pack-opener/lib/pack-types";
 import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
 import { m } from "@/paraglide/messages.js";
 

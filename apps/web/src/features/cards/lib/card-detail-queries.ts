@@ -47,6 +47,7 @@ interface EnrichedCardDetail {
   otherCardSides: Printing[];
   sets: CardDetailResponse["sets"];
   productsByPrinting: ReadonlyMap<string, CardDetailResponse["products"]>;
+  boostersByPrinting: ReadonlyMap<string, CardDetailResponse["boosters"]>;
   related: CardDetailRelatedCard[];
   catalogSubset: UseCardsResult;
 }
@@ -70,6 +71,7 @@ function enrichCardDetail(response: CardDetailPayload): EnrichedCardDetail {
     // The API sends products flat (one row per printing+product) already
     // ordered by product name; grouping preserves that order per printing.
     productsByPrinting: Map.groupBy(response.products, (p) => p.printingId),
+    boostersByPrinting: Map.groupBy(response.boosters, (row) => row.printingId),
     related: response.related,
     catalogSubset: buildCardsResult(cardsById, printings, response.sets),
   };

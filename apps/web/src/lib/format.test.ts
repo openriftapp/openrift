@@ -15,6 +15,7 @@ import {
   formatImportPrintingLabel,
   formatImportPrintingLabelParts,
   formatMoney,
+  formatPercent,
   formatPrice,
   formatPriceCompact,
   formatPriceEur,
@@ -340,5 +341,13 @@ describe("locale-aware number formatting", () => {
     overwriteGetLocale(() => "de");
     expect(formatPriceCompact(2500)).toBe("2,5k\u00A0$");
     expect(formatPriceCompact(42.7)).toBe("43\u00A0$");
+  });
+});
+
+describe("formatPercent", () => {
+  it("shows one decimal at most, and two significant digits below 1%", () => {
+    expect(formatPercent(0.96)).toBe("96%");
+    expect(formatPercent(0.125)).toBe("12.5%");
+    expect(formatPercent(1 / 1440)).toBe("0.069%");
   });
 });

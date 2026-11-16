@@ -52,8 +52,8 @@ export async function loadPrintingDecorations(
   const markerBySlug = new Map<string, Marker>(markerRows.map((m) => [m.slug, m]));
 
   const channelById = new Map(allChannels.map((c) => [c.id, c]));
-  function ancestorLabelsFor(startId: string | null): string[] {
-    const labels: string[] = [];
+  function ancestorsFor(startId: string | null): { label: string; slug: string }[] {
+    const found: { label: string; slug: string }[] = [];
     let cursor = startId;
     let depth = 0;
     while (cursor !== null && depth < 32) {
@@ -61,15 +61,16 @@ export async function loadPrintingDecorations(
       if (!parent) {
         break;
       }
-      labels.unshift(parent.label);
+      found.unshift(parent);
       cursor = parent.parentId;
       depth += 1;
     }
-    return labels;
+    return found;
   }
 
   const channelsByPrinting = new Map<string, PrintingDistributionChannel[]>();
   for (const row of channelRows) {
+    const ancestors = ancestorsFor(row.channelParentId);
     const link: PrintingDistributionChannel = {
       channel: {
         id: row.channelId,
@@ -81,7 +82,8 @@ export async function loadPrintingDecorations(
         childrenLabel: row.channelChildrenLabel,
       },
       distributionNote: row.distributionNote,
-      ancestorLabels: ancestorLabelsFor(row.channelParentId),
+      ancestorLabels: ancestors.map((parent) => parent.label),
+      ancestorSlugs: ancestors.map((parent) => parent.slug),
     };
     const list = channelsByPrinting.get(row.printingId);
     if (list) {

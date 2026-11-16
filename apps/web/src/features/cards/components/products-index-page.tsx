@@ -1,9 +1,11 @@
+import { BOOSTERS, cardsPerPack } from "@openrift/shared/boosters/definitions";
 import type {
   ProductCoverCard,
   ProductSet,
   ProductSummary,
 } from "@openrift/shared/contracts/products";
 import { imageUrl } from "@openrift/shared/image-url";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
@@ -16,11 +18,14 @@ import { PageHero, PageHeroCardFan } from "@/components/layout/page-hero";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { CardLink } from "@/components/ui/card-link";
 import { TextLink } from "@/components/ui/text-link";
+import { boosterName } from "@/features/boosters/lib/booster-labels";
 import { ProductAddDialog } from "@/features/cards/components/product-add-dialog";
 import { useProductsList } from "@/features/cards/hooks/use-products";
 import { groupProductsBySet } from "@/features/cards/lib/group-products-by-set";
 import { formatProductCounts } from "@/features/cards/lib/product-counts";
+import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { useSession } from "@/hooks/use-session";
+import { formatCount } from "@/lib/format";
 import { markdownTeaser } from "@/lib/markdown-teaser";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -77,6 +82,46 @@ function ProductTile({
         </p>
       </div>
     </CardLink>
+  );
+}
+
+function BoosterGrid({ covers }: { covers: Record<string, ProductCoverCard[]> }) {
+  const { data: setList } = useSuspenseQuery(publicSetListQueryOptions);
+  const setsBySlug = new Map(setList.sets.map((set) => [set.slug, set]));
+  return (
+    <section className="mb-8">
+      <Heading className="mb-6">{m.products_boosters_heading()}</Heading>
+      <ul className="grid gap-4 sm:grid-cols-2">
+        {Object.entries(BOOSTERS).map(([slug, booster]) => {
+          const set = setsBySlug.get(booster.set);
+          const english = booster.languages.EN;
+          return (
+            <li key={slug}>
+              <CardLink
+                render={<Link to="/products/$slug" params={{ slug }} />}
+                className="flex-col gap-0 py-0"
+              >
+                <ProductCoverFan coverCards={covers[slug] ?? []} />
+                <div className="flex min-w-0 flex-1 flex-col gap-1 p-4">
+                  <Heading as="h3" className="truncate">
+                    {boosterName(set?.name ?? booster.set)}
+                  </Heading>
+                  {english && (
+                    <p className="text-muted-foreground mt-auto pt-1 text-sm">
+                      {m.booster_page_lead({
+                        cards: formatCount(cardsPerPack(booster)),
+                        packs: formatCount(english.packsPerBox),
+                        boxes: formatCount(english.boxesPerCase),
+                      })}
+                    </p>
+                  )}
+                </div>
+              </CardLink>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 
@@ -187,6 +232,7 @@ export function ProductsIndexPage() {
         aside={<PageHeroCardFan urls={coverUrls} />}
       />
       <div className={cn(PAGE_WIDTH.capped, "px-safe pt-3 pb-6")}>
+        <BoosterGrid covers={data.boosterCovers} />
         {products.length === 0 ? (
           <ProductsEmptyState />
         ) : (

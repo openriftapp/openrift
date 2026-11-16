@@ -1,15 +1,16 @@
+import { BOOSTERS, boosterSlugForSet } from "@openrift/shared/boosters/definitions";
+import { toBoosterPrintings } from "@openrift/shared/boosters/input";
+import { resolveBooster } from "@openrift/shared/boosters/resolve";
+import { openBoosterPacks } from "@openrift/shared/boosters/sample";
+import type { ResolvedBooster } from "@openrift/shared/boosters/types";
 import { clamp } from "@openrift/shared/math";
-import { buildPool } from "@openrift/shared/pack-opener/pools";
-import { openPacks } from "@openrift/shared/pack-opener/sample";
-import type { PackPool, PackResult } from "@openrift/shared/pack-opener/types";
-import { isPoolOpenable } from "@openrift/shared/pack-opener/types";
 import { sideKey } from "@openrift/shared/printing-side";
 import { mathRandom } from "@openrift/shared/random";
 import type { SetListEntry } from "@openrift/shared/types/api/catalog";
-import type { Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { PackagePlusIcon, SparklesIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
@@ -21,52 +22,42 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Switch } from "@/components/ui/switch";
+import { TextLink } from "@/components/ui/text-link";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import {
   publicSetDetailQueryOptions,
   publicSetListQueryOptions,
 } from "@/features/cards/lib/public-sets-queries";
 import { PackBulkGrid, PackHeading } from "@/features/pack-opener/components/pack-bulk-grid";
-import {
-  boosterPrintings,
-  isBoosterEligible,
-  toPackPrinting,
-} from "@/features/pack-opener/components/pack-opener-utils";
+import { toPackResult } from "@/features/pack-opener/components/pack-opener-utils";
 import { PackReveal } from "@/features/pack-opener/components/pack-reveal";
 import { PackStats } from "@/features/pack-opener/components/pack-stats";
+import type { PackResult } from "@/features/pack-opener/lib/pack-types";
 import { useNumericDraft } from "@/hooks/use-numeric-draft";
 import { useSession } from "@/hooks/use-session";
 import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
-function poolFromPrintings(printings: readonly Printing[], language: string): PackPool {
-  return buildPool(boosterPrintings(printings, language).map((p) => toPackPrinting(p)));
-}
-
-/** Sorted language codes with at least 20 booster-eligible printings, so a single stray printing doesn't surface as its own language. */
-function languagesWithEnoughPrintings(printings: readonly Printing[]): string[] {
-  const printingIdsByLanguage = new Map<string, Set<string>>();
-  for (const p of printings) {
-    if (!isBoosterEligible(p)) {
-      continue;
-    }
-    const ids = printingIdsByLanguage.get(p.language) ?? new Set<string>();
-    ids.add(p.printingId);
-    printingIdsByLanguage.set(p.language, ids);
+function useOpenableBoosters(setSlug: string): ResolvedBooster[] {
+  const { data } = useSuspenseQuery(publicSetDetailQueryOptions(setSlug));
+  const slug = boosterSlugForSet(setSlug);
+  const definition = slug ? BOOSTERS[slug] : undefined;
+  if (!slug || !definition) {
+    return [];
   }
-  const counts = new Map(
-    [...printingIdsByLanguage].map(([language, ids]) => [language, ids.size] as const),
-  );
-  return [...counts.entries()]
-    .filter(([, n]) => n >= 20)
-    .map(([code]) => code)
-    .toSorted();
+  const printings = toBoosterPrintings(data.printings);
+  return Object.keys(definition.languages).flatMap((language) => {
+    const resolved = resolveBooster(slug, language, printings);
+    return resolved?.openable ? [resolved] : [];
+  });
 }
 
 export function PackOpenerPage() {
   const { data: setList } = useSuspenseQuery(publicSetListQueryOptions);
-  const mainSets = setList.sets.filter((set) => set.setType === WellKnown.setType.MAIN);
+  const mainSets = setList.sets.filter(
+    (set) => set.setType === WellKnown.setType.MAIN && boosterSlugForSet(set.slug) !== undefined,
+  );
 
   const [setSlug, setSetSlug] = useState<string>(() => mainSets[0]?.slug ?? "");
   const [language, setLanguage] = useState<string>(WellKnown.language.EN);
@@ -76,8 +67,15 @@ export function PackOpenerPage() {
   const [shimmer, setShimmer] = useState(true);
   const [autoReveal, setAutoReveal] = useState(false);
 
+  const boosterSlug = boosterSlugForSet(setSlug);
+  const packsPerBox =
+    (boosterSlug ? BOOSTERS[boosterSlug]?.languages[language]?.packsPerBox : undefined) ?? 24;
   const count =
-    countChoice === "custom" ? clamp(Math.floor(customCount || 1), 1, 500) : Number(countChoice);
+    countChoice === "custom"
+      ? clamp(Math.floor(customCount || 1), 1, 500)
+      : countChoice === "box"
+        ? packsPerBox
+        : 1;
 
   if (mainSets.length === 0) {
     return (
@@ -117,6 +115,7 @@ export function PackOpenerPage() {
             }}
           />
           <CountField
+            packsPerBox={packsPerBox}
             choice={countChoice}
             custom={customCount}
             onChoiceChange={setCountChoice}
@@ -131,6 +130,13 @@ export function PackOpenerPage() {
             />
           </div>
           <OpenAction setSlug={setSlug} language={language} count={count} onOpened={setPacks} />
+          {boosterSlug && (
+            <p className="sm:col-span-2 md:col-span-3">
+              <TextLink render={<Link to="/products/$slug" params={{ slug: boosterSlug }} />}>
+                {m.packs_odds_link()}
+              </TextLink>
+            </p>
+          )}
         </div>
       </PackOpenerHero>
       <div className={cn(PAGE_PADDING_NO_TOP, "flex flex-col gap-8 pt-3")}>
@@ -221,8 +227,7 @@ function LanguageField({
   value: string;
   onChange: (value: string) => void;
 }) {
-  const { data } = useSuspenseQuery(publicSetDetailQueryOptions(setSlug));
-  const languages = languagesWithEnoughPrintings(data.printings);
+  const languages = useOpenableBoosters(setSlug).map((booster) => booster.language);
   const effectiveValue = languages.includes(value)
     ? value
     : (languages[0] ?? WellKnown.language.EN);
@@ -240,26 +245,28 @@ function LanguageField({
   );
 }
 
-function countOptions() {
+function countOptions(packsPerBox: number) {
   return [
     { value: "1", label: m.packs_count_one() },
-    { value: "24", label: m.packs_count_display() },
+    { value: "box", label: m.packs_count_box({ count: packsPerBox }) },
     { value: "custom", label: m.packs_count_custom() },
   ] as const;
 }
 
 function CountField({
+  packsPerBox,
   choice,
   custom,
   onChoiceChange,
   onCustomChange,
 }: {
+  packsPerBox: number;
   choice: string;
   custom: number;
   onChoiceChange: (value: string) => void;
   onCustomChange: (value: number) => void;
 }) {
-  const options = countOptions();
+  const options = countOptions(packsPerBox);
   const { inputProps } = useNumericDraft({
     display: String(custom),
     onCommit: (text) => {
@@ -308,20 +315,25 @@ function OpenAction({
   count: number;
   onOpened: (packs: PackResult[]) => void;
 }) {
-  const { data } = useSuspenseQuery(publicSetDetailQueryOptions(setSlug));
-  const pool = poolFromPrintings(data.printings, language);
-  const openable = isPoolOpenable(pool);
+  const boosters = useOpenableBoosters(setSlug);
+  const booster = boosters.find((entry) => entry.language === language) ?? boosters[0];
 
   return (
     <div className="sm:col-span-2 md:col-span-3">
       <Button
         size="default"
         className="w-full md:w-auto"
-        disabled={!openable}
-        onClick={() => onOpened(openPacks(pool, mathRandom, count))}
+        disabled={!booster}
+        onClick={() => {
+          if (booster) {
+            onOpened(
+              openBoosterPacks(booster, mathRandom, count).map((pack) => toPackResult(pack)),
+            );
+          }
+        }}
       >
         <SparklesIcon className="size-4" />
-        {openable ? m.packs_open({ count }) : m.packs_no_pool()}
+        {booster ? m.packs_open({ count }) : m.packs_no_pool()}
       </Button>
     </div>
   );

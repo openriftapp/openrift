@@ -65,6 +65,7 @@ The MADR documentation is available at <https://adr.github.io/madr/> while gener
 - **[ADR-052](052-tournament-lists-to-meta-archive.md)**: Tournament Decklists into the Meta Archive via UVS Games
 - **[ADR-054](054-scryfall-style-search-syntax.md)**: Scryfall-Style Card Search Syntax
 - **[ADR-055](055-referral-attribution.md)**: Referral Attribution and Invite Badges
+- **[ADR-056](056-booster-packs-as-products.md)**: Booster Packs as Products with Slots and Rates
 
 ### Rejected
 

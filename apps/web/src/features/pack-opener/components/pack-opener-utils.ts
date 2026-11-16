@@ -1,6 +1,8 @@
-import type { PackPrinting } from "@openrift/shared/pack-opener/types";
+import type { BoosterPack } from "@openrift/shared/boosters/sample";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
+
+import type { PackPrinting, PackResult } from "@/features/pack-opener/lib/pack-types";
 
 export function toPackPrinting(p: Printing): PackPrinting {
   return {
@@ -24,19 +26,12 @@ export function toPackPrinting(p: Printing): PackPrinting {
   };
 }
 
-// "Other"-typed printings are buff-card backsides, not standalone pulls, and are excluded.
-export function isBoosterEligible(printing: Printing): boolean {
-  return printing.markers.length === 0 && !printing.card.types.includes("other");
-}
-
-/** One entry per physical printing, so a double-sided token is not pulled twice as often. */
-export function boosterPrintings(printings: readonly Printing[], language: string): Printing[] {
-  const seen = new Set<string>();
-  return printings.filter((p) => {
-    if (!isBoosterEligible(p) || p.language !== language || seen.has(p.printingId)) {
-      return false;
-    }
-    seen.add(p.printingId);
-    return true;
-  });
+export function toPackResult(pack: BoosterPack): PackResult {
+  return {
+    pulls: pack.pulls.map((pull) => ({
+      slot: pull.slot,
+      outcome: pull.outcome,
+      printing: toPackPrinting(pull.printing.printing),
+    })),
+  };
 }

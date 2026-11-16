@@ -24,7 +24,7 @@ function makePrintingChannel(
   channel: DistributionChannel,
   ancestorLabels: string[] = [],
 ): PrintingDistributionChannel {
-  return { channel, distributionNote: null, ancestorLabels };
+  return { channel, distributionNote: null, ancestorLabels, ancestorSlugs: [] };
 }
 
 beforeEach(() => {

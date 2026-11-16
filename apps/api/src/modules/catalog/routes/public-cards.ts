@@ -8,6 +8,7 @@ import { implement } from "@orpc/server";
 
 import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { boosterRowsFor } from "../lib/booster-index.js";
 import {
   buildCardsResponse,
   loadPrintingDecorations,
@@ -39,11 +40,12 @@ export const cardsRouter = {
       ...new Set(cardRows.filter((p) => p.otherSide !== null).map((p) => p.printingId)),
     ];
     const slugByPrinting = new Map(cardRows.map((p) => [p.printingId, p.slug]));
-    const [otherSideRows, imageRows, products, decorations] = await Promise.all([
+    const [otherSideRows, imageRows, products, decorations, boosters] = await Promise.all([
       catalog.printingsByIds(doubleSidedIds),
       catalog.printingImagesByPrintingIds(printingIds),
       repos.products.productsForCard(card.id),
       loadPrintingDecorations(repos, printingIds),
+      boosterRowsFor(repos, printingIds),
     ]);
     const seenFaces = new Set(cardRows.map((p) => p.faceId));
     const printingRows = [
@@ -83,6 +85,7 @@ export const cardsRouter = {
       markers: referencedMarkers(printingRows, decorations),
       distributionChannels: referencedChannels(printingIds, decorations),
       products,
+      boosters,
     };
   }),
 

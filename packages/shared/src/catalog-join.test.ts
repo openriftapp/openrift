@@ -418,13 +418,18 @@ describe("catalogRefResolver", () => {
 
   it("resolves a channel with its note and ancestor labels, root first", () => {
     expect(resolve.channels([{ channel: "top-8", note: "Season 1" }])).toEqual([
-      { channel: LEAF, distributionNote: "Season 1", ancestorLabels: ["Events", "Nexus Night"] },
+      {
+        channel: LEAF,
+        distributionNote: "Season 1",
+        ancestorLabels: ["Events", "Nexus Night"],
+        ancestorSlugs: ["events", "nexus-night"],
+      },
     ]);
   });
 
   it("gives a channel without a note a null note and a root no ancestors", () => {
     expect(resolve.channels([{ channel: "events" }])).toEqual([
-      { channel: ROOT, distributionNote: null, ancestorLabels: [] },
+      { channel: ROOT, distributionNote: null, ancestorLabels: [], ancestorSlugs: [] },
     ]);
   });
 
@@ -474,7 +479,12 @@ describe("joinCatalog references", () => {
     );
     expect(printings[0]?.markers).toEqual([PROMO]);
     expect(printings[0]?.distributionChannels).toEqual([
-      { channel: MID, distributionNote: "Top 8", ancestorLabels: ["Events"] },
+      {
+        channel: MID,
+        distributionNote: "Top 8",
+        ancestorLabels: ["Events"],
+        ancestorSlugs: ["events"],
+      },
     ]);
   });
 });

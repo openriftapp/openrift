@@ -1,3 +1,4 @@
+import { BOOSTER_BASES } from "@openrift/shared/boosters/types";
 import {
   catalogCardResponseValueSchema,
   catalogPrintingResponseValueSchema,
@@ -25,6 +26,43 @@ export const cardDetailProductSchema = z.object({
     .positive()
     .meta({ examples: [2] }),
 });
+
+export const cardDetailBoosterSchema = z
+  .object({
+    printingId: z.string().meta({ examples: ["019cfc3b-03d3-7dac-86c9-27900cd43727"] }),
+    booster: z.string().meta({ examples: ["origins-booster-pack"] }),
+    slot: z.string().meta({ examples: ["rare"] }),
+    outcome: z.string().meta({ examples: ["epic"] }),
+    outcomePerPack: z.number().meta({
+      description: "Expected cards of this outcome per pack, shared by every printing in its pool.",
+      examples: [0.25],
+    }),
+    bound: z
+      .enum(["max"])
+      .nullable()
+      .meta({ description: "`max`: the rate is an upper bound.", examples: [null] }),
+    poolSize: z
+      .number()
+      .int()
+      .positive()
+      .meta({ description: "Printings the outcome picks from, evenly.", examples: [42] }),
+    basis: z.enum(BOOSTER_BASES).meta({
+      description:
+        "`official`: published by Riot. `estimate`: an Origins rate carried to another set or language. `guess`: no published number.",
+      examples: ["official"],
+    }),
+    packsPerBox: z
+      .number()
+      .int()
+      .positive()
+      .meta({ examples: [24] }),
+    boxesPerCase: z
+      .number()
+      .int()
+      .positive()
+      .meta({ examples: [6] }),
+  })
+  .meta({ description: "How often one printing comes from one slot of a booster pack." });
 
 /** `rarity` and `imageId` are null for a card with no usable printing art. */
 export const cardDetailRelatedCardSchema = z.object({
@@ -60,6 +98,11 @@ export const cardDetailResponseSchema = z.object({
   // Product membership per printing, flat (one row per printing+product).
   // The web groups by `printingId` for the selected printing's "Found in" row.
   products: z.array(cardDetailProductSchema).meta({ examples: [[]] }),
+  boosters: z.array(cardDetailBoosterSchema).meta({
+    description:
+      "Booster pack odds per printing, flat (one row per printing and slot). Printings in a language whose pack cannot open have none.",
+    examples: [[]],
+  }),
   // Prices are not inlined here; read them from the /prices resource.
 });
 
@@ -83,7 +126,7 @@ export const cardsContract = {
       operationId: "getCard",
       summary: "One card by slug",
       description:
-        "The card, every printing of it, the sets and products those printings come in, and the markers and distribution channels they name. Printings use the same shape as `/catalog`, so one type covers both. Prices are separate; see `/prices`.",
+        "The card, every printing of it, the sets and products those printings come in, their booster pack odds, and the markers and distribution channels they name. Printings use the same shape as `/catalog`, so one type covers both. Prices are separate; see `/prices`.",
     })
     .meta({ auth: "public", developerApi: true, cache: "long", etag: true })
     .input(cardSlugParamSchema)

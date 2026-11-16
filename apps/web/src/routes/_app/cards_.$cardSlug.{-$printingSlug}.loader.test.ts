@@ -29,6 +29,7 @@ const CARD_DETAIL = {
   markers: [],
   distributionChannels: [],
   products: [],
+  boosters: [],
   related: [],
 };
 

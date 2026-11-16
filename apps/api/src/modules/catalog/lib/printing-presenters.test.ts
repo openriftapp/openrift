@@ -226,6 +226,7 @@ describe("buildPrintingsResponse", () => {
       },
       distributionNote: "Handed out at the door",
       ancestorLabels: [],
+      ancestorSlugs: [],
     };
 
     const [printing] = buildPrintingsResponse(
@@ -278,6 +279,7 @@ describe("presentPrintingValues", () => {
     channel,
     distributionNote: "Handed out at the door",
     ancestorLabels: [],
+    ancestorSlugs: [],
   };
   const decorations = {
     channels: [channel],
@@ -372,7 +374,17 @@ describe("referencedChannels", () => {
     const channels = referencedChannels(["p-1", "p-none"], {
       channels: [other, parent, child],
       channelsByPrinting: new Map([
-        ["p-1", [{ channel: child, distributionNote: null, ancestorLabels: ["Events"] }]],
+        [
+          "p-1",
+          [
+            {
+              channel: child,
+              distributionNote: null,
+              ancestorLabels: ["Events"],
+              ancestorSlugs: ["events"],
+            },
+          ],
+        ],
       ]),
     });
     expect(channels.map((c) => c.slug)).toEqual(["events", "nexus-night"]);

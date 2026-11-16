@@ -23,4 +23,8 @@ describe("productSlugSchema", () => {
       expect(productSlugSchema.safeParse(slug).success).toBe(false);
     }
   });
+
+  it("rejects a booster pack's slug, which /products/$slug already serves", () => {
+    expect(productSlugSchema.safeParse("origins-booster-pack").success).toBe(false);
+  });
 });

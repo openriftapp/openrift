@@ -1,3 +1,4 @@
+import { BOOSTERS } from "@openrift/shared/boosters/definitions";
 import { errataForLanguage } from "@openrift/shared/errata";
 import { formatMonth } from "@openrift/shared/format-date";
 import type { CardDetailResponse } from "@openrift/shared/types/api/catalog";
@@ -12,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Callout } from "@/components/ui/callout";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { TextLink } from "@/components/ui/text-link";
+import { BoosterFoundInLine } from "@/features/boosters/components/booster-found-in-line";
 import { PrintingCitationList } from "@/features/cards/components/card-detail/printing-citations";
 import { CardText } from "@/features/cards/components/card-text";
 import { errataEntryAnchor } from "@/features/cards/lib/errata-list";
@@ -21,14 +23,20 @@ import { m } from "@/paraglide/messages.js";
 
 type DetailProduct = CardDetailResponse["products"][number];
 
+type DetailBooster = CardDetailResponse["boosters"][number];
+
 export function CardPageFactRows({
   card,
   printing,
   products,
+  boosters,
+  sets,
 }: {
   card: CardDetailResponse["card"];
   printing: Printing;
   products: DetailProduct[];
+  boosters: DetailBooster[];
+  sets: CardDetailResponse["sets"];
 }) {
   const domainColors = useDomainColors();
   const errata = errataForLanguage(card.errata, printing.language);
@@ -69,7 +77,7 @@ export function CardPageFactRows({
           </div>
         </FactRow>
       )}
-      <FoundInRow printing={printing} products={products} />
+      <FoundInRow printing={printing} products={products} boosters={boosters} sets={sets} />
       <SourcesRow printing={printing} />
       {printing.comment && (
         <FactRow label={m.card_detail_notes_note()}>
@@ -176,8 +184,29 @@ function ErrataRow({ errata, printing }: { errata: CardErrata; printing: Printin
 }
 
 /** "Found in": every sealed thing this printing came in, as one list. */
-function FoundInRow({ printing, products }: { printing: Printing; products: DetailProduct[] }) {
+function FoundInRow({
+  printing,
+  products,
+  boosters,
+  sets,
+}: {
+  printing: Printing;
+  products: DetailProduct[];
+  boosters: DetailBooster[];
+  sets: CardDetailResponse["sets"];
+}) {
+  const setNames = new Map(sets.map((set) => [set.slug, set.name]));
   const entries = [
+    ...boosters.map((row) => ({
+      key: `booster-${row.booster}-${row.slot}`,
+      node: (
+        <BoosterFoundInLine
+          row={row}
+          language={printing.language}
+          setName={setNames.get(BOOSTERS[row.booster]?.set ?? "") ?? row.booster}
+        />
+      ),
+    })),
     ...products.map((product) => ({
       key: `product-${product.slug}`,
       node: <ProductLink product={product} />,

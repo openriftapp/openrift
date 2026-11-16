@@ -178,6 +178,15 @@ export function productsRepo(db: Kysely<Database>) {
     },
 
     /** Unordered: display order is a client concern. */
+    async allPrintingIds(): Promise<string[]> {
+      const rows = await db
+        .selectFrom("productPrintings")
+        .select("printingId")
+        .distinct()
+        .execute();
+      return rows.map((row) => row.printingId);
+    },
+
     contents(productId: string): Promise<ProductContentRow[]> {
       return db
         .selectFrom("productPrintings")

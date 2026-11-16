@@ -78,21 +78,21 @@ export function catalogRefResolver(
     catalog.distributionChannels.map((channel) => [channel.slug, channel]),
   );
   const channelById = new Map(catalog.distributionChannels.map((channel) => [channel.id, channel]));
-  const ancestorsById = new Map<string, string[]>();
-  const ancestorLabels = (channel: DistributionChannel): string[] => {
+  const ancestorsById = new Map<string, DistributionChannel[]>();
+  const ancestors = (channel: DistributionChannel): DistributionChannel[] => {
     const cached = ancestorsById.get(channel.id);
     if (cached) {
       return cached;
     }
-    const labels: string[] = [];
+    const found: DistributionChannel[] = [];
     let parent = channel.parentId === null ? undefined : channelById.get(channel.parentId);
     // Bounded like the server walk, so a cycle in the data cannot hang the join.
     for (let depth = 0; parent && depth < 32; depth += 1) {
-      labels.unshift(parent.label);
+      found.unshift(parent);
       parent = parent.parentId === null ? undefined : channelById.get(parent.parentId);
     }
-    ancestorsById.set(channel.id, labels);
-    return labels;
+    ancestorsById.set(channel.id, found);
+    return found;
   };
   return {
     markers: (slugs) => slugs.flatMap((slug) => markerBySlug.get(slug) ?? []),
@@ -104,7 +104,8 @@ export function catalogRefResolver(
               {
                 channel,
                 distributionNote: ref.note ?? null,
-                ancestorLabels: ancestorLabels(channel),
+                ancestorLabels: ancestors(channel).map((parent) => parent.label),
+                ancestorSlugs: ancestors(channel).map((parent) => parent.slug),
               },
             ]
           : [];

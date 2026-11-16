@@ -157,7 +157,7 @@ describe("computeFilterCounts", () => {
         rarity: "common",
         markers: [{ id: "m1", slug: "promo", label: "Promo", description: null }],
         distributionChannels: [
-          { channel: channelStore, distributionNote: null, ancestorLabels: [] },
+          { channel: channelStore, distributionNote: null, ancestorLabels: [], ancestorSlugs: [] },
         ],
       }),
       makeFilterPrinting({
@@ -169,7 +169,7 @@ describe("computeFilterCounts", () => {
           { id: "m2", slug: "top-8", label: "Top 8", description: null },
         ],
         distributionChannels: [
-          { channel: channelEvent, distributionNote: null, ancestorLabels: [] },
+          { channel: channelEvent, distributionNote: null, ancestorLabels: [], ancestorSlugs: [] },
         ],
       }),
       makeFilterPrinting({

@@ -1128,7 +1128,7 @@ describe("filterCards", () => {
       makeFilterPrinting({
         markers: [{ id: "m", slug: "promo", label: "Promo", description: null }],
         distributionChannels: [
-          { channel: channelNexus, distributionNote: null, ancestorLabels: [] },
+          { channel: channelNexus, distributionNote: null, ancestorLabels: [], ancestorSlugs: [] },
         ],
         cardId: "p1",
         card: { name: "Nexus Card" },
@@ -1136,7 +1136,7 @@ describe("filterCards", () => {
       makeFilterPrinting({
         markers: [{ id: "m", slug: "promo", label: "Promo", description: null }],
         distributionChannels: [
-          { channel: channelLaunch, distributionNote: null, ancestorLabels: [] },
+          { channel: channelLaunch, distributionNote: null, ancestorLabels: [], ancestorSlugs: [] },
         ],
         cardId: "p2",
         card: { name: "Launch Card" },

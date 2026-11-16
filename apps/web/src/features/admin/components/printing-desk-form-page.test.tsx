@@ -65,6 +65,10 @@ vi.mock("@/features/admin/components/printing-desk-channel-picker", () => ({
   PrintingDeskChannelPicker: () => <div>Channels</div>,
 }));
 
+vi.mock("@/features/admin/components/printing-desk-pack-odds", () => ({
+  PrintingDeskPackOdds: () => <div>Booster packs</div>,
+}));
+
 vi.mock("@/features/admin/components/set-picker", () => ({
   SetPicker: () => <div>Set</div>,
 }));

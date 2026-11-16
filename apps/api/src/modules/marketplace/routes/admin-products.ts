@@ -17,6 +17,10 @@ const os = implement(adminProductsContract).$context<ApiContext>().use(requireAu
  * PATCH.
  */
 export const adminProductsRouter = {
+  printingIds: os.printingIds.handler(async ({ context }) => ({
+    printingIds: await context.repos.products.allPrintingIds(),
+  })),
+
   create: os.create.handler(async ({ input, context }) => {
     const product = await createProductFromList(
       context.repos,

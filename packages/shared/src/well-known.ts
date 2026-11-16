@@ -2,8 +2,8 @@ import type { Rarity } from "./types/enums.js";
 
 /**
  * Most categories here mirror rows in DB reference tables (validated at API
- * startup against `is_well_known = true`); `setType` and `packSlot` are pure
- * application enums with no backing table.
+ * startup against `is_well_known = true`); `setType` is a pure application enum
+ * with no backing table.
  */
 export const WellKnown = {
   cardType: {
@@ -79,15 +79,6 @@ export const WellKnown = {
   setType: {
     MAIN: "main",
     SUPPLEMENTAL: "supplemental",
-  },
-  packSlot: {
-    COMMON: "common",
-    UNCOMMON: "uncommon",
-    FLEX: "flex",
-    FOIL: "foil",
-    TOKEN: "token",
-    SHOWCASE: "showcase",
-    ULTIMATE: "ultimate",
   },
 } as const;
 

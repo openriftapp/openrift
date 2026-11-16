@@ -6,6 +6,7 @@ import type { Variables } from "../../../types.js";
 import { adminProductsRouter } from "./admin-products";
 
 const mockProducts = {
+  allPrintingIds: vi.fn(),
   getById: vi.fn(),
   remove: vi.fn(),
   update: vi.fn(),
@@ -80,5 +81,16 @@ describe("admin products audit events", () => {
         newValues: { name: "Origins Booster Box" },
       }),
     );
+  });
+});
+
+describe("admin product printing ids", () => {
+  it("lists every printing any product holds", async () => {
+    mockProducts.allPrintingIds.mockResolvedValue(["p-1", "p-2"]);
+
+    const res = await app.request("/api/admin/v1/products/printing-ids");
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ printingIds: ["p-1", "p-2"] });
   });
 });

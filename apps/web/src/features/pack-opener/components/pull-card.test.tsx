@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import type { PackPrinting, PackPull } from "@openrift/shared/pack-opener/types";
 import { render } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -19,6 +18,8 @@ vi.mock("@/hooks/use-enums", () => ({
     labels: { artVariants: {}, finishes: {}, cardSizes: {}, rarities: {} },
   }),
 }));
+
+import type { PackPrinting, PackPull } from "@/features/pack-opener/lib/pack-types";
 
 import { PullCard } from "./pull-card";
 
@@ -43,7 +44,7 @@ function makePull(overrides: Partial<PackPrinting> = {}): PackPull {
     setSlug: "RB1",
     ...overrides,
   };
-  return { slot: "common", printing };
+  return { slot: "common", outcome: "common", printing };
 }
 
 const IMAGE = { face: "front" as const, imageId: "test-image-id-aa" };

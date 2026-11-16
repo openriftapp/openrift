@@ -1,9 +1,9 @@
-import type { PackResult } from "@openrift/shared/pack-opener/types";
 import type { CatalogPrintingResponse } from "@openrift/shared/types/api/catalog";
-import { WellKnown } from "@openrift/shared/well-known";
 
 import { Heading } from "@/components/heading";
 import { PullCard } from "@/features/pack-opener/components/pull-card";
+import { compareRarityDesc, packRarityKey } from "@/features/pack-opener/lib/pack-pull-labels";
+import type { PackResult } from "@/features/pack-opener/lib/pack-types";
 import { m } from "@/paraglide/messages.js";
 
 interface PackBulkGridProps {
@@ -11,15 +11,6 @@ interface PackBulkGridProps {
   imagesByPrintingId: Map<string, CatalogPrintingResponse["images"]>;
   shimmer?: boolean;
 }
-
-const RARITY_RANK: Record<string, number> = {
-  Ultimate: 0,
-  Showcase: 1,
-  Epic: 2,
-  Rare: 3,
-  Uncommon: 4,
-  Common: 5,
-};
 
 export function PackHeading({ index, count }: { index: number; count: number }) {
   return (
@@ -34,11 +25,9 @@ export function PackBulkGrid({ packs, imagesByPrintingId, shimmer }: PackBulkGri
   return (
     <div className="space-y-6">
       {packs.map((pack, packIndex) => {
-        const sorted = pack.pulls.toSorted((a, b) => {
-          const keyA = a.slot === WellKnown.packSlot.ULTIMATE ? "Ultimate" : a.printing.rarity;
-          const keyB = b.slot === WellKnown.packSlot.ULTIMATE ? "Ultimate" : b.printing.rarity;
-          return (RARITY_RANK[keyA] ?? 99) - (RARITY_RANK[keyB] ?? 99);
-        });
+        const sorted = pack.pulls.toSorted((a, b) =>
+          compareRarityDesc(packRarityKey(a), packRarityKey(b)),
+        );
         return (
           <div key={packIndex} className="flex flex-col gap-2">
             <PackHeading index={packIndex + 1} count={pack.pulls.length} />

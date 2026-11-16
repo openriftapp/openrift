@@ -1,5 +1,4 @@
 import { labelMapOf } from "@openrift/shared/enum-label";
-import type { PackPrinting, PackPull } from "@openrift/shared/pack-opener/types";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -7,15 +6,17 @@ import {
   compareRarityDesc,
   packRarityColor,
   packRarityKey,
+  packPullLabel,
   packRarityLabel,
-  packSlotLabel,
 } from "./pack-pull-labels";
+import type { PackPrinting, PackPull } from "./pack-types";
 
 const LABELS = labelMapOf({ common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic" });
 
-function makePull(slot: PackPull["slot"], overrides: Partial<PackPrinting> = {}): PackPull {
+function makePull(outcome: string, overrides: Partial<PackPrinting> = {}): PackPull {
   return {
-    slot,
+    slot: "rare",
+    outcome,
     printing: {
       id: "00000000-0000-0000-0000-000000000001",
       printingId: "00000000-0000-0000-0000-000000000001",
@@ -59,25 +60,26 @@ describe("compareRarityDesc", () => {
 });
 
 describe("packRarityKey", () => {
-  it("uses the printing rarity for a regular slot", () => {
-    expect(packRarityKey(makePull("flex", { rarity: "epic" }))).toBe("epic");
+  it("uses the printing rarity for a regular outcome", () => {
+    expect(packRarityKey(makePull("epic", { rarity: "epic" }))).toBe("epic");
   });
 
-  it("maps the token slot to rune or token", () => {
-    expect(packRarityKey(makePull("token"))).toBe("rune");
+  it("maps the Rune slot outcomes to rune or token", () => {
+    expect(packRarityKey(makePull("rune"))).toBe("rune");
+    expect(packRarityKey(makePull("alt-art-rune"))).toBe("rune");
     expect(packRarityKey(makePull("token", { cardSuperTypes: ["token"] }))).toBe("token");
   });
 
-  it("maps the ultimate slot to ultimate", () => {
+  it("maps the ultimate outcome to ultimate", () => {
     expect(packRarityKey(makePull("ultimate"))).toBe("ultimate");
   });
 
   it("returns only keys the rarity bar counts", () => {
     const pulls = [
       makePull("common", { rarity: "common" }),
+      makePull("rune"),
       makePull("token"),
-      makePull("token", { cardSuperTypes: ["token"] }),
-      makePull("showcase", { rarity: "showcase" }),
+      makePull("alt-art", { rarity: "showcase" }),
       makePull("ultimate"),
     ];
     for (const pull of pulls) {
@@ -116,37 +118,14 @@ describe("packRarityLabel", () => {
   });
 });
 
-describe("packSlotLabel", () => {
-  it("labels the common and uncommon slots by rarity", () => {
-    expect(packSlotLabel(makePull("common"), LABELS)).toBe("Common");
-    expect(packSlotLabel(makePull("uncommon"), LABELS)).toBe("Uncommon");
+describe("packPullLabel", () => {
+  it("names the pull's outcome", () => {
+    expect(packPullLabel(makePull("foil-rare"))).toBe("Upgrade to Rare");
+    expect(packPullLabel(makePull("signed-overnumbered"))).toBe("Signed Overnumbered");
+    expect(packPullLabel(makePull("alt-art-rune"))).toBe("Alt-art Rune");
   });
 
-  it("labels the flex and foil slots with the printing rarity", () => {
-    expect(packSlotLabel(makePull("flex", { rarity: "epic" }), LABELS)).toBe("Epic");
-    expect(packSlotLabel(makePull("foil", { rarity: "rare" }), LABELS)).toBe("Foil Rare");
-  });
-
-  it("tells the token slot variants apart", () => {
-    expect(packSlotLabel(makePull("token", { cardSuperTypes: ["token"] }), LABELS)).toBe("Token");
-    expect(packSlotLabel(makePull("token", { finish: "foil" }), LABELS)).toBe("Foil Rune");
-    expect(packSlotLabel(makePull("token", { artVariant: "altart" }), LABELS)).toBe("Alt Art Rune");
-    expect(packSlotLabel(makePull("token"), LABELS)).toBe("Rune");
-  });
-
-  it("tells the showcase slot variants apart", () => {
-    expect(packSlotLabel(makePull("showcase", { isSigned: true }), LABELS)).toBe("Signed");
-    expect(packSlotLabel(makePull("showcase", { isOvernumbered: true }), LABELS)).toBe(
-      "Overnumbered",
-    );
-    expect(packSlotLabel(makePull("showcase"), LABELS)).toBe("Alt Art");
-  });
-
-  it("labels the ultimate slot", () => {
-    expect(packSlotLabel(makePull("ultimate"), LABELS)).toBe("Ultimate");
-  });
-
-  it("falls back to the rarity slug when the label map has no entry", () => {
-    expect(packSlotLabel(makePull("flex", { rarity: "mythic" }), labelMapOf({}))).toBe("mythic");
+  it("falls back to the slug for an unknown outcome", () => {
+    expect(packPullLabel(makePull("mythic"))).toBe("mythic");
   });
 });

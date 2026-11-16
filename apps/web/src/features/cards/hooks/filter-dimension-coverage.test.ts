@@ -123,6 +123,7 @@ const STORE_CHANNEL = {
   channel: { slug: "store" },
   distributionNote: null,
   ancestorLabels: [],
+  ancestorSlugs: [],
 } as unknown as PrintingDistributionChannel;
 
 const FIXTURES: Printing[] = [
