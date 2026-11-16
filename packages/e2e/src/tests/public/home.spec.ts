@@ -1,5 +1,7 @@
 import { expect, test } from "../../fixtures/test.js";
+import { urlWithLanguagesDefault } from "../../helpers/catalog.js";
 import { IS_PRODUCTION_BUILD } from "../../helpers/constants.js";
+import { waitForHydrated } from "../../helpers/hydration.js";
 
 test.describe("landing page", () => {
   test("renders the homepage with title and navigation", async ({ page }) => {
@@ -20,7 +22,7 @@ test.describe("landing page", () => {
       .first()
       .click();
 
-    await expect(page).toHaveURL("/cards");
+    await expect(page).toHaveURL(urlWithLanguagesDefault("/cards"));
   });
 
   test("navigates to the signup page", async ({ page }) => {
@@ -41,7 +43,7 @@ test.describe("landing page", () => {
     // Confirm the session cookie is active first: if this redirects to /login,
     // the storage state is stale and the real assertion below can't pass either.
     await page.goto("/collections");
-    await expect(page).toHaveURL("/collections");
+    await expect(page).toHaveURL(urlWithLanguagesDefault("/collections"));
 
     await page.goto("/");
     await expect(page).toHaveURL(/\/cards/u, { timeout: 15_000 });
@@ -65,15 +67,28 @@ test.describe("landing page", () => {
 
   test("tapping the logo hints at the fan cards", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator('[data-fan-index="0"]')).toBeVisible();
+    const fanCard = page.locator('[data-fan-index="0"]');
+    await expect(fanCard).toBeVisible();
+    const logo = page.getByRole("button", { name: "OpenRift" });
+    await waitForHydrated(logo);
 
-    // waitFor must be armed before the click, or the mutation can be missed to a poll race.
-    // The class contains "/", so match via attribute selector, not a CSS class selector.
-    const hinted = page
-      .locator('[data-fan-index="0"] [class*="border-primary/50"]')
-      .waitFor({ state: "attached", timeout: 10_000 });
-    await page.getByRole("button", { name: "OpenRift" }).click();
-    await hinted;
+    // The hint lasts 400ms; an observer armed before the click records that it
+    // happened, so the check below does not depend on catching it while it shows.
+    await fanCard.evaluate((element) => {
+      const observer = new MutationObserver(() => {
+        if (element.querySelector('[class*="border-primary/50"]')) {
+          observer.disconnect();
+          (globalThis as { fanHinted?: boolean }).fanHinted = true;
+        }
+      });
+      observer.observe(element, { subtree: true, attributes: true, attributeFilter: ["class"] });
+    });
+    await logo.click();
+    await expect
+      .poll(() => page.evaluate(() => (globalThis as { fanHinted?: boolean }).fanHinted === true), {
+        message: "tapping the logo never put the hint border on fan card 0",
+      })
+      .toBe(true);
   });
 
   test("renders the feature showcase and the closing sections", async ({ page }) => {

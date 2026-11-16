@@ -224,6 +224,7 @@ export function ZoneTile({
   return (
     <div
       ref={readOnly ? undefined : dropRef}
+      data-deck-drop-zone={readOnly ? undefined : zone}
       style={style}
       className={cn(
         "relative flex flex-col gap-2 rounded-lg transition-all",

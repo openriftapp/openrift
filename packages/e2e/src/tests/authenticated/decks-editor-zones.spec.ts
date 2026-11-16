@@ -6,7 +6,12 @@ import { expect, test } from "../../fixtures/test.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb } from "../../helpers/db.js";
-import { dndDrag, dndDragToPoint, scrollIntoViewport } from "../../helpers/dnd.js";
+import {
+  dndDrag,
+  dndDragToPoint,
+  expectDropTargetArmed,
+  scrollIntoViewport,
+} from "../../helpers/dnd.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -156,6 +161,7 @@ async function dndDragWithShift(page: Page, source: Locator, target: Locator) {
   await page.waitForTimeout(100);
   await page.keyboard.down("Shift");
   await page.mouse.move(endX, endY, { steps: 20 });
+  await expectDropTargetArmed(target);
   await page.mouse.up();
   await page.keyboard.up("Shift");
 }
@@ -250,7 +256,7 @@ test.describe("deck editor zones + drag-drop", () => {
       const tile = browserCardTile(page, unit.name);
       const mainSection = zoneSection(page, "Main");
 
-      await dndDrag(page, tile, mainSection);
+      await dndDrag(page, tile, mainSection, { dropRing: mainSection });
 
       await expect
         .poll(
@@ -302,6 +308,9 @@ test.describe("deck editor zones + drag-drop", () => {
       authenticatedPage,
     }) => {
       const page = authenticatedPage;
+      // At 720px Runes sits in dnd-kit's auto-scroll band of the sidebar, which
+      // scrolls it out from under the pointer while the drop target is armed.
+      await page.setViewportSize({ width: 1280, height: 1000 });
       const rune = await pickCardByType("rune");
       const deckId = await createDeckViaApi(page.request, {
         name: `Drag Shift Runes ${Date.now()}`,
@@ -353,7 +362,7 @@ test.describe("deck editor zones + drag-drop", () => {
       const sideboardA = zoneSection(page, "Sideboard");
       await expect(deckCardRow(mainA, unit.name)).toBeVisible({ timeout: 15_000 });
 
-      await dndDrag(page, deckCardRow(mainA, unit.name), sideboardA);
+      await dndDrag(page, deckCardRow(mainA, unit.name), sideboardA, { dropRing: sideboardA });
 
       await expect
         .poll(
@@ -412,7 +421,7 @@ test.describe("deck editor zones + drag-drop", () => {
       const main = zoneSection(page, "Main");
       await expect(deckCardRow(main, unit.name)).toBeVisible({ timeout: 15_000 });
 
-      await dndDrag(page, deckCardRow(main, unit.name), main);
+      await dndDrag(page, deckCardRow(main, unit.name), main, { dropRing: main });
 
       // Wait out the auto-save debounce so a wrongly-fired mutation would land.
       await page.waitForTimeout(1500);
@@ -428,6 +437,8 @@ test.describe("deck editor zones + drag-drop", () => {
       authenticatedPage,
     }) => {
       const page = authenticatedPage;
+      // At 720px Runes sits in the sidebar's auto-scroll band; see the Runes Shift-drag test.
+      await page.setViewportSize({ width: 1280, height: 1000 });
       const unit = await pickCardByType("unit");
       const deckId = await createDeckViaApi(page.request, {
         name: `Drag Bad Zone ${Date.now()}`,
@@ -441,7 +452,7 @@ test.describe("deck editor zones + drag-drop", () => {
 
       for (const label of ["Runes", "Battlefield", "Champion"]) {
         const target = zoneSection(page, label);
-        await dndDrag(page, deckCardRow(main, unit.name), target);
+        await dndDrag(page, deckCardRow(main, unit.name), target, { rejectingZone: target });
       }
 
       await page.waitForTimeout(1500);

@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
+import { cardTile } from "../../helpers/catalog.js";
 import { API_BASE_URL, WEB_BASE_URL } from "../../helpers/constants.js";
 import { waitForHydrated } from "../../helpers/hydration.js";
 import { isServerFn } from "../../helpers/server-fn.js";
@@ -51,38 +52,24 @@ async function clientSideNavigateToPromos(page: Page) {
   const menuButton = page.getByRole("button", { name: "Open menu" });
   await expect(menuButton).toBeVisible({ timeout: 15_000 });
 
-  // Retry opening it (guards a click landing on the pre-hydration button); only
-  // click while closed so a late-firing click never toggles it shut.
+  await waitForHydrated(menuButton);
+  await menuButton.click();
   const dialog = page.getByRole("dialog");
-  await expect(async () => {
-    if (!(await dialog.isVisible())) {
-      await menuButton.click();
-    }
-    await expect(dialog).toBeVisible({ timeout: 1500 });
-  }).toPass({ timeout: 15_000 });
+  await expect(dialog).toBeVisible();
 
   // Promos sits under the "Explore" section, which starts collapsed. The row
   // keeps role="button" even though it renders as a link, so match by text.
   const promosItem = dialog.getByText("Promos", { exact: true });
-  await expect(async () => {
-    if (!(await promosItem.isVisible())) {
-      await dialog.getByText("Explore", { exact: true }).click();
-    }
-    await expect(promosItem).toBeVisible({ timeout: 1500 });
-  }).toPass({ timeout: 15_000 });
+  await dialog.getByText("Explore", { exact: true }).click();
+  await expect(promosItem).toBeVisible();
   await promosItem.click();
 }
 
-// The trigger only opens once React has attached, so retry until the
-// popover's grid/table toggle is actually on screen.
 async function openDisplayOptions(page: Page) {
-  const gridButton = page.getByRole("button", { name: "Grid view" });
-  await expect(async () => {
-    if (!(await gridButton.isVisible())) {
-      await page.getByRole("button", { name: "Display options" }).click();
-    }
-    await expect(gridButton).toBeVisible({ timeout: 1500 });
-  }).toPass({ timeout: 15_000 });
+  const trigger = page.getByRole("button", { name: "Display options" });
+  await waitForHydrated(trigger);
+  await trigger.click();
+  await expect(page.getByRole("button", { name: "Grid view" })).toBeVisible();
 }
 
 test.describe("promos", () => {
@@ -184,17 +171,12 @@ test.describe("promos", () => {
       await expect(page.getByRole("row")).toHaveCount(0);
       await expect(page.locator(".aspect-card").first()).toBeVisible();
 
-      // Retry the click until the pressed state flips (handler wires up after hydration).
-      await expect(async () => {
-        await tableButton.click();
-        await expect(tableButton).toHaveAttribute("aria-pressed", "true", { timeout: 2000 });
-      }).toPass({ timeout: 15_000 });
+      await tableButton.click();
+      await expect(tableButton).toHaveAttribute("aria-pressed", "true");
       await expect(page.getByRole("row").first()).toBeVisible();
 
-      await expect(async () => {
-        await gridButton.click();
-        await expect(gridButton).toHaveAttribute("aria-pressed", "true", { timeout: 2000 });
-      }).toPass({ timeout: 15_000 });
+      await gridButton.click();
+      await expect(gridButton).toHaveAttribute("aria-pressed", "true");
       await expect(page.getByRole("row")).toHaveCount(0);
     });
   });
@@ -204,9 +186,9 @@ test.describe("promos", () => {
       await page.goto("/promos");
       await expect(page.getByRole("heading", { level: 1, name: "Riftbound Promos" })).toBeVisible();
 
-      // Anchor on a seeded card's art, not "the first tile": filter chips are
-      // also <img>-bearing buttons, and imageless cards overlay a "suggest image" link.
-      const firstCard = page.getByRole("img", { name: /^Master Yi, Wuju Bladesman$/u }).first();
+      // Anchor on a seeded card's tile, not "the first tile": imageless cards
+      // overlay a "suggest image" link.
+      const firstCard = cardTile(page, "Master Yi, Wuju Bladesman");
       await expect(firstCard).toBeVisible();
       // A click before hydration follows the tile's link to the card page.
       await waitForHydrated(firstCard);
@@ -223,10 +205,8 @@ test.describe("promos", () => {
 
       await openDisplayOptions(page);
       const tableButton = page.getByRole("button", { name: "Table view" });
-      await expect(async () => {
-        await tableButton.click();
-        await expect(page.getByRole("row").first()).toBeVisible({ timeout: 2000 });
-      }).toPass({ timeout: 15_000 });
+      await tableButton.click();
+      await expect(page.getByRole("row").first()).toBeVisible();
       await page.keyboard.press("Escape");
 
       const firstRow = page.getByRole("row").first();

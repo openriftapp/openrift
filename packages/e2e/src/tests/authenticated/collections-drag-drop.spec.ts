@@ -1,12 +1,14 @@
 import { readFileSync } from "node:fs";
 
-import type { APIRequestContext, Page } from "@playwright/test";
+import type { APIRequestContext, Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
+import { cardTile as cardTileFrame } from "../../helpers/catalog.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb, deleteUser } from "../../helpers/db.js";
-import { dndDrag } from "../../helpers/dnd.js";
+import { dndDrag, expectDropTargetArmed } from "../../helpers/dnd.js";
+import { waitForHydrated } from "../../helpers/hydration.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -125,6 +127,19 @@ async function countCopiesInCollection(collectionId: string): Promise<number> {
   }
 }
 
+async function settledCardTile(page: Page, cardName: string): Promise<Locator> {
+  const tile = cardTileFrame(page, cardName);
+  await expect(tile).toBeVisible({ timeout: 15_000 });
+  await waitForHydrated(tile);
+  return tile;
+}
+
+// DroppableCollection wraps SidebarMenuItem (a <li>) in a <div>; the first div
+// ancestor of the link is that wrapper, where the drop ring class lands.
+function collectionRow(link: Locator): Locator {
+  return link.locator("xpath=ancestor::div[1]");
+}
+
 function isMoveRequest(req: { method: () => string; url: () => string }): boolean {
   return req.method() === "POST" && req.url().endsWith("/api/v1/copies/move");
 }
@@ -162,12 +177,11 @@ test.describe("collections drag-drop", () => {
       await expect(page.getByRole("link", { name: "Inbox" })).toBeVisible({ timeout: 15_000 });
       await expect(page.getByRole("link", { name: "Target" })).toBeVisible();
 
-      const cardTile = page.getByRole("img", { name: cardName }).first();
-      await expect(cardTile).toBeVisible();
+      const cardTile = await settledCardTile(page, cardName);
       const targetLink = page.getByRole("link", { name: "Target" });
 
       const moveRequest = page.waitForRequest(isMoveRequest);
-      await dndDrag(page, cardTile, targetLink);
+      await dndDrag(page, cardTile, targetLink, { dropRing: collectionRow(targetLink) });
       await moveRequest;
 
       await expect(page.getByText("Moved 1 card", { exact: true })).toBeVisible();
@@ -202,12 +216,11 @@ test.describe("collections drag-drop", () => {
       await page.goto(`/collections/${inboxId}`);
       await expect(page.getByRole("link", { name: "Target" })).toBeVisible({ timeout: 15_000 });
 
-      const cardTile = page.getByRole("img", { name: cardName }).first();
-      await expect(cardTile).toBeVisible();
+      const cardTile = await settledCardTile(page, cardName);
       const targetLink = page.getByRole("link", { name: "Target" });
 
       const moveRequest = page.waitForRequest(isMoveRequest);
-      await dndDrag(page, cardTile, targetLink);
+      await dndDrag(page, cardTile, targetLink, { dropRing: collectionRow(targetLink) });
       await moveRequest;
 
       await expect(page.getByText("Moved 1 card", { exact: true })).toBeVisible();
@@ -226,8 +239,7 @@ test.describe("collections drag-drop", () => {
       await page.goto(`/collections/${inboxId}`);
       await expect(page.getByRole("link", { name: "Target" })).toBeVisible({ timeout: 15_000 });
 
-      const cardTile = page.getByRole("img", { name: cardName }).first();
-      await expect(cardTile).toBeVisible();
+      const cardTile = await settledCardTile(page, cardName);
       const targetLink = page.getByRole("link", { name: "Target" });
 
       const sourceBox = await cardTile.boundingBox();
@@ -248,6 +260,8 @@ test.describe("collections drag-drop", () => {
       await page.mouse.move(startX + 20, startY, { steps: 5 });
       await page.mouse.move(endX, endY, { steps: 20 });
       await page.keyboard.down("Shift");
+      await expect(page.getByText("3 copies").first()).toBeVisible();
+      await expectDropTargetArmed(collectionRow(targetLink));
       await page.mouse.up();
       await page.keyboard.up("Shift");
       await moveRequest;
@@ -281,8 +295,7 @@ test.describe("collections drag-drop", () => {
       await page.goto(`/collections/${inboxId}`);
       await expect(page.getByRole("link", { name: "Target" })).toBeVisible({ timeout: 15_000 });
 
-      const cardTile = page.getByRole("img", { name: cardName }).first();
-      await expect(cardTile).toBeVisible();
+      const cardTile = await settledCardTile(page, cardName);
       const sourceBox = await cardTile.boundingBox();
       if (!sourceBox) {
         throw new Error("source tile not visible");
@@ -301,7 +314,7 @@ test.describe("collections drag-drop", () => {
       await expect(page.getByText("2 copies").first()).toBeVisible();
 
       // Source tile picks up inline opacity: 0.4 via DraggableCard's isDragging
-      // state; walk up from the img to find the ancestor carrying that style.
+      // state; walk up from the tile to find the ancestor carrying that style.
       const hasReducedOpacity = await cardTile.evaluate((el) => {
         let node: HTMLElement | null = el as HTMLElement;
         while (node) {
@@ -344,29 +357,37 @@ test.describe("collections drag-drop", () => {
       await page.goto(`/collections/${inboxId}`);
       await expect(page.getByRole("link", { name: "Inbox" })).toBeVisible({ timeout: 15_000 });
 
-      const cardTile = page.getByRole("img", { name: cardName }).first();
+      const cardTile = await settledCardTile(page, cardName);
       const inboxLink = page.getByRole("link", { name: "Inbox" });
-      // DroppableCollection wraps SidebarMenuItem (a <li>) in a <div>; the first
-      // div ancestor of the link is that wrapper — where the ring class lands.
-      const inboxRow = inboxLink.locator("xpath=ancestor::div[1]");
+      const inboxRow = collectionRow(inboxLink);
 
       const moves = watchMoveRequests(page);
 
+      const targetLink = page.getByRole("link", { name: "Target" });
+      const targetRow = collectionRow(targetLink);
+
       const sourceBox = await cardTile.boundingBox();
       const inboxBox = await inboxLink.boundingBox();
-      if (!sourceBox || !inboxBox) {
-        throw new Error("source or Inbox row not visible");
+      const targetBox = await targetLink.boundingBox();
+      if (!sourceBox || !inboxBox || !targetBox) {
+        throw new Error("source, Inbox or Target row not visible");
       }
       const startX = sourceBox.x + sourceBox.width / 2;
       const startY = sourceBox.y + sourceBox.height / 2;
-      const endX = inboxBox.x + inboxBox.width / 2;
-      const endY = inboxBox.y + inboxBox.height / 2;
 
       await page.mouse.move(startX, startY);
       await page.mouse.down();
       await page.mouse.move(startX + 20, startY, { steps: 5 });
-      await page.mouse.move(endX, endY, { steps: 20 });
-      // Droppable is disabled on the source, so isOver never flips on for Inbox.
+      // Hovering Target first proves the drag resolves hover targets, so the
+      // missing ring on Inbox below means Inbox refuses the drop.
+      await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, {
+        steps: 20,
+      });
+      await expectDropTargetArmed(targetRow);
+      await page.mouse.move(inboxBox.x + inboxBox.width / 2, inboxBox.y + inboxBox.height / 2, {
+        steps: 10,
+      });
+      await expect(targetRow).not.toHaveClass(/ring-primary/u);
       await expect(inboxRow).not.toHaveClass(/ring-primary/u);
       await page.mouse.up();
 
@@ -398,8 +419,7 @@ test.describe("collections drag-drop", () => {
       await page.goto(`/collections/${inboxId}`);
       await expect(page.getByRole("link", { name: "Target" })).toBeVisible({ timeout: 15_000 });
 
-      const cardTile = page.getByRole("img", { name: cardName }).first();
-      await expect(cardTile).toBeVisible();
+      const cardTile = await settledCardTile(page, cardName);
 
       const moves = watchMoveRequests(page);
 
@@ -446,9 +466,9 @@ test.describe("collections drag-drop", () => {
       await page.goto(`/collections/${inboxId}`);
       await expect(page.getByRole("link", { name: "Target" })).toBeVisible({ timeout: 15_000 });
 
-      const cardTile = page.getByRole("img", { name: cardName }).first();
+      const cardTile = await settledCardTile(page, cardName);
       const targetLink = page.getByRole("link", { name: "Target" });
-      const targetRow = targetLink.locator("xpath=ancestor::div[1]");
+      const targetRow = collectionRow(targetLink);
 
       const sourceBox = await cardTile.boundingBox();
       const targetBox = await targetLink.boundingBox();
@@ -494,8 +514,7 @@ test.describe("collections drag-drop", () => {
       const { cardName } = await seedSameCardCopies(email, inboxId, 1);
 
       await page.goto(`/collections/${inboxId}`);
-      const cardTile = page.getByRole("img", { name: cardName }).first();
-      await expect(cardTile).toBeVisible({ timeout: 15_000 });
+      const cardTile = await settledCardTile(page, cardName);
 
       const moves = watchMoveRequests(page);
 

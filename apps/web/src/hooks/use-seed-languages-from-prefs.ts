@@ -12,13 +12,19 @@ export function useSeedLanguagesFromPrefs(currentUrlLanguages: readonly string[]
   const prefsHydrated = useDisplayStore((s) => s.prefsHydrated);
   const navigate = useNavigate();
   const seededRef = useRef(false);
+  // Languages cleared after landing are the visitor's choice, not a missing default.
+  const landedWithoutLanguagesRef = useRef(currentUrlLanguages.length === 0);
 
   useEffect(() => {
     if (seededRef.current || !prefsHydrated) {
       return;
     }
     seededRef.current = true;
-    if (currentUrlLanguages.length === 0 && preferredLanguages.length > 0) {
+    if (
+      landedWithoutLanguagesRef.current &&
+      currentUrlLanguages.length === 0 &&
+      preferredLanguages.length > 0
+    ) {
       void navigate({
         to: ".",
         search: (prev) => ({ ...prev, languages: preferredLanguages }),

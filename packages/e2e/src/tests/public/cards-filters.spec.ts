@@ -196,19 +196,15 @@ test.describe("card filters (mobile drawer)", () => {
     const thumbs = drawer.getByRole("slider", { name: "Energy range" });
     await expect(thumbs).toHaveCount(2);
 
-    // The route writes ?languages= on its own a beat after hydration, which
-    // can land on top of an early commit; retry until each one sticks.
-    await expect(async () => {
-      await thumbs.first().focus();
-      await page.keyboard.press("ArrowRight");
-      await expect(page).toHaveURL(/[?&]energyMin=-?\d+/u, { timeout: 4000 });
-    }).toPass({ timeout: 30_000 });
+    await expect(page).toHaveURL(/[?&]languages=/u);
 
-    await expect(async () => {
-      await thumbs.last().focus();
-      await page.keyboard.press("ArrowLeft");
-      await expect(page).toHaveURL(/[?&]energyMax=-?\d+/u, { timeout: 4000 });
-    }).toPass({ timeout: 30_000 });
+    await thumbs.first().focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(page).toHaveURL(/[?&]energyMin=-?\d+/u);
+
+    await thumbs.last().focus();
+    await page.keyboard.press("ArrowLeft");
+    await expect(page).toHaveURL(/[?&]energyMax=-?\d+/u);
   });
 
   test("the Errata flag badge cycles include, exclude, then off", async ({ page }) => {

@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-import { WEB_BASE_URL } from "./src/helpers/constants.js";
+import { IS_PRODUCTION_BUILD, WEB_BASE_URL } from "./src/helpers/constants.js";
 
 export default defineConfig({
   testDir: "./src/tests",
@@ -20,7 +20,8 @@ export default defineConfig({
 
   use: {
     baseURL: WEB_BASE_URL,
-    trace: "on-first-retry",
+    // The nightly runs the production build; keep the failing attempt's trace, not the passing retry's.
+    trace: IS_PRODUCTION_BUILD ? "retain-on-first-failure" : "on-first-retry",
     screenshot: "only-on-failure",
   },
 

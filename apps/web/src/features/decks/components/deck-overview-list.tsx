@@ -486,6 +486,7 @@ function DroppableZoneSection({
   return (
     <section
       ref={dropRef}
+      data-deck-drop-zone={zone}
       className={cn(
         DECK_LIST_SECTION_CLASS,
         isOver && !dropDisabled && "ring-primary/60 ring-2 ring-offset-2",

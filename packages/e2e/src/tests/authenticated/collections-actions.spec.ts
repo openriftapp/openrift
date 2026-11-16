@@ -6,6 +6,7 @@ import { expect, test } from "@playwright/test";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb, deleteUser } from "../../helpers/db.js";
+import { waitForHydrated } from "../../helpers/hydration.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -108,16 +109,12 @@ async function createCollectionViaApi(request: APIRequestContext, name: string):
 }
 
 async function enterSelectMode(page: Page) {
-  // The toolbar is useHydrated-gated, so an early click is dropped; retry
-  // until the per-card "Select card" checkboxes actually appear.
   const manageButton = page.getByRole("button", { name: /^Manage\b/u });
-  const checkbox = page.getByRole("checkbox", { name: "Select card", exact: true }).first();
-  await expect(async () => {
-    if (!(await checkbox.isVisible())) {
-      await manageButton.click({ timeout: 2000 }).catch(() => {});
-    }
-    await expect(checkbox).toBeVisible({ timeout: 2000 });
-  }).toPass({ timeout: 15_000 });
+  await waitForHydrated(manageButton);
+  await manageButton.click();
+  await expect(
+    page.getByRole("checkbox", { name: "Select card", exact: true }).first(),
+  ).toBeVisible();
 }
 
 async function waitForCollectionReady(page: Page) {

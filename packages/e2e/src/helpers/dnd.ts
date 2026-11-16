@@ -25,7 +25,18 @@ export async function scrollIntoViewport(page: Page, locator: Locator, timeout =
   throw new Error("scrollIntoViewport: element never settled inside the viewport");
 }
 
-export async function dndDrag(page: Page, source: Locator, target: Locator) {
+// A drop that should land: the drop target's ring shows once dnd-kit has measured
+// the droppables and resolved the pointer onto it. Releasing earlier drops nowhere.
+export async function expectDropTargetArmed(dropRing: Locator) {
+  await expect(dropRing).toHaveClass(/ring-primary/u);
+}
+
+export async function dndDrag(
+  page: Page,
+  source: Locator,
+  target: Locator,
+  options: { dropRing?: Locator; rejectingZone?: Locator } = {},
+) {
   await expect(source).toBeVisible({ timeout: 15_000 });
   await expect(target).toBeVisible({ timeout: 15_000 });
   await scrollIntoViewport(page, source);
@@ -45,6 +56,13 @@ export async function dndDrag(page: Page, source: Locator, target: Locator) {
   // that lands leaves the collision detection with nothing to hit.
   await page.waitForTimeout(100);
   await page.mouse.move(endX, endY, { steps: 20 });
+  if (options.dropRing) {
+    await expectDropTargetArmed(options.dropRing);
+  }
+  if (options.rejectingZone) {
+    // A deck zone that refuses the dragged card dims while the drag is live.
+    await expect(options.rejectingZone).toHaveClass(/opacity-40/u);
+  }
   await page.mouse.up();
 }
 

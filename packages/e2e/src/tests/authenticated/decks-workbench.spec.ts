@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import type { Browser, BrowserContextOptions, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
+import { cardTile } from "../../helpers/catalog.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb } from "../../helpers/db.js";
@@ -137,8 +138,8 @@ test.describe("deck builder beta", () => {
     expect(optInResponse.ok()).toBeTruthy();
 
     await page.goto(`/decks/${deckId}?editor=build&target=main`);
-    const annieImage = page.getByRole("img", { name: "Annie, Fiery" }).first();
-    await annieImage.click({ timeout: 15_000 });
+    const annieTile = cardTile(page, "Annie, Fiery");
+    await annieTile.click({ timeout: 15_000 });
     const detail = page.getByRole("region", { name: "Card details" });
     await expect(detail).toBeVisible();
     await expect(page.getByRole("dialog")).toHaveCount(0);

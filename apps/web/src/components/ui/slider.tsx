@@ -19,13 +19,19 @@ function Slider({
 
   return (
     <SliderPrimitive.Root
-      className={cn("data-horizontal:w-full data-vertical:h-full", className)}
+      className={cn(
+        // custom: half-thumb padding keeps centered thumbs in the edge footprint; drop with the edge revert
+        "data-horizontal:w-full data-horizontal:px-1.5 data-vertical:h-full data-vertical:py-1.5",
+        className,
+      )}
       data-slot="slider"
       defaultValue={defaultValue}
       value={value}
       min={min}
       max={max}
-      thumbAlignment="edge"
+      // custom: center, not edge: Base UI 1.9.0 edge thumbs that mount inside a hidden parent (the
+      // phone filter drawer) stay invisible; back to edge once a release ships mui/base-ui#6000
+      thumbAlignment="center"
       {...props}
     >
       <SliderPrimitive.Control className="relative flex w-full touch-none items-center select-none data-disabled:opacity-50 data-vertical:h-full data-vertical:min-h-40 data-vertical:w-auto data-vertical:flex-col">

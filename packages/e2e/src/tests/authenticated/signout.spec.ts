@@ -6,6 +6,7 @@ import { test, expect } from "../../fixtures/test.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb } from "../../helpers/db.js";
+import { waitForHydrated } from "../../helpers/hydration.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -63,7 +64,9 @@ async function loginViaForm(page: Page, email: string, password: string) {
 }
 
 async function openUserMenu(page: Page) {
-  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  const menu = page.getByRole("button", { name: "Menu", exact: true });
+  await waitForHydrated(menu);
+  await menu.click();
 }
 
 test.describe("sign out", () => {
@@ -246,14 +249,11 @@ test.describe("sign out", () => {
     await page.goto("/collections");
     await expect(page).toHaveURL(/\/collections/u, { timeout: 15_000 });
 
-    // Collections' nested sidebar has its own "Menu" trigger; scope to the
-    // header banner's button and retry past sidebar transitions.
-    await expect(async () => {
-      await page.getByRole("banner").getByRole("button", { name: "Menu", exact: true }).click();
-      await expect(page.getByRole("menuitem", { name: "Sign out" })).toBeVisible({
-        timeout: 1500,
-      });
-    }).toPass({ timeout: 10_000 });
+    // Collections' nested sidebar has its own "Menu" trigger; scope to the header banner's.
+    const menu = page.getByRole("banner").getByRole("button", { name: "Menu", exact: true });
+    await waitForHydrated(menu);
+    await menu.click();
+    await expect(page.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
     await page.getByRole("menuitem", { name: "Sign out" }).click();
 
     await expect(page).toHaveURL(/\/cards(?:\?|$)/u, { timeout: 15_000 });

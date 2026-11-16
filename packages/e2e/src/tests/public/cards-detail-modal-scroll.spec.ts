@@ -48,8 +48,18 @@ test.describe("card detail modal scroll", () => {
     await waitForCatalogLoaded(page);
     await page.evaluate(() => globalThis.scrollTo(0, 0));
     await page.mouse.wheel(0, 320);
-    await page.waitForTimeout(300);
-    await page.locator("[data-index] img").nth(6).click();
+    await expect.poll(() => page.evaluate(() => globalThis.scrollY)).toBeGreaterThan(0);
+    // Click a tile where it already shows, below the sticky toolbar, so the click scrolls nothing.
+    const target = await page.locator("[data-index] [data-printing-id]").evaluateAll((elements) =>
+      elements
+        .map((element) => element.getBoundingClientRect())
+        .map((box) => ({ x: box.left + box.width / 2, y: box.top + box.height / 2 }))
+        .find((point) => point.y > 200 && point.y < globalThis.innerHeight - 20),
+    );
+    expect(target).toBeDefined();
+    const scrolledTo = await page.evaluate(() => globalThis.scrollY);
+    expect(scrolledTo).toBeGreaterThan(0);
+    await page.mouse.click(target?.x ?? 0, target?.y ?? 0);
     const position = page.getByRole("dialog").getByText(/^\d+ \/ \d+$/u);
     await expect(position).toBeVisible();
     const openedAt = await position.textContent();

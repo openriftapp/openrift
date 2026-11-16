@@ -4,6 +4,7 @@ import { ALL_MARKETPLACES, EUR_MARKETPLACES } from "@openrift/shared/types/prici
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
+import { urlWithLanguagesDefault } from "../../helpers/catalog.js";
 import { API_BASE_URL, WEB_BASE_URL } from "../../helpers/constants.js";
 import { dockDetailPane } from "../../helpers/detail-pane.js";
 import { waitForHydrated } from "../../helpers/hydration.js";
@@ -198,7 +199,7 @@ test.describe("card detail route — essentials", () => {
 
     await page.getByRole("link", { name: /all cards/iu }).click();
 
-    await expect(page).toHaveURL(/\/cards$/u);
+    await expect(page).toHaveURL(urlWithLanguagesDefault("/cards"));
     await expect(page.getByPlaceholder(/search/iu)).toBeVisible({ timeout: 10_000 });
   });
 
@@ -235,7 +236,7 @@ test.describe("card detail route — essentials", () => {
     await search.fill("annie");
     await search.press("Enter");
 
-    await expect(page).toHaveURL(/\/cards\?q=annie$/u);
+    await expect(page).toHaveURL(/\/cards\?(?:languages=[^&]*&)?q=annie(?:&languages=[^&]*)?$/u);
   });
 
   test("an unknown slug one letter off a card name links to that card", async ({ page }) => {
@@ -577,9 +578,11 @@ test.describe("card detail route — rules / effect / flavor / errata / bans", (
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
 
     await expect(page.getByText("Rules", { exact: true })).toBeVisible();
-    await expect(page.getByText(/Bonus Damage|Deal 3 damage/iu).first()).toBeVisible();
+    // Drawn placeholders for missing art repeat the rules and flavor, so read the info panel.
+    const details = page.getByRole("definition");
+    await expect(details.getByText(/Bonus Damage|Deal 3 damage/iu).first()).toBeVisible();
     await expect(page.getByText("Flavor", { exact: true })).toBeVisible();
-    await expect(page.getByText(/I never play with matches/iu)).toBeVisible();
+    await expect(details.getByText(/I never play with matches/iu)).toBeVisible();
   });
 
   test("a card with errata shows the Errata block with its source label and original rules", async ({

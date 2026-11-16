@@ -92,13 +92,8 @@ function statsHeader(page: Page) {
 // The sidebar Stats panel only shows while a zone is active; the deck editor
 // starts on Overview, so tests that inspect it must click a zone first.
 async function activateSidebarPanels(page: Page): Promise<void> {
-  // Retry in case the sidebar hasn't finished hydrating yet.
-  await expect(async () => {
-    await page.getByRole("button", { name: "Edit Main", exact: true }).first().click();
-    await expect(statsHeader(page)).toBeVisible({
-      timeout: 2000,
-    });
-  }).toPass({ timeout: 15_000 });
+  await page.getByRole("button", { name: "Edit Main", exact: true }).first().click();
+  await expect(statsHeader(page)).toBeVisible();
 }
 
 async function gotoDeckWithPanels(page: Page, deckId: string): Promise<void> {

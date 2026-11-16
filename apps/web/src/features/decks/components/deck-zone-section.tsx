@@ -286,6 +286,7 @@ export function DeckZoneSection({
     <div
       ref={dropRef}
       data-slot="deck-zone"
+      data-deck-drop-zone={zone}
       data-zone={zone}
       className={cn(
         "flex flex-col gap-1.5 rounded-md transition-all select-none",

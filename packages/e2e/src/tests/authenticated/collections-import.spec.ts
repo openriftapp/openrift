@@ -5,6 +5,7 @@ import type { APIRequestContext, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
 import { isApiCall } from "../../helpers/api-endpoint.js";
+import { urlWithLanguagesDefault } from "../../helpers/catalog.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb, deleteUser } from "../../helpers/db.js";
@@ -634,7 +635,9 @@ test.describe("collections import/export", () => {
       await createPromise;
       await addCopiesPromise;
 
-      await expect(page).toHaveURL(/\/collections\/[0-9a-f-]{36}$/u, { timeout: 15_000 });
+      await expect(page).toHaveURL(urlWithLanguagesDefault("/collections/[0-9a-f-]{36}"), {
+        timeout: 15_000,
+      });
       await expect(page.getByText(/Imported 2 copies\./u)).toBeVisible();
 
       const collections = await fetchCollections(page.request);

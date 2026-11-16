@@ -11,6 +11,7 @@ import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { copyLimitFor } from "@openrift/shared/deck-rules";
 import { isSingleSlotZone } from "@openrift/shared/deck-zones";
+import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -19,6 +20,7 @@ import { DndScrollWatcher } from "@/components/dnd-scroll-watcher";
 import { CardDragGhost } from "@/features/cards/components/card-drag-ghost";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { useDeckBuilderActions, useDeckCards } from "@/features/decks/hooks/use-deck-builder";
+import { isZoneDropRejected } from "@/features/decks/hooks/use-deck-zone-drop";
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
 import { copyLimitTotal, runeAddRoom } from "@/features/decks/lib/deck-builder-card";
 import type { DeckDragData, DeckDropData } from "@/features/decks/lib/deck-dnd-data";
@@ -28,6 +30,7 @@ import {
   isDropRejected,
   resolveDraggedCard,
 } from "@/features/decks/lib/deck-dnd-data";
+import { DECK_ZONE_ORDER } from "@/features/decks/lib/deck-zone-order";
 import { showRelaxedAddToast } from "@/features/decks/lib/workbench-add-toast";
 import { relaxedMoveOutcome, workbenchAddRoute } from "@/features/decks/lib/workbench-drop";
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
@@ -76,6 +79,40 @@ export function isPointInRect(
   return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
 }
 
+/** The droppable zone container under a viewport point, read from the DOM. */
+export function zoneAtPoint(
+  point: { x: number; y: number } | null,
+  doc: Document,
+): DeckZone | null {
+  if (point === null) {
+    return null;
+  }
+  for (const element of doc.elementsFromPoint(point.x, point.y)) {
+    const zone = element.closest<HTMLElement>("[data-deck-drop-zone]")?.dataset.deckDropZone;
+    const known = DECK_ZONE_ORDER.find((candidate) => candidate === zone);
+    if (known !== undefined) {
+      return known;
+    }
+  }
+  return null;
+}
+
+/** dnd-kit has no target for a release before it has measured the zones; the zone under the
+ * pointer stands in. `null` means the card was dropped outside every zone. */
+export function releaseDropTarget(
+  over: DeckDropData | undefined,
+  pointZone: DeckZone | null,
+  isRejected: (zone: DeckZone) => boolean,
+): DeckDropData | null {
+  if (over?.type === "deck-zone") {
+    return over;
+  }
+  if (pointZone === null) {
+    return null;
+  }
+  return { type: "deck-zone", zone: pointZone, disabled: isRejected(pointZone) };
+}
+
 export function DeckDndContext({ deckId, children }: { deckId: string; children: ReactNode }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: DRAG_ACTIVATION }));
   const actions = useDeckBuilderActions(deckId);
@@ -95,6 +132,7 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
   const shiftHeld = useShiftHeld();
   const activeNodeRef = useRef<HTMLElement | null>(null);
   const pointerRef = useRef({ x: 0, y: 0 });
+  const releaseRef = useRef<{ x: number; y: number } | null>(null);
   const scrollRafRef = useRef<number>(0);
 
   // DragOverlay has pointer-events: none, so the cursor would otherwise reflect whatever is underneath.
@@ -168,6 +206,15 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
 
   const handleDragStart = (event: DragStartEvent) => {
     activeNodeRef.current = (event.activatorEvent.target as HTMLElement) ?? null;
+    releaseRef.current = null;
+    // Capture on the window runs before dnd-kit's document listener ends the drag.
+    globalThis.addEventListener(
+      "pointerup",
+      (up: PointerEvent) => {
+        releaseRef.current = { x: up.clientX, y: up.clientY };
+      },
+      { capture: true, once: true },
+    );
 
     const data = asDragData<DeckDragData>(event.active.data.current, DECK_DRAG_TYPES);
     if (data?.type === "deck-card") {
@@ -203,13 +250,19 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
     activeNodeRef.current = null;
 
     const activeData = asDragData<DeckDragData>(event.active.data.current, DECK_DRAG_TYPES);
-    const overData = asDragData<DeckDropData>(event.over?.data.current, DECK_DROP_TYPES);
 
     if (!activeData) {
       return;
     }
 
-    if (overData?.type !== "deck-zone") {
+    const overData = releaseDropTarget(
+      asDragData<DeckDropData>(event.over?.data.current, DECK_DROP_TYPES),
+      zoneAtPoint(releaseRef.current, document),
+      (zone) =>
+        isZoneDropRejected({ dragData: activeData, zone, allCards: deckCards, format, relaxed }),
+    );
+
+    if (overData === null) {
       if (activeData.type === "deck-card") {
         if (moveAll || activeData.quantity === 1) {
           actions.setQuantity(
@@ -351,6 +404,10 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
       autoScroll={{ canScroll }}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      onDragCancel={() => {
+        setDragInfo(null);
+        activeNodeRef.current = null;
+      }}
     >
       <DndScrollWatcher />
       {children}

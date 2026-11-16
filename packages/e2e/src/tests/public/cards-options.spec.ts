@@ -1,47 +1,31 @@
-import type { Locator, Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
+import { cardImage, typeSearch, waitForCatalogLoaded } from "../../helpers/catalog.js";
+import { waitForHydrated } from "../../helpers/hydration.js";
 import { scrollUntilVisible } from "../../helpers/virtualized.js";
 
 // The popover trigger renders as "<Group> · <Sort>" (default groupBy="set"
-// keeps the middot present). Retries the whole open+select under load, since
-// the popover can close or its option spans re-render mid-click.
-async function selectSortGroupOption(page: Page, name: string) {
+// keeps the middot present).
+async function openSortGroupPopover(page: Page) {
   const trigger = page.getByRole("button", { name: /·/u });
-  const radio = page.getByRole("radio", { name, exact: true });
-  await expect(async () => {
-    if ((await radio.count()) === 0) {
-      await trigger.click({ timeout: 2000 }).catch(() => {});
-      await expect(radio).toBeAttached({ timeout: 1500 });
-    }
-    if ((await radio.getAttribute("aria-checked").catch(() => null)) !== "true") {
-      await radio.dispatchEvent("click").catch(() => {});
-    }
-    await expect(radio).toHaveAttribute("aria-checked", "true", { timeout: 1500 });
-  }).toPass({ timeout: 25_000 });
+  await waitForHydrated(trigger);
+  await trigger.click();
+  await expect(page.getByText("Group by", { exact: true })).toBeVisible();
 }
 
-// Grid tiles have no visible text/shortcode; the card name is only the art
-// image's alt text.
-function cardImage(page: Page, name: string): Locator {
-  return page.getByRole("img", { name });
+async function closeSortGroupPopover(page: Page) {
+  await page.keyboard.press("Escape");
+  await expect(page.getByText("Group by", { exact: true })).toBeHidden();
 }
 
-// The toolbar is useHydrated-gated, so an early keystroke is silently dropped;
-// retry real keystrokes until the query commits to the URL.
-async function typeSearch(page: Page, query: string): Promise<Locator> {
-  const search = page.getByPlaceholder(/search/iu);
-  await expect(async () => {
-    await search.click();
-    await search.fill("");
-    await search.pressSequentially(query, { delay: 30 });
-    await expect(page).toHaveURL(/[?&]q=/u, { timeout: 2000 });
-  }).toPass({ timeout: 15_000 });
-  return search;
-}
-
-async function waitForCatalogLoaded(page: Page) {
-  await scrollUntilVisible(page, cardImage(page, "Annie, Fiery"));
+async function selectSortGroupOption(page: Page, name: string) {
+  await openSortGroupPopover(page);
+  await page.getByRole("radio", { name, exact: true }).click();
+  // Regrouping can re-render the popover closed, so read the choice off the trigger.
+  await expect(page.getByRole("button", { name: /·/u })).toHaveAccessibleName(
+    new RegExp(`(?:^${name} ·|· ${name}$)`, "u"),
+  );
 }
 
 test.describe("card browser — search bar", () => {
@@ -98,13 +82,11 @@ test.describe("card browser — options bar", () => {
 
     await expect(page.getByText(/\b\d+ cards\b/u).first()).toBeVisible();
 
-    // aria-label="View mode" groups the icon-only [One per card, Every printing]
-    // toggles; retry the click since the toolbar wires handlers a beat late.
-    const viewGroup = page.getByRole("group", { name: "View mode" });
-    await expect(async () => {
-      await viewGroup.getByRole("button").nth(1).click();
-      await expect(page.getByText(/\b\d+ printings\b/u).first()).toBeVisible({ timeout: 2000 });
-    }).toPass({ timeout: 15_000 });
+    // aria-label="View mode" groups the icon-only [One per card, Every printing] toggles.
+    const everyPrinting = page.getByRole("group", { name: "View mode" }).getByRole("button").nth(1);
+    await waitForHydrated(everyPrinting);
+    await everyPrinting.click();
+    await expect(page.getByText(/\b\d+ printings\b/u).first()).toBeVisible();
   });
 
   test("changing sort order updates which card appears first", async ({ page }) => {
@@ -114,14 +96,16 @@ test.describe("card browser — options bar", () => {
     // Default group-by-set reorders within groups; compare the whole visible sequence.
     const cardOrder = () =>
       page
-        .locator("main")
-        .getByRole("img")
-        .evaluateAll((imgs) => imgs.map((img) => img.getAttribute("alt")));
+        .locator("main [data-index] [data-printing-id]")
+        .evaluateAll((tiles) =>
+          tiles.map((tile) => (tile as HTMLElement).dataset.printingId ?? null),
+        );
     const before = await cardOrder();
     expect(before.length).toBeGreaterThan(1);
+    expect(before).not.toContain(null);
 
     await selectSortGroupOption(page, "Energy");
-    await page.keyboard.press("Escape");
+    await closeSortGroupPopover(page);
 
     await expect.poll(cardOrder).not.toEqual(before);
   });
@@ -131,7 +115,7 @@ test.describe("card browser — options bar", () => {
     await waitForCatalogLoaded(page);
 
     await selectSortGroupOption(page, "Type");
-    await page.keyboard.press("Escape");
+    await closeSortGroupPopover(page);
 
     // Headers are buttons (GroupHeaderLabel); the grid is window-virtualized,
     // so headers below the fold aren't in the DOM until scrolled into view.
@@ -145,34 +129,20 @@ test.describe("card browser — options bar", () => {
     await waitForCatalogLoaded(page);
 
     await selectSortGroupOption(page, "Type");
-    await page.keyboard.press("Escape");
+    await closeSortGroupPopover(page);
 
     // The grid is window-virtualized; only the first rendered header is guaranteed present.
     const firstHeader = page.getByRole("button", { name: /^(?:Legend|Unit|Spell)$/u }).first();
 
     await expect(firstHeader).toHaveText("Legend");
 
-    // The flip button's aria-label flips synchronously on click ("Ascending…" /
-    // "Descending…"); guard on that, not the async header reorder, so a
-    // detach-and-retry never toggles twice.
-    const trigger = page.getByRole("button", { name: /·/u });
+    await openSortGroupPopover(page);
     const flipButton = page
       .getByText("Group by", { exact: true })
       .locator("..")
       .getByRole("button");
-    await expect(async () => {
-      if ((await flipButton.count()) === 0) {
-        await trigger.click({ timeout: 2000 }).catch(() => {});
-        await expect(flipButton).toBeAttached({ timeout: 1500 });
-      }
-      if (
-        !/Descending/u.test((await flipButton.getAttribute("aria-label").catch(() => "")) ?? "")
-      ) {
-        await flipButton.dispatchEvent("click").catch(() => {});
-      }
-      await expect(flipButton).toHaveAttribute("aria-label", /Descending/u, { timeout: 1500 });
-    }).toPass({ timeout: 25_000 });
-    await page.keyboard.press("Escape");
+    await flipButton.click();
+    await closeSortGroupPopover(page);
 
     await expect(firstHeader).toHaveText("Spell");
   });
