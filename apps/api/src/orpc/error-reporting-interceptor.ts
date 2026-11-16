@@ -3,17 +3,18 @@ import { ORPCError, ValidationError } from "@orpc/server";
 import * as Sentry from "@sentry/bun";
 
 import { AppError } from "../errors.js";
+import { isUniqueViolation } from "../lib/pg-errors.js";
 import { appErrorInterceptor } from "./app-error-interceptor.js";
 
 /**
- * A sub-500 status (404/409/422/...) is routine, not a fault.
+ * A sub-500 status and a unique violation (answered as a 409) are routine, not faults.
  * Checked by status, not error class: base middleware converts `AppError` to `ORPCError` before this runs.
  */
 function isServerFault(error: unknown): boolean {
   if (error instanceof AppError || error instanceof ORPCError) {
     return error.status >= 500;
   }
-  return true;
+  return !isUniqueViolation(error);
 }
 
 /**

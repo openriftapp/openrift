@@ -66,6 +66,21 @@ describe("reporting error interceptor: server-fault classification", () => {
     expect(captureException).not.toHaveBeenCalled();
   });
 
+  it("answers an unmapped unique violation with a 409 and does not capture it", async () => {
+    const uniqueViolation = Object.assign(new Error("duplicate key value"), {
+      code: "23505",
+      constraint_name: "uq_faces_identity",
+    });
+    const error = await runThrowing(uniqueViolation);
+    expect(error).toMatchObject({
+      status: 409,
+      code: "CONFLICT",
+      message: "This change conflicts with an existing record.",
+    });
+    expect(captureException).not.toHaveBeenCalled();
+    expect(logError).not.toHaveBeenCalled();
+  });
+
   it("captures a raw non-oRPC runtime error", async () => {
     await runThrowing(new Error("kaboom"));
     expect(captureException).toHaveBeenCalledTimes(1);

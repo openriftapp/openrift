@@ -1,6 +1,6 @@
 import { ORPCError, ValidationError } from "@orpc/server";
 
-import { AppError } from "../errors.js";
+import { AppError, asUnmappedUniqueConflict } from "../errors.js";
 
 interface ValidationIssue {
   path: string;
@@ -20,7 +20,8 @@ function isInputValidationError(
 export async function appErrorInterceptor<T>(options: { next: () => Promise<T> }): Promise<T> {
   try {
     return await options.next();
-  } catch (error) {
+  } catch (error_) {
+    const error = asUnmappedUniqueConflict(error_);
     if (error instanceof AppError) {
       throw new ORPCError(error.code, { status: error.status, message: error.message });
     }
