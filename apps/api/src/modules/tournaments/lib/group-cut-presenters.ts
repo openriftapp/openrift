@@ -78,7 +78,7 @@ export function toGroupStageView(input: GroupStageViewInput): GroupStageView {
           const legend = nameOf(player?.legendCardId ?? null);
           return {
             playerId: standing.playerId,
-            displayName: player?.displayName ?? "",
+            displayName: player?.displayName ?? null,
             status: (player?.status ?? "active") as PodPlayerStatus,
             legendCardId: player?.legendCardId ?? null,
             legendName: legend?.name ?? null,
@@ -117,7 +117,7 @@ export function toGroupStageView(input: GroupStageViewInput): GroupStageView {
     const provisional = provisionalSeed.get(row.playerId) ?? null;
     return {
       playerId: row.playerId,
-      displayName: playerById.get(row.playerId)?.displayName ?? "",
+      displayName: playerById.get(row.playerId)?.displayName ?? null,
       groupLabel: row.groupLabel,
       place: row.place,
       matchWinRate: row.matchWinRate,
@@ -148,7 +148,7 @@ export function toGroupStageView(input: GroupStageViewInput): GroupStageView {
             const row = rankingByPlayer.get(entry.playerId);
             return {
               playerId: entry.playerId,
-              displayName: row?.displayName ?? playerById.get(entry.playerId)?.displayName ?? "",
+              displayName: row?.displayName ?? playerById.get(entry.playerId)?.displayName ?? null,
               place: entry.place,
               seed: row?.seed ?? null,
               groupLabel: row?.groupLabel ?? "",

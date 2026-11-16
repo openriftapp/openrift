@@ -75,14 +75,14 @@ export const TOURNAMENT_PARTICIPANT_PREVIEW_COUNT = 5;
 export const TOURNAMENT_COVER_LEGEND_COUNT = 3;
 
 export const tournamentParticipantPreviewSchema = z.object({
-  name: z.string(),
+  name: z.string().nullable(),
   image: z.string().nullable(),
   gravatarHash: z.string().nullable(),
 });
 
 /** The legend art is only present when the winner consented to deck publishing. */
 export const tournamentWinnerSchema = z.object({
-  name: z.string(),
+  names: z.array(z.string().nullable()),
   legendImageId: z.string().nullable(),
 });
 
@@ -186,7 +186,7 @@ export const tournamentParticipantResponseSchema = z.object({
   id: z.string(),
   userId: z.string().nullable(),
   userName: z.string().nullable(),
-  displayName: z.string(),
+  displayName: z.string().nullable(),
   riotId: z.string().nullable(),
   status: tournamentParticipantStatusSchema,
   seed: z.number().int().nullable(),

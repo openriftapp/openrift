@@ -31,6 +31,7 @@ import { finalStandingsSeats, podiumSeats } from "@/features/tournaments/compone
 import { useTournamentDeckCheckEntries } from "@/features/tournaments/hooks/use-tournament-deck-check";
 import { useParticipantAction } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useTournamentParticipants } from "@/features/tournaments/hooks/use-tournaments";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import {
   formatPlayerRecord,
   formatScore,
@@ -185,7 +186,7 @@ function JoinRequestsSection({
   pending,
 }: {
   id: string;
-  pending: { id: string; displayName: string }[];
+  pending: { id: string; displayName: string | null }[];
 }) {
   const participantAction = useParticipantAction();
 
@@ -203,7 +204,7 @@ function JoinRequestsSection({
           return (
             <RowListItem key={participant.id} className="flex-wrap">
               <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                {participant.displayName}
+                {participantName(participant.displayName)}
               </span>
               <span className="flex items-center gap-1">
                 <Button
@@ -405,7 +406,7 @@ function ThroneModule({
                   {rank}
                 </span>
                 <PlayerChip
-                  name={row.displayName}
+                  name={participantName(row.displayName)}
                   image={row.image}
                   gravatarHash={row.gravatarHash}
                   className="flex-1 text-sm"
@@ -633,7 +634,7 @@ function OverviewTabBody({
 }: {
   id: string;
   detail: TournamentDetailResponse;
-  pending: { id: string; displayName: string }[];
+  pending: { id: string; displayName: string | null }[];
   droppedCount: number;
   missingRegionCount: number;
 }) {

@@ -74,7 +74,7 @@ async function buildState(
   );
   const seated = participants
     .filter((participant) => SEATED_STATUSES.has(participant.status))
-    .toSorted((a, b) => a.displayName.localeCompare(b.displayName));
+    .toSorted((a, b) => (a.displayName ?? "").localeCompare(b.displayName ?? ""));
   const standings = target?.standings ?? [];
   const suggestions = suggestArchiveListIdentities(
     seated.map((participant) => ({

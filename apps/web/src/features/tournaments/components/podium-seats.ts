@@ -3,6 +3,7 @@ import type { FinalStandingRow, PodStandingRow } from "@openrift/shared/types/ap
 
 import type { PodiumSeat } from "@/components/ui/podium";
 import { cutStageIndex } from "@/features/tournaments/lib/group-cut-display";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import {
   decidingTieBreak,
   formatPlayerRecord,
@@ -27,7 +28,7 @@ export function podiumSeats(standings: readonly PodStandingRow[], swiss: boolean
     .map(({ row, rank }, index) => ({
       key: row.playerId,
       rank,
-      name: row.displayName,
+      name: participantName(row.displayName),
       image: row.image,
       gravatarHash: row.gravatarHash,
       score: formatScore(row.score),
@@ -67,7 +68,7 @@ export function finalStandingsSeats(
     return {
       key: row.playerId,
       rank: row.place,
-      name: row.displayName,
+      name: participantName(row.displayName),
       image: standing?.image ?? null,
       gravatarHash: standing?.gravatarHash ?? null,
       score: standing === undefined ? "" : formatScore(standing.score),

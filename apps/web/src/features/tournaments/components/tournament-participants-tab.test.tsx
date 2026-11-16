@@ -275,6 +275,19 @@ describe("TournamentParticipantsTab roster groups", () => {
     expect(screen.queryByText("Braum")).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /Dropped/u })).not.toBeInTheDocument();
   });
+
+  it("finds a deleted account's spot by the name it shows", async () => {
+    const user = userEvent.setup();
+    participants = [
+      makeParticipant("p1", { displayName: "Ashe" }),
+      makeParticipant("p2", { displayName: null }),
+    ];
+    renderTab();
+
+    await user.type(screen.getByRole("textbox", { name: "Search players" }), "former");
+    expect(screen.getByText("Former member")).toBeInTheDocument();
+    expect(screen.queryByText("Ashe")).not.toBeInTheDocument();
+  });
 });
 
 describe("TournamentParticipantsTab fixed tables", () => {

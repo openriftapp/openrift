@@ -36,6 +36,7 @@ import {
   planArchiveListSend,
   resolveArchiveListPick,
 } from "@/features/tournaments/lib/archive-lists";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import { useArchiveListsStore } from "@/features/tournaments/stores/archive-lists-store";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -137,7 +138,7 @@ function ParticipantRow({
   return (
     <RowListItem className="flex-wrap items-start justify-between gap-y-2">
       <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="truncate font-medium">{participant.displayName}</span>
+        <span className="truncate font-medium">{participantName(participant.displayName)}</span>
         <span className="text-muted-foreground text-sm">
           {eligibilityLabel(eligibility)}
           {participant.unmatchedLines > 0
@@ -162,7 +163,9 @@ function ParticipantRow({
           items={items}
           value={value}
           onChange={(next) => setPick(participantId, next === NO_STANDING ? null : next)}
-          label={m.tournaments_archive_pick_label({ player: participant.displayName })}
+          label={m.tournaments_archive_pick_label({
+            player: participantName(participant.displayName),
+          })}
           placeholder={m.tournaments_archive_pick_placeholder()}
           className="w-full sm:w-80"
         />

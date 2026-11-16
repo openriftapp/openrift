@@ -30,6 +30,7 @@ import {
   isDoubleForfeitPod,
   isWalkoverPod,
 } from "@/features/tournaments/lib/group-cut-units";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import type { PlayerLegend } from "@/features/tournaments/lib/player-run";
 import { legendsByPlayer } from "@/features/tournaments/lib/player-run";
 import { pairingLabel } from "@/features/tournaments/lib/tournament-display";
@@ -82,7 +83,7 @@ function Seat({
           <BracketRankMark rank={place} text={formatRank(place, false)} />
         )
       }
-      name={member.displayName}
+      name={participantName(member.displayName)}
       score={seatScore(pod, member, winner)}
     >
       {group ? (

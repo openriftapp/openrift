@@ -1,5 +1,7 @@
 import type { TournamentDetailResponse } from "@openrift/shared/types/api/tournament";
+import { useState } from "react";
 
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -32,6 +34,7 @@ export function FormatSection({
   locked: boolean;
 }) {
   const updateTournament = useUpdateTournament();
+  const [confirmPairingsOff, setConfirmPairingsOff] = useState(false);
   const runsRounds = hasPairing(detail.pairingStyle);
   const isSwiss = detail.pairingStyle === "swiss";
   const groupCut = detail.format === "group_cut";
@@ -43,7 +46,7 @@ export function FormatSection({
       })
     : m.tournaments_settings_format_description_locked();
 
-  function changeFormat(change: TournamentFormatChange) {
+  function saveFormat(change: TournamentFormatChange) {
     const current: TournamentFormatState = {
       playMode: detail.playMode,
       pairingStyle: detail.pairingStyle,
@@ -52,7 +55,17 @@ export function FormatSection({
       regionsEnabled: detail.regionsEnabled,
     };
     const patch = formatChangePatch(current, change);
-    void runReportedMutation(() => updateTournament.mutateAsync({ id: detail.id, ...patch }));
+    return runReportedMutation(() => updateTournament.mutateAsync({ id: detail.id, ...patch }));
+  }
+
+  function changeFormat(change: TournamentFormatChange) {
+    void saveFormat(change);
+  }
+
+  async function turnPairingsOff() {
+    if (await saveFormat({ pairingsEnabled: false })) {
+      setConfirmPairingsOff(false);
+    }
   }
 
   return (
@@ -91,7 +104,13 @@ export function FormatSection({
                 id="t-pairings-enabled"
                 checked={runsRounds}
                 disabled={locked || updateTournament.isPending}
-                onCheckedChange={(pairingsEnabled) => changeFormat({ pairingsEnabled })}
+                onCheckedChange={(pairingsEnabled) => {
+                  if (!pairingsEnabled && groupCut) {
+                    setConfirmPairingsOff(true);
+                    return;
+                  }
+                  changeFormat({ pairingsEnabled });
+                }}
               />
             </div>
           </div>
@@ -125,6 +144,15 @@ export function FormatSection({
         </div>
       )}
       <SaveError error={updateTournament.error} />
+      <ConfirmActionDialog
+        open={confirmPairingsOff}
+        onOpenChange={setConfirmPairingsOff}
+        onConfirm={() => void turnPairingsOff()}
+        isPending={updateTournament.isPending}
+        title={m.tournaments_settings_pairings_off_confirm_title()}
+        description={m.tournaments_settings_pairings_off_confirm_description()}
+        confirmLabel={m.tournaments_settings_pairings_off_confirm_action()}
+      />
     </SettingsSection>
   );
 }

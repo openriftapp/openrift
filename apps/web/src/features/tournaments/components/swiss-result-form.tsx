@@ -7,6 +7,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ChangedRemotelyNotice } from "@/features/tournaments/components/pod-result-form";
 import { SaveError } from "@/features/tournaments/components/save-error";
 import { useResultBaseline } from "@/features/tournaments/hooks/use-result-baseline";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import type { PodResultEntry } from "@/features/tournaments/lib/swiss-results";
 import { swissPointsPreview, swissResultPresets } from "@/features/tournaments/lib/swiss-results";
 import { groupPodMembersByTeam, teamDisplayName } from "@/features/tournaments/lib/team-display";
@@ -42,8 +43,12 @@ export function SwissResultForm({
     ? groupPodMembersByTeam(pod.members)
     : pod.members.map((member) => [member]);
   const [side1, side2] = groups;
-  const side1Name = side1 ? teamDisplayName(side1.map((member) => member.displayName)) : "";
-  const side2Name = side2 ? teamDisplayName(side2.map((member) => member.displayName)) : "";
+  const side1Name = side1
+    ? teamDisplayName(side1.map((member) => participantName(member.displayName)))
+    : "";
+  const side2Name = side2
+    ? teamDisplayName(side2.map((member) => participantName(member.displayName)))
+    : "";
   const presets = swissResultPresets(matchFormat);
   const stored1 = side1?.[0]?.gamePoints ?? null;
   const stored2 = side2?.[0]?.gamePoints ?? null;

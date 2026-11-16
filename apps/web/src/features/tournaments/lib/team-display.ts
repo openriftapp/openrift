@@ -5,6 +5,8 @@
 import type { PodMemberResponse, PodStandingRow } from "@openrift/shared/types/api/pod-tournament";
 import type { TournamentParticipantResponse } from "@openrift/shared/types/api/tournament";
 
+import { participantName } from "@/features/tournaments/lib/participant-name";
+
 export function teamDisplayName(memberNames: readonly string[]): string {
   return memberNames.join(" & ");
 }
@@ -15,12 +17,12 @@ export function groupPodMembersByTeam(members: PodMemberResponse[]): PodMemberRe
 }
 
 export function teamNamesById(
-  rows: readonly { teamId: string | null; displayName: string }[],
+  rows: readonly { teamId: string | null; displayName: string | null }[],
 ): Map<string, string> {
   return new Map(
     [...participantsByTeam(rows)].map(([teamId, members]) => [
       teamId,
-      teamDisplayName(members.map((member) => member.displayName)),
+      teamDisplayName(members.map((member) => participantName(member.displayName))),
     ]),
   );
 }
@@ -77,7 +79,7 @@ export function teammateNamesById(
     for (const member of members) {
       const teammate = members.find((other) => other.id !== member.id);
       if (teammate) {
-        names.set(member.id, teammate.displayName);
+        names.set(member.id, participantName(teammate.displayName));
       }
     }
   }

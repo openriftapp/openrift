@@ -57,6 +57,7 @@ import {
 } from "@/features/tournaments/hooks/use-tournament-deck-check";
 import { useTournamentParticipants } from "@/features/tournaments/hooks/use-tournaments";
 import { parseManualDecklist } from "@/features/tournaments/lib/deck-check-manual-entry";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import {
   compareParticipantsForList,
   participantStatusLabels,
@@ -98,12 +99,12 @@ export function TournamentDeckCheckEntries({
 
   const { event, entries } = detail;
   const visible = entries
-    .filter((entry) => matchesTextQuery(search, [entry.playerName]))
+    .filter((entry) => matchesTextQuery(search, [participantName(entry.playerName)]))
     .toSorted(
       (a, b) =>
         Number(b.unlockRequestedAt !== null) - Number(a.unlockRequestedAt !== null) ||
         STATE_ORDER[a.state] - STATE_ORDER[b.state] ||
-        a.playerName.localeCompare(b.playerName),
+        participantName(a.playerName).localeCompare(participantName(b.playerName)),
     );
 
   return (
@@ -227,7 +228,7 @@ function EntryRow({
               entry.state === "withdrawn" && "line-through",
             )}
           >
-            {entry.playerName}
+            {participantName(entry.playerName)}
           </span>
           {entry.source === "api" ? (
             <Badge variant="outline" title={m.tournaments_deck_check_source_api_title()}>
@@ -304,7 +305,9 @@ function EntryRowMenu({
             <Button
               size="sm"
               variant="ghost"
-              aria-label={m.tournaments_deck_check_row_actions({ name: entry.playerName })}
+              aria-label={m.tournaments_deck_check_row_actions({
+                name: participantName(entry.playerName),
+              })}
             />
           }
         >
@@ -379,7 +382,7 @@ function AddDeckDialog({
     .toSorted(compareParticipantsForList);
   const rosterItems = available.map((participant) => ({
     value: participant.id,
-    label: `${participant.displayName} (${participantStatusLabels()[participant.status]})`,
+    label: `${participantName(participant.displayName)} (${participantStatusLabels()[participant.status]})`,
   }));
 
   const parsed = parseManualDecklist(decklist);

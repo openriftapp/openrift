@@ -6,6 +6,7 @@ import type {
   GroupQualificationRowView,
 } from "@openrift/shared/types/api/pod-tournament";
 
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import { bracketRoundLabels } from "@/lib/bracket-round-label";
 import { m } from "@/paraglide/messages.js";
 
@@ -154,7 +155,10 @@ export function cutLineExplanation(
   if (lastIn === undefined || firstOut === undefined || firstOut.qualified) {
     return null;
   }
-  const names = { inName: lastIn.displayName, outName: firstOut.displayName };
+  const names = {
+    inName: participantName(lastIn.displayName),
+    outName: participantName(firstOut.displayName),
+  };
   const heading = m.tournaments_cut_line_heading({ ...names, size: cutSize });
   if (lastIn.place !== firstOut.place) {
     return {

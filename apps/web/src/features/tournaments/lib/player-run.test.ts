@@ -77,6 +77,48 @@ describe("playerRunRounds", () => {
   });
 });
 
+describe("playerRunRounds provisional rounds", () => {
+  function reporting(base: PodRoundResponse): PodRoundResponse {
+    return { ...base, status: "reporting" };
+  }
+
+  it("marks a reported but not finalized result provisional, never a bye", () => {
+    const rounds = [
+      round(1, [["Ashe", 1, "Jinx", 2]]),
+      reporting(round(2, [["Ashe", 2, "Sett", 1]])),
+      reporting(round(3, [["Jinx", 1, "Sett", 2]], ["Ashe"])),
+    ];
+    expect(
+      playerRunRounds(rounds, "Ashe", false).map((entry) => [entry.outcome, entry.provisional]),
+    ).toEqual([
+      ["win", false],
+      ["loss", true],
+      ["bye", false],
+    ]);
+  });
+
+  it("leaves a round without a result unmarked", () => {
+    const rounds = [reporting(round(1, [["Ashe", null, "Jinx", null]]))];
+    expect(playerRunRounds(rounds, "Ashe", false)[0]?.provisional).toBe(false);
+  });
+
+  it("counts a fully reported group round as final in a group stage + top cut event", () => {
+    const rounds = [
+      reporting(round(1, [["Ashe", 1, "Jinx", 2]])),
+      reporting(
+        round(2, [
+          ["Ashe", 1, "Sett", 2],
+          ["Jinx", null, "Braum", null],
+        ]),
+      ),
+    ];
+    expect(playerRunRounds(rounds, "Ashe", true).map((entry) => entry.provisional)).toEqual([
+      false,
+      true,
+    ]);
+  });
+});
+
 describe("playerRunRounds without a result in a larger pod", () => {
   it("reads a 3 or 4 player pod on one placement without games as no result", () => {
     for (const size of [3, 4] as const) {

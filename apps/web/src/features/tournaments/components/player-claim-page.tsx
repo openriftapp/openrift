@@ -13,6 +13,7 @@ import {
   useClaimLanding,
   useClaimTournamentDeck,
 } from "@/features/tournaments/hooks/use-deck-check-player";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import { useUserId } from "@/hooks/use-session";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
@@ -76,7 +77,7 @@ export function PlayerClaimPage({ token }: { token: string }) {
             </div>
             <p className="text-sm">
               {m.tournaments_claim_your_spot_label()}{" "}
-              <span className="font-medium">{data.participantName}</span>
+              <span className="font-medium">{participantName(data.participantName)}</span>
             </p>
           </div>
         }

@@ -6,6 +6,7 @@ import { AppError } from "../../../errors.js";
 import type { Organization, OrganizationMember } from "../repositories/organizations.js";
 import type { Tournament, TournamentParticipant } from "../repositories/tournaments-shared.js";
 import {
+  assertIdentityEditable,
   assertStillPlaying,
   isHost,
   loadParticipant,
@@ -312,5 +313,17 @@ describe("lockStillPlaying", () => {
     await expect(lockStillPlaying(repos, null)).rejects.toMatchObject({ status: 404 });
     expect(lockParticipant).not.toHaveBeenCalled();
     await expect(lockStillPlaying(repos, "p1")).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe("assertIdentityEditable", () => {
+  it("refuses a name or Riot ID edit on a closed account's row", () => {
+    expect(() => assertIdentityEditable(null, true)).toThrow(AppError);
+    expect(() => assertIdentityEditable(null, true)).toThrow(/deleted their account/u);
+  });
+
+  it("lets every other write through", () => {
+    expect(() => assertIdentityEditable(null, false)).not.toThrow();
+    expect(() => assertIdentityEditable("Ekko", true)).not.toThrow();
   });
 });

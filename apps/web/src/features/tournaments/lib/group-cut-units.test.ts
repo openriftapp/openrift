@@ -266,6 +266,14 @@ describe("podScoreLine", () => {
     expect(podScoreLine(pod)).toBe("Ashe and Braum both forfeited");
   });
 
+  it("names a deleted account as a former member", () => {
+    const pod = makePod("x", 1, [
+      makeMember("p1", { displayName: null, placement: 1, gamePoints: 2 }),
+      makeMember("p2", { displayName: "Braum", placement: 2, gamePoints: 1 }),
+    ]);
+    expect(podScoreLine(pod)).toBe("Former member 2-1 Braum");
+  });
+
   it("reads as a fixture while the match is unreported", () => {
     const pod = makePod("x", 1, [
       makeMember("p1", { displayName: "Ashe" }),

@@ -212,11 +212,11 @@ describe.skipIf(!ctx)("podTournamentsRepo (integration)", () => {
     const secondStandings = await podRepo.computeStandings(second.id, scoring);
     expect(winners.get(first.id)).toEqual({
       participantId: firstStandings[0]!.playerId,
-      displayName: firstStandings[0]!.displayName,
+      displayNames: [firstStandings[0]!.displayName],
     });
     expect(winners.get(second.id)).toEqual({
       participantId: secondStandings[0]!.playerId,
-      displayName: secondStandings[0]!.displayName,
+      displayNames: [secondStandings[0]!.displayName],
     });
     expect(winners.has(unplayed.id)).toBe(false);
 

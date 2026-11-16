@@ -1,4 +1,5 @@
 import { tournamentsContract } from "@openrift/shared/contracts/tournaments";
+import { memberNameEnglish } from "@openrift/shared/member-name";
 import { GROUP_STAGE_ROUNDS } from "@openrift/shared/pairing/group-cut-types";
 import type { PodTournamentDetailResponse } from "@openrift/shared/types/api/pod-tournament";
 import type {
@@ -9,7 +10,6 @@ import type {
 } from "@openrift/shared/types/api/tournament";
 import { implement } from "@orpc/server";
 
-import type { Repos } from "../../../deps.js";
 import { badRequest, conflict, forbidden, notFound } from "../../../errors.js";
 import { assertExisted } from "../../../lib/assertions.js";
 import { buildKeysetCursor } from "../../../lib/keyset-cursor.js";
@@ -25,6 +25,7 @@ import {
   podRunDetailById,
 } from "../lib/pod-tournament-builders.js";
 import {
+  assertIdentityEditable,
   loadParticipant,
   loadTournament,
   requireHost,
@@ -49,13 +50,11 @@ import {
   assertStatusTransition,
   assertValidRegion,
 } from "../lib/tournament-invariants.js";
-import type { TournamentParticipant } from "../repositories/tournaments-shared.js";
 import {
   assertCutRoundEditable,
   assertGroupCutRun,
   completeAfterFinal,
   generateGroupCutRound,
-  reportGroupStageWalkovers,
   rerollGroupCutRound,
   setLegendMetaShares,
   startGroupRound as startGroupRoundEngine,
@@ -63,6 +62,7 @@ import {
   replaceCutRoundPairing,
   replaceGroupSeats,
 } from "../services/group-cut.js";
+import { dropParticipant, withdrawPendingSpot } from "../services/participant-drops.js";
 import {
   finalizeRound as finalizeRoundEngine,
   pairNextRound,
@@ -70,22 +70,6 @@ import {
   rerollRound as rerollRoundEngine,
   submitPodResult,
 } from "../services/pod-pairing.js";
-
-/** Handler-local: only the drop path needs it. */
-async function findActiveTeammate(
-  repos: Repos,
-  tournamentId: string,
-  participant: TournamentParticipant,
-): Promise<TournamentParticipant | undefined> {
-  if (participant.teamId === null) {
-    return undefined;
-  }
-  const participants = await repos.tournaments.listParticipants(tournamentId);
-  return participants.find(
-    (row) =>
-      row.teamId === participant.teamId && row.id !== participant.id && row.status === "active",
-  );
-}
 
 const os = implement(tournamentsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -522,7 +506,8 @@ export const tournamentsRouter = {
       await (touchesManagedFields
         ? requireManage(repos, tournament, userId)
         : requireStaff(repos, tournament, userId));
-      await loadParticipant(repos, input.id, input.participantId);
+      const participant = await loadParticipant(repos, input.id, input.participantId);
+      assertIdentityEditable(participant.displayName, input.displayName !== undefined);
       await assertValidRegion(repos, input.region);
       if (input.legendCardId !== undefined) {
         await assertLegendAssignable(repos, tournament, input.legendCardId);
@@ -554,22 +539,7 @@ export const tournamentsRouter = {
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
       const participant = await loadParticipant(repos, input.id, input.participantId);
-      await repos.tournaments.updateParticipant(input.participantId, {
-        status: "dropped",
-        droppedAfterRound: tournament.currentRound,
-      });
-      // Dropping half a fixed team drops the whole team: 2v2 has no
-      // substitutes and a lone partner can never be paired.
-      if (tournament.playMode === "2v2" && participant.teamId !== null) {
-        const teammate = await findActiveTeammate(repos, input.id, participant);
-        if (teammate) {
-          await repos.tournaments.updateParticipant(teammate.id, {
-            status: "dropped",
-            droppedAfterRound: tournament.currentRound,
-          });
-        }
-      }
-      await reportGroupStageWalkovers(repos, tournament, input.participantId);
+      await dropParticipant(repos, tournament, participant);
       return buildParticipantList(repos, input.id);
     },
   ),
@@ -637,7 +607,7 @@ export const tournamentsRouter = {
         if (participant.status !== "requested") {
           throw errors.CONFLICT({ message: "Only a pending request can be denied" });
         }
-        await trxRepos.tournaments.deleteParticipant(input.participantId);
+        await withdrawPendingSpot(trxRepos, input.participantId);
       });
       return buildParticipantList(repos, input.id);
     },
@@ -691,7 +661,8 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      await loadParticipant(repos, input.id, input.participantId);
+      const participant = await loadParticipant(repos, input.id, input.participantId);
+      assertIdentityEditable(participant.displayName, true);
       await withUniqueClaimToken((claimToken) =>
         repos.tournaments.reissueClaim(input.participantId, claimToken),
       );
@@ -721,7 +692,9 @@ export const tournamentsRouter = {
           throw badRequest("Only active participants can join a team.");
         }
         if (member.teamId !== null) {
-          throw errors.CONFLICT({ message: `${member.displayName} is already on a team` });
+          throw errors.CONFLICT({
+            message: `${memberNameEnglish(member.displayName, member.displayName === null)} is already on a team`,
+          });
         }
       }
       const teamId = await repos.podTournaments.createTeam(input.id, [firstId, secondId]);

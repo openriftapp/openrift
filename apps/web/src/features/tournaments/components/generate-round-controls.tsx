@@ -24,6 +24,7 @@ import { TextLink } from "@/components/ui/text-link";
 import { PlayerChip } from "@/features/tournaments/components/player-chip";
 import { useParticipantAction } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useGenerateTournamentRound } from "@/features/tournaments/hooks/use-tournament-run";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import { teamDisplayName } from "@/features/tournaments/lib/team-display";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
@@ -128,11 +129,13 @@ export function GenerateRoundControls({
   const droppedPlayers = players.filter((player) => player.status === "dropped");
   const standingById = new Map(standings.map((row) => [row.playerId, row]));
   const byeCountById = new Map(standings.map((row) => [row.playerId, row.byeCount]));
-  const nameById = new Map(players.map((player) => [player.id, player.displayName]));
+  const nameById = new Map(
+    players.map((player) => [player.id, participantName(player.displayName)]),
+  );
 
   const soloUnit = (player: PodPlayerResponse): ByeUnit => ({
     key: player.id,
-    label: player.displayName,
+    label: participantName(player.displayName),
     memberIds: [player.id],
   });
   const byeUnits: ByeUnit[] = teamMode
@@ -152,7 +155,9 @@ export function GenerateRoundControls({
             : [
                 {
                   key: teamId,
-                  label: teamDisplayName(members.map((member) => member.displayName)),
+                  label: teamDisplayName(
+                    members.map((member) => participantName(member.displayName)),
+                  ),
                   memberIds: [lead.id, ...rest.map((member) => member.id)],
                 },
               ];
@@ -323,13 +328,13 @@ export function GenerateRoundControls({
                     <PickerRow
                       key={player.id}
                       value={player.id}
-                      keywords={[player.displayName]}
+                      keywords={[participantName(player.displayName)]}
                       disabled={participantAction.isPending}
                       onSelect={() => void setDropped(player, true)}
                       className="px-2 py-1.5"
                     >
                       <PlayerAvatarChip
-                        name={player.displayName}
+                        name={participantName(player.displayName)}
                         standing={standingById.get(player.id)}
                         className="flex-1"
                       />
@@ -343,13 +348,13 @@ export function GenerateRoundControls({
                       <PickerRow
                         key={player.id}
                         value={player.id}
-                        keywords={[player.displayName]}
+                        keywords={[participantName(player.displayName)]}
                         disabled={participantAction.isPending}
                         onSelect={() => void setDropped(player, false)}
                         className="px-2 py-1.5"
                       >
                         <PlayerAvatarChip
-                          name={player.displayName}
+                          name={participantName(player.displayName)}
                           standing={standingById.get(player.id)}
                           className="flex-1 opacity-60"
                         />

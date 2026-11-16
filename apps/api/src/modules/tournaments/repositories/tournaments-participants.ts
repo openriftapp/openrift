@@ -57,7 +57,12 @@ export function tournamentParticipantsRepo(db: Kysely<Database>) {
       tournamentIds: string[],
       limit: number,
     ): Promise<
-      { tournamentId: string; displayName: string; image: string | null; email: string | null }[]
+      {
+        tournamentId: string;
+        displayName: string | null;
+        image: string | null;
+        email: string | null;
+      }[]
     > {
       if (tournamentIds.length === 0) {
         return Promise.resolve([]);
@@ -118,7 +123,7 @@ export function tournamentParticipantsRepo(db: Kysely<Database>) {
           hostType: "user" | "organization";
           groupName: string | null;
           deckSubmission: "none" | "optional" | "required";
-          participantName: string;
+          participantName: string | null;
         }
       | undefined
     > {
@@ -178,6 +183,14 @@ export function tournamentParticipantsRepo(db: Kysely<Database>) {
         .where("claimBlockedAt", "is", null)
         .returningAll()
         .executeTakeFirst();
+    },
+
+    listParticipantsOfUser(userId: string): Promise<TournamentParticipant[]> {
+      return db
+        .selectFrom("tournamentParticipants")
+        .selectAll()
+        .where("userId", "=", userId)
+        .execute();
     },
 
     getParticipantByUser(

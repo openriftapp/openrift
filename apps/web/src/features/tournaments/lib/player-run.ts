@@ -49,16 +49,32 @@ function outcomeOf(pod: PodResponse, playerId: string): RunOutcome {
   return own === 1 ? "win" : "loss";
 }
 
-/** Finalized and reporting rounds alike; a round the player sat out entirely is skipped. */
+type PlayerRunRound = RunRound & { provisional: boolean };
+
+/**
+ * Group rounds stay "reporting" until the cut is generated, so for that format a
+ * round counts once every pod is reported; elsewhere it must be finalized.
+ */
+function roundIsFinal(round: PodRoundResponse, groupCut: boolean): boolean {
+  return (
+    round.status === "finalized" ||
+    (groupCut &&
+      round.pods.length > 0 &&
+      round.pods.every((pod) => pod.resultStatus === "reported"))
+  );
+}
+
+/** Finalized and reporting rounds alike, the latter provisional; a round the player sat out entirely is skipped. */
 export function playerRunRounds(
   rounds: readonly PodRoundResponse[],
   playerId: string,
   hasCut: boolean,
-): RunRound[] {
+): PlayerRunRound[] {
   return rounds
     .toSorted((a, b) => a.roundNumber - b.roundNumber)
-    .flatMap((round): RunRound[] => {
+    .flatMap((round): PlayerRunRound[] => {
       const isCut = hasCut && round.roundNumber > GROUP_STAGE_ROUNDS;
+      const final = roundIsFinal(round, hasCut);
       const base = { phaseOrder: isCut ? 1 : 0, roundNumber: round.roundNumber, isCut };
       if (round.byes.some((bye) => bye.playerId === playerId)) {
         return [
@@ -69,6 +85,7 @@ export function playerRunRounds(
             gamesWon: null,
             gamesLost: null,
             opponentId: null,
+            provisional: false,
           },
         ];
       }
@@ -80,11 +97,13 @@ export function playerRunRounds(
       }
       const own = pod.members.find((member) => member.playerId === playerId);
       const opponent = pod.members.find((member) => member.playerId !== playerId);
+      const outcome = outcomeOf(pod, playerId);
       return [
         {
           ...base,
           tableNumber: pod.podNumber,
-          outcome: outcomeOf(pod, playerId),
+          outcome,
+          provisional: !final && outcome !== "unknown",
           gamesWon: own?.gamePoints ?? null,
           gamesLost: pod.members.length === 2 ? (opponent?.gamePoints ?? null) : null,
           opponentId: pod.members.length === 2 ? (opponent?.playerId ?? null) : null,
@@ -93,35 +112,33 @@ export function playerRunRounds(
     });
 }
 
-/**
- * Group rounds stay "reporting" until the cut is generated, so for that format a
- * round counts once every pod is reported; elsewhere it must be finalized.
- */
 export function latestSnapshotRound(
   rounds: readonly PodRoundResponse[],
   groupCut: boolean,
 ): number {
-  return rounds.reduce((highest, round) => {
-    const done =
-      round.status === "finalized" ||
-      (groupCut &&
-        round.pods.length > 0 &&
-        round.pods.every((pod) => pod.resultStatus === "reported"));
-    return done ? Math.max(highest, round.roundNumber) : highest;
-  }, 0);
+  return rounds.reduce(
+    (highest, round) =>
+      roundIsFinal(round, groupCut) ? Math.max(highest, round.roundNumber) : highest,
+    0,
+  );
 }
 
 export interface LegendFinish {
   legendCardId: string;
   playerId: string;
-  displayName: string;
+  displayName: string | null;
   place: number;
   record: string;
 }
 
 /** One entry per Legend, carrying the best-placed player who brought it, in place order. */
 export function bestFinishPerLegend(
-  places: readonly { playerId: string; displayName: string; place: number; record: string }[],
+  places: readonly {
+    playerId: string;
+    displayName: string | null;
+    place: number;
+    record: string;
+  }[],
   legendByPlayer: ReadonlyMap<string, string | null>,
 ): LegendFinish[] {
   const best = new Map<string, LegendFinish>();

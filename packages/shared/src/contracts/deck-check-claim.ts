@@ -10,7 +10,7 @@ export const deckCheckClaimLandingResponseSchema = z.object({
   hostType: z.enum(["user", "organization"]),
   groupName: z.string().nullable(),
   deckSubmission: z.enum(["none", "optional", "required"]),
-  participantName: z.string(),
+  participantName: z.string().nullable(),
 });
 
 // Reveals the tournament and the spot's name, never the deck. The matching

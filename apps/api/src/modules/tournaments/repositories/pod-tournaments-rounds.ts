@@ -12,7 +12,7 @@ import type { Tournament } from "./tournaments-shared.js";
 export interface PodMemberRow {
   podId: string;
   playerId: string;
-  displayName: string;
+  displayName: string | null;
   image: string | null;
   /** Only feeds the gravatar hash. */
   email: string | null;
@@ -24,7 +24,7 @@ export interface PodMemberRow {
 interface PodByeRow {
   roundId: string;
   playerId: string;
-  displayName: string;
+  displayName: string | null;
 }
 
 interface PodWithMembers {

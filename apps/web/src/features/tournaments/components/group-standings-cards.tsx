@@ -30,6 +30,7 @@ import {
   groupCutTierLabels,
   groupPlaceLabel,
 } from "@/features/tournaments/lib/group-cut-display";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import type { PlayerAvatar } from "@/features/tournaments/lib/standings-display";
 import { formatMatchRecord, standingsRowClass } from "@/features/tournaments/lib/standings-display";
 import { cn } from "@/lib/utils";
@@ -94,7 +95,7 @@ export function GroupStandingsCard({
             <StandingsRankCell rank={row.place} />
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               <StandingsIdentity
-                name={row.displayName}
+                name={participantName(row.displayName)}
                 avatar={avatars.get(row.playerId)}
                 dropped={row.status === "dropped"}
               />
@@ -135,7 +136,7 @@ export function GroupStandingsCard({
                 </TableCell>
                 <TableCell>
                   <StandingsIdentity
-                    name={row.displayName}
+                    name={participantName(row.displayName)}
                     avatar={avatars.get(row.playerId)}
                     dropped={row.status === "dropped"}
                   />
@@ -189,7 +190,7 @@ function PlaceTierChips({
             {row.seed === null ? null : (
               <span className="text-muted-foreground tabular-nums">#{row.seed}</span>
             )}
-            <span>{row.displayName}</span>
+            <span>{participantName(row.displayName)}</span>
             <span className="text-muted-foreground">{row.groupLabel}</span>
           </Badge>
         ))}
@@ -226,7 +227,10 @@ function PlaceTierTable({
           >
             <SeedBadge seed={row.seed} />
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <StandingsIdentity name={row.displayName} avatar={avatars.get(row.playerId)}>
+              <StandingsIdentity
+                name={participantName(row.displayName)}
+                avatar={avatars.get(row.playerId)}
+              >
                 <Badge variant="neutral">{row.groupLabel}</Badge>
               </StandingsIdentity>
               <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 text-sm">
@@ -286,7 +290,10 @@ function PlaceTierTable({
                   <SeedBadge seed={row.seed} />
                 </TableCell>
                 <TableCell>
-                  <StandingsIdentity name={row.displayName} avatar={avatars.get(row.playerId)} />
+                  <StandingsIdentity
+                    name={participantName(row.displayName)}
+                    avatar={avatars.get(row.playerId)}
+                  />
                 </TableCell>
                 <TableCell>
                   <Badge variant="neutral">{row.groupLabel}</Badge>

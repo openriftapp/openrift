@@ -1,3 +1,4 @@
+import { memberNameEnglish } from "@openrift/shared/member-name";
 import { nextCutRoundPairs, seedBracket } from "@openrift/shared/pairing/cut-bracket";
 import {
   cutRounds,
@@ -180,7 +181,9 @@ async function assertLegendsOnFile(
   if (still.length === 0) {
     return;
   }
-  const names = still.map((player) => player.displayName).join(", ");
+  const names = still
+    .map((player) => memberNameEnglish(player.displayName, player.displayName === null))
+    .join(", ");
   throw badRequest(
     `${still.length} ${pluralize(still.length, "player has", "players have")} no Legend on file: ${names}`,
   );

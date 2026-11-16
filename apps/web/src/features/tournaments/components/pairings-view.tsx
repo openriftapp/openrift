@@ -29,6 +29,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import type { StatStripItem } from "@/components/ui/stat-strip";
 import { StatStrip } from "@/components/ui/stat-strip";
 import { PlayerChip } from "@/features/tournaments/components/player-chip";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import { snapshotToPlayers } from "@/features/tournaments/lib/pod-pairing-editor";
 import type { PodResultEntry } from "@/features/tournaments/lib/swiss-results";
 import { teamNamesById } from "@/features/tournaments/lib/team-display";
@@ -95,9 +96,11 @@ export function PairingsView({
   const nameById = new Map<string, string>(
     rounds.flatMap((round) => [
       ...round.pods.flatMap((pod) =>
-        pod.members.map((member) => [member.playerId, member.displayName] as const),
+        pod.members.map(
+          (member) => [member.playerId, participantName(member.displayName)] as const,
+        ),
       ),
-      ...round.byes.map((bye) => [bye.playerId, bye.displayName] as const),
+      ...round.byes.map((bye) => [bye.playerId, participantName(bye.displayName)] as const),
     ]),
   );
   // In 2v2 the warnings speak in team ids (the pairing unit), so the name map
@@ -342,7 +345,7 @@ function ByesSection({
           const priorByes = priorByesByPlayer.get(bye.playerId) ?? 0;
           return (
             <RowListItem key={bye.playerId} className="justify-between">
-              <PlayerChip name={bye.displayName}>
+              <PlayerChip name={participantName(bye.displayName)}>
                 {priorByes > 0 ? (
                   <Badge variant="warning">
                     {m.tournaments_pairings_earlier_byes({ count: priorByes })}

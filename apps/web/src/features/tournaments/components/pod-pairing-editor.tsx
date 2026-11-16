@@ -41,6 +41,7 @@ import {
   useReplaceTournamentPairing,
 } from "@/features/tournaments/hooks/use-tournament-run";
 import { dragAnnouncements } from "@/features/tournaments/lib/drag-announcements";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import {
   movePlayer,
   moveTargets,
@@ -115,9 +116,9 @@ export function PodPairingEditor({
 
   const nameById = new Map<string, string>([
     ...round.pods.flatMap((pod) =>
-      pod.members.map((member) => [member.playerId, member.displayName] as const),
+      pod.members.map((member) => [member.playerId, participantName(member.displayName)] as const),
     ),
-    ...round.byes.map((bye) => [bye.playerId, bye.displayName] as const),
+    ...round.byes.map((bye) => [bye.playerId, participantName(bye.displayName)] as const),
   ]);
   if (teamMode) {
     const roundRows = round.pods.flatMap((pod) =>

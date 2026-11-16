@@ -34,6 +34,7 @@ import {
 import { UserAvatar } from "@/components/user-avatar";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { RegionBadge } from "@/features/tournaments/components/region-badge";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import { legendNameFor } from "@/features/tournaments/lib/player-run";
 import type { ParticipantAction } from "@/features/tournaments/lib/tournament-display";
 import {
@@ -135,7 +136,7 @@ export function ParticipantRow({
   const missesLegend = participantMissesLegend(participant, legendTiebreak);
   const target: ParticipantTarget = {
     participantId: participant.id,
-    name: participant.displayName,
+    name: participantName(participant.displayName),
   };
 
   async function handleCopyClaimLink() {
@@ -157,7 +158,7 @@ export function ParticipantRow({
         className="size-9 shrink-0"
       />
       <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-        <span className="truncate font-medium">{participant.displayName}</span>
+        <span className="truncate font-medium">{participantName(participant.displayName)}</span>
         <Badge variant={statusBadgeVariant(participant.status)}>
           {participantStatusLabels()[participant.status]}
         </Badge>
@@ -311,10 +312,12 @@ export function ParticipantRow({
                   {m.tournaments_participant_deck()}
                 </DropdownMenuItem>
               ) : null}
-              <DropdownMenuItem onClick={() => onRename(target)}>
-                <PencilIcon className="size-4" />
-                {m.tournaments_participant_rename()}
-              </DropdownMenuItem>
+              {participant.displayName === null ? null : (
+                <DropdownMenuItem onClick={() => onRename(target)}>
+                  <PencilIcon className="size-4" />
+                  {m.tournaments_participant_rename()}
+                </DropdownMenuItem>
+              )}
               {canAssignRegion ? (
                 <DropdownMenuItem
                   onClick={() => onSetRegion({ ...target, region: participant.region ?? "none" })}

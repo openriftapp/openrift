@@ -198,6 +198,8 @@ export async function ingestDeckCheckPush(
     // A push without the withdrawn flag returns a withdrawn entry to
     // 'submitted'; it does not restore the pre-withdrawal state.
     const wasWithdrawn = existing.state === "withdrawn";
+    const storedIdentity =
+      existing.playerName === null ? { submittedAt: identity.submittedAt } : identity;
     const withdrawalChange = entry.withdrawn
       ? wasWithdrawn
         ? {}
@@ -217,7 +219,7 @@ export async function ingestDeckCheckPush(
       // Identical list: refresh identity, consent, and withdrawal state, keep
       // the lifecycle state and every tick untouched (idempotent re-push).
       await repos.deckCheck.updateEntry(existing.id, {
-        ...identity,
+        ...storedIdentity,
         ...consent,
         ...withdrawalChange,
       });
@@ -231,7 +233,7 @@ export async function ingestDeckCheckPush(
     const previousCards = await repos.deckCheck.listCardsForEntry(existing.id);
     const wasReviewed = existing.state === "approved" || existing.state === "checked";
     await repos.deckCheck.updateEntry(existing.id, {
-      ...identity,
+      ...storedIdentity,
       ...consent,
       contentHash,
       state: entry.withdrawn ? "withdrawn" : "submitted",

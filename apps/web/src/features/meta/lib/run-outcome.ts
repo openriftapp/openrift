@@ -10,4 +10,5 @@ export interface RunStripRound {
   roundNumber: number;
   isCut: boolean;
   outcome: RunOutcome;
+  provisional?: boolean;
 }

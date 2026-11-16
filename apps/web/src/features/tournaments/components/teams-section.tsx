@@ -15,6 +15,7 @@ import {
   useCreateTeam,
   useDissolveTeam,
 } from "@/features/tournaments/hooks/use-tournament-mutations";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import {
   participantsByTeam,
   teamDisplayName,
@@ -87,7 +88,9 @@ export function TeamsSection({
       ) : (
         <ul className="flex flex-col gap-2">
           {teams.map((team) => {
-            const name = teamDisplayName(team.members.map((member) => member.displayName));
+            const name = teamDisplayName(
+              team.members.map((member) => participantName(member.displayName)),
+            );
             return (
               <CardRow key={team.teamId} className={team.dropped ? "opacity-50" : undefined}>
                 <PlayerChip name={name} dropped={team.dropped} />
@@ -108,8 +111,8 @@ export function TeamsSection({
           <AlertTitle>
             {m.tournaments_teams_unteamed({
               count: unteamed.length,
-              name: soleUnteamed?.displayName ?? "",
-              names: unteamed.map((player) => player.displayName).join(", "),
+              name: soleUnteamed ? participantName(soleUnteamed.displayName) : "",
+              names: unteamed.map((player) => participantName(player.displayName)).join(", "),
             })}{" "}
             {m.tournaments_teams_unteamed_hint()}
           </AlertTitle>
@@ -157,7 +160,10 @@ function TeamMemberPicker({
   players: TournamentParticipantResponse[];
   onChange: (value: string) => void;
 }) {
-  const items = players.map((player) => ({ value: player.id, label: player.displayName }));
+  const items = players.map((player) => ({
+    value: player.id,
+    label: participantName(player.displayName),
+  }));
   return (
     <div className="flex flex-col gap-2">
       <span className="text-muted-foreground text-sm">{label}</span>

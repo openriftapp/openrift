@@ -25,7 +25,7 @@ import { eventStatusForTournamentStatus } from "./deck-check-shared.js";
  * `allowRiotIdSharing` / `allowDeckPublishing`) stay on the entry itself.
  */
 export type DeckCheckEntry = Selectable<DeckCheckEntriesTable> & {
-  playerName: string;
+  playerName: string | null;
   riotId: string | null;
   claimedUserId: string | null;
   claimSource: DeckCheckClaimSource | null;
@@ -90,7 +90,7 @@ function materializeEntry<
   const base = row;
   return {
     ...base,
-    playerName: row.playerName ?? "",
+    playerName: row.playerName ?? null,
     riotId: row.riotId ?? null,
     claimedUserId: row.claimedUserId ?? null,
     claimSource: row.claimSource ?? null,
@@ -306,6 +306,7 @@ export function deckCheckEntriesRepo(db: Kysely<Database>) {
         .set({ claimToken: token })
         .where("id", "=", participantId)
         .where("claimToken", "is", null)
+        .where("accountClosed", "=", false)
         .executeTakeFirst();
       if (written.numUpdatedRows === 1n) {
         return token;

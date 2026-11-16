@@ -44,6 +44,7 @@ import {
   useUpdateParticipant,
 } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useTournamentParticipants } from "@/features/tournaments/hooks/use-tournaments";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import { teammateNamesById, unteamedActivePlayers } from "@/features/tournaments/lib/team-display";
 import type { ParticipantAction } from "@/features/tournaments/lib/tournament-display";
 import {
@@ -197,7 +198,7 @@ export function TournamentParticipantsTab({
   ];
 
   const visible = participants.filter((participant) =>
-    matchesTextQuery(search, [participant.displayName, participant.userName]),
+    matchesTextQuery(search, [participantName(participant.displayName), participant.userName]),
   );
 
   function fireAction(participantId: string, action: ParticipantAction) {
@@ -223,7 +224,9 @@ export function TournamentParticipantsTab({
       ...group,
       players: visible
         .filter((participant) => group.statuses.includes(participant.status))
-        .toSorted((a, b) => a.displayName.localeCompare(b.displayName)),
+        .toSorted((a, b) =>
+          participantName(a.displayName).localeCompare(participantName(b.displayName)),
+        ),
     }))
     .filter((group) => group.players.length > 0);
 

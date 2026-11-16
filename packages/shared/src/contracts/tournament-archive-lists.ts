@@ -20,7 +20,7 @@ export const archiveListEligibilitySchema = z.enum(ARCHIVE_LIST_ELIGIBILITIES);
 
 export const archiveListParticipantSchema = z.object({
   participantId: z.string(),
-  displayName: z.string(),
+  displayName: z.string().nullable(),
   entryState: deckCheckEntryStateSchema.nullable(),
   eligibility: archiveListEligibilitySchema,
   unmatchedLines: z.number().int().nonnegative(),

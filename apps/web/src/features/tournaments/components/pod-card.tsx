@@ -25,6 +25,7 @@ import {
   podForDisplay,
   isWalkoverPod,
 } from "@/features/tournaments/lib/group-cut-units";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import { formatScore } from "@/features/tournaments/lib/standings-display";
 import type { PodResultEntry } from "@/features/tournaments/lib/swiss-results";
 import { groupPodMembersByTeam, teamDisplayName } from "@/features/tournaments/lib/team-display";
@@ -204,7 +205,7 @@ export function PodCard({
     if (!lead) {
       return null;
     }
-    const name = teamDisplayName(members.map((member) => member.displayName));
+    const name = teamDisplayName(members.map((member) => participantName(member.displayName)));
     const region = regionByPlayer?.get(lead.playerId);
     const solo = members.length === 1;
     const scoreEntry =

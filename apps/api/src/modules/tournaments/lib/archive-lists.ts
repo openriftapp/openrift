@@ -39,7 +39,7 @@ function foldName(name: string): string {
 
 /** Pairs a participant with a standings row only when the name is the same on both sides and unique on each. */
 export function suggestArchiveListIdentities(
-  participants: readonly { participantId: string; displayName: string }[],
+  participants: readonly { participantId: string; displayName: string | null }[],
   standings: readonly { identity: string; playerName: string | null }[],
 ): Map<string, string> {
   const byName = Map.groupBy(
@@ -47,7 +47,7 @@ export function suggestArchiveListIdentities(
     (row) => foldName(row.playerName ?? ""),
   );
   const participantsByName = Map.groupBy(participants, (participant) =>
-    foldName(participant.displayName),
+    foldName(participant.displayName ?? ""),
   );
   const suggestions = new Map<string, string>();
   for (const [name, group] of participantsByName) {

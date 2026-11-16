@@ -57,6 +57,7 @@ import {
   isPendingTransition,
   primaryActionFor,
 } from "@/features/tournaments/lib/deck-check-actions";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { getDomainGradientStyle } from "@/lib/domain";
 import { memberName } from "@/lib/member-name";
@@ -77,7 +78,9 @@ export function DeckEntryTopBar({
     <TournamentBreadcrumbBar
       id={tournamentId}
       trail={[tournamentDecksCrumb(tournamentId)]}
-      title={entry?.playerName ?? m.tournaments_deck_check_entry_fallback_title()}
+      title={
+        entry ? participantName(entry.playerName) : m.tournaments_deck_check_entry_fallback_title()
+      }
       actions={
         entry || actions ? (
           <>

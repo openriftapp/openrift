@@ -26,7 +26,20 @@ function outcomeWords(): Record<RunOutcome, string> {
 
 function words(rounds: readonly RunStripRound[]): string {
   const labels = outcomeWords();
-  return rounds.map((round) => labels[round.outcome]).join(", ");
+  return rounds
+    .map((round) =>
+      round.provisional
+        ? m.meta_run_strip_not_final({ label: labels[round.outcome] })
+        : labels[round.outcome],
+    )
+    .join(", ");
+}
+
+function roundTitle(round: RunStripRound): string {
+  const title = round.isCut
+    ? m.meta_run_strip_cut_round({ number: String(round.roundNumber) })
+    : m.meta_run_strip_round({ number: String(round.roundNumber) });
+  return round.provisional ? m.meta_run_strip_not_final({ label: title }) : title;
 }
 
 export function runStripLabel(rounds: readonly RunStripRound[]): string {
@@ -64,12 +77,12 @@ export function MetaRunStrip({
         <Fragment key={`${round.phaseOrder}:${round.roundNumber}`}>
           {index === firstCut && index > 0 && <span className="w-1 shrink-0" />}
           <span
-            title={
-              round.isCut
-                ? m.meta_run_strip_cut_round({ number: String(round.roundNumber) })
-                : m.meta_run_strip_round({ number: String(round.roundNumber) })
-            }
-            className={cn("size-2 shrink-0 rounded-[2px]", OUTCOME_CLASS[round.outcome])}
+            title={roundTitle(round)}
+            className={cn(
+              "size-2 shrink-0 rounded-[2px]",
+              OUTCOME_CLASS[round.outcome],
+              round.provisional && "opacity-50",
+            )}
           />
         </Fragment>
       ))}

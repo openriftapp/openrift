@@ -20,6 +20,7 @@ import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament
 import { useGenerateTournamentRound } from "@/features/tournaments/hooks/use-tournament-run";
 import { useTournamentParticipants } from "@/features/tournaments/hooks/use-tournaments";
 import { checkGroupPlayerCount } from "@/features/tournaments/lib/group-cut-display";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
@@ -135,7 +136,7 @@ function MissingLegendDialog({
         <ul className="flex flex-col gap-1">
           {players.map((player) => (
             <li key={player.id} className="truncate font-medium">
-              {player.displayName}
+              {participantName(player.displayName)}
             </li>
           ))}
         </ul>

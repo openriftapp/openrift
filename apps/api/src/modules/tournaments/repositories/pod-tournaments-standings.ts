@@ -413,7 +413,7 @@ export function podStandingsRepo(db: Kysely<Database>) {
     /** A tournament with no finalized rounds or byes is absent from the map. */
     async winnersAcross(
       tournaments: { id: string; scoring: PodScoring }[],
-    ): Promise<Map<string, { participantId: string; displayName: string }>> {
+    ): Promise<Map<string, { participantId: string; displayNames: (string | null)[] }>> {
       if (tournaments.length === 0) {
         return new Map();
       }
@@ -455,7 +455,7 @@ export function podStandingsRepo(db: Kysely<Database>) {
       const playersByTournament = Map.groupBy(players, (player) => player.tournamentId);
       const membersByTournament = Map.groupBy(memberRows, (row) => row.tournamentId);
       const byesByTournament = Map.groupBy(byeRows, (row) => row.tournamentId);
-      const winners = new Map<string, { participantId: string; displayName: string }>();
+      const winners = new Map<string, { participantId: string; displayNames: (string | null)[] }>();
       for (const tournament of tournaments) {
         const finalized = membersByTournament.get(tournament.id) ?? [];
         const byes = (byesByTournament.get(tournament.id) ?? []).map((row) => row.playerId);
@@ -468,14 +468,11 @@ export function podStandingsRepo(db: Kysely<Database>) {
         if (top) {
           // A 2v2 winner is the whole team: both member names, teammates being
           // adjacent in the sorted rows.
-          const displayName =
+          const displayNames =
             top.teamId === null
-              ? top.displayName
-              : rows
-                  .filter((row) => row.teamId === top.teamId)
-                  .map((row) => row.displayName)
-                  .join(" & ");
-          winners.set(tournament.id, { participantId: top.playerId, displayName });
+              ? [top.displayName]
+              : rows.filter((row) => row.teamId === top.teamId).map((row) => row.displayName);
+          winners.set(tournament.id, { participantId: top.playerId, displayNames });
         }
       }
       return winners;

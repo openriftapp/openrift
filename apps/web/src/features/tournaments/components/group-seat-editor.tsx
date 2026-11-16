@@ -32,6 +32,7 @@ import { useReplaceGroupSeats } from "@/features/tournaments/hooks/use-tournamen
 import { dragAnnouncements } from "@/features/tournaments/lib/drag-announcements";
 import type { SeatGroup } from "@/features/tournaments/lib/group-seat-editor";
 import { swapSeats } from "@/features/tournaments/lib/group-seat-editor";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import { refocusMenuTrigger } from "@/features/tournaments/lib/pod-pairing-editor";
 import { asDragData } from "@/lib/dnd-data";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
@@ -154,7 +155,7 @@ export function GroupSeatEditor({
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const nameById = new Map(
     groupStage.groups.flatMap((group) =>
-      group.standings.map((row) => [row.playerId, row.displayName] as const),
+      group.standings.map((row) => [row.playerId, participantName(row.displayName)] as const),
     ),
   );
   const sizes = new Set(groups.map((group) => group.playerIds.length));

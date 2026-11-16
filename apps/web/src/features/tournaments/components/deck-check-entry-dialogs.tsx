@@ -35,6 +35,7 @@ import {
   useFixTournamentDeckCheckCard,
   useUpdateTournamentDeckCheckEntry,
 } from "@/features/tournaments/hooks/use-tournament-deck-check";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import { useEnumOrders, useZoneOrder } from "@/hooks/use-enums";
 import { parseIntegerInput } from "@/lib/integer-input";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
@@ -53,7 +54,8 @@ export function EditPlayerDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [playerName, setPlayerName] = useState(entry.playerName);
+  const closedAccount = entry.playerName === null;
+  const [playerName, setPlayerName] = useState(entry.playerName ?? "");
   const [riotId, setRiotId] = useState(entry.riotId ?? "");
   const [consent, setConsent] = useState<SharingConsent>(() => consentOf(entry));
   const updateEntry = useUpdateTournamentDeckCheckEntry();
@@ -64,7 +66,7 @@ export function EditPlayerDialog({
   if (open !== seededOpen) {
     setSeededOpen(open);
     if (open) {
-      setPlayerName(entry.playerName);
+      setPlayerName(entry.playerName ?? "");
       setRiotId(entry.riotId ?? "");
       setConsent(consentOf(entry));
     }
@@ -72,10 +74,12 @@ export function EditPlayerDialog({
 
   const handleSave = async () => {
     const name = playerName.trim();
-    if (!name) {
+    if (!closedAccount && !name) {
       return;
     }
-    const patch = { tournamentId, entryId, playerName: name, riotId: riotId.trim() || null };
+    const patch = closedAccount
+      ? { tournamentId, entryId }
+      : { tournamentId, entryId, playerName: name, riotId: riotId.trim() || null };
     if (await runReportedMutation(() => updateEntry.mutateAsync({ ...patch, ...consent }))) {
       onOpenChange(false);
     }
@@ -97,25 +101,33 @@ export function EditPlayerDialog({
             <DialogTitle>{m.tournaments_deck_check_edit_player_title()}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="deck-check-player-name">{m.common_name()}</Label>
-              <Input
-                id="deck-check-player-name"
-                value={playerName}
-                onChange={(event) => setPlayerName(event.target.value)}
-                maxLength={120}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="deck-check-riot-id">{m.tournaments_deck_check_riot_id_label()}</Label>
-              <Input
-                id="deck-check-riot-id"
-                value={riotId}
-                onChange={(event) => setRiotId(event.target.value)}
-                maxLength={120}
-                placeholder="Player#EUW"
-              />
-            </div>
+            {closedAccount ? (
+              <p className="text-muted-foreground">{participantName(entry.playerName)}</p>
+            ) : (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="deck-check-player-name">{m.common_name()}</Label>
+                  <Input
+                    id="deck-check-player-name"
+                    value={playerName}
+                    onChange={(event) => setPlayerName(event.target.value)}
+                    maxLength={120}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="deck-check-riot-id">
+                    {m.tournaments_deck_check_riot_id_label()}
+                  </Label>
+                  <Input
+                    id="deck-check-riot-id"
+                    value={riotId}
+                    onChange={(event) => setRiotId(event.target.value)}
+                    maxLength={120}
+                    placeholder="Player#EUW"
+                  />
+                </div>
+              </>
+            )}
             <SharingConsentFields
               idPrefix="deck-check"
               value={consent}
@@ -130,7 +142,11 @@ export function EditPlayerDialog({
           <SaveError error={updateEntry.error} />
           <DialogFooter>
             <DialogCancel />
-            <Button type="submit" disabled={!playerName.trim()} pending={updateEntry.isPending}>
+            <Button
+              type="submit"
+              disabled={!closedAccount && !playerName.trim()}
+              pending={updateEntry.isPending}
+            >
               {m.common_save()}
             </Button>
           </DialogFooter>

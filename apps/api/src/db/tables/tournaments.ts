@@ -101,8 +101,9 @@ export interface TournamentParticipantsTable {
   id: Generated<string>;
   tournamentId: string;
   userId: string | null;
-  displayName: string;
+  displayName: string | null;
   riotId: string | null;
+  accountClosed: Generated<boolean>;
   status: Generated<TournamentParticipantStatus>;
   droppedAfterRound: number | null;
   seed: number | null;

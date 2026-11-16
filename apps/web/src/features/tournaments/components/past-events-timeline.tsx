@@ -12,6 +12,8 @@ import { DateLeaf } from "@/components/ui/date-leaf";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { ParticipantFacepile } from "@/features/tournaments/components/participant-facepile";
 import { TournamentMetaLine } from "@/features/tournaments/components/tournament-meta-line";
+import { participantName } from "@/features/tournaments/lib/participant-name";
+import { teamDisplayName } from "@/features/tournaments/lib/team-display";
 import {
   effectiveStateLabels,
   tournamentContextLabel,
@@ -27,7 +29,9 @@ function WinnerChip({ winner }: { winner: TournamentWinner }) {
       ) : null}
       <span className="text-sm">
         <span className="sr-only">{m.tournaments_past_events_winner_label()}</span>
-        <span className="font-medium">{winner.name}</span>
+        <span className="font-medium">
+          {teamDisplayName(winner.names.map((name) => participantName(name)))}
+        </span>
       </span>
     </span>
   );

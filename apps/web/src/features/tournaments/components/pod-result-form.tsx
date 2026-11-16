@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { formatRank } from "@/features/meta/lib/meta-format";
 import { SaveError } from "@/features/tournaments/components/save-error";
 import { useResultBaseline } from "@/features/tournaments/hooks/use-result-baseline";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import { formatScore } from "@/features/tournaments/lib/standings-display";
 import type { PodResultEntry } from "@/features/tournaments/lib/swiss-results";
 import { parseIntegerInput } from "@/lib/integer-input";
@@ -101,8 +102,8 @@ export function PodResultForm({
         // line, breaking the column of inputs. The name truncates instead.
         <div key={member.playerId} className="flex items-center justify-between gap-x-3">
           <span className="flex min-w-0 items-center gap-2">
-            <span className="truncate font-medium" title={member.displayName}>
-              {member.displayName}
+            <span className="truncate font-medium" title={participantName(member.displayName)}>
+              {participantName(member.displayName)}
             </span>
             {previewPoints && placements ? (
               <span className="text-muted-foreground shrink-0 tabular-nums">

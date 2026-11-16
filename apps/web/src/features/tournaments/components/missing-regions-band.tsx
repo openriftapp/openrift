@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import type { ParticipantTarget } from "@/features/tournaments/components/participant-row";
 import { PlayerChip } from "@/features/tournaments/components/player-chip";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import { m } from "@/paraglide/messages.js";
 
 // Holds real buttons, so no `render` prop: a nested anchor would be invalid HTML.
@@ -27,7 +28,7 @@ export function MissingRegionsBand({
       <div className="flex flex-col gap-2">
         {players.map((player) => (
           <Callout key={player.id} variant="inset" className="flex items-center gap-2.5">
-            <PlayerChip name={player.displayName} className="flex-1 text-sm" />
+            <PlayerChip name={participantName(player.displayName)} className="flex-1 text-sm" />
             <Button
               size="sm"
               variant="outline"
@@ -35,7 +36,7 @@ export function MissingRegionsBand({
               onClick={() =>
                 onSetRegion({
                   participantId: player.id,
-                  name: player.displayName,
+                  name: participantName(player.displayName),
                   region: "none",
                 })
               }

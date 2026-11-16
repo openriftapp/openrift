@@ -115,6 +115,14 @@ describe("teamNamesById", () => {
     expect(names.get("A")).toBe("Ashe & Braum");
     expect(names.size).toBe(1);
   });
+
+  it("names a deleted account's member as a former member", () => {
+    const names = teamNamesById([
+      { teamId: "A", displayName: "Ashe" },
+      { teamId: "A", displayName: null },
+    ]);
+    expect(names.get("A")).toBe("Ashe & Former member");
+  });
 });
 
 describe("collapseTeamStandings", () => {

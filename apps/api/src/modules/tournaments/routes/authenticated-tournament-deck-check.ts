@@ -15,6 +15,7 @@ import type { ApiContext } from "../../../orpc/context.js";
 import { computeZoneSuggestions } from "../lib/deck-check-advisories.js";
 import { presentDeadlineSettled, presentDeadlineSettledEntry } from "../lib/deck-check-deadline.js";
 import { buildEntryDetail, toEntrySummary, toEventSummary } from "../lib/deck-check-presenters.js";
+import { assertIdentityEditable } from "../lib/tournament-access.js";
 import type { DeckCheckEntry } from "../repositories/deck-check-entries.js";
 import type { DeckCheckEvent } from "../repositories/deck-check-events.js";
 import {
@@ -185,7 +186,11 @@ export const tournamentDeckCheckRouter = {
     async ({ input, context }): Promise<DeckCheckEntryDetailResponse> => {
       const repos = context.repos;
       const event = await authorizeJudge(repos, input.tournamentId, context.userId);
-      await loadEntryForWrite(repos, event, input.entryId);
+      const entry = await loadEntryForWrite(repos, event, input.entryId);
+      assertIdentityEditable(
+        entry.playerName,
+        input.playerName !== undefined || input.riotId !== undefined,
+      );
 
       const updated = await context.transact((txRepos) =>
         txRepos.deckCheck.updateEntry(input.entryId, {

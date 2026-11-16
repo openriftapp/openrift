@@ -135,6 +135,36 @@ describe("EditPlayerDialog", () => {
   });
 });
 
+describe("EditPlayerDialog for a deleted account", () => {
+  const closedEntry = { ...entry, playerName: null, riotId: null };
+
+  it("shows Former member and saves only the sharing choices", async () => {
+    updateMutateAsync.mockResolvedValueOnce({});
+    const user = userEvent.setup();
+    render(
+      <EditPlayerDialog
+        tournamentId="t-1"
+        entryId="e-1"
+        entry={closedEntry}
+        open
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Former member")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(updateMutateAsync).toHaveBeenCalledWith({
+      tournamentId: "t-1",
+      entryId: "e-1",
+      allowDeckPublishing: true,
+      allowNameSharing: true,
+      allowRiotIdSharing: false,
+    });
+  });
+});
+
 describe("AddCardDialog", () => {
   it("disables Add while the copy count is out of range", async () => {
     const user = userEvent.setup();

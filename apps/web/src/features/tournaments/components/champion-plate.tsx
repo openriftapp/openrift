@@ -14,6 +14,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import { formatPlayerRecord, standingRanks } from "@/features/tournaments/lib/standings-display";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { m } from "@/paraglide/messages.js";
@@ -45,14 +46,18 @@ export function tournamentChampion(
 
   const cutWinner = run.groupStage?.finalStandings?.[0];
   if (cutWinner !== undefined) {
-    return build(byPlayer.get(cutWinner.playerId), cutWinner.playerId, cutWinner.displayName);
+    return build(
+      byPlayer.get(cutWinner.playerId),
+      cutWinner.playerId,
+      participantName(cutWinner.displayName),
+    );
   }
   const played = run.standings.filter((row) => row.roundsPlayed > 0);
   const leader = played[0];
   if (leader === undefined || standingRanks(played)[1] === 1) {
     return null;
   }
-  return build(leader, leader.playerId, leader.displayName);
+  return build(leader, leader.playerId, participantName(leader.displayName));
 }
 
 function ChampionText({

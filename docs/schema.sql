@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 9pvEbX3u1MKhHA5VkdC34cv9fbajCOwfIhZ69d52FCy6AYfpcc8Z6PHa5ksCxCv
+\restrict 08iaGgZyN7eTIWM9HsdPeh8NwI4jBpvTOPrL33PkwTE8HhE0nUgPRqTSWY1xIcg
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -698,6 +698,14 @@ CREATE FUNCTION public.snapshot_deleted_user_names() RETURNS trigger
           UPDATE loans
              SET borrower_user_id = NULL, borrower_name = NULL, borrower_account_closed = true
            WHERE borrower_user_id = OLD.id;
+
+          UPDATE tournament_participants
+             SET user_id = NULL,
+                 display_name = NULL,
+                 riot_id = NULL,
+                 claim_token = NULL,
+                 account_closed = true
+           WHERE user_id = OLD.id;
 
           RETURN OLD;
         END;
@@ -4422,7 +4430,7 @@ CREATE TABLE public.tournament_legend_meta_shares (
 CREATE TABLE public.tournament_participants (
     id uuid DEFAULT uuidv7() CONSTRAINT pod_players_id_not_null NOT NULL,
     tournament_id uuid CONSTRAINT pod_players_tournament_id_not_null NOT NULL,
-    display_name text CONSTRAINT pod_players_display_name_not_null NOT NULL,
+    display_name text,
     status text DEFAULT 'active'::text CONSTRAINT pod_players_status_not_null NOT NULL,
     dropped_after_round integer,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT pod_players_created_at_not_null NOT NULL,
@@ -4440,10 +4448,15 @@ CREATE TABLE public.tournament_participants (
     group_id uuid,
     group_slot integer,
     legend_card_id uuid,
+    account_closed boolean DEFAULT false NOT NULL,
     CONSTRAINT chk_tournament_participants_claim_source CHECK (((claim_source IS NULL) OR (claim_source = ANY (ARRAY['judge_manual'::text, 'self_submit'::text, 'claim_link'::text])))),
     CONSTRAINT chk_tournament_participants_fixed_table CHECK (((fixed_table IS NULL) OR ((fixed_table >= 1) AND (fixed_table <= 999)))),
     CONSTRAINT chk_tournament_participants_group_slot CHECK (((group_slot IS NULL) OR ((group_slot >= 0) AND (group_slot <= 3)))),
-    CONSTRAINT chk_tournament_participants_name CHECK (((length(display_name) >= 1) AND (length(display_name) <= 120))),
+    CONSTRAINT chk_tournament_participants_name CHECK (
+CASE
+    WHEN account_closed THEN ((user_id IS NULL) AND (display_name IS NULL) AND (riot_id IS NULL))
+    ELSE ((display_name IS NOT NULL) AND ((length(display_name) >= 1) AND (length(display_name) <= 120)))
+END),
     CONSTRAINT chk_tournament_participants_region CHECK (((region IS NULL) OR ((char_length(region) >= 1) AND (char_length(region) <= 50)))),
     CONSTRAINT chk_tournament_participants_riot_id CHECK (((riot_id IS NULL) OR (length(riot_id) <= 120))),
     CONSTRAINT chk_tournament_participants_status CHECK ((status = ANY (ARRAY['requested'::text, 'invited'::text, 'active'::text, 'dropped'::text, 'no_show'::text])))
@@ -11497,5 +11510,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 9pvEbX3u1MKhHA5VkdC34cv9fbajCOwfIhZ69d52FCy6AYfpcc8Z6PHa5ksCxCv
+\unrestrict 08iaGgZyN7eTIWM9HsdPeh8NwI4jBpvTOPrL33PkwTE8HhE0nUgPRqTSWY1xIcg
 

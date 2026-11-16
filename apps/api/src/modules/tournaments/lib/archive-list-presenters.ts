@@ -27,7 +27,7 @@ export function toArchiveListEvent(event: {
 }
 
 export function toArchiveListParticipant(
-  participant: { id: string; displayName: string },
+  participant: { id: string; displayName: string | null },
   entry:
     | {
         state: DeckCheckEntryState;

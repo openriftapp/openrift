@@ -2,6 +2,7 @@ import { pairUnits } from "@openrift/shared/pairing/group-stage";
 import { isResultlessPod, teamsOf } from "@openrift/shared/pairing/pod-result";
 import type { GroupStageGroupView, PodResponse } from "@openrift/shared/types/api/pod-tournament";
 
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import { m } from "@/paraglide/messages.js";
 
 export interface GroupUnit {
@@ -122,26 +123,28 @@ export function podScoreLine(pod: PodResponse): string {
   );
   const [first, second] = ordered;
   if (!first || !second) {
-    return ordered.map((member) => member.displayName).join(` ${m.tournaments_pod_vs()} `);
+    return ordered
+      .map((member) => participantName(member.displayName))
+      .join(` ${m.tournaments_pod_vs()} `);
   }
   if (first.placement === null || podHasNoResult(pod)) {
     return m.tournaments_lib_pod_score_vs({
-      first: first.displayName,
-      second: second.displayName,
+      first: participantName(first.displayName),
+      second: participantName(second.displayName),
     });
   }
   if (isWalkoverPod(pod)) {
     return isDoubleForfeitPod(pod)
       ? m.tournaments_lib_pod_score_both_forfeited({
-          first: first.displayName,
-          second: second.displayName,
+          first: participantName(first.displayName),
+          second: participantName(second.displayName),
         })
       : m.tournaments_lib_pod_score_defeated({
-          first: first.displayName,
-          second: second.displayName,
+          first: participantName(first.displayName),
+          second: participantName(second.displayName),
         });
   }
-  return `${first.displayName} ${first.gamePoints ?? 0}-${second.gamePoints ?? 0} ${second.displayName}`;
+  return `${participantName(first.displayName)} ${first.gamePoints ?? 0}-${second.gamePoints ?? 0} ${participantName(second.displayName)}`;
 }
 
 /** "Round 1 · Ashe 2-0 Braum · Caitlyn 2-1 Darius" */

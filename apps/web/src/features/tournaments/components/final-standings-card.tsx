@@ -21,6 +21,7 @@ import { MetaRunStrip } from "@/features/meta/components/meta-run-strip";
 import { exitLabel, finalStandingsSeats } from "@/features/tournaments/components/podium-seats";
 import { StandingsRankCell } from "@/features/tournaments/components/standings-rank-cell";
 import { SeedBadge, StandingsIdentity } from "@/features/tournaments/components/standings-table";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import type { PlayerLegend } from "@/features/tournaments/lib/player-run";
 import { playerRunRounds } from "@/features/tournaments/lib/player-run";
 import { standingsRowClass } from "@/features/tournaments/lib/standings-display";
@@ -79,7 +80,7 @@ export function FinalStandingsCard({
             <StandingsRankCell rank={row.place} />
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               <StandingsIdentity
-                name={row.displayName}
+                name={participantName(row.displayName)}
                 avatar={standingByPlayer.get(row.playerId)}
                 dropped={dropped(row.playerId)}
               />
@@ -122,7 +123,7 @@ export function FinalStandingsCard({
                 </TableCell>
                 <TableCell>
                   <StandingsIdentity
-                    name={row.displayName}
+                    name={participantName(row.displayName)}
                     avatar={standingByPlayer.get(row.playerId)}
                     dropped={dropped(row.playerId)}
                   />

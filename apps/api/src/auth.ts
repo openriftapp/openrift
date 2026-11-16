@@ -14,10 +14,12 @@ import type { Dialect, Kysely } from "kysely";
 import type { createConfig } from "./config.js";
 import { isLocalDevOrigin, matchOrigin } from "./cors.js";
 import type { Database } from "./db/tables.js";
+import { createRepos, createTransact } from "./deps.js";
 import type { createEmailSender } from "./email.js";
 import { emailMessages } from "./emails/messages.js";
 import { displayLocaleFromRequest } from "./lib/display-locale.js";
 import { collectionsRepo } from "./modules/collections/repositories/collections.js";
+import { dropLiveSpotsOfUser } from "./modules/tournaments/services/participant-drops.js";
 import { adminsRepo } from "./modules/users/repositories/admins.js";
 import { userPreferencesRepo } from "./modules/users/repositories/user-preferences.js";
 
@@ -119,6 +121,10 @@ export function createAuth(deps: {
       },
       deleteUser: {
         enabled: true,
+        // Runs outside better-auth's delete; spots dropped before a failed delete stay dropped.
+        async beforeDelete(user) {
+          await dropLiveSpotsOfUser(createRepos(db), createTransact(db), user.id);
+        },
       },
       additionalFields: {
         // Self-reported, unverified display data; validated in the update hook below.

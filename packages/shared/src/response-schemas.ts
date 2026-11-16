@@ -556,7 +556,7 @@ export const podPlayModeSchema = z.enum(["1v1", "2v2"]);
 
 export const podStandingRowSchema = z.object({
   playerId: z.string(),
-  displayName: z.string(),
+  displayName: z.string().nullable(),
   image: z.string().nullable(),
   gravatarHash: z.string().nullable(),
   status: podPlayerStatusSchema,
@@ -581,7 +581,7 @@ export const podStandingRowSchema = z.object({
 
 export const podMemberResponseSchema = z.object({
   playerId: z.string(),
-  displayName: z.string(),
+  displayName: z.string().nullable(),
   image: z.string().nullable(),
   gravatarHash: z.string().nullable(),
   /** The member's fixed 2v2 team, for side grouping; null in 1v1 play. */
@@ -617,7 +617,7 @@ export const podResponseSchema = z.object({
 
 export const podByeResponseSchema = z.object({
   playerId: z.string(),
-  displayName: z.string(),
+  displayName: z.string().nullable(),
 });
 
 export const podRoundResponseSchema = z.object({
@@ -668,7 +668,7 @@ export const podTournamentResponseSchema = z.object({
 
 export const groupStandingRowSchema = z.object({
   playerId: z.string(),
-  displayName: z.string(),
+  displayName: z.string().nullable(),
   status: podPlayerStatusSchema,
   legendCardId: z.string().nullable(),
   legendName: z.string().nullable(),
@@ -702,7 +702,7 @@ export const groupStageGroupSchema = z.object({
 
 export const groupQualificationRowSchema = z.object({
   playerId: z.string(),
-  displayName: z.string(),
+  displayName: z.string().nullable(),
   groupLabel: z.string(),
   place: z.number().int().positive(),
   matchWinRate: z.number(),
@@ -718,7 +718,7 @@ export const groupQualificationRowSchema = z.object({
 
 export const finalStandingRowSchema = z.object({
   playerId: z.string(),
-  displayName: z.string(),
+  displayName: z.string().nullable(),
   place: z.number().int().positive(),
   seed: z.number().int().positive().nullable(),
   groupLabel: z.string(),
@@ -762,7 +762,7 @@ export const podStandingsSnapshotSchema = z.object({
 
 export const podPlayerResponseSchema = z.object({
   id: z.string(),
-  displayName: z.string(),
+  displayName: z.string().nullable(),
   status: podPlayerStatusSchema,
   droppedAfterRound: z.number().int().nullable(),
   /** The player's fixed 2v2 team, or null (always null in 1v1 play). */

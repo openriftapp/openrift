@@ -21,6 +21,7 @@ import {
   roundSummaryLine,
   unitReportProgress,
 } from "@/features/tournaments/lib/group-cut-units";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import type { PlayerLegend } from "@/features/tournaments/lib/player-run";
 import { legendsByPlayer } from "@/features/tournaments/lib/player-run";
 import type { PodResultEntry } from "@/features/tournaments/lib/swiss-results";
@@ -323,6 +324,8 @@ function MemberLegend({ legend }: { legend: PlayerLegend | undefined }) {
 
 function podNames(pods: readonly PodResponse[]): Map<string, string> {
   return new Map(
-    pods.flatMap((pod) => pod.members.map((member) => [member.playerId, member.displayName])),
+    pods.flatMap((pod) =>
+      pod.members.map((member) => [member.playerId, participantName(member.displayName)]),
+    ),
   );
 }

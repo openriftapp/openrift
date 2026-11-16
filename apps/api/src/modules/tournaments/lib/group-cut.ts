@@ -16,7 +16,7 @@ export type GroupStageRoundNumber = 1 | 2 | 3;
 
 export interface GroupCutPlayer {
   id: string;
-  displayName: string;
+  displayName: string | null;
   status: string;
   groupId: string | null;
   groupSlot: number | null;

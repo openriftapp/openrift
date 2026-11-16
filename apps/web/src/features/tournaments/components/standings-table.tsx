@@ -17,6 +17,7 @@ import { MetaRunStrip } from "@/features/meta/components/meta-run-strip";
 import { PlayerChip } from "@/features/tournaments/components/player-chip";
 import { StandingsRankCell } from "@/features/tournaments/components/standings-rank-cell";
 import { TournamentLegend } from "@/features/tournaments/components/tournament-legend";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import { playerRunRounds } from "@/features/tournaments/lib/player-run";
 import {
   formatMatchRecord,
@@ -70,7 +71,7 @@ export function SeedBadge({ seed }: { seed: number | null }) {
 function PlayerIdentity({ row, regionsEnabled }: { row: PodStandingRow; regionsEnabled: boolean }) {
   return (
     <StandingsIdentity
-      name={row.displayName}
+      name={participantName(row.displayName)}
       avatar={row}
       region={regionsEnabled ? row.region : null}
       dropped={row.status === "dropped"}

@@ -18,6 +18,7 @@ import type {
   TournamentViewerRole,
 } from "@openrift/shared/types/api/tournament";
 
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import { combineLocalDateTimeToUtc, parseOptionalLocalInstant } from "@/lib/date-time-input";
 import { getSiteUrl } from "@/lib/site-config";
 import { m } from "@/paraglide/messages.js";
@@ -506,7 +507,7 @@ export function compareParticipantsForList(
 ): number {
   return (
     PARTICIPANT_STATUS_ORDER[a.status] - PARTICIPANT_STATUS_ORDER[b.status] ||
-    a.displayName.localeCompare(b.displayName)
+    participantName(a.displayName).localeCompare(participantName(b.displayName))
   );
 }
 

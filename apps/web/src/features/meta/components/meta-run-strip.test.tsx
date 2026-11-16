@@ -1,11 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import type { RunRound } from "@/features/meta/lib/run-outcome";
+import type { RunRound, RunStripRound } from "@/features/meta/lib/run-outcome";
 
 import { MetaRunStrip, runStripLabel } from "./meta-run-strip";
 
-function round(overrides: Partial<RunRound> = {}): RunRound {
+function round(overrides: Partial<RunRound & RunStripRound> = {}): RunRound & RunStripRound {
   return {
     phaseOrder: 1,
     roundNumber: 1,
@@ -29,6 +29,15 @@ const SWISS_THEN_CUT = [
 ];
 
 describe("runStripLabel", () => {
+  it("says which rounds are not final yet", () => {
+    expect(
+      runStripLabel([
+        round({ roundNumber: 1, outcome: "win" }),
+        round({ roundNumber: 2, outcome: "loss", provisional: true }),
+      ]),
+    ).toBe("Round by round: win, loss (not final)");
+  });
+
   it("reads the Swiss rounds and the cut as two runs of words", () => {
     expect(runStripLabel(SWISS_THEN_CUT)).toBe(
       "Round by round: bye, win, loss, win, then the cut: win, win",
@@ -74,6 +83,21 @@ describe("MetaRunStrip", () => {
     expect(classes[1]).toContain("bg-success");
     expect(classes[2]).toContain("bg-destructive");
     expect(classes[4]).toContain("bg-success");
+  });
+
+  it("mutes a round that is not final yet and says so in its tooltip", () => {
+    render(
+      <MetaRunStrip
+        rounds={[
+          round({ roundNumber: 1, outcome: "win" }),
+          round({ roundNumber: 2, outcome: "win", provisional: true }),
+        ]}
+      />,
+    );
+    const [final, provisional] = squares();
+    expect(final?.className).not.toContain("opacity-50");
+    expect(provisional?.className).toContain("opacity-50");
+    expect(provisional?.getAttribute("title")).toBe("Round 2 (not final)");
   });
 
   it("greys a drawn round apart from a win and a loss", () => {

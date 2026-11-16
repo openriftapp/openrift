@@ -4,7 +4,7 @@ import type {
 } from "@openrift/shared/types/api/tournament";
 
 import type { Repos } from "../../../deps.js";
-import { forbidden, notFound } from "../../../errors.js";
+import { conflict, forbidden, notFound } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import type { Tournament, TournamentParticipant } from "../repositories/tournaments-shared.js";
 import { hasOrgRole, loadOrg, requireOrgRole } from "./org-access.js";
@@ -113,6 +113,13 @@ export async function loadParticipant(
     throw notFound("Participant not found");
   }
   return participant;
+}
+
+/** Only a closed account's row has no stored name. */
+export function assertIdentityEditable(storedName: string | null, editsIdentity: boolean): void {
+  if (editsIdentity && storedName === null) {
+    throw conflict("This player deleted their account, so their name and Riot ID stay cleared.");
+  }
 }
 
 const LEFT_EVENT_MESSAGE =

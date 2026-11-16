@@ -138,7 +138,7 @@ async function loadSummaryExtras(
           })),
           winner: winner
             ? {
-                name: winner.displayName,
+                names: winner.displayNames,
                 legendImageId: winnerLegends.get(winner.participantId) ?? null,
               }
             : null,

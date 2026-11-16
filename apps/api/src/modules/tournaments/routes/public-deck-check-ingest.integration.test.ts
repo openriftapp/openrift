@@ -193,6 +193,31 @@ describe.skipIf(!ownerCtx)("deck-check ingest push (integration, ADR-033)", () =
     expect(secondResult.entriesUnchanged).toBe(1);
   });
 
+  it("keeps a deleted account's entry nameless when the provider pushes it again", async () => {
+    const leaverId = crypto.randomUUID();
+    await createUser(leaverId, `test-${leaverId}@test.com`);
+    const entry = entryPayload({ externalId: "entry-closed", playerName: "C. Losed" });
+    const first = await push([entry]);
+    expect(first.status).toBe(200);
+    const created = await repos.deckCheck.getEntryByExternalId(eventId, "entry-closed");
+    await db
+      .updateTable("tournamentParticipants")
+      .set({ userId: leaverId, claimSource: "claim_link", claimedAt: new Date() })
+      .where("id", "=", created!.participantId!)
+      .execute();
+    await db.deleteFrom("users").where("id", "=", leaverId).execute();
+
+    const repush = await push([{ ...entry, riotId: "Closed#EUW" }]);
+
+    expect(repush.status).toBe(200);
+    const participant = await db
+      .selectFrom("tournamentParticipants")
+      .select(["displayName", "riotId", "accountClosed"])
+      .where("id", "=", created!.participantId!)
+      .executeTakeFirstOrThrow();
+    expect(participant).toEqual({ displayName: null, riotId: null, accountClosed: true });
+  });
+
   it("creates one entry when a push is retried while the first is still running", async () => {
     const entry = entryPayload({ externalId: "entry-retried", playerName: "R. Etry" });
     const [first, retry] = await Promise.all([push([entry]), push([entry])]);

@@ -6,6 +6,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { finishBracketLabel, formatRank } from "@/features/meta/lib/meta-format";
+import { participantName } from "@/features/tournaments/lib/participant-name";
 import type { LegendFinish } from "@/features/tournaments/lib/player-run";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { m } from "@/paraglide/messages.js";
@@ -31,7 +32,7 @@ function FinishTile({ entry, cutSize }: { entry: LegendFinish; cutSize: number |
           layout="tile"
         />
       }
-      player={entry.displayName}
+      player={participantName(entry.displayName)}
       detail={entry.record}
     />
   );
