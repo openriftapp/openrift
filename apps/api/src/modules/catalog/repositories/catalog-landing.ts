@@ -226,7 +226,8 @@ export function catalogLandingRepo(db: Kysely<Database>) {
                  chp.tags, chp.types, chp.short_code, chp.rarity,
                  coalesce((
                    SELECT array_agg(m.label ORDER BY m.sort_order)
-                   FROM markers m WHERE m.slug = ANY(chp.marker_slugs)
+                   FROM markers m
+                   WHERE m.slug = ANY(chp.marker_slugs) AND m.slug <> ${WellKnown.marker.PROMO}
                  ), '{}') AS markers,
                  row_number() OVER (
                    PARTITION BY s.id

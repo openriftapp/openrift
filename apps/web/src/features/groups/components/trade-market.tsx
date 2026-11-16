@@ -58,6 +58,7 @@ const GRID =
 const GRID_SIZES =
   "(min-width: 1280px) calc(100vw / 7), (min-width: 1024px) calc(100vw / 6), (min-width: 768px) calc(100vw / 4), (min-width: 640px) calc(100vw / 3), 50vw";
 const BADGE_POSITION = "pointer-events-none absolute bottom-1.5 left-1.5 z-30";
+const IN_TRADE_BADGE = `${BADGE_POSITION} bg-warning text-warning-foreground shadow-md`;
 const MAX_SOURCE_AVATARS = 3;
 
 function whoLine(card: TradeMarketCard): string {
@@ -383,7 +384,7 @@ export function TradeMarket() {
                     view="printings"
                     imageOverlay={
                       liveTrades.length > 0 ? (
-                        <Badge variant="warning" className={BADGE_POSITION}>
+                        <Badge variant="warning" className={IN_TRADE_BADGE}>
                           <ClockIcon />
                           {viewerStarted
                             ? card.direction === "incoming"

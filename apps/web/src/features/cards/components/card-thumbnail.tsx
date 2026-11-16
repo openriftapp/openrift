@@ -39,10 +39,8 @@ import { m } from "@/paraglide/messages.js";
 const CARD_WIDTH = 630;
 const CARD_HEIGHT = 880;
 
-const PROMO_MARKER_SLUG = "promo";
-
 function promoMarkerLabel(printing: Printing): string | undefined {
-  return printing.markers.find((marker) => marker.slug === PROMO_MARKER_SLUG)?.label;
+  return printing.markers.find((marker) => marker.slug === WellKnown.marker.PROMO)?.label;
 }
 
 export const AFTER_BORDER =

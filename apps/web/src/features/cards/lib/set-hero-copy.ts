@@ -6,6 +6,7 @@ import { isReleased, isReleasedAnywhere } from "@openrift/shared/set-release";
 import type { SetListEntry } from "@openrift/shared/types/api/catalog";
 
 import { DATE_WORDS } from "@/lib/date-words";
+import { formatList } from "@/lib/format-list";
 import { LANGUAGE_NAMES } from "@/lib/language-names.gen";
 import { m } from "@/paraglide/messages.js";
 import { getLocale } from "@/paraglide/runtime.js";
@@ -144,15 +145,11 @@ export function isSetUpcoming(
   return primaryRelease(set.releases) !== undefined || set.cardCount === 0;
 }
 
-function listFormat(items: string[]): string {
-  return new Intl.ListFormat(getLocale(), { type: "conjunction" }).format(items);
-}
-
 function releaseItems(groups: ReleaseGroup[], languageLabels: LabelMap): string {
-  return listFormat(
+  return formatList(
     groups.map((group) =>
       m.set_release_item({
-        languages: listFormat(
+        languages: formatList(
           group.languages.map((code) => cardLanguageName(code, languageLabels)),
         ),
         when: releaseWhen(group.release),

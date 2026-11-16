@@ -19,6 +19,7 @@ import type { PlayloltcgStatus, PlayriftboundTournamentType } from "@openrift/sh
 import { toast } from "sonner";
 
 import { formatCount } from "@/lib/format";
+import { formatList } from "@/lib/format-list";
 import { summarizeRunResult } from "@/lib/job-run-display";
 
 export const META_SOURCE_LABELS: Record<MetaSource, string> = {
@@ -261,9 +262,7 @@ export function runErrorsMessage(job: string, errors: readonly string[]): string
   const sentences = [...byReason].map(([reason, ids]) => {
     const named = ids.slice(0, NAMED_EVENTS);
     const rest = ids.length - named.length;
-    const list = new Intl.ListFormat("en", { type: "conjunction" }).format(
-      rest > 0 ? [...named, `${rest} more`] : named,
-    );
+    const list = formatList(rest > 0 ? [...named, `${rest} more`] : named, "and", "en");
     return asSentence(
       `${job} failed for ${pluralize(ids.length, "event", "events")} ${list}: ${reason.slice(0, 160)}`,
     );

@@ -77,6 +77,7 @@ pre-push:
             glob:
               - "apps/web/src/lib/country-names/**"
               - "apps/web/src/lib/language-names.gen.ts"
+              - "apps/web/src/lib/list-patterns.gen.ts"
               - "apps/web/src/lib/flag-codes.ts"
               - "apps/web/project.inlang/settings.json"
               - "scripts/generate-locale-names.ts"

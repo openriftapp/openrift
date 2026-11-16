@@ -56,7 +56,9 @@ export function DeckFormDialog({
       }}
     >
       <DialogContent className={className} closeDisabled={saving}>
-        <DeckFormBody controls={controls}>{children}</DeckFormBody>
+        <DeckFormBody key={owner} controls={controls}>
+          {children}
+        </DeckFormBody>
       </DialogContent>
     </Dialog>
   );

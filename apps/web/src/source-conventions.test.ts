@@ -536,6 +536,10 @@ describe("generic helpers", () => {
     ).toEqual([]);
   });
 
+  it("joins lists with `formatList` (`@/lib/format-list`)", () => {
+    expect(offenders(WEB_FILES, /\bIntl\.ListFormat\s*\(/u)).toEqual([]);
+  });
+
   it("rounds card corners through the card radius token", () => {
     expect(
       offenders(WEB_FILES, /5% ?\/ ?3\.6%/u, [

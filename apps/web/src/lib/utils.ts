@@ -1,4 +1,4 @@
-import { withoutSubmittedFields } from "./submitted-fields";
+import { isLocalPath, withoutSubmittedFields } from "./submitted-fields";
 
 export { cn } from "cn";
 
@@ -29,10 +29,5 @@ export function sanitizeRedirect(url?: string): string | undefined {
   if (!url) {
     return undefined;
   }
-  // Backslashes are rejected too: some browsers normalize "\" to "/", which
-  // would turn "/\evil.com" into a protocol-relative URL.
-  if (url.startsWith("/") && !url.startsWith("//") && !url.includes("\\")) {
-    return withoutSubmittedFields(url);
-  }
-  return undefined;
+  return isLocalPath(url) ? withoutSubmittedFields(url) : undefined;
 }

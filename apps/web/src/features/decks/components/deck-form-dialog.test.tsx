@@ -96,6 +96,29 @@ describe("DeckFormDialog", () => {
     expect(screen.getByRole("button", { name: "Close" })).toBeDisabled();
   });
 
+  it("starts a dialog reopened before its content unmounted with a fresh form", async () => {
+    const user = userEvent.setup();
+    function DraftForm() {
+      const [draft, setDraft] = useState("");
+      return (
+        <input aria-label="Name" value={draft} onChange={(event) => setDraft(event.target.value)} />
+      );
+    }
+    const dialog = (open: boolean) => (
+      <DeckFormDialog open={open} onOpenChange={vi.fn()}>
+        {() => <DraftForm />}
+      </DeckFormDialog>
+    );
+    const { rerender } = render(dialog(true));
+    await user.type(screen.getByRole("textbox", { name: "Name" }), "Summoner Skirmish");
+
+    rerender(dialog(false));
+    expect(screen.getByRole("textbox", { name: "Name", hidden: true })).toBeInTheDocument();
+    rerender(dialog(true));
+
+    expect(screen.getByRole("textbox", { name: "Name" })).toHaveValue("");
+  });
+
   it("keeps Escape working after the parent closed it during a save", async () => {
     const user = userEvent.setup();
     render(<Harness />);

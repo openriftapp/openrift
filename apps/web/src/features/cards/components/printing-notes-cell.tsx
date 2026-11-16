@@ -1,4 +1,5 @@
 import type { Marker, PrintingCitation } from "@openrift/shared/types/catalog";
+import { WellKnown } from "@openrift/shared/well-known";
 import { LinkIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -9,9 +10,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { sourceBrand } from "@/features/cards/lib/source-brand";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
-
-/** Also special-cased in card-thumbnail.tsx, for placeholder art. */
-const PROMO_MARKER_SLUG = "promo";
 
 function StopRowClick({ children }: { children: ReactNode }) {
   return (
@@ -82,7 +80,7 @@ export function PrintingNotesCell({
   citations: readonly PrintingCitation[];
   className?: string;
 }) {
-  const shownMarkers = markers.filter((marker) => marker.slug !== PROMO_MARKER_SLUG);
+  const shownMarkers = markers.filter((marker) => marker.slug !== WellKnown.marker.PROMO);
   if (!comment && shownMarkers.length === 0 && citations.length === 0) {
     return null;
   }

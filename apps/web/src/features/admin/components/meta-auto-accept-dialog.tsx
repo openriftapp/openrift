@@ -24,6 +24,7 @@ import {
 } from "@/features/admin/hooks/use-admin-meta-catalog";
 import { META_SOURCE_LABELS } from "@/features/admin/lib/meta-catalog-display";
 import { autoPublishRuleSentence } from "@/features/admin/lib/meta-mirror-view";
+import { formatList } from "@/lib/format-list";
 import { parseIntegerInput } from "@/lib/integer-input";
 
 /** The auto-accept rule form's editable shape. */
@@ -44,9 +45,7 @@ function toDraft(settings: MetaSyncSettings): RulesDraft {
   };
 }
 
-const notableNames = new Intl.ListFormat("en", { type: "disjunction" }).format(
-  META_NOTABLE_EVENT_NAMES,
-);
+const notableNames = formatList(META_NOTABLE_EVENT_NAMES, "or", "en");
 
 function AutoAcceptForm({
   source,

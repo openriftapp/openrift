@@ -32,6 +32,9 @@ export const WellKnown = {
     EN: "EN",
     SC: "SC",
   },
+  marker: {
+    PROMO: "promo",
+  },
   finish: {
     NORMAL: "normal",
     FOIL: "foil",

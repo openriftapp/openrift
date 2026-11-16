@@ -1,6 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 import { isRedirect } from "@tanstack/react-router";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { requireSession } from "@/lib/auth-session";
 
@@ -36,6 +36,17 @@ describe("the app layout on the server", () => {
 
   it("lets a signed-in owner through to the stage", async () => {
     queryClient.setQueryData(["session"], { user: { id: "user-1" } });
+
+    await expect(
+      appGate({
+        context: { queryClient },
+        location: location("/stage", { tier: "list-1" }, "/stage?tier=list-1"),
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("leaves a stage tier list to its own gate when the session lookup fails", async () => {
+    vi.spyOn(queryClient, "query").mockRejectedValue(new Error("session API down"));
 
     await expect(
       appGate({
@@ -92,6 +103,19 @@ describe("a URL carrying a natively submitted secret", () => {
       }).catch((error: unknown) => error);
 
       expect(thrown).toMatchObject({ options: { href: pathname } });
+    },
+  );
+
+  it.each(["/.//evil.com?password=x", "/%2e//evil.com?password=x"])(
+    "redirects %s to a local path",
+    async (href) => {
+      const queryClient = new QueryClient();
+      const thrown: unknown = await appGate({
+        context: { queryClient },
+        location: location("/evil.com", {}, href),
+      }).catch((error: unknown) => error);
+
+      expect(thrown).toMatchObject({ options: { href: "/", replace: true } });
     },
   );
 

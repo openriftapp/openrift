@@ -13,12 +13,13 @@ export const Route = createFileRoute("/_app")({
     redirectWithoutSubmittedFields(location);
     // Preload session so the Header can render auth-dependent UI during SSR.
     // Non-critical: if it fails, the client-side useQuery will retry.
-    await context.queryClient
+    const sessionLoaded = await context.queryClient
       .query({ ...sessionQueryOptions(), staleTime: "static" })
-      .catch(() => null);
-    // The stage renders only in the browser, so its own `?tier=` gate would
-    // redirect after the server HTML is already on screen.
-    if (import.meta.env.SSR && isStageTierPath(location)) {
+      .then(() => true)
+      .catch(() => false);
+    // The browser-only stage gate would redirect after the server HTML shows;
+    // a failed lookup is left to it, so its error renders inside the shell.
+    if (import.meta.env.SSR && sessionLoaded && isStageTierPath(location)) {
       await requireSession({ context, location });
     }
   },

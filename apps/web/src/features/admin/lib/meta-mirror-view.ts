@@ -8,6 +8,7 @@ import type {
 import type { MetaResultsState } from "@openrift/shared/meta-results";
 
 import type { CatalogChipDisplay } from "@/features/admin/lib/meta-catalog-display";
+import { formatList } from "@/lib/format-list";
 
 export const RESULTS_DISPLAY: Record<MetaResultsState, CatalogChipDisplay> = {
   notStarted: { label: "Not started", variant: "outline" },
@@ -230,10 +231,6 @@ export function mirrorViewSearch(view: MirrorView): {
     : { triage: undefined, bucket: view.bucket };
 }
 
-function joinOr(parts: string[]): string {
-  return new Intl.ListFormat("en", { type: "disjunction" }).format(parts);
-}
-
 /** The rule a source's undecided events are judged by, built from the stored settings. */
 export function autoPublishRuleSentence(
   source: MetaSource,
@@ -251,7 +248,7 @@ export function autoPublishRuleSentence(
     ];
     return parts.length === 0
       ? "Auto-publish is off."
-      : `Auto-publish: ${joinOr(parts)}, with a mapped format. Cancelled events never publish.`;
+      : `Auto-publish: ${formatList(parts, "or", "en")}, with a mapped format. Cancelled events never publish.`;
   }
   if (min === null) {
     return "Auto-publish is off.";

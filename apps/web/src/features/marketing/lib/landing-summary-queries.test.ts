@@ -44,7 +44,7 @@ const SUMMARY: LandingSummaryResponse = {
           name: "Navori Scout",
           shortCode: "SFD-037",
           rarity: "common",
-          markers: ["Promo"],
+          markers: ["Summoner Circle"],
         },
       ],
     },

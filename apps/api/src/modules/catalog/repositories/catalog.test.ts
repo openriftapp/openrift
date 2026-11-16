@@ -137,7 +137,7 @@ describe("catalogRepo", () => {
       types: ["unit"],
       shortCode,
       rarity: "common",
-      markers: ["Promo"],
+      markers: ["Summoner Circle"],
     });
     const db = createMockDb([row("a", "SFD-037"), row("a", "SFD-095"), row("b", "OGN-078")]);
     const sections = await catalogRepo(db).landingPromoSections(2, 2);

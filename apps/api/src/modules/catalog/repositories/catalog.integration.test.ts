@@ -1,10 +1,17 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import type { CardType } from "@openrift/shared/types/enums";
+import { WellKnown } from "@openrift/shared/well-known";
 import { sql } from "kysely";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { cardHasType, cardTypes } from "../../../db/helpers.js";
-import { createDbContext, insertCard } from "../../../test/integration-context.js";
+import {
+  createDbContext,
+  deletePrintingsById,
+  insertCard,
+  insertImageFile,
+  insertPrinting,
+} from "../../../test/integration-context.js";
 import { PRICE_BAND_CENTS } from "./catalog-landing.js";
 import { catalogRepo } from "./catalog.js";
 
@@ -208,6 +215,90 @@ describe.skipIf(!ctx)("catalogRepo (integration)", () => {
         expect(printing.name.length).toBeGreaterThan(0);
       }
     }
+  });
+
+  describe("landingPromoSections with a seeded promo channel", () => {
+    const CHANNEL_SLUG = "landing-promo-skirmish";
+    const CHANNEL_LABEL = "Landing Promo Summoner Skirmish";
+    const printingIds: string[] = [];
+    const imageFileIds: string[] = [];
+    let cardId: string | undefined;
+
+    beforeAll(async () => {
+      const set = await db
+        .selectFrom("sets")
+        .select("id")
+        .where("slug", "=", "OGN")
+        .executeTakeFirstOrThrow();
+      const card = await insertCard(db, {
+        slug: "landing-promo-poro",
+        name: "Landing Promo Poro",
+        types: ["unit"],
+        might: null,
+        energy: 1,
+        power: null,
+        mightBonus: null,
+        keywords: [],
+        tags: [],
+      });
+      cardId = card.id;
+      const channel = await db
+        .insertInto("distributionChannels")
+        .values({ slug: CHANNEL_SLUG, label: CHANNEL_LABEL, kind: "event", sortOrder: 950 })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      for (const shortCode of ["LPR-001", "LPR-002"]) {
+        const printing = await insertPrinting(db, {
+          cardId: card.id,
+          setId: set.id,
+          shortCode,
+          rarity: "common",
+          artVariant: "normal",
+          isSigned: false,
+          finish: "normal",
+          artist: "Landing Promo Artist",
+          publicCode: `${shortCode}/120`,
+          language: WellKnown.language.EN,
+          markerSlugs: [WellKnown.marker.PROMO],
+        });
+        printingIds.push(printing.id);
+        const file = await insertImageFile(db);
+        imageFileIds.push(file.id);
+        await db
+          .insertInto("faceImages")
+          .values({ faceId: printing.faceId, imageFileId: file.id, isActive: true })
+          .execute();
+        await db
+          .insertInto("printingDistributionChannels")
+          .values({ printingId: printing.id, channelId: channel.id })
+          .execute();
+      }
+    });
+
+    afterAll(async () => {
+      await db
+        .deleteFrom("printingDistributionChannels")
+        .where("printingId", "in", printingIds)
+        .execute();
+      await deletePrintingsById(db, printingIds);
+      await db.deleteFrom("imageFiles").where("id", "in", imageFileIds).execute();
+      await db.deleteFrom("distributionChannels").where("slug", "=", CHANNEL_SLUG).execute();
+      if (cardId !== undefined) {
+        await db.deleteFrom("cards").where("id", "=", cardId).execute();
+      }
+    });
+
+    it("leaves out the generic promo marker", async () => {
+      const sections = await repo.landingPromoSections(10_000, 2);
+      const seeded = sections.find((section) => section.path.at(-1) === CHANNEL_LABEL);
+      expect(seeded?.printings.map((printing) => printing.shortCode).toSorted()).toEqual([
+        "LPR-001",
+        "LPR-002",
+      ]);
+      for (const printing of seeded?.printings ?? []) {
+        expect(printing.markers).toEqual([]);
+      }
+    });
   });
 
   it("landingPromoSections returns the same sample within a single day", async () => {

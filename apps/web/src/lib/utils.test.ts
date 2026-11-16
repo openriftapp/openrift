@@ -38,5 +38,7 @@ describe("sanitizeRedirect", () => {
     expect(sanitizeRedirect(String.raw`/\evil.com`)).toBeUndefined();
     expect(sanitizeRedirect(String.raw`/\/evil.com`)).toBeUndefined();
     expect(sanitizeRedirect(String.raw`/foo\bar`)).toBeUndefined();
+    expect(sanitizeRedirect("/.//evil.com?password=x")).toBe("/");
+    expect(sanitizeRedirect("/%2e//evil.com?password=x")).toBe("/");
   });
 });
