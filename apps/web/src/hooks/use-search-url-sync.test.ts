@@ -174,6 +174,52 @@ describe("useSearchUrlSync", () => {
     expect(onCommit).toHaveBeenCalledWith("Annie");
   });
 
+  it("follows an external change to a value whose commit was superseded before its echo", () => {
+    const onCommit = vi.fn();
+    const { result, rerender } = renderHook<readonly [string, (value: string) => void], HookArgs>(
+      ({ urlValue }) => useSearchUrlSync({ urlValue, onCommit }),
+      { initialProps: { urlValue: "abc", onCommit } },
+    );
+
+    act(() => result.current[1]("abcd"));
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    act(() => result.current[1]("abc"));
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(onCommit.mock.calls.map(([value]) => value)).toEqual(["abcd", "abc"]);
+
+    rerender({ urlValue: "abcd", onCommit });
+    expect(result.current[0]).toBe("abcd");
+  });
+
+  it("still ignores the echo of a commit made after returning to the URL value", () => {
+    const onCommit = vi.fn();
+    const { result, rerender } = renderHook<readonly [string, (value: string) => void], HookArgs>(
+      ({ urlValue }) => useSearchUrlSync({ urlValue, onCommit }),
+      { initialProps: { urlValue: "abc", onCommit } },
+    );
+
+    act(() => result.current[1]("abcd"));
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    act(() => result.current[1]("abc"));
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    act(() => result.current[1]("abcde"));
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    act(() => result.current[1]("abcdef"));
+
+    rerender({ urlValue: "abcde", onCommit });
+    expect(result.current[0]).toBe("abcdef");
+  });
+
   it("does not re-commit the same value twice", () => {
     let pendingUrlValue = "";
     const onCommit = vi.fn((value: string) => {

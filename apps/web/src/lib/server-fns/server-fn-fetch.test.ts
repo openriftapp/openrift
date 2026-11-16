@@ -1,11 +1,11 @@
 import type { AsyncLocalStorage } from "node:async_hooks";
 
-import { X_TSS_RAW_RESPONSE } from "@tanstack/react-start";
+import { X_TSS_RAW_RESPONSE, createServerFn } from "@tanstack/react-start";
 import { createClientRpc } from "@tanstack/react-start/client-rpc";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { isStaleServerFnError } from "@/lib/stale-bundle-reload";
-import { STALE_SERVER_FN_HEADER } from "@/lib/stale-server-fn-signal";
+import { STALE_SERVER_FN_HEADER, StaleServerFnError } from "@/lib/stale-server-fn-signal";
 
 import { isApiError } from "./api-error";
 import { serverFnFetch } from "./server-fn-fetch";
@@ -69,6 +69,18 @@ describe("a server-function call through Start's client", () => {
   it("rejects the stale-function signal with the stale error through the app's fetch", async () => {
     stubFetch(staleResponse());
     const error: unknown = await call({ fetch: serverFnFetch }).catch((error_: unknown) => error_);
+    expect(isStaleServerFnError(error)).toBe(true);
+  });
+
+  it("rejects a createServerFn call with the stale error itself through the app's fetch", async () => {
+    stubFetch(staleResponse());
+    const serverFn = createServerFn({ method: "POST" }).handler(
+      createClientRpc("fn-id") as unknown as () => Promise<null>,
+    );
+    const error: unknown = await startStorage
+      .run({ startOptions: { serverFns: { fetch: serverFnFetch } } }, () => serverFn())
+      .catch((error_: unknown) => error_);
+    expect(error).toBeInstanceOf(StaleServerFnError);
     expect(isStaleServerFnError(error)).toBe(true);
   });
 
