@@ -3477,6 +3477,8 @@
   "decks_overview_option_owned_printings": "내 인쇄판 표시",
   "decks_overview_option_owned_printings_hint": "각 카드의 일러스트를 내가 보유한 인쇄판으로 바꿉니다.",
   "decks_overview_option_prices": "가격 표시",
+  "decks_overview_option_domain_colors": "통계에 영역 색상 표시",
+  "decks_overview_option_domain_colors_hint": "에너지, 힘, 유형 막대를 영역별 색상으로 표시합니다. 끄면 막대에 마우스를 올렸을 때 영역이 표시됩니다.",
   "decks_overview_option_stats_summary": "통계 요약 표시",
   "decks_overview_options_reset": "기본값으로 재설정",
   "decks_overview_option_runes": "룬 포함",

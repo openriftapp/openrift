@@ -83,6 +83,7 @@ export function DeckStatsBand({
   enumOrders,
   statsFocus,
   applyStatsFocus,
+  showDomainColors,
   statsOpen,
   onStatsOpenChange,
 }: {
@@ -95,6 +96,7 @@ export function DeckStatsBand({
   enumOrders: ReturnType<typeof useEnumOrders>["orders"];
   statsFocus: StatsFocus | null;
   applyStatsFocus: (focus: StatsFocus) => void;
+  showDomainColors: boolean;
   /** Hydration-gated by the host; SSR always renders the band open. Keep the gate there, not here. */
   statsOpen: boolean;
   onStatsOpenChange?: (open: boolean) => void;
@@ -177,7 +179,7 @@ export function DeckStatsBand({
       <TypeBreakdown
         data={stats.typeBreakdown}
         domains={stats.typeBreakdownDomains}
-        singleColor
+        revealDomainsOnHover={!showDomainColors}
         showTotals
         onBarClick={(value) => applyStatsFocus({ kind: "type", value })}
         footnote={hasMultiTypeCards ? m.decks_stats_footnote_multi_type() : undefined}
@@ -241,7 +243,7 @@ export function DeckStatsBand({
         data={stats.energyCurve}
         stacks={stats.energyCurveStacks}
         average={stats.averageEnergy}
-        singleColor
+        revealDomainsOnHover={!showDomainColors}
         footnote={coarsePointer ? m.decks_stats_about_hint_touch() : m.decks_stats_about_hint()}
         showTotals
         onBarClick={(value) => applyStatsFocus({ kind: "energy", value })}
@@ -256,7 +258,7 @@ export function DeckStatsBand({
         data={stats.powerCurve}
         stacks={stats.powerCurveStacks}
         average={stats.averagePower}
-        singleColor
+        revealDomainsOnHover={!showDomainColors}
         showTotals
         onBarClick={(value) => applyStatsFocus({ kind: "power", value })}
         focusValue={statsFocus?.kind === "power" ? statsFocus.value : null}

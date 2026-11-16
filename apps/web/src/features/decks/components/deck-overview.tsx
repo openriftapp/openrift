@@ -250,6 +250,7 @@ export function DeckOverview({
   const storedShowPrices = useDeckOverviewViewStore((state) => state.showPrices);
   const storedShowListPrices = useDeckOverviewViewStore((state) => state.showListPrices);
   const storedShowStatsSummary = useDeckOverviewViewStore((state) => state.showStatsSummary);
+  const storedStatsDomainColors = useDeckOverviewViewStore((state) => state.statsDomainColors);
   const displayMode = hydrated
     ? phone && !readOnly && !displayModePicked
       ? "list"
@@ -408,6 +409,7 @@ export function DeckOverview({
   const statsInTab = phone || cardListReadOnly === true;
   const hasStatsSummary = statsInTab && !readOnly;
   const showStatsSummary = !hydrated || storedShowStatsSummary;
+  const statsDomainColors = hydrated && storedStatsDomainColors;
   const applyStatsFocus = (focus: StatsFocus) => {
     const isSame =
       statsFocus !== null && statsFocus.kind === focus.kind && statsFocus.value === focus.value;
@@ -457,6 +459,7 @@ export function DeckOverview({
         showPrices={displayMode === "list" ? showListPrices : showPrices}
         showStatsSummary={showStatsSummary}
         hasStatsSummary={hasStatsSummary}
+        statsDomainColors={statsDomainColors}
         preferOwned={preferOwned}
         canPreferOwned={canPreferOwned}
         hasOwnershipData={ownershipData !== undefined}
@@ -699,6 +702,7 @@ export function DeckOverview({
             enumOrders={enumOrders}
             statsFocus={statsFocus}
             applyStatsFocus={applyStatsFocus}
+            showDomainColors={statsDomainColors}
             statsOpen={statsOpen}
             onStatsOpenChange={setStatsOpen}
           />
@@ -795,6 +799,7 @@ export function DeckOverview({
             enumOrders={enumOrders}
             statsFocus={statsFocus}
             applyStatsFocus={applyStatsFocus}
+            showDomainColors={statsDomainColors}
             statsOpen
           />
         )}

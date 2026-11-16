@@ -147,3 +147,25 @@ describe("TypeBreakdown x-axis labels", () => {
     expect(text).not.toMatch(/\b\d+ spells?\b/u);
   });
 });
+
+function barFills(container: HTMLElement): string[] {
+  return [...container.querySelectorAll("path.recharts-rectangle")].map(
+    (rect) => rect.getAttribute("fill") ?? "",
+  );
+}
+
+describe("TypeBreakdown domain reveal", () => {
+  it("paints neutral columns until a column is hovered", () => {
+    const { container } = render(
+      <TypeBreakdown data={TWO_TYPES} domains={["fire", "water"]} revealDomainsOnHover />,
+    );
+    const fills = barFills(container);
+    expect(fills.length).toBeGreaterThan(0);
+    expect(fills.every((fill) => fill === "var(--color-primary)")).toBe(true);
+  });
+
+  it("paints domain colors without the reveal", () => {
+    const { container } = render(<TypeBreakdown data={TWO_TYPES} domains={["fire", "water"]} />);
+    expect(barFills(container)).toEqual(expect.arrayContaining(["#f00", "#00f"]));
+  });
+});

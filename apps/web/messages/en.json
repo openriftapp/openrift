@@ -3478,6 +3478,8 @@
   "decks_overview_option_owned_printings": "Show my printings",
   "decks_overview_option_owned_printings_hint": "Swap each card's art for the printing you own.",
   "decks_overview_option_prices": "Show prices",
+  "decks_overview_option_domain_colors": "Domain colors in stats",
+  "decks_overview_option_domain_colors_hint": "Colors the Energy, Power and Types bars by domain. When off, hovering a bar shows its domains.",
   "decks_overview_option_stats_summary": "Show stats summary",
   "decks_overview_options_reset": "Reset to defaults",
   "decks_overview_option_runes": "Include runes",

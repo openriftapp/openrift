@@ -107,6 +107,7 @@ interface DeckOverviewViewControlsProps {
   showPrices: boolean;
   showStatsSummary: boolean;
   hasStatsSummary: boolean;
+  statsDomainColors: boolean;
   preferOwned: boolean;
   canPreferOwned: boolean;
   hasOwnershipData: boolean;
@@ -125,6 +126,7 @@ export function DeckOverviewViewControls({
   showPrices,
   showStatsSummary,
   hasStatsSummary,
+  statsDomainColors,
   preferOwned,
   canPreferOwned,
   hasOwnershipData,
@@ -138,6 +140,7 @@ export function DeckOverviewViewControls({
   const setShowGridPrices = useDeckOverviewViewStore((state) => state.setShowPrices);
   const setShowListPrices = useDeckOverviewViewStore((state) => state.setShowListPrices);
   const setShowStatsSummary = useDeckOverviewViewStore((state) => state.setShowStatsSummary);
+  const setStatsDomainColors = useDeckOverviewViewStore((state) => state.setStatsDomainColors);
   const setPreferOwnedPrintings = useDeckOverviewViewStore(
     (state) => state.setPreferOwnedPrintings,
   );
@@ -191,6 +194,14 @@ export function DeckOverviewViewControls({
           },
         ]
       : []),
+    {
+      key: "domain-colors",
+      label: m.decks_overview_option_domain_colors(),
+      description: m.decks_overview_option_domain_colors_hint(),
+      checked: statsDomainColors,
+      modified: statsDomainColors,
+      onCheckedChange: setStatsDomainColors,
+    },
     {
       key: "copies",
       label: m.decks_overview_option_every_copy(),

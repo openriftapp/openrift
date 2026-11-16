@@ -3477,6 +3477,8 @@
   "decks_overview_option_owned_printings": "显示我的印刷版本",
   "decks_overview_option_owned_printings_hint": "把每张牌的画面换成你拥有的那个印刷版本。",
   "decks_overview_option_prices": "显示价格",
+  "decks_overview_option_domain_colors": "统计中显示特性颜色",
+  "decks_overview_option_domain_colors_hint": "按特性为法力、符能和类型柱状图着色。关闭时，将鼠标悬停在柱上即可查看其特性。",
   "decks_overview_option_stats_summary": "显示统计摘要",
   "decks_overview_options_reset": "恢复默认设置",
   "decks_overview_option_runes": "包含符文",

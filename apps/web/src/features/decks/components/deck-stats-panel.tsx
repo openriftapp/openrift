@@ -9,8 +9,10 @@ import { TypeBreakdown } from "@/features/decks/components/stats/type-breakdown"
 import { useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import type { DomainCount } from "@/features/decks/hooks/use-deck-stats";
 import { useDeckStats } from "@/features/decks/hooks/use-deck-stats";
+import { useDeckOverviewViewStore } from "@/features/decks/stores/deck-overview-view-store";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { getDomainColor } from "@/lib/domain";
 import { cn } from "@/lib/utils";
@@ -78,7 +80,13 @@ export function DomainBar({
   );
 }
 
-function DeckStatsBody({ stats }: { stats: ReturnType<typeof useDeckStats> }) {
+function DeckStatsBody({
+  stats,
+  showDomainColors,
+}: {
+  stats: ReturnType<typeof useDeckStats>;
+  showDomainColors: boolean;
+}) {
   return (
     <div className="space-y-3">
       <EnergyPowerChart
@@ -88,14 +96,14 @@ function DeckStatsBody({ stats }: { stats: ReturnType<typeof useDeckStats> }) {
         powerData={stats.powerCurve}
         powerStacks={stats.powerCurveStacks}
         averagePower={stats.averagePower}
-        singleColor
+        revealDomainsOnHover={!showDomainColors}
         showTotals
         footnote={m.decks_stats_footnote_main_only()}
       />
       <TypeBreakdown
         data={stats.typeBreakdown}
         domains={stats.typeBreakdownDomains}
-        singleColor
+        revealDomainsOnHover={!showDomainColors}
         showTotals
       />
     </div>
@@ -109,6 +117,8 @@ export function DeckStatsPanel({ deckId }: { deckId: string }) {
   const cards = useDeckCards(deckId);
   const stats = useDeckStats(cards);
   const domainColors = useDomainColors();
+  const hydrated = useHydrated();
+  const storedStatsDomainColors = useDeckOverviewViewStore((state) => state.statsDomainColors);
 
   return (
     <Collapsible defaultOpen={defaultOpen} className="flex flex-col gap-1.5">
@@ -133,7 +143,7 @@ export function DeckStatsPanel({ deckId }: { deckId: string }) {
       </DeckZoneHeader>
 
       <CollapsibleContent>
-        <DeckStatsBody stats={stats} />
+        <DeckStatsBody stats={stats} showDomainColors={hydrated && storedStatsDomainColors} />
       </CollapsibleContent>
     </Collapsible>
   );

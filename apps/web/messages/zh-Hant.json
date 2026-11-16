@@ -3477,6 +3477,8 @@
   "decks_overview_option_owned_printings": "顯示我的印刷版本",
   "decks_overview_option_owned_printings_hint": "將每張卡牌的圖換成你擁有的印刷版本。",
   "decks_overview_option_prices": "顯示價格",
+  "decks_overview_option_domain_colors": "統計中顯示流派顏色",
+  "decks_overview_option_domain_colors_hint": "依流派為能量、符能與類型長條圖著色。關閉時，將滑鼠停在長條上即可查看其流派。",
   "decks_overview_option_stats_summary": "顯示統計摘要",
   "decks_overview_options_reset": "恢復預設設定",
   "decks_overview_option_runes": "包含符文",

@@ -1,6 +1,7 @@
 import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { Domain } from "@openrift/shared/types/enums";
+import { useState } from "react";
 import { Bar, BarChart, Cell, LabelList, XAxis } from "recharts";
 
 import type { ChartConfig } from "@/components/ui/chart";
@@ -31,6 +32,7 @@ interface TypeBreakdownProps {
   /** Mutually exclusive with `focusValue` — a chart either owns the focus or reflects it. */
   hitData?: TypeCount[];
   hideHeading?: boolean;
+  revealDomainsOnHover?: boolean;
 }
 
 function buildChartConfig(
@@ -58,9 +60,11 @@ export function TypeBreakdown({
   focusValue,
   hitData,
   hideHeading,
+  revealDomainsOnHover,
 }: TypeBreakdownProps) {
   const domainColors = useDomainColors();
   const { labels } = useEnumOrders();
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
   if (data.length === 0) {
     return null;
@@ -151,7 +155,18 @@ export function TypeBreakdown({
         config={chartConfig}
         className={cn("aspect-auto h-28 w-full", onBarClick && "cursor-pointer")}
       >
-        <BarChart data={labeledData} margin={chartMargin} onClick={handleChartClick}>
+        <BarChart
+          data={labeledData}
+          margin={chartMargin}
+          onClick={handleChartClick}
+          onMouseMove={
+            revealDomainsOnHover
+              ? (state) =>
+                  setHoverIndex(activeRowIndex(state as ChartClickState, labeledData.length))
+              : undefined
+          }
+          onMouseLeave={revealDomainsOnHover ? () => setHoverIndex(null) : undefined}
+        >
           <XAxis dataKey="label" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
           <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
           {domains.map((domain, index) => (
@@ -170,13 +185,17 @@ export function TypeBreakdown({
               }
               isAnimationActive={false}
             >
-              {labeledData.map((entry) => (
+              {labeledData.map((entry, rowIndex) => (
                 // oxlint-disable-next-line typescript/no-deprecated -- recharts 3 deprecates Cell for removal in 4.0; the replacement threads per-datum opacity through the custom shape, which needs a visual check
                 <Cell
                   key={entry.type}
                   fillOpacity={columnOpacity(entry.type)}
                   // `fill={undefined}` overrides the Bar's fill and paints SVG-default black, so this stays a concrete color.
-                  fill={getDomainColor(domain, domainColors)}
+                  fill={
+                    revealDomainsOnHover && hoverIndex !== rowIndex
+                      ? "var(--color-primary)"
+                      : getDomainColor(domain, domainColors)
+                  }
                 />
               ))}
               {showTotals && index === domains.length - 1 && (

@@ -3478,6 +3478,8 @@
   "decks_overview_option_owned_printings": "Afficher mes impressions",
   "decks_overview_option_owned_printings_hint": "Remplace l'illustration de chaque carte par l'impression que vous possédez.",
   "decks_overview_option_prices": "Afficher les prix",
+  "decks_overview_option_domain_colors": "Couleurs de domaine dans les stats",
+  "decks_overview_option_domain_colors_hint": "Colore les barres Énergie, Essence runique et Types par domaine. Désactivé, survoler une barre affiche ses domaines.",
   "decks_overview_option_stats_summary": "Afficher le résumé des stats",
   "decks_overview_options_reset": "Rétablir les valeurs par défaut",
   "decks_overview_option_runes": "Inclure les runes",

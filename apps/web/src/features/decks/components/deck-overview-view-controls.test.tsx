@@ -53,6 +53,7 @@ function renderControls(
       showPrices={showPrices}
       showStatsSummary={showStatsSummary}
       hasStatsSummary={hasStatsSummary}
+      statsDomainColors={false}
       preferOwned={false}
       canPreferOwned
       hasOwnershipData
@@ -81,6 +82,13 @@ describe("DeckOverviewViewControls", () => {
     fireEvent.click(screen.getByRole("button", { name: "Display options" }));
     fireEvent.click(screen.getByRole("switch", { name: "Show stats summary" }));
     expect(useDeckOverviewViewStore.getState().showStatsSummary).toBe(false);
+  });
+
+  it("turns on domain colors from their switch", () => {
+    renderControls();
+    fireEvent.click(screen.getByRole("button", { name: "Display options" }));
+    fireEvent.click(screen.getByRole("switch", { name: /^Domain colors in stats/u }));
+    expect(useDeckOverviewViewStore.getState().statsDomainColors).toBe(true);
   });
 
   it("leaves out the stats summary switch where no summary renders", () => {

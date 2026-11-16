@@ -39,6 +39,8 @@ interface DeckOverviewViewState {
   setShowListPrices: (showListPrices: boolean) => void;
   showStatsSummary: boolean;
   setShowStatsSummary: (showStatsSummary: boolean) => void;
+  statsDomainColors: boolean;
+  setStatsDomainColors: (statsDomainColors: boolean) => void;
 }
 
 const DISPLAY_MODES: readonly DeckOverviewDisplayMode[] = ["grid", "list"];
@@ -99,6 +101,8 @@ export const useDeckOverviewViewStore = create<DeckOverviewViewState>()(
       setShowListPrices: (showListPrices) => set({ showListPrices }),
       showStatsSummary: true,
       setShowStatsSummary: (showStatsSummary) => set({ showStatsSummary }),
+      statsDomainColors: false,
+      setStatsDomainColors: (statsDomainColors) => set({ statsDomainColors }),
     }),
     {
       name: "deck-overview-view",
@@ -120,6 +124,7 @@ export const useDeckOverviewViewStore = create<DeckOverviewViewState>()(
         showPrices: pickBoolean,
         showListPrices: pickBoolean,
         showStatsSummary: pickBoolean,
+        statsDomainColors: pickBoolean,
       }),
     },
   ),
