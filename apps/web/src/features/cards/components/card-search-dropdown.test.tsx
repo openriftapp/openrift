@@ -1,3 +1,4 @@
+import { sleep } from "@openrift/shared/async";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -5,6 +6,8 @@ import { describe, expect, it, vi } from "vitest";
 import type { CardSearchResult } from "@/features/cards/lib/card-search-result";
 
 import { CardSearchDropdown, CatalogSearchCombobox } from "./card-search-dropdown";
+
+const SETTLE_MS = 300;
 
 const RESULTS: CardSearchResult[] = [
   { id: "azir", label: "Azir, Emperor of the Sands", sublabel: "emperor-of-the-sands" },
@@ -86,6 +89,45 @@ describe("CardSearchDropdown picking", () => {
     expect(onSearch).not.toHaveBeenCalled();
     await waitFor(() => expect(onSearch).toHaveBeenCalledWith("jin"));
     expect(onSearch).toHaveBeenCalledOnce();
+  });
+
+  it("does not report a pick as a new search", async () => {
+    const user = userEvent.setup();
+    const onSearch = vi.fn();
+    render(
+      <CardSearchDropdown
+        results={RESULTS}
+        onSearch={onSearch}
+        onSelect={vi.fn()}
+        ariaLabel="Legend"
+      />,
+    );
+
+    await user.type(screen.getByRole("combobox", { name: "Legend" }), "jin");
+    await waitFor(() => expect(onSearch).toHaveBeenCalledWith("jin"));
+    await user.click(screen.getByRole("option", { name: /Jinx, Rebel/u }));
+    await sleep(SETTLE_MS);
+
+    expect(onSearch).toHaveBeenCalledExactlyOnceWith("jin");
+  });
+
+  it("drops a typed search still waiting on the debounce when an option is picked", async () => {
+    const user = userEvent.setup();
+    const onSearch = vi.fn();
+    render(
+      <CardSearchDropdown
+        results={RESULTS}
+        onSearch={onSearch}
+        onSelect={vi.fn()}
+        ariaLabel="Legend"
+      />,
+    );
+
+    await user.type(screen.getByRole("combobox", { name: "Legend" }), "jin");
+    await user.click(screen.getByRole("option", { name: /Jinx, Rebel/u }));
+    await sleep(SETTLE_MS);
+
+    expect(onSearch).not.toHaveBeenCalled();
   });
 
   it("starts from the initial query", () => {

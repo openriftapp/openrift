@@ -45,6 +45,7 @@
 - fix(Lists): **List quantity buttons recover** — The + and − buttons on a list card unlock again once the change saves, no reload needed.
 - fix(Cards): **Selected card clears the set label** — When the grid or table scrolls to a card, it lands below the sticky set name.
 - fix(Lists): **Add and remove on a list stay in step** — Clicking Add and then Decrease quickly no longer leaves the list one copy off.
+- fix(Lists): **Minus key on rule-backed entries** — Pressing "-" on a list entry that a dynamic rule also adds to now lowers your own count by one.
 
 ## 2026-11-16
 

@@ -1,8 +1,33 @@
 import { describe, expect, it } from "vitest";
 
-import { bulkAddItemMatches, listEntryWritePending } from "./list-entry-writes";
+import {
+  bulkAddItemMatches,
+  listEntryWritePending,
+  manualQuantity,
+  totalQuantity,
+} from "./list-entry-writes";
 
 const NONE = { adds: [], entryWrites: [] };
+
+describe("manualQuantity and totalQuantity", () => {
+  it("leaves the rules' part out of a card or printing entry and adds it back", () => {
+    const entry = { kind: "card" as const, id: "le-1", quantity: 5, ruleQuantity: 2 };
+
+    expect(manualQuantity(entry)).toBe(3);
+    expect(totalQuantity(entry, 2)).toBe(4);
+  });
+
+  it("takes a copy entry's quantity as its own, since rules do not add to it", () => {
+    const entry = { kind: "copy" as const, id: "le-1", quantity: 1, ruleQuantity: 1 };
+
+    expect(manualQuantity(entry)).toBe(1);
+    expect(totalQuantity(entry, 1)).toBe(1);
+  });
+
+  it("has no manual quantity on a rule-only entry", () => {
+    expect(manualQuantity({ kind: "card", id: null, quantity: 2, ruleQuantity: 2 })).toBe(0);
+  });
+});
 
 describe("bulkAddItemMatches", () => {
   it("matches an add to the entry of the same kind and id", () => {

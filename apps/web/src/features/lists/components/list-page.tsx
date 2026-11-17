@@ -91,6 +91,9 @@ export function ListPage({ listId }: ListPageProps) {
   };
 
   const handleRemoveEntry = (entryId: string, cardName: string) => {
+    if (entryWritePending(entryId)) {
+      return;
+    }
     removeEntry.mutate(
       { listId, entryId },
       {
@@ -100,6 +103,9 @@ export function ListPage({ listId }: ListPageProps) {
   };
 
   const handleQuantityChange = (entryId: string, quantity: number) => {
+    if (entryWritePending(entryId)) {
+      return;
+    }
     updateEntry.mutate({ listId, entryId, quantity });
   };
 

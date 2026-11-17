@@ -16,6 +16,7 @@ import type { BulkAddVariables } from "@/features/lists/lib/list-entry-writes";
 import {
   bulkAddItemMatches,
   LIST_ENTRY_MUTATION_KEYS,
+  totalQuantity,
 } from "@/features/lists/lib/list-entry-writes";
 import {
   listDetailQueryOptions,
@@ -222,7 +223,7 @@ export function useUpdateListEntry() {
         entry.id === vars.entryId
           ? {
               ...entry,
-              ...(vars.quantity !== undefined && { quantity: vars.quantity }),
+              ...(vars.quantity !== undefined && { quantity: totalQuantity(entry, vars.quantity) }),
               ...(vars.tradeOverride !== undefined && { tradeOverride: vars.tradeOverride }),
             }
           : entry,

@@ -1,4 +1,5 @@
 import type { ListEntryDetailResponse } from "@openrift/shared/types/api/list";
+import type { MutationCache } from "@tanstack/react-query";
 
 export const LIST_ENTRY_MUTATION_KEYS = {
   add: ["lists", "entry-write", "add"],
@@ -25,6 +26,35 @@ interface PendingListEntryWrites {
 
 type EntryIdentity = Pick<ListEntryDetailResponse, "kind"> &
   Partial<Record<"cardId" | "printingId" | "copyId", string | null>>;
+
+type EntryQuantity = Pick<ListEntryDetailResponse, "kind" | "id" | "quantity" | "ruleQuantity">;
+
+/** The entry's own quantity, which an entry update writes. A card or printing total adds the rules' part. */
+export function manualQuantity(entry: EntryQuantity): number {
+  if (entry.id === null) {
+    return 0;
+  }
+  return entry.kind === "copy" ? entry.quantity : entry.quantity - entry.ruleQuantity;
+}
+
+export function totalQuantity(entry: EntryQuantity, manual: number): number {
+  return entry.kind === "copy" ? manual : manual + entry.ruleQuantity;
+}
+
+/** The entry writes in flight right now, read from the cache at call time. */
+export function pendingListEntryWrites(mutationCache: MutationCache): PendingListEntryWrites {
+  const variablesOf = (mutationKey: readonly string[]) =>
+    mutationCache
+      .findAll({ mutationKey, status: "pending" })
+      .map((mutation) => mutation.state.variables);
+  return {
+    adds: variablesOf(LIST_ENTRY_MUTATION_KEYS.add) as BulkAddVariables[],
+    entryWrites: [
+      ...variablesOf(LIST_ENTRY_MUTATION_KEYS.update),
+      ...variablesOf(LIST_ENTRY_MUTATION_KEYS.remove),
+    ] as { listId: string; entryId: string }[],
+  };
+}
 
 export function bulkAddItemMatches(item: BulkAddItem, entry: EntryIdentity): boolean {
   if (item.cardId !== undefined && entry.kind === "card") {

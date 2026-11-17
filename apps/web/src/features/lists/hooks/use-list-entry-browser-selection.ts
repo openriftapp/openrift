@@ -45,6 +45,7 @@ import {
   orderedSelectedEntryIds,
   splitSelectionParts,
 } from "@/features/lists/lib/list-entry-selection";
+import { manualQuantity } from "@/features/lists/lib/list-entry-writes";
 import type {
   AddEntryToCollectionRequest,
   MoveEntrySubject,
@@ -240,11 +241,13 @@ export function useListEntryBrowserSelection({
   const handleDecrement = (printing: Printing) => {
     const key = kind === "card" ? printing.cardId : printing.printingId;
     const entry = entryByKey.get(key);
-    // Rule-derived entries (null id) can't be decremented.
-    if (!entry || entry.id === null || entry.quantity <= 1 || isQuantityPendingFor(entry.id)) {
+    if (!entry || entry.id === null || isQuantityPendingFor(entry.id)) {
       return;
     }
-    onQuantityChange(entry.id, entry.quantity - 1);
+    const manual = manualQuantity(entry);
+    if (manual > 1) {
+      onQuantityChange(entry.id, manual - 1);
+    }
   };
 
   const enterSelectMode = () => setSelectMode(true);

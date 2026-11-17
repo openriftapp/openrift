@@ -63,7 +63,7 @@ interface ComboboxPickerBaseProps {
   filter?: "client" | "none";
   query?: string;
   defaultQuery?: string;
-  onQueryChange?: (query: string) => void;
+  onQueryChange?: (query: string, reason?: string) => void;
   onHighlightChange?: (value: string | null) => void;
   actions?: readonly ComboboxPickerAction[];
   clearOnSelect?: boolean;
@@ -217,12 +217,12 @@ export function ComboboxPicker(props: ComboboxPickerProps) {
     if (freeText) {
       if (reason !== undefined && TYPED_REASONS.has(reason) && !props.multiple) {
         props.onChange(next === "" ? null : next);
-        props.onQueryChange?.(next);
+        props.onQueryChange?.(next, reason);
       }
       return;
     }
     setLocalQuery(next);
-    props.onQueryChange?.(next);
+    props.onQueryChange?.(next, reason);
   };
   const filterQuery = !props.multiple && query !== "" && query === shownSelection ? "" : query;
 

@@ -27,6 +27,7 @@ const cardKindListDetail = {
       cardId: "card-1",
       cardName: "Test Card",
       quantity: 1,
+      ruleQuantity: 0,
       tradeOverride: EMPTY_TRADE_PREFERENCE,
     },
   ],
@@ -42,6 +43,7 @@ const printingKindListDetail = {
       cardId: "card-1",
       cardName: "Test Card",
       quantity: 1,
+      ruleQuantity: 0,
       tradeOverride: EMPTY_TRADE_PREFERENCE,
     },
   ],
@@ -85,6 +87,7 @@ function mutationStub() {
 
 const dropFromRules = mutationStub();
 let updateListEntry = mutationStub();
+let removeListEntry = mutationStub();
 const bulkAddEntries = mutationStub();
 let pendingEntryIds = new Set<string>();
 
@@ -130,7 +133,7 @@ vi.mock("@/features/lists/hooks/use-lists", () => ({
   useLists: () => ({ data: [] }),
   useCreateList: () => mutationStub(),
   useDeleteList: () => mutationStub(),
-  useRemoveListEntry: () => mutationStub(),
+  useRemoveListEntry: () => removeListEntry,
   useUpdateListEntry: () => updateListEntry,
   useUpdateList: () => mutationStub(),
   useDropFromListRules: () => dropFromRules,
@@ -289,8 +292,14 @@ vi.mock("@/features/lists/components/rule-editor-dialog", () => ({ RuleEditorDia
 const { ListPage } = await import("./list-page");
 const { TopBarSlotContext } = await import("@/components/layout/top-bar-slot");
 const { FilterSearchProvider } = await import("@/features/cards/hooks/use-filter-search");
-const { dispatchDecrement, dispatchDropFromRule, dispatchIncrement, useCardRowActionsStore } =
-  await import("@/features/cards/stores/card-row-actions-store");
+const {
+  dispatchDecrement,
+  dispatchDropFromRule,
+  dispatchEntryQuantityChange,
+  dispatchIncrement,
+  dispatchRemoveEntry,
+  useCardRowActionsStore,
+} = await import("@/features/cards/stores/card-row-actions-store");
 const { useGridFocusStore } = await import("@/features/cards/stores/grid-focus-store");
 const { useGridSelectionStore } = await import("@/features/cards/stores/grid-selection-store");
 const { useListEntriesStore } = await import("@/features/lists/stores/list-entries-store");
@@ -333,6 +342,7 @@ describe("ListPage", () => {
     }
     listDetail = cardKindListDetail;
     updateListEntry = mutationStub();
+    removeListEntry = mutationStub();
     bulkAddEntries.mutate.mockClear();
     pendingEntryIds = new Set();
     sortedCards = [];
@@ -447,6 +457,39 @@ describe("ListPage", () => {
     dispatchDecrement(printingOnList, document.body);
 
     expect(updateListEntry.mutate).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
+  it("decrements only the manual part from the keyboard when a rule also adds the card", () => {
+    listDetail = {
+      ...cardKindListDetail,
+      entries: [{ ...cardKindListDetail.entries[0]!, quantity: 4, ruleQuantity: 2 }],
+    };
+    const { view } = renderListPage();
+
+    dispatchDecrement(printingOnList, document.body);
+
+    expect(updateListEntry.mutate).toHaveBeenCalledWith({
+      listId: "list-1",
+      entryId: "entry-1",
+      quantity: 1,
+    });
+    view.unmount();
+  });
+
+  it("refuses a stepper write or remove for an entry whose write started in the same frame", () => {
+    listDetail = {
+      ...cardKindListDetail,
+      entries: [{ ...cardKindListDetail.entries[0]!, quantity: 2 }],
+    };
+    const { view } = renderListPage();
+    pendingEntryIds = new Set(["entry-1"]);
+
+    dispatchEntryQuantityChange("entry-1", 1);
+    dispatchRemoveEntry("entry-1", "Test Card");
+
+    expect(updateListEntry.mutate).not.toHaveBeenCalled();
+    expect(removeListEntry.mutate).not.toHaveBeenCalled();
     view.unmount();
   });
 

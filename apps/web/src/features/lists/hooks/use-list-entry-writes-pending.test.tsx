@@ -76,6 +76,17 @@ describe("useListEntryWritesPending", () => {
     expect(result.current.pending("le-1")).toBe(true);
   });
 
+  it("sees a write started in the same frame from a checker taken before it", () => {
+    const { result } = renderWrites();
+    const { add, pending } = result.current;
+
+    act(() => {
+      add.mutate({ listId: "lst-1", entries: [{ cardId: "card-1" }] });
+      expect(pending("le-1")).toBe(true);
+      expect(pending("le-2")).toBe(false);
+    });
+  });
+
   it("counts an absolute update and a remove of the entry", async () => {
     const { result } = renderWrites();
 

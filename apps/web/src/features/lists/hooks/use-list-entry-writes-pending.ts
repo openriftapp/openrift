@@ -1,10 +1,11 @@
 import type { ListEntryDetailResponse } from "@openrift/shared/types/api/list";
-import { useMutationState } from "@tanstack/react-query";
+import { useMutationState, useQueryClient } from "@tanstack/react-query";
 
 import type { BulkAddVariables } from "@/features/lists/lib/list-entry-writes";
 import {
   LIST_ENTRY_MUTATION_KEYS,
   listEntryWritePending,
+  pendingListEntryWrites,
 } from "@/features/lists/lib/list-entry-writes";
 
 interface EntryWrite {
@@ -12,11 +13,15 @@ interface EntryWrite {
   entryId: string;
 }
 
-/** Answers per entry whether a quantity write for it is still in flight, across every row. */
+/**
+ * Answers per entry whether a quantity write for it is still in flight, across every row. A call
+ * from a handler also sees a write started earlier in the same frame, before any re-render.
+ */
 export function useListEntryWritesPending(
   listId: string,
   entries: readonly ListEntryDetailResponse[],
 ): (entryId: string) => boolean {
+  const queryClient = useQueryClient();
   const adds = useMutationState({
     filters: { mutationKey: LIST_ENTRY_MUTATION_KEYS.add, status: "pending" },
     select: (mutation) => mutation.state.variables as BulkAddVariables,
@@ -36,6 +41,17 @@ export function useListEntryWritesPending(
 
   return (entryId) => {
     const entry = entryById.get(entryId);
-    return entry !== undefined && listEntryWritePending(listId, { ...entry, id: entryId }, writes);
+    if (entry === undefined) {
+      return false;
+    }
+    const identity = { ...entry, id: entryId };
+    return (
+      listEntryWritePending(listId, identity, writes) ||
+      listEntryWritePending(
+        listId,
+        identity,
+        pendingListEntryWrites(queryClient.getMutationCache()),
+      )
+    );
   };
 }

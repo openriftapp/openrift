@@ -1,6 +1,11 @@
 import { adminIgnoredCandidatesContract } from "@openrift/shared/contracts/admin/ignored-candidates";
 import type { UnmatchedCardDetailResponse } from "@openrift/shared/types/api/admin";
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import {
+  useIsMutating,
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { unmatchedCardDetailQueryOptions } from "@/features/admin/lib/admin-card-queries";
@@ -14,6 +19,7 @@ import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 type Scope = readonly (readonly unknown[])[];
 
 const IGNORE_INVALIDATES = [adminKeys.ignoredCandidates, ...CANDIDATE_REVIEW_SCOPE] as const;
+const IGNORE_NEW_CARD_DRAFTS_KEY = ["admin", "ignore-new-card-drafts"] as const;
 
 export function useIgnoredCandidates() {
   return useSuspenseQuery(ignoredCandidatesQueryOptions);
@@ -39,6 +45,7 @@ export function useIgnoreCandidateCard(invalidates: Scope = []) {
 export function useIgnoreNewCardDrafts(invalidates: Scope = []) {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: IGNORE_NEW_CARD_DRAFTS_KEY,
     mutationFn: async (
       names: readonly string[],
     ): Promise<{ ignored: number; sources: { provider: string; externalId: string }[] }> => {
@@ -67,6 +74,18 @@ export function useIgnoreNewCardDrafts(invalidates: Scope = []) {
       );
     },
   });
+}
+
+/** True while an ignore of this new-card draft runs, from any mount, until its refetches settle. */
+export function useNewCardDraftIgnorePending(name: string): boolean {
+  const pending = useIsMutating({
+    mutationKey: IGNORE_NEW_CARD_DRAFTS_KEY,
+    predicate: (mutation) => {
+      const names = mutation.state.variables;
+      return Array.isArray(names) && names.includes(name);
+    },
+  });
+  return pending > 0;
 }
 
 export const unignoreCandidateCardFn = createServerFn({ method: "POST" })

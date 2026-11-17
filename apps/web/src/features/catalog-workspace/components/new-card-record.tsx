@@ -32,7 +32,10 @@ import {
   useLinkCard,
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAllCards, useUnmatchedCardDetail } from "@/features/admin/hooks/use-admin-card-queries";
-import { useIgnoreNewCardDrafts } from "@/features/admin/hooks/use-ignored-candidates";
+import {
+  useIgnoreNewCardDrafts,
+  useNewCardDraftIgnorePending,
+} from "@/features/admin/hooks/use-ignored-candidates";
 import {
   describeAcceptCardFieldIssues,
   hasRequiredActiveFields,
@@ -79,7 +82,8 @@ function nameHead(name: string): string {
 }
 
 export function NewCardRecord({ name }: { name: string }) {
-  const { data: queue } = useQuery(workspaceQueueQueryOptions());
+  const { data: queue, isPending: queuePending } = useQuery(workspaceQueueQueryOptions());
+  const ignoring = useNewCardDraftIgnorePending(name);
   const [leaving, setLeaving] = useState(false);
   const queued = queue?.items.some(
     (item) => item.owner === "card" && item.segment === "new" && item.ownerId === name,
@@ -92,17 +96,26 @@ export function NewCardRecord({ name }: { name: string }) {
       </RecordNotice>
     );
   }
-  return <NewCardRecordBody name={name} leaving={leaving} onLeavingChange={setLeaving} />;
+  return (
+    <NewCardRecordBody
+      name={name}
+      leaving={leaving}
+      onLeavingChange={setLeaving}
+      queueUnknown={!leaving && (queuePending || ignoring)}
+    />
+  );
 }
 
 function NewCardRecordBody({
   name,
   leaving,
   onLeavingChange,
+  queueUnknown,
 }: {
   name: string;
   leaving: boolean;
   onLeavingChange: (leaving: boolean) => void;
+  queueUnknown: boolean;
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -259,7 +272,8 @@ function NewCardRecordBody({
     }
   }
 
-  const loading = !isError && (isLoading || detail === undefined || setsData === undefined);
+  const loading =
+    !isError && (queueUnknown || isLoading || detail === undefined || setsData === undefined);
   useRegisterRecordActions({
     loading,
     primary: { label: "Next", run: () => Promise.resolve() },

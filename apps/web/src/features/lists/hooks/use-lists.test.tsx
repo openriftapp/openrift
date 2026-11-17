@@ -275,6 +275,28 @@ describe("useUpdateListEntry", () => {
 
 // react-query merges mutation options shallowly, so a hook's own onError replaces
 // the QueryClient's default one; each rollback below must report the failure itself.
+describe("useUpdateListEntry optimistic quantity", () => {
+  it("adds the rules' part back onto the written manual quantity", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise<Response>(() => {})),
+    );
+    const { client } = makeClient();
+    const detailKey = ["lists", "test-user-id", "lst-1"];
+    client.setQueryData(detailKey, {
+      ...DETAIL,
+      entries: [{ ...DETAIL.entries[0]!, quantity: 5, ruleQuantity: 2, source: "both" }],
+    });
+    const { result } = renderHook(() => useUpdateListEntry(), { wrapper: wrap(client) });
+
+    act(() => result.current.mutate({ listId: "lst-1", entryId: "le-1", quantity: 2 }));
+
+    await waitFor(() =>
+      expect(client.getQueryData<ListDetailResponse>(detailKey)?.entries[0]!.quantity).toBe(4),
+    );
+  });
+});
+
 describe("optimistic rollbacks still report the failure", () => {
   let errorSpy: ReturnType<typeof vi.spyOn>;
 

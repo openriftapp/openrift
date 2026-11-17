@@ -39,6 +39,7 @@ import { ListEntryContextMenu } from "@/features/lists/components/list-entry-con
 import { isRuleSourced, RuleSourceBadge } from "@/features/lists/components/rule-source-badge";
 import { ruleBadgeAction, ruleMenuAction } from "@/features/lists/hooks/rule-entry-actions";
 import { entrySelectionId } from "@/features/lists/lib/list-entries";
+import { manualQuantity } from "@/features/lists/lib/list-entry-writes";
 import { entryAddsCopies, ruleEntryRef } from "@/features/lists/lib/list-move";
 import type { ListTradeIndex } from "@/features/lists/lib/list-trade-status";
 import { listEntryTrades, listEntryTradeStatus } from "@/features/lists/lib/list-trade-status";
@@ -283,7 +284,7 @@ function buildStrip({
   if (showLibrary) {
     // The stepper edits only the manual part; the rule's contribution can't be
     // stepped below and shows in the chip instead.
-    const manualPart = entry ? entry.quantity - entry.ruleQuantity : 0;
+    const manualPart = entry ? manualQuantity(entry) : 0;
     return (
       <CardCountStrip
         count={manualPart}
@@ -389,7 +390,7 @@ function buildStrip({
     );
   }
 
-  const manualPart = entry.quantity - entry.ruleQuantity;
+  const manualPart = manualQuantity(entry);
   return (
     <CardCountStrip
       count={manualPart}

@@ -1,4 +1,4 @@
-import { useDebouncedCallback } from "@tanstack/react-pacer";
+import { useDebouncer } from "@tanstack/react-pacer";
 import type { ReactNode, RefObject } from "react";
 import { useState } from "react";
 
@@ -56,7 +56,10 @@ export function CatalogSearchCombobox<T>({
   // State, not a ref: React Compiler flags refs passed to functions during
   // render, and the preview only reads `.current` in its own effect.
   const [popupEl, setPopupEl] = useState<HTMLDivElement | null>(null);
-  const notifyQueryChange = useDebouncedCallback(onQueryChange, { wait: SEARCH_DEBOUNCE_MS });
+  const { maybeExecute: notifyQueryChange, cancel: cancelQueryChange } = useDebouncer(
+    onQueryChange,
+    { wait: SEARCH_DEBOUNCE_MS },
+  );
 
   const byKey = new Map(results.map((item) => [getKey(item), item]));
   const options = results.map((item) => ({
@@ -81,9 +84,13 @@ export function CatalogSearchCombobox<T>({
           }
         }}
         defaultQuery={initialQuery}
-        onQueryChange={(value) => {
+        onQueryChange={(value, reason) => {
           onRawInputChange?.(value);
-          notifyQueryChange(value);
+          if (reason === "item-press") {
+            cancelQueryChange();
+          } else {
+            notifyQueryChange(value);
+          }
         }}
         onHighlightChange={setHighlighted}
         renderOption={(option) => {

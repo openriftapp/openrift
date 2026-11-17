@@ -12,6 +12,7 @@ import { TradeStatusChip } from "@/features/groups/components/trade-status-chip"
 import { ListEntryTableActions } from "@/features/lists/components/list-entry-table-actions";
 import { RuleSourceBadge } from "@/features/lists/components/rule-source-badge";
 import { ruleBadgeAction } from "@/features/lists/hooks/rule-entry-actions";
+import { manualQuantity } from "@/features/lists/lib/list-entry-writes";
 import type { ListTradeIndex } from "@/features/lists/lib/list-trade-status";
 import { listEntryTrades, listEntryTradeStatus } from "@/features/lists/lib/list-trade-status";
 
@@ -92,8 +93,7 @@ export function ListActionsCell({
       onEdit={() => onEditTradePref(entryId)}
     />
   ) : null;
-  // quantity = manual + rule; the stepper edits only the manual part.
-  const manualPart = entry.quantity - entry.ruleQuantity;
+  const manualPart = manualQuantity(entry);
   return (
     <div className="flex items-center gap-2">
       {entry.ruleQuantity > 0 && (
