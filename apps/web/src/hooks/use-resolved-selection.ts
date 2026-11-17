@@ -8,5 +8,9 @@ export function useResolvedSelection(items: readonly CardViewerItem[]): Resolved
   const selectedItemId = useSelectionStore((s) => s.selectedItemId);
   const selectedZone = useSelectionStore((s) => s.selectedZone);
   const sourceIds = useSelectionStore((s) => s.sourceIds);
-  return resolveSelection({ selectedCard, selectedItemId, selectedZone, sourceIds }, items);
+  const outlivesList = useSelectionStore((s) => s.outlivesList);
+  return resolveSelection(
+    { selectedCard, selectedItemId, selectedZone, sourceIds, outlivesList },
+    items,
+  );
 }

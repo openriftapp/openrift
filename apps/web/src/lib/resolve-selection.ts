@@ -9,6 +9,7 @@ export interface SelectionAnchorState {
   selectedItemId: string | null;
   selectedZone: DeckZone | null;
   sourceIds: readonly string[];
+  outlivesList: boolean;
 }
 
 export interface ResolvedSelection {
@@ -20,14 +21,14 @@ export interface ResolvedSelection {
 const NO_SELECTION: ResolvedSelection = { card: null, index: -1, item: undefined };
 
 /**
- * A card that `items` never held stays shown without a tile; a removed tile
- * hands the selection to its nearest surviving neighbour from `sourceIds`.
+ * A removed tile hands the selection to its nearest surviving neighbour from `sourceIds`.
+ * Without one, an `outlivesList` selection stays shown without a tile and any other clears.
  */
 export function resolveSelection(
   state: SelectionAnchorState,
   items: readonly CardViewerItem[],
 ): ResolvedSelection {
-  const { selectedCard, selectedItemId, selectedZone, sourceIds } = state;
+  const { selectedCard, selectedItemId, selectedZone, sourceIds, outlivesList } = state;
   if (selectedCard === null) {
     return NO_SELECTION;
   }
@@ -72,5 +73,5 @@ export function resolveSelection(
       }
     }
   }
-  return at(-1);
+  return outlivesList ? at(-1) : NO_SELECTION;
 }

@@ -12,6 +12,7 @@ import type { SelectionAnchorState } from "@/lib/resolve-selection";
 interface SelectionAnchor {
   zone?: DeckZone;
   itemId?: string;
+  outlivesList?: boolean;
 }
 
 interface SelectionState extends SelectionAnchorState {
@@ -56,6 +57,7 @@ const CLEARED = {
   selectedItemId: null,
   selectedZone: null,
   sourceIds: [],
+  outlivesList: true,
   detailOpen: false,
 } satisfies Partial<SelectionState>;
 
@@ -69,6 +71,7 @@ export const useSelectionStore = create<SelectionState>()((set) => ({
       selectedItemId: item?.id ?? null,
       sourceIds: items.map((entry) => entry.id),
       selectedZone: anchor?.zone ?? null,
+      outlivesList: anchor?.outlivesList ?? true,
       detailOpen: true,
     });
   },

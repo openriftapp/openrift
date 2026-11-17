@@ -425,7 +425,6 @@ function DeckCardBrowserInner({
   const printingRowLabelFor = usePrintingRowLabel();
   const { addCard, removeCard, setLegend, setQuantity } = useDeckBuilderActions(deckId);
   const isFreeform = deckDetail.deck.format === WellKnown.deckFormat.FREEFORM;
-  const isCustomRegion = deckDetail.deck.format === WellKnown.deckFormat.CUSTOM_REGION;
   const ignoresBans = formatIgnoresBans(deckDetail.deck.format);
   const formatTagConfig = getFormatTagConfig(deckDetail.deck.format);
   const visibleCustomTagCategories: ReadonlySet<string> | undefined = formatTagConfig
@@ -909,7 +908,7 @@ function DeckCardBrowserInner({
             />
           ) : undefined
         }
-        banDisplay={isCustomRegion || ignoresBans ? "none" : "overlay"}
+        banDisplay={ignoresBans ? "none" : "overlay"}
         dragData={{
           type: "browser-card",
           card: {

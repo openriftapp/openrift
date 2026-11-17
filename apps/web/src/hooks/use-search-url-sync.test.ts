@@ -174,7 +174,31 @@ describe("useSearchUrlSync", () => {
     expect(onCommit).toHaveBeenCalledWith("Annie");
   });
 
-  it("follows an external change to a value whose commit was superseded before its echo", () => {
+  it("ignores a late echo of a commit superseded by clearing back to the URL value", () => {
+    const onCommit = vi.fn();
+    const { result, rerender } = renderHook<readonly [string, (value: string) => void], HookArgs>(
+      ({ urlValue }) => useSearchUrlSync({ urlValue, onCommit }),
+      { initialProps: { urlValue: "", onCommit } },
+    );
+
+    act(() => result.current[1]("a"));
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    act(() => result.current[1](""));
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(onCommit.mock.calls.map(([value]) => value)).toEqual(["a", ""]);
+
+    rerender({ urlValue: "a", onCommit });
+    expect(result.current[0]).toBe("");
+
+    rerender({ urlValue: "", onCommit });
+    expect(result.current[0]).toBe("");
+  });
+
+  it("follows a history traversal to a value whose commit was superseded before its echo", () => {
     const onCommit = vi.fn();
     const { result, rerender } = renderHook<readonly [string, (value: string) => void], HookArgs>(
       ({ urlValue }) => useSearchUrlSync({ urlValue, onCommit }),
@@ -191,6 +215,9 @@ describe("useSearchUrlSync", () => {
     });
     expect(onCommit.mock.calls.map(([value]) => value)).toEqual(["abcd", "abc"]);
 
+    act(() => {
+      globalThis.dispatchEvent(new PopStateEvent("popstate"));
+    });
     rerender({ urlValue: "abcd", onCommit });
     expect(result.current[0]).toBe("abcd");
   });

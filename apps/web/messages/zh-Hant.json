@@ -7406,7 +7406,7 @@
   "help_deck_building_rules_main_detail": "剛好 39 張卡牌，加上英雄共 40 張。同名卡牌在主牌堆、備牌和指定英雄中合計最多 3 張。專屬卡牌總共最多 3 張，且都要與傳奇共享英雄標籤。所有卡牌的流派都必須在傳奇的流派之內，或是無色。",
   "help_deck_building_rules_sideboard_detail": "最多 10 張卡牌。張數上限與主牌堆和指定英雄共用（例如主牌堆已有 2 張某卡牌，備牌就只能再放 1 張）。",
   "help_deck_building_rules_freeform": "在 Freeform 中，以上規則都不會強制執行。切換到 Freeform 自由發想，再切回 Constructed 驗證。區域側邊欄會逐區標示違規之處。",
-  "help_deck_building_rules_custom_region": "每張卡牌都必須屬於你選擇的地區，只使用一張戰場牌，沒有備牌，而專屬卡牌需要對應的英雄在牌組中。違規之處會在組牌時顯示。",
+  "help_deck_building_rules_custom_region": "每張卡牌都必須屬於你選擇的地區，只使用一張戰場牌，沒有備牌，而專屬卡牌需要對應的英雄在牌組中。禁卡也可以使用。違規之處會在組牌時顯示。",
   "help_deck_building_rules_infinity": "Infinity 沿用 Constructed 的規則，但所有卡牌皆可使用，包括禁卡。",
   "help_deck_building_runes_heading": "符文自動填入",
   "help_deck_building_runes_body": "當你選定傳奇後，編輯器會自動在符文區域填入 12 張符文，平均分配於傳奇的兩個流派（每個流派 6 張）。之後你可以逐張更換符文或調整比例。如果你移除某張符文使總數低於 12，編輯器會從另一個流派補上一張，維持平衡。",

@@ -289,6 +289,19 @@ describe("buildEntryAdvisories", () => {
     expect(advisories.violations.some((v) => v.code === "banned-card")).toBe(false);
   });
 
+  it("flags no banned cards at a custom-region event", async () => {
+    const advisories = await buildEntryAdvisories(
+      stubRepos(
+        new Map(),
+        [],
+        [{ cardId: "banned", formatId: WellKnown.banFormat.CONSTRUCTED, bannedAt: "2026-01-01" }],
+      ),
+      { format: "custom-region", playMode: "1v1" as const, allowedSets: null, eventDate: null },
+      [line({ id: "a", resolvedCardId: "banned", zone: "main" })],
+    );
+    expect(advisories.violations.some((v) => v.code === "banned-card")).toBe(false);
+  });
+
   it("suppresses the region-config rules a checked list can't satisfy", async () => {
     // A checked list carries no region/custom tags, so FORMAT_TAG_REQUIRED
     // would otherwise fire as noise on every custom-region check.

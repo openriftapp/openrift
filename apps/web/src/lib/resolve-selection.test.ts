@@ -23,6 +23,7 @@ function selected(
     selectedItemId: item.id,
     selectedZone: item.zone ?? null,
     sourceIds: source.map((entry) => entry.id),
+    outlivesList: true,
     ...overrides,
   };
 }
@@ -75,6 +76,26 @@ describe("resolveSelection", () => {
 
     expect(resolved.card?.printingId).toBe("p1");
     expect(resolved.index).toBe(-1);
+  });
+
+  it("drops a selection that may not outlive its list once the list empties", () => {
+    const items = list(["copy-1", alpha]);
+
+    const resolved = resolveSelection(selected(items[0]!, items, { outlivesList: false }), []);
+
+    expect(resolved.card).toBeNull();
+    expect(resolved.index).toBe(-1);
+  });
+
+  it("drops a selection that may not outlive its list when no neighbour survives", () => {
+    const items = list(["copy-1", alpha], ["copy-2", beta]);
+
+    const resolved = resolveSelection(
+      selected(items[0]!, items, { outlivesList: false }),
+      list(["copy-3", gamma]),
+    );
+
+    expect(resolved.card).toBeNull();
   });
 
   it("keeps a deck-list card when the catalog beside it has no results", () => {
@@ -142,7 +163,13 @@ describe("resolveSelection", () => {
 
   it("has no selection when nothing is selected", () => {
     const resolved = resolveSelection(
-      { selectedCard: null, selectedItemId: null, selectedZone: null, sourceIds: [] },
+      {
+        selectedCard: null,
+        selectedItemId: null,
+        selectedZone: null,
+        sourceIds: [],
+        outlivesList: true,
+      },
       list(["p1", alpha]),
     );
 

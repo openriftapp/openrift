@@ -9,6 +9,7 @@ import type { CollectionContextAction } from "@/features/cards/stores/card-row-a
 import { usePrintingLightboxStore } from "@/features/cards/stores/printing-lightbox-store";
 import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-override-store";
 import { buildOnDecrement } from "@/features/collections/hooks/collection-decrement";
+import { useCloseRemovedSelection } from "@/features/collections/hooks/use-close-removed-selection";
 import type { useQuickAddActions } from "@/features/collections/hooks/use-quick-add-actions";
 import { useRowActionHandlers } from "@/features/collections/hooks/use-row-action-handlers";
 import {
@@ -129,8 +130,12 @@ export function useCollectionGridSelection({
   // a printing lookup alone would always land on the first of them.
   const handleGridCardClick = (printing: Printing, itemId?: string) => {
     useAddModeStore.getState().closeVariants();
-    useSelectionStore.getState().selectCard(printing, items, findBy, { itemId });
+    useSelectionStore.getState().selectCard(printing, items, findBy, {
+      itemId,
+      outlivesList: false,
+    });
   };
+  useCloseRemovedSelection(items);
 
   const handleSiblingClick = (printing: Printing) => {
     usePrintingLightboxStore.getState().request(sideKey(printing));

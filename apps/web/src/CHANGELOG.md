@@ -26,6 +26,8 @@
 - fix(App): **Picker keyboard scrolling** — moving through a grouped picker with the arrow keys no longer scrolls the page.
 - fix(Collection): **Variant picker toggle** — the button that opened the variant picker closes it, and another button opens its own picker at once.
 - fix(Tournaments): **Deck saves after a cancel or deadline change** — a deck list saved while the organizer cancels the event or moves the deadline earlier is refused.
+- fix(Decks): **Custom-region decks ignore the banlist** — banned cards no longer show ribbons or dimming, count as violations, or get flagged at deck check in Custom Region, the same as Infinity.
+- fix(Collections): **Card detail closes when its last copy is gone** — removing the last copy of a card on a collection or list page closes its detail.
 
 ## 2026-11-16
 

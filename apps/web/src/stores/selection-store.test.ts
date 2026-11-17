@@ -30,6 +30,17 @@ describe("useSelectionStore", () => {
       expect(useSelectionStore.getState().selectedItemId).toBe(sideKey(rare));
     });
 
+    it("lets a selection outlive its list unless the caller says otherwise", () => {
+      const printing = stubPrinting({ printingId: "p1", cardId: "c1", card: { name: "Alpha" } });
+      const items = [{ id: "p1", printing }];
+
+      useSelectionStore.getState().selectCard(printing, items, "printing");
+      expect(useSelectionStore.getState().outlivesList).toBe(true);
+
+      useSelectionStore.getState().selectCard(printing, items, "printing", { outlivesList: false });
+      expect(useSelectionStore.getState().outlivesList).toBe(false);
+    });
+
     it("selects a card by printing id and opens detail", () => {
       const printing = stubPrinting({ printingId: "p1", cardId: "c1", card: { name: "Alpha" } });
       const items = [{ id: "p1", printing }];

@@ -863,7 +863,6 @@ const CONSTRUCTED_RULES: DeckRule[] = [
 const REGION_LOCKED_RULES: DeckRule[] = [
   formatTagRequired,
   cardsCarryFormatTag,
-  noBannedCards,
   noTokenCards,
   legendExactlyOne,
   legendOptionsCount,
@@ -883,10 +882,8 @@ const REGION_LOCKED_RULES: DeckRule[] = [
   signatureChampionCopiesInDeck,
 ];
 
-const INFINITY_RULES: DeckRule[] = CONSTRUCTED_RULES.filter((rule) => rule !== noBannedCards);
-
 export function formatIgnoresBans(format: string | null | undefined): boolean {
-  return format === WellKnown.deckFormat.INFINITY;
+  return format === WellKnown.deckFormat.INFINITY || format === WellKnown.deckFormat.CUSTOM_REGION;
 }
 
 export function formatHasSideboard(format: DeckFormat): boolean {
@@ -903,14 +900,14 @@ export function validateDeck(state: DeckState): DeckViolation[] {
       rules = REGION_LOCKED_RULES;
       break;
     }
-    case WellKnown.deckFormat.INFINITY: {
-      rules = INFINITY_RULES;
-      break;
-    }
     default: {
       rules = CONSTRUCTED_RULES;
       break;
     }
+  }
+
+  if (formatIgnoresBans(state.format)) {
+    rules = rules.filter((rule) => rule !== noBannedCards);
   }
 
   const aggregatedState: DeckState = { ...state, cards: aggregateByCardAndZone(state.cards) };

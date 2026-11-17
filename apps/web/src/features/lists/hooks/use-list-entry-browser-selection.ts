@@ -21,6 +21,7 @@ import type {
 import { useGridFocusStore } from "@/features/cards/stores/grid-focus-store";
 import { usePrintingLightboxStore } from "@/features/cards/stores/printing-lightbox-store";
 import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-override-store";
+import { useCloseRemovedSelection } from "@/features/collections/hooks/use-close-removed-selection";
 import { useCopyListMemberships, useDisposeCopies } from "@/features/collections/hooks/use-copies";
 import { useRowActionHandlers } from "@/features/collections/hooks/use-row-action-handlers";
 import { resolveContextActionTarget } from "@/features/collections/lib/stack-selection";
@@ -189,10 +190,14 @@ export function useListEntryBrowserSelection({
 
   // `itemId` pins the click to its tile: a copy list has one tile per copy.
   const handleCardClick = (printing: Printing, itemId?: string) => {
-    useSelectionStore.getState().selectCard(printing, items, findBy, { itemId });
+    useSelectionStore.getState().selectCard(printing, items, findBy, {
+      itemId,
+      outlivesList: false,
+    });
   };
 
   const { card: selectedCard, item: selectedItem } = useResolvedSelection(items);
+  useCloseRemovedSelection(items);
   const gridSelectedId =
     selectedItem?.id ??
     (selectedCard

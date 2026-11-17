@@ -1,4 +1,5 @@
 import { isBanInEffect } from "@openrift/shared/card-ban";
+import { formatIgnoresBans } from "@openrift/shared/deck-rules";
 import { isCountedZone } from "@openrift/shared/deck-zones";
 import type {
   DeckCatalogSubset,
@@ -96,9 +97,11 @@ export async function buildPublicDeckDetailWithExtras(
   // Only base-list bans in effect today invalidate a deck; mode-scoped ones (e.g. 2v2) stay
   // a display concern, so they never reach the share payload.
   const bannedCardIds = new Set(
-    banRows
-      .filter((ban) => isBaseBanFormat(ban.formatId) && isBanInEffect(ban))
-      .map((ban) => ban.cardId),
+    formatIgnoresBans(found.deck.format)
+      ? []
+      : banRows
+          .filter((ban) => isBaseBanFormat(ban.formatId) && isBanInEffect(ban))
+          .map((ban) => ban.cardId),
   );
 
   // The plan references cards the deck may not contain (notably the opponent

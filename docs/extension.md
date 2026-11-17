@@ -83,6 +83,8 @@ bun run --cwd apps/extension zip            # store-ready zips for both browsers
 bun run --cwd apps/extension test src/lib/deck-extract.test.ts
 ```
 
+The site address defaults to `https://openrift.app`, written in `src/lib/openrift-url.ts`. That default is an accepted exception to the rule against hardcoded site URLs: a shipped extension has no runtime environment, and the manifest's host permission needs the address at build time.
+
 To point a local build at a dev instance, set `WXT_OPENRIFT_URL` in `apps/extension/.env` (see `src/lib/openrift-url.ts`). Pass it in the shell as well when the OpenRift host permission has to follow (`WXT_OPENRIFT_URL=https://localhost:5174 bun run --cwd apps/extension build:firefox`): `wxt.config.ts` computes that manifest entry before Vite loads `.env`, so the file alone moves the bundled URL but leaves the manifest pointing at production.
 
 To load an unpacked build: Chrome → `chrome://extensions` → Developer mode → "Load unpacked" → `.output/chrome-mv3`. Firefox → `about:debugging` → "Load Temporary Add-on" → any file in `.output/firefox-mv2`.

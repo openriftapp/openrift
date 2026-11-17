@@ -12,6 +12,7 @@ import {
   copyLimitAcrossZones,
   copyLimitFor,
   formatHasSideboard,
+  formatIgnoresBans,
   legendExactlyOne,
   legendOptionsAllLegends,
   legendOptionsCount,
@@ -717,6 +718,15 @@ describe("sideboardNotAllowed", () => {
   });
 });
 
+describe("formatIgnoresBans", () => {
+  it("is true for infinity and custom-region", () => {
+    expect(formatIgnoresBans("infinity")).toBe(true);
+    expect(formatIgnoresBans("custom-region")).toBe(true);
+    expect(formatIgnoresBans("constructed")).toBe(false);
+    expect(formatIgnoresBans(null)).toBe(false);
+  });
+});
+
 describe("formatHasSideboard", () => {
   it("is false only for custom-region", () => {
     expect(formatHasSideboard("custom-region")).toBe(false);
@@ -1111,7 +1121,7 @@ describe("banned cards via validateDeck", () => {
     ]);
   });
 
-  it("enforces bans in custom-region", () => {
+  it("does not enforce bans in custom-region", () => {
     const violations = validateDeck(
       makeState(
         [makeCard({ cardId: "bad", banned: true, customTagSlugs: ["ionia"] })],
@@ -1122,7 +1132,7 @@ describe("banned cards via validateDeck", () => {
       ),
     );
 
-    expect(violations.map((violation) => violation.code)).toContain("CARD_BANNED");
+    expect(violations.map((violation) => violation.code)).not.toContain("CARD_BANNED");
   });
 
   it("does not enforce bans in freeform", () => {

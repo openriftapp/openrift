@@ -9,7 +9,8 @@ interface Options {
 /**
  * `onCommit` navigates asynchronously, so echoes of earlier commits can land after newer ones.
  * `pendingSent` holds commits not yet echoed; any other `urlValue` change is external.
- * A commit equal to `urlValue` gets no echo, so it clears the list.
+ * A history traversal supersedes every pending commit, so it clears the list. An external push
+ * to a value still pending is indistinguishable from its late echo and is ignored.
  */
 export function useSearchUrlSync({ urlValue, onCommit, delay = 200 }: Options) {
   const [localValue, setLocalValue] = useState(urlValue);
@@ -20,9 +21,19 @@ export function useSearchUrlSync({ urlValue, onCommit, delay = 200 }: Options) {
 
   const commit = useEffectEvent((value: string) => {
     lastSentValue.current = value;
-    pendingSent.current = value === urlValue ? [] : [...pendingSent.current, value];
+    if (value !== urlValue || pendingSent.current.length > 0) {
+      pendingSent.current = [...pendingSent.current, value];
+    }
     onCommit(value);
   });
+
+  useEffect(() => {
+    const clearPending = () => {
+      pendingSent.current = [];
+    };
+    globalThis.addEventListener("popstate", clearPending);
+    return () => globalThis.removeEventListener("popstate", clearPending);
+  }, []);
 
   useEffect(() => {
     if (urlValue === prevUrlValue.current) {

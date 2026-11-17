@@ -247,4 +247,24 @@ describe("buildPublicDeckDetail", () => {
     const active = await build("2026-09-17");
     expect(active.cards[0]!.banned).toBe(true);
   });
+
+  it("marks no card banned in a format that ignores the banlist", async () => {
+    const payload = await buildPublicDeckDetail(
+      repos({
+        cards: [cardRow(CARD_ID)],
+        printings: [],
+        bans: [
+          {
+            cardId: CARD_ID,
+            formatId: WellKnown.banFormat.CONSTRUCTED,
+            formatName: "Constructed",
+            bannedAt: "2020-01-01",
+            reason: null,
+          },
+        ],
+      }),
+      { ...DECK, deck: { ...DECK.deck, format: "custom-region" } },
+    );
+    expect(payload.cards[0]!.banned).toBe(false);
+  });
 });
