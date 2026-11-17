@@ -62,14 +62,14 @@ describe("withUniqueShareToken", () => {
   });
 
   describe("with a named constraint", () => {
-    const options = { constraint: "decks_share_token_key" };
+    const options = { constraint: "uq_decks_share_token" };
 
     it("retries a violation on that constraint", async () => {
       const seen: string[] = [];
       const attempt = vi.fn(async (token: string) => {
         seen.push(token);
         if (seen.length === 1) {
-          throw uniqueViolation("decks_share_token_key");
+          throw uniqueViolation("uq_decks_share_token");
         }
         return token;
       });

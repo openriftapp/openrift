@@ -46,7 +46,7 @@ export function keywordsRepo(db: Kysely<Database>) {
       const rows = await db
         .selectFrom("keywords")
         .select("name")
-        .where("costKeyword", "=", true)
+        .where("isCostKeyword", "=", true)
         .orderBy("name")
         .execute();
       return rows.map((row) => row.name);
@@ -75,7 +75,7 @@ export function keywordsRepo(db: Kysely<Database>) {
       const rows = await db
         .selectFrom("keywords")
         .select("name")
-        .where("cardModifier", "=", true)
+        .where("isCardModifier", "=", true)
         .orderBy("name")
         .execute();
       return rows.map((row) => row.name);
@@ -90,13 +90,20 @@ export function keywordsRepo(db: Kysely<Database>) {
     }): Promise<void> {
       await db
         .insertInto("keywords")
-        .values({ ...values, isWellKnown: false })
+        .values({
+          name: values.name,
+          color: values.color,
+          hasDarkText: values.darkText,
+          isCostKeyword: values.costKeyword,
+          isCardModifier: values.cardModifier,
+          isWellKnown: false,
+        })
         .onConflict((oc) =>
           oc.column("name").doUpdateSet((eb) => ({
             color: eb.ref("excluded.color"),
-            darkText: eb.ref("excluded.darkText"),
-            costKeyword: eb.ref("excluded.costKeyword"),
-            cardModifier: eb.ref("excluded.cardModifier"),
+            hasDarkText: eb.ref("excluded.hasDarkText"),
+            isCostKeyword: eb.ref("excluded.isCostKeyword"),
+            isCardModifier: eb.ref("excluded.isCardModifier"),
           })),
         )
         .execute();
@@ -107,9 +114,11 @@ export function keywordsRepo(db: Kysely<Database>) {
       insertColor: string,
       flags: { darkText?: boolean; costKeyword?: boolean; cardModifier?: boolean },
     ): Promise<void> {
-      const changed = Object.fromEntries(
-        Object.entries(flags).filter(([, value]) => value !== undefined),
-      );
+      const changed = {
+        ...(flags.darkText === undefined ? {} : { hasDarkText: flags.darkText }),
+        ...(flags.costKeyword === undefined ? {} : { isCostKeyword: flags.costKeyword }),
+        ...(flags.cardModifier === undefined ? {} : { isCardModifier: flags.cardModifier }),
+      };
       if (Object.keys(changed).length === 0) {
         return;
       }
@@ -118,9 +127,9 @@ export function keywordsRepo(db: Kysely<Database>) {
         .values({
           name,
           color: insertColor,
-          darkText: flags.darkText ?? false,
-          costKeyword: flags.costKeyword ?? false,
-          cardModifier: flags.cardModifier ?? false,
+          hasDarkText: flags.darkText ?? false,
+          isCostKeyword: flags.costKeyword ?? false,
+          isCardModifier: flags.cardModifier ?? false,
           isWellKnown: false,
         })
         .onConflict((oc) => oc.column("name").doUpdateSet(changed))
@@ -136,7 +145,14 @@ export function keywordsRepo(db: Kysely<Database>) {
     }): Promise<void> {
       await db
         .insertInto("keywords")
-        .values({ ...values, isWellKnown: false })
+        .values({
+          name: values.name,
+          color: values.color,
+          hasDarkText: values.darkText,
+          isCostKeyword: values.costKeyword,
+          isCardModifier: values.cardModifier,
+          isWellKnown: false,
+        })
         .execute();
     },
 

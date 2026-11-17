@@ -251,7 +251,12 @@ describe.skipIf(!ctx)("rulesRepo (integration)", () => {
   it("listKeywordLabels lists English names and the language's labels", async () => {
     await db
       .insertInto("keywords")
-      .values({ name: "RULES-0044-Shield", color: "#cd346f", darkText: false, isWellKnown: false })
+      .values({
+        name: "RULES-0044-Shield",
+        color: "#cd346f",
+        hasDarkText: false,
+        isWellKnown: false,
+      })
       .execute();
     await db
       .insertInto("keywordTranslations")

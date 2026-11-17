@@ -161,7 +161,6 @@ describe.skipIf(!ctx)("pair merge (integration)", () => {
     await db.deleteFrom("distributionChannels").where("id", "=", channelId).execute();
     await db.deleteFrom("productPrintings").where("productId", "=", productId).execute();
     await db.deleteFrom("products").where("id", "=", productId).execute();
-    await db.deleteFrom("cardmarketSyncState").where("userId", "=", USER_ID).execute();
     await db.deleteFrom("cardTrades").where("receiverUserId", "=", USER_ID).execute();
     await db.deleteFrom("printingLinkOverrides").where("externalId", "=", "pmg-override").execute();
     await db.deleteFrom("deckCards").where("deckId", "=", deckId).execute();
@@ -287,20 +286,6 @@ describe.skipIf(!ctx)("pair merge (integration)", () => {
         { productId, printingId: printingIds["PMG-T01"]!, quantity: 1 },
         { productId, printingId: printingIds["PMG-T05"]!, quantity: 1 },
       ])
-      .execute();
-    await db
-      .insertInto("cardmarketSyncState")
-      .values(
-        ["PMG-T01", "PMG-T05"].map((code) => ({
-          userId: USER_ID,
-          printingId: printingIds[code]!,
-          condition: "near-mint",
-          isAltered: false,
-          intentBase: 2,
-          observedBase: 1,
-          unmanaged: 0,
-        })),
-      )
       .execute();
     await db
       .insertInto("overlayChannels")
@@ -432,13 +417,6 @@ describe.skipIf(!ctx)("pair merge (integration)", () => {
       .where("productId", "=", productId)
       .execute();
     expect(contents).toEqual([{ printingId: birdGold, quantity: 1 }]);
-
-    const sync = await db
-      .selectFrom("cardmarketSyncState")
-      .select(["printingId", "intentBase", "observedBase"])
-      .where("userId", "=", USER_ID)
-      .execute();
-    expect(sync).toEqual([{ printingId: birdGold, intentBase: 4, observedBase: 2 }]);
 
     const deckCard = await db
       .selectFrom("deckCards")

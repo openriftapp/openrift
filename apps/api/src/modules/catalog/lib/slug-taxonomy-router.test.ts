@@ -100,7 +100,7 @@ describe("createSlugTaxonomyHandlers", () => {
       repo.create.mockRejectedValue(
         Object.assign(new Error("duplicate key"), {
           code: "23505",
-          constraint_name: "finishes_pkey",
+          constraint_name: "pk_finishes",
         }),
       );
       const handlers = createSlugTaxonomyHandlers({

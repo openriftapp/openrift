@@ -31,7 +31,7 @@ const dbSetting1 = {
   sortOrder: 0,
   isHidden: false,
   isFavorite: false,
-  helperReviewable: false,
+  isHelperReviewable: false,
 };
 
 const dbSetting2 = {
@@ -39,7 +39,7 @@ const dbSetting2 = {
   sortOrder: 1,
   isHidden: true,
   isFavorite: true,
-  helperReviewable: true,
+  isHelperReviewable: true,
 };
 
 describe("GET /provider-settings", () => {

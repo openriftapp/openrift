@@ -48,7 +48,7 @@ export const friendGroupsBannerRouter = {
       const written = await friendGroups.setBanner(ctx.group.id, {
         bannerUrl: result.url,
         bannerPosition: GROUP_BANNER_DEFAULT_POSITION,
-        bannerUploadedBy: viewerId,
+        bannerUploadedByUserId: viewerId,
         bannerUploadedAt: new Date(),
       });
       if (!written) {

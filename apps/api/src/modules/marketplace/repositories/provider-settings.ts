@@ -24,7 +24,7 @@ export function providerSettingsRepo(db: Kysely<Database>) {
               sortOrder: i + 1,
               isHidden: false,
               isFavorite: false,
-              helperReviewable: false,
+              isHelperReviewable: false,
             })
             .onConflict((oc) => oc.column("provider").doUpdateSet({ sortOrder: i + 1 }))
             .execute();
@@ -48,7 +48,7 @@ export function providerSettingsRepo(db: Kysely<Database>) {
           sortOrder: updates.sortOrder ?? 0,
           isHidden: updates.isHidden ?? false,
           isFavorite: updates.isFavorite ?? false,
-          helperReviewable: updates.helperReviewable ?? false,
+          isHelperReviewable: updates.helperReviewable ?? false,
         })
         .onConflict((oc) =>
           oc.column("provider").doUpdateSet({
@@ -57,7 +57,7 @@ export function providerSettingsRepo(db: Kysely<Database>) {
             ...(updates.isFavorite === undefined ? {} : { isFavorite: updates.isFavorite }),
             ...(updates.helperReviewable === undefined
               ? {}
-              : { helperReviewable: updates.helperReviewable }),
+              : { isHelperReviewable: updates.helperReviewable }),
           }),
         )
         .returningAll()
@@ -81,7 +81,7 @@ export function providerSettingsRepo(db: Kysely<Database>) {
       const rows = await db
         .selectFrom("providerSettings")
         .select("provider")
-        .where("helperReviewable", "=", true)
+        .where("isHelperReviewable", "=", true)
         .execute();
       return new Set(rows.map((r) => r.provider));
     },

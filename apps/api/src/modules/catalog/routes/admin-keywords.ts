@@ -19,15 +19,15 @@ export const adminKeywordsRouter = {
     const styles = allStyles.map((s) => ({
       name: s.name,
       color: s.color,
-      darkText: s.darkText,
-      costKeyword: s.costKeyword,
-      cardModifier: s.cardModifier,
+      darkText: s.hasDarkText,
+      costKeyword: s.isCostKeyword,
+      cardModifier: s.isCardModifier,
     }));
     return { counts, styles, translations };
   }),
 
   createStyle: os.createStyle.handler(async ({ input, context }): Promise<void> => {
-    await conflictOnUniqueViolation("keywords_pkey", `Keyword "${input.name}" already exists`, () =>
+    await conflictOnUniqueViolation("pk_keywords", `Keyword "${input.name}" already exists`, () =>
       context.repos.keywords.createStyle(input),
     );
   }),

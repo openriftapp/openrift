@@ -5,14 +5,14 @@ import type { FeatureFlagsTable } from "../../../db/tables/settings.js";
 
 export function featureFlagsRepo(db: Kysely<Database>) {
   return {
-    listKeyEnabled(): Promise<Pick<Selectable<FeatureFlagsTable>, "key" | "enabled">[]> {
-      return db.selectFrom("featureFlags").select(["key", "enabled"]).execute();
+    listKeyEnabled(): Promise<{ key: string; enabled: boolean }[]> {
+      return db.selectFrom("featureFlags").select(["key", "isEnabled as enabled"]).execute();
     },
 
     async isEnabled(key: string): Promise<boolean | undefined> {
       const row = await db
         .selectFrom("featureFlags")
-        .select("enabled")
+        .select("isEnabled as enabled")
         .where("key", "=", key)
         .executeTakeFirst();
       return row?.enabled;
@@ -29,7 +29,7 @@ export function featureFlagsRepo(db: Kysely<Database>) {
     }): Promise<Selectable<FeatureFlagsTable> | undefined> {
       return db
         .insertInto("featureFlags")
-        .values(values)
+        .values({ key: values.key, isEnabled: values.enabled, description: values.description })
         .onConflict((oc) => oc.column("key").doNothing())
         .returningAll()
         .executeTakeFirst();
@@ -41,7 +41,7 @@ export function featureFlagsRepo(db: Kysely<Database>) {
     ): Promise<Selectable<FeatureFlagsTable> | undefined> {
       return db
         .updateTable("featureFlags")
-        .set(updates)
+        .set({ isEnabled: updates.enabled, description: updates.description })
         .where("key", "=", key)
         .returningAll()
         .executeTakeFirst();

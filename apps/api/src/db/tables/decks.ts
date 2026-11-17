@@ -44,14 +44,14 @@ export interface DeckPlansTable {
   id: Generated<string>;
   deckId: string;
   generalStrategy: Generated<string>;
-  mulliganSplit: Generated<boolean>;
+  hasMulliganSplit: Generated<boolean>;
   mulliganGeneral: Generated<string>;
   mulliganFirst: Generated<string>;
   mulliganSecond: Generated<string>;
   battlefieldG1CardId: string | null;
   battlefieldFirstCardId: string | null;
   battlefieldSecondCardId: string | null;
-  battlefieldCustom: Generated<boolean>;
+  isBattlefieldCustom: Generated<boolean>;
   battlefieldNote: Generated<string>;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;

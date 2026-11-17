@@ -54,7 +54,7 @@ async function pickCardByType(type: string): Promise<TestCard> {
       SELECT id, name FROM cards
       WHERE (
           SELECT type_slug FROM card_card_types
-          WHERE card_id = cards.id ORDER BY position LIMIT 1
+          WHERE card_id = cards.id ORDER BY sort_order LIMIT 1
         ) = ${type}
         AND name ~ '^[A-Za-z][A-Za-z ]*$'
       ORDER BY name, id

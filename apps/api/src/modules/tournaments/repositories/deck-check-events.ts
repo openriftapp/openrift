@@ -46,7 +46,7 @@ function tournamentToEvent(row: Selectable<TournamentsTable>): DeckCheckEvent {
     playMode: row.playMode,
     status: eventStatusForTournamentStatus(row.status),
     listLockMode: row.listLockMode,
-    allowSelfSubmission: row.selfRegistration,
+    allowSelfSubmission: row.hasSelfRegistration,
     submissionToken: row.submissionToken,
     submissionsCloseAt: row.submissionsCloseAt,
     allowedSets: row.allowedSets,
@@ -118,7 +118,7 @@ export function deckCheckEventsRepo(db: Kysely<Database>) {
         .set({
           ...(patch.allowSelfSubmission === undefined
             ? {}
-            : { selfRegistration: patch.allowSelfSubmission }),
+            : { hasSelfRegistration: patch.allowSelfSubmission }),
           ...(patch.submissionToken === undefined
             ? {}
             : { submissionToken: patch.submissionToken }),

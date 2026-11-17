@@ -34,7 +34,7 @@ export interface UvsgamesEventsTable {
 export interface UvsgamesEventTemplatesTable {
   templateId: string;
   sourceName: string | null;
-  watched: Generated<boolean>;
+  isWatched: Generated<boolean>;
   tier: MetaEventTier | null;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;

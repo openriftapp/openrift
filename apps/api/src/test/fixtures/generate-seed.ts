@@ -133,23 +133,23 @@ const cardSuperTypes = await sql<Record<string, unknown>[]>`
 `;
 
 const cardCardTypes = await sql<Record<string, unknown>[]>`
-  SELECT DISTINCT cct.card_id, cct.type_slug, cct.position
+  SELECT DISTINCT cct.card_id, cct.type_slug, cct.sort_order
   FROM card_card_types cct
   JOIN cards c ON c.id = cct.card_id
   JOIN printing_sides_ordered p ON p.card_id = c.id
   JOIN sets s ON s.id = p.set_id
   WHERE s.slug = ${SET_SLUG} OR c.slug = ANY(${EXTRA_CARD_SLUGS})
-  ORDER BY cct.card_id, cct.position
+  ORDER BY cct.card_id, cct.sort_order
 `;
 
 const cardDomains = await sql<Record<string, unknown>[]>`
-  SELECT DISTINCT cd.card_id, cd.domain_slug, cd.ordinal
+  SELECT DISTINCT cd.card_id, cd.domain_slug, cd.sort_order
   FROM card_domains cd
   JOIN cards c ON c.id = cd.card_id
   JOIN printing_sides_ordered p ON p.card_id = c.id
   JOIN sets s ON s.id = p.set_id
   WHERE s.slug = ${SET_SLUG} OR c.slug = ANY(${EXTRA_CARD_SLUGS})
-  ORDER BY cd.card_id, cd.ordinal
+  ORDER BY cd.card_id, cd.sort_order
 `;
 
 const printings = await sql<Record<string, unknown>[]>`
@@ -295,8 +295,8 @@ const languages = await sql<Record<string, unknown>[]>`
 `;
 
 const formats = await sql<Record<string, unknown>[]>`
-  SELECT id, name
-  FROM formats ORDER BY id
+  SELECT slug, label, sort_order
+  FROM ban_formats ORDER BY slug
 `;
 
 const deckFormats = await sql<Record<string, unknown>[]>`
@@ -310,7 +310,7 @@ const deckZones = await sql<Record<string, unknown>[]>`
 `;
 
 const keywords = await sql<Record<string, unknown>[]>`
-  SELECT name, color, dark_text, is_well_known
+  SELECT name, color, has_dark_text, is_well_known
   FROM keywords ORDER BY name
 `;
 
@@ -343,7 +343,7 @@ const rawImageFiles =
 
 // The checked-in fixture must only ever contain synthetic URLs, so replace
 // every non-null original_url with a per-row placeholder. The id keeps it
-// unique (idx_image_files_original_url) and non-empty.
+// unique (uq_image_files_original_url) and non-empty.
 const imageFiles = rawImageFiles.map((imageFile) => ({
   ...imageFile,
   original_url:
@@ -388,7 +388,7 @@ console.log("Generating synthetic data...");
 const syntheticFeatureFlags: Record<string, unknown>[] = [
   {
     key: "price-history",
-    enabled: true,
+    is_enabled: true,
     description: "Show the Value Over Time chart on the collection stats page",
   },
 ];
@@ -406,10 +406,10 @@ const errataCard2 = typedCardsForSynthetic[1];
 const bannedCard = typedCardsForSynthetic[2];
 
 interface FormatRow {
-  id: string;
+  slug: string;
 }
 const typedFormats = formats as unknown as FormatRow[];
-const banFormatId = typedFormats[0]?.id ?? "standard";
+const banFormatId = typedFormats[0]?.slug ?? "standard";
 
 const syntheticCardErrata: Record<string, unknown>[] = [];
 if (errataCard1) {
@@ -463,7 +463,7 @@ const seedSql = [
   toUpsert("finishes", finishes, ["slug"]),
   toUpsert("art_variants", artVariants, ["slug"]),
   toUpsert("languages", languages, ["code"]),
-  toUpsert("formats", formats, ["id"]),
+  toUpsert("ban_formats", formats, ["slug"]),
   toUpsert("deck_formats", deckFormats, ["slug"]),
   toUpsert("deck_zones", deckZones, ["slug"]),
   toUpsert("keywords", keywords, ["name"]),
@@ -538,13 +538,13 @@ interface CardRow {
 interface CardTypeRow {
   card_id: string;
   type_slug: string;
-  position: number;
+  sort_order: number;
 }
 
 interface CardDomainRow {
   card_id: string;
   domain_slug: string;
-  ordinal: number;
+  sort_order: number;
 }
 
 const typedPrintings = printings as unknown as PrintingRow[];
@@ -555,14 +555,14 @@ const typedCardTypes = cardCardTypes as unknown as CardTypeRow[];
 const typesByCardId = Map.groupBy(typedCardTypes, (t) => t.card_id);
 function getCardTypes(cardId: string): string[] {
   return (typesByCardId.get(cardId) ?? [])
-    .toSorted((a, b) => a.position - b.position)
+    .toSorted((a, b) => a.sort_order - b.sort_order)
     .map((t) => t.type_slug);
 }
 
 const domainsByCardId = Map.groupBy(typedCardDomains, (d) => d.card_id);
 function getCardDomains(cardId: string): string[] {
   return (domainsByCardId.get(cardId) ?? [])
-    .toSorted((a, b) => a.ordinal - b.ordinal)
+    .toSorted((a, b) => a.sort_order - b.sort_order)
     .map((d) => d.domain_slug);
 }
 

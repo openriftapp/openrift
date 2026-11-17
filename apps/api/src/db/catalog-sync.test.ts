@@ -183,15 +183,15 @@ describe("buildCatalogSync", () => {
     const rows = buildCatalogSync(makeInit(), makeCatalog());
 
     expect(rows.cardDomains).toEqual([
-      { cardId: CARD_ID, domainSlug: "fury", ordinal: 0 },
-      { cardId: CARD_ID, domainSlug: "calm", ordinal: 1 },
+      { cardId: CARD_ID, domainSlug: "fury", sortOrder: 0 },
+      { cardId: CARD_ID, domainSlug: "calm", sortOrder: 1 },
     ]);
-    expect(rows.cardCardTypes).toEqual([{ cardId: CARD_ID, typeSlug: "unit", position: 0 }]);
+    expect(rows.cardCardTypes).toEqual([{ cardId: CARD_ID, typeSlug: "unit", sortOrder: 0 }]);
     expect(rows.cardTokens).toEqual([{ cardId: CARD_ID, tokenCardId: TOKEN_ID }]);
     expect(rows.cardBans).toEqual([
       { cardId: CARD_ID, formatId: "standard", bannedAt: "2026-03-01", reason: null },
     ]);
-    expect(rows.formats).toEqual([{ id: "standard", name: "Constructed" }]);
+    expect(rows.banFormats).toEqual([{ slug: "standard", label: "Constructed", sortOrder: 1 }]);
   });
 
   it("writes errata as a sourced row", () => {
@@ -317,9 +317,9 @@ describe("buildCatalogSync", () => {
       {
         name: "Shield",
         color: "#123456",
-        darkText: false,
-        costKeyword: false,
-        cardModifier: false,
+        hasDarkText: false,
+        isCostKeyword: false,
+        isCardModifier: false,
       },
     ]);
     expect(rows.keywordTranslations).toEqual([
@@ -340,7 +340,7 @@ describe("buildCatalogSync", () => {
     expect(rows.cards).toEqual([]);
     expect(rows.printings).toEqual([]);
     expect(rows.imageFiles).toEqual([]);
-    expect(rows.formats).toEqual([]);
+    expect(rows.banFormats).toEqual([]);
   });
 });
 

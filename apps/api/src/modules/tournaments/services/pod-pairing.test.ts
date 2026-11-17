@@ -15,7 +15,7 @@ const TOURNAMENT = {
   winPoints: 3,
   drawPoints: 1,
   matchFormat: "bo1",
-  regionsEnabled: false,
+  hasRegions: false,
   currentRound: 0,
   status: "setup",
 } as unknown as Tournament;
@@ -172,7 +172,7 @@ describe("pairNextRound swiss auto-bye", () => {
 });
 
 describe("pairNextRound region guard", () => {
-  const REGION_TOURNAMENT = { ...SWISS_TOURNAMENT, regionsEnabled: true } as Tournament;
+  const REGION_TOURNAMENT = { ...SWISS_TOURNAMENT, hasRegions: true } as Tournament;
 
   it("rejects pairing while a seated player has no region", async () => {
     const players = [player("a", { region: "noxus" }), player("b", { region: null })];

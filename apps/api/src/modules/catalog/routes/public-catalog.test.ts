@@ -245,7 +245,13 @@ describe("GET /api/v1/catalog", () => {
       domains: [{ slug: "fury", label: "Fury", sortOrder: 0, color: "#b32117", isWellKnown: true }],
     });
     mockKeywordsRepo.listAll.mockResolvedValue([
-      { name: "Shield", color: "#4488ff", darkText: true, costKeyword: false, cardModifier: true },
+      {
+        name: "Shield",
+        color: "#4488ff",
+        hasDarkText: true,
+        isCostKeyword: false,
+        isCardModifier: true,
+      },
     ]);
     mockKeywordsRepo.listAllTranslations.mockResolvedValue([
       { keywordName: "Shield", language: "FR", label: "Bouclier" },

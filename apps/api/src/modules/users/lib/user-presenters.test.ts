@@ -38,7 +38,7 @@ describe("toFeatureFlag", () => {
     expect(
       toFeatureFlag({
         key: "deck-builder",
-        enabled: true,
+        isEnabled: true,
         description: null,
         createdAt: created,
         updatedAt: created,

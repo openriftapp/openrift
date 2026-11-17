@@ -298,7 +298,7 @@ describe("friend-groups route", () => {
           Promise.reject(
             Object.assign(new Error("duplicate"), {
               code: "23505",
-              constraint_name: "friend_groups_slug_key",
+              constraint_name: "uq_friend_groups_slug",
             }),
           ),
         ),

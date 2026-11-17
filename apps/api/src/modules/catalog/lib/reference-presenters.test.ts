@@ -10,9 +10,9 @@ import {
 const shield = {
   name: "Shield",
   color: "#4488ff",
-  darkText: false,
-  costKeyword: false,
-  cardModifier: true,
+  hasDarkText: false,
+  isCostKeyword: false,
+  isCardModifier: true,
 };
 
 describe("toKeywordEntries", () => {

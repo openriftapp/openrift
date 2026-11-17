@@ -25,7 +25,7 @@ const USER_ID = "a0000000-0001-4000-a000-000000000001";
 
 const slugViolation = Object.assign(new Error("duplicate key"), {
   code: "23505",
-  constraint_name: "distribution_channels_slug_key",
+  constraint_name: "uq_distribution_channels_slug",
 });
 
 const app = new Hono<{ Variables: Variables }>();

@@ -45,7 +45,7 @@ export async function acceptFavoriteNewCard(
     await relinkCandidatePrintings(repos);
   } else {
     cardId = await conflictOnUniqueViolation(
-      "cards_slug_key",
+      "uq_cards_slug",
       "A card with this slug already exists",
       () =>
         transact((trxRepos) =>

@@ -35,7 +35,7 @@ describe.skipIf(!conn)("updateUser profile fields (integration)", () => {
   afterAll(async () => {
     await db
       .updateTable("users")
-      .set({ bio: null, profileShowRiotId: false })
+      .set({ bio: null, isProfileRiotIdShown: false })
       .where("id", "=", USER_ID)
       .execute();
     await db.destroy();
@@ -56,7 +56,7 @@ describe.skipIf(!conn)("updateUser profile fields (integration)", () => {
     await auth.api.updateUser({ body: { profileShowRiotId: true }, headers });
     const row = await db
       .selectFrom("users")
-      .select("profileShowRiotId")
+      .select("isProfileRiotIdShown as profileShowRiotId")
       .where("id", "=", USER_ID)
       .executeTakeFirstOrThrow();
     expect(row.profileShowRiotId).toBe(true);

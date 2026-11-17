@@ -66,13 +66,13 @@ const dbTournament = {
   matchFormat: "bo1" as const,
   winPoints: 3,
   drawPoints: 1,
-  regionsEnabled: false,
+  hasRegions: false,
   pairingStyle: "pod" as const,
   playMode: "1v1" as const,
   format: "rounds" as const,
   cutSize: 8 as const,
-  legendTiebreak: false,
-  groupsSelfPaced: true,
+  hasLegendTiebreak: false,
+  hasSelfPacedGroups: true,
   reportToken: TOKEN,
   followToken: FOLLOW_TOKEN,
 };
@@ -437,7 +437,7 @@ describe("POST /api/v1/pod-tournaments/report/:token/groups/:groupId/rounds", ()
     });
 
   it.each([
-    ["self-paced groups were turned off", { groupsSelfPaced: false }, 403],
+    ["self-paced groups were turned off", { hasSelfPacedGroups: false }, 403],
     ["the report link was revoked", { reportToken: null }, 403],
   ])(
     "checks the row read under the rounds lock: refuses once %s",

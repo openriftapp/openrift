@@ -36,7 +36,7 @@ const group = {
   description: null,
   bannerUrl: null,
   bannerPosition: 50,
-  bannerUploadedBy: null,
+  bannerUploadedByUserId: null,
   bannerUploadedAt: null,
   code: "ABCDEFGHIJKL",
   codeRotatedAt: NOW,
@@ -104,7 +104,7 @@ describe("POST /friend-groups/{slug}/banner", () => {
     expect(friendGroups.setBanner).toHaveBeenCalledWith(GROUP_ID, {
       bannerUrl: NEW_URL,
       bannerPosition: 50,
-      bannerUploadedBy: USER_ID,
+      bannerUploadedByUserId: USER_ID,
       bannerUploadedAt: expect.any(Date),
     });
   });

@@ -305,7 +305,7 @@ export function secondSideCard() {
       'name', sc.name,
       'tags', sc.tags,
       'types', coalesce(
-        (SELECT array_agg(cct.type_slug ORDER BY cct.position) FROM card_card_types cct WHERE cct.card_id = sc.id),
+        (SELECT array_agg(cct.type_slug ORDER BY cct.sort_order) FROM card_card_types cct WHERE cct.card_id = sc.id),
         '{}'
       )
     )

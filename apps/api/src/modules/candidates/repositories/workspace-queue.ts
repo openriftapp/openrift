@@ -191,14 +191,14 @@ export function workspaceQueueRepo(db: Kysely<Database>) {
           f.short_code as "shortCode",
           array_agg(pr.id order by pr.id) as "printingIds",
           coalesce(bool_and(pr.face2_id = f.id), false) as "isBack",
-          fi.activate_when_rehosted as "rehostFailed"
+          fi.is_activation_pending as "rehostFailed"
         from face_images fi
         join faces f on f.id = fi.face_id
         join cards c on c.id = f.card_id
         join printings pr on f.id in (pr.face1_id, pr.face2_id)
         where not fi.is_active
           and (
-            not fi.activate_when_rehosted
+            not fi.is_activation_pending
             or exists (
               select 1 from image_rehost_failures rf where rf.image_file_id = fi.image_file_id
             )

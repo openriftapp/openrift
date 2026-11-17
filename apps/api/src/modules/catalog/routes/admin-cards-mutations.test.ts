@@ -769,7 +769,7 @@ describe("POST /cards/:cardId/rename", () => {
     mockMut.renameCardSlugById.mockRejectedValue(
       Object.assign(new Error("duplicate key"), {
         code: "23505",
-        constraint_name: "cards_slug_key",
+        constraint_name: "uq_cards_slug",
       }),
     );
 
@@ -1908,7 +1908,7 @@ describe("POST /cards/create", () => {
     mockTrxMut.acceptNewCardFromSources.mockRejectedValue(
       Object.assign(new Error("duplicate key"), {
         code: "23505",
-        constraint_name: "cards_slug_key",
+        constraint_name: "uq_cards_slug",
       }),
     );
 

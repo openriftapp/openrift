@@ -121,7 +121,7 @@ export async function writeCatalogSync(
       await upsertChunked(trx, table, references, ["slug"]);
     }
     await upsertChunked(trx, "languages", rows.languages, ["code"]);
-    await upsertChunked(trx, "formats", rows.formats, ["id"], ["name"]);
+    await upsertChunked(trx, "banFormats", rows.banFormats, ["slug"], ["label", "sortOrder"]);
     await upsertChunked(trx, "keywords", rows.keywords, ["name"]);
     await upsertChunked(trx, "keywordTranslations", rows.keywordTranslations, [
       "keywordName",

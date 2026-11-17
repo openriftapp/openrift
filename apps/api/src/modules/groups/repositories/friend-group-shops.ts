@@ -93,7 +93,7 @@ function upcomingPlayriftboundCount() {
 export function friendGroupShopsRepo(db: Kysely<Database>) {
   async function listUvsgamesShops(groupId: string): Promise<GroupShopRow[]> {
     const rows = await db
-      .selectFrom("friendGroupShops as fgs")
+      .selectFrom("friendGroupUvsgamesShops as fgs")
       .innerJoin("uvsgamesStores as s", "s.id", "fgs.uvsgamesStoreId")
       .select((eb) => [
         "s.id as storeId",
@@ -231,7 +231,7 @@ export function friendGroupShopsRepo(db: Kysely<Database>) {
         : sql<SqlBool>`e.start_at < now() + make_interval(days => ${horizonDays})`;
     const [uvsgames, playriftbound] = await Promise.all([
       db
-        .selectFrom("friendGroupShops as fgs")
+        .selectFrom("friendGroupUvsgamesShops as fgs")
         .innerJoin("uvsgamesStores as s", "s.id", "fgs.uvsgamesStoreId")
         .innerJoin("uvsgamesEvents as e", "e.storeId", "s.id")
         .select([
@@ -299,7 +299,7 @@ export function friendGroupShopsRepo(db: Kysely<Database>) {
     async countShops(groupId: string): Promise<number> {
       const [uvsgames, playriftbound] = await Promise.all([
         db
-          .selectFrom("friendGroupShops")
+          .selectFrom("friendGroupUvsgamesShops")
           .select((eb) => eb.fn.countAll<string>().as("total"))
           .where("groupId", "=", groupId)
           .executeTakeFirstOrThrow(),
@@ -340,7 +340,7 @@ export function friendGroupShopsRepo(db: Kysely<Database>) {
         return;
       }
       await db
-        .insertInto("friendGroupShops")
+        .insertInto("friendGroupUvsgamesShops")
         .values({
           groupId: values.groupId,
           uvsgamesStoreId: Number(values.storeId),
@@ -359,7 +359,7 @@ export function friendGroupShopsRepo(db: Kysely<Database>) {
               .where("organizerId", "=", storeId)
               .executeTakeFirst()
           : await db
-              .deleteFrom("friendGroupShops")
+              .deleteFrom("friendGroupUvsgamesShops")
               .where("groupId", "=", groupId)
               .where("uvsgamesStoreId", "=", Number(storeId))
               .executeTakeFirst();
@@ -397,7 +397,7 @@ export function friendGroupShopsRepo(db: Kysely<Database>) {
     /** uvsgames only: it feeds the suggestions for linking a tournament to its uvsgames event. */
     async listEventsBetween(groupId: string, from: Date, to: Date): Promise<ShopEventRow[]> {
       const rows = await db
-        .selectFrom("friendGroupShops as fgs")
+        .selectFrom("friendGroupUvsgamesShops as fgs")
         .innerJoin("uvsgamesStores as s", "s.id", "fgs.uvsgamesStoreId")
         .innerJoin("uvsgamesEvents as e", "e.storeId", "s.id")
         .select([

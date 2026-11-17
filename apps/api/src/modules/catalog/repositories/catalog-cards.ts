@@ -83,13 +83,13 @@ const CARD_COLUMNS = [
 function selectCardBans(db: Kysely<Database>) {
   return db
     .selectFrom("cardBans")
-    .innerJoin("formats", "formats.id", "cardBans.formatId")
+    .innerJoin("banFormats", "banFormats.slug", "cardBans.formatId")
     .select([
       "cardBans.cardId",
       "cardBans.formatId",
       "cardBans.bannedAt",
       "cardBans.reason",
-      "formats.name as formatName",
+      "banFormats.label as formatName",
     ])
     .where("unbannedAt", "is", null);
 }

@@ -114,7 +114,7 @@ function toEntry(
     submittedAt: isoOrNull(row.submittedAt),
     state: row.state,
     reviewOutcome: row.reviewOutcome,
-    checkedBy: row.checkedBy,
+    checkedBy: row.checkedByUserId,
     checkedByName,
     checkedAt: isoOrNull(row.checkedAt),
     approvedByName,
@@ -164,8 +164,12 @@ export async function buildEntryDetail(
   const listVisible = entry.state !== "editable";
   const [cards, checkedByName, approvedByName, claimedUserName] = await Promise.all([
     listVisible ? repos.deckCheck.listCardsForEntry(entry.id) : Promise.resolve([]),
-    entry.checkedBy ? repos.deckCheck.getUserName(entry.checkedBy) : Promise.resolve(null),
-    entry.approvedBy ? repos.deckCheck.getUserName(entry.approvedBy) : Promise.resolve(null),
+    entry.checkedByUserId
+      ? repos.deckCheck.getUserName(entry.checkedByUserId)
+      : Promise.resolve(null),
+    entry.approvedByUserId
+      ? repos.deckCheck.getUserName(entry.approvedByUserId)
+      : Promise.resolve(null),
     entry.claimedUserId ? repos.deckCheck.getUserName(entry.claimedUserId) : Promise.resolve(null),
   ]);
   const advisories = listVisible

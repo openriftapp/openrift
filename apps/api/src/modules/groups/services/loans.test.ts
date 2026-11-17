@@ -43,7 +43,7 @@ describe("createLoan copy-pin race", () => {
   });
 
   it("re-throws a unique violation on another constraint unchanged", async () => {
-    const other = { code: "23505", constraint_name: "loan_copies_pkey" };
+    const other = { code: "23505", constraint_name: "pk_loan_copies" };
     const repos = reposWithPinError(other);
     await expect(createLoan(mockTransact(repos), INPUT)).rejects.toBe(other);
   });

@@ -74,7 +74,10 @@ describe.skipIf(!ctx)("updatePrintingMarkers (integration)", () => {
     });
     cardId = cardRow!.id;
 
-    await db.insertInto("cardDomains").values({ cardId, domainSlug: "fury", ordinal: 0 }).execute();
+    await db
+      .insertInto("cardDomains")
+      .values({ cardId, domainSlug: "fury", sortOrder: 0 })
+      .execute();
 
     // Printing A: empty marker_slugs (the sibling that causes the collision).
     const [emptyRow] = await insertPrintings(db, {
@@ -203,7 +206,10 @@ describe.skipIf(!ctx)("insertNewPrinting (integration)", () => {
     });
     cardId = cardRow!.id;
 
-    await db.insertInto("cardDomains").values({ cardId, domainSlug: "fury", ordinal: 0 }).execute();
+    await db
+      .insertInto("cardDomains")
+      .values({ cardId, domainSlug: "fury", sortOrder: 0 })
+      .execute();
 
     const [printingRow] = await insertPrintings(db, {
       cardId,
@@ -338,7 +344,10 @@ describe.skipIf(!ctx)("deletePrinting lock order (integration)", () => {
       tags: [],
     });
     cardId = cardRow!.id;
-    await db.insertInto("cardDomains").values({ cardId, domainSlug: "fury", ordinal: 0 }).execute();
+    await db
+      .insertInto("cardDomains")
+      .values({ cardId, domainSlug: "fury", sortOrder: 0 })
+      .execute();
 
     const [printingRow] = await insertPrintings(db, {
       cardId,

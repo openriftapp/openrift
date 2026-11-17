@@ -92,7 +92,7 @@ export function catalogLandingRepo(db: Kysely<Database>) {
             "pr.headlineCents as priceCents",
             sql<
               string[]
-            >`coalesce((select array_agg(cd.domain_slug order by cd.ordinal) from card_domains cd where cd.card_id = cards.id), '{}')`.as(
+            >`coalesce((select array_agg(cd.domain_slug order by cd.sort_order) from card_domains cd where cd.card_id = cards.id), '{}')`.as(
               "domains",
             ),
             sql<string | null>`nullif(

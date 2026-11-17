@@ -48,7 +48,7 @@ function assertSelfJoinOpen(tournament: Tournament | undefined, token: string): 
   if (tournament.status === "completed" || tournament.status === "cancelled") {
     throw conflict("This tournament is no longer accepting entries");
   }
-  if (!tournament.selfRegistration) {
+  if (!tournament.hasSelfRegistration) {
     throw forbidden("Self-registration is not open");
   }
   return tournament;
@@ -114,7 +114,7 @@ export const publicTournamentsRouter = {
       return {
         name: tournament.name,
         hostDisplayName: await hostDisplayName(repos, tournament),
-        selfRegistrationOpen: tournament.selfRegistration,
+        selfRegistrationOpen: tournament.hasSelfRegistration,
         deckExpected: tournament.deckSubmission !== "none",
         viewerIsParticipant: participant !== undefined,
         viewerParticipantStatus: participant?.status ?? null,

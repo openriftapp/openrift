@@ -40,7 +40,7 @@ export function jobRunsRepo(db: Kysely<Database>) {
           .executeTakeFirstOrThrow();
         return { id: row.id };
       } catch (error) {
-        if (isUniqueViolationOn(error, "idx_job_runs_running")) {
+        if (isUniqueViolationOn(error, "uq_job_runs_running")) {
           return null;
         }
         throw error;
@@ -58,7 +58,7 @@ export function jobRunsRepo(db: Kysely<Database>) {
           finishedAt: new Date(),
           durationMs: params.durationMs,
           result: params.result ?? null,
-          noop: params.noop ?? null,
+          isNoop: params.noop ?? null,
         })
         .where("id", "=", id)
         .where("status", "=", "running")
@@ -164,7 +164,7 @@ export function jobRunsRepo(db: Kysely<Database>) {
           "durationMs",
           "errorMessage",
           "result",
-          "noop",
+          "isNoop as noop",
         ])
         .where("kind", "=", kind)
         .where("result", "is not", null)
@@ -198,7 +198,7 @@ export function jobRunsRepo(db: Kysely<Database>) {
           "durationMs",
           "errorMessage",
           "result",
-          "noop",
+          "isNoop as noop",
         ])
         .orderBy("startedAt", "desc")
         .limit(params.limit ?? 20);
@@ -235,7 +235,7 @@ export function jobRunsRepo(db: Kysely<Database>) {
           "durationMs",
           "errorMessage",
           "result",
-          "noop",
+          "isNoop as noop",
         ])
         .orderBy("startedAt", "desc")
         .orderBy("id", "desc");
@@ -252,7 +252,7 @@ export function jobRunsRepo(db: Kysely<Database>) {
         query = query.where("status", "=", params.status);
       }
       if (params.noop !== undefined) {
-        query = query.where("noop", "=", params.noop);
+        query = query.where("isNoop", "=", params.noop);
       }
       return offsetPage(query, params);
     },
@@ -273,7 +273,7 @@ export function jobRunsRepo(db: Kysely<Database>) {
           "durationMs",
           "errorMessage",
           "result",
-          "noop",
+          "isNoop as noop",
         ])
         .where("kind", "in", kinds)
         .distinctOn("kind")
@@ -298,7 +298,7 @@ export function jobRunsRepo(db: Kysely<Database>) {
           "durationMs",
           "errorMessage",
           "result",
-          "noop",
+          "isNoop as noop",
         ])
         .where("kind", "in", kinds)
         .orderBy("startedAt", "desc")
@@ -329,7 +329,7 @@ export function jobRunsRepo(db: Kysely<Database>) {
           "durationMs",
           "errorMessage",
           "result",
-          "noop",
+          "isNoop as noop",
         ])
         .distinctOn("kind")
         .orderBy("kind")

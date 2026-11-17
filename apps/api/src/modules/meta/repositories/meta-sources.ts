@@ -130,12 +130,12 @@ export function metaSourcesRepo(db: Kysely<Database>) {
               .where("provider", "is not", null)
               .where("provider", "!=", provider)
               .where("provider", "in", [...MIRROR_PROVIDERS])
-              .where("contributes", "=", true)
+              .where("isContributing", "=", true)
               .executeTakeFirst()
           : undefined;
       return await db
         .insertInto("metaEventSources")
-        .values({ ...input, contributes: rival === undefined })
+        .values({ ...input, isContributing: rival === undefined })
         .returningAll()
         .executeTakeFirstOrThrow();
     },
@@ -144,7 +144,7 @@ export function metaSourcesRepo(db: Kysely<Database>) {
     async setEventSourceContributes(id: string, contributes: boolean): Promise<boolean> {
       const result = await db
         .updateTable("metaEventSources")
-        .set({ contributes })
+        .set({ isContributing: contributes })
         .where("id", "=", id)
         .executeTakeFirst();
       return Number(result.numUpdatedRows ?? 0n) > 0;

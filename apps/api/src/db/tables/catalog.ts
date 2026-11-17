@@ -141,7 +141,7 @@ export interface FaceImagesTable {
   faceId: string;
   imageFileId: string;
   isActive: Generated<boolean>;
-  activateWhenRehosted: Generated<boolean>;
+  isActivationPending: Generated<boolean>;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
 }
@@ -253,10 +253,10 @@ export interface PrintingCitationsTable {
 export interface KeywordsTable {
   name: string;
   color: string;
-  darkText: Generated<boolean>;
+  hasDarkText: Generated<boolean>;
   isWellKnown: Generated<boolean>;
-  costKeyword: ColumnType<boolean, boolean | undefined, boolean>;
-  cardModifier: ColumnType<boolean, boolean | undefined, boolean>;
+  isCostKeyword: ColumnType<boolean, boolean | undefined, boolean>;
+  isCardModifier: ColumnType<boolean, boolean | undefined, boolean>;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
 }
@@ -269,9 +269,10 @@ export interface KeywordTranslationsTable {
   updatedAt: UpdatedAt;
 }
 
-export interface FormatsTable {
-  id: string;
-  name: string;
+export interface BanFormatsTable {
+  slug: string;
+  label: string;
+  sortOrder: number;
   createdAt: CreatedAt;
 }
 
@@ -321,7 +322,7 @@ export interface PrintingEventsTable {
 export interface CardDomainsTable {
   cardId: string;
   domainSlug: string;
-  ordinal: number;
+  sortOrder: number;
 }
 
 export interface CardSuperTypesTable {
@@ -332,7 +333,7 @@ export interface CardSuperTypesTable {
 export interface CardCardTypesTable {
   cardId: string;
   typeSlug: string;
-  position: number;
+  sortOrder: number;
 }
 
 /**

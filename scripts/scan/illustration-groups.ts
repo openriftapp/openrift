@@ -21,7 +21,7 @@ import { MEDIA_CARDS, loadImage } from "./lib";
 const QUERY = `
 select coalesce(json_agg(r), '[]') from (
   select distinct on (ci.id) ci.id::text as "imageId", c.name, s.slug as "setSlug",
-         p.public_code as "publicCode", p.language, (select cct.type_slug from card_card_types cct where cct.card_id = c.id order by cct.position limit 1) as "cardType",
+         p.public_code as "publicCode", p.language, (select cct.type_slug from card_card_types cct where cct.card_id = c.id order by cct.sort_order limit 1) as "cardType",
          p.art_variant as "artVariant", p.is_overnumbered as "isOvernumbered", p.artist
   from face_images pi
   join image_files ci on ci.id = pi.image_file_id

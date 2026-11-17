@@ -39,7 +39,7 @@ if (adminCtx && grantCtx) {
     tags: [],
   });
   cardId = card!.id;
-  await db.insertInto("cardDomains").values({ cardId, domainSlug: "mind", ordinal: 0 }).execute();
+  await db.insertInto("cardDomains").values({ cardId, domainSlug: "mind", sortOrder: 0 }).execute();
   await db.insertInto("cardNameAliases").values({ cardId, normName: "aerauditcard" }).execute();
 }
 

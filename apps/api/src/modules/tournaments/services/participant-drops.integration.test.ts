@@ -181,7 +181,7 @@ describe.skipIf(!ctx)("closed accounts in tournaments (integration)", () => {
       displayName: null,
       riotId: null,
       claimToken: null,
-      accountClosed: true,
+      isAccountClosed: true,
       status: "active",
       seed: 3,
     });
@@ -190,7 +190,7 @@ describe.skipIf(!ctx)("closed accounts in tournaments (integration)", () => {
   it("drops the deleted account's spot in a running event after the current round", async () => {
     const row = await db
       .selectFrom("tournamentParticipants")
-      .select(["status", "droppedAfterRound", "accountClosed"])
+      .select(["status", "droppedAfterRound", "isAccountClosed as accountClosed"])
       .where("id", "=", liveActiveId)
       .executeTakeFirstOrThrow();
     expect(row).toEqual({ status: "dropped", droppedAfterRound: 2, accountClosed: true });
@@ -237,7 +237,7 @@ describe.skipIf(!ctx)("closed accounts in tournaments (integration)", () => {
   it("leaves a walk-in untouched", async () => {
     const row = await db
       .selectFrom("tournamentParticipants")
-      .select(["displayName", "accountClosed"])
+      .select(["displayName", "isAccountClosed as accountClosed"])
       .where("id", "=", walkInId)
       .executeTakeFirstOrThrow();
     expect(row).toEqual({ displayName: "Walk-in Jinx", accountClosed: false });

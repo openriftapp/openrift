@@ -55,7 +55,10 @@ describe.skipIf(!ctx)("deleteCard (integration)", () => {
       tags: [],
     });
     cardId = cardRow!.id;
-    await db.insertInto("cardDomains").values({ cardId, domainSlug: "fury", ordinal: 0 }).execute();
+    await db
+      .insertInto("cardDomains")
+      .values({ cardId, domainSlug: "fury", sortOrder: 0 })
+      .execute();
     await db
       .insertInto("cardNameAliases")
       .values({ cardId, normName: "card admin alias" })

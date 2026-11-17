@@ -14,13 +14,13 @@ import { toCustomTag } from "../lib/custom-tag-presenters.js";
 
 const os = implement(adminCustomTagsContract).$context<ApiContext>().use(requireAuthedUser);
 
-const CUSTOM_TAG_SLUG_KEY = "custom_tags_slug_key";
+const CUSTOM_TAG_SLUG_KEY = "uq_custom_tags_slug";
 
 const categoryHandlers = createTagCategoryHandlers({
   repo: (context) => context.repos.customTagCategories,
   listTags: (context) => context.repos.customTags.listAll(),
   entityLabel: "Custom-tag category",
-  slugConstraint: "custom_tag_categories_slug_key",
+  slugConstraint: "uq_custom_tag_categories_slug",
 });
 
 export const adminCustomTagsRouter = {

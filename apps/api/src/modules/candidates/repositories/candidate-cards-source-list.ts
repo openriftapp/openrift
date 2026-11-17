@@ -36,7 +36,7 @@ export function candidateSourceListRepo(db: Kysely<Database>) {
           // Correlated subquery so the printings/sets join above doesn't
           // multiply the type rows.
           sql<string[]>`(
-            select array_agg(cct.type_slug order by cct.position)
+            select array_agg(cct.type_slug order by cct.sort_order)
             from card_card_types cct
             where cct.card_id = c.id
           )`.as("types"),

@@ -224,7 +224,7 @@ export async function ingestCandidates(
     }
 
     // Cards this upload drops go first: a re-keyed code-less card may reuse the
-    // name, and idx_candidate_cards_provider_name_no_sid allows one per name.
+    // name, and uq_candidate_cards_provider_name_no_sid allows one per name.
     const ccIdToName = new Map(existingCCRows.map((cc) => [cc.id, cc.name]));
     const ccsToRemove = existingCCRows.filter((cc) => !uploadedCardExternalIds.has(cc.externalId));
     const removedCCIds = new Set(ccsToRemove.map((cc) => cc.id));

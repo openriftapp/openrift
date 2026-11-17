@@ -133,7 +133,7 @@ const SIDE_COLUMNS = [
   publicFallbackImageId("s"),
 ] as const;
 
-// `idx_face_images_active` allows one active image per face, so `imageId` equals the
+// `uq_face_images_active` allows one active image per face, so `imageId` equals the
 // other side's `images[0]`, which `joinCatalog` reads for the same field.
 const OTHER_SIDE = sql<OtherSideRow | null>`(
   SELECT json_strip_nulls(json_build_object(

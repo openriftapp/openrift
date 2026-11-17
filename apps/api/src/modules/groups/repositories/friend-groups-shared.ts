@@ -44,7 +44,7 @@ export type GroupUpdate = Pick<
 export interface GroupBannerValues {
   bannerUrl: string;
   bannerPosition: number;
-  bannerUploadedBy: string;
+  bannerUploadedByUserId: string;
   bannerUploadedAt: Date;
 }
 

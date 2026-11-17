@@ -47,7 +47,7 @@ export function tournamentLookupsRepo(db: Kysely<Database>) {
     async hasRelationship(tournamentId: string, userId: string): Promise<boolean> {
       const tournament = await db
         .selectFrom("tournaments")
-        .select(["hostType", "hostUserId", "hostOrgId", "groupId", "published"])
+        .select(["hostType", "hostUserId", "hostOrgId", "groupId", "isPublished as published"])
         .where("id", "=", tournamentId)
         .executeTakeFirst();
       if (!tournament) {

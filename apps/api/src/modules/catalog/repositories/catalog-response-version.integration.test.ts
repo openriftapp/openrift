@@ -180,7 +180,7 @@ describe.skipIf(!ctx)("catalogResponseVersion (integration)", () => {
       table: "card_card_types",
       why: "card.types",
       statements: [
-        `INSERT INTO card_card_types (card_id, type_slug, position)
+        `INSERT INTO card_card_types (card_id, type_slug, sort_order)
          SELECT c.id, t.slug, 99 FROM cards c CROSS JOIN card_types t
           WHERE NOT EXISTS (
             SELECT 1 FROM card_card_types x WHERE x.card_id = c.id AND x.type_slug = t.slug
@@ -201,7 +201,7 @@ describe.skipIf(!ctx)("catalogResponseVersion (integration)", () => {
           LIMIT 1`,
       ],
     },
-    { table: "formats", why: "card.bans formatName", statements: [relabel("formats", "name")] },
+    { table: "ban_formats", why: "card.bans formatName", statements: [relabel("ban_formats")] },
     {
       table: "card_super_types",
       why: "card.superTypes",

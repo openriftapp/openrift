@@ -9,10 +9,10 @@ export interface CardTradesTable {
   groupName: string | null;
   giverUserId: string | null;
   giverName: string | null;
-  giverAccountClosed: Generated<boolean>;
+  isGiverAccountClosed: Generated<boolean>;
   receiverUserId: string | null;
   receiverName: string | null;
-  receiverAccountClosed: Generated<boolean>;
+  isReceiverAccountClosed: Generated<boolean>;
   initiator: CardTradeInitiator;
   printingId: string;
   cardId: Generated<string>;

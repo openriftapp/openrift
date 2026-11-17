@@ -25,10 +25,10 @@ export interface UsersTable {
   riotId: string | null;
   metaCreditVisibility: Generated<MetaCreditVisibility>;
   bio: string | null;
-  profileShowRiotId: Generated<boolean>;
-  profileShowCollection: Generated<boolean>;
-  profileShowLastActive: Generated<boolean>;
-  profileShowReferralTier: Generated<boolean>;
+  isProfileRiotIdShown: Generated<boolean>;
+  isProfileCollectionShown: Generated<boolean>;
+  isProfileLastActiveShown: Generated<boolean>;
+  isProfileReferralTierShown: Generated<boolean>;
   referralCode: string | null;
   referredBy: string | null;
   createdAt: CreatedAt;

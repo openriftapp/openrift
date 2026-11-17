@@ -11,8 +11,8 @@ if (ctx) {
   await db
     .insertInto("keywords")
     .values([
-      { name: "INIT-Shield", color: "#4488ff", darkText: false, isWellKnown: false },
-      { name: "INIT-Burn", color: "#ff4400", darkText: true, isWellKnown: false },
+      { name: "INIT-Shield", color: "#4488ff", hasDarkText: false, isWellKnown: false },
+      { name: "INIT-Burn", color: "#ff4400", hasDarkText: true, isWellKnown: false },
     ])
     .execute();
 }

@@ -49,7 +49,10 @@ describe.skipIf(!ctx)("refresh-prices-shared integration", () => {
     });
     cardId = insertedCard.id;
 
-    await db.insertInto("cardDomains").values({ cardId, domainSlug: "mind", ordinal: 0 }).execute();
+    await db
+      .insertInto("cardDomains")
+      .values({ cardId, domainSlug: "mind", sortOrder: 0 })
+      .execute();
 
     await db
       .insertInto("marketplaceGroups")

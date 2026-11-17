@@ -5,9 +5,9 @@ import type { DistributionChannel, DistributionChannelKind } from "@openrift/sha
 interface KeywordRow {
   name: string;
   color: string;
-  darkText: boolean;
-  costKeyword: boolean;
-  cardModifier: boolean;
+  hasDarkText: boolean;
+  isCostKeyword: boolean;
+  isCardModifier: boolean;
 }
 
 interface KeywordTranslationRow {
@@ -24,9 +24,9 @@ export function toKeywordEntries(
   for (const row of rows) {
     entries[row.name] = {
       color: row.color,
-      darkText: row.darkText,
-      costKeyword: row.costKeyword,
-      cardModifier: row.cardModifier,
+      darkText: row.hasDarkText,
+      costKeyword: row.isCostKeyword,
+      cardModifier: row.isCardModifier,
     };
   }
   for (const translation of translations) {

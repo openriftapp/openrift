@@ -268,7 +268,7 @@ function sourceRow(overrides: Partial<MetaEventSourceRow> = {}): MetaEventSource
     label: "uvsgames",
     priority: 0,
     sourceUrl: "https://example.invalid/skirmish",
-    contributes: true,
+    isContributing: true,
     createdAt: new Date("2026-08-02T10:00:00.000Z"),
     ...overrides,
   };
@@ -1039,7 +1039,7 @@ describe("toAdminMetaEvent", () => {
       label: provider,
       sourceUrl: null,
       priority,
-      contributes: true,
+      isContributing: true,
       createdAt: new Date("2026-08-15T00:00:00.000Z"),
     });
 

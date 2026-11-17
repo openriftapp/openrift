@@ -55,7 +55,7 @@ describe("POST /organizations", () => {
   it("answers 409 when a concurrent create takes the slug after the pre-check", async () => {
     organizations.getBySlug.mockResolvedValue(undefined);
     users.getById.mockResolvedValue({ id: USER_ID });
-    organizations.create.mockRejectedValue(violation("organizations_slug_key"));
+    organizations.create.mockRejectedValue(violation("uq_organizations_slug"));
 
     const res = await send("POST", "/api/admin/v1/organizations", {
       slug: "piltover-league",
@@ -71,7 +71,7 @@ describe("POST /organizations", () => {
   it("does not map a unique violation on another constraint", async () => {
     organizations.getBySlug.mockResolvedValue(undefined);
     users.getById.mockResolvedValue({ id: USER_ID });
-    organizations.create.mockRejectedValue(violation("organization_members_pkey"));
+    organizations.create.mockRejectedValue(violation("pk_organization_members"));
 
     const res = await send("POST", "/api/admin/v1/organizations", {
       slug: "piltover-league",
@@ -87,7 +87,7 @@ describe("PATCH /organizations/:id", () => {
   it("answers 409 when a concurrent write takes the new slug after the pre-check", async () => {
     organizations.getById.mockResolvedValue(org);
     organizations.getBySlug.mockResolvedValue(undefined);
-    organizations.update.mockRejectedValue(violation("organizations_slug_key"));
+    organizations.update.mockRejectedValue(violation("uq_organizations_slug"));
 
     const res = await send("PATCH", `/api/admin/v1/organizations/${ORG_ID}`, {
       slug: "zaun-circuit",

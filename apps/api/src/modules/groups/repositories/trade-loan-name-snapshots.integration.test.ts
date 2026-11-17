@@ -120,7 +120,7 @@ describe.skipIf(!ctx)("deleted-user name snapshots (integration)", () => {
         "giverName",
         "receiverUserId",
         "receiverName",
-        "receiverAccountClosed",
+        "isReceiverAccountClosed as receiverAccountClosed",
       ])
       .where("id", "=", completedTradeId)
       .executeTakeFirst();
@@ -136,7 +136,14 @@ describe.skipIf(!ctx)("deleted-user name snapshots (integration)", () => {
   it("cancels the live trade the deleted account was in", async () => {
     const trade = await db
       .selectFrom("cardTrades")
-      .select(["status", "closedAt", "expiresAt", "giverUserId", "giverName", "giverAccountClosed"])
+      .select([
+        "status",
+        "closedAt",
+        "expiresAt",
+        "giverUserId",
+        "giverName",
+        "isGiverAccountClosed as giverAccountClosed",
+      ])
       .where("id", "=", pendingTradeId)
       .executeTakeFirst();
     expect(trade?.status).toBe("cancelled");
@@ -150,7 +157,12 @@ describe.skipIf(!ctx)("deleted-user name snapshots (integration)", () => {
   it("marks a deleted loan borrower closed, without its name", async () => {
     const loan = await db
       .selectFrom("loans")
-      .select(["borrowerUserId", "borrowerName", "borrowerAccountClosed", "lenderUserId"])
+      .select([
+        "borrowerUserId",
+        "borrowerName",
+        "isBorrowerAccountClosed as borrowerAccountClosed",
+        "lenderUserId",
+      ])
       .where("id", "=", loanId)
       .executeTakeFirst();
     expect(loan?.borrowerUserId).toBeNull();
@@ -173,7 +185,7 @@ describe.skipIf(!ctx)("deleted-user name snapshots (integration)", () => {
     await expect(
       db
         .updateTable("loans")
-        .set({ borrowerName: null, borrowerAccountClosed: false })
+        .set({ borrowerName: null, isBorrowerAccountClosed: false })
         .where("id", "=", loanId)
         .execute(),
     ).rejects.toThrow();
@@ -183,7 +195,7 @@ describe.skipIf(!ctx)("deleted-user name snapshots (integration)", () => {
     await expect(
       db
         .updateTable("cardTrades")
-        .set({ giverAccountClosed: true })
+        .set({ isGiverAccountClosed: true })
         .where("id", "=", completedTradeId)
         .execute(),
     ).rejects.toThrow();

@@ -18,8 +18,8 @@ import type { CreatedAt, UpdatedAt } from "./columns.js";
 export interface MetaSyncSettingsTable {
   id: number;
   autoAcceptMinPlayers: number | null;
-  autoAcceptNotable: Generated<boolean>;
-  autoAcceptOfficial: Generated<boolean>;
+  hasAutoAcceptNotable: Generated<boolean>;
+  hasAutoAcceptOfficial: Generated<boolean>;
   competitivePlayerFloor: Generated<number>;
   updatedAt: UpdatedAt;
 }
@@ -197,7 +197,7 @@ export interface MetaEventSourcesTable {
   label: string;
   sourceUrl: string | null;
   priority: Generated<number>;
-  contributes: Generated<boolean>;
+  isContributing: Generated<boolean>;
   createdAt: CreatedAt;
 }
 
@@ -245,7 +245,7 @@ export interface MetaDeckInferencesTable {
   deckId: string;
   championCardId: string | null;
   championAltCardId: string | null;
-  championUnsure: Generated<boolean>;
+  isChampionUnsure: Generated<boolean>;
   battlefieldCardId: string | null;
   battlefieldAlsoCardIds: Generated<string[]>;
   computedAt: CreatedAt;
@@ -254,7 +254,7 @@ export interface MetaDeckInferencesTable {
 export interface MetaDeckInferenceNeighboursTable {
   deckId: string;
   zone: MetaInferredZone;
-  position: number;
+  sortOrder: number;
   neighbourDeckId: string;
   shared: number;
 }

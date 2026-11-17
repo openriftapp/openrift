@@ -189,22 +189,22 @@ describe("conflictOnUniqueViolation", () => {
     Object.assign(new Error("duplicate key"), { code: "23505", constraint_name: constraint });
 
   it("returns the write's result", async () => {
-    await expect(conflictOnUniqueViolation("cards_slug_key", "Taken", async () => 7)).resolves.toBe(
+    await expect(conflictOnUniqueViolation("uq_cards_slug", "Taken", async () => 7)).resolves.toBe(
       7,
     );
   });
 
   it("turns a violation of the named constraint into a 409", async () => {
-    const result = conflictOnUniqueViolation("cards_slug_key", "Taken", () =>
-      Promise.reject(violation("cards_slug_key")),
+    const result = conflictOnUniqueViolation("uq_cards_slug", "Taken", () =>
+      Promise.reject(violation("uq_cards_slug")),
     );
     await expect(result).rejects.toMatchObject({ status: 409, message: "Taken" });
   });
 
   it("rethrows a violation of any other constraint unchanged", async () => {
-    const other = violation("cards_pkey");
+    const other = violation("pk_cards");
     await expect(
-      conflictOnUniqueViolation("cards_slug_key", "Taken", () => Promise.reject(other)),
+      conflictOnUniqueViolation("uq_cards_slug", "Taken", () => Promise.reject(other)),
     ).rejects.toBe(other);
   });
 });

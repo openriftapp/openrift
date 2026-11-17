@@ -459,7 +459,7 @@ describe.skipIf(!ctx)("catalogRepo (integration)", () => {
       if (input.domain) {
         await db
           .insertInto("cardDomains")
-          .values({ cardId: row.id, domainSlug: input.domain, ordinal: 0 })
+          .values({ cardId: row.id, domainSlug: input.domain, sortOrder: 0 })
           .execute();
       }
       return row.id;

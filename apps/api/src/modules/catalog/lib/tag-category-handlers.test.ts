@@ -23,12 +23,12 @@ const handlers = createTagCategoryHandlers({
   repo: () => repo,
   listTags,
   entityLabel: "Custom-tag category",
-  slugConstraint: "custom_tag_categories_slug_key",
+  slugConstraint: "uq_custom_tag_categories_slug",
 });
 
 const slugViolation = Object.assign(new Error("duplicate key"), {
   code: "23505",
-  constraint_name: "custom_tag_categories_slug_key",
+  constraint_name: "uq_custom_tag_categories_slug",
 });
 
 const now = new Date("2026-03-17T00:00:00.000Z");

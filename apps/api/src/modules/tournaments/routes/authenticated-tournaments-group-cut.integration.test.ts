@@ -1213,7 +1213,7 @@ describe.skipIf(!hostCtx)("Group stage with a fixed top cut (integration)", () =
 
       const editor = await holdRoundsLock(
         id,
-        sql`UPDATE tournaments SET legend_tiebreak = true WHERE id = ${id} RETURNING id`,
+        sql`UPDATE tournaments SET has_legend_tiebreak = true WHERE id = ${id} RETURNING id`,
       );
       let generated: Promise<Response> | Response | undefined;
       try {
@@ -1276,7 +1276,7 @@ describe.skipIf(!hostCtx)("Group stage with a fixed top cut (integration)", () =
 
       const editor = await holdRoundsLock(
         id,
-        sql`UPDATE tournaments SET legend_tiebreak = true WHERE id = ${id} RETURNING id`,
+        sql`UPDATE tournaments SET has_legend_tiebreak = true WHERE id = ${id} RETURNING id`,
       );
       let rerolled: Promise<Response> | Response | undefined;
       try {

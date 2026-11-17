@@ -18,7 +18,7 @@ const SUBMIT_TOKEN = "submit-token";
 const OPEN_TOURNAMENT = {
   id: TOURNAMENT_ID,
   status: "setup",
-  selfRegistration: true,
+  hasSelfRegistration: true,
   submissionToken: SUBMIT_TOKEN,
 };
 
@@ -100,7 +100,7 @@ describe("resolveSelfJoin", () => {
   });
 
   it.each([
-    ["self-registration closed", { selfRegistration: false }, 403],
+    ["self-registration closed", { hasSelfRegistration: false }, 403],
     ["the link turned off", { submissionToken: null }, 404],
   ])("refuses a join once %s while it waited", async (_label, change, status) => {
     const stub = reposStub({
@@ -133,7 +133,7 @@ describe("resolveSelfJoin", () => {
   it("re-throws a unique violation on another constraint", async () => {
     const other = Object.assign(new Error("duplicate key"), {
       code: "23505",
-      constraint_name: "tournament_participants_pkey",
+      constraint_name: "pk_tournament_participants",
     });
     const stub = reposStub({
       findByUser: async () => undefined,
@@ -170,7 +170,7 @@ describe("landing", () => {
               hostType: "user",
               hostUserId: null,
               hostOrgId: null,
-              selfRegistration: true,
+              hasSelfRegistration: true,
               deckSubmission: "none",
             }),
           ),

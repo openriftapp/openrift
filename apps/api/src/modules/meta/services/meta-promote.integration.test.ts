@@ -513,7 +513,7 @@ describe.skipIf(!ctx)("promoteMetaEvent", () => {
       const sources = await repo.sourcesForEvent(metaEventId);
       const rows = await repo.rawStandingsForEvent(metaEventId);
       expect(sources).toHaveLength(2);
-      expect(sources.find((row) => row.provider === "topdeck")?.contributes).toBe(false);
+      expect(sources.find((row) => row.provider === "topdeck")?.isContributing).toBe(false);
       expect(rows.map((row) => row.sourceIdentity)).toEqual(["pu5001"]);
     });
 
@@ -662,7 +662,7 @@ describe.skipIf(!ctx)("promoteMetaEvent", () => {
       await cite(metaEventId, null, null);
 
       const sources = await repo.sourcesForEvent(metaEventId);
-      expect(sources.every((row) => row.contributes)).toBe(true);
+      expect(sources.every((row) => row.isContributing)).toBe(true);
     });
   });
 

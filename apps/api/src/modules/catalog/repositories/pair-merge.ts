@@ -109,12 +109,6 @@ const MOVES: {
   },
   { table: "printing_distribution_channels", column: "printing_id", conflict: "channel_id" },
   { table: "printing_citations", column: "printing_id", conflict: "source_url" },
-  {
-    table: "cardmarket_sync_state",
-    column: "printing_id",
-    conflict: "user_id, condition, is_altered",
-    sum: ["intent_base", "observed_base", "unmanaged"],
-  },
   { table: "printing_link_overrides", column: "printing_id" },
 ];
 

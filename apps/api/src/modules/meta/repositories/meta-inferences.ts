@@ -142,7 +142,7 @@ export function metaInferencesRepo(db: Kysely<Database>) {
             "deckId",
             "championCardId",
             "championAltCardId",
-            "championUnsure",
+            "isChampionUnsure as championUnsure",
             "battlefieldCardId",
             "battlefieldAlsoCardIds",
           ])
@@ -152,7 +152,7 @@ export function metaInferencesRepo(db: Kysely<Database>) {
           .select(["deckId", "zone", "neighbourDeckId", "shared"])
           .orderBy("deckId")
           .orderBy("zone")
-          .orderBy("position")
+          .orderBy("sortOrder")
           .execute(),
       ]);
       const byDeck = Map.groupBy(neighbours, (row) => row.deckId);
@@ -183,7 +183,7 @@ export function metaInferencesRepo(db: Kysely<Database>) {
                 deckId: row.deckId,
                 championCardId: row.championCardId,
                 championAltCardId: row.championAltCardId,
-                championUnsure: row.championUnsure,
+                isChampionUnsure: row.championUnsure,
                 battlefieldCardId: row.battlefieldCardId,
                 battlefieldAlsoCardIds: row.battlefieldAlsoCardIds,
               })),
@@ -196,7 +196,7 @@ export function metaInferencesRepo(db: Kysely<Database>) {
                 .map((neighbour, position) => ({
                   deckId: row.deckId,
                   zone: neighbour.zone,
-                  position,
+                  sortOrder: position,
                   neighbourDeckId: neighbour.neighbourDeckId,
                   shared: neighbour.shared,
                 })),
@@ -215,7 +215,7 @@ export function metaInferencesRepo(db: Kysely<Database>) {
         .select([
           "championCardId",
           "championAltCardId",
-          "championUnsure",
+          "isChampionUnsure as championUnsure",
           "battlefieldCardId",
           "battlefieldAlsoCardIds",
         ])
@@ -265,7 +265,7 @@ export function metaInferencesRepo(db: Kysely<Database>) {
         .where("n.deckId", "=", deckId)
         .where("d.shareToken", "is not", null)
         .orderBy("n.zone")
-        .orderBy("n.position")
+        .orderBy("n.sortOrder")
         .$narrowType<{ shareToken: string }>()
         .execute();
       return { ...row, neighbours };

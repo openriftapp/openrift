@@ -3,13 +3,13 @@ import type { SqlBool } from "kysely";
 import { sql } from "kysely";
 
 export function primaryCardTypeSql(cardIdColumn: string) {
-  return sql<CardType>`(SELECT cct.type_slug FROM card_card_types cct WHERE cct.card_id = ${sql.ref(cardIdColumn)} ORDER BY cct.position LIMIT 1)`;
+  return sql<CardType>`(SELECT cct.type_slug FROM card_card_types cct WHERE cct.card_id = ${sql.ref(cardIdColumn)} ORDER BY cct.sort_order LIMIT 1)`;
 }
 
 export function cardTypes(cardIdColumn: string) {
   return sql<
     CardType[]
-  >`(SELECT array_agg(cct.type_slug ORDER BY cct.position) FROM card_card_types cct WHERE cct.card_id = ${sql.ref(cardIdColumn)})`;
+  >`(SELECT array_agg(cct.type_slug ORDER BY cct.sort_order) FROM card_card_types cct WHERE cct.card_id = ${sql.ref(cardIdColumn)})`;
 }
 
 export function cardHasType(cardIdColumn: string, type: CardType) {

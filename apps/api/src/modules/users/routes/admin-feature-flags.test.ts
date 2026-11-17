@@ -29,7 +29,7 @@ const now = new Date("2026-03-17T00:00:00Z");
 
 const dbFlag1 = {
   key: "deck-builder",
-  enabled: true,
+  isEnabled: true,
   description: "Enable the deck builder",
   createdAt: now,
   updatedAt: now,
@@ -37,7 +37,7 @@ const dbFlag1 = {
 
 const dbFlag2 = {
   key: "trade-system",
-  enabled: false,
+  isEnabled: false,
   description: null,
   createdAt: now,
   updatedAt: now,

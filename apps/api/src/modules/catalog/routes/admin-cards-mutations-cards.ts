@@ -25,7 +25,7 @@ import {
 } from "../services/card-field-writes.js";
 import type { NewPrinting } from "../services/printing-admin.js";
 
-const CARD_SLUG_KEY = "cards_slug_key";
+const CARD_SLUG_KEY = "uq_cards_slug";
 const CARD_SLUG_TAKEN = "A card with this slug already exists";
 
 const os = implement(adminCardMutationsContract).$context<ApiContext>().use(requireAuthedUser);

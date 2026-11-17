@@ -1,6 +1,6 @@
 import { skuKey } from "@openrift/shared/marketplace-sku-key";
 import type { Marketplace } from "@openrift/shared/types/pricing";
-import type { Kysely } from "kysely";
+import type { Kysely, SqlBool } from "kysely";
 import { sql } from "kysely";
 
 import { buildDistinctWhere } from "../../../db/helpers.js";
@@ -101,16 +101,23 @@ export function priceRefreshRepo(db: Db) {
           })),
         )
         .onConflict((oc) =>
-          oc.columns(["marketplace", "groupId"]).doUpdateSet({
-            name: sql<string>`coalesce(excluded.name, marketplace_groups.name)`,
-            abbreviation: sql<string>`coalesce(excluded.abbreviation, marketplace_groups.abbreviation)`,
-          }),
+          oc
+            .columns(["marketplace", "groupId"])
+            .doUpdateSet({
+              name: sql<string>`coalesce(excluded.name, marketplace_groups.name)`,
+              abbreviation: sql<string>`coalesce(excluded.abbreviation, marketplace_groups.abbreviation)`,
+            })
+            .where(
+              sql<SqlBool>`(coalesce(excluded.name, marketplace_groups.name),
+                  coalesce(excluded.abbreviation, marketplace_groups.abbreviation))
+                is distinct from (marketplace_groups.name, marketplace_groups.abbreviation)`,
+            ),
         )
         .execute();
     },
 
     /** `group_id` and `product_name` update on conflict: they legitimately change over time. */
-    upsertProductsForMarketplace(
+    async upsertProductsForMarketplace(
       marketplace: Marketplace,
       skus: {
         externalId: number;
@@ -121,15 +128,14 @@ export function priceRefreshRepo(db: Db) {
       }[],
     ): Promise<{ externalId: number; finish: string; language: string | null; id: string }[]> {
       if (skus.length === 0) {
-        return Promise.resolve([]);
+        return [];
       }
       const dedupByKey = new Map<string, (typeof skus)[number]>();
       for (const sku of skus) {
         dedupByKey.set(skuKey(sku.externalId, sku.finish, sku.language), sku);
       }
-      // `doUpdateSet` makes RETURNING cover conflicting rows too; the resolved
-      // index is NULLS NOT DISTINCT, so CM/TCG's NULL language still matches.
-      return db
+      // The conflict index is NULLS NOT DISTINCT, so a NULL language still matches.
+      await db
         .insertInto("marketplaceProducts")
         .values(
           [...dedupByKey.values()].map((r) => ({
@@ -142,13 +148,26 @@ export function priceRefreshRepo(db: Db) {
           })),
         )
         .onConflict((oc) =>
-          oc.columns(["marketplace", "externalId", "finish", "language"]).doUpdateSet({
-            groupId: (eb) => eb.ref("excluded.groupId"),
-            productName: (eb) => eb.ref("excluded.productName"),
-          }),
+          oc
+            .columns(["marketplace", "externalId", "finish", "language"])
+            .doUpdateSet({
+              groupId: (eb) => eb.ref("excluded.groupId"),
+              productName: (eb) => eb.ref("excluded.productName"),
+            })
+            .where(
+              sql<SqlBool>`(marketplace_products.group_id, marketplace_products.product_name)
+                is distinct from (excluded.group_id, excluded.product_name)`,
+            ),
         )
-        .returning(["id", "externalId", "finish", "language"])
         .execute();
+      // A separate read: RETURNING skips the rows the guard left untouched.
+      const rows = await db
+        .selectFrom("marketplaceProducts")
+        .select(["id", "externalId", "finish", "language"])
+        .where("marketplace", "=", marketplace)
+        .where("externalId", "in", [...new Set(skus.map((sku) => sku.externalId))])
+        .execute();
+      return rows.filter((row) => dedupByKey.has(skuKey(row.externalId, row.finish, row.language)));
     },
 
     /** Rows are keyed on (marketplaceProductId, recordedAt): one per SKU per fetch cycle. */

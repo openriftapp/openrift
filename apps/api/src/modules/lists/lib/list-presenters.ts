@@ -67,7 +67,7 @@ export function toList(row: Selectable<ListsTable> & { entryCount?: number }): L
     tradeDefaults: tradeDefaultsFromList(row),
     currency: row.currency,
     hasRule: parseListRules(row.rules).length > 0,
-    sidebarHidden: row.sidebarHidden,
+    sidebarHidden: row.isSidebarHidden,
   };
 }
 

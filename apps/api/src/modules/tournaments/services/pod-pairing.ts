@@ -62,7 +62,7 @@ async function runPairing(
   }
   const byeSet = new Set(byePlayerIds);
   let seated = snapshot.filter((player) => !byeSet.has(player.id));
-  if (tournament.regionsEnabled) {
+  if (tournament.hasRegions) {
     const missingRegion = seated.filter(
       (player) => player.region === null || player.region === undefined,
     ).length;

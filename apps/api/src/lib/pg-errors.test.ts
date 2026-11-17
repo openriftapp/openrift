@@ -48,16 +48,16 @@ describe("isUniqueViolation", () => {
 
 describe("isForeignKeyViolationOn", () => {
   it("is true only when the 23503 names the given constraint", () => {
-    const error = { code: "23503", constraint_name: "copies_grader_fkey" };
-    expect(isForeignKeyViolationOn(error, "copies_grader_fkey")).toBe(true);
-    expect(isForeignKeyViolationOn(error, "copies_printing_id_fkey")).toBe(false);
+    const error = { code: "23503", constraint_name: "fk_copies_grader" };
+    expect(isForeignKeyViolationOn(error, "fk_copies_grader")).toBe(true);
+    expect(isForeignKeyViolationOn(error, "fk_copies_printing_id")).toBe(false);
   });
 
   it("is false for another SQLSTATE on the same constraint name", () => {
     expect(
       isForeignKeyViolationOn(
-        { code: "23505", constraint_name: "copies_grader_fkey" },
-        "copies_grader_fkey",
+        { code: "23505", constraint_name: "fk_copies_grader" },
+        "fk_copies_grader",
       ),
     ).toBe(false);
   });

@@ -42,7 +42,7 @@ export const adminLanguagesRouter = {
     assertSlugAvailable(existing, code, "Language");
 
     const created = await conflictOnUniqueViolation(
-      "languages_pkey",
+      "pk_languages",
       `Language "${code}" already exists`,
       () => repo.create({ code, name, color, sortOrder }),
     );

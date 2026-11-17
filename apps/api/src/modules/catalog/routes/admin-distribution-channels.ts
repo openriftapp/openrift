@@ -17,7 +17,7 @@ const os = implement(adminDistributionChannelsContract)
   .$context<ApiContext>()
   .use(requireAuthedUser);
 
-const CHANNEL_SLUG_KEY = "distribution_channels_slug_key";
+const CHANNEL_SLUG_KEY = "uq_distribution_channels_slug";
 
 /**
  * Maps a hierarchy-trigger rejection (cycle, kind mismatch, depth cap, parent

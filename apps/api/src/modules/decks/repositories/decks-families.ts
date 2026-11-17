@@ -115,14 +115,14 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
             .values({
               deckId: copy.id,
               generalStrategy: plan.generalStrategy,
-              mulliganSplit: plan.mulliganSplit,
+              hasMulliganSplit: plan.hasMulliganSplit,
               mulliganGeneral: plan.mulliganGeneral,
               mulliganFirst: plan.mulliganFirst,
               mulliganSecond: plan.mulliganSecond,
               battlefieldG1CardId: plan.battlefieldG1CardId,
               battlefieldFirstCardId: plan.battlefieldFirstCardId,
               battlefieldSecondCardId: plan.battlefieldSecondCardId,
-              battlefieldCustom: plan.battlefieldCustom,
+              isBattlefieldCustom: plan.isBattlefieldCustom,
               battlefieldNote: plan.battlefieldNote,
             })
             .execute();

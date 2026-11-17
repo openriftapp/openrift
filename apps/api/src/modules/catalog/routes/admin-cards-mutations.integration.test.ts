@@ -55,7 +55,7 @@ if (ctx) {
   });
   cardId = cardRow!.id;
 
-  await db.insertInto("cardDomains").values({ cardId, domainSlug: "mind", ordinal: 0 }).execute();
+  await db.insertInto("cardDomains").values({ cardId, domainSlug: "mind", sortOrder: 0 }).execute();
 
   const [printingRow] = await insertPrintings(db, {
     cardId,
@@ -757,7 +757,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
 
       const junction = await db
         .selectFrom("cardCardTypes")
-        .select(["typeSlug", "position"])
+        .select(["typeSlug", "sortOrder as position"])
         .where("cardId", "=", cardId)
         .orderBy("position")
         .execute();
@@ -998,7 +998,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
         .innerJoin("cardCardTypes as cct", "cct.cardId", "cards.id")
         .select(["cards.slug", "cards.name", "cct.typeSlug"])
         .where("cards.slug", "=", "CSM-NEW-001")
-        .where("cct.position", "=", 0)
+        .where("cct.sortOrder", "=", 0)
         .executeTakeFirst();
       expect(card).toBeDefined();
       expect(card!.name).toBe("CSM New Card");

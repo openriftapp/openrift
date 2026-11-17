@@ -199,7 +199,7 @@ function citation(provider: string, externalId: string, priority = 0, contribute
     externalId,
     label: provider,
     priority,
-    contributes,
+    isContributing: contributes,
     createdAt: new Date("2026-08-01T00:00:00.000Z"),
   };
 }

@@ -153,7 +153,7 @@ export function rulesRepo(db: Kysely<Database>) {
         .select([
           "keywords.name",
           "keywords.color",
-          "keywords.darkText",
+          "keywords.hasDarkText as darkText",
           "keywordTranslations.label",
         ])
         .execute();

@@ -63,7 +63,7 @@ function loanDtoBaseQuery(db: Kysely<Database>) {
       "l.lenderUserId",
       "l.borrowerUserId",
       "l.borrowerName",
-      "l.borrowerAccountClosed",
+      "l.isBorrowerAccountClosed as borrowerAccountClosed",
       "l.printingId",
       "pf.cardId",
       "l.quantity",
@@ -472,7 +472,7 @@ export function loansRepo(db: Kysely<Database>) {
         .select((eb) => eb.fn.max("createdAt").as("lastUsed"))
         .where("lenderUserId", "=", lenderUserId)
         .where("borrowerName", "is not", null)
-        .where("borrowerAccountClosed", "=", false)
+        .where("isBorrowerAccountClosed", "=", false)
         .groupBy("borrowerName")
         .orderBy("lastUsed", "desc")
         .limit(limit)

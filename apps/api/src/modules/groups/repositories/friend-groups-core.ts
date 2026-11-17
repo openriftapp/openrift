@@ -214,7 +214,7 @@ export function friendGroupRecordsRepo(db: Kysely<Database>) {
           .set({
             bannerUrl: null,
             bannerPosition: GROUP_BANNER_DEFAULT_POSITION,
-            bannerUploadedBy: null,
+            bannerUploadedByUserId: null,
             bannerUploadedAt: null,
             updatedAt: new Date(),
           })
@@ -229,7 +229,7 @@ export function friendGroupRecordsRepo(db: Kysely<Database>) {
     async listBanners(): Promise<GroupBannerRow[]> {
       const rows = await db
         .selectFrom("friendGroups as g")
-        .leftJoin("users as u", "u.id", "g.bannerUploadedBy")
+        .leftJoin("users as u", "u.id", "g.bannerUploadedByUserId")
         .select((eb) => [
           "g.id as groupId",
           "g.slug",

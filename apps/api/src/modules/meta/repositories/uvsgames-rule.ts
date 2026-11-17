@@ -15,7 +15,7 @@ const formatMapped = sql<SqlBool>`regexp_replace(lower(c.event_format), '[^a-z0-
 export function uvsgamesRulePasses(rule: MetaAutoPublishRule): RawBuilder<SqlBool> {
   const official = rule.autoAcceptOfficial
     ? sql<SqlBool>`c.event_configuration_template = any (
-        select t.template_id from uvsgames_event_templates t where t.watched
+        select t.template_id from uvsgames_event_templates t where t.is_watched
       )`
     : sql<SqlBool>`false`;
   const notable = rule.autoAcceptNotable

@@ -83,10 +83,10 @@ export function userSharesRepo(db: Kysely<Database>) {
           "bio",
           "riotId",
           "createdAt",
-          "profileShowRiotId",
-          "profileShowCollection",
-          "profileShowLastActive",
-          "profileShowReferralTier",
+          "isProfileRiotIdShown as profileShowRiotId",
+          "isProfileCollectionShown as profileShowCollection",
+          "isProfileLastActiveShown as profileShowLastActive",
+          "isProfileReferralTierShown as profileShowReferralTier",
         ])
         .where("shareToken", "=", shareToken)
         .executeTakeFirst();

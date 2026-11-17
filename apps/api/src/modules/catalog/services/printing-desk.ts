@@ -331,7 +331,6 @@ const REFERENCE_NOUNS = {
   listings: "marketplace listings",
   products: "product contents",
   metaPicks: "meta deck picks",
-  syncStates: "Cardmarket sync rows",
   linkOverrides: "link overrides",
   dismissals: "dismissed trade suggestions",
   deckSlots: "deck slots",

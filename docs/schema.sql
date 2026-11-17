@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict rqSvazl5qsnUoFKQPnFWsCYSTu8Lr3GTwV15R5gipLai9A4n5bM6ecFk4sXuGcH
+\restrict oAcEzXjuiVoQBNhoR2OMAo11YmiXNSYqbJyoseiiCNUeBvT8Rpaoelljue9Tfnb
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -666,50 +666,48 @@ CREATE FUNCTION public.snapshot_deleted_group_names() RETURNS trigger
 CREATE FUNCTION public.snapshot_deleted_user_names() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
-        
-        BEGIN
-          -- A live trade needs two people. Close the ones this account was in
-          -- before snapshotting, so no request or reservation is left waiting on
-          -- somebody who is gone, and release the copies a reservation had pinned.
-          -- This is what leaving a group already does to that member's live trades.
-          DELETE FROM card_trade_copies
-           WHERE trade_id IN (
-             SELECT id FROM card_trades
-              WHERE (giver_user_id = OLD.id OR receiver_user_id = OLD.id)
-                AND status IN ('pending', 'reserved')
-           );
+    BEGIN
+      DELETE FROM card_trade_copies
+       WHERE trade_id IN (
+         SELECT id FROM card_trades
+          WHERE (giver_user_id = OLD.id OR receiver_user_id = OLD.id)
+            AND status IN ('pending', 'reserved')
+       );
 
-          UPDATE card_trades
-             SET status = 'cancelled',
-                 closed_at = now(),
-                 expires_at = NULL,
-                 last_actor_user_id = NULL
-           WHERE (giver_user_id = OLD.id OR receiver_user_id = OLD.id)
-             AND status IN ('pending', 'reserved');
+      UPDATE card_trades
+         SET status = 'cancelled',
+             closed_at = now(),
+             expires_at = NULL,
+             last_actor_user_id = NULL
+       WHERE (giver_user_id = OLD.id OR receiver_user_id = OLD.id)
+         AND status IN ('pending', 'reserved');
 
-          UPDATE card_trades
-             SET giver_user_id = NULL, giver_name = NULL, giver_account_closed = true
-           WHERE giver_user_id = OLD.id;
+      UPDATE card_trades
+         SET giver_user_id = NULL, giver_name = NULL,
+             "is_giver_account_closed" = true
+       WHERE giver_user_id = OLD.id;
 
-          UPDATE card_trades
-             SET receiver_user_id = NULL, receiver_name = NULL, receiver_account_closed = true
-           WHERE receiver_user_id = OLD.id;
+      UPDATE card_trades
+         SET receiver_user_id = NULL, receiver_name = NULL,
+             "is_receiver_account_closed" = true
+       WHERE receiver_user_id = OLD.id;
 
-          UPDATE loans
-             SET borrower_user_id = NULL, borrower_name = NULL, borrower_account_closed = true
-           WHERE borrower_user_id = OLD.id;
+      UPDATE loans
+         SET borrower_user_id = NULL, borrower_name = NULL,
+             "is_borrower_account_closed" = true
+       WHERE borrower_user_id = OLD.id;
 
-          UPDATE tournament_participants
-             SET user_id = NULL,
-                 display_name = NULL,
-                 riot_id = NULL,
-                 claim_token = NULL,
-                 account_closed = true
-           WHERE user_id = OLD.id;
+      UPDATE tournament_participants
+         SET user_id = NULL,
+             display_name = NULL,
+             riot_id = NULL,
+             claim_token = NULL,
+             "is_account_closed" = true
+       WHERE user_id = OLD.id;
 
-          RETURN OLD;
-        END;
-        $$;
+      RETURN OLD;
+    END;
+    $$;
 
 
 --
@@ -1235,6 +1233,20 @@ CREATE TABLE public.art_variants (
 
 
 --
+-- Name: ban_formats; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ban_formats (
+    slug text CONSTRAINT formats_id_not_null NOT NULL,
+    label text CONSTRAINT formats_name_not_null NOT NULL,
+    created_at timestamp with time zone DEFAULT now() CONSTRAINT formats_created_at_not_null NOT NULL,
+    sort_order smallint CONSTRAINT formats_sort_order_not_null NOT NULL,
+    CONSTRAINT chk_ban_formats_label_not_empty CHECK ((label <> ''::text)),
+    CONSTRAINT chk_ban_formats_slug_not_empty CHECK ((slug <> ''::text))
+);
+
+
+--
 -- Name: board_states; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1284,7 +1296,6 @@ CREATE TABLE public.candidate_cards (
     submission_note text,
     types text[] DEFAULT '{}'::text[] NOT NULL,
     uploaded_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT candidate_cards_submission_note_check CHECK ((submission_note <> ''::text)),
     CONSTRAINT chk_candidate_cards_energy_non_negative CHECK ((energy >= 0)),
     CONSTRAINT chk_candidate_cards_extra_data_shape CHECK (((extra_data IS NULL) OR (jsonb_typeof(extra_data) = 'object'::text))),
     CONSTRAINT chk_candidate_cards_might_bonus_non_negative CHECK ((might_bonus >= 0)),
@@ -1296,7 +1307,8 @@ CREATE TABLE public.candidate_cards (
     CONSTRAINT chk_candidate_cards_no_empty_rules_text CHECK ((rules_text <> ''::text)),
     CONSTRAINT chk_candidate_cards_no_empty_short_code CHECK ((short_code <> ''::text)),
     CONSTRAINT chk_candidate_cards_power_non_negative CHECK ((power >= 0)),
-    CONSTRAINT chk_candidate_cards_provider_not_empty CHECK ((provider <> ''::text))
+    CONSTRAINT chk_candidate_cards_provider_not_empty CHECK ((provider <> ''::text)),
+    CONSTRAINT chk_candidate_cards_submission_note CHECK ((submission_note <> ''::text))
 );
 
 
@@ -1339,7 +1351,6 @@ CREATE TABLE public.candidate_printings (
     released_at date,
     release_precision public.release_precision,
     announced_at date,
-    CONSTRAINT candidate_printings_size_check CHECK ((size <> ''::text)),
     CONSTRAINT chk_candidate_printings_extra_data_shape CHECK (((extra_data IS NULL) OR (jsonb_typeof(extra_data) = 'object'::text))),
     CONSTRAINT chk_candidate_printings_no_empty_art_variant CHECK ((art_variant <> ''::text)),
     CONSTRAINT chk_candidate_printings_no_empty_artist CHECK ((artist <> ''::text)),
@@ -1358,7 +1369,8 @@ CREATE TABLE public.candidate_printings (
     CONSTRAINT chk_candidate_printings_public_code_not_empty CHECK ((public_code <> ''::text)),
     CONSTRAINT chk_candidate_printings_release_period_start CHECK (((released_at IS NULL) OR (release_precision = 'day'::public.release_precision) OR ((release_precision = 'month'::public.release_precision) AND (EXTRACT(day FROM released_at) = (1)::numeric)) OR ((release_precision = 'quarter'::public.release_precision) AND (EXTRACT(day FROM released_at) = (1)::numeric) AND (EXTRACT(month FROM released_at) = ANY (ARRAY[(1)::numeric, (4)::numeric, (7)::numeric, (10)::numeric]))) OR ((release_precision = 'year'::public.release_precision) AND (EXTRACT(doy FROM released_at) = (1)::numeric)))),
     CONSTRAINT chk_candidate_printings_release_precision CHECK (((released_at IS NULL) = (release_precision IS NULL))),
-    CONSTRAINT chk_candidate_printings_short_code_not_empty CHECK ((short_code <> ''::text))
+    CONSTRAINT chk_candidate_printings_short_code_not_empty CHECK ((short_code <> ''::text)),
+    CONSTRAINT chk_candidate_printings_size CHECK ((size <> ''::text))
 );
 
 
@@ -1386,8 +1398,8 @@ CREATE TABLE public.card_bans (
 CREATE TABLE public.card_card_types (
     card_id uuid NOT NULL,
     type_slug text NOT NULL,
-    "position" smallint NOT NULL,
-    CONSTRAINT card_card_types_position_check CHECK (("position" >= 0))
+    sort_order smallint CONSTRAINT card_card_types_position_not_null NOT NULL,
+    CONSTRAINT chk_card_card_types_sort_order CHECK ((sort_order >= 0))
 );
 
 
@@ -1408,8 +1420,8 @@ CREATE TABLE public.card_custom_tags (
 CREATE TABLE public.card_domains (
     card_id uuid NOT NULL,
     domain_slug text NOT NULL,
-    ordinal smallint NOT NULL,
-    CONSTRAINT card_domains_ordinal_check CHECK ((ordinal >= 0))
+    sort_order smallint CONSTRAINT card_domains_ordinal_not_null NOT NULL,
+    CONSTRAINT chk_card_domains_sort_order CHECK ((sort_order >= 0))
 );
 
 
@@ -1585,15 +1597,15 @@ CREATE TABLE public.card_trades (
     receiver_name text,
     group_name text,
     card_id uuid NOT NULL,
-    giver_account_closed boolean DEFAULT false NOT NULL,
-    receiver_account_closed boolean DEFAULT false NOT NULL,
+    is_giver_account_closed boolean DEFAULT false CONSTRAINT card_trades_giver_account_closed_not_null NOT NULL,
+    is_receiver_account_closed boolean DEFAULT false CONSTRAINT card_trades_receiver_account_closed_not_null NOT NULL,
     CONSTRAINT chk_card_trades_closed_shape CHECK (((status = ANY (ARRAY['declined'::text, 'cancelled'::text, 'expired'::text])) = (closed_at IS NOT NULL))),
     CONSTRAINT chk_card_trades_completed_shape CHECK (((status = 'completed'::text) = (completed_at IS NOT NULL))),
     CONSTRAINT chk_card_trades_distinct_parties CHECK ((giver_user_id <> receiver_user_id)),
     CONSTRAINT chk_card_trades_giver_name_not_empty CHECK (((giver_name IS NULL) OR (giver_name <> ''::text))),
     CONSTRAINT chk_card_trades_giver_party_shape CHECK (
 CASE
-    WHEN giver_account_closed THEN (giver_user_id IS NULL)
+    WHEN is_giver_account_closed THEN (giver_user_id IS NULL)
     ELSE (num_nonnulls(giver_user_id, giver_name) = 1)
 END),
     CONSTRAINT chk_card_trades_group_name_not_empty CHECK (((group_name IS NULL) OR (group_name <> ''::text))),
@@ -1604,7 +1616,7 @@ END),
     CONSTRAINT chk_card_trades_receiver_name_not_empty CHECK (((receiver_name IS NULL) OR (receiver_name <> ''::text))),
     CONSTRAINT chk_card_trades_receiver_party_shape CHECK (
 CASE
-    WHEN receiver_account_closed THEN (receiver_user_id IS NULL)
+    WHEN is_receiver_account_closed THEN (receiver_user_id IS NULL)
     ELSE (num_nonnulls(receiver_user_id, receiver_name) = 1)
 END),
     CONSTRAINT chk_card_trades_reserved_accepted CHECK (((status <> 'reserved'::text) OR (accepted_at IS NOT NULL))),
@@ -1623,25 +1635,6 @@ CREATE TABLE public.card_types (
     is_well_known boolean DEFAULT false NOT NULL,
     CONSTRAINT chk_card_types_label_not_empty CHECK ((label <> ''::text)),
     CONSTRAINT chk_card_types_slug_not_empty CHECK ((slug <> ''::text))
-);
-
-
---
--- Name: cardmarket_sync_state; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.cardmarket_sync_state (
-    user_id text NOT NULL,
-    printing_id uuid NOT NULL,
-    condition text NOT NULL,
-    is_altered boolean NOT NULL,
-    intent_base integer DEFAULT 0 NOT NULL,
-    observed_base integer DEFAULT 0 NOT NULL,
-    unmanaged integer DEFAULT 0 NOT NULL,
-    last_seen_at timestamp with time zone DEFAULT now() NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT chk_cardmarket_sync_state_counts CHECK (((intent_base >= 0) AND (observed_base >= 0) AND (unmanaged >= 0)))
 );
 
 
@@ -1665,9 +1658,9 @@ CREATE TABLE public.cards (
     comment text,
     max_copies_override smallint,
     additional_legend_count smallint,
-    CONSTRAINT cards_additional_legend_count_check CHECK ((additional_legend_count > 0)),
-    CONSTRAINT cards_max_copies_override_check CHECK ((max_copies_override >= 0)),
+    CONSTRAINT chk_cards_additional_legend_count CHECK ((additional_legend_count > 0)),
     CONSTRAINT chk_cards_energy_non_negative CHECK ((energy >= 0)),
+    CONSTRAINT chk_cards_max_copies_override CHECK ((max_copies_override >= 0)),
     CONSTRAINT chk_cards_might_bonus_non_negative CHECK ((might_bonus >= 0)),
     CONSTRAINT chk_cards_might_non_negative CHECK ((might >= 0)),
     CONSTRAINT chk_cards_name_not_empty CHECK ((name <> ''::text)),
@@ -1695,7 +1688,7 @@ CREATE TABLE public.catalog_versions (
 CREATE TABLE public.collection_deckbuilding_prefs (
     user_id text NOT NULL,
     collection_id uuid NOT NULL,
-    available boolean NOT NULL
+    is_available boolean CONSTRAINT collection_deckbuilding_prefs_available_not_null NOT NULL
 );
 
 
@@ -1726,7 +1719,7 @@ CREATE TABLE public.collection_events (
 CREATE TABLE public.collection_sidebar_prefs (
     user_id text NOT NULL,
     collection_id uuid NOT NULL,
-    hidden boolean NOT NULL
+    is_hidden boolean CONSTRAINT collection_sidebar_prefs_hidden_not_null NOT NULL
 );
 
 
@@ -1750,8 +1743,8 @@ CREATE TABLE public.collections (
     CONSTRAINT chk_collections_name_not_empty CHECK ((name <> ''::text)),
     CONSTRAINT chk_collections_no_group_inbox CHECK (((group_id IS NULL) OR (is_inbox = false))),
     CONSTRAINT chk_collections_ownership CHECK (((((user_id IS NOT NULL))::integer + ((group_id IS NOT NULL))::integer) = 1)),
-    CONSTRAINT chk_collections_purpose_personal CHECK (((purpose IS NULL) OR (group_id IS NULL))),
-    CONSTRAINT collections_purpose_check CHECK ((purpose = 'marketplace_orders'::text))
+    CONSTRAINT chk_collections_purpose CHECK ((purpose = 'marketplace_orders'::text)),
+    CONSTRAINT chk_collections_purpose_personal CHECK (((purpose IS NULL) OR (group_id IS NULL)))
 );
 
 
@@ -1799,9 +1792,9 @@ CREATE TABLE public.copies (
 --
 
 CREATE TABLE public.copy_deletion_sweep (
-    only_row boolean DEFAULT true NOT NULL,
+    is_only_row boolean DEFAULT true CONSTRAINT copy_deletion_sweep_only_row_not_null NOT NULL,
     pruned_through_xid xid8 DEFAULT '0'::xid8 NOT NULL,
-    CONSTRAINT copy_deletion_sweep_only_row_check CHECK (only_row)
+    CONSTRAINT chk_copy_deletion_sweep_is_only_row CHECK (is_only_row)
 );
 
 
@@ -1831,9 +1824,9 @@ CREATE TABLE public.custom_tag_categories (
     sort_order integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT custom_tag_categories_description_check CHECK ((description <> ''::text)),
-    CONSTRAINT custom_tag_categories_label_check CHECK ((label <> ''::text)),
-    CONSTRAINT custom_tag_categories_slug_check CHECK ((slug <> ''::text))
+    CONSTRAINT chk_custom_tag_categories_description CHECK ((description <> ''::text)),
+    CONSTRAINT chk_custom_tag_categories_label CHECK ((label <> ''::text)),
+    CONSTRAINT chk_custom_tag_categories_slug CHECK ((slug <> ''::text))
 );
 
 
@@ -1850,9 +1843,9 @@ CREATE TABLE public.custom_tags (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     category_id uuid NOT NULL,
-    CONSTRAINT custom_tags_description_check CHECK ((description <> ''::text)),
-    CONSTRAINT custom_tags_label_check CHECK ((label <> ''::text)),
-    CONSTRAINT custom_tags_slug_check CHECK ((slug <> ''::text))
+    CONSTRAINT chk_custom_tags_description CHECK ((description <> ''::text)),
+    CONSTRAINT chk_custom_tags_label CHECK ((label <> ''::text)),
+    CONSTRAINT chk_custom_tags_slug CHECK ((slug <> ''::text))
 );
 
 
@@ -1880,7 +1873,7 @@ CREATE TABLE public.deck_check_entries (
     external_id text NOT NULL,
     submitted_at timestamp with time zone,
     content_hash text NOT NULL,
-    checked_by text,
+    checked_by_user_id text,
     checked_at timestamp with time zone,
     notes text,
     change_summary jsonb,
@@ -1892,16 +1885,16 @@ CREATE TABLE public.deck_check_entries (
     allow_riot_id_sharing boolean DEFAULT true NOT NULL,
     state text DEFAULT 'submitted'::text NOT NULL,
     review_outcome text,
-    approved_by text,
+    approved_by_user_id text,
     approved_at timestamp with time zone,
     unlock_requested_at timestamp with time zone,
     pre_edit_lines jsonb,
     allow_deck_publishing boolean DEFAULT true NOT NULL,
     tournament_id uuid NOT NULL,
     participant_id uuid,
-    CONSTRAINT chk_deck_check_entries_approved_shape CHECK (((state <> 'approved'::text) OR ((approved_at IS NOT NULL) AND (approved_by IS NOT NULL)))),
+    CONSTRAINT chk_deck_check_entries_approved_shape CHECK (((state <> 'approved'::text) OR ((approved_at IS NOT NULL) AND (approved_by_user_id IS NOT NULL)))),
     CONSTRAINT chk_deck_check_entries_change_summary_shape CHECK (((change_summary IS NULL) OR (jsonb_typeof(change_summary) = 'object'::text))),
-    CONSTRAINT chk_deck_check_entries_checked_shape CHECK (((state <> 'checked'::text) OR ((checked_at IS NOT NULL) AND (checked_by IS NOT NULL)))),
+    CONSTRAINT chk_deck_check_entries_checked_shape CHECK (((state <> 'checked'::text) OR ((checked_at IS NOT NULL) AND (checked_by_user_id IS NOT NULL)))),
     CONSTRAINT chk_deck_check_entries_notes CHECK (((notes IS NULL) OR (length(notes) <= 4000))),
     CONSTRAINT chk_deck_check_entries_player_message CHECK (((player_message IS NULL) OR (length(player_message) <= 2000))),
     CONSTRAINT chk_deck_check_entries_pre_edit_lines_shape CHECK (((pre_edit_lines IS NULL) OR (jsonb_typeof(pre_edit_lines) = 'array'::text))),
@@ -1941,7 +1934,7 @@ CREATE TABLE public.deck_check_keys (
     token_hash text NOT NULL,
     token_prefix text NOT NULL,
     label text,
-    created_by text,
+    created_by_user_id text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     last_used_at timestamp with time zone,
     revoked_at timestamp with time zone,
@@ -2050,7 +2043,7 @@ CREATE TABLE public.deck_plans (
     id uuid DEFAULT uuidv7() NOT NULL,
     deck_id uuid NOT NULL,
     general_strategy text DEFAULT ''::text NOT NULL,
-    mulligan_split boolean DEFAULT false NOT NULL,
+    has_mulligan_split boolean DEFAULT false CONSTRAINT deck_plans_mulligan_split_not_null NOT NULL,
     mulligan_general text DEFAULT ''::text NOT NULL,
     mulligan_first text DEFAULT ''::text NOT NULL,
     mulligan_second text DEFAULT ''::text NOT NULL,
@@ -2059,7 +2052,7 @@ CREATE TABLE public.deck_plans (
     battlefield_second_card_id uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    battlefield_custom boolean DEFAULT false NOT NULL,
+    is_battlefield_custom boolean DEFAULT false CONSTRAINT deck_plans_battlefield_custom_not_null NOT NULL,
     battlefield_note text DEFAULT ''::text NOT NULL,
     CONSTRAINT chk_deck_plans_battlefield_note CHECK ((length(battlefield_note) <= 4000)),
     CONSTRAINT chk_deck_plans_general_strategy CHECK ((length(general_strategy) <= 8000)),
@@ -2111,11 +2104,11 @@ CREATE TABLE public.decks (
     is_draft boolean DEFAULT false NOT NULL,
     updated_xid xid8 DEFAULT pg_current_xact_id() NOT NULL,
     cover_face_id uuid,
+    CONSTRAINT chk_decks_cover_position CHECK (((cover_position >= 0) AND (cover_position <= 100))),
     CONSTRAINT chk_decks_format_config_shape CHECK (((format_config IS NULL) OR (jsonb_typeof(format_config) = 'object'::text))),
     CONSTRAINT chk_decks_links_shape CHECK (((links IS NULL) OR (jsonb_typeof(links) = 'array'::text))),
     CONSTRAINT chk_decks_name_not_empty CHECK ((name <> ''::text)),
-    CONSTRAINT chk_decks_odds_config_shape CHECK (((odds_config IS NULL) OR (jsonb_typeof(odds_config) = 'object'::text))),
-    CONSTRAINT decks_cover_position_check CHECK (((cover_position >= 0) AND (cover_position <= 100)))
+    CONSTRAINT chk_decks_odds_config_shape CHECK (((odds_config IS NULL) OR (jsonb_typeof(odds_config) = 'object'::text)))
 );
 
 
@@ -2134,12 +2127,12 @@ CREATE TABLE public.distribution_channels (
     kind text DEFAULT 'event'::text NOT NULL,
     parent_id uuid,
     children_label text,
-    CONSTRAINT distribution_channels_children_label_check CHECK (((children_label IS NULL) OR (children_label <> ''::text))),
-    CONSTRAINT distribution_channels_description_check CHECK ((description <> ''::text)),
-    CONSTRAINT distribution_channels_kind_check CHECK ((kind = ANY (ARRAY['event'::text, 'product'::text]))),
-    CONSTRAINT distribution_channels_label_check CHECK ((label <> ''::text)),
-    CONSTRAINT distribution_channels_no_self_parent CHECK (((parent_id IS NULL) OR (parent_id <> id))),
-    CONSTRAINT distribution_channels_slug_check CHECK ((slug <> ''::text))
+    CONSTRAINT chk_distribution_channels_children_label CHECK (((children_label IS NULL) OR (children_label <> ''::text))),
+    CONSTRAINT chk_distribution_channels_description CHECK ((description <> ''::text)),
+    CONSTRAINT chk_distribution_channels_kind CHECK ((kind = ANY (ARRAY['event'::text, 'product'::text]))),
+    CONSTRAINT chk_distribution_channels_label CHECK ((label <> ''::text)),
+    CONSTRAINT chk_distribution_channels_no_self_parent CHECK (((parent_id IS NULL) OR (parent_id <> id))),
+    CONSTRAINT chk_distribution_channels_slug CHECK ((slug <> ''::text))
 );
 
 
@@ -2185,8 +2178,8 @@ CREATE TABLE public.face_images (
     is_active boolean DEFAULT false NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    activate_when_rehosted boolean DEFAULT false NOT NULL,
-    CONSTRAINT chk_face_images_pending_inactive CHECK ((NOT (is_active AND activate_when_rehosted)))
+    is_activation_pending boolean DEFAULT false CONSTRAINT face_images_activate_when_rehosted_not_null NOT NULL,
+    CONSTRAINT chk_face_images_pending_inactive CHECK ((NOT (is_active AND is_activation_pending)))
 );
 
 
@@ -2237,7 +2230,7 @@ CREATE TABLE public.faces (
 
 CREATE TABLE public.feature_flags (
     key text NOT NULL,
-    enabled boolean DEFAULT false NOT NULL,
+    is_enabled boolean DEFAULT false CONSTRAINT feature_flags_enabled_not_null NOT NULL,
     description text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
@@ -2255,19 +2248,6 @@ CREATE TABLE public.finishes (
     is_well_known boolean DEFAULT false NOT NULL,
     CONSTRAINT chk_finishes_label_not_empty CHECK ((label <> ''::text)),
     CONSTRAINT chk_finishes_slug_not_empty CHECK ((slug <> ''::text))
-);
-
-
---
--- Name: formats; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.formats (
-    id text NOT NULL,
-    name text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT chk_formats_id_not_empty CHECK ((id <> ''::text)),
-    CONSTRAINT chk_formats_name_not_empty CHECK ((name <> ''::text))
 );
 
 
@@ -2313,10 +2293,10 @@ CREATE TABLE public.friend_group_discord_links (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     linked_at timestamp with time zone,
     trade_channel_ids text[] DEFAULT '{}'::text[] NOT NULL,
-    CONSTRAINT chk_fg_discord_links_linked_at CHECK (((guild_id IS NULL) = (linked_at IS NULL))),
-    CONSTRAINT chk_fg_discord_links_pending_expiry CHECK (((code IS NULL) OR (code_expires_at IS NOT NULL))),
-    CONSTRAINT chk_fg_discord_links_state CHECK (((guild_id IS NULL) <> (code IS NULL))),
-    CONSTRAINT chk_fg_discord_links_trade_channels CHECK (((guild_id IS NOT NULL) OR (cardinality(trade_channel_ids) = 0)))
+    CONSTRAINT chk_friend_group_discord_links_linked_at CHECK (((guild_id IS NULL) = (linked_at IS NULL))),
+    CONSTRAINT chk_friend_group_discord_links_pending_expiry CHECK (((code IS NULL) OR (code_expires_at IS NOT NULL))),
+    CONSTRAINT chk_friend_group_discord_links_state CHECK (((guild_id IS NULL) <> (code IS NULL))),
+    CONSTRAINT chk_friend_group_discord_links_trade_channels CHECK (((guild_id IS NOT NULL) OR (cardinality(trade_channel_ids) = 0)))
 );
 
 
@@ -2383,14 +2363,14 @@ CREATE TABLE public.friend_group_playriftbound_shops (
 
 
 --
--- Name: friend_group_shops; Type: TABLE; Schema: public; Owner: -
+-- Name: friend_group_uvsgames_shops; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.friend_group_shops (
-    group_id uuid NOT NULL,
-    uvsgames_store_id integer NOT NULL,
+CREATE TABLE public.friend_group_uvsgames_shops (
+    group_id uuid CONSTRAINT friend_group_shops_group_id_not_null NOT NULL,
+    uvsgames_store_id integer CONSTRAINT friend_group_shops_uvsgames_store_id_not_null NOT NULL,
     added_by_user_id text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() CONSTRAINT friend_group_shops_created_at_not_null NOT NULL
 );
 
 
@@ -2410,7 +2390,7 @@ CREATE TABLE public.friend_groups (
     previous_slug text,
     banner_url text,
     banner_position smallint DEFAULT 50 NOT NULL,
-    banner_uploaded_by text,
+    banner_uploaded_by_user_id text,
     banner_uploaded_at timestamp with time zone,
     CONSTRAINT chk_friend_groups_banner_position CHECK (((banner_position >= 0) AND (banner_position <= 100))),
     CONSTRAINT chk_friend_groups_banner_url CHECK (((banner_url IS NULL) OR (banner_url ~ '^/media/group-banners/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.webp$'::text))),
@@ -2545,7 +2525,7 @@ CREATE TABLE public.job_runs (
     duration_ms integer,
     error_message text,
     result jsonb,
-    noop boolean,
+    is_noop boolean,
     CONSTRAINT chk_job_runs_duration_nonnegative CHECK (((duration_ms IS NULL) OR (duration_ms >= 0))),
     CONSTRAINT chk_job_runs_finished_shape CHECK (((status = 'running'::text) = (finished_at IS NULL))),
     CONSTRAINT chk_job_runs_status CHECK ((status = ANY (ARRAY['running'::text, 'succeeded'::text, 'failed'::text]))),
@@ -2587,14 +2567,14 @@ CREATE TABLE public.keyword_translations (
 CREATE TABLE public.keywords (
     name text CONSTRAINT keyword_styles_name_not_null NOT NULL,
     color text CONSTRAINT keyword_styles_color_not_null NOT NULL,
-    dark_text boolean DEFAULT false CONSTRAINT keyword_styles_dark_text_not_null NOT NULL,
+    has_dark_text boolean DEFAULT false CONSTRAINT keyword_styles_dark_text_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT keyword_styles_created_at_not_null NOT NULL,
     updated_at timestamp with time zone DEFAULT now() CONSTRAINT keyword_styles_updated_at_not_null NOT NULL,
     is_well_known boolean DEFAULT false NOT NULL,
-    cost_keyword boolean DEFAULT false NOT NULL,
-    card_modifier boolean DEFAULT false NOT NULL,
-    CONSTRAINT keywords_color_check CHECK ((color ~ '^#[0-9a-fA-F]{6}$'::text)),
-    CONSTRAINT keywords_name_check CHECK ((name <> ''::text))
+    is_cost_keyword boolean DEFAULT false CONSTRAINT keywords_cost_keyword_not_null NOT NULL,
+    is_card_modifier boolean DEFAULT false CONSTRAINT keywords_card_modifier_not_null NOT NULL,
+    CONSTRAINT chk_keywords_color CHECK ((color ~ '^#[0-9a-fA-F]{6}$'::text)),
+    CONSTRAINT chk_keywords_name CHECK ((name <> ''::text))
 );
 
 
@@ -2630,9 +2610,9 @@ CREATE TABLE public.languages (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     color text,
     is_well_known boolean DEFAULT false NOT NULL,
+    CONSTRAINT chk_languages_code_not_empty CHECK ((code <> ''::text)),
     CONSTRAINT chk_languages_color CHECK ((color ~ '^#[0-9a-fA-F]{6}$'::text)),
-    CONSTRAINT languages_code_not_empty CHECK ((code <> ''::text)),
-    CONSTRAINT languages_name_not_empty CHECK ((name <> ''::text))
+    CONSTRAINT chk_languages_name_not_empty CHECK ((name <> ''::text))
 );
 
 
@@ -2686,21 +2666,21 @@ CREATE TABLE public.lists (
     sort_order integer DEFAULT 0 NOT NULL,
     rules jsonb DEFAULT '[]'::jsonb NOT NULL,
     rule_combine text,
-    sidebar_hidden boolean DEFAULT false NOT NULL,
-    cardmarket_sync boolean DEFAULT false NOT NULL,
-    CONSTRAINT chk_lists_cardmarket_sync_trade_only CHECK (((intent = 'trade'::text) OR (cardmarket_sync = false))),
+    is_sidebar_hidden boolean DEFAULT false CONSTRAINT lists_sidebar_hidden_not_null NOT NULL,
+    has_cardmarket_sync boolean DEFAULT false CONSTRAINT lists_cardmarket_sync_not_null NOT NULL,
     CONSTRAINT chk_lists_currency CHECK (((currency IS NULL) OR (currency = ANY (ARRAY['EUR'::text, 'USD'::text])))),
     CONSTRAINT chk_lists_default_absolute_positive CHECK (((default_price_absolute_cents IS NULL) OR (default_price_absolute_cents > 0))),
     CONSTRAINT chk_lists_default_absolute_shape CHECK (((default_price_pref = 'absolute'::text) = (default_price_absolute_cents IS NOT NULL))),
     CONSTRAINT chk_lists_default_price_pref CHECK (((default_price_pref IS NULL) OR (default_price_pref = ANY (ARRAY['cm_lowest'::text, 'tcg_lowest'::text, 'ct_zero'::text, 'absolute'::text])))),
     CONSTRAINT chk_lists_default_trade_type CHECK (((default_trade_type IS NULL) OR (default_trade_type = ANY (ARRAY['cards'::text, 'money'::text, 'both'::text])))),
+    CONSTRAINT chk_lists_has_cardmarket_sync_trade_only CHECK (((intent = 'trade'::text) OR (has_cardmarket_sync = false))),
     CONSTRAINT chk_lists_intent CHECK ((intent = ANY (ARRAY['wish'::text, 'trade'::text, 'organize'::text]))),
     CONSTRAINT chk_lists_intent_kind CHECK ((((intent = 'wish'::text) AND (kind = ANY (ARRAY['card'::text, 'printing'::text]))) OR ((intent = 'trade'::text) AND (kind = 'copy'::text)) OR ((intent = 'organize'::text) AND (kind = ANY (ARRAY['card'::text, 'printing'::text, 'copy'::text]))))),
     CONSTRAINT chk_lists_kind CHECK ((kind = ANY (ARRAY['card'::text, 'printing'::text, 'copy'::text]))),
     CONSTRAINT chk_lists_name_not_empty CHECK ((name <> ''::text)),
     CONSTRAINT chk_lists_prefs_only_on_trade_intents CHECK (((intent = ANY (ARRAY['wish'::text, 'trade'::text])) OR ((default_price_pref IS NULL) AND (default_price_absolute_cents IS NULL) AND (default_trade_type IS NULL) AND (currency IS NULL)))),
-    CONSTRAINT chk_lists_rules_shape CHECK (((rules IS NULL) OR (jsonb_typeof(rules) = 'array'::text))),
-    CONSTRAINT lists_rule_combine_check CHECK ((rule_combine = ANY (ARRAY['sum'::text, 'max'::text, 'protect'::text, 'count-sum'::text, 'count-max'::text])))
+    CONSTRAINT chk_lists_rule_combine CHECK ((rule_combine = ANY (ARRAY['sum'::text, 'max'::text, 'protect'::text, 'count-sum'::text, 'count-max'::text]))),
+    CONSTRAINT chk_lists_rules_shape CHECK (((rules IS NULL) OR (jsonb_typeof(rules) = 'array'::text)))
 );
 
 
@@ -2733,13 +2713,13 @@ CREATE TABLE public.loans (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     closed_at timestamp with time zone,
     borrower_returned_quantity integer DEFAULT 0 NOT NULL,
-    borrower_account_closed boolean DEFAULT false NOT NULL,
+    is_borrower_account_closed boolean DEFAULT false CONSTRAINT loans_borrower_account_closed_not_null NOT NULL,
     CONSTRAINT chk_loans_ack_reject CHECK ((NOT ((acknowledged_at IS NOT NULL) AND (rejected_at IS NOT NULL)))),
     CONSTRAINT chk_loans_borrower_name_not_empty CHECK (((borrower_name IS NULL) OR (borrower_name <> ''::text))),
     CONSTRAINT chk_loans_borrower_returned_bounds CHECK (((borrower_returned_quantity >= 0) AND (borrower_returned_quantity <= returned_quantity))),
     CONSTRAINT chk_loans_borrower_shape CHECK (
 CASE
-    WHEN borrower_account_closed THEN (borrower_user_id IS NULL)
+    WHEN is_borrower_account_closed THEN (borrower_user_id IS NULL)
     ELSE (num_nonnulls(borrower_user_id, borrower_name) = 1)
 END),
     CONSTRAINT chk_loans_closed_shape CHECK (((status = 'active'::text) = (closed_at IS NULL))),
@@ -2763,9 +2743,9 @@ CREATE TABLE public.markers (
     sort_order integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT markers_description_check CHECK ((description <> ''::text)),
-    CONSTRAINT markers_label_check CHECK ((label <> ''::text)),
-    CONSTRAINT markers_slug_check CHECK ((slug <> ''::text))
+    CONSTRAINT chk_markers_description CHECK ((description <> ''::text)),
+    CONSTRAINT chk_markers_label CHECK ((label <> ''::text)),
+    CONSTRAINT chk_markers_slug CHECK ((slug <> ''::text))
 );
 
 
@@ -2908,11 +2888,11 @@ CREATE TABLE public.meta_credits (
 CREATE TABLE public.meta_deck_inference_neighbours (
     deck_id uuid NOT NULL,
     zone text NOT NULL,
-    "position" smallint NOT NULL,
+    sort_order smallint CONSTRAINT meta_deck_inference_neighbours_position_not_null NOT NULL,
     neighbour_deck_id uuid NOT NULL,
     shared smallint NOT NULL,
-    CONSTRAINT chk_meta_deck_inference_neighbours_position CHECK (("position" >= 0)),
     CONSTRAINT chk_meta_deck_inference_neighbours_shared CHECK ((shared > 0)),
+    CONSTRAINT chk_meta_deck_inference_neighbours_sort_order CHECK ((sort_order >= 0)),
     CONSTRAINT chk_meta_deck_inference_neighbours_zone CHECK ((zone = ANY (ARRAY['champion'::text, 'battlefield'::text])))
 );
 
@@ -2925,14 +2905,14 @@ CREATE TABLE public.meta_deck_inferences (
     deck_id uuid NOT NULL,
     champion_card_id uuid,
     champion_alt_card_id uuid,
-    champion_unsure boolean DEFAULT false NOT NULL,
+    is_champion_unsure boolean DEFAULT false CONSTRAINT meta_deck_inferences_champion_unsure_not_null NOT NULL,
     battlefield_card_id uuid,
     battlefield_also_card_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL,
     computed_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT chk_meta_deck_inferences_also_needs_battlefield CHECK (((cardinality(battlefield_also_card_ids) = 0) OR (battlefield_card_id IS NOT NULL))),
     CONSTRAINT chk_meta_deck_inferences_alt_needs_champion CHECK (((champion_alt_card_id IS NULL) OR ((champion_card_id IS NOT NULL) AND (champion_alt_card_id <> champion_card_id)))),
     CONSTRAINT chk_meta_deck_inferences_some_guess CHECK (((champion_card_id IS NOT NULL) OR (battlefield_card_id IS NOT NULL))),
-    CONSTRAINT chk_meta_deck_inferences_unsure_needs_champion CHECK (((NOT champion_unsure) OR (champion_card_id IS NOT NULL)))
+    CONSTRAINT chk_meta_deck_inferences_unsure_needs_champion CHECK (((NOT is_champion_unsure) OR (champion_card_id IS NOT NULL)))
 );
 
 
@@ -3231,7 +3211,7 @@ CREATE TABLE public.meta_event_sources (
     source_url text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     priority integer DEFAULT 0 NOT NULL,
-    contributes boolean DEFAULT true NOT NULL,
+    is_contributing boolean DEFAULT true CONSTRAINT meta_event_sources_contributes_not_null NOT NULL,
     CONSTRAINT chk_meta_event_sources_external_id CHECK (((external_id IS NULL) OR (external_id <> ''::text))),
     CONSTRAINT chk_meta_event_sources_key_shape CHECK (((provider IS NULL) = (external_id IS NULL))),
     CONSTRAINT chk_meta_event_sources_label CHECK (((length(label) >= 1) AND (length(label) <= 60))),
@@ -3350,9 +3330,9 @@ CREATE TABLE public.meta_submissions (
 CREATE TABLE public.meta_sync_settings (
     id integer NOT NULL,
     auto_accept_min_players integer,
-    auto_accept_notable boolean DEFAULT false NOT NULL,
+    has_auto_accept_notable boolean DEFAULT false CONSTRAINT meta_sync_settings_auto_accept_notable_not_null NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    auto_accept_official boolean DEFAULT false NOT NULL,
+    has_auto_accept_official boolean DEFAULT false CONSTRAINT meta_sync_settings_auto_accept_official_not_null NOT NULL,
     competitive_player_floor integer DEFAULT 128 NOT NULL,
     CONSTRAINT chk_meta_sync_settings_competitive_floor CHECK ((competitive_player_floor > 0)),
     CONSTRAINT chk_meta_sync_settings_min_players CHECK (((auto_accept_min_players IS NULL) OR (auto_accept_min_players > 0))),
@@ -3366,13 +3346,13 @@ CREATE TABLE public.meta_sync_settings (
 
 CREATE MATERIALIZED VIEW public.mv_card_aggregates AS
  SELECT id AS card_id,
-    COALESCE(( SELECT array_agg(cd.domain_slug ORDER BY cd.ordinal) AS array_agg
+    COALESCE(( SELECT array_agg(cd.domain_slug ORDER BY cd.sort_order) AS array_agg
            FROM public.card_domains cd
           WHERE (cd.card_id = c.id)), '{}'::text[]) AS domains,
     COALESCE(( SELECT array_agg(cst.super_type_slug) AS array_agg
            FROM public.card_super_types cst
           WHERE (cst.card_id = c.id)), '{}'::text[]) AS super_types,
-    COALESCE(( SELECT array_agg(cct.type_slug ORDER BY cct."position") AS array_agg
+    COALESCE(( SELECT array_agg(cct.type_slug ORDER BY cct.sort_order) AS array_agg
            FROM public.card_card_types cct
           WHERE (cct.card_id = c.id)), '{}'::text[]) AS types,
     COALESCE(( SELECT array_agg(ct.token_card_id ORDER BY tc.name) AS array_agg
@@ -3946,7 +3926,7 @@ CREATE TABLE public.printing_distribution_channels (
     printing_id uuid NOT NULL,
     channel_id uuid NOT NULL,
     distribution_note text,
-    CONSTRAINT printing_distribution_channels_note_check CHECK ((distribution_note <> ''::text))
+    CONSTRAINT chk_printing_distribution_channels_note CHECK ((distribution_note <> ''::text))
 );
 
 
@@ -3975,8 +3955,8 @@ CREATE TABLE public.printing_link_overrides (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     printing_id uuid NOT NULL,
     provider text NOT NULL,
-    CONSTRAINT chk_plo_no_empty_external_id CHECK ((external_id <> ''::text)),
-    CONSTRAINT chk_plo_no_empty_provider CHECK ((provider <> ''::text))
+    CONSTRAINT chk_printing_link_overrides_no_empty_external_id CHECK ((external_id <> ''::text)),
+    CONSTRAINT chk_printing_link_overrides_no_empty_provider CHECK ((provider <> ''::text))
 );
 
 
@@ -4075,8 +4055,8 @@ CREATE TABLE public.provider_settings (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     is_favorite boolean DEFAULT false NOT NULL,
-    helper_reviewable boolean DEFAULT false NOT NULL,
-    CONSTRAINT provider_settings_provider_check CHECK ((provider <> ''::text))
+    is_helper_reviewable boolean DEFAULT false CONSTRAINT provider_settings_helper_reviewable_not_null NOT NULL,
+    CONSTRAINT chk_provider_settings_provider CHECK ((provider <> ''::text))
 );
 
 
@@ -4118,9 +4098,9 @@ CREATE TABLE public.rule_versions (
     document_version text,
     language text NOT NULL,
     CONSTRAINT chk_rule_versions_document_version_not_empty CHECK ((document_version <> ''::text)),
+    CONSTRAINT chk_rule_versions_kind CHECK ((kind = ANY (ARRAY['core'::text, 'tournament'::text]))),
     CONSTRAINT chk_rule_versions_label_not_empty CHECK ((label <> ''::text)),
-    CONSTRAINT rule_versions_kind_check CHECK ((kind = ANY (ARRAY['core'::text, 'tournament'::text]))),
-    CONSTRAINT rule_versions_language_check CHECK ((language = ANY (ARRAY['en'::text, 'fr'::text, 'ko'::text, 'zh-Hans'::text])))
+    CONSTRAINT chk_rule_versions_language CHECK ((language = ANY (ARRAY['en'::text, 'fr'::text, 'ko'::text, 'zh-Hans'::text])))
 );
 
 
@@ -4140,12 +4120,12 @@ CREATE TABLE public.rules (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     kind text NOT NULL,
     language text NOT NULL,
-    CONSTRAINT rules_change_type_check CHECK ((change_type = ANY (ARRAY['added'::text, 'modified'::text, 'removed'::text, 'unchanged'::text]))),
-    CONSTRAINT rules_depth_check CHECK (((depth >= 0) AND (depth <= 3))),
-    CONSTRAINT rules_kind_check CHECK ((kind = ANY (ARRAY['core'::text, 'tournament'::text]))),
-    CONSTRAINT rules_language_check CHECK ((language = ANY (ARRAY['en'::text, 'fr'::text, 'ko'::text, 'zh-Hans'::text]))),
-    CONSTRAINT rules_rule_number_check CHECK ((rule_number <> ''::text)),
-    CONSTRAINT rules_rule_type_check CHECK ((rule_type = ANY (ARRAY['title'::text, 'subtitle'::text, 'text'::text])))
+    CONSTRAINT chk_rules_change_type CHECK ((change_type = ANY (ARRAY['added'::text, 'modified'::text, 'removed'::text, 'unchanged'::text]))),
+    CONSTRAINT chk_rules_depth CHECK (((depth >= 0) AND (depth <= 3))),
+    CONSTRAINT chk_rules_kind CHECK ((kind = ANY (ARRAY['core'::text, 'tournament'::text]))),
+    CONSTRAINT chk_rules_language CHECK ((language = ANY (ARRAY['en'::text, 'fr'::text, 'ko'::text, 'zh-Hans'::text]))),
+    CONSTRAINT chk_rules_rule_number CHECK ((rule_number <> ''::text)),
+    CONSTRAINT chk_rules_rule_type CHECK ((rule_type = ANY (ARRAY['title'::text, 'subtitle'::text, 'text'::text])))
 );
 
 
@@ -4227,8 +4207,8 @@ CREATE TABLE public.site_settings (
     scope text DEFAULT 'web'::text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT site_settings_key_check CHECK ((key <> ''::text)),
-    CONSTRAINT site_settings_scope_check CHECK ((scope = ANY (ARRAY['web'::text, 'api'::text])))
+    CONSTRAINT chk_site_settings_key CHECK ((key <> ''::text)),
+    CONSTRAINT chk_site_settings_scope CHECK ((scope = ANY (ARRAY['web'::text, 'api'::text])))
 );
 
 
@@ -4272,9 +4252,9 @@ CREATE TABLE public.tag_categories (
     sort_order integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT tag_categories_description_check CHECK ((description <> ''::text)),
-    CONSTRAINT tag_categories_label_check CHECK ((label <> ''::text)),
-    CONSTRAINT tag_categories_slug_check CHECK ((slug <> ''::text))
+    CONSTRAINT chk_tag_categories_description CHECK ((description <> ''::text)),
+    CONSTRAINT chk_tag_categories_label CHECK ((label <> ''::text)),
+    CONSTRAINT chk_tag_categories_slug CHECK ((slug <> ''::text))
 );
 
 
@@ -4288,7 +4268,7 @@ CREATE TABLE public.tag_definitions (
     category_id uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT tag_definitions_tag_check CHECK (((tag <> ''::text) AND (tag = btrim(tag))))
+    CONSTRAINT chk_tag_definitions_tag CHECK (((tag <> ''::text) AND (tag = btrim(tag))))
 );
 
 
@@ -4450,13 +4430,13 @@ CREATE TABLE public.tournament_participants (
     group_id uuid,
     group_slot integer,
     legend_card_id uuid,
-    account_closed boolean DEFAULT false NOT NULL,
+    is_account_closed boolean DEFAULT false CONSTRAINT tournament_participants_account_closed_not_null NOT NULL,
     CONSTRAINT chk_tournament_participants_claim_source CHECK (((claim_source IS NULL) OR (claim_source = ANY (ARRAY['judge_manual'::text, 'self_submit'::text, 'claim_link'::text])))),
     CONSTRAINT chk_tournament_participants_fixed_table CHECK (((fixed_table IS NULL) OR ((fixed_table >= 1) AND (fixed_table <= 999)))),
     CONSTRAINT chk_tournament_participants_group_slot CHECK (((group_slot IS NULL) OR ((group_slot >= 0) AND (group_slot <= 3)))),
     CONSTRAINT chk_tournament_participants_name CHECK (
 CASE
-    WHEN account_closed THEN ((user_id IS NULL) AND (display_name IS NULL) AND (riot_id IS NULL))
+    WHEN is_account_closed THEN ((user_id IS NULL) AND (display_name IS NULL) AND (riot_id IS NULL))
     ELSE ((display_name IS NOT NULL) AND ((length(display_name) >= 1) AND (length(display_name) <= 120)))
 END),
     CONSTRAINT chk_tournament_participants_region CHECK (((region IS NULL) OR ((char_length(region) >= 1) AND (char_length(region) <= 50)))),
@@ -4515,7 +4495,7 @@ CREATE TABLE public.tournaments (
     list_lock_mode text DEFAULT 'on_submit'::text NOT NULL,
     deck_format text DEFAULT 'constructed'::text NOT NULL,
     allowed_sets jsonb,
-    self_registration boolean DEFAULT false NOT NULL,
+    has_self_registration boolean DEFAULT false CONSTRAINT tournaments_self_registration_not_null NOT NULL,
     submission_token text,
     ends_at timestamp with time zone,
     organizer_invite_token text,
@@ -4524,15 +4504,15 @@ CREATE TABLE public.tournaments (
     match_format text DEFAULT 'bo1'::text NOT NULL,
     win_points integer DEFAULT 3 NOT NULL,
     draw_points integer DEFAULT 1 NOT NULL,
-    regions_enabled boolean DEFAULT false NOT NULL,
+    has_regions boolean DEFAULT false CONSTRAINT tournaments_regions_enabled_not_null NOT NULL,
     play_mode text DEFAULT '1v1'::text NOT NULL,
     format text DEFAULT 'rounds'::text NOT NULL,
     cut_size integer DEFAULT 8 NOT NULL,
-    cut_rematch_avoidance boolean DEFAULT false NOT NULL,
-    legend_tiebreak boolean DEFAULT false NOT NULL,
-    groups_self_paced boolean DEFAULT true NOT NULL,
+    has_cut_rematch_avoidance boolean DEFAULT false CONSTRAINT tournaments_cut_rematch_avoidance_not_null NOT NULL,
+    has_legend_tiebreak boolean DEFAULT false CONSTRAINT tournaments_legend_tiebreak_not_null NOT NULL,
+    has_self_paced_groups boolean DEFAULT true CONSTRAINT tournaments_groups_self_paced_not_null NOT NULL,
     uvsgames_event_id text,
-    published boolean DEFAULT true NOT NULL,
+    is_published boolean DEFAULT true CONSTRAINT tournaments_published_not_null NOT NULL,
     CONSTRAINT chk_tournaments_allowed_sets_shape CHECK (((allowed_sets IS NULL) OR (jsonb_typeof(allowed_sets) = 'array'::text))),
     CONSTRAINT chk_tournaments_bye_points CHECK ((bye_points >= 0)),
     CONSTRAINT chk_tournaments_cut_size CHECK ((cut_size = ANY (ARRAY[4, 8, 16]))),
@@ -4548,7 +4528,7 @@ CREATE TABLE public.tournaments (
     CONSTRAINT chk_tournaments_pairing_style CHECK ((pairing_style = ANY (ARRAY['none'::text, 'pod'::text, 'swiss'::text]))),
     CONSTRAINT chk_tournaments_play_mode CHECK ((play_mode = ANY (ARRAY['1v1'::text, '2v2'::text]))),
     CONSTRAINT chk_tournaments_play_mode_pairing CHECK (((play_mode = '1v1'::text) OR (pairing_style <> 'pod'::text))),
-    CONSTRAINT chk_tournaments_play_mode_regions CHECK (((play_mode = '1v1'::text) OR (regions_enabled = false))),
+    CONSTRAINT chk_tournaments_play_mode_regions CHECK (((play_mode = '1v1'::text) OR (has_regions = false))),
     CONSTRAINT chk_tournaments_scheme CHECK ((scoring_scheme = ANY (ARRAY['standard'::text, 'three_pod_reduced'::text]))),
     CONSTRAINT chk_tournaments_status CHECK ((status = ANY (ARRAY['setup'::text, 'running'::text, 'completed'::text, 'cancelled'::text]))),
     CONSTRAINT chk_tournaments_uvsgames_event_id CHECK (((uvsgames_event_id IS NULL) OR (uvsgames_event_id ~ '^[1-9][0-9]{0,11}$'::text))),
@@ -4567,7 +4547,7 @@ CREATE TABLE public.trade_suggestion_dismissals (
     printing_id uuid NOT NULL,
     direction text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT trade_suggestion_dismissals_direction_check CHECK ((direction = ANY (ARRAY['incoming'::text, 'outgoing'::text])))
+    CONSTRAINT chk_trade_suggestion_dismissals_direction CHECK ((direction = ANY (ARRAY['incoming'::text, 'outgoing'::text])))
 );
 
 
@@ -4595,7 +4575,7 @@ CREATE TABLE public.user_contact_methods (
 CREATE TABLE public.user_feature_flags (
     user_id text NOT NULL,
     flag_key text NOT NULL,
-    enabled boolean NOT NULL
+    is_enabled boolean CONSTRAINT user_feature_flags_enabled_not_null NOT NULL
 );
 
 
@@ -4608,8 +4588,8 @@ CREATE TABLE public.user_preferences (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     data jsonb DEFAULT '{"showImages": true, "richEffects": true, "visibleFields": {"type": true, "price": true, "title": true, "number": true, "rarity": true}, "marketplaceOrder": ["tcgplayer", "cardmarket", "cardtrader"]}'::jsonb NOT NULL,
-    CONSTRAINT chk_user_preferences_data_shape CHECK (((data IS NULL) OR (jsonb_typeof(data) = 'object'::text))),
-    CONSTRAINT user_preferences_data_max_size CHECK ((length((data)::text) <= 8192))
+    CONSTRAINT chk_user_preferences_data_max_size CHECK ((length((data)::text) <= 8192)),
+    CONSTRAINT chk_user_preferences_data_shape CHECK (((data IS NULL) OR (jsonb_typeof(data) = 'object'::text)))
 );
 
 
@@ -4629,12 +4609,12 @@ CREATE TABLE public.users (
     riot_id text,
     meta_credit_visibility text DEFAULT 'hidden'::text NOT NULL,
     bio text,
-    profile_show_riot_id boolean DEFAULT false NOT NULL,
-    profile_show_collection boolean DEFAULT false NOT NULL,
-    profile_show_last_active boolean DEFAULT true NOT NULL,
+    is_profile_riot_id_shown boolean DEFAULT false CONSTRAINT users_profile_show_riot_id_not_null NOT NULL,
+    is_profile_collection_shown boolean DEFAULT false CONSTRAINT users_profile_show_collection_not_null NOT NULL,
+    is_profile_last_active_shown boolean DEFAULT true CONSTRAINT users_profile_show_last_active_not_null NOT NULL,
     referral_code text,
     referred_by text,
-    profile_show_referral_tier boolean DEFAULT true NOT NULL,
+    is_profile_referral_tier_shown boolean DEFAULT true CONSTRAINT users_profile_show_referral_tier_not_null NOT NULL,
     CONSTRAINT chk_users_bio CHECK (((bio IS NULL) OR ((bio <> ''::text) AND (char_length(bio) <= 200)))),
     CONSTRAINT chk_users_meta_credit_visibility CHECK ((meta_credit_visibility = ANY (ARRAY['hidden'::text, 'name'::text, 'riot_id'::text]))),
     CONSTRAINT chk_users_referred_by_not_self CHECK ((referred_by <> id))
@@ -4771,7 +4751,7 @@ CREATE TABLE public.uvsgames_event_standings (
 CREATE TABLE public.uvsgames_event_templates (
     template_id text NOT NULL,
     source_name text,
-    watched boolean DEFAULT false NOT NULL,
+    is_watched boolean DEFAULT false CONSTRAINT uvsgames_event_templates_watched_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     tier text,
@@ -4885,750 +4865,6 @@ CREATE TABLE public.verifications (
 
 
 --
--- Name: accounts accounts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.accounts
-    ADD CONSTRAINT accounts_pkey PRIMARY KEY (id);
-
-
---
--- Name: admin_events admin_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.admin_events
-    ADD CONSTRAINT admin_events_pkey PRIMARY KEY (id);
-
-
---
--- Name: admin_grants admin_grants_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.admin_grants
-    ADD CONSTRAINT admin_grants_pkey PRIMARY KEY (user_id, section);
-
-
---
--- Name: admins admins_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.admins
-    ADD CONSTRAINT admins_pkey PRIMARY KEY (user_id);
-
-
---
--- Name: api_keys api_keys_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.api_keys
-    ADD CONSTRAINT api_keys_pkey PRIMARY KEY (id);
-
-
---
--- Name: art_variants art_variants_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.art_variants
-    ADD CONSTRAINT art_variants_pkey PRIMARY KEY (slug);
-
-
---
--- Name: board_states board_states_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.board_states
-    ADD CONSTRAINT board_states_pkey PRIMARY KEY (id);
-
-
---
--- Name: board_states board_states_share_token_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.board_states
-    ADD CONSTRAINT board_states_share_token_key UNIQUE (share_token);
-
-
---
--- Name: candidate_cards candidate_cards_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.candidate_cards
-    ADD CONSTRAINT candidate_cards_pkey PRIMARY KEY (id);
-
-
---
--- Name: candidate_printings candidate_printings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.candidate_printings
-    ADD CONSTRAINT candidate_printings_pkey PRIMARY KEY (id);
-
-
---
--- Name: card_bans card_bans_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_bans
-    ADD CONSTRAINT card_bans_pkey PRIMARY KEY (id);
-
-
---
--- Name: card_card_types card_card_types_card_id_position_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_card_types
-    ADD CONSTRAINT card_card_types_card_id_position_key UNIQUE (card_id, "position");
-
-
---
--- Name: card_card_types card_card_types_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_card_types
-    ADD CONSTRAINT card_card_types_pkey PRIMARY KEY (card_id, type_slug);
-
-
---
--- Name: card_custom_tags card_custom_tags_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_custom_tags
-    ADD CONSTRAINT card_custom_tags_pkey PRIMARY KEY (card_id, custom_tag_id);
-
-
---
--- Name: card_domains card_domains_card_id_ordinal_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_domains
-    ADD CONSTRAINT card_domains_card_id_ordinal_key UNIQUE (card_id, ordinal);
-
-
---
--- Name: card_domains card_domains_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_domains
-    ADD CONSTRAINT card_domains_pkey PRIMARY KEY (card_id, domain_slug);
-
-
---
--- Name: card_errata card_errata_card_id_language_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_errata
-    ADD CONSTRAINT card_errata_card_id_language_unique UNIQUE (card_id, language);
-
-
---
--- Name: card_errata card_errata_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_errata
-    ADD CONSTRAINT card_errata_pkey PRIMARY KEY (id);
-
-
---
--- Name: card_name_aliases card_name_aliases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_name_aliases
-    ADD CONSTRAINT card_name_aliases_pkey PRIMARY KEY (norm_name);
-
-
---
--- Name: card_sizes card_sizes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_sizes
-    ADD CONSTRAINT card_sizes_pkey PRIMARY KEY (slug);
-
-
---
--- Name: card_submissions card_submissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_submissions
-    ADD CONSTRAINT card_submissions_pkey PRIMARY KEY (id);
-
-
---
--- Name: card_super_types card_super_types_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_super_types
-    ADD CONSTRAINT card_super_types_pkey PRIMARY KEY (card_id, super_type_slug);
-
-
---
--- Name: card_tokens card_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_tokens
-    ADD CONSTRAINT card_tokens_pkey PRIMARY KEY (card_id, token_card_id);
-
-
---
--- Name: card_trade_copies card_trade_copies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_trade_copies
-    ADD CONSTRAINT card_trade_copies_pkey PRIMARY KEY (trade_id, copy_id);
-
-
---
--- Name: card_trade_requested_copies card_trade_requested_copies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_trade_requested_copies
-    ADD CONSTRAINT card_trade_requested_copies_pkey PRIMARY KEY (trade_id, copy_id);
-
-
---
--- Name: card_trade_settlement_requests card_trade_settlement_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_trade_settlement_requests
-    ADD CONSTRAINT card_trade_settlement_requests_pkey PRIMARY KEY (trade_id, user_id, request_id);
-
-
---
--- Name: card_trades card_trades_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_trades
-    ADD CONSTRAINT card_trades_pkey PRIMARY KEY (id);
-
-
---
--- Name: card_types card_types_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_types
-    ADD CONSTRAINT card_types_pkey PRIMARY KEY (slug);
-
-
---
--- Name: cardmarket_sync_state cardmarket_sync_state_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.cardmarket_sync_state
-    ADD CONSTRAINT cardmarket_sync_state_pkey PRIMARY KEY (user_id, printing_id, condition, is_altered);
-
-
---
--- Name: cards cards_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.cards
-    ADD CONSTRAINT cards_pkey PRIMARY KEY (id);
-
-
---
--- Name: cards cards_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.cards
-    ADD CONSTRAINT cards_slug_key UNIQUE (slug);
-
-
---
--- Name: catalog_versions catalog_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.catalog_versions
-    ADD CONSTRAINT catalog_versions_pkey PRIMARY KEY (scope);
-
-
---
--- Name: collection_deckbuilding_prefs collection_deckbuilding_prefs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.collection_deckbuilding_prefs
-    ADD CONSTRAINT collection_deckbuilding_prefs_pkey PRIMARY KEY (user_id, collection_id);
-
-
---
--- Name: collection_events collection_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.collection_events
-    ADD CONSTRAINT collection_events_pkey PRIMARY KEY (id);
-
-
---
--- Name: collection_sidebar_prefs collection_sidebar_prefs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.collection_sidebar_prefs
-    ADD CONSTRAINT collection_sidebar_prefs_pkey PRIMARY KEY (user_id, collection_id);
-
-
---
--- Name: collections collections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.collections
-    ADD CONSTRAINT collections_pkey PRIMARY KEY (id);
-
-
---
--- Name: collections collections_share_token_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.collections
-    ADD CONSTRAINT collections_share_token_key UNIQUE (share_token);
-
-
---
--- Name: conditions conditions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.conditions
-    ADD CONSTRAINT conditions_pkey PRIMARY KEY (slug);
-
-
---
--- Name: copies copies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.copies
-    ADD CONSTRAINT copies_pkey PRIMARY KEY (id);
-
-
---
--- Name: copy_deletion_sweep copy_deletion_sweep_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.copy_deletion_sweep
-    ADD CONSTRAINT copy_deletion_sweep_pkey PRIMARY KEY (only_row);
-
-
---
--- Name: copy_deletions copy_deletions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.copy_deletions
-    ADD CONSTRAINT copy_deletions_pkey PRIMARY KEY (copy_id);
-
-
---
--- Name: custom_tag_categories custom_tag_categories_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.custom_tag_categories
-    ADD CONSTRAINT custom_tag_categories_pkey PRIMARY KEY (id);
-
-
---
--- Name: custom_tag_categories custom_tag_categories_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.custom_tag_categories
-    ADD CONSTRAINT custom_tag_categories_slug_key UNIQUE (slug);
-
-
---
--- Name: custom_tags custom_tags_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.custom_tags
-    ADD CONSTRAINT custom_tags_pkey PRIMARY KEY (id);
-
-
---
--- Name: custom_tags custom_tags_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.custom_tags
-    ADD CONSTRAINT custom_tags_slug_key UNIQUE (slug);
-
-
---
--- Name: deck_cards deck_cards_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_cards
-    ADD CONSTRAINT deck_cards_pkey PRIMARY KEY (id);
-
-
---
--- Name: deck_check_entries deck_check_entries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_check_entries
-    ADD CONSTRAINT deck_check_entries_pkey PRIMARY KEY (id);
-
-
---
--- Name: deck_check_entry_cards deck_check_entry_cards_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_check_entry_cards
-    ADD CONSTRAINT deck_check_entry_cards_pkey PRIMARY KEY (id);
-
-
---
--- Name: deck_check_keys deck_check_keys_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_check_keys
-    ADD CONSTRAINT deck_check_keys_pkey PRIMARY KEY (id);
-
-
---
--- Name: deck_check_keys deck_check_keys_token_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_check_keys
-    ADD CONSTRAINT deck_check_keys_token_hash_key UNIQUE (token_hash);
-
-
---
--- Name: deck_families deck_families_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_families
-    ADD CONSTRAINT deck_families_pkey PRIMARY KEY (id);
-
-
---
--- Name: deck_folder_entries deck_folder_entries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_folder_entries
-    ADD CONSTRAINT deck_folder_entries_pkey PRIMARY KEY (folder_id, deck_id);
-
-
---
--- Name: deck_folders deck_folders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_folders
-    ADD CONSTRAINT deck_folders_pkey PRIMARY KEY (id);
-
-
---
--- Name: deck_formats deck_formats_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_formats
-    ADD CONSTRAINT deck_formats_pkey PRIMARY KEY (slug);
-
-
---
--- Name: deck_matchup_plans deck_matchup_plans_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_matchup_plans
-    ADD CONSTRAINT deck_matchup_plans_pkey PRIMARY KEY (id);
-
-
---
--- Name: deck_matchup_swaps deck_matchup_swaps_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_matchup_swaps
-    ADD CONSTRAINT deck_matchup_swaps_pkey PRIMARY KEY (id);
-
-
---
--- Name: deck_plans deck_plans_deck_id_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_plans
-    ADD CONSTRAINT deck_plans_deck_id_key UNIQUE (deck_id);
-
-
---
--- Name: deck_plans deck_plans_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_plans
-    ADD CONSTRAINT deck_plans_pkey PRIMARY KEY (id);
-
-
---
--- Name: deck_zones deck_zones_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_zones
-    ADD CONSTRAINT deck_zones_pkey PRIMARY KEY (slug);
-
-
---
--- Name: decks decks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.decks
-    ADD CONSTRAINT decks_pkey PRIMARY KEY (id);
-
-
---
--- Name: decks decks_share_token_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.decks
-    ADD CONSTRAINT decks_share_token_key UNIQUE (share_token);
-
-
---
--- Name: distribution_channels distribution_channels_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.distribution_channels
-    ADD CONSTRAINT distribution_channels_pkey PRIMARY KEY (id);
-
-
---
--- Name: distribution_channels distribution_channels_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.distribution_channels
-    ADD CONSTRAINT distribution_channels_slug_key UNIQUE (slug);
-
-
---
--- Name: domains domains_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.domains
-    ADD CONSTRAINT domains_pkey PRIMARY KEY (slug);
-
-
---
--- Name: errata_announcements errata_announcements_name_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.errata_announcements
-    ADD CONSTRAINT errata_announcements_name_key UNIQUE (name);
-
-
---
--- Name: errata_announcements errata_announcements_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.errata_announcements
-    ADD CONSTRAINT errata_announcements_pkey PRIMARY KEY (id);
-
-
---
--- Name: face_images face_images_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.face_images
-    ADD CONSTRAINT face_images_pkey PRIMARY KEY (id);
-
-
---
--- Name: faces faces_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.faces
-    ADD CONSTRAINT faces_pkey PRIMARY KEY (id);
-
-
---
--- Name: feature_flags feature_flags_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.feature_flags
-    ADD CONSTRAINT feature_flags_pkey PRIMARY KEY (key);
-
-
---
--- Name: finishes finishes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.finishes
-    ADD CONSTRAINT finishes_pkey PRIMARY KEY (slug);
-
-
---
--- Name: formats formats_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.formats
-    ADD CONSTRAINT formats_pkey PRIMARY KEY (id);
-
-
---
--- Name: friend_group_calendar_feeds friend_group_calendar_feeds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_calendar_feeds
-    ADD CONSTRAINT friend_group_calendar_feeds_pkey PRIMARY KEY (token);
-
-
---
--- Name: friend_group_collection_shares friend_group_collection_shares_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_collection_shares
-    ADD CONSTRAINT friend_group_collection_shares_pkey PRIMARY KEY (group_id, collection_id);
-
-
---
--- Name: friend_group_discord_links friend_group_discord_links_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_discord_links
-    ADD CONSTRAINT friend_group_discord_links_pkey PRIMARY KEY (id);
-
-
---
--- Name: friend_group_invites friend_group_invites_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_invites
-    ADD CONSTRAINT friend_group_invites_pkey PRIMARY KEY (id);
-
-
---
--- Name: friend_group_list_shares friend_group_list_shares_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_list_shares
-    ADD CONSTRAINT friend_group_list_shares_pkey PRIMARY KEY (group_id, list_id);
-
-
---
--- Name: friend_group_member_contacts friend_group_member_contacts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_member_contacts
-    ADD CONSTRAINT friend_group_member_contacts_pkey PRIMARY KEY (group_id, user_id, contact_method_id);
-
-
---
--- Name: friend_group_members friend_group_members_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_members
-    ADD CONSTRAINT friend_group_members_pkey PRIMARY KEY (group_id, user_id);
-
-
---
--- Name: friend_group_playriftbound_shops friend_group_playriftbound_shops_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_playriftbound_shops
-    ADD CONSTRAINT friend_group_playriftbound_shops_pkey PRIMARY KEY (group_id, organizer_id);
-
-
---
--- Name: friend_group_shops friend_group_shops_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_shops
-    ADD CONSTRAINT friend_group_shops_pkey PRIMARY KEY (group_id, uvsgames_store_id);
-
-
---
--- Name: friend_groups friend_groups_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_groups
-    ADD CONSTRAINT friend_groups_pkey PRIMARY KEY (id);
-
-
---
--- Name: friend_groups friend_groups_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_groups
-    ADD CONSTRAINT friend_groups_slug_key UNIQUE (slug);
-
-
---
--- Name: graders graders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.graders
-    ADD CONSTRAINT graders_pkey PRIMARY KEY (slug);
-
-
---
--- Name: ignored_candidate_cards ignored_candidate_cards_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.ignored_candidate_cards
-    ADD CONSTRAINT ignored_candidate_cards_pkey PRIMARY KEY (id);
-
-
---
--- Name: ignored_candidate_printings ignored_candidate_printings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.ignored_candidate_printings
-    ADD CONSTRAINT ignored_candidate_printings_pkey PRIMARY KEY (id);
-
-
---
--- Name: ignored_meta_source_events ignored_meta_source_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.ignored_meta_source_events
-    ADD CONSTRAINT ignored_meta_source_events_pkey PRIMARY KEY (provider, external_id);
-
-
---
--- Name: ignored_meta_source_players ignored_meta_source_players_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.ignored_meta_source_players
-    ADD CONSTRAINT ignored_meta_source_players_pkey PRIMARY KEY (provider, event_external_id, external_id);
-
-
---
--- Name: image_files image_files_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.image_files
-    ADD CONSTRAINT image_files_pkey PRIMARY KEY (id);
-
-
---
--- Name: image_rehost_failures image_rehost_failures_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.image_rehost_failures
-    ADD CONSTRAINT image_rehost_failures_pkey PRIMARY KEY (image_file_id);
-
-
---
--- Name: job_runs job_runs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.job_runs
-    ADD CONSTRAINT job_runs_pkey PRIMARY KEY (id);
-
-
---
--- Name: job_schedules job_schedules_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.job_schedules
-    ADD CONSTRAINT job_schedules_pkey PRIMARY KEY (kind);
-
-
---
--- Name: keyword_translations keyword_translations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.keyword_translations
-    ADD CONSTRAINT keyword_translations_pkey PRIMARY KEY (keyword_name, language);
-
-
---
--- Name: keywords keywords_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.keywords
-    ADD CONSTRAINT keywords_pkey PRIMARY KEY (name);
-
-
---
 -- Name: kysely_migration_lock kysely_migration_lock_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5645,771 +4881,1451 @@ ALTER TABLE ONLY public.kysely_migration
 
 
 --
--- Name: languages languages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: accounts pk_accounts; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.accounts
+    ADD CONSTRAINT pk_accounts PRIMARY KEY (id);
+
+
+--
+-- Name: admin_events pk_admin_events; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.admin_events
+    ADD CONSTRAINT pk_admin_events PRIMARY KEY (id);
+
+
+--
+-- Name: admin_grants pk_admin_grants; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.admin_grants
+    ADD CONSTRAINT pk_admin_grants PRIMARY KEY (user_id, section);
+
+
+--
+-- Name: admins pk_admins; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.admins
+    ADD CONSTRAINT pk_admins PRIMARY KEY (user_id);
+
+
+--
+-- Name: api_keys pk_api_keys; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.api_keys
+    ADD CONSTRAINT pk_api_keys PRIMARY KEY (id);
+
+
+--
+-- Name: art_variants pk_art_variants; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.art_variants
+    ADD CONSTRAINT pk_art_variants PRIMARY KEY (slug);
+
+
+--
+-- Name: ban_formats pk_ban_formats; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ban_formats
+    ADD CONSTRAINT pk_ban_formats PRIMARY KEY (slug);
+
+
+--
+-- Name: board_states pk_board_states; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.board_states
+    ADD CONSTRAINT pk_board_states PRIMARY KEY (id);
+
+
+--
+-- Name: candidate_cards pk_candidate_cards; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_cards
+    ADD CONSTRAINT pk_candidate_cards PRIMARY KEY (id);
+
+
+--
+-- Name: candidate_printings pk_candidate_printings; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_printings
+    ADD CONSTRAINT pk_candidate_printings PRIMARY KEY (id);
+
+
+--
+-- Name: card_bans pk_card_bans; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_bans
+    ADD CONSTRAINT pk_card_bans PRIMARY KEY (id);
+
+
+--
+-- Name: card_card_types pk_card_card_types; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_card_types
+    ADD CONSTRAINT pk_card_card_types PRIMARY KEY (card_id, type_slug);
+
+
+--
+-- Name: card_custom_tags pk_card_custom_tags; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_custom_tags
+    ADD CONSTRAINT pk_card_custom_tags PRIMARY KEY (card_id, custom_tag_id);
+
+
+--
+-- Name: card_domains pk_card_domains; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_domains
+    ADD CONSTRAINT pk_card_domains PRIMARY KEY (card_id, domain_slug);
+
+
+--
+-- Name: card_errata pk_card_errata; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_errata
+    ADD CONSTRAINT pk_card_errata PRIMARY KEY (id);
+
+
+--
+-- Name: card_name_aliases pk_card_name_aliases; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_name_aliases
+    ADD CONSTRAINT pk_card_name_aliases PRIMARY KEY (norm_name);
+
+
+--
+-- Name: card_sizes pk_card_sizes; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_sizes
+    ADD CONSTRAINT pk_card_sizes PRIMARY KEY (slug);
+
+
+--
+-- Name: card_submissions pk_card_submissions; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_submissions
+    ADD CONSTRAINT pk_card_submissions PRIMARY KEY (id);
+
+
+--
+-- Name: card_super_types pk_card_super_types; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_super_types
+    ADD CONSTRAINT pk_card_super_types PRIMARY KEY (card_id, super_type_slug);
+
+
+--
+-- Name: card_tokens pk_card_tokens; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_tokens
+    ADD CONSTRAINT pk_card_tokens PRIMARY KEY (card_id, token_card_id);
+
+
+--
+-- Name: card_trade_copies pk_card_trade_copies; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_trade_copies
+    ADD CONSTRAINT pk_card_trade_copies PRIMARY KEY (trade_id, copy_id);
+
+
+--
+-- Name: card_trade_requested_copies pk_card_trade_requested_copies; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_trade_requested_copies
+    ADD CONSTRAINT pk_card_trade_requested_copies PRIMARY KEY (trade_id, copy_id);
+
+
+--
+-- Name: card_trade_settlement_requests pk_card_trade_settlement_requests; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_trade_settlement_requests
+    ADD CONSTRAINT pk_card_trade_settlement_requests PRIMARY KEY (trade_id, user_id, request_id);
+
+
+--
+-- Name: card_trades pk_card_trades; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_trades
+    ADD CONSTRAINT pk_card_trades PRIMARY KEY (id);
+
+
+--
+-- Name: card_types pk_card_types; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_types
+    ADD CONSTRAINT pk_card_types PRIMARY KEY (slug);
+
+
+--
+-- Name: cards pk_cards; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cards
+    ADD CONSTRAINT pk_cards PRIMARY KEY (id);
+
+
+--
+-- Name: catalog_versions pk_catalog_versions; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_versions
+    ADD CONSTRAINT pk_catalog_versions PRIMARY KEY (scope);
+
+
+--
+-- Name: collection_deckbuilding_prefs pk_collection_deckbuilding_prefs; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.collection_deckbuilding_prefs
+    ADD CONSTRAINT pk_collection_deckbuilding_prefs PRIMARY KEY (user_id, collection_id);
+
+
+--
+-- Name: collection_events pk_collection_events; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.collection_events
+    ADD CONSTRAINT pk_collection_events PRIMARY KEY (id);
+
+
+--
+-- Name: collection_sidebar_prefs pk_collection_sidebar_prefs; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.collection_sidebar_prefs
+    ADD CONSTRAINT pk_collection_sidebar_prefs PRIMARY KEY (user_id, collection_id);
+
+
+--
+-- Name: collections pk_collections; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.collections
+    ADD CONSTRAINT pk_collections PRIMARY KEY (id);
+
+
+--
+-- Name: conditions pk_conditions; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.conditions
+    ADD CONSTRAINT pk_conditions PRIMARY KEY (slug);
+
+
+--
+-- Name: copies pk_copies; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.copies
+    ADD CONSTRAINT pk_copies PRIMARY KEY (id);
+
+
+--
+-- Name: copy_deletion_sweep pk_copy_deletion_sweep; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.copy_deletion_sweep
+    ADD CONSTRAINT pk_copy_deletion_sweep PRIMARY KEY (is_only_row);
+
+
+--
+-- Name: copy_deletions pk_copy_deletions; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.copy_deletions
+    ADD CONSTRAINT pk_copy_deletions PRIMARY KEY (copy_id);
+
+
+--
+-- Name: custom_tag_categories pk_custom_tag_categories; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.custom_tag_categories
+    ADD CONSTRAINT pk_custom_tag_categories PRIMARY KEY (id);
+
+
+--
+-- Name: custom_tags pk_custom_tags; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.custom_tags
+    ADD CONSTRAINT pk_custom_tags PRIMARY KEY (id);
+
+
+--
+-- Name: deck_cards pk_deck_cards; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_cards
+    ADD CONSTRAINT pk_deck_cards PRIMARY KEY (id);
+
+
+--
+-- Name: deck_check_entries pk_deck_check_entries; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_check_entries
+    ADD CONSTRAINT pk_deck_check_entries PRIMARY KEY (id);
+
+
+--
+-- Name: deck_check_entry_cards pk_deck_check_entry_cards; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_check_entry_cards
+    ADD CONSTRAINT pk_deck_check_entry_cards PRIMARY KEY (id);
+
+
+--
+-- Name: deck_check_keys pk_deck_check_keys; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_check_keys
+    ADD CONSTRAINT pk_deck_check_keys PRIMARY KEY (id);
+
+
+--
+-- Name: deck_families pk_deck_families; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_families
+    ADD CONSTRAINT pk_deck_families PRIMARY KEY (id);
+
+
+--
+-- Name: deck_folder_entries pk_deck_folder_entries; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_folder_entries
+    ADD CONSTRAINT pk_deck_folder_entries PRIMARY KEY (folder_id, deck_id);
+
+
+--
+-- Name: deck_folders pk_deck_folders; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_folders
+    ADD CONSTRAINT pk_deck_folders PRIMARY KEY (id);
+
+
+--
+-- Name: deck_formats pk_deck_formats; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_formats
+    ADD CONSTRAINT pk_deck_formats PRIMARY KEY (slug);
+
+
+--
+-- Name: deck_matchup_plans pk_deck_matchup_plans; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_matchup_plans
+    ADD CONSTRAINT pk_deck_matchup_plans PRIMARY KEY (id);
+
+
+--
+-- Name: deck_matchup_swaps pk_deck_matchup_swaps; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_matchup_swaps
+    ADD CONSTRAINT pk_deck_matchup_swaps PRIMARY KEY (id);
+
+
+--
+-- Name: deck_plans pk_deck_plans; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_plans
+    ADD CONSTRAINT pk_deck_plans PRIMARY KEY (id);
+
+
+--
+-- Name: deck_zones pk_deck_zones; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_zones
+    ADD CONSTRAINT pk_deck_zones PRIMARY KEY (slug);
+
+
+--
+-- Name: decks pk_decks; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.decks
+    ADD CONSTRAINT pk_decks PRIMARY KEY (id);
+
+
+--
+-- Name: distribution_channels pk_distribution_channels; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.distribution_channels
+    ADD CONSTRAINT pk_distribution_channels PRIMARY KEY (id);
+
+
+--
+-- Name: domains pk_domains; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.domains
+    ADD CONSTRAINT pk_domains PRIMARY KEY (slug);
+
+
+--
+-- Name: errata_announcements pk_errata_announcements; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.errata_announcements
+    ADD CONSTRAINT pk_errata_announcements PRIMARY KEY (id);
+
+
+--
+-- Name: face_images pk_face_images; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.face_images
+    ADD CONSTRAINT pk_face_images PRIMARY KEY (id);
+
+
+--
+-- Name: faces pk_faces; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.faces
+    ADD CONSTRAINT pk_faces PRIMARY KEY (id);
+
+
+--
+-- Name: feature_flags pk_feature_flags; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.feature_flags
+    ADD CONSTRAINT pk_feature_flags PRIMARY KEY (key);
+
+
+--
+-- Name: finishes pk_finishes; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.finishes
+    ADD CONSTRAINT pk_finishes PRIMARY KEY (slug);
+
+
+--
+-- Name: friend_group_calendar_feeds pk_friend_group_calendar_feeds; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_calendar_feeds
+    ADD CONSTRAINT pk_friend_group_calendar_feeds PRIMARY KEY (token);
+
+
+--
+-- Name: friend_group_collection_shares pk_friend_group_collection_shares; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_collection_shares
+    ADD CONSTRAINT pk_friend_group_collection_shares PRIMARY KEY (group_id, collection_id);
+
+
+--
+-- Name: friend_group_discord_links pk_friend_group_discord_links; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_discord_links
+    ADD CONSTRAINT pk_friend_group_discord_links PRIMARY KEY (id);
+
+
+--
+-- Name: friend_group_invites pk_friend_group_invites; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_invites
+    ADD CONSTRAINT pk_friend_group_invites PRIMARY KEY (id);
+
+
+--
+-- Name: friend_group_list_shares pk_friend_group_list_shares; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_list_shares
+    ADD CONSTRAINT pk_friend_group_list_shares PRIMARY KEY (group_id, list_id);
+
+
+--
+-- Name: friend_group_member_contacts pk_friend_group_member_contacts; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_member_contacts
+    ADD CONSTRAINT pk_friend_group_member_contacts PRIMARY KEY (group_id, user_id, contact_method_id);
+
+
+--
+-- Name: friend_group_members pk_friend_group_members; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_members
+    ADD CONSTRAINT pk_friend_group_members PRIMARY KEY (group_id, user_id);
+
+
+--
+-- Name: friend_group_playriftbound_shops pk_friend_group_playriftbound_shops; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_playriftbound_shops
+    ADD CONSTRAINT pk_friend_group_playriftbound_shops PRIMARY KEY (group_id, organizer_id);
+
+
+--
+-- Name: friend_group_uvsgames_shops pk_friend_group_uvsgames_shops; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_uvsgames_shops
+    ADD CONSTRAINT pk_friend_group_uvsgames_shops PRIMARY KEY (group_id, uvsgames_store_id);
+
+
+--
+-- Name: friend_groups pk_friend_groups; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_groups
+    ADD CONSTRAINT pk_friend_groups PRIMARY KEY (id);
+
+
+--
+-- Name: graders pk_graders; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.graders
+    ADD CONSTRAINT pk_graders PRIMARY KEY (slug);
+
+
+--
+-- Name: ignored_candidate_cards pk_ignored_candidate_cards; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ignored_candidate_cards
+    ADD CONSTRAINT pk_ignored_candidate_cards PRIMARY KEY (id);
+
+
+--
+-- Name: ignored_candidate_printings pk_ignored_candidate_printings; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ignored_candidate_printings
+    ADD CONSTRAINT pk_ignored_candidate_printings PRIMARY KEY (id);
+
+
+--
+-- Name: ignored_meta_source_events pk_ignored_meta_source_events; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ignored_meta_source_events
+    ADD CONSTRAINT pk_ignored_meta_source_events PRIMARY KEY (provider, external_id);
+
+
+--
+-- Name: ignored_meta_source_players pk_ignored_meta_source_players; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ignored_meta_source_players
+    ADD CONSTRAINT pk_ignored_meta_source_players PRIMARY KEY (provider, event_external_id, external_id);
+
+
+--
+-- Name: image_files pk_image_files; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.image_files
+    ADD CONSTRAINT pk_image_files PRIMARY KEY (id);
+
+
+--
+-- Name: image_rehost_failures pk_image_rehost_failures; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.image_rehost_failures
+    ADD CONSTRAINT pk_image_rehost_failures PRIMARY KEY (image_file_id);
+
+
+--
+-- Name: job_runs pk_job_runs; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.job_runs
+    ADD CONSTRAINT pk_job_runs PRIMARY KEY (id);
+
+
+--
+-- Name: job_schedules pk_job_schedules; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.job_schedules
+    ADD CONSTRAINT pk_job_schedules PRIMARY KEY (kind);
+
+
+--
+-- Name: keyword_translations pk_keyword_translations; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.keyword_translations
+    ADD CONSTRAINT pk_keyword_translations PRIMARY KEY (keyword_name, language);
+
+
+--
+-- Name: keywords pk_keywords; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.keywords
+    ADD CONSTRAINT pk_keywords PRIMARY KEY (name);
+
+
+--
+-- Name: languages pk_languages; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.languages
-    ADD CONSTRAINT languages_pkey PRIMARY KEY (code);
+    ADD CONSTRAINT pk_languages PRIMARY KEY (code);
 
 
 --
--- Name: list_entries list_entries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: list_entries pk_list_entries; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.list_entries
-    ADD CONSTRAINT list_entries_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_list_entries PRIMARY KEY (id);
 
 
 --
--- Name: lists lists_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.lists
-    ADD CONSTRAINT lists_pkey PRIMARY KEY (id);
-
-
---
--- Name: lists lists_share_token_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lists pk_lists; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.lists
-    ADD CONSTRAINT lists_share_token_key UNIQUE (share_token);
+    ADD CONSTRAINT pk_lists PRIMARY KEY (id);
 
 
 --
--- Name: loan_copies loan_copies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: loan_copies pk_loan_copies; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.loan_copies
-    ADD CONSTRAINT loan_copies_pkey PRIMARY KEY (loan_id, copy_id);
+    ADD CONSTRAINT pk_loan_copies PRIMARY KEY (loan_id, copy_id);
 
 
 --
--- Name: loans loans_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: loans pk_loans; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.loans
-    ADD CONSTRAINT loans_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_loans PRIMARY KEY (id);
 
 
 --
--- Name: markers markers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.markers
-    ADD CONSTRAINT markers_pkey PRIMARY KEY (id);
-
-
---
--- Name: markers markers_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: markers pk_markers; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.markers
-    ADD CONSTRAINT markers_slug_key UNIQUE (slug);
+    ADD CONSTRAINT pk_markers PRIMARY KEY (id);
 
 
 --
--- Name: marketplace_groups marketplace_groups_marketplace_group_id_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.marketplace_groups
-    ADD CONSTRAINT marketplace_groups_marketplace_group_id_key UNIQUE (marketplace, group_id);
-
-
---
--- Name: marketplace_groups marketplace_groups_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: marketplace_groups pk_marketplace_groups; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.marketplace_groups
-    ADD CONSTRAINT marketplace_groups_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_marketplace_groups PRIMARY KEY (id);
 
 
 --
--- Name: marketplace_ignored_products marketplace_ignored_products_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: marketplace_ignored_products pk_marketplace_ignored_products; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.marketplace_ignored_products
-    ADD CONSTRAINT marketplace_ignored_products_pkey PRIMARY KEY (marketplace, external_id);
+    ADD CONSTRAINT pk_marketplace_ignored_products PRIMARY KEY (marketplace, external_id);
 
 
 --
--- Name: marketplace_ignored_variants marketplace_ignored_variants_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: marketplace_ignored_variants pk_marketplace_ignored_variants; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.marketplace_ignored_variants
-    ADD CONSTRAINT marketplace_ignored_variants_pkey PRIMARY KEY (marketplace_product_id);
+    ADD CONSTRAINT pk_marketplace_ignored_variants PRIMARY KEY (marketplace_product_id);
 
 
 --
--- Name: marketplace_product_card_overrides marketplace_product_card_overrides_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: marketplace_product_card_overrides pk_marketplace_product_card_overrides; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.marketplace_product_card_overrides
-    ADD CONSTRAINT marketplace_product_card_overrides_pkey PRIMARY KEY (marketplace_product_id);
+    ADD CONSTRAINT pk_marketplace_product_card_overrides PRIMARY KEY (marketplace_product_id);
 
 
 --
--- Name: marketplace_product_prices marketplace_product_prices_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: marketplace_product_prices pk_marketplace_product_prices; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.marketplace_product_prices
-    ADD CONSTRAINT marketplace_product_prices_pkey PRIMARY KEY (marketplace_product_id, recorded_at);
+    ADD CONSTRAINT pk_marketplace_product_prices PRIMARY KEY (marketplace_product_id, recorded_at);
 
 
 --
--- Name: marketplace_product_variants marketplace_product_variants_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: marketplace_product_variants pk_marketplace_product_variants; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.marketplace_product_variants
-    ADD CONSTRAINT marketplace_product_variants_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_marketplace_product_variants PRIMARY KEY (id);
 
 
 --
--- Name: marketplace_products marketplace_sources_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: marketplace_products pk_marketplace_products; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.marketplace_products
-    ADD CONSTRAINT marketplace_sources_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_marketplace_products PRIMARY KEY (id);
 
 
 --
--- Name: meta_credits meta_credits_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: meta_credits pk_meta_credits; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.meta_credits
-    ADD CONSTRAINT meta_credits_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_meta_credits PRIMARY KEY (id);
 
 
 --
--- Name: meta_deck_inference_neighbours meta_deck_inference_neighbours_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: meta_deck_inference_neighbours pk_meta_deck_inference_neighbours; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.meta_deck_inference_neighbours
-    ADD CONSTRAINT meta_deck_inference_neighbours_pkey PRIMARY KEY (deck_id, zone, "position");
+    ADD CONSTRAINT pk_meta_deck_inference_neighbours PRIMARY KEY (deck_id, zone, sort_order);
 
 
 --
--- Name: meta_deck_inferences meta_deck_inferences_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: meta_deck_inferences pk_meta_deck_inferences; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.meta_deck_inferences
-    ADD CONSTRAINT meta_deck_inferences_pkey PRIMARY KEY (deck_id);
+    ADD CONSTRAINT pk_meta_deck_inferences PRIMARY KEY (deck_id);
 
 
 --
--- Name: meta_event_matches meta_event_matches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: meta_event_matches pk_meta_event_matches; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.meta_event_matches
-    ADD CONSTRAINT meta_event_matches_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_meta_event_matches PRIMARY KEY (id);
 
 
 --
--- Name: meta_event_overlay_matches meta_event_overlay_matches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: meta_event_overlay_matches pk_meta_event_overlay_matches; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.meta_event_overlay_matches
-    ADD CONSTRAINT meta_event_overlay_matches_pkey PRIMARY KEY (event_overlay_id, external_id);
+    ADD CONSTRAINT pk_meta_event_overlay_matches PRIMARY KEY (event_overlay_id, external_id);
 
 
 --
--- Name: meta_event_overlay_phases meta_event_overlay_phases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: meta_event_overlay_phases pk_meta_event_overlay_phases; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.meta_event_overlay_phases
-    ADD CONSTRAINT meta_event_overlay_phases_pkey PRIMARY KEY (event_overlay_id, phase_order);
+    ADD CONSTRAINT pk_meta_event_overlay_phases PRIMARY KEY (event_overlay_id, phase_order);
 
 
 --
--- Name: meta_event_overlays meta_event_overlays_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: meta_event_overlays pk_meta_event_overlays; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.meta_event_overlays
-    ADD CONSTRAINT meta_event_overlays_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_meta_event_overlays PRIMARY KEY (id);
 
 
 --
--- Name: meta_event_phases meta_event_phases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: meta_event_phases pk_meta_event_phases; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.meta_event_phases
-    ADD CONSTRAINT meta_event_phases_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_meta_event_phases PRIMARY KEY (id);
 
 
 --
--- Name: meta_event_player_overlay_cards meta_event_player_overlay_cards_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: meta_event_player_overlay_cards pk_meta_event_player_overlay_cards; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.meta_event_player_overlay_cards
-    ADD CONSTRAINT meta_event_player_overlay_cards_pkey PRIMARY KEY (overlay_id, line_number);
+    ADD CONSTRAINT pk_meta_event_player_overlay_cards PRIMARY KEY (overlay_id, line_number);
 
 
 --
--- Name: meta_event_player_overlays meta_event_player_overlays_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: meta_event_player_overlays pk_meta_event_player_overlays; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.meta_event_player_overlays
-    ADD CONSTRAINT meta_event_player_overlays_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_meta_event_player_overlays PRIMARY KEY (id);
 
 
 --
--- Name: meta_event_players meta_event_players_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: meta_event_players pk_meta_event_players; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.meta_event_players
-    ADD CONSTRAINT meta_event_players_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_meta_event_players PRIMARY KEY (id);
 
 
 --
--- Name: meta_event_sources meta_event_sources_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: meta_event_sources pk_meta_event_sources; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.meta_event_sources
-    ADD CONSTRAINT meta_event_sources_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_meta_event_sources PRIMARY KEY (id);
 
 
 --
--- Name: meta_events meta_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: meta_events pk_meta_events; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.meta_events
-    ADD CONSTRAINT meta_events_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_meta_events PRIMARY KEY (id);
 
 
 --
--- Name: meta_held_source_events meta_held_source_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: meta_held_source_events pk_meta_held_source_events; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.meta_held_source_events
-    ADD CONSTRAINT meta_held_source_events_pkey PRIMARY KEY (provider, external_id);
+    ADD CONSTRAINT pk_meta_held_source_events PRIMARY KEY (provider, external_id);
 
 
 --
--- Name: meta_player_links meta_player_links_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: meta_player_links pk_meta_player_links; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.meta_player_links
-    ADD CONSTRAINT meta_player_links_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_meta_player_links PRIMARY KEY (id);
 
 
 --
--- Name: meta_submissions meta_submissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: meta_submissions pk_meta_submissions; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.meta_submissions
-    ADD CONSTRAINT meta_submissions_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_meta_submissions PRIMARY KEY (id);
 
 
 --
--- Name: meta_sync_settings meta_sync_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: meta_sync_settings pk_meta_sync_settings; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.meta_sync_settings
-    ADD CONSTRAINT meta_sync_settings_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_meta_sync_settings PRIMARY KEY (id);
 
 
 --
--- Name: organization_members organization_members_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: organization_members pk_organization_members; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.organization_members
-    ADD CONSTRAINT organization_members_pkey PRIMARY KEY (org_id, user_id);
+    ADD CONSTRAINT pk_organization_members PRIMARY KEY (org_id, user_id);
 
 
 --
--- Name: organizations organizations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.organizations
-    ADD CONSTRAINT organizations_pkey PRIMARY KEY (id);
-
-
---
--- Name: organizations organizations_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: organizations pk_organizations; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.organizations
-    ADD CONSTRAINT organizations_slug_key UNIQUE (slug);
+    ADD CONSTRAINT pk_organizations PRIMARY KEY (id);
 
 
 --
--- Name: overlay_channels overlay_channels_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.overlay_channels
-    ADD CONSTRAINT overlay_channels_pkey PRIMARY KEY (id);
-
-
---
--- Name: overlay_channels overlay_channels_token_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: overlay_channels pk_overlay_channels; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.overlay_channels
-    ADD CONSTRAINT overlay_channels_token_key UNIQUE (token);
+    ADD CONSTRAINT pk_overlay_channels PRIMARY KEY (id);
 
 
 --
--- Name: overlay_channels overlay_channels_user_id_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.overlay_channels
-    ADD CONSTRAINT overlay_channels_user_id_key UNIQUE (user_id);
-
-
---
--- Name: playloltcg_decklist_cards playloltcg_decklist_cards_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: playloltcg_decklist_cards pk_playloltcg_decklist_cards; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.playloltcg_decklist_cards
-    ADD CONSTRAINT playloltcg_decklist_cards_pkey PRIMARY KEY (source_deck_id, line_number);
+    ADD CONSTRAINT pk_playloltcg_decklist_cards PRIMARY KEY (source_deck_id, line_number);
 
 
 --
--- Name: playloltcg_decklists playloltcg_decklists_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: playloltcg_decklists pk_playloltcg_decklists; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.playloltcg_decklists
-    ADD CONSTRAINT playloltcg_decklists_pkey PRIMARY KEY (source_deck_id);
+    ADD CONSTRAINT pk_playloltcg_decklists PRIMARY KEY (source_deck_id);
 
 
 --
--- Name: playloltcg_event_checks playloltcg_event_checks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: playloltcg_event_checks pk_playloltcg_event_checks; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.playloltcg_event_checks
-    ADD CONSTRAINT playloltcg_event_checks_pkey PRIMARY KEY (activity_shop_id);
+    ADD CONSTRAINT pk_playloltcg_event_checks PRIMARY KEY (activity_shop_id);
 
 
 --
--- Name: playloltcg_event_standings playloltcg_event_standings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: playloltcg_event_standings pk_playloltcg_event_standings; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.playloltcg_event_standings
-    ADD CONSTRAINT playloltcg_event_standings_pkey PRIMARY KEY (activity_shop_id, player_key);
+    ADD CONSTRAINT pk_playloltcg_event_standings PRIMARY KEY (activity_shop_id, player_key);
 
 
 --
--- Name: playloltcg_events playloltcg_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: playloltcg_events pk_playloltcg_events; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.playloltcg_events
-    ADD CONSTRAINT playloltcg_events_pkey PRIMARY KEY (activity_shop_id);
+    ADD CONSTRAINT pk_playloltcg_events PRIMARY KEY (activity_shop_id);
 
 
 --
--- Name: playloltcg_shops playloltcg_shops_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: playloltcg_shops pk_playloltcg_shops; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.playloltcg_shops
-    ADD CONSTRAINT playloltcg_shops_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_playloltcg_shops PRIMARY KEY (id);
 
 
 --
--- Name: playriftbound_event_checks playriftbound_event_checks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: playriftbound_event_checks pk_playriftbound_event_checks; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.playriftbound_event_checks
-    ADD CONSTRAINT playriftbound_event_checks_pkey PRIMARY KEY (tournament_id);
+    ADD CONSTRAINT pk_playriftbound_event_checks PRIMARY KEY (tournament_id);
 
 
 --
--- Name: playriftbound_event_matches playriftbound_event_matches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: playriftbound_event_matches pk_playriftbound_event_matches; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.playriftbound_event_matches
-    ADD CONSTRAINT playriftbound_event_matches_pkey PRIMARY KEY (tournament_id, source_match_id);
+    ADD CONSTRAINT pk_playriftbound_event_matches PRIMARY KEY (tournament_id, source_match_id);
 
 
 --
--- Name: playriftbound_event_phases playriftbound_event_phases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: playriftbound_event_phases pk_playriftbound_event_phases; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.playriftbound_event_phases
-    ADD CONSTRAINT playriftbound_event_phases_pkey PRIMARY KEY (tournament_id, phase_order);
+    ADD CONSTRAINT pk_playriftbound_event_phases PRIMARY KEY (tournament_id, phase_order);
 
 
 --
--- Name: playriftbound_event_standings playriftbound_event_standings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: playriftbound_event_standings pk_playriftbound_event_standings; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.playriftbound_event_standings
-    ADD CONSTRAINT playriftbound_event_standings_pkey PRIMARY KEY (tournament_id, team_id);
+    ADD CONSTRAINT pk_playriftbound_event_standings PRIMARY KEY (tournament_id, team_id);
 
 
 --
--- Name: playriftbound_events playriftbound_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: playriftbound_events pk_playriftbound_events; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.playriftbound_events
-    ADD CONSTRAINT playriftbound_events_pkey PRIMARY KEY (tournament_id);
+    ADD CONSTRAINT pk_playriftbound_events PRIMARY KEY (tournament_id);
 
 
 --
--- Name: playriftbound_organizers playriftbound_organizers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: playriftbound_organizers pk_playriftbound_organizers; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.playriftbound_organizers
-    ADD CONSTRAINT playriftbound_organizers_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_playriftbound_organizers PRIMARY KEY (id);
 
 
 --
--- Name: pod_byes pod_byes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: pod_byes pk_pod_byes; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.pod_byes
-    ADD CONSTRAINT pod_byes_pkey PRIMARY KEY (round_id, player_id);
+    ADD CONSTRAINT pk_pod_byes PRIMARY KEY (round_id, player_id);
 
 
 --
--- Name: pod_members pod_members_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: pod_members pk_pod_members; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.pod_members
-    ADD CONSTRAINT pod_members_pkey PRIMARY KEY (pod_id, player_id);
+    ADD CONSTRAINT pk_pod_members PRIMARY KEY (pod_id, player_id);
 
 
 --
--- Name: pod_rounds pod_rounds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: pod_rounds pk_pod_rounds; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.pod_rounds
-    ADD CONSTRAINT pod_rounds_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_pod_rounds PRIMARY KEY (id);
 
 
 --
--- Name: pods pods_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: pods pk_pods; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.pods
-    ADD CONSTRAINT pods_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_pods PRIMARY KEY (id);
 
 
 --
--- Name: printing_citations printing_citations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: printing_citations pk_printing_citations; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.printing_citations
-    ADD CONSTRAINT printing_citations_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_printing_citations PRIMARY KEY (id);
 
 
 --
--- Name: printing_distribution_channels printing_distribution_channels_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: printing_distribution_channels pk_printing_distribution_channels; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.printing_distribution_channels
-    ADD CONSTRAINT printing_distribution_channels_pkey PRIMARY KEY (printing_id, channel_id);
+    ADD CONSTRAINT pk_printing_distribution_channels PRIMARY KEY (printing_id, channel_id);
 
 
 --
--- Name: printing_events printing_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: printing_events pk_printing_events; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.printing_events
-    ADD CONSTRAINT printing_events_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_printing_events PRIMARY KEY (id);
 
 
 --
--- Name: printing_link_overrides printing_link_overrides_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: printing_link_overrides pk_printing_link_overrides; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.printing_link_overrides
-    ADD CONSTRAINT printing_link_overrides_pkey PRIMARY KEY (external_id, finish, provider);
+    ADD CONSTRAINT pk_printing_link_overrides PRIMARY KEY (external_id, finish, provider);
 
 
 --
--- Name: printings printings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: printings pk_printings; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.printings
-    ADD CONSTRAINT printings_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_printings PRIMARY KEY (id);
 
 
 --
--- Name: product_printings product_printings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: product_printings pk_product_printings; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.product_printings
-    ADD CONSTRAINT product_printings_pkey PRIMARY KEY (product_id, printing_id);
+    ADD CONSTRAINT pk_product_printings PRIMARY KEY (product_id, printing_id);
 
 
 --
--- Name: products products_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.products
-    ADD CONSTRAINT products_pkey PRIMARY KEY (id);
-
-
---
--- Name: products products_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: products pk_products; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.products
-    ADD CONSTRAINT products_slug_key UNIQUE (slug);
+    ADD CONSTRAINT pk_products PRIMARY KEY (id);
 
 
 --
--- Name: provider_settings provider_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: provider_settings pk_provider_settings; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.provider_settings
-    ADD CONSTRAINT provider_settings_pkey PRIMARY KEY (provider);
+    ADD CONSTRAINT pk_provider_settings PRIMARY KEY (provider);
 
 
 --
--- Name: rarities rarities_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: rarities pk_rarities; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.rarities
-    ADD CONSTRAINT rarities_pkey PRIMARY KEY (slug);
+    ADD CONSTRAINT pk_rarities PRIMARY KEY (slug);
 
 
 --
--- Name: rule_versions rule_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: rule_versions pk_rule_versions; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.rule_versions
-    ADD CONSTRAINT rule_versions_pkey PRIMARY KEY (kind, language, version);
+    ADD CONSTRAINT pk_rule_versions PRIMARY KEY (kind, language, version);
 
 
 --
--- Name: rules rules_kind_language_version_rule_number_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.rules
-    ADD CONSTRAINT rules_kind_language_version_rule_number_key UNIQUE (kind, language, version, rule_number);
-
-
---
--- Name: rules rules_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: rules pk_rules; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.rules
-    ADD CONSTRAINT rules_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_rules PRIMARY KEY (id);
 
 
 --
--- Name: scan_index scan_index_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: scan_index pk_scan_index; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.scan_index
-    ADD CONSTRAINT scan_index_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_scan_index PRIMARY KEY (id);
 
 
 --
--- Name: scan_reports scan_reports_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scan_reports
-    ADD CONSTRAINT scan_reports_pkey PRIMARY KEY (id);
-
-
---
--- Name: scan_reports scan_reports_reference_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: scan_reports pk_scan_reports; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.scan_reports
-    ADD CONSTRAINT scan_reports_reference_key UNIQUE (reference);
+    ADD CONSTRAINT pk_scan_reports PRIMARY KEY (id);
 
 
 --
--- Name: sessions sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sessions pk_sessions; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sessions
-    ADD CONSTRAINT sessions_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_sessions PRIMARY KEY (id);
 
 
 --
--- Name: set_releases set_releases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: set_releases pk_set_releases; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.set_releases
-    ADD CONSTRAINT set_releases_pkey PRIMARY KEY (set_id, language);
+    ADD CONSTRAINT pk_set_releases PRIMARY KEY (set_id, language);
 
 
 --
--- Name: sets sets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sets
-    ADD CONSTRAINT sets_pkey PRIMARY KEY (id);
-
-
---
--- Name: sets sets_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sets pk_sets; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sets
-    ADD CONSTRAINT sets_slug_key UNIQUE (slug);
+    ADD CONSTRAINT pk_sets PRIMARY KEY (id);
 
 
 --
--- Name: site_settings site_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: site_settings pk_site_settings; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.site_settings
-    ADD CONSTRAINT site_settings_pkey PRIMARY KEY (key);
+    ADD CONSTRAINT pk_site_settings PRIMARY KEY (key);
 
 
 --
--- Name: stage_presets stage_presets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: stage_presets pk_stage_presets; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.stage_presets
-    ADD CONSTRAINT stage_presets_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_stage_presets PRIMARY KEY (id);
 
 
 --
--- Name: super_types super_types_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: super_types pk_super_types; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.super_types
-    ADD CONSTRAINT super_types_pkey PRIMARY KEY (slug);
+    ADD CONSTRAINT pk_super_types PRIMARY KEY (slug);
 
 
 --
--- Name: tag_categories tag_categories_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tag_categories
-    ADD CONSTRAINT tag_categories_pkey PRIMARY KEY (id);
-
-
---
--- Name: tag_categories tag_categories_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: tag_categories pk_tag_categories; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tag_categories
-    ADD CONSTRAINT tag_categories_slug_key UNIQUE (slug);
+    ADD CONSTRAINT pk_tag_categories PRIMARY KEY (id);
 
 
 --
--- Name: tag_definitions tag_definitions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tag_definitions
-    ADD CONSTRAINT tag_definitions_pkey PRIMARY KEY (id);
-
-
---
--- Name: tag_definitions tag_definitions_tag_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: tag_definitions pk_tag_definitions; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tag_definitions
-    ADD CONSTRAINT tag_definitions_tag_key UNIQUE (tag);
+    ADD CONSTRAINT pk_tag_definitions PRIMARY KEY (id);
 
 
 --
--- Name: tier_lists tier_lists_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tier_lists
-    ADD CONSTRAINT tier_lists_pkey PRIMARY KEY (id);
-
-
---
--- Name: tier_lists tier_lists_share_token_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: tier_lists pk_tier_lists; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tier_lists
-    ADD CONSTRAINT tier_lists_share_token_key UNIQUE (share_token);
+    ADD CONSTRAINT pk_tier_lists PRIMARY KEY (id);
 
 
 --
--- Name: topdeck_decklist_cards topdeck_decklist_cards_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: topdeck_decklist_cards pk_topdeck_decklist_cards; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.topdeck_decklist_cards
-    ADD CONSTRAINT topdeck_decklist_cards_pkey PRIMARY KEY (source_deck_id, line_number);
+    ADD CONSTRAINT pk_topdeck_decklist_cards PRIMARY KEY (source_deck_id, line_number);
 
 
 --
--- Name: topdeck_decklists topdeck_decklists_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: topdeck_decklists pk_topdeck_decklists; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.topdeck_decklists
-    ADD CONSTRAINT topdeck_decklists_pkey PRIMARY KEY (source_deck_id);
+    ADD CONSTRAINT pk_topdeck_decklists PRIMARY KEY (source_deck_id);
 
 
 --
--- Name: topdeck_event_standings topdeck_event_standings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: topdeck_event_standings pk_topdeck_event_standings; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.topdeck_event_standings
-    ADD CONSTRAINT topdeck_event_standings_pkey PRIMARY KEY (tid, player_key);
+    ADD CONSTRAINT pk_topdeck_event_standings PRIMARY KEY (tid, player_key);
 
 
 --
--- Name: topdeck_events topdeck_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: topdeck_events pk_topdeck_events; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.topdeck_events
-    ADD CONSTRAINT topdeck_events_pkey PRIMARY KEY (tid);
+    ADD CONSTRAINT pk_topdeck_events PRIMARY KEY (tid);
 
 
 --
--- Name: tournament_groups tournament_groups_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tournament_groups
-    ADD CONSTRAINT tournament_groups_pkey PRIMARY KEY (id);
-
-
---
--- Name: tournament_groups tournament_groups_tournament_id_label_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: tournament_groups pk_tournament_groups; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tournament_groups
-    ADD CONSTRAINT tournament_groups_tournament_id_label_key UNIQUE (tournament_id, label);
+    ADD CONSTRAINT pk_tournament_groups PRIMARY KEY (id);
 
 
 --
--- Name: tournament_legend_meta_shares tournament_legend_meta_shares_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: tournament_legend_meta_shares pk_tournament_legend_meta_shares; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tournament_legend_meta_shares
-    ADD CONSTRAINT tournament_legend_meta_shares_pkey PRIMARY KEY (tournament_id, legend_card_id);
+    ADD CONSTRAINT pk_tournament_legend_meta_shares PRIMARY KEY (tournament_id, legend_card_id);
 
 
 --
--- Name: tournament_participants tournament_participants_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: tournament_participants pk_tournament_participants; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tournament_participants
-    ADD CONSTRAINT tournament_participants_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_tournament_participants PRIMARY KEY (id);
 
 
 --
--- Name: tournament_staff tournament_staff_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: tournament_staff pk_tournament_staff; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tournament_staff
-    ADD CONSTRAINT tournament_staff_pkey PRIMARY KEY (tournament_id, user_id, role);
+    ADD CONSTRAINT pk_tournament_staff PRIMARY KEY (tournament_id, user_id, role);
 
 
 --
--- Name: tournament_teams tournament_teams_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: tournament_teams pk_tournament_teams; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tournament_teams
-    ADD CONSTRAINT tournament_teams_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_tournament_teams PRIMARY KEY (id);
 
 
 --
--- Name: tournaments tournaments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: tournaments pk_tournaments; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tournaments
-    ADD CONSTRAINT tournaments_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_tournaments PRIMARY KEY (id);
 
 
 --
--- Name: trade_suggestion_dismissals trade_suggestion_dismissals_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: trade_suggestion_dismissals pk_trade_suggestion_dismissals; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trade_suggestion_dismissals
-    ADD CONSTRAINT trade_suggestion_dismissals_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT pk_trade_suggestion_dismissals PRIMARY KEY (id);
+
+
+--
+-- Name: user_contact_methods pk_user_contact_methods; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_contact_methods
+    ADD CONSTRAINT pk_user_contact_methods PRIMARY KEY (id);
+
+
+--
+-- Name: user_feature_flags pk_user_feature_flags; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_feature_flags
+    ADD CONSTRAINT pk_user_feature_flags PRIMARY KEY (user_id, flag_key);
+
+
+--
+-- Name: user_preferences pk_user_preferences; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_preferences
+    ADD CONSTRAINT pk_user_preferences PRIMARY KEY (user_id);
+
+
+--
+-- Name: users pk_users; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT pk_users PRIMARY KEY (id);
+
+
+--
+-- Name: uvsgames_decklist_cards pk_uvsgames_decklist_cards; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.uvsgames_decklist_cards
+    ADD CONSTRAINT pk_uvsgames_decklist_cards PRIMARY KEY (source_deck_id, line_number);
+
+
+--
+-- Name: uvsgames_decklists pk_uvsgames_decklists; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.uvsgames_decklists
+    ADD CONSTRAINT pk_uvsgames_decklists PRIMARY KEY (source_deck_id);
+
+
+--
+-- Name: uvsgames_event_checks pk_uvsgames_event_checks; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.uvsgames_event_checks
+    ADD CONSTRAINT pk_uvsgames_event_checks PRIMARY KEY (external_id);
+
+
+--
+-- Name: uvsgames_event_matches pk_uvsgames_event_matches; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.uvsgames_event_matches
+    ADD CONSTRAINT pk_uvsgames_event_matches PRIMARY KEY (external_id, round_id, player1_uvsgames_id);
+
+
+--
+-- Name: uvsgames_event_phases pk_uvsgames_event_phases; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.uvsgames_event_phases
+    ADD CONSTRAINT pk_uvsgames_event_phases PRIMARY KEY (external_id, phase_order);
+
+
+--
+-- Name: uvsgames_event_standings pk_uvsgames_event_standings; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.uvsgames_event_standings
+    ADD CONSTRAINT pk_uvsgames_event_standings PRIMARY KEY (external_id, registration_id);
+
+
+--
+-- Name: uvsgames_event_templates pk_uvsgames_event_templates; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.uvsgames_event_templates
+    ADD CONSTRAINT pk_uvsgames_event_templates PRIMARY KEY (template_id);
+
+
+--
+-- Name: uvsgames_events pk_uvsgames_events; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.uvsgames_events
+    ADD CONSTRAINT pk_uvsgames_events PRIMARY KEY (external_id);
+
+
+--
+-- Name: uvsgames_format_mappings pk_uvsgames_format_mappings; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.uvsgames_format_mappings
+    ADD CONSTRAINT pk_uvsgames_format_mappings PRIMARY KEY (source_format);
+
+
+--
+-- Name: uvsgames_id_probes pk_uvsgames_id_probes; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.uvsgames_id_probes
+    ADD CONSTRAINT pk_uvsgames_id_probes PRIMARY KEY (external_id);
+
+
+--
+-- Name: uvsgames_players pk_uvsgames_players; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.uvsgames_players
+    ADD CONSTRAINT pk_uvsgames_players PRIMARY KEY (id);
+
+
+--
+-- Name: uvsgames_stores pk_uvsgames_stores; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.uvsgames_stores
+    ADD CONSTRAINT pk_uvsgames_stores PRIMARY KEY (id);
+
+
+--
+-- Name: verifications pk_verifications; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.verifications
+    ADD CONSTRAINT pk_verifications PRIMARY KEY (id);
+
+
+--
+-- Name: board_states uq_board_states_share_token; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.board_states
+    ADD CONSTRAINT uq_board_states_share_token UNIQUE (share_token);
+
+
+--
+-- Name: card_card_types uq_card_card_types_card_id_sort_order; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_card_types
+    ADD CONSTRAINT uq_card_card_types_card_id_sort_order UNIQUE (card_id, sort_order);
+
+
+--
+-- Name: card_domains uq_card_domains_card_id_sort_order; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_domains
+    ADD CONSTRAINT uq_card_domains_card_id_sort_order UNIQUE (card_id, sort_order);
+
+
+--
+-- Name: card_errata uq_card_errata_card_id_language; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_errata
+    ADD CONSTRAINT uq_card_errata_card_id_language UNIQUE (card_id, language);
 
 
 --
@@ -6421,6 +6337,14 @@ ALTER TABLE ONLY public.card_trade_copies
 
 
 --
+-- Name: cards uq_cards_slug; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cards
+    ADD CONSTRAINT uq_cards_slug UNIQUE (slug);
+
+
+--
 -- Name: collections uq_collections_id_user; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6429,11 +6353,43 @@ ALTER TABLE ONLY public.collections
 
 
 --
+-- Name: collections uq_collections_share_token; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.collections
+    ADD CONSTRAINT uq_collections_share_token UNIQUE (share_token);
+
+
+--
+-- Name: custom_tag_categories uq_custom_tag_categories_slug; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.custom_tag_categories
+    ADD CONSTRAINT uq_custom_tag_categories_slug UNIQUE (slug);
+
+
+--
+-- Name: custom_tags uq_custom_tags_slug; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.custom_tags
+    ADD CONSTRAINT uq_custom_tags_slug UNIQUE (slug);
+
+
+--
 -- Name: deck_check_entries uq_deck_check_entries_tournament_external; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.deck_check_entries
     ADD CONSTRAINT uq_deck_check_entries_tournament_external UNIQUE (tournament_id, external_id);
+
+
+--
+-- Name: deck_check_keys uq_deck_check_keys_token_hash; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_check_keys
+    ADD CONSTRAINT uq_deck_check_keys_token_hash UNIQUE (token_hash);
 
 
 --
@@ -6453,11 +6409,43 @@ ALTER TABLE ONLY public.deck_matchup_swaps
 
 
 --
+-- Name: deck_plans uq_deck_plans_deck_id; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_plans
+    ADD CONSTRAINT uq_deck_plans_deck_id UNIQUE (deck_id);
+
+
+--
 -- Name: decks uq_decks_id_user; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.decks
     ADD CONSTRAINT uq_decks_id_user UNIQUE (id, user_id);
+
+
+--
+-- Name: decks uq_decks_share_token; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.decks
+    ADD CONSTRAINT uq_decks_share_token UNIQUE (share_token);
+
+
+--
+-- Name: distribution_channels uq_distribution_channels_slug; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.distribution_channels
+    ADD CONSTRAINT uq_distribution_channels_slug UNIQUE (slug);
+
+
+--
+-- Name: errata_announcements uq_errata_announcements_name; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.errata_announcements
+    ADD CONSTRAINT uq_errata_announcements_name UNIQUE (name);
 
 
 --
@@ -6509,6 +6497,14 @@ ALTER TABLE ONLY public.friend_group_members
 
 
 --
+-- Name: friend_groups uq_friend_groups_slug; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_groups
+    ADD CONSTRAINT uq_friend_groups_slug UNIQUE (slug);
+
+
+--
 -- Name: lists uq_lists_id_kind; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6525,11 +6521,35 @@ ALTER TABLE ONLY public.lists
 
 
 --
+-- Name: lists uq_lists_share_token; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lists
+    ADD CONSTRAINT uq_lists_share_token UNIQUE (share_token);
+
+
+--
 -- Name: loan_copies uq_loan_copies_copy; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.loan_copies
     ADD CONSTRAINT uq_loan_copies_copy UNIQUE (copy_id);
+
+
+--
+-- Name: markers uq_markers_slug; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.markers
+    ADD CONSTRAINT uq_markers_slug UNIQUE (slug);
+
+
+--
+-- Name: marketplace_groups uq_marketplace_groups_marketplace_group_id; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketplace_groups
+    ADD CONSTRAINT uq_marketplace_groups_marketplace_group_id UNIQUE (marketplace, group_id);
 
 
 --
@@ -6573,6 +6593,30 @@ ALTER TABLE ONLY public.meta_player_links
 
 
 --
+-- Name: organizations uq_organizations_slug; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.organizations
+    ADD CONSTRAINT uq_organizations_slug UNIQUE (slug);
+
+
+--
+-- Name: overlay_channels uq_overlay_channels_token; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.overlay_channels
+    ADD CONSTRAINT uq_overlay_channels_token UNIQUE (token);
+
+
+--
+-- Name: overlay_channels uq_overlay_channels_user_id; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.overlay_channels
+    ADD CONSTRAINT uq_overlay_channels_user_id UNIQUE (user_id);
+
+
+--
 -- Name: pod_rounds uq_pod_rounds_number; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6605,6 +6649,70 @@ ALTER TABLE ONLY public.printings
 
 
 --
+-- Name: products uq_products_slug; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.products
+    ADD CONSTRAINT uq_products_slug UNIQUE (slug);
+
+
+--
+-- Name: rules uq_rules_kind_language_version_rule_number; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rules
+    ADD CONSTRAINT uq_rules_kind_language_version_rule_number UNIQUE (kind, language, version, rule_number);
+
+
+--
+-- Name: scan_reports uq_scan_reports_reference; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.scan_reports
+    ADD CONSTRAINT uq_scan_reports_reference UNIQUE (reference);
+
+
+--
+-- Name: sets uq_sets_slug; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sets
+    ADD CONSTRAINT uq_sets_slug UNIQUE (slug);
+
+
+--
+-- Name: tag_categories uq_tag_categories_slug; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tag_categories
+    ADD CONSTRAINT uq_tag_categories_slug UNIQUE (slug);
+
+
+--
+-- Name: tag_definitions uq_tag_definitions_tag; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tag_definitions
+    ADD CONSTRAINT uq_tag_definitions_tag UNIQUE (tag);
+
+
+--
+-- Name: tier_lists uq_tier_lists_share_token; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tier_lists
+    ADD CONSTRAINT uq_tier_lists_share_token UNIQUE (share_token);
+
+
+--
+-- Name: tournament_groups uq_tournament_groups_tournament_id_label; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tournament_groups
+    ADD CONSTRAINT uq_tournament_groups_tournament_id_label UNIQUE (tournament_id, label);
+
+
+--
 -- Name: tournament_teams uq_tournament_teams_id_tournament; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6621,155 +6729,19 @@ ALTER TABLE ONLY public.trade_suggestion_dismissals
 
 
 --
--- Name: user_contact_methods user_contact_methods_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_contact_methods
-    ADD CONSTRAINT user_contact_methods_pkey PRIMARY KEY (id);
-
-
---
--- Name: user_feature_flags user_feature_flags_pk; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_feature_flags
-    ADD CONSTRAINT user_feature_flags_pk PRIMARY KEY (user_id, flag_key);
-
-
---
--- Name: user_preferences user_preferences_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_preferences
-    ADD CONSTRAINT user_preferences_pkey PRIMARY KEY (user_id);
-
-
---
--- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: users uq_users_email; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_email_key UNIQUE (email);
+    ADD CONSTRAINT uq_users_email UNIQUE (email);
 
 
 --
--- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
-
-
---
--- Name: users users_referral_code_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: users uq_users_referral_code; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_referral_code_unique UNIQUE (referral_code);
-
-
---
--- Name: uvsgames_decklist_cards uvsgames_decklist_cards_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.uvsgames_decklist_cards
-    ADD CONSTRAINT uvsgames_decklist_cards_pkey PRIMARY KEY (source_deck_id, line_number);
-
-
---
--- Name: uvsgames_decklists uvsgames_decklists_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.uvsgames_decklists
-    ADD CONSTRAINT uvsgames_decklists_pkey PRIMARY KEY (source_deck_id);
-
-
---
--- Name: uvsgames_event_checks uvsgames_event_checks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.uvsgames_event_checks
-    ADD CONSTRAINT uvsgames_event_checks_pkey PRIMARY KEY (external_id);
-
-
---
--- Name: uvsgames_event_matches uvsgames_event_matches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.uvsgames_event_matches
-    ADD CONSTRAINT uvsgames_event_matches_pkey PRIMARY KEY (external_id, round_id, player1_uvsgames_id);
-
-
---
--- Name: uvsgames_event_phases uvsgames_event_phases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.uvsgames_event_phases
-    ADD CONSTRAINT uvsgames_event_phases_pkey PRIMARY KEY (external_id, phase_order);
-
-
---
--- Name: uvsgames_event_standings uvsgames_event_standings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.uvsgames_event_standings
-    ADD CONSTRAINT uvsgames_event_standings_pkey PRIMARY KEY (external_id, registration_id);
-
-
---
--- Name: uvsgames_event_templates uvsgames_event_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.uvsgames_event_templates
-    ADD CONSTRAINT uvsgames_event_templates_pkey PRIMARY KEY (template_id);
-
-
---
--- Name: uvsgames_events uvsgames_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.uvsgames_events
-    ADD CONSTRAINT uvsgames_events_pkey PRIMARY KEY (external_id);
-
-
---
--- Name: uvsgames_format_mappings uvsgames_format_mappings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.uvsgames_format_mappings
-    ADD CONSTRAINT uvsgames_format_mappings_pkey PRIMARY KEY (source_format);
-
-
---
--- Name: uvsgames_id_probes uvsgames_id_probes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.uvsgames_id_probes
-    ADD CONSTRAINT uvsgames_id_probes_pkey PRIMARY KEY (external_id);
-
-
---
--- Name: uvsgames_players uvsgames_players_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.uvsgames_players
-    ADD CONSTRAINT uvsgames_players_pkey PRIMARY KEY (id);
-
-
---
--- Name: uvsgames_stores uvsgames_stores_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.uvsgames_stores
-    ADD CONSTRAINT uvsgames_stores_pkey PRIMARY KEY (id);
-
-
---
--- Name: verifications verifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.verifications
-    ADD CONSTRAINT verifications_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT uq_users_referral_code UNIQUE (referral_code);
 
 
 --
@@ -6836,20 +6808,6 @@ CREATE INDEX idx_candidate_cards_norm_name ON public.candidate_cards USING btree
 
 
 --
--- Name: idx_candidate_cards_provider_external_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_candidate_cards_provider_external_id ON public.candidate_cards USING btree (provider, external_id);
-
-
---
--- Name: idx_candidate_cards_provider_name_no_sid; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_candidate_cards_provider_name_no_sid ON public.candidate_cards USING btree (provider, name) WHERE ((short_code IS NULL) AND (provider <> 'usersubmission'::text));
-
-
---
 -- Name: idx_candidate_cards_provider_short_code; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6871,10 +6829,10 @@ CREATE INDEX idx_candidate_cards_unchecked ON public.candidate_cards USING btree
 
 
 --
--- Name: idx_candidate_printings_card_external_id; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_candidate_printings_printing_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX idx_candidate_printings_card_external_id ON public.candidate_printings USING btree (candidate_card_id, external_id);
+CREATE INDEX idx_candidate_printings_printing_id ON public.candidate_printings USING btree (printing_id);
 
 
 --
@@ -7011,13 +6969,6 @@ CREATE INDEX idx_card_trades_reserved_email_pending ON public.card_trades USING 
 
 
 --
--- Name: idx_cardmarket_sync_state_user; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_cardmarket_sync_state_user ON public.cardmarket_sync_state USING btree (user_id);
-
-
---
 -- Name: idx_cards_norm_name; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -7113,20 +7064,6 @@ CREATE INDEX idx_copies_updated_xid ON public.copies USING btree (updated_xid, i
 --
 
 CREATE INDEX idx_copy_deletions_deleted_at ON public.copy_deletions USING btree (deleted_at);
-
-
---
--- Name: idx_copy_deletions_group; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_copy_deletions_group ON public.copy_deletions USING btree (group_id);
-
-
---
--- Name: idx_copy_deletions_user; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_copy_deletions_user ON public.copy_deletions USING btree (user_id);
 
 
 --
@@ -7228,13 +7165,6 @@ CREATE INDEX idx_decks_predecessor_deck_id ON public.decks USING btree (predeces
 
 
 --
--- Name: idx_decks_user_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_decks_user_id ON public.decks USING btree (user_id);
-
-
---
 -- Name: idx_decks_user_updated_xid; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -7249,13 +7179,6 @@ CREATE INDEX idx_distribution_channels_parent_id ON public.distribution_channels
 
 
 --
--- Name: idx_face_images_active; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_face_images_active ON public.face_images USING btree (face_id) WHERE (is_active = true);
-
-
---
 -- Name: idx_face_images_face; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -7267,13 +7190,6 @@ CREATE INDEX idx_face_images_face ON public.face_images USING btree (face_id);
 --
 
 CREATE INDEX idx_face_images_image_file ON public.face_images USING btree (image_file_id);
-
-
---
--- Name: idx_face_images_pending; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_face_images_pending ON public.face_images USING btree (face_id) WHERE activate_when_rehosted;
 
 
 --
@@ -7305,17 +7221,17 @@ CREATE INDEX idx_faces_set_id ON public.faces USING btree (set_id);
 
 
 --
--- Name: idx_fg_discord_links_group; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_fg_discord_links_group ON public.friend_group_discord_links USING btree (group_id);
-
-
---
 -- Name: idx_friend_group_collection_shares_collection; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_friend_group_collection_shares_collection ON public.friend_group_collection_shares USING btree (collection_id);
+
+
+--
+-- Name: idx_friend_group_discord_links_group; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_friend_group_discord_links_group ON public.friend_group_discord_links USING btree (group_id);
 
 
 --
@@ -7340,10 +7256,10 @@ CREATE INDEX idx_friend_group_playriftbound_shops_organizer ON public.friend_gro
 
 
 --
--- Name: idx_friend_group_shops_store; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_friend_group_uvsgames_shops_store; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_friend_group_shops_store ON public.friend_group_shops USING btree (uvsgames_store_id);
+CREATE INDEX idx_friend_group_uvsgames_shops_store ON public.friend_group_uvsgames_shops USING btree (uvsgames_store_id);
 
 
 --
@@ -7361,38 +7277,10 @@ CREATE INDEX idx_friend_groups_previous_slug ON public.friend_groups USING btree
 
 
 --
--- Name: idx_ignored_candidate_cards_provider_external; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_ignored_candidate_cards_provider_external ON public.ignored_candidate_cards USING btree (provider, external_id);
-
-
---
--- Name: idx_ignored_candidate_printings_provider_external_finish; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_ignored_candidate_printings_provider_external_finish ON public.ignored_candidate_printings USING btree (provider, external_id, COALESCE(finish, ''::text));
-
-
---
--- Name: idx_image_files_original_url; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_image_files_original_url ON public.image_files USING btree (original_url) WHERE (original_url IS NOT NULL);
-
-
---
 -- Name: idx_job_runs_kind_started_at; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_job_runs_kind_started_at ON public.job_runs USING btree (kind, started_at DESC);
-
-
---
--- Name: idx_job_runs_running; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_job_runs_running ON public.job_runs USING btree (kind) WHERE (status = 'running'::text);
 
 
 --
@@ -7459,13 +7347,6 @@ CREATE INDEX idx_marketplace_products_norm_name_trgm ON public.marketplace_produ
 
 
 --
--- Name: idx_meta_credits_event; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_meta_credits_event ON public.meta_credits USING btree (meta_event_id);
-
-
---
 -- Name: idx_meta_credits_user; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -7480,10 +7361,31 @@ CREATE INDEX idx_meta_deck_inference_neighbours_neighbour ON public.meta_deck_in
 
 
 --
+-- Name: idx_meta_event_matches_player1; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_meta_event_matches_player1 ON public.meta_event_matches USING btree (player1_id);
+
+
+--
+-- Name: idx_meta_event_matches_player2; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_meta_event_matches_player2 ON public.meta_event_matches USING btree (player2_id) WHERE (player2_id IS NOT NULL);
+
+
+--
 -- Name: idx_meta_event_matches_round; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_meta_event_matches_round ON public.meta_event_matches USING btree (meta_event_id, phase_order, round_number);
+
+
+--
+-- Name: idx_meta_event_matches_winner; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_meta_event_matches_winner ON public.meta_event_matches USING btree (winner_id) WHERE (winner_id IS NOT NULL);
 
 
 --
@@ -7634,45 +7536,10 @@ CREATE INDEX idx_meta_submissions_user_status ON public.meta_submissions USING b
 
 
 --
--- Name: idx_mv_card_aggregates_pk; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_mv_card_aggregates_pk ON public.mv_card_aggregates USING btree (card_id);
-
-
---
 -- Name: idx_mv_daily_printing_prices_latest; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_mv_daily_printing_prices_latest ON public.mv_daily_printing_prices USING btree (marketplace, printing_id, day DESC);
-
-
---
--- Name: idx_mv_daily_printing_prices_pk; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_mv_daily_printing_prices_pk ON public.mv_daily_printing_prices USING btree (printing_id, marketplace, day);
-
-
---
--- Name: idx_mv_latest_printing_prices_pk; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_mv_latest_printing_prices_pk ON public.mv_latest_printing_prices USING btree (printing_id, marketplace);
-
-
---
--- Name: idx_mv_printing_foil_twins_pk; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_mv_printing_foil_twins_pk ON public.mv_printing_foil_twins USING btree (printing_id);
-
-
---
--- Name: idx_mv_printing_sides_canonical_rank_pk; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_mv_printing_sides_canonical_rank_pk ON public.mv_printing_sides_canonical_rank USING btree (printing_id, "position");
 
 
 --
@@ -7701,20 +7568,6 @@ CREATE INDEX idx_playloltcg_event_checks_due ON public.playloltcg_event_checks U
 --
 
 CREATE INDEX idx_playloltcg_events_page ON public.playloltcg_events USING btree (start_at DESC NULLS LAST, activity_shop_id DESC);
-
-
---
--- Name: idx_playloltcg_events_shop; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_playloltcg_events_shop ON public.playloltcg_events USING btree (shop_id) WHERE (shop_id IS NOT NULL);
-
-
---
--- Name: idx_playloltcg_events_start; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_playloltcg_events_start ON public.playloltcg_events USING btree (start_at);
 
 
 --
@@ -7774,13 +7627,6 @@ CREATE INDEX idx_printing_events_status_created ON public.printing_events USING 
 
 
 --
--- Name: idx_printing_sources_printing_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_printing_sources_printing_id ON public.candidate_printings USING btree (printing_id);
-
-
---
 -- Name: idx_printings_face1; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -7823,13 +7669,6 @@ CREATE INDEX idx_scan_reports_user_created ON public.scan_reports USING btree (u
 
 
 --
--- Name: idx_sessions_token; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_sessions_token ON public.sessions USING btree (token);
-
-
---
 -- Name: idx_sessions_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -7869,13 +7708,6 @@ CREATE INDEX idx_topdeck_events_format ON public.topdeck_events USING btree (for
 --
 
 CREATE INDEX idx_topdeck_events_start ON public.topdeck_events USING btree (start_at);
-
-
---
--- Name: idx_tournament_groups_tournament; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_tournament_groups_tournament ON public.tournament_groups USING btree (tournament_id);
 
 
 --
@@ -7991,13 +7823,6 @@ CREATE INDEX idx_uvsgames_events_start ON public.uvsgames_events USING btree (st
 
 
 --
--- Name: idx_uvsgames_events_store; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_uvsgames_events_store ON public.uvsgames_events USING btree (store_id) WHERE (store_id IS NOT NULL);
-
-
---
 -- Name: idx_uvsgames_events_store_start; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -8012,24 +7837,31 @@ CREATE INDEX idx_uvsgames_events_template ON public.uvsgames_events USING btree 
 
 
 --
--- Name: marketplace_product_variants_product_printing_key; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX marketplace_product_variants_product_printing_key ON public.marketplace_product_variants USING btree (marketplace_product_id, printing_id);
-
-
---
--- Name: marketplace_products_sku_key; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX marketplace_products_sku_key ON public.marketplace_products USING btree (marketplace, external_id, finish, language) NULLS NOT DISTINCT;
-
-
---
 -- Name: uq_accounts_provider_account; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX uq_accounts_provider_account ON public.accounts USING btree (provider_id, account_id);
+
+
+--
+-- Name: uq_candidate_cards_provider_external_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_candidate_cards_provider_external_id ON public.candidate_cards USING btree (provider, external_id);
+
+
+--
+-- Name: uq_candidate_cards_provider_name_no_sid; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_candidate_cards_provider_name_no_sid ON public.candidate_cards USING btree (provider, name) WHERE ((short_code IS NULL) AND (provider <> 'usersubmission'::text));
+
+
+--
+-- Name: uq_candidate_printings_card_external_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_candidate_printings_card_external_id ON public.candidate_printings USING btree (candidate_card_id, external_id);
 
 
 --
@@ -8089,24 +7921,38 @@ CREATE UNIQUE INDEX uq_decks_family_primary ON public.decks USING btree (family_
 
 
 --
--- Name: uq_fg_discord_links_code; Type: INDEX; Schema: public; Owner: -
+-- Name: uq_face_images_active; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_fg_discord_links_code ON public.friend_group_discord_links USING btree (code) WHERE (code IS NOT NULL);
-
-
---
--- Name: uq_fg_discord_links_guild; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX uq_fg_discord_links_guild ON public.friend_group_discord_links USING btree (guild_id) WHERE (guild_id IS NOT NULL);
+CREATE UNIQUE INDEX uq_face_images_active ON public.face_images USING btree (face_id) WHERE (is_active = true);
 
 
 --
--- Name: uq_fg_discord_links_pending; Type: INDEX; Schema: public; Owner: -
+-- Name: uq_face_images_pending; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_fg_discord_links_pending ON public.friend_group_discord_links USING btree (group_id) WHERE (code IS NOT NULL);
+CREATE UNIQUE INDEX uq_face_images_pending ON public.face_images USING btree (face_id) WHERE is_activation_pending;
+
+
+--
+-- Name: uq_friend_group_discord_links_code; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_friend_group_discord_links_code ON public.friend_group_discord_links USING btree (code) WHERE (code IS NOT NULL);
+
+
+--
+-- Name: uq_friend_group_discord_links_guild; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_friend_group_discord_links_guild ON public.friend_group_discord_links USING btree (guild_id) WHERE (guild_id IS NOT NULL);
+
+
+--
+-- Name: uq_friend_group_discord_links_pending; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_friend_group_discord_links_pending ON public.friend_group_discord_links USING btree (group_id) WHERE (code IS NOT NULL);
 
 
 --
@@ -8121,6 +7967,34 @@ CREATE UNIQUE INDEX uq_friend_group_one_owner ON public.friend_group_members USI
 --
 
 CREATE UNIQUE INDEX uq_friend_groups_code ON public.friend_groups USING btree (code) WHERE (code IS NOT NULL);
+
+
+--
+-- Name: uq_ignored_candidate_cards_provider_external; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_ignored_candidate_cards_provider_external ON public.ignored_candidate_cards USING btree (provider, external_id);
+
+
+--
+-- Name: uq_ignored_candidate_printings_provider_external_finish; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_ignored_candidate_printings_provider_external_finish ON public.ignored_candidate_printings USING btree (provider, external_id, COALESCE(finish, ''::text));
+
+
+--
+-- Name: uq_image_files_original_url; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_image_files_original_url ON public.image_files USING btree (original_url) WHERE (original_url IS NOT NULL);
+
+
+--
+-- Name: uq_job_runs_running; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_job_runs_running ON public.job_runs USING btree (kind) WHERE (status = 'running'::text);
 
 
 --
@@ -8142,6 +8016,20 @@ CREATE UNIQUE INDEX uq_list_entries_copy ON public.list_entries USING btree (lis
 --
 
 CREATE UNIQUE INDEX uq_list_entries_printing ON public.list_entries USING btree (list_id, printing_id) WHERE (printing_id IS NOT NULL);
+
+
+--
+-- Name: uq_marketplace_product_variants_product_printing; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_marketplace_product_variants_product_printing ON public.marketplace_product_variants USING btree (marketplace_product_id, printing_id);
+
+
+--
+-- Name: uq_marketplace_products_sku; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_marketplace_products_sku ON public.marketplace_products USING btree (marketplace, external_id, finish, language) NULLS NOT DISTINCT;
 
 
 --
@@ -8215,10 +8103,52 @@ CREATE UNIQUE INDEX uq_meta_submissions_provider_external ON public.meta_submiss
 
 
 --
+-- Name: uq_mv_card_aggregates; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_mv_card_aggregates ON public.mv_card_aggregates USING btree (card_id);
+
+
+--
+-- Name: uq_mv_daily_printing_prices; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_mv_daily_printing_prices ON public.mv_daily_printing_prices USING btree (printing_id, marketplace, day);
+
+
+--
+-- Name: uq_mv_latest_printing_prices; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_mv_latest_printing_prices ON public.mv_latest_printing_prices USING btree (printing_id, marketplace);
+
+
+--
+-- Name: uq_mv_printing_foil_twins; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_mv_printing_foil_twins ON public.mv_printing_foil_twins USING btree (printing_id);
+
+
+--
+-- Name: uq_mv_printing_sides_canonical_rank; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_mv_printing_sides_canonical_rank ON public.mv_printing_sides_canonical_rank USING btree (printing_id, "position");
+
+
+--
 -- Name: uq_printing_citations_url; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX uq_printing_citations_url ON public.printing_citations USING btree (printing_id, source_url) WHERE (source_url IS NOT NULL);
+
+
+--
+-- Name: uq_sessions_token; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_sessions_token ON public.sessions USING btree (token);
 
 
 --
@@ -8299,132 +8229,6 @@ CREATE STATISTICS public.meta_event_players_player_key_stats ON regexp_replace(s
 
 
 --
--- Name: card_card_types card_card_types_sync; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE CONSTRAINT TRIGGER card_card_types_sync AFTER INSERT OR DELETE OR UPDATE ON public.card_card_types DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_card_card_types_sync();
-
-
---
--- Name: card_trade_copies card_trade_copies_touch_copy; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER card_trade_copies_touch_copy AFTER INSERT OR DELETE ON public.card_trade_copies FOR EACH ROW EXECUTE FUNCTION public.trg_touch_pinned_copy();
-
-
---
--- Name: cards cards_require_card_types; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE CONSTRAINT TRIGGER cards_require_card_types AFTER INSERT ON public.cards DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_cards_require_card_types();
-
-
---
--- Name: collections collections_record_copy_deletions; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER collections_record_copy_deletions BEFORE DELETE ON public.collections FOR EACH ROW EXECUTE FUNCTION public.trg_collections_record_copy_deletions();
-
-
---
--- Name: copies copies_record_deletion; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER copies_record_deletion AFTER DELETE ON public.copies FOR EACH ROW EXECUTE FUNCTION public.trg_copies_record_deletion();
-
-
---
--- Name: copies copies_record_scope_change; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER copies_record_scope_change AFTER UPDATE OF collection_id ON public.copies FOR EACH ROW WHEN ((old.collection_id IS DISTINCT FROM new.collection_id)) EXECUTE FUNCTION public.trg_copies_record_scope_change();
-
-
---
--- Name: deck_cards deck_cards_touch_deck; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER deck_cards_touch_deck AFTER INSERT OR DELETE OR UPDATE ON public.deck_cards FOR EACH ROW EXECUTE FUNCTION public.trg_touch_deck_of_card();
-
-
---
--- Name: distribution_channels distribution_channels_validate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER distribution_channels_validate BEFORE INSERT OR UPDATE ON public.distribution_channels FOR EACH ROW EXECUTE FUNCTION public.trg_distribution_channels_validate();
-
-
---
--- Name: faces faces_normalize_markers; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER faces_normalize_markers BEFORE INSERT OR UPDATE OF marker_slugs ON public.faces FOR EACH ROW EXECUTE FUNCTION public.trg_faces_normalize_markers();
-
-
---
--- Name: keywords keywords_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER keywords_set_updated_at BEFORE UPDATE ON public.keywords FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
-
-
---
--- Name: loan_copies loan_copies_touch_copy; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER loan_copies_touch_copy AFTER INSERT OR DELETE ON public.loan_copies FOR EACH ROW EXECUTE FUNCTION public.trg_touch_pinned_copy();
-
-
---
--- Name: markers markers_guard_delete; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER markers_guard_delete BEFORE DELETE ON public.markers FOR EACH ROW EXECUTE FUNCTION public.trg_markers_guard_delete();
-
-
---
--- Name: markers markers_slug_change; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER markers_slug_change AFTER UPDATE OF slug ON public.markers FOR EACH ROW EXECUTE FUNCTION public.trg_markers_slug_change();
-
-
---
--- Name: printing_distribution_channels printing_distribution_channels_validate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER printing_distribution_channels_validate BEFORE INSERT OR UPDATE ON public.printing_distribution_channels FOR EACH ROW EXECUTE FUNCTION public.trg_printing_distribution_channels_validate();
-
-
---
--- Name: printing_events printing_events_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER printing_events_set_updated_at BEFORE UPDATE ON public.printing_events FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
-
-
---
--- Name: printings printings_order_faces; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER printings_order_faces BEFORE INSERT OR UPDATE OF face1_id, face2_id ON public.printings FOR EACH ROW EXECUTE FUNCTION public.trg_printings_order_faces();
-
-
---
--- Name: printings printings_set_slug; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER printings_set_slug BEFORE INSERT OR UPDATE OF face1_id, face2_id ON public.printings FOR EACH ROW EXECUTE FUNCTION public.trg_printings_set_slug();
-
-
---
--- Name: site_settings site_settings_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER site_settings_set_updated_at BEFORE UPDATE ON public.site_settings FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
-
-
---
 -- Name: art_variants trg_art_variants_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -8436,6 +8240,13 @@ CREATE CONSTRAINT TRIGGER trg_art_variants_catalog_version AFTER INSERT OR DELET
 --
 
 CREATE TRIGGER trg_art_variants_protect_well_known BEFORE DELETE OR UPDATE ON public.art_variants FOR EACH ROW EXECUTE FUNCTION public.protect_well_known();
+
+
+--
+-- Name: ban_formats trg_ban_formats_catalog_version; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE CONSTRAINT TRIGGER trg_ban_formats_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.ban_formats DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -8457,6 +8268,13 @@ CREATE CONSTRAINT TRIGGER trg_card_bans_catalog_version AFTER INSERT OR DELETE O
 --
 
 CREATE CONSTRAINT TRIGGER trg_card_card_types_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.card_card_types DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
+
+
+--
+-- Name: card_card_types trg_card_card_types_sync; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE CONSTRAINT TRIGGER trg_card_card_types_sync AFTER INSERT OR DELETE OR UPDATE ON public.card_card_types DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_card_card_types_sync();
 
 
 --
@@ -8523,6 +8341,13 @@ CREATE CONSTRAINT TRIGGER trg_card_tokens_catalog_version AFTER INSERT OR DELETE
 
 
 --
+-- Name: card_trade_copies trg_card_trade_copies_touch_copy; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_card_trade_copies_touch_copy AFTER INSERT OR DELETE ON public.card_trade_copies FOR EACH ROW EXECUTE FUNCTION public.trg_touch_pinned_copy();
+
+
+--
 -- Name: card_trades trg_card_trades_card; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -8558,10 +8383,38 @@ CREATE TRIGGER trg_cards_norm_name BEFORE INSERT OR UPDATE OF name ON public.car
 
 
 --
+-- Name: cards trg_cards_require_card_types; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE CONSTRAINT TRIGGER trg_cards_require_card_types AFTER INSERT ON public.cards DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_cards_require_card_types();
+
+
+--
+-- Name: collections trg_collections_record_copy_deletions; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_collections_record_copy_deletions BEFORE DELETE ON public.collections FOR EACH ROW EXECUTE FUNCTION public.trg_collections_record_copy_deletions();
+
+
+--
 -- Name: conditions trg_conditions_protect_well_known; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER trg_conditions_protect_well_known BEFORE DELETE OR UPDATE ON public.conditions FOR EACH ROW EXECUTE FUNCTION public.protect_well_known();
+
+
+--
+-- Name: copies trg_copies_record_deletion; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_copies_record_deletion AFTER DELETE ON public.copies FOR EACH ROW EXECUTE FUNCTION public.trg_copies_record_deletion();
+
+
+--
+-- Name: copies trg_copies_record_scope_change; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_copies_record_scope_change AFTER UPDATE OF collection_id ON public.copies FOR EACH ROW WHEN ((old.collection_id IS DISTINCT FROM new.collection_id)) EXECUTE FUNCTION public.trg_copies_record_scope_change();
 
 
 --
@@ -8576,6 +8429,13 @@ CREATE CONSTRAINT TRIGGER trg_custom_tags_catalog_version AFTER INSERT OR DELETE
 --
 
 CREATE TRIGGER trg_deck_cards_printing_card BEFORE INSERT OR UPDATE OF card_id, preferred_printing_id ON public.deck_cards FOR EACH ROW EXECUTE FUNCTION public.check_deck_card_printing();
+
+
+--
+-- Name: deck_cards trg_deck_cards_touch_deck; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_deck_cards_touch_deck AFTER INSERT OR DELETE OR UPDATE ON public.deck_cards FOR EACH ROW EXECUTE FUNCTION public.trg_touch_deck_of_card();
 
 
 --
@@ -8597,6 +8457,13 @@ CREATE TRIGGER trg_deck_zones_protect_well_known BEFORE DELETE OR UPDATE ON publ
 --
 
 CREATE CONSTRAINT TRIGGER trg_distribution_channels_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.distribution_channels DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
+
+
+--
+-- Name: distribution_channels trg_distribution_channels_validate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_distribution_channels_validate BEFORE INSERT OR UPDATE ON public.distribution_channels FOR EACH ROW EXECUTE FUNCTION public.trg_distribution_channels_validate();
 
 
 --
@@ -8649,6 +8516,13 @@ CREATE CONSTRAINT TRIGGER trg_faces_catalog_version AFTER INSERT OR DELETE OR UP
 
 
 --
+-- Name: faces trg_faces_normalize_markers; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_faces_normalize_markers BEFORE INSERT OR UPDATE OF marker_slugs ON public.faces FOR EACH ROW EXECUTE FUNCTION public.trg_faces_normalize_markers();
+
+
+--
 -- Name: faces trg_faces_pair_language; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -8674,13 +8548,6 @@ CREATE CONSTRAINT TRIGGER trg_finishes_catalog_version AFTER INSERT OR DELETE OR
 --
 
 CREATE TRIGGER trg_finishes_protect_well_known BEFORE DELETE OR UPDATE ON public.finishes FOR EACH ROW EXECUTE FUNCTION public.protect_well_known();
-
-
---
--- Name: formats trg_formats_catalog_version; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE CONSTRAINT TRIGGER trg_formats_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.formats DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -8747,10 +8614,31 @@ CREATE TRIGGER trg_languages_protect_well_known BEFORE DELETE OR UPDATE ON publi
 
 
 --
+-- Name: loan_copies trg_loan_copies_touch_copy; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_loan_copies_touch_copy AFTER INSERT OR DELETE ON public.loan_copies FOR EACH ROW EXECUTE FUNCTION public.trg_touch_pinned_copy();
+
+
+--
 -- Name: markers trg_markers_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE CONSTRAINT TRIGGER trg_markers_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.markers DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
+
+
+--
+-- Name: markers trg_markers_guard_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_markers_guard_delete BEFORE DELETE ON public.markers FOR EACH ROW EXECUTE FUNCTION public.trg_markers_guard_delete();
+
+
+--
+-- Name: markers trg_markers_slug_change; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_markers_slug_change AFTER UPDATE OF slug ON public.markers FOR EACH ROW EXECUTE FUNCTION public.trg_markers_slug_change();
 
 
 --
@@ -8796,6 +8684,13 @@ CREATE CONSTRAINT TRIGGER trg_printing_distribution_channels_catalog_version AFT
 
 
 --
+-- Name: printing_distribution_channels trg_printing_distribution_channels_validate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_printing_distribution_channels_validate BEFORE INSERT OR UPDATE ON public.printing_distribution_channels FOR EACH ROW EXECUTE FUNCTION public.trg_printing_distribution_channels_validate();
+
+
+--
 -- Name: printings trg_printings_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -8810,6 +8705,13 @@ CREATE TRIGGER trg_printings_fold_deck_cards BEFORE DELETE ON public.printings F
 
 
 --
+-- Name: printings trg_printings_order_faces; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_printings_order_faces BEFORE INSERT OR UPDATE OF face1_id, face2_id ON public.printings FOR EACH ROW EXECUTE FUNCTION public.trg_printings_order_faces();
+
+
+--
 -- Name: printings trg_printings_pair_language; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -8821,6 +8723,13 @@ CREATE CONSTRAINT TRIGGER trg_printings_pair_language AFTER INSERT OR UPDATE OF 
 --
 
 CREATE TRIGGER trg_printings_release_deck_cards AFTER UPDATE OF face1_id, face2_id ON public.printings FOR EACH ROW WHEN (((old.face1_id IS DISTINCT FROM new.face1_id) OR (old.face2_id IS DISTINCT FROM new.face2_id))) EXECUTE FUNCTION public.release_deck_cards_off_printing();
+
+
+--
+-- Name: printings trg_printings_set_slug; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_printings_set_slug BEFORE INSERT OR UPDATE OF face1_id, face2_id ON public.printings FOR EACH ROW EXECUTE FUNCTION public.trg_printings_set_slug();
 
 
 --
@@ -9013,6 +8922,13 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.keyword_translations F
 
 
 --
+-- Name: keywords trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.keywords FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
 -- Name: languages trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -9174,6 +9090,13 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.playriftbound_organize
 
 
 --
+-- Name: printing_events trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.printing_events FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
 -- Name: printings trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -9223,6 +9146,13 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.sets FOR EACH ROW EXEC
 
 
 --
+-- Name: site_settings trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.site_settings FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
 -- Name: stage_presets trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -9269,6 +9199,13 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.tournaments FOR EACH R
 --
 
 CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.user_contact_methods FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: user_preferences trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.user_preferences FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 
 --
@@ -9391,690 +9328,339 @@ CREATE TRIGGER trg_touch_list_on_entry_change AFTER INSERT OR DELETE OR UPDATE O
 
 
 --
--- Name: user_preferences user_preferences_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER user_preferences_set_updated_at BEFORE UPDATE ON public.user_preferences FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
-
-
---
--- Name: accounts accounts_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: accounts fk_accounts_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.accounts
-    ADD CONSTRAINT accounts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_accounts_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
--- Name: admin_grants admin_grants_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: admin_grants fk_admin_grants_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.admin_grants
-    ADD CONSTRAINT admin_grants_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_admin_grants_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
--- Name: admins admins_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: admins fk_admins_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.admins
-    ADD CONSTRAINT admins_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_admins_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
--- Name: api_keys api_keys_reference_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: api_keys fk_api_keys_reference_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.api_keys
-    ADD CONSTRAINT api_keys_reference_id_fkey FOREIGN KEY (reference_id) REFERENCES public.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_api_keys_reference_id FOREIGN KEY (reference_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
--- Name: board_states board_states_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: board_states fk_board_states_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.board_states
-    ADD CONSTRAINT board_states_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_board_states_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
--- Name: candidate_cards candidate_cards_submitted_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: candidate_cards fk_candidate_cards_submitted_by_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.candidate_cards
-    ADD CONSTRAINT candidate_cards_submitted_by_user_id_fkey FOREIGN KEY (submitted_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+    ADD CONSTRAINT fk_candidate_cards_submitted_by_user_id FOREIGN KEY (submitted_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --
--- Name: candidate_printings candidate_printings_candidate_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: candidate_printings fk_candidate_printings_candidate_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.candidate_printings
-    ADD CONSTRAINT candidate_printings_candidate_card_id_fkey FOREIGN KEY (candidate_card_id) REFERENCES public.candidate_cards(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_candidate_printings_candidate_card_id FOREIGN KEY (candidate_card_id) REFERENCES public.candidate_cards(id) ON DELETE CASCADE;
 
 
 --
--- Name: card_bans card_bans_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: candidate_printings fk_candidate_printings_printing_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_printings
+    ADD CONSTRAINT fk_candidate_printings_printing_id FOREIGN KEY (printing_id) REFERENCES public.printings(id);
+
+
+--
+-- Name: card_bans fk_card_bans_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.card_bans
-    ADD CONSTRAINT card_bans_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id);
+    ADD CONSTRAINT fk_card_bans_card_id FOREIGN KEY (card_id) REFERENCES public.cards(id);
 
 
 --
--- Name: card_bans card_bans_format_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_bans fk_card_bans_format_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.card_bans
-    ADD CONSTRAINT card_bans_format_id_fkey FOREIGN KEY (format_id) REFERENCES public.formats(id);
+    ADD CONSTRAINT fk_card_bans_format_id FOREIGN KEY (format_id) REFERENCES public.ban_formats(slug);
 
 
 --
--- Name: card_card_types card_card_types_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_card_types
-    ADD CONSTRAINT card_card_types_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
-
-
---
--- Name: card_card_types card_card_types_type_slug_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_card_types fk_card_card_types_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.card_card_types
-    ADD CONSTRAINT card_card_types_type_slug_fkey FOREIGN KEY (type_slug) REFERENCES public.card_types(slug);
+    ADD CONSTRAINT fk_card_card_types_card_id FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
 
 
 --
--- Name: card_custom_tags card_custom_tags_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_card_types fk_card_card_types_type_slug; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_card_types
+    ADD CONSTRAINT fk_card_card_types_type_slug FOREIGN KEY (type_slug) REFERENCES public.card_types(slug);
+
+
+--
+-- Name: card_custom_tags fk_card_custom_tags_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.card_custom_tags
-    ADD CONSTRAINT card_custom_tags_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_card_custom_tags_card_id FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
 
 
 --
--- Name: card_custom_tags card_custom_tags_custom_tag_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_custom_tags fk_card_custom_tags_custom_tag_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.card_custom_tags
-    ADD CONSTRAINT card_custom_tags_custom_tag_id_fkey FOREIGN KEY (custom_tag_id) REFERENCES public.custom_tags(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_card_custom_tags_custom_tag_id FOREIGN KEY (custom_tag_id) REFERENCES public.custom_tags(id) ON DELETE CASCADE;
 
 
 --
--- Name: card_domains card_domains_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_domains
-    ADD CONSTRAINT card_domains_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
-
-
---
--- Name: card_domains card_domains_domain_slug_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_domains fk_card_domains_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.card_domains
-    ADD CONSTRAINT card_domains_domain_slug_fkey FOREIGN KEY (domain_slug) REFERENCES public.domains(slug);
+    ADD CONSTRAINT fk_card_domains_card_id FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
 
 
 --
--- Name: card_errata card_errata_announcement_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_domains fk_card_domains_domain_slug; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.card_errata
-    ADD CONSTRAINT card_errata_announcement_id_fkey FOREIGN KEY (announcement_id) REFERENCES public.errata_announcements(id);
-
-
---
--- Name: card_errata card_errata_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_errata
-    ADD CONSTRAINT card_errata_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.card_domains
+    ADD CONSTRAINT fk_card_domains_domain_slug FOREIGN KEY (domain_slug) REFERENCES public.domains(slug);
 
 
 --
--- Name: card_errata card_errata_language_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_errata fk_card_errata_announcement_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.card_errata
-    ADD CONSTRAINT card_errata_language_fk FOREIGN KEY (language) REFERENCES public.languages(code) ON UPDATE CASCADE;
+    ADD CONSTRAINT fk_card_errata_announcement_id FOREIGN KEY (announcement_id) REFERENCES public.errata_announcements(id);
 
 
 --
--- Name: card_name_aliases card_name_aliases_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_errata fk_card_errata_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_errata
+    ADD CONSTRAINT fk_card_errata_card_id FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+
+
+--
+-- Name: card_errata fk_card_errata_language; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_errata
+    ADD CONSTRAINT fk_card_errata_language FOREIGN KEY (language) REFERENCES public.languages(code) ON UPDATE CASCADE;
+
+
+--
+-- Name: card_name_aliases fk_card_name_aliases_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.card_name_aliases
-    ADD CONSTRAINT card_name_aliases_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_card_name_aliases_card_id FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
 
 
 --
--- Name: card_submissions card_submissions_accepted_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_submissions
-    ADD CONSTRAINT card_submissions_accepted_card_id_fkey FOREIGN KEY (accepted_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
-
-
---
--- Name: card_submissions card_submissions_candidate_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_submissions fk_card_submissions_accepted_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.card_submissions
-    ADD CONSTRAINT card_submissions_candidate_card_id_fkey FOREIGN KEY (candidate_card_id) REFERENCES public.candidate_cards(id) ON DELETE SET NULL;
+    ADD CONSTRAINT fk_card_submissions_accepted_card_id FOREIGN KEY (accepted_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
 
 
 --
--- Name: card_submissions card_submissions_resolved_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_submissions
-    ADD CONSTRAINT card_submissions_resolved_by_user_id_fkey FOREIGN KEY (resolved_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
-
-
---
--- Name: card_submissions card_submissions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_submissions fk_card_submissions_candidate_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.card_submissions
-    ADD CONSTRAINT card_submissions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_card_submissions_candidate_card_id FOREIGN KEY (candidate_card_id) REFERENCES public.candidate_cards(id) ON DELETE SET NULL;
 
 
 --
--- Name: card_super_types card_super_types_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_submissions fk_card_submissions_resolved_by_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_submissions
+    ADD CONSTRAINT fk_card_submissions_resolved_by_user_id FOREIGN KEY (resolved_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: card_submissions fk_card_submissions_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_submissions
+    ADD CONSTRAINT fk_card_submissions_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: card_super_types fk_card_super_types_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.card_super_types
-    ADD CONSTRAINT card_super_types_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_card_super_types_card_id FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
 
 
 --
--- Name: card_super_types card_super_types_super_type_slug_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_super_types fk_card_super_types_super_type_slug; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.card_super_types
-    ADD CONSTRAINT card_super_types_super_type_slug_fkey FOREIGN KEY (super_type_slug) REFERENCES public.super_types(slug);
+    ADD CONSTRAINT fk_card_super_types_super_type_slug FOREIGN KEY (super_type_slug) REFERENCES public.super_types(slug);
 
 
 --
--- Name: card_tokens card_tokens_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_tokens
-    ADD CONSTRAINT card_tokens_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
-
-
---
--- Name: card_tokens card_tokens_token_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_tokens fk_card_tokens_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.card_tokens
-    ADD CONSTRAINT card_tokens_token_card_id_fkey FOREIGN KEY (token_card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_card_tokens_card_id FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
 
 
 --
--- Name: card_trade_copies card_trade_copies_copy_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_tokens fk_card_tokens_token_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_tokens
+    ADD CONSTRAINT fk_card_tokens_token_card_id FOREIGN KEY (token_card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+
+
+--
+-- Name: card_trade_copies fk_card_trade_copies_copy_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.card_trade_copies
-    ADD CONSTRAINT card_trade_copies_copy_id_fkey FOREIGN KEY (copy_id) REFERENCES public.copies(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_card_trade_copies_copy_id FOREIGN KEY (copy_id) REFERENCES public.copies(id) ON DELETE CASCADE;
 
 
 --
--- Name: card_trade_copies card_trade_copies_trade_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_trade_copies fk_card_trade_copies_trade_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.card_trade_copies
-    ADD CONSTRAINT card_trade_copies_trade_id_fkey FOREIGN KEY (trade_id) REFERENCES public.card_trades(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_card_trade_copies_trade_id FOREIGN KEY (trade_id) REFERENCES public.card_trades(id) ON DELETE CASCADE;
 
 
 --
--- Name: card_trade_requested_copies card_trade_requested_copies_copy_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_trade_requested_copies
-    ADD CONSTRAINT card_trade_requested_copies_copy_id_fkey FOREIGN KEY (copy_id) REFERENCES public.copies(id) ON DELETE CASCADE;
-
-
---
--- Name: card_trade_requested_copies card_trade_requested_copies_trade_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_trade_requested_copies fk_card_trade_requested_copies_copy_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.card_trade_requested_copies
-    ADD CONSTRAINT card_trade_requested_copies_trade_id_fkey FOREIGN KEY (trade_id) REFERENCES public.card_trades(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_card_trade_requested_copies_copy_id FOREIGN KEY (copy_id) REFERENCES public.copies(id) ON DELETE CASCADE;
 
 
 --
--- Name: card_trade_settlement_requests card_trade_settlement_requests_settled_trade_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_trade_requested_copies fk_card_trade_requested_copies_trade_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.card_trade_settlement_requests
-    ADD CONSTRAINT card_trade_settlement_requests_settled_trade_id_fkey FOREIGN KEY (settled_trade_id) REFERENCES public.card_trades(id) ON DELETE CASCADE;
-
-
---
--- Name: card_trade_settlement_requests card_trade_settlement_requests_trade_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_trade_settlement_requests
-    ADD CONSTRAINT card_trade_settlement_requests_trade_id_fkey FOREIGN KEY (trade_id) REFERENCES public.card_trades(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.card_trade_requested_copies
+    ADD CONSTRAINT fk_card_trade_requested_copies_trade_id FOREIGN KEY (trade_id) REFERENCES public.card_trades(id) ON DELETE CASCADE;
 
 
 --
--- Name: card_trade_settlement_requests card_trade_settlement_requests_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_trade_settlement_requests fk_card_trade_settlement_requests_settled_trade_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.card_trade_settlement_requests
-    ADD CONSTRAINT card_trade_settlement_requests_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_card_trade_settlement_requests_settled_trade_id FOREIGN KEY (settled_trade_id) REFERENCES public.card_trades(id) ON DELETE CASCADE;
 
 
 --
--- Name: card_trades card_trades_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_trade_settlement_requests fk_card_trade_settlement_requests_trade_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.card_trades
-    ADD CONSTRAINT card_trades_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id);
-
-
---
--- Name: card_trades card_trades_giver_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_trades
-    ADD CONSTRAINT card_trades_giver_user_id_fkey FOREIGN KEY (giver_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.card_trade_settlement_requests
+    ADD CONSTRAINT fk_card_trade_settlement_requests_trade_id FOREIGN KEY (trade_id) REFERENCES public.card_trades(id) ON DELETE CASCADE;
 
 
 --
--- Name: card_trades card_trades_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_trade_settlement_requests fk_card_trade_settlement_requests_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.card_trades
-    ADD CONSTRAINT card_trades_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.card_trade_settlement_requests
+    ADD CONSTRAINT fk_card_trade_settlement_requests_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
--- Name: card_trades card_trades_last_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_trades fk_card_trades_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.card_trades
-    ADD CONSTRAINT card_trades_last_actor_user_id_fkey FOREIGN KEY (last_actor_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+    ADD CONSTRAINT fk_card_trades_card_id FOREIGN KEY (card_id) REFERENCES public.cards(id);
 
 
 --
--- Name: card_trades card_trades_printing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_trades
-    ADD CONSTRAINT card_trades_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id);
-
-
---
--- Name: card_trades card_trades_receiver_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_trades fk_card_trades_giver_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.card_trades
-    ADD CONSTRAINT card_trades_receiver_user_id_fkey FOREIGN KEY (receiver_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+    ADD CONSTRAINT fk_card_trades_giver_user_id FOREIGN KEY (giver_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --
--- Name: card_trades card_trades_receiver_wish_entry_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_trades fk_card_trades_group_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.card_trades
-    ADD CONSTRAINT card_trades_receiver_wish_entry_id_fkey FOREIGN KEY (receiver_wish_entry_id) REFERENCES public.list_entries(id) ON DELETE SET NULL;
+    ADD CONSTRAINT fk_card_trades_group_id FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE SET NULL;
 
 
 --
--- Name: cardmarket_sync_state cardmarket_sync_state_condition_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_trades fk_card_trades_last_actor_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.cardmarket_sync_state
-    ADD CONSTRAINT cardmarket_sync_state_condition_fkey FOREIGN KEY (condition) REFERENCES public.conditions(slug);
+ALTER TABLE ONLY public.card_trades
+    ADD CONSTRAINT fk_card_trades_last_actor_user_id FOREIGN KEY (last_actor_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --
--- Name: cardmarket_sync_state cardmarket_sync_state_printing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_trades fk_card_trades_printing_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.cardmarket_sync_state
-    ADD CONSTRAINT cardmarket_sync_state_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.card_trades
+    ADD CONSTRAINT fk_card_trades_printing_id FOREIGN KEY (printing_id) REFERENCES public.printings(id);
 
 
 --
--- Name: cardmarket_sync_state cardmarket_sync_state_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_trades fk_card_trades_receiver_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.cardmarket_sync_state
-    ADD CONSTRAINT cardmarket_sync_state_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.card_trades
+    ADD CONSTRAINT fk_card_trades_receiver_user_id FOREIGN KEY (receiver_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --
--- Name: collection_events collection_events_printing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: card_trades fk_card_trades_receiver_wish_entry_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.collection_events
-    ADD CONSTRAINT collection_events_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id);
-
-
---
--- Name: collection_events collection_events_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.collection_events
-    ADD CONSTRAINT collection_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: collections collections_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.collections
-    ADD CONSTRAINT collections_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE CASCADE;
-
-
---
--- Name: collections collections_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.collections
-    ADD CONSTRAINT collections_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: copies copies_condition_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.copies
-    ADD CONSTRAINT copies_condition_fkey FOREIGN KEY (condition) REFERENCES public.conditions(slug);
-
-
---
--- Name: copies copies_grader_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.copies
-    ADD CONSTRAINT copies_grader_fkey FOREIGN KEY (grader) REFERENCES public.graders(slug);
-
-
---
--- Name: copies copies_printing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.copies
-    ADD CONSTRAINT copies_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id);
-
-
---
--- Name: custom_tags custom_tags_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.custom_tags
-    ADD CONSTRAINT custom_tags_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.custom_tag_categories(id) ON DELETE RESTRICT;
-
-
---
--- Name: deck_cards deck_cards_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_cards
-    ADD CONSTRAINT deck_cards_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id);
-
-
---
--- Name: deck_cards deck_cards_deck_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_cards
-    ADD CONSTRAINT deck_cards_deck_id_fkey FOREIGN KEY (deck_id) REFERENCES public.decks(id) ON DELETE CASCADE;
-
-
---
--- Name: deck_cards deck_cards_preferred_printing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_cards
-    ADD CONSTRAINT deck_cards_preferred_printing_id_fkey FOREIGN KEY (preferred_printing_id) REFERENCES public.printings(id) ON DELETE SET NULL;
-
-
---
--- Name: deck_check_entries deck_check_entries_approved_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_check_entries
-    ADD CONSTRAINT deck_check_entries_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.users(id) ON DELETE SET NULL;
-
-
---
--- Name: deck_check_entries deck_check_entries_checked_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_check_entries
-    ADD CONSTRAINT deck_check_entries_checked_by_fkey FOREIGN KEY (checked_by) REFERENCES public.users(id) ON DELETE SET NULL;
-
-
---
--- Name: deck_check_entries deck_check_entries_participant_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_check_entries
-    ADD CONSTRAINT deck_check_entries_participant_fkey FOREIGN KEY (participant_id) REFERENCES public.tournament_participants(id) ON DELETE CASCADE;
-
-
---
--- Name: deck_check_entries deck_check_entries_tournament_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_check_entries
-    ADD CONSTRAINT deck_check_entries_tournament_fkey FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id) ON DELETE CASCADE;
-
-
---
--- Name: deck_check_entry_cards deck_check_entry_cards_card_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_check_entry_cards
-    ADD CONSTRAINT deck_check_entry_cards_card_fkey FOREIGN KEY (resolved_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
-
-
---
--- Name: deck_check_entry_cards deck_check_entry_cards_entry_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_check_entry_cards
-    ADD CONSTRAINT deck_check_entry_cards_entry_fkey FOREIGN KEY (entry_id) REFERENCES public.deck_check_entries(id) ON DELETE CASCADE;
-
-
---
--- Name: deck_check_entry_cards deck_check_entry_cards_zone_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_check_entry_cards
-    ADD CONSTRAINT deck_check_entry_cards_zone_fkey FOREIGN KEY (zone) REFERENCES public.deck_zones(slug);
-
-
---
--- Name: deck_check_keys deck_check_keys_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_check_keys
-    ADD CONSTRAINT deck_check_keys_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL;
-
-
---
--- Name: deck_check_keys deck_check_keys_host_org_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_check_keys
-    ADD CONSTRAINT deck_check_keys_host_org_fkey FOREIGN KEY (host_org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
-
-
---
--- Name: deck_check_keys deck_check_keys_host_user_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_check_keys
-    ADD CONSTRAINT deck_check_keys_host_user_fkey FOREIGN KEY (host_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: deck_families deck_families_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_families
-    ADD CONSTRAINT deck_families_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: deck_folders deck_folders_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_folders
-    ADD CONSTRAINT deck_folders_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: deck_matchup_plans deck_matchup_plans_card_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_matchup_plans
-    ADD CONSTRAINT deck_matchup_plans_card_fkey FOREIGN KEY (opponent_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
-
-
---
--- Name: deck_matchup_plans deck_matchup_plans_deck_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_matchup_plans
-    ADD CONSTRAINT deck_matchup_plans_deck_fkey FOREIGN KEY (deck_id) REFERENCES public.decks(id) ON DELETE CASCADE;
-
-
---
--- Name: deck_matchup_swaps deck_matchup_swaps_card_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_matchup_swaps
-    ADD CONSTRAINT deck_matchup_swaps_card_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
-
-
---
--- Name: deck_matchup_swaps deck_matchup_swaps_plan_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_matchup_swaps
-    ADD CONSTRAINT deck_matchup_swaps_plan_fkey FOREIGN KEY (plan_id) REFERENCES public.deck_matchup_plans(id) ON DELETE CASCADE;
-
-
---
--- Name: deck_plans deck_plans_battlefield_first_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_plans
-    ADD CONSTRAINT deck_plans_battlefield_first_card_id_fkey FOREIGN KEY (battlefield_first_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
-
-
---
--- Name: deck_plans deck_plans_battlefield_g1_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_plans
-    ADD CONSTRAINT deck_plans_battlefield_g1_card_id_fkey FOREIGN KEY (battlefield_g1_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
-
-
---
--- Name: deck_plans deck_plans_battlefield_second_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_plans
-    ADD CONSTRAINT deck_plans_battlefield_second_card_id_fkey FOREIGN KEY (battlefield_second_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
-
-
---
--- Name: deck_plans deck_plans_deck_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_plans
-    ADD CONSTRAINT deck_plans_deck_fkey FOREIGN KEY (deck_id) REFERENCES public.decks(id) ON DELETE CASCADE;
-
-
---
--- Name: decks decks_collection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.decks
-    ADD CONSTRAINT decks_collection_id_fkey FOREIGN KEY (collection_id) REFERENCES public.collections(id) ON DELETE SET NULL;
-
-
---
--- Name: decks decks_cover_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.decks
-    ADD CONSTRAINT decks_cover_card_id_fkey FOREIGN KEY (cover_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
-
-
---
--- Name: decks decks_cover_face_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.decks
-    ADD CONSTRAINT decks_cover_face_id_fkey FOREIGN KEY (cover_face_id) REFERENCES public.faces(id) ON DELETE SET NULL;
-
-
---
--- Name: decks decks_family_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.decks
-    ADD CONSTRAINT decks_family_id_fkey FOREIGN KEY (family_id) REFERENCES public.deck_families(id);
-
-
---
--- Name: decks decks_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.decks
-    ADD CONSTRAINT decks_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: distribution_channels distribution_channels_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.distribution_channels
-    ADD CONSTRAINT distribution_channels_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.distribution_channels(id) ON DELETE RESTRICT;
-
-
---
--- Name: face_images face_images_face_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.face_images
-    ADD CONSTRAINT face_images_face_id_fkey FOREIGN KEY (face_id) REFERENCES public.faces(id);
-
-
---
--- Name: faces faces_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.faces
-    ADD CONSTRAINT faces_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id);
-
-
---
--- Name: faces faces_language_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.faces
-    ADD CONSTRAINT faces_language_fk FOREIGN KEY (language) REFERENCES public.languages(code) ON UPDATE CASCADE;
-
-
---
--- Name: faces faces_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.faces
-    ADD CONSTRAINT faces_set_id_fkey FOREIGN KEY (set_id) REFERENCES public.sets(id);
+ALTER TABLE ONLY public.card_trades
+    ADD CONSTRAINT fk_card_trades_receiver_wish_entry_id FOREIGN KEY (receiver_wish_entry_id) REFERENCES public.list_entries(id) ON DELETE SET NULL;
 
 
 --
@@ -10094,6 +9680,22 @@ ALTER TABLE ONLY public.collection_deckbuilding_prefs
 
 
 --
+-- Name: collection_events fk_collection_events_printing_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.collection_events
+    ADD CONSTRAINT fk_collection_events_printing_id FOREIGN KEY (printing_id) REFERENCES public.printings(id);
+
+
+--
+-- Name: collection_events fk_collection_events_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.collection_events
+    ADD CONSTRAINT fk_collection_events_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: collection_sidebar_prefs fk_collection_sidebar_prefs_collection; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -10110,6 +9712,22 @@ ALTER TABLE ONLY public.collection_sidebar_prefs
 
 
 --
+-- Name: collections fk_collections_group_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.collections
+    ADD CONSTRAINT fk_collections_group_id FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: collections fk_collections_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.collections
+    ADD CONSTRAINT fk_collections_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: copies fk_copies_collection; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -10118,11 +9736,155 @@ ALTER TABLE ONLY public.copies
 
 
 --
+-- Name: copies fk_copies_condition; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.copies
+    ADD CONSTRAINT fk_copies_condition FOREIGN KEY (condition) REFERENCES public.conditions(slug);
+
+
+--
+-- Name: copies fk_copies_grader; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.copies
+    ADD CONSTRAINT fk_copies_grader FOREIGN KEY (grader) REFERENCES public.graders(slug);
+
+
+--
+-- Name: copies fk_copies_printing_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.copies
+    ADD CONSTRAINT fk_copies_printing_id FOREIGN KEY (printing_id) REFERENCES public.printings(id);
+
+
+--
+-- Name: custom_tags fk_custom_tags_category_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.custom_tags
+    ADD CONSTRAINT fk_custom_tags_category_id FOREIGN KEY (category_id) REFERENCES public.custom_tag_categories(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: deck_cards fk_deck_cards_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_cards
+    ADD CONSTRAINT fk_deck_cards_card_id FOREIGN KEY (card_id) REFERENCES public.cards(id);
+
+
+--
+-- Name: deck_cards fk_deck_cards_deck_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_cards
+    ADD CONSTRAINT fk_deck_cards_deck_id FOREIGN KEY (deck_id) REFERENCES public.decks(id) ON DELETE CASCADE;
+
+
+--
+-- Name: deck_cards fk_deck_cards_preferred_printing_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_cards
+    ADD CONSTRAINT fk_deck_cards_preferred_printing_id FOREIGN KEY (preferred_printing_id) REFERENCES public.printings(id) ON DELETE SET NULL;
+
+
+--
 -- Name: deck_cards fk_deck_cards_zone; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.deck_cards
     ADD CONSTRAINT fk_deck_cards_zone FOREIGN KEY (zone) REFERENCES public.deck_zones(slug);
+
+
+--
+-- Name: deck_check_entries fk_deck_check_entries_approved_by_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_check_entries
+    ADD CONSTRAINT fk_deck_check_entries_approved_by_user_id FOREIGN KEY (approved_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: deck_check_entries fk_deck_check_entries_checked_by_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_check_entries
+    ADD CONSTRAINT fk_deck_check_entries_checked_by_user_id FOREIGN KEY (checked_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: deck_check_entries fk_deck_check_entries_participant; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_check_entries
+    ADD CONSTRAINT fk_deck_check_entries_participant FOREIGN KEY (participant_id) REFERENCES public.tournament_participants(id) ON DELETE CASCADE;
+
+
+--
+-- Name: deck_check_entries fk_deck_check_entries_tournament; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_check_entries
+    ADD CONSTRAINT fk_deck_check_entries_tournament FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id) ON DELETE CASCADE;
+
+
+--
+-- Name: deck_check_entry_cards fk_deck_check_entry_cards_card; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_check_entry_cards
+    ADD CONSTRAINT fk_deck_check_entry_cards_card FOREIGN KEY (resolved_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+
+--
+-- Name: deck_check_entry_cards fk_deck_check_entry_cards_entry; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_check_entry_cards
+    ADD CONSTRAINT fk_deck_check_entry_cards_entry FOREIGN KEY (entry_id) REFERENCES public.deck_check_entries(id) ON DELETE CASCADE;
+
+
+--
+-- Name: deck_check_entry_cards fk_deck_check_entry_cards_zone; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_check_entry_cards
+    ADD CONSTRAINT fk_deck_check_entry_cards_zone FOREIGN KEY (zone) REFERENCES public.deck_zones(slug);
+
+
+--
+-- Name: deck_check_keys fk_deck_check_keys_created_by_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_check_keys
+    ADD CONSTRAINT fk_deck_check_keys_created_by_user_id FOREIGN KEY (created_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: deck_check_keys fk_deck_check_keys_host_org; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_check_keys
+    ADD CONSTRAINT fk_deck_check_keys_host_org FOREIGN KEY (host_org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
+
+
+--
+-- Name: deck_check_keys fk_deck_check_keys_host_user; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_check_keys
+    ADD CONSTRAINT fk_deck_check_keys_host_user FOREIGN KEY (host_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: deck_families fk_deck_families_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_families
+    ADD CONSTRAINT fk_deck_families_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -10142,11 +9904,115 @@ ALTER TABLE ONLY public.deck_folder_entries
 
 
 --
+-- Name: deck_folders fk_deck_folders_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_folders
+    ADD CONSTRAINT fk_deck_folders_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: deck_matchup_plans fk_deck_matchup_plans_card; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_matchup_plans
+    ADD CONSTRAINT fk_deck_matchup_plans_card FOREIGN KEY (opponent_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+
+--
+-- Name: deck_matchup_plans fk_deck_matchup_plans_deck; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_matchup_plans
+    ADD CONSTRAINT fk_deck_matchup_plans_deck FOREIGN KEY (deck_id) REFERENCES public.decks(id) ON DELETE CASCADE;
+
+
+--
+-- Name: deck_matchup_swaps fk_deck_matchup_swaps_card; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_matchup_swaps
+    ADD CONSTRAINT fk_deck_matchup_swaps_card FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+
+
+--
+-- Name: deck_matchup_swaps fk_deck_matchup_swaps_plan; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_matchup_swaps
+    ADD CONSTRAINT fk_deck_matchup_swaps_plan FOREIGN KEY (plan_id) REFERENCES public.deck_matchup_plans(id) ON DELETE CASCADE;
+
+
+--
+-- Name: deck_plans fk_deck_plans_battlefield_first_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_plans
+    ADD CONSTRAINT fk_deck_plans_battlefield_first_card_id FOREIGN KEY (battlefield_first_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+
+--
+-- Name: deck_plans fk_deck_plans_battlefield_g1_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_plans
+    ADD CONSTRAINT fk_deck_plans_battlefield_g1_card_id FOREIGN KEY (battlefield_g1_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+
+--
+-- Name: deck_plans fk_deck_plans_battlefield_second_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_plans
+    ADD CONSTRAINT fk_deck_plans_battlefield_second_card_id FOREIGN KEY (battlefield_second_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+
+--
+-- Name: deck_plans fk_deck_plans_deck; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_plans
+    ADD CONSTRAINT fk_deck_plans_deck FOREIGN KEY (deck_id) REFERENCES public.decks(id) ON DELETE CASCADE;
+
+
+--
+-- Name: decks fk_decks_collection_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.decks
+    ADD CONSTRAINT fk_decks_collection_id FOREIGN KEY (collection_id) REFERENCES public.collections(id) ON DELETE SET NULL;
+
+
+--
+-- Name: decks fk_decks_cover_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.decks
+    ADD CONSTRAINT fk_decks_cover_card_id FOREIGN KEY (cover_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+
+--
 -- Name: decks fk_decks_cover_face_card; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.decks
     ADD CONSTRAINT fk_decks_cover_face_card FOREIGN KEY (cover_face_id, cover_card_id) REFERENCES public.faces(id, card_id);
+
+
+--
+-- Name: decks fk_decks_cover_face_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.decks
+    ADD CONSTRAINT fk_decks_cover_face_id FOREIGN KEY (cover_face_id) REFERENCES public.faces(id) ON DELETE SET NULL;
+
+
+--
+-- Name: decks fk_decks_family_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.decks
+    ADD CONSTRAINT fk_decks_family_id FOREIGN KEY (family_id) REFERENCES public.deck_families(id);
 
 
 --
@@ -10166,6 +10032,30 @@ ALTER TABLE ONLY public.decks
 
 
 --
+-- Name: decks fk_decks_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.decks
+    ADD CONSTRAINT fk_decks_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: distribution_channels fk_distribution_channels_parent_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.distribution_channels
+    ADD CONSTRAINT fk_distribution_channels_parent_id FOREIGN KEY (parent_id) REFERENCES public.distribution_channels(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: face_images fk_face_images_face_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.face_images
+    ADD CONSTRAINT fk_face_images_face_id FOREIGN KEY (face_id) REFERENCES public.faces(id);
+
+
+--
 -- Name: face_images fk_face_images_image_file; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -10179,6 +10069,14 @@ ALTER TABLE ONLY public.face_images
 
 ALTER TABLE ONLY public.faces
     ADD CONSTRAINT fk_faces_art_variant FOREIGN KEY (art_variant) REFERENCES public.art_variants(slug);
+
+
+--
+-- Name: faces fk_faces_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.faces
+    ADD CONSTRAINT fk_faces_card_id FOREIGN KEY (card_id) REFERENCES public.cards(id);
 
 
 --
@@ -10198,11 +10096,35 @@ ALTER TABLE ONLY public.faces
 
 
 --
+-- Name: faces fk_faces_language; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.faces
+    ADD CONSTRAINT fk_faces_language FOREIGN KEY (language) REFERENCES public.languages(code) ON UPDATE CASCADE;
+
+
+--
 -- Name: faces fk_faces_rarity; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.faces
     ADD CONSTRAINT fk_faces_rarity FOREIGN KEY (rarity) REFERENCES public.rarities(slug);
+
+
+--
+-- Name: faces fk_faces_set_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.faces
+    ADD CONSTRAINT fk_faces_set_id FOREIGN KEY (set_id) REFERENCES public.sets(id);
+
+
+--
+-- Name: friend_group_calendar_feeds fk_friend_group_calendar_feeds_member; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_calendar_feeds
+    ADD CONSTRAINT fk_friend_group_calendar_feeds_member FOREIGN KEY (group_id, user_id) REFERENCES public.friend_group_members(group_id, user_id) ON DELETE CASCADE;
 
 
 --
@@ -10222,6 +10144,38 @@ ALTER TABLE ONLY public.friend_group_collection_shares
 
 
 --
+-- Name: friend_group_discord_links fk_friend_group_discord_links_created_by_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_discord_links
+    ADD CONSTRAINT fk_friend_group_discord_links_created_by_user_id FOREIGN KEY (created_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: friend_group_discord_links fk_friend_group_discord_links_group_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_discord_links
+    ADD CONSTRAINT fk_friend_group_discord_links_group_id FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: friend_group_invites fk_friend_group_invites_group_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_invites
+    ADD CONSTRAINT fk_friend_group_invites_group_id FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: friend_group_invites fk_friend_group_invites_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_invites
+    ADD CONSTRAINT fk_friend_group_invites_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: friend_group_list_shares fk_friend_group_list_shares_list; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -10235,6 +10189,126 @@ ALTER TABLE ONLY public.friend_group_list_shares
 
 ALTER TABLE ONLY public.friend_group_list_shares
     ADD CONSTRAINT fk_friend_group_list_shares_membership FOREIGN KEY (user_id, group_id) REFERENCES public.friend_group_members(user_id, group_id) ON DELETE CASCADE;
+
+
+--
+-- Name: friend_group_member_contacts fk_friend_group_member_contacts_member; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_member_contacts
+    ADD CONSTRAINT fk_friend_group_member_contacts_member FOREIGN KEY (group_id, user_id) REFERENCES public.friend_group_members(group_id, user_id) ON DELETE CASCADE;
+
+
+--
+-- Name: friend_group_member_contacts fk_friend_group_member_contacts_method; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_member_contacts
+    ADD CONSTRAINT fk_friend_group_member_contacts_method FOREIGN KEY (contact_method_id) REFERENCES public.user_contact_methods(id) ON DELETE CASCADE;
+
+
+--
+-- Name: friend_group_members fk_friend_group_members_group_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_members
+    ADD CONSTRAINT fk_friend_group_members_group_id FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: friend_group_members fk_friend_group_members_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_members
+    ADD CONSTRAINT fk_friend_group_members_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: friend_group_playriftbound_shops fk_friend_group_playriftbound_shops_added_by_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_playriftbound_shops
+    ADD CONSTRAINT fk_friend_group_playriftbound_shops_added_by_user_id FOREIGN KEY (added_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: friend_group_playriftbound_shops fk_friend_group_playriftbound_shops_group_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_playriftbound_shops
+    ADD CONSTRAINT fk_friend_group_playriftbound_shops_group_id FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: friend_group_playriftbound_shops fk_friend_group_playriftbound_shops_organizer_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_playriftbound_shops
+    ADD CONSTRAINT fk_friend_group_playriftbound_shops_organizer_id FOREIGN KEY (organizer_id) REFERENCES public.playriftbound_organizers(id) ON DELETE CASCADE;
+
+
+--
+-- Name: friend_group_uvsgames_shops fk_friend_group_uvsgames_shops_added_by_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_uvsgames_shops
+    ADD CONSTRAINT fk_friend_group_uvsgames_shops_added_by_user_id FOREIGN KEY (added_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: friend_group_uvsgames_shops fk_friend_group_uvsgames_shops_group_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_uvsgames_shops
+    ADD CONSTRAINT fk_friend_group_uvsgames_shops_group_id FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: friend_group_uvsgames_shops fk_friend_group_uvsgames_shops_uvsgames_store_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_uvsgames_shops
+    ADD CONSTRAINT fk_friend_group_uvsgames_shops_uvsgames_store_id FOREIGN KEY (uvsgames_store_id) REFERENCES public.uvsgames_stores(id) ON DELETE CASCADE;
+
+
+--
+-- Name: friend_groups fk_friend_groups_banner_uploaded_by_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_groups
+    ADD CONSTRAINT fk_friend_groups_banner_uploaded_by_user_id FOREIGN KEY (banner_uploaded_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: image_rehost_failures fk_image_rehost_failures_image_file_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.image_rehost_failures
+    ADD CONSTRAINT fk_image_rehost_failures_image_file_id FOREIGN KEY (image_file_id) REFERENCES public.image_files(id) ON DELETE CASCADE;
+
+
+--
+-- Name: keyword_translations fk_keyword_translations_keyword_name; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.keyword_translations
+    ADD CONSTRAINT fk_keyword_translations_keyword_name FOREIGN KEY (keyword_name) REFERENCES public.keywords(name) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: keyword_translations fk_keyword_translations_language; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.keyword_translations
+    ADD CONSTRAINT fk_keyword_translations_language FOREIGN KEY (language) REFERENCES public.languages(code) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: list_entries fk_list_entries_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.list_entries
+    ADD CONSTRAINT fk_list_entries_card_id FOREIGN KEY (card_id) REFERENCES public.cards(id);
 
 
 --
@@ -10262,6 +10336,422 @@ ALTER TABLE ONLY public.list_entries
 
 
 --
+-- Name: list_entries fk_list_entries_printing_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.list_entries
+    ADD CONSTRAINT fk_list_entries_printing_id FOREIGN KEY (printing_id) REFERENCES public.printings(id);
+
+
+--
+-- Name: lists fk_lists_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lists
+    ADD CONSTRAINT fk_lists_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: loan_copies fk_loan_copies_copy_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.loan_copies
+    ADD CONSTRAINT fk_loan_copies_copy_id FOREIGN KEY (copy_id) REFERENCES public.copies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: loan_copies fk_loan_copies_loan_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.loan_copies
+    ADD CONSTRAINT fk_loan_copies_loan_id FOREIGN KEY (loan_id) REFERENCES public.loans(id) ON DELETE CASCADE;
+
+
+--
+-- Name: loans fk_loans_borrower_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.loans
+    ADD CONSTRAINT fk_loans_borrower_user_id FOREIGN KEY (borrower_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: loans fk_loans_lender_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.loans
+    ADD CONSTRAINT fk_loans_lender_user_id FOREIGN KEY (lender_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: loans fk_loans_printing_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.loans
+    ADD CONSTRAINT fk_loans_printing_id FOREIGN KEY (printing_id) REFERENCES public.printings(id);
+
+
+--
+-- Name: marketplace_groups fk_marketplace_groups_set_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketplace_groups
+    ADD CONSTRAINT fk_marketplace_groups_set_id FOREIGN KEY (set_id) REFERENCES public.sets(id) ON DELETE SET NULL;
+
+
+--
+-- Name: marketplace_ignored_variants fk_marketplace_ignored_variants_product_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketplace_ignored_variants
+    ADD CONSTRAINT fk_marketplace_ignored_variants_product_id FOREIGN KEY (marketplace_product_id) REFERENCES public.marketplace_products(id) ON DELETE CASCADE;
+
+
+--
+-- Name: marketplace_product_card_overrides fk_marketplace_product_card_overrides_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketplace_product_card_overrides
+    ADD CONSTRAINT fk_marketplace_product_card_overrides_card_id FOREIGN KEY (card_id) REFERENCES public.cards(id);
+
+
+--
+-- Name: marketplace_product_card_overrides fk_marketplace_product_card_overrides_product; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketplace_product_card_overrides
+    ADD CONSTRAINT fk_marketplace_product_card_overrides_product FOREIGN KEY (marketplace_product_id) REFERENCES public.marketplace_products(id) ON DELETE CASCADE;
+
+
+--
+-- Name: marketplace_product_prices fk_marketplace_product_prices_marketplace_product_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketplace_product_prices
+    ADD CONSTRAINT fk_marketplace_product_prices_marketplace_product_id FOREIGN KEY (marketplace_product_id) REFERENCES public.marketplace_products(id) ON DELETE CASCADE;
+
+
+--
+-- Name: marketplace_product_variants fk_marketplace_product_variants_printing_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketplace_product_variants
+    ADD CONSTRAINT fk_marketplace_product_variants_printing_id FOREIGN KEY (printing_id) REFERENCES public.printings(id);
+
+
+--
+-- Name: marketplace_product_variants fk_marketplace_product_variants_product_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketplace_product_variants
+    ADD CONSTRAINT fk_marketplace_product_variants_product_id FOREIGN KEY (marketplace_product_id) REFERENCES public.marketplace_products(id);
+
+
+--
+-- Name: marketplace_products fk_marketplace_products_group; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketplace_products
+    ADD CONSTRAINT fk_marketplace_products_group FOREIGN KEY (marketplace, group_id) REFERENCES public.marketplace_groups(marketplace, group_id);
+
+
+--
+-- Name: meta_credits fk_meta_credits_meta_event_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_credits
+    ADD CONSTRAINT fk_meta_credits_meta_event_id FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_credits fk_meta_credits_meta_event_player_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_credits
+    ADD CONSTRAINT fk_meta_credits_meta_event_player_id FOREIGN KEY (meta_event_player_id) REFERENCES public.meta_event_players(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_credits fk_meta_credits_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_credits
+    ADD CONSTRAINT fk_meta_credits_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_deck_inference_neighbours fk_meta_deck_inference_neighbours_deck_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_deck_inference_neighbours
+    ADD CONSTRAINT fk_meta_deck_inference_neighbours_deck_id FOREIGN KEY (deck_id) REFERENCES public.meta_deck_inferences(deck_id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_deck_inference_neighbours fk_meta_deck_inference_neighbours_neighbour_deck_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_deck_inference_neighbours
+    ADD CONSTRAINT fk_meta_deck_inference_neighbours_neighbour_deck_id FOREIGN KEY (neighbour_deck_id) REFERENCES public.decks(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_deck_inferences fk_meta_deck_inferences_battlefield_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_deck_inferences
+    ADD CONSTRAINT fk_meta_deck_inferences_battlefield_card_id FOREIGN KEY (battlefield_card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_deck_inferences fk_meta_deck_inferences_champion_alt_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_deck_inferences
+    ADD CONSTRAINT fk_meta_deck_inferences_champion_alt_card_id FOREIGN KEY (champion_alt_card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_deck_inferences fk_meta_deck_inferences_champion_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_deck_inferences
+    ADD CONSTRAINT fk_meta_deck_inferences_champion_card_id FOREIGN KEY (champion_card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_deck_inferences fk_meta_deck_inferences_deck_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_deck_inferences
+    ADD CONSTRAINT fk_meta_deck_inferences_deck_id FOREIGN KEY (deck_id) REFERENCES public.decks(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_event_matches fk_meta_event_matches_meta_event_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_matches
+    ADD CONSTRAINT fk_meta_event_matches_meta_event_id FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_event_matches fk_meta_event_matches_player1_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_matches
+    ADD CONSTRAINT fk_meta_event_matches_player1_id FOREIGN KEY (player1_id) REFERENCES public.meta_event_players(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_event_matches fk_meta_event_matches_player2_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_matches
+    ADD CONSTRAINT fk_meta_event_matches_player2_id FOREIGN KEY (player2_id) REFERENCES public.meta_event_players(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_event_matches fk_meta_event_matches_winner_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_matches
+    ADD CONSTRAINT fk_meta_event_matches_winner_id FOREIGN KEY (winner_id) REFERENCES public.meta_event_players(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_event_overlay_matches fk_meta_event_overlay_matches_event_overlay_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_overlay_matches
+    ADD CONSTRAINT fk_meta_event_overlay_matches_event_overlay_id FOREIGN KEY (event_overlay_id) REFERENCES public.meta_event_overlays(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_event_overlay_phases fk_meta_event_overlay_phases_event_overlay_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_overlay_phases
+    ADD CONSTRAINT fk_meta_event_overlay_phases_event_overlay_id FOREIGN KEY (event_overlay_id) REFERENCES public.meta_event_overlays(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_event_overlays fk_meta_event_overlays_meta_event_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_overlays
+    ADD CONSTRAINT fk_meta_event_overlays_meta_event_id FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_event_overlays fk_meta_event_overlays_submitted_by_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_overlays
+    ADD CONSTRAINT fk_meta_event_overlays_submitted_by_user_id FOREIGN KEY (submitted_by_user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: meta_event_phases fk_meta_event_phases_meta_event_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_phases
+    ADD CONSTRAINT fk_meta_event_phases_meta_event_id FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_event_player_overlay_cards fk_meta_event_player_overlay_cards_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_player_overlay_cards
+    ADD CONSTRAINT fk_meta_event_player_overlay_cards_card_id FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+
+--
+-- Name: meta_event_player_overlay_cards fk_meta_event_player_overlay_cards_overlay_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_player_overlay_cards
+    ADD CONSTRAINT fk_meta_event_player_overlay_cards_overlay_id FOREIGN KEY (overlay_id) REFERENCES public.meta_event_player_overlays(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_event_player_overlay_cards fk_meta_event_player_overlay_cards_preferred_printing_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_player_overlay_cards
+    ADD CONSTRAINT fk_meta_event_player_overlay_cards_preferred_printing_id FOREIGN KEY (preferred_printing_id) REFERENCES public.printings(id) ON DELETE SET NULL;
+
+
+--
+-- Name: meta_event_player_overlays fk_meta_event_player_overlays_champion_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_player_overlays
+    ADD CONSTRAINT fk_meta_event_player_overlays_champion_card_id FOREIGN KEY (champion_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+
+--
+-- Name: meta_event_player_overlays fk_meta_event_player_overlays_event_overlay_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_player_overlays
+    ADD CONSTRAINT fk_meta_event_player_overlays_event_overlay_id FOREIGN KEY (event_overlay_id) REFERENCES public.meta_event_overlays(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_event_player_overlays fk_meta_event_player_overlays_legend_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_player_overlays
+    ADD CONSTRAINT fk_meta_event_player_overlays_legend_card_id FOREIGN KEY (legend_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+
+--
+-- Name: meta_event_player_overlays fk_meta_event_player_overlays_meta_event_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_player_overlays
+    ADD CONSTRAINT fk_meta_event_player_overlays_meta_event_id FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_event_player_overlays fk_meta_event_player_overlays_meta_event_player_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_player_overlays
+    ADD CONSTRAINT fk_meta_event_player_overlays_meta_event_player_id FOREIGN KEY (meta_event_player_id) REFERENCES public.meta_event_players(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_event_player_overlays fk_meta_event_player_overlays_submitted_by_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_player_overlays
+    ADD CONSTRAINT fk_meta_event_player_overlays_submitted_by_user_id FOREIGN KEY (submitted_by_user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: meta_event_players fk_meta_event_players_champion_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_players
+    ADD CONSTRAINT fk_meta_event_players_champion_card_id FOREIGN KEY (champion_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+
+--
+-- Name: meta_event_players fk_meta_event_players_deck_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_players
+    ADD CONSTRAINT fk_meta_event_players_deck_id FOREIGN KEY (deck_id) REFERENCES public.decks(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: meta_event_players fk_meta_event_players_legend_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_players
+    ADD CONSTRAINT fk_meta_event_players_legend_card_id FOREIGN KEY (legend_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+
+--
+-- Name: meta_event_players fk_meta_event_players_meta_event_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_players
+    ADD CONSTRAINT fk_meta_event_players_meta_event_id FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_event_players fk_meta_event_players_minted_by_overlay_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_players
+    ADD CONSTRAINT fk_meta_event_players_minted_by_overlay_id FOREIGN KEY (minted_by_overlay_id) REFERENCES public.meta_event_player_overlays(id) ON DELETE SET NULL;
+
+
+--
+-- Name: meta_event_players fk_meta_event_players_uvsgames_player_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_players
+    ADD CONSTRAINT fk_meta_event_players_uvsgames_player_id FOREIGN KEY (uvsgames_player_id) REFERENCES public.uvsgames_players(id);
+
+
+--
+-- Name: meta_event_sources fk_meta_event_sources_meta_event_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_sources
+    ADD CONSTRAINT fk_meta_event_sources_meta_event_id FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_events fk_meta_events_format; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_events
+    ADD CONSTRAINT fk_meta_events_format FOREIGN KEY (format) REFERENCES public.deck_formats(slug);
+
+
+--
+-- Name: meta_held_source_events fk_meta_held_source_events_meta_event_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_held_source_events
+    ADD CONSTRAINT fk_meta_held_source_events_meta_event_id FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_player_links fk_meta_player_links_meta_event_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_player_links
+    ADD CONSTRAINT fk_meta_player_links_meta_event_id FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
+
+
+--
 -- Name: meta_player_links fk_meta_player_links_player; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -10270,11 +10760,251 @@ ALTER TABLE ONLY public.meta_player_links
 
 
 --
--- Name: printing_link_overrides fk_plo_printing_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: meta_submissions fk_meta_submissions_accepted_deck_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_submissions
+    ADD CONSTRAINT fk_meta_submissions_accepted_deck_id FOREIGN KEY (accepted_deck_id) REFERENCES public.decks(id) ON DELETE SET NULL;
+
+
+--
+-- Name: meta_submissions fk_meta_submissions_meta_event_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_submissions
+    ADD CONSTRAINT fk_meta_submissions_meta_event_id FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE SET NULL;
+
+
+--
+-- Name: meta_submissions fk_meta_submissions_meta_event_player_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_submissions
+    ADD CONSTRAINT fk_meta_submissions_meta_event_player_id FOREIGN KEY (meta_event_player_id) REFERENCES public.meta_event_players(id) ON DELETE SET NULL;
+
+
+--
+-- Name: meta_submissions fk_meta_submissions_player_overlay_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_submissions
+    ADD CONSTRAINT fk_meta_submissions_player_overlay_id FOREIGN KEY (player_overlay_id) REFERENCES public.meta_event_player_overlays(id) ON DELETE SET NULL;
+
+
+--
+-- Name: meta_submissions fk_meta_submissions_resolved_by_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_submissions
+    ADD CONSTRAINT fk_meta_submissions_resolved_by_user_id FOREIGN KEY (resolved_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: meta_submissions fk_meta_submissions_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_submissions
+    ADD CONSTRAINT fk_meta_submissions_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: organization_members fk_organization_members_org; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.organization_members
+    ADD CONSTRAINT fk_organization_members_org FOREIGN KEY (org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
+
+
+--
+-- Name: organization_members fk_organization_members_user; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.organization_members
+    ADD CONSTRAINT fk_organization_members_user FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: overlay_channels fk_overlay_channels_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.overlay_channels
+    ADD CONSTRAINT fk_overlay_channels_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: playloltcg_decklist_cards fk_playloltcg_decklist_cards_source_deck_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.playloltcg_decklist_cards
+    ADD CONSTRAINT fk_playloltcg_decklist_cards_source_deck_id FOREIGN KEY (source_deck_id) REFERENCES public.playloltcg_decklists(source_deck_id) ON DELETE CASCADE;
+
+
+--
+-- Name: playloltcg_decklists fk_playloltcg_decklists_activity_shop_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.playloltcg_decklists
+    ADD CONSTRAINT fk_playloltcg_decklists_activity_shop_id FOREIGN KEY (activity_shop_id) REFERENCES public.playloltcg_events(activity_shop_id) ON DELETE CASCADE;
+
+
+--
+-- Name: playloltcg_event_checks fk_playloltcg_event_checks_activity_shop_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.playloltcg_event_checks
+    ADD CONSTRAINT fk_playloltcg_event_checks_activity_shop_id FOREIGN KEY (activity_shop_id) REFERENCES public.playloltcg_events(activity_shop_id) ON DELETE CASCADE;
+
+
+--
+-- Name: playloltcg_event_standings fk_playloltcg_event_standings_activity_shop_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.playloltcg_event_standings
+    ADD CONSTRAINT fk_playloltcg_event_standings_activity_shop_id FOREIGN KEY (activity_shop_id) REFERENCES public.playloltcg_events(activity_shop_id) ON DELETE CASCADE;
+
+
+--
+-- Name: playloltcg_events fk_playloltcg_events_shop_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.playloltcg_events
+    ADD CONSTRAINT fk_playloltcg_events_shop_id FOREIGN KEY (shop_id) REFERENCES public.playloltcg_shops(id);
+
+
+--
+-- Name: playriftbound_event_checks fk_playriftbound_event_checks_tournament_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.playriftbound_event_checks
+    ADD CONSTRAINT fk_playriftbound_event_checks_tournament_id FOREIGN KEY (tournament_id) REFERENCES public.playriftbound_events(tournament_id) ON DELETE CASCADE;
+
+
+--
+-- Name: playriftbound_event_matches fk_playriftbound_event_matches_tournament_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.playriftbound_event_matches
+    ADD CONSTRAINT fk_playriftbound_event_matches_tournament_id FOREIGN KEY (tournament_id) REFERENCES public.playriftbound_events(tournament_id) ON DELETE CASCADE;
+
+
+--
+-- Name: playriftbound_event_phases fk_playriftbound_event_phases_tournament_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.playriftbound_event_phases
+    ADD CONSTRAINT fk_playriftbound_event_phases_tournament_id FOREIGN KEY (tournament_id) REFERENCES public.playriftbound_events(tournament_id) ON DELETE CASCADE;
+
+
+--
+-- Name: playriftbound_event_standings fk_playriftbound_event_standings_tournament_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.playriftbound_event_standings
+    ADD CONSTRAINT fk_playriftbound_event_standings_tournament_id FOREIGN KEY (tournament_id) REFERENCES public.playriftbound_events(tournament_id) ON DELETE CASCADE;
+
+
+--
+-- Name: playriftbound_events fk_playriftbound_events_organizer_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.playriftbound_events
+    ADD CONSTRAINT fk_playriftbound_events_organizer_id FOREIGN KEY (organizer_id) REFERENCES public.playriftbound_organizers(id) ON DELETE SET NULL;
+
+
+--
+-- Name: pod_byes fk_pod_byes_player; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pod_byes
+    ADD CONSTRAINT fk_pod_byes_player FOREIGN KEY (player_id) REFERENCES public.tournament_participants(id) ON DELETE CASCADE;
+
+
+--
+-- Name: pod_byes fk_pod_byes_round; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pod_byes
+    ADD CONSTRAINT fk_pod_byes_round FOREIGN KEY (round_id) REFERENCES public.pod_rounds(id) ON DELETE CASCADE;
+
+
+--
+-- Name: pod_members fk_pod_members_player; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pod_members
+    ADD CONSTRAINT fk_pod_members_player FOREIGN KEY (player_id) REFERENCES public.tournament_participants(id) ON DELETE CASCADE;
+
+
+--
+-- Name: pod_members fk_pod_members_pod; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pod_members
+    ADD CONSTRAINT fk_pod_members_pod FOREIGN KEY (pod_id) REFERENCES public.pods(id) ON DELETE CASCADE;
+
+
+--
+-- Name: pod_rounds fk_pod_rounds_tournament; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pod_rounds
+    ADD CONSTRAINT fk_pod_rounds_tournament FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id) ON DELETE CASCADE;
+
+
+--
+-- Name: pods fk_pods_round; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pods
+    ADD CONSTRAINT fk_pods_round FOREIGN KEY (round_id) REFERENCES public.pod_rounds(id) ON DELETE CASCADE;
+
+
+--
+-- Name: printing_citations fk_printing_citations_printing_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.printing_citations
+    ADD CONSTRAINT fk_printing_citations_printing_id FOREIGN KEY (printing_id) REFERENCES public.printings(id) ON DELETE CASCADE;
+
+
+--
+-- Name: printing_distribution_channels fk_printing_distribution_channels_channel_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.printing_distribution_channels
+    ADD CONSTRAINT fk_printing_distribution_channels_channel_id FOREIGN KEY (channel_id) REFERENCES public.distribution_channels(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: printing_distribution_channels fk_printing_distribution_channels_printing_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.printing_distribution_channels
+    ADD CONSTRAINT fk_printing_distribution_channels_printing_id FOREIGN KEY (printing_id) REFERENCES public.printings(id) ON DELETE CASCADE;
+
+
+--
+-- Name: printing_link_overrides fk_printing_link_overrides_printing_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.printing_link_overrides
-    ADD CONSTRAINT fk_plo_printing_id FOREIGN KEY (printing_id) REFERENCES public.printings(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_printing_link_overrides_printing_id FOREIGN KEY (printing_id) REFERENCES public.printings(id) ON DELETE CASCADE;
+
+
+--
+-- Name: printings fk_printings_face1_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.printings
+    ADD CONSTRAINT fk_printings_face1_id FOREIGN KEY (face1_id) REFERENCES public.faces(id);
+
+
+--
+-- Name: printings fk_printings_face2_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.printings
+    ADD CONSTRAINT fk_printings_face2_id FOREIGN KEY (face2_id) REFERENCES public.faces(id);
 
 
 --
@@ -10286,1232 +11016,408 @@ ALTER TABLE ONLY public.printings
 
 
 --
--- Name: friend_group_calendar_feeds friend_group_calendar_feeds_member_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_calendar_feeds
-    ADD CONSTRAINT friend_group_calendar_feeds_member_fkey FOREIGN KEY (group_id, user_id) REFERENCES public.friend_group_members(group_id, user_id) ON DELETE CASCADE;
-
-
---
--- Name: friend_group_discord_links friend_group_discord_links_created_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_discord_links
-    ADD CONSTRAINT friend_group_discord_links_created_by_user_id_fkey FOREIGN KEY (created_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
-
-
---
--- Name: friend_group_discord_links friend_group_discord_links_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_discord_links
-    ADD CONSTRAINT friend_group_discord_links_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE CASCADE;
-
-
---
--- Name: friend_group_invites friend_group_invites_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_invites
-    ADD CONSTRAINT friend_group_invites_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE CASCADE;
-
-
---
--- Name: friend_group_invites friend_group_invites_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_invites
-    ADD CONSTRAINT friend_group_invites_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: friend_group_member_contacts friend_group_member_contacts_member_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_member_contacts
-    ADD CONSTRAINT friend_group_member_contacts_member_fkey FOREIGN KEY (group_id, user_id) REFERENCES public.friend_group_members(group_id, user_id) ON DELETE CASCADE;
-
-
---
--- Name: friend_group_member_contacts friend_group_member_contacts_method_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_member_contacts
-    ADD CONSTRAINT friend_group_member_contacts_method_fkey FOREIGN KEY (contact_method_id) REFERENCES public.user_contact_methods(id) ON DELETE CASCADE;
-
-
---
--- Name: friend_group_members friend_group_members_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_members
-    ADD CONSTRAINT friend_group_members_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE CASCADE;
-
-
---
--- Name: friend_group_members friend_group_members_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_members
-    ADD CONSTRAINT friend_group_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: friend_group_playriftbound_shops friend_group_playriftbound_shops_added_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_playriftbound_shops
-    ADD CONSTRAINT friend_group_playriftbound_shops_added_by_user_id_fkey FOREIGN KEY (added_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
-
-
---
--- Name: friend_group_playriftbound_shops friend_group_playriftbound_shops_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_playriftbound_shops
-    ADD CONSTRAINT friend_group_playriftbound_shops_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE CASCADE;
-
-
---
--- Name: friend_group_playriftbound_shops friend_group_playriftbound_shops_organizer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_playriftbound_shops
-    ADD CONSTRAINT friend_group_playriftbound_shops_organizer_id_fkey FOREIGN KEY (organizer_id) REFERENCES public.playriftbound_organizers(id) ON DELETE CASCADE;
-
-
---
--- Name: friend_group_shops friend_group_shops_added_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_shops
-    ADD CONSTRAINT friend_group_shops_added_by_user_id_fkey FOREIGN KEY (added_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
-
-
---
--- Name: friend_group_shops friend_group_shops_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_shops
-    ADD CONSTRAINT friend_group_shops_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE CASCADE;
-
-
---
--- Name: friend_group_shops friend_group_shops_uvsgames_store_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_shops
-    ADD CONSTRAINT friend_group_shops_uvsgames_store_id_fkey FOREIGN KEY (uvsgames_store_id) REFERENCES public.uvsgames_stores(id) ON DELETE CASCADE;
-
-
---
--- Name: friend_groups friend_groups_banner_uploaded_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_groups
-    ADD CONSTRAINT friend_groups_banner_uploaded_by_fkey FOREIGN KEY (banner_uploaded_by) REFERENCES public.users(id) ON DELETE SET NULL;
-
-
---
--- Name: image_rehost_failures image_rehost_failures_image_file_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.image_rehost_failures
-    ADD CONSTRAINT image_rehost_failures_image_file_id_fkey FOREIGN KEY (image_file_id) REFERENCES public.image_files(id) ON DELETE CASCADE;
-
-
---
--- Name: keyword_translations keyword_translations_keyword_name_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.keyword_translations
-    ADD CONSTRAINT keyword_translations_keyword_name_fkey FOREIGN KEY (keyword_name) REFERENCES public.keywords(name) ON UPDATE CASCADE ON DELETE CASCADE;
-
-
---
--- Name: keyword_translations keyword_translations_language_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.keyword_translations
-    ADD CONSTRAINT keyword_translations_language_fkey FOREIGN KEY (language) REFERENCES public.languages(code) ON UPDATE CASCADE ON DELETE CASCADE;
-
-
---
--- Name: list_entries list_entries_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.list_entries
-    ADD CONSTRAINT list_entries_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id);
-
-
---
--- Name: list_entries list_entries_printing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.list_entries
-    ADD CONSTRAINT list_entries_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id);
-
-
---
--- Name: lists lists_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.lists
-    ADD CONSTRAINT lists_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: loan_copies loan_copies_copy_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.loan_copies
-    ADD CONSTRAINT loan_copies_copy_id_fkey FOREIGN KEY (copy_id) REFERENCES public.copies(id) ON DELETE CASCADE;
-
-
---
--- Name: loan_copies loan_copies_loan_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.loan_copies
-    ADD CONSTRAINT loan_copies_loan_id_fkey FOREIGN KEY (loan_id) REFERENCES public.loans(id) ON DELETE CASCADE;
-
-
---
--- Name: loans loans_borrower_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.loans
-    ADD CONSTRAINT loans_borrower_user_id_fkey FOREIGN KEY (borrower_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
-
-
---
--- Name: loans loans_lender_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.loans
-    ADD CONSTRAINT loans_lender_user_id_fkey FOREIGN KEY (lender_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: loans loans_printing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.loans
-    ADD CONSTRAINT loans_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id);
-
-
---
--- Name: marketplace_groups marketplace_groups_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.marketplace_groups
-    ADD CONSTRAINT marketplace_groups_set_id_fkey FOREIGN KEY (set_id) REFERENCES public.sets(id) ON DELETE SET NULL;
-
-
---
--- Name: marketplace_ignored_variants marketplace_ignored_variants_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.marketplace_ignored_variants
-    ADD CONSTRAINT marketplace_ignored_variants_product_id_fkey FOREIGN KEY (marketplace_product_id) REFERENCES public.marketplace_products(id) ON DELETE CASCADE;
-
-
---
--- Name: marketplace_product_card_overrides marketplace_product_card_overrides_product_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.marketplace_product_card_overrides
-    ADD CONSTRAINT marketplace_product_card_overrides_product_fk FOREIGN KEY (marketplace_product_id) REFERENCES public.marketplace_products(id) ON DELETE CASCADE;
-
-
---
--- Name: marketplace_product_prices marketplace_product_prices_marketplace_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.marketplace_product_prices
-    ADD CONSTRAINT marketplace_product_prices_marketplace_product_id_fkey FOREIGN KEY (marketplace_product_id) REFERENCES public.marketplace_products(id) ON DELETE CASCADE;
-
-
---
--- Name: marketplace_product_variants marketplace_product_variants_printing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.marketplace_product_variants
-    ADD CONSTRAINT marketplace_product_variants_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id);
-
-
---
--- Name: marketplace_product_variants marketplace_product_variants_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.marketplace_product_variants
-    ADD CONSTRAINT marketplace_product_variants_product_id_fkey FOREIGN KEY (marketplace_product_id) REFERENCES public.marketplace_products(id);
-
-
---
--- Name: marketplace_products marketplace_sources_group_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.marketplace_products
-    ADD CONSTRAINT marketplace_sources_group_fkey FOREIGN KEY (marketplace, group_id) REFERENCES public.marketplace_groups(marketplace, group_id);
-
-
---
--- Name: marketplace_product_card_overrides marketplace_staging_card_overrides_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.marketplace_product_card_overrides
-    ADD CONSTRAINT marketplace_staging_card_overrides_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id);
-
-
---
--- Name: meta_credits meta_credits_meta_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_credits
-    ADD CONSTRAINT meta_credits_meta_event_id_fkey FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_credits meta_credits_meta_event_player_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_credits
-    ADD CONSTRAINT meta_credits_meta_event_player_id_fkey FOREIGN KEY (meta_event_player_id) REFERENCES public.meta_event_players(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_credits meta_credits_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_credits
-    ADD CONSTRAINT meta_credits_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_deck_inference_neighbours meta_deck_inference_neighbours_deck_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_deck_inference_neighbours
-    ADD CONSTRAINT meta_deck_inference_neighbours_deck_id_fkey FOREIGN KEY (deck_id) REFERENCES public.meta_deck_inferences(deck_id) ON DELETE CASCADE;
-
-
---
--- Name: meta_deck_inference_neighbours meta_deck_inference_neighbours_neighbour_deck_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_deck_inference_neighbours
-    ADD CONSTRAINT meta_deck_inference_neighbours_neighbour_deck_id_fkey FOREIGN KEY (neighbour_deck_id) REFERENCES public.decks(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_deck_inferences meta_deck_inferences_battlefield_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_deck_inferences
-    ADD CONSTRAINT meta_deck_inferences_battlefield_card_id_fkey FOREIGN KEY (battlefield_card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_deck_inferences meta_deck_inferences_champion_alt_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_deck_inferences
-    ADD CONSTRAINT meta_deck_inferences_champion_alt_card_id_fkey FOREIGN KEY (champion_alt_card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_deck_inferences meta_deck_inferences_champion_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_deck_inferences
-    ADD CONSTRAINT meta_deck_inferences_champion_card_id_fkey FOREIGN KEY (champion_card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_deck_inferences meta_deck_inferences_deck_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_deck_inferences
-    ADD CONSTRAINT meta_deck_inferences_deck_id_fkey FOREIGN KEY (deck_id) REFERENCES public.decks(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_event_matches meta_event_matches_meta_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_matches
-    ADD CONSTRAINT meta_event_matches_meta_event_id_fkey FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_event_matches meta_event_matches_player1_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_matches
-    ADD CONSTRAINT meta_event_matches_player1_id_fkey FOREIGN KEY (player1_id) REFERENCES public.meta_event_players(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_event_matches meta_event_matches_player2_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_matches
-    ADD CONSTRAINT meta_event_matches_player2_id_fkey FOREIGN KEY (player2_id) REFERENCES public.meta_event_players(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_event_matches meta_event_matches_winner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_matches
-    ADD CONSTRAINT meta_event_matches_winner_id_fkey FOREIGN KEY (winner_id) REFERENCES public.meta_event_players(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_event_overlay_matches meta_event_overlay_matches_event_overlay_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_overlay_matches
-    ADD CONSTRAINT meta_event_overlay_matches_event_overlay_id_fkey FOREIGN KEY (event_overlay_id) REFERENCES public.meta_event_overlays(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_event_overlay_phases meta_event_overlay_phases_event_overlay_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_overlay_phases
-    ADD CONSTRAINT meta_event_overlay_phases_event_overlay_id_fkey FOREIGN KEY (event_overlay_id) REFERENCES public.meta_event_overlays(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_event_overlays meta_event_overlays_meta_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_overlays
-    ADD CONSTRAINT meta_event_overlays_meta_event_id_fkey FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_event_overlays meta_event_overlays_submitted_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_overlays
-    ADD CONSTRAINT meta_event_overlays_submitted_by_user_id_fkey FOREIGN KEY (submitted_by_user_id) REFERENCES public.users(id);
-
-
---
--- Name: meta_event_phases meta_event_phases_meta_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_phases
-    ADD CONSTRAINT meta_event_phases_meta_event_id_fkey FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_event_player_overlay_cards meta_event_player_overlay_cards_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_player_overlay_cards
-    ADD CONSTRAINT meta_event_player_overlay_cards_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
-
-
---
--- Name: meta_event_player_overlay_cards meta_event_player_overlay_cards_overlay_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_player_overlay_cards
-    ADD CONSTRAINT meta_event_player_overlay_cards_overlay_id_fkey FOREIGN KEY (overlay_id) REFERENCES public.meta_event_player_overlays(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_event_player_overlay_cards meta_event_player_overlay_cards_preferred_printing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_player_overlay_cards
-    ADD CONSTRAINT meta_event_player_overlay_cards_preferred_printing_id_fkey FOREIGN KEY (preferred_printing_id) REFERENCES public.printings(id) ON DELETE SET NULL;
-
-
---
--- Name: meta_event_player_overlays meta_event_player_overlays_champion_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_player_overlays
-    ADD CONSTRAINT meta_event_player_overlays_champion_card_id_fkey FOREIGN KEY (champion_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
-
-
---
--- Name: meta_event_player_overlays meta_event_player_overlays_event_overlay_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_player_overlays
-    ADD CONSTRAINT meta_event_player_overlays_event_overlay_id_fkey FOREIGN KEY (event_overlay_id) REFERENCES public.meta_event_overlays(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_event_player_overlays meta_event_player_overlays_legend_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_player_overlays
-    ADD CONSTRAINT meta_event_player_overlays_legend_card_id_fkey FOREIGN KEY (legend_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
-
-
---
--- Name: meta_event_player_overlays meta_event_player_overlays_meta_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_player_overlays
-    ADD CONSTRAINT meta_event_player_overlays_meta_event_id_fkey FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_event_player_overlays meta_event_player_overlays_meta_event_player_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_player_overlays
-    ADD CONSTRAINT meta_event_player_overlays_meta_event_player_id_fkey FOREIGN KEY (meta_event_player_id) REFERENCES public.meta_event_players(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_event_player_overlays meta_event_player_overlays_submitted_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_player_overlays
-    ADD CONSTRAINT meta_event_player_overlays_submitted_by_user_id_fkey FOREIGN KEY (submitted_by_user_id) REFERENCES public.users(id);
-
-
---
--- Name: meta_event_players meta_event_players_champion_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_players
-    ADD CONSTRAINT meta_event_players_champion_card_id_fkey FOREIGN KEY (champion_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
-
-
---
--- Name: meta_event_players meta_event_players_deck_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_players
-    ADD CONSTRAINT meta_event_players_deck_id_fkey FOREIGN KEY (deck_id) REFERENCES public.decks(id) ON DELETE RESTRICT;
-
-
---
--- Name: meta_event_players meta_event_players_legend_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_players
-    ADD CONSTRAINT meta_event_players_legend_card_id_fkey FOREIGN KEY (legend_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
-
-
---
--- Name: meta_event_players meta_event_players_meta_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_players
-    ADD CONSTRAINT meta_event_players_meta_event_id_fkey FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_event_players meta_event_players_minted_by_overlay_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_players
-    ADD CONSTRAINT meta_event_players_minted_by_overlay_id_fkey FOREIGN KEY (minted_by_overlay_id) REFERENCES public.meta_event_player_overlays(id) ON DELETE SET NULL;
-
-
---
--- Name: meta_event_players meta_event_players_uvsgames_player_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_players
-    ADD CONSTRAINT meta_event_players_uvsgames_player_id_fkey FOREIGN KEY (uvsgames_player_id) REFERENCES public.uvsgames_players(id);
-
-
---
--- Name: meta_event_sources meta_event_sources_meta_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_event_sources
-    ADD CONSTRAINT meta_event_sources_meta_event_id_fkey FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_events meta_events_format_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_events
-    ADD CONSTRAINT meta_events_format_fkey FOREIGN KEY (format) REFERENCES public.deck_formats(slug);
-
-
---
--- Name: meta_held_source_events meta_held_source_events_meta_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_held_source_events
-    ADD CONSTRAINT meta_held_source_events_meta_event_id_fkey FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_player_links meta_player_links_meta_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_player_links
-    ADD CONSTRAINT meta_player_links_meta_event_id_fkey FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
-
-
---
--- Name: meta_submissions meta_submissions_accepted_deck_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_submissions
-    ADD CONSTRAINT meta_submissions_accepted_deck_id_fkey FOREIGN KEY (accepted_deck_id) REFERENCES public.decks(id) ON DELETE SET NULL;
-
-
---
--- Name: meta_submissions meta_submissions_meta_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_submissions
-    ADD CONSTRAINT meta_submissions_meta_event_id_fkey FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE SET NULL;
-
-
---
--- Name: meta_submissions meta_submissions_meta_event_player_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_submissions
-    ADD CONSTRAINT meta_submissions_meta_event_player_id_fkey FOREIGN KEY (meta_event_player_id) REFERENCES public.meta_event_players(id) ON DELETE SET NULL;
-
-
---
--- Name: meta_submissions meta_submissions_player_overlay_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_submissions
-    ADD CONSTRAINT meta_submissions_player_overlay_id_fkey FOREIGN KEY (player_overlay_id) REFERENCES public.meta_event_player_overlays(id) ON DELETE SET NULL;
-
-
---
--- Name: meta_submissions meta_submissions_resolved_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_submissions
-    ADD CONSTRAINT meta_submissions_resolved_by_user_id_fkey FOREIGN KEY (resolved_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
-
-
---
--- Name: meta_submissions meta_submissions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta_submissions
-    ADD CONSTRAINT meta_submissions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: organization_members organization_members_org_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.organization_members
-    ADD CONSTRAINT organization_members_org_fkey FOREIGN KEY (org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
-
-
---
--- Name: organization_members organization_members_user_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.organization_members
-    ADD CONSTRAINT organization_members_user_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: overlay_channels overlay_channels_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.overlay_channels
-    ADD CONSTRAINT overlay_channels_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: playloltcg_decklist_cards playloltcg_decklist_cards_source_deck_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.playloltcg_decklist_cards
-    ADD CONSTRAINT playloltcg_decklist_cards_source_deck_id_fkey FOREIGN KEY (source_deck_id) REFERENCES public.playloltcg_decklists(source_deck_id) ON DELETE CASCADE;
-
-
---
--- Name: playloltcg_decklists playloltcg_decklists_activity_shop_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.playloltcg_decklists
-    ADD CONSTRAINT playloltcg_decklists_activity_shop_id_fkey FOREIGN KEY (activity_shop_id) REFERENCES public.playloltcg_events(activity_shop_id) ON DELETE CASCADE;
-
-
---
--- Name: playloltcg_event_checks playloltcg_event_checks_activity_shop_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.playloltcg_event_checks
-    ADD CONSTRAINT playloltcg_event_checks_activity_shop_id_fkey FOREIGN KEY (activity_shop_id) REFERENCES public.playloltcg_events(activity_shop_id) ON DELETE CASCADE;
-
-
---
--- Name: playloltcg_event_standings playloltcg_event_standings_activity_shop_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.playloltcg_event_standings
-    ADD CONSTRAINT playloltcg_event_standings_activity_shop_id_fkey FOREIGN KEY (activity_shop_id) REFERENCES public.playloltcg_events(activity_shop_id) ON DELETE CASCADE;
-
-
---
--- Name: playloltcg_events playloltcg_events_shop_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.playloltcg_events
-    ADD CONSTRAINT playloltcg_events_shop_id_fkey FOREIGN KEY (shop_id) REFERENCES public.playloltcg_shops(id);
-
-
---
--- Name: playriftbound_event_checks playriftbound_event_checks_tournament_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.playriftbound_event_checks
-    ADD CONSTRAINT playriftbound_event_checks_tournament_id_fkey FOREIGN KEY (tournament_id) REFERENCES public.playriftbound_events(tournament_id) ON DELETE CASCADE;
-
-
---
--- Name: playriftbound_event_matches playriftbound_event_matches_tournament_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.playriftbound_event_matches
-    ADD CONSTRAINT playriftbound_event_matches_tournament_id_fkey FOREIGN KEY (tournament_id) REFERENCES public.playriftbound_events(tournament_id) ON DELETE CASCADE;
-
-
---
--- Name: playriftbound_event_phases playriftbound_event_phases_tournament_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.playriftbound_event_phases
-    ADD CONSTRAINT playriftbound_event_phases_tournament_id_fkey FOREIGN KEY (tournament_id) REFERENCES public.playriftbound_events(tournament_id) ON DELETE CASCADE;
-
-
---
--- Name: playriftbound_event_standings playriftbound_event_standings_tournament_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.playriftbound_event_standings
-    ADD CONSTRAINT playriftbound_event_standings_tournament_id_fkey FOREIGN KEY (tournament_id) REFERENCES public.playriftbound_events(tournament_id) ON DELETE CASCADE;
-
-
---
--- Name: playriftbound_events playriftbound_events_organizer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.playriftbound_events
-    ADD CONSTRAINT playriftbound_events_organizer_id_fkey FOREIGN KEY (organizer_id) REFERENCES public.playriftbound_organizers(id) ON DELETE SET NULL;
-
-
---
--- Name: pod_byes pod_byes_player_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.pod_byes
-    ADD CONSTRAINT pod_byes_player_fkey FOREIGN KEY (player_id) REFERENCES public.tournament_participants(id) ON DELETE CASCADE;
-
-
---
--- Name: pod_byes pod_byes_round_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.pod_byes
-    ADD CONSTRAINT pod_byes_round_fkey FOREIGN KEY (round_id) REFERENCES public.pod_rounds(id) ON DELETE CASCADE;
-
-
---
--- Name: pod_members pod_members_player_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.pod_members
-    ADD CONSTRAINT pod_members_player_fkey FOREIGN KEY (player_id) REFERENCES public.tournament_participants(id) ON DELETE CASCADE;
-
-
---
--- Name: pod_members pod_members_pod_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.pod_members
-    ADD CONSTRAINT pod_members_pod_fkey FOREIGN KEY (pod_id) REFERENCES public.pods(id) ON DELETE CASCADE;
-
-
---
--- Name: pod_rounds pod_rounds_tournament_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.pod_rounds
-    ADD CONSTRAINT pod_rounds_tournament_fkey FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id) ON DELETE CASCADE;
-
-
---
--- Name: pods pods_round_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.pods
-    ADD CONSTRAINT pods_round_fkey FOREIGN KEY (round_id) REFERENCES public.pod_rounds(id) ON DELETE CASCADE;
-
-
---
--- Name: printing_citations printing_citations_printing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.printing_citations
-    ADD CONSTRAINT printing_citations_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id) ON DELETE CASCADE;
-
-
---
--- Name: printing_distribution_channels printing_distribution_channels_channel_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.printing_distribution_channels
-    ADD CONSTRAINT printing_distribution_channels_channel_id_fkey FOREIGN KEY (channel_id) REFERENCES public.distribution_channels(id) ON DELETE RESTRICT;
-
-
---
--- Name: printing_distribution_channels printing_distribution_channels_printing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.printing_distribution_channels
-    ADD CONSTRAINT printing_distribution_channels_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id) ON DELETE CASCADE;
-
-
---
--- Name: candidate_printings printing_sources_printing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.candidate_printings
-    ADD CONSTRAINT printing_sources_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id);
-
-
---
--- Name: printings printings_face1_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.printings
-    ADD CONSTRAINT printings_face1_id_fkey FOREIGN KEY (face1_id) REFERENCES public.faces(id);
-
-
---
--- Name: printings printings_face2_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.printings
-    ADD CONSTRAINT printings_face2_id_fkey FOREIGN KEY (face2_id) REFERENCES public.faces(id);
-
-
---
--- Name: product_printings product_printings_printing_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: product_printings fk_product_printings_printing; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.product_printings
-    ADD CONSTRAINT product_printings_printing_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id);
+    ADD CONSTRAINT fk_product_printings_printing FOREIGN KEY (printing_id) REFERENCES public.printings(id);
 
 
 --
--- Name: product_printings product_printings_product_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: product_printings fk_product_printings_product; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.product_printings
-    ADD CONSTRAINT product_printings_product_fkey FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_product_printings_product FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE CASCADE;
 
 
 --
--- Name: products products_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: products fk_products_set_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.products
-    ADD CONSTRAINT products_set_id_fkey FOREIGN KEY (set_id) REFERENCES public.sets(id) ON DELETE SET NULL;
+    ADD CONSTRAINT fk_products_set_id FOREIGN KEY (set_id) REFERENCES public.sets(id) ON DELETE SET NULL;
 
 
 --
--- Name: rules rules_kind_language_version_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: rules fk_rules_kind_language_version; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.rules
-    ADD CONSTRAINT rules_kind_language_version_fkey FOREIGN KEY (kind, language, version) REFERENCES public.rule_versions(kind, language, version) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_rules_kind_language_version FOREIGN KEY (kind, language, version) REFERENCES public.rule_versions(kind, language, version) ON DELETE CASCADE;
 
 
 --
--- Name: scan_reports scan_reports_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: scan_reports fk_scan_reports_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.scan_reports
-    ADD CONSTRAINT scan_reports_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_scan_reports_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
--- Name: sessions sessions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sessions fk_sessions_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sessions
-    ADD CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_sessions_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
--- Name: set_releases set_releases_language_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.set_releases
-    ADD CONSTRAINT set_releases_language_fkey FOREIGN KEY (language) REFERENCES public.languages(code) ON UPDATE CASCADE;
-
-
---
--- Name: set_releases set_releases_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: set_releases fk_set_releases_language; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.set_releases
-    ADD CONSTRAINT set_releases_set_id_fkey FOREIGN KEY (set_id) REFERENCES public.sets(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_set_releases_language FOREIGN KEY (language) REFERENCES public.languages(code) ON UPDATE CASCADE;
 
 
 --
--- Name: stage_presets stage_presets_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: set_releases fk_set_releases_set_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.set_releases
+    ADD CONSTRAINT fk_set_releases_set_id FOREIGN KEY (set_id) REFERENCES public.sets(id) ON DELETE CASCADE;
+
+
+--
+-- Name: stage_presets fk_stage_presets_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.stage_presets
-    ADD CONSTRAINT stage_presets_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_stage_presets_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
--- Name: tag_definitions tag_definitions_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: tag_definitions fk_tag_definitions_category_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tag_definitions
-    ADD CONSTRAINT tag_definitions_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.tag_categories(id) ON DELETE RESTRICT;
+    ADD CONSTRAINT fk_tag_definitions_category_id FOREIGN KEY (category_id) REFERENCES public.tag_categories(id) ON DELETE RESTRICT;
 
 
 --
--- Name: tier_lists tier_lists_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: tier_lists fk_tier_lists_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tier_lists
-    ADD CONSTRAINT tier_lists_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_tier_lists_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
--- Name: topdeck_decklist_cards topdeck_decklist_cards_source_deck_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: topdeck_decklist_cards fk_topdeck_decklist_cards_source_deck_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.topdeck_decklist_cards
-    ADD CONSTRAINT topdeck_decklist_cards_source_deck_id_fkey FOREIGN KEY (source_deck_id) REFERENCES public.topdeck_decklists(source_deck_id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_topdeck_decklist_cards_source_deck_id FOREIGN KEY (source_deck_id) REFERENCES public.topdeck_decklists(source_deck_id) ON DELETE CASCADE;
 
 
 --
--- Name: topdeck_decklists topdeck_decklists_tid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: topdeck_decklists fk_topdeck_decklists_tid; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.topdeck_decklists
-    ADD CONSTRAINT topdeck_decklists_tid_fkey FOREIGN KEY (tid) REFERENCES public.topdeck_events(tid) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_topdeck_decklists_tid FOREIGN KEY (tid) REFERENCES public.topdeck_events(tid) ON DELETE CASCADE;
 
 
 --
--- Name: topdeck_event_standings topdeck_event_standings_tid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: topdeck_event_standings fk_topdeck_event_standings_tid; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.topdeck_event_standings
-    ADD CONSTRAINT topdeck_event_standings_tid_fkey FOREIGN KEY (tid) REFERENCES public.topdeck_events(tid) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_topdeck_event_standings_tid FOREIGN KEY (tid) REFERENCES public.topdeck_events(tid) ON DELETE CASCADE;
 
 
 --
--- Name: tournament_groups tournament_groups_paired_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tournament_groups
-    ADD CONSTRAINT tournament_groups_paired_group_id_fkey FOREIGN KEY (paired_group_id) REFERENCES public.tournament_groups(id) ON DELETE CASCADE;
-
-
---
--- Name: tournament_groups tournament_groups_tournament_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: tournament_groups fk_tournament_groups_paired_group_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tournament_groups
-    ADD CONSTRAINT tournament_groups_tournament_id_fkey FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_tournament_groups_paired_group_id FOREIGN KEY (paired_group_id) REFERENCES public.tournament_groups(id) ON DELETE CASCADE;
 
 
 --
--- Name: tournament_legend_meta_shares tournament_legend_meta_shares_legend_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: tournament_groups fk_tournament_groups_tournament_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tournament_groups
+    ADD CONSTRAINT fk_tournament_groups_tournament_id FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id) ON DELETE CASCADE;
+
+
+--
+-- Name: tournament_legend_meta_shares fk_tournament_legend_meta_shares_legend_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tournament_legend_meta_shares
-    ADD CONSTRAINT tournament_legend_meta_shares_legend_card_id_fkey FOREIGN KEY (legend_card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_tournament_legend_meta_shares_legend_card_id FOREIGN KEY (legend_card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
 
 
 --
--- Name: tournament_legend_meta_shares tournament_legend_meta_shares_tournament_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: tournament_legend_meta_shares fk_tournament_legend_meta_shares_tournament_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tournament_legend_meta_shares
-    ADD CONSTRAINT tournament_legend_meta_shares_tournament_id_fkey FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_tournament_legend_meta_shares_tournament_id FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id) ON DELETE CASCADE;
 
 
 --
--- Name: tournament_participants tournament_participants_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tournament_participants
-    ADD CONSTRAINT tournament_participants_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.tournament_groups(id) ON DELETE SET NULL;
-
-
---
--- Name: tournament_participants tournament_participants_legend_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: tournament_participants fk_tournament_participants_group_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tournament_participants
-    ADD CONSTRAINT tournament_participants_legend_card_id_fkey FOREIGN KEY (legend_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+    ADD CONSTRAINT fk_tournament_participants_group_id FOREIGN KEY (group_id) REFERENCES public.tournament_groups(id) ON DELETE SET NULL;
 
 
 --
--- Name: tournament_participants tournament_participants_team_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tournament_participants
-    ADD CONSTRAINT tournament_participants_team_fkey FOREIGN KEY (team_id, tournament_id) REFERENCES public.tournament_teams(id, tournament_id) ON DELETE SET NULL (team_id);
-
-
---
--- Name: tournament_participants tournament_participants_tournament_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: tournament_participants fk_tournament_participants_legend_card_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tournament_participants
-    ADD CONSTRAINT tournament_participants_tournament_fkey FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_tournament_participants_legend_card_id FOREIGN KEY (legend_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
 
 
 --
--- Name: tournament_participants tournament_participants_user_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: tournament_participants fk_tournament_participants_team; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tournament_participants
-    ADD CONSTRAINT tournament_participants_user_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+    ADD CONSTRAINT fk_tournament_participants_team FOREIGN KEY (team_id, tournament_id) REFERENCES public.tournament_teams(id, tournament_id) ON DELETE SET NULL (team_id);
 
 
 --
--- Name: tournament_staff tournament_staff_tournament_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: tournament_participants fk_tournament_participants_tournament; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tournament_participants
+    ADD CONSTRAINT fk_tournament_participants_tournament FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id) ON DELETE CASCADE;
+
+
+--
+-- Name: tournament_participants fk_tournament_participants_user; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tournament_participants
+    ADD CONSTRAINT fk_tournament_participants_user FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: tournament_staff fk_tournament_staff_tournament; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tournament_staff
-    ADD CONSTRAINT tournament_staff_tournament_fkey FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_tournament_staff_tournament FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id) ON DELETE CASCADE;
 
 
 --
--- Name: tournament_staff tournament_staff_user_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: tournament_staff fk_tournament_staff_user; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tournament_staff
-    ADD CONSTRAINT tournament_staff_user_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_tournament_staff_user FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
--- Name: tournament_teams tournament_teams_tournament_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: tournament_teams fk_tournament_teams_tournament; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tournament_teams
-    ADD CONSTRAINT tournament_teams_tournament_fkey FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_tournament_teams_tournament FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id) ON DELETE CASCADE;
 
 
 --
--- Name: tournaments tournaments_deck_format_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tournaments
-    ADD CONSTRAINT tournaments_deck_format_fkey FOREIGN KEY (deck_format) REFERENCES public.deck_formats(slug);
-
-
---
--- Name: tournaments tournaments_group_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: tournaments fk_tournaments_deck_format; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tournaments
-    ADD CONSTRAINT tournaments_group_fkey FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE SET NULL;
+    ADD CONSTRAINT fk_tournaments_deck_format FOREIGN KEY (deck_format) REFERENCES public.deck_formats(slug);
 
 
 --
--- Name: tournaments tournaments_host_org_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tournaments
-    ADD CONSTRAINT tournaments_host_org_fkey FOREIGN KEY (host_org_id) REFERENCES public.organizations(id) ON DELETE SET NULL;
-
-
---
--- Name: tournaments tournaments_host_user_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: tournaments fk_tournaments_group; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tournaments
-    ADD CONSTRAINT tournaments_host_user_fkey FOREIGN KEY (host_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+    ADD CONSTRAINT fk_tournaments_group FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE SET NULL;
 
 
 --
--- Name: trade_suggestion_dismissals trade_suggestion_dismissals_counterparty_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: tournaments fk_tournaments_host_org; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tournaments
+    ADD CONSTRAINT fk_tournaments_host_org FOREIGN KEY (host_org_id) REFERENCES public.organizations(id) ON DELETE SET NULL;
+
+
+--
+-- Name: tournaments fk_tournaments_host_user; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tournaments
+    ADD CONSTRAINT fk_tournaments_host_user FOREIGN KEY (host_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: trade_suggestion_dismissals fk_trade_suggestion_dismissals_counterparty_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trade_suggestion_dismissals
-    ADD CONSTRAINT trade_suggestion_dismissals_counterparty_user_id_fkey FOREIGN KEY (counterparty_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_trade_suggestion_dismissals_counterparty_user_id FOREIGN KEY (counterparty_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
--- Name: trade_suggestion_dismissals trade_suggestion_dismissals_printing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.trade_suggestion_dismissals
-    ADD CONSTRAINT trade_suggestion_dismissals_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id) ON DELETE CASCADE;
-
-
---
--- Name: trade_suggestion_dismissals trade_suggestion_dismissals_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: trade_suggestion_dismissals fk_trade_suggestion_dismissals_printing_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trade_suggestion_dismissals
-    ADD CONSTRAINT trade_suggestion_dismissals_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_trade_suggestion_dismissals_printing_id FOREIGN KEY (printing_id) REFERENCES public.printings(id) ON DELETE CASCADE;
 
 
 --
--- Name: user_contact_methods user_contact_methods_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: trade_suggestion_dismissals fk_trade_suggestion_dismissals_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.trade_suggestion_dismissals
+    ADD CONSTRAINT fk_trade_suggestion_dismissals_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: user_contact_methods fk_user_contact_methods_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.user_contact_methods
-    ADD CONSTRAINT user_contact_methods_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_user_contact_methods_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
--- Name: user_feature_flags user_feature_flags_flag_key_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_feature_flags
-    ADD CONSTRAINT user_feature_flags_flag_key_fkey FOREIGN KEY (flag_key) REFERENCES public.feature_flags(key) ON DELETE CASCADE;
-
-
---
--- Name: user_feature_flags user_feature_flags_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: user_feature_flags fk_user_feature_flags_flag_key; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.user_feature_flags
-    ADD CONSTRAINT user_feature_flags_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_user_feature_flags_flag_key FOREIGN KEY (flag_key) REFERENCES public.feature_flags(key) ON DELETE CASCADE;
 
 
 --
--- Name: user_preferences user_preferences_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: user_feature_flags fk_user_feature_flags_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_feature_flags
+    ADD CONSTRAINT fk_user_feature_flags_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: user_preferences fk_user_preferences_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.user_preferences
-    ADD CONSTRAINT user_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_user_preferences_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
--- Name: users users_referred_by_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: users fk_users_referred_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_referred_by_fk FOREIGN KEY (referred_by) REFERENCES public.users(id) ON DELETE SET NULL;
+    ADD CONSTRAINT fk_users_referred_by FOREIGN KEY (referred_by) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --
--- Name: uvsgames_decklist_cards uvsgames_decklist_cards_source_deck_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: uvsgames_decklist_cards fk_uvsgames_decklist_cards_source_deck_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.uvsgames_decklist_cards
-    ADD CONSTRAINT uvsgames_decklist_cards_source_deck_id_fkey FOREIGN KEY (source_deck_id) REFERENCES public.uvsgames_decklists(source_deck_id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_uvsgames_decklist_cards_source_deck_id FOREIGN KEY (source_deck_id) REFERENCES public.uvsgames_decklists(source_deck_id) ON DELETE CASCADE;
 
 
 --
--- Name: uvsgames_decklists uvsgames_decklists_external_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: uvsgames_decklists fk_uvsgames_decklists_external_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.uvsgames_decklists
-    ADD CONSTRAINT uvsgames_decklists_external_id_fkey FOREIGN KEY (external_id) REFERENCES public.uvsgames_events(external_id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_uvsgames_decklists_external_id FOREIGN KEY (external_id) REFERENCES public.uvsgames_events(external_id) ON DELETE CASCADE;
 
 
 --
--- Name: uvsgames_event_checks uvsgames_event_checks_external_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: uvsgames_event_checks fk_uvsgames_event_checks_external_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.uvsgames_event_checks
-    ADD CONSTRAINT uvsgames_event_checks_external_id_fkey FOREIGN KEY (external_id) REFERENCES public.uvsgames_events(external_id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_uvsgames_event_checks_external_id FOREIGN KEY (external_id) REFERENCES public.uvsgames_events(external_id) ON DELETE CASCADE;
 
 
 --
--- Name: uvsgames_event_matches uvsgames_event_matches_external_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.uvsgames_event_matches
-    ADD CONSTRAINT uvsgames_event_matches_external_id_fkey FOREIGN KEY (external_id) REFERENCES public.uvsgames_events(external_id) ON DELETE CASCADE;
-
-
---
--- Name: uvsgames_event_matches uvsgames_event_matches_player1_uvsgames_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: uvsgames_event_matches fk_uvsgames_event_matches_external_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.uvsgames_event_matches
-    ADD CONSTRAINT uvsgames_event_matches_player1_uvsgames_id_fkey FOREIGN KEY (player1_uvsgames_id) REFERENCES public.uvsgames_players(id);
+    ADD CONSTRAINT fk_uvsgames_event_matches_external_id FOREIGN KEY (external_id) REFERENCES public.uvsgames_events(external_id) ON DELETE CASCADE;
 
 
 --
--- Name: uvsgames_event_matches uvsgames_event_matches_player2_uvsgames_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.uvsgames_event_matches
-    ADD CONSTRAINT uvsgames_event_matches_player2_uvsgames_id_fkey FOREIGN KEY (player2_uvsgames_id) REFERENCES public.uvsgames_players(id);
-
-
---
--- Name: uvsgames_event_matches uvsgames_event_matches_winner_uvsgames_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: uvsgames_event_matches fk_uvsgames_event_matches_player1_uvsgames_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.uvsgames_event_matches
-    ADD CONSTRAINT uvsgames_event_matches_winner_uvsgames_id_fkey FOREIGN KEY (winner_uvsgames_id) REFERENCES public.uvsgames_players(id);
+    ADD CONSTRAINT fk_uvsgames_event_matches_player1_uvsgames_id FOREIGN KEY (player1_uvsgames_id) REFERENCES public.uvsgames_players(id);
 
 
 --
--- Name: uvsgames_event_phases uvsgames_event_phases_external_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: uvsgames_event_matches fk_uvsgames_event_matches_player2_uvsgames_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.uvsgames_event_matches
+    ADD CONSTRAINT fk_uvsgames_event_matches_player2_uvsgames_id FOREIGN KEY (player2_uvsgames_id) REFERENCES public.uvsgames_players(id);
+
+
+--
+-- Name: uvsgames_event_matches fk_uvsgames_event_matches_winner_uvsgames_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.uvsgames_event_matches
+    ADD CONSTRAINT fk_uvsgames_event_matches_winner_uvsgames_id FOREIGN KEY (winner_uvsgames_id) REFERENCES public.uvsgames_players(id);
+
+
+--
+-- Name: uvsgames_event_phases fk_uvsgames_event_phases_external_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.uvsgames_event_phases
-    ADD CONSTRAINT uvsgames_event_phases_external_id_fkey FOREIGN KEY (external_id) REFERENCES public.uvsgames_events(external_id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_uvsgames_event_phases_external_id FOREIGN KEY (external_id) REFERENCES public.uvsgames_events(external_id) ON DELETE CASCADE;
 
 
 --
--- Name: uvsgames_event_standings uvsgames_event_standings_external_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.uvsgames_event_standings
-    ADD CONSTRAINT uvsgames_event_standings_external_id_fkey FOREIGN KEY (external_id) REFERENCES public.uvsgames_events(external_id) ON DELETE CASCADE;
-
-
---
--- Name: uvsgames_event_standings uvsgames_event_standings_uvsgames_player_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: uvsgames_event_standings fk_uvsgames_event_standings_external_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.uvsgames_event_standings
-    ADD CONSTRAINT uvsgames_event_standings_uvsgames_player_id_fkey FOREIGN KEY (uvsgames_player_id) REFERENCES public.uvsgames_players(id);
+    ADD CONSTRAINT fk_uvsgames_event_standings_external_id FOREIGN KEY (external_id) REFERENCES public.uvsgames_events(external_id) ON DELETE CASCADE;
 
 
 --
--- Name: uvsgames_events uvsgames_events_store_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: uvsgames_event_standings fk_uvsgames_event_standings_uvsgames_player_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.uvsgames_event_standings
+    ADD CONSTRAINT fk_uvsgames_event_standings_uvsgames_player_id FOREIGN KEY (uvsgames_player_id) REFERENCES public.uvsgames_players(id);
+
+
+--
+-- Name: uvsgames_events fk_uvsgames_events_store_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.uvsgames_events
-    ADD CONSTRAINT uvsgames_events_store_id_fkey FOREIGN KEY (store_id) REFERENCES public.uvsgames_stores(id);
+    ADD CONSTRAINT fk_uvsgames_events_store_id FOREIGN KEY (store_id) REFERENCES public.uvsgames_stores(id);
 
 
 --
--- Name: uvsgames_format_mappings uvsgames_format_mappings_mapped_format_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: uvsgames_format_mappings fk_uvsgames_format_mappings_mapped_format; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.uvsgames_format_mappings
-    ADD CONSTRAINT uvsgames_format_mappings_mapped_format_fkey FOREIGN KEY (mapped_format) REFERENCES public.deck_formats(slug);
+    ADD CONSTRAINT fk_uvsgames_format_mappings_mapped_format FOREIGN KEY (mapped_format) REFERENCES public.deck_formats(slug);
 
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict rqSvazl5qsnUoFKQPnFWsCYSTu8Lr3GTwV15R5gipLai9A4n5bM6ecFk4sXuGcH
+\unrestrict oAcEzXjuiVoQBNhoR2OMAo11YmiXNSYqbJyoseiiCNUeBvT8Rpaoelljue9Tfnb
 

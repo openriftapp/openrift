@@ -14,7 +14,7 @@ describe("createProductFromList", () => {
         create: vi.fn(async () => {
           throw Object.assign(new Error("duplicate key"), {
             code: "23505",
-            constraint_name: "products_slug_key",
+            constraint_name: "uq_products_slug",
           });
         }),
       },

@@ -58,9 +58,9 @@ export function printingImagesRepo(db: Kysely<Database>) {
   async function clearPendingOnFace(conn: Kysely<Database>, faceId: string): Promise<void> {
     await conn
       .updateTable("faceImages")
-      .set({ activateWhenRehosted: false })
+      .set({ isActivationPending: false })
       .where("faceId", "=", faceId)
-      .where("activateWhenRehosted", "=", true)
+      .where("isActivationPending", "=", true)
       .execute();
   }
 
@@ -84,7 +84,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
     return row.faceId;
   }
 
-  /** `ON CONFLICT`'s `where` must match `idx_image_files_original_url`'s partial predicate. */
+  /** `ON CONFLICT`'s `where` must match `uq_image_files_original_url`'s partial predicate. */
   async function findOrCreateImageFile(originalUrl: string): Promise<string> {
     const inserted = await db
       .insertInto("imageFiles")
@@ -323,10 +323,10 @@ export function printingImagesRepo(db: Kysely<Database>) {
               AND other.is_active
               AND other.id <> face_images.id
           )`,
-          activateWhenRehosted: sql<boolean>`activate_when_rehosted AND NOT EXISTS (
+          isActivationPending: sql<boolean>`is_activation_pending AND NOT EXISTS (
             SELECT 1 FROM face_images other
             WHERE other.face_id = ${targetFaceId}
-              AND other.activate_when_rehosted
+              AND other.is_activation_pending
               AND other.id <> face_images.id
           )`,
         })
@@ -390,7 +390,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
         }
         const row = await trx
           .insertInto("faceImages")
-          .values({ faceId, imageFileId, isActive: activateNow, activateWhenRehosted: pending })
+          .values({ faceId, imageFileId, isActive: activateNow, isActivationPending: pending })
           .returning("id")
           .executeTakeFirstOrThrow();
         return row.id;
@@ -404,7 +404,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
       await clearPendingOnFace(db, faceId);
       await db
         .updateTable("faceImages")
-        .set({ activateWhenRehosted: true })
+        .set({ isActivationPending: true })
         .where("id", "=", imageId)
         .where("isActive", "=", false)
         .execute();
@@ -413,7 +413,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
     async clearPending(imageId: string): Promise<void> {
       await db
         .updateTable("faceImages")
-        .set({ activateWhenRehosted: false })
+        .set({ isActivationPending: false })
         .where("id", "=", imageId)
         .execute();
     },
@@ -423,7 +423,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
         .selectFrom("faceImages")
         .select("faceId")
         .where("imageFileId", "=", imageFileId)
-        .where("activateWhenRehosted", "=", true)
+        .where("isActivationPending", "=", true)
         .distinct()
         .orderBy("faceId")
         .execute();
@@ -431,10 +431,10 @@ export function printingImagesRepo(db: Kysely<Database>) {
         await lockFace(db, faceId);
         const claimed = await db
           .updateTable("faceImages")
-          .set({ activateWhenRehosted: false })
+          .set({ isActivationPending: false })
           .where("faceId", "=", faceId)
           .where("imageFileId", "=", imageFileId)
-          .where("activateWhenRehosted", "=", true)
+          .where("isActivationPending", "=", true)
           .returning("id")
           .executeTakeFirst();
         if (!claimed) {
@@ -482,9 +482,9 @@ export function printingImagesRepo(db: Kysely<Database>) {
     async clearPendingForFile(imageFileId: string): Promise<void> {
       await db
         .updateTable("faceImages")
-        .set({ activateWhenRehosted: false })
+        .set({ isActivationPending: false })
         .where("imageFileId", "=", imageFileId)
-        .where("activateWhenRehosted", "=", true)
+        .where("isActivationPending", "=", true)
         .execute();
     },
 
@@ -520,7 +520,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
               AND (
                 EXISTS (
                   SELECT 1 FROM face_images fi
-                  WHERE fi.image_file_id = f.id AND fi.activate_when_rehosted
+                  WHERE fi.image_file_id = f.id AND fi.is_activation_pending
                 )
                 OR EXISTS (SELECT 1 FROM faces fc WHERE fc.fallback_image_file_id = f.id)
               ) AS retrying
@@ -596,7 +596,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
             f.rehosted_url IS NOT NULL
             AND EXISTS (
               SELECT 1 FROM face_images fi
-              WHERE fi.image_file_id = f.id AND fi.activate_when_rehosted
+              WHERE fi.image_file_id = f.id AND fi.is_activation_pending
             )
           )
           OR (
@@ -605,7 +605,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
             AND (
               EXISTS (
                 SELECT 1 FROM face_images fi
-                WHERE fi.image_file_id = f.id AND fi.activate_when_rehosted
+                WHERE fi.image_file_id = f.id AND fi.is_activation_pending
               )
               OR EXISTS (SELECT 1 FROM faces fc WHERE fc.fallback_image_file_id = f.id)
             )

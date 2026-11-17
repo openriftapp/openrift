@@ -96,7 +96,7 @@ async function seedMarketplaceData(marketplace: Marketplace) {
 
   await db
     .insertInto("cardDomains")
-    .values({ cardId: card!.id, domainSlug: "mind", ordinal: 0 })
+    .values({ cardId: card!.id, domainSlug: "mind", sortOrder: 0 })
     .execute();
 
   const [printing] = await insertPrintings(db, {

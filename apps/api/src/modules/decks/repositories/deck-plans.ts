@@ -78,14 +78,14 @@ export function deckPlansRepo(db: Kysely<Database>) {
         // the BEFORE UPDATE trigger advances updated_at.
         const planValues = {
           generalStrategy: input.generalStrategy,
-          mulliganSplit: input.mulliganSplit,
+          hasMulliganSplit: input.mulliganSplit,
           mulliganGeneral: input.mulliganGeneral,
           mulliganFirst: input.mulliganFirst,
           mulliganSecond: input.mulliganSecond,
           battlefieldG1CardId: input.battlefieldG1CardId,
           battlefieldFirstCardId: input.battlefieldFirstCardId,
           battlefieldSecondCardId: input.battlefieldSecondCardId,
-          battlefieldCustom: input.battlefieldCustom,
+          isBattlefieldCustom: input.battlefieldCustom,
           battlefieldNote: input.battlefieldNote,
         };
         await trx

@@ -41,14 +41,14 @@ if (adminCtx && grantCtx) {
     .values([
       {
         provider: ALLOWED,
-        helperReviewable: true,
+        isHelperReviewable: true,
         isFavorite: false,
         isHidden: false,
         sortOrder: 0,
       },
       {
         provider: DENIED,
-        helperReviewable: false,
+        isHelperReviewable: false,
         isFavorite: false,
         isHidden: false,
         sortOrder: 0,
@@ -94,8 +94,8 @@ if (adminCtx && grantCtx) {
   await db
     .insertInto("cardDomains")
     .values([
-      { cardId: card1Id, domainSlug: "mind", ordinal: 0 },
-      { cardId: card2Id, domainSlug: "calm", ordinal: 0 },
+      { cardId: card1Id, domainSlug: "mind", sortOrder: 0 },
+      { cardId: card2Id, domainSlug: "calm", sortOrder: 0 },
     ])
     .execute();
 

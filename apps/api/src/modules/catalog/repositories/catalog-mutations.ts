@@ -312,7 +312,7 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
         .selectFrom("cardCardTypes")
         .select("typeSlug")
         .where("cardId", "=", cardId)
-        .orderBy("position")
+        .orderBy("sortOrder")
         .execute();
       return rows.map((row) => row.typeSlug);
     },
@@ -322,7 +322,7 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
         .selectFrom("cardDomains")
         .select("domainSlug")
         .where("cardId", "=", cardId)
-        .orderBy("ordinal")
+        .orderBy("sortOrder")
         .execute();
       return rows.map((row) => row.domainSlug);
     },
@@ -473,7 +473,7 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
               domains.map((domain, index) => ({
                 cardId,
                 domainSlug: domain,
-                ordinal: index,
+                sortOrder: index,
               })),
             )
             .execute();
@@ -494,7 +494,7 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
         await trx.deleteFrom("cardCardTypes").where("cardId", "=", cardId).execute();
         await trx
           .insertInto("cardCardTypes")
-          .values(types.map((type, index) => ({ cardId, typeSlug: type, position: index })))
+          .values(types.map((type, index) => ({ cardId, typeSlug: type, sortOrder: index })))
           .execute();
       });
     },
@@ -763,7 +763,7 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
           cardFields.types.map((type, index) => ({
             cardId: cardUuid,
             typeSlug: type,
-            position: index,
+            sortOrder: index,
           })),
         )
         .execute();
@@ -775,7 +775,7 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
             cardFields.domains.map((domain, index) => ({
               cardId: cardUuid,
               domainSlug: domain,
-              ordinal: index,
+              sortOrder: index,
             })),
           )
           .execute();

@@ -50,9 +50,9 @@ describe("GET /keyword-stats", () => {
       {
         name: "Accelerate",
         color: "#24705f",
-        darkText: false,
-        costKeyword: false,
-        cardModifier: false,
+        hasDarkText: false,
+        isCostKeyword: false,
+        isCardModifier: false,
       },
     ]);
     mockKeywords.listAllTranslations.mockResolvedValue([
@@ -113,7 +113,7 @@ describe("POST /keywords (createStyle) with a taken name", () => {
     mockKeywords.createStyle.mockRejectedValue(
       Object.assign(new Error("duplicate key"), {
         code: "23505",
-        constraint_name: "keywords_pkey",
+        constraint_name: "pk_keywords",
       }),
     );
 

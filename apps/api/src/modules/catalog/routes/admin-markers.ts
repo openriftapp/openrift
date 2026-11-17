@@ -10,7 +10,7 @@ import { toMarkerResponse } from "../lib/taxonomy-presenters.js";
 
 const os = implement(adminMarkersContract).$context<ApiContext>().use(requireAuthedUser);
 
-const MARKER_SLUG_KEY = "markers_slug_key";
+const MARKER_SLUG_KEY = "uq_markers_slug";
 
 const handlers = createKeyedTaxonomyHandlers({
   keyColumn: "id",

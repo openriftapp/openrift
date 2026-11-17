@@ -15,7 +15,7 @@ import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { toOrganizationResponse, toOrganizationSummary } from "../lib/tournament-presenters.js";
 
-const ORGANIZATION_SLUG_KEY = "organizations_slug_key";
+const ORGANIZATION_SLUG_KEY = "uq_organizations_slug";
 
 function slugTakenMessage(slug: string): string {
   return `Organization "${slug}" already exists`;

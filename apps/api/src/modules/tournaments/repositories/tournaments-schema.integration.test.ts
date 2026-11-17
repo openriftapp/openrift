@@ -139,7 +139,7 @@ describe.skipIf(!ctx)("tournaments schema invariants (integration)", () => {
     expect(row.matchFormat).toBe("bo1");
     expect(row.winPoints).toBe(3);
     expect(row.drawPoints).toBe(1);
-    expect(row.regionsEnabled).toBe(false);
+    expect(row.hasRegions).toBe(false);
   });
 
   it("accepts an empty tournament with no pairings and no decks", async () => {

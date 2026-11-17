@@ -214,7 +214,7 @@ describe.skipIf(!ownerCtx)("deck-check ingest push (integration, ADR-033)", () =
     expect(repush.status).toBe(200);
     const participant = await db
       .selectFrom("tournamentParticipants")
-      .select(["displayName", "riotId", "accountClosed"])
+      .select(["displayName", "riotId", "isAccountClosed as accountClosed"])
       .where("id", "=", created!.participantId!)
       .executeTakeFirstOrThrow();
     expect(participant).toEqual({ displayName: null, riotId: null, accountClosed: true });
@@ -302,7 +302,7 @@ describe.skipIf(!ownerCtx)("deck-check ingest push (integration, ADR-033)", () =
     let reloaded = await repos.deckCheck.getEntryByExternalId(eventId, "entry-check");
     expect(reloaded?.state).toBe("checked");
     expect(reloaded?.reviewOutcome).toBe("ok");
-    expect(reloaded?.checkedBy).toBe(JUDGE_ID);
+    expect(reloaded?.checkedByUserId).toBe(JUDGE_ID);
 
     // Changed list: back to submitted, ticks reset, change summary stored.
     await push([
@@ -315,7 +315,7 @@ describe.skipIf(!ownerCtx)("deck-check ingest push (integration, ADR-033)", () =
     reloaded = await repos.deckCheck.getEntryByExternalId(eventId, "entry-check");
     expect(reloaded?.state).toBe("submitted");
     expect(reloaded?.reviewOutcome).toBeNull();
-    expect(reloaded?.checkedBy).toBeNull();
+    expect(reloaded?.checkedByUserId).toBeNull();
     expect(reloaded?.checkedAt).toBeNull();
     expect(reloaded?.changeSummary?.changed).toHaveLength(1);
     const newCards = await repos.deckCheck.listCardsForEntry(entry!.id);

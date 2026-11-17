@@ -111,7 +111,7 @@ describe("acceptFavoriteNewCard", () => {
     catalogMutations.acceptNewCardFromSources.mockRejectedValue(
       Object.assign(new Error("duplicate key"), {
         code: "23505",
-        constraint_name: "cards_slug_key",
+        constraint_name: "uq_cards_slug",
       }),
     );
 

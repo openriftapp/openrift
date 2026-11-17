@@ -19,7 +19,7 @@ export interface FriendGroupsTable {
   bannerUrl: string | null;
   /** Vertical crop focus, percent from the top. */
   bannerPosition: Generated<number>;
-  bannerUploadedBy: string | null;
+  bannerUploadedByUserId: string | null;
   bannerUploadedAt: Date | null;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
@@ -56,7 +56,7 @@ export interface FriendGroupInvitesTable {
   createdAt: CreatedAt;
 }
 
-export interface FriendGroupShopsTable {
+export interface FriendGroupUvsgamesShopsTable {
   groupId: string;
   uvsgamesStoreId: number;
   addedByUserId: string | null;

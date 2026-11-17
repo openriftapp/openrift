@@ -29,7 +29,7 @@ async function ensureChannel(repos: Repos, userId: string): Promise<OverlayChann
     return await repos.overlayChannels.create(userId);
   } catch (error) {
     // Two first-opens can race on the user_id unique; the winner's row is returned.
-    if (isUniqueViolationOn(error, "overlay_channels_user_id_key")) {
+    if (isUniqueViolationOn(error, "uq_overlay_channels_user_id")) {
       const winner = await repos.overlayChannels.getByUserId(userId);
       if (winner) {
         return winner;

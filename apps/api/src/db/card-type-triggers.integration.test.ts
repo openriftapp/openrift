@@ -53,7 +53,7 @@ describe.skipIf(!ctx)("card type junction triggers (integration)", () => {
       .selectFrom("cardCardTypes")
       .select("typeSlug")
       .where("cardId", "=", card.id)
-      .orderBy("position")
+      .orderBy("sortOrder")
       .execute();
     expect(junction.map((row) => row.typeSlug)).toEqual(["unit", "gear"]);
   });

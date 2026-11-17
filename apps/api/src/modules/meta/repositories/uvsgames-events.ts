@@ -235,7 +235,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
       .select((eb) => [
         "t.templateId",
         "t.sourceName",
-        "t.watched",
+        "t.isWatched as watched",
         "t.tier",
         eb.cast<number>(eb.fn.count("e.externalId"), "integer").as("eventCount"),
         sql<number | null>`round(avg(e.player_count) filter (where ${RAN_EVENT}), 1)::float8`.as(
@@ -245,7 +245,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
         sql<string | null>`(array_agg(e.name order by e.start_at desc))[1]`.as("sampleEventName"),
         eb.fn.max<Date>("e.startAt").as("lastStartAt"),
       ])
-      .groupBy(["t.templateId", "t.sourceName", "t.watched", "t.tier"])
+      .groupBy(["t.templateId", "t.sourceName", "t.isWatched", "t.tier"])
       .orderBy("eventCount", "desc")
       .orderBy("templateId", "asc");
   }
@@ -307,7 +307,10 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
         .insertInto("uvsgamesStores")
         .values(batch)
         .onConflict((oc) =>
-          oc.column("id").doUpdateSet((eb) => ({ name: eb.ref("excluded.name") })),
+          oc
+            .column("id")
+            .doUpdateSet((eb) => ({ name: eb.ref("excluded.name") }))
+            .where(sql<SqlBool>`uvsgames_stores.name is distinct from excluded.name`),
         )
         .execute();
     }
@@ -605,7 +608,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
     // Filters on the queue's own column, not on triage: only the accept
     // path ever arms a row, but that's not what's being checked here.
     async dueForRecheck(now: Date, limit: number): Promise<UvsgamesRecheckRow[]> {
-      const important = sql<boolean>`(me.tier in ('premier', 'competitive') or coalesce(t.watched, false))`;
+      const important = sql<boolean>`(me.tier in ('premier', 'competitive') or coalesce(t.is_watched, false))`;
       const rows = await triagedQuery()
         .leftJoin("uvsgamesEventTemplates as t", "t.templateId", "c.eventConfigurationTemplate")
         .selectAll("c")
@@ -807,7 +810,12 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
           .insertInto("uvsgamesPlayers")
           .values(batch)
           .onConflict((oc) =>
-            oc.column("id").doUpdateSet((eb) => ({ displayName: eb.ref("excluded.displayName") })),
+            oc
+              .column("id")
+              .doUpdateSet((eb) => ({ displayName: eb.ref("excluded.displayName") }))
+              .where(
+                sql<SqlBool>`uvsgames_players.display_name is distinct from excluded.display_name`,
+              ),
           )
           .execute();
       }
@@ -833,7 +841,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
       const rows = await db
         .selectFrom("uvsgamesEventTemplates")
         .select(["templateId", "sourceName"])
-        .where("watched", "=", true)
+        .where("isWatched", "=", true)
         .execute();
       return new Map(rows.map((row) => [row.templateId, row.sourceName]));
     },
@@ -866,7 +874,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
       }
       const updated = await db
         .updateTable("uvsgamesEventTemplates")
-        .set(patch)
+        .set({ isWatched: patch.watched, tier: patch.tier })
         .where("templateId", "=", templateId)
         .executeTakeFirst();
       if (updated.numUpdatedRows === 0n) {
@@ -962,8 +970,8 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
         .selectFrom("metaSyncSettings")
         .select([
           "autoAcceptMinPlayers",
-          "autoAcceptNotable",
-          "autoAcceptOfficial",
+          "hasAutoAcceptNotable as autoAcceptNotable",
+          "hasAutoAcceptOfficial as autoAcceptOfficial",
           "competitivePlayerFloor",
           "updatedAt",
         ])
@@ -975,12 +983,17 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
     async updateSettings(patch: MetaSyncSettingsPatch): Promise<MetaSyncSettingsRow> {
       const row = await db
         .updateTable("metaSyncSettings")
-        .set(patch)
+        .set({
+          autoAcceptMinPlayers: patch.autoAcceptMinPlayers,
+          hasAutoAcceptNotable: patch.autoAcceptNotable,
+          hasAutoAcceptOfficial: patch.autoAcceptOfficial,
+          competitivePlayerFloor: patch.competitivePlayerFloor,
+        })
         .where("id", "=", SETTINGS_ID)
         .returning([
           "autoAcceptMinPlayers",
-          "autoAcceptNotable",
-          "autoAcceptOfficial",
+          "hasAutoAcceptNotable as autoAcceptNotable",
+          "hasAutoAcceptOfficial as autoAcceptOfficial",
           "competitivePlayerFloor",
           "updatedAt",
         ])

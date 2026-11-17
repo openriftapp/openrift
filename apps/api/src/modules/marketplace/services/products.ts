@@ -3,7 +3,7 @@ import { badRequest, conflict } from "../../../errors.js";
 import { assertFound, conflictOnUniqueViolation } from "../../../lib/assertions.js";
 import type { ProductContentRow, ProductWithCounts } from "../repositories/products.js";
 
-export const PRODUCT_SLUG_KEY = "products_slug_key";
+export const PRODUCT_SLUG_KEY = "uq_products_slug";
 
 /**
  * List must be printing-kind: card-kind entries have no printing identity,

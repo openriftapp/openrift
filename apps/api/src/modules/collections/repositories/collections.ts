@@ -20,7 +20,7 @@ export interface AccessibleCollection extends CollectionWithCount {
   groupName: string | null;
   /**
    * The viewer's effective deck-building availability for this collection:
-   * `COALESCE(pref.available, group_id IS NULL)`. Per-viewer, not a property
+   * `COALESCE(pref.is_available, group_id IS NULL)`. Per-viewer, not a property
    * of the collection — personal collections default on, group collections
    * are opt-in per member.
    */
@@ -90,8 +90,10 @@ export function collectionsRepo(db: Kysely<Database>) {
           ),
           "g.slug as groupSlug",
           "g.name as groupName",
-          sql<boolean>`coalesce(pref.available, c.group_id is null)`.as("availableForDeckbuilding"),
-          sql<boolean>`coalesce(sidebar.hidden, false)`.as("sidebarHidden"),
+          sql<boolean>`coalesce(pref.is_available, c.group_id is null)`.as(
+            "availableForDeckbuilding",
+          ),
+          sql<boolean>`coalesce(sidebar.is_hidden, false)`.as("sidebarHidden"),
           sql<boolean>`(c.user_id IS NOT NULL) OR (gm.role IN ('owner','admin'))`.as(
             "viewerCanAdmin",
           ),
@@ -130,8 +132,10 @@ export function collectionsRepo(db: Kysely<Database>) {
           "g.slug as groupSlug",
           "g.name as groupName",
           "gm.role as viewerRole",
-          sql<boolean>`coalesce(pref.available, c.group_id is null)`.as("availableForDeckbuilding"),
-          sql<boolean>`coalesce(sidebar.hidden, false)`.as("sidebarHidden"),
+          sql<boolean>`coalesce(pref.is_available, c.group_id is null)`.as(
+            "availableForDeckbuilding",
+          ),
+          sql<boolean>`coalesce(sidebar.is_hidden, false)`.as("sidebarHidden"),
         ])
         .where("c.id", "=", id)
         .where((eb) => eb.or([eb("c.userId", "=", userId), eb("gm.userId", "=", userId)]))

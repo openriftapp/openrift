@@ -326,7 +326,6 @@ export function printingDeskRepo(db: Kysely<Database>) {
       listings: number;
       products: number;
       metaPicks: number;
-      syncStates: number;
       linkOverrides: number;
       dismissals: number;
       deckSlots: number;
@@ -343,7 +342,6 @@ export function printingDeskRepo(db: Kysely<Database>) {
           count("marketplace_product_variants").as("listings"),
           count("product_printings").as("products"),
           count("meta_event_player_overlay_cards", "preferred_printing_id").as("metaPicks"),
-          count("cardmarket_sync_state").as("syncStates"),
           count("printing_link_overrides").as("linkOverrides"),
           count("trade_suggestion_dismissals").as("dismissals"),
           count("deck_cards", "preferred_printing_id").as("deckSlots"),
@@ -428,7 +426,7 @@ export function printingDeskRepo(db: Kysely<Database>) {
         .selectFrom("cardDomains")
         .select("domainSlug")
         .where("cardId", "=", card.id)
-        .orderBy("ordinal")
+        .orderBy("sortOrder")
         .execute();
       return { ...card, domains: domains.map((row) => row.domainSlug) };
     },

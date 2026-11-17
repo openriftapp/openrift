@@ -22,7 +22,7 @@ export function userFeatureFlagsRepo(db: Kysely<Database>) {
           "users.name as userName",
           "users.email as userEmail",
           "userFeatureFlags.flagKey",
-          "userFeatureFlags.enabled",
+          "userFeatureFlags.isEnabled as enabled",
         ])
         .orderBy("userFeatureFlags.flagKey")
         .orderBy("users.email")
@@ -32,10 +32,10 @@ export function userFeatureFlagsRepo(db: Kysely<Database>) {
 
     async listMerged(userId: string): Promise<Record<string, boolean>> {
       const [globals, overrides] = await Promise.all([
-        db.selectFrom("featureFlags").select(["key", "enabled"]).execute(),
+        db.selectFrom("featureFlags").select(["key", "isEnabled as enabled"]).execute(),
         db
           .selectFrom("userFeatureFlags")
-          .select(["flagKey", "enabled"])
+          .select(["flagKey", "isEnabled as enabled"])
           .where("userId", "=", userId)
           .execute(),
       ]);
@@ -57,8 +57,8 @@ export function userFeatureFlagsRepo(db: Kysely<Database>) {
     ): Promise<UserFeatureFlagsTable | undefined> {
       return db
         .insertInto("userFeatureFlags")
-        .values({ userId, flagKey, enabled })
-        .onConflict((oc) => oc.columns(["userId", "flagKey"]).doUpdateSet({ enabled }))
+        .values({ userId, flagKey, isEnabled: enabled })
+        .onConflict((oc) => oc.columns(["userId", "flagKey"]).doUpdateSet({ isEnabled: enabled }))
         .returningAll()
         .executeTakeFirst();
     },

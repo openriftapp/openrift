@@ -77,7 +77,7 @@ export function overlayChannelsRepo(db: Kysely<Database>) {
             .executeTakeFirstOrThrow();
           return toChannel(row);
         },
-        { constraint: "overlay_channels_token_key" },
+        { constraint: "uq_overlay_channels_token" },
       );
     },
 

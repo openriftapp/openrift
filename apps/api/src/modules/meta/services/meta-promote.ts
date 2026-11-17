@@ -72,7 +72,7 @@ async function promoteMetaEventLocked(
   const sources = await repos.meta.sourcesForEvent(metaEventId);
   // A citation with `contributes` off is printed and never read; see `insertEventSource`.
   const ordered = sources.filter(
-    (source) => source.provider !== null && source.externalId !== null && source.contributes,
+    (source) => source.provider !== null && source.externalId !== null && source.isContributing,
   );
 
   const collected: SourceFacts[] = [];

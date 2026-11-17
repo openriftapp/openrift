@@ -50,7 +50,7 @@ if (ctx) {
 
   await db
     .insertInto("cardDomains")
-    .values({ cardId: card1Id, domainSlug: "mind", ordinal: 0 })
+    .values({ cardId: card1Id, domainSlug: "mind", sortOrder: 0 })
     .execute();
 
   const [card2] = await insertCards(db, {
@@ -67,7 +67,7 @@ if (ctx) {
 
   await db
     .insertInto("cardDomains")
-    .values({ cardId: card2!.id, domainSlug: "calm", ordinal: 0 })
+    .values({ cardId: card2!.id, domainSlug: "calm", sortOrder: 0 })
     .execute();
 
   const [card3] = await insertCards(db, {
@@ -85,7 +85,7 @@ if (ctx) {
 
   await db
     .insertInto("cardDomains")
-    .values({ cardId: card3Id, domainSlug: "fury", ordinal: 0 })
+    .values({ cardId: card3Id, domainSlug: "fury", sortOrder: 0 })
     .execute();
 
   // Every card must have at least its own normName as an alias.
@@ -315,7 +315,7 @@ if (ctx) {
       provider: "csq-spreadsheet",
       isFavorite: true,
       isHidden: false,
-      helperReviewable: false,
+      isHelperReviewable: false,
       sortOrder: 0,
     })
     .onConflict((oc) => oc.column("provider").doUpdateSet({ isFavorite: true }))

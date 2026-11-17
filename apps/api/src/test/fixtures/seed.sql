@@ -59,11 +59,11 @@ INSERT INTO languages (code, name, sort_order) VALUES
   ('KR', 'Korean', 4)
   ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, sort_order = EXCLUDED.sort_order;
 
-INSERT INTO formats (id, name) VALUES
-  ('2v2', '2v2'),
-  ('freeform', 'Freeform'),
-  ('standard', 'Standard')
-  ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
+INSERT INTO ban_formats (slug, label, sort_order) VALUES
+  ('2v2', '2v2', 1),
+  ('freeform', 'Freeform', 2),
+  ('standard', 'Standard', 3)
+  ON CONFLICT (slug) DO UPDATE SET label = EXCLUDED.label, sort_order = EXCLUDED.sort_order;
 
 INSERT INTO deck_formats (slug, label, sort_order, is_well_known) VALUES
   ('constructed', 'Constructed', 0, TRUE),
@@ -83,7 +83,7 @@ INSERT INTO deck_zones (slug, label, sort_order, is_well_known) VALUES
   ('overflow', 'Overflow', 7, TRUE)
   ON CONFLICT (slug) DO UPDATE SET label = EXCLUDED.label, sort_order = EXCLUDED.sort_order, is_well_known = EXCLUDED.is_well_known;
 
-INSERT INTO keywords (name, color, dark_text, is_well_known) VALUES
+INSERT INTO keywords (name, color, has_dark_text, is_well_known) VALUES
   ('Accelerate', '#24705f', FALSE, FALSE),
   ('Action', '#24705f', FALSE, FALSE),
   ('Add', '#707070', FALSE, FALSE),
@@ -112,7 +112,7 @@ INSERT INTO keywords (name, color, dark_text, is_well_known) VALUES
   ('Unique', '#707070', FALSE, TRUE),
   ('Vision', '#707070', FALSE, FALSE),
   ('Weaponmaster', '#707070', FALSE, FALSE)
-  ON CONFLICT (name) DO UPDATE SET color = EXCLUDED.color, dark_text = EXCLUDED.dark_text, is_well_known = EXCLUDED.is_well_known;
+  ON CONFLICT (name) DO UPDATE SET color = EXCLUDED.color, has_dark_text = EXCLUDED.has_dark_text, is_well_known = EXCLUDED.is_well_known;
 
 INSERT INTO keyword_translations (keyword_name, language, label) VALUES
   ('Accelerate', 'FR', 'Accélération'),
@@ -220,7 +220,7 @@ INSERT INTO cards (id, slug, name, might, energy, power, might_bonus, keywords, 
   ('019cfc3b-038a-7c85-87b3-452bea9999fb', 'wuju-bladesman-starter', 'Wuju Bladesman, Starter', NULL, NULL, NULL, NULL, '{}', '{"Master Yi"}', 'wujubladesmanstarter'),
   ('019cfc3b-038a-7e10-b8d4-6e8b9646a975', 'zephyr-sage', 'Zephyr Sage', 6, 6, 1, NULL, '{"Shield"}', '{"Ionia","Bird"}', 'zephyrsage');
 
-INSERT INTO card_card_types (card_id, type_slug, position) VALUES
+INSERT INTO card_card_types (card_id, type_slug, sort_order) VALUES
   ('019cfc3b-0387-7b61-be7a-edfadddd1879', 'rune', 0),
   ('019cfc3b-0389-7de9-8860-226f4c8947d8', 'spell', 0),
   ('019cfc3b-038a-7aab-b290-3ac99454fe0e', 'unit', 0),
@@ -266,7 +266,7 @@ INSERT INTO card_super_types (card_id, super_type_slug) VALUES
   ('019cfc3b-038a-7e76-9ea8-f1feb5c9d837', 'champion'),
   ('019cfc3b-038b-7140-a819-397e9b1eb94e', 'signature');
 
-INSERT INTO card_domains (card_id, domain_slug, ordinal) VALUES
+INSERT INTO card_domains (card_id, domain_slug, sort_order) VALUES
   ('019cfc3b-0387-7b61-be7a-edfadddd1879', 'fury', 0),
   ('019cfc3b-0389-7de9-8860-226f4c8947d8', 'fury', 0),
   ('019cfc3b-038a-7aab-b290-3ac99454fe0e', 'mind', 0),
@@ -2431,5 +2431,5 @@ INSERT INTO marketplace_product_prices (marketplace_product_id, recorded_at, mar
 
 
 -- Feature flags
-INSERT INTO feature_flags (key, enabled, description) VALUES
+INSERT INTO feature_flags (key, is_enabled, description) VALUES
   ('price-history', TRUE, 'Show the Value Over Time chart on the collection stats page');

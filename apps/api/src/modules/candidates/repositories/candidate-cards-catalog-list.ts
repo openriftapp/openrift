@@ -86,7 +86,7 @@ export function candidateCatalogListRepo(db: Kysely<Database>) {
           coalesce(pst.printing_rows, 0) as "printingRows",
           coalesce(s.is_hidden, false) as "isHidden",
           coalesce(s.is_favorite, false) as "isFavorite",
-          coalesce(s.helper_reviewable, false) as "helperReviewable",
+          coalesce(s.is_helper_reviewable, false) as "helperReviewable",
           coalesce(s.sort_order, 0) as "sortOrder",
           us.last_uploaded_at as "lastUploadedAt",
           coalesce(i.ignored, 0) as "ignoredCount",

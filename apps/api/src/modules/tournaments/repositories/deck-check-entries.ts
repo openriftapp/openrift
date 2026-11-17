@@ -184,8 +184,8 @@ export function deckCheckEntriesRepo(db: Kysely<Database>) {
       const rows = await db
         .selectFrom("deckCheckEntries as en")
         .leftJoin("tournamentParticipants as p", "p.id", "en.participantId")
-        .leftJoin("users as u", "u.id", "en.checkedBy")
-        .leftJoin("users as au", "au.id", "en.approvedBy")
+        .leftJoin("users as u", "u.id", "en.checkedByUserId")
+        .leftJoin("users as au", "au.id", "en.approvedByUserId")
         .leftJoin("users as cu", "cu.id", "p.userId")
         .selectAll("en")
         .select((eb) => [
@@ -306,7 +306,7 @@ export function deckCheckEntriesRepo(db: Kysely<Database>) {
         .set({ claimToken: token })
         .where("id", "=", participantId)
         .where("claimToken", "is", null)
-        .where("accountClosed", "=", false)
+        .where("isAccountClosed", "=", false)
         .executeTakeFirst();
       if (written.numUpdatedRows === 1n) {
         return token;
@@ -441,9 +441,9 @@ export function deckCheckEntriesRepo(db: Kysely<Database>) {
         ...(patch.contentHash === undefined ? {} : { contentHash: patch.contentHash }),
         ...(patch.state === undefined ? {} : { state: patch.state }),
         ...(patch.reviewOutcome === undefined ? {} : { reviewOutcome: patch.reviewOutcome }),
-        ...(patch.checkedBy === undefined ? {} : { checkedBy: patch.checkedBy }),
+        ...(patch.checkedBy === undefined ? {} : { checkedByUserId: patch.checkedBy }),
         ...(patch.checkedAt === undefined ? {} : { checkedAt: patch.checkedAt }),
-        ...(patch.approvedBy === undefined ? {} : { approvedBy: patch.approvedBy }),
+        ...(patch.approvedBy === undefined ? {} : { approvedByUserId: patch.approvedBy }),
         ...(patch.approvedAt === undefined ? {} : { approvedAt: patch.approvedAt }),
         ...(patch.unlockRequestedAt === undefined
           ? {}

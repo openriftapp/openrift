@@ -6,15 +6,19 @@ import type { Database } from "../../../db/tables.js";
 export function cardBansRepo(db: Kysely<Database>) {
   return {
     listFormats() {
-      return db.selectFrom("formats").select(["id", "name"]).orderBy("name").execute();
+      return db
+        .selectFrom("banFormats")
+        .select(["slug as id", "label as name"])
+        .orderBy("sortOrder")
+        .execute();
     },
 
     listByCard(cardId: string) {
       return db
         .selectFrom("cardBans")
-        .innerJoin("formats", "formats.id", "cardBans.formatId")
+        .innerJoin("banFormats", "banFormats.slug", "cardBans.formatId")
         .selectAll("cardBans")
-        .select("formats.name as formatName")
+        .select("banFormats.label as formatName")
         .where("cardBans.cardId", "=", cardId)
         .where("cardBans.unbannedAt", "is", null)
         .execute();
@@ -55,11 +59,11 @@ export function cardBansRepo(db: Kysely<Database>) {
         .returningAll()
         .executeTakeFirstOrThrow();
       const format = await db
-        .selectFrom("formats")
-        .select("name")
-        .where("id", "=", row.formatId)
+        .selectFrom("banFormats")
+        .select("label")
+        .where("slug", "=", row.formatId)
         .executeTakeFirstOrThrow();
-      return { ...row, formatName: format.name };
+      return { ...row, formatName: format.label };
     },
 
     async update(
@@ -79,11 +83,11 @@ export function cardBansRepo(db: Kysely<Database>) {
         return null;
       }
       const format = await db
-        .selectFrom("formats")
-        .select("name")
-        .where("id", "=", row.formatId)
+        .selectFrom("banFormats")
+        .select("label")
+        .where("slug", "=", row.formatId)
         .executeTakeFirstOrThrow();
-      return { ...row, formatName: format.name };
+      return { ...row, formatName: format.label };
     },
 
     async unban(cardId: string, formatId: string): Promise<boolean> {

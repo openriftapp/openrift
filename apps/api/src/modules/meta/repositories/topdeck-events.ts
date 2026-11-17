@@ -129,7 +129,7 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
    * cross-mirror review has let this citation contribute.
    */
   const rivalProvider = sql<string | null>`(
-    case when src.contributes then null else (
+    case when src.is_contributing then null else (
       select min(o.provider) from meta_event_sources o
        where o.meta_event_id = src.meta_event_id
          and o.provider is not null

@@ -39,7 +39,7 @@ export function marketplaceMappingStagingRepo(db: Db) {
      * — one externalId can resolve to multiple SKUs (e.g. CM's normal/foil
      * variants), and each one has its own price history, so the result key has
      * to carry the full SKU tuple. Because that key is UNIQUE per marketplace
-     * (`marketplace_products_sku_key`) and `(marketplaceProductId, printingId)`
+     * (`uq_marketplace_products_sku`) and `(marketplaceProductId, printingId)`
      * is UNIQUE on the variants table, one row per (variant, product) pair is
      * exactly one row per SKU tuple.
      *

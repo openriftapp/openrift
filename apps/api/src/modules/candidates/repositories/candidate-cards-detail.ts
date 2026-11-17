@@ -296,7 +296,7 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
           "ci.quad",
           "ci.fingerprint",
           "fi.isActive",
-          "fi.activateWhenRehosted",
+          "fi.isActivationPending as activateWhenRehosted",
           "rf.attempts as rehostAttempts",
           "rf.lastError as rehostError",
           "rf.lastAttemptAt as rehostAttemptedAt",

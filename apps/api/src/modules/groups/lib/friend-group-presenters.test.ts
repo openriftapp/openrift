@@ -42,7 +42,7 @@ function groupRow(overrides: Partial<Group> = {}): Group {
     codeRotatedAt: new Date("2026-03-01T10:00:00.000Z"),
     bannerUrl: null,
     bannerPosition: 50,
-    bannerUploadedBy: null,
+    bannerUploadedByUserId: null,
     bannerUploadedAt: null,
     createdAt: new Date("2026-02-01T10:00:00.000Z"),
     updatedAt: new Date("2026-03-02T10:00:00.000Z"),

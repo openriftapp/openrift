@@ -196,15 +196,24 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
           .insertInto("playloltcgShops")
           .values(batch)
           .onConflict((oc) =>
-            oc.column("id").doUpdateSet((eb) => ({
-              name: eb.ref("excluded.name"),
-              province: eb.ref("excluded.province"),
-              city: eb.ref("excluded.city"),
-              area: eb.ref("excluded.area"),
-              address: eb.ref("excluded.address"),
-              longitude: eb.ref("excluded.longitude"),
-              latitude: eb.ref("excluded.latitude"),
-            })),
+            oc
+              .column("id")
+              .doUpdateSet((eb) => ({
+                name: eb.ref("excluded.name"),
+                province: eb.ref("excluded.province"),
+                city: eb.ref("excluded.city"),
+                area: eb.ref("excluded.area"),
+                address: eb.ref("excluded.address"),
+                longitude: eb.ref("excluded.longitude"),
+                latitude: eb.ref("excluded.latitude"),
+              }))
+              .where(
+                sql<SqlBool>`(playloltcg_shops.name, playloltcg_shops.province, playloltcg_shops.city,
+                    playloltcg_shops.area, playloltcg_shops.address, playloltcg_shops.longitude,
+                    playloltcg_shops.latitude)
+                  is distinct from (excluded.name, excluded.province, excluded.city, excluded.area,
+                    excluded.address, excluded.longitude, excluded.latitude)`,
+              ),
           )
           .execute();
       }
@@ -298,7 +307,10 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
         .insertInto("playloltcgShops")
         .values({ id: shop.id, name: shop.name.slice(0, MIRROR_NAME_MAX) })
         .onConflict((oc) =>
-          oc.column("id").doUpdateSet((eb) => ({ name: eb.ref("excluded.name") })),
+          oc
+            .column("id")
+            .doUpdateSet((eb) => ({ name: eb.ref("excluded.name") }))
+            .where(sql<SqlBool>`playloltcg_shops.name is distinct from excluded.name`),
         )
         .execute();
       await db

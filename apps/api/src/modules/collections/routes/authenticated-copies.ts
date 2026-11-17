@@ -121,8 +121,8 @@ export const copiesRouter = {
       });
     } catch (error) {
       if (
-        isForeignKeyViolationOn(error, "copies_condition_fkey") ||
-        isForeignKeyViolationOn(error, "copies_grader_fkey")
+        isForeignKeyViolationOn(error, "fk_copies_condition") ||
+        isForeignKeyViolationOn(error, "fk_copies_grader")
       ) {
         throw errors.BAD_REQUEST({ message: "Unknown condition or grader" });
       }

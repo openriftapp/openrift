@@ -88,14 +88,14 @@ export function toDeckPlan(data: DeckPlanData): DeckPlanResponse {
   const { plan, matchups } = data;
   return {
     generalStrategy: plan?.generalStrategy ?? "",
-    mulliganSplit: plan?.mulliganSplit ?? false,
+    mulliganSplit: plan?.hasMulliganSplit ?? false,
     mulliganGeneral: plan?.mulliganGeneral ?? "",
     mulliganFirst: plan?.mulliganFirst ?? "",
     mulliganSecond: plan?.mulliganSecond ?? "",
     battlefieldGame1CardId: plan?.battlefieldG1CardId ?? null,
     battlefieldFirstCardId: plan?.battlefieldFirstCardId ?? null,
     battlefieldSecondCardId: plan?.battlefieldSecondCardId ?? null,
-    battlefieldCustom: plan?.battlefieldCustom ?? false,
+    battlefieldCustom: plan?.isBattlefieldCustom ?? false,
     battlefieldNote: plan?.battlefieldNote ?? "",
     matchups: matchups.map((matchup) => ({
       id: matchup.id,

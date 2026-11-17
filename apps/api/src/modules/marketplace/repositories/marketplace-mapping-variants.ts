@@ -135,7 +135,7 @@ export function marketplaceMappingVariantsRepo(db: Db) {
       const productRows = [...productRowsByKey.values()];
 
       // `doNothing` would leave conflicting rows out of RETURNING, with no id to
-      // bind. The `marketplace_products_sku_key` unique is NULLS NOT DISTINCT.
+      // bind. The `uq_marketplace_products_sku` unique is NULLS NOT DISTINCT.
       // Batched: the admin body this runs on can exceed one statement's bind limit.
       const products = [];
       for (const batch of rowBatches(productRows)) {

@@ -31,7 +31,7 @@ async function rejectTakenSlug<T>(write: () => Promise<T>): Promise<T> {
   try {
     return await write();
   } catch (error) {
-    if (isUniqueViolationOn(error, "friend_groups_slug_key")) {
+    if (isUniqueViolationOn(error, "uq_friend_groups_slug")) {
       throw conflict("Slug already in use");
     }
     throw error;

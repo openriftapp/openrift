@@ -20,14 +20,14 @@ export interface ProviderSettingsTable {
   sortOrder: Generated<number>;
   isHidden: Generated<boolean>;
   isFavorite: Generated<boolean>;
-  helperReviewable: Generated<boolean>;
+  isHelperReviewable: Generated<boolean>;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
 }
 
 export interface FeatureFlagsTable {
   key: string;
-  enabled: Generated<boolean>;
+  isEnabled: Generated<boolean>;
   description: string | null;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
@@ -36,7 +36,7 @@ export interface FeatureFlagsTable {
 export interface UserFeatureFlagsTable {
   userId: string;
   flagKey: string;
-  enabled: boolean;
+  isEnabled: boolean;
 }
 
 export interface SiteSettingsTable {
@@ -68,7 +68,7 @@ export interface JobRunsTable {
   durationMs: ColumnType<number | null, number | null | undefined, number | null>;
   errorMessage: ColumnType<string | null, string | null | undefined, string | null>;
   result: ColumnType<unknown, unknown | undefined, unknown>;
-  noop: ColumnType<boolean | null, boolean | null | undefined, boolean | null>;
+  isNoop: ColumnType<boolean | null, boolean | null | undefined, boolean | null>;
 }
 
 export interface JobSchedulesTable {

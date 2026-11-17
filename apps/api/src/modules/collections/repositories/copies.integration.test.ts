@@ -890,7 +890,7 @@ describe.skipIf(!coverCtx)("copies coverPrintingsAcross (integration)", () => {
         faceId: printing.id,
         imageFileId: imageFile.id,
         isActive: rehosted,
-        activateWhenRehosted: !rehosted,
+        isActivationPending: !rehosted,
       })
       .execute();
     return { printingId: printing.id, imageId: image === "rehosted" ? imageFile.id : null };

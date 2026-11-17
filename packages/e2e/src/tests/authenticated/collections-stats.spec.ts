@@ -91,9 +91,9 @@ async function setFlagOverride(sql: Sql, userId: string, flagKey: string, enable
   // Per-user override only: the global feature_flags row is shared across all
   // tests, and flipping it would race with parallel describe blocks.
   await sql`
-    INSERT INTO user_feature_flags (user_id, flag_key, enabled)
+    INSERT INTO user_feature_flags (user_id, flag_key, is_enabled)
     VALUES (${userId}, ${flagKey}, ${enabled})
-    ON CONFLICT (user_id, flag_key) DO UPDATE SET enabled = EXCLUDED.enabled
+    ON CONFLICT (user_id, flag_key) DO UPDATE SET is_enabled = EXCLUDED.is_enabled
   `;
 }
 

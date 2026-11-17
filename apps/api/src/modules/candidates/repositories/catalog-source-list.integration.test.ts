@@ -151,28 +151,28 @@ describe.skipIf(!ctx)("catalog source list queries (integration)", () => {
           sortOrder: 1,
           isHidden: false,
           isFavorite: true,
-          helperReviewable: true,
+          isHelperReviewable: true,
         },
         {
           provider: UNTRUSTED,
           sortOrder: 2,
           isHidden: false,
           isFavorite: false,
-          helperReviewable: false,
+          isHelperReviewable: false,
         },
         {
           provider: HIDDEN,
           sortOrder: 3,
           isHidden: true,
           isFavorite: true,
-          helperReviewable: false,
+          isHelperReviewable: false,
         },
         {
           provider: IGNORED,
           sortOrder: 4,
           isHidden: false,
           isFavorite: true,
-          helperReviewable: false,
+          isHelperReviewable: false,
         },
       ])
       .execute();

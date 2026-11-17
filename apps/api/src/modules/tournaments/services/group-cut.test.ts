@@ -269,7 +269,7 @@ describe("startGroupStageRound", () => {
       ...field,
       roundRows: fourGroupStage({ A: ["first"], B: ["first"], C: ["first"], D: ["first"] }),
     });
-    await startGroupStageRound(repos, groupCutTournament({ groupsSelfPaced: false }));
+    await startGroupStageRound(repos, groupCutTournament({ hasSelfPacedGroups: false }));
     expect(insertGroupPods).toHaveBeenCalledTimes(4);
     expect(insertGroupPods.mock.calls.map((call) => call[2][0]?.podNumber)).toEqual([1, 3, 5, 7]);
   });
@@ -281,7 +281,7 @@ describe("startGroupStageRound", () => {
       roundRows: fourGroupStage({ A: ["first"], B: ["open"], C: ["first"], D: ["first"] }),
     });
     const status = await statusOf(
-      startGroupStageRound(repos, groupCutTournament({ groupsSelfPaced: false })),
+      startGroupStageRound(repos, groupCutTournament({ hasSelfPacedGroups: false })),
     );
     expect(status).toBe(409);
     expect(insertGroupPods).not.toHaveBeenCalled();
@@ -299,7 +299,7 @@ describe("startGroupStageRound", () => {
       }),
     });
     const message = await messageOf(
-      startGroupStageRound(repos, groupCutTournament({ groupsSelfPaced: false })),
+      startGroupStageRound(repos, groupCutTournament({ hasSelfPacedGroups: false })),
     );
     expect(message).toContain("different rounds");
   });
@@ -307,7 +307,7 @@ describe("startGroupStageRound", () => {
   it("refuses before the groups exist", async () => {
     const { repos } = mockRepos({ players: [], groups: [], roundRows: [] });
     const message = await messageOf(
-      startGroupStageRound(repos, groupCutTournament({ groupsSelfPaced: false })),
+      startGroupStageRound(repos, groupCutTournament({ hasSelfPacedGroups: false })),
     );
     expect(message).toContain("not been generated");
   });
@@ -580,7 +580,7 @@ describe("group-stage writers take the rounds lock before reading", () => {
       ...fourGroups(),
       roundRows: fourGroupStage({ A: ["first"], B: ["first"], C: ["first"], D: ["first"] }),
     });
-    await startGroupStageRound(repos, groupCutTournament({ groupsSelfPaced: false }));
+    await startGroupStageRound(repos, groupCutTournament({ hasSelfPacedGroups: false }));
     expect(lockedFirst(repos)).toBe(true);
   });
 });

@@ -41,9 +41,9 @@ const mockKeywordsRepo = {
       [] as {
         name: string;
         color: string;
-        darkText: boolean;
-        costKeyword: boolean;
-        cardModifier: boolean;
+        hasDarkText: boolean;
+        isCostKeyword: boolean;
+        isCardModifier: boolean;
       }[],
     ),
   ),
@@ -150,8 +150,20 @@ describe("GET /api/v1/init", () => {
 
   it("returns keywords as name-keyed map", async () => {
     mockKeywordsRepo.listAll.mockResolvedValue([
-      { name: "Shield", color: "#4488ff", darkText: false, costKeyword: false, cardModifier: true },
-      { name: "Burn", color: "#ff4400", darkText: true, costKeyword: true, cardModifier: false },
+      {
+        name: "Shield",
+        color: "#4488ff",
+        hasDarkText: false,
+        isCostKeyword: false,
+        isCardModifier: true,
+      },
+      {
+        name: "Burn",
+        color: "#ff4400",
+        hasDarkText: true,
+        isCostKeyword: true,
+        isCardModifier: false,
+      },
     ]);
     const res = await app.request("/api/v1/init");
     const json = await readJson(res);
@@ -163,7 +175,13 @@ describe("GET /api/v1/init", () => {
 
   it("includes keyword translations when available", async () => {
     mockKeywordsRepo.listAll.mockResolvedValue([
-      { name: "Shield", color: "#4488ff", darkText: false, costKeyword: false, cardModifier: true },
+      {
+        name: "Shield",
+        color: "#4488ff",
+        hasDarkText: false,
+        isCostKeyword: false,
+        isCardModifier: true,
+      },
     ]);
     mockKeywordsRepo.listAllTranslations.mockResolvedValue([
       { keywordName: "Shield", language: "SC", label: "护盾" },
@@ -175,7 +193,13 @@ describe("GET /api/v1/init", () => {
 
   it("omits translations key when keyword has none", async () => {
     mockKeywordsRepo.listAll.mockResolvedValue([
-      { name: "Shield", color: "#4488ff", darkText: false, costKeyword: false, cardModifier: true },
+      {
+        name: "Shield",
+        color: "#4488ff",
+        hasDarkText: false,
+        isCostKeyword: false,
+        isCardModifier: true,
+      },
     ]);
     const res = await app.request("/api/v1/init");
     const json = await readJson(res);

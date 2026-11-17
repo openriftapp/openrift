@@ -732,8 +732,8 @@ export const finalStandingRowSchema = z.object({
 export const legendMetaShareSchema = z.object({
   legendCardId: z.string(),
   legendName: z.string().nullable(),
-  /** Percent. */
-  share: z.number().min(0).max(100),
+  /** A percent or a deck count; only the ratios between Legends matter. */
+  share: z.number().min(0).max(999_999_999),
 });
 
 export const groupStageViewSchema = z.object({

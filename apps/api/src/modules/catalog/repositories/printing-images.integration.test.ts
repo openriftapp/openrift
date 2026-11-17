@@ -54,7 +54,7 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
       .selectFrom("faceImages")
       .select("id")
       .where("faceId", "=", faceId)
-      .where("activateWhenRehosted", "=", true)
+      .where("isActivationPending", "=", true)
       .execute();
     return rows.map((row) => row.id);
   }
@@ -137,7 +137,7 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
 
     const row = await db
       .selectFrom("faceImages")
-      .select(["isActive", "activateWhenRehosted"])
+      .select(["isActive", "isActivationPending as activateWhenRehosted"])
       .where("id", "=", imageId!)
       .executeTakeFirstOrThrow();
     expect(row).toEqual({ isActive: false, activateWhenRehosted: false });
@@ -333,7 +333,7 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
       .then((rows) => rows.map((row) => row.imageFileId));
     const pending = await db
       .insertInto("faceImages")
-      .values({ faceId, imageFileId: activeFileId!, isActive: false, activateWhenRehosted: true })
+      .values({ faceId, imageFileId: activeFileId!, isActive: false, isActivationPending: true })
       .returning("id")
       .executeTakeFirstOrThrow();
     createdImageIds.push(pending.id);

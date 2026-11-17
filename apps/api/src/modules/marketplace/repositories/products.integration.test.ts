@@ -164,7 +164,7 @@ describe.skipIf(!ctx)("products repo coverCards (integration)", () => {
         faceId: printingId,
         imageFileId: imageFile.id,
         isActive: active && rehosted,
-        activateWhenRehosted: active && !rehosted,
+        isActivationPending: active && !rehosted,
       })
       .execute();
     return imageFile.id;

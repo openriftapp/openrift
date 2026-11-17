@@ -301,7 +301,7 @@ describe.skipIf(!ctx)("Admin catalog routes (integration)", () => {
 
       await testDb
         .insertInto("cardDomains")
-        .values({ cardId: tempCard!.id, domainSlug: "mind", ordinal: 0 })
+        .values({ cardId: tempCard!.id, domainSlug: "mind", sortOrder: 0 })
         .execute();
 
       await insertPrintings(testDb, {

@@ -38,7 +38,7 @@ interface SlugReferenceRow {
 export interface CatalogSync {
   slugReferences: { table: SlugReferenceTable; rows: SlugReferenceRow[] }[];
   languages: Row<"languages">[];
-  formats: Row<"formats">[];
+  banFormats: Row<"banFormats">[];
   keywords: Row<"keywords">[];
   keywordTranslations: Row<"keywordTranslations">[];
   markers: Row<"markers">[];
@@ -149,10 +149,10 @@ export function buildCatalogSync(init: InitResponse, catalog: CatalogResponse): 
     ],
   );
   const faceSides = [...new Map(sides.map((side) => [side.faceId, side])).values()];
-  const formats = new Map<string, Row<"formats">>();
+  const formatLabels = new Map<string, string>();
   for (const [, card] of cards) {
     for (const ban of card.bans) {
-      formats.set(ban.formatId, { id: ban.formatId, name: ban.formatName });
+      formatLabels.set(ban.formatId, ban.formatName);
     }
   }
 
@@ -179,13 +179,15 @@ export function buildCatalogSync(init: InitResponse, catalog: CatalogResponse): 
       sortOrder: language.sortOrder,
       color: language.color,
     })),
-    formats: [...formats.values()],
+    banFormats: [...formatLabels]
+      .toSorted(([, a], [, b]) => a.localeCompare(b))
+      .map(([slug, label], index) => ({ slug, label, sortOrder: index + 1 })),
     keywords: Object.entries(init.keywords).map(([name, keyword]) => ({
       name,
       color: keyword.color,
-      darkText: keyword.darkText,
-      costKeyword: keyword.costKeyword,
-      cardModifier: keyword.cardModifier,
+      hasDarkText: keyword.darkText,
+      isCostKeyword: keyword.costKeyword,
+      isCardModifier: keyword.cardModifier,
     })),
     keywordTranslations: Object.entries(init.keywords).flatMap(([name, keyword]) =>
       Object.entries(keyword.translations ?? {}).map(([language, label]) => ({
@@ -249,10 +251,10 @@ export function buildCatalogSync(init: InitResponse, catalog: CatalogResponse): 
       additionalLegendCount: card.additionalLegendCount,
     })),
     cardDomains: cards.flatMap(([cardId, card]) =>
-      card.domains.map((domainSlug, ordinal) => ({ cardId, domainSlug, ordinal })),
+      card.domains.map((domainSlug, sortOrder) => ({ cardId, domainSlug, sortOrder })),
     ),
     cardCardTypes: cards.flatMap(([cardId, card]) =>
-      card.types.map((typeSlug, position) => ({ cardId, typeSlug, position })),
+      card.types.map((typeSlug, sortOrder) => ({ cardId, typeSlug, sortOrder })),
     ),
     cardSuperTypes: cards.flatMap(([cardId, card]) =>
       card.superTypes.map((superTypeSlug) => ({ cardId, superTypeSlug })),

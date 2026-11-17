@@ -41,11 +41,11 @@ async function buildReport(
     matchFormat: tournament.matchFormat,
     winPoints: tournament.winPoints,
     drawPoints: tournament.drawPoints,
-    regionsEnabled: tournament.regionsEnabled,
+    regionsEnabled: tournament.hasRegions,
     format: tournament.format,
     cutSize: tournament.cutSize,
-    legendTiebreak: tournament.legendTiebreak,
-    groupsSelfPaced: tournament.groupsSelfPaced,
+    legendTiebreak: tournament.hasLegendTiebreak,
+    groupsSelfPaced: tournament.hasSelfPacedGroups,
     groupStage,
     playerLegends: players.flatMap((player) =>
       player.legendCardId === null
@@ -144,7 +144,7 @@ export const publicPodTournamentsRouter = {
           await loadTournamentForWrite(trxRepos, tournament.id),
           input.token,
         );
-        if (!current.groupsSelfPaced) {
+        if (!current.hasSelfPacedGroups) {
           throw forbidden("Only staff can start rounds in this tournament");
         }
         assertGroupCutRun(current);

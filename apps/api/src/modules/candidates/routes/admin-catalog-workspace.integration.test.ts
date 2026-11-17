@@ -67,14 +67,14 @@ if (adminCtx) {
     .values([
       {
         provider: ALLOWED,
-        helperReviewable: true,
+        isHelperReviewable: true,
         isFavorite: false,
         isHidden: false,
         sortOrder: 0,
       },
       {
         provider: DENIED,
-        helperReviewable: false,
+        isHelperReviewable: false,
         isFavorite: false,
         isHidden: false,
         sortOrder: 0,

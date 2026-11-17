@@ -39,9 +39,10 @@ export async function applySettingsPatch(
     (patch.format !== undefined && patch.format !== tournament.format) ||
     (patch.cutSize !== undefined && patch.cutSize !== tournament.cutSize) ||
     (patch.cutRematchAvoidance !== undefined &&
-      patch.cutRematchAvoidance !== tournament.cutRematchAvoidance) ||
-    (patch.legendTiebreak !== undefined && patch.legendTiebreak !== tournament.legendTiebreak) ||
-    (patch.groupsSelfPaced !== undefined && patch.groupsSelfPaced !== tournament.groupsSelfPaced);
+      patch.cutRematchAvoidance !== tournament.hasCutRematchAvoidance) ||
+    (patch.legendTiebreak !== undefined && patch.legendTiebreak !== tournament.hasLegendTiebreak) ||
+    (patch.groupsSelfPaced !== undefined &&
+      patch.groupsSelfPaced !== tournament.hasSelfPacedGroups);
   if (
     (pairingChanging || matchFormatChanging || playModeChanging || formatChanging) &&
     (await repos.tournaments.hasRounds(tournament.id))
@@ -51,7 +52,7 @@ export async function applySettingsPatch(
   assertPlayModeCompatible(
     patch.playMode ?? tournament.playMode,
     patch.pairingStyle ?? tournament.pairingStyle,
-    patch.regionsEnabled ?? tournament.regionsEnabled,
+    patch.regionsEnabled ?? tournament.hasRegions,
   );
   assertGroupCutCompatible(
     patch.format ?? tournament.format,
@@ -91,18 +92,18 @@ export async function applySettingsPatch(
     startsAt: patch.startsAt === undefined ? undefined : new Date(patch.startsAt),
     endsAt: patch.endsAt === undefined ? undefined : patch.endsAt ? new Date(patch.endsAt) : null,
     groupId: patch.groupId,
-    published: patch.published,
+    isPublished: patch.published,
     scoringScheme: patch.scoringScheme,
     byePoints: patch.byePoints,
     matchFormat: matchFormatChanging ? patch.matchFormat : undefined,
     winPoints: patch.winPoints,
     drawPoints: patch.drawPoints,
-    regionsEnabled: patch.regionsEnabled,
+    hasRegions: patch.regionsEnabled,
     format: patch.format,
     cutSize: patch.cutSize,
-    cutRematchAvoidance: patch.cutRematchAvoidance,
-    legendTiebreak: patch.legendTiebreak,
-    groupsSelfPaced: patch.groupsSelfPaced,
+    hasCutRematchAvoidance: patch.cutRematchAvoidance,
+    hasLegendTiebreak: patch.legendTiebreak,
+    hasSelfPacedGroups: patch.groupsSelfPaced,
     deckSubmission: patch.deckSubmission,
     submissionsCloseAt:
       patch.submissionsCloseAt === undefined
@@ -113,7 +114,7 @@ export async function applySettingsPatch(
     listLockMode: patch.listLockMode,
     deckFormat: patch.deckFormat,
     allowedSets: patch.allowedSets,
-    selfRegistration: patch.selfRegistration,
+    hasSelfRegistration: patch.selfRegistration,
     uvsgamesEventId: patch.uvsgamesEventId,
   });
   // The rounds guard above means these teams never played.

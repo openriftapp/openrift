@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { createMockDb } from "../../../test/mock-db.js";
-import { createRecordingDb, onlyStatement } from "../../../test/recording-db.js";
+import { createRecordingDb } from "../../../test/recording-db.js";
 import { priceRefreshRepo } from "./price-refresh.js";
 
 describe("priceRefreshRepo", () => {
@@ -177,18 +177,25 @@ describe("priceRefreshRepo (generated SQL)", () => {
     ).rejects.toThrow("missing product id for cardmarket 42 normal/NULL");
   });
 
-  it("upsertProductsForMarketplace updates on conflict so RETURNING covers existing rows", async () => {
+  it("upsertProductsForMarketplace writes only changed rows, then reads every product back", async () => {
     await priceRefreshRepo(captured.db).upsertProductsForMarketplace("cardmarket", [
       { externalId: 42, finish: "normal", language: null, groupId: 7, productName: "Card" },
     ]);
 
-    const { sql, parameters } = onlyStatement(captured);
-    expect(sql).toContain(
+    expect(captured.statements).toHaveLength(2);
+    const [upsert, read] = captured.statements.map((statement) => ({
+      ...statement,
+      sql: statement.sql.replaceAll(/\s+/gu, " "),
+    }));
+    expect(upsert!.sql).toContain(
       'on conflict ("marketplace", "external_id", "finish", "language") do update set',
     );
-    expect(sql).toContain('"group_id" = "excluded"."group_id"');
-    expect(sql).toContain('"product_name" = "excluded"."product_name"');
-    expect(sql).toContain('returning "id", "external_id", "finish", "language"');
-    expect(parameters).toEqual(["cardmarket", 42, 7, "Card", "normal", null]);
+    expect(upsert!.sql).toContain('"group_id" = "excluded"."group_id"');
+    expect(upsert!.sql).toContain('"product_name" = "excluded"."product_name"');
+    expect(upsert!.sql).toContain("is distinct from (excluded.group_id, excluded.product_name)");
+    expect(upsert!.sql).not.toContain("returning");
+    expect(upsert!.parameters).toEqual(["cardmarket", 42, 7, "Card", "normal", null]);
+    expect(read!.sql).toContain('select "id", "external_id", "finish", "language"');
+    expect(read!.parameters).toEqual(["cardmarket", 42]);
   });
 });

@@ -312,9 +312,9 @@ describe("pg error mapping", () => {
   });
 
   it.each([
-    ["copies_printing_id_fkey", "One or more printings do not exist"],
-    ["copies_condition_fkey", "Unknown condition or grader"],
-    ["copies_grader_fkey", "Unknown condition or grader"],
+    ["fk_copies_printing_id", "One or more printings do not exist"],
+    ["fk_copies_condition", "Unknown condition or grader"],
+    ["fk_copies_grader", "Unknown condition or grader"],
   ])("names the failing reference when add violates %s", async (constraint, message) => {
     mockAddCopies.mockRejectedValue({ code: "23503", constraint_name: constraint });
     const res = await app.request("/api/v1/copies", {

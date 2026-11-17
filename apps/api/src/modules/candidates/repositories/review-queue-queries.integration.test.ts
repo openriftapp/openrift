@@ -107,7 +107,7 @@ describe.skipIf(!ctx)("review queue queries (integration)", () => {
           sortOrder: 0,
           isHidden: provider === HIDDEN,
           isFavorite: false,
-          helperReviewable: false,
+          isHelperReviewable: false,
         })),
       )
       .execute();

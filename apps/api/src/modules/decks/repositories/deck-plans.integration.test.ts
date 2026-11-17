@@ -73,7 +73,7 @@ describe.skipIf(!ctx)("deckPlansRepo (integration)", () => {
 
     const data = await plans.getForDeck(deckId);
     expect(data.plan?.generalStrategy).toBe("Race them");
-    expect(data.plan?.mulliganSplit).toBe(true);
+    expect(data.plan?.hasMulliganSplit).toBe(true);
     expect(data.plan?.battlefieldG1CardId).toBe(CARD_BODY_UNIT.id);
     expect(data.matchups).toHaveLength(1);
     expect(data.matchups[0]?.opponentCardId).toBe(CARD_CALM_UNIT.id);

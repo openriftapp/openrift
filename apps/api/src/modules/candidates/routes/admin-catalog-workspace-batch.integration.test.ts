@@ -40,7 +40,7 @@ if (adminCtx) {
     .insertInto("providerSettings")
     .values({
       provider: TRUSTED,
-      helperReviewable: true,
+      isHelperReviewable: true,
       isFavorite: true,
       isHidden: false,
       sortOrder: 0,

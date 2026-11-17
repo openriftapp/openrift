@@ -153,17 +153,17 @@ describe.skipIf(!ctx)("friendGroupsRepo (integration)", () => {
       const first = await repo.setBanner(group.id, {
         bannerUrl: BANNER_A,
         bannerPosition: 50,
-        bannerUploadedBy: VIEWER_ID,
+        bannerUploadedByUserId: VIEWER_ID,
         bannerUploadedAt: new Date(),
       });
       expect(first?.previous.bannerUrl).toBeNull();
       expect(first?.updated.bannerUrl).toBe(BANNER_A);
-      expect(first?.updated.bannerUploadedBy).toBe(VIEWER_ID);
+      expect(first?.updated.bannerUploadedByUserId).toBe(VIEWER_ID);
 
       const second = await repo.setBanner(group.id, {
         bannerUrl: BANNER_B,
         bannerPosition: 50,
-        bannerUploadedBy: ADMIN_ID,
+        bannerUploadedByUserId: ADMIN_ID,
         bannerUploadedAt: new Date(),
       });
       expect(second?.previous.bannerUrl).toBe(BANNER_A);
@@ -175,7 +175,7 @@ describe.skipIf(!ctx)("friendGroupsRepo (integration)", () => {
       await repo.setBanner(group.id, {
         bannerUrl: BANNER_A,
         bannerPosition: 10,
-        bannerUploadedBy: VIEWER_ID,
+        bannerUploadedByUserId: VIEWER_ID,
         bannerUploadedAt: new Date(),
       });
 
@@ -185,7 +185,7 @@ describe.skipIf(!ctx)("friendGroupsRepo (integration)", () => {
       expect(cleared?.updated).toMatchObject({
         bannerUrl: null,
         bannerPosition: 50,
-        bannerUploadedBy: null,
+        bannerUploadedByUserId: null,
         bannerUploadedAt: null,
       });
     });
@@ -196,7 +196,7 @@ describe.skipIf(!ctx)("friendGroupsRepo (integration)", () => {
       await repo.setBanner(group.id, {
         bannerUrl: BANNER_A,
         bannerPosition: 50,
-        bannerUploadedBy: VIEWER_ID,
+        bannerUploadedByUserId: VIEWER_ID,
         bannerUploadedAt: new Date(),
       });
 
@@ -214,7 +214,7 @@ describe.skipIf(!ctx)("friendGroupsRepo (integration)", () => {
         repo.setBanner(group.id, {
           bannerUrl: "https://example.test/banner.webp",
           bannerPosition: 50,
-          bannerUploadedBy: VIEWER_ID,
+          bannerUploadedByUserId: VIEWER_ID,
           bannerUploadedAt: new Date(),
         }),
       ).rejects.toThrow();

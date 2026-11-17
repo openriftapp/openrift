@@ -105,7 +105,7 @@ export const listsRouter = {
       updates.name = input.name;
     }
     if (input.sidebarHidden !== undefined) {
-      updates.sidebarHidden = input.sidebarHidden;
+      updates.isSidebarHidden = input.sidebarHidden;
     }
     if (supportsPrefs && input.tradeDefaults !== undefined) {
       updates.defaultPricePref = input.tradeDefaults.pricePref;

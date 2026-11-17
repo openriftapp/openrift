@@ -23,7 +23,7 @@ export const adminProviderSettingsRouter = {
         sortOrder: r.sortOrder,
         isHidden: r.isHidden,
         isFavorite: r.isFavorite,
-        helperReviewable: r.helperReviewable,
+        helperReviewable: r.isHelperReviewable,
       })),
     };
   }),

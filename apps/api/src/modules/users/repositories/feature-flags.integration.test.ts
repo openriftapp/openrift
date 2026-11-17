@@ -28,7 +28,7 @@ describe.skipIf(!ctx)("featureFlagsRepo (integration)", () => {
     createdKeys.push(flag!.key);
 
     expect(flag!.key).toBe("test-flag-0031-a");
-    expect(flag!.enabled).toBe(true);
+    expect(flag!.isEnabled).toBe(true);
     expect(flag!.description).toBe("Integration test flag A");
   });
 
@@ -43,7 +43,7 @@ describe.skipIf(!ctx)("featureFlagsRepo (integration)", () => {
     createdKeys.push(flag!.key);
 
     expect(flag!.key).toBe("test-flag-0031-b");
-    expect(flag!.enabled).toBe(false);
+    expect(flag!.isEnabled).toBe(false);
     expect(flag!.description).toBeNull();
   });
 
@@ -90,7 +90,7 @@ describe.skipIf(!ctx)("featureFlagsRepo (integration)", () => {
 
     expect(updated).toBeDefined();
     expect(updated!.key).toBe("test-flag-0031-a");
-    expect(updated!.enabled).toBe(false);
+    expect(updated!.isEnabled).toBe(false);
     expect(updated!.description).toBe("Updated description");
   });
 

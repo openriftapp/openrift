@@ -120,7 +120,7 @@ const dbList = {
   defaultPriceAbsoluteCents: null,
   defaultTradeType: null,
   currency: null,
-  sidebarHidden: false,
+  isSidebarHidden: false,
   createdAt: now,
   updatedAt: now,
 };
@@ -578,7 +578,7 @@ describe("POST /api/v1/lists/:id/entries", () => {
 
   it.each([
     { constraint: "uq_list_entries_card", status: 409 },
-    { constraint: "list_entries_pkey", status: 500 },
+    { constraint: "pk_list_entries", status: 500 },
   ])("answers $status when the insert hits $constraint", async ({ constraint, status }) => {
     mockListsRepo.getIdKindIntent.mockResolvedValue({ id: LIST_ID, kind: "card", intent: "wish" });
     mockListsRepo.createEntry.mockRejectedValue(

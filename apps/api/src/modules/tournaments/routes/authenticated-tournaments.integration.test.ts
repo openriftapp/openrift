@@ -1071,7 +1071,7 @@ describe.skipIf(!hostCtx || !otherCtx || !judgeCtx)(
           startsAt: "2026-06-01T10:00:00.000Z",
         }),
       );
-      expect(create.status).toBe(200);
+      expect(create.status).toBe(201);
       const prepId = ((await readJson(create)) as { id: string }).id;
 
       async function groupListIds(ctx: typeof host): Promise<string[]> {

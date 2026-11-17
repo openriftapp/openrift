@@ -20,7 +20,7 @@ export const referralsRouter = {
     const code =
       existing ??
       (await withUniqueShareToken((candidate) => referrals.setCodeIfMissing(userId, candidate), {
-        constraint: "users_referral_code_unique",
+        constraint: "uq_users_referral_code",
       }));
     assertFound(code, "User not found");
     const counts = await referrals.counts(userId);

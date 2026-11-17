@@ -174,7 +174,7 @@ export const tournamentsRouter = {
           const tournament = await txRepos.tournaments.create({
             ...host,
             groupId: input.groupId ?? null,
-            published: input.published,
+            isPublished: input.published,
             name: input.name,
             pairingStyle: input.pairingStyle,
             playMode: input.playMode,
@@ -183,12 +183,12 @@ export const tournamentsRouter = {
             matchFormat: input.matchFormat,
             winPoints: input.winPoints,
             drawPoints: input.drawPoints,
-            regionsEnabled: input.regionsEnabled,
+            hasRegions: input.regionsEnabled,
             format: input.format,
             cutSize: input.cutSize,
-            cutRematchAvoidance: input.cutRematchAvoidance,
-            legendTiebreak: input.legendTiebreak,
-            groupsSelfPaced: input.groupsSelfPaced,
+            hasCutRematchAvoidance: input.cutRematchAvoidance,
+            hasLegendTiebreak: input.legendTiebreak,
+            hasSelfPacedGroups: input.groupsSelfPaced,
             deckSubmission: input.deckSubmission,
             submissionsCloseAt: input.submissionsCloseAt
               ? new Date(input.submissionsCloseAt)
@@ -196,7 +196,7 @@ export const tournamentsRouter = {
             listLockMode: input.listLockMode,
             deckFormat: input.deckFormat,
             allowedSets: input.allowedSets ?? null,
-            selfRegistration: input.selfRegistration,
+            hasSelfRegistration: input.selfRegistration,
             startsAt: new Date(input.startsAt),
             endsAt: input.endsAt ? new Date(input.endsAt) : null,
           });
@@ -244,7 +244,7 @@ export const tournamentsRouter = {
     });
     // Mint the share link the first time it's needed (self-registration opened
     // or decks now expected); turning self-registration off keeps the link.
-    const willSelfRegister = patch.selfRegistration ?? tournament.selfRegistration;
+    const willSelfRegister = patch.selfRegistration ?? tournament.hasSelfRegistration;
     const willExpectDecks = (patch.deckSubmission ?? tournament.deckSubmission) !== "none";
     if (!tournament.submissionToken && (willSelfRegister || willExpectDecks)) {
       await withUniqueShareToken((token) => repos.tournaments.setSubmissionToken(id, token));

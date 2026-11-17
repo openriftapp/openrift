@@ -725,7 +725,7 @@ describe.skipIf(!ownerCtx)("deck-check player self-service (integration, ADR-026
       reloaded = await repos.deckCheck.getEntry(eventId, entryId2);
       expect(reloaded?.state).toBe("editable");
       expect(reloaded?.unlockRequestedAt).toBeNull();
-      expect(reloaded?.approvedBy).toBeNull();
+      expect(reloaded?.approvedByUserId).toBeNull();
     });
 
     it("a rejection hands the list back with an issue recorded", async () => {

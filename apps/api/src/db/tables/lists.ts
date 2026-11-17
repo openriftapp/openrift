@@ -24,8 +24,8 @@ export interface ListsTable {
   defaultTradeType: TradeType | null;
   currency: Currency | null;
   sortOrder: Generated<number>;
-  sidebarHidden: Generated<boolean>;
-  cardmarketSync: Generated<boolean>;
+  isSidebarHidden: Generated<boolean>;
+  hasCardmarketSync: Generated<boolean>;
   rules: ColumnType<ListRules, ListRules | undefined, ListRules>;
   ruleCombine: ListRuleCombine | null;
 }

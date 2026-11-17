@@ -50,20 +50,20 @@ export interface CopyDeletionsTable {
 }
 
 export interface CopyDeletionSweepTable {
-  onlyRow: Generated<boolean>;
+  isOnlyRow: Generated<boolean>;
   prunedThroughXid: Generated<string>;
 }
 
 export interface CollectionDeckbuildingPrefsTable {
   userId: string;
   collectionId: string;
-  available: boolean;
+  isAvailable: boolean;
 }
 
 export interface CollectionSidebarPrefsTable {
   userId: string;
   collectionId: string;
-  hidden: boolean;
+  isHidden: boolean;
 }
 
 export interface CollectionEventsTable {

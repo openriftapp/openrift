@@ -12,13 +12,13 @@ import type { ApiContext } from "../../../orpc/context.js";
 import type { SlugTaxonomyRepo, SlugTaxonomyTable } from "../repositories/slug-taxonomy.js";
 
 const SLUG_TAXONOMY_PKEYS: Readonly<Record<SlugTaxonomyTable, string>> = {
-  artVariants: "art_variants_pkey",
-  cardTypes: "card_types_pkey",
-  deckFormats: "deck_formats_pkey",
-  domains: "domains_pkey",
-  finishes: "finishes_pkey",
-  rarities: "rarities_pkey",
-  superTypes: "super_types_pkey",
+  artVariants: "pk_art_variants",
+  cardTypes: "pk_card_types",
+  deckFormats: "pk_deck_formats",
+  domains: "pk_domains",
+  finishes: "pk_finishes",
+  rarities: "pk_rarities",
+  superTypes: "pk_super_types",
 };
 
 /** Per-router config for the seven slug-keyed admin taxonomy routers; shared behavior lives in {@link createSlugTaxonomyHandlers}. */

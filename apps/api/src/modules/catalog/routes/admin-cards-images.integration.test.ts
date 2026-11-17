@@ -89,7 +89,7 @@ if (ctx) {
 
   await db
     .insertInto("cardDomains")
-    .values({ cardId: card!.id, domainSlug: "mind", ordinal: 0 })
+    .values({ cardId: card!.id, domainSlug: "mind", sortOrder: 0 })
     .execute();
 
   const [printing] = await insertPrintings(db, {
@@ -419,7 +419,11 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       return db
         .selectFrom("faceImages")
         .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
-        .select(["faceImages.isActive", "faceImages.activateWhenRehosted", "ci.rehostedUrl"])
+        .select([
+          "faceImages.isActive",
+          "faceImages.isActivationPending as activateWhenRehosted",
+          "ci.rehostedUrl",
+        ])
         .where("faceImages.id", "=", imageId)
         .executeTakeFirstOrThrow();
     }

@@ -13,7 +13,7 @@ export function deckCheckKeysRepo(db: Kysely<Database>) {
     ): Promise<(DeckCheckKey & { createdByName: string | null })[]> {
       let query = db
         .selectFrom("deckCheckKeys as k")
-        .leftJoin("users as u", "u.id", "k.createdBy")
+        .leftJoin("users as u", "u.id", "k.createdByUserId")
         .selectAll("k")
         .select((eb) => eb.ref("u.name").as("createdByName"));
       query =
@@ -42,7 +42,7 @@ export function deckCheckKeysRepo(db: Kysely<Database>) {
           tokenHash: input.tokenHash,
           tokenPrefix: input.tokenPrefix,
           label: input.label,
-          createdBy: input.createdBy,
+          createdByUserId: input.createdBy,
         })
         .returningAll()
         .executeTakeFirstOrThrow();

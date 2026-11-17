@@ -187,7 +187,7 @@ export function standingsInput(input: {
     matches: input.matches,
     winPoints: input.tournament.winPoints,
     drawPoints: input.tournament.drawPoints,
-    legend: input.tournament.legendTiebreak
+    legend: input.tournament.hasLegendTiebreak
       ? {
           legendByPlayer: new Map(input.players.map((player) => [player.id, player.legendCardId])),
           metaShareByLegend: new Map(

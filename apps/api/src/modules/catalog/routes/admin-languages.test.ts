@@ -177,7 +177,7 @@ describe("POST /languages", () => {
     mockRepo.create.mockRejectedValue(
       Object.assign(new Error("duplicate key"), {
         code: "23505",
-        constraint_name: "languages_pkey",
+        constraint_name: "pk_languages",
       }),
     );
     const res = await app.request("/api/admin/v1/languages", {

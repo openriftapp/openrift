@@ -232,10 +232,10 @@ export function insertCards(
       await trx
         .insertInto("cardCardTypes")
         .values(
-          types.map((typeSlug: CardType, position: number) => ({
+          types.map((typeSlug: CardType, sortOrder: number) => ({
             cardId: row.id,
             typeSlug,
-            position,
+            sortOrder,
           })),
         )
         .execute();

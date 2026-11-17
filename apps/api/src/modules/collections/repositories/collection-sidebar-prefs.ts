@@ -11,8 +11,10 @@ export function collectionSidebarPrefsRepo(db: Kysely<Database>) {
     async set(userId: string, collectionId: string, hidden: boolean): Promise<void> {
       await db
         .insertInto("collectionSidebarPrefs")
-        .values({ userId, collectionId, hidden })
-        .onConflict((oc) => oc.columns(["userId", "collectionId"]).doUpdateSet({ hidden }))
+        .values({ userId, collectionId, isHidden: hidden })
+        .onConflict((oc) =>
+          oc.columns(["userId", "collectionId"]).doUpdateSet({ isHidden: hidden }),
+        )
         .execute();
     },
   };

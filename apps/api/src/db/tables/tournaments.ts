@@ -55,14 +55,14 @@ export interface TournamentsTable {
   matchFormat: Generated<TournamentMatchFormat>;
   winPoints: Generated<number>;
   drawPoints: Generated<number>;
-  regionsEnabled: Generated<boolean>;
+  hasRegions: Generated<boolean>;
 
   format: Generated<TournamentFormat>;
   cutSize: Generated<CutSize>;
-  cutRematchAvoidance: Generated<boolean>;
-  legendTiebreak: Generated<boolean>;
-  groupsSelfPaced: Generated<boolean>;
-  published: Generated<boolean>;
+  hasCutRematchAvoidance: Generated<boolean>;
+  hasLegendTiebreak: Generated<boolean>;
+  hasSelfPacedGroups: Generated<boolean>;
+  isPublished: Generated<boolean>;
 
   deckSubmission: Generated<TournamentDeckSubmission>;
 
@@ -71,7 +71,7 @@ export interface TournamentsTable {
   listLockMode: Generated<TournamentListLockMode>;
   deckFormat: Generated<string>;
   allowedSets: string[] | null;
-  selfRegistration: Generated<boolean>;
+  hasSelfRegistration: Generated<boolean>;
 
   uvsgamesEventId: string | null;
 
@@ -104,7 +104,7 @@ export interface TournamentParticipantsTable {
   userId: string | null;
   displayName: string | null;
   riotId: string | null;
-  accountClosed: Generated<boolean>;
+  isAccountClosed: Generated<boolean>;
   status: Generated<TournamentParticipantStatus>;
   droppedAfterRound: number | null;
   seed: number | null;
@@ -182,9 +182,9 @@ export interface DeckCheckEntriesTable {
   contentHash: string;
   state: Generated<DeckCheckEntryState>;
   reviewOutcome: DeckCheckReviewOutcome | null;
-  checkedBy: string | null;
+  checkedByUserId: string | null;
   checkedAt: Date | null;
-  approvedBy: string | null;
+  approvedByUserId: string | null;
   approvedAt: Date | null;
   unlockRequestedAt: Date | null;
   preEditLines: DeckCheckCardLine[] | null;
@@ -217,7 +217,7 @@ export interface DeckCheckKeysTable {
   tokenHash: string;
   tokenPrefix: string;
   label: string | null;
-  createdBy: string | null;
+  createdByUserId: string | null;
   createdAt: CreatedAt;
   lastUsedAt: Date | null;
   revokedAt: Date | null;

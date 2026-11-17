@@ -258,7 +258,7 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
       const copy = await copyOf(source.id, {});
       const copiedPlan = await plans.getForDeck(copy.id);
       expect(copiedPlan.plan?.generalStrategy).toBe("Grind the mid game");
-      expect(copiedPlan.plan?.mulliganSplit).toBe(true);
+      expect(copiedPlan.plan?.hasMulliganSplit).toBe(true);
       expect(copiedPlan.plan?.mulliganFirst).toBe("Keep removal");
       expect(copiedPlan.plan?.battlefieldG1CardId).toBe(CARD_BODY_UNIT.id);
       expect(copiedPlan.plan?.battlefieldNote).toBe("Take the wide board");

@@ -77,7 +77,7 @@ async function generateGroups(
       `A top ${tournament.cutSize} needs at least ${tournament.cutSize} active players.`,
     );
   }
-  if (tournament.legendTiebreak) {
+  if (tournament.hasLegendTiebreak) {
     await assertLegendsOnFile(repos, tournament, active);
   }
   const plan = planGroups(
@@ -228,7 +228,7 @@ async function generateCut(
     groupLabel: row.groupLabel,
     opponentIds: opponents.get(row.playerId) ?? [],
   }));
-  const slots = seedBracket(seeds, { avoidRematches: tournament.cutRematchAvoidance });
+  const slots = seedBracket(seeds, { avoidRematches: tournament.hasCutRematchAvoidance });
   await repos.tournamentGroups.createCut({
     tournamentId: tournament.id,
     roundNumber: GROUP_STAGE_ROUNDS + 1,

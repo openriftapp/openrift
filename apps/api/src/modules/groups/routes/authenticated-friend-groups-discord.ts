@@ -38,7 +38,7 @@ export const friendGroupsDiscordRouter = {
           });
           return candidate;
         },
-        { constraint: "uq_fg_discord_links_code" },
+        { constraint: "uq_friend_group_discord_links_code" },
       );
       return { code, expiresAt: codeExpiresAt.toISOString() };
     },

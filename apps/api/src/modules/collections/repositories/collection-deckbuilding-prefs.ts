@@ -12,8 +12,10 @@ export function collectionDeckbuildingPrefsRepo(db: Kysely<Database>) {
     async set(userId: string, collectionId: string, available: boolean): Promise<void> {
       await db
         .insertInto("collectionDeckbuildingPrefs")
-        .values({ userId, collectionId, available })
-        .onConflict((oc) => oc.columns(["userId", "collectionId"]).doUpdateSet({ available }))
+        .values({ userId, collectionId, isAvailable: available })
+        .onConflict((oc) =>
+          oc.columns(["userId", "collectionId"]).doUpdateSet({ isAvailable: available }),
+        )
         .execute();
     },
 
@@ -23,7 +25,7 @@ export function collectionDeckbuildingPrefsRepo(db: Kysely<Database>) {
         .leftJoin("collectionDeckbuildingPrefs as pref", (join) =>
           join.onRef("pref.collectionId", "=", "col.id").on("pref.userId", "=", userId),
         )
-        .select(sql<boolean>`coalesce(pref.available, col.group_id is null)`.as("available"))
+        .select(sql<boolean>`coalesce(pref.is_available, col.group_id is null)`.as("available"))
         .where("col.id", "=", collectionId)
         .executeTakeFirst();
       return row?.available ?? false;

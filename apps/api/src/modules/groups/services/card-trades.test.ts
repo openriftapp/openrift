@@ -1046,7 +1046,7 @@ describe("unique violations in trade writes", () => {
 
   it.each([
     { constraint: "uq_card_trades_live", mapped: true },
-    { constraint: "card_trades_pkey", mapped: false },
+    { constraint: "pk_card_trades", mapped: false },
   ])(
     "create maps $constraint only when it is the live-trade index",
     async ({ constraint, mapped }) => {
@@ -1066,7 +1066,7 @@ describe("unique violations in trade writes", () => {
 
   it.each([
     { constraint: "uq_card_trade_copies_copy", mapped: true },
-    { constraint: "card_trade_copies_pkey", mapped: false },
+    { constraint: "pk_card_trade_copies", mapped: false },
   ])(
     "accept maps $constraint only when another trade took the copy",
     async ({ constraint, mapped }) => {

@@ -338,7 +338,7 @@ describe("standingsInput and the frozen Legend decision", () => {
     ]);
     return computeGroupStage(
       standingsInput({
-        tournament: groupCutTournament({ legendTiebreak }),
+        tournament: groupCutTournament({ hasLegendTiebreak: legendTiebreak }),
         plan: planFromRows(GROUPS, players),
         matches: groupStageMatches(rows),
         players,
@@ -350,7 +350,7 @@ describe("standingsInput and the frozen Legend decision", () => {
 
   it("carries no Legend map while the tiebreak is off, even with Legends on file", () => {
     const input = standingsInput({
-      tournament: groupCutTournament({ legendTiebreak: false }),
+      tournament: groupCutTournament({ hasLegendTiebreak: false }),
       plan: planFromRows(GROUPS, roster("card-1")),
       matches: [],
       players: roster("card-1"),

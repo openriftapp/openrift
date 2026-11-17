@@ -32,9 +32,9 @@ export async function metaCrossSourceReview(
     id: source.id,
     provider: source.provider,
     externalId: source.externalId,
-    contributes: source.contributes,
+    contributes: source.isContributing,
   }));
-  const unread = citations.filter((source) => !source.contributes);
+  const unread = citations.filter((source) => !source.isContributing);
   if (unread.length === 0) {
     return { sources, rows: [] };
   }
@@ -160,7 +160,7 @@ export async function unlinkMetaCrossSourcePlayer(
   sourceIdentity: string,
 ): Promise<void> {
   const sources = await repos.meta.sourcesForEvent(metaEventId);
-  if (sources.some((source) => source.provider === provider && source.contributes)) {
+  if (sources.some((source) => source.provider === provider && source.isContributing)) {
     throw conflict("This source is being read. Stop reading it first, then revise the link.");
   }
   assertExisted(

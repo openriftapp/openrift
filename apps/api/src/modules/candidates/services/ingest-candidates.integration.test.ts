@@ -23,7 +23,7 @@ function upsertCard(
       .executeTakeFirstOrThrow();
     await trx
       .insertInto("cardCardTypes")
-      .values({ cardId: row.id, typeSlug: type, position: 0 })
+      .values({ cardId: row.id, typeSlug: type, sortOrder: 0 })
       .onConflict((oc) => oc.doNothing())
       .execute();
     return row;
@@ -151,7 +151,7 @@ describe.skipIf(!ctx)("ingestCandidates integration", () => {
 
     await db
       .insertInto("cardDomains")
-      .values({ cardId: seedCardId, domainSlug: "fury", ordinal: 0 })
+      .values({ cardId: seedCardId, domainSlug: "fury", sortOrder: 0 })
       .onConflict((oc) => oc.columns(["cardId", "domainSlug"]).doNothing())
       .execute();
 
@@ -202,7 +202,7 @@ describe.skipIf(!ctx)("ingestCandidates integration", () => {
 
     await db
       .insertInto("cardDomains")
-      .values({ cardId: aliasCardId, domainSlug: "mind", ordinal: 0 })
+      .values({ cardId: aliasCardId, domainSlug: "mind", sortOrder: 0 })
       .onConflict((oc) => oc.columns(["cardId", "domainSlug"]).doNothing())
       .execute();
 

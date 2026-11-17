@@ -77,7 +77,7 @@ const COPY_METADATA_COLUMNS = [
  * collection is excluded, because the deck physically lives in that box.
  */
 function deckbuildingAvailableSql(exemptCollectionId?: string) {
-  const base = sql<boolean>`coalesce(pref.available, col.group_id is null)`;
+  const base = sql<boolean>`coalesce(pref.is_available, col.group_id is null)`;
   if (exemptCollectionId === undefined) {
     return base;
   }

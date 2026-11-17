@@ -179,8 +179,8 @@ afterAll(async () => {
     .updateTable("metaSyncSettings")
     .set({
       autoAcceptMinPlayers: null,
-      autoAcceptNotable: false,
-      autoAcceptOfficial: false,
+      hasAutoAcceptNotable: false,
+      hasAutoAcceptOfficial: false,
       competitivePlayerFloor: 128,
     })
     .where("id", "=", 1)
@@ -1221,7 +1221,11 @@ describe.skipIf(!ctx)("uvsgamesEventsRepo", () => {
         .execute();
       await ctx!.db
         .insertInto("uvsgamesEventTemplates")
-        .values({ templateId: "mtc-template-rule", sourceName: "MTC Rule Template", watched: true })
+        .values({
+          templateId: "mtc-template-rule",
+          sourceName: "MTC Rule Template",
+          isWatched: true,
+        })
         .onConflict((oc) => oc.column("templateId").doNothing())
         .execute();
       const mapped = { eventFormat: "mtc-rule FMT" };

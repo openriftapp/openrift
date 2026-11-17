@@ -26,7 +26,7 @@ export interface NewTournament {
   hostUserId?: string | null;
   hostOrgId?: string | null;
   groupId?: string | null;
-  published?: boolean;
+  isPublished?: boolean;
   name: string;
   status?: TournamentStatus;
   /** Omit to fall back to the DB default of now(); the wizard always sets it. */
@@ -41,19 +41,19 @@ export interface NewTournament {
   matchFormat?: TournamentMatchFormat;
   winPoints?: number;
   drawPoints?: number;
-  regionsEnabled?: boolean;
+  hasRegions?: boolean;
   format?: TournamentFormat;
   cutSize?: CutSize;
-  cutRematchAvoidance?: boolean;
-  legendTiebreak?: boolean;
-  groupsSelfPaced?: boolean;
+  hasCutRematchAvoidance?: boolean;
+  hasLegendTiebreak?: boolean;
+  hasSelfPacedGroups?: boolean;
   deckSubmission: TournamentDeckSubmission;
   deckPhase?: TournamentDeckPhase;
   submissionsCloseAt?: Date | null;
   listLockMode?: TournamentListLockMode;
   deckFormat?: string;
   allowedSets?: string[] | null;
-  selfRegistration?: boolean;
+  hasSelfRegistration?: boolean;
 }
 
 /** Editable umbrella settings (re-validated against the CHECK invariants by the route). */
@@ -71,26 +71,26 @@ export interface TournamentPatch {
   startsAt?: Date;
   endsAt?: Date | null;
   groupId?: string | null;
-  published?: boolean;
+  isPublished?: boolean;
   scoringScheme?: PodScoringScheme;
   byePoints?: number;
   /** The Swiss result-entry format. The route guards that it only changes before any round. */
   matchFormat?: TournamentMatchFormat;
   winPoints?: number;
   drawPoints?: number;
-  regionsEnabled?: boolean;
+  hasRegions?: boolean;
   format?: TournamentFormat;
   cutSize?: CutSize;
-  cutRematchAvoidance?: boolean;
-  legendTiebreak?: boolean;
-  groupsSelfPaced?: boolean;
+  hasCutRematchAvoidance?: boolean;
+  hasLegendTiebreak?: boolean;
+  hasSelfPacedGroups?: boolean;
   deckSubmission?: TournamentDeckSubmission;
   deckPhase?: TournamentDeckPhase;
   submissionsCloseAt?: Date | null;
   listLockMode?: TournamentListLockMode;
   deckFormat?: string;
   allowedSets?: string[] | null;
-  selfRegistration?: boolean;
+  hasSelfRegistration?: boolean;
   uvsgamesEventId?: string | null;
 }
 
@@ -120,7 +120,7 @@ export function tournamentsCoreRepo(db: Kysely<Database>) {
         .selectFrom("tournaments")
         .selectAll()
         .where("groupId", "=", groupId)
-        .where("published", "=", true)
+        .where("isPublished", "=", true)
         .orderBy("startsAt", "desc")
         .orderBy("createdAt", "desc")
         .execute();

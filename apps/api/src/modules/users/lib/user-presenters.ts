@@ -25,7 +25,7 @@ export function toAdminUser(row: UserWithCounts): AdminUserResponse {
 export function toFeatureFlag(row: Selectable<FeatureFlagsTable>): FeatureFlagResponse {
   return {
     key: row.key,
-    enabled: row.enabled,
+    enabled: row.isEnabled,
     description: row.description,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),

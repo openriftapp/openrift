@@ -43,7 +43,7 @@ if (ctx) {
   });
   cardId = cardRow!.id;
 
-  await db.insertInto("cardDomains").values({ cardId, domainSlug: "mind", ordinal: 0 }).execute();
+  await db.insertInto("cardDomains").values({ cardId, domainSlug: "mind", sortOrder: 0 }).execute();
 
   const [printingRow] = await insertPrintings(db, {
     cardId,
@@ -79,7 +79,7 @@ if (ctx) {
 
   await db
     .insertInto("cardDomains")
-    .values({ cardId: secondCardId, domainSlug: "chaos", ordinal: 0 })
+    .values({ cardId: secondCardId, domainSlug: "chaos", sortOrder: 0 })
     .execute();
 
   await insertPrintings(db, {

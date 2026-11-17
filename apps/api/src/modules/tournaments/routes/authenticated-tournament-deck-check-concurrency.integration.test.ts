@@ -94,6 +94,6 @@ describe.skipIf(!hostCtx)("setEntryState concurrent judge transitions (integrati
     const finalEntry = await repos.deckCheck.getEntry(tournamentId, entryId);
     expect(finalEntry?.state).toBe("approved");
     expect(finalEntry?.reviewOutcome).toBe("ok");
-    expect(finalEntry?.approvedBy).toBe(winnerId);
+    expect(finalEntry?.approvedByUserId).toBe(winnerId);
   });
 });

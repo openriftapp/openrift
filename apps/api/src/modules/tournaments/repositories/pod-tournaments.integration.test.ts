@@ -723,7 +723,7 @@ describe.skipIf(!ctx)("podTournamentsRepo (integration)", () => {
 
   it("round-trips the participant region into snapshots and standings", async () => {
     const { tournament, players } = await freshSwissTournament(4);
-    await repos.tournaments.updateSettings(tournament.id, { regionsEnabled: true });
+    await repos.tournaments.updateSettings(tournament.id, { hasRegions: true });
     await repos.tournaments.updateParticipant(players[0]!.id, { region: "noxus" });
     await repos.tournaments.updateParticipant(players[1]!.id, { region: "noxus" });
 

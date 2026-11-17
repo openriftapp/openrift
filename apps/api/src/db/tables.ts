@@ -32,7 +32,7 @@ import type {
   CustomTagCategoriesTable,
   CustomTagsTable,
   DistributionChannelsTable,
-  FormatsTable,
+  BanFormatsTable,
   ImageFilesTable,
   ImageRehostFailuresTable,
   KeywordTranslationsTable,
@@ -80,7 +80,7 @@ import type {
   FriendGroupMemberContactsTable,
   FriendGroupMembersTable,
   FriendGroupPlayriftboundShopsTable,
-  FriendGroupShopsTable,
+  FriendGroupUvsgamesShopsTable,
   FriendGroupsTable,
   UserContactMethodsTable,
 } from "./tables/friend-groups.js";
@@ -92,7 +92,6 @@ import type {
   MarketplaceIgnoredVariantsTable,
   MarketplaceProductCardOverridesTable,
   MarketplaceProductPricesTable,
-  CardmarketSyncStateTable,
   MarketplaceProductVariantsTable,
   MarketplaceProductsTable,
   ProductPrintingsTable,
@@ -218,7 +217,6 @@ export interface Database {
   marketplaceGroups: MarketplaceGroupsTable;
   marketplaceProducts: MarketplaceProductsTable;
   marketplaceProductVariants: MarketplaceProductVariantsTable;
-  cardmarketSyncState: CardmarketSyncStateTable;
   marketplaceProductPrices: MarketplaceProductPricesTable;
   marketplaceIgnoredProducts: MarketplaceIgnoredProductsTable;
   marketplaceIgnoredVariants: MarketplaceIgnoredVariantsTable;
@@ -317,7 +315,7 @@ export interface Database {
   friendGroupDiscordLinks: FriendGroupDiscordLinksTable;
   friendGroupListShares: FriendGroupListSharesTable;
   friendGroupCollectionShares: FriendGroupCollectionSharesTable;
-  friendGroupShops: FriendGroupShopsTable;
+  friendGroupUvsgamesShops: FriendGroupUvsgamesShopsTable;
   friendGroupPlayriftboundShops: FriendGroupPlayriftboundShopsTable;
   friendGroupCalendarFeeds: FriendGroupCalendarFeedsTable;
 
@@ -400,7 +398,7 @@ export interface Database {
 
   userPreferences: UserPreferencesTable;
 
-  formats: FormatsTable;
+  banFormats: BanFormatsTable;
 
   cardBans: CardBansTable;
 

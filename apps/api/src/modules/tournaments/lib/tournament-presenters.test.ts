@@ -50,7 +50,7 @@ function participant(
     claimToken: "claim-tok-abc",
     claimedAt: null,
     claimBlockedAt: null,
-    accountClosed: false,
+    isAccountClosed: false,
     fixedTable: null,
     region: null,
     legendCardId: null,
