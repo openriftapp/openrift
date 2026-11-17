@@ -14,26 +14,33 @@ const setId = crypto.randomUUID();
 const cardId = crypto.randomUUID();
 const PRINTING = crypto.randomUUID();
 
+const PROVIDER = "cff-test";
+
 const ctx = createDbContext(userId);
 
 describe.skipIf(!ctx)("candidate fingerprint failures (integration)", () => {
   const { db } = ctx!;
   const repo = candidateFingerprintsRepo(db);
-  const candidateCardIds: string[] = [];
+
+  async function deleteOwnCandidates(): Promise<void> {
+    const owned = db.selectFrom("candidateCards").select("id").where("provider", "=", PROVIDER);
+    await db.deleteFrom("candidatePrintings").where("candidateCardId", "in", owned).execute();
+    await db.deleteFrom("candidateCards").where("provider", "=", PROVIDER).execute();
+  }
 
   async function candidate(imageUrl: string): Promise<string> {
+    const suffix = crypto.randomUUID();
     const card = await db
       .insertInto("candidateCards")
       .values({
-        provider: "cff-test",
-        externalId: `cff-${crypto.randomUUID()}`,
-        name: "Fingerprint Failure",
-        normName: "fingerprintfailure",
+        provider: PROVIDER,
+        externalId: `cff-${suffix}`,
+        name: `Fingerprint Failure ${suffix}`,
+        normName: `fingerprintfailure${suffix}`,
         domains: [],
       })
       .returning("id")
       .executeTakeFirstOrThrow();
-    candidateCardIds.push(card.id);
     const row = await db
       .insertInto("candidatePrintings")
       .values({
@@ -54,6 +61,7 @@ describe.skipIf(!ctx)("candidate fingerprint failures (integration)", () => {
   }
 
   beforeAll(async () => {
+    await deleteOwnCandidates();
     await seedTestUser(db, { id: userId });
     await db
       .insertInto("sets")
@@ -81,11 +89,7 @@ describe.skipIf(!ctx)("candidate fingerprint failures (integration)", () => {
   });
 
   afterAll(async () => {
-    await db
-      .deleteFrom("candidatePrintings")
-      .where("candidateCardId", "in", candidateCardIds)
-      .execute();
-    await db.deleteFrom("candidateCards").where("id", "in", candidateCardIds).execute();
+    await deleteOwnCandidates();
     await deletePrintingsById(db, [PRINTING]);
     await db.deleteFrom("cards").where("id", "=", cardId).execute();
     await db.deleteFrom("sets").where("id", "=", setId).execute();
