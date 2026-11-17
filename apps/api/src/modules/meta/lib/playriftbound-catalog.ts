@@ -195,7 +195,12 @@ interface PlayriftboundMatchProjection {
   gamesWonP2: number | null;
 }
 
-export interface PlayriftboundDetailFacts {
+export interface PlayriftboundDeckSubmission {
+  deckSubmissionPolicy: string | null;
+  deckSubmissionDueAt: Date | null;
+}
+
+export interface PlayriftboundDetailFacts extends PlayriftboundDeckSubmission {
   structure: string | null;
   matchFormat: string | null;
   roundCount: number | null;
@@ -385,6 +390,21 @@ function projectStandings(
   return projections;
 }
 
+function deckSubmissionOf(config: Record<string, unknown> | null): PlayriftboundDeckSubmission {
+  return {
+    deckSubmissionPolicy: text(config?.deckSubmissionPolicy),
+    deckSubmissionDueAt: instant(config?.deckSubmissionDueAt),
+  };
+}
+
+export function projectDeckSubmission(raw: unknown): PlayriftboundDeckSubmission | null {
+  const tournament = record(raw);
+  if (tournament === null || tournamentIdOf(tournament.id) === null) {
+    return null;
+  }
+  return deckSubmissionOf(record(tournament.config));
+}
+
 /** One `GetCompeteTournamentForRiftboundPlayer` tournament. */
 export function projectTournamentDetail(raw: unknown): PlayriftboundDetailProjection | null {
   const tournament = record(raw);
@@ -454,6 +474,7 @@ export function projectTournamentDetail(raw: unknown): PlayriftboundDetailProjec
       roundsPlayed: rounds.length,
       roundsFinalized: rounds.filter((ref) => ref.round.status === FINALIZED).length,
       sourceUpdatedAt: instant(tournament.updatedAt),
+      ...deckSubmissionOf(config),
     },
     standings: projectStandings(tournament, rounds),
     phases,

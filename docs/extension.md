@@ -72,6 +72,18 @@ Entry counts ride along in the snapshot (`cardmarketOverlayListSchema`), counted
 
 When Cardmarket changes any of that, fix it there and update the fixture rows in `cardmarket-rows.test.ts`.
 
+## Official event platform sync
+
+On an organizer's event page of the official event platform (`/<locale>/org/<orgId>/events/<eventId>` on the host `playriftboundOrganizerEvent` checks) the popup shows a section with "Sync to OpenRift". It reads the event's players and submitted decks with the organizer's own session and hands them to OpenRift, where the organizer picks the tournament and confirms.
+
+**Reading.** `readPlayriftboundEvent` (`playriftbound-read.ts`) runs through `scripting.executeScript` with `world: "MAIN"`, so its requests are the page's own and carry the session cookie. It is serialized into the page and may use nothing outside its body. The platform answers persisted GraphQL queries only. The reader finds their ids in the query manifest among the scripts the page loaded. The site requires an `apollographql-client-version` header but not a particular value. It calls `GetCompeteTournamentForRiftboundAdmin` once and `RiftboundDeckSubmissionForOrganizer` once per player with a submission. The field is every `REGISTERED` registrant plus every participant; a participant in `DROPPED` status is marked dropped. Waitlisted players are left out. A roster shorter than the site's own registration count, or a submission that does not load, stops the read, since a sync drops whoever is missing. The result is checked against `playriftboundSyncPayloadSchema` (`@openrift/shared/playriftbound-sync`) before it leaves the popup.
+
+**Hand-off.** The popup asks for the OpenRift host permission with the click, stores the payload in `browser.storage.local` under `playriftboundSync`, and opens `/tournaments/playriftbound-sync`. The background script injects `playriftboundHandoff` into that page, which offers the payload through `window.postMessage` as JSON text and answers the page's requests until the page confirms receipt, then clears the stored copy. Player names and Riot IDs never appear in a URL. The message types are `PLAYRIFTBOUND_HANDOFF` in the shared module.
+
+**Syncing.** `POST /api/v1/tournaments/playriftbound/sync` links the tournament to the event (`tournaments.playriftbound_event_id`) and upserts participants keyed by `tournament_participants.external_id` (`playriftbound:<playerId>`). A list is pushed through the deck-check ingest only when the platform's save time differs from `tournament_participants.source_deck_saved_at`, so a judge's repair, withdrawal or deletion, and a resubmission on OpenRift, stay until the player saves again on the platform. A seated player who already has a list entered on OpenRift keeps it. New entries start with every sharing consent off. A player who left the event or dropped on the platform drops through the drop service; nothing is deleted and nobody is reactivated. Players added on OpenRift by other means are never touched.
+
+When the platform changes its queries or the fragment fields, fix `playriftbound-read.ts` and its fixtures in `playriftbound-read.test.ts`.
+
 ## Development
 
 ```bash

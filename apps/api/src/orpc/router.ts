@@ -115,6 +115,7 @@ import { deckCheckPlayerRouter } from "../modules/tournaments/routes/authenticat
 import { organizationsRouter } from "../modules/tournaments/routes/authenticated-organizations.js";
 import { tournamentArchiveListsRouter } from "../modules/tournaments/routes/authenticated-tournament-archive-lists.js";
 import { tournamentDeckCheckRouter } from "../modules/tournaments/routes/authenticated-tournament-deck-check.js";
+import { tournamentPlayriftboundRouter } from "../modules/tournaments/routes/authenticated-tournament-playriftbound.js";
 import { tournamentsRouter } from "../modules/tournaments/routes/authenticated-tournaments.js";
 import { deckCheckClaimRouter } from "../modules/tournaments/routes/public-deck-check-claim.js";
 import { deckCheckIngestRouter } from "../modules/tournaments/routes/public-deck-check-ingest.js";
@@ -221,6 +222,7 @@ const apiRouter = {
   tierListsRouter,
   boardStatesRouter,
   tournamentArchiveListsRouter,
+  tournamentPlayriftboundRouter,
   tournamentDeckCheckRouter,
   tournamentsRouter,
   userShareRouter,

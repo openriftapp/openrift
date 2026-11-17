@@ -1,3 +1,5 @@
+import { PLAYRIFTBOUND_SYNC_PATH } from "@openrift/shared/playriftbound-sync";
+
 import type { PicksPayload } from "./picks";
 
 // wxt.config.ts reads this outside a Vite context, where the value only exists
@@ -51,11 +53,23 @@ export function openriftMatchPattern(): string {
   return matchPatternForUrl(BASE_URL);
 }
 
-export function isOverlaySyncUrl(url: string): boolean {
+function isOpenriftPage(url: string, pathname: string): boolean {
   try {
     const parsed = new URL(url);
-    return parsed.origin === openriftOrigin() && parsed.pathname === "/extension/cardmarket";
+    return parsed.origin === openriftOrigin() && parsed.pathname === pathname;
   } catch {
     return false;
   }
+}
+
+export function isOverlaySyncUrl(url: string): boolean {
+  return isOpenriftPage(url, "/extension/cardmarket");
+}
+
+export function playriftboundSyncUrl(): string {
+  return `${BASE_URL}${PLAYRIFTBOUND_SYNC_PATH}`;
+}
+
+export function isPlayriftboundSyncUrl(url: string): boolean {
+  return isOpenriftPage(url, PLAYRIFTBOUND_SYNC_PATH);
 }

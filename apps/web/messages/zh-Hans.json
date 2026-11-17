@@ -9824,6 +9824,7 @@
   "board_states_editor_counter_clear": "移除计数器",
   "nav_board_states_description": "逐步绘制的对局情形",
   "tournaments_settings_toc_uvsgames": "UVS Games",
+  "tournaments_settings_toc_playriftbound": "playriftbound.com",
   "tournaments_settings_uvsgames_title": "UVS Games 赛事",
   "tournaments_settings_uvsgames_description": "如果这场比赛也在 UVS Games 上举办，请在这里关联该赛事。比赛页面会链接到它，赛后你还可以按官方排名把卡组表发送到 Meta 档案。",
   "tournaments_settings_uvsgames_label": "赛事链接或编号",
@@ -9833,6 +9834,62 @@
   "tournaments_settings_uvsgames_open": "在 UVS Games 上打开",
   "tournaments_settings_uvsgames_suggestions": "这个日期前后你小组关注的店铺赛事",
   "tournaments_settings_uvsgames_use": "关联",
+  "tournaments_settings_playriftbound_title": "playriftbound.com 活动",
+  "tournaments_settings_playriftbound_description": "如果本赛事在 playriftbound.com 上进行，请在此关联其活动。OpenRift 浏览器扩展随后会把玩家及其提交的卡组同步到本赛事。",
+  "tournaments_settings_playriftbound_label": "活动链接或编号",
+  "tournaments_settings_playriftbound_invalid": "请粘贴 playriftbound.com 活动的链接或编号。",
+  "tournaments_settings_playriftbound_save": "保存链接",
+  "tournaments_settings_playriftbound_remove": "移除链接",
+  "tournaments_settings_playriftbound_open": "在 playriftbound.com 打开",
+  "tournaments_playriftbound_title": "从 playriftbound.com 同步",
+  "tournaments_playriftbound_waiting_title": "正在等待扩展",
+  "tournaments_playriftbound_waiting_description": "以主办方身份在 playriftbound.com 打开你的活动，然后在 OpenRift 浏览器扩展中点击同步。玩家和卡组随后会显示在这里。",
+  "tournaments_playriftbound_event_title": "活动",
+  "tournaments_playriftbound_event_description": "开始于 {date}。于 {read} 从 playriftbound.com 读取。",
+  "tournaments_playriftbound_event_counts": "玩家：{players} · 已提交卡组：{decks} · 退赛：{dropped}",
+  "tournaments_playriftbound_event_unreadable": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "{count} 套卡组含有 OpenRift 无法读取的行。这些行会被略过，同步后请检查这些卡组。"
+      }
+    }
+  ],
+  "tournaments_playriftbound_target_title": "赛事",
+  "tournaments_playriftbound_target_description": "选择要同步到的 OpenRift 赛事，或新建一个。赛事会记住这个活动，下次同步会去往同一处。",
+  "tournaments_playriftbound_target_linked": "已关联",
+  "tournaments_playriftbound_target_no_decks": "未开启卡组提交",
+  "tournaments_playriftbound_target_new": "新赛事",
+  "tournaments_playriftbound_target_new_description": "接收用于卡组检查的卡组，以活动命名，与活动同时开始。",
+  "tournaments_playriftbound_players_title": "玩家",
+  "tournaments_playriftbound_status_deck": "已提交卡组",
+  "tournaments_playriftbound_status_no_deck": "尚无卡组",
+  "tournaments_playriftbound_status_dropped": "已退赛",
+  "tournaments_playriftbound_status_unreadable": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "{count} 行无法读取"
+      }
+    }
+  ],
+  "tournaments_playriftbound_sync": "同步",
+  "tournaments_playriftbound_sync_again": "再次同步",
+  "tournaments_playriftbound_done_title": "已同步",
+  "tournaments_playriftbound_done_players": "玩家：新增 {created}，更新 {updated}，{left} 人已离开活动。",
+  "tournaments_playriftbound_done_decks": "卡组：新增 {created}，替换 {updated}，未变 {unchanged}。",
+  "tournaments_playriftbound_done_kept": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "{count} 名玩家已在 OpenRift 录入了卡组，已保留。"
+      }
+    }
+  ],
+  "tournaments_playriftbound_done_open": "打开卡组",
   "tournaments_hero_uvsgames": "UVS Games 赛事",
   "tournaments_hero_meta_archive": "Meta 档案",
   "tournaments_archive_band_title": "Meta 档案",

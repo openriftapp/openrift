@@ -239,6 +239,27 @@ export function topdeckMirrorRow(row: TopdeckCatalogRow, now: Date): MetaMirrorR
   };
 }
 
+function deckPolicyBadge(row: PlayriftboundCatalogRow): MirrorBadge[] {
+  const label =
+    row.deckSubmissionPolicy === "REQUIRED"
+      ? "Decks required"
+      : row.deckSubmissionPolicy === "OPTIONAL"
+        ? "Decks optional"
+        : null;
+  if (label === null) {
+    return [];
+  }
+  return [
+    {
+      label,
+      variant: "subtle",
+      ...(row.deckSubmissionDueAt === null
+        ? {}
+        : { title: `Due ${formatDayTime(row.deckSubmissionDueAt)} UTC` }),
+    },
+  ];
+}
+
 export function playriftboundMirrorRow(row: PlayriftboundCatalogRow, now: Date): MetaMirrorRow {
   const published = row.triage === "accepted";
   const type = playriftboundTypeLabel(row.tournamentType);
@@ -267,6 +288,7 @@ export function playriftboundMirrorRow(row: PlayriftboundCatalogRow, now: Date):
       ...(row.playerFormat !== null && row.playerFormat !== "ONE_V_ONE"
         ? [{ label: "Team", variant: "warning" as const, title: "Team events never auto-publish" }]
         : []),
+      ...deckPolicyBadge(row),
       ...missingBadge(row.missingSince),
     ],
     triage: row.triage,

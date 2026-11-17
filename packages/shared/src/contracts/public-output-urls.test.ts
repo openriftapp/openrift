@@ -22,6 +22,7 @@ const ALLOWED_URL_KEYS = new Set([
   "loans.ts:image",
   "public-pod-tournaments.ts:image",
   "tournaments.ts:image",
+  "tournament-playriftbound.ts:image",
   "card-submissions.ts:url",
   "card-trades.ts:url",
   "cards.ts:sourceUrl",

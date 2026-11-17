@@ -55,6 +55,8 @@ function participantRow(
     userName: null,
     displayName: "Player One",
     riotId: null,
+    externalId: null,
+    sourceDeckSavedAt: null,
     status: "active",
     droppedAfterRound: null,
     seed: null,

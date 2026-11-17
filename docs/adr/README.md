@@ -66,6 +66,7 @@ The MADR documentation is available at <https://adr.github.io/madr/> while gener
 - **[ADR-054](054-scryfall-style-search-syntax.md)**: Scryfall-Style Card Search Syntax
 - **[ADR-055](055-referral-attribution.md)**: Referral Attribution and Invite Badges
 - **[ADR-056](056-booster-packs-as-products.md)**: Booster Packs as Products with Slots and Rates
+- **[ADR-057](057-playriftbound-event-sync.md)**: Syncing Official Platform Events into Tournaments through the Browser Extension
 
 ### Rejected
 

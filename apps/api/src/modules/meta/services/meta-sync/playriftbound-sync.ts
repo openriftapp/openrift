@@ -27,7 +27,11 @@ import {
   PlayriftboundUnavailableError,
 } from "./playriftbound-client.js";
 import type { PlayriftboundDeepFetchResult } from "./playriftbound-deep-fetch.js";
-import { playriftboundDeepFetch, readPlayriftboundUpdatedAt } from "./playriftbound-deep-fetch.js";
+import {
+  playriftboundDeepFetch,
+  readPlayriftboundDeckSubmission,
+  readPlayriftboundUpdatedAt,
+} from "./playriftbound-deep-fetch.js";
 import type { PlayriftboundSyncDeps } from "./playriftbound-deps.js";
 import type { RecheckPassResult, VisitOutcome } from "./recheck-pass.js";
 import {
@@ -39,6 +43,7 @@ import {
 import type { MetaSyncResultBase } from "./result.js";
 import { emptyMetaSyncResult, recordAutoAccept } from "./result.js";
 import { createRunHeartbeat } from "./run-heartbeat.js";
+import { RunDeadlineError } from "./source-http.js";
 import type { SourceStop, SourceStopFields } from "./source-stop.js";
 import { applySourceStop, cooldownUntil, noSourceStop } from "./source-stop.js";
 import { isRecheckPassNoop, isSyncNoop } from "./sync-noop.js";
@@ -53,6 +58,7 @@ const PAGE_SIZE = 100;
 const MAX_PAGES_PER_CELL = 50;
 
 const SYNC_REQUEST_BUDGET = 6000;
+const DECK_POLICY_READS_PER_RUN = 200;
 
 const SWEEP_SOUTH = -56;
 const SWEEP_NORTH = 72;
@@ -292,6 +298,41 @@ async function finish(
   result.requests = deps.client.requests;
 }
 
+/**
+ * Search results carry no deck policy, so each upcoming event's detail is read
+ * once. The recheck refreshes it from the start onward.
+ */
+async function readUpcomingDeckPolicies(
+  deps: PlayriftboundSyncDeps,
+  result: PlayriftboundSyncResult,
+  withinTime: () => boolean,
+): Promise<void> {
+  const now = clock(deps);
+  const keys = await deps.repos.playriftboundEvents.upcomingWithoutDeckPolicy(
+    now,
+    DECK_POLICY_READS_PER_RUN,
+  );
+  for (const tournamentId of keys) {
+    if (!withinTime() || deps.client.requests >= SYNC_REQUEST_BUDGET) {
+      return;
+    }
+    try {
+      if (!(await readPlayriftboundDeckSubmission(deps, tournamentId))) {
+        recordCapped(result.errors, [`Event ${tournamentId}: the source returned no tournament.`]);
+      }
+    } catch (error) {
+      if (error instanceof RunDeadlineError) {
+        return;
+      }
+      recordCapped(result.errors, [`Event ${tournamentId} deck policy: ${errorMessage(error)}`]);
+      if (isRunStopping(error)) {
+        recordStop(result, error, clock(deps));
+        return;
+      }
+    }
+  }
+}
+
 /** Searches around every store already known; the discovery sweep finds new regions. */
 export async function syncPlayriftboundCatalog(
   deps: PlayriftboundSyncDeps,
@@ -314,6 +355,7 @@ export async function syncPlayriftboundCatalog(
     maxDurationMs: DAILY_SYNC_TIME_BUDGET_MS,
     now: () => clock(deps).getTime(),
   });
+  let stopped = false;
   for (const cell of cells) {
     if (!budget.withinTime()) {
       break;
@@ -331,6 +373,7 @@ export async function syncPlayriftboundCatalog(
       result.complete = false;
     }
     if (outcome === "stop") {
+      stopped = true;
       break;
     }
   }
@@ -343,6 +386,9 @@ export async function syncPlayriftboundCatalog(
       seenBefore: now,
       at: now,
     });
+  }
+  if (!stopped) {
+    await readUpcomingDeckPolicies(deps, result, budget.withinTime);
   }
   await finish(deps, result, state.touched);
   return result;

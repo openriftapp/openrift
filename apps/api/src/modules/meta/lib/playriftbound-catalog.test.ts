@@ -7,6 +7,7 @@ import {
   playriftboundDisplayStatus,
   phasesToStore,
   playriftboundFormat,
+  projectDeckSubmission,
   projectSearchResult,
   projectTournamentDetail,
   SEARCH_RADIUS_METERS,
@@ -156,6 +157,8 @@ function detail(overrides: Record<string, unknown> = {}) {
       matchFormat: "BO3",
       roundCount: 2,
       playerFormat: "ONE_V_ONE",
+      deckSubmissionPolicy: "REQUIRED",
+      deckSubmissionDueAt: "2026-10-18T09:00:00Z",
     },
     tournamentParticipants: [
       participant("t1", "u1", "Teemo Main"),
@@ -304,6 +307,8 @@ describe("projectTournamentDetail", () => {
       roundsPlayed: 2,
       roundsFinalized: 2,
       sourceUpdatedAt: new Date("2026-10-18T20:00:00Z"),
+      deckSubmissionPolicy: "REQUIRED",
+      deckSubmissionDueAt: new Date("2026-10-18T09:00:00Z"),
     });
   });
 
@@ -472,6 +477,27 @@ describe("projectTournamentDetail", () => {
 
   it("returns null for a missing tournament", () => {
     expect(projectTournamentDetail(undefined)).toBeNull();
+  });
+});
+
+describe("projectDeckSubmission", () => {
+  it("reads the policy and due instant from the config", () => {
+    expect(projectDeckSubmission(detail())).toEqual({
+      deckSubmissionPolicy: "REQUIRED",
+      deckSubmissionDueAt: new Date("2026-10-18T09:00:00Z"),
+    });
+  });
+
+  it("leaves both empty when the config has no deck fields", () => {
+    expect(projectDeckSubmission(detail({ config: { structure: "SWISS" } }))).toEqual({
+      deckSubmissionPolicy: null,
+      deckSubmissionDueAt: null,
+    });
+  });
+
+  it("returns null for a missing tournament", () => {
+    expect(projectDeckSubmission(undefined)).toBeNull();
+    expect(projectDeckSubmission({ id: "not-a-number" })).toBeNull();
   });
 });
 

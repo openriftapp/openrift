@@ -1,4 +1,5 @@
 import { organizationRoleSchema } from "@openrift/shared/contracts/organizations";
+import { playriftboundEventIdSchema } from "@openrift/shared/playriftbound-sync";
 import {
   cutSizeSchema,
   groupCutSettingsShape,
@@ -169,6 +170,7 @@ export const tournamentDetailResponseSchema = tournamentSummaryResponseSchema.ex
   staff: z.array(tournamentStaffMemberResponseSchema),
   hasRounds: z.boolean(),
   uvsgamesEventId: z.string().nullable(),
+  playriftboundEventId: z.string().nullable(),
   metaEventSlug: z.string().nullable(),
   ...groupCutSettingsShape,
 });
@@ -261,6 +263,7 @@ export const createTournamentSchema = z.object(tournamentSettingsShape);
 export const updateTournamentSchema = z.object(tournamentSettingsShape).partial().extend({
   status: tournamentStatusSchema.optional(),
   uvsgamesEventId: uvsgamesEventIdSchema.nullable().optional(),
+  playriftboundEventId: playriftboundEventIdSchema.nullable().optional(),
 });
 
 const TAG = "Tournaments";

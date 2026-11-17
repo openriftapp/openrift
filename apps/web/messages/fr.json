@@ -9824,6 +9824,7 @@
   "board_states_editor_counter_clear": "Retirer le compteur",
   "nav_board_states_description": "Situations de jeu illustrées étape par étape",
   "tournaments_settings_toc_uvsgames": "UVS Games",
+  "tournaments_settings_toc_playriftbound": "playriftbound.com",
   "tournaments_settings_uvsgames_title": "Événement UVS Games",
   "tournaments_settings_uvsgames_description": "Si ce tournoi a aussi lieu sur UVS Games, liez son événement ici. La page du tournoi y renverra, et après l'événement vous pourrez envoyer les decklists aux Archives Méta sous son classement officiel.",
   "tournaments_settings_uvsgames_label": "Lien ou numéro de l'événement",
@@ -9833,6 +9834,65 @@
   "tournaments_settings_uvsgames_open": "Ouvrir sur UVS Games",
   "tournaments_settings_uvsgames_suggestions": "Événements dans les boutiques de votre groupe autour de cette date",
   "tournaments_settings_uvsgames_use": "Lier",
+  "tournaments_settings_playriftbound_title": "Événement playriftbound.com",
+  "tournaments_settings_playriftbound_description": "Si ce tournoi se déroule sur playriftbound.com, liez son événement ici. L'extension de navigateur OpenRift synchronise alors les joueurs et leurs decks soumis dans ce tournoi.",
+  "tournaments_settings_playriftbound_label": "Lien ou numéro de l'événement",
+  "tournaments_settings_playriftbound_invalid": "Collez le lien d'un événement playriftbound.com, ou son numéro.",
+  "tournaments_settings_playriftbound_save": "Enregistrer le lien",
+  "tournaments_settings_playriftbound_remove": "Retirer le lien",
+  "tournaments_settings_playriftbound_open": "Ouvrir sur playriftbound.com",
+  "tournaments_playriftbound_title": "Synchroniser depuis playriftbound.com",
+  "tournaments_playriftbound_waiting_title": "En attente de l'extension",
+  "tournaments_playriftbound_waiting_description": "Ouvrez votre événement sur playriftbound.com en tant qu'organisateur et appuyez sur Synchroniser dans l'extension de navigateur OpenRift. Les joueurs et les decks apparaissent alors ici.",
+  "tournaments_playriftbound_event_title": "Événement",
+  "tournaments_playriftbound_event_description": "Commence le {date}. Lu sur playriftbound.com à {read}.",
+  "tournaments_playriftbound_event_counts": "Joueurs : {players} · Decks soumis : {decks} · Abandons : {dropped}",
+  "tournaments_playriftbound_event_unreadable": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} deck contient des lignes qu'OpenRift ne sait pas lire. Elles sont ignorées : vérifiez ce deck après la synchronisation.",
+        "countPlural=*": "{count} decks contiennent des lignes qu'OpenRift ne sait pas lire. Elles sont ignorées : vérifiez ces decks après la synchronisation."
+      }
+    }
+  ],
+  "tournaments_playriftbound_target_title": "Tournoi",
+  "tournaments_playriftbound_target_description": "Choisissez le tournoi OpenRift à synchroniser, ou créez-en un. Le tournoi retient cet événement, la prochaine synchronisation va donc au même endroit.",
+  "tournaments_playriftbound_target_linked": "Lié",
+  "tournaments_playriftbound_target_no_decks": "soumission des decks désactivée",
+  "tournaments_playriftbound_target_new": "Nouveau tournoi",
+  "tournaments_playriftbound_target_new_description": "Accepte des decks pour les vérifications, porte le nom de l'événement et commence en même temps.",
+  "tournaments_playriftbound_players_title": "Joueurs",
+  "tournaments_playriftbound_status_deck": "Deck soumis",
+  "tournaments_playriftbound_status_no_deck": "Pas encore de deck",
+  "tournaments_playriftbound_status_dropped": "Abandon",
+  "tournaments_playriftbound_status_unreadable": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} ligne illisible",
+        "countPlural=*": "{count} lignes illisibles"
+      }
+    }
+  ],
+  "tournaments_playriftbound_sync": "Synchroniser",
+  "tournaments_playriftbound_sync_again": "Synchroniser à nouveau",
+  "tournaments_playriftbound_done_title": "Synchronisé",
+  "tournaments_playriftbound_done_players": "Joueurs : {created} ajoutés, {updated} mis à jour, {left} ont quitté l'événement.",
+  "tournaments_playriftbound_done_decks": "Decks : {created} nouveaux, {updated} remplacés, {unchanged} inchangés.",
+  "tournaments_playriftbound_done_kept": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} joueur avait déjà une liste saisie sur OpenRift, qui a été conservée.",
+        "countPlural=*": "{count} joueurs avaient déjà une liste saisie sur OpenRift, qui a été conservée."
+      }
+    }
+  ],
+  "tournaments_playriftbound_done_open": "Ouvrir les decks",
   "tournaments_hero_uvsgames": "Événement UVS Games",
   "tournaments_hero_meta_archive": "Archives Méta",
   "tournaments_archive_band_title": "Archives Méta",

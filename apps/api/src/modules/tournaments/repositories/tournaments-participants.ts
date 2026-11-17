@@ -6,6 +6,7 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { startsWithPattern } from "../../../lib/like-pattern.js";
 import { generateShareToken } from "../../../lib/share-token.js";
 import type { TournamentParticipant } from "./tournaments-shared.js";
 
@@ -24,6 +25,7 @@ export interface NewTournamentParticipant {
   /** Fixed (physical) table number; soft, steers table assignment only. */
   fixedTable?: number | null;
   riotId?: string | null;
+  externalId?: string | null;
   userId?: string | null;
   claimSource?: TournamentClaimSource | null;
   claimToken?: string | null;
@@ -45,6 +47,7 @@ export interface TournamentParticipantPatch {
   seed?: number | null;
   droppedAfterRound?: number | null;
   legendCardId?: string | null;
+  sourceDeckSavedAt?: Date | null;
 }
 
 export function tournamentParticipantsRepo(db: Kysely<Database>) {
@@ -205,13 +208,35 @@ export function tournamentParticipantsRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
-    /**
-     * Matches by linked account only, never by name; without a userId a fresh walk-in is created.
-     * Manual entry passes a participant id directly and never goes through here.
-     */
+    getParticipantByExternalId(
+      tournamentId: string,
+      externalId: string,
+    ): Promise<TournamentParticipant | undefined> {
+      return db
+        .selectFrom("tournamentParticipants")
+        .selectAll()
+        .where("tournamentId", "=", tournamentId)
+        .where("externalId", "=", externalId)
+        .executeTakeFirst();
+    },
+
+    listParticipantsByExternalPrefix(
+      tournamentId: string,
+      prefix: string,
+    ): Promise<TournamentParticipant[]> {
+      return db
+        .selectFrom("tournamentParticipants")
+        .selectAll()
+        .where("tournamentId", "=", tournamentId)
+        .where("externalId", "like", startsWithPattern(prefix))
+        .execute();
+    },
+
+    /** Matches by linked account or the sending system's id, never by name; otherwise a walk-in. */
     async resolveOrCreateParticipant(input: {
       tournamentId: string;
       userId?: string | null;
+      externalId?: string | null;
       riotId?: string | null;
       displayName: string;
       claimSource?: TournamentClaimSource | null;
@@ -225,10 +250,20 @@ export function tournamentParticipantsRepo(db: Kysely<Database>) {
           return byUser;
         }
       }
+      if (input.externalId) {
+        const byExternal = await this.getParticipantByExternalId(
+          input.tournamentId,
+          input.externalId,
+        );
+        if (byExternal) {
+          return byExternal;
+        }
+      }
       return this.createParticipant({
         tournamentId: input.tournamentId,
         displayName: input.displayName,
         riotId: input.riotId ?? null,
+        externalId: input.externalId ?? null,
         userId: input.userId ?? null,
         claimSource: input.claimSource ?? null,
         claimedAt: input.claimedAt ?? null,

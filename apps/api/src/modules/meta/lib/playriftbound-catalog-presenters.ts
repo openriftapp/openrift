@@ -25,6 +25,8 @@ export function toPlayriftboundCatalogRow(row: PlayriftboundListRow): Playriftbo
     roundCount: row.roundCount,
     roundsPlayed: row.roundsPlayed,
     roundsFinalized: row.roundsFinalized,
+    deckSubmissionPolicy: row.deckSubmissionPolicy,
+    deckSubmissionDueAt: isoOrNull(row.deckSubmissionDueAt),
     stagedPlayerCount: row.stagedPlayerCount,
     stagedMatchCount: row.stagedMatchCount,
     heldBy: row.heldBy,

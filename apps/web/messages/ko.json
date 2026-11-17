@@ -9824,6 +9824,7 @@
   "board_states_editor_counter_clear": "카운터 제거",
   "nav_board_states_description": "단계별로 그려진 게임 상황",
   "tournaments_settings_toc_uvsgames": "UVS Games",
+  "tournaments_settings_toc_playriftbound": "playriftbound.com",
   "tournaments_settings_uvsgames_title": "UVS Games 이벤트",
   "tournaments_settings_uvsgames_description": "이 대회가 UVS Games에서도 진행된다면 여기에서 해당 이벤트를 연결하세요. 대회 페이지에 링크가 표시되고, 대회가 끝나면 공식 순위에 맞춰 덱 목록을 메타 아카이브로 보낼 수 있습니다.",
   "tournaments_settings_uvsgames_label": "이벤트 링크 또는 번호",
@@ -9833,6 +9834,62 @@
   "tournaments_settings_uvsgames_open": "UVS Games에서 열기",
   "tournaments_settings_uvsgames_suggestions": "이 날짜 전후 그룹 매장의 이벤트",
   "tournaments_settings_uvsgames_use": "연결",
+  "tournaments_settings_playriftbound_title": "playriftbound.com 이벤트",
+  "tournaments_settings_playriftbound_description": "이 토너먼트가 playriftbound.com에서 진행된다면 여기에 이벤트를 연결하세요. 그러면 OpenRift 브라우저 확장 프로그램이 플레이어와 제출된 덱을 이 토너먼트로 동기화합니다.",
+  "tournaments_settings_playriftbound_label": "이벤트 링크 또는 번호",
+  "tournaments_settings_playriftbound_invalid": "playriftbound.com 이벤트 링크나 번호를 붙여 넣으세요.",
+  "tournaments_settings_playriftbound_save": "링크 저장",
+  "tournaments_settings_playriftbound_remove": "링크 삭제",
+  "tournaments_settings_playriftbound_open": "playriftbound.com에서 열기",
+  "tournaments_playriftbound_title": "playriftbound.com에서 동기화",
+  "tournaments_playriftbound_waiting_title": "확장 프로그램을 기다리는 중",
+  "tournaments_playriftbound_waiting_description": "주최자로 playriftbound.com에서 이벤트를 열고 OpenRift 브라우저 확장 프로그램에서 동기화를 누르세요. 그러면 플레이어와 덱이 여기에 표시됩니다.",
+  "tournaments_playriftbound_event_title": "이벤트",
+  "tournaments_playriftbound_event_description": "{date}에 시작합니다. {read}에 playriftbound.com에서 읽었습니다.",
+  "tournaments_playriftbound_event_counts": "플레이어: {players} · 제출된 덱: {decks} · 드롭: {dropped}",
+  "tournaments_playriftbound_event_unreadable": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "덱 {count}개에 OpenRift가 읽을 수 없는 줄이 있습니다. 해당 줄은 제외되므로 동기화 후 덱을 확인하세요."
+      }
+    }
+  ],
+  "tournaments_playriftbound_target_title": "토너먼트",
+  "tournaments_playriftbound_target_description": "동기화할 OpenRift 토너먼트를 선택하거나 새로 만드세요. 토너먼트가 이 이벤트를 기억하므로 다음 동기화도 같은 곳으로 갑니다.",
+  "tournaments_playriftbound_target_linked": "연결됨",
+  "tournaments_playriftbound_target_no_decks": "덱 제출 꺼짐",
+  "tournaments_playriftbound_target_new": "새 토너먼트",
+  "tournaments_playriftbound_target_new_description": "덱 체크용 덱을 받으며, 이벤트 이름을 쓰고 이벤트와 같은 시각에 시작합니다.",
+  "tournaments_playriftbound_players_title": "플레이어",
+  "tournaments_playriftbound_status_deck": "덱 제출됨",
+  "tournaments_playriftbound_status_no_deck": "아직 덱 없음",
+  "tournaments_playriftbound_status_dropped": "드롭",
+  "tournaments_playriftbound_status_unreadable": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "{count}줄 읽을 수 없음"
+      }
+    }
+  ],
+  "tournaments_playriftbound_sync": "동기화",
+  "tournaments_playriftbound_sync_again": "다시 동기화",
+  "tournaments_playriftbound_done_title": "동기화됨",
+  "tournaments_playriftbound_done_players": "플레이어: {created}명 추가, {updated}명 업데이트, {left}명 이벤트를 떠남.",
+  "tournaments_playriftbound_done_decks": "덱: 새 덱 {created}개, 교체 {updated}개, 변경 없음 {unchanged}개.",
+  "tournaments_playriftbound_done_kept": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "플레이어 {count}명은 OpenRift에 이미 입력된 리스트가 있어 그대로 두었습니다."
+      }
+    }
+  ],
+  "tournaments_playriftbound_done_open": "덱 열기",
   "tournaments_hero_uvsgames": "UVS Games 이벤트",
   "tournaments_hero_meta_archive": "메타 아카이브",
   "tournaments_archive_band_title": "메타 아카이브",

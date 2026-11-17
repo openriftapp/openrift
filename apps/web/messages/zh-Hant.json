@@ -9824,6 +9824,7 @@
   "board_states_editor_counter_clear": "移除計數器",
   "nav_board_states_description": "逐步繪製的對局情境",
   "tournaments_settings_toc_uvsgames": "UVS Games",
+  "tournaments_settings_toc_playriftbound": "playriftbound.com",
   "tournaments_settings_uvsgames_title": "UVS Games 賽事",
   "tournaments_settings_uvsgames_description": "如果這場賽事也在 UVS Games 上舉辦，請在這裡連結該賽事。賽事頁面會連到它，賽後你也可以依官方排名把牌組清單送到 Meta 檔案。",
   "tournaments_settings_uvsgames_label": "賽事連結或編號",
@@ -9833,6 +9834,62 @@
   "tournaments_settings_uvsgames_open": "在 UVS Games 上開啟",
   "tournaments_settings_uvsgames_suggestions": "這個日期前後你群組關注的店家賽事",
   "tournaments_settings_uvsgames_use": "連結",
+  "tournaments_settings_playriftbound_title": "playriftbound.com 活動",
+  "tournaments_settings_playriftbound_description": "如果本賽事在 playriftbound.com 上進行，請在此連結其活動。OpenRift 瀏覽器擴充功能隨後會把玩家及其提交的牌組同步到本賽事。",
+  "tournaments_settings_playriftbound_label": "活動連結或編號",
+  "tournaments_settings_playriftbound_invalid": "請貼上 playriftbound.com 活動的連結或編號。",
+  "tournaments_settings_playriftbound_save": "儲存連結",
+  "tournaments_settings_playriftbound_remove": "移除連結",
+  "tournaments_settings_playriftbound_open": "在 playriftbound.com 開啟",
+  "tournaments_playriftbound_title": "從 playriftbound.com 同步",
+  "tournaments_playriftbound_waiting_title": "正在等待擴充功能",
+  "tournaments_playriftbound_waiting_description": "以主辦方身分在 playriftbound.com 開啟你的活動，然後在 OpenRift 瀏覽器擴充功能中按下同步。玩家和牌組隨後會顯示在這裡。",
+  "tournaments_playriftbound_event_title": "活動",
+  "tournaments_playriftbound_event_description": "開始於 {date}。於 {read} 從 playriftbound.com 讀取。",
+  "tournaments_playriftbound_event_counts": "玩家：{players} · 已提交牌組：{decks} · 退賽：{dropped}",
+  "tournaments_playriftbound_event_unreadable": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "{count} 副牌組含有 OpenRift 無法讀取的行。這些行會被略過，同步後請檢查這些牌組。"
+      }
+    }
+  ],
+  "tournaments_playriftbound_target_title": "賽事",
+  "tournaments_playriftbound_target_description": "選擇要同步到的 OpenRift 賽事，或新增一個。賽事會記住這個活動，下次同步會去往同一處。",
+  "tournaments_playriftbound_target_linked": "已連結",
+  "tournaments_playriftbound_target_no_decks": "未開啟牌組提交",
+  "tournaments_playriftbound_target_new": "新賽事",
+  "tournaments_playriftbound_target_new_description": "接收用於牌組檢查的牌組，以活動命名，與活動同時開始。",
+  "tournaments_playriftbound_players_title": "玩家",
+  "tournaments_playriftbound_status_deck": "已提交牌組",
+  "tournaments_playriftbound_status_no_deck": "尚無牌組",
+  "tournaments_playriftbound_status_dropped": "已退賽",
+  "tournaments_playriftbound_status_unreadable": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "{count} 行無法讀取"
+      }
+    }
+  ],
+  "tournaments_playriftbound_sync": "同步",
+  "tournaments_playriftbound_sync_again": "再次同步",
+  "tournaments_playriftbound_done_title": "已同步",
+  "tournaments_playriftbound_done_players": "玩家：新增 {created}，更新 {updated}，{left} 人已離開活動。",
+  "tournaments_playriftbound_done_decks": "牌組：新增 {created}，替換 {updated}，未變 {unchanged}。",
+  "tournaments_playriftbound_done_kept": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "{count} 名玩家已在 OpenRift 輸入了牌組，已保留。"
+      }
+    }
+  ],
+  "tournaments_playriftbound_done_open": "開啟牌組",
   "tournaments_hero_uvsgames": "UVS Games 賽事",
   "tournaments_hero_meta_archive": "Meta 檔案",
   "tournaments_archive_band_title": "Meta 檔案",

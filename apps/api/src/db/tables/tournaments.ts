@@ -74,6 +74,7 @@ export interface TournamentsTable {
   hasSelfRegistration: Generated<boolean>;
 
   uvsgamesEventId: string | null;
+  playriftboundEventId: string | null;
 
   reportToken: string | null;
   followToken: string | null;
@@ -104,6 +105,8 @@ export interface TournamentParticipantsTable {
   userId: string | null;
   displayName: string | null;
   riotId: string | null;
+  externalId: string | null;
+  sourceDeckSavedAt: Date | null;
   isAccountClosed: Generated<boolean>;
   status: Generated<TournamentParticipantStatus>;
   droppedAfterRound: number | null;

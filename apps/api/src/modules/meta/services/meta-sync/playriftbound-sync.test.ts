@@ -16,7 +16,11 @@ import {
   PlayriftboundUnavailableError,
 } from "./playriftbound-client.js";
 import type { PlayriftboundDeepFetchResult } from "./playriftbound-deep-fetch.js";
-import { playriftboundDeepFetch, readPlayriftboundUpdatedAt } from "./playriftbound-deep-fetch.js";
+import {
+  playriftboundDeepFetch,
+  readPlayriftboundDeckSubmission,
+  readPlayriftboundUpdatedAt,
+} from "./playriftbound-deep-fetch.js";
 import type { PlayriftboundSyncDeps } from "./playriftbound-deps.js";
 import {
   backfillPlayriftbound,
@@ -34,6 +38,7 @@ vi.mock("./playriftbound-accept.js", () => ({
 
 vi.mock("./playriftbound-deep-fetch.js", () => ({
   readPlayriftboundUpdatedAt: vi.fn(),
+  readPlayriftboundDeckSubmission: vi.fn(),
   playriftboundDeepFetch: vi.fn(),
 }));
 
@@ -72,6 +77,7 @@ function fakeDeps(options: {
   body?: unknown;
   due?: PlayriftboundRecheckRow[];
   cancelAfter?: number;
+  upcoming?: string[];
 }) {
   const searches: SearchCall[] = [];
   const upserted: PlayriftboundUpsertInput[] = [];
@@ -120,6 +126,7 @@ function fakeDeps(options: {
   const repos = {
     playriftboundEvents: {
       organizerCoordinates: () => Promise.resolve(options.organizers ?? []),
+      upcomingWithoutDeckPolicy: () => Promise.resolve(options.upcoming ?? []),
       upsertOrganizers: (rows: PlayriftboundOrganizerProjection[]) => {
         organizers.push(...rows);
         return Promise.resolve();
@@ -307,6 +314,52 @@ describe("syncPlayriftboundCatalog", () => {
     expect(searches).toHaveLength(1);
     expect(result.blocked).toBe(true);
     expect(result.blockedUntil).toBe(new Date(NOW.getTime() + 6 * HOUR_MS).toISOString());
+  });
+
+  it("reads the deck policy of each upcoming event after a clean crawl", async () => {
+    vi.mocked(readPlayriftboundDeckSubmission).mockReset().mockResolvedValue(true);
+    const { deps } = fakeDeps({ organizers: [HANNOVER], upcoming: ["1", "2"] });
+    const result = await syncPlayriftboundCatalog(deps);
+    expect(vi.mocked(readPlayriftboundDeckSubmission).mock.calls.map((call) => call[1])).toEqual([
+      "1",
+      "2",
+    ]);
+    expect(result.errors).toEqual([]);
+  });
+
+  it("notes an upcoming event the source no longer has and reads the next", async () => {
+    vi.mocked(readPlayriftboundDeckSubmission)
+      .mockReset()
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true);
+    const { deps } = fakeDeps({ organizers: [HANNOVER], upcoming: ["1", "2"] });
+    const result = await syncPlayriftboundCatalog(deps);
+    expect(readPlayriftboundDeckSubmission).toHaveBeenCalledTimes(2);
+    expect(result.errors).toEqual(["Event 1: the source returned no tournament."]);
+  });
+
+  it("stops the deck policy reads at a block and cools down", async () => {
+    vi.mocked(readPlayriftboundDeckSubmission)
+      .mockReset()
+      .mockRejectedValue(
+        new PlayriftboundBlockedError("https://source.invalid/api/gql", "HTTP 403"),
+      );
+    const { deps } = fakeDeps({ organizers: [HANNOVER], upcoming: ["1", "2"] });
+    const result = await syncPlayriftboundCatalog(deps);
+    expect(readPlayriftboundDeckSubmission).toHaveBeenCalledTimes(1);
+    expect(result.blocked).toBe(true);
+    expect(result.blockedUntil).toBe(new Date(NOW.getTime() + 6 * HOUR_MS).toISOString());
+  });
+
+  it("skips the deck policy reads when the crawl was stopped", async () => {
+    vi.mocked(readPlayriftboundDeckSubmission).mockReset().mockResolvedValue(true);
+    const { deps } = fakeDeps({
+      organizers: [HANNOVER],
+      upcoming: ["1"],
+      pages: () => new PlayriftboundBlockedError("https://source.invalid/api/gql", "HTTP 403"),
+    });
+    await syncPlayriftboundCatalog(deps);
+    expect(readPlayriftboundDeckSubmission).not.toHaveBeenCalled();
   });
 
   it("is a no-op only when it read every area cleanly and wrote nothing", async () => {
@@ -519,7 +572,10 @@ function dueRow(overrides: Partial<PlayriftboundRecheckRow> = {}): Playriftbound
     roundsPlayed: null,
     roundsFinalized: null,
     sourceUpdatedAt: null,
+    deckSubmissionPolicy: null,
+    deckSubmissionDueAt: null,
     resultsFetchedAt: null,
+    deckPolicyReadAt: null,
     triage: "accepted",
     metaEventId: "live-1",
     metaEventSlug: "summoner-skirmish",
@@ -544,6 +600,8 @@ const FINISHED_FACTS = {
   roundsPlayed: 4,
   roundsFinalized: 4,
   sourceUpdatedAt: new Date(NOW.getTime() - HOUR_MS),
+  deckSubmissionPolicy: null,
+  deckSubmissionDueAt: null,
 };
 
 function deepResult(
@@ -625,6 +683,7 @@ describe("processPlayriftboundRechecks", () => {
       due: [
         dueRow({
           resultsFetchedAt: NOW,
+          deckPolicyReadAt: null,
           sourceUpdatedAt,
           roundCount: 4,
           roundsPlayed: 2,

@@ -9822,6 +9822,7 @@
   "board_states_editor_counter_clear": "Zähler entfernen",
   "nav_board_states_description": "Spielsituationen Schritt für Schritt",
   "tournaments_settings_toc_uvsgames": "UVS Games",
+  "tournaments_settings_toc_playriftbound": "playriftbound.com",
   "tournaments_settings_uvsgames_title": "UVS-Games-Event",
   "tournaments_settings_uvsgames_description": "Wenn dieses Turnier auch auf UVS Games läuft, verknüpfe hier sein Event. Die Turnierseite verlinkt es dann, und nach dem Event kannst du die Decklisten unter der offiziellen Wertung an das Meta-Archiv schicken.",
   "tournaments_settings_uvsgames_label": "Event-Link oder -Nummer",
@@ -9831,6 +9832,65 @@
   "tournaments_settings_uvsgames_open": "Auf UVS Games öffnen",
   "tournaments_settings_uvsgames_suggestions": "Events in den Shops deiner Gruppe um dieses Datum",
   "tournaments_settings_uvsgames_use": "Verknüpfen",
+  "tournaments_settings_playriftbound_title": "Event auf playriftbound.com",
+  "tournaments_settings_playriftbound_description": "Wenn dieses Turnier auf playriftbound.com läuft, verknüpfe hier sein Event. Die OpenRift-Browsererweiterung überträgt dann die Spieler und ihre eingereichten Decks in dieses Turnier.",
+  "tournaments_settings_playriftbound_label": "Event-Link oder -Nummer",
+  "tournaments_settings_playriftbound_invalid": "Füge den Link zu einem Event auf playriftbound.com oder seine Nummer ein.",
+  "tournaments_settings_playriftbound_save": "Link speichern",
+  "tournaments_settings_playriftbound_remove": "Link entfernen",
+  "tournaments_settings_playriftbound_open": "Auf playriftbound.com öffnen",
+  "tournaments_playriftbound_title": "Von playriftbound.com übertragen",
+  "tournaments_playriftbound_waiting_title": "Warte auf die Erweiterung",
+  "tournaments_playriftbound_waiting_description": "Öffne dein Event auf playriftbound.com als Veranstalter und drücke in der OpenRift-Browsererweiterung auf Übertragen. Spieler und Decks erscheinen dann hier.",
+  "tournaments_playriftbound_event_title": "Event",
+  "tournaments_playriftbound_event_description": "Beginnt {date}. Von playriftbound.com gelesen um {read}.",
+  "tournaments_playriftbound_event_counts": "Spieler: {players} · Decks eingereicht: {decks} · Ausgestiegen: {dropped}",
+  "tournaments_playriftbound_event_unreadable": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Deck hat Zeilen, die OpenRift nicht lesen kann. Sie werden ausgelassen, prüfe das Deck also nach dem Übertragen.",
+        "countPlural=*": "{count} Decks haben Zeilen, die OpenRift nicht lesen kann. Sie werden ausgelassen, prüfe diese Decks also nach dem Übertragen."
+      }
+    }
+  ],
+  "tournaments_playriftbound_target_title": "Turnier",
+  "tournaments_playriftbound_target_description": "Wähle das OpenRift-Turnier, in das übertragen wird, oder lege eins an. Das Turnier merkt sich dieses Event, damit die nächste Übertragung an dieselbe Stelle geht.",
+  "tournaments_playriftbound_target_linked": "Verknüpft",
+  "tournaments_playriftbound_target_no_decks": "Deck-Einreichung ist aus",
+  "tournaments_playriftbound_target_new": "Neues Turnier",
+  "tournaments_playriftbound_target_new_description": "Nimmt Decks für Deckchecks an, heißt wie das Event und beginnt, wenn es beginnt.",
+  "tournaments_playriftbound_players_title": "Spieler",
+  "tournaments_playriftbound_status_deck": "Deck eingereicht",
+  "tournaments_playriftbound_status_no_deck": "Noch kein Deck",
+  "tournaments_playriftbound_status_dropped": "Ausgestiegen",
+  "tournaments_playriftbound_status_unreadable": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Zeile unlesbar",
+        "countPlural=*": "{count} Zeilen unlesbar"
+      }
+    }
+  ],
+  "tournaments_playriftbound_sync": "Übertragen",
+  "tournaments_playriftbound_sync_again": "Erneut übertragen",
+  "tournaments_playriftbound_done_title": "Übertragen",
+  "tournaments_playriftbound_done_players": "Spieler: {created} hinzugefügt, {updated} aktualisiert, {left} haben das Event verlassen.",
+  "tournaments_playriftbound_done_decks": "Decks: {created} neu, {updated} ersetzt, {unchanged} unverändert.",
+  "tournaments_playriftbound_done_kept": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Spieler hatte schon eine auf OpenRift eingetragene Liste, die bleibt.",
+        "countPlural=*": "{count} Spieler hatten schon eine auf OpenRift eingetragene Liste, die bleibt."
+      }
+    }
+  ],
+  "tournaments_playriftbound_done_open": "Decks öffnen",
   "tournaments_hero_uvsgames": "UVS-Games-Event",
   "tournaments_hero_meta_archive": "Meta-Archiv",
   "tournaments_archive_band_title": "Meta-Archiv",

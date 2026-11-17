@@ -173,35 +173,65 @@ describe("other sources", () => {
     expect(row.resultsDetail).toEqual(["22 standings"]);
   });
 
-  it("reads registrations against places and the round the event is on", () => {
+  const PLAYRIFTBOUND_ROW = {
+    tournamentId: "117451802123511056",
+    name: "Riftbound Wednesday Nexus Nights - 28 Oct 2026",
+    organizerName: "Vault of Delights",
+    city: null,
+    tournamentType: "NEXUS_NIGHT",
+    format: null,
+    playerFormat: "ONE_V_ONE",
+    registeredCount: 16,
+    participantCapacity: 16,
+    startAt: "2026-10-28T15:30:00.000Z",
+    triage: "accepted",
+    metaEventId: "live-4",
+    metaEventSlug: null,
+    fetchedAt: null,
+    missingSince: null,
+    nextCheckAt: "2026-10-31T15:30:00.000Z",
+    roundCount: 4,
+    roundsPlayed: 1,
+    roundsFinalized: 0,
+    deckSubmissionPolicy: null,
+    deckSubmissionDueAt: null,
+    stagedPlayerCount: 16,
+    stagedMatchCount: 0,
+    heldBy: null,
+    sourceUrl: "https://example.invalid/r",
+  } satisfies PlayriftboundCatalogRow;
+
+  it("badges an event that collects decks, with the due time on hover", () => {
     const row = playriftboundMirrorRow(
       {
-        tournamentId: "117451802123511056",
-        name: "Riftbound Wednesday Nexus Nights - 28 Oct 2026",
-        organizerName: "Vault of Delights",
-        city: null,
-        tournamentType: "NEXUS_NIGHT",
-        format: null,
-        playerFormat: "ONE_V_ONE",
-        registeredCount: 16,
-        participantCapacity: 16,
-        startAt: "2026-10-28T15:30:00.000Z",
-        triage: "accepted",
-        metaEventId: "live-4",
-        metaEventSlug: null,
-        fetchedAt: null,
-        missingSince: null,
-        nextCheckAt: "2026-10-31T15:30:00.000Z",
-        roundCount: 4,
-        roundsPlayed: 1,
-        roundsFinalized: 0,
-        stagedPlayerCount: 16,
-        stagedMatchCount: 0,
-        heldBy: null,
-        sourceUrl: "https://example.invalid/r",
-      } satisfies PlayriftboundCatalogRow,
+        ...PLAYRIFTBOUND_ROW,
+        deckSubmissionPolicy: "REQUIRED",
+        deckSubmissionDueAt: "2026-10-28T14:00:00.000Z",
+      },
       NOW,
     );
+    expect(row.badges).toContainEqual({
+      label: "Decks required",
+      variant: "subtle",
+      title: "Due 2026-10-28 14:00 UTC",
+    });
+  });
+
+  it("badges optional decks and nothing for events that take none", () => {
+    const optional = playriftboundMirrorRow(
+      { ...PLAYRIFTBOUND_ROW, deckSubmissionPolicy: "OPTIONAL" },
+      NOW,
+    );
+    expect(optional.badges.map((badge) => badge.label)).toEqual(["Nexus Night", "Decks optional"]);
+    const none = playriftboundMirrorRow(
+      { ...PLAYRIFTBOUND_ROW, deckSubmissionPolicy: "NOT_ALLOWED" },
+      NOW,
+    );
+    expect(none.badges.map((badge) => badge.label)).toEqual(["Nexus Night"]);
+  });
+
+  it("reads registrations against places and the round the event is on", () => {
+    const row = playriftboundMirrorRow(PLAYRIFTBOUND_ROW, NOW);
 
     expect(row).toMatchObject({
       players: 16,

@@ -31,6 +31,8 @@ function row(overrides: Partial<PlayriftboundListRow> = {}): PlayriftboundListRo
     roundsPlayed: 3,
     roundsFinalized: 3,
     sourceUpdatedAt: NOW,
+    deckSubmissionPolicy: null,
+    deckSubmissionDueAt: null,
     triage: "accepted",
     metaEventId: "live-1",
     metaEventSlug: "nexus-night",
@@ -41,6 +43,7 @@ function row(overrides: Partial<PlayriftboundListRow> = {}): PlayriftboundListRo
     nextCheckAt: null,
     checkStage: 1,
     resultsFetchedAt: NOW,
+    deckPolicyReadAt: null,
     stagedPlayerCount: 10,
     stagedMatchCount: 15,
     ...overrides,
@@ -48,8 +51,15 @@ function row(overrides: Partial<PlayriftboundListRow> = {}): PlayriftboundListRo
 }
 
 describe("toPlayriftboundCatalogRow", () => {
-  it("hands the table the store, the source vocabulary and round progress", () => {
-    expect(toPlayriftboundCatalogRow(row())).toEqual({
+  it("hands the table the store, the source vocabulary, round progress and deck policy", () => {
+    expect(
+      toPlayriftboundCatalogRow(
+        row({
+          deckSubmissionPolicy: "REQUIRED",
+          deckSubmissionDueAt: new Date("2026-10-17T12:00:00Z"),
+        }),
+      ),
+    ).toEqual({
       tournamentId: "117000000000000001",
       name: "Nexus Night",
       organizerName: "Bandle City Games",
@@ -69,6 +79,8 @@ describe("toPlayriftboundCatalogRow", () => {
       roundCount: 4,
       roundsPlayed: 3,
       roundsFinalized: 3,
+      deckSubmissionPolicy: "REQUIRED",
+      deckSubmissionDueAt: "2026-10-17T12:00:00.000Z",
       stagedPlayerCount: 10,
       stagedMatchCount: 15,
       heldBy: null,

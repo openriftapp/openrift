@@ -37,6 +37,9 @@ const KEYS = {
   skippedUpcoming: "990000000000000018",
   rejected: "990000000000000019",
   held: "990000000000000020",
+  deckPending: "990000000000000021",
+  deckRead: "990000000000000022",
+  deckNone: "990000000000000023",
 } as const;
 const ALL_KEYS = Object.values(KEYS);
 const ORGANIZER_ID = "pri-organizer-1";
@@ -166,6 +169,34 @@ describe.skipIf(!ctx)("playriftboundEventsRepo", () => {
     expect(stored?.triage).toBe("new");
   });
 
+  it("lists upcoming events until their deck policy is read", async () => {
+    const future = new Date("2099-06-01T16:00:00Z");
+    await repo.upsertBatch(
+      [
+        row({ tournamentId: KEYS.deckPending, startAt: future }),
+        row({ tournamentId: KEYS.deckRead, startAt: future }),
+        row({ tournamentId: KEYS.deckNone, startAt: future }),
+      ],
+      SEEN,
+    );
+    await repo.setDeckSubmission(
+      KEYS.deckRead,
+      { deckSubmissionPolicy: "REQUIRED", deckSubmissionDueAt: new Date("2099-06-01T12:00:00Z") },
+      SEEN,
+    );
+    await repo.setDeckSubmission(KEYS.deckNone, null, SEEN);
+
+    const pending = await repo.upcomingWithoutDeckPolicy(new Date("2099-01-01T00:00:00Z"), 1000);
+    expect(pending.filter((key) => (ALL_KEYS as readonly string[]).includes(key))).toEqual([
+      KEYS.deckPending,
+    ]);
+    const read = await repo.byKey(KEYS.deckRead);
+    expect(read).toMatchObject({
+      deckSubmissionPolicy: "REQUIRED",
+      deckSubmissionDueAt: new Date("2099-06-01T12:00:00Z"),
+    });
+  });
+
   it("flags a row the window no longer returns, and a re-sighting clears it", async () => {
     await repo.upsertBatch(
       [row({ tournamentId: KEYS.gone }), row({ tournamentId: KEYS.unlocated, organizerId: null })],
@@ -282,6 +313,8 @@ describe.skipIf(!ctx)("playriftboundEventsRepo", () => {
         roundsPlayed: 3,
         roundsFinalized: 3,
         sourceUpdatedAt: SEEN,
+        deckSubmissionPolicy: null,
+        deckSubmissionDueAt: null,
       },
       SEEN,
     );
@@ -293,6 +326,8 @@ describe.skipIf(!ctx)("playriftboundEventsRepo", () => {
       stagedMatchCount: 1,
       roundsFinalized: 3,
       resultsFetchedAt: SEEN,
+      deckSubmissionPolicy: null,
+      deckSubmissionDueAt: null,
     });
   });
 
@@ -328,6 +363,8 @@ describe.skipIf(!ctx)("playriftboundEventsRepo", () => {
       roundsPlayed: 3,
       roundsFinalized: 3,
       sourceUpdatedAt: SEEN,
+      deckSubmissionPolicy: null,
+      deckSubmissionDueAt: null,
     };
     for (const key of [KEYS.final, KEYS.needsDecision, KEYS.team, KEYS.rejected]) {
       await repo.setDetailFacts(key, played, SEEN);
@@ -384,6 +421,8 @@ describe.skipIf(!ctx)("playriftboundEventsRepo", () => {
         roundsPlayed: 3,
         roundsFinalized: 3,
         sourceUpdatedAt: SEEN,
+        deckSubmissionPolicy: null,
+        deckSubmissionDueAt: null,
       },
       SEEN,
     );

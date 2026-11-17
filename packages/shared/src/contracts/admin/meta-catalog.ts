@@ -258,6 +258,8 @@ export const playriftboundCatalogRowSchema = z.object({
   roundCount: z.number().int().nullable(),
   roundsPlayed: z.number().int().nullable(),
   roundsFinalized: z.number().int().nullable(),
+  deckSubmissionPolicy: z.string().nullable(),
+  deckSubmissionDueAt: isoDateTime.nullable(),
   stagedPlayerCount: z.number().int().nonnegative(),
   stagedMatchCount: z.number().int().nonnegative(),
   heldBy: heldBySchema,

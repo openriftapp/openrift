@@ -92,6 +92,7 @@ export interface TournamentPatch {
   allowedSets?: string[] | null;
   hasSelfRegistration?: boolean;
   uvsgamesEventId?: string | null;
+  playriftboundEventId?: string | null;
 }
 
 export interface TournamentSummaryRow extends Tournament {
@@ -255,6 +256,18 @@ export function tournamentsCoreRepo(db: Kysely<Database>) {
         .limit(1)
         .executeTakeFirst();
       return row !== undefined;
+    },
+
+    async listForUserByPlayriftboundEvent(
+      userId: string,
+      orgIds: string[],
+      eventId: string,
+    ): Promise<TournamentSummaryRow[]> {
+      const rows = await withSummaryCounts(forUser(db, userId, orgIds))
+        .where("t.playriftboundEventId", "=", eventId)
+        .orderBy("t.startsAt", "desc")
+        .execute();
+      return rows.map((row) => toSummaryRow(row));
     },
 
     /** Every tournament of the user's that is not over yet; unpaged. */

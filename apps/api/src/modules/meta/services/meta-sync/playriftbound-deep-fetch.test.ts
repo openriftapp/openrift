@@ -5,7 +5,11 @@ import type { Repos, Transact } from "../../../../deps.js";
 import { promoteMetaEvent } from "../meta-promote.js";
 import type { PlayriftboundClient } from "./playriftbound-client.js";
 import { PlayriftboundBlockedError, PlayriftboundRefusedError } from "./playriftbound-client.js";
-import { playriftboundDeepFetch, readPlayriftboundUpdatedAt } from "./playriftbound-deep-fetch.js";
+import {
+  playriftboundDeepFetch,
+  readPlayriftboundDeckSubmission,
+  readPlayriftboundUpdatedAt,
+} from "./playriftbound-deep-fetch.js";
 import type { PlayriftboundSyncDeps } from "./playriftbound-deps.js";
 
 vi.mock("../meta-promote.js", () => ({
@@ -61,6 +65,7 @@ const TOURNAMENT = {
 function fakeDeps(options: { answer: unknown | Error; linked: boolean }) {
   const replaced: unknown[] = [];
   const facts: unknown[] = [];
+  const deckSubmissions: unknown[] = [];
   let requests = 0;
   const client: PlayriftboundClient = {
     blocked: false,
@@ -86,6 +91,10 @@ function fakeDeps(options: { answer: unknown | Error; linked: boolean }) {
         facts.push({ id, value });
         return Promise.resolve();
       },
+      setDeckSubmission: (id: string, value: unknown, readAt: Date) => {
+        deckSubmissions.push({ id, value, readAt });
+        return Promise.resolve();
+      },
     },
     meta: {
       sourceByKey: () => Promise.resolve(options.linked ? { metaEventId: "live-1" } : undefined),
@@ -100,8 +109,59 @@ function fakeDeps(options: { answer: unknown | Error; linked: boolean }) {
     log: createLogger("test"),
     now: () => NOW,
   };
-  return { deps, replaced, facts };
+  return { deps, replaced, facts, deckSubmissions };
 }
+
+describe("readPlayriftboundDeckSubmission", () => {
+  it("stores only the deck policy of an upcoming event", async () => {
+    const { deps, replaced, facts, deckSubmissions } = fakeDeps({
+      answer: {
+        competeTournaments: [
+          {
+            ...TOURNAMENT,
+            config: {
+              deckSubmissionPolicy: "OPTIONAL",
+              deckSubmissionDueAt: "2026-10-20T10:00:00Z",
+            },
+          },
+        ],
+      },
+      linked: true,
+    });
+    expect(await readPlayriftboundDeckSubmission(deps, TOURNAMENT_ID)).toBe(true);
+    expect(deckSubmissions).toEqual([
+      {
+        id: TOURNAMENT_ID,
+        value: {
+          deckSubmissionPolicy: "OPTIONAL",
+          deckSubmissionDueAt: new Date("2026-10-20T10:00:00Z"),
+        },
+        readAt: NOW,
+      },
+    ]);
+    expect(replaced).toEqual([]);
+    expect(facts).toEqual([]);
+  });
+
+  it("records the read without a policy when the source has no such tournament", async () => {
+    const { deps, deckSubmissions } = fakeDeps({
+      answer: { competeTournaments: [] },
+      linked: false,
+    });
+    expect(await readPlayriftboundDeckSubmission(deps, TOURNAMENT_ID)).toBe(false);
+    expect(deckSubmissions).toEqual([{ id: TOURNAMENT_ID, value: null, readAt: NOW }]);
+  });
+
+  it("lets a block reach the caller", async () => {
+    const { deps } = fakeDeps({
+      answer: new PlayriftboundBlockedError("https://source.invalid/api/gql", "HTTP 403"),
+      linked: false,
+    });
+    await expect(readPlayriftboundDeckSubmission(deps, TOURNAMENT_ID)).rejects.toBeInstanceOf(
+      PlayriftboundBlockedError,
+    );
+  });
+});
 
 describe("playriftboundDeepFetch", () => {
   it("replaces the mirror, records progress and promotes a linked event", async () => {

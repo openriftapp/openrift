@@ -304,6 +304,9 @@ export interface PlayriftboundEventsTable {
   roundsFinalized: number | null;
   sourceUpdatedAt: Date | null;
   resultsFetchedAt: Date | null;
+  deckSubmissionPolicy: string | null;
+  deckSubmissionDueAt: Date | null;
+  deckPolicyReadAt: Date | null;
 }
 
 export interface PlayriftboundEventChecksTable {

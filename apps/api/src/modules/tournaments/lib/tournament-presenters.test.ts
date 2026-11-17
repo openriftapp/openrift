@@ -43,6 +43,8 @@ function participant(
     userName: null,
     displayName: "Walk-in Wendy",
     riotId: null,
+    externalId: null,
+    sourceDeckSavedAt: null,
     status: "active",
     droppedAfterRound: null,
     seed: null,

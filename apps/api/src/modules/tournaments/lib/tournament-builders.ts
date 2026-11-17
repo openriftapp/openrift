@@ -348,6 +348,7 @@ export async function buildDetail(
     staff,
     hasRounds,
     uvsgamesEventId: tournament.uvsgamesEventId,
+    playriftboundEventId: tournament.playriftboundEventId,
     metaEventSlug: metaEvent?.slug ?? null,
   };
 }

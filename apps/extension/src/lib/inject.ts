@@ -5,6 +5,8 @@ import type { OverlaySnapshot } from "./overlay-snapshot";
 import { SNAPSHOT_STORAGE_KEY } from "./overlay-snapshot";
 import type { PicksBasket } from "./picks";
 import { PICKS_STORAGE_KEY, readBasket } from "./picks";
+import type { PlayriftboundOrganizerEvent, PlayriftboundReadResult } from "./playriftbound-read";
+import { readPlayriftboundEvent } from "./playriftbound-read";
 import type { AnnotateReport } from "./popup-actions";
 
 export async function storedSnapshot(): Promise<OverlaySnapshot | undefined> {
@@ -80,6 +82,26 @@ export function snapshotChange(before: string | undefined, timeoutMs: number): P
     const timer = setTimeout(() => finish(false), timeoutMs);
     browser.storage.onChanged.addListener(listener);
   });
+}
+
+export async function handOffPlayriftbound(tabId: number): Promise<void> {
+  await browser.scripting.executeScript({
+    target: { tabId },
+    files: ["/content-scripts/playriftbound-handoff.js"],
+  });
+}
+
+export async function readPlayriftbound(
+  tabId: number,
+  event: PlayriftboundOrganizerEvent,
+): Promise<PlayriftboundReadResult | undefined> {
+  const results = await browser.scripting.executeScript({
+    target: { tabId },
+    world: "MAIN",
+    func: readPlayriftboundEvent,
+    args: [event.orgId, event.eventId],
+  });
+  return results[0]?.result as PlayriftboundReadResult | undefined;
 }
 
 export async function extractDeck(tabId: number): Promise<PageExtract | undefined> {

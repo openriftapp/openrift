@@ -10,6 +10,7 @@ import {
 } from "@openrift/shared/deck-check";
 import type { DeckCheckCardLine } from "@openrift/shared/deck-check";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
+import { PLAYRIFTBOUND_EXTERNAL_ID_PREFIX } from "@openrift/shared/playriftbound-sync";
 import type { DeckCheckIngestResultResponse } from "@openrift/shared/types/api/deck-check";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { z } from "zod";
@@ -37,7 +38,7 @@ import { syncDeckCheckLegend } from "./deck-check-legend.js";
 
 export type DeckCheckIngestPayload = z.infer<typeof deckCheckIngestSchema>;
 
-type IngestEntry = DeckCheckIngestPayload["entries"][number];
+export type IngestEntry = DeckCheckIngestPayload["entries"][number];
 
 /**
  * Maps every entry's sections up front so an unknown section rejects the whole
@@ -131,10 +132,41 @@ export async function ingestDeckCheckPush(
   appBaseUrl: string,
 ): Promise<DeckCheckIngestResultResponse> {
   await loadPushTarget(repos, host, payload.tournamentId);
+  const syncOwned = payload.entries
+    .map((entry) => entry.externalId)
+    .filter((externalId) => externalId.startsWith(PLAYRIFTBOUND_EXTERNAL_ID_PREFIX));
+  if (syncOwned.length > 0) {
+    throw new AppError(
+      422,
+      ERROR_CODES.VALIDATION_ERROR,
+      `External ids with the reserved "${PLAYRIFTBOUND_EXTERNAL_ID_PREFIX}" prefix: ${syncOwned.join(", ")}`,
+      { reservedIds: syncOwned },
+    );
+  }
+  const lists = await prepareDeckCheckPush(repos, payload.entries);
 
+  return retryOnClaimTokenCollision(() =>
+    transact(async (trxRepos) => {
+      await trxRepos.tournaments.lockRounds(payload.tournamentId);
+      const event = await loadPushTarget(trxRepos, host, payload.tournamentId);
+      return writeDeckCheckPush(trxRepos, event, lists, appBaseUrl);
+    }),
+  );
+}
+
+export type PreparedDeckCheckPush = (PreparedDeckCheckList & { entry: IngestEntry })[];
+
+/**
+ * Validates, maps and resolves pushed entries. Runs before the write's
+ * transaction, so the tournament lock is never held across a catalog cache load.
+ */
+export async function prepareDeckCheckPush(
+  repos: Repos,
+  entries: IngestEntry[],
+): Promise<PreparedDeckCheckPush> {
   // The self-submission namespace is reserved: a provider must never upsert
   // onto (or withdraw) an entry the player created.
-  const reservedIds = payload.entries
+  const reservedIds = entries
     .map((entry) => entry.externalId)
     .filter((externalId) => externalId.startsWith(SELF_SUBMIT_EXTERNAL_ID_PREFIX));
   if (reservedIds.length > 0) {
@@ -146,12 +178,12 @@ export async function ingestDeckCheckPush(
     );
   }
 
-  const mappedLines = mapAllSections(payload.entries);
+  const mappedLines = mapAllSections(entries);
   const resolutions = await resolveDeckCheckCards(
     repos,
     mappedLines.flat().map((line) => ({ name: line.name })),
   );
-  const lists = payload.entries.map((entry, index) => {
+  return entries.map((entry, index) => {
     const lines = mappedLines[index] ?? [];
     return {
       entry,
@@ -160,21 +192,18 @@ export async function ingestDeckCheckPush(
       cardRows: toCardRows(entry.cards, lines, resolutions),
     };
   });
-
-  return retryOnClaimTokenCollision(() =>
-    transact(async (trxRepos) => {
-      await trxRepos.tournaments.lockRounds(payload.tournamentId);
-      const event = await loadPushTarget(trxRepos, host, payload.tournamentId);
-      return writeDeckCheckPush(trxRepos, event, lists, appBaseUrl);
-    }),
-  );
 }
 
-async function writeDeckCheckPush(
+/**
+ * Call inside the transaction, after the rounds lock. `rosterSynced` is for a
+ * sync that seats its players first and keeps their identity itself.
+ */
+export async function writeDeckCheckPush(
   repos: Repos,
   event: DeckCheckEvent,
-  lists: (PreparedDeckCheckList & { entry: IngestEntry })[],
+  lists: PreparedDeckCheckPush,
   appBaseUrl: string,
+  { rosterSynced = false }: { rosterSynced?: boolean } = {},
 ): Promise<DeckCheckIngestResultResponse> {
   const result: DeckCheckIngestResultResponse = {
     tournamentId: event.id,
@@ -225,10 +254,11 @@ async function writeDeckCheckPush(
 
     const existing = await repos.deckCheck.getEntryByExternalId(event.id, entry.externalId);
     if (!existing) {
-      // Each pushed entry creates its own walk-in participant; players link
+      // A provider push creates a walk-in participant per entry; players link
       // themselves later through the claim link.
       const participant = await repos.tournaments.resolveOrCreateParticipant({
         tournamentId: event.id,
+        externalId: rosterSynced ? entry.externalId : null,
         riotId: identity.riotId,
         displayName: identity.playerName,
       });
@@ -256,7 +286,9 @@ async function writeDeckCheckPush(
       touched.add(existing.participantId);
     }
     const storedIdentity =
-      existing.playerName === null ? { submittedAt: identity.submittedAt } : identity;
+      existing.playerName === null || rosterSynced
+        ? { submittedAt: identity.submittedAt }
+        : identity;
     const withdrawalChange = entry.withdrawn
       ? wasWithdrawn
         ? {}

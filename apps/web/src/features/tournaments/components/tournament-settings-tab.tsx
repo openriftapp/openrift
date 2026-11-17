@@ -12,6 +12,7 @@ import { FormatSection } from "@/features/tournaments/components/settings/format
 import { GroupSection } from "@/features/tournaments/components/settings/group-section";
 import { HostSection } from "@/features/tournaments/components/settings/host-section";
 import { NameSection } from "@/features/tournaments/components/settings/name-section";
+import { PlayriftboundSection } from "@/features/tournaments/components/settings/playriftbound-section";
 import { PointsSection } from "@/features/tournaments/components/settings/points-section";
 import { RegionsSection } from "@/features/tournaments/components/settings/regions-section";
 import { ScheduleSection } from "@/features/tournaments/components/settings/schedule-section";
@@ -44,6 +45,7 @@ function buildTocItems({
       : []),
     { id: "schedule", label: m.tournaments_settings_toc_schedule(), level: 1 },
     { id: "uvsgames", label: m.tournaments_settings_toc_uvsgames(), level: 1 },
+    { id: "playriftbound", label: m.tournaments_settings_toc_playriftbound(), level: 1 },
     { id: "pairings-decks", label: m.tournaments_settings_toc_pairings_decks() },
     { id: "pairings", label: m.tournaments_settings_toc_format(), level: 1 },
     ...(runsRounds
@@ -84,6 +86,7 @@ export function TournamentSettingsTab({ detail }: { detail: TournamentDetailResp
 
         <ScheduleSection detail={detail} locked={locked} canEndEarly={canEndEarly} />
         <UvsgamesSection detail={detail} locked={locked} />
+        <PlayriftboundSection detail={detail} locked={locked} />
       </SettingsGroup>
 
       <SettingsGroup id="pairings-decks" title={m.tournaments_settings_toc_pairings_decks()}>

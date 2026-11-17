@@ -6,6 +6,7 @@ import type { PlayriftboundDetailFacts } from "../../lib/playriftbound-catalog.j
 import {
   phasesToStore,
   playriftboundDisplayStatus,
+  projectDeckSubmission,
   projectTournamentDetail,
 } from "../../lib/playriftbound-catalog.js";
 import { promoteMetaEvent } from "../meta-promote.js";
@@ -49,6 +50,28 @@ export async function readPlayriftboundUpdatedAt(
   }
 }
 
+async function readDetail(
+  deps: PlayriftboundSyncDeps,
+  tournamentId: string,
+): Promise<{ raw: unknown; empty: boolean }> {
+  const data = await deps.client.query<unknown>(DETAIL_QUERY, { tournamentId });
+  const tournaments = record(data)?.competeTournaments;
+  return {
+    raw: Array.isArray(tournaments) ? tournaments[0] : undefined,
+    empty: Array.isArray(tournaments) && tournaments.length === 0,
+  };
+}
+
+export async function readPlayriftboundDeckSubmission(
+  deps: PlayriftboundSyncDeps,
+  tournamentId: string,
+): Promise<boolean> {
+  const { raw } = await readDetail(deps, tournamentId);
+  const deckSubmission = projectDeckSubmission(raw);
+  await deps.repos.playriftboundEvents.setDeckSubmission(tournamentId, deckSubmission, clock(deps));
+  return deckSubmission !== null;
+}
+
 /** Failures are collected, not thrown, so one bad event doesn't stop a recheck pass. */
 export async function playriftboundDeepFetch(
   deps: PlayriftboundSyncDeps,
@@ -72,10 +95,7 @@ export async function playriftboundDeepFetch(
   let raw: unknown;
   let empty = false;
   try {
-    const data = await deps.client.query<unknown>(DETAIL_QUERY, { tournamentId });
-    const tournaments = record(data)?.competeTournaments;
-    raw = Array.isArray(tournaments) ? tournaments[0] : undefined;
-    empty = Array.isArray(tournaments) && tournaments.length === 0;
+    ({ raw, empty } = await readDetail(deps, tournamentId));
   } catch (error) {
     if (isRunStopping(error) || error instanceof RunDeadlineError) {
       throw error;

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict N17HNvKPqotbLccEKc0uRO6vkiuYjWtVBn9NM9GrXKtNdQBUEEz6qWR159vqdIm
+\restrict Fejb7fJ8nt7BpofpHTywjgKxoqF9dG5XUQOf7smVdbBS8Nqen2fScqGUtViDhcd
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -3824,6 +3824,9 @@ CREATE TABLE public.playriftbound_events (
     rounds_finalized integer,
     source_updated_at timestamp with time zone,
     results_fetched_at timestamp with time zone,
+    deck_submission_policy text,
+    deck_submission_due_at timestamp with time zone,
+    deck_policy_read_at timestamp with time zone,
     CONSTRAINT chk_playriftbound_events_content_hash CHECK ((content_hash <> ''::text)),
     CONSTRAINT chk_playriftbound_events_entry_fee_minor CHECK (((entry_fee_minor IS NULL) OR (entry_fee_minor >= 0))),
     CONSTRAINT chk_playriftbound_events_name CHECK (((length(name) >= 1) AND (length(name) <= 200))),
@@ -4451,7 +4454,10 @@ CREATE TABLE public.tournament_participants (
     group_slot integer,
     legend_card_id uuid,
     is_account_closed boolean DEFAULT false CONSTRAINT tournament_participants_account_closed_not_null NOT NULL,
+    external_id text,
+    source_deck_saved_at timestamp with time zone,
     CONSTRAINT chk_tournament_participants_claim_source CHECK (((claim_source IS NULL) OR (claim_source = ANY (ARRAY['judge_manual'::text, 'self_submit'::text, 'claim_link'::text])))),
+    CONSTRAINT chk_tournament_participants_external_id CHECK (((external_id IS NULL) OR ((length(external_id) >= 1) AND (length(external_id) <= 200)))),
     CONSTRAINT chk_tournament_participants_fixed_table CHECK (((fixed_table IS NULL) OR ((fixed_table >= 1) AND (fixed_table <= 999)))),
     CONSTRAINT chk_tournament_participants_group_slot CHECK (((group_slot IS NULL) OR ((group_slot >= 0) AND (group_slot <= 3)))),
     CONSTRAINT chk_tournament_participants_name CHECK (
@@ -4533,6 +4539,7 @@ CREATE TABLE public.tournaments (
     has_self_paced_groups boolean DEFAULT true CONSTRAINT tournaments_groups_self_paced_not_null NOT NULL,
     uvsgames_event_id text,
     is_published boolean DEFAULT true CONSTRAINT tournaments_published_not_null NOT NULL,
+    playriftbound_event_id text,
     CONSTRAINT chk_tournaments_allowed_sets_shape CHECK (((allowed_sets IS NULL) OR (jsonb_typeof(allowed_sets) = 'array'::text))),
     CONSTRAINT chk_tournaments_bye_points CHECK ((bye_points >= 0)),
     CONSTRAINT chk_tournaments_cut_size CHECK ((cut_size = ANY (ARRAY[4, 8, 16]))),
@@ -4549,6 +4556,7 @@ CREATE TABLE public.tournaments (
     CONSTRAINT chk_tournaments_play_mode CHECK ((play_mode = ANY (ARRAY['1v1'::text, '2v2'::text]))),
     CONSTRAINT chk_tournaments_play_mode_pairing CHECK (((play_mode = '1v1'::text) OR (pairing_style <> 'pod'::text))),
     CONSTRAINT chk_tournaments_play_mode_regions CHECK (((play_mode = '1v1'::text) OR (has_regions = false))),
+    CONSTRAINT chk_tournaments_playriftbound_event_id CHECK (((playriftbound_event_id IS NULL) OR (playriftbound_event_id ~ '^[1-9][0-9]{0,19}$'::text))),
     CONSTRAINT chk_tournaments_scheme CHECK ((scoring_scheme = ANY (ARRAY['standard'::text, 'three_pod_reduced'::text]))),
     CONSTRAINT chk_tournaments_status CHECK ((status = ANY (ARRAY['setup'::text, 'running'::text, 'completed'::text, 'cancelled'::text]))),
     CONSTRAINT chk_tournaments_uvsgames_event_id CHECK (((uvsgames_event_id IS NULL) OR (uvsgames_event_id ~ '^[1-9][0-9]{0,11}$'::text))),
@@ -7802,6 +7810,13 @@ CREATE INDEX idx_tournaments_host_user ON public.tournaments USING btree (host_u
 
 
 --
+-- Name: idx_tournaments_playriftbound_event_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tournaments_playriftbound_event_id ON public.tournaments USING btree (playriftbound_event_id) WHERE (playriftbound_event_id IS NOT NULL);
+
+
+--
 -- Name: idx_user_contact_methods_user; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -8212,6 +8227,13 @@ CREATE UNIQUE INDEX uq_stage_presets_user_name ON public.stage_presets USING btr
 --
 
 CREATE UNIQUE INDEX uq_tournament_participants_claim_token ON public.tournament_participants USING btree (claim_token) WHERE (claim_token IS NOT NULL);
+
+
+--
+-- Name: uq_tournament_participants_external; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_tournament_participants_external ON public.tournament_participants USING btree (tournament_id, external_id) WHERE (external_id IS NOT NULL);
 
 
 --
@@ -11484,5 +11506,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict N17HNvKPqotbLccEKc0uRO6vkiuYjWtVBn9NM9GrXKtNdQBUEEz6qWR159vqdIm
+\unrestrict Fejb7fJ8nt7BpofpHTywjgKxoqF9dG5XUQOf7smVdbBS8Nqen2fScqGUtViDhcd
 

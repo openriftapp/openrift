@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest";
 import {
   deckImportUrl,
   isOverlaySyncUrl,
+  isPlayriftboundSyncUrl,
   matchPatternForUrl,
   openriftMatchPattern,
   overlaySyncUrl,
   picksImportUrl,
+  playriftboundSyncUrl,
 } from "./openrift-url";
 
 describe("picksImportUrl", () => {
@@ -73,6 +75,20 @@ describe("isOverlaySyncUrl", () => {
     expect(isOverlaySyncUrl("https://openrift.app/extension")).toBe(false);
     expect(isOverlaySyncUrl("https://openrift.app.evil.test/extension/cardmarket")).toBe(false);
     expect(isOverlaySyncUrl("not a url")).toBe(false);
+  });
+});
+
+describe("playriftbound sync page", () => {
+  it("points at the sync page on the configured instance", () => {
+    expect(playriftboundSyncUrl()).toBe("https://openrift.app/tournaments/playriftbound-sync");
+    expect(isPlayriftboundSyncUrl(playriftboundSyncUrl())).toBe(true);
+  });
+
+  it("keeps out other pages and other hosts", () => {
+    expect(isPlayriftboundSyncUrl("https://openrift.app/tournaments")).toBe(false);
+    expect(
+      isPlayriftboundSyncUrl("https://openrift.app.evil.test/tournaments/playriftbound-sync"),
+    ).toBe(false);
   });
 });
 

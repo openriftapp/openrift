@@ -1,4 +1,5 @@
 import type { updateTournamentSchema } from "@openrift/shared/contracts/tournaments";
+import { PLAYRIFTBOUND_EXTERNAL_ID_PREFIX } from "@openrift/shared/playriftbound-sync";
 import type { z } from "zod";
 
 import type { Repos } from "../../../deps.js";
@@ -70,6 +71,18 @@ export async function applySettingsPatch(
         ? new Date(patch.submissionsCloseAt)
         : null,
   );
+  const relinking =
+    patch.playriftboundEventId !== undefined &&
+    tournament.playriftboundEventId !== null &&
+    patch.playriftboundEventId !== tournament.playriftboundEventId;
+  const synced = relinking
+    ? await repos.tournaments.listParticipantsByExternalPrefix(id, PLAYRIFTBOUND_EXTERNAL_ID_PREFIX)
+    : [];
+  if (synced.length > 0) {
+    throw conflict(
+      "Players synced from the linked playriftbound event are in this tournament, so the link cannot change.",
+    );
+  }
   // Host reassignment is host-only; the target binds to the caller (personal = themselves).
   let hostPatch: Partial<TournamentHostColumns> = {};
   const hostChanging =
@@ -116,6 +129,7 @@ export async function applySettingsPatch(
     allowedSets: patch.allowedSets,
     hasSelfRegistration: patch.selfRegistration,
     uvsgamesEventId: patch.uvsgamesEventId,
+    playriftboundEventId: patch.playriftboundEventId,
   });
   // The rounds guard above means these teams never played.
   if (playModeChanging && patch.playMode === "1v1") {

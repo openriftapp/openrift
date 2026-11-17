@@ -2,8 +2,8 @@ import { browser } from "wxt/browser";
 import { defineBackground } from "wxt/utils/define-background";
 
 import { CARDMARKET_MATCH_PATTERN, cardmarketPageKind } from "@/lib/cardmarket-url";
-import { annotateTab, captureSnapshot, storedBasket } from "@/lib/inject";
-import { isOverlaySyncUrl, openriftMatchPattern } from "@/lib/openrift-url";
+import { annotateTab, captureSnapshot, handOffPlayriftbound, storedBasket } from "@/lib/inject";
+import { isOverlaySyncUrl, isPlayriftboundSyncUrl, openriftMatchPattern } from "@/lib/openrift-url";
 import type { PicksBasket } from "@/lib/picks";
 import { basketCopies, PICKS_STORAGE_KEY, readBasket } from "@/lib/picks";
 
@@ -20,6 +20,8 @@ async function handlePageLoad(tabId: number, url: string): Promise<void> {
     inject = () => annotateTab(tabId);
   } else if (isOverlaySyncUrl(url) && (await hasPermission(openriftMatchPattern()))) {
     inject = () => captureSnapshot(tabId);
+  } else if (isPlayriftboundSyncUrl(url) && (await hasPermission(openriftMatchPattern()))) {
+    inject = () => handOffPlayriftbound(tabId);
   }
   if (inject === undefined) {
     return;

@@ -9828,6 +9828,7 @@
     }
   ],
   "tournaments_settings_toc_uvsgames": "UVS Games",
+  "tournaments_settings_toc_playriftbound": "playriftbound.com",
   "tournaments_settings_uvsgames_title": "UVS Games event",
   "tournaments_settings_uvsgames_description": "If this tournament also runs on UVS Games, link its event here. The tournament page then links to it, and after the event you can send the decklists to the Meta Archive under its official standings.",
   "tournaments_settings_uvsgames_label": "Event link or number",
@@ -9837,6 +9838,65 @@
   "tournaments_settings_uvsgames_open": "Open on UVS Games",
   "tournaments_settings_uvsgames_suggestions": "Events at your group's shops around this date",
   "tournaments_settings_uvsgames_use": "Link",
+  "tournaments_settings_playriftbound_title": "playriftbound.com event",
+  "tournaments_settings_playriftbound_description": "If this tournament runs on playriftbound.com, link its event here. The OpenRift browser extension then syncs the players and their submitted decks into this tournament.",
+  "tournaments_settings_playriftbound_label": "Event link or number",
+  "tournaments_settings_playriftbound_invalid": "Paste the link to a playriftbound.com event, or its number.",
+  "tournaments_settings_playriftbound_save": "Save link",
+  "tournaments_settings_playriftbound_remove": "Remove link",
+  "tournaments_settings_playriftbound_open": "Open on playriftbound.com",
+  "tournaments_playriftbound_title": "Sync from playriftbound.com",
+  "tournaments_playriftbound_waiting_title": "Waiting for the extension",
+  "tournaments_playriftbound_waiting_description": "Open your event on playriftbound.com as its organizer and press Sync in the OpenRift browser extension. The players and decks then show up here.",
+  "tournaments_playriftbound_event_title": "Event",
+  "tournaments_playriftbound_event_description": "Starts {date}. Read from playriftbound.com at {read}.",
+  "tournaments_playriftbound_event_counts": "Players: {players} · Decks submitted: {decks} · Dropped: {dropped}",
+  "tournaments_playriftbound_event_unreadable": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} deck has lines OpenRift cannot read. They are left out, so check that deck after syncing.",
+        "countPlural=*": "{count} decks have lines OpenRift cannot read. They are left out, so check those decks after syncing."
+      }
+    }
+  ],
+  "tournaments_playriftbound_target_title": "Tournament",
+  "tournaments_playriftbound_target_description": "Pick the OpenRift tournament to sync into, or create one. The tournament remembers this event, so the next sync goes to the same place.",
+  "tournaments_playriftbound_target_linked": "Linked",
+  "tournaments_playriftbound_target_no_decks": "deck submission is off",
+  "tournaments_playriftbound_target_new": "New tournament",
+  "tournaments_playriftbound_target_new_description": "Takes decks for deck checks, named after the event and starting when it starts.",
+  "tournaments_playriftbound_players_title": "Players",
+  "tournaments_playriftbound_status_deck": "Deck submitted",
+  "tournaments_playriftbound_status_no_deck": "No deck yet",
+  "tournaments_playriftbound_status_dropped": "Dropped",
+  "tournaments_playriftbound_status_unreadable": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} line unreadable",
+        "countPlural=*": "{count} lines unreadable"
+      }
+    }
+  ],
+  "tournaments_playriftbound_sync": "Sync",
+  "tournaments_playriftbound_sync_again": "Sync again",
+  "tournaments_playriftbound_done_title": "Synced",
+  "tournaments_playriftbound_done_players": "Players: {created} added, {updated} updated, {left} left the event.",
+  "tournaments_playriftbound_done_decks": "Decks: {created} new, {updated} replaced, {unchanged} unchanged.",
+  "tournaments_playriftbound_done_kept": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} player already had a list entered on OpenRift, which was kept.",
+        "countPlural=*": "{count} players already had a list entered on OpenRift, which was kept."
+      }
+    }
+  ],
+  "tournaments_playriftbound_done_open": "Open decks",
   "tournaments_hero_uvsgames": "UVS Games event",
   "tournaments_hero_meta_archive": "Meta Archive",
   "tournaments_archive_band_title": "Meta Archive",

@@ -25,6 +25,10 @@ import type {
   uvsgamesEventSuggestionSchema,
 } from "@openrift/shared/contracts/tournament-archive-lists";
 import type {
+  playriftboundSyncResponseSchema,
+  playriftboundSyncTargetsResponseSchema,
+} from "@openrift/shared/contracts/tournament-playriftbound";
+import type {
   tournamentCoverLegendSchema,
   tournamentDeckPhaseSchema,
   tournamentDeckSubmissionSchema,
@@ -171,3 +175,9 @@ export type ArchiveListRefreshResponse = z.infer<typeof archiveListRefreshRespon
 export type ArchiveListSendResponse = z.infer<typeof archiveListSendResponseSchema>;
 
 export type UvsgamesEventSuggestion = z.infer<typeof uvsgamesEventSuggestionSchema>;
+
+export type PlayriftboundSyncTargetsResponse = z.infer<
+  typeof playriftboundSyncTargetsResponseSchema
+>;
+
+export type PlayriftboundSyncResponse = z.infer<typeof playriftboundSyncResponseSchema>;

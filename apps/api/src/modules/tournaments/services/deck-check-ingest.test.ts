@@ -9,6 +9,7 @@ import {
   ingestDeckCheckPush,
   prepareManualDeckCheckList,
   refreshEditedEntry,
+  writeDeckCheckPush,
 } from "./deck-check-ingest.js";
 
 const TOURNAMENT_ID = "b0000000-0001-4000-a000-000000000001";
@@ -175,6 +176,58 @@ describe("ingestDeckCheckPush", () => {
       ),
     ).rejects.toThrow("Event is archived");
     expect(transact).not.toHaveBeenCalled();
+  });
+
+  it("refuses ids in the namespace a platform sync owns", async () => {
+    const repos = {
+      deckCheck: {
+        getEventForHost: vi.fn(() => Promise.resolve({ id: TOURNAMENT_ID, status: "active" })),
+      },
+    } as unknown as Repos;
+    const transact = vi.fn();
+
+    await expect(
+      ingestDeckCheckPush(
+        repos,
+        transact,
+        HOST,
+        { ...PUSH, entries: [{ ...PUSH.entries[0]!, externalId: "playriftbound:p1" }] },
+        "https://openrift.test",
+      ),
+    ).rejects.toThrow('reserved "playriftbound:" prefix');
+    expect(transact).not.toHaveBeenCalled();
+  });
+
+  it("creates a walk-in per new entry without matching participants by external id", async () => {
+    const event = { id: TOURNAMENT_ID, status: "active" };
+    const resolveOrCreateParticipant = vi.fn((_input: { externalId: string | null }) =>
+      Promise.resolve({ id: PARTICIPANT_ID }),
+    );
+    const repos = {
+      deckCheck: {
+        getEntryByExternalId: vi.fn(() => Promise.resolve()),
+        createEntry: vi.fn(() => Promise.resolve({ id: ENTRY_ID, claimToken: "token" })),
+        replaceEntryCards: vi.fn(() => Promise.resolve()),
+      },
+      tournaments: { resolveOrCreateParticipant },
+      tournamentGroups: { syncParticipantLegendsFromDeckCheck: vi.fn(() => Promise.resolve()) },
+    } as unknown as Repos;
+    const list = {
+      entry: { ...PUSH.entries[0]!, cards: [] },
+      lines: [],
+      contentHash: "hash",
+      cardRows: [],
+    };
+
+    await writeDeckCheckPush(repos, event as never, [list], "https://openrift.test");
+    await writeDeckCheckPush(repos, event as never, [list], "https://openrift.test", {
+      rosterSynced: true,
+    });
+
+    expect(resolveOrCreateParticipant.mock.calls.map((call) => call[0].externalId)).toEqual([
+      null,
+      "ext-1",
+    ]);
   });
 });
 

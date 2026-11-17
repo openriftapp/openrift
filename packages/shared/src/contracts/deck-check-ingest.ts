@@ -10,7 +10,7 @@ const deckCheckIngestCardSchema = z.object({
   section: z.string().min(1).max(50),
 });
 
-const deckCheckIngestEntrySchema = z.object({
+export const deckCheckIngestEntrySchema = z.object({
   externalId: z.string().min(1).max(200),
   playerName: z.string().min(1).max(120),
   riotId: z.string().max(120).nullish(),

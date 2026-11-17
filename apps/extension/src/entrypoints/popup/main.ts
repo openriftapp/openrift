@@ -1,3 +1,4 @@
+import { playriftboundSyncPayloadSchema } from "@openrift/shared/playriftbound-sync";
 import { errorMessage } from "@openrift/shared/strings";
 import { browser } from "wxt/browser";
 
@@ -7,6 +8,7 @@ import {
   annotateTab,
   captureSnapshot,
   extractDeck,
+  readPlayriftbound,
   snapshotChange,
   storeBasket,
   storedBasket,
@@ -17,9 +19,13 @@ import {
   openriftMatchPattern,
   overlaySyncUrl,
   picksImportUrl,
+  playriftboundSyncUrl,
 } from "@/lib/openrift-url";
 import { entriesLabel, syncStatus } from "@/lib/overlay-status";
 import { picksPayload, removeSeller, sellerPicks, sellerPicksText } from "@/lib/picks";
+import { PLAYRIFTBOUND_SYNC_STORAGE_KEY } from "@/lib/playriftbound-handoff";
+import type { PlayriftboundOrganizerEvent } from "@/lib/playriftbound-read";
+import { playriftboundOrganizerEvent } from "@/lib/playriftbound-read";
 import type { PopupPlan } from "@/lib/popup-actions";
 import { annotateResult, deckSummary, popupPlan } from "@/lib/popup-actions";
 
@@ -48,6 +54,8 @@ const picksList = element<HTMLDivElement>("picks-list");
 const deckSection = element<HTMLElement>("deck");
 const deckDetail = element<HTMLParagraphElement>("deck-detail");
 const importButton = element<HTMLButtonElement>("import");
+const playriftboundSection = element<HTMLElement>("playriftbound");
+const playriftboundButton = element<HTMLButtonElement>("playriftbound-sync");
 const result = element<HTMLParagraphElement>("result");
 
 interface Tab {
@@ -240,6 +248,44 @@ async function renderDeck(plan: PopupPlan, tab: Tab | undefined): Promise<void> 
   });
 }
 
+async function syncPlayriftbound(
+  tab: Tab,
+  event: PlayriftboundOrganizerEvent,
+  permission: Promise<boolean>,
+): Promise<void> {
+  if (!(await permission)) {
+    showResult("Allow OpenRift to receive the event, then try again.", true);
+    return;
+  }
+  showResult("Reading the event…");
+  const read = await readPlayriftbound(tab.id, event);
+  if (read === undefined || !read.ok) {
+    showResult(read?.error ?? "Could not read the event.", true);
+    return;
+  }
+  const parsed = playriftboundSyncPayloadSchema.safeParse(read.payload);
+  if (!parsed.success) {
+    showResult("The event came back in a shape OpenRift does not know yet.", true);
+    return;
+  }
+  await browser.storage.local.set({ [PLAYRIFTBOUND_SYNC_STORAGE_KEY]: parsed.data });
+  await browser.tabs.create({ url: playriftboundSyncUrl(), index: tab.index + 1 });
+  window.close();
+}
+
+function renderPlayriftbound(tab: Tab | undefined): void {
+  const event = tab === undefined ? undefined : playriftboundOrganizerEvent(tab.url);
+  if (tab === undefined || event === undefined) {
+    return;
+  }
+  playriftboundSection.hidden = false;
+  playriftboundButton.addEventListener("click", () => {
+    // Requested before any await: Firefox drops the user gesture across one.
+    const permission = browser.permissions.request({ origins: [openriftMatchPattern()] });
+    void guard(playriftboundButton, () => syncPlayriftbound(tab, event, permission));
+  });
+}
+
 async function guard(button: HTMLButtonElement, work: () => Promise<void>): Promise<void> {
   button.disabled = true;
   try {
@@ -272,6 +318,7 @@ async function render(): Promise<void> {
 
   const tab = await activeTab();
   await renderPicks(tab);
+  renderPlayriftbound(tab);
   const plan = popupPlan(tab?.url ?? "");
   primaryButton.textContent = plan.label;
   primaryButton.addEventListener("click", () => {

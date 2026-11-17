@@ -27,6 +27,8 @@ export const tournamentsKeys = {
     ["tournaments", userId, id, "archive-lists"] as const,
   uvsgamesSuggestions: (userId: string, id: string) =>
     ["tournaments", userId, id, "uvsgames-suggestions"] as const,
+  playriftboundTargets: (userId: string, eventId: string) =>
+    ["tournaments", userId, "playriftbound", eventId] as const,
   submitLanding: (token: string) => ["tournaments", "submit", token] as const,
   staffInviteLanding: (token: string) => ["tournaments", "staff-invite", token] as const,
   forGroup: (userId: string, slug: string) => ["tournaments", userId, "group", slug] as const,

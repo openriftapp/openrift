@@ -10,6 +10,7 @@ import { containsPattern } from "../../../lib/like-pattern.js";
 import { PLAYRIFTBOUND_PROVIDER } from "../../../lib/meta-providers.js";
 import { offsetPage } from "../../../repositories/query-helpers.js";
 import type {
+  PlayriftboundDeckSubmission,
   PlayriftboundDetailFacts,
   PlayriftboundEventProjection,
   PlayriftboundOrganizerProjection,
@@ -338,9 +339,37 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
           roundsPlayed: facts.roundsPlayed,
           roundsFinalized: facts.roundsFinalized,
           sourceUpdatedAt: facts.sourceUpdatedAt,
+          deckSubmissionPolicy: facts.deckSubmissionPolicy,
+          deckSubmissionDueAt: facts.deckSubmissionDueAt,
         })
         .where("tournamentId", "=", tournamentId)
         .execute();
+    },
+
+    /** Null records the read without a policy, so the event is not read again. */
+    async setDeckSubmission(
+      tournamentId: string,
+      deckSubmission: PlayriftboundDeckSubmission | null,
+      readAt: Date,
+    ): Promise<void> {
+      await db
+        .updateTable("playriftboundEvents")
+        .set({ ...deckSubmission, deckPolicyReadAt: readAt })
+        .where("tournamentId", "=", tournamentId)
+        .execute();
+    },
+
+    async upcomingWithoutDeckPolicy(now: Date, limit: number): Promise<string[]> {
+      const rows = await db
+        .selectFrom("playriftboundEvents")
+        .select("tournamentId")
+        .where("startAt", ">", now)
+        .where("missingSince", "is", null)
+        .where("deckPolicyReadAt", "is", null)
+        .orderBy("startAt", "asc")
+        .limit(limit)
+        .execute();
+      return rows.map((row) => row.tournamentId);
     },
 
     async byKey(tournamentId: string): Promise<PlayriftboundListRow | undefined> {
