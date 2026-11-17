@@ -118,7 +118,7 @@ Computed in `packages/shared/src/pairing/group-standings.ts` from the pod rows o
 
 Game win rate is games won over games played. Games won come from `pod_members.game_points`; games played add the match's `pods.drawn_games`. Walkovers carry no game points and are excluded from it, while they count in match points and match win rate.
 
-The first Legend tier compares how many active participants share the same `legend_card_id`. Fewer is better. Every participant has one when the tier is reachable, and the column does not change after group generation, so the counts need no snapshot.
+The first Legend tier compares how many participants placed in a group share the same `legend_card_id`. Fewer is better. Every participant has one when the tier is reachable, and the column does not change after group generation, so the counts need no snapshot.
 
 The second Legend tier compares the Legends' meta share, a number the organizer enters:
 
@@ -137,7 +137,7 @@ Every row carries `decidedBy`, the tier that placed it below the row directly ab
 
 ### Qualification and seeds
 
-Qualification is placement-first: all group winners, then all runners-up, and so on, until `cut_size` players are taken. Within one placement tier players are ordered by match win rate over all three of their matches (the cross-group match included), then game win rate, then the two Legend tiers if enabled, then id hash. No opponent-strength tiebreaks in this format. The first `cut_size` players receive seeds 1..N.
+Qualification is placement-first: all group winners, then all runners-up, and so on, until `cut_size` players are taken. Within one placement tier players are ordered by match win rate over all three of their matches (the cross-group match included), then game win rate, then the two Legend tiers if enabled, then id hash. Match win rate is wins plus half the draws over matches played, so a drawn match counts as half a win whatever the tournament sets for points per win and per draw. No opponent-strength tiebreaks in this format. The first `cut_size` players receive seeds 1..N.
 
 Generating the first cut round requires every group-stage pod reported. It finalizes rounds 1 to 3, writes `seed` on the qualifiers, and creates round 4. Seeds are never rewritten. The `seed` column exists since ADR-033 as a manager-entered integer with no consumer in pairing or standings, so this format gives it its meaning: in a `group_cut` tournament the server writes it and the participant patch rejects a manual `seed` once cut rounds exist. Non-qualifiers stay active and are absent from cut rounds without a bye row, so they collect no bye points.
 
