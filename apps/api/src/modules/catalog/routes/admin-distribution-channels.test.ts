@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { HIERARCHY_REJECTED_SQLSTATE } from "../../../lib/pg-errors.js";
 import { registerRouterForTest } from "../../../test/mount-router.js";
 import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
@@ -132,7 +133,7 @@ describe("PATCH /distribution-channels/:id", () => {
     mockRepo.getMaxSortOrderForParent.mockResolvedValue(0);
     mockRepo.update.mockRejectedValue(
       Object.assign(new Error("Cycle detected in distribution channel hierarchy"), {
-        code: "P0001",
+        code: HIERARCHY_REJECTED_SQLSTATE,
       }),
     );
 
@@ -140,6 +141,17 @@ describe("PATCH /distribution-channels/:id", () => {
     expect(res.status).toBe(409);
     const json = await readJson(res);
     expect(json.message).toContain("Cycle detected");
+  });
+
+  it("returns 500 for an exception some other trigger raised", async () => {
+    mockRepo.getById.mockResolvedValue(baseRow);
+    mockRepo.getMaxSortOrderForParent.mockResolvedValue(0);
+    mockRepo.update.mockRejectedValue(
+      Object.assign(new Error("unknown marker spark"), { code: "P0001" }),
+    );
+
+    const res = await patchChannel({ parentId: PARENT_ID });
+    expect(res.status).toBe(500);
   });
 
   it("returns 404 when the channel does not exist", async () => {
@@ -162,6 +174,14 @@ describe("PATCH /distribution-channels/:id", () => {
   });
 });
 
+async function postChannel(body: Record<string, unknown>): Promise<Response> {
+  return await app.request("/api/admin/v1/distribution-channels", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
 describe("POST /distribution-channels", () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -180,6 +200,30 @@ describe("POST /distribution-channels", () => {
     expect(res.status).toBe(409);
     const body = await readJson(res);
     expect(body.message).toBe('Distribution channel "nexus-night-2025" already exists');
+  });
+
+  it("returns 409 when the hierarchy trigger rejects the parent", async () => {
+    mockRepo.getBySlug.mockResolvedValue(undefined);
+    mockRepo.getMaxSortOrderForParent.mockResolvedValue(0);
+    mockRepo.create.mockRejectedValue(
+      Object.assign(new Error("Child channel kind (event) must match parent kind (product)"), {
+        code: HIERARCHY_REJECTED_SQLSTATE,
+      }),
+    );
+
+    const res = await postChannel({ slug: "nexus-night-2025", label: "Nexus Night 2025" });
+    expect(res.status).toBe(409);
+    const body = await readJson(res);
+    expect(body.message).toContain("must match parent kind");
+  });
+
+  it("returns 500 for an exception some other trigger raised", async () => {
+    mockRepo.getBySlug.mockResolvedValue(undefined);
+    mockRepo.getMaxSortOrderForParent.mockResolvedValue(0);
+    mockRepo.create.mockRejectedValue(Object.assign(new Error("boom"), { code: "P0001" }));
+
+    const res = await postChannel({ slug: "nexus-night-2025", label: "Nexus Night 2025" });
+    expect(res.status).toBe(500);
   });
 });
 

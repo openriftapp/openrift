@@ -32,7 +32,7 @@ function makeLog(): Logger {
   return { info: noop, warn: noop, error: noop, debug: noop } as unknown as Logger;
 }
 
-// migrate() runs normalizeMigrationTimestamps against the executor; empty
+// migrate() runs assertFoldedMigrationsApplied against the executor; empty
 // rows make it treat the migration table as absent and no-op.
 const fakeExecutor = {
   transformQuery: (node: unknown) => node,

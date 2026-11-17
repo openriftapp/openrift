@@ -101,6 +101,12 @@ export type MetaOverlayStatus = "pending" | "accepted" | "rejected";
 /** The {@link MetaOverlayStatus} values. */
 export const META_OVERLAY_STATUSES = ["pending", "accepted", "rejected"] as const;
 
+/** `provider` is a source sync or upload; an in-app submission is `contributor` even with a source key. */
+export type MetaOverlayOrigin = "admin_edit" | "contributor" | "provider";
+
+/** The {@link MetaOverlayOrigin} values. */
+export const META_OVERLAY_ORIGINS = ["admin_edit", "contributor", "provider"] as const;
+
 /** `slug` and `sourceUrl` are absent on purpose: neither is an overlay-claimable field. */
 export type MetaEventOverlayField =
   | "name"

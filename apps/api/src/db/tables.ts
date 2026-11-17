@@ -11,6 +11,7 @@ import type {
 import type { BoardStatesTable } from "./tables/board-states.js";
 import type {
   CandidateCardsTable,
+  CandidateFingerprintFailuresTable,
   CandidatePrintingsTable,
   CardSubmissionsTable,
   IgnoredCandidateCardsTable,
@@ -351,6 +352,7 @@ export interface Database {
 
   candidateCards: CandidateCardsTable;
   candidatePrintings: CandidatePrintingsTable;
+  candidateFingerprintFailures: CandidateFingerprintFailuresTable;
   cardNameAliases: CardNameAliasesTable;
 
   ignoredCandidateCards: IgnoredCandidateCardsTable;

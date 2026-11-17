@@ -89,7 +89,6 @@ export async function settleRejectedSubmissions(
   }
 }
 
-/** Must run while the overlay still carries the `accepted_at` its correction was settled with. */
 export async function revokeEventCorrection(
   repos: Repos,
   overlay: MetaEventOverlayRow,

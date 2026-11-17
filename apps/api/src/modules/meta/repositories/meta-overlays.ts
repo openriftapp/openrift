@@ -1,5 +1,5 @@
 import type { MetaEventOverlayField, MetaOverlayStatus } from "@openrift/shared/types/enums";
-import type { ExpressionBuilder, Insertable, Kysely, Selectable, SqlBool } from "kysely";
+import type { Insertable, Kysely, Selectable, SqlBool } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
@@ -53,32 +53,6 @@ export function sourceEventKeyPrefix(eventExternalId: string): string {
 
 export interface MetaPlayerOverlayWithCards extends MetaPlayerOverlayRow {
   cards: MetaOverlayCardRow[];
-}
-
-/**
- * An admin's own field edit: no provider, no note and, for a standings row, no
- * ledger row. A contributor's list may carry no note but always has a ledger row.
- */
-function adminEditEvent(eb: ExpressionBuilder<Database, "metaEventOverlays">) {
-  return eb.and([
-    eb("metaEventOverlays.provider", "is", null),
-    eb("metaEventOverlays.submissionNote", "is", null),
-  ]);
-}
-
-function adminEditPlayer(eb: ExpressionBuilder<Database, "metaEventPlayerOverlays">) {
-  return eb.and([
-    eb("metaEventPlayerOverlays.provider", "is", null),
-    eb("metaEventPlayerOverlays.submissionNote", "is", null),
-    eb.not(
-      eb.exists(
-        eb
-          .selectFrom("metaSubmissions")
-          .select(sql.lit(1).as("one"))
-          .whereRef("metaSubmissions.playerOverlayId", "=", "metaEventPlayerOverlays.id"),
-      ),
-    ),
-  ]);
 }
 
 export function metaOverlaysRepo(db: Kysely<Database>) {
@@ -171,10 +145,7 @@ export function metaOverlaysRepo(db: Kysely<Database>) {
       await db.updateTable("metaEventOverlays").set(values).where("id", "=", id).execute();
     },
 
-    /**
-     * The one row an admin's field edits merge into: their own accepted,
-     * sourceless, noteless overlay on this event.
-     */
+    /** The one row an admin's field edits merge into: their own accepted admin edit on this event. */
     adminEditOverlay(
       metaEventId: string,
       userId: string,
@@ -185,7 +156,7 @@ export function metaOverlaysRepo(db: Kysely<Database>) {
         .where("metaEventId", "=", metaEventId)
         .where("submittedByUserId", "=", userId)
         .where("status", "=", "accepted")
-        .where((eb) => adminEditEvent(eb))
+        .where("origin", "=", "admin_edit")
         .executeTakeFirst();
     },
 
@@ -196,7 +167,7 @@ export function metaOverlaysRepo(db: Kysely<Database>) {
           .selectFrom("metaEventOverlays")
           .select("id")
           .where("id", "in", batch)
-          .where((eb) => adminEditEvent(eb))
+          .where("origin", "=", "admin_edit")
           .execute();
         for (const row of rows) {
           found.add(row.id);
@@ -460,7 +431,7 @@ export function metaOverlaysRepo(db: Kysely<Database>) {
         .where("metaEventPlayerId", "=", metaEventPlayerId)
         .where("submittedByUserId", "=", userId)
         .where("status", "=", "accepted")
-        .where((eb) => adminEditPlayer(eb))
+        .where("origin", "=", "admin_edit")
         .executeTakeFirst();
     },
 
@@ -471,7 +442,7 @@ export function metaOverlaysRepo(db: Kysely<Database>) {
           .selectFrom("metaEventPlayerOverlays")
           .select("id")
           .where("id", "in", batch)
-          .where((eb) => adminEditPlayer(eb))
+          .where("origin", "=", "admin_edit")
           .execute();
         for (const row of rows) {
           found.add(row.id);

@@ -7,7 +7,7 @@ import { sql } from "kysely";
 import { cardTypes } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import { candidateSideOrder } from "../../../repositories/candidate-card-sql.js";
-import { inTransaction } from "../../../repositories/query-helpers.js";
+import { inTransaction, retryBackoffDue } from "../../../repositories/query-helpers.js";
 
 function printingFaceId(printingId: string, face: CardFace): RawBuilder<string | null> {
   return sql<string | null>`(
@@ -29,15 +29,6 @@ const IMAGE_FACE = sql<CardFace>`(
   WHERE p.face1_id = fi.face_id OR p.face2_id = fi.face_id
   ORDER BY (p.face1_id = fi.face_id) DESC, p.id
   LIMIT 1
-)`;
-
-/** Over `rf` (image_rehost_failures): a failed file waits 1 h, doubling per attempt, at most a day. */
-const REHOST_RETRY_DUE = sql<boolean>`(
-  rf.image_file_id IS NULL
-  OR date_trunc('milliseconds', rf.last_attempt_at) < now() - least(
-    interval '1 hour' * power(2, least(rf.attempts - 1, 10)),
-    interval '1 day'
-  )
 )`;
 
 export function printingImagesRepo(db: Kysely<Database>) {
@@ -609,7 +600,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
               )
               OR EXISTS (SELECT 1 FROM faces fc WHERE fc.fallback_image_file_id = f.id)
             )
-            AND ${REHOST_RETRY_DUE}
+            AND ${retryBackoffDue("rf")}
           )
         ORDER BY rf.last_attempt_at ASC NULLS FIRST, f.id
         LIMIT ${limit}

@@ -1,19 +1,30 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { Io } from "../../../../io.js";
+import type * as DownloadModule from "./download.js";
 import { isFingerprintSweepNoop, sweepImageFingerprints } from "./fingerprint-sweep.js";
 
-vi.mock("./download.js", () => ({
-  downloadImage: vi.fn(async (_io: Io, url: string) => {
-    if (!url.startsWith("https://")) {
-      throw new TypeError("Invalid URL");
-    }
-    if (url.includes("broken")) {
-      throw new Error("404");
-    }
-    return { buffer: Buffer.from(url), ext: "png" };
-  }),
-}));
+vi.mock("./download.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof DownloadModule>();
+  return {
+    ...actual,
+    downloadImage: vi.fn(async (_io: Io, url: string) => {
+      if (!url.startsWith("https://")) {
+        throw new TypeError("Invalid URL");
+      }
+      if (url.includes("broken")) {
+        throw new actual.DownloadError({ kind: "http", status: 404 }, `404: ${url}`);
+      }
+      if (url.includes("flaky")) {
+        throw new actual.DownloadError({ kind: "timeout" }, `Download timed out: ${url}`);
+      }
+      if (url.includes("down")) {
+        throw new actual.DownloadError({ kind: "http", status: 503 }, `503: ${url}`);
+      }
+      return { buffer: Buffer.from(url), ext: "png" };
+    }),
+  };
+});
 
 vi.mock("./fingerprint.js", () => ({
   computeImageFingerprint: vi.fn(async (_io: Io, buffer: Buffer) => `fp:${buffer.toString()}`),
@@ -25,7 +36,11 @@ vi.mock("./fingerprint.js", () => ({
 const warn = vi.fn();
 const log = { warn } as never;
 
-function makeDeps(liveFiles: { id: string; rehostedUrl: string }[], candidates: unknown[]) {
+function makeDeps(
+  liveFiles: { id: string; rehostedUrl: string }[],
+  candidates: unknown[],
+  failureAttempts = 1,
+) {
   const io = {
     fs: {
       readFile: vi.fn(async (path: string) => {
@@ -44,6 +59,7 @@ function makeDeps(liveFiles: { id: string; rehostedUrl: string }[], candidates: 
     candidateCards: {
       listPrintingsNeedingFingerprint: vi.fn().mockResolvedValue(candidates),
       setImageFingerprint: vi.fn().mockResolvedValue(undefined),
+      recordFingerprintFailure: vi.fn().mockResolvedValue(failureAttempts),
     },
   };
   return { io, repos };
@@ -107,7 +123,7 @@ describe("sweepImageFingerprints", () => {
     expect(result.candidatesFingerprinted).toBe(1);
   });
 
-  it("records a failed download with no fingerprint so it is not retried", async () => {
+  it("records a permanent failure with no fingerprint so it is not retried", async () => {
     const { io, repos } = makeDeps(
       [],
       [{ id: "cp2", imageUrl: "https://src.example/broken.png", liveFingerprint: null }],
@@ -118,8 +134,38 @@ describe("sweepImageFingerprints", () => {
       "https://src.example/broken.png",
       null,
     );
+    expect(repos.candidateCards.recordFingerprintFailure).not.toHaveBeenCalled();
     expect(result.candidatesFailed).toBe(1);
     expect(warn).toHaveBeenCalled();
+  });
+
+  it.each([
+    ["a timeout", "https://src.example/flaky.png", "timeout"],
+    ["a 5xx answer", "https://src.example/down.png", "HTTP 503"],
+  ])("leaves %s open for a retry", async (_label, imageUrl, reason) => {
+    const { io, repos } = makeDeps([], [{ id: "cp4", imageUrl, liveFingerprint: null }]);
+    const result = await sweepImageFingerprints(io, repos as never, log);
+    expect(repos.candidateCards.recordFingerprintFailure).toHaveBeenCalledWith(
+      "cp4",
+      imageUrl,
+      reason,
+    );
+    expect(repos.candidateCards.setImageFingerprint).not.toHaveBeenCalled();
+    expect(result.candidatesFailed).toBe(1);
+  });
+
+  it("gives up on a transient failure after the last allowed attempt", async () => {
+    const { io, repos } = makeDeps(
+      [],
+      [{ id: "cp5", imageUrl: "https://src.example/flaky.png", liveFingerprint: null }],
+      6,
+    );
+    await sweepImageFingerprints(io, repos as never, log);
+    expect(repos.candidateCards.setImageFingerprint).toHaveBeenCalledWith(
+      "cp5",
+      "https://src.example/flaky.png",
+      null,
+    );
   });
 
   it("passes the batch limits to both listings", async () => {

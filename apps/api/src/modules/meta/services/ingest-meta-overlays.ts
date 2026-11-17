@@ -244,6 +244,7 @@ export async function ingestMetaOverlays(
       externalId: event.externalId,
       ...facts,
       claimedFields: claimedFrom(META_EVENT_OVERLAY_FIELDS, facts),
+      origin: "provider" as const,
       submittedByUserId,
     };
 
@@ -479,6 +480,7 @@ async function ingestPlayers(repos: Repos, ctx: PlayerIngestContext): Promise<vo
           metaEventPlayerId: null,
           provider: ctx.provider,
           sourcePlayerKey: key,
+          origin: "provider",
           ...values,
         },
         cards,

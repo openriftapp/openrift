@@ -5,6 +5,7 @@ import type {
   MetaEventTier,
   MetaEntryStatus,
   MetaListStatus,
+  MetaOverlayOrigin,
   MetaOverlayStatus,
   MetaPlayerOverlayField,
   MetaSubmissionKind,
@@ -115,6 +116,7 @@ export interface MetaEventOverlaysTable {
   country: string | null;
   location: string | null;
   claimedFields: MetaEventOverlayField[];
+  origin: MetaOverlayOrigin;
   status: Generated<MetaOverlayStatus>;
   submittedByUserId: string;
   submissionNote: string | null;
@@ -145,6 +147,7 @@ export interface MetaEventPlayerOverlaysTable {
   provider: string | null;
   sourcePlayerKey: string | null;
   claimedFields: MetaPlayerOverlayField[];
+  origin: MetaOverlayOrigin;
   status: Generated<MetaOverlayStatus>;
   submittedByUserId: string;
   submissionNote: string | null;
@@ -224,6 +227,7 @@ export interface MetaSubmissionsTable {
   provider: string;
   externalId: string;
   playerOverlayId: string | null;
+  eventOverlayId: string | null;
   metaEventId: string | null;
   metaEventPlayerId: string | null;
   eventName: string;

@@ -79,6 +79,14 @@ export interface IgnoredCandidateCardsTable {
   createdAt: CreatedAt;
 }
 
+export interface CandidateFingerprintFailuresTable {
+  candidatePrintingId: string;
+  imageUrl: string;
+  attempts: number;
+  lastError: string;
+  lastAttemptAt: Generated<Date>;
+}
+
 export interface IgnoredCandidatePrintingsTable {
   id: Generated<string>;
   provider: string;

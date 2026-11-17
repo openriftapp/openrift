@@ -1,7 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { mockFetch, mockIo, resetImageMocks } from "../../../../test/image-mocks.js";
-import { DownloadError, MAX_IMAGE_BYTES, downloadImage, isPrivateIp } from "./download.js";
+import {
+  DownloadError,
+  MAX_IMAGE_BYTES,
+  downloadImage,
+  isPrivateIp,
+  isTransientDownloadFailure,
+} from "./download.js";
 import { rehostFailureReason } from "./rehost-error.js";
 
 let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
@@ -250,5 +256,26 @@ describe("isPrivateIp", () => {
     for (const ip of ["203.0.113.10", "8.8.8.8", "172.32.0.1", "2606:4700::1111", "1.1.1.1"]) {
       expect(isPrivateIp(ip), ip).toBe(false);
     }
+  });
+});
+
+describe("isTransientDownloadFailure", () => {
+  it("is true for a timeout, a dropped connection and a 5xx answer", () => {
+    expect(isTransientDownloadFailure(new DownloadError({ kind: "timeout" }, "t"))).toBe(true);
+    expect(isTransientDownloadFailure(new DownloadError({ kind: "connection" }, "c"))).toBe(true);
+    expect(isTransientDownloadFailure(new DownloadError({ kind: "http", status: 503 }, "x"))).toBe(
+      true,
+    );
+  });
+
+  it("is false for a 4xx, a non-image, a blocked host and any other error", () => {
+    expect(isTransientDownloadFailure(new DownloadError({ kind: "http", status: 404 }, "x"))).toBe(
+      false,
+    );
+    expect(isTransientDownloadFailure(new DownloadError({ kind: "not-an-image" }, "n"))).toBe(
+      false,
+    );
+    expect(isTransientDownloadFailure(new DownloadError({ kind: "blocked" }, "b"))).toBe(false);
+    expect(isTransientDownloadFailure(new Error("ENOENT"))).toBe(false);
   });
 });

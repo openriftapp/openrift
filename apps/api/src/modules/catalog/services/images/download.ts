@@ -26,6 +26,29 @@ export class DownloadError extends Error {
   }
 }
 
+/** A timeout, dropped connection or 5xx may succeed on a later attempt; everything else will not. */
+export function isTransientDownloadFailure(error: unknown): boolean {
+  if (!(error instanceof DownloadError)) {
+    return false;
+  }
+  const { failure } = error;
+  switch (failure.kind) {
+    case "timeout":
+    case "connection": {
+      return true;
+    }
+    case "http": {
+      return failure.status >= 500;
+    }
+    case "blocked":
+    case "not-an-image":
+    case "too-large":
+    case "redirect": {
+      return false;
+    }
+  }
+}
+
 function transportFailure(error: unknown, url: string): unknown {
   if (error instanceof DownloadError) {
     return error;

@@ -341,6 +341,7 @@ export function submitMetaDeck(
         country: null,
         location: null,
         claimedFields: ["name", "eventDate", "format", "playerCount", "organizer"],
+        origin: "contributor",
         submittedByUserId: args.userId,
         submissionNote: args.note,
       });
@@ -372,6 +373,7 @@ export function submitMetaDeck(
           "listStatus",
           "cards",
         ],
+        origin: "contributor",
         submittedByUserId: args.userId,
         submissionNote: args.note,
       },

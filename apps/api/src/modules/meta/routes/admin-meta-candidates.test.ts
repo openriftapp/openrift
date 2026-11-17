@@ -676,6 +676,7 @@ describe("POST /meta/events/{id}/overlays", () => {
       expect.objectContaining({
         metaEventId: LIVE_EVENT_ID,
         claimedFields: ["organizer"],
+        origin: "admin_edit",
         status: "accepted",
         organizer: "LGS Zaun",
       }),
@@ -885,6 +886,7 @@ describe("POST /meta/players/{id}/overlays", () => {
         metaEventId: null,
         eventOverlayId: null,
         claimedFields: ["wins", "losses"],
+        origin: "admin_edit",
         status: "accepted",
         wins: 3,
         losses: 1,

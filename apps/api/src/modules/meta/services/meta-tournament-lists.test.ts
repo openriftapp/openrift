@@ -177,6 +177,7 @@ describe("sendTournamentLists", () => {
         eventDate: "2026-09-12",
         format: "constructed",
         claimedFields: ["name", "eventDate", "format", "playerCount", "organizer"],
+        origin: "contributor",
       }),
     );
     expect(h.insertPlayerOverlay).toHaveBeenCalledWith(
@@ -186,6 +187,7 @@ describe("sendTournamentLists", () => {
         eventOverlayId: "event-overlay-1",
         metaEventPlayerId: null,
         claimedFields: ["listStatus", "cards"],
+        origin: "contributor",
       }),
       [
         expect.objectContaining({ lineNumber: 0, cardName: "Azir", cardId: "card-azir" }),

@@ -45,19 +45,17 @@ export function isForeignKeyViolationOn(error: unknown, constraintName: string):
   );
 }
 
-/**
- * Reads the message off a `RAISE EXCEPTION` thrown by a plpgsql trigger or
- * function (SQLSTATE P0001). Returns `null` when the error is not a P0001.
- */
-export function raisedExceptionMessage(error: unknown): string | null {
-  if (typeof error !== "object" || error === null) {
-    return null;
-  }
-  const { code, message } = error as { code?: unknown; message?: unknown };
-  if (code !== "P0001" || typeof message !== "string" || message === "") {
-    return null;
-  }
-  return message;
+/** Raised by `trg_distribution_channels_validate` when a write breaks the channel hierarchy. */
+export const HIERARCHY_REJECTED_SQLSTATE = "OR001";
+
+/** True if the error carries the SQLSTATE a plpgsql `RAISE ... USING ERRCODE` set. */
+export function isRaisedWith(error: unknown, code: string): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === code
+  );
 }
 
 /** True if the error is a Postgres check-constraint violation (SQLSTATE 23514). */

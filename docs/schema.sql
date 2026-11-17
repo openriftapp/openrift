@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict oAcEzXjuiVoQBNhoR2OMAo11YmiXNSYqbJyoseiiCNUeBvT8Rpaoelljue9Tfnb
+\restrict N17HNvKPqotbLccEKc0uRO6vkiuYjWtVBn9NM9GrXKtNdQBUEEz6qWR159vqdIm
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -891,30 +891,30 @@ CREATE FUNCTION public.trg_distribution_channels_validate() RETURNS trigger
       IF NEW.parent_id IS NOT NULL THEN
         SELECT kind INTO parent_kind FROM distribution_channels WHERE id = NEW.parent_id;
         IF parent_kind IS NULL THEN
-          RAISE EXCEPTION 'Parent distribution channel % not found', NEW.parent_id;
+          RAISE EXCEPTION 'Parent distribution channel % not found', NEW.parent_id USING ERRCODE = 'OR001';
         END IF;
         IF parent_kind <> NEW.kind THEN
           RAISE EXCEPTION 'Child channel kind (%) must match parent kind (%)',
-            NEW.kind, parent_kind;
+            NEW.kind, parent_kind USING ERRCODE = 'OR001';
         END IF;
 
         cursor_id := NEW.parent_id;
         WHILE cursor_id IS NOT NULL AND depth < 32 LOOP
           IF cursor_id = NEW.id THEN
-            RAISE EXCEPTION 'Cycle detected in distribution channel hierarchy';
+            RAISE EXCEPTION 'Cycle detected in distribution channel hierarchy' USING ERRCODE = 'OR001';
           END IF;
           SELECT parent_id INTO cursor_id FROM distribution_channels WHERE id = cursor_id;
           depth := depth + 1;
         END LOOP;
         IF depth >= 32 THEN
-          RAISE EXCEPTION 'Distribution channel hierarchy exceeds maximum depth';
+          RAISE EXCEPTION 'Distribution channel hierarchy exceeds maximum depth' USING ERRCODE = 'OR001';
         END IF;
 
         IF EXISTS (
           SELECT 1 FROM printing_distribution_channels WHERE channel_id = NEW.parent_id
         ) THEN
           RAISE EXCEPTION 'Cannot attach child under channel % because it already has printings',
-            NEW.parent_id;
+            NEW.parent_id USING ERRCODE = 'OR001';
         END IF;
       END IF;
 
@@ -923,7 +923,7 @@ CREATE FUNCTION public.trg_distribution_channels_validate() RETURNS trigger
           SELECT 1 FROM distribution_channels WHERE parent_id = NEW.id AND kind <> NEW.kind
         ) THEN
           RAISE EXCEPTION 'Cannot change kind of % because children have a different kind',
-            NEW.id;
+            NEW.id USING ERRCODE = 'OR001';
         END IF;
       END IF;
 
@@ -1309,6 +1309,21 @@ CREATE TABLE public.candidate_cards (
     CONSTRAINT chk_candidate_cards_power_non_negative CHECK ((power >= 0)),
     CONSTRAINT chk_candidate_cards_provider_not_empty CHECK ((provider <> ''::text)),
     CONSTRAINT chk_candidate_cards_submission_note CHECK ((submission_note <> ''::text))
+);
+
+
+--
+-- Name: candidate_fingerprint_failures; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.candidate_fingerprint_failures (
+    candidate_printing_id uuid NOT NULL,
+    image_url text NOT NULL,
+    attempts integer NOT NULL,
+    last_error text NOT NULL,
+    last_attempt_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_candidate_fingerprint_failures_attempts CHECK ((attempts > 0)),
+    CONSTRAINT chk_candidate_fingerprint_failures_last_error CHECK ((last_error <> ''::text))
 );
 
 
@@ -3028,6 +3043,7 @@ CREATE TABLE public.meta_event_overlays (
     accepted_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    origin text NOT NULL,
     CONSTRAINT chk_meta_event_overlays_accepted_at CHECK (((status = 'accepted'::text) = (accepted_at IS NOT NULL))),
     CONSTRAINT chk_meta_event_overlays_claimed_fields_known CHECK ((claimed_fields <@ ARRAY['name'::text, 'eventDate'::text, 'format'::text, 'playerCount'::text, 'organizer'::text, 'notes'::text, 'tier'::text, 'country'::text, 'location'::text])),
     CONSTRAINT chk_meta_event_overlays_country CHECK (((country IS NULL) OR (country ~ '^[A-Z]{2}$'::text))),
@@ -3045,6 +3061,7 @@ CREATE TABLE public.meta_event_overlays (
     CONSTRAINT chk_meta_event_overlays_notes_claimed CHECK (((notes IS NULL) OR ('notes'::text = ANY (claimed_fields)))),
     CONSTRAINT chk_meta_event_overlays_organizer CHECK (((organizer IS NULL) OR ((length(organizer) >= 1) AND (length(organizer) <= 120)))),
     CONSTRAINT chk_meta_event_overlays_organizer_claimed CHECK (((organizer IS NULL) OR ('organizer'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_overlays_origin CHECK ((origin = ANY (ARRAY['admin_edit'::text, 'contributor'::text, 'provider'::text]))),
     CONSTRAINT chk_meta_event_overlays_player_count CHECK (((player_count IS NULL) OR (player_count > 0))),
     CONSTRAINT chk_meta_event_overlays_player_count_claimed CHECK (((player_count IS NULL) OR ('playerCount'::text = ANY (claimed_fields)))),
     CONSTRAINT chk_meta_event_overlays_provider CHECK (((provider IS NULL) OR (provider <> ''::text))),
@@ -3130,6 +3147,7 @@ CREATE TABLE public.meta_event_player_overlays (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     provider text,
     source_player_key text,
+    origin text NOT NULL,
     CONSTRAINT chk_meta_event_player_overlays_accepted_at CHECK (((status = 'accepted'::text) = (accepted_at IS NOT NULL))),
     CONSTRAINT chk_meta_event_player_overlays_champion_card_id_claimed CHECK (((champion_card_id IS NULL) OR ('championCardId'::text = ANY (claimed_fields)))),
     CONSTRAINT chk_meta_event_player_overlays_claimed_fields_known CHECK ((claimed_fields <@ ARRAY['playerName'::text, 'rank'::text, 'rankIsTier'::text, 'wins'::text, 'losses'::text, 'draws'::text, 'matchPoints'::text, 'opponentMatchWinPct'::text, 'gameWinPct'::text, 'opponentGameWinPct'::text, 'entryStatus'::text, 'legendCardId'::text, 'championCardId'::text, 'listStatus'::text, 'cards'::text])),
@@ -3145,6 +3163,7 @@ CREATE TABLE public.meta_event_player_overlays (
     CONSTRAINT chk_meta_event_player_overlays_match_points_claimed CHECK (((match_points IS NULL) OR ('matchPoints'::text = ANY (claimed_fields)))),
     CONSTRAINT chk_meta_event_player_overlays_opponent_game_win_pct_claimed CHECK (((opponent_game_win_pct IS NULL) OR ('opponentGameWinPct'::text = ANY (claimed_fields)))),
     CONSTRAINT chk_meta_event_player_overlays_opponent_match_win_pct_claimed CHECK (((opponent_match_win_pct IS NULL) OR ('opponentMatchWinPct'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_player_overlays_origin CHECK ((origin = ANY (ARRAY['admin_edit'::text, 'contributor'::text, 'provider'::text]))),
     CONSTRAINT chk_meta_event_player_overlays_player_name CHECK (((player_name IS NULL) OR ((length(player_name) >= 1) AND (length(player_name) <= 80)))),
     CONSTRAINT chk_meta_event_player_overlays_player_name_claimed CHECK (((player_name IS NULL) OR ('playerName'::text = ANY (claimed_fields)))),
     CONSTRAINT chk_meta_event_player_overlays_rank CHECK (((rank IS NULL) OR (rank >= 1))),
@@ -3307,6 +3326,7 @@ CREATE TABLE public.meta_submissions (
     field_edits jsonb,
     player_overlay_id uuid,
     meta_event_player_id uuid,
+    event_overlay_id uuid,
     CONSTRAINT chk_meta_submissions_event_name CHECK (((length(event_name) >= 1) AND (length(event_name) <= 120))),
     CONSTRAINT chk_meta_submissions_external_id CHECK ((external_id <> ''::text)),
     CONSTRAINT chk_meta_submissions_field_edits CHECK (((field_edits IS NULL) OR (jsonb_typeof(field_edits) = 'object'::text))),
@@ -4587,7 +4607,7 @@ CREATE TABLE public.user_preferences (
     user_id text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    data jsonb DEFAULT '{"showImages": true, "richEffects": true, "visibleFields": {"type": true, "price": true, "title": true, "number": true, "rarity": true}, "marketplaceOrder": ["tcgplayer", "cardmarket", "cardtrader"]}'::jsonb NOT NULL,
+    data jsonb DEFAULT '{}'::jsonb NOT NULL,
     CONSTRAINT chk_user_preferences_data_max_size CHECK ((length((data)::text) <= 8192)),
     CONSTRAINT chk_user_preferences_data_shape CHECK (((data IS NULL) OR (jsonb_typeof(data) = 'object'::text)))
 );
@@ -4950,6 +4970,14 @@ ALTER TABLE ONLY public.board_states
 
 ALTER TABLE ONLY public.candidate_cards
     ADD CONSTRAINT pk_candidate_cards PRIMARY KEY (id);
+
+
+--
+-- Name: candidate_fingerprint_failures pk_candidate_fingerprint_failures; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_fingerprint_failures
+    ADD CONSTRAINT pk_candidate_fingerprint_failures PRIMARY KEY (candidate_printing_id);
 
 
 --
@@ -7515,6 +7543,13 @@ CREATE INDEX idx_meta_held_source_events_meta_event_id ON public.meta_held_sourc
 
 
 --
+-- Name: idx_meta_submissions_event_overlay; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_meta_submissions_event_overlay ON public.meta_submissions USING btree (event_overlay_id) WHERE (event_overlay_id IS NOT NULL);
+
+
+--
 -- Name: idx_meta_submissions_event_pending; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -8054,10 +8089,24 @@ CREATE UNIQUE INDEX uq_meta_event_matches_source ON public.meta_event_matches US
 
 
 --
+-- Name: uq_meta_event_overlays_admin_edit; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_meta_event_overlays_admin_edit ON public.meta_event_overlays USING btree (meta_event_id, submitted_by_user_id) WHERE ((origin = 'admin_edit'::text) AND (status = 'accepted'::text));
+
+
+--
 -- Name: uq_meta_event_overlays_source; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX uq_meta_event_overlays_source ON public.meta_event_overlays USING btree (provider, external_id) WHERE (provider IS NOT NULL);
+
+
+--
+-- Name: uq_meta_event_player_overlays_admin_edit; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_meta_event_player_overlays_admin_edit ON public.meta_event_player_overlays USING btree (meta_event_player_id, submitted_by_user_id) WHERE ((origin = 'admin_edit'::text) AND (status = 'accepted'::text));
 
 
 --
@@ -9373,6 +9422,14 @@ ALTER TABLE ONLY public.board_states
 
 ALTER TABLE ONLY public.candidate_cards
     ADD CONSTRAINT fk_candidate_cards_submitted_by_user_id FOREIGN KEY (submitted_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: candidate_fingerprint_failures fk_candidate_fingerprint_failures_candidate_printing_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_fingerprint_failures
+    ADD CONSTRAINT fk_candidate_fingerprint_failures_candidate_printing_id FOREIGN KEY (candidate_printing_id) REFERENCES public.candidate_printings(id) ON DELETE CASCADE;
 
 
 --
@@ -10768,6 +10825,14 @@ ALTER TABLE ONLY public.meta_submissions
 
 
 --
+-- Name: meta_submissions fk_meta_submissions_event_overlay_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_submissions
+    ADD CONSTRAINT fk_meta_submissions_event_overlay_id FOREIGN KEY (event_overlay_id) REFERENCES public.meta_event_overlays(id) ON DELETE SET NULL;
+
+
+--
 -- Name: meta_submissions fk_meta_submissions_meta_event_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -11419,5 +11484,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict oAcEzXjuiVoQBNhoR2OMAo11YmiXNSYqbJyoseiiCNUeBvT8Rpaoelljue9Tfnb
+\unrestrict N17HNvKPqotbLccEKc0uRO6vkiuYjWtVBn9NM9GrXKtNdQBUEEz6qWR159vqdIm
 

@@ -105,6 +105,7 @@ describe.skipIf(!ctx)("promoteMetaEvent", () => {
       claimedFields: ["playerCount", "organizer", "notes", "country", "location"],
       status: "accepted",
       acceptedAt: new Date(),
+      origin: "admin_edit",
       submittedByUserId: META_ARCHIVE_USER_ID,
     });
     return event.id;
@@ -681,6 +682,7 @@ describe.skipIf(!ctx)("promoteMetaEvent", () => {
         claimedFields: [],
         status: "accepted",
         acceptedAt: new Date("2026-08-22T00:00:00Z"),
+        origin: "provider",
         submittedByUserId: META_ARCHIVE_USER_ID,
       });
       for (const [playerExternalId, metaEventPlayerId] of [
@@ -695,6 +697,7 @@ describe.skipIf(!ctx)("promoteMetaEvent", () => {
             claimedFields: [],
             status: "accepted",
             acceptedAt: new Date("2026-08-22T00:00:00Z"),
+            origin: "provider",
             submittedByUserId: META_ARCHIVE_USER_ID,
           },
           [],
@@ -809,12 +812,13 @@ describe.skipIf(!ctx)("promoteMetaEvent", () => {
     async function acceptedPlayerOverlay(
       values: Omit<
         Insertable<MetaEventPlayerOverlaysTable>,
-        "status" | "acceptedAt" | "submittedByUserId"
+        "origin" | "status" | "acceptedAt" | "submittedByUserId"
       >,
     ): Promise<string> {
       return await repos.metaOverlays.insertPlayerOverlay(
         {
           ...values,
+          origin: "admin_edit",
           status: "accepted",
           acceptedAt: new Date("2026-08-22T00:00:00Z"),
           submittedByUserId: META_ARCHIVE_USER_ID,
@@ -1005,6 +1009,7 @@ describe.skipIf(!ctx)("promoteMetaEvent", () => {
           metaEventPlayerId: playerId,
           wins: 9,
           claimedFields: ["wins"],
+          origin: "contributor",
           submittedByUserId: META_ARCHIVE_USER_ID,
         },
         [],

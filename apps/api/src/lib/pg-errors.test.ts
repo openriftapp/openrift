@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  HIERARCHY_REJECTED_SQLSTATE,
   isCheckViolation,
   isForeignKeyViolation,
   isForeignKeyViolationOn,
   isUniqueViolation,
+  isRaisedWith,
   isUniqueViolationOn,
-  raisedExceptionMessage,
 } from "./pg-errors.js";
 
 describe("isForeignKeyViolation", () => {
@@ -94,26 +95,24 @@ describe("isUniqueViolationOn", () => {
   });
 });
 
-describe("raisedExceptionMessage", () => {
-  it("returns the message of a plpgsql RAISE EXCEPTION", () => {
+describe("isRaisedWith", () => {
+  it("is true for a raise carrying the given SQLSTATE", () => {
     const error = Object.assign(new Error("Cycle detected in distribution channel hierarchy"), {
-      code: "P0001",
+      code: HIERARCHY_REJECTED_SQLSTATE,
     });
-    expect(raisedExceptionMessage(error)).toBe("Cycle detected in distribution channel hierarchy");
+    expect(isRaisedWith(error, HIERARCHY_REJECTED_SQLSTATE)).toBe(true);
   });
 
-  it("returns null for a different SQLSTATE", () => {
-    expect(raisedExceptionMessage({ code: "23505", message: "duplicate key" })).toBeNull();
+  it("is false for a plain RAISE EXCEPTION (P0001)", () => {
+    expect(isRaisedWith({ code: "P0001", message: "boom" }, HIERARCHY_REJECTED_SQLSTATE)).toBe(
+      false,
+    );
   });
 
-  it("returns null when the raise carries no message", () => {
-    expect(raisedExceptionMessage({ code: "P0001" })).toBeNull();
-    expect(raisedExceptionMessage({ code: "P0001", message: "" })).toBeNull();
-  });
-
-  it("returns null for non-object errors", () => {
-    expect(raisedExceptionMessage(null)).toBeNull();
-    expect(raisedExceptionMessage("P0001")).toBeNull();
+  it("is false for errors without a code and non-objects", () => {
+    expect(isRaisedWith(new Error("boom"), HIERARCHY_REJECTED_SQLSTATE)).toBe(false);
+    expect(isRaisedWith(null, HIERARCHY_REJECTED_SQLSTATE)).toBe(false);
+    expect(isRaisedWith(HIERARCHY_REJECTED_SQLSTATE, HIERARCHY_REJECTED_SQLSTATE)).toBe(false);
   });
 });
 

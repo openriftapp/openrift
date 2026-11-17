@@ -130,6 +130,9 @@ describe.skipIf(!ctx)("ingestMetaOverlays", () => {
     const after = await playerOverlays();
     expect(after.map((row) => row.id)).toEqual(before.map((row) => row.id));
     expect(after.map((row) => row.updatedAt)).toEqual(before.map((row) => row.updatedAt));
+    expect(after.map((row) => row.origin)).toEqual(["provider", "provider"]);
+    const [event] = await repos.metaOverlays.eventOverlaysBySourceKeys(PROVIDER, [BASE_EVENT]);
+    expect(event?.origin).toBe("provider");
   });
 
   it("reads the legend and champion off the list when the source names neither", async () => {

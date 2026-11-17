@@ -3545,6 +3545,7 @@ describe.skipIf(!ctx)("promotion", () => {
       metaEventId,
       name: "Never Applied",
       claimedFields: ["name"],
+      origin: "contributor",
       submittedByUserId: META_ARCHIVE_USER_ID,
     });
 

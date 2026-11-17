@@ -156,6 +156,7 @@ async function proposalFor(
     country: null,
     location: null,
     claimedFields: PROPOSAL_FIELDS.filter((field) => values[field as keyof typeof values] !== null),
+    origin: "contributor",
     submittedByUserId: args.userId,
     submissionNote: note,
   });
@@ -254,6 +255,7 @@ export async function sendTournamentLists(
           sourcePlayerKey: key,
           listStatus,
           claimedFields: ["listStatus", "cards"],
+          origin: "contributor",
           submittedByUserId: args.userId,
           submissionNote: listNote(standing),
         },

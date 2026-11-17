@@ -221,6 +221,7 @@ describe("submitMetaDeck", () => {
         metaEventId: EVENT_ID,
         submittedByUserId: "user-1",
         metaEventPlayerId: null,
+        origin: "contributor",
       }),
       expect.anything(),
     );
@@ -323,6 +324,7 @@ describe("submitMetaDeck", () => {
         provider: META_USER_SUBMISSION_PROVIDER,
         name: "Summoner Skirmish Zaun",
         metaEventId: null,
+        origin: "contributor",
       }),
     );
     expect(h.insertPlayer).toHaveBeenCalledWith(

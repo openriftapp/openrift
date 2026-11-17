@@ -5,9 +5,11 @@ import type { Logger } from "@openrift/shared/logger";
 import type { Io } from "../../../../io.js";
 import type { candidateCardsRepo } from "../../../candidates/repositories/candidate-cards.js";
 import type { printingImagesRepo } from "../../repositories/printing-images.js";
+import { isTransientDownloadFailure } from "./download.js";
 import { computeCandidateFingerprint, computeImageFingerprint } from "./fingerprint.js";
 import { fetchOriginalImage } from "./original-source.js";
 import { CARD_MEDIA_DIR } from "./paths.js";
+import { rehostFailureReason } from "./rehost-error.js";
 
 export interface FingerprintSweepResult {
   liveFingerprinted: number;
@@ -18,6 +20,7 @@ export interface FingerprintSweepResult {
 
 const FINGERPRINT_LIVE_BATCH = 500;
 const FINGERPRINT_CANDIDATE_BATCH = 300;
+const MAX_CANDIDATE_ATTEMPTS = 6;
 
 interface SweepRepos {
   printingImages: ReturnType<typeof printingImagesRepo>;
@@ -33,7 +36,10 @@ export function isFingerprintSweepNoop(result: FingerprintSweepResult): boolean 
   );
 }
 
-/** A failed candidate download still records the URL, so the row is not retried every run. */
+/**
+ * A transient candidate download failure is retried with backoff; a permanent
+ * one, or the last allowed attempt, records the URL without a fingerprint.
+ */
 export async function sweepImageFingerprints(
   io: Io,
   repos: SweepRepos,
@@ -69,7 +75,16 @@ export async function sweepImageFingerprints(
       await repos.candidateCards.setImageFingerprint(candidate.id, candidate.imageUrl, fingerprint);
       result.candidatesFingerprinted++;
     } catch (error) {
-      await repos.candidateCards.setImageFingerprint(candidate.id, candidate.imageUrl, null);
+      const attempts = isTransientDownloadFailure(error)
+        ? await repos.candidateCards.recordFingerprintFailure(
+            candidate.id,
+            candidate.imageUrl,
+            rehostFailureReason(error),
+          )
+        : MAX_CANDIDATE_ATTEMPTS;
+      if (attempts >= MAX_CANDIDATE_ATTEMPTS) {
+        await repos.candidateCards.setImageFingerprint(candidate.id, candidate.imageUrl, null);
+      }
       result.candidatesFailed++;
       log.warn(
         { candidatePrintingId: candidate.id, url: candidate.imageUrl, err: error },

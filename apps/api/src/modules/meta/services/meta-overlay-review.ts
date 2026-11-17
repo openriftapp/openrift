@@ -79,6 +79,14 @@ export async function acceptMetaEventOverlay(
       if (overlay.status === "accepted") {
         throw conflict("That overlay was already accepted.");
       }
+      const editedEventId = overlay.metaEventId;
+      if (overlay.origin === "admin_edit" && editedEventId !== null) {
+        await assertNoCurrentAdminEdit(
+          repos,
+          `admin-edit:${editedEventId}:${overlay.submittedByUserId}`,
+          () => repos.metaOverlays.adminEditOverlay(editedEventId, overlay.submittedByUserId),
+        );
+      }
 
       if (overlay.metaEventId !== null) {
         await repos.metaOverlays.setEventOverlayStatus(overlayId, "accepted", now);
@@ -365,6 +373,7 @@ export async function writeEventOverlayFields(
         ? repos.metaOverlays.insertEventOverlay({
             metaEventId,
             claimedFields: fields,
+            origin: "admin_edit",
             status: "accepted",
             acceptedAt: now,
             submittedByUserId: authorUserId,
@@ -429,10 +438,10 @@ export async function applyMetaEventCorrection(
       );
     }
 
-    // Sourceless with a note: the event editor merges only noteless rows, and the uploads list skips it.
-    await trx.metaOverlays.insertEventOverlay({
+    const eventOverlayId = await trx.metaOverlays.insertEventOverlay({
       metaEventId: eventId,
       claimedFields,
+      origin: "contributor",
       status: "accepted",
       acceptedAt: now,
       submittedByUserId: submission.userId,
@@ -445,6 +454,7 @@ export async function applyMetaEventCorrection(
       acceptedDeckId: null,
       resolvedAt: now,
       resolvedByUserId: options.reviewedByUserId,
+      eventOverlayId,
     });
     await promoteMetaEvent(trx, eventId);
     return eventId;
@@ -646,6 +656,7 @@ export async function writeMetaPlayerOverlayFields(
                 metaEventId: null,
                 eventOverlayId: null,
                 claimedFields: claimed,
+                origin: "admin_edit",
                 status: "accepted",
                 acceptedAt: now,
                 submittedByUserId: authorUserId,
@@ -826,7 +837,33 @@ async function loadPlayerAccept(
       "This entry belongs to an event that has not been accepted yet. Accept the event first.",
     );
   }
+  const targetPlayerId = player?.id ?? overlay.metaEventPlayerId;
+  if (overlay.origin === "admin_edit" && targetPlayerId !== null) {
+    await assertNoCurrentAdminEdit(
+      repos,
+      `admin-player-edit:${targetPlayerId}:${overlay.submittedByUserId}`,
+      () => repos.metaOverlays.adminPlayerEditOverlay(targetPlayerId, overlay.submittedByUserId),
+    );
+  }
   return { overlay, player, metaEventId };
+}
+
+/**
+ * An admin keeps one accepted edit row per target, so a rejected one cannot
+ * come back while a newer one holds the target. The lock is the one the edit writers take.
+ */
+async function assertNoCurrentAdminEdit(
+  repos: Repos,
+  key: string,
+  current: () => Promise<unknown>,
+): Promise<void> {
+  await repos.meta.withPromoteLock(key, async () => {
+    if ((await current()) !== undefined) {
+      throw conflict(
+        "This admin edit was replaced by a newer one on the same entry. Edit the field again instead.",
+      );
+    }
+  });
 }
 
 /**
@@ -958,6 +995,15 @@ export async function acceptMetaPlayerOverlays(
         ...(await loadPlayerAccept(repos, item.id, item.metaEventPlayerId)),
         fields: item.fields ?? null,
       });
+    }
+    const adminEditTargets = pending
+      .filter(({ overlay }) => overlay.origin === "admin_edit")
+      .map(
+        ({ overlay, player }) =>
+          `${player?.id ?? overlay.metaEventPlayerId}:${overlay.submittedByUserId}`,
+      );
+    if (new Set(adminEditTargets).size !== adminEditTargets.length) {
+      throw conflict("Two of these admin edits are by one admin on the same entry. Accept one.");
     }
     for (const { overlay, player, fields } of pending) {
       const claimed =

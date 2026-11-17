@@ -26,6 +26,21 @@ import type { CopiesTable } from "../db/tables/collections.js";
 import type { PublicImageFilesView } from "../db/tables/views.js";
 import { parseKeysetCursor } from "../lib/keyset-cursor.js";
 
+/**
+ * Over a left-joined failure row `alias` (attempts, last_attempt_at): no row is
+ * due; a failed one waits 1 h, doubling per attempt, at most a day.
+ */
+export function retryBackoffDue(alias: string): RawBuilder<SqlBool> {
+  const attempts = sql.ref(`${alias}.attempts`);
+  return sql<SqlBool>`(
+    ${attempts} IS NULL
+    OR date_trunc('milliseconds', ${sql.ref(`${alias}.last_attempt_at`)}) < now() - least(
+      interval '1 hour' * power(2, least(${attempts} - 1, 10)),
+      interval '1 day'
+    )
+  )`;
+}
+
 export function publicFallbackImageId(alias: string) {
   return sql<string | null>`(
     SELECT pif.id FROM public_image_files pif

@@ -7,7 +7,11 @@ import {
   assertValidReorder,
   conflictOnUniqueViolation,
 } from "../../../lib/assertions.js";
-import { isUniqueViolationOn, raisedExceptionMessage } from "../../../lib/pg-errors.js";
+import {
+  HIERARCHY_REJECTED_SQLSTATE,
+  isRaisedWith,
+  isUniqueViolationOn,
+} from "../../../lib/pg-errors.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { assertSlugFreeForRename } from "../lib/taxonomy-assertions.js";
@@ -24,11 +28,10 @@ const CHANNEL_SLUG_KEY = "uq_distribution_channels_slug";
  * already has printings) to a 409; the trigger's message is already human-readable.
  */
 function asHierarchyConflict(error: unknown, conflict: (message: string) => Error): unknown {
-  const raised = raisedExceptionMessage(error);
-  if (raised === null) {
+  if (!isRaisedWith(error, HIERARCHY_REJECTED_SQLSTATE)) {
     return error;
   }
-  return conflict(raised);
+  return conflict((error as { message: string }).message);
 }
 
 /**

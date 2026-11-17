@@ -615,6 +615,7 @@ describe.skipIf(!ctx)("overlay review", () => {
           status: "accepted",
           acceptedAt: new Date("2026-08-16T00:00:00Z"),
           submissionNote: "Counted it off the stream.",
+          origin: "contributor",
           submittedByUserId: otherAdminId,
         },
         [],
@@ -669,7 +670,11 @@ describe.skipIf(!ctx)("overlay review", () => {
 
       const overlays = await repos.metaOverlays.acceptedEventOverlays(metaEventId);
       expect(overlays).toHaveLength(1);
-      expect(overlays[0]).toMatchObject({ claimedFields: ["location"], organizer: null });
+      expect(overlays[0]).toMatchObject({
+        claimedFields: ["location"],
+        organizer: null,
+        origin: "admin_edit",
+      });
       expect(await repo.eventById(metaEventId)).toMatchObject({
         organizer: null,
         location: "Zaun",
@@ -685,6 +690,7 @@ describe.skipIf(!ctx)("overlay review", () => {
         status: "accepted",
         acceptedAt: new Date("2026-08-16T00:00:00Z"),
         submissionNote: "Saw it on the organizer's stream.",
+        origin: "contributor",
         submittedByUserId: otherAdminId,
       });
 
@@ -708,6 +714,7 @@ describe.skipIf(!ctx)("overlay review", () => {
         provider: "morpush",
         externalId,
         claimedFields: ["organizer"],
+        origin: "provider",
         submittedByUserId: otherAdminId,
         ...values,
       });
@@ -743,6 +750,7 @@ describe.skipIf(!ctx)("overlay review", () => {
           claimedFields: ["playerName", "rank"],
           provider: "morpush",
           sourcePlayerKey: playerSourceKey("mor-duplicate", "p1"),
+          origin: "provider",
           submittedByUserId: otherAdminId,
         },
         [],
@@ -769,6 +777,7 @@ describe.skipIf(!ctx)("overlay review", () => {
         eventDate: "2026-08-16",
         format: "constructed",
         claimedFields: ["name", "eventDate", "format"],
+        origin: "contributor",
         submittedByUserId: otherAdminId,
       });
 
@@ -823,6 +832,7 @@ describe.skipIf(!ctx)("overlay review", () => {
         externalId: "mor-accept-abort",
         claimedFields: ["organizer"],
         organizer: "MOR Rolled Back",
+        origin: "provider",
         submittedByUserId: otherAdminId,
       });
       const failing: Transact = (fn) =>
@@ -878,6 +888,7 @@ describe.skipIf(!ctx)("overlay review", () => {
         format: "constructed",
         organizer: "MOR Card Bazaar",
         claimedFields: ["name", "eventDate", "format", "organizer"],
+        origin: "provider",
         submittedByUserId: otherAdminId,
       });
       const playerOverlayId = await repos.metaOverlays.insertPlayerOverlay(
@@ -888,6 +899,7 @@ describe.skipIf(!ctx)("overlay review", () => {
           claimedFields: ["playerName", "rank"],
           provider: "morpush",
           sourcePlayerKey: playerSourceKey(externalId, "p1"),
+          origin: "provider",
           submittedByUserId: otherAdminId,
         },
         [],
@@ -1000,6 +1012,7 @@ describe.skipIf(!ctx)("overlay review", () => {
           metaEventPlayerId,
           wins: 9,
           claimedFields: ["wins"],
+          origin: "contributor",
           submittedByUserId: userId,
           submissionNote: null,
         },
@@ -1121,11 +1134,44 @@ describe.skipIf(!ctx)("overlay review", () => {
       });
       expect(await creditsFor(userId)).toHaveLength(1);
       const [overlay] = await repos.metaOverlays.acceptedEventOverlays(metaEventId);
+      expect(overlay).toMatchObject({ origin: "contributor" });
+      expect(await repos.metaSubmissions.byId(submissionId)).toMatchObject({
+        eventOverlayId: overlay!.id,
+      });
 
       await rejectMetaOverlay(transact, { kind: "event", id: overlay!.id });
 
       expect(await repos.metaSubmissions.byId(submissionId)).toMatchObject({ status: "rejected" });
       expect(await creditsFor(userId)).toEqual([]);
+    });
+
+    it("rejects a noteless correction's last released claim instead of deleting it", async () => {
+      const metaEventId = await seedLiveEvent("mor-correction-noteless");
+      const userId = await seedContributor();
+      const submissionId = await repos.metaSubmissions.insert({
+        userId,
+        provider: "usersubmission",
+        externalId: `mor-${crypto.randomUUID()}`,
+        playerOverlayId: null,
+        metaEventId,
+        eventName: "MOR Summoner Skirmish",
+        playerName: null,
+        kind: "event_correction",
+        fieldEdits: { organizer: "MOR Zaun Games" },
+        note: null,
+      });
+      await applyMetaEventCorrection(transact, submissionId, {
+        fields: null,
+        reviewedByUserId: otherAdminId,
+      });
+      const [overlay] = await repos.metaOverlays.acceptedEventOverlays(metaEventId);
+
+      await releaseEventOverlayField(transact, metaEventId, "organizer");
+
+      expect(await repos.metaOverlays.eventOverlayById(overlay!.id)).toMatchObject({
+        status: "rejected",
+      });
+      expect(await repos.metaSubmissions.byId(submissionId)).toMatchObject({ status: "rejected" });
     });
 
     it("lets one of two concurrent accepts through and refuses the other with 409", async () => {

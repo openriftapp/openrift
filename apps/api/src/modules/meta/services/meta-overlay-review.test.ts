@@ -72,6 +72,8 @@ const mockOverlays = {
   acceptedPlayerOverlays: vi.fn(),
   adminEditEventOverlayIds: vi.fn(),
   adminEditPlayerOverlayIds: vi.fn(),
+  adminEditOverlay: vi.fn(),
+  adminPlayerEditOverlay: vi.fn(),
   deleteEventOverlay: vi.fn(),
   deletePlayerOverlay: vi.fn(),
 };
@@ -149,6 +151,66 @@ beforeEach(() => {
   mockSubmissions.byPlayerOverlayIds.mockImplementation(async (ids: string[]) => {
     const rows = await Promise.all(ids.map((id) => mockSubmissions.byPlayerOverlayId(id)));
     return rows.filter(Boolean);
+  });
+});
+
+describe("re-accepting a rejected admin edit", () => {
+  const ADMIN_ID_EDITING = "admin-9";
+  const NOW = new Date("2026-09-16T12:00:00.000Z");
+  const REJECTED_EVENT_EDIT = {
+    ...PROPOSAL,
+    metaEventId: LIVE_EVENT_ID,
+    origin: "admin_edit",
+    status: "rejected",
+    submittedByUserId: ADMIN_ID_EDITING,
+  };
+  const REJECTED_PLAYER_EDIT = {
+    id: PLAYER_OVERLAY_ID,
+    metaEventId: null,
+    metaEventPlayerId: LIVE_PLAYER_ID,
+    eventOverlayId: null,
+    origin: "admin_edit",
+    status: "rejected",
+    claimedFields: ["wins"],
+    submittedByUserId: ADMIN_ID_EDITING,
+  };
+
+  it("refuses an event edit while the admin's newer edit holds the event", async () => {
+    mockOverlays.eventOverlayById.mockResolvedValue(REJECTED_EVENT_EDIT);
+    mockOverlays.adminEditOverlay.mockResolvedValue({ id: "newer-edit" });
+
+    await expect(acceptMetaEventOverlay(transact, OVERLAY_ID)).rejects.toMatchObject({
+      status: 409,
+    });
+    expect(mockOverlays.adminEditOverlay).toHaveBeenCalledWith(LIVE_EVENT_ID, ADMIN_ID_EDITING);
+    expect(mockMeta.withPromoteLock).toHaveBeenCalledWith(
+      `admin-edit:${LIVE_EVENT_ID}:${ADMIN_ID_EDITING}`,
+      expect.any(Function),
+    );
+    expect(mockOverlays.setEventOverlayStatus).not.toHaveBeenCalled();
+  });
+
+  it("accepts an event edit when the admin has no other accepted edit there", async () => {
+    mockOverlays.eventOverlayById.mockResolvedValue(REJECTED_EVENT_EDIT);
+    mockOverlays.adminEditOverlay.mockResolvedValue(undefined);
+
+    await acceptMetaEventOverlay(transact, OVERLAY_ID, null, NOW);
+
+    expect(mockOverlays.setEventOverlayStatus).toHaveBeenCalledWith(OVERLAY_ID, "accepted", NOW);
+  });
+
+  it("refuses a standings edit while the admin's newer edit holds the row", async () => {
+    mockOverlays.playerOverlayById.mockResolvedValue(REJECTED_PLAYER_EDIT);
+    mockOverlays.adminPlayerEditOverlay.mockResolvedValue({ id: "newer-edit" });
+
+    await expect(acceptMetaPlayerOverlay(transact, PLAYER_OVERLAY_ID)).rejects.toMatchObject({
+      status: 409,
+    });
+    expect(mockOverlays.adminPlayerEditOverlay).toHaveBeenCalledWith(
+      LIVE_PLAYER_ID,
+      ADMIN_ID_EDITING,
+    );
+    expect(mockOverlays.setPlayerOverlayStatuses).not.toHaveBeenCalled();
   });
 });
 
@@ -447,6 +509,7 @@ describe("applyMetaEventCorrection", () => {
 
   beforeEach(() => {
     mockSubmissions.byId.mockResolvedValue(correction());
+    mockOverlays.insertEventOverlay.mockResolvedValue(CORRECTION_OVERLAY_ID);
     mockMeta.eventById.mockResolvedValue({
       id: LIVE_EVENT_ID,
       name: "Summoner Skirmish",
@@ -456,6 +519,7 @@ describe("applyMetaEventCorrection", () => {
     });
   });
 
+  const CORRECTION_OVERLAY_ID = "3f7a1c2e-0000-7000-8000-0000000000e1";
   const lockCardAndMetaSubmissions = vi.fn();
   const trxRepos = { ...repos, ingest: { lockCardAndMetaSubmissions } } as unknown as Repos;
   const correctionTransact = vi.fn((fn: (r: Repos) => Promise<unknown>) => fn(trxRepos));
@@ -476,6 +540,7 @@ describe("applyMetaEventCorrection", () => {
     expect(mockOverlays.insertEventOverlay).toHaveBeenCalledExactlyOnceWith({
       metaEventId: LIVE_EVENT_ID,
       claimedFields: ["playerCount", "country"],
+      origin: "contributor",
       status: "accepted",
       acceptedAt: NOW,
       submittedByUserId: "user-7",
@@ -490,6 +555,7 @@ describe("applyMetaEventCorrection", () => {
       acceptedDeckId: null,
       resolvedAt: NOW,
       resolvedByUserId: ADMIN_ID,
+      eventOverlayId: CORRECTION_OVERLAY_ID,
     });
   });
 

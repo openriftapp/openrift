@@ -270,6 +270,7 @@ describe.skipIf(!ctx)("meta overlay review", () => {
           externalId: "mcd-mask",
           name: "MCD Unclaimed",
           claimedFields: ["tier"],
+          origin: "provider",
           submittedByUserId: USER_ID,
         })
         .execute(),
@@ -284,6 +285,7 @@ describe.skipIf(!ctx)("meta overlay review", () => {
           provider: PROVIDER,
           externalId: "mcd-vocab",
           claimedFields: ["notAField"] as never,
+          origin: "provider",
           submittedByUserId: USER_ID,
         })
         .execute(),

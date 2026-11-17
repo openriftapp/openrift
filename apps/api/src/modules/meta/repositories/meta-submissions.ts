@@ -5,7 +5,7 @@ import type {
   MetaSubmissionReason,
   MetaSubmissionStatus,
 } from "@openrift/shared/types/enums";
-import type { Kysely, Selectable, SqlBool } from "kysely";
+import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
@@ -223,26 +223,14 @@ export function metaSubmissionsRepo(db: Kysely<Database>) {
       return rows;
     },
 
-    /**
-     * The accepted correction an event overlay was applied from. No column links
-     * the two: the apply stamps the overlay's `accepted_at` and the row's `resolved_at` from one clock reading.
-     */
-    async acceptedCorrectionForOverlay(overlay: {
-      metaEventId: string | null;
-      submittedByUserId: string;
-      acceptedAt: Date | null;
-    }): Promise<MetaSubmissionRow | null> {
-      if (overlay.metaEventId === null || overlay.acceptedAt === null) {
-        return null;
-      }
+    /** The accepted correction an event overlay was applied from. */
+    async acceptedCorrectionForOverlay(overlay: { id: string }): Promise<MetaSubmissionRow | null> {
       const row = await db
         .selectFrom("metaSubmissions")
         .selectAll()
+        .where("eventOverlayId", "=", overlay.id)
         .where("kind", "=", "event_correction")
         .where("status", "=", "accepted")
-        .where("userId", "=", overlay.submittedByUserId)
-        .where("metaEventId", "=", overlay.metaEventId)
-        .where(sql<SqlBool>`date_trunc('milliseconds', resolved_at) = ${overlay.acceptedAt}`)
         .orderBy("id", "asc")
         .executeTakeFirst();
       return row ?? null;
@@ -343,6 +331,7 @@ export function metaSubmissionsRepo(db: Kysely<Database>) {
       acceptedDeckId: string | null;
       resolvedAt: Date;
       resolvedByUserId: string | null;
+      eventOverlayId?: string;
     }): Promise<void> {
       const run = async (trx: Kysely<Database>): Promise<void> => {
         await metaCreditsRepo(trx).insertCredit(values.credit);
@@ -360,6 +349,9 @@ export function metaSubmissionsRepo(db: Kysely<Database>) {
             resolvedAt: values.resolvedAt,
             resolvedByUserId: values.resolvedByUserId,
             acceptedDeckId: values.acceptedDeckId,
+            ...(values.eventOverlayId === undefined
+              ? {}
+              : { eventOverlayId: values.eventOverlayId }),
           })
           .where("id", "=", values.submissionId)
           .execute();
@@ -369,12 +361,12 @@ export function metaSubmissionsRepo(db: Kysely<Database>) {
 
     /**
      * Return a submission to the queue, for a misclicked reject. Clears the
-     * accepted deck but keeps any note the admin wrote.
+     * accepted deck and applied correction but keeps any note the admin wrote.
      */
     async reopen(id: string): Promise<void> {
       await db
         .updateTable("metaSubmissions")
-        .set({ status: "pending", resolvedAt: null, acceptedDeckId: null })
+        .set({ status: "pending", resolvedAt: null, acceptedDeckId: null, eventOverlayId: null })
         .where("id", "=", id)
         .execute();
     },
