@@ -166,4 +166,17 @@ describe("useQuickAddActions variant popover", () => {
     result.current.handleOpenVariants?.(printing, elsewhere, "remove");
     expect(useAddModeStore.getState().variantPopover?.intent).toBe("remove");
   });
+
+  it("moves the chooser to another control of the same card instead of closing it", () => {
+    const printing = stubPrinting();
+    const countPill = pill();
+    const minus = pill();
+    const { result } = renderHook(() => useQuickAddActions(COLLECTION_ID, COLLECTION_ID));
+    result.current.handleOpenVariants?.(printing, countPill, "add");
+
+    result.current.handleOpenVariants?.(printing, minus, "remove");
+
+    expect(useAddModeStore.getState().variantPopover?.anchorEl).toBe(minus);
+    expect(useAddModeStore.getState().variantPopover?.intent).toBe("remove");
+  });
 });

@@ -4,13 +4,11 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVerticalIcon } from "lucide-react";
 import type { CSSProperties, ReactNode, TouchEvent } from "react";
 
+import { acceptsReorderDrop } from "@/features/collections/lib/collection-dnd-sensing";
 import type {
-  CollectionDragData,
   SidebarReorderCollectionDragData,
   SidebarReorderListDragData,
 } from "@/features/collections/lib/dnd-types";
-import { SIDEBAR_REORDER_DRAG_TYPES } from "@/features/collections/lib/dnd-types";
-import { asDragData } from "@/lib/dnd-data";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -26,12 +24,11 @@ interface SortableSidebarRowProps {
   children: (handle: ReactNode) => ReactNode;
 }
 
-// The drop side is disabled when the active drag isn't a sidebar-reorder
-// drag, so card drops keep going to the row's Droppable wrapper instead.
+// The drop side is disabled unless the active drag reorders this row's section,
+// so card drops keep going to the row's Droppable wrapper instead.
 export function SortableSidebarRow({ id, data, label, children }: SortableSidebarRowProps) {
   const { active } = useDndContext();
-  const isReorderActive =
-    asDragData<CollectionDragData>(active?.data.current, SIDEBAR_REORDER_DRAG_TYPES) !== undefined;
+  const acceptsActive = acceptsReorderDrop(data, active?.data.current);
 
   // Destructure into locals: the React Compiler treats member access on the
   // hook's return object as a ref read during render and bails.
@@ -46,7 +43,7 @@ export function SortableSidebarRow({ id, data, label, children }: SortableSideba
   } = useSortable({
     id,
     data,
-    disabled: { droppable: !isReorderActive, draggable: false },
+    disabled: { droppable: !acceptsActive, draggable: false },
   });
 
   const style: CSSProperties = {

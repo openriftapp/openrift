@@ -1,3 +1,4 @@
+import type { PopoverRoot } from "@base-ui/react/popover";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useState } from "react";
 
@@ -16,6 +17,20 @@ interface VariantLocationsPopoverHostProps {
   onRemoveFromCollection: (printing: Printing, collectionId: string) => void;
   closeVariants: (pressTarget?: EventTarget | null) => void;
   viewCollectionId?: string;
+}
+
+/**
+ * The element a dismissal came from. A press that moves focus to a button closes the popover
+ * with "focus-out" on pointerdown, before the "outside-press" click arrives.
+ */
+function dismissOrigin(details: PopoverRoot.ChangeEventDetails): EventTarget | null {
+  if (details.reason === "outside-press") {
+    return details.event.target;
+  }
+  if (details.reason === "focus-out" && details.event instanceof FocusEvent) {
+    return details.event.relatedTarget;
+  }
+  return null;
 }
 
 // Kept separate from CollectionGrid: the grid must not subscribe to
@@ -63,7 +78,7 @@ export function VariantLocationsPopoverHost({
           return;
         }
         setAddCollectionTarget(null);
-        closeVariants(details.reason === "outside-press" ? details.event.target : undefined);
+        closeVariants(dismissOrigin(details));
       }}
     >
       <PopoverContent

@@ -37,10 +37,12 @@ interface AddModeState {
     printingId?: string,
   ) => void;
   closeVariants: () => void;
+  /** Closes the popover when it is open on `anchorEl`; a control's press then does nothing else. */
+  closeVariantsOn: (anchorEl?: HTMLElement) => boolean;
   reset: () => void;
 }
 
-export const useAddModeStore = create<AddModeState>()((set) => ({
+export const useAddModeStore = create<AddModeState>()((set, get) => ({
   addedItems: new Map(),
   variantPopover: null,
 
@@ -123,6 +125,13 @@ export const useAddModeStore = create<AddModeState>()((set) => ({
       },
     }),
   closeVariants: () => set({ variantPopover: null }),
+  closeVariantsOn: (anchorEl) => {
+    if (!anchorEl || get().variantPopover?.anchorEl !== anchorEl) {
+      return false;
+    }
+    set({ variantPopover: null });
+    return true;
+  },
   reset: () =>
     set({
       addedItems: new Map(),

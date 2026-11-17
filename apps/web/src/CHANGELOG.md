@@ -30,6 +30,9 @@
 - fix(Collections): **Card detail closes when its last copy is gone** — removing the last copy of a card on a collection or list page closes its detail.
 - fix(Profile): **Contents highlight** — clicking an entry in a page's contents list keeps that entry highlighted once the page has scrolled to it.
 - fix(Contribute): **Jump to rules text** — Jumping from the card preview to rules or effect text now puts the cursor in the text box.
+- fix(Collections): **Variant chooser closes on a second press** — Pressing the count pill or the minus button again now closes the variant chooser.
+- fix(Collections): **Detail closes with the last copy** — Removing the last copy of a card now closes its detail.
+- fix(Collections): **Keyboard reorder in the sidebar** — Binders and lists can be reordered with Space and the arrow keys on their grip.
 
 ## 2026-11-16
 

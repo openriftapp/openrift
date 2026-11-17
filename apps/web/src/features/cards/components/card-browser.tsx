@@ -35,6 +35,7 @@ import { useOwnedCount } from "@/features/collections/hooks/use-owned-count";
 import { useQuickAddActions } from "@/features/collections/hooks/use-quick-add-actions";
 import { useRowActionHandlers } from "@/features/collections/hooks/use-row-action-handlers";
 import { maxOwnedCount } from "@/features/collections/lib/owned-bucket";
+import { useAddModeStore } from "@/features/collections/stores/add-mode-store";
 import type { VariantPopoverIntent } from "@/features/collections/stores/add-mode-store";
 import { useWishEntries } from "@/features/groups/hooks/use-wish-entries";
 import { WishlistPickerHost } from "@/features/lists/components/wishlist-picker-host";
@@ -249,6 +250,9 @@ export function CardBrowser() {
   // Owned variants are counted on click, not pre-bucketed into a map, since
   // that map would rebuild on every +/- and bust the grid's memoization.
   const handleDecrement = (printing: Printing, anchorEl?: HTMLElement) => {
+    if (useAddModeStore.getState().closeVariantsOn(anchorEl)) {
+      return;
+    }
     const tile = inCardsView
       ? tileSiblings(printing, printingsByCardId.get(printing.cardId), groupBy)
       : undefined;

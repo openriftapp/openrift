@@ -2,6 +2,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import type { GroupByField } from "@openrift/shared/types/search";
 
 import { cardsViewTileKey } from "@/features/cards/lib/card-tiles";
+import { useAddModeStore } from "@/features/collections/stores/add-mode-store";
 import type { VariantPopoverIntent } from "@/features/collections/stores/add-mode-store";
 
 interface RouteDecrementDeps {
@@ -28,6 +29,9 @@ export function buildOnDecrement({
   tryUndoAdd,
 }: RouteDecrementDeps): (printing: Printing, anchorEl?: HTMLElement) => void {
   return (printing, anchorEl) => {
+    if (useAddModeStore.getState().closeVariantsOn(anchorEl)) {
+      return;
+    }
     const ownedVariantIds = ownedPrintingIdsByTile.get(cardsViewTileKey(printing, groupBy));
     const ambiguousVariant = dataView === "cards" && (ownedVariantIds?.length ?? 0) > 1;
     if (ambiguousVariant && handleOpenVariants && anchorEl) {

@@ -5,6 +5,7 @@ import { AnnotatedDisposeDialog } from "@/features/collections/components/annota
 import { VariantLocationsPopoverHost } from "@/features/collections/components/variant-locations-popover-host";
 import { useCollectionsList } from "@/features/collections/hooks/use-collections";
 import { useQuickAddActions } from "@/features/collections/hooks/use-quick-add-actions";
+import { useAddModeStore } from "@/features/collections/stores/add-mode-store";
 import { useWishEntries } from "@/features/groups/hooks/use-wish-entries";
 import { WishlistPickerHost } from "@/features/lists/components/wishlist-picker-host";
 import { useUserId } from "@/hooks/use-session";
@@ -48,6 +49,9 @@ export function useCardDetailActionHost({
   };
 
   const removeCopy = (printing: Printing, anchorEl: HTMLElement) => {
+    if (useAddModeStore.getState().closeVariantsOn(anchorEl)) {
+      return;
+    }
     void (async () => {
       const result = await tryUndoAdd?.(printing);
       if (result === "ambiguous" && handleOpenVariants) {

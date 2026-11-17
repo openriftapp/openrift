@@ -1,12 +1,5 @@
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
-import {
-  DndContext,
-  DragOverlay,
-  PointerSensor,
-  pointerWithin,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
+import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getRouteApi, Outlet } from "@tanstack/react-router";
@@ -29,7 +22,9 @@ import {
   resolveSelectionDrag,
 } from "@/features/collections/components/collection-drag";
 import { CollectionSidebar } from "@/features/collections/components/collection-sidebar";
+import { useCollectionDndSensors } from "@/features/collections/hooks/use-collection-dnd-sensors";
 import { useMoveCopies } from "@/features/collections/hooks/use-copies";
+import { collectionCollisionDetection } from "@/features/collections/lib/collection-dnd-sensing";
 import type {
   CollectionDragData,
   CardDragData,
@@ -76,7 +71,6 @@ import { m } from "@/paraglide/messages.js";
 
 const routeApi = getRouteApi("/_app/_authenticated/collections");
 
-const DRAG_ACTIVATION = { distance: 8 };
 const MODIFIERS = [snapCenterToCursor];
 
 type CollectionDropData = { type: "collection"; collectionId: string } | SidebarListDropData;
@@ -109,7 +103,7 @@ export function CollectionLayout() {
   const bulkAddListEntries = useBulkAddListEntries();
   const moveListEntries = useMoveListEntries();
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: DRAG_ACTIVATION }));
+  const sensors = useCollectionDndSensors();
 
   // Tracked for the whole layout so Shift held before grabbing a card isn't missed.
   // Digits only arm the modifier while dragActiveRef is set: unarmed, the same keys add copies (useGridKeyboardNav).
@@ -390,7 +384,7 @@ export function CollectionLayout() {
             <SidebarProvider className="flex-1">
               <DndContext
                 sensors={sensors}
-                collisionDetection={pointerWithin}
+                collisionDetection={collectionCollisionDetection}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 onDragCancel={() => {

@@ -21,8 +21,8 @@ export interface ResolvedSelection {
 const NO_SELECTION: ResolvedSelection = { card: null, index: -1, item: undefined };
 
 /**
- * A removed tile hands the selection to its nearest surviving neighbour from `sourceIds`.
- * Without one, an `outlivesList` selection stays shown without a tile and any other clears.
+ * A removed tile hands an `outlivesList` selection to its nearest surviving neighbour from
+ * `sourceIds`, else keeps it shown without a tile. Any other selection clears.
  */
 export function resolveSelection(
   state: SelectionAnchorState,
@@ -58,6 +58,9 @@ export function resolveSelection(
     return at(byCard);
   }
 
+  if (!outlivesList) {
+    return NO_SELECTION;
+  }
   const position = selectedItemId === null ? -1 : sourceIds.indexOf(selectedItemId);
   if (position !== -1) {
     const indexById = new Map(items.map((item, index) => [item.id, index]));
@@ -73,5 +76,5 @@ export function resolveSelection(
       }
     }
   }
-  return outlivesList ? at(-1) : NO_SELECTION;
+  return at(-1);
 }

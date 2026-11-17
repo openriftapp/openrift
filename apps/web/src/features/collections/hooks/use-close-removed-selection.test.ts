@@ -41,6 +41,20 @@ describe("useCloseRemovedSelection", () => {
     expect(useSelectionStore.getState().selectedCard).toBeNull();
   });
 
+  it("closes the detail when the last copy goes while other cards stay on the page", () => {
+    const beta = stubPrinting({ printingId: "p2", cardId: "c2", card: { name: "Beta" } });
+    const page: CardViewerItem[] = [...copies, { id: "copy-2", printing: beta }];
+    useSelectionStore
+      .getState()
+      .selectCard(alpha, page, "printing", { itemId: "copy-1", outlivesList: false });
+    const { rerender } = renderWith(page);
+
+    rerender({ items: [{ id: "copy-2", printing: beta }] });
+
+    expect(useSelectionStore.getState().detailOpen).toBe(false);
+    expect(useSelectionStore.getState().selectedCard).toBeNull();
+  });
+
   it("keeps a selection that may outlive its list", () => {
     useSelectionStore.getState().selectCard(alpha, copies, "printing", { itemId: "copy-1" });
     const { rerender } = renderWith(copies);

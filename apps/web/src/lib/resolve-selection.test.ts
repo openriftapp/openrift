@@ -87,15 +87,26 @@ describe("resolveSelection", () => {
     expect(resolved.index).toBe(-1);
   });
 
-  it("drops a selection that may not outlive its list when no neighbour survives", () => {
+  it("drops a selection that may not outlive its list even when a neighbour survives", () => {
     const items = list(["copy-1", alpha], ["copy-2", beta]);
 
     const resolved = resolveSelection(
       selected(items[0]!, items, { outlivesList: false }),
-      list(["copy-3", gamma]),
+      list(["copy-2", beta]),
     );
 
     expect(resolved.card).toBeNull();
+  });
+
+  it("moves a list-bound selection to another copy of its printing", () => {
+    const items = list(["copy-1", alpha], ["copy-2", alpha], ["copy-3", beta]);
+
+    const resolved = resolveSelection(
+      selected(items[0]!, items, { outlivesList: false }),
+      list(["copy-2", alpha], ["copy-3", beta]),
+    );
+
+    expect(resolved.item?.id).toBe("copy-2");
   });
 
   it("keeps a deck-list card when the catalog beside it has no results", () => {

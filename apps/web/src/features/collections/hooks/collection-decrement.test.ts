@@ -1,7 +1,12 @@
 import type { Printing } from "@openrift/shared/types/catalog";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { useAddModeStore } from "@/features/collections/stores/add-mode-store";
+import { createStoreResetter } from "@/test/store-helpers";
 
 import { buildOnDecrement } from "./collection-decrement";
+
+afterEach(createStoreResetter(useAddModeStore));
 
 const printing = { printingId: "p1", cardId: "c1", setId: "set-ogn" } as Printing;
 
@@ -142,5 +147,25 @@ describe("buildOnDecrement", () => {
       expect(handleOpenVariants).not.toHaveBeenCalled();
       expect(tryUndoAdd).toHaveBeenCalledWith(printing);
     }
+  });
+
+  it("closes the chooser it opened and removes nothing when pressed again", async () => {
+    const tryUndoAdd = vi.fn().mockResolvedValue("done" as const);
+    const handleOpenVariants = vi.fn();
+    const anchor = document.createElement("button");
+    useAddModeStore.getState().openVariants("c1", anchor, "remove");
+
+    buildOnDecrement({
+      dataView: "printings",
+      groupBy: "none",
+      ownedPrintingIdsByTile: new Map([["c1", ["p1"]]]),
+      handleOpenVariants,
+      tryUndoAdd,
+    })(printing, anchor);
+    await flush();
+
+    expect(useAddModeStore.getState().variantPopover).toBeNull();
+    expect(tryUndoAdd).not.toHaveBeenCalled();
+    expect(handleOpenVariants).not.toHaveBeenCalled();
   });
 });

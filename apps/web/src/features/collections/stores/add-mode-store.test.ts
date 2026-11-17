@@ -195,6 +195,31 @@ describe("useAddModeStore", () => {
         printingId: "printing-9",
       });
     });
+
+    it("closeVariantsOn closes a popover open on that element", () => {
+      const anchor = document.createElement("button");
+      useAddModeStore.getState().openVariants("card-1", anchor, "add");
+
+      expect(useAddModeStore.getState().closeVariantsOn(anchor)).toBe(true);
+      expect(useAddModeStore.getState().variantPopover).toBeNull();
+    });
+
+    it("closeVariantsOn leaves a popover open on another element", () => {
+      const anchor = document.createElement("button");
+      useAddModeStore.getState().openVariants("card-1", anchor, "add");
+
+      expect(useAddModeStore.getState().closeVariantsOn(document.createElement("button"))).toBe(
+        false,
+      );
+      expect(useAddModeStore.getState().closeVariantsOn()).toBe(false);
+      expect(useAddModeStore.getState().variantPopover?.anchorEl).toBe(anchor);
+    });
+
+    it("closeVariantsOn reports false when nothing is open", () => {
+      expect(useAddModeStore.getState().closeVariantsOn(document.createElement("button"))).toBe(
+        false,
+      );
+    });
   });
 
   describe("reset", () => {
