@@ -71,4 +71,21 @@ describe("registrationIsStale", () => {
     useWorkspaceActionsStore.getState().unregister(leaving);
     expect(stale()).toBe(false);
   });
+
+  it("stays stale while the next record registers as loading, until it registers loaded", () => {
+    const leaving = Symbol("leaving");
+    const next = Symbol("next");
+    useWorkspaceActionsStore.getState().register({ ignore: () => {} }, leaving);
+    useWorkspaceActionsStore.getState().leave(false);
+
+    useWorkspaceActionsStore.getState().register({ loading: true }, next);
+    expect(stale()).toBe(true);
+    useWorkspaceActionsStore.getState().register({ ignore: () => {} }, next);
+    expect(stale()).toBe(false);
+  });
+
+  it("is stale for a record opened directly while it loads", () => {
+    useWorkspaceActionsStore.getState().register({ loading: true }, Symbol("record"));
+    expect(stale()).toBe(true);
+  });
 });

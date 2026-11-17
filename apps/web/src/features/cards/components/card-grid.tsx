@@ -15,6 +15,7 @@ import {
 import { OrnamentRule } from "@/components/ui/ornament";
 import { Pressable } from "@/components/ui/pressable";
 import { useAdminSettings } from "@/features/admin/hooks/use-admin-settings";
+import { useFilterSearchKey } from "@/features/cards/hooks/use-filter-search";
 import { useFollowSelectedRow } from "@/features/cards/hooks/use-follow-selected-row";
 import { useFollowSelection } from "@/features/cards/hooks/use-follow-selection";
 import { useResponsiveColumns } from "@/features/cards/hooks/use-responsive-columns";
@@ -319,6 +320,7 @@ export function CardGrid({
   };
 
   const followSelection = useFollowSelection();
+  const filterSearchKey = useFilterSearchKey();
   useScopeEffect(selectedItemId, (itemId) => {
     const follow = followSelection(itemId);
     if (!itemId) {
@@ -340,6 +342,7 @@ export function CardGrid({
     selectedItemId,
     selectedItemId ? cardRowIndex(virtualRows, selectedItemId) : -1,
     columns,
+    filterSearchKey,
     scrollToCard,
   );
 

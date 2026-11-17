@@ -93,7 +93,11 @@ export function ListingRecord({ ownerId }: { ownerId: string }) {
 function ListingBody({ sku, item }: { sku: ListingSku; item: WorkspaceQueueItem }) {
   const navigation = useQueueNavigation("printing");
   const queryClient = useQueryClient();
-  const { data: mappingData, isPending: mappingPending } = useQuery({
+  const {
+    data: mappingData,
+    isPending: mappingPending,
+    isLoading: mappingLoading,
+  } = useQuery({
     ...unifiedMappingsForCardQueryOptions(item.cardSlug ?? ""),
     enabled: item.cardSlug !== null,
   });
@@ -164,6 +168,7 @@ function ListingBody({ sku, item }: { sku: ListingSku; item: WorkspaceQueueItem 
     );
 
   useRegisterRecordActions({
+    loading: mappingLoading,
     ignore: pending ? undefined : ignore,
     useSuggestion: async (n) => {
       const candidate = candidates[n - 1];

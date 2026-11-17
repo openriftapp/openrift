@@ -485,6 +485,25 @@ describe("useWorkspaceKeyboard", () => {
     expect(ignorePrevious).not.toHaveBeenCalled();
   });
 
+  it("says the record is still loading for X, A, digits and Enter while it registers as loading", () => {
+    renderHook(() => useWorkspaceKeyboard("card"), { wrapper });
+    const run = vi.fn();
+    useWorkspaceActionsStore
+      .getState()
+      .register({ loading: true, primary: { label: "Next", run } }, Symbol("loading"));
+
+    for (const key of ["x", "a", "1", "Enter"]) {
+      const event = new KeyboardEvent("keydown", { key, cancelable: true });
+      globalThis.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(true);
+    }
+
+    expect(notice).toHaveBeenCalledTimes(4);
+    expect(notice).toHaveBeenCalledWith(RECORD_LOADING_NOTICE);
+    expect(run).not.toHaveBeenCalled();
+    expect(navigation.goNext).not.toHaveBeenCalled();
+  });
+
   it("ignores keys while a dialog is in the document", () => {
     renderHook(() => useWorkspaceKeyboard("face"), { wrapper });
     const dialog = document.createElement("div");
@@ -492,6 +511,18 @@ describe("useWorkspaceKeyboard", () => {
     document.body.append(dialog);
     globalThis.dispatchEvent(new KeyboardEvent("keydown", { key: "j" }));
     expect(navigation.goNext).not.toHaveBeenCalled();
+  });
+
+  it("keeps the keys while a closed select popup stays mounted", () => {
+    renderHook(() => useWorkspaceKeyboard("printing"), { wrapper });
+    const popup = document.createElement("div");
+    popup.dataset.closed = "";
+    const list = document.createElement("div");
+    list.setAttribute("role", "listbox");
+    popup.append(list);
+    document.body.append(popup);
+    globalThis.dispatchEvent(new KeyboardEvent("keydown", { key: "j" }));
+    expect(navigation.goNext).toHaveBeenCalledOnce();
   });
 
   it("stops listening on unmount", () => {

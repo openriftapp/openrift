@@ -149,12 +149,14 @@ export function useFaceRecordActions({
   model,
   canCheck,
   enabled,
+  loading = false,
 }: {
   cardSlug: string;
   record: string;
   model: FaceSuggestionModel | null;
   canCheck: boolean;
   enabled: boolean;
+  loading?: boolean;
 }) {
   const scope = [adminKeys.cards.detail(cardSlug), adminKeys.cards.list, adminKeys.workspace];
   const acceptField = useAcceptPrintingField(scope);
@@ -256,6 +258,7 @@ export function useFaceRecordActions({
   }
 
   useRegisterRecordActions({
+    loading,
     primary:
       enabled && canCheck
         ? {

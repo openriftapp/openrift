@@ -735,7 +735,7 @@ export function CardRecord({ cardSlug }: { cardSlug: string }) {
     submissions,
     canCheck: isAdmin,
   });
-  useRegisterRecordActions(actions);
+  useRegisterRecordActions({ ...actions, loading: detail === undefined && !isError });
   const primary = actions.primary ?? { label: "Next", run: () => Promise.resolve() };
 
   const card = detail?.card ?? null;

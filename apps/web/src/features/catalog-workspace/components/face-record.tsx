@@ -155,6 +155,7 @@ function ReviewFaceRecord({
     model,
     canCheck: isAdmin,
     enabled: true,
+    loading: detail === undefined && !detailQuery.isError,
   });
 
   if (detail === undefined || model === null) {

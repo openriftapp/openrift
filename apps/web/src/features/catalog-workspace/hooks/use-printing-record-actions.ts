@@ -61,6 +61,7 @@ export function usePrintingRecordActions({
   listings,
   canCheck,
   canMap,
+  loading = false,
 }: {
   printingId: string;
   record: string;
@@ -68,6 +69,7 @@ export function usePrintingRecordActions({
   listings: readonly ListingSuggestion[];
   canCheck: boolean;
   canMap: boolean;
+  loading?: boolean;
 }) {
   const queryClient = useQueryClient();
   const scope = [adminKeys.cards.all, adminKeys.printingDesk.all, adminKeys.workspace];
@@ -161,6 +163,7 @@ export function usePrintingRecordActions({
   }
 
   useRegisterRecordActions({
+    loading,
     primary: canCheck
       ? { label: primaryLabel(enterIds.length), disabled: pending, run: runPrimary }
       : undefined,

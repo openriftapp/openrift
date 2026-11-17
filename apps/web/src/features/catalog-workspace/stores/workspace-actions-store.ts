@@ -5,6 +5,7 @@ export interface WorkspaceRecordActions {
   accept?: () => Promise<void> | void;
   ignore?: () => Promise<void> | void;
   useSuggestion?: (n: number) => Promise<void> | void;
+  loading?: boolean;
 }
 
 interface Leaving {
@@ -39,9 +40,17 @@ export const useWorkspaceActionsStore = create<WorkspaceActionsState>()((set, ge
   leave: (toList) => set((state) => ({ leaving: { from: state.owner, toList } })),
 }));
 
-/** True while the registered actions belong to the record being left, or no record has registered yet. */
-export function registrationIsStale(state: Pick<WorkspaceActionsState, "owner" | "leaving">) {
-  const { owner, leaving } = state;
+/**
+ * True while the registered actions belong to the record being left, no record has registered
+ * yet, or the registered record is still loading.
+ */
+export function registrationIsStale(
+  state: Pick<WorkspaceActionsState, "actions" | "owner" | "leaving">,
+) {
+  const { actions, owner, leaving } = state;
+  if (actions?.loading === true) {
+    return true;
+  }
   if (leaving === null) {
     return false;
   }

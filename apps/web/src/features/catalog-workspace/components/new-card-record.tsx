@@ -230,13 +230,15 @@ export function NewCardRecord({ name }: { name: string }) {
     }
   }
 
+  const loading = isLoading || detail === undefined || setsData === undefined;
   useRegisterRecordActions({
+    loading,
     primary: { label: "Next", run: () => Promise.resolve() },
     accept: () => acceptAsNew(),
     ignore: isAdmin && providerRows.length > 0 ? ignoreDraft : undefined,
   });
 
-  if (isLoading || detail === undefined || setsData === undefined) {
+  if (loading) {
     return (
       <RecordPane header={<Skeleton className="h-10 w-64" />}>
         <Skeleton className="h-64" />

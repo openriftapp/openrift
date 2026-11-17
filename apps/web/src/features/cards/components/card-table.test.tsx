@@ -3,6 +3,8 @@ import { render } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
+import type { FilterSearch } from "@/features/cards/lib/search-schemas";
 import type { GroupInfo } from "@/lib/card-group-types";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import { stubCardViewerItem } from "@/test/factories";
@@ -31,17 +33,19 @@ function makeItems(prefix: string, count: number): CardViewerItem[] {
   );
 }
 
-function tableElement(items: CardViewerItem[], selectedItemId: string) {
+function tableElement(items: CardViewerItem[], selectedItemId: string, search: FilterSearch = {}) {
   return (
-    <CardTable
-      items={items}
-      totalItems={items.length}
-      setOrder={[set]}
-      groupBy="set"
-      stickyOffset={0}
-      selectedItemId={selectedItemId}
-      actionsColumn="none"
-    />
+    <FilterSearchProvider value={search}>
+      <CardTable
+        items={items}
+        totalItems={items.length}
+        setOrder={[set]}
+        groupBy="set"
+        stickyOffset={0}
+        selectedItemId={selectedItemId}
+        actionsColumn="none"
+      />
+    </FilterSearchProvider>
   );
 }
 
@@ -57,20 +61,29 @@ describe("CardTable scroll on list changes", () => {
   const items = makeItems("card", 30);
   const selected = items[1]?.id ?? "";
 
-  it("brings the selected card back into view when the list moves it off screen", () => {
+  it("brings the selected card back into view when a filter moves it off screen", () => {
+    const { rerender } = render(tableElement(items, selected), { wrapper });
+    const scrollTo = vi.spyOn(globalThis, "scrollTo").mockImplementation(() => {});
+
+    rerender(tableElement([...makeItems("aa-added", 200), ...items], selected, { q: "jinx" }));
+
+    expect(scrollTo).toHaveBeenCalled();
+  });
+
+  it("stays put when the list moves the selected card without a filter change", () => {
     const { rerender } = render(tableElement(items, selected), { wrapper });
     const scrollTo = vi.spyOn(globalThis, "scrollTo").mockImplementation(() => {});
 
     rerender(tableElement([...makeItems("aa-added", 200), ...items], selected));
 
-    expect(scrollTo).toHaveBeenCalled();
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 
   it("leaves the page alone when the selected card keeps its row", () => {
     const { rerender } = render(tableElement(items, selected), { wrapper });
     const scrollTo = vi.spyOn(globalThis, "scrollTo").mockImplementation(() => {});
 
-    rerender(tableElement(items.slice(0, 10), selected));
+    rerender(tableElement(items.slice(0, 10), selected, { q: "jinx" }));
 
     expect(scrollTo).not.toHaveBeenCalled();
   });

@@ -2,6 +2,8 @@ import { CARD_ASPECT } from "@openrift/shared/card-orientation";
 import { act, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
+import type { FilterSearch } from "@/features/cards/lib/search-schemas";
 import { useGridFocusStore } from "@/features/cards/stores/grid-focus-store";
 import type { GroupInfo } from "@/lib/card-group-types";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
@@ -90,17 +92,24 @@ function makeItems(setId: string, count: number): CardViewerItem[] {
   );
 }
 
-function gridElement(items: CardViewerItem[], setOrder: GroupInfo[], selectedItemId?: string) {
+function gridElement(
+  items: CardViewerItem[],
+  setOrder: GroupInfo[],
+  selectedItemId?: string,
+  search: FilterSearch = {},
+) {
   return (
-    <CardGrid
-      items={items}
-      totalItems={items.length}
-      renderCard={(item) => <div>{item.id}</div>}
-      setOrder={setOrder}
-      groupBy="set"
-      stickyOffset={0}
-      selectedItemId={selectedItemId}
-    />
+    <FilterSearchProvider value={search}>
+      <CardGrid
+        items={items}
+        totalItems={items.length}
+        renderCard={(item) => <div>{item.id}</div>}
+        setOrder={setOrder}
+        groupBy="set"
+        stickyOffset={0}
+        selectedItemId={selectedItemId}
+      />
+    </FilterSearchProvider>
   );
 }
 
@@ -196,23 +205,55 @@ describe("CardGrid scroll on selection changes", () => {
     expect(scrollTo).not.toHaveBeenCalled();
   });
 
-  it("brings the selected card back into view when the list moves it off screen", () => {
+  const added = Array.from({ length: COLUMNS * 8 }, (_, index) =>
+    stubCardViewerItem({ printingId: `added-${index}`, setId: set.id }),
+  );
+
+  it("brings the selected card back into view when a filter moves it off screen", () => {
     const { rerender } = render(gridElement(items, [set], itemAt(COLUMNS)));
     const scrollTo = spyOnWindowScroll();
 
-    const added = Array.from({ length: COLUMNS * 8 }, (_, index) =>
-      stubCardViewerItem({ printingId: `added-${index}`, setId: set.id }),
-    );
-    rerender(gridElement([...added, ...items], [set], itemAt(COLUMNS)));
+    rerender(gridElement([...added, ...items], [set], itemAt(COLUMNS), { q: "jinx" }));
 
     expect(scrollTo).toHaveBeenCalled();
+  });
+
+  it("follows a filtered list that arrives a render after the filter", () => {
+    const { rerender } = render(gridElement(items, [set], itemAt(COLUMNS)));
+    const scrollTo = spyOnWindowScroll();
+
+    rerender(gridElement(items, [set], itemAt(COLUMNS), { q: "jinx" }));
+    expect(scrollTo).not.toHaveBeenCalled();
+    rerender(gridElement([...added, ...items], [set], itemAt(COLUMNS), { q: "jinx" }));
+
+    expect(scrollTo).toHaveBeenCalled();
+  });
+
+  it("stays put when the list moves the selected card without a filter change", () => {
+    const { rerender } = render(gridElement(items, [set], itemAt(COLUMNS)));
+    const scrollTo = spyOnWindowScroll();
+
+    rerender(gridElement([...added, ...items], [set], itemAt(COLUMNS)));
+
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("stays put when the list drops the selected card for a moment and settles back", () => {
+    const { rerender } = render(gridElement(items, [set], itemAt(COLUMNS)));
+    scrollWindowTo((CARDS_ROW_HEIGHT + GAP) * 6);
+    const scrollTo = spyOnWindowScroll();
+
+    rerender(gridElement(items.slice(COLUMNS + 1), [set], itemAt(COLUMNS)));
+    rerender(gridElement(items, [set], itemAt(COLUMNS)));
+
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 
   it("leaves the page alone when the list change keeps the selected card in view", () => {
     const { rerender } = render(gridElement(items, [set], itemAt(COLUMNS)));
     const scrollTo = spyOnWindowScroll();
 
-    rerender(gridElement(items.slice(COLUMNS), [set], itemAt(COLUMNS)));
+    rerender(gridElement(items.slice(COLUMNS), [set], itemAt(COLUMNS), { q: "jinx" }));
 
     expect(scrollTo).not.toHaveBeenCalled();
   });
@@ -222,7 +263,7 @@ describe("CardGrid scroll on selection changes", () => {
     scrollWindowTo((CARDS_ROW_HEIGHT + GAP) * 6);
     const scrollTo = spyOnWindowScroll();
 
-    rerender(gridElement(items.slice(0, COLUMNS * 4), [set], itemAt(COLUMNS)));
+    rerender(gridElement(items.slice(0, COLUMNS * 4), [set], itemAt(COLUMNS), { q: "jinx" }));
 
     expect(scrollTo).not.toHaveBeenCalled();
   });

@@ -16,8 +16,7 @@ import {
 } from "@/features/catalog-workspace/stores/workspace-actions-store";
 import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
 import { isTypingTarget } from "@/lib/keyboard-target";
-
-const OVERLAY_SELECTOR = '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]';
+import { openOverlayPresent } from "@/lib/open-overlay";
 
 const RECORD_WRITES: ReadonlySet<WorkspaceKeyAction> = new Set([
   "settle-and-next",
@@ -43,7 +42,7 @@ export interface WorkspaceKeyDeps {
   actions: WorkspaceRecordActions | null;
   /** The registration that owns `actions`. */
   record: symbol | null;
-  /** True while `actions` belong to a record being left, or the next record has not registered. */
+  /** True while `actions` belong to a record being left or loading, or none has registered. */
   stale: boolean;
   currentRecord: () => symbol | null;
   /** Undoes the newest entry unless it is in `skip`. */
@@ -181,10 +180,6 @@ export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps):
   }
 }
 
-function overlayOpen(): boolean {
-  return document.querySelector(OVERLAY_SELECTOR) !== null;
-}
-
 export function useWorkspaceKeyboard(owner: WorkspaceOwner): void {
   const navigation = useQueueNavigation(owner);
   const { undoLatest } = useWorkspaceUndo();
@@ -203,7 +198,7 @@ export function useWorkspaceKeyboard(owner: WorkspaceOwner): void {
       currentRecord: () => useWorkspaceActionsStore.getState().owner,
       undo: undoLatest,
       undoEntries: () => useWorkspaceSelectionStore.getState().undoStack,
-      overlayOpen,
+      overlayOpen: openOverlayPresent,
       queue,
     });
     if (handled) {

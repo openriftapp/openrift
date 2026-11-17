@@ -1,6 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+
+import { openOverlayPresent } from "@/lib/open-overlay";
 
 import { SimpleSelect } from "./simple-select";
 
@@ -140,5 +142,20 @@ describe("SimpleSelect", () => {
 
     expect(onOpenChange).toHaveBeenCalledWith(true);
     expect(await screen.findByRole("option", { name: "Français" })).toHaveAttribute("lang", "fr");
+  });
+
+  it("counts as an open overlay only while open, though its closed popup stays mounted", async () => {
+    const user = userEvent.setup();
+    render(<SimpleSelect items={ITEMS} value="day" onChange={() => undefined} label="Precision" />);
+
+    await user.click(screen.getByRole("combobox", { name: "Precision" }));
+    await screen.findByRole("option", { name: "Month" });
+    expect(openOverlayPresent()).toBe(true);
+
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("option")).not.toBeInTheDocument());
+
+    expect(document.querySelector('[role="listbox"]')).not.toBeNull();
+    expect(openOverlayPresent()).toBe(false);
   });
 });

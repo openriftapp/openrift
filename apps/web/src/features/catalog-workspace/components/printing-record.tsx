@@ -143,14 +143,15 @@ function PrintingRecordBody({
   const printing = data.printing;
   const faces = printingFaces(printing);
   const slugs = [...new Set(faces.map((face) => face.cardSlug))];
-  const first = useAdminCardDetail(canReview ? (slugs[0] ?? "") : "").data as
-    | AdminCardDetailResponse
-    | undefined;
-  const second = useAdminCardDetail(canReview ? (slugs[1] ?? "") : "").data as
-    | AdminCardDetailResponse
-    | undefined;
-  const { data: providerData } = useQuery({ ...providerSettingsQueryOptions, enabled: canReview });
-  const { data: mappingData } = useQuery({
+  const firstQuery = useAdminCardDetail(canReview ? (slugs[0] ?? "") : "");
+  const secondQuery = useAdminCardDetail(canReview ? (slugs[1] ?? "") : "");
+  const first = firstQuery.data as AdminCardDetailResponse | undefined;
+  const second = secondQuery.data as AdminCardDetailResponse | undefined;
+  const { data: providerData, isLoading: providerLoading } = useQuery({
+    ...providerSettingsQueryOptions,
+    enabled: canReview,
+  });
+  const { data: mappingData, isLoading: mappingLoading } = useQuery({
     ...unifiedMappingsForCardQueryOptions(printing.cardSlug),
     enabled: isAdmin,
   });
@@ -205,6 +206,7 @@ function PrintingRecordBody({
     listings,
     canCheck: isAdmin,
     canMap: isAdmin,
+    loading: firstQuery.isLoading || secondQuery.isLoading || providerLoading || mappingLoading,
   });
 
   const chipIndex = new Map(actions.chips.map((chip, index) => [chip.key, index + 1]));

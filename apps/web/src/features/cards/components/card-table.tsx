@@ -8,6 +8,7 @@ import { Fragment, cloneElement, memo, useEffect, useRef, useState } from "react
 import { Button } from "@/components/ui/button";
 import { OrnamentRule } from "@/components/ui/ornament";
 import { SelectionRowMark } from "@/components/ui/selection-mark";
+import { useFilterSearchKey } from "@/features/cards/hooks/use-filter-search";
 import { useFollowSelectedRow } from "@/features/cards/hooks/use-follow-selected-row";
 import { useFollowSelection } from "@/features/cards/hooks/use-follow-selection";
 import { useStickyHeader } from "@/features/cards/hooks/use-sticky-header";
@@ -261,6 +262,7 @@ export function CardTable({
   };
 
   const followSelection = useFollowSelection();
+  const filterSearchKey = useFilterSearchKey();
   useScopeEffect(selectedItemId, () => {
     if (followSelection(selectedItemId) && selectedItemId) {
       scrollToCard(selectedItemId);
@@ -271,6 +273,7 @@ export function CardTable({
     selectedItemId,
     selectedItemId ? cardRowIndex(virtualRows, selectedItemId) : -1,
     0,
+    filterSearchKey,
     scrollToCard,
   );
 

@@ -271,6 +271,7 @@ function NewPrintingBody({
   };
 
   useRegisterRecordActions({
+    loading: detail === undefined && !detailQuery.isError,
     accept: canAccept ? accept : undefined,
     ignore: isAdmin && candidate !== undefined ? ignore : undefined,
   });

@@ -13,3 +13,9 @@ export function useFilterSearch(): FilterSearch {
   }
   return value;
 }
+
+/** The filter, search, sort and view state as a string; empty outside a filter surface. */
+export function useFilterSearchKey(): string {
+  const value = useContext(FilterSearchContext);
+  return value === null ? "" : JSON.stringify(value);
+}
