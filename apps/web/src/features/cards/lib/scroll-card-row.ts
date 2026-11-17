@@ -4,7 +4,7 @@ import { STICKY_GROUP_LABEL_BAND } from "@/features/cards/lib/card-grid-constant
 import type { VRow } from "@/features/cards/lib/card-grid-types";
 
 /** Where a card row scrolls to so the sticky group label does not cover it. */
-export function cardRowScrollTarget(
+function cardRowScrollTarget(
   rows: readonly VRow[],
   rowIndex: number,
   multipleGroups: boolean,
