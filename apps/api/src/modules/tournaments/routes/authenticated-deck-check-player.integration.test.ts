@@ -1094,7 +1094,7 @@ describe.skipIf(!ownerCtx)("player saves racing a cancel or a deadline (integrat
       startsAt: new Date("2026-07-01"),
       pairingStyle: "none",
       deckSubmission: "optional",
-      selfRegistration: true,
+      hasSelfRegistration: true,
     });
     tournamentIds.push(event.id);
     const token = `race-${crypto.randomUUID()}`;
