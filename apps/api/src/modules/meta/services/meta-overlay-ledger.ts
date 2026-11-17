@@ -34,7 +34,7 @@ export async function recordOverlayAcceptance(
   return submission.status === "accepted" ? null : submission;
 }
 
-export interface MetaSubmissionResolution {
+export interface MetaSubmissionResolutionDetails {
   reason?: MetaSubmissionReason | null;
   note?: string | null;
   resolvedByUserId?: string | null;
@@ -49,7 +49,7 @@ export async function settleRejectedSubmissions(
   repos: Repos,
   overlays: readonly MetaPlayerOverlayRow[],
   eventIds: ReadonlyMap<string, string | null>,
-  resolution: MetaSubmissionResolution,
+  resolution: MetaSubmissionResolutionDetails,
   now: Date,
 ): Promise<void> {
   const byOverlay = new Map(overlays.map((overlay) => [overlay.id, overlay]));
@@ -92,7 +92,7 @@ export async function settleRejectedSubmissions(
 export async function revokeEventCorrection(
   repos: Repos,
   overlay: MetaEventOverlayRow,
-  resolution: MetaSubmissionResolution,
+  resolution: MetaSubmissionResolutionDetails,
   now: Date,
 ): Promise<void> {
   if (overlay.status !== "accepted" || overlay.metaEventId === null) {

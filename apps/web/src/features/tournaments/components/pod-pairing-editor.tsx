@@ -291,6 +291,19 @@ export function PodPairingEditor({
     }
   }
 
+  const renderPlayer = (playerId: string) => (
+    <DraggablePlayer
+      key={playerId}
+      playerId={playerId}
+      name={nameById.get(playerId) ?? m.tournaments_pairing_editor_unknown_player()}
+      score={scoreById.get(playerId) ?? 0}
+      moveOptions={moveOptions(playerId)}
+      onMove={(target) => handleMenuMove(playerId, target)}
+      refocus={refocusId === playerId}
+      onRefocused={() => setRefocusId(null)}
+    />
+  );
+
   return (
     <DndContext
       sensors={sensors}
@@ -329,36 +342,14 @@ export function PodPairingEditor({
               mode={mode}
               label={podTitle(index)}
             >
-              {pod.playerIds.map((playerId) => (
-                <DraggablePlayer
-                  key={playerId}
-                  playerId={playerId}
-                  name={nameById.get(playerId) ?? m.tournaments_pairing_editor_unknown_player()}
-                  score={scoreById.get(playerId) ?? 0}
-                  moveOptions={moveOptions(playerId)}
-                  onMove={(target) => handleMenuMove(playerId, target)}
-                  refocus={refocusId === playerId}
-                  onRefocused={() => setRefocusId(null)}
-                />
-              ))}
+              {pod.playerIds.map(renderPlayer)}
             </PodDropZone>
           ))}
           {cutMode ? null : (
             <>
               <NewPodDropZone mode={mode} />
               <ByeDropZone byeIds={state.byes} warnings={byeWarnings} nameById={nameById}>
-                {state.byes.map((playerId) => (
-                  <DraggablePlayer
-                    key={playerId}
-                    playerId={playerId}
-                    name={nameById.get(playerId) ?? m.tournaments_pairing_editor_unknown_player()}
-                    score={scoreById.get(playerId) ?? 0}
-                    moveOptions={moveOptions(playerId)}
-                    onMove={(target) => handleMenuMove(playerId, target)}
-                    refocus={refocusId === playerId}
-                    onRefocused={() => setRefocusId(null)}
-                  />
-                ))}
+                {state.byes.map(renderPlayer)}
               </ByeDropZone>
             </>
           )}

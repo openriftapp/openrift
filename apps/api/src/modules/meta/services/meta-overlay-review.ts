@@ -25,7 +25,7 @@ import { sourceEventKeyPrefix } from "../repositories/meta-overlays.js";
 import type { MetaEventPlayerRow } from "../repositories/meta-players.js";
 import type { MetaSubmissionRow } from "../repositories/meta-submissions.js";
 import { splitSourcePlayerKey } from "./ingest-meta-overlays.js";
-import type { MetaSubmissionResolution } from "./meta-overlay-ledger.js";
+import type { MetaSubmissionResolutionDetails } from "./meta-overlay-ledger.js";
 import {
   recordOverlayAcceptance,
   revokeEventCorrection,
@@ -1088,7 +1088,7 @@ export async function resolveMetaCardName(
 export async function rejectMetaOverlay(
   transact: Transact,
   target: { kind: "event" | "player"; id: string },
-  resolution: MetaSubmissionResolution = {},
+  resolution: MetaSubmissionResolutionDetails = {},
   now: Date = new Date(),
 ): Promise<MetaOverlayReviewResult> {
   return await transact(async (repos) => {

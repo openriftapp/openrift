@@ -169,7 +169,7 @@ export type CardResolution<TCard extends SearchableCard> =
   | { status: "ambiguous"; candidates: TCard[] }
   | { status: "unmatched" };
 
-export type CardLookup<TCard extends SearchableCard> =
+export type CardLookupResult<TCard extends SearchableCard> =
   | { status: "found"; card: TCard }
   | { status: "tied"; cards: TCard[] }
   | { status: "missing" };
@@ -178,7 +178,7 @@ export type CardLookup<TCard extends SearchableCard> =
 export function lookupCard<TCard extends SearchableCard>(
   index: CardSearchIndex<TCard>,
   query: string,
-): CardLookup<TCard> {
+): CardLookupResult<TCard> {
   if (!index.bySlug.has(query.trim())) {
     const resolution = resolveCard(index, query);
     if (resolution.status === "ambiguous") {

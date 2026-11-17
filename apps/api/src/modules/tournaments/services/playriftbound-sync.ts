@@ -40,7 +40,7 @@ function uniqueRegistrants(payload: PlayriftboundSyncPayload): PlayriftboundSync
   return [...new Map(payload.registrants.map((r) => [r.playerId, r])).values()];
 }
 
-export interface SyncState {
+export interface PlayriftboundSyncState {
   participantsByExternalId: Map<string, TournamentParticipant>;
   entryExternalIds: Set<string>;
   participantsWithEntry: Set<string>;
@@ -57,7 +57,7 @@ export interface PlannedPush {
  */
 export function planPlayriftboundPush(
   registrants: PlayriftboundSyncRegistrant[],
-  state: SyncState,
+  state: PlayriftboundSyncState,
 ): PlannedPush {
   const entries: IngestEntry[] = [];
   let kept = 0;
@@ -103,7 +103,7 @@ function assertIngestable(entries: IngestEntry[]): void {
   }
 }
 
-async function loadSyncState(repos: Repos, tournamentId: string): Promise<SyncState> {
+async function loadSyncState(repos: Repos, tournamentId: string): Promise<PlayriftboundSyncState> {
   const [entries, participants] = await Promise.all([
     repos.deckCheck.listEntriesForEvent(tournamentId),
     repos.tournaments.listParticipantsByExternalPrefix(
@@ -138,7 +138,7 @@ async function upsertRoster(
   repos: Repos,
   tournamentId: string,
   registrants: PlayriftboundSyncRegistrant[],
-  state: SyncState,
+  state: PlayriftboundSyncState,
 ): Promise<RosterCounts> {
   const counts: RosterCounts = {
     participantsCreated: 0,

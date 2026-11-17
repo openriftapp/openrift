@@ -2,7 +2,7 @@ import type { PlayriftboundSyncRegistrant } from "@openrift/shared/playriftbound
 import { describe, expect, it } from "vitest";
 
 import type { TournamentParticipant } from "../repositories/tournaments-shared.js";
-import type { SyncState } from "./playriftbound-sync.js";
+import type { PlayriftboundSyncState } from "./playriftbound-sync.js";
 import { planPlayriftboundPush } from "./playriftbound-sync.js";
 
 const SAVED = "2026-11-16T08:55:34.591217Z";
@@ -32,7 +32,7 @@ function participant(
 function state(
   participants: TournamentParticipant[] = [],
   entries: { externalId: string; participantId: string }[] = [],
-): SyncState {
+): PlayriftboundSyncState {
   return {
     participantsByExternalId: new Map(participants.map((p) => [p.externalId ?? "", p])),
     entryExternalIds: new Set(entries.map((e) => e.externalId)),
