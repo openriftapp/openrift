@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import { MAX_COLUMNS, MIN_COLUMNS } from "@/features/cards/lib/column-range";
-import type { DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
+import type { DeckListGroup } from "@/features/decks/lib/deck-card-group";
 import type { DeckOverviewSort } from "@/features/decks/lib/deck-overview-list-sort";
 import type { FieldPicker } from "@/lib/persist-merge";
 import { mergeFields, pickBoolean, pickEnum } from "@/lib/persist-merge";
@@ -25,8 +25,8 @@ interface DeckOverviewViewState {
   setSortBy: (sortBy: DeckOverviewSort) => void;
   sortDir: "asc" | "desc";
   setSortDir: (sortDir: "asc" | "desc") => void;
-  groupBy: DeckOverviewGroup;
-  setGroupBy: (groupBy: DeckOverviewGroup) => void;
+  groupBy: DeckListGroup;
+  setGroupBy: (groupBy: DeckListGroup) => void;
   groupDir: "asc" | "desc";
   setGroupDir: (groupDir: "asc" | "desc") => void;
   statsOpen: boolean;
@@ -55,7 +55,7 @@ const SORTS: readonly DeckOverviewSort[] = [
   "ownership",
 ];
 
-const GROUPS: readonly DeckOverviewGroup[] = ["type", "energy", "domain", "ownership", "none"];
+const GROUPS: readonly DeckListGroup[] = ["type", "energy", "domain", "ownership", "set", "none"];
 
 const DIRECTIONS: readonly ("asc" | "desc")[] = ["asc", "desc"];
 

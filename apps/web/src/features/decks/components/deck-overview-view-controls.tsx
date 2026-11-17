@@ -11,7 +11,7 @@ import { DetailPaneToggle, MobileOptionsDrawer } from "@/features/cards/componen
 import { SortGroupControls } from "@/features/cards/components/sort-group-controls";
 import type { SortGroupOption } from "@/features/cards/components/sort-group-controls";
 import { deckOverviewSortOptions } from "@/features/decks/components/deck-overview-list";
-import type { DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
+import type { DeckListGroup } from "@/features/decks/lib/deck-card-group";
 import type { DeckOverviewSort } from "@/features/decks/lib/deck-overview-list-sort";
 import type { DeckOverviewDisplayMode } from "@/features/decks/stores/deck-overview-view-store";
 import { useDeckOverviewViewStore } from "@/features/decks/stores/deck-overview-view-store";
@@ -26,10 +26,10 @@ export interface DeckOrderingControls {
   sortDir: "asc" | "desc";
   onSortByChange: (value: DeckOverviewSort) => void;
   onSortDirChange: (value: "asc" | "desc") => void;
-  groupOptions: SortGroupOption<DeckOverviewGroup>[];
-  groupBy: DeckOverviewGroup;
+  groupOptions: SortGroupOption<DeckListGroup>[];
+  groupBy: DeckListGroup;
   groupDir: "asc" | "desc";
-  onGroupByChange: (value: DeckOverviewGroup) => void;
+  onGroupByChange: (value: DeckListGroup) => void;
   onGroupDirChange: (value: "asc" | "desc") => void;
 }
 

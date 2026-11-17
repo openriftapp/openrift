@@ -59,7 +59,7 @@ import {
 } from "@/features/decks/lib/battlefield-plan-tags";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toRuleEngineCard } from "@/features/decks/lib/deck-builder-card";
-import type { DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
+import type { DeckListGroup, DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
 import { groupDeckCards } from "@/features/decks/lib/deck-card-group";
 import { formatChancePct } from "@/features/decks/lib/deck-draw-odds";
 import type { CopyViewFor } from "@/features/decks/lib/deck-overview-derive";
@@ -263,8 +263,9 @@ export function DeckOverview({
   const canPreferOwned = ownershipData !== undefined && !showSignIn;
   const preferOwned = hydrated && canPreferOwned && storedPreferOwned;
   const hydratedGroupBy = hydrated ? storedGroupBy : "type";
-  const groupBy: DeckOverviewGroup =
+  const boxGroupBy: DeckListGroup =
     hydratedGroupBy === "ownership" && !canPreferOwned ? "type" : hydratedGroupBy;
+  const groupBy: DeckOverviewGroup = boxGroupBy === "set" ? "type" : boxGroupBy;
   const groupDir = hydrated ? storedGroupDir : "asc";
 
   const columnOverride = hydrated ? storedColumns : null;
@@ -390,7 +391,7 @@ export function DeckOverview({
       getEntry: getOwnershipEntry,
     });
 
-  const groupOptions: SortGroupOption<DeckOverviewGroup>[] = [
+  const groupOptions: SortGroupOption<DeckListGroup>[] = [
     { value: "type", label: m.decks_overview_group_type() },
     { value: "energy", label: m.decks_overview_group_energy() },
     { value: "domain", label: m.decks_overview_group_domain() },
@@ -442,6 +443,11 @@ export function DeckOverview({
     groupDir,
     onGroupByChange: setGroupBy,
     onGroupDirChange: setGroupDir,
+  };
+  const boxOrdering: DeckOrderingControls = {
+    ...ordering,
+    groupOptions: groupOptions.toSpliced(3, 0, { value: "set", label: m.cards_filter_group_set() }),
+    groupBy: boxGroupBy,
   };
 
   const renderViewControls = (compact: boolean) =>
@@ -586,7 +592,7 @@ export function DeckOverview({
               renderViewControls(true)
             ) : activeTab === "box" ? (
               <MobileOptionsDrawer>
-                <DeckOrderingControl compact ordering={ordering} />
+                <DeckOrderingControl compact ordering={boxOrdering} />
               </MobileOptionsDrawer>
             ) : undefined
           }
@@ -594,7 +600,7 @@ export function DeckOverview({
             activeTab === "overview" ? (
               renderViewControls(false)
             ) : activeTab === "box" ? (
-              <DeckOrderingControl ordering={ordering} />
+              <DeckOrderingControl ordering={boxOrdering} />
             ) : activeTab === "plan" ? (
               // Plan editor's actions portal in here once the ref lands (PlanTabActionsContext).
               <div ref={setPlanActionsSlot} className="flex items-center gap-2" />
@@ -673,7 +679,9 @@ export function DeckOverview({
             onViewMissing={onViewMissing}
             sortCards={sortZoneCards}
             groupCards={groupZoneCards}
-            groupBy={groupBy}
+            groupBy={boxGroupBy}
+            groupDir={groupDir}
+            setOrder={sets}
             onCardClick={onCardClick}
             onHoverCard={onHoverCard}
           />

@@ -26,6 +26,7 @@ export interface DeckBoxCopy extends VariantLabelPrinting {
   imageId: string | null;
   condition: string | null;
   grade: number | null;
+  setId: string;
   collectionId: string;
   collectionName: string;
 }
@@ -215,6 +216,7 @@ function toBoxCopy(
     isSigned: printing.isSigned,
     isOvernumbered: printing.isOvernumbered,
     markers: printing.markers,
+    setId: printing.setId,
     condition: copy.condition,
     grade: copy.grade,
     collectionId: copy.collectionId,
@@ -534,4 +536,32 @@ export function computeDeckBoxPlan({
       [...siblingsByCard].map(([cardId, seen]) => [cardId, [...seen.values()]]),
     ),
   };
+}
+
+export interface BoxSetGroup<Entry> {
+  key: string;
+  set: { id: string; name: string } | null;
+  entries: Entry[];
+}
+
+export function groupBoxSlotsBySet<Entry extends { slot: DeckBoxSlot }>(
+  entries: readonly Entry[],
+  setOrder: readonly { id: string; name: string }[],
+  dir: "asc" | "desc",
+): BoxSetGroup<Entry>[] {
+  const grouped = Map.groupBy(entries, (entry) => entry.slot.copy?.setId ?? null);
+  const known = setOrder.filter((set) => grouped.has(set.id));
+  const unknown = [...grouped.keys()]
+    .filter((id): id is string => id !== null && !known.some((set) => set.id === id))
+    .map((id) => ({ id, name: id }));
+  const groups: BoxSetGroup<Entry>[] = [...known, ...unknown].map((set) => ({
+    key: `set-${set.id}`,
+    set: { id: set.id, name: set.name },
+    entries: grouped.get(set.id) ?? [],
+  }));
+  const copyless = grouped.get(null);
+  if (copyless) {
+    groups.push({ key: "set-none", set: null, entries: copyless });
+  }
+  return dir === "desc" ? groups.toReversed() : groups;
 }

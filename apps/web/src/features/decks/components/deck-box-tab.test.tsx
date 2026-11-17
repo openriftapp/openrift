@@ -29,6 +29,7 @@ const plan: DeckBoxPlan = {
           imageId: null,
           condition: null,
           grade: null,
+          setId: "origins",
           collectionId: "shelf",
           collectionName: "Shelf",
           language: "EN",
@@ -87,6 +88,8 @@ function renderTab(onCardClick: () => void, missingCount = 0) {
       sortCards={(zoneCards) => zoneCards}
       groupCards={() => []}
       groupBy="type"
+      groupDir="asc"
+      setOrder={[]}
       onCardClick={onCardClick}
     />,
   );
@@ -173,6 +176,8 @@ describe("DeckBoxTab", () => {
           sortCards={(zoneCards) => zoneCards}
           groupCards={(zoneCards) => [{ key: "unit", label: null, cards: zoneCards }]}
           groupBy="type"
+          groupDir="asc"
+          setOrder={[]}
           onCardClick={onCardClick}
         />,
       );
@@ -185,6 +190,61 @@ describe("DeckBoxTab", () => {
       expect(useDeckBox.mock.lastCall?.[3]).toEqual(new Map([["slot-1", "copy-2"]]));
     },
   );
+
+  it("groups the main deck's rows by the set of each copy, uncovered slots last", () => {
+    const [extra] = plan.extras;
+    const originsCopy = extra!.copies[0]!;
+    const forgedCopy = { ...originsCopy, copyId: "copy-2", setId: "spiritforged" };
+    const deckCard = stubDeckBuilderCard({ cardId: "card-1", cardName: "Jinx", quantity: 3 });
+    const cardKey = deckCardKey(deckCard);
+    plan.slots = [
+      {
+        key: "s:0",
+        cardId: "card-1",
+        cardKey,
+        state: "in-box",
+        copy: forgedCopy,
+        alternatives: [],
+      },
+      {
+        key: "s:1",
+        cardId: "card-1",
+        cardKey,
+        state: "in-box",
+        copy: originsCopy,
+        alternatives: [],
+      },
+      { key: "s:2", cardId: "card-1", cardKey, state: "missing", alternatives: [] },
+    ];
+    render(
+      <DeckBoxTab
+        deckId="deck-1"
+        cards={[deckCard]}
+        homeCollectionId="box"
+        homeCollectionName="Deck box"
+        missingCount={1}
+        sortCards={(zoneCards) => zoneCards}
+        groupCards={(zoneCards) => [{ key: "unit", label: null, cards: zoneCards }]}
+        groupBy="set"
+        groupDir="asc"
+        setOrder={[
+          { id: "origins", name: "Origins" },
+          { id: "spiritforged", name: "Spiritforged" },
+        ]}
+      />,
+    );
+
+    const headers = ["Origins", "Spiritforged", "Not owned"].map((label) =>
+      screen.getByText(label),
+    );
+    expect(
+      headers.every(
+        (header, index) =>
+          index === 0 ||
+          headers[index - 1]!.compareDocumentPosition(header) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ),
+    ).toBe(true);
+  });
 
   it("returns a copy to the collection it came from after the tab remounts", () => {
     const [extra] = plan.extras;
@@ -211,6 +271,8 @@ describe("DeckBoxTab", () => {
         sortCards={(zoneCards) => zoneCards}
         groupCards={(zoneCards) => [{ key: "unit", label: null, cards: zoneCards }]}
         groupBy="type"
+        groupDir="asc"
+        setOrder={[]}
       />
     );
 

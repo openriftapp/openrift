@@ -11,7 +11,7 @@ import type {
   DeckBoxInput,
   DeckBoxPlan,
 } from "@/features/decks/lib/deck-box";
-import { computeDeckBoxPlan } from "@/features/decks/lib/deck-box";
+import { computeDeckBoxPlan, groupBoxSlotsBySet } from "@/features/decks/lib/deck-box";
 import { resetIdCounter, stubCopy, stubDeckBuilderCard, stubPrinting } from "@/test/factories";
 
 function missingSlots(plan: DeckBoxPlan): number {
@@ -980,5 +980,59 @@ describe("computeDeckBoxPlan sibling printings", () => {
     });
     expect(plan.extraCount).toBe(2);
     expect(plan.siblingPrintingsByCardId.get("card-2")).toEqual([strayEnglish, strayGerman]);
+  });
+});
+
+describe("groupBoxSlotsBySet", () => {
+  const SETS = [
+    { id: "origins", name: "Origins" },
+    { id: "spiritforged", name: "Spiritforged" },
+  ];
+
+  function slotsAcrossSets() {
+    const origins = stubPrinting({ cardId: "card-1", setId: "origins", shortCode: "OGN-001" });
+    const forged = stubPrinting({ cardId: "card-1", setId: "spiritforged", shortCode: "SFD-001" });
+    const plan = computeDeckBoxPlan(
+      inputFor({
+        printings: [origins, forged],
+        copies: [
+          stubCopy({ printingId: forged.printingId, collectionId: BOX }),
+          stubCopy({ printingId: origins.printingId, collectionId: BOX }),
+        ],
+        quantity: 3,
+      }),
+    );
+    return plan.slots.map((slot) => ({ slot }));
+  }
+
+  it("groups slots by their copy's set in catalogue order, copyless slots last", () => {
+    const groups = groupBoxSlotsBySet(slotsAcrossSets(), SETS, "asc");
+    expect(groups.map((group) => [group.set?.name ?? null, group.entries.length])).toEqual([
+      ["Origins", 1],
+      ["Spiritforged", 1],
+      [null, 1],
+    ]);
+  });
+
+  it("reverses the whole order for descending", () => {
+    const groups = groupBoxSlotsBySet(slotsAcrossSets(), SETS, "desc");
+    expect(groups.map((group) => group.key)).toEqual([
+      "set-none",
+      "set-spiritforged",
+      "set-origins",
+    ]);
+  });
+
+  it("appends a set missing from the order after the known ones", () => {
+    const groups = groupBoxSlotsBySet(
+      slotsAcrossSets(),
+      [{ id: "spiritforged", name: "Spiritforged" }],
+      "asc",
+    );
+    expect(groups.map((group) => group.key)).toEqual([
+      "set-spiritforged",
+      "set-origins",
+      "set-none",
+    ]);
   });
 });

@@ -147,6 +147,15 @@ describe("rehydrate validation", () => {
     expect(state.showPrices).toBe(false);
   });
 
+  it("keeps a persisted set grouping", async () => {
+    localStorage.setItem(
+      "deck-overview-view",
+      JSON.stringify({ state: { groupBy: "set" }, version: 0 }),
+    );
+    await useDeckOverviewViewStore.persist.rehydrate();
+    expect(useDeckOverviewViewStore.getState().groupBy).toBe("set");
+  });
+
   it("keeps valid persisted values", async () => {
     localStorage.setItem(
       "deck-overview-view",

@@ -38,9 +38,9 @@ import { DECK_LIST_SECTION_CLASS } from "@/features/decks/components/deck-overvi
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
 import { useDeckBox } from "@/features/decks/hooks/use-deck-box";
 import type { DeckBoxCard, DeckBoxCopy, DeckBoxSlot } from "@/features/decks/lib/deck-box";
-import { toBoxCardFromDeck } from "@/features/decks/lib/deck-box";
+import { groupBoxSlotsBySet, toBoxCardFromDeck } from "@/features/decks/lib/deck-box";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import type { DeckCardGroup, DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
+import type { DeckCardGroup, DeckListGroup } from "@/features/decks/lib/deck-card-group";
 import { GROUPED_ZONES } from "@/features/decks/lib/deck-card-sort";
 import { DECK_ZONE_ORDER } from "@/features/decks/lib/deck-zone-order";
 import {
@@ -75,7 +75,9 @@ interface DeckBoxTabProps {
   onViewMissing?: () => void;
   sortCards: (zoneCards: DeckBuilderCard[]) => DeckBuilderCard[];
   groupCards: (zoneCards: DeckBuilderCard[]) => DeckCardGroup[];
-  groupBy: DeckOverviewGroup;
+  groupBy: DeckListGroup;
+  groupDir: "asc" | "desc";
+  setOrder: readonly { id: string; name: string }[];
   onCardClick?: (card: CardOpenTarget) => void;
   onHoverCard?: HoverHandler;
 }
@@ -91,6 +93,8 @@ export function DeckBoxTab({
   sortCards,
   groupCards,
   groupBy,
+  groupDir,
+  setOrder,
   onCardClick,
   onHoverCard,
 }: DeckBoxTabProps) {
@@ -178,44 +182,40 @@ export function DeckBoxTab({
 
   const complete = plan.neededTotal > 0 && plan.inBoxTotal === plan.neededTotal;
 
-  const rowsFor = (card: DeckBuilderCard) => {
-    const boxCard = toBoxCardFromDeck(card);
-    const siblings = plan.siblingPrintingsByCardId.get(card.cardId) ?? [];
-    return (slotsByCardKey.get(deckCardKey(card)) ?? []).map((slot) => (
-      <SlotRow
-        key={slot.key}
-        card={boxCard}
-        slot={slot}
-        labels={labels}
-        siblings={siblings}
-        disabled={moveCopies.isPending}
-        onTick={() => {
-          if (slot.copy) {
-            hold(slot, slot.copy.copyId);
-            putIn(slot.copy);
-          }
-        }}
-        onTakeOut={() => {
-          if (slot.copy) {
-            hold(slot, slot.copy.copyId);
-            takeOut([slot.copy.copyId], false);
-          }
-        }}
-        onSwap={(copyId) => hold(slot, copyId)}
-        onHoverCard={onHoverCard}
-        onOpen={
-          onCardClick
-            ? () =>
-                onCardClick({
-                  cardId: card.cardId,
-                  preferredPrintingId: slot.copy?.printingId ?? card.preferredPrintingId,
-                  zone: card.zone,
-                })
-            : undefined
+  const slotRow = (card: DeckBuilderCard, slot: DeckBoxSlot) => (
+    <SlotRow
+      key={slot.key}
+      card={toBoxCardFromDeck(card)}
+      slot={slot}
+      labels={labels}
+      siblings={plan.siblingPrintingsByCardId.get(card.cardId) ?? []}
+      disabled={moveCopies.isPending}
+      onTick={() => {
+        if (slot.copy) {
+          hold(slot, slot.copy.copyId);
+          putIn(slot.copy);
         }
-      />
-    ));
-  };
+      }}
+      onTakeOut={() => {
+        if (slot.copy) {
+          hold(slot, slot.copy.copyId);
+          takeOut([slot.copy.copyId], false);
+        }
+      }}
+      onSwap={(copyId) => hold(slot, copyId)}
+      onHoverCard={onHoverCard}
+      onOpen={
+        onCardClick
+          ? () =>
+              onCardClick({
+                cardId: card.cardId,
+                preferredPrintingId: slot.copy?.printingId ?? card.preferredPrintingId,
+                zone: card.zone,
+              })
+          : undefined
+      }
+    />
+  );
 
   const zones = BOX_ZONE_ORDER.map((zone) => ({
     zone,
@@ -258,7 +258,9 @@ export function DeckBoxTab({
             sortCards={sortCards}
             groupCards={groupCards}
             groupBy={groupBy}
-            rowsFor={rowsFor}
+            groupDir={groupDir}
+            setOrder={setOrder}
+            slotRow={slotRow}
           />
         ))}
 
@@ -332,20 +334,40 @@ function ZoneSection({
   sortCards,
   groupCards,
   groupBy,
-  rowsFor,
+  groupDir,
+  setOrder,
+  slotRow,
 }: {
   zone: DeckZone;
   cards: DeckBuilderCard[];
   slotsByCardKey: ReadonlyMap<string, DeckBoxSlot[]>;
   sortCards: (zoneCards: DeckBuilderCard[]) => DeckBuilderCard[];
   groupCards: (zoneCards: DeckBuilderCard[]) => DeckCardGroup[];
-  groupBy: DeckOverviewGroup;
-  rowsFor: (card: DeckBuilderCard) => React.ReactNode;
+  groupBy: DeckListGroup;
+  groupDir: "asc" | "desc";
+  setOrder: readonly { id: string; name: string }[];
+  slotRow: (card: DeckBuilderCard, slot: DeckBoxSlot) => React.ReactNode;
 }) {
   const { zoneLabels } = useZoneOrder();
   const zoneSlots = cards.flatMap((card) => slotsByCardKey.get(deckCardKey(card)) ?? []);
   const inBox = zoneSlots.filter((slot) => slot.state === "in-box").length;
-  const groups = GROUPED_ZONES.has(zone) ? groupCards(cards) : null;
+  const entriesOf = (list: DeckBuilderCard[]) =>
+    sortCards(list).flatMap((card) =>
+      (slotsByCardKey.get(deckCardKey(card)) ?? []).map((slot) => ({ card, slot })),
+    );
+  const groups = GROUPED_ZONES.has(zone)
+    ? groupBy === "set"
+      ? groupBoxSlotsBySet(entriesOf(cards), setOrder, groupDir).map((group) => ({
+          key: group.key,
+          label: group.set?.name ?? m.decks_editor_group_not_owned(),
+          entries: group.entries,
+        }))
+      : groupCards(cards).map((group) => ({
+          key: group.key,
+          label: group.label,
+          entries: entriesOf(group.cards),
+        }))
+    : null;
 
   return (
     <section className={DECK_LIST_SECTION_CLASS}>
@@ -372,12 +394,14 @@ function ZoneSection({
                   <span className="whitespace-nowrap">{group.label}</span>
                 </div>
               )}
-              {sortCards(group.cards).map((card) => rowsFor(card))}
+              {group.entries.map(({ card, slot }) => slotRow(card, slot))}
             </div>
           ))}
         </div>
       ) : (
-        <div className="flex flex-col gap-0.5">{sortCards(cards).map((card) => rowsFor(card))}</div>
+        <div className="flex flex-col gap-0.5">
+          {entriesOf(cards).map(({ card, slot }) => slotRow(card, slot))}
+        </div>
       )}
     </section>
   );
@@ -589,7 +613,7 @@ function SourcePicker({
   );
   if (slot.alternatives.length === 0) {
     return mode === "keep" ? null : (
-      <span className="text-muted-foreground max-w-1/2 min-w-0 shrink truncate text-xs">
+      <span className="text-muted-foreground max-w-[50cqw] min-w-0 shrink truncate text-xs">
         {source}
       </span>
     );
@@ -607,7 +631,7 @@ function SourcePicker({
           <Button
             variant="ghost"
             size="xs"
-            className="max-w-1/2 min-w-0 shrink text-xs"
+            className="max-w-[50cqw] min-w-0 shrink text-xs"
             aria-label={wording.action}
             onClick={rowControlClick()}
           >
@@ -674,9 +698,11 @@ function BoxRow({
   onOpen?: () => void;
 }) {
   return (
+    // Firefox's column balancing can leave a flex row here half-fragmented. A grid row stays whole.
+    // A grid item's % width resolves against its own track, so the trailing cap uses cqw.
     <div
       className={cn(
-        "hover:bg-muted/50 flex items-center gap-1.5 rounded-md px-2 py-1 text-sm sm:gap-2",
+        "hover:bg-muted/50 @container grid auto-cols-auto grid-flow-col grid-cols-[auto_auto_minmax(0,1fr)] items-center gap-1.5 rounded-md px-2 py-1 text-sm sm:gap-2",
         onOpen !== undefined && "cursor-pointer",
       )}
       {...cardHoverProps(onHoverCard, card.cardId, copy?.printingId)}

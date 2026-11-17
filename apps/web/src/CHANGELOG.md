@@ -4,6 +4,8 @@
 
 ### Other
 
+- feat(Decks): **Group the deck box by set** — the box tab can group its rows by each copy's set, with cards you don't own listed last.
+- fix(Decks): **Deck box rows in Firefox** — rows in the box tab no longer lose their set code and rarity at some window widths.
 - fix(Cards): **Clearer banned filter** — the banned filter on the cards page and in list rules is labelled "Banned in any format", since it also matches cards banned only in 2v2.
 - fix(Trades): **Accept all asks before choosing your copies** — requests where your copies differ stay open with their own Accept button, and a line says how many are waiting for you to pick.
 - fix(Trades): **Accurate settle-up message** — "The rest went through" only shows when some cards did settle.

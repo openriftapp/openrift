@@ -13,6 +13,8 @@ import { m } from "@/paraglide/messages.js";
 /** "none" renders the zone as one flat run with no sub-headers. */
 export type DeckOverviewGroup = "type" | "energy" | "domain" | "ownership" | "none";
 
+export type DeckListGroup = DeckOverviewGroup | "set";
+
 /** `label` is `null` for the single "none" group. */
 export interface DeckCardGroup {
   key: string;
