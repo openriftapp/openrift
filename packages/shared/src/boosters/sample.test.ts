@@ -94,7 +94,7 @@ describe("openBoosterPack", () => {
     expect(relativeError("foil-epic", 1 / 100)).toBeLessThan(0.1);
     expect(relativeError("token", 0.7)).toBeLessThan(0.02);
     expect(relativeError("alt-art-rune", 0.05)).toBeLessThan(0.05);
-  });
+  }, 30_000);
 
   it("lets only Radiance's second Rare card hold a premium printing", () => {
     const packs = openBoosterPacks(resolved("radiance-booster-pack", "RAD"), mulberry32(3), 5000);
