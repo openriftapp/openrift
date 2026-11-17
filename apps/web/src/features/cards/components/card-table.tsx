@@ -12,11 +12,13 @@ import { useFilterSearchKey } from "@/features/cards/hooks/use-filter-search";
 import { useFollowSelectedRow } from "@/features/cards/hooks/use-follow-selected-row";
 import { useFollowSelection } from "@/features/cards/hooks/use-follow-selection";
 import { useStickyHeader } from "@/features/cards/hooks/use-sticky-header";
+import { STICKY_GROUP_LABEL_BAND } from "@/features/cards/lib/card-grid-constants";
 import type { VRow } from "@/features/cards/lib/card-grid-types";
 import { buildGroups } from "@/features/cards/lib/card-groups";
 import type { CardGroup } from "@/features/cards/lib/card-groups";
 import { cardRowIndex } from "@/features/cards/lib/card-row-index";
 import { computeRowStarts } from "@/features/cards/lib/compute-row-starts";
+import { scrollCardRowIntoView } from "@/features/cards/lib/scroll-card-row";
 import { useCardRowActionsStore } from "@/features/cards/stores/card-row-actions-store";
 import type { ActionsColumn } from "@/features/collections/lib/collection-table";
 import { useEnumOrders } from "@/hooks/use-enums";
@@ -228,10 +230,12 @@ export function CardTable({
   const virtualizerRef = useRef(virtualizer);
   const virtualRowsRef = useRef(virtualRows);
   const stickyOffsetRef = useRef(stickyOffset);
+  const multipleGroupsRef = useRef(multipleGroups);
   useEffect(() => {
     virtualizerRef.current = virtualizer;
     virtualRowsRef.current = virtualRows;
     stickyOffsetRef.current = stickyOffset;
+    multipleGroupsRef.current = multipleGroups;
   });
 
   const activeHeaderRow = useStickyHeader({
@@ -252,13 +256,19 @@ export function CardTable({
     const vItems = virtualizerRef.current.getVirtualItems();
     const vItem = vItems.find((vi) => vi.index === rowIndex);
     if (vItem) {
-      const viewportTop = globalThis.scrollY + stickyOffsetRef.current;
+      const labelBand = multipleGroupsRef.current ? STICKY_GROUP_LABEL_BAND : 0;
+      const viewportTop = globalThis.scrollY + stickyOffsetRef.current + labelBand;
       const viewportBottom = globalThis.scrollY + globalThis.innerHeight;
       if (vItem.start >= viewportTop && vItem.start + vItem.size <= viewportBottom) {
         return;
       }
     }
-    virtualizerRef.current.scrollToIndex(rowIndex, { align: "start" });
+    scrollCardRowIntoView(
+      virtualizerRef.current,
+      virtualRowsRef.current,
+      rowIndex,
+      multipleGroupsRef.current,
+    );
   };
 
   const followSelection = useFollowSelection();
@@ -319,7 +329,10 @@ export function CardTable({
           the window instead of that scroll container (which would trap it). */}
       <div className="sticky z-20 h-0" style={{ top: stickyOffset }}>
         {multipleGroups && activeHeaderRow && (
-          <div className="pointer-events-none flex justify-center pt-2">
+          <div
+            className="pointer-events-none flex items-end justify-center"
+            style={{ height: STICKY_GROUP_LABEL_BAND }}
+          >
             <OrnamentRule fade="tips" className="w-72 max-w-full">
               <GroupStickyLabel
                 slug={activeHeaderRow.group.slug}

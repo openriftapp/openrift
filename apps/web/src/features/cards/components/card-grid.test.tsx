@@ -1,6 +1,6 @@
 import { CARD_ASPECT } from "@openrift/shared/card-orientation";
 import { act, render } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
@@ -40,6 +40,7 @@ import {
   HEADER_PB,
   HEADER_PT,
   LABEL_HEIGHT,
+  STICKY_GROUP_LABEL_BAND,
 } from "@/features/cards/lib/card-grid-constants";
 import { computeGridMetrics } from "@/features/cards/lib/card-grid-metrics";
 
@@ -266,5 +267,39 @@ describe("CardGrid scroll on selection changes", () => {
     rerender(gridElement(items.slice(0, COLUMNS * 4), [set], itemAt(COLUMNS), { q: "jinx" }));
 
     expect(scrollTo).not.toHaveBeenCalled();
+  });
+});
+
+describe("CardGrid scroll below the sticky group label", () => {
+  const sets = [makeSet(1), makeSet(2)];
+  const first = makeItems("set-1", 30);
+  const second = makeItems("set-2", 30);
+  const items = [...first, ...second];
+
+  beforeEach(() => {
+    vi.spyOn(document.documentElement, "scrollHeight", "get").mockReturnValue(100_000);
+  });
+
+  it("lands a card row one label band below the toolbar", () => {
+    const { rerender } = render(gridElement(items, sets));
+    const scrollTo = spyOnWindowScroll();
+
+    rerender(gridElement(items, sets, first[COLUMNS * 6]?.id));
+
+    const rowStart = HEADER_ROW_HEIGHT + GAP + (CARDS_ROW_HEIGHT + GAP) * 6;
+    expect(scrollTo).toHaveBeenLastCalledWith(
+      expect.objectContaining({ top: rowStart - STICKY_GROUP_LABEL_BAND }),
+    );
+  });
+
+  it("brings a group's header to the top for a card in its first row", () => {
+    const { rerender } = render(gridElement(items, sets));
+    const scrollTo = spyOnWindowScroll();
+
+    rerender(gridElement(items, sets, second[0]?.id));
+
+    const firstGroupRows = Math.ceil(first.length / COLUMNS);
+    const headerStart = HEADER_ROW_HEIGHT + GAP + (CARDS_ROW_HEIGHT + GAP) * firstGroupRows;
+    expect(scrollTo).toHaveBeenLastCalledWith(expect.objectContaining({ top: headerStart }));
   });
 });

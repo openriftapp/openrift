@@ -261,6 +261,7 @@ export function WorkspaceOwnerPage({ owner }: { owner: WorkspaceOwner }) {
       <WorkspaceSplitLayout
         header={header}
         list={list}
+        recordKey={selectedKeyFromParams(params)}
         recordFirst={hasRecord || queueEmpty}
         collapsed={collapsed && hasRecord}
       >

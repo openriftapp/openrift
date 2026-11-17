@@ -38,6 +38,7 @@ import { usePrintingSearchIndex } from "@/features/cards/hooks/use-search-index"
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
 import {
   RecordHeader,
+  RecordNotice,
   RecordPane,
   RecordSection,
 } from "@/features/catalog-workspace/components/record/record-pane";
@@ -75,13 +76,13 @@ export function ListingRecord({ ownerId }: { ownerId: string }) {
   }
   if (sku === null || item === undefined) {
     return (
-      <p className="text-muted-foreground p-4">
+      <RecordNotice>
         This listing is not in the queue any more. It was mapped or ignored.
-      </p>
+      </RecordNotice>
     );
   }
   if (access?.isAdmin !== true) {
-    return <p className="text-muted-foreground p-4">Only admins map marketplace listings.</p>;
+    return <RecordNotice>Only admins map marketplace listings.</RecordNotice>;
   }
   return (
     <Suspense fallback={<Skeleton className="m-4 h-96" />}>

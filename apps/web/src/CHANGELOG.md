@@ -38,6 +38,8 @@
 - fix(Cards): **Filters keep your place** — Changing a filter while a card is open no longer jumps the page back to the top.
 - fix(Account): **Signed-in visits to log in** — Opening the log-in or sign-up page while signed in takes you to your collections, or to the page you asked for.
 - fix(Collections): **Keyboard reordering** — Moving a collection with the arrow keys no longer also steps through the open card.
+- fix(Lists): **List quantity buttons recover** — The + and − buttons on a list card unlock again once the change saves, no reload needed.
+- fix(Cards): **Selected card clears the set label** — When the grid or table scrolls to a card, it lands below the sticky set name.
 
 ## 2026-11-16
 

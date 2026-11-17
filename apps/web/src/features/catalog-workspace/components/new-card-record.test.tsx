@@ -1,13 +1,19 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useWorkspaceActionsStore } from "@/features/catalog-workspace/stores/workspace-actions-store";
 import { createStoreResetter } from "@/test/store-helpers";
 
 const mutation = { isPending: false, mutateAsync: vi.fn() };
+const detailQuery = vi.hoisted(() => ({
+  current: { data: undefined, isLoading: true, isError: false, error: null } as object,
+}));
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn() }));
+vi.mock("@/components/error-message", () => ({
+  RouteErrorFallback: ({ error }: { error: Error }) => <p role="alert">{error.message}</p>,
+}));
 vi.mock("@/features/admin/components/card-detail-shared", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   useCardDetailData: () => ({ providerSettings: [], newCardFields: [] }),
@@ -22,7 +28,7 @@ vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
 }));
 vi.mock("@/features/admin/hooks/use-admin-card-queries", () => ({
   useAllCards: () => ({ data: [] }),
-  useUnmatchedCardDetail: () => ({ data: undefined, isLoading: true }),
+  useUnmatchedCardDetail: () => ({ ...detailQuery.current, refetch: vi.fn() }),
 }));
 vi.mock("@/features/admin/hooks/use-ignored-candidates", () => ({
   useIgnoreNewCardDrafts: () => mutation,
@@ -49,6 +55,7 @@ beforeEach(() => {
 
 afterEach(() => {
   resetActions();
+  detailQuery.current = { data: undefined, isLoading: true, isError: false, error: null };
 });
 
 describe("NewCardRecord", () => {
@@ -60,5 +67,22 @@ describe("NewCardRecord", () => {
     );
 
     expect(useWorkspaceActionsStore.getState().actions?.loading).toBe(true);
+  });
+
+  it("shows the load error and stops registering as loading when the card fails to load", () => {
+    detailQuery.current = {
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: new Error("Network down"),
+    };
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <NewCardRecord name="Jinx, Loose Cannon" />
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByRole("alert").textContent).toBe("Network down");
+    expect(useWorkspaceActionsStore.getState().actions?.loading).toBe(false);
   });
 });

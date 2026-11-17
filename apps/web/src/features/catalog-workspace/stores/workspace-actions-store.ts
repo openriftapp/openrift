@@ -42,17 +42,18 @@ export const useWorkspaceActionsStore = create<WorkspaceActionsState>()((set, ge
 
 /**
  * True while the registered actions belong to the record being left, no record has registered
- * yet, or the registered record is still loading.
+ * yet, or the registered record is still loading. `onRecord` is whether the route shows a record.
  */
 export function registrationIsStale(
   state: Pick<WorkspaceActionsState, "actions" | "owner" | "leaving">,
+  onRecord?: boolean,
 ) {
   const { actions, owner, leaving } = state;
   if (actions?.loading === true) {
     return true;
   }
   if (leaving === null) {
-    return false;
+    return owner === null && onRecord === true;
   }
   return owner === null ? !leaving.toList : owner === leaving.from;
 }

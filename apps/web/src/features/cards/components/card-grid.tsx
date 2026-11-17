@@ -28,6 +28,7 @@ import {
   HEADER_PB,
   HEADER_PT,
   LABEL_HEIGHT,
+  STICKY_GROUP_LABEL_BAND,
 } from "@/features/cards/lib/card-grid-constants";
 import { computeGridMetrics } from "@/features/cards/lib/card-grid-metrics";
 import type { VRow } from "@/features/cards/lib/card-grid-types";
@@ -35,6 +36,7 @@ import { buildGroups } from "@/features/cards/lib/card-groups";
 import type { CardGroup } from "@/features/cards/lib/card-groups";
 import { cardRowIndex } from "@/features/cards/lib/card-row-index";
 import { computeRowStarts } from "@/features/cards/lib/compute-row-starts";
+import { scrollCardRowIntoView } from "@/features/cards/lib/scroll-card-row";
 import { useGridFocusStore } from "@/features/cards/stores/grid-focus-store";
 import { useGridViewportStore } from "@/features/cards/stores/grid-viewport-store";
 import { useEnumOrders } from "@/hooks/use-enums";
@@ -310,13 +312,14 @@ export function CardGrid({
     }
     const vItem = virtualizer.getVirtualItems().find((vi) => vi.index === i);
     if (vItem) {
-      const viewportTop = globalThis.scrollY + stickyOffset;
+      const labelBand = multipleGroups ? STICKY_GROUP_LABEL_BAND : 0;
+      const viewportTop = globalThis.scrollY + stickyOffset + labelBand;
       const viewportBottom = globalThis.scrollY + globalThis.innerHeight;
       if (vItem.start >= viewportTop && vItem.start + vItem.size <= viewportBottom) {
         return;
       }
     }
-    virtualizer.scrollToIndex(i, { align: "start" });
+    scrollCardRowIntoView(virtualizer, virtualRows, i, multipleGroups);
   };
 
   const followSelection = useFollowSelection();
@@ -412,7 +415,10 @@ export function CardGrid({
 
       <div className="sticky z-20 h-0" style={{ top: stickyOffset }}>
         {multipleGroups && activeHeaderRow && (
-          <div className="pointer-events-none flex justify-center pt-2">
+          <div
+            className="pointer-events-none flex items-end justify-center"
+            style={{ height: STICKY_GROUP_LABEL_BAND }}
+          >
             <OrnamentRule fade="tips" className="w-72 max-w-full">
               <GroupHeaderLabel
                 slug={activeHeaderRow.group.slug}

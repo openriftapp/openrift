@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Heading } from "@/components/heading";
 import { Card } from "@/components/ui/card";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
+import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 
 export function RecordPane({
   header,
@@ -21,6 +22,12 @@ export function RecordPane({
       {children}
     </section>
   );
+}
+
+/** A message in place of a record; registers as ready with no actions. */
+export function RecordNotice({ children }: { children: ReactNode }) {
+  useRegisterRecordActions({});
+  return <p className="text-muted-foreground p-4">{children}</p>;
 }
 
 export function RecordHeader({

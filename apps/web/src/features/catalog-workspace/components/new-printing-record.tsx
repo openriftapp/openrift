@@ -44,6 +44,7 @@ import { ListingRecord } from "@/features/catalog-workspace/components/listing-r
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
 import {
   RecordHeader,
+  RecordNotice,
   RecordPane,
   RecordSection,
 } from "@/features/catalog-workspace/components/record/record-pane";
@@ -92,9 +93,9 @@ function NewCandidatePrintingRecord({ candidatePrintingId }: { candidatePrinting
   }
   if (item?.cardSlug === null || item?.cardSlug === undefined) {
     return (
-      <p className="text-muted-foreground p-4">
+      <RecordNotice>
         This candidate is not in the queue any more. It was accepted, merged or ignored.
-      </p>
+      </RecordNotice>
     );
   }
   return (

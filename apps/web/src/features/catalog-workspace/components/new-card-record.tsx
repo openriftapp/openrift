@@ -11,6 +11,7 @@ import { LinkIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { RouteErrorFallback } from "@/components/error-message";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -87,7 +88,7 @@ export function NewCardRecord({ name }: { name: string }) {
     adminKeys.cards.allCards,
     adminKeys.workspace,
   ];
-  const { data, isLoading } = useUnmatchedCardDetail(name);
+  const { data, isLoading, isError, error, refetch } = useUnmatchedCardDetail(name);
   const detail = data as UnmatchedCardDetailResponse | undefined;
   const { providerSettings, newCardFields, checkCandidateCard, uncheckCandidateCard } =
     useCardDetailData(scope);
@@ -230,7 +231,7 @@ export function NewCardRecord({ name }: { name: string }) {
     }
   }
 
-  const loading = isLoading || detail === undefined || setsData === undefined;
+  const loading = !isError && (isLoading || detail === undefined || setsData === undefined);
   useRegisterRecordActions({
     loading,
     primary: { label: "Next", run: () => Promise.resolve() },
@@ -238,7 +239,14 @@ export function NewCardRecord({ name }: { name: string }) {
     ignore: isAdmin && providerRows.length > 0 ? ignoreDraft : undefined,
   });
 
-  if (loading) {
+  if (isError) {
+    return (
+      <RecordPane header={<RecordHeader title={displayName} />}>
+        <RouteErrorFallback error={error} onRetry={() => void refetch()} />
+      </RecordPane>
+    );
+  }
+  if (loading || detail === undefined) {
     return (
       <RecordPane header={<Skeleton className="h-10 w-64" />}>
         <Skeleton className="h-64" />

@@ -34,6 +34,7 @@ import { ListingPrintingCombobox } from "@/features/catalog-workspace/components
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
 import {
   RecordHeader,
+  RecordNotice,
   RecordPane,
   RecordSection,
 } from "@/features/catalog-workspace/components/record/record-pane";
@@ -117,13 +118,13 @@ export function CardListingsRecord({ ownerId }: { ownerId: string }) {
   }
   if (cardSlug === null || item === undefined) {
     return (
-      <p className="text-muted-foreground p-4">
+      <RecordNotice>
         These listings are not in the queue any more. They were mapped or ignored.
-      </p>
+      </RecordNotice>
     );
   }
   if (access?.isAdmin !== true) {
-    return <p className="text-muted-foreground p-4">Only admins map marketplace listings.</p>;
+    return <RecordNotice>Only admins map marketplace listings.</RecordNotice>;
   }
   return (
     <Suspense fallback={<Skeleton className="m-4 h-96" />}>

@@ -1,4 +1,6 @@
+// @vitest-environment happy-dom
 import type { Printing } from "@openrift/shared/types/catalog";
+import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { stubPrinting } from "@/test/factories";
@@ -9,6 +11,7 @@ import {
   dispatchDropFromRule,
   dispatchMoveCopyToCollection,
   useCardRowActionsStore,
+  useQuantityPending,
 } from "./card-row-actions-store";
 
 let resetStore: () => void;
@@ -114,5 +117,28 @@ describe("useCardRowActionsStore", () => {
 
   it("dispatchMoveCopyToCollection is a no-op when no handler is registered", () => {
     expect(() => dispatchMoveCopyToCollection("copy-1")).not.toThrow();
+  });
+});
+
+describe("useQuantityPending", () => {
+  it("re-renders when the registered pending state for the entry settles", () => {
+    let pendingId: string | null = "e1";
+    const register = () =>
+      useCardRowActionsStore.getState().setHandlers("list", {
+        isQuantityPendingFor: (entryId) => entryId === pendingId,
+      });
+    register();
+    const { result } = renderHook(() => useQuantityPending("e1"));
+    expect(result.current).toBe(true);
+
+    pendingId = null;
+    act(register);
+
+    expect(result.current).toBe(false);
+  });
+
+  it("is false for an entry without a row and when no list is registered", () => {
+    expect(renderHook(() => useQuantityPending(null)).result.current).toBe(false);
+    expect(renderHook(() => useQuantityPending("e1")).result.current).toBe(false);
   });
 });

@@ -1,9 +1,12 @@
 import type { WorkspaceOwner } from "@openrift/shared/contracts/admin/catalog-workspace";
+import { useParams } from "@tanstack/react-router";
 import { useEffect, useEffectEvent, useState } from "react";
 import { toast } from "sonner";
 
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
+import type { WorkspaceRouteParams } from "@/features/catalog-workspace/lib/owner-items";
+import { selectedKeyFromParams } from "@/features/catalog-workspace/lib/owner-items";
 import type { WorkspaceKeyAction } from "@/features/catalog-workspace/lib/workspace-keys";
 import { SUGGESTION_KEYS, WORKSPACE_KEYS } from "@/features/catalog-workspace/lib/workspace-keys";
 import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/workspace-undo";
@@ -104,13 +107,13 @@ export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps):
   if (event.repeat && !repeatable) {
     return true;
   }
-  const nothingToSettle = resolved.action === "settle-and-next" && actions?.primary === undefined;
-  if (RECORD_WRITES.has(resolved.action) && !nothingToSettle) {
+  if (RECORD_WRITES.has(resolved.action)) {
     if (deps.stale) {
       toast(RECORD_LOADING_NOTICE);
       return true;
     }
-    if (deps.queue.holds(deps.record)) {
+    const nothingToSettle = resolved.action === "settle-and-next" && actions?.primary === undefined;
+    if (!nothingToSettle && deps.queue.holds(deps.record)) {
       toast(STILL_SAVING_NOTICE);
       return true;
     }
@@ -182,6 +185,8 @@ export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps):
 
 export function useWorkspaceKeyboard(owner: WorkspaceOwner): void {
   const navigation = useQueueNavigation(owner);
+  const params: WorkspaceRouteParams = useParams({ strict: false });
+  const onRecord = selectedKeyFromParams(params) !== null;
   const { undoLatest } = useWorkspaceUndo();
   // oxlint-disable-next-line react/hook-use-state -- setter is never needed; one queue per mount
   const [queue] = useState(createWorkspaceWriteQueue);
@@ -194,7 +199,7 @@ export function useWorkspaceKeyboard(owner: WorkspaceOwner): void {
       skipToEnd: navigation.skipToEnd,
       actions: registration.actions,
       record: registration.owner,
-      stale: registrationIsStale(registration),
+      stale: registrationIsStale(registration, onRecord),
       currentRecord: () => useWorkspaceActionsStore.getState().owner,
       undo: undoLatest,
       undoEntries: () => useWorkspaceSelectionStore.getState().undoStack,

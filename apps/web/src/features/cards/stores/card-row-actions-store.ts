@@ -188,6 +188,8 @@ export function dispatchDropFromRule(target: RuleDropTarget): void {
   useCardRowActionsStore.getState().handlers.onDropFromRule?.(target);
 }
 
-export function isQuantityPending(entryId: string): boolean {
-  return useCardRowActionsStore.getState().handlers.isQuantityPendingFor?.(entryId) ?? false;
+export function useQuantityPending(entryId: string | null): boolean {
+  return useCardRowActionsStore(
+    (state) => entryId !== null && (state.handlers.isQuantityPendingFor?.(entryId) ?? false),
+  );
 }

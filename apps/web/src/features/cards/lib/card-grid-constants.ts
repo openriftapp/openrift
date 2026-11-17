@@ -25,3 +25,4 @@ export const HEADER_CONTENT_HEIGHT = 20; // text-sm line-height (tallest child)
 
 export const ADD_STRIP_HEIGHT = 24; // h-5 + mb-1, the CardStrip row above the card image (components/cards/card-strip.tsx)
 export const FALLBACK_ROW_HEIGHT = 200; // estimateRowHeight fallback for out-of-bounds index
+export const STICKY_GROUP_LABEL_BAND = 36; // px

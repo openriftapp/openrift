@@ -1,8 +1,12 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { workspaceQueueQueryOptions } from "@/features/catalog-workspace/lib/workspace-queries";
+import { useWorkspaceActionsStore } from "@/features/catalog-workspace/stores/workspace-actions-store";
 import { stubPrinting } from "@/test/factories";
+import { createStoreResetter } from "@/test/store-helpers";
 
 const allPrintings = [
   stubPrinting({
@@ -27,7 +31,34 @@ vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => ({ allPrintings }),
 }));
 
-const { ListingPrintingCombobox } = await import("./listing-record");
+vi.mock("@/features/admin/hooks/use-admin", () => ({
+  useAdminAccess: () => ({ data: { isAdmin: true }, isPending: false }),
+}));
+
+const { ListingPrintingCombobox, ListingRecord } = await import("./listing-record");
+
+describe("ListingRecord", () => {
+  let reset: () => void;
+  beforeEach(() => {
+    reset = createStoreResetter(useWorkspaceActionsStore);
+  });
+  afterEach(() => reset());
+
+  it("registers without actions when the listing left the queue, so Enter moves on", () => {
+    const client = new QueryClient();
+    client.setQueryData(workspaceQueueQueryOptions().queryKey, { items: [] } as never);
+    render(
+      <QueryClientProvider client={client}>
+        <ListingRecord ownerId="listing:gone" />
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByText(/not in the queue any more/u)).toBeInTheDocument();
+    const state = useWorkspaceActionsStore.getState();
+    expect(state.owner).not.toBeNull();
+    expect(state.actions).toEqual({});
+  });
+});
 
 describe("ListingPrintingCombobox", () => {
   it("asks for three characters before it searches", async () => {

@@ -27,7 +27,7 @@ import {
   dispatchRemoveEntry,
   dispatchSetPreference,
   dispatchSiblingClick,
-  isQuantityPending,
+  useQuantityPending,
 } from "@/features/cards/stores/card-row-actions-store";
 import { useGridSelectionStore } from "@/features/cards/stores/grid-selection-store";
 import { SelectionCheckbox } from "@/features/collections/components/selection-checkbox";
@@ -115,6 +115,7 @@ export const ListGridCell = memo(function ListGridCell({
   // Rule-derived entries have no list_entries row, so entry.id is null and they
   // can't be edited or removed; they can only be copied, added or excluded.
   const editableEntryId = entry !== undefined && entry.id !== null ? entry.id : null;
+  const quantityPending = useQuantityPending(editableEntryId);
   const selectionId = entry ? entrySelectionId(itemId, entry) : null;
   const isItemSelected = useGridSelectionStore(
     (state) => inSelectMode && selectionId !== null && state.selected.has(selectionId),
@@ -146,6 +147,7 @@ export const ListGridCell = memo(function ListGridCell({
         supportsTradePrefs,
         tradeStatus,
         trades,
+        quantityPending,
       });
 
   const dragData: ListEntryDragData | undefined = entry
@@ -255,6 +257,7 @@ interface BuildStripArgs {
   supportsTradePrefs: boolean;
   tradeStatus: CardTradeLiveAnnotation | null;
   trades: readonly CardTradeResponse[];
+  quantityPending: boolean;
 }
 
 function buildStrip({
@@ -268,6 +271,7 @@ function buildStrip({
   supportsTradePrefs,
   tradeStatus,
   trades,
+  quantityPending,
 }: BuildStripArgs): ReactNode {
   const tradeChip = tradeStatus ? (
     <TradeStatusChip
@@ -295,7 +299,7 @@ function buildStrip({
               dispatchEntryQuantityChange(entry.id, manualPart - 1);
             }
           },
-          disabled: manualPart === 0,
+          disabled: manualPart === 0 || quantityPending,
           ariaLabel: m.lists_entry_decrease_aria_list({
             name: legendDisplayName(displayPrinting.card),
           }),
@@ -384,7 +388,6 @@ function buildStrip({
     );
   }
 
-  const isPending = isQuantityPending(entryId);
   const manualPart = entry.quantity - entry.ruleQuantity;
   return (
     <CardCountStrip
@@ -395,12 +398,12 @@ function buildStrip({
           manualPart <= 1
             ? dispatchRemoveEntry(entryId, entry.cardName)
             : dispatchEntryQuantityChange(entryId, manualPart - 1),
-        disabled: isPending,
+        disabled: quantityPending,
         ariaLabel: m.lists_entry_decrease_aria({ name: entry.cardName }),
       }}
       increment={{
         onClick: () => dispatchEntryQuantityChange(entryId, manualPart + 1),
-        disabled: isPending,
+        disabled: quantityPending,
         ariaLabel: m.lists_entry_increase_aria({ name: entry.cardName }),
       }}
       extras={

@@ -21,6 +21,10 @@ const notice = vi.hoisted(() => vi.fn());
 
 vi.mock("sonner", () => ({ toast: Object.assign(notice, { success: vi.fn() }) }));
 
+const routeParams = vi.hoisted(() => ({ current: {} as Record<string, string> }));
+
+vi.mock("@tanstack/react-router", () => ({ useParams: () => routeParams.current }));
+
 vi.mock("@/features/catalog-workspace/hooks/use-queue-navigation", () => ({
   useQueueNavigation: () => navigation,
 }));
@@ -80,6 +84,7 @@ beforeEach(() => {
 afterEach(() => {
   resetActions();
   resetSelection();
+  routeParams.current = {};
   document.body.innerHTML = "";
 });
 
@@ -394,11 +399,24 @@ describe("handleWorkspaceKey", () => {
     expect(notice).toHaveBeenCalledWith(RECORD_LOADING_NOTICE);
   });
 
-  it("treats Enter as Next on a page that registered no record", () => {
-    const d = deps({ stale: true });
+  it("treats Enter as Next on the list, where no record registers", () => {
+    const d = deps();
     expect(handleWorkspaceKey(keyEvent("Enter"), d)).toBe(true);
     expect(d.goNext).toHaveBeenCalledOnce();
     expect(notice).not.toHaveBeenCalled();
+  });
+
+  it("treats Enter as Next on a ready record without a primary action", () => {
+    const d = deps({ actions: {}, record: Symbol("ready") });
+    expect(handleWorkspaceKey(keyEvent("Enter"), d)).toBe(true);
+    expect(d.goNext).toHaveBeenCalledOnce();
+  });
+
+  it("keeps Enter from moving on while the next record has not registered", () => {
+    const d = deps({ stale: true });
+    expect(handleWorkspaceKey(keyEvent("Enter"), d)).toBe(true);
+    expect(d.goNext).not.toHaveBeenCalled();
+    expect(notice).toHaveBeenCalledExactlyOnceWith(RECORD_LOADING_NOTICE);
   });
 
   it("still moves and undoes while the registration is stale", () => {
@@ -502,6 +520,34 @@ describe("useWorkspaceKeyboard", () => {
     expect(notice).toHaveBeenCalledWith(RECORD_LOADING_NOTICE);
     expect(run).not.toHaveBeenCalled();
     expect(navigation.goNext).not.toHaveBeenCalled();
+  });
+
+  it("does not skip a record when Enter follows J before the next record registers", () => {
+    renderHook(() => useWorkspaceKeyboard("card"), { wrapper });
+    const previous = Symbol("previous");
+    useWorkspaceActionsStore.getState().register({}, previous);
+    useWorkspaceActionsStore.getState().leave(false);
+    useWorkspaceActionsStore.getState().unregister(previous);
+
+    const event = new KeyboardEvent("keydown", { key: "Enter", cancelable: true });
+    globalThis.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(navigation.goNext).not.toHaveBeenCalled();
+    expect(notice).toHaveBeenCalledExactlyOnceWith(RECORD_LOADING_NOTICE);
+  });
+
+  it("keeps Enter on a record opened from the list until that record registers", () => {
+    routeParams.current = { cardSlug: "jinx-loose-cannon" };
+    renderHook(() => useWorkspaceKeyboard("card"), { wrapper });
+
+    globalThis.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+    expect(navigation.goNext).not.toHaveBeenCalled();
+    expect(notice).toHaveBeenCalledExactlyOnceWith(RECORD_LOADING_NOTICE);
+
+    useWorkspaceActionsStore.getState().register({}, Symbol("record"));
+    globalThis.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+    expect(navigation.goNext).toHaveBeenCalledOnce();
   });
 
   it("ignores keys while a dialog is in the document", () => {
