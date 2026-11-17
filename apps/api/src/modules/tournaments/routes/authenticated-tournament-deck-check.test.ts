@@ -5,13 +5,19 @@ import { AppError, conflict } from "../../../errors.js";
 import { registerRouterForTest } from "../../../test/mount-router.js";
 import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
-import { createManualDeckCheckEntry } from "../services/deck-check-ingest.js";
+import {
+  createManualDeckCheckEntry,
+  prepareManualDeckCheckList,
+} from "../services/deck-check-ingest.js";
 import { linesFromDeckCode } from "../services/deck-check-player.js";
 import { tournamentDeckCheckRouter } from "./authenticated-tournament-deck-check.js";
 
 vi.mock("../services/deck-check-ingest.js", async (importOriginal) => ({
   ...(await importOriginal()),
   createManualDeckCheckEntry: vi.fn(),
+  prepareManualDeckCheckList: vi.fn(() =>
+    Promise.resolve({ lines: [], contentHash: "hash", cardRows: [] }),
+  ),
 }));
 vi.mock("../services/deck-check-player.js", async (importOriginal) => ({
   ...(await importOriginal()),
@@ -19,6 +25,7 @@ vi.mock("../services/deck-check-player.js", async (importOriginal) => ({
 }));
 
 const mockCreateManualDeckCheckEntry = vi.mocked(createManualDeckCheckEntry);
+const mockPrepareManualDeckCheckList = vi.mocked(prepareManualDeckCheckList);
 const mockLinesFromDeckCode = vi.mocked(linesFromDeckCode);
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
@@ -289,13 +296,16 @@ describe("POST /tournaments/{tournamentId}/deck-check/entries", () => {
 
     expect(res.status).toBe(409);
     expect(mockLinesFromDeckCode).toHaveBeenCalledWith(expect.anything(), "CMAAAAABAEAABJQB");
-    expect(mockCreateManualDeckCheckEntry).toHaveBeenCalledWith(expect.anything(), TOURNAMENT_ID, {
-      participantId: PARTICIPANT_ID,
-      cards: [
-        { name: "Some Legend", quantity: 1, section: "legend" },
-        { name: "Some Card", quantity: 3, section: "main" },
-      ],
-    });
+    expect(mockPrepareManualDeckCheckList).toHaveBeenCalledWith(expect.anything(), [
+      { name: "Some Legend", quantity: 1, section: "legend" },
+      { name: "Some Card", quantity: 3, section: "main" },
+    ]);
+    expect(mockCreateManualDeckCheckEntry).toHaveBeenCalledWith(
+      expect.anything(),
+      TOURNAMENT_ID,
+      PARTICIPANT_ID,
+      { lines: [], contentHash: "hash", cardRows: [] },
+    );
   });
 
   it("rejects a deck code sent together with a card list", async () => {
@@ -323,5 +333,67 @@ describe("POST /tournaments/{tournamentId}/deck-check/entries", () => {
 
     expect(res.status).toBe(409);
     expect(mockCreateManualDeckCheckEntry).not.toHaveBeenCalled();
+  });
+
+  it("resolves the list before it takes the rounds lock", async () => {
+    const { app, repos } = makeCreateApp();
+    mockCreateManualDeckCheckEntry.mockRejectedValueOnce(conflict("stop"));
+
+    await post(app, {
+      participantId: PARTICIPANT_ID,
+      cards: [{ name: "Some Card", quantity: 1, section: "main" }],
+    });
+
+    const [resolveOrder] = mockPrepareManualDeckCheckList.mock.invocationCallOrder.slice(-1);
+    const [lockOrder] = repos.tournaments.lockRounds.mock.invocationCallOrder;
+    expect(resolveOrder).toBeLessThan(lockOrder ?? 0);
+  });
+});
+
+describe("PATCH /tournaments/{tournamentId}/deck-check/entries/{entryId}", () => {
+  const PARTICIPANT_ID = "e0000000-0001-4000-a000-000000000001";
+
+  it("refuses a rename once the player's account closed while the edit waited", async () => {
+    const open = {
+      ...entry("submitted"),
+      participantId: PARTICIPANT_ID as string | null,
+      playerName: "Player One" as string | null,
+    };
+    const deckCheck = {
+      getEventById: vi.fn(() => Promise.resolve(event)),
+      getEntry: vi.fn(() => Promise.resolve(open)),
+      listEditableBaselines: vi.fn(() => Promise.resolve([])),
+      updateEntry: vi.fn(),
+    };
+    const tournaments = {
+      isHostOrStaff: vi.fn(() => Promise.resolve(true)),
+      lockRounds: vi.fn(() => Promise.resolve()),
+      lockParticipant: vi.fn(() => {
+        deckCheck.getEntry.mockResolvedValue({ ...open, playerName: null });
+        return Promise.resolve(true);
+      }),
+    };
+    const repos = { deckCheck, tournaments };
+    const app = new Hono<{ Variables: Variables }>();
+    app.use("*", async (c, next) => {
+      c.set("user", { id: USER_ID } as never);
+      c.set("repos", repos as never);
+      c.set("transact", (async (fn: (r: typeof repos) => unknown) => fn(repos)) as never);
+      await next();
+    });
+    registerRouterForTest(app, tournamentDeckCheckRouter);
+
+    const res = await app.request(
+      `/api/v1/tournaments/${TOURNAMENT_ID}/deck-check/entries/${ENTRY_ID}`,
+      {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ playerName: "Jinx" }),
+      },
+    );
+
+    expect(res.status).toBe(409);
+    expect(tournaments.lockParticipant).toHaveBeenCalledWith(PARTICIPANT_ID);
+    expect(deckCheck.updateEntry).not.toHaveBeenCalled();
   });
 });

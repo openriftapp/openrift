@@ -16,7 +16,6 @@ import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { orpcErrorResponse } from "../../../orpc/error-body.js";
 import type { Variables } from "../../../types.js";
-import { retryOnClaimTokenCollision } from "../lib/claim-token.js";
 import { ingestDeckCheckPush } from "../services/deck-check-ingest.js";
 
 const MAX_BODY_BYTES = 1024 * 1024;
@@ -70,15 +69,12 @@ export const deckCheckIngestRouter = {
       throw new AppError(401, ERROR_CODES.UNAUTHORIZED, "Unknown or revoked push key");
     }
 
-    const result = await retryOnClaimTokenCollision(() =>
-      context.transact((repos) =>
-        ingestDeckCheckPush(
-          repos,
-          { hostType: key.hostType, hostUserId: key.hostUserId, hostOrgId: key.hostOrgId },
-          input,
-          context.config.appBaseUrl,
-        ),
-      ),
+    const result = await ingestDeckCheckPush(
+      context.repos,
+      context.transact,
+      { hostType: key.hostType, hostUserId: key.hostUserId, hostOrgId: key.hostOrgId },
+      input,
+      context.config.appBaseUrl,
     );
     await context.repos.deckCheckKeys.touchKeyUsage(key.id);
 

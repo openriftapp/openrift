@@ -15,14 +15,18 @@ import type { ApiContext } from "../../../orpc/context.js";
 import { computeZoneSuggestions } from "../lib/deck-check-advisories.js";
 import { presentDeadlineSettled, presentDeadlineSettledEntry } from "../lib/deck-check-deadline.js";
 import { buildEntryDetail, toEntrySummary, toEventSummary } from "../lib/deck-check-presenters.js";
-import { assertIdentityEditable } from "../lib/tournament-access.js";
+import { assertIdentityEditable, loadDeckCheckEventForWrite } from "../lib/tournament-access.js";
 import type { DeckCheckEntry } from "../repositories/deck-check-entries.js";
 import type { DeckCheckEvent } from "../repositories/deck-check-events.js";
 import {
   cardResolutionKey,
   resolveDeckCheckCards,
 } from "../services/deck-check-card-resolution.js";
-import { createManualDeckCheckEntry, refreshEditedEntry } from "../services/deck-check-ingest.js";
+import {
+  createManualDeckCheckEntry,
+  prepareManualDeckCheckList,
+  refreshEditedEntry,
+} from "../services/deck-check-ingest.js";
 import { syncDeckCheckLegend } from "../services/deck-check-legend.js";
 import { linesFromDeckCode } from "../services/deck-check-player.js";
 import {
@@ -131,12 +135,11 @@ export const tournamentDeckCheckRouter = {
           section: line.zone,
         }));
       }
+      const list = await prepareManualDeckCheckList(repos, cards);
       // No unique constraint on participant_id; the has-deck check re-runs under a
       // participant row lock to close the judge-double-click race.
       const created = await context.transact(async (trxRepos) => {
-        await trxRepos.tournaments.lockRounds(event.id);
-        const current = await trxRepos.deckCheck.getEventById(event.id);
-        assertFound(current, "Tournament not found");
+        const current = await loadDeckCheckEventForWrite(trxRepos, event.id);
         if (current.status === "archived") {
           throw conflict("Event is archived. Un-archive it before adding decks.");
         }
@@ -146,10 +149,7 @@ export const tournamentDeckCheckRouter = {
         if (await trxRepos.deckCheck.participantHasDeck(participant.id)) {
           throw conflict("This participant already has a deck");
         }
-        return createManualDeckCheckEntry(trxRepos, event.id, {
-          participantId: participant.id,
-          cards,
-        });
+        return createManualDeckCheckEntry(trxRepos, event.id, participant.id, list);
       });
       return buildEntryDetail(repos, event, created);
     },
@@ -209,22 +209,32 @@ export const tournamentDeckCheckRouter = {
     async ({ input, context }): Promise<DeckCheckEntryDetailResponse> => {
       const repos = context.repos;
       const event = await authorizeJudge(repos, input.tournamentId, context.userId);
-      const entry = await loadEntryForWrite(repos, event, input.entryId);
-      assertIdentityEditable(
-        entry.playerName,
-        input.playerName !== undefined || input.riotId !== undefined,
-      );
+      await loadEntryForWrite(repos, event, input.entryId);
 
-      const updated = await context.transact((txRepos) =>
-        txRepos.deckCheck.updateEntry(input.entryId, {
+      // The participant row lock serializes with an account closing, which
+      // clears the stored name the identity check reads.
+      const updated = await context.transact(async (txRepos) => {
+        await loadDeckCheckEventForWrite(txRepos, event.id);
+        const linked = await txRepos.deckCheck.getEntry(event.id, input.entryId);
+        assertFound(linked, "Entry not found");
+        if (linked.participantId !== null) {
+          await txRepos.tournaments.lockParticipant(linked.participantId);
+        }
+        const entry = await txRepos.deckCheck.getEntry(event.id, input.entryId);
+        assertFound(entry, "Entry not found");
+        assertIdentityEditable(
+          entry.playerName,
+          input.playerName !== undefined || input.riotId !== undefined,
+        );
+        return txRepos.deckCheck.updateEntry(input.entryId, {
           ...(input.playerName === undefined ? {} : { playerName: input.playerName }),
           ...(input.riotId === undefined ? {} : { riotId: input.riotId }),
           ...(input.playerMessage === undefined ? {} : { playerMessage: input.playerMessage }),
           ...(input.allowDeckPublishing === undefined
             ? {}
             : { allowDeckPublishing: input.allowDeckPublishing }),
-        }),
-      );
+        });
+      });
       assertFound(updated, "Entry not found");
       return buildEntryDetail(repos, event, updated);
     },

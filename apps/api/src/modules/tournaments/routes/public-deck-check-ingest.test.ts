@@ -69,36 +69,12 @@ describe("POST /api/v1/ingest/deck-check (oRPC)", () => {
     expect(await readJson(res)).toEqual(RESULT);
     expect(mockIngest).toHaveBeenCalledWith(
       expect.anything(),
+      expect.any(Function),
       { hostType: "user", hostUserId: "user-1", hostOrgId: null },
       { tournamentId: EVENT_ID, entries: [] },
       "https://openrift.test",
     );
     expect(mockDeckCheckKeysRepo.touchKeyUsage).toHaveBeenCalledWith("key-1");
-  });
-
-  it("reruns the ingest transaction when a minted claim token collides", async () => {
-    mockDeckCheckKeysRepo.getActiveKeyByHash.mockResolvedValue({
-      id: "key-1",
-      hostType: "user",
-      hostUserId: "user-1",
-      hostOrgId: null,
-    });
-    mockIngest
-      .mockRejectedValueOnce(
-        Object.assign(new Error("duplicate key"), {
-          code: "23505",
-          constraint_name: "uq_tournament_participants_claim_token",
-        }),
-      )
-      .mockResolvedValueOnce(RESULT);
-
-    const res = await push(
-      { tournamentId: EVENT_ID, entries: [] },
-      { Authorization: "Bearer secret" },
-    );
-    expect(res.status).toBe(200);
-    expect(await readJson(res)).toEqual(RESULT);
-    expect(mockIngest).toHaveBeenCalledTimes(2);
   });
 
   it("returns 401 { code, message } when the Authorization header is missing", async () => {

@@ -1,9 +1,11 @@
+import { sql } from "kysely";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createRepos } from "../../../deps.js";
 import { CARD_FURY_UNIT } from "../../../test/fixtures/constants.js";
 import { createTestContext, req } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
+import { holdRow, waitUntilBlockedBy } from "../../../test/row-locks.js";
 
 const OWNER_ID = crypto.randomUUID();
 const ADMIN_ID = crypto.randomUUID();
@@ -1052,5 +1054,98 @@ describe.skipIf(!ownerCtx)("deck-check player self-service (integration, ADR-026
       const res = await strangerApp.fetch(req("POST", "/deck-check/claim/no-such-token"));
       expect(res.status).toBe(404);
     });
+  });
+});
+
+describe.skipIf(!ownerCtx)("player saves racing a cancel or a deadline (integration)", () => {
+  const { db } = ownerCtx!;
+  const repos = createRepos(db);
+  const raceOwnerId = crypto.randomUUID();
+  const racePlayerId = crypto.randomUUID();
+  const racePlayer = createTestContext(racePlayerId, `test-${racePlayerId}@test.com`)!;
+  const tournamentIds: string[] = [];
+
+  beforeAll(async () => {
+    for (const userId of [raceOwnerId, racePlayerId]) {
+      await db
+        .insertInto("users")
+        .values({
+          id: userId,
+          email: `test-${userId}@test.com`,
+          name: "Race",
+          emailVerified: true,
+          image: null,
+        })
+        .execute();
+    }
+  });
+
+  afterAll(async () => {
+    await db.deleteFrom("tournaments").where("id", "in", tournamentIds).execute();
+    await db.deleteFrom("users").where("id", "in", [raceOwnerId, racePlayerId]).execute();
+  });
+
+  async function openEvent(): Promise<{ id: string; token: string }> {
+    const event = await repos.tournaments.create({
+      hostType: "user",
+      hostUserId: raceOwnerId,
+      groupId: null,
+      name: "Summoner Skirmish",
+      startsAt: new Date("2026-07-01"),
+      pairingStyle: "none",
+      deckSubmission: "optional",
+      selfRegistration: true,
+    });
+    tournamentIds.push(event.id);
+    const token = `race-${crypto.randomUUID()}`;
+    await repos.tournaments.setSubmissionToken(event.id, token);
+    return { id: event.id, token };
+  }
+
+  async function saveWhileLockHeld(
+    event: { id: string; token: string },
+    commitWhileWaiting: () => Promise<unknown>,
+  ): Promise<Response> {
+    const hold = await holdRow(
+      db,
+      sql`select pg_advisory_xact_lock(hashtext(${`tournament-writes:${event.id}`}))`,
+    );
+    const save = racePlayer.app.fetch(
+      req("POST", `/deck-check/submissions/${event.token}`, {
+        cards: [{ name: CARD_FURY_UNIT.name, quantity: 3, section: "main" }],
+      }),
+    );
+    await waitUntilBlockedBy(db, hold.pid);
+    await commitWhileWaiting();
+    await hold.release();
+    return await save;
+  }
+
+  it("refuses a submission that waited out a cancel", async () => {
+    const event = await openEvent();
+
+    const res = await saveWhileLockHeld(event, () =>
+      repos.tournaments.updateSettings(event.id, { status: "cancelled" }),
+    );
+
+    expect(res.status).toBe(409);
+    expect(
+      await repos.deckCheck.getEntryByExternalId(event.id, `openrift:${racePlayerId}`),
+    ).toBeUndefined();
+  });
+
+  it("refuses a submission that waited out a deadline moved into the past", async () => {
+    const event = await openEvent();
+
+    const res = await saveWhileLockHeld(event, () =>
+      repos.tournaments.updateSettings(event.id, {
+        submissionsCloseAt: new Date("2026-01-01T00:00:00Z"),
+      }),
+    );
+
+    expect(res.status).toBe(409);
+    expect(
+      await repos.deckCheck.getEntryByExternalId(event.id, `openrift:${racePlayerId}`),
+    ).toBeUndefined();
   });
 });

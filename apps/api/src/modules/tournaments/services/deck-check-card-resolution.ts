@@ -14,7 +14,7 @@ export function cardResolutionKey(name: string): string {
   return normalizeNameForIdentity(name);
 }
 
-const UNMATCHED: DeckCheckCardResolution = {
+export const UNMATCHED: DeckCheckCardResolution = {
   resolvedCardId: null,
   resolvedPrintingId: null,
   matchStatus: "unmatched",

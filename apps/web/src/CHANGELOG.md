@@ -25,6 +25,7 @@
 - fix(Cards): **Linked errata entries** — a link to a card's errata opens its update and scrolls to it once.
 - fix(App): **Picker keyboard scrolling** — moving through a grouped picker with the arrow keys no longer scrolls the page.
 - fix(Collection): **Variant picker toggle** — the button that opened the variant picker closes it, and another button opens its own picker at once.
+- fix(Tournaments): **Deck saves after a cancel or deadline change** — a deck list saved while the organizer cancels the event or moves the deadline earlier is refused.
 
 ## 2026-11-16
 

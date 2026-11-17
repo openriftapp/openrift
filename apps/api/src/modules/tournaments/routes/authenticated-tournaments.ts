@@ -589,10 +589,14 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      const participant = await loadParticipant(repos, input.id, input.participantId);
-      assertIdentityEditable(participant.displayName, true);
       await withUniqueClaimToken((claimToken) =>
-        repos.tournaments.reissueClaim(input.participantId, claimToken),
+        context.transact(async (trxRepos) => {
+          await loadTournamentForWrite(trxRepos, input.id);
+          await trxRepos.tournaments.lockParticipant(input.participantId);
+          const participant = await loadParticipant(trxRepos, input.id, input.participantId);
+          assertIdentityEditable(participant.displayName, true);
+          await trxRepos.tournaments.reissueClaim(input.participantId, claimToken);
+        }),
       );
       return buildParticipantList(repos, input.id);
     },

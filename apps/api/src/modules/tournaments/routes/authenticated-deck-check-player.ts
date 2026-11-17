@@ -19,7 +19,11 @@ import { retryOnClaimTokenCollision } from "../lib/claim-token.js";
 import { buildEntryAdvisories } from "../lib/deck-check-advisories.js";
 import { presentDeadlineSettledEntry } from "../lib/deck-check-deadline.js";
 import { dayOrNull, toDeckCheckEntryCardResponse } from "../lib/deck-check-presenters.js";
-import { assertStillPlaying, lockStillPlaying } from "../lib/tournament-access.js";
+import {
+  assertStillPlaying,
+  loadDeckCheckEventForWrite,
+  lockStillPlaying,
+} from "../lib/tournament-access.js";
 import { hasLeftEvent } from "../lib/tournament-presenters.js";
 import type {
   DeckCheckEntry,
@@ -262,6 +266,26 @@ async function persistSubmission(
   return createSelfSubmittedEntry(repos, event, account, lines, cardRows, consent);
 }
 
+/**
+ * Opens every player save's transaction: takes the tournament lock, then
+ * re-checks the submission window on the locked row, so a cancel or an earlier
+ * deadline that commits while the save waits refuses it.
+ */
+async function loadOpenEventForWrite(
+  repos: Repos,
+  tournamentId: string,
+  closedMessage: string,
+): Promise<DeckCheckEvent> {
+  const event = await loadDeckCheckEventForWrite(repos, tournamentId);
+  if (!submissionWindowOpen(event)) {
+    throw conflict(closedMessage);
+  }
+  return event;
+}
+
+const SUBMISSIONS_CLOSED = "Submissions closed. Contact a judge.";
+const STATE_CHANGED = "The deck's state changed in the meantime. Reload and try again.";
+
 const os = implement(deckCheckPlayerContract).$context<ApiContext>().use(requireAuthedUser);
 
 /**
@@ -287,7 +311,7 @@ export const deckCheckPlayerRouter = {
       const { row, event } = await loadOwnEntry(repos, userId, input.entryId);
       assertStillPlaying(row.participantStatus);
       if (!submissionWindowOpen(event)) {
-        throw conflict("Submissions closed. Contact a judge.");
+        throw conflict(SUBMISSIONS_CLOSED);
       }
       if (row.state !== "editable" && !input.dryRun) {
         throw conflict(
@@ -310,6 +334,7 @@ export const deckCheckPlayerRouter = {
       }
 
       const entry = await context.transact(async (txRepos) => {
+        await loadOpenEventForWrite(txRepos, event.id, SUBMISSIONS_CLOSED);
         // Re-load under the row lock: the state checked above may be stale by
         // now (a judge lock, a second tab), and the write must apply to the
         // entry as it is, not as it was.
@@ -349,13 +374,14 @@ export const deckCheckPlayerRouter = {
           await settleExpiredEditableEntries(repos, event);
           return buildPlayerDetail(repos, row, event);
         }
-        throw conflict("Submissions closed. Contact a judge.");
+        throw conflict(SUBMISSIONS_CLOSED);
       }
       assertStillPlaying(row.participantStatus);
       if (row.state !== "editable") {
         throw conflict("Only an editable deck can be submitted");
       }
       const submitted = await context.transact(async (txRepos) => {
+        await loadOpenEventForWrite(txRepos, event.id, SUBMISSIONS_CLOSED);
         // Re-load under the row lock — the state above may be stale, and a
         // judge transition committed in the gap must not be overwritten.
         await lockStillPlaying(txRepos, row.participantId);
@@ -376,19 +402,23 @@ export const deckCheckPlayerRouter = {
       const { row, event } = await loadOwnEntry(repos, userId, input.entryId);
       assertStillPlaying(row.participantStatus);
       if (!submissionWindowOpen(event)) {
-        throw conflict("Submissions closed. Contact a judge.");
+        throw conflict(SUBMISSIONS_CLOSED);
       }
       if (row.state === "submitted" && event.listLockMode === "at_deadline") {
         // Self-service in the lenient mode: delivery only happens when the
         // window closes. An existing baseline is kept so repeated unlock/submit
         // cycles diff against the same reviewed list.
         const unlocked = await context.transact(async (txRepos) => {
+          const current = await loadOpenEventForWrite(txRepos, event.id, SUBMISSIONS_CLOSED);
+          if (current.listLockMode !== "at_deadline") {
+            throw conflict(STATE_CHANGED);
+          }
           // Re-load under the row lock: an approval committed in the gap must
           // not be silently reverted by a stale self-unlock.
           await lockStillPlaying(txRepos, row.participantId);
           const fresh = await txRepos.deckCheck.getEntryForUpdate(event.id, row.id);
           if (!fresh || fresh.state !== "submitted") {
-            throw conflict("The deck's state changed in the meantime. Reload and try again.");
+            throw conflict(STATE_CHANGED);
           }
           return unlockEntryToEditable(txRepos, fresh, { keepExistingBaseline: true });
         });
@@ -397,10 +427,11 @@ export const deckCheckPlayerRouter = {
       if (row.state === "submitted" || row.state === "approved") {
         // Judge-gated (TR 401.3): file (or refresh) the unlock request.
         const requested = await context.transact(async (txRepos) => {
+          await loadOpenEventForWrite(txRepos, event.id, SUBMISSIONS_CLOSED);
           await lockStillPlaying(txRepos, row.participantId);
           const fresh = await txRepos.deckCheck.getEntryForUpdate(event.id, row.id);
           if (!fresh || (fresh.state !== "submitted" && fresh.state !== "approved")) {
-            throw conflict("The deck's state changed in the meantime. Reload and try again.");
+            throw conflict(STATE_CHANGED);
           }
           return txRepos.deckCheck.updateEntry(fresh.id, {
             unlockRequestedAt: fresh.unlockRequestedAt ?? new Date(),
@@ -490,13 +521,14 @@ export const deckCheckPlayerRouter = {
         throw conflict("Submissions are closed");
       }
       const entry = await retryOnClaimTokenCollision(() =>
-        context.transact((txRepos) =>
-          persistSubmission(txRepos, event, userId, lines, cardRows, {
+        context.transact(async (txRepos) => {
+          const current = await loadOpenEventForWrite(txRepos, event.id, "Submissions are closed");
+          return persistSubmission(txRepos, current, userId, lines, cardRows, {
             allowDeckPublishing: input.allowDeckPublishing,
             allowNameSharing: input.allowNameSharing,
             allowRiotIdSharing: input.allowRiotIdSharing,
-          }),
-        ),
+          });
+        }),
       );
       const cards = await repos.deckCheck.listCardsForEntry(entry.id);
       return {

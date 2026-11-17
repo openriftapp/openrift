@@ -157,7 +157,10 @@ function makeRepos() {
     getCardSetSlugs: stub(new Map()),
     getEntryIdByParticipant: stub<any>(null),
   };
+  // The locked re-read in a save sees the event the token resolved to, unless a test sets it.
+  deckCheck.getEventById.mockImplementation(() => deckCheck.getEventBySubmissionToken());
   const tournaments = {
+    lockRounds: stub<any>(undefined),
     getParticipantByUser: stub<any>(undefined),
     getParticipantById: stub<any>({ id: "participant-1", status: "active" }),
     resolveOrCreateParticipant: stub({ id: "participant-new" }),
@@ -1632,4 +1635,125 @@ describe("cancelling an unlock request after leaving", () => {
       });
     },
   );
+});
+
+describe("a cancel or an earlier deadline that lands while a save waits for the lock", () => {
+  const LIST = { cards: [{ name: "Card", quantity: 1, section: "main" }] };
+  const cancelled = deckEvent({ status: "archived" });
+  const deadlinePassed = deckEvent({ submissionsCloseAt: PAST });
+
+  function waitingSave(
+    repos: ReturnType<typeof makeRepos>,
+    state: string,
+    lockedEvent: ReturnType<typeof deckEvent>,
+    event = deckEvent(),
+  ) {
+    const row = playerRow({ state });
+    repos.deckCheck.getEntryForPlayer.mockResolvedValue(row);
+    repos.deckCheck.getEntryForUpdate.mockResolvedValue(row);
+    repos.deckCheck.getEventById.mockResolvedValue(event);
+    repos.tournaments.lockRounds.mockImplementation(() => {
+      repos.deckCheck.getEventById.mockResolvedValue(lockedEvent);
+      return Promise.resolve();
+    });
+  }
+
+  async function expectClosedUnderLock(
+    repos: ReturnType<typeof makeRepos>,
+    res: Response,
+    message = "Submissions closed. Contact a judge.",
+  ) {
+    const body = (await res.json()) as { code: string; message: string };
+    expect(res.status).toBe(409);
+    expect(body.message).toBe(message);
+    expect(repos.tournaments.lockRounds).toHaveBeenCalledWith(TOURNAMENT_ID);
+    expect(repos.tournaments.lockParticipant).not.toHaveBeenCalled();
+    expect(repos.deckCheck.updateEntry).not.toHaveBeenCalled();
+    expect(repos.deckCheck.replaceEntryCards).not.toHaveBeenCalled();
+    expect(repos.deckCheck.createEntry).not.toHaveBeenCalled();
+  }
+
+  it.each([
+    ["a cancel", cancelled],
+    ["an earlier deadline", deadlinePassed],
+  ])("refuses the deck page's replace after %s", async (_label, lockedEvent) => {
+    const repos = makeRepos();
+    waitingSave(repos, "editable", lockedEvent);
+    const res = await makeApp(repos).fetch(req("PUT", `/mine/${ENTRY_ID}/list`, LIST));
+    await expectClosedUnderLock(repos, res);
+  });
+
+  it("refuses the deck page's submit after an earlier deadline", async () => {
+    const repos = makeRepos();
+    waitingSave(repos, "editable", deadlinePassed);
+    const res = await makeApp(repos).fetch(req("POST", `/mine/${ENTRY_ID}/submit`));
+    await expectClosedUnderLock(repos, res);
+  });
+
+  it("refuses a self-unlock after a cancel", async () => {
+    const repos = makeRepos();
+    waitingSave(
+      repos,
+      "submitted",
+      { ...cancelled, listLockMode: "at_deadline" },
+      deckEvent({ listLockMode: "at_deadline" }),
+    );
+    const res = await makeApp(repos).fetch(req("POST", `/mine/${ENTRY_ID}/unlock`));
+    await expectClosedUnderLock(repos, res);
+  });
+
+  it("refuses a self-unlock once the host switched the list lock to on submit", async () => {
+    const repos = makeRepos();
+    waitingSave(
+      repos,
+      "submitted",
+      deckEvent({ listLockMode: "on_submit" }),
+      deckEvent({ listLockMode: "at_deadline" }),
+    );
+    const res = await makeApp(repos).fetch(req("POST", `/mine/${ENTRY_ID}/unlock`));
+    await expectClosedUnderLock(
+      repos,
+      res,
+      "The deck's state changed in the meantime. Reload and try again.",
+    );
+  });
+
+  it("refuses an unlock request after an earlier deadline", async () => {
+    const repos = makeRepos();
+    waitingSave(repos, "approved", deadlinePassed);
+    const res = await makeApp(repos).fetch(req("POST", `/mine/${ENTRY_ID}/unlock`));
+    await expectClosedUnderLock(repos, res);
+  });
+
+  it("refuses a join-link submission after a cancel", async () => {
+    const repos = makeRepos();
+    repos.deckCheck.getEventBySubmissionToken.mockResolvedValue(
+      deckEvent({ groupName: "Noxus Locals" }),
+    );
+    repos.tournaments.lockRounds.mockImplementation(() => {
+      repos.deckCheck.getEventById.mockResolvedValue(cancelled);
+      return Promise.resolve();
+    });
+    const res = await makeApp(repos).fetch(req("POST", `/submissions/${TOKEN}`, LIST));
+    await expectClosedUnderLock(repos, res, "Submissions are closed");
+    expect(repos.deckCheck.lockSelfSubmission).not.toHaveBeenCalled();
+  });
+
+  it("resolves the list, then takes the tournament lock before any row lock", async () => {
+    const repos = makeRepos();
+    const row = playerRow({ state: "editable" });
+    repos.deckCheck.getEntryForPlayer.mockResolvedValue(row);
+    repos.deckCheck.getEntryForUpdate.mockResolvedValue(row);
+    repos.deckCheck.getEventById.mockResolvedValue(deckEvent());
+
+    await makeApp(repos).fetch(req("PUT", `/mine/${ENTRY_ID}/list`, LIST));
+
+    const [resolved] = repos.catalog.cards.mock.invocationCallOrder;
+    const [locked] = repos.tournaments.lockRounds.mock.invocationCallOrder;
+    const [participantLocked] = repos.tournaments.lockParticipant.mock.invocationCallOrder;
+    const [entryLocked] = repos.deckCheck.getEntryForUpdate.mock.invocationCallOrder;
+    expect(resolved).toBeLessThan(locked ?? 0);
+    expect(locked).toBeLessThan(participantLocked ?? 0);
+    expect(participantLocked).toBeLessThan(entryLocked ?? 0);
+  });
 });

@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 
-import type { createDeckCheckEntrySchema } from "@openrift/shared/contracts/deck-check";
 import type { deckCheckIngestSchema } from "@openrift/shared/contracts/deck-check-ingest";
 import {
   buildContentHashInput,
@@ -15,16 +14,25 @@ import type { DeckCheckIngestResultResponse } from "@openrift/shared/types/api/d
 import { WellKnown } from "@openrift/shared/well-known";
 import type { z } from "zod";
 
-import type { Repos } from "../../../deps.js";
+import type { Repos, Transact } from "../../../deps.js";
 import { AppError, conflict } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { sha256HexSync } from "../../../lib/hash.js";
 import { generateShareToken } from "../../../lib/share-token.js";
+import { retryOnClaimTokenCollision } from "../lib/claim-token.js";
 import { storedCardLines } from "../lib/deck-check-deadline.js";
 import type { DeckCheckEntry } from "../repositories/deck-check-entries.js";
-import type { NewDeckCheckEntryCard } from "../repositories/deck-check-entry-cards.js";
+import type {
+  DeckCheckCardResolution,
+  NewDeckCheckEntryCard,
+} from "../repositories/deck-check-entry-cards.js";
+import type { DeckCheckEvent } from "../repositories/deck-check-events.js";
 import type { DeckCheckHost } from "../repositories/deck-check-shared.js";
-import { cardResolutionKey, resolveDeckCheckCards } from "./deck-check-card-resolution.js";
+import {
+  cardResolutionKey,
+  resolveDeckCheckCards,
+  UNMATCHED,
+} from "./deck-check-card-resolution.js";
 import { syncDeckCheckLegend } from "./deck-check-legend.js";
 
 export type DeckCheckIngestPayload = z.infer<typeof deckCheckIngestSchema>;
@@ -73,25 +81,56 @@ export async function refreshEditedEntry(
   await syncDeckCheckLegend(repos, entry);
 }
 
+export interface PreparedDeckCheckList {
+  lines: DeckCheckCardLine[];
+  contentHash: string;
+  cardRows: NewDeckCheckEntryCard[];
+}
+
+function toCardRows(
+  cards: { name: string; section: string; quantity: number }[],
+  lines: DeckCheckCardLine[],
+  resolutions: Map<string, DeckCheckCardResolution>,
+): NewDeckCheckEntryCard[] {
+  return cards.map((card, sortOrder) => ({
+    sortOrder,
+    rawName: card.name,
+    section: card.section,
+    zone: lines[sortOrder]?.zone ?? WellKnown.deckZone.MAIN,
+    quantity: card.quantity,
+    ...(resolutions.get(cardResolutionKey(card.name)) ?? UNMATCHED),
+  }));
+}
+
+const UNKNOWN_EVENT = "Unknown tournament id. Create the deck-check tournament in OpenRift first.";
+
+async function loadPushTarget(
+  repos: Repos,
+  host: DeckCheckHost,
+  tournamentId: string,
+): Promise<DeckCheckEvent> {
+  const event = await repos.deckCheck.getEventForHost(host, tournamentId);
+  assertFound(event, UNKNOWN_EVENT);
+  if (event.status === "archived") {
+    throw conflict("Event is archived. Un-archive it before pushing.");
+  }
+  return event;
+}
+
 /**
  * Upserts the pushed entries into an existing event; absent entries are
- * untouched. Pushes never create events.
+ * untouched. Pushes never create events. Card resolution runs on the pool
+ * before the transaction, so the tournament lock is never held across a
+ * catalog cache load.
  */
 export async function ingestDeckCheckPush(
   repos: Repos,
+  transact: Transact,
   host: DeckCheckHost,
   payload: DeckCheckIngestPayload,
   appBaseUrl: string,
 ): Promise<DeckCheckIngestResultResponse> {
-  const unknownEvent = "Unknown tournament id. Create the deck-check tournament in OpenRift first.";
-  const found = await repos.deckCheck.getEventForHost(host, payload.tournamentId);
-  assertFound(found, unknownEvent);
-  await repos.tournaments.lockRounds(found.id);
-  const event = await repos.deckCheck.getEventForHost(host, payload.tournamentId);
-  assertFound(event, unknownEvent);
-  if (event.status === "archived") {
-    throw conflict("Event is archived. Un-archive it before pushing.");
-  }
+  await loadPushTarget(repos, host, payload.tournamentId);
 
   // The self-submission namespace is reserved: a provider must never upsert
   // onto (or withdraw) an entry the player created.
@@ -108,12 +147,35 @@ export async function ingestDeckCheckPush(
   }
 
   const mappedLines = mapAllSections(payload.entries);
-
   const resolutions = await resolveDeckCheckCards(
     repos,
     mappedLines.flat().map((line) => ({ name: line.name })),
   );
+  const lists = payload.entries.map((entry, index) => {
+    const lines = mappedLines[index] ?? [];
+    return {
+      entry,
+      lines,
+      contentHash: sha256HexSync(buildContentHashInput(lines)),
+      cardRows: toCardRows(entry.cards, lines, resolutions),
+    };
+  });
 
+  return retryOnClaimTokenCollision(() =>
+    transact(async (trxRepos) => {
+      await trxRepos.tournaments.lockRounds(payload.tournamentId);
+      const event = await loadPushTarget(trxRepos, host, payload.tournamentId);
+      return writeDeckCheckPush(trxRepos, event, lists, appBaseUrl);
+    }),
+  );
+}
+
+async function writeDeckCheckPush(
+  repos: Repos,
+  event: DeckCheckEvent,
+  lists: (PreparedDeckCheckList & { entry: IngestEntry })[],
+  appBaseUrl: string,
+): Promise<DeckCheckIngestResultResponse> {
   const result: DeckCheckIngestResultResponse = {
     tournamentId: event.id,
     entriesCreated: 0,
@@ -143,25 +205,7 @@ export async function ingestDeckCheckPush(
   };
 
   const touched = new Set<string>();
-  for (const [index, entry] of payload.entries.entries()) {
-    const lines = mappedLines[index] ?? [];
-    const contentHash = sha256HexSync(buildContentHashInput(lines));
-    const cardRows: NewDeckCheckEntryCard[] = entry.cards.map((card, sortOrder) => {
-      const resolution = resolutions.get(cardResolutionKey(card.name)) ?? {
-        resolvedCardId: null,
-        resolvedPrintingId: null,
-        matchStatus: "unmatched" as const,
-      };
-      return {
-        sortOrder,
-        rawName: card.name,
-        section: card.section,
-        zone: lines[sortOrder]?.zone ?? WellKnown.deckZone.MAIN,
-        quantity: card.quantity,
-        ...resolution,
-      };
-    });
-
+  for (const { entry, lines, contentHash, cardRows } of lists) {
     const identity = {
       playerName: entry.playerName,
       riotId: entry.riotId ?? null,
@@ -275,21 +319,15 @@ export async function ingestDeckCheckPush(
   return result;
 }
 
-export type CreateDeckCheckEntryPayload = Pick<
-  z.infer<typeof createDeckCheckEntrySchema>,
-  "participantId" | "cards"
->;
-
 /**
- * External id is `manual:`-prefixed, so a later provider push for the same
- * player creates a separate entry.
+ * Maps and resolves a judge-entered list. Runs before the write's
+ * transaction, so the tournament lock is never held across a catalog cache load.
  */
-export async function createManualDeckCheckEntry(
+export async function prepareManualDeckCheckList(
   repos: Repos,
-  tournamentId: string,
-  payload: CreateDeckCheckEntryPayload,
-): Promise<DeckCheckEntry> {
-  const lines: DeckCheckCardLine[] = payload.cards.map((card) => {
+  cards: { name: string; quantity: number; section: string }[],
+): Promise<PreparedDeckCheckList> {
+  const lines: DeckCheckCardLine[] = cards.map((card) => {
     const zone = mapSectionToZone(card.section);
     if (!zone) {
       throw new AppError(
@@ -300,36 +338,36 @@ export async function createManualDeckCheckEntry(
     }
     return { name: card.name, zone, quantity: card.quantity };
   });
-
   const resolutions = await resolveDeckCheckCards(
     repos,
     lines.map((line) => ({ name: line.name })),
   );
-  const cardRows: NewDeckCheckEntryCard[] = payload.cards.map((card, sortOrder) => {
-    const resolution = resolutions.get(cardResolutionKey(card.name)) ?? {
-      resolvedCardId: null,
-      resolvedPrintingId: null,
-      matchStatus: "unmatched" as const,
-    };
-    return {
-      sortOrder,
-      rawName: card.name,
-      section: card.section,
-      zone: lines[sortOrder]?.zone ?? "main",
-      quantity: card.quantity,
-      ...resolution,
-    };
-  });
+  return {
+    lines,
+    contentHash: sha256HexSync(buildContentHashInput(lines)),
+    cardRows: toCardRows(cards, lines, resolutions),
+  };
+}
 
+/**
+ * External id is `manual:`-prefixed, so a later provider push for the same
+ * player creates a separate entry.
+ */
+export async function createManualDeckCheckEntry(
+  repos: Repos,
+  tournamentId: string,
+  participantId: string,
+  list: PreparedDeckCheckList,
+): Promise<DeckCheckEntry> {
   const created = await repos.deckCheck.createEntry({
     tournamentId,
-    participantId: payload.participantId,
+    participantId,
     externalId: `${MANUAL_ENTRY_EXTERNAL_ID_PREFIX}${randomUUID()}`,
     submittedAt: null,
-    contentHash: sha256HexSync(buildContentHashInput(lines)),
+    contentHash: list.contentHash,
     withdrawnAt: null,
   });
-  await repos.deckCheck.replaceEntryCards(created.id, cardRows);
+  await repos.deckCheck.replaceEntryCards(created.id, list.cardRows);
   await syncDeckCheckLegend(repos, created);
   return created;
 }

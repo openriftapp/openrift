@@ -88,6 +88,7 @@ function makeApp(tournament: Tournament) {
       Promise.resolve({ id: PARTICIPANT_ID, tournamentId: TOURNAMENT_ID, displayName: "Vi" }),
     ),
     updateParticipant: vi.fn(() => Promise.resolve()),
+    reissueClaim: vi.fn(() => Promise.resolve()),
     listParticipantsWithUser: vi.fn(() => Promise.resolve([])),
   };
   const deckCheck = {
@@ -476,6 +477,28 @@ describe("POST /tournaments/{id}/cancel", () => {
     expect(lockOrder).toBeLessThan(
       repos.tournaments.updateSettings.mock.invocationCallOrder[0] ?? 0,
     );
+  });
+});
+
+describe("POST /tournaments/{id}/participants/{participantId}/reissue-claim", () => {
+  it("refuses a spot whose account closed while the reissue waited for its row", async () => {
+    const { app, repos } = makeApp(tournamentRow());
+    repos.tournaments.lockParticipant.mockImplementation(() => {
+      repos.tournaments.getParticipantById.mockResolvedValue({
+        id: PARTICIPANT_ID,
+        tournamentId: TOURNAMENT_ID,
+        displayName: null as unknown as string,
+      });
+      return Promise.resolve(true);
+    });
+
+    const res = await app.fetch(
+      req("POST", `/tournaments/${TOURNAMENT_ID}/participants/${PARTICIPANT_ID}/reissue-claim`),
+    );
+
+    expect(res.status).toBe(409);
+    expect(repos.tournaments.lockRounds).toHaveBeenCalledWith(TOURNAMENT_ID);
+    expect(repos.tournaments.reissueClaim).not.toHaveBeenCalled();
   });
 });
 

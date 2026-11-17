@@ -6,6 +6,7 @@ import type {
 import type { Repos } from "../../../deps.js";
 import { conflict, forbidden, notFound } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
+import type { DeckCheckEvent } from "../repositories/deck-check-events.js";
 import type { Tournament, TournamentParticipant } from "../repositories/tournaments-shared.js";
 import { hasOrgRole, loadOrg, requireOrgRole } from "./org-access.js";
 import { hasLeftEvent } from "./tournament-presenters.js";
@@ -27,6 +28,17 @@ export async function loadTournament(repos: Repos, id: string): Promise<Tourname
 export async function loadTournamentForWrite(repos: Repos, id: string): Promise<Tournament> {
   await repos.tournaments.lockRounds(id);
   return loadTournament(repos, id);
+}
+
+/** {@link loadTournamentForWrite} for deck-check writers: the re-read is the deck-check event shape. */
+export async function loadDeckCheckEventForWrite(
+  repos: Repos,
+  id: string,
+): Promise<DeckCheckEvent> {
+  await repos.tournaments.lockRounds(id);
+  const event = await repos.deckCheck.getEventById(id);
+  assertFound(event, "Tournament not found");
+  return event;
 }
 
 export async function isHost(
