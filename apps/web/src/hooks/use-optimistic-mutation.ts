@@ -5,16 +5,18 @@ import { reportMutationError } from "@/lib/query-client";
 type QueryKey = readonly unknown[];
 
 export function useOptimisticMutation<TCache, TVariables = void, TData = unknown>(options: {
+  mutationKey?: QueryKey;
   queryKey: QueryKey | ((variables: TVariables) => QueryKey);
   mutationFn: (variables: TVariables) => Promise<TData>;
   apply: (cached: TCache, variables: TVariables) => TCache;
   invalidates?: readonly QueryKey[] | ((variables: TVariables) => readonly QueryKey[]);
 }) {
   const queryClient = useQueryClient();
-  const { queryKey, mutationFn, apply, invalidates = [] } = options;
+  const { mutationKey, queryKey, mutationFn, apply, invalidates = [] } = options;
   const keyFor = (variables: TVariables) =>
     typeof queryKey === "function" ? queryKey(variables) : queryKey;
   return useMutation<TData, Error, TVariables, { previous: TCache | undefined }>({
+    mutationKey,
     mutationFn,
     onMutate: async (variables) => {
       const key = keyFor(variables);

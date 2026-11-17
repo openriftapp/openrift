@@ -12,6 +12,11 @@ import type {
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 
 import { withTradeCancelConsent } from "@/features/groups/stores/trade-cancel-consent-store";
+import type { BulkAddVariables } from "@/features/lists/lib/list-entry-writes";
+import {
+  bulkAddItemMatches,
+  LIST_ENTRY_MUTATION_KEYS,
+} from "@/features/lists/lib/list-entry-writes";
 import {
   listDetailQueryOptions,
   listsQueryOptions,
@@ -135,19 +140,10 @@ export function useReorderLists() {
   });
 }
 
-interface BulkAddVariables {
-  listId: string;
-  entries: {
-    cardId?: string;
-    printingId?: string;
-    copyId?: string;
-    quantity?: number;
-  }[];
-}
-
 export function useBulkAddListEntries() {
   const userId = useRequiredUserId();
   return useOptimisticMutation<ListDetailResponse, BulkAddVariables, ListBulkAddResponse>({
+    mutationKey: LIST_ENTRY_MUTATION_KEYS.add,
     queryKey: (vars) => listsKeys.detail(userId, vars.listId),
     mutationFn: (vars) => listsApi().bulkCreateEntries({ id: vars.listId, entries: vars.entries }),
     // Bumps a matching existing entry's quantity before the server responds. Fresh
@@ -156,18 +152,7 @@ export function useBulkAddListEntries() {
       let entries = cached.entries;
       for (const item of vars.entries) {
         const delta = item.quantity ?? 1;
-        const idx = entries.findIndex((entry) => {
-          if (item.cardId !== undefined && entry.kind === "card") {
-            return entry.cardId === item.cardId;
-          }
-          if (item.printingId !== undefined && entry.kind === "printing") {
-            return entry.printingId === item.printingId;
-          }
-          if (item.copyId !== undefined && entry.kind === "copy") {
-            return entry.copyId === item.copyId;
-          }
-          return false;
-        });
+        const idx = entries.findIndex((entry) => bulkAddItemMatches(item, entry));
         const existing = entries[idx];
         if (existing !== undefined) {
           entries = [
@@ -228,6 +213,7 @@ export function useMoveListEntries() {
 export function useUpdateListEntry() {
   const userId = useRequiredUserId();
   return useOptimisticMutation<ListDetailResponse, UpdateListEntryInput, ListEntryResponse>({
+    mutationKey: LIST_ENTRY_MUTATION_KEYS.update,
     queryKey: (vars) => listsKeys.detail(userId, vars.listId),
     mutationFn: (vars) => updateListEntry(vars),
     apply: (cached, vars) => ({
@@ -249,6 +235,7 @@ export function useUpdateListEntry() {
 export function useRemoveListEntry() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation<unknown, { listId: string; entryId: string }>({
+    mutationKey: LIST_ENTRY_MUTATION_KEYS.remove,
     mutationFn: (vars) =>
       withTradeCancelConsent((cancelTradeIds) =>
         listsApi().removeEntry({ id: vars.listId, itemId: vars.entryId, cancelTradeIds }),

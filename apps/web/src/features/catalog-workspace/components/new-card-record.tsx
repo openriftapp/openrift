@@ -52,6 +52,7 @@ import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
 import {
   RecordBanner,
   RecordHeader,
+  RecordNotice,
   RecordPane,
   RecordSection,
 } from "@/features/catalog-workspace/components/record/record-pane";
@@ -68,6 +69,7 @@ import {
   runInSequence,
   seedNewCardGroups,
 } from "@/features/catalog-workspace/lib/new-card-groups";
+import { workspaceQueueQueryOptions } from "@/features/catalog-workspace/lib/workspace-queries";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { PERSISTENT_ERROR_TOAST } from "@/lib/toast";
@@ -77,6 +79,31 @@ function nameHead(name: string): string {
 }
 
 export function NewCardRecord({ name }: { name: string }) {
+  const { data: queue } = useQuery(workspaceQueueQueryOptions());
+  const [leaving, setLeaving] = useState(false);
+  const queued = queue?.items.some(
+    (item) => item.owner === "card" && item.segment === "new" && item.ownerId === name,
+  );
+  // An accept or merge drops the card from the queue before it opens the result.
+  if (queued === false && !leaving) {
+    return (
+      <RecordNotice>
+        This card is not in the queue any more. It was accepted, merged or ignored.
+      </RecordNotice>
+    );
+  }
+  return <NewCardRecordBody name={name} leaving={leaving} onLeavingChange={setLeaving} />;
+}
+
+function NewCardRecordBody({
+  name,
+  leaving,
+  onLeavingChange,
+}: {
+  name: string;
+  leaving: boolean;
+  onLeavingChange: (leaving: boolean) => void;
+}) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const navigation = useQueueNavigation("card");
@@ -107,7 +134,6 @@ export function NewCardRecord({ name }: { name: string }) {
   const [groupEdits, setGroupEdits] = useState<ReadonlyMap<string, CreationDraft>>(new Map());
   const [picks, setPicks] = useState<ReadonlyMap<string, boolean>>(new Map());
   const [focusKey, setFocusKey] = useState<string | null>(null);
-  const [acceptPending, setAcceptPending] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [mergeSearch, setMergeSearch] = useState("");
   const [mergeTarget, setMergeTarget] = useState("");
@@ -144,7 +170,7 @@ export function NewCardRecord({ name }: { name: string }) {
   });
   const checked = new Set(checkedGroupKeys(groups, picks));
   const focused = groups.find((group) => group.key === focusKey) ?? groups.at(0);
-  const busy = acceptPending || acceptNewCard.isPending || acceptPrintingGroup.isPending;
+  const busy = leaving || acceptNewCard.isPending || acceptPrintingGroup.isPending;
   const canAccept = hasRequiredActiveFields(activeCard) && cardId.length > 0;
   const providerRows = ignorableSources(sources);
   const remainingGroups = groups.length - checked.size;
@@ -193,17 +219,16 @@ export function NewCardRecord({ name }: { name: string }) {
       return;
     }
     accepting.current = true;
-    setAcceptPending(true);
+    onLeavingChange(true);
     if (!(await runReportedMutation(() => acceptNewCard.mutateAsync({ name, cardFields })))) {
       accepting.current = false;
-      setAcceptPending(false);
+      onLeavingChange(false);
       return;
     }
     const chosen = groups.filter((group) => checked.has(group.key));
     if (chosen.length > 0) {
       await acceptPrintings(cardId, chosen);
     }
-    setAcceptPending(false);
     openCard(cardId);
   }
 
@@ -223,11 +248,14 @@ export function NewCardRecord({ name }: { name: string }) {
 
   async function mergeInto(targetId: string) {
     const targetSlug = allCards.find((card) => card.id === targetId)?.slug ?? targetId;
+    onLeavingChange(true);
     const ok = await runReportedMutation(() =>
       linkCard.mutateAsync({ name, cardId: targetId, cardSlug: targetSlug }),
     );
     if (ok) {
       openCard(targetSlug);
+    } else {
+      onLeavingChange(false);
     }
   }
 

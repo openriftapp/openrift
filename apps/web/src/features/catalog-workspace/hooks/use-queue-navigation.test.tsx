@@ -9,6 +9,7 @@ import {
   registrationIsStale,
   useWorkspaceActionsStore,
 } from "@/features/catalog-workspace/stores/workspace-actions-store";
+import { useWorkspaceRecordPaneStore } from "@/features/catalog-workspace/stores/workspace-record-pane-store";
 import { useWorkspaceSkipStore } from "@/features/catalog-workspace/stores/workspace-skip-store";
 import { createStoreResetter } from "@/test/store-helpers";
 
@@ -75,10 +76,12 @@ function entry(key: string, linkable = true): ListEntry {
 
 let resetSkips: () => void;
 let resetActions: () => void;
+let resetPane: () => void;
 
 beforeEach(() => {
   resetSkips = createStoreResetter(useWorkspaceSkipStore);
   resetActions = createStoreResetter(useWorkspaceActionsStore);
+  resetPane = createStoreResetter(useWorkspaceRecordPaneStore);
   router.navigate.mockReset();
   router.params = {};
   router.search = {};
@@ -88,7 +91,19 @@ beforeEach(() => {
 afterEach(() => {
   resetSkips();
   resetActions();
+  resetPane();
+  document.body.innerHTML = "";
 });
+
+function mountPane(): { pane: HTMLElement; button: HTMLButtonElement } {
+  const button = document.createElement("button");
+  const pane = document.createElement("section");
+  pane.tabIndex = -1;
+  document.body.append(button, pane);
+  useWorkspaceRecordPaneStore.getState().setPane(pane);
+  button.focus();
+  return { pane, button };
+}
 
 describe("planQueueStep", () => {
   const entries = [entry("card:a"), entry("card:orphan", false), entry("card:b")];
@@ -243,5 +258,51 @@ describe("useQueueNavigation", () => {
     act(() => result.current.goNext());
     act(() => result.current.skipToEnd());
     expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  it("moves focus from a queue control to the record pane as it navigates", async () => {
+    router.params = { cardSlug: "jinx-loose-cannon" };
+    const { pane } = mountPane();
+    router.navigate.mockImplementation(() => {
+      expect(pane).toHaveFocus();
+    });
+    const { result } = renderHook(() => useQueueNavigation("card"), { wrapper });
+    await waitFor(() => expect(result.current.position).not.toBeNull());
+
+    act(() => result.current.goNext());
+
+    expect(router.navigate).toHaveBeenCalledOnce();
+  });
+
+  it("leaves focus alone when the step goes nowhere", async () => {
+    router.params = { cardSlug: "jinx-loose-cannon" };
+    const { button } = mountPane();
+    const { result } = renderHook(() => useQueueNavigation("card"), { wrapper });
+    await waitFor(() => expect(result.current.position).not.toBeNull());
+
+    act(() => result.current.goPrev());
+
+    expect(button).toHaveFocus();
+  });
+
+  it("does not take focus from a field or from an open overlay", async () => {
+    router.params = { cardSlug: "jinx-loose-cannon" };
+    mountPane();
+    const field = document.createElement("input");
+    document.body.append(field);
+    field.focus();
+    const { result } = renderHook(() => useQueueNavigation("card"), { wrapper });
+    await waitFor(() => expect(result.current.position).not.toBeNull());
+
+    act(() => result.current.goNext());
+    expect(field).toHaveFocus();
+
+    const button = document.createElement("button");
+    const dialog = document.createElement("div");
+    dialog.setAttribute("role", "dialog");
+    document.body.append(button, dialog);
+    button.focus();
+    act(() => result.current.goNext());
+    expect(button).toHaveFocus();
   });
 });

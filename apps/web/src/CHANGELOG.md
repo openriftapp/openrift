@@ -40,6 +40,7 @@
 - fix(Collections): **Keyboard reordering** — Moving a collection with the arrow keys no longer also steps through the open card.
 - fix(Lists): **List quantity buttons recover** — The + and − buttons on a list card unlock again once the change saves, no reload needed.
 - fix(Cards): **Selected card clears the set label** — When the grid or table scrolls to a card, it lands below the sticky set name.
+- fix(Lists): **Add and remove on a list stay in step** — Clicking Add and then Decrease quickly no longer leaves the list one copy off.
 
 ## 2026-11-16
 

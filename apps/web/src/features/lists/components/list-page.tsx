@@ -39,6 +39,7 @@ import { ListHeader } from "@/features/lists/components/list-header";
 import { ListImportDialog } from "@/features/lists/components/list-import-dialog";
 import { ListShareDialog } from "@/features/lists/components/list-share-dialog";
 import { RuleEditorDialog } from "@/features/lists/components/rule-editor-dialog";
+import { useListEntryWritesPending } from "@/features/lists/hooks/use-list-entry-writes-pending";
 import {
   useDeleteList,
   useListDetail,
@@ -70,6 +71,7 @@ export function ListPage({ listId }: ListPageProps) {
   const removeEntry = useRemoveListEntry();
   const updateEntry = useUpdateListEntry();
   const updateList = useUpdateList();
+  const entryWritePending = useListEntryWritesPending(listId, data.entries);
 
   const KindIcon = LIST_KIND_ICON[data.list.kind];
   const empty = emptyStateCopy(data.list.kind);
@@ -333,9 +335,7 @@ export function ListPage({ listId }: ListPageProps) {
         isRemovePendingFor={(entryId) =>
           removeEntry.isPending && removeEntry.variables?.entryId === entryId
         }
-        isQuantityPendingFor={(entryId) =>
-          updateEntry.isPending && updateEntry.variables?.entryId === entryId
-        }
+        isQuantityPendingFor={entryWritePending}
       />
       {editDialog}
       {deleteDialog}

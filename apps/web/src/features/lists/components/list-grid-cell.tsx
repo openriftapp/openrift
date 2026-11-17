@@ -306,6 +306,7 @@ function buildStrip({
         }}
         increment={{
           onClick: () => dispatchIncrement(displayPrinting),
+          disabled: quantityPending,
           ariaLabel: m.lists_entry_add_aria({ name: legendDisplayName(displayPrinting.card) }),
         }}
         extras={

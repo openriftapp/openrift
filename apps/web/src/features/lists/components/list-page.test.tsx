@@ -84,10 +84,13 @@ function mutationStub() {
 }
 
 const dropFromRules = mutationStub();
-type EntryMutationStub = Omit<ReturnType<typeof mutationStub>, "variables"> & {
-  variables?: { entryId: string };
-};
-let updateListEntry: EntryMutationStub = mutationStub();
+let updateListEntry = mutationStub();
+const bulkAddEntries = mutationStub();
+let pendingEntryIds = new Set<string>();
+
+vi.mock("@/features/lists/hooks/use-list-entry-writes-pending", () => ({
+  useListEntryWritesPending: () => (entryId: string) => pendingEntryIds.has(entryId),
+}));
 
 vi.mock("@tanstack/react-start", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -132,7 +135,7 @@ vi.mock("@/features/lists/hooks/use-lists", () => ({
   useUpdateList: () => mutationStub(),
   useDropFromListRules: () => dropFromRules,
   useMoveListEntries: () => mutationStub(),
-  useBulkAddListEntries: () => mutationStub(),
+  useBulkAddListEntries: () => bulkAddEntries,
   useBulkRemoveListEntries: () => mutationStub(),
 }));
 
@@ -286,7 +289,7 @@ vi.mock("@/features/lists/components/rule-editor-dialog", () => ({ RuleEditorDia
 const { ListPage } = await import("./list-page");
 const { TopBarSlotContext } = await import("@/components/layout/top-bar-slot");
 const { FilterSearchProvider } = await import("@/features/cards/hooks/use-filter-search");
-const { dispatchDecrement, dispatchDropFromRule, useCardRowActionsStore } =
+const { dispatchDecrement, dispatchDropFromRule, dispatchIncrement, useCardRowActionsStore } =
   await import("@/features/cards/stores/card-row-actions-store");
 const { useGridFocusStore } = await import("@/features/cards/stores/grid-focus-store");
 const { useGridSelectionStore } = await import("@/features/cards/stores/grid-selection-store");
@@ -330,6 +333,8 @@ describe("ListPage", () => {
     }
     listDetail = cardKindListDetail;
     updateListEntry = mutationStub();
+    bulkAddEntries.mutate.mockClear();
+    pendingEntryIds = new Set();
     sortedCards = [];
     selectedIds = new Set();
     document.body.innerHTML = "";
@@ -436,12 +441,25 @@ describe("ListPage", () => {
       ...cardKindListDetail,
       entries: [{ ...cardKindListDetail.entries[0]!, quantity: 2 }],
     };
-    updateListEntry = { ...mutationStub(), isPending: true, variables: { entryId: "entry-1" } };
+    pendingEntryIds = new Set(["entry-1"]);
     const { view } = renderListPage();
 
     dispatchDecrement(printingOnList, document.body);
 
     expect(updateListEntry.mutate).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
+  it("ignores a grid add while a write for that entry is pending, and adds once it lands", () => {
+    pendingEntryIds = new Set(["entry-1"]);
+    const { view } = renderListPage();
+
+    dispatchIncrement(printingOnList);
+    expect(bulkAddEntries.mutate).not.toHaveBeenCalled();
+
+    pendingEntryIds = new Set();
+    dispatchIncrement(printingOnList);
+    expect(bulkAddEntries.mutate).toHaveBeenCalledOnce();
     view.unmount();
   });
 

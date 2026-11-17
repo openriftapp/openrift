@@ -52,32 +52,36 @@ function registerPending(pending: boolean) {
   });
 }
 
+function renderCell(showLibrary: boolean) {
+  return render(
+    <ListGridCell
+      printing={printing}
+      itemId="item-1"
+      cardWidth={200}
+      priority={false}
+      dataView="cards"
+      view="cards"
+      kind="card"
+      intent="wish"
+      listId="list-1"
+      listTradeDefaults={entry.tradeOverride}
+      listCurrency={null}
+      mode="browse"
+      selectionHasRuleEntry={false}
+      showLibrary={showLibrary}
+      supportsTradePrefs={false}
+      siblings={undefined}
+      display={{} as never}
+      showImages={false}
+      tradeIndex={{} as never}
+    />,
+  );
+}
+
 describe("ListGridCell quantity strip", () => {
   it("re-enables +/- once the entry's quantity write settles", () => {
     registerPending(true);
-    render(
-      <ListGridCell
-        printing={printing}
-        itemId="item-1"
-        cardWidth={200}
-        priority={false}
-        dataView="cards"
-        view="cards"
-        kind="card"
-        intent="wish"
-        listId="list-1"
-        listTradeDefaults={entry.tradeOverride}
-        listCurrency={null}
-        mode="browse"
-        selectionHasRuleEntry={false}
-        showLibrary={false}
-        supportsTradePrefs={false}
-        siblings={undefined}
-        display={{} as never}
-        showImages={false}
-        tradeIndex={{} as never}
-      />,
-    );
+    renderCell(false);
     const increase = screen.getByRole("button", { name: "Increase Jinx, Loose Cannon quantity" });
     expect(increase).toBeDisabled();
 
@@ -85,5 +89,22 @@ describe("ListGridCell quantity strip", () => {
 
     expect(increase).toBeEnabled();
     expect(screen.getByRole("button", { name: /Decrease Jinx, Loose Cannon/u })).toBeEnabled();
+  });
+
+  it("disables Add and Decrease in the library view while a write for the entry is pending", () => {
+    useListEntriesStore.setState({ entryByKey: new Map([[printing.cardId, entry]]) });
+    registerPending(true);
+    renderCell(true);
+    const add = screen.getByRole("button", { name: "Add Jinx, Loose Cannon to list" });
+    const decrease = screen.getByRole("button", {
+      name: "Decrease Jinx, Loose Cannon quantity on list",
+    });
+    expect(add).toBeDisabled();
+    expect(decrease).toBeDisabled();
+
+    act(() => registerPending(false));
+
+    expect(add).toBeEnabled();
+    expect(decrease).toBeEnabled();
   });
 });

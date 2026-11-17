@@ -1,13 +1,28 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { workspaceQueueFixture } from "@/features/catalog-workspace/lib/workspace-queue.fixture";
 import { useWorkspaceActionsStore } from "@/features/catalog-workspace/stores/workspace-actions-store";
 import { createStoreResetter } from "@/test/store-helpers";
 
 const mutation = { isPending: false, mutateAsync: vi.fn() };
 const detailQuery = vi.hoisted(() => ({
   current: { data: undefined, isLoading: true, isError: false, error: null } as object,
+}));
+
+const queuedNames = vi.hoisted(() => ({ current: ["ahri nine tailed fox"] }));
+
+vi.mock("@/features/catalog-workspace/lib/workspace-queries", () => ({
+  workspaceQueueQueryOptions: () => ({
+    queryKey: ["admin", "workspace", "queue", "all"],
+    queryFn: () => ({
+      ...workspaceQueueFixture,
+      items: workspaceQueueFixture.items.filter(
+        (item) => item.owner !== "card" || queuedNames.current.includes(item.ownerId),
+      ),
+    }),
+  }),
 }));
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn() }));
@@ -56,13 +71,14 @@ beforeEach(() => {
 afterEach(() => {
   resetActions();
   detailQuery.current = { data: undefined, isLoading: true, isError: false, error: null };
+  queuedNames.current = ["ahri nine tailed fox"];
 });
 
 describe("NewCardRecord", () => {
   it("registers as loading while the card's sources load", () => {
     render(
       <QueryClientProvider client={new QueryClient()}>
-        <NewCardRecord name="Jinx, Loose Cannon" />
+        <NewCardRecord name="ahri nine tailed fox" />
       </QueryClientProvider>,
     );
 
@@ -78,11 +94,24 @@ describe("NewCardRecord", () => {
     };
     render(
       <QueryClientProvider client={new QueryClient()}>
-        <NewCardRecord name="Jinx, Loose Cannon" />
+        <NewCardRecord name="ahri nine tailed fox" />
       </QueryClientProvider>,
     );
 
     expect(screen.getByRole("alert").textContent).toBe("Network down");
     expect(useWorkspaceActionsStore.getState().actions?.loading).toBe(false);
+  });
+
+  it("says an ignored or accepted card is not in the queue and offers no accept form", async () => {
+    queuedNames.current = [];
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <NewCardRecord name="ahri nine tailed fox" />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText(/not in the queue any more/u)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Accept as new card/u })).toBeNull();
+    await waitFor(() => expect(useWorkspaceActionsStore.getState().actions).toEqual({}));
   });
 });

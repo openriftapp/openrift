@@ -2,8 +2,10 @@ import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useRef } from "react";
 
 import { usePageTopBarHeight } from "@/components/layout/page-top-bar";
-import { isTypingTarget } from "@/lib/keyboard-target";
-import { openOverlayPresent } from "@/lib/open-overlay";
+import {
+  focusRecordPane,
+  useWorkspaceRecordPaneStore,
+} from "@/features/catalog-workspace/stores/workspace-record-pane-store";
 import { cn } from "@/lib/utils";
 
 const PANE_GAP_PX = 12;
@@ -24,17 +26,16 @@ export function WorkspaceSplitLayout({
   collapsed: boolean;
 }) {
   const topBarHeight = usePageTopBarHeight();
-  const recordRef = useRef<HTMLElement>(null);
+  const setPane = useWorkspaceRecordPaneStore((state) => state.setPane);
   const shownRecord = useRef(recordKey);
   useEffect(() => {
     if (shownRecord.current === recordKey) {
       return;
     }
     shownRecord.current = recordKey;
-    if (recordKey === null || isTypingTarget(document.activeElement) || openOverlayPresent()) {
-      return;
+    if (recordKey !== null) {
+      focusRecordPane();
     }
-    recordRef.current?.focus({ preventScroll: true });
   }, [recordKey]);
   const style = {
     "--workspace-bar": `${topBarHeight}px`,
@@ -56,7 +57,7 @@ export function WorkspaceSplitLayout({
         </aside>
       )}
       <section
-        ref={recordRef}
+        ref={setPane}
         tabIndex={-1}
         aria-label="Record"
         className={cn(

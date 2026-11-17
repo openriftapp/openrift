@@ -225,6 +225,10 @@ export function useListEntryBrowserSelection({
   ) => {
     // Lists upsert by (listId, cardId|printingId): adding the same key twice bumps
     // quantity server-side. Anything above 1 comes from the grid's digit-key shortcut.
+    const existing = entryByKey.get(kind === "card" ? printing.cardId : printing.printingId);
+    if (existing?.id !== undefined && existing.id !== null && isQuantityPendingFor(existing.id)) {
+      return;
+    }
     const bump = Math.max(1, quantity);
     const entryShape =
       kind === "card"

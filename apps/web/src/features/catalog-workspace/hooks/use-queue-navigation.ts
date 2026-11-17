@@ -10,6 +10,7 @@ import type {
 } from "@/features/catalog-workspace/lib/owner-items";
 import { selectedKeyFromParams, wrapStepIndex } from "@/features/catalog-workspace/lib/owner-items";
 import { useWorkspaceActionsStore } from "@/features/catalog-workspace/stores/workspace-actions-store";
+import { focusRecordPane } from "@/features/catalog-workspace/stores/workspace-record-pane-store";
 import { useWorkspaceSkipStore } from "@/features/catalog-workspace/stores/workspace-skip-store";
 
 type Navigate = ReturnType<typeof useNavigate>;
@@ -127,6 +128,8 @@ export function useQueueNavigation(owner: WorkspaceOwner): {
       useWorkspaceActionsStore.getState().leave(plan.kind === "list");
     }
     if (plan.kind === "go") {
+      // A focused queue control would keep consuming Enter until the next record renders.
+      focusRecordPane();
       navigateToTarget(navigate, owner, plan.target);
     } else {
       navigateToOwnerList(navigate, owner);
