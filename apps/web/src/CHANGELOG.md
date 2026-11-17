@@ -2,6 +2,10 @@
 
 ## 2026-11-17
 
+### Highlights
+
+- feat(Tournaments): **Sync from playriftbound.com** — organizers can link a tournament to its playriftbound.com event in the settings, and the OpenRift browser extension brings over the players and their submitted decks. Syncing again only picks up decks that changed there, and dropped players are dropped here too. Update the extension to 0.6.0 to use it.
+
 ### Other
 
 - feat(Decks): **Group the deck box by set** — the box tab can group its rows by each copy's set, with cards you don't own listed last.
