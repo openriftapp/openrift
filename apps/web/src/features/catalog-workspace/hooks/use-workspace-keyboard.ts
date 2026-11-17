@@ -10,16 +10,29 @@ import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/worksp
 import type { WorkspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
 import { createWorkspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
 import type { WorkspaceRecordActions } from "@/features/catalog-workspace/stores/workspace-actions-store";
-import { useWorkspaceActionsStore } from "@/features/catalog-workspace/stores/workspace-actions-store";
+import {
+  registrationIsStale,
+  useWorkspaceActionsStore,
+} from "@/features/catalog-workspace/stores/workspace-actions-store";
 import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
 import { isTypingTarget } from "@/lib/keyboard-target";
 
 const OVERLAY_SELECTOR = '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]';
 
+const RECORD_WRITES: ReadonlySet<WorkspaceKeyAction> = new Set([
+  "settle-and-next",
+  "accept-new",
+  "ignore",
+  "use-suggestion",
+]);
+
 const CONTROL_SELECTOR = 'button, [role="button"], [role="menuitem"], [role="option"]';
 
 export const STILL_SAVING_NOTICE =
   "This record is still saving. Press the key again once the save lands.";
+
+export const RECORD_LOADING_NOTICE =
+  "The next record is still loading. Press the key again once it shows.";
 
 export const NOTHING_SAVED_NOTICE = "Nothing to undo: the change before it did not save.";
 
@@ -30,6 +43,8 @@ export interface WorkspaceKeyDeps {
   actions: WorkspaceRecordActions | null;
   /** The registration that owns `actions`. */
   record: symbol | null;
+  /** True while `actions` belong to a record being left, or the next record has not registered. */
+  stale: boolean;
   currentRecord: () => symbol | null;
   /** Undoes the newest entry unless it is in `skip`. */
   undo: (skip?: ReadonlySet<WorkspaceUndoEntry>) => boolean;
@@ -71,14 +86,6 @@ export function workspaceKeyAction(
   return { action: binding.action };
 }
 
-function queueWrite(deps: WorkspaceKeyDeps, task: () => unknown): void {
-  if (deps.queue.holds(deps.record)) {
-    toast(STILL_SAVING_NOTICE);
-    return;
-  }
-  void deps.queue.enqueue(deps.record, task);
-}
-
 function queueUndo(deps: WorkspaceKeyDeps): void {
   const before = new Set(deps.undoEntries());
   void deps.queue.enqueue(null, () => {
@@ -97,6 +104,17 @@ export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps):
   const repeatable = resolved.action === "next" || resolved.action === "previous";
   if (event.repeat && !repeatable) {
     return true;
+  }
+  const nothingToSettle = resolved.action === "settle-and-next" && actions?.primary === undefined;
+  if (RECORD_WRITES.has(resolved.action) && !nothingToSettle) {
+    if (deps.stale) {
+      toast(RECORD_LOADING_NOTICE);
+      return true;
+    }
+    if (deps.queue.holds(deps.record)) {
+      toast(STILL_SAVING_NOTICE);
+      return true;
+    }
   }
   switch (resolved.action) {
     case "next": {
@@ -120,7 +138,7 @@ export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps):
       if (primary.disabled === true) {
         return true;
       }
-      queueWrite(deps, async () => {
+      void deps.queue.enqueue(deps.record, async () => {
         await primary.run();
         if (deps.currentRecord() === deps.record) {
           deps.goNext();
@@ -133,7 +151,7 @@ export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps):
       if (accept === undefined) {
         return false;
       }
-      queueWrite(deps, accept);
+      void deps.queue.enqueue(deps.record, accept);
       return true;
     }
     case "ignore": {
@@ -141,7 +159,7 @@ export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps):
       if (ignore === undefined) {
         return false;
       }
-      queueWrite(deps, ignore);
+      void deps.queue.enqueue(deps.record, ignore);
       return true;
     }
     case "undo": {
@@ -157,7 +175,7 @@ export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps):
       }
       const apply = actions.useSuggestion;
       const { digit } = resolved;
-      queueWrite(deps, () => apply(digit));
+      void deps.queue.enqueue(deps.record, () => apply(digit));
       return true;
     }
   }
@@ -181,6 +199,7 @@ export function useWorkspaceKeyboard(owner: WorkspaceOwner): void {
       skipToEnd: navigation.skipToEnd,
       actions: registration.actions,
       record: registration.owner,
+      stale: registrationIsStale(registration),
       currentRecord: () => useWorkspaceActionsStore.getState().owner,
       undo: undoLatest,
       undoEntries: () => useWorkspaceSelectionStore.getState().undoStack,

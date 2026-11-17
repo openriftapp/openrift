@@ -5,6 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ListEntry } from "@/features/catalog-workspace/lib/owner-items";
 import { workspaceQueueFixture } from "@/features/catalog-workspace/lib/workspace-queue.fixture";
+import {
+  registrationIsStale,
+  useWorkspaceActionsStore,
+} from "@/features/catalog-workspace/stores/workspace-actions-store";
 import { useWorkspaceSkipStore } from "@/features/catalog-workspace/stores/workspace-skip-store";
 import { createStoreResetter } from "@/test/store-helpers";
 
@@ -70,9 +74,11 @@ function entry(key: string, linkable = true): ListEntry {
 }
 
 let resetSkips: () => void;
+let resetActions: () => void;
 
 beforeEach(() => {
   resetSkips = createStoreResetter(useWorkspaceSkipStore);
+  resetActions = createStoreResetter(useWorkspaceActionsStore);
   router.navigate.mockReset();
   router.params = {};
   router.search = {};
@@ -81,6 +87,7 @@ beforeEach(() => {
 
 afterEach(() => {
   resetSkips();
+  resetActions();
 });
 
 describe("planQueueStep", () => {
@@ -187,6 +194,34 @@ describe("useQueueNavigation", () => {
       params: { cardSlug: "yasuo-unforgiven" },
       search: true,
     });
+  });
+
+  it("marks the open record's actions stale before it navigates", async () => {
+    router.params = { cardSlug: "jinx-loose-cannon" };
+    useWorkspaceActionsStore.getState().register({ ignore: () => {} }, Symbol("jinx"));
+    router.navigate.mockImplementation(() => {
+      expect(registrationIsStale(useWorkspaceActionsStore.getState())).toBe(true);
+    });
+    const { result } = renderHook(() => useQueueNavigation("card"), { wrapper });
+    await waitFor(() => expect(result.current.position).not.toBeNull());
+
+    act(() => result.current.goNext());
+
+    expect(router.navigate).toHaveBeenCalledOnce();
+  });
+
+  it("still navigates from a record that unmounted, without marking the next record stale", async () => {
+    router.params = { cardSlug: "jinx-loose-cannon" };
+    useWorkspaceActionsStore.getState().register({}, Symbol("next"));
+    const { result, unmount } = renderHook(() => useQueueNavigation("card"), { wrapper });
+    await waitFor(() => expect(result.current.position).not.toBeNull());
+    const { goNext } = result.current;
+    unmount();
+
+    goNext();
+
+    expect(router.navigate).toHaveBeenCalledOnce();
+    expect(registrationIsStale(useWorkspaceActionsStore.getState())).toBe(false);
   });
 
   it("does not move up past the first record", async () => {

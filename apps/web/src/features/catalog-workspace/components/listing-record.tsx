@@ -153,7 +153,7 @@ function ListingBody({ sku, item }: { sku: ListingSku; item: WorkspaceQueueItem 
     }
   };
   const ignore = () =>
-    void doneWith(
+    doneWith(
       () => ignoreVariant.mutateAsync([skuValues]),
       ignoredVariantsUndo(sku.marketplace, [skuValues], record),
     );
@@ -165,10 +165,10 @@ function ListingBody({ sku, item }: { sku: ListingSku; item: WorkspaceQueueItem 
 
   useRegisterRecordActions({
     ignore: pending ? undefined : ignore,
-    useSuggestion: (n) => {
+    useSuggestion: async (n) => {
       const candidate = candidates[n - 1];
       if (candidate !== undefined && !pending) {
-        void assign(candidate.printing.printingId);
+        await assign(candidate.printing.printingId);
       }
     },
   });
@@ -204,7 +204,7 @@ function ListingBody({ sku, item }: { sku: ListingSku; item: WorkspaceQueueItem 
                   <ChevronDownIcon />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={ignore}>
+                  <DropdownMenuItem onClick={() => void ignore()}>
                     This SKU <Kbd>X</Kbd>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={ignoreWholeProduct}>

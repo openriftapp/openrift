@@ -195,4 +195,35 @@ describe("CardGrid scroll on selection changes", () => {
 
     expect(scrollTo).not.toHaveBeenCalled();
   });
+
+  it("brings the selected card back into view when the list moves it off screen", () => {
+    const { rerender } = render(gridElement(items, [set], itemAt(COLUMNS)));
+    const scrollTo = spyOnWindowScroll();
+
+    const added = Array.from({ length: COLUMNS * 8 }, (_, index) =>
+      stubCardViewerItem({ printingId: `added-${index}`, setId: set.id }),
+    );
+    rerender(gridElement([...added, ...items], [set], itemAt(COLUMNS)));
+
+    expect(scrollTo).toHaveBeenCalled();
+  });
+
+  it("leaves the page alone when the list change keeps the selected card in view", () => {
+    const { rerender } = render(gridElement(items, [set], itemAt(COLUMNS)));
+    const scrollTo = spyOnWindowScroll();
+
+    rerender(gridElement(items.slice(COLUMNS), [set], itemAt(COLUMNS)));
+
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("does not pull the page back when the selected card keeps its place in a new list", () => {
+    const { rerender } = render(gridElement(items, [set], itemAt(COLUMNS)));
+    scrollWindowTo((CARDS_ROW_HEIGHT + GAP) * 6);
+    const scrollTo = spyOnWindowScroll();
+
+    rerender(gridElement(items.slice(0, COLUMNS * 4), [set], itemAt(COLUMNS)));
+
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
 });

@@ -27,6 +27,7 @@ vi.mock("@/features/catalog-workspace/hooks/use-queue-navigation", () => ({
 
 const {
   NOTHING_SAVED_NOTICE,
+  RECORD_LOADING_NOTICE,
   STILL_SAVING_NOTICE,
   handleWorkspaceKey,
   useWorkspaceKeyboard,
@@ -57,6 +58,7 @@ function deps(overrides: Partial<Parameters<typeof handleWorkspaceKey>[1]> = {})
     skipToEnd: vi.fn(),
     actions: null,
     record: null,
+    stale: false,
     currentRecord: () => null,
     undo: vi.fn((_skip?: ReadonlySet<WorkspaceUndoEntry>) => false),
     undoEntries: () => [],
@@ -348,6 +350,66 @@ describe("handleWorkspaceKey", () => {
     await vi.waitFor(() => expect(ignore).toHaveBeenCalledTimes(2));
   });
 
+  it("says the record is still saving when it stopped offering the action during its write", async () => {
+    let finish = () => {};
+    const ignore = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const record = Symbol("listing");
+    const queue = createWorkspaceWriteQueue();
+
+    handleWorkspaceKey(keyEvent("x"), deps({ queue, record, actions: { ignore } }));
+    expect(handleWorkspaceKey(keyEvent("x"), deps({ queue, record, actions: {} }))).toBe(true);
+
+    expect(notice).toHaveBeenCalledExactlyOnceWith(STILL_SAVING_NOTICE);
+    await vi.waitFor(() => expect(ignore).toHaveBeenCalledOnce());
+    finish();
+    await vi.waitFor(() => expect(queue.idle()).toBe(true));
+  });
+
+  it("runs no record action while the registration is stale, and says so", () => {
+    const ignore = vi.fn();
+    const accept = vi.fn();
+    const apply = vi.fn();
+    const run = vi.fn();
+    const goNext = vi.fn();
+    const d = deps({
+      stale: true,
+      goNext,
+      record: Symbol("previous"),
+      actions: { ignore, accept, useSuggestion: apply, primary: { label: "Discard", run } },
+    });
+
+    for (const key of ["x", "a", "1", "Enter"]) {
+      expect(handleWorkspaceKey(keyEvent(key), d)).toBe(true);
+    }
+
+    for (const fn of [ignore, accept, apply, run, goNext]) {
+      expect(fn).not.toHaveBeenCalled();
+    }
+    expect(notice).toHaveBeenCalledTimes(4);
+    expect(notice).toHaveBeenCalledWith(RECORD_LOADING_NOTICE);
+  });
+
+  it("treats Enter as Next on a page that registered no record", () => {
+    const d = deps({ stale: true });
+    expect(handleWorkspaceKey(keyEvent("Enter"), d)).toBe(true);
+    expect(d.goNext).toHaveBeenCalledOnce();
+    expect(notice).not.toHaveBeenCalled();
+  });
+
+  it("still moves and undoes while the registration is stale", () => {
+    const d = deps({ stale: true, undo: vi.fn(() => true) });
+    expect(handleWorkspaceKey(keyEvent("j"), d)).toBe(true);
+    expect(handleWorkspaceKey(keyEvent("z"), d)).toBe(true);
+    expect(d.goNext).toHaveBeenCalledOnce();
+    expect(d.undo).toHaveBeenCalledOnce();
+    expect(notice).not.toHaveBeenCalled();
+  });
+
   it("reports unhandled keys when the record has no matching action", () => {
     expect(handleWorkspaceKey(keyEvent("a"), deps())).toBe(false);
     expect(handleWorkspaceKey(keyEvent("1"), deps())).toBe(false);
@@ -398,6 +460,29 @@ describe("useWorkspaceKeyboard", () => {
     await vi.waitFor(() => expect(undo).toHaveBeenCalledOnce());
     await vi.waitFor(() => expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([]));
     expect(notice).not.toHaveBeenCalled();
+  });
+
+  it("keeps X away from the record being left and runs it on the next record once that registers", async () => {
+    const ignorePrevious = vi.fn();
+    const ignoreNext = vi.fn();
+    renderHook(() => useWorkspaceKeyboard("printing"), { wrapper });
+    const previous = Symbol("previous");
+    useWorkspaceActionsStore.getState().register({ ignore: ignorePrevious }, previous);
+    useWorkspaceActionsStore.getState().leave(false);
+
+    globalThis.dispatchEvent(new KeyboardEvent("keydown", { key: "x" }));
+    useWorkspaceActionsStore.getState().register({ ignore: ignorePrevious }, previous);
+    globalThis.dispatchEvent(new KeyboardEvent("keydown", { key: "x" }));
+    useWorkspaceActionsStore.getState().unregister(previous);
+    globalThis.dispatchEvent(new KeyboardEvent("keydown", { key: "x" }));
+
+    expect(notice).toHaveBeenCalledTimes(3);
+    expect(notice).toHaveBeenCalledWith(RECORD_LOADING_NOTICE);
+
+    useWorkspaceActionsStore.getState().register({ ignore: ignoreNext }, Symbol("next"));
+    globalThis.dispatchEvent(new KeyboardEvent("keydown", { key: "x" }));
+    await vi.waitFor(() => expect(ignoreNext).toHaveBeenCalledOnce());
+    expect(ignorePrevious).not.toHaveBeenCalled();
   });
 
   it("ignores keys while a dialog is in the document", () => {

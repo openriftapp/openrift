@@ -1,5 +1,6 @@
 import type { WorkspaceOwner } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { useNavigate, useParams } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
 
 import { useWorkspaceEntries } from "@/features/catalog-workspace/hooks/use-workspace-queue";
 import type {
@@ -8,6 +9,7 @@ import type {
   WorkspaceTarget,
 } from "@/features/catalog-workspace/lib/owner-items";
 import { selectedKeyFromParams, wrapStepIndex } from "@/features/catalog-workspace/lib/owner-items";
+import { useWorkspaceActionsStore } from "@/features/catalog-workspace/stores/workspace-actions-store";
 import { useWorkspaceSkipStore } from "@/features/catalog-workspace/stores/workspace-skip-store";
 
 type Navigate = ReturnType<typeof useNavigate>;
@@ -100,6 +102,14 @@ export function useQueueNavigation(owner: WorkspaceOwner): {
   const { view, listAllowed, entries } = useWorkspaceEntries(owner);
   const skip = useWorkspaceSkipStore((state) => state.skip);
 
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
   const currentKey = selectedKeyFromParams(params);
   const linkable = entries.filter((entry) => entry.target !== null);
   const index = linkable.findIndex((entry) => entry.key === currentKey);
@@ -109,9 +119,16 @@ export function useQueueNavigation(owner: WorkspaceOwner): {
       return;
     }
     const plan = planQueueStep(entries, currentKey, delta);
+    if (plan.kind === "stay") {
+      return;
+    }
+    // A record that unmounted before its write landed no longer owns the registered actions.
+    if (mounted.current) {
+      useWorkspaceActionsStore.getState().leave(plan.kind === "list");
+    }
     if (plan.kind === "go") {
       navigateToTarget(navigate, owner, plan.target);
-    } else if (plan.kind === "list") {
+    } else {
       navigateToOwnerList(navigate, owner);
     }
   }

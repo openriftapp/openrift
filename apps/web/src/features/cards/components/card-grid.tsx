@@ -1,5 +1,4 @@
 import { CARD_ASPECT } from "@openrift/shared/card-orientation";
-import { sideKey } from "@openrift/shared/printing-side";
 import type { GroupByField } from "@openrift/shared/types/search";
 import type { Virtualizer } from "@tanstack/react-virtual";
 import type { ReactNode } from "react";
@@ -16,6 +15,7 @@ import {
 import { OrnamentRule } from "@/components/ui/ornament";
 import { Pressable } from "@/components/ui/pressable";
 import { useAdminSettings } from "@/features/admin/hooks/use-admin-settings";
+import { useFollowSelectedRow } from "@/features/cards/hooks/use-follow-selected-row";
 import { useFollowSelection } from "@/features/cards/hooks/use-follow-selection";
 import { useResponsiveColumns } from "@/features/cards/hooks/use-responsive-columns";
 import { useStickyHeader } from "@/features/cards/hooks/use-sticky-header";
@@ -32,6 +32,7 @@ import { computeGridMetrics } from "@/features/cards/lib/card-grid-metrics";
 import type { VRow } from "@/features/cards/lib/card-grid-types";
 import { buildGroups } from "@/features/cards/lib/card-groups";
 import type { CardGroup } from "@/features/cards/lib/card-groups";
+import { cardRowIndex } from "@/features/cards/lib/card-row-index";
 import { computeRowStarts } from "@/features/cards/lib/compute-row-starts";
 import { useGridFocusStore } from "@/features/cards/stores/grid-focus-store";
 import { useGridViewportStore } from "@/features/cards/stores/grid-viewport-store";
@@ -302,26 +303,19 @@ export function CardGrid({
   });
 
   const scrollToCard = (cardId: string) => {
-    for (const [i, row] of virtualRows.entries()) {
-      if (
-        row.kind === "cards" &&
-        row.items.some((item) => item.id === cardId || sideKey(item.printing) === cardId)
-      ) {
-        const vItems = virtualizer.getVirtualItems();
-        const vItem = vItems.find((vi) => vi.index === i);
-        if (vItem) {
-          const viewportTop = globalThis.scrollY + stickyOffset;
-          const viewportBottom = globalThis.scrollY + globalThis.innerHeight;
-          const rowTop = vItem.start;
-          const rowBottom = vItem.start + vItem.size;
-          if (rowTop >= viewportTop && rowBottom <= viewportBottom) {
-            return;
-          }
-        }
-        virtualizer.scrollToIndex(i, { align: "start" });
+    const i = cardRowIndex(virtualRows, cardId);
+    if (i === -1) {
+      return;
+    }
+    const vItem = virtualizer.getVirtualItems().find((vi) => vi.index === i);
+    if (vItem) {
+      const viewportTop = globalThis.scrollY + stickyOffset;
+      const viewportBottom = globalThis.scrollY + globalThis.innerHeight;
+      if (vItem.start >= viewportTop && vItem.start + vItem.size <= viewportBottom) {
         return;
       }
     }
+    virtualizer.scrollToIndex(i, { align: "start" });
   };
 
   const followSelection = useFollowSelection();
@@ -341,6 +335,13 @@ export function CardGrid({
       }
     };
   });
+
+  useFollowSelectedRow(
+    selectedItemId,
+    selectedItemId ? cardRowIndex(virtualRows, selectedItemId) : -1,
+    columns,
+    scrollToCard,
+  );
 
   const topVisibleCardRef = useRef<string | null>(null);
 

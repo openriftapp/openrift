@@ -8,11 +8,13 @@ import { Fragment, cloneElement, memo, useEffect, useRef, useState } from "react
 import { Button } from "@/components/ui/button";
 import { OrnamentRule } from "@/components/ui/ornament";
 import { SelectionRowMark } from "@/components/ui/selection-mark";
+import { useFollowSelectedRow } from "@/features/cards/hooks/use-follow-selected-row";
 import { useFollowSelection } from "@/features/cards/hooks/use-follow-selection";
 import { useStickyHeader } from "@/features/cards/hooks/use-sticky-header";
 import type { VRow } from "@/features/cards/lib/card-grid-types";
 import { buildGroups } from "@/features/cards/lib/card-groups";
 import type { CardGroup } from "@/features/cards/lib/card-groups";
+import { cardRowIndex } from "@/features/cards/lib/card-row-index";
 import { computeRowStarts } from "@/features/cards/lib/compute-row-starts";
 import { useCardRowActionsStore } from "@/features/cards/stores/card-row-actions-store";
 import type { ActionsColumn } from "@/features/collections/lib/collection-table";
@@ -241,19 +243,8 @@ export function CardTable({
     headerHeight: CARD_TABLE_HEADER_HEIGHT,
   });
 
-  const followSelection = useFollowSelection();
-  useScopeEffect(selectedItemId, () => {
-    if (!followSelection(selectedItemId)) {
-      return;
-    }
-    const rows = virtualRowsRef.current;
-    const rowIndex = rows.findIndex(
-      (row) =>
-        row.kind === "cards" &&
-        row.items.some(
-          (item) => item.id === selectedItemId || sideKey(item.printing) === selectedItemId,
-        ),
-    );
+  const scrollToCard = (cardId: string) => {
+    const rowIndex = cardRowIndex(virtualRowsRef.current, cardId);
     if (rowIndex === -1) {
       return;
     }
@@ -267,7 +258,21 @@ export function CardTable({
       }
     }
     virtualizerRef.current.scrollToIndex(rowIndex, { align: "start" });
+  };
+
+  const followSelection = useFollowSelection();
+  useScopeEffect(selectedItemId, () => {
+    if (followSelection(selectedItemId) && selectedItemId) {
+      scrollToCard(selectedItemId);
+    }
   });
+
+  useFollowSelectedRow(
+    selectedItemId,
+    selectedItemId ? cardRowIndex(virtualRows, selectedItemId) : -1,
+    0,
+    scrollToCard,
+  );
 
   // Reads only from mirror refs so React Compiler keeps this reference stable
   // across scroll-driven re-renders; GroupStickyLabel's onSelect prop stays intact.

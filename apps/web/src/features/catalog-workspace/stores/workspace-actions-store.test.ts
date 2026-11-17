@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createStoreResetter } from "@/test/store-helpers";
 
-import { useWorkspaceActionsStore } from "./workspace-actions-store";
+import { registrationIsStale, useWorkspaceActionsStore } from "./workspace-actions-store";
 
 let resetStore: () => void;
 
@@ -34,5 +34,41 @@ describe("useWorkspaceActionsStore", () => {
     expect(useWorkspaceActionsStore.getState().actions).toBe(secondActions);
     useWorkspaceActionsStore.getState().unregister(second);
     expect(useWorkspaceActionsStore.getState().actions).toBeNull();
+  });
+});
+
+describe("registrationIsStale", () => {
+  const stale = () => registrationIsStale(useWorkspaceActionsStore.getState());
+
+  it("holds the leaving record's actions stale, even when it registers again", () => {
+    const leaving = Symbol("leaving");
+    useWorkspaceActionsStore.getState().register({ ignore: () => {} }, leaving);
+    expect(stale()).toBe(false);
+
+    useWorkspaceActionsStore.getState().leave(false);
+    expect(stale()).toBe(true);
+    useWorkspaceActionsStore.getState().register({ ignore: () => {} }, leaving);
+    expect(stale()).toBe(true);
+  });
+
+  it("stays stale after the leaving record unmounts until the next record registers", () => {
+    const leaving = Symbol("leaving");
+    useWorkspaceActionsStore.getState().register({}, leaving);
+    useWorkspaceActionsStore.getState().leave(false);
+    useWorkspaceActionsStore.getState().unregister(leaving);
+    expect(stale()).toBe(true);
+
+    useWorkspaceActionsStore.getState().register({}, Symbol("next"));
+    expect(stale()).toBe(false);
+  });
+
+  it("is not stale on the list once the leaving record is gone", () => {
+    const leaving = Symbol("leaving");
+    useWorkspaceActionsStore.getState().register({}, leaving);
+    useWorkspaceActionsStore.getState().leave(true);
+    expect(stale()).toBe(true);
+
+    useWorkspaceActionsStore.getState().unregister(leaving);
+    expect(stale()).toBe(false);
   });
 });
