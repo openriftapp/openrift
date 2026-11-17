@@ -86,7 +86,6 @@ export function ProfilePage() {
           name={user.name || user.email}
           email={user.email}
           gravatarHash={gravatarHash}
-          headingAs="h2"
         >
           <div className="flex min-w-0 flex-col gap-1">
             <p className="text-muted-foreground">{user.email}</p>

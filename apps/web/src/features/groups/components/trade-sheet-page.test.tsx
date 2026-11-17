@@ -224,6 +224,14 @@ describe("TradeSheetPage", () => {
     expect(screen.queryByText("Suggestions")).toBeNull();
   });
 
+  it("leaves the h1 to the top bar and titles the partner with an h2", () => {
+    sheet.current = makeSheet();
+    render(<TradeSheetPage userId="member-1" fromGroupSlug="allerlei-spielerei" />);
+
+    expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Ezreal" })).toBeInTheDocument();
+  });
+
   it("keeps the shared-lists link on a sheet that has suggestions", () => {
     sheet.current = makeSheet({ othersHaveYourWants: [makeMatch()] });
     render(<TradeSheetPage userId="member-1" fromGroupSlug="allerlei-spielerei" />);

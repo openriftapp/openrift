@@ -173,6 +173,10 @@ describe("signInRedirectFor", () => {
     expect(signInRedirectFor({ pathname: "/cards", href: "/cards?q=vi" })).toBe("/cards?q=vi");
   });
 
+  it("leaves out the hash, which the server render never sees", () => {
+    expect(signInRedirectFor({ pathname: "/cards", href: "/cards?q=vi#x" })).toBe("/cards?q=vi");
+  });
+
   it("carries no redirect from the marketing page", () => {
     expect(signInRedirectFor({ pathname: "/", href: "/" })).toBeUndefined();
   });

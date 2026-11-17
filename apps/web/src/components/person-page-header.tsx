@@ -9,7 +9,6 @@ export function PersonPageHeader({
   name,
   gravatarHash,
   email,
-  headingAs = "h1",
   children,
   actions,
 }: {
@@ -17,8 +16,6 @@ export function PersonPageHeader({
   name: string | null;
   gravatarHash?: string | null;
   email?: string | null;
-  /** `h2` when a page top bar above already carries the `h1`. */
-  headingAs?: "h1" | "h2";
   children?: ReactNode;
   actions?: ReactNode;
 }) {
@@ -34,7 +31,7 @@ export function PersonPageHeader({
           className="size-12"
         />
         <div className="flex min-w-0 flex-col gap-1">
-          <Heading level={2} as={headingAs} className="truncate">
+          <Heading level={2} className="truncate">
             {memberName(name)}
           </Heading>
           {children ? <div className="flex flex-wrap items-center gap-1.5">{children}</div> : null}

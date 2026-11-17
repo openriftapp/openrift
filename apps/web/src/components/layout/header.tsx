@@ -59,6 +59,7 @@ import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import { useBadges } from "@/features/groups/hooks/use-badges";
 import { useGravatarHash } from "@/hooks/use-gravatar-hash";
 import { useSession } from "@/hooks/use-session";
+import { hrefWithoutHash } from "@/hooks/use-sign-in-search";
 import { DISPLAY_LOCALE_LABELS } from "@/lib/display-locale";
 import type { LockedFeatureKey, NavBadgeCounts, NavItemConfig } from "@/lib/nav-items";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
@@ -450,7 +451,7 @@ export function signInRedirectFor(location: {
   pathname: string;
   href: string;
 }): string | undefined {
-  return NO_SIGN_IN_REDIRECT.has(location.pathname) ? undefined : location.href;
+  return NO_SIGN_IN_REDIRECT.has(location.pathname) ? undefined : hrefWithoutHash(location.href);
 }
 
 function UserMenu({
