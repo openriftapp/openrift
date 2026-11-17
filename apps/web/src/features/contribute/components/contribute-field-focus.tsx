@@ -54,8 +54,14 @@ interface FieldLinkProps {
 }
 
 /**
- * Links a form row to its preview region. The row also takes keyboard focus when a focus request
- * names its field, on mount if the request opened the section holding it.
+ * Spread onto the control a linked row's jump focuses. Each row marks exactly one; the row's other
+ * controls (pickers, hint triggers, hidden inputs) are never focused by a jump.
+ */
+export const FIELD_CONTROL = { "data-field-control": true } as const;
+
+/**
+ * Links a form row to its preview region. When a focus request names its field, the row scrolls into
+ * view and focuses its `FIELD_CONTROL` element, on mount if the request opened the section holding it.
  */
 export function useFieldLink(field?: PlaceholderField): {
   props: FieldLinkProps;
@@ -94,14 +100,6 @@ export function useFieldLink(field?: PlaceholderField): {
 }
 
 function focusRowControl(row: HTMLElement) {
-  // The hint popover's trigger sits before the control in the row, so text entry is looked for first.
-  const control =
-    row.querySelector<HTMLElement>(
-      "input:not([disabled]), textarea:not([disabled]), select:not([disabled])",
-    ) ??
-    row.querySelector<HTMLElement>(
-      "button:not([disabled]):not([data-slot='popover-trigger']), [tabindex]:not([tabindex='-1'])",
-    );
   row.scrollIntoView?.({ block: "center", behavior: "smooth" });
-  control?.focus();
+  row.querySelector<HTMLElement>("[data-field-control]")?.focus();
 }

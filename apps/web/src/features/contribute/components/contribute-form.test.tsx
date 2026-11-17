@@ -15,6 +15,7 @@ vi.mock("@tanstack/react-router", () => ({
   useBlocker: () => ({ status: "idle" }),
 }));
 
+import { cardPlaceholderRegions } from "@/features/cards/lib/card-placeholder-regions";
 import { setsKeys } from "@/features/cards/lib/cards-query-keys";
 import type { ContributeFormScope } from "@/features/contribute/components/contribute-form";
 import { ContributeForm } from "@/features/contribute/components/contribute-form";
@@ -275,6 +276,41 @@ describe("ContributeForm", () => {
     await vi.waitFor(() => {
       expect(screen.getByLabelText("Tags")).toHaveFocus();
     });
+  });
+
+  it.each(cardPlaceholderRegions().map((region) => [region.field, region.label] as const))(
+    "jumping to %s focuses the control a contributor types into",
+    async (field, label) => {
+      const user = userEvent.setup();
+      renderForm(emptyFormState());
+
+      await user.click(screen.getByRole("button", { name: `Add ${label}` }));
+
+      await vi.waitFor(() => {
+        const row = [...document.querySelectorAll(`[data-field="${field}"]`)].find((element) =>
+          element.contains(element.querySelector("[data-field-control]")),
+        );
+        const controls = row?.querySelectorAll<HTMLElement>("[data-field-control]") ?? [];
+        expect(controls).toHaveLength(1);
+        expect(controls[0]).toHaveFocus();
+        expect(controls[0]).toBeVisible();
+        expect(controls[0]).not.toHaveAttribute("aria-hidden");
+        expect(controls[0]?.matches("input[type=hidden], [data-slot='popover-trigger']")).toBe(
+          false,
+        );
+      });
+    },
+  );
+
+  it("jumps from the rules and effect text regions into their text boxes", async () => {
+    const user = userEvent.setup();
+    renderForm(emptyFormState());
+
+    await user.click(screen.getByRole("button", { name: "Add Rules text" }));
+    await vi.waitFor(() => expect(screen.getByLabelText("Rules text")).toHaveFocus());
+
+    await user.click(screen.getByRole("button", { name: "Add Effect text" }));
+    await vi.waitFor(() => expect(screen.getByLabelText("Effect text")).toHaveFocus());
   });
 
   it("opens the printing details for a region the printing owns", async () => {

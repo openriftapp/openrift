@@ -17,6 +17,7 @@ import { PrintingVariantLabel } from "@/features/cards/components/printing-label
 import type { PlaceholderField } from "@/features/cards/lib/card-placeholder-regions";
 import { CardTextInput } from "@/features/contribute/components/card-text-input";
 import type { FieldFocusRequest } from "@/features/contribute/components/contribute-field-focus";
+import { FIELD_CONTROL } from "@/features/contribute/components/contribute-field-focus";
 import type { LabelledControlProps } from "@/features/contribute/components/form-fields";
 import {
   FieldRow,
@@ -171,6 +172,7 @@ export function PrintingCard({
                 error={errorAt(`printings[${index.toString()}].publicCode`)}
               >
                 <Input
+                  {...FIELD_CONTROL}
                   value={printing.publicCode ?? ""}
                   onChange={(e) => handleCodeChange(e.target.value)}
                   placeholder="OGN-066/298"
@@ -245,6 +247,7 @@ export function PrintingCard({
                 </FieldRow>
                 <FieldRow label={m.contribute_field_rarity()} field="printing.rarity">
                   <SingleSelect
+                    {...FIELD_CONTROL}
                     value={printing.rarity}
                     onChange={(v) => onChange("rarity", v)}
                     options={orders.rarities}
@@ -274,6 +277,7 @@ export function PrintingCard({
                 </FieldRow>
                 <FieldRow label={m.contribute_field_artist()} field="printing.artist">
                   <Input
+                    {...FIELD_CONTROL}
                     value={printing.artist ?? ""}
                     onChange={(e) => onChange("artist", e.target.value || null)}
                   />

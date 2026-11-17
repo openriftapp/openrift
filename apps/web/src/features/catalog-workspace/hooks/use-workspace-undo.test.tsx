@@ -180,6 +180,16 @@ describe("useWorkspaceUndo", () => {
     expect(older.undo).not.toHaveBeenCalled();
   });
 
+  it("leaves the newest entry alone when it was already on the stack before a queued Z", () => {
+    const older = entry("Older");
+    const { result } = renderHook(() => useWorkspaceUndo(), { wrapper });
+    act(() => result.current.push(older));
+
+    expect(result.current.undoLatest(new Set([older]))).toBe(false);
+    expect(older.undo).not.toHaveBeenCalled();
+    expect(stack()).toEqual([older]);
+  });
+
   it("undoes the next entry down when Z is pressed again before the first undo lands", async () => {
     const gate = { open: () => {} };
     const older = entry("Older");

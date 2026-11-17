@@ -22,6 +22,7 @@ import { m } from "@/paraglide/messages.js";
 export interface LabelledControlProps {
   id?: string;
   "aria-labelledby"?: string;
+  "data-field-control"?: true;
 }
 
 export function FieldRow({
@@ -75,6 +76,7 @@ export function NumberInput({
   onChange,
   id,
   "aria-labelledby": ariaLabelledBy,
+  "data-field-control": fieldControl,
 }: LabelledControlProps & {
   value: number | null;
   onChange: (next: number | null) => void;
@@ -83,6 +85,7 @@ export function NumberInput({
     <Input
       id={id}
       aria-labelledby={ariaLabelledBy}
+      data-field-control={fieldControl}
       type="number"
       min={0}
       value={value === null ? "" : value.toString()}
@@ -109,6 +112,7 @@ export function SingleSelect({
   placeholder,
   id,
   "aria-labelledby": ariaLabelledBy,
+  "data-field-control": fieldControl,
 }: LabelledControlProps & {
   value: string | null;
   onChange: (next: string | null) => void;
@@ -124,6 +128,7 @@ export function SingleSelect({
       placeholder={placeholder}
       id={id}
       aria-labelledby={ariaLabelledBy}
+      data-field-control={fieldControl}
       className="w-full"
     />
   );
@@ -135,6 +140,7 @@ export function ChipInput({
   placeholder,
   id,
   "aria-labelledby": ariaLabelledBy,
+  "data-field-control": fieldControl,
 }: LabelledControlProps & {
   value: string[];
   onChange: (next: string[]) => void;
@@ -164,6 +170,7 @@ export function ChipInput({
         <ComboboxChipsInput
           id={id}
           aria-labelledby={ariaLabelledBy}
+          data-field-control={fieldControl}
           placeholder={value.length === 0 ? placeholder : ""}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === ",") {

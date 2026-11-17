@@ -1,27 +1,41 @@
 import type { WorkspaceOwner } from "@openrift/shared/contracts/admin/catalog-workspace";
-import { useEffect, useEffectEvent, useRef } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
+import { toast } from "sonner";
 
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import type { WorkspaceKeyAction } from "@/features/catalog-workspace/lib/workspace-keys";
 import { SUGGESTION_KEYS, WORKSPACE_KEYS } from "@/features/catalog-workspace/lib/workspace-keys";
+import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/workspace-undo";
+import type { WorkspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
+import { createWorkspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
 import type { WorkspaceRecordActions } from "@/features/catalog-workspace/stores/workspace-actions-store";
 import { useWorkspaceActionsStore } from "@/features/catalog-workspace/stores/workspace-actions-store";
+import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
 import { isTypingTarget } from "@/lib/keyboard-target";
-import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 const OVERLAY_SELECTOR = '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]';
 
 const CONTROL_SELECTOR = 'button, [role="button"], [role="menuitem"], [role="option"]';
+
+export const STILL_SAVING_NOTICE =
+  "This record is still saving. Press the key again once the save lands.";
+
+export const NOTHING_SAVED_NOTICE = "Nothing to undo: the change before it did not save.";
 
 export interface WorkspaceKeyDeps {
   goNext: () => void;
   goPrev: () => void;
   skipToEnd: () => void;
   actions: WorkspaceRecordActions | null;
-  undo: () => boolean;
+  /** The registration that owns `actions`. */
+  record: symbol | null;
+  currentRecord: () => symbol | null;
+  /** Undoes the newest entry unless it is in `skip`. */
+  undo: (skip?: ReadonlySet<WorkspaceUndoEntry>) => boolean;
+  undoEntries: () => readonly WorkspaceUndoEntry[];
   overlayOpen: () => boolean;
-  busy: { current: boolean };
+  queue: WorkspaceWriteQueue;
 }
 
 type KeyEventLike = Pick<
@@ -57,27 +71,21 @@ export function workspaceKeyAction(
   return { action: binding.action };
 }
 
-async function settleAndNext(
-  primary: NonNullable<WorkspaceRecordActions["primary"]>,
-  next: () => void,
-) {
-  const done = await runReportedMutation(async () => {
-    await primary.run();
-  });
-  if (done) {
-    next();
+function queueWrite(deps: WorkspaceKeyDeps, task: () => unknown): void {
+  if (deps.queue.holds(deps.record)) {
+    toast(STILL_SAVING_NOTICE);
+    return;
   }
+  void deps.queue.enqueue(deps.record, task);
 }
 
-async function runExclusive(
-  busy: { current: boolean },
-  task: () => Promise<unknown> | unknown,
-): Promise<void> {
-  busy.current = true;
-  await runReportedMutation(async () => {
-    await task();
+function queueUndo(deps: WorkspaceKeyDeps): void {
+  const before = new Set(deps.undoEntries());
+  void deps.queue.enqueue(null, () => {
+    if (!deps.undo(before)) {
+      toast(NOTHING_SAVED_NOTICE);
+    }
   });
-  busy.current = false;
 }
 
 export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps): boolean {
@@ -109,10 +117,15 @@ export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps):
         deps.goNext();
         return true;
       }
-      if (primary.disabled === true || deps.busy.current) {
+      if (primary.disabled === true) {
         return true;
       }
-      void runExclusive(deps.busy, () => settleAndNext(primary, deps.goNext));
+      queueWrite(deps, async () => {
+        await primary.run();
+        if (deps.currentRecord() === deps.record) {
+          deps.goNext();
+        }
+      });
       return true;
     }
     case "accept-new": {
@@ -120,9 +133,7 @@ export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps):
       if (accept === undefined) {
         return false;
       }
-      if (!deps.busy.current) {
-        void runExclusive(deps.busy, accept);
-      }
+      queueWrite(deps, accept);
       return true;
     }
     case "ignore": {
@@ -130,23 +141,23 @@ export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps):
       if (ignore === undefined) {
         return false;
       }
-      if (!deps.busy.current) {
-        void runExclusive(deps.busy, ignore);
-      }
+      queueWrite(deps, ignore);
       return true;
     }
     case "undo": {
-      return deps.undo();
+      if (deps.queue.idle()) {
+        return deps.undo();
+      }
+      queueUndo(deps);
+      return true;
     }
     case "use-suggestion": {
       if (actions?.useSuggestion === undefined || resolved.digit === undefined) {
         return false;
       }
-      if (!deps.busy.current) {
-        const apply = actions.useSuggestion;
-        const { digit } = resolved;
-        void runExclusive(deps.busy, () => apply(digit));
-      }
+      const apply = actions.useSuggestion;
+      const { digit } = resolved;
+      queueWrite(deps, () => apply(digit));
       return true;
     }
   }
@@ -159,17 +170,22 @@ function overlayOpen(): boolean {
 export function useWorkspaceKeyboard(owner: WorkspaceOwner): void {
   const navigation = useQueueNavigation(owner);
   const { undoLatest } = useWorkspaceUndo();
-  const busy = useRef(false);
+  // oxlint-disable-next-line react/hook-use-state -- setter is never needed; one queue per mount
+  const [queue] = useState(createWorkspaceWriteQueue);
 
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    const registration = useWorkspaceActionsStore.getState();
     const handled = handleWorkspaceKey(event, {
       goNext: navigation.goNext,
       goPrev: navigation.goPrev,
       skipToEnd: navigation.skipToEnd,
-      actions: useWorkspaceActionsStore.getState().actions,
+      actions: registration.actions,
+      record: registration.owner,
+      currentRecord: () => useWorkspaceActionsStore.getState().owner,
       undo: undoLatest,
+      undoEntries: () => useWorkspaceSelectionStore.getState().undoStack,
       overlayOpen,
-      busy,
+      queue,
     });
     if (handled) {
       event.preventDefault();

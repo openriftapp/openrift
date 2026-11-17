@@ -19,7 +19,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CardText } from "@/features/cards/components/card-text";
 import type { PlaceholderField } from "@/features/cards/lib/card-placeholder-regions";
-import { useFieldLink } from "@/features/contribute/components/contribute-field-focus";
+import {
+  FIELD_CONTROL,
+  useFieldLink,
+} from "@/features/contribute/components/contribute-field-focus";
 import { useKeywordStyles } from "@/hooks/use-keyword-styles";
 import { useScopeLayoutEffect } from "@/hooks/use-scope-effect";
 import { cn } from "@/lib/utils";
@@ -152,6 +155,7 @@ export function CardTextInput({
         onReformat={reformat ? () => onChange(reformat(value)) : undefined}
       />
       <Textarea
+        {...FIELD_CONTROL}
         id={id}
         ref={textareaRef}
         rows={rows}

@@ -8,6 +8,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CatalogCardPicker } from "@/features/cards/components/catalog-card-picker";
 import { DomainIcon } from "@/features/cards/components/domain-icon";
 import type { FieldFocusRequest } from "@/features/contribute/components/contribute-field-focus";
+import { FIELD_CONTROL } from "@/features/contribute/components/contribute-field-focus";
 import { ChipInput, FieldRow, NumberInput } from "@/features/contribute/components/form-fields";
 import type { ContributeFormApi } from "@/features/contribute/hooks/use-contribute-form";
 import type { ContributeFormCard } from "@/features/contribute/lib/contribute-json";
@@ -55,6 +56,9 @@ export function ContributeCardSection({
   }
   const { orders, labels } = useEnumOrders();
   const domainDisabled = computeDomainDisabled(form.card.domains, orders.domains);
+  const firstOpenDomain = orders.domains.find(
+    (slug) => form.card.domains.includes(slug) || !domainDisabled.has(slug),
+  );
 
   return (
     <SettingsSection
@@ -79,6 +83,7 @@ export function ContributeCardSection({
         error={errorAt("card.name") ?? errorAt("slug")}
       >
         <Input
+          {...FIELD_CONTROL}
           value={form.card.name}
           onChange={(e) => setCardField("name", e.target.value)}
           placeholder="Ahri, Alluring"
@@ -104,7 +109,12 @@ export function ContributeCardSection({
               const selected = form.card.domains.includes(slug);
               const disabled = !selected && domainDisabled.has(slug);
               return (
-                <ToggleGroupItem key={slug} value={slug} disabled={disabled}>
+                <ToggleGroupItem
+                  key={slug}
+                  value={slug}
+                  disabled={disabled}
+                  {...(slug === firstOpenDomain ? FIELD_CONTROL : {})}
+                >
                   <DomainIcon domain={slug} decorative className="size-4 shrink-0" />
                   {enumLabel(labels.domains, slug)}
                 </ToggleGroupItem>
@@ -120,8 +130,8 @@ export function ContributeCardSection({
             value={form.card.types}
             onValueChange={(next) => setCardField("types", next)}
           >
-            {orders.cardTypes.map((slug) => (
-              <ToggleGroupItem key={slug} value={slug}>
+            {orders.cardTypes.map((slug, index) => (
+              <ToggleGroupItem key={slug} value={slug} {...(index === 0 ? FIELD_CONTROL : {})}>
                 {enumLabel(labels.cardTypes, slug)}
               </ToggleGroupItem>
             ))}
@@ -147,16 +157,29 @@ export function ContributeCardSection({
 
         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
           <FieldRow label={m.contribute_field_might()} field="card.might">
-            <NumberInput value={form.card.might} onChange={(v) => setCardField("might", v)} />
+            <NumberInput
+              {...FIELD_CONTROL}
+              value={form.card.might}
+              onChange={(v) => setCardField("might", v)}
+            />
           </FieldRow>
           <FieldRow label={m.contribute_field_energy()} field="card.energy">
-            <NumberInput value={form.card.energy} onChange={(v) => setCardField("energy", v)} />
+            <NumberInput
+              {...FIELD_CONTROL}
+              value={form.card.energy}
+              onChange={(v) => setCardField("energy", v)}
+            />
           </FieldRow>
           <FieldRow label={m.contribute_field_power()} field="card.power">
-            <NumberInput value={form.card.power} onChange={(v) => setCardField("power", v)} />
+            <NumberInput
+              {...FIELD_CONTROL}
+              value={form.card.power}
+              onChange={(v) => setCardField("power", v)}
+            />
           </FieldRow>
           <FieldRow label={m.contribute_field_might_bonus()} field="card.mightBonus">
             <NumberInput
+              {...FIELD_CONTROL}
               value={form.card.mightBonus}
               onChange={(v) => setCardField("mightBonus", v)}
             />
@@ -168,6 +191,7 @@ export function ContributeCardSection({
           field="card.tags"
         >
           <ChipInput
+            {...FIELD_CONTROL}
             value={form.card.tags}
             onChange={(v) => setCardField("tags", v)}
             placeholder="Poro"

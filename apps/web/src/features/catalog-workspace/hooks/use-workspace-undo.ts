@@ -75,10 +75,10 @@ export function useWorkspaceUndo() {
     void runWorkspaceUndo(entry, queryClient);
   };
 
-  const undoLatest = (): boolean => {
+  const undoLatest = (skip?: ReadonlySet<WorkspaceUndoEntry>): boolean => {
     const { undoStack, undoQueue } = useWorkspaceSelectionStore.getState();
     const entry = undoStack.findLast((candidate) => !undoQueue.includes(candidate));
-    if (entry === undefined) {
+    if (entry === undefined || skip?.has(entry)) {
       return false;
     }
     undoEntry(entry);

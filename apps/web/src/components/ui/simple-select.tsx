@@ -51,6 +51,7 @@ interface SimpleSelectProps<T extends string> {
   onOpenChange?: (open: boolean) => void;
   id?: string;
   "aria-labelledby"?: string;
+  "data-field-control"?: true;
 }
 
 export function SimpleSelect<T extends string>({
@@ -70,6 +71,7 @@ export function SimpleSelect<T extends string>({
   onOpenChange,
   id,
   "aria-labelledby": ariaLabelledBy,
+  "data-field-control": fieldControl,
 }: SimpleSelectProps<T>) {
   const byValue = new Map(items.map((item) => [item.value, item]));
   const triggerValue =
@@ -121,6 +123,7 @@ export function SimpleSelect<T extends string>({
     >
       <SelectTrigger
         id={id}
+        data-field-control={fieldControl}
         size={size}
         className={className}
         aria-label={ariaLabelledBy ? undefined : label}
