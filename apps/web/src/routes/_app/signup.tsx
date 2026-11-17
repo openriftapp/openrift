@@ -1,11 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { redirectSignedIn } from "@/lib/auth-session";
 import { randomEmailPlaceholder } from "@/lib/placeholders";
 import { authSearchSchema } from "@/lib/route-search";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
 export const Route = createFileRoute("/_app/signup")({
+  validateSearch: authSearchSchema,
+  beforeLoad: redirectSignedIn,
   head: () =>
     seoHead({
       siteUrl: getSiteUrl(),
@@ -15,6 +18,5 @@ export const Route = createFileRoute("/_app/signup")({
       path: "/signup",
       noIndex: true,
     }),
-  validateSearch: authSearchSchema,
   loader: () => ({ emailPlaceholder: randomEmailPlaceholder() }),
 });

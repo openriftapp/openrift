@@ -103,6 +103,24 @@ export async function requireSession({
   return { userId: session.user.id };
 }
 
+export const SIGNED_IN_HOME = "/collections";
+
+/** For `beforeLoad` on the sign-in pages: sends a signed-in visitor to the sanitized `redirect`, else home. */
+export async function redirectSignedIn({
+  context,
+  search,
+}: {
+  context: { queryClient: QueryClient };
+  search: { redirect?: string };
+}): Promise<void> {
+  const session = await context.queryClient
+    .query({ ...sessionQueryOptions(), staleTime: "static" })
+    .catch(() => null);
+  if (session?.user) {
+    throw redirect({ href: search.redirect ?? SIGNED_IN_HOME, replace: true });
+  }
+}
+
 /** Runs before every guard, so no redirect can carry a natively submitted secret onward. */
 export function redirectWithoutSubmittedFields(location: { href: string }): void {
   const href = withoutSubmittedFields(location.href);

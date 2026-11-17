@@ -255,7 +255,7 @@ test.describe("signup page", () => {
   });
 
   test.describe("authenticated user", () => {
-    test("still sees the signup form instead of being redirected", async ({ browser, request }) => {
+    test("is sent on to the collections", async ({ browser, request }) => {
       const sql = loadDb();
       const email = `signup-authed-${Date.now()}@test.com`;
       const password = "SignupTestPassword1!";
@@ -280,11 +280,8 @@ test.describe("signup page", () => {
         const page = await context.newPage();
         await page.goto("/signup");
 
-        await expect(page).toHaveURL(/\/signup/u);
-        await expect(page.getByRole("heading", { name: "Create an account" })).toBeVisible();
-        await expect(page.getByLabel("Name")).toBeVisible();
-        await expect(page.getByLabel("Email")).toBeVisible();
-        await expect(page.getByLabel("Password")).toBeVisible();
+        await expect(page).toHaveURL(/\/collections(?:[/?#]|$)/u, { timeout: 15_000 });
+        await expect(page.getByRole("heading", { name: "Create an account" })).toBeHidden();
       } finally {
         await context.close();
       }

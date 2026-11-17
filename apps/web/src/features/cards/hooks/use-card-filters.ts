@@ -41,10 +41,16 @@ import { trackEvent } from "@/lib/analytics";
 import type { FilterSign, SignedValues } from "@/lib/filter-sign";
 import { flipSignedValues, toggleSignedValue } from "@/lib/filter-sign";
 import { useDisplayStore } from "@/stores/display-store";
+import { useSelectionStore } from "@/stores/selection-store";
 
 const CLEAR_ALL_PATCH = Object.fromEntries(
   [...CLEARABLE_FILTER_PARAMS, "sort", "sortDir"].map((param) => [param, undefined]),
 ) as Partial<FilterSearch>;
+
+// With a card selected the grid scrolls to the selection itself; a reset to the top would undo it.
+function resetsScroll(): boolean {
+  return useSelectionStore.getState().selectedCard === null;
+}
 
 /**
  * Read-only filter/sort/view state from URL params. Prefer this over
@@ -199,6 +205,7 @@ export function useFilterActions() {
   const updateSearch = (patch: Partial<FilterSearch>) => {
     void router.navigate({
       to: ".",
+      resetScroll: resetsScroll(),
       search: (prev) =>
         Object.fromEntries(
           Object.entries({
@@ -221,6 +228,7 @@ export function useFilterActions() {
     trackEvent("filter-apply", { type: key });
     void router.navigate({
       to: ".",
+      resetScroll: resetsScroll(),
       search: (latest) => {
         const prev = absorbQueryFilters(latest, [key], queryFilterOptions);
         const current = (prev[key as keyof typeof prev] as string[] | undefined) ?? [];
@@ -257,6 +265,7 @@ export function useFilterActions() {
     trackEvent("filter-apply", { type: includeKey });
     void router.navigate({
       to: ".",
+      resetScroll: resetsScroll(),
       search: (latest) => {
         const prev = absorbQueryFilters(latest, [includeKey, excludeKey], queryFilterOptions);
         const include = (prev[includeKey as keyof typeof prev] as string[] | undefined) ?? [];
@@ -340,6 +349,7 @@ export function useFilterActions() {
     trackEvent("filter-apply", { type: key });
     void router.navigate({
       to: ".",
+      resetScroll: resetsScroll(),
       search: (latest) => {
         const prev = absorbQueryFilters(latest, [key], queryFilterOptions);
         const state = prev[key];

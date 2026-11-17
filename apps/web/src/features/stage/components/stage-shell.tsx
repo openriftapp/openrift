@@ -92,7 +92,7 @@ export function StageShell({
   const leave = onEscape ?? onExit;
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || isTypingTarget(event.target)) {
+      if (event.key !== "Escape" || event.defaultPrevented || isTypingTarget(event.target)) {
         return;
       }
       event.preventDefault();

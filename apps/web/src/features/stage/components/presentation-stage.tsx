@@ -73,7 +73,7 @@ export function PresentationStage({
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      if (isTypingTarget(event.target)) {
+      if (event.defaultPrevented || isTypingTarget(event.target)) {
         return;
       }
       if (event.key === " " && ownsSpaceKey(event.target)) {

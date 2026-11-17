@@ -33,6 +33,9 @@
 - fix(Collections): **Variant chooser closes on a second press** — Pressing the count pill or the minus button again now closes the variant chooser.
 - fix(Collections): **Detail closes with the last copy** — Removing the last copy of a card now closes its detail.
 - fix(Collections): **Keyboard reorder in the sidebar** — Binders and lists can be reordered with Space and the arrow keys on their grip.
+- fix(Cards): **Filters keep your place** — Changing a filter while a card is open no longer jumps the page back to the top.
+- fix(Account): **Signed-in visits to log in** — Opening the log-in or sign-up page while signed in takes you to your collections, or to the page you asked for.
+- fix(Collections): **Keyboard reordering** — Moving a collection with the arrow keys no longer also steps through the open card.
 
 ## 2026-11-16
 

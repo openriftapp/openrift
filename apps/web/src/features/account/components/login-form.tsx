@@ -22,6 +22,7 @@ import { formText } from "@/features/account/lib/form-data";
 import { isPlainClick } from "@/features/account/lib/plain-click";
 import { isNewAccount, routeTemplate, trackSignupComplete, trackSignupCta } from "@/lib/analytics";
 import { otpErrorMessage, requestOtpErrorMessage, setServerError } from "@/lib/auth-errors";
+import { SIGNED_IN_HOME } from "@/lib/auth-session";
 import { m } from "@/paraglide/messages.js";
 import { enterAsSignedIn } from "@/stores/leave-as-signed-out";
 
@@ -148,7 +149,7 @@ function PasswordSignIn({
       return;
     }
     await enterAsSignedIn(queryClient, result.data.user.id);
-    void navigate({ to: (redirectTo as "/collections") ?? "/collections" });
+    void navigate({ to: (redirectTo as "/collections") ?? SIGNED_IN_HOME });
   }
 
   async function handleResend(email: string) {
@@ -300,7 +301,7 @@ function OtpSignIn({
       );
     }
     await enterAsSignedIn(queryClient, result.data.user.id);
-    void navigate({ to: (redirectTo as "/collections") ?? "/collections" });
+    void navigate({ to: (redirectTo as "/collections") ?? SIGNED_IN_HOME });
   }
 
   return (

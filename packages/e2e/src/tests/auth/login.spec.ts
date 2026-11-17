@@ -371,17 +371,17 @@ test.describe("login page", () => {
       });
     });
 
-    test("renders the form even when already authenticated", async ({ authenticatedPage }) => {
+    test("sends a signed-in visitor to the collections", async ({ authenticatedPage }) => {
       await authenticatedPage.goto("/login");
 
-      await expect(authenticatedPage.getByText("Welcome back")).toBeVisible();
-      await expect(
-        authenticatedPage.getByRole("textbox", { name: "Email", exact: true }),
-      ).toBeVisible();
-      await expect(
-        authenticatedPage.getByRole("textbox", { name: "Password", exact: true }),
-      ).toBeVisible();
-      await expect(authenticatedPage).toHaveURL(/\/login/u);
+      await expect(authenticatedPage).toHaveURL(/\/collections(?:[/?#]|$)/u, { timeout: 15_000 });
+      await expect(authenticatedPage.getByText("Welcome back")).toBeHidden();
+    });
+
+    test("sends a signed-in visitor on to the requested page", async ({ authenticatedPage }) => {
+      await authenticatedPage.goto(`/login?redirect=${encodeURIComponent("/decks")}`);
+
+      await expect(authenticatedPage).toHaveURL(/\/decks(?:[/?#]|$)/u, { timeout: 15_000 });
     });
   });
 

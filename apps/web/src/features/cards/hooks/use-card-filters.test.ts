@@ -4,7 +4,7 @@ import path from "node:path";
 import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { createElement } from "react";
-import { describe, expect, it, beforeEach, vi } from "vitest";
+import { afterEach, describe, expect, it, beforeEach, vi } from "vitest";
 
 const mockNavigate = vi.fn();
 
@@ -21,7 +21,10 @@ import { filterSearchSchema } from "@/features/cards/lib/search-schemas";
 import { ResolvedViewPrefsProvider, ViewSurfaceProvider } from "@/hooks/use-view-prefs";
 import { COOKIE_VIEW_SURFACES, sanitizeViewPrefsBlob } from "@/lib/view-prefs";
 import { useDisplayStore } from "@/stores/display-store";
+import { useSelectionStore } from "@/stores/selection-store";
 import { useCookieViewPrefsStore } from "@/stores/view-prefs-store";
+import { stubCardViewerItem } from "@/test/factories";
+import { createStoreResetter } from "@/test/store-helpers";
 
 import { useFilterActions, useFilterValues } from "./use-card-filters";
 
@@ -48,7 +51,11 @@ function lastNavigateSearch(): Record<string, unknown> {
   return search ?? {};
 }
 
+const resetSelection = createStoreResetter(useSelectionStore);
+
 describe("useCardFilters", () => {
+  afterEach(resetSelection);
+
   beforeEach(() => {
     mockSearch = defaultSearchState();
     mockNavigate.mockClear();
@@ -156,6 +163,36 @@ describe("useCardFilters", () => {
     act(() => result.current.toggleArrayFilter("rarities", "rare"));
 
     expect(lastNavigateSearch()).not.toHaveProperty("rarities");
+  });
+
+  it.each([
+    ["setSearch", (actions: ReturnType<typeof useCardFilters>) => actions.setSearch("jinx")],
+    [
+      "toggleArrayFilter",
+      (actions: ReturnType<typeof useCardFilters>) => actions.toggleArrayFilter("sets", "RB1"),
+    ],
+    [
+      "toggleSignedFilter",
+      (actions: ReturnType<typeof useCardFilters>) =>
+        actions.toggleSignedFilter("domains", "domainsEx", "fury", "include"),
+    ],
+    ["toggleStandard", (actions: ReturnType<typeof useCardFilters>) => actions.toggleStandard()],
+  ])("%s keeps the scroll position while a card is selected", (_name, run) => {
+    const item = stubCardViewerItem();
+    useSelectionStore.getState().selectCard(item.printing, [item], "printing");
+    const { result } = renderHook(() => useCardFilters(), { wrapper });
+
+    act(() => run(result.current));
+
+    expect(mockNavigate.mock.calls.at(-1)?.[0]).toMatchObject({ resetScroll: false });
+  });
+
+  it("filter changes reset the scroll when no card is selected", () => {
+    const { result } = renderHook(() => useCardFilters(), { wrapper });
+
+    act(() => result.current.toggleArrayFilter("sets", "RB1"));
+
+    expect(mockNavigate.mock.calls.at(-1)?.[0]).toMatchObject({ resetScroll: true });
   });
 
   it("detects active filters when only the standard flag is set", () => {

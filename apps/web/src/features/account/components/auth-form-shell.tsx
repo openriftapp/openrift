@@ -11,6 +11,7 @@ import { Field, FieldGroup, FieldSeparator } from "@/components/ui/field";
 import { authClient } from "@/features/account/lib/auth-client";
 import { socialNewUserCallbackURL } from "@/lib/analytics";
 import { isPreview } from "@/lib/api-base";
+import { SIGNED_IN_HOME } from "@/lib/auth-session";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -68,7 +69,7 @@ export function SocialAuthButtons({ redirectTo }: { redirectTo?: string }) {
   if (isPreview()) {
     return null;
   }
-  const callbackURL = redirectTo ?? "/collections";
+  const callbackURL = redirectTo ?? SIGNED_IN_HOME;
 
   async function signInWith(provider: "google" | "discord") {
     try {

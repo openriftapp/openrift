@@ -121,6 +121,15 @@ describe("PresentationStage while presenting", () => {
     expect(onIndexChange).toHaveBeenCalledWith(1);
   });
 
+  it("leaves an arrow another control consumed", () => {
+    const { onIndexChange } = renderStage();
+    const consume = (event: KeyboardEvent) => event.preventDefault();
+    document.body.addEventListener("keydown", consume);
+    fireEvent.keyDown(document.body, { key: "ArrowRight" });
+    document.body.removeEventListener("keydown", consume);
+    expect(onIndexChange).not.toHaveBeenCalled();
+  });
+
   it("shows the filmstrip when it is switched on", () => {
     usePresentationStore.setState({ showStrip: true });
     renderStage();

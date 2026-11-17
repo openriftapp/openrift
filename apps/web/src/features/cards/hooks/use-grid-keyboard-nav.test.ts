@@ -292,3 +292,41 @@ describe("useGridKeyboardNav: +/-", () => {
     input.remove();
   });
 });
+
+describe("useGridKeyboardNav: keys another handler consumed", () => {
+  function pressConsumed(key: string) {
+    const grip = document.createElement("button");
+    document.body.append(grip);
+    grip.addEventListener("keydown", (event) => event.preventDefault());
+    grip.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+  }
+
+  it("does not step the detail on an arrow a keyboard drag consumed", () => {
+    useSelectionStore.getState().selectCard(p1, items, "printing");
+
+    renderHook(() => useGridKeyboardNav({ items }));
+    pressConsumed("ArrowRight");
+
+    expect(useSelectionStore.getState().selectedCard).toBe(p1);
+  });
+
+  it("does not add copies on a consumed digit", () => {
+    const onIncrement = vi.fn();
+    useCardRowActionsStore.getState().setHandlers("collection", { onIncrement });
+    useSelectionStore.getState().selectCard(p1, items, "printing");
+
+    renderHook(() => useGridKeyboardNav({ items }));
+    pressConsumed("2");
+
+    expect(onIncrement).not.toHaveBeenCalled();
+  });
+
+  it("steps the detail on an arrow nobody consumed", () => {
+    useSelectionStore.getState().selectCard(p1, items, "printing");
+
+    renderHook(() => useGridKeyboardNav({ items }));
+    press("ArrowRight");
+
+    expect(useSelectionStore.getState().selectedCard).toBe(p2);
+  });
+});

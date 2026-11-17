@@ -288,7 +288,7 @@ export function OutlineLabelPage() {
   }
 
   const onKey = useEffectEvent((event: KeyboardEvent) => {
-    if (event.target instanceof HTMLInputElement) {
+    if (event.defaultPrevented || event.target instanceof HTMLInputElement) {
       return;
     }
     if (event.key === "n" || event.key === "ArrowRight") {

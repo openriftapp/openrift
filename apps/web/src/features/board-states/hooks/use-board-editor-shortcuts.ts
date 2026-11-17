@@ -32,10 +32,13 @@ function isTextEntry(target: EventTarget | null): boolean {
  * @returns Whether the keystroke was consumed and the caller should call `preventDefault`.
  */
 export function handleBoardEditorKey(
-  event: Pick<KeyboardEvent, "key" | "shiftKey" | "ctrlKey" | "metaKey" | "altKey" | "target">,
+  event: Pick<
+    KeyboardEvent,
+    "key" | "shiftKey" | "ctrlKey" | "metaKey" | "altKey" | "target" | "defaultPrevented"
+  >,
   handlers: BoardEditorShortcutHandlers,
 ): boolean {
-  if (handlers.enabled === false || isTextEntry(event.target)) {
+  if (event.defaultPrevented || handlers.enabled === false || isTextEntry(event.target)) {
     return false;
   }
   const modified = event.ctrlKey || event.metaKey;

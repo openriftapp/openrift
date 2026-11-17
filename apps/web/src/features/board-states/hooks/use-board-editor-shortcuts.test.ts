@@ -27,6 +27,7 @@ interface KeyInit {
   metaKey?: boolean;
   altKey?: boolean;
   target?: EventTarget | null;
+  defaultPrevented?: boolean;
 }
 
 function press(init: KeyInit): boolean {
@@ -38,12 +39,20 @@ function press(init: KeyInit): boolean {
       metaKey: init.metaKey ?? false,
       altKey: init.altKey ?? false,
       target: init.target ?? null,
+      defaultPrevented: init.defaultPrevented ?? false,
     },
     handlers,
   );
 }
 
 describe("handleBoardEditorKey", () => {
+  it("leaves a key another control consumed", () => {
+    expect(press({ key: "ArrowRight", defaultPrevented: true })).toBe(false);
+    expect(press({ key: "Escape", defaultPrevented: true })).toBe(false);
+    expect(handlers.onStep).not.toHaveBeenCalled();
+    expect(handlers.onEscape).not.toHaveBeenCalled();
+  });
+
   it("toggles exhaust and opens the keyword popover", () => {
     expect(press({ key: "e" })).toBe(true);
     expect(press({ key: "K" })).toBe(true);

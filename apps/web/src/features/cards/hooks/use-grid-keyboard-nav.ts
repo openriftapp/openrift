@@ -28,6 +28,9 @@ export function useGridKeyboardNav({ items, siblingPrintings }: UseGridKeyboardN
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) {
+        return;
+      }
       const tag = (document.activeElement?.tagName ?? "").toLowerCase();
       if (tag === "input" || tag === "textarea" || tag === "select") {
         return;
