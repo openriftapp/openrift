@@ -315,7 +315,7 @@ test.describe("reset password", () => {
       expect(loginUrl.searchParams.get("email")).toBe(email);
 
       await waitForHydration(page);
-      await page.getByLabel("Password", { exact: true }).fill(newPassword);
+      await page.getByRole("textbox", { name: "Password", exact: true }).fill(newPassword);
       await page.getByRole("button", { name: /^sign in$/iu }).click();
 
       await expect(page).not.toHaveURL(/\/login/u, { timeout: 15_000 });
@@ -345,7 +345,7 @@ test.describe("reset password", () => {
       await expect(page).toHaveURL(/\/login\?/u, { timeout: 15_000 });
       await waitForHydration(page);
 
-      await page.getByLabel("Password", { exact: true }).fill(oldPassword);
+      await page.getByRole("textbox", { name: "Password", exact: true }).fill(oldPassword);
       await page.getByRole("button", { name: /^sign in$/iu }).click();
 
       await expect(page.getByText("Invalid email or password")).toBeVisible({ timeout: 10_000 });

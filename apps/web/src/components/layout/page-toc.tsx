@@ -68,6 +68,7 @@ function TocLink({
     <a
       href={`#${id}`}
       onClick={handleClick}
+      aria-current={isActive ? "location" : undefined}
       style={level > 0 ? { paddingLeft: `${level}rem` } : undefined}
       className={cn(
         "block truncate text-sm transition-colors",

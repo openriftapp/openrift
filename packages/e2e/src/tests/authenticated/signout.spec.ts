@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import type { APIRequestContext, Page } from "@playwright/test";
 
 import { test, expect } from "../../fixtures/test.js";
+import { loginViaForm } from "../../helpers/auth-otp.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb } from "../../helpers/db.js";
@@ -39,15 +40,6 @@ async function promoteToAdmin(sql: Sql, email: string) {
     SELECT id FROM users WHERE email = ${email}
     ON CONFLICT DO NOTHING
   `;
-}
-
-async function loginViaForm(page: Page, email: string, password: string) {
-  await page.goto("/login");
-  await waitForHydrated(page.locator("form").first());
-  await page.getByRole("textbox", { name: "Email", exact: true }).fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByRole("button", { name: /^sign in$/iu }).click();
-  await expect(page).not.toHaveURL(/\/login/u, { timeout: 15_000 });
 }
 
 async function openUserMenu(page: Page) {

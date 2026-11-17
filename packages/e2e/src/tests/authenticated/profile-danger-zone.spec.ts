@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import type { APIRequestContext, Page } from "@playwright/test";
 
 import { expect, test } from "../../fixtures/test.js";
+import { loginViaForm, passwordTab } from "../../helpers/auth-otp.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb } from "../../helpers/db.js";
@@ -27,15 +28,6 @@ async function createVerifiedUser(
   });
   expect(response.ok()).toBeTruthy();
   await sql`UPDATE users SET email_verified = true WHERE email = ${email}`;
-}
-
-async function loginViaForm(page: Page, email: string, password: string) {
-  await page.goto("/login");
-  await waitForHydrated(page.locator("form").first());
-  await page.getByRole("textbox", { name: "Email", exact: true }).fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByRole("button", { name: /^sign in$/iu }).click();
-  await expect(page).not.toHaveURL(/\/login/u, { timeout: 15_000 });
 }
 
 async function setupUser(
@@ -284,9 +276,10 @@ test.describe("profile danger zone", () => {
 
       await page.goto("/login");
       await waitForHydrated(page.locator("form").first());
-      await page.getByRole("textbox", { name: "Email", exact: true }).fill(email);
-      await page.getByLabel("Password", { exact: true }).fill(password);
-      await page.getByRole("button", { name: /^sign in$/iu }).click();
+      const panel = passwordTab(page);
+      await panel.getByRole("textbox", { name: "Email", exact: true }).fill(email);
+      await panel.getByRole("textbox", { name: "Password", exact: true }).fill(password);
+      await panel.getByRole("button", { name: /^sign in$/iu }).click();
       await expect(page.getByText(/invalid email or password/iu)).toBeVisible({ timeout: 15_000 });
     });
   });

@@ -85,9 +85,13 @@ describe("PageTocMobileTrigger", () => {
 
     await user.click(screen.getByRole("button", { name: "Open contents" }));
 
-    const activeLink = screen.getByRole("link", { name: "200. Parts of a Card" });
-    expect(activeLink.className).toContain("text-foreground");
-    expect(activeLink.className).toContain("font-medium");
+    expect(screen.getByRole("link", { name: "200. Parts of a Card" })).toHaveAttribute(
+      "aria-current",
+      "location",
+    );
+    expect(screen.getByRole("link", { name: "100. Game Concepts" })).not.toHaveAttribute(
+      "aria-current",
+    );
   });
 });
 
@@ -126,8 +130,9 @@ describe("PageToc", () => {
     usePageTocStore.getState().setActiveId("glossary-keywords");
     render(<PageToc items={ITEMS} />);
 
-    expect(screen.getByRole("link", { name: "100. Game Concepts" }).className).toContain(
-      "font-medium",
+    expect(screen.getByRole("link", { name: "100. Game Concepts" })).toHaveAttribute(
+      "aria-current",
+      "location",
     );
   });
 

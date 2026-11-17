@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 
-import type { APIRequestContext, Page } from "@playwright/test";
+import type { APIRequestContext } from "@playwright/test";
 
 import { expect, test } from "../../fixtures/test.js";
+import { loginViaForm } from "../../helpers/auth-otp.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, TEST_USERS, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb } from "../../helpers/db.js";
@@ -26,15 +27,6 @@ async function createVerifiedUser(
   });
   expect(response.ok()).toBeTruthy();
   await sql`UPDATE users SET email_verified = true WHERE email = ${email}`;
-}
-
-async function loginViaForm(page: Page, email: string, password: string) {
-  await page.goto("/login");
-  await waitForHydrated(page.locator("form").first());
-  await page.getByRole("textbox", { name: "Email", exact: true }).fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByRole("button", { name: /^sign in$/iu }).click();
-  await expect(page).not.toHaveURL(/\/login/u, { timeout: 15_000 });
 }
 
 test.describe("profile shell", () => {
@@ -146,21 +138,20 @@ test.describe("profile shell", () => {
       const nav = page.getByRole("navigation").filter({ hasText: "Preferences" });
       await expect(nav).toBeVisible({ timeout: 15_000 });
 
-      // The active TOC link carries font-medium; there's no aria-current yet.
       const sharingLink = nav.getByRole("link", { name: "Public profile", exact: true });
       await waitForHydrated(sharingLink);
-      await expect(sharingLink).toHaveClass(/font-medium/u);
+      await expect(sharingLink).toHaveAttribute("aria-current", "location");
 
       const preferencesLink = nav.getByRole("link", { name: "Preferences", exact: true });
       await preferencesLink.click();
-      await expect(preferencesLink).toHaveClass(/font-medium/u);
+      await expect(preferencesLink).toHaveAttribute("aria-current", "location");
 
       // Clicking a TOC link sets it active directly (and scrolls to it) — more
       // deterministic than racing the scroll IntersectionObserver.
       const securityLink = nav.getByRole("link", { name: "Security", exact: true });
       await securityLink.click();
-      await expect(securityLink).toHaveClass(/font-medium/u);
-      await expect(preferencesLink).not.toHaveClass(/font-medium/u);
+      await expect(securityLink).toHaveAttribute("aria-current", "location");
+      await expect(preferencesLink).not.toHaveAttribute("aria-current", "location");
     });
   });
 

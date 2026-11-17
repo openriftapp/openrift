@@ -37,3 +37,21 @@ export async function createVerifiedUser(
   await signUp(request, email, password);
   await sql`UPDATE users SET email_verified = true WHERE email = ${email}`;
 }
+
+export function passwordTab(page: Page) {
+  return page.getByRole("tabpanel", { name: "Password", exact: true });
+}
+
+export function emailCodeTab(page: Page) {
+  return page.getByRole("tabpanel", { name: "Email code", exact: true });
+}
+
+export async function loginViaForm(page: Page, email: string, password: string) {
+  await page.goto("/login");
+  await waitForHydrated(page.locator("form").first());
+  const panel = passwordTab(page);
+  await panel.getByRole("textbox", { name: "Email", exact: true }).fill(email);
+  await panel.getByRole("textbox", { name: "Password", exact: true }).fill(password);
+  await panel.getByRole("button", { name: /^sign in$/iu }).click();
+  await expect(page).not.toHaveURL(/\/login/u, { timeout: 15_000 });
+}
