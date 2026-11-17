@@ -150,13 +150,3 @@ export function snapshotToPlayers(snapshot: PodSnapshotPlayer[]): TeamSnapshotPl
     fixedTable: player.fixedTable,
   }));
 }
-
-export function refocusMenuTrigger(
-  root: HTMLElement | null,
-  attribute: "movePlayer" | "swapPlayer",
-  playerId: string,
-): void {
-  const selector = attribute === "movePlayer" ? "[data-move-player]" : "[data-swap-player]";
-  const triggers = root?.querySelectorAll<HTMLElement>(selector) ?? [];
-  [...triggers].find((trigger) => trigger.dataset[attribute] === playerId)?.focus();
-}

@@ -8,7 +8,7 @@ interface Point {
 
 // page.mouse needs viewport coordinates; scrollIntoViewIfNeeded detaches the
 // tile mid-scroll on this window-virtualized grid, so re-measure after each scroll.
-export async function scrollIntoViewport(page: Page, locator: Locator, timeout = 15_000) {
+async function scrollIntoViewport(page: Page, locator: Locator, timeout = 15_000) {
   await expect
     .poll(
       async () => {

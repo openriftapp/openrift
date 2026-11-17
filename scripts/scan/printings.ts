@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-import type { Printing } from "../../packages/shared/src/types/catalog.js";
+import type { Marker, Printing, PrintingImage } from "../../packages/shared/src/types/catalog.js";
 import { CACHE_DIR } from "./lib";
 
 const CACHE_FILE = path.join(CACHE_DIR, "printings.json");
@@ -40,6 +40,25 @@ interface PrintingRow {
   imageIds: string[];
 }
 
+type ScanFields = Pick<
+  Printing,
+  | "printingId"
+  | "cardId"
+  | "shortCode"
+  | "setSlug"
+  | "isSigned"
+  | "isOvernumbered"
+  | "language"
+  | "publicCode"
+  | "canonicalRank"
+> & {
+  artVariant: string;
+  finish: string;
+  size: string;
+  markers: Pick<Marker, "slug">[];
+  images: Pick<PrintingImage, "imageId">[];
+};
+
 export function loadPrintings(refresh = false): Printing[] {
   let rows: PrintingRow[];
   if (!refresh && fs.existsSync(CACHE_FILE)) {
@@ -55,23 +74,23 @@ export function loadPrintings(refresh = false): Printing[] {
     fs.writeFileSync(CACHE_FILE, JSON.stringify(rows));
   }
   // Only the fields resolveLock and sortForPicker read are filled in.
-  return rows.map(
-    (row) =>
-      ({
-        id: row.id,
-        cardId: row.cardId,
-        shortCode: row.shortCode,
-        setSlug: row.setSlug,
-        artVariant: row.artVariant,
-        isSigned: row.isSigned,
-        isOvernumbered: row.isOvernumbered,
-        markers: row.markerSlugs.map((slug) => ({ slug })),
-        finish: row.finish,
-        size: row.size,
-        language: row.language,
-        publicCode: row.publicCode,
-        canonicalRank: row.canonicalRank,
-        images: row.imageIds.map((imageId) => ({ imageId })),
-      }) as unknown as Printing,
-  );
+  return rows.map((row) => {
+    const printing = {
+      printingId: row.id,
+      cardId: row.cardId,
+      shortCode: row.shortCode,
+      setSlug: row.setSlug,
+      artVariant: row.artVariant,
+      isSigned: row.isSigned,
+      isOvernumbered: row.isOvernumbered,
+      markers: row.markerSlugs.map((slug) => ({ slug })),
+      finish: row.finish,
+      size: row.size,
+      language: row.language,
+      publicCode: row.publicCode,
+      canonicalRank: row.canonicalRank,
+      images: row.imageIds.map((imageId) => ({ imageId })),
+    } satisfies ScanFields;
+    return printing as unknown as Printing;
+  });
 }

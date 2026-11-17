@@ -471,6 +471,8 @@ cd ~/openrift-preview && ./deploy.sh
 
 A new stack starts with every job disabled; enable schedules once on `/admin/jobs` ("Enable all suggested" covers the normal case).
 
+A new stack has no admin. Sign up on the site, then run `bun make-admin -- <email>` with `DATABASE_URL` pointing at that stack's database; the script promotes an existing account and fails when no account has that email.
+
 Verify:
 
 ```bash

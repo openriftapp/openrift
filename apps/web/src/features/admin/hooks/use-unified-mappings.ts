@@ -69,7 +69,7 @@ const saveMappingsFn = createServerFn({ method: "POST" })
   );
 
 /** Saves the mappings and toasts each SKU the server skipped. */
-export async function saveUnifiedMappings(
+async function saveUnifiedMappings(
   marketplace: Marketplace,
   mappings: SaveMappingsBody["mappings"],
 ): Promise<SaveMappingsResult> {

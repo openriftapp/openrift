@@ -107,7 +107,7 @@ bun db:schema     # Regenerate docs/schema.sql from a fresh migrate
 bun db:sync       # Copy or update the public catalog, rules and prices (see "Card data")
 bun db:dev-sanitize        # Sanitize a restored production dump (local DB only)
 bun db:cleanup    # List leftover openrift_test_* databases; --apply drops them
-bun make-admin -- <email>  # Grant admin role to a user (email matched case-insensitively)
+bun make-admin -- <email>  # Grant admin role to an existing account (email matched case-insensitively); the only way to create an admin
 bun send-trade-digest <ISO timestamp>  # Dry run of the trade match digest; --apply sends it
 ```
 

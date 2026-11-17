@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { Repos } from "../../../deps.js";
+import { cardLookupSlot } from "../../../test/card-lookup.js";
 import { cardResolutionKey, resolveDeckCheckCards } from "./deck-check-card-resolution.js";
 
 const CARDS = [
@@ -38,7 +39,6 @@ const CARDS = [
 
 const CODES = [{ cardId: "c-annie", shortCode: "OGN-001", publicCode: "OGN-001/298" }];
 
-/** Each call builds its own repos double so the per-`Repos` index memo starts cold. */
 function makeRepos() {
   const cards = vi.fn().mockResolvedValue(CARDS);
   const nameAliases = vi.fn().mockResolvedValue([{ cardId: "c-dorans", normName: "missfortune" }]);
@@ -47,13 +47,15 @@ function makeRepos() {
     .mockImplementation((ids: string[]) =>
       Promise.resolve(new Map(ids.map((id) => [id, `p-${id}`]))),
     );
+  const catalog = {
+    cards,
+    printingLookupRows: vi.fn().mockResolvedValue(CODES),
+    nameAliases,
+    catalogContentVersion: vi.fn().mockResolvedValue("catalog-v1"),
+  };
   const repos = {
-    catalog: {
-      cards,
-      printingLookupRows: vi.fn().mockResolvedValue(CODES),
-      nameAliases,
-      catalogContentVersion: vi.fn().mockResolvedValue("catalog-v1"),
-    },
+    catalog,
+    cardLookup: cardLookupSlot(catalog),
     deckCheck: { canonicalPrintingByCard },
   } as unknown as Repos;
   return { repos, cards, canonicalPrintingByCard, nameAliases };

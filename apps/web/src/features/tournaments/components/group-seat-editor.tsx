@@ -11,8 +11,7 @@ import {
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import type { GroupStageView } from "@openrift/shared/types/api/pod-tournament";
 import { EllipsisVerticalIcon } from "lucide-react";
-import { useRef, useState } from "react";
-import { flushSync } from "react-dom";
+import { useEffect, useRef, useState } from "react";
 
 import { Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
@@ -33,7 +32,6 @@ import { dragAnnouncements } from "@/features/tournaments/lib/drag-announcements
 import type { SeatGroup } from "@/features/tournaments/lib/group-seat-editor";
 import { swapSeats } from "@/features/tournaments/lib/group-seat-editor";
 import { participantName } from "@/features/tournaments/lib/participant-name";
-import { refocusMenuTrigger } from "@/features/tournaments/lib/pod-pairing-editor";
 import { asDragData } from "@/lib/dnd-data";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
@@ -89,20 +87,29 @@ interface SwapOption {
 }
 
 function SwapMenu({
-  playerId,
   name,
   options,
   onSwap,
+  refocus,
+  onRefocused,
 }: {
-  playerId: string;
   name: string;
   options: SwapOption[];
   onSwap: (otherId: string) => void;
+  refocus: boolean;
+  onRefocused: () => void;
 }) {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (refocus) {
+      triggerRef.current?.focus();
+      onRefocused();
+    }
+  }, [refocus, onRefocused]);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        data-swap-player={playerId}
+        ref={triggerRef}
         aria-label={m.tournaments_seat_editor_swap_label({ name })}
         render={
           <Button
@@ -159,7 +166,7 @@ export function GroupSeatEditor({
     ),
   );
   const sizes = new Set(groups.map((group) => group.playerIds.length));
-  const rootRef = useRef<HTMLDivElement>(null);
+  const [refocusId, setRefocusId] = useState<string | null>(null);
   const nameOf = (playerId: string) =>
     nameById.get(playerId) ?? m.tournaments_pairing_editor_unknown_player();
   const seats: SwapOption[] = groups.flatMap((group) =>
@@ -178,8 +185,8 @@ export function GroupSeatEditor({
   // A swap across groups remounts the chip, so the menu's own focus return has
   // no trigger left to land on.
   function handleMenuSwap(playerId: string, otherId: string) {
-    flushSync(() => applySwap(playerId, otherId));
-    refocusMenuTrigger(rootRef.current, "swapPlayer", playerId);
+    applySwap(playerId, otherId);
+    setRefocusId(playerId);
   }
 
   const announcements = dragAnnouncements({
@@ -231,7 +238,7 @@ export function GroupSeatEditor({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div ref={rootRef} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
         <Heading as="h3">{m.tournaments_group_edit_groups()}</Heading>
         <p className="text-muted-foreground text-sm">{m.tournaments_seat_editor_hint()}</p>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -255,10 +262,11 @@ export function GroupSeatEditor({
                     </span>
                     <SeatChip playerId={playerId} name={nameOf(playerId)} />
                     <SwapMenu
-                      playerId={playerId}
                       name={nameOf(playerId)}
                       options={seats.filter((option) => option.playerId !== playerId)}
                       onSwap={(otherId) => handleMenuSwap(playerId, otherId)}
+                      refocus={refocusId === playerId}
+                      onRefocused={() => setRefocusId(null)}
                     />
                   </div>
                 ))}

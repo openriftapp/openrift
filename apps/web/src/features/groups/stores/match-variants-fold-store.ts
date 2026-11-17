@@ -7,7 +7,7 @@ interface MatchVariantsFoldState {
 }
 
 // Each tile subscribes only to its own key, so toggling one tile doesn't
-// re-render the others (the per-key selector pattern, as in `rules-fold-store.ts`).
+// re-render the others (the per-key selector pattern, as in `rules-page-store.ts`).
 export const useMatchVariantsFoldStore = create<MatchVariantsFoldState>()((set) => ({
   expanded: new Set(),
 

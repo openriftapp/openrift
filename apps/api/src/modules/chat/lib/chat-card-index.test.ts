@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { Repos } from "../../../deps.js";
+import { cardLookupSlot } from "../../../test/card-lookup.js";
 import { createChatCardIndexLoader } from "./chat-card-index.js";
 
 function makeRepos() {
@@ -17,7 +18,11 @@ function makeRepos() {
     printingLookupRows: vi.fn(async () => []),
     catalogContentVersion: vi.fn(async () => "catalog-v1"),
   };
-  return { repos: { enums, catalog } as unknown as Repos, enums, catalog };
+  return {
+    repos: { enums, catalog, cardLookup: cardLookupSlot(catalog) } as unknown as Repos,
+    enums,
+    catalog,
+  };
 }
 
 describe("createChatCardIndexLoader", () => {

@@ -269,7 +269,7 @@ export function createApiHandler(log: Logger) {
   });
 }
 
-export interface MatchedApiRoute {
+interface MatchedApiRoute {
   path: string | undefined;
   meta: Readonly<Record<string, unknown>>;
 }

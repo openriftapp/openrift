@@ -536,6 +536,10 @@ describe("generic helpers", () => {
     ).toEqual([]);
   });
 
+  it("never forces a synchronous render with `flushSync`", () => {
+    expect(offenders(WEB_FILES, /\bflushSync\b/u)).toEqual([]);
+  });
+
   it("joins lists with `formatList` (`@/lib/format-list`)", () => {
     expect(offenders(WEB_FILES, /\bIntl\.ListFormat\s*\(/u)).toEqual([]);
   });

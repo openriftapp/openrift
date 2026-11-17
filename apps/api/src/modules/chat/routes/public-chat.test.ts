@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { cardLookupSlot } from "../../../test/card-lookup.js";
 import type { Variables } from "../../../types.js";
 import { createPublicChatRoute } from "./public-chat";
 
@@ -91,7 +92,11 @@ function makeApp(
     })
     .route(
       "/api/v1",
-      createPublicChatRoute({ catalog: mockCatalogRepo, enums: mockEnumsRepo } as never),
+      createPublicChatRoute({
+        catalog: mockCatalogRepo,
+        enums: mockEnumsRepo,
+        cardLookup: cardLookupSlot(mockCatalogRepo),
+      } as never),
     );
 }
 

@@ -1,6 +1,7 @@
 import { createLogger } from "@openrift/shared/logger";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { Repos } from "../../../deps.js";
 import type { AnyJobDefinition, JobScheduler } from "./job-scheduler.js";
 import { createJobScheduler, defineJob } from "./job-scheduler.js";
 
@@ -13,10 +14,13 @@ const jobSchedules = {
   remove: vi.fn(),
 };
 
+type JobRunsRepo = Repos["jobRuns"];
+
 const jobRuns = {
   getLatestPerKind: vi.fn(),
-  getRunning: vi.fn(),
-  start: vi.fn(),
+  getRunning: vi.fn<JobRunsRepo["getRunning"]>(),
+  failStale: vi.fn<JobRunsRepo["failStale"]>(),
+  start: vi.fn<JobRunsRepo["start"]>(),
   succeed: vi.fn(),
   fail: vi.fn(),
 };
@@ -215,13 +219,14 @@ describe("runNow", () => {
   });
 
   it("reports the in-flight run instead of starting a second one", async () => {
-    jobRuns.getRunning.mockResolvedValue({ id: "run-0", startedAt: new Date() });
+    jobRuns.getRunning.mockResolvedValue({ id: "run-0", lastSeenAt: new Date() });
     scheduler = build([definition()]);
     await expect(scheduler.runNow("tcgplayer.refresh")).resolves.toEqual({
       runId: "run-0",
       status: "already_running",
     });
     expect(jobRuns.start).not.toHaveBeenCalled();
+    expect(jobRuns.failStale).not.toHaveBeenCalled();
   });
 
   it("rejects an unavailable job", async () => {

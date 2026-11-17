@@ -7,7 +7,7 @@ import { useTierListBuilderStore } from "@/features/stage/stores/tier-list-build
 
 export const AUTOSAVE_WAIT_MS = 1200;
 
-export type TierListAutosaveStatus = "saving" | "saved" | "failed";
+type TierListAutosaveStatus = "saving" | "saved" | "failed";
 
 export interface TierListAutosave {
   status: TierListAutosaveStatus;

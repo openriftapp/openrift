@@ -2,6 +2,7 @@ import { parsePiltoverDeckCode } from "@openrift/shared/deck-code";
 import { Hono } from "hono";
 import { describe, expect, it, vi } from "vitest";
 
+import { cardLookupSlot } from "../../../test/card-lookup.js";
 import { registerRouterForTest } from "../../../test/mount-router.js";
 import type { Variables } from "../../../types.js";
 import { deckCheckPlayerRouter } from "./authenticated-deck-check-player.js";
@@ -175,9 +176,10 @@ function makeRepos() {
     printingLookupRows: stub([] as unknown[]),
     catalogContentVersion: stub("catalog-v1"),
   };
+  const cardLookup = cardLookupSlot(catalog);
   const cardBans = { listActiveForCards: stub([] as unknown[]) };
   const tournamentGroups = { syncParticipantLegendsFromDeckCheck: stub<any>(undefined) };
-  return { deckCheck, tournaments, decks, enums, catalog, cardBans, tournamentGroups };
+  return { deckCheck, tournaments, decks, enums, catalog, cardLookup, cardBans, tournamentGroups };
 }
 
 function catalogCards(

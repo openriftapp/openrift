@@ -19,8 +19,7 @@ import type {
   PodSnapshotPlayer,
 } from "@openrift/shared/types/api/pod-tournament";
 import { EllipsisVerticalIcon, PlusIcon } from "lucide-react";
-import { useRef, useState } from "react";
-import { flushSync } from "react-dom";
+import { useEffect, useRef, useState } from "react";
 
 import { Heading } from "@/components/heading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -46,7 +45,6 @@ import {
   movePlayer,
   moveTargets,
   participantIds,
-  refocusMenuTrigger,
   seedFromRound,
   snapshotToPlayers,
   toPayload,
@@ -107,7 +105,7 @@ export function PodPairingEditor({
   const seedState = teamMode ? seedUnitsFromRound(round, teams.teamByPlayer) : seedFromRound(round);
   const [state, setState] = useState<EditorState>(() => seedState);
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
+  const [refocusId, setRefocusId] = useState<string | null>(null);
   const replace = useReplaceTournamentPairing();
   const replaceCut = useReplaceCutPairing();
   const saving = replace.isPending || replaceCut.isPending;
@@ -179,8 +177,8 @@ export function PodPairingEditor({
   // The move remounts the chip in its new pod, so the menu's own focus return
   // has no trigger left to land on.
   function handleMenuMove(playerId: string, target: MoveTarget) {
-    flushSync(() => applyMove(playerId, target));
-    refocusMenuTrigger(rootRef.current, "movePlayer", playerId);
+    applyMove(playerId, target);
+    setRefocusId(playerId);
   }
 
   // Named by the event's style, not seat count like pairingLabel(): a match
@@ -301,7 +299,7 @@ export function PodPairingEditor({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div ref={rootRef} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Heading as="h3">
             {m.tournaments_pairing_editor_title({ number: round.roundNumber })}
@@ -339,6 +337,8 @@ export function PodPairingEditor({
                   score={scoreById.get(playerId) ?? 0}
                   moveOptions={moveOptions(playerId)}
                   onMove={(target) => handleMenuMove(playerId, target)}
+                  refocus={refocusId === playerId}
+                  onRefocused={() => setRefocusId(null)}
                 />
               ))}
             </PodDropZone>
@@ -355,6 +355,8 @@ export function PodPairingEditor({
                     score={scoreById.get(playerId) ?? 0}
                     moveOptions={moveOptions(playerId)}
                     onMove={(target) => handleMenuMove(playerId, target)}
+                    refocus={refocusId === playerId}
+                    onRefocused={() => setRefocusId(null)}
                   />
                 ))}
               </ByeDropZone>
@@ -447,17 +449,28 @@ function DraggablePlayer({
   score,
   moveOptions,
   onMove,
+  refocus,
+  onRefocused,
 }: {
   playerId: string;
   name: string;
   score: number;
   moveOptions: MoveOption[];
   onMove: (target: MoveTarget) => void;
+  refocus: boolean;
+  onRefocused: () => void;
 }) {
   const { setNodeRef, listeners, isDragging } = useDraggable({
     id: `player:${playerId}`,
     data: { type: "pod-player", playerId } satisfies PodPlayerDragData,
   });
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (refocus) {
+      triggerRef.current?.focus();
+      onRefocused();
+    }
+  }, [refocus, onRefocused]);
   return (
     <div
       ref={setNodeRef}
@@ -475,7 +488,7 @@ function DraggablePlayer({
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger
-          data-move-player={playerId}
+          ref={triggerRef}
           aria-label={m.tournaments_pairing_editor_move_label({ name })}
           render={
             <Button
