@@ -1,10 +1,14 @@
 import type { SpanContext } from "@opentelemetry/api";
 import { context, trace } from "@opentelemetry/api";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createLogger, traceContextMixin } from "./logger";
 
 describe("createLogger", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("creates a logger with standard methods", () => {
     const log = createLogger("test");
     expect(typeof log.info).toBe("function");
@@ -14,8 +18,19 @@ describe("createLogger", () => {
   });
 
   it("defaults to info level", () => {
+    vi.stubEnv("LOG_LEVEL", undefined);
     const log = createLogger("test");
     expect(log.level).toBe("info");
+  });
+
+  it("takes the default level from LOG_LEVEL", () => {
+    vi.stubEnv("LOG_LEVEL", "silent");
+    expect(createLogger("test").level).toBe("silent");
+  });
+
+  it("prefers an explicit level over LOG_LEVEL", () => {
+    vi.stubEnv("LOG_LEVEL", "silent");
+    expect(createLogger("test", "warn").level).toBe("warn");
   });
 
   it("accepts a custom level", () => {

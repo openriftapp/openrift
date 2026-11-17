@@ -773,17 +773,26 @@ describe.skipIf(!ctx)("overlay review", () => {
       });
 
       try {
-        const results = await Promise.all([
+        const results = await Promise.allSettled([
           acceptMetaEventOverlay(transact, overlayId),
           acceptMetaEventOverlay(transact, overlayId),
         ]);
-        const minted = new Set(results.map((result) => result.metaEventId as string));
-        createdEventIds.push(...minted);
+        const live = await db
+          .selectFrom("metaEvents")
+          .select("id")
+          .where("name", "=", "MOR Race Skirmish")
+          .execute();
+        createdEventIds.push(...live.map((row) => row.id));
 
-        expect(minted.size).toBe(1);
-        expect(results.map((result) => result.created).toSorted()).toEqual([false, true]);
+        const fulfilled = results.filter((result) => result.status === "fulfilled");
+        const rejected = results.filter((result) => result.status === "rejected");
+        expect(fulfilled).toHaveLength(1);
+        expect(fulfilled[0]!.value).toMatchObject({ created: true });
+        expect(rejected).toHaveLength(1);
+        expect(rejected[0]!.reason).toMatchObject({ status: 409 });
+        expect(live).toEqual([{ id: fulfilled[0]!.value.metaEventId }]);
         expect(await repos.metaOverlays.eventOverlayById(overlayId)).toMatchObject({
-          metaEventId: [...minted][0],
+          metaEventId: fulfilled[0]!.value.metaEventId,
           status: "accepted",
         });
       } finally {

@@ -37,7 +37,7 @@ function standing(index: number) {
     gameWinPct: null,
     opponentGameWinPct: null,
     entryStatus: null,
-    legendCardId: LEGEND_ID,
+    legendCardId: LEGEND_ID as string | null,
     championCardId: null,
   };
 }
@@ -197,6 +197,18 @@ describe("applyPlayerOverlays", () => {
     expect(meta.updatePlayers).toHaveBeenCalledTimes(1);
     expect(meta.updatePlayers.mock.calls[0]![0]).toEqual([
       expect.objectContaining({ id: playerId(3), wins: 4 }),
+    ]);
+  });
+
+  it("writes the legend a list names onto a row that has none", async () => {
+    const rows = Array.from({ length: FIELD }, (_, index) => standing(index));
+    rows[5] = { ...rows[5]!, legendCardId: null };
+    meta.rawStandingsForEvent.mockResolvedValue(rows);
+
+    await applyPlayerOverlays(repos, EVENT_ID, "constructed", emptyResult(), {} as CardNameIndex);
+
+    expect(meta.updatePlayers.mock.calls[0]![0]).toEqual([
+      expect.objectContaining({ id: playerId(5), legendCardId: LEGEND_ID }),
     ]);
   });
 });

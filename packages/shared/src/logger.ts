@@ -18,7 +18,7 @@ export function traceContextMixin(): Record<string, string> {
 export function createLogger(name: string, level?: pino.LevelWithSilent): Logger {
   return pino({
     name,
-    level: level ?? "info",
+    level: level ?? process.env.LOG_LEVEL ?? "info",
     mixin: traceContextMixin,
   });
 }

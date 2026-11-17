@@ -86,7 +86,11 @@ try {
   tempDbName = bootstrap.tempDbName;
   const testUrl = bootstrap.testUrl;
 
-  const env = { ...process.env, INTEGRATION_DB_URL: testUrl };
+  const env = {
+    ...process.env,
+    LOG_LEVEL: process.env.LOG_LEVEL ?? "silent",
+    INTEGRATION_DB_URL: testUrl,
+  };
   let failed = false;
 
   console.log(`\nRunning ${PARALLEL_FILES.length} test files in parallel...`);
@@ -130,7 +134,7 @@ try {
     ],
     {
       cwd: repoRoot,
-      env: { ...process.env },
+      env: { ...process.env, LOG_LEVEL: process.env.LOG_LEVEL ?? "silent" },
       stdout: "inherit",
       stderr: "inherit",
     },

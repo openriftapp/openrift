@@ -796,7 +796,7 @@ describe.skipIf(!ctx)("podTournamentsRepo (integration)", () => {
 
     await db
       .updateTable("tournaments")
-      .set({ playMode: "2v2" })
+      .set({ playMode: "2v2", pairingStyle: "swiss" })
       .where("id", "=", tournament.id)
       .execute();
     await expect(podRepo.createTeam(tournament.id, pair)).resolves.toMatchObject({
@@ -812,7 +812,7 @@ describe.skipIf(!ctx)("podTournamentsRepo (integration)", () => {
     const { tournament, players } = await freshTournament(2);
     await db
       .updateTable("tournaments")
-      .set({ playMode: "2v2" })
+      .set({ playMode: "2v2", pairingStyle: "swiss" })
       .where("id", "=", tournament.id)
       .execute();
     await tournamentsRepo.updateParticipant(players[1]!.id, { status: "dropped" });
@@ -826,7 +826,7 @@ describe.skipIf(!ctx)("podTournamentsRepo (integration)", () => {
     const { tournament, players } = await freshTournament(2);
     await db
       .updateTable("tournaments")
-      .set({ playMode: "2v2" })
+      .set({ playMode: "2v2", pairingStyle: "swiss" })
       .where("id", "=", tournament.id)
       .execute();
 

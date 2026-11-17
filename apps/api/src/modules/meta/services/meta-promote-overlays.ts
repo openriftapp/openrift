@@ -123,18 +123,22 @@ export async function applyPlayerOverlays(
       latest === undefined
         ? undefined
         : resolveOverlayList(latest, linesByOverlay.get(latest.id) ?? [], cardIndex);
+    let next = applied;
     if (list !== undefined && list !== null) {
       // The archive files an entry under the standings row's legend, so a
       // list's own legend and champion zones win over the row's fields.
       const inZone = (zone: string) => list.cards.find((card) => card.zone === zone)?.cardId;
-      applied.legendCardId = inZone(WellKnown.deckZone.LEGEND) ?? applied.legendCardId;
-      applied.championCardId = inZone(WellKnown.deckZone.CHAMPION) ?? applied.championCardId;
+      next = {
+        ...applied,
+        legendCardId: inZone(WellKnown.deckZone.LEGEND) ?? applied.legendCardId,
+        championCardId: inZone(WellKnown.deckZone.CHAMPION) ?? applied.championCardId,
+      };
     }
-    const changed = Object.entries(applied).some(
+    const changed = Object.entries(next).some(
       ([key, value]) => value !== undefined && base[key as keyof typeof base] !== value,
     );
     if (changed) {
-      updates.push({ id: player.id, ...applied });
+      updates.push({ id: player.id, ...next });
     }
     if (list !== undefined) {
       lists.set(player.id, list);

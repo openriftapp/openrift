@@ -6,6 +6,7 @@ import {
   catalogPrintingResponseSchema,
   catalogSetResponseSchema,
   deckLinkSchema,
+  legendMetaShareSchema,
 } from "./response-schemas.js";
 
 const validSet = {
@@ -187,5 +188,21 @@ describe("apiErrorResponseSchema", () => {
     expect(apiErrorResponseSchema.safeParse({ error: "Teapot", code: "IM_A_TEAPOT" }).success).toBe(
       false,
     );
+  });
+});
+
+describe("legendMetaShareSchema", () => {
+  it("accepts a deck count above 100", () => {
+    expect(
+      legendMetaShareSchema.safeParse({ legendCardId: "card-1", legendName: "Jinx", share: 340 })
+        .success,
+    ).toBe(true);
+  });
+
+  it("rejects a negative share", () => {
+    expect(
+      legendMetaShareSchema.safeParse({ legendCardId: "card-1", legendName: "Jinx", share: -1 })
+        .success,
+    ).toBe(false);
   });
 });
