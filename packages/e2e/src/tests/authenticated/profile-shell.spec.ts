@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-import type { APIRequestContext } from "@playwright/test";
+import type { APIRequestContext, Locator, Page } from "@playwright/test";
 
 import { expect, test } from "../../fixtures/test.js";
 import { loginViaForm } from "../../helpers/auth-otp.js";
@@ -27,6 +27,19 @@ async function createVerifiedUser(
   });
   expect(response.ok()).toBeTruthy();
   await sql`UPDATE users SET email_verified = true WHERE email = ${email}`;
+}
+
+// Each click below scrolls from a different position, so a scrollend always follows.
+async function clickAndWaitForScrollEnd(page: Page, link: Locator) {
+  await page.evaluate(() => {
+    (globalThis as { tocScrollEnded?: Promise<void> }).tocScrollEnded = new Promise<void>(
+      (resolve) => {
+        document.addEventListener("scrollend", () => resolve(), { once: true });
+      },
+    );
+  });
+  await link.click();
+  await page.evaluate(() => (globalThis as { tocScrollEnded?: Promise<void> }).tocScrollEnded);
 }
 
 test.describe("profile shell", () => {
@@ -143,13 +156,13 @@ test.describe("profile shell", () => {
       await expect(sharingLink).toHaveAttribute("aria-current", "location");
 
       const preferencesLink = nav.getByRole("link", { name: "Preferences", exact: true });
-      await preferencesLink.click();
+      await clickAndWaitForScrollEnd(page, preferencesLink);
+      await expect(page.getByRole("heading", { name: "Preferences", level: 2 })).toBeInViewport();
       await expect(preferencesLink).toHaveAttribute("aria-current", "location");
 
-      // Clicking a TOC link sets it active directly (and scrolls to it) — more
-      // deterministic than racing the scroll IntersectionObserver.
       const securityLink = nav.getByRole("link", { name: "Security", exact: true });
-      await securityLink.click();
+      await clickAndWaitForScrollEnd(page, securityLink);
+      await expect(page.getByRole("heading", { name: "Security", level: 2 })).toBeInViewport();
       await expect(securityLink).toHaveAttribute("aria-current", "location");
       await expect(preferencesLink).not.toHaveAttribute("aria-current", "location");
     });

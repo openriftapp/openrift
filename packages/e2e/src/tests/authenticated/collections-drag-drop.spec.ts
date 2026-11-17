@@ -144,14 +144,27 @@ function isMoveRequest(req: { method: () => string; url: () => string }): boolea
   return req.method() === "POST" && req.url().endsWith("/api/v1/copies/move");
 }
 
-function watchMoveRequests(page: Page): { fired: () => boolean } {
-  let moveFired = false;
+function watchMoveRequests(page: Page): { count: () => number } {
+  let moves = 0;
   page.on("request", (req) => {
     if (isMoveRequest(req)) {
-      moveFired = true;
+      moves += 1;
     }
   });
-  return { fired: () => moveFired };
+  return { count: () => moves };
+}
+
+// A drop that does move, after a drop that must not: any request from the earlier
+// drop is sent before this one, so the request count settles once this one answers.
+async function dropOntoTarget(page: Page, cardName: string) {
+  const cardTile = await settledCardTile(page, cardName);
+  const targetLink = page.getByRole("link", { name: "Target" });
+  const moveResponse = page.waitForResponse(
+    (response) => isMoveRequest(response.request()) && response.ok(),
+  );
+  await dndDrag(page, cardTile, targetLink, { dropRing: collectionRow(targetLink) });
+  await moveResponse;
+  await expect(page.getByText("Moved 1 card", { exact: true })).toBeVisible();
 }
 
 test.describe("collections drag-drop", () => {
@@ -276,7 +289,7 @@ test.describe("collections drag-drop", () => {
       const email = await createAndLogin(page, "overlay");
       userEmail = email;
 
-      await apiCreateCollection(page, "Target");
+      const targetId = await apiCreateCollection(page, "Target");
       const inboxId = await getInboxId(email);
       const { cardName } = await seedSameCardCopies(email, inboxId, 2);
 
@@ -309,9 +322,12 @@ test.describe("collections drag-drop", () => {
       const moves = watchMoveRequests(page);
       await page.mouse.up();
       await page.keyboard.up("Shift");
-      await page.waitForTimeout(500);
-      expect(moves.fired()).toBe(false);
-      await expect(page.getByText(/Moved \d+ card/u)).toHaveCount(0);
+
+      await dropOntoTarget(page, cardName);
+      expect(moves.count()).toBe(1);
+      await expect(page.getByText(/Moved \d+ card/u)).toHaveCount(1);
+      expect(await countCopiesInCollection(targetId)).toBe(1);
+      expect(await countCopiesInCollection(inboxId)).toBe(1);
     });
   });
 
@@ -329,7 +345,7 @@ test.describe("collections drag-drop", () => {
       const email = await createAndLogin(page, "src");
       userEmail = email;
 
-      await apiCreateCollection(page, "Target");
+      const targetId = await apiCreateCollection(page, "Target");
       const inboxId = await getInboxId(email);
       const { cardName } = await seedSameCardCopies(email, inboxId, 1);
 
@@ -355,10 +371,11 @@ test.describe("collections drag-drop", () => {
       await expect(inboxRow).not.toHaveClass(/ring-primary/u);
       await page.mouse.up();
 
-      await page.waitForTimeout(500);
-      expect(moves.fired()).toBe(false);
-      await expect(page.getByText(/Moved /u)).toHaveCount(0);
-      expect(await countCopiesInCollection(inboxId)).toBe(1);
+      await dropOntoTarget(page, cardName);
+      expect(moves.count()).toBe(1);
+      await expect(page.getByText(/Moved /u)).toHaveCount(1);
+      expect(await countCopiesInCollection(targetId)).toBe(1);
+      expect(await countCopiesInCollection(inboxId)).toBe(0);
     });
   });
 
@@ -376,7 +393,7 @@ test.describe("collections drag-drop", () => {
       const email = await createAndLogin(page, "empty");
       userEmail = email;
 
-      await apiCreateCollection(page, "Target");
+      const targetId = await apiCreateCollection(page, "Target");
       const inboxId = await getInboxId(email);
       const { cardName } = await seedSameCardCopies(email, inboxId, 1);
 
@@ -391,12 +408,13 @@ test.describe("collections drag-drop", () => {
       // Release in grid whitespace, clear of sidebar and any card tile.
       await moveDragTo(page, { x: start.x + 400, y: start.y + 200 });
       await page.mouse.up();
-
-      await page.waitForTimeout(500);
-      expect(moves.fired()).toBe(false);
-      await expect(page.getByText(/Moved /u)).toHaveCount(0);
-      expect(await countCopiesInCollection(inboxId)).toBe(1);
       await expect(cardTile).toBeVisible();
+
+      await dropOntoTarget(page, cardName);
+      expect(moves.count()).toBe(1);
+      await expect(page.getByText(/Moved /u)).toHaveCount(1);
+      expect(await countCopiesInCollection(targetId)).toBe(1);
+      expect(await countCopiesInCollection(inboxId)).toBe(0);
     });
   });
 
@@ -432,7 +450,9 @@ test.describe("collections drag-drop", () => {
       // role/aria alternative for a drag-hover state.
       await expect(targetRow).toHaveClass(/ring-primary/u);
 
-      await page.mouse.up();
+      // Escape cancels the pointer drag, so no move outlives the test into the user teardown.
+      await page.keyboard.press("Escape");
+      await expect(targetRow).not.toHaveClass(/ring-primary/u);
     });
   });
 
@@ -452,7 +472,7 @@ test.describe("collections drag-drop", () => {
       const email = await createAndLogin(page, "mobile");
       userEmail = email;
 
-      await apiCreateCollection(page, "Target");
+      const targetId = await apiCreateCollection(page, "Target");
       const inboxId = await getInboxId(email);
       const { cardName } = await seedSameCardCopies(email, inboxId, 1);
 
@@ -467,10 +487,14 @@ test.describe("collections drag-drop", () => {
       await moveDragTo(page, { x: start.x + 200, y: start.y + 100 });
       await page.mouse.up();
 
-      await page.waitForTimeout(500);
-      expect(moves.fired()).toBe(false);
-      await expect(page.getByText(/Moved /u)).toHaveCount(0);
-      expect(await countCopiesInCollection(inboxId)).toBe(1);
+      // Drag listeners follow the viewport, so a desktop-width drop is the real move.
+      await page.setViewportSize({ width: 1280, height: 800 });
+      await expect(page.getByRole("link", { name: "Target" })).toBeVisible({ timeout: 15_000 });
+      await dropOntoTarget(page, cardName);
+      expect(moves.count()).toBe(1);
+      await expect(page.getByText(/Moved /u)).toHaveCount(1);
+      expect(await countCopiesInCollection(targetId)).toBe(1);
+      expect(await countCopiesInCollection(inboxId)).toBe(0);
     });
   });
 });

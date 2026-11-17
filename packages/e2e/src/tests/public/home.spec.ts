@@ -117,12 +117,12 @@ test.describe("landing page", () => {
     // happened, so the check below does not depend on catching it while it shows.
     await fanCard.evaluate((element) => {
       const observer = new MutationObserver(() => {
-        if (element.querySelector('[class*="border-primary/50"]')) {
+        if (Object.hasOwn(element.dataset, "hinting")) {
           observer.disconnect();
           (globalThis as { fanHinted?: boolean }).fanHinted = true;
         }
       });
-      observer.observe(element, { subtree: true, attributes: true, attributeFilter: ["class"] });
+      observer.observe(element, { attributes: true, attributeFilter: ["data-hinting"] });
     });
     await logo.click();
     await expect

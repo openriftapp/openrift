@@ -233,6 +233,7 @@ export function CollectCardFan({
             // packages/e2e home.spec.ts locates cards by this index; the fan
             // has no role, name, or text a locator could otherwise use.
             data-fan-index={index}
+            data-hinting={hinting || undefined}
             // Never raise the hovered card's z-index: it would cover the
             // neighbors' exposed strips and swallow their pointer events.
             style={{ zIndex: index }}

@@ -1,3 +1,4 @@
+import { clamp } from "@openrift/shared/math";
 import { ListIcon } from "lucide-react";
 import type { MouseEvent } from "react";
 import { useEffect, useState } from "react";
@@ -26,6 +27,29 @@ export interface PageTocItem {
 /** Takes over a jump to an item that is hidden or not rendered, e.g. folded or filtered out. */
 export type PageTocJump = (id: string) => void;
 
+function cssPixels(value: string): number {
+  // oxlint-disable-next-line unicorn/prefer-number-coercion -- CSS px string; Number() would yield NaN
+  return Number.parseFloat(value) || 0;
+}
+
+// A smooth scroll that does not move fires no scrollend, so a hold would never release.
+function scrollWillMove(element: HTMLElement): boolean {
+  const scroller = document.scrollingElement;
+  if (!scroller) {
+    return true;
+  }
+  const offset =
+    element.getBoundingClientRect().top -
+    cssPixels(getComputedStyle(element).scrollMarginTop) -
+    cssPixels(getComputedStyle(scroller).scrollPaddingTop);
+  const target = clamp(
+    scroller.scrollTop + offset,
+    0,
+    Math.max(0, scroller.scrollHeight - scroller.clientHeight),
+  );
+  return Math.abs(target - scroller.scrollTop) >= 1;
+}
+
 function TocLink({
   id,
   label,
@@ -46,18 +70,24 @@ function TocLink({
       ? state.activeId === id
       : itemIds[0] === id,
   );
-  const setActiveId = usePageTocStore((state) => state.setActiveId);
+  const selectActiveId = usePageTocStore((state) => state.selectActiveId);
+  const releaseHold = usePageTocStore((state) => state.releaseHold);
 
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
     const element = document.querySelector<HTMLElement>(`#${CSS.escape(id)}`);
     if (element && (onJump === undefined || element.getClientRects().length > 0)) {
       event.preventDefault();
+      // Safari 16.4 has no scrollend; there the observer may move the highlight mid-scroll.
+      const hold = "onscrollend" in globalThis && scrollWillMove(element);
+      if (hold) {
+        document.addEventListener("scrollend", () => releaseHold(id), { once: true });
+      }
+      selectActiveId(id, hold);
       element.scrollIntoView({ behavior: "smooth", block: "start" });
-      setActiveId(id);
     } else if (onJump) {
       event.preventDefault();
       onJump(id);
-      setActiveId(id);
+      selectActiveId(id, false);
     }
     onSelect?.();
   }
@@ -80,29 +110,51 @@ function TocLink({
   );
 }
 
+function activeSection(visible: HTMLElement[], bandTop: number): HTMLElement | undefined {
+  const sections = visible.map((element) => ({
+    element,
+    top: element.getBoundingClientRect().top,
+  }));
+  const entered = sections.filter((section) => section.top >= bandTop - 1);
+  const pick =
+    entered.length > 0
+      ? entered.toSorted((a, b) => a.top - b.top).at(0)
+      : sections.toSorted((a, b) => b.top - a.top).at(0);
+  return pick?.element;
+}
+
 function useActiveTocItem(items: PageTocItem[]) {
   const setActiveId = usePageTocStore((state) => state.setActiveId);
+  const releaseHold = usePageTocStore((state) => state.releaseHold);
   const headerHeight = Math.round(useHeaderHeight());
+  const idsKey = items.map((item) => item.id).join(" ");
+
+  useEffect(() => () => releaseHold(), [releaseHold]);
 
   useEffect(() => {
-    if (items.length === 0) {
+    if (idsKey === "") {
       return;
     }
-    const elements = items
-      .map((item) => document.querySelector<HTMLElement>(`#${CSS.escape(item.id)}`))
+    const elements = idsKey
+      .split(" ")
+      .map((id) => document.querySelector<HTMLElement>(`#${CSS.escape(id)}`))
       .filter((element): element is HTMLElement => element !== null);
     if (elements.length === 0) {
       return;
     }
 
+    const intersecting = new Map<Element, boolean>();
     const observer = new IntersectionObserver(
       (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        const first = visible.at(0);
-        if (first) {
-          setActiveId(first.target.id);
+        for (const entry of entries) {
+          intersecting.set(entry.target, entry.isIntersecting);
+        }
+        const active = activeSection(
+          elements.filter((element) => intersecting.get(element) === true),
+          headerHeight,
+        );
+        if (active) {
+          setActiveId(active.id);
         }
       },
       { rootMargin: `-${headerHeight}px 0px -60% 0px`, threshold: 0 },
@@ -112,7 +164,7 @@ function useActiveTocItem(items: PageTocItem[]) {
       observer.observe(element);
     }
     return () => observer.disconnect();
-  }, [items, setActiveId, headerHeight]);
+  }, [idsKey, setActiveId, headerHeight]);
 }
 
 export function PageToc({

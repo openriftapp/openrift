@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -98,12 +98,15 @@ describe("PageTocMobileTrigger", () => {
 describe("PageToc", () => {
   const nativeIntersectionObserver = globalThis.IntersectionObserver;
   let rootMargins: string[] = [];
+  let observerCallback: IntersectionObserverCallback | undefined;
 
   beforeEach(() => {
     rootMargins = [];
+    observerCallback = undefined;
     globalThis.IntersectionObserver = class {
-      constructor(_callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+      constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
         rootMargins.push(options?.rootMargin ?? "");
+        observerCallback = callback;
       }
       observe() {}
       disconnect() {}
@@ -113,6 +116,131 @@ describe("PageToc", () => {
   afterEach(() => {
     globalThis.IntersectionObserver = nativeIntersectionObserver;
     document.querySelector("header[data-app-header]")?.remove();
+    vi.restoreAllMocks();
+  });
+
+  function placeSection(id: string, top: number) {
+    const element = document.querySelector<HTMLElement>(`#${id}`);
+    if (element) {
+      element.getBoundingClientRect = () => ({ top }) as DOMRect;
+    }
+  }
+
+  // The fallback header height is 57px, so the observed band starts there.
+  function reportIntersections(changes: Record<string, boolean>) {
+    const entries = Object.entries(changes).map(([id, isIntersecting]) => ({
+      target: document.querySelector(`#${id}`),
+      isIntersecting,
+    }));
+    act(() => {
+      observerCallback?.(
+        entries as unknown as IntersectionObserverEntry[],
+        {} as IntersectionObserver,
+      );
+    });
+  }
+
+  function linkFor(label: string) {
+    return screen.getByRole("link", { name: label });
+  }
+
+  function makePageScrollable() {
+    const scroller = document.scrollingElement ?? document.documentElement;
+    vi.spyOn(scroller, "scrollHeight", "get").mockReturnValue(5000);
+    vi.spyOn(scroller, "clientHeight", "get").mockReturnValue(800);
+    vi.spyOn(globalThis.Element.prototype, "scrollIntoView").mockImplementation(() => {});
+  }
+
+  function withoutScrollEnd(run: () => Promise<void>) {
+    let owner: object | null = globalThis;
+    while (owner && !Object.hasOwn(owner, "onscrollend")) {
+      owner = Object.getPrototypeOf(owner) as object | null;
+    }
+    const descriptor = owner ? Object.getOwnPropertyDescriptor(owner, "onscrollend") : undefined;
+    if (owner && descriptor) {
+      Reflect.deleteProperty(owner, "onscrollend");
+    }
+    return run().finally(() => {
+      if (owner && descriptor) {
+        Object.defineProperty(owner, "onscrollend", descriptor);
+      }
+    });
+  }
+
+  it("holds a clicked entry through observer callbacks until the scroll ends", async () => {
+    const user = userEvent.setup();
+    makePageScrollable();
+    placeSection("rule-100", 100);
+    placeSection("rule-100-1", 300);
+    placeSection("rule-200", 900);
+    render(<PageToc items={ITEMS} />);
+
+    await user.click(linkFor("200. Parts of a Card"));
+    reportIntersections({ "rule-100": true, "rule-100-1": true });
+
+    expect(linkFor("200. Parts of a Card")).toHaveAttribute("aria-current", "location");
+
+    act(() => {
+      document.dispatchEvent(new Event("scrollend"));
+    });
+    expect(linkFor("200. Parts of a Card")).toHaveAttribute("aria-current", "location");
+
+    reportIntersections({ "rule-100-1": true });
+    expect(linkFor("100. Game Concepts")).toHaveAttribute("aria-current", "location");
+  });
+
+  it("lets the observer move a clicked entry where scrollend is not supported", async () => {
+    await withoutScrollEnd(async () => {
+      const user = userEvent.setup();
+      makePageScrollable();
+      placeSection("rule-100", 100);
+      placeSection("rule-200", 900);
+      render(<PageToc items={ITEMS} />);
+
+      await user.click(linkFor("200. Parts of a Card"));
+      expect(linkFor("200. Parts of a Card")).toHaveAttribute("aria-current", "location");
+
+      reportIntersections({ "rule-100": true });
+      expect(linkFor("100. Game Concepts")).toHaveAttribute("aria-current", "location");
+    });
+  });
+
+  it("does not hold a clicked entry that needs no scrolling", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis.Element.prototype, "scrollIntoView").mockImplementation(() => {});
+    placeSection("rule-100", 100);
+    placeSection("rule-200", 0);
+    render(<PageToc items={ITEMS} />);
+
+    await user.click(linkFor("200. Parts of a Card"));
+    expect(linkFor("200. Parts of a Card")).toHaveAttribute("aria-current", "location");
+
+    reportIntersections({ "rule-100": true });
+    expect(linkFor("100. Game Concepts")).toHaveAttribute("aria-current", "location");
+  });
+
+  it("picks the active section from every intersecting section seen so far", () => {
+    placeSection("rule-100", 80);
+    placeSection("rule-100-1", 200);
+    placeSection("rule-200", 600);
+    render(<PageToc items={ITEMS} />);
+
+    reportIntersections({ "rule-100": true, "rule-100-1": false, "rule-200": false });
+    reportIntersections({ "rule-100-1": true });
+    expect(linkFor("100. Game Concepts")).toHaveAttribute("aria-current", "location");
+
+    reportIntersections({ "rule-100": false });
+    expect(linkFor("100.1 Players")).toHaveAttribute("aria-current", "location");
+  });
+
+  it("picks the deepest section covering the band when no section starts inside it", () => {
+    placeSection("rule-100", -400);
+    placeSection("rule-100-1", -100);
+    placeSection("rule-200", 900);
+    render(<PageToc items={ITEMS} />);
+
+    reportIntersections({ "rule-100": true, "rule-100-1": true });
+    expect(linkFor("100.1 Players")).toHaveAttribute("aria-current", "location");
   });
 
   it("clears the live header height when picking the active heading", () => {

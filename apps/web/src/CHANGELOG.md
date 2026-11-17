@@ -28,6 +28,7 @@
 - fix(Tournaments): **Deck saves after a cancel or deadline change** — a deck list saved while the organizer cancels the event or moves the deadline earlier is refused.
 - fix(Decks): **Custom-region decks ignore the banlist** — banned cards no longer show ribbons or dimming, count as violations, or get flagged at deck check in Custom Region, the same as Infinity.
 - fix(Collections): **Card detail closes when its last copy is gone** — removing the last copy of a card on a collection or list page closes its detail.
+- fix(Profile): **Contents highlight** — clicking an entry in a page's contents list keeps that entry highlighted once the page has scrolled to it.
 
 ## 2026-11-16
 
