@@ -11,6 +11,7 @@ export function PlayerChip({
   gravatarHash,
   region,
   dropped = false,
+  hideAvatar = false,
   detail,
   children,
   className,
@@ -20,6 +21,7 @@ export function PlayerChip({
   gravatarHash?: string | null;
   region?: string | null;
   dropped?: boolean;
+  hideAvatar?: boolean;
   detail?: ReactNode;
   children?: ReactNode;
   className?: string;
@@ -38,13 +40,15 @@ export function PlayerChip({
   );
   return (
     <div className={cn("flex min-w-0 items-center gap-2", className)}>
-      <UserAvatar
-        name={name}
-        image={image}
-        gravatarHash={gravatarHash}
-        size="sm"
-        className="shrink-0"
-      />
+      {hideAvatar ? null : (
+        <UserAvatar
+          name={name}
+          image={image}
+          gravatarHash={gravatarHash}
+          size="sm"
+          className="shrink-0"
+        />
+      )}
       {detail ? (
         <div className="flex min-w-0 flex-col">
           <div className="flex min-w-0 items-center gap-2">{nameLine}</div>

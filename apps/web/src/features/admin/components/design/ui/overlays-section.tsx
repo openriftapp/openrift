@@ -13,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   ContextMenu,
@@ -51,6 +52,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { TouchTooltip } from "@/components/ui/touch-tooltip";
 import {
   DemoGroup,
   DemoRow,
@@ -98,7 +100,10 @@ export function OverlaysSection() {
         </DemoRow>
       </DemoGroup>
 
-      <DemoGroup {...GROUPS.menus} hint="InfoHint taps open on touch, where a tooltip cannot.">
+      <DemoGroup
+        {...GROUPS.menus}
+        hint="InfoHint and TouchTooltip open on tap on touch screens, where a tooltip cannot."
+      >
         <DemoRow label="Triggers">
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -134,6 +139,9 @@ export function OverlaysSection() {
               Compares each printing&apos;s latest market price on the marketplace you pick.
             </InfoHint>
           </span>
+          <TouchTooltip content="Seed 4, chooses who starts">
+            <Badge>#4</Badge>
+          </TouchTooltip>
           <HoverCard>
             <HoverCardTrigger render={<Button variant="link">Hover card</Button>} />
             <HoverCardContent className="text-sm">

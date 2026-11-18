@@ -1,7 +1,7 @@
 import type { PodResponse } from "@openrift/shared/types/api/pod-tournament";
 import type { TournamentMatchFormat } from "@openrift/shared/types/api/tournament";
 import type { ReactNode } from "react";
-import { Fragment, useState } from "react";
+import { useState } from "react";
 
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Button } from "@/components/ui/button";
@@ -164,33 +164,34 @@ export function SwissResultForm({
   const summary = counts ? matchSummary(counts, side1Name, side2Name, intentional) : null;
   const nextGame = intentional ? -1 : rows.slice(0, visible).indexOf(null);
 
+  const columns = bo3
+    ? "grid-cols-[minmax(0,1fr)_repeat(3,2.5rem)_1.5rem]"
+    : "grid-cols-[minmax(0,1fr)_2.5rem_1.5rem]";
+
   return (
     <div className="flex flex-col gap-3">
-      <div
-        className={cn(
-          "grid w-full items-center gap-x-1.5 gap-y-2",
-          bo3 ? SHEET_COLUMNS.bo3 : SHEET_COLUMNS.bo1,
-        )}
-      >
-        <span />
-        {rows.map((_, index) => (
-          <span
-            key={index}
-            className={cn(
-              "text-center text-xs font-medium",
-              index === nextGame ? "text-foreground" : "text-muted-foreground",
-              index >= visible && "opacity-50",
-            )}
-            title={m.tournaments_submit_game({ number: index + 1 })}
-          >
-            {m.tournaments_submit_game_short({ number: index + 1 })}
-          </span>
-        ))}
-        <span />
+      <div className="-mx-3 flex flex-col divide-y">
+        <div className={cn(SHEET_ROW, columns, "pb-1.5")}>
+          <span />
+          {rows.map((_, index) => (
+            <span
+              key={index}
+              className={cn(
+                "text-center text-xs font-medium",
+                index === nextGame ? "text-foreground" : "text-muted-foreground",
+                index >= visible && "opacity-50",
+              )}
+              title={m.tournaments_submit_game({ number: index + 1 })}
+            >
+              {m.tournaments_submit_game_short({ number: index + 1 })}
+            </span>
+          ))}
+          <span />
+        </div>
         {sheetRows.map(({ outcome, label }) => {
           const side = outcome === "first" || outcome === "second";
           return (
-            <Fragment key={outcome}>
+            <div key={outcome} className={cn(SHEET_ROW, columns, "py-2")}>
               {label}
               {rows.map((game, index) => {
                 const pressed = !intentional && game === outcome;
@@ -238,7 +239,7 @@ export function SwissResultForm({
               >
                 {intentional ? null : totals[outcome]}
               </span>
-            </Fragment>
+            </div>
           );
         })}
       </div>
@@ -251,7 +252,7 @@ export function SwissResultForm({
       ) : null}
       {changedRemotely ? <ChangedRemotelyNotice match onShowLatest={loadLatest} /> : null}
       <SaveError error={error} />
-      <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-3">
+      <div className="-mx-3 flex flex-wrap items-center justify-end gap-2 border-t px-3 pt-3">
         {offerIntentionalDraw ? (
           <Toggle
             variant="outline"
@@ -295,10 +296,7 @@ export function SwissResultForm({
 
 type SheetOutcome = Exclude<GameOutcome, "unplayed">;
 
-const SHEET_COLUMNS = {
-  bo1: "grid-cols-[minmax(0,1fr)_2.5rem_1.5rem]",
-  bo3: "grid-cols-[minmax(0,1fr)_repeat(3,2.5rem)_1.5rem]",
-} as const;
+const SHEET_ROW = "grid items-center gap-x-1.5 px-3";
 
 /** W / L / D read the same in every locale, so they are not translated. */
 function cellMark(row: SheetOutcome, game: GameOutcome | null): string | null {

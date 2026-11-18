@@ -1,7 +1,7 @@
 import { placementsFromGamePoints, pointsForPlacements } from "@openrift/shared/pairing/points";
 import type { PodResponse, PodScoringScheme } from "@openrift/shared/types/api/pod-tournament";
 import { MinusIcon, PlusIcon, TriangleAlertIcon } from "lucide-react";
-import { Fragment, useState } from "react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,13 +100,16 @@ export function PodResultForm({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-2">
+      <div className="-mx-3 flex flex-col divide-y">
         {pod.members.map((member, index) => {
           const name = participantName(member.displayName);
           const value = parsed[index] ?? null;
           const place = placements?.[index];
           return (
-            <Fragment key={member.playerId}>
+            <div
+              key={member.playerId}
+              className="grid grid-cols-[minmax(0,1fr)_auto_4.5rem] items-center gap-x-3 px-3 py-2"
+            >
               <span className="truncate font-medium" title={name}>
                 {name}
               </span>
@@ -141,7 +144,7 @@ export function PodResultForm({
                   <PlusIcon />
                 </Button>
               </span>
-              <span className="min-w-16 text-right text-sm tabular-nums">
+              <span className="text-right text-sm whitespace-nowrap tabular-nums">
                 {previewPoints && place !== undefined ? (
                   <>
                     <span className={place === 1 ? "text-primary font-semibold" : "font-medium"}>
@@ -154,14 +157,14 @@ export function PodResultForm({
                   </>
                 ) : null}
               </span>
-            </Fragment>
+            </div>
           );
         })}
       </div>
       <p className="text-muted-foreground">{m.tournaments_pod_points_hint()}</p>
       {changedRemotely ? <ChangedRemotelyNotice onShowLatest={loadLatest} /> : null}
       <SaveError error={error} />
-      <div className="flex justify-end gap-2">
+      <div className="-mx-3 flex justify-end gap-2 border-t px-3 pt-3">
         {onCancel ? (
           <Button variant="ghost" onClick={onCancel} disabled={submitting}>
             {m.common_cancel()}

@@ -186,7 +186,8 @@ describe("CutBracketCompact", () => {
     expect(screen.getByText("SF 1")).toBeInTheDocument();
     expect(screen.getAllByText("Table 1")).toHaveLength(2);
     expect(screen.getAllByText("A")).toHaveLength(6);
-    expect(screen.getAllByText("chooses starter")).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: /chooses who starts$/u })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Group A" })).toHaveLength(6);
     // The seat shows the champion only: Ashe twice as a player, twice as her Legend.
     expect(screen.getAllByText("Ashe")).toHaveLength(4);
     expect(screen.getAllByText("–")).toHaveLength(2);

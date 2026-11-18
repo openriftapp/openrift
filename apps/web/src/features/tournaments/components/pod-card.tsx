@@ -5,14 +5,13 @@ import type {
   PodScoringScheme,
 } from "@openrift/shared/types/api/pod-tournament";
 import type { TournamentMatchFormat } from "@openrift/shared/types/api/tournament";
-import { CheckIcon, PencilIcon, SwordsIcon, UsersIcon, XIcon } from "lucide-react";
+import { CheckIcon, PencilIcon, XIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { IconChip } from "@/components/ui/icon-chip";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { formatRank } from "@/features/meta/lib/meta-format";
 import { PlayerChip } from "@/features/tournaments/components/player-chip";
@@ -30,45 +29,12 @@ import type { PodResultSubmission } from "@/features/tournaments/lib/swiss-resul
 import { groupPodMembersByTeam, teamDisplayName } from "@/features/tournaments/lib/team-display";
 import { isMatchPairing, pairingLabel } from "@/features/tournaments/lib/tournament-display";
 import { parseIntegerInput } from "@/lib/integer-input";
+import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 import { WarningBadge, WarningList } from "./pairing-warnings";
 import { ChangedRemotelyNotice, PodResultForm } from "./pod-result-form";
 import { SwissResultForm } from "./swiss-result-form";
-
-function MemberSeedBadge({
-  placement,
-  gamePoints,
-}: {
-  placement: number | null;
-  gamePoints: number | null;
-}) {
-  if (placement === null && gamePoints === null) {
-    return null;
-  }
-  return (
-    <Badge variant="secondary" className="shrink-0 tabular-nums">
-      {placement !== null && (
-        <span title={m.tournaments_pod_finished_place({ place: formatRank(placement, false) })}>
-          {placement}
-        </span>
-      )}
-      {placement !== null && gamePoints !== null ? (
-        <span aria-hidden="true" className="text-muted-foreground/60">
-          ·
-        </span>
-      ) : null}
-      {gamePoints !== null && (
-        <span
-          className="text-muted-foreground"
-          title={m.tournaments_pod_game_points_title({ points: gamePoints })}
-        >
-          {m.tournaments_pod_game_points_short({ points: gamePoints })}
-        </span>
-      )}
-    </Badge>
-  );
-}
 
 function podPenaltySummary(penalty: NonNullable<PodResponse["penalty"]>): string | null {
   const parts: string[] = [];
@@ -214,10 +180,28 @@ export function PodCard({
           </Button>
         </span>
       ) : null;
+    const winner = reported && lead.placement === 1;
+    const behind = reported && lead.placement !== null && lead.placement > 1;
+    const placed = !isMatch && reported && lead.placement !== null;
+    const scoreFigure =
+      lead.gamePoints === null ? null : (
+        <span
+          className={cn(
+            "w-6 text-right tabular-nums",
+            winner ? "font-semibold" : "text-muted-foreground",
+          )}
+          title={m.tournaments_pod_game_points_title({ points: lead.gamePoints })}
+        >
+          {lead.gamePoints}
+        </span>
+      );
     const pointsFigure =
       lead.points === null ? null : (
         <span
-          className="font-semibold"
+          className={cn(
+            "w-7 text-right text-sm tabular-nums",
+            winner && lead.points > 0 ? "text-primary" : "text-muted-foreground",
+          )}
           title={m.tournaments_pod_round_points_title({ points: formatScore(lead.points) })}
         >
           +{formatScore(lead.points)}
@@ -241,94 +225,94 @@ export function PodCard({
     ) : null;
 
     return (
-      <li key={lead.teamId ?? lead.playerId} className="flex items-center justify-between gap-2">
+      <li
+        key={lead.teamId ?? lead.playerId}
+        className="flex items-center justify-between gap-2 px-3 py-2.5 not-last:border-b"
+      >
         <div className="flex min-w-0 items-center gap-2">
-          {isMatch ? (
-            lead.gamePoints === null ? null : (
-              <Badge
-                variant="secondary"
-                className="shrink-0 tabular-nums"
-                title={m.tournaments_pod_game_points_title({ points: lead.gamePoints })}
-              >
-                {lead.gamePoints}
-              </Badge>
-            )
-          ) : (
-            <MemberSeedBadge placement={lead.placement} gamePoints={lead.gamePoints} />
-          )}
+          {placed && lead.placement !== null ? (
+            <Badge
+              variant={winner ? "subtle" : "neutral"}
+              className="w-10 shrink-0 justify-center tabular-nums"
+              title={m.tournaments_pod_finished_place({
+                place: formatRank(lead.placement, false),
+              })}
+            >
+              {formatRank(lead.placement, false)}
+            </Badge>
+          ) : null}
           <PlayerChip
             name={name}
             image={solo ? lead.image : null}
             gravatarHash={solo ? lead.gravatarHash : null}
             region={region}
+            hideAvatar={placed}
             detail={solo ? renderMemberDetail?.(lead.playerId) : undefined}
+            className={behind ? "text-muted-foreground" : undefined}
           />
         </div>
         {scoreEntry ?? (
           // shrink-0: without it a long name squeezes this cluster
           // until the numbers wrap mid-figure.
-          <span className="flex shrink-0 items-center gap-2 tabular-nums">
-            {pointsFigure}
+          <span className="flex shrink-0 items-center gap-2">
             {scoreAction}
+            {scoreFigure}
+            {pointsFigure}
           </span>
         )}
       </li>
     );
   }
 
+  const footerAction = canEnter && !editor.editing;
+
   return (
-    <Card className="gap-3">
-      <CardHeader className="gap-1">
-        <CardTitle className="flex flex-wrap items-center gap-2">
-          <IconChip
-            icon={isMatch ? SwordsIcon : UsersIcon}
-            tone={reported ? "success" : "neutral"}
-            size="sm"
-            shape="round"
-          />
-          <span className="whitespace-nowrap">{pairingLabel(pod.podNumber)}</span>
-          <span className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
-            {crossGroup ? <Badge variant="info">{m.tournaments_pod_cross_group()}</Badge> : null}
-            {showPenalty && !warningsExpanded ? (
-              <WarningBadge warnings={warnings} nameById={nameById} />
-            ) : null}
-            {walkover ? (
-              <Badge variant="neutral">
-                {isDoubleForfeitPod(pod)
-                  ? m.tournaments_pod_double_forfeit()
-                  : m.tournaments_pod_walkover()}
-              </Badge>
-            ) : isMatch && !reported ? null : (
-              <PodStatusBadge
-                reported={reported}
-                // A team shares one score, so reporting progress counts sides.
-                enteredCount={teamMode ? Math.floor(enteredCount / 2) : enteredCount}
-                size={teamMode ? 2 : pod.size}
-              />
-            )}
-            {editor.editing ? (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={editor.handleCancel}
-                disabled={editor.saving}
-                aria-label={m.common_close()}
-              >
-                <XIcon />
-              </Button>
-            ) : null}
-          </span>
-        </CardTitle>
-        {showPenalty && penaltySummary ? (
-          <p className="text-muted-foreground text-sm">{penaltySummary}</p>
-        ) : null}
-        {showPenalty && warningsExpanded ? (
-          <WarningList warnings={warnings} nameById={nameById} />
-        ) : null}
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        {editor.editing ? (
-          isMatch ? (
+    <Card className="gap-0 py-0">
+      <div className="text-muted-foreground flex min-h-9 flex-wrap items-center justify-between gap-2 border-b px-3 py-1.5 text-xs font-semibold">
+        <span className="whitespace-nowrap">{pairingLabel(pod.podNumber)}</span>
+        <span className="flex min-w-0 flex-wrap items-center justify-end gap-2 font-normal">
+          {crossGroup ? <Badge variant="info">{m.tournaments_pod_cross_group()}</Badge> : null}
+          {showPenalty && !warningsExpanded ? (
+            <WarningBadge warnings={warnings} nameById={nameById} />
+          ) : null}
+          {walkover ? (
+            <Badge variant="neutral">
+              {isDoubleForfeitPod(pod)
+                ? m.tournaments_pod_double_forfeit()
+                : m.tournaments_pod_walkover()}
+            </Badge>
+          ) : isMatch && !reported ? null : (
+            <PodStatusBadge
+              reported={reported}
+              // A team shares one score, so reporting progress counts sides.
+              enteredCount={teamMode ? Math.floor(enteredCount / 2) : enteredCount}
+              size={teamMode ? 2 : pod.size}
+            />
+          )}
+          {editor.editing ? (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              onClick={editor.handleCancel}
+              disabled={editor.saving}
+              aria-label={m.common_close()}
+            >
+              <XIcon />
+            </Button>
+          ) : null}
+        </span>
+      </div>
+      {showPenalty && (penaltySummary || warningsExpanded) ? (
+        <div className="flex flex-col gap-2 border-b px-3 py-2">
+          {penaltySummary ? (
+            <p className="text-muted-foreground text-sm">{penaltySummary}</p>
+          ) : null}
+          {warningsExpanded ? <WarningList warnings={warnings} nameById={nameById} /> : null}
+        </div>
+      ) : null}
+      {editor.editing ? (
+        <div className="p-3">
+          {isMatch ? (
             <SwissResultForm
               pod={pod}
               teamMatch={teamMode}
@@ -348,37 +332,42 @@ export function PodCard({
               submitting={editor.saving}
               error={editor.error}
             />
-          )
-        ) : (
-          <>
-            <ul className="flex flex-col gap-1.5">
-              {(teamMode
-                ? groupPodMembersByTeam(pod.members)
-                : pod.members.map((member) => [member])
-              ).flatMap((group, groupIndex) => [
-                ...(teamMode && groupIndex > 0
-                  ? [
-                      <li
-                        key={`vs-${groupIndex}`}
-                        aria-hidden="true"
-                        className="text-muted-foreground/60 py-0.5 text-center text-xs font-medium tracking-wide uppercase"
-                      >
-                        {m.tournaments_pod_vs()}
-                      </li>,
-                    ]
-                  : []),
-                sideRow(group),
-              ])}
-            </ul>
-            {scoringPlayerId !== null && changedRemotely ? (
-              <ChangedRemotelyNotice match={isMatch} onShowLatest={showLatestScore} />
-            ) : null}
-            {scoringPlayerId === null ? null : <SaveError error={editor.error} />}
-            {canEnter ? (
+          )}
+        </div>
+      ) : (
+        <>
+          <ul className="flex flex-col">
+            {(teamMode
+              ? groupPodMembersByTeam(pod.members)
+              : pod.members.map((member) => [member])
+            ).flatMap((group, groupIndex) => [
+              ...(teamMode && groupIndex > 0
+                ? [
+                    <li
+                      key={`vs-${groupIndex}`}
+                      aria-hidden="true"
+                      className="text-muted-foreground/60 border-b py-0.5 text-center text-xs font-medium tracking-wide uppercase"
+                    >
+                      {m.tournaments_pod_vs()}
+                    </li>,
+                  ]
+                : []),
+              sideRow(group),
+            ])}
+          </ul>
+          {scoringPlayerId !== null && (changedRemotely || editor.error) ? (
+            <div className="flex flex-col gap-2 border-t px-3 py-2">
+              {changedRemotely ? (
+                <ChangedRemotelyNotice match={isMatch} onShowLatest={showLatestScore} />
+              ) : null}
+              <SaveError error={editor.error} />
+            </div>
+          ) : null}
+          {footerAction ? (
+            <div className="flex justify-end border-t px-3 py-2">
               <Button
                 variant={reported ? "destructive" : "secondary"}
                 size="sm"
-                className="self-end"
                 onClick={editor.handleStart}
               >
                 {reported
@@ -387,10 +376,10 @@ export function PodCard({
                     ? m.tournaments_pod_enter_all_scores()
                     : m.tournaments_pod_enter_result()}
               </Button>
-            ) : null}
-          </>
-        )}
-      </CardContent>
+            </div>
+          ) : null}
+        </>
+      )}
     </Card>
   );
 }

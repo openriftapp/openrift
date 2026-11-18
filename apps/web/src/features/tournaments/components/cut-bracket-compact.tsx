@@ -19,6 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { TouchTooltip } from "@/components/ui/touch-tooltip";
 import { formatRank } from "@/features/meta/lib/meta-format";
 import { usePodResultEditor } from "@/features/tournaments/hooks/use-pod-result-editor";
 import {
@@ -91,33 +92,48 @@ function Seat({
       mark={
         place === undefined ? (
           <BracketSeedMark>
-            <Badge variant="outline" className="w-8 justify-center tabular-nums">
-              {seed === undefined ? "–" : `#${seed}`}
-            </Badge>
+            {seed === undefined ? (
+              <Badge variant="outline" className="w-8 justify-center tabular-nums">
+                –
+              </Badge>
+            ) : (
+              <TouchTooltip
+                content={
+                  chooser
+                    ? m.tournaments_cut_seed_chooser_tooltip({ seed })
+                    : m.tournaments_cut_seed_tooltip({ seed })
+                }
+                aria-label={
+                  chooser
+                    ? m.tournaments_cut_seed_chooser_tooltip({ seed })
+                    : m.tournaments_cut_seed_tooltip({ seed })
+                }
+              >
+                <Badge
+                  variant={chooser ? "default" : "outline"}
+                  className="w-8 justify-center tabular-nums"
+                >
+                  #{seed}
+                </Badge>
+              </TouchTooltip>
+            )}
           </BracketSeedMark>
         ) : (
           <BracketRankMark rank={place} text={formatRank(place, false)} />
         )
       }
       name={
-        legend || chooser ? (
+        legend ? (
           <span className="flex flex-col leading-tight">
             <span className="truncate">{participantName(member.displayName)}</span>
             <span className="text-muted-foreground flex min-w-0 items-center gap-1.5 text-xs font-normal">
-              {legend ? (
-                <TournamentLegend
-                  legendCardId={legend.legendCardId}
-                  fallback={legend}
-                  championOnly
-                  hideDomains
-                  className="shrink-0"
-                />
-              ) : null}
-              {chooser ? (
-                <span className="truncate" title={m.tournaments_cut_chooses_starter()}>
-                  {m.tournaments_cut_chooses_starter()}
-                </span>
-              ) : null}
+              <TournamentLegend
+                legendCardId={legend.legendCardId}
+                fallback={legend}
+                championOnly
+                hideDomains
+                className="shrink-0"
+              />
             </span>
           </span>
         ) : (
@@ -127,9 +143,13 @@ function Seat({
       score={seatScore(pod, member, winner)}
     >
       {group ? (
-        <Badge variant="neutral" className="shrink-0">
-          {group}
-        </Badge>
+        <TouchTooltip
+          content={m.tournaments_cut_group_tooltip({ group })}
+          aria-label={m.tournaments_cut_group_tooltip({ group })}
+          className="shrink-0"
+        >
+          <Badge variant="neutral">{group}</Badge>
+        </TouchTooltip>
       ) : null}
     </BracketSeatRow>
   );
@@ -195,6 +215,7 @@ function Match({
   return (
     <BracketMatchCard
       isFinal={isFinal}
+      pending={pod === null}
       label={cutMatchShortLabel(context.cutSize, roundNumber, match.podNumber)}
       aside={
         <>

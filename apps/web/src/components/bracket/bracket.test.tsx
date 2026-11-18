@@ -99,6 +99,20 @@ describe("BracketMatchCard", () => {
     const card = container.querySelector<HTMLElement>("[data-slot=card]");
     expect(card).toHaveClass("ring-border-accent/50");
   });
+
+  it("fades an undecided match behind a dashed edge, keeping the final's ring", () => {
+    const { container, rerender } = render(<BracketMatchCard pending>seats</BracketMatchCard>);
+    const card = () => container.querySelector<HTMLElement>("[data-slot=card]");
+    expect(card()).toHaveClass("opacity-60", "border-dashed", "ring-0");
+
+    rerender(
+      <BracketMatchCard pending isFinal>
+        seats
+      </BracketMatchCard>,
+    );
+    expect(card()).toHaveClass("opacity-60", "ring-border-accent/50");
+    expect(card()).not.toHaveClass("border-dashed");
+  });
 });
 
 describe("BracketSeatRow", () => {

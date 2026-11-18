@@ -308,7 +308,7 @@ describe("PairingsView", () => {
     expect(screen.queryByText(/Caitlyn moves/u)).not.toBeInTheDocument();
   });
 
-  it("seats a member with one badge and keeps the two point figures at the end", () => {
+  it("leads a placed member with their place and ends with game points and round points", () => {
     renderView({
       rounds: [
         makeRound({
@@ -345,8 +345,8 @@ describe("PairingsView", () => {
     });
 
     const ashe = screen.getByText("Ashe").closest("li") as HTMLElement;
-    expect(within(ashe).getByTitle("Finished 1st in the pod")).toHaveTextContent("1");
-    expect(within(ashe).getByTitle("8 game points")).toHaveTextContent("8g");
+    expect(within(ashe).getByTitle("Finished 1st in the pod")).toHaveTextContent("1st");
+    expect(within(ashe).getByTitle("8 game points")).toHaveTextContent(/^8$/u);
     expect(within(ashe).queryByTitle(/points in the standings/u)).not.toBeInTheDocument();
     expect(within(ashe).getByTitle("3 points from this round")).toHaveTextContent("+3");
     expect(within(ashe).queryByText(/game$/u)).not.toBeInTheDocument();
@@ -445,7 +445,7 @@ describe("PairingsView", () => {
     expect(screen.getByText("1 rematch · penalty 3")).toBeInTheDocument();
   });
 
-  it("seeds a badge from game points before anyone has placed", () => {
+  it("shows game points before anyone has placed", () => {
     renderView({
       rounds: [
         makeRound({
@@ -480,7 +480,7 @@ describe("PairingsView", () => {
     });
 
     const ashe = screen.getByText("Ashe").closest("li") as HTMLElement;
-    expect(within(ashe).getByTitle("6 game points")).toHaveTextContent("6g");
+    expect(within(ashe).getByTitle("6 game points")).toHaveTextContent(/^6$/u);
     const braum = screen.getByText("Braum").closest("li") as HTMLElement;
     expect(within(braum).queryByTitle(/game points/u)).not.toBeInTheDocument();
   });

@@ -81,12 +81,14 @@ export function BracketColumn({
 
 export function BracketMatchCard({
   isFinal = false,
+  pending = false,
   label,
   aside,
   footer,
   children,
 }: {
   isFinal?: boolean;
+  pending?: boolean;
   label?: ReactNode;
   aside?: ReactNode;
   footer?: ReactNode;
@@ -94,7 +96,12 @@ export function BracketMatchCard({
 }) {
   return (
     <Card
-      className={cn("gap-0 py-0", isFinal && "ring-border-accent/50")}
+      className={cn(
+        "gap-0 py-0",
+        isFinal && "ring-border-accent/50",
+        pending && "bg-transparent opacity-60",
+        pending && !isFinal && "border border-dashed ring-0",
+      )}
       style={isFinal ? { backgroundImage: FINAL_GLOW } : undefined}
     >
       {label === undefined && aside === undefined ? null : (

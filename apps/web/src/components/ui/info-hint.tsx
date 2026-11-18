@@ -2,31 +2,16 @@ import type { LucideIcon } from "lucide-react";
 import { InfoIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
+import { TouchTooltip } from "@/components/ui/touch-tooltip";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-/** Shared trigger styling so the icon reads the same in both variants. */
 const TRIGGER_CLASS =
   "relative text-muted-foreground hover:text-foreground cursor-default after:absolute after:-inset-2 pointer-coarse:after:-inset-3";
 
 /**
  * The (i) affordance that sits next to a field label and reveals a sentence of
- * explanatory copy.
- *
- * On a fine pointer this is a hover/focus Tooltip. On a coarse pointer it is a
- * tap-to-open Popover instead, because a Base UI tooltip cannot be opened by
- * touch at all: its hover interaction is registered with `mouseOnly: true`, and
- * its focus interaction bails unless the trigger matches `:focus-visible`,
- * which a tap-focused button does not. Without the swap the copy is simply
- * unreachable on phones.
- *
- * The pointer read comes from `useCoarsePointer`, so SSR and the first client
- * render always produce the tooltip variant and the popover takes over one
- * paint later.
- *
+ * explanatory copy, on hover or focus with a mouse and on tap on a phone.
  * @returns The hint trigger and its overlay.
  */
 export function InfoHint({
@@ -46,32 +31,14 @@ export function InfoHint({
   side?: "top" | "bottom" | "left" | "right";
   icon?: LucideIcon;
 }) {
-  const coarsePointer = useCoarsePointer();
-  const triggerLabel = m.common_info_hint_label({ label });
-  const icon = <Icon className={cn("size-3.5", className)} />;
-
-  if (coarsePointer) {
-    return (
-      <Popover>
-        <PopoverTrigger className={TRIGGER_CLASS} aria-label={triggerLabel}>
-          {icon}
-        </PopoverTrigger>
-        {/* Narrower than the popover default and viewport-capped, since the hint is one sentence on a phone. */}
-        <PopoverContent side={side} className="w-auto max-w-[min(20rem,calc(100vw-2rem))]">
-          {children}
-        </PopoverContent>
-      </Popover>
-    );
-  }
-
   return (
-    <Tooltip>
-      <TooltipTrigger className={TRIGGER_CLASS} aria-label={triggerLabel}>
-        {icon}
-      </TooltipTrigger>
-      <TooltipContent side={side} className="max-w-xs">
-        {children}
-      </TooltipContent>
-    </Tooltip>
+    <TouchTooltip
+      content={children}
+      side={side}
+      className={TRIGGER_CLASS}
+      aria-label={m.common_info_hint_label({ label })}
+    >
+      <Icon className={cn("size-3.5", className)} />
+    </TouchTooltip>
   );
 }
