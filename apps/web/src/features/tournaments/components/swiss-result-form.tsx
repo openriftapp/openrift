@@ -162,6 +162,7 @@ export function SwissResultForm({
       : []),
   ];
   const summary = counts ? matchSummary(counts, side1Name, side2Name, intentional) : null;
+  const nextGame = intentional ? -1 : rows.slice(0, visible).indexOf(null);
 
   return (
     <div className="flex flex-col gap-3">
@@ -175,7 +176,11 @@ export function SwissResultForm({
         {rows.map((_, index) => (
           <span
             key={index}
-            className="text-muted-foreground text-center text-xs font-medium"
+            className={cn(
+              "text-center text-xs font-medium",
+              index === nextGame ? "text-foreground" : "text-muted-foreground",
+              index >= visible && "opacity-50",
+            )}
             title={m.tournaments_submit_game({ number: index + 1 })}
           >
             {m.tournaments_submit_game_short({ number: index + 1 })}
@@ -190,6 +195,7 @@ export function SwissResultForm({
               {rows.map((game, index) => {
                 const pressed = !intentional && game === outcome;
                 const mark = intentional ? null : cellMark(outcome, game);
+                const ghost = index === nextGame ? cellGhost(outcome) : null;
                 return (
                   <Toggle
                     key={index}
@@ -212,9 +218,15 @@ export function SwissResultForm({
                         ? "aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary/90"
                         : "h-7",
                       !pressed && mark !== null && "text-muted-foreground border-dashed",
+                      index === nextGame && "border-foreground/40",
+                      index >= visible && "border-dashed bg-transparent",
                     )}
                   >
-                    {mark}
+                    {mark ?? (
+                      <span aria-hidden="true" className="text-muted-foreground/60 font-normal">
+                        {ghost}
+                      </span>
+                    )}
                   </Toggle>
                 );
               })}
@@ -231,7 +243,7 @@ export function SwissResultForm({
         })}
       </div>
       <p className="text-muted-foreground min-h-5 text-sm tabular-nums">
-        {summary}
+        {summary ?? (intentional ? null : m.tournaments_submit_tap_hint())}
         {summary && showPoints && preview ? ` · +${preview[0]} / +${preview[1]}` : null}
       </p>
       {tiedWithoutDraws ? (
@@ -300,6 +312,10 @@ function cellMark(row: SheetOutcome, game: GameOutcome | null): string | null {
     return null;
   }
   return row === game ? "W" : "L";
+}
+
+function cellGhost(row: SheetOutcome): string {
+  return row === "draw" ? "=" : "W";
 }
 
 function matchSummary(

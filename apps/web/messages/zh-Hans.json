@@ -6681,6 +6681,7 @@
   "tournaments_submit_needs_winner": "淘汰赛的比赛必须分出胜负。",
   "tournaments_submit_summary_draw": "平局 {score}",
   "tournaments_submit_summary_win": "{name} 获胜 {score}",
+  "tournaments_submit_tap_hint": "点选每局的获胜者。",
   "tournaments_teams_heading": "队伍",
   "tournaments_teams_dissolved_toast": "已解散 {name}",
   "tournaments_teams_empty": "还没有队伍。在下方把两名选手配成一队；第 1 轮配对之前，每位在场选手都必须有队伍。",

@@ -6683,6 +6683,7 @@
   "tournaments_submit_needs_winner": "Un match du top cut doit avoir un vainqueur.",
   "tournaments_submit_summary_draw": "Égalité {score}",
   "tournaments_submit_summary_win": "{name} gagne {score}",
+  "tournaments_submit_tap_hint": "Touchez le gagnant de chaque manche.",
   "tournaments_teams_heading": "Équipes",
   "tournaments_teams_dissolved_toast": "{name} dissoute",
   "tournaments_teams_empty": "Aucune équipe pour l’instant. Associez deux joueurs ci-dessous. Chaque joueur actif a besoin d’une équipe avant de pouvoir apparier la ronde 1.",

@@ -6688,6 +6688,7 @@
   "tournaments_submit_needs_winner": "A top cut match needs a winner.",
   "tournaments_submit_summary_draw": "Draw {score}",
   "tournaments_submit_summary_win": "{name} wins {score}",
+  "tournaments_submit_tap_hint": "Tap the winner of each game.",
   "tournaments_teams_heading": "Teams",
   "tournaments_teams_dissolved_toast": "Dissolved {name}",
   "tournaments_teams_empty": "No teams yet. Pair two players below; every active player needs a team before round 1 can be paired.",

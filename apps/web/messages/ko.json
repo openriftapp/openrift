@@ -6681,6 +6681,7 @@
   "tournaments_submit_needs_winner": "탑 컷 매치는 승자가 있어야 합니다.",
   "tournaments_submit_summary_draw": "무승부 {score}",
   "tournaments_submit_summary_win": "{name} 승리 {score}",
+  "tournaments_submit_tap_hint": "각 게임의 승자를 누르세요.",
   "tournaments_teams_heading": "팀",
   "tournaments_teams_dissolved_toast": "{name} 팀을 해체했습니다",
   "tournaments_teams_empty": "아직 팀이 없습니다. 아래에서 플레이어 두 명을 짝지으세요. 1라운드 대진을 짜려면 모든 활동 플레이어에게 팀이 있어야 합니다.",

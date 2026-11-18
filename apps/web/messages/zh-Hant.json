@@ -6681,6 +6681,7 @@
   "tournaments_submit_needs_winner": "淘汰賽的比賽必須分出勝負。",
   "tournaments_submit_summary_draw": "平局 {score}",
   "tournaments_submit_summary_win": "{name} 獲勝 {score}",
+  "tournaments_submit_tap_hint": "點選每局的獲勝者。",
   "tournaments_teams_heading": "隊伍",
   "tournaments_teams_dissolved_toast": "已解散 {name}",
   "tournaments_teams_empty": "還沒有隊伍。請在下方配對兩位選手；第 1 輪配對之前，每位在賽選手都必須有隊伍。",

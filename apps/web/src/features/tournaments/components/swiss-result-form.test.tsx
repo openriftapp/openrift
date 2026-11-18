@@ -340,11 +340,28 @@ describe("SwissResultForm", () => {
 
     expect(screen.getByRole("button", { name: "Game 1: Ashe" })).toHaveTextContent("W");
     expect(screen.getByRole("button", { name: "Game 1: Braum" })).toHaveTextContent("L");
-    expect(screen.getByRole("button", { name: "Game 1: Draw" })).toHaveTextContent("");
+    expect(screen.getByRole("button", { name: "Game 1: Draw" })).toHaveTextContent(/^$/u);
     expect(screen.getByRole("button", { name: "Game 2: Ashe" })).toHaveTextContent("D");
     expect(screen.getByRole("button", { name: "Game 2: Braum" })).toHaveTextContent("D");
     expect(screen.getByRole("button", { name: "Game 2: Draw" })).toHaveTextContent("D");
-    expect(screen.getByRole("button", { name: "Game 3: Ashe" })).toHaveTextContent("");
+    expect(screen.getByRole("button", { name: "Game 3: Draw" })).toHaveTextContent("=");
+  });
+
+  it("points at the next open game until the first one is in", async () => {
+    const user = userEvent.setup();
+    renderForm(match([null, null]));
+
+    expect(screen.getByText("Tap the winner of each game.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Game 1: Ashe" })).toHaveTextContent("W");
+    expect(screen.getByRole("button", { name: "Game 1: Draw" })).toHaveTextContent("=");
+    expect(screen.getByRole("button", { name: "Game 2: Ashe" })).toHaveTextContent(/^$/u);
+
+    await user.click(screen.getByRole("button", { name: "Game 1: Braum" }));
+
+    expect(screen.queryByText("Tap the winner of each game.")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Game 1: Ashe" })).toHaveTextContent("L");
+    expect(screen.getByRole("button", { name: "Game 1: Draw" })).toHaveTextContent(/^$/u);
+    expect(screen.getByRole("button", { name: "Game 2: Draw" })).toHaveTextContent("=");
   });
 
   it("calls a level match a draw", async () => {

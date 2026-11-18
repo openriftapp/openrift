@@ -6682,6 +6682,7 @@
   "tournaments_submit_needs_winner": "Ein Match im Top Cut braucht einen Sieger.",
   "tournaments_submit_summary_draw": "Unentschieden {score}",
   "tournaments_submit_summary_win": "{name} gewinnt {score}",
+  "tournaments_submit_tap_hint": "Tippe für jedes Spiel auf den Gewinner.",
   "tournaments_teams_heading": "Teams",
   "tournaments_teams_dissolved_toast": "{name} aufgelöst",
   "tournaments_teams_empty": "Noch keine Teams. Paare unten zwei Spieler. Jeder aktive Spieler braucht ein Team, bevor Runde 1 gepaart werden kann.",
