@@ -1,4 +1,4 @@
-const LEGACY_PREFIX = /(?<lead>^|\s)(?<prefix>id|ty|[ndktaf]):/gu;
+const LEGACY_PREFIX = /(?<lead>^|[\s(]|(?<=^|[\s(])-)(?<prefix>id|ty|[ndktaf]):/giu;
 
 const RENAMED: Record<string, string> = {
   n: "",
@@ -13,7 +13,8 @@ const RENAMED: Record<string, string> = {
 
 export function translateLegacyQuery(raw: string): string {
   return raw.replaceAll(LEGACY_PREFIX, (_match, lead: string, prefix: string) => {
-    const renamed = RENAMED[prefix] ?? prefix;
+    const key = prefix.toLowerCase();
+    const renamed = RENAMED[key] ?? key;
     return renamed === "" ? lead : `${lead}${renamed}:`;
   });
 }

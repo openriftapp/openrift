@@ -41,28 +41,20 @@ export function AppLayout() {
     [router],
   );
 
-  if (bare) {
-    return (
-      <>
-        <CommandPalette />
-        <TradeCancelConsentHost />
-        <Outlet />
-      </>
-    );
-  }
-
+  // The outlet keeps its place in the tree across a chrome change, so a page
+  // that moves into a bare child route stays mounted.
   return (
     <>
-      <AppBackground />
-      <Header />
-      <SiteBanner />
+      {!bare && <AppBackground />}
+      {!bare && <Header />}
+      {!bare && <SiteBanner />}
       <CommandPalette />
       <TradeCancelConsentHost />
-      <main className={cn("flex min-h-0 flex-1 flex-col", CONTAINER_WIDTH)}>
-        <div className="flex min-h-0 flex-1 flex-col">
+      <main className={bare ? "contents" : cn("flex min-h-0 flex-1 flex-col", CONTAINER_WIDTH)}>
+        <div className={bare ? "contents" : "flex min-h-0 flex-1 flex-col"}>
           <Outlet />
         </div>
-        {!hideFooter && <Footer className={FOOTER_PADDING_NO_TOP} />}
+        {!bare && !hideFooter && <Footer className={FOOTER_PADDING_NO_TOP} />}
       </main>
     </>
   );

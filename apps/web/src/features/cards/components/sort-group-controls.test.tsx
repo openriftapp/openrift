@@ -1,5 +1,5 @@
-import { render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { SortGroupControls } from "./sort-group-controls";
 
@@ -57,5 +57,50 @@ describe("SortGroupControls — group label resolution", () => {
       />,
     );
     expect(container.textContent).toContain("set");
+  });
+});
+
+describe("SortGroupControls accessible names", () => {
+  it("labels the group and sort direction toggles apart in the compact layout", () => {
+    render(
+      <SortGroupControls
+        compact
+        sortOptions={SORT_OPTIONS}
+        sortBy="id"
+        sortDir="asc"
+        onSortByChange={NOOP}
+        onSortDirChange={NOOP}
+        group={{
+          options: PROMO_GROUP_OPTIONS,
+          value: "channel",
+          dir: "desc",
+          onValueChange: NOOP,
+          onDirChange: NOOP,
+        }}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Ascending, click to reverse" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Groups descending, click to reverse" }),
+    ).toBeTruthy();
+  });
+
+  it("renders option badges as pressed-state buttons", () => {
+    const onSortByChange = vi.fn();
+    render(
+      <SortGroupControls
+        compact
+        sortOptions={SORT_OPTIONS}
+        sortBy="id"
+        sortDir="asc"
+        onSortByChange={onSortByChange}
+        onSortDirChange={NOOP}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "ID" }).getAttribute("aria-pressed")).toBe("true");
+    const name = screen.getByRole("button", { name: "Name" });
+    expect(name.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(name);
+    expect(onSortByChange).toHaveBeenCalledWith("name");
   });
 });

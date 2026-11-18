@@ -186,6 +186,7 @@ const acceptCardFieldBodySchema = z.object({
   field: z.enum(ACCEPT_CARD_FIELDS),
   value: z.unknown(),
   source: z.enum(["provider", "manual"]).default("manual"),
+  expected: z.unknown().optional(),
 });
 
 const acceptPrintingFieldBodySchema = z.object({
@@ -194,12 +195,20 @@ const acceptPrintingFieldBodySchema = z.object({
   source: z.enum(["provider", "manual"]).default("manual"),
   side: printingSideSchema.default(1),
   faceId: z.uuid().optional(),
+  expected: z.unknown().optional(),
 });
 
 export type AcceptCardFieldBody = z.infer<typeof acceptCardFieldBodySchema>;
 export type AcceptPrintingFieldBody = z.infer<typeof acceptPrintingFieldBodySchema>;
 
 const acceptFieldResultSchema = z.object({ written: z.boolean() });
+
+/** The error code an accept-field write answers when the field no longer holds `expected`. */
+export const FIELD_CHANGED = "FIELD_CHANGED";
+
+const fieldChangedError = {
+  [FIELD_CHANGED]: { status: 409, message: "Changed since, not undone" },
+} as const;
 
 export type AcceptFieldResult = z.infer<typeof acceptFieldResultSchema>;
 
@@ -630,12 +639,13 @@ export const adminCardMutationsContract = {
   acceptField: authedRoute
     .route({ method: "POST", path: `${CARDS}/{cardId}/accept-field`, tags: [TAG] })
     .meta({ adminSections: ["card-review"] })
+    .errors(fieldChangedError)
     .input(cardIdParam.extend(acceptCardFieldBodySchema.shape))
     .output(acceptFieldResultSchema),
   acceptPrintingField: authedRoute
     .route({ method: "POST", path: `${CARDS}/printing/{printingId}/accept-field`, tags: [TAG] })
     .meta({ adminSections: ["card-review"] })
-    .errors({ NOT_FOUND: { message: "Printing or set not found" } })
+    .errors({ NOT_FOUND: { message: "Printing or set not found" }, ...fieldChangedError })
     .input(printingIdParam.extend(acceptPrintingFieldBodySchema.shape))
     .output(acceptFieldResultSchema),
   uploadErrata: authedRoute

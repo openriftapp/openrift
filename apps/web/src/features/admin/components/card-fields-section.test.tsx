@@ -29,7 +29,11 @@ vi.mock("@/features/admin/components/candidate-spreadsheet", () => ({
   },
 }));
 
-const stubMutation = { mutate: vi.fn(), isPending: false };
+const stubMutation: { mutate: unknown; mutateAsync: unknown; isPending: boolean } = {
+  mutate: vi.fn(),
+  mutateAsync: vi.fn(),
+  isPending: false,
+};
 vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
   useAcceptCardField: () => ({ mutateAsync: captured.acceptCardField, isPending: false }),
   useCheckCandidateCard: () => stubMutation,
@@ -92,6 +96,33 @@ beforeEach(() => {
   captured.toastSuccess.mockReset();
 });
 
+describe("CardFieldsSection writes", () => {
+  it("hands accepts and checks to runWrite, which decides when they start and their signal", async () => {
+    const held: ((signal?: AbortSignal) => Promise<unknown>)[] = [];
+    const { signal } = new AbortController();
+    const check = vi.fn(async (..._args: unknown[]) => {});
+    stubMutation.mutateAsync = check;
+    renderSection({
+      runWrite: (write) => {
+        held.push(write);
+        return Promise.resolve(true);
+      },
+    });
+
+    captured.spreadsheet?.onCellClick?.("name", "Jinx", "cc1");
+    const onCheck = captured.spreadsheet?.onCheck as ((id: string) => void) | undefined;
+    onCheck?.("cc1");
+    expect(held).toHaveLength(2);
+    expect(captured.acceptCardField).not.toHaveBeenCalled();
+    expect(check).not.toHaveBeenCalled();
+
+    await Promise.all(held.map((write) => write(signal)));
+    expect(captured.acceptCardField).toHaveBeenCalledOnce();
+    expect(captured.acceptCardField.mock.calls[0]?.[1]).toEqual({ signal });
+    expect(check).toHaveBeenCalledWith("cc1", { signal });
+  });
+});
+
 describe("CardFieldsSection", () => {
   it("shows every candidate-card field in the compare grid", () => {
     renderSection();
@@ -110,12 +141,15 @@ describe("CardFieldsSection", () => {
     expect(captured.acceptCardField).not.toHaveBeenCalled();
 
     captured.spreadsheet?.onCellClick?.("name", "Jinx", "cc1");
-    expect(captured.acceptCardField).toHaveBeenCalledWith({
-      cardId: card.id,
-      field: "name",
-      value: "Jinx",
-      source: "provider",
-    });
+    expect(captured.acceptCardField).toHaveBeenCalledWith(
+      {
+        cardId: card.id,
+        field: "name",
+        value: "Jinx",
+        source: "provider",
+      },
+      { signal: undefined },
+    );
   });
 
   it("offers the old value back after accepting one from a source", async () => {
@@ -131,12 +165,16 @@ describe("CardFieldsSection", () => {
     expect(message).toBe("Used Name from piltover");
 
     options.action.onClick();
-    expect(captured.acceptCardField).toHaveBeenLastCalledWith({
-      cardId: card.id,
-      field: "name",
-      value: "Yasuo",
-      source: "manual",
-    });
+    expect(captured.acceptCardField).toHaveBeenLastCalledWith(
+      {
+        cardId: card.id,
+        field: "name",
+        value: "Yasuo",
+        source: "manual",
+        expected: "Jinx",
+      },
+      { signal: undefined },
+    );
   });
 
   it("shows no Undo toast when the accept fails", async () => {

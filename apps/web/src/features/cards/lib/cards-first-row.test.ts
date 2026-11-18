@@ -11,6 +11,7 @@ import { describe, expect, it } from "vitest";
 
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
 import { VIEW_SURFACE_CONFIGS } from "@/lib/view-prefs";
+import { stubInitResponse } from "@/test/init-fixtures";
 
 import { extractFirstRow } from "./cards-first-row";
 
@@ -88,20 +89,16 @@ function enumRows(slugs: string[]) {
   return slugs.map((slug, sortOrder) => ({ slug, label: slug, sortOrder }));
 }
 
-const NO_INIT = {
-  enums: {
-    finishes: [],
-    rarities: enumRows(["common", "uncommon", "rare", "epic"]),
-    domains: [],
+const NO_INIT: Pick<InitResponse, "enums" | "keywords"> = {
+  enums: stubInitResponse({
+    rarities: enumRows(["common", "uncommon", "rare", "epic"]).map((row) => ({
+      ...row,
+      color: null,
+    })),
     cardTypes: enumRows(["legend", "unit", "spell", "gear", "battlefield", "rune"]),
-    superTypes: [],
-    artVariants: [],
-    cardSizes: [],
-    conditions: [],
-    graders: [],
-  },
+  }).enums,
   keywords: {},
-} as unknown as Pick<InitResponse, "enums" | "keywords">;
+};
 
 const NO_PRICES = { prices: {}, currencies: {} } as unknown as PricesResponse;
 

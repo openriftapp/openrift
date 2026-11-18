@@ -285,6 +285,8 @@ export function DeckZoneSection({
   return (
     <div
       ref={dropRef}
+      role="group"
+      aria-label={zoneLabel}
       data-slot="deck-zone"
       data-deck-drop-zone={zone}
       data-zone={zone}

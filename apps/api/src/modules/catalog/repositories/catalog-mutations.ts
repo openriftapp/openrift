@@ -323,6 +323,25 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
       return selectFullPrintings(db, side).where("p.id", "=", id).executeTakeFirst();
     },
 
+    /** Row-locks the card for the rest of the caller's transaction. */
+    lockCardRow(cardId: string): Promise<void> {
+      return lockCard(db, cardId);
+    },
+
+    /** Row-locks the printing, then the face on `side`, for the rest of the caller's transaction. */
+    async lockPrintingSide(printingId: string, side: 1 | 2): Promise<void> {
+      const links = await db
+        .selectFrom("printings")
+        .select(["face1Id", "face2Id"])
+        .where("id", "=", printingId)
+        .forUpdate()
+        .executeTakeFirst();
+      const faceId = side === 1 ? links?.face1Id : links?.face2Id;
+      if (faceId) {
+        await db.selectFrom("faces").select("id").where("id", "=", faceId).forUpdate().execute();
+      }
+    },
+
     getFullCardById(id: string): Promise<Selectable<CardsTable> | undefined> {
       return db.selectFrom("cards").selectAll().where("id", "=", id).executeTakeFirst();
     },
@@ -632,18 +651,29 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    async deletePrintingById(id: string): Promise<{ id: string } | undefined> {
-      const orphans = await facesOnlyOn([id]).execute();
+    /** `releasedImageFileIds` are the substitute-art pins of the faces deleted with the printing. */
+    async deletePrintingById(
+      id: string,
+    ): Promise<{ id: string; releasedImageFileIds: string[] } | undefined> {
+      const orphans = await facesOnlyOn([id]).select("f.fallbackImageFileId").execute();
       const orphanFaces = orphans.map((face) => face.id);
       const deleted = await db
         .deleteFrom("printings")
         .where("id", "=", id)
         .returning("id")
         .executeTakeFirst();
-      if (deleted && orphanFaces.length > 0) {
+      if (!deleted) {
+        return undefined;
+      }
+      if (orphanFaces.length > 0) {
         await db.deleteFrom("faces").where("id", "in", orphanFaces).execute();
       }
-      return deleted;
+      return {
+        id: deleted.id,
+        releasedImageFileIds: orphans.flatMap((face) =>
+          face.fallbackImageFileId === null ? [] : [face.fallbackImageFileId],
+        ),
+      };
     },
 
     async insertPrinting(

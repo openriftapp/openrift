@@ -47,7 +47,7 @@ import { cardSearchLeading } from "@/features/cards/components/printing-option-c
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useCatalogCardSearch } from "@/features/cards/hooks/use-catalog-card-search";
 import type { ImportedDeckCard } from "@/features/decks/lib/deck-import-cards";
-import { dedupeMatchedEntries } from "@/features/decks/lib/deck-import-cards";
+import { importOverflowMessage, mergeMatchedEntries } from "@/features/decks/lib/deck-import-cards";
 import type { DeckMatchedEntry } from "@/features/decks/lib/deck-import-matcher";
 import { matchDeckEntries } from "@/features/decks/lib/deck-import-matcher";
 import { parseDeckImportAuto } from "@/features/decks/lib/deck-import-parsers";
@@ -206,11 +206,13 @@ export function MetaPlayerDialog({ eventId, eventFormat, player, onClose }: Meta
       }
     }
     setFormError("");
+    const { cards, overflow } = mergeMatchedEntries(matched);
+    const overflowNotice = importOverflowMessage(overflow);
     setParsed({
-      cards: dedupeMatchedEntries(matched),
+      cards,
       needsReview,
       unresolved,
-      warnings,
+      warnings: overflowNotice ? [...warnings, overflowNotice] : warnings,
       detected: DETECTED_LABELS[detected] ?? detected,
     });
   }

@@ -609,6 +609,28 @@ describe("deck row cap", () => {
     expect(quantities()).toEqual({ "main:": 99 });
   });
 
+  it("reports a full row instead of adding in Freeform", () => {
+    collection = createDraftCollection([row("main", 99)]);
+    const outcome = addCardAction(collection, row("main", 1), "main", 1, EMPTY_RUNES, "freeform");
+    expect(quantities()).toEqual({ "main:": 99 });
+    expect(outcome).toMatchObject({ rule: "rowCap", total: 99, limit: 99 });
+  });
+
+  it("reports a full row for a relaxed add past the copy limit", () => {
+    collection = createDraftCollection([row("main", 99)]);
+    const outcome = addCardAction(
+      collection,
+      row("main", 1),
+      "main",
+      undefined,
+      EMPTY_RUNES,
+      "constructed",
+      { relaxed: true },
+    );
+    expect(quantities()).toEqual({ "main:": 99 });
+    expect(outcome?.rule).toBe("rowCap");
+  });
+
   it("sets a quantity no higher than the cap", () => {
     collection = createDraftCollection([row("main", 3)]);
     setQuantityAction(collection, "card-1", "main", 150, null);

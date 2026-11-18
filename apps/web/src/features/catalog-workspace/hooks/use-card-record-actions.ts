@@ -20,7 +20,10 @@ import {
 import { CARD_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
 import type { RecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
-import { queuedWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
+import {
+  queuedWorkspaceWrite,
+  useQueueWorkspaceWrite,
+} from "@/features/catalog-workspace/hooks/workspace-writes";
 import { primaryLabel } from "@/features/catalog-workspace/lib/suggestion-labels";
 import type {
   CardSuggestions,
@@ -37,6 +40,7 @@ import {
   usedUndoText,
 } from "@/features/catalog-workspace/lib/workspace-undo";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
+import { withSignal, withWriteSignal } from "@/lib/write-signal";
 
 interface UseCardRecordActionsOptions {
   cardSlug: string;
@@ -63,6 +67,7 @@ export function useCardRecordActions({
   const checkCandidateCards = useCheckCandidateCards(scope);
   const acceptSubmission = useAcceptSubmission({ cardSlug });
   const { announce, push } = useWorkspaceUndo();
+  const queue = useQueueWorkspaceWrite();
 
   const cardId = detail?.card?.id;
   const record = detail?.card?.name ?? cardSlug;
@@ -76,19 +81,25 @@ export function useCardRecordActions({
     return {
       ...discardUndoText({ suggestions, images: 0, sources: ids.length, record }),
       invalidates: undoScope(scope),
-      undo: async () => {
-        await uncheckCandidateCardsFn({ data: { candidateCardIds: [...ids] } });
+      undo: async (signal) => {
+        await withWriteSignal(signal, () =>
+          uncheckCandidateCardsFn({ data: { candidateCardIds: [...ids] }, signal }),
+        );
       },
     };
   }
 
-  async function applySourceSuggestion(suggestion: FieldSuggestion): Promise<void> {
+  async function applySourceSuggestion(
+    signal: AbortSignal,
+    suggestion: FieldSuggestion,
+  ): Promise<void> {
     if (cardId === undefined) {
       return;
     }
     const label = CARD_FIELD_LABELS[suggestion.field];
+    const accept = withSignal(acceptCardField.mutateAsync, signal);
     await acceptFieldWithUndo({
-      accept: acceptCardField.mutateAsync,
+      accept,
       input: { cardId, field: suggestion.field, value: suggestion.value, source: "provider" },
       fieldLabel: label,
       sourceLabel: suggestion.sourceLabel,
@@ -97,12 +108,19 @@ export function useCardRecordActions({
         announce({
           ...usedUndoText({ field: label, source: suggestion.sourceLabel, record }),
           invalidates: undoScope(scope),
-          undo: () => revertAcceptedField(revert, (data) => acceptCardFieldFn({ data })),
+          undo: (undoSignal) =>
+            revertAcceptedField(revert, (data) =>
+              withWriteSignal(undoSignal, () => acceptCardFieldFn({ data, signal: undoSignal })),
+            ),
         }),
     });
   }
 
-  async function acceptFromSubmission(candidateCardId: string, ticked: ReadonlySet<string>) {
+  async function acceptFromSubmission(
+    signal: AbortSignal,
+    candidateCardId: string,
+    ticked: ReadonlySet<string>,
+  ) {
     const submission = submissions.find((entry) => entry.candidateCardId === candidateCardId);
     if (submission === undefined) {
       return;
@@ -110,7 +128,7 @@ export function useCardRecordActions({
     const { input } = buildAcceptSubmissionInput(submission, { ticked, edits: new Map() });
     let result: Awaited<ReturnType<typeof acceptSubmission.mutateAsync>> | undefined;
     const ok = await runReportedMutation(async () => {
-      result = await acceptSubmission.mutateAsync(input);
+      result = await acceptSubmission.mutateAsync(input, { signal });
     });
     if (ok && result) {
       toast.success(
@@ -119,43 +137,49 @@ export function useCardRecordActions({
     }
   }
 
-  async function applySuggestion(suggestion: FieldSuggestion): Promise<void> {
+  async function applySuggestion(signal: AbortSignal, suggestion: FieldSuggestion): Promise<void> {
     if (suggestion.tone === "contributor") {
       if (suggestion.changeKey !== undefined) {
-        await acceptFromSubmission(suggestion.candidateRowId, new Set([suggestion.changeKey]));
+        await acceptFromSubmission(
+          signal,
+          suggestion.candidateRowId,
+          new Set([suggestion.changeKey]),
+        );
       }
       return;
     }
-    await applySourceSuggestion(suggestion);
+    await applySourceSuggestion(signal, suggestion);
   }
 
-  async function acceptWholeSubmission(candidateCardId: string): Promise<void> {
+  async function acceptWholeSubmission(signal: AbortSignal, candidateCardId: string) {
     const submission = submissions.find((entry) => entry.candidateCardId === candidateCardId);
     if (submission !== undefined) {
-      await acceptFromSubmission(candidateCardId, new Set(submissionTickKeys(submission)));
+      await acceptFromSubmission(signal, candidateCardId, new Set(submissionTickKeys(submission)));
     }
   }
 
-  async function discardSuggestion(suggestion: FieldSuggestion) {
+  async function discardSuggestion(signal: AbortSignal, suggestion: FieldSuggestion) {
     if (!canCheck || suggestion.tone !== "source") {
       return;
     }
     const candidateCardId = suggestion.candidateRowId;
     const entry = uncheckEntry([candidateCardId], suggestion.rowDifferences);
-    const ok = await runReportedMutation(() => checkCandidateCard.mutateAsync(candidateCardId));
+    const ok = await runReportedMutation(() =>
+      checkCandidateCard.mutateAsync(candidateCardId, { signal }),
+    );
     if (ok) {
       announce(entry);
     }
   }
 
-  async function discardRemaining() {
+  async function discardRemaining(signal: AbortSignal) {
     const targets = model?.enterTargets ?? [];
     if (targets.length === 0 || cardId === undefined) {
       return;
     }
     const ids = targets.map((target) => target.candidateRowId);
     const entry = uncheckEntry(ids, enterDifferenceCount(targets));
-    await checkCandidateCards.mutateAsync({ cardId, candidateCardIds: ids });
+    await checkCandidateCards.mutateAsync({ cardId, candidateCardIds: ids }, { signal });
     push(entry);
   }
 
@@ -168,19 +192,19 @@ export function useCardRecordActions({
           run: discardRemaining,
         }
       : { label: "Next", disabled: contributorOpen, run: () => Promise.resolve() },
-    useSuggestion: async (hotkey) => {
+    useSuggestion: async (signal, hotkey) => {
       const suggestion = suggestionByHotkey(model?.suggestions ?? [], hotkey);
       if (suggestion !== undefined && !isPending) {
-        await applySuggestion(suggestion);
+        await applySuggestion(signal, suggestion);
       }
     },
   };
 
   return {
     actions,
-    applySuggestion: queuedWorkspaceWrite(applySuggestion),
-    discardSuggestion: queuedWorkspaceWrite(discardSuggestion),
-    acceptWholeSubmission: queuedWorkspaceWrite(acceptWholeSubmission),
+    applySuggestion: queuedWorkspaceWrite(queue, applySuggestion),
+    discardSuggestion: queuedWorkspaceWrite(queue, discardSuggestion),
+    acceptWholeSubmission: queuedWorkspaceWrite(queue, acceptWholeSubmission),
     contributorOpen,
     isPending,
   };

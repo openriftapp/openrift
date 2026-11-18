@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_app/_authenticated/admin/workspace/cards
         }),
       ]);
     }
-    await loadCardDetailData(context.queryClient);
+    await loadCardDetailData(context.queryClient, context.userId);
   },
   head: () => adminSeoHead("Card"),
   pendingComponent: AdminPending,

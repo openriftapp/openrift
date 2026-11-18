@@ -5,6 +5,7 @@ import {
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/workspace-undo";
 import { ignoredUndoText, undoScope } from "@/features/catalog-workspace/lib/workspace-undo";
+import { withWriteSignal } from "@/lib/write-signal";
 
 const IGNORE_SCOPE = undoScope([
   adminKeys.ignoredCandidates,
@@ -20,8 +21,12 @@ export function ignoredCardsUndo(
   return {
     ...ignoredUndoText({ what: record, record, plural }),
     invalidates: IGNORE_SCOPE,
-    undo: async () => {
-      await Promise.all(sources.map((source) => unignoreCandidateCardFn({ data: source })));
+    undo: async (signal) => {
+      await Promise.all(
+        sources.map((source) =>
+          withWriteSignal(signal, () => unignoreCandidateCardFn({ data: source, signal })),
+        ),
+      );
     },
   };
 }
@@ -33,8 +38,8 @@ export function ignoredPrintingUndo(
   return {
     ...ignoredUndoText({ what: `the ${candidate.provider} printing`, record }),
     invalidates: IGNORE_SCOPE,
-    undo: async () => {
-      await unignoreCandidatePrintingFn({ data: candidate });
+    undo: async (signal) => {
+      await withWriteSignal(signal, () => unignoreCandidatePrintingFn({ data: candidate, signal }));
     },
   };
 }

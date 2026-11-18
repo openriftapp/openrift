@@ -627,6 +627,8 @@
   "cards_grid_show_n_printings": "인쇄판 {count}종 보기",
   "cards_grid_no_results_title": "카드를 찾을 수 없습니다",
   "cards_grid_no_results_description": "필터를 조정해 보세요.",
+  "cards_grid_languages_loading": "다른 언어를 아직 불러오는 중이라 일부 카드가 빠져 있을 수 있습니다.",
+  "cards_grid_languages_failed": "다른 언어를 불러오지 못해 일부 카드가 빠져 있을 수 있습니다.",
   "cards_search_hint_text": "일반 단어는 카드 이름만 검색합니다.",
   "cards_search_alternative_text": [
     {
@@ -1140,6 +1142,8 @@
   "cards_columns_reset_aria": "열 수를 자동으로 되돌리기",
   "cards_sort_dir_asc": "오름차순, 클릭하면 반대로",
   "cards_sort_dir_desc": "내림차순, 클릭하면 반대로",
+  "cards_group_dir_asc": "그룹 오름차순, 클릭하면 반대로",
+  "cards_group_dir_desc": "그룹 내림차순, 클릭하면 반대로",
   "cards_group_by": "그룹 기준",
   "cards_sort_by": "정렬 기준",
   "cards_select_all": "전체 선택",
@@ -1190,6 +1194,7 @@
   "cards_filter_n_selected": "{count}개 선택됨",
   "cards_filter_sign_include": "포함",
   "cards_filter_sign_exclude": "제외",
+  "cards_filter_excluded_state": "(제외됨)",
   "cards_filter_sign_label": "{label}: 포함 또는 제외",
   "cards_filter_flip_to_exclude": "대신 제외",
   "cards_filter_flip_to_include": "대신 포함",
@@ -1944,6 +1949,7 @@
   "collections_export_format_cardtrader": "CardTrader 위시리스트",
   "collections_export_format_group_text": "텍스트",
   "collections_export_format_group_csv": "CSV",
+  "collections_export_format_label": "내보내기 형식",
   "collections_export_cards": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -2427,6 +2433,9 @@
   "lists_rule_dialog_title": "동적 규칙",
   "lists_rule_toast_saved": "규칙을 저장했습니다",
   "lists_rule_toast_removed": "규칙을 삭제했습니다",
+  "lists_rule_conflict_title": "저장된 규칙이 변경되었습니다",
+  "lists_rule_conflict_body": "편집하는 동안 이 목록의 규칙이 변경되었습니다. 변경 사항은 그대로 남아 있습니다. 다시 저장하면 저장된 규칙이 내 규칙으로 바뀝니다.",
+  "lists_rule_conflict_load_saved": "내 변경 사항 버리기",
   "lists_rule_stop_excluding": "{label} 제외 해제",
   "lists_rule_excluded": "제외됨",
   "lists_rule_removed_card": "제거된 카드",
@@ -3222,6 +3231,21 @@
   "decks_import_share_link_gone": "그 공유 링크는 더 이상 공유된 덱을 가리키지 않습니다. 공유가 해제되었거나 링크가 갱신되었을 수 있습니다.",
   "decks_import_share_link_failed": "공유된 덱을 불러오지 못했습니다. 다시 시도해 주세요.",
   "decks_import_shared_deck_empty": "그 공유 덱에는 가져올 카드가 없습니다.",
+  "decks_import_over_limit": [
+    {
+      "declarations": [
+        "input count",
+        "input max",
+        "input cards",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{max}장 한도를 넘는 {count}장이 제외되었습니다: {cards}",
+        "countPlural=*": "{max}장 한도를 넘는 {count}장이 제외되었습니다: {cards}"
+      }
+    }
+  ],
   "decks_import_no_deck_in_url": "그 URL에서 덱 코드나 공유 링크를 찾지 못했습니다. 덱 자체를 붙여 넣어 주세요.",
   "decks_import_replaced_toast": "\"{name}\"의 카드를 {count}장으로 교체했습니다.",
   "decks_import_created_toast": "덱 \"{name}\"을(를) 카드 {count}장으로 가져왔습니다.",
@@ -3537,6 +3561,7 @@
   "decks_overview_zone_issues": "{zone} 문제 보기",
   "decks_overview_zone_known": "{expected}장 중 {quantity}장 확인됨",
   "decks_overview_zone_more": "{count}장 더",
+  "decks_overview_zone_summary": "{zone} 요약",
   "decks_stats_bucket_label": "{value} {axis}",
   "decks_stats_collection": "컬렉션",
   "decks_stats_count": "장수",
@@ -6800,7 +6825,9 @@
   "tier_lists_stage_empty_row": "비어 있음",
   "meta_validate_player_name": "플레이어 이름을 입력하세요(80자 이하).",
   "meta_validate_rank": "플레이어의 최종 순위를 숫자로 입력하세요.",
+  "meta_validate_rank_max": "순위는 최대 {max}까지 입력할 수 있습니다.",
   "meta_validate_record_parts": "전적은 승, 패, 무의 정수로 입력합니다.",
+  "meta_validate_record_max": "승, 패, 무는 각각 최대 {max}까지 입력할 수 있습니다.",
   "meta_validate_record_pair": "전적에는 승과 패를 모두 적거나 둘 다 비워 두어야 합니다.",
   "meta_validate_note_length": "메모는 2000자 이하여야 합니다.",
   "meta_validate_correction_note": "저희가 가진 리스트에서 무엇이 잘못되었는지, 올바른 리스트는 어디에서 나왔는지 알려 주세요.",
@@ -10577,6 +10604,7 @@
   "decks_workbench_limit_battlefields": "전장이 가득 찼습니다. 추가하면 어느 전장을 교체할지 묻습니다.",
   "decks_workbench_limit_runes": "룬이 가득 찼고 다른 영역의 룬으로 자리를 만들 수 없습니다. 이 룬은 규칙 경고와 함께 12장을 넘겨 들어갑니다.",
   "decks_workbench_warn_copies": "{card} 추가됨: {count}장, 한도 {limit}장 초과.",
+  "decks_workbench_row_full": "{card}은(는) 이미 {limit}장입니다.",
   "decks_workbench_warn_battlefields": "전장 {count}장, 한도 {limit}장.",
   "decks_workbench_warn_battlefield_duplicate": "{card}은(는) 이미 전장에 있습니다.",
   "decks_workbench_warn_legend_options": "추가 전설 {count}장, 한도 {limit}장.",

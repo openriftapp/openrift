@@ -110,8 +110,11 @@ export async function deletePrintingRows(
     await trxRepos.candidateCards.unlinkCandidatePrintingsByPrintingId(printingId);
     const images = await trxRepos.catalogMutations.deletePrintingImagesByPrintingId(printingId);
     await trxRepos.candidateCards.deletePrintingLinkOverridesById(printingId);
-    await trxRepos.catalogMutations.deletePrintingById(printingId);
-    imageFileIds.push(...images.map((img) => img.imageFileId));
+    const deleted = await trxRepos.catalogMutations.deletePrintingById(printingId);
+    imageFileIds.push(
+      ...images.map((img) => img.imageFileId),
+      ...(deleted?.releasedImageFileIds ?? []),
+    );
   }
   return imageFileIds;
 }

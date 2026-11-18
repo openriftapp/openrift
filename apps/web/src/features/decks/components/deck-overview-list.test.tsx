@@ -1,15 +1,21 @@
+import { DndContext } from "@dnd-kit/core";
 // @vitest-environment jsdom
 import { labelMapOf } from "@openrift/shared/enum-label";
 import { EMPTY_PRICE_LOOKUP } from "@openrift/shared/price-lookup";
 import type { Domain } from "@openrift/shared/types/enums";
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { computeDeckOwnership } from "@/features/decks/hooks/use-deck-ownership";
 import { rowOwnership } from "@/features/decks/lib/deck-ownership-types";
 import { stubCardOwnership, stubDeckBuilderCard, stubPrinting } from "@/test/factories";
 
-import { DeckCardListRow, listRowCopies, reservedListCells } from "./deck-overview-list";
+import {
+  DeckCardListRow,
+  DraggableDeckListRow,
+  listRowCopies,
+  reservedListCells,
+} from "./deck-overview-list";
 
 const DOMAIN_COLORS = { fury: "#ff0000" };
 
@@ -218,5 +224,44 @@ describe("a card split across printings", () => {
     });
     expect(shown[0]).toContain("1/1");
     expect(shown[1]).toContain("0/1");
+  });
+});
+
+describe("DraggableDeckListRow", () => {
+  function renderDraggable(onCardClick?: () => void) {
+    render(
+      <DndContext>
+        <DraggableDeckListRow
+          card={stubDeckBuilderCard({ cardId: "c-1", cardName: "Jinx", quantity: 2 })}
+          entry={undefined}
+          rarityLabels={labelMapOf({})}
+          domainLabels={labelMapOf({})}
+          domainColors={DOMAIN_COLORS}
+          showOwnership={false}
+          reserved={NEITHER}
+          fmtPrice={(cents) => `$${cents / 100}`}
+          resolveRowPrinting={() => ({
+            printing: undefined,
+            price: undefined,
+            hoverPrintingId: null,
+          })}
+          onCardClick={onCardClick}
+        />
+      </DndContext>,
+    );
+  }
+
+  it("announces a clickable row as a plain button without keyboard drag instructions", () => {
+    renderDraggable(() => {});
+
+    const row = screen.getByRole("button", { name: "View details for Jinx" });
+    expect(row).not.toHaveAttribute("aria-roledescription");
+    expect(row).not.toHaveAccessibleDescription();
+  });
+
+  it("takes no tab stop when the row only drags", () => {
+    renderDraggable();
+
+    expect(screen.queryByRole("button")).toBeNull();
   });
 });

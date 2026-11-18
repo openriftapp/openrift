@@ -3,13 +3,27 @@ import type {
   AdminPrintingImageResponse,
   AdminPrintingResponse,
 } from "@openrift/shared/types/api/admin";
-import { render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { RunWrite } from "@/features/admin/lib/run-write";
 import type { FaceSuggestionModel } from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import {
+  resetWorkspaceWriteQueue,
+  workspaceWriteQueue,
+} from "@/features/catalog-workspace/lib/workspace-write-queue";
 
-const state = vi.hoisted(() => ({ editingImageIds: [] as string[] }));
+const state = vi.hoisted(() => ({
+  editingImageIds: [] as string[],
+  rotate: {
+    mutate: vi.fn(),
+    mutateAsync: vi.fn(async (..._args: unknown[]) => {}),
+    isPending: false,
+  },
+  straightenRunWrite: [] as unknown[],
+}));
 
 vi.mock("@/components/ui/dropdown-menu", () => ({
   DropdownMenu: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
@@ -35,11 +49,17 @@ vi.mock("@/features/admin/components/card-detail-shared", () => ({
 }));
 
 vi.mock("@/features/admin/components/printing-image-switcher", () => ({
-  PrintingImageSwitcher: () => null,
+  PrintingImageSwitcher: ({ runWrite }: { runWrite?: unknown }) => {
+    state.straightenRunWrite.push(runWrite);
+    return null;
+  },
 }));
 
 vi.mock("@/features/admin/components/straighten-image-dialog", () => ({
-  StraightenImageDialog: () => null,
+  StraightenImageDialog: ({ runWrite }: { runWrite?: unknown }) => {
+    state.straightenRunWrite.push(runWrite);
+    return null;
+  },
 }));
 
 vi.mock("@/features/admin/hooks/use-printing-desk", () => ({
@@ -57,7 +77,7 @@ vi.mock("@/features/admin/hooks/use-admin-image-mutations", () => {
     useDeletePrintingImage: idle,
     useImageEditPending: (imageId: string) => state.editingImageIds.includes(imageId),
     useRehostPrintingImage: idle,
-    useRotatePrintingImage: idle,
+    useRotatePrintingImage: () => state.rotate,
     useSetCandidatePrintingImage: idle,
     useSetPrintingImageNeedsTrim: idle,
     useUploadPrintingImage: idle,
@@ -88,27 +108,31 @@ const inactive = {
   quad: null,
 } as unknown as AdminPrintingImageResponse;
 
+const queryClient = new QueryClient();
+
 function renderSection() {
   return render(
-    <FaceImagesSection
-      cardSlug="jinx-loose-cannon"
-      face={face}
-      detail={
-        { printings: [face], printingImages: [inactive] } as unknown as AdminCardDetailResponse
-      }
-      model={{ printings: [face], images: [inactive] } as unknown as FaceSuggestionModel}
-      providerSettings={[]}
-      isAdmin={false}
-      chips={[]}
-      hotkeyOf={() => undefined}
-      discardLabelOf={() => "Discard"}
-      pending={false}
-      onUse={vi.fn()}
-      onDiscard={vi.fn()}
-      onReject={vi.fn()}
-      onReply={vi.fn()}
-      landscape={false}
-    />,
+    <QueryClientProvider client={queryClient}>
+      <FaceImagesSection
+        cardSlug="jinx-loose-cannon"
+        face={face}
+        detail={
+          { printings: [face], printingImages: [inactive] } as unknown as AdminCardDetailResponse
+        }
+        model={{ printings: [face], images: [inactive] } as unknown as FaceSuggestionModel}
+        providerSettings={[]}
+        isAdmin={false}
+        chips={[]}
+        hotkeyOf={() => undefined}
+        discardLabelOf={() => "Discard"}
+        pending={false}
+        onUse={vi.fn()}
+        onDiscard={vi.fn()}
+        onReject={vi.fn()}
+        onReply={vi.fn()}
+        landscape={false}
+      />
+    </QueryClientProvider>,
   );
 }
 
@@ -116,6 +140,70 @@ const EDITS = [/^Rotate left/u, /^Rotate right/u, /^Straighten/u, /^Turn auto-tr
 
 beforeEach(() => {
   state.editingImageIds = [];
+  state.rotate.mutateAsync.mockClear();
+  state.straightenRunWrite = [];
+});
+
+afterEach(() => {
+  resetWorkspaceWriteQueue();
+});
+
+describe("FaceImagesSection writes", () => {
+  it("rotates an image only after the workspace write queued before it settles", async () => {
+    const gate = { open: () => {} };
+    const earlier = workspaceWriteQueue().enqueue(
+      null,
+      () =>
+        new Promise<void>((resolve) => {
+          gate.open = resolve;
+        }),
+      { queryClient },
+    );
+    renderSection();
+
+    fireEvent.click(screen.getByRole("button", { name: /^Rotate left/u }));
+    await Promise.resolve();
+    expect(state.rotate.mutateAsync).not.toHaveBeenCalled();
+    gate.open();
+    await earlier;
+
+    await vi.waitFor(() => expect(state.rotate.mutateAsync).toHaveBeenCalledOnce());
+    expect(state.rotate.mutateAsync).toHaveBeenCalledWith(
+      { imageId: "img-2", rotation: 270 },
+      { signal: expect.any(AbortSignal) },
+    );
+  });
+
+  it("hands the image switcher and straighten dialogs a runWrite that queues behind earlier writes", async () => {
+    const gate = { open: () => {} };
+    const earlier = workspaceWriteQueue().enqueue(
+      null,
+      () =>
+        new Promise<void>((resolve) => {
+          gate.open = resolve;
+        }),
+      { queryClient },
+    );
+    renderSection();
+
+    const runWrites = state.straightenRunWrite as RunWrite[];
+    expect(runWrites.length).toBeGreaterThanOrEqual(2);
+    const calls = runWrites.map((runWrite) => {
+      const write = vi.fn(async (_signal?: AbortSignal) => {});
+      return { write, landed: runWrite(write) };
+    });
+    await Promise.resolve();
+    for (const { write } of calls) {
+      expect(write).not.toHaveBeenCalled();
+    }
+    gate.open();
+    await earlier;
+
+    for (const { write, landed } of calls) {
+      await expect(landed).resolves.toBe(true);
+      expect(write).toHaveBeenCalledWith(expect.any(AbortSignal));
+    }
+  });
 });
 
 describe("FaceImagesSection inactive image edits", () => {

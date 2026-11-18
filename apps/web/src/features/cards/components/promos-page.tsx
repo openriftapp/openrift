@@ -10,7 +10,7 @@ import { PackageIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { PageHero } from "@/components/layout/page-hero";
-import { PageToc } from "@/components/layout/page-toc";
+import { PageToc, PageTocProvider } from "@/components/layout/page-toc";
 import { TextLink } from "@/components/ui/text-link";
 import { Toggle } from "@/components/ui/toggle";
 import {
@@ -78,7 +78,9 @@ export function PromosPage() {
     <ViewSurfaceProvider value="promos">
       <FilterSearchProvider value={{ ...search, view: "printings" }}>
         <CatalogLanguagesContext value={[...(search.languages ?? []), language]}>
-          <PromosBrowser />
+          <PageTocProvider>
+            <PromosBrowser />
+          </PageTocProvider>
         </CatalogLanguagesContext>
       </FilterSearchProvider>
     </ViewSurfaceProvider>

@@ -90,8 +90,10 @@ export function ListPage({ listId }: ListPageProps) {
     });
   };
 
+  const stepPending = (entryId: string) => entryWritePending(entryId, { countSteps: false });
+
   const handleRemoveEntry = (entryId: string, cardName: string) => {
-    if (entryWritePending(entryId)) {
+    if (stepPending(entryId)) {
       return;
     }
     removeEntry.mutate(
@@ -101,8 +103,6 @@ export function ListPage({ listId }: ListPageProps) {
       },
     );
   };
-
-  const stepPending = (entryId: string) => entryWritePending(entryId, { countSteps: false });
 
   const handleQuantityStep = (entryId: string, quantityDelta: number) => {
     if (stepPending(entryId)) {
@@ -272,6 +272,7 @@ export function ListPage({ listId }: ListPageProps) {
       kind={data.list.kind}
       currentRules={data.list.rules}
       currentRuleCombine={data.list.ruleCombine}
+      currentRulesVersion={data.list.rulesVersion}
       open
       onOpenChange={setRuleOpen}
     />

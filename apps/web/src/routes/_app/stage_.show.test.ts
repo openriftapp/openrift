@@ -1,3 +1,4 @@
+import { onlineManager } from "@tanstack/react-query";
 import { isNotFound, isRedirect } from "@tanstack/react-router";
 import { describe, expect, it, vi } from "vitest";
 
@@ -136,6 +137,22 @@ describe("/stage/show owned tier-list loader", () => {
         staleTime: 0,
       }),
     );
+  });
+
+  it("takes the cached list while offline", async () => {
+    onlineManager.setOnline(false);
+    try {
+      const { query, result } = runLoader(Promise.resolve({ id: "list-1", tiers: [] }));
+      await expect(result).resolves.toBeNull();
+      expect(query).toHaveBeenCalledWith(
+        expect.objectContaining({
+          queryKey: ["tier-lists", "user-1", "list-1"],
+          staleTime: "static",
+        }),
+      );
+    } finally {
+      onlineManager.setOnline(true);
+    }
   });
 
   it("does not let a hover preload stand in for the fetch on entry", () => {

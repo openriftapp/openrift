@@ -9,6 +9,7 @@ import {
   useDeleteMetaEventSource,
 } from "@/features/admin/hooks/use-admin-meta";
 import { sourceProviderDisplay } from "@/features/admin/lib/meta-source-review";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 /** No provider field: a citation is keyed by (provider, external_id) and owned by its candidate's link. */
 export function MetaEventSourcesEditor({ eventId }: { eventId: string }) {
@@ -32,7 +33,7 @@ export function MetaEventSourcesEditor({ eventId }: { eventId: string }) {
       labelPlaceholder="Twitch VOD"
       creating={createSource.isPending}
       deleting={deleteSource.isPending}
-      onAdd={(input) => createSource.mutateAsync({ eventId, ...input })}
+      onAdd={(input) => runReportedMutation(() => createSource.mutateAsync({ eventId, ...input }))}
       onDelete={(sourceId) => deleteSource.mutate({ eventId, sourceId })}
       renderBadge={(citation) =>
         citation.provider === null ? null : (

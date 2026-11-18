@@ -56,11 +56,57 @@ describe("MoveSubmissionDialog", () => {
     await user.click(await screen.findByRole("button", { name: "Pick Brush" }));
     await user.click(screen.getByRole("button", { name: "Move" }));
 
-    expect(captured.move).toHaveBeenCalledWith({ candidateCardId: "cand-1", cardId: "card-9" });
+    expect(captured.move).toHaveBeenCalledWith(
+      { candidateCardId: "cand-1", cardId: "card-9" },
+      { signal: undefined },
+    );
     expect(onOpenChange).toHaveBeenCalledWith(false);
     expect(captured.navigate).toHaveBeenCalledWith({
       to: "/admin/cards/$cardSlug",
       params: { cardSlug: "brush" },
     });
+  });
+
+  it("hands the move to runWrite, which passes its signal into the mutation", async () => {
+    const user = userEvent.setup();
+    const { signal } = new AbortController();
+    const runWrite = vi.fn((write: (signal?: AbortSignal) => Promise<unknown>) =>
+      write(signal).then(() => true),
+    );
+    render(
+      <MoveSubmissionDialog
+        candidateCardId="cand-1"
+        submitterName="Renata"
+        onOpenChange={vi.fn()}
+        runWrite={runWrite}
+      />,
+    );
+    await user.click(await screen.findByRole("button", { name: "Pick Brush" }));
+    await user.click(screen.getByRole("button", { name: "Move" }));
+
+    expect(runWrite).toHaveBeenCalledOnce();
+    expect(captured.move).toHaveBeenCalledWith(
+      { candidateCardId: "cand-1", cardId: "card-9" },
+      { signal },
+    );
+  });
+
+  it("stays open when runWrite reports the move failed", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    render(
+      <MoveSubmissionDialog
+        candidateCardId="cand-1"
+        submitterName="Renata"
+        onOpenChange={onOpenChange}
+        runWrite={() => Promise.resolve(false)}
+      />,
+    );
+    await user.click(await screen.findByRole("button", { name: "Pick Brush" }));
+    await user.click(screen.getByRole("button", { name: "Move" }));
+
+    expect(captured.move).not.toHaveBeenCalled();
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(captured.navigate).not.toHaveBeenCalled();
   });
 });

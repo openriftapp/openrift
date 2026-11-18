@@ -102,12 +102,13 @@ describe("combinedUndo", () => {
     };
     const entry = combinedUndo({ label: "both", undoneLabel: "both back" }, [first, second]);
 
-    await entry.undo();
+    const { signal } = new AbortController();
+    await entry.undo(signal);
 
     expect(entry.label).toBe("both");
     expect(entry.invalidates).toEqual([["x"], ["y"]]);
-    expect(first.undo).toHaveBeenCalledOnce();
-    expect(second.undo).toHaveBeenCalledOnce();
+    expect(first.undo).toHaveBeenCalledWith(signal);
+    expect(second.undo).toHaveBeenCalledWith(signal);
   });
 });
 

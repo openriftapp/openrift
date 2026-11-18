@@ -47,6 +47,17 @@ describe("buildSearchEmbed", () => {
     );
   });
 
+  it("drops the page link when the encoded query exceeds the embed URL limit", () => {
+    const embed = buildSearchEmbed({
+      query: "é".repeat(500),
+      response: response(12, ["Garen"]),
+      siteUrl: SITE,
+    });
+    expect(embed.url).toBeUndefined();
+    expect(embed.description).toContain("11 more on OpenRift");
+    expect(embed.description).not.toContain("/cards?q=");
+  });
+
   it("names a legend the way players do", () => {
     const legend = response(1, ["Emperor of the Sands"]);
     legend.cards.c0 = {
@@ -75,7 +86,7 @@ describe("buildSearchEmbed", () => {
     expect(embed.footer).toEqual({ text: 'Invalid expression "cost:3" was ignored.' });
   });
 
-  it("keeps a long query inside Discord's embed limits and the full query in the link", () => {
+  it("keeps a long query inside Discord's embed limits", () => {
     const query = `name:${"a".repeat(5000)}`;
     const embed = buildSearchEmbed({
       query,
@@ -85,7 +96,7 @@ describe("buildSearchEmbed", () => {
 
     expect(embed.title?.length).toBeLessThanOrEqual(256);
     expect(embed.title?.endsWith("…")).toBe(true);
-    expect(embed.url).toBe(searchPageUrl(SITE, query));
+    expect(embed.url).toBeUndefined();
     expect(embed.description?.length).toBeLessThanOrEqual(4096);
     expect(embed.description?.endsWith("11 more on OpenRift")).toBe(true);
     expect(embed.footer?.text.length).toBeLessThanOrEqual(2048);

@@ -6,6 +6,7 @@ import type {
   MetaOverlayReviewResult,
   MetaOverlayRowMatch,
 } from "@openrift/shared/types/api/meta";
+import type { MetaPlayerOverlayField } from "@openrift/shared/types/enums";
 import { META_EVENT_OVERLAY_FIELDS } from "@openrift/shared/types/enums";
 import { implement } from "@orpc/server";
 
@@ -120,13 +121,12 @@ function display(value: unknown): string | null {
  */
 function eventChanges(
   overlay: MetaEventOverlayRow,
-  live: Record<string, unknown> | null,
+  live: MetaEventWithCounts | null,
 ): MetaOverlayQueueRow["changes"] {
-  const values = overlay as unknown as Record<string, unknown>;
   return overlay.claimedFields.map((field) => ({
     field,
     from: display(live?.[field] ?? null),
-    to: display(values[field] ?? null),
+    to: display(overlay[field] ?? null),
   }));
 }
 
@@ -134,10 +134,9 @@ const CARD_ID_FIELDS = ["legendCardId", "championCardId"] as const;
 
 function playerChanges(
   overlay: MetaPlayerOverlayRow,
-  live: Record<string, unknown> | null,
+  live: Partial<Record<MetaPlayerOverlayField, unknown>> | null,
   cardNames: ReadonlyMap<string, string>,
 ): MetaOverlayQueueRow["changes"] {
-  const values = overlay as unknown as Record<string, unknown>;
   const show = (field: string, value: unknown): string | null => {
     const text = display(value);
     if (text === null || !(CARD_ID_FIELDS as readonly string[]).includes(field)) {
@@ -146,19 +145,21 @@ function playerChanges(
     return cardNames.get(text) ?? text;
   };
   return overlay.claimedFields
-    .filter((field) => field !== "cards")
+    .filter((field): field is Exclude<MetaPlayerOverlayField, "cards"> => field !== "cards")
     .map((field) => ({
       field,
       from: show(field, live?.[field] ?? null),
-      to: show(field, values[field] ?? null),
+      to: show(field, overlay[field] ?? null),
     }));
 }
 
-function cardIdsInChanges(rows: readonly (object | null | undefined)[]): string[] {
+function cardIdsInChanges(
+  rows: readonly (Partial<Record<(typeof CARD_ID_FIELDS)[number], unknown>> | null | undefined)[],
+): string[] {
   return rows.flatMap((row) =>
     row === null || row === undefined
       ? []
-      : CARD_ID_FIELDS.map((field) => (row as Record<string, unknown>)[field]).filter(
+      : CARD_ID_FIELDS.map((field) => row[field]).filter(
           (id): id is string => typeof id === "string",
         ),
   );
@@ -204,7 +205,7 @@ function eventQueueRow(
     match: null,
     submittedBy: overlay.submittedByUserId,
     submissionNote: overlay.submissionNote,
-    changes: eventChanges(overlay, (live ?? null) as Record<string, unknown> | null),
+    changes: eventChanges(overlay, live),
     cards: [],
     unresolvedNames: [],
     createdAt: overlay.createdAt.toISOString(),
@@ -318,7 +319,7 @@ async function queueRows(
       ),
       submittedBy: overlay.submittedByUserId,
       submissionNote: overlay.submissionNote,
-      changes: playerChanges(overlay, (live ?? null) as Record<string, unknown> | null, cardNames),
+      changes: playerChanges(overlay, live, cardNames),
       cards: toMetaOverlayCardRows(cards),
       unresolvedNames: unresolvedNames(cards),
       createdAt: overlay.createdAt.toISOString(),
@@ -425,7 +426,6 @@ export const adminMetaCandidatesRouter = os.router({
       );
     }
 
-    const liveValues = live as unknown as Record<string, unknown>;
     return {
       metaEventId: input.id,
       sources: sources.map((source) => ({
@@ -437,7 +437,7 @@ export const adminMetaCandidatesRouter = os.router({
         hasMirror: source.provider !== null && MIRROR_PROVIDERS.has(source.provider),
       })),
       fields: META_EVENT_OVERLAY_FIELDS.map((field) => {
-        const liveValue = display(liveValues[field] ?? null);
+        const liveValue = display(live[field] ?? null);
         const bySource = perSource.map((facts) => ({
           value: display(facts?.values[field] ?? null),
           raw: facts?.raw[field] ?? null,

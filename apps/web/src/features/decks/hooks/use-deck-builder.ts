@@ -195,6 +195,20 @@ export function addCardAction(
   const preferredPrintingId = card.preferredPrintingId;
   const freeform = format === WellKnown.deckFormat.FREEFORM;
 
+  if (!isSingleSlotZone(zone) || freeform) {
+    const held = collection.get(deckCardKey({ cardId: card.cardId, zone, preferredPrintingId }));
+    if (held && held.quantity >= MAX_DECK_CARD_QUANTITY) {
+      return {
+        rule: "rowCap",
+        card,
+        zone,
+        quantity: 0,
+        total: held.quantity,
+        limit: MAX_DECK_CARD_QUANTITY,
+      };
+    }
+  }
+
   if (isSingleSlotZone(zone)) {
     if (freeform) {
       incrementOrInsert(collection, card, zone, preferredPrintingId, count ?? 1);

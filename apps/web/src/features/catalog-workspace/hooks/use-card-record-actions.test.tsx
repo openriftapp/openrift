@@ -127,33 +127,39 @@ function latest() {
   return useWorkspaceSelectionStore.getState().undoStack.at(-1);
 }
 
+const { signal } = new AbortController();
+
 describe("useCardRecordActions", () => {
   it("Use writes the source value and pushes an undo that restores the old one", async () => {
     const { result } = setup([source({ might: 3 })]);
 
     act(() => {
-      void result.current.actions.useSuggestion?.(1);
+      void result.current.actions.useSuggestion?.(signal, 1);
     });
 
-    expect(mutations.acceptCardField.mutateAsync).toHaveBeenCalledWith({
-      cardId: card.id,
-      field: "might",
-      value: 3,
-      source: "provider",
-    });
+    expect(mutations.acceptCardField.mutateAsync).toHaveBeenCalledWith(
+      {
+        cardId: card.id,
+        field: "might",
+        value: 3,
+        source: "provider",
+      },
+      { signal: expect.any(AbortSignal) },
+    );
     await vi.waitFor(() => expect(latest()).toBeDefined());
     expect(latest()?.label).toBe("Used Might from scans on Jinx, Demolitionist");
     expect(latest()?.undoneLabel).toBe("Undone: Might restored on Jinx, Demolitionist");
-    await latest()?.undo();
+    await latest()?.undo(signal);
     expect(serverFns.acceptCardField).toHaveBeenCalledWith({
-      data: { cardId: card.id, field: "might", value: 4, source: "manual" },
+      data: { cardId: card.id, field: "might", value: 4, source: "manual", expected: 3 },
+      signal,
     });
   });
 
   it("toast Undo removes its own entry, not the newest, and runs once", async () => {
     const { result } = setup([source({ might: 3 })]);
     act(() => {
-      void result.current.actions.useSuggestion?.(1);
+      void result.current.actions.useSuggestion?.(signal, 1);
     });
     await vi.waitFor(() => expect(toast.success).toHaveBeenCalled());
     const [[, options]] = vi.mocked(toast.success).mock.calls.slice(-1) as unknown as [
@@ -222,11 +228,14 @@ describe("useCardRecordActions", () => {
     }
     await act(() => result.current.discardSuggestion(first));
 
-    expect(mutations.check.mutateAsync).toHaveBeenCalledWith(row.id);
+    expect(mutations.check.mutateAsync).toHaveBeenCalledWith(row.id, {
+      signal: expect.any(AbortSignal),
+    });
     expect(latest()?.label).toBe("Discarded 2 suggestions on Jinx, Demolitionist");
-    await latest()?.undo();
+    await latest()?.undo(signal);
     expect(serverFns.uncheckCandidateCards).toHaveBeenCalledWith({
       data: { candidateCardIds: [row.id] },
+      signal,
     });
   });
 
@@ -237,19 +246,22 @@ describe("useCardRecordActions", () => {
 
     expect(result.current.actions.primary?.label).toBe("Discard 1 & next");
     expect(result.current.actions.primary?.disabled).toBe(false);
-    await act(() => result.current.actions.primary?.run());
+    await act(() => result.current.actions.primary?.run(signal));
 
     expect(mutations.checkMany.mutateAsync).toHaveBeenCalledOnce();
-    expect(mutations.checkMany.mutateAsync).toHaveBeenCalledWith({
-      cardId: card.id,
-      candidateCardIds: [changed.id, quiet.id],
-    });
+    expect(mutations.checkMany.mutateAsync).toHaveBeenCalledWith(
+      {
+        cardId: card.id,
+        candidateCardIds: [changed.id, quiet.id],
+      },
+      { signal: expect.any(AbortSignal) },
+    );
     expect(mutations.check.mutateAsync).not.toHaveBeenCalled();
     expect(useWorkspaceSelectionStore.getState().undoStack).toHaveLength(1);
     expect(latest()?.label).toBe("Discarded 1 suggestion on Jinx, Demolitionist");
-    await latest()?.undo();
+    await latest()?.undo(signal);
     expect(serverFns.uncheckCandidateCards.mock.calls).toEqual([
-      [{ data: { candidateCardIds: [changed.id, quiet.id] } }],
+      [{ data: { candidateCardIds: [changed.id, quiet.id] }, signal }],
     ]);
   });
 
@@ -258,7 +270,7 @@ describe("useCardRecordActions", () => {
     mutations.checkMany.mutateAsync.mockRejectedValueOnce(new Error("offline"));
 
     await act(async () => {
-      await expect(result.current.actions.primary?.run()).rejects.toThrow("offline");
+      await expect(result.current.actions.primary?.run(signal)).rejects.toThrow("offline");
     });
 
     expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([]);
@@ -288,7 +300,7 @@ describe("useCardRecordActions", () => {
     const { result } = setup([source({ might: 3 })], false);
 
     expect(result.current.actions.primary?.label).toBe("Next");
-    await act(() => result.current.actions.primary?.run());
+    await act(() => result.current.actions.primary?.run(signal));
     expect(mutations.checkMany.mutateAsync).not.toHaveBeenCalled();
 
     const model = buildCardSuggestions(
@@ -314,7 +326,7 @@ describe("useCardRecordActions", () => {
     const { result } = setup([submission]);
 
     act(() => {
-      void result.current.actions.useSuggestion?.(1);
+      void result.current.actions.useSuggestion?.(signal, 1);
     });
 
     expect(mutations.acceptSubmission.mutateAsync).toHaveBeenCalledWith(
@@ -322,6 +334,7 @@ describe("useCardRecordActions", () => {
         candidateCardId: "sub-1",
         cardFields: [{ field: "might", value: 2 }],
       }),
+      { signal: expect.any(AbortSignal) },
     );
     expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([]);
   });
@@ -329,7 +342,7 @@ describe("useCardRecordActions", () => {
   it("ignores a hotkey with no suggestion", () => {
     const { result } = setup([source()]);
     act(() => {
-      void result.current.actions.useSuggestion?.(4);
+      void result.current.actions.useSuggestion?.(signal, 4);
     });
     expect(mutations.acceptCardField.mutateAsync).not.toHaveBeenCalled();
   });

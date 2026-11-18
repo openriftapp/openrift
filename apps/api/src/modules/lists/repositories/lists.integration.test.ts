@@ -209,7 +209,7 @@ describe.skipIf(!ctx)("listsRepo (integration)", () => {
     });
     createdListIds.push(list.id);
     const updated = await repo.update(list.id, userId, { name: "After" });
-    expect(updated?.name).toBe("After");
+    expect(updated.outcome === "updated" && updated.row.name).toBe("After");
   });
 
   it("deletes a list", async () => {

@@ -27,20 +27,19 @@ export function DeckDomainBar({
     <div className="flex h-1.5 w-full overflow-hidden rounded-full">
       {segments.map((segment) => {
         const percent = ((segment.count / total) * 100).toFixed(1);
+        const segmentLabel = `${enumLabel(labels.domains, segment.domain)}: ${segment.count}`;
         return (
           <Tooltip key={segment.domain}>
             {/* Base UI's default trigger is a button; these were unlabelled tab stops, several per deck. */}
             <TooltipTrigger
-              render={<span />}
+              render={<span role="img" aria-label={segmentLabel} />}
               className="h-full"
               style={{
                 flexBasis: `${percent}%`,
                 backgroundColor: getDomainColor(segment.domain, domainColors),
               }}
             />
-            <TooltipContent side="bottom">
-              {enumLabel(labels.domains, segment.domain)}: {segment.count}
-            </TooltipContent>
+            <TooltipContent side="bottom">{segmentLabel}</TooltipContent>
           </Tooltip>
         );
       })}

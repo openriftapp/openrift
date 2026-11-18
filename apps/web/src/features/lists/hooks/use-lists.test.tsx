@@ -42,6 +42,7 @@ const {
   useDropFromListRules,
   useRemoveListEntry,
   useReorderLists,
+  useSaveListRules,
   useSetListSidebarHidden,
   useUpdateList,
   useUpdateListEntry,
@@ -98,7 +99,7 @@ const LIST: ListResponse = {
 const SECOND_LIST: ListResponse = { ...LIST, id: "lst-2", name: "Haves", intent: "trade" };
 
 const DETAIL: ListDetailResponse = {
-  list: { ...LIST, rules: [], ruleCombine: null },
+  list: { ...LIST, rules: [], ruleCombine: null, rulesVersion: 0 },
   entries: [
     {
       kind: "card",
@@ -155,6 +156,62 @@ describe("useUpdateList", () => {
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: ["lists", "test-user-id", "lst-1"],
     });
+  });
+});
+
+describe("useSaveListRules", () => {
+  it("sends the expected rules version and resolves saved", async () => {
+    const fetchMock = stubFetchJson(LIST);
+    const { client } = makeClient();
+    const { result } = renderHook(() => useSaveListRules(), { wrapper: wrap(client) });
+
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.mutateAsync({
+        listId: "lst-1",
+        rules: [],
+        ruleCombine: null,
+        expectedRulesVersion: 3,
+      });
+    });
+
+    expect(outcome).toEqual({ outcome: "saved" });
+    const sent = fetchMock.mock.calls[0]![0] as Request;
+    expect(await sent.json()).toMatchObject({ expectedRulesVersion: 3 });
+  });
+
+  it("resolves stale with the stored rules and refetches the list", async () => {
+    const stored = { rules: [], ruleCombine: "max", rulesVersion: 5 };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValueOnce(
+        Response.json(
+          {
+            defined: true,
+            code: "PRECONDITION_FAILED",
+            status: 412,
+            message: "The list's rules changed since this version",
+            data: stored,
+          },
+          { status: 412 },
+        ),
+      ),
+    );
+    const { client, invalidateSpy } = makeClient();
+    const { result } = renderHook(() => useSaveListRules(), { wrapper: wrap(client) });
+
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.mutateAsync({
+        listId: "lst-1",
+        rules: [],
+        ruleCombine: null,
+        expectedRulesVersion: 3,
+      });
+    });
+
+    expect(outcome).toEqual({ outcome: "stale", ...stored });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["lists", "test-user-id", "lst-1"] });
   });
 });
 
@@ -370,6 +427,44 @@ describe("entry writes on one list", () => {
     await act(async () => {
       answers[0]!(Response.json(ENTRY));
       await step;
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["lists", "test-user-id", "lst-1"] });
+  });
+
+  it("a remove of an entry with a step in flight reaches the server after the step", async () => {
+    const answers = deferredFetch();
+    const { client, invalidateSpy } = makeClient();
+    const { result } = renderWrites(client);
+
+    let step: Promise<unknown> = Promise.resolve();
+    let remove: Promise<unknown> = Promise.resolve();
+    act(() => {
+      step = result.current.update.mutateAsync({
+        listId: "lst-1",
+        entryId: "le-1",
+        quantityDelta: -1,
+      });
+    });
+    await waitFor(() => expect(answers).toHaveLength(1));
+    act(() => {
+      remove = result.current.remove.mutateAsync({ listId: "lst-1", entryId: "le-1" });
+    });
+    await waitFor(() => expect(result.current.remove.isPending).toBe(true));
+    expect(answers).toHaveLength(1);
+
+    await act(async () => {
+      answers[0]!(Response.json(ENTRY));
+      await step;
+    });
+    expect(invalidateSpy).not.toHaveBeenCalled();
+    await waitFor(() => expect(answers).toHaveLength(2));
+    const sent = vi.mocked(fetch).mock.calls[1]![0] as Request;
+    expect(sent.method).toBe("DELETE");
+    expect(sent.url).toContain("/entries/le-1");
+
+    await act(async () => {
+      answers[1]!(new Response(null, { status: 204 }));
+      await remove;
     });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["lists", "test-user-id", "lst-1"] });
   });

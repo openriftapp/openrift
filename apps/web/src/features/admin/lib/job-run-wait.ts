@@ -4,13 +4,12 @@ import type { JobRunView } from "@openrift/shared/contracts/admin/job-runs";
 const POLL_INTERVAL_MS = 2000;
 const MAX_POLLS = 900;
 
-/** The finished run, `null` when it is no longer listed, or "aborted" once the signal fired. */
+/** The finished run, `null` when it no longer exists, or "aborted" once the signal fired. */
 export type JobRunWait = JobRunView | null | "aborted";
 
 /** Polls until the run leaves `running`, for at most 30 minutes, and stops once `signal` aborts. */
 export async function waitForJobRun(
-  runId: string,
-  listRuns: () => Promise<JobRunView[]>,
+  getRun: () => Promise<JobRunView | null>,
   wait: (ms: number) => Promise<void> = sleep,
   pollsLeft = MAX_POLLS,
   signal?: AbortSignal,
@@ -22,15 +21,11 @@ export async function waitForJobRun(
   if (signal?.aborted === true) {
     return "aborted";
   }
-  const runs = await listRuns();
-  const run = runs.find((candidate) => candidate.id === runId);
-  if (run === undefined) {
-    return null;
-  }
-  if (run.status !== "running") {
+  const run = await getRun();
+  if (run === null || run.status !== "running") {
     return run;
   }
-  return waitForJobRun(runId, listRuns, wait, pollsLeft - 1, signal);
+  return waitForJobRun(getRun, wait, pollsLeft - 1, signal);
 }
 
 /** The run's counts, or `null` when the wait was aborted. */

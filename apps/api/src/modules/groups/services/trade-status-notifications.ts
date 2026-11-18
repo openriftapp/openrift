@@ -29,7 +29,9 @@ export interface TradeStatusFlushResult {
 }
 
 export function isTradeStatusFlushNoop(result: TradeStatusFlushResult): boolean {
-  return result.pairs === 0 && result.emailsSent === 0 && result.events === 0;
+  return (
+    result.pairs === 0 && result.emailsSent === 0 && result.events === 0 && result.failed === 0
+  );
 }
 
 function idsByMarker(rows: readonly QueuedStatusEmailRow[]): {
@@ -99,105 +101,117 @@ export async function flushTradeStatusEmails(
   let eventsDropped = 0;
 
   for (const rows of byPair.values()) {
-    const [firstRow] = rows;
-    if (!firstRow) {
-      continue;
-    }
-    const { recipientUserId, actorUserId } = firstRow;
+    try {
+      const [firstRow] = rows;
+      if (!firstRow) {
+        continue;
+      }
+      const { recipientUserId, actorUserId } = firstRow;
 
-    if (!contextByUser.has(recipientUserId)) {
-      contextByUser.set(
-        recipientUserId,
-        await repos.userPreferences.getEmailNotificationContext(recipientUserId),
-      );
-    }
-    const context = contextByUser.get(recipientUserId);
-    if (
-      context === undefined ||
-      !context.emailVerified ||
-      !isTradeStatusEmailEnabled(context.emailNotifications)
-    ) {
-      await claimPair(repos, rows);
-      continue;
-    }
+      if (!contextByUser.has(recipientUserId)) {
+        contextByUser.set(
+          recipientUserId,
+          await repos.userPreferences.getEmailNotificationContext(recipientUserId),
+        );
+      }
+      const context = contextByUser.get(recipientUserId);
+      if (
+        context === undefined ||
+        !context.emailVerified ||
+        !isTradeStatusEmailEnabled(context.emailNotifications)
+      ) {
+        await claimPair(repos, rows);
+        continue;
+      }
 
-    const cadence = getTradeRequestEmailCadence(context.emailNotifications);
-    if (
-      !isRequestGroupDue(
-        cadence,
-        rows.map((row) => row.eventAt),
-        now,
-      )
-    ) {
-      continue;
-    }
-    pairs += 1;
+      const cadence = getTradeRequestEmailCadence(context.emailNotifications);
+      if (
+        !isRequestGroupDue(
+          cadence,
+          rows.map((row) => row.eventAt),
+          now,
+        )
+      ) {
+        continue;
+      }
+      pairs += 1;
 
-    const claimedIds = await claimPair(repos, rows);
-    const claimedRows = rows.filter((row) => claimedIds.has(row.id));
-    if (claimedRows.length === 0) {
-      continue;
-    }
+      const claimedIds = await claimPair(repos, rows);
+      const claimedRows = rows.filter((row) => claimedIds.has(row.id));
+      if (claimedRows.length === 0) {
+        continue;
+      }
 
-    let actorLabel: string | null | undefined;
-    const printingIds = new Set<string>();
-    for (const row of claimedRows) {
-      printingIds.add(row.printingId);
-      if (actorLabel === undefined) {
-        if (!labelsByGroup.has(row.groupId)) {
-          const members = await repos.friendGroups.listMembers(row.groupId);
-          const labels = new Map<string, string | null>();
-          for (const member of members) {
-            labels.set(member.userId, member.userName);
+      let actorLabel: string | null | undefined;
+      const printingIds = new Set<string>();
+      for (const row of claimedRows) {
+        printingIds.add(row.printingId);
+        if (actorLabel === undefined) {
+          if (!labelsByGroup.has(row.groupId)) {
+            const members = await repos.friendGroups.listMembers(row.groupId);
+            const labels = new Map<string, string | null>();
+            for (const member of members) {
+              labels.set(member.userId, member.userName);
+            }
+            labelsByGroup.set(row.groupId, labels);
           }
-          labelsByGroup.set(row.groupId, labels);
+          actorLabel = labelsByGroup.get(row.groupId)?.get(actorUserId) ?? null;
         }
-        actorLabel = labelsByGroup.get(row.groupId)?.get(actorUserId) ?? null;
       }
-    }
 
-    const nameByPrinting = await repos.catalog.printingNamesByIds([...printingIds]);
+      const nameByPrinting = await repos.catalog.printingNamesByIds([...printingIds]);
 
-    const sections: TradeStatusUpdateGroup[] = [];
-    const sectionByGroup = new Map<string, TradeStatusUpdateGroup>();
-    for (const row of claimedRows) {
-      let section = sectionByGroup.get(row.groupId);
-      if (section === undefined) {
-        section = {
-          groupName: row.groupName,
-          tradesUrl: appBaseUrl + groupPath(row.groupSlug, "trades"),
-          updates: [],
-        };
-        sectionByGroup.set(row.groupId, section);
-        sections.push(section);
+      const sections: TradeStatusUpdateGroup[] = [];
+      const sectionByGroup = new Map<string, TradeStatusUpdateGroup>();
+      for (const row of claimedRows) {
+        let section = sectionByGroup.get(row.groupId);
+        if (section === undefined) {
+          section = {
+            groupName: row.groupName,
+            tradesUrl: appBaseUrl + groupPath(row.groupSlug, "trades"),
+            updates: [],
+          };
+          sectionByGroup.set(row.groupId, section);
+          sections.push(section);
+        }
+        section.updates.push({
+          cardName: nameByPrinting.get(row.printingId) ?? null,
+          quantity: row.quantity,
+          event: row.event,
+        });
       }
-      section.updates.push({
-        cardName: nameByPrinting.get(row.printingId) ?? null,
-        quantity: row.quantity,
-        event: row.event,
-      });
-    }
 
-    const sent = await sendChannelEmail(
-      deps,
-      { userId: recipientUserId, email: context.email },
-      "tradeStatus",
-      ({ unsubscribeUrl }) =>
-        buildTradeStatusUpdateEmail({
-          locale: context.displayLocale,
-          recipientName: context.name,
-          actorName: actorLabel ?? null,
-          groups: sections,
-          unsubscribeUrl,
-        }),
-      { actorUserId },
-    );
-    if (sent) {
-      emailsSent += 1;
-      events += claimedRows.length;
-    } else {
+      const sent = await sendChannelEmail(
+        deps,
+        { userId: recipientUserId, email: context.email },
+        "tradeStatus",
+        ({ unsubscribeUrl }) =>
+          buildTradeStatusUpdateEmail({
+            locale: context.displayLocale,
+            recipientName: context.name,
+            actorName: actorLabel ?? null,
+            groups: sections,
+            unsubscribeUrl,
+          }),
+        { actorUserId },
+      );
+      if (sent) {
+        emailsSent += 1;
+        events += claimedRows.length;
+      } else {
+        failed += 1;
+        eventsDropped += claimedRows.length;
+      }
+    } catch (error) {
       failed += 1;
-      eventsDropped += claimedRows.length;
+      deps.log.error(
+        {
+          err: error,
+          recipientUserId: rows[0]?.recipientUserId,
+          actorUserId: rows[0]?.actorUserId,
+        },
+        "Failed to flush trade status emails for a pair",
+      );
     }
   }
 

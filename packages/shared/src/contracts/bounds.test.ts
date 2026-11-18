@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { META_MAX_PLAYERS } from "../meta-query.js";
 import { POSTGRES_INTEGER_MAX, POSTGRES_SMALLINT_MAX } from "../schemas.js";
 import { ignoreProductsInput } from "./admin/ignored-products.js";
 import { cardTradeSyncSchema, createCardTradeSchema } from "./card-trades.js";
@@ -7,7 +8,7 @@ import { updateCollectionSchema } from "./collections.js";
 import { MAX_DECK_CARD_ROWS } from "./decks.js";
 import { createLoanSchema, returnLoanCopiesSchema } from "./loans.js";
 import { metaSubmissionInputSchema } from "./meta-submissions.js";
-import { META_MAX_PLAYERS, metaDeckQuerySchema, metaEventFilterQuerySchema } from "./meta.js";
+import { metaDeckQuerySchema, metaEventFilterQuerySchema } from "./meta.js";
 import { encodeDeckInputSchema } from "./public-decks.js";
 import {
   generateRoundSchema,

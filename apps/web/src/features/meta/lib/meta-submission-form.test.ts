@@ -1,3 +1,5 @@
+import { META_MAX_PLAYERS } from "@openrift/shared/meta-query";
+import { POSTGRES_SMALLINT_MAX } from "@openrift/shared/schemas";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
 import { describe, expect, it } from "vitest";
@@ -250,6 +252,29 @@ describe("validateMetaSubmissionDraft", () => {
     ).toMatch(/whole numbers/iu);
   });
 
+  it("refuses a finish above the most players an event can hold", () => {
+    const options = { proposing: false, cardCount: 12 };
+    expect(
+      validateMetaSubmissionDraft({ ...readyDraft, rank: String(META_MAX_PLAYERS) }, options),
+    ).toBeNull();
+    expect(
+      validateMetaSubmissionDraft({ ...readyDraft, rank: String(META_MAX_PLAYERS + 1) }, options),
+    ).toMatch(/at most/iu);
+  });
+
+  it("refuses a win, loss, or draw count above what the archive stores", () => {
+    const options = { proposing: false, cardCount: 12 };
+    const tooMany = String(POSTGRES_SMALLINT_MAX + 1);
+    expect(
+      validateMetaSubmissionDraft({ ...readyDraft, wins: String(POSTGRES_SMALLINT_MAX) }, options),
+    ).toBeNull();
+    for (const field of ["wins", "losses", "draws"] as const) {
+      expect(validateMetaSubmissionDraft({ ...readyDraft, [field]: tooMany }, options)).toMatch(
+        /at most/iu,
+      );
+    }
+  });
+
   it("refuses half a record, which would display as nothing", () => {
     expect(
       validateMetaSubmissionDraft(
@@ -330,6 +355,28 @@ describe("validateMetaSubmissionDraft", () => {
         { proposing: true, cardCount: 4 },
       ),
     ).toMatch(/players/iu);
+  });
+
+  it("refuses a player count above the most an event can hold", () => {
+    const proposal = {
+      ...readyDraft,
+      eventName: "Summoner Skirmish",
+      eventDate: "2026-08-15",
+      eventFormat: "standard",
+    };
+    const options = { proposing: true, cardCount: 4 };
+    expect(
+      validateMetaSubmissionDraft(
+        { ...proposal, eventPlayerCount: String(META_MAX_PLAYERS) },
+        options,
+      ),
+    ).toBeNull();
+    expect(
+      validateMetaSubmissionDraft(
+        { ...proposal, eventPlayerCount: String(META_MAX_PLAYERS + 1) },
+        options,
+      ),
+    ).toMatch(/more players/iu);
   });
 });
 

@@ -32,6 +32,7 @@ describe("toList", () => {
       currency: null,
       rules: [],
       ruleCombine: null,
+      rulesVersion: 0,
       sortOrder: 0,
       isSidebarHidden: false,
       hasCardmarketSync: false,
@@ -70,6 +71,7 @@ describe("toList", () => {
       currency: null,
       rules: [],
       ruleCombine: null,
+      rulesVersion: 0,
       sortOrder: 0,
       isSidebarHidden: true,
       hasCardmarketSync: false,
@@ -94,6 +96,7 @@ describe("toList", () => {
       currency: null,
       rules: [],
       ruleCombine: null,
+      rulesVersion: 0,
       sortOrder: 0,
       isSidebarHidden: false,
       hasCardmarketSync: false,
@@ -121,6 +124,7 @@ describe("toList", () => {
       currency: "EUR",
       rules: [],
       ruleCombine: null,
+      rulesVersion: 0,
       sortOrder: 0,
       isSidebarHidden: false,
       hasCardmarketSync: false,
@@ -169,12 +173,14 @@ describe("toListDetail", () => {
       hasCardmarketSync: false,
       rules: storedRules as never,
       ruleCombine: null,
+      rulesVersion: 3,
     });
 
     expect(detail.rules[0]!.filter.presence).toEqual({});
     expect(detail.rules[0]!.filter.keywords).toEqual([]);
     expect(detail.rules[0]!.filter.keywordsExclude).toEqual([]);
     expect(detail.hasRule).toBe(true);
+    expect(detail.rulesVersion).toBe(3);
 
     const result = listDetailResponseSchema.safeParse({ list: detail, entries: [] });
     expect(result.success).toBe(true);
@@ -199,6 +205,7 @@ describe("toPublicList", () => {
       currency: null,
       rules: [],
       ruleCombine: null,
+      rulesVersion: 0,
       sortOrder: 0,
       isSidebarHidden: false,
       hasCardmarketSync: false,

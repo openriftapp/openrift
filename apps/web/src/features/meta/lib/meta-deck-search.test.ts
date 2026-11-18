@@ -1,4 +1,5 @@
-import { MAX_FACET_VALUES } from "@openrift/shared/meta-query";
+import { metaDeckQuerySchema } from "@openrift/shared/contracts/meta";
+import { MAX_FACET_VALUES, META_MAX_PLAYERS } from "@openrift/shared/meta-query";
 import { describe, expect, it } from "vitest";
 
 import { metaDeckSearchSchema, metaOverviewSearchSchema } from "./meta-deck-search";
@@ -25,6 +26,14 @@ describe("metaDeckSearchSchema", () => {
   it("drops a negative bound rather than failing the route", () => {
     expect(metaDeckSearchSchema.parse({ cost: -5 }).cost).toBeUndefined();
     expect(metaDeckSearchSchema.parse({ valueMin: -1 }).valueMin).toBeUndefined();
+  });
+
+  it("caps a finish bound above what the API accepts and drops one below first place", () => {
+    const capped = metaDeckSearchSchema.parse({ finish: 500_000 }).finish;
+    expect(capped).toBe(META_MAX_PLAYERS);
+    expect(metaDeckQuerySchema.safeParse({ maxRank: capped }).success).toBe(true);
+    expect(metaDeckSearchSchema.parse({ finish: 8 }).finish).toBe(8);
+    expect(metaDeckSearchSchema.parse({ finish: 0 }).finish).toBeUndefined();
   });
 
   it("drops a bound that is not a number", () => {

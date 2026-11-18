@@ -16,6 +16,6 @@ export async function readViewerDisplayLanguages(): Promise<readonly string[] | 
   if (init === null) {
     return null;
   }
-  const knownCodes = new Set((init.enums.languages ?? []).map((row) => row.slug));
+  const knownCodes = new Set(init.enums.languages.map((row) => row.slug));
   return viewerDisplayLanguages(cookieHeader, knownCodes);
 }

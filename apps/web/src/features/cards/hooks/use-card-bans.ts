@@ -45,18 +45,21 @@ const createCardBanFn = createServerFn({ method: "POST" })
 
 export function useCreateCardBan() {
   return useMutationWithInvalidation({
-    mutationFn: async ({
-      cardId,
-      formatId,
-      bannedAt,
-      reason,
-    }: {
-      cardId: string;
-      formatId: string;
-      bannedAt: string;
-      reason: string | null;
-    }) => {
-      await createCardBanFn({ data: { cardId, formatId, bannedAt, reason } });
+    mutationFn: async (
+      {
+        cardId,
+        formatId,
+        bannedAt,
+        reason,
+      }: {
+        cardId: string;
+        formatId: string;
+        bannedAt: string;
+        reason: string | null;
+      },
+      signal,
+    ) => {
+      await createCardBanFn({ data: { cardId, formatId, bannedAt, reason }, signal });
     },
     invalidates: [adminKeys.cardBans.prefix, catalogKeys.all],
   });
@@ -79,18 +82,21 @@ const updateCardBanFn = createServerFn({ method: "POST" })
 
 export function useUpdateCardBan() {
   return useMutationWithInvalidation({
-    mutationFn: async ({
-      cardId,
-      formatId,
-      bannedAt,
-      reason,
-    }: {
-      cardId: string;
-      formatId: string;
-      bannedAt?: string;
-      reason?: string | null;
-    }) => {
-      await updateCardBanFn({ data: { cardId, formatId, bannedAt, reason } });
+    mutationFn: async (
+      {
+        cardId,
+        formatId,
+        bannedAt,
+        reason,
+      }: {
+        cardId: string;
+        formatId: string;
+        bannedAt?: string;
+        reason?: string | null;
+      },
+      signal,
+    ) => {
+      await updateCardBanFn({ data: { cardId, formatId, bannedAt, reason }, signal });
     },
     invalidates: [adminKeys.cardBans.prefix, catalogKeys.all],
   });
@@ -108,8 +114,8 @@ const removeCardBanFn = createServerFn({ method: "POST" })
 
 export function useRemoveCardBan() {
   return useMutationWithInvalidation({
-    mutationFn: async ({ cardId, formatId }: { cardId: string; formatId: string }) => {
-      await removeCardBanFn({ data: { cardId, formatId } });
+    mutationFn: async ({ cardId, formatId }: { cardId: string; formatId: string }, signal) => {
+      await removeCardBanFn({ data: { cardId, formatId }, signal });
     },
     invalidates: [adminKeys.cardBans.prefix, catalogKeys.all],
   });

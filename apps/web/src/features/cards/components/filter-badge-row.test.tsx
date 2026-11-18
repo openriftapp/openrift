@@ -62,3 +62,24 @@ describe("FilterSection with include/exclude", () => {
     expect(pill?.querySelector("svg.lucide-minus")).toBeNull();
   });
 });
+
+describe("FilterSection option controls", () => {
+  it("exposes each option as a button with its selected state", () => {
+    renderSection(["foil"], [], "include");
+
+    expect(screen.getByRole("button", { name: "foil" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "normal" }).getAttribute("aria-pressed")).toBe(
+      "false",
+    );
+  });
+
+  it("names an excluded option as excluded", () => {
+    renderSection([], ["foil"], "exclude");
+
+    expect(screen.getByRole("button", { name: "foil (excluded)" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(screen.getByRole("button", { name: "normal" })).toBeInTheDocument();
+  });
+});

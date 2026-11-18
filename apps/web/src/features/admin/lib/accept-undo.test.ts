@@ -1,9 +1,29 @@
+import { ORPCError } from "@orpc/client";
+import { defaultSerovalPlugins, makeSerovalPlugin } from "@tanstack/router-core/ssr/client";
+import { fromCrossJSON, toCrossJSONAsync } from "seroval";
 import { toast } from "sonner";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { acceptFieldWithUndo, revertAcceptedField } from "./accept-undo";
+import { statusErrorAdapter } from "@/lib/server-fns/status-error-adapter";
+
+import { acceptFieldWithUndo, isFieldChangedError, revertAcceptedField } from "./accept-undo";
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+
+describe("isFieldChangedError", () => {
+  const plugins = [makeSerovalPlugin(statusErrorAdapter), ...defaultSerovalPlugins];
+
+  it("recognizes the API's refusal after it crosses the server-function boundary", async () => {
+    const refusal = new ORPCError("FIELD_CHANGED", { status: 409, message: "Changed since" });
+    const json = await toCrossJSONAsync(refusal, { refs: new Map(), plugins });
+
+    expect(isFieldChangedError(fromCrossJSON(json, { refs: new Map(), plugins }))).toBe(true);
+  });
+
+  it("does not take another conflict for it", () => {
+    expect(isFieldChangedError(new ORPCError("CONFLICT", { status: 409 }))).toBe(false);
+  });
+});
 
 function undoAction(): () => void {
   const [, options] = vi.mocked(toast.success).mock.calls[0] as unknown as [
@@ -37,7 +57,12 @@ describe("acceptFieldWithUndo", () => {
     expect(accepted).toBe(true);
     expect(toast.success).toHaveBeenCalledWith("Used Rarity from Provider A", expect.anything());
     undoAction()();
-    expect(accept).toHaveBeenLastCalledWith({ cardId: "c1", value: null, source: "manual" });
+    expect(accept).toHaveBeenLastCalledWith({
+      cardId: "c1",
+      value: null,
+      source: "manual",
+      expected: "new",
+    });
   });
 
   it("hands the revert input to onAccepted and skips its own toast", async () => {
@@ -57,7 +82,12 @@ describe("acceptFieldWithUndo", () => {
       onAccepted,
     });
 
-    expect(onAccepted).toHaveBeenCalledWith({ cardId: "c1", value: "old", source: "manual" });
+    expect(onAccepted).toHaveBeenCalledWith({
+      cardId: "c1",
+      value: "old",
+      source: "manual",
+      expected: "new",
+    });
     expect(toast.success).not.toHaveBeenCalled();
   });
 
@@ -137,7 +167,11 @@ describe("acceptFieldWithUndo", () => {
     });
 
     expect(toast.success).toHaveBeenCalledOnce();
-    expect(onAccepted).toHaveBeenCalledWith({ value: previousValue, source: "manual" });
+    expect(onAccepted).toHaveBeenCalledWith({
+      value: previousValue,
+      source: "manual",
+      expected: value,
+    });
   });
 
   it("makes a second accept on one field undo to the value the first one wrote", async () => {
@@ -246,6 +280,61 @@ describe("acceptFieldWithUndo", () => {
     const write = vi.fn(async () => {});
     await revertAcceptedField(older, write);
     expect(write).toHaveBeenCalledWith(older);
+  });
+
+  it.each([
+    ["drops", "the field changed since", { status: 409, code: "FIELD_CHANGED" }, true],
+    ["keeps", "the write hit another conflict", { status: 409, code: "CONFLICT" }, false],
+  ])("%s the undo when %s", async (_verb, _case, shape, dropped) => {
+    const accept = vi.fn(async (_input: { cardId: string; field: string; value: unknown }) => ({
+      written: true,
+    }));
+    const reverts: { value: unknown }[] = [];
+    for (const value of ["3", "4"]) {
+      await acceptFieldWithUndo({
+        accept,
+        input: { cardId: `c-${shape.code}`, field: "might", value },
+        fieldLabel: "Might",
+        sourceLabel: "Provider A",
+        previousValue: "2",
+        onAccepted: (revert) => reverts.push(revert),
+      });
+    }
+    const [older, newer] = reverts;
+    if (older === undefined || newer === undefined) {
+      throw new Error("expected two reverts");
+    }
+    const refusal = Object.assign(new Error("Changed since, not undone"), shape);
+
+    await expect(revertAcceptedField(newer, () => Promise.reject(refusal))).rejects.toThrow(
+      "Changed since, not undone",
+    );
+    const write = vi.fn(async () => {});
+    const olderUndo = revertAcceptedField(older, write);
+    await (dropped
+      ? expect(olderUndo).resolves.toBeUndefined()
+      : expect(olderUndo).rejects.toThrow());
+    expect(write).toHaveBeenCalledTimes(dropped ? 1 : 0);
+  });
+
+  it("sends the value the accept wrote as the undo's expected value", async () => {
+    const accept = vi.fn(async (_input: { cardId: string; field: string; value: unknown }) => ({
+      written: true,
+    }));
+    const onAccepted = vi.fn();
+
+    await acceptFieldWithUndo({
+      accept,
+      input: { cardId: "c-exp", field: "comment", value: null },
+      fieldLabel: "Comment",
+      sourceLabel: "Provider A",
+      previousValue: "Errata pending",
+      onAccepted,
+    });
+
+    expect(onAccepted).toHaveBeenCalledWith(
+      expect.objectContaining({ value: "Errata pending", expected: null }),
+    );
   });
 
   it("toasts the refusal when the older toast's Undo is clicked first", async () => {

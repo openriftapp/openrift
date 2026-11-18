@@ -1,5 +1,5 @@
 import { metaEventFilterQuerySchema } from "@openrift/shared/contracts/meta";
-import { MAX_FACET_VALUES } from "@openrift/shared/meta-query";
+import { MAX_FACET_VALUES, META_MAX_PLAYERS } from "@openrift/shared/meta-query";
 import { describe, expect, it } from "vitest";
 
 import { eventIndexHoldings, metaEventsSearchSchema } from "./meta-events-search";
@@ -31,6 +31,23 @@ describe("metaEventsSearchSchema", () => {
   it("drops a needle the API would reject, rather than blanking the page", () => {
     expect(metaEventsSearchSchema.parse({ q: "a".repeat(200) }).q).toBe("a".repeat(200));
     expect(metaEventsSearchSchema.parse({ q: "a".repeat(201) }).q).toBeUndefined();
+  });
+
+  it("caps a field size above what the API accepts, so the filter still reaches it", () => {
+    const parsed = metaEventsSearchSchema.parse({ playersMin: 250_000, playersMax: 999_999 });
+    expect(parsed).toMatchObject({ playersMin: META_MAX_PLAYERS, playersMax: META_MAX_PLAYERS });
+    expect(
+      metaEventFilterQuerySchema.safeParse({
+        playersMin: parsed.playersMin,
+        playersMax: parsed.playersMax,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("keeps a field size inside the bound and drops a negative one", () => {
+    const parsed = metaEventsSearchSchema.parse({ playersMin: 0, playersMax: -4 });
+    expect(parsed.playersMin).toBe(0);
+    expect(parsed.playersMax).toBeUndefined();
   });
 
   it("drops a sort a stale bookmark names but the page no longer has", () => {

@@ -194,6 +194,7 @@ export function ExportDialog({
           <div className="flex min-w-0 flex-col gap-3">
             <SimpleSelect
               id="export-format"
+              label={m.collections_export_format_label()}
               items={[
                 ...textFormats.map((key) => ({
                   value: key as ExportFormat,

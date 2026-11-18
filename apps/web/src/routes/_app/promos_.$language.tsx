@@ -55,7 +55,7 @@ export const Route = createFileRoute("/_app/promos_/$language")({
       throw notFound();
     }
 
-    const languageName = enumLabel(labelMap(init.enums.languages ?? []), params.language);
+    const languageName = enumLabel(labelMap(init.enums.languages), params.language);
     return { items: cardJsonLdItems(data.printings, data.cards), languageName };
   },
   head: ({ params, loaderData }) => {

@@ -18,9 +18,10 @@ import {
   errataDraftInput,
   nextErrataLanguage,
 } from "@/features/admin/lib/errata-draft";
+import type { RunWrite } from "@/features/admin/lib/run-write";
+import { runWriteDirectly } from "@/features/admin/lib/run-write";
 import { useDeleteCardErrata, useUpsertCardErrata } from "@/features/cards/hooks/use-card-errata";
 import { useLanguageList } from "@/hooks/use-enums";
-import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 function ErrataRow({
   errata,
@@ -91,9 +92,11 @@ function ErrataRow({
 export function CardErrataSection({
   cardId,
   errata,
+  runWrite = runWriteDirectly,
 }: {
   cardId: string;
   errata: AdminCardErrata[];
+  runWrite?: RunWrite;
 }) {
   const upsertErrata = useUpsertCardErrata();
   const announcements = useErrataAnnouncements();
@@ -117,9 +120,8 @@ export function CardErrataSection({
   );
 
   async function saveDraft() {
-    if (
-      await runReportedMutation(() => upsertErrata.mutateAsync(errataDraftInput(cardId, draft)))
-    ) {
+    const input = errataDraftInput(cardId, draft);
+    if (await runWrite((signal) => upsertErrata.mutateAsync(input, { signal }))) {
       setEditing(null);
     }
   }
@@ -129,7 +131,7 @@ export function CardErrataSection({
       return;
     }
     const language = removing;
-    if (await runReportedMutation(() => deleteErrata.mutateAsync({ cardId, language }))) {
+    if (await runWrite((signal) => deleteErrata.mutateAsync({ cardId, language }, { signal }))) {
       setRemoving(null);
     }
   }

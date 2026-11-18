@@ -17,6 +17,8 @@ beforeEach(() => {
   fns.unignorePrinting.mockClear();
 });
 
+const { signal } = new AbortController();
+
 describe("ignoredCardsUndo", () => {
   it("un-ignores every source the ignore covered", async () => {
     const sources = [
@@ -28,9 +30,12 @@ describe("ignoredCardsUndo", () => {
     expect(entry.undoneLabel).toBe("Undone: Ekko, Recurrent is back in the queue");
     expect(entry.invalidates).toContainEqual(["admin", "workspace"]);
 
-    await entry.undo();
+    await entry.undo(signal);
 
-    expect(fns.unignoreCard.mock.calls).toEqual([[{ data: sources[0] }], [{ data: sources[1] }]]);
+    expect(fns.unignoreCard.mock.calls).toEqual([
+      [{ data: sources[0], signal }],
+      [{ data: sources[1], signal }],
+    ]);
   });
 });
 
@@ -40,8 +45,8 @@ describe("ignoredPrintingUndo", () => {
     const entry = ignoredPrintingUndo(candidate, "Ekko, Recurrent");
     expect(entry.label).toBe("Ignored the provider-a printing on Ekko, Recurrent");
 
-    await entry.undo();
+    await entry.undo(signal);
 
-    expect(fns.unignorePrinting).toHaveBeenCalledWith({ data: candidate });
+    expect(fns.unignorePrinting).toHaveBeenCalledWith({ data: candidate, signal });
   });
 });

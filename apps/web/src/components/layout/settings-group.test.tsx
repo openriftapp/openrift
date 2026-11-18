@@ -15,4 +15,13 @@ describe("SettingsGroup", () => {
     expect(screen.queryByRole("button")).toBeNull();
     expect(screen.getByText("Body")).toBeTruthy();
   });
+
+  it("names the section by its heading", () => {
+    render(
+      <SettingsGroup id="group" title="Pairings">
+        <p>Body</p>
+      </SettingsGroup>,
+    );
+    expect(screen.getByRole("region", { name: "Pairings" })).toBeTruthy();
+  });
 });

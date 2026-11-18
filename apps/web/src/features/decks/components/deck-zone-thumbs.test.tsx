@@ -1,5 +1,7 @@
+import { DndContext } from "@dnd-kit/core";
 import type { Card, CardBan } from "@openrift/shared/types/catalog";
 import { render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { m } from "@/paraglide/messages.js";
@@ -9,6 +11,12 @@ import { ZoneThumb } from "./deck-zone-thumbs";
 
 const { cardsById } = vi.hoisted(() => ({ cardsById: {} as Record<string, Card> }));
 vi.mock("@/features/cards/hooks/use-cards", () => ({ useCards: () => ({ cardsById }) }));
+vi.mock("@/features/decks/components/deck-card-printing-menu", () => ({
+  DeckCardPrintingMenu: ({ children }: { children: ReactNode }) => children,
+}));
+vi.mock("@/features/decks/hooks/use-deck-builder", () => ({
+  useDeckBuilderActions: () => ({ addCard: vi.fn(), removeCard: vi.fn(), setQuantity: vi.fn() }),
+}));
 
 function ban(formatId: string, formatName: string): CardBan {
   return { formatId, formatName, bannedAt: "2026-11-23", reason: null };
@@ -80,5 +88,38 @@ describe("ZoneThumb per-copy band", () => {
     renderCopy(true);
     expect(screen.getByText("Owned")).toBeDefined();
     expect(screen.queryByText("Other printing")).toBeNull();
+  });
+});
+
+describe("ZoneThumb drag source", () => {
+  function renderEditable(onCardClick?: () => void) {
+    const card = stubDeckBuilderCard({ cardName: "Stacked Deck" });
+    cardsById[card.cardId] = stubCard({ bans: [], upcomingBans: [] });
+    render(
+      <DndContext>
+        <ZoneThumb
+          deckId="deck-1"
+          card={card}
+          zone="main"
+          thumbnail="https://example.test/stacked-deck.webp"
+          isLandscape={false}
+          onCardClick={onCardClick}
+        />
+      </DndContext>,
+    );
+  }
+
+  it("announces a clickable thumb without keyboard drag instructions", () => {
+    renderEditable(() => {});
+
+    const thumb = screen.getByRole("button", { name: "Stacked Deck 1" });
+    expect(thumb).not.toHaveAttribute("aria-roledescription");
+    expect(thumb).not.toHaveAccessibleDescription();
+  });
+
+  it("gives a thumb that only drags no button role", () => {
+    renderEditable();
+
+    expect(screen.queryByRole("button", { name: "Stacked Deck 1" })).toBeNull();
   });
 });

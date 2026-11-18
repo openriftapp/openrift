@@ -225,6 +225,8 @@ export function ZoneTile({
   return (
     <div
       ref={readOnly ? undefined : dropRef}
+      role="group"
+      aria-label={m.decks_overview_zone_summary({ zone: label })}
       data-deck-drop-zone={readOnly ? undefined : zone}
       style={style}
       className={cn(

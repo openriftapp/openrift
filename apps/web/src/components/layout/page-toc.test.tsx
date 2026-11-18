@@ -1,11 +1,12 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactElement, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { usePageTocStore } from "@/stores/page-toc-store";
-import { createStoreResetter } from "@/test/store-helpers";
+import type { PageTocStore } from "@/stores/page-toc-store";
+import { createPageTocStore, PageTocStoreContext } from "@/stores/page-toc-store";
 
-import { PageToc, PageTocMobileTrigger } from "./page-toc";
+import { PageToc, PageTocMobileTrigger, PageTocProvider } from "./page-toc";
 
 const ITEMS = [
   { id: "rule-100", label: "100. Game Concepts", level: 0 },
@@ -13,10 +14,18 @@ const ITEMS = [
   { id: "rule-200", label: "200. Parts of a Card", level: 0 },
 ];
 
-let resetStore: () => void;
+let store: PageTocStore;
+
+function renderToc(ui: ReactElement) {
+  return render(ui, {
+    wrapper: ({ children }: { children: ReactNode }) => (
+      <PageTocStoreContext value={store}>{children}</PageTocStoreContext>
+    ),
+  });
+}
 
 beforeEach(() => {
-  resetStore = createStoreResetter(usePageTocStore);
+  store = createPageTocStore();
   for (const item of ITEMS) {
     const heading = document.createElement("div");
     heading.id = item.id;
@@ -25,7 +34,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  resetStore();
   for (const item of ITEMS) {
     document.querySelector(`#${item.id}`)?.remove();
   }
@@ -33,24 +41,24 @@ afterEach(() => {
 
 describe("PageTocMobileTrigger", () => {
   it("renders nothing when items is empty", () => {
-    const { container } = render(<PageTocMobileTrigger items={[]} />);
+    const { container } = renderToc(<PageTocMobileTrigger items={[]} />);
     expect(container).toBeEmptyDOMElement();
   });
 
   it("is icon-only without a label class", () => {
-    render(<PageTocMobileTrigger items={ITEMS} />);
+    renderToc(<PageTocMobileTrigger items={ITEMS} />);
     expect(screen.queryByText("Contents")).not.toBeInTheDocument();
   });
 
   it("renders a visible label with the given classes", () => {
-    render(<PageTocMobileTrigger items={ITEMS} labelClassName="hidden @2xl:inline" />);
+    renderToc(<PageTocMobileTrigger items={ITEMS} labelClassName="hidden @2xl:inline" />);
     expect(screen.getByText("Contents")).toHaveClass("hidden", "@2xl:inline");
     expect(screen.getByRole("button", { name: "Open contents" })).toBeInTheDocument();
   });
 
   it("opens the drawer and shows all items", async () => {
     const user = userEvent.setup();
-    render(<PageTocMobileTrigger items={ITEMS} />);
+    renderToc(<PageTocMobileTrigger items={ITEMS} />);
 
     await user.click(screen.getByRole("button", { name: "Open contents" }));
 
@@ -64,13 +72,13 @@ describe("PageTocMobileTrigger", () => {
     const scrollSpy = vi
       .spyOn(globalThis.Element.prototype, "scrollIntoView")
       .mockImplementation(() => {});
-    render(<PageTocMobileTrigger items={ITEMS} />);
+    renderToc(<PageTocMobileTrigger items={ITEMS} />);
 
     await user.click(screen.getByRole("button", { name: "Open contents" }));
     await user.click(screen.getByRole("link", { name: "100.1 Players" }));
 
     expect(scrollSpy).toHaveBeenCalledTimes(1);
-    expect(usePageTocStore.getState().activeId).toBe("rule-100-1");
+    expect(store.getState().activeId).toBe("rule-100-1");
     await waitFor(() => {
       expect(screen.queryByRole("link", { name: "100.1 Players" })).not.toBeInTheDocument();
     });
@@ -80,8 +88,8 @@ describe("PageTocMobileTrigger", () => {
 
   it("highlights the active item driven by the store", async () => {
     const user = userEvent.setup();
-    usePageTocStore.getState().setActiveId("rule-200");
-    render(<PageTocMobileTrigger items={ITEMS} />);
+    store.getState().setActiveId("rule-200");
+    renderToc(<PageTocMobileTrigger items={ITEMS} />);
 
     await user.click(screen.getByRole("button", { name: "Open contents" }));
 
@@ -173,7 +181,7 @@ describe("PageToc", () => {
     placeSection("rule-100", 100);
     placeSection("rule-100-1", 300);
     placeSection("rule-200", 900);
-    render(<PageToc items={ITEMS} />);
+    renderToc(<PageToc items={ITEMS} />);
 
     await user.click(linkFor("200. Parts of a Card"));
     reportIntersections({ "rule-100": true, "rule-100-1": true });
@@ -194,7 +202,7 @@ describe("PageToc", () => {
     makePageScrollable();
     placeSection("rule-100", 100);
     placeSection("rule-200", 900);
-    render(<PageToc items={ITEMS} />);
+    renderToc(<PageToc items={ITEMS} />);
 
     await user.click(linkFor("200. Parts of a Card"));
     act(() => {
@@ -213,7 +221,7 @@ describe("PageToc", () => {
     if (hidden) {
       hidden.getClientRects = () => [] as unknown as DOMRectList;
     }
-    render(<PageToc items={ITEMS} onJump={vi.fn()} />);
+    renderToc(<PageToc items={ITEMS} onJump={vi.fn()} />);
 
     await user.click(linkFor("100.1 Players"));
     reportIntersections({ "rule-100": true });
@@ -235,7 +243,7 @@ describe("PageToc", () => {
     if (hidden) {
       hidden.getClientRects = () => [] as unknown as DOMRectList;
     }
-    render(<PageToc items={ITEMS} onJump={() => Promise.resolve()} />);
+    renderToc(<PageToc items={ITEMS} onJump={() => Promise.resolve()} />);
 
     await user.click(linkFor("100.1 Players"));
     reportIntersections({ "rule-100": true });
@@ -252,7 +260,7 @@ describe("PageToc", () => {
     if (hidden) {
       hidden.getClientRects = () => [] as unknown as DOMRectList;
     }
-    render(<PageToc items={ITEMS} onJump={() => Promise.resolve()} />);
+    renderToc(<PageToc items={ITEMS} onJump={() => Promise.resolve()} />);
 
     await user.click(linkFor("100.1 Players"));
     reportIntersections({ "rule-100": true });
@@ -271,7 +279,7 @@ describe("PageToc", () => {
       makePageScrollable();
       placeSection("rule-100", 100);
       placeSection("rule-200", 900);
-      render(<PageToc items={ITEMS} />);
+      renderToc(<PageToc items={ITEMS} />);
 
       await user.click(linkFor("200. Parts of a Card"));
       expect(linkFor("200. Parts of a Card")).toHaveAttribute("aria-current", "location");
@@ -286,7 +294,7 @@ describe("PageToc", () => {
     vi.spyOn(globalThis.Element.prototype, "scrollIntoView").mockImplementation(() => {});
     placeSection("rule-100", 100);
     placeSection("rule-200", 0);
-    render(<PageToc items={ITEMS} />);
+    renderToc(<PageToc items={ITEMS} />);
 
     await user.click(linkFor("200. Parts of a Card"));
     expect(linkFor("200. Parts of a Card")).toHaveAttribute("aria-current", "location");
@@ -299,7 +307,7 @@ describe("PageToc", () => {
     placeSection("rule-100", 80);
     placeSection("rule-100-1", 200);
     placeSection("rule-200", 600);
-    render(<PageToc items={ITEMS} />);
+    renderToc(<PageToc items={ITEMS} />);
 
     reportIntersections({ "rule-100": true, "rule-100-1": false, "rule-200": false });
     reportIntersections({ "rule-100-1": true });
@@ -313,7 +321,7 @@ describe("PageToc", () => {
     placeSection("rule-100", -400);
     placeSection("rule-100-1", -100);
     placeSection("rule-200", 900);
-    render(<PageToc items={ITEMS} />);
+    renderToc(<PageToc items={ITEMS} />);
 
     reportIntersections({ "rule-100": true, "rule-100-1": true });
     expect(linkFor("100.1 Players")).toHaveAttribute("aria-current", "location");
@@ -325,14 +333,14 @@ describe("PageToc", () => {
     header.getBoundingClientRect = () => ({ height: 64 }) as DOMRect;
     document.body.append(header);
 
-    render(<PageToc items={ITEMS} />);
+    renderToc(<PageToc items={ITEMS} />);
 
     expect(rootMargins.at(-1)).toBe("-64px 0px -60% 0px");
   });
 
-  it("highlights the first item while the active id belongs to another page", () => {
-    usePageTocStore.getState().setActiveId("glossary-keywords");
-    render(<PageToc items={ITEMS} />);
+  it("highlights the first item while the active id is not among the items", () => {
+    store.getState().setActiveId("glossary-keywords");
+    renderToc(<PageToc items={ITEMS} />);
 
     expect(screen.getByRole("link", { name: "100. Game Concepts" })).toHaveAttribute(
       "aria-current",
@@ -350,12 +358,91 @@ describe("PageToc", () => {
     if (hidden) {
       hidden.getClientRects = () => [] as unknown as DOMRectList;
     }
-    render(<PageToc items={ITEMS} onJump={onJump} />);
+    renderToc(<PageToc items={ITEMS} onJump={onJump} />);
 
     await user.click(screen.getByRole("link", { name: "100.1 Players" }));
 
     expect(onJump).toHaveBeenCalledWith("rule-100-1");
     expect(scrollSpy).not.toHaveBeenCalled();
     scrollSpy.mockRestore();
+  });
+});
+
+describe("PageTocProvider", () => {
+  const nativeIntersectionObserver = globalThis.IntersectionObserver;
+
+  beforeEach(() => {
+    globalThis.IntersectionObserver = class {
+      observe() {}
+      disconnect() {}
+    } as unknown as typeof IntersectionObserver;
+  });
+
+  afterEach(() => {
+    globalThis.IntersectionObserver = nativeIntersectionObserver;
+    vi.restoreAllMocks();
+  });
+
+  it("needs a provider around the contents list", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(() => render(<PageToc items={ITEMS} />)).toThrow(
+      "usePageTocStore needs a PageTocProvider",
+    );
+  });
+
+  it("starts the next page without the previous page's selection", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis.Element.prototype, "scrollIntoView").mockImplementation(() => {});
+    const first = render(
+      <PageTocProvider>
+        <PageToc items={ITEMS} />
+      </PageTocProvider>,
+    );
+    await user.click(screen.getByRole("link", { name: "200. Parts of a Card" }));
+    expect(screen.getByRole("link", { name: "200. Parts of a Card" })).toHaveAttribute(
+      "aria-current",
+      "location",
+    );
+    first.unmount();
+
+    render(
+      <PageTocProvider>
+        <PageToc items={ITEMS} />
+      </PageTocProvider>,
+    );
+    expect(screen.getByRole("link", { name: "100. Game Concepts" })).toHaveAttribute(
+      "aria-current",
+      "location",
+    );
+  });
+
+  it("keeps the selections of two pages apart", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis.Element.prototype, "scrollIntoView").mockImplementation(() => {});
+    render(
+      <>
+        <PageTocProvider>
+          <nav aria-label="first">
+            <PageToc items={ITEMS} />
+          </nav>
+        </PageTocProvider>
+        <PageTocProvider>
+          <nav aria-label="second">
+            <PageToc items={ITEMS} />
+          </nav>
+        </PageTocProvider>
+      </>,
+    );
+
+    const linkIn = (page: string) =>
+      within(screen.getByRole("navigation", { name: page })).getByRole("link", {
+        name: "200. Parts of a Card",
+      });
+    const firstLink = linkIn("first");
+    const secondLink = linkIn("second");
+    await user.click(firstLink);
+
+    expect(firstLink).toHaveAttribute("aria-current", "location");
+    expect(secondLink).not.toHaveAttribute("aria-current");
   });
 });

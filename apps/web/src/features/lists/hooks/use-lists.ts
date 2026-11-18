@@ -9,17 +9,22 @@ import type {
   ListMoveResponse,
   ListResponse,
 } from "@openrift/shared/types/api/list";
+import type { ListRule, ListRuleCombine } from "@openrift/shared/types/list-rule";
+import { safe } from "@orpc/client";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 
 import { withTradeCancelConsent } from "@/features/groups/stores/trade-cancel-consent-store";
 import type { BulkAddVariables } from "@/features/lists/lib/list-entry-writes";
 import {
   bulkAddItemMatches,
+  entryStepsSettled,
   LIST_ENTRY_MUTATION_KEYS,
   listEntryWritesInFlight,
   steppedManualQuantity,
   totalQuantity,
 } from "@/features/lists/lib/list-entry-writes";
+import type { ListRulesState } from "@/features/lists/lib/list-rules-conflict";
+import { listRulesConflict } from "@/features/lists/lib/list-rules-conflict";
 import {
   listDetailQueryOptions,
   listsQueryOptions,
@@ -92,6 +97,37 @@ export function useUpdateList() {
   return useMutationWithInvalidation<ListResponse, UpdateListInput>({
     mutationFn: (input) => updateList(input),
     invalidates: (variables) => [listsKeys.all(userId), listsKeys.detail(userId, variables.listId)],
+  });
+}
+
+interface SaveListRulesInput {
+  listId: string;
+  rules: ListRule[];
+  ruleCombine: ListRuleCombine | null;
+  expectedRulesVersion: number;
+}
+
+export type SaveListRulesResult = { outcome: "saved" } | ({ outcome: "stale" } & ListRulesState);
+
+async function saveListRules(input: SaveListRulesInput): Promise<SaveListRulesResult> {
+  const { error } = await safe(updateList(input));
+  if (!error) {
+    return { outcome: "saved" };
+  }
+  const stored = listRulesConflict(error);
+  if (stored === undefined) {
+    throw error;
+  }
+  return { outcome: "stale", ...stored };
+}
+
+/** A save made from an older rules version resolves `stale` with the stored rules; nothing is written. */
+export function useSaveListRules() {
+  const userId = useRequiredUserId();
+  return useMutationWithInvalidation<SaveListRulesResult, SaveListRulesInput>({
+    mutationFn: (input) => saveListRules(input),
+    invalidates: (variables) => [listsKeys.all(userId), listsKeys.detail(userId, variables.listId)],
+    meta: { inlineError: true },
   });
 }
 
@@ -240,15 +276,19 @@ export function useUpdateListEntry() {
   });
 }
 
+/** A remove sent while quantity steps on the entry are in flight waits for them to land first. */
 export function useRemoveListEntry() {
   const userId = useRequiredUserId();
+  const queryClient = useQueryClient();
   return useOptimisticMutation<ListDetailResponse, { listId: string; entryId: string }>({
     mutationKey: LIST_ENTRY_MUTATION_KEYS.remove,
     queryKey: (vars) => listsKeys.detail(userId, vars.listId),
-    mutationFn: (vars) =>
-      withTradeCancelConsent((cancelTradeIds) =>
+    mutationFn: async (vars) => {
+      await entryStepsSettled(queryClient.getMutationCache(), vars.listId, vars.entryId);
+      return withTradeCancelConsent((cancelTradeIds) =>
         listsApi().removeEntry({ id: vars.listId, itemId: vars.entryId, cancelTradeIds }),
-      ),
+      );
+    },
     // The entry leaves with the refetch, which waits for the list's other writes.
     apply: (cached) => cached,
     rollback: (cached) => cached,

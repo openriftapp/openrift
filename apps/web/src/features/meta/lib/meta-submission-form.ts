@@ -1,4 +1,6 @@
 import { encodeText } from "@openrift/shared/deck-codecs/text";
+import { META_MAX_PLAYERS } from "@openrift/shared/meta-query";
+import { POSTGRES_SMALLINT_MAX } from "@openrift/shared/schemas";
 import type { MetaSubmissionInput } from "@openrift/shared/types/api/meta";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { DeckZone } from "@openrift/shared/types/enums";
@@ -10,6 +12,7 @@ import type {
   MetaDeckSubmissionKind,
   MetaSubmissionCompleteness,
 } from "@/features/meta/lib/meta-submission-copy";
+import { formatCount } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
 
 /**
@@ -230,8 +233,18 @@ export function validateMetaSubmissionDraft(
   if (!WHOLE_NUMBER_PATTERN.test(rank) || Number(rank) < 1) {
     return m.meta_validate_rank();
   }
+  if (Number(rank) > META_MAX_PLAYERS) {
+    return m.meta_validate_rank_max({ max: formatCount(META_MAX_PLAYERS) });
+  }
   if (!isRecordPart(draft.wins) || !isRecordPart(draft.losses) || !isRecordPart(draft.draws)) {
     return m.meta_validate_record_parts();
+  }
+  if (
+    [draft.wins, draft.losses, draft.draws].some(
+      (part) => (recordPart(part) ?? 0) > POSTGRES_SMALLINT_MAX,
+    )
+  ) {
+    return m.meta_validate_record_max({ max: formatCount(POSTGRES_SMALLINT_MAX) });
   }
   // The archive derives "5-1" from the two, so one without the other would
   // display as nothing and quietly lose what was typed.
@@ -268,6 +281,9 @@ export function validateMetaSubmissionDraft(
   const players = draft.eventPlayerCount.trim();
   if (players.length > 0 && (!WHOLE_NUMBER_PATTERN.test(players) || Number(players) < 1)) {
     return m.meta_validate_player_count();
+  }
+  if (players.length > 0 && Number(players) > META_MAX_PLAYERS) {
+    return m.meta_validate_player_count_max();
   }
   if (draft.eventOrganizer.trim().length > 120) {
     return m.meta_validate_organizer();

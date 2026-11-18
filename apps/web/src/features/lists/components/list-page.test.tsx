@@ -512,13 +512,16 @@ describe("ListPage", () => {
     view.unmount();
   });
 
-  it("holds a remove until the entry's steps have landed", () => {
+  it("sends a remove while the entry's steps are in flight, for the write to queue behind them", () => {
     const { view } = renderListPage();
     pendingStepIds = new Set(["entry-1"]);
 
     dispatchRemoveEntry("entry-1", "Test Card");
 
-    expect(removeListEntry.mutate).not.toHaveBeenCalled();
+    expect(removeListEntry.mutate).toHaveBeenCalledWith(
+      { listId: "list-1", entryId: "entry-1" },
+      expect.anything(),
+    );
     view.unmount();
   });
 

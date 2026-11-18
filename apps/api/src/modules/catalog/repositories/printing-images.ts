@@ -955,7 +955,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
           id: string;
           originalUrl: string | null;
           rehostedUrl: string | null;
-          rotation: number;
+          rotation: 0 | 90 | 180 | 270;
           needsTrim: boolean;
           quad: ImageQuad | null;
         }

@@ -153,4 +153,32 @@ describe("flushCoalescedTradeRequests", () => {
       requestsDropped: 0,
     });
   });
+
+  it("continues with the next pair when one pair throws", async () => {
+    const sendEmail = vi.fn(() => Promise.resolve());
+    const deps = flushDeps(sendEmail as unknown as CoalescedRequestFlushDeps["sendEmail"]);
+    const pending = await deps.repos.cardTrades.listPendingRequestEmails();
+    const template = pending[0]!;
+    const rows = ["user-1", "user-2"].map((recipientUserId, index) => ({
+      ...template,
+      id: `trade-${index}`,
+      recipientUserId,
+    }));
+    deps.repos.cardTrades.listPendingRequestEmails = async () => rows;
+    let calls = 0;
+    deps.repos.catalog.printingNamesByIds = async (ids) => {
+      calls += 1;
+      if (calls === 1) {
+        throw new Error("db down");
+      }
+      return new Map(ids.map((id) => [id, "Jinx"]));
+    };
+
+    const result = await flushCoalescedTradeRequests(deps);
+
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(deps.log.error).toHaveBeenCalledTimes(1);
+    expect(result.emailsSent).toBe(1);
+    expect(result.failed).toBe(1);
+  });
 });

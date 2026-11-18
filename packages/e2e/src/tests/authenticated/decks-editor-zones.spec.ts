@@ -81,22 +81,12 @@ async function readDeckCards(
   }
 }
 
-const ZONE_SLUGS: Record<string, string> = {
-  Main: "main",
-  Sideboard: "sideboard",
-  Runes: "runes",
-  Battlefield: "battlefield",
-  Champion: "champion",
-  Overflow: "overflow",
-  Legend: "legend",
-};
-
 /**
  * The wrapper owning the drop ref and the ring highlight. Its header sits
  * inside an OrnamentRule, so walking up from the label button is not stable.
  */
 function zoneSection(page: Page, label: string): Locator {
-  return page.locator(`[data-slot="deck-zone"][data-zone="${ZONE_SLUGS[label] ?? label}"]`).first();
+  return page.getByRole("group", { name: label, exact: true });
 }
 
 function zoneLabelButton(page: Page, label: string): Locator {

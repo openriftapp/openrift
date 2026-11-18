@@ -21,6 +21,7 @@ import {
   DesignDetails,
   PrintingLanguageMatrix,
 } from "@/features/cards/components/card-page-printings";
+import { CatalogTailNote } from "@/features/cards/components/catalog-tail-note";
 import { PrintingVariantLine } from "@/features/cards/components/printing-row";
 import { useCatalogTailStatus } from "@/features/cards/hooks/use-cards";
 import {
@@ -179,6 +180,7 @@ function LightboxContent({
   const scrollerRef = useRef<HTMLDivElement>(null);
   const { languages, designs } = groupPrintingDesigns(printings);
   const isMobile = useIsMobile();
+  const catalogTail = useCatalogTailStatus();
   const [language, setLanguage] = useState<string>();
   const [designKey, setDesignKey] = useState<string>();
   const designTiles = (key?: string) => {
@@ -343,7 +345,15 @@ function LightboxContent({
           </DialogClose>
         )}
       </div>
-      <CatalogTailNote />
+      {catalogTail.status !== "complete" && (
+        <CatalogTailNote
+          status={catalogTail.status}
+          retry={catalogTail.retry}
+          loadingText={m.card_detail_lightbox_languages_loading()}
+          failedText={m.card_detail_lightbox_languages_failed()}
+          className="text-muted-foreground px-4 pb-2 text-sm sm:px-6"
+        />
+      )}
       {showTiles ? null : (
         <div
           ref={scrollerRef}
@@ -406,27 +416,6 @@ function LightboxContent({
     >
       {body}
     </DialogContent>
-  );
-}
-
-function CatalogTailNote() {
-  const { status, retry } = useCatalogTailStatus();
-  if (status === "complete") {
-    return null;
-  }
-  return (
-    <p role="status" className="text-muted-foreground px-4 pb-2 text-sm sm:px-6">
-      {status === "failed" ? (
-        <>
-          {m.card_detail_lightbox_languages_failed()}{" "}
-          <Button variant="link" size="sm" className="h-auto p-0" onClick={retry}>
-            {m.common_retry()}
-          </Button>
-        </>
-      ) : (
-        m.card_detail_lightbox_languages_loading()
-      )}
-    </p>
   );
 }
 

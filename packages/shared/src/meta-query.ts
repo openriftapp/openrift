@@ -4,6 +4,9 @@ export const MAX_OFFSET = 1_000_000;
 
 export const MAX_FACET_VALUES = 300;
 
+/** Upper bound for a field size or placement; the columns are `integer`. */
+export const META_MAX_PLAYERS = 100_000;
+
 export type MetaScopeFacet = "formats" | "tiers" | "countries";
 
 // The event payload carries this many rows, and the web seeds its cache under a

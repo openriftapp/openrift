@@ -11,7 +11,7 @@ import type { CSSProperties, ReactNode } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import { PAGE_HERO_EYEBROW_CLASS, PageHero, PageHeroStats } from "@/components/layout/page-hero";
-import { PageToc, PageTocMobileTrigger } from "@/components/layout/page-toc";
+import { PageToc, PageTocMobileTrigger, PageTocProvider } from "@/components/layout/page-toc";
 import type { PageTocItem } from "@/components/layout/page-toc";
 import { PAGE_TOP_BAR_GEOMETRY } from "@/components/layout/page-top-bar";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
@@ -350,148 +350,153 @@ function RulesContent({
   return (
     <RulesPageStoreContext value={store}>
       <RuleExamplesContext value={examplesByRule}>
-        <RulesVersionHero
-          kind={kind}
-          language={language}
-          version={version}
-          currentVersion={currentVersion}
-        />
-        <div className={cn(PAGE_WIDTH.capped, "pt-3", PAGE_PADDING_NO_TOP)}>
-          {kind === "tournament" && hasInfractions(rulesData.rules) && (
-            <div className="mb-2">
-              <RulesViewToggle view="document" version={version} language={language} />
-            </div>
-          )}
-          <div
-            ref={setToolbarEl}
-            className={cn(
-              PAGE_TOP_BAR_GEOMETRY,
-              isToolbarStuck && STICKY_SURFACE,
-              "px-safe mx-safe-neg z-20 mb-4 flex items-center gap-2 md:flex-wrap",
+        <PageTocProvider>
+          <RulesVersionHero
+            kind={kind}
+            language={language}
+            version={version}
+            currentVersion={currentVersion}
+          />
+          <div className={cn(PAGE_WIDTH.capped, "pt-3", PAGE_PADDING_NO_TOP)}>
+            {kind === "tournament" && hasInfractions(rulesData.rules) && (
+              <div className="mb-2">
+                <RulesViewToggle view="document" version={version} language={language} />
+              </div>
             )}
-          >
-            <PageTocMobileTrigger
-              items={tocItems}
-              onJump={jumpToTocItem}
-              className="sm:w-auto sm:gap-1.5 sm:px-2.5"
-              labelClassName="hidden sm:inline"
-            />
-            <RulesSearchBar
-              placeholder={m.rules_search_placeholder_count({ count: formatCount(rules.length) })}
-              trailing={ruleCountLabel}
-              className="max-sm:order-first"
-            />
-            <div className="hidden md:contents">
-              {documentSelects()}
-              {!isSearching && (
-                <ChangesViewOptions kind={kind} hasPreviousVersion={previousVersion !== null} />
-              )}
-            </div>
-            <RulesSettingsSheet
-              label={rulesSettingsLabel(
-                currentVersion ?? { version, documentVersion: null },
-                language,
-                versionsData.languages.length > 1,
-              )}
-            >
-              {documentSelects("w-full")}
-              {!isSearching && (
-                <ChangesViewToggle kind={kind} hasPreviousVersion={previousVersion !== null} />
-              )}
-            </RulesSettingsSheet>
-          </div>
-
-          {isEmpty ? (
-            <NoRulesYet />
-          ) : (
             <div
-              className="flex gap-6"
-              style={
-                anchorOffset === undefined
-                  ? undefined
-                  : ({
-                      "--rules-anchor-offset": anchorOffset,
-                      "--sticky-top": `calc(var(--header-height) + ${anchorOffset} + 1rem)`,
-                    } as CSSProperties)
-              }
+              ref={setToolbarEl}
+              className={cn(
+                PAGE_TOP_BAR_GEOMETRY,
+                isToolbarStuck && STICKY_SURFACE,
+                "px-safe mx-safe-neg z-20 mb-4 flex items-center gap-2 md:flex-wrap",
+              )}
             >
-              <PageToc items={tocItems} onJump={jumpToTocItem} />
-              {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- delegated link handling */}
-              <div
-                className="min-w-0 flex-1"
-                lang={language}
-                onClick={(event) =>
-                  handleRuleHtmlClick(event, {
-                    navigate: (href) => void navigate({ href }),
-                    jump: (targetId, rendered) => void jumpToRule(targetId, rendered),
-                  })
-                }
-                onPointerOver={cardPreview.handlePointerOver}
-                onPointerOut={cardPreview.handlePointerOut}
-              >
-                {cardPreview.preview}
-                {commentsHtml && !isSearching && <VersionComments html={commentsHtml} />}
-                {showChanges && previousVersion && changes && moves && (
-                  <ChangesSummary
-                    previousVersionLabel={versionLabels.get(previousVersion) ?? previousVersion}
-                    changes={changes}
-                    moves={moves}
-                    silentChanges={silentChanges}
-                  />
+              <PageTocMobileTrigger
+                items={tocItems}
+                onJump={jumpToTocItem}
+                className="sm:w-auto sm:gap-1.5 sm:px-2.5"
+                labelClassName="hidden sm:inline"
+              />
+              <RulesSearchBar
+                placeholder={m.rules_search_placeholder_count({ count: formatCount(rules.length) })}
+                trailing={ruleCountLabel}
+                className="max-sm:order-first"
+              />
+              <div className="hidden md:contents">
+                {documentSelects()}
+                {!isSearching && (
+                  <ChangesViewOptions kind={kind} hasPreviousVersion={previousVersion !== null} />
                 )}
-                {noSearchResults ? (
-                  <Empty>
-                    <EmptyDescription>{m.rules_search_no_matches()}</EmptyDescription>
-                  </Empty>
-                ) : searchResult === null ? (
-                  rules.map((rule) => (
-                    <RuleRow
-                      key={rule.id}
-                      rule={rule}
-                      ancestors={ancestorsByRule.get(rule.ruleNumber) ?? EMPTY_ANCESTORS}
-                      hasChildren={foldGroups.has(rule.ruleNumber)}
-                      hash={hash}
-                      revealed={revealed}
-                      changeKind={changeKindByRule?.get(rule.ruleNumber)}
-                      previousContent={
-                        showChanges && changes && !moves?.displacedSet.has(rule.ruleNumber)
-                          ? changes.modifiedPrev[rule.ruleNumber]
-                          : undefined
-                      }
-                      relatedRuleNumber={
-                        moves?.newToOld.get(rule.ruleNumber) ?? moves?.oldToNew.get(rule.ruleNumber)
-                      }
-                      changesView={changesView === "off" || !showChanges ? undefined : changesView}
-                      previousVersionLabel={
-                        previousVersion === null ? undefined : versionLabels.get(previousVersion)
-                      }
-                      versionLabel={versionLabels.get(version)}
+              </div>
+              <RulesSettingsSheet
+                label={rulesSettingsLabel(
+                  currentVersion ?? { version, documentVersion: null },
+                  language,
+                  versionsData.languages.length > 1,
+                )}
+              >
+                {documentSelects("w-full")}
+                {!isSearching && (
+                  <ChangesViewToggle kind={kind} hasPreviousVersion={previousVersion !== null} />
+                )}
+              </RulesSettingsSheet>
+            </div>
+
+            {isEmpty ? (
+              <NoRulesYet />
+            ) : (
+              <div
+                className="flex gap-6"
+                style={
+                  anchorOffset === undefined
+                    ? undefined
+                    : ({
+                        "--rules-anchor-offset": anchorOffset,
+                        "--sticky-top": `calc(var(--header-height) + ${anchorOffset} + 1rem)`,
+                      } as CSSProperties)
+                }
+              >
+                <PageToc items={tocItems} onJump={jumpToTocItem} />
+                {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- delegated link handling */}
+                <div
+                  className="min-w-0 flex-1"
+                  lang={language}
+                  onClick={(event) =>
+                    handleRuleHtmlClick(event, {
+                      navigate: (href) => void navigate({ href }),
+                      jump: (targetId, rendered) => void jumpToRule(targetId, rendered),
+                    })
+                  }
+                  onPointerOver={cardPreview.handlePointerOver}
+                  onPointerOut={cardPreview.handlePointerOut}
+                >
+                  {cardPreview.preview}
+                  {commentsHtml && !isSearching && <VersionComments html={commentsHtml} />}
+                  {showChanges && previousVersion && changes && moves && (
+                    <ChangesSummary
+                      previousVersionLabel={versionLabels.get(previousVersion) ?? previousVersion}
+                      changes={changes}
+                      moves={moves}
+                      silentChanges={silentChanges}
                     />
-                  ))
-                ) : (
-                  searchResult.visibleIndices.map((index) => {
-                    const rule = rules[index];
-                    if (!rule) {
-                      return null;
-                    }
-                    const isContext =
-                      searchResult.ancestorSet.has(index) && !searchResult.matchSet.has(index);
-                    return (
+                  )}
+                  {noSearchResults ? (
+                    <Empty>
+                      <EmptyDescription>{m.rules_search_no_matches()}</EmptyDescription>
+                    </Empty>
+                  ) : searchResult === null ? (
+                    rules.map((rule) => (
                       <RuleRow
                         key={rule.id}
                         rule={rule}
-                        ancestors={EMPTY_ANCESTORS}
-                        hasChildren={false}
-                        isContext={isContext}
+                        ancestors={ancestorsByRule.get(rule.ruleNumber) ?? EMPTY_ANCESTORS}
+                        hasChildren={foldGroups.has(rule.ruleNumber)}
+                        hash={hash}
+                        revealed={revealed}
+                        changeKind={changeKindByRule?.get(rule.ruleNumber)}
+                        previousContent={
+                          showChanges && changes && !moves?.displacedSet.has(rule.ruleNumber)
+                            ? changes.modifiedPrev[rule.ruleNumber]
+                            : undefined
+                        }
+                        relatedRuleNumber={
+                          moves?.newToOld.get(rule.ruleNumber) ??
+                          moves?.oldToNew.get(rule.ruleNumber)
+                        }
+                        changesView={
+                          changesView === "off" || !showChanges ? undefined : changesView
+                        }
+                        previousVersionLabel={
+                          previousVersion === null ? undefined : versionLabels.get(previousVersion)
+                        }
+                        versionLabel={versionLabels.get(version)}
                       />
-                    );
-                  })
-                )}
+                    ))
+                  ) : (
+                    searchResult.visibleIndices.map((index) => {
+                      const rule = rules[index];
+                      if (!rule) {
+                        return null;
+                      }
+                      const isContext =
+                        searchResult.ancestorSet.has(index) && !searchResult.matchSet.has(index);
+                      return (
+                        <RuleRow
+                          key={rule.id}
+                          rule={rule}
+                          ancestors={EMPTY_ANCESTORS}
+                          hasChildren={false}
+                          isContext={isContext}
+                        />
+                      );
+                    })
+                  )}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-        <ScrollToTopButton />
+            )}
+          </div>
+          <ScrollToTopButton />
+        </PageTocProvider>
       </RuleExamplesContext>
     </RulesPageStoreContext>
   );

@@ -21,6 +21,7 @@ import {
   batchOutcomeText,
   useWorkspaceBatch,
 } from "@/features/catalog-workspace/hooks/use-workspace-batch";
+import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import { errorText } from "@/lib/error-text";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 
@@ -64,14 +65,15 @@ function BatchDialog({
   preview: BatchPreview;
   onOpenChange: (open: boolean) => void;
 }) {
+  const queueWrite = useQueueWorkspaceWrite();
   const { names, keys, ineligible } = preview;
   const { run } = useWorkspaceBatch(kind, false);
   const [outcome, setOutcome] = useState<BatchOutcome | null>(null);
 
-  async function confirm() {
+  async function confirm(signal: AbortSignal) {
     let result: BatchOutcome | undefined;
     const ok = await runReportedMutation(async () => {
-      result = await run.mutateAsync(keys);
+      result = await run.mutateAsync(keys, { signal });
     });
     if (ok && result) {
       setOutcome(result);
@@ -126,7 +128,7 @@ function BatchDialog({
               <Button
                 disabled={names.length === 0}
                 pending={run.isPending}
-                onClick={() => void confirm()}
+                onClick={() => void queueWrite(confirm, { limit: "long" })}
               >
                 {batchButtonLabel(kind, names.length)}
               </Button>

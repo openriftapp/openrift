@@ -398,10 +398,10 @@ test.describe("card detail route — related cards", () => {
     const oldCode = seeded(detail.printings[0], `${SEED_CARD_SLUG} printing`).publicCode;
 
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
-    const heading = page.getByRole("heading", { name: "Related cards" });
-    await expect(heading).toBeVisible();
+    const related = page.getByRole("region", { name: "Related cards" });
+    await expect(related).toBeVisible();
 
-    const firstRelated = heading.locator("..").getByRole("link").first();
+    const firstRelated = related.getByRole("link").first();
     const href = await firstRelated.getAttribute("href");
     expect(href).toMatch(/^\/cards\//u);
     const relatedSlug = (href ?? "").split("/").pop() ?? "";

@@ -1,9 +1,15 @@
 import type { AdminPrintingImageResponse } from "@openrift/shared/types/api/admin";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const state = vi.hoisted(() => ({ editingImageIds: [] as string[] }));
+import type { RunWrite } from "@/features/admin/lib/run-write";
+
+const state = vi.hoisted(() => ({
+  editingImageIds: [] as string[],
+  rotate: vi.fn(async (..._args: unknown[]) => {}),
+  upload: vi.fn(async (..._args: unknown[]) => {}),
+}));
 
 vi.mock("@/components/ui/dropdown-menu", () => ({
   DropdownMenu: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
@@ -38,12 +44,12 @@ vi.mock("@/features/admin/hooks/use-admin-image-mutations", () => {
     useDeletePrintingImage: idle,
     useImageEditPending: (imageId: string) => state.editingImageIds.includes(imageId),
     useRehostPrintingImage: idle,
-    useRotatePrintingImage: idle,
+    useRotatePrintingImage: () => ({ mutateAsync: state.rotate, isPending: false }),
     useSetFallbackArt: idle,
     useSetPrintingImageNeedsTrim: idle,
     useUnrehostPrintingImage: idle,
     useUploadFallbackArt: idle,
-    useUploadPrintingImage: idle,
+    useUploadPrintingImage: () => ({ mutateAsync: state.upload, isPending: false }),
   };
 });
 
@@ -62,7 +68,7 @@ const image = {
   quad: null,
 } as unknown as AdminPrintingImageResponse;
 
-function renderSwitcher() {
+function renderSwitcher(runWrite?: RunWrite) {
   return render(
     <PrintingImageSwitcher
       printingId="p-1"
@@ -75,12 +81,47 @@ function renderSwitcher() {
       fallbackImageFileId={null}
       providerSettings={[]}
       isAdmin
+      runWrite={runWrite}
     />,
   );
 }
 
 beforeEach(() => {
   state.editingImageIds = [];
+  state.rotate.mockClear();
+  state.upload.mockClear();
+});
+
+describe("PrintingImageSwitcher writes", () => {
+  it("rotates directly when no runWrite is given", () => {
+    renderSwitcher();
+    fireEvent.click(screen.getByRole("button", { name: /^Rotate left/u }));
+
+    expect(state.rotate).toHaveBeenCalledWith(
+      { imageId: "img-1", rotation: 270 },
+      { signal: undefined },
+    );
+  });
+
+  it("hands each write to runWrite, uploads with the upload limit", async () => {
+    const { signal } = new AbortController();
+    const runWrite = vi.fn<RunWrite>((write) => write(signal).then(() => true));
+    renderSwitcher(runWrite);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Rotate left/u }));
+    const file = new File(["x"], "scan.png", { type: "image/png" });
+    fireEvent.change(screen.getByLabelText("Upload printing image"), {
+      target: { files: [file] },
+    });
+
+    await vi.waitFor(() => expect(state.upload).toHaveBeenCalledOnce());
+    expect(state.rotate).toHaveBeenCalledWith({ imageId: "img-1", rotation: 270 }, { signal });
+    expect(state.upload).toHaveBeenCalledWith(
+      { printingId: "p-1", file, mode: "main", face: "front" },
+      { signal },
+    );
+    expect(runWrite).toHaveBeenLastCalledWith(expect.any(Function), { limit: "upload" });
+  });
 });
 
 describe("PrintingImageSwitcher file edits", () => {

@@ -41,6 +41,7 @@ import { CardSearchDropdown } from "@/features/cards/components/card-search-drop
 import { useAssignableCardSearch } from "@/features/cards/hooks/use-card-search";
 import { ListingPrintingDialog } from "@/features/catalog-workspace/components/listing-printing-dialog";
 import { RecordSection } from "@/features/catalog-workspace/components/record/record-pane";
+import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import type {
   CardListingRow,
   ListingStrength,
@@ -58,17 +59,19 @@ const STRENGTH_VARIANT: Record<ListingStrength, "success" | "warning" | "neutral
 };
 
 function useListingDone(cardSlug: string) {
+  const queueWrite = useQueueWorkspaceWrite();
   const queryClient = useQueryClient();
-  return async (run: () => Promise<unknown>) => {
-    if (!(await runReportedMutation(run))) {
-      return;
-    }
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: adminKeys.cards.detail(cardSlug) }),
-      queryClient.invalidateQueries({ queryKey: adminKeys.unifiedMappings.all }),
-      queryClient.invalidateQueries({ queryKey: adminKeys.workspace }),
-    ]);
-  };
+  return (run: (signal: AbortSignal) => Promise<unknown>) =>
+    queueWrite(async (signal) => {
+      if (!(await runReportedMutation(() => run(signal)))) {
+        return;
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: adminKeys.cards.detail(cardSlug) }),
+        queryClient.invalidateQueries({ queryKey: adminKeys.unifiedMappings.all }),
+        queryClient.invalidateQueries({ queryKey: adminKeys.workspace }),
+      ]);
+    });
 }
 
 function ReassignCardDialog({
@@ -152,18 +155,20 @@ function ListingRow({
   const canUnassign = row.isAssigned || product.isOverride === true;
 
   function assign(printingId: string) {
-    void done(() => save.mutateAsync({ mappings: [listingAssignment(row, printingId)] }));
+    void done((signal) =>
+      save.mutateAsync({ mappings: [listingAssignment(row, printingId)] }, { signal }),
+    );
   }
 
   function runUnassign() {
     if (!row.isAssigned) {
-      void done(() => unassign.mutateAsync(sku));
+      void done((signal) => unassign.mutateAsync(sku, { signal }));
       return;
     }
-    void done(() =>
+    void done((signal) =>
       Promise.all(
         row.assignedPrintings.map((printing) =>
-          unmap.mutateAsync({ marketplace, printingId: printing.printingId, ...sku }),
+          unmap.mutateAsync({ marketplace, printingId: printing.printingId, ...sku }, { signal }),
         ),
       ),
     );
@@ -268,13 +273,19 @@ function ListingRow({
             {!row.isAssigned && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => void done(() => ignoreVariant.mutateAsync([sku]))}>
+                <DropdownMenuItem
+                  onClick={() =>
+                    void done((signal) => ignoreVariant.mutateAsync([sku], { signal }))
+                  }
+                >
                   <BanIcon />
                   Ignore this variant
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() =>
-                    void done(() => ignoreProduct.mutateAsync([{ externalId: product.externalId }]))
+                    void done((signal) =>
+                      ignoreProduct.mutateAsync([{ externalId: product.externalId }], { signal }),
+                    )
                   }
                 >
                   <BanIcon />
@@ -304,7 +315,7 @@ function ListingRow({
           onOpenChange={closeDialog}
           onPick={(cardId) => {
             setDialog(null);
-            void done(() => assignToCard.mutateAsync({ ...sku, cardId }));
+            void done((signal) => assignToCard.mutateAsync({ ...sku, cardId }, { signal }));
           }}
         />
       )}
@@ -333,7 +344,7 @@ export function CardListingsSection({
     for (const marketplace of ALL_MARKETPLACES) {
       const mappings = strong[marketplace];
       if (mappings.length > 0) {
-        void done(() => saves[marketplace].mutateAsync({ mappings }));
+        void done((signal) => saves[marketplace].mutateAsync({ mappings }, { signal }));
       }
     }
   }

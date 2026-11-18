@@ -303,6 +303,11 @@ describe.skipIf(!ctx)("pair merge (integration)", () => {
       .set({ rules: [{ excludeIds: [printingIds["PMG-T05"]!] }] } as never)
       .where("id", "=", listId)
       .execute();
+    const before = await db
+      .selectFrom("lists")
+      .select("rulesVersion")
+      .where("id", "=", listId)
+      .executeTakeFirstOrThrow();
     await db
       .insertInto("printingLinkOverrides")
       .values({
@@ -395,10 +400,11 @@ describe.skipIf(!ctx)("pair merge (integration)", () => {
 
     const rules = await db
       .selectFrom("lists")
-      .select("rules")
+      .select(["rules", "rulesVersion"])
       .where("id", "=", listId)
       .executeTakeFirstOrThrow();
     expect(rules.rules).toEqual([{ excludeIds: [birdGold] }]);
+    expect(rules.rulesVersion).toBeGreaterThan(before.rulesVersion);
 
     const overlay = await db
       .selectFrom("overlayChannels")

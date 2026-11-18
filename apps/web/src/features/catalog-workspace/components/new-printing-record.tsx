@@ -50,7 +50,7 @@ import { useValueLabels } from "@/features/catalog-workspace/hooks/use-face-reco
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
-import { queueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
+import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import type {
   CreationDraft,
   PlannedImageUpload,
@@ -126,6 +126,7 @@ function NewPrintingBody({
   candidatePrintingId: string;
   onAcceptingChange: (accepting: boolean) => void;
 }) {
+  const queueWrite = useQueueWorkspaceWrite();
   const detailQuery = useAdminCardDetail(cardSlug);
   const detail = detailQuery.data;
   const { data: access } = useAdminAccess();
@@ -192,29 +193,25 @@ function NewPrintingBody({
     !working &&
     !acceptGroup.isPending;
 
-  const uploadOne = (printingId: string, upload: PlannedImageUpload) =>
+  const uploadOne = (signal: AbortSignal, printingId: string, upload: PlannedImageUpload) =>
     upload.image.kind === "file"
-      ? uploadImage.mutateAsync({
-          printingId,
-          file: upload.image.file,
-          mode: upload.mode,
-          face: upload.face,
-        })
-      : addImageFromUrl.mutateAsync({
-          printingId,
-          url: upload.image.url,
-          mode: upload.mode,
-          face: upload.face,
-        });
+      ? uploadImage.mutateAsync(
+          { printingId, file: upload.image.file, mode: upload.mode, face: upload.face },
+          { signal },
+        )
+      : addImageFromUrl.mutateAsync(
+          { printingId, url: upload.image.url, mode: upload.mode, face: upload.face },
+          { signal },
+        );
 
-  const acceptDraft = async (toCreate: CreationDraft) => {
+  const acceptDraft = async (signal: AbortSignal, toCreate: CreationDraft) => {
     setWorking(true);
     setFailure(null);
     onAcceptingChange(true);
     let created: Awaited<ReturnType<typeof acceptGroup.mutateAsync>> | undefined;
     const ok = await runReportedMutation(
       async () => {
-        created = await acceptGroup.mutateAsync(toAcceptInput(toCreate));
+        created = await acceptGroup.mutateAsync(toAcceptInput(toCreate), { signal });
       },
       (error) => setFailure(errorText(error, "Could not accept the printing.")),
     );
@@ -228,13 +225,15 @@ function NewPrintingBody({
     const failed: string[] = [];
     if (
       followUp !== null &&
-      !(await runReportedMutation(() => updateDesk.mutateAsync({ printingId, ...followUp })))
+      !(await runReportedMutation(() =>
+        updateDesk.mutateAsync({ printingId, ...followUp }, { signal }),
+      ))
     ) {
       failed.push("the dates and note");
     }
     if (isAdmin) {
       for (const upload of plannedImageUploads(toCreate)) {
-        if (!(await runReportedMutation(() => uploadOne(printingId, upload)))) {
+        if (!(await runReportedMutation(() => uploadOne(signal, printingId, upload)))) {
           failed.push("an image");
         }
       }
@@ -248,34 +247,37 @@ function NewPrintingBody({
     navigation.goNext();
   };
 
-  const accept = async () => {
+  const accept = async (signal: AbortSignal) => {
     if (draft === null || !canAccept || accepting.current) {
       return;
     }
     accepting.current = true;
-    await acceptDraft(draft).finally(() => {
+    await acceptDraft(signal, draft).finally(() => {
       accepting.current = false;
     });
   };
 
-  const ignore = async () => {
+  const ignore = async (signal: AbortSignal) => {
     if (candidate === undefined) {
       return;
     }
     const ignored = { provider, externalId: candidate.externalId, finish: candidate.finish };
     const entry = ignoredPrintingUndo(ignored, detail?.displayName ?? cardSlug);
-    if (await runReportedMutation(() => ignoreCandidate.mutateAsync(ignored))) {
+    if (await runReportedMutation(() => ignoreCandidate.mutateAsync(ignored, { signal }))) {
       announce(entry);
       navigation.goNext();
     }
   };
 
-  const merge = async (printingId: string) => {
+  const merge = async (signal: AbortSignal, printingId: string) => {
     if (draft === null) {
       return;
     }
     const ok = await runReportedMutation(() =>
-      linkCandidates.mutateAsync({ candidatePrintingIds: draft.candidatePrintingIds, printingId }),
+      linkCandidates.mutateAsync(
+        { candidatePrintingIds: draft.candidatePrintingIds, printingId },
+        { signal },
+      ),
     );
     if (ok) {
       navigation.goNext();
@@ -286,6 +288,7 @@ function NewPrintingBody({
   useRegisterRecordActions({
     loading: (detail === undefined && !detailQuery.isError) || ignoring,
     accept: canAccept && !ignoring ? accept : undefined,
+    acceptLimit: "upload",
     ignore: isAdmin && candidate !== undefined ? ignore : undefined,
   });
 
@@ -341,7 +344,7 @@ function NewPrintingBody({
                   variant="outline"
                   size="sm"
                   pending={ignoreCandidate.isPending}
-                  onClick={() => void queueWorkspaceWrite(ignore)}
+                  onClick={() => void queueWrite(ignore)}
                 >
                   Ignore <Kbd>X</Kbd>
                 </Button>
@@ -360,7 +363,7 @@ function NewPrintingBody({
                     {existing.map((printing) => (
                       <DropdownMenuItem
                         key={printing.id}
-                        onClick={() => void queueWorkspaceWrite(() => merge(printing.id))}
+                        onClick={() => void queueWrite((signal) => merge(signal, printing.id))}
                       >
                         {printing.expectedPrintingId}
                       </DropdownMenuItem>
@@ -371,7 +374,7 @@ function NewPrintingBody({
               <Button
                 size="sm"
                 disabled={!canAccept}
-                onClick={() => void queueWorkspaceWrite(accept)}
+                onClick={() => void queueWrite(accept, { limit: "upload" })}
               >
                 Accept & next <Kbd>A</Kbd>
               </Button>
@@ -391,7 +394,7 @@ function NewPrintingBody({
         duplicateCandidates={duplicates}
         onMergeDuplicate={
           isAdmin
-            ? (duplicate) => void queueWorkspaceWrite(() => merge(duplicate.printingId))
+            ? (duplicate) => void queueWrite((signal) => merge(signal, duplicate.printingId))
             : undefined
         }
         disabled={working}

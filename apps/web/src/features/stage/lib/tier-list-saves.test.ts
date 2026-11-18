@@ -1,7 +1,23 @@
 import { onlineManager, QueryClient } from "@tanstack/react-query";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { TIER_LIST_SAVE_MUTATION_KEY, tierListSavesSettled } from "./tier-list-saves";
+import {
+  TIER_LIST_SAVE_MUTATION_KEY,
+  tierListEntryStaleTime,
+  tierListSavesSettled,
+} from "./tier-list-saves";
+
+describe("tierListEntryStaleTime", () => {
+  afterEach(() => {
+    onlineManager.setOnline(true);
+  });
+
+  it("reads fresh online and takes the cache offline", () => {
+    expect(tierListEntryStaleTime()).toBe(0);
+    onlineManager.setOnline(false);
+    expect(tierListEntryStaleTime()).toBe("static");
+  });
+});
 
 function startSave(queryClient: QueryClient, id: string, mutationKey: readonly unknown[]) {
   let finish: () => void = () => {};

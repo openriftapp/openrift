@@ -35,9 +35,10 @@ async function centerOf(locator: Locator): Promise<Point> {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
 
-/** dnd-kit marks the dragged node aria-pressed once its sensor activates. */
-function activeDraggable(page: Page): Locator {
-  return page.locator('[aria-roledescription="draggable"][aria-pressed="true"]');
+/** dnd-kit announces a pick-up in its live region once a sensor activates. */
+async function dragAnnouncement(page: Page): Promise<string> {
+  const texts = await page.locator('[id^="DndLiveRegion-"]').allTextContents();
+  return texts.join("|");
 }
 
 /**
@@ -60,12 +61,17 @@ export async function startDrag(
   await expect(source).toBeVisible({ timeout: 15_000 });
   await scrollIntoViewport(page, source);
   const start = await centerOf(source);
+  const before = await dragAnnouncement(page);
   await page.mouse.move(start.x, start.y);
   await page.mouse.down();
   await page.mouse.move(start.x + 20, start.y, { steps: 5 });
-  await (options.activates === false
-    ? expect(activeDraggable(page)).toHaveCount(0)
-    : expect(activeDraggable(page)).not.toHaveCount(0));
+  if (options.activates === false) {
+    expect(await dragAnnouncement(page)).toBe(before);
+  } else {
+    await expect
+      .poll(() => dragAnnouncement(page), { message: "the drag never activated" })
+      .not.toBe(before);
+  }
   return start;
 }
 

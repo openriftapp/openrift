@@ -10,6 +10,7 @@ import {
   mappedUndoText,
   undoScope,
 } from "@/features/catalog-workspace/lib/workspace-undo";
+import { withWriteSignal } from "@/lib/write-signal";
 
 export interface ListingSkuValues {
   externalId: number;
@@ -38,9 +39,13 @@ export function ignoredVariantsUndo(
       plural: new Set(skus.map((sku) => sku.externalId)).size > 1,
     }),
     invalidates: listingScope(),
-    undo: async () => {
+    undo: async (signal) => {
       await Promise.all(
-        skus.map((sku) => unignoreProductFn({ data: { level: "variant", marketplace, ...sku } })),
+        skus.map((sku) =>
+          withWriteSignal(signal, () =>
+            unignoreProductFn({ data: { level: "variant", marketplace, ...sku }, signal }),
+          ),
+        ),
       );
     },
   };
@@ -57,8 +62,10 @@ export function ignoredProductUndo(
       record,
     }),
     invalidates: listingScope(),
-    undo: async () => {
-      await unignoreProductFn({ data: { level: "product", marketplace, externalId } });
+    undo: async (signal) => {
+      await withWriteSignal(signal, () =>
+        unignoreProductFn({ data: { level: "product", marketplace, externalId }, signal }),
+      );
     },
   };
 }
@@ -72,8 +79,10 @@ export function assignedListingUndo(
   return {
     ...mappedUndoText({ listing: listingName(marketplace, [sku]), record }),
     invalidates: listingScope(),
-    undo: async () => {
-      await unmapMarketplacePrintingFn({ data: { marketplace, printingId, ...sku } });
+    undo: async (signal) => {
+      await withWriteSignal(signal, () =>
+        unmapMarketplacePrintingFn({ data: { marketplace, printingId, ...sku }, signal }),
+      );
     },
   };
 }

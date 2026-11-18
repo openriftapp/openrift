@@ -46,11 +46,28 @@ describe("catalogMutationsRepo", () => {
     expect(await catalogMutationsRepo(db).getCardIdBySlug("OGS-001")).toEqual({ id: "c-1" });
   });
 
-  it("deletePrintingById returns deleted id", async () => {
-    const db = createMockDb([{ id: "p-1" }]);
-    expect(await catalogMutationsRepo(db).deletePrintingById("p-1")).toEqual({
+  it("deletePrintingById returns the substitute-art pins of the faces it deleted", async () => {
+    const recording = createRecordingDb([
+      [
+        { id: "f-1", fallback_image_file_id: "if-pinned" },
+        { id: "f-2", fallback_image_file_id: null },
+      ],
+      [{ id: "p-1" }],
+      [],
+    ]);
+
+    expect(await catalogMutationsRepo(recording.db).deletePrintingById("p-1")).toEqual({
       id: "p-1",
+      releasedImageFileIds: ["if-pinned"],
     });
+    expect(recording.statements[2]?.sql).toMatch(/^delete from "faces"/u);
+  });
+
+  it("deletePrintingById deletes no face when the printing is gone", async () => {
+    const recording = createRecordingDb([[{ id: "f-1", fallback_image_file_id: "if-1" }], []]);
+
+    expect(await catalogMutationsRepo(recording.db).deletePrintingById("p-1")).toBeUndefined();
+    expect(recording.statements).toHaveLength(2);
   });
 
   it("detachDecksBeforeCatalogDeletion locks the owners, then the decks, in id order", async () => {

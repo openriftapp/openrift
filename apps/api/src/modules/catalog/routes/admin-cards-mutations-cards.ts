@@ -15,13 +15,11 @@ import { acceptFavoriteNewCard } from "../../candidates/services/accept-gallery.
 import { relinkCandidatePrintings } from "../../candidates/services/relink-candidates.js";
 import { assertFavoriteNewCardEligible } from "../../candidates/services/trusted-accept-checks.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
-import { isUnchangedValue } from "../lib/field-values.js";
 import { deleteCard } from "../services/card-admin.js";
 import {
-  cardFieldBefore,
+  acceptCardFieldValue,
   normalizeCardFieldValue,
   normalizeCardName,
-  writeCardField,
 } from "../services/card-field-writes.js";
 import type { NewPrinting } from "../services/printing-admin.js";
 
@@ -82,9 +80,9 @@ export const adminCardMutationsCardsRouter = {
     });
   }),
 
-  acceptField: os.acceptField.handler(async ({ input, context }) => {
-    const { catalogMutations: mut, candidateCards, providerSettings } = context.repos;
-    const { cardId, field, value } = input;
+  acceptField: os.acceptField.handler(async ({ input, context, errors }) => {
+    const { candidateCards, providerSettings } = context.repos;
+    const { cardId, field, value, expected } = input;
 
     // Grant holders may only edit cards that still have candidate data from
     // an allowed provider — without this, accept-field would be unscoped
@@ -95,34 +93,33 @@ export const adminCardMutationsCardsRouter = {
     }
 
     const finalValue = normalizeCardFieldValue(field, value);
-
-    const cardBefore = await mut.getFullCardById(cardId);
-    const valueBefore = await cardFieldBefore(mut, cardId, field, cardBefore);
-    if (isUnchangedValue(valueBefore, finalValue, field)) {
+    const args = { cardId, field, value: finalValue, expected };
+    const outcome =
+      expected === undefined
+        ? await acceptCardFieldValue(context.repos.catalogMutations, args)
+        : await context.transact(async (trx) => {
+            await trx.catalogMutations.lockCardRow(cardId);
+            return acceptCardFieldValue(trx.catalogMutations, args);
+          });
+    if (outcome.status === "changed") {
+      throw errors.FIELD_CHANGED();
+    }
+    if (outcome.status === "unchanged") {
       return { written: false };
     }
-    const auditEvent = () =>
-      recordAdminEvent(context.repos, context.userId, {
-        action: "card.accept-field",
-        entityType: "card",
-        entityId: cardId,
-        entityLabel: cardBefore?.name ?? null,
-        cardSlug: cardBefore?.slug ?? null,
-        oldValues: { [field]: valueBefore },
-        newValues: { [field]: finalValue },
-      });
-
-    const { refreshViews } = await writeCardField(mut, {
-      cardId,
-      field,
-      value: finalValue,
-      previousName: cardBefore?.name ?? null,
-    });
-    if (refreshViews) {
+    if (outcome.refreshViews) {
       await context.repos.catalog.refreshCatalogViews();
     }
 
-    await auditEvent();
+    await recordAdminEvent(context.repos, context.userId, {
+      action: "card.accept-field",
+      entityType: "card",
+      entityId: cardId,
+      entityLabel: outcome.cardBefore?.name ?? null,
+      cardSlug: outcome.cardBefore?.slug ?? null,
+      oldValues: { [field]: outcome.valueBefore },
+      newValues: { [field]: finalValue },
+    });
     return { written: true };
   }),
 

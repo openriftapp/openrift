@@ -30,6 +30,7 @@ import {
   RecordPane,
   RecordSection,
 } from "@/features/catalog-workspace/components/record/record-pane";
+import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import type {
   CreationDraft,
   PlannedImageUpload,
@@ -158,6 +159,7 @@ function DraftEditor({
   onChangeCard: () => void;
   onCancel: () => void;
 }) {
+  const queueWrite = useQueueWorkspaceWrite();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
@@ -176,17 +178,25 @@ function DraftEditor({
   const canCreate = issues.length === 0 && !pending && createdId === null;
   const credit = session?.user.name;
 
-  function uploadOne(printingId: string, upload: PlannedImageUpload, file: File) {
-    return uploadImage.mutateAsync({
-      printingId,
-      file,
-      mode: upload.mode,
-      face: upload.face,
-      credit: credit !== undefined && credit.length > 0 ? credit : undefined,
-    });
+  function uploadOne(
+    signal: AbortSignal,
+    printingId: string,
+    upload: PlannedImageUpload,
+    file: File,
+  ) {
+    return uploadImage.mutateAsync(
+      {
+        printingId,
+        file,
+        mode: upload.mode,
+        face: upload.face,
+        credit: credit !== undefined && credit.length > 0 ? credit : undefined,
+      },
+      { signal },
+    );
   }
 
-  async function create() {
+  async function create(signal: AbortSignal) {
     if (!canCreate) {
       return;
     }
@@ -195,7 +205,7 @@ function DraftEditor({
     let created: Awaited<ReturnType<typeof createPrinting.mutateAsync>> | undefined;
     const ok = await runReportedMutation(
       async () => {
-        created = await createPrinting.mutateAsync(toDeskCreateInput(draft));
+        created = await createPrinting.mutateAsync(toDeskCreateInput(draft), { signal });
       },
       (failure) => setError(errorText(failure, "Could not create the printing.")),
     );
@@ -211,7 +221,7 @@ function DraftEditor({
         continue;
       }
       const file = upload.image.file;
-      if (!(await runReportedMutation(() => uploadOne(printingId, upload, file)))) {
+      if (!(await runReportedMutation(() => uploadOne(signal, printingId, upload, file)))) {
         failed.push(draftImageLabel(upload.image));
       }
     }
@@ -233,7 +243,7 @@ function DraftEditor({
           actions={
             <HeaderActions
               onCancel={onCancel}
-              onCreate={() => void create()}
+              onCreate={() => void queueWrite(create, { limit: "upload" })}
               canCreate={canCreate}
             />
           }

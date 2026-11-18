@@ -38,6 +38,9 @@ import { useIgnoreCandidateCard } from "@/features/admin/hooks/use-ignored-candi
 import { acceptFieldWithUndo } from "@/features/admin/lib/accept-undo";
 import { candidateFieldValue, getProviderLabel } from "@/features/admin/lib/candidate-rows";
 import { buildSourceSubmitters } from "@/features/admin/lib/candidate-submitter";
+import type { RunWrite } from "@/features/admin/lib/run-write";
+import { runWriteDirectly } from "@/features/admin/lib/run-write";
+import { withSignal } from "@/lib/write-signal";
 
 interface CardSourceColumnActionsProps {
   row?: CandidateCardResponse | CandidatePrintingResponse;
@@ -140,6 +143,7 @@ interface CardFieldsSectionProps {
       source?: "provider" | "manual";
     };
   }) => void;
+  runWrite?: RunWrite;
 }
 
 export function CardFieldsSection({
@@ -153,6 +157,7 @@ export function CardFieldsSection({
   isAdmin,
   focusField,
   onFieldAccepted,
+  runWrite = runWriteDirectly,
 }: CardFieldsSectionProps) {
   const acceptCardField = useAcceptCardField(invalidates);
   const checkCandidateCard = useCheckCandidateCard(invalidates);
@@ -202,32 +207,51 @@ export function CardFieldsSection({
           const fieldLabel =
             candidateCardFields.find((entry) => entry.key === field)?.label ?? field;
           const sourceLabel = row === undefined ? "this source" : getProviderLabel(row);
-          void acceptFieldWithUndo({
-            accept: acceptCardField.mutateAsync,
-            input: { cardId: card.id, field, value, source: "provider" },
-            fieldLabel,
-            sourceLabel,
-            previousValue: (card as Record<string, unknown>)[field],
-            onAccepted:
-              onFieldAccepted === undefined
-                ? undefined
-                : (revert) => onFieldAccepted({ fieldLabel, sourceLabel, revert }),
+          void runWrite((signal) => {
+            const accept = withSignal(acceptCardField.mutateAsync, signal);
+            return acceptFieldWithUndo({
+              accept,
+              input: { cardId: card.id, field, value, source: "provider" },
+              fieldLabel,
+              sourceLabel,
+              previousValue: (card as Record<string, unknown>)[field],
+              onAccepted:
+                onFieldAccepted === undefined
+                  ? undefined
+                  : (revert) => onFieldAccepted({ fieldLabel, sourceLabel, revert }),
+            });
           });
         }}
         onActiveChange={(field, value) => {
           if (value === undefined || !isAcceptCardField(field)) {
             return;
           }
-          acceptCardField.mutate({ cardId: card.id, field, value });
+          void runWrite((signal) =>
+            acceptCardField.mutateAsync({ cardId: card.id, field, value }, { signal }),
+          );
         }}
-        onCheck={isAdmin ? (candidateId) => checkCandidateCard.mutate(candidateId) : undefined}
-        onUncheck={isAdmin ? (candidateId) => uncheckCandidateCard.mutate(candidateId) : undefined}
+        onCheck={
+          isAdmin
+            ? (candidateId) =>
+                void runWrite((signal) => checkCandidateCard.mutateAsync(candidateId, { signal }))
+            : undefined
+        }
+        onUncheck={
+          isAdmin
+            ? (candidateId) =>
+                void runWrite((signal) => uncheckCandidateCard.mutateAsync(candidateId, { signal }))
+            : undefined
+        }
         columnActions={
           <CardSourceColumnActions
             cardId={card.id}
             candidateCardFields={candidateCardFields}
-            onAcceptField={(input) => acceptCardField.mutate(input)}
-            onIgnoreSource={(input) => ignoreCardSource.mutate(input)}
+            onAcceptField={(input) =>
+              void runWrite((signal) => acceptCardField.mutateAsync(input, { signal }))
+            }
+            onIgnoreSource={(input) =>
+              void runWrite((signal) => ignoreCardSource.mutateAsync(input, { signal }))
+            }
             onResolveSubmission={(candidateCardId, mode) =>
               setResolution({ candidateCardId, mode })
             }
@@ -240,6 +264,7 @@ export function CardFieldsSection({
         candidateCardId={moving}
         submitterName={sources.find((source) => source.id === moving)?.submittedByName ?? null}
         scope={{ cardSlug: card.slug }}
+        runWrite={runWrite}
         onOpenChange={(open) => {
           if (!open) {
             setMoving(null);
@@ -249,6 +274,7 @@ export function CardFieldsSection({
       <SubmissionResolutionDialog
         candidateCardId={resolution?.candidateCardId ?? null}
         mode={resolution?.mode ?? "reply"}
+        runWrite={runWrite}
         onOpenChange={(open) => {
           if (!open) {
             setResolution(null);
@@ -258,10 +284,11 @@ export function CardFieldsSection({
           // The rejection itself is the ignore; the dialog only owns the
           // message that goes with it.
           if (resolution?.mode === "reject" && resolutionSource) {
-            ignoreCardSource.mutate({
+            const input = {
               provider: resolutionSource.provider,
               externalId: resolutionSource.externalId,
-            });
+            };
+            void runWrite((signal) => ignoreCardSource.mutateAsync(input, { signal }));
           }
         }}
       />

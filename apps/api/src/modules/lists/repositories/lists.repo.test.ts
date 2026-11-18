@@ -76,7 +76,42 @@ describe("listsRepo", () => {
   it("update returns the updated list", async () => {
     const db = createMockDb([LIST]);
     const repo = listsRepo(db);
-    expect(await repo.update("lst-1", "u1", { name: "Renamed" })).toEqual(LIST);
+    expect(await repo.update("lst-1", "u1", { name: "Renamed" })).toEqual({
+      outcome: "updated",
+      row: LIST,
+    });
+  });
+
+  it("update leaves the rules version alone when the rules are not written", async () => {
+    const recording = createRecordingDb([[{ id: "lst-1" }]]);
+    await listsRepo(recording.db).update("lst-1", "u1", { name: "Renamed" });
+
+    expect(recording.queries[0]).not.toMatch(/rules_version/u);
+  });
+
+  it("update bumps the rules version and checks the expected one in the same statement", async () => {
+    const recording = createRecordingDb([[{ id: "lst-1" }]]);
+    await listsRepo(recording.db).update("lst-1", "u1", { ruleCombine: "max" }, 4);
+
+    expect(recording.queries).toHaveLength(1);
+    expect(recording.queries[0]).toMatch(
+      /^update "lists" set "rule_combine" = \$1, "rules_version" = rules_version \+ 1 where .* and "rules_version" = \$4 returning/u,
+    );
+    expect(recording.parameters[0]?.at(-1)).toBe(4);
+  });
+
+  it("update answers stale when the list exists at another rules version", async () => {
+    const recording = createRecordingDb([[], [{ id: "lst-1" }]]);
+    const result = await listsRepo(recording.db).update("lst-1", "u1", { rules: [] }, 4);
+
+    expect(result).toEqual({ outcome: "stale" });
+  });
+
+  it("update answers missing when the list is gone", async () => {
+    const recording = createRecordingDb([[], []]);
+    const result = await listsRepo(recording.db).update("lst-1", "u1", { rules: [] }, 4);
+
+    expect(result).toEqual({ outcome: "missing" });
   });
 
   it("deleteByIdForUser reports whether a row was deleted", async () => {
@@ -302,7 +337,9 @@ describe("listsRepo", () => {
     expect(recording.queries[0]).toMatch(
       /^select .* from "lists" .* order by "id" for no key update$/u,
     );
-    expect(recording.queries[1]).toMatch(/^update "lists" set "rules" = \$1/u);
+    expect(recording.queries[1]).toMatch(
+      /^update "lists" set "rules" = \$1, "rules_version" = rules_version \+ 1 /u,
+    );
   });
 
   it("updateEntry steps the stored quantity in one statement, between 1 and the entry maximum", async () => {

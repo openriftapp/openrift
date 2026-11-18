@@ -161,8 +161,9 @@ export interface CoalescedRequestFlushResult {
 }
 
 export function isTradeRequestFlushNoop(result: CoalescedRequestFlushResult): boolean {
-  // `failed` is already implied by `pairs`: only a due pair can fail.
-  return result.pairs === 0 && result.emailsSent === 0 && result.requests === 0;
+  return (
+    result.pairs === 0 && result.emailsSent === 0 && result.requests === 0 && result.failed === 0
+  );
 }
 
 /**
@@ -204,114 +205,126 @@ export async function flushCoalescedTradeRequests(
   let requestsDropped = 0;
 
   for (const rows of byPair.values()) {
-    const [firstRow] = rows;
-    if (!firstRow) {
-      continue;
-    }
-    const { recipientUserId, senderUserId } = firstRow;
+    try {
+      const [firstRow] = rows;
+      if (!firstRow) {
+        continue;
+      }
+      const { recipientUserId, senderUserId } = firstRow;
 
-    if (!contextByUser.has(recipientUserId)) {
-      contextByUser.set(
-        recipientUserId,
-        await repos.userPreferences.getEmailNotificationContext(recipientUserId),
+      if (!contextByUser.has(recipientUserId)) {
+        contextByUser.set(
+          recipientUserId,
+          await repos.userPreferences.getEmailNotificationContext(recipientUserId),
+        );
+      }
+      const context = contextByUser.get(recipientUserId);
+      if (
+        context === undefined ||
+        !context.emailVerified ||
+        !isTradeRequestEmailEnabled(context.emailNotifications)
+      ) {
+        // Suppressed: claim so this pair isn't retried every tick.
+        await repos.cardTrades.claimRequestEmails(rows.map((row) => row.id));
+        continue;
+      }
+
+      // A still-settling burst stays queued, unclaimed, for a later tick.
+      const cadence = getTradeRequestEmailCadence(context.emailNotifications);
+      if (
+        !isRequestGroupDue(
+          cadence,
+          rows.map((row) => row.createdAt),
+          now,
+        )
+      ) {
+        continue;
+      }
+      pairs += 1;
+
+      // Claim every queued row for this pair (skips any the instant path grabbed
+      // concurrently). Claimed rows won't be reconsidered next tick.
+      const claimedIds = new Set(
+        await repos.cardTrades.claimRequestEmails(rows.map((row) => row.id)),
       );
-    }
-    const context = contextByUser.get(recipientUserId);
-    if (
-      context === undefined ||
-      !context.emailVerified ||
-      !isTradeRequestEmailEnabled(context.emailNotifications)
-    ) {
-      // Suppressed: claim so this pair isn't retried every tick.
-      await repos.cardTrades.claimRequestEmails(rows.map((row) => row.id));
-      continue;
-    }
+      const claimedRows = rows.filter((row) => claimedIds.has(row.id));
+      if (claimedRows.length === 0) {
+        continue;
+      }
 
-    // A still-settling burst stays queued, unclaimed, for a later tick.
-    const cadence = getTradeRequestEmailCadence(context.emailNotifications);
-    if (
-      !isRequestGroupDue(
-        cadence,
-        rows.map((row) => row.createdAt),
-        now,
-      )
-    ) {
-      continue;
-    }
-    pairs += 1;
-
-    // Claim every queued row for this pair (skips any the instant path grabbed
-    // concurrently). Claimed rows won't be reconsidered next tick.
-    const claimedIds = new Set(
-      await repos.cardTrades.claimRequestEmails(rows.map((row) => row.id)),
-    );
-    const claimedRows = rows.filter((row) => claimedIds.has(row.id));
-    if (claimedRows.length === 0) {
-      continue;
-    }
-
-    let senderLabel: string | null | undefined;
-    const printingIds = new Set<string>();
-    for (const row of claimedRows) {
-      printingIds.add(row.printingId);
-      if (senderLabel === undefined) {
-        if (!labelsByGroup.has(row.groupId)) {
-          const members = await repos.friendGroups.listMembers(row.groupId);
-          const labels = new Map<string, string | null>();
-          for (const member of members) {
-            labels.set(member.userId, member.userName);
+      let senderLabel: string | null | undefined;
+      const printingIds = new Set<string>();
+      for (const row of claimedRows) {
+        printingIds.add(row.printingId);
+        if (senderLabel === undefined) {
+          if (!labelsByGroup.has(row.groupId)) {
+            const members = await repos.friendGroups.listMembers(row.groupId);
+            const labels = new Map<string, string | null>();
+            for (const member of members) {
+              labels.set(member.userId, member.userName);
+            }
+            labelsByGroup.set(row.groupId, labels);
           }
-          labelsByGroup.set(row.groupId, labels);
+          senderLabel = labelsByGroup.get(row.groupId)?.get(senderUserId) ?? null;
         }
-        senderLabel = labelsByGroup.get(row.groupId)?.get(senderUserId) ?? null;
       }
-    }
 
-    const nameByPrinting = await repos.catalog.printingNamesByIds([...printingIds]);
+      const nameByPrinting = await repos.catalog.printingNamesByIds([...printingIds]);
 
-    // One section per group: a pair can share more than one group.
-    const sections: CoalescedRequestGroup[] = [];
-    const sectionByGroup = new Map<string, CoalescedRequestGroup>();
-    for (const row of claimedRows) {
-      let section = sectionByGroup.get(row.groupId);
-      if (section === undefined) {
-        section = {
-          groupName: row.groupName,
-          tradesUrl: appBaseUrl + groupPath(row.groupSlug, "trades"),
-          requests: [],
-        };
-        sectionByGroup.set(row.groupId, section);
-        sections.push(section);
+      // One section per group: a pair can share more than one group.
+      const sections: CoalescedRequestGroup[] = [];
+      const sectionByGroup = new Map<string, CoalescedRequestGroup>();
+      for (const row of claimedRows) {
+        let section = sectionByGroup.get(row.groupId);
+        if (section === undefined) {
+          section = {
+            groupName: row.groupName,
+            tradesUrl: appBaseUrl + groupPath(row.groupSlug, "trades"),
+            requests: [],
+          };
+          sectionByGroup.set(row.groupId, section);
+          sections.push(section);
+        }
+        section.requests.push({
+          cardName: nameByPrinting.get(row.printingId) ?? null,
+          quantity: row.quantity,
+          // receiver-initiated = the sender wants your card; giver-initiated = offer.
+          kind: row.initiator === "receiver" ? "wants" : "offers",
+          agreed: row.agreed,
+        });
       }
-      section.requests.push({
-        cardName: nameByPrinting.get(row.printingId) ?? null,
-        quantity: row.quantity,
-        // receiver-initiated = the sender wants your card; giver-initiated = offer.
-        kind: row.initiator === "receiver" ? "wants" : "offers",
-        agreed: row.agreed,
-      });
-    }
 
-    const sent = await sendChannelEmail(
-      deps,
-      { userId: recipientUserId, email: context.email },
-      "tradeRequests",
-      ({ unsubscribeUrl }) =>
-        buildCoalescedTradeRequestsEmail({
-          locale: context.displayLocale,
-          recipientName: context.name,
-          senderName: senderLabel ?? null,
-          groups: sections,
-          unsubscribeUrl,
-        }),
-      { senderUserId },
-    );
-    if (sent) {
-      emailsSent += 1;
-      requests += claimedRows.length;
-    } else {
+      const sent = await sendChannelEmail(
+        deps,
+        { userId: recipientUserId, email: context.email },
+        "tradeRequests",
+        ({ unsubscribeUrl }) =>
+          buildCoalescedTradeRequestsEmail({
+            locale: context.displayLocale,
+            recipientName: context.name,
+            senderName: senderLabel ?? null,
+            groups: sections,
+            unsubscribeUrl,
+          }),
+        { senderUserId },
+      );
+      if (sent) {
+        emailsSent += 1;
+        requests += claimedRows.length;
+      } else {
+        failed += 1;
+        requestsDropped += claimedRows.length;
+      }
+    } catch (error) {
       failed += 1;
-      requestsDropped += claimedRows.length;
+      deps.log.error(
+        {
+          err: error,
+          recipientUserId: rows[0]?.recipientUserId,
+          senderUserId: rows[0]?.senderUserId,
+        },
+        "Failed to flush trade request emails for a pair",
+      );
     }
   }
 

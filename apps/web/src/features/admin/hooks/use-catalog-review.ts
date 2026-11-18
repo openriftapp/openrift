@@ -71,15 +71,16 @@ export function settleKeys(
 
 export function useAcceptSubmission(scope: SettleScope = {}) {
   return useMutationWithInvalidation({
-    mutationFn: (input: AcceptSubmissionInput) => acceptSubmissionFn({ data: input }),
+    mutationFn: (input: AcceptSubmissionInput, signal) =>
+      acceptSubmissionFn({ data: input, signal }),
     invalidates: (input) => settleKeys(input.candidateCardId, scope),
   });
 }
 
 export function useRejectSubmission(scope: SettleScope = {}) {
   return useMutationWithInvalidation({
-    mutationFn: async (input: RejectSubmissionInput) => {
-      await rejectSubmissionFn({ data: input });
+    mutationFn: async (input: RejectSubmissionInput, signal) => {
+      await rejectSubmissionFn({ data: input, signal });
     },
     invalidates: (input) => settleKeys(input.candidateCardId, scope),
   });
@@ -87,7 +88,7 @@ export function useRejectSubmission(scope: SettleScope = {}) {
 
 export function useMoveSubmission(scope: SettleScope = {}) {
   return useMutationWithInvalidation({
-    mutationFn: (input: MoveSubmissionInput) => moveSubmissionFn({ data: input }),
+    mutationFn: (input: MoveSubmissionInput, signal) => moveSubmissionFn({ data: input, signal }),
     invalidates: (input, data) => [
       ...settleKeys(input.candidateCardId, { ...scope, cardSlug: data.cardSlug }),
       ...(scope.cardSlug ? [adminKeys.cards.detail(scope.cardSlug)] : []),

@@ -56,7 +56,7 @@ export const Route = createFileRoute("/_app/decks_/share/$token")({
     const { name, format, description, updatedAt } = data.deck;
     return {
       deck: { name, description, updatedAt },
-      formatLabel: enumLabel(labelMap(init.enums.deckFormats ?? []), format),
+      formatLabel: enumLabel(labelMap(init.enums.deckFormats), format),
       owner: { displayName: data.owner.displayName },
     };
   },

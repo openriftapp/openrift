@@ -15,7 +15,7 @@ const mockListsRepo = {
     Promise.resolve(undefined as { id: string; kind: string; intent: string } | undefined),
   ),
   create: vi.fn(() => Promise.resolve({} as object)),
-  update: vi.fn(() => Promise.resolve(undefined as object | undefined)),
+  update: vi.fn((..._args: unknown[]) => Promise.resolve({ outcome: "missing" } as object)),
   ruleMatchContext: vi.fn(() => Promise.resolve({ catalog: [] } as object)),
   dropFromRules: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   deleteByIdForUser: vi.fn(() => Promise.resolve(false)),
@@ -121,6 +121,8 @@ const dbList = {
   defaultTradeType: null,
   currency: null,
   isSidebarHidden: false,
+  rules: [],
+  rulesVersion: 4,
   createdAt: now,
   updatedAt: now,
 };
@@ -277,6 +279,7 @@ describe("GET /api/v1/lists/:id", () => {
     const json = await readJson(res);
     expect(json.list.id).toBe(LIST_ID);
     expect(json.list.kind).toBe("card");
+    expect(json.list.rulesVersion).toBe(4);
     expect(json.entries).toHaveLength(1);
     expect(json.entries[0].cardName).toBe("Fire Dragon");
     expect(mockListsRepo.entriesWithDetails).toHaveBeenCalledWith(LIST_ID, "card", USER_ID);
@@ -297,7 +300,10 @@ describe("PATCH /api/v1/lists/:id", () => {
   });
 
   it("returns 200 with the updated list", async () => {
-    mockListsRepo.update.mockResolvedValue({ ...dbList, name: "Renamed" });
+    mockListsRepo.update.mockResolvedValue({
+      outcome: "updated",
+      row: { ...dbList, name: "Renamed" },
+    });
     const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -309,7 +315,7 @@ describe("PATCH /api/v1/lists/:id", () => {
   });
 
   it("returns 404 when not found", async () => {
-    mockListsRepo.update.mockResolvedValue(undefined);
+    mockListsRepo.update.mockResolvedValue({ outcome: "missing" });
     const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -319,7 +325,7 @@ describe("PATCH /api/v1/lists/:id", () => {
   });
 
   it("accepts a tradeDefaults-only patch", async () => {
-    mockListsRepo.update.mockResolvedValue(dbList);
+    mockListsRepo.update.mockResolvedValue({ outcome: "updated", row: dbList });
     const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -328,22 +334,32 @@ describe("PATCH /api/v1/lists/:id", () => {
       }),
     });
     expect(res.status).toBe(200);
-    expect(mockListsRepo.update).toHaveBeenCalledWith(LIST_ID, USER_ID, {
-      defaultPricePref: "cm_lowest",
-      defaultPriceAbsoluteCents: null,
-      defaultTradeType: "cards",
-    });
+    expect(mockListsRepo.update).toHaveBeenCalledWith(
+      LIST_ID,
+      USER_ID,
+      {
+        defaultPricePref: "cm_lowest",
+        defaultPriceAbsoluteCents: null,
+        defaultTradeType: "cards",
+      },
+      undefined,
+    );
   });
 
   it("accepts a currency-only patch", async () => {
-    mockListsRepo.update.mockResolvedValue(dbList);
+    mockListsRepo.update.mockResolvedValue({ outcome: "updated", row: dbList });
     const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ currency: "USD" }),
     });
     expect(res.status).toBe(200);
-    expect(mockListsRepo.update).toHaveBeenCalledWith(LIST_ID, USER_ID, { currency: "USD" });
+    expect(mockListsRepo.update).toHaveBeenCalledWith(
+      LIST_ID,
+      USER_ID,
+      { currency: "USD" },
+      undefined,
+    );
   });
 
   it("rejects a completely empty patch with 400", async () => {
@@ -373,7 +389,7 @@ describe("PATCH /api/v1/lists/:id", () => {
   it("accepts several rules on a trade list", async () => {
     const tradeList = { ...dbList, intent: "trade" as const, kind: "copy" as const };
     mockListsRepo.getByIdForUser.mockResolvedValue(tradeList);
-    mockListsRepo.update.mockResolvedValue(tradeList);
+    mockListsRepo.update.mockResolvedValue({ outcome: "updated", row: tradeList });
     const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -385,7 +401,7 @@ describe("PATCH /api/v1/lists/:id", () => {
   it("accepts rules on an organize list, shaped by its kind", async () => {
     const organizeCopy = { ...dbList, intent: "organize" as const, kind: "copy" as const };
     mockListsRepo.getByIdForUser.mockResolvedValue(organizeCopy);
-    mockListsRepo.update.mockResolvedValue(organizeCopy);
+    mockListsRepo.update.mockResolvedValue({ outcome: "updated", row: organizeCopy });
     const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -401,6 +417,7 @@ describe("PATCH /api/v1/lists/:id", () => {
         rules: [expect.objectContaining({ kind: "trade", keepPerCard: { mode: "fixed", n: 1 } })],
         ruleCombine: "count-sum",
       }),
+      undefined,
     );
   });
 
@@ -420,14 +437,19 @@ describe("PATCH /api/v1/lists/:id", () => {
   });
 
   it("persists a combine mode matching the list kind", async () => {
-    mockListsRepo.update.mockResolvedValue(dbList);
+    mockListsRepo.update.mockResolvedValue({ outcome: "updated", row: dbList });
     const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ ruleCombine: "max" }),
     });
     expect(res.status).toBe(200);
-    expect(mockListsRepo.update).toHaveBeenCalledWith(LIST_ID, USER_ID, { ruleCombine: "max" });
+    expect(mockListsRepo.update).toHaveBeenCalledWith(
+      LIST_ID,
+      USER_ID,
+      { ruleCombine: "max" },
+      undefined,
+    );
   });
 
   it("rejects a trade-mode combine rule on a wish list with 400", async () => {
@@ -441,21 +463,78 @@ describe("PATCH /api/v1/lists/:id", () => {
   });
 
   it("clears the combine mode back to the default with null", async () => {
-    mockListsRepo.update.mockResolvedValue(dbList);
+    mockListsRepo.update.mockResolvedValue({ outcome: "updated", row: dbList });
     const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ ruleCombine: null }),
     });
     expect(res.status).toBe(200);
-    expect(mockListsRepo.update).toHaveBeenCalledWith(LIST_ID, USER_ID, { ruleCombine: null });
+    expect(mockListsRepo.update).toHaveBeenCalledWith(
+      LIST_ID,
+      USER_ID,
+      { ruleCombine: null },
+      undefined,
+    );
+  });
+
+  it("passes the expected rules version to the write when the rules change", async () => {
+    mockListsRepo.update.mockResolvedValue({ outcome: "updated", row: dbList });
+    const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ruleCombine: "max", expectedRulesVersion: 4 }),
+    });
+    expect(res.status).toBe(200);
+    expect(mockListsRepo.update).toHaveBeenCalledWith(LIST_ID, USER_ID, { ruleCombine: "max" }, 4);
+  });
+
+  it("ignores the expected rules version on a write that leaves the rules alone", async () => {
+    mockListsRepo.update.mockResolvedValue({ outcome: "updated", row: dbList });
+    const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "Renamed", expectedRulesVersion: 1 }),
+    });
+    expect(res.status).toBe(200);
+    expect(mockListsRepo.update).toHaveBeenCalledWith(
+      LIST_ID,
+      USER_ID,
+      { name: "Renamed" },
+      undefined,
+    );
+  });
+
+  it("answers 412 with the stored rules when they changed since the expected version", async () => {
+    mockListsRepo.update.mockResolvedValue({ outcome: "stale" });
+    mockListsRepo.getByIdForUser.mockResolvedValue({
+      ...dbList,
+      rules: [wishRule],
+      ruleCombine: "max",
+      rulesVersion: 5,
+    });
+    const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ rules: [], expectedRulesVersion: 4 }),
+    });
+    expect(res.status).toBe(412);
+    const json = await readJson(res);
+    expect(json.code).toBe("PRECONDITION_FAILED");
+    expect(json.defined).toBe(true);
+    expect(json.data.rulesVersion).toBe(5);
+    expect(json.data.ruleCombine).toBe("max");
+    expect(json.data.rules).toEqual([expect.objectContaining({ kind: "wish" })]);
   });
 
   // A PATCH carrying trade prefs on an organize list strips them (the DB
   // CHECK would otherwise 500) and applies only the real fields.
   it("strips trade prefs on a PATCH to an organize list", async () => {
     mockListsRepo.getByIdForUser.mockResolvedValue({ ...dbList, intent: "organize" });
-    mockListsRepo.update.mockResolvedValue({ ...dbList, intent: "organize", name: "Org" });
+    mockListsRepo.update.mockResolvedValue({
+      outcome: "updated",
+      row: { ...dbList, intent: "organize", name: "Org" },
+    });
     const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -466,7 +545,7 @@ describe("PATCH /api/v1/lists/:id", () => {
       }),
     });
     expect(res.status).toBe(200);
-    expect(mockListsRepo.update).toHaveBeenCalledWith(LIST_ID, USER_ID, { name: "Org" });
+    expect(mockListsRepo.update).toHaveBeenCalledWith(LIST_ID, USER_ID, { name: "Org" }, undefined);
   });
 });
 
@@ -1063,7 +1142,7 @@ describe("trade-list edits sweep the trades they leave unfillable (ADR-019)", ()
     mockFriendGroupsRepo.listGroupsSharingList.mockResolvedValue([{ groupId: "group-1" }]);
     mockListsRepo.getIdKindIntent.mockResolvedValue(tradeList);
     mockListsRepo.getByIdForUser.mockResolvedValue(dbTradeList);
-    mockListsRepo.update.mockResolvedValue(dbTradeList);
+    mockListsRepo.update.mockResolvedValue({ outcome: "updated", row: dbTradeList });
     mockListsRepo.deleteByIdForUser.mockResolvedValue(true);
     mockListsRepo.deleteEntry.mockResolvedValue({ numDeletedRows: 1n });
     mockListsRepo.listsOwningEntries.mockResolvedValue([{ id: LIST_ID, intent: "trade" }]);

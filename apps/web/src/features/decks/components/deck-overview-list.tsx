@@ -626,7 +626,7 @@ function ListRow({ draggable, ...props }: DeckListRowProps & { draggable: boolea
  * The payload is byte-for-byte the grid thumbnail's `DeckCardDragData`, so
  * every existing drop handler treats a list drag exactly like a grid drag.
  */
-function DraggableDeckListRow(props: DeckListRowProps) {
+export function DraggableDeckListRow(props: DeckListRowProps) {
   const { card, copyIndex } = props;
   const dragData: DeckCardDragData = {
     type: "deck-card",
@@ -638,7 +638,7 @@ function DraggableDeckListRow(props: DeckListRowProps) {
   };
   // Destructured before use: member access on the hook's return object during
   // render makes the React Compiler bail.
-  const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
+  const { setNodeRef, listeners, isDragging } = useDraggable({
     id: `overview-list-${card.cardId}-${card.zone}-${card.preferredPrintingId ?? "default"}-${copyIndex ?? "all"}`,
     data: dragData,
   });
@@ -647,7 +647,7 @@ function DraggableDeckListRow(props: DeckListRowProps) {
     <DeckCardListRow
       {...props}
       dragRef={setNodeRef}
-      dragProps={{ ...listeners, ...attributes }}
+      dragProps={{ ...listeners }}
       isDragging={isDragging}
     />
   );

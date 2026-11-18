@@ -12,6 +12,7 @@ const TITLE_LIMIT = 256;
 const DESCRIPTION_LIMIT = 4096;
 const FOOTER_LIMIT = 2048;
 const MESSAGE_LIMIT = 2000;
+const URL_LIMIT = 2048;
 
 export function searchPageUrl(siteUrl: string, query: string): string {
   return `${siteUrl}/cards?q=${encodeURIComponent(query)}`;
@@ -35,14 +36,16 @@ export function buildSearchEmbed({
   });
   const more = response.total - lines.length;
   const label = more > 0 ? `${more} more on OpenRift` : "Open on OpenRift";
-  const linked = [...lines, "", `[${label}](${searchPageUrl(siteUrl, query)})`].join("\n");
+  const pageUrl = searchPageUrl(siteUrl, query);
+  const linkable = pageUrl.length <= URL_LIMIT;
+  const linked = [...lines, "", linkable ? `[${label}](${pageUrl})` : label].join("\n");
   const description =
     linked.length <= DESCRIPTION_LIMIT ? linked : [...lines, "", label].join("\n");
   const head = `${response.total} ${pluralize(response.total, "result", "results")} for `;
   return {
     color: DISCORD_EMBED_COLOR,
     title: `${head}${truncateWithEllipsis(query, TITLE_LIMIT - head.length)}`,
-    url: searchPageUrl(siteUrl, query),
+    ...(linkable ? { url: pageUrl } : {}),
     description: response.total === 0 ? "Nothing matches." : description,
     ...(response.warnings.length > 0
       ? { footer: { text: truncateWithEllipsis(response.warnings.join("\n"), FOOTER_LIMIT) } }

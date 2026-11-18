@@ -12,7 +12,7 @@ import type {
 import { useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
-import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { adminKeys, IMAGE_FILE_SCOPE } from "@/features/admin/lib/admin-query-keys";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
@@ -163,7 +163,7 @@ export function useRehostImages(onBatchComplete?: () => void) {
 export function useRefetchImages() {
   return useMutationWithInvalidation({
     mutationFn: (imageIds: string[]) => refetchImagesFn({ data: { imageIds } }),
-    invalidates: [adminKeys.rehostStatus, adminKeys.brokenImages],
+    invalidates: [adminKeys.rehostStatus, ...IMAGE_FILE_SCOPE],
   });
 }
 

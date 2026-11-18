@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/workspace-undo";
 import {
+  createWorkspaceWriteQueue,
   resetWorkspaceWriteQueue,
   workspaceWriteQueue,
 } from "@/features/catalog-workspace/lib/workspace-write-queue";
@@ -17,10 +18,17 @@ const reported = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/query-client", () => ({ reportMutationError: reported }));
 
-vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn() }) }));
+vi.mock("sonner", () => ({
+  toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }),
+}));
 
-const { NOTHING_SAVED_NOTICE, runWorkspaceUndo, useWorkspaceUndo } =
-  await import("./use-workspace-undo");
+const {
+  NOTHING_KNOWN_NOTICE,
+  NOTHING_SAVED_NOTICE,
+  runWorkspaceUndo,
+  undoLatestWorkspaceStep,
+  useWorkspaceUndo,
+} = await import("./use-workspace-undo");
 
 let resetStore: () => void;
 let queryClient: QueryClient;
@@ -31,7 +39,7 @@ function wrapper({ children }: { children: ReactNode }) {
 
 function entry(
   label: string,
-  undo: () => Promise<void> = () => Promise.resolve(),
+  undo: (signal: AbortSignal) => Promise<void> = () => Promise.resolve(),
 ): WorkspaceUndoEntry {
   return {
     label,
@@ -100,6 +108,24 @@ describe("runWorkspaceUndo", () => {
     expect(toast).toHaveBeenCalledWith(
       'Can\'t undo "Discarded 2 suggestions on Vi": it was deleted since',
     );
+  });
+
+  it("drops the entry with a notice when the field changed since the accept", async () => {
+    const changed = Object.assign(new Error("Changed since, not undone"), {
+      status: 409,
+      code: "FIELD_CHANGED",
+    });
+    const stale = entry("Used Artist from scans on Vi", () => Promise.reject(changed));
+    useWorkspaceSelectionStore.getState().pushUndo(stale);
+
+    await runWorkspaceUndo(stale, queryClient);
+
+    expect(stack()).toEqual([]);
+    expect(reported).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith('Changed since, not undone: "Used Artist from scans on Vi"');
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["admin", "workspace"],
+    });
   });
 
   it("keeps the entry when the 404 comes from a stale client bundle", async () => {
@@ -203,6 +229,7 @@ describe("useWorkspaceUndo", () => {
             resolve();
           };
         }),
+      { queryClient },
     );
 
     act(() => {
@@ -226,8 +253,10 @@ describe("useWorkspaceUndo", () => {
     const older = entry("Older");
     const { result } = renderHook(() => useWorkspaceUndo(), { wrapper });
     act(() => result.current.push(older));
-    void workspaceWriteQueue().enqueue(Symbol("record"), () =>
-      Promise.reject(new Error("Network down")),
+    void workspaceWriteQueue().enqueue(
+      Symbol("record"),
+      () => Promise.reject(new Error("Network down")),
+      { queryClient },
     );
 
     act(() => {
@@ -287,5 +316,71 @@ describe("useWorkspaceUndo", () => {
     await vi.waitFor(() => expect(stack()).toEqual([later]));
     expect(announced.undo).toHaveBeenCalledOnce();
     expect(later.undo).not.toHaveBeenCalled();
+  });
+
+  it("says the result is unknown when Z waited behind a write that got no answer", async () => {
+    const controllers: AbortController[] = [];
+    const queue = createWorkspaceWriteQueue(() => {
+      const controller = new AbortController();
+      controllers.push(controller);
+      return controller.signal;
+    });
+    vi.mocked(queryClient.invalidateQueries).mockResolvedValue();
+    const older = entry("Older");
+    useWorkspaceSelectionStore.getState().pushUndo(older);
+    void queue.enqueue(
+      Symbol("record"),
+      (signal) =>
+        new Promise((resolve) => {
+          signal.addEventListener("abort", resolve);
+        }),
+      { queryClient },
+    );
+
+    expect(undoLatestWorkspaceStep(queryClient, queue)).toBe(true);
+    await vi.waitFor(() => expect(controllers).toHaveLength(1));
+    controllers[0]?.abort();
+
+    await vi.waitFor(() => expect(queue.idle()).toBe(true));
+    expect(older.undo).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith(NOTHING_KNOWN_NOTICE);
+  });
+
+  it("says the result is unknown when a retried undo finds the change its unanswered first try made", async () => {
+    const controllers: AbortController[] = [];
+    const queue = createWorkspaceWriteQueue(() => {
+      const controller = new AbortController();
+      controllers.push(controller);
+      return controller.signal;
+    });
+    vi.mocked(queryClient.invalidateQueries).mockResolvedValue();
+    const changed = Object.assign(new Error("Changed since, not undone"), {
+      status: 409,
+      code: "FIELD_CHANGED",
+    });
+    let attempts = 0;
+    const retried = entry("Used Artist from scans on Vi", (signal) => {
+      attempts += 1;
+      return attempts === 1
+        ? new Promise((_resolve, reject) => {
+            signal.addEventListener("abort", () => reject(new Error("aborted")));
+          })
+        : Promise.reject(changed);
+    });
+    useWorkspaceSelectionStore.getState().pushUndo(retried);
+
+    const first = runWorkspaceUndo(retried, queryClient, queue);
+    await vi.waitFor(() => expect(controllers).toHaveLength(1));
+    controllers[0]?.abort();
+    await first;
+    await vi.waitFor(() => expect(useWorkspaceSelectionStore.getState().undoing).toBe(false));
+    expect(stack()).toEqual([retried]);
+
+    await runWorkspaceUndo(retried, queryClient, queue);
+
+    expect(stack()).toEqual([]);
+    expect(toast).toHaveBeenCalledWith(
+      'Undo result unknown: "Used Artist from scans on Vi" changed since an undo that got no answer. The record was reloaded.',
+    );
   });
 });

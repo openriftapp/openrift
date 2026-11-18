@@ -5,7 +5,7 @@ import { loadCollection } from "@/features/collections/lib/collection-load";
 import { StageShellFallback } from "@/features/stage/components/stage-shell-fallback";
 import { TierListGoneState } from "@/features/stage/components/tier-list-gone-state";
 import { stageShowSearchSchema } from "@/features/stage/lib/stage-search";
-import { tierListSavesSettled } from "@/features/stage/lib/tier-list-saves";
+import { tierListEntryStaleTime, tierListSavesSettled } from "@/features/stage/lib/tier-list-saves";
 import { tierListQueryOptions } from "@/features/stage/lib/tier-lists-queries";
 import { requireSession, sessionQueryOptions } from "@/lib/auth-session";
 import { initQueryOptions } from "@/lib/init-queries";
@@ -45,7 +45,7 @@ export const Route = createFileRoute("/_app/stage_/show")({
         await notFoundOnSentinel(
           context.queryClient.query({
             ...tierListQueryOptions(session.user.id, deps.tier),
-            staleTime: 0,
+            staleTime: tierListEntryStaleTime(),
           }),
         );
       }

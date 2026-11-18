@@ -17,6 +17,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { hydrateListRules, ruleFiltersOnPrice } from "@openrift/shared/types/list-rule";
 import type { ListRules } from "@openrift/shared/types/list-rule";
 import type { Kysely, Selectable } from "kysely";
+import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { ListEntriesTable, ListsTable } from "../../../db/tables/lists.js";
@@ -102,7 +103,7 @@ export function listRulesRepo(db: Kysely<Database>, providers?: ListRuleProvider
       }
       return db
         .updateTable("lists")
-        .set({ rules: next })
+        .set({ rules: next, rulesVersion: sql<number>`rules_version + 1` })
         .where("id", "=", listId)
         .where("userId", "=", userId)
         .returningAll()

@@ -50,7 +50,7 @@ import {
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
-import { queueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
+import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import { workspaceQueueQueryOptions } from "@/features/catalog-workspace/lib/workspace-queries";
 import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/workspace-undo";
 import { formatCentsInLocale } from "@/lib/format";
@@ -93,6 +93,7 @@ export function ListingRecord({ ownerId }: { ownerId: string }) {
 }
 
 function ListingBody({ sku, item }: { sku: ListingSku; item: WorkspaceQueueItem }) {
+  const queueWrite = useQueueWorkspaceWrite();
   const navigation = useQueueNavigation("printing");
   const queryClient = useQueryClient();
   const {
@@ -145,37 +146,37 @@ function ListingBody({ sku, item }: { sku: ListingSku; item: WorkspaceQueueItem 
       settle(entry);
     }
   };
-  const assign = async (printingId: string) => {
+  const assign = async (signal: AbortSignal, printingId: string) => {
     const printing = candidates.find((entry) => entry.printing.printingId === printingId);
     const target =
       printing === undefined ? item.cardName : formatPrintingCode(printing.printing.shortCode);
     const entry = assignedListingUndo(sku.marketplace, skuValues, printingId, target);
     let result: Awaited<ReturnType<typeof save.mutateAsync>> | undefined;
     const ok = await runReportedMutation(async () => {
-      result = await save.mutateAsync({ mappings: [{ ...skuValues, printingId }] });
+      result = await save.mutateAsync({ mappings: [{ ...skuValues, printingId }] }, { signal });
     });
     if (ok && result) {
       settle(result.skipped.length === 0 ? entry : null);
     }
   };
-  const ignore = () =>
+  const ignore = (signal: AbortSignal) =>
     doneWith(
-      () => ignoreVariant.mutateAsync([skuValues]),
+      () => ignoreVariant.mutateAsync([skuValues], { signal }),
       ignoredVariantsUndo(sku.marketplace, [skuValues], record),
     );
-  const ignoreWholeProduct = () =>
+  const ignoreWholeProduct = (signal: AbortSignal) =>
     doneWith(
-      () => ignoreProduct.mutateAsync([{ externalId: sku.externalId }]),
+      () => ignoreProduct.mutateAsync([{ externalId: sku.externalId }], { signal }),
       ignoredProductUndo(sku.marketplace, sku.externalId, record),
     );
 
   useRegisterRecordActions({
     loading: mappingLoading,
     ignore: pending ? undefined : ignore,
-    useSuggestion: async (n) => {
+    useSuggestion: async (signal, n) => {
       const candidate = candidates[n - 1];
       if (candidate !== undefined && !pending) {
-        await assign(candidate.printing.printingId);
+        await assign(signal, candidate.printing.printingId);
       }
     },
   });
@@ -211,10 +212,10 @@ function ListingBody({ sku, item }: { sku: ListingSku; item: WorkspaceQueueItem 
                   <ChevronDownIcon />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => void queueWorkspaceWrite(ignore)}>
+                  <DropdownMenuItem onClick={() => void queueWrite(ignore)}>
                     This SKU <Kbd>X</Kbd>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => void queueWorkspaceWrite(ignoreWholeProduct)}>
+                  <DropdownMenuItem onClick={() => void queueWrite(ignoreWholeProduct)}>
                     Every SKU of #{sku.externalId}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -270,7 +271,7 @@ function ListingBody({ sku, item }: { sku: ListingSku; item: WorkspaceQueueItem 
                     className="ml-auto"
                     disabled={pending}
                     onClick={() =>
-                      void queueWorkspaceWrite(() => assign(candidate.printing.printingId))
+                      void queueWrite((signal) => assign(signal, candidate.printing.printingId))
                     }
                   >
                     Map here {index < 9 && <Kbd>{index + 1}</Kbd>}
@@ -286,7 +287,7 @@ function ListingBody({ sku, item }: { sku: ListingSku; item: WorkspaceQueueItem 
         <Suspense fallback={<Skeleton className="h-9" />}>
           <ListingPrintingCombobox
             disabled={pending}
-            onPick={(printingId) => void assign(printingId)}
+            onPick={(printingId) => void queueWrite((signal) => assign(signal, printingId))}
           />
         </Suspense>
       </RecordSection>

@@ -16,15 +16,22 @@ import {
   newBanDraft,
   selectableFormats,
 } from "@/features/admin/lib/ban-draft";
+import type { RunWrite } from "@/features/admin/lib/run-write";
+import { runWriteDirectly } from "@/features/admin/lib/run-write";
 import {
   useCardBans,
   useCreateCardBan,
   useRemoveCardBan,
   useUpdateCardBan,
 } from "@/features/cards/hooks/use-card-bans";
-import { runReportedMutation } from "@/lib/run-reported-mutation";
 
-export function CardBansSection({ cardId }: { cardId: string }) {
+export function CardBansSection({
+  cardId,
+  runWrite = runWriteDirectly,
+}: {
+  cardId: string;
+  runWrite?: RunWrite;
+}) {
   const { data: bans, isPending } = useCardBans(cardId);
   const { data: formats } = useFormats();
   const createBan = useCreateCardBan();
@@ -47,7 +54,7 @@ export function CardBansSection({ cardId }: { cardId: string }) {
   async function submit() {
     const input = banDraftInput(cardId, draft);
     const save = editingId === null ? createBan : updateBan;
-    if (await runReportedMutation(() => save.mutateAsync(input))) {
+    if (await runWrite((signal) => save.mutateAsync(input, { signal }))) {
       setAdding(false);
       setEditingId(null);
     }
@@ -58,7 +65,7 @@ export function CardBansSection({ cardId }: { cardId: string }) {
       return;
     }
     const formatId = removing.formatId;
-    if (await runReportedMutation(() => removeBan.mutateAsync({ cardId, formatId }))) {
+    if (await runWrite((signal) => removeBan.mutateAsync({ cardId, formatId }, { signal }))) {
       setRemovingId(null);
     }
   }

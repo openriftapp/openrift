@@ -38,11 +38,14 @@ describe("SendNoteDialog", () => {
     await user.type(await screen.findByRole("textbox"), "Which set is this from?");
     await user.click(screen.getByRole("button", { name: "Send" }));
 
-    expect(captured.setResolution).toHaveBeenCalledWith({
-      candidateCardId: "cand-1",
-      reason: null,
-      note: "Which set is this from?",
-    });
+    expect(captured.setResolution).toHaveBeenCalledWith(
+      {
+        candidateCardId: "cand-1",
+        reason: null,
+        note: "Which set is this from?",
+      },
+      { signal: undefined },
+    );
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
@@ -52,10 +55,36 @@ describe("SendNoteDialog", () => {
     render(<SendNoteDialog candidateCardId="cand-1" submitterName="Ekko" onOpenChange={vi.fn()} />);
     await user.click(await screen.findByRole("button", { name: "Send" }));
 
-    expect(captured.setResolution).toHaveBeenCalledWith({
-      candidateCardId: "cand-1",
-      reason: "unverified",
-      note: "Earlier note",
-    });
+    expect(captured.setResolution).toHaveBeenCalledWith(
+      {
+        candidateCardId: "cand-1",
+        reason: "unverified",
+        note: "Earlier note",
+      },
+      { signal: undefined },
+    );
+  });
+
+  it("hands the note to runWrite, which passes its signal into the mutation", async () => {
+    const user = userEvent.setup();
+    const { signal } = new AbortController();
+    const runWrite = vi.fn((write: (signal?: AbortSignal) => Promise<unknown>) =>
+      write(signal).then(() => true),
+    );
+    render(
+      <SendNoteDialog
+        candidateCardId="cand-1"
+        submitterName="Ekko"
+        onOpenChange={vi.fn()}
+        runWrite={runWrite}
+      />,
+    );
+    await user.click(await screen.findByRole("button", { name: "Send" }));
+
+    expect(runWrite).toHaveBeenCalledOnce();
+    expect(captured.setResolution).toHaveBeenCalledWith(
+      { candidateCardId: "cand-1", reason: null, note: null },
+      { signal },
+    );
   });
 });

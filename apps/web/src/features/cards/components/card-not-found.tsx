@@ -1,24 +1,23 @@
 import { buildCardLookupIndex } from "@openrift/shared/card-lookup";
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { enumLabel, labelMap } from "@openrift/shared/enum-label";
-import { sortByLanguageAndCanonicalRank } from "@openrift/shared/printing-select";
 import type { InitResponse } from "@openrift/shared/types/api/init";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { ChevronRightIcon } from "lucide-react";
 import type { SubmitEvent } from "react";
-import { useState } from "react";
+import { use, useState } from "react";
 
 import { ErrorMessageLayout } from "@/components/error-message";
 import { SearchInput } from "@/components/search-input";
 import { CardLink } from "@/components/ui/card-link";
 import { TextLink } from "@/components/ui/text-link";
 import { PrintingThumbnail } from "@/features/cards/components/printing-option-content";
+import { CatalogLanguageOrderContext } from "@/features/cards/lib/catalog-language-order";
 import { catalogQueryOptions } from "@/features/cards/lib/catalog-queries";
 import type { UseCardsResult } from "@/features/cards/lib/catalog-queries";
 import { closestCard, slugToSearchText } from "@/features/cards/lib/closest-card";
-import { useDisplayLanguages } from "@/hooks/use-display-languages";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { initQueryOptions } from "@/lib/init-queries";
 import { m } from "@/paraglide/messages.js";
@@ -58,10 +57,10 @@ function ClosestCardSlot({ query }: { query: string }) {
   const hydrated = useHydrated();
   const { data: catalog } = useQuery({ ...catalogQueryOptions, enabled: hydrated });
   const { data: init } = useQuery({ ...initQueryOptions, enabled: hydrated });
-  const languages = useDisplayLanguages();
+  const inLanguageOrder = use(CatalogLanguageOrderContext);
 
   const suggestion =
-    hydrated && catalog !== undefined ? suggestCard(catalog, query, languages) : undefined;
+    hydrated && catalog !== undefined ? suggestCard(inLanguageOrder(catalog), query) : undefined;
 
   return (
     <div className="flex min-h-16 w-full max-w-md flex-col">
@@ -75,7 +74,6 @@ function ClosestCardSlot({ query }: { query: string }) {
 function suggestCard(
   catalog: UseCardsResult,
   query: string,
-  languages: readonly string[],
 ): { card: Card; printing: Printing } | undefined {
   const cards = Object.entries(catalog.cardsById)
     .filter(([id]) => catalog.printingsByCardId.has(id))
@@ -88,9 +86,7 @@ function suggestCard(
     }));
   const match = closestCard(buildCardLookupIndex(cards, catalog.allPrintings), query);
   const card = match ? catalog.cardsById[match.id] : undefined;
-  const printing = match
-    ? sortByLanguageAndCanonicalRank(catalog.printingsByCardId.get(match.id) ?? [], languages)[0]
-    : undefined;
+  const printing = match ? catalog.printingsByCardId.get(match.id)?.[0] : undefined;
   return card && printing ? { card, printing } : undefined;
 }
 

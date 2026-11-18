@@ -100,6 +100,7 @@ export const updateListSchema = z.object({
   currency: currencySchema.nullable().optional(),
   rules: listRulesSchema.optional(),
   ruleCombine: listRuleCombineSchema.nullable().optional(),
+  expectedRulesVersion: z.number().int().nonnegative().optional(),
   cancelTradeIds: cancelTradeIdsField,
 });
 
@@ -206,11 +207,18 @@ const listResponseShape = {
 
 export const listResponseSchema = z.object(listResponseShape);
 
-export const listDetailListResponseSchema = z.object({
-  ...listResponseShape,
+const listRulesStateShape = {
   rules: listRulesSchema,
   ruleCombine: listRuleCombineSchema.nullable(),
+  rulesVersion: z.number().int().nonnegative(),
+};
+
+export const listDetailListResponseSchema = z.object({
+  ...listResponseShape,
+  ...listRulesStateShape,
 });
+
+export const listRulesStateSchema = z.object(listRulesStateShape);
 
 export const listListResponseSchema = z.object({ items: z.array(listResponseSchema) });
 
@@ -273,6 +281,10 @@ export const listsContract = {
       NOT_FOUND: { message: "List not found" },
       BAD_REQUEST: { message: "No fields to update" },
       CONFLICT: tradeCancelConflictError,
+      PRECONDITION_FAILED: {
+        message: "The list's rules changed since this version",
+        data: listRulesStateSchema,
+      },
     })
     .output(listResponseSchema),
   dropFromRules: authedRoute

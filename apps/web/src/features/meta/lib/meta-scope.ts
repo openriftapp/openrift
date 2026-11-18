@@ -1,5 +1,6 @@
 import { shiftUtcDay, todayUtc } from "@openrift/shared/format-date";
-import { MAX_FACET_VALUES } from "@openrift/shared/meta-query";
+import { clamp } from "@openrift/shared/math";
+import { MAX_FACET_VALUES, META_MAX_PLAYERS } from "@openrift/shared/meta-query";
 import type { MetaScopeFacet } from "@openrift/shared/meta-query";
 import type { SetReleases } from "@openrift/shared/set-release";
 import { earliestRelease } from "@openrift/shared/set-release";
@@ -21,6 +22,16 @@ const facetList = () =>
       z.array(z.string().check(z.minLength(1))).check(z.maxLength(MAX_FACET_VALUES)),
     ]),
   );
+
+/** A field size or placement a link may carry, capped at the bound the API accepts. */
+export function playerCountParam(least: 0 | 1) {
+  return lenient(
+    z.pipe(
+      z.number().check(z.int(), z.gte(least)),
+      z.transform((count: number) => clamp(count, least, META_MAX_PLAYERS)),
+    ),
+  );
+}
 
 /**
  * The scope every archive page narrows by, in the URL. Each field is

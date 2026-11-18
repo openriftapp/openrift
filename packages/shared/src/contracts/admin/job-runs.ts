@@ -49,6 +49,11 @@ export const adminJobRunsContract = {
     .route({ method: "GET", path: "/api/admin/v1/job-runs", tags: [TAG] })
     .input(jobRunsQuerySchema)
     .output(jobRunsListResponseSchema),
+  get: authedRoute
+    .route({ method: "GET", path: "/api/admin/v1/job-runs/{runId}", tags: [TAG] })
+    .errors({ NOT_FOUND: { message: "Job run not found" } })
+    .input(z.object({ runId: z.uuid() }))
+    .output(z.object({ run: jobRunViewSchema })),
 };
 
 export type AdminJobRunsContract = typeof adminJobRunsContract;

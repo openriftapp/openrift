@@ -13,6 +13,12 @@ describe("translateLegacyQuery", () => {
     ["n:garen", "garen"],
     ['n:"jinx, rebel"', '"jinx, rebel"'],
     ["a:jane", "a:jane"],
+    ["-t:demacia", "-tag:demacia"],
+    ["(t:demacia", "(tag:demacia"],
+    ["-(t:demacia", "-(tag:demacia"],
+    ["T:demacia", "tag:demacia"],
+    ["TY:unit D:stun", "t:unit o:stun"],
+    ["-n:garen", "-garen"],
   ])("rewrites %s to %s", (legacy, current) => {
     expect(translateLegacyQuery(legacy)).toBe(current);
   });
@@ -25,5 +31,6 @@ describe("translateLegacyQuery", () => {
 
   it("leaves prefix-like text inside a word alone", () => {
     expect(translateLegacyQuery("ogn:269 https://x.test")).toBe("ogn:269 https://x.test");
+    expect(translateLegacyQuery("foo-t:x")).toBe("foo-t:x");
   });
 });

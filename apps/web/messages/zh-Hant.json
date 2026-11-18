@@ -627,6 +627,8 @@
   "cards_grid_show_n_printings": "顯示 {count} 個印刷版本",
   "cards_grid_no_results_title": "找不到卡牌",
   "cards_grid_no_results_description": "請試著調整篩選條件。",
+  "cards_grid_languages_loading": "其他語言仍在載入，部分卡牌可能暫未顯示。",
+  "cards_grid_languages_failed": "無法載入其他語言，部分卡牌可能未顯示。",
   "cards_search_hint_text": "一般字詞只搜尋卡牌名稱。",
   "cards_search_alternative_text": [
     {
@@ -1140,6 +1142,8 @@
   "cards_columns_reset_aria": "將欄數重設為自動",
   "cards_sort_dir_asc": "遞增，點選可反轉",
   "cards_sort_dir_desc": "遞減，點選可反轉",
+  "cards_group_dir_asc": "分組遞增，點選可反轉",
+  "cards_group_dir_desc": "分組遞減，點選可反轉",
   "cards_group_by": "分組依據",
   "cards_sort_by": "排序依據",
   "cards_select_all": "全選",
@@ -1190,6 +1194,7 @@
   "cards_filter_n_selected": "已選 {count} 項",
   "cards_filter_sign_include": "包含",
   "cards_filter_sign_exclude": "排除",
+  "cards_filter_excluded_state": "（已排除）",
   "cards_filter_sign_label": "{label}：包含或排除",
   "cards_filter_flip_to_exclude": "改為排除",
   "cards_filter_flip_to_include": "改為包含",
@@ -1944,6 +1949,7 @@
   "collections_export_format_cardtrader": "CardTrader 願望清單",
   "collections_export_format_group_text": "文字",
   "collections_export_format_group_csv": "CSV",
+  "collections_export_format_label": "匯出格式",
   "collections_export_cards": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -2427,6 +2433,9 @@
   "lists_rule_dialog_title": "動態規則",
   "lists_rule_toast_saved": "規則已儲存",
   "lists_rule_toast_removed": "規則已移除",
+  "lists_rule_conflict_title": "已儲存的規則已變更",
+  "lists_rule_conflict_body": "你編輯期間，此清單的規則已變更。你的變更仍然保留：再次儲存即可用你的規則取代已儲存的規則。",
+  "lists_rule_conflict_load_saved": "捨棄我的變更",
   "lists_rule_stop_excluding": "不再排除 {label}",
   "lists_rule_excluded": "已排除",
   "lists_rule_removed_card": "已移除的卡牌",
@@ -3222,6 +3231,21 @@
   "decks_import_share_link_gone": "該分享連結已不再指向任何分享的牌組。它可能已取消分享，或連結已更換。",
   "decks_import_share_link_failed": "無法載入分享的牌組。請再試一次。",
   "decks_import_shared_deck_empty": "那副分享的牌組沒有可匯入的卡牌。",
+  "decks_import_over_limit": [
+    {
+      "declarations": [
+        "input count",
+        "input max",
+        "input cards",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "超出 {max} 張上限的 {count} 張已被略過：{cards}",
+        "countPlural=*": "超出 {max} 張上限的 {count} 張已被略過：{cards}"
+      }
+    }
+  ],
   "decks_import_no_deck_in_url": "在該網址中找不到牌組代碼或分享連結。請直接貼上牌組內容。",
   "decks_import_replaced_toast": "已將「{name}」中的卡牌換成 {count} 張卡牌。",
   "decks_import_created_toast": "已匯入牌組「{name}」，共 {count} 張卡牌。",
@@ -3537,6 +3561,7 @@
   "decks_overview_zone_issues": "顯示 {zone} 的問題",
   "decks_overview_zone_known": "已知 {expected} 張中的 {quantity} 張",
   "decks_overview_zone_more": "還有 {count} 張",
+  "decks_overview_zone_summary": "{zone} 摘要",
   "decks_stats_bucket_label": "{value} {axis}",
   "decks_stats_collection": "收藏",
   "decks_stats_count": "數量",
@@ -6800,7 +6825,9 @@
   "tier_lists_stage_empty_row": "這裡沒有東西",
   "meta_validate_player_name": "請輸入選手姓名（80 個字元以內）。",
   "meta_validate_rank": "請以數字輸入選手的名次。",
+  "meta_validate_rank_max": "名次最多為 {max}。",
   "meta_validate_record_parts": "比賽戰績需要勝、敗、和的整數場數。",
+  "meta_validate_record_max": "勝、敗、和每項最多為 {max}。",
   "meta_validate_record_pair": "比賽戰績需要同時填寫勝場與敗場，或兩者都不填。",
   "meta_validate_note_length": "備註必須在 2000 個字元以內。",
   "meta_validate_correction_note": "請說明我們現有的清單哪裡有誤，以及正確版本的來源。",
@@ -10577,6 +10604,7 @@
   "decks_workbench_limit_battlefields": "戰場已滿。加入時會詢問要替換哪一張。",
   "decks_workbench_limit_runes": "符文已滿，也無法透過替換另一種流派的符文騰出位置。這張會帶著規則警告超過 12 張。",
   "decks_workbench_warn_copies": "已加入 {card}：{count} 張，超過 {limit} 張上限。",
+  "decks_workbench_row_full": "{card} 已達到 {limit} 張。",
   "decks_workbench_warn_battlefields": "{count} 張戰場，上限 {limit} 張。",
   "decks_workbench_warn_battlefield_duplicate": "{card} 已是你的戰場之一。",
   "decks_workbench_warn_legend_options": "{count} 張額外傳奇牌，上限 {limit} 張。",

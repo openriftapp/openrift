@@ -1,5 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 
+import { adminAccessQueryOptions } from "@/features/admin/lib/admin-queries";
+import { hasAdminSection } from "@/features/admin/lib/admin-sections";
 import { adminDistributionChannelsQueryOptions } from "@/features/admin/lib/distribution-channels-queries";
 import { adminLanguagesQueryOptions } from "@/features/admin/lib/languages-queries";
 import { adminMarkersQueryOptions } from "@/features/admin/lib/markers-queries";
@@ -23,11 +25,28 @@ export function loadRecordReferenceData(queryClient: QueryClient): Promise<unkno
   ]);
 }
 
-/** Loads in parallel what `useCardDetailData` reads through chained suspense queries. */
-export function loadCardDetailData(queryClient: QueryClient): Promise<unknown[]> {
+async function loadReviewProviderSettings(
+  queryClient: QueryClient,
+  userId: string,
+): Promise<unknown> {
+  const access = await queryClient.query({
+    ...adminAccessQueryOptions(userId),
+    staleTime: "static",
+  });
+  if (!hasAdminSection(access, "card-review")) {
+    return undefined;
+  }
+  return queryClient.query({ ...providerSettingsQueryOptions, staleTime: "static" });
+}
+
+/**
+ * Loads in parallel what `useCardDetailData` reads through chained suspense queries.
+ * Provider settings load only for card-review holders, the only users who can read them.
+ */
+export function loadCardDetailData(queryClient: QueryClient, userId: string): Promise<unknown[]> {
   return Promise.all([
     queryClient.query({ ...initQueryOptions, staleTime: "static" }),
-    queryClient.query({ ...providerSettingsQueryOptions, staleTime: "static" }),
+    loadReviewProviderSettings(queryClient, userId),
     queryClient.query({ ...adminMarkersQueryOptions, staleTime: "static" }),
     queryClient.query({ ...adminDistributionChannelsQueryOptions, staleTime: "static" }),
     queryClient.query({ ...adminLanguagesQueryOptions, staleTime: "static" }),

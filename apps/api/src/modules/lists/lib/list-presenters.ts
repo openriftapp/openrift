@@ -79,7 +79,12 @@ export function parseListRules(value: ListRules | null | undefined): ListRules {
 export function toListDetail(
   row: Selectable<ListsTable> & { entryCount?: number },
 ): ListDetailListResponse {
-  return { ...toList(row), rules: parseListRules(row.rules), ruleCombine: row.ruleCombine };
+  return {
+    ...toList(row),
+    rules: parseListRules(row.rules),
+    ruleCombine: row.ruleCombine,
+    rulesVersion: row.rulesVersion,
+  };
 }
 
 /** Public-facing shape — deliberately omits shareToken, isPublic, userId. */

@@ -59,7 +59,7 @@ import { ignoredCardsUndo } from "@/features/catalog-workspace/hooks/candidate-u
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
-import { queueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
+import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import type { CreationDraft, DraftCard } from "@/features/catalog-workspace/lib/creation-draft";
 import { toAcceptInput } from "@/features/catalog-workspace/lib/creation-draft";
 import type { NewCardGroup } from "@/features/catalog-workspace/lib/new-card-groups";
@@ -114,6 +114,7 @@ function NewCardRecordBody({
   onLeavingChange: (leaving: boolean) => void;
   queueUnknown: boolean;
 }) {
+  const queueWrite = useQueueWorkspaceWrite();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const navigation = useQueueNavigation("card");
@@ -190,7 +191,11 @@ function NewCardRecordBody({
     void navigate({ to: "/admin/workspace/cards/$cardSlug", params: { cardSlug }, search: true });
   }
 
-  async function acceptPrintings(cardSlug: string, chosen: readonly NewCardGroup[]) {
+  async function acceptPrintings(
+    signal: AbortSignal,
+    cardSlug: string,
+    chosen: readonly NewCardGroup[],
+  ) {
     const created = await readCreatedCardId(queryClient, cardSlug);
     if (!created.ok) {
       toast.error(
@@ -201,7 +206,7 @@ function NewCardRecordBody({
     }
     const cardUuid = created.id;
     const failures = await runInSequence(chosen, (group) =>
-      acceptPrintingGroup.mutateAsync(toAcceptInput(group.draft, cardUuid)),
+      acceptPrintingGroup.mutateAsync(toAcceptInput(group.draft, cardUuid), { signal }),
     );
     if (failures.length > 0) {
       toast.error(
@@ -211,7 +216,7 @@ function NewCardRecordBody({
     }
   }
 
-  async function acceptAsNew() {
+  async function acceptAsNew(signal: AbortSignal) {
     if (!canAccept || busy || accepting.current) {
       return;
     }
@@ -223,14 +228,18 @@ function NewCardRecordBody({
     }
     accepting.current = true;
     onLeavingChange(true);
-    if (!(await runReportedMutation(() => acceptNewCard.mutateAsync({ name, cardFields })))) {
+    if (
+      !(await runReportedMutation(() =>
+        acceptNewCard.mutateAsync({ name, cardFields }, { signal }),
+      ))
+    ) {
       accepting.current = false;
       onLeavingChange(false);
       return;
     }
     const chosen = groups.filter((group) => checked.has(group.key));
     if (chosen.length > 0) {
-      await acceptPrintings(cardId, chosen);
+      await acceptPrintings(signal, cardId, chosen);
     }
     openCard(cardId);
   }
@@ -239,21 +248,21 @@ function NewCardRecordBody({
     setGroupEdits(new Map(groupEdits).set(key, draft));
   }
 
-  async function ignoreDraft() {
+  async function ignoreDraft(signal: AbortSignal) {
     let result: Awaited<ReturnType<typeof ignoreDrafts.mutateAsync>> | undefined;
     const ok = await runReportedMutation(async () => {
-      result = await ignoreDrafts.mutateAsync([name]);
+      result = await ignoreDrafts.mutateAsync([name], { signal });
     });
     if (ok && result && result.sources.length > 0) {
       announce(ignoredCardsUndo(result.sources, displayName));
     }
   }
 
-  async function mergeInto(targetId: string) {
+  async function mergeInto(signal: AbortSignal, targetId: string) {
     const targetSlug = allCards.find((card) => card.id === targetId)?.slug ?? targetId;
     onLeavingChange(true);
     const ok = await runReportedMutation(() =>
-      linkCard.mutateAsync({ name, cardId: targetId, cardSlug: targetSlug }),
+      linkCard.mutateAsync({ name, cardId: targetId, cardSlug: targetSlug }, { signal }),
     );
     if (ok) {
       openCard(targetSlug);
@@ -267,7 +276,8 @@ function NewCardRecordBody({
   useRegisterRecordActions({
     loading,
     primary: { label: "Next", run: () => Promise.resolve() },
-    accept: () => acceptAsNew(),
+    accept: (signal) => acceptAsNew(signal),
+    acceptLimit: "long",
     ignore: isAdmin && providerRows.length > 0 ? ignoreDraft : undefined,
   });
 
@@ -299,7 +309,7 @@ function NewCardRecordBody({
             <Button
               variant="outline"
               pending={ignoreDrafts.isPending}
-              onClick={() => void queueWorkspaceWrite(ignoreDraft)}
+              onClick={() => void queueWrite(ignoreDraft)}
             >
               Ignore
               <Kbd>X</Kbd>
@@ -313,7 +323,7 @@ function NewCardRecordBody({
           <Button
             disabled={!canAccept}
             pending={busy}
-            onClick={() => void queueWorkspaceWrite(acceptAsNew)}
+            onClick={() => void queueWrite(acceptAsNew, { limit: "long" })}
           >
             Accept as new card
             <Kbd>A</Kbd>
@@ -352,7 +362,7 @@ function NewCardRecordBody({
                   variant="outline"
                   size="sm"
                   disabled={linkCard.isPending}
-                  onClick={() => void queueWorkspaceWrite(() => mergeInto(card.id))}
+                  onClick={() => void queueWrite((signal) => mergeInto(signal, card.id))}
                 >
                   Merge here
                 </Button>
@@ -382,9 +392,21 @@ function NewCardRecordBody({
                 : { ...activeCard, [field]: value },
             )
           }
-          onCheck={isAdmin ? (candidateId) => checkCandidateCard.mutate(candidateId) : undefined}
+          onCheck={
+            isAdmin
+              ? (candidateId) =>
+                  void queueWrite((signal) =>
+                    checkCandidateCard.mutateAsync(candidateId, { signal }),
+                  )
+              : undefined
+          }
           onUncheck={
-            isAdmin ? (candidateId) => uncheckCandidateCard.mutate(candidateId) : undefined
+            isAdmin
+              ? (candidateId) =>
+                  void queueWrite((signal) =>
+                    uncheckCandidateCard.mutateAsync(candidateId, { signal }),
+                  )
+              : undefined
           }
         />
       </RecordSection>
@@ -471,7 +493,7 @@ function NewCardRecordBody({
           <Button
             disabled={mergeTarget.length === 0}
             pending={linkCard.isPending}
-            onClick={() => void queueWorkspaceWrite(() => mergeInto(mergeTarget))}
+            onClick={() => void queueWrite((signal) => mergeInto(signal, mergeTarget))}
           >
             <LinkIcon />
             Merge

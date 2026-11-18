@@ -173,7 +173,7 @@ export function DeckCardRow({
     preferredPrintingId: card.preferredPrintingId,
   };
 
-  const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
+  const { setNodeRef, listeners, isDragging } = useDraggable({
     id: `deck-card-${card.cardId}-${card.zone}-${card.preferredPrintingId ?? "default"}`,
     data: dragData,
     disabled: !enableDrag,
@@ -300,7 +300,7 @@ export function DeckCardRow({
     </>
   );
 
-  const dragProps = enableDrag ? { ...listeners, ...attributes } : {};
+  const dragProps = enableDrag ? { ...listeners } : {};
   const hoverProps = cardHoverProps(onHover, card.cardId, card.preferredPrintingId);
 
   if (onClick) {

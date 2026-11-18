@@ -18,6 +18,7 @@ import { PERSISTENT_ERROR_TOAST, toastError } from "./toast";
 import { toastableMessage } from "./toastable-message";
 import { UserDeclinedError } from "./user-declined-error";
 import { refreshViewer } from "./viewer-change";
+import { WriteTimedOutError } from "./write-signal";
 
 declare module "@tanstack/react-query" {
   interface Register {
@@ -34,7 +35,11 @@ export function reportMutationError(
   queryClient: QueryClient,
   meta?: MutationMeta,
 ): void {
-  if (err instanceof UserDeclinedError || reloadIfStaleServerFnError(err)) {
+  if (
+    err instanceof UserDeclinedError ||
+    err instanceof WriteTimedOutError ||
+    reloadIfStaleServerFnError(err)
+  ) {
     return;
   }
   if (isSessionExpiredError(err)) {

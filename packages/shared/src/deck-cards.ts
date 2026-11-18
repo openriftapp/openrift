@@ -27,23 +27,45 @@ export function deckCardKey(card: {
   return `${card.cardId}|${card.zone}|${card.preferredPrintingId ?? ""}`;
 }
 
+/** A row whose summed copies passed `MAX_DECK_CARD_QUANTITY`; `count` is the copies cut. */
+export interface DeckCardOverflow<T extends DeckCardLine> {
+  card: T;
+  count: number;
+}
+
 /**
  * Folds repeated lines into one row per `uq_deck_cards` key, summing quantity up to
- * `MAX_DECK_CARD_QUANTITY`. The index is `NULLS NOT DISTINCT`, so a null
- * `preferred_printing_id` does not separate two lines the way a null usually would.
+ * `MAX_DECK_CARD_QUANTITY`, and reports the copies each row lost to the cap. The index is
+ * `NULLS NOT DISTINCT`, so a null `preferred_printing_id` does not separate two lines the way a
+ * null usually would.
  */
-export function mergeDeckCards<T extends DeckCardLine>(cards: readonly T[]): T[] {
-  const merged = new Map<string, T>();
+export function mergeDeckCardsWithOverflow<T extends DeckCardLine>(
+  cards: readonly T[],
+): { cards: T[]; overflow: DeckCardOverflow<T>[] } {
+  const sums = new Map<string, { card: T; total: number }>();
   for (const card of cards) {
     const key = deckCardKey(card);
-    const held = merged.get(key);
+    const held = sums.get(key);
     if (held === undefined) {
-      merged.set(key, { ...card, quantity: Math.min(MAX_DECK_CARD_QUANTITY, card.quantity) });
-      continue;
+      sums.set(key, { card, total: card.quantity });
+    } else {
+      held.total += card.quantity;
     }
-    held.quantity = Math.min(MAX_DECK_CARD_QUANTITY, held.quantity + card.quantity);
   }
-  return [...merged.values()];
+  const merged: T[] = [];
+  const overflow: DeckCardOverflow<T>[] = [];
+  for (const { card, total } of sums.values()) {
+    merged.push({ ...card, quantity: Math.min(MAX_DECK_CARD_QUANTITY, total) });
+    if (total > MAX_DECK_CARD_QUANTITY) {
+      overflow.push({ card, count: total - MAX_DECK_CARD_QUANTITY });
+    }
+  }
+  return { cards: merged, overflow };
+}
+
+/** `mergeDeckCardsWithOverflow` for callers that do not report the cut copies. */
+export function mergeDeckCards<T extends DeckCardLine>(cards: readonly T[]): T[] {
+  return mergeDeckCardsWithOverflow(cards).cards;
 }
 
 function lineKey(card: DeckCardLine): string {

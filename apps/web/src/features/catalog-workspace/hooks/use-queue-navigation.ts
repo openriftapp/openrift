@@ -1,5 +1,5 @@
 import type { WorkspaceOwner } from "@openrift/shared/contracts/admin/catalog-workspace";
-import { useNavigate, useParams, useRouter } from "@tanstack/react-router";
+import { useNavigate, useParams, useRouter, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 
 import { useWorkspaceEntries } from "@/features/catalog-workspace/hooks/use-workspace-queue";
@@ -101,6 +101,7 @@ export function useQueueNavigation(owner: WorkspaceOwner): {
   const navigate = useNavigate();
   const router = useRouter();
   const params: WorkspaceRouteParams = useParams({ strict: false });
+  const resolvedPathname = useRouterState({ select: (state) => state.resolvedLocation?.pathname });
   const { view, listAllowed, entries } = useWorkspaceEntries(owner);
   const skip = useWorkspaceSkipStore((state) => state.skip);
 
@@ -116,9 +117,9 @@ export function useQueueNavigation(owner: WorkspaceOwner): {
   const linkable = entries.filter((entry) => entry.target !== null);
   const index = linkable.findIndex((entry) => entry.key === currentKey);
 
+  /** The latest location includes a navigation still loading; the resolved one is the record on screen. */
   function stillOnRecord(): boolean {
-    const [, liveParams] = router.getMatchedRoutes(router.latestLocation.pathname);
-    return selectedKeyFromParams(liveParams) === currentKey;
+    return router.latestLocation.pathname === resolvedPathname;
   }
 
   function step(delta: 1 | -1) {

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { PageToc } from "@/components/layout/page-toc";
+import { PageToc, PageTocProvider } from "@/components/layout/page-toc";
 import type { PageTocItem } from "@/components/layout/page-toc";
 import { cn } from "@/lib/utils";
 
@@ -15,9 +15,11 @@ export function SettingsLayout({
   className?: string;
 }) {
   return (
-    <div className={cn("flex w-full gap-6", className)}>
-      <PageToc items={toc} />
-      <div className="flex max-w-xl min-w-0 flex-1 flex-col gap-10">{children}</div>
-    </div>
+    <PageTocProvider>
+      <div className={cn("flex w-full gap-6", className)}>
+        <PageToc items={toc} />
+        <div className="flex max-w-xl min-w-0 flex-1 flex-col gap-10">{children}</div>
+      </div>
+    </PageTocProvider>
   );
 }

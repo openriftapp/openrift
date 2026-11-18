@@ -68,6 +68,23 @@ describe.skipIf(!ctx)("jobRunsRepo (integration)", () => {
     expect(await repo.getRunning("test.kind")).toBeNull();
   });
 
+  it("getById reads one run whatever its kind, and null for an unknown id", async () => {
+    const { id } = await begin("test.kind", "admin");
+    await begin("other.kind");
+    await repo.succeed(id, { durationMs: 7, result: { cardsChecked: 3 } });
+
+    const run = await repo.getById(id);
+    expect(run).toMatchObject({
+      id,
+      kind: "test.kind",
+      trigger: "admin",
+      status: "succeeded",
+      durationMs: 7,
+      result: { cardsChecked: 3 },
+    });
+    expect(await repo.getById("a0000000-0101-4000-a000-0000000000ff")).toBeNull();
+  });
+
   it("getLatestPerKind returns one row per distinct kind (the most recent)", async () => {
     const a1 = await begin("kind.a");
     await repo.succeed(a1.id, { durationMs: 1 });

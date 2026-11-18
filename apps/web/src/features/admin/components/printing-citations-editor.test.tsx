@@ -18,7 +18,7 @@ vi.mock("@/features/admin/hooks/use-admin-printing-citations", () => ({
   }),
   useCreatePrintingCitation: () => ({ mutateAsync: captured.create, isPending: false }),
   useUpdatePrintingCitation: () => ({ mutateAsync: captured.update, isPending: false }),
-  useDeletePrintingCitation: () => ({ mutate: captured.remove, isPending: false }),
+  useDeletePrintingCitation: () => ({ mutateAsync: captured.remove, isPending: false }),
 }));
 
 import { PrintingCitationsEditor } from "./printing-citations-editor";
@@ -37,7 +37,7 @@ beforeEach(() => {
   captured.isPending = false;
   captured.create.mockReset().mockResolvedValue(citation);
   captured.update.mockReset().mockResolvedValue(undefined);
-  captured.remove.mockReset();
+  captured.remove.mockReset().mockResolvedValue(undefined);
 });
 
 describe("PrintingCitationsEditor", () => {
@@ -72,11 +72,14 @@ describe("PrintingCitationsEditor", () => {
     await user.type(screen.getByLabelText("Source link"), "  https://youtu.be/abc  ");
     await user.click(screen.getByRole("button", { name: /add source link/iu }));
 
-    expect(captured.create).toHaveBeenCalledWith({
-      printingId: PRINTING_ID,
-      label: "Unboxing",
-      sourceUrl: "https://youtu.be/abc",
-    });
+    expect(captured.create).toHaveBeenCalledWith(
+      {
+        printingId: PRINTING_ID,
+        label: "Unboxing",
+        sourceUrl: "https://youtu.be/abc",
+      },
+      { signal: undefined },
+    );
   });
 
   it("sends a null link, not an empty string, when the field is left blank", async () => {
@@ -87,11 +90,10 @@ describe("PrintingCitationsEditor", () => {
     await user.type(screen.getByLabelText("Source name"), "Riot CM in the official Discord");
     await user.click(screen.getByRole("button", { name: /add source link/iu }));
 
-    expect(captured.create).toHaveBeenCalledWith({
-      printingId: PRINTING_ID,
-      label: "Riot CM in the official Discord",
-      sourceUrl: null,
-    });
+    expect(captured.create).toHaveBeenCalledWith(
+      { printingId: PRINTING_ID, label: "Riot CM in the official Discord", sourceUrl: null },
+      { signal: undefined },
+    );
   });
 
   it("closes the form after a successful add", async () => {
@@ -137,12 +139,15 @@ describe("PrintingCitationsEditor", () => {
     await user.type(labelInput, "Unboxing, re-watched");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    expect(captured.update).toHaveBeenCalledWith({
-      printingId: PRINTING_ID,
-      citationId: citation.id,
-      label: "Unboxing, re-watched",
-      sourceUrl: citation.sourceUrl,
-    });
+    expect(captured.update).toHaveBeenCalledWith(
+      {
+        printingId: PRINTING_ID,
+        citationId: citation.id,
+        label: "Unboxing, re-watched",
+        sourceUrl: citation.sourceUrl,
+      },
+      { signal: undefined },
+    );
   });
 
   it("locks a link the viewer did not add", () => {
@@ -165,9 +170,41 @@ describe("PrintingCitationsEditor", () => {
 
     await user.click(screen.getByRole("button", { name: `Delete source link ${citation.label}` }));
 
-    expect(captured.remove).toHaveBeenCalledWith({
-      printingId: PRINTING_ID,
-      citationId: citation.id,
-    });
+    expect(captured.remove).toHaveBeenCalledWith(
+      { printingId: PRINTING_ID, citationId: citation.id },
+      { signal: undefined },
+    );
+  });
+
+  it("hands each write to runWrite, which passes its signal into the mutation", async () => {
+    const { signal } = new AbortController();
+    const runWrite = vi.fn((write: (signal?: AbortSignal) => Promise<unknown>) =>
+      write(signal).then(() => true),
+    );
+    captured.citations = [citation];
+    const user = userEvent.setup();
+    render(<PrintingCitationsEditor printingId={PRINTING_ID} runWrite={runWrite} />);
+
+    await user.click(screen.getByRole("button", { name: `Delete source link ${citation.label}` }));
+
+    expect(runWrite).toHaveBeenCalledOnce();
+    expect(captured.remove).toHaveBeenCalledWith(
+      { printingId: PRINTING_ID, citationId: citation.id },
+      { signal },
+    );
+  });
+
+  it("keeps the form open when runWrite reports the add failed", async () => {
+    const user = userEvent.setup();
+    render(
+      <PrintingCitationsEditor printingId={PRINTING_ID} runWrite={() => Promise.resolve(false)} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /add source link/iu }));
+    await user.type(screen.getByLabelText("Source name"), "Unboxing");
+    await user.click(screen.getByRole("button", { name: /add source link/iu }));
+
+    expect(captured.create).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Source name")).toHaveValue("Unboxing");
   });
 });

@@ -14,7 +14,7 @@ import { deleteRehostFiles, origFileOnDisk, processAndSave } from "./variants.js
 
 type PrintingImagesRepo = ReturnType<typeof printingImagesRepo>;
 
-interface ImageFileSettings {
+export interface ImageFileSettings {
   rotation: 0 | 90 | 180 | 270;
   needsTrim: boolean;
   quad: ImageQuad | null;
@@ -52,6 +52,49 @@ async function readSource(
 }
 
 /**
+ * Writes the variants under a new image file id and moves every user of `oldId`
+ * onto it. Undefined when the old row is gone or nothing used it.
+ */
+export async function writeReplacementFile(
+  io: Io,
+  repo: PrintingImagesRepo,
+  oldId: string,
+  source: { buffer: Buffer; ext: string },
+  settings: ImageFileSettings,
+): Promise<string | undefined> {
+  const id = uuidv7();
+  const rehostedUrl = imageRehostedUrl(id);
+  let replaced: boolean;
+  try {
+    await processAndSave(
+      io,
+      source.buffer,
+      source.ext,
+      join(CARD_MEDIA_DIR, id.slice(-2)),
+      id,
+      settings.rotation,
+      settings.needsTrim,
+      settings.quad,
+    );
+    replaced = await repo.replaceImageFile(oldId, {
+      id,
+      rehostedUrl,
+      rotation: settings.rotation,
+      needsTrim: settings.needsTrim,
+      quad: settings.quad,
+    });
+  } catch (error) {
+    await deleteRehostFiles(io, rehostedUrl);
+    throw error;
+  }
+  if (!replaced) {
+    await deleteRehostFiles(io, rehostedUrl);
+    return undefined;
+  }
+  return id;
+}
+
+/**
  * Rehosted URLs are cached as immutable, so an edit writes its variants under a
  * new image file id and moves every user of the old row onto it. The old files
  * stay on disk for browsers holding an older catalogue until the orphan sweep
@@ -67,36 +110,9 @@ export async function editImageFile(
     return current.imageFileId;
   }
 
-  const { buffer, ext } = await readSource(io, current.imageFileId, current.originalUrl);
-  const id = uuidv7();
-  const rehostedUrl = imageRehostedUrl(id);
-
-  let replaced: boolean;
-  try {
-    await processAndSave(
-      io,
-      buffer,
-      ext,
-      join(CARD_MEDIA_DIR, id.slice(-2)),
-      id,
-      next.rotation,
-      next.needsTrim,
-      next.quad,
-    );
-    replaced = await repo.replaceImageFile(current.imageFileId, {
-      id,
-      rehostedUrl,
-      rotation: next.rotation,
-      needsTrim: next.needsTrim,
-      quad: next.quad,
-    });
-  } catch (error) {
-    await deleteRehostFiles(io, rehostedUrl);
-    throw error;
-  }
-
-  if (!replaced) {
-    await deleteRehostFiles(io, rehostedUrl);
+  const source = await readSource(io, current.imageFileId, current.originalUrl);
+  const id = await writeReplacementFile(io, repo, current.imageFileId, source, next);
+  if (id === undefined) {
     throw conflict("The image changed while it was being edited. Reload and try again.");
   }
   return id;

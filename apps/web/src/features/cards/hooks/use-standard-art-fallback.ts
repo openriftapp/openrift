@@ -10,14 +10,14 @@ import { standardArtFallback } from "@/features/cards/lib/tile-art";
 export type GetStandardArtFallback = (printing: Printing) => StandardArtFallback | null;
 
 /**
- * `enabled: false`: reads the catalog only if another surface already fetched it,
- * else the slice a page provides through `CatalogSubsetContext`.
+ * Reads the slice a page provides through `CatalogSubsetContext`, else the catalog
+ * if another surface already fetched it (`enabled: false`).
  */
 export function useStandardArtFallback(): GetStandardArtFallback {
   "use memo";
   const subset = use(CatalogSubsetContext);
   const { data } = useQuery({ ...catalogQueryOptions, enabled: false });
-  const printingsByCardId = (data ?? subset)?.printingsByCardId;
+  const printingsByCardId = (subset ?? data)?.printingsByCardId;
   return function getStandardArtFallback(printing: Printing): StandardArtFallback | null {
     return standardArtFallback(printing, printingsByCardId);
   };

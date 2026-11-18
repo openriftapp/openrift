@@ -17,8 +17,12 @@ export interface RuleEditorState {
   rules: DraftRule[];
   ruleKeys: string[];
   ruleCombine: ListRuleCombine | null;
+  /** The stored rules version the draft was loaded from; a save sends it back. */
+  rulesVersion: number;
 
-  load: (rules: ListRule[], ruleCombine?: ListRuleCombine | null) => void;
+  load: (rules: ListRule[], ruleCombine?: ListRuleCombine | null, rulesVersion?: number) => void;
+  /** Moves the draft onto a newer stored version without touching it. */
+  rebase: (rulesVersion: number) => void;
   setRuleCombine: (ruleCombine: ListRuleCombine | null) => void;
   addRule: (languages?: string[]) => void;
   addDrafts: (drafts: DraftRule[]) => void;
@@ -55,13 +59,17 @@ export const useRuleEditorStore = create<RuleEditorState>()((set, get) => ({
   rules: [],
   ruleKeys: [],
   ruleCombine: null,
+  rulesVersion: 0,
 
-  load: (rules, ruleCombine = null) =>
+  load: (rules, ruleCombine = null, rulesVersion = 0) =>
     set({
       rules: rules.map((rule) => draftFromRule(rule)),
       ruleKeys: newRuleKeys(rules.length),
       ruleCombine,
+      rulesVersion,
     }),
+
+  rebase: (rulesVersion) => set({ rulesVersion }),
 
   setRuleCombine: (ruleCombine) => set({ ruleCombine }),
 
@@ -148,7 +156,7 @@ export const useRuleEditorStore = create<RuleEditorState>()((set, get) => ({
       })),
     })),
 
-  reset: () => set({ rules: [], ruleKeys: [], ruleCombine: null }),
+  reset: () => set({ rules: [], ruleKeys: [], ruleCombine: null, rulesVersion: 0 }),
 
   buildRules: (kind) => serializeRules(get().rules, kind),
 }));

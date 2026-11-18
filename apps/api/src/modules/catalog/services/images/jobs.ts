@@ -17,6 +17,7 @@ import type { Io } from "../../../../io.js";
 import { assertFound } from "../../../../lib/assertions.js";
 import type { jobRunsRepo } from "../../../system/repositories/job-runs.js";
 import type { printingImagesRepo } from "../../repositories/printing-images.js";
+import { writeReplacementFile } from "./edit.js";
 import { fetchOriginalImage } from "./original-source.js";
 import { CARD_MEDIA_DIR } from "./paths.js";
 import { rehostFailureReason } from "./rehost-error.js";
@@ -87,14 +88,59 @@ export async function rehostImageFile(
   }
 }
 
+export interface RefetchOutcome extends RehostOutcome {
+  imageFileId: string;
+}
+
+/**
+ * A rehosted file's URL is cached as immutable and the source can serve new
+ * pixels, so a refetch writes them under a new image file id. A file that was
+ * never rehosted keeps its id.
+ */
+export async function refetchImageFile(
+  io: Io,
+  repo: PrintingImagesRepo,
+  imageFileId: string,
+): Promise<RefetchOutcome> {
+  const file = await repo.getImageFileForRehost(imageFileId);
+  if (!file?.originalUrl) {
+    return { status: "skipped", imageFileId };
+  }
+  if (file.rehostedUrl === null) {
+    return { ...(await rehostImageFile(io, repo, imageFileId)), imageFileId };
+  }
+
+  let id: string | undefined;
+  try {
+    const source = await fetchOriginalImage(io, file.originalUrl);
+    id = await writeReplacementFile(io, repo, file.id, source, {
+      rotation: file.rotation,
+      needsTrim: file.needsTrim,
+      quad: file.quad,
+    });
+  } catch (error) {
+    imageLog.error({ err: error, imageFileId }, "Refetch failed");
+    const message = rehostFailureReason(error);
+    await repo.recordRehostFailure(file.id, message);
+    return { status: "failed", error: message, imageFileId };
+  }
+  if (id === undefined) {
+    return {
+      status: "failed",
+      error: "the image changed while it was being refetched",
+      imageFileId,
+    };
+  }
+  return { status: "rehosted", imageFileId: id };
+}
+
 async function settleRehosts(
   io: Io,
   repo: PrintingImagesRepo,
   imageFileIds: readonly string[],
-  options: { overwrite?: boolean } = {},
 ): Promise<RehostOutcome[]> {
   const settled = await Promise.allSettled(
-    imageFileIds.map((imageFileId) => rehostImageFile(io, repo, imageFileId, options)),
+    imageFileIds.map((imageFileId) => rehostImageFile(io, repo, imageFileId)),
   );
   return settled.map((result) =>
     result.status === "fulfilled"
@@ -474,9 +520,15 @@ export async function refetchImages(
   };
 
   for (const batch of chunk(imageFileIds, BATCH_SIZE)) {
-    const outcomes = await settleRehosts(io, repo, batch, { overwrite: true });
+    const settled = await Promise.allSettled(
+      batch.map((imageFileId) => refetchImageFile(io, repo, imageFileId)),
+    );
     for (const [idx, imageFileId] of batch.entries()) {
-      const outcome = outcomes[idx];
+      const result = settled[idx];
+      const outcome: RehostOutcome | undefined =
+        result?.status === "fulfilled"
+          ? result.value
+          : { status: "failed", error: errorMessage(result?.reason) };
       if (outcome?.status === "rehosted") {
         progress.refetched++;
         continue;

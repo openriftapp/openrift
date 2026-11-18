@@ -22,6 +22,8 @@ beforeEach(() => {
   fns.unignore.mockClear();
 });
 
+const { signal } = new AbortController();
+
 describe("listingName", () => {
   it("names the marketplace and each product once", () => {
     expect(listingName("cardmarket", [SKU, { ...SKU, finish: "normal" }])).toBe("Cardmarket #42");
@@ -35,10 +37,11 @@ describe("ignoredVariantsUndo", () => {
     expect(entry.undoneLabel).toBe("Undone: TCGplayer #42 on Teemo, Scout is back in the queue");
     expect(entry.invalidates).toContainEqual(["admin", "workspace"]);
 
-    await entry.undo();
+    await entry.undo(signal);
 
     expect(fns.unignore).toHaveBeenCalledWith({
       data: { level: "variant", marketplace: "tcgplayer", ...SKU },
+      signal,
     });
   });
 });
@@ -48,10 +51,11 @@ describe("ignoredProductUndo", () => {
     const entry = ignoredProductUndo("cardtrader", 42, "Teemo, Scout");
     expect(entry.label).toBe("Ignored every SKU of CardTrader #42 on Teemo, Scout");
 
-    await entry.undo();
+    await entry.undo(signal);
 
     expect(fns.unignore).toHaveBeenCalledWith({
       data: { level: "product", marketplace: "cardtrader", externalId: 42 },
+      signal,
     });
   });
 });
@@ -61,10 +65,11 @@ describe("assignedListingUndo", () => {
     const entry = assignedListingUndo("cardmarket", SKU, "p1", "OGN-001");
     expect(entry.label).toBe("Assigned Cardmarket #42 to OGN-001");
 
-    await entry.undo();
+    await entry.undo(signal);
 
     expect(fns.unmap).toHaveBeenCalledWith({
       data: { marketplace: "cardmarket", printingId: "p1", ...SKU },
+      signal,
     });
   });
 });

@@ -16,10 +16,8 @@ import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 import type { NewPrinting } from "../services/printing-admin.js";
 import { createNewPrinting, deletePrinting } from "../services/printing-admin.js";
 import {
+  acceptPrintingFieldValue,
   changesCatalogViews,
-  isUnchangedPrintingValue,
-  normalizePrintingFieldValue,
-  writePrintingField,
 } from "../services/printing-field-writes.js";
 
 const os = implement(adminCardMutationsContract).$context<ApiContext>().use(requireAuthedUser);
@@ -52,9 +50,9 @@ export const adminCardMutationsPrintingsRouter = {
     });
   }),
 
-  acceptPrintingField: os.acceptPrintingField.handler(async ({ input, context }) => {
+  acceptPrintingField: os.acceptPrintingField.handler(async ({ input, context, errors }) => {
     const { catalogMutations: mut } = context.repos;
-    const { printingId, field, value, source, faceId } = input;
+    const { printingId, field, value, source, faceId, expected } = input;
     const side = faceId === undefined ? input.side : await mut.sideOfFace(printingId, faceId);
     assertFound(side, "That face is not on the printing");
 
@@ -74,54 +72,37 @@ export const adminCardMutationsPrintingsRouter = {
 
     const faceCard = await mut.getCardById(printingBefore.cardId);
 
-    const normalizedValue = await normalizePrintingFieldValue(context.repos, {
-      printingId,
-      field,
-      value,
-      source,
-      side,
-    });
-    if (
-      await isUnchangedPrintingValue(
-        context.repos,
-        printingId,
-        printingBefore,
-        field,
-        normalizedValue,
-      )
-    ) {
+    const args = { printingId, field, value, source, side, expected };
+    const outcome =
+      expected === undefined
+        ? await acceptPrintingFieldValue(context.transact, context.repos, args, printingBefore)
+        : await context.transact(async (trx) => {
+            await trx.catalogMutations.lockPrintingSide(printingId, side);
+            return acceptPrintingFieldValue((run) => run(trx), trx, args);
+          });
+    if (outcome.status === "changed") {
+      throw errors.FIELD_CHANGED();
+    }
+    if (outcome.status === "unchanged") {
       return { written: false };
     }
-
-    /**
-     * distributionChannelSlugs lives only in a junction table, so its old value is null;
-     * every other field comes from the printings row fetched above.
-     */
-    const auditEvent = (written: unknown) =>
-      recordAdminEvent(context.repos, context.userId, {
-        action: "printing.accept-field",
-        entityType: "printing",
-        entityId: printingId,
-        entityLabel: printingBefore.shortCode,
-        cardSlug: faceCard?.slug ?? null,
-        oldValues:
-          field === "distributionChannelSlugs"
-            ? null
-            : { [field]: (printingBefore as Record<string, unknown>)[field] },
-        newValues: { [field]: written },
-      });
-
-    const { auditValue } = await writePrintingField(context.transact, context.repos, {
-      printingId,
-      field,
-      value: normalizedValue,
-      side,
-    });
     if (changesCatalogViews(field)) {
       await context.repos.catalog.refreshCatalogViews();
     }
 
-    await auditEvent(auditValue);
+    // distributionChannelSlugs lives only in a junction table, so its old value is null.
+    await recordAdminEvent(context.repos, context.userId, {
+      action: "printing.accept-field",
+      entityType: "printing",
+      entityId: printingId,
+      entityLabel: outcome.printingBefore.shortCode,
+      cardSlug: faceCard?.slug ?? null,
+      oldValues:
+        field === "distributionChannelSlugs"
+          ? null
+          : { [field]: (outcome.printingBefore as Record<string, unknown>)[field] },
+      newValues: { [field]: outcome.auditValue },
+    });
     return { written: true };
   }),
 

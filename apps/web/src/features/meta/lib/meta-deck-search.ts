@@ -2,7 +2,7 @@ import { MAX_FACET_VALUES } from "@openrift/shared/meta-query";
 import { z } from "zod/mini";
 
 import { metaPagingSearchFields } from "@/features/meta/lib/meta-paging";
-import { metaScopeSearchSchema } from "@/features/meta/lib/meta-scope";
+import { metaScopeSearchSchema, playerCountParam } from "@/features/meta/lib/meta-scope";
 import { lenient } from "@/lib/lenient-param";
 
 const META_DECK_SORTS = ["date", "finish", "value", "cost"] as const;
@@ -20,7 +20,7 @@ export const metaDeckSearchSchema = z.extend(metaScopeSearchSchema, {
   events: lenient(z.array(z.string().check(z.minLength(1))).check(z.maxLength(MAX_FACET_VALUES))),
   legends: lenient(z.array(z.uuid()).check(z.maxLength(MAX_FACET_VALUES))),
   /** Rank bound: 1, 4, 8, or 16. */
-  finish: lenient(z.number().check(z.int(), z.positive())),
+  finish: playerCountParam(1),
   /** Absent means the curated view: one tile per legend per event. */
   all: lenient(z.boolean()),
   /** Currency major units. */

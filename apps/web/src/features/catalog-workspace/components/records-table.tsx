@@ -43,7 +43,7 @@ import { WorkspaceTargetLink } from "@/features/catalog-workspace/components/que
 import { ignoredCardsUndo } from "@/features/catalog-workspace/hooks/candidate-undo";
 import type { WorkspaceRecordsResult } from "@/features/catalog-workspace/hooks/use-workspace-queue";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
-import { queueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
+import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import { ignoredDraftsMessage } from "@/features/catalog-workspace/lib/ignored-drafts-message";
 import type {
   DeskMode,
@@ -496,6 +496,7 @@ function CardsTable({
   isAdmin: boolean;
   selection: RowSelection;
 }) {
+  const queueWrite = useQueueWorkspaceWrite();
   const ignoreDrafts = useIgnoreNewCardDrafts([adminKeys.workspace, adminKeys.cards.list]);
   const { push: pushUndo } = useWorkspaceUndo();
   const exporter = useExport(() =>
@@ -512,11 +513,14 @@ function CardsTable({
   );
   const selectedDrafts = split.selected;
 
-  async function ignoreSelected() {
+  async function ignoreSelected(signal: AbortSignal) {
     const selectedCount = selectedDrafts.length;
     let result: Awaited<ReturnType<typeof ignoreDrafts.mutateAsync>> | undefined;
     const ok = await runReportedMutation(async () => {
-      result = await ignoreDrafts.mutateAsync(selectedDrafts.map((row) => row.normalizedName));
+      result = await ignoreDrafts.mutateAsync(
+        selectedDrafts.map((row) => row.normalizedName),
+        { signal },
+      );
     });
     if (!ok || !result) {
       return;
@@ -585,7 +589,7 @@ function CardsTable({
               variant="outline"
               size="sm"
               pending={ignoreDrafts.isPending}
-              onClick={() => void queueWorkspaceWrite(ignoreSelected)}
+              onClick={() => void queueWrite(ignoreSelected, { limit: "long" })}
             >
               Ignore
             </Button>

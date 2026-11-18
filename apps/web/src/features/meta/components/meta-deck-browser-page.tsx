@@ -20,7 +20,6 @@ import { SimpleSelect } from "@/components/ui/simple-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { MetaArchiveDeckTile } from "@/features/meta/components/meta-archive-deck-tile";
-import { MetaDeckCostsBridge } from "@/features/meta/components/meta-deck-costs-bridge";
 import { MetaDeckFilterControls } from "@/features/meta/components/meta-deck-filter-controls";
 import { deckIndexGrid, MetaDeckIndexRow } from "@/features/meta/components/meta-deck-index-row";
 import { MetaEventHeading } from "@/features/meta/components/meta-event-row";
@@ -31,6 +30,7 @@ import {
 import { MetaPageSizePicker } from "@/features/meta/components/meta-page-size-picker";
 import { MetaScopeEmpty } from "@/features/meta/components/meta-scope-empty";
 import { useMetaDeckFacets, useMetaDecks } from "@/features/meta/hooks/use-meta";
+import { useMetaDeckCosts } from "@/features/meta/hooks/use-meta-deck-costs";
 import { useMetaDeckFilters } from "@/features/meta/hooks/use-meta-deck-filters";
 import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
@@ -129,7 +129,12 @@ function MetaDeckBrowser({
   const view = useDisplayStore((state) => state.metaDeckView);
   const setView = useDisplayStore((state) => state.setMetaDeckView);
   const smUp = useSmUp();
-  const [costs, setCosts] = useState<ReadonlyMap<string, MetaDeckCost>>();
+  const costs = useMetaDeckCosts(filters.includeSideboard, {
+    enabled: true,
+    withCollection: signedIn,
+    decks: page,
+    partialDeckIds: partialListDeckIds(data.decks),
+  });
   const [eraPickerOpen, setEraPickerOpen] = useState(false);
 
   // A priced bound narrows the page in the browser, so an emptied page is not
@@ -241,16 +246,6 @@ function MetaDeckBrowser({
 
   return (
     <div>
-      <Suspense fallback={null}>
-        <MetaDeckCostsBridge
-          includeSideboard={filters.includeSideboard}
-          withCollection={signedIn}
-          decks={page}
-          partialDeckIds={partialListDeckIds(data.decks)}
-          onChange={setCosts}
-        />
-      </Suspense>
-
       <MetaDeckFilterControls
         facets={facets}
         eras={eras}

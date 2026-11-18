@@ -1,6 +1,6 @@
 import { clamp } from "@openrift/shared/math";
 import { ListIcon } from "lucide-react";
-import type { MouseEvent } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useHeaderHeight } from "@/hooks/use-header-height";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
-import { usePageTocStore } from "@/stores/page-toc-store";
+import { createPageTocStore, PageTocStoreContext, usePageTocStore } from "@/stores/page-toc-store";
 
 export interface PageTocItem {
   id: string;
@@ -29,6 +29,12 @@ export interface PageTocItem {
  * A returned promise settles once the page has rendered the item and scrolled to it.
  */
 export type PageTocJump = (id: string) => Promise<void> | void;
+
+export function PageTocProvider({ children }: { children: ReactNode }) {
+  // oxlint-disable-next-line react/hook-use-state -- a stable per-page store, never replaced
+  const [store] = useState(createPageTocStore);
+  return <PageTocStoreContext value={store}>{children}</PageTocStoreContext>;
+}
 
 function cssPixels(value: string): number {
   // oxlint-disable-next-line unicorn/prefer-number-coercion -- CSS px string; Number() would yield NaN
@@ -160,11 +166,8 @@ function activeSection(visible: HTMLElement[], bandTop: number): HTMLElement | u
 
 function useActiveTocItem(items: PageTocItem[]) {
   const setActiveId = usePageTocStore((state) => state.setActiveId);
-  const releaseHold = usePageTocStore((state) => state.releaseHold);
   const headerHeight = Math.round(useHeaderHeight());
   const idsKey = items.map((item) => item.id).join(" ");
-
-  useEffect(() => () => releaseHold(), [releaseHold]);
 
   useEffect(() => {
     if (idsKey === "") {

@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { CSSProperties } from "react";
 
 import { PAGE_HERO_EYEBROW_CLASS, PageHero } from "@/components/layout/page-hero";
-import { PageToc, PageTocMobileTrigger } from "@/components/layout/page-toc";
+import { PageToc, PageTocMobileTrigger, PageTocProvider } from "@/components/layout/page-toc";
 import { PAGE_TOP_BAR_GEOMETRY } from "@/components/layout/page-top-bar";
 import { SearchInput } from "@/components/search-input";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
@@ -77,11 +77,11 @@ export function GlossaryPage() {
 
   const keywordRows = buildKeywordRows(init.keywords ?? {});
 
-  const domains = init.enums.domains ?? [];
-  const rarities = init.enums.rarities ?? [];
-  const cardTypes = init.enums.cardTypes ?? [];
-  const artVariants = init.enums.artVariants ?? [];
-  const finishes = init.enums.finishes ?? [];
+  const domains = init.enums.domains;
+  const rarities = init.enums.rarities;
+  const cardTypes = init.enums.cardTypes;
+  const artVariants = init.enums.artVariants;
+  const finishes = init.enums.finishes;
   const sets: SetEntry[] = (setList.sets ?? []).map((setEntry) => ({
     slug: setEntry.slug,
     name: setEntry.name,
@@ -91,7 +91,7 @@ export function GlossaryPage() {
   }));
 
   return (
-    <>
+    <PageTocProvider>
       <PageHero
         eyebrow={
           <>
@@ -166,6 +166,6 @@ export function GlossaryPage() {
           </div>
         </div>
       </div>
-    </>
+    </PageTocProvider>
   );
 }

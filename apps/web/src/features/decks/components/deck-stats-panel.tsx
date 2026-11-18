@@ -60,21 +60,22 @@ export function DomainBar({
   return (
     <TooltipProvider>
       <div className={barClass}>
-        {segments.map((entry) => (
-          <Tooltip key={entry.domain}>
-            <TooltipTrigger
-              className="h-full"
-              render={<span />}
-              style={{
-                width: `${(entry.count / total) * 100}%`,
-                backgroundColor: getDomainColor(entry.domain, colors),
-              }}
-            />
-            <TooltipContent side="bottom">
-              {enumLabel(labels.domains, entry.domain)}: {entry.count}
-            </TooltipContent>
-          </Tooltip>
-        ))}
+        {segments.map((entry) => {
+          const segmentLabel = `${enumLabel(labels.domains, entry.domain)}: ${entry.count}`;
+          return (
+            <Tooltip key={entry.domain}>
+              <TooltipTrigger
+                className="h-full"
+                render={<span role="img" aria-label={segmentLabel} />}
+                style={{
+                  width: `${(entry.count / total) * 100}%`,
+                  backgroundColor: getDomainColor(entry.domain, colors),
+                }}
+              />
+              <TooltipContent side="bottom">{segmentLabel}</TooltipContent>
+            </Tooltip>
+          );
+        })}
       </div>
     </TooltipProvider>
   );

@@ -479,6 +479,7 @@ describe("PrintingReviewCard", () => {
       field: "artist",
       value: "Base Artist",
       source: "manual",
+      expected: "Zoya",
     });
   });
 
@@ -589,6 +590,7 @@ describe("PrintingReviewCard", () => {
       field: "artist",
       value: null,
       source: "manual",
+      expected: "Zoya",
     });
   });
 });

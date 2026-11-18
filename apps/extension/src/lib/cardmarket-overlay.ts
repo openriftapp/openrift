@@ -8,7 +8,7 @@ import { extractCardmarketRows, rowCoverage } from "./cardmarket-rows";
 import { cardmarketPageKind, cardmarketSellerFromUrl } from "./cardmarket-url";
 import {
   isPickAllClick,
-  relayoutSellerCards,
+  observeSellerCards,
   renderWizardPanel,
   sellerShipping,
   WIZARD_SELLER,
@@ -108,10 +108,9 @@ export function installOverlay(
    * The host's resize handlers run synchronously, so the relayout waits until the
    * paint's own records are drained.
    */
+  const sellerCards = state.kind === "wizard" ? observeSellerCards(doc) : undefined;
   const relayout = () => {
-    if (state.kind === "wizard") {
-      relayoutSellerCards(doc, doc);
-    }
+    sellerCards?.sync(doc);
   };
   let timer: number | undefined;
   // Cardmarket swaps the table body in place when filters or pages change.
@@ -126,6 +125,7 @@ export function installOverlay(
   );
   ctx.onInvalidated(() => {
     watch.stop();
+    sellerCards?.disconnect();
   });
 
   const onStorage = (changes: Record<string, { newValue?: unknown }>, area: string) => {

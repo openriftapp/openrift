@@ -10,13 +10,17 @@ vi.mock("@/features/admin/hooks/use-catalog-review", () => ({
 
 import { RejectSubmissionDialog } from "./reject-submission-dialog";
 
-function renderDialog(onOpenChange = vi.fn()) {
+function renderDialog(
+  onOpenChange = vi.fn(),
+  runWrite?: React.ComponentProps<typeof RejectSubmissionDialog>["runWrite"],
+) {
   render(
     <RejectSubmissionDialog
       candidateCardId="cand-1"
       submitterName="Renata"
       kindLabel="Correction"
       onOpenChange={onOpenChange}
+      runWrite={runWrite}
     />,
   );
   return onOpenChange;
@@ -59,11 +63,14 @@ describe("RejectSubmissionDialog", () => {
     await user.type(screen.getByLabelText("Your own words (optional)"), "No source for this one");
     await user.click(screen.getByRole("button", { name: "Reject" }));
 
-    expect(captured.reject).toHaveBeenCalledWith({
-      candidateCardId: "cand-1",
-      reason: "unverified",
-      note: "No source for this one",
-    });
+    expect(captured.reject).toHaveBeenCalledWith(
+      {
+        candidateCardId: "cand-1",
+        reason: "unverified",
+        note: "No source for this one",
+      },
+      { signal: undefined },
+    );
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
@@ -73,11 +80,14 @@ describe("RejectSubmissionDialog", () => {
     await pickReason(user, "Already submitted");
     await user.click(screen.getByRole("button", { name: "Reject" }));
 
-    expect(captured.reject).toHaveBeenCalledWith({
-      candidateCardId: "cand-1",
-      reason: "duplicate",
-      note: null,
-    });
+    expect(captured.reject).toHaveBeenCalledWith(
+      {
+        candidateCardId: "cand-1",
+        reason: "duplicate",
+        note: null,
+      },
+      { signal: undefined },
+    );
   });
 
   it("asks for a message when the reason is other", async () => {
@@ -88,5 +98,23 @@ describe("RejectSubmissionDialog", () => {
     expect(screen.getByRole("button", { name: "Reject" })).toBeDisabled();
     await user.type(screen.getByLabelText("Your own words (optional)"), "Wrong set");
     expect(screen.getByRole("button", { name: "Reject" })).toBeEnabled();
+  });
+
+  it("hands the rejection to runWrite, which passes its signal into the mutation", async () => {
+    const user = userEvent.setup();
+    const { signal } = new AbortController();
+    const runWrite = vi.fn((write: (signal?: AbortSignal) => Promise<unknown>) =>
+      write(signal).then(() => true),
+    );
+    const onOpenChange = renderDialog(vi.fn(), runWrite);
+    await pickReason(user, "Already submitted");
+    await user.click(screen.getByRole("button", { name: "Reject" }));
+
+    expect(runWrite).toHaveBeenCalledOnce();
+    expect(captured.reject).toHaveBeenCalledWith(
+      { candidateCardId: "cand-1", reason: "duplicate", note: null },
+      { signal },
+    );
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

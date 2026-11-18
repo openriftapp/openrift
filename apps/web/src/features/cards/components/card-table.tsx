@@ -3,7 +3,7 @@ import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { GroupByField } from "@openrift/shared/types/search";
 import type { ReactElement, ReactNode } from "react";
-import { Fragment, cloneElement, memo, useEffect, useRef, useState } from "react";
+import { Fragment, cloneElement, memo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { OrnamentRule } from "@/components/ui/ornament";
@@ -232,17 +232,6 @@ export function CardTable({
     overscan: 8,
   });
 
-  const virtualizerRef = useRef(virtualizer);
-  const virtualRowsRef = useRef(virtualRows);
-  const stickyOffsetRef = useRef(stickyOffset);
-  const multipleGroupsRef = useRef(multipleGroups);
-  useEffect(() => {
-    virtualizerRef.current = virtualizer;
-    virtualRowsRef.current = virtualRows;
-    stickyOffsetRef.current = stickyOffset;
-    multipleGroupsRef.current = multipleGroups;
-  });
-
   const activeHeaderRow = useStickyHeader({
     multipleGroups,
     virtualRows,
@@ -256,26 +245,20 @@ export function CardTable({
 
   /** False when the card is not in the table. */
   const scrollToCard = (cardId: string): boolean => {
-    const rowIndex = cardRowIndex(virtualRowsRef.current, cardId);
+    const rowIndex = cardRowIndex(virtualRows, cardId);
     if (rowIndex === -1) {
       return false;
     }
-    const vItems = virtualizerRef.current.getVirtualItems();
-    const vItem = vItems.find((vi) => vi.index === rowIndex);
+    const vItem = virtualizer.getVirtualItems().find((vi) => vi.index === rowIndex);
     if (vItem) {
-      const labelBand = multipleGroupsRef.current ? STICKY_GROUP_LABEL_BAND : 0;
-      const viewportTop = globalThis.scrollY + stickyOffsetRef.current + labelBand;
+      const labelBand = multipleGroups ? STICKY_GROUP_LABEL_BAND : 0;
+      const viewportTop = globalThis.scrollY + stickyOffset + labelBand;
       const viewportBottom = globalThis.scrollY + globalThis.innerHeight;
       if (vItem.start >= viewportTop && vItem.start + vItem.size <= viewportBottom) {
         return true;
       }
     }
-    scrollCardRowIntoView(
-      virtualizerRef.current,
-      virtualRowsRef.current,
-      rowIndex,
-      multipleGroupsRef.current,
-    );
+    scrollCardRowIntoView(virtualizer, virtualRows, rowIndex, multipleGroups);
     return true;
   };
 
@@ -304,16 +287,12 @@ export function CardTable({
     scrollToCard,
   );
 
-  /**
-   * Reads only from mirror refs so React Compiler keeps this reference stable across
-   * scroll-driven re-renders.
-   */
   const scrollToGroup = (groupId: string) => {
-    const rowIndex = virtualRowsRef.current.findIndex(
+    const rowIndex = virtualRows.findIndex(
       (row) => row.kind === "header" && row.group.id === groupId,
     );
     if (rowIndex !== -1) {
-      virtualizerRef.current.scrollToIndex(rowIndex, { align: "start", behavior: "auto" });
+      virtualizer.scrollToIndex(rowIndex, { align: "start", behavior: "auto" });
     }
   };
 

@@ -85,6 +85,9 @@ const mockMut = {
   getFullCardById: vi.fn(),
   updatePrintingFieldById: vi.fn(),
   getSetPrintedTotalForPrinting: vi.fn(),
+  lockCardRow: vi.fn(),
+  syncSelfAliasOnRename: vi.fn(),
+  lockPrintingSide: vi.fn(),
 };
 
 const mockCardErrata = {
@@ -166,6 +169,33 @@ const mockCardSubmissions = {
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
 
+const routeRepos = () => ({
+  catalogMutations: mockMut,
+  catalogDeleteGuards: mockCatalogDeleteGuards,
+  cardErrata: mockCardErrata,
+  keywords: { ...mockKeywords, listCostKeywords: vi.fn().mockResolvedValue(["Equip", "Repeat"]) },
+  adminEvents: mockAdminEvents,
+  candidateCards: mockCandidateCards,
+  cardSubmissions: mockCardSubmissions,
+  printingImages: {},
+  markers: { listBySlugs: vi.fn(async () => []), setForPrinting: vi.fn() },
+  providerSettings: mockProviderSettings,
+  catalog: {
+    refreshCatalogViews: mockRefreshCatalogViews,
+    refreshCanonicalRank: vi.fn(),
+    refreshCardAggregates: vi.fn(),
+  },
+  cardTokens: { recomputeForCard: vi.fn(), recomputeForPrintingCard: vi.fn() },
+  sets: mockSets,
+  distributionChannels: mockDistributionChannels,
+  printingEvents: { recordNewPrinting: vi.fn(), recordPrintingChange: vi.fn() },
+  rarities: {
+    listAll: vi
+      .fn()
+      .mockResolvedValue([{ slug: "common" }, { slug: "uncommon" }, { slug: "rare" }]),
+  },
+});
+
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
@@ -173,32 +203,7 @@ app.use("*", async (c, next) => {
   c.set("io", mockIo as never);
   c.set("transact", mockTransact as never);
   c.set("scheduler", scheduler as never);
-  c.set("repos", {
-    catalogMutations: mockMut,
-    catalogDeleteGuards: mockCatalogDeleteGuards,
-    cardErrata: mockCardErrata,
-    keywords: { ...mockKeywords, listCostKeywords: vi.fn().mockResolvedValue(["Equip", "Repeat"]) },
-    adminEvents: mockAdminEvents,
-    candidateCards: mockCandidateCards,
-    cardSubmissions: mockCardSubmissions,
-    printingImages: {},
-    markers: { listBySlugs: vi.fn(async () => []), setForPrinting: vi.fn() },
-    providerSettings: mockProviderSettings,
-    catalog: {
-      refreshCatalogViews: mockRefreshCatalogViews,
-      refreshCanonicalRank: vi.fn(),
-      refreshCardAggregates: vi.fn(),
-    },
-    cardTokens: { recomputeForCard: vi.fn(), recomputeForPrintingCard: vi.fn() },
-    sets: mockSets,
-    distributionChannels: mockDistributionChannels,
-    printingEvents: { recordNewPrinting: vi.fn(), recordPrintingChange: vi.fn() },
-    rarities: {
-      listAll: vi
-        .fn()
-        .mockResolvedValue([{ slug: "common" }, { slug: "uncommon" }, { slug: "rare" }]),
-    },
-  } as never);
+  c.set("repos", routeRepos() as never);
   c.set("services", {
     notifySubmitterOfCardAcceptance: mockNotifySubmitterOfCardAcceptance,
   } as never);
@@ -1227,6 +1232,63 @@ describe("POST /cards/:cardId/accept-field", () => {
     expect(json.code).toBe("BAD_REQUEST");
     expect(json.message).toContain("Invalid value for might");
   });
+
+  it("writes an undo under the card's row lock while the field still holds the expected value", async () => {
+    mockTransact.mockImplementationOnce(async (cb) => cb(routeRepos() as never));
+    mockMut.getFullCardById.mockResolvedValue({ id: CARD_ID2, name: "Flame Drake", slug: "fd" });
+
+    const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/accept-field`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field: "name", value: "Ember Drake", expected: "Flame Drake" }),
+    });
+    expect(await readJson(res)).toEqual({ written: true });
+    expect(mockMut.lockCardRow).toHaveBeenCalledWith(CARD_ID2);
+    expect(mockMut.lockCardRow.mock.invocationCallOrder[0]).toBeLessThan(
+      mockMut.getFullCardById.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(mockMut.updateCardById).toHaveBeenCalledWith(CARD_ID2, { name: "Ember Drake" });
+  });
+
+  it("answers FIELD_CHANGED and writes nothing when the field moved off the expected value", async () => {
+    mockTransact.mockImplementationOnce(async (cb) => cb(routeRepos() as never));
+    mockMut.getFullCardById.mockResolvedValue({ id: CARD_ID2, name: "Ashen Drake", slug: "ad" });
+
+    const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/accept-field`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field: "name", value: "Ember Drake", expected: "Flame Drake" }),
+    });
+    expect(res.status).toBe(409);
+    expect(await readJson(res)).toMatchObject({ code: "FIELD_CHANGED" });
+    expect(mockMut.updateCardById).not.toHaveBeenCalled();
+    expect(mockAdminEvents.insert).not.toHaveBeenCalled();
+  });
+
+  it("answers unwritten when the field already holds the undo's value", async () => {
+    mockTransact.mockImplementationOnce(async (cb) => cb(routeRepos() as never));
+    mockMut.getFullCardById.mockResolvedValue({ id: CARD_ID2, name: "Ember Drake", slug: "ed" });
+
+    const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/accept-field`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field: "name", value: "Ember Drake", expected: "Flame Drake" }),
+    });
+    expect(await readJson(res)).toEqual({ written: false });
+    expect(mockMut.updateCardById).not.toHaveBeenCalled();
+  });
+
+  it("compares an expected null against an emptied comment", async () => {
+    mockTransact.mockImplementationOnce(async (cb) => cb(routeRepos() as never));
+    mockMut.getFullCardById.mockResolvedValue({ id: CARD_ID2, name: "Ember", comment: null });
+
+    const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/accept-field`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field: "comment", value: "Errata pending", expected: null }),
+    });
+    expect(await readJson(res)).toEqual({ written: true });
+  });
 });
 
 describe("POST /cards/printing/:printingId/accept-field", () => {
@@ -1478,6 +1540,85 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
     const json = await readJson(res);
     expect(json.code).toBe("BAD_REQUEST");
     expect(json.message).toContain("Invalid value for rarity");
+  });
+
+  it("locks the printing's side before reading it for an undo", async () => {
+    mockTransact.mockImplementationOnce(async (cb) => cb(routeRepos() as never));
+
+    const res = await app.request(`/api/admin/v1/cards/printing/${PRINTING_ID}/accept-field`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        field: "artist",
+        value: "Alice",
+        side: 2,
+        expected: "Original Artist",
+      }),
+    });
+    expect(await readJson(res)).toEqual({ written: true });
+    expect(mockMut.lockPrintingSide).toHaveBeenCalledWith(PRINTING_ID, 2);
+    expect(mockMut.lockPrintingSide.mock.invocationCallOrder[0]).toBeLessThan(
+      mockMut.getFullPrintingById.mock.invocationCallOrder.at(-1) ?? 0,
+    );
+    expect(mockMut.updatePrintingFieldById).toHaveBeenCalledWith(PRINTING_ID, "artist", "Alice", 2);
+  });
+
+  it("answers FIELD_CHANGED when another edit replaced the expected value", async () => {
+    mockTransact.mockImplementationOnce(async (cb) => cb(routeRepos() as never));
+
+    const res = await app.request(`/api/admin/v1/cards/printing/${PRINTING_ID}/accept-field`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field: "artist", value: "Alice", expected: "Someone Else" }),
+    });
+    expect(res.status).toBe(409);
+    expect(await readJson(res)).toMatchObject({ code: "FIELD_CHANGED" });
+    expect(mockMut.updatePrintingFieldById).not.toHaveBeenCalled();
+    expect(mockAdminEvents.insert).not.toHaveBeenCalled();
+  });
+
+  it("matches the expected value of a provider accept in its stored, typeset form", async () => {
+    mockTransact.mockImplementationOnce(async (cb) => cb(routeRepos() as never));
+    mockFixTypography.mockImplementation((text: string | null) => text?.replace("'", "’") ?? null);
+    mockMut.getFullPrintingById.mockResolvedValue({
+      id: PRINTING_ID,
+      cardId: "card-uuid",
+      shortCode: "OGS-001",
+      printedRulesText: "It’s fine",
+    });
+
+    const res = await app.request(`/api/admin/v1/cards/printing/${PRINTING_ID}/accept-field`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field: "printedRulesText", value: null, expected: "It's fine" }),
+    });
+    expect(await readJson(res)).toEqual({ written: true });
+    expect(mockMut.updatePrintingFieldById).toHaveBeenCalledWith(
+      PRINTING_ID,
+      "printedRulesText",
+      null,
+      1,
+    );
+  });
+
+  it("compares an expected set slug against the printing's set id", async () => {
+    mockTransact.mockImplementationOnce(async (cb) => cb(routeRepos() as never));
+    mockSets.getBySlug.mockImplementation(async (slug: string) =>
+      slug === "origin-set" ? { id: "set-uuid" } : { id: "set-uuid-2" },
+    );
+
+    const res = await app.request(`/api/admin/v1/cards/printing/${PRINTING_ID}/accept-field`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field: "setId", value: "spiritforged", expected: "origin-set" }),
+    });
+    expect(await readJson(res)).toEqual({ written: true });
+    expect(mockMut.updatePrintingFieldById).toHaveBeenCalledWith(
+      PRINTING_ID,
+      "setId",
+      "set-uuid-2",
+      1,
+    );
   });
 });
 

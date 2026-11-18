@@ -41,8 +41,8 @@ const upsertCardErrataFn = createServerFn({ method: "POST" })
 
 export function useUpsertCardErrata() {
   return useMutationWithInvalidation({
-    mutationFn: async (input: ErrataInput) => {
-      await upsertCardErrataFn({ data: input });
+    mutationFn: async (input: ErrataInput, signal) => {
+      await upsertCardErrataFn({ data: input, signal });
     },
     invalidates: [adminKeys.cards.all, catalogKeys.all, errataKeys.all],
   });
@@ -60,8 +60,8 @@ const deleteCardErrataFn = createServerFn({ method: "POST" })
 
 export function useDeleteCardErrata() {
   return useMutationWithInvalidation({
-    mutationFn: async (input: { cardId: string; language: string }) => {
-      await deleteCardErrataFn({ data: input });
+    mutationFn: async (input: { cardId: string; language: string }, signal) => {
+      await deleteCardErrataFn({ data: input, signal });
     },
     invalidates: [adminKeys.cards.all, catalogKeys.all, errataKeys.all],
   });

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict fXn9KHxHeZHdOCUjvggnGmdakvgGKJW4rZMjyQRdgAZ2zqjXN5YwjLch1LXfVWF
+\restrict e8fGdf5Ewg4Bl6L5Qb6nQOBa0ggIKfjXf8T0qNuyl2lmTzpc7N1BDvFSaXcNaa5
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -2688,6 +2688,7 @@ CREATE TABLE public.lists (
     rule_combine text,
     is_sidebar_hidden boolean DEFAULT false CONSTRAINT lists_sidebar_hidden_not_null NOT NULL,
     has_cardmarket_sync boolean DEFAULT false CONSTRAINT lists_cardmarket_sync_not_null NOT NULL,
+    rules_version integer DEFAULT 0 NOT NULL,
     CONSTRAINT chk_lists_currency CHECK (((currency IS NULL) OR (currency = ANY (ARRAY['EUR'::text, 'USD'::text])))),
     CONSTRAINT chk_lists_default_absolute_positive CHECK (((default_price_absolute_cents IS NULL) OR (default_price_absolute_cents > 0))),
     CONSTRAINT chk_lists_default_absolute_shape CHECK (((default_price_pref = 'absolute'::text) = (default_price_absolute_cents IS NOT NULL))),
@@ -2700,7 +2701,8 @@ CREATE TABLE public.lists (
     CONSTRAINT chk_lists_name_not_empty CHECK ((name <> ''::text)),
     CONSTRAINT chk_lists_prefs_only_on_trade_intents CHECK (((intent = ANY (ARRAY['wish'::text, 'trade'::text])) OR ((default_price_pref IS NULL) AND (default_price_absolute_cents IS NULL) AND (default_trade_type IS NULL) AND (currency IS NULL)))),
     CONSTRAINT chk_lists_rule_combine CHECK ((rule_combine = ANY (ARRAY['sum'::text, 'max'::text, 'protect'::text, 'count-sum'::text, 'count-max'::text]))),
-    CONSTRAINT chk_lists_rules_shape CHECK (((rules IS NULL) OR (jsonb_typeof(rules) = 'array'::text)))
+    CONSTRAINT chk_lists_rules_shape CHECK (((rules IS NULL) OR (jsonb_typeof(rules) = 'array'::text))),
+    CONSTRAINT chk_lists_rules_version_nonnegative CHECK ((rules_version >= 0))
 );
 
 
@@ -11511,5 +11513,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict fXn9KHxHeZHdOCUjvggnGmdakvgGKJW4rZMjyQRdgAZ2zqjXN5YwjLch1LXfVWF
+\unrestrict e8fGdf5Ewg4Bl6L5Qb6nQOBa0ggIKfjXf8T0qNuyl2lmTzpc7N1BDvFSaXcNaa5
 

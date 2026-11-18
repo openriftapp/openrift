@@ -29,7 +29,7 @@ async function openFilterDrawer(page: Page): Promise<Locator> {
  * followed by a faceted count (e.g. "Fury6"), so match a `^Label` prefix.
  */
 function drawerBadge(drawer: Locator, labelPrefix: RegExp): Locator {
-  return drawer.locator('[data-slot="badge"]', { hasText: labelPrefix }).first();
+  return drawer.getByRole("button", { name: labelPrefix }).first();
 }
 
 /** The remove button of one chip in the active-filter strip, named "Remove <filter> <value>". */

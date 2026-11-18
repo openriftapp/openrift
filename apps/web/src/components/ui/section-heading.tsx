@@ -18,6 +18,7 @@ interface SectionHeadingProps {
   icon?: ComponentType<SVGProps<SVGSVGElement>>;
   /** The icon chip's tint. Ignored without `icon`. */
   tone?: IconChipTone;
+  id?: string;
   className?: string;
 }
 
@@ -36,6 +37,7 @@ export function SectionHeading({
   as: Tag = "h2",
   icon,
   tone = "neutral",
+  id,
   className,
 }: SectionHeadingProps) {
   const label = (
@@ -48,6 +50,7 @@ export function SectionHeading({
   );
   return (
     <Tag
+      id={id}
       data-slot="section-heading"
       className={cn(
         "font-heading font-semibold tracking-wide uppercase",

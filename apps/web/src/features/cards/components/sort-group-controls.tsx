@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Pressable } from "@/components/ui/pressable";
 import { RadioGroup } from "@/components/ui/radio-group";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -39,13 +40,17 @@ function SortGroupSection({
 }
 
 function DirToggle({
+  subject,
   dir,
   onToggle,
 }: {
+  subject: "group" | "sort";
   dir: "asc" | "desc";
   onToggle: (dir: "asc" | "desc") => void;
 }) {
-  const label = dir === "asc" ? m.cards_sort_dir_asc() : m.cards_sort_dir_desc();
+  const sortLabel = dir === "asc" ? m.cards_sort_dir_asc() : m.cards_sort_dir_desc();
+  const groupLabel = dir === "asc" ? m.cards_group_dir_asc() : m.cards_group_dir_desc();
+  const label = subject === "group" ? groupLabel : sortLabel;
   return (
     <Tooltip>
       <TooltipTrigger
@@ -95,8 +100,9 @@ function BadgeRow<TValue extends string>({
             <Badge
               key={option.value}
               variant={isSelected ? "default" : "outline"}
-              className="cursor-pointer"
-              onClick={() => onChange(option.value)}
+              render={
+                <Pressable aria-pressed={isSelected} onClick={() => onChange(option.value)} />
+              }
             >
               {option.label}
             </Badge>
@@ -201,7 +207,7 @@ export function SortGroupControls<
       action={
         groupingActive ? (
           // oxlint-disable-next-line react/jsx-handler-names -- forwarded callback from caller, name fixed by the route
-          <DirToggle dir={group.dir} onToggle={group.onDirChange} />
+          <DirToggle subject="group" dir={group.dir} onToggle={group.onDirChange} />
         ) : undefined
       }
     >
@@ -212,7 +218,7 @@ export function SortGroupControls<
   const sortSection = (
     <SortGroupSection
       title={m.cards_sort_by()}
-      action={<DirToggle dir={sortDir} onToggle={onSortDirChange} />}
+      action={<DirToggle subject="sort" dir={sortDir} onToggle={onSortDirChange} />}
     >
       {renderOptions(sortOptions, sortBy, onSortByChange)}
     </SortGroupSection>
@@ -237,7 +243,7 @@ export function SortGroupControls<
             action={
               groupingActive ? (
                 // oxlint-disable-next-line react/jsx-handler-names -- forwarded callback from caller, name fixed by the route
-                <DirToggle dir={group.dir} onToggle={group.onDirChange} />
+                <DirToggle subject="group" dir={group.dir} onToggle={group.onDirChange} />
               ) : undefined
             }
           />
@@ -247,7 +253,7 @@ export function SortGroupControls<
           options={sortOptions}
           value={sortBy}
           onChange={onSortByChange}
-          action={<DirToggle dir={sortDir} onToggle={onSortDirChange} />}
+          action={<DirToggle subject="sort" dir={sortDir} onToggle={onSortDirChange} />}
         />
         {view && (
           <BadgeRow

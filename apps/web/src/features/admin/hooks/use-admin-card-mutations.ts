@@ -13,6 +13,7 @@ import { adminJobRunsContract } from "@openrift/shared/contracts/admin/job-runs"
 import { adminUnifiedMappingsContract } from "@openrift/shared/contracts/admin/unified-mappings";
 import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import type { Marketplace } from "@openrift/shared/types/pricing";
+import { isDefinedError, safe } from "@orpc/client";
 import type { MutationMeta } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -119,6 +120,7 @@ export const acceptCardFieldFn = createServerFn({ method: "POST" })
       field: AcceptCardField;
       value: unknown;
       source?: "provider" | "manual";
+      expected?: unknown;
     }) => input,
   )
   .middleware([withCookies])
@@ -128,6 +130,7 @@ export const acceptCardFieldFn = createServerFn({ method: "POST" })
       field: data.field,
       value: data.value,
       source: data.source,
+      expected: data.expected,
     }),
   );
 
@@ -140,6 +143,7 @@ export const acceptPrintingFieldFn = createServerFn({ method: "POST" })
       field: AcceptPrintingField;
       value: unknown;
       source?: "provider" | "manual";
+      expected?: unknown;
     }) => input,
   )
   .middleware([withCookies])
@@ -151,6 +155,7 @@ export const acceptPrintingFieldFn = createServerFn({ method: "POST" })
       field: data.field,
       value: data.value,
       source: data.source,
+      expected: data.expected,
     }),
   );
 
@@ -285,8 +290,8 @@ const defaultScope: Scope = CANDIDATE_REVIEW_SCOPE;
 
 export function useCheckCandidateCard(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: async (candidateCardId: string) => {
-      await checkCandidateCardFn({ data: { candidateCardId } });
+    mutationFn: async (candidateCardId: string, signal) => {
+      await checkCandidateCardFn({ data: { candidateCardId }, signal });
     },
     invalidates,
   });
@@ -294,8 +299,8 @@ export function useCheckCandidateCard(invalidates: Scope = defaultScope) {
 
 export function useUncheckCandidateCard(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: async (candidateCardId: string) => {
-      await uncheckCandidateCardFn({ data: { candidateCardId } });
+    mutationFn: async (candidateCardId: string, signal) => {
+      await uncheckCandidateCardFn({ data: { candidateCardId }, signal });
     },
     invalidates,
   });
@@ -303,16 +308,16 @@ export function useUncheckCandidateCard(invalidates: Scope = defaultScope) {
 
 export function useCheckCandidateCards(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: (input: { cardId: string; candidateCardIds: string[] }) =>
-      checkCandidateCardsFn({ data: input }),
+    mutationFn: (input: { cardId: string; candidateCardIds: string[] }, signal) =>
+      checkCandidateCardsFn({ data: input, signal }),
     invalidates,
   });
 }
 
 export function useCheckAllCandidateCards(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: async (cardId: string) => {
-      await checkAllCandidateCardsFn({ data: { cardId } });
+    mutationFn: async (cardId: string, signal) => {
+      await checkAllCandidateCardsFn({ data: { cardId }, signal });
     },
     invalidates,
   });
@@ -320,8 +325,8 @@ export function useCheckAllCandidateCards(invalidates: Scope = defaultScope) {
 
 export function useCheckCandidatePrinting(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: async (id: string) => {
-      await checkCandidatePrintingFn({ data: { id } });
+    mutationFn: async (id: string, signal) => {
+      await checkCandidatePrintingFn({ data: { id }, signal });
     },
     invalidates,
   });
@@ -329,8 +334,8 @@ export function useCheckCandidatePrinting(invalidates: Scope = defaultScope) {
 
 export function useUncheckCandidatePrinting(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: async (id: string) => {
-      await uncheckCandidatePrintingFn({ data: { id } });
+    mutationFn: async (id: string, signal) => {
+      await uncheckCandidatePrintingFn({ data: { id }, signal });
     },
     invalidates,
   });
@@ -338,8 +343,11 @@ export function useUncheckCandidatePrinting(invalidates: Scope = defaultScope) {
 
 export function useCheckAllCandidatePrintings(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: async ({ printingId, extraIds }: { printingId?: string; extraIds?: string[] }) => {
-      await checkAllCandidatePrintingsFn({ data: { printingId, extraIds } });
+    mutationFn: async (
+      { printingId, extraIds }: { printingId?: string; extraIds?: string[] },
+      signal,
+    ) => {
+      await checkAllCandidatePrintingsFn({ data: { printingId, extraIds }, signal });
     },
     invalidates,
   });
@@ -347,8 +355,8 @@ export function useCheckAllCandidatePrintings(invalidates: Scope = defaultScope)
 
 export function useRenameCard() {
   return useMutationWithInvalidation({
-    mutationFn: async ({ cardId, newId }: { cardId: string; newId: string }) => {
-      await renameCardFn({ data: { cardId, newId } });
+    mutationFn: async ({ cardId, newId }: { cardId: string; newId: string }, signal) => {
+      await renameCardFn({ data: { cardId, newId }, signal });
     },
     invalidates: ({ newId }) => [
       adminKeys.cards.detail(newId),
@@ -373,52 +381,69 @@ export function useLeaveCardPage(): (oldSlug: string, leave: () => Promise<void>
 
 export function useAcceptCardField(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: ({
-      cardId,
-      field,
-      value,
-      source = "manual",
-    }: {
-      cardId: string;
-      field: AcceptCardField;
-      value: unknown;
-      source?: "provider" | "manual";
-    }) => acceptCardFieldFn({ data: { cardId, field, value, source } }),
+    mutationFn: (
+      {
+        cardId,
+        field,
+        value,
+        source = "manual",
+        expected,
+      }: {
+        cardId: string;
+        field: AcceptCardField;
+        value: unknown;
+        source?: "provider" | "manual";
+        expected?: unknown;
+      },
+      signal,
+    ) => acceptCardFieldFn({ data: { cardId, field, value, source, expected }, signal }),
     invalidates,
   });
 }
 
 export function useAcceptPrintingField(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: ({
-      printingId,
-      side = 1,
-      faceId,
-      field,
-      value,
-      source = "manual",
-    }: {
-      printingId: string;
-      side?: 1 | 2;
-      faceId?: string;
-      field: AcceptPrintingField;
-      value: unknown;
-      source?: "provider" | "manual";
-    }) => acceptPrintingFieldFn({ data: { printingId, side, faceId, field, value, source } }),
+    mutationFn: (
+      {
+        printingId,
+        side = 1,
+        faceId,
+        field,
+        value,
+        source = "manual",
+        expected,
+      }: {
+        printingId: string;
+        side?: 1 | 2;
+        faceId?: string;
+        field: AcceptPrintingField;
+        value: unknown;
+        source?: "provider" | "manual";
+        expected?: unknown;
+      },
+      signal,
+    ) =>
+      acceptPrintingFieldFn({
+        data: { printingId, side, faceId, field, value, source, expected },
+        signal,
+      }),
     invalidates,
   });
 }
 
 export function useAcceptNewCard() {
   return useMutationWithInvalidation({
-    mutationFn: async ({
-      name,
-      cardFields,
-    }: {
-      name: string;
-      cardFields: AcceptNewCardBody["cardFields"];
-    }) => {
-      await acceptNewCardFn({ data: { name, cardFields } });
+    mutationFn: async (
+      {
+        name,
+        cardFields,
+      }: {
+        name: string;
+        cardFields: AcceptNewCardBody["cardFields"];
+      },
+      signal,
+    ) => {
+      await acceptNewCardFn({ data: { name, cardFields }, signal });
     },
     invalidates: ({ name }) => [
       adminKeys.cards.unmatched(name),
@@ -439,7 +464,8 @@ const createCardFn = createServerFn({ method: "POST" })
 export function useCreateCard() {
   return useMutationWithInvalidation({
     meta: { inlineError: true },
-    mutationFn: (cardFields: CreateCardBody) => createCardFn({ data: { cardFields } }),
+    mutationFn: (cardFields: CreateCardBody, signal) =>
+      createCardFn({ data: { cardFields }, signal }),
     invalidates: (_variables, data) => [
       adminKeys.cards.detail(data.cardSlug),
       adminKeys.cards.list,
@@ -462,14 +488,17 @@ const createPrintingFn = createServerFn({ method: "POST" })
 export function useCreatePrinting() {
   return useMutationWithInvalidation({
     meta: { inlineError: true },
-    mutationFn: ({
-      cardId,
-      printingFields,
-    }: {
-      cardId: string;
-      cardSlug: string;
-      printingFields: CreatePrintingBody;
-    }) => createPrintingFn({ data: { cardId, printingFields } }),
+    mutationFn: (
+      {
+        cardId,
+        printingFields,
+      }: {
+        cardId: string;
+        cardSlug: string;
+        printingFields: CreatePrintingBody;
+      },
+      signal,
+    ) => createPrintingFn({ data: { cardId, printingFields }, signal }),
     invalidates: ({ cardSlug }) => [
       adminKeys.cards.detail(cardSlug),
       adminKeys.cards.list,
@@ -480,7 +509,7 @@ export function useCreatePrinting() {
 
 export function useAcceptFavoriteNewCard() {
   return useMutationWithInvalidation({
-    mutationFn: (name: string) => acceptFavoritesFn({ data: { name } }),
+    mutationFn: (name: string, signal) => acceptFavoritesFn({ data: { name }, signal }),
     invalidates: (name) => [
       adminKeys.cards.unmatched(name),
       adminKeys.cards.list,
@@ -492,8 +521,11 @@ export function useAcceptFavoriteNewCard() {
 
 export function useLinkCard() {
   return useMutationWithInvalidation({
-    mutationFn: async ({ name, cardId }: { name: string; cardId: string; cardSlug: string }) => {
-      await linkCardFn({ data: { name, cardId } });
+    mutationFn: async (
+      { name, cardId }: { name: string; cardId: string; cardSlug: string },
+      signal,
+    ) => {
+      await linkCardFn({ data: { name, cardId }, signal });
     },
     invalidates: ({ name, cardSlug }) => [
       adminKeys.cards.detail(cardSlug),
@@ -507,8 +539,11 @@ export function useLinkCard() {
 
 export function useReassignCandidatePrinting(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: async ({ id, fields }: { id: string; fields: PatchCandidatePrintingBody }) => {
-      await reassignCandidatePrintingFn({ data: { id, fields } });
+    mutationFn: async (
+      { id, fields }: { id: string; fields: PatchCandidatePrintingBody },
+      signal,
+    ) => {
+      await reassignCandidatePrintingFn({ data: { id, fields }, signal });
     },
     invalidates,
   });
@@ -516,8 +551,8 @@ export function useReassignCandidatePrinting(invalidates: Scope = defaultScope) 
 
 export function useDeleteCandidatePrinting(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: async (id: string) => {
-      await deleteCandidatePrintingFn({ data: { id } });
+    mutationFn: async (id: string, signal) => {
+      await deleteCandidatePrintingFn({ data: { id }, signal });
     },
     invalidates,
   });
@@ -525,8 +560,8 @@ export function useDeleteCandidatePrinting(invalidates: Scope = defaultScope) {
 
 export function useCopyCandidatePrinting(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: async ({ id, printingId }: { id: string; printingId: string }) => {
-      await copyCandidatePrintingFn({ data: { id, printingId } });
+    mutationFn: async ({ id, printingId }: { id: string; printingId: string }, signal) => {
+      await copyCandidatePrintingFn({ data: { id, printingId }, signal });
     },
     invalidates,
   });
@@ -534,8 +569,11 @@ export function useCopyCandidatePrinting(invalidates: Scope = defaultScope) {
 
 export function useLinkCandidatePrintings(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: async (payload: { candidatePrintingIds: string[]; printingId: string | null }) => {
-      await linkCandidatePrintingsFn({ data: payload });
+    mutationFn: async (
+      payload: { candidatePrintingIds: string[]; printingId: string | null },
+      signal,
+    ) => {
+      await linkCandidatePrintingsFn({ data: payload, signal });
     },
     invalidates,
   });
@@ -543,8 +581,8 @@ export function useLinkCandidatePrintings(invalidates: Scope = defaultScope) {
 
 export function useDeletePrinting(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: async (printingId: string) => {
-      await deletePrintingFn({ data: { printingId } });
+    mutationFn: async (printingId: string, signal) => {
+      await deletePrintingFn({ data: { printingId }, signal });
     },
     invalidates,
   });
@@ -552,8 +590,8 @@ export function useDeletePrinting(invalidates: Scope = defaultScope) {
 
 export function useDeleteCard() {
   return useMutationWithInvalidation({
-    mutationFn: async (cardId: string) => {
-      await deleteCardFn({ data: { cardId } });
+    mutationFn: async (cardId: string, signal) => {
+      await deleteCardFn({ data: { cardId }, signal });
     },
     invalidates: [adminKeys.cards.list, adminKeys.workspace, adminKeys.cards.allCards],
   });
@@ -562,19 +600,23 @@ export function useDeleteCard() {
 export function useAcceptPrintingGroup(invalidates: Scope = defaultScope, meta?: MutationMeta) {
   return useMutationWithInvalidation({
     meta,
-    mutationFn: ({
-      cardId,
-      printingFields,
-      candidatePrintingIds,
-      secondSideFaceId,
-    }: {
-      cardId: string;
-      printingFields: AcceptPrintingBody["printingFields"];
-      candidatePrintingIds: string[];
-      secondSideFaceId?: string;
-    }) =>
+    mutationFn: (
+      {
+        cardId,
+        printingFields,
+        candidatePrintingIds,
+        secondSideFaceId,
+      }: {
+        cardId: string;
+        printingFields: AcceptPrintingBody["printingFields"];
+        candidatePrintingIds: string[];
+        secondSideFaceId?: string;
+      },
+      signal,
+    ) =>
       acceptPrintingGroupFn({
         data: { cardId, printingFields, candidatePrintingIds, secondSideFaceId },
+        signal,
       }),
     invalidates,
   });
@@ -582,7 +624,7 @@ export function useAcceptPrintingGroup(invalidates: Scope = defaultScope, meta?:
 
 export function useCheckProvider() {
   return useMutationWithInvalidation({
-    mutationFn: (provider: string) => checkProviderFn({ data: { provider } }),
+    mutationFn: (provider: string, signal) => checkProviderFn({ data: { provider }, signal }),
     invalidates: [
       adminKeys.cards.all,
       adminKeys.sources,
@@ -592,14 +634,20 @@ export function useCheckProvider() {
   });
 }
 
-const listCheckMatchingRunsFn = createServerFn({ method: "GET" })
+const getJobRunFn = createServerFn({ method: "GET" })
+  .validator((input: { runId: string }) => input)
   .middleware([withCookies])
-  .handler(async ({ context }): Promise<JobRunView[]> => {
-    const { runs } = await apiOrpcClient(adminJobRunsContract, context.cookie).list({
-      kind: JOB_KIND.checkMatching,
-      limit: 50,
-    });
-    return runs;
+  .handler(async ({ context, data }): Promise<JobRunView | null> => {
+    const { data: found, error } = await safe(
+      apiOrpcClient(adminJobRunsContract, context.cookie).get({ runId: data.runId }),
+    );
+    if (error) {
+      if (isDefinedError(error) && error.code === "NOT_FOUND") {
+        return null;
+      }
+      throw error;
+    }
+    return found.run;
   });
 
 /**
@@ -617,8 +665,7 @@ export function useCheckMatchingCandidates() {
     mutationFn: async () => {
       const started = await startJobFn({ data: { kind: JOB_KIND.checkMatching } });
       const run = await waitForJobRun(
-        started.runId,
-        () => listCheckMatchingRunsFn(),
+        () => getJobRunFn({ data: { runId: started.runId } }),
         undefined,
         undefined,
         polling.current?.signal,
@@ -672,7 +719,7 @@ const acceptFavoritePrintingsFn = createServerFn({ method: "POST" })
 
 export function useAcceptFavoritePrintings() {
   return useMutationWithInvalidation({
-    mutationFn: (cardSlug: string) => acceptFavoritePrintingsFn({ data: cardSlug }),
+    mutationFn: (cardSlug: string, signal) => acceptFavoritePrintingsFn({ data: cardSlug, signal }),
     invalidates: (cardSlug) => [
       adminKeys.cards.detail(cardSlug),
       adminKeys.cards.list,
@@ -683,7 +730,7 @@ export function useAcceptFavoritePrintings() {
 
 export function useDeleteProvider() {
   return useMutationWithInvalidation({
-    mutationFn: (provider: string) => deleteProviderFn({ data: { provider } }),
+    mutationFn: (provider: string, signal) => deleteProviderFn({ data: { provider }, signal }),
     invalidates: [
       adminKeys.cards.all,
       adminKeys.sources,
@@ -720,13 +767,16 @@ const defaultMarketplaceScope: Scope = [adminKeys.cards.all, adminKeys.unifiedMa
 
 export function useUnmapMarketplacePrinting(invalidates: Scope = defaultMarketplaceScope) {
   return useMutationWithInvalidation({
-    mutationFn: (input: {
-      marketplace: Marketplace;
-      printingId: string;
-      externalId: number;
-      finish: string;
-      language: string | null;
-    }) => unmapMarketplacePrintingFn({ data: input }),
+    mutationFn: (
+      input: {
+        marketplace: Marketplace;
+        printingId: string;
+        externalId: number;
+        finish: string;
+        language: string | null;
+      },
+      signal,
+    ) => unmapMarketplacePrintingFn({ data: input, signal }),
     invalidates,
   });
 }
@@ -735,11 +785,11 @@ export function useAcceptAllCards(
   onProgress: (progress: { done: number; total: number } | null) => void,
 ) {
   return useMutationWithInvalidation({
-    mutationFn: async (names: string[]) => {
+    mutationFn: async (names: string[], signal) => {
       onProgress({ done: 0, total: names.length });
       const outcome = await acceptEachNewCard(
         names,
-        (name) => acceptFavoritesFn({ data: { name } }),
+        (name) => acceptFavoritesFn({ data: { name }, signal }),
         (done) => onProgress({ done, total: names.length }),
       );
       onProgress(null);

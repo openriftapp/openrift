@@ -4,6 +4,7 @@ import { CARD_FURY_UNIT, PRINTING_1 } from "../../../test/fixtures/constants.js"
 import { createTestContext, req } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
 import { friendGroupsRepo } from "../../groups/repositories/friend-groups.js";
+import { listsCoreRepo } from "../repositories/lists-core.js";
 
 const USER_ID = "a0000000-0041-4000-a000-000000000001";
 
@@ -171,6 +172,95 @@ describe.skipIf(!ctx)("Lists routes (integration)", () => {
         req("PATCH", `/lists/a0000000-9999-4000-a000-000000000099`, { name: "X" }),
       );
       expect(res.status).toBe(404);
+    });
+  });
+
+  describe("PATCH /lists/:id rules version", () => {
+    const tradeRule = (collectionIds: string[] | null = null) => ({
+      kind: "trade",
+      filter: {},
+      collectionIds,
+      keepPerCard: { mode: "fixed", n: 0 },
+      keepCopyIds: [],
+    });
+
+    async function rulesVersionOf(id: string): Promise<number> {
+      const detail = (await readJson(await app.fetch(req("GET", `/lists/${id}`)))) as {
+        list: { rulesVersion: number };
+      };
+      return detail.list.rulesVersion;
+    }
+
+    function saveRules(id: string, rules: unknown[], expectedRulesVersion: number) {
+      return app.fetch(
+        req("PATCH", `/lists/${id}`, { rules, ruleCombine: null, expectedRulesVersion }),
+      );
+    }
+
+    async function saveStatus(id: string, rules: unknown[], expectedRulesVersion?: number) {
+      const res = await saveRules(id, rules, expectedRulesVersion ?? (await rulesVersionOf(id)));
+      return res.status;
+    }
+
+    it("refuses the second of two saves made from the same version", async () => {
+      const id = await createList("Two tabs", "organize", "copy");
+      const version = await rulesVersionOf(id);
+
+      expect(await saveStatus(id, [tradeRule()], version)).toBe(200);
+      const stale = await saveRules(id, [], version);
+
+      expect(stale.status).toBe(412);
+      const json = (await readJson(stale)) as {
+        code: string;
+        data: { rules: unknown[]; rulesVersion: number };
+      };
+      expect(json.code).toBe("PRECONDITION_FAILED");
+      expect(json.data.rules).toHaveLength(1);
+      expect(json.data.rulesVersion).toBe(version + 1);
+      expect(await rulesVersionOf(id)).toBe(version + 1);
+    });
+
+    it("refuses a save from before a rules drop", async () => {
+      const id = await createList("Drop then save", "organize", "copy");
+      expect(await saveStatus(id, [tradeRule()])).toBe(200);
+      const version = await rulesVersionOf(id);
+      const copyId = await createCopy();
+
+      const dropped = await app.fetch(req("POST", `/lists/${id}/rules/drop`, { copyId }));
+      expect(dropped.status).toBe(200);
+
+      expect(await saveStatus(id, [tradeRule()], version)).toBe(412);
+    });
+
+    it("refuses a save from before a collection left the rules", async () => {
+      const id = await createList("Collection cleanup", "organize", "copy");
+      const collection = await db
+        .insertInto("collections")
+        .values({
+          userId: USER_ID,
+          name: `Cleanup binder ${Date.now()}`,
+          isInbox: false,
+          sortOrder: 1,
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+      expect(await saveStatus(id, [tradeRule([collection.id])])).toBe(200);
+      const version = await rulesVersionOf(id);
+
+      await listsCoreRepo(db).removeCollectionFromRules(USER_ID, collection.id);
+
+      expect(await rulesVersionOf(id)).toBe(version + 1);
+      expect(await saveStatus(id, [tradeRule([collection.id])], version)).toBe(412);
+    });
+
+    it("leaves the rules version alone on a rename", async () => {
+      const id = await createList("Rename only", "organize", "copy");
+      const version = await rulesVersionOf(id);
+
+      const renamed = await app.fetch(req("PATCH", `/lists/${id}`, { name: "Renamed" }));
+      expect(renamed.status).toBe(200);
+
+      expect(await rulesVersionOf(id)).toBe(version);
     });
   });
 

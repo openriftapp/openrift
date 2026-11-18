@@ -56,6 +56,7 @@ import { imageQuadOf } from "@/features/admin/lib/straighten-quad";
 import { RecordSection } from "@/features/catalog-workspace/components/record/record-pane";
 import { SuggestionChip } from "@/features/catalog-workspace/components/record/suggestion-chip";
 import type { FaceChip } from "@/features/catalog-workspace/hooks/use-face-record-actions";
+import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import type { FaceSuggestionModel } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import {
   ADMIN_ONLY_DISCARD,
@@ -125,6 +126,7 @@ export function FaceImagesSection({
   onReply: (candidateCardId: string) => void;
   landscape: boolean;
 }) {
+  const queueWrite = useQueueWorkspaceWrite();
   const scope: Scope = [
     adminKeys.cards.detail(cardSlug),
     adminKeys.cards.list,
@@ -155,7 +157,7 @@ export function FaceImagesSection({
       face: side,
       mode: hasActive ? ("additional" as const) : ("main" as const),
     };
-    if (await runReportedMutation(() => addFromUrl.mutateAsync(input))) {
+    if (await queueWrite((signal) => addFromUrl.mutateAsync(input, { signal }))) {
       setUrl("");
       setUrlOpen(false);
     }
@@ -165,15 +167,22 @@ export function FaceImagesSection({
     setUploadError(null);
     for (const [index, file] of files.entries()) {
       setUploading((count) => count + 1);
-      await runReportedMutation(
-        () =>
-          upload.mutateAsync({
-            printingId: face.id,
-            file,
-            face: side,
-            mode: !hasActive && index === 0 ? "main" : "additional",
-          }),
-        (error) => setUploadError(errorText(error, `Could not upload ${file.name}.`)),
+      await queueWrite(
+        (signal) =>
+          runReportedMutation(
+            () =>
+              upload.mutateAsync(
+                {
+                  printingId: face.id,
+                  file,
+                  face: side,
+                  mode: !hasActive && index === 0 ? "main" : "additional",
+                },
+                { signal },
+              ),
+            (error) => setUploadError(errorText(error, `Could not upload ${file.name}.`)),
+          ),
+        { limit: "upload" },
       );
       setUploading((count) => count - 1);
     }
@@ -195,6 +204,7 @@ export function FaceImagesSection({
           providerSettings={providerSettings}
           invalidates={scope}
           isAdmin={isAdmin}
+          runWrite={queueWrite}
         />
 
         <div className="min-w-0 flex-1 space-y-2">
@@ -229,10 +239,15 @@ export function FaceImagesSection({
                   isContributor ? undefined : (
                     <DropdownMenuItem
                       onClick={() =>
-                        setCandidateImage.mutate({
-                          candidatePrintingId: candidate.id,
-                          mode: "additional",
-                        })
+                        void queueWrite((signal) =>
+                          setCandidateImage.mutateAsync(
+                            {
+                              candidatePrintingId: candidate.id,
+                              mode: "additional",
+                            },
+                            { signal },
+                          ),
+                        )
                       }
                     >
                       <ImagePlusIcon />
@@ -325,12 +340,13 @@ function InactiveImageRow({
   isAdmin: boolean;
   landscape: boolean;
 }) {
+  const queueWrite = useQueueWorkspaceWrite();
   const activate = useActivatePrintingImage(scope);
   const remove = useDeletePrintingImage(scope);
   const rotate = useRotatePrintingImage();
   const setNeedsTrim = useSetPrintingImageNeedsTrim();
   const editing = useImageEditPending(image.id);
-  const rehost = useRehostPrintingImage(scope);
+  const rehost = useRehostPrintingImage();
   const moveFace = useSetDeskImageFace();
   const [straightening, setStraightening] = useState(false);
 
@@ -355,7 +371,7 @@ function InactiveImageRow({
           variant="outline"
           size="sm"
           disabled={pending}
-          onClick={() => remove.mutate(image.id)}
+          onClick={() => void queueWrite((signal) => remove.mutateAsync(image.id, { signal }))}
         >
           Discard
         </Button>
@@ -364,7 +380,11 @@ function InactiveImageRow({
         variant="outline"
         size="sm"
         disabled={pending}
-        onClick={() => activate.mutate({ imageId: image.id, active: true })}
+        onClick={() =>
+          void queueWrite((signal) =>
+            activate.mutateAsync({ imageId: image.id, active: true }, { signal }),
+          )
+        }
       >
         Use
       </Button>
@@ -376,13 +396,21 @@ function InactiveImageRow({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {image.rehostedUrl === null && image.originalUrl !== null && (
-            <DropdownMenuItem onClick={() => rehost.mutate(image.id)}>
+            <DropdownMenuItem
+              onClick={() => void queueWrite((signal) => rehost.mutateAsync(image.id, { signal }))}
+            >
               <DownloadIcon />
               Rehost
             </DropdownMenuItem>
           )}
           {image.activateWhenRehosted && (
-            <DropdownMenuItem onClick={() => activate.mutate({ imageId: image.id, active: false })}>
+            <DropdownMenuItem
+              onClick={() =>
+                void queueWrite((signal) =>
+                  activate.mutateAsync({ imageId: image.id, active: false }, { signal }),
+                )
+              }
+            >
               <XIcon />
               Cancel going live
             </DropdownMenuItem>
@@ -392,10 +420,15 @@ function InactiveImageRow({
               <DropdownMenuItem
                 disabled={editing}
                 onClick={() =>
-                  rotate.mutate({
-                    imageId: image.id,
-                    rotation: ((image.rotation + 270) % 360) as Rotation,
-                  })
+                  void queueWrite((signal) =>
+                    rotate.mutateAsync(
+                      {
+                        imageId: image.id,
+                        rotation: ((image.rotation + 270) % 360) as Rotation,
+                      },
+                      { signal },
+                    ),
+                  )
                 }
               >
                 <RotateCcwIcon />
@@ -404,10 +437,15 @@ function InactiveImageRow({
               <DropdownMenuItem
                 disabled={editing}
                 onClick={() =>
-                  rotate.mutate({
-                    imageId: image.id,
-                    rotation: ((image.rotation + 90) % 360) as Rotation,
-                  })
+                  void queueWrite((signal) =>
+                    rotate.mutateAsync(
+                      {
+                        imageId: image.id,
+                        rotation: ((image.rotation + 90) % 360) as Rotation,
+                      },
+                      { signal },
+                    ),
+                  )
                 }
               >
                 <RotateCwIcon />
@@ -420,7 +458,12 @@ function InactiveImageRow({
               <DropdownMenuItem
                 disabled={editing}
                 onClick={() =>
-                  setNeedsTrim.mutate({ imageId: image.id, needsTrim: !image.needsTrim })
+                  void queueWrite((signal) =>
+                    setNeedsTrim.mutateAsync(
+                      { imageId: image.id, needsTrim: !image.needsTrim },
+                      { signal },
+                    ),
+                  )
                 }
               >
                 <ScissorsIcon />
@@ -431,11 +474,16 @@ function InactiveImageRow({
           {isAdmin && face.otherFace !== null && (
             <DropdownMenuItem
               onClick={() =>
-                moveFace.mutate({
-                  printingImageId: image.id,
-                  printingId: face.id,
-                  face: otherSide,
-                })
+                void queueWrite((signal) =>
+                  moveFace.mutateAsync(
+                    {
+                      printingImageId: image.id,
+                      printingId: face.id,
+                      face: otherSide,
+                    },
+                    { signal },
+                  ),
+                )
               }
             >
               <ArrowLeftRightIcon />
@@ -443,7 +491,10 @@ function InactiveImageRow({
             </DropdownMenuItem>
           )}
           {isAdmin && (
-            <DropdownMenuItem variant="destructive" onClick={() => remove.mutate(image.id)}>
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => void queueWrite((signal) => remove.mutateAsync(image.id, { signal }))}
+            >
               <Trash2Icon />
               Remove
             </DropdownMenuItem>
@@ -456,6 +507,7 @@ function InactiveImageRow({
           quad={imageQuadOf(image)}
           open={straightening}
           onOpenChange={setStraightening}
+          runWrite={queueWrite}
         />
       )}
     </div>
@@ -475,6 +527,7 @@ export function DeskFaceImagesSection({
   canEdit: boolean;
   landscape: boolean;
 }) {
+  const queueWrite = useQueueWorkspaceWrite();
   const { data: session } = useSession();
   const upload = useUploadPrintingImage(IMAGE_FILE_SCOPE, { inlineError: true });
   const [uploading, setUploading] = useState(0);
@@ -490,16 +543,23 @@ export function DeskFaceImagesSection({
     const credit = uploaderName.length > 0 ? uploaderName : undefined;
     for (const file of files) {
       setUploading((count) => count + 1);
-      await runReportedMutation(
-        () =>
-          upload.mutateAsync({
-            printingId: printing.printingId,
-            file,
-            mode: "additional",
-            face: imageFace,
-            credit,
-          }),
-        (error) => setUploadError(errorText(error, `Could not upload ${file.name}.`)),
+      await queueWrite(
+        (signal) =>
+          runReportedMutation(
+            () =>
+              upload.mutateAsync(
+                {
+                  printingId: printing.printingId,
+                  file,
+                  mode: "additional",
+                  face: imageFace,
+                  credit,
+                },
+                { signal },
+              ),
+            (error) => setUploadError(errorText(error, `Could not upload ${file.name}.`)),
+          ),
+        { limit: "upload" },
       );
       setUploading((count) => count - 1);
     }
@@ -560,6 +620,7 @@ function DeskWaitingImage({
   image: DeskImage;
   landscape: boolean;
 }) {
+  const queueWrite = useQueueWorkspaceWrite();
   const rotate = useRotatePrintingImage();
   const remove = useDeletePrintingImage(IMAGE_FILE_SCOPE);
   const editing = useImageEditPending(image.printingImageId);
@@ -579,10 +640,15 @@ function DeskWaitingImage({
   function saveCredit() {
     const next = credit.trim();
     if (next !== (image.credit ?? "")) {
-      updateImage.mutate({
-        imageFileId: image.imageFileId,
-        credit: next.length > 0 ? next : null,
-      });
+      void queueWrite((signal) =>
+        updateImage.mutateAsync(
+          {
+            imageFileId: image.imageFileId,
+            credit: next.length > 0 ? next : null,
+          },
+          { signal },
+        ),
+      );
     }
   }
 
@@ -612,10 +678,15 @@ function DeskWaitingImage({
               disabled={editing}
               pending={rotate.isPending}
               onClick={() =>
-                rotate.mutate({
-                  imageId: image.printingImageId,
-                  rotation: ((image.rotation + 90) % 360) as Rotation,
-                })
+                void queueWrite((signal) =>
+                  rotate.mutateAsync(
+                    {
+                      imageId: image.printingImageId,
+                      rotation: ((image.rotation + 90) % 360) as Rotation,
+                    },
+                    { signal },
+                  ),
+                )
               }
             >
               <RotateCwIcon />
@@ -636,11 +707,16 @@ function DeskWaitingImage({
                 aria-label="Move to the other face"
                 pending={moveFace.isPending}
                 onClick={() =>
-                  moveFace.mutate({
-                    printingImageId: image.printingImageId,
-                    printingId: printing.printingId,
-                    face: otherFace,
-                  })
+                  void queueWrite((signal) =>
+                    moveFace.mutateAsync(
+                      {
+                        printingImageId: image.printingImageId,
+                        printingId: printing.printingId,
+                        face: otherFace,
+                      },
+                      { signal },
+                    ),
+                  )
                 }
               >
                 <ArrowLeftRightIcon />
@@ -651,7 +727,9 @@ function DeskWaitingImage({
               size="icon-xs"
               aria-label="Delete image"
               pending={remove.isPending}
-              onClick={() => remove.mutate(image.printingImageId)}
+              onClick={() =>
+                void queueWrite((signal) => remove.mutateAsync(image.printingImageId, { signal }))
+              }
             >
               <Trash2Icon />
             </Button>
@@ -661,6 +739,7 @@ function DeskWaitingImage({
             quad={image.quad}
             open={straightening}
             onOpenChange={setStraightening}
+            runWrite={queueWrite}
           />
         </>
       )}

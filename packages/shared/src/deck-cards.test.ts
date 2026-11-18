@@ -4,6 +4,7 @@ import {
   deckCardKey,
   MAX_DECK_CARD_QUANTITY,
   mergeDeckCards,
+  mergeDeckCardsWithOverflow,
   sameDeckCards,
   toDeckCard,
 } from "./deck-cards.js";
@@ -97,5 +98,23 @@ describe("mergeDeckCards", () => {
   it("keeps a printing-specific line apart from the default-art line of the same card", () => {
     const pinned = { ...card("card-1", 1), preferredPrintingId: "printing-1" };
     expect(mergeDeckCards([card("card-1", 2), pinned])).toEqual([card("card-1", 2), pinned]);
+  });
+});
+
+describe("mergeDeckCardsWithOverflow", () => {
+  it("reports the copies cut from a repeated line sum", () => {
+    const result = mergeDeckCardsWithOverflow([card("a", 60), card("a", 42), card("b", 2)]);
+    expect(result.cards).toEqual([card("a", 99), card("b", 2)]);
+    expect(result.overflow).toEqual([{ card: card("a", 60), count: 3 }]);
+  });
+
+  it("reports the copies cut from a single oversized line", () => {
+    const result = mergeDeckCardsWithOverflow([card("a", 120)]);
+    expect(result.cards).toEqual([card("a", 99)]);
+    expect(result.overflow).toEqual([{ card: card("a", 120), count: 21 }]);
+  });
+
+  it("reports nothing at exactly the cap", () => {
+    expect(mergeDeckCardsWithOverflow([card("a", 50), card("a", 49)]).overflow).toEqual([]);
   });
 });

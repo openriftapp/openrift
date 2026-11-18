@@ -259,7 +259,7 @@ export function ZoneThumb({
     (state) => state.selectedZone === zone && state.selectedCard?.cardId === card.cardId,
   );
 
-  const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
+  const { setNodeRef, listeners, isDragging } = useDraggable({
     id: `overview-thumb-${card.cardId}-${zone}-${card.preferredPrintingId ?? "default"}-${copyIndex ?? "stack"}`,
     data: deckCardDragData(card, zone, displayName),
     disabled: !enableDrag,
@@ -294,7 +294,6 @@ export function ZoneThumb({
       onMouseLeave={() => onHoverCard?.(null)}
       {...interactiveProps}
       {...(enableDrag ? listeners : {})}
-      {...(enableDrag ? attributes : {})}
     >
       <DeckCardPageLink
         cardId={card.cardId}

@@ -68,6 +68,14 @@ function renderZone({
   );
 }
 
+describe("ZoneTile name", () => {
+  it("names the tile as a summary of its zone", () => {
+    renderZone({ label: "Battlefields" });
+    expect(screen.getByRole("group", { name: "Battlefields summary" })).toBeDefined();
+    expect(screen.queryByRole("group", { name: "Battlefields" })).toBeNull();
+  });
+});
+
 describe("ZoneTile unknown slots", () => {
   it("says what an archived list never published, one blank per missing card", () => {
     renderZone({ expected: 3, unknownCount: 3 });

@@ -1,10 +1,5 @@
 import { adminIgnoredCandidatesContract } from "@openrift/shared/contracts/admin/ignored-candidates";
-import {
-  useIsMutating,
-  useMutation,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query";
+import { useIsMutating, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { unmatchedCardDetailQueryOptions } from "@/features/admin/lib/admin-card-queries";
@@ -14,6 +9,7 @@ import { ignoredCandidatesQueryOptions } from "@/features/admin/lib/ignored-cand
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
+import { sentVariables, useSignalledMutation } from "@/lib/write-signal";
 
 type Scope = readonly (readonly unknown[])[];
 
@@ -33,8 +29,8 @@ const ignoreCandidateCardFn = createServerFn({ method: "POST" })
 
 export function useIgnoreCandidateCard(invalidates: Scope = []) {
   return useMutationWithInvalidation({
-    mutationFn: (params: { provider: string; externalId: string }) =>
-      ignoreCandidateCardFn({ data: params }),
+    mutationFn: (params: { provider: string; externalId: string }, signal) =>
+      ignoreCandidateCardFn({ data: params, signal }),
     invalidates: [...IGNORE_INVALIDATES, ...invalidates],
   });
 }
@@ -43,10 +39,11 @@ export function useIgnoreCandidateCard(invalidates: Scope = []) {
  *  refreshes once. A draft with only contributor submissions stays. */
 export function useIgnoreNewCardDrafts(invalidates: Scope = []) {
   const queryClient = useQueryClient();
-  return useMutation({
+  return useSignalledMutation({
     mutationKey: IGNORE_NEW_CARD_DRAFTS_KEY,
     mutationFn: async (
       names: readonly string[],
+      signal,
     ): Promise<{ ignored: number; sources: { provider: string; externalId: string }[] }> => {
       const details = await Promise.all(
         names.map((name) =>
@@ -60,7 +57,7 @@ export function useIgnoreNewCardDrafts(invalidates: Scope = []) {
         .flat()
         .map((source) => ({ provider: source.provider, externalId: source.externalId }));
       for (const source of sources) {
-        await ignoreCandidateCardFn({ data: source });
+        await ignoreCandidateCardFn({ data: source, signal });
       }
       return { ignored: drafts.length, sources };
     },
@@ -80,7 +77,7 @@ export function useNewCardDraftIgnorePending(name: string): boolean {
   const pending = useIsMutating({
     mutationKey: IGNORE_NEW_CARD_DRAFTS_KEY,
     predicate: (mutation) => {
-      const names = mutation.state.variables;
+      const names = sentVariables(mutation.state.variables);
       return Array.isArray(names) && names.includes(name);
     },
   });
@@ -96,8 +93,8 @@ export const unignoreCandidateCardFn = createServerFn({ method: "POST" })
 
 export function useUnignoreCandidateCard() {
   return useMutationWithInvalidation({
-    mutationFn: (params: { provider: string; externalId: string }) =>
-      unignoreCandidateCardFn({ data: params }),
+    mutationFn: (params: { provider: string; externalId: string }, signal) =>
+      unignoreCandidateCardFn({ data: params, signal }),
     invalidates: IGNORE_INVALIDATES,
   });
 }
@@ -111,8 +108,10 @@ const ignoreCandidatePrintingFn = createServerFn({ method: "POST" })
 
 export function useIgnoreCandidatePrinting(invalidates: Scope = []) {
   return useMutationWithInvalidation({
-    mutationFn: (params: { provider: string; externalId: string; finish?: string | null }) =>
-      ignoreCandidatePrintingFn({ data: params }),
+    mutationFn: (
+      params: { provider: string; externalId: string; finish?: string | null },
+      signal,
+    ) => ignoreCandidatePrintingFn({ data: params, signal }),
     invalidates: [...IGNORE_INVALIDATES, ...invalidates],
   });
 }
@@ -126,8 +125,8 @@ export const unignoreCandidatePrintingFn = createServerFn({ method: "POST" })
 
 export function useUnignoreCandidatePrinting() {
   return useMutationWithInvalidation({
-    mutationFn: (params: { provider: string; externalId: string; finish: string | null }) =>
-      unignoreCandidatePrintingFn({ data: params }),
+    mutationFn: (params: { provider: string; externalId: string; finish: string | null }, signal) =>
+      unignoreCandidatePrintingFn({ data: params, signal }),
     invalidates: IGNORE_INVALIDATES,
   });
 }
@@ -141,8 +140,8 @@ const deletePrintingLinkFn = createServerFn({ method: "POST" })
 
 export function useDeletePrintingLink() {
   return useMutationWithInvalidation({
-    mutationFn: (params: { provider: string; externalId: string; finish: string }) =>
-      deletePrintingLinkFn({ data: params }),
+    mutationFn: (params: { provider: string; externalId: string; finish: string }, signal) =>
+      deletePrintingLinkFn({ data: params, signal }),
     invalidates: IGNORE_INVALIDATES,
   });
 }

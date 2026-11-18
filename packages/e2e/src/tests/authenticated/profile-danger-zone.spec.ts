@@ -65,11 +65,7 @@ test.describe("profile danger zone", () => {
       const heading = page.getByRole("heading", { name: "Danger Zone", exact: true, level: 2 });
       await expect(heading).toBeVisible({ timeout: 15_000 });
 
-      // CardTitle is a div, so the "Danger Zone" h2 sits outside the card and
-      // can't anchor it; scope via the unique "Delete account" button instead.
-      const section = page.locator('[data-slot="danger-zone"]').filter({
-        has: page.getByRole("button", { name: "Delete account", exact: true }),
-      });
+      const section = page.getByRole("group", { name: "Danger Zone", exact: true });
       await expect(
         section.getByText(/Permanently deletes your account and everything in it\./u),
       ).toBeVisible();
@@ -88,9 +84,7 @@ test.describe("profile danger zone", () => {
       await heading.scrollIntoViewIfNeeded();
 
       // Class tokens are the only user-visible signal for the destructive styling.
-      const card = page.locator('[data-slot="danger-zone"]').filter({
-        has: page.getByRole("button", { name: "Delete account", exact: true }),
-      });
+      const card = page.getByRole("group", { name: "Danger Zone", exact: true });
       await expect(card).toHaveClass(/ring-destructive/u);
     });
   });

@@ -109,16 +109,6 @@ async function searchFor(page: Page, query: string) {
   await expect(page).toHaveURL(/[?&]q=/u);
 }
 
-const ZONE_SLUGS: Record<string, string> = {
-  Main: "main",
-  Sideboard: "sideboard",
-  Runes: "runes",
-  Battlefield: "battlefield",
-  Champion: "champion",
-  Overflow: "overflow",
-  Legend: "legend",
-};
-
 function zoneLabelButton(page: Page, label: string): Locator {
   return page.getByRole("button", { name: `Edit ${label}`, exact: true }).first();
 }
@@ -126,8 +116,7 @@ function zoneLabelButton(page: Page, label: string): Locator {
 /** "N" on zones with no target, "N/target" on the ones that have one. */
 function zoneCount(page: Page, label: string): Locator {
   return page
-    .locator(`[data-slot="deck-zone"][data-zone="${ZONE_SLUGS[label] ?? label}"]`)
-    .first()
+    .getByRole("group", { name: label, exact: true })
     .locator('[data-slot="deck-zone-count"]')
     .first();
 }

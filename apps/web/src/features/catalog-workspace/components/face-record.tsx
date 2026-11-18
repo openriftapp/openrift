@@ -64,6 +64,7 @@ import {
 } from "@/features/catalog-workspace/hooks/use-face-record-actions";
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
+import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import {
   ADMIN_ONLY_DISCARD,
   ADMIN_ONLY_REPLY,
@@ -119,6 +120,7 @@ function ReviewFaceRecord({
   const costKeywords = useCostKeywords();
   const labels = useValueLabels();
   const navigation = useQueueNavigation("face");
+  const queueWrite = useQueueWorkspaceWrite();
   const [showAll, setShowAll] = useState(false);
   const [editing, setEditing] = useState(false);
   const [replyTo, setReplyTo] = useState<string | null>(null);
@@ -415,6 +417,7 @@ function ReviewFaceRecord({
       <SendNoteDialog
         candidateCardId={replyTo}
         submitterName={replyTo === null ? null : submitterNameOf([detail], replyTo)}
+        runWrite={queueWrite}
         onOpenChange={(open) => {
           if (!open) {
             setReplyTo(null);
@@ -428,6 +431,7 @@ function ReviewFaceRecord({
         }
         kindLabel={rejecting?.kindLabel ?? "Correction"}
         scope={{ cardSlug }}
+        runWrite={queueWrite}
         onOpenChange={(open) => {
           if (!open) {
             setRejecting(null);

@@ -65,7 +65,7 @@ export const Route = createFileRoute("/_app/meta_/decks_/$token")({
     const { playerName, rank, rankIsTier, event } = deck.meta;
     return {
       deck: { updatedAt: deck.deck.updatedAt },
-      formatLabel: enumLabel(labelMap(init.enums.deckFormats ?? []), deck.deck.format),
+      formatLabel: enumLabel(labelMap(init.enums.deckFormats), deck.deck.format),
       meta: {
         playerName,
         rank,

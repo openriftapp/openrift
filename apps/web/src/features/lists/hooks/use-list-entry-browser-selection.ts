@@ -7,10 +7,11 @@ import type {
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { GroupByField } from "@openrift/shared/types/search";
 import { useQueryClient } from "@tanstack/react-query";
-import { useLayoutEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { useCardSelection } from "@/features/cards/hooks/use-card-selection";
+import { useGridHighlightId } from "@/features/cards/hooks/use-grid-highlight-id";
 import { useSearchAndCloseDetail } from "@/features/cards/hooks/use-search-and-close-detail";
 import { useSelectAllHotkey } from "@/features/cards/hooks/use-select-all-hotkey";
 import { selectionFindBy } from "@/features/cards/lib/card-tiles";
@@ -18,7 +19,6 @@ import type {
   CardRowClickModifiers,
   ListBulkAction,
 } from "@/features/cards/stores/card-row-actions-store";
-import { useGridFocusStore } from "@/features/cards/stores/grid-focus-store";
 import { usePrintingLightboxStore } from "@/features/cards/stores/printing-lightbox-store";
 import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-override-store";
 import { useCloseRemovedSelection } from "@/features/collections/hooks/use-close-removed-selection";
@@ -55,7 +55,6 @@ import type {
 import { hasTwoCards, ruleEntryCopyInputs, ruleEntryRef } from "@/features/lists/lib/list-move";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
 import type { RuleDropTarget } from "@/features/rules/lib/rule-drop";
-import { useResolvedSelection } from "@/hooks/use-resolved-selection";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { useUserId } from "@/hooks/use-session";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
@@ -197,19 +196,8 @@ export function useListEntryBrowserSelection({
     });
   };
 
-  const { card: selectedCard, item: selectedItem } = useResolvedSelection(items);
+  const { card: selectedCard, highlightId: gridSelectedId } = useGridHighlightId(items, view);
   useCloseRemovedSelection(items);
-  const gridSelectedId =
-    selectedItem?.id ??
-    (selectedCard
-      ? (items.find((item) => sideKey(item.printing) === sideKey(selectedCard))?.id ??
-        (view === "cards"
-          ? items.find((item) => item.printing.cardId === selectedCard.cardId)?.id
-          : undefined))
-      : undefined);
-  useLayoutEffect(() => {
-    useGridFocusStore.getState().setSelectedItemId(gridSelectedId ?? null);
-  }, [gridSelectedId]);
 
   const handleSiblingClick = (printing: Printing) => {
     usePrintingLightboxStore.getState().request(sideKey(printing));

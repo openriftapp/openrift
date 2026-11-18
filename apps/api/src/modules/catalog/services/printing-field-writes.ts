@@ -15,6 +15,7 @@ import {
   trimOptionalText,
   validateFieldValue,
 } from "../lib/field-values.js";
+import type { FullPrintingRow } from "../repositories/catalog-mutations.js";
 import {
   asPrintingIdentityConflict,
   updatePrintingDistributionChannels,
@@ -188,6 +189,83 @@ export async function isUnchangedPrintingValue(
     );
   }
   return isUnchangedValue(before[field], value, field);
+}
+
+async function holdsExpected(
+  repos: NormalizeRepos & Pick<Repos, "sets" | "distributionChannels">,
+  before: FullPrintingRow,
+  args: { printingId: string; field: AcceptPrintingField; side: 1 | 2; expected: unknown },
+): Promise<boolean> {
+  const { printingId, field, side, expected } = args;
+  const sources: PrintingFieldSource[] =
+    typeof expected === "string" ? ["manual", "provider"] : ["manual"];
+  for (const source of sources) {
+    const normalized = await normalizePrintingFieldValue(repos, {
+      printingId,
+      field,
+      value: expected,
+      source,
+      side,
+    });
+    const holds =
+      field === "releasedAt" || field === "releasePrecision"
+        ? before.releasedAt === (normalized as ReleaseWrite).releasedAt &&
+          before.releasePrecision === (normalized as ReleaseWrite).releasePrecision
+        : await isUnchangedPrintingValue(repos, printingId, before, field, normalized);
+    if (holds) {
+      return true;
+    }
+  }
+  return false;
+}
+
+type PrintingFieldAccept =
+  | { status: "unchanged" }
+  | { status: "changed" }
+  | { status: "written"; printingBefore: FullPrintingRow; auditValue: unknown };
+
+/** With `expected`, writes only while the field holds what that value stored from either
+ *  source; the caller holds the printing's row locks. */
+export async function acceptPrintingFieldValue(
+  transact: Transact,
+  repos: WriteRepos & NormalizeRepos,
+  args: {
+    printingId: string;
+    field: AcceptPrintingField;
+    value: unknown;
+    source: PrintingFieldSource;
+    side: 1 | 2;
+    expected?: unknown;
+  },
+  before?: FullPrintingRow,
+): Promise<PrintingFieldAccept> {
+  const { printingId, field, value, source, side, expected } = args;
+  const printingBefore =
+    before ?? (await repos.catalogMutations.getFullPrintingById(printingId, side));
+  assertFound(printingBefore, "Printing not found");
+  const normalized = await normalizePrintingFieldValue(repos, {
+    printingId,
+    field,
+    value,
+    source,
+    side,
+  });
+  if (await isUnchangedPrintingValue(repos, printingId, printingBefore, field, normalized)) {
+    return { status: "unchanged" };
+  }
+  if (
+    expected !== undefined &&
+    !(await holdsExpected(repos, printingBefore, { printingId, field, side, expected }))
+  ) {
+    return { status: "changed" };
+  }
+  const { auditValue } = await writePrintingField(transact, repos, {
+    printingId,
+    field,
+    value: normalized,
+    side,
+  });
+  return { status: "written", printingBefore, auditValue };
 }
 
 interface WritePrintingFieldArgs {

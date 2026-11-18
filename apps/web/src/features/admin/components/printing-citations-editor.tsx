@@ -5,6 +5,8 @@ import {
   useDeletePrintingCitation,
   useUpdatePrintingCitation,
 } from "@/features/admin/hooks/use-admin-printing-citations";
+import type { RunWrite } from "@/features/admin/lib/run-write";
+import { runWriteDirectly } from "@/features/admin/lib/run-write";
 
 /**
  * Every row here is hand-entered. A desk holder may change only the links they
@@ -14,10 +16,12 @@ export function PrintingCitationsEditor({
   printingId,
   adding,
   onAddingChange,
+  runWrite = runWriteDirectly,
 }: {
   printingId: string;
   adding?: boolean;
   onAddingChange?: (adding: boolean) => void;
+  runWrite?: RunWrite;
 }) {
   const { data, isPending } = useAdminPrintingCitations(printingId);
   const createCitation = useCreatePrintingCitation();
@@ -34,11 +38,19 @@ export function PrintingCitationsEditor({
       labelPlaceholder="Launch party unboxing (RiftboundDaily)"
       creating={createCitation.isPending || updateCitation.isPending}
       deleting={deleteCitation.isPending}
-      onAdd={(input) => createCitation.mutateAsync({ printingId, ...input })}
-      onUpdate={(citationId, input) =>
-        updateCitation.mutateAsync({ printingId, citationId, ...input })
+      onAdd={(input) =>
+        runWrite((signal) => createCitation.mutateAsync({ printingId, ...input }, { signal }))
       }
-      onDelete={(citationId) => deleteCitation.mutate({ printingId, citationId })}
+      onUpdate={(citationId, input) =>
+        runWrite((signal) =>
+          updateCitation.mutateAsync({ printingId, citationId, ...input }, { signal }),
+        )
+      }
+      onDelete={(citationId) =>
+        void runWrite((signal) =>
+          deleteCitation.mutateAsync({ printingId, citationId }, { signal }),
+        )
+      }
       lockedReason={(citation) => (citation.canEdit ? null : "Added by someone else")}
     />
   );

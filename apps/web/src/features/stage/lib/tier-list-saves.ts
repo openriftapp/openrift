@@ -1,4 +1,5 @@
-import type { QueryClient } from "@tanstack/react-query";
+import type { QueryClient, StaleTime } from "@tanstack/react-query";
+import { onlineManager } from "@tanstack/react-query";
 
 export const TIER_LIST_SAVE_MUTATION_KEY = ["tier-lists", "save"] as const;
 
@@ -32,4 +33,9 @@ export function tierListSavesSettled(queryClient: QueryClient, id: string): Prom
       }
     });
   });
+}
+
+/** Entry reads the list fresh; offline it takes the cached board, and the open page refetches on reconnect. */
+export function tierListEntryStaleTime(): StaleTime {
+  return onlineManager.isOnline() ? 0 : "static";
 }

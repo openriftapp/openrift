@@ -19,7 +19,10 @@ import {
 import { useCandidateDiscards } from "@/features/catalog-workspace/hooks/use-face-record-actions";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
-import { queuedWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
+import {
+  queuedWorkspaceWrite,
+  useQueueWorkspaceWrite,
+} from "@/features/catalog-workspace/hooks/workspace-writes";
 import type { PrintingFieldSuggestion } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import type {
   ListingSuggestion,
@@ -28,6 +31,7 @@ import type {
 import { primaryLabel } from "@/features/catalog-workspace/lib/suggestion-labels";
 import { undoScope, usedUndoText } from "@/features/catalog-workspace/lib/workspace-undo";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
+import { withSignal, withWriteSignal } from "@/lib/write-signal";
 
 function skuOf(listing: ListingSuggestion) {
   return {
@@ -73,6 +77,7 @@ export function usePrintingRecordActions({
   loading?: boolean;
 }) {
   const queryClient = useQueryClient();
+  const queue = useQueueWorkspaceWrite();
   const scope = [adminKeys.cards.all, adminKeys.printingDesk.all, adminKeys.workspace];
   const acceptField = useAcceptPrintingField(scope);
   const discards = useCandidateDiscards({ scope, sources: model.sources, record });
@@ -90,7 +95,10 @@ export function usePrintingRecordActions({
     void queryClient.invalidateQueries({ queryKey: adminKeys.cards.all });
   }
 
-  async function applyField(suggestion: PrintingFieldSuggestion): Promise<void> {
+  async function applyField(
+    signal: AbortSignal,
+    suggestion: PrintingFieldSuggestion,
+  ): Promise<void> {
     if (!isAcceptPrintingField(suggestion.field)) {
       return;
     }
@@ -111,16 +119,20 @@ export function usePrintingRecordActions({
         : suggestion.current;
     if (suggestion.isContributor) {
       await runReportedMutation(() =>
-        acceptSubmission.mutateAsync({
-          candidateCardId: suggestion.candidate.candidateCardId,
-          printingFields: [{ printingId, field, value, source: "provider" }],
-        }),
+        acceptSubmission.mutateAsync(
+          {
+            candidateCardId: suggestion.candidate.candidateCardId,
+            printingFields: [{ printingId, field, value, source: "provider" }],
+          },
+          { signal },
+        ),
       );
       settleCards();
       return;
     }
+    const accept = withSignal(acceptField.mutateAsync, signal);
     await acceptFieldWithUndo({
-      accept: acceptField.mutateAsync,
+      accept,
       input: { printingId, field, value, source: "provider" },
       fieldLabel: suggestion.label,
       sourceLabel: suggestion.provider,
@@ -129,16 +141,24 @@ export function usePrintingRecordActions({
         announce({
           ...usedUndoText({ field: suggestion.label, source: suggestion.provider, record }),
           invalidates: undoScope(scope),
-          undo: () => revertAcceptedField(revert, (data) => acceptPrintingFieldFn({ data })),
+          undo: (undoSignal) =>
+            revertAcceptedField(revert, (data) =>
+              withWriteSignal(undoSignal, () =>
+                acceptPrintingFieldFn({ data, signal: undoSignal }),
+              ),
+            ),
         }),
     });
   }
 
-  async function mapListing(listing: ListingSuggestion): Promise<void> {
+  async function mapListing(signal: AbortSignal, listing: ListingSuggestion): Promise<void> {
     const sku = skuOf(listing);
     let result: Awaited<ReturnType<(typeof save)["tcgplayer"]["mutateAsync"]>> | undefined;
     const ok = await runReportedMutation(async () => {
-      result = await save[listing.marketplace].mutateAsync({ mappings: [{ ...sku, printingId }] });
+      result = await save[listing.marketplace].mutateAsync(
+        { mappings: [{ ...sku, printingId }] },
+        { signal },
+      );
     });
     settleCards();
     if (ok && result && result.skipped.length === 0) {
@@ -146,21 +166,25 @@ export function usePrintingRecordActions({
     }
   }
 
-  async function ignoreListing(listing: ListingSuggestion): Promise<void> {
+  async function ignoreListing(signal: AbortSignal, listing: ListingSuggestion): Promise<void> {
     const sku = skuOf(listing);
-    const ok = await runReportedMutation(() => ignore[listing.marketplace].mutateAsync([sku]));
+    const ok = await runReportedMutation(() =>
+      ignore[listing.marketplace].mutateAsync([sku], { signal }),
+    );
     settleCards();
     if (ok) {
       announce(ignoredVariantsUndo(listing.marketplace, [sku], record));
     }
   }
 
-  function applyChip(chip: PrintingChip): Promise<void> {
-    return chip.kind === "field" ? applyField(chip.suggestion) : mapListing(chip.listing);
+  function applyChip(signal: AbortSignal, chip: PrintingChip): Promise<void> {
+    return chip.kind === "field"
+      ? applyField(signal, chip.suggestion)
+      : mapListing(signal, chip.listing);
   }
 
-  async function runPrimary() {
-    await discards.discardAll(enterIds);
+  async function runPrimary(signal: AbortSignal) {
+    await discards.discardAll(signal, enterIds);
   }
 
   useRegisterRecordActions({
@@ -168,10 +192,10 @@ export function usePrintingRecordActions({
     primary: canCheck
       ? { label: primaryLabel(enterIds.length), disabled: pending, run: runPrimary }
       : undefined,
-    useSuggestion: async (n) => {
+    useSuggestion: async (signal, n) => {
       const chip = chips[n - 1];
       if (chip !== undefined) {
-        await applyChip(chip);
+        await applyChip(signal, chip);
       }
     },
   });
@@ -180,11 +204,11 @@ export function usePrintingRecordActions({
     chips,
     enterCount: enterIds.length,
     pending,
-    applyChip: queuedWorkspaceWrite(applyChip),
-    mapListing: queuedWorkspaceWrite(mapListing),
-    ignoreListing: queuedWorkspaceWrite(ignoreListing),
-    discard: queuedWorkspaceWrite(discards.discard),
+    applyChip: queuedWorkspaceWrite(queue, applyChip),
+    mapListing: queuedWorkspaceWrite(queue, mapListing),
+    ignoreListing: queuedWorkspaceWrite(queue, ignoreListing),
+    discard: queuedWorkspaceWrite(queue, discards.discard),
     settleCards,
-    runPrimary: queuedWorkspaceWrite(runPrimary),
+    runPrimary: queuedWorkspaceWrite(queue, runPrimary),
   };
 }

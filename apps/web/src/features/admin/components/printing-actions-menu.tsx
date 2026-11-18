@@ -13,22 +13,26 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useDeletePrinting } from "@/features/admin/hooks/use-admin-card-mutations";
 import { deskPrintingName } from "@/features/admin/lib/desk-face-options";
-import { runReportedMutation } from "@/lib/run-reported-mutation";
+import type { RunWrite } from "@/features/admin/lib/run-write";
+import { runWriteDirectly } from "@/features/admin/lib/run-write";
 
 export function PrintingActionsMenu({
   printing,
   invalidates,
   onDeleted,
+  runWrite = runWriteDirectly,
 }: {
   printing: DeskPrintingRow;
   invalidates: Parameters<typeof useDeletePrinting>[0];
   onDeleted: () => void;
+  runWrite?: RunWrite;
 }) {
   const deletePrinting = useDeletePrinting(invalidates);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   async function confirmDelete() {
-    if (await runReportedMutation(() => deletePrinting.mutateAsync(printing.printingId))) {
+    const { printingId } = printing;
+    if (await runWrite((signal) => deletePrinting.mutateAsync(printingId, { signal }))) {
       setDeleteOpen(false);
       onDeleted();
     }

@@ -220,6 +220,37 @@ describe("deletePrinting", () => {
     expect(deleteRehostFiles).toHaveBeenCalledTimes(1);
     expect(deleteRehostFiles).toHaveBeenCalledWith({}, "/media/cards/g1/img-1");
   });
+
+  it("releases the substitute-art pin of a face deleted with the printing", async () => {
+    const deleteImageFileIfUnreferenced = vi.fn(async (id: string) => ({
+      id,
+      rehostedUrl: `/media/cards/ed/${id}`,
+    }));
+    const repos = {
+      catalogMutations: {
+        getPrintingById: vi.fn(async () => ({ id: "p-uuid" })),
+        detachDecksBeforeCatalogDeletion: vi.fn(async () => {}),
+        deletePrintingImagesByPrintingId: vi.fn(async () => []),
+        deletePrintingById: vi.fn(async () => ({
+          id: "p-uuid",
+          releasedImageFileIds: ["pinned"],
+        })),
+        deleteImageFileIfUnreferenced,
+      },
+      candidateCards: {
+        unlinkCandidatePrintingsByPrintingId: vi.fn(async () => {}),
+        deletePrintingLinkOverridesById: vi.fn(async () => {}),
+      },
+      catalogDeleteGuards: {
+        countForPrinting: vi.fn(async () => NO_PRINTING_BLOCKERS),
+      },
+    };
+
+    await deletePrinting(mockTransact(repos), {} as Io, repos as any, "p-uuid");
+
+    expect(deleteImageFileIfUnreferenced).toHaveBeenCalledWith("pinned");
+    expect(deleteRehostFiles).toHaveBeenCalledWith({}, "/media/cards/ed/pinned");
+  });
 });
 
 describe("cleanupOrphanedImageFiles", () => {

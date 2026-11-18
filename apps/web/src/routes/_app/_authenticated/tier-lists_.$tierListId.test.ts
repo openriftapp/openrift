@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import { QueryClient } from "@tanstack/react-query";
+import { onlineManager, QueryClient } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 
 const { fetchTierList } = vi.hoisted(() => ({
@@ -92,6 +92,24 @@ describe("/tier-lists/$tierListId loader", () => {
     await save;
     await loading;
     expect(fetchTierList).toHaveBeenCalledOnce();
+  });
+
+  it("takes the cached list at once while offline", async () => {
+    fetchTierList.mockClear();
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(["tier-lists", "user-1", "list-1"], { id: "list-1", tiers: [] });
+    onlineManager.setOnline(false);
+
+    try {
+      await (Route.options.loader as unknown as LoaderFn)({
+        context: { queryClient, userId: "user-1" },
+        params: { tierListId: "list-1" },
+      });
+    } finally {
+      onlineManager.setOnline(true);
+    }
+
+    expect(fetchTierList).not.toHaveBeenCalled();
   });
 
   it("does not let a hover preload stand in for the fetch on entry", () => {

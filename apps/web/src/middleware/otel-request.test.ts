@@ -78,6 +78,18 @@ describe("otelRequestMiddleware (web)", () => {
     expect(span?.attributes["http.route"]).toBe("<unmatched>");
   });
 
+  it("labels a path that only partly matches a route as <unmatched>", async () => {
+    for (const path of ["/meta/players/u1/not-a-page", "/admin/not-a-page"]) {
+      await handler({
+        request: new Request(`https://example.com${path}`),
+        next: async () => undefined,
+      } as never);
+    }
+
+    const routes = exporter.getFinishedSpans().map((s) => s.attributes["http.route"]);
+    expect(routes).toEqual(["<unmatched>", "<unmatched>"]);
+  });
+
   it("names a production server function by its id's name and drops a malformed id", async () => {
     for (const path of ["/_serverFn/fetchCatalog.c0846484c0846484", "/_serverFn/not-a-real-id"]) {
       await handler({

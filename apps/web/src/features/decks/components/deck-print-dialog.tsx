@@ -151,9 +151,9 @@ async function generateProxyPdf({
     await import("@/lib/proxy-pdf");
   // Pre-fetch so CardText doesn't suspend during rendering.
   const init = await queryClient.query({ ...initQueryOptions, staleTime: "static" });
-  const languageRows = (init.enums.languages ?? []) as { slug: string; sortOrder: number }[];
+  const languageRows = init.enums.languages;
   const languageOrder = effectiveLanguageOrder(languages, languageRows);
-  const zoneRows = (init.enums.deckZones ?? []) as { slug: string; sortOrder: number }[];
+  const zoneRows = init.enums.deckZones;
   const zoneOrder = zoneRows
     .toSorted((a, b) => a.sortOrder - b.sortOrder)
     .map((zone) => zone.slug as DeckBuilderCard["zone"]);

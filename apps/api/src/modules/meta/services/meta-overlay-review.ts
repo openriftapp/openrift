@@ -49,16 +49,16 @@ function sameValue(left: unknown, right: unknown): boolean {
  * A claim matching the live value would freeze it against future corrections.
  * `cards` is never dropped; `listStatus` stays claimed while `cards` is.
  */
-function redundantClaims(
-  claimedFields: readonly string[],
-  overlay: Record<string, unknown>,
-  live: Record<string, unknown>,
-): string[] {
+function redundantClaims<F extends string>(
+  claimedFields: readonly F[],
+  overlay: Partial<Record<F, unknown>>,
+  live: Partial<Record<F, unknown>>,
+): F[] {
   return claimedFields.filter((field) => {
     if (field === "cards") {
       return false;
     }
-    if (field === "listStatus" && claimedFields.includes("cards")) {
+    if (field === "listStatus" && claimedFields.some((claimed) => claimed === "cards")) {
       return false;
     }
     if (!Object.hasOwn(live, field)) {
@@ -102,18 +102,12 @@ export async function acceptMetaEventOverlay(
       if (intoMetaEventId !== null) {
         const target = await repos.meta.eventById(intoMetaEventId);
         assertFound(target, "That archived event no longer exists.");
-        const redundant = redundantClaims(
-          overlay.claimedFields,
-          overlay as unknown as Record<string, unknown>,
-          target as unknown as Record<string, unknown>,
-        );
+        const redundant = redundantClaims(overlay.claimedFields, overlay, target);
         await repos.metaOverlays.updateEventOverlay(overlayId, {
           metaEventId: intoMetaEventId,
           status: "accepted",
           acceptedAt: now,
-          claimedFields: overlay.claimedFields.filter(
-            (field) => !redundant.includes(field),
-          ) as MetaEventOverlayField[],
+          claimedFields: overlay.claimedFields.filter((field) => !redundant.includes(field)),
           ...Object.fromEntries(redundant.map((field) => [field, null])),
         });
         await repos.metaOverlays.adoptProposedPlayers(overlayId, intoMetaEventId);
@@ -435,7 +429,7 @@ export async function applyMetaEventCorrection(
       Object.assign(columns, coerceEventField(field, text));
     }
     const offered = proposed.map(([field]) => field);
-    const redundant = redundantClaims(offered, columns, live as unknown as Record<string, unknown>);
+    const redundant = redundantClaims(offered, columns, live);
     const claimedFields = offered.filter((field) => !redundant.includes(field));
     if (claimedFields.length === 0) {
       throw badRequest(
@@ -859,17 +853,11 @@ async function anchorPlayerOverlay(
   player: MetaEventPlayerRow,
 ): Promise<MetaPlayerOverlayField[]> {
   await repos.metaOverlays.linkPlayerOverlay(overlay.id, player.id);
-  const redundant = redundantClaims(
-    overlay.claimedFields,
-    overlay as unknown as Record<string, unknown>,
-    player as unknown as Record<string, unknown>,
-  );
+  const redundant = redundantClaims(overlay.claimedFields, overlay, player);
   if (redundant.length === 0) {
     return [...overlay.claimedFields];
   }
-  const remaining = overlay.claimedFields.filter(
-    (field) => !redundant.includes(field),
-  ) as MetaPlayerOverlayField[];
+  const remaining = overlay.claimedFields.filter((field) => !redundant.includes(field));
   await repos.metaOverlays.updatePlayerOverlay(overlay.id, {
     claimedFields: remaining,
     ...Object.fromEntries(redundant.map((field) => [field, null])),

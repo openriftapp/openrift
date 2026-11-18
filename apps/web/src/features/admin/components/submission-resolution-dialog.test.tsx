@@ -68,11 +68,14 @@ describe("SubmissionResolutionDialog", () => {
     await screen.findByRole("dialog");
     await user.click(screen.getByRole("button", { name: "Reject" }));
 
-    expect(captured.setResolution).toHaveBeenCalledWith({
-      candidateCardId: "cand-1",
-      reason: "not_a_card",
-      note: null,
-    });
+    expect(captured.setResolution).toHaveBeenCalledWith(
+      {
+        candidateCardId: "cand-1",
+        reason: "not_a_card",
+        note: null,
+      },
+      { signal: undefined },
+    );
     expect(onConfirmed).toHaveBeenCalledTimes(1);
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
@@ -87,6 +90,7 @@ describe("SubmissionResolutionDialog", () => {
     await user.click(screen.getByRole("button", { name: "Save" }));
     expect(captured.setResolution).toHaveBeenCalledWith(
       expect.objectContaining({ note: null, reason: null }),
+      { signal: undefined },
     );
   });
 
@@ -138,5 +142,29 @@ describe("SubmissionResolutionDialog", () => {
       <SubmissionResolutionDialog candidateCardId={null} mode="reply" onOpenChange={vi.fn()} />,
     );
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("hands the write to runWrite, which passes its signal into the mutation", async () => {
+    const user = userEvent.setup();
+    const { signal } = new AbortController();
+    const runWrite = vi.fn((write: (signal?: AbortSignal) => Promise<unknown>) =>
+      write(signal).then(() => true),
+    );
+    render(
+      <SubmissionResolutionDialog
+        candidateCardId="cand-1"
+        mode="reply"
+        onOpenChange={vi.fn()}
+        runWrite={runWrite}
+      />,
+    );
+    await screen.findByRole("dialog");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(runWrite).toHaveBeenCalledOnce();
+    expect(captured.setResolution).toHaveBeenCalledWith(
+      { candidateCardId: "cand-1", reason: null, note: null },
+      { signal },
+    );
   });
 });

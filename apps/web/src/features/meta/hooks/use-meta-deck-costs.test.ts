@@ -9,12 +9,24 @@ let ownedByPrinting: Record<string, number> | undefined = {};
 let lockedByPrinting: Record<string, number> = {};
 let priceMap: Record<string, Record<string, number>> = {};
 let requestedEnabled: boolean | undefined;
+let catalogLoaded = true;
 
-vi.mock("@/features/meta/hooks/use-meta", () => ({
-  useMetaDeckCards: () => ({ data: cardIndex }),
+vi.mock("@/features/meta/lib/meta-queries", () => ({
+  metaDeckCardsQueryOptions: () => ({ queryKey: ["deck-cards"] }),
+}));
+vi.mock("@/features/cards/lib/prices-queries", () => ({
+  pricesQueryOptions: { queryKey: ["prices"] },
+}));
+vi.mock("@tanstack/react-query", () => ({
+  useQuery: (options: { queryKey: string[] }) => ({
+    data: options.queryKey[0] === "prices" ? priceLookupFromMap(priceMap) : cardIndex,
+  }),
 }));
 vi.mock("@/features/cards/hooks/use-cards", () => ({
-  useCards: () => ({ printingsByCardId }),
+  useCatalogOnDemand: () => ({
+    catalog: catalogLoaded ? { printingsByCardId } : undefined,
+    error: null,
+  }),
 }));
 vi.mock("@/features/meta/hooks/use-buildable-count", () => ({
   useBuildableCount: (enabled: boolean) => {
@@ -26,9 +38,6 @@ vi.mock("@/features/meta/hooks/use-buildable-count", () => ({
           : undefined,
     };
   },
-}));
-vi.mock("@/features/cards/hooks/use-prices", () => ({
-  usePrices: () => priceLookupFromMap(priceMap),
 }));
 vi.mock("@/hooks/use-effective-language-order", () => ({
   useEffectiveLanguageOrder: () => ["en"],
@@ -43,6 +52,7 @@ import { useMetaDeckCosts } from "./use-meta-deck-costs";
 describe("useMetaDeckCosts", () => {
   beforeEach(() => {
     requestedEnabled = undefined;
+    catalogLoaded = true;
     lockedByPrinting = {};
     cardIndex = {
       cards: ["card-a", "card-b"],
@@ -70,7 +80,9 @@ describe("useMetaDeckCosts", () => {
   });
 
   it("values each list at the cheapest printing in the reader's languages", () => {
-    const { result } = renderHook(() => useMetaDeckCosts(false, { withCollection: false }));
+    const { result } = renderHook(() =>
+      useMetaDeckCosts(false, { enabled: true, withCollection: false }),
+    );
     expect(result.current?.get("deck-1")).toEqual({
       needed: 2,
       owned: undefined,
@@ -82,14 +94,18 @@ describe("useMetaDeckCosts", () => {
   });
 
   it("adds the sideboard when asked", () => {
-    const { result } = renderHook(() => useMetaDeckCosts(true, { withCollection: false }));
+    const { result } = renderHook(() =>
+      useMetaDeckCosts(true, { enabled: true, withCollection: false }),
+    );
     expect(result.current?.get("deck-1")?.needed).toBe(3);
     expect(result.current?.get("deck-1")?.value).toBe(12.5);
   });
 
   it("costs the completion once the copies are in", () => {
     ownedByPrinting = { "print-a2": 1 };
-    const { result } = renderHook(() => useMetaDeckCosts(false, { withCollection: true }));
+    const { result } = renderHook(() =>
+      useMetaDeckCosts(false, { enabled: true, withCollection: true }),
+    );
     expect(result.current?.get("deck-1")).toEqual({
       needed: 2,
       owned: 1,
@@ -104,19 +120,39 @@ describe("useMetaDeckCosts", () => {
   it("leaves locked copies out of the completion price", () => {
     ownedByPrinting = {};
     lockedByPrinting = { "print-a2": 1 };
-    const { result } = renderHook(() => useMetaDeckCosts(false, { withCollection: true }));
+    const { result } = renderHook(() =>
+      useMetaDeckCosts(false, { enabled: true, withCollection: true }),
+    );
     expect(result.current?.get("deck-1")?.owned).toBe(0);
     expect(result.current?.get("deck-1")?.toComplete).toBe(5);
   });
 
   it("stays undefined until the copies arrive, so nothing reads as unowned early", () => {
     ownedByPrinting = undefined;
-    const { result } = renderHook(() => useMetaDeckCosts(false, { withCollection: true }));
+    const { result } = renderHook(() =>
+      useMetaDeckCosts(false, { enabled: true, withCollection: true }),
+    );
     expect(result.current).toBeUndefined();
   });
 
   it("leaves the copies collection unsubscribed without a collection", () => {
-    renderHook(() => useMetaDeckCosts(false, { withCollection: false }));
+    renderHook(() => useMetaDeckCosts(false, { enabled: true, withCollection: false }));
+    expect(requestedEnabled).toBe(false);
+  });
+
+  it("stays undefined while the catalogue is still loading", () => {
+    catalogLoaded = false;
+    const { result } = renderHook(() =>
+      useMetaDeckCosts(false, { enabled: true, withCollection: false }),
+    );
+    expect(result.current).toBeUndefined();
+  });
+
+  it("stays undefined and leaves the copies unsubscribed while disabled, even with cached data", () => {
+    const { result } = renderHook(() =>
+      useMetaDeckCosts(false, { enabled: false, withCollection: true }),
+    );
+    expect(result.current).toBeUndefined();
     expect(requestedEnabled).toBe(false);
   });
 });

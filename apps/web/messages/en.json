@@ -627,6 +627,8 @@
   "cards_grid_show_n_printings": "Show {count} printings",
   "cards_grid_no_results_title": "No cards found",
   "cards_grid_no_results_description": "Try adjusting your filters.",
+  "cards_grid_languages_loading": "Other languages are still loading, so some cards may be missing.",
+  "cards_grid_languages_failed": "Couldn't load the other languages, so some cards may be missing.",
   "cards_search_hint_text": "Plain words only search card names.",
   "cards_search_alternative_text": [
     {
@@ -1140,6 +1142,8 @@
   "cards_columns_reset_aria": "Reset columns to auto",
   "cards_sort_dir_asc": "Ascending, click to reverse",
   "cards_sort_dir_desc": "Descending, click to reverse",
+  "cards_group_dir_asc": "Groups ascending, click to reverse",
+  "cards_group_dir_desc": "Groups descending, click to reverse",
   "cards_group_by": "Group by",
   "cards_sort_by": "Sort by",
   "cards_select_all": "Select all",
@@ -1190,6 +1194,7 @@
   "cards_filter_n_selected": "{count} selected",
   "cards_filter_sign_include": "Include",
   "cards_filter_sign_exclude": "Exclude",
+  "cards_filter_excluded_state": "(excluded)",
   "cards_filter_sign_label": "{label}: include or exclude",
   "cards_filter_flip_to_exclude": "Exclude instead",
   "cards_filter_flip_to_include": "Include instead",
@@ -1944,6 +1949,7 @@
   "collections_export_format_cardtrader": "CardTrader wishlist",
   "collections_export_format_group_text": "Text",
   "collections_export_format_group_csv": "CSV",
+  "collections_export_format_label": "Export format",
   "collections_export_cards": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -2427,6 +2433,9 @@
   "lists_rule_dialog_title": "Dynamic rules",
   "lists_rule_toast_saved": "Rules saved",
   "lists_rule_toast_removed": "Rules removed",
+  "lists_rule_conflict_title": "The saved rules changed",
+  "lists_rule_conflict_body": "This list's rules changed while you were editing them. Your changes are still here: save again to replace the saved rules with yours.",
+  "lists_rule_conflict_load_saved": "Discard my changes",
   "lists_rule_stop_excluding": "Stop excluding {label}",
   "lists_rule_excluded": "Excluded",
   "lists_rule_removed_card": "Removed card",
@@ -3223,6 +3232,21 @@
   "decks_import_share_link_gone": "That share link doesn't point to a shared deck anymore. It may have been unshared or the link rotated.",
   "decks_import_share_link_failed": "Couldn't load the shared deck. Please try again.",
   "decks_import_shared_deck_empty": "That shared deck has no cards to import.",
+  "decks_import_over_limit": [
+    {
+      "declarations": [
+        "input count",
+        "input max",
+        "input cards",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} copy over the {max} limit was left out: {cards}",
+        "countPlural=*": "{count} copies over the {max} limit were left out: {cards}"
+      }
+    }
+  ],
   "decks_import_no_deck_in_url": "Couldn't find a deck code or share link in that URL. Paste the deck itself instead.",
   "decks_import_replaced_toast": "Replaced cards in \"{name}\" with {count} cards.",
   "decks_import_created_toast": "Imported deck \"{name}\" with {count} cards.",
@@ -3538,6 +3562,7 @@
   "decks_overview_zone_issues": "Show {zone} issues",
   "decks_overview_zone_known": "{quantity} of {expected} known",
   "decks_overview_zone_more": "{count} more",
+  "decks_overview_zone_summary": "{zone} summary",
   "decks_stats_bucket_label": "{value} {axis}",
   "decks_stats_collection": "Collection",
   "decks_stats_count": "Count",
@@ -6807,7 +6832,9 @@
   "tier_lists_stage_empty_row": "Nothing here",
   "meta_validate_player_name": "Enter the player's name (80 characters or fewer).",
   "meta_validate_rank": "Enter where the player finished, as a number.",
+  "meta_validate_rank_max": "A finishing place can be at most {max}.",
   "meta_validate_record_parts": "A match record is whole numbers of wins, losses, and draws.",
+  "meta_validate_record_max": "Wins, losses, and draws can each be at most {max}.",
   "meta_validate_record_pair": "A match record needs both wins and losses, or neither.",
   "meta_validate_note_length": "The note must be 2000 characters or fewer.",
   "meta_validate_correction_note": "Say what's wrong with the list we have, and where the right one came from.",
@@ -10587,6 +10614,7 @@
   "decks_workbench_limit_battlefield_duplicate": "Already one of your battlefields. Adding it again breaks the duplicate rule.",
   "decks_workbench_limit_legend_options": "Extra legends are full. Adding goes over the limit with a rule warning.",
   "decks_workbench_warn_copies": "Added {card}: {count} copies, over the {limit}-copy limit.",
+  "decks_workbench_row_full": "{card} is already at {limit} copies.",
   "decks_workbench_warn_battlefields": "{count} battlefields, limit {limit}.",
   "decks_workbench_warn_battlefield_duplicate": "{card} is already one of your battlefields.",
   "decks_workbench_warn_legend_options": "{count} extra legends, limit {limit}.",

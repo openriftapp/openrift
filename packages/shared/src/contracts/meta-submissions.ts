@@ -1,3 +1,4 @@
+import { META_MAX_PLAYERS } from "@openrift/shared/meta-query";
 import {
   metaCreditVisibilitySchema,
   metaListStatusSchema,
@@ -9,7 +10,6 @@ import { isoDate, keysetCursorSchema, POSTGRES_SMALLINT_MAX } from "@openrift/sh
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
-import { META_MAX_PLAYERS } from "./meta.js";
 
 const TAG = "Meta submissions";
 const BASE = "/api/v1/meta";

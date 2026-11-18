@@ -90,12 +90,12 @@ vi.mock("@/features/cards/components/card-detail-opener", () => ({
   CardDetailOverlayProvider: ({ children }: { children?: ReactNode }) => children,
 }));
 
-vi.mock("@/features/meta/components/meta-deck-costs-bridge", () => ({
-  MetaDeckCostsBridge: () => null,
+vi.mock("@/features/meta/hooks/use-meta-deck-costs", () => ({
+  useMetaDeckCosts: () => undefined,
 }));
 
-vi.mock("@/features/meta/components/meta-deck-bans-bridge", () => ({
-  MetaDeckBansBridge: () => null,
+vi.mock("@/features/meta/hooks/use-meta-deck-bans", () => ({
+  useMetaDeckBans: () => undefined,
 }));
 
 vi.mock("@/components/layout/top-bar-breadcrumb", () => ({

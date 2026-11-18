@@ -8,15 +8,15 @@ import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 interface ScanChromeProps {
-  active: boolean;
+  stoppable: boolean;
   settings: ScanSettingsProps;
   onStop: () => void;
 }
 
-export function ScanChrome({ active, settings, onStop }: ScanChromeProps) {
+export function ScanChrome({ stoppable, settings, onStop }: ScanChromeProps) {
   return (
     <>
-      {active && (
+      {stoppable && (
         <Button
           variant="ghost"
           onClick={onStop}

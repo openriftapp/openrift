@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   bulkAddItemMatches,
+  entryStepsSettled,
   LIST_ENTRY_MUTATION_KEYS,
   listEntryWritePending,
   listEntryWritesInFlight,
@@ -117,5 +118,69 @@ describe("listEntryWritesInFlight", () => {
 
     expect(listEntryWritesInFlight(queryClient.getMutationCache(), "lst-1")).toBe(3);
     expect(listEntryWritesInFlight(queryClient.getMutationCache(), "lst-3")).toBe(0);
+  });
+});
+
+describe("entryStepsSettled", () => {
+  function start(queryClient: QueryClient, mutationKey: readonly string[], variables: unknown) {
+    let finish: () => void = () => {};
+    const mutation = queryClient.getMutationCache().build(queryClient, {
+      mutationKey: [...mutationKey],
+      mutationFn: () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    });
+    const done = mutation.execute(variables);
+    return async () => {
+      finish();
+      await done;
+    };
+  }
+
+  function watch(promise: Promise<void>) {
+    const state = { settled: false };
+    const markSettled = async () => {
+      await promise;
+      state.settled = true;
+    };
+    void markSettled();
+    return state;
+  }
+
+  it("resolves at once with no step on the entry in flight", async () => {
+    const queryClient = new QueryClient();
+    start(queryClient, LIST_ENTRY_MUTATION_KEYS.update, {
+      listId: "lst-1",
+      entryId: "le-2",
+      quantityDelta: 1,
+    });
+    start(queryClient, LIST_ENTRY_MUTATION_KEYS.update, {
+      listId: "lst-1",
+      entryId: "le-1",
+      tradeOverride: {},
+    });
+    await Promise.resolve();
+
+    await expect(
+      entryStepsSettled(queryClient.getMutationCache(), "lst-1", "le-1"),
+    ).resolves.toBeUndefined();
+  });
+
+  it("waits for every step on the entry to settle", async () => {
+    const queryClient = new QueryClient();
+    const step = { listId: "lst-1", entryId: "le-1", quantityDelta: -1 };
+    const finishFirst = start(queryClient, LIST_ENTRY_MUTATION_KEYS.update, step);
+    const finishSecond = start(queryClient, LIST_ENTRY_MUTATION_KEYS.update, step);
+    await Promise.resolve();
+
+    const waiting = watch(entryStepsSettled(queryClient.getMutationCache(), "lst-1", "le-1"));
+    await finishFirst();
+    await Promise.resolve();
+    expect(waiting.settled).toBe(false);
+
+    await finishSecond();
+    await Promise.resolve();
+    expect(waiting.settled).toBe(true);
   });
 });

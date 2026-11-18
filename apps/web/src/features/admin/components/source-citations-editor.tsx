@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import { CitationEntry } from "@/features/cards/components/card-detail/printing-citations";
-import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 export interface EditableCitation {
   id: string;
@@ -23,11 +22,12 @@ interface SourceCitationsEditorProps<T extends EditableCitation> {
   labelPlaceholder: string;
   creating: boolean;
   deleting: boolean;
-  onAdd: (input: { label: string; sourceUrl: string | null }) => Promise<unknown>;
+  /** Resolves `true` once the citation is saved. */
+  onAdd: (input: { label: string; sourceUrl: string | null }) => Promise<boolean>;
   onUpdate?: (
     citationId: string,
     input: { label: string; sourceUrl: string | null },
-  ) => Promise<unknown>;
+  ) => Promise<boolean>;
   onDelete: (citationId: string) => void;
   renderBadge?: (citation: T) => ReactNode;
   /** When this returns a string, the row cannot be deleted here and says so instead. */
@@ -54,7 +54,7 @@ function CitationRow<T extends EditableCitation>({
   onUpdate?: (
     citationId: string,
     input: { label: string; sourceUrl: string | null },
-  ) => Promise<unknown>;
+  ) => Promise<boolean>;
   onDelete: (citationId: string) => void;
   renderBadge?: (citation: T) => ReactNode;
   lockedReason?: (citation: T) => string | null;
@@ -70,9 +70,7 @@ function CitationRow<T extends EditableCitation>({
     }
     const trimmedUrl = url.trim();
     const sourceUrl = trimmedUrl.length > 0 ? trimmedUrl : null;
-    if (
-      await runReportedMutation(() => onUpdate(citation.id, { label: label.trim(), sourceUrl }))
-    ) {
+    if (await onUpdate(citation.id, { label: label.trim(), sourceUrl })) {
       setEditing(false);
     }
   }
@@ -186,7 +184,7 @@ export function SourceCitationsEditor<T extends EditableCitation>({
   async function handleAdd() {
     const trimmedUrl = url.trim();
     const sourceUrl = trimmedUrl.length > 0 ? trimmedUrl : null;
-    if (!(await runReportedMutation(() => onAdd({ label: trimmedLabel, sourceUrl })))) {
+    if (!(await onAdd({ label: trimmedLabel, sourceUrl }))) {
       return;
     }
     setLabel("");

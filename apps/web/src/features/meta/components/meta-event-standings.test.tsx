@@ -145,7 +145,10 @@ vi.mock("@/features/meta/hooks/use-meta", async () => {
 vi.mock("@/hooks/use-session", () => ({ useUserId: () => session.userId }));
 vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: () => true }));
 vi.mock("@/features/meta/hooks/use-meta-deck-costs", () => ({
-  useMetaDeckCosts: (side: boolean, options: { withCollection: boolean }) => {
+  useMetaDeckCosts: (side: boolean, options: { enabled: boolean; withCollection: boolean }) => {
+    if (!options.enabled) {
+      return undefined;
+    }
     archive.withCollection.push(options.withCollection);
     archive.includeSideboard.push(side);
     return archive.costs;
@@ -153,7 +156,7 @@ vi.mock("@/features/meta/hooks/use-meta-deck-costs", () => ({
 }));
 
 vi.mock("@/features/meta/hooks/use-meta-deck-bans", () => ({
-  useMetaDeckBans: () => archive.bans,
+  useMetaDeckBans: (_decks: unknown, enabled: boolean) => (enabled ? archive.bans : undefined),
 }));
 
 vi.mock("@/features/meta/components/meta-deck-cost-filter", () => ({

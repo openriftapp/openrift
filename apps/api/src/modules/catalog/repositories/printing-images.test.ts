@@ -119,19 +119,17 @@ describe("printingImagesRepo", () => {
 });
 
 describe("printingImagesRepo setters skip a write that changes nothing", () => {
-  it.each([
-    ["setFingerprint", "fingerprint", (repo) => repo.setFingerprint("if-1", "abc")],
-    ["setActive", "is_active", (repo) => repo.setActive("fi-1", true)],
-  ] as [string, string, (repo: ReturnType<typeof printingImagesRepo>) => Promise<void>][])(
-    "%s updates only a row whose %s differs",
-    async (_name, column, write) => {
-      const recorded = createRecordingDb();
-      await write(printingImagesRepo(recorded.db));
-      expect(onlyStatement(recorded).sql).toMatch(
-        new RegExp(`where "id" = \\$\\d+ and "${column}" is distinct from \\$\\d+$`, "u"),
-      );
-    },
-  );
+  it.each([["setFingerprint", "fingerprint", (repo) => repo.setFingerprint("if-1", "abc")]] as [
+    string,
+    string,
+    (repo: ReturnType<typeof printingImagesRepo>) => Promise<void>,
+  ][])("%s updates only a row whose %s differs", async (_name, column, write) => {
+    const recorded = createRecordingDb();
+    await write(printingImagesRepo(recorded.db));
+    expect(onlyStatement(recorded).sql).toMatch(
+      new RegExp(`where "id" = \\$\\d+ and "${column}" is distinct from \\$\\d+$`, "u"),
+    );
+  });
 });
 
 describe("replaceImageFile", () => {

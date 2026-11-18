@@ -11,7 +11,7 @@ import {
   ensureRehostedOriginal,
   rehostFaceImage,
   rehostImageFile,
-  rehostImageFileOrThrow,
+  refetchImageFile,
   unrehostImageFile,
 } from "../services/images/jobs.js";
 import { ensureOriginalOnDisk, processAndSave } from "../services/images/variants.js";
@@ -26,7 +26,7 @@ vi.mock("../services/images/jobs.js", () => ({
   ensureRehostedOriginal: vi.fn(),
   rehostFaceImage: vi.fn(),
   rehostImageFile: vi.fn(),
-  rehostImageFileOrThrow: vi.fn(),
+  refetchImageFile: vi.fn(),
   unrehostImageFile: vi.fn(),
 }));
 
@@ -54,7 +54,7 @@ vi.mock("uuid", () => ({
 
 const mockRehostFaceImage = vi.mocked(rehostFaceImage);
 const mockRehostImageFile = vi.mocked(rehostImageFile);
-const mockRehostImageFileOrThrow = vi.mocked(rehostImageFileOrThrow);
+const mockRefetchImageFile = vi.mocked(refetchImageFile);
 const mockEnsureRehostedOriginal = vi.mocked(ensureRehostedOriginal);
 const mockUnrehostImageFile = vi.mocked(unrehostImageFile);
 const mockCleanupOrphanedImageFiles = vi.mocked(cleanupOrphanedImageFiles);
@@ -484,13 +484,18 @@ describe("POST /printing-images/:imageId/rehost", () => {
     adminAccess = FULL_ADMIN;
   });
 
-  it("rehosts through the shared path, overwriting files a background rehost wrote", async () => {
+  it("answers with the URL of the image file the refetch wrote", async () => {
     mockPrintingImages.getForRehost.mockResolvedValue({
       originalUrl: "https://example.com/img.png",
       imageFileId: "00594247-a18a-4efd-8998-105449a4c1ab",
+      rehostedUrl: "/media/cards/ab/00594247-a18a-4efd-8998-105449a4c1ab",
       rotation: 0,
       needsTrim: false,
       quad: null,
+    });
+    mockRefetchImageFile.mockResolvedValue({
+      status: "rehosted",
+      imageFileId: "0199aaaa-0000-7000-8000-0000000000cd",
     });
 
     const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}/rehost`, {
@@ -498,14 +503,32 @@ describe("POST /printing-images/:imageId/rehost", () => {
     });
     expect(res.status).toBe(200);
     expect(await readJson(res)).toEqual({
-      rehostedUrl: "/media/cards/ab/00594247-a18a-4efd-8998-105449a4c1ab",
+      rehostedUrl: "/media/cards/cd/0199aaaa-0000-7000-8000-0000000000cd",
     });
-    expect(mockRehostImageFileOrThrow).toHaveBeenCalledWith(
+    expect(mockRefetchImageFile).toHaveBeenCalledWith(
       mockIo,
       mockPrintingImages,
       "00594247-a18a-4efd-8998-105449a4c1ab",
-      { overwrite: true },
     );
+  });
+
+  it("answers 400 with the reason when the refetch fails", async () => {
+    mockPrintingImages.getForRehost.mockResolvedValue({
+      originalUrl: "https://example.com/img.png",
+      imageFileId: "ci-1",
+    });
+    mockRefetchImageFile.mockResolvedValue({
+      status: "failed",
+      error: "HTTP 404",
+      imageFileId: "ci-1",
+    });
+
+    const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}/rehost`, {
+      method: "POST",
+    });
+    expect(res.status).toBe(400);
+    const json = await readJson(res);
+    expect(json.message).toContain("HTTP 404");
   });
 
   it("returns 404 when image not found", async () => {
@@ -1428,7 +1451,7 @@ describe("image edit scope", () => {
   const endpoints = [
     { name: "activate", body: { active: true }, effect: () => mockTrxPrintingImages.setActive },
     { name: "rotate", body: { rotation: 90 }, effect: () => mockEditImageFile },
-    { name: "rehost", body: undefined, effect: () => mockRehostImageFileOrThrow },
+    { name: "rehost", body: undefined, effect: () => mockRefetchImageFile },
     {
       name: "set-needs-trim",
       body: { needsTrim: true },
@@ -1468,6 +1491,7 @@ describe("image edit scope", () => {
     mockPrintingImages.getForRehost.mockResolvedValue(image);
     mockPrintingImages.faceIdOfImage.mockResolvedValue("face-1");
     mockPrintingDesk.printingIdsShowingFace.mockResolvedValue([printingId]);
+    mockRefetchImageFile.mockResolvedValue({ status: "rehosted", imageFileId: "if-2" });
   }
 
   function call(name: string, body: unknown) {

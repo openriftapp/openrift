@@ -9,6 +9,7 @@ import { adminJobRunsRouter } from "./admin-job-runs";
 const mockJobRuns = {
   listPage: vi.fn(),
   listKinds: vi.fn(),
+  getById: vi.fn(),
 };
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
@@ -119,5 +120,35 @@ describe("GET /job-runs", () => {
     const json = await readJson(res);
     expect(json.runs[0].result).toBeNull();
     expect(json.runs[0].finishedAt).toBeNull();
+  });
+});
+
+describe("GET /job-runs/:runId", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("returns the one run", async () => {
+    mockJobRuns.getById.mockResolvedValue({ ...baseRow, status: "running", finishedAt: null });
+
+    const res = await app.request(`/api/admin/v1/job-runs/${baseRow.id}`);
+    expect(res.status).toBe(200);
+    const json = await readJson(res);
+    expect(json.run).toMatchObject({ id: baseRow.id, status: "running", finishedAt: null });
+    expect(mockJobRuns.getById).toHaveBeenCalledWith(baseRow.id);
+    expect(mockJobRuns.listPage).not.toHaveBeenCalled();
+  });
+
+  it("answers 404 for a run that does not exist", async () => {
+    mockJobRuns.getById.mockResolvedValue(null);
+
+    const res = await app.request(`/api/admin/v1/job-runs/${baseRow.id}`);
+    expect(res.status).toBe(404);
+  });
+
+  it("refuses a run id that is not a uuid", async () => {
+    const res = await app.request("/api/admin/v1/job-runs/not-a-uuid");
+    expect(res.status).toBe(400);
+    expect(mockJobRuns.getById).not.toHaveBeenCalled();
   });
 });

@@ -10,6 +10,7 @@ import type {
   CandidatePrintingResponse,
   ProviderSettingResponse,
 } from "@openrift/shared/types/api/admin";
+import { useQuery } from "@tanstack/react-query";
 
 import type {
   CandidateCardFieldKey,
@@ -23,6 +24,7 @@ import {
   buildNewCardFields,
   isValidOption,
 } from "@/features/admin/components/candidate-field-defs";
+import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import {
   useCheckAllCandidatePrintings,
   useCheckCandidateCard,
@@ -37,12 +39,13 @@ import {
 } from "@/features/admin/hooks/use-ignored-candidates";
 import { useLanguages } from "@/features/admin/hooks/use-languages";
 import { useMarkers } from "@/features/admin/hooks/use-markers";
-import { useProviderSettings } from "@/features/admin/hooks/use-provider-settings";
+import { hasAdminSection } from "@/features/admin/lib/admin-sections";
 import type { CandidateSpreadsheetRow } from "@/features/admin/lib/candidate-rows";
 import { candidateFieldValue } from "@/features/admin/lib/candidate-rows";
 import type { SourceSubmitter } from "@/features/admin/lib/candidate-submitter";
 import { buildSourceSubmitters } from "@/features/admin/lib/candidate-submitter";
 import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
+import { providerSettingsQueryOptions } from "@/features/admin/lib/provider-settings-queries";
 import { setReleaseYear } from "@/features/admin/lib/set-release-years";
 import { useDistinctArtists } from "@/features/cards/hooks/use-distinct-artists";
 import { buildChannelTree, leafChannels } from "@/features/cards/lib/distribution-channel-tree";
@@ -51,7 +54,11 @@ import { useEnumOrders } from "@/hooks/use-enums";
 export function useCardDetailData(invalidates: readonly (readonly unknown[])[]) {
   const { orders, labels } = useEnumOrders();
 
-  const { data: providerSettingsData } = useProviderSettings();
+  const { data: access } = useAdminAccess();
+  const { data: providerSettingsData } = useQuery({
+    ...providerSettingsQueryOptions,
+    enabled: hasAdminSection(access, "card-review"),
+  });
   const providerSettings = providerSettingsData?.providerSettings ?? [];
 
   const { data: markersData } = useMarkers();

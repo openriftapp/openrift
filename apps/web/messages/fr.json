@@ -627,6 +627,8 @@
   "cards_grid_show_n_printings": "Afficher {count} impressions",
   "cards_grid_no_results_title": "Aucune carte trouvée",
   "cards_grid_no_results_description": "Ajustez vos filtres.",
+  "cards_grid_languages_loading": "Les autres langues sont encore en cours de chargement, certaines cartes peuvent manquer.",
+  "cards_grid_languages_failed": "Impossible de charger les autres langues, certaines cartes peuvent manquer.",
   "cards_search_hint_text": "Les mots simples ne cherchent que dans les noms de cartes.",
   "cards_search_alternative_text": [
     {
@@ -1140,6 +1142,8 @@
   "cards_columns_reset_aria": "Rétablir les colonnes en automatique",
   "cards_sort_dir_asc": "Croissant, cliquez pour inverser",
   "cards_sort_dir_desc": "Décroissant, cliquez pour inverser",
+  "cards_group_dir_asc": "Groupes croissants, cliquez pour inverser",
+  "cards_group_dir_desc": "Groupes décroissants, cliquez pour inverser",
   "cards_group_by": "Grouper par",
   "cards_sort_by": "Trier par",
   "cards_select_all": "Tout sélectionner",
@@ -1190,6 +1194,7 @@
   "cards_filter_n_selected": "{count} sélectionnés",
   "cards_filter_sign_include": "Inclure",
   "cards_filter_sign_exclude": "Exclure",
+  "cards_filter_excluded_state": "(exclu)",
   "cards_filter_sign_label": "{label} : inclure ou exclure",
   "cards_filter_flip_to_exclude": "Exclure plutôt",
   "cards_filter_flip_to_include": "Inclure plutôt",
@@ -1944,6 +1949,7 @@
   "collections_export_format_cardtrader": "Liste de souhaits CardTrader",
   "collections_export_format_group_text": "Texte",
   "collections_export_format_group_csv": "CSV",
+  "collections_export_format_label": "Format d'export",
   "collections_export_cards": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -2427,6 +2433,9 @@
   "lists_rule_dialog_title": "Règles dynamiques",
   "lists_rule_toast_saved": "Règles enregistrées",
   "lists_rule_toast_removed": "Règles supprimées",
+  "lists_rule_conflict_title": "Les règles enregistrées ont changé",
+  "lists_rule_conflict_body": "Les règles de cette liste ont changé pendant que vous les modifiiez. Vos changements sont toujours là : enregistrez à nouveau pour remplacer les règles enregistrées par les vôtres.",
+  "lists_rule_conflict_load_saved": "Annuler mes changements",
   "lists_rule_stop_excluding": "Ne plus exclure {label}",
   "lists_rule_excluded": "Exclu",
   "lists_rule_removed_card": "Carte supprimée",
@@ -3223,6 +3232,21 @@
   "decks_import_share_link_gone": "Ce lien de partage ne pointe plus vers un deck partagé. Il a peut-être été retiré ou renouvelé.",
   "decks_import_share_link_failed": "Impossible de charger le deck partagé. Veuillez réessayer.",
   "decks_import_shared_deck_empty": "Ce deck partagé n'a aucune carte à importer.",
+  "decks_import_over_limit": [
+    {
+      "declarations": [
+        "input count",
+        "input max",
+        "input cards",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} exemplaire au-delà de la limite de {max} a été écarté : {cards}",
+        "countPlural=*": "{count} exemplaires au-delà de la limite de {max} ont été écartés : {cards}"
+      }
+    }
+  ],
   "decks_import_no_deck_in_url": "Aucun code de deck ni lien de partage trouvé dans cette URL. Collez plutôt le deck lui-même.",
   "decks_import_replaced_toast": "Cartes de « {name} » remplacées par {count} cartes.",
   "decks_import_created_toast": "Deck « {name} » importé avec {count} cartes.",
@@ -3538,6 +3562,7 @@
   "decks_overview_zone_issues": "Afficher les problèmes de {zone}",
   "decks_overview_zone_known": "{quantity} sur {expected} connues",
   "decks_overview_zone_more": "{count} de plus",
+  "decks_overview_zone_summary": "Résumé : {zone}",
   "decks_stats_bucket_label": "{value} {axis}",
   "decks_stats_collection": "Collection",
   "decks_stats_count": "Nombre",
@@ -6802,7 +6827,9 @@
   "tier_lists_stage_empty_row": "Rien ici",
   "meta_validate_player_name": "Saisissez le nom du joueur (80 caractères maximum).",
   "meta_validate_rank": "Saisissez le classement obtenu, sous forme de nombre.",
+  "meta_validate_rank_max": "Le classement ne peut pas dépasser {max}.",
   "meta_validate_record_parts": "Un bilan se compose de nombres entiers de victoires, défaites et égalités.",
+  "meta_validate_record_max": "Les victoires, défaites et égalités ne peuvent chacune dépasser {max}.",
   "meta_validate_record_pair": "Un bilan a besoin des victoires et des défaites, ou d'aucune des deux.",
   "meta_validate_note_length": "La note doit faire 2000 caractères maximum.",
   "meta_validate_correction_note": "Indiquez ce qui ne va pas dans la liste actuelle et d'où vient la bonne.",
@@ -10581,6 +10608,7 @@
   "decks_workbench_limit_battlefields": "Les Champs de bataille sont complets. L’ajout demande lequel remplacer.",
   "decks_workbench_limit_runes": "Les Runes sont complètes et aucune Rune de l’autre domaine ne peut faire de la place. Celle-ci dépasse 12 avec un avertissement de règle.",
   "decks_workbench_warn_copies": "{card} ajoutée : {count} exemplaires, au-delà de la limite de {limit}.",
+  "decks_workbench_row_full": "{card} est déjà à {limit} exemplaires.",
   "decks_workbench_warn_battlefields": "{count} Champs de bataille, limite {limit}.",
   "decks_workbench_warn_battlefield_duplicate": "{card} fait déjà partie de vos Champs de bataille.",
   "decks_workbench_warn_legend_options": "{count} Légendes supplémentaires, limite {limit}.",

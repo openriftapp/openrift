@@ -2,7 +2,8 @@ import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { useEffect, useRef, useState } from "react";
+import { useMatch, useNavigate, useRouter } from "@tanstack/react-router";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { SignInRequiredDialog } from "@/components/layout/nav-items";
@@ -68,6 +69,14 @@ function recordScanned(printing: Printing): void {
 }
 
 const NO_COLLECTIONS: CollectionResponse[] = [];
+
+const CAMERA_PATH = "/scan/camera";
+
+declare module "@tanstack/react-router" {
+  interface HistoryState {
+    scanCameraEntry?: true;
+  }
+}
 
 export function ScanPage() {
   const userId = useUserId();
@@ -405,35 +414,55 @@ function ScanPageBody({
     dismiss: handleSwapDismiss,
   } = useScanSwap(printingsByCard);
 
+  const cameraScreen =
+    useMatch({ from: "/_app/scan/camera", shouldThrow: false, select: () => true }) === true;
+  const viewportLayout = useScanLayout();
+  const layout = cameraScreen && viewportLayout === "boxed" ? "portrait" : viewportLayout;
+  const immersive = layout !== "boxed";
+  const navigate = useNavigate();
+  const router = useRouter();
+
+  const onLeaveCameraScreen = useEffectEvent(() => stop());
+  useEffect(
+    () =>
+      router.subscribe("onBeforeNavigate", (event) => {
+        if (
+          event.fromLocation?.pathname === CAMERA_PATH &&
+          event.toLocation.pathname !== CAMERA_PATH
+        ) {
+          onLeaveCameraScreen();
+        }
+      }),
+    [router],
+  );
+
   function handleStart() {
+    if (immersive && !cameraScreen) {
+      void navigate({
+        to: CAMERA_PATH,
+        state: (previous) => ({ ...previous, scanCameraEntry: true }),
+      });
+    }
     void start();
   }
   function handleStop() {
-    stop();
+    if (!cameraScreen) {
+      stop();
+      return;
+    }
+    if (router.latestLocation.state.scanCameraEntry === true) {
+      router.history.back();
+    } else {
+      void navigate({ to: "/scan", replace: true });
+    }
   }
   function handleCapture() {
     void capture();
   }
-
-  const layout = useScanLayout();
-  const immersive = layout !== "boxed";
-  const fullscreen = immersive && active;
   const shutter = immersive && layout === "portrait";
   const coarsePointer = useCoarsePointer();
   const phoneHandoff = layout === "boxed" && !coarsePointer;
   const trayAnchorRef = useRef<HTMLDivElement>(null);
-
-  // Matching rules live in index.css. Cleared on unmount too, so leaving the
-  // page mid-scan cannot strand the document in the immersive state.
-  useEffect(() => {
-    if (!fullscreen) {
-      return;
-    }
-    document.documentElement.dataset.scanImmersive = "";
-    return () => {
-      delete document.documentElement.dataset.scanImmersive;
-    };
-  }, [fullscreen]);
 
   const settingsProps = {
     languageItems,
@@ -488,7 +517,7 @@ function ScanPageBody({
       <ScanStage
         layout={layout}
         immersive={immersive}
-        fullscreen={fullscreen}
+        fullscreen={cameraScreen}
         viewfinder={
           <ScanViewfinder
             videoRef={videoRef}
@@ -508,7 +537,13 @@ function ScanPageBody({
             onStart={handleStart}
           />
         }
-        chrome={<ScanChrome active={active} settings={settingsProps} onStop={handleStop} />}
+        chrome={
+          <ScanChrome
+            stoppable={active || cameraScreen}
+            settings={settingsProps}
+            onStop={handleStop}
+          />
+        }
         controls={
           <ScanControls
             hint={active ? readout.aimHint : null}

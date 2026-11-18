@@ -41,11 +41,12 @@ import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { getProviderLabel } from "@/features/admin/lib/candidate-rows";
 import { activeImageSourceUrl, imagesOnSide } from "@/features/admin/lib/printing-side-images";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
-import { queueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
+import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import { faceCompareCandidates } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import type { PrintingCompareGroup } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
 import { printingCompareGroups } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
 import { undoScope, usedUndoText } from "@/features/catalog-workspace/lib/workspace-undo";
+import { withSignal, withWriteSignal } from "@/lib/write-signal";
 
 export function CompareSourcesDialog({
   open,
@@ -68,6 +69,7 @@ export function CompareSourcesDialog({
   isAdmin: boolean;
   focusField?: string;
 }) {
+  const queueWrite = useQueueWorkspaceWrite();
   const checkCandidateCards = useCheckCandidateCards(invalidates);
   const { announce } = useWorkspaceUndo();
   const openSourceIds = sources
@@ -87,18 +89,27 @@ export function CompareSourcesDialog({
           providerSettings={providerSettings}
           onCheckAllSources={() => {
             if (openSourceIds.length > 0) {
-              checkCandidateCards.mutate({ cardId: card.id, candidateCardIds: openSourceIds });
+              void queueWrite((signal) =>
+                checkCandidateCards.mutateAsync(
+                  { cardId: card.id, candidateCardIds: openSourceIds },
+                  { signal },
+                ),
+              );
             }
           }}
           isCheckingAllSources={checkCandidateCards.isPending}
           invalidates={invalidates}
           isAdmin={isAdmin}
           focusField={focusField}
+          runWrite={queueWrite}
           onFieldAccepted={({ fieldLabel, sourceLabel, revert }) =>
             announce({
               ...usedUndoText({ field: fieldLabel, source: sourceLabel, record: card.name }),
               invalidates: undoScope(invalidates),
-              undo: () => revertAcceptedField(revert, (data) => acceptCardFieldFn({ data })),
+              undo: (signal) =>
+                revertAcceptedField(revert, (data) =>
+                  withWriteSignal(signal, () => acceptCardFieldFn({ data, signal })),
+                ),
             })
           }
         />
@@ -263,6 +274,7 @@ function SourceSpreadsheet({
   isAdmin: boolean;
   faceFieldsOnly?: boolean;
 }) {
+  const queueWrite = useQueueWorkspaceWrite();
   const { printingSourceFields } = useCardDetailData(scope);
   const acceptPrintingField = useAcceptPrintingField(scope);
   const checkPrintingSource = useCheckCandidatePrinting(scope);
@@ -314,9 +326,10 @@ function SourceSpreadsheet({
         const row = candidates.find((candidate) => candidate.id === candidateId);
         const fieldLabel = fields.find((entry) => entry.key === field)?.label ?? field;
         const sourceLabel = row === undefined ? "this source" : getProviderLabel(row, labels);
-        void queueWorkspaceWrite(() =>
-          acceptFieldWithUndo({
-            accept: acceptPrintingField.mutateAsync,
+        void queueWrite((signal) => {
+          const accept = withSignal(acceptPrintingField.mutateAsync, signal);
+          return acceptFieldWithUndo({
+            accept,
             input: { printingId, faceId: face.faceId, field, value, source: "provider" },
             fieldLabel,
             sourceLabel,
@@ -329,19 +342,37 @@ function SourceSpreadsheet({
                   record: detail.displayName,
                 }),
                 invalidates: undoScope(scope),
-                undo: () => revertAcceptedField(revert, (data) => acceptPrintingFieldFn({ data })),
+                undo: (undoSignal) =>
+                  revertAcceptedField(revert, (data) =>
+                    withWriteSignal(undoSignal, () =>
+                      acceptPrintingFieldFn({ data, signal: undoSignal }),
+                    ),
+                  ),
               }),
-          }),
-        );
+          });
+        });
       }}
       onActiveChange={(field, value) => {
         if (value === undefined || !isAcceptPrintingField(field)) {
           return;
         }
-        acceptPrintingField.mutate({ printingId, faceId: face.faceId, field, value });
+        void queueWrite((signal) =>
+          acceptPrintingField.mutateAsync(
+            { printingId, faceId: face.faceId, field, value },
+            { signal },
+          ),
+        );
       }}
-      onCheck={isAdmin ? (id) => checkPrintingSource.mutate(id) : undefined}
-      onUncheck={isAdmin ? (id) => uncheckPrintingSource.mutate(id) : undefined}
+      onCheck={
+        isAdmin
+          ? (id) => void queueWrite((signal) => checkPrintingSource.mutateAsync(id, { signal }))
+          : undefined
+      }
+      onUncheck={
+        isAdmin
+          ? (id) => void queueWrite((signal) => uncheckPrintingSource.mutateAsync(id, { signal }))
+          : undefined
+      }
     />
   );
 }

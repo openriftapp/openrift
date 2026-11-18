@@ -627,6 +627,8 @@
   "cards_grid_show_n_printings": "显示 {count} 个印刷版本",
   "cards_grid_no_results_title": "未找到卡牌",
   "cards_grid_no_results_description": "试着调整筛选条件。",
+  "cards_grid_languages_loading": "其他语言仍在加载，部分卡牌可能暂未显示。",
+  "cards_grid_languages_failed": "无法加载其他语言，部分卡牌可能未显示。",
   "cards_search_hint_text": "普通词语只搜索卡牌名称。",
   "cards_search_alternative_text": [
     {
@@ -1140,6 +1142,8 @@
   "cards_columns_reset_aria": "将列数恢复为自动",
   "cards_sort_dir_asc": "升序，点击可反转",
   "cards_sort_dir_desc": "降序，点击可反转",
+  "cards_group_dir_asc": "分组升序，点击可反转",
+  "cards_group_dir_desc": "分组降序，点击可反转",
   "cards_group_by": "分组方式",
   "cards_sort_by": "排序方式",
   "cards_select_all": "全选",
@@ -1190,6 +1194,7 @@
   "cards_filter_n_selected": "已选{count}项",
   "cards_filter_sign_include": "包含",
   "cards_filter_sign_exclude": "排除",
+  "cards_filter_excluded_state": "（已排除）",
   "cards_filter_sign_label": "{label}：包含或排除",
   "cards_filter_flip_to_exclude": "改为排除",
   "cards_filter_flip_to_include": "改为包含",
@@ -1944,6 +1949,7 @@
   "collections_export_format_cardtrader": "CardTrader 心愿单",
   "collections_export_format_group_text": "文本",
   "collections_export_format_group_csv": "CSV",
+  "collections_export_format_label": "导出格式",
   "collections_export_cards": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -2427,6 +2433,9 @@
   "lists_rule_dialog_title": "动态规则",
   "lists_rule_toast_saved": "规则已保存",
   "lists_rule_toast_removed": "规则已移除",
+  "lists_rule_conflict_title": "已保存的规则已更改",
+  "lists_rule_conflict_body": "你编辑期间，此列表的规则发生了更改。你的更改仍然保留：再次保存即可用你的规则替换已保存的规则。",
+  "lists_rule_conflict_load_saved": "放弃我的更改",
   "lists_rule_stop_excluding": "不再排除{label}",
   "lists_rule_excluded": "已排除",
   "lists_rule_removed_card": "已移除的卡牌",
@@ -3222,6 +3231,21 @@
   "decks_import_share_link_gone": "该分享链接已不再指向一个分享的卡组。它可能已被取消分享，或链接已轮换。",
   "decks_import_share_link_failed": "无法加载分享的卡组，请重试。",
   "decks_import_shared_deck_empty": "那个分享的卡组没有可导入的卡牌。",
+  "decks_import_over_limit": [
+    {
+      "declarations": [
+        "input count",
+        "input max",
+        "input cards",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "超出 {max} 张上限的 {count} 张已被略过：{cards}",
+        "countPlural=*": "超出 {max} 张上限的 {count} 张已被略过：{cards}"
+      }
+    }
+  ],
   "decks_import_no_deck_in_url": "在该网址中找不到卡组代码或分享链接。请直接粘贴卡组本身。",
   "decks_import_replaced_toast": "已把“{name}”中的卡牌替换为{count}张牌。",
   "decks_import_created_toast": "已导入卡组“{name}”，共{count}张牌。",
@@ -3537,6 +3561,7 @@
   "decks_overview_zone_issues": "显示{zone}的问题",
   "decks_overview_zone_known": "已知{expected}张中的{quantity}张",
   "decks_overview_zone_more": "还有{count}张",
+  "decks_overview_zone_summary": "{zone}摘要",
   "decks_stats_bucket_label": "{value} {axis}",
   "decks_stats_collection": "收藏",
   "decks_stats_count": "数量",
@@ -6800,7 +6825,9 @@
   "tier_lists_stage_empty_row": "这里什么都没有",
   "meta_validate_player_name": "请输入选手姓名（不超过 80 个字符）。",
   "meta_validate_rank": "请以数字填写该选手的最终名次。",
+  "meta_validate_rank_max": "名次最多为 {max}。",
   "meta_validate_record_parts": "战绩由胜、负、平三项整数组成。",
+  "meta_validate_record_max": "胜、负、平每项最多为 {max}。",
   "meta_validate_record_pair": "战绩需要同时填写胜场和负场，或者两者都不填。",
   "meta_validate_note_length": "备注不得超过 2000 个字符。",
   "meta_validate_correction_note": "请说明我们现有的卡组表哪里有误，以及正确版本的出处。",
@@ -10577,6 +10604,7 @@
   "decks_workbench_limit_battlefields": "战场已满。添加时会询问替换哪一张。",
   "decks_workbench_limit_runes": "符文已满，也无法通过替换另一种特性的符文腾出位置。这张会带着规则警告超过12张。",
   "decks_workbench_warn_copies": "已添加{card}：{count}张，超过{limit}张上限。",
+  "decks_workbench_row_full": "{card} 已达到 {limit} 张。",
   "decks_workbench_warn_battlefields": "{count}张战场，上限{limit}张。",
   "decks_workbench_warn_battlefield_duplicate": "{card}已是你的战场之一。",
   "decks_workbench_warn_legend_options": "{count}张额外传奇，上限{limit}张。",

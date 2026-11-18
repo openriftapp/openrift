@@ -28,6 +28,7 @@ function wishList(
       hasRule: false,
       rules: [],
       ruleCombine: null,
+      rulesVersion: 0,
     },
     entries,
   };

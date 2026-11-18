@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_app/_authenticated/admin/workspace/cards
       ]);
     }
     await Promise.all([
-      loadCardDetailData(context.queryClient),
+      loadCardDetailData(context.queryClient, context.userId),
       context.queryClient.query({ ...allCardsQueryOptions, staleTime: "static" }),
       context.queryClient.query({ ...setsQueryOptions, staleTime: "static" }),
     ]);

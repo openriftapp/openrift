@@ -18,7 +18,10 @@ import type { PrintingValueLabels } from "@/features/admin/lib/field-value-text"
 import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
-import { queuedWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
+import {
+  queuedWorkspaceWrite,
+  useQueueWorkspaceWrite,
+} from "@/features/catalog-workspace/hooks/workspace-writes";
 import type {
   FaceSuggestionModel,
   PrintingFieldSuggestion,
@@ -37,6 +40,7 @@ import {
 } from "@/features/catalog-workspace/lib/workspace-undo";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
+import { withSignal, withWriteSignal } from "@/lib/write-signal";
 
 export function useValueLabels(): PrintingValueLabels {
   const { labels } = useEnumOrders();
@@ -95,26 +99,30 @@ export function useCandidateDiscards({
     return {
       ...discardText(sources, ids, imageIds ?? null, record),
       invalidates: undoScope(scope),
-      undo: async () => {
-        await uncheckCandidatePrintingsFn({ data: { candidatePrintingIds: [...ids] } });
+      undo: async (signal) => {
+        await withWriteSignal(signal, () =>
+          uncheckCandidatePrintingsFn({ data: { candidatePrintingIds: [...ids] }, signal }),
+        );
       },
     };
   }
 
-  async function discard(candidatePrintingId: string): Promise<void> {
+  async function discard(signal: AbortSignal, candidatePrintingId: string): Promise<void> {
     const entry = entryFor([candidatePrintingId]);
-    const ok = await runReportedMutation(() => checkCandidate.mutateAsync(candidatePrintingId));
+    const ok = await runReportedMutation(() =>
+      checkCandidate.mutateAsync(candidatePrintingId, { signal }),
+    );
     if (ok) {
       announce(entry);
     }
   }
 
-  async function discardAll(ids: readonly string[]) {
+  async function discardAll(signal: AbortSignal, ids: readonly string[]) {
     if (ids.length === 0) {
       return;
     }
     const entry = entryFor(ids);
-    await checkAll.mutateAsync({ extraIds: [...ids] });
+    await checkAll.mutateAsync({ extraIds: [...ids] }, { signal });
     push(entry);
   }
 
@@ -168,6 +176,7 @@ export function useFaceRecordActions({
     record,
   });
   const { announce } = useWorkspaceUndo();
+  const queue = useQueueWorkspaceWrite();
   const setCandidateImage = useSetCandidatePrintingImage(scope);
   const acceptSubmission = useAcceptSubmission({ cardSlug });
 
@@ -183,30 +192,37 @@ export function useFaceRecordActions({
     setCandidateImage.isPending ||
     acceptSubmission.isPending;
 
-  async function applyField(suggestion: PrintingFieldSuggestion): Promise<void> {
+  async function applyField(
+    signal: AbortSignal,
+    suggestion: PrintingFieldSuggestion,
+  ): Promise<void> {
     if (!isAcceptPrintingField(suggestion.field)) {
       return;
     }
     const field = suggestion.field;
     if (suggestion.isContributor) {
       await runReportedMutation(() =>
-        acceptSubmission.mutateAsync({
-          candidateCardId: suggestion.candidate.candidateCardId,
-          printingFields: [
-            {
-              printingId: suggestion.printingId,
-              faceId: suggestion.faceId,
-              field,
-              value: suggestion.proposed,
-              source: "provider",
-            },
-          ],
-        }),
+        acceptSubmission.mutateAsync(
+          {
+            candidateCardId: suggestion.candidate.candidateCardId,
+            printingFields: [
+              {
+                printingId: suggestion.printingId,
+                faceId: suggestion.faceId,
+                field,
+                value: suggestion.proposed,
+                source: "provider",
+              },
+            ],
+          },
+          { signal },
+        ),
       );
       return;
     }
+    const accept = withSignal(acceptField.mutateAsync, signal);
     await acceptFieldWithUndo({
-      accept: acceptField.mutateAsync,
+      accept,
       input: {
         printingId: suggestion.printingId,
         faceId: suggestion.faceId,
@@ -221,41 +237,54 @@ export function useFaceRecordActions({
         announce({
           ...usedUndoText({ field: suggestion.label, source: suggestion.provider, record }),
           invalidates: undoScope(scope),
-          undo: () => revertAcceptedField(revert, (data) => acceptPrintingFieldFn({ data })),
+          undo: (undoSignal) =>
+            revertAcceptedField(revert, (data) =>
+              withWriteSignal(undoSignal, () =>
+                acceptPrintingFieldFn({ data, signal: undoSignal }),
+              ),
+            ),
         }),
     });
   }
 
-  async function applyImage(image: SourceImageCandidate): Promise<void> {
+  async function applyImage(signal: AbortSignal, image: SourceImageCandidate): Promise<void> {
     if (image.isContributor) {
       if (model?.face) {
         const face = model.face;
         await runReportedMutation(() =>
-          acceptSubmission.mutateAsync({
-            candidateCardId: image.candidate.candidateCardId,
-            images: [
-              {
-                candidatePrintingId: image.candidate.id,
-                printingId: face.id,
-                faceId: face.faceId,
-              },
-            ],
-          }),
+          acceptSubmission.mutateAsync(
+            {
+              candidateCardId: image.candidate.candidateCardId,
+              images: [
+                {
+                  candidatePrintingId: image.candidate.id,
+                  printingId: face.id,
+                  faceId: face.faceId,
+                },
+              ],
+            },
+            { signal },
+          ),
         );
       }
       return;
     }
     await runReportedMutation(() =>
-      setCandidateImage.mutateAsync({ candidatePrintingId: image.candidate.id, mode: "main" }),
+      setCandidateImage.mutateAsync(
+        { candidatePrintingId: image.candidate.id, mode: "main" },
+        { signal },
+      ),
     );
   }
 
-  function applyChip(chip: FaceChip): Promise<void> {
-    return chip.kind === "image" ? applyImage(chip.image) : applyField(chip.suggestion);
+  function applyChip(signal: AbortSignal, chip: FaceChip): Promise<void> {
+    return chip.kind === "image"
+      ? applyImage(signal, chip.image)
+      : applyField(signal, chip.suggestion);
   }
 
-  async function runPrimary() {
-    await discards.discardAll(enterIds);
+  async function runPrimary(signal: AbortSignal) {
+    await discards.discardAll(signal, enterIds);
   }
 
   useRegisterRecordActions({
@@ -268,10 +297,10 @@ export function useFaceRecordActions({
             run: runPrimary,
           }
         : undefined,
-    useSuggestion: async (n) => {
+    useSuggestion: async (signal, n) => {
       const chip = chips[n - 1];
       if (chip !== undefined) {
-        await applyChip(chip);
+        await applyChip(signal, chip);
       }
     },
   });
@@ -281,8 +310,8 @@ export function useFaceRecordActions({
     enterCount: enterIds.length,
     pending,
     contributorOpen,
-    applyChip: queuedWorkspaceWrite(applyChip),
-    discard: queuedWorkspaceWrite(discards.discard),
-    runPrimary: queuedWorkspaceWrite(runPrimary),
+    applyChip: queuedWorkspaceWrite(queue, applyChip),
+    discard: queuedWorkspaceWrite(queue, discards.discard),
+    runPrimary: queuedWorkspaceWrite(queue, runPrimary),
   };
 }

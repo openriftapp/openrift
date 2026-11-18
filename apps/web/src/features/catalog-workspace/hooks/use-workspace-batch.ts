@@ -177,18 +177,24 @@ export function batchOutcomeText(kind: BatchKind, outcome: BatchOutcome): string
   return outcome.skipped.length === 0 ? done : `${done} ${outcome.skipped.length} skipped.`;
 }
 
-async function runBatch(kind: BatchKind, keys: string[]): Promise<BatchOutcome> {
+async function runBatch(
+  kind: BatchKind,
+  keys: string[],
+  signal?: AbortSignal,
+): Promise<BatchOutcome> {
   switch (kind) {
     case "trusted-cards": {
-      return toBatchOutcome(await acceptTrustedCardsFn({ data: { names: keys } }));
+      return toBatchOutcome(await acceptTrustedCardsFn({ data: { names: keys }, signal }));
     }
     case "trusted-printings": {
       return toBatchOutcome(
-        await acceptTrustedPrintingsFn({ data: { candidatePrintingIds: keys } }),
+        await acceptTrustedPrintingsFn({ data: { candidatePrintingIds: keys }, signal }),
       );
     }
     case "suggested-listings": {
-      return toBatchOutcome(await assignSuggestedListingsFn({ data: { listingKeys: keys } }));
+      return toBatchOutcome(
+        await assignSuggestedListingsFn({ data: { listingKeys: keys }, signal }),
+      );
     }
   }
 }
@@ -202,7 +208,7 @@ export function useWorkspaceBatch(kind: BatchKind, enabled: boolean) {
   });
   const run = useMutationWithInvalidation({
     meta: { inlineError: true },
-    mutationFn: (keys: string[]) => runBatch(kind, keys),
+    mutationFn: (keys: string[], signal) => runBatch(kind, keys, signal),
     invalidates: [adminKeys.workspace, adminKeys.cards.list, adminKeys.reviewQueue],
   });
   return {

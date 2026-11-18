@@ -36,8 +36,13 @@ export type NewListValues = Pick<
  */
 export type ListUpdate = Omit<
   Updateable<ListsTable>,
-  "id" | "userId" | "intent" | "kind" | "createdAt" | "updatedAt"
+  "id" | "userId" | "intent" | "kind" | "createdAt" | "updatedAt" | "rulesVersion"
 >;
+
+export type ListUpdateResult =
+  | { outcome: "updated"; row: Selectable<ListsTable> }
+  | { outcome: "stale" }
+  | { outcome: "missing" };
 
 export function listsCoreRepo(db: Kysely<Database>) {
   return {
@@ -116,20 +121,44 @@ export function listsCoreRepo(db: Kysely<Database>) {
       });
     },
 
-    update(
+    /**
+     * A write of the rules or the combine mode bumps `rules_version`. With
+     * `expectedRulesVersion`, it runs only while the list is still at that version.
+     */
+    async update(
       id: string,
       userId: string,
       updates: ListUpdate,
-    ): Promise<Selectable<ListsTable> | undefined> {
+      expectedRulesVersion?: number,
+    ): Promise<ListUpdateResult> {
       const { rules, ...rest } = updates;
-      const setValues = rules === undefined ? rest : { ...rest, rules: rules ?? [] };
-      return db
+      const touchesRules = rules !== undefined || updates.ruleCombine !== undefined;
+      let query = db
         .updateTable("lists")
-        .set(setValues)
+        .set({
+          ...rest,
+          ...(rules !== undefined && { rules: rules ?? [] }),
+          ...(touchesRules && { rulesVersion: sql<number>`rules_version + 1` }),
+        })
+        .where("id", "=", id)
+        .where("userId", "=", userId);
+      if (expectedRulesVersion !== undefined) {
+        query = query.where("rulesVersion", "=", expectedRulesVersion);
+      }
+      const row = await query.returningAll().executeTakeFirst();
+      if (row) {
+        return { outcome: "updated", row };
+      }
+      if (expectedRulesVersion === undefined) {
+        return { outcome: "missing" };
+      }
+      const exists = await db
+        .selectFrom("lists")
+        .select("id")
         .where("id", "=", id)
         .where("userId", "=", userId)
-        .returningAll()
         .executeTakeFirst();
+      return exists ? { outcome: "stale" } : { outcome: "missing" };
     },
 
     async deleteByIdForUser(id: string, userId: string): Promise<boolean> {
@@ -155,7 +184,11 @@ export function listsCoreRepo(db: Kysely<Database>) {
       for (const row of rows) {
         const rules = rulesWithoutCollection(hydrateListRules(row.rules), collectionId);
         if (rules) {
-          await db.updateTable("lists").set({ rules }).where("id", "=", row.id).execute();
+          await db
+            .updateTable("lists")
+            .set({ rules, rulesVersion: sql<number>`rules_version + 1` })
+            .where("id", "=", row.id)
+            .execute();
         }
       }
     },

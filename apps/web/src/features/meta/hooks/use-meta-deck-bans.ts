@@ -1,14 +1,21 @@
 import type { MetaDeckCardsQuery } from "@openrift/shared/types/api/meta";
+import { useQuery } from "@tanstack/react-query";
 
-import { useCards } from "@/features/cards/hooks/use-cards";
-import { useMetaDeckCards } from "@/features/meta/hooks/use-meta";
+import { useCatalogOnDemand } from "@/features/cards/hooks/use-cards";
 import type { MetaBanGroup } from "@/features/meta/lib/meta-deck-bans";
 import { metaDeckBans } from "@/features/meta/lib/meta-deck-bans";
 import { decodeMetaDeckCardIndex } from "@/features/meta/lib/meta-deck-collection";
+import { metaDeckCardsQueryOptions } from "@/features/meta/lib/meta-queries";
 
-/** Suspends on the deck card index and the catalog; mount under `useHydrated` and Suspense. */
-export function useMetaDeckBans(decks?: MetaDeckCardsQuery): ReadonlyMap<string, MetaBanGroup[]> {
-  const { data: index } = useMetaDeckCards(decks);
-  const { cardsById } = useCards();
-  return metaDeckBans(decodeMetaDeckCardIndex(index), cardsById);
+/** Undefined until the deck cards and the catalogue have landed; never suspends. */
+export function useMetaDeckBans(
+  decks: MetaDeckCardsQuery | undefined,
+  enabled: boolean,
+): ReadonlyMap<string, MetaBanGroup[]> | undefined {
+  const { data: index } = useQuery({ ...metaDeckCardsQueryOptions(decks), enabled });
+  const { catalog } = useCatalogOnDemand(enabled);
+  if (!enabled || index === undefined || catalog === undefined) {
+    return undefined;
+  }
+  return metaDeckBans(decodeMetaDeckCardIndex(index), catalog.cardsById);
 }

@@ -19,6 +19,7 @@ import { reportMutationError } from "@/lib/query-client";
 import { getApiUrl } from "@/lib/server-fns/api-url";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
+import { sentVariables } from "@/lib/write-signal";
 
 const deletePrintingImageFn = createServerFn({ method: "POST" })
   .validator((input: { imageId: string }) => input)
@@ -195,8 +196,8 @@ function refetchScope(queryClient: QueryClient, scope: Scope) {
 
 export function useDeletePrintingImage(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: async (imageId: string) => {
-      await deletePrintingImageFn({ data: { imageId } });
+    mutationFn: async (imageId: string, signal) => {
+      await deletePrintingImageFn({ data: { imageId }, signal });
     },
     invalidates,
   });
@@ -205,8 +206,8 @@ export function useDeletePrintingImage(invalidates: Scope = defaultScope) {
 export function useActivatePrintingImage(invalidates: Scope = defaultScope) {
   const queryClient = useQueryClient();
   return useMutationWithInvalidation({
-    mutationFn: async ({ imageId, active }: { imageId: string; active: boolean }) => {
-      await activatePrintingImageFn({ data: { imageId, active } });
+    mutationFn: async ({ imageId, active }: { imageId: string; active: boolean }, signal) => {
+      await activatePrintingImageFn({ data: { imageId, active }, signal });
     },
     onError: (error) => {
       refetchScope(queryClient, invalidates);
@@ -216,24 +217,25 @@ export function useActivatePrintingImage(invalidates: Scope = defaultScope) {
   });
 }
 
-export function useRehostPrintingImage(invalidates: Scope = defaultScope) {
+/** A rehost of a rehosted image writes a new image file, so it refreshes every view of it. */
+export function useRehostPrintingImage() {
   const queryClient = useQueryClient();
   return useMutationWithInvalidation({
-    mutationFn: async (imageId: string) => {
-      await rehostPrintingImageFn({ data: { imageId } });
+    mutationFn: async (imageId: string, signal) => {
+      await rehostPrintingImageFn({ data: { imageId }, signal });
     },
     onError: (error) => {
-      refetchScope(queryClient, invalidates);
+      refetchScope(queryClient, IMAGE_FILE_SCOPE);
       reportMutationError(error, queryClient);
     },
-    invalidates,
+    invalidates: IMAGE_FILE_SCOPE,
   });
 }
 
 export function useUnrehostPrintingImage(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: async (imageId: string) => {
-      await unrehostPrintingImageFn({ data: { imageId } });
+    mutationFn: async (imageId: string, signal) => {
+      await unrehostPrintingImageFn({ data: { imageId }, signal });
     },
     invalidates,
   });
@@ -245,8 +247,8 @@ const IMAGE_EDIT_MUTATION_KEY = ["admin", "image-edit"] as const;
 export function useRotatePrintingImage() {
   return useMutationWithInvalidation({
     mutationKey: IMAGE_EDIT_MUTATION_KEY,
-    mutationFn: async ({ imageId, rotation }: { imageId: string; rotation: Rotation }) => {
-      await rotatePrintingImageFn({ data: { imageId, rotation } });
+    mutationFn: async ({ imageId, rotation }: { imageId: string; rotation: Rotation }, signal) => {
+      await rotatePrintingImageFn({ data: { imageId, rotation }, signal });
     },
     invalidates: IMAGE_FILE_SCOPE,
   });
@@ -255,8 +257,8 @@ export function useRotatePrintingImage() {
 export function useSetPrintingImageNeedsTrim() {
   return useMutationWithInvalidation({
     mutationKey: IMAGE_EDIT_MUTATION_KEY,
-    mutationFn: async ({ imageId, needsTrim }: { imageId: string; needsTrim: boolean }) => {
-      await setNeedsTrimFn({ data: { imageId, needsTrim } });
+    mutationFn: async ({ imageId, needsTrim }: { imageId: string; needsTrim: boolean }, signal) => {
+      await setNeedsTrimFn({ data: { imageId, needsTrim }, signal });
     },
     invalidates: IMAGE_FILE_SCOPE,
   });
@@ -265,8 +267,8 @@ export function useSetPrintingImageNeedsTrim() {
 export function useSetPrintingImageQuad() {
   return useMutationWithInvalidation({
     mutationKey: IMAGE_EDIT_MUTATION_KEY,
-    mutationFn: async ({ imageId, quad }: { imageId: string; quad: ImageQuad | null }) => {
-      await setPrintingImageQuadFn({ data: { imageId, quad } });
+    mutationFn: async ({ imageId, quad }: { imageId: string; quad: ImageQuad | null }, signal) => {
+      await setPrintingImageQuadFn({ data: { imageId, quad }, signal });
     },
     invalidates: IMAGE_FILE_SCOPE,
   });
@@ -277,7 +279,8 @@ export function useImageEditPending(imageId: string): boolean {
   const running = useIsMutating({
     mutationKey: IMAGE_EDIT_MUTATION_KEY,
     predicate: (mutation) =>
-      (mutation.state.variables as { imageId?: string } | undefined)?.imageId === imageId,
+      (sentVariables(mutation.state.variables) as { imageId?: string } | undefined)?.imageId ===
+      imageId,
   });
   return running > 0;
 }
@@ -285,23 +288,26 @@ export function useImageEditPending(imageId: string): boolean {
 export function useEnsurePrintingImageOriginal() {
   return useMutationWithInvalidation({
     meta: { inlineError: true },
-    mutationFn: (imageId: string): Promise<ImageOriginalOutput> =>
-      ensurePrintingImageOriginalFn({ data: { imageId } }),
+    mutationFn: (imageId: string, signal): Promise<ImageOriginalOutput> =>
+      ensurePrintingImageOriginalFn({ data: { imageId }, signal }),
     invalidates: [],
   });
 }
 
 export function useAddImageFromUrl(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: ({
-      printingId,
-      ...body
-    }: {
-      printingId: string;
-      url: string;
-      mode?: "main" | "additional";
-      face?: "front" | "back";
-    }) => addImageFromUrlFn({ data: { printingId, ...body } }),
+    mutationFn: (
+      {
+        printingId,
+        ...body
+      }: {
+        printingId: string;
+        url: string;
+        mode?: "main" | "additional";
+        face?: "front" | "back";
+      },
+      signal,
+    ) => addImageFromUrlFn({ data: { printingId, ...body }, signal }),
     invalidates,
   });
 }
@@ -365,19 +371,22 @@ async function toBase64(file: File): Promise<string> {
 export function useUploadPrintingImage(invalidates: Scope = defaultScope, meta?: MutationMeta) {
   return useMutationWithInvalidation({
     meta,
-    mutationFn: async ({
-      printingId,
-      file,
-      mode,
-      face,
-      credit,
-    }: {
-      printingId: string;
-      file: File;
-      mode?: "main" | "additional";
-      face?: "front" | "back";
-      credit?: string;
-    }) =>
+    mutationFn: async (
+      {
+        printingId,
+        file,
+        mode,
+        face,
+        credit,
+      }: {
+        printingId: string;
+        file: File;
+        mode?: "main" | "additional";
+        face?: "front" | "back";
+        credit?: string;
+      },
+      signal,
+    ) =>
       uploadPrintingImageFn({
         data: {
           printingId,
@@ -388,6 +397,7 @@ export function useUploadPrintingImage(invalidates: Scope = defaultScope, meta?:
           face,
           credit,
         },
+        signal,
       }),
     invalidates,
   });
@@ -395,14 +405,17 @@ export function useUploadPrintingImage(invalidates: Scope = defaultScope, meta?:
 
 export function useSetCandidatePrintingImage(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: async ({
-      candidatePrintingId,
-      mode,
-    }: {
-      candidatePrintingId: string;
-      mode: "main" | "additional";
-    }) => {
-      await setCandidatePrintingImageFn({ data: { candidatePrintingId, mode } });
+    mutationFn: async (
+      {
+        candidatePrintingId,
+        mode,
+      }: {
+        candidatePrintingId: string;
+        mode: "main" | "additional";
+      },
+      signal,
+    ) => {
+      await setCandidatePrintingImageFn({ data: { candidatePrintingId, mode }, signal });
     },
     invalidates,
   });
@@ -411,13 +424,16 @@ export function useSetCandidatePrintingImage(invalidates: Scope = defaultScope) 
 /** Set a printing's substitute-art override: derive it, pin a held image, or suppress it. */
 export function useSetFallbackArt(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: async (input: {
-      printingId: string;
-      mode: "auto" | "pinned" | "none";
-      imageFileId?: string;
-      face?: "front" | "back";
-    }) => {
-      await setFallbackArtFn({ data: input });
+    mutationFn: async (
+      input: {
+        printingId: string;
+        mode: "auto" | "pinned" | "none";
+        imageFileId?: string;
+        face?: "front" | "back";
+      },
+      signal,
+    ) => {
+      await setFallbackArtFn({ data: input, signal });
     },
     invalidates,
   });
@@ -425,8 +441,11 @@ export function useSetFallbackArt(invalidates: Scope = defaultScope) {
 
 export function useAddFallbackArtUrl(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: async (input: { printingId: string; url: string; face?: "front" | "back" }) => {
-      await addFallbackArtUrlFn({ data: input });
+    mutationFn: async (
+      input: { printingId: string; url: string; face?: "front" | "back" },
+      signal,
+    ) => {
+      await addFallbackArtUrlFn({ data: input, signal });
     },
     invalidates,
   });
@@ -434,15 +453,18 @@ export function useAddFallbackArtUrl(invalidates: Scope = defaultScope) {
 
 export function useUploadFallbackArt(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: async ({
-      printingId,
-      file,
-      face,
-    }: {
-      printingId: string;
-      file: File;
-      face?: "front" | "back";
-    }) =>
+    mutationFn: async (
+      {
+        printingId,
+        file,
+        face,
+      }: {
+        printingId: string;
+        file: File;
+        face?: "front" | "back";
+      },
+      signal,
+    ) =>
       uploadFallbackArtFn({
         data: {
           printingId,
@@ -451,6 +473,7 @@ export function useUploadFallbackArt(invalidates: Scope = defaultScope) {
           fileType: file.type,
           fileBase64: await toBase64(file),
         },
+        signal,
       }),
     invalidates,
   });
@@ -459,7 +482,8 @@ export function useUploadFallbackArt(invalidates: Scope = defaultScope) {
 export function useUploadCandidates() {
   return useMutationWithInvalidation({
     meta: { inlineError: true },
-    mutationFn: (payload: UploadCandidatesBody) => uploadCandidatesFn({ data: payload }),
+    mutationFn: (payload: UploadCandidatesBody, signal) =>
+      uploadCandidatesFn({ data: payload, signal }),
     invalidates: [...CANDIDATE_REVIEW_SCOPE, adminKeys.sources],
   });
 }

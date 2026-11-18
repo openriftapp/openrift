@@ -5,6 +5,7 @@ import {
   META_EVENT_INDEX_SORTS,
   META_MAX_LIST_PAGE_SIZE,
   META_MAX_PAGE_SIZE,
+  META_MAX_PLAYERS,
   NO_LEGEND,
 } from "@openrift/shared/meta-query";
 import {
@@ -291,9 +292,6 @@ export const metaEventDetailResponseSchema = z.object({
   cutMatches: z.array(metaEventMatchSchema),
   phases: z.array(metaEventPhaseSchema),
 });
-
-/** Upper bound for a field size or placement; the columns are `integer`. */
-export const META_MAX_PLAYERS = 100_000;
 
 const pageOffset = z.coerce.number().int().nonnegative().max(MAX_OFFSET).optional();
 

@@ -128,7 +128,7 @@ test.describe("deck editor panels", () => {
       await expect(header).toContainText("0 in main deck");
 
       // DomainBar renders null at zero cards: no tooltip triggers.
-      await expect(header.locator('[data-slot="tooltip-trigger"]')).toHaveCount(0);
+      await expect(header.getByLabel(/: \d+$/u)).toHaveCount(0);
 
       await expect(page.getByRole("heading", { level: 3, name: "Energy" })).toBeHidden();
       await expect(page.getByRole("heading", { level: 3, name: "Power" })).toBeHidden();
@@ -146,7 +146,7 @@ test.describe("deck editor panels", () => {
       await expect(header).toBeVisible({ timeout: 15_000 });
       await expect(header).toContainText("3 in main deck");
 
-      const segment = header.locator('[data-slot="tooltip-trigger"]').first();
+      const segment = header.getByLabel("Fury: 3", { exact: true });
       await expect(segment).toBeVisible();
       await segment.hover();
       // BaseUI's TooltipContent has no role="tooltip"; match by text.

@@ -8,6 +8,8 @@ import { queueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspac
 import {
   createWorkspaceWriteQueue,
   resetWorkspaceWriteQueue,
+  LONG_TIMEOUT_MS,
+  WRITE_TIMEOUT_MS,
 } from "@/features/catalog-workspace/lib/workspace-write-queue";
 import { useWorkspaceActionsStore } from "@/features/catalog-workspace/stores/workspace-actions-store";
 import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
@@ -69,6 +71,7 @@ function deps(overrides: Partial<Parameters<typeof handleWorkspaceKey>[1]> = {})
     undo: vi.fn(() => false),
     overlayOpen: () => false,
     queue: createWorkspaceWriteQueue(),
+    queryClient: new QueryClient(),
     ...overrides,
   };
 }
@@ -202,7 +205,23 @@ describe("handleWorkspaceKey", () => {
     await vi.waitFor(() => expect(d.queue.idle()).toBe(true));
     expect(accept).toHaveBeenCalledOnce();
     expect(ignore).toHaveBeenCalledOnce();
-    expect(useSuggestion).toHaveBeenCalledWith(2);
+    expect(useSuggestion).toHaveBeenCalledWith(expect.any(AbortSignal), 2);
+  });
+
+  it("gives accept the limit its record registered", async () => {
+    const limits: number[] = [];
+    const queue = createWorkspaceWriteQueue((ms) => {
+      limits.push(ms);
+      return new AbortController().signal;
+    });
+    const accept = vi.fn();
+    handleWorkspaceKey(keyEvent("a"), deps({ queue, actions: { accept, acceptLimit: "upload" } }));
+    await vi.waitFor(() => expect(queue.idle()).toBe(true));
+    handleWorkspaceKey(keyEvent("a"), deps({ queue, actions: { accept } }));
+    await vi.waitFor(() => expect(queue.idle()).toBe(true));
+
+    expect(accept).toHaveBeenCalledTimes(2);
+    expect(limits).toEqual([LONG_TIMEOUT_MS, WRITE_TIMEOUT_MS]);
   });
 
   it("runs a repeated action on the same record once and says it is still saving", async () => {
@@ -439,6 +458,7 @@ describe("useWorkspaceKeyboard", () => {
     };
     useWorkspaceSelectionStore.getState().pushUndo(older);
     void queueWorkspaceWrite(
+      new QueryClient(),
       () =>
         new Promise<void>((resolve) => {
           land = () => {

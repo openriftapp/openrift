@@ -86,6 +86,37 @@ export function listEntryWritesInFlight(mutationCache: MutationCache, listId: st
     .filter((mutation) => writesList(mutation.state.variables, listId)).length;
 }
 
+function stepPendingOn(mutationCache: MutationCache, listId: string, entryId: string): boolean {
+  return mutationCache
+    .findAll({ mutationKey: LIST_ENTRY_MUTATION_KEYS.update, status: "pending" })
+    .some((mutation) => {
+      const write = mutation.state.variables as EntryWrite | undefined;
+      return (
+        write?.listId === listId && write.entryId === entryId && write.quantityDelta !== undefined
+      );
+    });
+}
+
+/** Resolves once no quantity step on the entry is in flight, so a write sent next reaches the server after them. */
+export function entryStepsSettled(
+  mutationCache: MutationCache,
+  listId: string,
+  entryId: string,
+): Promise<void> {
+  if (!stepPendingOn(mutationCache, listId, entryId)) {
+    return Promise.resolve();
+  }
+  // oxlint-disable-next-line promise/avoid-new -- settles on a mutation cache event
+  return new Promise<void>((resolve) => {
+    const unsubscribe = mutationCache.subscribe(() => {
+      if (!stepPendingOn(mutationCache, listId, entryId)) {
+        unsubscribe();
+        resolve();
+      }
+    });
+  });
+}
+
 export function bulkAddItemMatches(item: BulkAddItem, entry: EntryIdentity): boolean {
   if (item.cardId !== undefined && entry.kind === "card") {
     return entry.cardId === item.cardId;

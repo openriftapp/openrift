@@ -61,7 +61,7 @@ const PUBLIC_CATALOG_KEYS = [
 export function useCreateDeskPrinting(meta?: MutationMeta) {
   return useMutationWithInvalidation<DeskCreateOutput, DeskCreateInput>({
     meta,
-    mutationFn: (vars) => createDeskPrintingFn({ data: vars }),
+    mutationFn: (vars, signal) => createDeskPrintingFn({ data: vars, signal }),
     invalidates: [adminKeys.printingDesk.all, ...PUBLIC_CATALOG_KEYS],
   });
 }
@@ -69,7 +69,7 @@ export function useCreateDeskPrinting(meta?: MutationMeta) {
 export function useUpdateDeskPrinting(meta?: MutationMeta) {
   return useMutationWithInvalidation<void, DeskUpdateInput>({
     meta,
-    mutationFn: (vars) => updateDeskPrintingFn({ data: vars }),
+    mutationFn: (vars, signal) => updateDeskPrintingFn({ data: vars, signal }),
     invalidates: [adminKeys.printingDesk.all, ...PUBLIC_CATALOG_KEYS],
   });
 }
@@ -83,7 +83,7 @@ const setDeskSecondSideFn = createServerFn({ method: "POST" })
 
 export function useSetDeskSecondSide() {
   return useMutationWithInvalidation<void, DeskSetSecondSideInput>({
-    mutationFn: (vars) => setDeskSecondSideFn({ data: vars }),
+    mutationFn: (vars, signal) => setDeskSecondSideFn({ data: vars, signal }),
     invalidates: [adminKeys.printingDesk.all, ...PUBLIC_CATALOG_KEYS],
   });
 }
@@ -97,7 +97,7 @@ const removeDeskSecondSideFn = createServerFn({ method: "POST" })
 
 export function useRemoveDeskSecondSide() {
   return useMutationWithInvalidation<void, DeskSetSecondSideInput>({
-    mutationFn: (vars) => removeDeskSecondSideFn({ data: vars }),
+    mutationFn: (vars, signal) => removeDeskSecondSideFn({ data: vars, signal }),
     invalidates: [adminKeys.printingDesk.all, ...PUBLIC_CATALOG_KEYS],
   });
 }
@@ -111,7 +111,7 @@ const updateDeskImageFn = createServerFn({ method: "POST" })
 
 export function useUpdateDeskImage() {
   return useMutationWithInvalidation<void, DeskUpdateImageInput>({
-    mutationFn: (vars) => updateDeskImageFn({ data: vars }),
+    mutationFn: (vars, signal) => updateDeskImageFn({ data: vars, signal }),
     invalidates: [adminKeys.printingDesk.all, ...PUBLIC_CATALOG_KEYS],
   });
 }
@@ -125,7 +125,7 @@ const setDeskImageFaceFn = createServerFn({ method: "POST" })
 
 export function useSetDeskImageFace() {
   return useMutationWithInvalidation<void, DeskSetImageFaceInput>({
-    mutationFn: (vars) => setDeskImageFaceFn({ data: vars }),
+    mutationFn: (vars, signal) => setDeskImageFaceFn({ data: vars, signal }),
     invalidates: [adminKeys.printingDesk.all, ...PUBLIC_CATALOG_KEYS],
   });
 }

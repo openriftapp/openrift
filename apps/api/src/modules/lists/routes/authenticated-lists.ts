@@ -137,7 +137,21 @@ export const listsRouter = {
       context,
       touchesSupply ? [existing] : [],
       input.cancelTradeIds,
-      (repos) => repos.lists.update(input.id, userId, updates),
+      async (repos) => {
+        const result = await repos.lists.update(
+          input.id,
+          userId,
+          updates,
+          touchesSupply ? input.expectedRulesVersion : undefined,
+        );
+        if (result.outcome === "stale") {
+          const current = await repos.lists.getByIdForUser(input.id, userId);
+          assertFound(current, "Not found");
+          const { rules, ruleCombine, rulesVersion } = toListDetail(current);
+          throw errors.PRECONDITION_FAILED({ data: { rules, ruleCombine, rulesVersion } });
+        }
+        return result.outcome === "updated" ? result.row : undefined;
+      },
     );
     assertFound(row, "Not found");
     return toList(row);

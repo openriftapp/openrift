@@ -29,6 +29,7 @@ import {
   RecordSection,
 } from "@/features/catalog-workspace/components/record/record-pane";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
+import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import type { CreationDraft } from "@/features/catalog-workspace/lib/creation-draft";
 import {
   draftFromBasePrinting,
@@ -59,6 +60,7 @@ function asExistingCard(draft: CreationDraft, id: string, slug: string, name: st
 }
 
 export function NewManualCardRecord() {
+  const queueWrite = useQueueWorkspaceWrite();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
@@ -95,7 +97,10 @@ export function NewManualCardRecord() {
     !createCard.isPending;
   const credit = session?.user.name;
 
-  async function createFirstPrinting(cardSlug: string): Promise<string | null> {
+  async function createFirstPrinting(
+    signal: AbortSignal,
+    cardSlug: string,
+  ): Promise<string | null> {
     const card = await readCreatedCardId(queryClient, cardSlug);
     if (!card.ok) {
       return `The card was created, but its printing was not: ${card.reason}. Add it under Printings.`;
@@ -106,7 +111,7 @@ export function NewManualCardRecord() {
     let reason = "unknown error";
     const ok = await runReportedMutation(
       async () => {
-        created = await createPrinting.mutateAsync(toDeskCreateInput(ready));
+        created = await createPrinting.mutateAsync(toDeskCreateInput(ready), { signal });
       },
       (error) => {
         reason = errorText(error, reason);
@@ -124,13 +129,16 @@ export function NewManualCardRecord() {
       }
       const file = upload.image.file;
       const uploaded = await runReportedMutation(() =>
-        uploadImage.mutateAsync({
-          printingId,
-          file,
-          mode: upload.mode,
-          face: upload.face,
-          credit: uploadCredit,
-        }),
+        uploadImage.mutateAsync(
+          {
+            printingId,
+            file,
+            mode: upload.mode,
+            face: upload.face,
+            credit: uploadCredit,
+          },
+          { signal },
+        ),
       );
       if (!uploaded) {
         failed.push(draftImageLabel(upload.image));
@@ -141,7 +149,7 @@ export function NewManualCardRecord() {
       : null;
   }
 
-  async function create() {
+  async function create(signal: AbortSignal) {
     if (!canCreate || input === undefined) {
       return;
     }
@@ -150,7 +158,7 @@ export function NewManualCardRecord() {
     let createdCard: Awaited<ReturnType<typeof createCard.mutateAsync>> | undefined;
     const ok = await runReportedMutation(
       async () => {
-        createdCard = await createCard.mutateAsync(input);
+        createdCard = await createCard.mutateAsync(input, { signal });
       },
       (error) => setNotice(errorText(error, "Could not create the card.")),
     );
@@ -159,7 +167,7 @@ export function NewManualCardRecord() {
       return;
     }
     const { cardSlug } = createdCard;
-    const printingError = withPrinting ? await createFirstPrinting(cardSlug) : null;
+    const printingError = withPrinting ? await createFirstPrinting(signal, cardSlug) : null;
     await queryClient.invalidateQueries({ queryKey: adminKeys.workspace });
     setPending(false);
     if (printingError !== null) {
@@ -182,7 +190,11 @@ export function NewManualCardRecord() {
               >
                 Cancel
               </Button>
-              <Button disabled={!canCreate} pending={pending} onClick={() => void create()}>
+              <Button
+                disabled={!canCreate}
+                pending={pending}
+                onClick={() => void queueWrite(create, { limit: "upload" })}
+              >
                 Create card
               </Button>
             </>

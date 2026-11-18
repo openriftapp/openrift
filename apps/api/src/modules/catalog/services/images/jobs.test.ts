@@ -20,6 +20,7 @@ import {
   rehostImageFileOrThrow,
   rehostImages,
   isRehostRetryNoop,
+  refetchImageFile,
   refetchImages,
   retryDueRehosts,
   runRegenerateImagesJob,
@@ -505,7 +506,7 @@ describe("retryDueRehosts", () => {
 });
 
 describe("refetchImages", () => {
-  function makeRefetchRepo(files: Record<string, string | null>) {
+  function makeRefetchRepo(files: Record<string, string | null>, rehosted = true) {
     return {
       getImageFileForRehost: vi.fn((id: string) =>
         Promise.resolve(
@@ -513,19 +514,82 @@ describe("refetchImages", () => {
             ? {
                 id,
                 originalUrl: files[id],
-                rehostedUrl: `/media/cards/${id.slice(-2)}/${id}`,
-                rotation: 0,
-                needsTrim: false,
+                rehostedUrl: rehosted ? `/media/cards/${id.slice(-2)}/${id}` : null,
+                rotation: 90,
+                needsTrim: true,
                 quad: null,
               }
             : undefined,
         ),
       ),
       completeRehost: vi.fn(() => Promise.resolve(true)),
+      replaceImageFile: vi.fn(() => Promise.resolve(true)),
       recordRehostFailure: vi.fn(() => Promise.resolve()),
       updateRehostedUrl: vi.fn(() => Promise.resolve()),
     } as any;
   }
+
+  it("writes the refetched pixels under a new image file id and moves the users onto it", async () => {
+    const repo = makeRefetchRepo({ "file-01": "https://example.com/x.png" });
+
+    const outcome = await refetchImageFile(mockIo, repo, "file-01");
+
+    expect(outcome.status).toBe("rehosted");
+    expect(outcome.imageFileId).not.toBe("file-01");
+    expect(repo.replaceImageFile).toHaveBeenCalledWith("file-01", {
+      id: outcome.imageFileId,
+      rehostedUrl: `/media/cards/${outcome.imageFileId.slice(-2)}/${outcome.imageFileId}`,
+      rotation: 90,
+      needsTrim: true,
+      quad: null,
+    });
+    expect(repo.completeRehost).not.toHaveBeenCalled();
+    expect(mockWriteFile).toHaveBeenCalledWith(
+      expect.stringContaining(`${outcome.imageFileId}-orig`),
+      expect.anything(),
+    );
+    expect(mockUnlink).not.toHaveBeenCalled();
+  });
+
+  it("keeps the id of a file that was never rehosted", async () => {
+    const repo = makeRefetchRepo({ "file-01": "https://example.com/x.png" }, false);
+
+    expect(await refetchImageFile(mockIo, repo, "file-01")).toEqual({
+      status: "rehosted",
+      imageFileId: "file-01",
+    });
+    expect(repo.completeRehost).toHaveBeenCalledWith("file-01", "/media/cards/01/file-01");
+    expect(repo.replaceImageFile).not.toHaveBeenCalled();
+  });
+
+  it("deletes the new files and fails when the old row changed meanwhile", async () => {
+    const repo = makeRefetchRepo({ "file-01": "https://example.com/x.png" });
+    repo.replaceImageFile.mockResolvedValue(false);
+    mockReaddir.mockImplementation(async () => {
+      const [path] = mockWriteFile.mock.calls[0] as [string];
+      return [path.split("/").pop()];
+    });
+
+    const outcome = await refetchImageFile(mockIo, repo, "file-01");
+
+    expect(outcome.status).toBe("failed");
+    expect(mockUnlink).toHaveBeenCalled();
+    expect(repo.recordRehostFailure).not.toHaveBeenCalled();
+  });
+
+  it("records a failed download on the old file and swaps nothing", async () => {
+    mockFetch.mockRejectedValue(fetchTimeout());
+    const repo = makeRefetchRepo({ "file-01": "https://example.com/x.png" });
+
+    const outcome = await refetchImageFile(mockIo, repo, "file-01");
+
+    expect(outcome).toMatchObject({ status: "failed", imageFileId: "file-01" });
+    expect(repo.recordRehostFailure).toHaveBeenCalledWith(
+      "file-01",
+      expect.stringContaining("timeout"),
+    );
+    expect(repo.replaceImageFile).not.toHaveBeenCalled();
+  });
 
   it("returns zeros when called with an empty list", async () => {
     expect(await refetchImages(mockIo, makeRefetchRepo({}), [])).toEqual({
@@ -536,14 +600,15 @@ describe("refetchImages", () => {
     });
   });
 
-  it("downloads each original again and keeps the file rehosted", async () => {
+  it("downloads each original again into a new image file", async () => {
     const repo = makeRefetchRepo({ "file-01": "https://example.com/x.png" });
 
     const result = await refetchImages(mockIo, repo, ["file-01"]);
 
     expect(result).toEqual({ total: 1, refetched: 1, failed: 0, errors: [] });
     expect(mockFetch).toHaveBeenCalled();
-    expect(repo.completeRehost).toHaveBeenCalledWith("file-01", "/media/cards/01/file-01");
+    expect(repo.replaceImageFile).toHaveBeenCalledWith("file-01", expect.anything());
+    expect(repo.completeRehost).not.toHaveBeenCalled();
     expect(repo.updateRehostedUrl).not.toHaveBeenCalled();
   });
 

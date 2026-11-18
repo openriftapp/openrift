@@ -14,6 +14,8 @@ import type { EnumOrders } from "@openrift/shared/types/enums";
 import { MARKETPLACE_CURRENCY } from "@openrift/shared/types/pricing";
 import { describe, expect, it } from "vitest";
 
+import { stubInitResponse } from "@/test/init-fixtures";
+
 import {
   extractAvailableLanguages,
   extractCardCounts,
@@ -213,7 +215,10 @@ describe("extractSetLabels", () => {
   });
 });
 
-const NO_INIT = { enums: {}, keywords: {} } as Pick<InitResponse, "enums" | "keywords">;
+const NO_INIT: Pick<InitResponse, "enums" | "keywords"> = {
+  enums: stubInitResponse().enums,
+  keywords: {},
+};
 
 describe("extractCardCounts", () => {
   const emptySearch: FilterSearch = {};
@@ -263,8 +268,8 @@ describe("extractCardCounts", () => {
       "p-1": makePrinting({ cardId: "card-1", shortCode: "OGN-001" }),
       "p-2": makePrinting({ cardId: "card-2", shortCode: "OGN-002" }),
     };
-    const init = {
-      enums: {},
+    const init: Pick<InitResponse, "enums" | "keywords"> = {
+      enums: stubInitResponse().enums,
       keywords: {
         Accelerate: {
           color: "#000000",
@@ -274,7 +279,7 @@ describe("extractCardCounts", () => {
           translations: { de: "Beschleunigen" },
         },
       },
-    } as unknown as Pick<InitResponse, "enums" | "keywords">;
+    };
     const counts = extractCardCounts(makeCatalog(cards, printings), NO_PRICES, init, {
       q: "kw:beschleunigen",
     });

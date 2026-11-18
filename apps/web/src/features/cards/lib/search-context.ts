@@ -20,7 +20,7 @@ export function catalogVocabulary(
   return catalogSearchVocabulary({
     printings: catalog.allPrintings,
     sets: catalog.sets,
-    formats: (init.enums.formats ?? []).map((row) => ({ id: row.slug, name: row.label })),
+    formats: init.enums.formats.map((row) => ({ id: row.slug, name: row.label })),
     enums: {
       domains: init.enums.domains,
       rarities: init.enums.rarities,
@@ -30,9 +30,7 @@ export function catalogVocabulary(
 }
 
 function rarityOrderOf(init: Pick<InitResponse, "enums">): string[] {
-  return (init.enums.rarities ?? [])
-    .toSorted((a, b) => a.sortOrder - b.sortOrder)
-    .map((row) => row.slug);
+  return init.enums.rarities.toSorted((a, b) => a.sortOrder - b.sortOrder).map((row) => row.slug);
 }
 
 type SsrSearchParts = Pick<CardSearchContext, "vocabulary" | "keywordReverseMap" | "rarityOrder">;

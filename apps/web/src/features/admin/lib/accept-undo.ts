@@ -1,4 +1,5 @@
 import type { AcceptFieldResult } from "@openrift/shared/contracts/admin/card-mutations";
+import { FIELD_CHANGED } from "@openrift/shared/contracts/admin/card-mutations";
 import { toError } from "@openrift/shared/strings";
 import { toast } from "sonner";
 
@@ -77,8 +78,17 @@ function dropRevert(revert: object) {
   }
 }
 
+/** Whether an accept-field write refused because the field no longer holds its `expected`. */
+export function isFieldChangedError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { code?: unknown }).code === FIELD_CHANGED
+  );
+}
+
 /** Writes an accept's revert, refusing while a later accept on the same field still has its
- *  undo. A revert whose record is gone (404) leaves the field history as well. */
+ *  undo. A revert whose record is gone or whose field changed since leaves the history too. */
 export async function revertAcceptedField<TInput extends object>(
   revert: TInput,
   write: (revert: TInput) => Promise<unknown>,
@@ -92,7 +102,11 @@ export async function revertAcceptedField<TInput extends object>(
   } catch (error) {
     failure = error ?? new Error("Undo failed");
   }
-  if (failure === null || (errorStatus(failure) === 404 && !isStaleServerFnError(failure))) {
+  if (
+    failure === null ||
+    isFieldChangedError(failure) ||
+    (errorStatus(failure) === 404 && !isStaleServerFnError(failure))
+  ) {
     dropRevert(revert);
   }
   if (failure !== null) {
@@ -136,7 +150,12 @@ export async function acceptFieldWithUndo<TInput extends AcceptInput>({
       forgetIfIdle(key, history);
       return { accepted: ok, undo: null };
     }
-    const revert = { ...input, value: replaced ?? null, source: "manual" as const };
+    const revert = {
+      ...input,
+      value: replaced ?? null,
+      source: "manual" as const,
+      expected: input.value,
+    };
     history.undoable.push(revert);
     pendingUndos.set(revert, key);
     return { accepted: ok, undo: revert };

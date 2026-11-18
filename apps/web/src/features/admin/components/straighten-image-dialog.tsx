@@ -25,6 +25,8 @@ import {
   QUAD_CORNERS,
   useQuadHandles,
 } from "@/features/admin/hooks/use-quad-handles";
+import type { RunWrite } from "@/features/admin/lib/run-write";
+import { runWriteDirectly } from "@/features/admin/lib/run-write";
 import { detectQuadInOriginal } from "@/features/admin/lib/straighten-detect";
 import type { PreviewSource } from "@/features/admin/lib/straighten-preview";
 import {
@@ -33,23 +35,30 @@ import {
 } from "@/features/admin/lib/straighten-preview";
 import { clampQuad, defaultQuad, imageToDisplayScale } from "@/features/admin/lib/straighten-quad";
 import { useScanServing } from "@/features/scan/hooks/use-scan-serving";
-import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 
 const HANDLE_RADIUS = 11;
 const STROKE_WIDTH = 2;
 
+/** `error` is null when the write ran out of time; the queue that ran it has said so already. */
 async function ensureOriginal(
-  run: (imageId: string) => Promise<ImageOriginalOutput>,
+  runWrite: RunWrite,
+  run: (imageId: string, options: { signal?: AbortSignal }) => Promise<ImageOriginalOutput>,
   imageId: string,
 ): Promise<{ original: ImageOriginalOutput | null; error: string | null }> {
   let original: ImageOriginalOutput | undefined;
-  const ok = await runReportedMutation(async () => {
-    original = await run(imageId);
+  let sentSignal: AbortSignal | undefined;
+  const ok = await runWrite(async (signal) => {
+    sentSignal = signal;
+    original = await run(imageId, { signal });
   });
-  return ok && original
-    ? { original, error: null }
-    : { original: null, error: "The original could not be prepared." };
+  if (ok && original) {
+    return { original, error: null };
+  }
+  return {
+    original: null,
+    error: sentSignal?.aborted === true ? null : "The original could not be prepared.",
+  };
 }
 
 async function detectQuad(
@@ -68,11 +77,13 @@ export function StraightenImageDialog({
   quad,
   open: openProp,
   onOpenChange,
+  runWrite = runWriteDirectly,
 }: {
   imageId: string;
   quad: ImageQuad | null;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  runWrite?: RunWrite;
 }) {
   const [selfOpen, setSelfOpen] = useState(false);
   const controlled = openProp !== undefined;
@@ -95,7 +106,12 @@ export function StraightenImageDialog({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-3xl">
           {open && (
-            <StraightenDialogBody imageId={imageId} quad={quad} onDone={() => setOpen(false)} />
+            <StraightenDialogBody
+              imageId={imageId}
+              quad={quad}
+              runWrite={runWrite}
+              onDone={() => setOpen(false)}
+            />
           )}
         </DialogContent>
       </Dialog>
@@ -106,10 +122,12 @@ export function StraightenImageDialog({
 function StraightenDialogBody({
   imageId,
   quad,
+  runWrite,
   onDone,
 }: {
   imageId: string;
   quad: ImageQuad | null;
+  runWrite: RunWrite;
   onDone: () => void;
 }) {
   const serving = useScanServing();
@@ -161,8 +179,12 @@ function StraightenDialogBody({
     let cancelled = false;
     async function load(): Promise<void> {
       setStatus("Preparing the original…");
-      const result = await ensureOriginal(prepare, imageId);
+      const result = await ensureOriginal(runWrite, prepare, imageId);
       if (cancelled) {
+        return;
+      }
+      if (result.original === null && result.error === null) {
+        onDone();
         return;
       }
       if (result.original === null) {
@@ -232,7 +254,7 @@ function StraightenDialogBody({
   });
 
   async function saveQuad(next: ImageQuad | null) {
-    if (await runReportedMutation(() => setQuad.mutateAsync({ imageId, quad: next }))) {
+    if (await runWrite((signal) => setQuad.mutateAsync({ imageId, quad: next }, { signal }))) {
       onDone();
     }
   }

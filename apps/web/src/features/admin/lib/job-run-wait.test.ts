@@ -22,47 +22,42 @@ function run(overrides: Partial<JobRunView>): JobRunView {
 describe("waitForJobRun", () => {
   it("keeps polling while the run is running and resolves with the finished run", async () => {
     const finished = run({ status: "succeeded", finishedAt: "2026-09-15T06:57:00.000Z" });
-    const listRuns = vi
-      .fn()
-      .mockResolvedValueOnce([run({})])
-      .mockResolvedValueOnce([run({ id: "other" }), finished]);
+    const getRun = vi.fn().mockResolvedValueOnce(run({})).mockResolvedValueOnce(finished);
     const wait = vi.fn(async () => {});
 
-    await expect(waitForJobRun("run-1", listRuns, wait)).resolves.toBe(finished);
+    await expect(waitForJobRun(getRun, wait)).resolves.toBe(finished);
 
-    expect(listRuns).toHaveBeenCalledTimes(2);
+    expect(getRun).toHaveBeenCalledTimes(2);
     expect(wait).toHaveBeenCalledWith(2000);
   });
 
   it("gives up with an error once the run has stayed running for every poll", async () => {
-    const listRuns = vi.fn().mockResolvedValue([run({})]);
+    const getRun = vi.fn().mockResolvedValue(run({}));
     const wait = vi.fn(async () => {});
 
-    await expect(waitForJobRun("run-1", listRuns, wait, 3)).rejects.toThrow(/still going/u);
-    expect(listRuns).toHaveBeenCalledTimes(3);
+    await expect(waitForJobRun(getRun, wait, 3)).rejects.toThrow(/still going/u);
+    expect(getRun).toHaveBeenCalledTimes(3);
   });
 
-  it("resolves null when the run is no longer listed", async () => {
-    const listRuns = vi.fn().mockResolvedValue([run({ id: "other" })]);
+  it("resolves null when the run no longer exists", async () => {
+    const getRun = vi.fn().mockResolvedValue(null);
 
-    await expect(waitForJobRun("run-1", listRuns, async () => {})).resolves.toBeNull();
+    await expect(waitForJobRun(getRun, async () => {})).resolves.toBeNull();
   });
 });
 
 describe("waitForJobRun abort", () => {
   it("stops polling once the signal aborts", async () => {
     const controller = new AbortController();
-    const listRuns = vi.fn().mockResolvedValue([run({})]);
+    const getRun = vi.fn().mockResolvedValue(run({}));
     const wait = vi.fn(async () => {
-      if (listRuns.mock.calls.length === 2) {
+      if (getRun.mock.calls.length === 2) {
         controller.abort();
       }
     });
 
-    await expect(waitForJobRun("run-1", listRuns, wait, 10, controller.signal)).resolves.toBe(
-      "aborted",
-    );
-    expect(listRuns).toHaveBeenCalledTimes(2);
+    await expect(waitForJobRun(getRun, wait, 10, controller.signal)).resolves.toBe("aborted");
+    expect(getRun).toHaveBeenCalledTimes(2);
   });
 });
 

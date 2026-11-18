@@ -117,8 +117,8 @@ const MOVES: {
 ];
 
 /** jsonb columns that name printings by id; a uuid only ever matches itself, so a text swap is exact. */
-const JSON_REFERENCES: { table: string; column: string }[] = [
-  { table: "lists", column: "rules" },
+const JSON_REFERENCES: { table: string; column: string; version?: string }[] = [
+  { table: "lists", column: "rules", version: "rules_version" },
   { table: "board_states", column: "document" },
   { table: "tier_lists", column: "tiers" },
   { table: "overlay_channels", column: "payload" },
@@ -322,10 +322,12 @@ async function moveReferences(
     UPDATE overlay_channels SET payload = jsonb_set(payload, '{printingId}', to_jsonb(${homeSideKey}::text))
     WHERE payload->>'printingId' = ${sourceId}
   `.execute(db);
-  for (const { table, column } of JSON_REFERENCES) {
+  for (const { table, column, version } of JSON_REFERENCES) {
     const ref = sql.ref(column);
+    const bump =
+      version === undefined ? sql`` : sql`, ${sql.ref(version)} = ${sql.ref(version)} + 1`;
     await sql`
-      UPDATE ${sql.table(table)} SET ${ref} = replace(${ref}::text, ${sourceId}, ${homeId})::jsonb
+      UPDATE ${sql.table(table)} SET ${ref} = replace(${ref}::text, ${sourceId}, ${homeId})::jsonb${bump}
       WHERE strpos(${ref}::text, ${sourceId}) > 0
     `.execute(db);
   }

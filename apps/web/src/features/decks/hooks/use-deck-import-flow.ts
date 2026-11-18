@@ -18,7 +18,8 @@ import { useLocalDecks } from "@/features/decks/hooks/use-local-decks";
 import type { DeckLinkKind } from "@/features/decks/lib/deck-compare-side";
 import { queryDeckLink } from "@/features/decks/lib/deck-compare-side";
 import {
-  dedupeMatchedEntries,
+  importOverflowMessage,
+  mergeMatchedEntries,
   defaultImportDeckName,
 } from "@/features/decks/lib/deck-import-cards";
 import type {
@@ -259,7 +260,9 @@ export function useDeckImportFlow() {
   const importableEntries = matchedEntries.filter(
     (entry, index) => entry.resolvedCard && !skippedIndices.has(index),
   );
-  const importCards = dedupeMatchedEntries(importableEntries);
+  const { cards: importCards, overflow: importOverflow } = mergeMatchedEntries(importableEntries);
+  const overflowNotice = importOverflowMessage(importOverflow);
+  const previewWarnings = overflowNotice ? [...parseWarnings, overflowNotice] : parseWarnings;
   const summaryFormat = replaceTargetDeck?.format ?? deckFormat;
   const summaryFormatConfig = replaceTargetDeck?.formatConfig ?? null;
   const visibleBuckets = matchedEntries
@@ -387,6 +390,7 @@ export function useDeckImportFlow() {
     skippedCount,
     totalCards,
     importCards,
+    previewWarnings,
     summaryFormat,
     summaryFormatConfig,
     isLoggedIn: Boolean(userId),

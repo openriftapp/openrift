@@ -28,6 +28,7 @@ export interface ListsTable {
   hasCardmarketSync: Generated<boolean>;
   rules: ColumnType<ListRules, ListRules | undefined, ListRules>;
   ruleCombine: ListRuleCombine | null;
+  rulesVersion: Generated<number>;
 }
 
 export interface ListEntriesTable {

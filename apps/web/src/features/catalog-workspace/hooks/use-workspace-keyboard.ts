@@ -1,4 +1,6 @@
 import type { WorkspaceOwner } from "@openrift/shared/contracts/admin/catalog-workspace";
+import type { QueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { useEffect, useEffectEvent } from "react";
 import { toast } from "sonner";
@@ -48,6 +50,7 @@ export interface WorkspaceKeyDeps {
   undo: () => boolean;
   overlayOpen: () => boolean;
   queue: WorkspaceWriteQueue;
+  queryClient: QueryClient;
 }
 
 type KeyEventLike = Pick<
@@ -126,12 +129,16 @@ export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps):
       if (primary.disabled === true) {
         return true;
       }
-      void deps.queue.enqueue(deps.record, async () => {
-        await primary.run();
-        if (deps.currentRecord() === deps.record) {
-          deps.goNext();
-        }
-      });
+      void deps.queue.enqueue(
+        deps.record,
+        async (signal) => {
+          await primary.run(signal);
+          if (deps.currentRecord() === deps.record) {
+            deps.goNext();
+          }
+        },
+        { queryClient: deps.queryClient },
+      );
       return true;
     }
     case "accept-new": {
@@ -139,7 +146,10 @@ export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps):
       if (accept === undefined) {
         return false;
       }
-      void deps.queue.enqueue(deps.record, accept);
+      void deps.queue.enqueue(deps.record, accept, {
+        queryClient: deps.queryClient,
+        limit: actions?.acceptLimit,
+      });
       return true;
     }
     case "ignore": {
@@ -147,7 +157,7 @@ export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps):
       if (ignore === undefined) {
         return false;
       }
-      void deps.queue.enqueue(deps.record, ignore);
+      void deps.queue.enqueue(deps.record, ignore, { queryClient: deps.queryClient });
       return true;
     }
     case "undo": {
@@ -159,7 +169,9 @@ export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps):
       }
       const apply = actions.useSuggestion;
       const { digit } = resolved;
-      void deps.queue.enqueue(deps.record, () => apply(digit));
+      void deps.queue.enqueue(deps.record, (signal) => apply(signal, digit), {
+        queryClient: deps.queryClient,
+      });
       return true;
     }
   }
@@ -170,6 +182,7 @@ export function useWorkspaceKeyboard(owner: WorkspaceOwner): void {
   const params: WorkspaceRouteParams = useParams({ strict: false });
   const onRecord = selectedKeyFromParams(params) !== null;
   const { undoLatest } = useWorkspaceUndo();
+  const queryClient = useQueryClient();
 
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
     const registration = useWorkspaceActionsStore.getState();
@@ -184,6 +197,7 @@ export function useWorkspaceKeyboard(owner: WorkspaceOwner): void {
       undo: undoLatest,
       overlayOpen: openOverlayPresent,
       queue: workspaceWriteQueue(),
+      queryClient,
     });
     if (handled) {
       event.preventDefault();

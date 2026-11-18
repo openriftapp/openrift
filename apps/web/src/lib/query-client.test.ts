@@ -10,6 +10,7 @@ import { notFoundError } from "./server-fns/api-error";
 import { _resetReloadStateForTesting } from "./stale-bundle-reload";
 import { StaleServerFnError } from "./stale-server-fn-signal";
 import { loadSonner, PERSISTENT_ERROR_TOAST } from "./toast";
+import { WriteTimedOutError } from "./write-signal";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
 vi.mock("./report-error", () => ({ captureHandledError: vi.fn() }));
@@ -96,6 +97,13 @@ describe("createQueryClient mutation onError", () => {
     expect(reloadSpy).toHaveBeenCalledTimes(1);
     expect(toast.error).not.toHaveBeenCalled();
     errorSpy.mockRestore();
+  });
+
+  it("leaves a timed-out write to the queue that reloads and explains it", () => {
+    getOnError()(new WriteTimedOutError("The write got no answer in time"), undefined, undefined);
+
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(captureHandledError).not.toHaveBeenCalled();
   });
 
   it("reports a 5xx to Sentry", () => {

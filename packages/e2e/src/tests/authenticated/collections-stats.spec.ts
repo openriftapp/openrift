@@ -314,9 +314,7 @@ test.describe("collection stats", () => {
 
         // Group-by values also label filter chips and chart legends elsewhere on
         // the page, so scope the row assertions to the Completion section itself.
-        const completion = page
-          .getByRole("heading", { name: "Completion", level: 2 })
-          .locator("xpath=ancestor::section[1]");
+        const completion = page.getByRole("region", { name: "Completion", exact: true });
 
         // Default is "Set": the only seeded set is OGS (Proving Grounds, supplemental).
         await expect(completion.getByText("Proving Grounds")).toBeVisible();

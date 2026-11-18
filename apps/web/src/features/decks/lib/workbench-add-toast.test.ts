@@ -55,6 +55,19 @@ describe("relaxedAddMessage", () => {
     ).toBe("Added Blazing Scorcher: 4 copies, over the 3-copy limit.");
   });
 
+  it("says the row is full", () => {
+    expect(
+      relaxedAddMessage({
+        rule: "rowCap",
+        card: scorcher,
+        zone: "main",
+        quantity: 0,
+        total: 99,
+        limit: 99,
+      }),
+    ).toBe("Blazing Scorcher is already at 99 copies.");
+  });
+
   it("counts battlefields against their cap", () => {
     expect(
       relaxedAddMessage({

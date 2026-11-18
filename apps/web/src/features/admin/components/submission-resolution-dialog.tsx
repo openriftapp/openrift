@@ -17,12 +17,13 @@ import {
   useSetSubmissionResolution,
   useSubmissionForCandidate,
 } from "@/features/admin/hooks/use-admin-card-submissions";
+import type { RunWrite } from "@/features/admin/lib/run-write";
+import { runWriteDirectly } from "@/features/admin/lib/run-write";
 import { CARD_NOTE_PLACEHOLDER, canSendRejection } from "@/features/admin/lib/submission-reasons";
 import {
   submissionReasonLabels,
   submissionReasonSentences,
 } from "@/features/contribute/lib/card-submission-copy";
-import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 const REASON_ORDER: CardSubmissionReason[] = [
   "not_a_card",
@@ -44,6 +45,7 @@ interface SubmissionResolutionDialogProps {
   mode: "reject" | "reply";
   onOpenChange: (open: boolean) => void;
   onConfirmed?: () => void;
+  runWrite?: RunWrite;
 }
 
 export function SubmissionResolutionDialog({
@@ -51,6 +53,7 @@ export function SubmissionResolutionDialog({
   mode,
   onOpenChange,
   onConfirmed,
+  runWrite = runWriteDirectly,
 }: SubmissionResolutionDialogProps) {
   const { data } = useSubmissionForCandidate(candidateCardId);
   const setResolution = useSetSubmissionResolution();
@@ -73,12 +76,11 @@ export function SubmissionResolutionDialog({
       return;
     }
     if (
-      !(await runReportedMutation(() =>
-        setResolution.mutateAsync({
-          candidateCardId,
-          reason: effectiveReason,
-          note: notePayload,
-        }),
+      !(await runWrite((signal) =>
+        setResolution.mutateAsync(
+          { candidateCardId, reason: effectiveReason, note: notePayload },
+          { signal },
+        ),
       ))
     ) {
       return;

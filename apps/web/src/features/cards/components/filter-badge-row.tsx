@@ -155,14 +155,20 @@ function FilterBadgeGrid({
             key={option}
             variant={!icon && isSelected ? "default" : "outline"}
             className={cn(
-              "cursor-pointer",
               icon && "pr-0",
               !icon && isExcluded && "border-destructive/40 text-destructive line-through",
               isSecondary && !isSelected && !isExcluded && "opacity-65",
               isZero && !isSelected && !isExcluded && "opacity-40",
             )}
-            onClick={() =>
-              signed ? signed.onSignedToggle(option, signed.sign ?? "include") : onToggle?.(option)
+            render={
+              <Pressable
+                aria-pressed={isSelected === true}
+                onClick={() =>
+                  signed
+                    ? signed.onSignedToggle(option, signed.sign ?? "include")
+                    : onToggle?.(option)
+                }
+              />
             }
           >
             {icon && <CardIcon src={icon} />}
@@ -175,6 +181,7 @@ function FilterBadgeGrid({
             >
               {displayLabel ? displayLabel(option) : option}
               {count !== undefined && <span className="ml-1 tabular-nums opacity-60">{count}</span>}
+              {isExcluded && <span className="sr-only"> {m.cards_filter_excluded_state()}</span>}
             </span>
           </Badge>
         );

@@ -30,7 +30,7 @@ export function DeckImportPage() {
       <DeckImportPreviewStep
         matchedEntries={flow.matchedEntries}
         allPrintings={flow.allPrintings}
-        parseWarnings={flow.parseWarnings}
+        parseWarnings={flow.previewWarnings}
         sourceNote={flow.sourceNote}
         skippedIndices={flow.skippedIndices}
         expandedValues={flow.expandedValues}

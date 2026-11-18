@@ -16,9 +16,13 @@ export function SettingsGroup({
   className?: string;
 }) {
   return (
-    <section id={id} className={cn("scroll-mt-16 space-y-6", className)}>
+    <section
+      id={id}
+      aria-labelledby={`${id}-heading`}
+      className={cn("scroll-mt-16 space-y-6", className)}
+    >
       <OrnamentRule fade="tips">
-        <SectionHeading>{title}</SectionHeading>
+        <SectionHeading id={`${id}-heading`}>{title}</SectionHeading>
       </OrnamentRule>
       <div className="flex flex-col gap-8">{children}</div>
     </section>

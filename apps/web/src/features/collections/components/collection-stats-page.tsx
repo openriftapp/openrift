@@ -114,8 +114,10 @@ export function CollectionStatsPage() {
           <StatsNoMatchState />
         ) : (
           <div className="space-y-10">
-            <section className="space-y-4">
-              <Heading>{m.collections_stats_heading_completion()}</Heading>
+            <section className="space-y-4" aria-labelledby="collection-stats-completion">
+              <Heading id="collection-stats-completion">
+                {m.collections_stats_heading_completion()}
+              </Heading>
               <CompletionSection
                 stats={stats}
                 groupBy={groupBy}
@@ -124,8 +126,10 @@ export function CollectionStatsPage() {
               />
             </section>
 
-            <section className="space-y-4">
-              <Heading>{m.collections_stats_heading_cost_to_complete()}</Heading>
+            <section className="space-y-4" aria-labelledby="collection-stats-cost-to-complete">
+              <Heading id="collection-stats-cost-to-complete">
+                {m.collections_stats_heading_cost_to_complete()}
+              </Heading>
               <CostToCompleteChart
                 allPrintings={stats.allPrintings}
                 stacks={stats.stacks}
@@ -138,14 +142,16 @@ export function CollectionStatsPage() {
             </section>
 
             {priceHistoryEnabled && (
-              <section className="space-y-4">
-                <Heading>{m.collections_stats_heading_value_over_time()}</Heading>
+              <section className="space-y-4" aria-labelledby="collection-stats-value-over-time">
+                <Heading id="collection-stats-value-over-time">
+                  {m.collections_stats_heading_value_over_time()}
+                </Heading>
                 <CollectionValueChart collectionId={collectionId} scope={scope} />
               </section>
             )}
 
-            <section className="space-y-4">
-              <Heading>{m.collections_stats_heading_stats()}</Heading>
+            <section className="space-y-4" aria-labelledby="collection-stats-stats">
+              <Heading id="collection-stats-stats">{m.collections_stats_heading_stats()}</Heading>
               <StatsHeroStats stats={stats} />
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
                 <section className="flex flex-col gap-3">

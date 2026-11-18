@@ -185,6 +185,26 @@ export function jobRunsRepo(db: Kysely<Database>) {
       return row?.latest ?? null;
     },
 
+    async getById(id: string): Promise<JobRun | null> {
+      const row = await db
+        .selectFrom("jobRuns")
+        .select([
+          "id",
+          "kind",
+          "trigger",
+          "status",
+          "startedAt",
+          "finishedAt",
+          "durationMs",
+          "errorMessage",
+          "result",
+          "isNoop as noop",
+        ])
+        .where("id", "=", id)
+        .executeTakeFirst();
+      return row ?? null;
+    },
+
     listRecent(params: { kind?: string; limit?: number }): Promise<JobRun[]> {
       let q = db
         .selectFrom("jobRuns")

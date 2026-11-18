@@ -49,8 +49,7 @@ export function ScanStage({
           className={cn(
             "bg-muted relative overflow-hidden",
             immersive
-              ? // Below the tray's z-50; the app header is hidden separately
-                // via the `data-scan-immersive` rules in index.css.
+              ? // Below the tray's z-50; the /scan/camera route drops the app header.
                 cn(
                   "fixed left-0 z-40",
                   fullscreen ? "top-0" : "top-(--header-height)",

@@ -359,4 +359,24 @@ describe("useOptimisticMutation", () => {
     expect(fetches).toBe(2);
     await waitFor(() => expect(result.current.mutation.isSuccess).toBe(true));
   });
+
+  it("hands a call's signal to mutationFn and its plain variables to apply and the key", async () => {
+    const { client, wrapper } = setup({ items: [{ id: "a", hidden: false }] });
+    const mutationFn = vi.fn(async (_id: string, _signal?: AbortSignal) => {});
+    const queryKey = vi.fn((_id: string) => KEY);
+    const { signal } = new AbortController();
+    const { result } = renderHook(
+      () => useOptimisticMutation<Lists, string>({ queryKey, mutationFn, apply: hide }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.mutateAsync("a", { signal });
+    });
+
+    expect(mutationFn).toHaveBeenCalledWith("a", signal);
+    expect(queryKey).toHaveBeenCalledWith("a");
+    expect(queryKey.mock.calls.every(([id]) => id === "a")).toBe(true);
+    expect(client.getQueryData(KEY)).toEqual({ items: [{ id: "a", hidden: true }] });
+  });
 });

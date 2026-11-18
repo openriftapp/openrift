@@ -80,6 +80,7 @@ import { useValueLabels } from "@/features/catalog-workspace/hooks/use-face-reco
 import type { PrintingChip } from "@/features/catalog-workspace/hooks/use-printing-record-actions";
 import { usePrintingRecordActions } from "@/features/catalog-workspace/hooks/use-printing-record-actions";
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
+import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import {
   ADMIN_ONLY_DISCARD,
   ADMIN_ONLY_REPLY,
@@ -94,7 +95,6 @@ import { discardLabel, primaryLabel } from "@/features/catalog-workspace/lib/sug
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
 import { errorText } from "@/lib/error-text";
-import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { PERSISTENT_ERROR_TOAST } from "@/lib/toast";
 
 type PrintingField = "channel" | "size" | "announced" | "release" | "comment";
@@ -159,6 +159,7 @@ function PrintingRecordBody({
   const costKeywords = useCostKeywords();
   const labels = useValueLabels();
   const navigation = useQueueNavigation("printing");
+  const queueWrite = useQueueWorkspaceWrite();
   const [editing, setEditing] = useState<PrintingField | null>(null);
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<string | null>(null);
@@ -368,6 +369,7 @@ function PrintingRecordBody({
                 <PrintingActionsMenu
                   printing={printing}
                   invalidates={RECORD_DELETE_SCOPE}
+                  runWrite={queueWrite}
                   onDeleted={() => navigation.goNext()}
                 />
               )}
@@ -512,7 +514,7 @@ function PrintingRecordBody({
 
       {canDesk && (
         <RecordSection title="Links">
-          <PrintingCitationsEditor printingId={printingId} />
+          <PrintingCitationsEditor printingId={printingId} runWrite={queueWrite} />
         </RecordSection>
       )}
 
@@ -533,6 +535,7 @@ function PrintingRecordBody({
       <SendNoteDialog
         candidateCardId={replyTo}
         submitterName={replyTo === null ? null : submitterNameOf(details, replyTo)}
+        runWrite={queueWrite}
         onOpenChange={(open) => {
           if (!open) {
             setReplyTo(null);
@@ -543,6 +546,7 @@ function PrintingRecordBody({
         candidateCardId={rejecting}
         submitterName={rejecting === null ? null : submitterNameOf(details, rejecting)}
         kindLabel="Correction"
+        runWrite={queueWrite}
         onOpenChange={(open) => {
           if (!open) {
             setRejecting(null);
@@ -565,6 +569,7 @@ function MappedListings({
   printingId: string;
   mapped: AdminCardDetailResponse["marketplaceMappings"];
 }) {
+  const queueWrite = useQueueWorkspaceWrite();
   const unmap = useUnmapMarketplacePrinting([
     adminKeys.cards.all,
     adminKeys.unifiedMappings.all,
@@ -591,13 +596,18 @@ function MappedListings({
             size="xs"
             disabled={unmap.isPending}
             onClick={() =>
-              unmap.mutate({
-                marketplace: mapping.marketplace,
-                printingId,
-                externalId: mapping.externalId,
-                finish: mapping.finish,
-                language: mapping.variantLanguage,
-              })
+              void queueWrite((signal) =>
+                unmap.mutateAsync(
+                  {
+                    marketplace: mapping.marketplace,
+                    printingId,
+                    externalId: mapping.externalId,
+                    finish: mapping.finish,
+                    language: mapping.variantLanguage,
+                  },
+                  { signal },
+                ),
+              )
             }
           >
             Unmap
@@ -621,6 +631,7 @@ function FaceSummary({
   faceCount: number;
   isAdmin: boolean;
 }) {
+  const queueWrite = useQueueWorkspaceWrite();
   const removeFace = useRemoveDeskSecondSide();
   const setFace = useSetDeskSecondSide();
   const [replacing, setReplacing] = useState(false);
@@ -632,12 +643,15 @@ function FaceSummary({
   const error = removeFace.error ?? setFace.error;
 
   const replace = async (faceId: string) => {
-    const outcome = await replaceSecondFace({
-      remove: removeFace.mutateAsync,
-      set: setFace.mutateAsync,
-      printingId: printing.printingId,
-      oldFaceId: face.faceId,
-      newFaceId: faceId,
+    let outcome: Awaited<ReturnType<typeof replaceSecondFace>> | undefined;
+    await queueWrite(async (signal) => {
+      outcome = await replaceSecondFace({
+        remove: (input) => removeFace.mutateAsync(input, { signal }),
+        set: (input) => setFace.mutateAsync(input, { signal }),
+        printingId: printing.printingId,
+        oldFaceId: face.faceId,
+        newFaceId: faceId,
+      });
     });
     if (outcome === "replaced") {
       setReplacing(false);
@@ -706,7 +720,12 @@ function FaceSummary({
               size="sm"
               pending={removeFace.isPending}
               onClick={() =>
-                removeFace.mutate({ printingId: printing.printingId, faceId: face.faceId })
+                void queueWrite((signal) =>
+                  removeFace.mutateAsync(
+                    { printingId: printing.printingId, faceId: face.faceId },
+                    { signal },
+                  ),
+                )
               }
             >
               Remove
@@ -731,6 +750,7 @@ function FaceSummary({
 }
 
 function AddFace({ printing }: { printing: DeskPrintingRow }) {
+  const queueWrite = useQueueWorkspaceWrite();
   const setFace = useSetDeskSecondSide();
 
   return (
@@ -742,7 +762,14 @@ function AddFace({ printing }: { printing: DeskPrintingRow }) {
       <SideSearch
         excludeFaceIds={[printing.faceId]}
         disabled={setFace.isPending}
-        onPick={(side) => setFace.mutate({ printingId: printing.printingId, faceId: side.faceId })}
+        onPick={(side) =>
+          void queueWrite((signal) =>
+            setFace.mutateAsync(
+              { printingId: printing.printingId, faceId: side.faceId },
+              { signal },
+            ),
+          )
+        }
       />
       {setFace.error && (
         <p className="text-destructive text-sm">
@@ -762,6 +789,7 @@ function PrintingFieldEditor({
   field: PrintingField;
   onDone: () => void;
 }) {
+  const queueWrite = useQueueWorkspaceWrite();
   const update = useUpdateDeskPrinting();
   const { orders, labels } = useEnumOrders();
   const [channels, setChannels] = useState<string[]>([...printing.distributionChannelSlugs]);
@@ -800,7 +828,7 @@ function PrintingFieldEditor({
 
   async function save() {
     const input = { printingId: printing.printingId, ...patch() };
-    if (await runReportedMutation(() => update.mutateAsync(input))) {
+    if (await queueWrite((signal) => update.mutateAsync(input, { signal }))) {
       onDone();
     }
   }

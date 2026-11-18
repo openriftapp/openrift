@@ -4,7 +4,6 @@ import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
 import { CopyIcon, EllipsisVerticalIcon } from "lucide-react";
-import { Suspense, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -26,9 +25,8 @@ import { useCopyDeckCode } from "@/features/decks/hooks/use-copy-deck-code";
 import { toEncodeDeckCards } from "@/features/decks/lib/deck-encode-input";
 import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
 import { MetaContributors } from "@/features/meta/components/meta-contributors";
-import type { MetaOwnedCards } from "@/features/meta/components/meta-owned-cards-bridge";
-import { MetaOwnedCardsBridge } from "@/features/meta/components/meta-owned-cards-bridge";
 import { useMetaDeck } from "@/features/meta/hooks/use-meta";
+import { useMetaOwnedCards } from "@/features/meta/hooks/use-meta-owned-cards";
 import { describeIncompleteList, unknownZoneCounts } from "@/features/meta/lib/meta-deck-archive";
 import type { MetaBanGroup, MetaDeckCardBan } from "@/features/meta/lib/meta-deck-bans";
 import { metaDeckCardBanStates } from "@/features/meta/lib/meta-deck-bans";
@@ -169,7 +167,7 @@ export function MetaEventDeckPreview({
   const deckCode = useCopyDeckCode(toEncodeDeckCards(data.cards));
   const hydrated = useHydrated();
   const signIn = useSignInSearch();
-  const [owned, setOwned] = useState<MetaOwnedCards>();
+  const owned = useMetaOwnedCards(hydrated && copyToMyDecks.isLoggedIn);
   const cardPreview = useCardHoverPreview("[data-card-image]");
   const bandFor = (card: PublicDeckCardResponse) =>
     owned === undefined
@@ -226,11 +224,6 @@ export function MetaEventDeckPreview({
 
   return (
     <div className="flex flex-col gap-2.5">
-      {hydrated && copyToMyDecks.isLoggedIn && (
-        <Suspense fallback={null}>
-          <MetaOwnedCardsBridge onChange={setOwned} />
-        </Suspense>
-      )}
       <div
         className="flex flex-wrap items-end gap-x-4 gap-y-1.5"
         onPointerOver={cardPreview.handlePointerOver}

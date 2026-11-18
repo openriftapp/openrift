@@ -1,4 +1,4 @@
-import { mergeDeckCards } from "@openrift/shared/deck-cards";
+import { MAX_DECK_CARD_QUANTITY, mergeDeckCardsWithOverflow } from "@openrift/shared/deck-cards";
 import type { DeckZone } from "@openrift/shared/types/enums";
 
 import { m } from "@/paraglide/messages.js";
@@ -18,22 +18,57 @@ export interface ImportedDeckCard {
 interface MatchedEntryLike {
   zone: DeckZone;
   entry: { quantity: number };
-  resolvedCard: { cardId: string; preferredPrintingId: string | null } | null;
+  resolvedCard: { cardId: string; displayName?: string; preferredPrintingId: string | null } | null;
+}
+
+/** Copies one imported row lost to the per-row cap. */
+export interface ImportOverflow {
+  name: string;
+  count: number;
+}
+
+/** Merges matched entries into deck rows and reports the copies the per-row cap cut. */
+export function mergeMatchedEntries(entries: readonly MatchedEntryLike[]): {
+  cards: ImportedDeckCard[];
+  overflow: ImportOverflow[];
+} {
+  const names = new Map<string, string>();
+  const lines = entries.flatMap((entry) => {
+    if (!entry.resolvedCard) {
+      return [];
+    }
+    names.set(entry.resolvedCard.cardId, entry.resolvedCard.displayName ?? "");
+    return [
+      {
+        cardId: entry.resolvedCard.cardId,
+        zone: entry.zone,
+        quantity: entry.entry.quantity,
+        preferredPrintingId: entry.resolvedCard.preferredPrintingId,
+      },
+    ];
+  });
+  const { cards, overflow } = mergeDeckCardsWithOverflow(lines);
+  return {
+    cards,
+    overflow: overflow.map(({ card, count }) => ({
+      name: names.get(card.cardId) || card.cardId,
+      count,
+    })),
+  };
 }
 
 export function dedupeMatchedEntries(entries: readonly MatchedEntryLike[]): ImportedDeckCard[] {
-  return mergeDeckCards(
-    entries.flatMap((entry) =>
-      entry.resolvedCard
-        ? [
-            {
-              cardId: entry.resolvedCard.cardId,
-              zone: entry.zone,
-              quantity: entry.entry.quantity,
-              preferredPrintingId: entry.resolvedCard.preferredPrintingId,
-            },
-          ]
-        : [],
-    ),
-  );
+  return mergeMatchedEntries(entries).cards;
+}
+
+/** The import notice for cut copies, or null when nothing was cut. */
+export function importOverflowMessage(overflow: readonly ImportOverflow[]): string | null {
+  if (overflow.length === 0) {
+    return null;
+  }
+  return m.decks_import_over_limit({
+    count: overflow.reduce((sum, row) => sum + row.count, 0),
+    max: MAX_DECK_CARD_QUANTITY,
+    cards: overflow.map((row) => row.name).join(", "),
+  });
 }

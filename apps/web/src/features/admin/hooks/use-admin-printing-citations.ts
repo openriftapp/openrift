@@ -48,7 +48,7 @@ const createPrintingCitationFn = createServerFn({ method: "POST" })
 
 export function useCreatePrintingCitation() {
   return useMutationWithInvalidation<AdminPrintingCitation, CreatePrintingCitationInput>({
-    mutationFn: (vars) => createPrintingCitationFn({ data: vars }),
+    mutationFn: (vars, signal) => createPrintingCitationFn({ data: vars, signal }),
     invalidates: (vars) => [adminKeys.printingCitations(vars.printingId), ...PUBLIC_CATALOG_KEYS],
   });
 }
@@ -64,7 +64,7 @@ const updatePrintingCitationFn = createServerFn({ method: "POST" })
 
 export function useUpdatePrintingCitation() {
   return useMutationWithInvalidation<void, UpdatePrintingCitationInput>({
-    mutationFn: (vars) => updatePrintingCitationFn({ data: vars }),
+    mutationFn: (vars, signal) => updatePrintingCitationFn({ data: vars, signal }),
     invalidates: (vars) => [adminKeys.printingCitations(vars.printingId), ...PUBLIC_CATALOG_KEYS],
   });
 }
@@ -81,8 +81,8 @@ const deletePrintingCitationFn = createServerFn({ method: "POST" })
 
 export function useDeletePrintingCitation() {
   return useMutationWithInvalidation({
-    mutationFn: (vars: { printingId: string; citationId: string }) =>
-      deletePrintingCitationFn({ data: vars }),
+    mutationFn: (vars: { printingId: string; citationId: string }, signal) =>
+      deletePrintingCitationFn({ data: vars, signal }),
     invalidates: (vars) => [adminKeys.printingCitations(vars.printingId), ...PUBLIC_CATALOG_KEYS],
   });
 }

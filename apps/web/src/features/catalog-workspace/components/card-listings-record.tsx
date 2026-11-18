@@ -46,7 +46,7 @@ import {
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
-import { queueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
+import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import type { ListingVariantGroup } from "@/features/catalog-workspace/lib/card-listing-groups";
 import { unmatchedListingGroups } from "@/features/catalog-workspace/lib/card-listing-groups";
 import type { CardListingRow } from "@/features/catalog-workspace/lib/card-listing-rows";
@@ -70,6 +70,7 @@ function skuOf(row: CardListingRow) {
 }
 
 async function ignoreVariantGroup(
+  signal: AbortSignal,
   group: ListingVariantGroup,
   ignores: IgnoreVariants,
 ): Promise<{
@@ -80,7 +81,10 @@ async function ignoreVariantGroup(
   const runs = await Promise.all(
     [...byMarketplace].map(async ([marketplace, rows]) => {
       const ok = await runReportedMutation(() =>
-        ignores[marketplace].mutateAsync(rows.map((row) => skuOf(row))),
+        ignores[marketplace].mutateAsync(
+          rows.map((row) => skuOf(row)),
+          { signal },
+        ),
       );
       return ok ? { marketplace, rows } : null;
     }),
@@ -135,6 +139,7 @@ export function CardListingsRecord({ ownerId }: { ownerId: string }) {
 }
 
 function CardListingsBody({ cardSlug, item }: { cardSlug: string; item: WorkspaceQueueItem }) {
+  const queueWrite = useQueueWorkspaceWrite();
   const navigation = useQueueNavigation("printing");
   const queryClient = useQueryClient();
   const { labels } = useEnumOrders();
@@ -151,9 +156,9 @@ function CardListingsBody({ cardSlug, item }: { cardSlug: string; item: Workspac
       : unmatchedListingGroups(mapping, computeProductSuggestions(mapping), variants);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: adminKeys.workspace });
-  const ignoreGroup = async (group: ListingVariantGroup, what: string) => {
+  const ignoreGroup = async (signal: AbortSignal, group: ListingVariantGroup, what: string) => {
     const last = groups.length === 1;
-    const { ignored, complete } = await ignoreVariantGroup(group, ignores);
+    const { ignored, complete } = await ignoreVariantGroup(signal, group, ignores);
     if (ignored.length === 0) {
       return;
     }
@@ -215,8 +220,8 @@ function CardListingsBody({ cardSlug, item }: { cardSlug: string; item: Workspac
                     size="sm"
                     disabled={ignoring}
                     onClick={() =>
-                      void queueWorkspaceWrite(() =>
-                        ignoreGroup(group, `the ${variantName} variant`),
+                      void queueWrite((signal) =>
+                        ignoreGroup(signal, group, `the ${variantName} variant`),
                       )
                     }
                   >
@@ -255,6 +260,7 @@ function ListingLine({
   disabled: boolean;
   onDone: () => Promise<void>;
 }) {
+  const queueWrite = useQueueWorkspaceWrite();
   const { marketplace, product } = row;
   const save = useUnifiedSaveMappings(marketplace);
   const ignoreVariant = useUnifiedIgnoreVariants(marketplace);
@@ -269,10 +275,13 @@ function ListingLine({
       await onDone();
     }
   };
-  const assign = async (printingId: string) => {
+  const assign = async (signal: AbortSignal, printingId: string) => {
     let result: Awaited<ReturnType<typeof save.mutateAsync>> | undefined;
     const ok = await runReportedMutation(async () => {
-      result = await save.mutateAsync({ mappings: [listingAssignment(row, printingId)] });
+      result = await save.mutateAsync(
+        { mappings: [listingAssignment(row, printingId)] },
+        { signal },
+      );
     });
     if (ok && result && result.skipped.length === 0) {
       announce(assignedListingUndo(marketplace, skuOf(row), printingId, record));
@@ -321,9 +330,9 @@ function ListingLine({
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() =>
-                void queueWorkspaceWrite(() =>
+                void queueWrite((signal) =>
                   finish(
-                    () => ignoreVariant.mutateAsync([skuOf(row)]),
+                    () => ignoreVariant.mutateAsync([skuOf(row)], { signal }),
                     ignoredVariantsUndo(marketplace, [skuOf(row)], record),
                   ),
                 )
@@ -334,9 +343,10 @@ function ListingLine({
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() =>
-                void queueWorkspaceWrite(() =>
+                void queueWrite((signal) =>
                   finish(
-                    () => ignoreProduct.mutateAsync([{ externalId: product.externalId }]),
+                    () =>
+                      ignoreProduct.mutateAsync([{ externalId: product.externalId }], { signal }),
                     ignoredProductUndo(marketplace, product.externalId, record),
                   ),
                 )
@@ -352,7 +362,7 @@ function ListingLine({
         <Suspense fallback={<Skeleton className="h-9" />}>
           <ListingPrintingCombobox
             disabled={pending}
-            onPick={(printingId) => void queueWorkspaceWrite(() => assign(printingId))}
+            onPick={(printingId) => void queueWrite((signal) => assign(signal, printingId))}
           />
         </Suspense>
       )}

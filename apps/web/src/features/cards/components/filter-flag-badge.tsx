@@ -2,7 +2,9 @@ import { MinusIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Pressable } from "@/components/ui/pressable";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export function FlagBadge({
   label,
@@ -26,6 +28,7 @@ export function FlagBadge({
       {isExcluded && <MinusIcon className="size-3 shrink-0" />}
       <span className={cn(isExcluded && "line-through")}>{label}</span>
       {count !== undefined && <span className="tabular-nums opacity-60">{count}</span>}
+      {isExcluded && <span className="sr-only"> {m.cards_filter_excluded_state()}</span>}
     </>
   );
   if (triggerStyle === "button") {
@@ -50,11 +53,11 @@ export function FlagBadge({
     <Badge
       variant={state === true ? "default" : "outline"}
       className={cn(
-        "cursor-pointer gap-1",
+        "gap-1",
         isExcluded && "border-destructive/40 text-destructive",
         isZero && !isActive && "opacity-40",
       )}
-      onClick={onClick}
+      render={<Pressable aria-pressed={state === true} onClick={onClick} />}
     >
       {content}
     </Badge>

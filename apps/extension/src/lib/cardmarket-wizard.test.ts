@@ -1,10 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { annotate } from "./cardmarket-annotate";
 import { extractWizardRows } from "./cardmarket-rows";
 import {
   isPickAllClick,
-  relayoutSellerCards,
+  observeSellerCards,
   renderWizardPanel,
   sellerShipping,
   wizardLines,
@@ -84,25 +84,78 @@ describe("wizardLines", () => {
   });
 });
 
-describe("relayoutSellerCards", () => {
-  it("fires a resize only when a seller card's height changed since the last one", () => {
-    // A DOMParser document has no window; the live one does.
-    let resized = 0;
-    window.addEventListener("resize", () => {
-      resized += 1;
-    });
+describe("observeSellerCards", () => {
+  type Callback = (entries: unknown[]) => void;
+  let callback: Callback = () => {};
+  const observed = new Set<Element>();
+  let disconnected = 0;
+
+  beforeEach(() => {
+    observed.clear();
+    disconnected = 0;
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(cb: Callback) {
+          callback = cb;
+        }
+        observe(target: Element) {
+          observed.add(target);
+        }
+        unobserve(target: Element) {
+          observed.delete(target);
+        }
+        disconnect() {
+          disconnected += 1;
+          observed.clear();
+        }
+      },
+    );
     document.body.innerHTML = card(wizardRow(1, 866_920, "Undertitan", 2, "0,35 €"));
-    const sellerCard = document.querySelector<HTMLElement>(".detailed-result-card");
-    let height = 300;
-    Object.defineProperty(sellerCard, "offsetHeight", { get: () => height });
+  });
 
-    expect(relayoutSellerCards(document, document)).toBe(true);
-    expect(relayoutSellerCards(document, document)).toBe(false);
-    height = 324;
-    expect(relayoutSellerCards(document, document)).toBe(true);
-
-    expect(resized).toBe(2);
+  afterEach(() => {
+    vi.unstubAllGlobals();
     document.body.replaceChildren();
+  });
+
+  function report(height: number) {
+    const target = document.querySelector(".detailed-result-card");
+    callback([{ target, borderBoxSize: [{ blockSize: height }], contentRect: { height } }]);
+  }
+
+  it("fires a resize only when a seller card's height differs from the last observed one", () => {
+    const resize = vi.fn();
+    window.addEventListener("resize", resize);
+    observeSellerCards(document).sync(document);
+
+    report(300);
+    report(300);
+    report(324);
+
+    window.removeEventListener("resize", resize);
+    expect(resize).toHaveBeenCalledTimes(2);
+  });
+
+  it("stops observing cards that left the document", () => {
+    const cards = observeSellerCards(document);
+    cards.sync(document);
+    expect(observed.size).toBe(1);
+
+    document.body.replaceChildren();
+    cards.sync(document);
+
+    expect(observed.size).toBe(0);
+  });
+
+  it("disconnects the observer on teardown", () => {
+    const cards = observeSellerCards(document);
+    cards.sync(document);
+
+    cards.disconnect();
+
+    expect(disconnected).toBe(1);
+    expect(observed.size).toBe(0);
   });
 });
 

@@ -101,3 +101,11 @@ describe("/scan head", () => {
     expect(headCanonical(head)).toBeUndefined();
   });
 });
+
+describe("/scan/camera route", () => {
+  it("asks the root shell to drop the app frame", async () => {
+    const { Route: CameraRoute } = await import("./scan.camera");
+
+    expect(CameraRoute.options.staticData).toMatchObject({ chrome: "bare" });
+  });
+});

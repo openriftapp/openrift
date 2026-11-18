@@ -1,14 +1,15 @@
 import type { MutationCache } from "@tanstack/react-query";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { reportMutationError } from "@/lib/query-client";
+import { useSignalledMutation } from "@/lib/write-signal";
 
 type QueryKey = readonly unknown[];
 
 export function useOptimisticMutation<TCache, TVariables = void, TData = unknown>(options: {
   mutationKey?: QueryKey;
   queryKey: QueryKey | ((variables: TVariables) => QueryKey);
-  mutationFn: (variables: TVariables) => Promise<TData>;
+  mutationFn: (variables: TVariables, signal?: AbortSignal) => Promise<TData>;
   apply: (cached: TCache, variables: TVariables) => TCache;
   /** Undoes `apply` on the cache as it is when the write fails; without it the whole snapshot returns. */
   rollback?: (cached: TCache, variables: TVariables, previous: TCache) => TCache;
@@ -28,7 +29,7 @@ export function useOptimisticMutation<TCache, TVariables = void, TData = unknown
   } = options;
   const keyFor = (variables: TVariables) =>
     typeof queryKey === "function" ? queryKey(variables) : queryKey;
-  return useMutation<TData, Error, TVariables, { previous: TCache | undefined }>({
+  return useSignalledMutation<TData, TVariables, { previous: TCache | undefined }>({
     mutationKey,
     mutationFn,
     onMutate: async (variables) => {

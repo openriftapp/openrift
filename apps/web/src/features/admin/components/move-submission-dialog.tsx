@@ -15,15 +15,17 @@ import { DialogForm } from "@/components/ui/dialog-form";
 import { useAllCards } from "@/features/admin/hooks/use-admin-card-queries";
 import type { SettleScope } from "@/features/admin/hooks/use-catalog-review";
 import { useMoveSubmission } from "@/features/admin/hooks/use-catalog-review";
+import type { RunWrite } from "@/features/admin/lib/run-write";
+import { runWriteDirectly } from "@/features/admin/lib/run-write";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { useAdminCardSearch } from "@/features/cards/hooks/use-card-search";
-import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 interface MoveSubmissionDialogProps {
   candidateCardId: string | null;
   submitterName: string | null;
   scope?: SettleScope;
   onOpenChange: (open: boolean) => void;
+  runWrite?: RunWrite;
 }
 
 export function MoveSubmissionDialog({
@@ -31,6 +33,7 @@ export function MoveSubmissionDialog({
   submitterName,
   scope,
   onOpenChange,
+  runWrite = runWriteDirectly,
 }: MoveSubmissionDialogProps) {
   return (
     <Dialog open={candidateCardId !== null} onOpenChange={onOpenChange}>
@@ -40,6 +43,7 @@ export function MoveSubmissionDialog({
             candidateCardId={candidateCardId}
             submitterName={submitterName}
             scope={scope}
+            runWrite={runWrite}
             onDone={() => onOpenChange(false)}
           />
         )}
@@ -52,11 +56,13 @@ function MoveSubmissionForm({
   candidateCardId,
   submitterName,
   scope,
+  runWrite,
   onDone,
 }: {
   candidateCardId: string;
   submitterName: string | null;
   scope?: SettleScope;
+  runWrite: RunWrite;
   onDone: () => void;
 }) {
   const navigate = useNavigate();
@@ -72,8 +78,8 @@ function MoveSubmissionForm({
       return;
     }
     let moved: Awaited<ReturnType<typeof moveSubmission.mutateAsync>> | undefined;
-    const ok = await runReportedMutation(async () => {
-      moved = await moveSubmission.mutateAsync({ candidateCardId, cardId });
+    const ok = await runWrite(async (signal) => {
+      moved = await moveSubmission.mutateAsync({ candidateCardId, cardId }, { signal });
     });
     if (!ok || !moved) {
       return;

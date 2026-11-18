@@ -16,7 +16,8 @@ import { createStoreResetter } from "@/test/store-helpers";
 const router = vi.hoisted(() => ({
   navigate: vi.fn(),
   params: {} as Record<string, string>,
-  liveParams: null as Record<string, string> | null,
+  pathname: "/admin/workspace/cards/jinx-loose-cannon",
+  livePathname: null as string | null,
   search: {} as Record<string, unknown>,
 }));
 
@@ -27,9 +28,15 @@ const access = vi.hoisted(() => ({
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => router.navigate,
   useParams: () => router.params,
+  useRouterState: ({
+    select,
+  }: {
+    select: (state: { resolvedLocation: { pathname: string } }) => string;
+  }) => select({ resolvedLocation: { pathname: router.pathname } }),
   useRouter: () => ({
-    latestLocation: { pathname: "/admin/workspace" },
-    getMatchedRoutes: () => [[], router.liveParams ?? router.params, undefined],
+    get latestLocation() {
+      return { pathname: router.livePathname ?? router.pathname };
+    },
   }),
   useSearch: () => router.search,
 }));
@@ -89,7 +96,8 @@ beforeEach(() => {
   resetPane = createStoreResetter(useWorkspaceRecordPaneStore);
   router.navigate.mockReset();
   router.params = {};
-  router.liveParams = null;
+  router.pathname = "/admin/workspace/cards/jinx-loose-cannon";
+  router.livePathname = null;
   router.search = {};
   access.value = { isAdmin: true, sections: [] };
 });
@@ -250,7 +258,7 @@ describe("useQueueNavigation", () => {
     const { result } = renderHook(() => useQueueNavigation("card"), { wrapper });
     await waitFor(() => expect(result.current.position).not.toBeNull());
     const { goNext } = result.current;
-    router.liveParams = { cardSlug: "yasuo-unforgiven" };
+    router.livePathname = "/admin/workspace/cards/yasuo-unforgiven";
 
     goNext();
 

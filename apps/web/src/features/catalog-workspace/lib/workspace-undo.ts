@@ -11,7 +11,7 @@ export interface WorkspaceUndoText {
 
 export interface WorkspaceUndoEntry extends WorkspaceUndoText {
   invalidates: QueryScope;
-  undo: () => Promise<void>;
+  undo: (signal: AbortSignal) => Promise<void>;
 }
 
 export function undoScope(...scopes: QueryScope[]): QueryScope {
@@ -98,6 +98,14 @@ export function goneNotice(entry: WorkspaceUndoEntry): string {
   return `Can't undo "${entry.label}": it was deleted since`;
 }
 
+export function changedNotice(entry: WorkspaceUndoEntry): string {
+  return `Changed since, not undone: "${entry.label}"`;
+}
+
+export function unknownUndoNotice(entry: WorkspaceUndoEntry): string {
+  return `Undo result unknown: "${entry.label}" changed since an undo that got no answer. The record was reloaded.`;
+}
+
 export function combinedUndo(
   text: WorkspaceUndoText,
   entries: readonly WorkspaceUndoEntry[],
@@ -105,8 +113,8 @@ export function combinedUndo(
   return {
     ...text,
     invalidates: entries.flatMap((entry) => entry.invalidates),
-    undo: async () => {
-      await Promise.all(entries.map((entry) => entry.undo()));
+    undo: async (signal) => {
+      await Promise.all(entries.map((entry) => entry.undo(signal)));
     },
   };
 }

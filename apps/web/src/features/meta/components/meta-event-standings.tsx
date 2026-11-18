@@ -10,7 +10,7 @@ import type {
 } from "@openrift/shared/types/api/meta";
 import type { MetaEventStatus } from "@openrift/shared/types/enums";
 import { getRouteApi } from "@tanstack/react-router";
-import { Suspense, useState } from "react";
+import { useState } from "react";
 
 import { Heading } from "@/components/heading";
 import { SearchInput } from "@/components/search-input";
@@ -20,13 +20,11 @@ import { PAGER_SCROLL_TARGET, Pager } from "@/components/ui/pager";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CardDetailOverlayProvider } from "@/features/cards/components/card-detail-opener";
-import { MetaDeckBansBridge } from "@/features/meta/components/meta-deck-bans-bridge";
 import type { MetaCostFilterValue } from "@/features/meta/components/meta-deck-cost-filter";
 import {
   EMPTY_META_COST_FILTER,
   MetaDeckCostFilter,
 } from "@/features/meta/components/meta-deck-cost-filter";
-import { MetaDeckCostsBridge } from "@/features/meta/components/meta-deck-costs-bridge";
 import {
   DesktopStandings,
   PhoneStandings,
@@ -35,8 +33,8 @@ import { MetaEventStandingsByLegend } from "@/features/meta/components/meta-even
 import { MetaListShapeKey } from "@/features/meta/components/meta-list-shape-bar";
 import { MetaPageSizePicker } from "@/features/meta/components/meta-page-size-picker";
 import { useMetaLegendGroupRows, useMetaStandings } from "@/features/meta/hooks/use-meta";
-import type { MetaBanGroup } from "@/features/meta/lib/meta-deck-bans";
-import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
+import { useMetaDeckBans } from "@/features/meta/hooks/use-meta-deck-bans";
+import { useMetaDeckCosts } from "@/features/meta/hooks/use-meta-deck-costs";
 import { partialListDeckIds } from "@/features/meta/lib/meta-deck-collection";
 import {
   ANY_LEGEND,
@@ -117,8 +115,6 @@ export function MetaEventStandings({
   const navigate = routeApi.useNavigate();
   const canSubmit = useUserId() !== null;
   const hydrated = useHydrated();
-  const [costs, setCosts] = useState<ReadonlyMap<string, MetaDeckCost>>();
-  const [bans, setBans] = useState<ReadonlyMap<string, MetaBanGroup[]>>();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   // The Value column prices the sideboard in, so the filter has to price it in too.
   const [costFilter, setCostFilter] = useState<MetaCostFilterValue>({
@@ -139,7 +135,6 @@ export function MetaEventStandings({
     });
   };
 
-  const costActive = costs !== undefined && isCostFilterActive(costFilter);
   const narrowToLists = () => {
     if (search.list !== "with") {
       setNarrowedToLists(true);
@@ -172,6 +167,18 @@ export function MetaEventStandings({
     ...(unknownGroup === null ? [] : [unknownGroup.cardId]),
   ];
   const groupRows = useMetaLegendGroupRows(slug, byLegend ? openIds : [], LEGEND_GROUP_ROWS);
+  const columns = standingsColumns(field, canSubmit || pending.size > 0);
+  const players = isError ? [] : page.players;
+  const costs = useMetaDeckCosts(costFilter.includeSideboard, {
+    enabled: hydrated && columns.value,
+    withCollection: canSubmit,
+    decks: { event: slug },
+    // The group rows go in as their own argument: merging them into one array
+    // here stops the compiler memoizing this whole component.
+    partialDeckIds: partialListDeckIds(players, groupRows.lists),
+  });
+  const bans = useMetaDeckBans({ event: slug }, hydrated && field.withLists > 0);
+  const costActive = costs !== undefined && isCostFilterActive(costFilter);
 
   if (firstPage.total === 0) {
     return (
@@ -186,8 +193,6 @@ export function MetaEventStandings({
     );
   }
 
-  const columns = standingsColumns(field, canSubmit || pending.size > 0);
-  const players = isError ? [] : page.players;
   const matching = costActive
     ? players.filter((player) =>
         costMatchesBounds(
@@ -216,25 +221,6 @@ export function MetaEventStandings({
   return (
     <CardDetailOverlayProvider>
       <section className="mt-8">
-        {hydrated && columns.value && (
-          <Suspense fallback={null}>
-            <MetaDeckCostsBridge
-              includeSideboard={costFilter.includeSideboard}
-              withCollection={canSubmit}
-              decks={{ event: slug }}
-              // The group rows go in as their own argument: merging them into one array
-              // here stops the compiler memoizing this whole component.
-              partialDeckIds={partialListDeckIds(players, groupRows.lists)}
-              onChange={setCosts}
-            />
-          </Suspense>
-        )}
-        {hydrated && field.withLists > 0 && (
-          <Suspense fallback={null}>
-            <MetaDeckBansBridge decks={{ event: slug }} onChange={setBans} />
-          </Suspense>
-        )}
-
         <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <Heading>{m.meta_standings_heading()}</Heading>
           <p className="text-muted-foreground text-sm">

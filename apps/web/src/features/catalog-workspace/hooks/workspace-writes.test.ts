@@ -1,3 +1,4 @@
+import { QueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -10,6 +11,7 @@ import { createStoreResetter } from "@/test/store-helpers";
 import { queuedWorkspaceWrite, queueWorkspaceWrite } from "./workspace-writes";
 
 let resetActions: () => void;
+const queryClient = new QueryClient();
 
 beforeEach(() => {
   resetActions = createStoreResetter(useWorkspaceActionsStore);
@@ -31,10 +33,11 @@ describe("queueWorkspaceWrite", () => {
         new Promise<void>((resolve) => {
           gate.open = resolve;
         }),
+      { queryClient },
     );
     const write = vi.fn();
 
-    const queued = queueWorkspaceWrite(write);
+    const queued = queueWorkspaceWrite(queryClient, write);
     await vi.waitFor(() => expect(workspaceWriteQueue().holds(record)).toBe(true));
     expect(write).not.toHaveBeenCalled();
     gate.open();
@@ -45,16 +48,21 @@ describe("queueWorkspaceWrite", () => {
   });
 
   it("resolves false when the write throws", async () => {
-    expect(await queueWorkspaceWrite(() => Promise.reject(new Error("Network down")))).toBe(false);
+    expect(
+      await queueWorkspaceWrite(queryClient, () => Promise.reject(new Error("Network down"))),
+    ).toBe(false);
   });
 });
 
 describe("queuedWorkspaceWrite", () => {
-  it("passes each call's arguments through the queue", async () => {
-    const write = vi.fn((id: string, count: number) => `${id}:${count}`);
-    const queued = queuedWorkspaceWrite(write);
+  it("passes the task's signal and each call's arguments through the queue", async () => {
+    const write = vi.fn((_signal: AbortSignal, id: string, count: number) => `${id}:${count}`);
+    const queued = queuedWorkspaceWrite(
+      (task, options) => queueWorkspaceWrite(queryClient, task, options),
+      write,
+    );
 
     expect(await queued("ekko", 2)).toBe(true);
-    expect(write).toHaveBeenCalledWith("ekko", 2);
+    expect(write).toHaveBeenCalledWith(expect.any(AbortSignal), "ekko", 2);
   });
 });

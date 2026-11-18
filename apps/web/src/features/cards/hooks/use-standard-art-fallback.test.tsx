@@ -107,6 +107,30 @@ describe("useStandardArtFallback", () => {
     expect(client.getQueryState(catalogKeys.all)?.fetchStatus ?? "idle").toBe("idle");
   });
 
+  it("prefers the provided subset over the cached catalog", () => {
+    const target = stubPrinting({
+      printingId: "p-target",
+      cardId: "card-1",
+      language: "SC",
+      images: [],
+    });
+    const cachedStandard = stubPrinting({
+      printingId: "p-en",
+      cardId: "card-1",
+      language: "EN",
+      images: [{ imageId: "img-cached" }],
+    });
+    const subsetStandard = stubPrinting({
+      printingId: "p-en",
+      cardId: "card-1",
+      language: "EN",
+      images: [{ imageId: "img-subset" }],
+    });
+    const subset = buildCardsResult({ "card-1": target.card }, [target, subsetStandard], []);
+    const { result } = setup(makeCatalog([target, cachedStandard]), subset);
+    expect(result.current(target)?.image.imageId).toBe("img-subset");
+  });
+
   it("returns null and does not fetch when the catalog is not cached", () => {
     const { client, result } = setup();
     expect(result.current(stubPrinting())).toBeNull();

@@ -50,11 +50,14 @@ const setSubmissionResolutionFn = createServerFn({ method: "POST" })
  */
 export function useSetSubmissionResolution() {
   return useMutationWithInvalidation({
-    mutationFn: (params: {
-      candidateCardId: string;
-      reason: CardSubmissionReason | null;
-      note: string | null;
-    }) => setSubmissionResolutionFn({ data: params }),
+    mutationFn: (
+      params: {
+        candidateCardId: string;
+        reason: CardSubmissionReason | null;
+        note: string | null;
+      },
+      signal,
+    ) => setSubmissionResolutionFn({ data: params, signal }),
     invalidates: (params) => [cardSubmissionsKeys.forCandidate(params.candidateCardId)],
   });
 }

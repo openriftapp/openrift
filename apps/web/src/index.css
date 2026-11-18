@@ -1824,25 +1824,10 @@ html {
 html[data-chrome],
 html[data-chrome] body {
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 html[data-chrome="transparent"],
 html[data-chrome="transparent"] body {
   background: transparent;
-}
-
-/* The scanning page goes full-bleed on phones once the camera is running: the
-   viewfinder takes the whole viewport and its own chrome floats over the
-   picture. The app header would otherwise sit on top of the camera image (it is
-   sticky at z-50), and the page behind the viewfinder must not scroll under a
-   finger aiming at a card. The page sets the attribute for exactly as long as
-   it is immersive, so nothing here leaks to other routes. */
-html[data-scan-immersive] [data-app-header] {
-  display: none;
-}
-
-html[data-scan-immersive],
-html[data-scan-immersive] body {
-  overflow: hidden;
-  overscroll-behavior: none;
 }

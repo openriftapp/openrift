@@ -69,7 +69,7 @@ export interface MetaDeckCostFilterValues {
 
 /**
  * Inert until the costs load, so a shared `?cost=` link does not open on an
- * empty grid while the bridge answers.
+ * empty grid while they load.
  */
 export function filterDecksByCost(
   decks: readonly MetaDeckSummary[],

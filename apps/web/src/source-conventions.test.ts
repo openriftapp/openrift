@@ -1081,6 +1081,7 @@ describe("feature clones", () => {
     expect(
       offenders(WEB_FILES, /\bonMutate\s*[:(]/u, [
         web("hooks/use-optimistic-mutation.ts"),
+        web("lib/write-signal.ts"),
         web("features/tournaments/hooks/use-tournament-deck-check.ts"),
       ]),
     ).toEqual([]);

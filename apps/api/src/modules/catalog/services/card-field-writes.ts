@@ -6,6 +6,7 @@ import { cardUpdateFor } from "../lib/card-field-updates.js";
 import {
   asFieldWriteError,
   cardNameRule,
+  isUnchangedValue,
   trimOptionalText,
   validateFieldValue,
 } from "../lib/field-values.js";
@@ -100,4 +101,43 @@ export async function writeCardField(
 
   // A rename can relink derived token references, which the catalog reads from a view.
   return { refreshViews: field === "name" };
+}
+
+type CardFieldAccept =
+  | { status: "unchanged" }
+  | { status: "changed" }
+  | {
+      status: "written";
+      cardBefore: Awaited<ReturnType<CatalogMutationsRepo["getFullCardById"]>>;
+      valueBefore: unknown;
+      refreshViews: boolean;
+    };
+
+/**
+ * Writes an accepted card field unless it already holds `value`. With `expected`, the write
+ * happens only while the field still holds that value; the caller holds the card's row lock.
+ */
+export async function acceptCardFieldValue(
+  mut: CatalogMutationsRepo,
+  args: { cardId: string; field: AcceptCardField; value: unknown; expected?: unknown },
+): Promise<CardFieldAccept> {
+  const { cardId, field, value, expected } = args;
+  const cardBefore = await mut.getFullCardById(cardId);
+  const valueBefore = await cardFieldBefore(mut, cardId, field, cardBefore);
+  if (isUnchangedValue(valueBefore, value, field)) {
+    return { status: "unchanged" };
+  }
+  if (
+    expected !== undefined &&
+    !isUnchangedValue(valueBefore, normalizeCardFieldValue(field, expected), field)
+  ) {
+    return { status: "changed" };
+  }
+  const { refreshViews } = await writeCardField(mut, {
+    cardId,
+    field,
+    value,
+    previousName: cardBefore?.name ?? null,
+  });
+  return { status: "written", cardBefore, valueBefore, refreshViews };
 }

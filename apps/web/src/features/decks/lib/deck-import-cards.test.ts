@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { dedupeMatchedEntries } from "./deck-import-cards";
+import {
+  dedupeMatchedEntries,
+  importOverflowMessage,
+  mergeMatchedEntries,
+} from "./deck-import-cards";
 
 function entry(
   cardId: string,
@@ -11,7 +15,7 @@ function entry(
   return {
     zone: zone as never,
     entry: { quantity },
-    resolvedCard: { cardId, preferredPrintingId },
+    resolvedCard: { cardId, displayName: `Name ${cardId}`, preferredPrintingId },
   };
 }
 
@@ -60,5 +64,30 @@ describe("dedupeMatchedEntries", () => {
     expect(result).toEqual([
       { cardId: "card-b", zone: "main", quantity: 1, preferredPrintingId: null },
     ]);
+  });
+});
+
+describe("mergeMatchedEntries overflow", () => {
+  it("names the cards that lost copies and totals them", () => {
+    const { cards, overflow } = mergeMatchedEntries([
+      entry("card-a", "main", 60),
+      entry("card-a", "main", 42),
+      entry("card-b", "main", 100),
+      entry("card-c", "main", 3),
+    ]);
+    expect(cards.map((card) => card.quantity)).toEqual([99, 99, 3]);
+    expect(overflow).toEqual([
+      { name: "Name card-a", count: 3 },
+      { name: "Name card-b", count: 1 },
+    ]);
+    expect(importOverflowMessage(overflow)).toBe(
+      "4 copies over the 99 limit were left out: Name card-a, Name card-b",
+    );
+  });
+
+  it("gives no message when nothing was cut", () => {
+    expect(importOverflowMessage(mergeMatchedEntries([entry("card-a", "main", 99)]).overflow)).toBe(
+      null,
+    );
   });
 });

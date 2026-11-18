@@ -66,7 +66,7 @@ function useCatalogTail(fetched: UseCardsResult | null): void {
   });
 }
 
-type CatalogTailStatus = "complete" | "loading" | "failed";
+export type CatalogTailStatus = "complete" | "loading" | "failed";
 
 export function useCatalogTailStatus(): { status: CatalogTailStatus; retry: () => void } {
   const queryClient = useQueryClient();

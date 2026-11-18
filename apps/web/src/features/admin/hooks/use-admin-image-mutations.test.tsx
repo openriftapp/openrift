@@ -44,6 +44,7 @@ const {
   useSetPrintingImageNeedsTrim,
   useSetPrintingImageQuad,
 } = await import("./use-admin-image-mutations");
+const { useRefetchImages } = await import("./use-rehost");
 const { adminKeys } = await import("@/features/admin/lib/admin-query-keys");
 const { cardsKeys, catalogKeys, promosKeys } =
   await import("@/features/cards/lib/cards-query-keys");
@@ -84,7 +85,7 @@ describe("image mutations that can fail after changing the image", () => {
     reportMutationError.mockClear();
     const client = new QueryClient();
     const invalidateSpy = vi.spyOn(client, "invalidateQueries");
-    const { result } = renderHook(() => useRehostPrintingImage(SCOPE), { wrapper: wrap(client) });
+    const { result } = renderHook(() => useRehostPrintingImage(), { wrapper: wrap(client) });
 
     act(() => {
       result.current.mutate("img-1");
@@ -92,7 +93,8 @@ describe("image mutations that can fail after changing the image", () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(reportMutationError).toHaveBeenCalledTimes(1);
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin", "cards"] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: [...adminKeys.cards.all] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: [...catalogKeys.all] });
   });
 });
 
@@ -127,6 +129,16 @@ describe("image file edits", () => {
     straighten: () => {
       const { result } = renderHook(() => useSetPrintingImageQuad(), { wrapper: wrap(client) });
       return () => result.current.mutateAsync({ imageId: "img-1", quad: null });
+    },
+    rehost: () => {
+      const { result } = renderHook(() => useRehostPrintingImage(), { wrapper: wrap(client) });
+      return () => result.current.mutateAsync("img-1");
+    },
+    refetch: () => {
+      const { result } = renderHook(() => useRefetchImages(), { wrapper: wrap(client) });
+      return async () => {
+        await result.current.mutateAsync(["file-1"]);
+      };
     },
   };
   let client: QueryClient;

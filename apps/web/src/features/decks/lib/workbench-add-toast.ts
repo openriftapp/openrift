@@ -12,7 +12,8 @@ export interface RelaxedAddOutcome {
     | "battlefieldDuplicate"
     | "legendOptionsCap"
     | "runeCap"
-    | "runeSwap";
+    | "runeSwap"
+    | "rowCap";
   card: DeckBuilderCard;
   zone: DeckZone;
   quantity: number;
@@ -43,6 +44,9 @@ export function relaxedAddMessage(notice: RelaxedAddOutcome): string {
     case "runeCap": {
       return m.decks_workbench_warn_runes({ count: notice.total, limit: notice.limit });
     }
+    case "rowCap": {
+      return m.decks_workbench_row_full({ card, limit: notice.limit });
+    }
     case "runeSwap": {
       return m.decks_workbench_rune_swap({
         added: card,
@@ -62,19 +66,21 @@ export function showRelaxedAddToast(
   const action = { label: m.decks_editor_undo(), onClick: handlers.undo };
   const onDismiss = (shown: { id: string | number }) => openToasts.delete(shown.id);
   const id =
-    notice.rule === "runeSwap"
-      ? toast(message, {
-          action,
-          cancel: handlers.keepBoth
-            ? {
-                label: m.decks_workbench_keep_both({ count: notice.total + 1 }),
-                onClick: handlers.keepBoth,
-              }
-            : undefined,
-          onDismiss,
-          onAutoClose: onDismiss,
-        })
-      : toast.warning(message, { action, onDismiss, onAutoClose: onDismiss });
+    notice.rule === "rowCap"
+      ? toast.warning(message, { onDismiss, onAutoClose: onDismiss })
+      : notice.rule === "runeSwap"
+        ? toast(message, {
+            action,
+            cancel: handlers.keepBoth
+              ? {
+                  label: m.decks_workbench_keep_both({ count: notice.total + 1 }),
+                  onClick: handlers.keepBoth,
+                }
+              : undefined,
+            onDismiss,
+            onAutoClose: onDismiss,
+          })
+        : toast.warning(message, { action, onDismiss, onAutoClose: onDismiss });
   openToasts.add(id);
 }
 

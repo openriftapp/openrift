@@ -1,20 +1,52 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import type { ReactElement, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { userId, failed, useCollections, addAll, serving, engineLoadError, scannerSettings } =
-  vi.hoisted(() => ({
-    scannerSettings: vi.fn(),
-    userId: { current: null as string | null },
-    serving: {
-      current: { status: "loading", assets: null } as { status: string; assets: null },
-    },
-    engineLoadError: { current: null as string | null },
-    failed: { count: 0 },
-    useCollections: vi.fn(() => ({ data: [] })),
-    addAll: vi.fn(() => Promise.resolve()),
-  }));
+const {
+  userId,
+  failed,
+  useCollections,
+  addAll,
+  serving,
+  engineLoadError,
+  scannerSettings,
+  scanner,
+  layout,
+  route,
+  stage,
+} = vi.hoisted(() => ({
+  scanner: { start: vi.fn(), stop: vi.fn(), active: false },
+  layout: { current: "boxed" as "boxed" | "portrait" | "landscape" },
+  route: {
+    cameraScreen: false,
+    navigate: vi.fn(),
+    back: vi.fn(),
+    entryState: {} as Record<string, unknown>,
+    listeners: [] as ((event: {
+      fromLocation?: { pathname: string };
+      toLocation: { pathname: string };
+    }) => void)[],
+  },
+  stage: {
+    current: null as {
+      layout: string;
+      immersive: boolean;
+      fullscreen: boolean;
+      viewfinder: ReactElement<{ onStart: () => void }>;
+      chrome: ReactElement<{ stoppable: boolean; onStop: () => void }>;
+    } | null,
+  },
+  scannerSettings: vi.fn(),
+  userId: { current: null as string | null },
+  serving: {
+    current: { status: "loading", assets: null } as { status: string; assets: null },
+  },
+  engineLoadError: { current: null as string | null },
+  failed: { count: 0 },
+  useCollections: vi.fn(() => ({ data: [] })),
+  addAll: vi.fn(() => Promise.resolve()),
+}));
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({
@@ -30,6 +62,18 @@ vi.mock("@tanstack/react-router", () => ({
     const location = { href: "/scan" };
     return opts?.select ? opts.select(location) : location;
   },
+  useMatch: () => (route.cameraScreen ? true : undefined),
+  useNavigate: () => route.navigate,
+  useRouter: () => ({
+    latestLocation: { state: route.entryState },
+    history: { back: route.back },
+    subscribe: (_type: string, listener: (typeof route.listeners)[number]) => {
+      route.listeners.push(listener);
+      return () => {
+        route.listeners = route.listeners.filter((entry) => entry !== listener);
+      };
+    },
+  }),
 }));
 
 vi.mock("@/hooks/use-session", () => ({
@@ -66,11 +110,11 @@ vi.mock("@/features/scan/hooks/use-card-scanner", () => ({
     return {
       videoRef: { current: null },
       overlayRef: { current: null },
-      active: false,
+      active: scanner.active,
       error: null,
       readout: { aim: null, aimHint: null, bestScore: 0, lockProgress: 0 },
-      start: vi.fn(),
-      stop: vi.fn(),
+      start: scanner.start,
+      stop: scanner.stop,
       capture: vi.fn(),
       identifyNow: vi.fn(),
       unidentified: [],
@@ -95,7 +139,7 @@ vi.mock("@/features/scan/hooks/use-scan-aim-identify", () => ({ useScanAimIdenti
 vi.mock("@/features/scan/hooks/use-scan-session-restore", () => ({
   useScanSessionRestore: vi.fn(),
 }));
-vi.mock("@/features/scan/hooks/use-scan-layout", () => ({ useScanLayout: () => "boxed" }));
+vi.mock("@/features/scan/hooks/use-scan-layout", () => ({ useScanLayout: () => layout.current }));
 vi.mock("@/features/scan/hooks/use-scan-add", () => ({
   useScanAdd: () => ({
     adding: false,
@@ -107,21 +151,24 @@ vi.mock("@/features/scan/hooks/use-scan-add", () => ({
   }),
 }));
 vi.mock("@/features/scan/components/scan-stage", () => ({
-  ScanStage: ({
-    viewfinder,
-    tray,
-    notices,
-  }: {
-    viewfinder: ReactNode;
+  ScanStage: (props: {
+    layout: string;
+    immersive: boolean;
+    fullscreen: boolean;
+    viewfinder: ReactElement<{ onStart: () => void }>;
+    chrome: ReactElement<{ stoppable: boolean; onStop: () => void }>;
     tray: ReactNode;
     notices: ReactNode;
-  }) => (
-    <div>
-      {viewfinder}
-      {notices}
-      {tray}
-    </div>
-  ),
+  }) => {
+    stage.current = props;
+    return (
+      <div>
+        {props.viewfinder}
+        {props.notices}
+        {props.tray}
+      </div>
+    );
+  },
 }));
 vi.mock("@/features/scan/components/scan-top-bar", () => ({ ScanTopBar: () => null }));
 vi.mock("@/features/scan/components/scan-flight-layer", () => ({ ScanFlightLayer: () => null }));
@@ -146,11 +193,13 @@ const resetPrefs = createStoreResetter(useScanPrefsStore);
 function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(initKeys.all, stubInitResponse());
-  return render(
+  const page = () => (
     <QueryClientProvider client={client}>
       <ScanPage />
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
+  const view = render(page());
+  return { ...view, rerenderPage: () => view.rerender(page()) };
 }
 
 describe("ScanPage", () => {
@@ -250,5 +299,132 @@ describe("ScanPage", () => {
     );
     expect(zooms.length).toBeGreaterThan(0);
     expect(zooms.every((zoom) => zoom === 2)).toBe(true);
+  });
+});
+
+describe("ScanPage camera screen", () => {
+  beforeEach(() => {
+    userId.current = null;
+    scanner.start.mockClear();
+    scanner.stop.mockClear();
+    scanner.active = false;
+    layout.current = "portrait";
+    route.cameraScreen = false;
+    route.navigate.mockClear();
+    route.back.mockClear();
+    route.entryState = {};
+    route.listeners = [];
+  });
+  afterEach(() => {
+    layout.current = "boxed";
+    route.cameraScreen = false;
+  });
+
+  it("opens the camera screen as it starts the camera on a phone", () => {
+    renderPage();
+
+    act(() => stage.current?.viewfinder.props.onStart());
+
+    expect(scanner.start).toHaveBeenCalledOnce();
+    expect(route.navigate).toHaveBeenCalledWith(expect.objectContaining({ to: "/scan/camera" }));
+  });
+
+  it("starts the camera in place on a wide screen", () => {
+    layout.current = "boxed";
+    renderPage();
+
+    act(() => stage.current?.viewfinder.props.onStart());
+
+    expect(scanner.start).toHaveBeenCalledOnce();
+    expect(route.navigate).not.toHaveBeenCalled();
+  });
+
+  it("goes full screen on the camera route and offers a way out before the camera runs", () => {
+    route.cameraScreen = true;
+    renderPage();
+
+    expect(stage.current?.fullscreen).toBe(true);
+    expect(stage.current?.chrome.props.stoppable).toBe(true);
+  });
+
+  it("goes full screen on the camera route in the boxed layout", () => {
+    layout.current = "boxed";
+    route.cameraScreen = true;
+    renderPage();
+
+    expect(stage.current?.fullscreen).toBe(true);
+    expect(stage.current?.immersive).toBe(true);
+    expect(stage.current?.layout).not.toBe("boxed");
+  });
+
+  it("keeps the boxed page on /scan in the boxed layout", () => {
+    layout.current = "boxed";
+    renderPage();
+
+    expect(stage.current?.fullscreen).toBe(false);
+    expect(stage.current?.layout).toBe("boxed");
+  });
+
+  it("goes back from a reloaded camera screen it opened", () => {
+    route.entryState = { scanCameraEntry: true };
+    route.cameraScreen = true;
+    renderPage();
+
+    act(() => stage.current?.chrome.props.onStop());
+
+    expect(route.back).toHaveBeenCalledOnce();
+    expect(route.navigate).not.toHaveBeenCalled();
+  });
+
+  it("closes the camera screen it opened by going back", () => {
+    const { rerenderPage } = renderPage();
+    act(() => stage.current?.viewfinder.props.onStart());
+    const pushed = route.navigate.mock.calls[0]?.[0] as {
+      state: (previous: Record<string, unknown>) => Record<string, unknown>;
+    };
+    route.entryState = pushed.state({});
+    route.cameraScreen = true;
+    scanner.active = true;
+    rerenderPage();
+
+    act(() => stage.current?.chrome.props.onStop());
+
+    expect(route.back).toHaveBeenCalledOnce();
+  });
+
+  it("replaces a camera screen that was loaded directly with /scan", () => {
+    route.cameraScreen = true;
+    renderPage();
+
+    act(() => stage.current?.chrome.props.onStop());
+
+    expect(route.back).not.toHaveBeenCalled();
+    expect(route.navigate).toHaveBeenCalledWith({ to: "/scan", replace: true });
+  });
+
+  it("stops the camera when a navigation leaves the camera screen", () => {
+    route.cameraScreen = true;
+    scanner.active = true;
+    renderPage();
+
+    act(() => {
+      for (const listener of route.listeners) {
+        listener({ fromLocation: { pathname: "/scan/camera" }, toLocation: { pathname: "/scan" } });
+      }
+    });
+
+    expect(scanner.stop).toHaveBeenCalled();
+  });
+
+  it("keeps the camera running on the way into the camera screen", () => {
+    renderPage();
+
+    act(() => {
+      for (const listener of route.listeners) {
+        listener({ fromLocation: { pathname: "/scan" }, toLocation: { pathname: "/scan/camera" } });
+      }
+    });
+
+    expect(scanner.stop).not.toHaveBeenCalled();
   });
 });

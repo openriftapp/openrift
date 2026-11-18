@@ -144,7 +144,7 @@ export const Route = createFileRoute("/_app/cards_/$cardSlug/{-$printingSlug}")(
         statusCode: 301,
       });
     }
-    const languageRows = (init.enums.languages ?? []) as { slug: string; sortOrder: number }[];
+    const languageRows = init.enums.languages;
     const languageOrder = effectiveLanguageOrder([], languageRows);
 
     // Server path bypasses the query client: writing prices there gets dehydrated
@@ -185,8 +185,8 @@ export const Route = createFileRoute("/_app/cards_/$cardSlug/{-$printingSlug}")(
     return {
       data,
       languageOrder,
-      domainLabels: labelMap(init.enums.domains ?? []),
-      cardTypeLabels: labelMap(init.enums.cardTypes ?? []),
+      domainLabels: labelMap(init.enums.domains),
+      cardTypeLabels: labelMap(init.enums.cardTypes),
       marketplaceOffers,
     };
   },

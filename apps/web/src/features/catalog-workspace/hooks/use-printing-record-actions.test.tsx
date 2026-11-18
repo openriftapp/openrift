@@ -136,6 +136,8 @@ beforeEach(() => {
   mocks.registered.current = null;
 });
 
+const { signal } = new AbortController();
+
 describe("printingChips", () => {
   it("puts field suggestions before listings", () => {
     const { model } = setup();
@@ -160,13 +162,17 @@ describe("usePrintingRecordActions", () => {
       { wrapper: wrapper(client) },
     );
 
-    await mocks.registered.current?.primary?.run();
-    expect(mocks.checkAll.current?.mutateAsync).toHaveBeenCalledWith({ extraIds: [candidate.id] });
+    await mocks.registered.current?.primary?.run(signal);
+    expect(mocks.checkAll.current?.mutateAsync).toHaveBeenCalledWith(
+      { extraIds: [candidate.id] },
+      { signal: expect.any(AbortSignal) },
+    );
     const entry = latest();
     expect(entry?.label).toBe("Discarded 1 suggestion on Kai'Sa · OGN-001");
-    await entry?.undo();
+    await entry?.undo(signal);
     expect(mocks.uncheckFn).toHaveBeenCalledWith({
       data: { candidatePrintingIds: [candidate.id] },
+      signal,
     });
   });
 
@@ -197,12 +203,13 @@ describe("usePrintingRecordActions", () => {
       { wrapper: wrapper(new QueryClient()) },
     );
 
-    await mocks.registered.current?.primary?.run();
-    await latest()?.undo();
+    await mocks.registered.current?.primary?.run(signal);
+    await latest()?.undo(signal);
 
     expect(mocks.uncheckFn).toHaveBeenCalledOnce();
     expect(mocks.uncheckFn).toHaveBeenCalledWith({
       data: { candidatePrintingIds: candidates.map((candidate) => candidate.id) },
+      signal,
     });
   });
 
@@ -223,14 +230,17 @@ describe("usePrintingRecordActions", () => {
     );
 
     await act(() => result.current.discard(candidate.id));
-    expect(mocks.generic.current?.mutateAsync).toHaveBeenCalledWith(candidate.id);
+    expect(mocks.generic.current?.mutateAsync).toHaveBeenCalledWith(candidate.id, {
+      signal: expect.any(AbortSignal),
+    });
     expect(toast.success).toHaveBeenCalledWith(
       "Discarded 1 suggestion on Kai'Sa · OGN-001",
       expect.anything(),
     );
-    await latest()?.undo();
+    await latest()?.undo(signal);
     expect(mocks.uncheckFn).toHaveBeenCalledWith({
       data: { candidatePrintingIds: [candidate.id] },
+      signal,
     });
   });
 
@@ -255,13 +265,16 @@ describe("usePrintingRecordActions", () => {
       { wrapper: wrapper(client) },
     );
 
-    await mocks.registered.current?.useSuggestion?.(2);
-    expect(mocks.save.current?.mutateAsync).toHaveBeenCalledWith({
-      mappings: [{ externalId: 7, finish: "normal", language: null, printingId: "p1" }],
-    });
+    await mocks.registered.current?.useSuggestion?.(signal, 2);
+    expect(mocks.save.current?.mutateAsync).toHaveBeenCalledWith(
+      {
+        mappings: [{ externalId: 7, finish: "normal", language: null, printingId: "p1" }],
+      },
+      { signal: expect.any(AbortSignal) },
+    );
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["admin", "workspace"] });
     expect(latest()?.label).toBe("Assigned TCGplayer #7 to Kai'Sa · OGN-001");
-    await latest()?.undo();
+    await latest()?.undo(signal);
     expect(mocks.unmapFn).toHaveBeenCalledWith({
       data: {
         marketplace: "tcgplayer",
@@ -270,6 +283,7 @@ describe("usePrintingRecordActions", () => {
         finish: "normal",
         language: null,
       },
+      signal,
     });
   });
 
@@ -296,8 +310,8 @@ describe("usePrintingRecordActions", () => {
       { wrapper: wrapper(client) },
     );
 
-    await mocks.registered.current?.useSuggestion?.(2);
-    await mocks.registered.current?.useSuggestion?.(2);
+    await mocks.registered.current?.useSuggestion?.(signal, 2);
+    await mocks.registered.current?.useSuggestion?.(signal, 2);
     expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([]);
   });
 
@@ -317,7 +331,7 @@ describe("usePrintingRecordActions", () => {
       { wrapper: wrapper(client) },
     );
 
-    await mocks.registered.current?.useSuggestion?.(1);
+    await mocks.registered.current?.useSuggestion?.(signal, 1);
     const [options] = vi.mocked(acceptFieldWithUndo).mock.lastCall as unknown as [
       { onAccepted: (revert: unknown) => void },
     ];
@@ -326,8 +340,8 @@ describe("usePrintingRecordActions", () => {
     onAccepted(revert);
 
     expect(latest()?.label).toBe("Used Size from provider-a on Kai'Sa · OGN-001");
-    await latest()?.undo();
-    expect(mocks.acceptPrintingFieldFn).toHaveBeenCalledWith({ data: revert });
+    await latest()?.undo(signal);
+    expect(mocks.acceptPrintingFieldFn).toHaveBeenCalledWith({ data: revert, signal });
   });
 
   it("keeps the number key's promise pending until the write lands", async () => {
@@ -362,7 +376,7 @@ describe("usePrintingRecordActions", () => {
 
     let settled = false;
     const run = (async () => {
-      await mocks.registered.current?.useSuggestion?.(1);
+      await mocks.registered.current?.useSuggestion?.(signal, 1);
       settled = true;
     })();
     await Promise.resolve();
@@ -420,14 +434,15 @@ describe("usePrintingRecordActions", () => {
       run = result.current.ignoreListing(LISTING);
     });
     await vi.waitFor(() => expect(mocks.ignore.current?.mutateAsync).toHaveBeenCalled());
-    expect(mocks.ignore.current?.mutateAsync).toHaveBeenCalledWith([
-      { externalId: 7, finish: "normal", language: null },
-    ]);
+    expect(mocks.ignore.current?.mutateAsync).toHaveBeenCalledWith(
+      [{ externalId: 7, finish: "normal", language: null }],
+      { signal: expect.any(AbortSignal) },
+    );
     expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([]);
     gate.open();
     await act(() => run);
     expect(latest()?.label).toBe("Ignored TCGplayer #7 on Kai'Sa · OGN-001");
-    await latest()?.undo();
+    await latest()?.undo(signal);
     expect(mocks.unignoreFn).toHaveBeenCalledWith({
       data: {
         level: "variant",
@@ -436,6 +451,7 @@ describe("usePrintingRecordActions", () => {
         finish: "normal",
         language: null,
       },
+      signal,
     });
   });
 
@@ -504,7 +520,7 @@ describe("usePrintingRecordActions", () => {
     await act(() => result.current.applyChip(result.current.chips[0]!));
     expect(vi.mocked(acceptFieldWithUndo).mock.lastCall?.[0]).toEqual(
       expect.objectContaining({
-        accept: mocks.acceptField.current?.mutateAsync,
+        accept: expect.any(Function),
         input: { printingId: "p1", field: "size", value: "oversized", source: "provider" },
       }),
     );

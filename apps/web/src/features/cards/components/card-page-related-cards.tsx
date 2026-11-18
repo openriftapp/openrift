@@ -11,8 +11,10 @@ export function RelatedCardsSection({ related }: { related: CardDetailRelatedCar
     return null;
   }
   return (
-    <section className="flex flex-col gap-4">
-      <Heading level={2}>{m.card_detail_related_title()}</Heading>
+    <section className="flex flex-col gap-4" aria-labelledby="related-cards-heading">
+      <Heading level={2} id="related-cards-heading">
+        {m.card_detail_related_title()}
+      </Heading>
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-8">
         {related.map((relatedCard) => (
           <Link

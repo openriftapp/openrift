@@ -325,25 +325,56 @@ export function zeroShippingToggle(target: EventTarget | null): boolean | undefi
     : undefined;
 }
 
-const measuredHeights = new WeakMap<Element, number>();
+export interface SellerCardObserver {
+  /** Observes the seller cards under root and drops the ones that left the document. */
+  sync: (root: ParentNode) => void;
+  disconnect: () => void;
+}
 
 /**
- * Cardmarket's masonry measures the seller cards only at load and on a window resize,
- * and an isolated content script cannot call it, so a changed height needs the event.
+ * Fires a window resize when a seller card's height differs from its last observed one.
+ * The host's masonry layout listens only to window resize, and an isolated content
+ * script cannot call it directly.
  */
-export function relayoutSellerCards(root: ParentNode, document: Document): boolean {
-  let changed = false;
-  for (const card of root.querySelectorAll<HTMLElement>(CARD_SELECTOR)) {
-    const height = card.offsetHeight;
-    if (measuredHeights.get(card) !== height) {
-      measuredHeights.set(card, height);
-      changed = true;
+export function observeSellerCards(document: Document): SellerCardObserver {
+  const watched = new Set<Element>();
+  const sizes = new Map<Element, number>();
+  const observer = new ResizeObserver((entries) => {
+    let changed = false;
+    for (const entry of entries) {
+      const size = entry.borderBoxSize[0]?.blockSize ?? entry.contentRect.height;
+      if (sizes.get(entry.target) !== size) {
+        changed = true;
+        sizes.set(entry.target, size);
+      }
     }
-  }
-  if (changed) {
-    document.defaultView?.dispatchEvent(new Event("resize"));
-  }
-  return changed;
+    if (changed) {
+      document.defaultView?.dispatchEvent(new Event("resize"));
+    }
+  });
+  return {
+    sync(root) {
+      const current = new Set<Element>(root.querySelectorAll(CARD_SELECTOR));
+      for (const known of watched) {
+        if (!current.has(known)) {
+          observer.unobserve(known);
+          watched.delete(known);
+          sizes.delete(known);
+        }
+      }
+      for (const card of current) {
+        if (!watched.has(card)) {
+          watched.add(card);
+          observer.observe(card);
+        }
+      }
+    },
+    disconnect() {
+      observer.disconnect();
+      watched.clear();
+      sizes.clear();
+    },
+  };
 }
 
 /** True when the click landed on the "Pick for OpenRift" button. */

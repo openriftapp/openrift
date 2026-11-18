@@ -76,7 +76,7 @@ import {
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import type { RecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
-import { queueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
+import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import {
   bansErrataSummary,
   historySummary,
@@ -105,7 +105,6 @@ import { workspaceQueueQueryOptions } from "@/features/catalog-workspace/lib/wor
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
 import type { EnumLabels } from "@/lib/enum-labels";
-import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { errorStatus } from "@/lib/server-fns/api-error";
 import { cn } from "@/lib/utils";
 
@@ -170,6 +169,7 @@ function CardMenu({
   cardSlug: string;
   expectedCardId: string;
 }) {
+  const queueWrite = useQueueWorkspaceWrite();
   const navigate = useNavigate();
   const renameCard = useRenameCard();
   const deleteCard = useDeleteCard();
@@ -179,7 +179,7 @@ function CardMenu({
 
   async function regenerateId() {
     const input = { cardId: card.id, newId: expectedCardId };
-    if (await runReportedMutation(() => renameCard.mutateAsync(input))) {
+    if (await queueWrite((signal) => renameCard.mutateAsync(input, { signal }))) {
       await leaveCardPage(cardSlug, () =>
         navigate({
           to: "/admin/workspace/cards/$cardSlug",
@@ -191,7 +191,7 @@ function CardMenu({
   }
 
   async function confirmDelete() {
-    if (await runReportedMutation(() => deleteCard.mutateAsync(card.id))) {
+    if (await queueWrite((signal) => deleteCard.mutateAsync(card.id, { signal }))) {
       setDeleteOpen(false);
       await leaveCardPage(cardSlug, () =>
         navigate({ to: "/admin/workspace/cards", ignoreBlocker: true }),
@@ -386,6 +386,7 @@ function CardRecordBody({
   primary,
   record,
 }: CardRecordBodyProps) {
+  const queueWrite = useQueueWorkspaceWrite();
   const navigate = useNavigate();
   const navigation = useQueueNavigation("card");
   const { data: bans } = useCardBans(isAdmin ? card.id : "");
@@ -420,7 +421,7 @@ function CardRecordBody({
   );
 
   async function primaryAndNext() {
-    if (await queueWorkspaceWrite(primary.run)) {
+    if (await queueWrite(primary.run)) {
       navigation.goNext();
     }
   }
@@ -514,7 +515,12 @@ function CardRecordBody({
             <DropdownMenuItem
               variant="destructive"
               onClick={() =>
-                ignoreSource.mutate({ provider: source.provider, externalId: source.externalId })
+                void queueWrite((signal) =>
+                  ignoreSource.mutateAsync(
+                    { provider: source.provider, externalId: source.externalId },
+                    { signal },
+                  ),
+                )
               }
             >
               <BanIcon />
@@ -654,8 +660,8 @@ function CardRecordBody({
           summary={bansErrataSummary(bans?.length, card.errata.length > 0)}
         >
           <div className="space-y-8">
-            <CardBansSection cardId={card.id} />
-            <CardErrataSection cardId={card.id} errata={card.errata} />
+            <CardBansSection cardId={card.id} runWrite={queueWrite} />
+            <CardErrataSection cardId={card.id} errata={card.errata} runWrite={queueWrite} />
           </div>
         </RecordSection>
       )}
@@ -707,17 +713,20 @@ function CardRecordBody({
         submitterName={dialog?.submission.submitterName ?? null}
         kindLabel={SUBMISSION_KIND_LABELS[dialog?.submission.kind ?? "correction"]}
         scope={{ cardSlug }}
+        runWrite={queueWrite}
         onOpenChange={closeDialog}
       />
       <SendNoteDialog
         candidateCardId={dialog?.kind === "reply" ? dialog.submission.candidateCardId : null}
         submitterName={dialog?.submission.submitterName ?? null}
+        runWrite={queueWrite}
         onOpenChange={closeDialog}
       />
       <MoveSubmissionDialog
         candidateCardId={dialog?.kind === "move" ? dialog.submission.candidateCardId : null}
         submitterName={dialog?.submission.submitterName ?? null}
         scope={{ cardSlug }}
+        runWrite={queueWrite}
         onOpenChange={closeDialog}
       />
     </RecordPane>

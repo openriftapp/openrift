@@ -37,17 +37,9 @@ vi.mock("@/hooks/use-enums", () => ({
     labels: { domains: { fury: "Fury", calm: "Calm" } },
   }),
 }));
-vi.mock("@/features/meta/components/meta-owned-cards-bridge", async () => {
-  const { useEffect } = await import("react");
-  return {
-    MetaOwnedCardsBridge: ({ onChange }: { onChange: (value: typeof state.owned) => void }) => {
-      useEffect(() => {
-        onChange(state.owned);
-      }, [onChange]);
-      return null;
-    },
-  };
-});
+vi.mock("@/features/meta/hooks/use-meta-owned-cards", () => ({
+  useMetaOwnedCards: (enabled: boolean) => (enabled ? state.owned : undefined),
+}));
 vi.mock("@tanstack/react-router", async () => {
   const fixtures = await import("@/test/meta-event-fixtures");
   return {

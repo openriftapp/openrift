@@ -6,7 +6,10 @@ import { toast } from "sonner";
 import { uncheckCandidateCardsFn } from "@/features/admin/hooks/use-admin-card-mutations";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
-import { queuedWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
+import {
+  queuedWorkspaceWrite,
+  useQueueWorkspaceWrite,
+} from "@/features/catalog-workspace/hooks/workspace-writes";
 import {
   discardSameDifferenceFn,
   sameDifferenceQueryOptions,
@@ -14,6 +17,7 @@ import {
 import { undoScope } from "@/features/catalog-workspace/lib/workspace-undo";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
+import { withWriteSignal } from "@/lib/write-signal";
 
 const BULK_SCOPE = [adminKeys.workspace, adminKeys.cards.all];
 
@@ -23,19 +27,22 @@ export function useSameDifference(input: WorkspaceSameDifferenceInput, enabled: 
 
 export function useDiscardSameDifference() {
   const { announce } = useWorkspaceUndo();
+  const queue = useQueueWorkspaceWrite();
   const mutation = useMutationWithInvalidation({
-    mutationFn: (input: WorkspaceSameDifferenceInput) => discardSameDifferenceFn({ data: input }),
+    mutationFn: (input: WorkspaceSameDifferenceInput, signal) =>
+      discardSameDifferenceFn({ data: input, signal }),
     invalidates: BULK_SCOPE,
   });
 
   async function discard(
+    signal: AbortSignal,
     input: WorkspaceSameDifferenceInput,
     what: string,
     options?: { onSuccess?: () => void },
   ): Promise<void> {
     let result: Awaited<ReturnType<typeof mutation.mutateAsync>> | undefined;
     const ok = await runReportedMutation(async () => {
-      result = await mutation.mutateAsync(input);
+      result = await mutation.mutateAsync(input, { signal });
     });
     if (!ok || !result) {
       return;
@@ -51,11 +58,13 @@ export function useDiscardSameDifference() {
       label: `Discarded ${what} on ${record}`,
       undoneLabel: `Undone: ${what} restored on ${record}`,
       invalidates: undoScope(BULK_SCOPE),
-      undo: async () => {
-        await uncheckCandidateCardsFn({ data: { candidateCardIds } });
+      undo: async (undoSignal) => {
+        await withWriteSignal(undoSignal, () =>
+          uncheckCandidateCardsFn({ data: { candidateCardIds }, signal: undoSignal }),
+        );
       },
     });
   }
 
-  return { discard: queuedWorkspaceWrite(discard), isPending: mutation.isPending };
+  return { discard: queuedWorkspaceWrite(queue, discard), isPending: mutation.isPending };
 }

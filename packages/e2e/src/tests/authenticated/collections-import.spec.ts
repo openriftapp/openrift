@@ -203,7 +203,7 @@ async function openOpenRiftCsvExport(page: Page) {
   await page.getByRole("menuitem", { name: "Export…" }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible({ timeout: 15_000 });
-  await dialog.locator("#export-format").click();
+  await dialog.getByRole("combobox", { name: "Export format" }).click();
   await page.getByRole("option", { name: "OpenRift CSV" }).click();
 }
 

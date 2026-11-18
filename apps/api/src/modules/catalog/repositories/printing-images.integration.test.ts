@@ -7,8 +7,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { Database } from "../../../db/tables.js";
 import { PRINTING_1 } from "../../../test/fixtures/constants.js";
+import { mockIo } from "../../../test/image-mocks.js";
 import { createDbContext } from "../../../test/integration-context.js";
 import { waitUntilBlockedBy } from "../../../test/row-locks.js";
+import { refetchImageFile } from "../services/images/jobs.js";
 import { catalogMutationsRepo } from "./catalog-mutations.js";
 import { printingImagesRepo } from "./printing-images.js";
 
@@ -35,6 +37,7 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
     deleted: "https://example.com/deleted-0034.jpg",
     additionalEdit: "https://example.com/additional-edit-0034.jpg",
     replaced: "https://example.com/replaced-0034.jpg",
+    refetched: "https://example.com/refetched-0034.jpg",
     orphan: "https://example.com/orphan-0034.jpg",
     unrehostRace: "https://example.com/unrehost-race-0034.jpg",
     untried: "https://example.com/untried-0034.jpg",
@@ -155,6 +158,25 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
     const imageId = createdImageIds.at(-1)!;
 
     await expect(repo.setActive(imageId, true)).rejects.toThrow(/not rehosted/u);
+  });
+
+  it("leaves the row untouched when setActive repeats the stored value", async () => {
+    const rowVersion = async (id: string) => {
+      const { rows } = await sql<{ version: string }>`
+        SELECT xmin::text AS version FROM face_images WHERE id = ${id}
+      `.execute(db);
+      return rows[0]!.version;
+    };
+    const activeId = (await activeImageId())!;
+    const inactiveId = createdImageIds.at(-1)!;
+    const activeBefore = await rowVersion(activeId);
+    const inactiveBefore = await rowVersion(inactiveId);
+
+    await repo.setActive(activeId, true);
+    await repo.setActive(inactiveId, false);
+
+    expect(await rowVersion(activeId)).toBe(activeBefore);
+    expect(await rowVersion(inactiveId)).toBe(inactiveBefore);
   });
 
   it("refuses to un-rehost the file behind an active image", async () => {
@@ -364,6 +386,24 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
       quad: null,
     });
     expect(late).toBe(false);
+  });
+
+  it("moves a refetched image onto a new image file under a new URL", async () => {
+    const imageId = (await repo.insertImage(seedPrintingId, URLS.refetched, "additional"))!;
+    createdImageIds.push(imageId);
+    const oldId = (await repo.getImageFileId(imageId))!;
+    await repo.completeRehost(oldId, imageRehostedUrl(oldId));
+
+    const outcome = await refetchImageFile(mockIo, repo, oldId);
+
+    expect(outcome.status).toBe("rehosted");
+    expect(outcome.imageFileId).not.toBe(oldId);
+    expect(await repo.getImageFileId(imageId)).toBe(outcome.imageFileId);
+    expect(await repo.getImageFileById(oldId)).toBeUndefined();
+    expect(await repo.getImageFileById(outcome.imageFileId)).toMatchObject({
+      originalUrl: URLS.refetched,
+      rehostedUrl: imageRehostedUrl(outcome.imageFileId),
+    });
   });
 
   it("keeps an unreferenced image file that an attach reuses while the cleanup waits", async () => {

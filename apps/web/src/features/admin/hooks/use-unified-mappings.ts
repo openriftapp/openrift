@@ -48,7 +48,9 @@ export function useUnifiedMappingsSummaryWhen(enabled: boolean, set?: string) {
   });
 }
 
-function useUnifiedMutation<TInput, TResult>(mutationFn: (input: TInput) => Promise<TResult>) {
+function useUnifiedMutation<TInput, TResult>(
+  mutationFn: (input: TInput, signal?: AbortSignal) => Promise<TResult>,
+) {
   return useMutationWithInvalidation({
     mutationFn,
     invalidates: [adminKeys.unifiedMappings.all],
@@ -75,8 +77,9 @@ const saveMappingsFn = createServerFn({ method: "POST" })
 async function saveUnifiedMappings(
   marketplace: Marketplace,
   mappings: SaveMappingsBody["mappings"],
+  signal?: AbortSignal,
 ): Promise<SaveMappingsResult> {
-  const result = await saveMappingsFn({ data: { marketplace, mappings } });
+  const result = await saveMappingsFn({ data: { marketplace, mappings }, signal });
   for (const skipped of result.skipped) {
     toast.error(`#${skipped.externalId}: ${skipped.reason}`);
   }
@@ -84,8 +87,8 @@ async function saveUnifiedMappings(
 }
 
 export function useUnifiedSaveMappings(marketplace: Marketplace) {
-  return useUnifiedMutation((body: SaveMappingsBody) =>
-    saveUnifiedMappings(marketplace, body.mappings),
+  return useUnifiedMutation((body: SaveMappingsBody, signal) =>
+    saveUnifiedMappings(marketplace, body.mappings, signal),
   );
 }
 
@@ -119,16 +122,16 @@ const ignoreProductsFn = createServerFn({ method: "POST" })
 /** Level-3 ignore: deny a specific SKU (finish × language) of an upstream product. */
 export function useUnifiedIgnoreVariants(marketplace: Marketplace) {
   return useUnifiedMutation(
-    async (products: { externalId: number; finish: string; language: string | null }[]) => {
-      await ignoreVariantsFn({ data: { marketplace, products } });
+    async (products: { externalId: number; finish: string; language: string | null }[], signal) => {
+      await ignoreVariantsFn({ data: { marketplace, products }, signal });
     },
   );
 }
 
 /** Level-2 ignore: deny an entire upstream product regardless of finish/language. */
 export function useUnifiedIgnoreProducts(marketplace: Marketplace) {
-  return useUnifiedMutation(async (products: { externalId: number }[]) => {
-    await ignoreProductsFn({ data: { marketplace, products } });
+  return useUnifiedMutation(async (products: { externalId: number }[], signal) => {
+    await ignoreProductsFn({ data: { marketplace, products }, signal });
   });
 }
 
@@ -149,13 +152,16 @@ const assignToCardFn = createServerFn({ method: "POST" })
 
 export function useUnifiedAssignToCard(marketplace: Marketplace) {
   return useUnifiedMutation(
-    async (override: {
-      externalId: number;
-      finish: string;
-      language: string | null;
-      cardId: string;
-    }) => {
-      await assignToCardFn({ data: { marketplace, ...override } });
+    async (
+      override: {
+        externalId: number;
+        finish: string;
+        language: string | null;
+        cardId: string;
+      },
+      signal,
+    ) => {
+      await assignToCardFn({ data: { marketplace, ...override }, signal });
     },
   );
 }
@@ -183,8 +189,8 @@ const unassignFromCardFn = createServerFn({ method: "POST" })
 
 export function useUnifiedUnassignFromCard(marketplace: Marketplace) {
   return useUnifiedMutation(
-    async (params: { externalId: number; finish: string; language: string | null }) => {
-      await unassignFromCardFn({ data: { marketplace, ...params } });
+    async (params: { externalId: number; finish: string; language: string | null }, signal) => {
+      await unassignFromCardFn({ data: { marketplace, ...params }, signal });
     },
   );
 }
@@ -203,7 +209,8 @@ type CardAssignment = SaveMappingsBody["mappings"][number];
 function optimisticSave(cardSlug: string, marketplace: Marketplace) {
   return {
     queryKey: adminKeys.unifiedMappings.byCard(cardSlug),
-    mutationFn: (mappings: CardAssignment[]) => saveUnifiedMappings(marketplace, mappings),
+    mutationFn: (mappings: CardAssignment[], signal?: AbortSignal) =>
+      saveUnifiedMappings(marketplace, mappings, signal),
     apply: (cached: UnifiedMappingsCardResponse, mappings: CardAssignment[]) =>
       mappings.reduce(
         (next, m) =>

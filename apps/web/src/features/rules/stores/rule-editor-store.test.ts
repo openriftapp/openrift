@@ -310,6 +310,24 @@ describe("useRuleEditorStore", () => {
     expect(useRuleEditorStore.getState().ruleCombine).toBeNull();
   });
 
+  it("load records the rules version the draft came from", () => {
+    useRuleEditorStore.getState().load([], null, 5);
+    expect(useRuleEditorStore.getState().rulesVersion).toBe(5);
+    useRuleEditorStore.getState().load([]);
+    expect(useRuleEditorStore.getState().rulesVersion).toBe(0);
+  });
+
+  it("rebase moves to a newer version and keeps the draft", () => {
+    useRuleEditorStore.getState().load([], "max", 2);
+    useRuleEditorStore.getState().addRule();
+    useRuleEditorStore.getState().rebase(4);
+
+    const state = useRuleEditorStore.getState();
+    expect(state.rulesVersion).toBe(4);
+    expect(state.rules).toHaveLength(1);
+    expect(state.ruleCombine).toBe("max");
+  });
+
   it("setRuleCombine sets and clears the combine mode", () => {
     useRuleEditorStore.getState().setRuleCombine("max");
     expect(useRuleEditorStore.getState().ruleCombine).toBe("max");

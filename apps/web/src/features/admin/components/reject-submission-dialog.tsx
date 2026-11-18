@@ -14,6 +14,8 @@ import { DialogForm } from "@/components/ui/dialog-form";
 import { SubmissionMessageFields } from "@/features/admin/components/submission-message-fields";
 import type { SettleScope } from "@/features/admin/hooks/use-catalog-review";
 import { useRejectSubmission } from "@/features/admin/hooks/use-catalog-review";
+import type { RunWrite } from "@/features/admin/lib/run-write";
+import { runWriteDirectly } from "@/features/admin/lib/run-write";
 import {
   CARD_NOTE_PLACEHOLDER,
   REJECT_REASON_ORDER,
@@ -23,7 +25,6 @@ import {
   submissionReasonLabels,
   submissionReasonSentences,
 } from "@/features/contribute/lib/card-submission-copy";
-import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 interface RejectSubmissionDialogProps {
   candidateCardId: string | null;
@@ -32,6 +33,7 @@ interface RejectSubmissionDialogProps {
   scope?: SettleScope;
   onOpenChange: (open: boolean) => void;
   onRejected?: () => void;
+  runWrite?: RunWrite;
 }
 
 export function RejectSubmissionDialog({
@@ -41,6 +43,7 @@ export function RejectSubmissionDialog({
   scope,
   onOpenChange,
   onRejected,
+  runWrite = runWriteDirectly,
 }: RejectSubmissionDialogProps) {
   const rejectSubmission = useRejectSubmission(scope);
   const [reason, setReason] = useState<CardSubmissionReason | null>(null);
@@ -64,8 +67,8 @@ export function RejectSubmissionDialog({
       return;
     }
     if (
-      !(await runReportedMutation(() =>
-        rejectSubmission.mutateAsync({ candidateCardId, reason, note: notePayload }),
+      !(await runWrite((signal) =>
+        rejectSubmission.mutateAsync({ candidateCardId, reason, note: notePayload }, { signal }),
       ))
     ) {
       return;

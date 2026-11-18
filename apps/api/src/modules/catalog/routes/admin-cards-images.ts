@@ -15,7 +15,7 @@ import {
   ensureRehostedOriginal,
   rehostFaceImage,
   rehostImageFile,
-  rehostImageFileOrThrow,
+  refetchImageFile,
   unrehostImageFile,
 } from "../services/images/jobs.js";
 import { saveUploadedImage } from "../services/images/upload.js";
@@ -176,16 +176,20 @@ export const adminCardImagesRouter = {
       throw errors.BAD_REQUEST({ message: "Image has no original URL to rehost" });
     }
 
-    await rehostImageFileOrThrow(context.io, printingImages, image.imageFileId, {
-      overwrite: true,
-    });
-    const rehostedUrl = imageRehostedUrl(image.imageFileId);
+    const outcome = await refetchImageFile(context.io, printingImages, image.imageFileId);
+    if (outcome.status === "failed" || outcome.status === "skipped") {
+      throw errors.BAD_REQUEST({
+        message: `Could not rehost the image: ${outcome.error ?? "no original URL"}`,
+      });
+    }
+    const rehostedUrl = imageRehostedUrl(outcome.imageFileId);
 
     await recordAdminEvent(context.repos, context.userId, {
       action: "image.rehost",
       entityType: "image",
       entityId: imageId,
-      newValues: { rehostedUrl },
+      oldValues: { rehostedUrl: image.rehostedUrl, imageFileId: image.imageFileId },
+      newValues: { rehostedUrl, imageFileId: outcome.imageFileId },
     });
 
     return { rehostedUrl };

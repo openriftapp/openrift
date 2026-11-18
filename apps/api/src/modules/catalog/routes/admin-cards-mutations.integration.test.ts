@@ -795,6 +795,28 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
       );
       expect(res.status).toBe(400);
     });
+
+    it("writes an undo only while the field still holds the accepted value", async () => {
+      await db.updateTable("cards").set({ energy: 4 }).where("slug", "=", cardSlug).execute();
+
+      const refused = await app.fetch(
+        adminReq("POST", `${P}/${cardId}/accept-field`, { field: "energy", value: 2, expected: 5 }),
+      );
+      expect(refused.status).toBe(409);
+      expect(await readJson(refused)).toMatchObject({ code: "FIELD_CHANGED" });
+
+      const undone = await app.fetch(
+        adminReq("POST", `${P}/${cardId}/accept-field`, { field: "energy", value: 2, expected: 4 }),
+      );
+      expect(await readJson(undone)).toEqual({ written: true });
+
+      const row = await db
+        .selectFrom("cards")
+        .select("energy")
+        .where("slug", "=", cardSlug)
+        .executeTakeFirstOrThrow();
+      expect(row.energy).toBe(2);
+    });
   });
 
   describe("POST /printing/:printingId/accept-field", () => {
@@ -975,6 +997,64 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
       expect(updated.markerSlugs).toEqual([PROMO_MARKER_SLUG]);
 
       await deletePrintingsById(db, [enRow!.id, scRow!.id]);
+    });
+
+    it("refuses an undo with FIELD_CHANGED once another edit replaced the accepted value", async () => {
+      await db
+        .updateTable("printings")
+        .set({ comment: "Someone else's note" })
+        .where("id", "=", printingId)
+        .execute();
+
+      const res = await app.fetch(
+        adminReq("POST", `${P}/printing/${printingId}/accept-field`, {
+          field: "comment",
+          value: null,
+          expected: "Accepted note",
+        }),
+      );
+      expect(res.status).toBe(409);
+      expect(await readJson(res)).toMatchObject({ code: "FIELD_CHANGED" });
+
+      const row = await db
+        .selectFrom("printings")
+        .select("comment")
+        .where("id", "=", printingId)
+        .executeTakeFirstOrThrow();
+      expect(row.comment).toBe("Someone else's note");
+
+      await db
+        .updateTable("printings")
+        .set({ comment: null })
+        .where("id", "=", printingId)
+        .execute();
+    });
+
+    it("writes a marker undo inside its locked transaction while the markers still match", async () => {
+      const first = await app.fetch(
+        adminReq("POST", `${P}/printing/${printingId}/accept-field`, {
+          field: "markerSlugs",
+          value: [PROMO_MARKER_SLUG],
+        }),
+      );
+      expect(first.status).toBe(200);
+
+      const res = await app.fetch(
+        adminReq("POST", `${P}/printing/${printingId}/accept-field`, {
+          field: "markerSlugs",
+          value: [],
+          expected: [PROMO_MARKER_SLUG],
+        }),
+      );
+      expect(res.status).toBe(200);
+      expect(await readJson(res)).toEqual({ written: true });
+
+      const row = await db
+        .selectFrom("faces")
+        .select("markerSlugs")
+        .where("id", "=", printingId)
+        .executeTakeFirstOrThrow();
+      expect(row.markerSlugs).toEqual([]);
     });
   });
 

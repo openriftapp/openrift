@@ -506,4 +506,45 @@ describe.skipIf(!ctx)("deletePrinting lock order (integration)", () => {
       .execute();
     expect(slots).toEqual([{ preferredPrintingId: null, quantity: 1 }]);
   });
+
+  it("deletes the substitute-art file pinned on a face deleted with the printing", async () => {
+    const [pinnedPrinting] = await insertPrintings(db, {
+      cardId,
+      setId,
+      shortCode: "PADM3-003",
+      rarity: "common",
+      artVariant: "normal",
+      isSigned: false,
+      finish: "normal",
+      artist: "Test",
+      publicCode: "PADM3-003/1",
+      language: "EN",
+      size: "standard",
+    });
+    const pinnedPrintingId = pinnedPrinting!.id;
+    const { face1Id } = await db
+      .selectFrom("printings")
+      .select("face1Id")
+      .where("id", "=", pinnedPrintingId)
+      .executeTakeFirstOrThrow();
+    const file = await db
+      .insertInto("imageFiles")
+      .values({ originalUrl: "https://example.test/padm3-pinned-art.png" })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await db
+      .updateTable("faces")
+      .set({ fallbackArtMode: "pinned", fallbackImageFileId: file.id })
+      .where("id", "=", face1Id)
+      .execute();
+
+    await deletePrinting(transact, {} as Io, repos, pinnedPrintingId);
+
+    const left = await db
+      .selectFrom("imageFiles")
+      .select("id")
+      .where("id", "=", file.id)
+      .executeTakeFirst();
+    expect(left).toBeUndefined();
+  });
 });

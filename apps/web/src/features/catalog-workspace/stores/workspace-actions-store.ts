@@ -1,10 +1,17 @@
 import { create } from "zustand";
 
+import type { WriteLimit } from "@/features/catalog-workspace/lib/workspace-write-queue";
+
 export interface WorkspaceRecordActions {
-  primary?: { label: string; disabled?: boolean; run: () => Promise<void> | void };
-  accept?: () => Promise<void> | void;
-  ignore?: () => Promise<void> | void;
-  useSuggestion?: (n: number) => Promise<void> | void;
+  primary?: {
+    label: string;
+    disabled?: boolean;
+    run: (signal: AbortSignal) => Promise<void> | void;
+  };
+  accept?: (signal: AbortSignal) => Promise<void> | void;
+  acceptLimit?: WriteLimit;
+  ignore?: (signal: AbortSignal) => Promise<void> | void;
+  useSuggestion?: (signal: AbortSignal, n: number) => Promise<void> | void;
   loading?: boolean;
 }
 

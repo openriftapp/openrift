@@ -3,7 +3,7 @@ import { META_EVENT_INDEX_SORTS } from "@openrift/shared/meta-query";
 import { z } from "zod/mini";
 
 import { metaPageSlice, metaPagingSearchFields } from "@/features/meta/lib/meta-paging";
-import { metaScopeSearchSchema } from "@/features/meta/lib/meta-scope";
+import { metaScopeSearchSchema, playerCountParam } from "@/features/meta/lib/meta-scope";
 import { lenient } from "@/lib/lenient-param";
 
 // Schema only: non-lazy route files import this on every page load, and
@@ -38,8 +38,8 @@ export const DEFAULT_EVENT_PAGE_SIZE = 50;
 export const metaEventsSearchSchema = z.extend(metaScopeSearchSchema, {
   q: lenient(z.string().check(z.maxLength(200))),
   holds: lenient(z.enum(META_EVENT_INDEX_HOLDINGS)),
-  playersMin: lenient(z.number().check(z.int(), z.nonnegative())),
-  playersMax: lenient(z.number().check(z.int(), z.nonnegative())),
+  playersMin: playerCountParam(0),
+  playersMax: playerCountParam(0),
   by: lenient(z.enum(META_EVENT_INDEX_SORTS)),
   dir: lenient(z.enum(["asc", "desc"])),
   ...metaPagingSearchFields(),

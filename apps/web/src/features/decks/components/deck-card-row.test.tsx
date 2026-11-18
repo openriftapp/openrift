@@ -1,6 +1,8 @@
+import { DndContext } from "@dnd-kit/core";
 // @vitest-environment jsdom
 import { labelMapOf } from "@openrift/shared/enum-label";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { stubDeckBuilderCard } from "@/test/factories";
@@ -122,6 +124,44 @@ describe("DeckCardRow", () => {
     expect(screen.getByRole("button", { name: "View details for Iron Ballista" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Add one copy of Iron Ballista" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Remove one copy of Iron Ballista" })).toBeTruthy();
+  });
+
+  it("tabs from the previous control straight into a draggable clickable row", async () => {
+    const user = userEvent.setup();
+    render(
+      <DndContext>
+        <button type="button">Before</button>
+        <DeckCardRow
+          card={stubDeckBuilderCard({ cardName: "Iron Ballista", quantity: 2 })}
+          draggable
+          onClick={() => {}}
+          onIncrement={() => {}}
+          onDecrement={() => {}}
+        />
+      </DndContext>,
+    );
+
+    screen.getByRole("button", { name: "Before" }).focus();
+    await user.tab();
+
+    expect(screen.getByRole("button", { name: "View details for Iron Ballista" })).toHaveFocus();
+  });
+
+  it("gives a draggable row without a click handler no button role", () => {
+    render(
+      <DndContext>
+        <DeckCardRow
+          card={stubDeckBuilderCard({ cardName: "Iron Ballista", quantity: 2 })}
+          draggable
+          onIncrement={() => {}}
+          onDecrement={() => {}}
+        />
+      </DndContext>,
+    );
+
+    expect(
+      screen.getAllByRole("button").map((button) => button.getAttribute("aria-label")),
+    ).toEqual(["Remove one copy of Iron Ballista", "Add one copy of Iron Ballista"]);
   });
 
   it("tints the row in its domain colour", () => {

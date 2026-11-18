@@ -15,18 +15,21 @@ import {
   useSetSubmissionResolution,
   useSubmissionForCandidate,
 } from "@/features/admin/hooks/use-admin-card-submissions";
-import { runReportedMutation } from "@/lib/run-reported-mutation";
+import type { RunWrite } from "@/features/admin/lib/run-write";
+import { runWriteDirectly } from "@/features/admin/lib/run-write";
 
 interface SendNoteDialogProps {
   candidateCardId: string | null;
   submitterName: string | null;
   onOpenChange: (open: boolean) => void;
+  runWrite?: RunWrite;
 }
 
 export function SendNoteDialog({
   candidateCardId,
   submitterName,
   onOpenChange,
+  runWrite = runWriteDirectly,
 }: SendNoteDialogProps) {
   const { data } = useSubmissionForCandidate(candidateCardId);
   const setResolution = useSetSubmissionResolution();
@@ -44,7 +47,7 @@ export function SendNoteDialog({
       return;
     }
     const payload = { candidateCardId, reason: existing?.reason ?? null, note: notePayload };
-    if (!(await runReportedMutation(() => setResolution.mutateAsync(payload)))) {
+    if (!(await runWrite((signal) => setResolution.mutateAsync(payload, { signal })))) {
       return;
     }
     setTouched(false);

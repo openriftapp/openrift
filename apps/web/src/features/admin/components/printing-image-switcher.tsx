@@ -54,8 +54,9 @@ import {
 import { hostnameFromUrl, hostSlugFromUrl } from "@/features/admin/lib/host-slug";
 import { printingImageDisplayUrl as getDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
 import { rehostStatusTitle } from "@/features/admin/lib/rehost-status";
+import type { RunWrite } from "@/features/admin/lib/run-write";
+import { runWriteDirectly } from "@/features/admin/lib/run-write";
 import { imageQuadOf } from "@/features/admin/lib/straighten-quad";
-import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 
 type Rotation = 0 | 90 | 180 | 270;
@@ -63,6 +64,8 @@ type Rotation = 0 | 90 | 180 | 270;
 function imageLabel(img: AdminPrintingImageResponse): string {
   return (img.originalUrl && hostSlugFromUrl(img.originalUrl)) ?? "upload";
 }
+
+const UPLOAD = { limit: "upload" } as const;
 
 export interface SiblingImage {
   imageFileId: string;
@@ -81,6 +84,7 @@ export function PrintingImageSwitcher({
   providerSettings,
   invalidates,
   isAdmin,
+  runWrite = runWriteDirectly,
 }: {
   printingId: string;
   face: "front" | "back";
@@ -95,10 +99,11 @@ export function PrintingImageSwitcher({
   invalidates?: readonly (readonly unknown[])[];
   /** Card-review grant holders keep image finishing; un-rehost, delete, and URL/file add stay full-admin. */
   isAdmin: boolean;
+  runWrite?: RunWrite;
 }) {
   const deletePrintingImage = useDeletePrintingImage(invalidates);
   const activatePrintingImage = useActivatePrintingImage(invalidates);
-  const rehostPrintingImage = useRehostPrintingImage(invalidates);
+  const rehostPrintingImage = useRehostPrintingImage();
   const unrehostPrintingImage = useUnrehostPrintingImage(invalidates);
   const rotatePrintingImage = useRotatePrintingImage();
   const setNeedsTrim = useSetPrintingImageNeedsTrim();
@@ -130,7 +135,7 @@ export function PrintingImageSwitcher({
 
   async function addFromUrl() {
     const input = { printingId, url: urlValue.trim(), mode: "main" as const, face };
-    if (await runReportedMutation(() => addImageFromUrl.mutateAsync(input))) {
+    if (await runWrite((signal) => addImageFromUrl.mutateAsync(input, { signal }), UPLOAD)) {
       setUrlValue("");
       setShowUrlInput(false);
     }
@@ -138,7 +143,7 @@ export function PrintingImageSwitcher({
 
   async function pinFallbackUrl() {
     const input = { printingId, url: fallbackUrlValue.trim(), face };
-    if (await runReportedMutation(() => addFallbackArtUrl.mutateAsync(input))) {
+    if (await runWrite((signal) => addFallbackArtUrl.mutateAsync(input, { signal }), UPLOAD)) {
       setFallbackUrlValue("");
       setShowFallbackUrlInput(false);
     }
@@ -163,12 +168,10 @@ export function PrintingImageSwitcher({
               render={
                 <Pressable
                   disabled={activatePrintingImage.isPending}
-                  onClick={() =>
-                    activatePrintingImage.mutate({
-                      imageId: effectiveImage.id,
-                      active: !effectiveImage.isActive,
-                    })
-                  }
+                  onClick={() => {
+                    const input = { imageId: effectiveImage.id, active: !effectiveImage.isActive };
+                    void runWrite((signal) => activatePrintingImage.mutateAsync(input, { signal }));
+                  }}
                 />
               }
             >
@@ -203,7 +206,12 @@ export function PrintingImageSwitcher({
                   {!effectiveImage.rehostedUrl && effectiveImage.originalUrl && (
                     <DropdownMenuItem
                       disabled={rehostPrintingImage.isPending}
-                      onClick={() => rehostPrintingImage.mutate(effectiveImage.id)}
+                      onClick={() => {
+                        const imageId = effectiveImage.id;
+                        void runWrite((signal) =>
+                          rehostPrintingImage.mutateAsync(imageId, { signal }),
+                        );
+                      }}
                     >
                       <DownloadIcon className="size-3.5" />
                       Rehost
@@ -212,9 +220,12 @@ export function PrintingImageSwitcher({
                   {effectiveImage.activateWhenRehosted && (
                     <DropdownMenuItem
                       disabled={activatePrintingImage.isPending}
-                      onClick={() =>
-                        activatePrintingImage.mutate({ imageId: effectiveImage.id, active: false })
-                      }
+                      onClick={() => {
+                        const input = { imageId: effectiveImage.id, active: false };
+                        void runWrite((signal) =>
+                          activatePrintingImage.mutateAsync(input, { signal }),
+                        );
+                      }}
                     >
                       <XIcon className="size-3.5" />
                       Cancel going live
@@ -235,36 +246,43 @@ export function PrintingImageSwitcher({
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         disabled={editing}
-                        onClick={() =>
-                          rotatePrintingImage.mutate({
+                        onClick={() => {
+                          const input = {
                             imageId: effectiveImage.id,
                             rotation: ((effectiveImage.rotation + 270) % 360) as Rotation,
-                          })
-                        }
+                          };
+                          void runWrite((signal) =>
+                            rotatePrintingImage.mutateAsync(input, { signal }),
+                          );
+                        }}
                       >
                         <RotateCcwIcon className="size-3.5" />
                         Rotate left ({effectiveImage.rotation}&deg;)
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         disabled={editing}
-                        onClick={() =>
-                          rotatePrintingImage.mutate({
+                        onClick={() => {
+                          const input = {
                             imageId: effectiveImage.id,
                             rotation: ((effectiveImage.rotation + 90) % 360) as Rotation,
-                          })
-                        }
+                          };
+                          void runWrite((signal) =>
+                            rotatePrintingImage.mutateAsync(input, { signal }),
+                          );
+                        }}
                       >
                         <RotateCwIcon className="size-3.5" />
                         Rotate right ({effectiveImage.rotation}&deg;)
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         disabled={editing}
-                        onClick={() =>
-                          setNeedsTrim.mutate({
+                        onClick={() => {
+                          const input = {
                             imageId: effectiveImage.id,
                             needsTrim: !effectiveImage.needsTrim,
-                          })
-                        }
+                          };
+                          void runWrite((signal) => setNeedsTrim.mutateAsync(input, { signal }));
+                        }}
                       >
                         {effectiveImage.needsTrim ? (
                           <ScissorsIcon className="text-success size-3.5" />
@@ -278,7 +296,12 @@ export function PrintingImageSwitcher({
                   {isAdmin && effectiveImage.rehostedUrl && effectiveImage.originalUrl && (
                     <DropdownMenuItem
                       disabled={unrehostPrintingImage.isPending}
-                      onClick={() => unrehostPrintingImage.mutate(effectiveImage.id)}
+                      onClick={() => {
+                        const imageId = effectiveImage.id;
+                        void runWrite((signal) =>
+                          unrehostPrintingImage.mutateAsync(imageId, { signal }),
+                        );
+                      }}
                     >
                       <XIcon className="size-3.5" />
                       Un-rehost (delete files)
@@ -288,7 +311,12 @@ export function PrintingImageSwitcher({
                     <DropdownMenuItem
                       variant="destructive"
                       disabled={deletePrintingImage.isPending}
-                      onClick={() => deletePrintingImage.mutate(effectiveImage.id)}
+                      onClick={() => {
+                        const imageId = effectiveImage.id;
+                        void runWrite((signal) =>
+                          deletePrintingImage.mutateAsync(imageId, { signal }),
+                        );
+                      }}
                     >
                       <Trash2Icon className="size-3.5" />
                       Remove
@@ -363,6 +391,7 @@ export function PrintingImageSwitcher({
           quad={imageQuadOf(effectiveImage)}
           open={straightening}
           onOpenChange={setStraightening}
+          runWrite={runWrite}
         />
       )}
 
@@ -375,7 +404,8 @@ export function PrintingImageSwitcher({
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) {
-            uploadPrintingImage.mutate({ printingId, file, mode: "main", face });
+            const input = { printingId, file, mode: "main" as const, face };
+            void runWrite((signal) => uploadPrintingImage.mutateAsync(input, { signal }), UPLOAD);
             e.target.value = "";
           }
         }}
@@ -449,16 +479,19 @@ export function PrintingImageSwitcher({
                 disabled={setFallbackArt.isPending}
                 onChange={(next) => {
                   if (next === "auto" || next === "none") {
-                    setFallbackArt.mutate({ printingId, mode: next, face });
+                    const mode: "auto" | "none" = next;
+                    const input = { printingId, mode, face };
+                    void runWrite((signal) => setFallbackArt.mutateAsync(input, { signal }));
                     return;
                   }
                   if (next.startsWith("pin:")) {
-                    setFallbackArt.mutate({
+                    const input = {
                       printingId,
-                      mode: "pinned",
+                      mode: "pinned" as const,
                       imageFileId: next.slice("pin:".length),
                       face,
-                    });
+                    };
+                    void runWrite((signal) => setFallbackArt.mutateAsync(input, { signal }));
                   }
                 }}
                 label="Which substitute art"
@@ -506,7 +539,8 @@ export function PrintingImageSwitcher({
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) {
-            uploadFallbackArt.mutate({ printingId, file, face });
+            const input = { printingId, file, face };
+            void runWrite((signal) => uploadFallbackArt.mutateAsync(input, { signal }), UPLOAD);
             e.target.value = "";
           }
         }}

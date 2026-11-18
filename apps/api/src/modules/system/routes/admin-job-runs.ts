@@ -26,4 +26,12 @@ export const adminJobRunsRouter = {
     const runs = rows.map((row) => toJobRunView(row));
     return { runs, total, page: pageNumber, limit: pageSize, kinds };
   }),
+
+  get: os.get.handler(async ({ input, context, errors }) => {
+    const run = await context.repos.jobRuns.getById(input.runId);
+    if (run === null) {
+      throw errors.NOT_FOUND();
+    }
+    return { run: toJobRunView(run) };
+  }),
 };

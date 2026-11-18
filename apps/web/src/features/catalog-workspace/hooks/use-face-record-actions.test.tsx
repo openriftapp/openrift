@@ -132,6 +132,8 @@ beforeEach(() => {
   mocks.toast.mockReset();
 });
 
+const { signal } = new AbortController();
+
 describe("faceChips", () => {
   it("puts source images before field suggestions", () => {
     const { model } = setup();
@@ -172,8 +174,11 @@ describe("useFaceRecordActions", () => {
 
     const primary = mocks.registered.current?.primary;
     expect(primary?.label).toBe("Discard 1 & next");
-    await primary?.run();
-    expect(mocks.checkAll.current?.mutateAsync).toHaveBeenCalledWith({ extraIds: [candidate.id] });
+    await primary?.run(signal);
+    expect(mocks.checkAll.current?.mutateAsync).toHaveBeenCalledWith(
+      { extraIds: [candidate.id] },
+      { signal: expect.any(AbortSignal) },
+    );
   });
 
   it("leaves Enter as plain Next for holders who cannot check", () => {
@@ -206,17 +211,20 @@ describe("useFaceRecordActions", () => {
       { wrapper },
     );
 
-    await mocks.registered.current?.useSuggestion?.(1);
-    expect(mocks.setImage.current?.mutateAsync).toHaveBeenCalledWith({
-      candidatePrintingId: candidate.id,
-      mode: "main",
-    });
+    await mocks.registered.current?.useSuggestion?.(signal, 1);
+    expect(mocks.setImage.current?.mutateAsync).toHaveBeenCalledWith(
+      {
+        candidatePrintingId: candidate.id,
+        mode: "main",
+      },
+      { signal: expect.any(AbortSignal) },
+    );
 
-    await mocks.registered.current?.useSuggestion?.(2);
+    await mocks.registered.current?.useSuggestion?.(signal, 2);
     expect(mocks.toast).toHaveBeenCalledOnce();
     expect(mocks.toast.mock.lastCall?.[0]).toEqual(
       expect.objectContaining({
-        accept: mocks.acceptField.current?.mutateAsync,
+        accept: expect.any(Function),
         input: {
           printingId: "printing-1",
           faceId: "face-1",
@@ -227,7 +235,7 @@ describe("useFaceRecordActions", () => {
       }),
     );
 
-    await mocks.registered.current?.useSuggestion?.(9);
+    await mocks.registered.current?.useSuggestion?.(signal, 9);
     expect(mocks.toast).toHaveBeenCalledOnce();
   });
 
@@ -245,7 +253,7 @@ describe("useFaceRecordActions", () => {
       { wrapper },
     );
 
-    await mocks.registered.current?.useSuggestion?.(2);
+    await mocks.registered.current?.useSuggestion?.(signal, 2);
     expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([]);
     const [options] = mocks.toast.mock.lastCall as [{ onAccepted: (revert: unknown) => void }];
     const { onAccepted } = options;
@@ -257,8 +265,8 @@ describe("useFaceRecordActions", () => {
       "Used Artist from provider-a on Teemo, Scout",
       expect.objectContaining({ action: expect.objectContaining({ label: "Undo (Z)" }) }),
     );
-    await latest()?.undo();
-    expect(mocks.acceptPrintingFieldFn).toHaveBeenCalledWith({ data: revert });
+    await latest()?.undo(signal);
+    expect(mocks.acceptPrintingFieldFn).toHaveBeenCalledWith({ data: revert, signal });
   });
 
   it("settles a contributor proposal through the submission", async () => {
@@ -275,25 +283,31 @@ describe("useFaceRecordActions", () => {
       { wrapper },
     );
 
-    await mocks.registered.current?.useSuggestion?.(1);
-    expect(mocks.acceptSubmission.current?.mutateAsync).toHaveBeenCalledWith({
-      candidateCardId: source.id,
-      images: [{ candidatePrintingId: candidate.id, printingId: "printing-1", faceId: "face-1" }],
-    });
+    await mocks.registered.current?.useSuggestion?.(signal, 1);
+    expect(mocks.acceptSubmission.current?.mutateAsync).toHaveBeenCalledWith(
+      {
+        candidateCardId: source.id,
+        images: [{ candidatePrintingId: candidate.id, printingId: "printing-1", faceId: "face-1" }],
+      },
+      { signal: expect.any(AbortSignal) },
+    );
 
-    await mocks.registered.current?.useSuggestion?.(2);
-    expect(mocks.acceptSubmission.current?.mutateAsync).toHaveBeenLastCalledWith({
-      candidateCardId: source.id,
-      printingFields: [
-        {
-          printingId: "printing-1",
-          faceId: "face-1",
-          field: "artist",
-          value: "Kudos Productions",
-          source: "provider",
-        },
-      ],
-    });
+    await mocks.registered.current?.useSuggestion?.(signal, 2);
+    expect(mocks.acceptSubmission.current?.mutateAsync).toHaveBeenLastCalledWith(
+      {
+        candidateCardId: source.id,
+        printingFields: [
+          {
+            printingId: "printing-1",
+            faceId: "face-1",
+            field: "artist",
+            value: "Kudos Productions",
+            source: "provider",
+          },
+        ],
+      },
+      { signal },
+    );
     expect(mocks.toast).not.toHaveBeenCalled();
     expect(result.current.enterCount).toBe(0);
   });
@@ -314,15 +328,18 @@ describe("useFaceRecordActions", () => {
 
     await act(() => result.current.discard(candidate.id));
 
-    expect(mocks.checkCandidate.current?.mutateAsync).toHaveBeenCalledWith(candidate.id);
+    expect(mocks.checkCandidate.current?.mutateAsync).toHaveBeenCalledWith(candidate.id, {
+      signal: expect.any(AbortSignal),
+    });
     expect(toast.success).toHaveBeenCalledWith(
       "Discarded 1 suggestion and 1 image on Teemo, Scout",
       expect.objectContaining({ action: expect.objectContaining({ label: "Undo (Z)" }) }),
     );
     expect(latest()?.undoneLabel).toBe("Undone: 1 suggestion and 1 image restored on Teemo, Scout");
-    await latest()?.undo();
+    await latest()?.undo(signal);
     expect(mocks.uncheckFn).toHaveBeenCalledWith({
       data: { candidatePrintingIds: [candidate.id] },
+      signal,
     });
   });
 
@@ -365,12 +382,13 @@ describe("useFaceRecordActions", () => {
       { wrapper },
     );
 
-    await mocks.registered.current?.primary?.run();
+    await mocks.registered.current?.primary?.run(signal);
     const entry = latest();
     expect(entry?.label).toBe("Discarded 1 suggestion and 1 image on Teemo, Scout");
-    await entry?.undo();
+    await entry?.undo(signal);
     expect(mocks.uncheckFn).toHaveBeenCalledWith({
       data: { candidatePrintingIds: [candidate.id] },
+      signal,
     });
   });
 

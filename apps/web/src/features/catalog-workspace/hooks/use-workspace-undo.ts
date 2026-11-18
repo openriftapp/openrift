@@ -3,8 +3,13 @@ import type { QueryClient } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { isFieldChangedError } from "@/features/admin/lib/accept-undo";
 import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/workspace-undo";
-import { goneNotice } from "@/features/catalog-workspace/lib/workspace-undo";
+import {
+  changedNotice,
+  goneNotice,
+  unknownUndoNotice,
+} from "@/features/catalog-workspace/lib/workspace-undo";
 import type { WorkspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
 import { workspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
 import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
@@ -18,12 +23,22 @@ function refresh(entry: WorkspaceUndoEntry, queryClient: QueryClient) {
   }
 }
 
-async function undoOne(entry: WorkspaceUndoEntry, queryClient: QueryClient): Promise<boolean> {
+const unansweredUndos = new WeakSet<WorkspaceUndoEntry>();
+
+async function undoOne(
+  entry: WorkspaceUndoEntry,
+  queryClient: QueryClient,
+  signal: AbortSignal,
+): Promise<boolean> {
   let failure: unknown = null;
   try {
-    await entry.undo();
+    await entry.undo(signal);
   } catch (error) {
     failure = error ?? new Error("Undo failed");
+  }
+  const unansweredBefore = unansweredUndos.has(entry);
+  if (failure !== null && signal.aborted) {
+    unansweredUndos.add(entry);
   }
   const store = useWorkspaceSelectionStore.getState();
   if (failure === null) {
@@ -32,9 +47,15 @@ async function undoOne(entry: WorkspaceUndoEntry, queryClient: QueryClient): Pro
     refresh(entry, queryClient);
     return true;
   }
+  if (isFieldChangedError(failure)) {
+    store.removeUndo(entry);
+    toast(unansweredBefore ? unknownUndoNotice(entry) : changedNotice(entry));
+    refresh(entry, queryClient);
+    return true;
+  }
   if (errorStatus(failure) === 404 && !isStaleServerFnError(failure)) {
     store.removeUndo(entry);
-    toast(goneNotice(entry));
+    toast(unansweredBefore ? unknownUndoNotice(entry) : goneNotice(entry));
     refresh(entry, queryClient);
     return true;
   }
@@ -46,12 +67,19 @@ const UNDO_TASK = Symbol("workspace-undo");
 
 export const NOTHING_SAVED_NOTICE = "Nothing to undo: the change before it did not save.";
 
+export const NOTHING_KNOWN_NOTICE =
+  "Nothing undone: whether the change before it saved is unknown, so the record was reloaded.";
+
 /** Runs a queued undo unless an earlier failed undo dropped it; a failure drops the waiting ones. */
-async function runQueuedUndo(entry: WorkspaceUndoEntry, queryClient: QueryClient): Promise<void> {
+async function runQueuedUndo(
+  entry: WorkspaceUndoEntry,
+  queryClient: QueryClient,
+  signal: AbortSignal,
+): Promise<void> {
   if (!useWorkspaceSelectionStore.getState().undoQueue.includes(entry)) {
     return;
   }
-  const ok = await undoOne(entry, queryClient);
+  const ok = await undoOne(entry, queryClient, signal);
   const after = useWorkspaceSelectionStore.getState();
   const rest = ok
     ? after.undoQueue.filter((queued) => queued !== entry && after.undoStack.includes(queued))
@@ -77,7 +105,9 @@ export async function runWorkspaceUndo(
   queue: WorkspaceWriteQueue = workspaceWriteQueue(),
 ): Promise<void> {
   if (markQueued(entry)) {
-    await queue.enqueue(UNDO_TASK, () => runQueuedUndo(entry, queryClient));
+    await queue.enqueue(UNDO_TASK, (signal) => runQueuedUndo(entry, queryClient, signal), {
+      queryClient,
+    });
   }
 }
 
@@ -103,14 +133,18 @@ export function undoLatestWorkspaceStep(
     return true;
   }
   const before = new Set(useWorkspaceSelectionStore.getState().undoStack);
-  void queue.enqueue(UNDO_TASK, async () => {
-    const entry = latestUndo();
-    if (entry === undefined || before.has(entry) || !markQueued(entry)) {
-      toast(NOTHING_SAVED_NOTICE);
-      return;
-    }
-    await runQueuedUndo(entry, queryClient);
-  });
+  void queue.enqueue(
+    UNDO_TASK,
+    async (signal) => {
+      const entry = latestUndo();
+      if (entry === undefined || before.has(entry) || !markQueued(entry)) {
+        toast(queue.previousTimedOut() ? NOTHING_KNOWN_NOTICE : NOTHING_SAVED_NOTICE);
+        return;
+      }
+      await runQueuedUndo(entry, queryClient, signal);
+    },
+    { queryClient },
+  );
   return true;
 }
 

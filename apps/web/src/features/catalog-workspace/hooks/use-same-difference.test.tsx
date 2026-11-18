@@ -76,7 +76,7 @@ describe("useDiscardSameDifference", () => {
     await act(() => result.current.discard(INPUT, "gallery's might suggestion", { onSuccess }));
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
-    expect(state.discard).toHaveBeenCalledWith({ data: INPUT });
+    expect(state.discard).toHaveBeenCalledWith({ data: INPUT, signal: expect.any(AbortSignal) });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["admin", "workspace"] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["admin", "cards"] });
     expect(toast.success).toHaveBeenCalledWith(
@@ -86,8 +86,11 @@ describe("useDiscardSameDifference", () => {
 
     const entry = useWorkspaceSelectionStore.getState().undoStack.at(-1);
     expect(entry?.undoneLabel).toBe("Undone: gallery's might suggestion restored on 2 cards");
-    await entry?.undo();
-    expect(state.uncheck.mock.calls).toEqual([[{ data: { candidateCardIds: ["cc-1", "cc-2"] } }]]);
+    const { signal } = new AbortController();
+    await entry?.undo(signal);
+    expect(state.uncheck.mock.calls).toEqual([
+      [{ data: { candidateCardIds: ["cc-1", "cc-2"] }, signal }],
+    ]);
   });
 
   it("runs two discards clicked before either lands one after the other and pushes an undo for each", async () => {
