@@ -397,6 +397,7 @@
   "common_scroll_to_top": "Scroll to top",
   "common_copy": "Copy",
   "common_copied": "Copied",
+  "common_copy_failed": "Couldn't copy",
   "common_copy_share_link": "Copy share link",
   "common_share_link_copied": "Share link copied",
   "common_copy_link_error": "Couldn't copy the link",
@@ -624,8 +625,6 @@
     }
   ],
   "cards_grid_show_n_printings": "Show {count} printings",
-  "cards_grid_load_error_title": "Couldn't load cards",
-  "cards_grid_load_error_description": "The server may be unreachable.",
   "cards_grid_no_results_title": "No cards found",
   "cards_grid_no_results_description": "Try adjusting your filters.",
   "cards_search_hint_text": "Plain words only search card names.",
@@ -1710,6 +1709,12 @@
     }
   ],
   "collections_reorder_aria": "Reorder {label}",
+  "collections_drag_announce_picked_up": "Picked up {name}.",
+  "collections_drag_announce_over": "{name} is over {target}.",
+  "collections_drag_announce_not_over": "{name} is not over a drop area.",
+  "collections_drag_announce_dropped": "Dropped {name} on {target}.",
+  "collections_drag_announce_nothing_moved": "Dropped {name}. Nothing moved.",
+  "collections_drag_announce_unnamed": "Item",
   "collections_copy_edit_aria": "{title}. Edit copy details.",
   "collections_copy_graded_title": "Graded {grader} {grade}",
   "collections_copies_with_details": [

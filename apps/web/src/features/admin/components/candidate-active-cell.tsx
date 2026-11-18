@@ -2,7 +2,7 @@ import { hasFieldValue } from "@openrift/shared/catalog-field-compare";
 import { fixTypography } from "@openrift/shared/fix-typography";
 import { ArrowRightLeftIcon, XIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { SELECT_NONE, SimpleSelect } from "@/components/ui/simple-select";
@@ -55,6 +55,14 @@ export function CandidateActiveCell<TKey extends string>({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const content = renderContent?.(field);
   const [blankRejected, setBlankRejected] = useState(false);
+
+  const editing = editingField === field.key;
+  useEffect(() => {
+    if (editing) {
+      textareaRef.current?.focus();
+      inputRef.current?.focus();
+    }
+  }, [editing]);
 
   const alertId = `${useId()}-required`;
   const rejectsBlank = (value: unknown) => isRequired && !hasFieldValue(value);
@@ -132,13 +140,6 @@ export function CandidateActiveCell<TKey extends string>({
           return;
         }
         setEditingField(field.key);
-        requestAnimationFrame(() => {
-          if (field.multiline) {
-            textareaRef.current?.focus();
-          } else {
-            inputRef.current?.focus();
-          }
-        });
       }}
     >
       {content ??

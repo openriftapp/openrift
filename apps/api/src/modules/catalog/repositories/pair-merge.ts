@@ -1,3 +1,4 @@
+import { MAX_DECK_CARD_QUANTITY } from "@openrift/shared/deck-cards";
 import type { Insertable, Kysely } from "kysely";
 import { sql } from "kysely";
 
@@ -68,13 +69,15 @@ interface SourceRow {
 
 /**
  * Tables whose rows move to the home printing; rows that collide on `conflict` merge, adding
- * up `sum` and keeping the larger `max` (both sides list the same physical card in a product).
+ * up `sum` (no higher than `sumCap`) and keeping the larger `max` (both sides list the same
+ * physical card in a product).
  */
 const MOVES: {
   table: string;
   column: string;
   conflict?: string;
   sum?: string[];
+  sumCap?: number;
   max?: string[];
 }[] = [
   { table: "copies", column: "printing_id" },
@@ -90,6 +93,7 @@ const MOVES: {
     column: "preferred_printing_id",
     conflict: "deck_id, card_id, zone",
     sum: ["quantity"],
+    sumCap: MAX_DECK_CARD_QUANTITY,
   },
   {
     table: "product_printings",
@@ -254,6 +258,59 @@ async function ownersOf(
   return rows;
 }
 
+/** Moves one table's rows from `sourceId` to `homeId`, merging rows that collide. */
+export async function moveRowsTo(
+  db: Kysely<Database>,
+  table: string,
+  sourceId: string,
+  homeId: string,
+): Promise<void> {
+  const move = MOVES.find((entry) => entry.table === table);
+  if (move === undefined) {
+    throw new Error(`No pair-merge move for ${table}`);
+  }
+  const { column, conflict, sum, sumCap, max } = move;
+  const target = sql.table(table);
+  const ref = sql.ref(column);
+  if (conflict !== undefined) {
+    const keys = conflict.split(",").map((key) => key.trim());
+    const matches = sql.join(
+      keys.map((key) => sql`h.${sql.ref(key)} = s.${sql.ref(key)}`),
+      sql` AND `,
+    );
+    if (sum !== undefined || max !== undefined) {
+      const sets = sql.join([
+        ...(sum ?? []).map((field) => {
+          const total = sql`h.${sql.ref(field)} + s.${sql.ref(field)}`;
+          return sql`${sql.ref(field)} = ${sumCap === undefined ? total : sql`LEAST(${total}, ${sumCap})`}`;
+        }),
+        ...(max ?? []).map(
+          (field) => sql`${sql.ref(field)} = GREATEST(h.${sql.ref(field)}, s.${sql.ref(field)})`,
+        ),
+      ]);
+      await sql`
+        UPDATE ${target} h SET ${sets}
+        FROM ${target} s
+        WHERE h.${ref} = ${homeId} AND s.${ref} = ${sourceId} AND ${matches}
+      `.execute(db);
+    }
+    if (table === "list_entries") {
+      await sql`
+        UPDATE card_trades t SET receiver_wish_entry_id = h.id
+        FROM list_entries s, list_entries h
+        WHERE t.receiver_wish_entry_id = s.id
+          AND s.printing_id = ${sourceId} AND h.printing_id = ${homeId} AND h.list_id = s.list_id
+      `.execute(db);
+    }
+    await sql`
+      DELETE FROM ${target} s
+      WHERE s.${ref} = ${sourceId}
+        AND EXISTS (SELECT 1 FROM ${target} h WHERE h.${ref} = ${homeId} AND ${matches})
+    `.execute(db);
+  }
+  await sql`UPDATE ${target} SET ${ref} = ${homeId} WHERE ${ref} = ${sourceId}`.execute(db);
+}
+
 async function moveReferences(
   db: Kysely<Database>,
   sourceId: string,
@@ -272,45 +329,8 @@ async function moveReferences(
       WHERE strpos(${ref}::text, ${sourceId}) > 0
     `.execute(db);
   }
-  for (const { table, column, conflict, sum, max } of MOVES) {
-    const target = sql.table(table);
-    const ref = sql.ref(column);
-    if (conflict !== undefined) {
-      const keys = conflict.split(",").map((key) => key.trim());
-      const matches = sql.join(
-        keys.map((key) => sql`h.${sql.ref(key)} = s.${sql.ref(key)}`),
-        sql` AND `,
-      );
-      if (sum !== undefined || max !== undefined) {
-        const sets = sql.join([
-          ...(sum ?? []).map(
-            (field) => sql`${sql.ref(field)} = h.${sql.ref(field)} + s.${sql.ref(field)}`,
-          ),
-          ...(max ?? []).map(
-            (field) => sql`${sql.ref(field)} = GREATEST(h.${sql.ref(field)}, s.${sql.ref(field)})`,
-          ),
-        ]);
-        await sql`
-          UPDATE ${target} h SET ${sets}
-          FROM ${target} s
-          WHERE h.${ref} = ${homeId} AND s.${ref} = ${sourceId} AND ${matches}
-        `.execute(db);
-      }
-      if (table === "list_entries") {
-        await sql`
-          UPDATE card_trades t SET receiver_wish_entry_id = h.id
-          FROM list_entries s, list_entries h
-          WHERE t.receiver_wish_entry_id = s.id
-            AND s.printing_id = ${sourceId} AND h.printing_id = ${homeId} AND h.list_id = s.list_id
-        `.execute(db);
-      }
-      await sql`
-        DELETE FROM ${target} s
-        WHERE s.${ref} = ${sourceId}
-          AND EXISTS (SELECT 1 FROM ${target} h WHERE h.${ref} = ${homeId} AND ${matches})
-      `.execute(db);
-    }
-    await sql`UPDATE ${target} SET ${ref} = ${homeId} WHERE ${ref} = ${sourceId}`.execute(db);
+  for (const move of MOVES) {
+    await moveRowsTo(db, move.table, sourceId, homeId);
   }
   // Each side's pending announcement would post the merged printing again.
   await sql`

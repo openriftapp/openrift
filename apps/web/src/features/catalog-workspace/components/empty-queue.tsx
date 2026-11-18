@@ -48,8 +48,7 @@ function QueueLink({
   }
   return (
     <Link to="/admin/workspace/printings" search={search} className={className}>
-      {children}
-      <ArrowRightIcon />
+      {content}
     </Link>
   );
 }

@@ -19,6 +19,7 @@ import {
 import { useCandidateDiscards } from "@/features/catalog-workspace/hooks/use-face-record-actions";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
+import { queuedWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import type { PrintingFieldSuggestion } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import type {
   ListingSuggestion,
@@ -179,11 +180,11 @@ export function usePrintingRecordActions({
     chips,
     enterCount: enterIds.length,
     pending,
-    applyChip,
-    mapListing,
-    ignoreListing,
-    discard: discards.discard,
+    applyChip: queuedWorkspaceWrite(applyChip),
+    mapListing: queuedWorkspaceWrite(mapListing),
+    ignoreListing: queuedWorkspaceWrite(ignoreListing),
+    discard: queuedWorkspaceWrite(discards.discard),
     settleCards,
-    runPrimary,
+    runPrimary: queuedWorkspaceWrite(runPrimary),
   };
 }

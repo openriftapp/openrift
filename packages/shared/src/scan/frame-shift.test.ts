@@ -3,9 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createShiftTracker, framePyramid, frameShift, trackShift } from "./frame-shift";
 import type { RgbaImage } from "./types";
 
-function view(left: number, top: number): RgbaImage {
-  const width = 480;
-  const height = 848;
+function view(left: number, top: number, width = 480, height = 848): RgbaImage {
   const data = new Uint8ClampedArray(width * height * 4);
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -52,6 +50,11 @@ describe("frameShift", () => {
     expect(frameShift(framePyramid(flat), framePyramid(flat))).toEqual({ x: 0, y: 0 });
   });
 
+  it("gives up when the frame size changes", () => {
+    expect(frameShift(framePyramid(view(0, 0, 480, 8)), framePyramid(view(0, 0)))).toBeNull();
+    expect(frameShift(framePyramid(view(0, 0)), framePyramid(view(0, 0, 848, 480)))).toBeNull();
+  });
+
   it("gives up on motion beyond its search range", () => {
     expect(frameShift(framePyramid(view(0, 0)), framePyramid(view(300, 0)))).toBeNull();
   });
@@ -81,6 +84,14 @@ describe("trackShift", () => {
     expect(trackShift(tracker, framePyramid(view(300, 0)))).toEqual({ x: 0, y: 0 });
     expect(tracker.lost).toBe(true);
     trackShift(tracker, framePyramid(view(302, 0)));
+    expect(tracker.lost).toBe(false);
+  });
+
+  it("starts over from the first frame after a size change", () => {
+    const tracker = createShiftTracker();
+    trackShift(tracker, framePyramid(view(0, 0, 480, 8)));
+    expect(trackShift(tracker, framePyramid(view(0, 0)))).toEqual({ x: 0, y: 0 });
+    expect(trackShift(tracker, framePyramid(view(20, 0))).x).toBeCloseTo(-20, -1);
     expect(tracker.lost).toBe(false);
   });
 });

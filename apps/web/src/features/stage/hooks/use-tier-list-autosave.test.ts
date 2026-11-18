@@ -120,15 +120,42 @@ describe("useTierListAutosave", () => {
     expect(mutation.mutate).not.toHaveBeenCalled();
   });
 
-  it("sends a queued save straight away when flushed", () => {
+  it("sends a queued save straight away on leaving", () => {
     const { result } = renderHook(() => useTierListAutosave(LIST_ID));
     loadBoard();
 
     act(() => useTierListBuilderStore.getState().assign("card-1", 0));
-    act(() => result.current.flush());
+    act(() => result.current.leave());
 
     expect(mutation.mutate).toHaveBeenCalledTimes(1);
     expect(lastSavedRows()?.[0]?.cards).toHaveLength(1);
+  });
+
+  it("sends a failed save again on leaving", () => {
+    mutation.mutate.mockImplementationOnce(() => {
+      mutation.isError = true;
+    });
+    const { result, rerender } = renderHook(() => useTierListAutosave(LIST_ID));
+    loadBoard();
+
+    act(() => useTierListBuilderStore.getState().assign("card-1", 0));
+    settle();
+    rerender();
+    expect(result.current.status).toBe("failed");
+
+    act(() => result.current.leave());
+
+    expect(mutation.mutate).toHaveBeenCalledTimes(2);
+    expect(lastSavedRows()?.[0]?.cards).toEqual([{ cardId: "card-1", printingId: null }]);
+  });
+
+  it("sends nothing on leaving a saved board", () => {
+    const { result } = renderHook(() => useTierListAutosave(LIST_ID));
+    loadBoard();
+
+    act(() => result.current.leave());
+
+    expect(mutation.mutate).not.toHaveBeenCalled();
   });
 
   it("flushes on unmount with the board as it was when the save was queued", () => {

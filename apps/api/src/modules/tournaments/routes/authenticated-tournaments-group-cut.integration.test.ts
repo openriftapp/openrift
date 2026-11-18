@@ -1,10 +1,9 @@
-import type { RawBuilder } from "kysely";
 import { sql } from "kysely";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestContext, insertCard, req } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
-import { holdRow, waitUntilBlockedBy } from "../../../test/row-locks.js";
+import { holdRoundsLock, holdRow, waitUntilBlockedBy } from "../../../test/row-locks.js";
 
 const HOST_ID = crypto.randomUUID();
 const LEGEND_SLUG = `group-cut-legend-${HOST_ID.slice(0, 8)}`;
@@ -1131,15 +1130,6 @@ describe.skipIf(!hostCtx)("Group stage with a fixed top cut (integration)", () =
   });
 
   describe("concurrent writes", () => {
-    function holdRoundsLock(tournamentId: string, write: RawBuilder<unknown>) {
-      return holdRow(
-        host.db,
-        sql`WITH locked AS (
-          SELECT pg_advisory_xact_lock(hashtext(${`tournament-writes:${tournamentId}`}))
-        ), written AS (${write}) SELECT 1 FROM locked, written`,
-      );
-    }
-
     it("keeps a result reported while a drop waited for the pod", async () => {
       const id = await createTournament({ name: "Skirmish drop race", cutSize: 4 });
       await addPlayers(id, 16);
@@ -1192,6 +1182,7 @@ describe.skipIf(!hostCtx)("Group stage with a fixed top cut (integration)", () =
       await addPlayers(id, 16);
 
       const generator = await holdRoundsLock(
+        host.db,
         id,
         sql`INSERT INTO pod_rounds (tournament_id, round_number, status, penalty_total, pairing_strategy)
           VALUES (${id}, 1, 'reporting', 0, 'group_stage') RETURNING id`,
@@ -1212,6 +1203,7 @@ describe.skipIf(!hostCtx)("Group stage with a fixed top cut (integration)", () =
       await addPlayers(id, 16);
 
       const editor = await holdRoundsLock(
+        host.db,
         id,
         sql`UPDATE tournaments SET has_legend_tiebreak = true WHERE id = ${id} RETURNING id`,
       );
@@ -1247,6 +1239,7 @@ describe.skipIf(!hostCtx)("Group stage with a fixed top cut (integration)", () =
       await reportRound(id, 5);
 
       const canceller = await holdRoundsLock(
+        host.db,
         id,
         sql`UPDATE tournaments SET status = 'cancelled' WHERE id = ${id} RETURNING id`,
       );
@@ -1275,6 +1268,7 @@ describe.skipIf(!hostCtx)("Group stage with a fixed top cut (integration)", () =
       expect(groups.status).toBe(200);
 
       const editor = await holdRoundsLock(
+        host.db,
         id,
         sql`UPDATE tournaments SET has_legend_tiebreak = true WHERE id = ${id} RETURNING id`,
       );
@@ -1308,6 +1302,7 @@ describe.skipIf(!hostCtx)("Group stage with a fixed top cut (integration)", () =
       expect(reportToken && group).toBeTruthy();
 
       const revoker = await holdRoundsLock(
+        host.db,
         id,
         sql`UPDATE tournaments SET report_token = NULL WHERE id = ${id} RETURNING id`,
       );

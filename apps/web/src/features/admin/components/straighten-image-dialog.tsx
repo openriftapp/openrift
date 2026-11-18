@@ -36,8 +36,6 @@ import { useScanServing } from "@/features/scan/hooks/use-scan-serving";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 
-type Scope = readonly (readonly unknown[])[];
-
 const HANDLE_RADIUS = 11;
 const STROKE_WIDTH = 2;
 
@@ -68,13 +66,11 @@ async function detectQuad(
 export function StraightenImageDialog({
   imageId,
   quad,
-  invalidates,
   open: openProp,
   onOpenChange,
 }: {
   imageId: string;
   quad: ImageQuad | null;
-  invalidates?: Scope;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }) {
@@ -99,12 +95,7 @@ export function StraightenImageDialog({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-3xl">
           {open && (
-            <StraightenDialogBody
-              imageId={imageId}
-              quad={quad}
-              invalidates={invalidates}
-              onDone={() => setOpen(false)}
-            />
+            <StraightenDialogBody imageId={imageId} quad={quad} onDone={() => setOpen(false)} />
           )}
         </DialogContent>
       </Dialog>
@@ -115,18 +106,16 @@ export function StraightenImageDialog({
 function StraightenDialogBody({
   imageId,
   quad,
-  invalidates,
   onDone,
 }: {
   imageId: string;
   quad: ImageQuad | null;
-  invalidates?: Scope;
   onDone: () => void;
 }) {
   const serving = useScanServing();
   const boardDetectorUrl = serving.assets?.boardDetectorUrl ?? null;
   const prepareOriginal = useEnsurePrintingImageOriginal();
-  const setQuad = useSetPrintingImageQuad(invalidates);
+  const setQuad = useSetPrintingImageQuad();
   const prepare = prepareOriginal.mutateAsync;
 
   const [original, setOriginal] = useState<ImageOriginalOutput | null>(null);
@@ -136,9 +125,16 @@ function StraightenDialogBody({
   const [displayWidth, setDisplayWidth] = useState(0);
   const [pointer, setPointer] = useState<Point | null>(null);
   const [previewSource, setPreviewSource] = useState<PreviewSource | null>(null);
+  const [previewUnreadable, setPreviewUnreadable] = useState(false);
   const [awaitingDetection, setAwaitingDetection] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
   const previewRef = useRef<HTMLCanvasElement>(null);
+
+  function readPreview(image: HTMLImageElement) {
+    const source = readPreviewSource(image);
+    setPreviewSource(source);
+    setPreviewUnreadable(source === null);
+  }
 
   async function detect(source: ImageOriginalOutput): Promise<void> {
     if (boardDetectorUrl === null) {
@@ -209,7 +205,7 @@ function StraightenDialogBody({
     observer.observe(image);
     setDisplayWidth(image.getBoundingClientRect().width);
     if (image.complete) {
-      setPreviewSource(readPreviewSource(image));
+      readPreview(image);
     }
     return () => observer.disconnect();
   }, [original]);
@@ -235,6 +231,12 @@ function StraightenDialogBody({
     onChange: setCorners,
   });
 
+  async function saveQuad(next: ImageQuad | null) {
+    if (await runReportedMutation(() => setQuad.mutateAsync({ imageId, quad: next }))) {
+      onDone();
+    }
+  }
+
   function trackPointer(event: ReactPointerEvent<SVGSVGElement>): void {
     const surface = surfaceRef.current;
     if (surface === null) {
@@ -249,7 +251,7 @@ function StraightenDialogBody({
     <DialogForm
       onSubmit={() => {
         if (corners !== null) {
-          setQuad.mutate({ imageId, quad: corners }, { onSuccess: onDone });
+          void saveQuad(corners);
         }
       }}
     >
@@ -268,7 +270,7 @@ function StraightenDialogBody({
               alt="Original scan"
               style={{ imageOrientation: "none" }}
               className="max-h-[60vh] w-auto rounded-md select-none"
-              onLoad={(event) => setPreviewSource(readPreviewSource(event.currentTarget))}
+              onLoad={(event) => readPreview(event.currentTarget)}
             />
             <svg
               ref={surfaceRef}
@@ -317,7 +319,11 @@ function StraightenDialogBody({
         {original !== null && corners !== null && (
           <div className="w-36 shrink-0 space-y-1">
             <p className="text-muted-foreground text-sm">Result</p>
-            <canvas ref={previewRef} className="bg-muted h-auto w-full rounded-md" />
+            {previewUnreadable ? (
+              <p className="text-muted-foreground text-sm">No preview for this image.</p>
+            ) : (
+              <canvas ref={previewRef} className="bg-muted h-auto w-full rounded-md" />
+            )}
           </div>
         )}
       </div>
@@ -343,7 +349,7 @@ function StraightenDialogBody({
             className="text-destructive"
             disabled={setQuad.isPending}
             pending={setQuad.isPending && setQuad.variables?.quad === null}
-            onClick={() => setQuad.mutate({ imageId, quad: null }, { onSuccess: onDone })}
+            onClick={() => void saveQuad(null)}
           >
             Remove straightening
           </Button>

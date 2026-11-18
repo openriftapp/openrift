@@ -1,6 +1,6 @@
 import type { Printing } from "@openrift/shared/types/catalog";
 import { XIcon } from "lucide-react";
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useEffectEvent, useState } from "react";
 import type { ReactNode } from "react";
 
 import { Pane } from "@/components/layout/panes";
@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
+
+const OWNS_ESCAPE = 'input, textarea, select, [role="dialog"], [role="alertdialog"], [role="menu"]';
 
 const cardDetailImport = import("@/features/cards/components/card-detail/card-detail");
 const CardDetail = lazy(async () => {
@@ -57,6 +59,25 @@ export function SelectionDetailPane({
     setPaneDocked(false);
     closeDetail();
   };
+  const closeOnEscape = useEffectEvent(handleClose);
+
+  useEffect(() => {
+    if (!paneDocked) {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) {
+        return;
+      }
+      if (event.target instanceof Element && event.target.closest(OWNS_ESCAPE)) {
+        return;
+      }
+      event.preventDefault();
+      closeOnEscape();
+    };
+    globalThis.addEventListener("keydown", onKeyDown);
+    return () => globalThis.removeEventListener("keydown", onKeyDown);
+  }, [paneDocked]);
 
   const {
     selectedCard,

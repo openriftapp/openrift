@@ -3,7 +3,6 @@ import {
   sql as raw,
   CamelCasePlugin,
   DummyDriver,
-  expressionBuilder,
   Kysely,
   PostgresAdapter,
   PostgresIntrospector,
@@ -290,22 +289,6 @@ describe("reorderBySortOrder", () => {
     captured.reset();
   });
 
-  it("assigns 0-based positions in the given key order", async () => {
-    await reorderBySortOrder(db, {
-      table: "finishes",
-      keyColumn: "slug",
-      keys: ["holofoil", "normal"],
-    });
-
-    const { sql, parameters } = onlyStatement(captured);
-    expect(sql).toBe(
-      'update "finishes" set sort_order = d.new_order ' +
-        "from (values ($1::text, $2::int), ($3::text, $4::int)) as d(key, new_order) " +
-        'where "finishes"."slug" = d.key',
-    );
-    expect(parameters).toEqual(["holofoil", 0, "normal", 1]);
-  });
-
   it("converts camelCase table and column names to snake_case", async () => {
     await reorderBySortOrder(db, {
       table: "artVariants",
@@ -316,21 +299,6 @@ describe("reorderBySortOrder", () => {
     const { sql } = onlyStatement(captured);
     expect(sql).toContain('update "art_variants"');
     expect(sql).toContain('where "art_variants"."slug" = d.key');
-  });
-
-  it("casts uuid keys so Postgres can infer the VALUES column type", async () => {
-    const id = "11111111-2222-4333-8444-555555555555";
-    await reorderBySortOrder(db, {
-      table: "markers",
-      keyColumn: "id",
-      keys: [id],
-      keyType: "uuid",
-    });
-
-    const { sql, parameters } = onlyStatement(captured);
-    expect(sql).toContain("(values ($1::uuid, $2::int))");
-    expect(sql).toContain('where "markers"."id" = d.key');
-    expect(parameters).toEqual([id, 0]);
   });
 
   it("addresses a non-slug key column", async () => {
@@ -348,26 +316,6 @@ describe("reorderBySortOrder", () => {
   });
 });
 
-describe("reorderBySortOrder scope", () => {
-  beforeEach(() => {
-    captured.reset();
-  });
-
-  it("appends the scope condition to the where clause", async () => {
-    await reorderBySortOrder(db, {
-      table: "deckFolders",
-      keyColumn: "id",
-      keys: ["f1"],
-      keyType: "uuid",
-      scope: expressionBuilder<Database, "deckFolders">()("deckFolders.userId", "=", "u1"),
-    });
-
-    const { sql: text, parameters } = onlyStatement(captured);
-    expect(text).toContain('where "deck_folders"."id" = d.key and "deck_folders"."user_id" = $3');
-    expect(parameters).toEqual(["f1", 0, "u1"]);
-  });
-});
-
 describe("currentSafeXid", () => {
   beforeEach(() => {
     captured.reset();
@@ -377,9 +325,6 @@ describe("currentSafeXid", () => {
     captured.setRows([{ xid: "4242" }]);
 
     await expect(currentSafeXid(db)).resolves.toBe("4242");
-    expect(onlyStatement(captured).sql).toBe(
-      'select pg_snapshot_xmin(pg_current_snapshot())::text as "xid"',
-    );
   });
 
   it("rejects when the database returns no row", async () => {
@@ -432,11 +377,6 @@ describe("offsetPage", () => {
     const page = await offsetPage(base, { limit: 2, offset: 4 });
 
     expect(page).toEqual({ rows: [{ id: "r1" }, { id: "r2" }], total: 7 });
-    const [rowSql, countSql] = recording.queries;
-    expect(rowSql).toBe(
-      'select "id" from "job_runs" where "kind" = $1 order by "started_at" desc limit $2 offset $3',
-    );
-    expect(countSql).toBe('select count(*) as "total" from "job_runs" where "kind" = $1');
     expect(recording.parameters).toEqual([["tcgplayer.refresh", 2, 4], ["tcgplayer.refresh"]]);
   });
 

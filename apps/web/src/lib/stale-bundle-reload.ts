@@ -1,20 +1,16 @@
 import { errorMessage } from "@openrift/shared/strings";
 
+import { COMMIT_HASH } from "@/lib/env";
 import { CHUNK_LOAD_ERROR_PATTERN, thrownMessage } from "@/lib/error-text";
 // No UI imports here: router.ts and sentry-client.ts import this module
 // statically, and pulling in the toast library would enter the SSR module graph.
 
+/** Holds the build id the last automatic reload left from. */
 const RELOAD_FLAG = "openrift:reload-attempted";
 
 let newVersionAvailable = false;
 
-let pendingReloadFlagClear: ReturnType<typeof setTimeout> | undefined;
-
 export function markNewVersionAvailable(): boolean {
-  if (pendingReloadFlagClear !== undefined) {
-    clearTimeout(pendingReloadFlagClear);
-    pendingReloadFlagClear = undefined;
-  }
   if (newVersionAvailable) {
     return false;
   }
@@ -40,44 +36,23 @@ export function forceReload(reason: string): void {
   globalThis.location.reload();
 }
 
-// Must stay deferred: clearing immediately can re-arm the reload before a
-// same-page-load cache-served response (stamped with the previous build's id) is checked.
-const RELOAD_FLAG_CLEAR_DELAY_MS = 10_000;
-
-export function scheduleReloadFlagClear(): void {
-  if (newVersionAvailable || pendingReloadFlagClear !== undefined) {
-    return;
-  }
-  pendingReloadFlagClear = setTimeout(() => {
-    pendingReloadFlagClear = undefined;
-    if (newVersionAvailable) {
-      return;
-    }
-    try {
-      sessionStorage.removeItem(RELOAD_FLAG);
-    } catch {
-      // ignore
-    }
-  }, RELOAD_FLAG_CLEAR_DELAY_MS);
-}
-
 /**
- * Returns whether the reload was triggered; false means the guard blocked it
- * and the notifier was prompted instead.
+ * Reloads once per build: a page still on the build an earlier reload left from gained
+ * nothing by it, so it prompts instead. Returns false when it prompted.
  */
 function reloadOnce(reason: string): boolean {
   if (globalThis.window === undefined) {
     return false;
   }
   try {
-    if (sessionStorage.getItem(RELOAD_FLAG) === "1") {
+    if (sessionStorage.getItem(RELOAD_FLAG) === COMMIT_HASH) {
       console.warn(
-        `[stale-bundle] ${reason} — auto-reload already attempted this session, prompting instead`,
+        `[stale-bundle] ${reason} — auto-reload already attempted from this build, prompting instead`,
       );
       staleNotifier(reason);
       return false;
     }
-    sessionStorage.setItem(RELOAD_FLAG, "1");
+    sessionStorage.setItem(RELOAD_FLAG, COMMIT_HASH);
   } catch {
     // sessionStorage unavailable (private mode, sandboxed iframe): use the
     // toast to avoid an unguarded reload loop.
@@ -89,10 +64,7 @@ function reloadOnce(reason: string): boolean {
   return true;
 }
 
-/**
- * The reloadOnce guard allows one attempt per session until a matching build id re-arms it;
- * a shell still served stale after the reload falls back to the toast.
- */
+/** A shell still served stale after the reload falls back to the toast. */
 export function reloadForNewVersion(reason: string): boolean {
   if (!markNewVersionAvailable()) {
     return false;
@@ -179,29 +151,17 @@ export function reloadIfChunkLoadError(error: unknown): boolean {
   return true;
 }
 
-/**
- * `throw undefined` (or null, or empty string) escapes React error boundaries
- * and produces a white page.
- */
-function isSameOriginBareThrow(event: ErrorEvent): boolean {
-  if (event.error !== undefined && event.error !== null && event.error !== "") {
-    return false;
-  }
-  // Cross-origin errors (browser extensions, etc.) are sanitized to
-  // event.error === undefined with an empty/foreign filename.
-  return event.filename?.startsWith(globalThis.location.origin) === true;
-}
-
-function isBareRejection(reason: unknown): boolean {
+function isBareThrow(reason: unknown): boolean {
   return reason === undefined || reason === null || reason === "";
 }
 
 /**
- * hydrateRoot's onUncaughtError replaces the default handler, so initChunkErrorReloader's
- * window listener never sees uncaught render errors; client.tsx routes them here.
+ * A bare `throw undefined` (or null, or "") in render escapes every error boundary and leaves a
+ * white page. client.tsx routes React's uncaught render errors here; a bare throw outside render
+ * leaves the page standing, so the window listeners do not reload for one.
  */
 export function reloadIfUncaughtBareThrow(error: unknown): boolean {
-  if (!isBareRejection(error)) {
+  if (!isBareThrow(error)) {
     return false;
   }
   reloadOnce(`bare throw (${String(error)}) escaped React error boundaries`);
@@ -222,21 +182,12 @@ export function initChunkErrorReloader(): void {
   globalThis.addEventListener("error", (event) => {
     if (isChunkLoadError(event.message)) {
       reloadOnce(`chunk load error: ${event.message}`);
-      return;
-    }
-    if (isSameOriginBareThrow(event)) {
-      reloadOnce(`bare throw at ${event.filename}:${event.lineno}`);
     }
   });
   globalThis.addEventListener("unhandledrejection", (event) => {
-    const reason = event.reason;
-    const message = thrownMessage(reason);
+    const message = thrownMessage(event.reason);
     if (isChunkLoadError(message)) {
       reloadOnce(`chunk load error: ${message}`);
-      return;
-    }
-    if (isBareRejection(reason)) {
-      reloadOnce(`bare promise rejection (${String(reason)})`);
     }
   });
   // No preventDefault(): calling it makes Vite's preload helper resolve the
@@ -262,8 +213,4 @@ export function _resetReloadStateForTesting(): void {
     }
   }
   newVersionAvailable = false;
-  if (pendingReloadFlagClear !== undefined) {
-    clearTimeout(pendingReloadFlagClear);
-    pendingReloadFlagClear = undefined;
-  }
 }

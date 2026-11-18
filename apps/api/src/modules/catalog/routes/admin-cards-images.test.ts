@@ -6,6 +6,7 @@ import { AppError } from "../../../errors.js";
 import { registerRouterForTest } from "../../../test/mount-router.js";
 import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
+import { editImageFile } from "../services/images/edit.js";
 import {
   ensureRehostedOriginal,
   rehostFaceImage,
@@ -13,11 +14,7 @@ import {
   rehostImageFileOrThrow,
   unrehostImageFile,
 } from "../services/images/jobs.js";
-import {
-  ensureOriginalOnDisk,
-  processAndSave,
-  regenerateFromOrig,
-} from "../services/images/variants.js";
+import { ensureOriginalOnDisk, processAndSave } from "../services/images/variants.js";
 import { cleanupOrphanedImageFiles } from "../services/printing-admin.js";
 import { adminCardImagesRouter } from "./admin-cards-images";
 
@@ -40,7 +37,10 @@ vi.mock("../services/printing-admin.js", () => ({
 vi.mock("../services/images/variants.js", () => ({
   ensureOriginalOnDisk: vi.fn(),
   processAndSave: vi.fn(),
-  regenerateFromOrig: vi.fn(),
+}));
+
+vi.mock("../services/images/edit.js", () => ({
+  editImageFile: vi.fn(),
 }));
 
 vi.mock("../services/images/download.js", () => ({
@@ -59,7 +59,7 @@ const mockEnsureRehostedOriginal = vi.mocked(ensureRehostedOriginal);
 const mockUnrehostImageFile = vi.mocked(unrehostImageFile);
 const mockCleanupOrphanedImageFiles = vi.mocked(cleanupOrphanedImageFiles);
 const mockProcessAndSave = vi.mocked(processAndSave);
-const mockRegenerateFromOrig = vi.mocked(regenerateFromOrig);
+const mockEditImageFile = vi.mocked(editImageFile);
 const mockEnsureOriginalOnDisk = vi.mocked(ensureOriginalOnDisk);
 
 const mockPrintingImages = {
@@ -77,9 +77,6 @@ const mockPrintingImages = {
   getForActivate: vi.fn(),
   updateRehostedUrl: vi.fn(),
   getForRehost: vi.fn(),
-  setRotation: vi.fn(),
-  setNeedsTrim: vi.fn(),
-  setQuad: vi.fn(),
 };
 
 const mockCatalog = { getPrintingById: vi.fn() };
@@ -279,9 +276,7 @@ describe("DELETE /printing-images/:imageId", () => {
     });
     expect(res.status).toBe(204);
     expect(mockPrintingImages.deleteById).toHaveBeenCalledWith(IMAGE_ID);
-    expect(mockCleanupOrphanedImageFiles).toHaveBeenCalledWith(mockIo, mockCatalogMutations, [
-      "ci-1",
-    ]);
+    expect(mockCleanupOrphanedImageFiles).toHaveBeenCalledWith(mockIo, mockTransact, ["ci-1"]);
     expect(mockPrintingImages.deleteById.mock.invocationCallOrder[0]).toBeLessThan(
       mockCleanupOrphanedImageFiles.mock.invocationCallOrder[0]!,
     );
@@ -543,14 +538,16 @@ describe("POST /printing-images/:imageId/rotate", () => {
     adminAccess = FULL_ADMIN;
   });
 
-  it("sets the rotation and regenerates variants", async () => {
-    mockPrintingImages.getForRehost.mockResolvedValue({
+  it("edits the image file with the new rotation and keeps the other settings", async () => {
+    const image = {
       imageFileId: "ci-1",
       rotation: 0,
       needsTrim: true,
       quad: null,
       originalUrl: "https://example.com/img.png",
-    });
+    };
+    mockPrintingImages.getForRehost.mockResolvedValue(image);
+    mockEditImageFile.mockResolvedValue("ci-2");
 
     const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}/rotate`, {
       method: "POST",
@@ -558,16 +555,20 @@ describe("POST /printing-images/:imageId/rotate", () => {
       body: JSON.stringify({ rotation: 90 }),
     });
     expect(res.status).toBe(204);
-    expect(mockPrintingImages.setRotation).toHaveBeenCalledWith("ci-1", 90);
-    expect(mockEnsureRehostedOriginal).toHaveBeenCalledWith(
-      mockIo,
-      mockPrintingImages,
-      expect.objectContaining({ imageFileId: "ci-1" }),
+    expect(mockEditImageFile).toHaveBeenCalledWith(mockIo, mockPrintingImages, image, {
+      rotation: 90,
+      needsTrim: true,
+      quad: null,
+    });
+    expect(mockAdminEvents.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        oldValues: { rotation: 0, imageFileId: "ci-1" },
+        newValues: { rotation: 90, imageFileId: "ci-2" },
+      }),
     );
-    expect(mockRegenerateFromOrig).toHaveBeenCalledWith(mockIo, "ci-1", 90, true, null);
   });
 
-  it("keeps the stored rotation when the image cannot be rehosted first", async () => {
+  it("records nothing when the edit fails", async () => {
     mockPrintingImages.getForRehost.mockResolvedValue({
       imageFileId: "ci-1",
       rotation: 0,
@@ -576,7 +577,7 @@ describe("POST /printing-images/:imageId/rotate", () => {
       originalUrl: "https://example.com/img.png",
       rehostedUrl: null,
     });
-    mockEnsureRehostedOriginal.mockRejectedValue(
+    mockEditImageFile.mockRejectedValue(
       new AppError(400, ERROR_CODES.BAD_REQUEST, "Could not rehost the image: HTTP 404"),
     );
 
@@ -587,7 +588,7 @@ describe("POST /printing-images/:imageId/rotate", () => {
     });
 
     expect(res.status).toBe(400);
-    expect(mockPrintingImages.setRotation).not.toHaveBeenCalled();
+    expect(mockAdminEvents.insert).not.toHaveBeenCalled();
   });
 
   it("returns 404 when image not found", async () => {
@@ -620,14 +621,16 @@ describe("POST /printing-images/:imageId/set-needs-trim", () => {
     adminAccess = FULL_ADMIN;
   });
 
-  it("sets needs-trim and regenerates variants", async () => {
-    mockPrintingImages.getForRehost.mockResolvedValue({
+  it("edits the image file with the new needs-trim value", async () => {
+    const image = {
       imageFileId: "ci-1",
       rotation: 90,
       needsTrim: false,
       quad: null,
       originalUrl: "https://example.com/img.png",
-    });
+    };
+    mockPrintingImages.getForRehost.mockResolvedValue(image);
+    mockEditImageFile.mockResolvedValue("ci-2");
 
     const res = await app.request(
       `/api/admin/v1/cards/printing-images/${IMAGE_ID}/set-needs-trim`,
@@ -638,8 +641,11 @@ describe("POST /printing-images/:imageId/set-needs-trim", () => {
       },
     );
     expect(res.status).toBe(204);
-    expect(mockPrintingImages.setNeedsTrim).toHaveBeenCalledWith("ci-1", true);
-    expect(mockRegenerateFromOrig).toHaveBeenCalledWith(mockIo, "ci-1", 90, true, null);
+    expect(mockEditImageFile).toHaveBeenCalledWith(mockIo, mockPrintingImages, image, {
+      rotation: 90,
+      needsTrim: true,
+      quad: null,
+    });
   });
 
   it("returns 404 when image not found", async () => {
@@ -657,39 +663,6 @@ describe("POST /printing-images/:imageId/set-needs-trim", () => {
   });
 });
 
-describe("POST /printing-images/:imageId/set-needs-trim when the rehost fails", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-    adminAccess = FULL_ADMIN;
-  });
-
-  it("keeps the stored needs-trim value", async () => {
-    mockPrintingImages.getForRehost.mockResolvedValue({
-      imageFileId: "ci-1",
-      rotation: 0,
-      needsTrim: false,
-      quad: null,
-      originalUrl: "https://example.com/img.png",
-      rehostedUrl: null,
-    });
-    mockEnsureRehostedOriginal.mockRejectedValue(
-      new AppError(400, ERROR_CODES.BAD_REQUEST, "Could not rehost the image: HTTP 404"),
-    );
-
-    const res = await app.request(
-      `/api/admin/v1/cards/printing-images/${IMAGE_ID}/set-needs-trim`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ needsTrim: true }),
-      },
-    );
-
-    expect(res.status).toBe(400);
-    expect(mockPrintingImages.setNeedsTrim).not.toHaveBeenCalled();
-  });
-});
-
 describe("POST /printing-images/:imageId/quad", () => {
   const QUAD = [
     { x: 10, y: 5 },
@@ -697,20 +670,22 @@ describe("POST /printing-images/:imageId/quad", () => {
     { x: 90, y: 95 },
     { x: 10, y: 95 },
   ];
+  const IMAGE = {
+    imageFileId: "ci-1",
+    rotation: 90,
+    needsTrim: true,
+    quad: null,
+    originalUrl: "https://example.com/img.png",
+  };
 
   beforeEach(() => {
     vi.resetAllMocks();
     adminAccess = FULL_ADMIN;
-    mockPrintingImages.getForRehost.mockResolvedValue({
-      imageFileId: "ci-1",
-      rotation: 90,
-      needsTrim: true,
-      quad: null,
-      originalUrl: "https://example.com/img.png",
-    });
+    mockPrintingImages.getForRehost.mockResolvedValue(IMAGE);
+    mockEditImageFile.mockResolvedValue("ci-2");
   });
 
-  it("regenerates with the new quad and stores it", async () => {
+  it("edits the image file with the new quad", async () => {
     const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}/quad`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -718,18 +693,16 @@ describe("POST /printing-images/:imageId/quad", () => {
     });
 
     expect(res.status).toBe(204);
-    expect(mockRegenerateFromOrig).toHaveBeenCalledWith(mockIo, "ci-1", 90, true, QUAD);
-    expect(mockPrintingImages.setQuad).toHaveBeenCalledWith("ci-1", QUAD);
+    expect(mockEditImageFile).toHaveBeenCalledWith(mockIo, mockPrintingImages, IMAGE, {
+      rotation: 90,
+      needsTrim: true,
+      quad: QUAD,
+    });
   });
 
   it("clears the quad when null is sent", async () => {
-    mockPrintingImages.getForRehost.mockResolvedValue({
-      imageFileId: "ci-1",
-      rotation: 0,
-      needsTrim: false,
-      quad: QUAD,
-      originalUrl: null,
-    });
+    const straightened = { ...IMAGE, quad: QUAD };
+    mockPrintingImages.getForRehost.mockResolvedValue(straightened);
 
     const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}/quad`, {
       method: "POST",
@@ -738,11 +711,15 @@ describe("POST /printing-images/:imageId/quad", () => {
     });
 
     expect(res.status).toBe(204);
-    expect(mockPrintingImages.setQuad).toHaveBeenCalledWith("ci-1", null);
+    expect(mockEditImageFile).toHaveBeenCalledWith(mockIo, mockPrintingImages, straightened, {
+      rotation: 90,
+      needsTrim: true,
+      quad: null,
+    });
   });
 
-  it("leaves the stored quad alone when the pipeline rejects it", async () => {
-    mockRegenerateFromOrig.mockRejectedValue(
+  it("answers the pipeline's rejection and records nothing", async () => {
+    mockEditImageFile.mockRejectedValue(
       new AppError(400, ERROR_CODES.BAD_REQUEST, "Quad does not fit the original image"),
     );
 
@@ -753,7 +730,7 @@ describe("POST /printing-images/:imageId/quad", () => {
     });
 
     expect(res.status).toBe(400);
-    expect(mockPrintingImages.setQuad).not.toHaveBeenCalled();
+    expect(mockAdminEvents.insert).not.toHaveBeenCalled();
   });
 
   it("returns 404 when image not found", async () => {
@@ -1407,7 +1384,7 @@ describe("grant holder scope", () => {
     });
 
     expect(res.status).toBe(403);
-    expect(mockPrintingImages.setRotation).not.toHaveBeenCalled();
+    expect(mockEditImageFile).not.toHaveBeenCalled();
   });
 
   it("403s deleting an image on a printing outside the desk, even one they uploaded", async () => {
@@ -1450,12 +1427,12 @@ describe("image edit scope", () => {
 
   const endpoints = [
     { name: "activate", body: { active: true }, effect: () => mockTrxPrintingImages.setActive },
-    { name: "rotate", body: { rotation: 90 }, effect: () => mockPrintingImages.setRotation },
+    { name: "rotate", body: { rotation: 90 }, effect: () => mockEditImageFile },
     { name: "rehost", body: undefined, effect: () => mockRehostImageFileOrThrow },
     {
       name: "set-needs-trim",
       body: { needsTrim: true },
-      effect: () => mockPrintingImages.setNeedsTrim,
+      effect: () => mockEditImageFile,
     },
   ];
 

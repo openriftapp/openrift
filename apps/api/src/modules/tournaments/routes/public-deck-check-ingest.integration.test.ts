@@ -10,7 +10,7 @@ import {
   req,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
-import { holdRow, waitUntilBlockedBy } from "../../../test/row-locks.js";
+import { holdRoundsLock, waitUntilBlockedBy } from "../../../test/row-locks.js";
 
 // Fresh ids, not in run-integration.ts's TEST_USERS registry: the suite seeds
 // its own users (like the deck-check-player suite) so the FK targets exist.
@@ -398,13 +398,10 @@ describe.skipIf(!ownerCtx)("deck-check ingest push (integration, ADR-033)", () =
   });
 
   it("rejects a push that waited for a cancellation", async () => {
-    const canceller = await holdRow(
+    const canceller = await holdRoundsLock(
       db,
-      sql`WITH locked AS (
-        SELECT pg_advisory_xact_lock(hashtext(${`tournament-writes:${eventId}`}))
-      ), written AS (
-        UPDATE tournaments SET status = 'cancelled' WHERE id = ${eventId} RETURNING id
-      ) SELECT 1 FROM locked, written`,
+      eventId,
+      sql`UPDATE tournaments SET status = 'cancelled' WHERE id = ${eventId} RETURNING id`,
     );
     let pushed: Promise<Response> | undefined;
     try {

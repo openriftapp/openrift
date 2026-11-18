@@ -180,7 +180,7 @@ function makeRepos() {
     catalogContentVersion: stub("catalog-v1"),
   };
   const cardLookup = cardLookupSlot(catalog);
-  const cardBans = { listActiveForCards: stub([] as unknown[]) };
+  const cardBans = { listInEffectForCards: stub([] as unknown[]) };
   const tournamentGroups = { syncParticipantLegendsFromDeckCheck: stub<any>(undefined) };
   return { deckCheck, tournaments, decks, enums, catalog, cardLookup, cardBans, tournamentGroups };
 }
@@ -887,6 +887,7 @@ describe("POST/DELETE /deck-check/mine/{entryId}/unlock", () => {
     const repos = makeRepos();
     const row = playerRow({ state: "approved", unlockRequestedAt: now });
     repos.deckCheck.getEntryForPlayer.mockResolvedValue(row);
+    repos.deckCheck.getEntryForUpdate.mockResolvedValue(row);
     repos.deckCheck.getEventById.mockResolvedValue(deckEvent());
     repos.deckCheck.updateEntry.mockImplementation((_id: string, patch: Record<string, unknown>) =>
       Promise.resolve({ ...row, ...patch }),
@@ -898,6 +899,41 @@ describe("POST/DELETE /deck-check/mine/{entryId}/unlock", () => {
     expect(res.status).toBe(200);
     expect(body.entry.unlockRequested).toBe(false);
     expect(repos.deckCheck.updateEntry).toHaveBeenCalledWith(ENTRY_ID, { unlockRequestedAt: null });
+    const lockOrder = repos.tournaments.lockRounds.mock.invocationCallOrder[0] ?? 0;
+    expect(lockOrder).toBeGreaterThan(0);
+    expect(lockOrder).toBeLessThan(repos.deckCheck.updateEntry.mock.invocationCallOrder[0] ?? 0);
+  });
+
+  it("writes nothing on cancel when a judge resolved the request in the meantime", async () => {
+    const repos = makeRepos();
+    const row = playerRow({ state: "approved", unlockRequestedAt: now });
+    repos.deckCheck.getEntryForPlayer.mockResolvedValue(row);
+    repos.deckCheck.getEntryForUpdate.mockResolvedValue({
+      ...row,
+      state: "editable",
+      unlockRequestedAt: null,
+    });
+    repos.deckCheck.getEventById.mockResolvedValue(deckEvent());
+
+    const res = await makeApp(repos).fetch(req("DELETE", `/mine/${ENTRY_ID}/unlock`));
+    const body = (await res.json()) as { entry: { state: string; unlockRequested: boolean } };
+
+    expect(res.status).toBe(200);
+    expect(body.entry).toMatchObject({ state: "editable", unlockRequested: false });
+    expect(repos.deckCheck.updateEntry).not.toHaveBeenCalled();
+  });
+
+  it("409s cancel when the entry left the reviewable states with the request still set", async () => {
+    const repos = makeRepos();
+    const row = playerRow({ state: "approved", unlockRequestedAt: now });
+    repos.deckCheck.getEntryForPlayer.mockResolvedValue(row);
+    repos.deckCheck.getEntryForUpdate.mockResolvedValue({ ...row, state: "withdrawn" });
+    repos.deckCheck.getEventById.mockResolvedValue(deckEvent());
+
+    const res = await makeApp(repos).fetch(req("DELETE", `/mine/${ENTRY_ID}/unlock`));
+
+    expect(res.status).toBe(409);
+    expect(repos.deckCheck.updateEntry).not.toHaveBeenCalled();
   });
 
   it("no-ops cancel when nothing is pending, without writing", async () => {
@@ -1168,6 +1204,44 @@ describe("POST /deck-check/submissions/{token} (submitToToken / persistSubmissio
     );
 
     expect(res.status).toBe(409);
+    expect(repos.deckCheck.createEntry).not.toHaveBeenCalled();
+  });
+
+  it("404s a submission whose link was turned off while it waited for the lock", async () => {
+    const repos = makeRepos();
+    repos.deckCheck.getEventBySubmissionToken.mockResolvedValue(
+      deckEvent({ groupName: "Noxus Locals" }),
+    );
+    repos.deckCheck.getEventById.mockResolvedValue(deckEvent({ submissionToken: null }));
+    linkEntry(repos, undefined);
+
+    const res = await makeApp(repos).fetch(
+      req("POST", `/submissions/${TOKEN}`, {
+        cards: [{ name: "Card", quantity: 1, section: "main" }],
+      }),
+    );
+
+    expect(res.status).toBe(404);
+    expect(repos.deckCheck.lockSelfSubmission).not.toHaveBeenCalled();
+    expect(repos.deckCheck.createEntry).not.toHaveBeenCalled();
+  });
+
+  it("403s a stranger's submission when self-registration closed while it waited for the lock", async () => {
+    const repos = makeRepos();
+    repos.deckCheck.getEventBySubmissionToken.mockResolvedValue(
+      deckEvent({ groupName: "Noxus Locals" }),
+    );
+    repos.deckCheck.getEventById.mockResolvedValue(deckEvent({ allowSelfSubmission: false }));
+    linkEntry(repos, undefined);
+
+    const res = await makeApp(repos).fetch(
+      req("POST", `/submissions/${TOKEN}`, {
+        cards: [{ name: "Card", quantity: 1, section: "main" }],
+      }),
+    );
+
+    expect(res.status).toBe(403);
+    expect(repos.deckCheck.lockSelfSubmission).not.toHaveBeenCalled();
     expect(repos.deckCheck.createEntry).not.toHaveBeenCalled();
   });
 
@@ -1608,33 +1682,22 @@ describe("the join-link page for a player who left", () => {
 });
 
 describe("cancelling an unlock request after leaving", () => {
-  it.each(["dropped", "no_show"])(
-    "still clears a pending request for a %s player",
-    async (status) => {
-      const repos = makeRepos();
-      const row = playerRow({
-        state: "approved",
-        unlockRequestedAt: now,
-        participantStatus: status,
-      });
-      repos.deckCheck.getEntryForPlayer.mockResolvedValue(row);
-      repos.deckCheck.getEventById.mockResolvedValue(deckEvent());
-      repos.deckCheck.updateEntry.mockImplementation(
-        (_id: string, patch: Record<string, unknown>) => Promise.resolve({ ...row, ...patch }),
-      );
+  it.each(["dropped", "no_show"])("refuses a %s player and leaves the request", async (status) => {
+    const repos = makeRepos();
+    const row = playerRow({
+      state: "approved",
+      unlockRequestedAt: now,
+      participantStatus: status,
+    });
+    repos.deckCheck.getEntryForPlayer.mockResolvedValue(row);
+    repos.deckCheck.getEntryForUpdate.mockResolvedValue(row);
+    repos.deckCheck.getEventById.mockResolvedValue(deckEvent());
 
-      const res = await makeApp(repos).fetch(req("DELETE", `/mine/${ENTRY_ID}/unlock`));
-      const body = (await res.json()) as {
-        entry: { unlockRequested: boolean; leftEvent: boolean };
-      };
+    const res = await makeApp(repos).fetch(req("DELETE", `/mine/${ENTRY_ID}/unlock`));
 
-      expect(res.status).toBe(200);
-      expect(body.entry).toMatchObject({ unlockRequested: false, leftEvent: true });
-      expect(repos.deckCheck.updateEntry).toHaveBeenCalledWith(ENTRY_ID, {
-        unlockRequestedAt: null,
-      });
-    },
-  );
+    expect(res.status).toBe(403);
+    expect(repos.deckCheck.updateEntry).not.toHaveBeenCalled();
+  });
 });
 
 describe("a cancel or an earlier deadline that lands while a save waits for the lock", () => {

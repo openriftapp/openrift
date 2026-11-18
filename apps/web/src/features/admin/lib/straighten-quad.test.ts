@@ -8,7 +8,6 @@ import {
   imageQuadOf,
   imageToDisplayScale,
   orderQuadFromOrigin,
-  quadCacheKey,
   scaleQuad,
 } from "./straighten-quad";
 
@@ -86,21 +85,6 @@ describe("orderQuadFromOrigin", () => {
       { x: 200, y: 300 },
       { x: 100, y: 300 },
     ]);
-  });
-});
-
-describe("quadCacheKey", () => {
-  it("is stable for the same corners", () => {
-    expect(quadCacheKey(rect)).toBe(quadCacheKey([...rect] as ImageQuad));
-  });
-
-  it("changes when a corner moves", () => {
-    const moved: ImageQuad = [{ x: 11, y: 20 }, rect[1], rect[2], rect[3]];
-    expect(quadCacheKey(moved)).not.toBe(quadCacheKey(rect));
-  });
-
-  it("has a short token for no quad", () => {
-    expect(quadCacheKey(null)).toBe("0");
   });
 });
 

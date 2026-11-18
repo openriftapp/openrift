@@ -353,6 +353,24 @@ describe("useBatchedAddCopies", () => {
     );
     expect(collection.toArray).toEqual([]);
   });
+
+  it("reports a batch to the callbacks of the newest render", async () => {
+    const { client } = await signedInWithCopies([]);
+    const first = vi.fn();
+    const latest = vi.fn();
+    const { result, rerender } = renderHook(
+      (props: { onBatchSuccess: (printingIds: string[]) => void }) =>
+        useBatchedAddCopies({ onBatchSuccess: props.onBatchSuccess }),
+      { wrapper: wrap(client), initialProps: { onBatchSuccess: first } },
+    );
+
+    const stored = result.current.add("p1", "col-1");
+    rerender({ onBatchSuccess: latest });
+    await stored;
+
+    await vi.waitFor(() => expect(latest).toHaveBeenCalledWith(["p1"]));
+    expect(first).not.toHaveBeenCalled();
+  });
 });
 
 describe("moves and disposals that would cancel pending trades", () => {

@@ -8,23 +8,12 @@ import { useHydrated } from "@/hooks/use-hydrated";
 
 const routeApi = getRouteApi("/stage_/source/$token");
 
-// No backdrop-filter anywhere in this route: it would frost the transparent page into a visible grey box.
-const TRANSPARENT_PAGE_CSS = `
-  html, body { background: transparent !important; }
-  body > * { background: transparent !important; }
-`;
-
 export function OverlaySourcePage() {
   const { token } = routeApi.useParams();
   const { preset } = routeApi.useSearch();
   const hydrated = useHydrated();
 
-  return (
-    <>
-      <style dangerouslySetInnerHTML={{ __html: TRANSPARENT_PAGE_CSS }} />
-      {hydrated && <OverlaySourceCanvas token={token} presetId={preset} />}
-    </>
-  );
+  return hydrated && <OverlaySourceCanvas token={token} presetId={preset} />;
 }
 
 /** Mount only after hydration: the poll is a browser-direct fetch. */

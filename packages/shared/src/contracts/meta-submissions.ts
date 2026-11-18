@@ -5,10 +5,11 @@ import {
   metaSubmissionReasonSchema,
   metaSubmissionStatusSchema,
 } from "@openrift/shared/response-schemas";
-import { isoDate, keysetCursorSchema } from "@openrift/shared/schemas";
+import { isoDate, keysetCursorSchema, POSTGRES_SMALLINT_MAX } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
+import { META_MAX_PLAYERS } from "./meta.js";
 
 const TAG = "Meta submissions";
 const BASE = "/api/v1/meta";
@@ -26,7 +27,14 @@ export const metaSubmissionProposedEventSchema = z.object({
   name: z.string().trim().min(1).max(120),
   eventDate: isoDate,
   format: z.string().trim().min(1),
-  playerCount: z.number().int().positive().nullable().optional().default(null),
+  playerCount: z
+    .number()
+    .int()
+    .positive()
+    .max(META_MAX_PLAYERS)
+    .nullable()
+    .optional()
+    .default(null),
   organizer: z.string().trim().min(1).max(120).nullable().optional().default(null),
   sourceUrl: z.string().trim().min(1).max(2000).nullable().optional().default(null),
 });
@@ -45,11 +53,11 @@ export const metaSubmissionInputSchema = z
     kind: metaDeckSubmissionKindSchema.optional().default("new_list"),
     proposedEvent: metaSubmissionProposedEventSchema.nullable().optional().default(null),
     playerName: z.string().trim().min(1).max(80),
-    rank: z.number().int().min(1),
+    rank: z.number().int().min(1).max(META_MAX_PLAYERS),
     rankIsTier: z.boolean().optional().default(false),
-    wins: z.number().int().min(0).nullable().optional().default(null),
-    losses: z.number().int().min(0).nullable().optional().default(null),
-    draws: z.number().int().min(0).nullable().optional().default(null),
+    wins: z.number().int().min(0).max(POSTGRES_SMALLINT_MAX).nullable().optional().default(null),
+    losses: z.number().int().min(0).max(POSTGRES_SMALLINT_MAX).nullable().optional().default(null),
+    draws: z.number().int().min(0).max(POSTGRES_SMALLINT_MAX).nullable().optional().default(null),
     listStatus: metaListStatusSchema.exclude(["none"]).optional().default("full"),
     cards: z.array(metaSubmissionCardSchema).min(1).max(200),
     note: z.string().trim().min(1).max(2000).nullable().optional().default(null),

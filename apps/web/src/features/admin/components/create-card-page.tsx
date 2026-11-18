@@ -19,6 +19,7 @@ import { ChipInput } from "@/features/contribute/components/form-fields";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { errorText } from "@/lib/error-text";
 import { parseIntegerInput } from "@/lib/integer-input";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 export function CreateCardPage() {
   const navigate = useNavigate();
@@ -30,22 +31,22 @@ export function CreateCardPage() {
 
   const canSubmit = draft.input !== undefined && !createCard.isPending;
 
-  function handleSubmit() {
-    if (draft.input === undefined || createCard.isPending) {
+  async function handleSubmit() {
+    const input = draft.input;
+    if (input === undefined || createCard.isPending) {
       return;
     }
     setErrorMsg(null);
-    createCard.mutate(draft.input, {
-      onSuccess: (result) => {
-        void navigate({
-          to: "/admin/cards/$cardSlug",
-          params: { cardSlug: result.cardSlug },
-        });
+    let result: Awaited<ReturnType<typeof createCard.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(
+      async () => {
+        result = await createCard.mutateAsync(input);
       },
-      onError: (error) => {
-        setErrorMsg(errorText(error, "Failed to create card"));
-      },
-    });
+      (error) => setErrorMsg(errorText(error, "Failed to create card")),
+    );
+    if (ok && result) {
+      void navigate({ to: "/admin/cards/$cardSlug", params: { cardSlug: result.cardSlug } });
+    }
   }
 
   return (
@@ -172,7 +173,7 @@ export function CreateCardPage() {
             )}
 
             <div className="flex gap-2">
-              <Button disabled={!canSubmit} onClick={handleSubmit}>
+              <Button disabled={!canSubmit} onClick={() => void handleSubmit()}>
                 <PlusIcon className="size-4" />
                 Create card
               </Button>

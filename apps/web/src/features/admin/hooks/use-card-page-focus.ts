@@ -10,9 +10,9 @@ import {
   foldsFocusing,
   hasFace,
   marketplaceFocusFace,
+  faceScrollKey,
   NEEDS_DECISION_ID,
-  scrollIntoViewNextFrame,
-  scrollToFace,
+  printingGroupScrollKey,
 } from "@/features/admin/lib/card-page-focus";
 import type { CardSection } from "@/features/admin/lib/card-sections";
 import { faceIdsOfPrinting } from "@/features/admin/lib/face-rows";
@@ -20,6 +20,13 @@ import {
   getCollapsedSections,
   useAdminCardFoldStore,
 } from "@/features/admin/stores/admin-card-fold-store";
+import { useScrollTargetStore } from "@/features/admin/stores/scroll-target-store";
+
+function scrollToFace(faceId: string | undefined): void {
+  if (faceId !== undefined) {
+    useScrollTargetStore.getState().scrollTo(faceScrollKey(faceId), "center");
+  }
+}
 
 export function useCardPageFocus({
   cardSlug,
@@ -102,7 +109,7 @@ export function useCardPageFocus({
     if (decisionsFolded) {
       toggleSectionFold("attention");
     }
-    scrollIntoViewNextFrame(`#${NEEDS_DECISION_ID}`, "start");
+    useScrollTargetStore.getState().scrollTo(NEEDS_DECISION_ID, "start");
   }, [section, hasDetail, decisionsFolded, toggleSectionFold]);
 
   useEffect(() => {
@@ -146,7 +153,7 @@ export function useCardPageFocus({
     focusPrintingFold(cardSlug, groupKey, cardFoldKeys(detail));
     void (async () => {
       await goToSection("printings");
-      scrollIntoViewNextFrame(`[data-printing-group="${groupKey}"]`, "center");
+      useScrollTargetStore.getState().scrollTo(printingGroupScrollKey(groupKey), "center");
     })();
   }
 

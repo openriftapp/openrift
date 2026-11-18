@@ -544,6 +544,22 @@ export function metaDecksRepo(db: Kysely<Database>) {
       }));
     },
 
+    /** The cards of the deck a standings row carries, empty when it has none. */
+    playerDeckCards(
+      playerId: string,
+    ): Promise<
+      { cardId: string; zone: string; quantity: number; preferredPrintingId: string | null }[]
+    > {
+      return db
+        .selectFrom("metaEventPlayers as p")
+        .innerJoin("deckCards as dc", "dc.deckId", "p.deckId")
+        .select(["dc.cardId", "dc.zone", "dc.quantity", "dc.preferredPrintingId"])
+        .where("p.id", "=", playerId)
+        .orderBy("dc.zone")
+        .orderBy("dc.id")
+        .execute();
+    },
+
     contextForDeck(deckId: string): Promise<MetaDeckContextRow | undefined> {
       return db
         .selectFrom("metaEventPlayers as p")

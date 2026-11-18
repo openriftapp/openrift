@@ -132,7 +132,8 @@ function search(
   }
   const median = upperMedian(costs.filter((cost) => Number.isFinite(cost))) ?? 0;
   const onEdge = Math.abs(best.x - centerX) === radius || Math.abs(best.y - centerY) === radius;
-  const reliable = !onEdge && (median === 0 || best.cost <= median * DISTINCT_MATCH);
+  const reliable =
+    Number.isFinite(best.cost) && !onEdge && (median === 0 || best.cost <= median * DISTINCT_MATCH);
   return { ...best, reliable };
 }
 
@@ -141,6 +142,9 @@ export function frameShift(
   previous: FramePyramid,
   current: FramePyramid,
 ): { x: number; y: number } | null {
+  if (previous.fine.width !== current.fine.width || previous.fine.height !== current.fine.height) {
+    return null;
+  }
   const coarse = search(previous.coarse, current.coarse, 0, 0, COARSE_RADIUS, COARSE_STEP);
   if (!coarse.reliable) {
     return null;

@@ -1,6 +1,7 @@
 import type { VariantProps } from "class-variance-authority";
 import type { LucideIcon } from "lucide-react";
 import { CheckIcon, CopyIcon } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import type { buttonVariants } from "@/components/ui/button";
@@ -55,10 +56,13 @@ export function CopyTextButton({
   const handleCopy = async () => {
     const text = await resolveText(value, getText);
     if (text === null) {
+      toast.error(m.common_copy_failed());
       return;
     }
     const payload = normalizeLineBreaks ? text.replaceAll("\n", "\r\n") : text;
-    await copy(payload);
+    if (!(await copy(payload))) {
+      toast.error(m.common_copy_failed());
+    }
   };
 
   return (

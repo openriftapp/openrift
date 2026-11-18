@@ -186,13 +186,40 @@ describe("runTradeMatchDigest", () => {
     expect(Number.isNaN(Date.parse(result.lastRunAt))).toBe(false);
   });
 
-  it("records its watermark when the run throws partway", async () => {
+  it("mails the remaining recipients when one recipient's digest fails to build", async () => {
+    let calls = 0;
     const { deps, jobRuns } = runDeps({
-      catalog: { printingNamesByIds: () => Promise.reject(new Error("db gone")) },
+      catalog: {
+        printingNamesByIds: async (ids: string[]) => {
+          calls += 1;
+          if (calls === 1) {
+            throw new Error("db hiccup");
+          }
+          return new Map(ids.map((id) => [id, "Jinx"]));
+        },
+      },
+    });
+
+    const result = await runTradeMatchDigest(deps, "run-1");
+
+    expect(result).toMatchObject({ recipients: 2, emailsSent: 1, failed: 1 });
+    expect(deps.log.error).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: "user-1" }),
+      expect.any(String),
+    );
+    expect(Number.isNaN(Date.parse(result.lastRunAt))).toBe(false);
+    expect(jobRuns.mergeResult).not.toHaveBeenCalled();
+  });
+
+  it("keeps the previous watermark when the run throws before mailing anyone", async () => {
+    const { deps, jobRuns } = runDeps({
+      userPreferences: { listMatchDigestRecipients: () => Promise.reject(new Error("db gone")) },
     });
 
     await expect(runTradeMatchDigest(deps, "run-1")).rejects.toThrow("db gone");
-    expect(jobRuns.mergeResult).toHaveBeenCalledWith("run-1", { lastRunAt: expect.any(String) });
+    expect(jobRuns.mergeResult).toHaveBeenCalledWith("run-1", {
+      lastRunAt: "2026-06-17T00:00:00.000Z",
+    });
   });
 
   it("takes an explicit start without reading the previous run", async () => {

@@ -29,10 +29,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Kbd } from "@/components/ui/kbd";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
-import { useDeleteCard, useRenameCard } from "@/features/admin/hooks/use-admin-card-mutations";
+import {
+  useDeleteCard,
+  useLeaveCardPage,
+  useRenameCard,
+} from "@/features/admin/hooks/use-admin-card-mutations";
 import { cardListSearch } from "@/features/admin/hooks/use-card-review-navigation";
 import type { CardReviewNavSearch } from "@/features/admin/hooks/use-card-review-navigation";
 import type { PrevNextSlugs } from "@/features/admin/lib/admin-card-nav";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 interface CardDetailHeaderProps {
   card: AdminCardResponse;
@@ -43,8 +48,8 @@ interface CardDetailHeaderProps {
   listSearch: CardReviewNavSearch;
   isCheckingAll: boolean;
   onCheckAllAndNext: () => void;
-  goToCard: (cardSlug: string) => void;
-  goToList: () => void;
+  goToCard: (cardSlug: string) => Promise<void>;
+  goToList: () => Promise<void>;
   isAdmin: boolean;
 }
 
@@ -63,9 +68,24 @@ export function CardDetailHeader({
 }: CardDetailHeaderProps) {
   const renameCard = useRenameCard();
   const deleteCardMutation = useDeleteCard();
+  const leaveCardPage = useLeaveCardPage();
   const canonicalName = card.name;
   const isCardSlugStale = cardSlug !== expectedCardSlug;
   const [deleteOpen, setDeleteOpen] = useState(false);
+
+  async function regenerateId() {
+    const input = { cardId: card.id, newId: expectedCardSlug };
+    if (await runReportedMutation(() => renameCard.mutateAsync(input))) {
+      await leaveCardPage(cardSlug, () => goToCard(expectedCardSlug));
+    }
+  }
+
+  async function confirmDelete() {
+    if (await runReportedMutation(() => deleteCardMutation.mutateAsync(card.id))) {
+      setDeleteOpen(false);
+      await leaveCardPage(cardSlug, goToList);
+    }
+  }
 
   const checkAllLabel = (
     <>
@@ -108,7 +128,7 @@ export function CardDetailHeader({
               disabled={!prevNextCards.prev}
               onClick={() => {
                 if (prevNextCards.prev) {
-                  goToCard(prevNextCards.prev);
+                  void goToCard(prevNextCards.prev);
                 }
               }}
             >
@@ -119,7 +139,7 @@ export function CardDetailHeader({
               disabled={!prevNextCards.next}
               onClick={() => {
                 if (prevNextCards.next) {
-                  goToCard(prevNextCards.next);
+                  void goToCard(prevNextCards.next);
                 }
               }}
             >
@@ -163,12 +183,7 @@ export function CardDetailHeader({
                   {isCardSlugStale && (
                     <DropdownMenuItem
                       disabled={renameCard.isPending}
-                      onClick={() =>
-                        renameCard.mutate(
-                          { cardId: card.id, cardSlug, newId: expectedCardSlug },
-                          { onSuccess: () => goToCard(expectedCardSlug) },
-                        )
-                      }
+                      onClick={() => void regenerateId()}
                     >
                       <RefreshCwIcon className="mr-2" />
                       Regenerate ID ({expectedCardSlug})
@@ -196,14 +211,7 @@ export function CardDetailHeader({
         description="This deletes the card and all its printings. This cannot be undone."
         confirmLabel="Delete card"
         isPending={deleteCardMutation.isPending}
-        onConfirm={() =>
-          deleteCardMutation.mutate(card.id, {
-            onSuccess: () => {
-              setDeleteOpen(false);
-              goToList();
-            },
-          })
-        }
+        onConfirm={() => void confirmDelete()}
       />
     </>
   );

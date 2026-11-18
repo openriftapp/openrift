@@ -51,7 +51,7 @@ export function TierListShareView({ data, token }: TierListSharePageProps) {
           {rankedCount > 0 && (
             <PageTopBarActions>
               <Link
-                to="/stage"
+                to="/stage/show"
                 search={{ tierShare: token, i: 0 }}
                 className={buttonVariants({ variant: "ghost" })}
               >

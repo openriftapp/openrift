@@ -62,9 +62,11 @@ import {
 import { useAdminPrintingCitations } from "@/features/admin/hooks/use-admin-printing-citations";
 import { useIgnoreCandidatePrinting } from "@/features/admin/hooks/use-ignored-candidates";
 import { useMarkers } from "@/features/admin/hooks/use-markers";
+import { useScrollTarget } from "@/features/admin/hooks/use-scroll-target";
 import { acceptFieldWithUndo } from "@/features/admin/lib/accept-undo";
 import { getProviderLabel } from "@/features/admin/lib/candidate-rows";
 import type { SourceSubmitter } from "@/features/admin/lib/candidate-submitter";
+import { faceScrollKey } from "@/features/admin/lib/card-page-focus";
 import type { FaceRow } from "@/features/admin/lib/face-rows";
 import { printingPairName } from "@/features/admin/lib/face-rows";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
@@ -76,6 +78,7 @@ import {
 } from "@/features/admin/stores/admin-card-fold-store";
 import { RarityIcon } from "@/features/cards/components/rarity-icon";
 import { useEnumOrders } from "@/hooks/use-enums";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 interface PrintingSourceColumnActionsProps {
   row?: CandidateCardResponse | CandidatePrintingResponse;
@@ -168,6 +171,7 @@ export function PrintingReviewCard({
   agreedFieldsFolded,
   onAgreedFieldsFoldedChange,
 }: PrintingReviewCardProps) {
+  const scrollRef = useScrollTarget<HTMLDivElement>(faceScrollKey(face.faceId));
   const printing = face.printing;
   const printingId = printing.id;
   const printingLabel = printing.expectedPrintingId;
@@ -189,6 +193,12 @@ export function PrintingReviewCard({
   const deletePrintingSource = useDeleteCandidatePrinting(invalidates);
   const deletePrintingMutation = useDeletePrinting(invalidates);
   const [deleteOpen, setDeleteOpen] = useState(false);
+
+  async function confirmDelete() {
+    if (await runReportedMutation(() => deletePrintingMutation.mutateAsync(printingId))) {
+      setDeleteOpen(false);
+    }
+  }
   const ignorePrintingSource = useIgnoreCandidatePrinting();
   const { labels } = useEnumOrders();
   const { data: markersData } = useMarkers();
@@ -244,7 +254,7 @@ export function PrintingReviewCard({
   const derivedArtPrinting = findDerivedArtPrinting(printing, printings, printingImages);
 
   return (
-    <div data-face-id={face.faceId}>
+    <div ref={scrollRef} data-face-id={face.faceId}>
       <div className="hover:bg-muted/50 flex w-full items-center gap-2 px-3 py-2 text-sm font-medium">
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <ExpandToggle
@@ -371,9 +381,7 @@ export function PrintingReviewCard({
         description="This cannot be undone."
         confirmLabel="Delete"
         isPending={deletePrintingMutation.isPending}
-        onConfirm={() =>
-          deletePrintingMutation.mutate(printingId, { onSuccess: () => setDeleteOpen(false) })
-        }
+        onConfirm={() => void confirmDelete()}
       />
       {isExpanded && (
         <div className="flex flex-col gap-3 px-3 pb-3">

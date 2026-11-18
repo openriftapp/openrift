@@ -333,6 +333,55 @@ describe("persisting copy writes", () => {
 });
 
 describe("confirmed writes survive a copies refetch that started before them", () => {
+  type CopiesStore = ReturnType<typeof getCopiesCollection>;
+
+  interface LateRefetchCase {
+    name: string;
+    initial: CopyResponse[];
+    after: (rows: CopyResponse[]) => CopyResponse[];
+    write: (collection: CopiesStore) => Promise<unknown>;
+    expectWritten: (collection: CopiesStore) => void;
+  }
+
+  const added = stubCopy({ id: "added" });
+  const cases: LateRefetchCase[] = [
+    {
+      name: "keeps an added copy",
+      initial: [stubCopy({ id: "existing" })],
+      after: (rows) => [...rows, added],
+      write: (collection) => collection.insert(added).when("settled"),
+      expectWritten: (collection) =>
+        expect(collection.toArray.map((copy) => copy.id).toSorted()).toEqual(["added", "existing"]),
+    },
+    {
+      name: "keeps a moved copy in its new collection",
+      initial: [stubCopy({ id: "c1", collectionId: "source" })],
+      after: () => [stubCopy({ id: "c1", collectionId: "dest" })],
+      write: (collection) =>
+        collection
+          .update("c1", (draft) => {
+            draft.collectionId = "dest";
+          })
+          .when("settled"),
+      expectWritten: (collection) => expect(collection.get("c1")?.collectionId).toBe("dest"),
+    },
+    {
+      name: "keeps an edited copy's new details",
+      initial: [stubCopy({ id: "c1" })],
+      after: () => [stubCopy({ id: "c1", condition: "mint" })],
+      write: (collection) =>
+        updateCopyMetadata(collection, ["c1"], { condition: "mint" }).when("settled"),
+      expectWritten: (collection) => expect(collection.get("c1")?.condition).toBe("mint"),
+    },
+    {
+      name: "keeps a removed copy removed",
+      initial: [stubCopy({ id: "c1" })],
+      after: () => [],
+      write: (collection) => collection.delete("c1").when("settled"),
+      expectWritten: (collection) => expect(collection.has("c1")).toBe(false),
+    },
+  ];
+
   async function withSlowRefetch(initial: CopyResponse[]) {
     const server = { rows: initial };
     let release = () => {};
@@ -365,68 +414,38 @@ describe("confirmed writes survive a copies refetch that started before them", (
     });
   }
 
-  it("keeps an added copy", async () => {
-    const { collection, server, release, refetching } = await withSlowRefetch([
-      stubCopy({ id: "existing" }),
-    ]);
-    const row = stubCopy({ id: "added" });
-    respond = (request) => {
-      server.rows = [...server.rows, row];
-      return succeed(request);
-    };
+  it.each(cases)(
+    "$name and rereads when the refetch lands after the write",
+    async ({ initial, after, write, expectWritten }) => {
+      const { collection, server, release, refetching } = await withSlowRefetch(initial);
+      respond = (request) => {
+        server.rows = after(server.rows);
+        return succeed(request);
+      };
 
-    await collection.insert(row).when("settled");
-    await landLateRefetch(release, refetching);
+      await write(collection);
+      await landLateRefetch(release, refetching);
 
-    expect(collection.toArray.map((copy) => copy.id).toSorted()).toEqual(["added", "existing"]);
-  });
+      expectWritten(collection);
+      expect(fetchCopies).toHaveBeenCalledTimes(3);
+    },
+  );
 
-  it("keeps a moved copy in its new collection", async () => {
-    const { collection, server, release, refetching } = await withSlowRefetch([
-      stubCopy({ id: "c1", collectionId: "source" }),
-    ]);
-    respond = (request) => {
-      server.rows = [stubCopy({ id: "c1", collectionId: "dest" })];
-      return succeed(request);
-    };
+  it.each(cases)(
+    "$name and rereads when the refetch lands during the write",
+    async ({ initial, after, write, expectWritten }) => {
+      const { collection, server, release, refetching } = await withSlowRefetch(initial);
+      respond = async (request) => {
+        server.rows = after(server.rows);
+        await landLateRefetch(release, refetching);
+        return succeed(request);
+      };
 
-    await collection
-      .update("c1", (draft) => {
-        draft.collectionId = "dest";
-      })
-      .when("settled");
-    await landLateRefetch(release, refetching);
+      await write(collection);
+      await vi.waitFor(() => expect(queryClient.isFetching()).toBe(0));
 
-    expect(collection.get("c1")?.collectionId).toBe("dest");
-  });
-
-  it("keeps an edited copy's new details", async () => {
-    const { collection, server, release, refetching } = await withSlowRefetch([
-      stubCopy({ id: "c1" }),
-    ]);
-    respond = (request) => {
-      server.rows = [stubCopy({ id: "c1", condition: "mint" })];
-      return succeed(request);
-    };
-
-    await updateCopyMetadata(collection, ["c1"], { condition: "mint" }).when("settled");
-    await landLateRefetch(release, refetching);
-
-    expect(collection.get("c1")?.condition).toBe("mint");
-  });
-
-  it("keeps a removed copy removed", async () => {
-    const { collection, server, release, refetching } = await withSlowRefetch([
-      stubCopy({ id: "c1" }),
-    ]);
-    respond = (request) => {
-      server.rows = [];
-      return succeed(request);
-    };
-
-    await collection.delete("c1").when("settled");
-    await landLateRefetch(release, refetching);
-
-    expect(collection.has("c1")).toBe(false);
-  });
+      expectWritten(collection);
+      expect(fetchCopies).toHaveBeenCalledTimes(3);
+    },
+  );
 });

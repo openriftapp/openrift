@@ -112,6 +112,29 @@ describe.skipIf(!ctx)("candidate fingerprint failures (integration)", () => {
     expect(await listedIds()).toContain(id);
   });
 
+  it("serves never-tried URLs first, then the oldest attempts", async () => {
+    async function failedAgo(hours: number): Promise<string> {
+      const url = `https://example.test/cff/${crypto.randomUUID()}.png`;
+      const id = await candidate(url);
+      await repo.recordFingerprintFailure(id, url, "timeout");
+      await db
+        .updateTable("candidateFingerprintFailures")
+        .set({ lastAttemptAt: new Date(Date.now() - hours * 60 * 60 * 1000) })
+        .where("candidatePrintingId", "=", id)
+        .execute();
+      return id;
+    }
+    const recent = await failedAgo(2);
+    const oldest = await failedAgo(3);
+    const fresh = await candidate(`https://example.test/cff/${crypto.randomUUID()}.png`);
+
+    const listed = await listedIds();
+
+    expect(listed.indexOf(fresh)).toBeGreaterThanOrEqual(0);
+    expect(listed.indexOf(fresh)).toBeLessThan(listed.indexOf(oldest));
+    expect(listed.indexOf(oldest)).toBeLessThan(listed.indexOf(recent));
+  });
+
   it("counts attempts per URL and starts over when the URL changes", async () => {
     const url = `https://example.test/cff/${crypto.randomUUID()}.png`;
     const id = await candidate(url);

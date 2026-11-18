@@ -69,7 +69,7 @@ export const boardStatesRouter = {
     const { id, title, coreRulesVersion, tournamentRulesVersion, document } = input;
     const { boardStates } = context.repos;
 
-    const current = await boardStates.getByIdForUser(id, context.userId);
+    const current = await boardStates.getPinsForUser(id, context.userId);
     assertFound(current, NOT_FOUND);
 
     // An explicit `undefined` key here reaches Kysely's SET clause and nulls the column.
@@ -105,9 +105,13 @@ export const boardStatesRouter = {
       }
     }
 
-    if (Object.keys(values).length === 0) {
-      // An empty values object would produce an empty SET, which is invalid SQL.
-      return toBoardState(current);
+    if (document === undefined) {
+      const kept = await boardStates.getByIdForUser(id, context.userId);
+      assertFound(kept, NOT_FOUND);
+      if (Object.keys(values).length === 0) {
+        // An empty values object would produce an empty SET, which is invalid SQL.
+        return toBoardState(kept);
+      }
     }
 
     const row = await boardStates.update(id, context.userId, values);
@@ -125,6 +129,7 @@ export const boardStatesRouter = {
     return await enableShare({
       read: () => boardStates.getShareState(input.id, context.userId),
       write: (token) => boardStates.setShare(input.id, context.userId, token, true),
+      constraint: "uq_board_states_share_token",
     });
   }),
 

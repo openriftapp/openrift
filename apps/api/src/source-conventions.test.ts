@@ -138,6 +138,7 @@ describe("source conventions", () => {
       "modules/catalog/routes/admin-cards-images.ts",
       "modules/catalog/routes/admin-printing-desk.ts",
       "modules/catalog/routes/admin-printing-post-image.ts",
+      "modules/catalog/services/images/edit.ts",
       "modules/catalog/services/images/fingerprint-sweep.ts",
       "modules/catalog/services/images/jobs.ts",
       "modules/catalog/services/images/maintenance.ts",
@@ -294,7 +295,9 @@ describe("source conventions", () => {
   });
 
   it("takes advisory locks only through lockKey", () => {
-    expect(filesMatching(".", /pg_advisory/u, ["repositories/query-helpers.ts"])).toEqual([]);
+    expect(
+      filesMatching(".", /pg_advisory/u, ["repositories/query-helpers.ts", "test/row-locks.ts"]),
+    ).toEqual([]);
   });
 
   it("namespaces every advisory lock key", () => {

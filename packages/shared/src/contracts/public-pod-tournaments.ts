@@ -11,7 +11,7 @@ import {
   podTournamentStatusSchema,
   tournamentFormatSchema,
 } from "@openrift/shared/response-schemas";
-import { podResultSchema } from "@openrift/shared/schemas";
+import { podResultSchema, POSTGRES_INTEGER_MAX } from "@openrift/shared/schemas";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
@@ -62,7 +62,7 @@ export const publicPodTournamentsContract = {
     .input(
       z.object({
         token: z.string().min(1),
-        throughRound: z.coerce.number().int().positive().optional(),
+        throughRound: z.coerce.number().int().positive().max(POSTGRES_INTEGER_MAX).optional(),
       }),
     )
     .errors({ NOT_FOUND: { message: "Not found" } })

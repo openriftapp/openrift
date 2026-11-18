@@ -454,10 +454,10 @@ export async function unrehostImageFile(
   if (!image.originalUrl) {
     throw badRequest("Cannot un-rehost: image has no original URL to fall back to");
   }
-  await repo.clearPendingForFile(imageFileId);
-  await repo.clearRehostFailure(imageFileId);
+  if (!(await repo.clearRehostedUrl(imageFileId))) {
+    throw conflict("The image changed while it was being un-rehosted. Reload and try again.");
+  }
   await deleteRehostFiles(io, image.rehostedUrl);
-  await repo.updateRehostedUrl(imageFileId, null);
   return image.rehostedUrl;
 }
 

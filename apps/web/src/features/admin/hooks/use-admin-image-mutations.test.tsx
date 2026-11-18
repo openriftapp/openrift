@@ -1,13 +1,20 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const server = vi.hoisted(() => ({
+  respond: null as null | (() => Promise<void>),
+}));
 
 vi.mock("@tanstack/react-start", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => {
     const chain = {
       handler: () => async () => {
+        if (server.respond !== null) {
+          return server.respond();
+        }
         throw new Error("Could not rehost the image: HTTP 404");
       },
       middleware: () => chain,
@@ -28,8 +35,22 @@ vi.mock("@/lib/server-fns/with-cookies", () => ({
 const { reportMutationError } = vi.hoisted(() => ({ reportMutationError: vi.fn() }));
 vi.mock("@/lib/query-client", () => ({ reportMutationError }));
 
-const { useActivatePrintingImage, useEnsurePrintingImageOriginal, useRehostPrintingImage } =
-  await import("./use-admin-image-mutations");
+const {
+  useActivatePrintingImage,
+  useEnsurePrintingImageOriginal,
+  useImageEditPending,
+  useRehostPrintingImage,
+  useRotatePrintingImage,
+  useSetPrintingImageNeedsTrim,
+  useSetPrintingImageQuad,
+} = await import("./use-admin-image-mutations");
+const { adminKeys } = await import("@/features/admin/lib/admin-query-keys");
+const { cardsKeys, catalogKeys, promosKeys } =
+  await import("@/features/cards/lib/cards-query-keys");
+
+afterEach(() => {
+  server.respond = null;
+});
 
 function wrap(client: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
@@ -88,5 +109,78 @@ describe("useEnsurePrintingImageOriginal", () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(client.getMutationCache().getAll()[0]?.options.meta).toEqual({ inlineError: true });
+  });
+});
+
+describe("image file edits", () => {
+  const editors = {
+    rotate: () => {
+      const { result } = renderHook(() => useRotatePrintingImage(), { wrapper: wrap(client) });
+      return () => result.current.mutateAsync({ imageId: "img-1", rotation: 90 });
+    },
+    trim: () => {
+      const { result } = renderHook(() => useSetPrintingImageNeedsTrim(), {
+        wrapper: wrap(client),
+      });
+      return () => result.current.mutateAsync({ imageId: "img-1", needsTrim: true });
+    },
+    straighten: () => {
+      const { result } = renderHook(() => useSetPrintingImageQuad(), { wrapper: wrap(client) });
+      return () => result.current.mutateAsync({ imageId: "img-1", quad: null });
+    },
+  };
+  let client: QueryClient;
+
+  it.each(Object.keys(editors) as (keyof typeof editors)[])(
+    "%s refreshes every cached view that can show the old image file",
+    async (edit) => {
+      server.respond = async () => {};
+      client = new QueryClient();
+      const queries = [
+        adminKeys.cards.detail("other-card-sharing-the-face"),
+        adminKeys.cards.list,
+        adminKeys.printingDesk.printing("printing-1"),
+        adminKeys.workspaceQueueFor("face"),
+        adminKeys.workspaceRecords.infinite({ kind: "face" }),
+        catalogKeys.all,
+        cardsKeys.detail("jinx-loose-cannon"),
+        promosKeys.forLanguage("EN"),
+      ];
+      for (const key of queries) {
+        client.setQueryData([...key], { stale: false });
+      }
+
+      const run = editors[edit]();
+      await act(() => run());
+
+      for (const key of queries) {
+        expect(client.getQueryState([...key])?.isInvalidated, JSON.stringify(key)).toBe(true);
+      }
+    },
+  );
+
+  it("marks only the edited image busy until its edit settles", async () => {
+    let finish = () => {};
+    server.respond = () =>
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+    client = new QueryClient();
+    const run = editors.rotate();
+    const edited = renderHook(() => useImageEditPending("img-1"), { wrapper: wrap(client) });
+    const other = renderHook(() => useImageEditPending("img-2"), { wrapper: wrap(client) });
+
+    let done: Promise<unknown> = Promise.resolve();
+    act(() => {
+      done = run();
+    });
+
+    await waitFor(() => expect(edited.result.current).toBe(true));
+    expect(other.result.current).toBe(false);
+    await act(async () => {
+      finish();
+      await done;
+    });
+    await waitFor(() => expect(edited.result.current).toBe(false));
   });
 });

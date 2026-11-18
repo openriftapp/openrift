@@ -84,6 +84,7 @@ export async function deliverFiles(
       if (error instanceof DOMException && error.name === "AbortError") {
         return "cancelled";
       }
+      console.warn("[scan-recorder] sharing failed, downloading instead", error);
     }
   }
   for (const file of files) {

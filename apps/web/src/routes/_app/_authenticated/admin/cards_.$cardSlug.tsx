@@ -1,4 +1,3 @@
-import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { marketplaceEnum } from "@openrift/shared/types/pricing";
 import { createFileRoute } from "@tanstack/react-router";
@@ -31,10 +30,6 @@ interface CardDetailSearch {
 }
 
 export const Route = createFileRoute("/_app/_authenticated/admin/cards_/$cardSlug")({
-  head: ({ loaderData }) => {
-    const data = loaderData as AdminCardDetailResponse | undefined;
-    return adminSeoHead(data?.displayName ?? "Card");
-  },
   validateSearch: (search: Record<string, unknown>): CardDetailSearch => {
     const result: CardDetailSearch = {};
     if (isCardSection(search.section)) {
@@ -103,7 +98,8 @@ export const Route = createFileRoute("/_app/_authenticated/admin/cards_/$cardSlu
           ]
         : []),
     ]);
-    return detail;
+    return { displayName: detail.displayName };
   },
+  head: ({ loaderData }) => adminSeoHead(loaderData?.displayName ?? "Card"),
   pendingComponent: AdminPending,
 });

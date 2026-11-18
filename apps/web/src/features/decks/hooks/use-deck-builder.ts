@@ -1,5 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
-import { deckCardKey, sameDeckCards } from "@openrift/shared/deck-cards";
+import { deckCardKey, MAX_DECK_CARD_QUANTITY, sameDeckCards } from "@openrift/shared/deck-cards";
 import type { DeckViolation } from "@openrift/shared/deck-rules";
 import {
   battlefieldCapFor,
@@ -131,7 +131,7 @@ function rebalanceRunes(
         preferredPrintingId: existingOther.preferredPrintingId,
       }),
       (draft) => {
-        draft.quantity += 1;
+        draft.quantity = Math.min(MAX_DECK_CARD_QUANTITY, draft.quantity + 1);
       },
     );
     return undefined;
@@ -148,6 +148,11 @@ function rebalanceRunes(
   return undefined;
 }
 
+/** How many more copies a row can take before `MAX_DECK_CARD_QUANTITY`; a missing row takes the cap. */
+function roomIn(row: DeckBuilderCard | undefined): number {
+  return MAX_DECK_CARD_QUANTITY - (row?.quantity ?? 0);
+}
+
 function incrementOrInsert(
   collection: DeckCollection,
   card: DeckBuilderCard,
@@ -161,12 +166,16 @@ function incrementOrInsert(
     preferredPrintingId,
   });
   const existing = collection.get(key);
+  const added = Math.min(addQty, roomIn(existing));
+  if (added <= 0) {
+    return;
+  }
   if (existing) {
     collection.update(key, (draft) => {
-      draft.quantity += addQty;
+      draft.quantity += added;
     });
   } else {
-    collection.insert({ ...card, zone, quantity: addQty, preferredPrintingId });
+    collection.insert({ ...card, zone, quantity: added, preferredPrintingId });
   }
 }
 
@@ -292,7 +301,7 @@ export function addCardAction(
             preferredPrintingId,
           }),
           (draft) => {
-            draft.quantity += 1;
+            draft.quantity = Math.min(MAX_DECK_CARD_QUANTITY, draft.quantity + 1);
           },
         );
       } else {
@@ -486,7 +495,16 @@ export function moveCardAction(
     moveIntoSingleSlot(collection, source, sourceKey, toZone);
     return;
   }
-  const moved = amount === "all" ? source.quantity : 1;
+  const targetKey = deckCardKey({
+    cardId,
+    zone: toZone,
+    preferredPrintingId,
+  });
+  const target = collection.get(targetKey);
+  const moved = Math.min(amount === "all" ? source.quantity : 1, roomIn(target));
+  if (moved <= 0) {
+    return;
+  }
   if (source.quantity > moved) {
     collection.update(sourceKey, (draft) => {
       draft.quantity -= moved;
@@ -495,12 +513,6 @@ export function moveCardAction(
     collection.delete(sourceKey);
   }
 
-  const targetKey = deckCardKey({
-    cardId,
-    zone: toZone,
-    preferredPrintingId,
-  });
-  const target = collection.get(targetKey);
   if (target) {
     collection.update(targetKey, (draft) => {
       draft.quantity += moved;
@@ -538,7 +550,7 @@ export function setQuantityAction(
     return;
   }
   collection.update(key, (draft) => {
-    draft.quantity = quantity;
+    draft.quantity = Math.min(MAX_DECK_CARD_QUANTITY, quantity);
   });
 }
 
@@ -563,7 +575,12 @@ export function changePreferredPrintingAction(
   if (!source) {
     return;
   }
-  const take = Math.max(1, Math.min(countToConvert, source.quantity));
+  const targetKey = deckCardKey({ cardId, zone, preferredPrintingId: toPrintingId });
+  const target = collection.get(targetKey);
+  const take = Math.min(Math.max(1, Math.min(countToConvert, source.quantity)), roomIn(target));
+  if (take <= 0) {
+    return;
+  }
 
   if (take >= source.quantity) {
     collection.delete(sourceKey);
@@ -573,8 +590,6 @@ export function changePreferredPrintingAction(
     });
   }
 
-  const targetKey = deckCardKey({ cardId, zone, preferredPrintingId: toPrintingId });
-  const target = collection.get(targetKey);
   if (target) {
     collection.update(targetKey, (draft) => {
       draft.quantity += take;

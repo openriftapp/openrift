@@ -346,11 +346,9 @@ describe("unrehostImageFile", () => {
     pinned = false,
   ) {
     return {
-      updateRehostedUrl: vi.fn(() => Promise.resolve()),
+      clearRehostedUrl: vi.fn(() => Promise.resolve(true)),
       isActiveImageFile: vi.fn(() => Promise.resolve(active)),
       isPinnedFallbackFile: vi.fn(() => Promise.resolve(pinned)),
-      clearPendingForFile: vi.fn(() => Promise.resolve()),
-      clearRehostFailure: vi.fn(() => Promise.resolve()),
       getImageFileById: vi.fn((id: string) =>
         Promise.resolve(file === undefined ? undefined : { id, ...file }),
       ),
@@ -365,10 +363,43 @@ describe("unrehostImageFile", () => {
     mockReaddir.mockResolvedValue(["file-1-orig.png", "file-1-400w.webp"]);
 
     expect(await unrehostImageFile(mockIo, repo, "file-1")).toBe("/media/cards/01/file-1");
-    expect(repo.updateRehostedUrl).toHaveBeenCalledWith("file-1", null);
-    expect(repo.clearPendingForFile).toHaveBeenCalledWith("file-1");
-    expect(repo.clearRehostFailure).toHaveBeenCalledWith("file-1");
+    expect(repo.clearRehostedUrl).toHaveBeenCalledWith("file-1");
     expect(mockUnlink).toHaveBeenCalledTimes(2);
+  });
+
+  it("deletes the files only after the URL is cleared", async () => {
+    const events: string[] = [];
+    const repo = makeUnrehostRepo({
+      originalUrl: "https://example.com/x.png",
+      rehostedUrl: "/media/cards/01/file-1",
+    });
+    repo.clearRehostedUrl.mockImplementation(() => {
+      events.push("clear url");
+      return Promise.resolve(true);
+    });
+    mockReaddir.mockResolvedValue(["file-1-orig.png"]);
+    mockUnlink.mockImplementation(() => {
+      events.push("unlink");
+      return Promise.resolve();
+    });
+
+    await unrehostImageFile(mockIo, repo, "file-1");
+
+    expect(events).toEqual(["clear url", "unlink"]);
+  });
+
+  it("keeps the files when an image went live before the URL could be cleared", async () => {
+    const repo = makeUnrehostRepo({
+      originalUrl: "https://example.com/x.png",
+      rehostedUrl: "/media/cards/01/file-1",
+    });
+    repo.clearRehostedUrl.mockResolvedValue(false);
+    mockReaddir.mockResolvedValue(["file-1-orig.png"]);
+
+    await expect(unrehostImageFile(mockIo, repo, "file-1")).rejects.toMatchObject({
+      status: 409,
+    });
+    expect(mockUnlink).not.toHaveBeenCalled();
   });
 
   it("refuses pinned fallback art, which the public sees", async () => {
@@ -382,7 +413,7 @@ describe("unrehostImageFile", () => {
       status: 409,
       message: "Unpin the fallback art first",
     });
-    expect(repo.updateRehostedUrl).not.toHaveBeenCalled();
+    expect(repo.clearRehostedUrl).not.toHaveBeenCalled();
   });
 
   it("refuses an image that is live on a face", async () => {
@@ -395,7 +426,7 @@ describe("unrehostImageFile", () => {
       status: 409,
       message: "Deactivate the image first",
     });
-    expect(repo.updateRehostedUrl).not.toHaveBeenCalled();
+    expect(repo.clearRehostedUrl).not.toHaveBeenCalled();
     expect(mockUnlink).not.toHaveBeenCalled();
   });
 

@@ -18,7 +18,7 @@ export function StageOverlayPushKey({ printingId }: { printingId: string }) {
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      if (isTypingTarget(event.target)) {
+      if (event.defaultPrevented || isTypingTarget(event.target)) {
         return;
       }
       if (resolvePresentationKey(event) !== "push") {
@@ -27,8 +27,8 @@ export function StageOverlayPushKey({ printingId }: { printingId: string }) {
       event.preventDefault();
       mutate({ printingId });
     };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
+    globalThis.addEventListener("keydown", handler);
+    return () => globalThis.removeEventListener("keydown", handler);
   }, [mutate, printingId]);
 
   return null;
@@ -45,7 +45,7 @@ export function StageOverlayHideKey() {
       return;
     }
     const handler = (event: KeyboardEvent) => {
-      if (isTypingTarget(event.target)) {
+      if (event.defaultPrevented || isTypingTarget(event.target)) {
         return;
       }
       if (resolvePresentationKey(event) !== "toggleHidden") {
@@ -54,8 +54,8 @@ export function StageOverlayHideKey() {
       event.preventDefault();
       mutate({ hidden: !hidden });
     };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
+    globalThis.addEventListener("keydown", handler);
+    return () => globalThis.removeEventListener("keydown", handler);
   }, [mutate, hidden]);
 
   return null;

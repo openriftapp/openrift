@@ -6,12 +6,15 @@
     "test:e2e": "set -a && source ../../.env 2>/dev/null && set +a && bunx playwright test",
     "test:e2e:ui": "set -a && source ../../.env 2>/dev/null && set +a && bunx playwright test --ui",
     "test:e2e:headed": "set -a && source ../../.env 2>/dev/null && set +a && bunx playwright test --headed",
-    "test:e2e:debug": "set -a && source ../../.env 2>/dev/null && set +a && bunx playwright test --debug"
+    "test:e2e:debug": "set -a && source ../../.env 2>/dev/null && set +a && bunx playwright test --debug",
+    "typecheck": "tsgo --noEmit"
   },
   "devDependencies": {
     "@openrift/shared": "workspace:*",
     "@piltoverarchive/riftbound-deck-codes": "1.5.0",
     "@playwright/test": "1.65.0",
+    "@types/node": "26.6.6",
+    "@typescript/native-preview": "7.0.0-dev.20260707.2",
     "postgres": "4.1.1"
   }
 }

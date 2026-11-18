@@ -5,7 +5,7 @@ import { expect, test } from "@playwright/test";
 
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
-import { connectToDb, deleteUser } from "../../helpers/db.js";
+import { connectToDb, deleteUser, firstRow } from "../../helpers/db.js";
 import { waitForHydrated } from "../../helpers/hydration.js";
 
 type Sql = ReturnType<typeof connectToDb>;
@@ -55,10 +55,7 @@ async function findInboxId(email: string): Promise<string> {
       WHERE u.email = ${email} AND c.is_inbox = true
       LIMIT 1
     `) as { id: string }[];
-    if (rows.length === 0) {
-      throw new Error(`No inbox for ${email}`);
-    }
-    return rows[0].id;
+    return firstRow(rows, `inbox for ${email}`).id;
   } finally {
     await sql.end();
   }
@@ -75,10 +72,7 @@ async function findPrintingIdForCard(cardName: string): Promise<string> {
       ORDER BY p.printing_id
       LIMIT 1
     `) as { id: string }[];
-    if (rows.length === 0) {
-      throw new Error(`No printing for card ${cardName}`);
-    }
-    return rows[0].id;
+    return firstRow(rows, `printing for card ${cardName}`).id;
   } finally {
     await sql.end();
   }
@@ -350,7 +344,7 @@ test.describe("collection actions", () => {
           JOIN users u ON u.id = c.user_id
           WHERE u.email = ${email}
         `) as { count: number }[];
-        expect(copyRows[0].count).toBe(0);
+        expect(copyRows[0]?.count).toBe(0);
 
         const eventRows = (await sql`
           SELECT COUNT(*)::int AS count
@@ -358,7 +352,7 @@ test.describe("collection actions", () => {
           JOIN users u ON u.id = e.user_id
           WHERE u.email = ${email} AND e.action = 'removed'
         `) as { count: number }[];
-        expect(eventRows[0].count).toBe(3);
+        expect(eventRows[0]?.count).toBe(3);
       } finally {
         await sql.end();
       }

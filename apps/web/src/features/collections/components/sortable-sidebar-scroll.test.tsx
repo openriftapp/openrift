@@ -30,8 +30,7 @@ function Harness({ onDragEnd }: { onDragEnd: (event: DragEndEvent) => void }) {
           <SortableSidebarRow
             key={label}
             id={`sortable-collection-c${index}`}
-            data={{ type: "sidebar-reorder-collection", collectionId: `c${index}` }}
-            label={label}
+            data={{ type: "sidebar-reorder-collection", collectionId: `c${index}`, label }}
           >
             {(handle) => <div data-row={index}>{handle}</div>}
           </SortableSidebarRow>

@@ -10,7 +10,6 @@ import {
   mockFetch,
   mockIo,
   mockMkdir,
-  mockReadFile,
   mockReaddir,
   mockSharpInstance,
   mockUnlink,
@@ -25,7 +24,6 @@ import {
   ensureOriginalOnDisk,
   generateWebpVariants,
   processAndSave,
-  regenerateFromOrig,
   rehostFilesExist,
 } from "./variants.js";
 
@@ -263,28 +261,6 @@ describe("ensureOriginalOnDisk", () => {
       name: "AppError",
       status: 400,
       message: "Image has no original to straighten",
-    });
-    expect(mockFetch).not.toHaveBeenCalled();
-    expect(mockWriteFile).not.toHaveBeenCalled();
-  });
-});
-
-describe("regenerateFromOrig", () => {
-  const IMAGE_ID = "0000000000000000000000000000000ab";
-
-  it("rebuilds the variants from the local orig", async () => {
-    mockReaddir.mockResolvedValue([`${IMAGE_ID}-orig.png`]);
-
-    await regenerateFromOrig(mockIo, IMAGE_ID, 0, false, null);
-
-    expect(mockReadFile).toHaveBeenCalledWith(join(CARD_MEDIA_DIR, "ab", `${IMAGE_ID}-orig.png`));
-  });
-
-  it("never downloads into the media directory when the orig is missing", async () => {
-    mockReaddir.mockResolvedValue([]);
-
-    await expect(regenerateFromOrig(mockIo, IMAGE_ID, 90, false, null)).rejects.toMatchObject({
-      status: 400,
     });
     expect(mockFetch).not.toHaveBeenCalled();
     expect(mockWriteFile).not.toHaveBeenCalled();

@@ -36,7 +36,7 @@ import {
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useIgnoreCandidateCard } from "@/features/admin/hooks/use-ignored-candidates";
 import { acceptFieldWithUndo } from "@/features/admin/lib/accept-undo";
-import { getProviderLabel } from "@/features/admin/lib/candidate-rows";
+import { candidateFieldValue, getProviderLabel } from "@/features/admin/lib/candidate-rows";
 import { buildSourceSubmitters } from "@/features/admin/lib/candidate-submitter";
 
 interface CardSourceColumnActionsProps {
@@ -75,13 +75,12 @@ function CardSourceColumnActions({
     <>
       <DropdownMenuItem
         onClick={() => {
-          const record = row as unknown as Record<string, unknown>;
           for (const field of candidateCardFields) {
             // The grid also carries read-only provider columns the accept endpoint does not take.
             if (!isAcceptCardField(field.key)) {
               continue;
             }
-            const val = record[field.key];
+            const val = candidateFieldValue(row, field.key);
             if (val !== null && val !== undefined && val !== "") {
               onAcceptField({ cardId, field: field.key, value: val, source: "provider" });
             }

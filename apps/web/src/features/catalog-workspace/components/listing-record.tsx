@@ -50,6 +50,7 @@ import {
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
+import { queueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import { workspaceQueueQueryOptions } from "@/features/catalog-workspace/lib/workspace-queries";
 import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/workspace-undo";
 import { formatCentsInLocale } from "@/lib/format";
@@ -163,7 +164,7 @@ function ListingBody({ sku, item }: { sku: ListingSku; item: WorkspaceQueueItem 
       ignoredVariantsUndo(sku.marketplace, [skuValues], record),
     );
   const ignoreWholeProduct = () =>
-    void doneWith(
+    doneWith(
       () => ignoreProduct.mutateAsync([{ externalId: sku.externalId }]),
       ignoredProductUndo(sku.marketplace, sku.externalId, record),
     );
@@ -210,10 +211,10 @@ function ListingBody({ sku, item }: { sku: ListingSku; item: WorkspaceQueueItem 
                   <ChevronDownIcon />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => void ignore()}>
+                  <DropdownMenuItem onClick={() => void queueWorkspaceWrite(ignore)}>
                     This SKU <Kbd>X</Kbd>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={ignoreWholeProduct}>
+                  <DropdownMenuItem onClick={() => void queueWorkspaceWrite(ignoreWholeProduct)}>
                     Every SKU of #{sku.externalId}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -268,7 +269,9 @@ function ListingBody({ sku, item }: { sku: ListingSku; item: WorkspaceQueueItem 
                     size="sm"
                     className="ml-auto"
                     disabled={pending}
-                    onClick={() => void assign(candidate.printing.printingId)}
+                    onClick={() =>
+                      void queueWorkspaceWrite(() => assign(candidate.printing.printingId))
+                    }
                   >
                     Map here {index < 9 && <Kbd>{index + 1}</Kbd>}
                   </Button>

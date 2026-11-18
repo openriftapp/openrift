@@ -12,6 +12,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import type { PrintingsTable } from "../../../db/tables/catalog.js";
 import type { Repos, Transact } from "../../../deps.js";
 import { badRequest, conflict, forbidden } from "../../../errors.js";
+import type { Io } from "../../../io.js";
 import { assertFound } from "../../../lib/assertions.js";
 import type { AdminAccess } from "../../../middleware/require-admin.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
@@ -20,6 +21,7 @@ import type { PrintingUpdate } from "../repositories/catalog-mutations.js";
 import type { NewPrinting } from "./printing-admin.js";
 import {
   asPrintingIdentityConflict,
+  cleanupOrphanedImageFiles,
   createNewPrinting,
   updatePrintingDistributionChannels,
   updatePrintingMarkers,
@@ -381,6 +383,7 @@ export async function setDeskSecondSide(
 
 export async function removeDeskSide(
   transact: Transact,
+  io: Io,
   repos: Pick<Repos, "adminEvents" | "catalog" | "printingDesk">,
   adminAccess: AdminAccess | null,
   userId: string,
@@ -391,6 +394,7 @@ export async function removeDeskSide(
   await assertDeskPrintingScope(repos, adminAccess, userId, printingId);
 
   let before: { face1Id: string; face2Id: string | null } | undefined;
+  let releasedImageFileIds: string[] = [];
   try {
     await transact(async (trxRepos) => {
       const locked = await trxRepos.printingDesk.lockFaceLinks(printingId);
@@ -407,7 +411,7 @@ export async function removeDeskSide(
           `${covers} ${pluralize(covers, "deck uses", "decks use")} this face as a cover.`,
         );
       }
-      await trxRepos.printingDesk.dropFace(printingId, faceId);
+      releasedImageFileIds = await trxRepos.printingDesk.dropFace(printingId, faceId);
       before = locked;
     });
   } catch (error) {
@@ -424,6 +428,7 @@ export async function removeDeskSide(
     newValues: { removedFaceId: faceId },
   });
 
+  await cleanupOrphanedImageFiles(io, transact, releasedImageFileIds);
   await repos.catalog.refreshCatalogViews();
 }
 

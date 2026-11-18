@@ -21,6 +21,7 @@ import {
   sourceStateLifecycle,
 } from "@/features/admin/lib/meta-event-source-state";
 import { RESULTS_DISPLAY } from "@/features/admin/lib/meta-mirror-view";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 function SourceCell({ row: state }: AdminCellSlotProps<AdminMetaSourceState>) {
   if (!state) {
@@ -65,20 +66,28 @@ function ResultsCell({ row: state }: AdminCellSlotProps<AdminMetaSourceState>) {
 
 function CollectAction({ row: state }: AdminCellSlotProps<AdminMetaSourceState>) {
   const collect = useCollectMirrorRow();
+
+  async function collectResults(target: Parameters<typeof collect.mutateAsync>[0]) {
+    let result: Awaited<ReturnType<typeof collect.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await collect.mutateAsync(target);
+    });
+    if (ok && result) {
+      announceSyncTrigger("Collect results", result);
+    }
+  }
+
   if (!state || !state.collects) {
     return null;
   }
+  const target = { source: state.provider, key: state.externalId };
+
   return (
     <Button
       variant="ghost"
       size="sm"
       pending={collect.isPending}
-      onClick={() =>
-        collect.mutate(
-          { source: state.provider, key: state.externalId },
-          { onSuccess: (result) => announceSyncTrigger("Collect results", result) },
-        )
-      }
+      onClick={() => void collectResults(target)}
     >
       <DownloadIcon />
       Collect results

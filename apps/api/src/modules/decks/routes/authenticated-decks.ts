@@ -26,9 +26,9 @@ import { implement } from "@orpc/server";
 import type { z } from "zod";
 
 import type { Repos } from "../../../deps.js";
-import { badRequest } from "../../../errors.js";
+import { badRequest, notFound } from "../../../errors.js";
 import { assertExisted, assertFound } from "../../../lib/assertions.js";
-import { isForeignKeyViolation } from "../../../lib/pg-errors.js";
+import { isForeignKeyViolation, isForeignKeyViolationOn } from "../../../lib/pg-errors.js";
 import { enableShare } from "../../../lib/share-token.js";
 import {
   decodeXidKeyset,
@@ -46,6 +46,24 @@ import { assertKnownFormat, validateFormatConfig } from "../lib/deck-format-vali
 import { toDeck, toDeckPlan, toDeckSummary } from "../lib/deck-presenters.js";
 import type { DeckUpdateInput } from "../repositories/decks-core.js";
 import { encodeDeck } from "../services/deck-codecs/encode-deck.js";
+
+/** The deck card printing trigger raises its foreign-key violation without a constraint name. */
+function deckCardReferenceError(error: unknown): unknown {
+  if (isForeignKeyViolationOn(error, "fk_deck_cards_card_id")) {
+    return badRequest("Unknown card");
+  }
+  if (isForeignKeyViolationOn(error, "fk_deck_cards_zone")) {
+    return badRequest("Unknown deck zone");
+  }
+  if (
+    isForeignKeyViolationOn(error, "fk_deck_cards_preferred_printing_id") ||
+    (isForeignKeyViolation(error) &&
+      (error as { constraint_name?: unknown }).constraint_name === undefined)
+  ) {
+    return badRequest("A preferred printing must show its card on one side");
+  }
+  return error;
+}
 
 /**
  * Validates the card references in a deck plan: every referenced card must
@@ -288,12 +306,12 @@ export const decksRouter = {
     const sinceXid =
       input.since === undefined || BigInt(input.since) > BigInt(safeXid) ? undefined : input.since;
     const limit = clampDeckCardsLimit(input.limit);
-    // Ids before rows: a deck stamped between the reads still brings its rows, where a touched
-    // id without them would empty the deck. The reader keeps the ids across pages.
-    const touchedDeckIds =
-      sinceXid === undefined || cursor !== undefined
-        ? undefined
-        : await context.repos.decks.deckIdsTouchedSince(context.userId, sinceXid);
+    // Versions before rows: a deck stamped between the reads still brings its rows, and a
+    // version never runs ahead of its cards. The reader keeps both across pages.
+    const versions =
+      cursor === undefined
+        ? await context.repos.decks.deckVersions(context.userId, sinceXid)
+        : undefined;
     const rows = await context.repos.decks.allDeckCardsForUser(context.userId, sinceXid, {
       limit,
       ...(cursor === undefined ? {} : { after: cursor.id }),
@@ -302,7 +320,12 @@ export const decksRouter = {
     const last = page.at(-1);
     return {
       items: page.map((row) => ({ deckId: row.deckId, ...toDeckCard(row) })),
-      ...(touchedDeckIds === undefined ? {} : { touchedDeckIds }),
+      ...(versions === undefined || sinceXid === undefined
+        ? {}
+        : { touchedDeckIds: versions.map((row) => row.id) }),
+      ...(versions === undefined
+        ? {}
+        : { deckVersions: Object.fromEntries(versions.map((row) => [row.id, row.version])) }),
       nextCursor:
         drained || last === undefined ? null : encodeXidKeyset({ xid: safeXid, id: last.id }),
       ...(drained ? { syncedXid: safeXid } : {}),
@@ -416,36 +439,41 @@ export const decksRouter = {
     assertExisted(deleted, "Not found");
   }),
 
-  replaceCards: os.replaceCards.handler(async ({ input, context }) => {
+  replaceCards: os.replaceCards.handler(async ({ input, context, errors }) => {
     const { decks } = context.repos;
     const userId = context.userId;
 
     const deck = await decks.getIdAndFormat(input.id, userId);
     assertFound(deck, "Not found");
 
-    let replaced;
+    let result;
     try {
-      replaced = await decks.replaceCards(
+      result = await decks.replaceCards(
         input.id,
         mergeDeckCards(
           input.cards.map((card) => ({
             cardId: card.cardId,
-            zone: card.zone as DeckZone,
+            zone: card.zone,
             quantity: card.quantity,
             preferredPrintingId: card.preferredPrintingId ?? null,
           })),
         ),
+        input.expectedVersion,
       );
     } catch (error) {
-      if (isForeignKeyViolation(error)) {
-        throw badRequest("A preferred printing must show its card on one side");
-      }
-      throw error;
+      throw deckCardReferenceError(error);
     }
-    assertExisted(replaced, "Not found");
+    if (result.outcome === "stale") {
+      throw errors.CONFLICT({
+        data: { version: result.version, cards: result.cards.map((r) => toDeckCard(r)) },
+      });
+    }
+    if (result.outcome === "missing") {
+      throw notFound("Not found");
+    }
 
     const cardRows = await decks.cardsForDeck(input.id, userId);
-    return { cards: cardRows.map((r) => toDeckCard(r)) };
+    return { cards: cardRows.map((r) => toDeckCard(r)), version: result.version };
   }),
 
   // Always returns an object; deck-level fields are empty and matchups []
@@ -648,6 +676,7 @@ export const decksRouter = {
     return await enableShare({
       read: () => decks.getShareState(input.id, userId),
       write: (token) => decks.setShare(input.id, userId, token, true),
+      constraint: "uq_decks_share_token",
     });
   }),
 

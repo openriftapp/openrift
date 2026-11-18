@@ -1,3 +1,12 @@
+import {
+  cardsKeys,
+  catalogKeys,
+  errataKeys,
+  productsKeys,
+  promosKeys,
+  setsKeys,
+} from "@/features/cards/lib/cards-query-keys";
+
 export const adminKeys = {
   // `null` is the signed-out slot, so an anonymous "no access" answer can
   // never shadow a user's real one after sign-in.
@@ -175,4 +184,19 @@ export const CANDIDATE_REVIEW_SCOPE = [
   adminKeys.cards.all,
   adminKeys.reviewQueue,
   adminKeys.workspace,
+] as const;
+
+export const IMAGE_FILE_SCOPE = [
+  adminKeys.cards.all,
+  adminKeys.printingDesk.all,
+  adminKeys.workspace,
+  adminKeys.unifiedMappings.all,
+  adminKeys.brokenImages,
+  adminKeys.lowResImages,
+  catalogKeys.all,
+  cardsKeys.all,
+  promosKeys.all,
+  setsKeys.all,
+  productsKeys.all,
+  errataKeys.all,
 ] as const;

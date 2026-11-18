@@ -22,7 +22,8 @@ describe.skipIf(!ctx)("priceRefreshRepo (integration)", () => {
   const groupIds = [9001, 9002, 9003];
   const firstExternalId = 80_001;
   const sharedExternalId = 80_002;
-  const externalIds = [firstExternalId, sharedExternalId];
+  const upsertedExternalId = 80_003;
+  const externalIds = [firstExternalId, sharedExternalId, upsertedExternalId];
 
   afterAll(async () => {
     // Variants don't cascade from the product delete, so they go first.
@@ -171,5 +172,37 @@ describe.skipIf(!ctx)("priceRefreshRepo (integration)", () => {
     expect(firstProduct).toBeDefined();
     expect(firstProduct!.finish).toBeTypeOf("string");
     expect(firstProduct!.language).toBeTypeOf("string");
+  });
+
+  it("upsertProductsForMarketplace returns every product and rewrites only changed ones", async () => {
+    await repo.upsertGroups(firstMarketplace, [{ groupId: 9001, name: "Test Group A" }]);
+    const sku = {
+      externalId: upsertedExternalId,
+      finish: "normal",
+      language: null,
+      groupId: 9001,
+      productName: "Upserted Product",
+    };
+    const stamp = async () =>
+      db
+        .selectFrom("marketplaceProducts")
+        .select(["productName", "updatedAt"])
+        .where("marketplace", "=", firstMarketplace)
+        .where("externalId", "=", upsertedExternalId)
+        .executeTakeFirstOrThrow();
+
+    const [created] = await repo.upsertProductsForMarketplace(firstMarketplace, [sku]);
+    const before = await stamp();
+
+    const unchanged = await repo.upsertProductsForMarketplace(firstMarketplace, [sku]);
+    expect(unchanged).toEqual([created]);
+    expect(await stamp()).toEqual(before);
+
+    const renamed = await repo.upsertProductsForMarketplace(firstMarketplace, [
+      { ...sku, productName: "Renamed Product" },
+    ]);
+    expect(renamed).toEqual([created]);
+    const after = await stamp();
+    expect(after.productName).toBe("Renamed Product");
   });
 });

@@ -154,7 +154,7 @@ test.describe("promos", () => {
       // No printings means the loader can't pick a language, so the index stays put.
       await expect(page).toHaveURL(/\/promos$/u, { timeout: 15_000 });
       await expect(page.getByText("No promos yet.")).toBeVisible();
-      await expect(page.locator(".aspect-card")).toHaveCount(0);
+      await expect(page.locator("[data-printing-id]")).toHaveCount(0);
     });
   });
 
@@ -170,7 +170,7 @@ test.describe("promos", () => {
       await expect(gridButton).toHaveAttribute("aria-pressed", "true");
       await expect(tableButton).toHaveAttribute("aria-pressed", "false");
       await expect(page.getByRole("row")).toHaveCount(0);
-      await expect(page.locator(".aspect-card").first()).toBeVisible();
+      await expect(cardTile(page, "Master Yi, Wuju Bladesman")).toBeVisible();
 
       await tableButton.click();
       await expect(tableButton).toHaveAttribute("aria-pressed", "true");

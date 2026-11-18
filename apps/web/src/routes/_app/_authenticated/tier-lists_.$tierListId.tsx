@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { cleanedSearchForRedirect, filterSearchSchema } from "@/features/cards/lib/search-schemas";
 import { TierListGoneState } from "@/features/stage/components/tier-list-gone-state";
+import { tierListSavesSettled } from "@/features/stage/lib/tier-list-saves";
 import { tierListQueryOptions } from "@/features/stage/lib/tier-lists-queries";
 import { privateSeoHead } from "@/lib/seo";
 import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
@@ -28,6 +29,7 @@ export const Route = createFileRoute("/_app/_authenticated/tier-lists_/$tierList
   // A hover preload must not stand in for the fetch on entry: the stage may have saved since.
   preloadStaleTime: 0,
   loader: async ({ context, params }) => {
+    await tierListSavesSettled(context.queryClient, params.tierListId);
     await notFoundOnSentinel(
       context.queryClient.query({
         ...tierListQueryOptions(context.userId, params.tierListId),

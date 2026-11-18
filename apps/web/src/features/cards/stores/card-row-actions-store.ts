@@ -55,8 +55,8 @@ interface CollectionRowHandlers {
 
 /** Handlers only /lists registers. */
 interface ListRowHandlers {
-  /** Set an entry's quantity directly (browse-mode +/- buttons on the quantity strip). */
-  onEntryQuantityChange?: (entryId: string, quantity: number) => void;
+  /** Step an entry's own quantity by `delta` (browse-mode +/- buttons on the quantity strip). */
+  onEntryQuantityStep?: (entryId: string, delta: number) => void;
   /** Remove an entry directly (the minus button at quantity 1, no confirm). */
   onRemoveEntry?: (entryId: string, cardName: string) => void;
   /** Open the trade-preference editor; the browser widens it to the selection. */
@@ -162,8 +162,8 @@ export function dispatchTake(itemId: string, count: number, printing?: Printing)
   useCardRowActionsStore.getState().handlers.onTake?.(itemId, count, printing);
 }
 
-export function dispatchEntryQuantityChange(entryId: string, quantity: number): void {
-  useCardRowActionsStore.getState().handlers.onEntryQuantityChange?.(entryId, quantity);
+export function dispatchEntryQuantityStep(entryId: string, delta: number): void {
+  useCardRowActionsStore.getState().handlers.onEntryQuantityStep?.(entryId, delta);
 }
 
 export function dispatchRemoveEntry(entryId: string, cardName: string): void {

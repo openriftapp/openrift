@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { buildAttentionSubmissions } from "@/features/admin/lib/attention-items";
 import { buildCardSuggestions } from "@/features/catalog-workspace/lib/suggestion-rows";
+import { resetWorkspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
 import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
 import {
   makeAdminCard,
@@ -89,6 +90,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  resetWorkspaceWriteQueue();
   resetStore();
 });
 
@@ -175,7 +177,7 @@ describe("useCardRecordActions", () => {
     expect(later.undo).not.toHaveBeenCalled();
   });
 
-  it("pushes an undo for each of two discards made before either lands", async () => {
+  it("runs two discards clicked before either lands one after the other and pushes an undo for each", async () => {
     const first = source({ might: 3, name: "Jinx A" });
     const second = source({ provider: "gallery", might: 2, name: "Jinx B" });
     const gates: (() => void)[] = [];
@@ -197,14 +199,14 @@ describe("useCardRecordActions", () => {
       throw new Error("expected two suggestions");
     }
 
-    let runs: Promise<void>[] = [];
+    let runs: Promise<boolean>[] = [];
     act(() => {
       runs = [result.current.discardSuggestion(a), result.current.discardSuggestion(b)];
     });
+    await vi.waitFor(() => expect(gates).toHaveLength(1));
+    await act(async () => gates[0]?.());
     await vi.waitFor(() => expect(gates).toHaveLength(2));
-    for (const open of gates) {
-      open();
-    }
+    gates[1]?.();
     await act(() => Promise.all(runs));
 
     expect(useWorkspaceSelectionStore.getState().undoStack).toHaveLength(2);

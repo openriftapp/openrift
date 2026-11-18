@@ -16,6 +16,8 @@ import type { BulkAddVariables } from "@/features/lists/lib/list-entry-writes";
 import {
   bulkAddItemMatches,
   LIST_ENTRY_MUTATION_KEYS,
+  listEntryWritesInFlight,
+  steppedManualQuantity,
   totalQuantity,
 } from "@/features/lists/lib/list-entry-writes";
 import {
@@ -166,6 +168,7 @@ export function useBulkAddListEntries() {
       return { ...cached, entries };
     },
     invalidates: [listsKeys.all(userId)],
+    pendingWrites: (mutationCache, vars) => listEntryWritesInFlight(mutationCache, vars.listId),
   });
 }
 
@@ -224,24 +227,33 @@ export function useUpdateListEntry() {
           ? {
               ...entry,
               ...(vars.quantity !== undefined && { quantity: totalQuantity(entry, vars.quantity) }),
+              ...(vars.quantityDelta !== undefined && {
+                quantity: totalQuantity(entry, steppedManualQuantity(entry, vars.quantityDelta)),
+              }),
               ...(vars.tradeOverride !== undefined && { tradeOverride: vars.tradeOverride }),
             }
           : entry,
       ),
     }),
     invalidates: [listsKeys.all(userId)],
+    pendingWrites: (mutationCache, vars) => listEntryWritesInFlight(mutationCache, vars.listId),
   });
 }
 
 export function useRemoveListEntry() {
   const userId = useRequiredUserId();
-  return useMutationWithInvalidation<unknown, { listId: string; entryId: string }>({
+  return useOptimisticMutation<ListDetailResponse, { listId: string; entryId: string }>({
     mutationKey: LIST_ENTRY_MUTATION_KEYS.remove,
+    queryKey: (vars) => listsKeys.detail(userId, vars.listId),
     mutationFn: (vars) =>
       withTradeCancelConsent((cancelTradeIds) =>
         listsApi().removeEntry({ id: vars.listId, itemId: vars.entryId, cancelTradeIds }),
       ),
-    invalidates: (variables) => [listsKeys.all(userId), listsKeys.detail(userId, variables.listId)],
+    // The entry leaves with the refetch, which waits for the list's other writes.
+    apply: (cached) => cached,
+    rollback: (cached) => cached,
+    invalidates: [listsKeys.all(userId)],
+    pendingWrites: (mutationCache, vars) => listEntryWritesInFlight(mutationCache, vars.listId),
   });
 }
 

@@ -115,6 +115,39 @@ describe.skipIf(!ctx)("metaSubmissionsRepo event corrections (integration)", () 
     expect(rows.map((row) => row.submission.id)).not.toContain(deckSubmissionId);
   });
 
+  it("links an accepted correction to the overlay it was applied as, until it is reopened", async () => {
+    const overlay = await db
+      .insertInto("metaEventOverlays")
+      .values({
+        metaEventId: eventId,
+        playerCount: 48,
+        claimedFields: ["playerCount"],
+        status: "accepted",
+        acceptedAt: new Date(),
+        submittedByUserId: userId,
+        origin: "contributor",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+
+    await repo.recordAcceptance({
+      submissionId: correctionId,
+      credit: { metaEventId: eventId, metaEventPlayerId: null, userId },
+      acceptedDeckId: null,
+      resolvedAt: new Date(),
+      resolvedByUserId: null,
+      eventOverlayId: overlay.id,
+    });
+    const linked = await repo.correctionForOverlay(overlay, "accepted");
+
+    await repo.reopen(correctionId);
+
+    expect(linked?.id).toBe(correctionId);
+    expect(await repo.correctionForOverlay(overlay, "accepted")).toBeNull();
+    const reopened = await repo.byId(correctionId);
+    expect(reopened?.eventOverlayId).toBeNull();
+  });
+
   it("keeps a decklist submission's kind and leaves its edit set empty", async () => {
     const row = await repo.byId(deckSubmissionId);
     expect(row?.kind).toBe("completion");

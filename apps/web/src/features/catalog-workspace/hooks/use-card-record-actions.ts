@@ -20,6 +20,7 @@ import {
 import { CARD_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
 import type { RecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
+import { queuedWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import { primaryLabel } from "@/features/catalog-workspace/lib/suggestion-labels";
 import type {
   CardSuggestions,
@@ -81,12 +82,12 @@ export function useCardRecordActions({
     };
   }
 
-  function applySourceSuggestion(suggestion: FieldSuggestion) {
+  async function applySourceSuggestion(suggestion: FieldSuggestion): Promise<void> {
     if (cardId === undefined) {
       return;
     }
     const label = CARD_FIELD_LABELS[suggestion.field];
-    void acceptFieldWithUndo({
+    await acceptFieldWithUndo({
       accept: acceptCardField.mutateAsync,
       input: { cardId, field: suggestion.field, value: suggestion.value, source: "provider" },
       fieldLabel: label,
@@ -118,20 +119,20 @@ export function useCardRecordActions({
     }
   }
 
-  function applySuggestion(suggestion: FieldSuggestion) {
+  async function applySuggestion(suggestion: FieldSuggestion): Promise<void> {
     if (suggestion.tone === "contributor") {
       if (suggestion.changeKey !== undefined) {
-        void acceptFromSubmission(suggestion.candidateRowId, new Set([suggestion.changeKey]));
+        await acceptFromSubmission(suggestion.candidateRowId, new Set([suggestion.changeKey]));
       }
       return;
     }
-    applySourceSuggestion(suggestion);
+    await applySourceSuggestion(suggestion);
   }
 
-  function acceptWholeSubmission(candidateCardId: string) {
+  async function acceptWholeSubmission(candidateCardId: string): Promise<void> {
     const submission = submissions.find((entry) => entry.candidateCardId === candidateCardId);
     if (submission !== undefined) {
-      void acceptFromSubmission(candidateCardId, new Set(submissionTickKeys(submission)));
+      await acceptFromSubmission(candidateCardId, new Set(submissionTickKeys(submission)));
     }
   }
 
@@ -167,19 +168,19 @@ export function useCardRecordActions({
           run: discardRemaining,
         }
       : { label: "Next", disabled: contributorOpen, run: () => Promise.resolve() },
-    useSuggestion: (hotkey) => {
+    useSuggestion: async (hotkey) => {
       const suggestion = suggestionByHotkey(model?.suggestions ?? [], hotkey);
       if (suggestion !== undefined && !isPending) {
-        applySuggestion(suggestion);
+        await applySuggestion(suggestion);
       }
     },
   };
 
   return {
     actions,
-    applySuggestion,
-    discardSuggestion,
-    acceptWholeSubmission,
+    applySuggestion: queuedWorkspaceWrite(applySuggestion),
+    discardSuggestion: queuedWorkspaceWrite(discardSuggestion),
+    acceptWholeSubmission: queuedWorkspaceWrite(acceptWholeSubmission),
     contributorOpen,
     isPending,
   };

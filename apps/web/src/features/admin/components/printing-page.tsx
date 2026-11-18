@@ -52,6 +52,7 @@ import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import {
   useActivatePrintingImage,
   useDeletePrintingImage,
+  useImageEditPending,
   useRotatePrintingImage,
   useUploadPrintingImage,
 } from "@/features/admin/hooks/use-admin-image-mutations";
@@ -64,12 +65,12 @@ import {
   useSetDeskSecondSide,
   useUpdateDeskImage,
 } from "@/features/admin/hooks/use-printing-desk";
-import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { adminKeys, IMAGE_FILE_SCOPE } from "@/features/admin/lib/admin-query-keys";
 import { hasAdminSection } from "@/features/admin/lib/admin-sections";
 import type { DeskFaceOption } from "@/features/admin/lib/desk-face-options";
 import { deskFaceOptions, deskPrintingName } from "@/features/admin/lib/desk-face-options";
 import { EMPTY_VALUE_TEXT } from "@/features/admin/lib/field-value-text";
-import { deskImageBust, deskImageSrc } from "@/features/admin/lib/printing-desk-image";
+import { deskImageSrc } from "@/features/admin/lib/printing-desk-image";
 import { deskPrintingPeriod } from "@/features/admin/lib/printing-desk-status";
 import type { PrintingFace } from "@/features/admin/lib/printing-faces";
 import { printingFaces } from "@/features/admin/lib/printing-faces";
@@ -78,7 +79,7 @@ import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { CardDetail } from "@/features/cards/components/card-detail/card-detail";
 import { ImageHoverPreview } from "@/features/cards/components/printing-hover-preview";
 import { freshCardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
-import { cardsKeys, catalogKeys, promosKeys } from "@/features/cards/lib/cards-query-keys";
+import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
 import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { useMouseHover } from "@/hooks/use-mouse-hover";
@@ -86,14 +87,6 @@ import { useSession } from "@/hooks/use-session";
 import { errorText } from "@/lib/error-text";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
-
-const DESK_IMAGE_SCOPE = [
-  adminKeys.printingDesk.all,
-  adminKeys.cards.all,
-  catalogKeys.all,
-  cardsKeys.all,
-  promosKeys.all,
-] as const;
 
 type Rotation = 0 | 90 | 180 | 270;
 
@@ -370,8 +363,8 @@ function FaceImages({
   images: DeskImage[];
 }) {
   const { data: session } = useSession();
-  const uploadImage = useUploadPrintingImage(DESK_IMAGE_SCOPE, { inlineError: true });
-  const activateImage = useActivatePrintingImage(DESK_IMAGE_SCOPE);
+  const uploadImage = useUploadPrintingImage(IMAGE_FILE_SCOPE, { inlineError: true });
+  const activateImage = useActivatePrintingImage(IMAGE_FILE_SCOPE);
   const [uploading, setUploading] = useState<string[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -572,8 +565,9 @@ function DeskImageRow({
   sideOptions: DeskFaceOption[];
   landscape: boolean;
 }) {
-  const rotateImage = useRotatePrintingImage(DESK_IMAGE_SCOPE);
-  const deleteImage = useDeletePrintingImage(DESK_IMAGE_SCOPE);
+  const rotateImage = useRotatePrintingImage();
+  const deleteImage = useDeletePrintingImage(IMAGE_FILE_SCOPE);
+  const editing = useImageEditPending(image.printingImageId);
   const updateImage = useUpdateDeskImage();
   const setFace = useSetDeskImageFace();
   const rowRef = useRef<HTMLDivElement>(null);
@@ -590,8 +584,7 @@ function DeskImageRow({
     setCredit(storedCredit);
   }
 
-  const bust = deskImageBust(image);
-  const fullUrl = deskImageSrc(image.url, "full", bust);
+  const fullUrl = deskImageSrc(image.url, "full");
 
   function rotate(by: 90 | 270) {
     const next = ((image.rotation + by) % 360) as Rotation;
@@ -612,7 +605,7 @@ function DeskImageRow({
     <div ref={rowRef} {...hoverProps} className="rounded-lg border p-2">
       <div className="flex flex-wrap items-center gap-3">
         <CardArtThumb
-          src={deskImageSrc(image.url, "240w", bust)}
+          src={deskImageSrc(image.url, "240w")}
           landscape={landscape}
           alt={cardName}
           loading="lazy"
@@ -620,7 +613,7 @@ function DeskImageRow({
         />
         {hovering && !straightening && (
           <ImageHoverPreview
-            thumbnailUrl={deskImageSrc(image.url, "400w", bust)}
+            thumbnailUrl={deskImageSrc(image.url, "400w")}
             fullUrl={fullUrl}
             landscape={landscape}
             anchorRef={rowRef}
@@ -661,7 +654,7 @@ function DeskImageRow({
             size="icon-xs"
             aria-label="Turn left"
             onClick={() => rotate(270)}
-            disabled={rotateImage.isPending}
+            disabled={editing}
           >
             <RotateCcwIcon />
           </Button>
@@ -670,7 +663,7 @@ function DeskImageRow({
             size="icon-xs"
             aria-label="Turn right"
             onClick={() => rotate(90)}
-            disabled={rotateImage.isPending}
+            disabled={editing}
           >
             <RotateCwIcon />
           </Button>
@@ -679,6 +672,7 @@ function DeskImageRow({
             size="icon-xs"
             aria-label={image.quad === null ? "Straighten" : "Straighten (corners set)"}
             onClick={() => setStraightening(true)}
+            disabled={editing}
           >
             <CropIcon className={cn(image.quad !== null && "text-success")} />
           </Button>
@@ -719,7 +713,6 @@ function DeskImageRow({
       <StraightenImageDialog
         imageId={image.printingImageId}
         quad={image.quad}
-        invalidates={DESK_IMAGE_SCOPE}
         open={straightening}
         onOpenChange={setStraightening}
       />

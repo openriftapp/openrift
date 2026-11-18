@@ -9,7 +9,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import { applyOptimisticAssignmentForCard } from "@/features/admin/lib/optimistic-card-assignment";
+import {
+  applyOptimisticAssignmentForCard,
+  revertOptimisticAssignmentForCard,
+} from "@/features/admin/lib/optimistic-card-assignment";
 import {
   unifiedMappingsQueryOptions,
   unifiedMappingsSummaryQueryOptions,
@@ -206,6 +209,24 @@ function optimisticSave(cardSlug: string, marketplace: Marketplace) {
         (next, m) =>
           applyOptimisticAssignmentForCard(
             next,
+            marketplace,
+            m.externalId,
+            m.finish,
+            m.language,
+            m.printingId,
+          ),
+        cached,
+      ),
+    rollback: (
+      cached: UnifiedMappingsCardResponse,
+      mappings: CardAssignment[],
+      previous: UnifiedMappingsCardResponse,
+    ) =>
+      mappings.reduce(
+        (next, m) =>
+          revertOptimisticAssignmentForCard(
+            next,
+            previous,
             marketplace,
             m.externalId,
             m.finish,

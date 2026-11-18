@@ -1,7 +1,7 @@
 import { useDroppable } from "@dnd-kit/core";
 import type { ReactNode } from "react";
 
-import type { CollectionDragData } from "@/features/collections/lib/dnd-types";
+import type { CollectionDragData, CollectionDropData } from "@/features/collections/lib/dnd-types";
 import { COLLECTION_DRAG_TYPES } from "@/features/collections/lib/dnd-types";
 import { entryAddsCopies } from "@/features/lists/lib/list-move";
 import { asDragData } from "@/lib/dnd-data";
@@ -9,18 +9,20 @@ import { cn } from "@/lib/utils";
 
 interface DroppableCollectionProps {
   collectionId: string;
+  collectionName: string;
   disabled: boolean;
   children: ReactNode;
 }
 
 export function DroppableCollection({
   collectionId,
+  collectionName,
   disabled,
   children,
 }: DroppableCollectionProps) {
   const { setNodeRef, isOver, active } = useDroppable({
     id: `collection-${collectionId}`,
-    data: { type: "collection", collectionId },
+    data: { type: "collection", collectionId, collectionName } satisfies CollectionDropData,
     disabled,
   });
 

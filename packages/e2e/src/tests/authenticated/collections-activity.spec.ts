@@ -415,7 +415,7 @@ test.describe("collection activity", () => {
         const page = await context.newPage();
         await page.goto("/collections/activity");
 
-        const toolbar = page.locator("div.mb-4.flex.flex-wrap").first();
+        const toolbar = page.getByRole("group", { name: "Action", exact: true });
         const allButton = toolbar.getByRole("button", { name: "All", exact: true });
         const addedButton = toolbar.getByRole("button", { name: "Added", exact: true });
         const removedButton = toolbar.getByRole("button", { name: "Removed", exact: true });
@@ -538,7 +538,7 @@ test.describe("collection activity", () => {
         const page = await context.newPage();
         await page.goto("/collections/activity");
 
-        const toolbar = page.locator("div.mb-4.flex.flex-wrap").first();
+        const toolbar = page.getByRole("group", { name: "Time range", exact: true });
         const allTime = toolbar.getByRole("button", { name: "All time", exact: true });
         const todayBtn = toolbar.getByRole("button", { name: "Today", exact: true });
         const sevenDays = toolbar.getByRole("button", { name: "7 days", exact: true });
@@ -588,7 +588,7 @@ test.describe("collection activity", () => {
 
         await expect(page.getByText("Annie, Fiery")).toBeVisible({ timeout: 15_000 });
 
-        const toolbar = page.locator("div.mb-4.flex.flex-wrap").first();
+        const toolbar = page.getByRole("group", { name: "Action", exact: true });
         await toolbar.getByRole("button", { name: "Removed", exact: true }).click();
 
         await expect(page.getByText("No matching activity")).toBeVisible();

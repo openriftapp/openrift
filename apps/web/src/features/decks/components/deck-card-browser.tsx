@@ -10,7 +10,7 @@ import type { DeckZone } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { WellKnown } from "@openrift/shared/well-known";
 import { PackageCheckIcon, PlusIcon } from "lucide-react";
-import { Suspense, useDeferredValue, useLayoutEffect, useRef, useState } from "react";
+import { Suspense, useDeferredValue, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,10 +56,7 @@ import {
   FormatTagPickBanner,
   needsFormatTagPick,
 } from "@/features/decks/components/format-tag-pick-banner";
-import {
-  focusCatalogCard,
-  WorkbenchCardDetail,
-} from "@/features/decks/components/workbench-card-detail";
+import { WorkbenchCardDetail } from "@/features/decks/components/workbench-card-detail";
 import { WorkbenchZoneBar } from "@/features/decks/components/workbench-zone-bar";
 import { useDeckBuilderActions, useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
@@ -529,27 +526,16 @@ function DeckCardBrowserInner({
   const { card: selectedCard } = useResolvedSelection(items);
   const detailReplacesCatalog = workbench && !isMobile;
   const showCatalogDetail = detailReplacesCatalog && detailOpen && selectedCard !== null;
-  const catalogReturn = useRef<{ scrollY: number; printingId: string } | null>(null);
-  const openedPrintingId = showCatalogDetail ? selectedCard.printingId : null;
-  // Layout effect: it must read the scroll position before the detail scrolls to the top.
-  useLayoutEffect(() => {
-    if (openedPrintingId !== null) {
-      catalogReturn.current = {
-        scrollY: catalogReturn.current?.scrollY ?? globalThis.scrollY,
-        printingId: openedPrintingId,
-      };
-      return;
-    }
-    const pending = catalogReturn.current;
-    if (!pending) {
-      return;
-    }
-    catalogReturn.current = null;
-    requestAnimationFrame(() => {
-      globalThis.scrollTo({ top: pending.scrollY });
-      focusCatalogCard(pending.printingId);
-    });
-  }, [openedPrintingId]);
+  const openedItemId = showCatalogDetail ? sideKey(selectedCard) : null;
+  const [shownDetailId, setShownDetailId] = useState<string | null>(null);
+  const [returnItemId, setReturnItemId] = useState<string | null>(null);
+  const [focusItemId, setFocusItemId] = useState<string | null>(null);
+  if (openedItemId !== shownDetailId) {
+    const closedItemId = openedItemId === null ? shownDetailId : null;
+    setShownDetailId(openedItemId);
+    setReturnItemId(closedItemId);
+    setFocusItemId(closedItemId);
+  }
 
   const findBy = selectionFindBy(view, groupBy);
 
@@ -923,6 +909,8 @@ function DeckCardBrowserInner({
             : undefined
         }
         strip={deckStripFor(item.printing)}
+        focusRequested={item.id === focusItemId}
+        onFocused={() => setFocusItemId(null)}
         contextMenu={<DeckCardDetailMenu onViewDetail={() => handleCardClick(item.printing)} />}
       />
     );
@@ -1008,6 +996,13 @@ function DeckCardBrowserInner({
           }
           rightPane={rightPane}
           addStripHeight={ADD_STRIP_HEIGHT}
+          returnToItemId={returnItemId ?? undefined}
+          onReturned={(focusPending) => {
+            setReturnItemId(null);
+            if (!focusPending) {
+              setFocusItemId(null);
+            }
+          }}
           table={{
             actionsColumn: "wide",
             actionsLabel: m.decks_editor_table_actions_label(),

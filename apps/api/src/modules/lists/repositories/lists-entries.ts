@@ -1,3 +1,4 @@
+import { MAX_LIST_ENTRY_QUANTITY } from "@openrift/shared/schemas";
 import type { ListIntent, ListKind } from "@openrift/shared/types/api/list";
 import type { Insertable, Kysely, Selectable, Updateable } from "kysely";
 import { DeleteResult, sql } from "kysely";
@@ -271,15 +272,27 @@ export function listEntriesRepo(db: Kysely<Database>) {
         .execute();
     },
 
+    /**
+     * `quantityDelta` steps the stored quantity in the same statement, so concurrent steps
+     * add up. Like an absolute write it stays within 1 and the entry maximum, and a copy entry stays at 1.
+     */
     updateEntry(
       entryId: string,
       listId: string,
       userId: string,
       updates: ListEntryUpdate,
+      quantityDelta?: number,
     ): Promise<Selectable<ListEntriesTable> | undefined> {
       return db
         .updateTable("listEntries")
-        .set(updates)
+        .set(
+          quantityDelta === undefined
+            ? updates
+            : {
+                ...updates,
+                quantity: sql<number>`case when kind = 'copy' then quantity else least(greatest(quantity + ${quantityDelta}, 1), ${MAX_LIST_ENTRY_QUANTITY}) end`,
+              },
+        )
         .where("id", "=", entryId)
         .where("listId", "=", listId)
         .where("userId", "=", userId)

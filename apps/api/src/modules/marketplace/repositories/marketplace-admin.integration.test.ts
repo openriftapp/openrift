@@ -14,7 +14,7 @@ describe.skipIf(!ctx)("marketplaceAdminRepo (integration)", () => {
   const marketplace = "cardmarket" as const;
 
   const groupId = 92_001;
-  const fileExternalIds = [88_001, 88_002, 88_101, 88_102, 88_103, 88_201];
+  const fileExternalIds = [88_001, 88_002, 88_101, 88_102, 88_103, 88_104, 88_201];
 
   afterAll(async () => {
     await db
@@ -169,6 +169,40 @@ describe.skipIf(!ctx)("marketplaceAdminRepo (integration)", () => {
         { externalId: enLangExternalId, finish: "normal", language: "EN" },
       ]);
       expect(cleanup).toBe(2);
+    });
+
+    it("deleteIgnoredVariants keeps each SKU's finish and language paired", async () => {
+      const externalId = 88_104;
+      const sku = (finish: string, language: string) => ({
+        marketplace,
+        externalId,
+        finish,
+        language,
+        productName: "Paired SKU",
+        groupId,
+      });
+      await repo.insertIgnoredVariants([
+        sku("normal", "EN"),
+        sku("foil", "FR"),
+        sku("normal", "FR"),
+        sku("foil", "EN"),
+      ]);
+
+      const deleted = await repo.deleteIgnoredVariants(marketplace, [
+        { externalId, finish: "normal", language: "EN" },
+        { externalId, finish: "foil", language: "FR" },
+      ]);
+
+      expect(deleted).toBe(2);
+      const ignored = await repo.listIgnoredProducts();
+      const remaining = ignored.filter(
+        (row) => row.level === "variant" && row.externalId === externalId,
+      );
+      expect(
+        remaining
+          .map((row) => (row.level === "variant" ? `${row.finish}/${row.language}` : ""))
+          .toSorted(),
+      ).toEqual(["foil/EN", "normal/FR"]);
     });
 
     it("upsert then deleteStagingCardOverride round-trips a NULL-language SKU", async () => {

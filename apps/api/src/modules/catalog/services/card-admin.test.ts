@@ -43,9 +43,7 @@ function baseRepos(overrides: Record<string, unknown> = {}) {
     deleteCardBansByCardId: vi.fn(async () => {}),
     deleteMarketplaceCardOverridesByCardId: vi.fn(async () => {}),
     deleteCardById: vi.fn(async () => ({ id: "card-uuid" })),
-    getImageFileById: vi.fn(async () => null),
-    isImageFileReferenced: vi.fn(async () => false),
-    deleteImageFileById: vi.fn(async () => {}),
+    deleteImageFileIfUnreferenced: vi.fn(async () => undefined),
     ...overrides,
   } as Record<string, any>;
   const pick = (...keys: string[]) => Object.fromEntries(keys.map((k) => [k, mut[k]]));
@@ -59,9 +57,7 @@ function baseRepos(overrides: Record<string, unknown> = {}) {
       "deleteCardBansByCardId",
       "deleteMarketplaceCardOverridesByCardId",
       "deleteCardById",
-      "getImageFileById",
-      "isImageFileReferenced",
-      "deleteImageFileById",
+      "deleteImageFileIfUnreferenced",
     ),
     candidateCards: pick("unlinkCandidatePrintingsByPrintingId", "deletePrintingLinkOverridesById"),
     catalogDeleteGuards: pick("countForCard"),
@@ -120,7 +116,7 @@ describe("deleteCard", () => {
       deletePrintingImagesByPrintingId: vi.fn(async (printingId: string) =>
         printingId === "p-1" ? [{ imageFileId: "ci-1" }] : [],
       ),
-      getImageFileById: vi.fn(async () => ({
+      deleteImageFileIfUnreferenced: vi.fn(async () => ({
         id: "ci-1",
         rehostedUrl: "/media/cards/g1/img-1",
       })),
@@ -129,7 +125,7 @@ describe("deleteCard", () => {
     await deleteCard(mockTransact(repos), {} as Io, repos as any, "card-uuid");
 
     expect(deleteRehostFiles).toHaveBeenCalledWith({}, "/media/cards/g1/img-1");
-    expect(mut.deleteImageFileById).toHaveBeenCalledWith("ci-1");
+    expect(mut.deleteImageFileIfUnreferenced).toHaveBeenCalledWith("ci-1");
   });
 
   it("converts a foreign-key race during the delete into CONFLICT", async () => {

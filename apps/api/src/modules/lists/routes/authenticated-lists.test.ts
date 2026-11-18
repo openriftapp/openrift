@@ -819,11 +819,34 @@ describe("PATCH /api/v1/lists/:id/entries/:itemId", () => {
       }),
     });
     expect(res.status).toBe(200);
-    expect(mockListsRepo.updateEntry).toHaveBeenCalledWith(ENTRY_ID, LIST_ID, USER_ID, {
-      pricePref: "cm_lowest",
-      priceAbsoluteCents: null,
-      tradeType: "cards",
+    expect(mockListsRepo.updateEntry).toHaveBeenCalledWith(
+      ENTRY_ID,
+      LIST_ID,
+      USER_ID,
+      { pricePref: "cm_lowest", priceAbsoluteCents: null, tradeType: "cards" },
+      undefined,
+    );
+  });
+
+  it("passes a quantity step to the repository", async () => {
+    mockListsRepo.updateEntry.mockResolvedValue({ ...dbEntry, quantity: 4 });
+    const res = await app.request(`/api/v1/lists/${LIST_ID}/entries/${ENTRY_ID}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ quantityDelta: -1 }),
     });
+    expect(res.status).toBe(200);
+    expect(mockListsRepo.updateEntry).toHaveBeenCalledWith(ENTRY_ID, LIST_ID, USER_ID, {}, -1);
+  });
+
+  it("rejects a quantity and a step in one patch", async () => {
+    const res = await app.request(`/api/v1/lists/${LIST_ID}/entries/${ENTRY_ID}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ quantity: 3, quantityDelta: 1 }),
+    });
+    expect(res.status).toBe(400);
+    expect(mockListsRepo.updateEntry).not.toHaveBeenCalled();
   });
 
   it("rejects a completely empty patch with 400", async () => {

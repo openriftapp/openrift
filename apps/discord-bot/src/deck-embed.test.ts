@@ -271,14 +271,17 @@ describe("fetchDeckImage", () => {
     });
   });
 
-  it("returns null on a non-OK response", async () => {
+  it("logs the status and returns null on a non-OK response", async () => {
     const snapshot = makeDeckSnapshot();
     const deck = resolveDeckEntries(snapshot, [makeEntry()]);
     const fetchImpl = vi.fn().mockResolvedValue({ ok: false, status: 429 });
+    const logError = vi.spyOn(log, "error").mockImplementation(() => undefined);
 
     expect(
       await fetchDeckImage("http://api:3000", deck, fetchImpl as unknown as typeof fetch),
     ).toBeNull();
+    expect(logError).toHaveBeenCalledWith({ status: 429 }, expect.any(String));
+    logError.mockRestore();
   });
 
   it("returns null when the request throws", async () => {

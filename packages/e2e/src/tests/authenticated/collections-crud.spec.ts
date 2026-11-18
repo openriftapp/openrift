@@ -6,7 +6,7 @@ import { expect, test } from "@playwright/test";
 import { isApiCall } from "../../helpers/api-endpoint.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
-import { connectToDb, deleteUser } from "../../helpers/db.js";
+import { connectToDb, deleteUser, firstRow } from "../../helpers/db.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -66,7 +66,7 @@ async function getInboxId(email: string): Promise<string> {
       LIMIT 1
     `) as { id: string }[];
     expect(rows.length).toBe(1);
-    return rows[0].id;
+    return firstRow(rows, `inbox for ${email}`).id;
   } finally {
     await sql.end();
   }
@@ -99,7 +99,7 @@ async function countCopiesInCollection(collectionId: string): Promise<number> {
       FROM copies
       WHERE collection_id = ${collectionId}
     `) as { count: number }[];
-    return rows[0].count;
+    return firstRow(rows, `copy count of ${collectionId}`).count;
   } finally {
     await sql.end();
   }

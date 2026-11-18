@@ -274,19 +274,6 @@ async function requireOrigFile(io: Io, imageFileId: string, message: string): Pr
   return origFile;
 }
 
-export async function regenerateFromOrig(
-  io: Io,
-  imageFileId: string,
-  rotation: number,
-  needsTrim: boolean,
-  quad: ImageQuad | null,
-): Promise<void> {
-  const outputDir = join(CARD_MEDIA_DIR, imageFileId.slice(-2));
-  const origFile = await requireOrigFile(io, imageFileId, "Image has no rehosted original");
-  const buffer = await io.fs.readFile(join(outputDir, origFile));
-  await generateWebpVariants(io, buffer, outputDir, imageFileId, rotation, needsTrim, quad);
-}
-
 export interface OriginalOnDisk {
   url: string;
   width: number;

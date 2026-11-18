@@ -38,7 +38,6 @@ import {
   metaPlayerOverlayList,
   metaPlayerRank,
   metaPlayerRecordPart,
-  metaPlayerStatusChangeNeedsList,
   metaPlayerToDraft,
   countDeckRowsAndCopies,
   validateMetaPlayerDraft,
@@ -247,10 +246,6 @@ export function MetaPlayerDialog({ eventId, eventFormat, player, onClose }: Meta
     const cards = parsed?.cards ?? [];
     if (wantsList && cards.length === 0 && !hasStoredList) {
       setFormError("Paste a decklist and parse it, or file this player with no list.");
-      return;
-    }
-    if (player && metaPlayerStatusChangeNeedsList(player, draft, cards)) {
-      setFormError("Paste and parse the list again to change whether it is full or partial.");
       return;
     }
 

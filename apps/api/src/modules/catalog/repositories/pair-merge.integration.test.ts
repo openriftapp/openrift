@@ -10,7 +10,7 @@ import {
 import { collectionsRepo } from "../../collections/repositories/collections.js";
 import { copiesRepo } from "../../collections/repositories/copies.js";
 import type { PairMergeList } from "./pair-merge.js";
-import { applyPairMerge, PairMergeError, planPairMerge } from "./pair-merge.js";
+import { applyPairMerge, moveRowsTo, PairMergeError, planPairMerge } from "./pair-merge.js";
 
 // Uses the shared integration database. Requires INTEGRATION_DB_URL.
 // Uses prefix PMG- for entities it creates.
@@ -464,5 +464,46 @@ describe.skipIf(!ctx)("pair merge (integration)", () => {
       finish: "foil",
       cardId: cardIds.Gold,
     });
+  });
+
+  it("caps a merged deck slot at the per-row maximum", async () => {
+    await seedSide("Bird", "PMG-T21");
+    await seedSide("Bird", "PMG-T22");
+    const [deck] = await db
+      .insertInto("decks")
+      .values({ userId: USER_ID, name: "PMG capped deck", format: "freeform" } as never)
+      .returning("id")
+      .execute();
+    const cappedDeckId = deck!.id;
+    await db
+      .insertInto("deckCards")
+      .values([
+        {
+          deckId: cappedDeckId,
+          cardId: cardIds.Bird!,
+          zone: "main",
+          quantity: 60,
+          preferredPrintingId: printingIds["PMG-T21"]!,
+        },
+        {
+          deckId: cappedDeckId,
+          cardId: cardIds.Bird!,
+          zone: "main",
+          quantity: 60,
+          preferredPrintingId: printingIds["PMG-T22"]!,
+        },
+      ])
+      .execute();
+
+    await moveRowsTo(db, "deck_cards", printingIds["PMG-T21"]!, printingIds["PMG-T22"]!);
+
+    const rows = await db
+      .selectFrom("deckCards")
+      .select(["preferredPrintingId", "quantity"])
+      .where("deckId", "=", cappedDeckId)
+      .execute();
+    expect(rows).toEqual([{ preferredPrintingId: printingIds["PMG-T22"]!, quantity: 99 }]);
+    await db.deleteFrom("deckCards").where("deckId", "=", cappedDeckId).execute();
+    await db.deleteFrom("decks").where("id", "=", cappedDeckId).execute();
   });
 });

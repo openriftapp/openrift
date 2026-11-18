@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 const linkCard = { mutate: vi.fn(), isPending: false };
-const acceptFavorite = { mutate: vi.fn(), isPending: false };
+const acceptFavorite = { mutateAsync: vi.fn(), isPending: false };
 const toast = vi.hoisted(() => ({
   success: vi.fn(),
   warning: vi.fn(),
@@ -87,18 +87,17 @@ describe("DraftRowActions", () => {
     expect(screen.queryByRole("button", { name: "Accept as a new card" })).toBeNull();
   });
 
-  it("reports the printings an accept skipped, with why", () => {
-    acceptFavorite.mutate.mockImplementation((_name, options) =>
-      options.onSuccess({
-        cardSlug: "new-card",
-        printingsCreated: 1,
-        skipped: [{ shortCode: "OGN-002", reason: "missing: artist" }],
-      }),
-    );
+  it("reports the printings an accept skipped, with why", async () => {
+    acceptFavorite.mutateAsync.mockResolvedValue({
+      cardSlug: "new-card",
+      printingsCreated: 1,
+      skipped: [{ shortCode: "OGN-002", reason: "missing: artist" }],
+    });
     render(<DraftRowActions row={makeRow({ hasFavorite: true })} allCards={ALL_CARDS} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Accept as a new card" }));
 
+    await vi.waitFor(() => expect(toast.warning).toHaveBeenCalled());
     expect(toast.warning).toHaveBeenCalledWith(
       "Created new-card. Accepted 1 printing, skipped 1: OGN-002 (missing: artist)",
     );

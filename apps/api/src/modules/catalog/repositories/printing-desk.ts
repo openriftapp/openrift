@@ -188,17 +188,33 @@ export function printingDeskRepo(db: Kysely<Database>) {
       .orderBy("p.updatedAt", "desc");
   }
 
-  /** A side left on no printing is deleted with its image links. */
-  async function deleteFaceIfUnused(faceId: string): Promise<void> {
+  /**
+   * A side left on no printing is deleted with its image links. Returns the
+   * image files it let go of, for the orphan cleanup after commit.
+   */
+  async function deleteFaceIfUnused(faceId: string): Promise<string[]> {
+    const face = await db
+      .selectFrom("faces")
+      .select("fallbackImageFileId")
+      .where("id", "=", faceId)
+      .forUpdate()
+      .executeTakeFirst();
     const stillUsed = await db
       .selectFrom("printings")
       .select("id")
       .where((eb) => eb.or([eb("face1Id", "=", faceId), eb("face2Id", "=", faceId)]))
       .executeTakeFirst();
-    if (!stillUsed) {
-      await db.deleteFrom("faceImages").where("faceId", "=", faceId).execute();
-      await db.deleteFrom("faces").where("id", "=", faceId).execute();
+    if (!face || stillUsed) {
+      return [];
     }
+    const images = await db
+      .deleteFrom("faceImages")
+      .where("faceId", "=", faceId)
+      .returning("imageFileId")
+      .execute();
+    await db.deleteFrom("faces").where("id", "=", faceId).execute();
+    const released = images.map((image) => image.imageFileId);
+    return face.fallbackImageFileId === null ? released : [...released, face.fallbackImageFileId];
   }
 
   return {
@@ -299,7 +315,7 @@ export function printingDeskRepo(db: Kysely<Database>) {
     },
 
     /** Keeps the other side, whichever column the display order stored it in. */
-    async dropFace(printingId: string, faceId: string): Promise<void> {
+    async dropFace(printingId: string, faceId: string): Promise<string[]> {
       const row = await db
         .selectFrom("printings")
         .select(["face1Id", "face2Id"])
@@ -307,14 +323,14 @@ export function printingDeskRepo(db: Kysely<Database>) {
         .executeTakeFirstOrThrow();
       const kept = row.face1Id === faceId ? row.face2Id : row.face1Id;
       if (kept === null) {
-        return;
+        return [];
       }
       await db
         .updateTable("printings")
         .set({ face1Id: kept, face2Id: null })
         .where("id", "=", printingId)
         .execute();
-      await deleteFaceIfUnused(faceId);
+      return deleteFaceIfUnused(faceId);
     },
 
     /** What users hold or point at on this printing, which a side change would silently redefine. */

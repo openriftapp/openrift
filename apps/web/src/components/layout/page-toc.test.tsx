@@ -189,6 +189,82 @@ describe("PageToc", () => {
     expect(linkFor("100. Game Concepts")).toHaveAttribute("aria-current", "location");
   });
 
+  it("releases the hold when a nested scroller ends its scroll", async () => {
+    const user = userEvent.setup();
+    makePageScrollable();
+    placeSection("rule-100", 100);
+    placeSection("rule-200", 900);
+    render(<PageToc items={ITEMS} />);
+
+    await user.click(linkFor("200. Parts of a Card"));
+    act(() => {
+      document.querySelector("#rule-200")?.dispatchEvent(new Event("scrollend"));
+    });
+    reportIntersections({ "rule-100": true });
+
+    expect(linkFor("100. Game Concepts")).toHaveAttribute("aria-current", "location");
+  });
+
+  it("holds an entry the page jumps to until the scroll ends", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis.Element.prototype, "scrollIntoView").mockImplementation(() => {});
+    placeSection("rule-100", 100);
+    const hidden = document.querySelector("#rule-100-1");
+    if (hidden) {
+      hidden.getClientRects = () => [] as unknown as DOMRectList;
+    }
+    render(<PageToc items={ITEMS} onJump={vi.fn()} />);
+
+    await user.click(linkFor("100.1 Players"));
+    reportIntersections({ "rule-100": true });
+    expect(linkFor("100.1 Players")).toHaveAttribute("aria-current", "location");
+
+    act(() => {
+      document.dispatchEvent(new Event("scrollend"));
+    });
+    reportIntersections({ "rule-100": true });
+    expect(linkFor("100. Game Concepts")).toHaveAttribute("aria-current", "location");
+  });
+
+  it("releases the hold when the page's jump renders the entry in place", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis.Element.prototype, "scrollIntoView").mockImplementation(() => {});
+    placeSection("rule-100", 100);
+    placeSection("rule-100-1", 0);
+    const hidden = document.querySelector("#rule-100-1");
+    if (hidden) {
+      hidden.getClientRects = () => [] as unknown as DOMRectList;
+    }
+    render(<PageToc items={ITEMS} onJump={() => Promise.resolve()} />);
+
+    await user.click(linkFor("100.1 Players"));
+    reportIntersections({ "rule-100": true });
+
+    expect(linkFor("100. Game Concepts")).toHaveAttribute("aria-current", "location");
+  });
+
+  it("keeps holding an entry the page's jump still has to scroll to", async () => {
+    const user = userEvent.setup();
+    makePageScrollable();
+    placeSection("rule-100", 100);
+    placeSection("rule-100-1", 900);
+    const hidden = document.querySelector("#rule-100-1");
+    if (hidden) {
+      hidden.getClientRects = () => [] as unknown as DOMRectList;
+    }
+    render(<PageToc items={ITEMS} onJump={() => Promise.resolve()} />);
+
+    await user.click(linkFor("100.1 Players"));
+    reportIntersections({ "rule-100": true });
+    expect(linkFor("100.1 Players")).toHaveAttribute("aria-current", "location");
+
+    act(() => {
+      document.dispatchEvent(new Event("scrollend"));
+    });
+    reportIntersections({ "rule-100": true });
+    expect(linkFor("100. Game Concepts")).toHaveAttribute("aria-current", "location");
+  });
+
   it("lets the observer move a clicked entry where scrollend is not supported", async () => {
     await withoutScrollEnd(async () => {
       const user = userEvent.setup();

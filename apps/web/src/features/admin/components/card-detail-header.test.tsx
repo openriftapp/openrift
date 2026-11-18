@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const captured = vi.hoisted(() => ({
   rename: vi.fn(),
   deleteCard: vi.fn(),
+  leftSlugs: [] as string[],
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -34,9 +35,22 @@ vi.mock("@/components/ui/dropdown-menu", () => ({
   DropdownMenuTrigger: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
 }));
 
+vi.mock("@/components/confirm-action-dialog", () => ({
+  ConfirmActionDialog: ({ open, onConfirm }: { open: boolean; onConfirm: () => void }) =>
+    open ? (
+      <button type="button" onClick={onConfirm}>
+        Confirm delete
+      </button>
+    ) : null,
+}));
+
 vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
-  useRenameCard: () => ({ mutate: captured.rename, isPending: false }),
-  useDeleteCard: () => ({ mutate: captured.deleteCard, isPending: false }),
+  useRenameCard: () => ({ mutateAsync: captured.rename, isPending: false }),
+  useDeleteCard: () => ({ mutateAsync: captured.deleteCard, isPending: false }),
+  useLeaveCardPage: () => async (oldSlug: string, leave: () => Promise<void>) => {
+    await leave();
+    captured.leftSlugs.push(oldSlug);
+  },
 }));
 
 import { CardDetailHeader } from "./card-detail-header";
@@ -46,7 +60,7 @@ const card = { id: "card-uuid", name: "Yasuo", errata: null } as unknown as Admi
 function renderHeader(
   props: Partial<React.ComponentProps<typeof CardDetailHeader>> = {},
 ): ReturnType<typeof render> {
-  const noop = () => {};
+  const noop = async () => {};
   return render(
     <CardDetailHeader
       card={card}
@@ -68,6 +82,7 @@ function renderHeader(
 beforeEach(() => {
   captured.rename.mockReset();
   captured.deleteCard.mockReset();
+  captured.leftSlugs = [];
 });
 
 describe("CardDetailHeader", () => {
@@ -80,14 +95,46 @@ describe("CardDetailHeader", () => {
     expect(busy.length).toBeGreaterThan(0);
   });
 
-  it("offers a regenerate when the stored slug no longer matches", () => {
+  it("offers a regenerate when the stored slug no longer matches and opens the new slug once it lands", async () => {
+    captured.rename.mockResolvedValue(undefined);
+    const goToCard = vi.fn();
+    const { getByText } = renderHeader({ cardSlug: "yasu", expectedCardSlug: "yasuo", goToCard });
+
+    getByText("Regenerate ID (yasuo)").click();
+    expect(captured.rename).toHaveBeenCalledWith({ cardId: "card-uuid", newId: "yasuo" });
+    await vi.waitFor(() => expect(goToCard).toHaveBeenCalledWith("yasuo"));
+  });
+
+  it("forgets the old address once the renamed card's page opens", async () => {
+    captured.rename.mockResolvedValue(undefined);
     const { getByText } = renderHeader({ cardSlug: "yasu", expectedCardSlug: "yasuo" });
 
     getByText("Regenerate ID (yasuo)").click();
-    expect(captured.rename).toHaveBeenCalledWith(
-      { cardId: "card-uuid", cardSlug: "yasu", newId: "yasuo" },
-      expect.anything(),
-    );
+
+    await vi.waitFor(() => expect(captured.leftSlugs).toEqual(["yasu"]));
+  });
+
+  it("forgets the deleted card's address once the list opens", async () => {
+    captured.deleteCard.mockResolvedValue(undefined);
+    const goToList = vi.fn(async () => {});
+    const { getByText } = renderHeader({ goToList });
+
+    getByText("Delete card").click();
+    await vi.waitFor(() => getByText("Confirm delete").click());
+
+    await vi.waitFor(() => expect(captured.leftSlugs).toEqual(["yasuo"]));
+    expect(goToList).toHaveBeenCalledOnce();
+  });
+
+  it("stays on the card when the regenerate fails", async () => {
+    captured.rename.mockRejectedValue(new Error("Network down"));
+    const goToCard = vi.fn();
+    const { getByText } = renderHeader({ cardSlug: "yasu", expectedCardSlug: "yasuo", goToCard });
+
+    getByText("Regenerate ID (yasuo)").click();
+    await vi.waitFor(() => expect(captured.rename).toHaveBeenCalledOnce());
+    await Promise.resolve();
+    expect(goToCard).not.toHaveBeenCalled();
   });
 
   it("stays quiet when the slug is current", () => {

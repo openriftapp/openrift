@@ -1,8 +1,5 @@
 import { formatPrintingCode } from "@openrift/shared/printing-code";
-import type {
-  AdminCardDetailResponse,
-  AdminPrintingResponse,
-} from "@openrift/shared/types/api/admin";
+import type { AdminPrintingResponse } from "@openrift/shared/types/api/admin";
 import { isListingOwnerId, parseListingCardOwnerId } from "@openrift/shared/workspace-listing-key";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -53,6 +50,7 @@ import { useValueLabels } from "@/features/catalog-workspace/hooks/use-face-reco
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
+import { queueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import type {
   CreationDraft,
   PlannedImageUpload,
@@ -84,14 +82,17 @@ export function NewPrintingRecord({ candidatePrintingId }: { candidatePrintingId
 
 function NewCandidatePrintingRecord({ candidatePrintingId }: { candidatePrintingId: string }) {
   const { data: queue, isPending } = useQuery(workspaceQueueQueryOptions());
+  const [acceptedOn, setAcceptedOn] = useState<string | null>(null);
   const item = queue?.items.find(
     (entry) => entry.owner === "printing" && entry.ownerId === candidatePrintingId,
   );
+  // An accept drops the candidate from the queue before its follow-up writes finish.
+  const cardSlug = acceptedOn ?? item?.cardSlug ?? null;
 
   if (isPending) {
     return <Skeleton className="m-4 h-96" />;
   }
-  if (item?.cardSlug === null || item?.cardSlug === undefined) {
+  if (cardSlug === null) {
     return (
       <RecordNotice>
         This candidate is not in the queue any more. It was accepted, merged or ignored.
@@ -102,8 +103,9 @@ function NewCandidatePrintingRecord({ candidatePrintingId }: { candidatePrinting
     <Suspense fallback={<Skeleton className="m-4 h-96" />}>
       <NewPrintingBody
         key={candidatePrintingId}
-        cardSlug={item.cardSlug}
+        cardSlug={cardSlug}
         candidatePrintingId={candidatePrintingId}
+        onAcceptingChange={(accepting) => setAcceptedOn(accepting ? cardSlug : null)}
       />
     </Suspense>
   );
@@ -118,12 +120,14 @@ function uniquePrintings(printings: readonly AdminPrintingResponse[]): AdminPrin
 function NewPrintingBody({
   cardSlug,
   candidatePrintingId,
+  onAcceptingChange,
 }: {
   cardSlug: string;
   candidatePrintingId: string;
+  onAcceptingChange: (accepting: boolean) => void;
 }) {
   const detailQuery = useAdminCardDetail(cardSlug);
-  const detail = detailQuery.data as AdminCardDetailResponse | undefined;
+  const detail = detailQuery.data;
   const { data: access } = useAdminAccess();
   const isAdmin = access?.isAdmin === true;
   const labels = useValueLabels();
@@ -181,7 +185,12 @@ function NewPrintingBody({
           existing.map((printing) => duplicateProbeFromAdminPrinting(printing)),
         );
   const issues = draft === null ? [] : validateDraft(draft);
-  const canAccept = draft !== null && issues.length === 0 && !working && !acceptGroup.isPending;
+  const canAccept =
+    draft !== null &&
+    candidate !== undefined &&
+    issues.length === 0 &&
+    !working &&
+    !acceptGroup.isPending;
 
   const uploadOne = (printingId: string, upload: PlannedImageUpload) =>
     upload.image.kind === "file"
@@ -201,6 +210,7 @@ function NewPrintingBody({
   const acceptDraft = async (toCreate: CreationDraft) => {
     setWorking(true);
     setFailure(null);
+    onAcceptingChange(true);
     let created: Awaited<ReturnType<typeof acceptGroup.mutateAsync>> | undefined;
     const ok = await runReportedMutation(
       async () => {
@@ -210,6 +220,7 @@ function NewPrintingBody({
     );
     if (!ok || !created) {
       setWorking(false);
+      onAcceptingChange(false);
       return;
     }
     const printingId = created.printingId;
@@ -271,9 +282,10 @@ function NewPrintingBody({
     }
   };
 
+  const ignoring = ignoreCandidate.isPending;
   useRegisterRecordActions({
-    loading: detail === undefined && !detailQuery.isError,
-    accept: canAccept ? accept : undefined,
+    loading: (detail === undefined && !detailQuery.isError) || ignoring,
+    accept: canAccept && !ignoring ? accept : undefined,
     ignore: isAdmin && candidate !== undefined ? ignore : undefined,
   });
 
@@ -284,7 +296,22 @@ function NewPrintingBody({
       <Skeleton className="m-4 h-96" />
     );
   }
+  if (ignoring) {
+    return <Skeleton className="m-4 h-96" />;
+  }
   if (candidate === undefined || draft === null) {
+    if (working) {
+      return <Skeleton className="m-4 h-96" />;
+    }
+    if (failure !== null) {
+      return (
+        <RecordPane header={<RecordHeader title={detail.displayName} />}>
+          <Alert variant="destructive">
+            <AlertDescription>{failure}</AlertDescription>
+          </Alert>
+        </RecordPane>
+      );
+    }
     return (
       <p className="text-muted-foreground p-4">
         This candidate is no longer open on {detail.displayName}.
@@ -314,7 +341,7 @@ function NewPrintingBody({
                   variant="outline"
                   size="sm"
                   pending={ignoreCandidate.isPending}
-                  onClick={() => void ignore()}
+                  onClick={() => void queueWorkspaceWrite(ignore)}
                 >
                   Ignore <Kbd>X</Kbd>
                 </Button>
@@ -331,14 +358,21 @@ function NewPrintingBody({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     {existing.map((printing) => (
-                      <DropdownMenuItem key={printing.id} onClick={() => void merge(printing.id)}>
+                      <DropdownMenuItem
+                        key={printing.id}
+                        onClick={() => void queueWorkspaceWrite(() => merge(printing.id))}
+                      >
                         {printing.expectedPrintingId}
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
-              <Button size="sm" disabled={!canAccept} onClick={() => void accept()}>
+              <Button
+                size="sm"
+                disabled={!canAccept}
+                onClick={() => void queueWorkspaceWrite(accept)}
+              >
                 Accept & next <Kbd>A</Kbd>
               </Button>
             </>
@@ -355,7 +389,11 @@ function NewPrintingBody({
         draft={draft}
         onChange={setDraftEdit}
         duplicateCandidates={duplicates}
-        onMergeDuplicate={isAdmin ? (duplicate) => void merge(duplicate.printingId) : undefined}
+        onMergeDuplicate={
+          isAdmin
+            ? (duplicate) => void queueWorkspaceWrite(() => merge(duplicate.printingId))
+            : undefined
+        }
         disabled={working}
       />
       {issues.length > 0 && (

@@ -107,11 +107,9 @@ test.describe("deck builder beta", () => {
     await page.goto(`/decks/${deckId}?editor=build&target=main`);
     await expect(page.getByText("Adding to")).toBeVisible({ timeout: 15_000 });
     const annie = page
-      .getByRole("img", { name: "Annie, Fiery" })
-      .first()
-      .locator(
-        "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' group ')][1]",
-      );
+      .locator("[data-printing-id]")
+      .filter({ has: page.getByRole("img", { name: "Annie, Fiery" }) })
+      .first();
     await annie.getByRole("button", { name: "Add to deck" }).click({ timeout: 15_000 });
     await expect(deckColumn(page).getByText("Annie, Fiery")).toBeVisible();
     await expect(annie.getByRole("button", { name: "Remove from deck" })).toHaveCount(0);
@@ -178,11 +176,9 @@ test.describe("deck builder beta", () => {
 
     await page.goto(`/decks/${deckId}?editor=build&target=main`);
     const annie = page
-      .getByRole("img", { name: "Annie, Fiery" })
-      .first()
-      .locator(
-        "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' group ')][1]",
-      );
+      .locator("[data-printing-id]")
+      .filter({ has: page.getByRole("img", { name: "Annie, Fiery" }) })
+      .first();
     await annie.getByRole("button", { name: "Add to deck" }).click({ timeout: 15_000 });
     const row = deckColumn(page)
       .locator('[data-deck-card-id][role="button"]')

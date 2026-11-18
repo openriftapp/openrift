@@ -354,7 +354,7 @@ function PlayerDeckActions({
       </PageTopBarButton>
     );
   }
-  if (entry.unlockRequested) {
+  if (entry.unlockRequested && !entry.leftEvent) {
     return (
       <PageTopBarButton pending={cancelRequest.isPending} onClick={() => cancelRequest.mutate(ref)}>
         {m.tournaments_my_deck_cancel_unlock_request()}

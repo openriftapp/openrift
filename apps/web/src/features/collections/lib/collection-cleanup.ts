@@ -1,7 +1,10 @@
 // cleanup() rejects while a reader is attached, so evicted stores go through cleanupWhenIdle.
 // LocalOnlyCollections have gcTime: 0 and never auto-GC; QueryCollections would only after gcTime.
 
+import { CollectionHasSubscribersError } from "@tanstack/react-db";
+
 import type { AnyCollection } from "@/features/collections/lib/collection-load";
+import { captureHandledError } from "@/lib/report-error";
 
 /** Dev-only: traces an orphaned collection's subscriber detach and warns if none occurs within 3s. */
 export function markOrphaned(collection: AnyCollection, label: string): void {
@@ -46,9 +49,12 @@ export function cleanupWhenIdle(collection: AnyCollection): void {
 async function cleanupOrWait(collection: AnyCollection): Promise<void> {
   try {
     await collection.cleanup();
-  } catch {
-    // A reader that attached first makes cleanup() reject with CollectionHasSubscribersError.
-    waitForIdle(collection);
+  } catch (error) {
+    if (error instanceof CollectionHasSubscribersError) {
+      waitForIdle(collection);
+      return;
+    }
+    captureHandledError(error, { collectionCleanup: collection.id });
   }
 }
 

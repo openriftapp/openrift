@@ -9,6 +9,7 @@ import { useStickyHeader } from "./use-sticky-header";
 const SCROLL_MARGIN = 200;
 const STICKY_OFFSET = 100;
 const HEADER_HEIGHT = 40;
+const LABEL_BAND = 36;
 
 const header = (id: string): VRow => ({
   kind: "header",
@@ -39,6 +40,7 @@ function params(overrides: { multipleGroups?: boolean } = {}) {
     scrollMargin: SCROLL_MARGIN,
     stickyOffset: STICKY_OFFSET,
     headerHeight: HEADER_HEIGHT,
+    labelBand: LABEL_BAND,
   };
 }
 
@@ -116,6 +118,24 @@ describe("useStickyHeader", () => {
   it("hides the overlay while the real header is sliding under the toolbar", () => {
     // Header "b" has crossed the threshold by 20px of its 40px row.
     vi.stubGlobal("scrollY", 520);
+    const { result } = renderHook(() => useStickyHeader(params()));
+
+    flushFrames();
+    expect(result.current).toBeNull();
+  });
+
+  it("keeps the outgoing header while the next one is still below the label band", () => {
+    // threshold 320; header "b" at 400 is clear of the band that ends at 356.
+    vi.stubGlobal("scrollY", 420);
+    const { result } = renderHook(() => useStickyHeader(params()));
+
+    flushFrames();
+    expect(result.current?.group.id).toBe("a");
+  });
+
+  it("hides the outgoing header once the next header enters the label band", () => {
+    // threshold 380; header "b" at 400 sits inside the band that ends at 416.
+    vi.stubGlobal("scrollY", 480);
     const { result } = renderHook(() => useStickyHeader(params()));
 
     flushFrames();

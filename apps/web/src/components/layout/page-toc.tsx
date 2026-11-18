@@ -24,8 +24,11 @@ export interface PageTocItem {
   level?: number;
 }
 
-/** Takes over a jump to an item that is hidden or not rendered, e.g. folded or filtered out. */
-export type PageTocJump = (id: string) => void;
+/**
+ * Takes over a jump to an item that is hidden or not rendered, e.g. folded or filtered out.
+ * A returned promise settles once the page has rendered the item and scrolled to it.
+ */
+export type PageTocJump = (id: string) => Promise<void> | void;
 
 function cssPixels(value: string): number {
   // oxlint-disable-next-line unicorn/prefer-number-coercion -- CSS px string; Number() would yield NaN
@@ -48,6 +51,20 @@ function scrollWillMove(element: HTMLElement): boolean {
     Math.max(0, scroller.scrollHeight - scroller.clientHeight),
   );
   return Math.abs(target - scroller.scrollTop) >= 1;
+}
+
+/** A jump that rendered the item in place moved nothing, so no scrollend comes to end the hold. */
+async function releaseUnlessJumpScrolls(
+  jumped: Promise<void>,
+  id: string,
+  startTop: number | undefined,
+  release: () => void,
+): Promise<void> {
+  await jumped;
+  const element = document.querySelector<HTMLElement>(`#${CSS.escape(id)}`);
+  if (element && document.scrollingElement?.scrollTop === startTop && !scrollWillMove(element)) {
+    release();
+  }
 }
 
 function TocLink({
@@ -75,19 +92,37 @@ function TocLink({
 
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
     const element = document.querySelector<HTMLElement>(`#${CSS.escape(id)}`);
+    // Safari 16.4 has no scrollend; there the observer may move the highlight mid-scroll.
+    const canHold = "onscrollend" in globalThis;
+    const holdEnd = new AbortController();
+    const release = () => {
+      holdEnd.abort();
+      releaseHold(id);
+    };
+    const hold = (held: boolean) => {
+      if (held) {
+        // Capture: a nested scroller's scrollend does not bubble to the document.
+        document.addEventListener("scrollend", release, {
+          once: true,
+          capture: true,
+          signal: holdEnd.signal,
+        });
+      }
+      selectActiveId(id, held);
+    };
     if (element && (onJump === undefined || element.getClientRects().length > 0)) {
       event.preventDefault();
-      // Safari 16.4 has no scrollend; there the observer may move the highlight mid-scroll.
-      const hold = "onscrollend" in globalThis && scrollWillMove(element);
-      if (hold) {
-        document.addEventListener("scrollend", () => releaseHold(id), { once: true });
-      }
-      selectActiveId(id, hold);
+      hold(canHold && scrollWillMove(element));
       element.scrollIntoView({ behavior: "smooth", block: "start" });
     } else if (onJump) {
       event.preventDefault();
-      onJump(id);
-      selectActiveId(id, false);
+      // Held before the jump renders: the page reveals the target and the router scrolls to it.
+      const startTop = document.scrollingElement?.scrollTop;
+      hold(canHold);
+      const jumped = onJump(id);
+      if (canHold && jumped) {
+        void releaseUnlessJumpScrolls(jumped, id, startTop, release);
+      }
     }
     onSelect?.();
   }

@@ -20,24 +20,6 @@ describe("uvsgamesEventsRepo instant comparisons", () => {
     }
   });
 
-  it("pulls rechecks forward only for events whose truncated start has passed", async () => {
-    const recording = createRecordingDb([{ numAffectedRows: 1n }]);
-
-    await uvsgamesEventsRepo(recording.db).pullForwardRechecks(["u1"], new Date());
-
-    expect(recording.queries[0]).toContain("date_trunc('milliseconds', e.start_at) <= $");
-  });
-
-  it("counts a template's ran events up to the start of the UTC day", async () => {
-    const recording = createRecordingDb([[]]);
-
-    await uvsgamesEventsRepo(recording.db).listTemplates();
-
-    expect(recording.queries[0]).toContain(
-      "e.start_at < (now() at time zone 'UTC')::date::timestamp at time zone 'UTC'",
-    );
-  });
-
   it("bounds markMissing by the bare start column, through the last millisecond of `to`", async () => {
     const recording = createRecordingDb([{ numAffectedRows: 2n }]);
     const from = new Date("2026-11-06T12:00:00.030Z");

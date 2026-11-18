@@ -397,6 +397,7 @@
   "common_scroll_to_top": "Revenir en haut",
   "common_copy": "Copier",
   "common_copied": "Copié",
+  "common_copy_failed": "Impossible de copier",
   "common_copy_share_link": "Copier le lien de partage",
   "common_share_link_copied": "Lien de partage copié",
   "common_copy_link_error": "Impossible de copier le lien",
@@ -624,8 +625,6 @@
     }
   ],
   "cards_grid_show_n_printings": "Afficher {count} impressions",
-  "cards_grid_load_error_title": "Impossible de charger les cartes",
-  "cards_grid_load_error_description": "Le serveur est peut-être injoignable.",
   "cards_grid_no_results_title": "Aucune carte trouvée",
   "cards_grid_no_results_description": "Ajustez vos filtres.",
   "cards_search_hint_text": "Les mots simples ne cherchent que dans les noms de cartes.",
@@ -1710,6 +1709,12 @@
     }
   ],
   "collections_reorder_aria": "Réorganiser {label}",
+  "collections_drag_announce_picked_up": "{name} saisi.",
+  "collections_drag_announce_over": "{name} est au-dessus de {target}.",
+  "collections_drag_announce_not_over": "{name} n'est au-dessus d'aucune zone de dépôt.",
+  "collections_drag_announce_dropped": "{name} relâché sur {target}.",
+  "collections_drag_announce_nothing_moved": "{name} relâché. Rien n'a été déplacé.",
+  "collections_drag_announce_unnamed": "Élément",
   "collections_copy_edit_aria": "{title}. Modifier les détails de l'exemplaire.",
   "collections_copy_graded_title": "Noté {grader} {grade}",
   "collections_copies_with_details": [

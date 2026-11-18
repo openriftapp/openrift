@@ -45,7 +45,10 @@ const decksCache = new WeakMap<
   QueryClient,
   CacheEntry<DecksCollection> & { stopWatching: () => void }
 >();
-const cardsCache = new WeakMap<QueryClient, CacheEntry<DeckCardsCollection>>();
+const cardsCache = new WeakMap<
+  QueryClient,
+  CacheEntry<DeckCardsCollection> & { versions: Map<string, string> }
+>();
 const foldersCache = new WeakMap<QueryClient, CacheEntry<DeckFoldersCollection>>();
 
 function syncedDeckIds(queryClient: QueryClient, userId: string): Set<string> | undefined {
@@ -118,6 +121,7 @@ export function getDeckCardsCollection(
   const context = { queryClient, userId };
   // Per collection instance, so a user switch starts from a full read.
   let cardsSyncedXid: string | undefined;
+  const versions = new Map<string, string>();
   const collection = createCollection(
     queryCollectionOptions<DeckCardWithDeckResponse>({
       id: `deck-cards:${userId}`,
@@ -134,6 +138,7 @@ export function getDeckCardsCollection(
         const client = browserApiOrpcClient(decksContract);
         const items: DeckCardWithDeckResponse[] = [];
         let touchedDeckIds: string[] | undefined;
+        let deckVersions: Record<string, string> | undefined;
         let syncedXid: string | undefined;
         let cursor: string | null = null;
         // Every page is accumulated before the merge: it replaces a deck wholesale,
@@ -150,10 +155,17 @@ export function getDeckCardsCollection(
           if (response.touchedDeckIds !== undefined) {
             touchedDeckIds = [...(touchedDeckIds ?? []), ...response.touchedDeckIds];
           }
+          deckVersions ??= response.deckVersions;
           syncedXid ??= response.syncedXid;
           cursor = response.nextCursor ?? null;
         } while (cursor !== null);
         cardsSyncedXid = syncedXid ?? cardsSyncedXid;
+        if (since === undefined) {
+          versions.clear();
+        }
+        for (const [deckId, version] of Object.entries(deckVersions ?? {})) {
+          versions.set(deckId, version);
+        }
         if (previous === undefined || touchedDeckIds === undefined) {
           return items;
         }
@@ -179,8 +191,18 @@ export function getDeckCardsCollection(
   collection.createIndex((row) => row.deckId, { indexType: BasicIndex });
 
   watchFailedLoad(collection, m.sync_load_failed_deck_cards);
-  cardsCache.set(queryClient, { userId, collection });
+  cardsCache.set(queryClient, { userId, collection, versions });
   return collection;
+}
+
+/** The stored version of a deck as of the cards store's last read, which never runs ahead of its cards. */
+export function storedDeckVersion(
+  queryClient: QueryClient,
+  userId: string,
+  deckId: string,
+): string | undefined {
+  const entry = cardsCache.get(queryClient);
+  return entry?.userId === userId ? entry.versions.get(deckId) : undefined;
 }
 
 export function getDeckFoldersCollection(

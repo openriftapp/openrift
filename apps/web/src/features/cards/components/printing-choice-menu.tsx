@@ -1,6 +1,6 @@
 import { sideKey, uniquePrintings } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
-import type { MouseEvent, PointerEvent, ReactNode, RefObject } from "react";
+import type { ComponentType, MouseEvent, PointerEvent, ReactNode, RefObject } from "react";
 import { useRef } from "react";
 
 import { ContextMenuGroup, ContextMenuItem, ContextMenuLabel } from "@/components/ui/context-menu";
@@ -55,6 +55,25 @@ export function PrintingChoicePreview({
   return <PrintingHoverPreview printing={hovered} anchorRef={anchorRef} />;
 }
 
+export interface MenuSectionParts {
+  Group: ComponentType<{ className?: string; children?: ReactNode }>;
+  Label: ComponentType<{ children?: ReactNode }>;
+  Item: ComponentType<{
+    className?: string;
+    variant?: "default" | "destructive";
+    children?: ReactNode;
+    onClick?: (event: MouseEvent<HTMLDivElement>) => void;
+    onPointerEnter?: (event: PointerEvent) => void;
+    onPointerLeave?: (event: PointerEvent) => void;
+  }>;
+}
+
+export const CONTEXT_MENU_PARTS: MenuSectionParts = {
+  Group: ContextMenuGroup,
+  Label: ContextMenuLabel,
+  Item: ContextMenuItem,
+};
+
 /**
  * Shared by the deck builder's row menu and the tier list's tile menu, which
  * differ only in what a pick means, not in how the list looks.
@@ -66,6 +85,7 @@ export function PrintingChoiceMenuSection({
   hint,
   onSelect,
   onSelectDefault,
+  parts = CONTEXT_MENU_PARTS,
 }: {
   printings: readonly Printing[];
   activePrintingId: string | null;
@@ -76,7 +96,9 @@ export function PrintingChoiceMenuSection({
   hint?: ReactNode;
   onSelect: (printing: Printing, event: MouseEvent) => void;
   onSelectDefault?: (event: MouseEvent) => void;
+  parts?: MenuSectionParts;
 }) {
+  const { Group, Label, Item } = parts;
   const choices = uniquePrintings(printings);
   const { data: session } = useSession();
   const { data: owned } = useOwnedCountsForPrintings(
@@ -87,26 +109,26 @@ export function PrintingChoiceMenuSection({
     return null;
   }
   return (
-    <ContextMenuGroup>
-      <ContextMenuLabel>
+    <Group>
+      <Label>
         {m.cards_printing_menu_change_printing()}
         {hint}
-      </ContextMenuLabel>
+      </Label>
       <div className="flex flex-col gap-0.5">
         {activePrintingId !== null && onSelectDefault && (
-          <ContextMenuItem
+          <Item
             onClick={(event) => {
               event.stopPropagation();
               onSelectDefault(event);
             }}
           >
             {m.cards_printing_menu_use_default()}
-          </ContextMenuItem>
+          </Item>
         )}
         {choices.map((printing) => {
           const ownedCount = owned?.totals[printing.printingId] ?? 0;
           return (
-            <ContextMenuItem
+            <Item
               key={sideKey(printing)}
               className={cn(
                 printing.printingId === activePrintingId && "bg-muted ring-border ring-1",
@@ -122,10 +144,10 @@ export function PrintingChoiceMenuSection({
                 siblings={printings}
                 thumbBadge={ownedCount > 0 && <OwnedCountBadge count={ownedCount} />}
               />
-            </ContextMenuItem>
+            </Item>
           );
         })}
       </div>
-    </ContextMenuGroup>
+    </Group>
   );
 }

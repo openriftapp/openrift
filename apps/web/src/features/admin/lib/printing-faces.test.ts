@@ -4,7 +4,7 @@ import type {
 } from "@openrift/shared/contracts/admin/printing-desk";
 import { describe, expect, it } from "vitest";
 
-import { printingFaces } from "./printing-faces";
+import { deskRowForFace, printingFaces } from "./printing-faces";
 
 function second(overrides: Partial<DeskSecondSide> = {}): DeskSecondSide {
   return {
@@ -75,5 +75,27 @@ describe("printingFaces", () => {
     const faces = printingFaces(row({ secondSide: second({ sharedWith }) }));
 
     expect(faces[1]?.sharedWith).toEqual(sharedWith);
+  });
+});
+
+describe("deskRowForFace", () => {
+  it("opens the printing the user came from when it carries the face", () => {
+    const from = row({ printingId: "p-pair", faceId: "face-empowered", secondSide: second() });
+    const other = row({ printingId: "p-tentacle", faceId: "face-tentacle", canEdit: true });
+
+    expect(deskRowForFace([other, from], "face-tentacle", "p-pair")).toBe(from);
+  });
+
+  it("ignores a remembered printing that does not carry the face", () => {
+    const stale = row({ printingId: "p-empowered", faceId: "face-empowered" });
+    const onFace = row({ printingId: "p-tentacle", faceId: "face-tentacle", canEdit: true });
+
+    expect(deskRowForFace([stale, onFace], "face-tentacle", "p-empowered")).toBe(onFace);
+  });
+
+  it("finds nothing when no row carries the face", () => {
+    const stale = row({ printingId: "p-empowered", faceId: "face-empowered" });
+
+    expect(deskRowForFace([stale], "face-tentacle", "p-empowered")).toBeNull();
   });
 });

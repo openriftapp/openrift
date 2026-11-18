@@ -197,10 +197,10 @@ test.describe("help", () => {
         const breadcrumb = scripts.find((script) => script["@type"] === "BreadcrumbList");
         expect(breadcrumb, "BreadcrumbList JSON-LD should be present").toBeDefined();
         expect(breadcrumb?.itemListElement).toHaveLength(2);
-        expect(breadcrumb?.itemListElement?.[0].name).toBe("Help");
-        expect(breadcrumb?.itemListElement?.[0].item).toBe(`${WEB_BASE_URL}/help`);
-        expect(breadcrumb?.itemListElement?.[1].name).toBe(article.title);
-        expect(breadcrumb?.itemListElement?.[1].item).toBe(`${WEB_BASE_URL}/help/${article.slug}`);
+        expect(breadcrumb?.itemListElement?.[0]?.name).toBe("Help");
+        expect(breadcrumb?.itemListElement?.[0]?.item).toBe(`${WEB_BASE_URL}/help`);
+        expect(breadcrumb?.itemListElement?.[1]?.name).toBe(article.title);
+        expect(breadcrumb?.itemListElement?.[1]?.item).toBe(`${WEB_BASE_URL}/help/${article.slug}`);
       });
     }
 

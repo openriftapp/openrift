@@ -41,7 +41,11 @@ import { MoveSubmissionDialog } from "@/features/admin/components/move-submissio
 import { RejectSubmissionDialog } from "@/features/admin/components/reject-submission-dialog";
 import { SendNoteDialog } from "@/features/admin/components/send-note-dialog";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
-import { useDeleteCard, useRenameCard } from "@/features/admin/hooks/use-admin-card-mutations";
+import {
+  useDeleteCard,
+  useLeaveCardPage,
+  useRenameCard,
+} from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-queries";
 import { useIgnoreCandidateCard } from "@/features/admin/hooks/use-ignored-candidates";
 import { auditEventsQueryOptions } from "@/features/admin/lib/admin-audit-queries";
@@ -72,6 +76,7 @@ import {
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import type { RecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
+import { queueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import {
   bansErrataSummary,
   historySummary,
@@ -168,8 +173,31 @@ function CardMenu({
   const navigate = useNavigate();
   const renameCard = useRenameCard();
   const deleteCard = useDeleteCard();
+  const leaveCardPage = useLeaveCardPage();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const isStale = cardSlug !== expectedCardId;
+
+  async function regenerateId() {
+    const input = { cardId: card.id, newId: expectedCardId };
+    if (await runReportedMutation(() => renameCard.mutateAsync(input))) {
+      await leaveCardPage(cardSlug, () =>
+        navigate({
+          to: "/admin/workspace/cards/$cardSlug",
+          params: { cardSlug: expectedCardId },
+          ignoreBlocker: true,
+        }),
+      );
+    }
+  }
+
+  async function confirmDelete() {
+    if (await runReportedMutation(() => deleteCard.mutateAsync(card.id))) {
+      setDeleteOpen(false);
+      await leaveCardPage(cardSlug, () =>
+        navigate({ to: "/admin/workspace/cards", ignoreBlocker: true }),
+      );
+    }
+  }
 
   return (
     <>
@@ -181,21 +209,7 @@ function CardMenu({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {isStale && (
-            <DropdownMenuItem
-              disabled={renameCard.isPending}
-              onClick={() =>
-                renameCard.mutate(
-                  { cardId: card.id, cardSlug, newId: expectedCardId },
-                  {
-                    onSuccess: () =>
-                      void navigate({
-                        to: "/admin/workspace/cards/$cardSlug",
-                        params: { cardSlug: expectedCardId },
-                      }),
-                  },
-                )
-              }
-            >
+            <DropdownMenuItem disabled={renameCard.isPending} onClick={() => void regenerateId()}>
               <RefreshCwIcon />
               Regenerate ID ({cardSlug} &rarr; {expectedCardId})
             </DropdownMenuItem>
@@ -219,14 +233,7 @@ function CardMenu({
         confirmLabel="Delete card"
         destructive
         isPending={deleteCard.isPending}
-        onConfirm={() =>
-          deleteCard.mutate(card.id, {
-            onSuccess: () => {
-              setDeleteOpen(false);
-              void navigate({ to: "/admin/workspace/cards" });
-            },
-          })
-        }
+        onConfirm={() => void confirmDelete()}
       />
     </>
   );
@@ -413,10 +420,7 @@ function CardRecordBody({
   );
 
   async function primaryAndNext() {
-    const done = await runReportedMutation(async () => {
-      await primary.run();
-    });
-    if (done) {
+    if (await queueWorkspaceWrite(primary.run)) {
       navigation.goNext();
     }
   }
@@ -450,7 +454,7 @@ function CardRecordBody({
         }
         hotkey={suggestion.hotkey}
         pending={isPending}
-        onUse={() => applySuggestion(suggestion)}
+        onUse={() => void applySuggestion(suggestion)}
         onReject={submission ? () => setDialog({ kind: "reject", submission }) : undefined}
         onReply={isAdmin && submission ? () => setDialog({ kind: "reply", submission }) : undefined}
         replyDisabledReason={isAdmin ? undefined : "Only admins can reply"}
@@ -458,7 +462,9 @@ function CardRecordBody({
           submission ? (
             <>
               {others > 0 && (
-                <DropdownMenuItem onClick={() => acceptWholeSubmission(suggestion.candidateRowId)}>
+                <DropdownMenuItem
+                  onClick={() => void acceptWholeSubmission(suggestion.candidateRowId)}
+                >
                   <CopyCheckIcon />
                   Use all {others + 1} changes
                 </DropdownMenuItem>
@@ -490,7 +496,7 @@ function CardRecordBody({
         value={value}
         hotkey={suggestion.hotkey}
         pending={isPending}
-        onUse={() => applySuggestion(suggestion)}
+        onUse={() => void applySuggestion(suggestion)}
         onDiscard={isAdmin ? () => void discardSuggestion(suggestion) : undefined}
         discardLabel={discardLabel(suggestion.rowDifferences, suggestion.sourceLabel)}
         discardDisabledReason={isAdmin ? undefined : "Only admins can discard source suggestions"}
@@ -722,7 +728,7 @@ export function CardRecord({ cardSlug }: { cardSlug: string }) {
   const { data: access } = useAdminAccess();
   const isAdmin = access?.isAdmin === true;
   const { data, isLoading, isError, error, refetch } = useAdminCardDetail(cardSlug);
-  const detail = data as AdminCardDetailResponse | undefined;
+  const detail = data;
   const { providerSettings } = useCardDetailData(cardRecordScope(cardSlug));
   const costKeywords = useCostKeywords();
 

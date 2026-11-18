@@ -10,7 +10,7 @@ import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { isUnknownDeckCard } from "@/features/decks/lib/deck-builder-card";
 import type { PlanDraft } from "@/features/decks/lib/deck-plan";
 import { getDeckCardsCollection } from "@/features/decks/lib/decks-collection";
-import { saveDeckCards } from "@/features/decks/lib/decks-write";
+import { DeckCardsConflictError, saveDeckCards } from "@/features/decks/lib/decks-write";
 import { isLocalDeck, setLocalDeckCards } from "@/features/decks/lib/local-decks-collection";
 import { useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
 import { mutationTag } from "@/lib/mutation-metadata";
@@ -32,6 +32,7 @@ export const CLEAN_STATUS: DeckSaveStatus = { isSaving: false, isDirty: false, e
 interface ServerCards {
   cards: DeckBuilderCard[];
   signature: string;
+  version?: string;
 }
 
 export type DeckDraftConflictChoice = "keep" | "load";
@@ -48,6 +49,7 @@ interface DraftEntry {
   hydrated: boolean;
   planDraft: PlanDraft | null;
   base: string | null;
+  version: string | null;
   sent: string[];
   server: ServerCards | null;
   conflict: ServerCards | null;
@@ -136,11 +138,23 @@ async function runSave(queryClient: QueryClient, userId: string, entry: DraftEnt
 
   setStatus(entry, { isSaving: true, error: null });
 
+  let storedVersion: string | undefined;
   try {
     const collection = getDeckCardsCollection(queryClient, userId);
     await loadCollection(collection);
     await withTimeout(
-      saveDeckCards(collection, entry.deckId, cards, { queryClient, userId }).when("settled"),
+      saveDeckCards(
+        collection,
+        entry.deckId,
+        cards,
+        { queryClient, userId },
+        {
+          expectedVersion: entry.version ?? undefined,
+          onVersion: (version) => {
+            storedVersion = version;
+          },
+        },
+      ).when("settled"),
       { label: m.decks_editor_timeout_save(), abortController: controller },
     );
 
@@ -149,6 +163,7 @@ async function runSave(queryClient: QueryClient, userId: string, entry: DraftEnt
     }
     entry.lastAppliedSeq = seq;
     entry.base = signature;
+    entry.version = storedVersion ?? entry.version;
     entry.sent = entry.sent.slice(entry.sent.indexOf(signature) + 1);
 
     const stillDirty = entry.saveTimer !== null;
@@ -157,10 +172,37 @@ async function runSave(queryClient: QueryClient, userId: string, entry: DraftEnt
     if (controller.signal.aborted && seq < entry.saveSeq) {
       return;
     }
+    if (error instanceof DeckCardsConflictError) {
+      settleConflictingSave(queryClient, userId, entry, signature, error);
+      return;
+    }
     setStatus(entry, {
       isSaving: false,
       error: toError(error),
     });
+  }
+  reconcile(entry);
+}
+
+/**
+ * Stored cards this draft already knows (its base or a save of its own) only moved the
+ * version, so the save goes again; anything else waits for the keep-or-load prompt.
+ */
+function settleConflictingSave(
+  queryClient: QueryClient,
+  userId: string,
+  entry: DraftEntry,
+  signature: string,
+  conflict: DeckCardsConflictError,
+): void {
+  const stored = cardsSignature(conflict.cards);
+  const known = stored === entry.base || entry.sent.includes(stored);
+  entry.version = conflict.version;
+  entry.sent = entry.sent.filter((sent) => sent !== signature);
+  setStatus(entry, { isSaving: false, isDirty: true, error: null });
+  if (known) {
+    void runSave(queryClient, userId, entry);
+    return;
   }
   reconcile(entry);
 }
@@ -189,6 +231,7 @@ function createEntry(queryClient: QueryClient, userId: string, deckId: string): 
     hydrated: false,
     planDraft: null,
     base: null,
+    version: null,
     sent: [],
     server: null,
     conflict: null,
@@ -302,7 +345,12 @@ function setConflict(entry: DraftEntry, conflict: ServerCards | null): void {
   notify(entry);
 }
 
-function rebase(entry: DraftEntry, cards: DeckBuilderCard[], signature: string): void {
+function rebase(
+  entry: DraftEntry,
+  cards: DeckBuilderCard[],
+  signature: string,
+  version?: string,
+): void {
   if (entry.saveTimer) {
     clearTimeout(entry.saveTimer);
     entry.saveTimer = null;
@@ -310,6 +358,7 @@ function rebase(entry: DraftEntry, cards: DeckBuilderCard[], signature: string):
   entry.saveController?.abort();
   entry.saveController = null;
   entry.base = signature;
+  entry.version = version ?? entry.version;
   entry.sent = [];
 
   replaceDraftCards(entry, cards, rebaseWrites.tag(true));
@@ -356,7 +405,7 @@ function reconcile(entry: DraftEntry): void {
     return;
   }
   if (!entry.status.isDirty && entry.saveTimer === null) {
-    rebase(entry, server.cards, server.signature);
+    rebase(entry, server.cards, server.signature, server.version);
     return;
   }
   if (entry.conflict?.signature !== server.signature) {
@@ -364,34 +413,37 @@ function reconcile(entry: DraftEntry): void {
   }
 }
 
+/** `version` is the stored version these cards belong to; the first save names it. */
 export function hydrateDeckDraft(
   queryClient: QueryClient,
   userId: string,
   deckId: string,
   cards: DeckBuilderCard[],
+  version?: string,
 ): void {
-  rebase(getOrCreateEntry(queryClient, userId, deckId), cards, cardsSignature(cards));
+  rebase(getOrCreateEntry(queryClient, userId, deckId), cards, cardsSignature(cards), version);
 }
 
 /**
- * Brings the draft in line with the deck's stored cards: a clean draft follows them,
- * a draft with unsaved edits holds a conflict until `resolveDeckDraftConflict`.
+ * Brings the draft in line with the deck's stored cards and their `version`: a clean draft
+ * follows them, a draft with unsaved edits holds a conflict until `resolveDeckDraftConflict`.
  */
 export function syncDeckDraft(
   queryClient: QueryClient,
   userId: string,
   deckId: string,
   cards: DeckBuilderCard[],
+  version?: string,
 ): void {
   const entry = getOrCreateEntry(queryClient, userId, deckId);
   if (!entry.hydrated) {
-    hydrateDeckDraft(queryClient, userId, deckId, cards);
+    hydrateDeckDraft(queryClient, userId, deckId, cards, version);
     return;
   }
   if (isLocalDeck(deckId)) {
     return;
   }
-  entry.server = { cards, signature: cardsSignature(cards) };
+  entry.server = { cards, signature: cardsSignature(cards), version };
   reconcile(entry);
   refreshCardDetails(entry, cards);
 }
@@ -409,10 +461,11 @@ export function resolveDeckDraftConflict(
     return;
   }
   if (choice === "load") {
-    rebase(entry, conflict.cards, conflict.signature);
+    rebase(entry, conflict.cards, conflict.signature, conflict.version);
     return;
   }
   entry.base = conflict.signature;
+  entry.version = conflict.version ?? entry.version;
   setConflict(entry, null);
   if (entry.status.isDirty && entry.saveTimer === null) {
     void runSave(queryClient, userId, entry);
@@ -452,6 +505,7 @@ export function resetDeckDraft(queryClient: QueryClient, scope: string, deckId: 
   entry.status = CLEAN_STATUS;
   entry.hydrated = false;
   entry.base = null;
+  entry.version = null;
   entry.sent = [];
   entry.server = null;
   entry.conflict = null;

@@ -416,6 +416,24 @@ describe.skipIf(!ctx)("overlay review", () => {
       expect(player!.listStatus).toBe("partial");
     });
 
+    it("moves a stored list to partial without touching its cards", async () => {
+      const { metaEventId, metaEventPlayerId, deckId } =
+        await seedMirroredPlayer("mor-player-status-only");
+      const before = await deckCards(deckId);
+
+      await writeMetaPlayerOverlayFields(
+        transact,
+        metaEventPlayerId,
+        { list: { cards: [], listStatus: "partial" } },
+        META_ARCHIVE_USER_ID,
+      );
+      await promoteMetaEvent(repos, metaEventId);
+
+      expect(await deckCards(deckId)).toEqual(before);
+      const [player] = await repo.rawStandingsForEvent(metaEventId);
+      expect(player!.listStatus).toBe("partial");
+    });
+
     it("files the row under the legend and champion its list names", async () => {
       const { metaEventId, metaEventPlayerId } = await seedMirroredPlayer("mor-player-legend");
 

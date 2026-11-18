@@ -89,6 +89,7 @@ export const tierListsRouter = {
     return await enableShare({
       read: () => tierLists.getShareState(input.id, context.userId),
       write: (token) => tierLists.setShare(input.id, context.userId, token, true),
+      constraint: "uq_tier_lists_share_token",
     });
   }),
 

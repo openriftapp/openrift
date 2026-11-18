@@ -34,7 +34,7 @@ import {
   parseDetailsCustomId,
 } from "./card-details.js";
 import { buildCardEmbed } from "./card-embed.js";
-import { cardTieReply } from "./card-tie-reply.js";
+import { cardTieReply, quotableQuery } from "./card-tie-reply.js";
 import type { CatalogCache, CatalogCard } from "./catalog-cache.js";
 import { buildDeckEmbed, deckImportUrl, fetchDeckImage, resolveDeckEntries } from "./deck-embed.js";
 import type { BotEnv } from "./env.js";
@@ -347,7 +347,7 @@ async function handleRuleCommand(ctx: BotContext, interaction: ChatInputCommandI
   }
   if (!entry) {
     await interaction.reply({
-      content: `No rule found matching “${query}”.`,
+      content: `No rule found matching “${quotableQuery(query)}”.`,
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -402,7 +402,7 @@ async function handleCardCommand(ctx: BotContext, interaction: ChatInputCommandI
   const card = found?.status === "found" ? found.card : undefined;
   if (!card) {
     await interaction.reply({
-      content: `No card found matching “${query}”.`,
+      content: `No card found matching “${quotableQuery(query)}”.`,
       flags: MessageFlags.Ephemeral,
     });
     return;

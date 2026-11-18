@@ -26,7 +26,7 @@ vi.mock("@/lib/server-fns/middleware", () => ({
 const { useClearPrices } = await import("./use-admin-prices");
 
 describe("useClearPrices", () => {
-  it("refetches the marketplace group counts after clearing", async () => {
+  it("refetches every view of the deleted products, variants and ignores after clearing", async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     vi.spyOn(client, "invalidateQueries");
     const wrapper = ({ children }: { children: ReactNode }) => (
@@ -43,5 +43,9 @@ describe("useClearPrices", () => {
       .mock.calls.map((call) => (call[0] as { queryKey: unknown[] }).queryKey);
     expect(keys).toContainEqual(["admin", "marketplace-groups"]);
     expect(keys).toContainEqual(["admin", "unified-mappings"]);
+    expect(keys).toContainEqual(["admin", "ignored-products"]);
+    expect(keys).toContainEqual(["admin", "sibling-variant-drift"]);
+    expect(keys).toContainEqual(["admin", "workspace"]);
+    expect(keys).toContainEqual(["admin", "cards"]);
   });
 });

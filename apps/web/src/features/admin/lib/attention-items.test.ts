@@ -607,7 +607,7 @@ describe("buildAttentionSources image comparison", () => {
     const change = buildAttentionSources({ ...detail, printingImages: [image] }, settings, [])[0]
       ?.entries[0]?.groups[0]?.changes[0];
     expect(change?.current).toBe(printingImageDisplayUrl(image));
-    expect(change?.current).toMatch(/^\/media\/cards\/lux-full\.webp\?/u);
+    expect(change?.current).toBe("/media/cards/lux-full.webp");
   });
 });
 

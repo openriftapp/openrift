@@ -18,6 +18,7 @@ import type { PrintingValueLabels } from "@/features/admin/lib/field-value-text"
 import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
+import { queuedWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import type {
   FaceSuggestionModel,
   PrintingFieldSuggestion,
@@ -280,8 +281,8 @@ export function useFaceRecordActions({
     enterCount: enterIds.length,
     pending,
     contributorOpen,
-    applyChip,
-    discard: discards.discard,
-    runPrimary,
+    applyChip: queuedWorkspaceWrite(applyChip),
+    discard: queuedWorkspaceWrite(discards.discard),
+    runPrimary: queuedWorkspaceWrite(runPrimary),
   };
 }

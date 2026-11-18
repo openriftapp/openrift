@@ -397,6 +397,7 @@
   "common_scroll_to_top": "回到顶部",
   "common_copy": "复制",
   "common_copied": "已复制",
+  "common_copy_failed": "无法复制",
   "common_copy_share_link": "复制分享链接",
   "common_share_link_copied": "分享链接已复制",
   "common_copy_link_error": "无法复制链接",
@@ -624,8 +625,6 @@
     }
   ],
   "cards_grid_show_n_printings": "显示 {count} 个印刷版本",
-  "cards_grid_load_error_title": "无法加载卡牌",
-  "cards_grid_load_error_description": "服务器可能无法访问。",
   "cards_grid_no_results_title": "未找到卡牌",
   "cards_grid_no_results_description": "试着调整筛选条件。",
   "cards_search_hint_text": "普通词语只搜索卡牌名称。",
@@ -1710,6 +1709,12 @@
     }
   ],
   "collections_reorder_aria": "重新排序{label}",
+  "collections_drag_announce_picked_up": "已拿起 {name}。",
+  "collections_drag_announce_over": "{name} 位于 {target} 上方。",
+  "collections_drag_announce_not_over": "{name} 不在可放置区域上方。",
+  "collections_drag_announce_dropped": "已将 {name} 放到 {target}。",
+  "collections_drag_announce_nothing_moved": "已放下 {name}，未做任何移动。",
+  "collections_drag_announce_unnamed": "项目",
   "collections_copy_edit_aria": "{title}。编辑实体卡详情。",
   "collections_copy_graded_title": "评级{grader} {grade}",
   "collections_copies_with_details": [

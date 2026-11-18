@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   refetchDeckCards: vi.fn(() => Promise.resolve()),
   registerQuickAdd: vi.fn(),
   hydrated: false,
+  isLocal: false,
   saveStatus: { isDirty: false, isSaving: false },
 }));
 
@@ -18,6 +19,8 @@ vi.mock("@/features/decks/stores/deck-draft-store", () => ({
 }));
 vi.mock("@/features/decks/lib/decks-collection", () => ({
   getDeckCardsCollection: () => ({ utils: { refetch: mocks.refetchDeckCards } }),
+  storedDeckVersion: (_queryClient: unknown, scope: string, deckId: string) =>
+    scope === "user-1" && deckId === "deck-1" ? "77" : undefined,
 }));
 vi.mock("@/features/decks/hooks/use-deck-draft", () => ({
   useDeckDraftHydrated: () => mocks.hydrated,
@@ -28,7 +31,7 @@ vi.mock("@/features/decks/hooks/use-decks", () => ({
     data: { deck: { format: "constructed", formatConfig: null, collectionId: null }, cards: [] },
   }),
 }));
-vi.mock("@/features/decks/hooks/use-local-decks", () => ({ useIsLocalDeck: () => false }));
+vi.mock("@/features/decks/hooks/use-local-decks", () => ({ useIsLocalDeck: () => mocks.isLocal }));
 vi.mock("@/features/decks/hooks/use-deck-builder", () => ({
   useDeckCards: () => [],
   useDeckViolations: () => [],
@@ -82,6 +85,7 @@ function beforeUnloadPrevented(): boolean {
 
 beforeEach(() => {
   mocks.hydrated = false;
+  mocks.isLocal = false;
   mocks.saveStatus = { isDirty: false, isSaving: false };
 });
 
@@ -91,15 +95,39 @@ afterEach(() => {
 });
 
 describe("useDeckEditorSession", () => {
-  it("syncs the draft with the stored cards under the user's scope", () => {
+  it("syncs the draft with the stored cards and their version under the user's scope", () => {
     renderSession();
-    expect(mocks.syncDeckDraft).toHaveBeenCalledWith(expect.anything(), "user-1", "deck-1", []);
+    expect(mocks.syncDeckDraft).toHaveBeenCalledWith(
+      expect.anything(),
+      "user-1",
+      "deck-1",
+      [],
+      "77",
+    );
+  });
+
+  it("syncs a browser-local deck with no version", () => {
+    mocks.isLocal = true;
+    renderSession();
+    expect(mocks.syncDeckDraft).toHaveBeenCalledWith(
+      expect.anything(),
+      "local",
+      "deck-1",
+      [],
+      undefined,
+    );
   });
 
   it("syncs an already hydrated draft so a re-entered editor sees changes made elsewhere", () => {
     mocks.hydrated = true;
     renderSession();
-    expect(mocks.syncDeckDraft).toHaveBeenCalledWith(expect.anything(), "user-1", "deck-1", []);
+    expect(mocks.syncDeckDraft).toHaveBeenCalledWith(
+      expect.anything(),
+      "user-1",
+      "deck-1",
+      [],
+      "77",
+    );
   });
 
   it("rereads the stored cards when a draft from an earlier visit is reopened", () => {

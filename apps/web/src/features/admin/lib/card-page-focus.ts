@@ -54,15 +54,10 @@ export function candidateGroupKey(
   return group?.groupKey ?? null;
 }
 
-/** One attempt on the next frame; a target missing then is not retried. */
-export function scrollIntoViewNextFrame(selector: string, block: ScrollLogicalPosition): void {
-  requestAnimationFrame(() => {
-    document.querySelector(selector)?.scrollIntoView({ behavior: "smooth", block });
-  });
+export function faceScrollKey(faceId: string): string {
+  return `face:${faceId}`;
 }
 
-export function scrollToFace(faceId: string | undefined): void {
-  if (faceId !== undefined) {
-    scrollIntoViewNextFrame(`[data-face-id="${faceId}"]`, "center");
-  }
+export function printingGroupScrollKey(groupKey: string): string {
+  return `printing-group:${groupKey}`;
 }

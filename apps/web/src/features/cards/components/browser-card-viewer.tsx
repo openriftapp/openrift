@@ -31,6 +31,8 @@ interface BrowserCardViewerProps {
   banner?: ReactNode;
   rightPane?: ReactNode;
   addStripHeight?: number;
+  returnToItemId?: string;
+  onReturned?: (focusPending: boolean) => void;
   table?: CardTableProps;
   noResultsDescription?: ReactNode;
   children?: ReactNode;

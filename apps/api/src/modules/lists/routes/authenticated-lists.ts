@@ -329,10 +329,16 @@ export const listsRouter = {
         updates.priceAbsoluteCents = input.tradeOverride.priceAbsoluteCents;
         updates.tradeType = input.tradeOverride.tradeType;
       }
-      if (Object.keys(updates).length === 0) {
+      if (Object.keys(updates).length === 0 && input.quantityDelta === undefined) {
         throw errors.BAD_REQUEST({ message: "No fields to update" });
       }
-      const row = await lists.updateEntry(input.itemId, input.id, userId, updates);
+      const row = await lists.updateEntry(
+        input.itemId,
+        input.id,
+        userId,
+        updates,
+        input.quantityDelta,
+      );
       assertFound(row, "Not found");
       return toListEntry(row);
     },
@@ -395,6 +401,7 @@ export const listsRouter = {
     return await enableShare({
       read: () => lists.getShareState(input.id, userId),
       write: (token) => lists.setShare(input.id, userId, token, true),
+      constraint: "uq_lists_share_token",
     });
   }),
 

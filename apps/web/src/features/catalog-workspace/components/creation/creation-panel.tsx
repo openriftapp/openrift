@@ -65,11 +65,13 @@ function FaceEditor({
   idPrefix,
   fields,
   target,
+  disabled,
   onChange,
 }: {
   idPrefix: string;
   fields: DraftFaceFields;
   target: CreationDraft["target"];
+  disabled: boolean;
   onChange: (fields: DraftFaceFields) => void;
 }) {
   const { orders, labels } = useEnumOrders();
@@ -81,14 +83,14 @@ function FaceEditor({
       : (setData.sets.find((set) => set.slug === fields.setSlug)?.id ?? "");
 
   return (
-    <div className="@container/face-form">
+    <fieldset disabled={disabled} className="@container/face-form min-w-0">
       <FieldGroup className="@2xl/face-form:grid @2xl/face-form:grid-cols-2 @2xl/face-form:gap-x-6">
         <Field>
           <FieldLabel htmlFor={`${idPrefix}-code`}>Card code</FieldLabel>
           <Input
             id={`${idPrefix}-code`}
             value={fields.shortCode}
-            disabled={fields.codeTba}
+            disabled={disabled || fields.codeTba}
             placeholder="OGN-101p"
             onChange={(event) => onChange({ ...fields, shortCode: event.target.value })}
           />
@@ -96,6 +98,7 @@ function FaceEditor({
             <Checkbox
               id={`${idPrefix}-code-tba`}
               checked={fields.codeTba}
+              disabled={disabled}
               onCheckedChange={(checked) => onChange({ ...fields, codeTba: checked === true })}
             />
             <FieldLabel htmlFor={`${idPrefix}-code-tba`}>Code not announced yet</FieldLabel>
@@ -137,6 +140,7 @@ function FaceEditor({
             id={`${idPrefix}-language`}
             className="w-full"
             value={fields.language}
+            disabled={disabled}
             onChange={(language) => onChange({ ...fields, language })}
           />
         </Field>
@@ -146,6 +150,7 @@ function FaceEditor({
           <DeskSegmented
             ariaLabel="Finish"
             value={fields.finish}
+            disabled={disabled}
             onChange={(finish) => onChange({ ...fields, finish })}
             options={orders.finishes.map((slug) => ({
               value: slug,
@@ -161,6 +166,7 @@ function FaceEditor({
               id={`${idPrefix}-rarity`}
               className="w-full"
               value={fields.rarity === "" ? null : fields.rarity}
+              disabled={disabled}
               items={orders.rarities.map((slug) => ({
                 value: slug,
                 label: enumLabel(labels.rarities, slug),
@@ -202,15 +208,17 @@ function FaceEditor({
           />
         </div>
       </FieldGroup>
-    </div>
+    </fieldset>
   );
 }
 
 function PrintingEditor({
   printing,
+  disabled,
   onChange,
 }: {
   printing: DraftPrintingFields;
+  disabled: boolean;
   onChange: (printing: DraftPrintingFields) => void;
 }) {
   const { orders, labels } = useEnumOrders();
@@ -222,7 +230,7 @@ function PrintingEditor({
     : null;
 
   return (
-    <div className="@container/printing-form">
+    <fieldset disabled={disabled} className="@container/printing-form min-w-0">
       <FieldGroup className="@2xl/printing-form:grid @2xl/printing-form:grid-cols-2 @2xl/printing-form:gap-x-6">
         <div className="@2xl/printing-form:col-span-2">
           <PrintingDeskChannelPicker
@@ -239,6 +247,7 @@ function PrintingEditor({
             id="creation-size"
             className="w-full"
             value={printing.size === "" ? null : printing.size}
+            disabled={disabled}
             items={orders.cardSizes.map((slug) => ({
               value: slug,
               label: enumLabel(labels.cardSizes, slug),
@@ -252,6 +261,7 @@ function PrintingEditor({
           <DatePicker
             className="w-44"
             value={printing.announcedAt}
+            disabled={disabled}
             onValueChange={(announcedAt) => onChange({ ...printing, announcedAt })}
             onClear={() => onChange({ ...printing, announcedAt: null })}
           />
@@ -263,11 +273,13 @@ function PrintingEditor({
             <DatePicker
               className="w-44"
               value={printing.releasedAt}
+              disabled={disabled}
               onValueChange={(releasedAt) => onChange({ ...printing, releasedAt })}
               onClear={() => onChange({ ...printing, releasedAt: null })}
             />
             <DatePrecisionControl
               value={printing.releasePrecision}
+              disabled={disabled}
               onChange={(releasePrecision) => onChange({ ...printing, releasePrecision })}
             />
           </div>
@@ -286,7 +298,7 @@ function PrintingEditor({
           />
         </Field>
       </FieldGroup>
-    </div>
+    </fieldset>
   );
 }
 
@@ -475,6 +487,7 @@ export function CreationPanel({
         idPrefix={`creation-face-${index}`}
         fields={face.fields}
         target={draft.target}
+        disabled={disabled}
         onChange={(fields) => setFaceFields(index, fields)}
       />
     ) : undefined;
@@ -560,6 +573,7 @@ export function CreationPanel({
         <RecordSection title="Printing details">
           <PrintingEditor
             printing={draft.printing}
+            disabled={disabled}
             onChange={(printing) => onChange({ ...draft, printing })}
           />
         </RecordSection>
@@ -657,6 +671,7 @@ export function CreationPanel({
               <div className="flex flex-col gap-2">
                 <PrintingEditor
                   printing={draft.printing}
+                  disabled={disabled}
                   onChange={(printing) => onChange({ ...draft, printing })}
                 />
                 <div>{done}</div>

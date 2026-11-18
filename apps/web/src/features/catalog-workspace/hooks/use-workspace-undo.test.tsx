@@ -5,6 +5,10 @@ import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/workspace-undo";
+import {
+  resetWorkspaceWriteQueue,
+  workspaceWriteQueue,
+} from "@/features/catalog-workspace/lib/workspace-write-queue";
 import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
 import { StaleServerFnError } from "@/lib/stale-server-fn-signal";
 import { createStoreResetter } from "@/test/store-helpers";
@@ -15,7 +19,8 @@ vi.mock("@/lib/query-client", () => ({ reportMutationError: reported }));
 
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn() }) }));
 
-const { runWorkspaceUndo, useWorkspaceUndo } = await import("./use-workspace-undo");
+const { NOTHING_SAVED_NOTICE, runWorkspaceUndo, useWorkspaceUndo } =
+  await import("./use-workspace-undo");
 
 let resetStore: () => void;
 let queryClient: QueryClient;
@@ -50,6 +55,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  resetWorkspaceWriteQueue();
   resetStore();
 });
 
@@ -122,12 +128,13 @@ describe("runWorkspaceUndo", () => {
     useWorkspaceSelectionStore.getState().pushUndo(slow);
 
     const first = runWorkspaceUndo(slow, queryClient);
-    await runWorkspaceUndo(other, queryClient);
+    const second = runWorkspaceUndo(other, queryClient);
     await runWorkspaceUndo(slow, queryClient);
     await runWorkspaceUndo(entry("Never pushed"), queryClient);
+    await vi.waitFor(() => expect(slow.undo).toHaveBeenCalledOnce());
     expect(other.undo).not.toHaveBeenCalled();
     gate.open();
-    await first;
+    await Promise.all([first, second]);
 
     expect(slow.undo).toHaveBeenCalledOnce();
     expect(other.undo).toHaveBeenCalledOnce();
@@ -149,9 +156,10 @@ describe("runWorkspaceUndo", () => {
     useWorkspaceSelectionStore.getState().pushUndo(failing);
 
     const first = runWorkspaceUndo(failing, queryClient);
-    await runWorkspaceUndo(older, queryClient);
+    const second = runWorkspaceUndo(older, queryClient);
+    await vi.waitFor(() => expect(failing.undo).toHaveBeenCalledOnce());
     gate.fail(Object.assign(new Error("Network down"), { status: 503 }));
-    await first;
+    await Promise.all([first, second]);
 
     expect(older.undo).not.toHaveBeenCalled();
     expect(stack()).toEqual([older, failing]);
@@ -180,14 +188,55 @@ describe("useWorkspaceUndo", () => {
     expect(older.undo).not.toHaveBeenCalled();
   });
 
-  it("leaves the newest entry alone when it was already on the stack before a queued Z", () => {
+  it("waits for a queued write and undoes the entry it adds, leaving older entries alone", async () => {
+    const older = entry("Older");
+    const landed = entry("Landed");
+    const write = { land: () => {} };
+    const { result } = renderHook(() => useWorkspaceUndo(), { wrapper });
+    act(() => result.current.push(older));
+    const queued = workspaceWriteQueue().enqueue(
+      Symbol("record"),
+      () =>
+        new Promise<void>((resolve) => {
+          write.land = () => {
+            useWorkspaceSelectionStore.getState().pushUndo(landed);
+            resolve();
+          };
+        }),
+    );
+
+    act(() => {
+      expect(result.current.undoLatest()).toBe(true);
+      expect(result.current.undoLatest()).toBe(true);
+    });
+    await vi.waitFor(() => expect(workspaceWriteQueue().idle()).toBe(false));
+    expect(older.undo).not.toHaveBeenCalled();
+    write.land();
+    await queued;
+
+    await vi.waitFor(() => expect(workspaceWriteQueue().idle()).toBe(true));
+    expect(landed.undo).toHaveBeenCalledOnce();
+    expect(older.undo).not.toHaveBeenCalled();
+    expect(stack()).toEqual([older]);
+    expect(toast).toHaveBeenCalledOnce();
+    expect(toast).toHaveBeenCalledWith(NOTHING_SAVED_NOTICE);
+  });
+
+  it("says nothing was undone when Z waited behind a write that failed", async () => {
     const older = entry("Older");
     const { result } = renderHook(() => useWorkspaceUndo(), { wrapper });
     act(() => result.current.push(older));
+    void workspaceWriteQueue().enqueue(Symbol("record"), () =>
+      Promise.reject(new Error("Network down")),
+    );
 
-    expect(result.current.undoLatest(new Set([older]))).toBe(false);
+    act(() => {
+      result.current.undoLatest();
+    });
+
+    await vi.waitFor(() => expect(workspaceWriteQueue().idle()).toBe(true));
     expect(older.undo).not.toHaveBeenCalled();
-    expect(stack()).toEqual([older]);
+    expect(toast).toHaveBeenCalledWith(NOTHING_SAVED_NOTICE);
   });
 
   it("undoes the next entry down when Z is pressed again before the first undo lands", async () => {
@@ -211,6 +260,8 @@ describe("useWorkspaceUndo", () => {
       result.current.undoLatest();
       result.current.undoLatest();
     });
+    await vi.waitFor(() => expect(newer.undo).toHaveBeenCalledOnce());
+    expect(older.undo).not.toHaveBeenCalled();
     gate.open();
 
     await vi.waitFor(() => expect(stack()).toEqual([]));

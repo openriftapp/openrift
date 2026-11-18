@@ -5,9 +5,22 @@
 ### Other
 
 - feat(Collection): **Undo a move** — the toast after moving cards to another collection has an Undo button that puts each card back where it was.
+- feat(Cards): **Escape closes the docked card** — pressing Escape closes the card detail docked beside the grid.
 - fix(Collection): **Dragging onto the sidebar** — dragging cards over the sidebar no longer scrolls the collection behind it, and the sidebar scrolls when you drag near its top or bottom edge.
 - fix(Tournaments): **Legends on every table** — pairings for round-based tournaments show each player's Legend and domains on the table cards, under the player's name.
 - feat(Tournaments): **Match results as a score sheet** — entering a match result shows the players as rows and the games as columns, so long names no longer wrap. Each game is one tap on the winner's cell, and a line below the sheet sums up the winner, score and points. The X in the table's header closes the form without saving. A match saved before all its games are in asks whether it ended early. Free-for-all scores get − and + buttons, and each player's place shows as soon as every score is in.
+- fix(Decks): **Edits from another device** — saving a deck that changed elsewhere since you opened it asks whether to keep your version or load the other one.
+- fix(Decks): **Card rows stop at 99** — a deck row holds at most 99 copies, and adding, moving or merging cards stops there.
+- fix(Decks): **Back to your card in the builder** — closing a card's detail scrolls back to its tile and puts the focus on it.
+- fix(Collection): **Quick clicks on list quantities** — plus and minus on a list card take repeated clicks without waiting for each save.
+- fix(Collection): **Keyboard reorder in a long sidebar** — a row moved with the keyboard stays in view, and screen readers hear card and list names during a drag.
+- fix(Collection): **Scanner keeps checking for promos** — one failed image load no longer makes the scanner record the regular printing for the rest of the session.
+- fix(Cards): **Set labels at set boundaries** — the sticky set label no longer overlaps the next set's header while scrolling.
+- fix(Tournaments): **Deck checks use the event-day banlist** — a check for a past event flags cards that were banned that day, even if unbanned since.
+- fix(Stage): **Tier-list edits on stage stick** — switching to the builder right after ranking on stage keeps the stage edit, and leaving after a failed save tries again.
+- fix(Rules): **Rules search without reloads** — typing in the rules search no longer reloads the page data on every pause.
+- fix(App): **Copy buttons report failures** — a copy button now says when the text could not be copied.
+- fix(App): **Long searches in the Discord bot** — a long search no longer leaves the bot's reply stuck, and long rule texts keep their links intact.
 
 ## 2026-11-17
 

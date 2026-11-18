@@ -883,6 +883,36 @@ describe.skipIf(!ctx)("listsRepo (integration)", () => {
     expect(updated?.quantity).toBe(5);
   });
 
+  it("adds up concurrent quantity steps and never steps below 1", async () => {
+    const list = await repo.create({
+      userId,
+      name: "Step entry",
+      intent: "wish",
+      kind: "card",
+    });
+    createdListIds.push(list.id);
+    const entry = await repo.createEntry({
+      listId: list.id,
+      userId,
+      kind: "card",
+      cardId: CARD_FURY_UNIT.id,
+      printingId: null,
+      copyId: null,
+      quantity: 2,
+    });
+
+    await Promise.all([
+      repo.updateEntry(entry.id, list.id, userId, {}, 1),
+      repo.updateEntry(entry.id, list.id, userId, {}, 1),
+      repo.updateEntry(entry.id, list.id, userId, {}, 1),
+    ]);
+    const raised = await repo.updateEntry(entry.id, list.id, userId, {}, 1);
+    expect(raised?.quantity).toBe(6);
+
+    const floored = await repo.updateEntry(entry.id, list.id, userId, {}, -10);
+    expect(floored?.quantity).toBe(1);
+  });
+
   it("deletes an entry", async () => {
     const list = await repo.create({
       userId,

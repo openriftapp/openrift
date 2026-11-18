@@ -132,6 +132,26 @@ export async function updatePrintingAndFace(
   }
 }
 
+/** Counts a face's own scan and another face's substitute-art pin alike. */
+async function isImageFileReferenced(db: Kysely<Database>, imageFileId: string): Promise<boolean> {
+  const scan = await db
+    .selectFrom("faceImages")
+    .select("id")
+    .where("imageFileId", "=", imageFileId)
+    .limit(1)
+    .executeTakeFirst();
+  if (scan) {
+    return true;
+  }
+  const pin = await db
+    .selectFrom("faces")
+    .select("id")
+    .where("fallbackImageFileId", "=", imageFileId)
+    .limit(1)
+    .executeTakeFirst();
+  return pin !== undefined;
+}
+
 export function catalogMutationsRepo(db: Kysely<Database>) {
   function findFaceIdByIdentity(
     identity: Omit<PrintingIdentityKey, "size">,
@@ -681,42 +701,30 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    getImageFileById(
+    /**
+     * The row lock comes before the reference check, so an attach racing this
+     * either commits first and keeps the row or fails its foreign key after.
+     * Returns the deleted row; its files are the caller's to remove after commit.
+     */
+    deleteImageFileIfUnreferenced(
       imageFileId: string,
     ): Promise<{ id: string; rehostedUrl: string | null } | undefined> {
-      return db
-        .selectFrom("imageFiles")
-        .select(["id", "rehostedUrl"])
-        .where("id", "=", imageFileId)
-        .executeTakeFirst();
-    },
-
-    async isImageFileReferenced(imageFileId: string): Promise<boolean> {
-      // Must count both a face's own scan and its substitute-art pin by another face,
-      // or the orphan sweep deletes a file still on screen.
-      const result = await db
-        .selectFrom("faceImages")
-        .select((eb) => eb.fn.countAll<number>().as("count"))
-        .where("imageFileId", "=", imageFileId)
-        .executeTakeFirstOrThrow();
-      if (Number(result.count) > 0) {
-        return true;
-      }
-      const pin = await db
-        .selectFrom("faces")
-        .select("id")
-        .where("fallbackImageFileId", "=", imageFileId)
-        .limit(1)
-        .executeTakeFirst();
-      return pin !== undefined;
-    },
-
-    async deleteImageFileById(imageFileId: string): Promise<boolean> {
-      const result = await db
-        .deleteFrom("imageFiles")
-        .where("id", "=", imageFileId)
-        .executeTakeFirst();
-      return result.numDeletedRows > 0n;
+      return inTransaction(db, async (trx) => {
+        const locked = await trx
+          .selectFrom("imageFiles")
+          .select("id")
+          .where("id", "=", imageFileId)
+          .forUpdate()
+          .executeTakeFirst();
+        if (!locked || (await isImageFileReferenced(trx, imageFileId))) {
+          return;
+        }
+        return trx
+          .deleteFrom("imageFiles")
+          .where("id", "=", imageFileId)
+          .returning(["id", "rehostedUrl"])
+          .executeTakeFirst();
+      });
     },
 
     /**

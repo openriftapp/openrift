@@ -1,6 +1,6 @@
 import type { WorkspaceOwner } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { useParams } from "@tanstack/react-router";
-import { useEffect, useEffectEvent, useState } from "react";
+import { useEffect, useEffectEvent } from "react";
 import { toast } from "sonner";
 
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
@@ -9,15 +9,13 @@ import type { WorkspaceRouteParams } from "@/features/catalog-workspace/lib/owne
 import { selectedKeyFromParams } from "@/features/catalog-workspace/lib/owner-items";
 import type { WorkspaceKeyAction } from "@/features/catalog-workspace/lib/workspace-keys";
 import { SUGGESTION_KEYS, WORKSPACE_KEYS } from "@/features/catalog-workspace/lib/workspace-keys";
-import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/workspace-undo";
 import type { WorkspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
-import { createWorkspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
+import { workspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
 import type { WorkspaceRecordActions } from "@/features/catalog-workspace/stores/workspace-actions-store";
 import {
   registrationIsStale,
   useWorkspaceActionsStore,
 } from "@/features/catalog-workspace/stores/workspace-actions-store";
-import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
 import { isTypingTarget } from "@/lib/keyboard-target";
 import { openOverlayPresent } from "@/lib/open-overlay";
 
@@ -36,8 +34,6 @@ export const STILL_SAVING_NOTICE =
 export const RECORD_LOADING_NOTICE =
   "The next record is still loading. Press the key again once it shows.";
 
-export const NOTHING_SAVED_NOTICE = "Nothing to undo: the change before it did not save.";
-
 export interface WorkspaceKeyDeps {
   goNext: () => void;
   goPrev: () => void;
@@ -48,9 +44,8 @@ export interface WorkspaceKeyDeps {
   /** True while `actions` belong to a record being left or loading, or none has registered. */
   stale: boolean;
   currentRecord: () => symbol | null;
-  /** Undoes the newest entry unless it is in `skip`. */
-  undo: (skip?: ReadonlySet<WorkspaceUndoEntry>) => boolean;
-  undoEntries: () => readonly WorkspaceUndoEntry[];
+  /** Undoes the newest step, waiting for a queued write; false when there is nothing to undo. */
+  undo: () => boolean;
   overlayOpen: () => boolean;
   queue: WorkspaceWriteQueue;
 }
@@ -86,15 +81,6 @@ export function workspaceKeyAction(
     return null;
   }
   return { action: binding.action };
-}
-
-function queueUndo(deps: WorkspaceKeyDeps): void {
-  const before = new Set(deps.undoEntries());
-  void deps.queue.enqueue(null, () => {
-    if (!deps.undo(before)) {
-      toast(NOTHING_SAVED_NOTICE);
-    }
-  });
 }
 
 export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps): boolean {
@@ -165,11 +151,7 @@ export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps):
       return true;
     }
     case "undo": {
-      if (deps.queue.idle()) {
-        return deps.undo();
-      }
-      queueUndo(deps);
-      return true;
+      return deps.undo();
     }
     case "use-suggestion": {
       if (actions?.useSuggestion === undefined || resolved.digit === undefined) {
@@ -188,8 +170,6 @@ export function useWorkspaceKeyboard(owner: WorkspaceOwner): void {
   const params: WorkspaceRouteParams = useParams({ strict: false });
   const onRecord = selectedKeyFromParams(params) !== null;
   const { undoLatest } = useWorkspaceUndo();
-  // oxlint-disable-next-line react/hook-use-state -- setter is never needed; one queue per mount
-  const [queue] = useState(createWorkspaceWriteQueue);
 
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
     const registration = useWorkspaceActionsStore.getState();
@@ -202,9 +182,8 @@ export function useWorkspaceKeyboard(owner: WorkspaceOwner): void {
       stale: registrationIsStale(registration, onRecord),
       currentRecord: () => useWorkspaceActionsStore.getState().owner,
       undo: undoLatest,
-      undoEntries: () => useWorkspaceSelectionStore.getState().undoStack,
       overlayOpen: openOverlayPresent,
-      queue,
+      queue: workspaceWriteQueue(),
     });
     if (handled) {
       event.preventDefault();

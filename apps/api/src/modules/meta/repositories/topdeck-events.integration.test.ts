@@ -29,6 +29,7 @@ const KEYS = {
   sealed: "tdi-sealed",
   rival: "tdi-rival",
   rivalRead: "tdi-rival-read",
+  noPlayers: "tdi-no-players",
 } as const;
 const ALL_KEYS = Object.values(KEYS);
 
@@ -215,6 +216,21 @@ describe.skipIf(!ctx)("topdeckEventsRepo", () => {
       const stored = await repo.byKey(KEYS.dismissed);
       expect(stored?.triage).toBe("dismissed");
     });
+  });
+
+  it("reads a published event without a player count as holding no results", async () => {
+    await repo.upsertBatch([row({ tid: KEYS.noPlayers, playerCount: null })], SEEN);
+    await seedAccepted(KEYS.noPlayers);
+    const bucket = async (name: "noResults" | "final") => {
+      const listed = await repo.list(
+        { bucket: { name, rule: RULE_OFF }, search: "TDI Summoner Skirmish" },
+        { limit: 500, offset: 0 },
+      );
+      return listed.rows.map((entry) => entry.tid);
+    };
+
+    expect(await bucket("noResults")).toContain(KEYS.noPlayers);
+    expect(await bucket("final")).not.toContain(KEYS.noPlayers);
   });
 
   describe("rivalProvider", () => {

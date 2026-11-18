@@ -1,11 +1,17 @@
 import type { ProviderSettingResponse } from "@openrift/shared/types/api/admin";
 
 /** A candidate row read generically by field key; provider/candidateCardId are optional and fall back to a label derived from the row id. */
-export interface CandidateSpreadsheetRow {
+// oxlint-disable-next-line typescript/consistent-type-definitions -- candidateFieldValue reads it as a Record, which an interface is not
+export type CandidateSpreadsheetRow = {
   id: string;
   checkedAt: string | null;
   provider?: string;
   candidateCardId?: string;
+};
+
+/** A field def's value on a candidate row; a key the row lacks, such as a printing's `comment`, reads as undefined. */
+export function candidateFieldValue(row: Readonly<Record<string, unknown>>, key: string): unknown {
+  return row[key];
 }
 
 export function getProviderLabel(

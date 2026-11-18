@@ -21,6 +21,7 @@ export function useDeckSelectionLifecycle(): void {
       if (event.target instanceof Element && event.target.closest(OWNS_ESCAPE)) {
         return;
       }
+      event.preventDefault();
       useDeckSelectionStore.getState().resetSelection();
     };
     document.addEventListener("keydown", onKeyDown);

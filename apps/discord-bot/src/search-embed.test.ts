@@ -75,6 +75,22 @@ describe("buildSearchEmbed", () => {
     expect(embed.footer).toEqual({ text: 'Invalid expression "cost:3" was ignored.' });
   });
 
+  it("keeps a long query inside Discord's embed limits and the full query in the link", () => {
+    const query = `name:${"a".repeat(5000)}`;
+    const embed = buildSearchEmbed({
+      query,
+      response: { ...response(12, ["Garen"]), warnings: ["x".repeat(3000)] },
+      siteUrl: SITE,
+    });
+
+    expect(embed.title?.length).toBeLessThanOrEqual(256);
+    expect(embed.title?.endsWith("…")).toBe(true);
+    expect(embed.url).toBe(searchPageUrl(SITE, query));
+    expect(embed.description?.length).toBeLessThanOrEqual(4096);
+    expect(embed.description?.endsWith("11 more on OpenRift")).toBe(true);
+    expect(embed.footer?.text.length).toBeLessThanOrEqual(2048);
+  });
+
   it("uses the singular for one result", () => {
     expect(
       buildSearchEmbed({ query: "x", response: response(1, ["Jinx"]), siteUrl: SITE }).title,
@@ -83,6 +99,11 @@ describe("buildSearchEmbed", () => {
 });
 
 describe("searchErrorText", () => {
+  it("stays inside Discord's message limit for a long query", () => {
+    const text = searchErrorText("a".repeat(3000), ["x".repeat(3000)]);
+    expect(text.length).toBeLessThanOrEqual(2000);
+  });
+
   it("lists each problem the API names", () => {
     expect(searchErrorText("e<=x", ['"e<=x" has a value "e" cannot take.'])).toBe(
       'Couldn\'t run “e<=x”:\n- "e<=x" has a value "e" cannot take.',

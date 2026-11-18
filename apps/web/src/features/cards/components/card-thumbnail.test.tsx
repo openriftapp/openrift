@@ -11,7 +11,9 @@ import { describe, expect, it, vi } from "vitest";
 
 import { CardThumbnail } from "@/features/cards/components/card-thumbnail";
 import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
+import { initKeys } from "@/lib/query-keys";
 import { stubPrinting } from "@/test/factories";
+import { stubInitResponse } from "@/test/init-fixtures";
 
 // No router in these tests, so swap the "Suggest image" Link for a plain span.
 const { preloadRoute } = vi.hoisted(() => ({ preloadRoute: vi.fn(async () => undefined) }));
@@ -25,21 +27,7 @@ vi.mock("@tanstack/react-router", () => ({
 
 function makeWrapper() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  client.setQueryData(["init"], {
-    enums: {
-      cardTypes: [],
-      rarities: [],
-      domains: [],
-      superTypes: [],
-      finishes: [],
-      artVariants: [],
-      deckFormats: [],
-      deckZones: [],
-      formats: [],
-      languages: [],
-    },
-    keywords: {},
-  });
+  client.setQueryData(initKeys.all, stubInitResponse());
   function Wrapper({ children }: PropsWithChildren) {
     return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
   }
@@ -1015,5 +1003,40 @@ describe("CardThumbnail drag tile", () => {
     const { container } = renderTile();
     const tile = container.querySelector('[aria-roledescription="draggable"]');
     expect(tile?.getAttribute("aria-disabled")).toBe("false");
+  });
+});
+
+describe("CardThumbnail focus request", () => {
+  function tile(focusRequested: boolean, onFocused: () => void) {
+    return (
+      <CardThumbnail
+        printing={makePrintingWithImage("annie-fiery")}
+        onClick={() => {}}
+        showImages
+        display={baseDisplay}
+        focusRequested={focusRequested}
+        onFocused={onFocused}
+      />
+    );
+  }
+
+  it("focuses the card once when asked and reports it", () => {
+    const onFocused = vi.fn();
+    const { getByRole, rerender } = render(tile(false, onFocused), { wrapper: makeWrapper() });
+    expect(onFocused).not.toHaveBeenCalled();
+
+    rerender(tile(true, onFocused));
+    expect(getByRole("button")).toHaveFocus();
+
+    rerender(tile(true, onFocused));
+    expect(onFocused).toHaveBeenCalledOnce();
+  });
+
+  it("focuses a card that mounts with the request", () => {
+    const onFocused = vi.fn();
+    const { getByRole } = render(tile(true, onFocused), { wrapper: makeWrapper() });
+
+    expect(getByRole("button")).toHaveFocus();
+    expect(onFocused).toHaveBeenCalledOnce();
   });
 });

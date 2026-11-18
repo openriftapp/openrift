@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestContext, req } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
-import { holdRow, waitUntilBlockedBy } from "../../../test/row-locks.js";
+import { holdRoundsLock, waitUntilBlockedBy } from "../../../test/row-locks.js";
 import { tournamentsCoreRepo } from "../repositories/tournaments-core.js";
 
 const HOST_ID = crypto.randomUUID();
@@ -727,13 +727,10 @@ describe.skipIf(!hostCtx || !otherCtx || !judgeCtx)(
         .returning("id")
         .executeTakeFirstOrThrow();
 
-      const canceller = await holdRow(
+      const canceller = await holdRoundsLock(
         host.db,
-        sql`WITH locked AS (
-          SELECT pg_advisory_xact_lock(hashtext(${`tournament-writes:${raceId}`}))
-        ), written AS (
-          UPDATE tournaments SET status = 'cancelled' WHERE id = ${raceId} RETURNING id
-        ) SELECT 1 FROM locked, written`,
+        raceId,
+        sql`UPDATE tournaments SET status = 'cancelled' WHERE id = ${raceId} RETURNING id`,
       );
       let walkIn: Promise<Response> | Response | undefined;
       let approval: Promise<Response> | Response | undefined;
@@ -759,6 +756,33 @@ describe.skipIf(!hostCtx || !otherCtx || !judgeCtx)(
         .where("tournamentId", "=", raceId)
         .execute();
       expect(rows).toEqual([{ displayName: "Waiting Yuumi", status: "requested" }]);
+      await host.db.deleteFrom("tournaments").where("id", "=", raceId).execute();
+    });
+
+    it("turns the submission link on and off under the tournament write lock", async () => {
+      const created = await host.app.fetch(
+        req("POST", "/tournaments", {
+          name: "Summoner Skirmish Link Race",
+          host: { type: "user" },
+          pairingStyle: "pod",
+          deckSubmission: "none",
+          startsAt: "2026-06-01T12:00:00Z",
+        }),
+      );
+      const raceId = ((await readJson(created)) as { id: string }).id;
+
+      for (const method of ["POST", "DELETE"] as const) {
+        const held = await holdRoundsLock(host.db, raceId);
+        let toggled: Promise<Response> | Response | undefined;
+        try {
+          toggled = host.app.fetch(req(method, `/tournaments/${raceId}/submission-token`));
+          await waitUntilBlockedBy(host.db, held.pid);
+        } finally {
+          await held.release();
+        }
+        const toggledRes = await toggled;
+        expect(toggledRes?.status).toBe(200);
+      }
       await host.db.deleteFrom("tournaments").where("id", "=", raceId).execute();
     });
 

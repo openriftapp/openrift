@@ -9,6 +9,7 @@ import {
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { showAcceptOutcome } from "@/features/admin/lib/accept-outcome";
 import type { AdminSearchableCard } from "@/features/cards/hooks/use-card-search";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 export function DraftRowActions({
   row,
@@ -20,6 +21,21 @@ export function DraftRowActions({
   const linkCard = useLinkCard();
   const acceptFavorite = useAcceptFavoriteNewCard();
   const suggested = allCards.find((card) => card.slug === row.suggestedCardSlug);
+  const normalizedName = row.normalizedName;
+
+  async function acceptAsNew() {
+    let result: Awaited<ReturnType<typeof acceptFavorite.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await acceptFavorite.mutateAsync(normalizedName);
+    });
+    if (ok && result) {
+      showAcceptOutcome(
+        result.printingsCreated,
+        result.skipped.map((entry) => ({ label: entry.shortCode, reason: entry.reason })),
+        { subject: `Created ${result.cardSlug}` },
+      );
+    }
+  }
 
   // A name with no letters or digits normalizes to "", which every one of these
   // verbs uses as its lookup key.
@@ -36,16 +52,7 @@ export function DraftRowActions({
           pending={acceptFavorite.isPending}
           aria-label="Accept as a new card"
           title="Accept as a new card"
-          onClick={() =>
-            acceptFavorite.mutate(row.normalizedName, {
-              onSuccess: (result) =>
-                showAcceptOutcome(
-                  result.printingsCreated,
-                  result.skipped.map((entry) => ({ label: entry.shortCode, reason: entry.reason })),
-                  { subject: `Created ${result.cardSlug}` },
-                ),
-            })
-          }
+          onClick={() => void acceptAsNew()}
         >
           <CheckIcon />
         </Button>

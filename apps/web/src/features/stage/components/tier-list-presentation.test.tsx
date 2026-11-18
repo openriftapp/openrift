@@ -43,11 +43,11 @@ vi.mock("@/features/stage/hooks/use-tier-lists", () => ({
   usePublicTierList: () => ({ data: { tierList: { title: "", tiers: [] }, owner: {} } }),
 }));
 
-const flush = vi.fn();
+const leave = vi.fn();
 const retry = vi.fn();
-const autosave: { status: "saving" | "saved" | "failed"; flush: () => void; retry: () => void } = {
+const autosave: { status: "saving" | "saved" | "failed"; leave: () => void; retry: () => void } = {
   status: "saved",
-  flush,
+  leave,
   retry,
 };
 vi.mock("@/features/stage/hooks/use-tier-list-autosave", () => ({
@@ -150,7 +150,7 @@ describe("OwnedTierListPresentation", () => {
     act(() => {
       lastStage().onExit();
     });
-    expect(flush).toHaveBeenCalled();
+    expect(leave).toHaveBeenCalled();
     expect(onExit).toHaveBeenCalled();
   });
 });

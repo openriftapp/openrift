@@ -1,4 +1,5 @@
 import { primaryCardType } from "@openrift/shared/card-primary-type";
+import { MAX_DECK_CARD_QUANTITY } from "@openrift/shared/deck-cards";
 import type { DeckCard } from "@openrift/shared/deck-rules";
 import {
   battlefieldCapFor,
@@ -464,6 +465,9 @@ export function canIncrementDeckEntry(
   allCards: readonly DeckBuilderCard[],
   options: { freeform: boolean; relaxed: boolean },
 ): boolean {
+  if (card.quantity >= MAX_DECK_CARD_QUANTITY) {
+    return false;
+  }
   if (options.freeform || options.relaxed) {
     return true;
   }

@@ -5,6 +5,8 @@ export interface WorkspaceWriteQueue {
   idle: () => boolean;
   /** True while a write for this record runs or waits. */
   holds: (record: symbol | null) => boolean;
+  /** True when every write that runs or waits belongs to this record, or none does. */
+  holdsOnly: (record: symbol | null) => boolean;
   /** Resolves `false` when the task threw; the error is already reported. */
   enqueue: (record: symbol | null, task: () => unknown) => Promise<boolean>;
 }
@@ -15,6 +17,7 @@ export function createWorkspaceWriteQueue(): WorkspaceWriteQueue {
   return {
     idle: () => waiting.length === 0,
     holds: (record) => waiting.includes(record),
+    holdsOnly: (record) => waiting.every((held) => held === record),
     enqueue: (record, task) => {
       waiting.push(record);
       const ahead = tail;
@@ -30,4 +33,15 @@ export function createWorkspaceWriteQueue(): WorkspaceWriteQueue {
       return run;
     },
   };
+}
+
+let shared = createWorkspaceWriteQueue();
+
+/** The queue every workspace write and undo runs in, whether a key or a button started it. */
+export function workspaceWriteQueue(): WorkspaceWriteQueue {
+  return shared;
+}
+
+export function resetWorkspaceWriteQueue(): void {
+  shared = createWorkspaceWriteQueue();
 }

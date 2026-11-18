@@ -94,6 +94,10 @@ describe.skipIf(!ctx)("adminEventsRepo (integration)", () => {
     expect(byAction[0]!.entityId).toBe("AEV-001");
   });
 
+  it("filters by an action the vocabulary no longer lists without failing", async () => {
+    expect(await repo.list({ action: "card.retired-long-ago", search: "AEV" }, 50)).toEqual([]);
+  });
+
   it("searches entity label, id, and card slug case-insensitively", async () => {
     const byLabel = await repo.list({ search: "aev beta" }, 50);
     expect(byLabel).toHaveLength(1);

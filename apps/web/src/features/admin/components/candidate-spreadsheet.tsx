@@ -108,11 +108,9 @@ export function CandidateSpreadsheet<
       return;
     }
     scrolledToRef.current = focusField;
-    requestAnimationFrame(() => {
-      tableRef.current
-        ?.querySelector(`[data-field-key="${focusField}"]`)
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
+    tableRef.current
+      ?.querySelector(`[data-field-key="${focusField}"]`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [focusField]);
 
   function foldToggleRow(key: string) {

@@ -274,11 +274,10 @@ async function queueRows(
   const liveEventsById = new Map(liveEvents.map((row) => [row.id, row]));
 
   const standingsEventIds = [...new Set(playerEventIds.filter((id): id is string => id !== null))];
-  const standingsByEvent = new Map(
-    await Promise.all(
-      standingsEventIds.map(async (id) => [id, await meta.adminPlayersForEvent(id)] as const),
-    ),
-  );
+  const standingsByEvent =
+    standingsEventIds.length === 0
+      ? new Map<string, AdminMetaPlayerRow[]>()
+      : await meta.adminPlayersForEvents(standingsEventIds);
 
   const eventRows = events.map((overlay) =>
     eventQueueRow(
@@ -499,7 +498,13 @@ export const adminMetaCandidatesRouter = os.router({
 
   acceptEventOverlay: os.acceptEventOverlay.handler(
     ({ input, context }): Promise<MetaOverlayReviewResult> =>
-      acceptMetaEventOverlay(context.transact, input.id, input.metaEventId),
+      acceptMetaEventOverlay(
+        context.transact,
+        input.id,
+        input.metaEventId,
+        new Date(),
+        context.userId,
+      ),
   ),
 
   moveEventOverlay: os.moveEventOverlay.handler(

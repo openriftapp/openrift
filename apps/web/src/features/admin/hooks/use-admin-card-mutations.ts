@@ -14,7 +14,9 @@ import { adminUnifiedMappingsContract } from "@openrift/shared/contracts/admin/u
 import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import type { MutationMeta } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
+import { useEffect, useRef } from "react";
 
 import { acceptEachNewCard, showAcceptOutcome } from "@/features/admin/lib/accept-outcome";
 import { adminKeys, CANDIDATE_REVIEW_SCOPE } from "@/features/admin/lib/admin-query-keys";
@@ -345,17 +347,28 @@ export function useCheckAllCandidatePrintings(invalidates: Scope = defaultScope)
 
 export function useRenameCard() {
   return useMutationWithInvalidation({
-    mutationFn: async ({ cardId, newId }: { cardId: string; cardSlug: string; newId: string }) => {
+    mutationFn: async ({ cardId, newId }: { cardId: string; newId: string }) => {
       await renameCardFn({ data: { cardId, newId } });
     },
-    invalidates: ({ cardSlug, newId }) => [
-      adminKeys.cards.detail(cardSlug),
+    invalidates: ({ newId }) => [
       adminKeys.cards.detail(newId),
       adminKeys.cards.list,
       adminKeys.workspace,
       adminKeys.cards.allCards,
     ],
   });
+}
+
+/**
+ * Leaves the page of a renamed or deleted card, then drops the detail cached under its old
+ * address so Back refetches it. The drop waits for `leave`, so no mounted page refetches a 404.
+ */
+export function useLeaveCardPage(): (oldSlug: string, leave: () => Promise<void>) => Promise<void> {
+  const queryClient = useQueryClient();
+  return async (oldSlug, leave) => {
+    await leave();
+    queryClient.removeQueries({ queryKey: adminKeys.cards.detail(oldSlug), exact: true });
+  };
 }
 
 export function useAcceptCardField(invalidates: Scope = defaultScope) {
@@ -584,17 +597,32 @@ const listCheckMatchingRunsFn = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<JobRunView[]> => {
     const { runs } = await apiOrpcClient(adminJobRunsContract, context.cookie).list({
       kind: JOB_KIND.checkMatching,
-      limit: 5,
+      limit: 50,
     });
     return runs;
   });
 
-/** Starts the check matching job and resolves with its counts once the run finishes. */
+/**
+ * Starts the check matching job and resolves with its counts once the run finishes, or `null`
+ * when the component unmounted first.
+ */
 export function useCheckMatchingCandidates() {
+  const polling = useRef<AbortController | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    polling.current = controller;
+    return () => controller.abort();
+  }, []);
   return useMutationWithInvalidation({
     mutationFn: async () => {
       const started = await startJobFn({ data: { kind: JOB_KIND.checkMatching } });
-      const run = await waitForJobRun(started.runId, () => listCheckMatchingRunsFn());
+      const run = await waitForJobRun(
+        started.runId,
+        () => listCheckMatchingRunsFn(),
+        undefined,
+        undefined,
+        polling.current?.signal,
+      );
       return checkMatchingResultFromRun(run);
     },
     invalidates: [

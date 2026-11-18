@@ -27,6 +27,7 @@ function pressEscape(target: Element = document.body, options: KeyboardEventInit
     ...options,
   });
   target.dispatchEvent(event);
+  return event;
 }
 
 function isSelecting() {
@@ -41,6 +42,29 @@ describe("useDeckSelectionLifecycle", () => {
     pressEscape();
 
     expect(isSelecting()).toBe(false);
+  });
+
+  it("marks the Escape it takes as handled, so a docked detail pane stays open", () => {
+    renderHook(() => useDeckSelectionLifecycle());
+    let paneSawUnhandled = false;
+    const pane = (event: KeyboardEvent) => {
+      paneSawUnhandled = !event.defaultPrevented;
+    };
+    globalThis.addEventListener("keydown", pane);
+
+    const event = pressEscape();
+
+    globalThis.removeEventListener("keydown", pane);
+    expect(event.defaultPrevented).toBe(true);
+    expect(paneSawUnhandled).toBe(false);
+  });
+
+  it("leaves an Escape it does not take unhandled", () => {
+    renderHook(() => useDeckSelectionLifecycle());
+    const input = document.createElement("input");
+    document.body.append(input);
+
+    expect(pressEscape(input).defaultPrevented).toBe(false);
   });
 
   it("ignores keys other than Escape", () => {

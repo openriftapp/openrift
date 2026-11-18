@@ -166,6 +166,9 @@ interface CardTableProps {
   groupBy?: GroupByField;
   groupDir?: "asc" | "desc";
   selectedItemId?: string;
+  returnToItemId?: string;
+  /** Called once the table has tried the return scroll, with whether the item is in the table. */
+  onReturned?: (found: boolean) => void;
   stickyOffset?: number;
   actionsColumn: ActionsColumn;
   actionsCell?: ReactElement<TableRowSlotProps>;
@@ -183,6 +186,8 @@ export function CardTable({
   groupBy = "set",
   groupDir = "asc",
   selectedItemId,
+  returnToItemId,
+  onReturned,
   stickyOffset: stickyOffsetProp,
   actionsColumn,
   actionsCell,
@@ -246,12 +251,14 @@ export function CardTable({
     scrollMargin,
     stickyOffset,
     headerHeight: CARD_TABLE_HEADER_HEIGHT,
+    labelBand: STICKY_GROUP_LABEL_BAND,
   });
 
-  const scrollToCard = (cardId: string) => {
+  /** False when the card is not in the table. */
+  const scrollToCard = (cardId: string): boolean => {
     const rowIndex = cardRowIndex(virtualRowsRef.current, cardId);
     if (rowIndex === -1) {
-      return;
+      return false;
     }
     const vItems = virtualizerRef.current.getVirtualItems();
     const vItem = vItems.find((vi) => vi.index === rowIndex);
@@ -260,7 +267,7 @@ export function CardTable({
       const viewportTop = globalThis.scrollY + stickyOffsetRef.current + labelBand;
       const viewportBottom = globalThis.scrollY + globalThis.innerHeight;
       if (vItem.start >= viewportTop && vItem.start + vItem.size <= viewportBottom) {
-        return;
+        return true;
       }
     }
     scrollCardRowIntoView(
@@ -269,6 +276,7 @@ export function CardTable({
       rowIndex,
       multipleGroupsRef.current,
     );
+    return true;
   };
 
   const followSelection = useFollowSelection();
@@ -276,6 +284,15 @@ export function CardTable({
   useScopeEffect(selectedItemId, () => {
     if (followSelection(selectedItemId) && selectedItemId) {
       scrollToCard(selectedItemId);
+    }
+  });
+
+  // A table under `display: none` measures its top at 0, so its scroll margin is the header alone.
+  const laidOut = scrollMargin > CARD_TABLE_HEADER_HEIGHT;
+  useScopeEffect(laidOut ? returnToItemId : undefined, (itemId) => {
+    if (itemId) {
+      const found = scrollToCard(itemId);
+      onReturned?.(found);
     }
   });
 

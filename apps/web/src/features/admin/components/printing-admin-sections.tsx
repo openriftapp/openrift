@@ -28,17 +28,16 @@ import {
   useUnmapMarketplacePrinting,
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-queries";
+import type { AdminCardDetail } from "@/features/admin/lib/admin-card-queries";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import type { PrintingFace } from "@/features/admin/lib/printing-faces";
 import { useUserId } from "@/hooks/use-session";
 
 function useFaceCardDetails(faces: readonly PrintingFace[]): AdminCardDetailResponse[] {
   const slugs = [...new Set(faces.map((face) => face.cardSlug))];
-  const first = useAdminCardDetail(slugs[0] ?? "").data as AdminCardDetailResponse | undefined;
-  const second = useAdminCardDetail(slugs[1] ?? "").data as AdminCardDetailResponse | undefined;
-  return [first, second].filter(
-    (detail): detail is AdminCardDetailResponse => detail !== undefined,
-  );
+  const first = useAdminCardDetail(slugs[0] ?? "").data;
+  const second = useAdminCardDetail(slugs[1] ?? "").data;
+  return [first, second].filter((detail): detail is AdminCardDetail => detail !== undefined);
 }
 
 export function PrintingSourcesCard({
@@ -128,7 +127,7 @@ export function PrintingMarketplaceCard({
   printingId: string;
   cardSlug: string;
 }) {
-  const data = useAdminCardDetail(cardSlug).data as AdminCardDetailResponse | undefined;
+  const data = useAdminCardDetail(cardSlug).data;
   const unmap = useUnmapMarketplacePrinting([adminKeys.cards.all, adminKeys.unifiedMappings.all]);
   const mappings = (data?.marketplaceMappings ?? []).filter(
     (mapping) => mapping.targetPrintingId === printingId,

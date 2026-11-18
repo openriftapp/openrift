@@ -224,6 +224,9 @@ interface CardGridProps {
   groupBy?: GroupByField;
   groupDir?: "asc" | "desc";
   selectedItemId?: string;
+  returnToItemId?: string;
+  /** Called once the grid has tried the return scroll, with whether the item is in the grid. */
+  onReturned?: (found: boolean) => void;
   addStripHeight?: number;
   stickyOffset?: number;
   noResultsDescription?: ReactNode;
@@ -238,6 +241,8 @@ export function CardGrid({
   groupBy = "set",
   groupDir = "asc",
   selectedItemId,
+  returnToItemId,
+  onReturned,
   addStripHeight = 0,
   stickyOffset: stickyOffsetProp,
   noResultsDescription,
@@ -303,12 +308,14 @@ export function CardGrid({
     scrollMargin,
     stickyOffset,
     headerHeight: HEADER_PT + HEADER_CONTENT_HEIGHT + HEADER_PB,
+    labelBand: STICKY_GROUP_LABEL_BAND,
   });
 
-  const scrollToCard = (cardId: string) => {
+  /** False when the card is not in the grid. */
+  const scrollToCard = (cardId: string): boolean => {
     const i = cardRowIndex(virtualRows, cardId);
     if (i === -1) {
-      return;
+      return false;
     }
     const vItem = virtualizer.getVirtualItems().find((vi) => vi.index === i);
     if (vItem) {
@@ -316,10 +323,11 @@ export function CardGrid({
       const viewportTop = globalThis.scrollY + stickyOffset + labelBand;
       const viewportBottom = globalThis.scrollY + globalThis.innerHeight;
       if (vItem.start >= viewportTop && vItem.start + vItem.size <= viewportBottom) {
-        return;
+        return true;
       }
     }
     scrollCardRowIntoView(virtualizer, virtualRows, i, multipleGroups);
+    return true;
   };
 
   const followSelection = useFollowSelection();
@@ -374,6 +382,14 @@ export function CardGrid({
   useScopeLayoutEffect(`${rowKindSignature} ${columns} ${containerWidth} ${addStripHeight}`, () =>
     virtualizer.measure(),
   );
+
+  // A grid under `display: none` measures 0 wide, and its row estimates are useless until shown.
+  useScopeEffect(containerWidth > 0 ? returnToItemId : undefined, (itemId) => {
+    if (itemId) {
+      const found = scrollToCard(itemId);
+      onReturned?.(found);
+    }
+  });
 
   useScopeEffect(columns, () => {
     const anchor = selectedItemId ?? topVisibleCardRef.current;

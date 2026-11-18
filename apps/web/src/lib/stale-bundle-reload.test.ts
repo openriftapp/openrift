@@ -9,7 +9,6 @@ import {
   reloadIfChunkLoadError,
   reloadIfStaleServerFnError,
   reloadIfUncaughtBareThrow,
-  scheduleReloadFlagClear,
   setStaleNotifier,
 } from "./stale-bundle-reload";
 import { StaleServerFnError } from "./stale-server-fn-signal";
@@ -49,20 +48,6 @@ describe("markNewVersionAvailable", () => {
     _resetReloadStateForTesting();
     expect(markNewVersionAvailable()).toBe(true);
   });
-
-  it("cancels a pending reload-flag clear so a stale page load doesn't re-arm the guard", () => {
-    vi.useFakeTimers();
-    reloadIfUncaughtBareThrow(undefined);
-    expect(reloadSpy).toHaveBeenCalledTimes(1);
-    scheduleReloadFlagClear();
-
-    markNewVersionAvailable();
-
-    vi.advanceTimersByTime(10_000);
-    reloadIfUncaughtBareThrow(undefined);
-    expect(reloadSpy).toHaveBeenCalledTimes(1);
-    expect(notifierSpy).toHaveBeenCalled();
-  });
 });
 
 describe("reload loop guard (driven via reloadIfUncaughtBareThrow)", () => {
@@ -87,43 +72,28 @@ describe("reload loop guard (driven via reloadIfUncaughtBareThrow)", () => {
   });
 });
 
-describe("scheduleReloadFlagClear", () => {
-  it("clears the sessionStorage guard after the delay, re-arming the automatic reload", () => {
-    vi.useFakeTimers();
+describe("reload loop guard across builds", () => {
+  it("records the build the reload left from", () => {
     reloadIfUncaughtBareThrow(undefined);
-    expect(reloadSpy).toHaveBeenCalledTimes(1);
 
-    scheduleReloadFlagClear();
-    vi.advanceTimersByTime(10_000);
-
-    reloadIfUncaughtBareThrow(undefined);
-    expect(reloadSpy).toHaveBeenCalledTimes(2);
+    expect(sessionStorage.getItem("openrift:reload-attempted")).toBe("test");
   });
 
-  it("does not schedule a clear when a mismatch is already flagged", () => {
-    vi.useFakeTimers();
-    reloadIfUncaughtBareThrow(undefined);
-    markNewVersionAvailable();
+  it("reloads again once the page runs another build than the last reload left from", () => {
+    sessionStorage.setItem("openrift:reload-attempted", "an-older-build");
 
-    scheduleReloadFlagClear();
-    vi.advanceTimersByTime(10_000);
-
-    reloadIfUncaughtBareThrow(undefined);
+    expect(reloadIfUncaughtBareThrow(undefined)).toBe(true);
     expect(reloadSpy).toHaveBeenCalledTimes(1);
-    expect(notifierSpy).toHaveBeenCalled();
+    expect(notifierSpy).not.toHaveBeenCalled();
   });
 
-  it("does not stack a second timer when called again before the first fires", () => {
-    vi.useFakeTimers();
-    const clearSpy = vi.spyOn(globalThis.Storage.prototype, "removeItem");
+  it("prompts on a page still running the build the last reload left from", () => {
+    sessionStorage.setItem("openrift:reload-attempted", "test");
+
     reloadIfUncaughtBareThrow(undefined);
 
-    scheduleReloadFlagClear();
-    scheduleReloadFlagClear();
-    vi.advanceTimersByTime(10_000);
-
-    expect(clearSpy).toHaveBeenCalledTimes(1);
-    clearSpy.mockRestore();
+    expect(reloadSpy).not.toHaveBeenCalled();
+    expect(notifierSpy).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -1,3 +1,4 @@
+import { MAX_DECK_CARD_QUANTITY } from "@openrift/shared/deck-cards";
 import {
   cardTypeSchema,
   deckFormatSchema,
@@ -21,8 +22,8 @@ const deckFieldRules = {
 };
 
 const deckCardFieldRules = {
-  zone: z.string().min(1),
-  quantity: z.number().int().positive(),
+  zone: deckZoneSchema,
+  quantity: z.number().int().positive().max(MAX_DECK_CARD_QUANTITY),
 };
 
 export const decksQuerySchema = z.object({
@@ -80,6 +81,9 @@ export const updateDeckSchema = z.object({
   isDraft: z.boolean().optional(),
 });
 
+/** Rows, not copies: one per card and zone, extras included. */
+export const MAX_DECK_CARD_ROWS = 500;
+
 export const updateDeckCardsSchema = z.object({
   cards: z
     .array(
@@ -90,7 +94,11 @@ export const updateDeckCardsSchema = z.object({
         preferredPrintingId: z.uuid().nullish(),
       }),
     )
-    .max(500),
+    .max(MAX_DECK_CARD_ROWS),
+  expectedVersion: z
+    .string()
+    .regex(/^\d{1,20}$/u)
+    .optional(),
 });
 
 export const deckMatchupSwapDirectionSchema = z.enum(["in", "out"]);
@@ -227,9 +235,11 @@ export const deckCardsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(10_000).optional(),
 });
 
+/** First page only: `deckVersions` covers every deck on a full read, the touched ones on a delta. */
 export const deckCardsListResponseSchema = z.object({
   items: z.array(deckCardWithDeckResponseSchema),
   touchedDeckIds: z.array(z.uuid()).optional(),
+  deckVersions: z.record(z.uuid(), z.string()).optional(),
   nextCursor: z.string().nullish(),
   syncedXid: z.string().optional(),
 });
@@ -242,6 +252,11 @@ export const deckDetailResponseSchema = z.object({
 export const deckPlanDetailResponseSchema = z.object({ plan: deckPlanResponseSchema });
 
 export const deckCardsResponseSchema = z.object({ cards: z.array(deckCardResponseSchema) });
+
+/** `version` changes with every write to the deck or its cards; a replace that names an older one is refused. */
+export const deckCardsReplaceResponseSchema = deckCardsResponseSchema.extend({
+  version: z.string(),
+});
 
 export const deckExportResponseSchema = z.object({
   code: z.string(),
@@ -344,8 +359,15 @@ export const decksContract = {
   replaceCards: authedRoute
     .route({ method: "PUT", path: "/api/v1/decks/{id}/cards", tags: [TAG] })
     .input(withParams(idParamSchema, updateDeckCardsSchema))
-    .errors({ NOT_FOUND: { message: "Deck not found" } })
-    .output(deckCardsResponseSchema),
+    .errors({
+      NOT_FOUND: { message: "Deck not found" },
+      BAD_REQUEST: { message: "Unknown card, zone or printing" },
+      CONFLICT: {
+        message: "The deck's cards changed since this version",
+        data: deckCardsReplaceResponseSchema,
+      },
+    })
+    .output(deckCardsReplaceResponseSchema),
   getPlan: authedRoute
     .route({ method: "GET", path: "/api/v1/decks/{id}/plan", tags: [TAG] })
     .input(idParamSchema)

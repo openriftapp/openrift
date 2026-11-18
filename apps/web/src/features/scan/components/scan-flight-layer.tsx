@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 import type { RefObject } from "react";
 
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
@@ -43,26 +43,20 @@ function FlightCard({
   const nodeRef = useRef<HTMLImageElement>(null);
   const { id, source } = flight;
 
-  const targetRefRef = useRef(targetRef);
-  const onEndRef = useRef(onEnd);
-  const sourceRef = useRef(source);
-
-  // Writing a ref during render makes the React Compiler bail out of the component.
-  useEffect(() => {
-    targetRefRef.current = targetRef;
-    onEndRef.current = onEnd;
-  });
+  const readStart = useEffectEvent(() => source);
+  const readTarget = useEffectEvent(() => targetRef.current?.getBoundingClientRect());
+  const end = useEffectEvent((flightId: string) => onEnd(flightId));
 
   useEffect(() => {
     const node = nodeRef.current;
-    const start = sourceRef.current;
+    const start = readStart();
     let finished = false;
     const finish = () => {
       if (finished) {
         return;
       }
       finished = true;
-      onEndRef.current(id);
+      end(id);
     };
 
     // Reduced motion, or a browser without the Web Animations API: never show the card.
@@ -71,7 +65,7 @@ function FlightCard({
       return;
     }
 
-    const target = targetRefRef.current.current?.getBoundingClientRect();
+    const target = readTarget();
     const plan = planFlight(
       start,
       target === undefined
@@ -151,18 +145,14 @@ export function ScanFlightLayer({
     .map((flight) => flight.id)
     .join("\n");
 
-  const onFlightEndRef = useRef(onFlightEnd);
-  // See FlightCard: ref writes belong in an effect, not in render.
-  useEffect(() => {
-    onFlightEndRef.current = onFlightEnd;
-  });
+  const endFlight = useEffectEvent((id: string) => onFlightEnd(id));
 
   useEffect(() => {
     if (droppedKey === "") {
       return;
     }
     for (const id of droppedKey.split("\n")) {
-      onFlightEndRef.current(id);
+      endFlight(id);
     }
   }, [droppedKey]);
 

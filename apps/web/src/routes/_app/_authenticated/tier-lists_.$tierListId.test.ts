@@ -16,6 +16,7 @@ vi.mock("@/features/stage/lib/tier-lists-queries", () => ({
 }));
 
 const { Route } = await import("./tier-lists_.$tierListId");
+const { TIER_LIST_SAVE_MUTATION_KEY } = await import("@/features/stage/lib/tier-list-saves");
 
 type LoaderFn = (ctx: {
   context: { queryClient: QueryClient; userId: string };
@@ -63,6 +64,34 @@ describe("/tier-lists/$tierListId loader", () => {
       id: "list-1",
       tiers: [{ label: "S", cards: [] }],
     });
+  });
+
+  it("reads the list only after a save from the stage has landed", async () => {
+    fetchTierList.mockClear();
+    const queryClient = new QueryClient();
+    let finishSave: () => void = () => {};
+    const saved = new Promise<void>((resolve) => {
+      finishSave = resolve;
+    });
+    const save = queryClient
+      .getMutationCache()
+      .build(queryClient, {
+        mutationKey: [...TIER_LIST_SAVE_MUTATION_KEY],
+        mutationFn: () => saved,
+      })
+      .execute({ id: "list-1" });
+
+    const loading = (Route.options.loader as unknown as LoaderFn)({
+      context: { queryClient, userId: "user-1" },
+      params: { tierListId: "list-1" },
+    });
+    await Promise.resolve();
+    expect(fetchTierList).not.toHaveBeenCalled();
+
+    finishSave();
+    await save;
+    await loading;
+    expect(fetchTierList).toHaveBeenCalledOnce();
   });
 
   it("does not let a hover preload stand in for the fetch on entry", () => {

@@ -40,6 +40,7 @@ interface FilterTaps {
   taps: number;
 }
 
+export const TAP_CACHE_LIMIT = 32;
 const tapCache = new Map<string, FilterTaps>();
 
 // Shared across calls: safe only because the resample pass is synchronous
@@ -50,7 +51,7 @@ let rowsScratch = new Float32Array(0);
  * Widens filter support when downscaling, matching PIL's BILINEAR
  * behavior, which produced the reference images.
  */
-function triangleTaps(srcSize: number, dstSize: number): FilterTaps {
+export function triangleTaps(srcSize: number, dstSize: number): FilterTaps {
   const cacheKey = `${srcSize}:${dstSize}`;
   const cached = tapCache.get(cacheKey);
   if (cached) {
@@ -83,6 +84,9 @@ function triangleTaps(srcSize: number, dstSize: number): FilterTaps {
     }
   }
   const built = { starts, weights, taps };
+  if (tapCache.size >= TAP_CACHE_LIMIT) {
+    tapCache.clear();
+  }
   tapCache.set(cacheKey, built);
   return built;
 }

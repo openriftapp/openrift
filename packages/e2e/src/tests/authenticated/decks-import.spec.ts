@@ -82,12 +82,9 @@ async function goToImport(page: Page) {
   await expect(page.getByRole("heading", { name: "Import Deck" })).toBeVisible({ timeout: 15_000 });
 }
 
-/**
- * The trigger takes no accessible name from its <Label for>, so address it
- * by the id that label points at.
- */
+/** The format select on both the input and the preview step. */
 function formatSelect(page: Page): Locator {
-  return page.locator("#import-mode");
+  return page.getByLabel("Format", { exact: true });
 }
 
 async function selectImportFormat(page: Page, label: "Text" | "Deck Code" | "TTS") {
@@ -249,7 +246,7 @@ test.describe("deck import", () => {
       const deckNameField = page.getByLabel("Deck name");
       await expect(deckNameField).toHaveValue("");
       await expect(deckNameField).toHaveAttribute("placeholder", "Imported Deck");
-      await expect(page.locator("#preview-deck-format")).toContainText("Constructed");
+      await expect(formatSelect(page)).toContainText("Constructed");
 
       await page.getByRole("button", { name: /^Back$/u }).click();
       await expect(page.getByRole("heading", { name: "Import Deck" })).toBeVisible();
@@ -326,9 +323,9 @@ test.describe("deck import", () => {
       userEmail = await createAndLogin(page);
       await advanceToPreviewWithPiltover(page);
 
-      await page.locator("#preview-deck-format").click();
+      await formatSelect(page).click();
       await page.getByRole("option", { name: "Freeform" }).click();
-      await expect(page.locator("#preview-deck-format")).toContainText("Freeform");
+      await expect(formatSelect(page)).toContainText("Freeform");
 
       const createPromise = page.waitForRequest((request) =>
         isApiCall(request, "POST", "/api/v1/decks"),

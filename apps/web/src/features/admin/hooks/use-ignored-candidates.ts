@@ -1,5 +1,4 @@
 import { adminIgnoredCandidatesContract } from "@openrift/shared/contracts/admin/ignored-candidates";
-import type { UnmatchedCardDetailResponse } from "@openrift/shared/types/api/admin";
 import {
   useIsMutating,
   useMutation,
@@ -49,11 +48,11 @@ export function useIgnoreNewCardDrafts(invalidates: Scope = []) {
     mutationFn: async (
       names: readonly string[],
     ): Promise<{ ignored: number; sources: { provider: string; externalId: string }[] }> => {
-      const details = (await Promise.all(
+      const details = await Promise.all(
         names.map((name) =>
           queryClient.query({ ...unmatchedCardDetailQueryOptions(name), staleTime: 0 }),
         ),
-      )) as UnmatchedCardDetailResponse[];
+      );
       const drafts = details
         .map((detail) => ignorableSources(detail.sources))
         .filter((sources) => sources.length > 0);

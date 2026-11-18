@@ -1,11 +1,10 @@
-import { sql } from "kysely";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createRepos } from "../../../deps.js";
 import { CARD_FURY_UNIT } from "../../../test/fixtures/constants.js";
 import { createTestContext, req } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
-import { holdRow, waitUntilBlockedBy } from "../../../test/row-locks.js";
+import { holdRoundsLock, waitUntilBlockedBy } from "../../../test/row-locks.js";
 
 const OWNER_ID = crypto.randomUUID();
 const ADMIN_ID = crypto.randomUUID();
@@ -1106,10 +1105,7 @@ describe.skipIf(!ownerCtx)("player saves racing a cancel or a deadline (integrat
     event: { id: string; token: string },
     commitWhileWaiting: () => Promise<unknown>,
   ): Promise<Response> {
-    const hold = await holdRow(
-      db,
-      sql`select pg_advisory_xact_lock(hashtext(${`tournament-writes:${event.id}`}))`,
-    );
+    const hold = await holdRoundsLock(db, event.id);
     const save = racePlayer.app.fetch(
       req("POST", `/deck-check/submissions/${event.token}`, {
         cards: [{ name: CARD_FURY_UNIT.name, quantity: 3, section: "main" }],
@@ -1129,6 +1125,32 @@ describe.skipIf(!ownerCtx)("player saves racing a cancel or a deadline (integrat
     );
 
     expect(res.status).toBe(409);
+    expect(
+      await repos.deckCheck.getEntryByExternalId(event.id, `openrift:${racePlayerId}`),
+    ).toBeUndefined();
+  });
+
+  it("refuses a submission that waited out the link being turned off", async () => {
+    const event = await openEvent();
+
+    const res = await saveWhileLockHeld(event, () =>
+      repos.tournaments.setSubmissionToken(event.id, null),
+    );
+
+    expect(res.status).toBe(404);
+    expect(
+      await repos.deckCheck.getEntryByExternalId(event.id, `openrift:${racePlayerId}`),
+    ).toBeUndefined();
+  });
+
+  it("refuses a stranger's submission that waited out self-registration closing", async () => {
+    const event = await openEvent();
+
+    const res = await saveWhileLockHeld(event, () =>
+      repos.tournaments.updateSettings(event.id, { hasSelfRegistration: false }),
+    );
+
+    expect(res.status).toBe(403);
     expect(
       await repos.deckCheck.getEntryByExternalId(event.id, `openrift:${racePlayerId}`),
     ).toBeUndefined();

@@ -11,7 +11,6 @@ import {
   metaPlayerOverlayList,
   metaPlayerRank,
   metaPlayerRecordPart,
-  metaPlayerStatusChangeNeedsList,
   metaPlayerToDraft,
   countDeckRowsAndCopies,
   validateMetaEventDraft,
@@ -498,14 +497,16 @@ describe("metaPlayerOverlayList", () => {
     expect(metaPlayerOverlayList(withList, draftFor(withList), [])).toBeUndefined();
   });
 
-  it("asks for the list again when only a stored list's status changes", () => {
-    const partial = draftFor(withList, { listStatus: "partial" });
-    expect(metaPlayerStatusChangeNeedsList(withList, partial, [])).toBe(true);
-    expect(metaPlayerStatusChangeNeedsList(withList, partial, cards)).toBe(false);
-    expect(metaPlayerStatusChangeNeedsList(withList, draftFor(withList), [])).toBe(false);
+  it("sends a status-only change when a stored list moves between full and partial", () => {
     expect(
-      metaPlayerStatusChangeNeedsList(deckless, draftFor(deckless, { listStatus: "full" }), []),
-    ).toBe(false);
+      metaPlayerOverlayList(withList, draftFor(withList, { listStatus: "partial" }), []),
+    ).toEqual({ cards: [], listStatus: "partial" });
+  });
+
+  it("says nothing when a deckless row gets a status but no cards", () => {
+    expect(
+      metaPlayerOverlayList(deckless, draftFor(deckless, { listStatus: "full" }), []),
+    ).toBeUndefined();
   });
 
   it("says nothing when a deckless row stays deckless", () => {

@@ -212,24 +212,23 @@ export function useCardReviewNavigation({
     ...(priceFilterActive && priceScope ? { priceScope } : {}),
   };
 
-  function goToCard(targetSlug: string) {
+  function goToCard(targetSlug: string): Promise<void> {
     const targetSection =
       reviewSections?.get(targetSlug) ??
       (priceFilterActive ? "marketplace" : attentionSections.get(targetSlug)) ??
       section;
-    void navigate({
+    return navigate({
       to: "/admin/cards/$cardSlug",
       params: { cardSlug: targetSlug },
       search: { ...navSearch, ...(targetSection ? { section: targetSection } : {}) },
     });
   }
 
-  function goToList() {
+  function goToList(): Promise<void> {
     if (reviewFilterActive) {
-      void navigate({ to: "/admin/review" });
-      return;
+      return navigate({ to: "/admin/review" });
     }
-    void navigate({ to: "/admin/cards", search: cardListSearch(navSearch) });
+    return navigate({ to: "/admin/cards", search: cardListSearch(navSearch) });
   }
 
   const [isCheckingAll, setIsCheckingAll] = useState(false);
@@ -279,10 +278,10 @@ export function useCardReviewNavigation({
     if (next === null) {
       toast.error("Could not load the next card.");
     } else if (next.slug) {
-      goToCard(next.slug);
+      void goToCard(next.slug);
     } else {
       toast.success("All cards reviewed!");
-      goToList();
+      void goToList();
     }
   }
 
@@ -292,7 +291,7 @@ export function useCardReviewNavigation({
   const goToNeighbour = (dir: "prev" | "next") => {
     const slug = dir === "prev" ? prevNextCards.prev : prevNextCards.next;
     if (slug) {
-      goToCard(slug);
+      void goToCard(slug);
     }
   };
   useHotkey("Mod+ArrowLeft", () => goToNeighbour("prev"));

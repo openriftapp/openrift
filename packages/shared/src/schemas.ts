@@ -12,8 +12,17 @@ export {
   ruleKindForListKind,
 } from "./types/list-rule.js";
 
+export const MAX_LIST_ENTRY_QUANTITY = 9999;
+
 export const listEntryFieldRules = {
-  quantity: z.number().int().positive(),
+  quantity: z.number().int().positive().max(MAX_LIST_ENTRY_QUANTITY),
+  /** A step on the entry's own quantity; the stored result never goes below 1. */
+  quantityDelta: z
+    .number()
+    .int()
+    .min(-MAX_LIST_ENTRY_QUANTITY)
+    .max(MAX_LIST_ENTRY_QUANTITY)
+    .refine((delta) => delta !== 0, { message: "A step must change the quantity" }),
 };
 
 const tradePricePrefSchema = z.enum(["cm_lowest", "tcg_lowest", "ct_zero", "absolute"]);
@@ -46,6 +55,8 @@ export const isoDateTime = z.iso.datetime();
 export const isoDate = z.iso.date();
 
 export const POSTGRES_INTEGER_MAX = 2_147_483_647;
+
+export const POSTGRES_SMALLINT_MAX = 32_767;
 
 /**
  * Merge a base param schema (e.g. {@link idParamSchema}) with a route's body or

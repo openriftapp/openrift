@@ -1,7 +1,7 @@
-import { sortByLanguageAndCanonicalRank } from "@openrift/shared/printing-select";
-import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useSuspenseQueries } from "@tanstack/react-query";
 import { use } from "react";
 
+import { CatalogLanguageOrderContext } from "@/features/cards/lib/catalog-language-order";
 import { CatalogLanguagesContext } from "@/features/cards/lib/catalog-languages-context";
 import type { CatalogEntry, UseCardsResult } from "@/features/cards/lib/catalog-queries";
 import {
@@ -9,10 +9,8 @@ import {
   catalogQueryOptionsFor,
   catalogTailQueryOptions,
   ensureCatalogComplete,
-  noCatalogQueryOptions,
 } from "@/features/cards/lib/catalog-queries";
 import { CatalogSubsetContext } from "@/features/cards/lib/catalog-subset-context";
-import { useDisplayLanguages } from "@/hooks/use-display-languages";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 
 export function useCards(): UseCardsResult {
@@ -25,20 +23,18 @@ export function useFullCatalog(): UseCardsResult {
 }
 
 function useCatalog(subset: UseCardsResult | null): UseCardsResult {
-  // `queryOptions` bakes each literal query key into its own option type, so
-  // the stand-in is unrelated to the real one even though the call takes either.
   const languages = use(CatalogLanguagesContext);
-  const options =
-    subset === null
-      ? catalogQueryOptionsFor(languages)
-      : (noCatalogQueryOptions as unknown as ReturnType<typeof catalogQueryOptionsFor>);
-
-  // React Query's structural sharing can't preserve identity for a shape
-  // containing a Map; `enrichCatalog` memoizes by input identity instead.
-  const { data } = useSuspenseQuery(options);
-  const userLanguages = useDisplayLanguages();
-  useCatalogTail(subset === null ? data : null);
-  return inLanguageOrder(subset ?? data, userLanguages);
+  const inLanguageOrder = use(CatalogLanguageOrderContext);
+  // An empty query list neither fetches nor suspends, so a page that holds a subset never loads the catalogue.
+  const queries: ReturnType<typeof catalogQueryOptionsFor>[] =
+    subset === null ? [catalogQueryOptionsFor(languages)] : [];
+  const fetched = useSuspenseQueries({ queries }).at(0)?.data;
+  useCatalogTail(fetched ?? null);
+  const catalog = subset ?? fetched;
+  if (catalog === undefined) {
+    throw new Error("The catalogue query resolved without data");
+  }
+  return inLanguageOrder(catalog);
 }
 
 export function useCatalogOnDemand(enabled: boolean): {
@@ -47,9 +43,9 @@ export function useCatalogOnDemand(enabled: boolean): {
 } {
   const languages = use(CatalogLanguagesContext);
   const { data, error } = useQuery({ ...catalogQueryOptionsFor(languages), enabled });
-  const userLanguages = useDisplayLanguages();
+  const inLanguageOrder = use(CatalogLanguageOrderContext);
   useCatalogTail(data ?? null);
-  return { catalog: data && inLanguageOrder(data, userLanguages), error };
+  return { catalog: data && inLanguageOrder(data), error };
 }
 
 function useCatalogTail(fetched: UseCardsResult | null): void {
@@ -95,19 +91,4 @@ export function useCatalogTailStatus(): { status: CatalogTailStatus; retry: () =
     return { status: "complete", retry };
   }
   return { status: tail.isError && !tail.isFetching ? "failed" : "loading", retry };
-}
-
-function inLanguageOrder(
-  catalog: UseCardsResult,
-  userLanguages: readonly string[],
-): UseCardsResult {
-  if (userLanguages.length === 0) {
-    return catalog;
-  }
-  const sortedPrintings = sortByLanguageAndCanonicalRank(catalog.allPrintings, userLanguages);
-  return {
-    ...catalog,
-    allPrintings: sortedPrintings,
-    printingsByCardId: Map.groupBy(sortedPrintings, (p) => p.cardId),
-  };
 }

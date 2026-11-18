@@ -15,6 +15,7 @@ const state = vi.hoisted(() => ({
   secondSide: null as DeskSecondSide | null,
   images: [] as DeskImage[],
   cardPrintings: [] as { id: string }[],
+  editingImageIds: [] as string[],
 }));
 const activate = vi.hoisted(() => vi.fn());
 const removeFace = vi.hoisted(() => vi.fn());
@@ -71,6 +72,7 @@ vi.mock("@/features/admin/hooks/use-printing-desk", () => ({
 vi.mock("@/features/admin/hooks/use-admin-image-mutations", () => ({
   useActivatePrintingImage: () => ({ mutate: activate }),
   useDeletePrintingImage: () => ({ mutate: vi.fn() }),
+  useImageEditPending: (imageId: string) => state.editingImageIds.includes(imageId),
   useRotatePrintingImage: () => ({ mutate: vi.fn() }),
   useUploadPrintingImage: () => ({ mutateAsync: vi.fn() }),
 }));
@@ -197,6 +199,7 @@ beforeEach(() => {
   state.secondSide = null;
   state.images = [];
   state.cardPrintings = [];
+  state.editingImageIds = [];
   activate.mockClear();
   removeFace.mockClear();
   createCitation.mockReset().mockResolvedValue(undefined);
@@ -341,6 +344,18 @@ describe("PrintingPage images", () => {
     render(<PrintingPage printingId="p-1" />);
 
     expect(screen.getByRole("button", { name: "Straighten (corners set)" })).toBeInTheDocument();
+  });
+
+  it("holds every file edit of an image while one of them is saving", () => {
+    state.images = [image(), image({ printingImageId: "pi-2", isActive: false })];
+    state.editingImageIds = ["pi-1"];
+    render(<PrintingPage printingId="p-1" />);
+
+    for (const name of ["Turn left", "Turn right", "Straighten"]) {
+      const [busy, idle] = screen.getAllByRole("button", { name });
+      expect(busy).toBeDisabled();
+      expect(idle).toBeEnabled();
+    }
   });
 
   it("offers no Clear button while no image is active", () => {

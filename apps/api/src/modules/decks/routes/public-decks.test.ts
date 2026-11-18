@@ -291,7 +291,7 @@ describe("POST /api/v1/decks/encode", () => {
 
   const encodeCards = [
     {
-      cardId: "leg",
+      cardId: "c0000000-0001-4000-a000-0000000000a1",
       zone: "legend",
       quantity: 1,
       preferredPrintingId: null,
@@ -301,7 +301,7 @@ describe("POST /api/v1/decks/encode", () => {
       domains: ["fury"],
     },
     {
-      cardId: "champ",
+      cardId: "c0000000-0001-4000-a000-0000000000a2",
       zone: "champion",
       quantity: 1,
       preferredPrintingId: null,
@@ -311,7 +311,7 @@ describe("POST /api/v1/decks/encode", () => {
       domains: ["fury"],
     },
     {
-      cardId: "unit-a",
+      cardId: "c0000000-0001-4000-a000-0000000000a3",
       zone: "main",
       quantity: 3,
       preferredPrintingId: null,
@@ -363,7 +363,7 @@ describe("POST /api/v1/decks/encode", () => {
   });
 
   it("warns about cards with no resolvable short code", async () => {
-    stubShortCodes(new Set(["unit-a"]));
+    stubShortCodes(new Set(["c0000000-0001-4000-a000-0000000000a3"]));
     const res = await encodeRequest({ format: "tts", cards: encodeCards });
     const json = await readJson(res);
     expect(json.warnings).toEqual([`Skipped "Unit A": no canonical printing found`]);

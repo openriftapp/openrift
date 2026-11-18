@@ -39,6 +39,7 @@ import { useLanguages } from "@/features/admin/hooks/use-languages";
 import { useMarkers } from "@/features/admin/hooks/use-markers";
 import { useProviderSettings } from "@/features/admin/hooks/use-provider-settings";
 import type { CandidateSpreadsheetRow } from "@/features/admin/lib/candidate-rows";
+import { candidateFieldValue } from "@/features/admin/lib/candidate-rows";
 import type { SourceSubmitter } from "@/features/admin/lib/candidate-submitter";
 import { buildSourceSubmitters } from "@/features/admin/lib/candidate-submitter";
 import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
@@ -253,7 +254,7 @@ export function foldedFieldKeys<TKey extends string>(
     }
     const activeValue = activeRow ? activeRow[field.key] : null;
     const disagrees = rows.some((row) => {
-      const value = (row as unknown as Record<string, unknown>)[field.key];
+      const value = candidateFieldValue(row, field.key);
       if (!hasFieldValue(value)) {
         return false;
       }
@@ -291,7 +292,7 @@ export function unknownOptionValues(
       continue;
     }
     for (const candidate of candidates) {
-      const value = (candidate as unknown as Record<string, unknown>)[field.key];
+      const value = candidateFieldValue(candidate, field.key);
       if (!hasFieldValue(value) || isValidOption(field, value)) {
         continue;
       }
@@ -328,7 +329,7 @@ export function buildPreseededActiveCard(
       continue;
     }
     for (const source of sorted) {
-      const value = (source as unknown as Record<string, unknown>)[field.key];
+      const value = candidateFieldValue(source, field.key);
       if (!hasFieldValue(value)) {
         continue;
       }
@@ -373,7 +374,7 @@ export function buildPreseededActivePrinting(
       continue;
     }
     for (const source of sorted) {
-      const value = (source as unknown as Record<string, unknown>)[field.key];
+      const value = candidateFieldValue(source, field.key);
       if (!hasFieldValue(value)) {
         continue;
       }

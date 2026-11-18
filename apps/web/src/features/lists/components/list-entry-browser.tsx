@@ -73,7 +73,7 @@ export interface ListEntryBrowserProps {
   showLibrary: boolean;
   onToggleShowLibrary: () => void;
   onRemoveEntry: (entryId: string, cardName: string) => void;
-  onQuantityChange: (entryId: string, quantity: number) => void;
+  onQuantityStep: (entryId: string, delta: number) => void;
   onTradeOverrideChange: (
     entryId: string,
     next: TradePreference,
@@ -96,7 +96,7 @@ export function ListEntryBrowser({
   showLibrary,
   onToggleShowLibrary,
   onRemoveEntry,
-  onQuantityChange,
+  onQuantityStep,
   onTradeOverrideChange,
   isRemovePendingFor,
   isQuantityPendingFor,
@@ -210,7 +210,7 @@ export function ListEntryBrowser({
     setSearch,
     setPrefDialogEntryIds,
     onRemoveEntry,
-    onQuantityChange,
+    onQuantityStep,
     isQuantityPendingFor,
   });
 
@@ -399,7 +399,7 @@ export function ListEntryBrowser({
                 listCurrency={listCurrency}
                 onEditTradePref={(entryId) => setPrefDialogEntryIds([entryId])}
                 onRemoveEntry={onRemoveEntry}
-                onQuantityChange={onQuantityChange}
+                onQuantityStep={onQuantityStep}
                 onTakeOff={
                   kind === "copy" ? (entryId) => openListAction("takeOff", [entryId]) : undefined
                 }

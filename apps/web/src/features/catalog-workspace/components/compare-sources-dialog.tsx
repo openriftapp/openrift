@@ -41,6 +41,7 @@ import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { getProviderLabel } from "@/features/admin/lib/candidate-rows";
 import { activeImageSourceUrl, imagesOnSide } from "@/features/admin/lib/printing-side-images";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
+import { queueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import { faceCompareCandidates } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import type { PrintingCompareGroup } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
 import { printingCompareGroups } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
@@ -313,23 +314,25 @@ function SourceSpreadsheet({
         const row = candidates.find((candidate) => candidate.id === candidateId);
         const fieldLabel = fields.find((entry) => entry.key === field)?.label ?? field;
         const sourceLabel = row === undefined ? "this source" : getProviderLabel(row, labels);
-        void acceptFieldWithUndo({
-          accept: acceptPrintingField.mutateAsync,
-          input: { printingId, faceId: face.faceId, field, value, source: "provider" },
-          fieldLabel,
-          sourceLabel,
-          previousValue: activeRow[field],
-          onAccepted: (revert) =>
-            announce({
-              ...usedUndoText({
-                field: fieldLabel,
-                source: sourceLabel,
-                record: detail.displayName,
+        void queueWorkspaceWrite(() =>
+          acceptFieldWithUndo({
+            accept: acceptPrintingField.mutateAsync,
+            input: { printingId, faceId: face.faceId, field, value, source: "provider" },
+            fieldLabel,
+            sourceLabel,
+            previousValue: activeRow[field],
+            onAccepted: (revert) =>
+              announce({
+                ...usedUndoText({
+                  field: fieldLabel,
+                  source: sourceLabel,
+                  record: detail.displayName,
+                }),
+                invalidates: undoScope(scope),
+                undo: () => revertAcceptedField(revert, (data) => acceptPrintingFieldFn({ data })),
               }),
-              invalidates: undoScope(scope),
-              undo: () => revertAcceptedField(revert, (data) => acceptPrintingFieldFn({ data })),
-            }),
-        });
+          }),
+        );
       }}
       onActiveChange={(field, value) => {
         if (value === undefined || !isAcceptPrintingField(field)) {

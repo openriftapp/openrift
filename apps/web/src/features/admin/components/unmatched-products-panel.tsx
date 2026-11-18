@@ -46,6 +46,7 @@ import { scopeUnmatchedRows } from "@/features/admin/lib/unmatched-scope";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { useAssignableCardSearch } from "@/features/cards/hooks/use-card-search";
 import { useEnumOrders } from "@/hooks/use-enums";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 import { ProductLink } from "./price-mappings-utils";
 
@@ -124,25 +125,21 @@ export function UnmatchedProductsPanel({ setSlug }: { setSlug?: string }) {
     };
   }
 
-  function handleAssignToCard(
+  async function handleAssignToCard(
     marketplace: Marketplace,
     product: StagedProductResponse,
     card: { cardId: string; cardSlug: string },
   ) {
     const mutations = mutationsFor(marketplace);
-    mutations.assign.mutate(
-      {
-        externalId: product.externalId,
-        finish: product.finish,
-        language: product.language,
-        cardId: card.cardId,
-      },
-      {
-        onSuccess: () => {
-          void navigate(buildAssignSuccessNavigation(marketplace, product, card));
-        },
-      },
-    );
+    const input = {
+      externalId: product.externalId,
+      finish: product.finish,
+      language: product.language,
+      cardId: card.cardId,
+    };
+    if (await runReportedMutation(() => mutations.assign.mutateAsync(input))) {
+      void navigate(buildAssignSuccessNavigation(marketplace, product, card));
+    }
   }
 
   return (
@@ -211,7 +208,7 @@ export function UnmatchedProductsPanel({ setSlug }: { setSlug?: string }) {
                       marketplace={marketplace}
                       product={product}
                       allCards={data.allCards as AssignableCardResponse[]}
-                      onAssignToCard={(card) => handleAssignToCard(marketplace, product, card)}
+                      onAssignToCard={(card) => void handleAssignToCard(marketplace, product, card)}
                       isAssigning={mutations.assign.isPending}
                       onIgnoreVariant={() =>
                         mutations.ignoreVariant.mutate([

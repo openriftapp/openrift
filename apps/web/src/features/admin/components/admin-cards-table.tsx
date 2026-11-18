@@ -43,6 +43,7 @@ import {
   scopeLabel,
   unlinkedProductCount,
 } from "@/features/cards/lib/marketplace-coverage";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 const cardsRouteApi = getRouteApi("/_app/_authenticated/admin/cards");
 
@@ -96,6 +97,19 @@ const SORT_VALUES: Record<string, (row: CardsRow) => string | number> = {
 
 function AcceptFavoriteButton({ cardSlug, codes }: { cardSlug: string; codes: string[] }) {
   const acceptFavorite = useAcceptFavoritePrintings();
+
+  async function accept() {
+    let result: Awaited<ReturnType<typeof acceptFavorite.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await acceptFavorite.mutateAsync(cardSlug);
+    });
+    if (ok && result) {
+      showAcceptOutcome(
+        result.printingsCreated,
+        result.skipped.map((entry) => ({ label: entry.shortCode, reason: entry.reason })),
+      );
+    }
+  }
   const title = `Accept ${codes.length} trusted ${pluralize(codes.length, "printing")}: ${formatShortCodesArray(codes).join(", ")}`;
 
   return (
@@ -108,13 +122,7 @@ function AcceptFavoriteButton({ cardSlug, codes }: { cardSlug: string; codes: st
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();
-        acceptFavorite.mutate(cardSlug, {
-          onSuccess: (result) =>
-            showAcceptOutcome(
-              result.printingsCreated,
-              result.skipped.map((entry) => ({ label: entry.shortCode, reason: entry.reason })),
-            ),
-        });
+        void accept();
       }}
     >
       <StarIcon />

@@ -5,6 +5,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { MetaEventPlayersTable } from "../../../db/tables/meta.js";
+import { keyBatches } from "../../../lib/bind-batches.js";
 import { containsPattern } from "../../../lib/like-pattern.js";
 import { inTransaction, offsetPage } from "../../../repositories/query-helpers.js";
 import type { MetaArchivedDeckInput } from "./meta-decks.js";
@@ -176,6 +177,35 @@ export interface MetaEventFieldSummary {
 }
 
 export function metaPlayersRepo(db: Kysely<Database>) {
+  /** Every requested event is a key, an event without standings with an empty list. */
+  async function adminPlayersForEvents(
+    eventIds: readonly string[],
+  ): Promise<Map<string, AdminMetaPlayerRow[]>> {
+    const byEvent = new Map<string, AdminMetaPlayerRow[]>(eventIds.map((id) => [id, []]));
+    for (const batch of keyBatches(eventIds)) {
+      const rows = await playerQuery()
+        .select((eb) => [
+          "p.metaEventId",
+          "d.format as deckFormat",
+          eb
+            .selectFrom("deckCards as dc")
+            .select((inner) =>
+              inner.cast<number>(inner.fn.sum("dc.quantity"), "integer").as("cardCount"),
+            )
+            .whereRef("dc.deckId", "=", "p.deckId")
+            .as("cardCount"),
+        ])
+        .where("p.metaEventId", "in", batch)
+        .orderBy("p.rank", "asc")
+        .orderBy(resolvedPlayerName, "asc")
+        .execute();
+      for (const { metaEventId, ...row } of rows) {
+        byEvent.get(metaEventId)?.push({ ...row, cardCount: row.cardCount ?? 0 });
+      }
+    }
+    return byEvent;
+  }
+
   function playerQuery() {
     return (
       db
@@ -436,24 +466,12 @@ export function metaPlayersRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    adminPlayersForEvent(eventId: string): Promise<AdminMetaPlayerRow[]> {
-      return playerQuery()
-        .select((eb) => [
-          "d.format as deckFormat",
-          eb
-            .selectFrom("deckCards as dc")
-            .select((inner) =>
-              inner.cast<number>(inner.fn.sum("dc.quantity"), "integer").as("cardCount"),
-            )
-            .whereRef("dc.deckId", "=", "p.deckId")
-            .as("cardCount"),
-        ])
-        .where("p.metaEventId", "=", eventId)
-        .orderBy("p.rank", "asc")
-        .orderBy(resolvedPlayerName, "asc")
-        .execute()
-        .then((rows) => rows.map((row) => ({ ...row, cardCount: row.cardCount ?? 0 })));
+    async adminPlayersForEvent(eventId: string): Promise<AdminMetaPlayerRow[]> {
+      const byEvent = await adminPlayersForEvents([eventId]);
+      return byEvent.get(eventId) ?? [];
     },
+
+    adminPlayersForEvents,
 
     /** The live rows a candidate pipeline diffs against, by standings-row id. */
     livePlayersByIds(ids: string[]): Promise<LiveMetaPlayerRow[]> {

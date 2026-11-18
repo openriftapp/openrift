@@ -1,6 +1,11 @@
 import { CARD_TRADE_LIVE_PHASES } from "@openrift/shared/card-trade-lifecycle";
 import { contactMethodSchema, copyMetadataResponseShape } from "@openrift/shared/response-schemas";
-import { friendGroupSlugSchema, idParamSchema, withParams } from "@openrift/shared/schemas";
+import {
+  friendGroupSlugSchema,
+  idParamSchema,
+  POSTGRES_INTEGER_MAX,
+  withParams,
+} from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
@@ -21,13 +26,15 @@ const cardTradeStatusSchema = z.enum(CARD_TRADE_STATUSES);
 export const cardTradeSideSchema = z.enum(["giver", "receiver"]);
 export const tradeSuggestionDirectionSchema = z.enum(["incoming", "outgoing"]);
 
+const quantityField = z.number().int().min(1).max(POSTGRES_INTEGER_MAX);
+
 export const createCardTradeSchema = z.object({
   groupSlug: friendGroupSlugSchema,
   counterpartyUserId: z.string().min(1),
   role: cardTradeSideSchema,
   printingId: z.uuid(),
   cardId: z.uuid().optional(),
-  quantity: z.number().int().min(1),
+  quantity: quantityField,
   copyIds: z.array(z.uuid()).min(1).max(100).optional(),
 });
 
@@ -37,19 +44,19 @@ export const cardTradesQuerySchema = z.object({
 });
 
 export const setCardTradeQuantitySchema = z.object({
-  quantity: z.number().int().min(1),
+  quantity: quantityField,
 });
 
 export const cardTradeSyncSchema = z.object({
   requestId: z.uuid(),
   targetCollectionId: z.uuid().optional(),
   copyIds: z.array(z.uuid()).min(1).max(100).optional(),
-  quantity: z.number().int().min(1).optional(),
+  quantity: quantityField.optional(),
 });
 
 export const cardTradeSkipSyncSchema = z.object({
   requestId: z.uuid(),
-  quantity: z.number().int().min(1).optional(),
+  quantity: quantityField.optional(),
 });
 
 export const acceptCardTradeSchema = z.object({

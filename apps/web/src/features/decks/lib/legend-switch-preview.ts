@@ -1,4 +1,4 @@
-import { deckCardKey } from "@openrift/shared/deck-cards";
+import { deckCardKey, MAX_DECK_CARD_QUANTITY } from "@openrift/shared/deck-cards";
 import type { DeckViolation } from "@openrift/shared/deck-rules";
 import { RUNE_TARGET, validateDeck } from "@openrift/shared/deck-rules";
 import type { DeckFormatConfig } from "@openrift/shared/types/api/deck";
@@ -69,7 +69,9 @@ function incrementOrInsert(
   const existing = cards.find((entry) => deckCardKey(entry) === key);
   if (existing) {
     return cards.map((entry) =>
-      entry === existing ? { ...entry, quantity: entry.quantity + quantity } : entry,
+      entry === existing
+        ? { ...entry, quantity: Math.min(MAX_DECK_CARD_QUANTITY, entry.quantity + quantity) }
+        : entry,
     );
   }
   return [...cards, { ...card, zone, quantity, preferredPrintingId: null }];
@@ -118,7 +120,11 @@ export function legendSwitchCards(
         card.preferredPrintingId === legend.preferredPrintingId,
     );
     return existing
-      ? cards.map((card) => (card === existing ? { ...card, quantity: card.quantity + 1 } : card))
+      ? cards.map((card) =>
+          card === existing
+            ? { ...card, quantity: Math.min(MAX_DECK_CARD_QUANTITY, card.quantity + 1) }
+            : card,
+        )
       : [...cards, { ...legend, zone: WellKnown.deckZone.LEGEND, quantity: 1 }];
   }
 

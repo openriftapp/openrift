@@ -28,20 +28,6 @@ const CardDetail = lazy(async () => {
   return { default: mod.CardDetail };
 });
 
-export function focusCatalogCard(printingId: string): void {
-  const tile = document.querySelector<HTMLElement>(
-    `[data-printing-id="${CSS.escape(printingId)}"]`,
-  );
-  if (!tile) {
-    return;
-  }
-  const target = tile.matches("[tabindex]")
-    ? tile
-    : tile.querySelector<HTMLElement>("button, [tabindex]");
-  target?.focus({ preventScroll: true });
-  tile.scrollIntoView({ block: "nearest" });
-}
-
 export function WorkbenchCardDetail({
   items,
   printingsByCardId,

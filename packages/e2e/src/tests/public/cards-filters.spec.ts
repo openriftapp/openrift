@@ -19,8 +19,9 @@ async function openFilterDrawer(page: Page): Promise<Locator> {
   const options = page.getByRole("button", { name: "Options" });
   await waitForHydrated(options);
   await options.click();
-  await expect(page.getByRole("dialog", { name: "Options" })).toBeVisible();
-  return page.locator('[data-slot="drawer-content"]');
+  const drawer = page.getByRole("dialog", { name: "Options" });
+  await expect(drawer).toBeVisible();
+  return drawer;
 }
 
 /**
@@ -31,14 +32,9 @@ function drawerBadge(drawer: Locator, labelPrefix: RegExp): Locator {
   return drawer.locator('[data-slot="badge"]', { hasText: labelPrefix }).first();
 }
 
-/**
- * Locates one chip in the active-filter strip. A scrolled-in card tile can
- * carry a domain badge with the same label, so require the remove button too.
- */
-function activeFilterChip(page: Page, label: RegExp): Locator {
-  return page
-    .locator('[data-slot="badge"]', { hasText: label })
-    .filter({ has: page.locator('[data-slot="chip-remove-button"]') });
+/** The remove button of one chip in the active-filter strip, named "Remove <filter> <value>". */
+function activeFilterChipRemove(page: Page, value: string): Locator {
+  return page.getByRole("button", { name: new RegExp(`^Remove .+ ${value}$`, "u") });
 }
 
 async function toggleDrawerFilter(
@@ -53,7 +49,7 @@ async function toggleDrawerFilter(
 
 async function closeFilterDrawer(page: Page) {
   await page.getByRole("button", { name: FOOTER_BUTTON }).first().click();
-  await expect(page.locator('[data-slot="drawer-content"]')).toBeHidden();
+  await expect(page.getByRole("dialog", { name: "Options" })).toBeHidden();
 }
 
 test.describe("card filters (mobile drawer)", () => {
@@ -99,7 +95,7 @@ test.describe("card filters (mobile drawer)", () => {
     await expect(cardImage(page, "Lux, Illuminated")).toHaveCount(0);
     await scrollUntilVisible(page, cardImage(page, "Annie, Fiery"));
 
-    await expect(activeFilterChip(page, /^Fury$/u)).toBeVisible();
+    await expect(activeFilterChipRemove(page, "Fury")).toBeVisible();
   });
 
   test("combining a domain and a type filter is AND", async ({ page }) => {
@@ -125,9 +121,7 @@ test.describe("card filters (mobile drawer)", () => {
     await closeFilterDrawer(page);
     await expect(cardImage(page, "Lux, Illuminated")).toHaveCount(0);
 
-    await activeFilterChip(page, /^Fury$/u)
-      .getByRole("button")
-      .click();
+    await activeFilterChipRemove(page, "Fury").click();
 
     await expect(page).not.toHaveURL(/[?&]domains=/u);
     await scrollUntilVisible(page, cardImage(page, "Lux, Illuminated"));

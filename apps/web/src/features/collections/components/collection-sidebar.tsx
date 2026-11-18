@@ -226,13 +226,13 @@ function ListIntentGroup({
             type: "sidebar-reorder-list",
             listId: list.id,
             intent: list.intent,
+            label: list.name,
           };
           return (
             <SortableSidebarRow
               key={list.id}
               id={`${SORTABLE_LIST_PREFIX}${list.id}`}
               data={dragData}
-              label={list.name}
             >
               {(handle) => (
                 <ListRowMenu list={list} isActive={activeId === list.id}>
@@ -382,6 +382,7 @@ function PersonalCollectionsGroup({
         <CollectionRowMenu collection={inbox} isActive={activeId === inbox.id}>
           <DroppableCollection
             collectionId={inbox.id}
+            collectionName={inbox.name}
             disabled={inbox.id === dragSourceCollectionId || isReorderActive}
           >
             <SidebarMenuItem>
@@ -415,13 +416,13 @@ function PersonalCollectionsGroup({
           <SortableSidebarRow
             key={col.id}
             id={`${SORTABLE_COLLECTION_PREFIX}${col.id}`}
-            data={{ type: "sidebar-reorder-collection", collectionId: col.id }}
-            label={col.name}
+            data={{ type: "sidebar-reorder-collection", collectionId: col.id, label: col.name }}
           >
             {(handle) => (
               <CollectionRowMenu collection={col} isActive={activeId === col.id}>
                 <DroppableCollection
                   collectionId={col.id}
+                  collectionName={col.name}
                   disabled={col.id === dragSourceCollectionId || isReorderActive}
                 >
                   <SidebarMenuItem>
@@ -499,6 +500,7 @@ function SharedCollectionsGroup({
         <CollectionRowMenu key={col.id} collection={col} isActive={activeId === col.id}>
           <DroppableCollection
             collectionId={col.id}
+            collectionName={col.name}
             disabled={col.id === dragSourceCollectionId || isReorderActive}
           >
             <SidebarMenuItem>

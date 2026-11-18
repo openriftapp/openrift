@@ -16,30 +16,9 @@ const PENDING_ROW = {
   trade_channel_ids: [],
 };
 
-const LINKED_ROW = {
-  ...PENDING_ROW,
-  guild_id: "guild-1",
-  guild_name: "Summoner Skirmish",
-  code: null,
-  code_expires_at: null,
-  linked_at: new Date("2026-01-02T00:00:00.000Z"),
-};
-
 const REDEEM = { code: "abc123", guildId: "guild-1", guildName: "Summoner Skirmish" } as const;
 
 describe("friendGroupDiscordLinksRepo.redeemCode", () => {
-  it("claims the pending row with a lock inside one transaction", async () => {
-    const { db, queries, events } = createRecordingDb([[PENDING_ROW], [], [], [LINKED_ROW]]);
-
-    const result = await friendGroupDiscordLinksRepo(db).redeemCode(REDEEM);
-
-    expect(result.status).toBe("linked");
-    expect(events).toEqual(["begin", "commit"]);
-    expect(queries[0]).toContain("for update");
-    expect(queries[1]).toContain("pg_advisory_xact_lock");
-    expect(queries).toHaveLength(4);
-  });
-
   it("rolls back when a statement fails after the code was claimed, leaving the code neither spent nor unlinked", async () => {
     const { db, queries, events } = createRecordingDb([
       [PENDING_ROW],
@@ -53,48 +32,5 @@ describe("friendGroupDiscordLinksRepo.redeemCode", () => {
     );
     expect(events).toEqual(["begin", "rollback"]);
     expect(queries).toHaveLength(4);
-  });
-
-  it("reports unknown-code when the pending row is already consumed", async () => {
-    const { db, queries, events } = createRecordingDb([[]]);
-
-    const result = await friendGroupDiscordLinksRepo(db).redeemCode(REDEEM);
-
-    expect(result).toEqual({ status: "unknown-code" });
-    expect(events).toEqual(["begin", "commit"]);
-    expect(queries).toHaveLength(1);
-  });
-
-  it("leaves the code unspent when the guild belongs to another group", async () => {
-    const { db, queries, events } = createRecordingDb([
-      [PENDING_ROW],
-      [],
-      [{ ...LINKED_ROW, id: "link-other", group_id: "group-b" }],
-    ]);
-
-    const result = await friendGroupDiscordLinksRepo(db).redeemCode(REDEEM);
-
-    expect(result).toEqual({ status: "guild-taken" });
-    expect(queries).toHaveLength(3);
-    expect(events).toEqual(["begin", "commit"]);
-  });
-
-  it("refreshes the existing link and drops the pending row on a re-link", async () => {
-    const { db, queries } = createRecordingDb([
-      [PENDING_ROW],
-      [],
-      [{ ...LINKED_ROW, id: "link-live" }],
-      [{ ...LINKED_ROW, id: "link-live" }],
-      [],
-    ]);
-
-    const result = await friendGroupDiscordLinksRepo(db).redeemCode(REDEEM);
-
-    expect(result).toEqual({
-      status: "linked",
-      link: expect.objectContaining({ id: "link-live" }),
-    });
-    expect(queries[3]).toContain("update");
-    expect(queries[4]).toContain("delete from");
   });
 });

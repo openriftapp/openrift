@@ -1,16 +1,23 @@
-/** The catalogue's printings in the shape the web app's `resolveLock` reads. */
+/** The catalogue's printed sides in the shape the web app's `resolveLock` reads, both sides of a double-sided printing included. */
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-import type { Marker, Printing, PrintingImage } from "../../packages/shared/src/types/catalog.js";
+import type {
+  Marker,
+  Printing,
+  PrintingImage,
+  PrintingOtherSide,
+} from "../../packages/shared/src/types/catalog.js";
 import { CACHE_DIR } from "./lib";
 
-const CACHE_FILE = path.join(CACHE_DIR, "printings.json");
+const CACHE_FILE = path.join(CACHE_DIR, "printing-sides.json");
 
 const QUERY = `
   select coalesce(json_agg(row_to_json(t)), '[]'::json) from (
-    select p.printing_id as id, p.card_id as "cardId", p.short_code as "shortCode", s.slug as "setSlug",
+    select p.printing_id as id, p.position as side, p.face_id as "faceId",
+           case p.position when 1 then pr.face2_id else pr.face1_id end as "otherFaceId",
+           p.card_id as "cardId", p.short_code as "shortCode", s.slug as "setSlug",
            p.art_variant as "artVariant", p.is_signed as "isSigned",
            p.is_overnumbered as "isOvernumbered", p.marker_slugs as "markerSlugs",
            p.finish, p.size, p.language, p.public_code as "publicCode",
@@ -19,12 +26,15 @@ const QUERY = `
                      where pi.face_id = p.face_id), '[]'::json) as "imageIds"
     from printing_sides_ordered p
     join sets s on s.id = p.set_id
-    where p.position = 1
+    join printings pr on pr.id = p.printing_id
   ) t
 `;
 
 interface PrintingRow {
   id: string;
+  side: 1 | 2;
+  faceId: string;
+  otherFaceId: string | null;
   cardId: string;
   shortCode: string;
   setSlug: string;
@@ -43,6 +53,8 @@ interface PrintingRow {
 type ScanFields = Pick<
   Printing,
   | "printingId"
+  | "side"
+  | "faceId"
   | "cardId"
   | "shortCode"
   | "setSlug"
@@ -57,6 +69,7 @@ type ScanFields = Pick<
   size: string;
   markers: Pick<Marker, "slug">[];
   images: Pick<PrintingImage, "imageId">[];
+  otherSide?: Pick<PrintingOtherSide, "faceId">;
 };
 
 export function loadPrintings(refresh = false): Printing[] {
@@ -77,6 +90,9 @@ export function loadPrintings(refresh = false): Printing[] {
   return rows.map((row) => {
     const printing = {
       printingId: row.id,
+      side: row.side,
+      faceId: row.faceId,
+      ...(row.otherFaceId === null ? {} : { otherSide: { faceId: row.otherFaceId } }),
       cardId: row.cardId,
       shortCode: row.shortCode,
       setSlug: row.setSlug,

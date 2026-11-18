@@ -1,48 +1,14 @@
-import type { DeckZone } from "@openrift/shared/types/enums";
 import { createFileRoute } from "@tanstack/react-router";
-import { z } from "zod/mini";
 
 import { catalogQueryOptions } from "@/features/cards/lib/catalog-queries";
-import { filterSearchSchema } from "@/features/cards/lib/search-schemas";
-import { loadCollection } from "@/features/collections/lib/collection-load";
 import { DeckPending } from "@/features/decks/components/deck-pending";
-import { TierListGoneState } from "@/features/stage/components/tier-list-gone-state";
-import { queueCardsSearchSchema } from "@/features/stage/lib/presentation-queue-search";
-import { tierListQueryOptions } from "@/features/stage/lib/tier-lists-queries";
-import { requireSession, sessionQueryOptions } from "@/lib/auth-session";
+import { stageBuilderSearchSchema } from "@/features/stage/lib/stage-search";
 import { initQueryOptions } from "@/lib/init-queries";
-import { lenient } from "@/lib/lenient-param";
 import { seoHead } from "@/lib/seo";
-import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
 import { getSiteUrl } from "@/lib/site-config";
 
-const DECK_ZONES = [
-  "main",
-  "sideboard",
-  "legend",
-  "champion",
-  "runes",
-  "battlefield",
-  "overflow",
-] as const satisfies readonly DeckZone[];
-
-// Carries the shared filter params on top of its own: dropping them would
-// make a link copied from /cards fail validation here.
-const stageSearchSchema = z.extend(filterSearchSchema, {
-  deck: lenient(z.string()),
-  tier: lenient(z.string()),
-  tierShare: lenient(z.string()),
-  cards: queueCardsSearchSchema,
-  zone: lenient(z.enum(DECK_ZONES)),
-  i: lenient(z.number().check(z.int(), z.nonnegative())),
-  mode: lenient(z.enum(["edit"])),
-  preset: lenient(z.string()),
-  edit: lenient(z.boolean()),
-});
-
 export const Route = createFileRoute("/_app/stage")({
-  // The deck and tier views read client-held stores through live queries, which
-  // have no server snapshot and would render an empty stage during SSR.
+  // The queue and the OBS panel read client-held stores through live queries.
   ssr: false,
   // Deliberately not indexed: a stage URL is a working link for one creator's
   // recording session, not a page anyone should land on from search.
@@ -55,60 +21,14 @@ export const Route = createFileRoute("/_app/stage")({
       path: "/stage",
       noIndex: true,
     }),
-  validateSearch: stageSearchSchema,
-  // Only `?tier=` needs a session; the other sources all run signed out.
-  beforeLoad: async ({ context, location, search }) => {
-    if (search.tier === undefined) {
-      return;
-    }
-    await requireSession({ context, location });
-  },
-  loaderDeps: ({ search }) => ({ deck: search.deck, tier: search.tier }),
-  // A hover preload must not stand in for the fetch on entry: the builder may have saved since.
-  preloadStaleTime: 0,
-  loader: async ({ context, deps }) => {
-    // Both the deck walk and the ad-hoc queue resolve their cards against the
-    // catalog, and the stage reads zone labels off /init.
+  // A URL that opens the show is sent on to /stage/show by the `_app` gate.
+  validateSearch: stageBuilderSearchSchema,
+  loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.query({ ...catalogQueryOptions, staleTime: "static" }),
       context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
     ]);
-    if (deps.tier !== undefined) {
-      const session = await context.queryClient.query({
-        ...sessionQueryOptions(),
-        staleTime: "static",
-      });
-      if (session?.user) {
-        await notFoundOnSentinel(
-          context.queryClient.query({
-            ...tierListQueryOptions(session.user.id, deps.tier),
-            staleTime: 0,
-          }),
-        );
-      }
-    }
-    if (deps.deck === undefined) {
-      return null;
-    }
-    // A deck the stores have not loaded resolves to the empty stand-in, which
-    // puts a deck named "Deck" holding no cards on screen.
-    const { preloadLocalDecks } = await import("@/features/decks/lib/local-decks-collection");
-    await preloadLocalDecks();
-    const session = await context.queryClient.query({
-      ...sessionQueryOptions(),
-      staleTime: "static",
-    });
-    if (!session?.user) {
-      return null;
-    }
-    const { getDeckCardsCollection, getDecksCollection } =
-      await import("@/features/decks/lib/decks-collection");
-    await Promise.all([
-      loadCollection(getDecksCollection(context.queryClient, session.user.id)),
-      loadCollection(getDeckCardsCollection(context.queryClient, session.user.id)),
-    ]);
     return null;
   },
   pendingComponent: DeckPending,
-  notFoundComponent: TierListGoneState,
 });

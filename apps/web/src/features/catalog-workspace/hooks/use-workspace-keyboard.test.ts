@@ -4,8 +4,11 @@ import type { ReactNode } from "react";
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/workspace-undo";
-import { createWorkspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
+import { queueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
+import {
+  createWorkspaceWriteQueue,
+  resetWorkspaceWriteQueue,
+} from "@/features/catalog-workspace/lib/workspace-write-queue";
 import { useWorkspaceActionsStore } from "@/features/catalog-workspace/stores/workspace-actions-store";
 import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
 import { createStoreResetter } from "@/test/store-helpers";
@@ -30,7 +33,6 @@ vi.mock("@/features/catalog-workspace/hooks/use-queue-navigation", () => ({
 }));
 
 const {
-  NOTHING_SAVED_NOTICE,
   RECORD_LOADING_NOTICE,
   STILL_SAVING_NOTICE,
   handleWorkspaceKey,
@@ -64,8 +66,7 @@ function deps(overrides: Partial<Parameters<typeof handleWorkspaceKey>[1]> = {})
     record: null,
     stale: false,
     currentRecord: () => null,
-    undo: vi.fn((_skip?: ReadonlySet<WorkspaceUndoEntry>) => false),
-    undoEntries: () => [],
+    undo: vi.fn(() => false),
     overlayOpen: () => false,
     queue: createWorkspaceWriteQueue(),
     ...overrides,
@@ -82,6 +83,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  resetWorkspaceWriteQueue();
   resetActions();
   resetSelection();
   routeParams.current = {};
@@ -290,62 +292,6 @@ describe("handleWorkspaceKey", () => {
     expect(d.goNext).not.toHaveBeenCalled();
   });
 
-  it("undoes a pending write with Z once it lands, leaving older entries alone", async () => {
-    const older = { label: "older" } as WorkspaceUndoEntry;
-    const landed = { label: "landed" } as WorkspaceUndoEntry;
-    const stack: WorkspaceUndoEntry[] = [older];
-    let finish = () => {};
-    const ignore = vi.fn(
-      () =>
-        new Promise<void>((resolve) => {
-          finish = () => {
-            stack.push(landed);
-            resolve();
-          };
-        }),
-    );
-    const undone: WorkspaceUndoEntry[] = [];
-    const undo = vi.fn((skip?: ReadonlySet<WorkspaceUndoEntry>) => {
-      const entry = stack.findLast((candidate) => !undone.includes(candidate));
-      if (entry === undefined || skip?.has(entry)) {
-        return false;
-      }
-      undone.push(entry);
-      return true;
-    });
-    const d = deps({ record: Symbol("A"), actions: { ignore }, undo, undoEntries: () => stack });
-
-    handleWorkspaceKey(keyEvent("x"), d);
-    expect(handleWorkspaceKey(keyEvent("z"), d)).toBe(true);
-    expect(handleWorkspaceKey(keyEvent("z"), d)).toBe(true);
-    await vi.waitFor(() => expect(ignore).toHaveBeenCalledOnce());
-    expect(undo).not.toHaveBeenCalled();
-
-    finish();
-    await vi.waitFor(() => expect(d.queue.idle()).toBe(true));
-    expect(undone).toEqual([landed]);
-    expect(notice).toHaveBeenCalledOnce();
-    expect(notice).toHaveBeenCalledWith(NOTHING_SAVED_NOTICE);
-  });
-
-  it("says nothing was undone when Z waited behind a write that failed", async () => {
-    const older = { label: "older" } as WorkspaceUndoEntry;
-    const undo = vi.fn((skip?: ReadonlySet<WorkspaceUndoEntry>) => !skip?.has(older));
-    const ignore = vi.fn(() => Promise.reject(new Error("nope")));
-    const d = deps({
-      record: Symbol("A"),
-      actions: { ignore },
-      undo,
-      undoEntries: () => [older],
-    });
-    handleWorkspaceKey(keyEvent("x"), d);
-    handleWorkspaceKey(keyEvent("z"), d);
-    await vi.waitFor(() => expect(d.queue.idle()).toBe(true));
-    expect(undo).toHaveBeenCalledOnce();
-    expect(undo.mock.results[0]?.value).toBe(false);
-    expect(notice).toHaveBeenCalledWith(NOTHING_SAVED_NOTICE);
-  });
-
   it("frees the keys again after an action fails", async () => {
     const ignore = vi.fn(() => Promise.reject(new Error("nope")));
     const d = deps({ actions: { ignore } });
@@ -478,6 +424,75 @@ describe("useWorkspaceKeyboard", () => {
     await vi.waitFor(() => expect(undo).toHaveBeenCalledOnce());
     await vi.waitFor(() => expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([]));
     expect(notice).not.toHaveBeenCalled();
+  });
+
+  it("undoes a write a button started once it lands when Z is pressed during it", async () => {
+    const undo = vi.fn(() => Promise.resolve());
+    let land = () => {};
+    renderHook(() => useWorkspaceKeyboard("printing"), { wrapper });
+    useWorkspaceActionsStore.getState().register({}, Symbol("record"));
+    const older = {
+      label: "Ignored Ekko",
+      undoneLabel: "Undone: Ekko is back in the queue",
+      invalidates: [],
+      undo: vi.fn(() => Promise.resolve()),
+    };
+    useWorkspaceSelectionStore.getState().pushUndo(older);
+    void queueWorkspaceWrite(
+      () =>
+        new Promise<void>((resolve) => {
+          land = () => {
+            useWorkspaceSelectionStore.getState().pushUndo({
+              label: "Used Rarity from Provider A on Vi",
+              undoneLabel: "Undone: Rarity restored on Vi",
+              invalidates: [],
+              undo,
+            });
+            resolve();
+          };
+        }),
+    );
+
+    globalThis.dispatchEvent(new KeyboardEvent("keydown", { key: "z" }));
+    await Promise.resolve();
+    expect(older.undo).not.toHaveBeenCalled();
+    land();
+
+    await vi.waitFor(() => expect(undo).toHaveBeenCalledOnce());
+    expect(older.undo).not.toHaveBeenCalled();
+  });
+
+  it("starts a key action pressed after Z only once the undo finished", async () => {
+    let finishUndo = () => {};
+    const order: string[] = [];
+    useWorkspaceSelectionStore.getState().pushUndo({
+      label: "Ignored Ekko",
+      undoneLabel: "Undone: Ekko is back in the queue",
+      invalidates: [],
+      undo: () =>
+        new Promise<void>((resolve) => {
+          order.push("undo start");
+          finishUndo = () => {
+            order.push("undo end");
+            resolve();
+          };
+        }),
+    });
+    const ignore = vi.fn(() => {
+      order.push("ignore");
+    });
+    renderHook(() => useWorkspaceKeyboard("printing"), { wrapper });
+    useWorkspaceActionsStore.getState().register({ ignore }, Symbol("record"));
+
+    globalThis.dispatchEvent(new KeyboardEvent("keydown", { key: "z" }));
+    await vi.waitFor(() => expect(order).toEqual(["undo start"]));
+    globalThis.dispatchEvent(new KeyboardEvent("keydown", { key: "x" }));
+    await Promise.resolve();
+    expect(ignore).not.toHaveBeenCalled();
+    finishUndo();
+
+    await vi.waitFor(() => expect(ignore).toHaveBeenCalledOnce());
+    expect(order).toEqual(["undo start", "undo end", "ignore"]);
   });
 
   it("keeps X away from the record being left and runs it on the next record once that registers", async () => {

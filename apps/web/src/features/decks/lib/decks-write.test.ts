@@ -9,7 +9,13 @@ import { QueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getDeckCardsCollection, getDecksCollection } from "./decks-collection";
-import { bulkUpdateDecks, deckCardRowKey, saveDeckCards, updateDeck } from "./decks-write";
+import {
+  bulkUpdateDecks,
+  DeckCardsConflictError,
+  deckCardRowKey,
+  saveDeckCards,
+  updateDeck,
+} from "./decks-write";
 
 const userId = "user-1";
 
@@ -83,7 +89,7 @@ function succeed({ method, path, body }: SentRequest): Response {
   }
   if (method === "PUT" && path.endsWith("/cards")) {
     const { cards } = body as { cards: DeckCardResponse[] };
-    return Response.json({ cards: storedCards ?? cards });
+    return Response.json({ cards: storedCards ?? cards, version: "42" });
   }
   if (method === "POST" && path === "/api/v1/decks") {
     return Response.json(deckFields(body as Partial<DeckResponse>), { status: 201 });
@@ -513,6 +519,56 @@ describe("persisting deck card writes", () => {
     expect(sentCards()).toEqual([]);
     await vi.waitFor(() => {
       expect(collection.toArray).toEqual([]);
+    });
+  });
+
+  it("names the expected version and hands back the one it stored", async () => {
+    const collection = await deckCardsOnServer([{ deckId: "deck-1", ...card("card-a", 1) }]);
+    const onVersion = vi.fn();
+
+    await saveDeckCards(
+      collection,
+      "deck-1",
+      [card("card-a", 2)],
+      { queryClient, userId },
+      { expectedVersion: "41", onVersion },
+    ).when("settled");
+
+    expect(writes().at(0)?.body).toMatchObject({ expectedVersion: "41" });
+    expect(onVersion).toHaveBeenCalledWith("42");
+  });
+
+  it("stores the server's cards and rejects with their version when the deck moved on", async () => {
+    const collection = await deckCardsOnServer([{ deckId: "deck-1", ...card("card-a", 1) }]);
+    respond = (request) =>
+      request.method === "PUT"
+        ? Response.json(
+            {
+              defined: true,
+              code: "CONFLICT",
+              status: 409,
+              message: "The deck's cards changed since this version",
+              data: { version: "57", cards: [card("card-a", 1), card("card-c", 2)] },
+            },
+            { status: 409 },
+          )
+        : succeed(request);
+
+    const settled = saveDeckCards(
+      collection,
+      "deck-1",
+      [card("card-a", 3)],
+      { queryClient, userId },
+      { expectedVersion: "41", onVersion: () => {} },
+    ).when("settled");
+
+    await expect(settled).rejects.toBeInstanceOf(DeckCardsConflictError);
+    await expect(settled).rejects.toMatchObject({ version: "57" });
+    await vi.waitFor(() => {
+      expect(collection.toArray.map((row) => `${row.cardId}x${row.quantity}`).toSorted()).toEqual([
+        "card-ax1",
+        "card-cx2",
+      ]);
     });
   });
 

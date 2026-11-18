@@ -20,6 +20,7 @@ import {
 } from "@/features/admin/lib/errata-draft";
 import { useDeleteCardErrata, useUpsertCardErrata } from "@/features/cards/hooks/use-card-errata";
 import { useLanguageList } from "@/hooks/use-enums";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 function ErrataRow({
   errata,
@@ -115,6 +116,24 @@ export function CardErrataSection({
     (language) => !errata.some((entry) => entry.language === language.code),
   );
 
+  async function saveDraft() {
+    if (
+      await runReportedMutation(() => upsertErrata.mutateAsync(errataDraftInput(cardId, draft)))
+    ) {
+      setEditing(null);
+    }
+  }
+
+  async function confirmRemove() {
+    if (removing === null) {
+      return;
+    }
+    const language = removing;
+    if (await runReportedMutation(() => deleteErrata.mutateAsync({ cardId, language }))) {
+      setRemoving(null);
+    }
+  }
+
   return (
     <section className="flex flex-col gap-4">
       <Heading level={2}>Errata</Heading>
@@ -167,11 +186,7 @@ export function CardErrataSection({
           isPending={upsertErrata.isPending}
           submitLabel={editing === "new" ? "Add" : "Save"}
           onChange={(next) => setDraft((current) => ({ ...current, ...next }))}
-          onSubmit={() =>
-            upsertErrata.mutate(errataDraftInput(cardId, draft), {
-              onSuccess: () => setEditing(null),
-            })
-          }
+          onSubmit={() => void saveDraft()}
           onCancel={() => setEditing(null)}
         />
       )}
@@ -187,14 +202,7 @@ export function CardErrataSection({
         description="Printings in this language fall back to the text printed on them."
         confirmLabel="Remove errata"
         isPending={deleteErrata.isPending}
-        onConfirm={() => {
-          if (removing !== null) {
-            deleteErrata.mutate(
-              { cardId, language: removing },
-              { onSuccess: () => setRemoving(null) },
-            );
-          }
-        }}
+        onConfirm={() => void confirmRemove()}
       />
     </section>
   );

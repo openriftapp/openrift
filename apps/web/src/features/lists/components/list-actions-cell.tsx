@@ -27,7 +27,7 @@ interface ListActionsCellProps extends TableRowSlotProps {
   listCurrency: Currency | null;
   onEditTradePref: (entryId: string) => void;
   onRemoveEntry: (entryId: string, cardName: string) => void;
-  onQuantityChange: (entryId: string, quantity: number) => void;
+  onQuantityStep: (entryId: string, delta: number) => void;
   onTakeOff?: (entryId: string) => void;
   isRemovePendingFor: (entryId: string) => boolean;
   isQuantityPendingFor: (entryId: string) => boolean;
@@ -46,7 +46,7 @@ export function ListActionsCell({
   listCurrency,
   onEditTradePref,
   onRemoveEntry,
-  onQuantityChange,
+  onQuantityStep,
   onTakeOff,
   isRemovePendingFor,
   isQuantityPendingFor,
@@ -111,8 +111,8 @@ export function ListActionsCell({
         <ListEntryTableActions
           showQuantity
           quantity={manualPart}
-          onIncrement={() => onQuantityChange(entryId, manualPart + 1)}
-          onDecrement={() => onQuantityChange(entryId, manualPart - 1)}
+          onIncrement={() => onQuantityStep(entryId, 1)}
+          onDecrement={() => onQuantityStep(entryId, -1)}
           onRemove={() => onRemoveEntry(entryId, entry.cardName)}
           isQuantityPending={isQuantityPendingFor(entryId)}
           isRemovePending={isRemovePendingFor(entryId)}

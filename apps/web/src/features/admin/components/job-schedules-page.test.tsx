@@ -31,6 +31,10 @@ vi.mock("@/features/admin/hooks/use-job-schedules", () => ({
   useJobSchedules: () => ({ data: { jobs: captured.jobs } }),
   useSetJobSchedule: () => ({
     mutate: (vars: { kind: string; schedule: string }) => captured.set.push(vars),
+    mutateAsync: (vars: { kind: string; schedule: string }) => {
+      captured.set.push(vars);
+      return Promise.resolve();
+    },
     isPending: false,
   }),
   useDisableJobSchedule: () => ({

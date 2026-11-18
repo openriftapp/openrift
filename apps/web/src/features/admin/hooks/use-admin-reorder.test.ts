@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { AdminReorderConfig } from "@/features/admin/hooks/use-admin-reorder";
 import { useAdminReorder } from "@/features/admin/hooks/use-admin-reorder";
 import type { ReorderMoves } from "@/features/admin/lib/admin-reorder";
+import { NonScrollingKeyboardSensor } from "@/lib/keyboard-drag-sensor";
 
 const swapped = ["b", "a", "c"];
 
@@ -38,6 +39,14 @@ function renderReorder(reorder?: AdminReorderConfig, rowKeys = ["a", "b", "c"]) 
 }
 
 describe("useAdminReorder", () => {
+  it("drags with a keyboard sensor that leaves the page scroll alone", () => {
+    const { result } = renderReorder({ moves: makeMoves(), onReorder: vi.fn() });
+
+    expect(result.current.sensors.map((entry) => entry.sensor)).toContain(
+      NonScrollingKeyboardSensor,
+    );
+  });
+
   it("shows the source order before anything is moved", () => {
     const { result } = renderReorder({ moves: makeMoves(), onReorder: vi.fn() });
 

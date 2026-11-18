@@ -17,7 +17,7 @@ import { CardStrip, StripIconButton } from "@/features/cards/components/card-str
 import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCellDisplayState } from "@/features/cards/hooks/use-cell-display-state";
 import {
-  dispatchEntryQuantityChange,
+  dispatchEntryQuantityStep,
   dispatchIncrement,
   dispatchItemClick,
   dispatchItemToggle,
@@ -297,7 +297,7 @@ function buildStrip({
             if (manualPart <= 1) {
               dispatchRemoveEntry(entry.id, entry.cardName);
             } else {
-              dispatchEntryQuantityChange(entry.id, manualPart - 1);
+              dispatchEntryQuantityStep(entry.id, -1);
             }
           },
           disabled: manualPart === 0 || quantityPending,
@@ -306,7 +306,10 @@ function buildStrip({
           }),
         }}
         increment={{
-          onClick: () => dispatchIncrement(displayPrinting),
+          onClick: () =>
+            entry && entry.id !== null
+              ? dispatchEntryQuantityStep(entry.id, 1)
+              : dispatchIncrement(displayPrinting),
           disabled: quantityPending,
           ariaLabel: m.lists_entry_add_aria({ name: legendDisplayName(displayPrinting.card) }),
         }}
@@ -399,12 +402,12 @@ function buildStrip({
         onClick: () =>
           manualPart <= 1
             ? dispatchRemoveEntry(entryId, entry.cardName)
-            : dispatchEntryQuantityChange(entryId, manualPart - 1),
+            : dispatchEntryQuantityStep(entryId, -1),
         disabled: quantityPending,
         ariaLabel: m.lists_entry_decrease_aria({ name: entry.cardName }),
       }}
       increment={{
-        onClick: () => dispatchEntryQuantityChange(entryId, manualPart + 1),
+        onClick: () => dispatchEntryQuantityStep(entryId, 1),
         disabled: quantityPending,
         ariaLabel: m.lists_entry_increase_aria({ name: entry.cardName }),
       }}

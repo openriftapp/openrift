@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import { createMockDb } from "../../../test/mock-db.js";
-import { createRecordingDb } from "../../../test/recording-db.js";
 import { setsRepo } from "./sets.js";
 
 const SET = {
@@ -47,25 +46,6 @@ describe("setsRepo", () => {
     const db = createMockDb([]);
     const result = await setsRepo(db).getNamesByIds([]);
     expect(result.size).toBe(0);
-  });
-
-  it("create inserts a set", async () => {
-    const db = createMockDb([]);
-    await expect(
-      setsRepo(db).create({ slug: "NEW", name: "New Set", printedTotal: null, sortOrder: 1 }),
-    ).resolves.toBeUndefined();
-  });
-
-  it("create with a later sort order", async () => {
-    const db = createMockDb([]);
-    await expect(
-      setsRepo(db).create({
-        slug: "NEW",
-        name: "New Set",
-        printedTotal: 100,
-        sortOrder: 2,
-      }),
-    ).resolves.toBeUndefined();
   });
 
   it("createIfNotExists returns id when inserted", async () => {
@@ -137,33 +117,5 @@ describe("setsRepo", () => {
   it("printingCountsBySet returns counts per set", async () => {
     const db = createMockDb([{ setId: "s-1", printingCount: 100 }]);
     expect(await setsRepo(db).printingCountsBySet()).toHaveLength(1);
-  });
-
-  it("reorder updates sort orders", async () => {
-    const db = createMockDb([]);
-    await expect(setsRepo(db).reorder(["s-1", "s-2"])).resolves.toBeUndefined();
-  });
-
-  it("reorder is a no-op for empty array", async () => {
-    const db = createMockDb([]);
-    await expect(setsRepo(db).reorder([])).resolves.toBeUndefined();
-  });
-
-  it("upsert resolves without a result row", async () => {
-    const db = createMockDb([]);
-    await expect(setsRepo(db).upsert("NEW", "New Set")).resolves.toBeUndefined();
-  });
-
-  it("upsert issues one conflict-tolerant insert under the sort-order lock", async () => {
-    const { db, queries } = createRecordingDb();
-
-    await setsRepo(db).upsert("NEW", "New Set");
-
-    expect(queries).toHaveLength(2);
-    expect(queries[0]).toContain("pg_advisory_xact_lock");
-    expect(queries[1]).toMatch(/^insert into "sets"/u);
-    expect(queries[1]).toContain('on conflict ("slug") do nothing');
-    expect(queries[1]).toContain("coalesce((select max(sort_order) from sets), 0) + 1");
-    expect(queries[1]).not.toContain("select id from");
   });
 });

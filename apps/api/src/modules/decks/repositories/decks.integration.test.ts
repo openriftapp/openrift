@@ -269,6 +269,34 @@ describe.skipIf(!ctx)("decksRepo (integration)", () => {
     expect(cards).toEqual([]);
   });
 
+  it("refuses a versioned replace once another write moved the deck on", async () => {
+    const deckId = createdDeckIds[0]!;
+    const first = await repo.replaceCards(deckId, [
+      { cardId: seedCardId, zone: "main", quantity: 2, preferredPrintingId: null },
+    ]);
+    if (first.outcome !== "replaced") {
+      throw new Error("expected the first replace to land");
+    }
+    const second = await repo.replaceCards(
+      deckId,
+      [{ cardId: seedCardId, zone: "main", quantity: 3, preferredPrintingId: null }],
+      first.version,
+    );
+    if (second.outcome !== "replaced") {
+      throw new Error("expected the second replace to land");
+    }
+
+    const stale = await repo.replaceCards(deckId, [], first.version);
+
+    expect(stale).toEqual({
+      outcome: "stale",
+      version: second.version,
+      cards: [{ cardId: seedCardId, zone: "main", quantity: 3, preferredPrintingId: null }],
+    });
+    expect(await repo.cardsForDeck(deckId, userId)).toHaveLength(1);
+    await repo.replaceCards(deckId, []);
+  });
+
   it("keeps the first live share token when two enables race", async () => {
     const deckId = createdDeckIds[1]!;
     await repo.setShare(deckId, userId, null, false);
@@ -357,8 +385,8 @@ describe.skipIf(!ctx)("decksRepo (integration)", () => {
 
     await db.updateTable("deckCards").set({ quantity: 2 }).where("deckId", "=", deckId).execute();
 
-    const touched = await repo.deckIdsTouchedSince(userId, before);
-    expect(touched).toContain(deckId);
+    const touched = await repo.deckVersions(userId, before);
+    expect(touched.map((row) => row.id)).toContain(deckId);
   });
 
   it("returns a deck committed while an older transaction is still open", async () => {
@@ -392,10 +420,10 @@ describe.skipIf(!ctx)("decksRepo (integration)", () => {
         .executeTakeFirstOrThrow();
       expect(BigInt(await repo.currentSafeXid())).toBeLessThanOrEqual(BigInt(xid));
 
-      const touched = await repo.deckIdsTouchedSince(userId, sinceXid);
+      const touched = await repo.deckVersions(userId, sinceXid);
       const rows = await repo.allDeckCardsForUser(userId, sinceXid);
 
-      expect(touched).toContain(deck.id);
+      expect(touched).toContainEqual({ id: deck.id, version: xid });
       expect(rows.filter((row) => row.deckId === deck.id)).toHaveLength(1);
     } finally {
       release.resolve();

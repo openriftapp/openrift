@@ -78,10 +78,8 @@ const ANNIE_FIERY_PRINTING_NORMAL = "019cfc3b-03d6-74cf-adec-1dce41f631eb";
  */
 function cardTile(page: Page, cardName: string): Locator {
   return page
-    .getByRole("img", { name: cardName })
-    .locator(
-      "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' group ')][1]",
-    )
+    .locator("[data-printing-id]")
+    .filter({ has: page.getByRole("img", { name: cardName }) })
     .filter({ has: page.getByRole("button", { name: "Add to deck" }) })
     .first();
 }
@@ -198,7 +196,7 @@ test.describe("deck editor card browser", () => {
       });
       await expect(page.getByRole("img", { name: "Garen, Rugged" })).toBeHidden();
 
-      await expect(page.locator('[data-slot="badge"]', { hasText: "Annie" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: /^Remove .*Annie/u })).toHaveCount(0);
     });
 
     test("applying and clearing a type filter narrows then restores the grid", async ({ page }) => {
@@ -435,7 +433,7 @@ test.describe("deck editor card browser", () => {
         timeout: 5000,
       });
 
-      await cardTile(page, "Annie, Fiery").locator(".aspect-card").first().click();
+      await cardTile(page, "Annie, Fiery").getByRole("button", { name: "Annie, Fiery" }).click();
 
       // paneDocked is off by default, so the detail arrives as a dialog.
       const detail = page.getByRole("dialog");

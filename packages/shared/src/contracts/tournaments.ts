@@ -19,6 +19,7 @@ import {
   isoDateTime,
   keysetCursorSchema,
   podResultSchema,
+  POSTGRES_INTEGER_MAX,
   withParams,
 } from "@openrift/shared/schemas";
 import { z } from "zod";
@@ -223,6 +224,9 @@ const hostInputSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("organization"), orgId: z.uuid() }),
 ]);
 
+const MAX_PAIRING_PLAYERS = 1024;
+const MAX_ALLOWED_SETS = 100;
+
 const tournamentSettingsShape = {
   name: nameField(120),
   // Host-only on update; reassigning to an org requires the caller be one of its
@@ -248,7 +252,7 @@ const tournamentSettingsShape = {
   submissionsCloseAt: isoDateTime.nullable().optional(),
   listLockMode: tournamentListLockModeSchema.optional(),
   deckFormat: z.string().min(1).optional(),
-  allowedSets: z.array(z.string()).nullable().optional(),
+  allowedSets: z.array(z.string()).max(MAX_ALLOWED_SETS).nullable().optional(),
   selfRegistration: z.boolean().optional(),
   groupId: z.uuid().nullable().optional(),
   published: z.boolean().optional(),
@@ -278,9 +282,9 @@ const staffParamSchema = z.object({
   role: tournamentStaffRoleSchema,
 });
 
-const roundNumberParamSchema = z.object({
+export const roundNumberParamSchema = z.object({
   id: z.uuid(),
-  roundNumber: z.coerce.number().int().positive(),
+  roundNumber: z.coerce.number().int().positive().max(POSTGRES_INTEGER_MAX),
 });
 const podParamSchema = z.object({ id: z.uuid(), podId: z.uuid() });
 const groupParamSchema = z.object({ id: z.uuid(), groupId: z.uuid() });
@@ -293,19 +297,21 @@ const legendMetaSharesSchema = z.object({
 });
 
 /** `byes` lists active players the organizer is manually sitting out this round. */
-const generateRoundSchema = z.object({ byes: z.array(z.uuid()).default([]) });
+export const generateRoundSchema = z.object({
+  byes: z.array(z.uuid()).max(MAX_PAIRING_PLAYERS).default([]),
+});
 
 /** Server validates pod sizes per pairing style, full round coverage, and active byes. */
-const replacePairingSchema = z.object({
+export const replacePairingSchema = z.object({
   pods: z
     .array(
       z.object({
         size: z.union([z.literal(2), z.literal(3), z.literal(4)]),
-        playerIds: z.array(z.uuid()),
+        playerIds: z.array(z.uuid()).max(4),
       }),
     )
-    .min(0),
-  byes: z.array(z.uuid()),
+    .max(MAX_PAIRING_PLAYERS),
+  byes: z.array(z.uuid()).max(MAX_PAIRING_PLAYERS),
 });
 
 const validationError = { VALIDATION_ERROR: { status: 422 as const, message: "Invalid settings" } };
@@ -426,7 +432,7 @@ export const tournamentsContract = {
     .input(
       withParams(participantParamSchema, {
         displayName: z.string().min(1).max(120).optional(),
-        seed: z.number().int().nullable().optional(),
+        seed: z.int32().nullable().optional(),
         // Judges may patch region and legend alone; other fields stay organizer/host-only.
         region: z.string().min(1).max(50).nullable().optional(),
         // A Legend card id; frozen once groups exist in a group_cut tournament.
@@ -528,7 +534,11 @@ export const tournamentsContract = {
   standingsSnapshot: authedRoute
     .route({ method: "GET", path: `${BASE}/{id}/standings`, tags: [TAG] })
     .errors({ NOT_FOUND: { message: "Tournament not found" } })
-    .input(idParamSchema.extend({ throughRound: z.coerce.number().int().positive().optional() }))
+    .input(
+      idParamSchema.extend({
+        throughRound: z.coerce.number().int().positive().max(POSTGRES_INTEGER_MAX).optional(),
+      }),
+    )
     .output(podStandingsSnapshotSchema),
   generateRound: authedRoute
     .route({ method: "POST", path: `${BASE}/{id}/rounds`, tags: [TAG] })
@@ -611,7 +621,10 @@ export const tournamentsContract = {
         roundNumberParamSchema,
         z.object({
           /** Array order is the bracket slot order. */
-          pods: z.array(z.object({ playerIds: z.array(z.string().min(1)).length(2) })).min(1),
+          pods: z
+            .array(z.object({ playerIds: z.array(z.uuid()).length(2) }))
+            .min(1)
+            .max(MAX_PAIRING_PLAYERS),
         }),
       ),
     )

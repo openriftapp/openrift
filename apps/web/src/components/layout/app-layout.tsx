@@ -10,6 +10,7 @@ import { usePreferencesSync } from "@/features/account/hooks/use-preferences-syn
 import { TradeCancelConsentHost } from "@/features/groups/components/trade-cancel-consent-host";
 import { useIdleAreaPrefetch } from "@/hooks/use-idle-area-prefetch";
 import { useSession } from "@/hooks/use-session";
+import { routeChromeMode } from "@/lib/chrome-mode";
 import { setSentryUser } from "@/lib/report-error";
 import { cn, CONTAINER_WIDTH, FOOTER_PADDING_NO_TOP } from "@/lib/utils";
 import { useSelectionStore } from "@/stores/selection-store";
@@ -25,6 +26,7 @@ export function AppLayout() {
   }, [session]);
   const matches = useMatches();
   const hideFooter = matches.some((match) => match.staticData?.hideFooter);
+  const bare = routeChromeMode(matches) !== undefined;
 
   // The selection store is a singleton: a path change clears it in the same
   // transition that mounts the next surface. Filters live in search, so those keep it.
@@ -38,6 +40,16 @@ export function AppLayout() {
       }),
     [router],
   );
+
+  if (bare) {
+    return (
+      <>
+        <CommandPalette />
+        <TradeCancelConsentHost />
+        <Outlet />
+      </>
+    );
+  }
 
   return (
     <>

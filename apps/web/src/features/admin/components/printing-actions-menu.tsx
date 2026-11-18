@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useDeletePrinting } from "@/features/admin/hooks/use-admin-card-mutations";
 import { deskPrintingName } from "@/features/admin/lib/desk-face-options";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 export function PrintingActionsMenu({
   printing,
@@ -25,6 +26,13 @@ export function PrintingActionsMenu({
 }) {
   const deletePrinting = useDeletePrinting(invalidates);
   const [deleteOpen, setDeleteOpen] = useState(false);
+
+  async function confirmDelete() {
+    if (await runReportedMutation(() => deletePrinting.mutateAsync(printing.printingId))) {
+      setDeleteOpen(false);
+      onDeleted();
+    }
+  }
 
   return (
     <>
@@ -63,14 +71,7 @@ export function PrintingActionsMenu({
         description="This cannot be undone."
         confirmLabel="Delete"
         isPending={deletePrinting.isPending}
-        onConfirm={() =>
-          deletePrinting.mutate(printing.printingId, {
-            onSuccess: () => {
-              setDeleteOpen(false);
-              onDeleted();
-            },
-          })
-        }
+        onConfirm={() => void confirmDelete()}
       />
     </>
   );

@@ -19,3 +19,9 @@ describe("/stage/source/$token search", () => {
     expect(validateSearch.parse({ theme: "dark" })).toEqual({});
   });
 });
+
+describe("/stage/source/$token chrome", () => {
+  it("asks the root shell for a transparent page", () => {
+    expect(Route.options.staticData).toMatchObject({ chrome: "transparent" });
+  });
+});

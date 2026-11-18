@@ -10,7 +10,7 @@ import type { Domain, Rarity } from "@openrift/shared/types/enums";
 import { WellKnown, isBaseBanFormat } from "@openrift/shared/well-known";
 import { useRouter } from "@tanstack/react-router";
 import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode } from "react";
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 
 import { MarketplaceIcon } from "@/components/marketplace-icon";
 import { Pressable } from "@/components/ui/pressable";
@@ -399,9 +399,12 @@ interface CardThumbnailProps {
   imageBadge?: ReactNode;
   href?: string;
   checked?: boolean;
+  focusRequested?: boolean;
+  onFocused?: () => void;
 }
 
 interface ImageTargetProps {
+  ref?: (node: HTMLElement | null) => void;
   href: string | undefined;
   draggable: false | undefined;
   onClick: (event?: ReactMouseEvent) => void;
@@ -412,6 +415,7 @@ interface ImageTargetProps {
 }
 
 function ImageTarget({
+  ref,
   href,
   onClick,
   className,
@@ -423,6 +427,7 @@ function ImageTarget({
   if (href === undefined) {
     return (
       <Pressable
+        ref={ref}
         className={className}
         style={style}
         onClick={onClick}
@@ -435,6 +440,7 @@ function ImageTarget({
   }
   return (
     <ImageLink
+      ref={ref}
       href={href}
       draggable={draggable}
       onClick={onClick}
@@ -447,6 +453,7 @@ function ImageTarget({
 }
 
 function ImageLink({
+  ref,
   href,
   draggable,
   onClick,
@@ -486,6 +493,7 @@ function ImageLink({
 
   return (
     <a
+      ref={ref}
       href={href}
       draggable={draggable}
       className={cn(
@@ -587,7 +595,21 @@ export const CardThumbnail = memo(function CardThumbnail({
   imageBadge,
   href,
   checked,
+  focusRequested = false,
+  onFocused,
 }: CardThumbnailProps) {
+  const focusTarget = useRef<HTMLElement | null>(null);
+  const setFocusTarget = (node: HTMLElement | null) => {
+    focusTarget.current = node;
+  };
+  const focused = useEffectEvent(() => onFocused?.());
+  useLayoutEffect(() => {
+    if (focusRequested) {
+      focusTarget.current?.focus({ preventScroll: true });
+      focused();
+    }
+  }, [focusRequested]);
+
   const card = displayCard(printing);
   const displayName = printingName(printing, printing.card);
   const art = showImages ? tileArt(printing, display.getFallbackArt) : NO_TILE_ART;
@@ -739,6 +761,7 @@ export const CardThumbnail = memo(function CardThumbnail({
             dimmed && "opacity-50",
           )}
           style={{ borderRadius: CARD_BORDER_RADIUS }}
+          ref={setFocusTarget}
           href={href}
           draggable={dragData ? false : undefined}
           onClick={(event) => onClick(printing, event)}

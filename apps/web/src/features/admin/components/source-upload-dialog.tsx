@@ -27,6 +27,7 @@ import { useUploadCandidates } from "@/features/admin/hooks/use-admin-image-muta
 import { useJsonFileInput } from "@/features/admin/hooks/use-json-file-input";
 import { parseJsonEntries } from "@/features/admin/lib/json-upload";
 import { errorText } from "@/lib/error-text";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 type UploadDetail = UploadCandidatesResponse["newCardDetails"][number];
 type UploadDiff = UploadCandidatesResponse["updatedCards"][number];
@@ -237,16 +238,14 @@ export function SourceUploadDialog({
   const fileData = file.value;
   const upload = useUploadCandidates();
 
-  function handleUpload() {
+  async function handleUpload() {
     if (!fileData || name.trim() === "") {
       return;
     }
-    upload.mutate(
-      { provider: name.trim(), candidates: fileData },
-      {
-        onSuccess: () => file.reset(),
-      },
-    );
+    const input = { provider: name.trim(), candidates: fileData };
+    if (await runReportedMutation(() => upload.mutateAsync(input))) {
+      file.reset();
+    }
   }
 
   return (
@@ -286,7 +285,7 @@ export function SourceUploadDialog({
           <Button
             disabled={!fileData || name.trim() === ""}
             pending={upload.isPending}
-            onClick={handleUpload}
+            onClick={() => void handleUpload()}
           >
             Upload
           </Button>

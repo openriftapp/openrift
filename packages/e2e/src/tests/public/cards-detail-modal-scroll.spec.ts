@@ -21,6 +21,18 @@ async function recordWindowScrolls(page: Page) {
   });
 }
 
+/**
+ * Escape pops the history entry the open dialog pushes; before that entry
+ * lands, Escape closes the dialog without a navigation.
+ */
+async function waitForDialogHistoryEntry(page: Page) {
+  await expect
+    .poll(() =>
+      page.evaluate(() => Boolean((history.state as Record<string, unknown> | null)?.cardDetail)),
+    )
+    .toBe(true);
+}
+
 async function closeAndReadScroll(page: Page) {
   const before = await page.evaluate(() => {
     (globalThis as unknown as { __armed: boolean }).__armed = true;
@@ -67,7 +79,7 @@ test.describe("card detail modal scroll", () => {
       await page.keyboard.press("ArrowRight");
     }
     await expect(position).not.toHaveText(openedAt ?? "");
-    await page.waitForTimeout(500);
+    await waitForDialogHistoryEntry(page);
 
     const { before, after, scrolls } = await closeAndReadScroll(page);
 
@@ -78,7 +90,8 @@ test.describe("card detail modal scroll", () => {
   test("closing a deep-linked card leaves the page on that card", async ({ page }) => {
     await page.goto(`/cards?printingId=${ANNIE_PRINTING_ID}`);
     await expect(page.getByRole("dialog")).toBeVisible({ timeout: 30_000 });
-    await page.waitForTimeout(500);
+    await expect(page).not.toHaveURL(/printingId/u);
+    await waitForDialogHistoryEntry(page);
 
     const { before, after, scrolls } = await closeAndReadScroll(page);
 

@@ -22,8 +22,7 @@ function renderRow() {
       <div onTouchStart={onTouchStart}>
         <SortableSidebarRow
           id="sortable-collection-c1"
-          data={{ type: "sidebar-reorder-collection", collectionId: "c1" }}
-          label="Binder"
+          data={{ type: "sidebar-reorder-collection", collectionId: "c1", label: "Binder" }}
         >
           {(handle) => <div>{handle}</div>}
         </SortableSidebarRow>
@@ -108,8 +107,7 @@ function ReorderHarness({ onDragEnd }: { onDragEnd: (event: DragEndEvent) => voi
           <SortableSidebarRow
             key={label}
             id={`sortable-collection-c${index}`}
-            data={{ type: "sidebar-reorder-collection", collectionId: `c${index}` }}
-            label={label}
+            data={{ type: "sidebar-reorder-collection", collectionId: `c${index}`, label }}
           >
             {(handle) => <div data-row={index}>{handle}</div>}
           </SortableSidebarRow>

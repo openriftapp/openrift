@@ -119,7 +119,15 @@ export const reorderListsSchema = z.object({
 
 export const updateListEntrySchema = z.object({
   quantity: listEntryFieldRules.quantity.optional(),
+  quantityDelta: listEntryFieldRules.quantityDelta.optional(),
   tradeOverride: tradePreferenceInputSchema.optional(),
+});
+
+export const updateListEntryInputSchema = withParams(
+  idAndItemIdParamSchema,
+  updateListEntrySchema,
+).refine((input) => input.quantity === undefined || input.quantityDelta === undefined, {
+  message: "Send a quantity or a step, not both",
 });
 
 export const bulkCreateListEntriesSchema = z.object({
@@ -174,7 +182,7 @@ export const bulkDeleteListEntriesSchema = z.object({
 
 export const decrementListEntriesSchema = z.object({
   entries: z
-    .array(z.object({ entryId: z.uuid(), by: z.number().int().positive() }))
+    .array(z.object({ entryId: z.uuid(), by: listEntryFieldRules.quantity }))
     .min(1)
     .max(500),
   cancelTradeIds: cancelTradeIdsField,
@@ -317,7 +325,7 @@ export const listsContract = {
     .output(listMoveResponseSchema),
   updateEntry: authedRoute
     .route({ method: "PATCH", path: "/api/v1/lists/{id}/entries/{itemId}", tags: [TAG] })
-    .input(withParams(idAndItemIdParamSchema, updateListEntrySchema))
+    .input(updateListEntryInputSchema)
     .errors({
       NOT_FOUND: { message: "Entry not found" },
       BAD_REQUEST: { message: "No fields to update" },

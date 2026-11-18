@@ -1,6 +1,6 @@
 import type { MetaSubmissionReason } from "@openrift/shared/types/enums";
 
-import type { Repos } from "../../../deps.js";
+import type { Repos, Transact } from "../../../deps.js";
 import type { MetaEventOverlayRow, MetaPlayerOverlayRow } from "../repositories/meta-overlays.js";
 import type { MetaSubmissionRow } from "../repositories/meta-submissions.js";
 
@@ -98,7 +98,7 @@ export async function revokeEventCorrection(
   if (overlay.status !== "accepted" || overlay.metaEventId === null) {
     return;
   }
-  const submission = await repos.metaSubmissions.acceptedCorrectionForOverlay(overlay);
+  const submission = await repos.metaSubmissions.correctionForOverlay(overlay, "accepted");
   if (submission === null) {
     return;
   }
@@ -113,5 +113,56 @@ export async function revokeEventCorrection(
     reason: resolution.reason ?? null,
     note: resolution.note ?? null,
     resolvedByUserId: resolution.resolvedByUserId ?? null,
+  });
+}
+
+/**
+ * Re-accepting a rejected correction overlay settles the correction behind it
+ * as accepted again and gives the contributor back the event credit.
+ */
+export async function restoreEventCorrection(
+  repos: Repos,
+  overlay: MetaEventOverlayRow,
+  reviewedByUserId: string | null,
+  now: Date,
+): Promise<void> {
+  if (overlay.status !== "rejected" || overlay.metaEventId === null) {
+    return;
+  }
+  const submission = await repos.metaSubmissions.correctionForOverlay(overlay, "rejected");
+  if (submission === null) {
+    return;
+  }
+  await repos.metaSubmissions.recordAcceptance({
+    submissionId: submission.id,
+    credit: {
+      metaEventId: overlay.metaEventId,
+      metaEventPlayerId: null,
+      userId: submission.userId,
+    },
+    acceptedDeckId: null,
+    resolvedAt: now,
+    resolvedByUserId: reviewedByUserId,
+  });
+}
+
+/**
+ * Returns a submission to the queue. A player overlay its reject took down
+ * goes back to pending with it, so the entry shows in the review queue again.
+ */
+export async function reopenMetaSubmission(
+  transact: Transact,
+  submission: Pick<MetaSubmissionRow, "id" | "playerOverlayId">,
+  now: Date = new Date(),
+): Promise<void> {
+  await transact(async (repos) => {
+    await repos.metaSubmissions.reopen(submission.id);
+    if (submission.playerOverlayId === null) {
+      return;
+    }
+    const [overlay] = await repos.metaOverlays.lockPlayerOverlays([submission.playerOverlayId]);
+    if (overlay?.status === "rejected") {
+      await repos.metaOverlays.setPlayerOverlayStatuses([overlay.id], "pending", now);
+    }
   });
 }

@@ -67,18 +67,33 @@ export function decodeServerFnData<T = unknown>(rawBody: unknown): T {
   return {} as T;
 }
 
+const SERVER_FN_ID = /\/_serverFn\/(?<id>[^/?#]+)/u;
+// Mirrors ID_PATTERN in apps/web/src/lib/server-fn-id.ts; keep the two in sync.
+const BUILD_ID = /^(?<name>[A-Za-z_$][\w$]*)\.[0-9a-f]{16}(?:_\d+)?$/u;
+const HANDLER_SUFFIX = /_createServerFn_handler$/u;
+
+function devServerFnName(id: string): string | undefined {
+  try {
+    const decoded = JSON.parse(Buffer.from(id, "base64url").toString("utf-8")) as {
+      export?: unknown;
+    };
+    return typeof decoded.export === "string"
+      ? decoded.export.replace(HANDLER_SUFFIX, "")
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
- * Server fn ids are base64url(JSON) of source file + export name. Dev servers do
- * this natively; production builds only with E2E_READABLE_SERVER_FN_IDS=1.
+ * Whether `url` calls the server function declared as `fnName`. Builds name it
+ * `<name>.<digest>`; the dev server sends base64url JSON carrying the export name.
  */
 export function isServerFn(url: string, fnName: string): boolean {
-  const encoded = /\/_serverFn\/(?<encoded>[^/?#]+)/u.exec(url)?.groups?.encoded;
-  if (encoded === undefined) {
+  const id = SERVER_FN_ID.exec(url)?.groups?.id;
+  if (id === undefined) {
     return false;
   }
-  try {
-    return Buffer.from(encoded, "base64url").toString("utf-8").includes(fnName);
-  } catch {
-    return false;
-  }
+  const name = BUILD_ID.exec(id)?.groups?.name ?? devServerFnName(id);
+  return name === fnName;
 }

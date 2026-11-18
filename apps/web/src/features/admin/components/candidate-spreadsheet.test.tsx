@@ -2,7 +2,7 @@ import { isAcceptCardField } from "@openrift/shared/contracts/admin/card-mutatio
 import { fixTypography } from "@openrift/shared/fix-typography";
 import type { CandidatePrintingResponse } from "@openrift/shared/types/api/admin";
 import type { EnumOrders } from "@openrift/shared/types/enums";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -282,6 +282,14 @@ describe("CandidateSpreadsheet required text editing", () => {
       />,
     );
   }
+
+  it("focuses the editor as soon as the cell opens it", () => {
+    renderName(vi.fn(), []);
+
+    fireEvent.click(screen.getByText("Poro"));
+
+    expect(screen.getByRole("textbox", { name: "Name" })).toHaveFocus();
+  });
 
   it("refuses a blank required value and says so next to the cell", async () => {
     const user = userEvent.setup();
@@ -625,7 +633,7 @@ describe("CandidateSpreadsheet focus field", () => {
   const nameField: FieldDef = { key: "name", label: "Name" };
   const flavorField: FieldDef = { key: "flavorText", label: "Flavor", collapsible: true };
 
-  it("unfolds the agreed rows and scrolls to the focused field", async () => {
+  it("unfolds the agreed rows and scrolls to the focused field once they render", () => {
     const scrollIntoView = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoView;
 
@@ -639,7 +647,7 @@ describe("CandidateSpreadsheet focus field", () => {
     );
 
     expect(screen.getByText("Flavor")).toBeInTheDocument();
-    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
     expect(scrollIntoView.mock.contexts[0]).toHaveAttribute("data-field-key", "flavorText");
   });
 

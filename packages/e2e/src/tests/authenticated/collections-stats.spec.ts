@@ -5,7 +5,7 @@ import { expect, test } from "@playwright/test";
 
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
-import { connectToDb } from "../../helpers/db.js";
+import { connectToDb, firstRow } from "../../helpers/db.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -84,7 +84,7 @@ async function seedCopies(
 async function getUserId(sql: Sql, email: string): Promise<string> {
   const rows = (await sql`SELECT id FROM users WHERE email = ${email}`) as { id: string }[];
   expect(rows.length).toBe(1);
-  return rows[0].id;
+  return firstRow(rows, `user ${email}`).id;
 }
 
 async function setFlagOverride(sql: Sql, userId: string, flagKey: string, enabled: boolean) {

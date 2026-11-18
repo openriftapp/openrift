@@ -16,6 +16,7 @@ import { createStoreResetter } from "@/test/store-helpers";
 const router = vi.hoisted(() => ({
   navigate: vi.fn(),
   params: {} as Record<string, string>,
+  liveParams: null as Record<string, string> | null,
   search: {} as Record<string, unknown>,
 }));
 
@@ -26,6 +27,10 @@ const access = vi.hoisted(() => ({
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => router.navigate,
   useParams: () => router.params,
+  useRouter: () => ({
+    latestLocation: { pathname: "/admin/workspace" },
+    getMatchedRoutes: () => [[], router.liveParams ?? router.params, undefined],
+  }),
   useSearch: () => router.search,
 }));
 
@@ -84,6 +89,7 @@ beforeEach(() => {
   resetPane = createStoreResetter(useWorkspaceRecordPaneStore);
   router.navigate.mockReset();
   router.params = {};
+  router.liveParams = null;
   router.search = {};
   access.value = { isAdmin: true, sections: [] };
 });
@@ -237,6 +243,18 @@ describe("useQueueNavigation", () => {
 
     expect(router.navigate).toHaveBeenCalledOnce();
     expect(registrationIsStale(useWorkspaceActionsStore.getState())).toBe(false);
+  });
+
+  it("does nothing when the admin moved to another record before the step ran", async () => {
+    router.params = { cardSlug: "jinx-loose-cannon" };
+    const { result } = renderHook(() => useQueueNavigation("card"), { wrapper });
+    await waitFor(() => expect(result.current.position).not.toBeNull());
+    const { goNext } = result.current;
+    router.liveParams = { cardSlug: "yasuo-unforgiven" };
+
+    goNext();
+
+    expect(router.navigate).not.toHaveBeenCalled();
   });
 
   it("does not move up past the first record", async () => {

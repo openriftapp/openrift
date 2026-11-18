@@ -4,16 +4,14 @@ import { createRecordingDb } from "../../../test/recording-db.js";
 import { customTagsRepo } from "./custom-tags.js";
 
 describe("customTagsRepo.setForCard", () => {
-  it("runs the clear and the insert in one transaction", async () => {
-    const { db, queries, events } = createRecordingDb();
+  it("locks the card row before it replaces the tags, in one transaction", async () => {
+    const { db, statements, parameters, events } = createRecordingDb();
 
     await customTagsRepo(db).setForCard("card-1", ["tag-a", "tag-b"]);
 
     expect(events).toEqual(["begin", "commit"]);
-    expect(queries).toHaveLength(3);
-    expect(queries[0]).toContain("for update");
-    expect(queries[1]).toContain('delete from "card_custom_tags"');
-    expect(queries[2]).toContain('insert into "card_custom_tags"');
+    expect(statements[0]?.sql).toMatch(/ for update$/u);
+    expect(parameters).toEqual([["card-1"], ["card-1"], ["card-1", "tag-a", "card-1", "tag-b"]]);
   });
 
   it("rolls back when the insert fails, leaving the old tags in place", async () => {
@@ -25,13 +23,12 @@ describe("customTagsRepo.setForCard", () => {
     expect(events).toEqual(["begin", "rollback"]);
   });
 
-  it("clears the card's tags when the new set is empty", async () => {
-    const { db, queries, events } = createRecordingDb();
+  it("only clears the card's tags when the new set is empty", async () => {
+    const { db, parameters, events } = createRecordingDb();
 
     await customTagsRepo(db).setForCard("card-1", []);
 
-    expect(queries).toHaveLength(2);
-    expect(queries[1]).toContain('delete from "card_custom_tags"');
+    expect(parameters).toEqual([["card-1"], ["card-1"]]);
     expect(events).toEqual(["begin", "commit"]);
   });
 

@@ -11,6 +11,7 @@ import {
 interface EntryWrite {
   listId: string;
   entryId: string;
+  quantityDelta?: number;
 }
 
 /**
@@ -20,7 +21,7 @@ interface EntryWrite {
 export function useListEntryWritesPending(
   listId: string,
   entries: readonly ListEntryDetailResponse[],
-): (entryId: string) => boolean {
+): (entryId: string, options?: { countSteps: boolean }) => boolean {
   const queryClient = useQueryClient();
   const adds = useMutationState({
     filters: { mutationKey: LIST_ENTRY_MUTATION_KEYS.add, status: "pending" },
@@ -39,18 +40,19 @@ export function useListEntryWritesPending(
     entries.flatMap((entry) => (entry.id === null ? [] : [[entry.id, entry] as const])),
   );
 
-  return (entryId) => {
+  return (entryId, options) => {
     const entry = entryById.get(entryId);
     if (entry === undefined) {
       return false;
     }
     const identity = { ...entry, id: entryId };
     return (
-      listEntryWritePending(listId, identity, writes) ||
+      listEntryWritePending(listId, identity, writes, options) ||
       listEntryWritePending(
         listId,
         identity,
         pendingListEntryWrites(queryClient.getMutationCache()),
+        options,
       )
     );
   };

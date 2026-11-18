@@ -37,6 +37,15 @@ export function connectToDb(url: string) {
   return postgres(url, { onnotice: noop });
 }
 
+/** The first row of a query result; throws with `what` when the query returned none. */
+export function firstRow<T>(rows: readonly T[], what: string): T {
+  const [row] = rows;
+  if (row === undefined) {
+    throw new Error(`No row: ${what}`);
+  }
+  return row;
+}
+
 function connectToTempDb() {
   const state = JSON.parse(readFileSync(STATE_FILE, "utf-8")) as E2eState;
   return connectToDb(state.tempDbUrl);

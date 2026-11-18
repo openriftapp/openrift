@@ -68,7 +68,7 @@ export async function deleteCard(
     throw error;
   }
 
-  await cleanupOrphanedImageFiles(io, mut, orphanCandidateImageIds);
+  await cleanupOrphanedImageFiles(io, transact, orphanCandidateImageIds);
 }
 
 /** Throws a CONFLICT AppError naming every non-zero blocker count. */

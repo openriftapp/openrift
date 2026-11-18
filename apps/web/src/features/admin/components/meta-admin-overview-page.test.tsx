@@ -79,7 +79,7 @@ vi.mock("@/features/admin/hooks/use-admin-meta-catalog", () => ({
   }),
   useCancelMetaRun: () => ({ mutate: captured.cancel, isPending: false }),
   useMetaArchiveJobs: () => ({ data: { runs: [] } }),
-  useRejectPassingNoResults: () => ({ mutate: captured.reject, isPending: false }),
+  useRejectPassingNoResults: () => ({ mutateAsync: captured.reject, isPending: false }),
 }));
 
 vi.mock("@/features/admin/hooks/use-admin-meta-overlays", () => ({

@@ -4,9 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CopyTextButton } from "./copy-text-button";
 
+const toastError = vi.hoisted(() => vi.fn());
+vi.mock("sonner", () => ({ toast: { error: toastError } }));
+
 const writeText = vi.fn<(text: string) => Promise<void>>();
 
 beforeEach(() => {
+  toastError.mockReset();
   writeText.mockReset();
   writeText.mockResolvedValue();
 });
@@ -51,13 +55,25 @@ describe("CopyTextButton", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Copied" })).toBeTruthy());
   });
 
-  it("copies nothing when getText rejects", async () => {
+  it("copies nothing and says so when getText rejects", async () => {
     const user = setupUser();
     render(<CopyTextButton getText={() => Promise.reject(new Error("offline"))} label="Copy" />);
 
     await user.click(screen.getByRole("button", { name: "Copy" }));
 
     expect(writeText).not.toHaveBeenCalled();
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith("Couldn't copy"));
     expect(screen.getByRole("button", { name: "Copy" })).toBeTruthy();
+  });
+
+  it("says so when the clipboard refuses the write", async () => {
+    const user = setupUser();
+    writeText.mockRejectedValue(new Error("denied"));
+    render(<CopyTextButton value="ABC123" label="Copy code" />);
+
+    await user.click(screen.getByRole("button", { name: "Copy code" }));
+
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith("Couldn't copy"));
+    expect(screen.getByRole("button", { name: "Copy code" })).toBeTruthy();
   });
 });

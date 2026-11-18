@@ -11,6 +11,7 @@ import { boardStatesRouter } from "./authenticated-board-states";
 const mockBoardStatesRepo = {
   listForUser: vi.fn(() => Promise.resolve([] as object[])),
   getByIdForUser: vi.fn(() => Promise.resolve(undefined as object | undefined)),
+  getPinsForUser: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   create: vi.fn((_userId: string, values: object) => Promise.resolve(dbRow(values))),
   update: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   deleteByIdForUser: vi.fn(() => Promise.resolve(false)),
@@ -196,6 +197,7 @@ describe("PATCH /board-states/{id}", () => {
   });
 
   it("updates only the fields that were sent", async () => {
+    mockBoardStatesRepo.getPinsForUser.mockResolvedValue(dbRow());
     mockBoardStatesRepo.getByIdForUser.mockResolvedValue(dbRow());
     mockBoardStatesRepo.update.mockResolvedValue(dbRow({ title: "New" }));
 
@@ -211,7 +213,7 @@ describe("PATCH /board-states/{id}", () => {
   });
 
   it("validates a changed rules version against the stored kind", async () => {
-    mockBoardStatesRepo.getByIdForUser.mockResolvedValue(dbRow());
+    mockBoardStatesRepo.getPinsForUser.mockResolvedValue(dbRow());
 
     const { status } = await request(`/board-states/${BOARD_ID}`, {
       method: "PATCH",
@@ -224,7 +226,7 @@ describe("PATCH /board-states/{id}", () => {
   });
 
   it("rejects clearing the only rules pin", async () => {
-    mockBoardStatesRepo.getByIdForUser.mockResolvedValue(dbRow());
+    mockBoardStatesRepo.getPinsForUser.mockResolvedValue(dbRow());
 
     const { status } = await request(`/board-states/${BOARD_ID}`, {
       method: "PATCH",
@@ -236,6 +238,7 @@ describe("PATCH /board-states/{id}", () => {
   });
 
   it("returns the current row for an empty patch", async () => {
+    mockBoardStatesRepo.getPinsForUser.mockResolvedValue(dbRow());
     mockBoardStatesRepo.getByIdForUser.mockResolvedValue(dbRow());
 
     const { status } = await request(`/board-states/${BOARD_ID}`, {
@@ -245,6 +248,35 @@ describe("PATCH /board-states/{id}", () => {
 
     expect(status).toBe(200);
     expect(mockBoardStatesRepo.update).not.toHaveBeenCalled();
+  });
+
+  it("404s a patch that keeps a stored document that no longer reads, without writing", async () => {
+    mockBoardStatesRepo.getPinsForUser.mockResolvedValue(dbRow());
+    mockBoardStatesRepo.getByIdForUser.mockResolvedValue(undefined);
+
+    const { status } = await request(`/board-states/${BOARD_ID}`, {
+      method: "PATCH",
+      body: JSON.stringify({ title: "New" }),
+    });
+
+    expect(status).toBe(404);
+    expect(mockBoardStatesRepo.update).not.toHaveBeenCalled();
+  });
+
+  it("lets the owner overwrite a board whose stored document no longer reads", async () => {
+    mockBoardStatesRepo.getPinsForUser.mockResolvedValue(dbRow());
+    mockBoardStatesRepo.getByIdForUser.mockResolvedValue(undefined);
+    mockBoardStatesRepo.update.mockResolvedValue(dbRow());
+
+    const { status } = await request(`/board-states/${BOARD_ID}`, {
+      method: "PATCH",
+      body: JSON.stringify({ document: emptyBoardDocument() }),
+    });
+
+    expect(status).toBe(200);
+    expect(mockBoardStatesRepo.update).toHaveBeenCalledWith(BOARD_ID, USER_ID, {
+      document: emptyBoardDocument(),
+    });
   });
 });
 

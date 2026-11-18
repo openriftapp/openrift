@@ -10,7 +10,8 @@ type Hook = (ctx: Record<string, unknown>) => Promise<unknown>;
 const appGate = Route.options.beforeLoad as unknown as Hook;
 
 function location(pathname: string, search: Record<string, unknown>, href: string) {
-  return { pathname, search, href };
+  const query = href.indexOf("?");
+  return { pathname, search, href, searchStr: query === -1 ? "" : href.slice(query) };
 }
 
 describe("the app layout on the server", () => {
@@ -25,12 +26,12 @@ describe("the app layout on the server", () => {
 
     const thrown: unknown = await appGate({
       context: { queryClient },
-      location: location("/stage", { tier: "list-1" }, "/stage?tier=list-1&i=2"),
+      location: location("/stage/show", { tier: "list-1" }, "/stage/show?tier=list-1&i=2"),
     }).catch((error: unknown) => error);
 
     expect(isRedirect(thrown)).toBe(true);
     expect(thrown).toMatchObject({
-      options: { to: "/login", search: { redirect: "/stage?tier=list-1&i=2" } },
+      options: { to: "/login", search: { redirect: "/stage/show?tier=list-1&i=2" } },
     });
   });
 
@@ -40,7 +41,7 @@ describe("the app layout on the server", () => {
     await expect(
       appGate({
         context: { queryClient },
-        location: location("/stage", { tier: "list-1" }, "/stage?tier=list-1"),
+        location: location("/stage/show", { tier: "list-1" }, "/stage/show?tier=list-1"),
       }),
     ).resolves.toBeUndefined();
   });
@@ -51,15 +52,15 @@ describe("the app layout on the server", () => {
     await expect(
       appGate({
         context: { queryClient },
-        location: location("/stage", { tier: "list-1" }, "/stage?tier=list-1"),
+        location: location("/stage/show", { tier: "list-1" }, "/stage/show?tier=list-1"),
       }),
     ).resolves.toBeUndefined();
   });
 
   it.each([
-    ["a shared ranking", "/stage", { tierShare: "tok" }],
-    ["a deck walk", "/stage", { deck: "deck-1" }],
-    ["a numeric tier the stage ignores", "/stage", { tier: 12 }],
+    ["a shared ranking", "/stage/show", { tierShare: "tok" }],
+    ["a deck walk", "/stage/show", { deck: "deck-1" }],
+    ["a numeric tier the stage ignores", "/stage/show", { tier: 12, deck: "deck-1" }],
     ["another page with a tier param", "/cards", { tier: "list-1" }],
   ])("leaves %s public", async (_label, pathname, search) => {
     queryClient.setQueryData(["session"], null);
@@ -67,6 +68,49 @@ describe("the app layout on the server", () => {
     await expect(
       appGate({ context: { queryClient }, location: location(pathname, search, pathname) }),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe("stage URLs that name the other half", () => {
+  const queryClient = new QueryClient();
+  queryClient.setQueryData(["session"], null);
+
+  it.each([
+    ["a deck walk", { deck: "deck-1" }, "?deck=deck-1&i=3"],
+    ["an owned ranking", { tier: "list-1" }, "?tier=list-1&preset=p-1"],
+    ["a shared ranking", { tierShare: "tok" }, "?tierShare=tok"],
+    ["a presented queue", { cards: ["p-1", "p-2"] }, "?cards=x"],
+    ["a deck walk marked as a draft", { deck: "deck-1", edit: true }, "?deck=deck-1&edit=true"],
+  ])("sends /stage with %s to the show, keeping the search", async (_label, search, searchStr) => {
+    const thrown: unknown = await appGate({
+      context: { queryClient },
+      location: location("/stage", search, `/stage${searchStr}`),
+    }).catch((error: unknown) => error);
+
+    expect(isRedirect(thrown)).toBe(true);
+    expect(thrown).toMatchObject({ options: { href: `/stage/show${searchStr}`, replace: true } });
+  });
+
+  it.each([
+    ["no queue", {}],
+    ["a queue draft", { cards: ["p-1"], edit: true }],
+    ["an empty queue", { cards: [] }],
+  ])("leaves /stage with %s on the builder", async (_label, search) => {
+    await expect(
+      appGate({ context: { queryClient }, location: location("/stage", search, "/stage") }),
+    ).resolves.toBeUndefined();
+  });
+
+  it.each([
+    ["nothing to present", {}],
+    ["a queue the show cannot read", { cards: [1, 2] }],
+  ])("sends /stage/show with %s to the builder", async (_label, search) => {
+    const thrown: unknown = await appGate({
+      context: { queryClient },
+      location: location("/stage/show", search, "/stage/show?q=ekko"),
+    }).catch((error: unknown) => error);
+
+    expect(thrown).toMatchObject({ options: { href: "/stage?q=ekko", replace: true } });
   });
 });
 

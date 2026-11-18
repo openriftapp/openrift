@@ -11,17 +11,18 @@ import {
   formatConfigResponseSchema,
   superTypeSchema,
 } from "@openrift/shared/response-schemas";
+import { POSTGRES_INTEGER_MAX } from "@openrift/shared/schemas";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-import { deckExportResponseSchema, deckOddsConfigSchema } from "./decks.js";
+import { MAX_DECK_CARD_ROWS, deckExportResponseSchema, deckOddsConfigSchema } from "./decks.js";
 import { shareOwnerSchema } from "./fields.js";
 
 const encodeDeckCardSchema = z.object({
-  cardId: z.string(),
+  cardId: z.uuid(),
   zone: deckZoneSchema,
-  quantity: z.number().int().positive(),
-  preferredPrintingId: z.string().nullable(),
+  quantity: z.number().int().positive().max(POSTGRES_INTEGER_MAX),
+  preferredPrintingId: z.uuid().nullable(),
   cardName: z.string(),
   cardType: cardTypeSchema,
   superTypes: z.array(superTypeSchema),
@@ -29,9 +30,9 @@ const encodeDeckCardSchema = z.object({
   inferred: z.boolean().optional(),
 });
 
-const encodeDeckInputSchema = z.object({
+export const encodeDeckInputSchema = z.object({
   format: z.enum(["piltover", "text", "tts"]).optional(),
-  cards: z.array(encodeDeckCardSchema),
+  cards: z.array(encodeDeckCardSchema).max(MAX_DECK_CARD_ROWS),
 });
 
 export const publicDeckResponseSchema = z.object({

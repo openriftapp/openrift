@@ -1,7 +1,15 @@
-import { createCollection, localOnlyCollectionOptions } from "@tanstack/react-db";
+import {
+  CollectionHasSubscribersError,
+  createCollection,
+  localOnlyCollectionOptions,
+} from "@tanstack/react-db";
 import { describe, expect, it, vi } from "vitest";
 
+import { captureHandledError } from "@/lib/report-error";
+
 import { cleanupWhenIdle } from "./collection-cleanup";
+
+vi.mock("@/lib/report-error", () => ({ captureHandledError: vi.fn() }));
 
 interface Stub {
   id: string;
@@ -47,7 +55,7 @@ describe("cleanupWhenIdle", () => {
     const collection = createLocalOnly();
     const cleanupSpy = vi
       .spyOn(collection, "cleanup")
-      .mockRejectedValueOnce(new Error("CollectionHasSubscribersError"));
+      .mockRejectedValueOnce(new CollectionHasSubscribersError(collection.id, 1));
 
     cleanupWhenIdle(collection);
     await vi.waitFor(() => expect(cleanupSpy).toHaveBeenCalledTimes(1));
@@ -56,6 +64,25 @@ describe("cleanupWhenIdle", () => {
     subscription.unsubscribe();
 
     await vi.waitFor(() => expect(cleanupSpy).toHaveBeenCalledTimes(2));
+  });
+
+  it("reports any other cleanup failure and stops waiting", async () => {
+    const collection = createLocalOnly();
+    const failure = new Error("adapter cleanup failed");
+    const cleanupSpy = vi.spyOn(collection, "cleanup").mockRejectedValueOnce(failure);
+
+    cleanupWhenIdle(collection);
+    await vi.waitFor(() =>
+      expect(captureHandledError).toHaveBeenCalledWith(failure, {
+        collectionCleanup: collection.id,
+      }),
+    );
+
+    const subscription = collection.subscribeChanges(() => {});
+    subscription.unsubscribe();
+    await Promise.resolve();
+
+    expect(cleanupSpy).toHaveBeenCalledTimes(1);
   });
 
   it("is a no-op when called against an already-cleaned-up collection", async () => {

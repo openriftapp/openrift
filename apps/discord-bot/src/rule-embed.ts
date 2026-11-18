@@ -9,8 +9,7 @@ import type { IndexedRule, RuleIndex } from "./rule-search.js";
 
 const KIND_LABEL: Record<RuleKind, string> = { core: "Core Rules", tournament: "Tournament Rules" };
 
-// Discord's embed description cap is 4096; leave headroom so assembled parts
-// never need a mid-link cut.
+// Discord's embed description cap is 4096; the sub-rule list fills what the body leaves.
 const BODY_LIMIT = 3200;
 const DESCRIPTION_LIMIT = 4000;
 
@@ -37,6 +36,18 @@ export function linkifyRuleReferences(
     const targetKind = reference.inCoreRules ? "core" : kind;
     return `[${match}](${pages[targetKind]}#rule-${reference.ruleNumber})`;
   });
+}
+
+/** Cuts the plain text before linking, so no cut lands inside a link and the linked body fits. */
+function ruleBody(content: string, kind: RuleKind, pages: RulePageUrls): string {
+  let limit = BODY_LIMIT;
+  for (;;) {
+    const body = linkifyRuleReferences(truncateWithEllipsis(content, limit), kind, pages);
+    if (body.length <= BODY_LIMIT) {
+      return body;
+    }
+    limit -= body.length - BODY_LIMIT;
+  }
 }
 
 export function ruleBreadcrumb(index: RuleIndex, entry: IndexedRule): string | undefined {
@@ -143,12 +154,7 @@ export function buildRuleEmbed(input: RuleEmbedInput): APIEmbed {
     parts.push(`*${breadcrumb}*`);
   }
   if (!isHeading) {
-    parts.push(
-      truncateWithEllipsis(
-        linkifyRuleReferences(entry.rule.content, entry.kind, pages),
-        BODY_LIMIT,
-      ),
-    );
+    parts.push(ruleBody(entry.rule.content, entry.kind, pages));
   }
   const children = descendants(index, entry);
   const related = isHeading && children.length === 0 ? sectionRules(index, entry) : children;

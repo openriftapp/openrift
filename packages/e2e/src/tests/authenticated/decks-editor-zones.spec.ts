@@ -5,7 +5,7 @@ import type { APIRequestContext, Locator, Page } from "@playwright/test";
 import { expect, test } from "../../fixtures/test.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
-import { connectToDb } from "../../helpers/db.js";
+import { connectToDb, firstRow } from "../../helpers/db.js";
 import { dndDrag, dndDragToPoint } from "../../helpers/dnd.js";
 
 type Sql = ReturnType<typeof connectToDb>;
@@ -59,10 +59,7 @@ async function pickCardByType(type: string): Promise<TestCard> {
       ORDER BY name, id
       LIMIT 1
     `) as { id: string; name: string }[];
-    if (rows.length === 0) {
-      throw new Error(`no suitable card of type '${type}' found`);
-    }
-    return rows[0];
+    return firstRow(rows, `suitable card of type '${type}'`);
   } finally {
     await sql.end();
   }

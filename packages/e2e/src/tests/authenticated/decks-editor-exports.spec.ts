@@ -177,10 +177,8 @@ test.describe("deck editor exports", () => {
       // Scope to the card tile: the sidebar adds a duplicate "Add to deck"
       // button once the optimistic update lands.
       const annieTile = page
-        .getByRole("img", { name: "Annie, Fiery" })
-        .locator(
-          "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' group ')][1]",
-        )
+        .locator("[data-printing-id]")
+        .filter({ has: page.getByRole("img", { name: "Annie, Fiery" }) })
         .first();
       await expect(annieTile).toBeVisible({ timeout: 15_000 });
       await annieTile.getByRole("button", { name: "Add to deck" }).click();
@@ -250,9 +248,8 @@ test.describe("deck editor exports", () => {
       await dialog.getByLabel("Deck Designer").fill("E2E Tester");
       await dialog.getByPlaceholder("YYYY-MM-DD").fill("2026-05-01");
 
-      // By label: the print dialog keeps every tab mounted, each with its own
-      // page-size select.
-      await expect(dialog.locator("#registration-page-size")).toContainText("A4");
+      // The print dialog keeps every tab mounted, each with its own page-size select.
+      await expect(dialog.getByRole("tabpanel").getByLabel("Page size")).toContainText("A4");
 
       const downloadButton = dialog.getByRole("button", { name: "Download PDF" });
       const [download] = await Promise.all([
@@ -312,7 +309,7 @@ test.describe("deck editor exports", () => {
       );
 
       const renderModeTrigger = dialog.getByLabel("Render mode");
-      const pageSizeTrigger = dialog.locator("#proxy-page-size");
+      const pageSizeTrigger = dialog.getByRole("tabpanel").getByLabel("Page size");
       await expect(renderModeTrigger).toContainText("Card images");
       await expect(pageSizeTrigger).toContainText("A4");
 

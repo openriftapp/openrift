@@ -1,5 +1,5 @@
 import type { WorkspaceOwner } from "@openrift/shared/contracts/admin/catalog-workspace";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useNavigate, useParams, useRouter } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 
 import { useWorkspaceEntries } from "@/features/catalog-workspace/hooks/use-workspace-queue";
@@ -99,6 +99,7 @@ export function useQueueNavigation(owner: WorkspaceOwner): {
   position: { index: number; total: number } | null;
 } {
   const navigate = useNavigate();
+  const router = useRouter();
   const params: WorkspaceRouteParams = useParams({ strict: false });
   const { view, listAllowed, entries } = useWorkspaceEntries(owner);
   const skip = useWorkspaceSkipStore((state) => state.skip);
@@ -115,8 +116,14 @@ export function useQueueNavigation(owner: WorkspaceOwner): {
   const linkable = entries.filter((entry) => entry.target !== null);
   const index = linkable.findIndex((entry) => entry.key === currentKey);
 
+  function stillOnRecord(): boolean {
+    const [, liveParams] = router.getMatchedRoutes(router.latestLocation.pathname);
+    return selectedKeyFromParams(liveParams) === currentKey;
+  }
+
   function step(delta: 1 | -1) {
-    if (!listAllowed) {
+    // A write that finishes after the admin moved on must not step away from the newer record.
+    if (!listAllowed || !stillOnRecord()) {
       return;
     }
     const plan = planQueueStep(entries, currentKey, delta);

@@ -33,7 +33,7 @@ export const createCollectionSchema = z.object({
 export const updateCollectionSchema = z.object({
   name: collectionFieldRules.name.optional(),
   description: z.string().max(1000).nullish(),
-  sortOrder: z.number().int().optional(),
+  sortOrder: z.int32().optional(),
 });
 
 /**

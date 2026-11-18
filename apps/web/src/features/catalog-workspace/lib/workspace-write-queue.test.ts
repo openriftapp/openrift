@@ -46,6 +46,20 @@ describe("createWorkspaceWriteQueue", () => {
     expect(queue.idle()).toBe(true);
   });
 
+  it("says whether every queued write belongs to one record", async () => {
+    const queue = createWorkspaceWriteQueue();
+    const mine = Symbol("mine");
+    expect(queue.holdsOnly(mine)).toBe(true);
+    const write = deferred();
+    const first = queue.enqueue(mine, () => write.promise);
+    expect(queue.holdsOnly(mine)).toBe(true);
+    const second = queue.enqueue(null, () => {});
+    expect(queue.holdsOnly(mine)).toBe(false);
+    write.resolve();
+    await Promise.all([first, second]);
+    expect(queue.holdsOnly(null)).toBe(true);
+  });
+
   it("keeps running after a task fails and resolves that task false", async () => {
     const queue = createWorkspaceWriteQueue();
     const failed = queue.enqueue(null, () => Promise.reject(new Error("nope")));

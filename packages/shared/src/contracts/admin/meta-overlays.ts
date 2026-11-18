@@ -27,10 +27,13 @@ export const playerOverlayFieldsSchema = z
   })
   .partial();
 
-/** No `format`: promotion decides it. `name` applies as a direct rename after promote, not a tracked claim. */
+/**
+ * No `format`: promotion decides it. `name` applies as a direct rename after promote, not a tracked claim.
+ * Empty `cards` changes only the status of the list already stored.
+ */
 export const playerOverlayListSchema = z.object({
   name: z.string().min(1).max(200).optional(),
-  cards: z.array(metaDeckCardSchema).min(1).max(500),
+  cards: z.array(metaDeckCardSchema).max(500),
   listStatus: attachedListStatusSchema.optional().default("full"),
 });
 

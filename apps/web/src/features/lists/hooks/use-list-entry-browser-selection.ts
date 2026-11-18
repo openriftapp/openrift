@@ -79,7 +79,7 @@ export interface UseListEntryBrowserSelectionParams {
   setSearch: (query: string) => void;
   setPrefDialogEntryIds: (entryIds: string[]) => void;
   onRemoveEntry: (entryId: string, cardName: string) => void;
-  onQuantityChange: (entryId: string, quantity: number) => void;
+  onQuantityStep: (entryId: string, delta: number) => void;
   isQuantityPendingFor: (entryId: string) => boolean;
 }
 
@@ -98,7 +98,7 @@ export function useListEntryBrowserSelection({
   setSearch,
   setPrefDialogEntryIds,
   onRemoveEntry,
-  onQuantityChange,
+  onQuantityStep,
   isQuantityPendingFor,
 }: UseListEntryBrowserSelectionParams) {
   const {
@@ -244,9 +244,8 @@ export function useListEntryBrowserSelection({
     if (!entry || entry.id === null || isQuantityPendingFor(entry.id)) {
       return;
     }
-    const manual = manualQuantity(entry);
-    if (manual > 1) {
-      onQuantityChange(entry.id, manual - 1);
+    if (manualQuantity(entry) > 1) {
+      onQuantityStep(entry.id, -1);
     }
   };
 
@@ -478,12 +477,12 @@ export function useListEntryBrowserSelection({
     onListBulkAction: (selectionId, action) => {
       openListAction(action, narrowToSelection(selectionId));
     },
-    onEntryQuantityChange: (entryId, quantity) => {
+    onEntryQuantityStep: (entryId, delta) => {
       // Defensive: the cell already disables the button when there's no entry.
       if (!entryId) {
         return;
       }
-      onQuantityChange(entryId, quantity);
+      onQuantityStep(entryId, delta);
     },
     onRemoveEntry: (entryId, cardName) => onRemoveEntry(entryId, cardName),
     onSetPreference: (selectionId) =>

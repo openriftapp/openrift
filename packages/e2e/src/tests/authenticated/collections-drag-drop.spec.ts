@@ -6,7 +6,7 @@ import { expect, test } from "@playwright/test";
 import { cardTile as cardTileFrame } from "../../helpers/catalog.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
-import { connectToDb, deleteUser } from "../../helpers/db.js";
+import { connectToDb, deleteUser, firstRow } from "../../helpers/db.js";
 import { dndDrag, expectDropTargetArmed, moveDragTo, startDrag } from "../../helpers/dnd.js";
 import { waitForHydrated } from "../../helpers/hydration.js";
 
@@ -67,7 +67,7 @@ async function getInboxId(email: string): Promise<string> {
       LIMIT 1
     `) as { id: string }[];
     expect(rows.length).toBe(1);
-    return rows[0].id;
+    return firstRow(rows, `inbox for ${email}`).id;
   } finally {
     await sql.end();
   }
@@ -97,10 +97,10 @@ async function seedSameCardCopies(
       ORDER BY c.name, p.printing_id
       LIMIT 1
     `) as { printing_id: string; card_name: string }[];
-    if (picked.length === 0) {
-      throw new Error("no suitable card found for dnd seeding");
-    }
-    const { printing_id: printingId, card_name: cardName } = picked[0];
+    const { printing_id: printingId, card_name: cardName } = firstRow(
+      picked,
+      "suitable card for dnd seeding",
+    );
 
     await sql`
       INSERT INTO copies (collection_id, printing_id)
@@ -123,7 +123,7 @@ async function countCopiesInCollection(collectionId: string): Promise<number> {
       FROM copies
       WHERE collection_id = ${collectionId}
     `) as { count: number }[];
-    return rows[0].count;
+    return firstRow(rows, `copy count of ${collectionId}`).count;
   } finally {
     await sql.end();
   }

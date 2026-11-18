@@ -194,6 +194,16 @@ function RowActionsFor({
     }
   }
 
+  async function collectResults() {
+    let result: Awaited<ReturnType<typeof collect.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await collect.mutateAsync(target);
+    });
+    if (ok && result) {
+      announceSyncTrigger("Collect results", result);
+    }
+  }
+
   if (row.triage === "dismissed") {
     return (
       <Button
@@ -218,11 +228,7 @@ function RowActionsFor({
             aria-label="Collect results"
             title="Collect results"
             pending={collect.isPending}
-            onClick={() =>
-              collect.mutate(target, {
-                onSuccess: (result) => announceSyncTrigger("Collect results", result),
-              })
-            }
+            onClick={() => void collectResults()}
           >
             <DownloadIcon />
           </Button>
@@ -307,66 +313,79 @@ export function MirrorSelectionBar({
 
   const count = keys.length;
 
-  function runPublish() {
-    publish.mutate(
-      { source, keys },
-      {
-        onSuccess: ({ published, skipped }) => {
-          setConfirm(null);
-          clear();
-          toast.success(`Published ${countNoun(published.length, "event")}`, {
-            description:
-              skipped > 0
-                ? `${countNoun(skipped, "event")} skipped: no longer undecided, or the format needs a pick.`
-                : undefined,
-            action:
-              published.length > 0
-                ? {
-                    label: "Undo",
-                    onClick: () =>
-                      unpublish.mutate(
-                        { source, keys: published },
-                        {
-                          onSuccess: ({ unpublished, kept }) =>
-                            toast.success(`Unpublished ${countNoun(unpublished, "event")}`, {
-                              description:
-                                kept > 0
-                                  ? `${countNoun(kept, "event")} already has standings. Remove those on their event page.`
-                                  : undefined,
-                            }),
-                        },
-                      ),
-                  }
-                : undefined,
-          });
-        },
-      },
-    );
+  async function undoPublish(published: string[]) {
+    let result: Awaited<ReturnType<typeof unpublish.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await unpublish.mutateAsync({ source, keys: published });
+    });
+    if (ok && result) {
+      const { unpublished, kept } = result;
+      toast.success(`Unpublished ${countNoun(unpublished, "event")}`, {
+        description:
+          kept > 0
+            ? `${countNoun(kept, "event")} already has standings. Remove those on their event page.`
+            : undefined,
+      });
+    }
   }
 
-  function runReject() {
-    reject.mutate(
-      { source, keys },
-      {
-        onSuccess: ({ rejected, skipped }) => {
-          setConfirm(null);
-          clear();
-          toast.success(`Rejected ${countNoun(rejected.length, "event")}`, {
-            description:
-              skipped > 0
-                ? `${countNoun(skipped, "event")} skipped: no longer undecided.`
-                : undefined,
-            action:
-              rejected.length > 0
-                ? {
-                    label: "Undo",
-                    onClick: () => restore.mutate({ source, keys: rejected }),
-                  }
-                : undefined,
-          });
-        },
-      },
-    );
+  async function runPublish() {
+    let result: Awaited<ReturnType<typeof publish.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await publish.mutateAsync({ source, keys });
+    });
+    if (!ok || !result) {
+      return;
+    }
+    const { published, skipped } = result;
+    setConfirm(null);
+    clear();
+    toast.success(`Published ${countNoun(published.length, "event")}`, {
+      description:
+        skipped > 0
+          ? `${countNoun(skipped, "event")} skipped: no longer undecided, or the format needs a pick.`
+          : undefined,
+      action:
+        published.length > 0
+          ? { label: "Undo", onClick: () => void undoPublish(published) }
+          : undefined,
+    });
+  }
+
+  async function runReject() {
+    let result: Awaited<ReturnType<typeof reject.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await reject.mutateAsync({ source, keys });
+    });
+    if (!ok || !result) {
+      return;
+    }
+    const { rejected, skipped } = result;
+    setConfirm(null);
+    clear();
+    toast.success(`Rejected ${countNoun(rejected.length, "event")}`, {
+      description:
+        skipped > 0 ? `${countNoun(skipped, "event")} skipped: no longer undecided.` : undefined,
+      action:
+        rejected.length > 0
+          ? {
+              label: "Undo",
+              onClick: () =>
+                void runReportedMutation(() => restore.mutateAsync({ source, keys: rejected })),
+            }
+          : undefined,
+    });
+  }
+
+  async function restoreSelected() {
+    let result: Awaited<ReturnType<typeof restore.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await restore.mutateAsync({ source, keys });
+    });
+    if (ok && result) {
+      clear();
+      toast.success(`Restored ${countNoun(result.restored, "event")}`);
+    }
   }
 
   return (
@@ -391,21 +410,7 @@ export function MirrorSelectionBar({
         </>
       )}
       {count > 0 && mode === "restore" && (
-        <Button
-          size="sm"
-          pending={restore.isPending}
-          onClick={() =>
-            restore.mutate(
-              { source, keys },
-              {
-                onSuccess: ({ restored }) => {
-                  clear();
-                  toast.success(`Restored ${countNoun(restored, "event")}`);
-                },
-              },
-            )
-          }
-        >
+        <Button size="sm" pending={restore.isPending} onClick={() => void restoreSelected()}>
           Restore {count}
         </Button>
       )}
@@ -421,7 +426,7 @@ export function MirrorSelectionBar({
         description="Each one gets a page on the public archive and its results are collected. You can undo right after."
         confirmLabel={`Publish ${count}`}
         isPending={publish.isPending}
-        onConfirm={runPublish}
+        onConfirm={() => void runPublish()}
       />
       <ConfirmActionDialog
         open={confirm === "reject"}
@@ -431,7 +436,7 @@ export function MirrorSelectionBar({
         confirmLabel={`Reject ${count}`}
         destructive
         isPending={reject.isPending}
-        onConfirm={runReject}
+        onConfirm={() => void runReject()}
       />
     </div>
   );

@@ -11,6 +11,7 @@ import {
   getStoredCollapsedPrintings,
   useAdminCardFoldStore,
 } from "@/features/admin/stores/admin-card-fold-store";
+import { useScrollTargetStore } from "@/features/admin/stores/scroll-target-store";
 import { makeAdminCardDetail, makeAdminPrinting, makeCandidatePrinting } from "@/test/factories";
 import { createStoreResetter } from "@/test/store-helpers";
 
@@ -77,35 +78,19 @@ interface Props {
 }
 
 const goToSection = vi.fn<(section: CardSection) => Promise<unknown>>();
-let frames: FrameRequestCallback[] = [];
-let scrolls: { target: string; block: ScrollLogicalPosition | undefined }[] = [];
+let scrolls: { target: string; block: ScrollLogicalPosition }[] = [];
 let resetStore: () => void;
-const originalScrollIntoView = Element.prototype.scrollIntoView;
+let resetScrollStore: () => void;
+let stopRecording: () => void;
 
-function flushFrames() {
-  const pending = frames;
-  frames = [];
-  for (const frame of pending) {
-    frame(0);
+function targetOf(key: string): string {
+  if (key.startsWith("face:")) {
+    return key.slice("face:".length);
   }
-}
-
-function targetOf(element: HTMLElement): string {
-  return element.dataset.faceId ?? element.dataset.printingGroup ?? `#${element.id}`;
-}
-
-function mountTargets() {
-  for (const faceId of ["face-en", "face-jp", "face-en-foil"]) {
-    const node = document.createElement("div");
-    node.dataset.faceId = faceId;
-    document.body.append(node);
+  if (key.startsWith("printing-group:")) {
+    return key.slice("printing-group:".length);
   }
-  const group = document.createElement("div");
-  group.dataset.printingGroup = "cand-1";
-  document.body.append(group);
-  const decisions = document.createElement("section");
-  decisions.id = "needs-decision";
-  document.body.append(decisions);
+  return `#${key}`;
 }
 
 function renderFocus(initial: Props) {
@@ -116,31 +101,21 @@ function renderFocus(initial: Props) {
 
 beforeEach(() => {
   resetStore = createStoreResetter(useAdminCardFoldStore);
-  frames = [];
+  resetScrollStore = createStoreResetter(useScrollTargetStore);
   scrolls = [];
   goToSection.mockReset();
   goToSection.mockResolvedValue(undefined);
-  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
-    frames.push(callback);
-    return frames.length;
+  stopRecording = useScrollTargetStore.subscribe((state, previous) => {
+    if (state.request !== null && state.request !== previous.request) {
+      scrolls.push({ target: targetOf(state.request.key), block: state.request.block });
+    }
   });
-  Element.prototype.scrollIntoView = function scrollIntoView(
-    this: HTMLElement,
-    options?: boolean | ScrollIntoViewOptions,
-  ) {
-    scrolls.push({
-      target: targetOf(this),
-      block: typeof options === "object" ? options.block : undefined,
-    });
-  };
-  mountTargets();
 });
 
 afterEach(() => {
+  stopRecording();
   resetStore();
-  vi.unstubAllGlobals();
-  Element.prototype.scrollIntoView = originalScrollIntoView;
-  document.body.replaceChildren();
+  resetScrollStore();
 });
 
 describe("fold seeding", () => {
@@ -163,12 +138,10 @@ describe("fold seeding", () => {
 });
 
 describe("face deep link", () => {
-  it("opens only that face and scrolls it to the centre on the next frame", () => {
+  it("opens only that face and asks its row to scroll to the centre", () => {
     renderFocus({ detail: detailWith(), face: "face-jp" });
 
     expect(openKeys()).toEqual(["face-jp"]);
-    expect(scrolls).toEqual([]);
-    flushFrames();
     expect(scrolls).toEqual([{ target: "face-jp", block: "center" }]);
   });
 
@@ -182,11 +155,9 @@ describe("face deep link", () => {
 
   it("waits for the detail to load", () => {
     const { rerender } = renderFocus({ face: "face-jp" });
-    flushFrames();
     expect(scrolls).toEqual([]);
 
     rerender({ detail: detailWith(), face: "face-jp" });
-    flushFrames();
 
     expect(openKeys()).toEqual(["face-jp"]);
     expect(scrolls).toEqual([{ target: "face-jp", block: "center" }]);
@@ -195,12 +166,10 @@ describe("face deep link", () => {
   it("waits for a refetch that brings the face, leaving the folds alone until then", () => {
     const before = detailWith({ printings: [enNonfoil] });
     const { rerender } = renderFocus({ detail: before, face: "face-jp" });
-    flushFrames();
     expect(collapsed()).toEqual(["cand-1", "face-en"]);
     expect(scrolls).toEqual([]);
 
     rerender({ detail: detailWith(), face: "face-jp" });
-    flushFrames();
 
     expect(openKeys()).toEqual(["face-jp"]);
     expect(scrolls).toEqual([{ target: "face-jp", block: "center" }]);
@@ -209,12 +178,10 @@ describe("face deep link", () => {
   it("does not refocus while the param stays the same", () => {
     const detail = detailWith();
     const { rerender } = renderFocus({ detail, face: "face-jp" });
-    flushFrames();
     act(() => useAdminCardFoldStore.getState().togglePrinting(CARD, "face-en"));
 
     rerender({ detail, face: "face-jp" });
     rerender({ detail: detailWith(), face: "face-jp" });
-    flushFrames();
 
     expect(openKeys()).toEqual(["face-en", "face-jp"]);
     expect(scrolls).toHaveLength(1);
@@ -227,7 +194,6 @@ describe("face deep link", () => {
 
     rerender({ detail });
     rerender({ detail, face: "face-jp" });
-    flushFrames();
 
     expect(openKeys()).toEqual(["face-jp"]);
     expect(scrolls).toHaveLength(2);
@@ -238,7 +204,6 @@ describe("face deep link", () => {
     const { rerender } = renderFocus({ detail, face: "face-jp" });
 
     rerender({ detail, face: "face-en" });
-    flushFrames();
 
     expect(openKeys()).toEqual(["face-en"]);
     expect(scrolls.map((scroll) => scroll.target)).toEqual(["face-jp", "face-en"]);
@@ -246,7 +211,6 @@ describe("face deep link", () => {
 
   it("does nothing for a face the card does not have", () => {
     renderFocus({ detail: detailWith(), face: "face-unknown" });
-    flushFrames();
 
     expect(collapsed()).toEqual([...ALL_KEYS].toSorted());
     expect(scrolls).toEqual([]);
@@ -261,7 +225,6 @@ describe("marketplace deep link", () => {
       focusFinish: "foil",
       focusLanguage: "EN",
     });
-    flushFrames();
 
     expect(openKeys()).toEqual(["face-en-foil"]);
     expect(scrolls).toEqual([{ target: "face-en-foil", block: "center" }]);
@@ -303,7 +266,6 @@ describe("marketplace deep link", () => {
   it("needs both a marketplace and a finish", () => {
     const { rerender } = renderFocus({ detail: detailWith(), focusMarketplace: "tcgplayer" });
     rerender({ detail: detailWith(), focusFinish: "foil" });
-    flushFrames();
 
     expect(collapsed()).toEqual([...ALL_KEYS].toSorted());
     expect(scrolls).toEqual([]);
@@ -315,11 +277,9 @@ describe("marketplace deep link", () => {
       detail: detailWith({ printings: [enNonfoil] }),
       ...params,
     });
-    flushFrames();
     expect(scrolls).toEqual([]);
 
     rerender({ detail: detailWith(), ...params });
-    flushFrames();
 
     expect(openKeys()).toEqual(["face-jp"]);
     expect(scrolls).toHaveLength(1);
@@ -336,7 +296,6 @@ describe("marketplace deep link", () => {
 
     rerender({ detail });
     rerender({ detail, focusMarketplace: "tcgplayer", focusFinish: "nonfoil" });
-    flushFrames();
 
     expect(openKeys()).toEqual(["face-en-foil"]);
     expect(scrolls).toHaveLength(1);
@@ -354,14 +313,11 @@ describe("attention deep link", () => {
     renderFocus({ detail: detailWith(), section: "attention" });
 
     expect(decisionsFolded()).toBe(false);
-    expect(scrolls).toEqual([]);
-    flushFrames();
     expect(scrolls).toEqual([{ target: "#needs-decision", block: "start" }]);
   });
 
   it("keeps an open section open", () => {
     renderFocus({ detail: detailWith(), section: "attention" });
-    flushFrames();
 
     expect(decisionsFolded()).toBe(false);
     expect(scrolls).toHaveLength(1);
@@ -375,11 +331,9 @@ describe("attention deep link", () => {
 
   it("waits for the detail", () => {
     const { rerender } = renderFocus({ section: "attention" });
-    flushFrames();
     expect(scrolls).toEqual([]);
 
     rerender({ detail: detailWith(), section: "attention" });
-    flushFrames();
 
     expect(scrolls).toHaveLength(1);
   });
@@ -389,13 +343,11 @@ describe("attention deep link", () => {
     const { rerender } = renderFocus({ detail, section: "attention" });
     act(() => useAdminCardFoldStore.getState().toggleSection("attention"));
     rerender({ detail: detailWith(), section: "attention" });
-    flushFrames();
     expect(scrolls).toHaveLength(1);
     expect(decisionsFolded()).toBe(true);
 
     rerender({ detail, section: "printings" });
     rerender({ detail, section: "attention" });
-    flushFrames();
 
     expect(scrolls).toHaveLength(2);
     expect(decisionsFolded()).toBe(false);
@@ -409,7 +361,6 @@ describe("accepted printing", () => {
     const { result } = renderFocus({ detail: detailWith() });
 
     act(() => result.current.focusAcceptedPrinting("p-jp-foil"));
-    flushFrames();
 
     expect(openKeys()).toEqual(["face-jp"]);
     expect(scrolls).toEqual([{ target: "face-jp", block: "center" }]);
@@ -423,7 +374,6 @@ describe("accepted printing", () => {
     act(() => useAdminCardFoldStore.getState().setCollapsedForCard(CARD, new Set()));
     act(() => result.current.focusAcceptedPrinting("p-jp-foil"));
     rerender({ detail });
-    flushFrames();
 
     expect(openKeys()).toEqual(["face-jp"]);
     expect(scrolls).toHaveLength(2);
@@ -438,12 +388,10 @@ describe("accepted printing", () => {
 
     act(() => result.current.focusAcceptedPrinting("p-new"));
     rerender({ detail: before });
-    flushFrames();
     expect(scrolls).toEqual([]);
 
     const after = detailWith({ printings: [enNonfoil, jpFoil, enFoil, accepted] });
     rerender({ detail: after });
-    flushFrames();
 
     const folds = new Set(collapsed());
     expect(folds.has("face-new")).toBe(false);
@@ -451,7 +399,6 @@ describe("accepted printing", () => {
     expect(scrolls).toEqual([{ target: "face-new", block: "center" }]);
 
     rerender({ detail: detailWith({ printings: [enNonfoil, jpFoil, enFoil, accepted] }) });
-    flushFrames();
     expect(scrolls).toHaveLength(1);
   });
 });
@@ -470,14 +417,12 @@ describe("revealPrinting", () => {
 
     expect(openKeys()).toEqual(["face-jp"]);
     expect(goToSection).toHaveBeenCalledWith("printings");
-    flushFrames();
     expect(scrolls).toEqual([]);
 
     await act(async () => {
       settle();
       await Promise.resolve();
     });
-    flushFrames();
     expect(scrolls).toEqual([{ target: "face-jp", block: "center" }]);
   });
 
@@ -489,7 +434,6 @@ describe("revealPrinting", () => {
       result.current.revealPrinting("p-unknown");
       await Promise.resolve();
     });
-    flushFrames();
 
     expect(openKeys()).toEqual([]);
     expect(goToSection).toHaveBeenCalledWith("printings");
@@ -514,7 +458,6 @@ describe("revealNewPrinting", () => {
       result.current.revealNewPrinting("cand-1");
       await Promise.resolve();
     });
-    flushFrames();
 
     expect(openKeys()).toEqual(["cand-1"]);
     expect(goToSection).toHaveBeenCalledWith("printings");
@@ -540,7 +483,6 @@ describe("several deep links at once", () => {
       focusFinish: "foil",
       focusLanguage: "JP",
     });
-    flushFrames();
 
     expect(openKeys()).toEqual(["face-jp"]);
     expect(scrolls.map((scroll) => scroll.target)).toEqual(["face-en", "face-jp"]);

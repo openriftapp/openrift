@@ -1,6 +1,6 @@
 import { useNavigate, getRouteApi } from "@tanstack/react-router";
 import { PlayIcon } from "lucide-react";
-import { Suspense, useEffect, useRef } from "react";
+import { Suspense, useEffect } from "react";
 import { toast } from "sonner";
 
 import { BuilderWorkbench } from "@/components/layout/builder-workbench";
@@ -12,144 +12,31 @@ import {
 } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
-import { DeckPresentation } from "@/features/stage/components/deck-presentation";
 import { PresentCardBrowser } from "@/features/stage/components/present-card-browser";
 import { PresentQueuePanel } from "@/features/stage/components/present-queue-panel";
-import { QueuePresentation } from "@/features/stage/components/queue-presentation";
 import type { QueueSource } from "@/features/stage/components/queue-source-picker";
 import { StageDndContext } from "@/features/stage/components/stage-dnd-context";
 import { StageIntroBanner } from "@/features/stage/components/stage-intro-banner";
 import { StageOutputBlock } from "@/features/stage/components/stage-output-block";
-import {
-  OwnedTierListPresentation,
-  SharedTierListPresentation,
-} from "@/features/stage/components/tier-list-presentation";
-import { useStagePresets } from "@/features/stage/hooks/use-stage-presets";
+import { useApplyStagePreset } from "@/features/stage/hooks/use-apply-stage-preset";
 import { MAX_QUEUE_LENGTH } from "@/features/stage/lib/presentation-queue";
 import {
-  presentedQueue,
   queueDraftSearch,
   startPresentingSearch,
 } from "@/features/stage/lib/presentation-queue-search";
 import { usePresentQueueStore } from "@/features/stage/stores/present-queue-store";
-import { applyStagePresetConfig } from "@/features/stage/stores/stage-preset-actions";
 import { m } from "@/paraglide/messages.js";
 import { useOnboardingStore } from "@/stores/onboarding-store";
 
 const routeApi = getRouteApi("/_app/stage");
 
-/** Dark stand-in while the deck or catalog query settles, so no white flash reaches a capture. */
-function StageFallback() {
-  return <div className="fixed inset-0 z-50 bg-[#08090c]" />;
-}
-
 export function StagePage() {
   const search = routeApi.useSearch();
-  const { deck, tier, tierShare, cards, zone, i, mode, preset } = search;
-  const navigate = useNavigate();
-  const { data: presets } = useStagePresets();
-  const presetApplied = useRef(false);
+  useApplyStagePreset(search.preset);
 
-  // Applied once from the first preset list; re-running later would undo
-  // switches flipped since, including mid-recording.
-  useEffect(() => {
-    if (presetApplied.current || preset === undefined || presets === undefined) {
-      return;
-    }
-    presetApplied.current = true;
-    const found = presets.find((candidate) => candidate.id === preset);
-    // An id that doesn't resolve (deleted, or someone else's) is dropped
-    // silently: a stale bookmark opens the stage undressed.
-    if (found) {
-      applyStagePresetConfig(found.config);
-    }
-  }, [preset, presets]);
-
-  const setIndex = (index: number) => {
-    // `replace` so a walk through 40 cards doesn't bury the page the creator
-    // came from under 40 history entries.
-    void navigate({ to: "/stage", search: (prev) => ({ ...prev, i: index }), replace: true });
-  };
-
-  if (deck) {
-    return (
-      <Suspense fallback={<StageFallback />}>
-        <DeckPresentation
-          deckId={deck}
-          zone={zone}
-          index={i ?? 0}
-          onIndexChange={setIndex}
-          onExit={() => {
-            void navigate({ to: "/decks/$deckId", params: { deckId: deck } });
-          }}
-        />
-      </Suspense>
-    );
-  }
-
-  if (tier) {
-    return (
-      <Suspense fallback={<StageFallback />}>
-        <OwnedTierListPresentation
-          tierListId={tier}
-          index={i ?? 0}
-          editing={mode === "edit"}
-          onEditingChange={(next) => {
-            // `replace` so flipping between ranking and showing during a segment
-            // doesn't build a history stack the back button has to climb.
-            void navigate({
-              to: "/stage",
-              search: (prev) => ({ ...prev, mode: next ? "edit" : undefined }),
-              replace: true,
-            });
-          }}
-          onIndexChange={setIndex}
-          onExit={() => {
-            void navigate({ to: "/tier-lists/$tierListId", params: { tierListId: tier } });
-          }}
-        />
-      </Suspense>
-    );
-  }
-
-  if (tierShare) {
-    return (
-      <Suspense fallback={<StageFallback />}>
-        <SharedTierListPresentation
-          token={tierShare}
-          index={i ?? 0}
-          onIndexChange={setIndex}
-          onExit={() => {
-            void navigate({ to: "/tier-lists/share/$token", params: { token: tierShare } });
-          }}
-        />
-      </Suspense>
-    );
-  }
-
-  const presented = presentedQueue(search);
-  if (presented) {
-    return (
-      <Suspense fallback={<StageFallback />}>
-        <QueuePresentation
-          printingIds={presented}
-          index={i ?? 0}
-          onIndexChange={setIndex}
-          onExit={() => {
-            void navigate({
-              to: "/stage",
-              search: (prev) => ({ ...prev, edit: true, i: undefined }),
-            });
-          }}
-        />
-      </Suspense>
-    );
-  }
-
-  // Only this branch needs FilterSearchProvider: a presentation shows a fixed list and never filters.
   return (
     <FilterSearchProvider value={search}>
-      <StageBuilder initialIds={cards ?? []} />
+      <StageBuilder initialIds={search.cards ?? []} />
     </FilterSearchProvider>
   );
 }
@@ -187,7 +74,7 @@ function StageBuilder({ initialIds }: { initialIds: readonly string[] }) {
     // The updater form keeps the browser's filters in the URL, so leaving the
     // show lands back on the same filtered view the queue was built from.
     const ids = usePresentQueueStore.getState().ids;
-    void navigate({ to: "/stage", search: (prev) => startPresentingSearch(prev, ids) });
+    void navigate({ to: "/stage/show", search: (prev) => startPresentingSearch(prev, ids) });
   };
 
   const addSource = (source: QueueSource) => {

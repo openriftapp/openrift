@@ -117,25 +117,20 @@ export async function deletePrintingRows(
 }
 
 /**
- * Runs outside the deleting transaction: rehost deletion touches external
- * storage and must only happen after the DB delete is committed.
+ * Call after the transaction that dropped the references has committed. Files
+ * are removed only for rows whose delete committed.
  */
 export async function cleanupOrphanedImageFiles(
   io: Io,
-  mut: CatalogMutationsRepo,
-  imageFileIds: string[],
+  transact: Transact,
+  imageFileIds: readonly string[],
 ): Promise<void> {
-  for (const imageFileId of imageFileIds) {
-    const imageFile = await mut.getImageFileById(imageFileId);
-    if (!imageFile) {
-      continue;
-    }
-    const stillReferenced = await mut.isImageFileReferenced(imageFileId);
-    if (!stillReferenced) {
-      if (imageFile.rehostedUrl) {
-        await deleteRehostFiles(io, imageFile.rehostedUrl);
-      }
-      await mut.deleteImageFileById(imageFileId);
+  for (const imageFileId of new Set(imageFileIds)) {
+    const deleted = await transact((trx) =>
+      trx.catalogMutations.deleteImageFileIfUnreferenced(imageFileId),
+    );
+    if (deleted?.rehostedUrl) {
+      await deleteRehostFiles(io, deleted.rehostedUrl);
     }
   }
 }
@@ -189,7 +184,7 @@ export async function deletePrinting(
     throw error;
   }
 
-  await cleanupOrphanedImageFiles(io, mut, deletedImageFileIds);
+  await cleanupOrphanedImageFiles(io, transact, deletedImageFileIds);
 }
 
 interface NewPrintingFields {

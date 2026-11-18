@@ -19,6 +19,7 @@ import {
 } from "@/features/admin/hooks/use-job-schedules";
 import { useJobStarter } from "@/features/admin/hooks/use-start-job";
 import { formatDuration } from "@/lib/format-duration";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 function ScheduleEditor({
   initial,
@@ -82,8 +83,10 @@ function JobScheduleCard({ job }: { job: JobScheduleView }) {
   const isOn = job.schedule !== null;
   const busy = setSchedule.isPending || disableSchedule.isPending || runNow.isPending;
 
-  function handleSave(schedule: string) {
-    setSchedule.mutate({ kind: job.kind, schedule }, { onSuccess: () => setEditing(false) });
+  async function handleSave(schedule: string) {
+    if (await runReportedMutation(() => setSchedule.mutateAsync({ kind: job.kind, schedule }))) {
+      setEditing(false);
+    }
   }
 
   function handleEnableSuggested() {
@@ -169,7 +172,7 @@ function JobScheduleCard({ job }: { job: JobScheduleView }) {
           <ScheduleEditor
             initial={job.schedule ?? job.suggestedSchedule}
             pending={setSchedule.isPending}
-            onSave={handleSave}
+            onSave={(schedule) => void handleSave(schedule)}
             onCancel={() => setEditing(false)}
           />
         )}

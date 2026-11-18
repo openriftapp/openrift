@@ -5,6 +5,8 @@ import { toast } from "sonner";
 
 import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/workspace-undo";
 import { goneNotice } from "@/features/catalog-workspace/lib/workspace-undo";
+import type { WorkspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
+import { workspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
 import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
 import { reportMutationError } from "@/lib/query-client";
 import { errorStatus } from "@/lib/server-fns/api-error";
@@ -40,31 +42,76 @@ async function undoOne(entry: WorkspaceUndoEntry, queryClient: QueryClient): Pro
   return false;
 }
 
-/** An undo asked for while another runs waits its turn; a failed undo drops the waiting ones. */
+const UNDO_TASK = Symbol("workspace-undo");
+
+export const NOTHING_SAVED_NOTICE = "Nothing to undo: the change before it did not save.";
+
+/** Runs a queued undo unless an earlier failed undo dropped it; a failure drops the waiting ones. */
+async function runQueuedUndo(entry: WorkspaceUndoEntry, queryClient: QueryClient): Promise<void> {
+  if (!useWorkspaceSelectionStore.getState().undoQueue.includes(entry)) {
+    return;
+  }
+  const ok = await undoOne(entry, queryClient);
+  const after = useWorkspaceSelectionStore.getState();
+  const rest = ok
+    ? after.undoQueue.filter((queued) => queued !== entry && after.undoStack.includes(queued))
+    : [];
+  after.setUndoQueue(rest);
+  after.setUndoing(rest.length > 0);
+}
+
+function markQueued(entry: WorkspaceUndoEntry): boolean {
+  const store = useWorkspaceSelectionStore.getState();
+  if (!store.undoStack.includes(entry) || store.undoQueue.includes(entry)) {
+    return false;
+  }
+  store.setUndoQueue([...store.undoQueue, entry]);
+  store.setUndoing(true);
+  return true;
+}
+
+/** Queues the undo behind every workspace write and undo asked for before it. */
 export async function runWorkspaceUndo(
   entry: WorkspaceUndoEntry,
   queryClient: QueryClient,
+  queue: WorkspaceWriteQueue = workspaceWriteQueue(),
 ): Promise<void> {
-  const store = useWorkspaceSelectionStore.getState();
-  if (!store.undoStack.includes(entry) || store.undoQueue.includes(entry)) {
-    return;
+  if (markQueued(entry)) {
+    await queue.enqueue(UNDO_TASK, () => runQueuedUndo(entry, queryClient));
   }
-  store.setUndoQueue([...store.undoQueue, entry]);
-  if (store.undoing) {
-    return;
+}
+
+function latestUndo(): WorkspaceUndoEntry | undefined {
+  const { undoStack, undoQueue } = useWorkspaceSelectionStore.getState();
+  return undoStack.findLast((candidate) => !undoQueue.includes(candidate));
+}
+
+/**
+ * Undoes the newest entry. While a write is queued, waits for it and undoes the entry it adds,
+ * so an entry already on the stack when Z was pressed stays.
+ */
+export function undoLatestWorkspaceStep(
+  queryClient: QueryClient,
+  queue: WorkspaceWriteQueue = workspaceWriteQueue(),
+): boolean {
+  if (queue.holdsOnly(UNDO_TASK)) {
+    const entry = latestUndo();
+    if (entry === undefined) {
+      return false;
+    }
+    void runWorkspaceUndo(entry, queryClient, queue);
+    return true;
   }
-  store.setUndoing(true);
-  let next: WorkspaceUndoEntry | undefined = entry;
-  while (next !== undefined) {
-    const ok = await undoOne(next, queryClient);
-    const after = useWorkspaceSelectionStore.getState();
-    const rest = ok
-      ? after.undoQueue.slice(1).filter((queued) => after.undoStack.includes(queued))
-      : [];
-    after.setUndoQueue(rest);
-    next = rest[0];
-  }
-  useWorkspaceSelectionStore.getState().setUndoing(false);
+  const before = new Set(useWorkspaceSelectionStore.getState().undoStack);
+  void queue.enqueue(UNDO_TASK, async () => {
+    const entry = latestUndo();
+    if (entry === undefined || before.has(entry) || !markQueued(entry)) {
+      toast(NOTHING_SAVED_NOTICE);
+      return;
+    }
+    await runQueuedUndo(entry, queryClient);
+  });
+  return true;
 }
 
 export function useWorkspaceUndo() {
@@ -75,15 +122,7 @@ export function useWorkspaceUndo() {
     void runWorkspaceUndo(entry, queryClient);
   };
 
-  const undoLatest = (skip?: ReadonlySet<WorkspaceUndoEntry>): boolean => {
-    const { undoStack, undoQueue } = useWorkspaceSelectionStore.getState();
-    const entry = undoStack.findLast((candidate) => !undoQueue.includes(candidate));
-    if (entry === undefined || skip?.has(entry)) {
-      return false;
-    }
-    undoEntry(entry);
-    return true;
-  };
+  const undoLatest = (): boolean => undoLatestWorkspaceStep(queryClient);
 
   const announce = (entry: WorkspaceUndoEntry) => {
     pushUndo(entry);

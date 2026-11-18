@@ -24,16 +24,18 @@ export function cardBansRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    listActiveForCards(cardIds: string[], formatIds: string[]) {
+    /** `day` is `YYYY-MM-DD`; a ban counts from its start day up to the day before its unban day. */
+    listInEffectForCards(cardIds: string[], formatIds: string[], day: string) {
       if (cardIds.length === 0 || formatIds.length === 0) {
         return Promise.resolve([]);
       }
       return db
         .selectFrom("cardBans")
-        .select(["cardId", "formatId", "bannedAt"])
+        .select(["cardId", "formatId"])
         .where("cardId", "in", cardIds)
         .where("formatId", "in", formatIds)
-        .where("unbannedAt", "is", null)
+        .where("bannedAt", "<=", day)
+        .where((eb) => eb.or([eb("unbannedAt", "is", null), eb("unbannedAt", ">", day)]))
         .execute();
     },
 

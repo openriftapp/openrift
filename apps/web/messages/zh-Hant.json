@@ -397,6 +397,7 @@
   "common_scroll_to_top": "回到頂部",
   "common_copy": "複製",
   "common_copied": "已複製",
+  "common_copy_failed": "無法複製",
   "common_copy_share_link": "複製分享連結",
   "common_share_link_copied": "已複製分享連結",
   "common_copy_link_error": "無法複製連結",
@@ -624,8 +625,6 @@
     }
   ],
   "cards_grid_show_n_printings": "顯示 {count} 個印刷版本",
-  "cards_grid_load_error_title": "無法載入卡牌",
-  "cards_grid_load_error_description": "可能無法連上伺服器。",
   "cards_grid_no_results_title": "找不到卡牌",
   "cards_grid_no_results_description": "請試著調整篩選條件。",
   "cards_search_hint_text": "一般字詞只搜尋卡牌名稱。",
@@ -1710,6 +1709,12 @@
     }
   ],
   "collections_reorder_aria": "重新排序 {label}",
+  "collections_drag_announce_picked_up": "已拿起 {name}。",
+  "collections_drag_announce_over": "{name} 位於 {target} 上方。",
+  "collections_drag_announce_not_over": "{name} 不在可放置區域上方。",
+  "collections_drag_announce_dropped": "已將 {name} 放到 {target}。",
+  "collections_drag_announce_nothing_moved": "已放下 {name}，未做任何移動。",
+  "collections_drag_announce_unnamed": "項目",
   "collections_copy_edit_aria": "{title}。編輯實體卡詳細資料。",
   "collections_copy_graded_title": "評級 {grader} {grade}",
   "collections_copies_with_details": [

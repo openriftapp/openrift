@@ -1,5 +1,4 @@
 import { enumLabel } from "@openrift/shared/enum-label";
-import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
@@ -19,8 +18,8 @@ import {
   useManualCardDraft,
 } from "@/features/admin/hooks/use-manual-card-draft";
 import { useCreateDeskPrinting } from "@/features/admin/hooks/use-printing-desk";
-import { adminCardDetailQueryOptions } from "@/features/admin/lib/admin-card-queries";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { readCreatedCardId } from "@/features/admin/lib/created-card-id";
 import { catalogKeys, cardsKeys, promosKeys } from "@/features/cards/lib/cards-query-keys";
 import { draftImageLabel } from "@/features/catalog-workspace/components/creation/creation-images";
 import { CreationPanel } from "@/features/catalog-workspace/components/creation/creation-panel";
@@ -97,18 +96,11 @@ export function NewManualCardRecord() {
   const credit = session?.user.name;
 
   async function createFirstPrinting(cardSlug: string): Promise<string | null> {
-    let fresh: AdminCardDetailResponse | null = null;
-    try {
-      fresh = (await queryClient.query(
-        adminCardDetailQueryOptions(cardSlug),
-      )) as AdminCardDetailResponse;
-    } catch {
-      fresh = null;
+    const card = await readCreatedCardId(queryClient, cardSlug);
+    if (!card.ok) {
+      return `The card was created, but its printing was not: ${card.reason}. Add it under Printings.`;
     }
-    const cardId = fresh?.card?.id;
-    if (cardId === undefined) {
-      return "The card was created, but its printing was not. Add it under Printings.";
-    }
+    const cardId = card.id;
     const ready = asExistingCard(draft, cardId, cardSlug, name.trim());
     let created: Awaited<ReturnType<typeof createPrinting.mutateAsync>> | undefined;
     let reason = "unknown error";

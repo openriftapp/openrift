@@ -22,6 +22,7 @@ import {
   useRemoveCardBan,
   useUpdateCardBan,
 } from "@/features/cards/hooks/use-card-bans";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 export function CardBansSection({ cardId }: { cardId: string }) {
   const { data: bans, isPending } = useCardBans(cardId);
@@ -43,29 +44,23 @@ export function CardBansSection({ cardId }: { cardId: string }) {
     setDraft((current) => ({ ...current, ...next }));
   }
 
-  function submit() {
+  async function submit() {
     const input = banDraftInput(cardId, draft);
-    const settle = {
-      onSuccess: () => {
-        setAdding(false);
-        setEditingId(null);
-      },
-    };
-    if (editingId === null) {
-      createBan.mutate(input, settle);
-      return;
+    const save = editingId === null ? createBan : updateBan;
+    if (await runReportedMutation(() => save.mutateAsync(input))) {
+      setAdding(false);
+      setEditingId(null);
     }
-    updateBan.mutate(input, settle);
   }
 
-  function confirmRemove() {
+  async function confirmRemove() {
     if (removing === null) {
       return;
     }
-    removeBan.mutate(
-      { cardId, formatId: removing.formatId },
-      { onSuccess: () => setRemovingId(null) },
-    );
+    const formatId = removing.formatId;
+    if (await runReportedMutation(() => removeBan.mutateAsync({ cardId, formatId }))) {
+      setRemovingId(null);
+    }
   }
 
   return (
@@ -90,7 +85,7 @@ export function CardBansSection({ cardId }: { cardId: string }) {
                   isPending={updateBan.isPending}
                   submitLabel="Save"
                   onChange={changeDraft}
-                  onSubmit={submit}
+                  onSubmit={() => void submit()}
                   onCancel={() => setEditingId(null)}
                 />
               </li>
@@ -118,7 +113,7 @@ export function CardBansSection({ cardId }: { cardId: string }) {
           isPending={createBan.isPending}
           submitLabel="Add"
           onChange={changeDraft}
-          onSubmit={submit}
+          onSubmit={() => void submit()}
           onCancel={() => setAdding(false)}
         />
       )}
@@ -144,7 +139,7 @@ export function CardBansSection({ cardId }: { cardId: string }) {
         description="The card counts as legal in that format again as soon as this is removed."
         confirmLabel="Remove ban"
         isPending={removeBan.isPending}
-        onConfirm={confirmRemove}
+        onConfirm={() => void confirmRemove()}
       />
     </section>
   );

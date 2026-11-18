@@ -214,7 +214,7 @@ test.describe("cards /cards (logged in)", () => {
         JOIN users u ON u.id = c.user_id
         WHERE u.email = ${email} AND c.is_inbox = true
       `) as { count: number }[];
-      expect(rows[0].count).toBeGreaterThan(0);
+      expect(rows[0]?.count).toBeGreaterThan(0);
     } finally {
       await sql.end();
     }

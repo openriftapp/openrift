@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import { playerSourceKey } from "./ingest-meta-overlays.js";
+import { reopenMetaSubmission } from "./meta-overlay-ledger.js";
 import {
   acceptMetaEventOverlay,
   acceptMetaPlayerOverlay,
@@ -16,6 +17,7 @@ import {
   releaseMetaPlayerOverlayField,
   resolveMetaCardName,
   revertMetaUpload,
+  writeMetaPlayerOverlayFields,
 } from "./meta-overlay-review.js";
 import { promoteMetaEvent, promoteNewEvent } from "./meta-promote.js";
 import { acceptCatalogEvent } from "./meta-sync/accept.js";
@@ -76,6 +78,7 @@ const mockOverlays = {
   adminPlayerEditOverlay: vi.fn(),
   deleteEventOverlay: vi.fn(),
   deletePlayerOverlay: vi.fn(),
+  insertPlayerOverlay: vi.fn(),
 };
 
 const mockMeta = {
@@ -85,6 +88,8 @@ const mockMeta = {
   playerById: vi.fn(),
   eventIdForPlayer: vi.fn(),
   rawStandingsForEvent: vi.fn(),
+  playerDeckCards: vi.fn(),
+  renamePlayerDeck: vi.fn(),
 };
 
 const mockUvsgamesEvents = { byKey: vi.fn() };
@@ -96,10 +101,14 @@ const mockSubmissions = {
   resolve: vi.fn(),
   byPlayerOverlayIds: vi.fn(),
   revokeAcceptance: vi.fn(),
-  acceptedCorrectionForOverlay: vi.fn(),
+  correctionForOverlay: vi.fn(),
+  reopen: vi.fn(),
 };
 
+const mockCatalog = { cardNamesByIds: vi.fn() };
+
 const repos = {
+  catalog: mockCatalog,
   metaOverlays: mockOverlays,
   meta: mockMeta,
   metaSubmissions: mockSubmissions,
@@ -137,7 +146,7 @@ beforeEach(() => {
   mockMeta.eventById.mockResolvedValue({ id: OTHER_EVENT_ID });
   mockMeta.eventIdForPlayer.mockResolvedValue(LIVE_EVENT_ID);
   mockSubmissions.byPlayerOverlayId.mockResolvedValue(null);
-  mockSubmissions.acceptedCorrectionForOverlay.mockResolvedValue(null);
+  mockSubmissions.correctionForOverlay.mockResolvedValue(null);
   mockOverlays.lockEventOverlay.mockImplementation((id: string) =>
     mockOverlays.eventOverlayById(id),
   );
@@ -1262,11 +1271,11 @@ describe("taking an accepted contribution back", () => {
 
   it("takes an accepted event correction back with its event credit when it is rejected", async () => {
     mockOverlays.eventOverlayById.mockResolvedValue(CORRECTION);
-    mockSubmissions.acceptedCorrectionForOverlay.mockResolvedValue(CORRECTION_SUBMISSION);
+    mockSubmissions.correctionForOverlay.mockResolvedValue(CORRECTION_SUBMISSION);
 
     await rejectMetaOverlay(transact, { kind: "event", id: OVERLAY_ID });
 
-    expect(mockSubmissions.acceptedCorrectionForOverlay).toHaveBeenCalledWith(CORRECTION);
+    expect(mockSubmissions.correctionForOverlay).toHaveBeenCalledWith(CORRECTION, "accepted");
     expect(mockSubmissions.revokeAcceptance).toHaveBeenCalledWith(
       expect.objectContaining({
         submissionId: CORRECTION_SUBMISSION.id,
@@ -1275,10 +1284,39 @@ describe("taking an accepted contribution back", () => {
     );
   });
 
+  it("restores a rejected correction and its event credit when its overlay is accepted again", async () => {
+    const now = new Date("2026-09-20T12:00:00.000Z");
+    mockOverlays.eventOverlayById.mockResolvedValue({ ...CORRECTION, status: "rejected" });
+    mockSubmissions.correctionForOverlay.mockResolvedValue(CORRECTION_SUBMISSION);
+
+    await acceptMetaEventOverlay(transact, OVERLAY_ID, null, now, "admin-1");
+
+    expect(mockSubmissions.correctionForOverlay).toHaveBeenCalledWith(
+      expect.objectContaining({ id: CORRECTION.id }),
+      "rejected",
+    );
+    expect(mockSubmissions.recordAcceptance).toHaveBeenCalledWith({
+      submissionId: CORRECTION_SUBMISSION.id,
+      credit: { metaEventId: LIVE_EVENT_ID, metaEventPlayerId: null, userId: "user-7" },
+      acceptedDeckId: null,
+      resolvedAt: now,
+      resolvedByUserId: "admin-1",
+    });
+  });
+
+  it("touches no ledger when a pending overlay on a live event is accepted", async () => {
+    mockOverlays.eventOverlayById.mockResolvedValue({ ...CORRECTION, status: "pending" });
+
+    await acceptMetaEventOverlay(transact, OVERLAY_ID);
+
+    expect(mockSubmissions.correctionForOverlay).not.toHaveBeenCalled();
+    expect(mockSubmissions.recordAcceptance).not.toHaveBeenCalled();
+  });
+
   it("rejects an emptied correction on release and takes its credit back", async () => {
     mockOverlays.acceptedEventOverlays.mockResolvedValue([CORRECTION]);
     mockOverlays.eventOverlayById.mockResolvedValue(CORRECTION);
-    mockSubmissions.acceptedCorrectionForOverlay.mockResolvedValue(CORRECTION_SUBMISSION);
+    mockSubmissions.correctionForOverlay.mockResolvedValue(CORRECTION_SUBMISSION);
 
     await releaseEventOverlayField(transact, LIVE_EVENT_ID, "playerCount");
 
@@ -1310,5 +1348,121 @@ describe("resolveMetaCardName", () => {
     expect(promoteMetaEvent).toHaveBeenCalledTimes(1);
     expect(promoteMetaEvent).toHaveBeenCalledWith(repos, OTHER_EVENT_ID);
     expect(result).toEqual({ updated: 5, metaEventIds: [OTHER_EVENT_ID] });
+  });
+});
+
+describe("reopenMetaSubmission", () => {
+  const NOW = new Date("2026-09-20T12:00:00.000Z");
+
+  it("puts a rejected list back to pending with its submission", async () => {
+    mockOverlays.playerOverlayById.mockResolvedValue({ id: PLAYER_OVERLAY_ID, status: "rejected" });
+
+    await reopenMetaSubmission(
+      transact,
+      { id: "s0000000-0001-4000-a000-000000000009", playerOverlayId: PLAYER_OVERLAY_ID },
+      NOW,
+    );
+
+    expect(mockSubmissions.reopen).toHaveBeenCalledWith("s0000000-0001-4000-a000-000000000009");
+    expect(mockOverlays.setPlayerOverlayStatuses).toHaveBeenCalledWith(
+      [PLAYER_OVERLAY_ID],
+      "pending",
+      NOW,
+    );
+    expect(transactions).toEqual([{ open: false, outcome: "committed" }]);
+  });
+
+  it("leaves a list that is still pending alone", async () => {
+    mockOverlays.playerOverlayById.mockResolvedValue({ id: PLAYER_OVERLAY_ID, status: "pending" });
+
+    await reopenMetaSubmission(
+      transact,
+      { id: "s0000000-0001-4000-a000-000000000009", playerOverlayId: PLAYER_OVERLAY_ID },
+      NOW,
+    );
+
+    expect(mockSubmissions.reopen).toHaveBeenCalledTimes(1);
+    expect(mockOverlays.setPlayerOverlayStatuses).not.toHaveBeenCalled();
+  });
+
+  it("reopens an event correction without touching any player overlay", async () => {
+    await reopenMetaSubmission(
+      transact,
+      { id: "s0000000-0001-4000-a000-000000000009", playerOverlayId: null },
+      NOW,
+    );
+
+    expect(mockSubmissions.reopen).toHaveBeenCalledTimes(1);
+    expect(mockOverlays.lockPlayerOverlays).not.toHaveBeenCalled();
+  });
+});
+
+describe("writeMetaPlayerOverlayFields with a status-only list change", () => {
+  const ADMIN = "admin-1";
+  const CARD_ID = "a0000000-0009-4000-a000-000000000009";
+  const STORED = [{ cardId: CARD_ID, zone: "main", quantity: 3, preferredPrintingId: null }];
+
+  beforeEach(() => {
+    mockMeta.playerDeckCards.mockResolvedValue(STORED);
+    mockCatalog.cardNamesByIds.mockResolvedValue(new Map([[CARD_ID, "Jinx"]]));
+    mockOverlays.adminPlayerEditOverlay.mockResolvedValue(undefined);
+  });
+
+  it("claims the stored cards with the new status", async () => {
+    await writeMetaPlayerOverlayFields(
+      transact,
+      LIVE_PLAYER_ID,
+      { list: { cards: [], listStatus: "partial" } },
+      ADMIN,
+    );
+
+    expect(mockOverlays.insertPlayerOverlay).toHaveBeenCalledWith(
+      expect.objectContaining({ claimedFields: ["cards", "listStatus"], listStatus: "partial" }),
+      [
+        {
+          lineNumber: 0,
+          zone: "main",
+          quantity: 3,
+          cardName: "Jinx",
+          cardId: CARD_ID,
+          preferredPrintingId: null,
+        },
+      ],
+    );
+  });
+
+  it("claims the live deck over the admin's own older list", async () => {
+    mockOverlays.adminPlayerEditOverlay.mockResolvedValue({
+      id: PLAYER_OVERLAY_ID,
+      claimedFields: ["cards", "listStatus"],
+      listStatus: "full",
+    });
+
+    await writeMetaPlayerOverlayFields(
+      transact,
+      LIVE_PLAYER_ID,
+      { list: { cards: [], listStatus: "partial" } },
+      ADMIN,
+    );
+
+    expect(mockOverlays.updatePlayerOverlay).toHaveBeenCalledWith(
+      PLAYER_OVERLAY_ID,
+      expect.objectContaining({ listStatus: "partial" }),
+      [expect.objectContaining({ cardId: CARD_ID, quantity: 3 })],
+    );
+  });
+
+  it("refuses when the entry has no stored list", async () => {
+    mockMeta.playerDeckCards.mockResolvedValue([]);
+
+    await expect(
+      writeMetaPlayerOverlayFields(
+        transact,
+        LIVE_PLAYER_ID,
+        { list: { cards: [], listStatus: "partial" } },
+        ADMIN,
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(mockOverlays.insertPlayerOverlay).not.toHaveBeenCalled();
   });
 });

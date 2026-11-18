@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createRepos } from "../../../deps.js";
 import { createDbContext } from "../../../test/integration-context.js";
-import { holdRow, waitUntilBlockedBy } from "../../../test/row-locks.js";
+import { holdRoundsLock, waitUntilBlockedBy } from "../../../test/row-locks.js";
 import { scoringOf } from "../lib/pod-scoring.js";
 import { toRoundResponse } from "../lib/pod-tournament-presenters.js";
 import {
@@ -830,13 +830,10 @@ describe.skipIf(!ctx)("podTournamentsRepo (integration)", () => {
       .where("id", "=", tournament.id)
       .execute();
 
-    const editor = await holdRow(
+    const editor = await holdRoundsLock(
       db,
-      sql`WITH locked AS (
-        SELECT pg_advisory_xact_lock(hashtext(${`tournament-writes:${tournament.id}`}))
-      ), written AS (
-        UPDATE tournaments SET play_mode = '1v1' WHERE id = ${tournament.id} RETURNING id
-      ) SELECT 1 FROM locked, written`,
+      tournament.id,
+      sql`UPDATE tournaments SET play_mode = '1v1' WHERE id = ${tournament.id} RETURNING id`,
     );
     let team: ReturnType<typeof podRepo.createTeam> | undefined;
     try {

@@ -11,7 +11,8 @@ type TierListAutosaveStatus = "saving" | "saved" | "failed";
 
 export interface TierListAutosave {
   status: TierListAutosaveStatus;
-  flush: () => void;
+  /** Sends what is left unsaved before the stage closes: the queued save, or the failed one again. */
+  leave: () => void;
   retry: () => void;
 }
 
@@ -75,5 +76,13 @@ export function useTierListAutosave(tierListId: string): TierListAutosave {
     status = "saving";
   }
 
-  return { status, flush: saver.flush, retry };
+  const leave = () => {
+    if (status === "failed") {
+      retry();
+      return;
+    }
+    saver.flush();
+  };
+
+  return { status, leave, retry };
 }

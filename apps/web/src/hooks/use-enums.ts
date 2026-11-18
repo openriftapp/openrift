@@ -2,7 +2,7 @@ import { labelMap } from "@openrift/shared/enum-label";
 import type { LabelMap } from "@openrift/shared/enum-label";
 import { DEFAULT_RARITY_COLORS } from "@openrift/shared/rarity-colors";
 import { formatSearchSlug } from "@openrift/shared/search-query/keys";
-import type { ColoredEnumRow, EnumRow } from "@openrift/shared/types/api/init";
+import type { ColoredEnumRow, EnumRow, InitResponse } from "@openrift/shared/types/api/init";
 import type { CustomTag, DistributionChannel } from "@openrift/shared/types/catalog";
 import type { DeckZone, EnumOrders } from "@openrift/shared/types/enums";
 import { useSuspenseQuery } from "@tanstack/react-query";
@@ -28,89 +28,173 @@ function colorMap(rows: readonly ColoredEnumRow[]): Record<string, string> {
   );
 }
 
-export function useZoneOrder(): {
-  zoneOrder: DeckZone[];
-  zoneLabels: LabelMap;
-} {
+function bySortOrderThenLabel(
+  a: { sortOrder: number; label: string },
+  b: { sortOrder: number; label: string },
+): number {
+  return a.sortOrder - b.sortOrder || a.label.localeCompare(b.label);
+}
+
+const derive = {
+  zoneOrder: (data: InitResponse): { zoneOrder: DeckZone[]; zoneLabels: LabelMap } => {
+    const zones = sorted(data.enums.deckZones);
+    return { zoneOrder: zones.map((zone) => zone.slug as DeckZone), zoneLabels: labelMap(zones) };
+  },
+  languageLabels: (data: InitResponse): LabelMap => sortedLabelMap(data.enums.languages),
+  languageList: (data: InitResponse): { code: string; name: string; color: string | null }[] =>
+    sorted(data.enums.languages).map((row) => ({
+      code: row.slug,
+      name: row.label,
+      color: row.color,
+    })),
+  languageColors: (data: InitResponse): Record<string, string> => colorMap(data.enums.languages),
+  deckFormatList: (
+    data: InitResponse,
+  ): { formats: { slug: string; label: string }[]; labels: LabelMap } => {
+    const rows = sorted(data.enums.deckFormats);
+    return {
+      formats: rows.map((row) => ({ slug: row.slug, label: row.label })),
+      labels: labelMap(rows),
+    };
+  },
+  formatList: (data: InitResponse): { names: string[]; ids: string[]; labels: LabelMap } => {
+    const rows = sorted(data.enums.formats);
+    const names = rows.map((row) => formatSearchSlug(row.label));
+    return {
+      names,
+      ids: rows.map((row) => row.slug),
+      labels: labelMap(
+        rows.flatMap((row, index) => [
+          { slug: row.slug, label: row.label },
+          { slug: names[index] ?? row.slug, label: row.label },
+        ]),
+      ),
+    };
+  },
+  conditionList: (data: InitResponse): { slug: string; label: string }[] =>
+    sorted(data.enums.conditions).map((row) => ({ slug: row.slug, label: row.label })),
+  graderList: (data: InitResponse): { slug: string; label: string }[] =>
+    sorted(data.enums.graders).map((row) => ({ slug: row.slug, label: row.label })),
+  markerList: (data: InitResponse): { slug: string; label: string; description: string | null }[] =>
+    sorted(data.enums.markers).map((row) => ({
+      slug: row.slug,
+      label: row.label,
+      description: row.description,
+    })),
+  championIdentifierTags: (data: InitResponse): ReadonlySet<string> =>
+    new Set(data.championIdentifierTags),
+  customTagList: (
+    data: InitResponse,
+  ): { byCategory: Map<string, CustomTag[]>; all: CustomTag[] } => {
+    const all = data.customTags.toSorted(bySortOrderThenLabel);
+    return { byCategory: Map.groupBy(all, (tag) => tag.category), all };
+  },
+  tagCategories: (
+    data: InitResponse,
+  ): {
+    categories: { slug: string; label: string; sortOrder: number }[];
+    categoryByTag: ReadonlyMap<string, string>;
+  } => ({
+    categories: data.tagCategories.toSorted(bySortOrderThenLabel),
+    categoryByTag: new Map(Object.entries(data.tagCategoryMap)),
+  }),
+  enumOrders: (
+    data: InitResponse,
+  ): { orders: EnumOrders; labels: EnumLabels; rarityColors: Record<string, string> } => {
+    // Keep the contract's per-key typing: widening to an index signature would
+    // let a typo'd key compile and produce a silently empty label map.
+    const d = data.enums;
+    return {
+      orders: {
+        finishes: slugs(d.finishes),
+        rarities: slugs(d.rarities),
+        domains: slugs(d.domains),
+        cardTypes: slugs(d.cardTypes),
+        superTypes: slugs(d.superTypes),
+        artVariants: slugs(d.artVariants),
+        cardSizes: slugs(d.cardSizes),
+      },
+      labels: {
+        finishes: sortedLabelMap(d.finishes),
+        rarities: sortedLabelMap(d.rarities),
+        domains: sortedLabelMap(d.domains),
+        cardTypes: sortedLabelMap(d.cardTypes),
+        superTypes: sortedLabelMap(d.superTypes),
+        artVariants: sortedLabelMap(d.artVariants),
+        cardSizes: sortedLabelMap(d.cardSizes),
+        conditions: sortedLabelMap(d.conditions),
+        graders: sortedLabelMap(d.graders),
+      },
+      rarityColors: { ...DEFAULT_RARITY_COLORS, ...colorMap(d.rarities) },
+    };
+  },
+};
+
+type EnumView = { [K in keyof typeof derive]: ReturnType<(typeof derive)[K]> };
+
+const views = new WeakMap<InitResponse, Partial<EnumView>>();
+
+/** Each part is derived on first read and shared by every component that reads the same init data. */
+function enumView<K extends keyof EnumView>(data: InitResponse, key: K): EnumView[K] {
+  let view = views.get(data);
+  if (!view) {
+    view = {};
+    views.set(data, view);
+  }
+  const cached = view[key];
+  if (cached !== undefined) {
+    return cached;
+  }
+  const value = derive[key](data) as EnumView[K];
+  view[key] = value;
+  return value;
+}
+
+function useEnumView<K extends keyof EnumView>(key: K): EnumView[K] {
   const { data } = useSuspenseQuery(initQueryOptions);
-  const zones = sorted(data.enums.deckZones ?? []);
-  return {
-    zoneOrder: zones.map((zone) => zone.slug as DeckZone),
-    zoneLabels: labelMap(zones),
-  };
+  return enumView(data, key);
+}
+
+export function useZoneOrder(): { zoneOrder: DeckZone[]; zoneLabels: LabelMap } {
+  return useEnumView("zoneOrder");
 }
 
 export function useLanguageLabels(): LabelMap {
-  const { data } = useSuspenseQuery(initQueryOptions);
-  return sortedLabelMap(data.enums.languages ?? []);
+  return useEnumView("languageLabels");
 }
 
 export function useLanguageList(): { code: string; name: string; color: string | null }[] {
-  const { data } = useSuspenseQuery(initQueryOptions);
-  return sorted(data.enums.languages ?? []).map((row) => ({
-    code: row.slug,
-    name: row.label,
-    color: row.color,
-  }));
+  return useEnumView("languageList");
 }
 
 /** Omits codes with no color set. */
 export function useLanguageColors(): Record<string, string> {
-  const { data } = useSuspenseQuery(initQueryOptions);
-  return colorMap(data.enums.languages ?? []);
+  return useEnumView("languageColors");
 }
 
 export function useDeckFormatList(): {
   formats: { slug: string; label: string }[];
   labels: LabelMap;
 } {
-  const { data } = useSuspenseQuery(initQueryOptions);
-  const rows = sorted(data.enums.deckFormats ?? []);
-  return {
-    formats: rows.map((row) => ({ slug: row.slug, label: row.label })),
-    labels: labelMap(rows),
-  };
+  return useEnumView("deckFormatList");
 }
 
 /** Ban formats (`f:` and `banned:` in search), not the deck builder's formats. */
-export function useFormatList(): {
-  names: string[];
-  ids: string[];
-  labels: LabelMap;
-} {
-  const { data } = useSuspenseQuery(initQueryOptions);
-  const rows = sorted(data.enums.formats ?? []);
-  const names = rows.map((row) => formatSearchSlug(row.label));
-  return {
-    names,
-    ids: rows.map((row) => row.slug),
-    labels: labelMap(
-      rows.flatMap((row, index) => [
-        { slug: row.slug, label: row.label },
-        { slug: names[index] ?? row.slug, label: row.label },
-      ]),
-    ),
-  };
+export function useFormatList(): { names: string[]; ids: string[]; labels: LabelMap } {
+  return useEnumView("formatList");
 }
 
 /** Ordered best-to-worst: Mint → Poor. */
 export function useConditionList(): { slug: string; label: string }[] {
-  const { data } = useSuspenseQuery(initQueryOptions);
-  return sorted(data.enums.conditions ?? []).map((row) => ({ slug: row.slug, label: row.label }));
+  return useEnumView("conditionList");
 }
 
 export function useGraderList(): { slug: string; label: string }[] {
-  const { data } = useSuspenseQuery(initQueryOptions);
-  return sorted(data.enums.graders ?? []).map((row) => ({ slug: row.slug, label: row.label }));
+  return useEnumView("graderList");
 }
 
 export function useMarkerList(): { slug: string; label: string; description: string | null }[] {
-  const { data } = useSuspenseQuery(initQueryOptions);
-  return sorted(data.enums.markers ?? []).map((row) => ({
-    slug: row.slug,
-    label: row.label,
-    description: row.description,
-  }));
+  return useEnumView("markerList");
 }
 
 /**
@@ -119,21 +203,15 @@ export function useMarkerList(): { slug: string; label: string; description: str
  */
 export function useChannelRegistry(): DistributionChannel[] {
   const { data } = useSuspenseQuery(initQueryOptions);
-  return data.distributionChannels ?? [];
+  return data.distributionChannels;
 }
 
 export function useChampionIdentifierTags(): ReadonlySet<string> {
-  const { data } = useSuspenseQuery(initQueryOptions);
-  return new Set(data.championIdentifierTags);
+  return useEnumView("championIdentifierTags");
 }
 
 export function useCustomTagList(): { byCategory: Map<string, CustomTag[]>; all: CustomTag[] } {
-  const { data } = useSuspenseQuery(initQueryOptions);
-  const all = (data.customTags ?? []).toSorted(
-    (a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label),
-  );
-  const byCategory = Map.groupBy(all, (tag) => tag.category);
-  return { byCategory, all };
+  return useEnumView("customTagList");
 }
 
 /** Tags absent from the map are unclassified. */
@@ -141,14 +219,7 @@ export function useTagCategories(): {
   categories: { slug: string; label: string; sortOrder: number }[];
   categoryByTag: ReadonlyMap<string, string>;
 } {
-  const { data } = useSuspenseQuery(initQueryOptions);
-  // `?? []` / `?? {}` guard deploy skew: a freshly-shipped web bundle can be
-  // served an /init payload cached before the API learned these keys.
-  const categories = (data.tagCategories ?? []).toSorted(
-    (a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label),
-  );
-  const categoryByTag = new Map(Object.entries(data.tagCategoryMap ?? {}));
-  return { categories, categoryByTag };
+  return useEnumView("tagCategories");
 }
 
 export function useEnumOrders(): {
@@ -156,31 +227,5 @@ export function useEnumOrders(): {
   labels: EnumLabels;
   rarityColors: Record<string, string>;
 } {
-  const { data } = useSuspenseQuery(initQueryOptions);
-  // Keep the contract's per-key typing: widening to an index signature would
-  // let a typo'd key compile and produce a silently empty label map.
-  const d = data.enums;
-  return {
-    orders: {
-      finishes: slugs(d.finishes ?? []),
-      rarities: slugs(d.rarities ?? []),
-      domains: slugs(d.domains ?? []),
-      cardTypes: slugs(d.cardTypes ?? []),
-      superTypes: slugs(d.superTypes ?? []),
-      artVariants: slugs(d.artVariants ?? []),
-      cardSizes: slugs(d.cardSizes ?? []),
-    },
-    labels: {
-      finishes: sortedLabelMap(d.finishes ?? []),
-      rarities: sortedLabelMap(d.rarities ?? []),
-      domains: sortedLabelMap(d.domains ?? []),
-      cardTypes: sortedLabelMap(d.cardTypes ?? []),
-      superTypes: sortedLabelMap(d.superTypes ?? []),
-      artVariants: sortedLabelMap(d.artVariants ?? []),
-      cardSizes: sortedLabelMap(d.cardSizes ?? []),
-      conditions: sortedLabelMap(d.conditions ?? []),
-      graders: sortedLabelMap(d.graders ?? []),
-    },
-    rarityColors: { ...DEFAULT_RARITY_COLORS, ...colorMap(d.rarities ?? []) },
-  };
+  return useEnumView("enumOrders");
 }

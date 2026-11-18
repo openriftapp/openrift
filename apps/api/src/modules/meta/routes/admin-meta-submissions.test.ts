@@ -13,7 +13,6 @@ const mockSubmissions = {
   byId: vi.fn(),
   byPlayerOverlayId: vi.fn(),
   resolve: vi.fn(),
-  reopen: vi.fn(),
 };
 
 const mockAdminEvents = { insert: vi.fn() };
@@ -21,6 +20,7 @@ const mockAdminEvents = { insert: vi.fn() };
 const mockServices = {
   applyMetaEventCorrection: vi.fn(),
   notifySubmitterOfMetaAcceptance: vi.fn(),
+  reopenMetaSubmission: vi.fn(),
 };
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
@@ -304,7 +304,10 @@ describe("POST /meta/submissions/{id}/reopen", () => {
     const res = await post(`/${SUBMISSION_ID}/reopen`);
 
     expect(res.status).toBe(204);
-    expect(mockSubmissions.reopen).toHaveBeenCalledWith(SUBMISSION_ID);
+    expect(mockServices.reopenMetaSubmission).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({ id: SUBMISSION_ID, playerOverlayId: PLAYER_OVERLAY_ID }),
+    );
     expect(mockAdminEvents.insert).toHaveBeenCalledWith(
       expect.objectContaining({
         action: "meta-submission.reopen",
@@ -320,7 +323,10 @@ describe("POST /meta/submissions/{id}/reopen", () => {
     const res = await post(`/${SUBMISSION_ID}/reopen`);
 
     expect(res.status).toBe(409);
-    expect(mockSubmissions.reopen).not.toHaveBeenCalled();
+    expect(await readJson(res)).toMatchObject({
+      message: expect.stringContaining("back to the sources"),
+    });
+    expect(mockServices.reopenMetaSubmission).not.toHaveBeenCalled();
   });
 
   it("404s an unknown submission", async () => {
@@ -329,7 +335,7 @@ describe("POST /meta/submissions/{id}/reopen", () => {
     const res = await post(`/${SUBMISSION_ID}/reopen`);
 
     expect(res.status).toBe(404);
-    expect(mockSubmissions.reopen).not.toHaveBeenCalled();
+    expect(mockServices.reopenMetaSubmission).not.toHaveBeenCalled();
   });
 });
 

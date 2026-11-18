@@ -44,7 +44,8 @@ export function readPreviewSource(image: HTMLImageElement): PreviewSource | null
   try {
     const pixels = context.getImageData(0, 0, width, height);
     return { frame: { data: pixels.data, width, height }, scale };
-  } catch {
+  } catch (error) {
+    console.warn("[straighten] the image's pixels could not be read for the preview", error);
     return null;
   }
 }

@@ -165,8 +165,8 @@ export function PresentationStage({
         }
       }
     };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
+    globalThis.addEventListener("keydown", handler);
+    return () => globalThis.removeEventListener("keydown", handler);
   }, [boardControls, editing, index, items.length, obsAvailable, onIndexChange, toggleEdit]);
 
   const empty = !current && !editing;

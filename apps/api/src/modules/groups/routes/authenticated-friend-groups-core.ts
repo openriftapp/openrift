@@ -252,7 +252,9 @@ export const friendGroupsCoreRouter = {
     const ctx = await loadGroupForMember(context.repos, input.slug, viewerId);
     requireRole(ctx.membership, "admin");
 
-    const updated = await withUniqueShareToken((code) => friendGroups.setCode(ctx.group.id, code));
+    const updated = await withUniqueShareToken((code) => friendGroups.setCode(ctx.group.id, code), {
+      constraint: "uq_friend_groups_code",
+    });
     assertFound(updated, "Group not found");
     return toGroup(updated, true);
   }),

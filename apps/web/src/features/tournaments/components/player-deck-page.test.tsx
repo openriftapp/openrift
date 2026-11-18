@@ -161,6 +161,17 @@ describe("PlayerDeckPage", () => {
     expect(screen.getByRole("button", { name: "Submit for review" })).toBeInTheDocument();
   });
 
+  it("offers no cancel for a pending unlock request once the player left the event", () => {
+    myDeck.mockReturnValue({
+      data: detail({ leftEvent: true, canEdit: false, state: "approved", unlockRequested: true }),
+      isPending: false,
+      isError: false,
+    });
+    render(<PlayerDeckPage tournamentId="t-1" />);
+
+    expect(screen.queryByRole("button", { name: "Cancel unlock request" })).not.toBeInTheDocument();
+  });
+
   it("hides replace and submit and says so once the player left the event", () => {
     myDeck.mockReturnValue({
       data: detail({ leftEvent: true, canEdit: false }),

@@ -2,12 +2,14 @@ import type { ImageQuad } from "@openrift/shared/contracts/admin/card-images";
 import { imageRehostedUrl } from "@openrift/shared/image-url";
 import type { Kysely } from "kysely";
 import { sql } from "kysely";
+import { v7 as uuidv7 } from "uuid";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { Database } from "../../../db/tables.js";
 import { PRINTING_1 } from "../../../test/fixtures/constants.js";
 import { createDbContext } from "../../../test/integration-context.js";
 import { waitUntilBlockedBy } from "../../../test/row-locks.js";
+import { catalogMutationsRepo } from "./catalog-mutations.js";
 import { printingImagesRepo } from "./printing-images.js";
 
 const ctx = createDbContext("a0000000-0034-4000-a000-000000000001");
@@ -32,6 +34,12 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
     lateB: "https://example.com/late-b-0034.jpg",
     deleted: "https://example.com/deleted-0034.jpg",
     additionalEdit: "https://example.com/additional-edit-0034.jpg",
+    replaced: "https://example.com/replaced-0034.jpg",
+    orphan: "https://example.com/orphan-0034.jpg",
+    unrehostRace: "https://example.com/unrehost-race-0034.jpg",
+    untried: "https://example.com/untried-0034.jpg",
+    failedOld: "https://example.com/failed-old-0034.jpg",
+    failedNew: "https://example.com/failed-new-0034.jpg",
   };
 
   async function backendPid(trx: Kysely<Database>): Promise<number> {
@@ -196,34 +204,6 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
     });
   });
 
-  it("leaves a row untouched when a setter writes the value it already holds", async () => {
-    const imageFileId = (await repo.getImageFileId(createdImageIds.at(-1)!))!;
-    const quad: ImageQuad = [
-      { x: 1, y: 2 },
-      { x: 3, y: 2 },
-      { x: 3, y: 4 },
-      { x: 1, y: 4 },
-    ];
-    const fingerprint = async () => {
-      const row = await db
-        .selectFrom("imageFiles")
-        .select("fingerprint")
-        .where("id", "=", imageFileId)
-        .executeTakeFirstOrThrow();
-      return row.fingerprint;
-    };
-
-    await repo.setQuad(imageFileId, quad);
-    await repo.setFingerprint(imageFileId, "fp-0034");
-    await repo.setQuad(imageFileId, quad);
-    await repo.setRotation(imageFileId, 0);
-    await repo.setNeedsTrim(imageFileId, false);
-    expect(await fingerprint()).toBe("fp-0034");
-
-    await repo.setQuad(imageFileId, null);
-    expect(await fingerprint()).toBeNull();
-  });
-
   it("getImageFileById returns undefined for an unknown id", async () => {
     const row = await repo.getImageFileById("00000000-0000-4000-a000-000000000000");
     expect(row).toBeUndefined();
@@ -341,5 +321,127 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
     expect(await repo.listDueRehosts(1000)).toContain(activeFileId);
 
     await repo.clearPending(pending.id);
+  });
+
+  it("moves an edited image onto a new image file and deletes the old row", async () => {
+    const imageId = (await repo.insertImage(seedPrintingId, URLS.replaced, "additional"))!;
+    createdImageIds.push(imageId);
+    const oldId = (await repo.getImageFileId(imageId))!;
+    await repo.completeRehost(oldId, imageRehostedUrl(oldId));
+    const quad: ImageQuad = [
+      { x: 1, y: 2 },
+      { x: 3, y: 2 },
+      { x: 3, y: 4 },
+      { x: 1, y: 4 },
+    ];
+    const newId = uuidv7();
+
+    const replaced = await repo.replaceImageFile(oldId, {
+      id: newId,
+      rehostedUrl: imageRehostedUrl(newId),
+      rotation: 90,
+      needsTrim: true,
+      quad,
+    });
+
+    expect(replaced).toBe(true);
+    expect(await repo.getImageFileId(imageId)).toBe(newId);
+    expect(await repo.getImageFileById(oldId)).toBeUndefined();
+    expect(await repo.getImageFileById(newId)).toEqual({
+      id: newId,
+      originalUrl: URLS.replaced,
+      rehostedUrl: imageRehostedUrl(newId),
+      rotation: 90,
+      needsTrim: true,
+      quad,
+    });
+    const lateId = uuidv7();
+    const late = await repo.replaceImageFile(oldId, {
+      id: lateId,
+      rehostedUrl: imageRehostedUrl(lateId),
+      rotation: 0,
+      needsTrim: false,
+      quad: null,
+    });
+    expect(late).toBe(false);
+  });
+
+  it("keeps an unreferenced image file that an attach reuses while the cleanup waits", async () => {
+    const imageFileId = await repo.imageFileForUrl(URLS.orphan);
+    let cleanup: Promise<{ id: string; rehostedUrl: string | null } | undefined> | undefined;
+
+    await db.transaction().execute(async (trx) => {
+      const attached = await trx
+        .insertInto("faceImages")
+        .values({ faceId, imageFileId })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      createdImageIds.push(attached.id);
+      cleanup = catalogMutationsRepo(db).deleteImageFileIfUnreferenced(imageFileId);
+      await waitUntilBlockedBy(db, await backendPid(trx));
+    });
+
+    expect(await cleanup).toBeUndefined();
+    expect(await repo.getImageFileById(imageFileId)).toBeDefined();
+  });
+
+  it("deletes an image file nothing uses", async () => {
+    const imageId = createdImageIds.at(-1)!;
+    const imageFileId = (await repo.getImageFileId(imageId))!;
+    await db.deleteFrom("faceImages").where("id", "=", imageId).execute();
+
+    expect(await catalogMutationsRepo(db).deleteImageFileIfUnreferenced(imageFileId)).toEqual({
+      id: imageFileId,
+      rehostedUrl: null,
+    });
+    expect(await repo.getImageFileById(imageFileId)).toBeUndefined();
+  });
+
+  it("keeps the URL of a file an activation made live while the clear waited", async () => {
+    const imageId = (await repo.insertImage(seedPrintingId, URLS.unrehostRace, "additional"))!;
+    createdImageIds.push(imageId);
+    const imageFileId = (await repo.getImageFileId(imageId))!;
+    await repo.completeRehost(imageFileId, imageRehostedUrl(imageFileId));
+
+    let cleared: Promise<boolean> | undefined;
+    await db.transaction().execute(async (trx) => {
+      const trxRepo = printingImagesRepo(trx);
+      await trxRepo.deactivateActiveFace(seedPrintingId);
+      await trxRepo.setActive(imageId, true);
+      cleared = repo.clearRehostedUrl(imageFileId);
+      await waitUntilBlockedBy(db, await backendPid(trx));
+    });
+
+    expect(await cleared).toBe(false);
+    const file = await repo.getImageFileById(imageFileId);
+    expect(file?.rehostedUrl).toBe(imageRehostedUrl(imageFileId));
+  });
+
+  it("lists failed files without backoff, after untried ones and least recently tried first", async () => {
+    async function unrehostedFile(url: string): Promise<string> {
+      const imageId = (await repo.insertImage(seedPrintingId, url, "additional"))!;
+      createdImageIds.push(imageId);
+      return (await repo.getImageFileId(imageId))!;
+    }
+    async function failedAgo(url: string, hours: number): Promise<string> {
+      const fileId = await unrehostedFile(url);
+      await repo.recordRehostFailure(fileId, "HTTP 500");
+      await db
+        .updateTable("imageRehostFailures")
+        .set({ lastAttemptAt: new Date(Date.now() - hours * 60 * 60 * 1000) })
+        .where("imageFileId", "=", fileId)
+        .execute();
+      return fileId;
+    }
+    const recent = await failedAgo(URLS.failedNew, 1);
+    const oldest = await failedAgo(URLS.failedOld, 5);
+    const untried = await unrehostedFile(URLS.untried);
+
+    const unrehosted = await repo.listUnrehosted(100_000);
+    const listed = unrehosted.map((row) => row.imageId);
+
+    expect(listed.indexOf(untried)).toBeGreaterThanOrEqual(0);
+    expect(listed.indexOf(untried)).toBeLessThan(listed.indexOf(oldest));
+    expect(listed.indexOf(oldest)).toBeLessThan(listed.indexOf(recent));
   });
 });

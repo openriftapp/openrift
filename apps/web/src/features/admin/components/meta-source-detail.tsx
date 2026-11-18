@@ -43,6 +43,7 @@ import {
   triggerKind,
 } from "@/features/admin/lib/meta-source-overview";
 import { formatCount } from "@/lib/format";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 
 interface Segment {
@@ -58,6 +59,18 @@ interface Segment {
 function RejectPassingButton({ source, count }: { source: MetaSource; count: number }) {
   const reject = useRejectPassingNoResults(source);
   const [open, setOpen] = useState(false);
+
+  async function rejectAll() {
+    let result: Awaited<ReturnType<typeof reject.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await reject.mutateAsync();
+    });
+    if (ok && result) {
+      toast.success(`Rejected ${formatCount(result.rejected)} events`);
+      setOpen(false);
+    }
+  }
+
   return (
     <>
       <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setOpen(true)}>
@@ -70,14 +83,7 @@ function RejectPassingButton({ source, count }: { source: MetaSource; count: num
         description="They passed the auto-publish rule but have no results on the source. Refresh mirror never offers a rejected event again. Each one can be restored from the Mirror table."
         confirmLabel="Reject all"
         isPending={reject.isPending}
-        onConfirm={() => {
-          reject.mutate(undefined, {
-            onSuccess: (result) => {
-              toast.success(`Rejected ${formatCount(result.rejected)} events`);
-              setOpen(false);
-            },
-          });
-        }}
+        onConfirm={() => void rejectAll()}
       />
     </>
   );

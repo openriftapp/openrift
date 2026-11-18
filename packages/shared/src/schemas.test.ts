@@ -275,12 +275,12 @@ describe("updateDeckCardsSchema", () => {
     ).toBe(false);
   });
 
-  it("accepts any string zone (FK validates at DB level)", () => {
+  it("rejects a zone that is not a deck zone", () => {
     expect(
       updateDeckCardsSchema.safeParse({
         cards: [{ cardId: "c0000000-0001-4000-a000-000000000001", zone: "exile", quantity: 1 }],
       }).success,
-    ).toBe(true);
+    ).toBe(false);
   });
 });
 

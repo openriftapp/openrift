@@ -283,7 +283,10 @@ export function metaPlayerOverlayFields(
   return fields;
 }
 
-/** Absent leaves the deck alone, an object claims those cards, null claims there is no list. */
+/**
+ * Absent leaves the deck alone, an object claims those cards, null claims there is no list.
+ * No cards with a changed status moves the stored list between full and partial.
+ */
 export function metaPlayerOverlayList(
   player: AdminMetaPlayer,
   draft: MetaPlayerDraft,
@@ -293,28 +296,16 @@ export function metaPlayerOverlayList(
     return player.listStatus === "none" ? undefined : null;
   }
   if (cards.length === 0) {
-    return undefined;
+    if (player.listStatus === "none" || draft.listStatus === player.listStatus) {
+      return undefined;
+    }
+    return { cards: [], listStatus: draft.listStatus };
   }
   return {
     name: draft.deckName.trim(),
     cards: [...cards],
     listStatus: draft.listStatus === "partial" ? "partial" : "full",
   };
-}
-
-/** A list's status travels with its cards, so moving a stored list between full and partial
- *  needs the list pasted again; without it the change would be dropped. */
-export function metaPlayerStatusChangeNeedsList(
-  player: AdminMetaPlayer,
-  draft: MetaPlayerDraft,
-  cards: readonly ImportedDeckCard[],
-): boolean {
-  return (
-    cards.length === 0 &&
-    player.listStatus !== "none" &&
-    draft.listStatus !== "none" &&
-    draft.listStatus !== player.listStatus
-  );
 }
 
 /** A direct durable write: an overlay claim on the field would drop the name on promotion. */
@@ -334,7 +325,7 @@ export function metaPlayerDeckRename(
 }
 
 export interface MetaPlayerOverlayListInput {
-  name: string;
+  name?: string;
   cards: ImportedDeckCard[];
   listStatus: Exclude<MetaListStatus, "none">;
 }

@@ -1,9 +1,10 @@
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
-import { KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useState } from "react";
 
 import type { ReorderMoves } from "@/features/admin/lib/admin-reorder";
+import { NonScrollingKeyboardSensor } from "@/lib/keyboard-drag-sensor";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 export interface AdminReorderConfig {
@@ -25,7 +26,7 @@ export function useAdminReorder({
   const sensors = useSensors(
     // A distance threshold so a click on the handle isn't read as a drag.
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(NonScrollingKeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
   // The reorder mutation only invalidates, so rows would snap back to the old

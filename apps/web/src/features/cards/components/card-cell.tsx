@@ -34,6 +34,9 @@ export interface CardCellProps {
   dragId?: string;
   dragBlockedLabel?: string;
 
+  focusRequested?: boolean;
+  onFocused?: () => void;
+
   wrap?: ReactElement<{ children?: ReactNode }>;
   contextMenu?: ReactElement<{ children?: ReactNode }>;
 }
@@ -59,6 +62,8 @@ export function CardCell({
   dragData,
   dragId,
   dragBlockedLabel,
+  focusRequested,
+  onFocused,
   wrap,
   contextMenu,
 }: CardCellProps) {
@@ -67,6 +72,8 @@ export function CardCell({
       printing={printing}
       onClick={onClick}
       onSiblingClick={onSiblingClick}
+      focusRequested={focusRequested}
+      onFocused={onFocused}
       showImages={showImages}
       selected={ctx.isSelected === true}
       isFlashing={ctx.isFlashing}

@@ -199,13 +199,11 @@ describe("deletePrinting", () => {
           { imageFileId: "ci-2" },
         ]),
         deletePrintingById: vi.fn(async () => {}),
-        getImageFileById: vi.fn(async (id: string) =>
+        deleteImageFileIfUnreferenced: vi.fn(async (id: string) =>
           id === "ci-1"
             ? { id: "ci-1", rehostedUrl: "/media/cards/g1/img-1" }
             : { id: "ci-2", rehostedUrl: null },
         ),
-        isImageFileReferenced: vi.fn(async () => false),
-        deleteImageFileById: vi.fn(async () => {}),
       },
       candidateCards: {
         unlinkCandidatePrintingsByPrintingId: vi.fn(async () => {}),
@@ -229,48 +227,62 @@ describe("cleanupOrphanedImageFiles", () => {
     vi.resetAllMocks();
   });
 
-  function mut(file: { rehostedUrl: string | null } | undefined, referenced: boolean) {
-    return {
-      getImageFileById: vi.fn(async () => (file ? { id: "if-1", ...file } : undefined)),
-      isImageFileReferenced: vi.fn(async () => referenced),
-      deleteImageFileById: vi.fn(async () => true),
-    };
+  function recordingTransact(
+    deleted: { id: string; rehostedUrl: string | null } | undefined,
+    events: string[],
+  ) {
+    const deleteImageFileIfUnreferenced = vi.fn(async () => {
+      events.push("delete row");
+      return deleted;
+    });
+    const transact = (async (fn) => {
+      const result = await fn({ catalogMutations: { deleteImageFileIfUnreferenced } } as any);
+      events.push("commit");
+      return result;
+    }) as Transact;
+    vi.mocked(deleteRehostFiles).mockImplementation(async () => {
+      events.push("delete files");
+    });
+    return { transact, deleteImageFileIfUnreferenced };
   }
 
-  it("keeps a file another image or a pin still uses, on disk and in the table", async () => {
-    const repo = mut({ rehostedUrl: "/media/cards/f1/if-1" }, true);
+  it("removes the files of a deleted row only after its delete committed", async () => {
+    const events: string[] = [];
+    const { transact } = recordingTransact(
+      { id: "if-1", rehostedUrl: "/media/cards/f1/if-1" },
+      events,
+    );
 
-    await cleanupOrphanedImageFiles({} as Io, repo as any, ["if-1"]);
+    await cleanupOrphanedImageFiles({} as Io, transact, ["if-1"]);
 
-    expect(deleteRehostFiles).not.toHaveBeenCalled();
-    expect(repo.deleteImageFileById).not.toHaveBeenCalled();
-  });
-
-  it("deletes an unreferenced rehosted file from disk and the table", async () => {
-    const repo = mut({ rehostedUrl: "/media/cards/f1/if-1" }, false);
-
-    await cleanupOrphanedImageFiles({} as Io, repo as any, ["if-1"]);
-
+    expect(events).toEqual(["delete row", "commit", "delete files"]);
     expect(deleteRehostFiles).toHaveBeenCalledWith({}, "/media/cards/f1/if-1");
-    expect(repo.deleteImageFileById).toHaveBeenCalledWith("if-1");
   });
 
-  it("deletes the row of an unreferenced file that was never rehosted", async () => {
-    const repo = mut({ rehostedUrl: null }, false);
+  it("keeps the files of a row the locked check kept", async () => {
+    const events: string[] = [];
+    const { transact } = recordingTransact(undefined, events);
 
-    await cleanupOrphanedImageFiles({} as Io, repo as any, ["if-1"]);
+    await cleanupOrphanedImageFiles({} as Io, transact, ["if-1"]);
+
+    expect(events).toEqual(["delete row", "commit"]);
+    expect(deleteRehostFiles).not.toHaveBeenCalled();
+  });
+
+  it("removes no files for a deleted row that was never rehosted", async () => {
+    const { transact } = recordingTransact({ id: "if-1", rehostedUrl: null }, []);
+
+    await cleanupOrphanedImageFiles({} as Io, transact, ["if-1"]);
 
     expect(deleteRehostFiles).not.toHaveBeenCalled();
-    expect(repo.deleteImageFileById).toHaveBeenCalledWith("if-1");
   });
 
-  it("skips a file that is already gone", async () => {
-    const repo = mut(undefined, false);
+  it("checks a file listed twice once", async () => {
+    const { transact, deleteImageFileIfUnreferenced } = recordingTransact(undefined, []);
 
-    await cleanupOrphanedImageFiles({} as Io, repo as any, ["if-1"]);
+    await cleanupOrphanedImageFiles({} as Io, transact, ["if-1", "if-1"]);
 
-    expect(repo.isImageFileReferenced).not.toHaveBeenCalled();
-    expect(repo.deleteImageFileById).not.toHaveBeenCalled();
+    expect(deleteImageFileIfUnreferenced).toHaveBeenCalledTimes(1);
   });
 });
 

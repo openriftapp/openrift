@@ -1199,6 +1199,12 @@ describe.skipIf(!ctx)("metaRepo", () => {
         const wanted = [...expected].filter(([, value]) => value === state).map(([id]) => id);
         expect(rows.map((row) => row.id).toSorted()).toEqual(wanted.toSorted());
       }
+      const counts = await repo.listCounts({ search });
+      for (const state of META_RESULTS_STATES) {
+        expect(counts[state]).toBe(
+          [...expected.values()].filter((value) => value === state).length,
+        );
+      }
       const holdings = await repo.eventHoldingsCounts({ q: search });
       expect(holdings).toMatchObject({
         all: 30,
@@ -1560,6 +1566,31 @@ describe.skipIf(!ctx)("metaRepo", () => {
 
       expect(best.map((row) => row.playerName)).toEqual(["MTA Tie Ana"]);
       expect(page.rows[0]?.playerName).toBe("MTA Tie Ana");
+    });
+
+    it("orders finishes on one day at one rank by event name, for players and legends alike", async () => {
+      const day = "1997-05-10";
+      const second = await seedEvent(repo, "mta-tie-order-b", {
+        eventDate: day,
+        name: "MTA Tie B",
+      });
+      const first = await seedEvent(repo, "mta-tie-order-a", { eventDate: day, name: "MTA Tie A" });
+      for (const eventId of [second, first]) {
+        await seedDecklessPlayer(repo, eventId, {
+          playerName: "MTA Tie Order",
+          rank: 1,
+          sourceIdentity: "mta-tie-order",
+        });
+      }
+
+      const player = await repo.finishesForPlayer("mta-tie-order");
+      const legend = await repo.finishesForLegend(legendCardId, { from: day, to: day });
+
+      expect(player.map((row) => row.eventSlug)).toEqual(["mta-tie-order-a", "mta-tie-order-b"]);
+      expect(legend.rows.map((row) => row.eventSlug)).toEqual([
+        "mta-tie-order-a",
+        "mta-tie-order-b",
+      ]);
     });
 
     it("names the same cut-line row when two players tie at the cut rank", async () => {
@@ -2453,6 +2484,22 @@ describe.skipIf(!ctx)("metaRepo", () => {
         decks: 1,
         addedLast7Days: 1,
       });
+    });
+
+    it("leaves an upcoming event out of the latest result date", async () => {
+      const scope = { countries: ["QZ"] };
+      const played = await seedEvent(repo, "mta-latest-played", {
+        eventDate: "2026-03-05",
+        country: "QZ",
+      });
+      const upcoming = await seedEvent(repo, "mta-latest-upcoming", {
+        eventDate: "2099-03-20",
+        country: "QZ",
+      });
+      await seedDecklessPlayer(repo, played, { playerName: "MTA Latest Played", rank: 1 });
+      await seedDecklessPlayer(repo, upcoming, { playerName: "MTA Latest Upcoming", rank: 1 });
+
+      expect(await repo.latestResultDate(scope)).toBe("2026-03-05");
     });
 
     it("reports an empty scope as zero rather than failing", async () => {

@@ -18,6 +18,7 @@ import {
   useUpdateProviderSetting,
 } from "@/features/admin/hooks/use-provider-settings";
 import { flatReorder } from "@/features/admin/lib/admin-reorder";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 function isContributors(source: CatalogSource): boolean {
   return source.kind === "contributors";
@@ -148,6 +149,18 @@ function HelpersCanReviewCell({ row }: AdminCellSlotProps<CatalogSource>) {
 function CheckAllAction({ row }: AdminCellSlotProps<CatalogSource>) {
   const checkProvider = useCheckProvider();
 
+  async function checkAll(provider: string) {
+    let result: Awaited<ReturnType<typeof checkProvider.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await checkProvider.mutateAsync(provider);
+    });
+    if (ok && result) {
+      toast.success(
+        `Checked ${result.cardsChecked} cards and ${result.printingsChecked} printings`,
+      );
+    }
+  }
+
   if (!row || isContributors(row) || row.uncheckedRows === 0) {
     return null;
   }
@@ -157,15 +170,7 @@ function CheckAllAction({ row }: AdminCellSlotProps<CatalogSource>) {
       variant="ghost"
       size="sm"
       pending={checkProvider.isPending}
-      onClick={() =>
-        checkProvider.mutate(row.provider, {
-          onSuccess: (result) => {
-            toast.success(
-              `Checked ${result.cardsChecked} cards and ${result.printingsChecked} printings`,
-            );
-          },
-        })
-      }
+      onClick={() => void checkAll(row.provider)}
     >
       <ListChecksIcon />
       Mark all checked

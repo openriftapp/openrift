@@ -24,6 +24,7 @@ export const userShareRouter = {
         return row && { shareToken: row.shareToken, isPublic: row.shareToken !== null };
       },
       write: (token) => userShares.setShareToken(userId, token),
+      constraint: "uq_users_share_token",
     });
   }),
 

@@ -38,13 +38,24 @@ function clearLocalDecks() {
 }
 
 // `vi.hoisted` keeps the spy available to the hoisted `vi.mock` factory below.
-const { saveDeckCardsSpy } = vi.hoisted(() => ({
+const { saveDeckCardsSpy, ConflictError } = vi.hoisted(() => ({
   saveDeckCardsSpy: vi.fn((..._args: unknown[]) => ({
     when: () => Promise.resolve(),
   })),
+  ConflictError: class extends Error {
+    readonly version: string;
+    readonly cards: { cardId: string; zone: string; quantity: number }[];
+
+    constructor(version: string, cards: { cardId: string; zone: string; quantity: number }[]) {
+      super("conflict");
+      this.version = version;
+      this.cards = cards;
+    }
+  },
 }));
 vi.mock("@/features/decks/lib/decks-write", () => ({
   saveDeckCards: (...args: unknown[]) => saveDeckCardsSpy(...args),
+  DeckCardsConflictError: ConflictError,
 }));
 vi.mock("@/features/decks/lib/decks-collection", () => ({
   getDeckCardsCollection: () => ({ preload: () => Promise.resolve() }),
@@ -187,6 +198,7 @@ describe("persistence sink (ADR-035 local decks)", () => {
       "server-deck-1",
       [expect.objectContaining({ cardId: "card-b", quantity: 1 })],
       expect.objectContaining({ userId: "user-save" }),
+      expect.objectContaining({ expectedVersion: undefined }),
     );
   });
 });
@@ -491,6 +503,130 @@ describe("syncDeckDraft", () => {
     await vi.advanceTimersByTimeAsync(0);
 
     expect(getDeckDraftHasConflict(queryClient, userA, deckId)).toBe(true);
+  });
+
+  function storingSave(version: string): void {
+    saveDeckCardsSpy.mockImplementationOnce((...args: unknown[]) => {
+      (args[4] as { onVersion: (stored: string) => void }).onVersion(version);
+      return { when: () => Promise.resolve() };
+    });
+  }
+
+  function refusedSave(version: string, stored: ReturnType<typeof stubDeckBuilderCard>[]): void {
+    saveDeckCardsSpy.mockImplementationOnce(() => ({
+      when: () => Promise.reject(new ConflictError(version, stored)),
+    }));
+  }
+
+  function expectedVersionOfCall(index: number): unknown {
+    const versioning = saveDeckCardsSpy.mock.calls[index]?.[4] as
+      | { expectedVersion?: string }
+      | undefined;
+    return versioning?.expectedVersion;
+  }
+
+  it("names the stored version it was hydrated with on the first save", async () => {
+    syncDeckDraft(queryClient, userA, deckId, [viktor], "30");
+    editDraft(jinx);
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(expectedVersionOfCall(0)).toBe("30");
+  });
+
+  it("holds a conflict when the first save meets another device's change", async () => {
+    syncDeckDraft(queryClient, userA, deckId, [viktor], "30");
+    refusedSave("57", [viktor, ahri]);
+    editDraft(jinx);
+    await vi.advanceTimersByTimeAsync(1000);
+    syncDeckDraft(queryClient, userA, deckId, [viktor, ahri], "57");
+
+    expect(saveDeckCardsSpy).toHaveBeenCalledOnce();
+    expect(getDeckDraftHasConflict(queryClient, userA, deckId)).toBe(true);
+    expect(draftCards()).toEqual(["jinxx2", "viktorx3"]);
+  });
+
+  it("takes the stored version along when a clean draft follows changed cards", async () => {
+    syncDeckDraft(queryClient, userA, deckId, [viktor], "30");
+    syncDeckDraft(queryClient, userA, deckId, [viktor, ahri], "44");
+
+    editDraft(jinx);
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(expectedVersionOfCall(0)).toBe("44");
+  });
+
+  it("takes the stored version along when the player loads it", async () => {
+    syncDeckDraft(queryClient, userA, deckId, [viktor], "30");
+    editDraft(jinx);
+    syncDeckDraft(queryClient, userA, deckId, [viktor, ahri], "44");
+    resolveDeckDraftConflict(queryClient, userA, deckId, "load");
+
+    editDraft(jinx);
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(expectedVersionOfCall(0)).toBe("44");
+  });
+
+  it("keeps the version a save returned over an older one that came with its own cards", async () => {
+    syncDeckDraft(queryClient, userA, deckId, [viktor], "30");
+    storingSave("41");
+    editDraft(jinx);
+    await vi.advanceTimersByTimeAsync(1000);
+    syncDeckDraft(queryClient, userA, deckId, [viktor, jinx], "30");
+
+    editDraft(ahri);
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(expectedVersionOfCall(1)).toBe("41");
+  });
+
+  it("names the version its last save stored on the next save", async () => {
+    syncDeckDraft(queryClient, userA, deckId, [viktor]);
+    storingSave("41");
+    editDraft(jinx);
+    await vi.advanceTimersByTimeAsync(1000);
+
+    editDraft(ahri);
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(expectedVersionOfCall(0)).toBeUndefined();
+    expect(expectedVersionOfCall(1)).toBe("41");
+  });
+
+  it("holds a conflict when the server refuses a save over another device's change", async () => {
+    syncDeckDraft(queryClient, userA, deckId, [viktor]);
+    storingSave("41");
+    editDraft(jinx);
+    await vi.advanceTimersByTimeAsync(1000);
+
+    refusedSave("57", [viktor, ahri]);
+    getDeckDraftCollection(queryClient, userA, deckId).delete(`${jinx.cardId}|main|`);
+    await vi.advanceTimersByTimeAsync(1000);
+    syncDeckDraft(queryClient, userA, deckId, [viktor, ahri]);
+
+    expect(saveDeckCardsSpy).toHaveBeenCalledTimes(2);
+    expect(getDeckDraftHasConflict(queryClient, userA, deckId)).toBe(true);
+    expect(getDeckDraftStatus(queryClient, userA, deckId)).toMatchObject({
+      isDirty: true,
+      error: null,
+    });
+    expect(draftCards()).toEqual(["viktorx3"]);
+
+    resolveDeckDraftConflict(queryClient, userA, deckId, "keep");
+    await vi.advanceTimersByTimeAsync(0);
+    expect(expectedVersionOfCall(2)).toBe("57");
+  });
+
+  it("saves again when the refused save only met its own earlier write", async () => {
+    syncDeckDraft(queryClient, userA, deckId, [viktor]);
+    refusedSave("57", [viktor]);
+    editDraft(jinx);
+    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(saveDeckCardsSpy).toHaveBeenCalledTimes(2);
+    expect(expectedVersionOfCall(1)).toBe("57");
+    expect(getDeckDraftHasConflict(queryClient, userA, deckId)).toBe(false);
   });
 
   it("lets a successful save replace a change that arrived while it was in flight", async () => {

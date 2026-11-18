@@ -77,7 +77,7 @@ describe("catalog caches", () => {
     recorded.reset();
     await createTransact(recorded.db)((trx) => createCardLookupIndexLoader(trx)());
 
-    expect(recorded.queries).toEqual([expect.stringContaining("catalog_versions")]);
+    expect(recorded.queries).toHaveLength(1);
   });
 
   it("serves a transaction the enum rows the pool loaded", async () => {

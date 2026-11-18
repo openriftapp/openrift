@@ -5,7 +5,7 @@ import type { APIRequestContext, Page } from "@playwright/test";
 import { expect, test } from "../../fixtures/test.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
-import { connectToDb } from "../../helpers/db.js";
+import { connectToDb, firstRow } from "../../helpers/db.js";
 import { waitForHydrated } from "../../helpers/hydration.js";
 import { fetchLatestOtp } from "../../helpers/otp.js";
 
@@ -564,7 +564,7 @@ test.describe("profile account & security", () => {
         const userRows = (await sql`
           SELECT id FROM users WHERE email = ${email}
         `) as { id: string }[];
-        const userId = userRows[0].id;
+        const userId = firstRow(userRows, `user ${email}`).id;
         const accountId = `e2e-google-${Date.now()}`;
         await sql`
           INSERT INTO accounts (id, user_id, account_id, provider_id, issuer)

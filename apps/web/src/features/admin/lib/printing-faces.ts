@@ -58,3 +58,20 @@ export function printingFaces(row: DeskPrintingRow): PrintingFace[] {
     { ...last, position: 2, imageFace: "back" },
   ];
 }
+
+/**
+ * The desk row a face record opens: the printing the user came from when it carries the face,
+ * else an editable row on the face.
+ */
+export function deskRowForFace(
+  rows: readonly DeskPrintingRow[],
+  faceId: string,
+  fromPrintingId?: string,
+): DeskPrintingRow | null {
+  const from = rows.find((row) => row.printingId === fromPrintingId);
+  if (from !== undefined && printingFaces(from).some((face) => face.faceId === faceId)) {
+    return from;
+  }
+  const onFace = rows.filter((row) => row.faceId === faceId);
+  return onFace.find((row) => row.canEdit) ?? onFace[0] ?? null;
+}

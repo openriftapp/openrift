@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { resetWorkspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
 import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
 import { createStoreResetter } from "@/test/store-helpers";
 
@@ -48,6 +49,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  resetWorkspaceWriteQueue();
   resetStore();
 });
 
@@ -88,7 +90,7 @@ describe("useDiscardSameDifference", () => {
     expect(state.uncheck.mock.calls).toEqual([[{ data: { candidateCardIds: ["cc-1", "cc-2"] } }]]);
   });
 
-  it("pushes an undo for each of two discards made before either lands", async () => {
+  it("runs two discards clicked before either lands one after the other and pushes an undo for each", async () => {
     const gates: (() => void)[] = [];
     state.discard.mockImplementation(
       ({ data }: { data: typeof INPUT }) =>
@@ -98,17 +100,17 @@ describe("useDiscardSameDifference", () => {
     );
     const { result } = renderHook(() => useDiscardSameDifference(), { wrapper });
 
-    let runs: Promise<void>[] = [];
+    let runs: Promise<boolean>[] = [];
     act(() => {
       runs = [
         result.current.discard(INPUT, "gallery's might suggestion"),
         result.current.discard({ ...INPUT, field: "energy" }, "gallery's energy suggestion"),
       ];
     });
+    await waitFor(() => expect(gates).toHaveLength(1));
+    await act(async () => gates[0]?.());
     await waitFor(() => expect(gates).toHaveLength(2));
-    for (const open of gates) {
-      open();
-    }
+    gates[1]?.();
     await act(() => Promise.all(runs));
 
     expect(useWorkspaceSelectionStore.getState().undoStack.map((entry) => entry.label)).toEqual([

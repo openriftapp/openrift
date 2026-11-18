@@ -124,6 +124,7 @@ export async function fetchDeckImage(
       } satisfies DeckImageBody),
     });
     if (!response.ok) {
+      log.error({ status: response.status }, "deck image render failed");
       return null;
     }
     return new Uint8Array(await response.arrayBuffer());

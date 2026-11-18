@@ -183,4 +183,15 @@ describe("buildRuleEmbed", () => {
     expect(embed.description?.length).toBeLessThanOrEqual(4096);
     expect(embed.description?.endsWith("…")).toBe(true);
   });
+
+  it("never cuts a long rule's body inside a link", () => {
+    const index = buildRuleIndex(
+      makeRulesSnapshot([makeRule({ ruleNumber: "500", content: "See rule 179. ".repeat(400) })]),
+    );
+    const embed = buildRuleEmbed({ entry: findRule(index, "CR 500")!, index, siteUrl: SITE_URL });
+    const description = embed.description ?? "";
+
+    expect(description.length).toBeLessThanOrEqual(4096);
+    expect(description.replaceAll(/\[[^\]]+\]\([^)]+\)/gu, "")).not.toMatch(/[[\]()]/u);
+  });
 });

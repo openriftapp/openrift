@@ -47,6 +47,7 @@ import {
   useSetDeskSecondSide,
   useUpdateDeskPrinting,
 } from "@/features/admin/hooks/use-printing-desk";
+import type { AdminCardDetail } from "@/features/admin/lib/admin-card-queries";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { hasAdminSection } from "@/features/admin/lib/admin-sections";
 import { deskPrintingName } from "@/features/admin/lib/desk-face-options";
@@ -55,7 +56,7 @@ import {
   formatCatalogFieldValue,
   formatReleaseValue,
 } from "@/features/admin/lib/field-value-text";
-import { deskImageBust, deskImageSrc } from "@/features/admin/lib/printing-desk-image";
+import { deskImageSrc } from "@/features/admin/lib/printing-desk-image";
 import { deskPrintingPeriod } from "@/features/admin/lib/printing-desk-status";
 import type { PrintingFace } from "@/features/admin/lib/printing-faces";
 import { printingFaces } from "@/features/admin/lib/printing-faces";
@@ -145,8 +146,8 @@ function PrintingRecordBody({
   const slugs = [...new Set(faces.map((face) => face.cardSlug))];
   const firstQuery = useAdminCardDetail(canReview ? (slugs[0] ?? "") : "");
   const secondQuery = useAdminCardDetail(canReview ? (slugs[1] ?? "") : "");
-  const first = firstQuery.data as AdminCardDetailResponse | undefined;
-  const second = secondQuery.data as AdminCardDetailResponse | undefined;
+  const first = firstQuery.data;
+  const second = secondQuery.data;
   const { data: providerData, isLoading: providerLoading } = useQuery({
     ...providerSettingsQueryOptions,
     enabled: canReview,
@@ -164,7 +165,7 @@ function PrintingRecordBody({
   const [compareOpen, setCompareOpen] = useState(false);
 
   const details = [first, second].filter(
-    (detail): detail is AdminCardDetailResponse => detail !== undefined,
+    (detail): detail is AdminCardDetail => detail !== undefined,
   );
   const providerSettings = providerData?.providerSettings ?? [];
   const trusted = new Set(
@@ -245,7 +246,7 @@ function PrintingRecordBody({
   ];
 
   const primaryAndNext = async () => {
-    if (await runReportedMutation(actions.runPrimary)) {
+    if (await actions.runPrimary()) {
       navigation.goNext();
     }
   };
@@ -652,7 +653,7 @@ function FaceSummary({
   return (
     <div className="flex gap-3 rounded-lg border p-3" data-face-id={face.faceId}>
       <PrintingImageBox
-        url={active === null ? null : deskImageSrc(active.url, "240w", deskImageBust(active))}
+        url={active === null ? null : deskImageSrc(active.url, "240w")}
         alt={face.cardName}
         className="w-16 shrink-0"
       />
@@ -797,6 +798,13 @@ function PrintingFieldEditor({
     }
   }
 
+  async function save() {
+    const input = { printingId: printing.printingId, ...patch() };
+    if (await runReportedMutation(() => update.mutateAsync(input))) {
+      onDone();
+    }
+  }
+
   return (
     <div className="space-y-2">
       {field === "channel" && (
@@ -847,13 +855,7 @@ function PrintingFieldEditor({
         />
       )}
       <div className="flex flex-wrap items-center gap-2">
-        <Button
-          size="sm"
-          pending={update.isPending}
-          onClick={() =>
-            update.mutate({ printingId: printing.printingId, ...patch() }, { onSuccess: onDone })
-          }
-        >
+        <Button size="sm" pending={update.isPending} onClick={() => void save()}>
           Save
         </Button>
         <Button variant="ghost" size="sm" disabled={update.isPending} onClick={onDone}>

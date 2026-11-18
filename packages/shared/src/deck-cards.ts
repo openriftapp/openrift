@@ -1,5 +1,8 @@
 import type { DeckCardResponse } from "./types/api/deck.js";
 
+/** The most copies one deck card row holds; the contract rejects more and merged sums stop here. */
+export const MAX_DECK_CARD_QUANTITY = 99;
+
 interface DeckCardLine {
   cardId: string;
   zone: string;
@@ -25,9 +28,9 @@ export function deckCardKey(card: {
 }
 
 /**
- * Folds repeated lines into one row per `uq_deck_cards` key, summing quantity.
- * The index is `NULLS NOT DISTINCT`, so a null `preferred_printing_id` does not
- * separate two lines the way a null usually would.
+ * Folds repeated lines into one row per `uq_deck_cards` key, summing quantity up to
+ * `MAX_DECK_CARD_QUANTITY`. The index is `NULLS NOT DISTINCT`, so a null
+ * `preferred_printing_id` does not separate two lines the way a null usually would.
  */
 export function mergeDeckCards<T extends DeckCardLine>(cards: readonly T[]): T[] {
   const merged = new Map<string, T>();
@@ -35,10 +38,10 @@ export function mergeDeckCards<T extends DeckCardLine>(cards: readonly T[]): T[]
     const key = deckCardKey(card);
     const held = merged.get(key);
     if (held === undefined) {
-      merged.set(key, { ...card });
+      merged.set(key, { ...card, quantity: Math.min(MAX_DECK_CARD_QUANTITY, card.quantity) });
       continue;
     }
-    held.quantity += card.quantity;
+    held.quantity = Math.min(MAX_DECK_CARD_QUANTITY, held.quantity + card.quantity);
   }
   return [...merged.values()];
 }

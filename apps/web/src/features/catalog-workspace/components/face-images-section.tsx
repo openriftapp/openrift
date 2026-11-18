@@ -41,6 +41,7 @@ import {
   useActivatePrintingImage,
   useAddImageFromUrl,
   useDeletePrintingImage,
+  useImageEditPending,
   useRehostPrintingImage,
   useRotatePrintingImage,
   useSetCandidatePrintingImage,
@@ -48,11 +49,10 @@ import {
   useUploadPrintingImage,
 } from "@/features/admin/hooks/use-admin-image-mutations";
 import { useSetDeskImageFace, useUpdateDeskImage } from "@/features/admin/hooks/use-printing-desk";
-import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import { deskImageBust, deskImageSrc } from "@/features/admin/lib/printing-desk-image";
+import { adminKeys, IMAGE_FILE_SCOPE } from "@/features/admin/lib/admin-query-keys";
+import { deskImageSrc } from "@/features/admin/lib/printing-desk-image";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
 import { imageQuadOf } from "@/features/admin/lib/straighten-quad";
-import { cardsKeys, catalogKeys, promosKeys } from "@/features/cards/lib/cards-query-keys";
 import { RecordSection } from "@/features/catalog-workspace/components/record/record-pane";
 import { SuggestionChip } from "@/features/catalog-workspace/components/record/suggestion-chip";
 import type { FaceChip } from "@/features/catalog-workspace/hooks/use-face-record-actions";
@@ -67,15 +67,6 @@ import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 type Rotation = 0 | 90 | 180 | 270;
 type Scope = readonly (readonly unknown[])[];
-
-const DESK_IMAGE_SCOPE: Scope = [
-  adminKeys.printingDesk.all,
-  adminKeys.cards.all,
-  adminKeys.workspace,
-  catalogKeys.all,
-  cardsKeys.all,
-  promosKeys.all,
-];
 
 function sideOf(printing: AdminPrintingResponse): "front" | "back" {
   return printing.side === 2 ? "back" : "front";
@@ -156,6 +147,19 @@ export function FaceImagesSection({
     (chip): chip is Extract<FaceChip, { kind: "image" }> => chip.kind === "image",
   );
   const derived = findDerivedArtPrinting(face, detail.printings, detail.printingImages);
+
+  async function addUrl() {
+    const input = {
+      printingId: face.id,
+      url: url.trim(),
+      face: side,
+      mode: hasActive ? ("additional" as const) : ("main" as const),
+    };
+    if (await runReportedMutation(() => addFromUrl.mutateAsync(input))) {
+      setUrl("");
+      setUrlOpen(false);
+    }
+  }
 
   async function handleFiles(files: File[]) {
     setUploadError(null);
@@ -286,22 +290,7 @@ export function FaceImagesSection({
                     variant="outline"
                     disabled={url.trim().length === 0}
                     pending={addFromUrl.isPending}
-                    onClick={() =>
-                      addFromUrl.mutate(
-                        {
-                          printingId: face.id,
-                          url: url.trim(),
-                          face: side,
-                          mode: hasActive ? "additional" : "main",
-                        },
-                        {
-                          onSuccess: () => {
-                            setUrl("");
-                            setUrlOpen(false);
-                          },
-                        },
-                      )
-                    }
+                    onClick={() => void addUrl()}
                   >
                     Add
                   </Button>
@@ -338,8 +327,9 @@ function InactiveImageRow({
 }) {
   const activate = useActivatePrintingImage(scope);
   const remove = useDeletePrintingImage(scope);
-  const rotate = useRotatePrintingImage(scope);
-  const setNeedsTrim = useSetPrintingImageNeedsTrim(scope);
+  const rotate = useRotatePrintingImage();
+  const setNeedsTrim = useSetPrintingImageNeedsTrim();
+  const editing = useImageEditPending(image.id);
   const rehost = useRehostPrintingImage(scope);
   const moveFace = useSetDeskImageFace();
   const [straightening, setStraightening] = useState(false);
@@ -400,6 +390,7 @@ function InactiveImageRow({
           {image.rehostedUrl !== null && (
             <>
               <DropdownMenuItem
+                disabled={editing}
                 onClick={() =>
                   rotate.mutate({
                     imageId: image.id,
@@ -411,6 +402,7 @@ function InactiveImageRow({
                 Rotate left
               </DropdownMenuItem>
               <DropdownMenuItem
+                disabled={editing}
                 onClick={() =>
                   rotate.mutate({
                     imageId: image.id,
@@ -421,11 +413,12 @@ function InactiveImageRow({
                 <RotateCwIcon />
                 Rotate right
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setStraightening(true)}>
+              <DropdownMenuItem disabled={editing} onClick={() => setStraightening(true)}>
                 <CropIcon />
                 Straighten…
               </DropdownMenuItem>
               <DropdownMenuItem
+                disabled={editing}
                 onClick={() =>
                   setNeedsTrim.mutate({ imageId: image.id, needsTrim: !image.needsTrim })
                 }
@@ -461,7 +454,6 @@ function InactiveImageRow({
         <StraightenImageDialog
           imageId={image.id}
           quad={imageQuadOf(image)}
-          invalidates={scope}
           open={straightening}
           onOpenChange={setStraightening}
         />
@@ -484,7 +476,7 @@ export function DeskFaceImagesSection({
   landscape: boolean;
 }) {
   const { data: session } = useSession();
-  const upload = useUploadPrintingImage(DESK_IMAGE_SCOPE, { inlineError: true });
+  const upload = useUploadPrintingImage(IMAGE_FILE_SCOPE, { inlineError: true });
   const [uploading, setUploading] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -519,7 +511,7 @@ export function DeskFaceImagesSection({
       <div className="flex flex-wrap gap-3">
         <div className="space-y-1">
           <PrintingImageBox
-            url={active === null ? null : deskImageSrc(active.url, "400w", deskImageBust(active))}
+            url={active === null ? null : deskImageSrc(active.url, "400w")}
             alt={`Active image for ${printing.cardName}`}
             className="w-40"
             landscape={landscape}
@@ -568,8 +560,9 @@ function DeskWaitingImage({
   image: DeskImage;
   landscape: boolean;
 }) {
-  const rotate = useRotatePrintingImage(DESK_IMAGE_SCOPE);
-  const remove = useDeletePrintingImage(DESK_IMAGE_SCOPE);
+  const rotate = useRotatePrintingImage();
+  const remove = useDeletePrintingImage(IMAGE_FILE_SCOPE);
+  const editing = useImageEditPending(image.printingImageId);
   const updateImage = useUpdateDeskImage();
   const moveFace = useSetDeskImageFace();
   const [straightening, setStraightening] = useState(false);
@@ -596,7 +589,7 @@ function DeskWaitingImage({
   return (
     <div className="w-40 space-y-1">
       <PrintingImageBox
-        url={deskImageSrc(image.url, "400w", deskImageBust(image))}
+        url={deskImageSrc(image.url, "400w")}
         alt={`Upload for ${printing.cardName}`}
         className="w-40"
         landscape={landscape}
@@ -616,6 +609,7 @@ function DeskWaitingImage({
               variant="ghost"
               size="icon-xs"
               aria-label="Turn right"
+              disabled={editing}
               pending={rotate.isPending}
               onClick={() =>
                 rotate.mutate({
@@ -630,6 +624,7 @@ function DeskWaitingImage({
               variant="ghost"
               size="icon-xs"
               aria-label="Straighten"
+              disabled={editing}
               onClick={() => setStraightening(true)}
             >
               <CropIcon />
@@ -664,7 +659,6 @@ function DeskWaitingImage({
           <StraightenImageDialog
             imageId={image.printingImageId}
             quad={image.quad}
-            invalidates={DESK_IMAGE_SCOPE}
             open={straightening}
             onOpenChange={setStraightening}
           />

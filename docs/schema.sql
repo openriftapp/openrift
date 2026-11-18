@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict Fejb7fJ8nt7BpofpHTywjgKxoqF9dG5XUQOf7smVdbBS8Nqen2fScqGUtViDhcd
+\restrict IcdaZpESMPb4oXhl11aZhG08OVybU5ieTyU1cNdp2xvlDTEmDXTlUNCK3LpXNwL
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -293,7 +293,7 @@ CREATE FUNCTION public.fold_deck_cards_off_deleted_printing() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
   BEGIN
-    UPDATE deck_cards plain SET quantity = plain.quantity + dc.quantity
+    UPDATE deck_cards plain SET quantity = LEAST(plain.quantity + dc.quantity, 99)
     FROM deck_cards dc
     WHERE dc.preferred_printing_id = OLD.id
       AND plain.deck_id = dc.deck_id AND plain.card_id = dc.card_id AND plain.zone = dc.zone
@@ -529,7 +529,7 @@ CREATE FUNCTION public.release_deck_cards_off_printing() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
   BEGIN
-    UPDATE deck_cards plain SET quantity = plain.quantity + dc.quantity
+    UPDATE deck_cards plain SET quantity = LEAST(plain.quantity + dc.quantity, 99)
     FROM deck_cards dc
     WHERE dc.preferred_printing_id = NEW.id
       AND NOT EXISTS (
@@ -1875,7 +1875,8 @@ CREATE TABLE public.deck_cards (
     quantity integer DEFAULT 1 NOT NULL,
     card_id uuid NOT NULL,
     preferred_printing_id uuid,
-    CONSTRAINT chk_deck_cards_quantity CHECK ((quantity > 0))
+    CONSTRAINT chk_deck_cards_quantity CHECK ((quantity > 0)),
+    CONSTRAINT chk_deck_cards_quantity_max CHECK ((quantity <= 99))
 );
 
 
@@ -11506,5 +11507,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Fejb7fJ8nt7BpofpHTywjgKxoqF9dG5XUQOf7smVdbBS8Nqen2fScqGUtViDhcd
+\unrestrict IcdaZpESMPb4oXhl11aZhG08OVybU5ieTyU1cNdp2xvlDTEmDXTlUNCK3LpXNwL
 

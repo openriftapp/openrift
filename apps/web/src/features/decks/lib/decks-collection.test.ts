@@ -5,12 +5,13 @@ import type {
 import { QueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getDeckCardsCollection } from "./decks-collection";
+import { getDeckCardsCollection, storedDeckVersion } from "./decks-collection";
 import { decksKeys } from "./decks-query-keys";
 
 interface DeckCardsPage {
   items: DeckCardWithDeckResponse[];
   touchedDeckIds?: string[];
+  deckVersions?: Record<string, string>;
   nextCursor?: string | null;
   syncedXid?: string;
 }
@@ -92,6 +93,41 @@ describe("the deck cards store's watermark", () => {
     await resync();
 
     expect(reads.at(-1)?.since).toBe("1000");
+  });
+});
+
+describe("the stored deck versions", () => {
+  it("keeps each deck's version from a full read, an empty deck included", async () => {
+    serve({
+      items: [card("deck-1", "card-a")],
+      deckVersions: { "deck-1": "900", "deck-empty": "950" },
+      syncedXid: "1000",
+    });
+    await getDeckCardsCollection(queryClient, userId).preload();
+
+    expect(storedDeckVersion(queryClient, userId, "deck-1")).toBe("900");
+    expect(storedDeckVersion(queryClient, userId, "deck-empty")).toBe("950");
+    expect(storedDeckVersion(queryClient, "user-2", "deck-1")).toBeUndefined();
+  });
+
+  it("moves a touched deck's version on a delta and keeps the others", async () => {
+    serve({
+      items: [card("deck-1", "card-a"), card("deck-2", "card-z")],
+      deckVersions: { "deck-1": "900", "deck-2": "910" },
+      syncedXid: "1000",
+    });
+    await getDeckCardsCollection(queryClient, userId).preload();
+
+    serve({
+      items: [card("deck-1", "card-b")],
+      touchedDeckIds: ["deck-1"],
+      deckVersions: { "deck-1": "1500" },
+      syncedXid: "2000",
+    });
+    await resync();
+
+    expect(storedDeckVersion(queryClient, userId, "deck-1")).toBe("1500");
+    expect(storedDeckVersion(queryClient, userId, "deck-2")).toBe("910");
   });
 });
 

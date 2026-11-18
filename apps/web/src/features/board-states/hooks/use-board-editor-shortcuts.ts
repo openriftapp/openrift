@@ -1,5 +1,5 @@
 import type { ArrowKind } from "@openrift/shared/board-state";
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent } from "react";
 
 export interface BoardEditorShortcutHandlers {
   hasSelection: boolean;
@@ -115,16 +115,13 @@ export function handleBoardEditorKey(
 }
 
 export function useBoardEditorShortcuts(handlers: BoardEditorShortcutHandlers): void {
-  const latest = useRef(handlers);
-  useEffect(() => {
-    latest.current = handlers;
+  const handleKey = useEffectEvent((event: KeyboardEvent) => {
+    if (handleBoardEditorKey(event, handlers)) {
+      event.preventDefault();
+    }
   });
   useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (handleBoardEditorKey(event, latest.current)) {
-        event.preventDefault();
-      }
-    };
+    const onKeyDown = (event: KeyboardEvent) => handleKey(event);
     globalThis.addEventListener("keydown", onKeyDown);
     return () => globalThis.removeEventListener("keydown", onKeyDown);
   }, []);

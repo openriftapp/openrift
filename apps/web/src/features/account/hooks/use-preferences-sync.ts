@@ -3,7 +3,6 @@ import type {
   DisplayLocale,
   UserPreferencesResponse,
 } from "@openrift/shared/types/api/preferences";
-import type { ContractRouterClient } from "@orpc/contract";
 import { useDebouncer } from "@tanstack/react-pacer";
 import type { QueryClient } from "@tanstack/react-query";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,6 +12,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { preferencesKeys } from "@/features/account/lib/account-query-keys";
 import { preferencesQueryOptions } from "@/features/account/lib/preferences-queries";
+import type { PreferencesUpdateInput } from "@/features/account/lib/preferences-update";
+import { mergeSavedPreferences } from "@/features/account/lib/preferences-update";
 import { useLocaleBannerStore } from "@/features/account/stores/locale-banner-store";
 import { usePaletteStore } from "@/features/collections/stores/palette-store";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -32,17 +33,11 @@ import { useDisplayStore } from "@/stores/display-store";
 import { claimClientState, ownsClientState } from "@/stores/leave-as-signed-out";
 import { useThemeStore } from "@/stores/theme-store";
 
-type PreferencesUpdateInput = Parameters<
-  ContractRouterClient<typeof preferencesContract>["update"]
->[0];
-
 const patchPreferencesFn = createServerFn({ method: "POST" })
-  .validator((input: { prefs: UserPreferencesResponse }) => input)
+  .validator((input: { prefs: PreferencesUpdateInput }) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
-    await apiOrpcClient(preferencesContract, context.cookie).update(
-      data.prefs as PreferencesUpdateInput,
-    );
+    await apiOrpcClient(preferencesContract, context.cookie).update(data.prefs);
   });
 
 /**
@@ -52,7 +47,7 @@ const patchPreferencesFn = createServerFn({ method: "POST" })
  */
 async function persistDisplayLocale(locale: DisplayLocale): Promise<void> {
   await patchPreferencesFn({
-    data: { prefs: { displayLocale: locale } as UserPreferencesResponse },
+    data: { prefs: { displayLocale: locale } },
   });
 }
 
@@ -76,15 +71,11 @@ export async function applyDisplayLocale(
   return true;
 }
 
-function getPrefsSnapshot(): UserPreferencesResponse & {
-  theme?: string | null;
-  palette?: string | null;
-} {
+function getPrefsSnapshot(): PreferencesUpdateInput {
   const { overrides } = useDisplayStore.getState();
   const { preference: themePreference } = useThemeStore.getState();
   const { preference: palettePreference } = usePaletteStore.getState();
 
-  // null tells the API to remove the key (reset to default).
   return {
     showImages: overrides.showImages,
     fancyFan: overrides.fancyFan,
@@ -97,8 +88,7 @@ function getPrefsSnapshot(): UserPreferencesResponse & {
     countExcludedCollections: overrides.countExcludedCollections,
     theme: themePreference,
     palette: palettePreference,
-    // Response type has no nulls (PATCH-only "remove this key" markers), hence the cast.
-  } as unknown as UserPreferencesResponse;
+  };
 }
 
 const SAVE_RETRY_MS = 2000;
@@ -143,11 +133,9 @@ async function pushPrefs(
     return false;
   }
   lastSynced.current = snapshot;
-  // Merge, not replace: overwriting would evict server-only keys (e.g.
-  // emailNotifications) not present in this snapshot.
   queryClient.setQueryData(
     preferencesKeys.all(userId),
-    (previous: UserPreferencesResponse | undefined) => ({ ...previous, ...prefs }),
+    (previous: UserPreferencesResponse | undefined) => mergeSavedPreferences(previous, prefs),
   );
   return true;
 }
@@ -276,16 +264,16 @@ export function usePreferencesSync(enabled: boolean) {
     useDisplayStore.getState().hydrateOverrides(overrides);
     writeLoadedLanguages(userId);
 
-    const theme = sanitizeTheme((data as Record<string, unknown>).theme);
+    const theme = sanitizeTheme(data.theme);
     useThemeStore.getState().setTheme(theme);
 
-    const palette = sanitizePalette((data as Record<string, unknown>).palette);
+    const palette = sanitizePalette(data.palette);
     usePaletteStore.getState().setPalette(palette);
 
     // Seeds the locale cookie on a device that has never carried it. setLocale
     // reloads the document, and after that the cookie agrees, so this is at
     // most one reload per new device.
-    const storedLocale = (data as Record<string, unknown>).displayLocale;
+    const storedLocale = data.displayLocale;
     if (isDisplayLocale(storedLocale) && storedLocale !== getLocale()) {
       void setLocale(storedLocale);
       return;

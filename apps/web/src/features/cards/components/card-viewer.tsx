@@ -33,6 +33,9 @@ interface CardViewerProps {
   groupBy?: GroupByField;
   groupDir?: "asc" | "desc";
   selectedItemId?: string;
+  returnToItemId?: string;
+  /** `focusPending` is true when a grid tile holding the item will take the focus request. */
+  onReturned?: (focusPending: boolean) => void;
   siblingPrintings?: Printing[];
   stale?: boolean;
   toolbar?: ReactNode;
@@ -60,6 +63,8 @@ export function CardViewer({
   groupBy,
   groupDir,
   selectedItemId,
+  returnToItemId,
+  onReturned,
   siblingPrintings,
   stale,
   toolbar,
@@ -100,6 +105,8 @@ export function CardViewer({
             groupBy={groupBy}
             groupDir={groupDir}
             selectedItemId={selectedItemId}
+            returnToItemId={returnToItemId}
+            onReturned={() => onReturned?.(false)}
             table={table}
             noResultsDescription={noResultsDescription}
           />
@@ -113,6 +120,8 @@ export function CardViewer({
             groupBy={groupBy}
             groupDir={groupDir}
             selectedItemId={selectedItemId}
+            returnToItemId={returnToItemId}
+            onReturned={onReturned}
             addStripHeight={addStripHeight}
             noResultsDescription={noResultsDescription}
           />
@@ -134,6 +143,8 @@ type HydratedGridProps = Pick<
   | "groupBy"
   | "groupDir"
   | "selectedItemId"
+  | "returnToItemId"
+  | "onReturned"
   | "addStripHeight"
   | "noResultsDescription"
 >;
@@ -151,6 +162,8 @@ interface HydratedTableProps {
   groupBy?: GroupByField;
   groupDir?: "asc" | "desc";
   selectedItemId?: string;
+  returnToItemId?: string;
+  onReturned: () => void;
   table: CardTableProps;
   noResultsDescription?: ReactNode;
 }

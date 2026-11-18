@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createMockDb } from "../../../test/mock-db.js";
+import { createRecordingDb } from "../../../test/recording-db.js";
 import { decksRepo } from "./decks.js";
 
 const DECK = {
@@ -114,24 +115,57 @@ describe("decksRepo", () => {
   });
 
   it("replaceCards deletes and re-inserts cards in a transaction", async () => {
-    const db = createMockDb([{ id: "d-1" }]);
-    const repo = decksRepo(db);
+    const recording = createRecordingDb([[{ version: "42" }]]);
     await expect(
-      repo.replaceCards("d-1", [
+      decksRepo(recording.db).replaceCards("d-1", [
         { cardId: "c-1", zone: "main", quantity: 4, preferredPrintingId: null },
       ]),
-    ).resolves.toBe(true);
+    ).resolves.toEqual({ outcome: "replaced", version: "42" });
+    expect(recording.queries.map((query) => query.split(" ")[0])).toEqual([
+      "update",
+      "delete",
+      "insert",
+    ]);
   });
 
   it("replaceCards handles empty cards array", async () => {
-    const db = createMockDb([{ id: "d-1" }]);
-    const repo = decksRepo(db);
-    await expect(repo.replaceCards("d-1", [])).resolves.toBe(true);
+    const recording = createRecordingDb([[{ version: "42" }]]);
+    await expect(decksRepo(recording.db).replaceCards("d-1", [])).resolves.toEqual({
+      outcome: "replaced",
+      version: "42",
+    });
   });
 
   it("replaceCards reports a deck that no longer exists", async () => {
-    const db = createMockDb([]);
-    const repo = decksRepo(db);
-    await expect(repo.replaceCards("d-1", [])).resolves.toBe(false);
+    const recording = createRecordingDb([[]]);
+    await expect(decksRepo(recording.db).replaceCards("d-1", [])).resolves.toEqual({
+      outcome: "missing",
+    });
+  });
+
+  it("replaceCards writes only while the deck is at the expected version", async () => {
+    const recording = createRecordingDb([[{ version: "42" }]]);
+    await decksRepo(recording.db).replaceCards("d-1", [], "41");
+    expect(recording.queries[0]).toContain("updated_xid = $");
+    expect(recording.parameters[0]).toContain("41");
+  });
+
+  it("replaceCards answers the stored version and cards when the deck moved on", async () => {
+    const stored = { card_id: "c-1", zone: "main", quantity: 2, preferred_printing_id: null };
+    const recording = createRecordingDb([[], [{ version: "57" }], [stored]]);
+    await expect(decksRepo(recording.db).replaceCards("d-1", [], "41")).resolves.toEqual({
+      outcome: "stale",
+      version: "57",
+      cards: [{ cardId: "c-1", zone: "main", quantity: 2, preferredPrintingId: null }],
+    });
+    expect(recording.queries[1]).toMatch(/ for share$/u);
+    expect(recording.queries.some((query) => query.startsWith("delete"))).toBe(false);
+  });
+
+  it("replaceCards reports a missing deck when a versioned write finds none", async () => {
+    const recording = createRecordingDb([[], []]);
+    await expect(decksRepo(recording.db).replaceCards("d-1", [], "41")).resolves.toEqual({
+      outcome: "missing",
+    });
   });
 });

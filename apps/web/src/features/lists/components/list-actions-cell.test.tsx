@@ -139,7 +139,7 @@ function renderCell(
       listCurrency={null}
       onEditTradePref={vi.fn()}
       onRemoveEntry={vi.fn()}
-      onQuantityChange={vi.fn()}
+      onQuantityStep={vi.fn()}
       onTakeOff={vi.fn()}
       isRemovePendingFor={() => false}
       isQuantityPendingFor={() => false}

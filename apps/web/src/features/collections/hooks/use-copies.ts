@@ -14,7 +14,7 @@ import type { Transaction } from "@tanstack/react-db";
 import { useBatcher } from "@tanstack/react-pacer";
 import type { QueryClient } from "@tanstack/react-query";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { v7 as uuidv7 } from "uuid";
 
 import { useCopiesCollection } from "@/features/collections/hooks/use-copies-collection";
@@ -308,12 +308,6 @@ export function useBatchedAddCopies(callbacks?: BatchedAddCallbacks) {
   const copiesCollection = useCopiesCollection();
   const queryClient = useQueryClient();
   const userId = useUserId();
-  // useBatcher captures its handler once; ref keeps callbacks current without
-  // recreating it. Updated in an effect, not during render, to satisfy React Compiler.
-  const callbacksRef = useRef(callbacks);
-  useEffect(() => {
-    callbacksRef.current = callbacks;
-  });
   const openTransactionRef = useRef<Transaction<CopyResponse> | null>(null);
 
   const batcher = useBatcher<PendingAdd>(
@@ -325,7 +319,7 @@ export function useBatchedAddCopies(callbacks?: BatchedAddCallbacks) {
           transaction,
           pending.map((entry) => entry.printingId),
           queryClient,
-          callbacksRef.current,
+          callbacks,
         );
       }
     },

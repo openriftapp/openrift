@@ -118,6 +118,7 @@ export const adminPrintingDeskRouter = {
   removeSecondSide: os.removeSecondSide.handler(async ({ input, context }): Promise<void> => {
     await removeDeskSide(
       context.transact,
+      context.io,
       context.repos,
       context.adminAccess,
       context.userId,

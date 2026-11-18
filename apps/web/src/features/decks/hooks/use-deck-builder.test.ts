@@ -559,6 +559,63 @@ describe("removeCardAction", () => {
   });
 });
 
+describe("deck row cap", () => {
+  function row(zone: string, quantity: number, preferredPrintingId: string | null = null) {
+    return stubDeckBuilderCard({
+      cardId: "card-1",
+      cardType: "unit",
+      zone: zone as DeckBuilderCard["zone"],
+      quantity,
+      preferredPrintingId,
+    });
+  }
+
+  function quantities(): Record<string, number> {
+    return Object.fromEntries(
+      cardsOf(collection).map((card) => [
+        `${card.zone}:${card.preferredPrintingId ?? ""}`,
+        card.quantity,
+      ]),
+    );
+  }
+
+  it("moves only what the target row has room for", () => {
+    collection = createDraftCollection([row("main", 10), row("sideboard", 95)]);
+    moveCardAction(collection, "card-1", "main", "sideboard", null, "freeform", "all");
+    expect(quantities()).toEqual({ "main:": 6, "sideboard:": 99 });
+  });
+
+  it("leaves both rows alone when the target row is full", () => {
+    collection = createDraftCollection([row("main", 10), row("sideboard", 99)]);
+    moveCardAction(collection, "card-1", "main", "sideboard", null, "freeform", "one");
+    expect(quantities()).toEqual({ "main:": 10, "sideboard:": 99 });
+  });
+
+  it("converts only what the target printing row has room for", () => {
+    collection = createDraftCollection([row("main", 10), row("main", 97, "printing-alt")]);
+    changePreferredPrintingAction(collection, "card-1", "main", null, "printing-alt", 10);
+    expect(quantities()).toEqual({ "main:": 8, "main:printing-alt": 99 });
+  });
+
+  it("converts nothing into a full printing row", () => {
+    collection = createDraftCollection([row("main", 10), row("main", 99, "printing-alt")]);
+    changePreferredPrintingAction(collection, "card-1", "main", null, "printing-alt", 1);
+    expect(quantities()).toEqual({ "main:": 10, "main:printing-alt": 99 });
+  });
+
+  it("adds up to the cap in Freeform", () => {
+    collection = createDraftCollection([row("main", 98)]);
+    addCardAction(collection, row("main", 1), "main", 5, EMPTY_RUNES, "freeform");
+    expect(quantities()).toEqual({ "main:": 99 });
+  });
+
+  it("sets a quantity no higher than the cap", () => {
+    collection = createDraftCollection([row("main", 3)]);
+    setQuantityAction(collection, "card-1", "main", 150, null);
+    expect(quantities()).toEqual({ "main:": 99 });
+  });
+});
+
 describe("moveCardAction", () => {
   it("moves all copies from one zone to another", () => {
     const card = stubDeckBuilderCard({

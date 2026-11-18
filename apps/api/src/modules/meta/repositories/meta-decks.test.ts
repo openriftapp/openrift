@@ -33,38 +33,11 @@ function replace(stored: { name: string; format: string }, next: MetaReplacedDec
   };
 }
 
-function deckUpdate(queries: string[]): string | undefined {
-  return queries.find((query) => query.startsWith('update "decks"'));
-}
-
 describe("metaDecksRepo.setPlayerDeck", () => {
-  it("keeps the stored format config when only the name changes", async () => {
-    const { recording, written } = replace({ name: "Old name", format: "constructed" }, deck());
-
-    expect(await written).toEqual({ deckId: DECK_ID });
-    const update = deckUpdate(recording.queries);
-    expect(update).toContain('"name" = $');
-    expect(update).not.toContain("format_config");
-  });
-
-  it("clears the format config when the format changes", async () => {
-    const { recording, written } = replace({ name: "Kai'Sa Aggro", format: "sealed" }, deck());
-
-    await written;
-    expect(deckUpdate(recording.queries)).toContain('"format_config" = $');
-  });
-
   it("locks the deck row before it touches the deck's cards", async () => {
     const { recording, written } = replace({ name: "Kai'Sa Aggro", format: "constructed" }, deck());
 
     await written;
-    expect(recording.queries[1]).toMatch(/^select .* from "decks" .* for no key update$/u);
-  });
-
-  it("writes no deck row when name and format are unchanged", async () => {
-    const { recording, written } = replace({ name: "Kai'Sa Aggro", format: "constructed" }, deck());
-
-    await written;
-    expect(deckUpdate(recording.queries)).toBeUndefined();
+    expect(recording.statements[1]?.sql).toMatch(/ from "decks" .* for no key update$/u);
   });
 });

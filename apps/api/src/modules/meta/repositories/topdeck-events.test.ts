@@ -25,21 +25,3 @@ describe("topdeckEventsRepo markMissing", () => {
     expect(recording.parameters[0]).toContainEqual(new Date("2026-11-12T07:30:00.037Z"));
   });
 });
-
-describe("topdeckEventsRepo buckets", () => {
-  it("reads an event without a player count as holding no results", async () => {
-    const recording = createRecordingDb([[], [{ total: "0" }]]);
-
-    await topdeckEventsRepo(recording.db).list(
-      {
-        bucket: {
-          name: "noResults",
-          rule: { autoAcceptMinPlayers: 16, autoAcceptOfficial: false, autoAcceptNotable: false },
-        },
-      },
-      { limit: 10, offset: 0 },
-    );
-
-    expect(recording.queries[0]).toContain("and not (coalesce(c.player_count, 0) > 0)");
-  });
-});

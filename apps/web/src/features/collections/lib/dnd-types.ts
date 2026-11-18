@@ -50,12 +50,20 @@ export interface ListEntryDragData {
 export interface SidebarReorderCollectionDragData {
   type: "sidebar-reorder-collection";
   collectionId: string;
+  label: string;
 }
 
 export interface SidebarReorderListDragData {
   type: "sidebar-reorder-list";
   listId: string;
   intent: ListIntent;
+  label: string;
+}
+
+export interface CollectionDropData {
+  type: "collection";
+  collectionId: string;
+  collectionName: string;
 }
 
 export type CollectionDragData =

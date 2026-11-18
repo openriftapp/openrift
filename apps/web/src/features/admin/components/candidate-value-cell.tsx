@@ -14,7 +14,11 @@ import {
   isValidOption,
 } from "@/features/admin/components/candidate-field-defs";
 import type { CandidateSpreadsheetRow } from "@/features/admin/lib/candidate-rows";
-import { isChecked, isFavoriteProvider } from "@/features/admin/lib/candidate-rows";
+import {
+  candidateFieldValue,
+  isChecked,
+  isFavoriteProvider,
+} from "@/features/admin/lib/candidate-rows";
 import { DIFFED_FIELDS } from "@/features/admin/lib/catalog-field-labels";
 import { textDiff } from "@/lib/text-diff";
 import { cn } from "@/lib/utils";
@@ -42,8 +46,7 @@ export function CandidateValueCell<TKey extends string>({
   renderContent?: (field: FieldDef<TKey>, row: CandidateSpreadsheetRow) => ReactNode | undefined;
   onCellClick?: (field: TKey, value: unknown, candidateId: string) => void;
 }) {
-  const record = row as unknown as Record<string, unknown>;
-  const candidateValue = record[field.key];
+  const candidateValue = candidateFieldValue(row, field.key);
   const normalizedCandidate = normalizeCandidate
     ? normalizeCandidate(field.key, candidateValue)
     : candidateValue;
@@ -97,7 +100,10 @@ export function CandidateValueCell<TKey extends string>({
         ) : field.labeledOptions ? (
           renderLabeledValue(field, candidateValue)
         ) : (
-          candidateValueText(candidateValue, field.suffixKey ? record[field.suffixKey] : undefined)
+          candidateValueText(
+            candidateValue,
+            field.suffixKey ? candidateFieldValue(row, field.suffixKey) : undefined,
+          )
         ))}
     </td>
   );

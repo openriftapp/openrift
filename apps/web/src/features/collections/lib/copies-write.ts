@@ -13,6 +13,10 @@ import type {
   CopyMetadataPatch,
   CopyResponse,
 } from "@openrift/shared/types/api/collection";
+import {
+  DeleteOperationItemNotFoundError,
+  UpdateOperationItemNotFoundError,
+} from "@tanstack/query-db-collection";
 import type { Collection, PendingMutation, Transaction } from "@tanstack/react-db";
 import type { QueryClient } from "@tanstack/react-query";
 
@@ -163,9 +167,8 @@ async function retryOnceOnTimeout<T>(attempt: () => Promise<T>): Promise<T> {
 
 function isMissingRowError(error: unknown): boolean {
   return (
-    error instanceof Error &&
-    (error.name === "UpdateOperationItemNotFoundError" ||
-      error.name === "DeleteOperationItemNotFoundError")
+    error instanceof UpdateOperationItemNotFoundError ||
+    error instanceof DeleteOperationItemNotFoundError
   );
 }
 

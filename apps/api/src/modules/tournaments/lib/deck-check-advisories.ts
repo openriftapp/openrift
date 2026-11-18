@@ -1,4 +1,3 @@
-import { isBanInEffect } from "@openrift/shared/card-ban";
 import { primaryCardType } from "@openrift/shared/card-primary-type";
 import { formatIgnoresBans, validateDeck } from "@openrift/shared/deck-rules";
 import type { DeckViolation } from "@openrift/shared/deck-rules";
@@ -109,6 +108,8 @@ export async function buildEntryAdvisories(
     ),
   ];
   const freeform = event.format === WellKnown.deckFormat.FREEFORM;
+  // A list is judged by the bans of the day it is played, including ones lifted since.
+  const eventDay = event.eventDate === null ? todayUtc() : formatDay(event.eventDate);
   // Banlists are additive per play mode: the base list covers all constructed
   // play, and a 2v2 event checks the 2v2-only additions on top.
   const banFormatIds = formatIgnoresBans(event.format)
@@ -127,21 +128,20 @@ export async function buildEntryAdvisories(
     event.format === WellKnown.deckFormat.CUSTOM_REGION
       ? repos.catalog.championIdentifierTags()
       : Promise.resolve([] as string[]),
-    freeform ? Promise.resolve([]) : repos.cardBans.listActiveForCards(matchedIds, banFormatIds),
+    freeform
+      ? Promise.resolve([])
+      : repos.cardBans.listInEffectForCards(matchedIds, banFormatIds, eventDay),
   ]);
 
   const violations: DeckViolation[] = [];
 
-  // A list is legal for the day it is played, so a ban scheduled before the event already counts.
-  const eventDay = event.eventDate === null ? todayUtc() : formatDay(event.eventDate);
-  const activeBans = banRows.filter((ban) => isBanInEffect(ban, eventDay));
   const banned2v2 = new Set(
-    activeBans
+    banRows
       .filter((ban) => ban.formatId === WellKnown.banFormat.TWO_V_TWO)
       .map((ban) => ban.cardId),
   );
   const bannedBase = new Set(
-    activeBans
+    banRows
       .filter((ban) => ban.formatId === WellKnown.banFormat.CONSTRUCTED)
       .map((ban) => ban.cardId),
   );

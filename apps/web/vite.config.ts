@@ -317,20 +317,11 @@ export default defineConfig(({ mode, command }) => {
       tanstackStart({
         router: { codeSplittingOptions: { splitBehavior: adminRouteSplitBehavior } },
         serverFns: {
-          // E2E builds use dev-style ids so specs can match a server fn by its export name.
-          generateFunctionId: process.env.E2E_READABLE_SERVER_FN_IDS
-            ? ({ filename, functionName }) =>
-                Buffer.from(
-                  JSON.stringify({
-                    file: path.relative(repoRoot, filename),
-                    export: functionName,
-                  }),
-                ).toString("base64url")
-            : ({ filename, functionName }) =>
-                serverFnId(
-                  functionName,
-                  createHash("sha256").update(`${filename}--${functionName}`).digest("hex"),
-                ),
+          generateFunctionId: ({ filename, functionName }) =>
+            serverFnId(
+              functionName,
+              createHash("sha256").update(`${filename}--${functionName}`).digest("hex"),
+            ),
         },
       }),
       // Build only: in dev, Nitro caches stale SSR HTML after HMR, causing

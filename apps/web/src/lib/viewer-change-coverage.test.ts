@@ -15,7 +15,6 @@ const SHARED_PREFIXES: readonly (readonly string[])[] = [
   ["errata"],
   ["promos"],
   ["products"],
-  ["ownedCount"],
   ["priceHistory"],
   ["marketplaceLinks"],
   ["meta"],

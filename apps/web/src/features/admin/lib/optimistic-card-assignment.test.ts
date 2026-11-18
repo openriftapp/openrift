@@ -6,7 +6,10 @@ import type {
 } from "@openrift/shared/types/api/admin";
 import { describe, expect, it } from "vitest";
 
-import { applyOptimisticAssignmentForCard } from "./optimistic-card-assignment";
+import {
+  applyOptimisticAssignmentForCard,
+  revertOptimisticAssignmentForCard,
+} from "./optimistic-card-assignment";
 
 function printing(
   overrides: Partial<UnifiedMappingPrintingResponse> = {},
@@ -123,6 +126,74 @@ describe("applyOptimisticAssignmentForCard", () => {
     expect(twice).toBe(once);
     expect(twice.group?.cardmarket.assignments).toHaveLength(1);
     expect(twice.group?.cardmarket.assignedProducts).toEqual([product]);
+  });
+
+  it("reverts one marketplace's assignment and keeps another marketplace's saved rows", () => {
+    const enPrinting = printing({ printingId: "p-en", language: "EN", finish: "normal" });
+    const tcgProduct = staged({ externalId: 10, language: "EN", finish: "normal" });
+    const cmProduct = staged({ externalId: 20, language: "EN", finish: "normal" });
+    const before = cardResponse(
+      group("c-1", [enPrinting], {
+        tcgplayer: { staged: [tcgProduct], assigned: [] },
+        cardmarket: { staged: [cmProduct], assigned: [] },
+      }),
+    );
+    const tcgApplied = applyOptimisticAssignmentForCard(
+      before,
+      "tcgplayer",
+      10,
+      "normal",
+      "EN",
+      "p-en",
+    );
+    const both = applyOptimisticAssignmentForCard(
+      tcgApplied,
+      "cardmarket",
+      20,
+      "normal",
+      "EN",
+      "p-en",
+    );
+
+    const reverted = revertOptimisticAssignmentForCard(
+      both,
+      before,
+      "tcgplayer",
+      10,
+      "normal",
+      "EN",
+      "p-en",
+    );
+
+    expect(reverted.group?.tcgplayer.assignments).toEqual([]);
+    expect(reverted.group?.tcgplayer.stagedProducts).toEqual([tcgProduct]);
+    expect(reverted.group?.tcgplayer.assignedProducts).toEqual([]);
+    expect(reverted.group?.cardmarket).toEqual(both.group?.cardmarket);
+  });
+
+  it("leaves an assignment in place that was there before the failed save", () => {
+    const enPrinting = printing({ printingId: "p-en", language: "EN", finish: "normal" });
+    const product = staged({ externalId: 10, language: "EN", finish: "normal" });
+    const assigned = applyOptimisticAssignmentForCard(
+      cardResponse(group("c-1", [enPrinting], { tcgplayer: { staged: [product], assigned: [] } })),
+      "tcgplayer",
+      10,
+      "normal",
+      "EN",
+      "p-en",
+    );
+
+    const reverted = revertOptimisticAssignmentForCard(
+      assigned,
+      assigned,
+      "tcgplayer",
+      10,
+      "normal",
+      "EN",
+      "p-en",
+    );
+
+    expect(reverted).toBe(assigned);
   });
 
   it("returns the original response unchanged when the card has no group", () => {

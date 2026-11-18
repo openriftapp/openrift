@@ -15,7 +15,7 @@ const EVENT_CORRECTION_LIMIT = 200;
 
 /**
  * An accepted submission is settled with the contributor's credit and the archived deck.
- * Only `unlink` may reverse it; it also removes the credit.
+ * Only handing its claims back to the sources reverses it, which also removes the credit.
  */
 async function requireUnsettled(
   repos: ApiContext["repos"],
@@ -25,7 +25,7 @@ async function requireUnsettled(
   assertFound(submission, "Submission not found");
   if (submission.status === "accepted") {
     throw conflict(
-      "That submission was already accepted. Unlink its candidate to take the deck back.",
+      "That submission was already accepted. Hand its fields back to the sources on the event's admin page to take it back.",
     );
   }
   return submission;
@@ -102,7 +102,7 @@ export const adminMetaSubmissionsRouter = {
 
     // Keeps whatever message the admin wrote: a reopened submission is one the
     // reviewer is looking at again, not one nothing was ever said about.
-    await context.repos.metaSubmissions.reopen(input.id);
+    await context.services.reopenMetaSubmission(context.transact, submission);
 
     await recordAdminEvent(context.repos, context.userId, {
       action: "meta-submission.reopen",

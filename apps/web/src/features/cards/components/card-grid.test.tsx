@@ -13,6 +13,7 @@ import { createStoreResetter } from "@/test/store-helpers";
 
 const COLUMNS = 3;
 const CONTAINER_WIDTH = 400;
+const layout = vi.hoisted(() => ({ width: 400 }));
 
 vi.mock("@/hooks/use-enums", () => ({
   useEnumOrders: () => ({ orders: {}, labels: {} }),
@@ -28,7 +29,7 @@ vi.mock("@/features/cards/hooks/use-responsive-columns", () => ({
     containerEl: null,
     columns: COLUMNS,
     autoColumns: COLUMNS,
-    containerWidth: CONTAINER_WIDTH,
+    containerWidth: layout.width,
     measured: true,
   }),
   SSR_RESPONSIVE_GRID_COLS: "",
@@ -57,6 +58,7 @@ const resetDisplayStore = createStoreResetter(useDisplayStore);
 const resetGridFocusStore = createStoreResetter(useGridFocusStore);
 
 afterEach(() => {
+  layout.width = CONTAINER_WIDTH;
   resetDisplayStore();
   resetGridFocusStore();
   vi.restoreAllMocks();
@@ -109,6 +111,28 @@ function gridElement(
         groupBy="set"
         stickyOffset={0}
         selectedItemId={selectedItemId}
+      />
+    </FilterSearchProvider>
+  );
+}
+
+function returnGridElement(
+  items: CardViewerItem[],
+  setOrder: GroupInfo[],
+  itemId?: string,
+  onReturned?: (found: boolean) => void,
+) {
+  return (
+    <FilterSearchProvider value={{}}>
+      <CardGrid
+        items={items}
+        totalItems={items.length}
+        renderCard={(item) => <div>{item.id}</div>}
+        setOrder={setOrder}
+        groupBy="set"
+        stickyOffset={0}
+        returnToItemId={itemId}
+        onReturned={onReturned}
       />
     </FilterSearchProvider>
   );
@@ -301,5 +325,56 @@ describe("CardGrid scroll below the sticky group label", () => {
     const firstGroupRows = Math.ceil(first.length / COLUMNS);
     const headerStart = HEADER_ROW_HEIGHT + GAP + (CARDS_ROW_HEIGHT + GAP) * firstGroupRows;
     expect(scrollTo).toHaveBeenLastCalledWith(expect.objectContaining({ top: headerStart }));
+  });
+});
+
+describe("CardGrid return to an item", () => {
+  const set = makeSet(1);
+  const items = makeItems(set.id, 30);
+  const target = items[COLUMNS * 6]?.id;
+
+  it("waits while the grid is hidden, then scrolls to the item once it has a width", () => {
+    vi.spyOn(document.documentElement, "scrollHeight", "get").mockReturnValue(100_000);
+    layout.width = 0;
+    const { rerender } = render(returnGridElement(items, [set], target));
+    const scrollTo = spyOnWindowScroll();
+
+    rerender(returnGridElement(items, [set], target));
+    expect(scrollTo).not.toHaveBeenCalled();
+
+    layout.width = CONTAINER_WIDTH;
+    rerender(returnGridElement(items, [set], target));
+
+    expect(scrollTo).toHaveBeenCalledWith(
+      expect.objectContaining({ top: (CARDS_ROW_HEIGHT + GAP) * 6 }),
+    );
+  });
+
+  it("scrolls once per return, not on later renders", () => {
+    vi.spyOn(document.documentElement, "scrollHeight", "get").mockReturnValue(100_000);
+    const scrollTo = spyOnWindowScroll();
+    const { rerender } = render(returnGridElement(items, [set], target));
+    const calls = scrollTo.mock.calls.length;
+    expect(calls).toBeGreaterThan(0);
+
+    rerender(returnGridElement(items, [set], target));
+
+    expect(scrollTo).toHaveBeenCalledTimes(calls);
+  });
+
+  it("reports the return once it has a width, with whether the item is in the grid", () => {
+    vi.spyOn(document.documentElement, "scrollHeight", "get").mockReturnValue(100_000);
+    spyOnWindowScroll();
+    const onReturned = vi.fn();
+    layout.width = 0;
+    const { rerender } = render(returnGridElement(items, [set], target, onReturned));
+    expect(onReturned).not.toHaveBeenCalled();
+
+    layout.width = CONTAINER_WIDTH;
+    rerender(returnGridElement(items, [set], target, onReturned));
+    expect(onReturned).toHaveBeenCalledExactlyOnceWith(true);
+
+    rerender(returnGridElement(items, [set], "filtered-out", onReturned));
+    expect(onReturned).toHaveBeenLastCalledWith(false);
   });
 });

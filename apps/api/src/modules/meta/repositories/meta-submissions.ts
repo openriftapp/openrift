@@ -223,14 +223,17 @@ export function metaSubmissionsRepo(db: Kysely<Database>) {
       return rows;
     },
 
-    /** The accepted correction an event overlay was applied from. */
-    async acceptedCorrectionForOverlay(overlay: { id: string }): Promise<MetaSubmissionRow | null> {
+    /** The correction in `status` an event overlay was applied from. */
+    async correctionForOverlay(
+      overlay: { id: string },
+      status: "accepted" | "rejected",
+    ): Promise<MetaSubmissionRow | null> {
       const row = await db
         .selectFrom("metaSubmissions")
         .selectAll()
         .where("eventOverlayId", "=", overlay.id)
         .where("kind", "=", "event_correction")
-        .where("status", "=", "accepted")
+        .where("status", "=", status)
         .orderBy("id", "asc")
         .executeTakeFirst();
       return row ?? null;

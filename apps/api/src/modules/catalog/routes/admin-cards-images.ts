@@ -10,6 +10,7 @@ import {
   reviewableProviderScope,
 } from "../../candidates/lib/card-review-scope.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
+import { editImageFile } from "../services/images/edit.js";
 import {
   ensureRehostedOriginal,
   rehostFaceImage,
@@ -18,7 +19,7 @@ import {
   unrehostImageFile,
 } from "../services/images/jobs.js";
 import { saveUploadedImage } from "../services/images/upload.js";
-import { ensureOriginalOnDisk, regenerateFromOrig } from "../services/images/variants.js";
+import { ensureOriginalOnDisk } from "../services/images/variants.js";
 import { cleanupOrphanedImageFiles } from "../services/printing-admin.js";
 import {
   assertDeskPrintingScope,
@@ -95,7 +96,7 @@ export const adminCardImagesRouter = {
     await printingImages.deleteById(imageId);
 
     if (imageFileId) {
-      await cleanupOrphanedImageFiles(context.io, context.repos.catalogMutations, [imageFileId]);
+      await cleanupOrphanedImageFiles(context.io, context.transact, [imageFileId]);
     }
 
     await recordAdminEvent(context.repos, context.userId, {
@@ -201,16 +202,18 @@ export const adminCardImagesRouter = {
       printingId: image.printingId,
     });
 
-    await ensureRehostedOriginal(context.io, printingImages, image);
-    await regenerateFromOrig(context.io, image.imageFileId, rotation, image.needsTrim, image.quad);
-    await printingImages.setRotation(image.imageFileId, rotation);
+    const imageFileId = await editImageFile(context.io, printingImages, image, {
+      rotation,
+      needsTrim: image.needsTrim,
+      quad: image.quad,
+    });
 
     await recordAdminEvent(context.repos, context.userId, {
       action: "image.rotate",
       entityType: "image",
       entityId: imageId,
-      oldValues: { rotation: image.rotation },
-      newValues: { rotation },
+      oldValues: { rotation: image.rotation, imageFileId: image.imageFileId },
+      newValues: { rotation, imageFileId },
     });
   }),
 
@@ -225,16 +228,18 @@ export const adminCardImagesRouter = {
       printingId: image.printingId,
     });
 
-    await ensureRehostedOriginal(context.io, printingImages, image);
-    await regenerateFromOrig(context.io, image.imageFileId, image.rotation, needsTrim, image.quad);
-    await printingImages.setNeedsTrim(image.imageFileId, needsTrim);
+    const imageFileId = await editImageFile(context.io, printingImages, image, {
+      rotation: image.rotation,
+      needsTrim,
+      quad: image.quad,
+    });
 
     await recordAdminEvent(context.repos, context.userId, {
       action: "image.set-needs-trim",
       entityType: "image",
       entityId: imageId,
-      oldValues: { needsTrim: image.needsTrim },
-      newValues: { needsTrim },
+      oldValues: { needsTrim: image.needsTrim, imageFileId: image.imageFileId },
+      newValues: { needsTrim, imageFileId },
     });
   }),
 
@@ -252,18 +257,18 @@ export const adminCardImagesRouter = {
     );
     await assertImageScope(context.repos, context.adminAccess, context.userId, imageId);
 
-    // Stored only once the pipeline accepted the corners, so a rejected quad
-    // leaves the variants and the row agreeing with each other.
-    await ensureRehostedOriginal(context.io, printingImages, image);
-    await regenerateFromOrig(context.io, image.imageFileId, image.rotation, image.needsTrim, quad);
-    await printingImages.setQuad(image.imageFileId, quad);
+    const imageFileId = await editImageFile(context.io, printingImages, image, {
+      rotation: image.rotation,
+      needsTrim: image.needsTrim,
+      quad,
+    });
 
     await recordAdminEvent(context.repos, context.userId, {
       action: "image.quad",
       entityType: "image",
       entityId: imageId,
-      oldValues: { quad: image.quad },
-      newValues: { quad },
+      oldValues: { quad: image.quad, imageFileId: image.imageFileId },
+      newValues: { quad, imageFileId },
     });
   }),
 

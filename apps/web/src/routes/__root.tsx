@@ -12,6 +12,7 @@ import {
   Outlet,
   redirect,
   Scripts,
+  useMatches,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { createServerFn } from "@tanstack/react-start";
@@ -21,6 +22,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { Analytics } from "@/components/analytics";
 import { RouteNotFoundFallback } from "@/components/error-message";
 import { useReferralCapture } from "@/features/account/hooks/use-referral";
+import { CatalogLanguageOrderProvider } from "@/features/cards/components/catalog-language-order-provider";
 import { useBrowserLocale } from "@/hooks/use-browser-locale";
 import { ServerDisplayLanguagesProvider } from "@/hooks/use-display-languages";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -28,6 +30,7 @@ import { useUserId } from "@/hooks/use-session";
 import { ResolvedViewPrefsProvider } from "@/hooks/use-view-prefs";
 import { markHydrationSettled } from "@/lib/app-diagnostics";
 import { sessionQueryOptions } from "@/lib/auth-session";
+import { routeChromeMode } from "@/lib/chrome-mode";
 import { prefetchFeatureFlags, refetchUnknownFeatureFlags } from "@/lib/feature-flags";
 import { getOperatorLinks } from "@/lib/operator-links";
 import { getShellCookie, rendersDefaultShell } from "@/lib/page-cache";
@@ -43,6 +46,7 @@ import {
 import { getIsPreview, getSiteUrl } from "@/lib/site-config";
 import { prefetchSiteSettings, siteSettingsQueryOptions } from "@/lib/site-settings";
 import { SOCIAL_LINKS } from "@/lib/social-links";
+import { cn } from "@/lib/utils";
 import type { CookieViewSurface, ViewPrefsBlob } from "@/lib/view-prefs";
 import { resolveViewPrefsFromCookie, VIEW_PREFS_COOKIE } from "@/lib/view-prefs";
 import { readViewerDisplayLanguages } from "@/lib/viewer-display-languages";
@@ -229,6 +233,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   const { resolvedTheme, resolvedPalette, sentryDsn, appEnv, queryClient } =
     Route.useRouteContext();
   const { data: siteSettings } = useSuspenseQuery(siteSettingsQueryOptions);
+  const chrome = useMatches({ select: routeChromeMode });
   // Runs after the shell's hydration commit reports its errors; route content inside
   // Suspense boundaries hydrates in later commits.
   useEffect(() => {
@@ -247,6 +252,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       lang={getLocale()}
       className={resolvedTheme === "dark" ? "dark" : ""}
       data-palette={resolvedPalette}
+      data-chrome={chrome}
       suppressHydrationWarning
     >
       <head>
@@ -273,6 +279,7 @@ function RootComponent() {
   useBrowserLocale();
   useReferralCapture(useUserId());
   const hydrated = useHydrated();
+  const chrome = useMatches({ select: routeChromeMode });
   // Hydration replays the server's context, so a default shell's cookie prefs apply only now.
   const viewPrefs =
     hydrated && defaultShell
@@ -282,10 +289,17 @@ function RootComponent() {
     <>
       {/* `isolate` scopes descendant z-indexes to this div so AppBackground's
           -z-10 layer paints above this background instead of behind it. */}
-      <div className="bg-background text-foreground isolate flex min-h-screen flex-col">
+      <div
+        className={cn(
+          "text-foreground isolate flex min-h-screen flex-col",
+          chrome !== "transparent" && "bg-background",
+        )}
+      >
         <ResolvedViewPrefsProvider value={viewPrefs}>
           <ServerDisplayLanguagesProvider value={displayLanguages}>
-            <Outlet />
+            <CatalogLanguageOrderProvider>
+              <Outlet />
+            </CatalogLanguageOrderProvider>
           </ServerDisplayLanguagesProvider>
         </ResolvedViewPrefsProvider>
       </div>

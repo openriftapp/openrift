@@ -130,6 +130,17 @@ describe("PresentationStage while presenting", () => {
     expect(onIndexChange).not.toHaveBeenCalled();
   });
 
+  it("leaves keys a document-level handler consumed, whenever it was added", () => {
+    const { onIndexChange, onExit } = renderStage();
+    const consume = (event: KeyboardEvent) => event.preventDefault();
+    document.addEventListener("keydown", consume);
+    fireEvent.keyDown(document.body, { key: "ArrowRight" });
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    document.removeEventListener("keydown", consume);
+    expect(onIndexChange).not.toHaveBeenCalled();
+    expect(onExit).not.toHaveBeenCalled();
+  });
+
   it("shows the filmstrip when it is switched on", () => {
     usePresentationStore.setState({ showStrip: true });
     renderStage();

@@ -397,6 +397,7 @@
   "common_scroll_to_top": "Nach oben scrollen",
   "common_copy": "Kopieren",
   "common_copied": "Kopiert",
+  "common_copy_failed": "Kopieren fehlgeschlagen",
   "common_copy_share_link": "Teilen-Link kopieren",
   "common_share_link_copied": "Teilen-Link kopiert",
   "common_copy_link_error": "Der Link konnte nicht kopiert werden",
@@ -624,8 +625,6 @@
     }
   ],
   "cards_grid_show_n_printings": "{count} Drucke anzeigen",
-  "cards_grid_load_error_title": "Karten konnten nicht geladen werden",
-  "cards_grid_load_error_description": "Der Server ist möglicherweise nicht erreichbar.",
   "cards_grid_no_results_title": "Keine Karten gefunden",
   "cards_grid_no_results_description": "Passe deine Filter an.",
   "cards_search_hint_text": "Einfache Wörter durchsuchen nur Kartennamen.",
@@ -1710,6 +1709,12 @@
     }
   ],
   "collections_reorder_aria": "{label} neu anordnen",
+  "collections_drag_announce_picked_up": "{name} aufgenommen.",
+  "collections_drag_announce_over": "{name} ist über {target}.",
+  "collections_drag_announce_not_over": "{name} ist über keinem Ablagebereich.",
+  "collections_drag_announce_dropped": "{name} auf {target} abgelegt.",
+  "collections_drag_announce_nothing_moved": "{name} abgelegt. Nichts wurde verschoben.",
+  "collections_drag_announce_unnamed": "Element",
   "collections_copy_edit_aria": "{title}. Details des Exemplars bearbeiten.",
   "collections_copy_graded_title": "Bewertet {grader} {grade}",
   "collections_copies_with_details": [

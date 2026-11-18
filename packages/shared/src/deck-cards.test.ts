@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { deckCardKey, mergeDeckCards, sameDeckCards, toDeckCard } from "./deck-cards.js";
+import {
+  deckCardKey,
+  MAX_DECK_CARD_QUANTITY,
+  mergeDeckCards,
+  sameDeckCards,
+  toDeckCard,
+} from "./deck-cards.js";
 
 function card(cardId: string, quantity: number) {
   return { cardId, zone: "main", quantity, preferredPrintingId: null as string | null };
@@ -70,6 +76,16 @@ describe("mergeDeckCards", () => {
   it("sums repeated lines of one key and keeps first-seen order", () => {
     const merged = mergeDeckCards([card("card-1", 2), card("card-2", 1), card("card-1", 1)]);
     expect(merged).toEqual([card("card-1", 3), card("card-2", 1)]);
+  });
+
+  it("stops a summed quantity at the per-row cap", () => {
+    expect(mergeDeckCards([card("card-1", 60), card("card-1", 60)])).toEqual([
+      card("card-1", MAX_DECK_CARD_QUANTITY),
+    ]);
+  });
+
+  it("caps a single line above the per-row cap", () => {
+    expect(mergeDeckCards([card("card-1", 150)])).toEqual([card("card-1", MAX_DECK_CARD_QUANTITY)]);
   });
 
   it("does not mutate the input lines", () => {

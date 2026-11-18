@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { catalogKeys, ownedCountKeys, priceHistoryKeys } from "./cards-query-keys";
+import { catalogKeys, priceHistoryKeys } from "./cards-query-keys";
 
 describe("catalogKeys", () => {
   it("all", () => {
@@ -9,12 +9,6 @@ describe("catalogKeys", () => {
 
   it("tail nests under all, keyed by version and languages", () => {
     expect(catalogKeys.tail("v1", ["EN", "FR"])).toEqual(["catalog", "tail", "v1", "EN,FR"]);
-  });
-});
-
-describe("ownedCountKeys", () => {
-  it("all", () => {
-    expect(ownedCountKeys.all).toEqual(["ownedCount"]);
   });
 });
 

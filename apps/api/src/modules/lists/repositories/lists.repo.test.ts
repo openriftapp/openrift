@@ -1,4 +1,5 @@
 import { EMPTY_PRICE_LOOKUP } from "@openrift/shared/price-lookup";
+import { MAX_LIST_ENTRY_QUANTITY } from "@openrift/shared/schemas";
 import { makePrinting } from "@openrift/shared/test-factories";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { EMPTY_CARD_FILTERS } from "@openrift/shared/types/search";
@@ -7,6 +8,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { Database } from "../../../db/tables.js";
 import { createMockDb } from "../../../test/mock-db.js";
+import { createRecordingDb } from "../../../test/recording-db.js";
 import type { ListRuleProviders } from "./lists-rules.js";
 import { listsRepo } from "./lists.js";
 
@@ -289,6 +291,29 @@ describe("listsRepo", () => {
     expect(bulkCreateEntries).toHaveBeenCalledWith("card", [
       expect.objectContaining({ cardId: "gold" }),
     ]);
+  });
+
+  it("removeCollectionFromRules locks the rule rows it rewrites", async () => {
+    const recording = createRecordingDb([
+      [{ id: "lst-1", rules: [{ kind: "trade", collectionIds: ["col-1", "col-2"] }] }],
+    ]);
+    await listsRepo(recording.db).removeCollectionFromRules("u1", "col-1");
+
+    expect(recording.queries[0]).toMatch(
+      /^select .* from "lists" .* order by "id" for no key update$/u,
+    );
+    expect(recording.queries[1]).toMatch(/^update "lists" set "rules" = \$1/u);
+  });
+
+  it("updateEntry steps the stored quantity in one statement, between 1 and the entry maximum", async () => {
+    const recording = createRecordingDb([[{ id: "le-1" }]]);
+    await listsRepo(recording.db).updateEntry("le-1", "lst-1", "u1", {}, -1);
+
+    expect(recording.queries).toHaveLength(1);
+    expect(recording.queries[0]).toMatch(
+      /^update "list_entries" set "quantity" = case when kind = 'copy' then quantity else least\(greatest\(quantity \+ \$1, 1\), \$2\) end where/u,
+    );
+    expect(recording.parameters[0]?.slice(0, 2)).toEqual([-1, MAX_LIST_ENTRY_QUANTITY]);
   });
 
   it("updateEntry returns the updated entry", async () => {

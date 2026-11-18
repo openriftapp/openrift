@@ -4,6 +4,7 @@ import { deckCardKey } from "@openrift/shared/deck-cards";
 import { EMPTY_DECK_LIST_SUMMARY } from "@openrift/shared/deck-list-summary";
 import { descriptionSnippet } from "@openrift/shared/description-snippet";
 import type {
+  DeckCardResponse,
   DeckCardWithDeckResponse,
   DeckFolderResponse,
   DeckListItemResponse,
@@ -406,11 +407,47 @@ function goneKeys(
   return [...keys].filter((key) => !storedKeys.has(key));
 }
 
+/** The deck's stored cards moved past the version a replace named; the store now holds them. */
+export class DeckCardsConflictError extends Error {
+  override name = "DeckCardsConflictError";
+  readonly version: string;
+  readonly cards: DeckCardResponse[];
+
+  constructor(version: string, cards: DeckCardResponse[]) {
+    super("The deck's cards changed on another device");
+    this.version = version;
+    this.cards = cards;
+  }
+}
+
+/** `expectedVersion` makes the replace conditional; `onVersion` receives the version it stored. */
+export interface DeckCardsVersioning {
+  expectedVersion?: string;
+  onVersion: (version: string) => void;
+}
+
+async function writeStoredDeckCards(
+  collection: DeckCardsCollection,
+  mutations: readonly PendingMutation<DeckCardWithDeckResponse>[],
+  deckId: string,
+  rows: readonly DeckCardWithDeckResponse[],
+  cards: readonly DeckCardResponse[],
+): Promise<void> {
+  const stored = cards.map((card) => ({ deckId, ...card }));
+  const storedKeys = new Set(stored.map((card) => deckCardRowKey(card)));
+  const gone = goneKeys(rows, mutations, deckId, storedKeys);
+  await collection.utils.writeUpsert(stored);
+  if (gone.length > 0) {
+    await writeSkippingMissing(gone, (keys) => collection.utils.writeDelete(keys));
+  }
+}
+
 /** One replace per deck: the API stores a deck's cards as a whole list. */
 export async function persistDeckCardMutations(
   collection: DeckCardsCollection,
   mutations: readonly PendingMutation<DeckCardWithDeckResponse>[],
   context: DecksWriteContext,
+  versioning?: DeckCardsVersioning,
 ): Promise<void> {
   const settleRefetchRace = watchForRefetchRace(
     context.queryClient,
@@ -420,22 +457,27 @@ export async function persistDeckCardMutations(
   try {
     for (const deckId of deckIds) {
       const rows = rowsOfDeck(collection, mutations, deckId);
-      const { cards } = await browserApiOrpcClient(decksContract).replaceCards({
-        id: deckId,
-        cards: rows.map((row) => ({
-          cardId: row.cardId,
-          zone: row.zone,
-          quantity: row.quantity,
-          preferredPrintingId: row.preferredPrintingId,
-        })),
-      });
-      const stored = cards.map((card) => ({ deckId, ...card }));
-      const storedKeys = new Set(stored.map((card) => deckCardRowKey(card)));
-      const gone = goneKeys(rows, mutations, deckId, storedKeys);
-      await collection.utils.writeUpsert(stored);
-      if (gone.length > 0) {
-        await writeSkippingMissing(gone, (keys) => collection.utils.writeDelete(keys));
+      const { data, error } = await safe(
+        browserApiOrpcClient(decksContract).replaceCards({
+          id: deckId,
+          cards: rows.map((row) => ({
+            cardId: row.cardId,
+            zone: row.zone,
+            quantity: row.quantity,
+            preferredPrintingId: row.preferredPrintingId,
+          })),
+          expectedVersion: versioning?.expectedVersion,
+        }),
+      );
+      if (error) {
+        if (isDefinedError(error) && error.code === "CONFLICT") {
+          await writeStoredDeckCards(collection, mutations, deckId, rows, error.data.cards);
+          throw new DeckCardsConflictError(error.data.version, error.data.cards);
+        }
+        throw error;
       }
+      await writeStoredDeckCards(collection, mutations, deckId, rows, data.cards);
+      versioning?.onVersion(data.version);
       // The deck's card counts, validity and value live on its list row.
       void context.queryClient.invalidateQueries({
         queryKey: decksKeys.syncedStore(context.userId),
@@ -459,12 +501,13 @@ export function saveDeckCards(
     preferredPrintingId: string | null;
   }[],
   context: DecksWriteContext,
+  versioning?: DeckCardsVersioning,
 ): Transaction<DeckCardWithDeckResponse> {
   const incoming = new Map(cards.map((card) => [deckCardRowKey({ deckId, ...card }), card]));
   const existing = collection.toArray.filter((row) => row.deckId === deckId);
   const transaction = createTransaction<DeckCardWithDeckResponse>({
     mutationFn: ({ transaction: batch }) =>
-      persistDeckCardMutations(collection, batch.mutations, context),
+      persistDeckCardMutations(collection, batch.mutations, context, versioning),
   });
   transaction.mutate(() => {
     for (const row of existing) {

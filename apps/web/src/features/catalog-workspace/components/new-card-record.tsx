@@ -1,10 +1,6 @@
 import { REQUIRED_CARD_FIELD_KEYS } from "@openrift/shared/contracts/admin/card-mutations";
 import type { AcceptNewCardBody } from "@openrift/shared/contracts/admin/card-mutations";
 import { pluralize } from "@openrift/shared/strings";
-import type {
-  AdminCardDetailResponse,
-  UnmatchedCardDetailResponse,
-} from "@openrift/shared/types/api/admin";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { LinkIcon } from "lucide-react";
@@ -40,10 +36,10 @@ import {
   describeAcceptCardFieldIssues,
   hasRequiredActiveFields,
 } from "@/features/admin/lib/accept-card-validation";
-import { adminCardDetailQueryOptions } from "@/features/admin/lib/admin-card-queries";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { favoriteProviderSet } from "@/features/admin/lib/candidate-rows";
 import { buildSourceSubmitters } from "@/features/admin/lib/candidate-submitter";
+import { readCreatedCardId } from "@/features/admin/lib/created-card-id";
 import { ignorableSources } from "@/features/admin/lib/ignorable-sources";
 import { buildSetReleaseYears } from "@/features/admin/lib/set-release-years";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
@@ -63,6 +59,7 @@ import { ignoredCardsUndo } from "@/features/catalog-workspace/hooks/candidate-u
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
+import { queueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import type { CreationDraft, DraftCard } from "@/features/catalog-workspace/lib/creation-draft";
 import { toAcceptInput } from "@/features/catalog-workspace/lib/creation-draft";
 import type { NewCardGroup } from "@/features/catalog-workspace/lib/new-card-groups";
@@ -129,7 +126,7 @@ function NewCardRecordBody({
     adminKeys.workspace,
   ];
   const { data, isLoading, isError, error, refetch } = useUnmatchedCardDetail(name);
-  const detail = data as UnmatchedCardDetailResponse | undefined;
+  const detail = data;
   const { providerSettings, newCardFields, checkCandidateCard, uncheckCandidateCard } =
     useCardDetailData(scope);
   const acceptNewCard = useAcceptNewCard();
@@ -194,22 +191,15 @@ function NewCardRecordBody({
   }
 
   async function acceptPrintings(cardSlug: string, chosen: readonly NewCardGroup[]) {
-    let fresh: AdminCardDetailResponse | null = null;
-    try {
-      fresh = (await queryClient.query(
-        adminCardDetailQueryOptions(cardSlug),
-      )) as AdminCardDetailResponse;
-    } catch {
-      fresh = null;
-    }
-    const cardUuid = fresh?.card?.id;
-    if (cardUuid === undefined) {
+    const created = await readCreatedCardId(queryClient, cardSlug);
+    if (!created.ok) {
       toast.error(
-        "The card was created, but its printings were not accepted. They stay under Printings, New.",
+        `The card was created, but its printings were not accepted: ${created.reason}. They stay under Printings, New.`,
         PERSISTENT_ERROR_TOAST,
       );
       return;
     }
+    const cardUuid = created.id;
     const failures = await runInSequence(chosen, (group) =>
       acceptPrintingGroup.mutateAsync(toAcceptInput(group.draft, cardUuid)),
     );
@@ -309,7 +299,7 @@ function NewCardRecordBody({
             <Button
               variant="outline"
               pending={ignoreDrafts.isPending}
-              onClick={() => void ignoreDraft()}
+              onClick={() => void queueWorkspaceWrite(ignoreDraft)}
             >
               Ignore
               <Kbd>X</Kbd>
@@ -320,7 +310,11 @@ function NewCardRecordBody({
               Merge into existing…
             </Button>
           )}
-          <Button disabled={!canAccept} pending={busy} onClick={() => void acceptAsNew()}>
+          <Button
+            disabled={!canAccept}
+            pending={busy}
+            onClick={() => void queueWorkspaceWrite(acceptAsNew)}
+          >
             Accept as new card
             <Kbd>A</Kbd>
           </Button>
@@ -358,7 +352,7 @@ function NewCardRecordBody({
                   variant="outline"
                   size="sm"
                   disabled={linkCard.isPending}
-                  onClick={() => void mergeInto(card.id)}
+                  onClick={() => void queueWorkspaceWrite(() => mergeInto(card.id))}
                 >
                   Merge here
                 </Button>
@@ -477,7 +471,7 @@ function NewCardRecordBody({
           <Button
             disabled={mergeTarget.length === 0}
             pending={linkCard.isPending}
-            onClick={() => void mergeInto(mergeTarget)}
+            onClick={() => void queueWorkspaceWrite(() => mergeInto(mergeTarget))}
           >
             <LinkIcon />
             Merge

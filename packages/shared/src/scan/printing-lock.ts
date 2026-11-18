@@ -65,11 +65,13 @@ export function createPrintingReader(
   const signatureCache = new Map<string, PrintingSignature | null>();
   const stampPairs = new Map<string, StampPair | null>();
 
-  async function referenceImage(key: string): Promise<RgbaImage | null> {
+  /** `undefined` is a failed fetch, which no cache keeps; `null` is a printing with no image. */
+  async function referenceImage(key: string): Promise<RgbaImage | null | undefined> {
     try {
       return await deps.fetchReference(key);
-    } catch {
-      return null;
+    } catch (error) {
+      console.warn(`[scan] reference fetch failed for ${key}`, error);
+      return undefined;
     }
   }
 
@@ -80,6 +82,9 @@ export function createPrintingReader(
         referenceImage(plainKey),
         referenceImage(markedKey),
       ]);
+      if (plain === undefined || marked === undefined) {
+        return null;
+      }
       stampPairs.set(cacheKey, plain && marked ? stampPair(plain, marked) : null);
     }
     return stampPairs.get(cacheKey) ?? null;
@@ -133,10 +138,8 @@ export function createPrintingReader(
       keys
         .filter((key) => !signatureCache.has(key))
         .map(async (key) => {
-          let image: RgbaImage | null;
-          try {
-            image = await deps.fetchReference(key);
-          } catch {
+          const image = await referenceImage(key);
+          if (image === undefined) {
             return;
           }
           signatureCache.set(key, image ? printingSignature(image, band) : null);

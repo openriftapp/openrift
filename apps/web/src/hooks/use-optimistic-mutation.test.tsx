@@ -83,6 +83,55 @@ describe("useOptimisticMutation", () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["copies", "user-1"] });
   });
 
+  it("refetches once, after the last of overlapping writes to the same key", async () => {
+    const { invalidateSpy, wrapper } = setup({
+      items: [
+        { id: "a", hidden: false },
+        { id: "b", hidden: false },
+      ],
+    });
+    const finishers: (() => void)[] = [];
+    const mutationFn = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finishers.push(resolve);
+        }),
+    );
+    const { result } = renderHook(
+      () =>
+        useOptimisticMutation<Lists, string>({
+          mutationKey: ["lists", "hide"],
+          queryKey: KEY,
+          mutationFn,
+          apply: hide,
+          pendingWrites: (mutationCache) =>
+            mutationCache.findAll({ mutationKey: ["lists", "hide"], status: "pending" }).length,
+        }),
+      { wrapper },
+    );
+
+    let first: Promise<unknown> = Promise.resolve();
+    let second: Promise<unknown> = Promise.resolve();
+    await act(async () => {
+      first = result.current.mutateAsync("a");
+      second = result.current.mutateAsync("b");
+      await Promise.resolve();
+    });
+    await waitFor(() => expect(finishers).toHaveLength(2));
+
+    await act(async () => {
+      finishers[0]!();
+      await first;
+    });
+    expect(invalidateSpy).not.toHaveBeenCalled();
+
+    await act(async () => {
+      finishers[1]!();
+      await second;
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: [...KEY] });
+  });
+
   it("rolls back and reports when the request fails", async () => {
     const original = { items: [{ id: "a", hidden: false }] };
     const { client, invalidateSpy, wrapper } = setup(original);
@@ -104,6 +153,59 @@ describe("useOptimisticMutation", () => {
     expect(client.getQueryData(KEY)).toEqual(original);
     expect(reportMutationError).toHaveBeenCalledWith(failure, client);
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: [...KEY] });
+  });
+
+  it("undoes only its own change through rollback, keeping a second write's change", async () => {
+    const original = {
+      items: [
+        { id: "a", hidden: false },
+        { id: "b", hidden: false },
+      ],
+    };
+    const { client, wrapper } = setup(original);
+    let fail: (error: Error) => void = () => {};
+    const rollback = vi.fn((cached: Lists, id: string, previous: Lists) => ({
+      items: cached.items.map((item) =>
+        item.id === id ? (previous.items.find((old) => old.id === id) ?? item) : item,
+      ),
+    }));
+    const { result } = renderHook(
+      () =>
+        useOptimisticMutation<Lists, string>({
+          queryKey: KEY,
+          mutationFn: (id) =>
+            id === "a"
+              ? new Promise<void>((_resolve, reject) => {
+                  fail = reject;
+                })
+              : new Promise<void>(() => {}),
+          apply: hide,
+          rollback,
+        }),
+      { wrapper },
+    );
+
+    let failing: Promise<unknown> = Promise.resolve();
+    await act(async () => {
+      failing = result.current.mutateAsync("a");
+      await Promise.resolve();
+    });
+    await act(async () => {
+      void result.current.mutateAsync("b");
+      await Promise.resolve();
+    });
+    await act(async () => {
+      fail(new Error("Server unreachable"));
+      await expect(failing).rejects.toThrow("Server unreachable");
+    });
+
+    expect(rollback).toHaveBeenCalledOnce();
+    expect(client.getQueryData(KEY)).toEqual({
+      items: [
+        { id: "a", hidden: false },
+        { id: "b", hidden: true },
+      ],
+    });
   });
 
   it("derives the key and the extra keys from the variables", async () => {

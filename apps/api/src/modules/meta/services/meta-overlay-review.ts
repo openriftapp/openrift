@@ -20,6 +20,8 @@ import { badRequest, conflict, notFound } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { isoOrNull } from "../../../lib/iso-date.js";
 import { TOURNAMENT_LIST_PROVIDER } from "../../../lib/meta-providers.js";
+import type { OverlayLine } from "../lib/meta-overlay-lines.js";
+import { toOverlayLines } from "../lib/meta-overlay-lines.js";
 import type { MetaEventOverlayRow, MetaPlayerOverlayRow } from "../repositories/meta-overlays.js";
 import { sourceEventKeyPrefix } from "../repositories/meta-overlays.js";
 import type { MetaEventPlayerRow } from "../repositories/meta-players.js";
@@ -28,6 +30,7 @@ import { splitSourcePlayerKey } from "./ingest-meta-overlays.js";
 import type { MetaSubmissionResolutionDetails } from "./meta-overlay-ledger.js";
 import {
   recordOverlayAcceptance,
+  restoreEventCorrection,
   revokeEventCorrection,
   settleRejectedSubmissions,
 } from "./meta-overlay-ledger.js";
@@ -70,6 +73,7 @@ export async function acceptMetaEventOverlay(
   overlayId: string,
   intoMetaEventId: string | null = null,
   now: Date = new Date(),
+  reviewedByUserId: string | null = null,
 ): Promise<MetaOverlayReviewResult> {
   return await transact((trx) =>
     // Read under the lock, so a concurrent accept of one proposal sees the event the first one minted.
@@ -91,6 +95,7 @@ export async function acceptMetaEventOverlay(
       if (overlay.metaEventId !== null) {
         await repos.metaOverlays.setEventOverlayStatus(overlayId, "accepted", now);
         await promoteMetaEvent(repos, overlay.metaEventId);
+        await restoreEventCorrection(repos, overlay, reviewedByUserId, now);
         return { metaEventId: overlay.metaEventId, created: false };
       }
 
@@ -622,20 +627,14 @@ export async function writeMetaPlayerOverlayFields(
       }
     }
 
-    let lines:
-      | {
-          lineNumber: number;
-          zone: string;
-          quantity: number;
-          cardName: string;
-          cardId: string;
-          preferredPrintingId: string | null;
-        }[]
-      | undefined;
+    let lines: OverlayLine[] | undefined;
     if (edits.list !== undefined) {
       claimed.push("cards", "listStatus");
       columns.listStatus = edits.list === null ? "none" : edits.list.listStatus;
-      lines = edits.list === null ? [] : await toOverlayLines(repos, edits.list.cards);
+      lines =
+        edits.list === null
+          ? []
+          : await toOverlayLines(repos, await listCards(repos, metaEventPlayerId, edits.list));
     }
 
     if (claimed.length === 0) {
@@ -685,38 +684,22 @@ export async function writeMetaPlayerOverlayFields(
   });
 }
 
-/**
- * The submitted lines as overlay card rows, every id resolved to its canonical
- * name so promotion and the queue read the same words the catalog uses.
- */
-async function toOverlayLines(
+/** A list with no cards changes only the status, so it claims the live deck as it stands. */
+async function listCards(
   repos: Repos,
-  cards: MetaPlayerOverlayList["cards"],
-): Promise<
-  {
-    lineNumber: number;
-    zone: string;
-    quantity: number;
-    cardName: string;
-    cardId: string;
-    preferredPrintingId: string | null;
-  }[]
-> {
-  const names = await repos.catalog.cardNamesByIds(cards.map((card) => card.cardId));
-  return cards.map((card, lineNumber) => {
-    const cardName = names.get(card.cardId);
-    if (cardName === undefined) {
-      throw badRequest("A card in the list no longer exists.");
-    }
-    return {
-      lineNumber,
-      zone: card.zone,
-      quantity: card.quantity,
-      cardName,
-      cardId: card.cardId,
-      preferredPrintingId: card.preferredPrintingId ?? null,
-    };
-  });
+  metaEventPlayerId: string,
+  list: MetaPlayerOverlayList,
+): Promise<MetaPlayerOverlayList["cards"]> {
+  if (list.cards.length > 0) {
+    return list.cards;
+  }
+  const stored = await repos.meta.playerDeckCards(metaEventPlayerId);
+  if (stored.length === 0) {
+    throw badRequest(
+      "This entry has no stored list. Paste one to set whether it is full or partial.",
+    );
+  }
+  return stored;
 }
 
 /**

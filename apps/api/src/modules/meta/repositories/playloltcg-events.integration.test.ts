@@ -1,3 +1,4 @@
+import { shiftUtcDay, todayUtc } from "@openrift/shared/format-date";
 import { afterAll, describe, expect, it } from "vitest";
 
 import { PLAYLOLTCG_PROVIDER } from "../../../lib/meta-providers.js";
@@ -35,6 +36,9 @@ const KEYS = {
   pulledStarted: 990_015,
   pulledUpcoming: 990_016,
   failing: 990_017,
+  startsToday: 990_018,
+  startsTomorrow: 990_019,
+  noStatus: 990_020,
 } as const;
 const ALL_KEYS = Object.values(KEYS);
 
@@ -459,6 +463,68 @@ describe.skipIf(!ctx)("playloltcgEventsRepo", () => {
       stagedLegendCount: expect.any(Number),
       stagedDeckCount: expect.any(Number),
     });
+  });
+
+  it("counts a staged deck only once it holds card rows", async () => {
+    const before = (await repo().byKey(KEYS.hashed))!.stagedDeckCount;
+    await ctx!.db
+      .insertInto("playloltcgDecklists")
+      .values([
+        { sourceDeckId: "plt-deck-cards", activityShopId: KEYS.hashed, fetchStatus: "fetched" },
+        { sourceDeckId: "plt-deck-bare", activityShopId: KEYS.hashed, fetchStatus: "fetched" },
+      ])
+      .execute();
+    await ctx!.db
+      .insertInto("playloltcgDecklistCards")
+      .values({
+        sourceDeckId: "plt-deck-cards",
+        lineNumber: 1,
+        zone: "main",
+        quantity: 3,
+        cardName: "Jinx",
+      })
+      .execute();
+
+    expect((await repo().byKey(KEYS.hashed))!.stagedDeckCount).toBe(before + 1);
+  });
+
+  it("counts an event as started from the beginning of its UTC day", async () => {
+    const today = todayUtc();
+    await repo().upsertBatch(
+      [
+        row({ activityShopId: KEYS.startsToday, startAt: today, endAt: today }),
+        row({
+          activityShopId: KEYS.startsTomorrow,
+          startAt: shiftUtcDay(today, 1),
+          endAt: shiftUtcDay(today, 1),
+        }),
+      ],
+      SEEN,
+    );
+
+    const upcoming = await repo().list(
+      { bucket: { name: "skippedUpcoming", rule: RULE_OFF }, dateFrom: today },
+      { limit: 500, offset: 0 },
+    );
+    const keys = upcoming.rows.map((entry) => entry.activityShopId);
+
+    expect(keys).toContain(KEYS.startsTomorrow);
+    expect(keys).not.toContain(KEYS.startsToday);
+  });
+
+  it("reads a published event without a status as holding no results", async () => {
+    await repo().upsertBatch([row({ activityShopId: KEYS.noStatus, status: null })], SEEN);
+    await seedAcceptedCandidate(KEYS.noStatus);
+    const bucket = async (name: "noResults" | "final") => {
+      const listed = await repo().list(
+        { bucket: { name, rule: RULE_OFF }, dateFrom: "2026-08-15", dateTo: "2026-08-15" },
+        { limit: 500, offset: 0 },
+      );
+      return listed.rows.map((entry) => entry.activityShopId);
+    };
+
+    expect(await bucket("noResults")).toContain(KEYS.noStatus);
+    expect(await bucket("final")).not.toContain(KEYS.noStatus);
   });
 
   describe("writes wider than one statement can bind", () => {

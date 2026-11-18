@@ -247,7 +247,19 @@ export const tournamentsRouter = {
     const willSelfRegister = patch.selfRegistration ?? tournament.hasSelfRegistration;
     const willExpectDecks = (patch.deckSubmission ?? tournament.deckSubmission) !== "none";
     if (!tournament.submissionToken && (willSelfRegister || willExpectDecks)) {
-      await withUniqueShareToken((token) => repos.tournaments.setSubmissionToken(id, token));
+      await withUniqueShareToken(
+        (token) =>
+          context.transact(async (trxRepos) => {
+            const current = await loadTournamentForWrite(trxRepos, id);
+            if (
+              !current.submissionToken &&
+              (current.hasSelfRegistration || current.deckSubmission !== "none")
+            ) {
+              await trxRepos.tournaments.setSubmissionToken(id, token);
+            }
+          }),
+        { constraint: "uq_tournaments_submission_token" },
+      );
     }
     return detailById(repos, id, userId);
   }),
@@ -280,7 +292,14 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      await withUniqueShareToken((token) => repos.tournaments.setSubmissionToken(input.id, token));
+      await withUniqueShareToken(
+        (token) =>
+          context.transact(async (trxRepos) => {
+            await loadTournamentForWrite(trxRepos, input.id);
+            await trxRepos.tournaments.setSubmissionToken(input.id, token);
+          }),
+        { constraint: "uq_tournaments_submission_token" },
+      );
       return detailById(repos, input.id, userId);
     },
   ),
@@ -291,7 +310,10 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      await repos.tournaments.setSubmissionToken(input.id, null);
+      await context.transact(async (trxRepos) => {
+        await loadTournamentForWrite(trxRepos, input.id);
+        await trxRepos.tournaments.setSubmissionToken(input.id, null);
+      });
       return detailById(repos, input.id, userId);
     },
   ),
@@ -338,8 +360,14 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      await withUniqueShareToken((token) =>
-        repos.tournaments.setStaffInviteToken(input.id, input.role, token),
+      await withUniqueShareToken(
+        (token) => repos.tournaments.setStaffInviteToken(input.id, input.role, token),
+        {
+          constraint:
+            input.role === "organizer"
+              ? "uq_tournaments_organizer_invite_token"
+              : "uq_tournaments_judge_invite_token",
+        },
       );
       return detailById(repos, input.id, userId);
     },
@@ -849,7 +877,14 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      await withUniqueShareToken((token) => repos.tournaments.setReportToken(tournament.id, token));
+      await withUniqueShareToken(
+        (token) =>
+          context.transact(async (trxRepos) => {
+            await loadTournamentForWrite(trxRepos, tournament.id);
+            await trxRepos.tournaments.setReportToken(tournament.id, token);
+          }),
+        { constraint: "uq_tournaments_report_token" },
+      );
       return detailById(repos, input.id, userId);
     },
   ),
@@ -860,7 +895,10 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      await repos.tournaments.setReportToken(tournament.id, null);
+      await context.transact(async (trxRepos) => {
+        await loadTournamentForWrite(trxRepos, tournament.id);
+        await trxRepos.tournaments.setReportToken(tournament.id, null);
+      });
       return detailById(repos, input.id, userId);
     },
   ),
@@ -871,7 +909,10 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      await withUniqueShareToken((token) => repos.tournaments.setFollowToken(tournament.id, token));
+      await withUniqueShareToken(
+        (token) => repos.tournaments.setFollowToken(tournament.id, token),
+        { constraint: "uq_tournaments_follow_token" },
+      );
       return detailById(repos, input.id, userId);
     },
   ),

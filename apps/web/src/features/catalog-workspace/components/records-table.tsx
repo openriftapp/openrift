@@ -43,6 +43,7 @@ import { WorkspaceTargetLink } from "@/features/catalog-workspace/components/que
 import { ignoredCardsUndo } from "@/features/catalog-workspace/hooks/candidate-undo";
 import type { WorkspaceRecordsResult } from "@/features/catalog-workspace/hooks/use-workspace-queue";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
+import { queueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import { ignoredDraftsMessage } from "@/features/catalog-workspace/lib/ignored-drafts-message";
 import type {
   DeskMode,
@@ -584,7 +585,7 @@ function CardsTable({
               variant="outline"
               size="sm"
               pending={ignoreDrafts.isPending}
-              onClick={() => void ignoreSelected()}
+              onClick={() => void queueWorkspaceWrite(ignoreSelected)}
             >
               Ignore
             </Button>

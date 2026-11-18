@@ -42,6 +42,7 @@ import {
   useAddFallbackArtUrl,
   useAddImageFromUrl,
   useDeletePrintingImage,
+  useImageEditPending,
   useRehostPrintingImage,
   useRotatePrintingImage,
   useSetFallbackArt,
@@ -54,6 +55,7 @@ import { hostnameFromUrl, hostSlugFromUrl } from "@/features/admin/lib/host-slug
 import { printingImageDisplayUrl as getDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
 import { rehostStatusTitle } from "@/features/admin/lib/rehost-status";
 import { imageQuadOf } from "@/features/admin/lib/straighten-quad";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 
 type Rotation = 0 | 90 | 180 | 270;
@@ -98,8 +100,8 @@ export function PrintingImageSwitcher({
   const activatePrintingImage = useActivatePrintingImage(invalidates);
   const rehostPrintingImage = useRehostPrintingImage(invalidates);
   const unrehostPrintingImage = useUnrehostPrintingImage(invalidates);
-  const rotatePrintingImage = useRotatePrintingImage(invalidates);
-  const setNeedsTrim = useSetPrintingImageNeedsTrim(invalidates);
+  const rotatePrintingImage = useRotatePrintingImage();
+  const setNeedsTrim = useSetPrintingImageNeedsTrim();
   const addImageFromUrl = useAddImageFromUrl(invalidates);
   const uploadPrintingImage = useUploadPrintingImage(invalidates);
   const setFallbackArt = useSetFallbackArt(invalidates);
@@ -126,10 +128,27 @@ export function PrintingImageSwitcher({
 
   const selectedImage = images.find((img) => img.id === selectedId);
 
+  async function addFromUrl() {
+    const input = { printingId, url: urlValue.trim(), mode: "main" as const, face };
+    if (await runReportedMutation(() => addImageFromUrl.mutateAsync(input))) {
+      setUrlValue("");
+      setShowUrlInput(false);
+    }
+  }
+
+  async function pinFallbackUrl() {
+    const input = { printingId, url: fallbackUrlValue.trim(), face };
+    if (await runReportedMutation(() => addFallbackArtUrl.mutateAsync(input))) {
+      setFallbackUrlValue("");
+      setShowFallbackUrlInput(false);
+    }
+  }
+
   const activeImage = images.find((img) => img.isActive);
   const activeSideImage = images.find((img) => img.isActive && img.face === face);
   const pinnedSibling = siblingImages.find((s) => s.imageFileId === fallbackImageFileId);
   const effectiveImage = selectedImage ?? (selectedId ? null : activeImage);
+  const editing = useImageEditPending(effectiveImage?.id ?? "");
   const effectiveUrl = effectiveImage ? getDisplayUrl(effectiveImage) : null;
 
   return (
@@ -203,7 +222,7 @@ export function PrintingImageSwitcher({
                   )}
                   {effectiveImage.rehostedUrl && (
                     <>
-                      <DropdownMenuItem onClick={() => setStraightening(true)}>
+                      <DropdownMenuItem disabled={editing} onClick={() => setStraightening(true)}>
                         <CropIcon
                           className={cn(
                             "size-3.5",
@@ -215,7 +234,7 @@ export function PrintingImageSwitcher({
                           : "Straighten (corners set)…"}
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        disabled={rotatePrintingImage.isPending}
+                        disabled={editing}
                         onClick={() =>
                           rotatePrintingImage.mutate({
                             imageId: effectiveImage.id,
@@ -227,7 +246,7 @@ export function PrintingImageSwitcher({
                         Rotate left ({effectiveImage.rotation}&deg;)
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        disabled={rotatePrintingImage.isPending}
+                        disabled={editing}
                         onClick={() =>
                           rotatePrintingImage.mutate({
                             imageId: effectiveImage.id,
@@ -239,7 +258,7 @@ export function PrintingImageSwitcher({
                         Rotate right ({effectiveImage.rotation}&deg;)
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        disabled={setNeedsTrim.isPending}
+                        disabled={editing}
                         onClick={() =>
                           setNeedsTrim.mutate({
                             imageId: effectiveImage.id,
@@ -342,7 +361,6 @@ export function PrintingImageSwitcher({
         <StraightenImageDialog
           imageId={effectiveImage.id}
           quad={imageQuadOf(effectiveImage)}
-          invalidates={invalidates}
           open={straightening}
           onOpenChange={setStraightening}
         />
@@ -375,22 +393,7 @@ export function PrintingImageSwitcher({
             variant="outline"
             disabled={!urlValue.trim()}
             pending={addImageFromUrl.isPending}
-            onClick={() => {
-              addImageFromUrl.mutate(
-                {
-                  printingId,
-                  url: urlValue.trim(),
-                  mode: "main",
-                  face,
-                },
-                {
-                  onSuccess: () => {
-                    setUrlValue("");
-                    setShowUrlInput(false);
-                  },
-                },
-              );
-            }}
+            onClick={() => void addFromUrl()}
           >
             Add
           </Button>
@@ -476,17 +479,7 @@ export function PrintingImageSwitcher({
                 variant="outline"
                 disabled={!fallbackUrlValue.trim()}
                 pending={addFallbackArtUrl.isPending}
-                onClick={() => {
-                  addFallbackArtUrl.mutate(
-                    { printingId, url: fallbackUrlValue.trim(), face },
-                    {
-                      onSuccess: () => {
-                        setFallbackUrlValue("");
-                        setShowFallbackUrlInput(false);
-                      },
-                    },
-                  );
-                }}
+                onClick={() => void pinFallbackUrl()}
               >
                 Pin
               </Button>

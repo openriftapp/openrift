@@ -11,6 +11,8 @@ interface UseStickyHeaderParams {
   scrollMargin: number;
   stickyOffset: number;
   headerHeight: number;
+  /** px */
+  labelBand: number;
 }
 
 export function useStickyHeader({
@@ -21,6 +23,7 @@ export function useStickyHeader({
   scrollMargin,
   stickyOffset,
   headerHeight,
+  labelBand,
 }: UseStickyHeaderParams) {
   const [activeHeaderRow, setActiveHeaderRow] = useState<(VRow & { kind: "header" }) | null>(null);
 
@@ -41,17 +44,27 @@ export function useStickyHeader({
     // the overlay never doubles up a header still sliding under the toolbar.
     let active: (VRow & { kind: "header" }) | null = null;
     let activeStart = 0;
+    let nextStart: number | undefined;
     for (const [i, row] of virtualRows.entries()) {
       if (row.kind !== "header") {
         continue;
       }
       const start = measuredStarts.get(i) ?? rowStarts[i];
-      if (start !== undefined && start <= threshold + 1) {
-        active = row;
-        activeStart = start;
+      if (start === undefined) {
+        continue;
       }
+      if (start > threshold + 1) {
+        nextStart = start;
+        break;
+      }
+      active = row;
+      activeStart = start;
     }
     if (active && activeStart + headerHeight > threshold + 1) {
+      active = null;
+    }
+    // A header inside the label band would render under the outgoing label.
+    if (active && nextStart !== undefined && nextStart < threshold + labelBand) {
       active = null;
     }
 

@@ -10,7 +10,7 @@ import type {
 import { implement } from "@orpc/server";
 
 import type { Repos } from "../../../deps.js";
-import { conflict, forbidden } from "../../../errors.js";
+import { conflict, forbidden, notFound } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { isoOrNull } from "../../../lib/iso-date.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
@@ -200,12 +200,19 @@ async function loadSubmissionEventForUser(
 }> {
   const event = await loadOpenSubmissionEvent(repos, token);
   const participant = await repos.tournaments.getParticipantByUser(event.id, userId);
+  assertSelfRegistrationGate(event, participant);
+  return { event, participant };
+}
+
+function assertSelfRegistrationGate(
+  event: DeckCheckEvent,
+  participant: TournamentParticipant | undefined,
+): void {
   if (!event.allowSelfSubmission && !participant) {
     throw forbidden(
       "Self-registration is closed for this event. Claim your spot with the link the organizer sent you, then submit your deck.",
     );
   }
-  return { event, participant };
 }
 
 /**
@@ -452,10 +459,24 @@ export const deckCheckPlayerRouter = {
       const repos = context.repos;
       const userId = context.userId;
       const { row, event } = await loadOwnEntry(repos, userId, input.entryId);
-      const cleared = row.unlockRequestedAt
-        ? await repos.deckCheck.updateEntry(row.id, { unlockRequestedAt: null })
-        : undefined;
-      return buildPlayerDetail(repos, { ...row, ...cleared }, event);
+      assertStillPlaying(row.participantStatus);
+      if (!row.unlockRequestedAt) {
+        return buildPlayerDetail(repos, row, event);
+      }
+      const current = await context.transact(async (txRepos) => {
+        await loadDeckCheckEventForWrite(txRepos, event.id);
+        await lockStillPlaying(txRepos, row.participantId);
+        const fresh = await txRepos.deckCheck.getEntryForUpdate(event.id, row.id);
+        assertFound(fresh, "Entry not found");
+        if (!fresh.unlockRequestedAt) {
+          return fresh;
+        }
+        if (fresh.state !== "submitted" && fresh.state !== "approved") {
+          throw conflict(STATE_CHANGED);
+        }
+        return txRepos.deckCheck.updateEntry(fresh.id, { unlockRequestedAt: null });
+      });
+      return buildPlayerDetail(repos, { ...row, ...current }, event);
     },
   ),
 
@@ -523,6 +544,12 @@ export const deckCheckPlayerRouter = {
       const entry = await retryOnClaimTokenCollision(() =>
         context.transact(async (txRepos) => {
           const current = await loadOpenEventForWrite(txRepos, event.id, "Submissions are closed");
+          if (current.submissionToken !== input.token) {
+            throw notFound("Submission link not found");
+          }
+          const participantNow = await txRepos.tournaments.getParticipantByUser(event.id, userId);
+          assertSelfRegistrationGate(current, participantNow);
+          assertStillPlaying(participantNow?.status);
           return persistSubmission(txRepos, current, userId, lines, cardRows, {
             allowDeckPublishing: input.allowDeckPublishing,
             allowNameSharing: input.allowNameSharing,

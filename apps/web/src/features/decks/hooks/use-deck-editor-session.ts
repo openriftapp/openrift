@@ -13,7 +13,7 @@ import { useDeckDetail } from "@/features/decks/hooks/use-decks";
 import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import { toDraftDeckCard } from "@/features/decks/lib/deck-builder-card";
 import { buildRunesByDomain } from "@/features/decks/lib/deck-runes-by-domain";
-import { getDeckCardsCollection } from "@/features/decks/lib/decks-collection";
+import { getDeckCardsCollection, storedDeckVersion } from "@/features/decks/lib/decks-collection";
 import { useDeckBenchSessionStore } from "@/features/decks/stores/deck-bench-session-store";
 import { useDeckBoxOriginsStore } from "@/features/decks/stores/deck-box-origins-store";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
@@ -92,8 +92,9 @@ export function useDeckEditorSession(deckId: string) {
       scope,
       deckId,
       serverCards.map((card) => toDraftDeckCard(card, cardsById)),
+      isLocal ? undefined : storedDeckVersion(queryClient, scope, deckId),
     );
-  }, [serverCards, deckId, queryClient, scope, cardsById]);
+  }, [serverCards, deckId, queryClient, scope, cardsById, isLocal]);
 
   useEffect(
     () => () => {

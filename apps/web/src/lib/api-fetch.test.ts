@@ -55,7 +55,7 @@ describe("apiFetch build id check", () => {
   });
 
   test("a mismatch after the automatic reload was spent prompts instead of reloading again", async () => {
-    sessionStorage.setItem("openrift:reload-attempted", "1");
+    sessionStorage.setItem("openrift:reload-attempted", "test");
     globalThis.fetch = vi
       .fn()
       .mockResolvedValue(new Response("ok", { headers: { "X-Build-Id": "deadbeef" } }));

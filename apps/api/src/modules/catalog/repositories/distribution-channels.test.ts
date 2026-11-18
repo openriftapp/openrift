@@ -4,16 +4,14 @@ import { createRecordingDb } from "../../../test/recording-db.js";
 import { distributionChannelsRepo } from "./distribution-channels.js";
 
 describe("distributionChannelsRepo.setForPrinting", () => {
-  it("runs the delete and the insert in one transaction", async () => {
-    const { db, queries, events } = createRecordingDb();
+  it("locks the printing row before it replaces the channels, in one transaction", async () => {
+    const { db, statements, parameters, events } = createRecordingDb();
 
     await distributionChannelsRepo(db).setForPrinting("printing-1", [{ channelId: "channel-a" }]);
 
     expect(events).toEqual(["begin", "commit"]);
-    expect(queries).toHaveLength(3);
-    expect(queries[0]).toContain("for update");
-    expect(queries[1]).toContain('delete from "printing_distribution_channels"');
-    expect(queries[2]).toContain('insert into "printing_distribution_channels"');
+    expect(statements[0]?.sql).toMatch(/ for update$/u);
+    expect(parameters).toEqual([["printing-1"], ["printing-1"], ["printing-1", "channel-a", null]]);
   });
 
   it("rolls back when the insert fails, keeping the old channels", async () => {
@@ -25,13 +23,12 @@ describe("distributionChannelsRepo.setForPrinting", () => {
     expect(events).toEqual(["begin", "rollback"]);
   });
 
-  it("clears the printing's channels when the new set is empty", async () => {
-    const { db, queries, events } = createRecordingDb();
+  it("only clears the printing's channels when the new set is empty", async () => {
+    const { db, parameters, events } = createRecordingDb();
 
     await distributionChannelsRepo(db).setForPrinting("printing-1", []);
 
-    expect(queries).toHaveLength(2);
-    expect(queries[1]).toContain('delete from "printing_distribution_channels"');
+    expect(parameters).toEqual([["printing-1"], ["printing-1"]]);
     expect(events).toEqual(["begin", "commit"]);
   });
 

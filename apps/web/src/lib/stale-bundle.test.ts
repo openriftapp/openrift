@@ -94,73 +94,20 @@ describe("reload loop guard", () => {
     expect(reloadSpy).toHaveBeenCalledTimes(2);
   });
 
-  test("a matching X-Build-Id clears the guard and re-arms the automatic reload", async () => {
-    vi.useFakeTimers();
-    try {
-      initChunkErrorReloader();
-      globalThis.fetch = vi
-        .fn()
-        .mockResolvedValue(new Response("ok", { headers: { "X-Build-Id": "test" } }));
+  test("a matching X-Build-Id does not re-arm a reload already spent on this build", async () => {
+    initChunkErrorReloader();
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response("ok", { headers: { "X-Build-Id": "test" } }));
 
-      dispatchChunkError();
-      expect(reloadSpy).toHaveBeenCalledTimes(1);
+    dispatchChunkError();
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
 
-      await apiFetch("/api/v1/cards");
-      vi.advanceTimersByTime(10_000);
+    await apiFetch("/api/v1/cards");
+    dispatchChunkError();
 
-      dispatchChunkError();
-      expect(reloadSpy).toHaveBeenCalledTimes(2);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  test("a stale cache-served response vetoes a pending guard clear", async () => {
-    vi.useFakeTimers();
-    try {
-      initChunkErrorReloader();
-      globalThis.fetch = vi
-        .fn()
-        .mockResolvedValueOnce(new Response("ok", { headers: { "X-Build-Id": "test" } }))
-        .mockResolvedValueOnce(new Response("ok", { headers: { "X-Build-Id": "deadbeef" } }));
-
-      dispatchChunkError();
-      expect(reloadSpy).toHaveBeenCalledTimes(1);
-
-      await apiFetch("/api/health");
-      await apiFetch("/api/v1/catalog");
-      vi.advanceTimersByTime(10_000);
-
-      dispatchChunkError();
-      expect(reloadSpy).toHaveBeenCalledTimes(1);
-      expect(toast).toHaveBeenCalled();
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  test("a match arriving after a mismatch does not clear the guard either", async () => {
-    vi.useFakeTimers();
-    try {
-      initChunkErrorReloader();
-      globalThis.fetch = vi
-        .fn()
-        .mockResolvedValueOnce(new Response("ok", { headers: { "X-Build-Id": "deadbeef" } }))
-        .mockResolvedValueOnce(new Response("ok", { headers: { "X-Build-Id": "test" } }));
-
-      dispatchChunkError();
-      expect(reloadSpy).toHaveBeenCalledTimes(1);
-
-      await apiFetch("/api/v1/catalog");
-      await apiFetch("/api/health");
-      vi.advanceTimersByTime(10_000);
-
-      dispatchChunkError();
-      expect(reloadSpy).toHaveBeenCalledTimes(1);
-      expect(toast).toHaveBeenCalled();
-    } finally {
-      vi.useRealTimers();
-    }
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+    expect(toast).toHaveBeenCalled();
   });
 });
 
@@ -178,7 +125,7 @@ describe("initVersionStaleNavigationReload", () => {
   }
 
   test("reloads on navigation when the mismatch was detected while the guard was spent", async () => {
-    sessionStorage.setItem("openrift:reload-attempted", "1");
+    sessionStorage.setItem("openrift:reload-attempted", "test");
     const router = fakeRouter();
     initVersionStaleNavigationReload(router as never);
     globalThis.fetch = vi
@@ -264,7 +211,7 @@ describe("initChunkErrorReloader", () => {
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
-  test("reloads on same-origin bare throw (throw undefined)", () => {
+  test("leaves a same-origin bare throw outside render alone: the page still stands", () => {
     initChunkErrorReloader();
 
     globalThis.dispatchEvent(
@@ -276,7 +223,7 @@ describe("initChunkErrorReloader", () => {
       }),
     );
 
-    expect(reloadSpy).toHaveBeenCalledTimes(1);
+    expect(reloadSpy).not.toHaveBeenCalled();
   });
 
   test("ignores cross-origin bare throw (browser-extension noise)", () => {
@@ -307,14 +254,14 @@ describe("initChunkErrorReloader", () => {
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
-  test("reloads on bare promise rejection (reason undefined)", () => {
+  test("leaves a bare promise rejection alone: the page still stands", () => {
     initChunkErrorReloader();
 
     const event = new Event("unhandledrejection") as Event & { reason: unknown };
     event.reason = undefined;
     globalThis.dispatchEvent(event);
 
-    expect(reloadSpy).toHaveBeenCalledTimes(1);
+    expect(reloadSpy).not.toHaveBeenCalled();
   });
 
   test("ignores promise rejection with a real Error", () => {

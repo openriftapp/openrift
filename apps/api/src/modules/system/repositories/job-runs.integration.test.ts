@@ -286,6 +286,42 @@ describe.skipIf(!ctx)("jobRunsRepo (integration)", () => {
     expect(running?.id).toBe(id);
   });
 
+  it("succeed and fail leave a run that already finished alone", async () => {
+    const { id } = await begin("test.kind");
+    await db
+      .updateTable("jobRuns")
+      .set({ startedAt: new Date(Date.now() - 3 * 60 * 60 * 1000) })
+      .where("id", "=", id)
+      .execute();
+    await repo.failStale(id, new Date(Date.now() - 2 * 60 * 60 * 1000), "presumed dead");
+
+    await repo.succeed(id, { durationMs: 1 });
+    await repo.fail(id, { durationMs: 1, errorMessage: "late failure" });
+
+    const rows = await repo.listRecent({ kind: "test.kind" });
+    expect(rows[0]?.status).toBe("failed");
+    expect(rows[0]?.errorMessage).toBe("presumed dead");
+  });
+
+  it("judges a running run by its newest heartbeat", async () => {
+    const { id } = await begin("test.kind");
+    const heartbeatAt = new Date(Date.now() - 60 * 1000);
+    await db
+      .updateTable("jobRuns")
+      .set({
+        startedAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+        result: { heartbeatAt: heartbeatAt.toISOString() },
+      })
+      .where("id", "=", id)
+      .execute();
+
+    const running = await repo.getRunning("test.kind");
+    expect(running?.lastSeenAt.getTime()).toBe(heartbeatAt.getTime());
+    expect(await repo.failStale(id, new Date(Date.now() - 2 * 60 * 60 * 1000), "x")).toBe(false);
+    const stillRunning = await repo.getRunning("test.kind");
+    expect(stillRunning?.id).toBe(id);
+  });
+
   it("purgeOlderThan deletes rows whose started_at is before the cutoff", async () => {
     const { id } = await begin("test.kind");
     await db

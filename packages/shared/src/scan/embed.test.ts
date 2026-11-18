@@ -8,6 +8,8 @@ import {
   normalizeEmbeddings,
   rankCardEmbedding,
   rankEmbedBank,
+  TAP_CACHE_LIMIT,
+  triangleTaps,
 } from "./embed";
 import { rotateRgbaCw } from "./image";
 import type { RgbaImage } from "./types";
@@ -171,6 +173,20 @@ describe("rankCardEmbedding", () => {
     expect(calls).toEqual([4]);
     expect(ranked[0]!.key).toBe("a");
     expect(ranked[0]!.rotation).toBe(0);
+  });
+});
+
+describe("triangleTaps", () => {
+  it("reuses the taps for a size it has seen", () => {
+    expect(triangleTaps(300, 256)).toBe(triangleTaps(300, 256));
+  });
+
+  it("drops cached taps once a stream of new sizes fills the cache", () => {
+    const first = triangleTaps(301, 256);
+    for (let size = 1000; size < 1000 + TAP_CACHE_LIMIT; size++) {
+      triangleTaps(size, 256);
+    }
+    expect(triangleTaps(301, 256)).not.toBe(first);
   });
 });
 

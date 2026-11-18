@@ -19,7 +19,6 @@ export const SIDEBAR_ROW_ICON_CLASS = "transition-opacity md:group-hover/menu-it
 interface SortableSidebarRowProps {
   id: string;
   data: SidebarReorderCollectionDragData | SidebarReorderListDragData;
-  label: string;
   /** The row's icon must carry `SIDEBAR_ROW_ICON_CLASS` for the injected handle's hover swap to work. */
   children: (handle: ReactNode) => ReactNode;
 }
@@ -28,7 +27,7 @@ interface SortableSidebarRowProps {
  * The drop side is disabled unless the active drag reorders this row's section,
  * so card drops reach the row's Droppable wrapper.
  */
-export function SortableSidebarRow({ id, data, label, children }: SortableSidebarRowProps) {
+export function SortableSidebarRow({ id, data, children }: SortableSidebarRowProps) {
   const { active } = useDndContext();
   const acceptsActive = acceptsReorderDrop(data, active?.data.current);
 
@@ -67,7 +66,7 @@ export function SortableSidebarRow({ id, data, label, children }: SortableSideba
       {...attributes}
       {...listeners}
       onTouchStart={stopTouchStart}
-      aria-label={m.collections_reorder_aria({ label })}
+      aria-label={m.collections_reorder_aria({ label: data.label })}
       type="button"
       className={cn(
         "absolute top-1.5 right-1 flex aspect-square w-5 items-center justify-center rounded-md outline-hidden md:right-auto md:left-1.5",

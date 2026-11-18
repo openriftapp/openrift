@@ -5,7 +5,7 @@ import type { CatalogPrintingsResponse, CatalogResponse } from "@openrift/shared
 import type { DeckCatalogSubset } from "@openrift/shared/types/api/deck";
 import { PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
-import type { QueryClient, UseSuspenseQueryOptions } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -333,38 +333,6 @@ export function enrichCatalogSubset(subset: DeckCatalogSubset): UseCardsResult {
   enrichSubsetCache.set(subset, result);
   return result;
 }
-
-const NO_CATALOG: CatalogResponse = {
-  sets: [],
-  cards: {},
-  printings: {},
-  markers: [],
-  distributionChannels: [],
-  enums: {
-    cardTypes: [],
-    superTypes: [],
-    domains: [],
-    rarities: [],
-    finishes: [],
-    artVariants: [],
-    cardSizes: [],
-    languages: [],
-  },
-  keywords: {},
-  tagCategories: [],
-  tagCategoryMap: {},
-};
-
-const NO_CATALOG_ENTRY = completeCatalogEntry(NO_CATALOG);
-
-// A resolved stand-in so the unconditional useSuspenseQuery below never fetches or suspends.
-export const noCatalogQueryOptions: UseSuspenseQueryOptions<CatalogEntry, Error, UseCardsResult> = {
-  queryKey: catalogKeys.none,
-  queryFn: () => NO_CATALOG_ENTRY,
-  initialData: NO_CATALOG_ENTRY,
-  staleTime: Infinity,
-  select: selectCards,
-};
 
 /** Exported for tests; not part of the module's real surface. */
 export function primaryCatalogLanguages(requested?: readonly string[] | null): string[] | null {

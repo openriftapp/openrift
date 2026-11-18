@@ -1,9 +1,11 @@
-import { idParamSchema, withParams } from "@openrift/shared/schemas";
+import { idParamSchema, POSTGRES_INTEGER_MAX, withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
 
 export const LOAN_STATUSES = ["active", "returned", "written_off"] as const;
+
+const quantityField = z.number().int().min(1).max(POSTGRES_INTEGER_MAX);
 
 const loanStatusSchema = z.enum(LOAN_STATUSES);
 
@@ -11,7 +13,7 @@ const loanStatusSchema = z.enum(LOAN_STATUSES);
 export const createLoanSchema = z
   .object({
     printingId: z.uuid(),
-    quantity: z.number().int().min(1),
+    quantity: quantityField,
     borrowerUserId: z.string().min(1).optional(),
     borrowerName: z.string().trim().min(1).max(100).optional(),
     contextCollectionId: z.uuid().optional(),
@@ -21,7 +23,7 @@ export const createLoanSchema = z
   });
 
 export const returnLoanCopiesSchema = z.object({
-  quantity: z.number().int().min(1),
+  quantity: quantityField,
 });
 
 /** true disposes the outstanding copies from the lender's collection, false only releases them. */

@@ -348,6 +348,7 @@ export const collectionsRouter = {
     return enableShare({
       read: () => Promise.resolve(collection),
       write: (token) => collections.setShare(input.id, token, true),
+      constraint: "uq_collections_share_token",
     });
   }),
 

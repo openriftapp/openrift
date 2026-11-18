@@ -1,9 +1,13 @@
+import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 
 import {
   bulkAddItemMatches,
+  LIST_ENTRY_MUTATION_KEYS,
   listEntryWritePending,
+  listEntryWritesInFlight,
   manualQuantity,
+  steppedManualQuantity,
   totalQuantity,
 } from "./list-entry-writes";
 
@@ -26,6 +30,21 @@ describe("manualQuantity and totalQuantity", () => {
 
   it("has no manual quantity on a rule-only entry", () => {
     expect(manualQuantity({ kind: "card", id: null, quantity: 2, ruleQuantity: 2 })).toBe(0);
+  });
+});
+
+describe("steppedManualQuantity", () => {
+  it("steps the manual part and stops at 1", () => {
+    const entry = { kind: "card" as const, id: "le-1", quantity: 5, ruleQuantity: 2 };
+
+    expect(steppedManualQuantity(entry, 1)).toBe(4);
+    expect(steppedManualQuantity(entry, -5)).toBe(1);
+  });
+
+  it("keeps a copy entry at its own quantity", () => {
+    expect(
+      steppedManualQuantity({ kind: "copy", id: "le-1", quantity: 1, ruleQuantity: 0 }, 1),
+    ).toBe(1);
   });
 });
 
@@ -59,6 +78,15 @@ describe("listEntryWritePending", () => {
     expect(listEntryWritePending("lst-2", entry, writes)).toBe(false);
   });
 
+  it("leaves steps out only when asked to", () => {
+    const writes = {
+      adds: [],
+      entryWrites: [{ listId: "lst-1", entryId: "le-1", quantityDelta: 1 }],
+    };
+    expect(listEntryWritePending("lst-1", entry, writes)).toBe(true);
+    expect(listEntryWritePending("lst-1", entry, writes, { countSteps: false })).toBe(false);
+  });
+
   it("is true for an add that bumps the entry", () => {
     const writes = {
       adds: [{ listId: "lst-1", entries: [{ printingId: "p9" }, { printingId: "p1" }] }],
@@ -66,5 +94,28 @@ describe("listEntryWritePending", () => {
     };
     expect(listEntryWritePending("lst-1", entry, writes)).toBe(true);
     expect(listEntryWritePending("lst-1", { ...entry, printingId: "p2" }, writes)).toBe(false);
+  });
+});
+
+describe("listEntryWritesInFlight", () => {
+  function start(queryClient: QueryClient, mutationKey: readonly string[], variables: unknown) {
+    const mutation = queryClient.getMutationCache().build(queryClient, {
+      mutationKey: [...mutationKey],
+      mutationFn: () => new Promise(() => {}),
+    });
+    void mutation.execute(variables);
+  }
+
+  it("counts adds, updates and removes on the list, and nothing else", async () => {
+    const queryClient = new QueryClient();
+    start(queryClient, LIST_ENTRY_MUTATION_KEYS.add, { listId: "lst-1", entries: [] });
+    start(queryClient, LIST_ENTRY_MUTATION_KEYS.update, { listId: "lst-1", entryId: "le-1" });
+    start(queryClient, LIST_ENTRY_MUTATION_KEYS.remove, { listId: "lst-1", entryId: "le-2" });
+    start(queryClient, LIST_ENTRY_MUTATION_KEYS.update, { listId: "lst-2", entryId: "le-3" });
+    start(queryClient, ["lists", "reorder"], { listId: "lst-1" });
+    await Promise.resolve();
+
+    expect(listEntryWritesInFlight(queryClient.getMutationCache(), "lst-1")).toBe(3);
+    expect(listEntryWritesInFlight(queryClient.getMutationCache(), "lst-3")).toBe(0);
   });
 });

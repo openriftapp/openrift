@@ -30,8 +30,11 @@ import {
 import { PrintingIdLabel } from "@/features/admin/components/printing-id-label";
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
 import { PrintingSourceActions } from "@/features/admin/components/printing-source-actions";
+import { useScrollTarget } from "@/features/admin/hooks/use-scroll-target";
 import type { PrintingGroup } from "@/features/admin/lib/candidate-printing-groups";
+import { candidateFieldValue } from "@/features/admin/lib/candidate-rows";
 import type { SourceSubmitter } from "@/features/admin/lib/candidate-submitter";
+import { printingGroupScrollKey } from "@/features/admin/lib/card-page-focus";
 
 /** The grids ask for the public code only; the short code and the set follow it. */
 function withDerivedCodes(record: Record<string, unknown>): Record<string, unknown> {
@@ -79,13 +82,12 @@ function NewPrintingColumnActions({
       onAssign={isAdmin ? (pid) => onLink(pid, [row.id]) : undefined}
       onCopy={isAdmin ? (pid) => onCopy(row.id, pid) : undefined}
       onAcceptAll={() => {
-        const record = row as unknown as Record<string, unknown>;
         const values: Record<string, unknown> = {};
         for (const field of printingFields) {
           if (field.readOnly) {
             continue;
           }
-          const val = record[field.key];
+          const val = candidateFieldValue(row, field.key);
           if (val === null || val === undefined || val === "") {
             continue;
           }
@@ -151,6 +153,7 @@ export function NewPrintingGroupCard({
   isAdmin: boolean;
   landscape?: boolean;
 }) {
+  const scrollRef = useScrollTarget<HTMLDivElement>(printingGroupScrollKey(group.groupKey));
   const { checkPrintingSource, uncheckPrintingSource, checkAllCandidatePrintings } =
     useCardDetailData(invalidates);
   // Once the admin edits the Active column the pre-seed stops applying and
@@ -227,7 +230,7 @@ export function NewPrintingGroupCard({
     : existingPrintings.find((p) => p.id === group.suggestedPrintingId);
 
   return (
-    <div data-printing-group={group.groupKey}>
+    <div ref={scrollRef} data-printing-group={group.groupKey}>
       <div className="hover:bg-muted/50 flex flex-wrap items-center gap-3 px-3 py-2">
         <ExpandToggle expanded={isExpanded} className="text-sm font-medium" onClick={onToggle}>
           <span className="inline-flex items-center gap-1">

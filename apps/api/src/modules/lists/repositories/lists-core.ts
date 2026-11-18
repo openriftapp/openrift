@@ -141,6 +141,7 @@ export function listsCoreRepo(db: Kysely<Database>) {
       return result.numDeletedRows > 0n;
     },
 
+    /** Read-modify-write of the rules under row locks; call it inside a transaction. */
     async removeCollectionFromRules(userId: string, collectionId: string): Promise<void> {
       const rows = await db
         .selectFrom("lists")
@@ -148,6 +149,8 @@ export function listsCoreRepo(db: Kysely<Database>) {
         .where("userId", "=", userId)
         .where("kind", "=", "copy")
         .where(sql<boolean>`jsonb_array_length(rules) > 0`)
+        .orderBy("id")
+        .forNoKeyUpdate()
         .execute();
       for (const row of rows) {
         const rules = rulesWithoutCollection(hydrateListRules(row.rules), collectionId);

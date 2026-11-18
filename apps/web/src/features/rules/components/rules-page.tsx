@@ -319,12 +319,13 @@ function RulesContent({
       ? undefined
       : m.rules_count_filtered({ matched: searchResult.matchSet.size, count: rules.length });
 
-  const jumpToRule = (targetId: string, rendered: boolean) => {
+  const jumpToRule = (targetId: string, rendered: boolean): Promise<void> => {
     const ruleNumber = targetId.startsWith("rule-") ? targetId.slice("rule-".length) : null;
     if (ruleNumber !== null) {
       store.getState().unfold(ancestorsByRule.get(ruleNumber) ?? EMPTY_ANCESTORS);
     }
-    void navigate({
+    // Settles after the router has rendered the target and run its hash scroll.
+    return navigate({
       to: ".",
       search: (prev) => (rendered ? prev : { ...prev, q: undefined }),
       hash: targetId,
@@ -422,7 +423,7 @@ function RulesContent({
                 onClick={(event) =>
                   handleRuleHtmlClick(event, {
                     navigate: (href) => void navigate({ href }),
-                    jump: jumpToRule,
+                    jump: (targetId, rendered) => void jumpToRule(targetId, rendered),
                   })
                 }
                 onPointerOver={cardPreview.handlePointerOver}

@@ -7,7 +7,7 @@
  * The viewer becomes the group owner; re-running drops and rebuilds the rest.
  */
 import { usersRepo } from "../apps/api/src/modules/users/repositories/users.js";
-import { DAY_MS } from "../packages/shared/src/format-date.js";
+import { DAY_MS, HOUR_MS } from "../packages/shared/src/format-date.js";
 import { NO_PENALTY_BREAKDOWN } from "../packages/shared/src/pairing/penalty.js";
 import { parseScriptArgs, runWithDb } from "./env.js";
 
@@ -141,11 +141,15 @@ const BULK_COLLECTION = {
 
 const CONDITIONS = ["near-mint", "excellent", "light-played"];
 
-await runWithDb(async (db) => {
+async function seed(db: Parameters<typeof usersRepo>[0]): Promise<void> {
   const NOW = Date.now();
 
   function daysAgo(n: number): Date {
     return new Date(NOW - n * DAY_MS);
+  }
+
+  function hoursAgo(n: number): Date {
+    return new Date(NOW - n * HOUR_MS);
   }
 
   function daysAhead(n: number): Date {
@@ -317,6 +321,7 @@ await runWithDb(async (db) => {
   const people: PersonKey[] = ["viewer", ...MEMBERS.map((m) => m.key)];
   /** Keyed by `${person}:${card}`, wired into tradelists and reserved trades. */
   const copyIds = new Map<string, string>();
+  const binderIds = new Map<PersonKey, string>();
 
   for (const person of people) {
     const collection = await db
@@ -333,6 +338,7 @@ await runWithDb(async (db) => {
       })
       .returning("id")
       .executeTakeFirstOrThrow();
+    binderIds.set(person, collection.id);
 
     for (const [i, card] of OWNED[person].entries()) {
       const copy = await db
@@ -645,8 +651,8 @@ await runWithDb(async (db) => {
         status: t.status,
         lastActorUserId: uid(t.initiator === "giver" ? t.giver : t.receiver),
         receiverWishEntryId: null,
-        giverSyncAppliedAt: null,
-        receiverSyncAppliedAt: null,
+        giverSyncAppliedAt: isCompleted ? daysAgo(t.daysAgo) : null,
+        receiverSyncAppliedAt: isCompleted ? daysAgo(t.daysAgo) : null,
         requestEmailSentAt: null,
         reservedEmailSentAt: null,
         closedEmailSentAt: null,
@@ -665,6 +671,21 @@ await runWithDb(async (db) => {
       if (copyId) {
         await db.insertInto("cardTradeCopies").values({ tradeId: trade.id, copyId }).execute();
       }
+    }
+
+    if (isCompleted) {
+      const copyId = copyIds.get(`${t.giver}:${t.card}`);
+      const receiverBinder = binderIds.get(t.receiver);
+      if (!copyId || !receiverBinder) {
+        throw new Error(`${t.giver} gives ${t.card} to ${t.receiver} but does not own it`);
+      }
+      await db.deleteFrom("listEntries").where("copyId", "=", copyId).execute();
+      await db
+        .updateTable("copies")
+        .set({ collectionId: receiverBinder })
+        .where("id", "=", copyId)
+        .execute();
+      copyIds.delete(`${t.giver}:${t.card}`);
     }
   }
   console.log(
@@ -707,8 +728,8 @@ await runWithDb(async (db) => {
       currentRound: 3,
       matchFormat: "bo1",
       reportToken: "RiftRunDemo1",
-      startsAt: daysAgo(3),
-      endsAt: daysAgo(3 - 7 / 24),
+      startsAt: hoursAgo(3),
+      endsAt: new Date(NOW + 4 * HOUR_MS),
       createdAt: daysAgo(21),
     })
     .returning("id")
@@ -780,8 +801,8 @@ await runWithDb(async (db) => {
         status: "finalized",
         penaltyTotal: 0,
         pairingStrategy: "local-search",
-        createdAt: daysAgo(3),
-        finalizedAt: daysAgo(3 - round.number / 12),
+        createdAt: hoursAgo(3),
+        finalizedAt: hoursAgo(3 - round.number * 0.8),
       })
       .returning("id")
       .executeTakeFirstOrThrow();
@@ -836,4 +857,6 @@ await runWithDb(async (db) => {
   console.log(`  Trades:     /groups/${GROUP_SLUG}/trades`);
   console.log(`  Tournament: /tournaments/${tournament.id}`);
   console.log(`  Code:       ${GROUP_CODE}`);
-}, "local");
+}
+
+await runWithDb((db) => db.transaction().execute(seed), "local");

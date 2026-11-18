@@ -51,6 +51,7 @@ import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-querie
 import { useCardPageFocus } from "@/features/admin/hooks/use-card-page-focus";
 import { useCardReviewNavigation } from "@/features/admin/hooks/use-card-review-navigation";
 import { usePrintingsByLanguage } from "@/features/admin/hooks/use-printings-by-language";
+import { useScrollTarget } from "@/features/admin/hooks/use-scroll-target";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { hasAdminSection } from "@/features/admin/lib/admin-sections";
 import {
@@ -206,6 +207,7 @@ export function ExistingCardDetailPage({
     });
   }
 
+  const decisionsRef = useScrollTarget<HTMLElement>(NEEDS_DECISION_ID);
   const { revealPrinting, revealNewPrinting, focusAcceptedPrinting } = useCardPageFocus({
     cardSlug,
     detail: existingData,
@@ -380,7 +382,11 @@ export function ExistingCardDetailPage({
           )}
 
           {activeSection === "printings" && attentionTotal > 0 && (
-            <section id={NEEDS_DECISION_ID} className="scroll-mt-4 space-y-3 pb-6">
+            <section
+              ref={decisionsRef}
+              id={NEEDS_DECISION_ID}
+              className="scroll-mt-4 space-y-3 pb-6"
+            >
               <ExpandToggle
                 expanded={!decisionsFolded}
                 onClick={() => toggleSectionFold("attention")}

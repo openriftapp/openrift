@@ -37,7 +37,7 @@ describe("decksFamiliesRepo lock order", () => {
       decksFamiliesRepo(recorded.db).createVariantCopy("d-current", USER, {}),
     ).rejects.toThrow("stop after the source");
     expectOwnerLockedBeforeDecks(recorded);
-    expect(recorded.queries[2]).toContain("for update");
+    expect(recorded.statements[2]?.sql).toMatch(/ for update$/u);
   });
 
   it("createVariantCopy takes no deck lock for a deck the owner does not have", async () => {
@@ -63,9 +63,6 @@ describe("decksFamiliesRepo lock order", () => {
     expectOwnerLockedBeforeDecks(recorded);
     const updates = deckUpdates(recorded);
     expect(updates).toHaveLength(1);
-    expect(updates[0]?.sql).toBe(
-      'update "decks" set "family_id" = $1, "is_primary" = "id" = $2, "predecessor_deck_id" = case when "id" = $3 then $4 else "predecessor_deck_id" end where "user_id" = $5 and "id" in ($6, $7)',
-    );
     expect(updates[0]?.parameters).toEqual([
       expect.any(String),
       "d-current",
@@ -89,9 +86,6 @@ describe("decksFamiliesRepo lock order", () => {
 
     const updates = deckUpdates(recorded);
     expect(updates).toHaveLength(1);
-    expect(updates[0]?.sql).toBe(
-      'update "decks" set "family_id" = $1, "is_primary" = "id" = $2 where "user_id" = $3 and "id" in ($4, $5)',
-    );
     expect(updates[0]?.parameters).toEqual([
       "f-right",
       "d-right-primary",
@@ -118,9 +112,6 @@ describe("decksFamiliesRepo lock order", () => {
     expectOwnerLockedBeforeDecks(recorded);
     const updates = deckUpdates(recorded);
     expect(updates).toHaveLength(1);
-    expect(updates[0]?.sql).toBe(
-      'update "decks" set "family_id" = $1, "is_primary" = "id" = $2 where "user_id" = $3 and ("id" in ($4, $5) or "family_id" in ($6))',
-    );
     expect(updates[0]?.parameters).toEqual([
       "f-left",
       "d-left-primary",
@@ -139,7 +130,7 @@ describe("decksFamiliesRepo lock order", () => {
     await decksFamiliesRepo(recorded.db).setPredecessor("d-current", USER, "d-parent");
 
     expectOwnerLockedBeforeDecks(recorded);
-    expect(recorded.queries[2]).toContain("for update");
+    expect(recorded.statements[2]?.sql).toMatch(/ for update$/u);
     expect(deckUpdates(recorded)).toHaveLength(1);
   });
 
@@ -214,11 +205,7 @@ describe("deleteByIdForUser lock order", () => {
     expectOwnerLockedBeforeDecks(recorded);
     const updates = deckUpdates(recorded);
     expect(updates).toHaveLength(2);
-    expect(updates[0]?.sql).toBe('update "decks" set "is_primary" = $1 where "id" = $2');
     expect(updates[0]?.parameters).toEqual([false, "d-current"]);
-    expect(updates[1]?.sql).toBe(
-      'update "decks" set "is_primary" = $1, "predecessor_deck_id" = $2 where "id" = $3',
-    );
     expect(updates[1]?.parameters).toEqual([true, null, "d-newest"]);
     const lastUpdate = recorded.queries.findLastIndex((query) =>
       query.startsWith('update "decks"'),

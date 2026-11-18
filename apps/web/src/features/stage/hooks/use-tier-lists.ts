@@ -5,6 +5,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { tierListsKeys } from "@/features/stage/lib/stage-query-keys";
+import { TIER_LIST_SAVE_MUTATION_KEY } from "@/features/stage/lib/tier-list-saves";
 import {
   publicTierListQueryOptions,
   tierListQueryOptions,
@@ -56,6 +57,7 @@ const updateTierListFn = createServerFn({ method: "POST" })
 export function useUpdateTierList() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation<TierListResponse, UpdateTierListBody>({
+    mutationKey: TIER_LIST_SAVE_MUTATION_KEY,
     mutationFn: (body) => updateTierListFn({ data: body }),
     // Each save carries the whole board, so a slow one landing late would undo a newer one.
     scope: { id: "tier-list-update" },

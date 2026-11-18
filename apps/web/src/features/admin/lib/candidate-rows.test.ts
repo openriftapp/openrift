@@ -2,6 +2,7 @@ import type { ProviderSettingResponse } from "@openrift/shared/types/api/admin";
 import { describe, expect, it } from "vitest";
 
 import {
+  candidateFieldValue,
   favoriteProviderSet,
   getProviderLabel,
   isChecked,
@@ -103,5 +104,14 @@ describe("sortCandidateRows", () => {
     ];
     sortCandidateRows(rows, undefined, undefined);
     expect(rows.map((row) => row.provider)).toEqual(["zeta", "alpha"]);
+  });
+});
+
+describe("candidateFieldValue", () => {
+  it("reads a field def's key off the row and reads a key the row lacks as undefined", () => {
+    const row = { id: "row-1", checkedAt: null, provider: "gallery", might: 3 };
+
+    expect(candidateFieldValue(row, "might")).toBe(3);
+    expect(candidateFieldValue(row, "comment")).toBeUndefined();
   });
 });

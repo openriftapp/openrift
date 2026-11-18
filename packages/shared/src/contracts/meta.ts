@@ -292,6 +292,9 @@ export const metaEventDetailResponseSchema = z.object({
   phases: z.array(metaEventPhaseSchema),
 });
 
+/** Upper bound for a field size or placement; the columns are `integer`. */
+export const META_MAX_PLAYERS = 100_000;
+
 const pageOffset = z.coerce.number().int().nonnegative().max(MAX_OFFSET).optional();
 
 const listLimit = z.coerce.number().int().positive().max(META_MAX_LIST_PAGE_SIZE).optional();
@@ -543,8 +546,8 @@ export const metaEventFilterQuerySchema = metaScopeQuerySchema.extend({
   slug: z.string().min(1).optional(),
   q: z.string().max(200).optional(),
   holds: z.enum(META_EVENT_HOLDINGS).optional(),
-  playersMin: z.coerce.number().int().nonnegative().optional(),
-  playersMax: z.coerce.number().int().nonnegative().optional(),
+  playersMin: z.coerce.number().int().nonnegative().max(META_MAX_PLAYERS).optional(),
+  playersMax: z.coerce.number().int().nonnegative().max(META_MAX_PLAYERS).optional(),
 });
 
 export const metaEventListQuerySchema = metaEventFilterQuerySchema.extend({
@@ -573,7 +576,7 @@ export const metaDeckQuerySchema = metaScopeQuerySchema.extend({
   player: z.string().min(1).optional(),
   events: z.array(z.string().min(1)).max(MAX_FACET_VALUES).optional(),
   legends: z.array(z.uuid()).max(MAX_FACET_VALUES).optional(),
-  maxRank: z.coerce.number().int().positive().optional(),
+  maxRank: z.coerce.number().int().positive().max(META_MAX_PLAYERS).optional(),
   // Not `z.coerce.boolean()`: that is `Boolean(value)`, so `curated=false` arrives as true.
   curated: z.union([z.boolean(), z.stringbool()]).optional(),
   by: z.enum(META_DECK_SORTS).optional(),

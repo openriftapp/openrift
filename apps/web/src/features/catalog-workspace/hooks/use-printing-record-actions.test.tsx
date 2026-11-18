@@ -9,6 +9,7 @@ import { acceptFieldWithUndo } from "@/features/admin/lib/accept-undo";
 import type { RecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import type { ListingSuggestion } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
 import { buildPrintingSuggestions } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
+import { resetWorkspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
 import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
 import {
   makeAdminCardDetail,
@@ -115,6 +116,7 @@ function wrapper(client: QueryClient) {
 let resetStore: () => void;
 
 afterEach(() => {
+  resetWorkspaceWriteQueue();
   resetStore();
 });
 
@@ -413,10 +415,11 @@ describe("usePrintingRecordActions", () => {
           gate.open = resolve;
         }),
     );
-    let run = Promise.resolve();
+    let run = Promise.resolve(true);
     act(() => {
       run = result.current.ignoreListing(LISTING);
     });
+    await vi.waitFor(() => expect(mocks.ignore.current?.mutateAsync).toHaveBeenCalled());
     expect(mocks.ignore.current?.mutateAsync).toHaveBeenCalledWith([
       { externalId: 7, finish: "normal", language: null },
     ]);
@@ -436,7 +439,7 @@ describe("usePrintingRecordActions", () => {
     });
   });
 
-  it("sends a source's release date together with its precision", () => {
+  it("sends a source's release date together with its precision", async () => {
     const source = makeCandidateCard({ provider: "provider-a" });
     const candidate = makeCandidatePrinting({
       candidateCardId: source.id,
@@ -469,7 +472,7 @@ describe("usePrintingRecordActions", () => {
     const chip = result.current.chips.find(
       (entry) => entry.kind === "field" && entry.suggestion.field === "releasedAt",
     );
-    void result.current.applyChip(chip!);
+    await act(() => result.current.applyChip(chip!));
     expect(vi.mocked(acceptFieldWithUndo).mock.lastCall?.[0].input).toEqual({
       printingId: "p1",
       field: "releasedAt",
@@ -482,7 +485,7 @@ describe("usePrintingRecordActions", () => {
     });
   });
 
-  it("sends any other field's proposed value as is", () => {
+  it("sends any other field's proposed value as is", async () => {
     const { model } = setup();
     const client = new QueryClient();
     const { result } = renderHook(
@@ -498,7 +501,7 @@ describe("usePrintingRecordActions", () => {
       { wrapper: wrapper(client) },
     );
 
-    void result.current.applyChip(result.current.chips[0]!);
+    await act(() => result.current.applyChip(result.current.chips[0]!));
     expect(vi.mocked(acceptFieldWithUndo).mock.lastCall?.[0]).toEqual(
       expect.objectContaining({
         accept: mocks.acceptField.current?.mutateAsync,

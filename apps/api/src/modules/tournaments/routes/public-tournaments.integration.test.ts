@@ -7,7 +7,7 @@ import {
   req,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
-import { holdRow, waitUntilBlockedBy } from "../../../test/row-locks.js";
+import { holdRoundsLock, waitUntilBlockedBy } from "../../../test/row-locks.js";
 
 const HOST_ID = crypto.randomUUID();
 const JOINER_ID = crypto.randomUUID();
@@ -164,13 +164,10 @@ describe.skipIf(!hostCtx || !joinerCtx || !anonCtx)(
       const enabled = await host.app.fetch(req("POST", `/tournaments/${raceId}/submission-token`));
       const raceToken = ((await readJson(enabled)) as { submissionToken: string }).submissionToken;
 
-      const canceller = await holdRow(
+      const canceller = await holdRoundsLock(
         host.db,
-        sql`WITH locked AS (
-          SELECT pg_advisory_xact_lock(hashtext(${`tournament-writes:${raceId}`}))
-        ), written AS (
-          UPDATE tournaments SET status = 'cancelled' WHERE id = ${raceId} RETURNING id
-        ) SELECT 1 FROM locked, written`,
+        raceId,
+        sql`UPDATE tournaments SET status = 'cancelled' WHERE id = ${raceId} RETURNING id`,
       );
       let joined: Promise<Response> | Response | undefined;
       try {

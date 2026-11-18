@@ -19,6 +19,11 @@ vi.mock("@/hooks/use-enums", () => ({
   }),
 }));
 
+const page = vi.hoisted(() => ({ tableTop: 0 }));
+vi.mock("@/hooks/use-window-scroll-margin", () => ({
+  useWindowScrollMargin: (_el: unknown, extra = 0) => page.tableTop + extra,
+}));
+
 vi.mock("./card-table-row", async (importOriginal) => ({
   ...(await importOriginal<typeof CardTableRowModule>()),
   CardTableRow: () => <div />,
@@ -56,6 +61,7 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 afterEach(() => {
+  page.tableTop = 0;
   vi.restoreAllMocks();
 });
 
@@ -131,5 +137,58 @@ describe("CardTable scroll below the sticky group label", () => {
     expect(scrollTo).toHaveBeenLastCalledWith(
       expect.objectContaining({ top: rowStart - STICKY_GROUP_LABEL_BAND }),
     );
+  });
+});
+
+describe("CardTable return to an item", () => {
+  const items = makeItems("card", 60);
+  const target = items[40]?.id;
+
+  function returnTable(itemId = target, onReturned?: (found: boolean) => void) {
+    return (
+      <FilterSearchProvider value={{}}>
+        <CardTable
+          items={items}
+          totalItems={items.length}
+          setOrder={[set]}
+          groupBy="set"
+          stickyOffset={0}
+          returnToItemId={itemId}
+          onReturned={onReturned}
+          actionsColumn="none"
+        />
+      </FilterSearchProvider>
+    );
+  }
+
+  it("waits while the table is hidden, then scrolls to the item once it is laid out", () => {
+    vi.spyOn(document.documentElement, "scrollHeight", "get").mockReturnValue(100_000);
+    const scrollTo = vi.spyOn(globalThis, "scrollTo").mockImplementation(() => {});
+    const scrolledDown = () =>
+      scrollTo.mock.calls.some(
+        ([options]) => ((options as ScrollToOptions | undefined)?.top ?? 0) > 0,
+      );
+    const { rerender } = render(returnTable(), { wrapper });
+    expect(scrolledDown()).toBe(false);
+
+    page.tableTop = 200;
+    rerender(returnTable());
+
+    expect(scrolledDown()).toBe(true);
+  });
+
+  it("reports the return once laid out, with whether the item is in the table", () => {
+    vi.spyOn(document.documentElement, "scrollHeight", "get").mockReturnValue(100_000);
+    vi.spyOn(globalThis, "scrollTo").mockImplementation(() => {});
+    const onReturned = vi.fn();
+    const { rerender } = render(returnTable(target, onReturned), { wrapper });
+    expect(onReturned).not.toHaveBeenCalled();
+
+    page.tableTop = 200;
+    rerender(returnTable(target, onReturned));
+    expect(onReturned).toHaveBeenCalledExactlyOnceWith(true);
+
+    rerender(returnTable("filtered-out", onReturned));
+    expect(onReturned).toHaveBeenLastCalledWith(false);
   });
 });

@@ -50,5 +50,6 @@ declare module "@tanstack/react-router" {
 
   interface StaticDataRouteOption {
     hideFooter?: boolean;
+    chrome?: "bare" | "transparent";
   }
 }

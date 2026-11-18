@@ -12,7 +12,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type * as UseDecks from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 
-const { dialogProps, boxed } = vi.hoisted(() => ({
+const { dialogProps, boxed, navigate } = vi.hoisted(() => ({
+  navigate: vi.fn(),
   dialogProps: {} as Record<string, Record<string, unknown>>,
   boxed: {
     current: [] as { deckId: string; deckName: string; boxName: string; collectionId: string }[],
@@ -44,7 +45,7 @@ vi.mock("@/features/decks/hooks/use-decks-collections", () => ({
   useDeckCardsCollection: () => cardsCollection,
 }));
 
-vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn() }));
+vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
 vi.mock("@/features/decks/hooks/use-boxed-decks", () => ({ useBoxedDecks: () => boxed.current }));
 
 const noopMutation = { mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false };
@@ -273,5 +274,18 @@ describe("DeckActionsMenu", () => {
     await user.click(screen.getByRole("button", { name: "Deck actions" }));
     await user.click(await screen.findByRole("menuitem", { name: "Duplicate" }));
     expect(noopMutation.mutate).toHaveBeenCalledWith("deck-own", expect.anything());
+  });
+
+  it("presents the deck on the show page", async () => {
+    const user = userEvent.setup();
+    navigate.mockClear();
+    render(<DeckActionsMenu item={ITEM} source="server" />);
+
+    await user.click(screen.getByRole("button", { name: "Deck actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Present" }));
+    expect(navigate).toHaveBeenCalledWith({
+      to: "/stage/show",
+      search: { deck: "deck-own", i: 0 },
+    });
   });
 });

@@ -1,4 +1,4 @@
-import { isoDateTime } from "@openrift/shared/schemas";
+import { isoDateTime, POSTGRES_INTEGER_MAX } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { marketplaceEnum } from "../../schemas.js";
@@ -32,11 +32,13 @@ export const ignoredProductSchema = z.discriminatedUnion("level", [
   }),
 ]);
 
-const ignoreProductsInput = z.discriminatedUnion("level", [
+const externalIdSchema = z.number().int().positive().max(POSTGRES_INTEGER_MAX);
+
+export const ignoreProductsInput = z.discriminatedUnion("level", [
   z.object({
     level: z.literal("product"),
     marketplace: marketplaceEnum,
-    products: z.array(z.object({ externalId: z.number() })).min(1),
+    products: z.array(z.object({ externalId: externalIdSchema })).min(1),
   }),
   z.object({
     level: z.literal("variant"),
@@ -44,7 +46,7 @@ const ignoreProductsInput = z.discriminatedUnion("level", [
     products: z
       .array(
         z.object({
-          externalId: z.number(),
+          externalId: externalIdSchema,
           finish: z.string(),
           language: z.string().nullable(),
         }),

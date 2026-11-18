@@ -20,6 +20,9 @@ const FIELD_SIZE = 5000;
 
 const FETCHED_AT = new Date("2026-08-20T12:00:00Z");
 
+/** Clear of the source's own player ids and of the other meta files' invented ones. */
+const PLAYER_IDS = [990_301, 990_302];
+
 function standing(index: number): Insertable<UvsgamesEventStandingsTable> {
   return {
     externalId: EXTERNAL_ID,
@@ -47,6 +50,7 @@ afterAll(async () => {
   }
   await ctx.db.deleteFrom("uvsgamesEventStandings").where("externalId", "=", EXTERNAL_ID).execute();
   await ctx.db.deleteFrom("uvsgamesEvents").where("externalId", "=", EXTERNAL_ID).execute();
+  await ctx.db.deleteFrom("uvsgamesPlayers").where("id", "in", PLAYER_IDS).execute();
 });
 
 describe.skipIf(!ctx)("uvsgamesResultsRepo", () => {
@@ -92,5 +96,37 @@ describe.skipIf(!ctx)("uvsgamesResultsRepo", () => {
 
     expect(results.filter((result) => result.status === "rejected")).toEqual([]);
     expect(await repo.standings(EXTERNAL_ID)).toHaveLength(2);
+  });
+
+  it("orders matches sharing a phase, round and table by the source match id", async () => {
+    const [first, second] = PLAYER_IDS as [number, number];
+    await db
+      .insertInto("uvsgamesPlayers")
+      .values([
+        { id: first, displayName: "MTR Bye One" },
+        { id: second, displayName: "MTR Bye Two" },
+      ])
+      .execute();
+    const bye = (player: number, sourceMatchId: string) => ({
+      externalId: EXTERNAL_ID,
+      roundId: "mtr-round-1",
+      sourceMatchId,
+      roundNumber: 1,
+      tableNumber: null,
+      isBye: true,
+      player1UvsgamesId: player,
+      player2UvsgamesId: null,
+      winnerUvsgamesId: null,
+      gamesWonP1: null,
+      gamesWonP2: null,
+    });
+    await db
+      .insertInto("uvsgamesEventMatches")
+      .values([bye(first, "mtr-match-b"), bye(second, "mtr-match-a")])
+      .execute();
+
+    const matches = await repo.matches(EXTERNAL_ID);
+
+    expect(matches.map((match) => match.sourceMatchId)).toEqual(["mtr-match-a", "mtr-match-b"]);
   });
 });

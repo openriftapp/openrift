@@ -77,6 +77,7 @@ function makeApp(tournament: Tournament) {
     updateSettings: vi.fn(() => Promise.resolve()),
     addStaff: vi.fn(() => Promise.resolve()),
     setSubmissionToken: vi.fn(() => Promise.resolve()),
+    setReportToken: vi.fn(() => Promise.resolve()),
     getUserNames: vi.fn(() => Promise.resolve(new Map([[USER_ID, "Host"]]))),
     getCounts: vi.fn(() => Promise.resolve({ participantCount: 0, pendingRequestCount: 0 })),
     getStaffRoles: vi.fn(() => Promise.resolve([])),
@@ -475,6 +476,89 @@ describe("POST /tournaments/{id}/cancel", () => {
     expect(lockOrder).toBeGreaterThan(0);
     expect(lockOrder).toBeLessThan(
       repos.tournaments.updateSettings.mock.invocationCallOrder[0] ?? 0,
+    );
+  });
+});
+
+describe("submission link", () => {
+  function expectWrittenUnderLock(repos: ReturnType<typeof makeApp>["repos"]) {
+    const lockOrder = repos.tournaments.lockRounds.mock.invocationCallOrder.at(-1) ?? 0;
+    expect(lockOrder).toBeGreaterThan(0);
+    expect(lockOrder).toBeLessThan(
+      repos.tournaments.setSubmissionToken.mock.invocationCallOrder[0] ?? 0,
+    );
+  }
+
+  it("enables the link under the rounds lock", async () => {
+    const { app, repos } = makeApp(tournamentRow());
+
+    const res = await app.fetch(req("POST", `/tournaments/${TOURNAMENT_ID}/submission-token`));
+
+    expect(res.status).toBe(200);
+    expectWrittenUnderLock(repos);
+    expect(repos.tournaments.setSubmissionToken).toHaveBeenCalledWith(
+      TOURNAMENT_ID,
+      expect.any(String),
+    );
+  });
+
+  it("disables the link under the rounds lock", async () => {
+    const { app, repos } = makeApp(tournamentRow({ submissionToken: "old-token" }));
+
+    const res = await app.fetch(req("DELETE", `/tournaments/${TOURNAMENT_ID}/submission-token`));
+
+    expect(res.status).toBe(200);
+    expectWrittenUnderLock(repos);
+    expect(repos.tournaments.setSubmissionToken).toHaveBeenCalledWith(TOURNAMENT_ID, null);
+  });
+
+  function rowAfterPatch(repos: ReturnType<typeof makeApp>["repos"], stored: Partial<Tournament>) {
+    let locks = 0;
+    repos.tournaments.lockRounds.mockImplementation(() => {
+      locks++;
+      if (locks === 2) {
+        repos.tournaments.getById.mockResolvedValue(tournamentRow(stored));
+      }
+      return Promise.resolve();
+    });
+  }
+
+  it("mints the link on update under the rounds lock", async () => {
+    const { app, repos } = makeApp(tournamentRow());
+    rowAfterPatch(repos, { hasSelfRegistration: true });
+
+    const res = await app.fetch(
+      req("PATCH", `/tournaments/${TOURNAMENT_ID}`, { selfRegistration: true }),
+    );
+
+    expect(res.status).toBe(200);
+    expectWrittenUnderLock(repos);
+  });
+
+  it("keeps a link minted while the update waited for the lock", async () => {
+    const { app, repos } = makeApp(tournamentRow());
+    rowAfterPatch(repos, { hasSelfRegistration: true, submissionToken: "minted-meanwhile" });
+
+    const res = await app.fetch(
+      req("PATCH", `/tournaments/${TOURNAMENT_ID}`, { selfRegistration: true }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(repos.tournaments.setSubmissionToken).not.toHaveBeenCalled();
+  });
+});
+
+describe("report link", () => {
+  it.each(["POST", "DELETE"])("%s writes the report link under the rounds lock", async (method) => {
+    const { app, repos } = makeApp(tournamentRow({ reportToken: "old-token" }));
+
+    const res = await app.fetch(req(method, `/tournaments/${TOURNAMENT_ID}/report-token`));
+
+    expect(res.status).toBe(200);
+    const lockOrder = repos.tournaments.lockRounds.mock.invocationCallOrder[0] ?? 0;
+    expect(lockOrder).toBeGreaterThan(0);
+    expect(lockOrder).toBeLessThan(
+      repos.tournaments.setReportToken.mock.invocationCallOrder[0] ?? 0,
     );
   });
 });

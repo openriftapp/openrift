@@ -244,4 +244,19 @@ describe.skipIf(!ctx)("cardTokensRepo derivation", () => {
 
     await ctx!.db.deleteFrom("cards").where("id", "=", wispId).execute();
   });
+
+  it("links a card that names an implicit token only by its mention words", async () => {
+    const repo = cardTokensRepo(ctx!.db);
+    const trackerId = await seedCard("XP Tracker", "other", "ctk-xp-tracker");
+    await seedPrinting(plainId, "CTK-006", { printedRulesText: "[Level 3] Draw a card." });
+
+    await ctx!.db
+      .insertInto("cardSuperTypes")
+      .values({ cardId: trackerId, superTypeSlug: "token" })
+      .execute();
+    await repo.recomputeForTokenCard(trackerId);
+    expect(await tokensFor(plainId)).toEqual([trackerId]);
+
+    await ctx!.db.deleteFrom("cards").where("id", "=", trackerId).execute();
+  });
 });

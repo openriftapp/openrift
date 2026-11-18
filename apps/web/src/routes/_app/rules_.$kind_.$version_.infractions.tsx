@@ -10,13 +10,15 @@ import { m } from "@/paraglide/messages.js";
 
 export const Route = createFileRoute("/_app/rules_/$kind_/$version_/infractions")({
   validateSearch: infractionsSearchSchema,
-  loaderDeps: ({ search }) => ({ q: search.q, lang: search.lang, penalty: search.penalty }),
+  // No `q`: the page filters on the client, and a keystroke must not rerun the loader.
+  loaderDeps: ({ search }) => ({ lang: search.lang, penalty: search.penalty }),
   loader: ({ params, context, location, deps }) =>
     loadRulesVersion({
       queryClient: context.queryClient,
       kind: params.kind,
       version: params.version,
-      search: deps,
+      // The query rides along only for the language redirect.
+      search: { ...infractionsSearchSchema(location.search), ...deps },
       hash: location.hash,
       view: "infractions",
     }),

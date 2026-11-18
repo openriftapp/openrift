@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { uncheckCandidateCardsFn } from "@/features/admin/hooks/use-admin-card-mutations";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
+import { queuedWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import {
   discardSameDifferenceFn,
   sameDifferenceQueryOptions,
@@ -56,5 +57,5 @@ export function useDiscardSameDifference() {
     });
   }
 
-  return { discard, isPending: mutation.isPending };
+  return { discard: queuedWorkspaceWrite(discard), isPending: mutation.isPending };
 }

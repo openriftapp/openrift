@@ -31,6 +31,7 @@ import { useEnumOrders } from "@/hooks/use-enums";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
 import { errorText } from "@/lib/error-text";
 import { parseIntegerInput } from "@/lib/integer-input";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 const routeApi = getRouteApi("/_app/_authenticated/admin/cards_/$cardSlug_/printings/create");
 
@@ -109,7 +110,7 @@ export function CreatePrintingPage() {
     publicCode.trim().length > 0 &&
     !createPrinting.isPending;
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!canSubmit || !cardId) {
       return;
     }
@@ -153,17 +154,14 @@ export function CreatePrintingPage() {
       printingFields.imageUrl = imageUrl.trim();
     }
 
-    createPrinting.mutate(
-      { cardId, cardSlug, printingFields: printingFields as CreatePrintingBody },
-      {
-        onSuccess: () => {
-          void navigate({ to: "/admin/cards/$cardSlug", params: { cardSlug } });
-        },
-        onError: (error) => {
-          setErrorMsg(errorText(error, "Failed to create printing"));
-        },
-      },
+    const input = { cardId, cardSlug, printingFields: printingFields as CreatePrintingBody };
+    const ok = await runReportedMutation(
+      () => createPrinting.mutateAsync(input),
+      (error) => setErrorMsg(errorText(error, "Failed to create printing")),
     );
+    if (ok) {
+      void navigate({ to: "/admin/cards/$cardSlug", params: { cardSlug } });
+    }
   }
 
   const topBar = <AdminPageTopBar title={source ? "Duplicate printing" : "Create new printing"} />;
@@ -422,7 +420,7 @@ export function CreatePrintingPage() {
         )}
 
         <div className="flex gap-2">
-          <Button disabled={!canSubmit} onClick={handleSubmit}>
+          <Button disabled={!canSubmit} onClick={() => void handleSubmit()}>
             <PlusIcon className="size-4" />
             Create printing
           </Button>

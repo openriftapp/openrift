@@ -273,6 +273,134 @@ describe("useUpdateListEntry", () => {
   });
 });
 
+describe("entry writes on one list", () => {
+  function deferredFetch() {
+    const answers: ((response: Response) => void)[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise<Response>((resolve) => {
+            answers.push(resolve);
+          }),
+      ),
+    );
+    return answers;
+  }
+
+  const ENTRY = {
+    id: "le-1",
+    listId: "lst-1",
+    kind: "card",
+    cardId: "card-1",
+    quantity: 2,
+    tradeOverride: { pricePref: null, priceAbsoluteCents: null, tradeType: null },
+  };
+
+  function renderWrites(client: QueryClient) {
+    return renderHook(
+      () => ({
+        add: useBulkAddListEntries(),
+        update: useUpdateListEntry(),
+        remove: useRemoveListEntry(),
+      }),
+      { wrapper: wrap(client) },
+    );
+  }
+
+  it("an add settling during a quantity step leaves the refetch to the step", async () => {
+    const answers = deferredFetch();
+    const { client, invalidateSpy } = makeClient();
+    const { result } = renderWrites(client);
+
+    let step: Promise<unknown> = Promise.resolve();
+    let add: Promise<unknown> = Promise.resolve();
+    act(() => {
+      step = result.current.update.mutateAsync({
+        listId: "lst-1",
+        entryId: "le-1",
+        quantityDelta: 1,
+      });
+    });
+    await waitFor(() => expect(answers).toHaveLength(1));
+    act(() => {
+      add = result.current.add.mutateAsync({ listId: "lst-1", entries: [{ cardId: "card-2" }] });
+    });
+    await waitFor(() => expect(answers).toHaveLength(2));
+
+    await act(async () => {
+      answers[1]!(Response.json({ added: 1, updated: 0, skipped: 0 }));
+      await add;
+    });
+    expect(invalidateSpy).not.toHaveBeenCalled();
+
+    await act(async () => {
+      answers[0]!(Response.json(ENTRY));
+      await step;
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["lists", "test-user-id", "lst-1"] });
+  });
+
+  it("a remove settling during a quantity step leaves the refetch to the step", async () => {
+    const answers = deferredFetch();
+    const { client, invalidateSpy } = makeClient();
+    const { result } = renderWrites(client);
+
+    let step: Promise<unknown> = Promise.resolve();
+    let remove: Promise<unknown> = Promise.resolve();
+    act(() => {
+      step = result.current.update.mutateAsync({
+        listId: "lst-1",
+        entryId: "le-1",
+        quantityDelta: 1,
+      });
+    });
+    await waitFor(() => expect(answers).toHaveLength(1));
+    act(() => {
+      remove = result.current.remove.mutateAsync({ listId: "lst-1", entryId: "le-2" });
+    });
+    await waitFor(() => expect(answers).toHaveLength(2));
+
+    await act(async () => {
+      answers[1]!(new Response(null, { status: 204 }));
+      await remove;
+    });
+    expect(invalidateSpy).not.toHaveBeenCalled();
+
+    await act(async () => {
+      answers[0]!(Response.json(ENTRY));
+      await step;
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["lists", "test-user-id", "lst-1"] });
+  });
+
+  it("a write to another list still refetches straight away", async () => {
+    const answers = deferredFetch();
+    const { client, invalidateSpy } = makeClient();
+    const { result } = renderWrites(client);
+
+    act(() => {
+      void result.current.update.mutateAsync({
+        listId: "lst-1",
+        entryId: "le-1",
+        quantityDelta: 1,
+      });
+    });
+    await waitFor(() => expect(answers).toHaveLength(1));
+    let add: Promise<unknown> = Promise.resolve();
+    act(() => {
+      add = result.current.add.mutateAsync({ listId: "lst-2", entries: [{ cardId: "card-2" }] });
+    });
+    await waitFor(() => expect(answers).toHaveLength(2));
+
+    await act(async () => {
+      answers[1]!(Response.json({ added: 1, updated: 0, skipped: 0 }));
+      await add;
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["lists", "test-user-id", "lst-2"] });
+  });
+});
+
 // react-query merges mutation options shallowly, so a hook's own onError replaces
 // the QueryClient's default one; each rollback below must report the failure itself.
 describe("useUpdateListEntry optimistic quantity", () => {
@@ -293,6 +421,30 @@ describe("useUpdateListEntry optimistic quantity", () => {
 
     await waitFor(() =>
       expect(client.getQueryData<ListDetailResponse>(detailKey)?.entries[0]!.quantity).toBe(4),
+    );
+  });
+
+  it("stacks rapid steps on the cached quantity", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise<Response>(() => {})),
+    );
+    const { client } = makeClient();
+    const detailKey = ["lists", "test-user-id", "lst-1"];
+    client.setQueryData(detailKey, {
+      ...DETAIL,
+      entries: [{ ...DETAIL.entries[0]!, quantity: 5, ruleQuantity: 2, source: "both" }],
+    });
+    const { result } = renderHook(() => useUpdateListEntry(), { wrapper: wrap(client) });
+
+    act(() => result.current.mutate({ listId: "lst-1", entryId: "le-1", quantityDelta: 1 }));
+    await waitFor(() =>
+      expect(client.getQueryData<ListDetailResponse>(detailKey)?.entries[0]!.quantity).toBe(6),
+    );
+    act(() => result.current.mutate({ listId: "lst-1", entryId: "le-1", quantityDelta: 1 }));
+
+    await waitFor(() =>
+      expect(client.getQueryData<ListDetailResponse>(detailKey)?.entries[0]!.quantity).toBe(7),
     );
   });
 });

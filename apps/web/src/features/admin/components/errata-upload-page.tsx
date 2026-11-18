@@ -19,6 +19,7 @@ import { parseJsonEntries } from "@/features/admin/lib/json-upload";
 import type { BulkErrataEntry } from "@/features/cards/hooks/use-card-errata";
 import { useUploadErrata } from "@/features/cards/hooks/use-card-errata";
 import { errorText } from "@/lib/error-text";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 function parseErrataEntries(text: string) {
   return parseJsonEntries<BulkErrataEntry>(
@@ -35,33 +36,27 @@ export function ErrataUploadPage() {
 
   const upload = useUploadErrata();
 
-  function handlePreview() {
+  async function handlePreview() {
     if (!entries) {
       return;
     }
-    upload.mutate(
-      { dryRun: true, entries },
-      {
-        onSuccess: (data) => {
-          setPreview(data);
-        },
-      },
-    );
+    let data: Awaited<ReturnType<typeof upload.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      data = await upload.mutateAsync({ dryRun: true, entries });
+    });
+    if (ok && data) {
+      setPreview(data);
+    }
   }
 
-  function handleApply() {
+  async function handleApply() {
     if (!entries) {
       return;
     }
-    upload.mutate(
-      { dryRun: false, entries },
-      {
-        onSuccess: () => {
-          file.reset();
-          setPreview(null);
-        },
-      },
-    );
+    if (await runReportedMutation(() => upload.mutateAsync({ dryRun: false, entries }))) {
+      file.reset();
+      setPreview(null);
+    }
   }
 
   return (
@@ -93,7 +88,7 @@ export function ErrataUploadPage() {
           <Button
             disabled={!entries || upload.isPending}
             pending={upload.isPending && preview === null}
-            onClick={handlePreview}
+            onClick={() => void handlePreview()}
           >
             <EyeIcon className="size-4" />
             Preview
@@ -101,7 +96,7 @@ export function ErrataUploadPage() {
           <Button
             disabled={!entries || !preview || upload.isPending}
             pending={upload.isPending && preview !== null}
-            onClick={handleApply}
+            onClick={() => void handleApply()}
           >
             <UploadIcon className="size-4" />
             Apply

@@ -79,16 +79,6 @@ export function StageShell({
   const ground = usePresentationStore((state) => state.ground);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // The fixed overlay leaves the page's scrollbar visible on the right edge of
-  // the capture unless the document itself is locked.
-  useEffect(() => {
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, []);
-
   const leave = onEscape ?? onExit;
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -98,8 +88,8 @@ export function StageShell({
       event.preventDefault();
       leave();
     };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
+    globalThis.addEventListener("keydown", handler);
+    return () => globalThis.removeEventListener("keydown", handler);
   }, [leave]);
 
   const visible = !idle || settingsOpen;

@@ -905,6 +905,11 @@ describe("canIncrementDeckEntry", () => {
     expect(canIncrementDeckEntry(runes, [runes], { freeform: true, relaxed: false })).toBe(true);
   });
 
+  it("stops even Freeform at the per-row cap", () => {
+    const unit = stubDeckBuilderCard({ zone: "main" as DeckZone, quantity: 99 });
+    expect(canIncrementDeckEntry(unit, [unit], { freeform: true, relaxed: false })).toBe(false);
+  });
+
   it("blocks a fourth copy in the main deck", () => {
     const unit = stubDeckBuilderCard({ zone: "main" as DeckZone, quantity: 3 });
     expect(canIncrementDeckEntry(unit, [unit], { freeform: false, relaxed: false })).toBe(false);

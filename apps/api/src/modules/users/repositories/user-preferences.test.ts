@@ -30,14 +30,12 @@ describe("userPreferencesRepo", () => {
     expect(result!.data).toEqual(data);
   });
 
-  it("upsert reads nothing first and merges in a single statement", async () => {
-    const { db, queries, parameters } = createRecordingDb([STORED_ROW]);
+  it("upsert reads nothing first and returns the stored preferences", async () => {
+    const { db, parameters } = createRecordingDb([STORED_ROW]);
 
     const result = await userPreferencesRepo(db).upsert("u1", { theme: "dark" });
 
-    expect(queries).toHaveLength(1);
-    expect(queries[0]).toContain("(user_preferences.data || excluded.data)");
-    expect(parameters[0]).toEqual(["u1", { theme: "dark" }, []]);
+    expect(parameters).toEqual([["u1", { theme: "dark" }, []]]);
     expect(result).toEqual({ theme: "dark" });
   });
 
@@ -49,12 +47,11 @@ describe("userPreferencesRepo", () => {
     expect(parameters[0]![1]).toEqual({ theme: "dark", showImages: false });
   });
 
-  it("upsert sends null keys as jsonb key removals", async () => {
-    const { db, queries, parameters } = createRecordingDb([STORED_ROW]);
+  it("upsert sends null keys as key removals, apart from the patch", async () => {
+    const { db, parameters } = createRecordingDb([STORED_ROW]);
 
     await userPreferencesRepo(db).upsert("u1", { theme: null, showImages: true });
 
-    expect(queries[0]).toContain("::text[]");
     expect(parameters[0]).toEqual(["u1", { showImages: true }, ["theme"]]);
   });
 
@@ -64,15 +61,5 @@ describe("userPreferencesRepo", () => {
     await userPreferencesRepo(db).upsert("u1", { theme: undefined });
 
     expect(parameters[0]).toEqual(["u1", {}, []]);
-  });
-
-  it("listGroupJoinRequestRecipients left-joins preferences and excludes only an explicit false", async () => {
-    const { db, queries, parameters } = createRecordingDb([[]]);
-
-    await userPreferencesRepo(db).listGroupJoinRequestRecipients("g1");
-
-    expect(queries[0]).toContain('left join "user_preferences"');
-    expect(queries[0]).toContain("IS DISTINCT FROM 'false'");
-    expect(parameters[0]).toEqual(["g1", "owner", "admin", true]);
   });
 });

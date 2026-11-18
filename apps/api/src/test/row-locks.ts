@@ -34,6 +34,21 @@ export async function holdRow(db: Kysely<Database>, lockSql: RawBuilder<unknown>
   };
 }
 
+/** Holds the tournament write lock, after running `write` in the same transaction when given. */
+export function holdRoundsLock(
+  db: Kysely<Database>,
+  tournamentId: string,
+  write?: RawBuilder<unknown>,
+) {
+  const lock = sql`SELECT pg_advisory_xact_lock(hashtext(${`tournament-writes:${tournamentId}`}))`;
+  return holdRow(
+    db,
+    write === undefined
+      ? lock
+      : sql`WITH locked AS (${lock}), written AS (${write}) SELECT 1 FROM locked, written`,
+  );
+}
+
 export async function waitUntilBlockedBy(db: Kysely<Database>, pid: number): Promise<void> {
   for (let attempt = 0; attempt < 60; attempt++) {
     const { rows } = await sql<{ waiting: number }>`

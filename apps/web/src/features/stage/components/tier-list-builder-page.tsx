@@ -151,7 +151,7 @@ export function TierListBuilderPage({ tierList }: TierListBuilderPageProps) {
                     // go up as whatever the server still holds.
                     disabled={dirty}
                     onClick={() => {
-                      void navigate({ to: "/stage", search: { tier: tierList.id, i: 0 } });
+                      void navigate({ to: "/stage/show", search: { tier: tierList.id, i: 0 } });
                     }}
                   >
                     <MonitorPlayIcon />
@@ -182,7 +182,7 @@ export function TierListBuilderPage({ tierList }: TierListBuilderPageProps) {
                       disabled={dirty}
                       onClick={() => {
                         void navigate({
-                          to: "/stage",
+                          to: "/stage/show",
                           search: { tier: tierList.id, mode: "edit" },
                         });
                       }}

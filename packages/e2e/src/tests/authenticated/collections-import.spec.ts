@@ -114,7 +114,7 @@ async function fetchCopies(request: APIRequestContext, collectionId: string): Pr
   return body.items.filter((item) => item.collectionId === collectionId);
 }
 
-// Mirrors generateExportCSV in apps/web/src/lib/csv-export.ts.
+// Mirrors generateExportCSV in apps/web/src/features/collections/lib/csv-export.ts.
 const EXPORT_HEADER =
   "Card ID,Card Name,Rarity,Type,Domain,Finish,Art Variant,Overnumbered,Promo,Language,Quantity," +
   "Condition,Grader,Grade,Altered,Public Notes,Private Notes,Links";
@@ -152,7 +152,7 @@ function csvFields(line: string): string[] {
 }
 
 function quantityOf(line: string): string {
-  return csvFields(line)[EXPORT_HEADER.split(",").indexOf("Quantity")];
+  return csvFields(line)[EXPORT_HEADER.split(",").indexOf("Quantity")] ?? "";
 }
 
 function escapeCsvField(value: string): string {
@@ -290,7 +290,7 @@ test.describe("collections import/export", () => {
       const lines = csv.split("\n");
       expect(lines[0]).toBe(EXPORT_HEADER);
       expect(lines).toHaveLength(2);
-      expect(quantityOf(lines[1])).toBe("2");
+      expect(quantityOf(lines[1] ?? "")).toBe("2");
 
       await expect(page.getByText("Collection exported.")).toBeVisible();
     });

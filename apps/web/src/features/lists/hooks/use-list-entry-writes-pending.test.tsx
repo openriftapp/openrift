@@ -87,6 +87,15 @@ describe("useListEntryWritesPending", () => {
     });
   });
 
+  it("leaves an in-flight step out for a further step and counts it for anything else", async () => {
+    const { result } = renderWrites();
+
+    act(() => result.current.update.mutate({ listId: "lst-1", entryId: "le-1", quantityDelta: 1 }));
+
+    await waitFor(() => expect(result.current.pending("le-1")).toBe(true));
+    expect(result.current.pending("le-1", { countSteps: false })).toBe(false);
+  });
+
   it("counts an absolute update and a remove of the entry", async () => {
     const { result } = renderWrites();
 

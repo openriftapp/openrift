@@ -100,6 +100,8 @@ const mockMeta = {
   playerById: vi.fn(),
   livePlayersByIds: vi.fn(),
   adminPlayersForEvent: vi.fn(),
+  adminPlayersForEvents: vi.fn(),
+  playerDeckCards: vi.fn(),
   eventIdForPlayer: vi.fn(),
   rawStandingsForEvent: vi.fn(),
   renamePlayerDeck: vi.fn(),
@@ -112,6 +114,14 @@ const mockMeta = {
 const mockPlayerLinks = { forEvent: vi.fn(), putMany: vi.fn(), remove: vi.fn() };
 
 const mockCatalog = { cardNamesByIds: vi.fn() };
+
+/** Every event the test asks about stands with these rows. */
+function standingsAre(rows: unknown[]): void {
+  mockMeta.adminPlayersForEvent.mockResolvedValue(rows);
+  mockMeta.adminPlayersForEvents.mockImplementation(
+    async (ids: readonly string[]) => new Map(ids.map((id) => [id, rows])),
+  );
+}
 
 const mockUvsgames = {
   byKey: vi.fn(),
@@ -139,7 +149,7 @@ const mockMetaSubmissions = {
   byPlayerOverlayIds: vi.fn(),
   recordAcceptance: vi.fn(),
   revokeAcceptance: vi.fn(),
-  acceptedCorrectionForOverlay: vi.fn(),
+  correctionForOverlay: vi.fn(),
   resolve: vi.fn(),
 };
 
@@ -290,7 +300,7 @@ beforeEach(() => {
     const rows = await Promise.all(ids.map((id) => mockMetaSubmissions.byPlayerOverlayId(id)));
     return rows.filter((row) => row !== null);
   });
-  mockMetaSubmissions.acceptedCorrectionForOverlay.mockResolvedValue(null);
+  mockMetaSubmissions.correctionForOverlay.mockResolvedValue(null);
   mockOverlays.lockEventOverlay.mockImplementation(async (id: string) => {
     const [row] = await knownEventOverlays([id]);
     return row;
@@ -325,7 +335,7 @@ beforeEach(() => {
   mockMeta.eventById.mockResolvedValue(LIVE_EVENT);
   mockMeta.eventsByIds.mockResolvedValue([LIVE_EVENT]);
   mockMeta.livePlayersByIds.mockResolvedValue([]);
-  mockMeta.adminPlayersForEvent.mockResolvedValue([]);
+  standingsAre([]);
   mockMeta.sourcesForEvent.mockResolvedValue([]);
   mockUvsgames.formatMappings.mockResolvedValue(new Map());
   mockUvsgames.templateTiers.mockResolvedValue(new Map());
@@ -940,6 +950,18 @@ describe("POST /meta/players/{id}/overlays", () => {
     );
   });
 
+  it("takes a list with no cards as a status change on the stored deck", async () => {
+    mockMeta.playerDeckCards.mockResolvedValue([LINE]);
+
+    const response = await write({ list: { cards: [], listStatus: "partial" } });
+
+    expect(response.status).toBe(200);
+    expect(mockOverlays.insertPlayerOverlay).toHaveBeenCalledWith(
+      expect.objectContaining({ claimedFields: ["cards", "listStatus"], listStatus: "partial" }),
+      [expect.objectContaining({ cardId: CARD_ID, quantity: 3 })],
+    );
+  });
+
   it("resolves each list line to the catalog's own name for the card", async () => {
     await write({ list: { cards: [LINE], listStatus: "partial" } });
 
@@ -1031,7 +1053,7 @@ describe("GET /meta/overlays, the facts a grouped queue reads", () => {
   const OTHER_EVENT_ID = "e0000000-0002-4000-a000-000000000002";
   const OTHER_PLAYER_ID = "f0000000-0002-4000-a000-000000000002";
 
-  /** A live standings row as `adminPlayersForEvent` lists it. */
+  /** A live standings row as `adminPlayersForEvents` lists it. */
   function standing(overrides: Record<string, unknown> = {}) {
     return {
       id: LIVE_PLAYER_ID,
@@ -1128,15 +1150,12 @@ describe("GET /meta/overlays, the facts a grouped queue reads", () => {
       metaEventName: null,
       match: { state: "unscored", candidateCount: 0 },
     });
-    expect(mockMeta.adminPlayersForEvent).not.toHaveBeenCalled();
+    expect(mockMeta.adminPlayersForEvents).not.toHaveBeenCalled();
   });
 
   it("reads one exact same-name row as the match Accept can link", async () => {
     mockOverlays.pendingPlayerOverlays.mockResolvedValue([playerOverlay()]);
-    mockMeta.adminPlayersForEvent.mockResolvedValue([
-      standing(),
-      standing({ id: OTHER_PLAYER_ID, playerName: "Renatta", rank: 9 }),
-    ]);
+    standingsAre([standing(), standing({ id: OTHER_PLAYER_ID, playerName: "Renatta", rank: 9 })]);
 
     const [row] = await queue();
 
@@ -1152,7 +1171,7 @@ describe("GET /meta/overlays, the facts a grouped queue reads", () => {
 
   it("reports candidates when only similar names exist", async () => {
     mockOverlays.pendingPlayerOverlays.mockResolvedValue([playerOverlay()]);
-    mockMeta.adminPlayersForEvent.mockResolvedValue([standing({ playerName: "Renatta", rank: 9 })]);
+    standingsAre([standing({ playerName: "Renatta", rank: 9 })]);
 
     const [row] = await queue();
 
@@ -1163,7 +1182,7 @@ describe("GET /meta/overlays, the facts a grouped queue reads", () => {
     mockOverlays.pendingPlayerOverlays.mockResolvedValue([
       playerOverlay({ id: OTHER_PLAYER_ID, playerName: "Zilean" }),
     ]);
-    mockMeta.adminPlayersForEvent.mockResolvedValue([standing()]);
+    standingsAre([standing()]);
 
     const [row] = await queue();
 
@@ -1174,14 +1193,14 @@ describe("GET /meta/overlays, the facts a grouped queue reads", () => {
     mockOverlays.pendingPlayerOverlays.mockResolvedValue([
       playerOverlay({ id: OTHER_PLAYER_ID, playerName: "Zilean" }),
     ]);
-    mockMeta.adminPlayersForEvent.mockResolvedValue([standing({ rank: 9 })]);
+    standingsAre([standing({ rank: 9 })]);
 
     const [row] = await queue();
 
     expect(row!.match).toMatchObject({ state: "none", candidateCount: 0 });
   });
 
-  it("reads each event's standings once, however many rows land on it", async () => {
+  it("reads every event's standings in one call, however many rows land on them", async () => {
     mockOverlays.pendingPlayerOverlays.mockResolvedValue([
       playerOverlay({ id: PLAYER_OVERLAY_ID }),
       playerOverlay({ id: OTHER_PLAYER_ID, playerName: "Zilean" }),
@@ -1190,7 +1209,8 @@ describe("GET /meta/overlays, the facts a grouped queue reads", () => {
 
     await queue();
 
-    expect(mockMeta.adminPlayersForEvent).toHaveBeenCalledTimes(2);
+    expect(mockMeta.adminPlayersForEvents).toHaveBeenCalledTimes(1);
+    expect(mockMeta.adminPlayersForEvents.mock.calls[0]![0]).toHaveLength(2);
     expect(mockMeta.eventsByIds).toHaveBeenCalledTimes(1);
   });
 
@@ -1595,7 +1615,7 @@ describe("the cross-mirror review", () => {
         sourceDeckId: null,
       },
     ]);
-    mockMeta.adminPlayersForEvent.mockResolvedValue([livePlayer()]);
+    standingsAre([livePlayer()]);
   }
 
   describe("GET /meta/events/{id}/cross-source", () => {
@@ -1655,7 +1675,7 @@ describe("the cross-mirror review", () => {
 
   describe("POST /meta/events/{id}/cross-source/link", () => {
     beforeEach(() => {
-      mockMeta.adminPlayersForEvent.mockResolvedValue([livePlayer()]);
+      standingsAre([livePlayer()]);
     });
 
     async function link(links: unknown[]): Promise<Response> {
@@ -1695,7 +1715,7 @@ describe("the cross-mirror review", () => {
     });
 
     it("writes nothing when a decision names a row that is gone", async () => {
-      mockMeta.adminPlayersForEvent.mockResolvedValue([]);
+      standingsAre([]);
 
       const response = await link([
         { provider: "topdeck", sourceIdentity: "tashe", metaEventPlayerId: LIVE_PLAYER_ID },
@@ -1706,7 +1726,7 @@ describe("the cross-mirror review", () => {
     });
 
     it("refuses a link while the entry's own promoted row still stands", async () => {
-      mockMeta.adminPlayersForEvent.mockResolvedValue([
+      standingsAre([
         livePlayer({ id: "f0000000-0001-4000-a000-000000000009", sourceIdentity: "tashe" }),
         livePlayer(),
       ]);

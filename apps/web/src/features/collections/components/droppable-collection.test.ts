@@ -73,7 +73,7 @@ describe("isCompatibleCollectionDrop", () => {
   it("rejects sidebar reorder drags", () => {
     expect(
       isCompatibleCollectionDrop(
-        { type: "sidebar-reorder-collection", collectionId: "col-1" },
+        { type: "sidebar-reorder-collection", collectionId: "col-1", label: "Binder" },
         "col-2",
       ),
     ).toBe(false);

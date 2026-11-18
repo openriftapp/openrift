@@ -22,6 +22,7 @@ import {
   suggestMetaEventMatches,
   suggestMetaPlayerMatches,
 } from "./services/meta-match-suggestions.js";
+import { reopenMetaSubmission } from "./services/meta-overlay-ledger.js";
 import {
   acceptMetaEventOverlay,
   acceptMetaPlayerOverlay,
@@ -65,6 +66,7 @@ export interface MetaServices {
   acceptMetaPlayerOverlays: typeof acceptMetaPlayerOverlays;
   applyMetaEventCorrection: typeof applyMetaEventCorrection;
   rejectMetaOverlay: typeof rejectMetaOverlay;
+  reopenMetaSubmission: typeof reopenMetaSubmission;
   suggestMetaEventMatches: typeof suggestMetaEventMatches;
   suggestMetaPlayerMatches: typeof suggestMetaPlayerMatches;
   submitMetaDeck: typeof submitMetaDeck;
@@ -109,6 +111,7 @@ export function createMetaServices(emailDeps?: EmailDeps): MetaServices {
     acceptMetaPlayerOverlays,
     applyMetaEventCorrection,
     rejectMetaOverlay,
+    reopenMetaSubmission,
     suggestMetaEventMatches,
     suggestMetaPlayerMatches,
     submitMetaDeck,

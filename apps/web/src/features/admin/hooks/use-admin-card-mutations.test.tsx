@@ -35,6 +35,7 @@ const {
   useCheckProvider,
   useCreatePrinting,
   useDeleteProvider,
+  useLeaveCardPage,
   useLinkCard,
   useRelinkCandidatePrintings,
   useRenameCard,
@@ -111,15 +112,18 @@ describe("card detail invalidation by slug", () => {
   const uuid = "019d3342-bec8-7f50-a92d-154e120f3fa1";
   const uuidKey = ["admin", "cards", "detail", uuid];
 
-  it("useRenameCard refreshes the old and the new slug", async () => {
+  it("useRenameCard refreshes the new slug and leaves the old slug's detail alone", async () => {
     const { client, invalidateSpy } = makeClient();
     const { result } = renderHook(() => useRenameCard(), { wrapper: wrap(client) });
 
     await act(async () => {
-      await result.current.mutateAsync({ cardId: uuid, cardSlug: "yasu", newId: "yasuo" });
+      await result.current.mutateAsync({ cardId: uuid, newId: "yasuo" });
     });
 
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin", "cards", "detail", "yasu"] });
+    const detailKeys = invalidateSpy.mock.calls
+      .map(([filters]) => filters?.queryKey)
+      .filter((key) => key?.[2] === "detail");
+    expect(detailKeys).toEqual([["admin", "cards", "detail", "yasuo"]]);
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: ["admin", "cards", "detail", "yasuo"],
     });
@@ -188,5 +192,30 @@ describe.each([
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin", "review-queue"] });
+  });
+});
+
+describe("useLeaveCardPage", () => {
+  it("drops the old address's detail only after the page has left it", async () => {
+    const { client } = makeClient();
+    const oldKey = ["admin", "cards", "detail", "yasu"];
+    const newKey = ["admin", "cards", "detail", "yasuo"];
+    client.setQueryData(oldKey, { card: "old" });
+    client.setQueryData(newKey, { card: "new" });
+    const { result } = renderHook(() => useLeaveCardPage(), { wrapper: wrap(client) });
+    let arrive = () => {};
+    const leave = () =>
+      new Promise<void>((resolve) => {
+        arrive = resolve;
+      });
+
+    const left = result.current("yasu", leave);
+    await Promise.resolve();
+    expect(client.getQueryData(oldKey)).toEqual({ card: "old" });
+
+    arrive();
+    await left;
+    expect(client.getQueryCache().find({ queryKey: oldKey })).toBeUndefined();
+    expect(client.getQueryData(newKey)).toEqual({ card: "new" });
   });
 });

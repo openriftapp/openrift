@@ -78,16 +78,16 @@ function BatchDialog({
     }
   }
 
+  function changeOpen(next: boolean) {
+    if (!next) {
+      setOutcome(null);
+      run.reset();
+    }
+    onOpenChange(next);
+  }
+
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        if (!next) {
-          setOutcome(null);
-        }
-        onOpenChange(next);
-      }}
-    >
+    <Dialog open={open} onOpenChange={changeOpen}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{CONFIRM_TITLES[kind]}</DialogTitle>
@@ -132,7 +132,7 @@ function BatchDialog({
               </Button>
             </>
           ) : (
-            <Button onClick={() => onOpenChange(false)}>Done</Button>
+            <Button onClick={() => changeOpen(false)}>Done</Button>
           )}
         </DialogFooter>
       </DialogContent>

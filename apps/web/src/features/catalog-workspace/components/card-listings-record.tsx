@@ -46,6 +46,7 @@ import {
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
+import { queueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import type { ListingVariantGroup } from "@/features/catalog-workspace/lib/card-listing-groups";
 import { unmatchedListingGroups } from "@/features/catalog-workspace/lib/card-listing-groups";
 import type { CardListingRow } from "@/features/catalog-workspace/lib/card-listing-rows";
@@ -213,7 +214,11 @@ function CardListingsBody({ cardSlug, item }: { cardSlug: string; item: Workspac
                     variant="outline"
                     size="sm"
                     disabled={ignoring}
-                    onClick={() => void ignoreGroup(group, `the ${variantName} variant`)}
+                    onClick={() =>
+                      void queueWorkspaceWrite(() =>
+                        ignoreGroup(group, `the ${variantName} variant`),
+                      )
+                    }
                   >
                     Ignore variant
                   </Button>
@@ -316,9 +321,11 @@ function ListingLine({
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() =>
-                void finish(
-                  () => ignoreVariant.mutateAsync([skuOf(row)]),
-                  ignoredVariantsUndo(marketplace, [skuOf(row)], record),
+                void queueWorkspaceWrite(() =>
+                  finish(
+                    () => ignoreVariant.mutateAsync([skuOf(row)]),
+                    ignoredVariantsUndo(marketplace, [skuOf(row)], record),
+                  ),
                 )
               }
             >
@@ -327,9 +334,11 @@ function ListingLine({
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() =>
-                void finish(
-                  () => ignoreProduct.mutateAsync([{ externalId: product.externalId }]),
-                  ignoredProductUndo(marketplace, product.externalId, record),
+                void queueWorkspaceWrite(() =>
+                  finish(
+                    () => ignoreProduct.mutateAsync([{ externalId: product.externalId }]),
+                    ignoredProductUndo(marketplace, product.externalId, record),
+                  ),
                 )
               }
             >
@@ -343,7 +352,7 @@ function ListingLine({
         <Suspense fallback={<Skeleton className="h-9" />}>
           <ListingPrintingCombobox
             disabled={pending}
-            onPick={(printingId) => void assign(printingId)}
+            onPick={(printingId) => void queueWorkspaceWrite(() => assign(printingId))}
           />
         </Suspense>
       )}

@@ -46,6 +46,29 @@ export function printingImagesRepo(db: Kysely<Database>) {
     await conn.selectFrom("faces").select("id").where("id", "=", faceId).forUpdate().execute();
   }
 
+  /**
+   * Faces lock before `image_files`: activation holds the face and its trigger then
+   * takes the file FOR SHARE, so a file writer that locked the file first could deadlock.
+   */
+  async function lockFacesOfFile(conn: Kysely<Database>, imageFileId: string): Promise<void> {
+    await conn
+      .selectFrom("faces")
+      .select("id")
+      .where((eb) =>
+        eb.or([
+          eb(
+            "id",
+            "in",
+            eb.selectFrom("faceImages").select("faceId").where("imageFileId", "=", imageFileId),
+          ),
+          eb("fallbackImageFileId", "=", imageFileId),
+        ]),
+      )
+      .orderBy("id")
+      .forUpdate()
+      .execute();
+  }
+
   async function clearPendingOnFace(conn: Kysely<Database>, faceId: string): Promise<void> {
     await conn
       .updateTable("faceImages")
@@ -173,31 +196,63 @@ export function printingImagesRepo(db: Kysely<Database>) {
       );
     },
 
-    async setRotation(imageFileId: string, rotation: 0 | 90 | 180 | 270): Promise<void> {
-      await db
-        .updateTable("imageFiles")
-        .set({ rotation, fingerprint: null })
-        .where("id", "=", imageFileId)
-        .where("rotation", "is distinct from", rotation)
-        .execute();
-    },
-
-    async setNeedsTrim(imageFileId: string, needsTrim: boolean): Promise<void> {
-      await db
-        .updateTable("imageFiles")
-        .set({ needsTrim, fingerprint: null })
-        .where("id", "=", imageFileId)
-        .where("needsTrim", "is distinct from", needsTrim)
-        .execute();
-    },
-
-    async setQuad(imageFileId: string, quad: ImageQuad | null): Promise<void> {
-      await db
-        .updateTable("imageFiles")
-        .set({ quad, fingerprint: null })
-        .where("id", "=", imageFileId)
-        .where("quad", "is distinct from", sql<ImageQuad | null>`${quad}`)
-        .execute();
+    /**
+     * Moves every face image and substitute-art pin of `oldId`, and its source
+     * URL and credit, onto the new row, then deletes the old row. False when the
+     * old row is gone or nothing used it.
+     */
+    replaceImageFile(
+      oldId: string,
+      next: {
+        id: string;
+        rehostedUrl: string;
+        rotation: 0 | 90 | 180 | 270;
+        needsTrim: boolean;
+        quad: ImageQuad | null;
+      },
+    ): Promise<boolean> {
+      return inTransaction(db, async (trx) => {
+        await lockFacesOfFile(trx, oldId);
+        const old = await trx
+          .selectFrom("imageFiles")
+          .select(["originalUrl", "credit"])
+          .where("id", "=", oldId)
+          .forUpdate()
+          .executeTakeFirst();
+        if (!old) {
+          return false;
+        }
+        await trx
+          .insertInto("imageFiles")
+          .values({ ...next, credit: old.credit })
+          .execute();
+        const images = await trx
+          .updateTable("faceImages")
+          .set({ imageFileId: next.id })
+          .where("imageFileId", "=", oldId)
+          .returning("id")
+          .execute();
+        const pins = await trx
+          .updateTable("faces")
+          .set({ fallbackImageFileId: next.id })
+          .where("fallbackImageFileId", "=", oldId)
+          .returning("id")
+          .execute();
+        if (images.length === 0 && pins.length === 0) {
+          await trx.deleteFrom("imageFiles").where("id", "=", next.id).execute();
+          return false;
+        }
+        await trx.deleteFrom("imageFiles").where("id", "=", oldId).execute();
+        if (old.originalUrl !== null) {
+          await trx
+            .updateTable("imageFiles")
+            .set({ originalUrl: old.originalUrl })
+            .where("id", "=", next.id)
+            .execute();
+        }
+        await printingImagesRepo(trx).promotePending(next.id);
+        return true;
+      });
     },
 
     async deleteById(imageId: string): Promise<void> {
@@ -222,6 +277,39 @@ export function printingImagesRepo(db: Kysely<Database>) {
         .where("id", "=", imageId)
         .executeTakeFirst();
       return row?.imageFileId;
+    },
+
+    /**
+     * The row lock holds off an activation until the URL is cleared. False when
+     * the row is gone, already un-rehosted, live or pinned.
+     */
+    clearRehostedUrl(imageFileId: string): Promise<boolean> {
+      return inTransaction(db, async (trx) => {
+        await lockFacesOfFile(trx, imageFileId);
+        const locked = await trx
+          .selectFrom("imageFiles")
+          .select("id")
+          .where("id", "=", imageFileId)
+          .where("rehostedUrl", "is not", null)
+          .forUpdate()
+          .executeTakeFirst();
+        const repo = printingImagesRepo(trx);
+        if (
+          !locked ||
+          (await repo.isActiveImageFile(imageFileId)) ||
+          (await repo.isPinnedFallbackFile(imageFileId))
+        ) {
+          return false;
+        }
+        await repo.clearPendingForFile(imageFileId);
+        await repo.clearRehostFailure(imageFileId);
+        await trx
+          .updateTable("imageFiles")
+          .set({ rehostedUrl: null, fingerprint: null })
+          .where("id", "=", imageFileId)
+          .execute();
+        return true;
+      });
     },
 
     async updateRehostedUrl(imageFileId: string, rehostedUrl: string | null): Promise<void> {
@@ -365,6 +453,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
       const faceId = await requireFaceId(printingId, face);
 
       return inTransaction(db, async (trx) => {
+        await lockFace(trx, faceId);
         const file = await trx
           .selectFrom("imageFiles")
           .select("rehostedUrl")
@@ -376,7 +465,6 @@ export function printingImagesRepo(db: Kysely<Database>) {
         if (activateNow) {
           await deactivateFace(trx, faceId);
         } else if (pending) {
-          await lockFace(trx, faceId);
           await clearPendingOnFace(trx, faceId);
         }
         const row = await trx
@@ -447,6 +535,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
 
     completeRehost(imageFileId: string, rehostedUrl: string): Promise<boolean> {
       return inTransaction(db, async (trx) => {
+        await lockFacesOfFile(trx, imageFileId);
         const updated = await trx
           .updateTable("imageFiles")
           .set({ rehostedUrl, fingerprint: null })
@@ -545,7 +634,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
         }
 
         // The image_files id must equal values.id (= the file path basename):
-        // regenerateFromOrig derives the on-disk lookup path from image_file.id.
+        // the orig lookup (`origFileOnDisk`) derives the on-disk path from image_file.id.
         await trx
           .insertInto("imageFiles")
           .values({
@@ -852,7 +941,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
      * scan of the face that shows it, and giving it a `face_images` row
      * would make the face look scanned to the missing-images report, the
      * contribute prompt and the catalog alike. Same id-equals-path-basename rule
-     * as {@link insertUploadedImage}, which `regenerateFromOrig` depends on.
+     * as {@link insertUploadedImage}, which `origFileOnDisk` depends on.
      */
     async insertUnattachedImageFile(values: { id: string; rehostedUrl: string }): Promise<void> {
       await db

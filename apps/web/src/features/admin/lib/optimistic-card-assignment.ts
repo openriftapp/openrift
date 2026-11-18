@@ -85,3 +85,55 @@ export function applyOptimisticAssignmentForCard(
   }
   return { ...response, group: nextGroup };
 }
+
+/**
+ * Undoes one {@link applyOptimisticAssignmentForCard} on the current cache when that apply changed
+ * `previous`, leaving every other marketplace and later change as they are.
+ */
+export function revertOptimisticAssignmentForCard(
+  current: UnifiedMappingsCardResponse,
+  previous: UnifiedMappingsCardResponse,
+  marketplace: AdminMarketplaceName,
+  externalId: number,
+  finish: string,
+  language: string | null,
+  printingId: string,
+): UnifiedMappingsCardResponse {
+  const applied = applyOptimisticAssignmentForCard(
+    previous,
+    marketplace,
+    externalId,
+    finish,
+    language,
+    printingId,
+  );
+  if (!current.group || !previous.group || applied === previous) {
+    return current;
+  }
+  const sameSku = (entry: { externalId: number; finish: string; language: string | null }) =>
+    entry.externalId === externalId && entry.finish === finish && entry.language === language;
+  const mk = current.group[marketplace];
+  const assignments = mk.assignments.filter(
+    (assignment) => !(sameSku(assignment) && assignment.printingId === printingId),
+  );
+  const wasStaged = previous.group[marketplace].stagedProducts.find((product) => sameSku(product));
+  const restoreStaged =
+    wasStaged !== undefined && !assignments.some((assignment) => sameSku(assignment));
+  return {
+    ...current,
+    group: {
+      ...current.group,
+      [marketplace]: {
+        ...mk,
+        assignments,
+        stagedProducts:
+          restoreStaged && !mk.stagedProducts.some((product) => sameSku(product))
+            ? [...mk.stagedProducts, wasStaged]
+            : mk.stagedProducts,
+        assignedProducts: restoreStaged
+          ? mk.assignedProducts.filter((product) => !sameSku(product))
+          : mk.assignedProducts,
+      },
+    },
+  };
+}

@@ -1,5 +1,6 @@
 import { truncateAtWord } from "@openrift/shared/card-text";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
+import type { Marketplace } from "@openrift/shared/types/pricing";
 import { ALL_MARKETPLACES, EUR_MARKETPLACES } from "@openrift/shared/types/pricing";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
@@ -23,11 +24,7 @@ function seeded<T>(value: T | null | undefined, message: string): T {
   return value;
 }
 
-interface MarketplacePrices {
-  tcgplayer?: number;
-  cardmarket?: number;
-  cardtrader?: number;
-}
+type MarketplacePrices = Partial<Record<Marketplace, number>>;
 
 async function fetchPrices(): Promise<Record<string, MarketplacePrices | undefined>> {
   const res = await fetch(`${API_BASE_URL}/api/v1/prices`);
@@ -128,9 +125,7 @@ async function fetchCardDetail(slug: string): Promise<CardDetailFixture> {
 }
 
 function infoRowTerm(page: Page, label: string) {
-  return page
-    .locator('[data-slot="definition-term"]')
-    .filter({ hasText: new RegExp(`^${label}$`, "u") });
+  return page.getByRole("term").filter({ hasText: new RegExp(`^${label}$`, "u") });
 }
 
 function infoRow(page: Page, label: string) {
@@ -138,8 +133,8 @@ function infoRow(page: Page, label: string) {
 }
 
 /**
- * Mirrors apps/web/src/lib/card-meta.ts's buildCardPriceLine: keep this in
- * sync if that helper's formatting or marketplace-priority logic changes.
+ * Mirrors the card route loader's marketplace offers and buildCardPriceLine in
+ * apps/web/src/features/cards/lib/card-meta.ts: keep this in sync with both.
  */
 function buildExpectedPriceLine(
   detail: CardDetailFixture,
@@ -400,7 +395,7 @@ test.describe("card detail route — related cards", () => {
     page,
   }) => {
     const detail = await fetchCardDetail(SEED_CARD_SLUG);
-    const oldCode = detail.printings[0].publicCode;
+    const oldCode = seeded(detail.printings[0], `${SEED_CARD_SLUG} printing`).publicCode;
 
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
     const heading = page.getByRole("heading", { name: "Related cards" });
@@ -416,7 +411,11 @@ test.describe("card detail route — related cards", () => {
     await expect(
       page.getByRole("heading", { level: 1, name: relatedDetail.card.name }),
     ).toBeVisible();
-    await expect(page.getByText(relatedDetail.printings[0].publicCode).first()).toBeVisible();
+    await expect(
+      page
+        .getByText(seeded(relatedDetail.printings[0], "related card printing").publicCode)
+        .first(),
+    ).toBeVisible();
     await expect(page.getByText(oldCode, { exact: true })).toHaveCount(0);
   });
 });
@@ -424,7 +423,7 @@ test.describe("card detail route — related cards", () => {
 test.describe("card detail route — info panel", () => {
   test("set row links to /sets/<slug> with the set code", async ({ page }) => {
     const detail = await fetchCardDetail(SEED_CARD_SLUG);
-    const printing = detail.printings[0];
+    const printing = seeded(detail.printings[0], `${SEED_CARD_SLUG} printing`);
     const set = detail.sets.find((s) => s.id === printing.setId);
     if (!set) {
       throw new Error(`set ${printing.setId} missing from card detail response`);

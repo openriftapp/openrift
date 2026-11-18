@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Repos, Transact } from "../../../deps.js";
+import type { Io } from "../../../io.js";
 import type { AdminAccess } from "../../../middleware/require-admin.js";
 import {
   assertDeskImageFileScope,
@@ -74,6 +75,10 @@ function makeRepos() {
       getSetPrintedTotalForPrinting: vi.fn(() => Promise.resolve({ printedTotal: 298 })),
       findFaceIdByIdentity: vi.fn(() => Promise.resolve({ id: "new-face" })),
       updateFaceById: vi.fn(() => Promise.resolve(true)),
+      deleteImageFileIfUnreferenced: vi.fn(
+        (): Promise<{ id: string; rehostedUrl: string | null } | undefined> =>
+          Promise.resolve(undefined),
+      ),
     },
     distributionChannels: {
       listForPrintingIds: vi.fn(() => Promise.resolve([{ channelSlug: "nexus-night-2026-09" }])),
@@ -95,7 +100,7 @@ function makeRepos() {
       lockFaceLinks: vi.fn((id: string) =>
         Promise.resolve(FACE_LINKS[id] as { face1Id: string; face2Id: string | null }),
       ),
-      dropFace: vi.fn(() => Promise.resolve()),
+      dropFace: vi.fn((): Promise<string[]> => Promise.resolve([])),
       userReferenceCounts: vi.fn(() =>
         Promise.resolve({ copies: 0, listEntries: 0, trades: 0, loans: 0, listings: 0 }),
       ),
@@ -893,7 +898,7 @@ describe("setDeskSecondSide", () => {
 describe("removeDeskSide", () => {
   function remove(printingId: string, faceId: string) {
     const viaRepos = ((fn) => fn(repos as unknown as Repos)) as Transact;
-    return removeDeskSide(viaRepos, repos as unknown as Repos, FULL_ADMIN, "user-1", {
+    return removeDeskSide(viaRepos, {} as Io, repos as unknown as Repos, FULL_ADMIN, "user-1", {
       printingId,
       faceId,
     });
@@ -903,6 +908,34 @@ describe("removeDeskSide", () => {
     await remove("paired", "face-bird");
     expect(repos.printingDesk.dropFace).toHaveBeenCalledWith("paired", "face-bird");
     expect(repos.catalog.refreshCatalogViews).toHaveBeenCalled();
+  });
+
+  it("deletes the image files the dropped side released once the drop has committed", async () => {
+    const events: string[] = [];
+    repos.printingDesk.dropFace.mockImplementation(() => {
+      events.push("drop");
+      return Promise.resolve(["if-scan", "if-pin"]);
+    });
+    repos.catalogMutations.deleteImageFileIfUnreferenced.mockImplementation(() => {
+      events.push("delete");
+      return Promise.resolve(undefined);
+    });
+    const viaRepos = (async (fn) => {
+      const result = await fn(repos as unknown as Repos);
+      events.push("commit");
+      return result;
+    }) as Transact;
+
+    await removeDeskSide(viaRepos, {} as Io, repos as unknown as Repos, FULL_ADMIN, "user-1", {
+      printingId: "paired",
+      faceId: "face-gold",
+    });
+
+    expect(repos.catalogMutations.deleteImageFileIfUnreferenced.mock.calls).toEqual([
+      ["if-scan"],
+      ["if-pin"],
+    ]);
+    expect(events.slice(0, 2)).toEqual(["drop", "commit"]);
   });
 
   it("refuses while users hold or point at the printing", async () => {

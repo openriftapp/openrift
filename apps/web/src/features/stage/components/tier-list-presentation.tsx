@@ -71,7 +71,7 @@ export function OwnedTierListPresentation({
       }}
       {...rest}
       onExit={() => {
-        autosave.flush();
+        autosave.leave();
         rest.onExit();
       }}
     />

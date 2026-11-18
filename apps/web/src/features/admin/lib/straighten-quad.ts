@@ -57,19 +57,6 @@ export function orderQuadFromOrigin(quad: Quad): ImageQuad {
   );
 }
 
-export function quadCacheKey(quad: ImageQuad | null): string {
-  if (quad === null) {
-    return "0";
-  }
-  const source = quad.map((point) => `${Math.round(point.x)},${Math.round(point.y)}`).join(";");
-  let hash = 0x81_1c_9d_c5;
-  for (let index = 0; index < source.length; index++) {
-    hash ^= source.codePointAt(index) ?? 0;
-    hash = Math.imul(hash, 0x01_00_01_93);
-  }
-  return (hash >>> 0).toString(36);
-}
-
 export function imageToDisplayScale(naturalWidth: number, displayedWidth: number): number {
   if (naturalWidth <= 0 || displayedWidth <= 0) {
     return 1;

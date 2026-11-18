@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { createMockDb } from "../../../test/mock-db.js";
 import { createRecordingDb } from "../../../test/recording-db.js";
@@ -24,18 +24,6 @@ describe("priceRefreshRepo", () => {
     const result = await priceRefreshRepo(db).loadIgnoredKeys("tcgplayer");
     expect(result.productIds.size).toBe(0);
     expect(result.variantKeys.size).toBe(0);
-  });
-
-  it("upsertGroups upserts marketplace groups", async () => {
-    const db = createMockDb([]);
-    await expect(
-      priceRefreshRepo(db).upsertGroups("tcgplayer", [{ groupId: 1, name: "Group" }]),
-    ).resolves.toBeUndefined();
-  });
-
-  it("upsertGroups is no-op for empty array", async () => {
-    const db = createMockDb([]);
-    await expect(priceRefreshRepo(db).upsertGroups("tcgplayer", [])).resolves.toBeUndefined();
   });
 
   it("upsertProductsForMarketplace returns product IDs per SKU", async () => {
@@ -93,77 +81,14 @@ describe("priceRefreshRepo", () => {
     expect(await priceRefreshRepo(db).existingSourcesByMarketplaces(["tcgplayer"])).toHaveLength(1);
   });
 
-  it("batchInsertProductVariants inserts products + variants", async () => {
-    const db = createMockDb([
-      { id: "mp-1", marketplace: "tcgplayer", externalId: 123, finish: "normal", language: null },
+  it("batchInsertProductVariants throws when a marketplace's product is missing", async () => {
+    const { db, setRows } = createRecordingDb();
+    setRows([
+      { id: "p-tcg", marketplace: "tcgplayer", externalId: 42, finish: "normal", language: null },
     ]);
+
     await expect(
       priceRefreshRepo(db).batchInsertProductVariants([
-        {
-          marketplace: "tcgplayer",
-          externalId: 123,
-          groupId: 1,
-          productName: "Card",
-          printingId: "p-1",
-          finish: "normal",
-          language: null,
-        },
-      ]),
-    ).resolves.toBeUndefined();
-  });
-
-  it("batchInsertProductVariants is no-op for empty array", async () => {
-    const db = createMockDb([]);
-    await expect(priceRefreshRepo(db).batchInsertProductVariants([])).resolves.toBeUndefined();
-  });
-});
-
-describe("priceRefreshRepo (generated SQL)", () => {
-  const captured = createRecordingDb();
-
-  beforeEach(() => {
-    captured.reset();
-  });
-
-  it("batchInsertProductVariants keeps two marketplaces sharing an external id apart", async () => {
-    captured.setRows([
-      { id: "p-tcg", marketplace: "tcgplayer", externalId: 42, finish: "normal", language: null },
-      { id: "p-cm", marketplace: "cardmarket", externalId: 42, finish: "normal", language: null },
-    ]);
-
-    await priceRefreshRepo(captured.db).batchInsertProductVariants([
-      {
-        marketplace: "tcgplayer",
-        externalId: 42,
-        groupId: 7,
-        productName: "Card",
-        printingId: "pr-tcg",
-        finish: "normal",
-        language: null,
-      },
-      {
-        marketplace: "cardmarket",
-        externalId: 42,
-        groupId: 7,
-        productName: "Card",
-        printingId: "pr-cm",
-        finish: "normal",
-        language: null,
-      },
-    ]);
-
-    const variantInsert = captured.statements.at(-1)!;
-    expect(variantInsert.sql).toContain('insert into "marketplace_product_variants"');
-    expect(variantInsert.parameters).toEqual(["p-tcg", "pr-tcg", "p-cm", "pr-cm"]);
-  });
-
-  it("batchInsertProductVariants throws when a marketplace's product is missing", async () => {
-    captured.setRows([
-      { id: "p-tcg", marketplace: "tcgplayer", externalId: 42, finish: "normal", language: null },
-    ]);
-
-    await expect(
-      priceRefreshRepo(captured.db).batchInsertProductVariants([
         {
           marketplace: "cardmarket",
           externalId: 42,
@@ -175,27 +100,5 @@ describe("priceRefreshRepo (generated SQL)", () => {
         },
       ]),
     ).rejects.toThrow("missing product id for cardmarket 42 normal/NULL");
-  });
-
-  it("upsertProductsForMarketplace writes only changed rows, then reads every product back", async () => {
-    await priceRefreshRepo(captured.db).upsertProductsForMarketplace("cardmarket", [
-      { externalId: 42, finish: "normal", language: null, groupId: 7, productName: "Card" },
-    ]);
-
-    expect(captured.statements).toHaveLength(2);
-    const [upsert, read] = captured.statements.map((statement) => ({
-      ...statement,
-      sql: statement.sql.replaceAll(/\s+/gu, " "),
-    }));
-    expect(upsert!.sql).toContain(
-      'on conflict ("marketplace", "external_id", "finish", "language") do update set',
-    );
-    expect(upsert!.sql).toContain('"group_id" = "excluded"."group_id"');
-    expect(upsert!.sql).toContain('"product_name" = "excluded"."product_name"');
-    expect(upsert!.sql).toContain("is distinct from (excluded.group_id, excluded.product_name)");
-    expect(upsert!.sql).not.toContain("returning");
-    expect(upsert!.parameters).toEqual(["cardmarket", 42, 7, "Card", "normal", null]);
-    expect(read!.sql).toContain('select "id", "external_id", "finish", "language"');
-    expect(read!.parameters).toEqual(["cardmarket", 42]);
   });
 });

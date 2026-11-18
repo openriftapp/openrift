@@ -112,4 +112,52 @@ describe("SelectionDetailPane", () => {
     expect(useDisplayStore.getState().paneDocked).toBe(false);
     expect(screen.queryByText("Select a card to see its details")).not.toBeInTheDocument();
   });
+
+  it("closes the dock on Escape like its close button", async () => {
+    const user = userEvent.setup();
+    const items = [stubCardViewerItem()];
+    useDisplayStore.setState({ paneDocked: true });
+    useSelectionStore.setState({
+      selectedCard: items[0]!.printing,
+      selectedItemId: items[0]!.id,
+      detailOpen: true,
+    });
+    renderPane(items);
+    await screen.findByText("Card detail stub");
+
+    await user.keyboard("{Escape}");
+
+    expect(useDisplayStore.getState().paneDocked).toBe(false);
+    expect(useSelectionStore.getState().selectedCard).toBeNull();
+  });
+
+  it("leaves Escape to a text field or an open menu", async () => {
+    const user = userEvent.setup();
+    useDisplayStore.setState({ paneDocked: true });
+    render(
+      <>
+        <input aria-label="Search cards" />
+        <div role="menu" tabIndex={-1} aria-label="Card actions" />
+      </>,
+    );
+    renderPane([stubCardViewerItem()]);
+
+    await user.click(screen.getByRole("textbox", { name: "Search cards" }));
+    await user.keyboard("{Escape}");
+    screen.getByRole("menu", { name: "Card actions" }).focus();
+    await user.keyboard("{Escape}");
+
+    expect(useDisplayStore.getState().paneDocked).toBe(true);
+  });
+
+  it("leaves an Escape another layer already handled", () => {
+    useDisplayStore.setState({ paneDocked: true });
+    renderPane([stubCardViewerItem()]);
+
+    const event = new KeyboardEvent("keydown", { key: "Escape", cancelable: true });
+    event.preventDefault();
+    globalThis.dispatchEvent(event);
+
+    expect(useDisplayStore.getState().paneDocked).toBe(true);
+  });
 });

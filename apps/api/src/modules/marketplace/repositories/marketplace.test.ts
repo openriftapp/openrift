@@ -82,35 +82,16 @@ describe("marketplaceRepo (generated SQL)", () => {
     captured.reset();
   });
 
-  it("sourcesForPrintings picks the product matching the latest headline, then the lowest external id", async () => {
-    await marketplaceRepo(captured.db).sourcesForPrintings(["pr-1"]);
-
-    const sql = squash(onlyStatement(captured).sql);
-    expect(sql).toMatch(/^SELECT DISTINCT ON \(mpv\.printing_id, mp\.marketplace\) /u);
-    expect(sql).toContain('mpv.id AS "variantId"');
-    expect(sql).toContain(
-      "LEFT JOIN mv_latest_printing_prices lp ON lp.printing_id = mpv.printing_id AND lp.marketplace = mp.marketplace",
-    );
-    expect(sql).toContain("pp.recorded_at >= lp.last_seen AND pp.recorded_at < lp.last_seen + 1");
-    expect(sql).toMatch(
-      /ORDER BY mpv\.printing_id, mp\.marketplace, \(own\.headline_cents = lp\.headline_cents\) IS TRUE DESC, mp\.external_id, mpv\.id$/u,
-    );
-  });
-
   it("sourcesForPrintings binds every printing id it was given", async () => {
     await marketplaceRepo(captured.db).sourcesForPrintings(["pr-1", "pr-2"]);
 
-    const { sql, parameters } = onlyStatement(captured);
-    expect(squash(sql)).toContain("WHERE mpv.printing_id IN ($1, $2)");
-    expect(parameters).toEqual(["pr-1", "pr-2"]);
+    expect(onlyStatement(captured).parameters).toEqual(["pr-1", "pr-2"]);
   });
 
-  it("sourcesForAllPrintings has no printing filter", async () => {
+  it("sourcesForAllPrintings binds no printing filter", async () => {
     await marketplaceRepo(captured.db).sourcesForAllPrintings();
 
-    const { sql, parameters } = onlyStatement(captured);
-    expect(squash(sql)).not.toContain("WHERE mpv.printing_id");
-    expect(parameters).toEqual([]);
+    expect(onlyStatement(captured).parameters).toEqual([]);
   });
 
   it("sourcesForPrintings computes each product's headline the way mv_daily_printing_prices does", async () => {

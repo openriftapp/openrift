@@ -59,9 +59,11 @@ import {
 } from "@/features/admin/lib/accept-card-validation";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { buildPrintingGroups } from "@/features/admin/lib/candidate-printing-groups";
+import { candidateFieldValue } from "@/features/admin/lib/candidate-rows";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { useAdminCardSearch } from "@/features/cards/hooks/use-card-search";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { PERSISTENT_ERROR_TOAST } from "@/lib/toast";
 
 interface NewCardColumnActionsProps {
@@ -91,12 +93,11 @@ function NewCardColumnActions({
     <>
       <DropdownMenuItem
         onClick={() => {
-          const record = row as unknown as Record<string, unknown>;
           for (const field of newCardFields) {
             if (field.readOnly) {
               continue;
             }
-            const val = record[field.key];
+            const val = candidateFieldValue(row, field.key);
             if (val !== null && val !== undefined && val !== "") {
               setActiveCard((prev) => ({ ...prev, [field.key]: val }));
             }
@@ -221,7 +222,7 @@ function NewCardDetail({ identifier }: { identifier: string }) {
 
   const groups = buildPrintingGroups(unmatchedData.candidatePrintingGroups, candidatePrintings);
 
-  function handleAcceptAsNew() {
+  async function handleAcceptAsNew() {
     if (!hasRequiredFields || !newModeCardId.trim()) {
       return;
     }
@@ -232,30 +233,23 @@ function NewCardDetail({ identifier }: { identifier: string }) {
       toast.error(`Can't accept this card:\n${issues.join("\n")}`, PERSISTENT_ERROR_TOAST);
       return;
     }
-    acceptNewCard.mutate(
-      { name: identifier, cardFields },
-      {
-        onSuccess: () => {
-          void navigate({ to: "/admin/cards/$cardSlug", params: { cardSlug: id } });
-        },
-      },
-    );
+    if (
+      await runReportedMutation(() => acceptNewCard.mutateAsync({ name: identifier, cardFields }))
+    ) {
+      void navigate({ to: "/admin/cards/$cardSlug", params: { cardSlug: id } });
+    }
   }
 
-  function handleLink() {
+  async function handleLink() {
     if (!linkCardId.trim()) {
       return;
     }
     const targetId = linkCardId.trim();
     const targetSlug = allCards?.find((c) => c.id === targetId)?.slug ?? targetId;
-    linkCard.mutate(
-      { name: identifier, cardId: targetId, cardSlug: targetSlug },
-      {
-        onSuccess: () => {
-          void navigate({ to: "/admin/cards/$cardSlug", params: { cardSlug: targetSlug } });
-        },
-      },
-    );
+    const input = { name: identifier, cardId: targetId, cardSlug: targetSlug };
+    if (await runReportedMutation(() => linkCard.mutateAsync(input))) {
+      void navigate({ to: "/admin/cards/$cardSlug", params: { cardSlug: targetSlug } });
+    }
   }
 
   return (
@@ -352,7 +346,7 @@ function NewCardDetail({ identifier }: { identifier: string }) {
               variant="outline"
               disabled={!linkCardId.trim()}
               pending={linkCard.isPending}
-              onClick={handleLink}
+              onClick={() => void handleLink()}
             >
               <LinkIcon className="size-4" />
               Link
@@ -373,7 +367,7 @@ function NewCardDetail({ identifier }: { identifier: string }) {
           <Button
             disabled={!hasRequiredFields || !newModeCardId.trim()}
             pending={acceptNewCard.isPending}
-            onClick={handleAcceptAsNew}
+            onClick={() => void handleAcceptAsNew()}
           >
             <PlusIcon className="size-4" />
             Accept as new card

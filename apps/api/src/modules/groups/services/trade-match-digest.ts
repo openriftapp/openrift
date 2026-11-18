@@ -6,6 +6,7 @@ import type { EmailDeps } from "../../../email.js";
 import { sendChannelEmail } from "../../../email.js";
 import type { DigestGroupSection } from "../../../emails/trade-emails.js";
 import { buildTradeMatchDigestEmail } from "../../../emails/trade-emails.js";
+import type { MatchDigestRecipient } from "../../users/repositories/user-preferences.js";
 import type { IncomingMatchFeedRow } from "../repositories/friend-group-matches-view.js";
 
 const DIGEST_MATCH_LIMIT = 500;
@@ -42,8 +43,8 @@ export function extractDigestWatermark(result: unknown): Date | null {
 }
 
 /**
- * One digest job run. The run's start becomes the next run's watermark, also when the run
- * throws partway, so a recipient already mailed is not mailed the same matches again.
+ * One digest job run. The run's start becomes the next run's watermark. A run that throws
+ * mailed nobody, so it keeps the window it started from for the next run.
  * Without `sinceTimestamp`, the window starts at the previous run's watermark.
  */
 export async function runTradeMatchDigest(
@@ -62,7 +63,9 @@ export async function runTradeMatchDigest(
   try {
     result = await sendTradeMatchDigest({ ...deps, sinceTimestamp: prior });
   } catch (error) {
-    await deps.repos.jobRuns.mergeResult(runId, watermark);
+    if (prior !== null) {
+      await deps.repos.jobRuns.mergeResult(runId, { lastRunAt: prior.toISOString() });
+    }
     throw error;
   }
   return { ...result, ...watermark };
@@ -78,7 +81,7 @@ interface PendingGroup {
 export async function sendTradeMatchDigest(
   deps: TradeMatchDigestDeps,
 ): Promise<TradeMatchDigestResult> {
-  const { repos, appBaseUrl, sinceTimestamp } = deps;
+  const { repos, sinceTimestamp } = deps;
 
   if ((await repos.siteSettings.getBool(TRADE_MATCH_DIGEST_SETTING)) === false) {
     return { recipients: 0, emailsSent: 0, matches: 0, failed: 0, matchesDropped: 0 };
@@ -95,61 +98,26 @@ export async function sendTradeMatchDigest(
   let matchesDropped = 0;
 
   for (const recipient of recipients) {
-    const groups = await repos.friendGroups.listGroupsForUser(recipient.userId);
-    const pending: PendingGroup[] = [];
-    const printingIds = new Set<string>();
-
-    for (const group of groups) {
-      const rows = await repos.friendGroupMatches.recentIncomingMatchesForFeed({
-        groupId: group.id,
-        viewerUserId: recipient.userId,
-        limit: DIGEST_MATCH_LIMIT,
-        sinceTimestamp,
-      });
-      if (rows.length === 0) {
-        continue;
-      }
-      for (const row of rows) {
-        printingIds.add(row.printingId);
-      }
-      const members = await repos.friendGroups.listMembers(group.id);
-      const labelByUser = new Map<string, string | null>();
-      for (const member of members) {
-        labelByUser.set(member.userId, member.userName);
-      }
-      pending.push({ name: group.name, slug: group.slug, rows, labelByUser });
-    }
-
-    if (pending.length === 0) {
+    let outcome: RecipientOutcome;
+    try {
+      outcome = await sendRecipientDigest(deps, recipient, sinceTimestamp);
+    } catch (error) {
+      deps.log.error(
+        { err: error, userId: recipient.userId },
+        "Failed to build trade match digest",
+      );
+      failed += 1;
       continue;
     }
-
-    const nameByPrinting = await repos.catalog.printingNamesByIds([...printingIds]);
-
-    const sections: DigestGroupSection[] = pending.map((group) => ({
-      groupName: group.name,
-      tradesUrl: appBaseUrl + groupPath(group.slug, "trades"),
-      matches: group.rows.map((row) => ({
-        cardName: nameByPrinting.get(row.printingId) ?? null,
-        counterpartyLabel: group.labelByUser.get(row.counterpartyUserId) ?? null,
-      })),
-    }));
-
-    const totalMatches = sections.reduce((sum, section) => sum + section.matches.length, 0);
-    const sent = await sendChannelEmail(deps, recipient, "tradeMatches", ({ unsubscribeUrl }) =>
-      buildTradeMatchDigestEmail({
-        locale: recipient.displayLocale,
-        recipientName: recipient.name,
-        groups: sections,
-        unsubscribeUrl,
-      }),
-    );
-    if (sent) {
+    if (outcome === null) {
+      continue;
+    }
+    if (outcome.sent) {
       emailsSent += 1;
-      matchesSent += totalMatches;
+      matchesSent += outcome.matches;
     } else {
       failed += 1;
-      matchesDropped += totalMatches;
+      matchesDropped += outcome.matches;
     }
   }
 
@@ -160,4 +128,65 @@ export async function sendTradeMatchDigest(
     failed,
     matchesDropped,
   };
+}
+
+/** Null when the recipient has nothing new. */
+type RecipientOutcome = { sent: boolean; matches: number } | null;
+
+async function sendRecipientDigest(
+  deps: TradeMatchDigestDeps,
+  recipient: MatchDigestRecipient,
+  sinceTimestamp: Date,
+): Promise<RecipientOutcome> {
+  const { repos, appBaseUrl } = deps;
+  const groups = await repos.friendGroups.listGroupsForUser(recipient.userId);
+  const pending: PendingGroup[] = [];
+  const printingIds = new Set<string>();
+
+  for (const group of groups) {
+    const rows = await repos.friendGroupMatches.recentIncomingMatchesForFeed({
+      groupId: group.id,
+      viewerUserId: recipient.userId,
+      limit: DIGEST_MATCH_LIMIT,
+      sinceTimestamp,
+    });
+    if (rows.length === 0) {
+      continue;
+    }
+    for (const row of rows) {
+      printingIds.add(row.printingId);
+    }
+    const members = await repos.friendGroups.listMembers(group.id);
+    const labelByUser = new Map<string, string | null>();
+    for (const member of members) {
+      labelByUser.set(member.userId, member.userName);
+    }
+    pending.push({ name: group.name, slug: group.slug, rows, labelByUser });
+  }
+
+  if (pending.length === 0) {
+    return null;
+  }
+
+  const nameByPrinting = await repos.catalog.printingNamesByIds([...printingIds]);
+
+  const sections: DigestGroupSection[] = pending.map((group) => ({
+    groupName: group.name,
+    tradesUrl: appBaseUrl + groupPath(group.slug, "trades"),
+    matches: group.rows.map((row) => ({
+      cardName: nameByPrinting.get(row.printingId) ?? null,
+      counterpartyLabel: group.labelByUser.get(row.counterpartyUserId) ?? null,
+    })),
+  }));
+
+  const totalMatches = sections.reduce((sum, section) => sum + section.matches.length, 0);
+  const sent = await sendChannelEmail(deps, recipient, "tradeMatches", ({ unsubscribeUrl }) =>
+    buildTradeMatchDigestEmail({
+      locale: recipient.displayLocale,
+      recipientName: recipient.name,
+      groups: sections,
+      unsubscribeUrl,
+    }),
+  );
+  return { sent, matches: totalMatches };
 }

@@ -202,6 +202,13 @@ describe("legendSwitchCards", () => {
     expect(runesOf(after)).toEqual([["r-calm", 6]]);
     expect(after.filter((card) => card.zone === "legend")).toHaveLength(1);
   });
+
+  it("stops a freeform legend copy at the row cap", () => {
+    const legend = legendOf(["fury", "mind"]);
+    const held = { ...legend, zone: "legend" as const, quantity: 99 };
+    const after = legendSwitchCards([held], legend, runesByDomain, "freeform", { refill: true });
+    expect(after.find((card) => card.zone === "legend")?.quantity).toBe(99);
+  });
 });
 
 describe("previewLegendSwitch", () => {

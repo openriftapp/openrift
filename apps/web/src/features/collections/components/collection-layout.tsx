@@ -25,8 +25,10 @@ import { CollectionSidebar } from "@/features/collections/components/collection-
 import { useCollectionDndSensors } from "@/features/collections/hooks/use-collection-dnd-sensors";
 import { useMoveCopiesWithUndo } from "@/features/collections/hooks/use-move-copies-with-undo";
 import { collectionCollisionDetection } from "@/features/collections/lib/collection-dnd-sensing";
+import { collectionDragAnnouncements } from "@/features/collections/lib/collection-drag-announcements";
 import type {
   CollectionDragData,
+  CollectionDropData,
   CardDragData,
   ListEntryDragData,
 } from "@/features/collections/lib/dnd-types";
@@ -74,12 +76,12 @@ const routeApi = getRouteApi("/_app/_authenticated/collections");
 
 const MODIFIERS = [snapCenterToCursor];
 
-type CollectionDropData = { type: "collection"; collectionId: string } | SidebarListDropData;
+type LayoutDropData = CollectionDropData | SidebarListDropData;
 
 const COLLECTION_DROP_TYPES = [
   "collection",
   "list",
-] as const satisfies readonly CollectionDropData["type"][];
+] as const satisfies readonly LayoutDropData["type"][];
 
 export function CollectionLayout() {
   const search = routeApi.useSearch();
@@ -197,10 +199,7 @@ export function CollectionLayout() {
     dragScroll.stop();
     setActiveDrag(null);
 
-    const dropData = asDragData<CollectionDropData>(
-      event.over?.data.current,
-      COLLECTION_DROP_TYPES,
-    );
+    const dropData = asDragData<LayoutDropData>(event.over?.data.current, COLLECTION_DROP_TYPES);
 
     if (!dropData || !dragData) {
       return;
@@ -232,7 +231,7 @@ export function CollectionLayout() {
 
   function handleCollectionCardDrop(
     dragData: CardDragData,
-    dropData: { type: "collection"; collectionId: string } | SidebarListDropData,
+    dropData: LayoutDropData,
     modifier: "all" | number | null,
   ) {
     if (dropData.type === "collection") {
@@ -388,6 +387,7 @@ export function CollectionLayout() {
               <DndContext
                 sensors={sensors}
                 collisionDetection={collectionCollisionDetection}
+                accessibility={{ announcements: collectionDragAnnouncements }}
                 autoScroll={dragScroll.autoScroll}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}

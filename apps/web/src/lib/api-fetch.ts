@@ -8,7 +8,7 @@ import {
 import { appendScanJournal, hasScanJournal } from "@/features/scan/lib/scan-journal";
 
 import { COMMIT_HASH } from "./env";
-import { reloadForNewVersion, scheduleReloadFlagClear } from "./stale-bundle-reload";
+import { reloadForNewVersion } from "./stale-bundle-reload";
 
 function announceNewVersion(reason: string): void {
   if (hasScanJournal()) {
@@ -62,8 +62,6 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
     : null;
   if (buildId && buildId !== COMMIT_HASH) {
     announceNewVersion(`${BUILD_ID_HEADER} mismatch (server=${buildId}, client=${COMMIT_HASH})`);
-  } else if (buildId) {
-    scheduleReloadFlagClear();
   }
   const format = apiFormatOf(response);
   if (format === undefined || format === API_FORMAT_VERSION) {

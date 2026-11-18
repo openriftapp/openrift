@@ -397,6 +397,7 @@
   "common_scroll_to_top": "맨 위로 스크롤",
   "common_copy": "복사",
   "common_copied": "복사됨",
+  "common_copy_failed": "복사하지 못했습니다",
   "common_copy_share_link": "공유 링크 복사",
   "common_share_link_copied": "공유 링크를 복사했습니다",
   "common_copy_link_error": "링크를 복사하지 못했습니다",
@@ -624,8 +625,6 @@
     }
   ],
   "cards_grid_show_n_printings": "인쇄판 {count}종 보기",
-  "cards_grid_load_error_title": "카드를 불러오지 못했습니다",
-  "cards_grid_load_error_description": "서버에 연결할 수 없습니다.",
   "cards_grid_no_results_title": "카드를 찾을 수 없습니다",
   "cards_grid_no_results_description": "필터를 조정해 보세요.",
   "cards_search_hint_text": "일반 단어는 카드 이름만 검색합니다.",
@@ -1710,6 +1709,12 @@
     }
   ],
   "collections_reorder_aria": "{label} 순서 바꾸기",
+  "collections_drag_announce_picked_up": "{name}을(를) 집었습니다.",
+  "collections_drag_announce_over": "{name}이(가) {target} 위에 있습니다.",
+  "collections_drag_announce_not_over": "{name}이(가) 놓을 수 있는 영역 위에 있지 않습니다.",
+  "collections_drag_announce_dropped": "{name}을(를) {target}에 놓았습니다.",
+  "collections_drag_announce_nothing_moved": "{name}을(를) 놓았습니다. 옮겨진 것은 없습니다.",
+  "collections_drag_announce_unnamed": "항목",
   "collections_copy_edit_aria": "{title}. 사본 정보를 편집합니다.",
   "collections_copy_graded_title": "{grader} {grade} 등급",
   "collections_copies_with_details": [

@@ -49,6 +49,23 @@ describe("waitForJobRun", () => {
   });
 });
 
+describe("waitForJobRun abort", () => {
+  it("stops polling once the signal aborts", async () => {
+    const controller = new AbortController();
+    const listRuns = vi.fn().mockResolvedValue([run({})]);
+    const wait = vi.fn(async () => {
+      if (listRuns.mock.calls.length === 2) {
+        controller.abort();
+      }
+    });
+
+    await expect(waitForJobRun("run-1", listRuns, wait, 10, controller.signal)).resolves.toBe(
+      "aborted",
+    );
+    expect(listRuns).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("checkMatchingResultFromRun", () => {
   it("reads the counts from a succeeded run", () => {
     expect(
@@ -62,6 +79,10 @@ describe("checkMatchingResultFromRun", () => {
     expect(() =>
       checkMatchingResultFromRun(run({ status: "failed", errorMessage: "connection reset" })),
     ).toThrow("connection reset");
+  });
+
+  it("gives no counts for an aborted wait", () => {
+    expect(checkMatchingResultFromRun("aborted")).toBeNull();
   });
 
   it("throws when the run disappeared", () => {

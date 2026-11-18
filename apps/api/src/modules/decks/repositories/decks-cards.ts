@@ -31,6 +31,33 @@ type DeckCardDetailRow = Pick<
     keywords: string[];
   };
 
+export type ReplaceDeckCardsResult =
+  | { outcome: "replaced"; version: string }
+  | { outcome: "missing" }
+  | { outcome: "stale"; version: string; cards: DeckCardRow[] };
+
+/** The share lock holds off writers, so the cards read belong to the version read. */
+async function staleDeckCards(
+  trx: Kysely<Database>,
+  deckId: string,
+): Promise<ReplaceDeckCardsResult> {
+  const current = await trx
+    .selectFrom("decks")
+    .select(sql<string>`updated_xid::text`.as("version"))
+    .where("id", "=", deckId)
+    .forShare()
+    .executeTakeFirst();
+  if (!current) {
+    return { outcome: "missing" };
+  }
+  const cards = await trx
+    .selectFrom("deckCards")
+    .select(["cardId", "zone", "quantity", "preferredPrintingId"])
+    .where("deckId", "=", deckId)
+    .execute();
+  return { outcome: "stale", version: current.version, cards };
+}
+
 export function decksCardsRepo(db: Kysely<Database>) {
   return {
     cardsForDeck(deckId: string, userId: string): Promise<DeckCardRow[]> {
@@ -120,15 +147,19 @@ export function decksCardsRepo(db: Kysely<Database>) {
       return query.execute();
     },
 
-    /** Includes a deck whose cards are now all gone, which contributes no rows of its own. */
-    async deckIdsTouchedSince(userId: string, sinceXid: string): Promise<string[]> {
-      const rows = await db
+    /**
+     * Each deck's version (`updated_xid`), every deck or those touched since the watermark.
+     * Includes a deck whose cards are now all gone, which contributes no rows of its own.
+     */
+    deckVersions(userId: string, sinceXid?: string): Promise<{ id: string; version: string }[]> {
+      let query = db
         .selectFrom("decks as d")
-        .select("d.id")
-        .where("d.userId", "=", userId)
-        .where(sql<boolean>`d.updated_xid >= ${sinceXid}::xid8`)
-        .execute();
-      return rows.map((row) => row.id);
+        .select(["d.id", sql<string>`d.updated_xid::text`.as("version")])
+        .where("d.userId", "=", userId);
+      if (sinceXid !== undefined) {
+        query = query.where(sql<boolean>`d.updated_xid >= ${sinceXid}::xid8`);
+      }
+      return query.execute();
     },
 
     allCardsForUser(userId: string): Promise<DeckCardDetailRow[]> {
@@ -164,6 +195,10 @@ export function decksCardsRepo(db: Kysely<Database>) {
         .execute();
     },
 
+    /**
+     * With `expectedVersion`, the replace runs only while the deck is still at that version
+     * (`updated_xid`); otherwise it answers the stored version and cards.
+     */
     replaceCards(
       deckId: string,
       cards: {
@@ -172,18 +207,25 @@ export function decksCardsRepo(db: Kysely<Database>) {
         quantity: number;
         preferredPrintingId: string | null;
       }[],
-    ): Promise<boolean> {
+      expectedVersion?: string,
+    ): Promise<ReplaceDeckCardsResult> {
       return inTransaction(db, async (trx) => {
         // A second UPDATE of a deck row this transaction already rewrote re-runs its
         // FK checks and key-share locks the user row, deadlocking with account deletion.
-        const deck = await trx
+        let touch = trx
           .updateTable("decks")
           .set({ updatedAt: sql`now()` })
-          .where("id", "=", deckId)
-          .returning("id")
+          .where("id", "=", deckId);
+        if (expectedVersion !== undefined) {
+          touch = touch.where(sql<boolean>`updated_xid = ${expectedVersion}::xid8`);
+        }
+        const deck = await touch
+          .returning(sql<string>`updated_xid::text`.as("version"))
           .executeTakeFirst();
         if (!deck) {
-          return false;
+          return expectedVersion === undefined
+            ? { outcome: "missing" }
+            : staleDeckCards(trx, deckId);
         }
         await trx.deleteFrom("deckCards").where("deckId", "=", deckId).execute();
 
@@ -193,7 +235,7 @@ export function decksCardsRepo(db: Kysely<Database>) {
             .values(cards.map((card) => ({ deckId, ...card })))
             .execute();
         }
-        return true;
+        return { outcome: "replaced", version: deck.version };
       });
     },
   };

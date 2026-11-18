@@ -90,9 +90,11 @@ let updateListEntry = mutationStub();
 let removeListEntry = mutationStub();
 const bulkAddEntries = mutationStub();
 let pendingEntryIds = new Set<string>();
+let pendingStepIds = new Set<string>();
 
 vi.mock("@/features/lists/hooks/use-list-entry-writes-pending", () => ({
-  useListEntryWritesPending: () => (entryId: string) => pendingEntryIds.has(entryId),
+  useListEntryWritesPending: () => (entryId: string, options?: { countSteps: boolean }) =>
+    pendingEntryIds.has(entryId) || (options?.countSteps !== false && pendingStepIds.has(entryId)),
 }));
 
 vi.mock("@tanstack/react-start", async (importOriginal) => ({
@@ -295,7 +297,7 @@ const { FilterSearchProvider } = await import("@/features/cards/hooks/use-filter
 const {
   dispatchDecrement,
   dispatchDropFromRule,
-  dispatchEntryQuantityChange,
+  dispatchEntryQuantityStep,
   dispatchIncrement,
   dispatchRemoveEntry,
   useCardRowActionsStore,
@@ -347,6 +349,7 @@ describe("ListPage", () => {
     removeListEntry = mutationStub();
     bulkAddEntries.mutate.mockClear();
     pendingEntryIds = new Set();
+    pendingStepIds = new Set();
     sortedCards = [];
     selectedIds = new Set();
     document.body.innerHTML = "";
@@ -443,7 +446,7 @@ describe("ListPage", () => {
     expect(updateListEntry.mutate).toHaveBeenCalledWith({
       listId: "list-1",
       entryId: "entry-1",
-      quantity: 1,
+      quantityDelta: -1,
     });
     view.unmount();
   });
@@ -474,7 +477,7 @@ describe("ListPage", () => {
     expect(updateListEntry.mutate).toHaveBeenCalledWith({
       listId: "list-1",
       entryId: "entry-1",
-      quantity: 1,
+      quantityDelta: -1,
     });
     view.unmount();
   });
@@ -487,10 +490,34 @@ describe("ListPage", () => {
     const { view } = renderListPage();
     pendingEntryIds = new Set(["entry-1"]);
 
-    dispatchEntryQuantityChange("entry-1", 1);
+    dispatchEntryQuantityStep("entry-1", -1);
     dispatchRemoveEntry("entry-1", "Test Card");
 
     expect(updateListEntry.mutate).not.toHaveBeenCalled();
+    expect(removeListEntry.mutate).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
+  it("sends a further step while the entry's earlier steps are still in flight", () => {
+    const { view } = renderListPage();
+    pendingStepIds = new Set(["entry-1"]);
+
+    dispatchEntryQuantityStep("entry-1", 1);
+
+    expect(updateListEntry.mutate).toHaveBeenCalledWith({
+      listId: "list-1",
+      entryId: "entry-1",
+      quantityDelta: 1,
+    });
+    view.unmount();
+  });
+
+  it("holds a remove until the entry's steps have landed", () => {
+    const { view } = renderListPage();
+    pendingStepIds = new Set(["entry-1"]);
+
+    dispatchRemoveEntry("entry-1", "Test Card");
+
     expect(removeListEntry.mutate).not.toHaveBeenCalled();
     view.unmount();
   });

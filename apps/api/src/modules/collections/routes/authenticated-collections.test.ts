@@ -647,7 +647,12 @@ describe("POST /api/v1/collections/:id/share", () => {
   it("retries with a new token when the first one collides", async () => {
     mockCollectionsRepo.getAccessForUser.mockResolvedValue(access(dbCollection));
     mockCollectionsRepo.setShare
-      .mockRejectedValueOnce(Object.assign(new Error("duplicate key"), { code: "23505" }))
+      .mockRejectedValueOnce(
+        Object.assign(new Error("duplicate key"), {
+          code: "23505",
+          constraint_name: "uq_collections_share_token",
+        }),
+      )
       .mockResolvedValueOnce({ ...dbCollection, isPublic: true });
     const res = await app.request(`/api/v1/collections/${dbCollection.id}/share`, {
       method: "POST",

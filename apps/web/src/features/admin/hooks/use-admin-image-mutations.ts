@@ -6,10 +6,14 @@ import type {
   UploadCandidatesResponse,
 } from "@openrift/shared/contracts/admin/card-mutations";
 import type { MutationMeta, QueryClient } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
+import { useIsMutating, useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
-import { adminKeys, CANDIDATE_REVIEW_SCOPE } from "@/features/admin/lib/admin-query-keys";
+import {
+  adminKeys,
+  CANDIDATE_REVIEW_SCOPE,
+  IMAGE_FILE_SCOPE,
+} from "@/features/admin/lib/admin-query-keys";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { reportMutationError } from "@/lib/query-client";
 import { getApiUrl } from "@/lib/server-fns/api-url";
@@ -235,31 +239,47 @@ export function useUnrehostPrintingImage(invalidates: Scope = defaultScope) {
   });
 }
 
-export function useRotatePrintingImage(invalidates: Scope = defaultScope) {
+const IMAGE_EDIT_MUTATION_KEY = ["admin", "image-edit"] as const;
+
+/** Rotate, trim and straighten each write a new image file, so all of them refresh every view of it. */
+export function useRotatePrintingImage() {
   return useMutationWithInvalidation({
+    mutationKey: IMAGE_EDIT_MUTATION_KEY,
     mutationFn: async ({ imageId, rotation }: { imageId: string; rotation: Rotation }) => {
       await rotatePrintingImageFn({ data: { imageId, rotation } });
     },
-    invalidates,
+    invalidates: IMAGE_FILE_SCOPE,
   });
 }
 
-export function useSetPrintingImageNeedsTrim(invalidates: Scope = defaultScope) {
+export function useSetPrintingImageNeedsTrim() {
   return useMutationWithInvalidation({
+    mutationKey: IMAGE_EDIT_MUTATION_KEY,
     mutationFn: async ({ imageId, needsTrim }: { imageId: string; needsTrim: boolean }) => {
       await setNeedsTrimFn({ data: { imageId, needsTrim } });
     },
-    invalidates,
+    invalidates: IMAGE_FILE_SCOPE,
   });
 }
 
-export function useSetPrintingImageQuad(invalidates: Scope = defaultScope) {
+export function useSetPrintingImageQuad() {
   return useMutationWithInvalidation({
+    mutationKey: IMAGE_EDIT_MUTATION_KEY,
     mutationFn: async ({ imageId, quad }: { imageId: string; quad: ImageQuad | null }) => {
       await setPrintingImageQuadFn({ data: { imageId, quad } });
     },
-    invalidates,
+    invalidates: IMAGE_FILE_SCOPE,
   });
+}
+
+/** True while a rotate, trim or straighten of this image is in flight; a second one would lose the file swap. */
+export function useImageEditPending(imageId: string): boolean {
+  const running = useIsMutating({
+    mutationKey: IMAGE_EDIT_MUTATION_KEY,
+    predicate: (mutation) =>
+      (mutation.state.variables as { imageId?: string } | undefined)?.imageId === imageId,
+  });
+  return running > 0;
 }
 
 export function useEnsurePrintingImageOriginal() {

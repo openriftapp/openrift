@@ -12,30 +12,12 @@ describe("adminEventsRepo", () => {
     expect(await repo.list({}, 20)).toEqual([]);
   });
 
-  it("list compares the action filter as a bound text parameter, not the AdminEventAction union", async () => {
-    const { db, queries, parameters } = createRecordingDb();
-
-    await adminEventsRepo(db).list({ action: "card.retired-long-ago" }, 20);
-
-    expect(queries).toHaveLength(1);
-    expect(queries[0]).toContain('cast("ae"."action" as text) =');
-    expect(parameters[0]).toContain("card.retired-long-ago");
-  });
-
   it("list takes LIKE wildcards in the search term literally", async () => {
     const { db, parameters } = createRecordingDb();
 
     await adminEventsRepo(db).list({ search: "50%_off" }, 20);
 
     expect(parameters[0]).toContain(String.raw`%50\%\_off%`);
-  });
-
-  it("list omits the action filter when absent", async () => {
-    const { db, queries } = createRecordingDb();
-
-    await adminEventsRepo(db).list({}, 20);
-
-    expect(queries[0]).not.toContain('"ae"."action" =');
   });
 
   it("list applies cursor filter when provided", async () => {

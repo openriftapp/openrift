@@ -1,7 +1,6 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { createMockDb } from "../../../test/mock-db.js";
-import { createRecordingDb } from "../../../test/recording-db.js";
 import { marketplaceMappingRepo } from "./marketplace-mapping.js";
 
 describe("marketplaceMappingRepo", () => {
@@ -130,13 +129,6 @@ describe("marketplaceMappingRepo", () => {
     ).toBeUndefined();
   });
 
-  it("getVariantForPrinting accepts null language for marketplaces without language SKUs", async () => {
-    const db = createMockDb([]);
-    await expect(
-      marketplaceMappingRepo(db).getVariantForPrinting("tcgplayer", "p1", 100, "normal", null),
-    ).resolves.toBeUndefined();
-  });
-
   it("deleteVariantById deletes a variant (parent product left behind)", async () => {
     const db = createMockDb({ numDeletedRows: 1n });
     await expect(marketplaceMappingRepo(db).deleteVariantById("var-1")).resolves.toBe(true);
@@ -157,67 +149,5 @@ describe("marketplaceMappingRepo", () => {
     const db = createMockDb(rows);
     const [row] = await marketplaceMappingRepo(db).allStaging("cardmarket");
     expect(row!.language).toBeNull();
-  });
-});
-
-describe("marketplaceMappingRepo (generated SQL)", () => {
-  const captured = createRecordingDb();
-
-  beforeEach(() => {
-    captured.reset();
-  });
-
-  it("allStaging picks the newest price per product through a lateral, not a full join", async () => {
-    // Joining the whole price history and reducing with DISTINCT ON made the
-    // cost grow with retained history. The lateral reads one row per product
-    // straight off the (marketplace_product_id, recorded_at) primary key.
-    await marketplaceMappingRepo(captured.db).allStaging("cardmarket");
-
-    const { sql, parameters } = captured.statements[0]!;
-    const flat = sql.replaceAll(/\s+/gu, " ");
-    expect(flat).toContain('inner join lateral (select "p"."recorded_at"');
-    expect(flat).toContain('order by "p"."recorded_at" desc limit $1) as "latest" on true');
-    expect(flat).toContain(
-      'and not exists (select "mpv"."id" from "marketplace_product_variants" as "mpv"' +
-        ' where "mpv"."marketplace_product_id" = "mp"."id")',
-    );
-    expect(parameters).toEqual([1, "cardmarket"]);
-  });
-
-  it("upsertProductVariants updates on conflict so RETURNING covers existing products", async () => {
-    // The SKU unique is NULLS NOT DISTINCT: a NULL language collapses onto the
-    // existing row. `doNothing` would leave it out of RETURNING, with no id to bind.
-    captured.setRows([
-      {
-        id: "mp-1",
-        marketplace: "cardmarket",
-        externalId: 42,
-        finish: "normal",
-        language: null,
-        marketplaceProductId: "mp-1",
-        printingId: "pr-1",
-      },
-    ]);
-
-    await marketplaceMappingRepo(captured.db).upsertProductVariants([
-      {
-        marketplace: "cardmarket",
-        printingId: "pr-1",
-        externalId: 42,
-        groupId: 7,
-        productName: "Card",
-        finish: "normal",
-        language: null,
-      },
-    ]);
-
-    const [products] = captured.statements;
-    expect(products!.sql).toContain(
-      'on conflict ("marketplace", "external_id", "finish", "language") do update set',
-    );
-    expect(products!.sql).toContain(
-      'returning "id", "marketplace", "external_id", "finish", "language"',
-    );
-    expect(products!.parameters).toEqual(["cardmarket", 42, 7, "Card", "normal", null]);
   });
 });

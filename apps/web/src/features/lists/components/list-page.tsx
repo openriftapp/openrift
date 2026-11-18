@@ -102,11 +102,13 @@ export function ListPage({ listId }: ListPageProps) {
     );
   };
 
-  const handleQuantityChange = (entryId: string, quantity: number) => {
-    if (entryWritePending(entryId)) {
+  const stepPending = (entryId: string) => entryWritePending(entryId, { countSteps: false });
+
+  const handleQuantityStep = (entryId: string, quantityDelta: number) => {
+    if (stepPending(entryId)) {
       return;
     }
-    updateEntry.mutate({ listId, entryId, quantity });
+    updateEntry.mutate({ listId, entryId, quantityDelta });
   };
 
   const handleTradeOverrideChange = (
@@ -334,12 +336,12 @@ export function ListPage({ listId }: ListPageProps) {
         showLibrary={showLibraryActive}
         onToggleShowLibrary={() => setShowLibrary((prev) => !prev)}
         onRemoveEntry={handleRemoveEntry}
-        onQuantityChange={handleQuantityChange}
+        onQuantityStep={handleQuantityStep}
         onTradeOverrideChange={handleTradeOverrideChange}
         isRemovePendingFor={(entryId) =>
           removeEntry.isPending && removeEntry.variables?.entryId === entryId
         }
-        isQuantityPendingFor={entryWritePending}
+        isQuantityPendingFor={stepPending}
       />
       {editDialog}
       {deleteDialog}

@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { RecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { buildFaceSuggestions } from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import { resetWorkspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
 import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
 import {
   makeAdminCardDetail,
@@ -111,6 +112,7 @@ function setup(options: { contributor?: boolean } = {}) {
 let resetStore: () => void;
 
 afterEach(() => {
+  resetWorkspaceWriteQueue();
   resetStore();
 });
 

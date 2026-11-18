@@ -15,8 +15,17 @@ import {
   SidebarReorderKeyboardSensor,
 } from "./collection-dnd-sensing";
 
-const binderRow = { type: "sidebar-reorder-collection", collectionId: "c1" } as const;
-const wishlistRow = { type: "sidebar-reorder-list", listId: "l1", intent: "wish" } as const;
+const binderRow = {
+  type: "sidebar-reorder-collection",
+  collectionId: "c1",
+  label: "Binder",
+} as const;
+const wishlistRow = {
+  type: "sidebar-reorder-list",
+  listId: "l1",
+  intent: "wish",
+  label: "Wants",
+} as const;
 
 describe("acceptsReorderDrop", () => {
   it("accepts a reorder drag from the same section", () => {
@@ -117,7 +126,10 @@ function keydown(code: string): KeyboardEvent {
  * The sidebar is sticky: scrolling the page leaves its rows where they are, so the
  * drag has to move even when the page could scroll toward the target row.
  */
-function startSensor() {
+function startSensor({
+  collisionTop = 40,
+  areas = [],
+}: { collisionTop?: number; areas?: Element[] } = {}) {
   const page = document.documentElement;
   page.scrollTop = 100;
   const scrollTo = vi.spyOn(page, "scrollTo").mockImplementation(() => {});
@@ -136,11 +148,18 @@ function startSensor() {
     },
     event: activation,
     context: {
-      current: { collisionRect: rect(40), scrollableAncestors: [page] } as unknown as SensorContext,
+      current: {
+        collisionRect: rect(collisionTop),
+        scrollableAncestors: [page, ...areas],
+      } as unknown as SensorContext,
     },
     options: {
-      coordinateGetter: (event: KeyboardEvent) =>
-        event.code === "ArrowUp" ? { x: 0, y: 20 } : undefined,
+      coordinateGetter: (event: KeyboardEvent) => {
+        if (event.code === "ArrowUp") {
+          return { x: 0, y: collisionTop - 20 };
+        }
+        return event.code === "PageDown" ? { x: 0, y: collisionTop + 20 } : undefined;
+      },
     },
     onAbort: vi.fn(),
     onPending: vi.fn(),
@@ -151,6 +170,19 @@ function startSensor() {
   } satisfies KeyboardSensorProps;
   const sensor = new SidebarReorderKeyboardSensor(props);
   return { props, scrollTo, sensor };
+}
+
+/** A sidebar scroll area showing 100 px of its 300 px of rows. */
+function sidebarArea(scrollTop: number) {
+  const area = document.createElement("div");
+  vi.spyOn(area, "getBoundingClientRect").mockReturnValue(
+    DOMRect.fromRect({ x: 0, y: 0, width: 100, height: 100 }),
+  );
+  Object.defineProperty(area, "scrollHeight", { value: 300 });
+  Object.defineProperty(area, "clientHeight", { value: 100 });
+  area.scrollTop = scrollTop;
+  const scrollBy = vi.spyOn(area, "scrollBy").mockImplementation(() => {});
+  return { area, scrollBy };
 }
 
 async function press(code: string) {
@@ -201,6 +233,37 @@ describe("SidebarReorderKeyboardSensor", () => {
 
     expect(props.onCancel).toHaveBeenCalledOnce();
     expect(props.onMove).not.toHaveBeenCalled();
+  });
+
+  it("scrolls the sidebar's own area when the row moves past its bottom edge", async () => {
+    const { area, scrollBy } = sidebarArea(0);
+    const { props, scrollTo } = startSensor({ collisionTop: 80, areas: [area] });
+
+    await press("PageDown");
+
+    expect(scrollBy).toHaveBeenCalledWith({ top: 20 });
+    expect(props.onMove).toHaveBeenCalledWith({ x: 0, y: 0 });
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("scrolls the sidebar's own area when the row moves past its top edge", async () => {
+    const { area, scrollBy } = sidebarArea(50);
+    const { props } = startSensor({ collisionTop: 10, areas: [area] });
+
+    await press("ArrowUp");
+
+    expect(scrollBy).toHaveBeenCalledWith({ top: -10 });
+    expect(props.onMove).toHaveBeenCalledWith({ x: 0, y: -10 });
+  });
+
+  it("moves without scrolling once the sidebar area is at its end", async () => {
+    const { area, scrollBy } = sidebarArea(200);
+    const { props } = startSensor({ collisionTop: 80, areas: [area] });
+
+    await press("PageDown");
+
+    expect(scrollBy).not.toHaveBeenCalled();
+    expect(props.onMove).toHaveBeenCalledWith({ x: 0, y: 20 });
   });
 
   it("does not move when the coordinate getter finds no target", async () => {

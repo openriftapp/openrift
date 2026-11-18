@@ -4,10 +4,7 @@ import type { DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { isPrintingLevelField } from "@openrift/shared/printing-field-level";
 import { pluralize } from "@openrift/shared/strings";
-import type {
-  AdminCardDetailResponse,
-  AdminPrintingResponse,
-} from "@openrift/shared/types/api/admin";
+import type { AdminPrintingResponse } from "@openrift/shared/types/api/admin";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   ArrowLeftIcon,
@@ -42,7 +39,7 @@ import { hasAdminSection } from "@/features/admin/lib/admin-sections";
 import { PRINTING_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
 import { printingPairName } from "@/features/admin/lib/face-rows";
 import { formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
-import { printingFaces } from "@/features/admin/lib/printing-faces";
+import { deskRowForFace, printingFaces } from "@/features/admin/lib/printing-faces";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
 import { FaceCompareSourcesDialog } from "@/features/catalog-workspace/components/compare-sources-dialog";
 import {
@@ -76,7 +73,6 @@ import {
 import { discardLabel, primaryLabel } from "@/features/catalog-workspace/lib/suggestion-labels";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
-import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 declare module "@tanstack/react-router" {
   interface HistoryState {
@@ -118,7 +114,7 @@ function ReviewFaceRecord({
   isAdmin: boolean;
 }) {
   const detailQuery = useAdminCardDetail(cardSlug);
-  const detail = detailQuery.data as AdminCardDetailResponse | undefined;
+  const detail = detailQuery.data;
   const { data: providerData } = useProviderSettings();
   const costKeywords = useCostKeywords();
   const labels = useValueLabels();
@@ -197,7 +193,7 @@ function ReviewFaceRecord({
   const printingCount = new Set(detail.printings.map((printing) => printing.id)).size;
 
   const primaryAndNext = async () => {
-    if (await runReportedMutation(actions.runPrimary)) {
+    if (await actions.runPrimary()) {
       navigation.goNext();
     }
   };
@@ -508,25 +504,12 @@ function FaceActionsMenu({ cardSlug, faceId }: { cardSlug: string; faceId: strin
   );
 }
 
-function pickDeskRow(
-  rows: readonly DeskPrintingRow[],
-  faceId: string,
-  fromPrintingId?: string,
-): DeskPrintingRow | null {
-  const from = rows.find((row) => row.printingId === fromPrintingId);
-  if (from !== undefined) {
-    return from;
-  }
-  const onFace = rows.filter((row) => row.faceId === faceId);
-  return onFace.find((row) => row.canEdit) ?? onFace[0] ?? null;
-}
-
 function DeskFaceRecord({ cardSlug, faceId }: { cardSlug: string; faceId: string }) {
   const { data } = useDeskCardPrintings(cardSlug);
   const fromPrintingId = useLocation({
     select: (location) => location.state.workspaceFromPrintingId,
   });
-  const row = pickDeskRow(data.printings, faceId, fromPrintingId);
+  const row = deskRowForFace(data.printings, faceId, fromPrintingId);
   useRegisterRecordActions({});
 
   if (row === null) {
@@ -552,9 +535,9 @@ function DeskFaceBody({
 
   const printing = data.printing;
   const faces = printingFaces(printing);
-  const face = faces.find((entry) => entry.faceId === faceId) ?? faces[0];
+  const face = faces.find((entry) => entry.faceId === faceId);
   if (face === undefined) {
-    return null;
+    return <p className="text-muted-foreground p-4">This printing does not carry this face.</p>;
   }
   const canEdit = printing.canEdit;
   const landscape = getOrientation([printing.cardType]) === "landscape";

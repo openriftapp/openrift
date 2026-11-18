@@ -140,7 +140,7 @@ describe("buildEntryAdvisories", () => {
   function stubRepos(
     cardDetails: Map<string, StubCardDetail>,
     championTags: string[] | null,
-    bans: { cardId: string; formatId: string; bannedAt: string }[] = [],
+    bans: { cardId: string; formatId: string; bannedAt: string; unbannedAt?: string }[] = [],
   ): Repos {
     return {
       enums: {
@@ -151,8 +151,15 @@ describe("buildEntryAdvisories", () => {
         getCardSetSlugs: () => Promise.resolve(new Map<string, string[]>()),
       },
       cardBans: {
-        listActiveForCards: (_cardIds: string[], formatIds: string[]) =>
-          Promise.resolve(bans.filter((ban) => formatIds.includes(ban.formatId))),
+        listInEffectForCards: (_cardIds: string[], formatIds: string[], day: string) =>
+          Promise.resolve(
+            bans.filter(
+              (ban) =>
+                formatIds.includes(ban.formatId) &&
+                ban.bannedAt <= day &&
+                (ban.unbannedAt === undefined || ban.unbannedAt > day),
+            ),
+          ),
       },
       catalog: {
         championIdentifierTags: () => {
@@ -256,6 +263,41 @@ describe("buildEntryAdvisories", () => {
     );
     const banned = advisories.violations.filter((violation) => violation.code === "banned-card");
     expect(banned.map((violation) => violation.cardId)).toEqual(["banned-before-event"]);
+  });
+
+  it("flags a card banned at a past event even though it was unbanned since", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-01T12:00:00.000Z"));
+    const constructed = WellKnown.banFormat.CONSTRUCTED;
+    const repos = stubRepos(new Map(), null, [
+      {
+        cardId: "unbanned-later",
+        formatId: constructed,
+        bannedAt: "2026-09-01",
+        unbannedAt: "2026-09-25",
+      },
+      {
+        cardId: "unbanned-before",
+        formatId: constructed,
+        bannedAt: "2026-09-01",
+        unbannedAt: "2026-09-20",
+      },
+    ]);
+    const advisories = await buildEntryAdvisories(
+      repos,
+      {
+        format: "constructed",
+        playMode: "1v1" as const,
+        allowedSets: null,
+        eventDate: new Date("2026-09-20T09:00:00.000Z"),
+      },
+      [
+        line({ id: "a", resolvedCardId: "unbanned-later", zone: "main" }),
+        line({ id: "b", resolvedCardId: "unbanned-before", zone: "main" }),
+      ],
+    );
+    const banned = advisories.violations.filter((violation) => violation.code === "banned-card");
+    expect(banned.map((violation) => violation.cardId)).toEqual(["unbanned-later"]);
   });
 
   it("flags a constructed deck that breaks the deck rules", async () => {

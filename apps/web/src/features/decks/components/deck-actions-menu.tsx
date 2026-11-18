@@ -275,7 +275,7 @@ function DeckMenuBody({
           {capabilities.present && item.totalCards > 0 ? (
             <DropdownMenuItem
               onClick={() => {
-                void navigate({ to: "/stage", search: { deck: deck.id, i: 0 } });
+                void navigate({ to: "/stage/show", search: { deck: deck.id, i: 0 } });
               }}
             >
               <MonitorPlayIcon className="size-4" />

@@ -20,6 +20,7 @@ import { useSources } from "@/features/admin/hooks/use-sources";
 import { exportCatalogFn } from "@/features/admin/lib/sources-queries";
 import { downloadText } from "@/lib/download";
 import { errorText } from "@/lib/error-text";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 const SWITCH_HELP = [
   {
@@ -72,17 +73,18 @@ function ExportCatalogButton() {
 function RelinkSourcesButton() {
   const relink = useRelinkCandidatePrintings();
 
+  async function run() {
+    let result: Awaited<ReturnType<typeof relink.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await relink.mutateAsync();
+    });
+    if (ok && result) {
+      toast.success(`Linked ${result.linked} of ${result.examined} stranded rows`);
+    }
+  }
+
   return (
-    <PageTopBarButton
-      pending={relink.isPending}
-      onClick={() =>
-        relink.mutate(undefined, {
-          onSuccess: (result) => {
-            toast.success(`Linked ${result.linked} of ${result.examined} stranded rows`);
-          },
-        })
-      }
-    >
+    <PageTopBarButton pending={relink.isPending} onClick={() => void run()}>
       <Link2Icon />
       Relink sources
     </PageTopBarButton>
@@ -92,19 +94,20 @@ function RelinkSourcesButton() {
 function CheckMatchingButton() {
   const checkMatching = useCheckMatchingCandidates();
 
+  async function run() {
+    let result: Awaited<ReturnType<typeof checkMatching.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await checkMatching.mutateAsync();
+    });
+    if (ok && result) {
+      toast.success(
+        `Checked ${result.cardsChecked} matching cards and ${result.printingsChecked} matching printings`,
+      );
+    }
+  }
+
   return (
-    <PageTopBarButton
-      pending={checkMatching.isPending}
-      onClick={() =>
-        checkMatching.mutate(undefined, {
-          onSuccess: (result) => {
-            toast.success(
-              `Checked ${result.cardsChecked} matching cards and ${result.printingsChecked} matching printings`,
-            );
-          },
-        })
-      }
-    >
+    <PageTopBarButton pending={checkMatching.isPending} onClick={() => void run()}>
       <ListChecksIcon />
       Check matching
     </PageTopBarButton>

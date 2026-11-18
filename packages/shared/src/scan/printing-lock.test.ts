@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { ArtTrack } from "./accept";
 import type { PrintingLockDeps } from "./printing-lock";
@@ -204,6 +204,35 @@ describe("createPrintingReader", () => {
 
     expect(promo?.picked).toMatchObject({ key: "p-promo", via: "stamp" });
     expect(plain?.picked?.key).not.toBe("p-promo");
+  });
+
+  it("retries the stamp check after a failed reference fetch", async () => {
+    const references = new Map([
+      ["p-plain", stampCard({ stamp: false })],
+      ["p-promo", stampCard({ stamp: true })],
+    ]);
+    let promoFetches = 0;
+    const read = createPrintingReader({
+      bank: { keys: [...references.keys()], vectors: new Float32Array(0) },
+      artKeyOf: () => ART,
+      identityOf: (key) => ({ markers: key === "p-promo" ? "promo" : "" }),
+      fetchReference: (key) => {
+        if (key === "p-promo" && ++promoFetches === 2) {
+          return Promise.reject(new Error("offline"));
+        }
+        return Promise.resolve(references.get(key) ?? null);
+      },
+    });
+    const card = stampCard({ stamp: true, shiftX: 14, shiftY: -9 });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const failed = await read(ART, "p-plain", card, 0);
+    const retried = await read(ART, "p-plain", card, 0);
+
+    expect(failed?.picked?.via).not.toBe("stamp");
+    expect(retried?.picked).toMatchObject({ key: "p-promo", via: "stamp" });
+    expect(warn).toHaveBeenCalledOnce();
+    warn.mockRestore();
   });
 
   it("leaves the set open when the stamped printings come from several sets", async () => {

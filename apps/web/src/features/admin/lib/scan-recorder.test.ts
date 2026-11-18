@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   buildClipMeta,
@@ -98,18 +98,22 @@ describe("deliverFiles", () => {
     expect(downloaded).toEqual([]);
   });
 
-  it("falls back to downloads when sharing fails", async () => {
+  it("falls back to downloads when sharing fails, and logs why", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const blocked = new DOMException("blocked", "NotAllowedError");
     const downloaded: File[] = [];
     const result = await deliverFiles(
       files,
       {
         canShare: () => true,
-        share: () => Promise.reject(new DOMException("blocked", "NotAllowedError")),
+        share: () => Promise.reject(blocked),
       },
       (file) => downloaded.push(file),
     );
     expect(result).toBe("downloaded");
     expect(downloaded).toEqual(files);
+    expect(warn).toHaveBeenCalledWith(expect.any(String), blocked);
+    warn.mockRestore();
   });
 });
 

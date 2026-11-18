@@ -1820,6 +1820,17 @@ html {
   }
 }
 
+/* Set on <html> by the root shell from the route's `staticData.chrome`. */
+html[data-chrome],
+html[data-chrome] body {
+  overflow: hidden;
+}
+
+html[data-chrome="transparent"],
+html[data-chrome="transparent"] body {
+  background: transparent;
+}
+
 /* The scanning page goes full-bleed on phones once the camera is running: the
    viewfinder takes the whole viewport and its own chrome floats over the
    picture. The app header would otherwise sit on top of the camera image (it is

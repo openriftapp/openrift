@@ -17,6 +17,7 @@ interface DraggableCardProps {
   children?: ReactNode;
 }
 
+/** A pointer-only drag: the keyboard sensor starts no card drag, so the wrapper takes no tab stop. */
 export function DraggableCard({
   id,
   copyIds,
@@ -41,19 +42,14 @@ export function DraggableCard({
     sourceAllGroupCopies,
   };
 
-  const { setNodeRef, listeners, attributes, isDragging } = useDraggable({ id, data });
+  const { setNodeRef, listeners, isDragging } = useDraggable({ id, data });
 
   if (isMobile) {
     return children;
   }
 
   return (
-    <div
-      ref={setNodeRef}
-      {...listeners}
-      {...attributes}
-      style={isDragging ? { opacity: 0.4 } : undefined}
-    >
+    <div ref={setNodeRef} {...listeners} style={isDragging ? { opacity: 0.4 } : undefined}>
       {children}
     </div>
   );
