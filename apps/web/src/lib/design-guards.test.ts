@@ -71,6 +71,7 @@ const GUARDS: readonly Guard[] = [
       "features/meta/components/meta-legend-hero.tsx",
       "features/meta/components/meta-player-hero.tsx",
       "features/tournaments/components/champion-plate.tsx",
+      "features/tournaments/components/pod-card.tsx",
       "features/account/components/reset-password-page.tsx",
       "features/account/components/verify-email-page.tsx",
     ]),

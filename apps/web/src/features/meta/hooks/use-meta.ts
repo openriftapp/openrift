@@ -1,5 +1,4 @@
 import type {
-  MetaDeckCardsQuery,
   MetaDeckFacetsQuery,
   MetaDeckQuery,
   MetaEventDayCountsQuery,
@@ -19,7 +18,6 @@ import {
   metaActivityQueryOptions,
   metaCountsQueryOptions,
   metaEventDayCountsQueryOptions,
-  metaDeckCardsQueryOptions,
   metaDeckFacetsQueryOptions,
   metaDeckQueryOptions,
   metaDecksQueryOptions,
@@ -112,10 +110,6 @@ export function useMetaDecks(query?: MetaDeckQuery) {
 
 export function useMetaDeckFacets(query?: MetaDeckFacetsQuery) {
   return useSuspenseQuery(metaDeckFacetsQueryOptions(query));
-}
-
-export function useMetaDeckCards(query?: MetaDeckCardsQuery) {
-  return useSuspenseQuery(metaDeckCardsQueryOptions(query));
 }
 
 export function useMetaDeck(token: string) {

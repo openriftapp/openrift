@@ -21,7 +21,7 @@ import {
   LIST_ENTRY_MUTATION_KEYS,
   listEntryWritesInFlight,
   steppedManualQuantity,
-  totalQuantity,
+  entryTotalQuantity,
 } from "@/features/lists/lib/list-entry-writes";
 import type { ListRulesState } from "@/features/lists/lib/list-rules-conflict";
 import { listRulesConflict } from "@/features/lists/lib/list-rules-conflict";
@@ -262,9 +262,14 @@ export function useUpdateListEntry() {
         entry.id === vars.entryId
           ? {
               ...entry,
-              ...(vars.quantity !== undefined && { quantity: totalQuantity(entry, vars.quantity) }),
+              ...(vars.quantity !== undefined && {
+                quantity: entryTotalQuantity(entry, vars.quantity),
+              }),
               ...(vars.quantityDelta !== undefined && {
-                quantity: totalQuantity(entry, steppedManualQuantity(entry, vars.quantityDelta)),
+                quantity: entryTotalQuantity(
+                  entry,
+                  steppedManualQuantity(entry, vars.quantityDelta),
+                ),
               }),
               ...(vars.tradeOverride !== undefined && { tradeOverride: vars.tradeOverride }),
             }

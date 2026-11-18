@@ -147,7 +147,7 @@ describe("rehostImageFile", () => {
   ) {
     return {
       getImageFileId: vi.fn(async () => (file === null ? undefined : FILE_ID)),
-      getImageFileForRehost: vi.fn(async () =>
+      getImageFileById: vi.fn(async () =>
         file === null
           ? undefined
           : {
@@ -303,7 +303,7 @@ describe("ensureRehostedOriginal", () => {
 
   function makeRepo(file: { originalUrl: string | null; rehostedUrl: string | null }) {
     return {
-      getImageFileForRehost: vi.fn(async () => ({
+      getImageFileById: vi.fn(async () => ({
         id: FILE_ID,
         ...file,
         rotation: 0,
@@ -449,7 +449,7 @@ describe("retryDueRehosts", () => {
   function makeRetryRepo(due: Record<string, string>) {
     return {
       listDueRehosts: vi.fn(() => Promise.resolve(Object.keys(due))),
-      getImageFileForRehost: vi.fn((id: string) =>
+      getImageFileById: vi.fn((id: string) =>
         Promise.resolve({
           id,
           originalUrl: due[id],
@@ -497,7 +497,7 @@ describe("retryDueRehosts", () => {
       "file-01": "https://example.com/a.png",
       "file-02": "https://example.com/b.png",
     });
-    repo.getImageFileForRehost.mockRejectedValueOnce(new Error("connection reset"));
+    repo.getImageFileById.mockRejectedValueOnce(new Error("connection reset"));
 
     const result = await retryDueRehosts(mockIo, repo);
 
@@ -508,7 +508,7 @@ describe("retryDueRehosts", () => {
 describe("refetchImages", () => {
   function makeRefetchRepo(files: Record<string, string | null>, rehosted = true) {
     return {
-      getImageFileForRehost: vi.fn((id: string) =>
+      getImageFileById: vi.fn((id: string) =>
         Promise.resolve(
           id in files
             ? {

@@ -44,7 +44,7 @@ export async function rehostImageFile(
   imageFileId: string,
   options: { overwrite?: boolean } = {},
 ): Promise<RehostOutcome> {
-  const file = await repo.getImageFileForRehost(imageFileId);
+  const file = await repo.getImageFileById(imageFileId);
   if (!file) {
     return { status: "skipped" };
   }
@@ -102,7 +102,7 @@ export async function refetchImageFile(
   repo: PrintingImagesRepo,
   imageFileId: string,
 ): Promise<RefetchOutcome> {
-  const file = await repo.getImageFileForRehost(imageFileId);
+  const file = await repo.getImageFileById(imageFileId);
   if (!file?.originalUrl) {
     return { status: "skipped", imageFileId };
   }

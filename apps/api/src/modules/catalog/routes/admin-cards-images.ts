@@ -387,7 +387,7 @@ export const adminCardImagesRouter = {
       throw errors.BAD_REQUEST({ message: `imageFileId is only valid with mode "pinned"` });
     }
     if (imageFileId) {
-      const file = await printingImages.getImageFileForRehost(imageFileId);
+      const file = await printingImages.getImageFileById(imageFileId);
       assertFound(file, "Image file not found");
     }
 

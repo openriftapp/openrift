@@ -11,6 +11,7 @@ import { PodPairingsSection } from "./pairings-section";
 const idleMutation = { mutateAsync: vi.fn(), isPending: false };
 
 vi.mock("@/features/tournaments/hooks/use-tournament-run", () => ({
+  useClearTournamentResult: () => idleMutation,
   useFinalizeTournamentRound: () => idleMutation,
   useGenerateTournamentRound: () => idleMutation,
   useRerollTournamentRound: () => idleMutation,

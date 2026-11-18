@@ -117,9 +117,7 @@ export function makeMockRepo(
   opts: {
     selectResult?: any;
     rehosted?: { imageId: string }[];
-    /** When set, getImageFileById returns this row regardless of id. Default
-     *  returns a row with both URLs set so existing tests keep their
-     *  "rehosted url cleared" behavior. */
+    /** When set, getImageFileById returns this row regardless of id. */
     imageFile?: { id: string; originalUrl: string | null; rehostedUrl: string | null } | null;
   } = {},
 ) {
@@ -128,7 +126,7 @@ export function makeMockRepo(
   const listed = (opts.selectResult ?? []) as { imageId?: string; originalUrl?: string | null }[];
   return {
     listUnrehosted: vi.fn(() => Promise.resolve(opts.selectResult ?? [])),
-    getImageFileForRehost: vi.fn((id: string) => {
+    getImageFileById: vi.fn((id: string) => {
       const settings = { rotation: 0, needsTrim: false, quad: null };
       if (opts.imageFile !== undefined) {
         return Promise.resolve(
@@ -138,7 +136,7 @@ export function makeMockRepo(
       const row = Array.isArray(listed) ? listed.find((entry) => entry.imageId === id) : undefined;
       return Promise.resolve(
         row === undefined
-          ? undefined
+          ? { ...defaultFile, ...settings }
           : { id, originalUrl: row.originalUrl ?? null, rehostedUrl: null, ...settings },
       );
     }),
@@ -152,9 +150,6 @@ export function makeMockRepo(
     allRehostedUrls: vi.fn(() => Promise.resolve([])),
     getVariantSettingsByIds: vi.fn(() => Promise.resolve(new Map())),
     listAllRehosted: vi.fn(() => Promise.resolve(opts.rehosted ?? [])),
-    getImageFileById: vi.fn(() =>
-      Promise.resolve(opts.imageFile === undefined ? defaultFile : opts.imageFile),
-    ),
   } as any;
 }
 

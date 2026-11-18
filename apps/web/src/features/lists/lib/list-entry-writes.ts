@@ -45,7 +45,7 @@ export function manualQuantity(entry: EntryQuantity): number {
   return entry.kind === "copy" ? entry.quantity : entry.quantity - entry.ruleQuantity;
 }
 
-export function totalQuantity(entry: EntryQuantity, manual: number): number {
+export function entryTotalQuantity(entry: EntryQuantity, manual: number): number {
   return entry.kind === "copy" ? manual : manual + entry.ruleQuantity;
 }
 

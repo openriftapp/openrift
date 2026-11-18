@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export interface ScrollRequest {
+interface ScrollRequest {
   key: string;
   block: ScrollLogicalPosition;
 }

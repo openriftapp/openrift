@@ -72,7 +72,7 @@ const mockPrintingImages = {
   setFallbackArt: vi.fn(),
   imageFileForUrl: vi.fn(),
   insertUnattachedImageFile: vi.fn(),
-  getImageFileForRehost: vi.fn(),
+  getImageFileById: vi.fn(),
   deleteById: vi.fn(),
   getForActivate: vi.fn(),
   updateRehostedUrl: vi.fn(),
@@ -1100,7 +1100,7 @@ describe("POST /printing/:printingId/fallback-art", () => {
   });
 
   it("pins an image file", async () => {
-    mockPrintingImages.getImageFileForRehost.mockResolvedValue({ id: IMAGE_FILE_ID });
+    mockPrintingImages.getImageFileById.mockResolvedValue({ id: IMAGE_FILE_ID });
 
     const res = await app.request(FALLBACK_ART, {
       method: "POST",
@@ -1189,7 +1189,7 @@ describe("POST /printing/:printingId/fallback-art", () => {
   });
 
   it("returns 404 for an unknown image file", async () => {
-    mockPrintingImages.getImageFileForRehost.mockResolvedValue(undefined);
+    mockPrintingImages.getImageFileById.mockResolvedValue(undefined);
 
     const res = await app.request(FALLBACK_ART, {
       method: "POST",

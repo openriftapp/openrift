@@ -234,7 +234,7 @@ describe.skipIf(!ready)("Tournament running surface (integration)", () => {
     const refused = await stranger.app.fetch(
       req("DELETE", `/tournaments/${id}/pods/${pod.id}/result`),
     );
-    expect(refused.status).toBe(404);
+    expect(refused.status).toBe(403);
     const cleared = await host.app.fetch(req("DELETE", `/tournaments/${id}/pods/${pod.id}/result`));
 
     expect(cleared.status).toBe(200);

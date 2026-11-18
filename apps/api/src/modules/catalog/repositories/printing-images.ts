@@ -949,23 +949,5 @@ export function printingImagesRepo(db: Kysely<Database>) {
         .values({ id: values.id, rehostedUrl: values.rehostedUrl })
         .execute();
     },
-
-    getImageFileForRehost(imageFileId: string): Promise<
-      | {
-          id: string;
-          originalUrl: string | null;
-          rehostedUrl: string | null;
-          rotation: 0 | 90 | 180 | 270;
-          needsTrim: boolean;
-          quad: ImageQuad | null;
-        }
-      | undefined
-    > {
-      return db
-        .selectFrom("imageFiles")
-        .select(["id", "originalUrl", "rehostedUrl", "rotation", "needsTrim", "quad"])
-        .where("id", "=", imageFileId)
-        .executeTakeFirst();
-    },
   };
 }

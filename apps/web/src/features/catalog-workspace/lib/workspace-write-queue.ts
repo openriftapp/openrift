@@ -29,7 +29,7 @@ const LIMITS: Record<WriteLimit, { ms: number; notice: string }> = {
 /** A queued write. Every request it sends passes `signal` on, so it aborts with its task. */
 export type WorkspaceWriteTask = (signal: AbortSignal) => unknown;
 
-export interface EnqueueOptions {
+interface EnqueueOptions {
   queryClient: QueryClient;
   limit?: WriteLimit;
 }

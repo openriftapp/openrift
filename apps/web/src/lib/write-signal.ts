@@ -1,4 +1,9 @@
-import type { MutateOptions, UseMutationOptions, UseMutationResult } from "@tanstack/react-query";
+import type {
+  MutateOptions,
+  MutationFunctionContext,
+  UseMutationOptions,
+  UseMutationResult,
+} from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
 
 /** A write whose request was aborted for taking too long; it may still have landed. */
@@ -78,15 +83,38 @@ export type SignalledMutationResult<
   TOnMutateResult
 >;
 
-function unwrapCallbacks<TData, TVariables, TOnMutateResult>({
+/** `TSuccessResult` differs: mutation options pass `onSuccess` a defined result, call options may not. */
+interface ResultCallbacks<TData, TVariables, TOnMutateResult, TSuccessResult> {
+  onSuccess?: (
+    data: TData,
+    variables: TVariables,
+    onMutateResult: TSuccessResult,
+    context: MutationFunctionContext,
+  ) => unknown;
+  onError?: (
+    error: Error,
+    variables: TVariables,
+    onMutateResult: TOnMutateResult | undefined,
+    context: MutationFunctionContext,
+  ) => unknown;
+  onSettled?: (
+    data: TData | undefined,
+    error: Error | null,
+    variables: TVariables,
+    onMutateResult: TOnMutateResult | undefined,
+    context: MutationFunctionContext,
+  ) => unknown;
+}
+
+function unwrapCallbacks<TData, TVariables, TOnMutateResult, TSuccessResult>({
   onSuccess,
   onError,
   onSettled,
-}: MutateOptions<TData, Error, TVariables, TOnMutateResult>): MutateOptions<
+}: ResultCallbacks<TData, TVariables, TOnMutateResult, TSuccessResult>): ResultCallbacks<
   TData,
-  Error,
   Sent<TVariables>,
-  TOnMutateResult
+  TOnMutateResult,
+  TSuccessResult
 > {
   return {
     ...(onSuccess && {
@@ -133,18 +161,7 @@ export function useSignalledMutation<TData, TVariables, TOnMutateResult = unknow
     ...(onMutate && {
       onMutate: (sent, context) => onMutate(sentVariables(sent), context),
     }),
-    ...(onSuccess && {
-      onSuccess: (data, sent, result, context) =>
-        onSuccess(data, sentVariables(sent), result, context),
-    }),
-    ...(onError && {
-      onError: (error, sent, result, context) =>
-        onError(error, sentVariables(sent), result, context),
-    }),
-    ...(onSettled && {
-      onSettled: (data, error, sent, result, context) =>
-        onSettled(data, error, sentVariables(sent), result, context),
-    }),
+    ...unwrapCallbacks({ onSuccess, onError, onSettled }),
   });
   const { mutate, mutateAsync } = mutation;
   return {
