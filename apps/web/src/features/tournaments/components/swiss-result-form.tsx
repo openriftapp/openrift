@@ -1,6 +1,5 @@
 import type { PodResponse } from "@openrift/shared/types/api/pod-tournament";
 import type { TournamentMatchFormat } from "@openrift/shared/types/api/tournament";
-import { CheckIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Fragment, useState } from "react";
 
@@ -168,7 +167,7 @@ export function SwissResultForm({
     <div className="flex flex-col gap-3">
       <div
         className={cn(
-          "grid w-fit max-w-full items-center gap-x-1.5 gap-y-2",
+          "grid w-full items-center gap-x-1.5 gap-y-2",
           bo3 ? SHEET_COLUMNS.bo3 : SHEET_COLUMNS.bo1,
         )}
       >
@@ -190,6 +189,7 @@ export function SwissResultForm({
               {label}
               {rows.map((game, index) => {
                 const pressed = !intentional && game === outcome;
+                const mark = intentional ? null : cellMark(outcome, game);
                 return (
                   <Toggle
                     key={index}
@@ -207,13 +207,14 @@ export function SwissResultForm({
                       outcome: outcomeLabels[outcome],
                     })}
                     className={cn(
-                      "w-full",
+                      "w-full font-semibold",
                       side
                         ? "aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary/90"
                         : "h-7",
+                      !pressed && mark !== null && "text-muted-foreground border-dashed",
                     )}
                   >
-                    {pressed ? <CheckIcon /> : null}
+                    {mark}
                   </Toggle>
                 );
               })}
@@ -283,9 +284,23 @@ export function SwissResultForm({
 type SheetOutcome = Exclude<GameOutcome, "unplayed">;
 
 const SHEET_COLUMNS = {
-  bo1: "grid-cols-[minmax(0,max-content)_2.5rem_1.5rem]",
-  bo3: "grid-cols-[minmax(0,max-content)_repeat(3,2.5rem)_1.5rem]",
+  bo1: "grid-cols-[minmax(0,1fr)_2.5rem_1.5rem]",
+  bo3: "grid-cols-[minmax(0,1fr)_repeat(3,2.5rem)_1.5rem]",
 } as const;
+
+/** W / L / D read the same in every locale, so they are not translated. */
+function cellMark(row: SheetOutcome, game: GameOutcome | null): string | null {
+  if (game === null || game === "unplayed") {
+    return null;
+  }
+  if (game === "draw") {
+    return "D";
+  }
+  if (row === "draw") {
+    return null;
+  }
+  return row === game ? "W" : "L";
+}
 
 function matchSummary(
   counts: MatchCounts,

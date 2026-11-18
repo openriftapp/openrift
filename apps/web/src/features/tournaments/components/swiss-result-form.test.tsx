@@ -331,6 +331,22 @@ describe("SwissResultForm", () => {
     expect(screen.getByRole("button", { name: "Game 3: Ashe" })).toBeEnabled();
   });
 
+  it("marks each game W, L or D in every row", async () => {
+    const user = userEvent.setup();
+    renderForm(match([null, null]));
+
+    await user.click(screen.getByRole("button", { name: "Game 1: Ashe" }));
+    await user.click(screen.getByRole("button", { name: "Game 2: Draw" }));
+
+    expect(screen.getByRole("button", { name: "Game 1: Ashe" })).toHaveTextContent("W");
+    expect(screen.getByRole("button", { name: "Game 1: Braum" })).toHaveTextContent("L");
+    expect(screen.getByRole("button", { name: "Game 1: Draw" })).toHaveTextContent("");
+    expect(screen.getByRole("button", { name: "Game 2: Ashe" })).toHaveTextContent("D");
+    expect(screen.getByRole("button", { name: "Game 2: Braum" })).toHaveTextContent("D");
+    expect(screen.getByRole("button", { name: "Game 2: Draw" })).toHaveTextContent("D");
+    expect(screen.getByRole("button", { name: "Game 3: Ashe" })).toHaveTextContent("");
+  });
+
   it("calls a level match a draw", async () => {
     const user = userEvent.setup();
     renderForm(match([null, null]));
