@@ -1,6 +1,6 @@
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { sql } from "kysely";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { PRINTINGS } from "../../../test/fixtures/constants.js";
 import { createDbContext } from "../../../test/integration-context.js";
@@ -16,7 +16,7 @@ describe.skipIf(!ctx)("marketplaceMappingRepo (integration)", () => {
   const marketplace = "cardtrader" as const;
   const externalId = 872_479;
   const groupId = 90_001;
-  const fileExternalIds = [872_479, 872_480, 872_481, 872_482, 872_490, 872_491];
+  const fileExternalIds = [872_479, 872_480, 872_481, 872_482, 872_490, 872_491, 872_492];
 
   const enPrintingId = PRINTINGS["SFD-R01:common:normal::EN"].id;
   const scPrintingId = PRINTINGS["SFD-R01:common:normal::SC"].id;
@@ -431,6 +431,65 @@ describe.skipIf(!ctx)("marketplaceMappingRepo (integration)", () => {
       const own = mine.filter((r) => r.targetPrintingId === enPrintingId);
       expect(own.length).toBeGreaterThanOrEqual(1);
       expect(own[0]!.ownerLanguage).toBe(printing.language);
+    });
+  });
+
+  describe("getVariantForPrinting", () => {
+    const skuExternalId = 872_492;
+    const skus = [
+      { finish: "normal", language: null },
+      { finish: "normal", language: "EN" },
+      { finish: "foil", language: null },
+    ];
+    const skuKey = (finish: string, language: string | null) => `${finish}:${language}`;
+    const variantIds = new Map<string, string>();
+
+    beforeAll(async () => {
+      await db
+        .insertInto("marketplaceGroups")
+        .values({ marketplace, groupId, name: "Test CM Group" })
+        .onConflict((oc) => oc.columns(["marketplace", "groupId"]).doNothing())
+        .execute();
+      const rows = await repo.upsertProductVariants(
+        skus.map((sku) => ({
+          marketplace,
+          printingId: enPrintingId,
+          externalId: skuExternalId,
+          groupId,
+          productName: "Variant Lookup Product",
+          ...sku,
+        })),
+      );
+      for (const row of rows) {
+        variantIds.set(skuKey(row.finish, row.language), row.variantId);
+      }
+    });
+
+    it.each(skus)("picks the $finish / $language SKU's variant", async ({ finish, language }) => {
+      const variant = await repo.getVariantForPrinting(
+        marketplace,
+        enPrintingId,
+        skuExternalId,
+        finish,
+        language,
+      );
+
+      expect(variant).toMatchObject({
+        variantId: variantIds.get(skuKey(finish, language)),
+        marketplace,
+        externalId: skuExternalId,
+        finish,
+        language,
+      });
+    });
+
+    it.each([
+      { case: "another printing", printingId: scPrintingId, finish: "normal", language: null },
+      { case: "an unbound language", printingId: enPrintingId, finish: "foil", language: "EN" },
+    ])("returns undefined for $case", async ({ printingId, finish, language }) => {
+      expect(
+        await repo.getVariantForPrinting(marketplace, printingId, skuExternalId, finish, language),
+      ).toBeUndefined();
     });
   });
 });

@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createDbContext } from "../../../test/integration-context.js";
+import type { SeededPrinting } from "../../../test/catalog-seed.js";
+import { seedCatalogPrinting } from "../../../test/catalog-seed.js";
+import { createDbContext, insertPrinting } from "../../../test/integration-context.js";
 import { keywordsRepo } from "./keywords.js";
 
 const ctx = createDbContext("a0000000-0043-4000-a000-000000000001");
@@ -123,6 +125,111 @@ describe.skipIf(!ctx)("keywordsRepo (integration)", () => {
 
     const after = await db.selectFrom("cards").select(["id", "keywords"]).orderBy("id").execute();
     expect(after).toEqual(before);
+  });
+
+  describe("recompute", () => {
+    let target: SeededPrinting;
+    let bystander: SeededPrinting;
+    let stale: SeededPrinting;
+    let current: SeededPrinting;
+
+    async function setFaceText(seed: SeededPrinting, printedRulesText: string) {
+      await db
+        .updateTable("faces")
+        .set({ printedRulesText })
+        .where("id", "=", seed.faceId)
+        .execute();
+    }
+
+    async function setKeywords(seed: SeededPrinting, keywords: string[]) {
+      await db.updateTable("cards").set({ keywords }).where("id", "=", seed.cardId).execute();
+    }
+
+    async function siblingPrinting(seed: SeededPrinting, suffix: string, language: string) {
+      await insertPrinting(db, {
+        cardId: seed.cardId,
+        setId: seed.setId,
+        shortCode: `${seed.cardSlug}-${suffix}`,
+        publicCode: `${seed.cardSlug}-${suffix}`,
+        rarity: "common",
+        artVariant: "normal",
+        isSigned: false,
+        finish: "normal",
+        size: "standard",
+        language,
+        artist: "Test Artist",
+        printedRulesText: language === "EN" ? "[Assault 1]" : "[Tank]",
+      });
+    }
+
+    beforeAll(async () => {
+      target = await seedCatalogPrinting(db, "kwr");
+      bystander = await seedCatalogPrinting(db, "kwr");
+      stale = await seedCatalogPrinting(db, "kwr");
+      current = await seedCatalogPrinting(db, "kwr");
+
+      await setFaceText(target, "[Shield 2]");
+      await siblingPrinting(target, "002", "EN");
+      await siblingPrinting(target, "003", "FR");
+      await db
+        .insertInto("cardErrata")
+        .values({
+          cardId: target.cardId,
+          language: "EN",
+          correctedRulesText: "[Deflect]",
+          source: "KWR test",
+        })
+        .execute();
+      await setKeywords(target, ["Stale"]);
+
+      await setFaceText(bystander, "[Shield 2]");
+      await setKeywords(bystander, ["Untouched"]);
+
+      await setFaceText(stale, "[Shield 2]");
+      await setKeywords(stale, ["Stale"]);
+
+      await setFaceText(current, "[Assault 1]");
+      await setKeywords(current, ["Assault"]);
+    });
+
+    afterAll(async () => {
+      for (const seed of [target, bystander, stale, current]) {
+        await seed?.cleanup();
+      }
+    });
+
+    function keywordsOf(seed: SeededPrinting, reader = db) {
+      return reader
+        .selectFrom("cards")
+        .select(["keywords", "updatedAt"])
+        .where("id", "=", seed.cardId)
+        .executeTakeFirstOrThrow();
+    }
+
+    it("recomputeForPrintingCard derives the card's keywords from its errata and English faces only", async () => {
+      await repo.recomputeForPrintingCard(target.printingId);
+
+      const recomputed = await keywordsOf(target);
+      const untouched = await keywordsOf(bystander);
+      expect(recomputed.keywords.toSorted()).toEqual(["Assault", "Deflect", "Shield"]);
+      expect(untouched.keywords).toEqual(["Untouched"]);
+    });
+
+    it("recomputeAll rewrites stale keywords and leaves current ones unwritten", async () => {
+      const currentBefore = await keywordsOf(current);
+
+      // Rewrites every card in the shared database, so it runs in a rolled-back transaction.
+      await expect(
+        db.transaction().execute(async (trx) => {
+          const result = await keywordsRepo(trx).recomputeAll();
+          expect(result.updated).toBeGreaterThanOrEqual(1);
+          const fixed = await keywordsOf(stale, trx);
+          expect(fixed.keywords).toEqual(["Shield"]);
+          expect(await keywordsOf(current, trx)).toEqual(currentBefore);
+          throw new Error("rollback");
+        }),
+      ).rejects.toThrow("rollback");
+    });
   });
 
   it("getTranslationCandidates pairs each EN printing with its non-EN siblings", async () => {

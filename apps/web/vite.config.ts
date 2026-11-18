@@ -21,6 +21,7 @@ import { serverFnId } from "./src/lib/server-fn-id.ts";
 import { adminRouteSplitBehavior } from "./vite-plugins/admin-route-split.ts";
 import { bootChunkGuardPlugin } from "./vite-plugins/boot-chunk-guard.ts";
 import { latestMilestonePlugin } from "./vite-plugins/latest-milestone.ts";
+import { createCompilerBailouts } from "./vite-plugins/react-compiler-bailouts.ts";
 
 const commitHash = execSync("git rev-parse --short HEAD").toString().trim();
 const mediaDir = path.resolve(import.meta.dirname, "../../media");
@@ -111,47 +112,10 @@ const saveDeviceRunPlugin: Plugin = {
   },
 };
 
-interface CompilerLoggerEvent {
-  kind: string;
-  reason?: string;
-  detail?: {
-    loc?: { start?: { line: number; column: number } } | null;
-    options?: { reason?: string; category?: string };
-  };
-}
+const compilerBailouts = createCompilerBailouts(import.meta.dirname, true);
 
-const ALLOWED_COMPILER_BAILOUTS: Record<string, string> = {
-  "src/lib/virtualizer-fresh.ts":
-    'CompileSkip: carries "use no memo" on purpose (TanStack/virtual#736)',
-};
-
-const compilerBailouts = new Map<string, string>();
-
-const compilerLogger = {
-  logEvent(filename: string | null, rawEvent: unknown): void {
-    const event = rawEvent as CompilerLoggerEvent;
-    if (
-      event.kind !== "CompileError" &&
-      event.kind !== "CompileSkip" &&
-      event.kind !== "CompileDiagnostic" &&
-      event.kind !== "PipelineError"
-    ) {
-      return;
-    }
-    const relative = filename ? path.relative(import.meta.dirname, filename) : "?";
-    const loc = event.detail?.loc?.start;
-    const at = loc ? `:${loc.line}:${loc.column}` : "";
-    if (!(relative in ALLOWED_COMPILER_BAILOUTS)) {
-      const reason = event.detail?.options?.reason ?? event.reason ?? "no reason given";
-      compilerBailouts.set(relative, `${event.kind}${at}: ${reason}`);
-    }
-    console.log(`[react-compiler] ${event.kind} ${relative}${at}`);
-    if (event.detail) {
-      // console.log's default depth=2 would truncate nested detail as "[Object]".
-      console.dir(event.detail, { depth: null, colors: true });
-    }
-  },
-};
+// Off only in the pre-merge check, where scripts/check-react-compiler.ts compiles the changed files instead.
+const reactCompilerOff = process.env.OPENRIFT_REACT_COMPILER === "off";
 
 // Nothing else in the toolchain fails the build on a compiler bailout; this
 // is the only guard. Build only: dev keeps running and just logs.
@@ -159,20 +123,10 @@ const reactCompilerBailoutGuard: Plugin = {
   name: "react-compiler-bailout-guard",
   apply: "build",
   buildEnd() {
-    if (compilerBailouts.size === 0) {
-      return;
+    const report = compilerBailouts.takeReport();
+    if (report !== undefined) {
+      throw new Error(report);
     }
-    const listed = [...compilerBailouts].map(([file, summary]) => `  ${file}\n    ${summary}`);
-    compilerBailouts.clear();
-    throw new Error(
-      `React Compiler bailed on ${listed.length} file(s), which therefore ship unoptimized:\n` +
-        `${listed.join("\n")}\n\n` +
-        "Rewrite the flagged code. Common causes: a conditional, logical operator, " +
-        "optional call or loop inside a try/catch; a `finally` clause; a function " +
-        "declared after the component's return; a call to a function declared later " +
-        "in the same body. If the bailout is genuinely unavoidable, add the file to " +
-        "ALLOWED_COMPILER_BAILOUTS in apps/web/vite.config.ts with a reason.",
-    );
   },
 };
 
@@ -334,12 +288,16 @@ export default defineConfig(({ mode, command }) => {
           compressPublicAssets: process.env.COMPRESS ? { gzip: true, brotli: true } : false,
         }),
       viteReact(),
-      babel({
-        // Generated message code has no components, and _index.js alone is 3 MB.
-        exclude: [/[/\\]node_modules[/\\]/u, /[/\\]src[/\\]paraglide[/\\]/u],
-        presets: [reactCompilerPreset({ logger: compilerLogger })],
-      }),
-      reactCompilerBailoutGuard,
+      ...(reactCompilerOff
+        ? []
+        : [
+            babel({
+              // Generated message code has no components, and _index.js alone is 3 MB.
+              exclude: [/[/\\]node_modules[/\\]/u, /[/\\]src[/\\]paraglide[/\\]/u],
+              presets: [reactCompilerPreset({ logger: compilerBailouts.logger })],
+            }),
+            reactCompilerBailoutGuard,
+          ]),
       bootChunkGuardPlugin(),
       ...sentryPlugins,
       // Opt-in via `bun run analyze`, to avoid the post-build cost on every prod build.

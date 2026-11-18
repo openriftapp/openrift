@@ -23,7 +23,8 @@
         "src/tracing.server.ts",
         "src/components/error-fallback.tsx",
         "nitro/*.ts",
-        "project.inlang/paraglide.config.ts"
+        "project.inlang/paraglide.config.ts",
+        "scripts/*.ts"
       ],
       "ignore": ["public/sw.js", "src/test/paraglide-en.js"],
       "ignoreDependencies": ["flag-icons"],

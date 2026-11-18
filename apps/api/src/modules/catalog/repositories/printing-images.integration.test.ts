@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Database } from "../../../db/tables.js";
 import { PRINTING_1 } from "../../../test/fixtures/constants.js";
 import { mockIo } from "../../../test/image-mocks.js";
-import { createDbContext } from "../../../test/integration-context.js";
+import { createDbContext, insertImageFile } from "../../../test/integration-context.js";
 import { waitUntilBlockedBy } from "../../../test/row-locks.js";
 import { refetchImageFile } from "../services/images/jobs.js";
 import { catalogMutationsRepo } from "./catalog-mutations.js";
@@ -43,6 +43,9 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
     untried: "https://example.com/untried-0034.jpg",
     failedOld: "https://example.com/failed-old-0034.jpg",
     failedNew: "https://example.com/failed-new-0034.jpg",
+    rehostedScan: "https://example.com/rehosted-scan-0034.jpg",
+    rehostedPlain: "https://example.com/rehosted-plain-0034.jpg",
+    notRehosted: "https://example.com/not-rehosted-0034.jpg",
   };
 
   async function backendPid(trx: Kysely<Database>): Promise<number> {
@@ -229,6 +232,38 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
   it("getImageFileById returns undefined for an unknown id", async () => {
     const row = await repo.getImageFileById("00000000-0000-4000-a000-000000000000");
     expect(row).toBeUndefined();
+  });
+
+  describe("listAllRehosted", () => {
+    const files = { scan: "", plain: "", notRehosted: "" };
+
+    beforeAll(async () => {
+      const scan = await insertImageFile(db, { originalUrl: URLS.rehostedScan });
+      const plain = await insertImageFile(db, { originalUrl: URLS.rehostedPlain });
+      const notRehosted = await insertImageFile(db, {
+        originalUrl: URLS.notRehosted,
+        rehosted: false,
+      });
+      files.scan = scan.id;
+      files.plain = plain.id;
+      files.notRehosted = notRehosted.id;
+      await db
+        .updateTable("imageFiles")
+        .set({ needsTrim: true })
+        .where("id", "=", files.scan)
+        .execute();
+    });
+
+    it.each([
+      { scansOnly: false, expected: ["scan", "plain"] as const },
+      { scansOnly: true, expected: ["scan"] as const },
+    ])("lists rehosted files with scansOnly $scansOnly", async ({ scansOnly, expected }) => {
+      const ours = new Set(Object.values(files));
+      const rows = await repo.listAllRehosted(scansOnly);
+      expect(rows.filter((row) => ours.has(row.imageId))).toEqual(
+        expected.map((key) => ({ imageId: files[key], rehostedUrl: imageRehostedUrl(files[key]) })),
+      );
+    });
   });
 
   it("listAllRehostedWithContext returns images with card context", async () => {

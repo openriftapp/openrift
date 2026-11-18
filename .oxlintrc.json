@@ -440,9 +440,22 @@
     },
     {
       // Bun and Node code. apps/api repeats this in its own config (see the harness note below).
-      "files": ["apps/discord-bot/**", "scripts/**", "**/*.config.ts"],
+      "files": [
+        "apps/discord-bot/**",
+        "scripts/**",
+        "**/*.config.ts",
+        "apps/web/scripts/**",
+        "apps/web/vite-plugins/**"
+      ],
       "rules": {
         "import/no-nodejs-modules": "off"
+      }
+    },
+    {
+      // Web build scripts sit outside src/, which the `@/` alias covers.
+      "files": ["apps/web/scripts/**"],
+      "rules": {
+        "no-restricted-imports": "off"
       }
     },
     {

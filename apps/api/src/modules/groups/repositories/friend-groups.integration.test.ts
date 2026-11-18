@@ -331,6 +331,131 @@ describe.skipIf(!ctx)("friendGroupsRepo (integration)", () => {
     expect(requests[0]).not.toHaveProperty("memberPreviews");
   });
 
+  it("getInvite returns only the row for that group and user", async () => {
+    const group = await createGroup(VIEWER_ID);
+    const otherGroup = await createGroup(VIEWER_ID);
+    await repo.createInvite(group.id, SELLER_ID, "invite");
+
+    const invite = await repo.getInvite(group.id, SELLER_ID);
+    expect(invite).toMatchObject({ groupId: group.id, userId: SELLER_ID, direction: "invite" });
+    expect(await repo.getInvite(group.id, ADMIN_ID)).toBeUndefined();
+    expect(await repo.getInvite(otherGroup.id, SELLER_ID)).toBeUndefined();
+  });
+
+  it("listRequestsForGroup returns the group's join requests oldest first, with the requester", async () => {
+    const group = await createGroup(VIEWER_ID);
+    const otherGroup = await createGroup(VIEWER_ID);
+    await repo.createInvite(group.id, SELLER_ID, "request");
+    await repo.createInvite(group.id, ADMIN_ID, "request");
+    await repo.createInvite(group.id, OUTSIDER_ID, "invite");
+    await repo.createInvite(otherGroup.id, OUTSIDER_ID, "request");
+    await db
+      .updateTable("friendGroupInvites")
+      .set({ createdAt: new Date("2026-01-02T00:00:00Z") })
+      .where("groupId", "=", group.id)
+      .where("userId", "=", SELLER_ID)
+      .execute();
+    await db
+      .updateTable("friendGroupInvites")
+      .set({ createdAt: new Date("2026-01-01T00:00:00Z") })
+      .where("groupId", "=", group.id)
+      .where("userId", "=", ADMIN_ID)
+      .execute();
+
+    const requests = await repo.listRequestsForGroup(group.id);
+
+    expect(requests.map((request) => request.userId)).toEqual([ADMIN_ID, SELLER_ID]);
+    expect(requests[0]).toMatchObject({
+      groupId: group.id,
+      direction: "request",
+      userName: "Test User",
+      userEmail: `test-${ADMIN_ID}@test.com`,
+      userImage: null,
+    });
+  });
+
+  it("deleteInvite removes only that user's invite in that group", async () => {
+    const group = await createGroup(VIEWER_ID);
+    const otherGroup = await createGroup(VIEWER_ID);
+    await repo.createInvite(group.id, SELLER_ID, "request");
+    await repo.createInvite(group.id, ADMIN_ID, "request");
+    await repo.createInvite(otherGroup.id, SELLER_ID, "request");
+
+    await repo.deleteInvite(group.id, SELLER_ID);
+
+    expect(await repo.getInvite(group.id, SELLER_ID)).toBeUndefined();
+    expect(await repo.getInvite(group.id, ADMIN_ID)).toBeDefined();
+    expect(await repo.getInvite(otherGroup.id, SELLER_ID)).toBeDefined();
+  });
+
+  it("updateRole changes the member's role and returns the updated row", async () => {
+    const group = await createGroup(VIEWER_ID);
+    await repo.addMember(group.id, SELLER_ID, "member");
+    await repo.addMember(group.id, ADMIN_ID, "member");
+
+    const updated = await repo.updateRole(group.id, SELLER_ID, "admin");
+
+    expect(updated).toMatchObject({ groupId: group.id, userId: SELLER_ID, role: "admin" });
+    const promoted = await repo.getMembership(group.id, SELLER_ID);
+    const untouched = await repo.getMembership(group.id, ADMIN_ID);
+    expect(promoted?.role).toBe("admin");
+    expect(untouched?.role).toBe("member");
+  });
+
+  it("listShareableForUserInGroup lists the user's own lists with this group's share state", async () => {
+    // A fresh user, because the file-owned users accumulate lists across tests.
+    const owner = await seedTestUser(db);
+    createdUserIds.push(owner.id);
+    const group = await createGroup(owner.id);
+    const otherGroup = await createGroup(owner.id);
+    await repo.addMember(group.id, SELLER_ID, "member");
+
+    const trade = await createList(owner.id, "trade", "copy");
+    const wishA = await createList(owner.id, "wish", "card");
+    const wishB = await createList(owner.id, "wish", "card");
+    await db.updateTable("lists").set({ name: "Wish A" }).where("id", "=", wishA.id).execute();
+    await db.updateTable("lists").set({ name: "Wish B" }).where("id", "=", wishB.id).execute();
+    await db
+      .insertInto("listEntries")
+      .values([
+        {
+          listId: wishA.id,
+          userId: owner.id,
+          kind: "card",
+          cardId: CARD_FURY_UNIT.id,
+          quantity: 1,
+        },
+        {
+          listId: wishA.id,
+          userId: owner.id,
+          kind: "card",
+          cardId: CARD_FURY_SPELL.id,
+          quantity: 3,
+        },
+      ])
+      .execute();
+    await repo.share(group.id, trade.id, owner.id);
+    await repo.share(otherGroup.id, wishB.id, owner.id);
+    const sellerList = await createList(SELLER_ID, "trade", "copy");
+    await repo.share(group.id, sellerList.id, SELLER_ID);
+
+    const rows = await repo.listShareableForUserInGroup(group.id, owner.id);
+
+    expect(rows.map((row) => row.listId)).toEqual([trade.id, wishA.id, wishB.id]);
+    const byId = new Map(rows.map((row) => [row.listId, row]));
+    expect(byId.get(trade.id)?.sharedAt).toBeInstanceOf(Date);
+    expect(byId.get(wishA.id)?.sharedAt).toBeNull();
+    expect(byId.get(wishB.id)?.sharedAt).toBeNull();
+    expect(byId.get(wishA.id)).toMatchObject({
+      listName: "Wish A",
+      listIntent: "wish",
+      listKind: "card",
+      entryCount: 2,
+      hasRule: false,
+    });
+    expect(byId.get(trade.id)?.entryCount).toBe(0);
+  });
+
   it("listGroupsForUser returns counts and roster-ordered member previews capped at five", async () => {
     const group = await createGroup(VIEWER_ID);
     await repo.addMember(group.id, ADMIN_ID, "admin");

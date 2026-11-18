@@ -1,6 +1,4 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- Vite/Vitest config runs in Node.js
 import { readFileSync } from "node:fs";
-// oxlint-disable-next-line import/no-nodejs-modules -- Vite/Vitest config runs in Node.js
 import path from "node:path";
 
 import { parseChangelog } from "@openrift/shared/changelog";

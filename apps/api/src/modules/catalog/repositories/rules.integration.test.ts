@@ -20,8 +20,11 @@ describe.skipIf(!ctx)("rulesRepo (integration)", () => {
   const changesPrevVersion = "0000-test-chg-0044-a";
   const changesVersion = "0000-test-chg-0044-b";
   const koPrintingId = crypto.randomUUID();
+  const countVersion = "0000-test-count-0044";
 
   afterAll(async () => {
+    await repo.deleteVersion("core", "en", `${countVersion}-0`);
+    await repo.deleteVersion("core", "en", `${countVersion}-2`);
     await repo.deleteVersion("core", "en", sharedVersion);
     await repo.deleteVersion("tournament", "en", sharedVersion);
     for (const version of [langVersion, langPrevVersion, changesVersion, changesPrevVersion]) {
@@ -313,5 +316,27 @@ describe.skipIf(!ctx)("rulesRepo (integration)", () => {
     expect(await repo.listCardNames("fr")).not.toContainEqual(
       expect.objectContaining({ name: "룰 테스트 0044" }),
     );
+  });
+
+  it.each([0, 2])("insertRules writes %i rows and returns that count", async (count) => {
+    const version = `${countVersion}-${count}`;
+    await repo.upsertVersion({ kind: "core", language: "en", version }, {});
+
+    const inserted = await repo.insertRules(
+      Array.from({ length: count }, (_, index) => ({
+        kind: "core" as const,
+        language: "en" as const,
+        version,
+        ruleNumber: `950.${index + 1}`,
+        sortOrder: index,
+        depth: 0,
+        ruleType: "text" as const,
+        content: `Count rule ${index + 1}.`,
+        changeType: "added" as const,
+      })),
+    );
+
+    expect(inserted).toBe(count);
+    expect(await repo.listSnapshot("core", "en", version)).toHaveLength(count);
   });
 });

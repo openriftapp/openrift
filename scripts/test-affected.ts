@@ -3,6 +3,7 @@
  * reaches a changed file, plus every test that reads the source tree from
  * disk. A change vitest cannot trace through imports runs the whole package.
  * Usage: bun scripts/test-affected.ts [base-ref]   (default: main)
+ *        bun scripts/test-affected.ts --guards [files]   (guards only, of the packages the files are in)
  */
 
 import { spawnSync } from "node:child_process";
@@ -134,6 +135,20 @@ function check(name: string, command: string[], cwd: string): void {
     console.error(`FAILED: ${name}`);
     process.exit(1);
   }
+}
+
+if (baseRef === "--guards") {
+  const staged = process.argv.slice(3);
+  for (const { dir, name } of PACKAGES) {
+    if (staged.length > 0 && !staged.some((file) => file.startsWith(`${dir}/`))) {
+      continue;
+    }
+    const guards = guardTests(dir).map((file) => resolve(repoRoot, file));
+    if (guards.length > 0) {
+      check(name, ["bunx", "vitest", "run", "--reporter=dot", ...guards], resolve(repoRoot, dir));
+    }
+  }
+  process.exit(0);
 }
 
 const mergeBase = git(["merge-base", baseRef, "HEAD"]).trim();

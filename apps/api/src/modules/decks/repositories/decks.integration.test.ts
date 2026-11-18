@@ -452,6 +452,32 @@ describe.skipIf(!ctx)("decksRepo (integration)", () => {
     expect(untouched?.archivedAt).toBeNull();
   });
 
+  it.each([
+    { includeArchived: true, listsArchived: true },
+    { includeArchived: false, listsArchived: false },
+  ])(
+    "listForUser with includeArchived $includeArchived lists archived decks: $listsArchived",
+    async ({ includeArchived, listsArchived }) => {
+      const liveId = createdDeckIds[0]!;
+      const archived = await repo.create({
+        userId,
+        name: "Archived Listing Deck",
+        description: null,
+        format: "constructed",
+        formatConfig: null,
+        isPublic: false,
+      });
+      createdDeckIds.push(archived.id);
+      await repo.setArchivedMany([archived.id], userId, true);
+
+      const decks = await repo.listForUser(userId, { includeArchived });
+      const ids = decks.map((deck) => deck.id);
+
+      expect(ids).toContain(liveId);
+      expect(ids.includes(archived.id)).toBe(listsArchived);
+    },
+  );
+
   it("deletes a deck and returns numDeletedRows = 1", async () => {
     const deck = await repo.create({
       userId,

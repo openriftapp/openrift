@@ -19,7 +19,7 @@ bunx turbo test --filter=api
 bun run --cwd apps/web test src/stores/display-store.test.ts
 ```
 
-`/done` runs `bun run test:affected`, which selects the tests whose import graph reaches a file the branch changed and adds every test that reads the source tree from disk. A change it cannot trace through imports (a `package.json`, a config, a non-module asset) runs that package's whole suite. A changed message runs the tests of the files that call it. The full suite runs in the pre-push hook and in CI.
+`/done` runs `bun run test:affected`, which selects the tests whose import graph reaches a file the branch changed and adds every test that reads the source tree from disk. A change it cannot trace through imports (a `package.json`, a config, a non-module asset) runs that package's whole suite. A changed message runs the tests of the files that call it. The full suite runs in the pre-push hook and in CI. The pre-commit hook runs the tests that read the source tree (`bun scripts/test-affected.ts --guards`) for each package with staged files.
 
 Reserve `bun run --cwd <pkg> test` for a single file. Without a file argument it invokes vitest directly, bypasses the Turbo cache, and forces the pre-push hook to redo identical work.
 

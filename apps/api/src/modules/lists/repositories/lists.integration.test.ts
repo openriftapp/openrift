@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
   CARD_CALM_UNIT,
@@ -6,7 +6,7 @@ import {
   CARD_FURY_UNIT,
   PRINTING_1,
 } from "../../../test/fixtures/constants.js";
-import { createDbContext } from "../../../test/integration-context.js";
+import { createDbContext, seedTestUser } from "../../../test/integration-context.js";
 import { listsRepo } from "./lists.js";
 
 const ctx = createDbContext("a0000000-0040-4000-a000-000000000001");
@@ -1097,5 +1097,112 @@ describe.skipIf(!ctx)("listsRepo (integration)", () => {
     await repo.raiseEntryQuantityTo(entry.id, "a0000000-9999-4000-a000-000000000099", 9);
     const unchanged = await repo.getEntryByIdForUser(entry.id, userId);
     expect(unchanged?.quantity).toBe(1);
+  });
+
+  it("entriesWithDetailsAnon returns the list's entries without an owner check", async () => {
+    const [list, otherList] = await Promise.all(
+      ["Anon shared", "Anon other"].map((name) =>
+        repo.create({ userId, name, intent: "wish", kind: "card" }),
+      ),
+    );
+    createdListIds.push(list!.id, otherList!.id);
+    await repo.createEntry({
+      listId: list!.id,
+      userId,
+      kind: "card",
+      cardId: CARD_FURY_UNIT.id,
+      printingId: null,
+      copyId: null,
+      quantity: 2,
+    });
+    await repo.createEntry({
+      listId: otherList!.id,
+      userId,
+      kind: "card",
+      cardId: CARD_CALM_UNIT.id,
+      printingId: null,
+      copyId: null,
+      quantity: 1,
+    });
+
+    const rows = await repo.entriesWithDetailsAnon(list!.id, "card");
+    expect(
+      rows.map((row) => ({ kind: row.kind, cardName: row.cardName, quantity: row.quantity })),
+    ).toEqual([{ kind: "card", cardName: CARD_FURY_UNIT.name, quantity: 2 }]);
+  });
+
+  describe("listMembershipsForCopies", () => {
+    const copyIds: string[] = [];
+    let alphaListId: string;
+    let betaListId: string;
+    let strangerId: string;
+
+    beforeAll(async () => {
+      const [copyA, copyB] = [await createTestCopy(), await createTestCopy()];
+      copyIds.push(copyA.id, copyB.id);
+      const strangerUser = await seedTestUser(db);
+      strangerId = strangerUser.id;
+      const alpha = await repo.create({
+        userId,
+        name: "Membership Alpha",
+        intent: "trade",
+        kind: "copy",
+      });
+      const beta = await repo.create({
+        userId,
+        name: "Membership Beta",
+        intent: "organize",
+        kind: "copy",
+      });
+      const stranger = await repo.create({
+        userId: strangerId,
+        name: "Membership Stranger",
+        intent: "organize",
+        kind: "copy",
+      });
+      alphaListId = alpha.id;
+      betaListId = beta.id;
+      createdListIds.push(alpha.id, beta.id, stranger.id);
+      for (const [listId, owner, copyId] of [
+        [alpha.id, userId, copyA.id],
+        [alpha.id, userId, copyB.id],
+        [beta.id, userId, copyA.id],
+        [stranger.id, strangerId, copyA.id],
+      ] as const) {
+        await repo.createEntry({
+          listId,
+          userId: owner,
+          kind: "copy",
+          cardId: null,
+          printingId: null,
+          copyId,
+          quantity: 1,
+        });
+      }
+    });
+
+    afterAll(async () => {
+      await db.deleteFrom("lists").where("userId", "=", strangerId).execute();
+      await db.deleteFrom("users").where("id", "=", strangerId).execute();
+    });
+
+    it("counts distinct copies per own list, most copies first", async () => {
+      const result = await repo.listMembershipsForCopies(copyIds, userId);
+      expect(result).toEqual({
+        lists: [
+          { id: alphaListId, name: "Membership Alpha", copyCount: 2 },
+          { id: betaListId, name: "Membership Beta", copyCount: 1 },
+        ],
+        copiesOnAnyList: 2,
+      });
+    });
+
+    it("leaves out the excluded list and the copies only it holds", async () => {
+      const result = await repo.listMembershipsForCopies(copyIds, userId, alphaListId);
+      expect(result).toEqual({
+        lists: [{ id: betaListId, name: "Membership Beta", copyCount: 1 }],
+        copiesOnAnyList: 1,
+      });
+    });
   });
 });

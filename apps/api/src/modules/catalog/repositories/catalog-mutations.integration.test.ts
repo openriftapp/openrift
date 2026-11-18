@@ -70,3 +70,30 @@ describe.skipIf(!ctx)("catalogMutationsRepo.detachDecksBeforeCatalogDeletion (in
     expect(await coverOf(otherCard)).toEqual({ coverFaceId: null, coverCardId: kept.cardId });
   });
 });
+
+describe.skipIf(!ctx)("catalogMutationsRepo.getSetIdBySlug (integration)", () => {
+  const { db } = ctx!;
+  const repo = catalogMutationsRepo(db);
+  const suffix = crypto.randomUUID().slice(0, 8);
+  const slugs = [`cmi-set-a-${suffix}`, `cmi-set-b-${suffix}`];
+  let setIds: string[] = [];
+
+  beforeAll(async () => {
+    const rows = await db
+      .insertInto("sets")
+      .values(slugs.map((slug) => ({ slug, name: `Set ${slug}`, printedTotal: 1 })))
+      .returning(["id", "slug"])
+      .execute();
+    setIds = slugs.map((slug) => rows.find((row) => row.slug === slug)!.id);
+  });
+
+  afterAll(async () => {
+    await db.deleteFrom("sets").where("slug", "in", slugs).execute();
+  });
+
+  it("resolves each slug to its own set and an unknown slug to undefined", async () => {
+    expect(await repo.getSetIdBySlug(slugs[0]!)).toEqual({ id: setIds[0] });
+    expect(await repo.getSetIdBySlug(slugs[1]!)).toEqual({ id: setIds[1] });
+    expect(await repo.getSetIdBySlug(`cmi-set-missing-${suffix}`)).toBeUndefined();
+  });
+});

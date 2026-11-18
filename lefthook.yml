@@ -25,6 +25,9 @@ pre-commit:
       glob: "*.{js,ts,jsx,tsx}"
       root: "apps/web/"
       run: bunx eslint --no-warn-ignored '{staged_files}'
+    convention-guards:
+      glob: "{apps,packages}/**/*.{ts,tsx,json,md,css}"
+      run: bun scripts/test-affected.ts --guards {staged_files}
     syncpack-lint:
       # `**/package.json` alone never matches the root file, so a range slipped
       # into the root devDependencies used to go unchecked.

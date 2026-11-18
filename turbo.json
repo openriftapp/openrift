@@ -5,6 +5,7 @@
       "dependsOn": ["topo"],
       "inputs": ["$TURBO_DEFAULT$", ".env*", "!src/**/*.test.ts", "!src/**/*.test.tsx"],
       "outputs": ["dist/**", ".output/**"],
+      "env": ["OPENRIFT_REACT_COMPILER"],
       "passThroughEnv": ["SENTRY_AUTH_TOKEN", "SENTRY_ORG", "SENTRY_PROJECT"]
     },
     "typecheck": {

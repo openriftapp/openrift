@@ -798,6 +798,59 @@ describe.skipIf(!groupCtx)("copies in group collections (integration)", () => {
     expect(found).toBeDefined();
     expect(found!.groupId).toBe(groupId);
   });
+
+  describe("filterAccessibleByViewer", () => {
+    const copyIds = { own: "", pooled: "", stranger: "" };
+    const collectionIds: string[] = [];
+    let strangerId: string;
+
+    beforeAll(async () => {
+      const strangerUser = await seedTestUser(db);
+      strangerId = strangerUser.id;
+      const [own, stranger] = await db
+        .insertInto("collections")
+        .values([
+          { userId, name: "Own Box", isInbox: false, sortOrder: 0 },
+          { userId: strangerId, name: "Stranger Box", isInbox: false, sortOrder: 0 },
+        ])
+        .returning("id")
+        .execute();
+      collectionIds.push(own!.id, stranger!.id);
+
+      const inserted = await copies.insertBatch([
+        { printingId: PRINTING_1.id, collectionId: own!.id },
+        { printingId: PRINTING_1.id, collectionId: pooledCollectionId },
+        { printingId: PRINTING_1.id, collectionId: stranger!.id },
+      ]);
+      const byCollection = new Map(inserted.map((row) => [row.collectionId, row.id]));
+      copyIds.own = byCollection.get(own!.id)!;
+      copyIds.pooled = byCollection.get(pooledCollectionId)!;
+      copyIds.stranger = byCollection.get(stranger!.id)!;
+      insertedCopyIds.push(copyIds.pooled);
+    });
+
+    afterAll(async () => {
+      await db.deleteFrom("copies").where("collectionId", "in", collectionIds).execute();
+      await db.deleteFrom("copyDeletions").where("collectionId", "in", collectionIds).execute();
+      await db.deleteFrom("collections").where("id", "in", collectionIds).execute();
+      await db.deleteFrom("users").where("id", "=", strangerId).execute();
+    });
+
+    it.each([
+      { personalOnly: false, expected: ["own", "pooled"] as const },
+      { personalOnly: true, expected: ["own"] as const },
+    ])(
+      "keeps $expected copies when personalOnly is $personalOnly",
+      async ({ personalOnly, expected }) => {
+        const result = await copies.filterAccessibleByViewer(
+          [copyIds.own, copyIds.pooled, copyIds.stranger],
+          userId,
+          personalOnly,
+        );
+        expect(result.toSorted()).toEqual(expected.map((key) => copyIds[key]).toSorted());
+      },
+    );
+  });
 });
 
 const coverCtx = createDbContext(crypto.randomUUID());
