@@ -88,61 +88,6 @@ async function scanDisk(io: Io): Promise<{
   return { stats: { totalBytes, byResolution, sets }, filesByPrefix };
 }
 
-export async function getRehostStatus(
-  io: Io,
-  repo: PrintingImagesRepo,
-): Promise<RehostStatusResponse> {
-  const [perSet, { stats: disk, filesByPrefix }, knownUrls, failures] = await Promise.all([
-    repo.rehostStatusBySet(),
-    scanDisk(io),
-    repo.allRehostedUrls(),
-    repo.countRehostFailures(),
-  ]);
-
-  let total = 0;
-  let rehosted = 0;
-  const sets = perSet.map((row) => {
-    const t = row.total;
-    const r = row.rehosted;
-    total += t;
-    rehosted += r;
-    return { setId: row.setId, setName: row.setName, total: t, rehosted: r, external: t - r };
-  });
-
-  const knownPrefixes = new Set(knownUrls);
-  let orphanedFiles = 0;
-  for (const { prefix, files } of filesByPrefix) {
-    for (const file of files) {
-      if (!isValidVariantSuffix(file) || !knownPrefixes.has(diskFileToPrefix(prefix, file))) {
-        orphanedFiles++;
-      }
-    }
-    const origCountByBase = new Map<string, number>();
-    for (const file of files) {
-      const base = ORIG_FILE_RE.exec(file)?.[1];
-      if (base !== undefined) {
-        origCountByBase.set(base, (origCountByBase.get(base) ?? 0) + 1);
-      }
-    }
-    for (const count of origCountByBase.values()) {
-      if (count > 1) {
-        orphanedFiles += count - 1;
-      }
-    }
-  }
-
-  return {
-    total,
-    rehosted,
-    external: total - rehosted,
-    failedRetrying: failures.retrying,
-    failedManual: failures.manual,
-    orphanedFiles,
-    sets,
-    disk,
-  };
-}
-
 /** Returns stale duplicate `-orig.*` archives per base, keeping only the newest by mtime. */
 function findDuplicateOrigs({ files, mtimes }: DiskPrefix): Set<string> {
   const byBase = new Map<string, { file: string; mtime: number }[]>();
@@ -172,6 +117,63 @@ function findDuplicateOrigs({ files, mtimes }: DiskPrefix): Set<string> {
 
 const ORPHAN_MIN_AGE_MS = HOUR_MS;
 
+/** Files no row references, older than `cutoff`: the files the orphan sweep deletes. */
+function sweepableOrphans(
+  disk: DiskPrefix,
+  knownPrefixes: ReadonlySet<string>,
+  cutoff: number,
+): string[] {
+  const staleDuplicateOrigs = findDuplicateOrigs(disk);
+  return disk.files.filter(
+    (file) =>
+      (disk.mtimes.get(file) ?? 0) <= cutoff &&
+      (!isValidVariantSuffix(file) ||
+        !knownPrefixes.has(diskFileToPrefix(disk.prefix, file)) ||
+        staleDuplicateOrigs.has(file)),
+  );
+}
+
+export async function getRehostStatus(
+  io: Io,
+  repo: PrintingImagesRepo,
+  now: Date = new Date(),
+): Promise<RehostStatusResponse> {
+  const [perSet, { stats: disk, filesByPrefix }, knownUrls, failures] = await Promise.all([
+    repo.rehostStatusBySet(),
+    scanDisk(io),
+    repo.allRehostedUrls(),
+    repo.countRehostFailures(),
+  ]);
+
+  let total = 0;
+  let rehosted = 0;
+  const sets = perSet.map((row) => {
+    const t = row.total;
+    const r = row.rehosted;
+    total += t;
+    rehosted += r;
+    return { setId: row.setId, setName: row.setName, total: t, rehosted: r, external: t - r };
+  });
+
+  const knownPrefixes = new Set(knownUrls);
+  const cutoff = now.getTime() - ORPHAN_MIN_AGE_MS;
+  let orphanedFiles = 0;
+  for (const prefix of filesByPrefix) {
+    orphanedFiles += sweepableOrphans(prefix, knownPrefixes, cutoff).length;
+  }
+
+  return {
+    total,
+    rehosted,
+    external: total - rehosted,
+    failedRetrying: failures.retrying,
+    failedManual: failures.manual,
+    orphanedFiles,
+    sets,
+    disk,
+  };
+}
+
 /** Deletes card media files no row references, leaving files written in the last hour to in-flight image writes. */
 export async function cleanupOrphanedFiles(
   io: Io,
@@ -186,27 +188,15 @@ export async function cleanupOrphanedFiles(
   const cutoff = now.getTime() - ORPHAN_MIN_AGE_MS;
 
   for (const disk of filesByPrefix) {
-    const { prefix, files, mtimes } = disk;
-    const prefixDir = join(CARD_MEDIA_DIR, prefix);
-    const staleDuplicateOrigs = findDuplicateOrigs(disk);
-
-    for (const file of files) {
-      progress.scanned++;
-      if ((mtimes.get(file) ?? 0) > cutoff) {
-        continue;
-      }
-      const orphaned =
-        !isValidVariantSuffix(file) ||
-        !knownPrefixes.has(diskFileToPrefix(prefix, file)) ||
-        staleDuplicateOrigs.has(file);
-      if (orphaned) {
-        try {
-          await io.fs.unlink(join(prefixDir, file));
-          progress.deleted++;
-        } catch (error) {
-          const message = errorMessage(error);
-          progress.errors.push(`${prefix}/${file}: ${message}`);
-        }
+    progress.scanned += disk.files.length;
+    const prefixDir = join(CARD_MEDIA_DIR, disk.prefix);
+    for (const file of sweepableOrphans(disk, knownPrefixes, cutoff)) {
+      try {
+        await io.fs.unlink(join(prefixDir, file));
+        progress.deleted++;
+      } catch (error) {
+        const message = errorMessage(error);
+        progress.errors.push(`${disk.prefix}/${file}: ${message}`);
       }
     }
   }

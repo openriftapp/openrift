@@ -113,6 +113,7 @@ export function RaritiesPage() {
           }),
       }}
       reorder={{
+        rowLabel: (row) => row.label,
         moves: flatReorder(rarities, (rarity) => rarity.slug),
         onReorder: (keys) => reorderMutation.mutateAsync(keys),
         isPending: reorderMutation.isPending,

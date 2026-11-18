@@ -37,6 +37,10 @@ import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { cardPageHref } from "@/features/cards/lib/card-page-href";
 import { selectionFindBy } from "@/features/cards/lib/card-tiles";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
+import {
+  CardRowActionsStoreContext,
+  useOwnCardRowActionsStore,
+} from "@/features/cards/stores/card-row-actions-store";
 import { useCopies } from "@/features/collections/hooks/use-copies";
 import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-owned-count";
 import { TradeProposalDialog } from "@/features/groups/components/trade-proposal-dialog";
@@ -167,6 +171,7 @@ function SharedListGrid({
   data: PublicListDetailResponse;
   exchange?: ListExchangeContext;
 }) {
+  const rowActions = useOwnCardRowActionsStore();
   const { entries, list } = data;
   const { sidesByPrinting, printingsById, printingsByCardId, sets } = useCards();
   const display = useCardThumbnailDisplay();
@@ -469,112 +474,114 @@ function SharedListGrid({
   // Without this override, filterSearch.view falls back to the URL/default
   // ("cards") on printing- and copy-kind lists.
   return (
-    <FilterSearchProvider value={{ ...filterSearch, view }}>
-      <CardBrowserFilterProvider
-        searchAlternatives={searchAlternatives}
-        availableFilters={availableFilters}
-        availableLanguages={availableLanguages}
-        filterCounts={filterCounts}
-        setDisplayLabel={setDisplayLabel}
-        hiddenSections={SHARED_HIDDEN_FILTER_SECTIONS}
-      >
-        <CardViewer
-          items={items}
-          totalItems={view === "copies" ? entries.length : listPrintings.length}
-          renderCard={renderCard}
-          toolbar={toolbar}
-          rightPane={rightPane}
-          addStripHeight={ADD_STRIP_HEIGHT}
-          table={
-            exchange?.mode === "request"
-              ? {
-                  actionsColumn: "narrow",
-                  actionsLabel: m.lists_share_actions_trade(),
-                  actionsCell: (
-                    <TradelistRequestActionsCell
-                      entryByItemId={entryByItemId}
-                      requestedItemIds={requestedItemIds}
-                      disabled={tradeMutating}
-                      pendingAction={pendingTradeAction}
-                      onRequest={(printing) => void handleClaim(printing)}
-                      onRelease={(printing) => void handleRelease(printing)}
-                    />
-                  ),
-                }
-              : exchange?.mode === "offer"
+    <CardRowActionsStoreContext value={rowActions}>
+      <FilterSearchProvider value={{ ...filterSearch, view }}>
+        <CardBrowserFilterProvider
+          searchAlternatives={searchAlternatives}
+          availableFilters={availableFilters}
+          availableLanguages={availableLanguages}
+          filterCounts={filterCounts}
+          setDisplayLabel={setDisplayLabel}
+          hiddenSections={SHARED_HIDDEN_FILTER_SECTIONS}
+        >
+          <CardViewer
+            items={items}
+            totalItems={view === "copies" ? entries.length : listPrintings.length}
+            renderCard={renderCard}
+            toolbar={toolbar}
+            rightPane={rightPane}
+            addStripHeight={ADD_STRIP_HEIGHT}
+            table={
+              exchange?.mode === "request"
                 ? {
                     actionsColumn: "narrow",
-                    actionsLabel: m.lists_share_actions_offer(),
+                    actionsLabel: m.lists_share_actions_trade(),
                     actionsCell: (
-                      <OfferActionsCell
+                      <TradelistRequestActionsCell
                         entryByItemId={entryByItemId}
-                        offerChoicesForPrinting={offerChoicesForPrinting}
-                        onOffer={(choices, wantQuantity) =>
-                          setOfferTarget({ choices, wantQuantity })
-                        }
+                        requestedItemIds={requestedItemIds}
+                        disabled={tradeMutating}
+                        pendingAction={pendingTradeAction}
+                        onRequest={(printing) => void handleClaim(printing)}
+                        onRelease={(printing) => void handleRelease(printing)}
                       />
                     ),
                   }
-                : list.kind === "copy"
-                  ? { actionsColumn: "none" }
-                  : {
+                : exchange?.mode === "offer"
+                  ? {
                       actionsColumn: "narrow",
-                      actionsLabel: m.lists_share_actions_qty(),
-                      actionsCell: <SharedListQuantityCell entryByItemId={entryByItemId} />,
+                      actionsLabel: m.lists_share_actions_offer(),
+                      actionsCell: (
+                        <OfferActionsCell
+                          entryByItemId={entryByItemId}
+                          offerChoicesForPrinting={offerChoicesForPrinting}
+                          onOffer={(choices, wantQuantity) =>
+                            setOfferTarget({ choices, wantQuantity })
+                          }
+                        />
+                      ),
                     }
-          }
-        >
-          <SelectionDetailOverlays
-            items={items}
-            printingsByCardId={detailPanePrintingsByCardId}
-            showImages={showImages}
-            onSearchAndClose={handleSearchAndClose}
-          />
-        </CardViewer>
-        {exchange?.mode === "request" ? (
-          <TradeProposalDialog
-            side="request"
-            open={requestPrinting !== null}
-            onOpenChange={(open) => {
-              if (!open) {
-                setRequestPrinting(null);
-              }
-            }}
-            choices={
-              requestPrinting
-                ? [
-                    {
-                      printing: requestPrinting,
-                      available: entriesBySideKey.get(sideKey(requestPrinting))?.length ?? 1,
-                    },
-                  ]
-                : []
+                  : list.kind === "copy"
+                    ? { actionsColumn: "none" }
+                    : {
+                        actionsColumn: "narrow",
+                        actionsLabel: m.lists_share_actions_qty(),
+                        actionsCell: <SharedListQuantityCell entryByItemId={entryByItemId} />,
+                      }
             }
-            groupSlug={exchange.groupSlug}
-            groupName={exchange.groupName}
-            counterpartyUserId={exchange.counterpartyUserId}
-            counterpartyName={exchange.counterpartyName}
-          />
-        ) : null}
-        {exchange?.mode === "offer" ? (
-          <TradeProposalDialog
-            side="offer"
-            open={offerTarget !== null}
-            onOpenChange={(open) => {
-              if (!open) {
-                setOfferTarget(null);
+          >
+            <SelectionDetailOverlays
+              items={items}
+              printingsByCardId={detailPanePrintingsByCardId}
+              showImages={showImages}
+              onSearchAndClose={handleSearchAndClose}
+            />
+          </CardViewer>
+          {exchange?.mode === "request" ? (
+            <TradeProposalDialog
+              side="request"
+              open={requestPrinting !== null}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setRequestPrinting(null);
+                }
+              }}
+              choices={
+                requestPrinting
+                  ? [
+                      {
+                        printing: requestPrinting,
+                        available: entriesBySideKey.get(sideKey(requestPrinting))?.length ?? 1,
+                      },
+                    ]
+                  : []
               }
-            }}
-            choices={offerTarget?.choices ?? []}
-            wantQuantity={offerTarget?.wantQuantity ?? 1}
-            groupSlug={exchange.groupSlug}
-            groupName={exchange.groupName}
-            counterpartyUserId={exchange.counterpartyUserId}
-            counterpartyName={exchange.counterpartyName}
-          />
-        ) : null}
-      </CardBrowserFilterProvider>
-    </FilterSearchProvider>
+              groupSlug={exchange.groupSlug}
+              groupName={exchange.groupName}
+              counterpartyUserId={exchange.counterpartyUserId}
+              counterpartyName={exchange.counterpartyName}
+            />
+          ) : null}
+          {exchange?.mode === "offer" ? (
+            <TradeProposalDialog
+              side="offer"
+              open={offerTarget !== null}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setOfferTarget(null);
+                }
+              }}
+              choices={offerTarget?.choices ?? []}
+              wantQuantity={offerTarget?.wantQuantity ?? 1}
+              groupSlug={exchange.groupSlug}
+              groupName={exchange.groupName}
+              counterpartyUserId={exchange.counterpartyUserId}
+              counterpartyName={exchange.counterpartyName}
+            />
+          ) : null}
+        </CardBrowserFilterProvider>
+      </FilterSearchProvider>
+    </CardRowActionsStoreContext>
   );
 }
 

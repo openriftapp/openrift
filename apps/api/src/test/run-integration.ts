@@ -10,9 +10,12 @@
 
 import { resolve } from "node:path";
 
-import { MINUTE_MS } from "@openrift/shared/format-date";
-
-import { bootstrapSeededTestDb, dropTempDb, sweepStaleTestDatabases } from "./integration-setup.js";
+import {
+  bootstrapSeededTestDb,
+  dropTempDb,
+  STALE_TEST_DB_AGE_MS,
+  sweepStaleTestDatabases,
+} from "./integration-setup.js";
 
 const repoRoot = resolve(import.meta.dirname!, "../..");
 
@@ -73,7 +76,6 @@ process.on("SIGINT", () => void cleanupAndExit(130));
 process.on("SIGTERM", () => void cleanupAndExit(143));
 
 try {
-  const STALE_TEST_DB_AGE_MS = 30 * MINUTE_MS;
   const swept = await sweepStaleTestDatabases(DATABASE_URL, STALE_TEST_DB_AGE_MS);
   if (swept.length > 0) {
     console.log(`Swept ${swept.length} stale test database(s): ${swept.join(", ")}`);

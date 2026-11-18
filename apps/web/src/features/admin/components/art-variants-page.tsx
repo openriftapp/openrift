@@ -95,6 +95,7 @@ export function ArtVariantsPage() {
           }),
       }}
       reorder={{
+        rowLabel: (row) => row.label,
         moves: flatReorder(artVariants, (variant) => variant.slug),
         onReorder: (keys) => reorderMutation.mutateAsync(keys),
         isPending: reorderMutation.isPending,

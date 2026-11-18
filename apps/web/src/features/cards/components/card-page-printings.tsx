@@ -301,6 +301,7 @@ function PrintingCell({
             <Pressable
               ref={cellRef}
               onClick={onSelect}
+              inertUntilHydrated
               data-printing-id={printing.printingId}
               data-highlighted={highlighted || undefined}
               data-lightbox-tile=""

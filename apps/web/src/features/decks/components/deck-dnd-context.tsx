@@ -35,11 +35,13 @@ import {
   isDropRejected,
   resolveDraggedCard,
 } from "@/features/decks/lib/deck-dnd-data";
+import { deckDragAnnouncements } from "@/features/decks/lib/deck-drag-announcements";
 import { DECK_ZONE_ORDER } from "@/features/decks/lib/deck-zone-order";
 import { showRelaxedAddToast } from "@/features/decks/lib/workbench-add-toast";
 import { relaxedMoveOutcome, workbenchAddRoute } from "@/features/decks/lib/workbench-drop";
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
 import { useDragAutoScroll } from "@/hooks/use-drag-auto-scroll";
+import { useZoneOrder } from "@/hooks/use-enums";
 import { useShiftHeld } from "@/hooks/use-shift-held";
 import { asDragData } from "@/lib/dnd-data";
 
@@ -118,6 +120,7 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
   const { data: deckDetail } = useDeckDetail(deckId);
   const format = deckDetail.deck.format;
   const relaxed = useWorkbenchStore((state) => state.relaxed);
+  const { zoneLabels } = useZoneOrder();
   const [dragInfo, setDragInfo] = useState<{
     cardId: string;
     cardName: string;
@@ -295,6 +298,7 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
     <DndContext
       sensors={sensors}
       collisionDetection={pointerWithin}
+      accessibility={{ announcements: deckDragAnnouncements(zoneLabels) }}
       autoScroll={dragScroll.autoScroll}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}

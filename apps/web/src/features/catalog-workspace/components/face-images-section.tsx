@@ -33,7 +33,6 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { findDerivedArtPrinting } from "@/features/admin/components/card-detail-shared";
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
-import type { SiblingImage } from "@/features/admin/components/printing-image-switcher";
 import { PrintingImageSwitcher } from "@/features/admin/components/printing-image-switcher";
 import { RehostStatusBadge } from "@/features/admin/components/rehost-status-badge";
 import { StraightenImageDialog } from "@/features/admin/components/straighten-image-dialog";
@@ -52,6 +51,7 @@ import { useSetDeskImageFace, useUpdateDeskImage } from "@/features/admin/hooks/
 import { adminKeys, IMAGE_FILE_SCOPE } from "@/features/admin/lib/admin-query-keys";
 import { deskImageSrc } from "@/features/admin/lib/printing-desk-image";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
+import { siblingImagesOf } from "@/features/admin/lib/sibling-images";
 import { imageQuadOf } from "@/features/admin/lib/straighten-quad";
 import { RecordSection } from "@/features/catalog-workspace/components/record/record-pane";
 import { SuggestionChip } from "@/features/catalog-workspace/components/record/suggestion-chip";
@@ -71,26 +71,6 @@ type Scope = readonly (readonly unknown[])[];
 
 function sideOf(printing: AdminPrintingResponse): "front" | "back" {
   return printing.side === 2 ? "back" : "front";
-}
-
-function siblingImagesOf(
-  detail: AdminCardDetailResponse,
-  facePrintingIds: ReadonlySet<string>,
-): SiblingImage[] {
-  const seen = new Set<string>();
-  const siblings: SiblingImage[] = [];
-  for (const image of detail.printingImages) {
-    if (facePrintingIds.has(image.printingId) || seen.has(image.imageFileId)) {
-      continue;
-    }
-    seen.add(image.imageFileId);
-    const owner = detail.printings.find((printing) => printing.id === image.printingId);
-    siblings.push({
-      imageFileId: image.imageFileId,
-      printingLabel: owner?.expectedPrintingId ?? image.printingId,
-    });
-  }
-  return siblings;
 }
 
 export function FaceImagesSection({
@@ -197,7 +177,7 @@ export function FaceImagesSection({
           face={side}
           printingLabel={face.expectedPrintingId}
           images={model.images.filter((image) => image.isActive)}
-          siblingImages={siblingImagesOf(detail, printingIds)}
+          siblingImages={siblingImagesOf(detail.printingImages, detail.printings, printingIds)}
           derivedArtLabel={derived?.expectedPrintingId ?? null}
           fallbackArtMode={face.fallbackArtMode}
           fallbackImageFileId={face.fallbackImageFileId}

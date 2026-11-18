@@ -659,3 +659,135 @@ describe.skipIf(!adminCtx)("Admin printing-desk routes (integration)", () => {
     });
   });
 });
+
+describe.skipIf(!adminCtx)("Admin printing-desk duplicates (integration)", () => {
+  const { app, db } = adminCtx!;
+  const ownIds: string[] = [];
+
+  afterAll(async () => {
+    const created = ownIds.filter(Boolean);
+    if (created.length === 0) {
+      return;
+    }
+    await db.deleteFrom("adminEvents").where("entityId", "in", created).execute();
+    await db
+      .deleteFrom("printingDistributionChannels")
+      .where("printingId", "in", created)
+      .execute();
+    await deletePrintingsById(db, created);
+  });
+
+  async function faceRow(printingId: string) {
+    return await db
+      .selectFrom("faces")
+      .select(["artVariant", "isSigned", "isOvernumbered", "publicCode", "printedYear"])
+      .where("id", "=", (eb) =>
+        eb.selectFrom("printings").select("face1Id").where("id", "=", printingId),
+      )
+      .executeTakeFirstOrThrow();
+  }
+
+  it("keeps the source's art variant, signed, overnumbered, public code and year", async () => {
+    const source = await insertPrinting(db, {
+      cardId: cardUuid,
+      setId: setUuid,
+      shortCode: "PDK-D01",
+      rarity: "rare",
+      artVariant: "altart",
+      isSigned: true,
+      isOvernumbered: true,
+      finish: "normal",
+      artist: "PDK Base Artist",
+      publicCode: "PDK-D01/120",
+      printedYear: 2025,
+      language: "EN",
+    });
+    ownIds.push(source.id);
+
+    const res = await app.fetch(
+      adminReq(
+        "POST",
+        "/printing-desk/printings",
+        body({ shortCode: "PDK-D01", finish: "foil", duplicateFrom: source.id }),
+      ),
+    );
+    expect(res.status).toBe(201);
+    const { printingId } = await readJson(res);
+    ownIds.push(printingId);
+
+    expect(await faceRow(printingId)).toEqual({
+      artVariant: "altart",
+      isSigned: true,
+      isOvernumbered: true,
+      publicCode: "PDK-D01/120",
+      printedYear: 2025,
+    });
+  });
+
+  it("keeps the plain defaults without a duplicate source", async () => {
+    const res = await app.fetch(
+      adminReq("POST", "/printing-desk/printings", body({ shortCode: "PDK-D02" })),
+    );
+    expect(res.status).toBe(201);
+    const { printingId } = await readJson(res);
+    ownIds.push(printingId);
+
+    expect(await faceRow(printingId)).toMatchObject({
+      artVariant: "normal",
+      isSigned: false,
+      isOvernumbered: false,
+      printedYear: null,
+    });
+  });
+
+  it("refuses an unknown art variant with a 400", async () => {
+    const res = await app.fetch(
+      adminReq(
+        "POST",
+        "/printing-desk/printings",
+        body({ shortCode: "PDK-D03", artVariant: "not-a-variant" }),
+      ),
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("refuses a duplicate source from another card with a 404", async () => {
+    const otherCard = await insertCard(db, {
+      slug: "pdk-other-card",
+      name: "PDK Other Card",
+      types: ["unit"],
+      might: null,
+      energy: 1,
+      power: null,
+      mightBonus: null,
+      keywords: [],
+      tags: [],
+    });
+    const otherPrinting = await insertPrinting(db, {
+      cardId: otherCard.id,
+      setId: setUuid,
+      shortCode: "PDK-O01",
+      rarity: "common",
+      artVariant: "altart",
+      isSigned: false,
+      finish: "normal",
+      artist: "PDK Other Artist",
+      publicCode: "PDK-O01/120",
+      language: "EN",
+    });
+
+    try {
+      const res = await app.fetch(
+        adminReq(
+          "POST",
+          "/printing-desk/printings",
+          body({ shortCode: "PDK-D04", duplicateFrom: otherPrinting.id }),
+        ),
+      );
+      expect(res.status).toBe(404);
+    } finally {
+      await deletePrintingsById(db, [otherPrinting.id]);
+      await db.deleteFrom("cards").where("id", "=", otherCard.id).execute();
+    }
+  });
+});

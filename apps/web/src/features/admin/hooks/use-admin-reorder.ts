@@ -7,17 +7,21 @@ import type { ReorderMoves } from "@/features/admin/lib/admin-reorder";
 import { NonScrollingKeyboardSensor } from "@/lib/keyboard-drag-sensor";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 
-export interface AdminReorderConfig {
+export interface AdminReorderCommit {
   moves: ReorderMoves;
   onReorder: (keys: string[]) => Promise<unknown> | void;
   isPending?: boolean;
+}
+
+export interface AdminReorderConfig<TData> extends AdminReorderCommit {
+  rowLabel: (row: TData) => string;
 }
 
 export function useAdminReorder({
   reorder,
   rowKeys,
 }: {
-  reorder?: AdminReorderConfig;
+  reorder?: AdminReorderCommit;
   rowKeys: string[];
 }) {
   const [pendingOrder, setPendingOrder] = useState<{ keys: string[]; from: string } | null>(null);

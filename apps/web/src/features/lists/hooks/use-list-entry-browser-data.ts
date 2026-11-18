@@ -15,7 +15,7 @@ import {
   collectListPrintings,
   kindToView,
 } from "@/features/lists/lib/list-entries";
-import { useListEntriesStore } from "@/features/lists/stores/list-entries-store";
+import { useListEntriesStoreApi } from "@/features/lists/stores/list-entries-store";
 import { useDisplayLanguages } from "@/hooks/use-display-languages";
 import { useChannelRegistry } from "@/hooks/use-enums";
 import { useSession } from "@/hooks/use-session";
@@ -130,9 +130,10 @@ export function useListEntryBrowserData({
 
   // Effect deps are the recomputed maps directly: their identities stay stable across
   // renders when entries don't change, so cells can self-subscribe via the store.
+  const listEntriesStore = useListEntriesStoreApi();
   useEffect(() => {
-    useListEntriesStore.getState().setEntries(entryByItemId, entryByKey, printingByEntryId);
-  }, [entryByItemId, entryByKey, printingByEntryId]);
+    listEntriesStore.getState().setEntries(entryByItemId, entryByKey, printingByEntryId);
+  }, [listEntriesStore, entryByItemId, entryByKey, printingByEntryId]);
 
   return {
     allPrintings,

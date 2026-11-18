@@ -5,6 +5,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { getRouteApi } from "@tanstack/react-router";
 import { PackageIcon } from "lucide-react";
 import { useState } from "react";
+import { useStore } from "zustand";
 
 import { Toggle } from "@/components/ui/toggle";
 import { BrowserCardCell } from "@/features/cards/components/browser-card-cell";
@@ -32,6 +33,10 @@ import { selectionFindBy, tileSiblings } from "@/features/cards/lib/card-tiles";
 import { fromWireFacets, fromWireFilterCounts } from "@/features/cards/lib/cards-facets";
 import type { UseCardsResult } from "@/features/cards/lib/catalog-queries";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
+import {
+  CardRowActionsStoreContext,
+  useOwnCardRowActionsStore,
+} from "@/features/cards/stores/card-row-actions-store";
 import { usePrintingLightboxStore } from "@/features/cards/stores/printing-lightbox-store";
 import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-override-store";
 import { AnnotatedDisposeDialog } from "@/features/collections/components/annotated-dispose-dialog";
@@ -99,6 +104,8 @@ function CatalogActionsCell({ printing, view, printingsByCardId }: CatalogAction
 
 /** Never suspends: it renders on the server, so the toolbar keeps its input through hydration. */
 export function CardBrowser() {
+  const rowActions = useOwnCardRowActionsStore<"catalog">();
+  const { dispatchIncrement, dispatchDecrement } = useStore(rowActions, (state) => state.dispatch);
   const hydrated = useHydrated();
   const loaderData = cardsRouteApi.useLoaderData();
   const urlSearch = cardsRouteApi.useSearch();
@@ -328,7 +335,7 @@ export function CardBrowser() {
     })();
   };
 
-  useRowActionHandlers("catalog", {
+  useRowActionHandlers(rowActions, {
     onRowClick: handleGridCardClick,
     onSiblingClick: handleSiblingClick,
     onIncrement:
@@ -414,6 +421,8 @@ export function CardBrowser() {
           incrementDisabled={!hasAddTarget}
           wishEntries={wish.entriesForPrinting(printing.cardId, printing.printingId)}
           onAddToWishlist={setWishTarget}
+          onIncrement={dispatchIncrement}
+          onDecrement={dispatchDecrement}
         />
       )
     : undefined;
@@ -429,7 +438,7 @@ export function CardBrowser() {
   );
 
   return (
-    <>
+    <CardRowActionsStoreContext value={rowActions}>
       <CardBrowserFilterProvider
         searchAlternatives={searchAlternatives}
         availableFilters={shownMeta.availableFilters}
@@ -508,6 +517,6 @@ export function CardBrowser() {
           collections={collections}
         />
       )}
-    </>
+    </CardRowActionsStoreContext>
   );
 }

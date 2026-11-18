@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type { CardRowDispatch } from "@/features/cards/stores/card-row-actions-store";
 import { EMPTY_TRADE_PREFERENCE, stubPrinting } from "@/test/factories";
 import { createStoreResetter } from "@/test/store-helpers";
 
@@ -251,14 +252,22 @@ vi.mock("@/components/ui/sidebar", () => ({
   useSidebar: () => ({ toggleSidebar: vi.fn() }),
 }));
 
-vi.mock("@/features/cards/components/card-viewer", () => ({
-  CardViewer: ({ rightPane, children }: { rightPane?: unknown; children?: unknown }) => (
-    <div>
-      {rightPane as never}
-      {children as never}
-    </div>
-  ),
-}));
+let viewerDispatch: CardRowDispatch;
+
+vi.mock("@/features/cards/components/card-viewer", async () => {
+  const { useCardRowDispatch } = await import("@/features/cards/stores/card-row-actions-store");
+  return {
+    CardViewer: ({ rightPane, children }: { rightPane?: unknown; children?: unknown }) => {
+      viewerDispatch = useCardRowDispatch();
+      return (
+        <div>
+          {rightPane as never}
+          {children as never}
+        </div>
+      );
+    },
+  };
+});
 
 vi.mock("@/features/cards/components/selection-detail-overlays", () => ({
   SelectionDetailOverlays: () => null,
@@ -305,25 +314,16 @@ vi.mock("@/features/lists/components/rule-editor-dialog", async () => {
 const { ListPage } = await import("./list-page");
 const { TopBarSlotContext } = await import("@/components/layout/top-bar-slot");
 const { FilterSearchProvider } = await import("@/features/cards/hooks/use-filter-search");
-const {
-  dispatchDecrement,
-  dispatchDropFromRule,
-  dispatchEntryQuantityStep,
-  dispatchIncrement,
-  dispatchRemoveEntry,
-  useCardRowActionsStore,
-} = await import("@/features/cards/stores/card-row-actions-store");
 const { useGridFocusStore } = await import("@/features/cards/stores/grid-focus-store");
 const { useGridSelectionStore } = await import("@/features/cards/stores/grid-selection-store");
-const { useListEntriesStore } = await import("@/features/lists/stores/list-entries-store");
+const { createListEntriesStore, ListEntriesStoreContext } =
+  await import("@/features/lists/stores/list-entries-store");
 const { useSelectionStore } = await import("@/stores/selection-store");
 const { useSiblingOverrideStore } = await import("@/features/cards/stores/sibling-override-store");
 
 const resetters = [
-  createStoreResetter(useCardRowActionsStore),
   createStoreResetter(useGridFocusStore),
   createStoreResetter(useGridSelectionStore),
-  createStoreResetter(useListEntriesStore),
   createStoreResetter(useSelectionStore),
   createStoreResetter(useSiblingOverrideStore),
 ];
@@ -338,16 +338,19 @@ async function closeOpenMenu(user: ReturnType<typeof userEvent.setup>) {
 }
 
 function renderListPage() {
+  const listEntriesStore = createListEntriesStore();
   const topBarSlot = document.createElement("div");
   document.body.append(topBarSlot);
   const view = render(
     <TopBarSlotContext value={topBarSlot}>
-      <FilterSearchProvider value={{}}>
-        <ListPage listId="list-1" />
-      </FilterSearchProvider>
+      <ListEntriesStoreContext value={listEntriesStore}>
+        <FilterSearchProvider value={{}}>
+          <ListPage listId="list-1" />
+        </FilterSearchProvider>
+      </ListEntriesStoreContext>
     </TopBarSlotContext>,
   );
-  return { view, topBarSlot };
+  return { view, topBarSlot, listEntriesStore };
 }
 
 describe("ListPage", () => {
@@ -435,8 +438,8 @@ describe("ListPage", () => {
     dropFromRules.mutate.mockClear();
     const { view } = renderListPage();
 
-    dispatchDropFromRule({ kind: "card", cardId: "card-a" });
-    dispatchDropFromRule({ kind: "card", cardId: "card-b" });
+    viewerDispatch.dispatchDropFromRule({ kind: "card", cardId: "card-a" });
+    viewerDispatch.dispatchDropFromRule({ kind: "card", cardId: "card-b" });
 
     expect(dropFromRules.mutate.mock.calls).toEqual([
       [{ listId: "list-1", cardId: "card-a", printingId: undefined, copyId: undefined }],
@@ -452,7 +455,7 @@ describe("ListPage", () => {
     };
     const { view } = renderListPage();
 
-    dispatchDecrement(printingOnList, document.body);
+    viewerDispatch.dispatchDecrement(printingOnList, document.body);
 
     expect(updateListEntry.mutate).toHaveBeenCalledWith({
       listId: "list-1",
@@ -470,7 +473,7 @@ describe("ListPage", () => {
     pendingEntryIds = new Set(["entry-1"]);
     const { view } = renderListPage();
 
-    dispatchDecrement(printingOnList, document.body);
+    viewerDispatch.dispatchDecrement(printingOnList, document.body);
 
     expect(updateListEntry.mutate).not.toHaveBeenCalled();
     view.unmount();
@@ -483,7 +486,7 @@ describe("ListPage", () => {
     };
     const { view } = renderListPage();
 
-    dispatchDecrement(printingOnList, document.body);
+    viewerDispatch.dispatchDecrement(printingOnList, document.body);
 
     expect(updateListEntry.mutate).toHaveBeenCalledWith({
       listId: "list-1",
@@ -501,8 +504,8 @@ describe("ListPage", () => {
     const { view } = renderListPage();
     pendingEntryIds = new Set(["entry-1"]);
 
-    dispatchEntryQuantityStep("entry-1", -1);
-    dispatchRemoveEntry("entry-1", "Test Card");
+    viewerDispatch.dispatchEntryQuantityStep("entry-1", -1);
+    viewerDispatch.dispatchRemoveEntry("entry-1", "Test Card");
 
     expect(updateListEntry.mutate).not.toHaveBeenCalled();
     expect(removeListEntry.mutate).not.toHaveBeenCalled();
@@ -513,7 +516,7 @@ describe("ListPage", () => {
     const { view } = renderListPage();
     pendingStepIds = new Set(["entry-1"]);
 
-    dispatchEntryQuantityStep("entry-1", 1);
+    viewerDispatch.dispatchEntryQuantityStep("entry-1", 1);
 
     expect(updateListEntry.mutate).toHaveBeenCalledWith({
       listId: "list-1",
@@ -527,7 +530,7 @@ describe("ListPage", () => {
     const { view } = renderListPage();
     pendingStepIds = new Set(["entry-1"]);
 
-    dispatchRemoveEntry("entry-1", "Test Card");
+    viewerDispatch.dispatchRemoveEntry("entry-1", "Test Card");
 
     expect(removeListEntry.mutate).toHaveBeenCalledWith(
       { listId: "list-1", entryId: "entry-1" },
@@ -540,11 +543,11 @@ describe("ListPage", () => {
     pendingEntryIds = new Set(["entry-1"]);
     const { view } = renderListPage();
 
-    dispatchIncrement(printingOnList);
+    viewerDispatch.dispatchIncrement(printingOnList);
     expect(bulkAddEntries.mutate).not.toHaveBeenCalled();
 
     pendingEntryIds = new Set();
-    dispatchIncrement(printingOnList);
+    viewerDispatch.dispatchIncrement(printingOnList);
     expect(bulkAddEntries.mutate).toHaveBeenCalledOnce();
     view.unmount();
   });
@@ -620,16 +623,18 @@ describe("ListPage", () => {
     listDetail = emptyListDetail;
     ruleDialogMounts.count = 0;
     const user = userEvent.setup();
-    const { view, topBarSlot } = renderListPage();
+    const { view, topBarSlot, listEntriesStore } = renderListPage();
     await user.click(screen.getByRole("button", { name: "Set up dynamic rules" }));
     expect(screen.getByRole("dialog", { name: "Dynamic rules" })).toBeInTheDocument();
 
     listDetail = ruleDrivenListDetail;
     view.rerender(
       <TopBarSlotContext value={topBarSlot}>
-        <FilterSearchProvider value={{}}>
-          <ListPage listId="list-1" />
-        </FilterSearchProvider>
+        <ListEntriesStoreContext value={listEntriesStore}>
+          <FilterSearchProvider value={{}}>
+            <ListPage listId="list-1" />
+          </FilterSearchProvider>
+        </ListEntriesStoreContext>
       </TopBarSlotContext>,
     );
 

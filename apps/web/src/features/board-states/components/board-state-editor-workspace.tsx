@@ -34,13 +34,6 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { BoardCaptionEditor } from "@/features/board-states/components/board-caption-editor";
-import type {
-  ArrowDragData,
-  ChainDropData,
-  PieceDragData,
-  PieceDropData,
-  ZoneDropData,
-} from "@/features/board-states/components/board-card-parts";
 import {
   BattlefieldCardFrame,
   BOARD_ADD_SLOT_CLASS,
@@ -68,7 +61,15 @@ import {
 import { BoardView } from "@/features/board-states/components/board-view";
 import { useBoardEditorPieceActions } from "@/features/board-states/hooks/use-board-editor-piece-actions";
 import { useBoardEditorShortcuts } from "@/features/board-states/hooks/use-board-editor-shortcuts";
-import type { NewPieceDragData } from "@/features/board-states/lib/board-editor-drag";
+import { boardDragAnnouncements } from "@/features/board-states/lib/board-drag-announcements";
+import type {
+  ArrowDragData,
+  ChainDropData,
+  NewPieceDragData,
+  PieceDragData,
+  PieceDropData,
+  ZoneDropData,
+} from "@/features/board-states/lib/board-editor-drag";
 import {
   CHAIN_TYPE_LABEL,
   describeArrow,
@@ -632,6 +633,12 @@ export function BoardWorkspace({ hideEmptyZones }: { hideEmptyZones: boolean }) 
   return (
     <DndContext
       sensors={sensors}
+      accessibility={{
+        announcements: boardDragAnnouncements(() => {
+          const state = useBoardEditorStore.getState();
+          return state.document.steps[state.activeStep];
+        }),
+      }}
       onDragStart={handleDragStart}
       onDragEnd={(event) => {
         setDragGhost(null);

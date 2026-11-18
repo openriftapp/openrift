@@ -36,9 +36,47 @@ export function useWorkspaceUploads(enabled: boolean) {
   return useQuery({ ...workspaceUploadsQueryOptions(), enabled });
 }
 
-export function splitUploadSources(sources: readonly WorkspaceUploadSource[]): {
-  active: WorkspaceUploadSource[];
-  quiet: WorkspaceUploadSource[];
+export interface UploadSourceRow extends WorkspaceUploadSource {
+  open: number;
+  new: number;
+  oldestOpenAt: string | null;
+}
+
+function oldestCreatedAt(items: readonly WorkspaceQueueItem[]): string | null {
+  return items.reduce<string | null>(
+    (min, item) => (min === null || item.createdAt < min ? item.createdAt : min),
+    null,
+  );
+}
+
+/** Marketplace listings carry a marketplace as provider and never count toward an upload source. */
+export function uploadSourceRows(
+  sources: readonly WorkspaceUploadSource[],
+  items: readonly WorkspaceQueueItem[],
+): { sources: UploadSourceRow[]; contributors: { since: string | null; count: number } } {
+  const sourceItems = items.filter((item) => item.reason !== "listing");
+  const byProvider = Map.groupBy(
+    sourceItems.filter((item) => item.provider !== null),
+    (item) => item.provider as string,
+  );
+  const contributorItems = sourceItems.filter((item) => item.isContributor);
+  return {
+    sources: sources.map((source) => {
+      const own = byProvider.get(source.provider) ?? [];
+      return {
+        ...source,
+        open: own.filter((item) => item.segment === "open").length,
+        new: own.filter((item) => item.segment === "new").length,
+        oldestOpenAt: oldestCreatedAt(own),
+      };
+    }),
+    contributors: { since: oldestCreatedAt(contributorItems), count: contributorItems.length },
+  };
+}
+
+export function splitUploadSources(sources: readonly UploadSourceRow[]): {
+  active: UploadSourceRow[];
+  quiet: UploadSourceRow[];
 } {
   const sorted = sources.toSorted(
     (a, b) =>
@@ -64,7 +102,7 @@ export function uploadChangeSummary(source: WorkspaceUploadSource): string {
   return parts.length === 0 ? "No changes" : parts.join(", ");
 }
 
-export function uploadOpenSummary(source: WorkspaceUploadSource): string {
+export function uploadOpenSummary(source: UploadSourceRow): string {
   const parts = [
     source.open > 0 && `${source.open} open`,
     source.new > 0 && `${source.new} new`,

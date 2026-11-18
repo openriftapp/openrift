@@ -7,7 +7,7 @@ import { createCsrfMiddleware, createStart } from "@tanstack/react-start";
 import { serverFnFetch } from "./lib/server-fns/server-fn-fetch";
 import { statusErrorAdapter } from "./lib/server-fns/status-error-adapter";
 import { buildIdMiddleware } from "./middleware/build-id";
-import { otelRequestMiddleware } from "./middleware/otel-request";
+import { otelRequestMiddleware, otelServerFnMiddleware } from "./middleware/otel-request";
 import { staleServerFnMiddleware } from "./middleware/stale-server-fn";
 
 const csrfMiddleware = createCsrfMiddleware({
@@ -27,7 +27,7 @@ export const startInstance = createStart(() => ({
     staleServerFnMiddleware,
     csrfMiddleware,
   ],
-  functionMiddleware: [sentryGlobalFunctionMiddleware],
+  functionMiddleware: [otelServerFnMiddleware, sentryGlobalFunctionMiddleware],
   serializationAdapters: [statusErrorAdapter],
   serverFns: { fetch: serverFnFetch },
 }));

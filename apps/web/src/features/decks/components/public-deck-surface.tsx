@@ -20,6 +20,7 @@ import type { FilterSearch } from "@/features/cards/lib/search-schemas";
 import { DeckMissingCardsDialog } from "@/features/decks/components/deck-missing-cards-dialog";
 import { DeckOverview } from "@/features/decks/components/deck-overview";
 import type { InferredZoneSlots } from "@/features/decks/components/deck-overview-zone-tile";
+import { DeckOwnershipNote } from "@/features/decks/components/deck-ownership-note";
 import { DeckPlanView } from "@/features/decks/components/deck-plan-view";
 import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
 import { useViewerDeckOwnership } from "@/features/decks/hooks/use-viewer-deck-ownership";
@@ -219,7 +220,12 @@ function PublicDeckContent({
                 <DeckPlanView plan={data.plan} planCardMeta={data.planCardMeta} />
               ) : undefined
             }
-            notice={notice}
+            notice={
+              <>
+                {notice}
+                <DeckOwnershipNote enabled={hydrated} />
+              </>
+            }
             unknownZoneCounts={unknownZoneCounts}
             inferredZoneSlots={inferredZoneSlots}
             hideDeckValue={hideDeckValue}

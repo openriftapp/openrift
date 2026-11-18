@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import { ActionBand } from "@/components/ui/action-band";
 import { Button } from "@/components/ui/button";
+import { usePendingRefocus } from "@/features/tournaments/hooks/use-pending-refocus";
 import {
   useClearTournamentResult,
   useFinalizeTournamentRound,
@@ -22,6 +23,7 @@ import { m } from "@/paraglide/messages.js";
 
 import { CutBracketCompact } from "./cut-bracket-compact";
 import { CutGenerateBand, NextCutRoundBand } from "./cut-generate-band";
+import { EditorOpenerButton } from "./editor-opener-button";
 import { GenerateGroupsBand } from "./group-generate-band";
 import { GroupSeatEditor } from "./group-seat-editor";
 import { GroupStageSections } from "./group-stage-sections";
@@ -48,6 +50,7 @@ export function GroupCutPairingsSection({
   const rerollRound = useRerollTournamentRound();
   const [editingCut, setEditingCut] = useState(false);
   const [editingGroups, setEditingGroups] = useState(false);
+  const refocus = usePendingRefocus<"cut" | "groups">();
 
   const tournament = data.tournament;
   const groupStage = data.groupStage;
@@ -89,7 +92,10 @@ export function GroupCutPairingsSection({
             number: index + 1,
           })
         }
-        onClose={() => setEditingCut(false)}
+        onClose={() => {
+          setEditingCut(false);
+          refocus.request("cut");
+        }}
       />
     ) : null;
   let bracket: ReactNode = null;
@@ -140,15 +146,16 @@ export function GroupCutPairingsSection({
           />
           {manage && !editingCut ? (
             <div className="flex justify-end">
-              <Button
+              <EditorOpenerButton
                 size="sm"
                 variant="outline"
                 disabled={cutHasResult}
                 title={cutHasResult ? m.tournaments_cut_results_entered_hint() : undefined}
+                takeFocus={() => refocus.take("cut")}
                 onClick={() => setEditingCut(true)}
               >
                 {m.tournaments_cut_edit_bracket_pairing()}
-              </Button>
+              </EditorOpenerButton>
             </div>
           ) : null}
         </>
@@ -198,9 +205,14 @@ export function GroupCutPairingsSection({
 
       {canRerollGroups && !editingGroups ? (
         <div className="flex justify-end gap-2">
-          <Button size="sm" variant="outline" onClick={() => setEditingGroups(true)}>
+          <EditorOpenerButton
+            size="sm"
+            variant="outline"
+            takeFocus={() => refocus.take("groups")}
+            onClick={() => setEditingGroups(true)}
+          >
             {m.tournaments_group_edit_groups()}
-          </Button>
+          </EditorOpenerButton>
           <Button
             size="sm"
             variant="destructive"
@@ -215,7 +227,14 @@ export function GroupCutPairingsSection({
       ) : null}
 
       {editingGroups && canRerollGroups ? (
-        <GroupSeatEditor id={id} groupStage={groupStage} onClose={() => setEditingGroups(false)} />
+        <GroupSeatEditor
+          id={id}
+          groupStage={groupStage}
+          onClose={() => {
+            setEditingGroups(false);
+            refocus.request("groups");
+          }}
+        />
       ) : (
         <GroupStageSections
           groupStage={groupStage}

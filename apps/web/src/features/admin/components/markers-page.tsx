@@ -99,6 +99,7 @@ export function MarkersPage() {
           }),
       }}
       reorder={{
+        rowLabel: (row) => row.label,
         moves: flatReorder(markers, (m) => m.id),
         onReorder: (keys) => reorderMutation.mutateAsync(keys),
         isPending: reorderMutation.isPending,

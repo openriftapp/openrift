@@ -3,9 +3,10 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { describe, expect, it } from "vitest";
 
 import type { ListEntryDragData } from "@/features/collections/lib/dnd-types";
+import { createListEntriesStore } from "@/features/lists/stores/list-entries-store";
 import { EMPTY_TRADE_PREFERENCE, stubPrinting } from "@/test/factories";
 
-import { resolveListEntrySelection } from "./list-entry-drag";
+import { listDragParts, listDragSubjects, resolveListEntrySelection } from "./list-entry-drag";
 
 const entryBase = {
   listId: "list-1",
@@ -94,5 +95,35 @@ describe("resolveListEntrySelection", () => {
     expect(resolved.ruleEntry).toBeUndefined();
     expect(resolved.totalQuantity).toBe(5);
     expect(resolved.previewPrintings).toEqual([printingA, printingB]);
+  });
+});
+
+describe("drag helpers over a list's entries store", () => {
+  const selectionDrag = { ...drag, selectionIds: ["e1", "rule:i2"] };
+
+  it("splits a dropped selection against the entries the store holds when the drop lands", () => {
+    const store = createListEntriesStore();
+    store.getState().setEntries(entryByItemId, new Map(), printingByEntryId);
+
+    const parts = listDragParts(selectionDrag, store);
+
+    expect(parts.entryIds).toEqual(["e1"]);
+    expect(parts.ruleSubjects).toHaveLength(1);
+  });
+
+  it("names every selected entry as a subject of the drop", () => {
+    const store = createListEntriesStore();
+    store.getState().setEntries(entryByItemId, new Map(), printingByEntryId);
+
+    const subjects = listDragSubjects(selectionDrag, store);
+
+    expect(subjects.map((subject) => subject.printing)).toEqual([printingA, printingB]);
+  });
+
+  it("reads nothing from another list's store", () => {
+    const filled = createListEntriesStore();
+    filled.getState().setEntries(entryByItemId, new Map(), printingByEntryId);
+
+    expect(listDragSubjects(selectionDrag, createListEntriesStore())).toEqual([]);
   });
 });

@@ -1,6 +1,6 @@
 import type { DeckFolderResponse, DeckListItemResponse } from "@openrift/shared/types/api/deck";
 import type { DeckFormat } from "@openrift/shared/types/enums";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 import {
   ArchiveIcon,
   ArchiveRestoreIcon,
@@ -59,6 +59,7 @@ import type {
 } from "@/features/decks/lib/deck-menu-capabilities";
 import { deckMenuCapabilities } from "@/features/decks/lib/deck-menu-capabilities";
 import { deleteLocalDeck } from "@/features/decks/lib/local-decks-collection";
+import { preloadStageShow } from "@/features/stage/hooks/use-preload-stage-show";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { m } from "@/paraglide/messages.js";
 
@@ -212,6 +213,8 @@ function DeckMenuBody({
 }: DeckMenuBodyProps) {
   const { deck } = item;
   const navigate = useNavigate();
+  const router = useRouter();
+  const canPresent = capabilities.present && item.totalCards > 0;
   const { duplicate, changeFormat } = useDeckMenuActions(deck);
   const { formats } = useDeckFormatList();
   const otherFormats = formats.filter((entry) => entry.slug !== deck.format);
@@ -219,7 +222,13 @@ function DeckMenuBody({
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu
+        onOpenChange={(open) => {
+          if (open && canPresent) {
+            preloadStageShow(router, { deck: deck.id });
+          }
+        }}
+      >
         <DropdownMenuTrigger
           render={
             <Button variant="ghost" size="icon-sm" aria-label={m.decks_menu_actions_label()} />
@@ -272,7 +281,7 @@ function DeckMenuBody({
             <PrinterIcon className="size-4" />
             {m.decks_menu_print()}
           </DropdownMenuItem>
-          {capabilities.present && item.totalCards > 0 ? (
+          {canPresent ? (
             <DropdownMenuItem
               onClick={() => {
                 void navigate({ to: "/stage/show", search: { deck: deck.id, i: 0 } });

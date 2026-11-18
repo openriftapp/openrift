@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getDeckCardsCollection, storedDeckVersion } from "./decks-collection";
 import { decksKeys } from "./decks-query-keys";
+import { saveDeckCards } from "./decks-write";
 
 interface DeckCardsPage {
   items: DeckCardWithDeckResponse[];
@@ -226,4 +227,70 @@ describe("a deck deleted on another device", () => {
       ["deck-new", "card-b"],
     ]);
   });
+});
+
+describe("a read in flight across a saved deck edit", () => {
+  const staleResponses: [string, DeckCardsPage][] = [
+    [
+      "a delta",
+      {
+        items: [card("deck-1", "card-a", 1), card("deck-1", "card-z", 2)],
+        touchedDeckIds: ["deck-1"],
+        syncedXid: "2000",
+      },
+    ],
+    [
+      "a full list",
+      { items: [card("deck-1", "card-a", 1), card("deck-1", "card-z", 2)], syncedXid: "2000" },
+    ],
+  ];
+
+  it.each(staleResponses)(
+    "keeps the saved rows when %s from before the save lands after it",
+    async (_name, stalePage) => {
+      decksOnServer("deck-1");
+      serve({
+        items: [card("deck-1", "card-a", 1), card("deck-1", "card-z", 2)],
+        syncedXid: "1000",
+      });
+      const collection = getDeckCardsCollection(queryClient, userId);
+      await collection.preload();
+
+      const saved = [
+        card("deck-1", "card-a", 3),
+        { ...card("deck-1", "card-z", 2), zone: "sideboard" as const },
+      ];
+      let answer = (_page: DeckCardsPage) => {};
+      vi.stubGlobal(
+        "fetch",
+        vi.fn((input: Request) =>
+          input.method === "PUT"
+            ? Promise.resolve(
+                Response.json({
+                  cards: saved.map(({ deckId: _deckId, ...row }) => row),
+                  version: "2500",
+                }),
+              )
+            : new Promise((resolve) => {
+                answer = (page) => resolve(Response.json(page));
+              }),
+        ),
+      );
+      const stale = resync();
+      await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce());
+
+      await saveDeckCards(
+        collection,
+        "deck-1",
+        saved.map(({ deckId: _deckId, ...row }) => row),
+        { queryClient, userId },
+      ).when("settled");
+      answer(stalePage);
+      await stale;
+
+      expect(
+        collection.toArray.map((row) => `${row.cardId} ${row.zone} ${row.quantity}`).toSorted(),
+      ).toEqual(["card-a main 3", "card-z sideboard 2"]);
+    },
+  );
 });

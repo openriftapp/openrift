@@ -29,6 +29,7 @@ const state = vi.hoisted(() => ({
   ignore: null as unknown as FakeMutation,
   desk: null as unknown as FakeMutation,
   goNext: vi.fn(),
+  followUpMeta: [] as unknown[],
 }));
 
 vi.mock("@/features/catalog-workspace/lib/workspace-queries", () => ({
@@ -51,14 +52,23 @@ vi.mock("@/features/admin/hooks/use-admin-card-queries", () => ({
   useAdminCardDetail: () => ({ data: state.detail, isError: false }),
 }));
 vi.mock("@/features/admin/hooks/use-admin-image-mutations", () => ({
-  useAddImageFromUrl: () => fakeMutation(),
-  useUploadPrintingImage: () => fakeMutation(),
+  useAddImageFromUrl: (_scope: unknown, meta?: unknown) => {
+    state.followUpMeta.push(meta);
+    return fakeMutation();
+  },
+  useUploadPrintingImage: (_scope: unknown, meta?: unknown) => {
+    state.followUpMeta.push(meta);
+    return fakeMutation();
+  },
 }));
 vi.mock("@/features/admin/hooks/use-ignored-candidates", () => ({
   useIgnoreCandidatePrinting: () => state.ignore,
 }));
 vi.mock("@/features/admin/hooks/use-printing-desk", () => ({
-  useUpdateDeskPrinting: () => state.desk,
+  useUpdateDeskPrinting: (meta?: unknown) => {
+    state.followUpMeta.push(meta);
+    return state.desk;
+  },
 }));
 vi.mock("@/features/admin/hooks/use-provider-settings", () => ({
   useProviderSettings: () => ({ data: { providerSettings: [] } }),
@@ -123,6 +133,7 @@ beforeEach(() => {
   state.ignore = fakeMutation();
   state.desk = fakeMutation();
   state.goNext.mockClear();
+  state.followUpMeta = [];
 });
 
 afterEach(() => {
@@ -161,10 +172,41 @@ describe("NewPrintingRecord", () => {
     await act(async () => gate.created());
 
     expect(
-      await screen.findByText("The printing was created, but the dates and note did not save."),
+      await screen.findByText(
+        "The printing was created, but the dates and note did not save: Network down.",
+      ),
     ).toBeVisible();
     expect(screen.queryByText(/not in the queue any more/u)).toBeNull();
     expect(state.goNext).not.toHaveBeenCalled();
     expect(useWorkspaceActionsStore.getState().actions?.accept).toBeUndefined();
+  });
+
+  it("reports failed follow-up writes inline only, not as a toast", async () => {
+    renderRecord();
+    await screen.findByRole("button", { name: /Accept & next/u });
+
+    expect(state.followUpMeta.length).toBeGreaterThan(0);
+    for (const meta of state.followUpMeta) {
+      expect(meta).toEqual({ inlineError: true });
+    }
+  });
+
+  it("stops offering the accept once the printing exists, even with the candidate still loaded", async () => {
+    renderRecord();
+    state.accept.mutateAsync.mockResolvedValue({ printingId: "printing-1" });
+    state.desk.mutateAsync.mockRejectedValue(new Error("Network down"));
+
+    const acceptButton = await screen.findByRole("button", { name: /Accept & next/u });
+    await act(async () => acceptButton.click());
+
+    expect(
+      await screen.findByText(
+        "The printing was created, but the dates and note did not save: Network down.",
+      ),
+    ).toBeVisible();
+    expect(screen.queryByRole("button", { name: /Accept & next/u })).toBeNull();
+    expect(useWorkspaceActionsStore.getState().actions?.accept).toBeUndefined();
+    expect(useWorkspaceActionsStore.getState().actions?.ignore).toBeUndefined();
+    expect(state.accept.mutateAsync).toHaveBeenCalledOnce();
   });
 });

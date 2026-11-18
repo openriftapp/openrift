@@ -8,27 +8,28 @@ type Db = Kysely<Database>;
 export function marketplaceMappingStagingRepo(db: Db) {
   return {
     /** Level-2 ignores: whole upstream listings. */
-    ignoredProducts(marketplace: Marketplace) {
+    ignoredProducts(marketplaces: Marketplace | readonly Marketplace[]) {
       return db
         .selectFrom("marketplaceIgnoredProducts")
-        .select(["externalId", "productName", "createdAt"])
-        .where("marketplace", "=", marketplace)
+        .select(["marketplace", "externalId", "productName", "createdAt"])
+        .where("marketplace", "in", [marketplaces].flat())
         .execute();
     },
 
     /** Level-3 ignores: specific SKUs of an upstream product. */
-    ignoredVariants(marketplace: Marketplace) {
+    ignoredVariants(marketplaces: Marketplace | readonly Marketplace[]) {
       return db
         .selectFrom("marketplaceIgnoredVariants as iv")
         .innerJoin("marketplaceProducts as mp", "mp.id", "iv.marketplaceProductId")
         .select([
+          "mp.marketplace as marketplace",
           "mp.externalId as externalId",
           "mp.finish as finish",
           "mp.language as language",
           "iv.productName as productName",
           "iv.createdAt as createdAt",
         ])
-        .where("mp.marketplace", "=", marketplace)
+        .where("mp.marketplace", "in", [marketplaces].flat())
         .execute();
     },
 
@@ -221,31 +222,33 @@ export function marketplaceMappingStagingRepo(db: Db) {
         .execute();
     },
 
-    groupNames(marketplace: Marketplace) {
+    groupNames(marketplaces: Marketplace | readonly Marketplace[]) {
       return db
         .selectFrom("marketplaceGroups as mg")
         .leftJoin("sets as s", "s.id", "mg.setId")
         .select([
+          "mg.marketplace as marketplace",
           "mg.groupId as gid",
           "mg.name as name",
           "mg.groupKind as groupKind",
           "s.slug as setSlug",
         ])
-        .where("mg.marketplace", "=", marketplace)
+        .where("mg.marketplace", "in", [marketplaces].flat())
         .execute();
     },
 
-    async stagingCardOverrides(marketplace: Marketplace) {
+    async stagingCardOverrides(marketplaces: Marketplace | readonly Marketplace[]) {
       const rows = await db
         .selectFrom("marketplaceProductCardOverrides as ov")
         .innerJoin("marketplaceProducts as mp", "mp.id", "ov.marketplaceProductId")
         .select([
+          "mp.marketplace as marketplace",
           "mp.externalId as externalId",
           "mp.finish as finish",
           "mp.language as language",
           "ov.cardId as cardId",
         ])
-        .where("mp.marketplace", "=", marketplace)
+        .where("mp.marketplace", "in", [marketplaces].flat())
         .execute();
       return rows;
     },

@@ -125,16 +125,9 @@ export function workspaceQueueRepo(db: Kysely<Database>) {
     },
 
     async uncheckedLinkedPrintings(): Promise<WorkspaceLinkedPrintingRow[]> {
+      // Keep the pending ids behind array(): as a join, the planner prices the live-side
+      // subqueries for thousands of rows (hidden providers skew it) and JIT-compiles the query.
       const rows = await sql<WorkspaceLinkedPrintingRow>`
-        with pending as materialized (
-          select cp.id
-          from candidate_printings cp
-          join candidate_cards cc on cc.id = cp.candidate_card_id
-          where cp.checked_at is null
-            and cp.printing_id is not null
-            and ${reviewableProvider}
-            and ${visibleCandidatePrinting("cp", "cc")}
-        )
         select
           cp.id,
           cp.candidate_card_id as "candidateCardId",
@@ -150,14 +143,22 @@ export function workspaceQueueRepo(db: Kysely<Database>) {
           p.short_code as "faceShortCode",
           ${candidatePrintingValues} as candidate,
           ${livePrintingValues} as live
-        from pending
-        join candidate_printings cp on cp.id = pending.id
+        from candidate_printings cp
         join candidate_cards cc on cc.id = cp.candidate_card_id
         join printings pr on pr.id = cp.printing_id
         join faces f1 on f1.id = pr.face1_id
         ${candidateSideOfPrinting}
         join cards fc on fc.id = p.card_id
         join sets s on s.id = p.set_id
+        where cp.id = any(array(
+          select pending.id
+          from candidate_printings pending
+          join candidate_cards cc on cc.id = pending.candidate_card_id
+          where pending.checked_at is null
+            and pending.printing_id is not null
+            and ${reviewableProvider}
+            and ${visibleCandidatePrinting("pending", "cc")}
+        ))
       `.execute(db);
       return rows.rows;
     },

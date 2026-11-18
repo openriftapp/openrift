@@ -1,5 +1,13 @@
 import { headersToRecord, recordSpanError } from "@openrift/shared/otel";
-import { context, propagation, ROOT_CONTEXT, SpanKind, trace } from "@opentelemetry/api";
+import type { Span } from "@opentelemetry/api";
+import {
+  context,
+  createContextKey,
+  propagation,
+  ROOT_CONTEXT,
+  SpanKind,
+  trace,
+} from "@opentelemetry/api";
 import {
   ATTR_HTTP_REQUEST_METHOD,
   ATTR_HTTP_ROUTE,
@@ -16,6 +24,13 @@ import { routeTree } from "@/routeTree.gen";
 const tracer = trace.getTracer("openrift-web/http");
 
 const SERVER_FN_PREFIX = "/_serverFn/";
+
+const UNNAMED_SERVER_FN_SPAN = createContextKey("openrift.unnamed-server-fn-span");
+
+function nameServerFnSpan(span: Span, name: string): void {
+  span.updateName(`serverFn:${name}`);
+  span.setAttributes({ [ATTR_HTTP_ROUTE]: `${SERVER_FN_PREFIX}${name}`, "serverfn.name": name });
+}
 
 let matcher: ReturnType<typeof createMatcher> | undefined;
 
@@ -71,6 +86,9 @@ export const otelRequestMiddleware = createMiddleware().server(({ next, request 
   );
 
   let activeCtx = trace.setSpan(parentCtx, span);
+  if (url.pathname.startsWith(SERVER_FN_PREFIX)) {
+    activeCtx = activeCtx.setValue(UNNAMED_SERVER_FN_SPAN, { span, named: false });
+  }
   if (clientIp !== "") {
     activeCtx = contextWithClientIp(activeCtx, clientIp);
   }
@@ -87,3 +105,20 @@ export const otelRequestMiddleware = createMiddleware().server(({ next, request 
     }
   });
 });
+
+/**
+ * Names a server function request's span from Start's function metadata, which dev ids do not
+ * carry in their path. SSR calls and nested calls leave the span alone.
+ */
+export const otelServerFnMiddleware = createMiddleware({ type: "function" }).server(
+  ({ next, serverFnMeta }) => {
+    const pending = context.active().getValue(UNNAMED_SERVER_FN_SPAN) as
+      | { span: Span; named: boolean }
+      | undefined;
+    if (pending && !pending.named) {
+      pending.named = true;
+      nameServerFnSpan(pending.span, serverFnMeta.name);
+    }
+    return next();
+  },
+);

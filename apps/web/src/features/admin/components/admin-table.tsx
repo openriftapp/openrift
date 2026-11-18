@@ -131,7 +131,7 @@ interface AdminTableProps<TData, TDraft = TData> {
 
   delete?: AdminDeleteConfig<TData>;
 
-  reorder?: AdminReorderConfig;
+  reorder?: AdminReorderConfig<TData>;
 
   pinned?: (row: TData) => boolean;
 
@@ -386,6 +386,10 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
         <ReorderProvider
           enabled={Boolean(reorder)}
           sensors={sensors}
+          rowLabel={(key) => {
+            const row = rowByKey.get(key);
+            return row && reorder ? reorder.rowLabel(row.original) : undefined;
+          }}
           items={orderedKeys}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}

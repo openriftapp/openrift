@@ -242,4 +242,29 @@ describe.skipIf(!ctx)("shared candidate filters (integration)", () => {
 
     expect(providers.toSorted()).toEqual([ALIASED, VISIBLE].toSorted());
   });
+
+  it("labels batch ids with the state that keeps each out of a trusted accept", async () => {
+    const rows = await batch.candidatePrintingLabels([
+      ids.visibleNew,
+      ids.visibleLinked,
+      ids.hiddenNew,
+      ids.visibleIgnoredNew,
+      crypto.randomUUID(),
+    ]);
+    const byId = new Map(rows.map((row) => [row.id, row]));
+
+    expect(rows).toHaveLength(4);
+    expect(byId.get(ids.visibleNew)).toMatchObject({
+      provider: VISIBLE,
+      printingId: null,
+      hidden: false,
+      visible: true,
+      matchesCard: true,
+      cardSlug: live.cardSlug,
+      shortCode: "CCS-1",
+    });
+    expect(byId.get(ids.visibleLinked)).toMatchObject({ printingId: live.printingId });
+    expect(byId.get(ids.hiddenNew)).toMatchObject({ hidden: true, visible: false });
+    expect(byId.get(ids.visibleIgnoredNew)).toMatchObject({ hidden: false, visible: false });
+  });
 });

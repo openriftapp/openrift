@@ -145,9 +145,15 @@ const deskGetOutputSchema = z.object({
   images: z.array(deskImageSchema),
 });
 
+/** `duplicateFrom` copies the source's art variant, signed, overnumbered and public code unless given. */
 const deskCreateInputSchema = deskPrintingFieldsSchema.extend({
   cardId: z.uuid(),
   basePrintingId: z.uuid().optional(),
+  duplicateFrom: z.uuid().optional(),
+  artVariant: printingFieldRules.artVariant.optional(),
+  isSigned: printingFieldRules.isSigned.optional(),
+  isOvernumbered: printingFieldRules.isOvernumbered.optional(),
+  publicCode: printingFieldRules.publicCode.optional(),
   secondSideFaceId: z.uuid().optional(),
 });
 const deskCreateOutputSchema = z.object({ printingId: z.string() });

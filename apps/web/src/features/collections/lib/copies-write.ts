@@ -35,7 +35,6 @@ import {
 } from "@/features/groups/lib/trade-cancel-conflict";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
 import { mutationTag } from "@/lib/mutation-metadata";
-import { watchForRefetchRace } from "@/lib/refetch-race";
 import { sendInBatches } from "@/lib/send-in-batches";
 import { browserApiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { UserDeclinedError } from "@/lib/user-declined-error";
@@ -472,15 +471,5 @@ export async function persistCopyMutations(
   mutations: readonly PendingMutation<CopyResponse>[],
   context: CopiesWriteContext,
 ): Promise<void> {
-  const settleRefetchRace = watchForRefetchRace(
-    context.queryClient,
-    copiesKeys.syncedStore(context.userId),
-  );
-  try {
-    await persistInOrder(collection, mutations, context);
-  } catch (error) {
-    settleRefetchRace();
-    throw error;
-  }
-  settleRefetchRace();
+  await persistInOrder(collection, mutations, context);
 }

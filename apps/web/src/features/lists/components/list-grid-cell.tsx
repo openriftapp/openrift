@@ -3,7 +3,11 @@ import type {
   CardTradeLiveAnnotation,
   CardTradeResponse,
 } from "@openrift/shared/types/api/card-trade";
-import type { ListIntent, ListKind } from "@openrift/shared/types/api/list";
+import type {
+  ListEntryDetailResponse,
+  ListIntent,
+  ListKind,
+} from "@openrift/shared/types/api/list";
 import type { Currency, TradePreference } from "@openrift/shared/types/api/trade-preferences";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { ListIcon, XIcon } from "lucide-react";
@@ -16,17 +20,9 @@ import { CardCountStrip } from "@/features/cards/components/card-count-strip";
 import { CardStrip, StripIconButton } from "@/features/cards/components/card-strip";
 import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCellDisplayState } from "@/features/cards/hooks/use-cell-display-state";
+import type { CardRowDispatch } from "@/features/cards/stores/card-row-actions-store";
 import {
-  dispatchEntryQuantityStep,
-  dispatchIncrement,
-  dispatchItemClick,
-  dispatchItemToggle,
-  dispatchListBulkAction,
-  dispatchAddEntryToCollection,
-  dispatchMoveCopyToCollection,
-  dispatchRemoveEntry,
-  dispatchSetPreference,
-  dispatchSiblingClick,
+  useCardRowDispatch,
   useQuantityPending,
 } from "@/features/cards/stores/card-row-actions-store";
 import { useGridSelectionStore } from "@/features/cards/stores/grid-selection-store";
@@ -97,6 +93,17 @@ export const ListGridCell = memo(function ListGridCell({
   priceRange,
   tradeIndex,
 }: ListGridCellProps) {
+  const rowDispatch = useCardRowDispatch();
+  const {
+    dispatchAddEntryToCollection,
+    dispatchDropFromRule,
+    dispatchItemClick,
+    dispatchItemToggle,
+    dispatchListBulkAction,
+    dispatchMoveCopyToCollection,
+    dispatchSetPreference,
+    dispatchSiblingClick,
+  } = rowDispatch;
   const inCardsView = view === "cards";
   const inSelectMode = mode === "select";
 
@@ -149,6 +156,7 @@ export const ListGridCell = memo(function ListGridCell({
         tradeStatus,
         trades,
         quantityPending,
+        rowDispatch,
       });
 
   const dragData: ListEntryDragData | undefined = entry
@@ -208,7 +216,7 @@ export const ListGridCell = memo(function ListGridCell({
         onCopy={() => dispatchListBulkAction(selectionId, "copy")}
         onMoveToCollection={copyId ? () => dispatchMoveCopyToCollection(copyId) : undefined}
         onAddToCollection={onAddToCollection}
-        {...ruleMenuAction(entry, intent)}
+        {...ruleMenuAction(entry, intent, dispatchDropFromRule)}
       />
     ) : undefined;
 
@@ -246,12 +254,7 @@ interface BuildStripArgs {
   showLibrary: boolean;
   kind: ListKind;
   intent: ListIntent;
-  entry: ReturnType<typeof useListEntriesStore.getState>["entryByItemId"] extends Map<
-    string,
-    infer V
-  >
-    ? V | undefined
-    : never;
+  entry: ListEntryDetailResponse | undefined;
   displayPrinting: Printing;
   listTradeDefaults: TradePreference;
   listCurrency: Currency | null;
@@ -259,6 +262,7 @@ interface BuildStripArgs {
   tradeStatus: CardTradeLiveAnnotation | null;
   trades: readonly CardTradeResponse[];
   quantityPending: boolean;
+  rowDispatch: CardRowDispatch;
 }
 
 function buildStrip({
@@ -273,7 +277,16 @@ function buildStrip({
   tradeStatus,
   trades,
   quantityPending,
+  rowDispatch,
 }: BuildStripArgs): ReactNode {
+  const {
+    dispatchDropFromRule,
+    dispatchEntryQuantityStep,
+    dispatchIncrement,
+    dispatchListBulkAction,
+    dispatchRemoveEntry,
+    dispatchSetPreference,
+  } = rowDispatch;
   const tradeChip = tradeStatus ? (
     <TradeStatusChip
       annotation={tradeStatus}
@@ -335,7 +348,7 @@ function buildStrip({
           <>
             <RuleSourceBadge
               quantity={kind === "copy" ? undefined : entry.ruleQuantity}
-              {...ruleBadgeAction(entry, intent)}
+              {...ruleBadgeAction(entry, intent, dispatchDropFromRule)}
             />
             {tradeChip}
             {onLoan && <Badge variant="secondary">{m.lists_entry_on_loan()}</Badge>}

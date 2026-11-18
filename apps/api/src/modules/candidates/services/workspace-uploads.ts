@@ -1,6 +1,5 @@
 import { COMPARABLE_CARD_FIELDS, differingFields } from "@openrift/shared/catalog-field-compare";
 import type {
-  WorkspaceQueueItem,
   WorkspaceUploadSource,
   WorkspaceUploadsResponse,
 } from "@openrift/shared/contracts/admin/catalog-workspace";
@@ -10,7 +9,6 @@ import { reviewableProviderScope } from "../lib/card-review-scope.js";
 import type { WorkspaceCardDifferenceRow } from "../repositories/workspace-queue.js";
 import type { WorkspaceUploadEventRow } from "../repositories/workspace-records.js";
 import type { WorkspaceRepos } from "./workspace-queue.js";
-import { buildWorkspaceQueue } from "./workspace-queue.js";
 import { matchSameDifference } from "./workspace-same-difference.js";
 
 type CardField = (typeof COMPARABLE_CARD_FIELDS)[number];
@@ -65,57 +63,35 @@ export function largestRepeatedDifference(
 
 export function toWorkspaceUploads(
   uploads: readonly WorkspaceUploadEventRow[],
-  items: readonly WorkspaceQueueItem[],
   cardDifferences: readonly WorkspaceCardDifferenceRow[],
 ): WorkspaceUploadsResponse {
-  const byProvider = Map.groupBy(
-    items.filter((item) => item.provider !== null),
-    (item) => item.provider as string,
-  );
   const sources = uploads
     .toSorted((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime())
-    .map((upload): WorkspaceUploadSource => {
-      const own = byProvider.get(upload.provider) ?? [];
-      const oldest = own.reduce<string | null>(
-        (min, item) => (min === null || item.createdAt < min ? item.createdAt : min),
-        null,
-      );
-      return {
-        provider: upload.provider,
-        label: upload.provider,
-        uploadedAt: upload.uploadedAt.toISOString(),
-        newCards: countOf(upload.counts, "newCards"),
-        newPrintings: countOf(upload.counts, "newPrintings"),
-        updates: countOf(upload.counts, "updates", "printingUpdates"),
-        removed: countOf(upload.counts, "removedCards", "removedPrintings"),
-        open: own.filter((item) => item.segment === "open").length,
-        new: own.filter((item) => item.segment === "new").length,
-        oldestOpenAt: oldest,
-        repeatedDifference: largestRepeatedDifference(cardDifferences, upload.provider),
-      };
-    });
-  const contributorItems = items.filter((item) => item.isContributor);
-  const since = contributorItems.reduce<string | null>(
-    (min, item) => (min === null || item.createdAt < min ? item.createdAt : min),
-    null,
-  );
-  return { sources, contributors: { since, count: contributorItems.length } };
+    .map((upload): WorkspaceUploadSource => ({
+      provider: upload.provider,
+      label: upload.provider,
+      uploadedAt: upload.uploadedAt.toISOString(),
+      newCards: countOf(upload.counts, "newCards"),
+      newPrintings: countOf(upload.counts, "newPrintings"),
+      updates: countOf(upload.counts, "updates", "printingUpdates"),
+      removed: countOf(upload.counts, "removedCards", "removedPrintings"),
+      repeatedDifference: largestRepeatedDifference(cardDifferences, upload.provider),
+    }));
+  return { sources };
 }
 
 export async function buildWorkspaceUploads(
-  repos: WorkspaceRepos,
-  options: { access: AdminAccess | null; userId: string; now: Date },
+  repos: Pick<WorkspaceRepos, "workspaceRecords" | "workspaceQueue" | "providerSettings">,
+  options: { access: AdminAccess | null },
 ): Promise<WorkspaceUploadsResponse> {
-  const scope = await reviewableProviderScope(options.access, repos.providerSettings);
-  const inScope = (provider: string): boolean => scope === null || scope.has(provider);
-  const [uploads, queue, cardDifferences] = await Promise.all([
+  const [scope, uploads, cardDifferences] = await Promise.all([
+    reviewableProviderScope(options.access, repos.providerSettings),
     repos.workspaceRecords.latestUploads(),
-    buildWorkspaceQueue(repos, options),
     repos.workspaceQueue.uncheckedCardDifferences(),
   ]);
+  const inScope = (provider: string): boolean => scope === null || scope.has(provider);
   return toWorkspaceUploads(
     uploads.filter((row) => inScope(row.provider)),
-    queue.items,
     cardDifferences.filter((row) => inScope(row.provider)),
   );
 }

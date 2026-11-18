@@ -111,6 +111,49 @@ export function eligibleTrustedCards(
   return { eligible: eligible.toSorted(byName), ineligible: ineligible.toSorted(byName) };
 }
 
+/** Why a submitted candidate printing is no longer in any trusted group, from its current row. */
+export function goneReason(
+  row:
+    | {
+        provider: string;
+        printingId: string | null;
+        hidden: boolean;
+        visible: boolean;
+        matchesCard: boolean;
+      }
+    | undefined,
+  favoriteProviders: ReadonlySet<string>,
+): string {
+  if (row === undefined) {
+    return "No longer exists";
+  }
+  if (row.printingId !== null) {
+    return "Already accepted or linked to a printing";
+  }
+  if (row.hidden) {
+    return "Its source is hidden";
+  }
+  if (!row.visible) {
+    return "Ignored since the preview";
+  }
+  if (!favoriteProviders.has(row.provider)) {
+    return "Its source is no longer a favourite";
+  }
+  if (!row.matchesCard) {
+    return "Its name no longer matches a card";
+  }
+  return "No longer open for a trusted accept";
+}
+
+/** Submitted ids that no current group holds. */
+export function uncoveredCandidateIds(
+  wanted: readonly string[],
+  groups: readonly { candidates: readonly { id: string }[] }[],
+): string[] {
+  const covered = new Set(groups.flatMap((group) => group.candidates.map((cp) => cp.id)));
+  return [...new Set(wanted)].filter((id) => !covered.has(id));
+}
+
 export function trustedPrintingGroups(
   rows: readonly Pick<TrustedNewPrintingRow, "id" | "cardId" | "cardSlug">[],
   printings: readonly CandidatePrintingRow[],

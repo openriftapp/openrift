@@ -208,108 +208,110 @@ export function NewManualCardRecord() {
         </Alert>
       )}
       <RecordSection title="Card fields">
-        <FieldGroup>
-          <div className="grid gap-4 sm:grid-cols-2">
+        <fieldset disabled={pending} className="min-w-0">
+          <FieldGroup>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field>
+                <FieldLabel htmlFor="new-card-name">Name *</FieldLabel>
+                <Input
+                  id="new-card-name"
+                  value={name}
+                  onChange={(event) => cardDraft.setName(event.target.value)}
+                  placeholder="e.g. Jinx, Rebel"
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="new-card-slug">Card ID *</FieldLabel>
+                <Input
+                  id="new-card-slug"
+                  value={cardDraft.slugInput}
+                  onChange={(event) => cardDraft.setSlug(event.target.value)}
+                  placeholder="made from the name"
+                  className="font-mono"
+                />
+              </Field>
+            </div>
             <Field>
-              <FieldLabel htmlFor="new-card-name">Name *</FieldLabel>
-              <Input
-                id="new-card-name"
-                value={name}
-                onChange={(event) => cardDraft.setName(event.target.value)}
-                placeholder="e.g. Jinx, Rebel"
-              />
+              <FieldLabel>Types *</FieldLabel>
+              <ToggleGroup
+                multiple
+                variant="outline"
+                spacing={2}
+                value={cardDraft.types}
+                onValueChange={setTypes}
+                className="w-full flex-wrap"
+              >
+                {orders.cardTypes.map((typeSlug) => (
+                  <ToggleGroupItem key={typeSlug} value={typeSlug}>
+                    {enumLabel(labels.cardTypes, typeSlug)}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
             </Field>
             <Field>
-              <FieldLabel htmlFor="new-card-slug">Card ID *</FieldLabel>
-              <Input
-                id="new-card-slug"
-                value={cardDraft.slugInput}
-                onChange={(event) => cardDraft.setSlug(event.target.value)}
-                placeholder="made from the name"
-                className="font-mono"
+              <FieldLabel>Domains *</FieldLabel>
+              <ToggleGroup
+                multiple
+                variant="outline"
+                spacing={2}
+                value={cardDraft.domains}
+                onValueChange={setDomains}
+                className="w-full flex-wrap"
+              >
+                {orders.domains.map((domainSlug) => (
+                  <ToggleGroupItem key={domainSlug} value={domainSlug}>
+                    {enumLabel(labels.domains, domainSlug)}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </Field>
+            <Field>
+              <FieldLabel>Supertypes</FieldLabel>
+              <ToggleGroup
+                multiple
+                variant="outline"
+                spacing={2}
+                value={cardDraft.superTypes}
+                onValueChange={setSuperTypes}
+                className="w-full flex-wrap"
+              >
+                {orders.superTypes.map((superTypeSlug) => (
+                  <ToggleGroupItem key={superTypeSlug} value={superTypeSlug}>
+                    {enumLabel(labels.superTypes, superTypeSlug)}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </Field>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {MANUAL_CARD_STATS.map(({ key, label }) => {
+                const invalid = parseIntegerInput(cardDraft.numeric[key]) === undefined;
+                return (
+                  <Field key={key} data-invalid={invalid}>
+                    <FieldLabel htmlFor={`new-card-${key}`}>{label}</FieldLabel>
+                    <Input
+                      id={`new-card-${key}`}
+                      type="number"
+                      min={0}
+                      value={cardDraft.numeric[key]}
+                      aria-invalid={invalid}
+                      onChange={(event) => cardDraft.setStat(key, event.target.value)}
+                    />
+                    {invalid && <FieldError>Whole number</FieldError>}
+                  </Field>
+                );
+              })}
+            </div>
+            <Field>
+              <FieldLabel htmlFor="new-card-tags">Tags</FieldLabel>
+              <ChipInput
+                id="new-card-tags"
+                value={cardDraft.tags}
+                onChange={setTags}
+                placeholder="Press Enter or comma to add"
               />
             </Field>
-          </div>
-          <Field>
-            <FieldLabel>Types *</FieldLabel>
-            <ToggleGroup
-              multiple
-              variant="outline"
-              spacing={2}
-              value={cardDraft.types}
-              onValueChange={setTypes}
-              className="w-full flex-wrap"
-            >
-              {orders.cardTypes.map((typeSlug) => (
-                <ToggleGroupItem key={typeSlug} value={typeSlug}>
-                  {enumLabel(labels.cardTypes, typeSlug)}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-          </Field>
-          <Field>
-            <FieldLabel>Domains *</FieldLabel>
-            <ToggleGroup
-              multiple
-              variant="outline"
-              spacing={2}
-              value={cardDraft.domains}
-              onValueChange={setDomains}
-              className="w-full flex-wrap"
-            >
-              {orders.domains.map((domainSlug) => (
-                <ToggleGroupItem key={domainSlug} value={domainSlug}>
-                  {enumLabel(labels.domains, domainSlug)}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-          </Field>
-          <Field>
-            <FieldLabel>Supertypes</FieldLabel>
-            <ToggleGroup
-              multiple
-              variant="outline"
-              spacing={2}
-              value={cardDraft.superTypes}
-              onValueChange={setSuperTypes}
-              className="w-full flex-wrap"
-            >
-              {orders.superTypes.map((superTypeSlug) => (
-                <ToggleGroupItem key={superTypeSlug} value={superTypeSlug}>
-                  {enumLabel(labels.superTypes, superTypeSlug)}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-          </Field>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {MANUAL_CARD_STATS.map(({ key, label }) => {
-              const invalid = parseIntegerInput(cardDraft.numeric[key]) === undefined;
-              return (
-                <Field key={key} data-invalid={invalid}>
-                  <FieldLabel htmlFor={`new-card-${key}`}>{label}</FieldLabel>
-                  <Input
-                    id={`new-card-${key}`}
-                    type="number"
-                    min={0}
-                    value={cardDraft.numeric[key]}
-                    aria-invalid={invalid}
-                    onChange={(event) => cardDraft.setStat(key, event.target.value)}
-                  />
-                  {invalid && <FieldError>Whole number</FieldError>}
-                </Field>
-              );
-            })}
-          </div>
-          <Field>
-            <FieldLabel htmlFor="new-card-tags">Tags</FieldLabel>
-            <ChipInput
-              id="new-card-tags"
-              value={cardDraft.tags}
-              onChange={setTags}
-              placeholder="Press Enter or comma to add"
-            />
-          </Field>
-        </FieldGroup>
+          </FieldGroup>
+        </fieldset>
       </RecordSection>
 
       <RecordSection

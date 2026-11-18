@@ -11,7 +11,7 @@ import {
   splitSelectionParts,
 } from "@/features/lists/lib/list-entry-selection";
 import type { AddEntryToCollectionSubject } from "@/features/lists/lib/list-move";
-import { useListEntriesStore } from "@/features/lists/stores/list-entries-store";
+import type { ListEntriesStore } from "@/features/lists/stores/list-entries-store";
 
 /**
  * Widens a drag that started on a selected tile to the whole selection. The
@@ -38,8 +38,11 @@ export function resolveListEntrySelection(
   };
 }
 
-export function resolveListEntryDrag(data: ListEntryDragData): ListEntryDragData {
-  const { entryByItemId, printingByEntryId } = useListEntriesStore.getState();
+export function resolveListEntryDrag(
+  data: ListEntryDragData,
+  entries: ListEntriesStore,
+): ListEntryDragData {
+  const { entryByItemId, printingByEntryId } = entries.getState();
   return resolveListEntrySelection(
     data,
     useGridSelectionStore.getState().selected,
@@ -49,7 +52,10 @@ export function resolveListEntryDrag(data: ListEntryDragData): ListEntryDragData
 }
 
 /** A dropped drag's subjects: every selected entry, or just the dragged one. */
-export function listDragSubjects(data: ListEntryDragData): AddEntryToCollectionSubject[] {
+export function listDragSubjects(
+  data: ListEntryDragData,
+  entries: ListEntriesStore,
+): AddEntryToCollectionSubject[] {
   if (data.selectionIds.length < 2) {
     return [
       {
@@ -60,7 +66,7 @@ export function listDragSubjects(data: ListEntryDragData): AddEntryToCollectionS
       },
     ];
   }
-  const { entryByItemId, printingByEntryId } = useListEntriesStore.getState();
+  const { entryByItemId, printingByEntryId } = entries.getState();
   return listSelectionSubjects(
     data.selectionIds,
     data.sourceKind,
@@ -70,7 +76,7 @@ export function listDragSubjects(data: ListEntryDragData): AddEntryToCollectionS
 }
 
 /** The move/copy split for a dropped drag, resolved against the live grid. */
-export function listDragParts(data: ListEntryDragData): SelectionParts {
+export function listDragParts(data: ListEntryDragData, entries: ListEntriesStore): SelectionParts {
   if (data.selectionIds.length < 2) {
     return {
       entryIds: data.entryIds,
@@ -86,6 +92,6 @@ export function listDragParts(data: ListEntryDragData): SelectionParts {
         : [],
     };
   }
-  const { entryByItemId, printingByEntryId } = useListEntriesStore.getState();
+  const { entryByItemId, printingByEntryId } = entries.getState();
   return splitSelectionParts(data.selectionIds, entryByItemId, printingByEntryId);
 }

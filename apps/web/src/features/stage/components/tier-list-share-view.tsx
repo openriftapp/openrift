@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SelectionDetailOverlays } from "@/features/cards/components/selection-detail-overlays";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { TierBoard } from "@/features/stage/components/tier-board";
+import { usePreloadStageShowCode } from "@/features/stage/hooks/use-preload-stage-show";
 import type { TierCardView } from "@/features/stage/lib/tier-list-presentation";
 import { resolveTierRows, tierRowsToQueue } from "@/features/stage/lib/tier-list-presentation";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -35,6 +36,7 @@ interface TierListSharePageProps extends TierListShareViewProps {
 export function TierListShareView({ data, token }: TierListSharePageProps) {
   const { tierList, owner } = data;
   const rankedCount = tierList.tiers.reduce((sum, tier) => sum + tier.cards.length, 0);
+  usePreloadStageShowCode();
 
   return (
     <>

@@ -7,6 +7,7 @@ import {
   acceptableCandidatePrinting,
   notHiddenSource,
   notIgnoredCard,
+  visibleCandidatePrinting,
 } from "./candidate-cards-shared.js";
 
 export interface TrustedDraftRow {
@@ -23,6 +24,22 @@ export interface TrustedNewPrintingRow {
   provider: string;
   cardId: string;
   cardSlug: string;
+}
+
+/** `matchesCard` is false when the source's name no longer resolves to a live card. */
+export interface CandidatePrintingLabelRow {
+  id: string;
+  provider: string;
+  printingId: string | null;
+  hidden: boolean;
+  visible: boolean;
+  matchesCard: boolean;
+  cardSlug: string;
+  shortCode: string;
+  finish: string | null;
+  rarity: string | null;
+  language: string | null;
+  size: string | null;
 }
 
 export interface PrintingProbeRow {
@@ -70,6 +87,32 @@ export function workspaceBatchRepo(db: Kysely<Database>) {
         where cc.provider in (${sql.join(providers)})
           and ${acceptableCandidatePrinting("cp", "cc")}
         order by live_card.slug, cp.short_code, cp.id
+      `.execute(db);
+      return rows.rows;
+    },
+
+    async candidatePrintingLabels(ids: readonly string[]): Promise<CandidatePrintingLabelRow[]> {
+      if (ids.length === 0) {
+        return [];
+      }
+      const rows = await sql<CandidatePrintingLabelRow>`
+        select
+          cp.id,
+          cc.provider,
+          cp.printing_id as "printingId",
+          not ${notHiddenSource("cc")} as hidden,
+          ${visibleCandidatePrinting("cp", "cc")} as visible,
+          live_card.slug is not null as "matchesCard",
+          coalesce(live_card.slug, cc.name) as "cardSlug",
+          cp.short_code as "shortCode",
+          cp.finish,
+          cp.rarity,
+          cp.language,
+          cp.size
+        from candidate_printings cp
+        join candidate_cards cc on cc.id = cp.candidate_card_id
+        left join lateral (${liveCardForNorm(sql.ref("cc.norm_name"))}) live_card on true
+        where cp.id in (${sql.join(ids)})
       `.execute(db);
       return rows.rows;
     },

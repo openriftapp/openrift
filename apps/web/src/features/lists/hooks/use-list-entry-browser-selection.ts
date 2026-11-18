@@ -16,6 +16,7 @@ import { useSearchAndCloseDetail } from "@/features/cards/hooks/use-search-and-c
 import { useSelectAllHotkey } from "@/features/cards/hooks/use-select-all-hotkey";
 import { selectionFindBy } from "@/features/cards/lib/card-tiles";
 import type {
+  SurfaceRowActionsStore,
   CardRowClickModifiers,
   ListBulkAction,
 } from "@/features/cards/stores/card-row-actions-store";
@@ -64,6 +65,7 @@ import { m } from "@/paraglide/messages.js";
 import { useSelectionStore } from "@/stores/selection-store";
 
 export interface UseListEntryBrowserSelectionParams {
+  rowActions: SurfaceRowActionsStore<"list">;
   listId: string;
   kind: ListKind;
   intent: "wish" | "trade" | "organize";
@@ -83,6 +85,7 @@ export interface UseListEntryBrowserSelectionParams {
 }
 
 export function useListEntryBrowserSelection({
+  rowActions,
   listId,
   kind,
   intent,
@@ -433,7 +436,7 @@ export function useListEntryBrowserSelection({
     );
   };
 
-  useRowActionHandlers("list", {
+  useRowActionHandlers(rowActions, {
     onRowClick: handleCardClick,
     onSiblingClick: handleSiblingClick,
     onIncrement: handleIncrement,

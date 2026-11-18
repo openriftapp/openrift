@@ -20,7 +20,12 @@ import type { MarketplaceConfigs } from "../../marketplace/lib/marketplace-confi
 import type { UnassignedListings } from "../../marketplace/lib/unassigned-listings.js";
 import { saveMappings } from "../../marketplace/services/marketplace-mapping.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
-import { trustedPrintingGroups } from "../lib/workspace-batch.js";
+import { candidatePrintingLabel } from "../lib/candidate-printing-accept.js";
+import {
+  goneReason,
+  trustedPrintingGroups,
+  uncoveredCandidateIds,
+} from "../lib/workspace-batch.js";
 import type {
   IneligibleTrustedCard,
   TrustedCardDraft,
@@ -133,13 +138,16 @@ interface IneligibleTrustedPrinting {
   candidatePrintingId: string;
   label: string;
   reason: string;
+  group: TrustedPrintingGroup;
 }
 
 async function loadTrustedPrintings(repos: BatchRepos): Promise<{
   eligible: TrustedPrintingGroup[];
   ineligible: IneligibleTrustedPrinting[];
+  favorites: ReadonlySet<string>;
 }> {
-  const providers = [...(await repos.providerSettings.favoriteProviders())];
+  const favorites = await repos.providerSettings.favoriteProviders();
+  const providers = [...favorites];
   const rows = await repos.workspaceBatch.trustedNewPrintings(providers);
   const [printings, probes] = await Promise.all([
     repos.candidateCards.allCandidatePrintingsForCandidateCards([
@@ -163,10 +171,11 @@ async function loadTrustedPrintings(repos: BatchRepos): Promise<{
         candidatePrintingId: group.first.id,
         label: `${group.cardSlug} ${group.label}`,
         reason,
+        group,
       });
     }
   }
-  return { eligible, ineligible };
+  return { eligible, ineligible, favorites };
 }
 
 export async function previewTrustedPrintings(
@@ -182,11 +191,18 @@ export async function previewTrustedPrintings(
       cardSlug: group.cardSlug,
       label: group.label,
     })),
-    ineligible,
+    ineligible: ineligible.map(({ candidatePrintingId, label, reason }) => ({
+      candidatePrintingId,
+      label,
+      reason,
+    })),
   };
 }
 
-/** Acts only on the groups whose first candidate printing the confirmed preview listed. */
+/**
+ * Acts only on the groups holding a candidate printing the confirmed preview listed. Each listed
+ * id is reported: its group's outcome, a skip naming the group it joined, or why it left the batch.
+ */
 export async function acceptTrustedPrintings(
   repos: BatchRepos,
   context: MutationContext,
@@ -195,11 +211,34 @@ export async function acceptTrustedPrintings(
   assertAdmin(context.access);
   const wanted = new Set(candidatePrintingIds);
   const loaded = await loadTrustedPrintings(repos);
-  const eligible = loaded.eligible.filter((group) => wanted.has(group.first.id));
-  const ineligible = loaded.ineligible.filter((entry) => wanted.has(entry.candidatePrintingId));
+  const listed = (group: TrustedPrintingGroup) => group.candidates.some((cp) => wanted.has(cp.id));
+  const eligible = loaded.eligible.filter(listed);
+  const ineligible = loaded.ineligible.filter((entry) => listed(entry.group));
   const skipped: WorkspaceAcceptTrustedPrintingsResponse["skipped"] = ineligible.map(
     ({ label, reason }) => ({ label, reason }),
   );
+  const gone = uncoveredCandidateIds(candidatePrintingIds, [
+    ...eligible,
+    ...ineligible.map((entry) => entry.group),
+  ]);
+  const goneLabels =
+    gone.length === 0 ? [] : await repos.workspaceBatch.candidatePrintingLabels(gone);
+  const goneRows = new Map(goneLabels.map((row) => [row.id, row]));
+  for (const id of gone) {
+    const row = goneRows.get(id);
+    const label = row === undefined ? id : `${row.cardSlug} ${candidatePrintingLabel(row)}`;
+    skipped.push({ label, reason: goneReason(row, loaded.favorites) });
+  }
+  for (const group of [...eligible, ...ineligible.map((entry) => entry.group)]) {
+    const groupLabel = `${group.cardSlug} ${group.label}`;
+    const joined = group.candidates.filter((cp) => wanted.has(cp.id)).slice(1);
+    for (const cp of joined) {
+      skipped.push({
+        label: `${group.cardSlug} ${candidatePrintingLabel(cp)}`,
+        reason: `Same printing as ${groupLabel}, handled with it`,
+      });
+    }
+  }
   const created: NewPrinting[] = [];
 
   const acceptedGroups: TrustedPrintingGroup[] = [];

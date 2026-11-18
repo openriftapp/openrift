@@ -142,3 +142,54 @@ describe("PrintingImageSwitcher file edits", () => {
     }
   });
 });
+
+describe("PrintingImageSwitcher un-rehost", () => {
+  function renderWith(
+    isActive: boolean,
+    over: { fallbackImageFileId?: string; siblingInUse?: boolean } = {},
+  ) {
+    return render(
+      <PrintingImageSwitcher
+        printingId="p-1"
+        face="front"
+        printingLabel="OGN-001"
+        images={[{ ...image, isActive }]}
+        siblingImages={
+          over.siblingInUse === undefined
+            ? []
+            : [{ imageFileId: "file-1", printingLabel: "OGN-001a", inUse: over.siblingInUse }]
+        }
+        derivedArtLabel={null}
+        fallbackArtMode={over.fallbackImageFileId === undefined ? "auto" : "pinned"}
+        fallbackImageFileId={over.fallbackImageFileId ?? null}
+        providerSettings={[]}
+        isAdmin
+      />,
+    );
+  }
+
+  it("does not offer un-rehosting the active image", () => {
+    renderWith(true);
+    expect(screen.queryByRole("button", { name: /Un-rehost/u })).toBeNull();
+  });
+
+  it("offers un-rehosting an inactive rehosted image", () => {
+    renderWith(false);
+    expect(screen.getByRole("button", { name: /Un-rehost/u })).toBeEnabled();
+  });
+
+  it("does not offer un-rehosting the pinned fallback file", () => {
+    renderWith(false, { fallbackImageFileId: "file-1" });
+    expect(screen.queryByRole("button", { name: /Un-rehost/u })).toBeNull();
+  });
+
+  it("does not offer un-rehosting a file in use on another face", () => {
+    renderWith(false, { siblingInUse: true });
+    expect(screen.queryByRole("button", { name: /Un-rehost/u })).toBeNull();
+  });
+
+  it("offers it when the file only sits inactive on another face", () => {
+    renderWith(false, { siblingInUse: false });
+    expect(screen.getByRole("button", { name: /Un-rehost/u })).toBeEnabled();
+  });
+});

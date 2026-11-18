@@ -1,8 +1,12 @@
 import { isBanInEffect } from "@openrift/shared/card-ban";
 import { legendDisplayName } from "@openrift/shared/card-name";
-import { decksContract } from "@openrift/shared/contracts/decks";
+import { DECK_ROW_OVER_CAP, decksContract } from "@openrift/shared/contracts/decks";
 import type { updateDeckPlanSchema } from "@openrift/shared/contracts/decks";
-import { mergeDeckCards, toDeckCard } from "@openrift/shared/deck-cards";
+import {
+  MAX_DECK_CARD_QUANTITY,
+  mergeDeckCardsWithOverflow,
+  toDeckCard,
+} from "@openrift/shared/deck-cards";
 import { isValidInDeckList, summarizeDeckCards } from "@openrift/shared/deck-list-summary";
 import { requiredZoneProgress } from "@openrift/shared/deck-zones";
 import type {
@@ -446,20 +450,31 @@ export const decksRouter = {
     const deck = await decks.getIdAndFormat(input.id, userId);
     assertFound(deck, "Not found");
 
+    const merged = mergeDeckCardsWithOverflow(
+      input.cards.map((card) => ({
+        cardId: card.cardId,
+        zone: card.zone,
+        quantity: card.quantity,
+        preferredPrintingId: card.preferredPrintingId ?? null,
+      })),
+    );
+    const [over] = merged.overflow;
+    if (over) {
+      const [card] = await context.repos.catalog.cardsByIds([over.card.cardId]);
+      const name = card ? legendDisplayName(card) : over.card.cardId;
+      throw errors[DECK_ROW_OVER_CAP]({
+        message: `${name} has more than ${MAX_DECK_CARD_QUANTITY} copies in one row`,
+        data: {
+          cardId: over.card.cardId,
+          zone: over.card.zone,
+          quantity: MAX_DECK_CARD_QUANTITY + over.count,
+        },
+      });
+    }
+
     let result;
     try {
-      result = await decks.replaceCards(
-        input.id,
-        mergeDeckCards(
-          input.cards.map((card) => ({
-            cardId: card.cardId,
-            zone: card.zone,
-            quantity: card.quantity,
-            preferredPrintingId: card.preferredPrintingId ?? null,
-          })),
-        ),
-        input.expectedVersion,
-      );
+      result = await decks.replaceCards(input.id, merged.cards, input.expectedVersion);
     } catch (error) {
       throw deckCardReferenceError(error);
     }

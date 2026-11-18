@@ -20,7 +20,13 @@ import type {
   StagingRow,
 } from "../lib/marketplace-configs.js";
 import { buildStagedRowMapping } from "../lib/marketplace-mapping-shared.js";
-import { buildMarketplaceCardIndex, buildResponseGroups } from "./marketplace-mapping.js";
+import type { MappingSideRows } from "./marketplace-mapping.js";
+import {
+  buildMarketplaceCardIndex,
+  buildResponseGroups,
+  getMappingOverview as overviewForMarketplace,
+  loadSideRowsByMarketplace,
+} from "./marketplace-mapping.js";
 
 type UnifiedCardRow = Awaited<
   ReturnType<Repos["marketplaceMapping"]["allCardsWithPrintingsUnified"]>
@@ -90,6 +96,7 @@ export type GetMappingOverview = (
   options?: {
     matchedCards?: MatchedCardsRow[];
     allCardsForMatching?: { cardId: string; cardName: string }[];
+    sideRows?: MappingSideRows;
   },
 ) => Promise<MappingOverviewResult>;
 
@@ -224,6 +231,19 @@ async function overviewsByMarketplace(
   return Object.fromEntries(
     MERGE_ORDER.map((marketplace, i) => [marketplace, results[i]]),
   ) as Record<Marketplace, MappingOverviewResult>;
+}
+
+/** A `getMappingOverview` whose calls share one read of the ignore, group and override tables. */
+export function mappingOverviewWithSharedSideRows(): GetMappingOverview {
+  let sideRows: Promise<Map<Marketplace, MappingSideRows>> | undefined;
+  return async (repos, config, options) => {
+    sideRows ??= loadSideRowsByMarketplace(repos.marketplaceMapping, MERGE_ORDER);
+    const byMarketplace = await sideRows;
+    return await overviewForMarketplace(repos, config, {
+      ...options,
+      sideRows: byMarketplace.get(config.marketplace),
+    });
+  };
 }
 
 function withPrimaryShortCode(mergedMap: Map<string, MergedGroup>): UnifiedMappingGroupResponse[] {

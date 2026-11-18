@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  archivedCopyCards,
   dedupeMatchedEntries,
   importOverflowMessage,
   mergeMatchedEntries,
@@ -89,5 +90,43 @@ describe("mergeMatchedEntries overflow", () => {
     expect(importOverflowMessage(mergeMatchedEntries([entry("card-a", "main", 99)]).overflow)).toBe(
       null,
     );
+  });
+});
+
+describe("archivedCopyCards", () => {
+  const named = (
+    cardId: string,
+    zone: string,
+    quantity: number,
+    cardName = "Blazing Scorcher",
+  ) => ({
+    cardId,
+    zone: zone as never,
+    quantity,
+    preferredPrintingId: null,
+    cardName,
+    cardTypes: ["unit" as const],
+    tags: [],
+  });
+
+  it("merges repeated archived rows into one under the cap and names the cut copies", () => {
+    const result = archivedCopyCards([named("a", "main", 60), named("a", "main", 50)], []);
+    expect(result.cards).toEqual([
+      { cardId: "a", zone: "main", quantity: 99, preferredPrintingId: null },
+    ]);
+    expect(result.overflow).toEqual([{ name: "Blazing Scorcher", count: 11 }]);
+  });
+
+  it("skips a guessed card whose default-art row the list already holds", () => {
+    const result = archivedCopyCards([named("a", "main", 3)], [named("a", "main", 1)]);
+    expect(result.cards).toEqual([
+      { cardId: "a", zone: "main", quantity: 3, preferredPrintingId: null },
+    ]);
+    expect(result.overflow).toEqual([]);
+  });
+
+  it("adds a guessed card the list lacks", () => {
+    const result = archivedCopyCards([named("a", "main", 3)], [named("yi", "champion", 1)]);
+    expect(result.cards.map((card) => card.cardId)).toEqual(["a", "yi"]);
   });
 });

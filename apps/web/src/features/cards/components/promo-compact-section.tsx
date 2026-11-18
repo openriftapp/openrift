@@ -1,6 +1,6 @@
 import { sideKey, countPrintings } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { Fragment } from "react";
+import { Fragment, useId } from "react";
 
 import { MarkdownText } from "@/components/markdown-text";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
@@ -37,8 +37,13 @@ export function CompactSection({
   sortPrintings,
   setNameBySlug,
 }: { item: ChannelRenderItem } & RenderedSectionProps) {
+  const titleId = useId();
   return (
-    <section id={item.sectionId} style={{ scrollMarginTop: `${stickyOffset}px` }}>
+    <section
+      id={item.sectionId}
+      aria-labelledby={titleId}
+      style={{ scrollMarginTop: `${stickyOffset}px` }}
+    >
       <ParentAnchors ids={item.parentAnchorIds} stickyOffset={stickyOffset} />
       <SectionDivider
         title={item.title}
@@ -51,6 +56,7 @@ export function CompactSection({
           )
         }
         anchorId={item.sectionId}
+        titleId={titleId}
       />
       {viewMode === "table" ? (
         <CompactBranchTable

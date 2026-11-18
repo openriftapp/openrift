@@ -1,7 +1,6 @@
 import type { ListEntryDetailResponse } from "@openrift/shared/types/api/list";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { useCardRowActionsStore } from "@/features/cards/stores/card-row-actions-store";
 import { EMPTY_TRADE_PREFERENCE } from "@/test/factories";
 
 import { ruleBadgeAction, ruleMenuAction } from "./rule-entry-actions";
@@ -33,24 +32,10 @@ const copyEntry: ListEntryDetailResponse = {
 
 const cardEntry: ListEntryDetailResponse = { ...BASE, kind: "card", cardId: "card-1" };
 
-function captureTargets() {
-  const onDropFromRule = vi.fn();
-  useCardRowActionsStore.setState((state) => ({
-    handlers: { ...state.handlers, onDropFromRule },
-  }));
-  return onDropFromRule;
-}
-
-afterEach(() => {
-  useCardRowActionsStore.setState((state) => ({
-    handlers: { ...state.handlers, onDropFromRule: undefined },
-  }));
-});
-
 describe("ruleBadgeAction", () => {
   it("keeps a rule-made copy on a tradelist", () => {
-    const onDropFromRule = captureTargets();
-    const action = ruleBadgeAction(copyEntry, "trade");
+    const onDropFromRule = vi.fn();
+    const action = ruleBadgeAction(copyEntry, "trade", onDropFromRule);
     expect(action).toEqual({
       keep: { handleKeep: expect.any(Function), label: "Keep this copy of Ionian Sentry" },
     });
@@ -59,14 +44,14 @@ describe("ruleBadgeAction", () => {
   });
 
   it("leaves a rule-made copy out of an organize list", () => {
-    expect(ruleBadgeAction(copyEntry, "organize")).toMatchObject({
+    expect(ruleBadgeAction(copyEntry, "organize", vi.fn())).toMatchObject({
       keep: { label: "Leave this copy of Ionian Sentry out" },
     });
   });
 
   it("excludes a rule-made card", () => {
-    const onDropFromRule = captureTargets();
-    const action = ruleBadgeAction(cardEntry, "trade");
+    const onDropFromRule = vi.fn();
+    const action = ruleBadgeAction(cardEntry, "trade", onDropFromRule);
     expect(action).toMatchObject({ excludeLabel: "Don't include Ionian Sentry" });
     action.onExclude?.();
     expect(onDropFromRule).toHaveBeenCalledWith({ kind: "card", cardId: "card-1" });
@@ -75,18 +60,22 @@ describe("ruleBadgeAction", () => {
 
 describe("ruleMenuAction", () => {
   it("labels the menu item by the list's intent", () => {
-    expect(ruleMenuAction(copyEntry, "trade")).toMatchObject({ keep: { label: "Keep this copy" } });
-    expect(ruleMenuAction(copyEntry, "organize")).toMatchObject({
+    expect(ruleMenuAction(copyEntry, "trade", vi.fn())).toMatchObject({
+      keep: { label: "Keep this copy" },
+    });
+    expect(ruleMenuAction(copyEntry, "organize", vi.fn())).toMatchObject({
       keep: { label: "Leave this copy out" },
     });
-    expect(ruleMenuAction(cardEntry, "trade")).toEqual({ onExclude: expect.any(Function) });
+    expect(ruleMenuAction(cardEntry, "trade", vi.fn())).toEqual({
+      onExclude: expect.any(Function),
+    });
   });
 });
 
 describe("reserved copies", () => {
   it("offers no keep action for a copy already promised to a trade", () => {
     const reserved = { ...copyEntry, reserved: true };
-    expect(ruleBadgeAction(reserved, "trade")).toEqual({});
-    expect(ruleMenuAction(reserved, "trade")).toEqual({});
+    expect(ruleBadgeAction(reserved, "trade", vi.fn())).toEqual({});
+    expect(ruleMenuAction(reserved, "trade", vi.fn())).toEqual({});
   });
 });

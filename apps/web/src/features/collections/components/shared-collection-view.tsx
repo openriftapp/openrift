@@ -38,6 +38,10 @@ import { cardPageHref } from "@/features/cards/lib/card-page-href";
 import { selectionFindBy } from "@/features/cards/lib/card-tiles";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
+import {
+  CardRowActionsStoreContext,
+  useOwnCardRowActionsStore,
+} from "@/features/cards/stores/card-row-actions-store";
 import { useOwnedCount } from "@/features/collections/hooks/use-owned-count";
 import { maxOwnedCount } from "@/features/collections/lib/owned-bucket";
 import { OnLoanChip } from "@/features/groups/components/on-loan-chip";
@@ -159,6 +163,7 @@ function SharedCollectionBody({ data }: { data: PublicCollectionDetailResponse }
 }
 
 function SharedCollectionGrid({ data }: { data: PublicCollectionDetailResponse }) {
+  const rowActions = useOwnCardRowActionsStore();
   const { items: copies } = data;
   const { allPrintings, sets, printingsByCardId: catalogAllPrintingsByCardId } = useCards();
   const display = useCardThumbnailDisplay();
@@ -306,35 +311,37 @@ function SharedCollectionGrid({ data }: { data: PublicCollectionDetailResponse }
   }
 
   return (
-    <CardBrowserFilterProvider
-      searchAlternatives={searchAlternatives}
-      availableFilters={availableFilters}
-      availableLanguages={availableLanguages}
-      filterCounts={filterCounts}
-      setDisplayLabel={setDisplayLabel}
-      hiddenSections={hiddenSections}
-      ownedCountMax={ownedCountBound}
-    >
-      <CardViewer
-        items={items}
-        totalItems={collectionPrintings.length}
-        renderCard={renderCard}
-        toolbar={toolbar}
-        rightPane={rightPane}
-        addStripHeight={ADD_STRIP_HEIGHT}
-        table={{
-          actionsColumn: "narrow",
-          actionsLabel: m.collections_table_copies(),
-          actionsCell: <SharedCollectionCountCell countByPrintingId={countByPrintingId} />,
-        }}
+    <CardRowActionsStoreContext value={rowActions}>
+      <CardBrowserFilterProvider
+        searchAlternatives={searchAlternatives}
+        availableFilters={availableFilters}
+        availableLanguages={availableLanguages}
+        filterCounts={filterCounts}
+        setDisplayLabel={setDisplayLabel}
+        hiddenSections={hiddenSections}
+        ownedCountMax={ownedCountBound}
       >
-        <SelectionDetailOverlays
+        <CardViewer
           items={items}
-          printingsByCardId={detailPanePrintingsByCardId}
-          showImages={showImages}
-          onSearchAndClose={handleSearchAndClose}
-        />
-      </CardViewer>
-    </CardBrowserFilterProvider>
+          totalItems={collectionPrintings.length}
+          renderCard={renderCard}
+          toolbar={toolbar}
+          rightPane={rightPane}
+          addStripHeight={ADD_STRIP_HEIGHT}
+          table={{
+            actionsColumn: "narrow",
+            actionsLabel: m.collections_table_copies(),
+            actionsCell: <SharedCollectionCountCell countByPrintingId={countByPrintingId} />,
+          }}
+        >
+          <SelectionDetailOverlays
+            items={items}
+            printingsByCardId={detailPanePrintingsByCardId}
+            showImages={showImages}
+            onSearchAndClose={handleSearchAndClose}
+          />
+        </CardViewer>
+      </CardBrowserFilterProvider>
+    </CardRowActionsStoreContext>
   );
 }

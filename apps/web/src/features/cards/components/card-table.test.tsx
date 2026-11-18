@@ -29,6 +29,8 @@ vi.mock("./card-table-row", async (importOriginal) => ({
   CardTableRow: () => <div />,
 }));
 
+import { rowActionsWrapper } from "@/test/row-actions";
+
 import { CardTable } from "./card-table";
 import { CARD_TABLE_HEADER_HEIGHT, CARD_TABLE_ROW_HEIGHT } from "./card-table-row";
 
@@ -56,8 +58,14 @@ function tableElement(items: CardViewerItem[], selectedItemId: string, search: F
   );
 }
 
+const RowActions = rowActionsWrapper();
+
 function wrapper({ children }: { children: ReactNode }) {
-  return <QueryClientProvider client={new QueryClient()}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={new QueryClient()}>
+      <RowActions>{children}</RowActions>
+    </QueryClientProvider>
+  );
 }
 
 afterEach(() => {

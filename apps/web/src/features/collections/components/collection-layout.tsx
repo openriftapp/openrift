@@ -62,6 +62,10 @@ import {
   ruleEntryCopyInputs,
 } from "@/features/lists/lib/list-move";
 import { describeListAdd } from "@/features/lists/lib/list-toast";
+import {
+  ListEntriesStoreContext,
+  useOwnListEntriesStore,
+} from "@/features/lists/stores/list-entries-store";
 import { useDragAutoScroll } from "@/hooks/use-drag-auto-scroll";
 import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { ViewSurfaceProvider } from "@/hooks/use-view-prefs";
@@ -85,6 +89,7 @@ const COLLECTION_DROP_TYPES = [
 
 export function CollectionLayout() {
   const search = routeApi.useSearch();
+  const listEntriesStore = useOwnListEntriesStore();
   const [topBarSlot, setTopBarSlot] = useState<HTMLDivElement | null>(null);
   const topBarHeight = useMeasuredHeight(topBarSlot);
   const [activeDrag, setActiveDrag] = useState<CollectionDragData | null>(null);
@@ -167,7 +172,7 @@ export function CollectionLayout() {
       return;
     }
     if (data?.type === "list-entry") {
-      setActiveDrag(resolveListEntryDrag(data));
+      setActiveDrag(resolveListEntryDrag(data, listEntriesStore));
     }
   };
 
@@ -189,7 +194,7 @@ export function CollectionLayout() {
   const handleDragEnd = (event: DragEndEvent) => {
     const modifier = moveModifier;
     const raw = asDragData<CollectionDragData>(event.active.data.current, COLLECTION_DRAG_TYPES);
-    const dragData = raw?.type === "list-entry" ? resolveListEntryDrag(raw) : raw;
+    const dragData = raw?.type === "list-entry" ? resolveListEntryDrag(raw, listEntriesStore) : raw;
     // Rule entries have no row to move, so a drag carrying one copies everything.
     const carriesRuleEntry =
       dragData?.type === "list-entry" &&
@@ -223,7 +228,7 @@ export function CollectionLayout() {
     }
     if (entryAddsCopies(dragData.sourceKind)) {
       setPendingCollectionAdd({
-        subjects: listDragSubjects(dragData),
+        subjects: listDragSubjects(dragData, listEntriesStore),
         collectionId: dropData.collectionId,
       });
     }
@@ -295,7 +300,7 @@ export function CollectionLayout() {
     mode: MoveMode,
     resolution: MoveResolution | null,
   ) {
-    const { entryIds, ruleSubjects } = listDragParts(dragData);
+    const { entryIds, ruleSubjects } = listDragParts(dragData, listEntriesStore);
     const added = ruleSubjects.flatMap((subject) =>
       ruleEntryCopyInputs(subject, dropData.listKind, resolution),
     );
@@ -379,69 +384,71 @@ export function CollectionLayout() {
   }
 
   return (
-    <ViewSurfaceProvider value="collections">
-      <FilterSearchProvider value={search}>
-        <PageTopBarHeightContext value={topBarHeight}>
-          <div className="flex min-h-0 flex-1 flex-col">
-            <SidebarProvider className="flex-1">
-              <DndContext
-                sensors={sensors}
-                collisionDetection={collectionCollisionDetection}
-                accessibility={{ announcements: collectionDragAnnouncements }}
-                autoScroll={dragScroll.autoScroll}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                onDragCancel={() => {
-                  dragActiveRef.current = false;
-                  dragScroll.stop();
-                  setActiveDrag(null);
+    <ListEntriesStoreContext value={listEntriesStore}>
+      <ViewSurfaceProvider value="collections">
+        <FilterSearchProvider value={search}>
+          <PageTopBarHeightContext value={topBarHeight}>
+            <div className="flex min-h-0 flex-1 flex-col">
+              <SidebarProvider className="flex-1">
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={collectionCollisionDetection}
+                  accessibility={{ announcements: collectionDragAnnouncements }}
+                  autoScroll={dragScroll.autoScroll}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onDragCancel={() => {
+                    dragActiveRef.current = false;
+                    dragScroll.stop();
+                    setActiveDrag(null);
+                  }}
+                >
+                  <DndScrollWatcher />
+                  <TopBarSlotContext value={topBarSlot}>
+                    <CollectionSidebar />
+                    <CollectionContent setTopBarSlot={setTopBarSlot} />
+                  </TopBarSlotContext>
+                  <DragOverlay dropAnimation={null} modifiers={MODIFIERS}>
+                    {activeDrag?.type === "collection-card" && (
+                      <DragPreview drag={activeDrag} modifier={moveModifier} />
+                    )}
+                    {activeDrag?.type === "list-entry" && (
+                      <ListEntryDragPreview
+                        drag={activeDrag}
+                        copy={copyModifier || activeDrag.ruleEntry !== undefined}
+                      />
+                    )}
+                  </DragOverlay>
+                </DndContext>
+              </SidebarProvider>
+              <AddEntryToCollectionDialog
+                request={pendingCollectionAdd}
+                onClose={() => setPendingCollectionAdd(null)}
+              />
+              <MoveEntryDialog
+                pending={pendingMove}
+                onOpenChange={(open) => {
+                  if (!open) {
+                    setPendingMove(null);
+                  }
                 }}
-              >
-                <DndScrollWatcher />
-                <TopBarSlotContext value={topBarSlot}>
-                  <CollectionSidebar />
-                  <CollectionContent setTopBarSlot={setTopBarSlot} />
-                </TopBarSlotContext>
-                <DragOverlay dropAnimation={null} modifiers={MODIFIERS}>
-                  {activeDrag?.type === "collection-card" && (
-                    <DragPreview drag={activeDrag} modifier={moveModifier} />
-                  )}
-                  {activeDrag?.type === "list-entry" && (
-                    <ListEntryDragPreview
-                      drag={activeDrag}
-                      copy={copyModifier || activeDrag.ruleEntry !== undefined}
-                    />
-                  )}
-                </DragOverlay>
-              </DndContext>
-            </SidebarProvider>
-            <AddEntryToCollectionDialog
-              request={pendingCollectionAdd}
-              onClose={() => setPendingCollectionAdd(null)}
-            />
-            <MoveEntryDialog
-              pending={pendingMove}
-              onOpenChange={(open) => {
-                if (!open) {
-                  setPendingMove(null);
-                }
-              }}
-              onConfirm={(resolution) => {
-                if (pendingMove) {
-                  void runListEntryMove(
-                    pendingMove.drag,
-                    { type: "list", ...pendingMove.target },
-                    pendingMove.mode,
-                    resolution,
-                  );
-                }
-              }}
-              isPending={moveListEntries.isPending || bulkAddListEntries.isPending}
-            />
-          </div>
-        </PageTopBarHeightContext>
-      </FilterSearchProvider>
-    </ViewSurfaceProvider>
+                onConfirm={(resolution) => {
+                  if (pendingMove) {
+                    void runListEntryMove(
+                      pendingMove.drag,
+                      { type: "list", ...pendingMove.target },
+                      pendingMove.mode,
+                      resolution,
+                    );
+                  }
+                }}
+                isPending={moveListEntries.isPending || bulkAddListEntries.isPending}
+              />
+            </div>
+          </PageTopBarHeightContext>
+        </FilterSearchProvider>
+      </ViewSurfaceProvider>
+    </ListEntriesStoreContext>
   );
 }
 

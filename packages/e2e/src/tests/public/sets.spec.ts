@@ -2,7 +2,6 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
 import { API_BASE_URL, WEB_BASE_URL } from "../../helpers/constants.js";
-import { waitForHydrated } from "../../helpers/hydration.js";
 
 interface SetListEntryFixture {
   id: string;
@@ -204,8 +203,7 @@ test.describe("sets", () => {
 
       const tile = page.getByRole("link", { name: firstCard.name }).first();
       await expect(tile).toBeVisible({ timeout: 10_000 });
-      await waitForHydrated(tile);
-
+      // The tile's href and its click handler lead to the same card page.
       await tile.click();
 
       await page.waitForURL(/\/cards\/[^/?#]+$/u, { timeout: 10_000 });

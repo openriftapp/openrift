@@ -131,4 +131,21 @@ describe("NewManualCardRecord", () => {
     expect(screen.getByText("Whole number")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Create card" })).toHaveProperty("disabled", true);
   });
+
+  it("locks every card field while the create runs", async () => {
+    const user = userEvent.setup();
+    mocks.createCard.mockReturnValue(new Promise(() => {}));
+    renderRecord();
+
+    await user.type(screen.getByLabelText("Name *"), "Jinx, Rebel");
+    await user.click(screen.getByRole("button", { name: "Unit" }));
+    await user.click(screen.getByRole("button", { name: "Fury" }));
+    await user.click(screen.getByRole("button", { name: "Create card" }));
+
+    await waitFor(() => expect(screen.getByLabelText("Name *")).toBeDisabled());
+    expect(screen.getByLabelText("Card ID *")).toBeDisabled();
+    expect(screen.getByLabelText("Might")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Unit" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Fury" })).toBeDisabled();
+  });
 });

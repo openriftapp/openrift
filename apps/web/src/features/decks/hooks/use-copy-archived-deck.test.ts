@@ -11,7 +11,7 @@ vi.mock("@/features/decks/hooks/use-decks", () => ({
   useCloneSharedDeck: () => ({ mutateAsync: cloneMutateAsync, isPending: false }),
 }));
 vi.mock("@/hooks/use-session", () => ({ useUserId: () => userId }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: { error: vi.fn(), warning: vi.fn() } }));
 
 const { useCopyArchivedDeck } = await import("./use-copy-archived-deck");
 const { getLocalDecksCollection, preloadLocalDecks } =
@@ -145,6 +145,26 @@ describe("useCopyArchivedDeck", () => {
       "card-legend",
       "card-a",
       "card-yi",
+    ]);
+  });
+
+  it("stores one row when a guessed card is already in the archived list, as the server clone does", async () => {
+    const extraCards = [
+      { zone: "main", cardId: "card-a", quantity: 3, preferredPrintingId: null },
+    ] as unknown as MetaDeckDetailResponse["cards"];
+    const { result } = renderHook(() => useCopyArchivedDeck());
+
+    await result.current.copy({
+      token: TOKEN,
+      deck,
+      cards,
+      extraCards,
+      name: NAME,
+      description: DESCRIPTION,
+    });
+
+    expect(storedDecks()[0]?.cards.filter((card) => card.cardId === "card-a")).toEqual([
+      { zone: "main", cardId: "card-a", quantity: 3, preferredPrintingId: null },
     ]);
   });
 

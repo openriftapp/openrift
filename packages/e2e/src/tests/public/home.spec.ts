@@ -1,7 +1,6 @@
 import { expect, test } from "../../fixtures/test.js";
 import { urlWithLanguagesDefault } from "../../helpers/catalog.js";
 import { IS_PRODUCTION_BUILD } from "../../helpers/constants.js";
-import { waitForHydrated } from "../../helpers/hydration.js";
 
 test.describe("landing page", () => {
   test("renders the homepage with title and navigation", async ({ page }) => {
@@ -70,7 +69,8 @@ test.describe("landing page", () => {
     const fanCard = page.locator('[data-fan-index="0"]');
     await expect(fanCard).toBeVisible();
     const logo = page.getByRole("button", { name: "OpenRift" });
-    await waitForHydrated(logo);
+    // The stats count up from zero on the client, so a non-zero count means the logo is live.
+    await expect(page.getByText(/[1-9][\d,.]* cards · /u)).toBeVisible({ timeout: 15_000 });
 
     // The hint lasts 400ms; an observer armed before the click records that it
     // happened, so the check below does not depend on catching it while it shows.

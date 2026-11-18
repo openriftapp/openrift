@@ -19,7 +19,7 @@ import type { CardGroup } from "@/features/cards/lib/card-groups";
 import { cardRowIndex } from "@/features/cards/lib/card-row-index";
 import { computeRowStarts } from "@/features/cards/lib/compute-row-starts";
 import { scrollCardRowIntoView } from "@/features/cards/lib/scroll-card-row";
-import { useCardRowActionsStore } from "@/features/cards/stores/card-row-actions-store";
+import { useCardRowDispatch } from "@/features/cards/stores/card-row-actions-store";
 import type { ActionsColumn } from "@/features/collections/lib/collection-table";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useHeaderHeight } from "@/hooks/use-header-height";
@@ -95,6 +95,7 @@ const DataRow = memo(function DataRow({
   setNameBySlug: Map<string, string>;
   actionsCell?: ReactNode;
 }) {
+  const { dispatchTableRowClick } = useCardRowDispatch();
   return (
     <CardTableRow
       printing={printing}
@@ -110,7 +111,7 @@ const DataRow = memo(function DataRow({
       superTypeLabels={superTypeLabels}
       rarityLabels={rarityLabels}
       setNameBySlug={setNameBySlug}
-      onRowClick={(p) => useCardRowActionsStore.getState().handlers.onRowClick?.(p, itemId)}
+      onRowClick={(p) => dispatchTableRowClick(p, itemId)}
       actionsCell={actionsCell}
     />
   );

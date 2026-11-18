@@ -16,6 +16,8 @@ import { nameField, shareStateResponseSchema } from "./fields.js";
 
 export const MAX_DECK_LINKS = 5;
 
+export const DECK_ROW_OVER_CAP = "DECK_ROW_OVER_CAP";
+
 const deckFieldRules = {
   name: nameField(200),
   format: z.string().min(1),
@@ -362,6 +364,11 @@ export const decksContract = {
     .errors({
       NOT_FOUND: { message: "Deck not found" },
       BAD_REQUEST: { message: "Unknown card, zone or printing" },
+      [DECK_ROW_OVER_CAP]: {
+        status: 400,
+        message: "A card's copies in one row pass the row limit",
+        data: z.object({ cardId: z.uuid(), zone: deckZoneSchema, quantity: z.number().int() }),
+      },
       CONFLICT: {
         message: "The deck's cards changed since this version",
         data: deckCardsReplaceResponseSchema,

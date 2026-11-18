@@ -329,6 +329,51 @@ interface GetMappingOverviewOptions {
    * see competing aliases and short prefixes steal products from longer ones.
    */
   allCardsForMatching?: { cardId: string; cardName: string }[];
+  /** Pre-fetched ignore, group and override rows for this marketplace. */
+  sideRows?: MappingSideRows;
+}
+
+type MappingRepo = Repos["marketplaceMapping"];
+
+export interface MappingSideRows {
+  ignoredProducts: Awaited<ReturnType<MappingRepo["ignoredProducts"]>>;
+  ignoredVariants: Awaited<ReturnType<MappingRepo["ignoredVariants"]>>;
+  groupNames: Awaited<ReturnType<MappingRepo["groupNames"]>>;
+  overrides: Awaited<ReturnType<MappingRepo["stagingCardOverrides"]>>;
+}
+
+async function loadSideRows(
+  repo: MappingRepo,
+  marketplaces: Marketplace | readonly Marketplace[],
+): Promise<MappingSideRows> {
+  const [ignoredProducts, ignoredVariants, groupNames, overrides] = await Promise.all([
+    repo.ignoredProducts(marketplaces),
+    repo.ignoredVariants(marketplaces),
+    repo.groupNames(marketplaces),
+    repo.stagingCardOverrides(marketplaces),
+  ]);
+  return { ignoredProducts, ignoredVariants, groupNames, overrides };
+}
+
+/** One read per table for every marketplace, split per marketplace. */
+export async function loadSideRowsByMarketplace(
+  repo: MappingRepo,
+  marketplaces: readonly Marketplace[],
+): Promise<Map<Marketplace, MappingSideRows>> {
+  const rows = await loadSideRows(repo, marketplaces);
+  const of = <T extends { marketplace: string }>(list: T[], marketplace: Marketplace) =>
+    list.filter((row) => row.marketplace === marketplace);
+  return new Map(
+    marketplaces.map((marketplace) => [
+      marketplace,
+      {
+        ignoredProducts: of(rows.ignoredProducts, marketplace),
+        ignoredVariants: of(rows.ignoredVariants, marketplace),
+        groupNames: of(rows.groupNames, marketplace),
+        overrides: of(rows.overrides, marketplace),
+      },
+    ]),
+  );
 }
 
 export async function getMappingOverview(
@@ -340,18 +385,17 @@ export async function getMappingOverview(
 
   // All independent queries fire in parallel — none depend on each other,
   // and serializing them was wasting ~30ms per marketplace.
-  const [ignoredProductRows, ignoredVariantRows, staged, groupRows, fetchedCards, overrideRows] =
-    await Promise.all([
-      repo.ignoredProducts(config.marketplace),
-      repo.ignoredVariants(config.marketplace),
-      repo.allStaging(config.marketplace),
-      repo.groupNames(config.marketplace),
-      options?.matchedCards
-        ? Promise.resolve(options.matchedCards)
-        : repo.allCardsWithPrintings(config.marketplace),
-      repo.stagingCardOverrides(config.marketplace),
-    ]);
-  const matchedCards = fetchedCards;
+  const [sideRows, staged, matchedCards] = await Promise.all([
+    options?.sideRows ?? loadSideRows(repo, config.marketplace),
+    repo.allStaging(config.marketplace),
+    options?.matchedCards ?? repo.allCardsWithPrintings(config.marketplace),
+  ]);
+  const {
+    ignoredProducts: ignoredProductRows,
+    ignoredVariants: ignoredVariantRows,
+    groupNames: groupRows,
+    overrides: overrideRows,
+  } = sideRows;
 
   const ignoredProductIds = new Set(ignoredProductRows.map((r) => r.externalId));
   const ignoredVariantKeys = new Set(

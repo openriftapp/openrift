@@ -1,6 +1,7 @@
 import type { Printing } from "@openrift/shared/types/catalog";
 import { use, useState } from "react";
 import { createPortal } from "react-dom";
+import { useStore } from "zustand";
 
 import { TopBarSlotContext } from "@/components/layout/top-bar-slot";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -14,7 +15,10 @@ import { useSelectAllHotkey } from "@/features/cards/hooks/use-select-all-hotkey
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { tileSiblings } from "@/features/cards/lib/card-tiles";
 import { isCopiesOnlyGrouping } from "@/features/cards/lib/group-by-collection";
-import { dispatchItemToggle } from "@/features/cards/stores/card-row-actions-store";
+import {
+  CardRowActionsStoreContext,
+  useOwnCardRowActionsStore,
+} from "@/features/cards/stores/card-row-actions-store";
 import { useLibraryToggle } from "@/features/cards/stores/library-toggle-store";
 import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-override-store";
 import {
@@ -77,6 +81,8 @@ export function CollectionGrid({
   wantedOnly = false,
   onWantedOnlyChange,
 }: CollectionGridProps) {
+  const rowActions = useOwnCardRowActionsStore<"collection">();
+  const { dispatchItemToggle } = useStore(rowActions, (state) => state.dispatch);
   const { toggleSidebar } = useSidebar();
   const topBarSlot = use(TopBarSlotContext);
   const { data: collections } = useCollections();
@@ -256,6 +262,7 @@ export function CollectionGrid({
   });
 
   const { allCopyIdsByTile } = useCollectionGridSelection({
+    rowActions,
     items,
     stackByItemId,
     stackByPrintingId,
@@ -376,7 +383,7 @@ export function CollectionGrid({
   );
 
   return (
-    <>
+    <CardRowActionsStoreContext value={rowActions}>
       {isEmpty ? (
         <>
           {topBarPortal}
@@ -539,6 +546,6 @@ export function CollectionGrid({
       )}
       {collectionOverlays}
       <WishlistPickerHost target={wishTarget} onClose={() => setWishTarget(null)} />
-    </>
+    </CardRowActionsStoreContext>
   );
 }

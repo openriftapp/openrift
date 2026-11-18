@@ -209,6 +209,15 @@ describe("CardPagePrintings", () => {
     expect(cell).not.toHaveAttribute("aria-pressed");
   });
 
+  it("keeps the printing cells disabled until hydration", () => {
+    const english = stubPrinting({ setId: "set-1", shortCode: "OGN-1", language: "EN" });
+    const { container } = render(
+      <PrintingLanguageMatrix printings={[english]} onSelect={vi.fn()} />,
+    );
+
+    expect(container.querySelector(`[data-printing-id="${english.printingId}"]`)).toBeDisabled();
+  });
+
   it("hands a tapped design to onDesignSelect", async () => {
     const onDesignSelect = vi.fn();
     const onSelect = vi.fn();

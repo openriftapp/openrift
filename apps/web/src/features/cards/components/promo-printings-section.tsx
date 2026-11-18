@@ -1,5 +1,6 @@
 import { countPrintings, sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
+import { useId } from "react";
 
 import { PromoCardThumbnail } from "@/features/cards/components/promo-card-thumbnail";
 import { PromoChannelIntro } from "@/features/cards/components/promo-channel-intro";
@@ -31,18 +32,24 @@ export function PromoPrintingsSection({
   parentAnchorIds?: string[];
   showChannel?: boolean;
 } & RenderedSectionProps) {
+  const titleId = useId();
   const sortedPrintings = sortPrintings(printings);
   if (sortedPrintings.length === 0) {
     return null;
   }
   return (
-    <section id={sectionId} style={{ scrollMarginTop: `${stickyOffset}px` }}>
+    <section
+      id={sectionId}
+      aria-labelledby={titleId}
+      style={{ scrollMarginTop: `${stickyOffset}px` }}
+    >
       {parentAnchorIds && <ParentAnchors ids={parentAnchorIds} stickyOffset={stickyOffset} />}
       <SectionDivider
         title={title}
         count={countPrintings(sortedPrintings)}
         intro={description && <PromoChannelIntro description={description} />}
         anchorId={sectionId}
+        titleId={titleId}
       />
       {viewMode === "grid" ? (
         <div {...grid}>

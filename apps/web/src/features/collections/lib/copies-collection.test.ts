@@ -45,7 +45,7 @@ describe("the copies store's watermark", () => {
     expect(fetchCopies).toHaveBeenLastCalledWith("1000", expect.any(AbortSignal));
   });
 
-  it("takes a full read when the previous read had no reachable set to compare against", async () => {
+  it("takes a full read when the collections store shows a collection the first read never saw", async () => {
     fetchCopies.mockResolvedValue({ items: [stubCopy({ id: "c1" })], syncedXid: "1000" });
     await getCopiesCollection(queryClient, userId).preload();
 
@@ -57,6 +57,20 @@ describe("the copies store's watermark", () => {
     fetchCopies.mockResolvedValue({ items: [], deletedIds: [], syncedXid: "3000" });
     await resync();
     expect(fetchCopies).toHaveBeenLastCalledWith("2000", expect.any(AbortSignal));
+  });
+
+  it("reads a delta after a first read made before the collections store loaded", async () => {
+    fetchCopies.mockResolvedValue({
+      items: [stubCopy({ id: "c1", collectionId: "col-1" })],
+      syncedXid: "1000",
+    });
+    await getCopiesCollection(queryClient, userId).preload();
+
+    reachable("col-1");
+    fetchCopies.mockResolvedValue({ items: [], deletedIds: [], syncedXid: "2000" });
+    await resync();
+
+    expect(fetchCopies).toHaveBeenLastCalledWith("1000", expect.any(AbortSignal));
   });
 
   it("takes a full read when a collection becomes reachable, whose copies predate the watermark", async () => {

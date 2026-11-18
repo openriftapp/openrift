@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ListActionsCell } from "@/features/lists/components/list-actions-cell";
 import { buildListTradeIndex } from "@/features/lists/lib/list-trade-status";
 import { EMPTY_TRADE_PREFERENCE, stubPrinting } from "@/test/factories";
+import { rowActionsWrapper } from "@/test/row-actions";
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({
@@ -146,6 +147,7 @@ function renderCell(
       isRemovePendingFor={() => false}
       isQuantityPendingFor={() => false}
     />,
+    { wrapper: rowActionsWrapper() },
   );
 }
 

@@ -413,11 +413,11 @@ describe.skipIf(!adminCtx)("Admin catalog workspace routes (integration)", () =>
       expect(res.status).toBe(403);
     });
 
-    it("lists each provider's newest upload with its open items for an admin", async () => {
+    it("lists each provider's newest upload for an admin", async () => {
       const res = await adminApp.fetch(adminReq("GET", "/catalog/workspace/uploads"));
       expect(res.status).toBe(200);
       const json = await readJson(res);
-      const sources = json.sources as { provider: string; open: number }[];
+      const sources = json.sources as { provider: string }[];
       expect(sources).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -429,7 +429,6 @@ describe.skipIf(!adminCtx)("Admin catalog workspace routes (integration)", () =>
           expect.objectContaining({ provider: DENIED }),
         ]),
       );
-      expect(sources.find((source) => source.provider === ALLOWED)?.open).toBeGreaterThan(0);
     });
 
     it("hides sources helpers cannot review from a card-review holder", async () => {

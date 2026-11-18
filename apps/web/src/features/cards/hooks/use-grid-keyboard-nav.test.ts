@@ -2,7 +2,8 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useCardRowActionsStore } from "@/features/cards/stores/card-row-actions-store";
+import type { CardRowActionsStore } from "@/features/cards/stores/card-row-actions-store";
+import { createCardRowActionsStore } from "@/features/cards/stores/card-row-actions-store";
 import { useAddModeStore } from "@/features/collections/stores/add-mode-store";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import { useSelectionStore } from "@/stores/selection-store";
@@ -19,18 +20,17 @@ const items: CardViewerItem[] = [
 ];
 
 let resetSelection: () => void;
-let resetActions: () => void;
+let rowActions: CardRowActionsStore;
 let resetAddMode: () => void;
 
 beforeEach(() => {
   resetSelection = createStoreResetter(useSelectionStore);
-  resetActions = createStoreResetter(useCardRowActionsStore);
+  rowActions = createCardRowActionsStore();
   resetAddMode = createStoreResetter(useAddModeStore);
 });
 
 afterEach(() => {
   resetSelection();
-  resetActions();
   resetAddMode();
   document.body.replaceChildren();
 });
@@ -44,10 +44,10 @@ function press(key: string, init: KeyboardEventInit = {}) {
 describe("useGridKeyboardNav: digit keys", () => {
   it("adds that many copies of the selected card in one press", () => {
     const onIncrement = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("collection", { onIncrement });
+    rowActions.getState().setHandlers({ onIncrement });
     useSelectionStore.getState().selectCard(p1, items, "printing");
 
-    renderHook(() => useGridKeyboardNav({ items }));
+    renderHook(() => useGridKeyboardNav({ items, rowActions }));
     const event = press("3");
 
     expect(onIncrement).toHaveBeenCalledWith(p1, undefined, 3);
@@ -56,10 +56,10 @@ describe("useGridKeyboardNav: digit keys", () => {
 
   it("accepts 1 as an add-one shortcut", () => {
     const onIncrement = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("collection", { onIncrement });
+    rowActions.getState().setHandlers({ onIncrement });
     useSelectionStore.getState().selectCard(p1, items, "printing");
 
-    renderHook(() => useGridKeyboardNav({ items }));
+    renderHook(() => useGridKeyboardNav({ items, rowActions }));
     press("1");
 
     expect(onIncrement).toHaveBeenCalledWith(p1, undefined, 1);
@@ -67,10 +67,10 @@ describe("useGridKeyboardNav: digit keys", () => {
 
   it("ignores 0", () => {
     const onIncrement = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("collection", { onIncrement });
+    rowActions.getState().setHandlers({ onIncrement });
     useSelectionStore.getState().selectCard(p1, items, "printing");
 
-    renderHook(() => useGridKeyboardNav({ items }));
+    renderHook(() => useGridKeyboardNav({ items, rowActions }));
     const event = press("0");
 
     expect(onIncrement).not.toHaveBeenCalled();
@@ -79,10 +79,10 @@ describe("useGridKeyboardNav: digit keys", () => {
 
   it("ignores auto-repeat so a held key adds one batch, not a stream", () => {
     const onIncrement = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("collection", { onIncrement });
+    rowActions.getState().setHandlers({ onIncrement });
     useSelectionStore.getState().selectCard(p1, items, "printing");
 
-    renderHook(() => useGridKeyboardNav({ items }));
+    renderHook(() => useGridKeyboardNav({ items, rowActions }));
     press("2");
     press("2", { repeat: true });
     press("2", { repeat: true });
@@ -92,10 +92,10 @@ describe("useGridKeyboardNav: digit keys", () => {
 
   it("ignores Ctrl/Meta/Alt digits so browser tab shortcuts still work", () => {
     const onIncrement = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("collection", { onIncrement });
+    rowActions.getState().setHandlers({ onIncrement });
     useSelectionStore.getState().selectCard(p1, items, "printing");
 
-    renderHook(() => useGridKeyboardNav({ items }));
+    renderHook(() => useGridKeyboardNav({ items, rowActions }));
     press("2", { ctrlKey: true });
     press("3", { metaKey: true });
     press("4", { altKey: true });
@@ -105,14 +105,14 @@ describe("useGridKeyboardNav: digit keys", () => {
 
   it("ignores digits while typing in an input", () => {
     const onIncrement = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("collection", { onIncrement });
+    rowActions.getState().setHandlers({ onIncrement });
     useSelectionStore.getState().selectCard(p1, items, "printing");
 
     const input = document.createElement("input");
     document.body.append(input);
     input.focus();
 
-    renderHook(() => useGridKeyboardNav({ items }));
+    renderHook(() => useGridKeyboardNav({ items, rowActions }));
     press("5");
 
     expect(onIncrement).not.toHaveBeenCalled();
@@ -121,11 +121,11 @@ describe("useGridKeyboardNav: digit keys", () => {
 
   it("skips digits while the variant popover is open", () => {
     const onIncrement = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("collection", { onIncrement });
+    rowActions.getState().setHandlers({ onIncrement });
     useSelectionStore.getState().selectCard(p1, items, "printing");
     useAddModeStore.getState().openVariants(p1.cardId, document.createElement("div"), "add");
 
-    renderHook(() => useGridKeyboardNav({ items }));
+    renderHook(() => useGridKeyboardNav({ items, rowActions }));
     press("2");
 
     expect(onIncrement).not.toHaveBeenCalled();
@@ -133,9 +133,9 @@ describe("useGridKeyboardNav: digit keys", () => {
 
   it("does nothing when no card is selected", () => {
     const onIncrement = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("collection", { onIncrement });
+    rowActions.getState().setHandlers({ onIncrement });
 
-    renderHook(() => useGridKeyboardNav({ items }));
+    renderHook(() => useGridKeyboardNav({ items, rowActions }));
     const event = press("2");
 
     expect(onIncrement).not.toHaveBeenCalled();
@@ -145,7 +145,7 @@ describe("useGridKeyboardNav: digit keys", () => {
   it("does nothing when the surface registers no add handler", () => {
     useSelectionStore.getState().selectCard(p1, items, "printing");
 
-    renderHook(() => useGridKeyboardNav({ items }));
+    renderHook(() => useGridKeyboardNav({ items, rowActions }));
     const event = press("2");
 
     expect(event.defaultPrevented).toBe(false);
@@ -153,12 +153,21 @@ describe("useGridKeyboardNav: digit keys", () => {
 });
 
 describe("useGridKeyboardNav: +/-", () => {
-  it("`+` dispatches onIncrement for the selected card", () => {
-    const onIncrement = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("collection", { onIncrement });
+  it("leaves `+` and digits to the browser on a surface without row actions", () => {
     useSelectionStore.getState().selectCard(p1, items, "printing");
 
     renderHook(() => useGridKeyboardNav({ items }));
+
+    expect(press("+").defaultPrevented).toBe(false);
+    expect(press("3").defaultPrevented).toBe(false);
+  });
+
+  it("`+` dispatches onIncrement for the selected card", () => {
+    const onIncrement = vi.fn();
+    rowActions.getState().setHandlers({ onIncrement });
+    useSelectionStore.getState().selectCard(p1, items, "printing");
+
+    renderHook(() => useGridKeyboardNav({ items, rowActions }));
     const event = press("+");
 
     expect(onIncrement).toHaveBeenCalledWith(p1);
@@ -167,10 +176,10 @@ describe("useGridKeyboardNav: +/-", () => {
 
   it("`=` is a no-shift alias for `+`", () => {
     const onIncrement = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("collection", { onIncrement });
+    rowActions.getState().setHandlers({ onIncrement });
     useSelectionStore.getState().selectCard(p1, items, "printing");
 
-    renderHook(() => useGridKeyboardNav({ items }));
+    renderHook(() => useGridKeyboardNav({ items, rowActions }));
     const event = press("=");
 
     expect(onIncrement).toHaveBeenCalledWith(p1);
@@ -179,7 +188,7 @@ describe("useGridKeyboardNav: +/-", () => {
 
   it("`-` dispatches onDecrement for the selected card, anchored to its tile", () => {
     const onDecrement = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("collection", { onDecrement });
+    rowActions.getState().setHandlers({ onDecrement });
     useSelectionStore.getState().selectCard(p2, items, "printing");
 
     // Mock the tile in the DOM so the anchor lookup succeeds — mirrors
@@ -188,7 +197,7 @@ describe("useGridKeyboardNav: +/-", () => {
     tile.dataset.sideKey = p2.printingId;
     document.body.append(tile);
 
-    renderHook(() => useGridKeyboardNav({ items }));
+    renderHook(() => useGridKeyboardNav({ items, rowActions }));
     press("-");
 
     expect(onDecrement).toHaveBeenCalledWith(p2, tile);
@@ -196,7 +205,7 @@ describe("useGridKeyboardNav: +/-", () => {
 
   it("`-` anchors a second side to its own tile", () => {
     const onDecrement = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("collection", { onDecrement });
+    rowActions.getState().setHandlers({ onDecrement });
     const bird = { ...p2, printingId: "pair", side: 1 as const };
     const gold = { ...p2, printingId: "pair", side: 2 as const, cardId: "gold" };
     const pairItems = [
@@ -210,7 +219,7 @@ describe("useGridKeyboardNav: +/-", () => {
     goldTile.dataset.sideKey = "pair:2";
     document.body.append(birdTile, goldTile);
 
-    renderHook(() => useGridKeyboardNav({ items: pairItems }));
+    renderHook(() => useGridKeyboardNav({ items: pairItems, rowActions }));
     press("-");
 
     expect(onDecrement).toHaveBeenCalledWith(gold, goldTile);
@@ -218,10 +227,10 @@ describe("useGridKeyboardNav: +/-", () => {
 
   it("`-` passes undefined anchor when the tile element isn't in the DOM", () => {
     const onDecrement = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("collection", { onDecrement });
+    rowActions.getState().setHandlers({ onDecrement });
     useSelectionStore.getState().selectCard(p1, items, "printing");
 
-    renderHook(() => useGridKeyboardNav({ items }));
+    renderHook(() => useGridKeyboardNav({ items, rowActions }));
     press("-");
 
     expect(onDecrement).toHaveBeenCalledWith(p1, undefined);
@@ -230,11 +239,11 @@ describe("useGridKeyboardNav: +/-", () => {
   it("skips +/- while the variant popover is open", () => {
     const onIncrement = vi.fn();
     const onDecrement = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("collection", { onIncrement, onDecrement });
+    rowActions.getState().setHandlers({ onIncrement, onDecrement });
     useSelectionStore.getState().selectCard(p1, items, "printing");
     useAddModeStore.getState().openVariants(p1.cardId, document.createElement("div"), "add");
 
-    renderHook(() => useGridKeyboardNav({ items }));
+    renderHook(() => useGridKeyboardNav({ items, rowActions }));
     press("+");
     press("-");
 
@@ -244,9 +253,9 @@ describe("useGridKeyboardNav: +/-", () => {
 
   it("does nothing when no card is selected", () => {
     const onIncrement = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("collection", { onIncrement });
+    rowActions.getState().setHandlers({ onIncrement });
 
-    renderHook(() => useGridKeyboardNav({ items }));
+    renderHook(() => useGridKeyboardNav({ items, rowActions }));
     const event = press("+");
 
     expect(onIncrement).not.toHaveBeenCalled();
@@ -256,7 +265,7 @@ describe("useGridKeyboardNav: +/-", () => {
   it("does nothing when add-mode handler is not registered", () => {
     useSelectionStore.getState().selectCard(p1, items, "printing");
 
-    renderHook(() => useGridKeyboardNav({ items }));
+    renderHook(() => useGridKeyboardNav({ items, rowActions }));
     const event = press("+");
 
     expect(event.defaultPrevented).toBe(false);
@@ -265,10 +274,10 @@ describe("useGridKeyboardNav: +/-", () => {
   it("ignores Ctrl/Meta `+` / `-` so browser zoom still works", () => {
     const onIncrement = vi.fn();
     const onDecrement = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("collection", { onIncrement, onDecrement });
+    rowActions.getState().setHandlers({ onIncrement, onDecrement });
     useSelectionStore.getState().selectCard(p1, items, "printing");
 
-    renderHook(() => useGridKeyboardNav({ items }));
+    renderHook(() => useGridKeyboardNav({ items, rowActions }));
     press("+", { ctrlKey: true });
     press("-", { metaKey: true });
 
@@ -278,14 +287,14 @@ describe("useGridKeyboardNav: +/-", () => {
 
   it("ignores `+` / `-` while typing in an input", () => {
     const onIncrement = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("collection", { onIncrement });
+    rowActions.getState().setHandlers({ onIncrement });
     useSelectionStore.getState().selectCard(p1, items, "printing");
 
     const input = document.createElement("input");
     document.body.append(input);
     input.focus();
 
-    renderHook(() => useGridKeyboardNav({ items }));
+    renderHook(() => useGridKeyboardNav({ items, rowActions }));
     press("+");
 
     expect(onIncrement).not.toHaveBeenCalled();
@@ -304,7 +313,7 @@ describe("useGridKeyboardNav: keys another handler consumed", () => {
   it("does not step the detail on an arrow a keyboard drag consumed", () => {
     useSelectionStore.getState().selectCard(p1, items, "printing");
 
-    renderHook(() => useGridKeyboardNav({ items }));
+    renderHook(() => useGridKeyboardNav({ items, rowActions }));
     pressConsumed("ArrowRight");
 
     expect(useSelectionStore.getState().selectedCard).toBe(p1);
@@ -312,10 +321,10 @@ describe("useGridKeyboardNav: keys another handler consumed", () => {
 
   it("does not add copies on a consumed digit", () => {
     const onIncrement = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("collection", { onIncrement });
+    rowActions.getState().setHandlers({ onIncrement });
     useSelectionStore.getState().selectCard(p1, items, "printing");
 
-    renderHook(() => useGridKeyboardNav({ items }));
+    renderHook(() => useGridKeyboardNav({ items, rowActions }));
     pressConsumed("2");
 
     expect(onIncrement).not.toHaveBeenCalled();
@@ -324,7 +333,7 @@ describe("useGridKeyboardNav: keys another handler consumed", () => {
   it("steps the detail on an arrow nobody consumed", () => {
     useSelectionStore.getState().selectCard(p1, items, "printing");
 
-    renderHook(() => useGridKeyboardNav({ items }));
+    renderHook(() => useGridKeyboardNav({ items, rowActions }));
     press("ArrowRight");
 
     expect(useSelectionStore.getState().selectedCard).toBe(p2);

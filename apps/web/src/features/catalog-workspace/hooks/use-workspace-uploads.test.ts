@@ -1,8 +1,7 @@
-import type {
-  WorkspaceQueueItem,
-  WorkspaceUploadSource,
-} from "@openrift/shared/contracts/admin/catalog-workspace";
+import type { WorkspaceQueueItem } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { describe, expect, it, vi } from "vitest";
+
+import type { UploadSourceRow } from "./use-workspace-uploads";
 
 vi.mock("@/lib/server-fns/orpc-client", () => ({ apiOrpcClient: vi.fn() }));
 
@@ -12,9 +11,10 @@ const {
   splitUploadSources,
   uploadChangeSummary,
   uploadOpenSummary,
+  uploadSourceRows,
 } = await import("./use-workspace-uploads");
 
-function source(overrides: Partial<WorkspaceUploadSource>): WorkspaceUploadSource {
+function source(overrides: Partial<UploadSourceRow>): UploadSourceRow {
   return {
     provider: "provider-a",
     label: "Provider A",
@@ -49,6 +49,48 @@ function item(overrides: Partial<WorkspaceQueueItem>): WorkspaceQueueItem {
     ...overrides,
   };
 }
+
+describe("uploadSourceRows", () => {
+  const { open: _open, new: _new, oldestOpenAt: _oldest, ...upload } = source({});
+
+  it("counts each source's open and new items with the oldest one", () => {
+    const { sources } = uploadSourceRows(
+      [upload],
+      [
+        item({ createdAt: "2026-10-20T09:00:00.000Z" }),
+        item({ segment: "new", createdAt: "2026-10-18T09:00:00.000Z" }),
+        item({ provider: "provider-b" }),
+      ],
+    );
+    expect(sources).toEqual([
+      { ...upload, open: 1, new: 1, oldestOpenAt: "2026-10-18T09:00:00.000Z" },
+    ]);
+  });
+
+  it("leaves marketplace listings out of the source counts", () => {
+    const { sources } = uploadSourceRows(
+      [{ ...upload, provider: "TCGplayer" }],
+      [item({ reason: "listing", owner: "printing", provider: "TCGplayer" })],
+    );
+    expect(sources[0]).toMatchObject({ open: 0, new: 0, oldestOpenAt: null });
+  });
+
+  it("counts contributor items with the oldest as since", () => {
+    const { contributors } = uploadSourceRows(
+      [],
+      [
+        item({ isContributor: true, provider: null, createdAt: "2026-10-20T09:00:00.000Z" }),
+        item({ isContributor: true, createdAt: "2026-10-18T09:00:00.000Z" }),
+        item({}),
+      ],
+    );
+    expect(contributors).toEqual({ since: "2026-10-18T09:00:00.000Z", count: 2 });
+  });
+
+  it("reports no contributors as a null since", () => {
+    expect(uploadSourceRows([], []).contributors).toEqual({ since: null, count: 0 });
+  });
+});
 
 describe("splitUploadSources", () => {
   it("sorts by open count, then new count, then newest upload", () => {

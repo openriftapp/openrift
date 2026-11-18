@@ -109,6 +109,7 @@ function makeRepos(
         },
       ]),
       frontPrintingProbes: vi.fn(async () => over.probes ?? []),
+      candidatePrintingLabels: vi.fn(async () => []),
     },
     candidateCards: {
       listCardsForSourceList: vi.fn(async () => []),
@@ -324,7 +325,7 @@ describe("trusted printings", () => {
     });
     const repos = makeRepos({ printings, probes });
 
-    const result = await acceptTrustedPrintings(asRepos(repos), context(), PRINTING_IDS);
+    const result = await acceptTrustedPrintings(asRepos(repos), context(), ["p1", "p3", "p4"]);
 
     expect(result.accepted).toBe(1);
     expect(result.skipped).toEqual([
@@ -402,7 +403,7 @@ describe("trusted printings", () => {
       });
 
       const preview = await previewTrustedPrintings(asRepos(repos), ADMIN);
-      const run = await acceptTrustedPrintings(asRepos(repos), context(), PRINTING_IDS);
+      const run = await acceptTrustedPrintings(asRepos(repos), context(), ["p1"]);
 
       const reason =
         "The existing OGN-027 normal EN face differs in artist. Edit that face or the source first.";
@@ -423,7 +424,7 @@ describe("trusted printings", () => {
       });
 
       const preview = await previewTrustedPrintings(asRepos(repos), ADMIN);
-      const run = await acceptTrustedPrintings(asRepos(repos), context(), PRINTING_IDS);
+      const run = await acceptTrustedPrintings(asRepos(repos), context(), ["p1"]);
 
       expect(preview).toMatchObject({ count: 1, ineligible: [] });
       expect(run).toEqual({ accepted: 1, skipped: [] });
@@ -489,7 +490,7 @@ describe("trusted printings", () => {
         },
       ],
     });
-    const result = await acceptTrustedPrintings(asRepos(repos), context(), PRINTING_IDS);
+    const result = await acceptTrustedPrintings(asRepos(repos), context(), ["p1"]);
     expect(result.skipped).toEqual([
       { label: "poro OGN-027 glossy EN", reason: 'not on an admin list: finish "glossy"' },
     ]);
@@ -499,7 +500,7 @@ describe("trusted printings", () => {
   it("skips a group without a public code", async () => {
     const repos = makeRepos({ printings: [printing("p1", { publicCode: null })] });
 
-    const result = await acceptTrustedPrintings(asRepos(repos), context(), PRINTING_IDS);
+    const result = await acceptTrustedPrintings(asRepos(repos), context(), ["p1"]);
 
     expect(result.skipped).toEqual([
       { label: "poro OGN-027 normal EN", reason: "missing: publicCode" },
@@ -526,7 +527,7 @@ describe("trusted printings", () => {
     vi.mocked(acceptCandidateGroup).mockResolvedValueOnce({ reason: "already has a printing" });
     const repos = makeRepos({ printings: [printing("p1")] });
 
-    const result = await acceptTrustedPrintings(asRepos(repos), context(), PRINTING_IDS);
+    const result = await acceptTrustedPrintings(asRepos(repos), context(), ["p1"]);
     expect(repos.candidateCards.checkCandidateCardsByIds).not.toHaveBeenCalled();
 
     expect(result).toEqual({
@@ -649,5 +650,95 @@ describe("suggested listings", () => {
     await expect(previewSuggestedListings(HELPER, async () => LISTINGS)).rejects.toMatchObject({
       status: 403,
     });
+  });
+});
+
+describe("trusted printings accepted from two tabs", () => {
+  function labelRow(id: string, over: Record<string, unknown> = {}) {
+    return {
+      id,
+      provider: "gallery",
+      printingId: null,
+      hidden: false,
+      visible: true,
+      matchesCard: true,
+      cardSlug: "poro",
+      shortCode: "OGN-027",
+      finish: "normal",
+      rarity: "rare",
+      language: "EN",
+      size: "standard",
+      ...over,
+    };
+  }
+
+  it("reports every submitted printing, also one another accept consumed first", async () => {
+    const repos = makeRepos({
+      printings: [printing("p3", { shortCode: "OGN-030", rarity: null })],
+    });
+    repos.workspaceBatch.candidatePrintingLabels.mockResolvedValue([
+      labelRow("p1", { printingId: "printing-1" }),
+    ] as never);
+
+    const result = await acceptTrustedPrintings(asRepos(repos), context(), ["p1", "p3", "gone"]);
+
+    expect(result).toEqual({
+      accepted: 0,
+      skipped: [
+        { label: "poro OGN-030 normal EN", reason: "missing: rarity" },
+        { label: "poro OGN-027 normal EN", reason: "Already accepted or linked to a printing" },
+        { label: "gone", reason: "No longer exists" },
+      ],
+    });
+    expect(repos.workspaceBatch.candidatePrintingLabels).toHaveBeenCalledWith(["p1", "gone"]);
+  });
+
+  it("names an untrusted or hidden source instead of calling the printing accepted", async () => {
+    const repos = makeRepos({ printings: [] });
+    repos.workspaceBatch.candidatePrintingLabels.mockResolvedValue([
+      labelRow("p1", { provider: "other" }),
+      labelRow("p2", { shortCode: "OGN-028", hidden: true, visible: false }),
+      labelRow("p3", { shortCode: "OGN-029", visible: false }),
+    ] as never);
+
+    const result = await acceptTrustedPrintings(asRepos(repos), context(), ["p1", "p2", "p3"]);
+
+    expect(result.skipped.map((entry) => entry.reason)).toEqual([
+      "Its source is no longer a favourite",
+      "Its source is hidden",
+      "Ignored since the preview",
+    ]);
+  });
+
+  it("reports a second previewed id that now shares a group with the first", async () => {
+    vi.mocked(acceptCandidateGroup).mockResolvedValueOnce({
+      printing: { printingId: "printing-1", imageIds: [] },
+      fields: { shortCode: "OGN-027" } as never,
+    });
+    const repos = makeRepos({ printings: [printing("p1"), printing("p2")] });
+
+    const result = await acceptTrustedPrintings(asRepos(repos), context(), ["p1", "p2"]);
+
+    expect(result).toEqual({
+      accepted: 1,
+      skipped: [
+        {
+          label: "poro OGN-027 normal EN",
+          reason: "Same printing as poro OGN-027 normal EN, handled with it",
+        },
+      ],
+    });
+  });
+
+  it("still accepts a group whose first printing changed since the preview", async () => {
+    vi.mocked(acceptCandidateGroup).mockResolvedValueOnce({
+      printing: { printingId: "printing-2", imageIds: [] },
+      fields: { shortCode: "OGN-027" } as never,
+    });
+    const repos = makeRepos({ printings: [printing("p1"), printing("p2")] });
+
+    const result = await acceptTrustedPrintings(asRepos(repos), context(), ["p2"]);
+
+    expect(result).toEqual({ accepted: 1, skipped: [] });
   });
 });

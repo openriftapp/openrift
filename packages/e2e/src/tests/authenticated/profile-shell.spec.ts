@@ -6,8 +6,8 @@ import { expect, test } from "../../fixtures/test.js";
 import { loginViaForm } from "../../helpers/auth-otp.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, TEST_USERS, WEB_BASE_URL } from "../../helpers/constants.js";
-import { connectToDb } from "../../helpers/db.js";
-import { waitForHydrated } from "../../helpers/hydration.js";
+import { connectToDb, deleteUser } from "../../helpers/db.js";
+import { waitForProfileReady } from "../../helpers/hydration.js";
 
 function loadDb() {
   const state: E2eState = JSON.parse(readFileSync(STATE_FILE, "utf-8"));
@@ -144,27 +144,44 @@ test.describe("profile shell", () => {
       await expect(securityHeading).toBeInViewport();
     });
 
-    test("active indicator reflects the current section", async ({ authenticatedPage }) => {
-      const page = authenticatedPage;
-      await page.goto("/profile");
+    // A fresh user: the password form that marks the page live loads that user's sign-in accounts.
+    test("active indicator reflects the current section", async ({ page }) => {
+      const sql = loadDb();
+      const email = `profile-toc-${Date.now()}@test.com`;
+      const password = "ProfileTestPassword1!";
+      try {
+        await createVerifiedUser(page.request, sql, email, password, "Toc Summoner");
+      } finally {
+        await sql.end();
+      }
+      try {
+        const signIn = await page.request.post(`${API_BASE_URL}/api/auth/sign-in/email`, {
+          headers: { Origin: WEB_BASE_URL },
+          data: { email, password },
+        });
+        expect(signIn.ok()).toBeTruthy();
+        await page.goto("/profile");
 
-      const nav = page.getByRole("navigation").filter({ hasText: "Preferences" });
-      await expect(nav).toBeVisible({ timeout: 15_000 });
+        const nav = page.getByRole("navigation").filter({ hasText: "Preferences" });
+        await expect(nav).toBeVisible({ timeout: 15_000 });
 
-      const sharingLink = nav.getByRole("link", { name: "Public profile", exact: true });
-      await waitForHydrated(sharingLink);
-      await expect(sharingLink).toHaveAttribute("aria-current", "location");
+        const sharingLink = nav.getByRole("link", { name: "Public profile", exact: true });
+        await waitForProfileReady(page);
+        await expect(sharingLink).toHaveAttribute("aria-current", "location");
 
-      const preferencesLink = nav.getByRole("link", { name: "Preferences", exact: true });
-      await clickAndWaitForScrollEnd(page, preferencesLink);
-      await expect(page.getByRole("heading", { name: "Preferences", level: 2 })).toBeInViewport();
-      await expect(preferencesLink).toHaveAttribute("aria-current", "location");
+        const preferencesLink = nav.getByRole("link", { name: "Preferences", exact: true });
+        await clickAndWaitForScrollEnd(page, preferencesLink);
+        await expect(page.getByRole("heading", { name: "Preferences", level: 2 })).toBeInViewport();
+        await expect(preferencesLink).toHaveAttribute("aria-current", "location");
 
-      const securityLink = nav.getByRole("link", { name: "Security", exact: true });
-      await clickAndWaitForScrollEnd(page, securityLink);
-      await expect(page.getByRole("heading", { name: "Security", level: 2 })).toBeInViewport();
-      await expect(securityLink).toHaveAttribute("aria-current", "location");
-      await expect(preferencesLink).not.toHaveAttribute("aria-current", "location");
+        const securityLink = nav.getByRole("link", { name: "Security", exact: true });
+        await clickAndWaitForScrollEnd(page, securityLink);
+        await expect(page.getByRole("heading", { name: "Security", level: 2 })).toBeInViewport();
+        await expect(securityLink).toHaveAttribute("aria-current", "location");
+        await expect(preferencesLink).not.toHaveAttribute("aria-current", "location");
+      } finally {
+        await deleteUser(email);
+      }
     });
   });
 

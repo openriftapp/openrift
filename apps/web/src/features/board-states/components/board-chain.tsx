@@ -7,8 +7,8 @@ import type { ReactNode } from "react";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Pressable } from "@/components/ui/pressable";
-import type { ChainDropData } from "@/features/board-states/components/board-card-parts";
 import { ArrowHandle } from "@/features/board-states/components/board-card-parts";
+import type { ChainDropData } from "@/features/board-states/lib/board-editor-drag";
 import { CHAIN_TYPE_LABEL, chainEntryLabel } from "@/features/board-states/lib/board-labels";
 import {
   CARD_CORNER_STYLE,

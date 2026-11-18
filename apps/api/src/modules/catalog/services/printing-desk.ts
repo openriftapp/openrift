@@ -11,7 +11,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 
 import type { PrintingsTable } from "../../../db/tables/catalog.js";
 import type { Repos, Transact } from "../../../deps.js";
-import { badRequest, conflict, forbidden } from "../../../errors.js";
+import { badRequest, conflict, forbidden, notFound } from "../../../errors.js";
 import type { Io } from "../../../io.js";
 import { assertFound } from "../../../lib/assertions.js";
 import type { AdminAccess } from "../../../middleware/require-admin.js";
@@ -179,7 +179,7 @@ export async function assertImageUploader(
 }
 
 function optionalText<T extends string | null>(
-  field: "shortCode" | "artist" | "flavorText",
+  field: "shortCode" | "artist" | "flavorText" | "publicCode",
   value: T | undefined,
 ): T | undefined {
   return value === undefined ? undefined : (normalizeTypedPrintingValue(field, value) as T);
@@ -193,14 +193,18 @@ export async function createDeskPrinting(
   userId: string,
   input: DeskCreateInput,
 ): Promise<NewPrinting> {
-  const { cardId, basePrintingId, codeTba, secondSideFaceId, ...given } = input;
+  const { cardId, basePrintingId, duplicateFrom, codeTba, secondSideFaceId, ...given } = input;
   const fields = {
     ...given,
     shortCode: optionalText("shortCode", given.shortCode),
     artist: optionalText("artist", given.artist),
     comment: normalizeTypedPrintingValue("comment", given.comment) as string | null,
     flavorText: optionalText("flavorText", given.flavorText),
+    publicCode: optionalText("publicCode", given.publicCode),
   };
+  if (codeTba && fields.publicCode !== undefined) {
+    throw badRequest("A TBA code takes no public code.");
+  }
 
   const card = await repos.catalogMutations.getCardById(cardId);
   assertFound(card, "Card not found");
@@ -208,9 +212,18 @@ export async function createDeskPrinting(
   const set = await repos.sets.getRef(fields.setId);
   assertFound(set, "Set not found");
 
-  const base = basePrintingId
-    ? await repos.printingDesk.getFullPrintingForCard(basePrintingId, cardId)
-    : await repos.printingDesk.getBasePrinting(cardId, fields.language);
+  const source =
+    duplicateFrom === undefined
+      ? undefined
+      : await repos.printingDesk.getFullPrintingForCard(duplicateFrom, cardId);
+  if (duplicateFrom !== undefined && source === undefined) {
+    throw notFound("The printing to duplicate is not on this card.");
+  }
+  const base =
+    source ??
+    (basePrintingId
+      ? await repos.printingDesk.getFullPrintingForCard(basePrintingId, cardId)
+      : await repos.printingDesk.getBasePrinting(cardId, fields.language));
 
   const artist = fields.artist ?? base?.artist;
   if (!artist) {
@@ -232,7 +245,9 @@ export async function createDeskPrinting(
     cardId,
     {
       shortCode,
-      publicCode: codeTba ? tbaPublicCode(set.slug) : shortCode,
+      publicCode: codeTba
+        ? tbaPublicCode(set.slug)
+        : (fields.publicCode ?? (source?.shortCode === shortCode ? source.publicCode : shortCode)),
       setId: set.slug,
       setName: set.name,
       finish: fields.finish,
@@ -242,8 +257,10 @@ export async function createDeskPrinting(
       markerSlugs: fields.markerSlugs,
       distributionChannelSlugs: fields.distributionChannelSlugs,
       rarity: base?.rarity ?? WellKnown.rarity.COMMON,
-      artVariant: WellKnown.artVariant.NORMAL,
-      isSigned: false,
+      artVariant: fields.artVariant ?? source?.artVariant ?? WellKnown.artVariant.NORMAL,
+      isSigned: fields.isSigned ?? source?.isSigned ?? false,
+      isOvernumbered: fields.isOvernumbered ?? source?.isOvernumbered ?? false,
+      printedYear: source?.printedYear ?? null,
       printedRulesText: base?.printedRulesText ?? null,
       printedEffectText: base?.printedEffectText ?? null,
       flavorText: fields.flavorText === undefined ? (base?.flavorText ?? null) : fields.flavorText,
@@ -281,7 +298,14 @@ export async function createDeskPrinting(
     entityId: printingId,
     entityLabel: shortCode,
     cardSlug: card.slug,
-    newValues: { ...fields, cardId, codeTba, shortCode, artist },
+    newValues: {
+      ...fields,
+      cardId,
+      codeTba,
+      shortCode,
+      artist,
+      ...(duplicateFrom === undefined ? {} : { duplicateFrom }),
+    },
   });
 
   return created;

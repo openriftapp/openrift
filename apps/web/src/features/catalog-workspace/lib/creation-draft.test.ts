@@ -11,6 +11,7 @@ import {
   draftFromDeskPrinting,
   duplicateProbeFromAdminPrinting,
   duplicateProbeFromDeskRow,
+  duplicateSource,
   emptyFaceFields,
   existingFacesFromDeskRows,
   faceToNew,
@@ -267,6 +268,20 @@ describe("draftFromDeskPrinting", () => {
       distributionChannelSlugs: ["regional"],
       comment: "One per player.",
     });
+  });
+
+  it("sends the source as the printing to duplicate from", () => {
+    const draft = draftFromDeskPrinting(CARD, deskRow({ printingId: "p-source" }));
+    expect(toDeskCreateInput(draft).duplicateFrom).toBe("p-source");
+  });
+
+  it("leaves a plain create without a duplicate source", () => {
+    const draft = draftFromBasePrinting(CARD, deskRow(), {
+      language: "EN",
+      finish: "normal",
+      size: "standard",
+    });
+    expect(toDeskCreateInput(draft).duplicateFrom).toBeUndefined();
   });
 });
 
@@ -681,5 +696,21 @@ describe("plannedImageUploads", () => {
     });
 
     expect(plan.map(({ mode, image }) => [mode, image.key])).toEqual([["additional", "f"]]);
+  });
+});
+
+describe("duplicateSource", () => {
+  it("picks the printing's first side", () => {
+    const rows = [
+      deskRow({ printingId: "p-1", side: 2, faceId: "back" }),
+      deskRow({ printingId: "p-1", side: 1, faceId: "front" }),
+      deskRow({ printingId: "p-2" }),
+    ];
+    expect(duplicateSource(rows, "p-1")?.faceId).toBe("front");
+  });
+
+  it("returns null without an id or for a printing the card does not have", () => {
+    expect(duplicateSource([deskRow()], undefined)).toBeNull();
+    expect(duplicateSource([deskRow()], "p-missing")).toBeNull();
   });
 });

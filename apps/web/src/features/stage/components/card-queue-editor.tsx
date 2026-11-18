@@ -13,7 +13,10 @@ import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { PrintingVariantLabel } from "@/features/cards/components/printing-label";
 import { moveQueueEntry } from "@/features/cards/lib/card-queue";
-import type { StageQueueRowData } from "@/features/stage/lib/stage-dnd-types";
+import type {
+  StageQueueRowData,
+  StageQueueSlotDropData,
+} from "@/features/stage/lib/stage-dnd-types";
 import { formatPublicCode } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -66,7 +69,8 @@ function QueueRow({
   onRemove: (index: number) => void;
   rowAction?: (printing: Printing, index: number) => ReactNode;
 }) {
-  const rowData: StageQueueRowData = { type: "stage-queue-row", index };
+  const name = legendDisplayName(printing.card);
+  const rowData: StageQueueRowData = { type: "stage-queue-row", index, name };
   // Destructure before JSX: member access on the hook's return object in
   // render makes the React Compiler bail on the file.
   const { setNodeRef, setActivatorNodeRef, listeners, transform, transition, isDragging } =
@@ -75,7 +79,7 @@ function QueueRow({
   // can be measured (see StageQueueSlotDropData).
   const { setNodeRef: setSlotRef, isOver: isSlotOver } = useDroppable({
     id: `stage-queue-slot-${index}`,
-    data: { type: "stage-queue-slot", index },
+    data: { type: "stage-queue-slot", index, name } satisfies StageQueueSlotDropData,
   });
 
   const style: CSSProperties = {

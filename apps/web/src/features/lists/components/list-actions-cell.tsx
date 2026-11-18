@@ -7,6 +7,7 @@ import type {
 import type { Currency, TradePreference } from "@openrift/shared/types/api/trade-preferences";
 
 import type { TableRowSlotProps } from "@/features/cards/components/card-table";
+import { useCardRowDispatch } from "@/features/cards/stores/card-row-actions-store";
 import { TradePreferencePill } from "@/features/groups/components/trade-preference-pill";
 import { TradeStatusChip } from "@/features/groups/components/trade-status-chip";
 import { ListEntryTableActions } from "@/features/lists/components/list-entry-table-actions";
@@ -51,6 +52,7 @@ export function ListActionsCell({
   isRemovePendingFor,
   isQuantityPendingFor,
 }: ListActionsCellProps) {
+  const { dispatchDropFromRule } = useCardRowDispatch();
   if (!printing || !itemId) {
     return null;
   }
@@ -73,7 +75,7 @@ export function ListActionsCell({
       <div className="flex items-center gap-2">
         <RuleSourceBadge
           quantity={kind === "copy" ? undefined : entry.ruleQuantity}
-          {...ruleBadgeAction(entry, intent)}
+          {...ruleBadgeAction(entry, intent, dispatchDropFromRule)}
         />
         {tradeChip}
       </div>

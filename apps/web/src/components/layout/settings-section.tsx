@@ -1,4 +1,4 @@
-import { Children } from "react";
+import { Children, useId } from "react";
 import type { ReactNode } from "react";
 
 import {
@@ -28,15 +28,17 @@ export function SettingsSection({
   contentClassName?: string;
   children?: ReactNode;
 }) {
+  const titleId = useId();
   return (
     <section
       id={id}
+      aria-labelledby={titleId}
       data-slot="settings-section"
       className={cn("flex scroll-mt-16 flex-col gap-6", className)}
     >
       <SectionHeader>
         <SectionHeaderGroup>
-          <SectionHeaderTitle level={3} className="font-heading leading-snug">
+          <SectionHeaderTitle id={titleId} level={3} className="font-heading leading-snug">
             {title}
           </SectionHeaderTitle>
           {description ? <SectionHeaderDescription>{description}</SectionHeaderDescription> : null}

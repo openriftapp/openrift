@@ -53,7 +53,7 @@ async function clientSideNavigateToPromos(page: Page) {
   const menuButton = page.getByRole("button", { name: "Open menu" });
   await expect(menuButton).toBeVisible({ timeout: 15_000 });
 
-  await waitForHydrated(menuButton);
+  await expect(menuButton).toBeEnabled({ timeout: 20_000 });
   await menuButton.click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
@@ -118,8 +118,10 @@ test.describe("promos", () => {
         await expect(panel).toContainText(/\d+ printings?/u);
       }
 
-      // Channels render as <section id="lang-EN-ch-..."> with a "(N)" count in the divider.
-      const firstSection = page.locator("section[id^='lang-EN-ch-']").first();
+      // Each channel is a region named by its divider title, with a "(N)" count beside it.
+      const channelLabel = enPrintings[0]?.distributionChannels[0]?.channel.label;
+      expect(channelLabel, "seed EN promo printings name a channel").toBeTruthy();
+      const firstSection = page.getByRole("region", { name: channelLabel }).first();
       await expect(firstSection).toBeVisible();
       await expect(firstSection).toContainText(/\(\d+\)/u);
     });

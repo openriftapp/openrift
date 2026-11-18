@@ -180,6 +180,32 @@ function incrementOrInsert(
   }
 }
 
+/** The row-cap outcome when the card's row in `zone` is already full, else undefined. */
+function fullRowOutcome(
+  collection: DeckCollection,
+  card: DeckBuilderCard,
+  zone: DeckZone,
+  format: DeckFormat,
+): RelaxedAddOutcome | undefined {
+  if (isSingleSlotZone(zone) && format !== WellKnown.deckFormat.FREEFORM) {
+    return undefined;
+  }
+  const held = collection.get(
+    deckCardKey({ cardId: card.cardId, zone, preferredPrintingId: card.preferredPrintingId }),
+  );
+  if (!held || held.quantity < MAX_DECK_CARD_QUANTITY) {
+    return undefined;
+  }
+  return {
+    rule: "rowCap",
+    card,
+    zone,
+    quantity: 0,
+    total: held.quantity,
+    limit: MAX_DECK_CARD_QUANTITY,
+  };
+}
+
 export function addCardAction(
   collection: DeckCollection,
   card: DeckBuilderCard,
@@ -196,18 +222,9 @@ export function addCardAction(
   const preferredPrintingId = card.preferredPrintingId;
   const freeform = format === WellKnown.deckFormat.FREEFORM;
 
-  if (!isSingleSlotZone(zone) || freeform) {
-    const held = collection.get(deckCardKey({ cardId: card.cardId, zone, preferredPrintingId }));
-    if (held && held.quantity >= MAX_DECK_CARD_QUANTITY) {
-      return {
-        rule: "rowCap",
-        card,
-        zone,
-        quantity: 0,
-        total: held.quantity,
-        limit: MAX_DECK_CARD_QUANTITY,
-      };
-    }
+  const fullRow = fullRowOutcome(collection, card, zone, format);
+  if (fullRow) {
+    return fullRow;
   }
 
   if (isSingleSlotZone(zone)) {
@@ -429,6 +446,7 @@ export function undoRelaxedAddAction(
   removeCardAction(collection, card.cardId, zone, runesByDomain, format, card.preferredPrintingId);
 }
 
+/** Leaves the outgoing copy in place and answers the notice when the incoming card's row is full. */
 export function replaceCardAction(
   collection: DeckCollection,
   outgoing: DeckBuilderCard,
@@ -436,7 +454,16 @@ export function replaceCardAction(
   zone: DeckZone,
   runesByDomain: Map<string, DeckBuilderCard[]>,
   format: DeckFormat,
-): void {
+): RowCapNotice | undefined {
+  if (
+    outgoing.cardId === incoming.cardId &&
+    outgoing.preferredPrintingId === incoming.preferredPrintingId
+  ) {
+    return undefined;
+  }
+  if (fullRowOutcome(collection, incoming, zone, format)) {
+    return { card: incoming, moved: 0, requested: 1 };
+  }
   removeCardAction(
     collection,
     outgoing.cardId,
@@ -446,6 +473,7 @@ export function replaceCardAction(
     outgoing.preferredPrintingId,
   );
   addCardAction(collection, incoming, zone, undefined, runesByDomain, format, { relaxed: true });
+  return undefined;
 }
 
 /** If the slot already holds the exact same card+printing, no-op to avoid silently dropping a copy. */
@@ -656,15 +684,16 @@ export function setLegendAction(
   runesByDomain: Map<string, DeckBuilderCard[]>,
   format: DeckFormat,
   options?: { refill?: boolean; moveOffColorToOverflow?: boolean },
-): void {
+): RowCapNotice[] {
   const before = allCards(collection);
   replaceDeckCards(
     collection,
     before,
     legendSwitchCards(before, card, runesByDomain, format, { refill: options?.refill === true }),
   );
+  const notices: RowCapNotice[] = [];
   if (format === WellKnown.deckFormat.FREEFORM || !options?.moveOffColorToOverflow) {
-    return;
+    return notices;
   }
   const allowed = new Set([...card.domains, WellKnown.domain.NEUTRAL, WellKnown.domain.COLORLESS]);
   for (const entry of allCards(collection)) {
@@ -673,7 +702,7 @@ export function setLegendAction(
       offColor &&
       (entry.zone === WellKnown.deckZone.MAIN || entry.zone === WellKnown.deckZone.SIDEBOARD)
     ) {
-      moveCardAction(
+      const { notice } = moveCardAction(
         collection,
         entry.cardId,
         entry.zone,
@@ -682,8 +711,12 @@ export function setLegendAction(
         format,
         "all",
       );
+      if (notice) {
+        notices.push(notice);
+      }
     }
   }
+  return notices;
 }
 
 /**
@@ -843,7 +876,9 @@ export function useDeckBuilderActions(deckId: string): DeckBuilderActions {
       });
     },
     replaceCard: (outgoing, incoming, zone) => {
-      edit(() => replaceCardAction(collection, outgoing, incoming, zone, runesByDomain, format));
+      showRowCapToast(
+        edit(() => replaceCardAction(collection, outgoing, incoming, zone, runesByDomain, format)),
+      );
     },
     removeCard: (cardId, zone, preferredPrintingId) => {
       removeWithUndoToast(cardId, zone, preferredPrintingId, false, () =>
@@ -901,12 +936,15 @@ export function useDeckBuilderActions(deckId: string): DeckBuilderActions {
         useWorkbenchStore.getState().setPendingLegend(card);
         return;
       }
-      edit(() =>
+      const notices = edit(() =>
         setLegendAction(collection, card, rbd ?? runesByDomain, format, {
           refill: relaxed,
           moveOffColorToOverflow: options?.moveOffColorToOverflow,
         }),
       );
+      for (const notice of notices) {
+        showRowCapToast(notice);
+      }
       if (relaxed) {
         useWorkbenchStore.getState().announceAdd(displayName(card), WellKnown.deckZone.LEGEND);
       }

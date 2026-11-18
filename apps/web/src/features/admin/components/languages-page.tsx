@@ -142,6 +142,7 @@ export function LanguagesPage() {
           }),
       }}
       reorder={{
+        rowLabel: (row) => row.name,
         moves: flatReorder(languages, (lang) => lang.code),
         onReorder: (keys) => reorderMutation.mutateAsync(keys),
         isPending: reorderMutation.isPending,

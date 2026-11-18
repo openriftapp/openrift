@@ -53,11 +53,29 @@ describe("collectionDragAnnouncements", () => {
   });
 
   it("names the list a list entry is over", () => {
-    const entry = active({ type: "list-entry", cardName: "Vi, Piltover Enforcer" });
+    const entry = active({
+      type: "list-entry",
+      cardName: "Vi, Piltover Enforcer",
+      printing: stubPrinting({ card: { name: "Vi, Piltover Enforcer" } }),
+    });
     const wishlist = over({ type: "list", listId: "l1", listName: "Summoner Skirmish wants" });
 
     expect(collectionDragAnnouncements.onDragOver?.({ active: entry, over: wishlist })).toBe(
       "Vi, Piltover Enforcer is over Summoner Skirmish wants.",
+    );
+  });
+
+  it("names a legend list entry by its display name", () => {
+    const entry = active({
+      type: "list-entry",
+      cardName: "Emperor of the Sands",
+      printing: stubPrinting({
+        card: { name: "Emperor of the Sands", types: ["legend"], tags: ["Azir"] },
+      }),
+    });
+
+    expect(collectionDragAnnouncements.onDragStart({ active: entry })).toBe(
+      "Picked up Azir, Emperor of the Sands.",
     );
   });
 
@@ -70,10 +88,26 @@ describe("collectionDragAnnouncements", () => {
     );
   });
 
+  it("keeps a sortable row's own slot out of its announcements", () => {
+    const data = { type: "sidebar-reorder-collection", collectionId: "a", label: "Binder" };
+    const row = active(data);
+    const ownSlot = { ...over(data), id: row.id };
+    collectionDragAnnouncements.onDragStart({ active: row });
+
+    expect(
+      collectionDragAnnouncements.onDragOver?.({ active: row, over: ownSlot }),
+    ).toBeUndefined();
+    expect(collectionDragAnnouncements.onDragEnd({ active: row, over: ownSlot })).toBe(
+      "Dropped Binder. Nothing moved.",
+    );
+  });
+
   it("says nothing moved when a drag ends over no named target", () => {
     expect(collectionDragAnnouncements.onDragEnd({ active: card, over: over({}) })).toBe(
       "Dropped Jinx, Loose Cannon. Nothing moved.",
     );
+    collectionDragAnnouncements.onDragStart({ active: card });
+    collectionDragAnnouncements.onDragOver?.({ active: card, over: over(binder) });
     expect(collectionDragAnnouncements.onDragOver?.({ active: card, over: null })).toBe(
       "Jinx, Loose Cannon is not over a drop area.",
     );

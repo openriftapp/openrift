@@ -93,6 +93,7 @@ export function FinishesPage() {
           }),
       }}
       reorder={{
+        rowLabel: (row) => row.label,
         moves: flatReorder(finishes, (finish) => finish.slug),
         onReorder: (keys) => reorderMutation.mutateAsync(keys),
         isPending: reorderMutation.isPending,

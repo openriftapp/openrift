@@ -32,11 +32,7 @@ export const adminCatalogWorkspaceRouter = {
   ),
 
   workspaceUploads: os.workspaceUploads.handler(({ context }) =>
-    buildWorkspaceUploads(context.repos, {
-      access: context.adminAccess,
-      userId: context.userId,
-      now: new Date(),
-    }),
+    buildWorkspaceUploads(context.repos, { access: context.adminAccess }),
   ),
 
   workspaceDecisions: os.workspaceDecisions.handler(({ input, context }) =>

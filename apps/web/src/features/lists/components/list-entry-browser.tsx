@@ -10,6 +10,7 @@ import type { ListRule, ListRuleCombine } from "@openrift/shared/types/list-rule
 import { BookOpenIcon, CopyIcon, LibraryBigIcon, ListIcon, Trash2Icon, XIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { useStore } from "zustand";
 
 import { FloatingActionBar } from "@/components/floating-action-bar";
 import { Toggle } from "@/components/ui/toggle";
@@ -25,7 +26,10 @@ import { useFilterActions } from "@/features/cards/hooks/use-card-filters";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { FilterSearchProvider, useFilterSearch } from "@/features/cards/hooks/use-filter-search";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
-import { dispatchItemToggle } from "@/features/cards/stores/card-row-actions-store";
+import {
+  CardRowActionsStoreContext,
+  useOwnCardRowActionsStore,
+} from "@/features/cards/stores/card-row-actions-store";
 import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-override-store";
 import { TradePreferenceDialog } from "@/features/groups/components/trade-preference-dialog";
 import { useLiveTradesByPrinting, useUserTrades } from "@/features/groups/hooks/use-card-trades";
@@ -101,6 +105,8 @@ export function ListEntryBrowser({
   isRemovePendingFor,
   isQuantityPendingFor,
 }: ListEntryBrowserProps) {
+  const rowActions = useOwnCardRowActionsStore<"list">();
+  const { dispatchItemToggle } = useStore(rowActions, (state) => state.dispatch);
   const supportsTradePrefs = intent !== "organize";
   const [prefDialogEntryIds, setPrefDialogEntryIds] = useState<string[]>([]);
   // The dialog seeds its fields from the first entry and saves to all of them.
@@ -196,6 +202,7 @@ export function ListEntryBrowser({
     selectedCard,
     gridSelectedId,
   } = useListEntryBrowserSelection({
+    rowActions,
     listId,
     kind,
     intent,
@@ -347,210 +354,216 @@ export function ListEntryBrowser({
   const filterSearch = useFilterSearch();
 
   return (
-    <FilterSearchProvider value={{ ...filterSearch, view }}>
-      {renderTopBar(selectActions, headerMoveCopies)}
-      <CardBrowserFilterProvider
-        searchAlternatives={searchAlternatives}
-        availableFilters={availableFilters}
-        availableLanguages={availableLanguages}
-        filterCounts={filterCounts}
-        setDisplayLabel={setDisplayLabel}
-        hiddenSections={showLibrary ? undefined : LIST_HIDDEN_FILTER_SECTIONS}
-      >
-        <CardViewer
-          items={items}
-          totalItems={totalListItems}
-          setOrder={sets}
-          groupBy={groupBy}
-          groupDir={groupDir}
-          selectedItemId={gridSelectedId}
-          siblingPrintings={selectedCard ? siblingsSource.get(selectedCard.cardId) : undefined}
-          renderCard={renderCard}
-          toolbar={toolbar}
-          banner={
-            introDismissed ? null : (
-              <ListIntroBanner intent={intent} kind={kind} onDismiss={() => dismissIntro("list")} />
-            )
-          }
-          rightPane={rightPane}
-          addStripHeight={ADD_STRIP_HEIGHT}
-          table={{
-            actionsColumn: kind === "copy" ? "narrow" : "wide",
-            actionsLabel: "",
-            selection:
-              mode === "select"
-                ? {
-                    isPicked: (itemId) => {
-                      const entryId = entryByItemId.get(itemId)?.id;
-                      return entryId !== undefined && entryId !== null && selected.has(entryId);
-                    },
-                    onToggle: (itemId) => dispatchItemToggle(itemId),
-                  }
-                : undefined,
-            actionsCell: (
-              <ListActionsCell
-                kind={kind}
-                intent={intent}
-                entryByItemId={entryByItemId}
-                entriesBySideKey={entriesBySideKey}
-                tradeIndex={tradeIndex}
-                supportsTradePrefs={supportsTradePrefs}
-                listTradeDefaults={listTradeDefaults}
-                listCurrency={listCurrency}
-                onEditTradePref={(entryId) => setPrefDialogEntryIds([entryId])}
-                onRemoveEntry={onRemoveEntry}
-                onQuantityStep={onQuantityStep}
-                onTakeOff={
-                  kind === "copy" ? (entryId) => openListAction("takeOff", [entryId]) : undefined
-                }
-                isRemovePendingFor={isRemovePendingFor}
-                isQuantityPendingFor={isQuantityPendingFor}
-              />
-            ),
-          }}
+    <CardRowActionsStoreContext value={rowActions}>
+      <FilterSearchProvider value={{ ...filterSearch, view }}>
+        {renderTopBar(selectActions, headerMoveCopies)}
+        <CardBrowserFilterProvider
+          searchAlternatives={searchAlternatives}
+          availableFilters={availableFilters}
+          availableLanguages={availableLanguages}
+          filterCounts={filterCounts}
+          setDisplayLabel={setDisplayLabel}
+          hiddenSections={showLibrary ? undefined : LIST_HIDDEN_FILTER_SECTIONS}
         >
-          <SelectionDetailOverlays
+          <CardViewer
             items={items}
-            printingsByCardId={detailPanePrintingsByCardId}
-            showImages={showImages}
-            onSearchAndClose={handleSearchAndClose}
-            actions={detailActions}
-          />
-          {mode === "select" && selected.size > 0 && (
-            <FloatingActionBar
-              selectedCount={selected.size}
-              actions={[
-                ...(kind === "copy"
-                  ? [
-                      {
-                        label: m.lists_entry_move_to_collection_action(),
-                        icon: <BookOpenIcon />,
-                        variant: "default" as const,
-                        onClick: () => openMoveToCollection(selectionCopyIds),
-                        disabled: selectionCopyIds.length === 0,
-                      },
-                    ]
-                  : []),
-                {
-                  label: m.lists_entry_move_action(),
-                  icon: <ListIcon />,
-                  onClick: () => openListAction("move", [...selected]),
-                  disabled: moveEntries.isPending || selectionHasRuleEntry,
-                  disabledReason: ruleLockedReason,
-                },
-                {
-                  label: m.common_copy(),
-                  icon: <CopyIcon />,
-                  onClick: () => openListAction("copy", [...selected]),
-                  disabled: moveEntries.isPending,
-                },
-                ...(entryAddsCopies(kind)
-                  ? [
-                      {
-                        label: m.lists_entry_add_to_collection_action(),
-                        icon: <BookOpenIcon />,
-                        onClick: () => openAddToCollection([...selected]),
-                      },
-                    ]
-                  : []),
-                kind === "copy"
+            totalItems={totalListItems}
+            setOrder={sets}
+            groupBy={groupBy}
+            groupDir={groupDir}
+            selectedItemId={gridSelectedId}
+            siblingPrintings={selectedCard ? siblingsSource.get(selectedCard.cardId) : undefined}
+            renderCard={renderCard}
+            toolbar={toolbar}
+            banner={
+              introDismissed ? null : (
+                <ListIntroBanner
+                  intent={intent}
+                  kind={kind}
+                  onDismiss={() => dismissIntro("list")}
+                />
+              )
+            }
+            rightPane={rightPane}
+            addStripHeight={ADD_STRIP_HEIGHT}
+            table={{
+              actionsColumn: kind === "copy" ? "narrow" : "wide",
+              actionsLabel: "",
+              selection:
+                mode === "select"
                   ? {
-                      label: m.lists_entry_take_off(),
-                      icon: <XIcon />,
-                      variant: "destructive" as const,
-                      onClick: () => openListAction("takeOff", [...selected]),
-                      disabled:
-                        bulkRemove.isPending || disposeCopies.isPending || selectionHasRuleEntry,
-                      disabledReason: ruleLockedReason,
+                      isPicked: (itemId) => {
+                        const entryId = entryByItemId.get(itemId)?.id;
+                        return entryId !== undefined && entryId !== null && selected.has(entryId);
+                      },
+                      onToggle: (itemId) => dispatchItemToggle(itemId),
                     }
-                  : {
-                      label: m.lists_entry_remove_action(),
-                      icon: <Trash2Icon />,
-                      variant: "destructive" as const,
-                      onClick: () => openListAction("remove", [...selected]),
-                      disabled: bulkRemove.isPending || selectionHasRuleEntry,
-                      disabledReason: ruleLockedReason,
-                    },
-              ]}
-              onClear={clearSelection}
+                  : undefined,
+              actionsCell: (
+                <ListActionsCell
+                  kind={kind}
+                  intent={intent}
+                  entryByItemId={entryByItemId}
+                  entriesBySideKey={entriesBySideKey}
+                  tradeIndex={tradeIndex}
+                  supportsTradePrefs={supportsTradePrefs}
+                  listTradeDefaults={listTradeDefaults}
+                  listCurrency={listCurrency}
+                  onEditTradePref={(entryId) => setPrefDialogEntryIds([entryId])}
+                  onRemoveEntry={onRemoveEntry}
+                  onQuantityStep={onQuantityStep}
+                  onTakeOff={
+                    kind === "copy" ? (entryId) => openListAction("takeOff", [entryId]) : undefined
+                  }
+                  isRemovePendingFor={isRemovePendingFor}
+                  isQuantityPendingFor={isQuantityPendingFor}
+                />
+              ),
+            }}
+          >
+            <SelectionDetailOverlays
+              items={items}
+              printingsByCardId={detailPanePrintingsByCardId}
+              showImages={showImages}
+              onSearchAndClose={handleSearchAndClose}
+              actions={detailActions}
             />
-          )}
-          <MoveToListDialog
-            open={moveOpen}
-            onOpenChange={setMoveOpen}
-            mode={moveMode}
-            lists={moveTargetLists}
-            source={{ kind, intent }}
-            subject={moveSubject}
-            selectionHasTwoCards={actionHasTwoCards}
-            onConfirm={handleBulkMove}
-            isPending={movePending}
-          />
-          {/* Mounted only while open: it reads collections via a suspense query,
+            {mode === "select" && selected.size > 0 && (
+              <FloatingActionBar
+                selectedCount={selected.size}
+                actions={[
+                  ...(kind === "copy"
+                    ? [
+                        {
+                          label: m.lists_entry_move_to_collection_action(),
+                          icon: <BookOpenIcon />,
+                          variant: "default" as const,
+                          onClick: () => openMoveToCollection(selectionCopyIds),
+                          disabled: selectionCopyIds.length === 0,
+                        },
+                      ]
+                    : []),
+                  {
+                    label: m.lists_entry_move_action(),
+                    icon: <ListIcon />,
+                    onClick: () => openListAction("move", [...selected]),
+                    disabled: moveEntries.isPending || selectionHasRuleEntry,
+                    disabledReason: ruleLockedReason,
+                  },
+                  {
+                    label: m.common_copy(),
+                    icon: <CopyIcon />,
+                    onClick: () => openListAction("copy", [...selected]),
+                    disabled: moveEntries.isPending,
+                  },
+                  ...(entryAddsCopies(kind)
+                    ? [
+                        {
+                          label: m.lists_entry_add_to_collection_action(),
+                          icon: <BookOpenIcon />,
+                          onClick: () => openAddToCollection([...selected]),
+                        },
+                      ]
+                    : []),
+                  kind === "copy"
+                    ? {
+                        label: m.lists_entry_take_off(),
+                        icon: <XIcon />,
+                        variant: "destructive" as const,
+                        onClick: () => openListAction("takeOff", [...selected]),
+                        disabled:
+                          bulkRemove.isPending || disposeCopies.isPending || selectionHasRuleEntry,
+                        disabledReason: ruleLockedReason,
+                      }
+                    : {
+                        label: m.lists_entry_remove_action(),
+                        icon: <Trash2Icon />,
+                        variant: "destructive" as const,
+                        onClick: () => openListAction("remove", [...selected]),
+                        disabled: bulkRemove.isPending || selectionHasRuleEntry,
+                        disabledReason: ruleLockedReason,
+                      },
+                ]}
+                onClear={clearSelection}
+              />
+            )}
+            <MoveToListDialog
+              open={moveOpen}
+              onOpenChange={setMoveOpen}
+              mode={moveMode}
+              lists={moveTargetLists}
+              source={{ kind, intent }}
+              subject={moveSubject}
+              selectionHasTwoCards={actionHasTwoCards}
+              onConfirm={handleBulkMove}
+              isPending={movePending}
+            />
+            {/* Mounted only while open: it reads collections via a suspense query,
               and mounted-but-closed would suspend into the page's boundary. */}
-          {moveToCollectionOpen && (
-            <MoveCopiesToCollectionDialog
+            {moveToCollectionOpen && (
+              <MoveCopiesToCollectionDialog
+                listId={listId}
+                copyIds={moveCopyIds}
+                open={moveToCollectionOpen}
+                onOpenChange={setMoveToCollectionOpen}
+                onMoved={clearSelection}
+              />
+            )}
+            <AddEntryToCollectionDialog
+              request={addToCollectionRequest}
+              onClose={closeAddToCollection}
               listId={listId}
-              copyIds={moveCopyIds}
-              open={moveToCollectionOpen}
-              onOpenChange={setMoveToCollectionOpen}
-              onMoved={clearSelection}
+            />
+            <ListRemoveDialog
+              open={removeOpen}
+              onOpenChange={setRemoveOpen}
+              count={actionEntryIds.length}
+              onConfirm={handleBulkRemove}
+              isPending={bulkRemove.isPending}
+            />
+            <TakeOffTradelistDialog
+              open={takeOffOpen}
+              onOpenChange={setTakeOffOpen}
+              count={actionEntryIds.length}
+              onKeep={handleTakeOffKeep}
+              onSold={handleTakeOffSold}
+              isPending={bulkRemove.isPending || disposeCopies.isPending}
+              memberships={takeOffMemberships.data}
+              membershipsLoading={takeOffMemberships.isLoading}
+              reservedCount={takeOffReservedCount}
+            />
+          </CardViewer>
+          {prefDialogEntry && (
+            <TradePreferenceDialog
+              open={prefDialogEntryIds.length > 0}
+              onOpenChange={(next) => {
+                if (!next) {
+                  setPrefDialogEntryIds([]);
+                }
+              }}
+              cardName={
+                prefDialogEntryIds.length === 1
+                  ? prefDialogEntry.cardName
+                  : m.lists_trade_pref_subject_multi({ count: prefDialogEntryIds.length })
+              }
+              override={prefDialogEntry.tradeOverride}
+              listDefault={listTradeDefaults}
+              currency={listCurrency}
+              isOverridden={
+                prefDialogEntry.tradeOverride.pricePref !== null ||
+                prefDialogEntry.tradeOverride.priceAbsoluteCents !== null ||
+                prefDialogEntry.tradeOverride.tradeType !== null
+              }
+              onSave={(next, listCurrencyToSet) => {
+                // Only the first call carries the currency; it patches the list, not the entry.
+                for (const [index, entryId] of prefDialogEntryIds.entries()) {
+                  onTradeOverrideChange(entryId, next, index === 0 ? listCurrencyToSet : undefined);
+                }
+              }}
             />
           )}
-          <AddEntryToCollectionDialog
-            request={addToCollectionRequest}
-            onClose={closeAddToCollection}
-            listId={listId}
-          />
-          <ListRemoveDialog
-            open={removeOpen}
-            onOpenChange={setRemoveOpen}
-            count={actionEntryIds.length}
-            onConfirm={handleBulkRemove}
-            isPending={bulkRemove.isPending}
-          />
-          <TakeOffTradelistDialog
-            open={takeOffOpen}
-            onOpenChange={setTakeOffOpen}
-            count={actionEntryIds.length}
-            onKeep={handleTakeOffKeep}
-            onSold={handleTakeOffSold}
-            isPending={bulkRemove.isPending || disposeCopies.isPending}
-            memberships={takeOffMemberships.data}
-            membershipsLoading={takeOffMemberships.isLoading}
-            reservedCount={takeOffReservedCount}
-          />
-        </CardViewer>
-        {prefDialogEntry && (
-          <TradePreferenceDialog
-            open={prefDialogEntryIds.length > 0}
-            onOpenChange={(next) => {
-              if (!next) {
-                setPrefDialogEntryIds([]);
-              }
-            }}
-            cardName={
-              prefDialogEntryIds.length === 1
-                ? prefDialogEntry.cardName
-                : m.lists_trade_pref_subject_multi({ count: prefDialogEntryIds.length })
-            }
-            override={prefDialogEntry.tradeOverride}
-            listDefault={listTradeDefaults}
-            currency={listCurrency}
-            isOverridden={
-              prefDialogEntry.tradeOverride.pricePref !== null ||
-              prefDialogEntry.tradeOverride.priceAbsoluteCents !== null ||
-              prefDialogEntry.tradeOverride.tradeType !== null
-            }
-            onSave={(next, listCurrencyToSet) => {
-              // Only the first call carries the currency; it patches the list, not the entry.
-              for (const [index, entryId] of prefDialogEntryIds.entries()) {
-                onTradeOverrideChange(entryId, next, index === 0 ? listCurrencyToSet : undefined);
-              }
-            }}
-          />
-        )}
-      </CardBrowserFilterProvider>
-    </FilterSearchProvider>
+        </CardBrowserFilterProvider>
+      </FilterSearchProvider>
+    </CardRowActionsStoreContext>
   );
 }

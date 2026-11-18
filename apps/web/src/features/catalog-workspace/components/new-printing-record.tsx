@@ -141,12 +141,13 @@ function NewPrintingBody({
   const linkCandidates = useLinkCandidatePrintings(scope);
   const ignoreCandidate = useIgnoreCandidatePrinting(scope);
   const { announce } = useWorkspaceUndo();
-  const updateDesk = useUpdateDeskPrinting();
-  const uploadImage = useUploadPrintingImage(scope);
-  const addImageFromUrl = useAddImageFromUrl(scope);
+  const updateDesk = useUpdateDeskPrinting({ inlineError: true });
+  const uploadImage = useUploadPrintingImage(scope, { inlineError: true });
+  const addImageFromUrl = useAddImageFromUrl(scope, { inlineError: true });
   const [draftEdit, setDraftEdit] = useState<CreationDraft | null>(null);
   const [working, setWorking] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
+  const [createdId, setCreatedId] = useState<string | null>(null);
   const accepting = useRef(false);
 
   const candidate = detail?.candidatePrintings.find((entry) => entry.id === candidatePrintingId);
@@ -191,6 +192,7 @@ function NewPrintingBody({
     candidate !== undefined &&
     issues.length === 0 &&
     !working &&
+    createdId === null &&
     !acceptGroup.isPending;
 
   const uploadOne = (signal: AbortSignal, printingId: string, upload: PlannedImageUpload) =>
@@ -221,19 +223,23 @@ function NewPrintingBody({
       return;
     }
     const printingId = created.printingId;
+    setCreatedId(printingId);
     const followUp = isAdmin ? printingFollowUpFields(toCreate) : null;
     const failed: string[] = [];
+    const reasons = new Set<string>();
+    const noteReason = (error: unknown) => reasons.add(errorText(error, "unknown error"));
     if (
       followUp !== null &&
-      !(await runReportedMutation(() =>
-        updateDesk.mutateAsync({ printingId, ...followUp }, { signal }),
+      !(await runReportedMutation(
+        () => updateDesk.mutateAsync({ printingId, ...followUp }, { signal }),
+        noteReason,
       ))
     ) {
       failed.push("the dates and note");
     }
     if (isAdmin) {
       for (const upload of plannedImageUploads(toCreate)) {
-        if (!(await runReportedMutation(() => uploadOne(signal, printingId, upload)))) {
+        if (!(await runReportedMutation(() => uploadOne(signal, printingId, upload), noteReason))) {
           failed.push("an image");
         }
       }
@@ -241,7 +247,9 @@ function NewPrintingBody({
     await queryClient.invalidateQueries({ queryKey: adminKeys.workspace });
     setWorking(false);
     if (failed.length > 0) {
-      setFailure(`The printing was created, but ${failed.join(" and ")} did not save.`);
+      setFailure(
+        `The printing was created, but ${failed.join(" and ")} did not save: ${[...reasons].join("; ")}.`,
+      );
       return;
     }
     navigation.goNext();
@@ -289,7 +297,7 @@ function NewPrintingBody({
     loading: (detail === undefined && !detailQuery.isError) || ignoring,
     accept: canAccept && !ignoring ? accept : undefined,
     acceptLimit: "upload",
-    ignore: isAdmin && candidate !== undefined ? ignore : undefined,
+    ignore: isAdmin && candidate !== undefined && createdId === null ? ignore : undefined,
   });
 
   if (detail === undefined) {
@@ -302,7 +310,7 @@ function NewPrintingBody({
   if (ignoring) {
     return <Skeleton className="m-4 h-96" />;
   }
-  if (candidate === undefined || draft === null) {
+  if (createdId !== null || candidate === undefined || draft === null) {
     if (working) {
       return <Skeleton className="m-4 h-96" />;
     }

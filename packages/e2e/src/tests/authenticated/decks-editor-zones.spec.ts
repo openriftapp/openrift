@@ -6,7 +6,7 @@ import { expect, test } from "../../fixtures/test.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb, firstRow } from "../../helpers/db.js";
-import { dndDrag, dndDragToPoint } from "../../helpers/dnd.js";
+import { dndDrag, dndDragToPoint, dndLiveRegion } from "../../helpers/dnd.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -229,6 +229,7 @@ test.describe("deck editor zones + drag-drop", () => {
       const mainSection = zoneSection(page, "Main");
 
       await dndDrag(page, tile, mainSection, { dropRing: mainSection });
+      await expect(dndLiveRegion(page)).toHaveText(`Dropped ${unit.name} on Main.`);
 
       await expect
         .poll(

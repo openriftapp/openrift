@@ -13,12 +13,11 @@ import type {
   UnassignedListings,
   UnmatchedListing,
 } from "../lib/unassigned-listings.js";
+import { buildMarketplaceCardIndex, matchStagedProducts } from "./marketplace-mapping.js";
 import {
-  buildMarketplaceCardIndex,
-  getMappingOverview,
-  matchStagedProducts,
-} from "./marketplace-mapping.js";
-import { buildUnifiedMappingsFromRows } from "./unified-mapping-merge.js";
+  buildUnifiedMappingsFromRows,
+  mappingOverviewWithSharedSideRows,
+} from "./unified-mapping-merge.js";
 
 type ListingRow = Awaited<ReturnType<Repos["marketplaceMapping"]["unassignedListings"]>>[number];
 
@@ -120,7 +119,7 @@ export async function listUnassignedListings(repos: Repos): Promise<UnassignedLi
   const { groups } = await buildUnifiedMappingsFromRows(
     repos,
     createMarketplaceConfigs(repos),
-    getMappingOverview,
+    mappingOverviewWithSharedSideRows(),
     unifiedRows,
     cardNames,
   );

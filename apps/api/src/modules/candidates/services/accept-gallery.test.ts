@@ -210,4 +210,20 @@ describe("acceptFavoriteNewCard", () => {
     expect(candidateCards.checkCandidateCard).toHaveBeenCalledWith("cand-1");
     expect(candidateCards.checkCandidateCard).toHaveBeenCalledWith("cand-2");
   });
+
+  it("400s a source domain that is not a known slug, naming the field", async () => {
+    const { repos, catalogMutations } = createMockRepos({
+      candidates: [makeCandidate({ domains: ["Fury"] })],
+    });
+    catalogMutations.acceptNewCardFromSources.mockRejectedValue(
+      Object.assign(new Error("fk"), {
+        code: "23503",
+        constraint_name: "fk_card_domains_domain_slug",
+      }),
+    );
+
+    await expect(
+      acceptFavoriteNewCard(mockTransact(repos), repos, "flamestriker", FAVORITE_PROVIDERS, []),
+    ).rejects.toMatchObject({ status: 400, message: "Invalid value for domains: Fury" });
+  });
 });

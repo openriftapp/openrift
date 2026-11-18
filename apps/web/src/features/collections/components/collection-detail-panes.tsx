@@ -5,6 +5,7 @@ import { SelectionDetailOverlays } from "@/features/cards/components/selection-d
 import { SelectionDetailPane } from "@/features/cards/components/selection-detail-pane";
 import { useFilterActions } from "@/features/cards/hooks/use-card-filters";
 import { useSearchAndCloseDetail } from "@/features/cards/hooks/use-search-and-close-detail";
+import { useCardRowDispatch } from "@/features/cards/stores/card-row-actions-store";
 import type { useWishEntries } from "@/features/groups/hooks/use-wish-entries";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
@@ -28,6 +29,7 @@ function useDetailWiring({
 }: Omit<CollectionDetailProps, "items" | "showImages">) {
   const isMobile = useIsMobile();
   const { setSearch } = useFilterActions();
+  const { dispatchIncrement, dispatchDecrement } = useCardRowDispatch();
 
   const searchAndClose = useSearchAndCloseDetail(setSearch);
 
@@ -40,6 +42,8 @@ function useDetailWiring({
             collectionId={collectionId}
             wishEntries={wish.entriesForPrinting(printing.cardId, printing.printingId)}
             onAddToWishlist={onAddToWishlist}
+            onIncrement={dispatchIncrement}
+            onDecrement={dispatchDecrement}
           />
         )
       : undefined;

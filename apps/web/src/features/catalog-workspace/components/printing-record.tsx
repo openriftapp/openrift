@@ -370,6 +370,7 @@ function PrintingRecordBody({
                   printing={printing}
                   invalidates={RECORD_DELETE_SCOPE}
                   runWrite={queueWrite}
+                  inWorkspace
                   onDeleted={() => navigation.goNext()}
                 />
               )}
@@ -700,9 +701,8 @@ function FaceSummary({
           </Link>
           {canChange && isAdmin && face.position === 1 && (
             <Link
-              to="/admin/cards/$cardSlug/printings/create"
-              params={{ cardSlug: printing.cardSlug }}
-              search={{ duplicateFrom: printing.printingId }}
+              to="/admin/workspace/printings/create"
+              search={{ card: printing.cardSlug, duplicateFrom: printing.printingId }}
               title="Face 1 defines the printing, so it cannot be swapped. Duplicate the printing with the other face first."
               className={buttonVariants({ variant: "outline", size: "sm" })}
             >

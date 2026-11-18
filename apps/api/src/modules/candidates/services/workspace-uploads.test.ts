@@ -1,4 +1,3 @@
-import type { WorkspaceQueueItem } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { describe, expect, it, vi } from "vitest";
 
 import type { WorkspaceCardDifferenceRow } from "../repositories/workspace-queue.js";
@@ -11,7 +10,6 @@ import {
 
 const T1 = new Date("2026-10-18T09:00:00.000Z");
 const T2 = new Date("2026-10-20T09:00:00.000Z");
-const NOW = new Date("2026-10-21T15:30:00.000Z");
 
 const LIVE = {
   name: "Jinx, Loose Cannon",
@@ -38,25 +36,6 @@ function diff(
     cardName: `Card ${id}`,
     candidate: { ...LIVE, ...candidate },
     live: LIVE,
-  };
-}
-
-function item(over: Partial<WorkspaceQueueItem>): WorkspaceQueueItem {
-  return {
-    id: "card:source-difference:card-a:gallery",
-    owner: "card",
-    segment: "open",
-    ownerId: "card-a",
-    cardSlug: "card-a",
-    cardName: "Card a",
-    label: "Card a",
-    reason: "source-difference",
-    provider: "gallery",
-    isContributor: false,
-    decisions: 1,
-    fields: ["might"],
-    createdAt: T2.toISOString(),
-    ...over,
   };
 }
 
@@ -100,13 +79,8 @@ describe("largestRepeatedDifference", () => {
 });
 
 describe("toWorkspaceUploads", () => {
-  it("sums card and printing counts and counts the provider's queue items", () => {
-    const items = [
-      item({ id: "1", createdAt: T2.toISOString() }),
-      item({ id: "2", segment: "new", createdAt: T1.toISOString() }),
-      item({ id: "3", provider: "other" }),
-    ];
-    const response = toWorkspaceUploads([UPLOAD], items, []);
+  it("sums card and printing counts per upload", () => {
+    const response = toWorkspaceUploads([UPLOAD], []);
     expect(response.sources).toEqual([
       {
         provider: "gallery",
@@ -116,9 +90,6 @@ describe("toWorkspaceUploads", () => {
         newPrintings: 5,
         updates: 7,
         removed: 3,
-        open: 1,
-        new: 1,
-        oldestOpenAt: T1.toISOString(),
         repeatedDifference: null,
       },
     ]);
@@ -131,27 +102,9 @@ describe("toWorkspaceUploads", () => {
         { provider: "fresh", uploadedAt: T2, counts: { newCards: "x" } },
       ],
       [],
-      [],
     );
     expect(response.sources.map((source) => source.provider)).toEqual(["fresh", "old"]);
-    expect(response.sources[0]).toMatchObject({ newCards: 0, open: 0, oldestOpenAt: null });
-  });
-
-  it("counts contributor items with the oldest as since", () => {
-    const response = toWorkspaceUploads(
-      [],
-      [
-        item({ id: "1", isContributor: true, provider: null, createdAt: T2.toISOString() }),
-        item({ id: "2", isContributor: true, createdAt: T1.toISOString() }),
-        item({ id: "3" }),
-      ],
-      [],
-    );
-    expect(response.contributors).toEqual({ since: T1.toISOString(), count: 2 });
-  });
-
-  it("reports no contributors as a null since", () => {
-    expect(toWorkspaceUploads([], [], []).contributors).toEqual({ since: null, count: 0 });
+    expect(response.sources[0]).toMatchObject({ newCards: 0 });
   });
 });
 
@@ -192,11 +145,10 @@ describe("buildWorkspaceUploads", () => {
   it("returns every provider with its open items and repeated difference to an admin", async () => {
     const response = await buildWorkspaceUploads(
       makeRepos(differences) as unknown as WorkspaceRepos,
-      { access: { isAdmin: true, sections: [] }, userId: "admin-1", now: NOW },
+      { access: { isAdmin: true, sections: [] } },
     );
     expect(response.sources.map((source) => source.provider)).toEqual(["gallery", "hidden-source"]);
     expect(response.sources[0]).toMatchObject({
-      open: 2,
       repeatedDifference: { field: "might", value: "4", count: 2 },
     });
   });
@@ -204,8 +156,18 @@ describe("buildWorkspaceUploads", () => {
   it("limits a card-review holder to providers helpers can review", async () => {
     const response = await buildWorkspaceUploads(
       makeRepos(differences) as unknown as WorkspaceRepos,
-      { access: { isAdmin: false, sections: ["card-review"] }, userId: "helper-1", now: NOW },
+      { access: { isAdmin: false, sections: ["card-review"] } },
     );
     expect(response.sources.map((source) => source.provider)).toEqual(["gallery"]);
+  });
+
+  it("reads no queue sources, so a write's refetch builds the queue once", async () => {
+    const repos = makeRepos(differences);
+    await buildWorkspaceUploads(repos as unknown as WorkspaceRepos, {
+      access: { isAdmin: true, sections: [] },
+    });
+    expect(repos.workspaceQueue.uncheckedLinkedPrintings).not.toHaveBeenCalled();
+    expect(repos.cardSubmissions.pendingReviewQueueRows).not.toHaveBeenCalled();
+    expect(repos.workspaceQueue.uncheckedCardDifferences).toHaveBeenCalledOnce();
   });
 });

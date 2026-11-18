@@ -56,6 +56,7 @@ vi.mock("@/features/account/components/auth-form-shell", () => ({
 const { LoginForm } = await import("./login-form");
 const { SignupForm } = await import("./signup-form");
 const { ResetPasswordPage } = await import("./reset-password-page");
+const { VerifyEmailPage } = await import("./verify-email-page");
 const { AccountInfoSection } = await import("./account-info-section");
 const { PublicProfileSection } = await import("./public-profile-section");
 const { signIn, signUp, authClient } = await import("@/features/account/lib/auth-client");
@@ -229,6 +230,18 @@ describe("account forms filled before hydration", () => {
       otp: "123456",
       password: "zaun-forever",
     });
+    expect(consoleError).not.toHaveBeenCalled();
+  });
+});
+
+describe("verify email resend", () => {
+  it("stays disabled in the server markup and turns on with hydration", async () => {
+    serverRender(<VerifyEmailPage />);
+    expect(screen.getByRole("button", { name: "Resend code" })).toBeDisabled();
+
+    await hydrate(<VerifyEmailPage />);
+
+    expect(screen.getByRole("button", { name: "Resend code" })).toBeEnabled();
     expect(consoleError).not.toHaveBeenCalled();
   });
 });

@@ -2,7 +2,7 @@ import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { AdminReorderConfig } from "@/features/admin/hooks/use-admin-reorder";
+import type { AdminReorderCommit } from "@/features/admin/hooks/use-admin-reorder";
 import { useAdminReorder } from "@/features/admin/hooks/use-admin-reorder";
 import type { ReorderMoves } from "@/features/admin/lib/admin-reorder";
 import { NonScrollingKeyboardSensor } from "@/lib/keyboard-drag-sensor";
@@ -31,9 +31,9 @@ function dragEnd(activeId: string, overId?: string): DragEndEvent {
   } as unknown as DragEndEvent;
 }
 
-function renderReorder(reorder?: AdminReorderConfig, rowKeys = ["a", "b", "c"]) {
+function renderReorder(reorder?: AdminReorderCommit, rowKeys = ["a", "b", "c"]) {
   return renderHook(
-    (props: { reorder?: AdminReorderConfig; rowKeys: string[] }) => useAdminReorder(props),
+    (props: { reorder?: AdminReorderCommit; rowKeys: string[] }) => useAdminReorder(props),
     { initialProps: { reorder, rowKeys } },
   );
 }

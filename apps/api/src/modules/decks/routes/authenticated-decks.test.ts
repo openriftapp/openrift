@@ -932,24 +932,6 @@ describe("PUT /api/v1/decks/:id/cards — returned cards", () => {
     expect(mockRepo.replaceCards).not.toHaveBeenCalled();
   });
 
-  it("caps lines that sum above the per-row cap", async () => {
-    mockRepo.getIdAndFormat.mockResolvedValue({ id: DECK_ID, format: "freeform" });
-    mockRepo.cardsForDeck.mockResolvedValue([]);
-    const cardId = "c0000000-0001-4000-a000-000000000001";
-    const res = await putCards({
-      cards: [
-        { cardId, zone: "main", quantity: 60 },
-        { cardId, zone: "main", quantity: 60 },
-      ],
-    });
-    expect(res.status).toBe(200);
-    expect(mockRepo.replaceCards).toHaveBeenCalledWith(
-      DECK_ID,
-      [{ cardId, zone: "main", quantity: 99, preferredPrintingId: null }],
-      undefined,
-    );
-  });
-
   it("rejects an unknown zone", async () => {
     mockRepo.getIdAndFormat.mockResolvedValue({ id: DECK_ID, format: "freeform" });
     const res = await putCards({
@@ -1180,5 +1162,56 @@ describe("POST /api/v1/decks/share/:token/clone", () => {
     });
     expect(res.status).toBe(400);
     expect(mockRepo.cloneFromShareToken).not.toHaveBeenCalled();
+  });
+});
+
+describe("PUT /api/v1/decks/:id/cards — row cap", () => {
+  const CARD_ID = "c0000000-0001-4000-a000-000000000001";
+
+  beforeEach(() => {
+    mockRepo.getIdAndFormat.mockReset().mockResolvedValue({ id: DECK_ID, format: "freeform" });
+    mockRepo.replaceCards.mockReset().mockResolvedValue(REPLACED);
+    mockRepo.cardsForDeck.mockReset().mockResolvedValue([]);
+  });
+
+  it("rejects repeated lines that sum past 99 copies, naming the card and storing nothing", async () => {
+    mockCatalog.cardsByIds.mockResolvedValueOnce([
+      { id: CARD_ID, name: "Blazing Scorcher", types: ["unit"], tags: [] },
+    ] as never);
+    const res = await app.request(`/api/v1/decks/${DECK_ID}/cards`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cards: [
+          { cardId: CARD_ID, zone: "main", quantity: 60 },
+          { cardId: CARD_ID, zone: "main", quantity: 42 },
+        ],
+      }),
+    });
+    expect(res.status).toBe(400);
+    const json = await readJson(res);
+    expect(json.code).toBe("DECK_ROW_OVER_CAP");
+    expect(json.message).toContain("Blazing Scorcher");
+    expect(json.data).toEqual({ cardId: CARD_ID, zone: "main", quantity: 102 });
+    expect(mockRepo.replaceCards).not.toHaveBeenCalled();
+  });
+
+  it("saves repeated lines that sum to exactly 99 copies as one row", async () => {
+    const res = await app.request(`/api/v1/decks/${DECK_ID}/cards`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cards: [
+          { cardId: CARD_ID, zone: "main", quantity: 60 },
+          { cardId: CARD_ID, zone: "main", quantity: 39 },
+        ],
+      }),
+    });
+    expect(res.status).toBe(200);
+    expect(mockRepo.replaceCards).toHaveBeenCalledWith(
+      DECK_ID,
+      [{ cardId: CARD_ID, zone: "main", quantity: 99, preferredPrintingId: null }],
+      undefined,
+    );
   });
 });

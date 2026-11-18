@@ -1,14 +1,10 @@
 import { useDraggable } from "@dnd-kit/core";
-import type {
-  BoardArrow,
-  BoardCardRef,
-  BoardPlayer,
-  BoardZoneRef,
-} from "@openrift/shared/board-state";
+import type { BoardArrow, BoardCardRef, BoardPlayer } from "@openrift/shared/board-state";
 import { imageUrl } from "@openrift/shared/image-url";
 
 import { CardIcon } from "@/components/card-icon";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
+import type { ArrowDragData } from "@/features/board-states/lib/board-editor-drag";
 import {
   CARD_CORNER_STYLE,
   CARD_TURNED,
@@ -21,32 +17,6 @@ import { frontImageId } from "@/features/cards/lib/card-meta";
 import type { UseCardsResult } from "@/features/cards/lib/catalog-queries";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
-
-export interface PieceDragData {
-  type: "board-piece";
-  pieceId: string;
-}
-
-export interface ArrowDragData {
-  type: "board-arrow";
-  from: BoardArrow["from"];
-}
-
-export interface PieceDropData {
-  type: "board-piece-target";
-  pieceId: string;
-}
-
-export interface ChainDropData {
-  type: "board-chain-target";
-  entryId: string;
-}
-
-export interface ZoneDropData {
-  type: "board-zone";
-  zone: BoardZoneRef;
-  owner?: BoardPlayer;
-}
 
 export function cardImageId(card: BoardCardRef, catalog: UseCardsResult): string | undefined {
   const preferred = card.printingId

@@ -8,6 +8,7 @@ import type {
   BoardStep,
   BoardZoneRef,
   ChainEntryType,
+  PieceKind,
   PlayerZoneKind,
 } from "@openrift/shared/board-state";
 import { chainEntryName } from "@openrift/shared/board-state";
@@ -42,8 +43,12 @@ const PIECE_KIND_LABEL = {
   token: m.board_states_piece_token,
 } as const;
 
+export function pieceKindLabel(kind: PieceKind): string {
+  return PIECE_KIND_LABEL[kind]();
+}
+
 export function pieceName(piece: BoardPiece): string {
-  return piece.card?.name ?? PIECE_KIND_LABEL[piece.kind]();
+  return piece.card?.name ?? pieceKindLabel(piece.kind);
 }
 
 export function chainEntryLabel(entry: BoardChainEntry, pieces: readonly BoardPiece[]): string {

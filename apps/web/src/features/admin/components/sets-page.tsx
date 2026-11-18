@@ -510,6 +510,7 @@ export function SetsPage() {
           </PageDescription>
         }
         reorder={{
+          rowLabel: (row) => row.name,
           moves: flatReorder(sets, (s) => s.id),
           onReorder: (keys) => reorderMutation.mutateAsync(keys),
           isPending: reorderMutation.isPending,

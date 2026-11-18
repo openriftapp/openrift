@@ -1,7 +1,9 @@
+// @vitest-environment happy-dom
 import type { ListEntryDetailResponse } from "@openrift/shared/types/api/list";
-import { beforeEach, describe, expect, it } from "vitest";
+import { renderHook } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
-import { useListEntriesStore } from "./list-entries-store";
+import { createListEntriesStore, useListEntriesStore } from "./list-entries-store";
 
 function stubEntry(overrides: Partial<ListEntryDetailResponse> = {}): ListEntryDetailResponse {
   return {
@@ -20,17 +22,9 @@ function stubEntry(overrides: Partial<ListEntryDetailResponse> = {}): ListEntryD
   } as ListEntryDetailResponse;
 }
 
-beforeEach(() => {
-  useListEntriesStore.setState({
-    entryByItemId: new Map(),
-    entryByKey: new Map(),
-    printingByEntryId: new Map(),
-  });
-});
-
-describe("useListEntriesStore", () => {
+describe("createListEntriesStore", () => {
   it("starts with empty maps", () => {
-    const state = useListEntriesStore.getState();
+    const state = createListEntriesStore().getState();
     expect(state.entryByItemId.size).toBe(0);
     expect(state.entryByKey.size).toBe(0);
   });
@@ -39,8 +33,9 @@ describe("useListEntriesStore", () => {
     const entry = stubEntry();
     const byItem = new Map([["item-1", entry]]);
     const byKey = new Map([["card-1", entry]]);
-    useListEntriesStore.getState().setEntries(byItem, byKey, new Map());
-    const state = useListEntriesStore.getState();
+    const store = createListEntriesStore();
+    store.getState().setEntries(byItem, byKey, new Map());
+    const state = store.getState();
     expect(state.entryByItemId.get("item-1")).toBe(entry);
     expect(state.entryByKey.get("card-1")).toBe(entry);
   });
@@ -49,14 +44,29 @@ describe("useListEntriesStore", () => {
     const entry = stubEntry({ id: "stable-1" });
     const byItem = new Map([["item-1", entry]]);
     const byKey = new Map([["card-1", entry]]);
-    useListEntriesStore.getState().setEntries(byItem, byKey, new Map());
-    const first = useListEntriesStore.getState().entryByItemId.get("item-1");
+    const store = createListEntriesStore();
+    store.getState().setEntries(byItem, byKey, new Map());
+    const first = store.getState().entryByItemId.get("item-1");
 
-    useListEntriesStore
+    store
       .getState()
       .setEntries(new Map([["item-1", entry]]), new Map([["card-1", entry]]), new Map());
-    const second = useListEntriesStore.getState().entryByItemId.get("item-1");
+    const second = store.getState().entryByItemId.get("item-1");
 
     expect(second).toBe(first);
+  });
+
+  it("keeps each store's entries to itself", () => {
+    const first = createListEntriesStore();
+    first.getState().setEntries(new Map([["item-1", stubEntry()]]), new Map(), new Map());
+    expect(createListEntriesStore().getState().entryByItemId.size).toBe(0);
+  });
+});
+
+describe("useListEntriesStore", () => {
+  it("throws outside a CollectionLayout", () => {
+    expect(() => renderHook(() => useListEntriesStore((state) => state.entryByKey))).toThrow(
+      "useListEntriesStore needs a CollectionLayout",
+    );
   });
 });

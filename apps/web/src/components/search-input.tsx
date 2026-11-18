@@ -14,6 +14,7 @@ interface SearchInputProps {
   onClear?: () => void;
   placeholder?: string;
   id?: string;
+  name?: string;
   /** Accessible name for the input (defaults to the placeholder). */
   "aria-label"?: string;
   /**
@@ -52,6 +53,7 @@ export function SearchInput({
   onClear,
   placeholder,
   id,
+  name,
   "aria-label": ariaLabel,
   leading,
   trailing,
@@ -107,6 +109,7 @@ export function SearchInput({
       <InputGroupInput
         ref={setInputRef}
         id={id}
+        name={name}
         placeholder={placeholder}
         autoComplete="off"
         aria-label={ariaLabel ?? (id === undefined ? placeholder : undefined)}

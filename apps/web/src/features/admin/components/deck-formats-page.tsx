@@ -93,6 +93,7 @@ export function DeckFormatsPage() {
           }),
       }}
       reorder={{
+        rowLabel: (row) => row.label,
         moves: flatReorder(deckFormats, (format) => format.slug),
         onReorder: (keys) => reorderMutation.mutateAsync(keys),
         isPending: reorderMutation.isPending,

@@ -2,7 +2,6 @@ import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
 import { cardImage, waitForCatalogLoaded } from "../../helpers/catalog.js";
-import { waitForHydrated } from "../../helpers/hydration.js";
 import { scrollUntilVisible } from "../../helpers/virtualized.js";
 
 // Seed data: set OGS "Proving Grounds"; Annie, Fiery is a Fury Unit, Firestorm
@@ -14,11 +13,12 @@ import { scrollUntilVisible } from "../../helpers/virtualized.js";
 const CARDS_URL = "/cards";
 const FOOTER_BUTTON = /^(?:Done|Show \d+ (?:cards?|printings?))$/u;
 
-/** A second click on Options while the drawer animates in closes it again, so click once after hydration. */
+/**
+ * A second click on Options while the drawer animates in closes it again, so click once;
+ * callers wait for the live grid, which renders with the toolbar.
+ */
 async function openFilterDrawer(page: Page): Promise<Locator> {
-  const options = page.getByRole("button", { name: "Options" });
-  await waitForHydrated(options);
-  await options.click();
+  await page.getByRole("button", { name: "Options" }).click();
   const drawer = page.getByRole("dialog", { name: "Options" });
   await expect(drawer).toBeVisible();
   return drawer;

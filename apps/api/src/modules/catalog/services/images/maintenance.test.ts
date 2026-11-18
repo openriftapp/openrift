@@ -222,6 +222,26 @@ describe("getRehostStatus", () => {
     const result = await getRehostStatus(mockIo, repo);
     expect(result.orphanedFiles).toBe(3);
   });
+
+  it("leaves orphans modified within the last hour out of the count, like the sweep", async () => {
+    const repo = makeMockRepo();
+    repo.allRehostedUrls = vi.fn(() => Promise.resolve([]));
+    mockReaddir.mockImplementation(async (_dir: any, opts?: any) => {
+      if (opts?.withFileTypes) {
+        return [dirent("g1", true)];
+      }
+      return ["recent-full.webp", "old-full.webp"];
+    });
+    mockStat.mockImplementation(async (path: any) => ({
+      size: 500,
+      mtime: String(path).endsWith("recent-full.webp")
+        ? new Date("2026-03-01T11:30:00Z")
+        : new Date("2026-03-01T10:30:00Z"),
+    }));
+
+    const result = await getRehostStatus(mockIo, repo, new Date("2026-03-01T12:00:00Z"));
+    expect(result.orphanedFiles).toBe(1);
+  });
 });
 
 describe("cleanupOrphanedFiles", () => {

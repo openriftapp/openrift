@@ -32,21 +32,44 @@ vi.mock("@/features/cards/components/wishlist-heart", () => ({
 
 const { CardDetailActions } = await import("./card-detail-actions");
 
+const STEPPER = { onIncrement: () => {}, onDecrement: () => {} };
+
 describe("CardDetailActions", () => {
   it("renders the stepper and the wishlist button together", () => {
-    render(<CardDetailActions printing={printingX} wishEntries={[]} onAddToWishlist={() => {}} />);
+    render(
+      <CardDetailActions
+        printing={printingX}
+        wishEntries={[]}
+        onAddToWishlist={() => {}}
+        {...STEPPER}
+      />,
+    );
 
     expect(screen.getByTestId("stepper")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Wishlist Chaos Rune" })).toBeInTheDocument();
   });
 
   it("keeps the stepper's z-index from painting over sticky bars", () => {
-    render(<CardDetailActions printing={printingX} wishEntries={[]} onAddToWishlist={() => {}} />);
+    render(
+      <CardDetailActions
+        printing={printingX}
+        wishEntries={[]}
+        onAddToWishlist={() => {}}
+        {...STEPPER}
+      />,
+    );
     expect(screen.getByTestId("stepper").closest(".isolate")).not.toBeNull();
   });
 
   it("labels the stepper as owned", () => {
-    render(<CardDetailActions printing={printingX} wishEntries={[]} onAddToWishlist={() => {}} />);
+    render(
+      <CardDetailActions
+        printing={printingX}
+        wishEntries={[]}
+        onAddToWishlist={() => {}}
+        {...STEPPER}
+      />,
+    );
     expect(screen.getByText("Owned")).toBeInTheDocument();
   });
 
@@ -58,6 +81,7 @@ describe("CardDetailActions", () => {
         collectionId="col-1"
         wishEntries={[]}
         onAddToWishlist={() => {}}
+        {...STEPPER}
       />,
     );
 
@@ -69,7 +93,12 @@ describe("CardDetailActions", () => {
   it("hands the printing to the wishlist callback", async () => {
     const onAddToWishlist = vi.fn();
     render(
-      <CardDetailActions printing={printingX} wishEntries={[]} onAddToWishlist={onAddToWishlist} />,
+      <CardDetailActions
+        printing={printingX}
+        wishEntries={[]}
+        onAddToWishlist={onAddToWishlist}
+        {...STEPPER}
+      />,
     );
 
     await userEvent.click(screen.getByRole("button", { name: "Wishlist Chaos Rune" }));

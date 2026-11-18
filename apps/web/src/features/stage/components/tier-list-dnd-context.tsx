@@ -19,6 +19,7 @@ import { CardDragGhost } from "@/features/cards/components/card-drag-ghost";
 import { useTierTileWidth } from "@/features/stage/components/tier-card-tile";
 import type { TierListDragData } from "@/features/stage/lib/tier-list-dnd-types";
 import { asTierListDragData, asTierListDropData } from "@/features/stage/lib/tier-list-dnd-types";
+import { tierListDragAnnouncements } from "@/features/stage/lib/tier-list-drag-announcements";
 import { useTierListBuilderStore } from "@/features/stage/stores/tier-list-builder-store";
 import { collisionDropData } from "@/lib/dnd-data";
 
@@ -98,6 +99,15 @@ export function TierListDndContext({
     <DndContext
       sensors={sensors}
       collisionDetection={preferCardTargets}
+      accessibility={{
+        announcements: tierListDragAnnouncements({
+          cardName: (cardId) => {
+            const card = cardsById[cardId];
+            return card ? legendDisplayName(card) : undefined;
+          },
+          rowLabel: (rowIndex) => useTierListBuilderStore.getState().rows[rowIndex]?.label,
+        }),
+      }}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragCancel={() => setDragged(null)}

@@ -78,12 +78,11 @@ export function CandidateSpreadsheet<
   const favoriteProviders = favoriteProviderSet(providerSettings);
   const sortedRows = sortCandidateRows(candidateRows, providerLabels, providerSettings);
 
-  const foldedKeys = foldedFieldKeys(
-    fields,
-    sortedRows,
-    activeRow,
-    normalizeCandidate,
-    requiredKeys,
+  const [acceptedKeys, setAcceptedKeys] = useState<ReadonlySet<string>>(() => new Set());
+  const foldedKeys = new Set(
+    [...foldedFieldKeys(fields, sortedRows, activeRow, normalizeCandidate, requiredKeys)].filter(
+      (key) => !acceptedKeys.has(key),
+    ),
   );
   const firstFoldedKey = fields.find((field) => foldedKeys.has(field.key))?.key;
 
@@ -213,7 +212,13 @@ export function CandidateSpreadsheet<
                           ) => React.ReactNode | undefined)
                         | undefined
                     }
-                    onCellClick={onCellClick}
+                    onCellClick={
+                      onCellClick &&
+                      ((key: TKey, value: unknown, candidateId: string) => {
+                        setAcceptedKeys((keys) => new Set(keys).add(key));
+                        onCellClick(key, value, candidateId);
+                      })
+                    }
                   />
                 ))}
               </tr>

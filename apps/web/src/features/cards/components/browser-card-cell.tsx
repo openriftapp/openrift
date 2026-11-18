@@ -12,14 +12,7 @@ import { WishlistButton } from "@/features/cards/components/wishlist-heart";
 import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCellDisplayState } from "@/features/cards/hooks/use-cell-display-state";
 import { cardPageHref } from "@/features/cards/lib/card-page-href";
-import {
-  dispatchAddToWishlist,
-  dispatchDecrement,
-  dispatchIncrement,
-  dispatchOpenVariants,
-  dispatchRowClick,
-  dispatchSiblingClick,
-} from "@/features/cards/stores/card-row-actions-store";
+import { useCardRowDispatch } from "@/features/cards/stores/card-row-actions-store";
 import { useTileOwnedCounts } from "@/features/collections/hooks/use-owned-count";
 import type { WishEntryFlat } from "@/features/groups/lib/wish-entry";
 import type { CardRenderContext } from "@/lib/card-viewer-types";
@@ -65,6 +58,14 @@ export const BrowserCardCell = memo(function BrowserCardCell({
   wishEntries,
   inCardsView,
 }: BrowserCardCellProps) {
+  const {
+    dispatchAddToWishlist,
+    dispatchDecrement,
+    dispatchIncrement,
+    dispatchOpenVariants,
+    dispatchRowClick,
+    dispatchSiblingClick,
+  } = useCardRowDispatch();
   const router = useRouter();
   const { displayPrinting, isSelected, isFlashing } = useCellDisplayState({
     printing,

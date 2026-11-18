@@ -69,11 +69,19 @@ export async function writeCardField(
   const { cardId, field, value, previousName } = args;
 
   if (field === "domains") {
-    await mut.replaceCardDomainsById(cardId, value as string[]);
+    try {
+      await mut.replaceCardDomainsById(cardId, value as string[]);
+    } catch (error: unknown) {
+      throw asFieldWriteError(error, field, value);
+    }
     return { refreshViews: true };
   }
   if (field === "superTypes") {
-    await mut.replaceCardSuperTypesById(cardId, value as string[]);
+    try {
+      await mut.replaceCardSuperTypesById(cardId, value as string[]);
+    } catch (error: unknown) {
+      throw asFieldWriteError(error, field, value);
+    }
     return { refreshViews: true };
   }
   if (field === "types") {

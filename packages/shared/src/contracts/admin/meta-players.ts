@@ -1,9 +1,11 @@
+import { MAX_DECK_CARD_QUANTITY } from "@openrift/shared/deck-cards";
 import { META_MAX_PLAYERS } from "@openrift/shared/meta-query";
 import {
   deckFormatSchema,
   deckZoneSchema,
   metaListStatusSchema,
 } from "@openrift/shared/response-schemas";
+import { POSTGRES_SMALLINT_MAX } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 /** Deck fields are null together for a row the archive has no list for — most of a real event's field. */
@@ -35,7 +37,7 @@ export const adminMetaPlayerSchema = z.object({
 export const metaDeckCardSchema = z.object({
   cardId: z.uuid(),
   zone: deckZoneSchema,
-  quantity: z.number().int().positive(),
+  quantity: z.number().int().positive().max(MAX_DECK_CARD_QUANTITY),
   preferredPrintingId: z.uuid().nullable().optional(),
 });
 
@@ -60,9 +62,9 @@ const playerScalarFields = {
   playerName: z.string().min(1).max(80),
   rank: z.number().int().min(1).max(META_MAX_PLAYERS),
   rankIsTier: z.boolean().optional().default(false),
-  wins: z.number().int().min(0).nullable().optional().default(null),
-  losses: z.number().int().min(0).nullable().optional().default(null),
-  draws: z.number().int().min(0).nullable().optional().default(null),
+  wins: z.number().int().min(0).max(POSTGRES_SMALLINT_MAX).nullable().optional().default(null),
+  losses: z.number().int().min(0).max(POSTGRES_SMALLINT_MAX).nullable().optional().default(null),
+  draws: z.number().int().min(0).max(POSTGRES_SMALLINT_MAX).nullable().optional().default(null),
   legendCardId: z.uuid().nullable().optional().default(null),
   championCardId: z.uuid().nullable().optional().default(null),
 };

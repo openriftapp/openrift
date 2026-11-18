@@ -342,7 +342,7 @@ describe("PrintingReviewCard", () => {
     });
 
     expect(captured.switcher?.siblingImages).toEqual([
-      { imageFileId: "file-2", printingLabel: "OGN-001 · foil · EN" },
+      expect.objectContaining({ imageFileId: "file-2", printingLabel: "OGN-001 · foil · EN" }),
     ]);
   });
 

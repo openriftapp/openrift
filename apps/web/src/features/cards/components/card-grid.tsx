@@ -10,6 +10,7 @@ import { useAdminSettings } from "@/features/admin/hooks/use-admin-settings";
 import { useFilterSearchKey } from "@/features/cards/hooks/use-filter-search";
 import { useFollowSelectedRow } from "@/features/cards/hooks/use-follow-selected-row";
 import { useFollowSelection } from "@/features/cards/hooks/use-follow-selection";
+import { useKeyboardRow } from "@/features/cards/hooks/use-keyboard-row";
 import { useResponsiveColumns } from "@/features/cards/hooks/use-responsive-columns";
 import { useStickyHeader } from "@/features/cards/hooks/use-sticky-header";
 import {
@@ -28,6 +29,7 @@ import { buildGroups } from "@/features/cards/lib/card-groups";
 import type { CardGroup } from "@/features/cards/lib/card-groups";
 import { cardRowIndex } from "@/features/cards/lib/card-row-index";
 import { computeRowStarts } from "@/features/cards/lib/compute-row-starts";
+import { keyboardRowRange } from "@/features/cards/lib/grid-keyboard-range";
 import { scrollCardRowIntoView } from "@/features/cards/lib/scroll-card-row";
 import { useGridFocusStore } from "@/features/cards/stores/grid-focus-store";
 import { useGridViewportStore } from "@/features/cards/stores/grid-viewport-store";
@@ -133,6 +135,7 @@ const CardRowContent = memo(function CardRowContent({
   cardWidth,
   eagerCount,
   renderCard,
+  keyboardInGrid,
 }: {
   row: VRow & { kind: "cards" };
   columns: number;
@@ -142,6 +145,7 @@ const CardRowContent = memo(function CardRowContent({
   cardWidth: number;
   eagerCount: number;
   renderCard: (item: CardViewerItem, ctx: CardRenderContext) => ReactNode;
+  keyboardInGrid: boolean;
 }) {
   // Eager rows are SSR-preloaded by <FirstRowGrid>; skipping the deferred
   // placeholder phase for them avoids a flash before the cached image paints.
@@ -172,7 +176,8 @@ const CardRowContent = memo(function CardRowContent({
     gap: `${gap}px`,
   };
 
-  if (deferred) {
+  // A placeholder has no tab stops, so keyboard focus would leave the grid at the first one.
+  if (deferred && !keyboardInGrid) {
     return (
       <div style={gridStyle}>
         {row.items.map((item) => (
@@ -279,6 +284,8 @@ export function CardGrid({
 
   const rowStarts = computeRowStarts(virtualRows, estimateRowHeight, gap);
 
+  const { keyboardRow, onFocus, onBlur } = useKeyboardRow(containerEl, items);
+
   const scrollMargin = useWindowScrollMargin(containerEl);
 
   const { virtualizer, virtualItems, totalSize } = useWindowVirtualizerFresh({
@@ -288,6 +295,7 @@ export function CardGrid({
     scrollMargin,
     scrollPaddingStart: stickyOffset,
     overscan: 3,
+    rangeExtractor: (range) => keyboardRowRange(range, keyboardRow),
   });
 
   const activeHeaderRow = useStickyHeader({
@@ -392,6 +400,7 @@ export function CardGrid({
   });
 
   const eagerCount = columns;
+  const keyboardInGrid = keyboardRow !== null;
 
   if (items.length === 0) {
     return (
@@ -402,7 +411,7 @@ export function CardGrid({
   }
 
   return (
-    <div ref={containerRef}>
+    <div ref={containerRef} onFocus={onFocus} onBlur={onBlur}>
       <CardGridDebug
         enabled={debugOverlayEnabled}
         virtualizer={virtualizer}
@@ -482,6 +491,7 @@ export function CardGrid({
                   cardWidth={thumbWidth}
                   eagerCount={eagerCount}
                   renderCard={renderCard}
+                  keyboardInGrid={keyboardInGrid}
                 />
               )}
             </div>

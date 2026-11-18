@@ -5,10 +5,7 @@ import type { ReactNode } from "react";
 import { ContextMenuSeparator } from "@/components/ui/context-menu";
 import { CardContextMenu, CardMenuItem } from "@/features/cards/components/card-context-menu";
 import { CardPageLinkItems } from "@/features/cards/components/card-page-link-items";
-import {
-  dispatchAddToWishlist,
-  dispatchIncrement,
-} from "@/features/cards/stores/card-row-actions-store";
+import { useCardRowDispatch } from "@/features/cards/stores/card-row-actions-store";
 import { m } from "@/paraglide/messages.js";
 
 interface CatalogCardContextMenuProps {
@@ -24,6 +21,7 @@ export function CatalogCardContextMenu({
   addTargetName,
   children,
 }: CatalogCardContextMenuProps) {
+  const { dispatchAddToWishlist, dispatchIncrement } = useCardRowDispatch();
   return (
     <CardContextMenu
       menu={

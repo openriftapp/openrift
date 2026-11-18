@@ -2,17 +2,14 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
 import { cardImage, typeSearch, waitForCatalogLoaded } from "../../helpers/catalog.js";
-import { waitForHydrated } from "../../helpers/hydration.js";
 import { scrollUntilVisible } from "../../helpers/virtualized.js";
 
 /**
  * The popover trigger renders as "<Group> · <Sort>" (default groupBy="set"
- * keeps the middot present).
+ * keeps the middot present). Callers wait for the live grid, which renders with the toolbar.
  */
 async function openSortGroupPopover(page: Page) {
-  const trigger = page.getByRole("button", { name: /·/u });
-  await waitForHydrated(trigger);
-  await trigger.click();
+  await page.getByRole("button", { name: /·/u }).click();
   await expect(page.getByText("Group by", { exact: true })).toBeVisible();
 }
 
@@ -85,9 +82,7 @@ test.describe("card browser — options bar", () => {
     await expect(page.getByText(/\b\d+ cards\b/u).first()).toBeVisible();
 
     // aria-label="View mode" groups the icon-only [One per card, Every printing] toggles.
-    const everyPrinting = page.getByRole("group", { name: "View mode" }).getByRole("button").nth(1);
-    await waitForHydrated(everyPrinting);
-    await everyPrinting.click();
+    await page.getByRole("group", { name: "View mode" }).getByRole("button").nth(1).click();
     await expect(page.getByText(/\b\d+ printings\b/u).first()).toBeVisible();
   });
 

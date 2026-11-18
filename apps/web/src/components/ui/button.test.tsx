@@ -1,8 +1,11 @@
 import { render, screen } from "@testing-library/react";
+import { act, Profiler } from "react";
+import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { Button, buttonVariants } from "./button";
+import { Pressable } from "./pressable";
 
 function controlClasses(): string[] {
   return buttonVariants({ variant: "control" }).split(/\s+/u);
@@ -133,5 +136,78 @@ describe("server rendering", () => {
     vi.unstubAllGlobals();
 
     expect(html).toMatch(/<button[^>]* disabled=""/u);
+  });
+});
+
+describe("hydration renders", () => {
+  async function hydrationCommits(ui: React.ReactElement): Promise<string[]> {
+    const phases: string[] = [];
+    const tree = (
+      <Profiler id="control" onRender={(_id, phase) => phases.push(phase)}>
+        {ui}
+      </Profiler>
+    );
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(tree);
+    document.body.append(container);
+    let root: ReturnType<typeof hydrateRoot> | undefined;
+    await act(async () => {
+      root = hydrateRoot(container, tree);
+    });
+    act(() => root?.unmount());
+    container.remove();
+    return phases;
+  }
+
+  it("hydrates a plain Button and a plain Pressable in one render", async () => {
+    expect(await hydrationCommits(<Button>Save deck</Button>)).toEqual(["mount"]);
+    expect(await hydrationCommits(<Pressable>Annie, Fiery</Pressable>)).toEqual(["mount"]);
+  });
+
+  it("re-renders only a control marked inert until hydrated", async () => {
+    expect(await hydrationCommits(<Button inertUntilHydrated>Resend code</Button>)).toEqual([
+      "mount",
+      "update",
+    ]);
+  });
+});
+
+describe("inert until hydrated", () => {
+  function serverButton(ui: React.ReactElement): HTMLElement | null {
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(ui);
+    return container.querySelector("button");
+  }
+
+  it("renders a Button disabled on the server and enabled on the client", () => {
+    expect(serverButton(<Button inertUntilHydrated>Resend code</Button>)).toBeDisabled();
+
+    render(<Button inertUntilHydrated>Resend code</Button>);
+    expect(screen.getByRole("button", { name: "Resend code" })).toBeEnabled();
+  });
+
+  it("keeps a Button with a real disabled reason disabled after hydration", () => {
+    render(
+      <Button inertUntilHydrated disabled>
+        Resend code
+      </Button>,
+    );
+    expect(screen.getByRole("button", { name: "Resend code" })).toBeDisabled();
+  });
+
+  it("renders a Pressable disabled on the server and enabled on the client", () => {
+    expect(serverButton(<Pressable inertUntilHydrated>Annie, Fiery</Pressable>)).toBeDisabled();
+
+    render(<Pressable inertUntilHydrated>Annie, Fiery</Pressable>);
+    expect(screen.getByRole("button", { name: "Annie, Fiery" })).toBeEnabled();
+  });
+
+  it("keeps a Pressable with a real disabled reason disabled after hydration", () => {
+    render(
+      <Pressable inertUntilHydrated disabled>
+        Annie, Fiery
+      </Pressable>,
+    );
+    expect(screen.getByRole("button", { name: "Annie, Fiery" })).toBeDisabled();
   });
 });

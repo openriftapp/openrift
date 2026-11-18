@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
+import { usePendingRefocus } from "@/features/tournaments/hooks/use-pending-refocus";
 import {
   useClearTournamentResult,
   useFinalizeTournamentRound,
@@ -15,6 +16,7 @@ import { legendsByCardId } from "@/features/tournaments/lib/player-run";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
+import { EditorOpenerButton } from "./editor-opener-button";
 import { GenerateRoundControls } from "./generate-round-controls";
 import { GroupCutPairingsSection } from "./group-cut-pairings-section";
 import { PairingsView } from "./pairings-view";
@@ -37,6 +39,7 @@ export function PodPairingsSection({
   const submitResult = useSubmitTournamentResult();
   const clearResult = useClearTournamentResult();
   const [editingRound, setEditingRound] = useState<number | null>(null);
+  const refocus = usePendingRefocus<"pairing">();
   const [warningsExpanded, setWarningsExpanded] = useState(true);
 
   const groupCut = data.tournament.format === "group_cut";
@@ -117,7 +120,10 @@ export function PodPairingsSection({
           round={openRound}
           snapshot={data.openRoundSnapshot}
           mode={teamMode ? "team" : isSwiss ? "swiss" : "pod"}
-          onClose={() => setEditingRound(null)}
+          onClose={() => {
+            setEditingRound(null);
+            refocus.request("pairing");
+          }}
         />
       ) : null}
       <PairingsView
@@ -169,14 +175,15 @@ export function PodPairingsSection({
               </Toggle>
               {manage && (
                 <>
-                  <Button
+                  <EditorOpenerButton
                     size="sm"
                     variant="outline"
                     disabled={anyReported}
+                    takeFocus={() => refocus.take("pairing")}
                     onClick={() => setEditingRound(round.roundNumber)}
                   >
                     {m.tournaments_pairings_edit_pairing()}
-                  </Button>
+                  </EditorOpenerButton>
                   <Button
                     size="sm"
                     variant="destructive"

@@ -153,10 +153,78 @@ describe("CandidateSpreadsheet candidate click", () => {
       />,
     );
 
-    const cells = screen.getAllByRole("cell");
-    await user.click(cells.at(-1) as HTMLElement);
+    await user.click(screen.getByRole("button", { name: `Use ${fixed} for Printed Rules` }));
 
     expect(onCellClick).toHaveBeenCalledWith("printedRulesText", fixed, "cand-1");
+  });
+});
+
+describe("CandidateSpreadsheet keyboard accept", () => {
+  const nameField: FieldDef = { key: "printedName", label: "Printed name" };
+  const rows = [
+    {
+      id: "cand-1",
+      provider: "gallery",
+      checkedAt: null,
+      printedName: "Jinx",
+    } as unknown as CandidatePrintingResponse,
+  ];
+
+  async function tabTo(user: ReturnType<typeof userEvent.setup>, target: HTMLElement) {
+    for (let step = 0; step < 10 && document.activeElement !== target; step++) {
+      await user.tab();
+    }
+  }
+
+  function renderSheet(active: string, onCellClick = vi.fn()) {
+    return {
+      onCellClick,
+      ...render(
+        <CandidateSpreadsheet
+          fields={[nameField]}
+          activeRow={{ printedName: active }}
+          candidateRows={rows}
+          onCellClick={onCellClick}
+        />,
+      ),
+    };
+  }
+
+  it("reaches the accept cell by Tab and accepts with Enter and Space", async () => {
+    const user = userEvent.setup();
+    const { onCellClick } = renderSheet("Vi");
+
+    const cell = screen.getByRole("button", { name: "Use Jinx for Printed name" });
+    await tabTo(user, cell);
+    expect(cell).toHaveFocus();
+    await user.keyboard("{Enter}");
+    await user.keyboard(" ");
+
+    expect(onCellClick).toHaveBeenCalledTimes(2);
+    expect(onCellClick).toHaveBeenCalledWith("printedName", "Jinx", "cand-1");
+  });
+
+  it("keeps focus on the cell once its value is in use, and accepts nothing more", async () => {
+    const user = userEvent.setup();
+    const onCellClick = vi.fn();
+    const { rerender } = renderSheet("Vi", onCellClick);
+
+    await tabTo(user, screen.getByRole("button", { name: "Use Jinx for Printed name" }));
+    await user.keyboard("{Enter}");
+    rerender(
+      <CandidateSpreadsheet
+        fields={[nameField]}
+        activeRow={{ printedName: "Jinx" }}
+        candidateRows={rows}
+        onCellClick={onCellClick}
+      />,
+    );
+
+    const cell = screen.getByRole("button", { name: "Printed name Jinx is in use" });
+    expect(cell).toHaveFocus();
+    expect(cell).toHaveAttribute("aria-disabled", "true");
+    await user.keyboard("{Enter}");
+    expect(onCellClick).toHaveBeenCalledOnce();
   });
 });
 

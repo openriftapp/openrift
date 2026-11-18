@@ -94,6 +94,7 @@ export function CardTypesPage() {
           }),
       }}
       reorder={{
+        rowLabel: (row) => row.label,
         moves: flatReorder(cardTypes, (cardType) => cardType.slug),
         onReorder: (keys) => reorderMutation.mutateAsync(keys),
         isPending: reorderMutation.isPending,

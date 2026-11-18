@@ -1,6 +1,11 @@
 import { META_MAX_PLAYERS } from "@openrift/shared/meta-query";
 import { metaEntryStatusSchema, metaOverlayStatusSchema } from "@openrift/shared/response-schemas";
-import { isoDate, isoDateTime } from "@openrift/shared/schemas";
+import {
+  isoDate,
+  isoDateTime,
+  POSTGRES_INTEGER_MAX,
+  POSTGRES_SMALLINT_MAX,
+} from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { META_PLAYER_OVERLAY_FIELDS } from "../../types/enums.js";
@@ -15,10 +20,10 @@ export const playerOverlayFieldsSchema = z
     playerName: z.string().min(1).max(80).nullable(),
     rank: z.number().int().min(1).max(META_MAX_PLAYERS),
     rankIsTier: z.boolean(),
-    wins: z.number().int().min(0).nullable(),
-    losses: z.number().int().min(0).nullable(),
-    draws: z.number().int().min(0).nullable(),
-    matchPoints: z.number().int().min(0).nullable(),
+    wins: z.number().int().min(0).max(POSTGRES_SMALLINT_MAX).nullable(),
+    losses: z.number().int().min(0).max(POSTGRES_SMALLINT_MAX).nullable(),
+    draws: z.number().int().min(0).max(POSTGRES_SMALLINT_MAX).nullable(),
+    matchPoints: z.number().int().min(0).max(POSTGRES_INTEGER_MAX).nullable(),
     opponentMatchWinPct: z.number().min(0).max(1).nullable(),
     gameWinPct: z.number().min(0).max(1).nullable(),
     opponentGameWinPct: z.number().min(0).max(1).nullable(),

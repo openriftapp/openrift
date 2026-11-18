@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { stubPrinting } from "@/test/factories";
+import { rowActionsWrapper } from "@/test/row-actions";
 
 const cardId = "card-chaos-rune";
 const printingX = stubPrinting({ printingId: "p-x", cardId, card: { name: "Chaos Rune" } });
@@ -32,7 +33,7 @@ describe("TableCountActions", () => {
   });
 
   it("offers the add control on a card with no copies", () => {
-    render(<TableCountActions printing={printingX} />);
+    render(<TableCountActions printing={printingX} />, { wrapper: rowActionsWrapper() });
 
     expect(screen.getByText("0")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add one" })).toBeEnabled();
@@ -41,7 +42,7 @@ describe("TableCountActions", () => {
 
   it("enables the remove control once a copy is owned", () => {
     ownedByPrinting = { "p-x": 2 };
-    render(<TableCountActions printing={printingX} />);
+    render(<TableCountActions printing={printingX} />, { wrapper: rowActionsWrapper() });
 
     expect(screen.getByText("2")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Remove one" })).toBeEnabled();
@@ -49,14 +50,18 @@ describe("TableCountActions", () => {
 
   it("adds the card-wide total when copies are spread over several variants", () => {
     ownedByPrinting = { "p-x": 2, "p-y": 1 };
-    render(<TableCountActions printing={printingX} siblingIds={["p-x", "p-y"]} />);
+    render(<TableCountActions printing={printingX} siblingIds={["p-x", "p-y"]} />, {
+      wrapper: rowActionsWrapper(),
+    });
 
     expect(screen.getByText("(3)")).toBeInTheDocument();
   });
 
   it("keeps the card-wide total on a variant the viewer owns none of", () => {
     ownedByPrinting = { "p-y": 2 };
-    render(<TableCountActions printing={printingX} siblingIds={["p-x", "p-y"]} />);
+    render(<TableCountActions printing={printingX} siblingIds={["p-x", "p-y"]} />, {
+      wrapper: rowActionsWrapper(),
+    });
 
     expect(screen.getByText("0")).toBeInTheDocument();
     expect(screen.getByText("(2)")).toBeInTheDocument();
@@ -64,7 +69,7 @@ describe("TableCountActions", () => {
 
   it("omits the total on a row that stands for one printing", () => {
     ownedByPrinting = { "p-x": 2 };
-    render(<TableCountActions printing={printingX} />);
+    render(<TableCountActions printing={printingX} />, { wrapper: rowActionsWrapper() });
 
     expect(screen.queryByText("(2)")).not.toBeInTheDocument();
   });

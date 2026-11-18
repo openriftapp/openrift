@@ -1,8 +1,10 @@
 import type { MetaDeckDetailResponse } from "@openrift/shared/types/api/meta";
 import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 
 import type { CloneSharedDeckInput } from "@/features/decks/hooks/use-decks";
 import { useCloneSharedDeck } from "@/features/decks/hooks/use-decks";
+import { archivedCopyCards, importOverflowMessage } from "@/features/decks/lib/deck-import-cards";
 import {
   createLocalDeck,
   setLocalDeckCards,
@@ -72,15 +74,12 @@ export function useCopyArchivedDeck(): CopyArchivedDeck {
         formatConfig: deck.formatConfig,
         links: deck.links,
       });
-      setLocalDeckCards(
-        localId,
-        [...cards, ...extraCards].map((card) => ({
-          zone: card.zone,
-          cardId: card.cardId,
-          quantity: card.quantity,
-          preferredPrintingId: card.preferredPrintingId,
-        })),
-      );
+      const copied = archivedCopyCards(cards, extraCards);
+      setLocalDeckCards(localId, copied.cards);
+      const overflowNotice = importOverflowMessage(copied.overflow);
+      if (overflowNotice) {
+        toast.warning(overflowNotice);
+      }
       void navigate({ to: "/decks/$deckId", params: { deckId: localId } });
       return;
     }

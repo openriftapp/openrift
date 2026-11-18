@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useGridSelectionStore } from "@/features/cards/stores/grid-selection-store";
 import { stubCopy, stubPrinting } from "@/test/factories";
+import { rowActionsWrapper } from "@/test/row-actions";
 import { createStoreResetter } from "@/test/store-helpers";
 
 // Two printings of one card — the /collections "printings" view renders each
@@ -132,6 +133,7 @@ function renderCell(props: { dataView: "cards" | "printings"; siblings: Printing
       display={display}
       showImages
     />,
+    { wrapper: rowActionsWrapper() },
   );
 }
 
@@ -206,6 +208,7 @@ function renderStripCell(props: {
       display={display}
       showImages
     />,
+    { wrapper: rowActionsWrapper() },
   );
 }
 
@@ -386,6 +389,7 @@ describe("CollectionGridCell context menu", () => {
         showImages
         addTargetName="Binder"
       />,
+      { wrapper: rowActionsWrapper() },
     );
   }
 

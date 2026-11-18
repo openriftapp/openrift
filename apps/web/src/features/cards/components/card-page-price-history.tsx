@@ -5,7 +5,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace, TimeRange } from "@openrift/shared/types/pricing";
 import { ALL_MARKETPLACES, MARKETPLACE_CURRENCY } from "@openrift/shared/types/pricing";
 import { WellKnown } from "@openrift/shared/well-known";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useId, useState } from "react";
 
 import { Heading } from "@/components/heading";
 import { LanguageChip } from "@/components/language-chip";
@@ -32,6 +32,7 @@ const PriceHistoryChart = lazy(async () => {
 
 export function PriceHistorySection({ printing }: { printing: Printing }) {
   const hydrated = useHydrated();
+  const headingId = useId();
   const marketplaceOrder = useDisplayStore((s) => s.marketplaceOrder);
   const [source, setSource] = useState<Marketplace>(marketplaceOrder[0]);
   const { data } = usePriceHistory(printing.printingId, "all");
@@ -54,7 +55,7 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
   }
 
   const heading = (
-    <Heading level={2} className="mb-3">
+    <Heading id={headingId} level={2} className="mb-3">
       {m.card_detail_prices_title()} · {formatPublicCode(printing)}
       {printing.finish !== WellKnown.finish.NORMAL &&
         ` ${enumLabel(labels.finishes, printing.finish)}`}
@@ -89,7 +90,7 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
 
   if (!data) {
     return (
-      <section>
+      <section aria-labelledby={headingId}>
         {heading}
         <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
           {priceTable}
@@ -131,7 +132,7 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
     : [];
 
   return (
-    <section>
+    <section aria-labelledby={headingId}>
       {heading}
       <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
         {priceTable}

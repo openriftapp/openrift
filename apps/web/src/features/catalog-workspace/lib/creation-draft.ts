@@ -82,6 +82,7 @@ export interface CreationDraft {
   faces: DraftFace[];
   printing: DraftPrintingFields;
   basePrintingId?: string;
+  duplicateFrom?: string;
   candidatePrintingIds: string[];
 }
 
@@ -260,6 +261,18 @@ export function draftFromBasePrinting(
   };
 }
 
+/** The desk row a duplicate starts from: the printing's first side when it lists both. */
+export function duplicateSource(
+  rows: readonly DeskPrintingRow[],
+  printingId?: string,
+): DeskPrintingRow | null {
+  if (printingId === undefined) {
+    return null;
+  }
+  const sides = rows.filter((row) => row.printingId === printingId);
+  return sides.find((row) => row.side === 1) ?? sides[0] ?? null;
+}
+
 export function draftFromDeskPrinting(
   card: { id: string; slug: string; name: string },
   printing: DeskPrintingRow,
@@ -287,6 +300,7 @@ export function draftFromDeskPrinting(
       comment: printing.comment ?? "",
     }),
     basePrintingId: printing.printingId,
+    duplicateFrom: printing.printingId,
     candidatePrintingIds: [],
   };
 }
@@ -572,6 +586,7 @@ export function toDeskCreateInput(draft: CreationDraft): DeskCreateInput {
     releasePrecision: release.precision as DeskReleasePrecision | null,
     comment: trimmedOrNull(draft.printing.comment),
     basePrintingId,
+    duplicateFrom: draft.duplicateFrom,
     secondSideFaceId: secondSideFaceId(draft),
   };
 }

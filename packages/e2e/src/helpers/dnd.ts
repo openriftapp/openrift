@@ -35,9 +35,14 @@ async function centerOf(locator: Locator): Promise<Point> {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
 
+/** dnd-kit's screen-reader live region; it has no role or name of its own to locate it by. */
+export function dndLiveRegion(page: Page): Locator {
+  return page.locator('[id^="DndLiveRegion-"]');
+}
+
 /** dnd-kit announces a pick-up in its live region once a sensor activates. */
 async function dragAnnouncement(page: Page): Promise<string> {
-  const texts = await page.locator('[id^="DndLiveRegion-"]').allTextContents();
+  const texts = await dndLiveRegion(page).allTextContents();
   return texts.join("|");
 }
 

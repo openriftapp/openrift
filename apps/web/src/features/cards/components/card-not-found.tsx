@@ -36,8 +36,9 @@ export function CardNotFound() {
 
   return (
     <ErrorMessageLayout heading={m.error_notfound_heading_no_card()} className="flex-1">
-      <form role="search" onSubmit={submit} className="w-full max-w-md text-left">
+      <form role="search" action="/cards" onSubmit={submit} className="w-full max-w-md text-left">
         <SearchInput
+          name="q"
           value={query}
           onValueChange={setQuery}
           placeholder={m.collections_import_search_cards_placeholder()}

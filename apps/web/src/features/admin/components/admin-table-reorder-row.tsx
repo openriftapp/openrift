@@ -8,6 +8,7 @@ import type { CSSProperties, ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
+import { adminReorderAnnouncements } from "@/features/admin/lib/admin-reorder-announcements";
 import { cn } from "@/lib/utils";
 
 /**
@@ -18,6 +19,7 @@ export function ReorderProvider({
   enabled,
   sensors,
   items,
+  rowLabel,
   onDragStart,
   onDragEnd,
   onDragCancel,
@@ -26,6 +28,7 @@ export function ReorderProvider({
   enabled: boolean;
   sensors: SensorDescriptor<SensorOptions>[];
   items: string[];
+  rowLabel: (key: string) => string | undefined;
   onDragStart: (event: DragStartEvent) => void;
   onDragEnd: (event: DragEndEvent) => void;
   onDragCancel: () => void;
@@ -41,6 +44,7 @@ export function ReorderProvider({
       id="admin-table-reorder"
       sensors={sensors}
       collisionDetection={closestCenter}
+      accessibility={{ announcements: adminReorderAnnouncements(rowLabel) }}
       // Rows only ever swap places in one column, so a drag has no business
       // leaving the vertical axis.
       modifiers={[restrictToVerticalAxis]}

@@ -262,7 +262,10 @@ export function printingDeskRepo(db: Kysely<Database>) {
       const first = await selectFullPrintings(db, 1)
         .where("p.id", "=", printingId)
         .executeTakeFirst();
-      return first?.cardId === cardId || second === undefined ? first : second;
+      if (first?.cardId === cardId) {
+        return first;
+      }
+      return second?.cardId === cardId ? second : undefined;
     },
 
     getFaceLinks(

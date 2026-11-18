@@ -1,5 +1,5 @@
 import { badRequest, conflict, notFound } from "../errors.js";
-import { isUniqueViolationOn } from "./pg-errors.js";
+import { isForeignKeyViolationOn, isUniqueViolationOn } from "./pg-errors.js";
 
 export function assertFound<T>(value: T | null | undefined, message: string): asserts value is T {
   if (value === null || value === undefined) {
@@ -82,5 +82,28 @@ export function assertDeleted(
 ): void {
   if (!result || result.numDeletedRows === 0n) {
     throw notFound(message);
+  }
+}
+
+const NEW_CARD_ENUM_KEYS = [
+  ["fk_card_card_types_type_slug", "types"],
+  ["fk_card_domains_domain_slug", "domains"],
+  ["fk_card_super_types_super_type_slug", "superTypes"],
+] as const;
+
+/** Runs a new card's write; an unknown type, domain or supertype slug becomes a 400 naming the field. */
+export async function badRequestOnUnknownCardEnum<T>(
+  fields: { types: readonly string[]; domains: readonly string[]; superTypes?: readonly string[] },
+  write: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await write();
+  } catch (error) {
+    for (const [constraint, field] of NEW_CARD_ENUM_KEYS) {
+      if (isForeignKeyViolationOn(error, constraint)) {
+        throw badRequest(`Invalid value for ${field}: ${(fields[field] ?? []).join(", ")}`);
+      }
+    }
+    throw error;
   }
 }

@@ -10,6 +10,7 @@ import { CardGrid } from "@/features/cards/components/card-grid";
 import { CardTable } from "@/features/cards/components/card-table";
 import type { CardTableSelection, TableRowSlotProps } from "@/features/cards/components/card-table";
 import { useGridKeyboardNav } from "@/features/cards/hooks/use-grid-keyboard-nav";
+import { useCardRowActionsStoreApi } from "@/features/cards/stores/card-row-actions-store";
 import type { ActionsColumn } from "@/features/collections/lib/collection-table";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { GroupInfo } from "@/lib/card-group-types";
@@ -83,7 +84,9 @@ export function CardViewer({
   const isMobile = useIsMobile();
   const useTable = !isMobile && displayMode === "table" && table !== undefined;
 
-  useGridKeyboardNav({ items, siblingPrintings });
+  const rowActions = useCardRowActionsStoreApi();
+
+  useGridKeyboardNav({ items, siblingPrintings, rowActions });
 
   return (
     <CardBrowserLayout

@@ -3,7 +3,7 @@ import type {
   PodResponse,
   PodTournamentDetailResponse,
 } from "@openrift/shared/types/api/pod-tournament";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { PodPairingsSection } from "./pairings-section";
@@ -26,6 +26,22 @@ vi.mock("./generate-round-controls", () => ({
 
 vi.mock("./group-generate-band", () => ({
   GenerateGroupsBand: () => <div>Group draw</div>,
+}));
+
+vi.mock("./pod-pairing-editor", () => ({
+  PodPairingEditor: ({ onClose }: { onClose: () => void }) => (
+    <button type="button" onClick={onClose}>
+      Close pairing editor
+    </button>
+  ),
+}));
+
+vi.mock("./group-seat-editor", () => ({
+  GroupSeatEditor: ({ onClose }: { onClose: () => void }) => (
+    <button type="button" onClick={onClose}>
+      Close group editor
+    </button>
+  ),
 }));
 
 function member(playerId: string): PodResponse["members"][number] {
@@ -99,6 +115,31 @@ function runState(
   };
 }
 
+function drawnGroupStage(): GroupStageView {
+  return {
+    groups: [
+      {
+        id: "g-A",
+        label: "A",
+        pairedGroupId: null,
+        pairedGroupLabel: null,
+        playerIds: ["p1", "p2", "p3", "p4"],
+        roundsStarted: 1,
+        currentRoundReported: false,
+        canStartNextRound: false,
+        done: false,
+        standings: [],
+      },
+    ],
+    ranking: [],
+    pendingMetaShares: [],
+    stageComplete: false,
+    cutGenerated: false,
+    seedsDiverged: false,
+    finalStandings: null,
+  };
+}
+
 const ROUND_CONTROLS = ["Finalize round", "Edit pairing", "Re-roll", "Enter result"];
 
 describe("PodPairingsSection", () => {
@@ -144,6 +185,44 @@ describe("PodPairingsSection", () => {
     render(<PodPairingsSection id="t-1" data={groupCut} staff manage={false} />);
     expect(screen.getByText("The groups have not been drawn yet.")).toBeInTheDocument();
     expect(screen.queryByText("Group draw")).not.toBeInTheDocument();
+  });
+
+  it("returns the focus to Edit pairing when the pairing editor closes", () => {
+    render(
+      <PodPairingsSection
+        id="t-1"
+        data={runState({ openRoundSnapshot: [] as never })}
+        staff
+        manage
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Edit pairing" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close pairing editor" }));
+
+    expect(screen.getByRole("button", { name: "Edit pairing" })).toHaveFocus();
+  });
+
+  it("leaves the focus alone when Edit pairing comes back long after the editor closed", () => {
+    const data = runState({ openRoundSnapshot: [] as never });
+    const { rerender } = render(<PodPairingsSection id="t-1" data={data} staff manage />);
+    fireEvent.click(screen.getByRole("button", { name: "Edit pairing" }));
+    rerender(<PodPairingsSection id="t-1" data={data} staff manage={false} />);
+    fireEvent.click(screen.getByRole("button", { name: "Close pairing editor" }));
+    expect(screen.queryByRole("button", { name: "Edit pairing" })).not.toBeInTheDocument();
+
+    rerender(<PodPairingsSection id="t-1" data={data} staff manage />);
+
+    expect(screen.getByRole("button", { name: "Edit pairing" })).not.toHaveFocus();
+  });
+
+  it("returns the focus to Edit groups when the group editor closes", () => {
+    const groupCut = runState({ groupStage: drawnGroupStage() });
+    groupCut.tournament.format = "group_cut";
+    render(<PodPairingsSection id="t-1" data={groupCut} staff manage />);
+    fireEvent.click(screen.getByRole("button", { name: "Edit groups" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close group editor" }));
+
+    expect(screen.getByRole("button", { name: "Edit groups" })).toHaveFocus();
   });
 
   it("keeps result entry and finalizing in a group stage to a host or organizer", () => {

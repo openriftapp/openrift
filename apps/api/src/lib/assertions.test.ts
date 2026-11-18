@@ -9,6 +9,7 @@ import {
   conflictOnUniqueViolation,
   assertUpdated,
   assertValidReorder,
+  badRequestOnUnknownCardEnum,
 } from "./assertions.js";
 
 describe("assertFound", () => {
@@ -206,5 +207,37 @@ describe("conflictOnUniqueViolation", () => {
     await expect(
       conflictOnUniqueViolation("uq_cards_slug", "Taken", () => Promise.reject(other)),
     ).rejects.toBe(other);
+  });
+});
+
+describe("badRequestOnUnknownCardEnum", () => {
+  const fields = { types: ["unit"], domains: ["Fury"], superTypes: [] };
+  const fkOn = (constraint: string) =>
+    Object.assign(new Error("fk"), { code: "23503", constraint_name: constraint });
+  const failing = (error: Error) => async () => {
+    throw error;
+  };
+
+  it("names the domains field for an unknown domain slug", async () => {
+    await expect(
+      badRequestOnUnknownCardEnum(fields, failing(fkOn("fk_card_domains_domain_slug"))),
+    ).rejects.toMatchObject({ status: 400, message: "Invalid value for domains: Fury" });
+  });
+
+  it("names the types and supertypes fields for their own constraints", async () => {
+    await expect(
+      badRequestOnUnknownCardEnum(fields, failing(fkOn("fk_card_card_types_type_slug"))),
+    ).rejects.toMatchObject({ status: 400, message: "Invalid value for types: unit" });
+    await expect(
+      badRequestOnUnknownCardEnum(fields, failing(fkOn("fk_card_super_types_super_type_slug"))),
+    ).rejects.toMatchObject({ status: 400, message: "Invalid value for superTypes: " });
+  });
+
+  it("passes any other error through and returns the write's result", async () => {
+    const other = fkOn("fk_card_domains_card_id");
+    await expect(badRequestOnUnknownCardEnum(fields, failing(other))).rejects.toBe(other);
+    await expect(badRequestOnUnknownCardEnum(fields, () => Promise.resolve("ok"))).resolves.toBe(
+      "ok",
+    );
   });
 });

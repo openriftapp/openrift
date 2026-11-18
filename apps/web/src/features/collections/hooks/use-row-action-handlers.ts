@@ -3,21 +3,18 @@ import { useEffect } from "react";
 import type {
   CardRowSurface,
   HandlersBySurface,
+  SurfaceRowActionsStore,
 } from "@/features/cards/stores/card-row-actions-store";
-import { useCardRowActionsStore } from "@/features/cards/stores/card-row-actions-store";
 
 /**
- * Re-registers every render (no dependency array) so cells dispatch the
- * freshest closure. Unregister is owner-checked since React mounts the next surface first.
+ * Re-registers every render (no dependency array) so cells dispatch the freshest closure.
+ * The store's surface decides which handlers the caller may register.
  */
 export function useRowActionHandlers<TSurface extends CardRowSurface>(
-  surface: TSurface,
+  store: SurfaceRowActionsStore<TSurface>,
   handlers: HandlersBySurface[TSurface],
 ): void {
   useEffect(() => {
-    useCardRowActionsStore.getState().setHandlers(surface, handlers);
-    return () => {
-      useCardRowActionsStore.getState().clearHandlers(surface);
-    };
+    store.getState().setHandlers(handlers);
   });
 }

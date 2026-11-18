@@ -1,5 +1,8 @@
 import type { Printing } from "@openrift/shared/types/catalog";
-import { create } from "zustand";
+import { createContext, useContext, useState } from "react";
+import { useStore } from "zustand";
+import type { StoreApi } from "zustand";
+import { createStore } from "zustand/vanilla";
 
 import type { VariantPopoverIntent } from "@/features/collections/stores/add-mode-store";
 import type { RuleDropTarget } from "@/features/rules/lib/rule-drop";
@@ -15,7 +18,6 @@ export type CollectionContextAction = "move" | "addToList" | "lend" | "dispose" 
 /** "takeOff" opens a kept-vs-sold/traded chooser. */
 export type ListBulkAction = "move" | "copy" | "remove" | "takeOff";
 
-/** Exactly one surface is mounted at a time; a cleanup checks this to tell its own registration from a successor's. */
 export type CardRowSurface = "catalog" | "collection" | "deck" | "list";
 
 /** Handlers every card-browser surface can offer. */
@@ -82,112 +84,99 @@ export interface HandlersBySurface {
 
 type CardRowHandlers = BaseRowHandlers & CollectionRowHandlers & ListRowHandlers;
 
-interface CardRowActionsState {
-  /** Which surface's handlers are in the slot, or null when it's empty. */
-  owner: CardRowSurface | null;
-  handlers: CardRowHandlers;
-  setHandlers: <TSurface extends CardRowSurface>(
-    owner: TSurface,
-    handlers: HandlersBySurface[TSurface],
-  ) => void;
-  /** No-ops when `owner` isn't the current slot holder, so a late-unmounting surface can't wipe a successor's registration. */
-  clearHandlers: (owner: CardRowSurface) => void;
+function createDispatch(handlers: () => CardRowHandlers) {
+  return {
+    dispatchRowClick: (printing: Printing) => handlers().onRowClick?.(printing),
+    dispatchTableRowClick: (printing: Printing, itemId: string) =>
+      handlers().onRowClick?.(printing, itemId),
+    dispatchSiblingClick: (printing: Printing) => handlers().onSiblingClick?.(printing),
+    dispatchIncrement: (printing: Printing, modifiers?: CardRowClickModifiers) =>
+      handlers().onIncrement?.(printing, modifiers),
+    dispatchDecrement: (
+      printing: Printing,
+      anchorEl: HTMLElement,
+      modifiers?: CardRowClickModifiers,
+    ) => handlers().onDecrement?.(printing, anchorEl, modifiers),
+    dispatchAddToWishlist: (printing: Printing) => handlers().onAddToWishlist?.(printing),
+    dispatchOpenVariants: (
+      printing: Printing,
+      anchorEl: HTMLElement,
+      intent: VariantPopoverIntent,
+    ) => handlers().onOpenVariants?.(printing, anchorEl, intent),
+    dispatchItemClick: (itemId: string, printing: Printing, modifiers: CardRowClickModifiers) =>
+      handlers().onItemClick?.(itemId, printing, modifiers),
+    dispatchItemToggle: (itemId: string) => handlers().onItemToggle?.(itemId),
+    dispatchContextAction: (itemId: string, action: CollectionContextAction, printing?: Printing) =>
+      handlers().onContextAction?.(itemId, action, printing),
+    dispatchTake: (itemId: string, count: number, printing?: Printing) =>
+      handlers().onTake?.(itemId, count, printing),
+    dispatchEntryQuantityStep: (entryId: string, delta: number) =>
+      handlers().onEntryQuantityStep?.(entryId, delta),
+    dispatchRemoveEntry: (entryId: string, cardName: string) =>
+      handlers().onRemoveEntry?.(entryId, cardName),
+    dispatchSetPreference: (entryId: string) => handlers().onSetPreference?.(entryId),
+    dispatchListBulkAction: (selectionId: string, action: ListBulkAction) =>
+      handlers().onListBulkAction?.(selectionId, action),
+    dispatchMoveCopyToCollection: (copyId: string) => handlers().onMoveCopyToCollection?.(copyId),
+    dispatchAddEntryToCollection: (selectionId: string) =>
+      handlers().onAddEntryToCollection?.(selectionId),
+    dispatchDropFromRule: (target: RuleDropTarget) => handlers().onDropFromRule?.(target),
+  };
 }
-
-export const useCardRowActionsStore = create<CardRowActionsState>()((set) => ({
-  owner: null,
-  handlers: {},
-  setHandlers: (owner, handlers) => set({ owner, handlers }),
-  clearHandlers: (owner) =>
-    set((state) => (state.owner === owner ? { owner: null, handlers: {} } : state)),
-}));
 
 /**
- * Module-scoped trampolines with permanent identity, so passing them to memoized
- * children (e.g. CardThumbnail) never bails the memo on a fresh closure.
+ * Trampolines with permanent identity, so passing them to memoized cells never bails the
+ * memo on a fresh closure. Each one calls the handler the surface registered last.
  */
-export function dispatchRowClick(printing: Printing): void {
-  useCardRowActionsStore.getState().handlers.onRowClick?.(printing);
+export type CardRowDispatch = ReturnType<typeof createDispatch>;
+
+interface CardRowActionsState {
+  handlers: CardRowHandlers;
+  dispatch: CardRowDispatch;
+  setHandlers: (handlers: CardRowHandlers) => void;
 }
 
-export function dispatchSiblingClick(printing: Printing): void {
-  useCardRowActionsStore.getState().handlers.onSiblingClick?.(printing);
+export type CardRowActionsStore = StoreApi<CardRowActionsState>;
+
+/** A store owned by one surface; the type-only brand pins which handlers it accepts. */
+export type SurfaceRowActionsStore<TSurface extends CardRowSurface> = CardRowActionsStore & {
+  readonly surface?: TSurface;
+};
+
+/** One per card surface: the handlers its grid or table cells dispatch to. */
+export function createCardRowActionsStore(): CardRowActionsStore {
+  return createStore<CardRowActionsState>()((set, get) => ({
+    handlers: {},
+    dispatch: createDispatch(() => get().handlers),
+    setHandlers: (handlers) => set({ handlers }),
+  }));
 }
 
-export function dispatchIncrement(printing: Printing, modifiers?: CardRowClickModifiers): void {
-  useCardRowActionsStore.getState().handlers.onIncrement?.(printing, modifiers);
+/** Creates the calling surface's store once and keeps it for the surface's lifetime. */
+export function useOwnCardRowActionsStore<
+  TSurface extends CardRowSurface = CardRowSurface,
+>(): SurfaceRowActionsStore<TSurface> {
+  // oxlint-disable-next-line react/hook-use-state -- a stable per-surface store, never replaced
+  const [store] = useState(createCardRowActionsStore);
+  return store;
 }
 
-export function dispatchDecrement(
-  printing: Printing,
-  anchorEl: HTMLElement,
-  modifiers?: CardRowClickModifiers,
-): void {
-  useCardRowActionsStore.getState().handlers.onDecrement?.(printing, anchorEl, modifiers);
+export const CardRowActionsStoreContext = createContext<CardRowActionsStore | null>(null);
+
+export function useCardRowActionsStoreApi(): CardRowActionsStore {
+  const store = useContext(CardRowActionsStoreContext);
+  if (store === null) {
+    throw new Error("card row actions need a CardRowActionsStoreContext");
+  }
+  return store;
 }
 
-export function dispatchAddToWishlist(printing: Printing): void {
-  useCardRowActionsStore.getState().handlers.onAddToWishlist?.(printing);
+function useCardRowActionsStore<T>(selector: (state: CardRowActionsState) => T): T {
+  return useStore(useCardRowActionsStoreApi(), selector);
 }
 
-export function dispatchOpenVariants(
-  printing: Printing,
-  anchorEl: HTMLElement,
-  intent: VariantPopoverIntent,
-): void {
-  useCardRowActionsStore.getState().handlers.onOpenVariants?.(printing, anchorEl, intent);
-}
-
-export function dispatchItemClick(
-  itemId: string,
-  printing: Printing,
-  modifiers: CardRowClickModifiers,
-): void {
-  useCardRowActionsStore.getState().handlers.onItemClick?.(itemId, printing, modifiers);
-}
-
-export function dispatchItemToggle(itemId: string): void {
-  useCardRowActionsStore.getState().handlers.onItemToggle?.(itemId);
-}
-
-export function dispatchContextAction(
-  itemId: string,
-  action: CollectionContextAction,
-  printing?: Printing,
-): void {
-  useCardRowActionsStore.getState().handlers.onContextAction?.(itemId, action, printing);
-}
-
-export function dispatchTake(itemId: string, count: number, printing?: Printing): void {
-  useCardRowActionsStore.getState().handlers.onTake?.(itemId, count, printing);
-}
-
-export function dispatchEntryQuantityStep(entryId: string, delta: number): void {
-  useCardRowActionsStore.getState().handlers.onEntryQuantityStep?.(entryId, delta);
-}
-
-export function dispatchRemoveEntry(entryId: string, cardName: string): void {
-  useCardRowActionsStore.getState().handlers.onRemoveEntry?.(entryId, cardName);
-}
-
-export function dispatchSetPreference(entryId: string): void {
-  useCardRowActionsStore.getState().handlers.onSetPreference?.(entryId);
-}
-
-export function dispatchListBulkAction(selectionId: string, action: ListBulkAction): void {
-  useCardRowActionsStore.getState().handlers.onListBulkAction?.(selectionId, action);
-}
-
-export function dispatchMoveCopyToCollection(copyId: string): void {
-  useCardRowActionsStore.getState().handlers.onMoveCopyToCollection?.(copyId);
-}
-
-export function dispatchAddEntryToCollection(selectionId: string): void {
-  useCardRowActionsStore.getState().handlers.onAddEntryToCollection?.(selectionId);
-}
-
-export function dispatchDropFromRule(target: RuleDropTarget): void {
-  useCardRowActionsStore.getState().handlers.onDropFromRule?.(target);
+export function useCardRowDispatch(): CardRowDispatch {
+  return useCardRowActionsStore((state) => state.dispatch);
 }
 
 export function useQuantityPending(entryId: string | null): boolean {

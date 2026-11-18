@@ -43,6 +43,12 @@
 - fix(Meta): **Deck details that fail to load** — standings and the deck browser show a note with a Retry button when deck values, bans or owned marks could not be loaded.
 - fix(App): **Contents list follows the page** — the contents list no longer keeps the highlighted section of the previous tournament, group or promo language.
 - feat(Tournaments): **Table cards match the top cut** — tables in rounds and group stages use the same layout as the top cut bracket, with one line per player and the scores and points lined up on the right. Earlier group rounds are listed newest first. In the top cut, each match names its table first, reported matches stay marked as reported like the group tables, the winner's row is highlighted with the score in gold, seats show the Legend's domains like the group tables, the seed of the player who chooses who starts is gold, seed and group badges explain themselves on hover or tap, and matches whose players aren't known yet are faded.
+- fix(Cards): **Tab reaches every card** — pressing Tab in the card grid and in a collection walks through every card before leaving the grid.
+- fix(Stage): **Present after the connection drops** — presenting a tier list or deck from a page you already have open works without a connection.
+- fix(Decks): **Full rows say so everywhere** — switching legends, replacing a card and copying an archived deck tell you when a row stops at 99 copies.
+- fix(Decks): **Load failures on shared decks** — a shared deck and the deck import page say when prices and ownership could not load, with a retry.
+- fix(App): **Screen reader names** — drags in decks, deck folders, tier lists and the stage queue announce card and list names, settings, promo and price sections have names, and the result form marks the field that needs fixing.
+- fix(Tournaments): **Focus after editing pairings** — saving or cancelling the pairing and group editors puts the focus back on the button that opened them.
 
 ## 2026-11-17
 

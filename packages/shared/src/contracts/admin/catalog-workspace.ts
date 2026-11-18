@@ -126,9 +126,6 @@ export const workspaceUploadSourceSchema = z.object({
   newPrintings: z.number().int().min(0),
   updates: z.number().int().min(0),
   removed: z.number().int().min(0),
-  open: z.number().int().min(0),
-  new: z.number().int().min(0),
-  oldestOpenAt: isoDateTime.nullable(),
   repeatedDifference: z
     .object({ field: z.string(), value: z.string(), count: z.number().int().min(2) })
     .nullable(),
@@ -136,7 +133,6 @@ export const workspaceUploadSourceSchema = z.object({
 
 export const workspaceUploadsResponseSchema = z.object({
   sources: z.array(workspaceUploadSourceSchema),
-  contributors: z.object({ since: isoDateTime.nullable(), count: z.number().int().min(0) }),
 });
 
 export const workspaceEventSchema = z.object({

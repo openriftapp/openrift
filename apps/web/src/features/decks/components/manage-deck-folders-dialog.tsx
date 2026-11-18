@@ -33,6 +33,8 @@ import {
   useRenameDeckFolder,
   useReorderDeckFolders,
 } from "@/features/decks/hooks/use-deck-folders";
+import type { DeckFolderDragData } from "@/features/decks/lib/deck-folder-drag-announcements";
+import { deckFolderDragAnnouncements } from "@/features/decks/lib/deck-folder-drag-announcements";
 import { moveToIndex } from "@/lib/move-to-index";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -56,7 +58,11 @@ function FolderRow({
 
   // Destructure before JSX: member access on this hook's return object in render makes the React Compiler bail.
   const { setNodeRef, setActivatorNodeRef, listeners, transform, transition, isDragging } =
-    useSortable({ id: folder.id, disabled: editing });
+    useSortable({
+      id: folder.id,
+      data: { type: "deck-folder", name: folder.name } satisfies DeckFolderDragData,
+      disabled: editing,
+    });
 
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -256,6 +262,7 @@ export function ManageDeckFoldersDialog({
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
+              accessibility={{ announcements: deckFolderDragAnnouncements }}
               modifiers={[restrictToVerticalAxis, restrictToParentElement]}
               onDragEnd={handleDragEnd}
             >

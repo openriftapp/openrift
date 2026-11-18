@@ -130,3 +130,75 @@ describe("metaUploadSchema structure", () => {
     expect(parse({ matches: [{ ...pairing, roundNumber: 0 }] }).success).toBe(false);
   });
 });
+
+describe("metaUploadSchema numeric bounds", () => {
+  function playerIssuePaths(player: Record<string, unknown>) {
+    const result = parse({
+      players: [{ externalId: "p1", playerName: "Ashe", rank: 1, ...player }],
+    });
+    return result.error?.issues.map((issue) => issue.path.join("."));
+  }
+
+  it("rejects a rank above the player cap, naming the field", () => {
+    expect(playerIssuePaths({ rank: 100_001 })).toEqual(["events.0.players.0.rank"]);
+  });
+
+  it("rejects a fractional or zero rank", () => {
+    expect(playerIssuePaths({ rank: 1.5 })).toEqual(["events.0.players.0.rank"]);
+    expect(playerIssuePaths({ rank: 0 })).toEqual(["events.0.players.0.rank"]);
+  });
+
+  it("rejects a record count outside the smallint range", () => {
+    expect(playerIssuePaths({ wins: 32_768 })).toEqual(["events.0.players.0.wins"]);
+    expect(playerIssuePaths({ losses: -1 })).toEqual(["events.0.players.0.losses"]);
+    expect(playerIssuePaths({ draws: 40_000 })).toEqual(["events.0.players.0.draws"]);
+  });
+
+  it("rejects match points above the integer range", () => {
+    expect(playerIssuePaths({ matchPoints: 2_147_483_648 })).toEqual([
+      "events.0.players.0.matchPoints",
+    ]);
+  });
+
+  it("accepts the largest values the columns hold", () => {
+    expect(
+      playerIssuePaths({ rank: 100_000, wins: 32_767, matchPoints: 2_147_483_647 }),
+    ).toBeUndefined();
+  });
+
+  it("rejects a tiebreaker outside 0 to 1", () => {
+    expect(playerIssuePaths({ gameWinPct: 1.2 })).toEqual(["events.0.players.0.gameWinPct"]);
+    expect(playerIssuePaths({ opponentMatchWinPct: -0.1 })).toEqual([
+      "events.0.players.0.opponentMatchWinPct",
+    ]);
+    expect(playerIssuePaths({ opponentGameWinPct: 2 })).toEqual([
+      "events.0.players.0.opponentGameWinPct",
+    ]);
+    expect(playerIssuePaths({ gameWinPct: 0.5, opponentGameWinPct: 1 })).toBeUndefined();
+  });
+
+  it("rejects a card quantity below one or fractional", () => {
+    const card = (quantity: number) => ({
+      cards: [{ name: "Poro Snack", zone: "main", quantity }],
+    });
+    expect(playerIssuePaths(card(0))).toEqual(["events.0.players.0.cards.0.quantity"]);
+    expect(playerIssuePaths(card(1.5))).toEqual(["events.0.players.0.cards.0.quantity"]);
+  });
+
+  it("rejects a player count of zero", () => {
+    const result = parse({ playerCount: 0 });
+    expect(result.error?.issues.map((issue) => issue.path.join("."))).toEqual([
+      "events.0.playerCount",
+    ]);
+    expect(parse({ playerCount: 1 }).success).toBe(true);
+  });
+
+  it("rejects a match length above the smallint range", () => {
+    const result = parse({
+      phases: [{ phaseOrder: 0, roundType: "swiss", maxGameWins: 32_768 }],
+    });
+    expect(result.error?.issues.map((issue) => issue.path.join("."))).toEqual([
+      "events.0.phases.0.maxGameWins",
+    ]);
+  });
+});

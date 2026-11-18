@@ -123,6 +123,14 @@ describe("CardNotFound", () => {
     expect(router.navigate).toHaveBeenCalledWith({ to: "/cards", search: { q: "jinx" } });
   });
 
+  it("submits natively to the card browser's search before hydration", () => {
+    renderNotFound("blazing-scorcherr");
+
+    const form = screen.getByRole("search");
+    expect(form).toHaveAttribute("action", "/cards");
+    expect(searchField()).toHaveAttribute("name", "q");
+  });
+
   it("opens the unfiltered card browser when the search is cleared", () => {
     renderNotFound("blazing-scorcherr");
 

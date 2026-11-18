@@ -294,8 +294,9 @@ export function useEnsurePrintingImageOriginal() {
   });
 }
 
-export function useAddImageFromUrl(invalidates: Scope = defaultScope) {
+export function useAddImageFromUrl(invalidates: Scope = defaultScope, meta?: MutationMeta) {
   return useMutationWithInvalidation({
+    meta,
     mutationFn: (
       {
         printingId,

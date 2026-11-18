@@ -131,6 +131,31 @@ describe("SelectionDetailPane", () => {
     expect(useSelectionStore.getState().selectedCard).toBeNull();
   });
 
+  it("leaves the dock open on Escape while a narrow container hides it", async () => {
+    const user = userEvent.setup();
+    const items = [stubCardViewerItem()];
+    useDisplayStore.setState({ paneDocked: true });
+    useSelectionStore.setState({
+      selectedCard: items[0]!.printing,
+      selectedItemId: items[0]!.id,
+      detailOpen: true,
+    });
+    const hidden = document.createElement("style");
+    hidden.textContent = ".hidden { display: none; }";
+    document.head.append(hidden);
+    try {
+      renderPane(items);
+      await screen.findByText("Card detail stub");
+
+      await user.keyboard("{Escape}");
+
+      expect(useDisplayStore.getState().paneDocked).toBe(true);
+      expect(useSelectionStore.getState().selectedCard).not.toBeNull();
+    } finally {
+      hidden.remove();
+    }
+  });
+
   it("leaves Escape to a text field or an open menu", async () => {
     const user = userEvent.setup();
     useDisplayStore.setState({ paneDocked: true });

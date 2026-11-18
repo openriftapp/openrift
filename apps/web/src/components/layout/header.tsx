@@ -109,6 +109,7 @@ function MenuButton({
     <Button
       variant="ghost"
       size="icon"
+      inertUntilHydrated
       aria-label={m.layout_header_open_menu()}
       aria-describedby={badgeCount > 0 ? badgeId : undefined}
       className={cn("relative", className)}
@@ -487,7 +488,14 @@ function UserMenu({
       )}
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={<Button variant="ghost" size="icon" aria-label={m.layout_header_menu()} />}
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              inertUntilHydrated
+              aria-label={m.layout_header_menu()}
+            />
+          }
         >
           <UserMenuTrigger user={user} />
         </DropdownMenuTrigger>

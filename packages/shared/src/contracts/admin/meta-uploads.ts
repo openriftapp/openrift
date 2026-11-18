@@ -1,13 +1,10 @@
+import { META_MAX_PLAYERS } from "@openrift/shared/meta-query";
 import { metaListStatusSchema } from "@openrift/shared/response-schemas";
-import { isoDateTime } from "@openrift/shared/schemas";
+import { isoDateTime, POSTGRES_INTEGER_MAX, POSTGRES_SMALLINT_MAX } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { META_OVERLAY_STATUSES } from "../../types/enums.js";
 
-/**
- * Bounds and vocabulary are checked per item in the ingest service; one bad
- * event/player is skipped, and the batch still succeeds.
- */
 const nullStr = z
   .string()
   .nullable()
@@ -15,27 +12,34 @@ const nullStr = z
   .default(null)
   .transform((value) => (value === null || value.trim() === "" ? null : value));
 
-const nullNum = z.number().nullable().optional().default(null);
+function nullInt(min: number, max: number) {
+  return z.number().int().min(min).max(max).nullable().optional().default(null);
+}
+
+const nullCount = nullInt(0, POSTGRES_INTEGER_MAX);
+const nullPositive = nullInt(1, POSTGRES_INTEGER_MAX);
+const nullRecord = nullInt(0, POSTGRES_SMALLINT_MAX);
+const nullFraction = z.number().min(0).max(1).nullable().optional().default(null);
 
 const uploadDeckCardSchema = z.object({
   name: z.string(),
   zone: z.string(),
-  quantity: z.number(),
+  quantity: z.number().int().min(1).max(POSTGRES_INTEGER_MAX),
 });
 
 const uploadPlayerSchema = z
   .object({
     externalId: z.string(),
     playerName: z.string(),
-    rank: z.number(),
+    rank: z.number().int().min(1).max(META_MAX_PLAYERS),
     rankIsTier: z.boolean().optional().default(false),
-    wins: nullNum,
-    losses: nullNum,
-    draws: nullNum,
-    matchPoints: nullNum,
-    opponentMatchWinPct: nullNum,
-    gameWinPct: nullNum,
-    opponentGameWinPct: nullNum,
+    wins: nullRecord,
+    losses: nullRecord,
+    draws: nullRecord,
+    matchPoints: nullCount,
+    opponentMatchWinPct: nullFraction,
+    gameWinPct: nullFraction,
+    opponentGameWinPct: nullFraction,
     entryStatus: nullStr,
     legendName: nullStr,
     championName: nullStr,
@@ -65,28 +69,28 @@ const uploadPlayerSchema = z
   });
 
 const uploadPhaseSchema = z.object({
-  phaseOrder: z.number().int().min(0),
+  phaseOrder: z.number().int().min(0).max(POSTGRES_INTEGER_MAX),
   name: nullStr,
   roundType: z.string().min(1),
-  roundCount: nullNum,
-  rankRequired: nullNum,
-  maxGameWins: nullNum,
+  roundCount: nullPositive,
+  rankRequired: nullPositive,
+  maxGameWins: nullInt(1, POSTGRES_SMALLINT_MAX),
 });
 
 const uploadMatchSchema = z
   .object({
     externalId: z.string().min(1),
-    phaseOrder: z.number().int().min(0).optional().default(0),
-    roundNumber: z.number().int().min(1),
+    phaseOrder: z.number().int().min(0).max(POSTGRES_INTEGER_MAX).optional().default(0),
+    roundNumber: z.number().int().min(1).max(POSTGRES_INTEGER_MAX),
     roundExternalId: nullStr,
-    tableNumber: nullNum,
+    tableNumber: nullPositive,
     isBye: z.boolean().optional().default(false),
     isDraw: z.boolean().optional().default(false),
     player1ExternalId: z.string().min(1),
     player2ExternalId: nullStr,
     winnerExternalId: nullStr,
-    gamesWonP1: nullNum,
-    gamesWonP2: nullNum,
+    gamesWonP1: nullCount,
+    gamesWonP2: nullCount,
   })
   .transform((match, ctx) => {
     const seated = match.player2ExternalId !== null;
@@ -126,7 +130,7 @@ const uploadEventSchema = z.object({
   name: z.string(),
   eventDate: z.string(),
   format: z.string(),
-  playerCount: nullNum,
+  playerCount: nullPositive,
   organizer: nullStr,
   sourceUrl: nullStr,
   notes: nullStr,

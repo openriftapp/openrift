@@ -572,6 +572,18 @@ describe("persisting deck card writes", () => {
     });
   });
 
+  it("sums repeated lines of one row instead of keeping the last", async () => {
+    const collection = await deckCardsOnServer([]);
+    storedCards = [card("card-a", 5)];
+
+    await saveDeckCards(collection, "deck-1", [card("card-a", 3), card("card-a", 2)], {
+      queryClient,
+      userId,
+    }).when("settled");
+
+    expect(sentCards()).toEqual([card("card-a", 5)]);
+  });
+
   it("leaves another deck's cards alone", async () => {
     const collection = await deckCardsOnServer([
       { deckId: "deck-1", ...card("card-a", 1) },

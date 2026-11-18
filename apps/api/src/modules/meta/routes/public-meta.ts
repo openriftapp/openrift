@@ -327,7 +327,8 @@ export const metaRouter = {
       events: events.map((event) => toMetaEventSummary(event)),
       total,
       eventCount,
-      archiveTotal,
+      // The archive count is cached for minutes, so decks added since can outnumber it.
+      archiveTotal: Math.max(archiveTotal, total),
     };
   }),
 

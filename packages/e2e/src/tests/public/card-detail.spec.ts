@@ -472,7 +472,7 @@ test.describe("card detail route — info panel", () => {
 
     // Printings can share a publicCode, so target by id.
     const altButton = page.locator(`button[data-printing-id="${altPrinting.id}"]`);
-    await waitForHydrated(altButton);
+    await expect(altButton).toBeEnabled({ timeout: 20_000 });
     await altButton.click();
     await expect(page.getByText("Printed name", { exact: true })).toBeVisible();
     await expect(page.getByText(altPrintedName)).toBeVisible();
@@ -504,7 +504,7 @@ test.describe("card detail route — info panel", () => {
     // Printings share a publicCode, so target by id.
     const promoButton = page.locator(`button[data-printing-id="${promoPrinting.id}"]`);
 
-    await waitForHydrated(promoButton);
+    await expect(promoButton).toBeEnabled({ timeout: 20_000 });
     await promoButton.click();
     await expect(infoRow(page, "Finish").first()).toContainText("Foil");
     await expect(promoButton).toHaveAttribute("aria-pressed", "true");
@@ -691,7 +691,7 @@ test.describe("card detail route — printings list", () => {
     await expect(languageRow).toContainText("English");
 
     const altButton = page.locator(`button[data-printing-id="${altLang.id}"]`);
-    await waitForHydrated(altButton);
+    await expect(altButton).toBeEnabled({ timeout: 20_000 });
     await altButton.click();
     // The localized label map isn't shipped to the test; only assert "English" no longer matches.
     await expect(languageRow).not.toContainText("English");
@@ -763,10 +763,10 @@ test.describe("card detail route — price history", () => {
     const heading = page.getByRole("heading", { name: /^Prices · /u });
     await expect(heading).toBeVisible({ timeout: 10_000 });
 
-    const rows = page.locator("section", { has: heading }).locator("button[aria-pressed]");
+    const rows = page.getByRole("region", { name: /^Prices · /u }).locator("button[aria-pressed]");
     await expect(rows.first()).toHaveAttribute("aria-pressed", "true");
     const second = rows.nth(1);
-    await waitForHydrated(second);
+    await expect(second).toBeEnabled({ timeout: 20_000 });
     await second.click();
     await expect(second).toHaveAttribute("aria-pressed", "true");
     await expect(rows.first()).toHaveAttribute("aria-pressed", "false");

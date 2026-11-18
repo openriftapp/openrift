@@ -6,7 +6,6 @@ import { expect, test } from "@playwright/test";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb, deleteUser, firstRow } from "../../helpers/db.js";
-import { waitForHydrated } from "../../helpers/hydration.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -103,9 +102,8 @@ async function createCollectionViaApi(request: APIRequestContext, name: string):
 }
 
 async function enterSelectMode(page: Page) {
-  const manageButton = page.getByRole("button", { name: /^Manage\b/u });
-  await waitForHydrated(manageButton);
-  await manageButton.click();
+  // Collections render on the client only, so a visible button is live.
+  await page.getByRole("button", { name: /^Manage\b/u }).click();
   await expect(
     page.getByRole("checkbox", { name: "Select card", exact: true }).first(),
   ).toBeVisible();

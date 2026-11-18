@@ -206,6 +206,7 @@ export function AdminSourcesTable({ sources }: { sources: readonly CatalogSource
       pinned={isContributors}
       reorderSteppers={false}
       reorder={{
+        rowLabel: (row) => row.provider,
         moves: flatReorder(uploads, (source) => source.provider),
         onReorder: (keys) => reorderSettings.mutateAsync(keys),
         isPending: reorderSettings.isPending,

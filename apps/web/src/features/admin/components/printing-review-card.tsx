@@ -45,7 +45,6 @@ import {
 import { PrintingCitationsEditor } from "@/features/admin/components/printing-citations-editor";
 import { PrintingIdLabel } from "@/features/admin/components/printing-id-label";
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
-import type { SiblingImage } from "@/features/admin/components/printing-image-switcher";
 import { PrintingImageSwitcher } from "@/features/admin/components/printing-image-switcher";
 import { PrintingSourceActions } from "@/features/admin/components/printing-source-actions";
 import { PrintingSourceImageCell } from "@/features/admin/components/printing-source-image-cell";
@@ -72,6 +71,7 @@ import { printingPairName } from "@/features/admin/lib/face-rows";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
 import { activeImageSourceUrl, imagesOnSide } from "@/features/admin/lib/printing-side-images";
 import { printingKindLabel } from "@/features/admin/lib/printing-summary";
+import { siblingImagesOf } from "@/features/admin/lib/sibling-images";
 import {
   getStoredCollapsedPrintings,
   useAdminCardFoldStore,
@@ -235,21 +235,7 @@ export function PrintingReviewCard({
 
   const uncheckedSources = allSources.filter((ps) => !ps.checkedAt);
 
-  // One entry per underlying image file: the pin stores the file, so a scan shared
-  // across printings would otherwise offer the same pin twice.
-  const siblingImages: SiblingImage[] = [];
-  const seenImageFiles = new Set<string>();
-  for (const image of printingImages) {
-    if (facePrintingIds.has(image.printingId) || seenImageFiles.has(image.imageFileId)) {
-      continue;
-    }
-    seenImageFiles.add(image.imageFileId);
-    const owner = printings.find((p) => p.id === image.printingId);
-    siblingImages.push({
-      imageFileId: image.imageFileId,
-      printingLabel: owner?.expectedPrintingId ?? image.printingId,
-    });
-  }
+  const siblingImages = siblingImagesOf(printingImages, printings, facePrintingIds);
 
   const derivedArtPrinting = findDerivedArtPrinting(printing, printings, printingImages);
 

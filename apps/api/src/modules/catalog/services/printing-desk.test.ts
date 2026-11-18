@@ -968,3 +968,121 @@ describe("removeDeskSide", () => {
     await expect(remove("bird", "face-bird")).rejects.toMatchObject({ status: 400 });
   });
 });
+
+describe("createDeskPrinting duplicates", () => {
+  const SOURCE = {
+    ...BASE_PRINTING,
+    id: "source-1",
+    shortCode: "OGN-P01",
+    publicCode: "OGN-P01/298",
+    rarity: "epic",
+    artVariant: "altart",
+    isSigned: true,
+    isOvernumbered: true,
+    printedYear: 2025,
+  };
+
+  it("keeps the plain defaults without a duplicate source", async () => {
+    await create(repos);
+
+    expect(createNewPrinting.mock.calls[0]?.[2]).toMatchObject({
+      artVariant: "normal",
+      isSigned: false,
+      isOvernumbered: false,
+      publicCode: "OGN-P01",
+      printedYear: null,
+    });
+  });
+
+  it("copies art variant, signed, overnumbered, public code and year off the source", async () => {
+    repos.printingDesk.getFullPrintingForCard.mockResolvedValue(SOURCE as never);
+    await create(repos, { duplicateFrom: "source-1" });
+
+    expect(repos.printingDesk.getFullPrintingForCard).toHaveBeenCalledWith("source-1", CARD.id);
+    expect(repos.printingDesk.getBasePrinting).not.toHaveBeenCalled();
+    expect(createNewPrinting.mock.calls[0]?.[2]).toMatchObject({
+      rarity: "epic",
+      artVariant: "altart",
+      isSigned: true,
+      isOvernumbered: true,
+      publicCode: "OGN-P01/298",
+      printedYear: 2025,
+    });
+  });
+
+  it("drops the source's public code when the new short code differs", async () => {
+    repos.printingDesk.getFullPrintingForCard.mockResolvedValue(SOURCE as never);
+    await create(repos, { duplicateFrom: "source-1", shortCode: "OGN-P02" });
+
+    expect(createNewPrinting.mock.calls[0]?.[2]).toMatchObject({ publicCode: "OGN-P02" });
+  });
+
+  it("prefers given values over the source's", async () => {
+    repos.printingDesk.getFullPrintingForCard.mockResolvedValue(SOURCE as never);
+    await create(repos, {
+      duplicateFrom: "source-1",
+      artVariant: "normal",
+      isSigned: false,
+      isOvernumbered: false,
+      publicCode: " OGN-P01/300 ",
+    });
+
+    expect(createNewPrinting.mock.calls[0]?.[2]).toMatchObject({
+      artVariant: "normal",
+      isSigned: false,
+      isOvernumbered: false,
+      publicCode: "OGN-P01/300",
+    });
+  });
+
+  it("keeps given values on a plain create", async () => {
+    await create(repos, { artVariant: "altart", isSigned: true });
+
+    expect(createNewPrinting.mock.calls[0]?.[2]).toMatchObject({
+      artVariant: "altart",
+      isSigned: true,
+    });
+  });
+
+  it("refuses a source that is not on the card", async () => {
+    repos.printingDesk.getFullPrintingForCard.mockResolvedValue(undefined as never);
+
+    await expect(create(repos, { duplicateFrom: "elsewhere" })).rejects.toMatchObject({
+      status: 404,
+    });
+    expect(createNewPrinting).not.toHaveBeenCalled();
+  });
+
+  it("refuses a public code on a TBA create", async () => {
+    await expect(
+      create(repos, { codeTba: true, shortCode: undefined, publicCode: "OGN-TBA" }),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(createNewPrinting).not.toHaveBeenCalled();
+  });
+
+  it("records the duplicate source in the create event", async () => {
+    repos.printingDesk.getFullPrintingForCard.mockResolvedValue(SOURCE as never);
+    await create(repos, { duplicateFrom: "source-1" });
+
+    expect(recordAdminEvent).toHaveBeenCalledWith(
+      repos,
+      "user-1",
+      expect.objectContaining({
+        action: "printing.create",
+        newValues: expect.objectContaining({ duplicateFrom: "source-1" }),
+      }),
+    );
+  });
+
+  it("leaves the duplicate source out of a plain create event", async () => {
+    await create(repos);
+
+    const call = recordAdminEvent.mock.calls[0] as unknown as unknown[];
+    const event = call[2] as { newValues: Record<string, unknown> };
+    expect(event.newValues).not.toHaveProperty("duplicateFrom");
+  });
+
+  it("refuses a public code that trims to nothing", async () => {
+    await expect(create(repos, { publicCode: "   " })).rejects.toMatchObject({ status: 400 });
+  });
+});

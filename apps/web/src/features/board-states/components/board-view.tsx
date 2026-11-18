@@ -34,11 +34,6 @@ import {
   ArrowOverlay,
   arrowLayoutSignature,
 } from "@/features/board-states/components/board-arrows";
-import type {
-  PieceDragData,
-  PieceDropData,
-  ZoneDropData,
-} from "@/features/board-states/components/board-card-parts";
 import {
   ArrowHandle,
   BattlefieldCardFrame,
@@ -54,6 +49,11 @@ import {
   BoardTurnBar,
 } from "@/features/board-states/components/board-status";
 import { EmptyZoneStrip, ZoneLabel } from "@/features/board-states/components/board-zone-labels";
+import type {
+  PieceDragData,
+  PieceDropData,
+  ZoneDropData,
+} from "@/features/board-states/lib/board-editor-drag";
 import { pieceName, ZONE_LABEL } from "@/features/board-states/lib/board-labels";
 import {
   boardWidthUnits,

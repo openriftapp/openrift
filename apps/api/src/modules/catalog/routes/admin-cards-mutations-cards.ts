@@ -3,7 +3,11 @@ import { adminCardMutationsContract } from "@openrift/shared/contracts/admin/car
 import type { CardType, Domain, SuperType } from "@openrift/shared/types/enums";
 import { implement } from "@orpc/server";
 
-import { assertFound, conflictOnUniqueViolation } from "../../../lib/assertions.js";
+import {
+  assertFound,
+  badRequestOnUnknownCardEnum,
+  conflictOnUniqueViolation,
+} from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import {
@@ -147,13 +151,15 @@ export const adminCardMutationsCardsRouter = {
     await conflictOnUniqueViolation(CARD_SLUG_KEY, CARD_SLUG_TAKEN, () =>
       context.transact(async (trxRepos) => {
         // FK constraints validate values at DB level — safe to cast from z.string()
-        await trxRepos.catalogMutations.acceptNewCardFromSources(
-          cardFields as typeof cardFields & {
-            types: CardType[];
-            domains: Domain[];
-            superTypes?: SuperType[];
-          },
-          name,
+        await badRequestOnUnknownCardEnum(cardFields, () =>
+          trxRepos.catalogMutations.acceptNewCardFromSources(
+            cardFields as typeof cardFields & {
+              types: CardType[];
+              domains: Domain[];
+              superTypes?: SuperType[];
+            },
+            name,
+          ),
         );
       }),
     );
@@ -230,13 +236,15 @@ export const adminCardMutationsCardsRouter = {
 
     await conflictOnUniqueViolation(CARD_SLUG_KEY, CARD_SLUG_TAKEN, () =>
       context.transact(async (trxRepos) => {
-        await trxRepos.catalogMutations.acceptNewCardFromSources(
-          cardFields as typeof cardFields & {
-            types: CardType[];
-            domains: Domain[];
-            superTypes?: SuperType[];
-          },
-          normalizeNameForIdentity(cardFields.name),
+        await badRequestOnUnknownCardEnum(cardFields, () =>
+          trxRepos.catalogMutations.acceptNewCardFromSources(
+            cardFields as typeof cardFields & {
+              types: CardType[];
+              domains: Domain[];
+              superTypes?: SuperType[];
+            },
+            normalizeNameForIdentity(cardFields.name),
+          ),
         );
       }),
     );

@@ -2,6 +2,7 @@ import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { stubPrinting } from "@/test/factories";
+import { rowActionsWrapper } from "@/test/row-actions";
 
 import { CountWithAddControls } from "./count-with-add-controls";
 
@@ -10,6 +11,7 @@ describe("CountWithAddControls", () => {
     const printing = stubPrinting({ printingId: "p-row-2" });
     const { getByText } = render(
       <CountWithAddControls printing={printing} ownedCount={2} totalOwnedCount={5} />,
+      { wrapper: rowActionsWrapper() },
     );
     expect(getByText("2")).toBeTruthy();
     expect(getByText("(5)")).toBeTruthy();
@@ -19,6 +21,7 @@ describe("CountWithAddControls", () => {
     const printing = stubPrinting({ printingId: "p-row-order" });
     const { container } = render(
       <CountWithAddControls printing={printing} ownedCount={2} totalOwnedCount={5} />,
+      { wrapper: rowActionsWrapper() },
     );
     const count = container.querySelector(".tabular-nums");
     const removeButton = container.querySelector('[aria-label="Remove one"]');
@@ -36,13 +39,16 @@ describe("CountWithAddControls", () => {
     const printing = stubPrinting({ printingId: "p-row-3" });
     const { container } = render(
       <CountWithAddControls printing={printing} ownedCount={3} totalOwnedCount={3} />,
+      { wrapper: rowActionsWrapper() },
     );
     expect(container.textContent).not.toContain("(3)");
   });
 
   it("omits the parens when totalOwnedCount is undefined (printings view or no scoping)", () => {
     const printing = stubPrinting({ printingId: "p-row-4" });
-    const { container } = render(<CountWithAddControls printing={printing} ownedCount={2} />);
+    const { container } = render(<CountWithAddControls printing={printing} ownedCount={2} />, {
+      wrapper: rowActionsWrapper(),
+    });
     expect(container.textContent).not.toContain("(");
   });
 });

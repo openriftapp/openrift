@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { Logger } from "@openrift/shared/logger";
 import { Kysely } from "kysely";
 import { PostgresJSDialect } from "kysely-postgres-js";
@@ -48,8 +49,8 @@ export async function createTempDb(databaseUrl: string, label: string): Promise<
   const adminSql = postgres(replaceDbName(databaseUrl, "postgres"), { onnotice: noop });
   // WITH (FORCE) terminates any lingering sessions before dropping (PG13+), so a
   // leftover DB with a stray connection can't block the create.
-  await adminSql.unsafe(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`);
-  await adminSql.unsafe(`CREATE DATABASE "${name}"`);
+  await adminSql`DROP DATABASE IF EXISTS ${adminSql(name)} WITH (FORCE)`;
+  await adminSql`CREATE DATABASE ${adminSql(name)}`;
   await adminSql.end();
   return name;
 }
@@ -62,17 +63,8 @@ export async function dropTempDb(databaseUrl: string, name: string): Promise<voi
   }
   const sql = postgres(replaceDbName(databaseUrl, "postgres"), { onnotice: noop });
   // WITH (FORCE) terminates other sessions then drops, atomically (PG13+).
-  await sql.unsafe(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`);
+  await sql`DROP DATABASE IF EXISTS ${sql(name)} WITH (FORCE)`;
   await sql.end();
-}
-
-export async function listTestDatabases(databaseUrl: string): Promise<string[]> {
-  const sql = postgres(replaceDbName(databaseUrl, "postgres"), { onnotice: noop });
-  const rows = await sql<{ datname: string }[]>`
-    SELECT datname FROM pg_database WHERE datname LIKE 'openrift_test_%'
-  `;
-  await sql.end();
-  return rows.map((r) => r.datname);
 }
 
 /**
@@ -89,26 +81,89 @@ export function parseTestDbTimestamp(name: string): number | null {
   return Number.isFinite(timestamp) ? timestamp : null;
 }
 
+export interface TestDatabaseActivity {
+  name: string;
+  connections: number;
+}
+
+/** Every `openrift_test_%` database with its count of open sessions. */
+export async function listTestDatabaseActivity(
+  databaseUrl: string,
+): Promise<TestDatabaseActivity[]> {
+  const sql = postgres(replaceDbName(databaseUrl, "postgres"), { onnotice: noop });
+  const rows = await sql<TestDatabaseActivity[]>`
+    SELECT d.datname AS name, count(a.pid)::int AS connections
+    FROM pg_database d
+    LEFT JOIN pg_stat_activity a ON a.datname = d.datname
+    WHERE d.datname LIKE 'openrift_test_%'
+    GROUP BY d.datname
+    ORDER BY d.datname
+  `;
+  await sql.end();
+  return rows;
+}
+
+export const STALE_TEST_DB_AGE_MS = 30 * MINUTE_MS;
+
 /**
- * Drop test databases older than `maxAgeMs`, judged by the epoch-ms in their
- * name. Run at the start of an integration run so leftovers from interrupted
- * runs (killed processes never reach teardown) are reclaimed automatically. The
- * age cutoff protects a concurrently-running run's fresh DB from being dropped.
+ * The databases with no open session whose name's epoch-ms is older than `maxAgeMs`.
+ * A name without an epoch-ms is never selected.
  */
+export function selectDroppableTestDatabases(
+  databases: readonly TestDatabaseActivity[],
+  maxAgeMs: number,
+  now: number = Date.now(),
+): string[] {
+  return databases
+    .filter((database) => {
+      if (database.connections > 0) {
+        return false;
+      }
+      const timestamp = parseTestDbTimestamp(database.name);
+      return timestamp !== null && now - timestamp > maxAgeMs;
+    })
+    .map((database) => database.name);
+}
+
+const OBJECT_IN_USE = "55006";
+
+/**
+ * Drops without FORCE, so a session that connected after the activity check makes
+ * Postgres refuse the drop. Returns false when that happened.
+ */
+export async function dropIdleTestDb(databaseUrl: string, name: string): Promise<boolean> {
+  const sql = postgres(replaceDbName(databaseUrl, "postgres"), { onnotice: noop });
+  try {
+    await sql`DROP DATABASE IF EXISTS ${sql(name)}`;
+    return true;
+  } catch (error) {
+    if ((error as { code?: string }).code === OBJECT_IN_USE) {
+      return false;
+    }
+    throw error;
+  } finally {
+    await sql.end();
+  }
+}
+
+/** Drops the databases {@link selectDroppableTestDatabases} picks and returns the ones dropped. */
 export async function sweepStaleTestDatabases(
   databaseUrl: string,
   maxAgeMs: number,
   now: number = Date.now(),
 ): Promise<string[]> {
-  const all = await listTestDatabases(databaseUrl);
-  const stale = all.filter((name) => {
-    const timestamp = parseTestDbTimestamp(name);
-    return timestamp !== null && now - timestamp > maxAgeMs;
-  });
-  for (const name of stale) {
-    await dropTempDb(databaseUrl, name);
+  const candidates = selectDroppableTestDatabases(
+    await listTestDatabaseActivity(databaseUrl),
+    maxAgeMs,
+    now,
+  );
+  const dropped: string[] = [];
+  for (const name of candidates) {
+    if (await dropIdleTestDb(databaseUrl, name)) {
+      dropped.push(name);
+    }
   }
-  return stale;
+  return dropped;
 }
 
 export interface TestUser {

@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { stubPrinting } from "@/test/factories";
+import { rowActionsWrapper } from "@/test/row-actions";
 
 const toastSuccess = vi.fn();
 
@@ -48,6 +49,7 @@ async function openMenu() {
     <CatalogCardContextMenu printing={printing} canWish={false}>
       <span>Annie tile</span>
     </CatalogCardContextMenu>,
+    { wrapper: rowActionsWrapper() },
   );
   await user.pointer({ keys: "[MouseRight]", target: screen.getByText("Annie tile") });
   return user;
@@ -60,6 +62,7 @@ describe("CatalogCardContextMenu add item", () => {
       <CatalogCardContextMenu printing={printing} canWish addTargetName={addTargetName}>
         <span>Annie tile</span>
       </CatalogCardContextMenu>,
+      { wrapper: rowActionsWrapper() },
     );
     await user.pointer({ keys: "[MouseRight]", target: screen.getByText("Annie tile") });
   }

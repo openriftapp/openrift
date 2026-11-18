@@ -1788,6 +1788,37 @@ describe("setLegendAction options", () => {
     expect(cardsOf(collection).find((c) => c.cardId === "off-main")?.quantity).toBe(2);
   });
 
+  it("returns the row-cap notice when an off-color move hits the overflow row cap", () => {
+    collection = createDraftCollection([
+      legendOf("old", ["fury", "calm"]),
+      mainCard("off", "main", "mind", 3),
+      stubDeckBuilderCard({ cardId: "off", zone: "overflow", domains: ["mind"], quantity: 98 }),
+    ]);
+    const notices = setLegendAction(
+      collection,
+      legendOf("new", ["fury", "body"]),
+      EMPTY_RUNES,
+      "constructed",
+      { moveOffColorToOverflow: true },
+    );
+    expect(notices).toEqual([expect.objectContaining({ moved: 1, requested: 3 })]);
+    const rows = new Map(cardsOf(collection).map((c) => [c.zone, c.quantity]));
+    expect(rows.get("overflow")).toBe(99);
+    expect(rows.get("main")).toBe(2);
+  });
+
+  it("returns no notices when every off-color move fits", () => {
+    collection = createDraftCollection([
+      legendOf("old", ["fury", "calm"]),
+      mainCard("off-main", "main", "mind", 2),
+    ]);
+    expect(
+      setLegendAction(collection, legendOf("new", ["fury", "body"]), EMPTY_RUNES, "constructed", {
+        moveOffColorToOverflow: true,
+      }),
+    ).toEqual([]);
+  });
+
   it("keeps off-color cards in place without the option", () => {
     collection = createDraftCollection([
       legendOf("old", ["fury", "calm"]),
@@ -1888,6 +1919,36 @@ describe("replaceCardAction", () => {
         .map((card) => card.cardId)
         .toSorted(),
     ).toEqual(["bf-0", "bf-2", "bf-new"]);
+  });
+
+  it("leaves a full row alone without a notice when a card replaces itself", () => {
+    const row = stubDeckBuilderCard({ cardId: "same", zone: "overflow", quantity: 99 });
+    collection = createDraftCollection([row]);
+    expect(
+      replaceCardAction(collection, row, row, "overflow", EMPTY_RUNES, "constructed"),
+    ).toBeUndefined();
+    expect(cardsOf(collection).map((card) => card.quantity)).toEqual([99]);
+  });
+
+  it("keeps the outgoing copy and answers the notice when the incoming row is full", () => {
+    const outgoing = stubDeckBuilderCard({ cardId: "old", zone: "overflow", quantity: 1 });
+    const incoming = stubDeckBuilderCard({ cardId: "new", zone: "overflow", quantity: 99 });
+    collection = createDraftCollection([outgoing, incoming]);
+    const notice = replaceCardAction(
+      collection,
+      outgoing,
+      incoming,
+      "overflow",
+      EMPTY_RUNES,
+      "constructed",
+    );
+    expect(notice).toMatchObject({ moved: 0, requested: 1 });
+    expect(new Map(cardsOf(collection).map((card) => [card.cardId, card.quantity]))).toEqual(
+      new Map([
+        ["old", 1],
+        ["new", 99],
+      ]),
+    );
   });
 });
 

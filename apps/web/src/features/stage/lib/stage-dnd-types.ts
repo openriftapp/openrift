@@ -12,6 +12,7 @@ export interface StagePoolCardDragData {
 export interface StageQueueRowData {
   type: "stage-queue-row";
   index: number;
+  name: string;
 }
 
 export type StageDragData = StagePoolCardDragData | StageQueueRowData;
@@ -21,9 +22,10 @@ interface StageQueueDropData {
 }
 
 /** A second droppable, distinct from the row's own sortable one: keeps a reorder from being confused with an insert-before-this-stop. */
-interface StageQueueSlotDropData {
+export interface StageQueueSlotDropData {
   type: "stage-queue-slot";
   index: number;
+  name: string;
 }
 
 export type StageDropData = StageQueueDropData | StageQueueSlotDropData | StageQueueRowData;

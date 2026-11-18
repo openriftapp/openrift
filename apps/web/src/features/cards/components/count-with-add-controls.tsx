@@ -3,10 +3,7 @@ import { MinusIcon, PlusIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { CountWithTotal } from "@/components/ui/count-pill";
-import {
-  dispatchDecrement,
-  dispatchIncrement,
-} from "@/features/cards/stores/card-row-actions-store";
+import { useCardRowDispatch } from "@/features/cards/stores/card-row-actions-store";
 import { m } from "@/paraglide/messages.js";
 
 interface CountWithAddControlsProps {
@@ -16,14 +13,15 @@ interface CountWithAddControlsProps {
 }
 
 /**
- * Increments and decrements go through the module-stable trampolines on the
- * card-row-actions store; the active surface registers handlers there.
+ * Increments and decrements go through the stable trampolines of the
+ * enclosing surface's card-row-actions store.
  */
 export function CountWithAddControls({
   printing,
   ownedCount,
   totalOwnedCount,
 }: CountWithAddControlsProps) {
+  const { dispatchDecrement, dispatchIncrement } = useCardRowDispatch();
   return (
     <>
       <span className="text-center font-medium tabular-nums">

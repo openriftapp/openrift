@@ -2,7 +2,7 @@ import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useEffect } from "react";
 
-import { useCardRowActionsStore } from "@/features/cards/stores/card-row-actions-store";
+import type { CardRowActionsStore } from "@/features/cards/stores/card-row-actions-store";
 import { useAddModeStore } from "@/features/collections/stores/add-mode-store";
 import { useResolvedSelection } from "@/hooks/use-resolved-selection";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
@@ -12,6 +12,7 @@ import { useSelectionStore } from "@/stores/selection-store";
 interface UseGridKeyboardNavParams {
   items: CardViewerItem[];
   siblingPrintings?: Printing[];
+  rowActions?: CardRowActionsStore;
 }
 
 const NAV_KEYS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "+", "=", "-"];
@@ -20,7 +21,11 @@ const NAV_KEYS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "+", "=", "
 const isIncrementKey = (key: string) => key === "+" || key === "=";
 const isAddRemoveKey = (key: string) => isIncrementKey(key) || key === "-";
 
-export function useGridKeyboardNav({ items, siblingPrintings }: UseGridKeyboardNavParams) {
+export function useGridKeyboardNav({
+  items,
+  siblingPrintings,
+  rowActions,
+}: UseGridKeyboardNavParams) {
   const { card: selectedCard, index: selectedIndex } = useResolvedSelection(items);
   const navigateToItem = useSelectionStore((s) => s.navigateToItem);
   const setSelectedCard = useSelectionStore((s) => s.setSelectedCard);
@@ -53,7 +58,7 @@ export function useGridKeyboardNav({ items, siblingPrintings }: UseGridKeyboardN
         if (e.repeat || !selectedCard) {
           return;
         }
-        const handlers = useCardRowActionsStore.getState().handlers;
+        const handlers = rowActions?.getState().handlers ?? {};
         if (!handlers.onIncrement) {
           return;
         }
@@ -63,7 +68,7 @@ export function useGridKeyboardNav({ items, siblingPrintings }: UseGridKeyboardN
       }
 
       if (isAddRemoveKey(e.key) && selectedCard) {
-        const handlers = useCardRowActionsStore.getState().handlers;
+        const handlers = rowActions?.getState().handlers ?? {};
         if (isIncrementKey(e.key)) {
           if (!handlers.onIncrement) {
             return;
@@ -126,5 +131,13 @@ export function useGridKeyboardNav({ items, siblingPrintings }: UseGridKeyboardN
 
     globalThis.addEventListener("keydown", handler);
     return () => globalThis.removeEventListener("keydown", handler);
-  }, [items, siblingPrintings, selectedCard, selectedIndex, navigateToItem, setSelectedCard]);
+  }, [
+    items,
+    siblingPrintings,
+    rowActions,
+    selectedCard,
+    selectedIndex,
+    navigateToItem,
+    setSelectedCard,
+  ]);
 }

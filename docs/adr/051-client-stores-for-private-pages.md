@@ -53,7 +53,7 @@ Browser-local decks move onto the same substrate: a `localStorage`-backed collec
 
 ### Confirmation
 
-Unit tests cover the write paths (`copies-write`, `collections-write`, `decks-write`), the collection wiring and the hooks that read them. `refetch-race.test.ts` pins the watcher: a fetch landing during a write triggers exactly one follow-up refetch, and a write with no competing fetch triggers none. `local-decks-collection.test.ts` pins the legacy migration, including that a `local:` blob is re-keyed onto the uuid it wrapped and that the old key is left in place, and that a write made before anything read the store keeps the decks already stored. `authenticated-decks.test.ts` pins that the deck-cards delta reads the touched deck ids only after the rows. On the API side, the create routes have tests for a replayed id returning the caller's existing row and for a foreign id returning 409.
+Unit tests cover the write paths (`copies-write`, `collections-write`, `decks-write`), the collection wiring and the hooks that read them. `decks-collection.test.ts` pins that a stale delta landing after a local update and a local move leaves both rows as written. `local-decks-collection.test.ts` pins the legacy migration, including that a `local:` blob is re-keyed onto the uuid it wrapped and that the old key is left in place, and that a write made before anything read the store keeps the decks already stored. `authenticated-decks.test.ts` pins that the deck-cards delta reads the touched deck ids only after the rows. On the API side, the create routes have tests for a replayed id returning the caller's existing row and for a foreign id returning 409.
 
 ## Design
 
@@ -107,7 +107,7 @@ Creates send a UUIDv7 the client generated. The repositories insert with `onConf
 
 ### The refetch race
 
-`watchForRefetchRace(queryClient, queryKey)` subscribes to the query cache for the duration of a write and counts only fetches, one already running when the write starts or one starting during it, not the store's own write-backs, which reach the cache as data updates without a fetch. If a fetch ran while the write was in flight, the watcher restarts it afterwards, so the store ends on server state that includes the write instead of the snapshot that was in flight when it started.
+A fetch that started before one of the store's own write-backs cannot overwrite it. The collection library discards that fetch's result or merges it under the rows written since, so a stale delta leaves an updated or moved row as written. The write paths add no guard of their own. The deck list rereads after a deck moves to another box or is promoted, because its counts and family order depend on those writes.
 
 ### Browser-local decks
 

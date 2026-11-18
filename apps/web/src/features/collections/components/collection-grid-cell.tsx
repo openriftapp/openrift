@@ -13,15 +13,7 @@ import { CatalogCardContextMenu } from "@/features/cards/components/catalog-card
 import { WishlistHeart } from "@/features/cards/components/wishlist-heart";
 import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCellDisplayState } from "@/features/cards/hooks/use-cell-display-state";
-import {
-  dispatchDecrement,
-  dispatchIncrement,
-  dispatchItemClick,
-  dispatchItemToggle,
-  dispatchOpenVariants,
-  dispatchSiblingClick,
-  dispatchTake,
-} from "@/features/cards/stores/card-row-actions-store";
+import { useCardRowDispatch } from "@/features/cards/stores/card-row-actions-store";
 import { useGridSelectionStore } from "@/features/cards/stores/grid-selection-store";
 import { CollectionCardContextMenu } from "@/features/collections/components/collection-card-context-menu";
 import {
@@ -84,6 +76,15 @@ export const CollectionGridCell = memo(function CollectionGridCell({
   canTake,
   addTargetName,
 }: CollectionGridCellProps) {
+  const {
+    dispatchDecrement,
+    dispatchIncrement,
+    dispatchItemClick,
+    dispatchItemToggle,
+    dispatchOpenVariants,
+    dispatchSiblingClick,
+    dispatchTake,
+  } = useCardRowDispatch();
   const inCardsView = dataView === "cards";
 
   const { displayPrinting, isSelected, isFlashing } = useCellDisplayState({

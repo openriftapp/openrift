@@ -40,6 +40,10 @@ import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printing
 import type { EnrichedProductDetail } from "@/features/cards/lib/products-queries";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
 import { VariantSiblingsContext } from "@/features/cards/lib/variant-siblings-context";
+import {
+  CardRowActionsStoreContext,
+  useOwnCardRowActionsStore,
+} from "@/features/cards/stores/card-row-actions-store";
 import { useOwnedCount } from "@/features/collections/hooks/use-owned-count";
 import { maxOwnedCount } from "@/features/collections/lib/owned-bucket";
 import { useChannelRegistry } from "@/hooks/use-enums";
@@ -234,6 +238,7 @@ function ProductDetailBody({ data }: { data: EnrichedProductDetail }) {
 }
 
 function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
+  const rowActions = useOwnCardRowActionsStore();
   const { sets } = data;
   const display = useCardThumbnailDisplay();
   const showImages = useDisplayStore((state) => state.showImages);
@@ -360,35 +365,37 @@ function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
   }
 
   return (
-    <CardBrowserFilterProvider
-      searchAlternatives={searchAlternatives}
-      availableFilters={availableFilters}
-      availableLanguages={availableLanguages}
-      filterCounts={filterCounts}
-      setDisplayLabel={setDisplayLabel}
-      hiddenSections={hiddenSections}
-      ownedCountMax={ownedCountBound}
-    >
-      <CardViewer
-        items={items}
-        totalItems={productPrintings.length}
-        renderCard={renderCard}
-        toolbar={toolbar}
-        rightPane={rightPane}
-        addStripHeight={ADD_STRIP_HEIGHT}
-        table={{
-          actionsColumn: "narrow",
-          actionsLabel: m.products_quantity_column(),
-          actionsCell: <ProductQuantityCell quantityByPrintingId={quantityByPrintingId} />,
-        }}
+    <CardRowActionsStoreContext value={rowActions}>
+      <CardBrowserFilterProvider
+        searchAlternatives={searchAlternatives}
+        availableFilters={availableFilters}
+        availableLanguages={availableLanguages}
+        filterCounts={filterCounts}
+        setDisplayLabel={setDisplayLabel}
+        hiddenSections={hiddenSections}
+        ownedCountMax={ownedCountBound}
       >
-        <SelectionDetailOverlays
+        <CardViewer
           items={items}
-          printingsByCardId={detailPrintingsByCardId}
-          showImages={showImages}
-          onSearchAndClose={handleSearchAndClose}
-        />
-      </CardViewer>
-    </CardBrowserFilterProvider>
+          totalItems={productPrintings.length}
+          renderCard={renderCard}
+          toolbar={toolbar}
+          rightPane={rightPane}
+          addStripHeight={ADD_STRIP_HEIGHT}
+          table={{
+            actionsColumn: "narrow",
+            actionsLabel: m.products_quantity_column(),
+            actionsCell: <ProductQuantityCell quantityByPrintingId={quantityByPrintingId} />,
+          }}
+        >
+          <SelectionDetailOverlays
+            items={items}
+            printingsByCardId={detailPrintingsByCardId}
+            showImages={showImages}
+            onSearchAndClose={handleSearchAndClose}
+          />
+        </CardViewer>
+      </CardBrowserFilterProvider>
+    </CardRowActionsStoreContext>
   );
 }

@@ -25,8 +25,8 @@ export function CardDetailActions({
   count?: number;
   wishEntries: readonly WishEntryFlat[];
   onAddToWishlist: (printing: Printing) => void;
-  onIncrement?: (printing: Printing) => void;
-  onDecrement?: (printing: Printing, anchorEl: HTMLElement) => void;
+  onIncrement: (printing: Printing) => void;
+  onDecrement: (printing: Printing, anchorEl: HTMLElement) => void;
   incrementDisabled?: boolean;
   addLabel?: string;
 }) {

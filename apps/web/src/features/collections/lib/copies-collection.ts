@@ -78,7 +78,13 @@ export function getCopiesCollection(
           previous === undefined || gainedAccess || reachableUnknown ? undefined : syncedXid;
         const response = await fetchCopies(since, ctx.signal);
         syncedXid = response.syncedXid ?? syncedXid;
-        syncedCollectionIds = accessible ?? known;
+        // Without the collections store, a full read still shows every collection that holds a copy.
+        syncedCollectionIds =
+          accessible ??
+          known ??
+          (since === undefined
+            ? new Set(response.items.map((row) => row.collectionId))
+            : undefined);
 
         const rows =
           since === undefined || response.deletedIds === undefined

@@ -7,8 +7,13 @@ import { cardTile as cardTileFrame } from "../../helpers/catalog.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb, deleteUser, firstRow } from "../../helpers/db.js";
-import { dndDrag, expectDropTargetArmed, moveDragTo, startDrag } from "../../helpers/dnd.js";
-import { waitForHydrated } from "../../helpers/hydration.js";
+import {
+  dndDrag,
+  dndLiveRegion,
+  expectDropTargetArmed,
+  moveDragTo,
+  startDrag,
+} from "../../helpers/dnd.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -115,6 +120,35 @@ async function seedSameCardCopies(
   }
 }
 
+async function apiCreateWishlist(page: Page, name: string): Promise<string> {
+  const response = await page.request.post(`${API_BASE_URL}/api/v1/lists`, {
+    headers: { Origin: WEB_BASE_URL },
+    data: { name, intent: "wish", kind: "card" },
+  });
+  expect(response.ok()).toBeTruthy();
+  return ((await response.json()) as { id: string }).id;
+}
+
+/** Same card pick as {@link seedSameCardCopies}, as one card entry on a list. */
+async function seedListEntry(email: string, listId: string): Promise<{ cardName: string }> {
+  const sql = loadDb();
+  try {
+    const rows = (await sql`
+      INSERT INTO list_entries (list_id, user_id, card_id, kind)
+      SELECT ${listId}::uuid, u.id, c.id, 'card'
+      FROM users u
+      CROSS JOIN (
+        SELECT id FROM cards WHERE name ~ '^[A-Za-z][A-Za-z ]*$' ORDER BY name LIMIT 1
+      ) c
+      WHERE u.email = ${email}
+      RETURNING (SELECT name FROM cards WHERE id = card_id) AS card_name
+    `) as { card_name: string }[];
+    return { cardName: firstRow(rows, `list entry for ${email}`).card_name };
+  } finally {
+    await sql.end();
+  }
+}
+
 async function countCopiesInCollection(collectionId: string): Promise<number> {
   const sql = loadDb();
   try {
@@ -131,8 +165,8 @@ async function countCopiesInCollection(collectionId: string): Promise<number> {
 
 async function settledCardTile(page: Page, cardName: string): Promise<Locator> {
   const tile = cardTileFrame(page, cardName);
+  // Collections render on the client only, so a visible tile is live.
   await expect(tile).toBeVisible({ timeout: 15_000 });
-  await waitForHydrated(tile);
   return tile;
 }
 
@@ -501,6 +535,86 @@ test.describe("collections drag-drop", () => {
       await expect(page.getByText(/Moved /u)).toHaveCount(1);
       expect(await countCopiesInCollection(targetId)).toBe(1);
       expect(await countCopiesInCollection(inboxId)).toBe(0);
+    });
+  });
+
+  test.describe.serial("screen-reader announcements", () => {
+    let userEmail: string | undefined;
+
+    test.afterEach(async () => {
+      if (userEmail) {
+        await deleteUser(userEmail);
+        userEmail = undefined;
+      }
+    });
+
+    test("a card drag names the card and the collection", async ({ page }) => {
+      const email = await createAndLogin(page, "announce-card");
+      userEmail = email;
+
+      await apiCreateCollection(page, "Target");
+      const inboxId = await getInboxId(email);
+      const { cardName } = await seedSameCardCopies(email, inboxId, 1);
+
+      await page.goto(`/collections/${inboxId}`);
+      const targetLink = page.getByRole("link", { name: "Target" });
+      await expect(targetLink).toBeVisible({ timeout: 15_000 });
+      const cardTile = await settledCardTile(page, cardName);
+      const liveRegion = dndLiveRegion(page);
+
+      await startDrag(page, cardTile);
+      await expect(liveRegion).toHaveText(`Picked up ${cardName}.`);
+      await moveDragTo(page, targetLink);
+      await expectDropTargetArmed(collectionRow(targetLink));
+      await expect(liveRegion).toHaveText(`${cardName} is over Target.`);
+      await page.mouse.up();
+      await expect(liveRegion).toHaveText(`Dropped ${cardName} on Target.`);
+    });
+
+    test("a list-entry drag names the card and the list", async ({ page }) => {
+      const email = await createAndLogin(page, "announce-entry");
+      userEmail = email;
+
+      const sourceId = await apiCreateWishlist(page, "Summoner Skirmish wants");
+      await apiCreateWishlist(page, "Arena wants");
+      const { cardName } = await seedListEntry(email, sourceId);
+
+      await page.goto(`/collections/lists/${sourceId}`);
+      const targetLink = page.getByRole("link", { name: "Arena wants" });
+      await expect(targetLink).toBeVisible({ timeout: 15_000 });
+      const entryTile = await settledCardTile(page, cardName);
+      const liveRegion = dndLiveRegion(page);
+
+      await startDrag(page, entryTile);
+      await expect(liveRegion).toHaveText(`Picked up ${cardName}.`);
+      await moveDragTo(page, targetLink);
+      await expect(liveRegion).toHaveText(`${cardName} is over Arena wants.`);
+      await page.mouse.up();
+      await expect(liveRegion).toHaveText(`Dropped ${cardName} on Arena wants.`);
+    });
+
+    test("a sidebar drag names the row and the row it moves over", async ({ page }) => {
+      const email = await createAndLogin(page, "announce-sidebar");
+      userEmail = email;
+
+      await apiCreateCollection(page, "Ionia Vault");
+      await apiCreateCollection(page, "Noxus Box");
+      const inboxId = await getInboxId(email);
+
+      await page.goto(`/collections/${inboxId}`);
+      const vaultLink = page.getByRole("link", { name: "Ionia Vault", exact: true });
+      const boxLink = page.getByRole("link", { name: "Noxus Box" });
+      await expect(boxLink).toBeVisible({ timeout: 15_000 });
+      const liveRegion = dndLiveRegion(page);
+
+      // The grip shows on row hover, so hover the row before pressing it.
+      await vaultLink.hover();
+      await startDrag(page, page.getByRole("button", { name: "Reorder Ionia Vault" }));
+      await expect(liveRegion).toHaveText("Picked up Ionia Vault.");
+      await moveDragTo(page, boxLink);
+      await expect(liveRegion).toHaveText("Ionia Vault is over Noxus Box.");
+      await page.mouse.up();
+      await expect(liveRegion).toHaveText("Dropped Ionia Vault on Noxus Box.");
     });
   });
 });

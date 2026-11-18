@@ -100,6 +100,7 @@ export function VerifyEmailPage() {
             pending={resending}
             type="button"
             variant="link-muted"
+            inertUntilHydrated
             disabled={resending}
             onClick={() => void handleResend()}
           >

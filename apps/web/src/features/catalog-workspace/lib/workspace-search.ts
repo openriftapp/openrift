@@ -30,6 +30,7 @@ export const printingPrefillSearchSchema = z.object({
   card: lenient(z.string().check(z.minLength(1))),
   language: lenient(z.string().check(z.minLength(1))),
   finish: lenient(z.string().check(z.minLength(1))),
+  duplicateFrom: lenient(z.uuid()),
 });
 
 export type PrintingPrefill = z.infer<typeof printingPrefillSearchSchema>;

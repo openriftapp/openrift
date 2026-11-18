@@ -72,12 +72,16 @@ export function SelectionDetailPane({
       if (event.target instanceof Element && event.target.closest(OWNS_ESCAPE)) {
         return;
       }
+      // A narrow container hides the pane through its container query.
+      if (!pane || getComputedStyle(pane).display === "none") {
+        return;
+      }
       event.preventDefault();
       closeOnEscape();
     };
     globalThis.addEventListener("keydown", onKeyDown);
     return () => globalThis.removeEventListener("keydown", onKeyDown);
-  }, [paneDocked]);
+  }, [paneDocked, pane]);
 
   const {
     selectedCard,

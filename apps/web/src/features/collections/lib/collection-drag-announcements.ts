@@ -9,7 +9,7 @@ import type {
 } from "@/features/collections/lib/dnd-types";
 import { COLLECTION_DRAG_TYPES } from "@/features/collections/lib/dnd-types";
 import { asDragData } from "@/lib/dnd-data";
-import { m } from "@/paraglide/messages.js";
+import { dragAnnouncements } from "@/lib/drag-announcements";
 
 interface ListDropName {
   type: "list";
@@ -29,22 +29,19 @@ const NAMED_DROP_TYPES = [
   "sidebar-reorder-list",
 ] as const satisfies readonly NamedDropData["type"][];
 
-function itemName(active: Active): string {
+function itemName(active: Active): string | undefined {
   const drag = asDragData<CollectionDragData>(active.data.current, COLLECTION_DRAG_TYPES);
   if (drag === undefined) {
-    return m.collections_drag_announce_unnamed();
+    return undefined;
   }
-  if (drag.type === "collection-card") {
+  if (drag.type === "collection-card" || drag.type === "list-entry") {
     return legendDisplayName(drag.printing.card);
-  }
-  if (drag.type === "list-entry") {
-    return drag.cardName;
   }
   return drag.label;
 }
 
-function targetName(over: Over | null): string | undefined {
-  const drop = asDragData<NamedDropData>(over?.data.current, NAMED_DROP_TYPES);
+function targetName(over: Over): string | undefined {
+  const drop = asDragData<NamedDropData>(over.data.current, NAMED_DROP_TYPES);
   if (drop === undefined) {
     return undefined;
   }
@@ -58,22 +55,7 @@ function targetName(over: Over | null): string | undefined {
 }
 
 /** Screen-reader announcements for the collections layout, by card, collection and list name. */
-export const collectionDragAnnouncements: Announcements = {
-  onDragStart: ({ active }) => m.collections_drag_announce_picked_up({ name: itemName(active) }),
-  onDragOver: ({ active, over }) => {
-    const name = itemName(active);
-    const target = targetName(over);
-    return target === undefined
-      ? m.collections_drag_announce_not_over({ name })
-      : m.collections_drag_announce_over({ name, target });
-  },
-  onDragEnd: ({ active, over }) => {
-    const name = itemName(active);
-    const target = targetName(over);
-    return target === undefined
-      ? m.collections_drag_announce_nothing_moved({ name })
-      : m.collections_drag_announce_dropped({ name, target });
-  },
-  onDragCancel: ({ active }) =>
-    m.collections_drag_announce_nothing_moved({ name: itemName(active) }),
-};
+export const collectionDragAnnouncements: Announcements = dragAnnouncements({
+  item: itemName,
+  target: targetName,
+});

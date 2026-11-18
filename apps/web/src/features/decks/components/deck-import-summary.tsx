@@ -13,6 +13,7 @@ import { useCustomTagAssignments } from "@/features/collections/hooks/use-custom
 import { DeckDomainBar } from "@/features/decks/components/deck-domain-bar";
 import { DeckFormatBadge } from "@/features/decks/components/deck-format-badge";
 import { DeckMissingCardsDialog } from "@/features/decks/components/deck-missing-cards-dialog";
+import { DeckOwnershipNote } from "@/features/decks/components/deck-ownership-note";
 import { DeckOwnershipBody } from "@/features/decks/components/deck-ownership-panel";
 import { useDeckStats } from "@/features/decks/hooks/use-deck-stats";
 import { useViewerDeckOwnership } from "@/features/decks/hooks/use-viewer-deck-ownership";
@@ -136,6 +137,7 @@ export function DeckImportSummary({
             )}
           </div>
         )}
+        <DeckOwnershipNote enabled={hydrated} />
       </Callout>
 
       {ownershipData && (

@@ -17,6 +17,10 @@ import { useSearchAndCloseDetail } from "@/features/cards/hooks/use-search-and-c
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { selectionFindBy, tileSiblings } from "@/features/cards/lib/card-tiles";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
+import {
+  CardRowActionsStoreContext,
+  useOwnCardRowActionsStore,
+} from "@/features/cards/stores/card-row-actions-store";
 import { useChannelRegistry } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
@@ -59,6 +63,7 @@ export function PickerCardBrowser({
   containerRef,
   className,
 }: PickerCardBrowserProps) {
+  const rowActions = useOwnCardRowActionsStore();
   const { allPrintings, sets, printingsByCardId: catalogPrintingsByCardId } = useCards();
   const display = useCardThumbnailDisplay();
   const showImages = useDisplayStore((state) => state.showImages);
@@ -143,55 +148,57 @@ export function PickerCardBrowser({
   );
 
   return (
-    <CardBrowserFilterProvider
-      searchAlternatives={searchAlternatives}
-      availableFilters={availableFilters}
-      availableLanguages={availableLanguages}
-      filterCounts={filterCounts}
-      setDisplayLabel={setDisplayLabel}
-      hiddenSections={PICKER_HIDDEN_FILTER_SECTIONS}
-    >
-      <div ref={containerRef} className={cn("flex min-w-0 flex-1 flex-col", className)}>
-        <CardViewer
-          items={items}
-          totalItems={allPrintings.length}
-          renderCard={renderCard}
-          setOrder={sets}
-          groupBy={groupBy}
-          groupDir={groupDir}
-          toolbar={
-            <BrowserToolbar
-              totalCards={totalUniqueCards}
-              filteredCount={filteredCount}
-              hideViewToggle={hideViewToggle}
-              hideDisplayModeToggle
-              mobileDoneLabel={
-                hasActiveFilters ? m.cards_grid_show_n_cards({ count: filteredCount }) : undefined
-              }
-            />
-          }
-          rightPane={
-            isMobile ? undefined : (
-              <SelectionDetailPane
-                items={items}
-                printingsByCardId={detailPanePrintingsByCardId}
-                showImages={showImages}
-                onSearchAndClose={handleSearchAndClose}
-                actions={actions}
-              />
-            )
-          }
-          addStripHeight={ADD_STRIP_HEIGHT}
-        >
-          <SelectionDetailOverlays
+    <CardRowActionsStoreContext value={rowActions}>
+      <CardBrowserFilterProvider
+        searchAlternatives={searchAlternatives}
+        availableFilters={availableFilters}
+        availableLanguages={availableLanguages}
+        filterCounts={filterCounts}
+        setDisplayLabel={setDisplayLabel}
+        hiddenSections={PICKER_HIDDEN_FILTER_SECTIONS}
+      >
+        <div ref={containerRef} className={cn("flex min-w-0 flex-1 flex-col", className)}>
+          <CardViewer
             items={items}
-            printingsByCardId={detailPanePrintingsByCardId}
-            showImages={showImages}
-            onSearchAndClose={handleSearchAndClose}
-            actions={actions}
-          />
-        </CardViewer>
-      </div>
-    </CardBrowserFilterProvider>
+            totalItems={allPrintings.length}
+            renderCard={renderCard}
+            setOrder={sets}
+            groupBy={groupBy}
+            groupDir={groupDir}
+            toolbar={
+              <BrowserToolbar
+                totalCards={totalUniqueCards}
+                filteredCount={filteredCount}
+                hideViewToggle={hideViewToggle}
+                hideDisplayModeToggle
+                mobileDoneLabel={
+                  hasActiveFilters ? m.cards_grid_show_n_cards({ count: filteredCount }) : undefined
+                }
+              />
+            }
+            rightPane={
+              isMobile ? undefined : (
+                <SelectionDetailPane
+                  items={items}
+                  printingsByCardId={detailPanePrintingsByCardId}
+                  showImages={showImages}
+                  onSearchAndClose={handleSearchAndClose}
+                  actions={actions}
+                />
+              )
+            }
+            addStripHeight={ADD_STRIP_HEIGHT}
+          >
+            <SelectionDetailOverlays
+              items={items}
+              printingsByCardId={detailPanePrintingsByCardId}
+              showImages={showImages}
+              onSearchAndClose={handleSearchAndClose}
+              actions={actions}
+            />
+          </CardViewer>
+        </div>
+      </CardBrowserFilterProvider>
+    </CardRowActionsStoreContext>
   );
 }

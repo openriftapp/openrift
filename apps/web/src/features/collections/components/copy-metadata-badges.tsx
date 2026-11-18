@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 
 import { CountPillButton } from "@/components/ui/count-pill";
 import { CardStrip } from "@/features/cards/components/card-strip";
-import { dispatchContextAction } from "@/features/cards/stores/card-row-actions-store";
+import { useCardRowDispatch } from "@/features/cards/stores/card-row-actions-store";
 import { conditionShortCode } from "@/features/collections/lib/condition-codes";
 import { copyMarkers } from "@/features/collections/lib/copy-indicators";
 import { OnLoanChip } from "@/features/groups/components/on-loan-chip";
@@ -29,6 +29,7 @@ function MetadataPillButton({
   variant?: "muted" | "primary";
   children: ReactNode;
 }) {
+  const { dispatchContextAction } = useCardRowDispatch();
   return (
     <CountPillButton
       tabIndex={-1}

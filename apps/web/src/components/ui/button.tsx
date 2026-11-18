@@ -3,6 +3,7 @@ import { cva } from "class-variance-authority";
 import type { VariantProps } from "class-variance-authority";
 
 import { Spinner } from "@/components/ui/spinner"; // custom: pending state
+import { useHydrated } from "@/hooks/use-hydrated"; // custom: inert until hydrated
 import { cn } from "@/lib/utils";
 
 // custom: the shared control surface (docs/design-language.md), one neutral fill ladder
@@ -74,20 +75,36 @@ const SPINNER_SIZE: Partial<
   Record<NonNullable<VariantProps<typeof buttonVariants>["size"]>, string>
 > = { xs: "size-3", "icon-xs": "size-3", sm: "size-3.5", "icon-sm": "size-3.5" };
 
-function Button({
+// custom: inert until hydrated
+type ButtonProps = ButtonPrimitive.Props &
+  VariantProps<typeof buttonVariants> & {
+    pending?: boolean; // custom: pending state
+  };
+
+// custom: disabled without the dim until hydration; only these buttons subscribe to hydration
+function InertButton(props: ButtonProps) {
+  const hydrated = useHydrated();
+  return <ButtonBase {...props} hydrating={!hydrated} />;
+}
+
+// custom: inert until hydrated
+function Button({ inertUntilHydrated, ...props }: ButtonProps & { inertUntilHydrated?: boolean }) {
+  return inertUntilHydrated ? <InertButton {...props} /> : <ButtonBase {...props} />;
+}
+
+// custom: the scaffold Button body, renamed behind the inert switch; its props take `hydrating`
+function ButtonBase({
   className,
   variant = "default",
   size = "default",
   render,
   nativeButton,
   pending = false, // custom: pending state
+  hydrating = false, // custom: inert until hydrated
   disabled, // custom: pending state
   children, // custom: pending state
   ...props
-}: ButtonPrimitive.Props &
-  VariantProps<typeof buttonVariants> & {
-    pending?: boolean; // custom: pending state
-  }) {
+}: ButtonProps & { hydrating?: boolean }) {
   // custom: default nativeButton to false when a `render` prop is supplied.
   // Render is almost always used to swap in a TanStack <Link> (an <a>), and
   // Base UI warns at runtime if nativeButton stays true on a non-<button>.
@@ -98,13 +115,14 @@ function Button({
       className={cn(
         buttonVariants({ variant, size, className }),
         pending && "[&>[data-slot=spinner]+svg]:hidden", // custom: the spinner stands in for the leading icon
+        hydrating && !disabled && !pending && "disabled:opacity-100", // custom: inert until hydrated, not dimmed
       )}
       render={render}
       nativeButton={resolvedNativeButton}
       // custom: without autocomplete off, Firefox restores a native button's disabled state
       // across a soft reload; React's button types omit the attribute, hence the spread
       {...(resolvedNativeButton ? { autoComplete: "off" } : undefined)}
-      disabled={disabled || pending} // custom: pending state
+      disabled={disabled || pending || hydrating} // custom: pending state, inert until hydrated
       aria-busy={pending || undefined} // custom: pending state
       {...props}
     >

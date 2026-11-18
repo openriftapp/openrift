@@ -426,6 +426,7 @@ describe("AdminTable reorder", () => {
         reorder={{
           moves: flatReorder(reorderRows, (r) => r.slug),
           onReorder,
+          rowLabel: (r) => r.label,
         }}
       />,
     );
@@ -529,7 +530,11 @@ describe("AdminTable reorder", () => {
         columns={columns}
         data={reordered}
         getRowKey={(r) => r.slug}
-        reorder={{ moves: flatReorder(reordered, (r) => r.slug), onReorder }}
+        reorder={{
+          moves: flatReorder(reordered, (r) => r.slug),
+          onReorder,
+          rowLabel: (r) => r.label,
+        }}
       />,
     );
 
@@ -561,7 +566,11 @@ describe("AdminTable reorder", () => {
         columns={columns}
         data={differentOrder}
         getRowKey={(r) => r.slug}
-        reorder={{ moves: flatReorder(differentOrder, (r) => r.slug), onReorder }}
+        reorder={{
+          moves: flatReorder(differentOrder, (r) => r.slug),
+          onReorder,
+          rowLabel: (r) => r.label,
+        }}
       />,
     );
 

@@ -37,6 +37,7 @@ import {
 } from "@/features/meta/lib/meta-submission-copy";
 import type {
   MetaSubmissionDraft,
+  MetaSubmissionField,
   MetaSubmissionParsedList,
   MetaSubmissionPrefill,
 } from "@/features/meta/lib/meta-submission-form";
@@ -45,12 +46,14 @@ import {
   metaSubmissionDraftFromPrefill,
   metaSubmissionLegendMismatch,
   parseMetaSubmissionList,
-  validateMetaSubmissionDraft,
+  metaSubmissionProblem,
 } from "@/features/meta/lib/meta-submission-form";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn, FORM_COLUMN, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
+
+const FORM_ERROR_ID = "meta-submit-error";
 
 const DECK_PLACEHOLDER = `Legend:
 1 Emperor of the Sands
@@ -332,7 +335,10 @@ export function MetaSubmitPage({
   const [selectedEvent, setSelectedEvent] = useState<MetaEventSummary | undefined>(eventFromSlug);
   const [proposing, setProposing] = useState(eventFromSlug === undefined && archiveIsEmpty);
   const [noteOpen, setNoteOpen] = useState(false);
-  const [formError, setFormError] = useState("");
+  const [formError, setFormError] = useState<{
+    field?: MetaSubmissionField;
+    message: string;
+  } | null>(null);
   const [result, setResult] = useState<MetaSubmissionResult | null>(null);
 
   const deferredDeckText = useDeferredValue(draft.deckText);
@@ -355,7 +361,7 @@ export function MetaSubmitPage({
 
   function applyOutcome(outcome: MetaSubmissionOutcome) {
     if (!outcome.ok) {
-      setFormError(outcome.message);
+      setFormError({ message: outcome.message });
       return;
     }
     setResult(outcome.result);
@@ -363,7 +369,7 @@ export function MetaSubmitPage({
 
   async function handleSubmit() {
     const current = parsedList(draft.deckText, allPrintings);
-    const problem = validateMetaSubmissionDraft(draft, {
+    const problem = metaSubmissionProblem(draft, {
       proposing,
       cardCount: current?.cards.length ?? 0,
     });
@@ -373,11 +379,11 @@ export function MetaSubmitPage({
     }
     const event = proposing ? null : selectedEvent;
     if (event === undefined) {
-      setFormError(m.meta_submit_error_pick_event());
+      setFormError({ message: m.meta_submit_error_pick_event() });
       return;
     }
     if (current === null) {
-      setFormError(m.meta_validate_paste_decklist());
+      setFormError({ field: "deckText", message: m.meta_validate_paste_decklist() });
       return;
     }
 
@@ -390,7 +396,7 @@ export function MetaSubmitPage({
               fromRow && event.id === eventFromSlug?.id ? row.metaEventPlayerId : undefined,
           };
     const input = buildMetaSubmissionInput(draft, current, target);
-    setFormError("");
+    setFormError(null);
     let outcome: Awaited<ReturnType<typeof submit.mutateAsync>> | undefined;
     const ok = await runReportedMutation(async () => {
       outcome = await submit.mutateAsync(input);
@@ -403,6 +409,11 @@ export function MetaSubmitPage({
   function handleSendAnother() {
     setResult(null);
   }
+
+  const invalid = (field: MetaSubmissionField) =>
+    formError?.field === field
+      ? { "aria-invalid": true, "aria-describedby": FORM_ERROR_ID }
+      : undefined;
 
   const formatItems: Record<string, string> = {};
   for (const format of formats) {
@@ -518,6 +529,7 @@ export function MetaSubmitPage({
                             </FieldLabel>
                             <Input
                               id="meta-submit-event-name"
+                              {...invalid("eventName")}
                               value={draft.eventName}
                               maxLength={120}
                               placeholder="Summoner Skirmish"
@@ -558,6 +570,7 @@ export function MetaSubmitPage({
                             </FieldLabel>
                             <Input
                               id="meta-submit-event-players"
+                              {...invalid("eventPlayerCount")}
                               inputMode="numeric"
                               value={draft.eventPlayerCount}
                               placeholder="64"
@@ -570,6 +583,7 @@ export function MetaSubmitPage({
                             </FieldLabel>
                             <Input
                               id="meta-submit-event-organizer"
+                              {...invalid("eventOrganizer")}
                               value={draft.eventOrganizer}
                               maxLength={120}
                               placeholder="Rift Games Berlin"
@@ -582,6 +596,7 @@ export function MetaSubmitPage({
                             </FieldLabel>
                             <Input
                               id="meta-submit-event-source"
+                              {...invalid("eventSourceUrl")}
                               value={draft.eventSourceUrl}
                               maxLength={2000}
                               placeholder={m.meta_submit_event_source_placeholder()}
@@ -615,6 +630,7 @@ export function MetaSubmitPage({
                         </FieldLabel>
                         <Input
                           id="meta-submit-player"
+                          {...invalid("playerName")}
                           value={draft.playerName}
                           maxLength={80}
                           placeholder={m.meta_submit_player_placeholder()}
@@ -627,6 +643,7 @@ export function MetaSubmitPage({
                         </FieldLabel>
                         <Input
                           id="meta-submit-rank"
+                          {...invalid("rank")}
                           inputMode="numeric"
                           value={draft.rank}
                           placeholder="1"
@@ -659,6 +676,7 @@ export function MetaSubmitPage({
                             value={draft.wins}
                             placeholder={m.meta_submit_record_wins_placeholder()}
                             aria-label={m.meta_submit_record_wins_aria()}
+                            {...invalid("record")}
                             className="w-16"
                             onChange={(event) => set("wins", event.target.value)}
                           />
@@ -667,6 +685,7 @@ export function MetaSubmitPage({
                             value={draft.losses}
                             placeholder={m.meta_submit_record_losses_placeholder()}
                             aria-label={m.meta_submit_record_losses_aria()}
+                            {...invalid("record")}
                             className="w-16"
                             onChange={(event) => set("losses", event.target.value)}
                           />
@@ -675,6 +694,7 @@ export function MetaSubmitPage({
                             value={draft.draws}
                             placeholder={m.meta_submit_record_draws_placeholder()}
                             aria-label={m.meta_submit_record_draws_aria()}
+                            {...invalid("record")}
                             className="w-16"
                             onChange={(event) => set("draws", event.target.value)}
                           />
@@ -693,6 +713,7 @@ export function MetaSubmitPage({
                   </FieldLabel>
                   <Textarea
                     id="meta-submit-deck"
+                    {...invalid("deckText")}
                     value={draft.deckText}
                     rows={12}
                     className="font-mono text-sm"
@@ -715,6 +736,7 @@ export function MetaSubmitPage({
                     </FieldLabel>
                     <Textarea
                       id="meta-submit-note"
+                      {...invalid("note")}
                       value={draft.note}
                       rows={3}
                       maxLength={2000}
@@ -739,9 +761,9 @@ export function MetaSubmitPage({
               </SettingsSection>
             </div>
             {formError ? (
-              <Alert variant="destructive">
+              <Alert id={FORM_ERROR_ID} variant="destructive">
                 <TriangleAlertIcon />
-                <AlertTitle>{formError}</AlertTitle>
+                <AlertTitle>{formError.message}</AlertTitle>
               </Alert>
             ) : null}
 

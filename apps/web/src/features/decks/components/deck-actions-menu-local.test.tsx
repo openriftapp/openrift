@@ -21,7 +21,10 @@ vi.mock("@/features/decks/hooks/use-local-decks", () => ({
   useLocalDeck: () => ({ cards: [] }),
   useIsLocalDeck: () => true,
 }));
-vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn() }));
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => vi.fn(),
+  useRouter: () => ({ preloadRoute: vi.fn(() => Promise.resolve(undefined)) }),
+}));
 vi.mock("@/hooks/use-enums", () => ({
   useDeckFormatList: () => ({
     formats: [

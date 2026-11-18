@@ -7,17 +7,12 @@ import { loginViaForm } from "../../helpers/auth-otp.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb } from "../../helpers/db.js";
-import { waitForHydrated } from "../../helpers/hydration.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
 function loadDb(): Sql {
   const state: E2eState = JSON.parse(readFileSync(STATE_FILE, "utf-8"));
   return connectToDb(state.tempDbUrl);
-}
-
-async function waitForHydration(page: Page) {
-  await waitForHydrated(page.locator("header").first());
 }
 
 async function createVerifiedUser(
@@ -44,7 +39,7 @@ async function promoteToAdmin(sql: Sql, email: string) {
 
 async function openUserMenu(page: Page) {
   const menu = page.getByRole("button", { name: "Menu", exact: true });
-  await waitForHydrated(menu);
+  await expect(menu).toBeEnabled({ timeout: 20_000 });
   await menu.click();
 }
 
@@ -69,7 +64,6 @@ test.describe("sign out", () => {
 
   test("user menu hides Sign out when anonymous", async ({ page }) => {
     await page.goto("/cards");
-    await waitForHydration(page);
     await openUserMenu(page);
 
     await expect(page.getByRole("menuitem", { name: /^theme/iu })).toBeVisible();
@@ -222,7 +216,7 @@ test.describe("sign out", () => {
 
     // Collections' nested sidebar has its own "Menu" trigger; scope to the header banner's.
     const menu = page.getByRole("banner").getByRole("button", { name: "Menu", exact: true });
-    await waitForHydrated(menu);
+    await expect(menu).toBeEnabled({ timeout: 20_000 });
     await menu.click();
     await expect(page.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
     await page.getByRole("menuitem", { name: "Sign out" }).click();

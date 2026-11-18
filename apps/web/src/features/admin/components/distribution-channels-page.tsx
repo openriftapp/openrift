@@ -348,6 +348,7 @@ export function DistributionChannelsPage() {
         validate: (d) => validateSlugAndLabel(d.slug, d.label, "nexus-night-2025"),
       }}
       reorder={{
+        rowLabel: (row) => row.label,
         moves: reorderMoves,
         onReorder: (ids) => reorderMutation.mutateAsync(ids),
         isPending: reorderMutation.isPending,

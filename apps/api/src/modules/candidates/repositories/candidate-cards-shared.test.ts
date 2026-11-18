@@ -35,3 +35,14 @@ describe("candidateSideOrder", () => {
     }
   });
 });
+
+describe("uncheckedLinkedPrintings", () => {
+  it("filters the outer select by an id array, not a join to the pending set", async () => {
+    const { db, queries } = createRecordingDb();
+
+    await workspaceQueueRepo(db).uncheckedLinkedPrintings();
+
+    expect(queries[0]).toMatch(/where cp\.id = any\(array\(\s*select pending\.id/u);
+    expect(queries[0]).not.toMatch(/with pending/u);
+  });
+});

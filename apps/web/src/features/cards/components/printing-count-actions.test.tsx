@@ -11,15 +11,11 @@ const printingY = stubPrinting({ printingId: "p-y", cardId, card: { name: "Chaos
 let ownedByPrinting: Record<string, number> = {};
 let scopedCollectionId: string | undefined;
 
-const dispatchIncrement = vi.fn();
-const dispatchDecrement = vi.fn();
+const onIncrement = vi.fn();
+const onDecrement = vi.fn();
+const handlers = { onIncrement, onDecrement };
 
 vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: () => true }));
-
-vi.mock("@/features/cards/stores/card-row-actions-store", () => ({
-  dispatchIncrement: (...args: unknown[]) => dispatchIncrement(...args),
-  dispatchDecrement: (...args: unknown[]) => dispatchDecrement(...args),
-}));
 
 vi.mock("@/features/cards/components/card-detail/owned-collections-popover", () => ({
   OwnedCollectionsPopover: ({ count, totalCount }: { count: number; totalCount?: number }) => (
@@ -58,12 +54,12 @@ describe("PrintingCountActions", () => {
   beforeEach(() => {
     ownedByPrinting = {};
     scopedCollectionId = undefined;
-    dispatchIncrement.mockClear();
-    dispatchDecrement.mockClear();
+    onIncrement.mockClear();
+    onDecrement.mockClear();
   });
 
   it("offers only the add control on a card with no copies", () => {
-    render(<PrintingCountActions printing={printingX} />);
+    render(<PrintingCountActions {...handlers} printing={printingX} />);
 
     expect(screen.getByText("0")).toBeInTheDocument();
     expect(screen.getByLabelText("Add Chaos Rune")).toBeInTheDocument();
@@ -71,20 +67,20 @@ describe("PrintingCountActions", () => {
   });
 
   it("drops the tile strip's bottom margin so it centers beside inline controls", () => {
-    const { container } = render(<PrintingCountActions printing={printingX} />);
+    const { container } = render(<PrintingCountActions {...handlers} printing={printingX} />);
 
     expect(container.firstElementChild?.classList).not.toContain("mb-1");
   });
 
   it("shows the plain pill rather than the popover at zero", () => {
-    render(<PrintingCountActions printing={printingX} />);
+    render(<PrintingCountActions {...handlers} printing={printingX} />);
 
     expect(screen.queryByTestId("owned-popover")).not.toBeInTheDocument();
   });
 
   it("swaps the pill for the collections popover once a copy is owned", () => {
     ownedByPrinting = { "p-x": 2 };
-    render(<PrintingCountActions printing={printingX} />);
+    render(<PrintingCountActions {...handlers} printing={printingX} />);
 
     expect(screen.getByTestId("owned-popover")).toHaveTextContent("2");
     expect(screen.getByLabelText("Remove Chaos Rune")).toBeInTheDocument();
@@ -92,14 +88,16 @@ describe("PrintingCountActions", () => {
 
   it("widens the total across siblings", () => {
     ownedByPrinting = { "p-x": 2, "p-y": 1 };
-    render(<PrintingCountActions printing={printingX} siblings={[printingX, printingY]} />);
+    render(
+      <PrintingCountActions {...handlers} printing={printingX} siblings={[printingX, printingY]} />,
+    );
 
     expect(screen.getByTestId("owned-popover")).toHaveTextContent("2 (3)");
   });
 
   it("omits the wider total for a card with a single variant", () => {
     ownedByPrinting = { "p-x": 2 };
-    render(<PrintingCountActions printing={printingX} siblings={[printingX]} />);
+    render(<PrintingCountActions {...handlers} printing={printingX} siblings={[printingX]} />);
 
     expect(screen.getByTestId("owned-popover")).toHaveTextContent("2");
     expect(screen.queryByText("(2)")).not.toBeInTheDocument();
@@ -107,60 +105,40 @@ describe("PrintingCountActions", () => {
 
   it("scopes the count to a collection when one is given", () => {
     ownedByPrinting = { "p-x": 1 };
-    render(<PrintingCountActions printing={printingX} collectionId="col-1" />);
+    render(<PrintingCountActions {...handlers} printing={printingX} collectionId="col-1" />);
 
     expect(scopedCollectionId).toBe("col-1");
   });
 
   it("counts across every collection when none is given", () => {
     ownedByPrinting = { "p-x": 1 };
-    render(<PrintingCountActions printing={printingX} />);
+    render(<PrintingCountActions {...handlers} printing={printingX} />);
 
     expect(scopedCollectionId).toBeUndefined();
   });
 
   it("dispatches increment and decrement", async () => {
     ownedByPrinting = { "p-x": 1 };
-    render(<PrintingCountActions printing={printingX} />);
+    render(<PrintingCountActions {...handlers} printing={printingX} />);
 
     await userEvent.click(screen.getByLabelText("Add Chaos Rune"));
-    expect(dispatchIncrement).toHaveBeenCalledTimes(1);
+    expect(onIncrement).toHaveBeenCalledTimes(1);
 
     await userEvent.click(screen.getByLabelText("Remove Chaos Rune"));
-    expect(dispatchDecrement).toHaveBeenCalledTimes(1);
+    expect(onDecrement).toHaveBeenCalledTimes(1);
   });
 
   it("takes the caller's numbers instead of querying", () => {
     ownedByPrinting = { "p-x": 99 };
-    render(<PrintingCountActions printing={printingX} count={2} totalCount={5} />);
+    render(<PrintingCountActions {...handlers} printing={printingX} count={2} totalCount={5} />);
 
     expect(screen.getByTestId("owned-popover")).toHaveTextContent("2 (5)");
-  });
-
-  it("prefers the caller's handlers over the row dispatchers", async () => {
-    const onIncrement = vi.fn();
-    const onDecrement = vi.fn();
-    render(
-      <PrintingCountActions
-        printing={printingX}
-        count={1}
-        onIncrement={onIncrement}
-        onDecrement={onDecrement}
-      />,
-    );
-
-    await userEvent.click(screen.getByLabelText("Add Chaos Rune"));
-    await userEvent.click(screen.getByLabelText("Remove Chaos Rune"));
-
-    expect(onIncrement).toHaveBeenCalledWith(printingX);
-    expect(onDecrement).toHaveBeenCalledTimes(1);
-    expect(dispatchIncrement).not.toHaveBeenCalled();
-    expect(dispatchDecrement).not.toHaveBeenCalled();
   });
 
   it("takes an add label and a disabled add button from the caller", () => {
     render(
       <PrintingCountActions
+        {...handlers}
         printing={printingX}
         count={0}
         addLabel="Add Chaos Rune to Inbox"

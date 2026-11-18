@@ -12,8 +12,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type * as UseDecks from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 
-const { dialogProps, boxed, navigate } = vi.hoisted(() => ({
+const { dialogProps, boxed, navigate, router } = vi.hoisted(() => ({
   navigate: vi.fn(),
+  router: { preloadRoute: vi.fn(() => Promise.resolve(undefined)) },
   dialogProps: {} as Record<string, Record<string, unknown>>,
   boxed: {
     current: [] as { deckId: string; deckName: string; boxName: string; collectionId: string }[],
@@ -45,7 +46,10 @@ vi.mock("@/features/decks/hooks/use-decks-collections", () => ({
   useDeckCardsCollection: () => cardsCollection,
 }));
 
-vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => navigate,
+  useRouter: () => router,
+}));
 vi.mock("@/features/decks/hooks/use-boxed-decks", () => ({ useBoxedDecks: () => boxed.current }));
 
 const noopMutation = { mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false };
@@ -274,6 +278,20 @@ describe("DeckActionsMenu", () => {
     await user.click(screen.getByRole("button", { name: "Deck actions" }));
     await user.click(await screen.findByRole("menuitem", { name: "Duplicate" }));
     expect(noopMutation.mutate).toHaveBeenCalledWith("deck-own", expect.anything());
+  });
+
+  it("preloads the show page when the menu opens, so Present works offline", async () => {
+    const user = userEvent.setup();
+    router.preloadRoute.mockClear();
+    render(<DeckActionsMenu item={ITEM} source="server" />);
+
+    expect(router.preloadRoute).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Deck actions" }));
+    await screen.findByRole("menuitem", { name: "Present" });
+    expect(router.preloadRoute).toHaveBeenCalledWith({
+      to: "/stage/show",
+      search: { deck: "deck-own", i: 0 },
+    });
   });
 
   it("presents the deck on the show page", async () => {

@@ -171,7 +171,7 @@ beforeEach(() => {
 });
 
 async function pasteDeck(text: string): Promise<void> {
-  fireEvent.change(screen.getByLabelText("Decklist"), { target: { value: text } });
+  fireEvent.change(screen.getByRole("textbox", { name: "Decklist" }), { target: { value: text } });
   await waitFor(() => {
     expect(screen.getByRole("button", { name: "Send decklist" })).toBeEnabled();
   });
@@ -314,7 +314,9 @@ describe("MetaSubmitPage from a standings row", () => {
     render(<MetaSubmitPage slug="summoner-skirmish" prefill={ROW_PREFILL} />);
     await pasteDeck(MAIN_ONLY);
     deferral.holding = true;
-    fireEvent.change(screen.getByLabelText("Decklist"), { target: { value: FULL_DECK } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Decklist" }), {
+      target: { value: FULL_DECK },
+    });
     await send();
 
     expect(mutateAsync.mock.calls[0]![0]).toMatchObject({ listStatus: "full" });
@@ -367,6 +369,24 @@ describe("MetaSubmitPage note", () => {
 
     expect(mutateAsync).not.toHaveBeenCalled();
     expect(screen.getByText(/Say what's wrong with the list we have/u)).toBeInTheDocument();
+  });
+
+  it("marks the failing field invalid and points it at the message", async () => {
+    render(
+      <MetaSubmitPage
+        slug="summoner-skirmish"
+        prefill={{ ...ROW_PREFILL, kind: "correction", deckText: MAIN_ONLY }}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Send decklist" })).toBeEnabled();
+    });
+    await send();
+
+    const note = document.querySelector("#meta-submit-note");
+    expect(note).toHaveAttribute("aria-invalid", "true");
+    expect(note).toHaveAccessibleDescription(/Say what's wrong with the list we have/u);
+    expect(document.querySelector("#meta-submit-deck")).not.toHaveAttribute("aria-invalid");
   });
 });
 

@@ -1,14 +1,17 @@
 import type * as ReactRouter from "@tanstack/react-router";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
-import { useCardRowActionsStore } from "@/features/cards/stores/card-row-actions-store";
+import type { CardRowActionsStore } from "@/features/cards/stores/card-row-actions-store";
+import {
+  CardRowActionsStoreContext,
+  createCardRowActionsStore,
+} from "@/features/cards/stores/card-row-actions-store";
 import type { WishEntryFlat } from "@/features/groups/lib/wish-entry";
 import { stubPrinting } from "@/test/factories";
-import { createStoreResetter } from "@/test/store-helpers";
 
 const cardId = "card-chaos-rune";
 const printingX = stubPrinting({ printingId: "p-x", cardId, card: { name: "Chaos Rune" } });
@@ -51,6 +54,7 @@ interface StripProbeProps {
 
 let strip: ReactElement<StripProbeProps> | undefined;
 let contextMenu: ReactNode;
+let cellRenders = 0;
 
 // Mounting the real strip would drag in popover trees this test has no providers for.
 vi.mock("@/features/cards/components/card-cell", () => ({
@@ -63,6 +67,7 @@ vi.mock("@/features/cards/components/card-cell", () => ({
   }) => {
     strip = cellStrip;
     contextMenu = cellMenu;
+    cellRenders++;
     return <div>{cellStrip?.props.extras}</div>;
   },
 }));
@@ -71,7 +76,9 @@ const { BrowserCardCell } = await import("./browser-card-cell");
 
 const display = { getFallbackArt: () => null } as unknown as CardThumbnailDisplay;
 
-function renderCell(props: {
+let rowActions: CardRowActionsStore;
+
+function cellElement(props: {
   canAdd: boolean;
   canWish?: boolean;
   showStrip?: boolean;
@@ -80,7 +87,7 @@ function renderCell(props: {
   wishEntries?: readonly WishEntryFlat[];
 }) {
   const inCardsView = props.inCardsView ?? true;
-  return render(
+  return (
     <BrowserCardCell
       printing={printingX}
       itemId="p-x"
@@ -97,19 +104,28 @@ function renderCell(props: {
       addTargetName={props.canAdd ? "Inbox" : undefined}
       wishEntries={props.wishEntries}
       inCardsView={inCardsView}
-    />,
+    />
   );
 }
 
-const resetHandlers = createStoreResetter(useCardRowActionsStore);
+function renderCell(props: Parameters<typeof cellElement>[0]) {
+  return render(
+    <CardRowActionsStoreContext value={rowActions}>
+      {cellElement(props)}
+    </CardRowActionsStoreContext>,
+  );
+}
+
+function resetHandlers() {
+  rowActions = createCardRowActionsStore();
+  ownedByPrinting = {};
+  strip = undefined;
+  contextMenu = undefined;
+  cellRenders = 0;
+}
 
 describe("BrowserCardCell strip", () => {
-  beforeEach(() => {
-    resetHandlers();
-    ownedByPrinting = {};
-    strip = undefined;
-    contextMenu = undefined;
-  });
+  beforeEach(resetHandlers);
   afterEach(resetHandlers);
 
   it("stays read-only when the browser has no add target", () => {
@@ -160,7 +176,7 @@ describe("BrowserCardCell strip", () => {
 
   it("dispatches a plus to the registered catalog handler", () => {
     const onIncrement = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("catalog", { onIncrement });
+    rowActions.getState().setHandlers({ onIncrement });
     renderCell({ canAdd: true });
 
     strip?.props.increment?.onClick({ currentTarget: document.createElement("button") });
@@ -176,7 +192,7 @@ describe("BrowserCardCell strip", () => {
 
   it("hands the minus its anchor so the handler can open the popover against it", () => {
     const onDecrement = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("catalog", { onDecrement });
+    rowActions.getState().setHandlers({ onDecrement });
     ownedByPrinting = { "p-x": 1 };
     renderCell({ canAdd: true });
 
@@ -188,12 +204,7 @@ describe("BrowserCardCell strip", () => {
 });
 
 describe("BrowserCardCell wishlist affordance", () => {
-  beforeEach(() => {
-    resetHandlers();
-    ownedByPrinting = {};
-    strip = undefined;
-    contextMenu = undefined;
-  });
+  beforeEach(resetHandlers);
   afterEach(resetHandlers);
 
   it("offers nothing to a signed-out visitor", () => {
@@ -213,7 +224,7 @@ describe("BrowserCardCell wishlist affordance", () => {
 
   it("opens the picker for the card the heart belongs to", async () => {
     const onAddToWishlist = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("catalog", { onAddToWishlist });
+    rowActions.getState().setHandlers({ onAddToWishlist });
     renderCell({ canAdd: true, canWish: true });
 
     await userEvent.click(screen.getByRole("button", { name: "Add Chaos Rune to a wishlist" }));
@@ -241,5 +252,54 @@ describe("BrowserCardCell wishlist affordance", () => {
       screen.queryByRole("button", { name: "Add Chaos Rune to a wishlist" }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /On your wishlist, 2 wanted/u })).toBeInTheDocument();
+  });
+});
+
+describe("BrowserCardCell row actions", () => {
+  beforeEach(resetHandlers);
+  afterEach(resetHandlers);
+
+  it("dispatches to the handlers of the surface it is mounted in", async () => {
+    const catalogWish = vi.fn();
+    const deckWish = vi.fn();
+    const deckActions = createCardRowActionsStore();
+    rowActions.getState().setHandlers({ onAddToWishlist: catalogWish });
+    deckActions.getState().setHandlers({ onAddToWishlist: deckWish });
+    render(
+      <>
+        <CardRowActionsStoreContext value={rowActions}>
+          {cellElement({ canAdd: false, canWish: true })}
+        </CardRowActionsStoreContext>
+        <CardRowActionsStoreContext value={deckActions}>
+          {cellElement({ canAdd: false, canWish: true })}
+        </CardRowActionsStoreContext>
+      </>,
+    );
+    const [catalogHeart, deckHeart] = screen.getAllByRole("button", {
+      name: "Add Chaos Rune to a wishlist",
+    });
+
+    await userEvent.click(deckHeart!);
+    expect(deckWish).toHaveBeenCalledWith(printingX);
+    expect(catalogWish).not.toHaveBeenCalled();
+
+    await userEvent.click(catalogHeart!);
+    expect(catalogWish).toHaveBeenCalledWith(printingX);
+    expect(deckWish).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not re-render when the surface swaps its handlers, and dispatches to the new ones", async () => {
+    const first = vi.fn();
+    rowActions.getState().setHandlers({ onAddToWishlist: first });
+    renderCell({ canAdd: false, canWish: true });
+    const rendersAfterMount = cellRenders;
+
+    const second = vi.fn();
+    act(() => rowActions.getState().setHandlers({ onAddToWishlist: second }));
+
+    expect(cellRenders).toBe(rendersAfterMount);
+    await userEvent.click(screen.getByRole("button", { name: "Add Chaos Rune to a wishlist" }));
+    expect(second).toHaveBeenCalledWith(printingX);
+    expect(first).not.toHaveBeenCalled();
   });
 });

@@ -6,6 +6,7 @@ import type { GetMappingOverview } from "./unified-mapping-merge.js";
 import {
   buildUnifiedMappingsCardResponse,
   buildUnifiedMappingsResponse,
+  mappingOverviewWithSharedSideRows,
 } from "./unified-mapping-merge.js";
 
 function makeGroup(overrides: Record<string, unknown> = {}) {
@@ -1154,5 +1155,52 @@ describe("buildUnifiedMappingsCardResponse", () => {
     const ashePrinting = result.group?.printings.find((p) => p.printingId === "p-ashe-en");
     expect(ashePrinting?.tcgExternalId).toBe(684_497);
     expect(ashePrinting?.cmExternalId).toBeNull();
+  });
+});
+
+describe("mappingOverviewWithSharedSideRows", () => {
+  it("reads each side table once for every marketplace and hands each overview its own rows", async () => {
+    const ignored = (marketplace: string, externalId: number) => ({
+      marketplace,
+      externalId,
+      productName: `Product ${externalId}`,
+      createdAt: new Date("2026-01-01T00:00:00Z"),
+    });
+    const mapping = {
+      ignoredProducts: vi
+        .fn()
+        .mockResolvedValue([ignored("tcgplayer", 1), ignored("cardmarket", 2)]),
+      ignoredVariants: vi.fn().mockResolvedValue([]),
+      groupNames: vi.fn().mockResolvedValue([]),
+      stagingCardOverrides: vi.fn().mockResolvedValue([]),
+      allStaging: vi.fn().mockResolvedValue([]),
+    };
+    const repos = { marketplaceMapping: mapping } as unknown as Repos;
+    const overview = mappingOverviewWithSharedSideRows();
+    const configs = makeConfigs((marketplace) => ({ marketplace, currency: "USD" }) as never);
+
+    const [tcg, cm, ct] = await Promise.all(
+      (["tcgplayer", "cardmarket", "cardtrader"] as const).map((marketplace) =>
+        overview(repos, configs[marketplace], { matchedCards: [] }),
+      ),
+    );
+
+    for (const method of [
+      mapping.ignoredProducts,
+      mapping.ignoredVariants,
+      mapping.groupNames,
+      mapping.stagingCardOverrides,
+    ]) {
+      expect(method).toHaveBeenCalledOnce();
+      expect(method).toHaveBeenCalledWith(["tcgplayer", "cardmarket", "cardtrader", "cardnexus"]);
+    }
+    expect(mapping.allStaging).toHaveBeenCalledTimes(3);
+    const ids = (result: unknown) =>
+      (result as { ignoredProducts: { externalId: number }[] }).ignoredProducts.map(
+        (row) => row.externalId,
+      );
+    expect(ids(tcg)).toEqual([1]);
+    expect(ids(cm)).toEqual([2]);
+    expect(ids(ct)).toEqual([]);
   });
 });

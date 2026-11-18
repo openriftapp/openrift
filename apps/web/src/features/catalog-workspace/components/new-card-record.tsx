@@ -376,60 +376,64 @@ function NewCardRecordBody({
         title="Card fields"
         actions={<span className="text-muted-foreground text-sm">Click a value to pick it</span>}
       >
-        <CandidateSpreadsheet
-          fields={newCardFields}
-          requiredKeys={REQUIRED_CARD_FIELD_KEYS}
-          activeRow={Object.keys(activeCard).length > 0 ? activeCard : null}
-          candidateRows={sources}
-          submitters={buildSourceSubmitters(sources)}
-          providerSettings={providerSettings}
-          costKeywords={costKeywords}
-          onCellClick={(field, value) => setEdits({ ...activeCard, [field]: value })}
-          onActiveChange={(field, value) =>
-            setEdits(
-              value === null || value === undefined
-                ? Object.fromEntries(Object.entries(activeCard).filter(([key]) => key !== field))
-                : { ...activeCard, [field]: value },
-            )
-          }
-          onCheck={
-            isAdmin
-              ? (candidateId) =>
-                  void queueWrite((signal) =>
-                    checkCandidateCard.mutateAsync(candidateId, { signal }),
-                  )
-              : undefined
-          }
-          onUncheck={
-            isAdmin
-              ? (candidateId) =>
-                  void queueWrite((signal) =>
-                    uncheckCandidateCard.mutateAsync(candidateId, { signal }),
-                  )
-              : undefined
-          }
-        />
+        <fieldset disabled={busy} className="min-w-0">
+          <CandidateSpreadsheet
+            fields={newCardFields}
+            requiredKeys={REQUIRED_CARD_FIELD_KEYS}
+            activeRow={Object.keys(activeCard).length > 0 ? activeCard : null}
+            candidateRows={sources}
+            submitters={buildSourceSubmitters(sources)}
+            providerSettings={providerSettings}
+            costKeywords={costKeywords}
+            onCellClick={(field, value) => setEdits({ ...activeCard, [field]: value })}
+            onActiveChange={(field, value) =>
+              setEdits(
+                value === null || value === undefined
+                  ? Object.fromEntries(Object.entries(activeCard).filter(([key]) => key !== field))
+                  : { ...activeCard, [field]: value },
+              )
+            }
+            onCheck={
+              isAdmin
+                ? (candidateId) =>
+                    void queueWrite((signal) =>
+                      checkCandidateCard.mutateAsync(candidateId, { signal }),
+                    )
+                : undefined
+            }
+            onUncheck={
+              isAdmin
+                ? (candidateId) =>
+                    void queueWrite((signal) =>
+                      uncheckCandidateCard.mutateAsync(candidateId, { signal }),
+                    )
+                : undefined
+            }
+          />
+        </fieldset>
       </RecordSection>
 
       <RecordSection title="What gets created">
-        <RecordFieldRow
-          label="Card ID"
-          value={<span className="font-mono">{cardId}</span>}
-          onEdit={() => setEditingCardId(true)}
-          editing={
-            editingCardId ? (
-              <Input
-                aria-label="Card ID"
-                value={cardIdEdit ?? detail.defaultCardId}
-                onChange={(event) => setCardIdEdit(event.target.value)}
-                onBlur={() => setEditingCardId(false)}
-                className="w-48 font-mono"
-                // oxlint-disable-next-line jsx-a11y/no-autofocus -- opened by its Edit button, focus follows the click
-                autoFocus
-              />
-            ) : undefined
-          }
-        />
+        <fieldset disabled={busy} className="min-w-0">
+          <RecordFieldRow
+            label="Card ID"
+            value={<span className="font-mono">{cardId}</span>}
+            onEdit={() => setEditingCardId(true)}
+            editing={
+              editingCardId ? (
+                <Input
+                  aria-label="Card ID"
+                  value={cardIdEdit ?? detail.defaultCardId}
+                  onChange={(event) => setCardIdEdit(event.target.value)}
+                  onBlur={() => setEditingCardId(false)}
+                  className="w-48 font-mono"
+                  // oxlint-disable-next-line jsx-a11y/no-autofocus -- opened by its Edit button, focus follows the click
+                  autoFocus
+                />
+              ) : undefined
+            }
+          />
+        </fieldset>
         {groups.length === 0 ? (
           <p className="text-muted-foreground mt-2">
             No source lists a printing. Add one under Printings after accepting.

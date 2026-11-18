@@ -2,6 +2,7 @@ import { hasFieldValue } from "@openrift/shared/catalog-field-compare";
 import { TriangleAlertIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { Pressable } from "@/components/ui/pressable";
 import {
   DiffText,
   ImageUrlCell,
@@ -60,7 +61,46 @@ export function CandidateValueCell<TKey extends string>({
   const isDifferent = isClickable && activeRow !== null;
   const warningText =
     cellWarning && hasFieldValue(candidateValue) ? cellWarning(field.key, candidateValue) : null;
+  const valueText = candidateValueText(
+    candidateValue,
+    field.suffixKey ? candidateFieldValue(row, field.suffixKey) : undefined,
+  );
   const content = renderContent?.(field, row);
+  const isImageLink = field.key === "imageUrl" && typeof candidateValue === "string";
+  const accepts =
+    onCellClick !== undefined &&
+    !field.readOnly &&
+    !invalidOption &&
+    hasFieldValue(candidateValue) &&
+    (content === undefined || content === null) &&
+    !isImageLink;
+  const accept = () => {
+    if (isClickable) {
+      onCellClick?.(field.key, normalizedCandidate, row.id);
+    }
+  };
+  const acceptedText = candidateValueText(
+    normalizedCandidate,
+    field.suffixKey ? candidateFieldValue(row, field.suffixKey) : undefined,
+  );
+  const acceptLabel = isClickable
+    ? `Use ${acceptedText} for ${field.label}`
+    : `${field.label} ${acceptedText} is in use`;
+
+  const body =
+    content ??
+    (isImageLink ? (
+      <ImageUrlCell url={candidateValue} alt="Candidate" />
+    ) : isDifferent &&
+      DIFFED_FIELDS.has(field.key) &&
+      typeof normalizedCandidate === "string" &&
+      typeof activeValue === "string" ? (
+      <DiffText segments={textDiff(activeValue, normalizedCandidate)} />
+    ) : field.labeledOptions ? (
+      renderLabeledValue(field, candidateValue)
+    ) : (
+      valueText
+    ));
 
   return (
     <td
@@ -76,35 +116,26 @@ export function CandidateValueCell<TKey extends string>({
         isChecked(row) && "opacity-50",
         invalidOption && "bg-destructive-soft text-destructive line-through",
         isDifferent && "bg-warning-soft text-warning",
-        isClickable && onCellClick && "hover:bg-warning/20 cursor-pointer",
+        isClickable && onCellClick && "hover:bg-warning/20",
       )}
-      onClick={
-        isClickable && onCellClick
-          ? () => onCellClick(field.key, normalizedCandidate, row.id)
-          : undefined
-      }
     >
       {warningText && (
         <span title={warningText} className="text-warning mr-1 inline-flex align-middle">
           <TriangleAlertIcon className="size-3.5" />
         </span>
       )}
-      {content ??
-        (field.key === "imageUrl" && typeof candidateValue === "string" ? (
-          <ImageUrlCell url={candidateValue} alt="Candidate" />
-        ) : isDifferent &&
-          DIFFED_FIELDS.has(field.key) &&
-          typeof normalizedCandidate === "string" &&
-          typeof activeValue === "string" ? (
-          <DiffText segments={textDiff(activeValue, normalizedCandidate)} />
-        ) : field.labeledOptions ? (
-          renderLabeledValue(field, candidateValue)
-        ) : (
-          candidateValueText(
-            candidateValue,
-            field.suffixKey ? candidateFieldValue(row, field.suffixKey) : undefined,
-          )
-        ))}
+      {accepts ? (
+        <Pressable
+          className={cn("block w-full", !isClickable && "cursor-default")}
+          aria-label={acceptLabel}
+          aria-disabled={!isClickable}
+          onClick={accept}
+        >
+          {body}
+        </Pressable>
+      ) : (
+        body
+      )}
     </td>
   );
 }

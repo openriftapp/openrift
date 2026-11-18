@@ -10,7 +10,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { activeClientIp } from "@/lib/server-fns/client-ip-context";
 
-import { otelRequestMiddleware } from "./otel-request";
+import { otelRequestMiddleware, otelServerFnMiddleware } from "./otel-request";
 
 const exporter = new InMemorySpanExporter();
 const provider = new TracerProvider({
@@ -214,5 +214,47 @@ describe("otelRequestMiddleware (web)", () => {
     } as never);
 
     expect(injected?.traceparent).toMatch(/^00-[0-9a-f]{32}-[0-9a-f]{16}-/u);
+  });
+});
+
+describe("otelServerFnMiddleware", () => {
+  const fnHandler = otelServerFnMiddleware.options.server!;
+  const callFn = (name: string) =>
+    fnHandler({
+      serverFnMeta: { id: "opaque", name, filename: "src/lib/catalog.ts" },
+      next: async () => undefined,
+    } as never);
+
+  it("names a dev server function request, whose id carries no name, after the function", async () => {
+    await handler({
+      request: new Request("https://example.com/_serverFn/eyJmaWxlIjoiL3NyYy9saWIifQ"),
+      next: () => callFn("fetchCatalog"),
+    } as never);
+
+    const span = exporter.getFinishedSpans()[0];
+    expect(span?.name).toBe("serverFn:fetchCatalog");
+    expect(span?.attributes["http.route"]).toBe("/_serverFn/fetchCatalog");
+    expect(span?.attributes["serverfn.name"]).toBe("fetchCatalog");
+  });
+
+  it("keeps the first name when the function calls another server function", async () => {
+    await handler({
+      request: new Request("https://example.com/_serverFn/eyJmaWxlIjoiL3NyYy9saWIifQ"),
+      next: async () => {
+        await callFn("fetchDeck");
+        await callFn("fetchCatalog");
+      },
+    } as never);
+
+    expect(exporter.getFinishedSpans()[0]?.name).toBe("serverFn:fetchDeck");
+  });
+
+  it("leaves a page request's span alone when SSR calls a server function", async () => {
+    await handler({
+      request: new Request("https://example.com/cards"),
+      next: () => callFn("fetchCatalog"),
+    } as never);
+
+    expect(exporter.getFinishedSpans()[0]?.name).toBe("GET /cards");
   });
 });

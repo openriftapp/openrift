@@ -1,3 +1,4 @@
+import { useHydrated } from "@/hooks/use-hydrated";
 import { cn } from "@/lib/utils";
 
 // Hand-authored primitive (not shadcn-scaffolded).
@@ -17,7 +18,20 @@ import { cn } from "@/lib/utils";
  *
  * @returns The pressable button element.
  */
-function Pressable({ className, type, ...props }: React.ComponentProps<"button">) {
+function Pressable({
+  inertUntilHydrated,
+  ...props
+}: React.ComponentProps<"button"> & { inertUntilHydrated?: boolean }) {
+  return inertUntilHydrated ? <InertPressable {...props} /> : <PressableBase {...props} />;
+}
+
+/** Disabled until hydration; only these pressables subscribe to hydration. */
+function InertPressable({ disabled, ...props }: React.ComponentProps<"button">) {
+  const hydrated = useHydrated();
+  return <PressableBase {...props} disabled={disabled || !hydrated} />;
+}
+
+function PressableBase({ className, type, ...props }: React.ComponentProps<"button">) {
   return (
     <button
       data-slot="pressable"

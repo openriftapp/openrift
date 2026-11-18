@@ -5,7 +5,10 @@ import type { GroupByField } from "@openrift/shared/types/search";
 import { useEffect } from "react";
 
 import { cardsViewTileKey, selectionFindBy } from "@/features/cards/lib/card-tiles";
-import type { CollectionContextAction } from "@/features/cards/stores/card-row-actions-store";
+import type {
+  SurfaceRowActionsStore,
+  CollectionContextAction,
+} from "@/features/cards/stores/card-row-actions-store";
 import { usePrintingLightboxStore } from "@/features/cards/stores/printing-lightbox-store";
 import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-override-store";
 import { buildOnDecrement } from "@/features/collections/hooks/collection-decrement";
@@ -44,6 +47,7 @@ function printingsArrayEqual(a: readonly Printing[], b: readonly Printing[]): bo
 }
 
 interface UseCollectionGridSelectionParams {
+  rowActions: SurfaceRowActionsStore<"collection">;
   items: CardViewerItem[];
   stackByItemId: Map<string, StackedEntry>;
   stackByPrintingId: Map<string, StackedEntry>;
@@ -71,6 +75,7 @@ interface UseCollectionGridSelectionParams {
 }
 
 export function useCollectionGridSelection({
+  rowActions,
   items,
   stackByItemId,
   stackByPrintingId,
@@ -260,7 +265,7 @@ export function useCollectionGridSelection({
         handleOpenVariants(printing, anchorEl, intent, tileGroupBy === "set", dataView !== "cards")
     : undefined;
 
-  useRowActionHandlers("collection", {
+  useRowActionHandlers(rowActions, {
     onRowClick: handleGridCardClick,
     onSiblingClick: handleSiblingClick,
     onIncrement:

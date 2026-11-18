@@ -42,6 +42,7 @@ import { TierListIntroBanner } from "@/features/stage/components/tier-list-intro
 import { TierListPool } from "@/features/stage/components/tier-list-pool";
 import { TierListShareDialog } from "@/features/stage/components/tier-list-share-dialog";
 import { TierTileSizeControls } from "@/features/stage/components/tier-tile-size-controls";
+import { usePreloadStageShowCode } from "@/features/stage/hooks/use-preload-stage-show";
 import { useDeleteTierList, useUpdateTierList } from "@/features/stage/hooks/use-tier-lists";
 import type { TierCardView } from "@/features/stage/lib/tier-list-presentation";
 import { useTierListBuilderStore } from "@/features/stage/stores/tier-list-builder-store";
@@ -56,6 +57,7 @@ interface TierListBuilderPageProps {
 export function TierListBuilderPage({ tierList }: TierListBuilderPageProps) {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  usePreloadStageShowCode();
 
   const { cardsById, printingsByCardId } = useCards();
   const dirty = useTierListBuilderStore((state) => state.dirty);

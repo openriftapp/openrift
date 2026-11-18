@@ -9,8 +9,10 @@ export function SectionDivider({
   count,
   intro,
   anchorId,
+  titleId,
 }: {
   title: string;
+  titleId?: string;
   count: number;
   intro?: ReactNode;
   anchorId?: string;
@@ -19,7 +21,9 @@ export function SectionDivider({
     <div className="mb-3 flex flex-col gap-1">
       <OrnamentRule fade="tips">
         <div className="flex items-baseline gap-2 text-sm">
-          <span className="font-semibold">{title}</span>
+          <h2 id={titleId} className="font-semibold">
+            {title}
+          </h2>
           <span className="text-muted-foreground tabular-nums">({count})</span>
           {anchorId && (
             <a

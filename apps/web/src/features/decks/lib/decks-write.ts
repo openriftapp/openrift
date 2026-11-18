@@ -1,6 +1,6 @@
 import { deckFoldersContract } from "@openrift/shared/contracts/deck-folders";
 import { decksContract } from "@openrift/shared/contracts/decks";
-import { deckCardKey } from "@openrift/shared/deck-cards";
+import { deckCardKey, mergeDeckCards } from "@openrift/shared/deck-cards";
 import { EMPTY_DECK_LIST_SUMMARY } from "@openrift/shared/deck-list-summary";
 import { descriptionSnippet } from "@openrift/shared/description-snippet";
 import type {
@@ -18,7 +18,6 @@ import type { QueryClient } from "@tanstack/react-query";
 import { writeSkippingMissing } from "@/features/collections/lib/copies-write";
 import { deckFoldersKeys, decksKeys } from "@/features/decks/lib/decks-query-keys";
 import { mutationTag } from "@/lib/mutation-metadata";
-import { watchForRefetchRace } from "@/lib/refetch-race";
 import { browserApiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 export type DecksCollection = Collection<DeckListItemResponse, string | number>;
@@ -311,11 +310,12 @@ export async function persistDeckMutations(
   mutations: readonly PendingMutation<DeckListItemResponse>[],
   context: DecksWriteContext,
 ): Promise<void> {
-  const settleRefetchRace = watchForRefetchRace(
-    context.queryClient,
-    decksKeys.syncedStore(context.userId),
-  );
-  let reread = false;
+  const reread = () =>
+    void context.queryClient.refetchQueries(
+      { queryKey: decksKeys.syncedStore(context.userId), exact: true },
+      { cancelRefetch: true },
+    );
+  let needsReread = false;
   try {
     const client = browserApiOrpcClient(decksContract);
     const bulkGroups = new Map<DeckBulkChange, PendingMutation<DeckListItemResponse>[]>();
@@ -350,17 +350,21 @@ export async function persistDeckMutations(
           { original: mutation.original, updated: mutation.modified, patch: patchOf(mutation) },
           context,
         );
-        reread ||= updateNeedsReread;
+        needsReread ||= updateNeedsReread;
       }
     }
     for (const [change, group] of bulkGroups) {
       await persistBulkChange(collection, change, group, context);
     }
   } catch (error) {
-    settleRefetchRace({ reread });
+    if (needsReread) {
+      reread();
+    }
     throw error;
   }
-  settleRefetchRace({ reread });
+  if (needsReread) {
+    reread();
+  }
 }
 
 /**
@@ -449,48 +453,41 @@ export async function persistDeckCardMutations(
   context: DecksWriteContext,
   versioning?: DeckCardsVersioning,
 ): Promise<void> {
-  const settleRefetchRace = watchForRefetchRace(
-    context.queryClient,
-    decksKeys.cardsStore(context.userId),
-  );
   const deckIds = [...new Set(mutations.map((mutation) => mutation.modified.deckId))];
-  try {
-    for (const deckId of deckIds) {
-      const rows = rowsOfDeck(collection, mutations, deckId);
-      const { data, error } = await safe(
-        browserApiOrpcClient(decksContract).replaceCards({
-          id: deckId,
-          cards: rows.map((row) => ({
-            cardId: row.cardId,
-            zone: row.zone,
-            quantity: row.quantity,
-            preferredPrintingId: row.preferredPrintingId,
-          })),
-          expectedVersion: versioning?.expectedVersion,
-        }),
-      );
-      if (error) {
-        if (isDefinedError(error) && error.code === "CONFLICT") {
-          await writeStoredDeckCards(collection, mutations, deckId, rows, error.data.cards);
-          throw new DeckCardsConflictError(error.data.version, error.data.cards);
-        }
-        throw error;
+  for (const deckId of deckIds) {
+    const rows = rowsOfDeck(collection, mutations, deckId);
+    const { data, error } = await safe(
+      browserApiOrpcClient(decksContract).replaceCards({
+        id: deckId,
+        cards: rows.map((row) => ({
+          cardId: row.cardId,
+          zone: row.zone,
+          quantity: row.quantity,
+          preferredPrintingId: row.preferredPrintingId,
+        })),
+        expectedVersion: versioning?.expectedVersion,
+      }),
+    );
+    if (error) {
+      if (isDefinedError(error) && error.code === "CONFLICT") {
+        await writeStoredDeckCards(collection, mutations, deckId, rows, error.data.cards);
+        throw new DeckCardsConflictError(error.data.version, error.data.cards);
       }
-      await writeStoredDeckCards(collection, mutations, deckId, rows, data.cards);
-      versioning?.onVersion(data.version);
-      // The deck's card counts, validity and value live on its list row.
-      void context.queryClient.invalidateQueries({
-        queryKey: decksKeys.syncedStore(context.userId),
-      });
+      throw error;
     }
-  } catch (error) {
-    settleRefetchRace();
-    throw error;
+    await writeStoredDeckCards(collection, mutations, deckId, rows, data.cards);
+    versioning?.onVersion(data.version);
+    // The deck's card counts, validity and value live on its list row.
+    void context.queryClient.invalidateQueries({
+      queryKey: decksKeys.syncedStore(context.userId),
+    });
   }
-  settleRefetchRace();
 }
 
-/** Applies a deck's whole card list to the store; the write path turns it into one replace call. */
+/**
+ * Applies a deck's whole card list to the store; the write path turns it into one replace call.
+ * Repeated lines of one row are summed up to the row cap.
+ */
 export function saveDeckCards(
   collection: DeckCardsCollection,
   deckId: string,
@@ -503,7 +500,9 @@ export function saveDeckCards(
   context: DecksWriteContext,
   versioning?: DeckCardsVersioning,
 ): Transaction<DeckCardWithDeckResponse> {
-  const incoming = new Map(cards.map((card) => [deckCardRowKey({ deckId, ...card }), card]));
+  const incoming = new Map(
+    mergeDeckCards(cards).map((card) => [deckCardRowKey({ deckId, ...card }), card]),
+  );
   const existing = collection.toArray.filter((row) => row.deckId === deckId);
   const transaction = createTransaction<DeckCardWithDeckResponse>({
     mutationFn: ({ transaction: batch }) =>

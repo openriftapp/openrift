@@ -221,48 +221,69 @@ export function parseMetaSubmissionList(
   };
 }
 
-export function validateMetaSubmissionDraft(
+/** The draft field a validation message belongs to. */
+export type MetaSubmissionField =
+  | "playerName"
+  | "rank"
+  | "record"
+  | "note"
+  | "deckText"
+  | "eventName"
+  | "eventDate"
+  | "eventFormat"
+  | "eventPlayerCount"
+  | "eventOrganizer"
+  | "eventSourceUrl";
+
+/** The first problem with the draft and the field that holds it, or null when it can be sent. */
+export function metaSubmissionProblem(
   draft: MetaSubmissionDraft,
   options: { proposing: boolean; cardCount: number },
-): string | null {
+): { field: MetaSubmissionField; message: string } | null {
   const playerName = draft.playerName.trim();
   if (playerName.length === 0 || playerName.length > 80) {
-    return m.meta_validate_player_name();
+    return { field: "playerName", message: m.meta_validate_player_name() };
   }
   const rank = draft.rank.trim();
   if (!WHOLE_NUMBER_PATTERN.test(rank) || Number(rank) < 1) {
-    return m.meta_validate_rank();
+    return { field: "rank", message: m.meta_validate_rank() };
   }
   if (Number(rank) > META_MAX_PLAYERS) {
-    return m.meta_validate_rank_max({ max: formatCount(META_MAX_PLAYERS) });
+    return {
+      field: "rank",
+      message: m.meta_validate_rank_max({ max: formatCount(META_MAX_PLAYERS) }),
+    };
   }
   if (!isRecordPart(draft.wins) || !isRecordPart(draft.losses) || !isRecordPart(draft.draws)) {
-    return m.meta_validate_record_parts();
+    return { field: "record", message: m.meta_validate_record_parts() };
   }
   if (
     [draft.wins, draft.losses, draft.draws].some(
       (part) => (recordPart(part) ?? 0) > POSTGRES_SMALLINT_MAX,
     )
   ) {
-    return m.meta_validate_record_max({ max: formatCount(POSTGRES_SMALLINT_MAX) });
+    return {
+      field: "record",
+      message: m.meta_validate_record_max({ max: formatCount(POSTGRES_SMALLINT_MAX) }),
+    };
   }
   // The archive derives "5-1" from the two, so one without the other would
   // display as nothing and quietly lose what was typed.
   if ((draft.wins.trim() === "") !== (draft.losses.trim() === "")) {
-    return m.meta_validate_record_pair();
+    return { field: "record", message: m.meta_validate_record_pair() };
   }
   if (draft.note.trim().length > 2000) {
-    return m.meta_validate_note_length();
+    return { field: "note", message: m.meta_validate_note_length() };
   }
   // A correction disputes what the archive already holds, so the reviewer needs to be told what's wrong with it.
   if (draft.kind === "correction" && draft.note.trim().length === 0) {
-    return m.meta_validate_correction_note();
+    return { field: "note", message: m.meta_validate_correction_note() };
   }
   if (options.cardCount === 0) {
-    return m.meta_validate_paste_decklist();
+    return { field: "deckText", message: m.meta_validate_paste_decklist() };
   }
   if (options.cardCount > 200) {
-    return m.meta_validate_too_many_lines();
+    return { field: "deckText", message: m.meta_validate_too_many_lines() };
   }
   if (!options.proposing) {
     return null;
@@ -270,27 +291,27 @@ export function validateMetaSubmissionDraft(
 
   const eventName = draft.eventName.trim();
   if (eventName.length === 0 || eventName.length > 120) {
-    return m.meta_validate_event_name();
+    return { field: "eventName", message: m.meta_validate_event_name() };
   }
   if (!ISO_DATE_PATTERN.test(draft.eventDate.trim())) {
-    return m.meta_validate_event_date();
+    return { field: "eventDate", message: m.meta_validate_event_date() };
   }
   if (draft.eventFormat.trim().length === 0) {
-    return m.meta_validate_event_format();
+    return { field: "eventFormat", message: m.meta_validate_event_format() };
   }
   const players = draft.eventPlayerCount.trim();
   if (players.length > 0 && (!WHOLE_NUMBER_PATTERN.test(players) || Number(players) < 1)) {
-    return m.meta_validate_player_count();
+    return { field: "eventPlayerCount", message: m.meta_validate_player_count() };
   }
   if (players.length > 0 && Number(players) > META_MAX_PLAYERS) {
-    return m.meta_validate_player_count_max();
+    return { field: "eventPlayerCount", message: m.meta_validate_player_count_max() };
   }
   if (draft.eventOrganizer.trim().length > 120) {
-    return m.meta_validate_organizer();
+    return { field: "eventOrganizer", message: m.meta_validate_organizer() };
   }
   const sourceUrl = draft.eventSourceUrl.trim();
   if (sourceUrl.length > 2000) {
-    return m.meta_validate_source_url();
+    return { field: "eventSourceUrl", message: m.meta_validate_source_url() };
   }
   return null;
 }

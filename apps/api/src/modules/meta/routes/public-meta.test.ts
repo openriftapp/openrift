@@ -1876,3 +1876,31 @@ describe("GET /meta/counts", () => {
     expect(mockMeta.eventTotals).toHaveBeenCalledWith({});
   });
 });
+
+describe("GET /api/v1/meta/decks archive total", () => {
+  it("never reports fewer archived decks than the request matched", async () => {
+    mockMeta.allDeckSummaries.mockResolvedValue({
+      rows: [],
+      total: 8,
+      eventCount: 2,
+      archiveTotal: 0,
+    });
+
+    const json = await readJson(await app.request("/api/v1/meta/decks"));
+
+    expect(json).toMatchObject({ total: 8, archiveTotal: 8 });
+  });
+
+  it("keeps a cached archive total that already covers the match", async () => {
+    mockMeta.allDeckSummaries.mockResolvedValue({
+      rows: [],
+      total: 8,
+      eventCount: 2,
+      archiveTotal: 6266,
+    });
+
+    const json = await readJson(await app.request("/api/v1/meta/decks"));
+
+    expect(json).toMatchObject({ total: 8, archiveTotal: 6266 });
+  });
+});

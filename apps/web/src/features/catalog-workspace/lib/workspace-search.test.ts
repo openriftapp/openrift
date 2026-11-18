@@ -21,6 +21,15 @@ describe("printingPrefillSearchSchema", () => {
     expect(printingPrefillSearchSchema.parse({})).toEqual({});
   });
 
+  it("keeps a uuid to duplicate from and drops anything else", () => {
+    const id = "019a0000-0000-7000-8000-000000000001";
+    expect(printingPrefillSearchSchema.parse({ card: "jinx", duplicateFrom: id })).toEqual({
+      card: "jinx",
+      duplicateFrom: id,
+    });
+    expect(printingPrefillSearchSchema.parse({ duplicateFrom: "printing-1" })).toEqual({});
+  });
+
   it("drops empty and non-string values", () => {
     expect(printingPrefillSearchSchema.parse({ card: "", language: true, finish: null })).toEqual(
       {},

@@ -7,6 +7,7 @@ import { useWorkspaceActionsStore } from "@/features/catalog-workspace/stores/wo
 import { createStoreResetter } from "@/test/store-helpers";
 
 const mutation = { isPending: false, mutateAsync: vi.fn() };
+const acceptMutation = { isPending: false, mutateAsync: vi.fn() };
 const detailQuery = vi.hoisted(() => ({
   current: { data: undefined, isLoading: true, isError: false, error: null } as object,
 }));
@@ -55,7 +56,7 @@ vi.mock("@/features/admin/hooks/use-admin", () => ({
   useAdminAccess: () => ({ data: { isAdmin: true } }),
 }));
 vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
-  useAcceptNewCard: () => mutation,
+  useAcceptNewCard: () => acceptMutation,
   useAcceptPrintingGroup: () => mutation,
   useLinkCard: () => mutation,
 }));
@@ -96,6 +97,7 @@ afterEach(() => {
   queuedNames.current = ["ahri nine tailed fox"];
   queueHeld.current = false;
   setsData.current = undefined;
+  acceptMutation.isPending = false;
 });
 
 describe("NewCardRecord", () => {
@@ -178,5 +180,19 @@ describe("NewCardRecord", () => {
       expect(screen.queryByRole("button", { name: /Accept as new card/u })).toBeNull(),
     );
     expect(useWorkspaceActionsStore.getState().actions?.loading).toBe(true);
+  });
+
+  it("locks the card fields and the Card ID while its accept runs", async () => {
+    detailQuery.current = LOADED_DETAIL;
+    setsData.current = { sets: [] };
+    acceptMutation.isPending = true;
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <NewCardRecord name="ahri nine tailed fox" />
+      </QueryClientProvider>,
+    );
+
+    const edit = await screen.findByRole("button", { name: /Edit/u });
+    expect(edit).toBeDisabled();
   });
 });

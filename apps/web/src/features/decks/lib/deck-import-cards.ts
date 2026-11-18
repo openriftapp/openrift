@@ -1,5 +1,6 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { MAX_DECK_CARD_QUANTITY, mergeDeckCardsWithOverflow } from "@openrift/shared/deck-cards";
-import type { DeckZone } from "@openrift/shared/types/enums";
+import type { CardType, DeckZone } from "@openrift/shared/types/enums";
 
 import { m } from "@/paraglide/messages.js";
 
@@ -59,6 +60,51 @@ export function mergeMatchedEntries(entries: readonly MatchedEntryLike[]): {
 
 export function dedupeMatchedEntries(entries: readonly MatchedEntryLike[]): ImportedDeckCard[] {
   return mergeMatchedEntries(entries).cards;
+}
+
+interface NamedDeckCard extends ImportedDeckCard {
+  cardName: string;
+  cardTypes: readonly CardType[];
+  tags: readonly string[];
+}
+
+/**
+ * The rows an archived deck copy stores: an extra card whose default-art row the deck already
+ * holds is skipped, as the server clone does, and repeated rows merge under the per-row cap.
+ */
+export function archivedCopyCards(
+  cards: readonly NamedDeckCard[],
+  extraCards: readonly NamedDeckCard[],
+): { cards: ImportedDeckCard[]; overflow: ImportOverflow[] } {
+  const extras = extraCards.filter(
+    (extra) =>
+      !cards.some(
+        (card) =>
+          card.cardId === extra.cardId &&
+          card.zone === extra.zone &&
+          card.preferredPrintingId === null,
+      ),
+  );
+  const lines = [...cards, ...extras].map((card) => ({
+    cardId: card.cardId,
+    zone: card.zone,
+    quantity: card.quantity,
+    preferredPrintingId: card.preferredPrintingId,
+  }));
+  const named = new Map([...cards, ...extras].map((card) => [card.cardId, card]));
+  const merged = mergeDeckCardsWithOverflow(lines);
+  return {
+    cards: merged.cards,
+    overflow: merged.overflow.map(({ card, count }) => {
+      const source = named.get(card.cardId);
+      return {
+        name: source
+          ? legendDisplayName({ name: source.cardName, types: source.cardTypes, tags: source.tags })
+          : card.cardId,
+        count,
+      };
+    }),
+  };
 }
 
 /** The import notice for cut copies, or null when nothing was cut. */

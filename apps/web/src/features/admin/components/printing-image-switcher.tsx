@@ -56,6 +56,7 @@ import { printingImageDisplayUrl as getDisplayUrl } from "@/features/admin/lib/p
 import { rehostStatusTitle } from "@/features/admin/lib/rehost-status";
 import type { RunWrite } from "@/features/admin/lib/run-write";
 import { runWriteDirectly } from "@/features/admin/lib/run-write";
+import type { SiblingImage } from "@/features/admin/lib/sibling-images";
 import { imageQuadOf } from "@/features/admin/lib/straighten-quad";
 import { cn } from "@/lib/utils";
 
@@ -66,11 +67,6 @@ function imageLabel(img: AdminPrintingImageResponse): string {
 }
 
 const UPLOAD = { limit: "upload" } as const;
-
-export interface SiblingImage {
-  imageFileId: string;
-  printingLabel: string;
-}
 
 export function PrintingImageSwitcher({
   printingId,
@@ -293,20 +289,28 @@ export function PrintingImageSwitcher({
                       </DropdownMenuItem>
                     </>
                   )}
-                  {isAdmin && effectiveImage.rehostedUrl && effectiveImage.originalUrl && (
-                    <DropdownMenuItem
-                      disabled={unrehostPrintingImage.isPending}
-                      onClick={() => {
-                        const imageId = effectiveImage.id;
-                        void runWrite((signal) =>
-                          unrehostPrintingImage.mutateAsync(imageId, { signal }),
-                        );
-                      }}
-                    >
-                      <XIcon className="size-3.5" />
-                      Un-rehost (delete files)
-                    </DropdownMenuItem>
-                  )}
+                  {isAdmin &&
+                    !effectiveImage.isActive &&
+                    effectiveImage.imageFileId !== fallbackImageFileId &&
+                    !siblingImages.some(
+                      (sibling) =>
+                        sibling.imageFileId === effectiveImage.imageFileId && sibling.inUse,
+                    ) &&
+                    effectiveImage.rehostedUrl &&
+                    effectiveImage.originalUrl && (
+                      <DropdownMenuItem
+                        disabled={unrehostPrintingImage.isPending}
+                        onClick={() => {
+                          const imageId = effectiveImage.id;
+                          void runWrite((signal) =>
+                            unrehostPrintingImage.mutateAsync(imageId, { signal }),
+                          );
+                        }}
+                      >
+                        <XIcon className="size-3.5" />
+                        Un-rehost (delete files)
+                      </DropdownMenuItem>
+                    )}
                   {isAdmin && (
                     <DropdownMenuItem
                       variant="destructive"

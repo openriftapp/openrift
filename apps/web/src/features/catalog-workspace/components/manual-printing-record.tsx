@@ -39,6 +39,7 @@ import {
   draftFromBasePrinting,
   draftFromDeskPrinting,
   duplicateProbeFromDeskRow,
+  duplicateSource,
   findDuplicateCandidates,
   plannedImageUploads,
   toDeskCreateInput,
@@ -314,16 +315,18 @@ function PickedCard({
 }: {
   cardSlug: string;
   duplicate: boolean;
-  prefill: Pick<PrintingPrefill, "language" | "finish">;
+  prefill: Pick<PrintingPrefill, "language" | "finish" | "duplicateFrom">;
   onChangeCard: () => void;
   onCancel: () => void;
 }) {
   const { data } = useDeskCardPrintings(cardSlug);
   const { orders } = useEnumOrders();
   const preferred = useEffectiveLanguageOrder();
-  const [copyFrom, setCopyFrom] = useState<DeskPrintingRow | null>(null);
-  const card = { id: data.card.id, slug: data.card.slug, name: data.card.name };
   const rows = data.printings;
+  const [copyFrom, setCopyFrom] = useState<DeskPrintingRow | null>(() =>
+    duplicateSource(rows, duplicate ? prefill.duplicateFrom : undefined),
+  );
+  const card = { id: data.card.id, slug: data.card.slug, name: data.card.name };
 
   if (duplicate && copyFrom === null) {
     return (
@@ -398,7 +401,7 @@ export function ManualPrintingRecord() {
   const navigate = useNavigate();
   const prefill = routeApi.useSearch();
   const [cardSlug, setCardSlug] = useState<string | null>(prefill.card ?? null);
-  const [duplicate, setDuplicate] = useState(false);
+  const [duplicate, setDuplicate] = useState(prefill.duplicateFrom !== undefined);
 
   function cancel() {
     void navigate({ to: "/admin/workspace/printings" });

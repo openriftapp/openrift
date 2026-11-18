@@ -21,11 +21,13 @@ export function PrintingActionsMenu({
   invalidates,
   onDeleted,
   runWrite = runWriteDirectly,
+  inWorkspace = false,
 }: {
   printing: DeskPrintingRow;
   invalidates: Parameters<typeof useDeletePrinting>[0];
   onDeleted: () => void;
   runWrite?: RunWrite;
+  inWorkspace?: boolean;
 }) {
   const deletePrinting = useDeletePrinting(invalidates);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -48,11 +50,18 @@ export function PrintingActionsMenu({
         <DropdownMenuContent align="end">
           <DropdownMenuItem
             render={
-              <Link
-                to="/admin/cards/$cardSlug/printings/create"
-                params={{ cardSlug: printing.cardSlug }}
-                search={{ duplicateFrom: printing.printingId }}
-              />
+              inWorkspace ? (
+                <Link
+                  to="/admin/workspace/printings/create"
+                  search={{ card: printing.cardSlug, duplicateFrom: printing.printingId }}
+                />
+              ) : (
+                <Link
+                  to="/admin/cards/$cardSlug/printings/create"
+                  params={{ cardSlug: printing.cardSlug }}
+                  search={{ duplicateFrom: printing.printingId }}
+                />
+              )
             }
           >
             <CopyIcon />

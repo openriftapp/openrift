@@ -60,6 +60,17 @@ export function LoadingSection() {
               Publish
             </PageTopBarButton>
           </Demo>
+          <Demo
+            name="inertUntilHydrated"
+            hint="Disabled in the server HTML at full opacity, live after hydration; a real disabled reason still dims. Button and Pressable."
+          >
+            <Button variant="link-muted" inertUntilHydrated>
+              Resend code
+            </Button>
+            <Button variant="link-muted" inertUntilHydrated disabled>
+              Resend code
+            </Button>
+          </Demo>
         </DemoGrid>
       </DemoGroup>
 

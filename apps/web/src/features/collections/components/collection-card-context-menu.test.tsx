@@ -5,9 +5,12 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useCardRowActionsStore } from "@/features/cards/stores/card-row-actions-store";
+import type { CardRowActionsStore } from "@/features/cards/stores/card-row-actions-store";
+import {
+  CardRowActionsStoreContext,
+  createCardRowActionsStore,
+} from "@/features/cards/stores/card-row-actions-store";
 import { stubPrinting } from "@/test/factories";
-import { createStoreResetter } from "@/test/store-helpers";
 
 vi.mock("@tanstack/react-router", async () => {
   const actual = await vi.importActual<typeof ReactRouter>("@tanstack/react-router");
@@ -34,14 +37,19 @@ vi.mock("@tanstack/react-router", async () => {
 const { CollectionCardContextMenu } = await import("./collection-card-context-menu");
 
 const printing = stubPrinting({ printingId: "printing-1", card: { slug: "falling-star" } });
-const resetHandlers = createStoreResetter(useCardRowActionsStore);
+let rowActions: CardRowActionsStore;
+function resetHandlers() {
+  rowActions = createCardRowActionsStore();
+}
 
 async function openMenu() {
   const user = userEvent.setup();
   render(
-    <CollectionCardContextMenu itemId="printing-1" printing={printing} canLend>
-      <span>Falling Star tile</span>
-    </CollectionCardContextMenu>,
+    <CardRowActionsStoreContext value={rowActions}>
+      <CollectionCardContextMenu itemId="printing-1" printing={printing} canLend>
+        <span>Falling Star tile</span>
+      </CollectionCardContextMenu>
+    </CardRowActionsStoreContext>,
   );
   await user.pointer({ keys: "[MouseRight]", target: screen.getByText("Falling Star tile") });
   return user;
@@ -58,7 +66,7 @@ describe("CollectionCardContextMenu", () => {
 
   it("adds the shown printing to a wishlist", async () => {
     const onAddToWishlist = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("collection", { onAddToWishlist });
+    rowActions.getState().setHandlers({ onAddToWishlist });
     const user = await openMenu();
     await user.click(await screen.findByRole("menuitem", { name: "Add to wishlist…" }));
     expect(onAddToWishlist).toHaveBeenCalledWith(printing);

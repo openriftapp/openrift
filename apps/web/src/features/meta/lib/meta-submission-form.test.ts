@@ -15,7 +15,7 @@ import {
   metaSubmissionListStatus,
   metaSubmissionTextFromCards,
   parseMetaSubmissionList,
-  validateMetaSubmissionDraft,
+  metaSubmissionProblem,
 } from "./meta-submission-form";
 
 function catalog(): Printing[] {
@@ -211,6 +211,21 @@ describe("metaSubmissionLegendMismatch", () => {
         undefined,
       ),
     ).toBe(false);
+  });
+});
+
+function validateMetaSubmissionDraft(
+  ...args: Parameters<typeof metaSubmissionProblem>
+): string | null {
+  return metaSubmissionProblem(...args)?.message ?? null;
+}
+
+describe("metaSubmissionProblem", () => {
+  it("names the field that holds the problem", () => {
+    expect(
+      metaSubmissionProblem({ ...readyDraft, rank: "0" }, { proposing: false, cardCount: 12 })
+        ?.field,
+    ).toBe("rank");
   });
 });
 

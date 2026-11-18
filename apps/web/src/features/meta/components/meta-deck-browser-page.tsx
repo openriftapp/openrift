@@ -3,7 +3,8 @@ import type { MetaDeckSummary, MetaEventSummary } from "@openrift/shared/types/a
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { Link } from "@tanstack/react-router";
 import { LayoutGridIcon, ListIcon, LogInIcon } from "lucide-react";
-import { Suspense, useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { Suspense, useState } from "react";
 
 import {
   PageDescription,
@@ -92,12 +93,30 @@ interface DeckCount {
   onPage: number | null;
 }
 
-function MetaDeckBrowserFallback() {
+function DeckCountRow({ count, aside }: { count?: DeckCount; aside: ReactNode }) {
   return (
-    <div className="flex flex-col gap-3">
-      <Skeleton className="h-8 w-full" />
-      <Skeleton className="h-40 w-full" />
+    <div className="mb-3 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
+      <p className="text-muted-foreground min-h-lh tabular-nums">
+        {count === undefined
+          ? null
+          : count.onPage === null
+            ? `${metaShownLabel(count.matched, count.archive, "decks")} · ${m.meta_count_events({ count: count.events })}`
+            : m.meta_shown_decks_page({ shown: count.onPage })}
+      </p>
+      {aside}
     </div>
+  );
+}
+
+function MetaDeckBrowserFallback({ countAside }: { countAside: ReactNode }) {
+  return (
+    <>
+      <DeckCountRow aside={countAside} />
+      <div className="flex flex-col gap-3">
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-40 w-full" />
+      </div>
+    </>
   );
 }
 
@@ -108,13 +127,7 @@ function MetaDeckBrowserFallback() {
  * The API pages and narrows the archive. Cost and value are priced in the
  * browser, so those two filters and their sorts work on the page on screen.
  */
-function MetaDeckBrowser({
-  signedIn,
-  onCount,
-}: {
-  signedIn: boolean;
-  onCount: (count: DeckCount) => void;
-}) {
+function MetaDeckBrowser({ signedIn, countAside }: { signedIn: boolean; countAside: ReactNode }) {
   const filters = useMetaDeckFilters();
   const eras = useMetaEras();
   const { sort, direction } = effectiveDeckSort(filters.sort, filters.direction, signedIn);
@@ -155,12 +168,12 @@ function MetaDeckBrowser({
   const summaries = new Map(data.events.map((event) => [event.slug, event]));
   const grouped = sort === "date";
   const total = data.total;
-  const archiveTotal = data.archiveTotal;
-  const eventCount = data.eventCount;
-  const onPage = costActive ? decks.length : null;
-  useEffect(() => {
-    onCount({ matched: total, archive: archiveTotal, events: eventCount, onPage });
-  }, [onCount, total, archiveTotal, eventCount, onPage]);
+  const count: DeckCount = {
+    matched: total,
+    archive: data.archiveTotal,
+    events: data.eventCount,
+    onPage: costActive ? decks.length : null,
+  };
 
   const cost = {
     ready: costs !== undefined,
@@ -247,6 +260,7 @@ function MetaDeckBrowser({
 
   return (
     <div>
+      <DeckCountRow count={count} aside={countAside} />
       <MetaDeckFilterControls
         facets={facets}
         eras={eras}
@@ -581,17 +595,20 @@ export function MetaDeckBrowserPage() {
   const { data: session } = useSession();
   const signedIn = Boolean(session?.user);
   const signIn = useSignInSearch();
-  const [count, setCount] = useState<DeckCount>();
-  const onCount = (next: DeckCount) => {
-    setCount((prev) =>
-      prev?.matched === next.matched &&
-      prev.archive === next.archive &&
-      prev.events === next.events &&
-      prev.onPage === next.onPage
-        ? prev
-        : next,
-    );
-  };
+  const signInLink = !signedIn && (
+    <Link
+      rel="nofollow"
+      {...signIn}
+      className={buttonVariants({
+        variant: "outline",
+        size: "xs",
+        className: "sm:ml-auto",
+      })}
+    >
+      <LogInIcon />
+      {m.decks_overview_hero_sign_in()}
+    </Link>
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -605,36 +622,12 @@ export function MetaDeckBrowserPage() {
         {signedIn && (
           <PageDescription className="pb-4">{m.meta_decks_page_description()}</PageDescription>
         )}
-        <div className="mb-3 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
-          <p className="text-muted-foreground min-h-lh tabular-nums">
-            {count === undefined
-              ? null
-              : count.onPage === null
-                ? `${metaShownLabel(count.matched, count.archive, "decks")} · ${m.meta_count_events({ count: count.events })}`
-                : m.meta_shown_decks_page({ shown: count.onPage })}
-          </p>
-          {!signedIn && (
-            <Link
-              rel="nofollow"
-              {...signIn}
-              className={buttonVariants({
-                variant: "outline",
-                size: "xs",
-                className: "sm:ml-auto",
-              })}
-            >
-              <LogInIcon />
-              {m.decks_overview_hero_sign_in()}
-            </Link>
-          )}
-        </div>
-
         {hydrated ? (
-          <Suspense fallback={<MetaDeckBrowserFallback />}>
-            <MetaDeckBrowser signedIn={signedIn} onCount={onCount} />
+          <Suspense fallback={<MetaDeckBrowserFallback countAside={signInLink} />}>
+            <MetaDeckBrowser signedIn={signedIn} countAside={signInLink} />
           </Suspense>
         ) : (
-          <MetaDeckBrowserFallback />
+          <MetaDeckBrowserFallback countAside={signInLink} />
         )}
       </div>
     </div>

@@ -35,6 +35,10 @@ import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-print
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { selectionFindBy } from "@/features/cards/lib/card-tiles";
+import {
+  CardRowActionsStoreContext,
+  useOwnCardRowActionsStore,
+} from "@/features/cards/stores/card-row-actions-store";
 import { useCustomTagAssignments } from "@/features/collections/hooks/use-custom-tag-assignments";
 import { useDeckBuildingCounts } from "@/features/collections/hooks/use-owned-count";
 import { useRowActionHandlers } from "@/features/collections/hooks/use-row-action-handlers";
@@ -385,6 +389,7 @@ function DeckCardBrowserInner({
   ownershipData?: DeckOwnershipData;
   onTargetZone?: (zone: DeckZone) => void;
 }) {
+  const rowActions = useOwnCardRowActionsStore<"deck">();
   const { zoneLabels } = useZoneOrder();
   const { data: deckDetail } = useDeckDetail(deckId);
   const showImages = useDisplayStore((state) => state.showImages);
@@ -626,7 +631,7 @@ function DeckCardBrowserInner({
 
   const runeRoomFor = (printing: Printing) => runeAddRoom(printing.card, deckCards);
 
-  useRowActionHandlers("deck", {
+  useRowActionHandlers(rowActions, {
     onRowClick: handleCardClick,
   });
 
@@ -957,83 +962,85 @@ function DeckCardBrowserInner({
   );
 
   return (
-    <CardBrowserFilterProvider
-      searchAlternatives={searchAlternatives}
-      availableFilters={availableFilters}
-      availableLanguages={availableLanguages}
-      setDisplayLabel={setDisplayLabel}
-      visibleCustomTagCategories={visibleCustomTagCategories}
-      ownedCountMax={ownedCountBound}
-    >
-      {showCatalogDetail && (
-        <WorkbenchCardDetail
-          items={items}
-          printingsByCardId={printingsByCardId}
-          showImages={showImages}
-          onSearchAndClose={setSearch}
-          actions={workbenchDetailActions}
-          deckBuilding={deckBuildingFor}
-        />
-      )}
-      <div className={cn(showCatalogDetail && "hidden")}>
-        <BrowserCardViewer
-          items={items}
-          totalItems={allPrintings.length}
-          renderCard={renderCard}
-          setOrder={sets}
-          renderedCards={deferredCards}
-          printingsByCardId={printingsByCardId}
-          view={view}
-          groupBy={groupBy}
-          groupDir={groupDir}
-          stale={isGridStale}
-          toolbar={toolbar}
-          aboveGrid={
-            workbench && onTargetZone ? (
-              <WorkbenchZoneBar deckId={deckId} zone={activeZone} onTargetZone={onTargetZone} />
-            ) : undefined
-          }
-          rightPane={rightPane}
-          addStripHeight={ADD_STRIP_HEIGHT}
-          returnToItemId={returnItemId ?? undefined}
-          onReturned={(focusPending) => {
-            setFocusItemId(focusPending ? returnItemId : null);
-            setReturnItemId(null);
-          }}
-          table={{
-            actionsColumn: "wide",
-            actionsLabel: m.decks_editor_table_actions_label(),
-            actionsCell: (
-              <DeckActionsCell
-                view={view}
-                deckQuantityByCard={deckQuantityByCard}
-                deckQuantityByCell={deckQuantityByCell}
-                isSingleCardZone={isSingleCardZone}
-                singleCardZoneOccupied={singleCardZoneOccupied}
-                deckCards={deckCards}
-                activeZone={activeZone}
-                isMaxReached={isMaxReached}
-                shiftHeld={shiftHeld}
-                runeRoomFor={runeRoomFor}
-                copyLimitTotalByCard={copyLimitTotalByCard}
-                handleQuickAdd={handleQuickAdd}
-                handleRemove={handleRemove}
+    <CardRowActionsStoreContext value={rowActions}>
+      <CardBrowserFilterProvider
+        searchAlternatives={searchAlternatives}
+        availableFilters={availableFilters}
+        availableLanguages={availableLanguages}
+        setDisplayLabel={setDisplayLabel}
+        visibleCustomTagCategories={visibleCustomTagCategories}
+        ownedCountMax={ownedCountBound}
+      >
+        {showCatalogDetail && (
+          <WorkbenchCardDetail
+            items={items}
+            printingsByCardId={printingsByCardId}
+            showImages={showImages}
+            onSearchAndClose={setSearch}
+            actions={workbenchDetailActions}
+            deckBuilding={deckBuildingFor}
+          />
+        )}
+        <div className={cn(showCatalogDetail && "hidden")}>
+          <BrowserCardViewer
+            items={items}
+            totalItems={allPrintings.length}
+            renderCard={renderCard}
+            setOrder={sets}
+            renderedCards={deferredCards}
+            printingsByCardId={printingsByCardId}
+            view={view}
+            groupBy={groupBy}
+            groupDir={groupDir}
+            stale={isGridStale}
+            toolbar={toolbar}
+            aboveGrid={
+              workbench && onTargetZone ? (
+                <WorkbenchZoneBar deckId={deckId} zone={activeZone} onTargetZone={onTargetZone} />
+              ) : undefined
+            }
+            rightPane={rightPane}
+            addStripHeight={ADD_STRIP_HEIGHT}
+            returnToItemId={returnItemId ?? undefined}
+            onReturned={(focusPending) => {
+              setFocusItemId(focusPending ? returnItemId : null);
+              setReturnItemId(null);
+            }}
+            table={{
+              actionsColumn: "wide",
+              actionsLabel: m.decks_editor_table_actions_label(),
+              actionsCell: (
+                <DeckActionsCell
+                  view={view}
+                  deckQuantityByCard={deckQuantityByCard}
+                  deckQuantityByCell={deckQuantityByCell}
+                  isSingleCardZone={isSingleCardZone}
+                  singleCardZoneOccupied={singleCardZoneOccupied}
+                  deckCards={deckCards}
+                  activeZone={activeZone}
+                  isMaxReached={isMaxReached}
+                  shiftHeld={shiftHeld}
+                  runeRoomFor={runeRoomFor}
+                  copyLimitTotalByCard={copyLimitTotalByCard}
+                  handleQuickAdd={handleQuickAdd}
+                  handleRemove={handleRemove}
+                />
+              ),
+            }}
+          >
+            {!detailReplacesCatalog && (
+              <SelectionDetailOverlays
+                items={items}
+                printingsByCardId={printingsByCardId}
+                showImages={showImages}
+                onSearchAndClose={setSearch}
+                actions={deckStripFor}
+                deckBuilding={deckBuildingFor}
               />
-            ),
-          }}
-        >
-          {!detailReplacesCatalog && (
-            <SelectionDetailOverlays
-              items={items}
-              printingsByCardId={printingsByCardId}
-              showImages={showImages}
-              onSearchAndClose={setSearch}
-              actions={deckStripFor}
-              deckBuilding={deckBuildingFor}
-            />
-          )}
-        </BrowserCardViewer>
-      </div>
-    </CardBrowserFilterProvider>
+            )}
+          </BrowserCardViewer>
+        </div>
+      </CardBrowserFilterProvider>
+    </CardRowActionsStoreContext>
   );
 }

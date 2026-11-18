@@ -1,7 +1,6 @@
 import type {
   WorkspaceOwner,
   WorkspaceSegment,
-  WorkspaceUploadSource,
 } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { formatDay, formatDayTime, formatRelativeDay } from "@openrift/shared/format-date";
 import { useQuery } from "@tanstack/react-query";
@@ -13,12 +12,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SameDifferenceLine } from "@/features/catalog-workspace/components/same-difference-line";
 import { useWorkspaceRole } from "@/features/catalog-workspace/hooks/use-workspace-queue";
+import type { UploadSourceRow } from "@/features/catalog-workspace/hooks/use-workspace-uploads";
 import {
   providerQueueLink,
   repeatedDifferenceInput,
   splitUploadSources,
   uploadChangeSummary,
   uploadOpenSummary,
+  uploadSourceRows,
   useWorkspaceUploads,
 } from "@/features/catalog-workspace/hooks/use-workspace-uploads";
 import { compactAge, OWNER_LABELS } from "@/features/catalog-workspace/lib/owner-items";
@@ -68,7 +69,7 @@ function UploadRow({
   link,
   canDiscard,
 }: {
-  source: WorkspaceUploadSource;
+  source: UploadSourceRow;
   link: { owner: WorkspaceOwner; segment: WorkspaceSegment };
   canDiscard: boolean;
 }) {
@@ -97,15 +98,20 @@ export function LastUploadsSection() {
   const role = useWorkspaceRole();
   const enabled = role === "admin" || role === "reviewer";
   const { data, error } = useWorkspaceUploads(enabled);
-  const { data: queue } = useQuery({ ...workspaceQueueQueryOptions(), enabled });
+  const { data: queue, error: queueError } = useQuery({
+    ...workspaceQueueQueryOptions(),
+    enabled,
+  });
 
   if (!enabled) {
     return null;
   }
 
-  const { active, quiet } = splitUploadSources(data?.sources ?? []);
   const items = queue?.items ?? [];
-  const contributors = data?.contributors;
+  const rows =
+    data === undefined || queue === undefined ? undefined : uploadSourceRows(data.sources, items);
+  const { active, quiet } = splitUploadSources(rows?.sources ?? []);
+  const contributors = rows?.contributors;
 
   return (
     <Card>
@@ -116,10 +122,10 @@ export function LastUploadsSection() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        {error !== null && (
+        {(error !== null || queueError !== null) && (
           <p className="text-muted-foreground text-sm">The uploads could not be loaded.</p>
         )}
-        {data !== undefined && active.length === 0 && quiet.length === 0 && (
+        {rows !== undefined && active.length === 0 && quiet.length === 0 && (
           <p className="text-muted-foreground text-sm">No uploads yet.</p>
         )}
         {active.length > 0 && (
