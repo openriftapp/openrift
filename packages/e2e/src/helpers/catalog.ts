@@ -27,7 +27,7 @@ export function urlWithLanguagesDefault(pathPattern: string): RegExp {
 }
 
 /**
- * Only the live grid renders [data-index] rows, not the SSR preview; slider
+ * Only the live grid renders [data-index] rows, not the server-rendered first row; slider
  * thumbs also carry data-index, always beside a data-slot.
  */
 export async function waitForCatalogLoaded(page: Page, cardName = "Annie, Fiery") {
@@ -38,7 +38,6 @@ export async function waitForCatalogLoaded(page: Page, cardName = "Annie, Fiery"
   await scrollUntilVisible(page, cardImage(page, cardName));
 }
 
-/** Call after waitForCatalogLoaded: the live browser replaces the SSR preview and its input. */
 export async function typeSearch(page: Page, query: string): Promise<Locator> {
   const search = page.getByPlaceholder(/search/iu);
   await search.fill(query);

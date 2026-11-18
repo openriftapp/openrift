@@ -1,13 +1,13 @@
 import { filterCards } from "@openrift/shared/filters";
 import { getAvailableFilters } from "@openrift/shared/filters-available";
 import { sortCards } from "@openrift/shared/filters-sort";
+import { EMPTY_PRICE_LOOKUP } from "@openrift/shared/price-lookup";
 import { sideKey, countPrintings } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { SortDirection, SortOption } from "@openrift/shared/types/search";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi, Link, useLocation } from "@tanstack/react-router";
 import { PackageIcon } from "lucide-react";
-import { useEffect, useState } from "react";
 
 import { PageHero } from "@/components/layout/page-hero";
 import { PageToc, PageTocProvider } from "@/components/layout/page-toc";
@@ -27,9 +27,10 @@ import { SelectionDetailOverlays } from "@/features/cards/components/selection-d
 import { SelectionDetailPane } from "@/features/cards/components/selection-detail-pane";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { useCardSearchContext } from "@/features/cards/hooks/use-card-search-context";
-import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
+import { useCardThumbnailDisplayWith } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCatalogOnDemand } from "@/features/cards/hooks/use-cards";
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
+import { usePricesOnDemand } from "@/features/cards/hooks/use-prices";
 import { useSearchAndCloseDetail } from "@/features/cards/hooks/use-search-and-close-detail";
 import { buildGroups } from "@/features/cards/lib/card-groups";
 import { CatalogLanguagesContext } from "@/features/cards/lib/catalog-languages-context";
@@ -87,26 +88,11 @@ export function PromosPage() {
   );
 }
 
-function OwnedCountBridge({
-  enabled,
-  onChange,
-}: {
-  enabled: boolean;
-  onChange: (data: Record<string, number> | undefined) => void;
-}) {
-  const { data } = useOwnedCount(enabled);
-  useEffect(() => {
-    onChange(data);
-  }, [data, onChange]);
-  return null;
-}
-
 function PromosBrowser() {
   const { language: activeLanguage } = routeApi.useParams();
   const { data } = useSuspenseQuery(publicPromoListQueryOptions(activeLanguage));
   const location = useLocation();
   const showImages = useDisplayStore((s) => s.showImages);
-  const display = useCardThumbnailDisplay();
   const languageOrder = useDisplayLanguages();
   const languageList = useLanguageList();
   const languageLabelMap = new Map(languageList.map((l) => [l.code, l.name]));
@@ -118,12 +104,10 @@ function PromosBrowser() {
   const { filters, ranges, filterState, groupDir, hasActiveFilters } = useFilterValues();
   const ownedFilterActive = filters.ownedFilter.length > 0;
   const fetchOwned = isLoggedIn && (showOwned || ownedFilterActive);
-  // useOwnedCount's useSyncExternalStore has no server snapshot, invalid during
-  // SSR, so the call is deferred to OwnedCountBridge, which mounts post-hydration.
   const hydrated = useHydrated();
-  const [ownedCountByPrinting, setOwnedCountByPrinting] = useState<
-    Record<string, number> | undefined
-  >();
+  // Read after hydration so the price map stays out of the server-rendered HTML.
+  const display = useCardThumbnailDisplayWith(usePricesOnDemand(hydrated) ?? EMPTY_PRICE_LOOKUP);
+  const { data: ownedCountByPrinting } = useOwnedCount(fetchOwned);
   const ownedCounts = showOwned ? ownedCountByPrinting : undefined;
   const togglePromoOwned = () => {
     toggleCardsShowCounts();
@@ -261,7 +245,6 @@ function PromosBrowser() {
 
   return (
     <>
-      {hydrated && <OwnedCountBridge enabled={fetchOwned} onChange={setOwnedCountByPrinting} />}
       <PageHero
         width="full"
         title={m.promos_title()}

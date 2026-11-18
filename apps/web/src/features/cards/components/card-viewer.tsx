@@ -46,13 +46,14 @@ interface CardViewerProps {
   addStripHeight?: number;
   table?: CardTableProps;
   noResultsDescription?: ReactNode;
+  pendingGrid?: ReactNode;
   children?: ReactNode;
 }
 
 /**
  * Outer structure (sticky offsets, slots) lives in {@link CardBrowserLayout};
- * this owns the grid logic and the hydration toggle between the live
- * `CardGrid`/`CardTable` and the SSR-time skeleton.
+ * this owns the grid logic and the switch between `CardGrid` and `CardTable`.
+ * `pendingGrid` replaces both while the surface has nothing to list yet.
  */
 export function CardViewer({
   items,
@@ -75,6 +76,7 @@ export function CardViewer({
   addStripHeight,
   table,
   noResultsDescription,
+  pendingGrid,
   children,
 }: CardViewerProps) {
   const displayMode = useDisplayStore((state) => state.displayMode);
@@ -83,8 +85,6 @@ export function CardViewer({
 
   useGridKeyboardNav({ items, siblingPrintings });
 
-  // No useHydrated() gate: every consumer already mounts post-hydration, so
-  // an SSR-skeleton fallback here would only ever flash for one frame.
   return (
     <CardBrowserLayout
       toolbar={toolbar}
@@ -94,7 +94,8 @@ export function CardViewer({
       rightPane={rightPane}
       stale={stale}
       gridSlot={
-        stale && items.length === 0 ? (
+        pendingGrid ??
+        (stale && items.length === 0 ? (
           <div className="flex flex-1 flex-col" />
         ) : useTable ? (
           <HydratedTable
@@ -125,7 +126,7 @@ export function CardViewer({
             addStripHeight={addStripHeight}
             noResultsDescription={noResultsDescription}
           />
-        )
+        ))
       }
     >
       {children}

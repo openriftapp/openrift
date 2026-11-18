@@ -38,8 +38,8 @@ interface CardBrowserLayoutProps {
 }
 
 /**
- * Shared shell for both the live `<CardBrowser>` and the SSR `<FirstRowPreview>`,
- * so both render through one structural source and can't drift apart.
+ * Shared shell for every card-browser surface: the sticky toolbar tier, the
+ * above-grid tier and the grid with its side panes.
  */
 export function CardBrowserLayout({
   toolbar,

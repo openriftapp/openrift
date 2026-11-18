@@ -67,6 +67,16 @@ Every card-browser surface (`/cards`, `/collections`, `/collections/share`, `/de
 
 `CardDetail` renders in two arrangements, picked by its `layout` prop: `"pane"` is the single-column stack (docked pane, mobile drawer, standalone card page), `"modal"` is the two-column dialog. Both compose the same extracted parts (`card-detail-art` / `-stats` / `-text` / `-links`) so a field added to one is never missing from the other. Add to a part, never to one branch. Two sizing traps, both of which shipped as visible jumps: the domain tint belongs to the dialog, not `CardDetail`'s modal root, or the gradient paints inside the dialog's padding and frames itself in a hard edge. And a Suspense fallback must be shaped like the layout it stands in for: the pane's skeleton has an `aspect-card w-full` block, which in an 860px dialog is a ~1150px-tall placeholder that opens the dialog enormous before it snaps down.
 
+### Server-rendered surfaces
+
+`/cards` renders its `CardBrowser` on the server so the toolbar exists once, from first paint: a visitor can click into the search box before hydration and keep focus and text while the catalogue downloads. Three rules keep it that way:
+
+- **No `<Suspense>` and no `useHydrated()` branch above the toolbar.** Either one swaps the subtree and recreates the input. The surface reads its data with non-suspending hooks and treats "not loaded" as a state.
+- **The grid slot is the only part that changes.** While data is missing, pass `pendingGrid` to `CardViewer` / `BrowserCardViewer`; it replaces the grid or table. `/cards` passes `FirstRowGrid`, the first row the route loader fetched. Popover hosts and dialogs that only serve the grid mount once the data is there.
+- **The toolbar shows the same values before and after.** Until the catalogue loads it reads the route loader's facets, counts and languages. When the visitor changes the search before then, the loader's counts no longer apply and the surface passes `countsPending` to `BrowserToolbar` and `stale` to the viewer.
+
+`apps/web/src/features/cards/components/card-browser-hydration.test.tsx` and `packages/e2e/src/tests/public/cards-first-paint.spec.ts` fail when the input is recreated.
+
 ### What belongs to the surface
 
 What stays at the surface: the data hook (`useCardData` / `useCollectionCardData` / a custom one for /promos), the strip computation (zone-aware add controls, in-collection select shift-range, ambiguous-variant routing), click handlers, drag IDs, format presets. What never stays at the surface: chrome assembly, thumbnail wiring, default table actions, default toolbar layout, the detail overlay and what a card click opens.

@@ -1,6 +1,9 @@
 import type { SearchVocabulary } from "@openrift/shared/search-query/bind";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { Root } from "react-dom/client";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const { mockUseFilterValues, mockUseFilterActions, mockTrackEvent } = vi.hoisted(() => ({
@@ -55,6 +58,7 @@ function setup({
 
 afterEach(() => {
   vi.clearAllMocks();
+  vi.useRealTimers();
 });
 
 describe("SearchBar", () => {
@@ -207,5 +211,91 @@ describe("SearchBar suggestions", () => {
     await user.keyboard("{Escape}");
 
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+});
+
+describe("SearchBar hydration", () => {
+  async function hydrateAfter(prepare: (input: HTMLInputElement) => void) {
+    const actions = { setSearch: vi.fn() };
+    mockUseFilterValues.mockReturnValue({
+      filterState: { search: "" },
+      hasActiveFilters: false,
+      view: "cards",
+    });
+    mockUseFilterActions.mockReturnValue(actions);
+    const bar = <SearchBar totalCards={40} filteredCount={40} />;
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(bar);
+    document.body.append(container);
+    const input = container.querySelector("input") as HTMLInputElement;
+    prepare(input);
+
+    let root: Root | undefined;
+    await act(async () => {
+      root = hydrateRoot(container, bar);
+    });
+    return {
+      actions,
+      input,
+      container,
+      cleanup: () => {
+        root?.unmount();
+        container.remove();
+      },
+    };
+  }
+
+  it("adopts and commits text typed into the focused input before hydration", async () => {
+    vi.useFakeTimers();
+    const { actions, input, container, cleanup } = await hydrateAfter((serverInput) => {
+      serverInput.focus();
+      serverInput.value = "jinx";
+    });
+
+    expect(container.querySelector("input")).toBe(input);
+    expect(input.value).toBe("jinx");
+    expect(document.activeElement).toBe(input);
+
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+    expect(actions.setSearch).toHaveBeenCalledWith("jinx");
+
+    cleanup();
+  });
+
+  it("does not run text the browser restored into an unfocused input", async () => {
+    vi.useFakeTimers();
+    const { actions, cleanup } = await hydrateAfter((serverInput) => {
+      serverInput.value = "restored";
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+    expect(actions.setSearch).not.toHaveBeenCalled();
+
+    cleanup();
+  });
+});
+
+describe("SearchBar pending counts", () => {
+  it("leaves the count out of the field and the search event", async () => {
+    vi.useFakeTimers();
+    mockUseFilterValues.mockReturnValue({
+      filterState: { search: "" },
+      hasActiveFilters: false,
+      view: "cards",
+    });
+    mockUseFilterActions.mockReturnValue({ setSearch: vi.fn() });
+    render(<SearchBar totalCards={40} filteredCount={40} countsPending />);
+
+    expect(screen.queryByText("40 cards")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "jinx" } });
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+    expect(mockTrackEvent).toHaveBeenCalledWith("search", { query: "jinx" });
   });
 });

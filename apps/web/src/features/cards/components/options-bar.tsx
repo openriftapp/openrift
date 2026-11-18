@@ -353,7 +353,6 @@ export function MobileOptionsDrawer({
   children?: ReactNode;
   className?: string;
 }) {
-  // /cards swaps its SSR preview toolbar for the live one, remounting this drawer; the store keeps it open.
   const open = useFilterDrawerStore(
     (state) => state.openOn !== null && state.openOn === currentPathname(),
   );

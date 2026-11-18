@@ -139,6 +139,7 @@ interface BrowserToolbarProps {
   groupByOptions?: { value: string; label: string }[];
   groupByValue?: string;
   countInPlaceholder?: boolean;
+  countsPending?: boolean;
   wrapControls?: boolean;
 }
 
@@ -155,6 +156,7 @@ export function BrowserToolbar({
   groupByOptions,
   groupByValue,
   countInPlaceholder,
+  countsPending,
   wrapControls,
 }: BrowserToolbarProps) {
   const { hasActiveFilters } = useFilterValues();
@@ -179,6 +181,7 @@ export function BrowserToolbar({
           filteredCount={filteredCount}
           suggestionVocabulary={searchVocabulary.suggestions}
           countInPlaceholder={countInPlaceholder}
+          countsPending={countsPending}
           className={wrapControls ? "flex-[1_1_12rem]" : undefined}
         />
         {smUp && (

@@ -2,7 +2,7 @@ import type { SearchVocabulary } from "@openrift/shared/search-query/bind";
 import { Link } from "@tanstack/react-router";
 import { CircleHelpIcon } from "lucide-react";
 import type { KeyboardEvent } from "react";
-import { useId, useLayoutEffect, useRef, useState } from "react";
+import { useEffectEvent, useId, useLayoutEffect, useRef, useState } from "react";
 
 import { SearchInput } from "@/components/search-input";
 import { TextLink } from "@/components/ui/text-link";
@@ -23,6 +23,7 @@ interface SearchBarProps {
   filteredCount: number;
   suggestionVocabulary?: SearchVocabulary;
   countInPlaceholder?: boolean;
+  countsPending?: boolean;
   className?: string;
 }
 
@@ -40,6 +41,7 @@ export function SearchBar({
   filteredCount,
   suggestionVocabulary = NO_VOCABULARY,
   countInPlaceholder,
+  countsPending,
   className,
 }: SearchBarProps) {
   const { filterState, hasActiveFilters, view } = useFilterValues();
@@ -56,7 +58,10 @@ export function SearchBar({
   const commitSearch = (value: string) => {
     setSearch(value);
     if (value) {
-      trackEvent("search", { query: value, resultCount: filteredCount });
+      trackEvent(
+        "search",
+        countsPending ? { query: value } : { query: value, resultCount: filteredCount },
+      );
     }
   };
 
@@ -73,8 +78,26 @@ export function SearchBar({
     }
   }, [localSearch]);
 
+  const adoptFocusedInput = useEffectEvent(() => {
+    const input = inputRef.current;
+    if (!input || document.activeElement !== input) {
+      return;
+    }
+    setSearchFocused(true);
+    setCaret(input.selectionStart ?? input.value.length);
+    if (input.value !== localSearch) {
+      setLocalSearch(input.value);
+    }
+  });
+
+  // Hydration keeps text typed into the server-rendered input but reports neither it nor the
+  // focus. A layout effect, because the next controlled render would overwrite the DOM value.
+  useLayoutEffect(() => {
+    adoptFocusedInput();
+  }, []);
+
   const isFiltered = hasActiveFilters && filteredCount !== totalCards;
-  const countInField = countInPlaceholder && !isFiltered;
+  const countInField = countInPlaceholder && !isFiltered && !countsPending;
   const placeholder = countInField
     ? m.cards_browser_search_placeholder_count({ items: unitCount(view, totalCards) })
     : m.cards_browser_search_placeholder();
@@ -161,7 +184,7 @@ export function SearchBar({
             setSearch("");
           }}
           placeholder={placeholder}
-          trailing={countInField ? undefined : cardCountLabel}
+          trailing={countInField || countsPending ? undefined : cardCountLabel}
           action={
             <TextLink
               variant="muted"

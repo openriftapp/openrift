@@ -87,12 +87,8 @@ export function useCollectionsMap(): Map<string, CollectionResponse> {
 /** The viewer's collections, or undefined while they load or when nobody is signed in. */
 export function useCollectionsList(): CollectionResponse[] | undefined {
   const collectionsCollection = useCollectionsCollection();
-  // No store to read during SSR.
   const { data, isReady } = useLiveQuery({
-    query: (q) =>
-      globalThis.window === undefined || !collectionsCollection
-        ? null
-        : q.from({ collection: collectionsCollection }),
+    query: (q) => (collectionsCollection ? q.from({ collection: collectionsCollection }) : null),
   });
   if (!collectionsCollection || !isReady) {
     return undefined;

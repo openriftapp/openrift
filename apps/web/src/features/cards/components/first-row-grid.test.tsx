@@ -4,16 +4,11 @@ import type { LabelMap } from "@openrift/shared/enum-label";
 import { render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
-import type { AvailableFiltersWire, CardCounts } from "@/features/cards/lib/cards-facets";
 import type { FirstRowCard } from "@/features/cards/lib/cards-first-row";
 
 interface LoaderData {
   firstRow: FirstRowCard[];
-  facets: AvailableFiltersWire | null;
-  availableLanguages: string[];
   setLabels: LabelMap;
-  counts: CardCounts;
 }
 
 const { mockUseLoaderData } = vi.hoisted(() => ({
@@ -22,44 +17,12 @@ const { mockUseLoaderData } = vi.hoisted(() => ({
 
 vi.mock("@tanstack/react-router", () => ({
   getRouteApi: () => ({ useLoaderData: mockUseLoaderData }),
-  createLink: (Component: unknown) => Component,
 }));
 
-vi.mock("@/features/cards/components/search-bar", () => ({
-  SearchBar: () => <div data-testid="search-bar" />,
-}));
-vi.mock("@/features/cards/components/options-bar", () => ({
-  DesktopOptionsBar: () => <div data-testid="desktop-options-bar" />,
-  DisplayOptionsPopover: () => <div data-testid="display-options-popover" />,
-  MobileFilterContent: () => null,
-  MobileOptionsContent: () => null,
-  MobileOptionsDrawer: () => <div data-testid="mobile-options-drawer" />,
-}));
-vi.mock("@/features/cards/components/compact-filter-bar", () => ({
-  CompactFilterBar: () => <div data-testid="compact-filter-bar" />,
-}));
-const { activeFiltersProps, valueLabel } = vi.hoisted(() => ({
-  activeFiltersProps: vi.fn(),
-  valueLabel: (_key: string, value: string) => value.toUpperCase(),
-}));
-vi.mock("@/features/cards/components/active-filters", () => ({
-  ActiveFilters: (props: unknown) => {
-    activeFiltersProps(props);
-    return null;
-  },
-}));
-vi.mock("@/features/cards/hooks/use-search-vocabulary", () => ({
-  useSearchVocabulary: () => ({ validation: {}, suggestions: {}, valueLabel }),
-}));
-
-import { FirstRowPreview } from "./first-row-preview";
+import { FirstRowGrid } from "./first-row-grid";
 
 function renderPreview() {
-  return render(
-    <FilterSearchProvider value={{}}>
-      <FirstRowPreview />
-    </FilterSearchProvider>,
-  );
+  return render(<FirstRowGrid />);
 }
 
 function makeCard(i: number, setSlug = "OGN"): FirstRowCard {
@@ -73,47 +36,15 @@ function makeCard(i: number, setSlug = "OGN"): FirstRowCard {
   };
 }
 
-const EMPTY_FACETS: AvailableFiltersWire = {
-  sets: [],
-  supplementalSets: [],
-  domains: [],
-  types: [],
-  superTypes: [],
-  rarities: [],
-  artVariants: [],
-  finishes: [],
-  cardSizes: [],
-  hasSigned: false,
-  hasOvernumbered: false,
-  keywords: [],
-  tags: [],
-  hasNonStandard: false,
-  hasBanned: false,
-  hasErrata: false,
-  hasNoImage: false,
-  hasNullEnergy: false,
-  hasNullMight: false,
-  hasNullPower: false,
-  markers: [],
-  distributionChannels: [],
-  energy: { min: 0, max: 0 },
-  might: { min: 0, max: 0 },
-  power: { min: 0, max: 0 },
-  price: { min: 0, max: 0 },
-};
-
 function makeLoaderData(overrides: Partial<LoaderData> = {}): LoaderData {
   return {
     firstRow: [],
-    facets: EMPTY_FACETS,
-    availableLanguages: [],
     setLabels: labelMapOf({}),
-    counts: { totalCards: 0, filteredCount: 0 },
     ...overrides,
   };
 }
 
-describe("FirstRowPreview", () => {
+describe("FirstRowGrid", () => {
   afterEach(() => {
     mockUseLoaderData.mockReset();
   });
@@ -126,26 +57,10 @@ describe("FirstRowPreview", () => {
     expect(container.querySelectorAll("img")).toHaveLength(3);
   });
 
-  it("returns null when facets is null (client-side navigation)", () => {
-    mockUseLoaderData.mockReturnValue(makeLoaderData({ facets: null }));
+  it("renders nothing when the loader has no first row", () => {
+    mockUseLoaderData.mockReturnValue(makeLoaderData({ firstRow: [] }));
     const { container } = renderPreview();
     expect(container.firstChild).toBeNull();
-  });
-
-  it("renders the SSR chrome even when firstRow is empty", () => {
-    mockUseLoaderData.mockReturnValue(makeLoaderData({ firstRow: [] }));
-    const { container } = renderPreview();
-    expect(container.firstChild).not.toBeNull();
-    expect(container.querySelectorAll("img")).toHaveLength(0);
-  });
-
-  it("labels the mobile search chips like the live page, without catalog validation", () => {
-    mockUseLoaderData.mockReturnValue(makeLoaderData({ firstRow: [] }));
-    activeFiltersProps.mockClear();
-    renderPreview();
-    const props = activeFiltersProps.mock.calls[0]?.[0] as Record<string, unknown>;
-    expect(props.searchValueLabel).toBe(valueLabel);
-    expect(props.searchVocabulary).toBeUndefined();
   });
 
   it("marks only the first image as fetchpriority=high", () => {

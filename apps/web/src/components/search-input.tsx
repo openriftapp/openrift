@@ -108,6 +108,7 @@ export function SearchInput({
         ref={setInputRef}
         id={id}
         placeholder={placeholder}
+        autoComplete="off"
         aria-label={ariaLabel ?? (id === undefined ? placeholder : undefined)}
         value={value}
         onChange={(event) => onValueChange(event.target.value)}

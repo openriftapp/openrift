@@ -27,6 +27,10 @@ export interface CardThumbnailDisplay {
 }
 
 export function useCardThumbnailDisplay(): CardThumbnailDisplay {
+  return useCardThumbnailDisplayWith(usePrices());
+}
+
+export function useCardThumbnailDisplayWith(prices: PriceLookup): CardThumbnailDisplay {
   "use memo";
   const fancyFan = useDisplayStore((s) => s.fancyFan);
   const foilEffect = useDisplayStore((s) => s.foilEffect);
@@ -35,7 +39,6 @@ export function useCardThumbnailDisplay(): CardThumbnailDisplay {
   const coarsePointer = useCoarsePointer();
   const domainColors = useDomainColors();
   const { labels } = useEnumOrders();
-  const prices = usePrices();
   const getFallbackArt = useStandardArtFallback();
   const favoriteMarketplace = marketplaceOrder[0];
   return {

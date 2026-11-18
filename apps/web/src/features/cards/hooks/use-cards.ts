@@ -41,8 +41,21 @@ export function useCatalogOnDemand(enabled: boolean): {
   catalog: UseCardsResult | undefined;
   error: Error | null;
 } {
+  return useCatalogQuery(enabled, false);
+}
+
+/** {@link useCatalogOnDemand} for a page that cannot render without the catalogue: a failed first load throws. */
+export function useCatalogWhenReady(enabled: boolean): UseCardsResult | undefined {
+  return useCatalogQuery(enabled, true).catalog;
+}
+
+function useCatalogQuery(enabled: boolean, throwWithoutData: boolean) {
   const languages = use(CatalogLanguagesContext);
-  const { data, error } = useQuery({ ...catalogQueryOptionsFor(languages), enabled });
+  const { data, error } = useQuery({
+    ...catalogQueryOptionsFor(languages),
+    enabled,
+    throwOnError: (_error, query) => throwWithoutData && query.state.data === undefined,
+  });
   const inLanguageOrder = use(CatalogLanguageOrderContext);
   useCatalogTail(data ?? null);
   return { catalog: data && inLanguageOrder(data), error };

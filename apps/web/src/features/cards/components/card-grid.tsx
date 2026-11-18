@@ -151,7 +151,7 @@ const CardRowContent = memo(function CardRowContent({
   eagerCount: number;
   renderCard: (item: CardViewerItem, ctx: CardRenderContext) => ReactNode;
 }) {
-  // Eager rows are SSR-preloaded by <FirstRowPreview>; skipping the deferred
+  // Eager rows are SSR-preloaded by <FirstRowGrid>; skipping the deferred
   // placeholder phase for them avoids a flash before the cached image paints.
   const isEager = row.cardsBefore < eagerCount;
   const [deferred, setDeferred] = useState(!isEager);

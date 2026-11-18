@@ -1,3 +1,5 @@
+import { enumLabel } from "@openrift/shared/enum-label";
+import { EMPTY_PRICE_LOOKUP } from "@openrift/shared/price-lookup";
 import { countPrintings, sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { getRouteApi } from "@tanstack/react-router";
@@ -12,18 +14,23 @@ import {
   CardBrowserFilterProvider,
 } from "@/features/cards/components/card-browser-filter-scaffold";
 import { CardDetailActions } from "@/features/cards/components/card-detail/card-detail-actions";
+import { FirstRowGrid } from "@/features/cards/components/first-row-grid";
 import { SelectionDetailOverlays } from "@/features/cards/components/selection-detail-overlays";
 import { SelectionDetailPane } from "@/features/cards/components/selection-detail-pane";
 import { TableCountActions } from "@/features/cards/components/table-count-actions";
 import { useCardData, useCatalogFilterMeta } from "@/features/cards/hooks/use-card-data";
 import { useCardDeepLink } from "@/features/cards/hooks/use-card-deep-link";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
-import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
-import { useCards } from "@/features/cards/hooks/use-cards";
+import { useCardThumbnailDisplayWith } from "@/features/cards/hooks/use-card-thumbnail-display";
+import { useCatalogWhenReady } from "@/features/cards/hooks/use-cards";
 import { useFilterCountsVisible } from "@/features/cards/hooks/use-filter-counts-visible";
+import { useFilterSearchKey } from "@/features/cards/hooks/use-filter-search";
+import { usePricesOnDemand } from "@/features/cards/hooks/use-prices";
 import { useSearchAndCloseDetail } from "@/features/cards/hooks/use-search-and-close-detail";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { selectionFindBy, tileSiblings } from "@/features/cards/lib/card-tiles";
+import { fromWireFacets, fromWireFilterCounts } from "@/features/cards/lib/cards-facets";
+import type { UseCardsResult } from "@/features/cards/lib/catalog-queries";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
 import { usePrintingLightboxStore } from "@/features/cards/stores/printing-lightbox-store";
 import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-override-store";
@@ -41,6 +48,7 @@ import { useWishEntries } from "@/features/groups/hooks/use-wish-entries";
 import { WishlistPickerHost } from "@/features/lists/components/wishlist-picker-host";
 import { useRegisterQuickAdd } from "@/hooks/use-command-palette";
 import { useChannelRegistry } from "@/hooks/use-enums";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useSeedLanguagesFromPrefs } from "@/hooks/use-seed-languages-from-prefs";
 import { useSession } from "@/hooks/use-session";
@@ -51,6 +59,18 @@ import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
 
 const cardsRouteApi = getRouteApi("/_app/cards");
+
+const EMPTY_CATALOG: UseCardsResult = {
+  allPrintings: [],
+  cardsById: {},
+  printingsById: {},
+  printingsBySideKey: {},
+  sidesByPrinting: new Map(),
+  printingsByCardId: new Map(),
+  sets: [],
+};
+
+const NO_URL_LANGUAGES: readonly string[] = [];
 
 const CARD_BROWSER_HIDDEN_LOGGED_IN: ReadonlySet<string> = new Set(["customTags"]);
 const CARD_BROWSER_HIDDEN_LOGGED_OUT: ReadonlySet<string> = new Set(["owned", "customTags"]);
@@ -77,7 +97,14 @@ function CatalogActionsCell({ printing, view, printingsByCardId }: CatalogAction
   );
 }
 
+/** Never suspends: it renders on the server, so the toolbar keeps its input through hydration. */
 export function CardBrowser() {
+  const hydrated = useHydrated();
+  const loaderData = cardsRouteApi.useLoaderData();
+  const urlSearch = cardsRouteApi.useSearch();
+  const catalog = useCatalogWhenReady(hydrated);
+  const loadedPrices = usePricesOnDemand(hydrated);
+  const live = hydrated && catalog !== undefined && loadedPrices !== undefined;
   const isMobile = useIsMobile();
   const showImages = useDisplayStore((s) => s.showImages);
   const cardsShowCounts = useDisplayStore((s) => s.cardsShowCounts);
@@ -87,15 +114,16 @@ export function CardBrowser() {
     printingsById,
     sets,
     printingsByCardId: catalogAllPrintingsByCardId,
-  } = useCards();
+  } = live ? catalog : EMPTY_CATALOG;
   const channels = useChannelRegistry();
-  const display = useCardThumbnailDisplay();
+  const display = useCardThumbnailDisplayWith(loadedPrices ?? EMPTY_PRICE_LOOKUP);
   const { data: session } = useSession();
   const isLoggedIn = Boolean(session?.user);
-  const { data: ownedCountByPrinting } = useOwnedCount(isLoggedIn);
+  // Gated on `live` so the copies sync and wishlist fetches start after the catalogue download.
+  const { data: ownedCountByPrinting } = useOwnedCount(isLoggedIn && live);
   // One membership feed for the whole grid: per-cell subscriptions would
   // refetch every wishlist's detail once per visible cell.
-  const wish = useWishEntries(isLoggedIn);
+  const wish = useWishEntries(isLoggedIn && live);
   const [wishTarget, setWishTarget] = useState<Printing | null>(null);
 
   const collections = useCollectionsList();
@@ -138,7 +166,13 @@ export function CardBrowser() {
 
   const view = rawView === "copies" ? "printings" : rawView;
 
-  useSeedLanguagesFromPrefs(filters.languages);
+  useSeedLanguagesFromPrefs(urlSearch.languages ?? NO_URL_LANGUAGES);
+
+  // The loader ran for the server-rendered search and does not rerun when the search changes.
+  const searchKey = useFilterSearchKey();
+  // oxlint-disable-next-line react/hook-use-state -- the search this page loaded with, never replaced
+  const [loaderSearchKey] = useState(searchKey);
+  const countsPending = !live && searchKey !== loaderSearchKey;
 
   // No useDeferredValue on the filter state: deferring split each toggle into
   // two commits and measured slower on a throttled phone than one commit does.
@@ -223,8 +257,29 @@ export function CardBrowser() {
   const inCardsView = view === "cards";
   const findBy = selectionFindBy(view, groupBy);
 
-  const { printingId: linkedPrintingId } = cardsRouteApi.useSearch();
-  useCardDeepLink({ linkedPrintingId, printingsById, items });
+  useCardDeepLink({ linkedPrintingId: urlSearch.printingId, printingsById, items });
+
+  const loaderFilters =
+    live || loaderData.facets === null ? null : fromWireFacets(loaderData.facets);
+  // The catalogue's first chunk holds only the shown languages; the loader's list keeps
+  // the language chip from disappearing until the rest arrives.
+  const knownLanguages = [
+    ...new Set([...loaderData.availableLanguages, ...filterMeta.availableLanguages]),
+  ];
+  const shownMeta =
+    loaderFilters === null
+      ? { ...filterMeta, availableLanguages: knownLanguages }
+      : {
+          availableFilters: loaderFilters,
+          availableLanguages: loaderData.availableLanguages,
+          filterCounts:
+            countsPending || loaderData.filterCounts === null
+              ? undefined
+              : fromWireFilterCounts(loaderData.filterCounts),
+          setDisplayLabel: (slug: string) => enumLabel(loaderData.setLabels, slug),
+        };
+  const shownTotal = live ? totalUniqueCards : loaderData.counts.totalCards;
+  const shownFiltered = live ? filteredCount : loaderData.counts.filteredCount;
 
   const handleGridCardClick = (printing: Printing) => {
     useSelectionStore.getState().selectCard(printing, items, findBy);
@@ -337,13 +392,14 @@ export function CardBrowser() {
 
   const toolbar = (
     <BrowserToolbar
-      totalCards={totalUniqueCards}
-      filteredCount={filteredCount}
+      totalCards={shownTotal}
+      filteredCount={shownFiltered}
+      countsPending={countsPending}
       mobileDoneLabel={
-        hasActiveFilters
+        hasActiveFilters && !countsPending
           ? view === "cards"
-            ? m.cards_grid_show_n_cards({ count: filteredCount })
-            : m.cards_grid_show_n_printings({ count: filteredCount })
+            ? m.cards_grid_show_n_cards({ count: shownFiltered })
+            : m.cards_grid_show_n_printings({ count: shownFiltered })
           : undefined
       }
       extras={showCountsButton}
@@ -376,12 +432,12 @@ export function CardBrowser() {
     <>
       <CardBrowserFilterProvider
         searchAlternatives={searchAlternatives}
-        availableFilters={filterMeta.availableFilters}
-        availableLanguages={filterMeta.availableLanguages}
-        filterCounts={filterMeta.filterCounts}
-        setDisplayLabel={filterMeta.setDisplayLabel}
+        availableFilters={shownMeta.availableFilters}
+        availableLanguages={shownMeta.availableLanguages}
+        filterCounts={shownMeta.filterCounts}
+        setDisplayLabel={shownMeta.setDisplayLabel}
         hiddenSections={hiddenFilterSections}
-        ownedCountMax={ownedCountBound}
+        ownedCountMax={live ? ownedCountBound : undefined}
       >
         <BrowserCardViewer
           items={items}
@@ -395,6 +451,8 @@ export function CardBrowser() {
           view={view}
           toolbar={toolbar}
           rightPane={rightPane}
+          stale={countsPending}
+          pendingGrid={live ? undefined : <FirstRowGrid />}
           addStripHeight={showStrip ? ADD_STRIP_HEIGHT : undefined}
           table={{
             actionsColumn: showStrip ? (canAdd ? "stepper" : "narrow") : "none",
@@ -414,28 +472,32 @@ export function CardBrowser() {
 
         {/* Variant×collection popover. Self-subscribes to the add-mode store so
           opening it never re-renders this grid. */}
-        <VariantLocationsPopoverHost
-          catalogPrintingsByCardId={printingsByCardId}
-          languageScopedPrintingsByCardId={detailPanePrintingsByCardId}
-          onQuickAdd={handleQuickAdd && ((printing) => void handleQuickAdd(printing))}
-          defaultTargetCollectionId={inboxId}
-          onAddToCollection={(printing, collectionId) =>
-            void handleAddToCollection(printing, collectionId)
-          }
-          onRemoveFromCollection={(printing, collectionId) =>
-            void handleDisposeFromCollection(printing, collectionId)
-          }
-          closeVariants={closeVariants}
-        />
+        {live && (
+          <VariantLocationsPopoverHost
+            catalogPrintingsByCardId={printingsByCardId}
+            languageScopedPrintingsByCardId={detailPanePrintingsByCardId}
+            onQuickAdd={handleQuickAdd && ((printing) => void handleQuickAdd(printing))}
+            defaultTargetCollectionId={inboxId}
+            onAddToCollection={(printing, collectionId) =>
+              void handleAddToCollection(printing, collectionId)
+            }
+            onRemoveFromCollection={(printing, collectionId) =>
+              void handleDisposeFromCollection(printing, collectionId)
+            }
+            closeVariants={closeVariants}
+          />
+        )}
       </CardBrowserFilterProvider>
-      <WishlistPickerHost target={wishTarget} onClose={() => setWishTarget(null)} />
-      <AnnotatedDisposeDialog
-        pending={pendingAnnotatedDispose}
-        onConfirm={() => void confirmAnnotatedDispose()}
-        onCancel={cancelAnnotatedDispose}
-        isPending={disposeIsPending}
-      />
-      {inbox && (
+      {live && <WishlistPickerHost target={wishTarget} onClose={() => setWishTarget(null)} />}
+      {live && (
+        <AnnotatedDisposeDialog
+          pending={pendingAnnotatedDispose}
+          onConfirm={() => void confirmAnnotatedDispose()}
+          onCancel={cancelAnnotatedDispose}
+          isPending={disposeIsPending}
+        />
+      )}
+      {live && inbox && (
         <QuickAddPalette
           open={quickAddOpen}
           onOpenChange={setQuickAddOpen}

@@ -216,6 +216,15 @@ export function useFilterActions() {
     });
   };
 
+  /** The cards page shows default languages before the URL names any; a language edit starts from those. */
+  const withShownLanguages = <T extends { languages?: string[] }>(
+    latest: T,
+    ...keys: ArrayFilterParam[]
+  ): T =>
+    keys.includes("languages") && latest.languages === undefined && raw.languages !== undefined
+      ? { ...latest, languages: raw.languages }
+      : latest;
+
   const clearAllFilters = () => {
     updateSearch(CLEAR_ALL_PATCH);
   };
@@ -230,7 +239,7 @@ export function useFilterActions() {
       to: ".",
       resetScroll: resetsScroll(),
       search: (latest) => {
-        const prev = absorbQueryFilters(latest, [key], queryFilterOptions);
+        const prev = absorbQueryFilters(withShownLanguages(latest, key), [key], queryFilterOptions);
         const current = (prev[key as keyof typeof prev] as string[] | undefined) ?? [];
         const next = current.includes(value)
           ? current.filter((v) => v !== value)
@@ -267,7 +276,11 @@ export function useFilterActions() {
       to: ".",
       resetScroll: resetsScroll(),
       search: (latest) => {
-        const prev = absorbQueryFilters(latest, [includeKey, excludeKey], queryFilterOptions);
+        const prev = absorbQueryFilters(
+          withShownLanguages(latest, includeKey, excludeKey),
+          [includeKey, excludeKey],
+          queryFilterOptions,
+        );
         const include = (prev[includeKey as keyof typeof prev] as string[] | undefined) ?? [];
         const exclude = (prev[excludeKey as keyof typeof prev] as string[] | undefined) ?? [];
         const { included: nextInclude, excluded: nextExclude } = edit(include, exclude);

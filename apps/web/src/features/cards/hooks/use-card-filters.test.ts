@@ -156,6 +156,38 @@ describe("useCardFilters", () => {
     expect(lastNavigateSearch()).toMatchObject({ sets: ["RB2"] });
   });
 
+  it("toggleArrayFilter edits the shown default languages while the URL names none", () => {
+    mockSearch = { languages: ["EN"] };
+    const { result } = renderHook(() => useCardFilters(), { wrapper });
+    const searchFor = () => mockNavigate.mock.calls.at(-1)?.[0].search({});
+
+    act(() => result.current.toggleArrayFilter("languages", "ZH"));
+    expect(searchFor()).toMatchObject({ languages: ["EN", "ZH"] });
+
+    act(() => result.current.toggleArrayFilter("languages", "EN"));
+    expect(searchFor()).not.toHaveProperty("languages");
+  });
+
+  it("toggleSignedFilter edits the shown default languages while the URL names none", () => {
+    mockSearch = { languages: ["EN"] };
+    const { result } = renderHook(() => useCardFilters(), { wrapper });
+
+    act(() => result.current.toggleSignedFilter("languages", "languagesEx", "ZH", "include"));
+
+    expect(mockNavigate.mock.calls.at(-1)?.[0].search({})).toMatchObject({
+      languages: ["EN", "ZH"],
+    });
+  });
+
+  it("leaves shown default languages out of edits to other filters", () => {
+    mockSearch = { languages: ["EN"] };
+    const { result } = renderHook(() => useCardFilters(), { wrapper });
+
+    act(() => result.current.toggleArrayFilter("sets", "RB1"));
+
+    expect(mockNavigate.mock.calls.at(-1)?.[0].search({})).toEqual({ sets: ["RB1"] });
+  });
+
   it("toggleArrayFilter strips key when removing the last value", () => {
     mockSearch = { rarities: ["rare"] };
     const { result } = renderHook(() => useCardFilters(), { wrapper });

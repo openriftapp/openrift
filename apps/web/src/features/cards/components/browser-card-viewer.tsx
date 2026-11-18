@@ -32,6 +32,7 @@ interface BrowserCardViewerProps {
   onReturned?: (focusPending: boolean) => void;
   table?: CardTableProps;
   noResultsDescription?: ReactNode;
+  pendingGrid?: ReactNode;
   children?: ReactNode;
 }
 

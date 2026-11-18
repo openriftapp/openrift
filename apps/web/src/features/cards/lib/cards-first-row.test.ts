@@ -343,7 +343,7 @@ describe("extractFirstRow", () => {
     });
   });
 
-  it("flags battlefields as rotated so the SSR preview can rotate the landscape art", () => {
+  it("flags battlefields as rotated so the first row can rotate the landscape art", () => {
     const cards = { "bf-card": makeCard({ types: ["battlefield"] }) };
     const printings = { "p-bf": makePrinting({ cardId: "bf-card", shortCode: "OGN-100" }) };
     const [card] = extractFirstRow(

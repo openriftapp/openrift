@@ -1,12 +1,22 @@
 import { priceLookupFromMap } from "@openrift/shared/price-lookup";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { QueryClient } from "@tanstack/react-query";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 
 import { pricesQueryOptions } from "@/features/cards/lib/prices-queries";
 
 export function usePrices(): PriceLookup {
   const { data } = useSuspenseQuery(pricesQueryOptions);
+  return data;
+}
+
+/** Never suspends and never fetches during SSR; a failed first load throws to the route's error page. */
+export function usePricesOnDemand(enabled: boolean): PriceLookup | undefined {
+  const { data } = useQuery({
+    ...pricesQueryOptions,
+    enabled,
+    throwOnError: (_error, query) => query.state.data === undefined,
+  });
   return data;
 }
 
