@@ -34,51 +34,12 @@ import { DECK_ZONE_ORDER } from "@/features/decks/lib/deck-zone-order";
 import { showRelaxedAddToast } from "@/features/decks/lib/workbench-add-toast";
 import { relaxedMoveOutcome, workbenchAddRoute } from "@/features/decks/lib/workbench-drop";
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
+import { useDragAutoScroll } from "@/hooks/use-drag-auto-scroll";
 import { useShiftHeld } from "@/hooks/use-shift-held";
 import { asDragData } from "@/lib/dnd-data";
 
 const DRAG_ACTIVATION = { distance: 8 };
 const MODIFIERS = [snapCenterToCursor];
-/** How close to a container's edge the pointer must get before it auto-scrolls. */
-const EDGE_SIZE = 40;
-/** Pixels per frame at the very edge; scaled down across the edge band. */
-const SCROLL_SPEED = 15;
-/** The sidebar's own scroll container (SidebarContent sets this data-slot). */
-const SIDEBAR_VIEWPORT_SELECTOR = '[data-slot="sidebar-content"]';
-
-/** Speed ramps from 0 at the inner edge of the band to SCROLL_SPEED at the container's edge, clamped there. */
-export function edgeScrollDelta(input: {
-  pointerY: number;
-  top: number;
-  bottom: number;
-  scrollTop: number;
-  scrollHeight: number;
-  clientHeight: number;
-}): number {
-  const { pointerY, top, bottom, scrollTop, scrollHeight, clientHeight } = input;
-  const maxScroll = scrollHeight - clientHeight;
-  if (maxScroll <= 0) {
-    return 0;
-  }
-  const distFromTop = pointerY - top;
-  const distFromBottom = bottom - pointerY;
-  if (distFromTop < EDGE_SIZE && scrollTop > 0) {
-    return -SCROLL_SPEED * Math.min(1, 1 - distFromTop / EDGE_SIZE);
-  }
-  if (distFromBottom < EDGE_SIZE && scrollTop < maxScroll) {
-    return SCROLL_SPEED * Math.min(1, 1 - distFromBottom / EDGE_SIZE);
-  }
-  return 0;
-}
-
-export function isPointInRect(
-  x: number,
-  y: number,
-  rect: { top: number; right: number; bottom: number; left: number },
-): boolean {
-  return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
-}
-
 /** The droppable zone container under a viewport point, read from the DOM. */
 export function zoneAtPoint(
   point: { x: number; y: number } | null,
@@ -130,10 +91,8 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
     preferredPrintingId: string | null;
   } | null>(null);
   const shiftHeld = useShiftHeld();
-  const activeNodeRef = useRef<HTMLElement | null>(null);
-  const pointerRef = useRef({ x: 0, y: 0 });
+  const dragScroll = useDragAutoScroll();
   const releaseRef = useRef<{ x: number; y: number } | null>(null);
-  const scrollRafRef = useRef<number>(0);
 
   // DragOverlay has pointer-events: none, so the cursor would otherwise reflect whatever is underneath.
   useEffect(() => {
@@ -146,66 +105,8 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
     };
   }, [dragInfo]);
 
-  // dnd-kit's built-in auto-scroll only walks the active node's ancestors; this
-  // covers a card dragged from the browser grid over the sidebar. Never scrolls the page itself.
-  useEffect(() => {
-    if (!dragInfo) {
-      return;
-    }
-
-    const handlePointerMove = (event: PointerEvent) => {
-      pointerRef.current = { x: event.clientX, y: event.clientY };
-    };
-
-    const scrollLoop = () => {
-      const { x, y } = pointerRef.current;
-
-      const elements = document.elementsFromPoint(x, y);
-      for (const element of elements) {
-        if (!(element instanceof HTMLElement)) {
-          continue;
-        }
-        // Skip containers that are ancestors of the active node — dnd-kit handles those.
-        if (activeNodeRef.current && element.contains(activeNodeRef.current)) {
-          continue;
-        }
-        if (element === document.body || element === document.documentElement) {
-          continue;
-        }
-        const { overflowY } = getComputedStyle(element);
-        if (overflowY !== "auto" && overflowY !== "scroll") {
-          continue;
-        }
-
-        const rect = element.getBoundingClientRect();
-        const delta = edgeScrollDelta({
-          pointerY: y,
-          top: rect.top,
-          bottom: rect.bottom,
-          scrollTop: element.scrollTop,
-          scrollHeight: element.scrollHeight,
-          clientHeight: element.clientHeight,
-        });
-        if (delta !== 0) {
-          element.scrollBy(0, delta);
-          break;
-        }
-      }
-
-      scrollRafRef.current = requestAnimationFrame(scrollLoop);
-    };
-
-    globalThis.addEventListener("pointermove", handlePointerMove);
-    scrollRafRef.current = requestAnimationFrame(scrollLoop);
-
-    return () => {
-      globalThis.removeEventListener("pointermove", handlePointerMove);
-      cancelAnimationFrame(scrollRafRef.current);
-    };
-  }, [dragInfo]);
-
   const handleDragStart = (event: DragStartEvent) => {
-    activeNodeRef.current = (event.activatorEvent.target as HTMLElement) ?? null;
+    dragScroll.start(event.activatorEvent);
     releaseRef.current = null;
     // Capture on the window runs before dnd-kit's document listener ends the drag.
     globalThis.addEventListener(
@@ -247,7 +148,7 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
   const handleDragEnd = (event: DragEndEvent) => {
     const moveAll = shiftHeld;
     setDragInfo(null);
-    activeNodeRef.current = null;
+    dragScroll.stop();
 
     const activeData = asDragData<DeckDragData>(event.active.data.current, DECK_DRAG_TYPES);
 
@@ -378,35 +279,16 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
       : (dragInfo?.quantity ?? 1)
     : 1;
 
-  const pointerOverSidebar = () => {
-    const rect = document.querySelector(SIDEBAR_VIEWPORT_SELECTOR)?.getBoundingClientRect();
-    const { x, y } = pointerRef.current;
-    return rect !== undefined && isPointInRect(x, y, rect);
-  };
-
-  // dnd-kit scrolls the page before the sidebar since both share the viewport's edges;
-  // veto the page while the pointer is over the sidebar so its own scroll container gets the turn.
-  const canScroll = (element: Element) => {
-    const isPage =
-      element === document.scrollingElement ||
-      element === document.documentElement ||
-      element === document.body;
-    if (!isPage) {
-      return true;
-    }
-    return !pointerOverSidebar();
-  };
-
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={pointerWithin}
-      autoScroll={{ canScroll }}
+      autoScroll={dragScroll.autoScroll}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragCancel={() => {
         setDragInfo(null);
-        activeNodeRef.current = null;
+        dragScroll.stop();
       }}
     >
       <DndScrollWatcher />

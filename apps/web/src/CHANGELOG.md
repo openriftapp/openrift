@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-18
+
+### Other
+
+- fix(Collection): **Dragging onto the sidebar** — dragging cards over the sidebar no longer scrolls the collection behind it, and the sidebar scrolls when you drag near its top or bottom edge.
+
 ## 2026-11-17
 
 ### Highlights

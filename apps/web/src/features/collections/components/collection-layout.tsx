@@ -60,6 +60,7 @@ import {
   ruleEntryCopyInputs,
 } from "@/features/lists/lib/list-move";
 import { describeListAdd } from "@/features/lists/lib/list-toast";
+import { useDragAutoScroll } from "@/hooks/use-drag-auto-scroll";
 import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { ViewSurfaceProvider } from "@/hooks/use-view-prefs";
 import { asDragData } from "@/lib/dnd-data";
@@ -104,6 +105,7 @@ export function CollectionLayout() {
   const moveListEntries = useMoveListEntries();
 
   const sensors = useCollectionDndSensors();
+  const dragScroll = useDragAutoScroll();
 
   // Tracked for the whole layout so Shift held before grabbing a card isn't missed.
   // Digits only arm the modifier while dragActiveRef is set: unarmed, the same keys add copies (useGridKeyboardNav).
@@ -154,6 +156,7 @@ export function CollectionLayout() {
 
   const handleDragStart = (event: DragStartEvent) => {
     dragActiveRef.current = true;
+    dragScroll.start(event.activatorEvent);
     const data = asDragData<CollectionDragData>(event.active.data.current, COLLECTION_DRAG_TYPES);
     if (data?.type === "collection-card") {
       setActiveDrag(resolveSelectionDrag(data));
@@ -174,6 +177,7 @@ export function CollectionLayout() {
       (dragData.ruleEntry !== undefined || hasRuleSelection(dragData.selectionIds));
     const mode: MoveMode = copyModifier || carriesRuleEntry ? "copy" : "move";
     dragActiveRef.current = false;
+    dragScroll.stop();
     setActiveDrag(null);
 
     const dropData = asDragData<CollectionDropData>(
@@ -385,10 +389,12 @@ export function CollectionLayout() {
               <DndContext
                 sensors={sensors}
                 collisionDetection={collectionCollisionDetection}
+                autoScroll={dragScroll.autoScroll}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 onDragCancel={() => {
                   dragActiveRef.current = false;
+                  dragScroll.stop();
                   setActiveDrag(null);
                 }}
               >
