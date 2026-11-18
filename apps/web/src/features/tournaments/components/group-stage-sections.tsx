@@ -29,7 +29,7 @@ import { m } from "@/paraglide/messages.js";
 
 import { PodCard } from "./pod-card";
 import { StartGroupRoundButton } from "./start-group-round-button";
-import { TournamentLegend } from "./tournament-legend";
+import { PodMemberLegend } from "./tournament-legend";
 
 interface GroupStageSectionsProps {
   groupStage: GroupStageView;
@@ -186,34 +186,29 @@ function GroupUnitSection({
         ) : null}
       </div>
       {currentPods.length > 0 ? (
-        <div className="flex flex-col gap-3">
-          <span className="text-muted-foreground text-sm">
-            {m.tournaments_group_round_label({ number: unit.roundsStarted })}
-          </span>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {currentPods.map((pod) => (
-              <PodCard
-                key={pod.id}
-                pod={pod}
-                teamMode={false}
-                scheme={scheme}
-                matchFormat={matchFormat}
-                winPoints={winPoints}
-                drawPoints={drawPoints}
-                showPenalty={false}
-                warnings={[]}
-                warningsExpanded={false}
-                nameById={podNames(currentPods)}
-                canEnter={canEnterResult}
-                crossGroup={isCrossGroupPod(pod, labelByPlayer)}
-                renderMemberBadge={(playerId) => (
-                  <MemberLegend legend={legendByPlayer.get(playerId)} />
-                )}
-                onSubmit={onSubmitResult}
-                onSubmitPlayerResult={onSubmitPlayerResult}
-              />
-            ))}
-          </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {currentPods.map((pod) => (
+            <PodCard
+              key={pod.id}
+              pod={pod}
+              teamMode={false}
+              scheme={scheme}
+              matchFormat={matchFormat}
+              winPoints={winPoints}
+              drawPoints={drawPoints}
+              showPenalty={false}
+              warnings={[]}
+              warningsExpanded={false}
+              nameById={podNames(currentPods)}
+              canEnter={canEnterResult}
+              crossGroup={isCrossGroupPod(pod, labelByPlayer)}
+              renderMemberDetail={(playerId) => (
+                <PodMemberLegend legend={legendByPlayer.get(playerId)} />
+              )}
+              onSubmit={onSubmitResult}
+              onSubmitPlayerResult={onSubmitPlayerResult}
+            />
+          ))}
         </div>
       ) : null}
       {earlier.map((entry) => (
@@ -295,8 +290,8 @@ function EarlierRound({
               nameById={podNames(pods)}
               canEnter={canEnter}
               crossGroup={isCrossGroupPod(pod, labelByPlayer)}
-              renderMemberBadge={(playerId) => (
-                <MemberLegend legend={legendByPlayer.get(playerId)} />
+              renderMemberDetail={(playerId) => (
+                <PodMemberLegend legend={legendByPlayer.get(playerId)} />
               )}
               onSubmit={onSubmitResult}
               onSubmitPlayerResult={onSubmitPlayerResult}
@@ -305,20 +300,6 @@ function EarlierRound({
         </div>
       ) : null}
     </div>
-  );
-}
-
-function MemberLegend({ legend }: { legend: PlayerLegend | undefined }) {
-  if (legend === undefined) {
-    return null;
-  }
-  return (
-    <TournamentLegend
-      legendCardId={legend.legendCardId}
-      fallback={legend}
-      championOnly
-      className="text-muted-foreground shrink-0 text-xs"
-    />
   );
 }
 

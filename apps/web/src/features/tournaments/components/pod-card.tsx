@@ -99,7 +99,7 @@ export function PodCard({
   canEnter,
   crossGroup = false,
   allowDraws = true,
-  renderMemberBadge,
+  renderMemberDetail,
   onSubmit,
   onSubmitPlayerResult,
 }: {
@@ -118,7 +118,7 @@ export function PodCard({
   /** The paired 3-player groups' shared match. */
   crossGroup?: boolean;
   allowDraws?: boolean;
-  renderMemberBadge?: (playerId: string) => ReactNode;
+  renderMemberDetail?: (playerId: string) => ReactNode;
   onSubmit: (podId: string, submission: PodResultSubmission) => Promise<unknown>;
   onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<unknown>;
 }) {
@@ -261,9 +261,8 @@ export function PodCard({
             image={solo ? lead.image : null}
             gravatarHash={solo ? lead.gravatarHash : null}
             region={region}
-          >
-            {renderMemberBadge?.(lead.playerId)}
-          </PlayerChip>
+            detail={solo ? renderMemberDetail?.(lead.playerId) : undefined}
+          />
         </div>
         {scoreEntry ?? (
           // shrink-0: without it a long name squeezes this cluster
@@ -299,7 +298,7 @@ export function PodCard({
                   ? m.tournaments_pod_double_forfeit()
                   : m.tournaments_pod_walkover()}
               </Badge>
-            ) : (
+            ) : isMatch && !reported ? null : (
               <PodStatusBadge
                 reported={reported}
                 // A team shares one score, so reporting progress counts sides.

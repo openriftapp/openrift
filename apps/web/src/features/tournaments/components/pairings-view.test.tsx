@@ -5,6 +5,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import { PairingsView } from "./pairings-view";
 
+vi.mock("./tournament-legend", () => ({
+  PodMemberLegend: ({ legend }: { legend?: { legendCardId: string | null } }) =>
+    legend ? <span>{`legend:${legend.legendCardId}`}</span> : null,
+}));
+
 function makePod(overrides: Partial<PodResponse> = {}): PodResponse {
   return {
     id: "pod-1",
@@ -391,6 +396,27 @@ describe("PairingsView", () => {
     expect(within(braum).getByTitle("1 game points")).toHaveTextContent("1");
   });
 
+  it("shows each member's Legend when the view is given them", () => {
+    renderView({
+      legendByPlayer: new Map([
+        [
+          "p1",
+          {
+            legendCardId: "card-jinx",
+            legendName: null,
+            legendCharacter: null,
+            legendEpithet: null,
+          },
+        ],
+      ]),
+    });
+
+    const ashe = screen.getByText("Ashe").closest("li") as HTMLElement;
+    expect(within(ashe).getByText("legend:card-jinx")).toBeInTheDocument();
+    const braum = screen.getByText("Braum").closest("li") as HTMLElement;
+    expect(within(braum).queryByText(/^legend:/u)).not.toBeInTheDocument();
+  });
+
   it("hides the pod fairness line when every figure is zero", () => {
     const cleanPenalty = {
       total: 0,
@@ -533,7 +559,27 @@ describe("PairingsView 2v2 team matches", () => {
     expect(screen.getByText("Ashe & Braum")).toBeInTheDocument();
     expect(screen.getByText("Caitlyn & Darius")).toBeInTheDocument();
     expect(screen.queryByText("Ashe")).not.toBeInTheDocument();
-    expect(screen.getByText("0 of 2 in")).toBeInTheDocument();
+    expect(screen.queryByText(/ of 2 in$/u)).not.toBeInTheDocument();
+  });
+
+  it("leaves Legends off a team's joined name", () => {
+    renderView({
+      playMode: "2v2",
+      rounds: [makeRound({ pods: [makeTeamPod()] })],
+      legendByPlayer: new Map([
+        [
+          "p1",
+          {
+            legendCardId: "card-jinx",
+            legendName: null,
+            legendCharacter: null,
+            legendEpithet: null,
+          },
+        ],
+      ]),
+    });
+
+    expect(screen.queryByText(/^legend:/u)).not.toBeInTheDocument();
   });
 
   it("offers the Swiss scoreline form for a team match with joined side names", async () => {

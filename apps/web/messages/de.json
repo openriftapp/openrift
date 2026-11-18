@@ -6674,8 +6674,10 @@
   "tournaments_start_round_confirm_description": "Sag bitte einem Judge Bescheid, bevor du die nächste Runde startest.",
   "tournaments_submit_draw": "Unentschieden",
   "tournaments_submit_game": "Spiel {number}",
+  "tournaments_submit_game_short": "S{number}",
+  "tournaments_submit_cut_short_description": "Spiel {number} hat kein Ergebnis. Es zählt als nicht gespielt und das Match wird als {first} {score} {second} gespeichert.",
+  "tournaments_submit_cut_short_title": "Wurde das Match vorzeitig beendet?",
   "tournaments_submit_game_outcome_aria": "Spiel {number}: {outcome}",
-  "tournaments_submit_not_played": "Nicht gespielt",
   "tournaments_submit_intentional_draw": "Absichtliches Unentschieden",
   "tournaments_submit_needs_winner": "Ein Match im Top Cut braucht einen Sieger.",
   "tournaments_submit_points_preview": "+{points} Punkte",
@@ -7294,7 +7296,21 @@
   "tournaments_group_skip_legend_tiebreak": "Legend-Tiebreak überspringen",
   "tournaments_group_unit_done": "Fertig",
   "tournaments_group_unit_not_started": "Nicht gestartet",
-  "tournaments_group_unit_progress": "Runde {round} · {reported} von {total} eingetragen",
+  "tournaments_group_unit_progress": [
+    {
+      "declarations": [
+        "input round",
+        "input reported",
+        "input total",
+        "local totalPlural = total: plural"
+      ],
+      "selectors": ["totalPlural"],
+      "match": {
+        "totalPlural=one": "Runde {round} · {reported} von {total} Tisch eingetragen",
+        "totalPlural=*": "Runde {round} · {reported} von {total} Tischen eingetragen"
+      }
+    }
+  ],
   "tournaments_group_cross_group_match": "Je ein Spiel gegen eine andere Gruppe",
   "tournaments_group_results_missing": [
     {
@@ -9107,7 +9123,8 @@
   "tournaments_pod_enter_result": "Ergebnis eintragen",
   "tournaments_pod_reported": "Gemeldet",
   "tournaments_pod_entered_of": "{entered} von {size} eingetragen",
-  "tournaments_pod_points_label": "Punkte",
+  "tournaments_pod_points_lower_aria": "Ein Punkt weniger für {name}",
+  "tournaments_pod_points_raise_aria": "Ein Punkt mehr für {name}",
   "tournaments_pod_points_hint": "Spielpunkte pro Spieler (8 gewinnt, mehr ist möglich). Die Plätze werden automatisch ermittelt.",
   "tournaments_pod_changed_remotely": "Jemand anderes hat für diesen Pod Punkte gespeichert, während du bearbeitet hast.",
   "tournaments_pod_show_latest": "Aktuellen Stand zeigen",

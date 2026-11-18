@@ -72,6 +72,20 @@ export function setGame(
   return next.map((game, gameIndex) => (gameIndex < visible ? game : null));
 }
 
+export function clearGame(rows: GameRows, index: number): GameRows {
+  return rows.map((game, gameIndex) => (gameIndex < index ? game : null));
+}
+
+/** Ends the match at its first open game; null when no game after the first is open. */
+export function endAtOpenGame(rows: GameRows, matchFormat: TournamentMatchFormat): GameRows | null {
+  const open = rows.slice(0, visibleGameCount(rows, matchFormat)).indexOf(null);
+  return open > 0 ? setGame(rows, open, "unplayed", matchFormat) : null;
+}
+
+export function withoutUnplayed(rows: GameRows): GameRows {
+  return rows.map((game) => (game === "unplayed" ? null : game));
+}
+
 export function countsFromGames(
   rows: GameRows,
   matchFormat: TournamentMatchFormat,
@@ -125,10 +139,6 @@ export function gamesFromCounts(
     rows = setGame(rows, played.length, "unplayed", matchFormat);
   }
   return countsFromGames(rows, matchFormat, allowDraws) === null ? null : rows;
-}
-
-export function formatMatchCounts(counts: MatchCounts): string {
-  return `${counts.gamePoints[0]}–${counts.gamePoints[1]}–${counts.drawnGames}`;
 }
 
 export function swissPointsPreview(

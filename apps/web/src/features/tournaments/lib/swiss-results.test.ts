@@ -2,14 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import type { GameOutcome } from "./swiss-results";
 import {
-  INTENTIONAL_DRAW,
+  clearGame,
+  endAtOpenGame,
   countsFromGames,
   emptyGameRows,
-  formatMatchCounts,
   gamesFromCounts,
   setGame,
   swissPointsPreview,
   visibleGameCount,
+  withoutUnplayed,
 } from "./swiss-results";
 
 describe("game rows", () => {
@@ -127,13 +128,6 @@ describe("gamesFromCounts", () => {
   });
 });
 
-describe("formatMatchCounts", () => {
-  it("writes wins, losses and draws", () => {
-    expect(formatMatchCounts(INTENTIONAL_DRAW)).toBe("0–0–3");
-    expect(formatMatchCounts({ gamePoints: [2, 1], drawnGames: 0 })).toBe("2–1–0");
-  });
-});
-
 describe("swissPointsPreview", () => {
   it("maps a win to the win points and the loss to zero", () => {
     expect(swissPointsPreview([2, 1], 3, 1)).toEqual([3, 0]);
@@ -148,5 +142,35 @@ describe("swissPointsPreview", () => {
   it("honors custom point values", () => {
     expect(swissPointsPreview([2, 0], 5, 2)).toEqual([5, 0]);
     expect(swissPointsPreview([1, 1], 5, 2)).toEqual([2, 2]);
+  });
+});
+
+describe("endAtOpenGame", () => {
+  it("marks the first open game after game 1 as not played", () => {
+    expect(endAtOpenGame(["first", null, null], "bo3")).toEqual(["first", "unplayed", null]);
+    expect(endAtOpenGame(["first", "second", null], "bo3")).toEqual([
+      "first",
+      "second",
+      "unplayed",
+    ]);
+  });
+
+  it("has nothing to cut before game 1 or once every shown game is in", () => {
+    expect(endAtOpenGame([null, null, null], "bo3")).toBeNull();
+    expect(endAtOpenGame(["first", "first", null], "bo3")).toBeNull();
+    expect(endAtOpenGame(["first"], "bo1")).toBeNull();
+  });
+});
+
+describe("withoutUnplayed", () => {
+  it("reopens games marked not played", () => {
+    expect(withoutUnplayed(["first", "unplayed", null])).toEqual(["first", null, null]);
+  });
+});
+
+describe("clearGame", () => {
+  it("reopens the game and every game after it", () => {
+    expect(clearGame(["first", "second", "first"], 1)).toEqual(["first", null, null]);
+    expect(clearGame(["draw", null, null], 0)).toEqual([null, null, null]);
   });
 });

@@ -6680,8 +6680,10 @@
   "tournaments_start_round_confirm_description": "Please tell a judge before you start the next round.",
   "tournaments_submit_draw": "Draw",
   "tournaments_submit_game": "Game {number}",
+  "tournaments_submit_game_short": "G{number}",
+  "tournaments_submit_cut_short_description": "Game {number} has no result, so it counts as not played and the match is saved as {first} {score} {second}.",
+  "tournaments_submit_cut_short_title": "Did the match end early?",
   "tournaments_submit_game_outcome_aria": "Game {number}: {outcome}",
-  "tournaments_submit_not_played": "Not played",
   "tournaments_submit_intentional_draw": "Intentional draw",
   "tournaments_submit_needs_winner": "A top cut match needs a winner.",
   "tournaments_submit_points_preview": "+{points} points",
@@ -7300,7 +7302,21 @@
   "tournaments_group_skip_legend_tiebreak": "Skip Legend tiebreak",
   "tournaments_group_unit_done": "Done",
   "tournaments_group_unit_not_started": "Not started",
-  "tournaments_group_unit_progress": "Round {round} · {reported} of {total} in",
+  "tournaments_group_unit_progress": [
+    {
+      "declarations": [
+        "input round",
+        "input reported",
+        "input total",
+        "local totalPlural = total: plural"
+      ],
+      "selectors": ["totalPlural"],
+      "match": {
+        "totalPlural=one": "Round {round} · {reported} of {total} table reported",
+        "totalPlural=*": "Round {round} · {reported} of {total} tables reported"
+      }
+    }
+  ],
   "tournaments_group_cross_group_match": "One cross-group match each",
   "tournaments_group_results_missing": [
     {
@@ -9313,7 +9329,8 @@
   "tournaments_pod_enter_result": "Enter result",
   "tournaments_pod_reported": "Reported",
   "tournaments_pod_entered_of": "{entered} of {size} in",
-  "tournaments_pod_points_label": "Points",
+  "tournaments_pod_points_lower_aria": "One point less for {name}",
+  "tournaments_pod_points_raise_aria": "One point more for {name}",
   "tournaments_pod_points_hint": "Game points per player (8 wins, more is possible). Places are worked out automatically.",
   "tournaments_pod_changed_remotely": "Someone else saved scores for this pod while you were editing.",
   "tournaments_pod_show_latest": "Show latest",

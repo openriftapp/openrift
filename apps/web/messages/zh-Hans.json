@@ -6673,8 +6673,10 @@
   "tournaments_start_round_confirm_description": "开始下一轮之前，请先告知裁判。",
   "tournaments_submit_draw": "平局",
   "tournaments_submit_game": "第 {number} 局",
+  "tournaments_submit_game_short": "第{number}局",
+  "tournaments_submit_cut_short_description": "第 {number} 局没有结果，将视为未进行，比赛按 {first} {score} {second} 保存。",
+  "tournaments_submit_cut_short_title": "比赛提前结束了吗？",
   "tournaments_submit_game_outcome_aria": "第 {number} 局：{outcome}",
-  "tournaments_submit_not_played": "未进行",
   "tournaments_submit_intentional_draw": "协议和局",
   "tournaments_submit_needs_winner": "淘汰赛的比赛必须分出胜负。",
   "tournaments_submit_points_preview": "+{points} 分",
@@ -7293,7 +7295,20 @@
   "tournaments_group_skip_legend_tiebreak": "跳过传奇决胜",
   "tournaments_group_unit_done": "已结束",
   "tournaments_group_unit_not_started": "尚未开始",
-  "tournaments_group_unit_progress": "第 {round} 轮 · 已上报 {reported}/{total}",
+  "tournaments_group_unit_progress": [
+    {
+      "declarations": [
+        "input round",
+        "input reported",
+        "input total",
+        "local totalPlural = total: plural"
+      ],
+      "selectors": ["totalPlural"],
+      "match": {
+        "totalPlural=*": "第 {round} 轮 · 已上报 {reported}/{total} 桌"
+      }
+    }
+  ],
   "tournaments_group_cross_group_match": "各进行一场跨组比赛",
   "tournaments_group_results_missing": [
     {
@@ -9106,7 +9121,8 @@
   "tournaments_pod_enter_result": "录入结果",
   "tournaments_pod_reported": "已上报",
   "tournaments_pod_entered_of": "已录入 {entered}／{size}",
-  "tournaments_pod_points_label": "分数",
+  "tournaments_pod_points_lower_aria": "{name} 减 1 分",
+  "tournaments_pod_points_raise_aria": "{name} 加 1 分",
   "tournaments_pod_points_hint": "每名选手的局分（8 分获胜，也可能更高）。名次会自动算出。",
   "tournaments_pod_changed_remotely": "在你编辑期间，有人保存了这一桌的比分。",
   "tournaments_pod_show_latest": "显示最新",

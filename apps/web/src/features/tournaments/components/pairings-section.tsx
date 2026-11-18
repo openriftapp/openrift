@@ -10,6 +10,7 @@ import {
   useRerollTournamentRound,
   useSubmitTournamentResult,
 } from "@/features/tournaments/hooks/use-tournament-run";
+import { legendsByCardId } from "@/features/tournaments/lib/player-run";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
@@ -126,6 +127,12 @@ export function PodPairingsSection({
         winPoints={data.tournament.winPoints}
         drawPoints={data.tournament.drawPoints}
         regionByPlayer={regionByPlayer}
+        legendByPlayer={legendsByCardId(
+          data.players.map((player) => ({
+            playerId: player.id,
+            legendCardId: player.legendCardId,
+          })),
+        )}
         showPenalty
         snapshot={data.openRoundSnapshot}
         warningsExpanded={warningsExpanded}

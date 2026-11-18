@@ -6673,8 +6673,10 @@
   "tournaments_start_round_confirm_description": "다음 라운드를 시작하기 전에 심판에게 알려 주세요.",
   "tournaments_submit_draw": "무승부",
   "tournaments_submit_game": "{number}게임",
+  "tournaments_submit_game_short": "{number}G",
+  "tournaments_submit_cut_short_description": "{number}게임 결과가 없어 진행하지 않은 것으로 처리되며, 경기는 {first} {score} {second}(으)로 저장됩니다.",
+  "tournaments_submit_cut_short_title": "경기가 일찍 끝났나요?",
   "tournaments_submit_game_outcome_aria": "{number}게임: {outcome}",
-  "tournaments_submit_not_played": "진행 안 함",
   "tournaments_submit_intentional_draw": "합의 무승부",
   "tournaments_submit_needs_winner": "탑 컷 매치는 승자가 있어야 합니다.",
   "tournaments_submit_points_preview": "+{points}점",
@@ -7293,7 +7295,20 @@
   "tournaments_group_skip_legend_tiebreak": "전설 타이브레이커 건너뛰기",
   "tournaments_group_unit_done": "완료",
   "tournaments_group_unit_not_started": "시작 전",
-  "tournaments_group_unit_progress": "{round}라운드 · {total}건 중 {reported}건 접수",
+  "tournaments_group_unit_progress": [
+    {
+      "declarations": [
+        "input round",
+        "input reported",
+        "input total",
+        "local totalPlural = total: plural"
+      ],
+      "selectors": ["totalPlural"],
+      "match": {
+        "totalPlural=*": "{round}라운드 · 테이블 {total}개 중 {reported}개 접수"
+      }
+    }
+  ],
   "tournaments_group_cross_group_match": "조별로 교차 경기 한 판씩",
   "tournaments_group_results_missing": [
     {
@@ -9106,7 +9121,8 @@
   "tournaments_pod_enter_result": "결과 입력",
   "tournaments_pod_reported": "보고됨",
   "tournaments_pod_entered_of": "{size}명 중 {entered}명 입력",
-  "tournaments_pod_points_label": "점수",
+  "tournaments_pod_points_lower_aria": "{name} 점수 1 감소",
+  "tournaments_pod_points_raise_aria": "{name} 점수 1 증가",
   "tournaments_pod_points_hint": "플레이어별 게임 점수입니다(8점이면 승리, 그 이상도 가능). 순위는 자동으로 계산됩니다.",
   "tournaments_pod_changed_remotely": "수정하는 동안 다른 사람이 이 팟의 점수를 저장했습니다.",
   "tournaments_pod_show_latest": "최신 내용 보기",

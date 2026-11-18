@@ -6,6 +6,7 @@ import {
   useSubmitTournamentReportPlayerResult,
   useSubmitTournamentReportResult,
 } from "@/features/tournaments/hooks/use-tournament-run";
+import { legendsByCardId } from "@/features/tournaments/lib/player-run";
 import type { PodResultSubmission } from "@/features/tournaments/lib/swiss-results";
 import {
   isMatchPairing,
@@ -111,6 +112,7 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
         winPoints={data.winPoints}
         drawPoints={data.drawPoints}
         regionByPlayer={regionByPlayer}
+        legendByPlayer={legendsByCardId(data.playerLegends)}
         showPenalty={false}
         canEnterResult={(round) => canEdit && round.status === "reporting"}
         onSubmitResult={submit}

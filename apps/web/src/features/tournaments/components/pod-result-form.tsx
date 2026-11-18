@@ -1,11 +1,10 @@
 import { placementsFromGamePoints, pointsForPlacements } from "@openrift/shared/pairing/points";
 import type { PodResponse, PodScoringScheme } from "@openrift/shared/types/api/pod-tournament";
-import { TriangleAlertIcon } from "lucide-react";
-import { useState } from "react";
+import { MinusIcon, PlusIcon, TriangleAlertIcon } from "lucide-react";
+import { Fragment, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { formatRank } from "@/features/meta/lib/meta-format";
 import { SaveError } from "@/features/tournaments/components/save-error";
 import { useResultBaseline } from "@/features/tournaments/hooks/use-result-baseline";
@@ -83,6 +82,10 @@ export function PodResultForm({
   const previewPoints =
     placements && pod.size !== 2 ? pointsForPlacements(placements, pod.size, scheme) : null;
 
+  function stepPoints(playerId: string, current: number | null, delta: number) {
+    setPoints((prev) => ({ ...prev, [playerId]: String(Math.max(0, (current ?? 0) + delta)) }));
+  }
+
   function handleSubmit() {
     if (!allSet) {
       return;
@@ -97,39 +100,64 @@ export function PodResultForm({
 
   return (
     <div className="flex flex-col gap-3">
-      {pod.members.map((member, index) => (
-        // No flex-wrap: a long name would push the points field onto its own
-        // line, breaking the column of inputs. The name truncates instead.
-        <div key={member.playerId} className="flex items-center justify-between gap-x-3">
-          <span className="flex min-w-0 items-center gap-2">
-            <span className="truncate font-medium" title={participantName(member.displayName)}>
-              {participantName(member.displayName)}
-            </span>
-            {previewPoints && placements ? (
-              <span className="text-muted-foreground shrink-0 tabular-nums">
-                {formatRank(placements[index] ?? 1, false)} · +
-                {formatScore(previewPoints[index] ?? 0)}
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-2">
+        {pod.members.map((member, index) => {
+          const name = participantName(member.displayName);
+          const value = parsed[index] ?? null;
+          const place = placements?.[index];
+          return (
+            <Fragment key={member.playerId}>
+              <span className="truncate font-medium" title={name}>
+                {name}
               </span>
-            ) : null}
-          </span>
-          <span className="flex shrink-0 items-center gap-2">
-            <Label htmlFor={`pts-${member.playerId}`} className="text-muted-foreground">
-              {m.tournaments_pod_points_label()}
-            </Label>
-            <Input
-              id={`pts-${member.playerId}`}
-              type="number"
-              min={0}
-              inputMode="numeric"
-              value={points[member.playerId] ?? ""}
-              onChange={(event) =>
-                setPoints((prev) => ({ ...prev, [member.playerId]: event.target.value }))
-              }
-              className="w-20 tabular-nums"
-            />
-          </span>
-        </div>
-      ))}
+              <span className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  disabled={submitting || value === null || value <= 0}
+                  onClick={() => stepPoints(member.playerId, value, -1)}
+                  aria-label={m.tournaments_pod_points_lower_aria({ name })}
+                >
+                  <MinusIcon />
+                </Button>
+                <Input
+                  type="number"
+                  min={0}
+                  inputMode="numeric"
+                  value={points[member.playerId] ?? ""}
+                  onChange={(event) =>
+                    setPoints((prev) => ({ ...prev, [member.playerId]: event.target.value }))
+                  }
+                  aria-label={m.tournaments_pod_game_points_aria({ name })}
+                  className="no-spinner h-8 w-12 text-center font-semibold tabular-nums"
+                />
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  disabled={submitting}
+                  onClick={() => stepPoints(member.playerId, value, 1)}
+                  aria-label={m.tournaments_pod_points_raise_aria({ name })}
+                >
+                  <PlusIcon />
+                </Button>
+              </span>
+              <span className="min-w-16 text-right text-sm tabular-nums">
+                {previewPoints && place !== undefined ? (
+                  <>
+                    <span className={place === 1 ? "text-primary font-semibold" : "font-medium"}>
+                      {formatRank(place, false)}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {" "}
+                      · +{formatScore(previewPoints[index] ?? 0)}
+                    </span>
+                  </>
+                ) : null}
+              </span>
+            </Fragment>
+          );
+        })}
+      </div>
       <p className="text-muted-foreground">{m.tournaments_pod_points_hint()}</p>
       {changedRemotely ? <ChangedRemotelyNotice onShowLatest={loadLatest} /> : null}
       <SaveError error={error} />

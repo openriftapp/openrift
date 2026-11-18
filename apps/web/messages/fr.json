@@ -6675,8 +6675,10 @@
   "tournaments_start_round_confirm_description": "Prévenez un arbitre avant de démarrer la ronde suivante.",
   "tournaments_submit_draw": "Match nul",
   "tournaments_submit_game": "Partie {number}",
+  "tournaments_submit_game_short": "M{number}",
+  "tournaments_submit_cut_short_description": "La manche {number} n'a pas de résultat : elle compte comme non jouée et le match est enregistré à {first} {score} {second}.",
+  "tournaments_submit_cut_short_title": "Le match s'est-il terminé plus tôt ?",
   "tournaments_submit_game_outcome_aria": "Partie {number} : {outcome}",
-  "tournaments_submit_not_played": "Non jouée",
   "tournaments_submit_intentional_draw": "Nul intentionnel",
   "tournaments_submit_needs_winner": "Un match du top cut doit avoir un vainqueur.",
   "tournaments_submit_points_preview": "+{points} points",
@@ -7295,7 +7297,21 @@
   "tournaments_group_skip_legend_tiebreak": "Ignorer le départage par légende",
   "tournaments_group_unit_done": "Terminé",
   "tournaments_group_unit_not_started": "Pas commencé",
-  "tournaments_group_unit_progress": "Ronde {round} · {reported} sur {total} saisis",
+  "tournaments_group_unit_progress": [
+    {
+      "declarations": [
+        "input round",
+        "input reported",
+        "input total",
+        "local totalPlural = total: plural"
+      ],
+      "selectors": ["totalPlural"],
+      "match": {
+        "totalPlural=one": "Ronde {round} · {reported} table sur {total} saisie",
+        "totalPlural=*": "Ronde {round} · {reported} tables sur {total} saisies"
+      }
+    }
+  ],
   "tournaments_group_cross_group_match": "Un match inter-groupes chacun",
   "tournaments_group_results_missing": [
     {
@@ -9108,7 +9124,8 @@
   "tournaments_pod_enter_result": "Saisir le résultat",
   "tournaments_pod_reported": "Saisi",
   "tournaments_pod_entered_of": "{entered} sur {size} saisis",
-  "tournaments_pod_points_label": "Points",
+  "tournaments_pod_points_lower_aria": "Un point de moins pour {name}",
+  "tournaments_pod_points_raise_aria": "Un point de plus pour {name}",
   "tournaments_pod_points_hint": "Points de partie par joueur (8 pour la victoire, plus est possible). Les places sont calculées automatiquement.",
   "tournaments_pod_changed_remotely": "Quelqu'un d'autre a enregistré des scores pour ce pod pendant votre saisie.",
   "tournaments_pod_show_latest": "Afficher la version actuelle",

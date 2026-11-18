@@ -18,6 +18,23 @@ export interface PlayerLegend {
   legendEpithet: string | null;
 }
 
+/** Card ids alone: the catalog supplies the name once it loads. */
+export function legendsByCardId(
+  entries: readonly { playerId: string; legendCardId: string | null }[],
+): Map<string, PlayerLegend> {
+  return new Map(
+    entries.map((entry) => [
+      entry.playerId,
+      {
+        legendCardId: entry.legendCardId,
+        legendName: null,
+        legendCharacter: null,
+        legendEpithet: null,
+      },
+    ]),
+  );
+}
+
 export function legendsByPlayer(groupStage: GroupStageView | null): Map<string, PlayerLegend> {
   return new Map(
     (groupStage?.groups ?? []).flatMap((group) =>

@@ -11,6 +11,7 @@ export function PlayerChip({
   gravatarHash,
   region,
   dropped = false,
+  detail,
   children,
   className,
 }: {
@@ -19,9 +20,22 @@ export function PlayerChip({
   gravatarHash?: string | null;
   region?: string | null;
   dropped?: boolean;
+  detail?: ReactNode;
   children?: ReactNode;
   className?: string;
 }) {
+  const nameLine = (
+    <>
+      <span className="truncate font-medium">{name}</span>
+      {region ? <RegionBadge region={region} /> : null}
+      {dropped ? (
+        <span className="text-muted-foreground shrink-0 text-sm">
+          {m.tournaments_standings_dropped()}
+        </span>
+      ) : null}
+      {children}
+    </>
+  );
   return (
     <div className={cn("flex min-w-0 items-center gap-2", className)}>
       <UserAvatar
@@ -31,14 +45,14 @@ export function PlayerChip({
         size="sm"
         className="shrink-0"
       />
-      <span className="truncate font-medium">{name}</span>
-      {region ? <RegionBadge region={region} /> : null}
-      {dropped ? (
-        <span className="text-muted-foreground shrink-0 text-sm">
-          {m.tournaments_standings_dropped()}
-        </span>
-      ) : null}
-      {children}
+      {detail ? (
+        <div className="flex min-w-0 flex-col">
+          <div className="flex min-w-0 items-center gap-2">{nameLine}</div>
+          <div className="flex min-w-0">{detail}</div>
+        </div>
+      ) : (
+        nameLine
+      )}
     </div>
   );
 }

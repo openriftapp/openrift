@@ -37,4 +37,10 @@ describe("PlayerChip", () => {
     );
     expect(screen.getByText("extra")).toBeInTheDocument();
   });
+
+  it("puts the detail on its own line under the name", () => {
+    render(<PlayerChip name="Ezreal" detail={<span>Jinx</span>} />);
+    const detail = screen.getByText("Jinx");
+    expect(detail.parentElement?.previousElementSibling).toHaveTextContent("Ezreal");
+  });
 });

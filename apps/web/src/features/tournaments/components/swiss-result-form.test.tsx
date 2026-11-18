@@ -1,5 +1,5 @@
 import type { PodResponse } from "@openrift/shared/types/api/pod-tournament";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -64,15 +64,72 @@ describe("SwissResultForm", () => {
     });
   });
 
-  it("shows the match score without points when points are off", async () => {
+  it("totals each side's games and previews the points", async () => {
+    const user = userEvent.setup();
+    renderForm(match([null, null]));
+
+    await user.click(screen.getByRole("button", { name: "Game 1: Ashe" }));
+    await user.click(screen.getByRole("button", { name: "Game 2: Braum" }));
+    await user.click(screen.getByRole("button", { name: "Game 3: Ashe" }));
+
+    expect(screen.getByText("+3 points")).toBeInTheDocument();
+    expect(screen.getByText("+0 points")).toBeInTheDocument();
+  });
+
+  it("shows no points preview when points are off", async () => {
     const user = userEvent.setup();
     renderForm(match([null, null]), { allowDraws: false, showPoints: false });
 
     await user.click(screen.getByRole("button", { name: "Game 1: Ashe" }));
     await user.click(screen.getByRole("button", { name: "Game 2: Ashe" }));
 
-    expect(screen.getByText("2–0–0")).toBeInTheDocument();
     expect(screen.queryByText(/points/u)).not.toBeInTheDocument();
+  });
+
+  it("keeps a cut-short match open when the confirmation is cancelled", async () => {
+    const user = userEvent.setup();
+    const onSubmit = renderForm(match([null, null]));
+
+    await user.click(screen.getByRole("button", { name: "Game 1: Ashe" }));
+    await user.click(screen.getByRole("button", { name: "Save result" }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Game 2: Ashe" })).toBeInTheDocument();
+  });
+
+  it("reopens a game and the ones after it when its cell is tapped again", async () => {
+    const user = userEvent.setup();
+    const onSubmit = renderForm(match([2, 1]));
+
+    await user.click(screen.getByRole("button", { name: "Game 2: Ashe" }));
+    expect(screen.getByRole("button", { name: "Game 2: Ashe" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(screen.queryByRole("button", { name: /^Game 3:/u })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Save result" }));
+    await user.click(
+      within(screen.getByRole("alertdialog")).getByRole("button", { name: "Save result" }),
+    );
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      results: [
+        { playerId: "ashe", gamePoints: 0 },
+        { playerId: "braum", gamePoints: 1 },
+      ],
+      drawnGames: 0,
+    });
+  });
+
+  it("saves an unchanged match that ended early without asking again", async () => {
+    const user = userEvent.setup();
+    const onSubmit = renderForm(match([1, 0]));
+
+    await user.click(screen.getByRole("button", { name: "Save result" }));
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(onSubmit).toHaveBeenCalledOnce();
   });
 
   it("hides game 3 once a 2–0 decides the match", async () => {
@@ -82,18 +139,51 @@ describe("SwissResultForm", () => {
     await user.click(screen.getByRole("button", { name: "Game 1: Ashe" }));
     await user.click(screen.getByRole("button", { name: "Game 2: Ashe" }));
 
-    expect(screen.queryByText("Game 3")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Game 3:/u })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save result" })).toBeEnabled();
   });
 
-  it("keeps Save disabled until every shown game is filled in", async () => {
-    const user = userEvent.setup();
+  it("keeps Save disabled until game 1 is in", () => {
     renderForm(match([null, null]));
 
-    await user.click(screen.getByRole("button", { name: "Game 1: Ashe" }));
-
     expect(screen.getByRole("button", { name: "Save result" })).toBeDisabled();
-    await user.click(screen.getByRole("button", { name: "Game 2: Not played" }));
+  });
+
+  it("saves a match cut short with the games entered so far", async () => {
+    const user = userEvent.setup();
+    const onSubmit = renderForm(match([null, null]));
+
+    await user.click(screen.getByRole("button", { name: "Game 1: Ashe" }));
+    await user.click(screen.getByRole("button", { name: "Save result" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    const dialog = screen.getByRole("alertdialog");
+    expect(
+      within(dialog).getByText(
+        "Game 2 has no result, so it counts as not played and the match is saved as Ashe 1–0 Braum.",
+      ),
+    ).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Save result" }));
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      results: [
+        { playerId: "ashe", gamePoints: 1 },
+        { playerId: "braum", gamePoints: 0 },
+      ],
+      drawnGames: 0,
+    });
+  });
+
+  it("reopens a match cut short with the next game open", () => {
+    renderForm(match([1, 0]));
+
+    expect(screen.getByRole("button", { name: "Game 1: Ashe" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "Game 2: Ashe" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
     expect(screen.getByRole("button", { name: "Save result" })).toBeEnabled();
   });
 
@@ -102,7 +192,7 @@ describe("SwissResultForm", () => {
     const onSubmit = renderForm(match([null, null]));
 
     await user.click(screen.getByRole("button", { name: "Intentional draw" }));
-    expect(screen.queryByText("Game 1")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Game 1:/u })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Save result" }));
 
     expect(onSubmit).toHaveBeenCalledWith({
@@ -176,8 +266,10 @@ describe("SwissResultForm", () => {
 
     await user.click(screen.getByRole("button", { name: "Game 1: Caitlyn & Darius" }));
     await user.click(screen.getByRole("button", { name: "Game 2: Draw" }));
-    await user.click(screen.getByRole("button", { name: "Game 3: Not played" }));
     await user.click(screen.getByRole("button", { name: "Save result" }));
+    await user.click(
+      within(screen.getByRole("alertdialog")).getByRole("button", { name: "Save result" }),
+    );
 
     expect(onSubmit).toHaveBeenCalledWith({
       results: [
@@ -196,7 +288,6 @@ describe("SwissResultForm", () => {
 
     await user.click(screen.getByRole("button", { name: "Game 1: Ashe" }));
     await user.click(screen.getByRole("button", { name: "Game 2: Braum" }));
-    await user.click(screen.getByRole("button", { name: "Game 3: Not played" }));
 
     expect(screen.getByText("A top cut match needs a winner.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save result" })).toBeDisabled();
@@ -207,5 +298,34 @@ describe("SwissResultForm", () => {
 
     expect(screen.queryByRole("button", { name: "Game 1: Draw" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Intentional draw" })).not.toBeInTheDocument();
+  });
+
+  it("offers one game and no unplayed row in a best of one", () => {
+    render(
+      <SwissResultForm
+        pod={match([null, null])}
+        matchFormat="bo1"
+        winPoints={3}
+        drawPoints={1}
+        onSubmit={vi.fn()}
+        submitting={false}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Game 1: Ashe" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Game 2:/u })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Intentional draw" })).not.toBeInTheDocument();
+  });
+
+  it("hides the game 3 heading until games 1 and 2 are split", async () => {
+    const user = userEvent.setup();
+    renderForm(match([null, null]));
+
+    await user.click(screen.getByRole("button", { name: "Game 1: Ashe" }));
+    await user.click(screen.getByRole("button", { name: "Game 2: Ashe" }));
+    expect(screen.queryByText("G3")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Game 2: Braum" }));
+    expect(screen.getByText("G3")).toBeInTheDocument();
   });
 });

@@ -5,6 +5,7 @@ import {
   bestFinishPerLegend,
   legendNameFor,
   latestSnapshotRound,
+  legendsByCardId,
   legendsByPlayer,
   playerRunRounds,
 } from "./player-run";
@@ -218,5 +219,25 @@ describe("legendsByPlayer", () => {
 
   it("is empty without a group stage", () => {
     expect(legendsByPlayer(null).size).toBe(0);
+  });
+});
+
+describe("legendsByCardId", () => {
+  it("keys each card id by player and leaves the names to the catalog", () => {
+    const map = legendsByCardId([
+      { playerId: "p1", legendCardId: "card-jinx" },
+      { playerId: "p2", legendCardId: null },
+    ]);
+    expect(map.get("p1")).toEqual({
+      legendCardId: "card-jinx",
+      legendName: null,
+      legendCharacter: null,
+      legendEpithet: null,
+    });
+    expect(map.get("p2")?.legendCardId).toBeNull();
+  });
+
+  it("is empty without entries", () => {
+    expect(legendsByCardId([]).size).toBe(0);
   });
 });

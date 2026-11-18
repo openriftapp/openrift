@@ -7,6 +7,7 @@ import type {
   MetaIdentityProps,
 } from "@/features/meta/components/meta-identity";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
+import type { PlayerLegend } from "@/features/tournaments/lib/player-run";
 import { useHydrated } from "@/hooks/use-hydrated";
 
 interface ServerLegendName {
@@ -61,5 +62,19 @@ export function TournamentLegend({ legendCardId, fallback, hideDomains, ...rest 
         {...rest}
       />
     </Suspense>
+  );
+}
+
+export function PodMemberLegend({ legend }: { legend: PlayerLegend | undefined }) {
+  if (legend === undefined) {
+    return null;
+  }
+  return (
+    <TournamentLegend
+      legendCardId={legend.legendCardId}
+      fallback={legend}
+      championOnly
+      className="text-muted-foreground shrink-0 text-xs"
+    />
   );
 }

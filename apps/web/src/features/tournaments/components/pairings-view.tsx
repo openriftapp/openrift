@@ -30,6 +30,7 @@ import type { StatStripItem } from "@/components/ui/stat-strip";
 import { StatStrip } from "@/components/ui/stat-strip";
 import { PlayerChip } from "@/features/tournaments/components/player-chip";
 import { participantName } from "@/features/tournaments/lib/participant-name";
+import type { PlayerLegend } from "@/features/tournaments/lib/player-run";
 import { snapshotToPlayers } from "@/features/tournaments/lib/pod-pairing-editor";
 import type { PodResultSubmission } from "@/features/tournaments/lib/swiss-results";
 import { teamNamesById } from "@/features/tournaments/lib/team-display";
@@ -37,6 +38,7 @@ import { isAllMatchRound } from "@/features/tournaments/lib/tournament-display";
 import { m } from "@/paraglide/messages.js";
 
 import { PodCard } from "./pod-card";
+import { PodMemberLegend } from "./tournament-legend";
 
 interface PairingsViewProps {
   rounds: PodRoundResponse[];
@@ -47,6 +49,7 @@ interface PairingsViewProps {
   winPoints: number;
   drawPoints: number;
   regionByPlayer?: Map<string, string | null>;
+  legendByPlayer?: Map<string, PlayerLegend>;
   showPenalty: boolean;
   snapshot?: PodSnapshotPlayer[] | null;
   warningsExpanded?: boolean;
@@ -75,6 +78,7 @@ export function PairingsView({
   winPoints,
   drawPoints,
   regionByPlayer,
+  legendByPlayer,
   showPenalty,
   snapshot,
   warningsExpanded = true,
@@ -229,6 +233,11 @@ export function PairingsView({
                   canEnter={canEnterResult(round, pod)}
                   onSubmit={onSubmitResult}
                   onSubmitPlayerResult={onSubmitPlayerResult}
+                  renderMemberDetail={
+                    legendByPlayer
+                      ? (playerId) => <PodMemberLegend legend={legendByPlayer.get(playerId)} />
+                      : undefined
+                  }
                 />
               ))}
             </div>

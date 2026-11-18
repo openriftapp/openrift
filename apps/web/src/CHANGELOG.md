@@ -6,6 +6,8 @@
 
 - feat(Collection): **Undo a move** — the toast after moving cards to another collection has an Undo button that puts each card back where it was.
 - fix(Collection): **Dragging onto the sidebar** — dragging cards over the sidebar no longer scrolls the collection behind it, and the sidebar scrolls when you drag near its top or bottom edge.
+- fix(Tournaments): **Legends on every table** — pairings for round-based tournaments show each player's Legend and domains on the table cards, under the player's name.
+- feat(Tournaments): **Match results as a score sheet** — entering a match result shows the players as rows and the games as columns, so long names no longer wrap. Each game is one tap on the winner's cell, with the game totals and points alongside. A match saved before all its games are in asks whether it ended early. Free-for-all scores get − and + buttons, and each player's place shows as soon as every score is in.
 
 ## 2026-11-17
 
