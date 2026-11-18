@@ -31,6 +31,7 @@ export function CardDesignerPreview({
   const card = useCardDesignerStore((state) => state.card);
   const background = useCardDesignerStore((state) => state.background);
   const showAttribution = useCardDesignerStore((state) => state.showAttribution);
+  const showFrame = useCardDesignerStore((state) => state.showFrame);
   const setImageTransform = useCardDesignerStore((state) => state.setImageTransform);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -38,7 +39,7 @@ export function CardDesignerPreview({
 
   const hasImage = background.dataUrl !== null;
   const [failedFrameUrl, setFailedFrameUrl] = useState<string | null>(null);
-  const candidateFrameUrl = frameUrlFor(card);
+  const candidateFrameUrl = showFrame ? frameUrlFor(card) : null;
   const frameUrl = candidateFrameUrl === failedFrameUrl ? null : candidateFrameUrl;
   const artist = buildAttribution(card.artist, showAttribution ? getSiteHost() : null);
   const draggable = interactive && hasImage;

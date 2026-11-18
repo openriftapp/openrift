@@ -35,6 +35,7 @@ interface CardDesignerState {
   card: DesignerCard;
   background: BackgroundImage;
   showAttribution: boolean;
+  showFrame: boolean;
 
   setCardField: <K extends keyof DesignerCard>(key: K, value: DesignerCard[K]) => void;
   setImage: (dataUrl: string, aspect: number | null) => void;
@@ -43,6 +44,7 @@ interface CardDesignerState {
     patch: Partial<Pick<BackgroundImage, "scale" | "offsetX" | "offsetY">>,
   ) => void;
   setShowAttribution: (value: boolean) => void;
+  setShowFrame: (value: boolean) => void;
   reset: () => void;
 }
 
@@ -94,6 +96,7 @@ export const useCardDesignerStore = create<CardDesignerState>()((set) => ({
   card: { ...funExampleCard },
   background: { ...defaultBackground },
   showAttribution: true,
+  showFrame: true,
 
   setCardField: (key, value) => {
     set((state) => ({ card: { ...state.card, [key]: value } }));
@@ -125,7 +128,16 @@ export const useCardDesignerStore = create<CardDesignerState>()((set) => ({
     set({ showAttribution: value });
   },
 
+  setShowFrame: (value) => {
+    set({ showFrame: value });
+  },
+
   reset: () => {
-    set({ card: { ...emptyCard }, background: { ...defaultBackground }, showAttribution: true });
+    set({
+      card: { ...emptyCard },
+      background: { ...defaultBackground },
+      showAttribution: true,
+      showFrame: true,
+    });
   },
 }));

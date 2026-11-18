@@ -33,6 +33,8 @@ export function CardDesignerForm() {
   const setCardField = useCardDesignerStore((state) => state.setCardField);
   const showAttribution = useCardDesignerStore((state) => state.showAttribution);
   const setShowAttribution = useCardDesignerStore((state) => state.setShowAttribution);
+  const showFrame = useCardDesignerStore((state) => state.showFrame);
+  const setShowFrame = useCardDesignerStore((state) => state.setShowFrame);
   const reset = useCardDesignerStore((state) => state.reset);
   const { orders, labels } = useEnumOrders();
 
@@ -180,6 +182,10 @@ export function CardDesignerForm() {
           />
         </FieldRow>
       </div>
+
+      <SettingsRow label={m.designer_frame_label()} htmlFor="card-designer-frame">
+        <Switch id="card-designer-frame" checked={showFrame} onCheckedChange={setShowFrame} />
+      </SettingsRow>
 
       <SettingsRow
         label={m.designer_attribution_label({ host: getSiteHost() })}

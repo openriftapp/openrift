@@ -478,19 +478,19 @@ function SyntaxHelpPopover() {
 
 function CardTextPreview({ text, variant }: { text: string; variant: CardTextVariant }) {
   const trimmed = text.trim();
-  if (!trimmed) {
-    return (
-      <p className="text-muted-foreground border-input rounded-md border border-dashed px-2.5 py-1.5">
-        {m.contribute_text_preview_empty()}
-      </p>
-    );
-  }
   return (
-    <div className="border-input bg-muted/30 text-foreground rounded-md border px-2.5 py-1.5 text-sm">
-      {variant === "flavor" ? (
-        <p className="text-muted-foreground/80 whitespace-pre-wrap italic">{text}</p>
-      ) : (
-        <CardText text={text} interactive={false} />
+    <div className="border-muted-foreground/30 flex flex-col gap-0.5 border-l-2 pl-2.5">
+      <span className="text-muted-foreground text-xs">{m.contribute_text_preview_label()}</span>
+      {!trimmed && (
+        <p className="text-muted-foreground text-sm italic">{m.contribute_text_preview_empty()}</p>
+      )}
+      {trimmed && variant === "flavor" && (
+        <p className="text-muted-foreground/80 text-sm whitespace-pre-wrap italic">{text}</p>
+      )}
+      {trimmed && variant !== "flavor" && (
+        <div className="text-foreground text-sm">
+          <CardText text={text} interactive={false} />
+        </div>
       )}
     </div>
   );

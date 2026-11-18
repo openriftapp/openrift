@@ -79,10 +79,17 @@ describe("card-designer-store", () => {
     expect(useCardDesignerStore.getState().showAttribution).toBe(false);
   });
 
+  it("toggles the printed frame (on by default)", () => {
+    expect(useCardDesignerStore.getState().showFrame).toBe(true);
+    useCardDesignerStore.getState().setShowFrame(false);
+    expect(useCardDesignerStore.getState().showFrame).toBe(false);
+  });
+
   it("resets everything", () => {
     useCardDesignerStore.getState().setCardField("name", "Temp");
     useCardDesignerStore.getState().setImage("data:image/png;base64,AAAA", 1.5);
     useCardDesignerStore.getState().setShowAttribution(false);
+    useCardDesignerStore.getState().setShowFrame(false);
     useCardDesignerStore.getState().reset();
 
     const state = useCardDesignerStore.getState();
@@ -91,5 +98,6 @@ describe("card-designer-store", () => {
     expect(state.background.dataUrl).toBeNull();
     expect(state.background.aspect).toBeNull();
     expect(state.showAttribution).toBe(true);
+    expect(state.showFrame).toBe(true);
   });
 });

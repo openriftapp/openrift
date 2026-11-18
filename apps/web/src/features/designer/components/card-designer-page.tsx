@@ -25,6 +25,7 @@ import { m } from "@/paraglide/messages.js";
  */
 function designerTintedIcons(
   card: DesignerCard,
+  showFrame: boolean,
   domainColors: Record<string, string>,
 ): { src: string; color: string }[] {
   const white = new Set<string>();
@@ -43,7 +44,7 @@ function designerTintedIcons(
   if (typeIcon) {
     icons.push({ src: typeIcon, color: TYPE_ICON_COLOR });
   }
-  const framed = frameUrlFor(card) !== null;
+  const framed = showFrame && frameUrlFor(card) !== null;
   // The might shield's symbol is black on its white left half.
   if (card.might !== null || framed) {
     icons.push({ src: "/images/might.svg", color: TINT_BLACK });
@@ -73,6 +74,7 @@ const CLONE_KEY = "designer-export";
 
 export function CardDesignerPage() {
   const cardName = useCardDesignerStore((state) => state.card.name);
+  const showFrame = useCardDesignerStore((state) => state.showFrame);
   const framed = useCardDesignerStore((state) => frameUrlFor(state.card) !== null);
   const domainColors = useDomainColors();
   // oxlint-disable-next-line react/hook-use-state -- a stable per-mount handoff, never replaced
@@ -90,7 +92,7 @@ export function CardDesignerPage() {
     // Tint the white glyph icons before rendering the clone, so its synchronous
     // render finds them cached (html2canvas ignores the CSS white filter).
     await prewarmTintedIcons(
-      designerTintedIcons(useCardDesignerStore.getState().card, domainColors),
+      designerTintedIcons(useCardDesignerStore.getState().card, showFrame, domainColors),
     );
     setRenderClone(true);
     const element = await cloneHandoff.waitFor(CLONE_KEY);
@@ -121,7 +123,7 @@ export function CardDesignerPage() {
         </div>
         <div className="order-1 flex flex-col gap-4 lg:sticky lg:top-20 lg:order-2">
           <CardDesignerPreview interactive className="w-full" />
-          {!framed && (
+          {showFrame && !framed && (
             <p className="text-muted-foreground text-sm">{m.designer_frame_unavailable()}</p>
           )}
           <BackgroundImageControl />
