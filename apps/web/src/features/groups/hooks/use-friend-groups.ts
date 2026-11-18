@@ -101,26 +101,22 @@ export function useFriendGroupDetail(slug: string) {
   return useSuspenseQuery(friendGroupDetailQueryOptions(userId, slug));
 }
 
+export function useMemberAutoAccept(
+  slug: string,
+  memberUserId: string,
+  enabled: boolean,
+): { offers: boolean; requests: boolean } | undefined {
+  const userId = useRequiredUserId();
+  const { data } = useQuery({ ...friendGroupDetailQueryOptions(userId, slug), enabled });
+  const member = data?.members.find((entry) => entry.userId === memberUserId);
+  return member === undefined
+    ? undefined
+    : { offers: member.autoAcceptOffers, requests: member.autoAcceptRequests };
+}
+
 export function useFriendGroupMatches(slug: string) {
   const userId = useRequiredUserId();
   return useSuspenseQuery(friendGroupMatchesQueryOptions(userId, slug));
-}
-
-/**
- * The match rows of several groups at once, pooled into one pair of arrays.
- * Must not suspend: each group's data must paint independently of the others.
- */
-export function useFriendGroupMatchesForSlugs(
-  slugs: readonly string[],
-): FriendGroupMatchesResponse {
-  const userId = useRequiredUserId();
-  return useQueries({
-    queries: slugs.map((slug) => friendGroupMatchesQueryOptions(userId, slug)),
-    combine: (results) => ({
-      othersHaveYourWants: results.flatMap((result) => result.data?.othersHaveYourWants ?? []),
-      othersWantYourHaves: results.flatMap((result) => result.data?.othersWantYourHaves ?? []),
-    }),
-  });
 }
 
 /**

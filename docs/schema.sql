@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict IcdaZpESMPb4oXhl11aZhG08OVybU5ieTyU1cNdp2xvlDTEmDXTlUNCK3LpXNwL
+\restrict fXn9KHxHeZHdOCUjvggnGmdakvgGKJW4rZMjyQRdgAZ2zqjXN5YwjLch1LXfVWF
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -1614,6 +1614,8 @@ CREATE TABLE public.card_trades (
     card_id uuid NOT NULL,
     is_giver_account_closed boolean DEFAULT false CONSTRAINT card_trades_giver_account_closed_not_null NOT NULL,
     is_receiver_account_closed boolean DEFAULT false CONSTRAINT card_trades_receiver_account_closed_not_null NOT NULL,
+    is_auto_accepted boolean DEFAULT false NOT NULL,
+    recipient_seen_at timestamp with time zone,
     CONSTRAINT chk_card_trades_closed_shape CHECK (((status = ANY (ARRAY['declined'::text, 'cancelled'::text, 'expired'::text])) = (closed_at IS NOT NULL))),
     CONSTRAINT chk_card_trades_completed_shape CHECK (((status = 'completed'::text) = (completed_at IS NOT NULL))),
     CONSTRAINT chk_card_trades_distinct_parties CHECK ((giver_user_id <> receiver_user_id)),
@@ -2362,6 +2364,8 @@ CREATE TABLE public.friend_group_members (
     user_id text NOT NULL,
     role text NOT NULL,
     joined_at timestamp with time zone DEFAULT now() NOT NULL,
+    is_auto_accepting_offers boolean DEFAULT true NOT NULL,
+    is_auto_accepting_requests boolean DEFAULT true NOT NULL,
     CONSTRAINT chk_friend_group_members_role CHECK ((role = ANY (ARRAY['owner'::text, 'admin'::text, 'member'::text])))
 );
 
@@ -11507,5 +11511,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict IcdaZpESMPb4oXhl11aZhG08OVybU5ieTyU1cNdp2xvlDTEmDXTlUNCK3LpXNwL
+\unrestrict fXn9KHxHeZHdOCUjvggnGmdakvgGKJW4rZMjyQRdgAZ2zqjXN5YwjLch1LXfVWF
 

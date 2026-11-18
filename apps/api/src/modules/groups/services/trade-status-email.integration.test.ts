@@ -4,8 +4,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createRepos, createTransact } from "../../../deps.js";
 import { PRINTING_1, PRINTING_2 } from "../../../test/fixtures/constants.js";
 import { createDbContext } from "../../../test/integration-context.js";
+import { createTradeAnsweredByHand } from "../../../test/manual-trade-answers.js";
 import { friendGroupsRepo } from "../repositories/friend-groups.js";
-import { acceptTrade, cancelTrade, createTrade, declineTrade } from "./card-trades.js";
+import { acceptTrade, cancelTrade, declineTrade } from "./card-trades.js";
 import { flushTradeStatusEmails } from "./trade-status-notifications.js";
 import type { TradeStatusFlushDeps } from "./trade-status-notifications.js";
 
@@ -16,6 +17,7 @@ const GIVER_EMAIL = `test-${GIVER_ID}@test.com`;
 const RECEIVER_EMAIL = `test-${RECEIVER_ID}@test.com`;
 
 const ctx = createDbContext(GIVER_ID);
+const createTrade = createTradeAnsweredByHand(() => ctx!.db);
 
 describe.skipIf(!ctx)("trade-status emails (integration)", () => {
   const { db } = ctx!;

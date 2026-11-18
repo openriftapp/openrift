@@ -120,6 +120,8 @@ function pendingRequest(cardId: string): CardTradeResponse {
     viewerSyncAppliedAt: null,
     counterpartySyncAppliedAt: null,
     viewerWishEntryId: null,
+    autoAccepted: false,
+    recipientSeenAt: null,
     actionNeeded: "cancel",
   };
 }
@@ -131,7 +133,6 @@ vi.mock("@/hooks/use-session", () => ({ useRequiredUserId: () => "user-1" }));
 vi.mock("@/features/groups/hooks/use-trade-market", () => ({
   useTradeMarket: () => ({
     market: currentMarket,
-    groups: [{ slug: "summoner-skirmish", name: "Summoner Skirmish" }],
     marketGroups: [],
     dismissals: [],
   }),
@@ -213,20 +214,20 @@ afterEach(() => {
 
 describe("TradeMarket", () => {
   it("counts each tab", () => {
-    render(<TradeMarket />);
+    render(<TradeMarket groupSlug={null} />);
     expect(screen.getByRole("tab", { name: /You could get\s*1/u })).toBeTruthy();
     expect(screen.getByRole("tab", { name: /Wanted from you\s*1/u })).toBeTruthy();
     expect(screen.getByRole("tab", { name: /Not in your groups\s*1/u })).toBeTruthy();
   });
 
   it("shows the cards group members have, with who has them", () => {
-    render(<TradeMarket />);
+    render(<TradeMarket groupSlug={null} />);
     expect(screen.getByText("Jinx, Rebel")).toBeTruthy();
     expect(screen.getByText("Mara has it")).toBeTruthy();
   });
 
   it("lists wanted cards no group member has on the last tab", () => {
-    render(<TradeMarket />);
+    render(<TradeMarket groupSlug={null} />);
     fireEvent.click(screen.getByRole("tab", { name: /Not in your groups/u }));
     expect(screen.getAllByText("Grove of the God-Willow").length).toBeGreaterThan(0);
     expect(screen.queryByText("Jinx, Rebel")).toBeNull();
@@ -234,7 +235,7 @@ describe("TradeMarket", () => {
   });
 
   it("adds every card no group member has to the cart in one go", () => {
-    render(<TradeMarket />);
+    render(<TradeMarket groupSlug={null} />);
     fireEvent.click(screen.getByRole("tab", { name: /Not in your groups/u }));
     expect(screen.getByText("2 cards no one in your groups has")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Add all 2 to cart" }));
@@ -246,14 +247,14 @@ describe("TradeMarket", () => {
 
   it("rotates battlefield art into the portrait frame", () => {
     vi.spyOn(HTMLImageElement.prototype, "naturalWidth", "get").mockReturnValue(880);
-    render(<TradeMarket />);
+    render(<TradeMarket groupSlug={null} />);
     fireEvent.click(screen.getByRole("tab", { name: /Not in your groups/u }));
     const art = screen.getByRole("img", { name: "Grove of the God-Willow" });
     expect(art.parentElement?.style.transform).toContain("rotate(-90deg)");
   });
 
   it("opens the sheet for the picked card", () => {
-    render(<TradeMarket />);
+    render(<TradeMarket groupSlug={null} />);
     fireEvent.click(screen.getByRole("button", { name: /Jinx, Rebel/u }));
     expect(screen.getByText("sheet:p-jinx")).toBeTruthy();
   });
@@ -266,7 +267,7 @@ describe("TradeMarket", () => {
     });
     const groups = [{ ...group, incoming: [stubRow(), kofi] }];
     currentMarket = buildTradeMarket(groups);
-    const { rerender } = render(<TradeMarket />);
+    const { rerender } = render(<TradeMarket groupSlug={null} />);
     fireEvent.click(screen.getByRole("button", { name: /Jinx, Rebel/u }));
     expect(screen.getByText("sources:2")).toBeTruthy();
 
@@ -276,28 +277,28 @@ describe("TradeMarket", () => {
         { direction: "incoming", counterpartyUserId: "user-kofi", printingId: "p-jinx" },
       ]),
     );
-    rerender(<TradeMarket />);
+    rerender(<TradeMarket groupSlug={null} />);
     expect(screen.getByText("sources:1")).toBeTruthy();
   });
 
   it("marks a card already requested from anyone, in any printing", () => {
-    render(<TradeMarket />);
+    render(<TradeMarket groupSlug={null} />);
     expect(screen.queryByText("Requested")).toBeNull();
 
     currentTrades = [pendingRequest("c-jinx")];
-    render(<TradeMarket />);
+    render(<TradeMarket groupSlug={null} />);
     expect(screen.getByText("Requested")).toBeTruthy();
   });
 
   it("marks a card someone offered the viewer without calling it requested", () => {
     currentTrades = [{ ...pendingRequest("c-jinx"), initiator: "giver" }];
-    render(<TradeMarket />);
+    render(<TradeMarket groupSlug={null} />);
     expect(screen.getByText("In a trade")).toBeTruthy();
     expect(screen.queryByText("Requested")).toBeNull();
   });
 
   it("narrows the grid by the search", () => {
-    render(<TradeMarket />);
+    render(<TradeMarket groupSlug={null} />);
     fireEvent.change(screen.getByRole("textbox", { name: "Search cards" }), {
       target: { value: "leona" },
     });

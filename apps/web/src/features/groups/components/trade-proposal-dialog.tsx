@@ -1,5 +1,6 @@
 import { clamp } from "@openrift/shared/math";
 import { sideKey } from "@openrift/shared/printing-side";
+import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { PlusSquareIcon } from "lucide-react";
 import { Suspense, useState } from "react";
@@ -28,7 +29,10 @@ import {
   useFriendGroupShareableLists,
   useShareListWithFriendGroup,
 } from "@/features/groups/hooks/use-friend-group-sharing";
-import { useFriendGroupMatches } from "@/features/groups/hooks/use-friend-groups";
+import {
+  useFriendGroupMatches,
+  useMemberAutoAccept,
+} from "@/features/groups/hooks/use-friend-groups";
 import { matchOnPrinting } from "@/features/groups/lib/trade-printing";
 import type { ListTargetOption } from "@/features/groups/lib/tradelist-exchange";
 import {
@@ -77,6 +81,8 @@ const SIDES = {
     defaultListName: m.trades_default_tradelist_name,
     title: m.trades_offer_card_title,
     matchedDescription: (args: CardAndName) => m.trades_offer_to_description(args),
+    autoDescription: (args: CardAndName) => m.trades_offer_to_auto_description(args),
+    agreedToast: (args: CardAndName) => m.trades_agreed_offer_toast(args),
     pickDescription: (args: CardGroupAndName) => m.trades_pick_tradelist_description(args),
     send: m.trades_send_offer,
     shareAndSend: m.trades_share_and_send_offer,
@@ -92,6 +98,8 @@ const SIDES = {
     defaultListName: m.trades_default_wishlist_name,
     title: m.trades_request_card_title,
     matchedDescription: (args: CardAndName) => m.trades_request_from_description(args),
+    autoDescription: (args: CardAndName) => m.trades_request_from_auto_description(args),
+    agreedToast: (args: CardAndName) => m.trades_agreed_request_toast(args),
     pickDescription: (args: CardGroupAndName) => m.trades_pick_wishlist_description(args),
     send: m.trades_send_request,
     shareAndSend: m.trades_share_and_send_request,
@@ -166,6 +174,8 @@ function ProposalBody({
   const bulkAdd = useBulkAddListEntries();
   const shareWithGroup = useShareListWithFriendGroup();
   const createTrade = useCreateTrade();
+  const autoAccept = useMemberAutoAccept(groupSlug, counterpartyUserId, true);
+  const agreesOnSend = side === "offer" ? autoAccept?.offers : autoAccept?.requests;
   const pending =
     createList.isPending || bulkAdd.isPending || shareWithGroup.isPending || createTrade.isPending;
 
@@ -197,7 +207,7 @@ function ProposalBody({
       ? newName.trim() || copy.defaultListName()
       : (chosenList?.listName ?? "");
 
-  const submit = async (): Promise<boolean> => {
+  const submit = async (): Promise<CardTradeResponse | undefined> => {
     const newListName = newName.trim() || copy.defaultListName();
     if (!existingMatch) {
       let listId: string;
@@ -211,7 +221,7 @@ function ProposalBody({
       } else if (chosenList) {
         listId = chosenList.listId;
       } else {
-        return false;
+        return undefined;
       }
       await bulkAdd.mutateAsync({
         listId,
@@ -224,7 +234,7 @@ function ProposalBody({
         await shareWithGroup.mutateAsync({ slug: groupSlug, listId });
       }
     }
-    await createTrade.mutateAsync({
+    return createTrade.mutateAsync({
       groupSlug,
       counterpartyUserId,
       role: copy.role,
@@ -232,16 +242,16 @@ function ProposalBody({
       cardId: existingMatch?.cardId ?? printing.cardId,
       quantity: effectiveQuantity,
     });
-    return true;
   };
 
   const send = async () => {
-    let sent = false;
+    let sent: CardTradeResponse | undefined;
     const ok = await runReportedMutation(async () => {
       sent = await submit();
     });
     if (ok && sent) {
-      toast.success(copy.sentToast({ card: cardName, name: counterpartyName }));
+      const args = { card: cardName, name: counterpartyName };
+      toast.success(sent.status === "reserved" ? copy.agreedToast(args) : copy.sentToast(args));
       onClose();
     }
   };
@@ -296,7 +306,10 @@ function ProposalBody({
         <DialogHeader>
           <DialogTitle>{copy.title()}</DialogTitle>
           <DialogDescription>
-            {copy.matchedDescription({ card: cardName, name: counterpartyName })}
+            {(agreesOnSend ? copy.autoDescription : copy.matchedDescription)({
+              card: cardName,
+              name: counterpartyName,
+            })}
           </DialogDescription>
         </DialogHeader>
         {printingPicker}

@@ -2,10 +2,15 @@
 
 ## 2026-11-18
 
+### Highlights
+
+- feat(Trades): **Automatic accepting in groups** — offers and requests other members send you are now agreed at once without waiting for your answer, and each group's settings let you turn that off for offers, requests or both. Trades agreed this way are marked as new until you open them, and the sender sees whether you have.
+
 ### Other
 
 - feat(Collection): **Undo a move** — the toast after moving cards to another collection has an Undo button that puts each card back where it was.
 - feat(Cards): **Escape closes the docked card** — pressing Escape closes the card detail docked beside the grid.
+- feat(Trades): **One Trades page for every group** — a group's trades now open on the Trades page with that group selected, and the group filter there narrows your open trades as well as the suggestions.
 - fix(Collection): **Dragging onto the sidebar** — dragging cards over the sidebar no longer scrolls the collection behind it, and the sidebar scrolls when you drag near its top or bottom edge.
 - fix(Tournaments): **Legends on every table** — pairings for round-based tournaments show each player's Legend and domains on the table cards, under the player's name.
 - feat(Tournaments): **Match results as a score sheet** — entering a match result shows the players as rows and the games as columns, so long names no longer wrap. Each game is one tap on the winner's cell, and a line below the sheet sums up the winner, score and points. The X in the table's header closes the form without saving. A match saved before all its games are in asks whether it ended early. Free-for-all scores get − and + buttons, and each player's place shows as soon as every score is in.

@@ -107,6 +107,8 @@ describe("toMember", () => {
       userEmail: "jinx@example.com",
       role: "admin",
       joinedAt: new Date("2026-02-10T08:00:00.000Z"),
+      isAutoAcceptingOffers: true,
+      isAutoAcceptingRequests: false,
     };
     expect(toMember(row, [])).toEqual({
       userId: USER_ID,
@@ -115,6 +117,8 @@ describe("toMember", () => {
       gravatarHash: gravatarHashForEmail("jinx@example.com"),
       role: "admin",
       contactMethods: [],
+      autoAcceptOffers: true,
+      autoAcceptRequests: false,
       joinedAt: "2026-02-10T08:00:00.000Z",
     });
   });

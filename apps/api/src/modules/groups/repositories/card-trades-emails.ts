@@ -18,6 +18,7 @@ export interface QueuedRequestEmailRow {
   recipientUserId: string;
   /** When the request was created — drives the recipient's debounce window. */
   createdAt: Date;
+  agreed: boolean;
 }
 
 type TradeStatusEmailEvent = "reserved" | "declined" | "cancelled";
@@ -66,15 +67,18 @@ export function cardTradeEmailsRepo(db: Kysely<Database>) {
           t.quantity,
           t.initiator,
           t.created_at,
+          t.is_auto_accepted AS agreed,
           (CASE WHEN t.initiator = 'giver' THEN t.giver_user_id ELSE t.receiver_user_id END) AS sender_user_id,
           (CASE WHEN t.initiator = 'giver' THEN t.receiver_user_id ELSE t.giver_user_id END) AS recipient_user_id
         FROM card_trades t
         JOIN printings tp ON tp.id = t.printing_id
         JOIN faces tpf ON tpf.id = tp.face1_id
         JOIN friend_groups g ON g.id = t.group_id
-        WHERE t.status = 'pending'
-          AND t.request_email_sent_at IS NULL
-          AND t.expires_at > now()
+        WHERE t.request_email_sent_at IS NULL
+          AND (
+            (t.status = 'pending' AND t.expires_at > now())
+            OR (t.status = 'reserved' AND t.is_auto_accepted)
+          )
         ORDER BY recipient_user_id, sender_user_id, t.created_at
       `.execute(db);
       return result.rows;

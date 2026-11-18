@@ -13,7 +13,12 @@ import { tradePrinting } from "@/features/groups/lib/trade-printing";
 import { TradeRowActions } from "./trade-row-actions";
 import { CardMetaLine, TradeEstimatedPrice, TradeExpiry } from "./trade-row-parts";
 import type { TradeBadgeState } from "./trade-status-badge";
-import { TradeDirectionIcon, tradeBadgeState, TradeStatusBadge } from "./trade-status-badge";
+import {
+  AgreedSeenBadge,
+  TradeDirectionIcon,
+  tradeBadgeState,
+  TradeStatusBadge,
+} from "./trade-status-badge";
 
 export function TradeRow({
   trade,
@@ -83,6 +88,8 @@ export function TradeRow({
               className="min-w-0 shrink"
             />
           )}
+
+          <AgreedSeenBadge trade={trade} className="min-w-0 shrink" />
 
           {printing ? <CardMetaLine printing={printing} rarity={printing.rarity} /> : null}
 

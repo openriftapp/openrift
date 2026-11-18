@@ -58,6 +58,28 @@ export const fr: EmailMessages = {
       : `${sender} vous propose ${cardName}`,
   requestExpiryNote:
     "Ouvrez l'échange pour l'accepter ou le refuser. À noter : les demandes d'échange expirent 7 jours après leur envoi.",
+  tradeAgreedHeading: "Échange convenu",
+  agreedLead: (senderHtml, cardHtml, kind) =>
+    kind === "wants"
+      ? `${senderHtml} reçoit votre ${cardHtml}. La demande a été acceptée pour vous, car vous acceptez automatiquement les demandes dans ce groupe.`
+      : `${senderHtml} vous donne ${cardHtml}. La proposition a été acceptée pour vous, car vous acceptez automatiquement les propositions dans ce groupe.`,
+  agreedSubject: (sender, cardName, kind) =>
+    kind === "wants"
+      ? `Convenu : ${sender} reçoit votre ${cardName}`
+      : `Convenu : ${sender} vous donne ${cardName}`,
+  agreedNote:
+    "Ouvrez l'échange pour l'annuler s'il ne vous convient pas. Vous pouvez désactiver l'acceptation automatique dans les paramètres du groupe.",
+  agreedWantsHeading: "Convenu : reçoit de vous",
+  agreedOffersHeading: "Convenu : vous donne",
+  coalescedAgreedNote: (count) =>
+    `Déjà convenus : ${num("fr", count)}, car vous acceptez automatiquement. Vous pouvez annuler tout échange qui ne vous convient pas.`,
+  tradesStartedHeading: "Nouveaux échanges",
+  coalescedStartedSubject: (sender, total) =>
+    `${sender} a lancé ${num("fr", total)} échanges avec vous`,
+  coalescedStartedLead: (senderHtml, total) =>
+    `${senderHtml} a lancé ${num("fr", total)} échanges avec vous.`,
+  coalescedOpenNote: (count) =>
+    `En attente de votre réponse : ${num("fr", count)}. Les demandes ouvertes expirent 7 jours après leur envoi.`,
   reachContact: (name, contact) => `Contacter ${name} : ${contact}`,
   viewTradeButton: "Voir l'échange",
   viewTradesButton: "Voir les échanges",

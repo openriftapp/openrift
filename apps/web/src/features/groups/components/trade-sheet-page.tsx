@@ -5,7 +5,7 @@ import type {
 import { Link } from "@tanstack/react-router";
 import { BellIcon, EllipsisVerticalIcon, HandshakeIcon, HistoryIcon } from "lucide-react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Disclosure } from "@/components/disclosure";
 import { EmptyState } from "@/components/empty-state";
@@ -31,7 +31,11 @@ import { TradeCardmarketExportDialog } from "@/features/groups/components/trade-
 import { TradeRow } from "@/features/groups/components/trade-row";
 import { TradeSettleSection } from "@/features/groups/components/trade-settle-section";
 import type { TradeBadgeState } from "@/features/groups/components/trade-status-badge";
-import { useTradeSheet, useUserTrades } from "@/features/groups/hooks/use-card-trades";
+import {
+  useMarkAgreedTradesSeen,
+  useTradeSheet,
+  useUserTrades,
+} from "@/features/groups/hooks/use-card-trades";
 import { useFriendGroupDetail } from "@/features/groups/hooks/use-friend-groups";
 import {
   countTradeSuggestions,
@@ -39,6 +43,7 @@ import {
   withoutLiveTradeMatches,
 } from "@/features/groups/lib/trade-derivation";
 import { tradeSideKey } from "@/features/groups/lib/trade-printing";
+import { newAgreedTrades } from "@/features/groups/lib/trade-seen";
 import { sheetEmptyState, splitTradeLedger, stepSequence } from "@/features/groups/lib/trade-sheet";
 import { memberName } from "@/lib/member-name";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
@@ -151,6 +156,17 @@ function TradeSheetBody({
   const [exportOpen, setExportOpen] = useState(false);
 
   const trades = allTrades?.items ?? [];
+  const { mutate: markAgreedSeen } = useMarkAgreedTradesSeen();
+  const newAgreedKey = newAgreedTrades(
+    trades.filter((trade) => trade.counterparty.userId === userId),
+  )
+    .map((trade) => trade.id)
+    .join(",");
+  useEffect(() => {
+    if (newAgreedKey !== "") {
+      markAgreedSeen({ counterpartyUserId: userId });
+    }
+  }, [newAgreedKey, userId, markAgreedSeen]);
   // A printing the catalog has not caught up with sorts last, not first.
   const ledger = splitTradeLedger(
     trades,
@@ -199,7 +215,7 @@ function TradeSheetBody({
                 },
                 {
                   label: m.trades_title(),
-                  link: <Link to="/groups/$slug/trades" params={{ slug: anchorGroup.slug }} />,
+                  link: <Link to="/trades" search={{ group: anchorGroup.slug }} />,
                 },
                 { label: name },
               ]

@@ -53,6 +53,27 @@ export const zhHans: EmailMessages = {
   requestSubject: (sender, cardName, kind) =>
     kind === "wants" ? `${sender} 想交换 ${cardName}` : `${sender} 向你提供 ${cardName}`,
   requestExpiryNote: "打开这次交换即可接受或拒绝。请注意：交换请求在发出 7 天后过期。",
+  tradeAgreedHeading: "交换已达成",
+  agreedLead: (senderHtml, cardHtml, kind) =>
+    kind === "wants"
+      ? `${senderHtml} 将得到你的 ${cardHtml}。你在此小组中自动接受请求，因此该请求已替你接受。`
+      : `${senderHtml} 将把 ${cardHtml} 给你。你在此小组中自动接受提供，因此该提供已替你接受。`,
+  agreedSubject: (sender, cardName, kind) =>
+    kind === "wants"
+      ? `已达成：${sender} 将得到你的 ${cardName}`
+      : `已达成：${sender} 将把 ${cardName} 给你`,
+  agreedNote: "如果不合适，请打开这次交换并取消。你可以在小组设置中关闭自动接受。",
+  agreedWantsHeading: "已达成：从你这里得到",
+  agreedOffersHeading: "已达成：给你",
+  coalescedAgreedNote: (count) =>
+    `已达成：${num("zh-Hans", count)} 项，因为你设置了自动接受。不合适的交换可以取消。`,
+  tradesStartedHeading: "新的交换",
+  coalescedStartedSubject: (sender, total) =>
+    `${sender} 向你发起了 ${num("zh-Hans", total)} 项交换`,
+  coalescedStartedLead: (senderHtml, total) =>
+    `${senderHtml} 向你发起了 ${num("zh-Hans", total)} 项交换。`,
+  coalescedOpenNote: (count) =>
+    `等待你答复：${num("zh-Hans", count)} 项。未答复的请求在发出 7 天后过期。`,
   reachContact: (name, contact) => `联系 ${name}：${contact}`,
   viewTradeButton: "查看交换",
   viewTradesButton: "查看交换",

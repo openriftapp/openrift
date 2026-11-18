@@ -47,6 +47,13 @@ const createTradeFn = createServerFn({ method: "POST" })
   .middleware([withCookies])
   .handler(({ context, data }) => apiOrpcClient(cardTradesContract, context.cookie).create(data));
 
+const markAgreedSeenFn = createServerFn({ method: "POST" })
+  .validator((input: { counterpartyUserId: string }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(cardTradesContract, context.cookie).markAgreedSeen(data);
+  });
+
 const setTradeQuantityFn = createServerFn({ method: "POST" })
   .validator((input: { tradeId: string; quantity: number }) => input)
   .middleware([withCookies])
@@ -202,6 +209,15 @@ function tradeInvalidationKeys(userId: string, groupSlug?: string): (readonly un
     keys.push(friendGroupsKeys.matches(userId, groupSlug));
   }
   return keys;
+}
+
+/** The trades list is left alone on purpose: the "new" markers stay up for the visit that clears them. */
+export function useMarkAgreedTradesSeen() {
+  const userId = useRequiredUserId();
+  return useMutationWithInvalidation<unknown, { counterpartyUserId: string }>({
+    mutationFn: (data) => markAgreedSeenFn({ data }),
+    invalidates: () => [badgesKeys.all(userId)],
+  });
 }
 
 export function useCreateTrade() {

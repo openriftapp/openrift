@@ -10,7 +10,6 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { CountPill } from "@/components/ui/count-pill";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
-import { SimpleSelect } from "@/components/ui/simple-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserAvatarStack } from "@/components/user-avatar-stack";
 import { CardThumbnail } from "@/features/cards/components/card-thumbnail";
@@ -51,7 +50,6 @@ import { useDisplayStore } from "@/stores/display-store";
 
 type MarketTab = "get" | "give" | "buy";
 
-const ALL_GROUPS = "all";
 const GRID =
   "grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7";
 // Must mirror GRID's breakpoints.
@@ -135,7 +133,7 @@ function BuyAllCallout({
   );
 }
 
-export function TradeMarket() {
+export function TradeMarket({ groupSlug }: { groupSlug: string | null }) {
   const userId = useRequiredUserId();
   const { printingsById, printingsByCardId } = useCards();
   const prices = usePrices();
@@ -151,11 +149,10 @@ export function TradeMarket() {
     return printing === undefined ? "" : legendDisplayName(printing.card);
   };
 
-  const { market, groups, marketGroups, dismissals } = useTradeMarket();
+  const { market, marketGroups, dismissals } = useTradeMarket();
   const { data: userTrades } = useUserTrades();
   const userTradeItems = userTrades?.items ?? [];
   const [tab, setTab] = useState<MarketTab>("get");
-  const [groupSlug, setGroupSlug] = useState<string | null>(null);
   const [personId, setPersonId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [picked, setPicked] = useState<MarketPick | null>(null);
@@ -252,10 +249,6 @@ export function TradeMarket() {
     },
     { value: "buy", label: m.trades_market_tab_buy(), count: wantedReady ? buyable.length : null },
   ];
-  const groupItems = [
-    { value: ALL_GROUPS, label: m.trades_market_all_groups() },
-    ...groups.map((group) => ({ value: group.slug, label: group.name })),
-  ];
 
   return (
     <section className="flex flex-col gap-4">
@@ -278,15 +271,6 @@ export function TradeMarket() {
             placeholder={m.trades_market_search_placeholder()}
             className="w-full sm:w-64"
           />
-          {tab === "buy" || groups.length < 2 ? null : (
-            <SimpleSelect
-              items={groupItems}
-              value={groupSlug ?? ALL_GROUPS}
-              onChange={(value) => setGroupSlug(value === ALL_GROUPS ? null : value)}
-              label={m.trades_market_group_filter()}
-              className="w-full sm:w-56"
-            />
-          )}
           {tab === "buy" ? null : (
             <PeopleFilter
               people={people}

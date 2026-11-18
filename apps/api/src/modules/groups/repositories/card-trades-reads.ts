@@ -200,6 +200,18 @@ export function cardTradeReadsRepo(db: Kysely<Database>) {
       return withCounterpartyContacts(db, rows, userId);
     },
 
+    async reservedIncomingQuantity(receiverUserId: string, cardId: string): Promise<number> {
+      const row = await db
+        .selectFrom("cardTrades")
+        .select((eb) => eb.cast<number>(eb.fn.sum(eb.ref("quantity")), "integer").as("total"))
+        .where("receiverUserId", "=", receiverUserId)
+        .where("cardId", "=", cardId)
+        .where("status", "=", "reserved")
+        .where("receiverSyncAppliedAt", "is", null)
+        .executeTakeFirst();
+      return row?.total ?? 0;
+    },
+
     /**
      * Total cards ever traded in a group: the sum of `quantity` over its traded
      * rows. Feeds the group hero's "N cards traded" stat — a lifetime count,
@@ -360,6 +372,10 @@ export function cardTradeReadsRepo(db: Kysely<Database>) {
 
     async actionNeededPeopleForUser(userId: string): Promise<number> {
       const { awaitingResponse, settleDue } = actionNeededPredicates(userId);
+      const unseenAgreed = sql<boolean>`(
+        t.status = 'reserved' and t.is_auto_accepted and t.recipient_seen_at is null
+        and (case when t.initiator = 'giver' then t.receiver_user_id else t.giver_user_id end) = ${userId}
+      )`;
       const row = await db
         .selectFrom("cardTrades as t")
         .select(
@@ -370,7 +386,7 @@ export function cardTradeReadsRepo(db: Kysely<Database>) {
         .where((eb) =>
           eb.or([eb("t.giverUserId", "=", userId), eb("t.receiverUserId", "=", userId)]),
         )
-        .where(sql<boolean>`(${awaitingResponse} or ${settleDue})`)
+        .where(sql<boolean>`(${awaitingResponse} or ${settleDue} or ${unseenAgreed})`)
         .executeTakeFirstOrThrow();
       return Number(row.people);
     },

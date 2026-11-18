@@ -51,6 +51,17 @@ export interface EmailMessages {
   requestLead: (senderHtml: string, cardHtml: string, kind: TradeRequestKind) => string;
   requestSubject: (sender: string, cardName: string, kind: TradeRequestKind) => string;
   requestExpiryNote: string;
+  tradeAgreedHeading: string;
+  agreedLead: (senderHtml: string, cardHtml: string, kind: TradeRequestKind) => string;
+  agreedSubject: (sender: string, cardName: string, kind: TradeRequestKind) => string;
+  agreedNote: string;
+  agreedWantsHeading: string;
+  agreedOffersHeading: string;
+  coalescedAgreedNote: (count: number) => string;
+  tradesStartedHeading: string;
+  coalescedStartedSubject: (sender: string, total: number) => string;
+  coalescedStartedLead: (senderHtml: string, total: number) => string;
+  coalescedOpenNote: (count: number) => string;
   reachContact: (name: string, contact: string) => string;
   viewTradeButton: string;
   viewTradesButton: string;

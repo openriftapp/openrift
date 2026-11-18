@@ -19,7 +19,11 @@ const REQUEST_BASE = {
 
 describe("buildTradeRequestEmail", () => {
   it("phrases a receiver-initiated request as 'wants'", () => {
-    const { subject, html } = buildTradeRequestEmail({ ...REQUEST_BASE, kind: "wants" });
+    const { subject, html } = buildTradeRequestEmail({
+      ...REQUEST_BASE,
+      kind: "wants",
+      agreed: false,
+    });
     expect(subject).toBe("Garen wants to trade for Azir, Emperor of the Sands");
     expect(html).toContain("wants to trade for");
     expect(html).toContain("Garen");
@@ -29,13 +33,22 @@ describe("buildTradeRequestEmail", () => {
   });
 
   it("phrases a giver-initiated offer as 'offers'", () => {
-    const { subject, html } = buildTradeRequestEmail({ ...REQUEST_BASE, kind: "offers" });
+    const { subject, html } = buildTradeRequestEmail({
+      ...REQUEST_BASE,
+      kind: "offers",
+      agreed: false,
+    });
     expect(subject).toBe("Garen offers you Azir, Emperor of the Sands");
     expect(html).toContain("offering you");
   });
 
   it("includes the quantity when more than one is requested", () => {
-    const { html } = buildTradeRequestEmail({ ...REQUEST_BASE, quantity: 3, kind: "wants" });
+    const { html } = buildTradeRequestEmail({
+      ...REQUEST_BASE,
+      quantity: 3,
+      kind: "wants",
+      agreed: false,
+    });
     expect(html).toContain("3× Azir, Emperor of the Sands");
   });
 
@@ -44,6 +57,7 @@ describe("buildTradeRequestEmail", () => {
       ...REQUEST_BASE,
       initiatorName: "<script>alert(1)</script>",
       kind: "wants",
+      agreed: false,
     });
     expect(html).not.toContain("<script>alert(1)</script>");
     expect(html).toContain("&lt;script&gt;");
@@ -53,14 +67,90 @@ describe("buildTradeRequestEmail", () => {
     const { html } = buildTradeRequestEmail({
       ...REQUEST_BASE,
       kind: "wants",
+      agreed: false,
       initiatorContact: "Discord: seb#1234",
     });
     expect(html).toContain("Reach Garen: Discord: seb#1234");
   });
 
   it("omits the contact line when no contact was shared", () => {
-    const { html } = buildTradeRequestEmail({ ...REQUEST_BASE, kind: "wants" });
+    const { html } = buildTradeRequestEmail({ ...REQUEST_BASE, kind: "wants", agreed: false });
     expect(html).not.toContain("Reach ");
+  });
+});
+
+describe("buildTradeRequestEmail for an auto-accepted trade", () => {
+  it("tells the recipient an offer is already agreed and how to cancel it", () => {
+    const { subject, html } = buildTradeRequestEmail({
+      ...REQUEST_BASE,
+      kind: "offers",
+      agreed: true,
+    });
+    expect(subject).toBe("Agreed: Garen gives you Azir, Emperor of the Sands");
+    expect(html).toContain("Trade agreed");
+    expect(html).toContain("you accept offers automatically in this group");
+    expect(html).toContain("cancel it");
+    expect(html).not.toContain("accept or decline");
+  });
+
+  it("tells the recipient a request already reserved their card", () => {
+    const { subject, html } = buildTradeRequestEmail({
+      ...REQUEST_BASE,
+      kind: "wants",
+      agreed: true,
+    });
+    expect(subject).toBe("Agreed: Garen gets your Azir, Emperor of the Sands");
+    expect(html).toContain("you accept requests automatically in this group");
+  });
+});
+
+describe("buildCoalescedTradeRequestsEmail with auto-accepted trades", () => {
+  it("lists agreed trades under their own headings and says how many are agreed", () => {
+    const { subject, html } = buildCoalescedTradeRequestsEmail({
+      locale: "en",
+      recipientName: "Riven",
+      senderName: "Garen",
+      unsubscribeUrl: "u",
+      groups: [
+        {
+          groupName: "Playgroup",
+          tradesUrl: "t",
+          requests: [
+            { cardName: "Azir", quantity: 1, kind: "offers", agreed: true },
+            { cardName: "Lux", quantity: 1, kind: "offers", agreed: false },
+            { cardName: "Jinx", quantity: 1, kind: "wants", agreed: true },
+          ],
+        },
+      ],
+    });
+    expect(subject).toBe("Garen started 3 trades with you");
+    expect(html).toContain("New trades");
+    expect(html).toContain("Garen</strong> started 3 trades with you.");
+    expect(html).toContain("Already agreed: 2, because you accept automatically.");
+    expect(html).toContain("Still waiting for your answer: 1.");
+    expect(html).not.toContain("sent you 3 trade requests");
+    expect(html).toContain("Agreed: gives you");
+    expect(html).toContain("Agreed: gets from you");
+    expect(html).toContain("Offers you");
+    expect(html).not.toContain("Wants from you");
+  });
+
+  it("uses the agreed sentence for a single auto-accepted trade", () => {
+    const { subject, html } = buildCoalescedTradeRequestsEmail({
+      locale: "en",
+      recipientName: "Riven",
+      senderName: "Garen",
+      unsubscribeUrl: "u",
+      groups: [
+        {
+          groupName: "Playgroup",
+          tradesUrl: "t",
+          requests: [{ cardName: "Azir", quantity: 1, kind: "offers", agreed: true }],
+        },
+      ],
+    });
+    expect(subject).toBe("Agreed: Garen gives you Azir");
+    expect(html).not.toContain("accept or decline");
   });
 });
 
@@ -75,8 +165,8 @@ describe("buildCoalescedTradeRequestsEmail", () => {
         groupName: "Playgroup",
         tradesUrl: "https://openrift.app/groups/playgroup/trades",
         requests: [
-          { cardName: "Azir", quantity: 1, kind: "wants" as const },
-          { cardName: "Lux", quantity: 2, kind: "offers" as const },
+          { cardName: "Azir", quantity: 1, kind: "wants" as const, agreed: false },
+          { cardName: "Lux", quantity: 2, kind: "offers" as const, agreed: false },
         ],
       },
     ],
@@ -106,8 +196,8 @@ describe("buildCoalescedTradeRequestsEmail", () => {
           groupName: "Playgroup",
           tradesUrl: "https://openrift.app/groups/playgroup/trades",
           requests: [
-            { cardName: "Azir", quantity: 1, kind: "offers" },
-            { cardName: "Lux", quantity: 2, kind: "offers" },
+            { cardName: "Azir", quantity: 1, kind: "offers", agreed: false },
+            { cardName: "Lux", quantity: 2, kind: "offers", agreed: false },
           ],
         },
       ],
@@ -130,12 +220,12 @@ describe("buildCoalescedTradeRequestsEmail", () => {
         {
           groupName: "Playgroup",
           tradesUrl: "https://openrift.app/groups/playgroup/trades",
-          requests: [{ cardName: "Azir", quantity: 1, kind: "wants" }],
+          requests: [{ cardName: "Azir", quantity: 1, kind: "wants", agreed: false }],
         },
         {
           groupName: "LGS Night",
           tradesUrl: "https://openrift.app/groups/lgs-night/trades",
-          requests: [{ cardName: "Jinx", quantity: 1, kind: "offers" }],
+          requests: [{ cardName: "Jinx", quantity: 1, kind: "offers", agreed: false }],
         },
       ],
     });
@@ -152,7 +242,7 @@ describe("buildCoalescedTradeRequestsEmail", () => {
         {
           groupName: "G",
           tradesUrl: "t",
-          requests: [{ cardName: "C", quantity: 1, kind: "wants" }],
+          requests: [{ cardName: "C", quantity: 1, kind: "wants", agreed: false }],
         },
       ],
     });
@@ -392,6 +482,7 @@ describe("localized trade emails", () => {
       ...REQUEST_BASE,
       locale: "de",
       kind: "wants",
+      agreed: false,
     });
 
     expect(subject).toBe("Garen möchte Azir, Emperor of the Sands tauschen");
@@ -408,6 +499,7 @@ describe("localized trade emails", () => {
       ...REQUEST_BASE,
       locale: "fr",
       kind: "offers",
+      agreed: false,
     });
 
     expect(subject).toBe("Garen vous propose Azir, Emperor of the Sands");
@@ -428,8 +520,8 @@ describe("localized trade emails", () => {
           groupName: "Playgroup",
           tradesUrl: "https://openrift.app/groups/playgroup/trades",
           requests: [
-            { cardName: "Azir", quantity: 1, kind: "wants" },
-            { cardName: "Lux", quantity: 2, kind: "offers" },
+            { cardName: "Azir", quantity: 1, kind: "wants", agreed: false },
+            { cardName: "Lux", quantity: 2, kind: "offers", agreed: false },
           ],
         },
       ],
@@ -500,18 +592,25 @@ describe("localized trade emails", () => {
 
 describe("missing card and member names", () => {
   it("names an unresolved card in the recipient's language", () => {
-    const english = buildTradeRequestEmail({ ...REQUEST_BASE, cardName: null, kind: "wants" });
+    const english = buildTradeRequestEmail({
+      ...REQUEST_BASE,
+      cardName: null,
+      kind: "wants",
+      agreed: false,
+    });
     const german = buildTradeRequestEmail({
       ...REQUEST_BASE,
       locale: "de",
       cardName: null,
       kind: "wants",
+      agreed: false,
     });
     const french = buildTradeRequestEmail({
       ...REQUEST_BASE,
       locale: "fr",
       cardName: null,
       kind: "offers",
+      agreed: false,
     });
 
     expect(english.subject).toBe("Garen wants to trade for a card");
@@ -533,8 +632,8 @@ describe("missing card and member names", () => {
           groupName: "Playgroup",
           tradesUrl: "t",
           requests: [
-            { cardName: null, quantity: 1, kind: "wants" },
-            { cardName: "Lux", quantity: 2, kind: "offers" },
+            { cardName: null, quantity: 1, kind: "wants", agreed: false },
+            { cardName: "Lux", quantity: 2, kind: "offers", agreed: false },
           ],
         },
       ],

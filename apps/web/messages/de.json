@@ -4139,6 +4139,12 @@
   "groups_contacts_description": "Wird neben deinem Namen auf den Seiten Mitglieder und Tausch gezeigt.",
   "groups_contacts_edit_link": "In deinem Profil bearbeiten",
   "groups_contacts_empty": "Du hast noch keine Kontaktwege hinterlegt.",
+  "groups_auto_accept_title": "Automatisches Annehmen",
+  "groups_auto_accept_description": "Tausche, die andere Mitglieder in dieser Gruppe mit dir starten, gelten sofort als vereinbart, ohne auf deine Antwort zu warten. Einen vereinbarten Tausch kannst du abbrechen, bis einer von euch die Übergabe bestätigt.",
+  "groups_auto_accept_offers_label": "Angebote automatisch annehmen",
+  "groups_auto_accept_offers_hint": "Bietet dir ein Mitglied eine Karte von deinen Wunschlisten an, ist das sofort vereinbart, solange der Wunsch noch offen ist.",
+  "groups_auto_accept_requests_label": "Anfragen automatisch annehmen",
+  "groups_auto_accept_requests_hint": "Fragt ein Mitglied nach einer Karte von deinen Tauschlisten, wird dein Exemplar für die erste Anfrage reserviert.",
   "groups_contacts_title": "Deine Kontaktwege in dieser Gruppe",
   "groups_create_description": "Standardmäßig geschlossen. Mitglieder geben ihre Listen pro Gruppe selbst frei.",
   "groups_create_description_label": "Beschreibung (optional)",
@@ -4741,18 +4747,6 @@
       }
     }
   ],
-  "trades_possible": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} möglicher Tausch",
-        "countPlural=*": "{count} mögliche Tauschgeschäfte"
-      }
-    }
-  ],
-  "trades_suggestions_elsewhere_another": "{trades} in einer anderen Gruppe",
-  "trades_suggestions_elsewhere_other": "{trades} in anderen Gruppen",
   "trades_detail_requests_from": "{requests} von {who}",
   "trades_detail_cards_for": "{cards} für {who}",
   "trades_detail_cards_from": "{cards} von {who}",
@@ -4788,18 +4782,6 @@
       }
     }
   ],
-  "trades_in_other_groups": "+{count} in anderen Gruppen",
-  "trades_shares_lists": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "teilt {count} Liste",
-        "countPlural=*": "teilt {count} Listen"
-      }
-    }
-  ],
-  "trades_nothing_in_group": "Noch nichts in dieser Gruppe",
   "trades_share_band_empty": "Du hast noch keine Wunschliste oder Tauschliste. {#link}Leg eine an{/link} und teile sie mit {group}, um Tauschgeschäfte zu finden.",
   "trades_share_band_shared": [
     {
@@ -4813,9 +4795,6 @@
   ],
   "trades_share_band_hint": "Mitglieder finden Tauschgeschäfte mit dir nur über die Listen, die du teilst.",
   "trades_share_more": "Mehr teilen",
-  "trades_invite_title": "Lade Leute ein, um zu tauschen",
-  "trades_invite_description": "Tauschgeschäfte laufen zwischen Mitgliedern, also braucht diese Gruppe erst jemand anderen.",
-  "trades_view_members": "Mitglieder ansehen",
   "trades_requests_label": "Anfragen",
   "trades_requests_waiting": [
     {
@@ -4882,6 +4861,10 @@
   "trades_price_per_copy": "Preis pro Exemplar ({marketplace})",
   "trades_estimated_value": "Geschätzter Wert ({marketplace})",
   "trades_per_copy_amount": "{amount}/Exemplar",
+  "trades_badge_new_agreed": "Neu, automatisch vereinbart",
+  "trades_badge_not_seen_by": "Von {name} noch nicht gesehen",
+  "trades_badge_seen_by": "Von {name} gesehen",
+  "trades_new_agreed_count": "{count} neu, automatisch vereinbart",
   "trades_badge_your_move": "Du bist dran",
   "trades_badge_waiting_for": "Warten auf {name}",
   "trades_badge_done_your_side": "Deine Seite erledigt",
@@ -5056,6 +5039,12 @@
   "trades_request_card_title": "Diese Karte anfragen",
   "trades_offer_card_title": "Diese Karte anbieten",
   "trades_send_request": "Anfrage senden",
+  "trades_offer_auto_description": "{card} anbieten. Dort werden Angebote automatisch angenommen, also ist das mit dem Senden vereinbart, solange der Wunsch noch offen ist.",
+  "trades_request_auto_description": "Nach {card} fragen. Dort werden Anfragen automatisch angenommen, also ist das mit dem Senden vereinbart.",
+  "trades_offer_to_auto_description": "{card} an {name} anbieten. {name} nimmt Angebote automatisch an, also ist das mit dem Senden vereinbart, solange der Wunsch noch offen ist.",
+  "trades_request_from_auto_description": "{name} nach {card} fragen. {name} nimmt Anfragen automatisch an, also ist das mit dem Senden vereinbart.",
+  "trades_agreed_offer_toast": "Vereinbart: {name} bekommt {card}",
+  "trades_agreed_request_toast": "Vereinbart: du bekommst {card} von {name}",
   "trades_send_offer": "Angebot senden",
   "trades_request_description": "Frag nach {card}. Sie bekommen eine Benachrichtigung, und beim Annehmen wird die Karte für dich reserviert.",
   "trades_offer_description": "Biete {card} an. Sie bekommen eine Benachrichtigung, und beim Annehmen werden deine Exemplare reserviert.",

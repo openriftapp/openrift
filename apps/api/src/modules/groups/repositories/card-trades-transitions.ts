@@ -17,6 +17,11 @@ export function cardTradeTransitionsRepo(db: Kysely<Database>) {
       await lockKey(db, supplyKey(groupId, giverUserId, printingId));
     },
 
+    /** Call inside a transaction. */
+    async lockIncoming(receiverUserId: string): Promise<void> {
+      await lockKey(db, `trade-incoming:${receiverUserId}`);
+    },
+
     async expirePending(): Promise<{ expired: number }> {
       const result = await db
         .updateTable("cardTrades")
@@ -84,6 +89,47 @@ export function cardTradeTransitionsRepo(db: Kysely<Database>) {
         .where("status", "=", "pending")
         .executeTakeFirst();
       return Number(result.numUpdatedRows);
+    },
+
+    async markAutoReserved(id: string, initiatorUserId: string): Promise<number> {
+      const result = await db
+        .updateTable("cardTrades")
+        .set({
+          status: "reserved",
+          isAutoAccepted: true,
+          acceptedAt: sql`now()`,
+          expiresAt: null,
+          lastActorUserId: initiatorUserId,
+          reservedEmailSentAt: sql`now()`,
+          updatedAt: sql`now()`,
+        })
+        .where("id", "=", id)
+        .where("status", "=", "pending")
+        .executeTakeFirst();
+      return Number(result.numUpdatedRows);
+    },
+
+    async markRecipientSeen(userId: string, counterpartyUserId: string): Promise<void> {
+      await db
+        .updateTable("cardTrades")
+        .set({ recipientSeenAt: sql`now()` })
+        .where("isAutoAccepted", "=", true)
+        .where("recipientSeenAt", "is", null)
+        .where((eb) =>
+          eb.or([
+            eb.and([
+              eb("initiator", "=", "giver"),
+              eb("giverUserId", "=", counterpartyUserId),
+              eb("receiverUserId", "=", userId),
+            ]),
+            eb.and([
+              eb("initiator", "=", "receiver"),
+              eb("receiverUserId", "=", counterpartyUserId),
+              eb("giverUserId", "=", userId),
+            ]),
+          ]),
+        )
+        .execute();
     },
 
     async markDeclined(id: string, byUserId: string): Promise<number> {

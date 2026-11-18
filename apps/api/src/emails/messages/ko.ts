@@ -56,6 +56,27 @@ export const ko: EmailMessages = {
       : `${sender}님이 ${cardName} 카드를 제안합니다`,
   requestExpiryNote:
     "교환을 열어 수락하거나 거절하세요. 참고로 교환 요청은 보낸 지 7일이 지나면 만료됩니다.",
+  tradeAgreedHeading: "교환 합의됨",
+  agreedLead: (senderHtml, cardHtml, kind) =>
+    kind === "wants"
+      ? `${senderHtml}님이 회원님의 ${cardHtml} 카드를 받습니다. 이 그룹에서 요청을 자동으로 수락하도록 설정되어 있어 요청이 수락되었습니다.`
+      : `${senderHtml}님이 ${cardHtml} 카드를 드립니다. 이 그룹에서 제안을 자동으로 수락하도록 설정되어 있어 제안이 수락되었습니다.`,
+  agreedSubject: (sender, cardName, kind) =>
+    kind === "wants"
+      ? `합의됨: ${sender}님이 회원님의 ${cardName} 카드를 받습니다`
+      : `합의됨: ${sender}님이 ${cardName} 카드를 드립니다`,
+  agreedNote: "원하지 않으면 교환을 열어 취소하세요. 자동 수락은 그룹 설정에서 끌 수 있습니다.",
+  agreedWantsHeading: "합의됨: 받아 가는 카드",
+  agreedOffersHeading: "합의됨: 드리는 카드",
+  coalescedAgreedNote: (count) =>
+    `이미 합의됨: ${num("ko", count)}건. 자동으로 수락하도록 설정되어 있으며, 원하지 않는 교환은 취소할 수 있습니다.`,
+  tradesStartedHeading: "새 교환",
+  coalescedStartedSubject: (sender, total) =>
+    `${sender}님이 교환 ${num("ko", total)}건을 시작했습니다`,
+  coalescedStartedLead: (senderHtml, total) =>
+    `${senderHtml}님이 교환 ${num("ko", total)}건을 시작했습니다.`,
+  coalescedOpenNote: (count) =>
+    `답변 대기 중: ${num("ko", count)}건. 열려 있는 요청은 보낸 지 7일이 지나면 만료됩니다.`,
   reachContact: (name, contact) => `${name}님 연락처: ${contact}`,
   viewTradeButton: "교환 보기",
   viewTradesButton: "교환 목록 보기",

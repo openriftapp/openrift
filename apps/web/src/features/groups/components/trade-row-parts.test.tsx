@@ -33,6 +33,8 @@ function trade(overrides: Partial<CardTradeResponse>): CardTradeResponse {
     viewerSyncAppliedAt: null,
     counterpartySyncAppliedAt: null,
     viewerWishEntryId: null,
+    autoAccepted: false,
+    recipientSeenAt: null,
     actionNeeded: null,
     ...overrides,
   };

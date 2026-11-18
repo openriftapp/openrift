@@ -4145,6 +4145,12 @@
   "groups_contacts_description": "Shown next to your name on the Members and Trades pages.",
   "groups_contacts_edit_link": "Edit them in your profile",
   "groups_contacts_empty": "You haven't added any contact methods yet.",
+  "groups_auto_accept_title": "Automatic accepting",
+  "groups_auto_accept_description": "Trades other members start with you in this group are agreed right away, without waiting for your answer. You can cancel an agreed trade until one of you confirms the swap.",
+  "groups_auto_accept_offers_label": "Accept offers automatically",
+  "groups_auto_accept_offers_hint": "When a member offers you a card from your wishlists, it is agreed at once, as long as the wish still has room.",
+  "groups_auto_accept_requests_label": "Accept requests automatically",
+  "groups_auto_accept_requests_hint": "When a member asks for a card from your tradelists, your copy is reserved for the first one who asks.",
   "groups_contacts_title": "Your contacts in this group",
   "groups_create_description": "Closed by default. Members opt in their own lists per group.",
   "groups_create_description_label": "Description (optional)",
@@ -4747,18 +4753,6 @@
       }
     }
   ],
-  "trades_possible": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} possible trade",
-        "countPlural=*": "{count} possible trades"
-      }
-    }
-  ],
-  "trades_suggestions_elsewhere_another": "{trades} in another group",
-  "trades_suggestions_elsewhere_other": "{trades} in other groups",
   "trades_detail_requests_from": "{requests} from {who}",
   "trades_detail_cards_for": "{cards} for {who}",
   "trades_detail_cards_from": "{cards} from {who}",
@@ -4794,18 +4788,6 @@
       }
     }
   ],
-  "trades_in_other_groups": "+{count} in other groups",
-  "trades_shares_lists": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "shares {count} list",
-        "countPlural=*": "shares {count} lists"
-      }
-    }
-  ],
-  "trades_nothing_in_group": "Nothing in this group yet",
   "trades_share_band_empty": "You don't have a wishlist or tradelist yet. {#link}Create one{/link} and share it with {group} to start finding trades.",
   "trades_share_band_shared": [
     {
@@ -4819,9 +4801,6 @@
   ],
   "trades_share_band_hint": "Members can only find trades with you through the lists you share.",
   "trades_share_more": "Share more",
-  "trades_invite_title": "Invite people to start trading",
-  "trades_invite_description": "Trades happen between members, so this group needs someone else in it first.",
-  "trades_view_members": "View members",
   "trades_requests_label": "Requests",
   "trades_requests_waiting": [
     {
@@ -4888,6 +4867,10 @@
   "trades_price_per_copy": "Price per copy ({marketplace})",
   "trades_estimated_value": "Estimated value ({marketplace})",
   "trades_per_copy_amount": "{amount}/copy",
+  "trades_badge_new_agreed": "New, agreed automatically",
+  "trades_badge_not_seen_by": "Not seen by {name} yet",
+  "trades_badge_seen_by": "Seen by {name}",
+  "trades_new_agreed_count": "{count} new, agreed automatically",
   "trades_badge_your_move": "Your move",
   "trades_badge_waiting_for": "Waiting for {name}",
   "trades_badge_done_your_side": "Done on your side",
@@ -5062,6 +5045,12 @@
   "trades_request_card_title": "Request this card",
   "trades_offer_card_title": "Offer this card",
   "trades_send_request": "Send request",
+  "trades_offer_auto_description": "Offer {card}. They accept offers automatically, so this is agreed as soon as you send it, as long as their wish still has room.",
+  "trades_request_auto_description": "Ask for {card}. They accept requests automatically, so this is agreed as soon as you send it.",
+  "trades_offer_to_auto_description": "Offer {card} to {name}. {name} accepts offers automatically, so this is agreed as soon as you send it, as long as their wish still has room.",
+  "trades_request_from_auto_description": "Ask {name} for {card}. {name} accepts requests automatically, so this is agreed as soon as you send it.",
+  "trades_agreed_offer_toast": "Agreed: {name} gets {card}",
+  "trades_agreed_request_toast": "Agreed: you get {card} from {name}",
   "trades_send_offer": "Send offer",
   "trades_request_description": "Ask for {card}. They'll get a notification, and accepting reserves it for you.",
   "trades_offer_description": "Offer {card}. They'll get a notification, and accepting reserves your copies.",

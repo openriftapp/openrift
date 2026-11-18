@@ -164,6 +164,31 @@ export const friendGroupsMembersRouter = {
     },
   ),
 
+  setTradeAutoAccept: os.setTradeAutoAccept.handler(
+    async ({ input, context }): Promise<FriendGroupMemberResponse> => {
+      const viewerId = context.userId;
+      const { friendGroups } = context.repos;
+
+      if (input.userId !== viewerId) {
+        throw forbidden("Members can only edit their own trade settings");
+      }
+      const ctx = await loadGroupForMember(context.repos, input.slug, viewerId);
+
+      await friendGroups.setTradeAutoAccept(ctx.group.id, viewerId, {
+        autoAcceptOffers: input.autoAcceptOffers,
+        autoAcceptRequests: input.autoAcceptRequests,
+      });
+
+      const [members, contactsByUser] = await Promise.all([
+        friendGroups.listMembers(ctx.group.id),
+        friendGroups.getRevealedContactsForMembers(ctx.group.id),
+      ]);
+      const enriched = members.find((member) => member.userId === viewerId);
+      assertFound(enriched, "Member not found");
+      return toMember(enriched, contactsByUser.get(viewerId) ?? []);
+    },
+  ),
+
   kickMember: os.kickMember.handler(async ({ input, context }): Promise<void> => {
     const viewerId = context.userId;
     const { friendGroups } = context.repos;

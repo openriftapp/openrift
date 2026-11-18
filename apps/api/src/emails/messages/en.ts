@@ -57,6 +57,28 @@ export const en: EmailMessages = {
       : `${sender} offers you ${cardName}`,
   requestExpiryNote:
     "Open the trade to accept or decline it. Heads up: trade requests expire 7 days after they're sent.",
+  tradeAgreedHeading: "Trade agreed",
+  agreedLead: (senderHtml, cardHtml, kind) =>
+    kind === "wants"
+      ? `${senderHtml} gets your ${cardHtml}. The request was accepted for you, because you accept requests automatically in this group.`
+      : `${senderHtml} will give you ${cardHtml}. The offer was accepted for you, because you accept offers automatically in this group.`,
+  agreedSubject: (sender, cardName, kind) =>
+    kind === "wants"
+      ? `Agreed: ${sender} gets your ${cardName}`
+      : `Agreed: ${sender} gives you ${cardName}`,
+  agreedNote:
+    "Open the trade to cancel it if that doesn't work for you. You can turn automatic accepting off in the group's settings.",
+  agreedWantsHeading: "Agreed: gets from you",
+  agreedOffersHeading: "Agreed: gives you",
+  coalescedAgreedNote: (count) =>
+    `Already agreed: ${num("en", count)}, because you accept automatically. You can cancel any trade that doesn't work for you.`,
+  tradesStartedHeading: "New trades",
+  coalescedStartedSubject: (sender, total) =>
+    `${sender} started ${num("en", total)} trades with you`,
+  coalescedStartedLead: (senderHtml, total) =>
+    `${senderHtml} started ${num("en", total)} trades with you.`,
+  coalescedOpenNote: (count) =>
+    `Still waiting for your answer: ${num("en", count)}. Open requests expire 7 days after they're sent.`,
   reachContact: (name, contact) => `Reach ${name}: ${contact}`,
   viewTradeButton: "View the trade",
   viewTradesButton: "View the trades",

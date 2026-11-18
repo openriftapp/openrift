@@ -119,6 +119,20 @@ const setRevealedContactsFn = createServerFn({ method: "POST" })
     apiOrpcClient(friendGroupsContract, context.cookie).setRevealedContacts(data),
   );
 
+const setTradeAutoAcceptFn = createServerFn({ method: "POST" })
+  .validator(
+    (input: {
+      slug: string;
+      userId: string;
+      autoAcceptOffers: boolean;
+      autoAcceptRequests: boolean;
+    }) => input,
+  )
+  .middleware([withCookies])
+  .handler(({ context, data }): Promise<FriendGroupMemberResponse> =>
+    apiOrpcClient(friendGroupsContract, context.cookie).setTradeAutoAccept(data),
+  );
+
 const kickMemberFn = createServerFn({ method: "POST" })
   .validator((input: { slug: string; userId: string }) => input)
   .middleware([withCookies])
@@ -258,6 +272,17 @@ export function useUpdateGroupContactReveal() {
     { slug: string; userId: string; contactMethodIds: string[] }
   >({
     mutationFn: (data) => setRevealedContactsFn({ data }),
+    invalidates: (variables) => [friendGroupsKeys.detail(userId, variables.slug)],
+  });
+}
+
+export function useUpdateGroupTradeAutoAccept() {
+  const userId = useRequiredUserId();
+  return useMutationWithInvalidation<
+    FriendGroupMemberResponse,
+    { slug: string; userId: string; autoAcceptOffers: boolean; autoAcceptRequests: boolean }
+  >({
+    mutationFn: (data) => setTradeAutoAcceptFn({ data }),
     invalidates: (variables) => [friendGroupsKeys.detail(userId, variables.slug)],
   });
 }

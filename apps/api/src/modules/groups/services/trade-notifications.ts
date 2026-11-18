@@ -72,6 +72,7 @@ export function isRequestGroupDue(
 export async function sendTradeRequestEmail(
   repos: Repos,
   trade: LiveCardTrade,
+  agreed: boolean,
   deps: EmailDeps,
 ): Promise<void> {
   try {
@@ -135,6 +136,7 @@ export async function sendTradeRequestEmail(
           quantity: trade.quantity,
           // receiver-initiated = the initiator wants the card; giver-initiated = offer.
           kind: trade.initiator === "receiver" ? "wants" : "offers",
+          agreed,
           initiatorContact,
           sheetUrl,
           unsubscribeUrl,
@@ -286,6 +288,7 @@ export async function flushCoalescedTradeRequests(
         quantity: row.quantity,
         // receiver-initiated = the sender wants your card; giver-initiated = offer.
         kind: row.initiator === "receiver" ? "wants" : "offers",
+        agreed: row.agreed,
       });
     }
 

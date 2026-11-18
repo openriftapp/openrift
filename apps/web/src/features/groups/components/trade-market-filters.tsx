@@ -26,6 +26,57 @@ import { m } from "@/paraglide/messages.js";
 
 const ALL_PEOPLE = "all";
 
+const ALL_GROUPS = "all";
+
+export function GroupFilter({
+  groups,
+  groupSlug,
+  onGroupChange,
+}: {
+  groups: readonly { slug: string; name: string }[];
+  groupSlug: string | null;
+  onGroupChange: (groupSlug: string | null) => void;
+}) {
+  const isMobile = useIsMobile();
+  if (groups.length < 2) {
+    return null;
+  }
+  if (isMobile) {
+    const items = [
+      { value: ALL_GROUPS, label: m.trades_market_all_groups() },
+      ...groups.map((group) => ({ value: group.slug, label: group.name })),
+    ];
+    return (
+      <SimpleSelect
+        items={items}
+        value={groupSlug ?? ALL_GROUPS}
+        onChange={(value) => onGroupChange(value === ALL_GROUPS ? null : value)}
+        label={m.trades_market_group_filter()}
+        className="w-full"
+      />
+    );
+  }
+  return (
+    <ToggleGroup
+      variant="outline"
+      aria-label={m.trades_market_group_filter()}
+      value={[groupSlug ?? ALL_GROUPS]}
+      onValueChange={(value) => {
+        const [next] = value;
+        onGroupChange(next === undefined || next === ALL_GROUPS ? null : next);
+      }}
+      className="flex-wrap"
+    >
+      <ToggleGroupItem value={ALL_GROUPS}>{m.trades_market_all_groups()}</ToggleGroupItem>
+      {groups.map((group) => (
+        <ToggleGroupItem key={group.slug} value={group.slug}>
+          {group.name}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
+  );
+}
+
 export function PeopleFilter({
   people,
   personId,

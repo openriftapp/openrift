@@ -35,6 +35,8 @@ const ownerMembership = {
   userId: USER_ID,
   role: "owner" as const,
   joinedAt: now,
+  isAutoAcceptingOffers: true,
+  isAutoAcceptingRequests: true,
 };
 
 const enrichedOwner = {
@@ -647,6 +649,8 @@ describe("friend-groups route", () => {
       userId: OTHER_ID,
       role: "member" as const,
       joinedAt: now,
+      isAutoAcceptingOffers: true,
+      isAutoAcceptingRequests: true,
       userName: "Other Member",
       userEmail: "other@example.com",
       userImage: null,
@@ -826,6 +830,55 @@ describe("friend-groups route", () => {
       body: JSON.stringify({ role: "member" }),
     });
     expect(res.status).toBe(409);
+  });
+
+  it("PUT /{slug}/members/{userId}/trade-auto-accept saves the viewer's own settings", async () => {
+    const setTradeAutoAccept = vi.fn();
+    const { app } = makeApp({
+      friendGroups: {
+        getBySlug: vi.fn(() => Promise.resolve(group)),
+        getMembership: vi.fn(() => Promise.resolve(ownerMembership)),
+        listMembers: vi.fn(() =>
+          Promise.resolve([{ ...enrichedOwner, isAutoAcceptingOffers: false }]),
+        ),
+        setTradeAutoAccept,
+      },
+    });
+    const res = await app.request(
+      `/api/v1/friend-groups/playgroup/members/${USER_ID}/trade-auto-accept`,
+      {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ autoAcceptOffers: false, autoAcceptRequests: true }),
+      },
+    );
+    expect(res.status).toBe(200);
+    expect(setTradeAutoAccept).toHaveBeenCalledWith(group.id, USER_ID, {
+      autoAcceptOffers: false,
+      autoAcceptRequests: true,
+    });
+    expect(await res.json()).toMatchObject({ autoAcceptOffers: false, autoAcceptRequests: true });
+  });
+
+  it("PUT /{slug}/members/{userId}/trade-auto-accept refuses another member's settings", async () => {
+    const setTradeAutoAccept = vi.fn();
+    const { app } = makeApp({
+      friendGroups: {
+        getBySlug: vi.fn(() => Promise.resolve(group)),
+        getMembership: vi.fn(() => Promise.resolve(ownerMembership)),
+        setTradeAutoAccept,
+      },
+    });
+    const res = await app.request(
+      `/api/v1/friend-groups/playgroup/members/${OTHER_ID}/trade-auto-accept`,
+      {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ autoAcceptOffers: false, autoAcceptRequests: false }),
+      },
+    );
+    expect(res.status).toBe(403);
+    expect(setTradeAutoAccept).not.toHaveBeenCalled();
   });
 
   it("DELETE /{slug}/members/{userId} returns 409 when kicking the owner", async () => {

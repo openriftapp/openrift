@@ -80,7 +80,7 @@ export function GroupSharedListPage() {
               groupCrumb,
               {
                 label: m.groups_nav_trades(),
-                link: <Link to="/groups/$slug/trades" params={{ slug }} />,
+                link: <Link to="/trades" search={{ group: slug }} />,
               },
             ]
       }

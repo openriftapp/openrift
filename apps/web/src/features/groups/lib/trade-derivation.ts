@@ -212,7 +212,7 @@ export function matchSuggestionKey(direction: MatchDirection, row: MatchSuggesti
  * No group in the key, so the same card reachable through two shared groups
  * counts as one suggestion, not two.
  */
-export function tradeSuggestionKeys(
+function tradeSuggestionKeys(
   incoming: readonly MatchSuggestionFields[],
   outgoing: readonly MatchSuggestionFields[],
 ): Set<string> {

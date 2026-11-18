@@ -6,6 +6,7 @@ import {
 import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 
 import { compareNeedsYou, sortNeedsYou } from "./trade-hub";
+import { newAgreedTrades } from "./trade-seen";
 
 export interface TradesIndexPerson {
   userId: string;
@@ -15,6 +16,7 @@ export interface TradesIndexPerson {
   needsYou: CardTradeResponse[];
   toSwap: CardTradeResponse[];
   waiting: CardTradeResponse[];
+  newAgreedCount: number;
   doneCount: number;
   groupNames: string[];
   lastActivityAt: string;
@@ -53,6 +55,20 @@ function sortedNames(names: Iterable<string>): string[] {
   return [...new Set(names)].toSorted((a, b) => a.localeCompare(b));
 }
 
+export function selectedTradesGroup<TGroup extends { slug: string }>(
+  groups: readonly TGroup[],
+  groupSlug?: string,
+): TGroup | undefined {
+  return groupSlug === undefined ? undefined : groups.find((group) => group.slug === groupSlug);
+}
+
+export function tradesInGroup(
+  trades: readonly CardTradeResponse[],
+  groupSlug: string | null,
+): CardTradeResponse[] {
+  return groupSlug === null ? [...trades] : trades.filter((trade) => trade.groupSlug === groupSlug);
+}
+
 /** A counterparty whose account is gone has no sheet to open, so their trades stay out of the index. */
 export function buildTradesIndex(trades: readonly CardTradeResponse[]): TradesIndex {
   const byPerson = Map.groupBy(trades, (trade) => trade.counterparty.userId);
@@ -70,6 +86,7 @@ export function buildTradesIndex(trades: readonly CardTradeResponse[]): TradesIn
       needsYou: sortNeedsYou(own.filter((trade) => needsViewerAction(trade))),
       toSwap: own.filter((trade) => cardTradeState(trade) === "to-swap"),
       waiting: own.filter((trade) => cardTradeState(trade) === "waiting-on-them"),
+      newAgreedCount: newAgreedTrades(own).length,
       doneCount: own.filter((trade) => isTradedCardTrade(trade)).length,
       groupNames: sortedNames(own.map((trade) => trade.groupName)),
       lastActivityAt: own.reduce(

@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, getRouteApi } from "@tanstack/react-router";
 import {
   BellIcon,
   CheckIcon,
@@ -21,7 +21,9 @@ import { CardArtThumbStack } from "@/features/cards/components/card-art-thumb-st
 import { CardDetailOverlayProvider } from "@/features/cards/components/card-detail-opener";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { printingArt, printingDisplayName } from "@/features/cards/lib/card-meta";
+import { ShareYourListsBand } from "@/features/groups/components/share-your-lists-band";
 import { TradeMarket } from "@/features/groups/components/trade-market";
+import { GroupFilter } from "@/features/groups/components/trade-market-filters";
 import { useUserTrades } from "@/features/groups/hooks/use-card-trades";
 import { useFriendGroupsList } from "@/features/groups/hooks/use-friend-groups";
 import { cartFor } from "@/features/groups/lib/buy-cart";
@@ -29,12 +31,18 @@ import { distinctPrintingIds } from "@/features/groups/lib/friend-group-activity
 import { needsYouLine, nextMoveLabel } from "@/features/groups/lib/trade-hub";
 import { tradePrinting } from "@/features/groups/lib/trade-printing";
 import type { TradesIndexPerson } from "@/features/groups/lib/trades-index";
-import { buildTradesIndex } from "@/features/groups/lib/trades-index";
+import {
+  buildTradesIndex,
+  selectedTradesGroup,
+  tradesInGroup,
+} from "@/features/groups/lib/trades-index";
 import { useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
 import { useRequiredUserId } from "@/hooks/use-session";
 import { memberName } from "@/lib/member-name";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
+
+const routeApi = getRouteApi("/_app/_authenticated/trades/");
 
 function artPrintingIds(person: TradesIndexPerson): string[] {
   if (person.needsYou.length > 0) {
@@ -46,7 +54,15 @@ function artPrintingIds(person: TradesIndexPerson): string[] {
   return distinctPrintingIds(person.waiting);
 }
 
-function PersonCard({ person, showGroups }: { person: TradesIndexPerson; showGroups: boolean }) {
+function PersonCard({
+  person,
+  showGroups,
+  fromGroupSlug,
+}: {
+  person: TradesIndexPerson;
+  showGroups: boolean;
+  fromGroupSlug?: string;
+}) {
   const { printingsById } = useCards();
   const action = needsYouLine(person.needsYou);
   const art = artPrintingIds(person).map((printingId) => ({
@@ -62,7 +78,7 @@ function PersonCard({ person, showGroups }: { person: TradesIndexPerson; showGro
         <Link
           to="/trades/$userId"
           params={{ userId: person.userId }}
-          search={{ from: undefined }}
+          search={{ from: fromGroupSlug }}
         />
       }
       className="gap-1.5 p-4"
@@ -82,6 +98,11 @@ function PersonCard({ person, showGroups }: { person: TradesIndexPerson; showGro
       ) : null}
       {action === null ? null : <p className="text-foreground text-sm font-medium">{action}</p>}
       {art.length > 0 ? <CardArtThumbStack items={art} max={5} thumbClassName="w-8" /> : null}
+      {person.newAgreedCount > 0 ? (
+        <p className="text-foreground text-sm font-medium">
+          {m.trades_new_agreed_count({ count: person.newAgreedCount })}
+        </p>
+      ) : null}
       {toSwap > 0 ? <p className="text-sm">{m.trades_to_swap({ count: toSwap })}</p> : null}
       {waiting > 0 ? (
         <p className="text-muted-foreground text-sm">
@@ -97,17 +118,36 @@ function PersonCard({ person, showGroups }: { person: TradesIndexPerson; showGro
   );
 }
 
-function PeopleGrid({ people, showGroups }: { people: TradesIndexPerson[]; showGroups: boolean }) {
+function PeopleGrid({
+  people,
+  showGroups,
+  fromGroupSlug,
+}: {
+  people: TradesIndexPerson[];
+  showGroups: boolean;
+  fromGroupSlug?: string;
+}) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {people.map((person) => (
-        <PersonCard key={person.userId} person={person} showGroups={showGroups} />
+        <PersonCard
+          key={person.userId}
+          person={person}
+          showGroups={showGroups}
+          fromGroupSlug={fromGroupSlug}
+        />
       ))}
     </div>
   );
 }
 
-function YourMoveRow({ person }: { person: TradesIndexPerson }) {
+function YourMoveRow({
+  person,
+  fromGroupSlug,
+}: {
+  person: TradesIndexPerson;
+  fromGroupSlug?: string;
+}) {
   const { printingsById, printingsByCardId } = useCards();
   const action = needsYouLine(person.needsYou);
   const cardNames = [
@@ -132,7 +172,7 @@ function YourMoveRow({ person }: { person: TradesIndexPerson }) {
           <Link
             to="/trades/$userId"
             params={{ userId: person.userId }}
-            search={{ from: undefined }}
+            search={{ from: fromGroupSlug }}
             className={buttonVariants({ size: "sm", className: "shrink-0" })}
           >
             {nextMoveLabel(person.needsYou[0])}
@@ -164,10 +204,17 @@ export function TradesIndexPage() {
   const { data } = useUserTrades();
   const { data: groupsData } = useFriendGroupsList(true);
   const cartCount = useBuyCartStore((state) => cartFor(state.carts, userId).items.length);
-  const index = buildTradesIndex(data?.items ?? []);
+  const { group } = routeApi.useSearch();
+  const navigate = routeApi.useNavigate();
+  const groups = groupsData?.items ?? [];
+  const selectedGroup = selectedTradesGroup(groups, group);
+  const groupSlug = selectedGroup?.slug ?? null;
+  const fromGroupSlug = selectedGroup?.slug;
+  const bandGroup = selectedGroup ?? (groups.length === 1 ? groups[0] : undefined);
+  const index = buildTradesIndex(tradesInGroup(data?.items ?? [], groupSlug));
   const showGroups = index.groupCount > 1;
   const live = index.yourMove.length + index.toSwap.length + index.waiting.length;
-  const groupCount = groupsData?.items.length ?? 0;
+  const groupCount = groups.length;
   const noGroups = groupsData !== undefined && groupCount === 0;
 
   return (
@@ -192,6 +239,32 @@ export function TradesIndexPage() {
       <div className={cn(PAGE_WIDTH.full, "px-safe flex flex-col gap-8 pt-3 pb-12")}>
         {noGroups ? <NoGroupsCallout /> : null}
 
+        {bandGroup === undefined && groups.length < 2 ? null : (
+          <div className="flex flex-wrap items-center gap-2">
+            <GroupFilter
+              groups={groups}
+              groupSlug={groupSlug}
+              onGroupChange={(next) => void navigate({ search: { group: next ?? undefined } })}
+            />
+            {bandGroup === undefined ? null : (
+              <Link
+                to="/groups/$slug"
+                params={{ slug: bandGroup.slug }}
+                className={buttonVariants({ variant: "ghost", size: "sm" })}
+              >
+                {m.groups_join_open_group()}
+                <ChevronRightIcon />
+              </Link>
+            )}
+          </div>
+        )}
+
+        {bandGroup === undefined ? null : (
+          <Suspense fallback={null}>
+            <ShareYourListsBand slug={bandGroup.slug} groupName={bandGroup.name} />
+          </Suspense>
+        )}
+
         {index.yourMove.length > 0 ? (
           <section className="flex flex-col gap-3">
             <SectionHeading icon={BellIcon} tone="gold" count={index.yourMove.length}>
@@ -199,7 +272,7 @@ export function TradesIndexPage() {
             </SectionHeading>
             <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-3">
               {index.yourMove.map((person) => (
-                <YourMoveRow key={person.userId} person={person} />
+                <YourMoveRow key={person.userId} person={person} fromGroupSlug={fromGroupSlug} />
               ))}
             </div>
           </section>
@@ -210,12 +283,16 @@ export function TradesIndexPage() {
             <SectionHeading icon={HandshakeIcon} count={index.toSwap.length}>
               {m.trades_section_to_swap()}
             </SectionHeading>
-            <PeopleGrid people={index.toSwap} showGroups={showGroups} />
+            <PeopleGrid
+              people={index.toSwap}
+              showGroups={showGroups}
+              fromGroupSlug={fromGroupSlug}
+            />
           </section>
         ) : null}
 
         <Suspense fallback={null}>
-          <TradeMarket />
+          <TradeMarket groupSlug={groupSlug} />
         </Suspense>
 
         {index.waiting.length > 0 ? (
@@ -225,7 +302,11 @@ export function TradesIndexPage() {
             title={m.trades_section_waiting()}
             count={index.waiting.length}
           >
-            <PeopleGrid people={index.waiting} showGroups={showGroups} />
+            <PeopleGrid
+              people={index.waiting}
+              showGroups={showGroups}
+              fromGroupSlug={fromGroupSlug}
+            />
           </Disclosure>
         ) : null}
 
@@ -236,7 +317,7 @@ export function TradesIndexPage() {
             icon={CheckIcon}
             title={m.trades_traded_before({ count: index.past.length })}
           >
-            <PeopleGrid people={index.past} showGroups={showGroups} />
+            <PeopleGrid people={index.past} showGroups={showGroups} fromGroupSlug={fromGroupSlug} />
           </Disclosure>
         ) : null}
       </div>

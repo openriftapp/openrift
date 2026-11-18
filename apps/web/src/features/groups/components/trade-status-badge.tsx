@@ -1,8 +1,19 @@
-import type { CardTradeStatus } from "@openrift/shared/types/api/card-trade";
-import { ArrowDownLeftIcon, ArrowUpRightIcon, BellIcon, CheckIcon, ClockIcon } from "lucide-react";
+import type { CardTradeResponse, CardTradeStatus } from "@openrift/shared/types/api/card-trade";
+import {
+  ArrowDownLeftIcon,
+  ArrowUpRightIcon,
+  BellIcon,
+  CheckIcon,
+  ClockIcon,
+  EyeIcon,
+  EyeOffIcon,
+  SparklesIcon,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { tradeStatusLabel } from "@/features/groups/lib/trade-derivation";
+import { agreedSeenState } from "@/features/groups/lib/trade-seen";
+import { memberName } from "@/lib/member-name";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -45,6 +56,38 @@ export function tradeBadgeState({
     return viewerSettled === true ? "done-your-side" : "ready-to-swap";
   }
   return `status:${status}`;
+}
+
+export function AgreedSeenBadge({
+  trade,
+  className,
+}: {
+  trade: CardTradeResponse;
+  className?: string;
+}) {
+  const state = agreedSeenState(trade);
+  if (state === null) {
+    return null;
+  }
+  if (state === "new") {
+    return (
+      <Badge variant="warning" className={cn("shrink-0", className)}>
+        <SparklesIcon />
+        {m.trades_badge_new_agreed()}
+      </Badge>
+    );
+  }
+  const name = memberName(trade.counterparty.name);
+  return (
+    <Badge variant="secondary" className={cn("shrink-0", className)}>
+      {state === "seen-by-them" ? <EyeIcon /> : <EyeOffIcon />}
+      <span className="truncate">
+        {state === "seen-by-them"
+          ? m.trades_badge_seen_by({ name })
+          : m.trades_badge_not_seen_by({ name })}
+      </span>
+    </Badge>
+  );
 }
 
 export function TradeStatusBadge({

@@ -76,6 +76,8 @@ function stubTrade(overrides: Partial<CardTradeResponse> = {}): CardTradeRespons
     viewerSyncAppliedAt: null,
     counterpartySyncAppliedAt: null,
     viewerWishEntryId: null,
+    autoAccepted: false,
+    recipientSeenAt: null,
     actionNeeded: null,
     ...overrides,
   };

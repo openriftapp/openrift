@@ -31,6 +31,8 @@ export interface CardTradesTable {
   requestEmailSentAt: Date | null;
   reservedEmailSentAt: Date | null;
   closedEmailSentAt: Date | null;
+  isAutoAccepted: Generated<boolean>;
+  recipientSeenAt: Date | null;
 }
 
 export interface TradeSuggestionDismissalsTable {

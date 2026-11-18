@@ -5,8 +5,8 @@ import { createRepos, createTransact } from "../../../deps.js";
 import type { EmailDeps } from "../../../email.js";
 import { PRINTING_1 } from "../../../test/fixtures/constants.js";
 import { createDbContext } from "../../../test/integration-context.js";
+import { createTradeAnsweredByHand } from "../../../test/manual-trade-answers.js";
 import { friendGroupsRepo } from "../repositories/friend-groups.js";
-import { createTrade } from "./card-trades.js";
 import { TRADE_REQUEST_EMAIL_SETTING } from "./trade-notifications.js";
 
 const GIVER_ID = crypto.randomUUID();
@@ -16,6 +16,7 @@ const GIVER_EMAIL = `test-${GIVER_ID}@test.com`;
 const RECEIVER_EMAIL = `test-${RECEIVER_ID}@test.com`;
 
 const ctx = createDbContext(GIVER_ID);
+const createTrade = createTradeAnsweredByHand(() => ctx!.db);
 
 describe.skipIf(!ctx)("trade-request email (integration)", () => {
   const { db } = ctx!;

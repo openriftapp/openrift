@@ -209,11 +209,7 @@ export function MembersTradedAction({ slug }: { slug: string }) {
     return null;
   }
   return (
-    <Link
-      to="/groups/$slug/trades"
-      params={{ slug }}
-      className={buttonVariants({ variant: "ghost" })}
-    >
+    <Link to="/trades" search={{ group: slug }} className={buttonVariants({ variant: "ghost" })}>
       <ZapIcon className="size-4" />
       {m.groups_members_cards_traded({ count: data.cardsTradedCount })}
     </Link>

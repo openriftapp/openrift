@@ -102,6 +102,8 @@ export const cardTradeResponseSchema = z.object({
   counterpartySyncAppliedAt: z.string().nullable(),
   actionNeeded: z.enum(["accept-or-decline", "cancel", "settle"]).nullable(),
   viewerWishEntryId: z.string().nullable(),
+  autoAccepted: z.boolean(),
+  recipientSeenAt: z.string().nullable(),
 });
 
 export const cardTradeListResponseSchema = z.object({ items: z.array(cardTradeResponseSchema) });
@@ -206,6 +208,9 @@ export const cardTradesContract = {
       successStatus: 204,
     })
     .input(tradeSuggestionDismissalSchema),
+  markAgreedSeen: authedRoute
+    .route({ method: "POST", path: "/api/v1/trades/seen", tags: [TAG], successStatus: 204 })
+    .input(z.object({ counterpartyUserId: z.string().min(1) })),
   // NOT_FOUND covers both an unknown user and no shared group; keep them indistinguishable.
   withUser: authedRoute
     .route({ method: "GET", path: "/api/v1/trades/with/{userId}", tags: [TAG] })

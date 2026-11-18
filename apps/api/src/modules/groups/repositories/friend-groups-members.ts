@@ -112,6 +112,22 @@ export function friendGroupMembersRepo(db: Kysely<Database>) {
       return rows.map((row) => ({ id: row.id, type: row.type, value: row.value }));
     },
 
+    async setTradeAutoAccept(
+      groupId: string,
+      userId: string,
+      settings: { autoAcceptOffers: boolean; autoAcceptRequests: boolean },
+    ): Promise<void> {
+      await db
+        .updateTable("friendGroupMembers")
+        .set({
+          isAutoAcceptingOffers: settings.autoAcceptOffers,
+          isAutoAcceptingRequests: settings.autoAcceptRequests,
+        })
+        .where("groupId", "=", groupId)
+        .where("userId", "=", userId)
+        .execute();
+    },
+
     /**
      * Only ids the member actually owns are accepted (others are silently
      * dropped), so a caller can't reveal someone else's method.

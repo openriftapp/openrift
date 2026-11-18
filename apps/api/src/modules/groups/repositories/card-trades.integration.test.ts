@@ -6,6 +6,7 @@ import { createRepos, createTransact } from "../../../deps.js";
 import { TradeCancelConsentRequiredError } from "../../../errors.js";
 import { CARD_FURY_UNIT, PRINTING_1 } from "../../../test/fixtures/constants.js";
 import { createDbContext, seedTestUser } from "../../../test/integration-context.js";
+import { createTradeAnsweredByHand } from "../../../test/manual-trade-answers.js";
 import {
   disposeCopies,
   moveCopies,
@@ -15,7 +16,7 @@ import { withTradeSupplySweep } from "../../lists/services/lists.js";
 import {
   acceptTrade,
   cancelTrade,
-  createTrade,
+  createTrade as createTradeWithAutoAccept,
   declineTrade,
   listTradeCopyOptions,
   setTradeQuantity,
@@ -37,6 +38,7 @@ const BYSTANDER_ID = crypto.randomUUID();
 const ALL_USER_IDS = [GIVER_ID, RECEIVER_ID, OUTSIDER_ID, BYSTANDER_ID];
 
 const ctx = createDbContext(GIVER_ID);
+const createTrade = createTradeAnsweredByHand(() => ctx!.db);
 
 describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
   const { db } = ctx!;
@@ -332,6 +334,75 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
       .execute();
     return rows.length;
   }
+
+  it("auto-accepts an offer when the receiver's group setting is on, pinning the copies", async () => {
+    const { group } = await setupMatch(2, 1);
+    const trade = await createTradeWithAutoAccept(
+      { repos, transact },
+      {
+        callerUserId: GIVER_ID,
+        groupSlug: group.slug,
+        counterpartyUserId: RECEIVER_ID,
+        role: "giver",
+        printingId: PRINTING_1.id,
+        quantity: 1,
+      },
+    );
+    expect(trade.status).toBe("reserved");
+    expect(await repos.cardTrades.listReservedCopyIds(trade.id)).toHaveLength(1);
+    const queued = await repos.cardTrades.listPendingRequestEmails();
+    expect(queued.find((row) => row.id === trade.id)?.agreed).toBe(true);
+
+    expect(await repos.cardTrades.actionNeededPeopleForUser(RECEIVER_ID)).toBe(1);
+    expect(await repos.cardTrades.actionNeededPeopleForUser(GIVER_ID)).toBe(0);
+    await repos.cardTrades.markRecipientSeen(GIVER_ID, RECEIVER_ID);
+    expect(await repos.cardTrades.actionNeededPeopleForUser(RECEIVER_ID)).toBe(1);
+    await repos.cardTrades.markRecipientSeen(RECEIVER_ID, GIVER_ID);
+    expect(await repos.cardTrades.actionNeededPeopleForUser(RECEIVER_ID)).toBe(0);
+  });
+
+  it("auto-accepts a request when the giver's group setting is on", async () => {
+    const { group } = await setupMatch(1);
+    const trade = await createTradeWithAutoAccept(
+      { repos, transact },
+      {
+        callerUserId: RECEIVER_ID,
+        groupSlug: group.slug,
+        counterpartyUserId: GIVER_ID,
+        role: "receiver",
+        printingId: PRINTING_1.id,
+        quantity: 1,
+      },
+    );
+    expect(trade.status).toBe("reserved");
+    expect(await repos.cardTrades.listReservedCopyIds(trade.id)).toHaveLength(1);
+
+    expect(await repos.cardTrades.actionNeededPeopleForUser(GIVER_ID)).toBe(1);
+    await repos.cardTrades.markRecipientSeen(GIVER_ID, RECEIVER_ID);
+    expect(await repos.cardTrades.actionNeededPeopleForUser(GIVER_ID)).toBe(0);
+    expect(await repos.cardTrades.reservedIncomingQuantity(RECEIVER_ID, trade.cardId)).toBe(1);
+  });
+
+  it("leaves an offer pending when the receiver answers offers by hand", async () => {
+    const { group } = await setupMatch(1);
+    await groupsRepo.setTradeAutoAccept(group.id, RECEIVER_ID, {
+      autoAcceptOffers: false,
+      autoAcceptRequests: true,
+    });
+    const trade = await createTradeWithAutoAccept(
+      { repos, transact },
+      {
+        callerUserId: GIVER_ID,
+        groupSlug: group.slug,
+        counterpartyUserId: RECEIVER_ID,
+        role: "giver",
+        printingId: PRINTING_1.id,
+        quantity: 1,
+      },
+    );
+    expect(trade.status).toBe("pending");
+    expect(await repos.cardTrades.listReservedCopyIds(trade.id)).toHaveLength(0);
+  });
 
   it("a pending request reserves nothing — matched copies still appear", async () => {
     const { group } = await setupMatch(2);

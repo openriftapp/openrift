@@ -105,6 +105,8 @@ export function toMember(
     gravatarHash: gravatarHashForEmail(row.userEmail),
     role: row.role,
     contactMethods,
+    autoAcceptOffers: row.isAutoAcceptingOffers,
+    autoAcceptRequests: row.isAutoAcceptingRequests,
     joinedAt: row.joinedAt.toISOString(),
   };
 }

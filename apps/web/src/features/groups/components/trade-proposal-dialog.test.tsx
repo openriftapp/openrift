@@ -19,6 +19,7 @@ const state = vi.hoisted(() => ({
     buyQuantity: number;
   }[],
   createTrade: vi.fn(async () => ({})),
+  autoAccept: undefined as { offers: boolean; requests: boolean } | undefined,
 }));
 
 vi.mock("@/features/groups/hooks/use-friend-group-sharing", () => ({
@@ -45,6 +46,7 @@ vi.mock("@/features/groups/hooks/use-friend-groups", () => ({
       othersWantYourHaves: state.othersWantYourHaves,
     },
   }),
+  useMemberAutoAccept: () => state.autoAccept,
 }));
 vi.mock("@/features/groups/hooks/use-card-trades", () => ({
   useCreateTrade: () => ({ isPending: false, mutateAsync: state.createTrade }),
@@ -127,5 +129,37 @@ describe("TradeProposalDialog", () => {
     expect(state.createTrade).toHaveBeenCalledWith(
       expect.objectContaining({ role: "giver", quantity: 2 }),
     );
+  });
+
+  it("says a request waits for an answer when the member answers by hand", () => {
+    state.autoAccept = { offers: true, requests: false };
+    const printing = stubPrinting();
+    state.othersHaveYourWants = [
+      {
+        printingId: printing.printingId,
+        cardId: printing.cardId,
+        counterpartyUserId: "user-2",
+        buyQuantity: 1,
+      },
+    ];
+    render(dialog(printing, 1));
+    expect(screen.getByText(/accepting reserves it for you/u)).toBeInTheDocument();
+  });
+
+  it("says a request is agreed on send when the member accepts requests automatically", () => {
+    state.autoAccept = { offers: false, requests: true };
+    const printing = stubPrinting();
+    state.othersHaveYourWants = [
+      {
+        printingId: printing.printingId,
+        cardId: printing.cardId,
+        counterpartyUserId: "user-2",
+        buyQuantity: 1,
+      },
+    ];
+    render(dialog(printing, 1));
+    expect(
+      screen.getByText(/Kai accepts requests automatically, so this is agreed/u),
+    ).toBeInTheDocument();
   });
 });

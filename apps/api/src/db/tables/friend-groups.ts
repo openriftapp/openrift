@@ -30,6 +30,8 @@ export interface FriendGroupMembersTable {
   userId: string;
   role: FriendGroupRole;
   joinedAt: ColumnType<Date, Date | undefined, Date>;
+  isAutoAcceptingOffers: Generated<boolean>;
+  isAutoAcceptingRequests: Generated<boolean>;
 }
 
 export interface UserContactMethodsTable {

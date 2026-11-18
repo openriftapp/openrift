@@ -38,6 +38,8 @@ export interface CardTradeDtoRow {
   completedAt: Date | null;
   closedAt: Date | null;
   expiresAt: Date | null;
+  isAutoAccepted: boolean;
+  recipientSeenAt: Date | null;
   giverName: string | null;
   giverImage: string | null;
   giverEmail: string | null;
@@ -103,6 +105,8 @@ export function tradeDtoBaseQuery(db: Kysely<Database>) {
       "t.completedAt",
       "t.closedAt",
       "t.expiresAt",
+      "t.isAutoAccepted",
+      "t.recipientSeenAt",
       "giverUser.name as giverName",
       "giverUser.image as giverImage",
       "giverUser.email as giverEmail",

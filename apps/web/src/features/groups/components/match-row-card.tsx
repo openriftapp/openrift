@@ -29,6 +29,7 @@ import {
   MatchPreferenceText,
 } from "@/features/groups/components/match-preference-cell";
 import { useCreateTrade, useUserTrades } from "@/features/groups/hooks/use-card-trades";
+import { useMemberAutoAccept } from "@/features/groups/hooks/use-friend-groups";
 import { fixedPriceVsEstimate } from "@/features/groups/lib/price-vs-estimate";
 import type { MatchCopyDetail, MatchDirection } from "@/features/groups/lib/trade-derivation";
 import {
@@ -86,6 +87,7 @@ function MatchRowTradeAction({
   const [chosenSlug, setChosenSlug] = useState(groupChoices[0].groupSlug);
   const choice = groupChoices.find((option) => option.groupSlug === chosenSlug) ?? groupChoices[0];
   const groupSlug = choice.groupSlug;
+  const autoAccept = useMemberAutoAccept(groupSlug, match.counterpartyUserId, open);
 
   if (liveTrade !== undefined) {
     return (
@@ -115,6 +117,7 @@ function MatchRowTradeAction({
         open={open}
         onOpenChange={setOpen}
         mode={incoming ? "request" : "offer"}
+        autoAccept={incoming ? autoAccept?.requests : autoAccept?.offers}
         cardName={match.cardName}
         availableCount={choice.availableCount}
         demandQuantity={match.buyQuantity}

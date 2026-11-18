@@ -4140,6 +4140,12 @@
   "groups_contacts_description": "Affiché à côté de votre nom sur les pages Membres et Échanges.",
   "groups_contacts_edit_link": "Les modifier dans votre profil",
   "groups_contacts_empty": "Vous n'avez encore ajouté aucun moyen de contact.",
+  "groups_auto_accept_title": "Acceptation automatique",
+  "groups_auto_accept_description": "Les échanges que d'autres membres lancent avec vous dans ce groupe sont convenus immédiatement, sans attendre votre réponse. Vous pouvez annuler un échange convenu tant qu'aucun de vous n'a confirmé la remise.",
+  "groups_auto_accept_offers_label": "Accepter automatiquement les propositions",
+  "groups_auto_accept_offers_hint": "Quand un membre vous propose une carte de vos listes de souhaits, c'est convenu aussitôt, tant que le souhait n'est pas déjà couvert.",
+  "groups_auto_accept_requests_label": "Accepter automatiquement les demandes",
+  "groups_auto_accept_requests_hint": "Quand un membre demande une carte de vos listes d'échange, votre exemplaire est réservé au premier qui demande.",
   "groups_contacts_title": "Vos contacts dans ce groupe",
   "groups_create_description": "Fermé par défaut. Chaque membre partage ses propres listes groupe par groupe.",
   "groups_create_description_label": "Description (facultatif)",
@@ -4742,18 +4748,6 @@
       }
     }
   ],
-  "trades_possible": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} échange possible",
-        "countPlural=*": "{count} échanges possibles"
-      }
-    }
-  ],
-  "trades_suggestions_elsewhere_another": "{trades} dans un autre groupe",
-  "trades_suggestions_elsewhere_other": "{trades} dans d'autres groupes",
   "trades_detail_requests_from": "{requests} de {who}",
   "trades_detail_cards_for": "{cards} pour {who}",
   "trades_detail_cards_from": "{cards} de {who}",
@@ -4789,18 +4783,6 @@
       }
     }
   ],
-  "trades_in_other_groups": "+{count} dans d'autres groupes",
-  "trades_shares_lists": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "partage {count} liste",
-        "countPlural=*": "partage {count} listes"
-      }
-    }
-  ],
-  "trades_nothing_in_group": "Rien dans ce groupe pour l'instant",
   "trades_share_band_empty": "Vous n'avez pas encore de liste de souhaits ni de liste d'échange. {#link}Créez-en une{/link} et partagez-la avec {group} pour commencer à trouver des échanges.",
   "trades_share_band_shared": [
     {
@@ -4814,9 +4796,6 @@
   ],
   "trades_share_band_hint": "Les membres ne peuvent trouver des échanges avec vous que via les listes que vous partagez.",
   "trades_share_more": "Partager plus",
-  "trades_invite_title": "Invitez des personnes pour commencer à échanger",
-  "trades_invite_description": "Les échanges se font entre membres, il faut donc d'abord quelqu'un d'autre dans ce groupe.",
-  "trades_view_members": "Voir les membres",
   "trades_requests_label": "Demandes",
   "trades_requests_waiting": [
     {
@@ -4883,6 +4862,10 @@
   "trades_price_per_copy": "Prix par exemplaire ({marketplace})",
   "trades_estimated_value": "Valeur estimée ({marketplace})",
   "trades_per_copy_amount": "{amount}/exemplaire",
+  "trades_badge_new_agreed": "Nouveau, convenu automatiquement",
+  "trades_badge_not_seen_by": "Pas encore vu par {name}",
+  "trades_badge_seen_by": "Vu par {name}",
+  "trades_new_agreed_count": "Nouveautés convenues automatiquement : {count}",
   "trades_badge_your_move": "À vous de jouer",
   "trades_badge_waiting_for": "En attente de {name}",
   "trades_badge_done_your_side": "Terminé de votre côté",
@@ -5057,6 +5040,12 @@
   "trades_request_card_title": "Demander cette carte",
   "trades_offer_card_title": "Proposer cette carte",
   "trades_send_request": "Envoyer la demande",
+  "trades_offer_auto_description": "Proposer {card}. Les propositions y sont acceptées automatiquement : c'est convenu dès l'envoi, tant que le souhait n'est pas déjà couvert.",
+  "trades_request_auto_description": "Demander {card}. Les demandes y sont acceptées automatiquement : c'est convenu dès l'envoi.",
+  "trades_offer_to_auto_description": "Proposer {card} à {name}. {name} accepte automatiquement les propositions : c'est convenu dès l'envoi, tant que le souhait n'est pas déjà couvert.",
+  "trades_request_from_auto_description": "Demander {card} à {name}. {name} accepte automatiquement les demandes : c'est convenu dès l'envoi.",
+  "trades_agreed_offer_toast": "Convenu : {name} reçoit {card}",
+  "trades_agreed_request_toast": "Convenu : vous recevez {card} de {name}",
   "trades_send_offer": "Envoyer la proposition",
   "trades_request_description": "Demandez {card}. Ils recevront une notification, et l'acceptation la réserve pour vous.",
   "trades_offer_description": "Proposez {card}. Ils recevront une notification, et l'acceptation réserve vos exemplaires.",

@@ -4139,6 +4139,12 @@
   "groups_contacts_description": "显示在“成员”和“交换”页面中你的名字旁边。",
   "groups_contacts_edit_link": "在个人资料中编辑",
   "groups_contacts_empty": "你还没有添加任何联系方式。",
+  "groups_auto_accept_title": "自动接受",
+  "groups_auto_accept_description": "其他成员在此小组中向你发起的交换会立即达成，无需等待你的答复。在任何一方确认交接之前，你都可以取消已达成的交换。",
+  "groups_auto_accept_offers_label": "自动接受提供",
+  "groups_auto_accept_offers_hint": "成员向你提供心愿单上的卡牌时，只要心愿数量尚未满足，就会立即达成。",
+  "groups_auto_accept_requests_label": "自动接受请求",
+  "groups_auto_accept_requests_hint": "成员请求你交换清单上的卡牌时，你的卡牌会为最先请求的成员保留。",
   "groups_contacts_title": "你在这个小组中的联系方式",
   "groups_create_description": "默认不公开。成员按小组自行选择分享哪些清单。",
   "groups_create_description_label": "简介（可选）",
@@ -4740,18 +4746,6 @@
       }
     }
   ],
-  "trades_possible": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} 笔可能的交换",
-        "countPlural=*": "{count} 笔可能的交换"
-      }
-    }
-  ],
-  "trades_suggestions_elsewhere_another": "另一个小组中有 {trades}",
-  "trades_suggestions_elsewhere_other": "其他小组中有 {trades}",
   "trades_detail_requests_from": "来自 {who} 的 {requests}",
   "trades_detail_cards_for": "给 {who} 的 {cards}",
   "trades_detail_cards_from": "来自 {who} 的 {cards}",
@@ -4787,18 +4781,6 @@
       }
     }
   ],
-  "trades_in_other_groups": "+{count} 在其他小组",
-  "trades_shares_lists": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "分享了 {count} 份清单",
-        "countPlural=*": "分享了 {count} 份清单"
-      }
-    }
-  ],
-  "trades_nothing_in_group": "这个小组里还什么都没有",
   "trades_share_band_empty": "你还没有心愿单或交换清单。{#link}创建一份{/link}并分享给 {group}，就能开始找到交换。",
   "trades_share_band_shared": [
     {
@@ -4812,9 +4794,6 @@
   ],
   "trades_share_band_hint": "成员只能通过你分享的清单来找到与你的交换。",
   "trades_share_more": "分享更多",
-  "trades_invite_title": "邀请他人，开始交换",
-  "trades_invite_description": "交换发生在成员之间，所以这个小组需要先有其他人加入。",
-  "trades_view_members": "查看成员",
   "trades_requests_label": "请求",
   "trades_requests_waiting": [
     {
@@ -4881,6 +4860,10 @@
   "trades_price_per_copy": "每张价格（{marketplace}）",
   "trades_estimated_value": "估计价值（{marketplace}）",
   "trades_per_copy_amount": "{amount}/张",
+  "trades_badge_new_agreed": "新交换，已自动达成",
+  "trades_badge_not_seen_by": "{name} 尚未查看",
+  "trades_badge_seen_by": "{name} 已查看",
+  "trades_new_agreed_count": "{count} 项新交换，已自动达成",
   "trades_badge_your_move": "该你行动",
   "trades_badge_waiting_for": "等待 {name}",
   "trades_badge_done_your_side": "你这边已完成",
@@ -5055,6 +5038,12 @@
   "trades_request_card_title": "索要这张卡",
   "trades_offer_card_title": "提供这张卡",
   "trades_send_request": "发送请求",
+  "trades_offer_auto_description": "提供 {card}。对方自动接受提供，只要心愿数量尚未满足，发送后即达成。",
+  "trades_request_auto_description": "请求 {card}。对方自动接受请求，发送后即达成。",
+  "trades_offer_to_auto_description": "向 {name} 提供 {card}。{name} 自动接受提供，只要心愿数量尚未满足，发送后即达成。",
+  "trades_request_from_auto_description": "向 {name} 请求 {card}。{name} 自动接受请求，发送后即达成。",
+  "trades_agreed_offer_toast": "已达成：{name} 将得到 {card}",
+  "trades_agreed_request_toast": "已达成：你将从 {name} 得到 {card}",
   "trades_send_offer": "发送提议",
   "trades_request_description": "索要 {card}。对方会收到通知，接受后就会为你预留。",
   "trades_offer_description": "提供 {card}。对方会收到通知，接受后会预留你的实体卡。",

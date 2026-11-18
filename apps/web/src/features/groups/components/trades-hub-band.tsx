@@ -51,7 +51,7 @@ export function TradesHubBand({ slug, data }: { slug: string; data: FriendGroupD
   }
   return (
     <ActionBand
-      render={<Link to="/groups/$slug/trades" params={{ slug }} />}
+      render={<Link to="/trades" search={{ group: slug }} />}
       icon={ZapIcon}
       tone={needsAction ? "gold" : shelf.rows.length > 0 ? "success" : "neutral"}
       accent={needsAction}

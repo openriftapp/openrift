@@ -174,11 +174,7 @@ function GroupTournamentsTile({ slug, data }: { slug: string; data: FriendGroupD
   );
 }
 
-type StatCardTarget =
-  | "/groups/$slug/trades"
-  | "/groups/$slug/shared"
-  | "/groups/$slug/members"
-  | "/groups/$slug/events";
+type StatCardTarget = "/groups/$slug/shared" | "/groups/$slug/members" | "/groups/$slug/events";
 
 function StatCard({
   to,

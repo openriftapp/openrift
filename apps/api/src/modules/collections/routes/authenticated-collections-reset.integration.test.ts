@@ -5,9 +5,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createRepos, createTransact } from "../../../deps.js";
 import { CARD_FURY_UNIT, PRINTING_1, PRINTING_2 } from "../../../test/fixtures/constants.js";
 import { createTestContext, req, seedTestUser } from "../../../test/integration-context.js";
+import { createTradeAnsweredByHand } from "../../../test/manual-trade-answers.js";
 import { readJson } from "../../../test/read-json.js";
 import { friendGroupsRepo } from "../../groups/repositories/friend-groups.js";
-import { createTrade } from "../../groups/services/card-trades.js";
 
 // Uses a throwaway random-UUID user, not a fixed registry one: reset wipes all of that user's collections.
 const USER_ID = crypto.randomUUID();
@@ -175,6 +175,7 @@ describe.skipIf(!ctx)("POST /collections/reset (integration)", () => {
 const GIVER_ID = crypto.randomUUID();
 const RECEIVER_ID = crypto.randomUUID();
 const giverCtx = createTestContext(GIVER_ID);
+const createTrade = createTradeAnsweredByHand(() => giverCtx!.db);
 
 describe.skipIf(!giverCtx)("POST /collections/reset with a pending trade (integration)", () => {
   const { app, db } = giverCtx!;

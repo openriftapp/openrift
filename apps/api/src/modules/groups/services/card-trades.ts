@@ -10,7 +10,7 @@ import type {
 
 import type { Repos, Transact } from "../../../deps.js";
 import type { EmailDeps } from "../../../email.js";
-import { badRequest, conflict, forbidden } from "../../../errors.js";
+import { AppError, badRequest, conflict, forbidden } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { disposeCopiesInTransaction } from "../../collections/services/copies.js";
@@ -24,6 +24,7 @@ import {
 } from "../lib/card-trade-presenters.js";
 import { loadGroupForMember } from "../lib/group-access.js";
 import type { CardTrade, LiveCardTrade } from "../repositories/card-trades-shared.js";
+import type { GroupMember } from "../repositories/friend-groups-shared.js";
 import { sendTradeRequestEmail } from "./trade-notifications.js";
 import {
   assertSupplyAvailable,
@@ -157,16 +158,73 @@ export async function createTrade(
   input: CreateTradeInput,
   emailDeps?: EmailDeps,
 ): Promise<CardTradeResponse> {
-  const created = await transact((trxRepos) => createTradeLocked(trxRepos, input));
+  const draft = await transact((trxRepos) => createTradeLocked(trxRepos, input));
+  const created = draft.trade;
+  const outcome = await autoAcceptForRecipient(transact, draft, input.callerUserId, emailDeps);
+  if (outcome === "cancelled") {
+    throw conflict("That card is no longer available to trade");
+  }
   // Best-effort (the helper swallows its own errors) so a mail failure can
   // never fail the trade — the bell stays the source of truth.
   if (emailDeps !== undefined) {
-    await sendTradeRequestEmail(repos, created, emailDeps);
+    await sendTradeRequestEmail(repos, created, outcome === "reserved", emailDeps);
   }
   return reloadDto(repos, created.id, input.callerUserId);
 }
 
-async function createTradeLocked(repos: Repos, input: CreateTradeInput): Promise<LiveCardTrade> {
+interface TradeDraft {
+  trade: LiveCardTrade;
+  recipient: GroupMember;
+  demandQuantity: number;
+  incomingAtCreate: number;
+}
+
+/**
+ * Runs after the create has committed: accepting under the supply lock would deadlock with a
+ * resize of another pending trade. Any failure leaves the committed trade pending.
+ */
+async function autoAcceptForRecipient(
+  transact: Transact,
+  draft: TradeDraft,
+  initiatorUserId: string,
+  emailDeps?: EmailDeps,
+): Promise<"reserved" | "pending" | "cancelled"> {
+  const { trade, recipient, demandQuantity, incomingAtCreate } = draft;
+  const enabled =
+    trade.initiator === "receiver"
+      ? recipient.isAutoAcceptingRequests
+      : recipient.isAutoAcceptingOffers;
+  if (!enabled) {
+    return "pending";
+  }
+  try {
+    return await transact(async (trxRepos) => {
+      await trxRepos.cardTrades.lockIncoming(trade.receiverUserId);
+      // `demandQuantity` was read net of `incomingAtCreate`. Copies agreed since then, from
+      // other members' offers, must still fit beside this one.
+      if (trade.initiator === "giver") {
+        const incoming = await trxRepos.cardTrades.reservedIncomingQuantity(
+          trade.receiverUserId,
+          trade.cardId,
+        );
+        if (Math.max(0, incoming - incomingAtCreate) + trade.quantity > demandQuantity) {
+          return "pending";
+        }
+      }
+      const outcome = await acceptLocked(trxRepos, trade.id, recipient.userId, {
+        autoFor: initiatorUserId,
+      });
+      return typeof outcome === "object" ? "pending" : outcome;
+    });
+  } catch (error) {
+    if (!(error instanceof AppError && error.status === 409)) {
+      emailDeps?.log.error({ err: error, tradeId: trade.id }, "Auto-accepting a trade failed");
+    }
+    return "pending";
+  }
+}
+
+async function createTradeLocked(repos: Repos, input: CreateTradeInput): Promise<TradeDraft> {
   const {
     callerUserId,
     groupSlug,
@@ -191,6 +249,8 @@ async function createTradeLocked(repos: Repos, input: CreateTradeInput): Promise
 
   const giverUserId = role === "giver" ? callerUserId : counterpartyUserId;
   const receiverUserId = role === "giver" ? counterpartyUserId : callerUserId;
+  // Taken before the match read: its demand is net of the trades agreed so far.
+  await repos.cardTrades.lockIncoming(receiverUserId);
 
   const matchRows =
     role === "receiver"
@@ -212,7 +272,7 @@ async function createTradeLocked(repos: Repos, input: CreateTradeInput): Promise
     throw conflict("That card is no longer available to trade");
   }
   await repos.cardTrades.lockSupply(group.id, giverUserId, printingId);
-  return createCheckedTrade(repos, {
+  const trade = await createCheckedTrade(repos, {
     groupId: group.id,
     callerUserId,
     giverUserId,
@@ -223,6 +283,12 @@ async function createTradeLocked(repos: Repos, input: CreateTradeInput): Promise
     copyIds,
     primaryMatch,
   });
+  return {
+    trade,
+    recipient: counterpartyMembership,
+    demandQuantity: primaryMatch.buyQuantity,
+    incomingAtCreate: await repos.cardTrades.reservedIncomingQuantity(receiverUserId, trade.cardId),
+  };
 }
 
 async function createCheckedTrade(
@@ -426,6 +492,101 @@ export async function listTradeCopyOptions(
   });
 }
 
+type AcceptOutcome = "reserved" | "cancelled" | { available: number };
+
+/**
+ * `autoFor` names the initiator when the recipient's group setting accepts for them. A shortfall
+ * found before any pin is returned, so an auto-accept can leave the trade pending.
+ */
+async function acceptLocked(
+  trxRepos: Repos,
+  tradeId: string,
+  byUserId: string,
+  options: { chosenCopyIds?: string[]; autoFor?: string } = {},
+): Promise<AcceptOutcome> {
+  // Read unlocked first: the incoming lock always precedes the row lock.
+  const unlocked = await trxRepos.cardTrades.getById(tradeId);
+  assertFound(unlocked, "Trade not found");
+  if (unlocked.receiverUserId !== null) {
+    await trxRepos.cardTrades.lockIncoming(unlocked.receiverUserId);
+  }
+  const { trade, role } = await loadTradeForParty(trxRepos, tradeId, byUserId, {
+    forUpdate: true,
+  });
+  assertTradeStatus(trade, "pending", "This trade is no longer pending");
+  assertRecipient(trade, role, "accept");
+
+  // Pending offers are not netted out here, unlike in createTrade: this
+  // trade's own offer must not block the accept that reserves it.
+  const { unreservedCopyIds: copyIds, hasAny } =
+    await trxRepos.friendGroupMatches.giverPrintingSupply({
+      groupId: trade.groupId,
+      giverUserId: trade.giverUserId,
+      printingId: trade.printingId,
+    });
+  if (copyIds.length < trade.quantity) {
+    // Exhausted-by-reservation stays pending; a vanished basis
+    // (the giver deleted/unshared the copies) auto-cancels instead.
+    if (hasAny) {
+      return { available: copyIds.length };
+    }
+    await trxRepos.cardTrades.deleteCopiesForTrade(tradeId); // no-op while pending
+    await trxRepos.cardTrades.markAutoCancelled(tradeId);
+    await autoCancelUnfillablePendingTrades(trxRepos, trade.giverUserId, trade.printingId);
+    return "cancelled";
+  }
+
+  // Lock before pinning so a concurrent dispose serializes against this
+  // accept; a dispose in the gap leaves fewer survivors.
+  const surviving = new Set(await trxRepos.copies.lockByIds(copyIds));
+  const lockedCopyIds = copyIds.filter((id) => surviving.has(id));
+  if (lockedCopyIds.length < trade.quantity) {
+    return { available: lockedCopyIds.length };
+  }
+
+  // Reservations and loan pins live in separate tables, so the lock above
+  // can't catch a createLoan racing into the gap before it; re-check here.
+  const claimedByLoan = new Set(await trxRepos.loans.filterLoanedCopyIds(lockedCopyIds));
+  const availableCopyIds = lockedCopyIds.filter((id) => !claimedByLoan.has(id));
+  if (availableCopyIds.length < trade.quantity) {
+    return { available: availableCopyIds.length };
+  }
+
+  const requestedCopyIds = await trxRepos.cardTrades.listRequestedCopyIds(tradeId);
+  if (requestedCopyIds.some((id) => !availableCopyIds.includes(id))) {
+    await trxRepos.cardTrades.markAutoCancelled(tradeId);
+    return "cancelled";
+  }
+  const pinnedCopyIds = await resolvePinnedCopyIds(
+    trxRepos,
+    trade,
+    role,
+    availableCopyIds,
+    requestedCopyIds,
+    options.chosenCopyIds,
+  );
+  try {
+    await trxRepos.cardTrades.pinCopies(tradeId, pinnedCopyIds);
+  } catch (error) {
+    // A concurrent accept claimed one of these copies first.
+    if (isUniqueViolationOn(error, "uq_card_trade_copies_copy")) {
+      throw tooFewAvailable(Math.max(0, availableCopyIds.length - 1));
+    }
+    throw error;
+  }
+  const reserved =
+    options.autoFor === undefined
+      ? await trxRepos.cardTrades.markReserved(tradeId, byUserId)
+      : await trxRepos.cardTrades.markAutoReserved(tradeId, options.autoFor);
+  if (reserved === 0) {
+    // A concurrent decline/cancel moved it out of `pending` after we pinned.
+    throw conflict("This trade is no longer pending");
+  }
+  // The pins may have made the giver's other pending trades unfillable.
+  await autoCancelUnfillablePendingTrades(trxRepos, trade.giverUserId, trade.printingId);
+  return "reserved";
+}
+
 export function acceptTrade(
   transact: Transact,
   tradeId: string,
@@ -433,77 +594,10 @@ export function acceptTrade(
   chosenCopyIds?: string[],
 ): Promise<CardTradeResponse> {
   return transact(async (trxRepos) => {
-    const { trade, role } = await loadTradeForParty(trxRepos, tradeId, byUserId, {
-      forUpdate: true,
-    });
-    assertTradeStatus(trade, "pending", "This trade is no longer pending");
-    assertRecipient(trade, role, "accept");
-
-    // Pending offers are not netted out here, unlike in createTrade: this
-    // trade's own offer must not block the accept that reserves it.
-    const { unreservedCopyIds: copyIds, hasAny } =
-      await trxRepos.friendGroupMatches.giverPrintingSupply({
-        groupId: trade.groupId,
-        giverUserId: trade.giverUserId,
-        printingId: trade.printingId,
-      });
-    if (copyIds.length < trade.quantity) {
-      // Exhausted-by-reservation 409s and stays pending; a vanished basis
-      // (the giver deleted/unshared the copies) auto-cancels instead.
-      if (hasAny) {
-        throw tooFewAvailable(copyIds.length);
-      }
-      await trxRepos.cardTrades.deleteCopiesForTrade(tradeId); // no-op while pending
-      await trxRepos.cardTrades.markAutoCancelled(tradeId);
-      await autoCancelUnfillablePendingTrades(trxRepos, trade.giverUserId, trade.printingId);
-      return reloadDto(trxRepos, tradeId, byUserId);
+    const outcome = await acceptLocked(trxRepos, tradeId, byUserId, { chosenCopyIds });
+    if (typeof outcome === "object") {
+      throw tooFewAvailable(outcome.available);
     }
-
-    // Lock before pinning so a concurrent dispose serializes against this
-    // accept; a dispose in the gap leaves fewer survivors, which 409s below.
-    const surviving = new Set(await trxRepos.copies.lockByIds(copyIds));
-    const lockedCopyIds = copyIds.filter((id) => surviving.has(id));
-    if (lockedCopyIds.length < trade.quantity) {
-      throw tooFewAvailable(lockedCopyIds.length);
-    }
-
-    // Reservations and loan pins live in separate tables, so the lock above
-    // can't catch a createLoan racing into the gap before it; re-check here.
-    const claimedByLoan = new Set(await trxRepos.loans.filterLoanedCopyIds(lockedCopyIds));
-    const availableCopyIds = lockedCopyIds.filter((id) => !claimedByLoan.has(id));
-    if (availableCopyIds.length < trade.quantity) {
-      throw tooFewAvailable(availableCopyIds.length);
-    }
-
-    const requestedCopyIds = await trxRepos.cardTrades.listRequestedCopyIds(tradeId);
-    if (requestedCopyIds.some((id) => !availableCopyIds.includes(id))) {
-      await trxRepos.cardTrades.markAutoCancelled(tradeId);
-      return reloadDto(trxRepos, tradeId, byUserId);
-    }
-    const pinnedCopyIds = await resolvePinnedCopyIds(
-      trxRepos,
-      trade,
-      role,
-      availableCopyIds,
-      requestedCopyIds,
-      chosenCopyIds,
-    );
-    try {
-      await trxRepos.cardTrades.pinCopies(tradeId, pinnedCopyIds);
-    } catch (error) {
-      // A concurrent accept claimed one of these copies first.
-      if (isUniqueViolationOn(error, "uq_card_trade_copies_copy")) {
-        throw tooFewAvailable(Math.max(0, availableCopyIds.length - 1));
-      }
-      throw error;
-    }
-    const reserved = await trxRepos.cardTrades.markReserved(tradeId, byUserId);
-    if (reserved === 0) {
-      // A concurrent decline/cancel moved it out of `pending` after we pinned.
-      throw conflict("This trade is no longer pending");
-    }
-    // The pins may have made the giver's other pending trades unfillable.
-    await autoCancelUnfillablePendingTrades(trxRepos, trade.giverUserId, trade.printingId);
     return reloadDto(trxRepos, tradeId, byUserId);
   });
 }

@@ -72,6 +72,10 @@ export const cardTradesRouter = {
     },
   ),
 
+  markAgreedSeen: os.markAgreedSeen.handler(async ({ input, context }): Promise<void> => {
+    await context.repos.cardTrades.markRecipientSeen(context.userId, input.counterpartyUserId);
+  }),
+
   dismissals: os.dismissals.handler(
     async ({ context }): Promise<TradeSuggestionDismissalListResponse> => {
       const { tradeSuggestionDismissals } = context.repos;

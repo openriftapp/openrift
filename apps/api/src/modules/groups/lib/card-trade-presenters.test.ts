@@ -510,6 +510,8 @@ function tradeRow(overrides: Partial<CardTradeDtoRow> = {}): CardTradeDtoRow {
     completedAt: null,
     closedAt: null,
     expiresAt: new Date("2026-03-24T10:00:00.000Z"),
+    isAutoAccepted: false,
+    recipientSeenAt: null,
     giverName: "Ekko",
     giverImage: null,
     giverEmail: "ekko@example.com",

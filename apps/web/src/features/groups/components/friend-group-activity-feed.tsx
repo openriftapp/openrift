@@ -129,7 +129,7 @@ function TradeBatchRow({ slug, batch }: { slug: string; batch: TradeBatch }) {
     ...printingArt(printingsById[printingId]),
   }));
   return (
-    <RowListLink render={<Link to="/groups/$slug/trades" params={{ slug }} />}>
+    <RowListLink render={<Link to="/trades" search={{ group: slug }} />}>
       <IconChip icon={ArrowLeftRightIcon} tone="primary" size="sm" shape="round" />
       <CardArtThumbStack items={thumbs} thumbClassName="w-6" />
       <span className="text-muted-foreground line-clamp-2 min-w-0 flex-1 text-sm">
@@ -172,7 +172,7 @@ function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivity
   switch (event.kind) {
     case "trade-completed": {
       return (
-        <RowListLink render={<Link to="/groups/$slug/trades" params={{ slug }} />}>
+        <RowListLink render={<Link to="/trades" search={{ group: slug }} />}>
           <IconChip icon={ArrowLeftRightIcon} tone="primary" size="sm" shape="round" />
           {text(tradeCompletedText(event, cardName(event), viewerId), thumb(event))}
         </RowListLink>
@@ -180,7 +180,7 @@ function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivity
     }
     case "match": {
       return (
-        <RowListLink render={<Link to="/groups/$slug/trades" params={{ slug }} />}>
+        <RowListLink render={<Link to="/trades" search={{ group: slug }} />}>
           <IconChip icon={SparklesIcon} tone="primary" size="sm" shape="round" />
           {text(
             m.groups_activity_match({

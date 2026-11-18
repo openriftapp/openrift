@@ -4139,6 +4139,12 @@
   "groups_contacts_description": "멤버 페이지와 교환 페이지에서 이름 옆에 표시됩니다.",
   "groups_contacts_edit_link": "프로필에서 수정하기",
   "groups_contacts_empty": "아직 연락 수단을 추가하지 않았습니다.",
+  "groups_auto_accept_title": "자동 수락",
+  "groups_auto_accept_description": "이 그룹에서 다른 멤버가 시작한 교환은 답변을 기다리지 않고 바로 합의됩니다. 두 사람 중 누구도 교환을 확인하기 전까지는 합의된 교환을 취소할 수 있습니다.",
+  "groups_auto_accept_offers_label": "제안 자동 수락",
+  "groups_auto_accept_offers_hint": "멤버가 위시리스트에 있는 카드를 제안하면, 원하는 수량이 남아 있는 한 바로 합의됩니다.",
+  "groups_auto_accept_requests_label": "요청 자동 수락",
+  "groups_auto_accept_requests_hint": "멤버가 교환 목록의 카드를 요청하면, 먼저 요청한 멤버에게 카드가 예약됩니다.",
   "groups_contacts_title": "이 그룹에서의 내 연락처",
   "groups_create_description": "기본값은 비공개입니다. 멤버가 그룹별로 자신의 목록을 직접 공개합니다.",
   "groups_create_description_label": "설명 (선택 사항)",
@@ -4740,18 +4746,6 @@
       }
     }
   ],
-  "trades_possible": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "가능한 교환 {count}건",
-        "countPlural=*": "가능한 교환 {count}건"
-      }
-    }
-  ],
-  "trades_suggestions_elsewhere_another": "다른 그룹에서 {trades}",
-  "trades_suggestions_elsewhere_other": "다른 그룹들에서 {trades}",
   "trades_detail_requests_from": "{who}님에게서 온 {requests}",
   "trades_detail_cards_for": "{who}님에게 줄 {cards}",
   "trades_detail_cards_from": "{who}님에게서 받을 {cards}",
@@ -4787,18 +4781,6 @@
       }
     }
   ],
-  "trades_in_other_groups": "+다른 그룹에 {count}건",
-  "trades_shares_lists": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "목록 {count}개 공유 중",
-        "countPlural=*": "목록 {count}개 공유 중"
-      }
-    }
-  ],
-  "trades_nothing_in_group": "아직 이 그룹에는 아무것도 없습니다",
   "trades_share_band_empty": "아직 위시리스트나 교환 목록이 없습니다. {#link}하나 만들어{/link} {group}와(과) 공유하면 교환을 찾기 시작할 수 있습니다.",
   "trades_share_band_shared": [
     {
@@ -4812,9 +4794,6 @@
   ],
   "trades_share_band_hint": "멤버들은 내가 공유한 목록을 통해서만 나와의 교환을 찾을 수 있습니다.",
   "trades_share_more": "더 공유하기",
-  "trades_invite_title": "사람들을 초대해 교환을 시작하세요",
-  "trades_invite_description": "교환은 멤버 사이에서 이루어지므로, 이 그룹에는 먼저 다른 멤버가 필요합니다.",
-  "trades_view_members": "멤버 보기",
   "trades_requests_label": "요청",
   "trades_requests_waiting": [
     {
@@ -4881,6 +4860,10 @@
   "trades_price_per_copy": "장당 가격 ({marketplace})",
   "trades_estimated_value": "예상 가치 ({marketplace})",
   "trades_per_copy_amount": "장당 {amount}",
+  "trades_badge_new_agreed": "새 교환, 자동 합의됨",
+  "trades_badge_not_seen_by": "{name}님이 아직 확인하지 않음",
+  "trades_badge_seen_by": "{name}님이 확인함",
+  "trades_new_agreed_count": "새 교환 {count}건, 자동 합의됨",
   "trades_badge_your_move": "내 차례",
   "trades_badge_waiting_for": "{name}님 대기 중",
   "trades_badge_done_your_side": "내 쪽은 완료",
@@ -5055,6 +5038,12 @@
   "trades_request_card_title": "이 카드 요청",
   "trades_offer_card_title": "이 카드 제안",
   "trades_send_request": "요청 보내기",
+  "trades_offer_auto_description": "{card} 카드를 제안합니다. 상대가 제안을 자동으로 수락하므로, 원하는 수량이 남아 있으면 보내는 즉시 합의됩니다.",
+  "trades_request_auto_description": "{card} 카드를 요청합니다. 상대가 요청을 자동으로 수락하므로 보내는 즉시 합의됩니다.",
+  "trades_offer_to_auto_description": "{name}님에게 {card} 카드를 제안합니다. {name}님이 제안을 자동으로 수락하므로, 원하는 수량이 남아 있으면 보내는 즉시 합의됩니다.",
+  "trades_request_from_auto_description": "{name}님에게 {card} 카드를 요청합니다. {name}님이 요청을 자동으로 수락하므로 보내는 즉시 합의됩니다.",
+  "trades_agreed_offer_toast": "합의됨: {name}님이 {card} 카드를 받습니다",
+  "trades_agreed_request_toast": "합의됨: {name}님에게서 {card} 카드를 받습니다",
   "trades_send_offer": "제안 보내기",
   "trades_request_description": "{card}을(를) 요청합니다. 상대에게 알림이 가고, 수락하면 카드가 나를 위해 예약됩니다.",
   "trades_offer_description": "{card}을(를) 제안합니다. 상대에게 알림이 가고, 수락하면 내 카드가 예약됩니다.",

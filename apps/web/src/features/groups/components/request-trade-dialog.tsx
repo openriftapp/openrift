@@ -33,6 +33,7 @@ interface RequestTradeDialogProps {
   pending: boolean;
   copies?: readonly RequestableCopy[];
   canExceedWish?: boolean;
+  autoAccept?: boolean;
   groupPicker?: {
     items: readonly SimpleSelectItem[];
     value: string;
@@ -116,6 +117,7 @@ export function RequestTradeDialog({
   pending,
   copies,
   canExceedWish = false,
+  autoAccept = false,
   groupPicker,
   onConfirm,
 }: RequestTradeDialogProps) {
@@ -168,8 +170,12 @@ export function RequestTradeDialog({
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription>
               {mode === "request"
-                ? m.trades_request_description({ card: cardName })
-                : m.trades_offer_description({ card: cardName })}
+                ? autoAccept
+                  ? m.trades_request_auto_description({ card: cardName })
+                  : m.trades_request_description({ card: cardName })
+                : autoAccept
+                  ? m.trades_offer_auto_description({ card: cardName })
+                  : m.trades_offer_description({ card: cardName })}
             </DialogDescription>
           </DialogHeader>
 

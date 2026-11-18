@@ -36,11 +36,13 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({
     to,
     params,
+    search,
     children,
     className,
   }: {
     to: string;
     params?: Record<string, string>;
+    search?: Record<string, string>;
     children?: ReactNode;
     className?: string;
   }) => {
@@ -49,6 +51,9 @@ vi.mock("@tanstack/react-router", () => ({
       for (const [key, value] of Object.entries(params)) {
         path = path.replace(`$${key}`, value);
       }
+    }
+    if (search) {
+      path = `${path}?${new URLSearchParams(search).toString()}`;
     }
     return (
       <a href={path} className={className}>
@@ -79,6 +84,8 @@ function makeMember(
     role,
     contactMethods: [],
     joinedAt: "2026-02-10T12:00:00Z",
+    autoAcceptOffers: true,
+    autoAcceptRequests: true,
     ...overrides,
   };
 }
@@ -472,7 +479,7 @@ describe("MembersTradedAction", () => {
     render(<MembersTradedAction slug="bothfeld" />);
     const link = screen.getByRole("link");
     expect(link).toHaveTextContent("304 cards traded");
-    expect(link).toHaveAttribute("href", "/groups/bothfeld/trades");
+    expect(link).toHaveAttribute("href", "/trades?group=bothfeld");
   });
 
   it("stays hidden until the group has traded a card", () => {

@@ -10,6 +10,7 @@ import { stubPrinting } from "@/test/factories";
 
 const sheet = vi.hoisted(() => ({ current: null as CardTradeSheetResponse | null }));
 const userTrades = vi.hoisted(() => ({ items: [] as CardTradeResponse[] }));
+const markAgreedSeen = vi.hoisted(() => vi.fn());
 const catalog = vi.hoisted(() => ({ printingsById: {} as Record<string, unknown> }));
 
 const groupDetail = vi.hoisted(() => ({
@@ -23,6 +24,7 @@ const groupDetail = vi.hoisted(() => ({
 vi.mock("@/features/groups/hooks/use-card-trades", () => ({
   useTradeSheet: () => ({ data: sheet.current }),
   useUserTrades: () => ({ data: userTrades }),
+  useMarkAgreedTradesSeen: () => ({ mutate: markAgreedSeen }),
 }));
 
 vi.mock("@/features/groups/hooks/use-friend-groups", () => ({
@@ -194,6 +196,8 @@ describe("TradeSheetPage", () => {
         groupId: "group-1",
         groupSlug: "allerlei-spielerei",
         viewerWishEntryId: null,
+        autoAccepted: false,
+        recipientSeenAt: null,
         counterparty: { userId: "member-1", name: "Ezreal", image: null, gravatarHash: "hash" },
       } as CardTradeResponse,
     ];
@@ -296,5 +300,43 @@ describe("TradeSheetPage", () => {
     render(<TradeSheetPage userId="member-1" fromGroupSlug="allerlei-spielerei" />);
 
     expect(screen.getByRole("link", { name: "View their lists" })).toBeInTheDocument();
+  });
+
+  it("marks the trades their send agreed as seen, once the page shows them", () => {
+    markAgreedSeen.mockClear();
+    sheet.current = makeSheet();
+    userTrades.items = [
+      {
+        id: "agreed-1",
+        cardId: "card-1",
+        printingId: "printing-1",
+        groupId: "group-1",
+        groupSlug: "allerlei-spielerei",
+        groupName: "Allerlei Spielerei",
+        role: "receiver",
+        initiator: "giver",
+        status: "reserved",
+        quantity: 1,
+        autoAccepted: true,
+        recipientSeenAt: null,
+        actionNeeded: "settle",
+        viewerSyncAppliedAt: null,
+        counterpartySyncAppliedAt: null,
+        updatedAt: "2026-11-01T00:00:00.000Z",
+        counterparty: { userId: "member-1", name: "Ezreal", image: null, gravatarHash: "hash" },
+      } as CardTradeResponse,
+    ];
+    render(<TradeSheetPage userId="member-1" fromGroupSlug="allerlei-spielerei" />);
+
+    expect(markAgreedSeen).toHaveBeenCalledWith({ counterpartyUserId: "member-1" });
+  });
+
+  it("marks nothing seen when no trade is new", () => {
+    markAgreedSeen.mockClear();
+    sheet.current = makeSheet();
+    userTrades.items = [];
+    render(<TradeSheetPage userId="member-1" fromGroupSlug="allerlei-spielerei" />);
+
+    expect(markAgreedSeen).not.toHaveBeenCalled();
   });
 });

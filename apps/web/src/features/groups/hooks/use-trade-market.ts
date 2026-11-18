@@ -1,5 +1,4 @@
 import type { TradeSuggestionDismissal } from "@openrift/shared/types/api/card-trade";
-import type { FriendGroupSummaryResponse } from "@openrift/shared/types/api/friend-group";
 
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useUserTrades } from "@/features/groups/hooks/use-card-trades";
@@ -16,7 +15,6 @@ import { tradePrinting } from "@/features/groups/lib/trade-printing";
 
 export function useTradeMarket(): {
   market: TradeMarket;
-  groups: FriendGroupSummaryResponse[];
   marketGroups: TradeMarketGroup[];
   dismissals: TradeSuggestionDismissal[];
 } {
@@ -45,5 +43,5 @@ export function useTradeMarket(): {
     };
   });
   const market = buildTradeMarket(marketGroups, dismissalKeys(dismissals));
-  return { market, groups, marketGroups, dismissals };
+  return { market, marketGroups, dismissals };
 }

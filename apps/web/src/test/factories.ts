@@ -527,6 +527,8 @@ export function stubCardTrade(overrides: Partial<CardTradeResponse> = {}): CardT
     viewerSyncAppliedAt: null,
     counterpartySyncAppliedAt: null,
     viewerWishEntryId: null,
+    autoAccepted: false,
+    recipientSeenAt: null,
     actionNeeded: null,
     ...overrides,
   };

@@ -18,6 +18,8 @@ function membership(role: FriendGroupRole): GroupMember {
     userId: "u1",
     role,
     joinedAt: new Date(),
+    isAutoAcceptingOffers: true,
+    isAutoAcceptingRequests: true,
   };
 }
 

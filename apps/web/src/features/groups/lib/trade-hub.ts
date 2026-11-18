@@ -1,8 +1,3 @@
-import {
-  cardTradeState,
-  isTradedCardTrade,
-  needsViewerAction,
-} from "@openrift/shared/card-trade-lifecycle";
 import { HOUR_MS } from "@openrift/shared/format-date";
 import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 
@@ -11,21 +6,7 @@ import { m } from "@/paraglide/messages.js";
 
 import { distinctPrintingIds } from "./friend-group-activity";
 import type { MatchDirection, MatchSuggestionFields } from "./trade-derivation";
-import {
-  matchSuggestionKey,
-  tradeSuggestionKeys,
-  withoutLiveTradeMatches,
-} from "./trade-derivation";
-
-function isInFlightTrade(trade: CardTradeResponse): boolean {
-  const state = cardTradeState(trade);
-  return (
-    state === "to-answer" ||
-    state === "to-settle" ||
-    state === "to-swap" ||
-    state === "waiting-on-them"
-  );
-}
+import { matchSuggestionKey } from "./trade-derivation";
 
 export interface NeedsYouCounts {
   toAnswer: number;
@@ -138,17 +119,7 @@ export function nextMoveLabel(trade: CardTradeResponse | undefined): string {
   return m.trades_your_move_open();
 }
 
-export interface TradeHubMember {
-  userId: string;
-  userName: string | null;
-}
-
-interface TradeHubShare {
-  userId: string;
-  listIntent: "wish" | "trade" | "organize";
-}
-
-export interface TradeSuggestionSide {
+interface TradeSuggestionSide {
   count: number;
   printingIds: string[];
 }
@@ -163,138 +134,8 @@ function tradeSuggestionSide(
   };
 }
 
-export interface TradeHubCard<TMember> {
-  member: TMember;
-  needsYou: CardTradeResponse[];
-  toSwap: CardTradeResponse[];
-  open: CardTradeResponse[];
-  trades: CardTradeResponse[];
-  couldGet: TradeSuggestionSide;
-  wouldWant: TradeSuggestionSide;
-  suggestions: number;
-  suggestionsElsewhere: number;
-  listCount: number;
-  tradedCount: number;
-  elsewhereCount: number;
-}
-
-export interface TradeHubCardsInput<TMember, TMatch> {
-  viewerId: string;
-  groupId: string;
-  members: readonly TMember[];
-  groupTrades: readonly CardTradeResponse[];
-  allTrades: readonly CardTradeResponse[];
-  incoming: readonly TMatch[];
-  outgoing: readonly TMatch[];
-  elsewhereIncoming: readonly TMatch[];
-  elsewhereOutgoing: readonly TMatch[];
-  shares: readonly TradeHubShare[];
-}
-
-function memberSortName(member: TradeHubMember): string {
-  return member.userName ?? "\u{FFFF}";
-}
-
-function cardRank(card: TradeHubCard<TradeHubMember>): number {
-  if (card.needsYou.length > 0) {
-    return 0;
-  }
-  if (card.toSwap.length > 0 || card.open.length > 0) {
-    return 1;
-  }
-  if (card.suggestions > 0 || card.suggestionsElsewhere > 0) {
-    return 2;
-  }
-  if (card.listCount > 0) {
-    return 3;
-  }
-  return 4;
-}
-
 function expiresSoonLine(count: number): string {
   return m.trades_expire_soon({ count });
-}
-
-function possibleTradesLine(count: number): string {
-  return m.trades_possible({ count });
-}
-
-export function elsewhereSuggestionsLine(card: TradeHubCard<TradeHubMember>): string | null {
-  const count = card.suggestionsElsewhere;
-  if (count === 0) {
-    return null;
-  }
-  const trades = possibleTradesLine(count);
-  return count === 1
-    ? m.trades_suggestions_elsewhere_another({ trades })
-    : m.trades_suggestions_elsewhere_other({ trades });
-}
-
-export function isQuietTradeHubCard(card: TradeHubCard<TradeHubMember>): boolean {
-  return cardRank(card) === 4 && card.tradedCount === 0 && card.elsewhereCount === 0;
-}
-
-export function buildTradeHubCards<
-  TMember extends TradeHubMember,
-  TMatch extends MatchSuggestionFields,
->(input: TradeHubCardsInput<TMember, TMatch>): TradeHubCard<TMember>[] {
-  const incomingByPerson = Map.groupBy(
-    withoutLiveTradeMatches(input.incoming, input.allTrades, "incoming"),
-    (match) => match.counterpartyUserId,
-  );
-  const outgoingByPerson = Map.groupBy(
-    withoutLiveTradeMatches(input.outgoing, input.allTrades, "outgoing"),
-    (match) => match.counterpartyUserId,
-  );
-  const elsewhereIncomingByPerson = Map.groupBy(
-    withoutLiveTradeMatches(input.elsewhereIncoming, input.allTrades, "incoming"),
-    (match) => match.counterpartyUserId,
-  );
-  const elsewhereOutgoingByPerson = Map.groupBy(
-    withoutLiveTradeMatches(input.elsewhereOutgoing, input.allTrades, "outgoing"),
-    (match) => match.counterpartyUserId,
-  );
-  const tradesByPerson = Map.groupBy(input.groupTrades, (trade) => trade.counterparty.userId);
-  const elsewhereByPerson = Map.groupBy(
-    input.allTrades.filter((trade) => trade.groupId !== input.groupId && isInFlightTrade(trade)),
-    (trade) => trade.counterparty.userId,
-  );
-  const listsByPerson = Map.groupBy(
-    input.shares.filter((share) => share.listIntent === "wish" || share.listIntent === "trade"),
-    (share) => share.userId,
-  );
-
-  const cards = input.members
-    .filter((member) => member.userId !== input.viewerId)
-    .map((member) => {
-      const trades = tradesByPerson.get(member.userId) ?? [];
-      const incoming = incomingByPerson.get(member.userId) ?? [];
-      const outgoing = outgoingByPerson.get(member.userId) ?? [];
-      const here = tradeSuggestionKeys(incoming, outgoing);
-      const elsewhere = tradeSuggestionKeys(
-        elsewhereIncomingByPerson.get(member.userId) ?? [],
-        elsewhereOutgoingByPerson.get(member.userId) ?? [],
-      );
-      return {
-        member,
-        needsYou: sortNeedsYou(trades.filter((trade) => needsViewerAction(trade))),
-        toSwap: trades.filter((trade) => cardTradeState(trade) === "to-swap"),
-        open: trades.filter((trade) => cardTradeState(trade) === "waiting-on-them"),
-        trades,
-        couldGet: tradeSuggestionSide("incoming", incoming),
-        wouldWant: tradeSuggestionSide("outgoing", outgoing),
-        suggestions: here.size,
-        suggestionsElsewhere: [...elsewhere].filter((key) => !here.has(key)).length,
-        listCount: (listsByPerson.get(member.userId) ?? []).length,
-        tradedCount: trades.filter((trade) => isTradedCardTrade(trade)).length,
-        elsewhereCount: (elsewhereByPerson.get(member.userId) ?? []).length,
-      };
-    });
-
-  return cards.toSorted(
-    (a, b) =>
-      cardRank(a) - cardRank(b) || memberSortName(a.member).localeCompare(memberSortName(b.member)),
-  );
 }
 
 type TradeShelfRowKey = "answer" | "hand-over" | "confirm" | "could-get" | "would-want";

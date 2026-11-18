@@ -9,9 +9,10 @@ import {
   PRINTING_4,
 } from "../../../test/fixtures/constants.js";
 import { createDbContext, seedTestUser } from "../../../test/integration-context.js";
+import { createTradeAnsweredByHand } from "../../../test/manual-trade-answers.js";
 import { disposeCopies } from "../../collections/services/copies.js";
 import { toLoanResponse } from "../lib/loan-presenters.js";
-import { acceptTrade, createTrade } from "../services/card-trades.js";
+import { acceptTrade } from "../services/card-trades.js";
 import {
   acknowledgeLoan,
   confirmBorrowerReturn,
@@ -32,6 +33,7 @@ const OUTSIDER_ID = crypto.randomUUID();
 const ALL_USER_IDS = [LENDER_ID, BORROWER_ID, OUTSIDER_ID];
 
 const ctx = createDbContext(LENDER_ID);
+const createTrade = createTradeAnsweredByHand(() => ctx!.db);
 
 describe.skipIf(!ctx)("loansRepo (integration)", () => {
   const { db } = ctx!;

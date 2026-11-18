@@ -1,7 +1,7 @@
 import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 import { describe, expect, it } from "vitest";
 
-import { buildTradesIndex } from "./trades-index";
+import { buildTradesIndex, selectedTradesGroup, tradesInGroup } from "./trades-index";
 
 function stubTrade(overrides: Partial<CardTradeResponse> = {}): CardTradeResponse {
   return {
@@ -31,6 +31,8 @@ function stubTrade(overrides: Partial<CardTradeResponse> = {}): CardTradeRespons
     viewerSyncAppliedAt: null,
     counterpartySyncAppliedAt: null,
     viewerWishEntryId: null,
+    autoAccepted: false,
+    recipientSeenAt: null,
     actionNeeded: null,
     ...overrides,
   };
@@ -164,5 +166,61 @@ describe("buildTradesIndex", () => {
     ]);
     expect(index.past).toEqual([]);
     expect(index.groupCount).toBe(1);
+  });
+});
+
+describe("selectedTradesGroup", () => {
+  const groups = [{ slug: "summoner-skirmish" }, { slug: "piltover-club" }];
+
+  it("finds the group the address names", () => {
+    expect(selectedTradesGroup(groups, "piltover-club")).toEqual({ slug: "piltover-club" });
+  });
+
+  it("selects nothing without a group in the address", () => {
+    expect(selectedTradesGroup(groups)).toBeUndefined();
+  });
+
+  it("selects nothing for a group the viewer is not in", () => {
+    expect(selectedTradesGroup(groups, "zaun-traders")).toBeUndefined();
+  });
+});
+
+describe("tradesInGroup", () => {
+  const here = stubTrade({ id: "here" });
+  const elsewhere = stubTrade({ id: "elsewhere", groupSlug: "piltover-club" });
+
+  it("keeps every trade when no group is selected", () => {
+    expect(tradesInGroup([here, elsewhere], null)).toEqual([here, elsewhere]);
+  });
+
+  it("keeps only the selected group's trades", () => {
+    expect(tradesInGroup([here, elsewhere], "piltover-club")).toEqual([elsewhere]);
+  });
+
+  it("drops trades whose group is gone", () => {
+    expect(tradesInGroup([stubTrade({ groupSlug: null })], "summoner-skirmish")).toEqual([]);
+  });
+});
+
+describe("buildTradesIndex new agreed trades", () => {
+  it("counts the trades a person's send agreed that the viewer has not looked at", () => {
+    const agreed = stubTrade({
+      id: "agreed",
+      status: "reserved",
+      initiator: "giver",
+      role: "receiver",
+      autoAccepted: true,
+    });
+    const seen = stubTrade({
+      id: "seen",
+      status: "reserved",
+      initiator: "giver",
+      role: "receiver",
+      autoAccepted: true,
+      recipientSeenAt: "2026-11-18T10:00:00.000Z",
+    });
+    const index = buildTradesIndex([agreed, seen]);
+    const [person] = [...index.yourMove, ...index.toSwap, ...index.waiting, ...index.past];
+    expect(person?.newAgreedCount).toBe(1);
   });
 });

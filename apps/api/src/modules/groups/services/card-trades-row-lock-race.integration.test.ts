@@ -6,14 +6,16 @@ import type { Database } from "../../../db/tables.js";
 import { createRepos, createTransact } from "../../../deps.js";
 import { PRINTING_1 } from "../../../test/fixtures/constants.js";
 import { createDbContext, seedTestUser } from "../../../test/integration-context.js";
+import { createTradeAnsweredByHand } from "../../../test/manual-trade-answers.js";
 import { friendGroupsRepo } from "../repositories/friend-groups.js";
-import { acceptTrade, cancelTrade, createTrade } from "./card-trades.js";
+import { acceptTrade, cancelTrade } from "./card-trades.js";
 
 const GIVER_ID = crypto.randomUUID();
 const RECEIVER_ID = crypto.randomUUID();
 const ALL_USER_IDS = [GIVER_ID, RECEIVER_ID];
 
 const ctx = createDbContext(GIVER_ID);
+const createTrade = createTradeAnsweredByHand(() => ctx!.db);
 
 describe.skipIf(!ctx)(
   "card trade transitions vs a concurrent trade row write (integration)",

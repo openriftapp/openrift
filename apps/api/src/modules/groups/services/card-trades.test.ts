@@ -54,6 +54,8 @@ const DTO_ROW: CardTradeDtoRow = {
   completedAt: null,
   closedAt: null,
   expiresAt: null,
+  isAutoAccepted: false,
+  recipientSeenAt: null,
   giverName: "Ekko",
   giverImage: null,
   giverEmail: "ekko@example.com",
@@ -211,6 +213,7 @@ describe("acceptTrade cross-claim with a concurrent loan", () => {
     const repos = {
       cardTrades: {
         getById: vi.fn(async () => TRADE),
+        lockIncoming: vi.fn(async () => undefined),
         pinCopies,
         markReserved,
       },
@@ -288,6 +291,8 @@ function supplyRepos(supplyByGroup: Record<string, string[]>, pending: Pending[]
     },
     cardTrades: {
       lockSupply: vi.fn(async () => undefined),
+      lockIncoming: vi.fn(async () => undefined),
+      reservedIncomingQuantity: vi.fn(async () => 0),
       getLiveTrade: vi.fn(async () => undefined),
       listPendingForGiverPrinting,
       create,
@@ -779,6 +784,7 @@ function acceptRepos(
   const repos = {
     cardTrades: {
       getById: vi.fn(async () => trade),
+      lockIncoming: vi.fn(async () => undefined),
       pinCopies,
       markReserved,
       markAutoCancelled,
@@ -1083,4 +1089,141 @@ describe("unique violations in trade writes", () => {
       }
     },
   );
+});
+
+function autoAcceptRepos(options: {
+  initiator: "giver" | "receiver";
+  autoAcceptOffers?: boolean;
+  autoAcceptRequests?: boolean;
+  incoming?: number;
+}) {
+  const base = supplyRepos({ [GROUP.id]: ["copy-1"] });
+  const created = {
+    ...TRADE,
+    id: "trade-new",
+    initiator: options.initiator,
+    cardId: "card-1",
+  } as unknown as LiveCardTrade;
+  base.create.mockResolvedValue(created);
+  const markAutoReserved = vi.fn(async () => 1);
+  const markReserved = vi.fn(async () => 1);
+  const pinCopies = vi.fn(async () => undefined);
+  const incomingReads = [0, options.incoming ?? 0];
+  const reservedIncomingQuantity = vi.fn(async () => incomingReads.shift() ?? 0);
+  const parts = base.repos as unknown as Record<string, Record<string, unknown>>;
+  parts.friendGroups!.getMembership = vi.fn(async (_groupId: string, userId: string) => ({
+    userId,
+    role: "member",
+    isAutoAcceptingOffers: options.autoAcceptOffers ?? true,
+    isAutoAcceptingRequests: options.autoAcceptRequests ?? true,
+  }));
+  Object.assign(parts.cardTrades!, {
+    getById: vi.fn(async () => created),
+    listRequestedCopyIds: vi.fn(async () => []),
+    reservedIncomingQuantity,
+    pinCopies,
+    markAutoReserved,
+    markReserved,
+  });
+  parts.copies = { lockByIds: vi.fn(async (ids: string[]) => ids) };
+  parts.loans = { filterLoanedCopyIds: vi.fn(async () => []) };
+  return { repos: base.repos, markAutoReserved, markReserved, pinCopies, reservedIncomingQuantity };
+}
+
+describe("createTrade auto-accept", () => {
+  it("reserves an offer at once when the receiver accepts offers automatically", async () => {
+    const { repos, markAutoReserved, markReserved, pinCopies } = autoAcceptRepos({
+      initiator: "giver",
+    });
+
+    await runCreate(repos, "giver", 1);
+
+    expect(pinCopies).toHaveBeenCalledWith("trade-new", ["copy-1"]);
+    expect(markAutoReserved).toHaveBeenCalledWith("trade-new", "giver-1");
+    expect(markReserved).not.toHaveBeenCalled();
+  });
+
+  it("reserves a request at once when the giver accepts requests automatically", async () => {
+    const { repos, markAutoReserved, reservedIncomingQuantity } = autoAcceptRepos({
+      initiator: "receiver",
+    });
+
+    await runCreate(repos, "receiver", 1);
+
+    expect(markAutoReserved).toHaveBeenCalledWith("trade-new", "receiver-1");
+    expect(reservedIncomingQuantity).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves an offer pending when the receiver answers offers by hand", async () => {
+    const { repos, markAutoReserved, pinCopies } = autoAcceptRepos({
+      initiator: "giver",
+      autoAcceptOffers: false,
+    });
+
+    await runCreate(repos, "giver", 1);
+
+    expect(pinCopies).not.toHaveBeenCalled();
+    expect(markAutoReserved).not.toHaveBeenCalled();
+  });
+
+  it("leaves a request pending when the giver answers requests by hand", async () => {
+    const { repos, markAutoReserved } = autoAcceptRepos({
+      initiator: "receiver",
+      autoAcceptRequests: false,
+    });
+
+    await runCreate(repos, "receiver", 1);
+
+    expect(markAutoReserved).not.toHaveBeenCalled();
+  });
+
+  it("leaves an offer pending when offers agreed since it was created already cover the wish", async () => {
+    const { repos, markAutoReserved } = autoAcceptRepos({
+      initiator: "giver",
+      incoming: MATCH_ROW.buyQuantity,
+    });
+
+    await runCreate(repos, "giver", 1);
+
+    expect(markAutoReserved).not.toHaveBeenCalled();
+  });
+
+  it("still reserves an offer while the wish has room beside offers agreed since", async () => {
+    const { repos, markAutoReserved } = autoAcceptRepos({
+      initiator: "giver",
+      incoming: MATCH_ROW.buyQuantity - 1,
+    });
+
+    await runCreate(repos, "giver", 1);
+
+    expect(markAutoReserved).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("createTrade auto-accept failures", () => {
+  it("keeps the created trade and answers normally when the accept fails unexpectedly", async () => {
+    const { repos, pinCopies, markAutoReserved } = autoAcceptRepos({ initiator: "giver" });
+    pinCopies.mockRejectedValue(new Error("connection lost"));
+
+    const result = await runCreate(repos, "giver", 1);
+
+    expect(result).not.toBeInstanceOf(Error);
+    expect(markAutoReserved).not.toHaveBeenCalled();
+  });
+
+  it("409s when the auto-accept finds a requested copy gone and closes the trade", async () => {
+    const { repos, markAutoReserved } = autoAcceptRepos({ initiator: "receiver" });
+    const markAutoCancelled = vi.fn(async () => 1);
+    Object.assign((repos as unknown as Record<string, Record<string, unknown>>).cardTrades!, {
+      listRequestedCopyIds: vi.fn(async () => ["copy-gone"]),
+      markAutoCancelled,
+    });
+
+    const result = await runCreate(repos, "receiver", 1);
+
+    expect(result).toBeInstanceOf(AppError);
+    expect((result as AppError).status).toBe(409);
+    expect(markAutoCancelled).toHaveBeenCalledWith("trade-new");
+    expect(markAutoReserved).not.toHaveBeenCalled();
+  });
 });

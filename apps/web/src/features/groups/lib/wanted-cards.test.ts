@@ -87,6 +87,8 @@ function incomingTrade(overrides: Partial<CardTradeResponse> = {}): CardTradeRes
     viewerSyncAppliedAt: null,
     counterpartySyncAppliedAt: null,
     viewerWishEntryId: null,
+    autoAccepted: false,
+    recipientSeenAt: null,
     actionNeeded: null,
     ...overrides,
   };

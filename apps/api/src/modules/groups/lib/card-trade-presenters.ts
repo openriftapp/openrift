@@ -396,5 +396,7 @@ export function toCardTradeResponse(row: CardTradeDtoRow, userId: string): CardT
     counterpartySyncAppliedAt: isoOrNull(counterpartySyncAppliedAt),
     actionNeeded: deriveActionNeeded(row.status, role, row.initiator, viewerSyncAppliedAt),
     viewerWishEntryId: viewerIsGiver ? null : row.receiverWishEntryId,
+    autoAccepted: row.isAutoAccepted,
+    recipientSeenAt: isoOrNull(row.recipientSeenAt),
   };
 }

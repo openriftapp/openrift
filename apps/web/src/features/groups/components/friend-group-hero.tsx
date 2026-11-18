@@ -1,6 +1,7 @@
 import type { FriendGroupDetailResponse } from "@openrift/shared/types/api/friend-group";
 import { Link } from "@tanstack/react-router";
 import { SettingsIcon } from "lucide-react";
+import type { ReactElement } from "react";
 import { Fragment } from "react";
 
 import { CardFan, CardFanOutline } from "@/components/card-fan";
@@ -24,7 +25,7 @@ const HERO_AVATARS = 5;
 
 interface HeroStat {
   key: string;
-  to: "/groups/$slug/members" | "/groups/$slug/shared" | "/groups/$slug/trades";
+  link: ReactElement;
   label: string;
 }
 
@@ -48,14 +49,14 @@ export function FriendGroupHero({ slug, data }: { slug: string; data: FriendGrou
   const meta: HeroStat[] = [
     {
       key: "members",
-      to: "/groups/$slug/members",
+      link: <Link to="/groups/$slug/members" params={{ slug }} />,
       label: m.groups_member_count({ count: data.members.length }),
     },
     ...(groupCollectionCount > 0
       ? [
           {
             key: "collections",
-            to: "/groups/$slug/shared" as const,
+            link: <Link to="/groups/$slug/shared" params={{ slug }} />,
             label: m.groups_hero_group_collections({ count: groupCollectionCount }),
           },
         ]
@@ -64,7 +65,7 @@ export function FriendGroupHero({ slug, data }: { slug: string; data: FriendGrou
       ? [
           {
             key: "traded",
-            to: "/groups/$slug/trades" as const,
+            link: <Link to="/trades" search={{ group: slug }} />,
             label: m.groups_hero_cards_traded({ count: data.cardsTradedCount }),
           },
         ]
@@ -139,7 +140,7 @@ export function FriendGroupHero({ slug, data }: { slug: string; data: FriendGrou
             {meta.map((stat, index) => (
               <Fragment key={stat.key}>
                 {index > 0 ? " · " : null}
-                <TextLink variant="muted" render={<Link to={stat.to} params={{ slug }} />}>
+                <TextLink variant="muted" render={stat.link}>
                   {stat.label}
                 </TextLink>
               </Fragment>

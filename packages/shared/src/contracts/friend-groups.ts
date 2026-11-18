@@ -70,6 +70,11 @@ export const setRevealedContactsSchema = z.object({
   contactMethodIds: z.array(z.uuid()).max(500),
 });
 
+const setTradeAutoAcceptSchema = z.object({
+  autoAcceptOffers: z.boolean(),
+  autoAcceptRequests: z.boolean(),
+});
+
 export const friendGroupTransferOwnershipSchema = z.object({
   userId: z.string().min(1),
 });
@@ -265,6 +270,8 @@ export const friendGroupMemberResponseSchema = z.object({
   gravatarHash: z.string(),
   role: friendGroupRoleSchema,
   contactMethods: z.array(contactMethodSchema),
+  autoAcceptOffers: z.boolean(),
+  autoAcceptRequests: z.boolean(),
   joinedAt: z.string(),
 });
 
@@ -606,6 +613,15 @@ export const friendGroupsContract = {
   setRevealedContacts: authedRoute
     .route({ method: "PUT", path: `${FG}/{slug}/members/{userId}/contacts`, tags: [TAG] })
     .input(withParams(friendGroupSlugAndUserParamSchema, setRevealedContactsSchema))
+    .errors({ NOT_FOUND: { message: "Member not found" } })
+    .output(friendGroupMemberResponseSchema),
+  setTradeAutoAccept: authedRoute
+    .route({
+      method: "PUT",
+      path: `${FG}/{slug}/members/{userId}/trade-auto-accept`,
+      tags: [TAG],
+    })
+    .input(withParams(friendGroupSlugAndUserParamSchema, setTradeAutoAcceptSchema))
     .errors({ NOT_FOUND: { message: "Member not found" } })
     .output(friendGroupMemberResponseSchema),
   kickMember: authedRoute

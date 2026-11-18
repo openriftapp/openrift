@@ -96,6 +96,7 @@ export interface TradeRequestEmailInput {
   quantity: number;
   /** `wants` = receiver-initiated request, `offers` = giver-initiated offer. */
   kind: TradeRequestKind;
+  agreed: boolean;
   /** The initiator's revealed contact channels for this group, or `""` if none. */
   initiatorContact?: string;
   sheetUrl: string;
@@ -114,12 +115,16 @@ export function buildTradeRequestEmail(input: TradeRequestEmailInput): {
   const card = messages.quantityLabel(input.quantity, cardName);
   const greeting = greetingFor(messages, input.recipientName);
 
-  const lead = messages.requestLead(
+  const lead = (input.agreed ? messages.agreedLead : messages.requestLead)(
     `<strong>${escapeHtml(initiator)}</strong>`,
     `<strong>${escapeHtml(card)}</strong>`,
     input.kind,
   );
-  const subject = messages.requestSubject(initiator, cardName, input.kind);
+  const subject = (input.agreed ? messages.agreedSubject : messages.requestSubject)(
+    initiator,
+    cardName,
+    input.kind,
+  );
 
   const contactLine = input.initiatorContact
     ? `<p style="margin:0 0 20px;">${escapeHtml(messages.reachContact(initiator, input.initiatorContact))}</p>`
@@ -128,7 +133,7 @@ export function buildTradeRequestEmail(input: TradeRequestEmailInput): {
   const bodyHtml = `
     <p style="margin:0 0 12px;">${greeting}</p>
     <p style="margin:0 0 16px;">${lead}</p>
-    <p style="margin:0 0 20px;">${messages.requestExpiryNote}</p>
+    <p style="margin:0 0 20px;">${input.agreed ? messages.agreedNote : messages.requestExpiryNote}</p>
     ${contactLine}
     <p style="margin:0;">${emailButton(messages.viewTradeButton, input.sheetUrl)}</p>
   `;
@@ -137,7 +142,7 @@ export function buildTradeRequestEmail(input: TradeRequestEmailInput): {
     input,
     messages,
     "tradeRequests",
-    messages.tradeRequestHeading,
+    input.agreed ? messages.tradeAgreedHeading : messages.tradeRequestHeading,
     subject,
     bodyHtml,
   );
@@ -148,6 +153,7 @@ interface CoalescedRequest {
   quantity: number;
   /** `wants` = they want your card, `offers` = they're offering you one. */
   kind: TradeRequestKind;
+  agreed: boolean;
 }
 
 export interface CoalescedRequestGroup {
@@ -196,34 +202,41 @@ export function buildCoalescedTradeRequestsEmail(input: CoalescedTradeRequestsEm
   if (total === 1 && soleGroup && soleRequest) {
     const soleCardName = soleRequest.cardName ?? messages.aCard;
     const card = messages.quantityLabel(soleRequest.quantity, soleCardName);
+    const { agreed } = soleRequest;
     const bodyHtml = `
       <p style="margin:0 0 12px;">${greeting}</p>
-      <p style="margin:0 0 16px;">${messages.requestLead(`<strong>${senderHtml}</strong>`, `<strong>${escapeHtml(card)}</strong>`, soleRequest.kind)}</p>
-      <p style="margin:0 0 20px;">${messages.requestExpiryNote}</p>
+      <p style="margin:0 0 16px;">${(agreed ? messages.agreedLead : messages.requestLead)(`<strong>${senderHtml}</strong>`, `<strong>${escapeHtml(card)}</strong>`, soleRequest.kind)}</p>
+      <p style="margin:0 0 20px;">${agreed ? messages.agreedNote : messages.requestExpiryNote}</p>
       <p style="margin:0;">${emailButton(messages.viewTradesInButton(soleGroup.groupName), soleGroup.tradesUrl)}</p>
     `;
     return tradeEmail(
       input,
       messages,
       "tradeRequests",
-      messages.tradeRequestHeading,
-      messages.requestSubject(sender, soleCardName, soleRequest.kind),
+      agreed ? messages.tradeAgreedHeading : messages.tradeRequestHeading,
+      (agreed ? messages.agreedSubject : messages.requestSubject)(
+        sender,
+        soleCardName,
+        soleRequest.kind,
+      ),
       bodyHtml,
     );
   }
 
   const requestKinds = [
-    { kind: "wants", heading: messages.wantsFromYouHeading },
-    { kind: "offers", heading: messages.offersYouHeading },
-  ] as const satisfies readonly { kind: TradeRequestKind; heading: string }[];
+    { kind: "wants", agreed: false, heading: messages.wantsFromYouHeading },
+    { kind: "offers", agreed: false, heading: messages.offersYouHeading },
+    { kind: "wants", agreed: true, heading: messages.agreedWantsHeading },
+    { kind: "offers", agreed: true, heading: messages.agreedOffersHeading },
+  ] as const satisfies readonly { kind: TradeRequestKind; agreed: boolean; heading: string }[];
 
   const groupBlocks = renderGroupBlocks(messages, input.groups, (group) =>
     requestKinds
-      .map(({ kind, heading }) =>
+      .map(({ kind, agreed, heading }) =>
         cardSection(
           heading,
           group.requests
-            .filter((request) => request.kind === kind)
+            .filter((request) => request.kind === kind && request.agreed === agreed)
             .map((request) => cardLabel(messages, request)),
         ),
       )
@@ -233,11 +246,23 @@ export function buildCoalescedTradeRequestsEmail(input: CoalescedTradeRequestsEm
   // "wants 2 of your cards and offers you 1" — the directions tell the story
   // from the notification tray, before the email is opened.
   const wantsCount = allRequests.filter((request) => request.kind === "wants").length;
-  const subject = messages.coalescedRequestSubject(sender, wantsCount, total - wantsCount);
+  const agreedCount = allRequests.filter((request) => request.agreed).length;
+  const openCount = total - agreedCount;
+  const subject =
+    agreedCount === 0
+      ? messages.coalescedRequestSubject(sender, wantsCount, total - wantsCount)
+      : messages.coalescedStartedSubject(sender, total);
+  const senderStrong = `<strong>${senderHtml}</strong>`;
+  const introHtml =
+    agreedCount === 0
+      ? `<p style="margin:0 0 20px;">${messages.coalescedRequestLead(senderStrong, total)}</p>`
+      : `<p style="margin:0 0 12px;">${messages.coalescedStartedLead(senderStrong, total)}</p>
+    <p style="margin:0 0 ${openCount === 0 ? 20 : 12}px;">${messages.coalescedAgreedNote(agreedCount)}</p>
+    ${openCount === 0 ? "" : `<p style="margin:0 0 20px;">${messages.coalescedOpenNote(openCount)}</p>`}`;
 
   const bodyHtml = `
     <p style="margin:0 0 12px;">${greeting}</p>
-    <p style="margin:0 0 20px;">${messages.coalescedRequestLead(`<strong>${senderHtml}</strong>`, total)}</p>
+    ${introHtml}
     ${groupBlocks}
   `;
 
@@ -245,7 +270,7 @@ export function buildCoalescedTradeRequestsEmail(input: CoalescedTradeRequestsEm
     input,
     messages,
     "tradeRequests",
-    messages.tradeRequestsHeading,
+    agreedCount === 0 ? messages.tradeRequestsHeading : messages.tradesStartedHeading,
     subject,
     bodyHtml,
   );

@@ -118,6 +118,8 @@ const tradeResponse = {
   counterpartySyncAppliedAt: null,
   actionNeeded: null,
   viewerWishEntryId: null,
+  autoAccepted: false,
+  recipientSeenAt: null,
 };
 
 const tradeRow = {
@@ -142,6 +144,8 @@ const tradeRow = {
   completedAt: null,
   closedAt: null,
   expiresAt: null,
+  isAutoAccepted: false,
+  recipientSeenAt: null,
   giverName: "Alice",
   giverImage: null,
   giverEmail: "alice@example.com",

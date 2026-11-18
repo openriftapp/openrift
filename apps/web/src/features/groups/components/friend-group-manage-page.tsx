@@ -11,6 +11,7 @@ import { LeaveOrDeletePanel } from "@/features/groups/components/leave-or-delete
 import { ShareableCollectionsPanel } from "@/features/groups/components/shareable-collections-panel";
 import { ShareableListsPanel } from "@/features/groups/components/shareable-lists-panel";
 import { ShopsPanel } from "@/features/groups/components/shops-panel";
+import { TradeAutoAcceptPanel } from "@/features/groups/components/trade-auto-accept-panel";
 import { m } from "@/paraglide/messages.js";
 
 interface FriendGroupManagePageProps {
@@ -29,6 +30,8 @@ function manageToc(admin: boolean): PageTocItem[] {
     { id: "contacts", label: m.groups_manage_toc_contacts(), level: 1 },
     { id: "lists", label: m.groups_manage_toc_lists(), level: 1 },
     { id: "collections", label: m.groups_nav_collections(), level: 1 },
+    { id: "trading", label: m.groups_nav_trades() },
+    { id: "auto-accept", label: m.groups_auto_accept_title(), level: 1 },
     { id: "membership", label: m.groups_manage_toc_membership() },
   ];
   return admin ? toc : toc.slice(toc.findIndex((item) => item.id === "sharing"));
@@ -54,6 +57,9 @@ export function FriendGroupManagePage({ slug }: FriendGroupManagePageProps) {
               <ContactSharingPanel data={data} slug={slug} />
               <ShareableListsPanel slug={slug} />
               <ShareableCollectionsPanel slug={slug} />
+            </SettingsGroup>
+            <SettingsGroup id="trading" title={m.groups_nav_trades()}>
+              <TradeAutoAcceptPanel data={data} slug={slug} />
             </SettingsGroup>
             <SettingsGroup id="membership" title={m.groups_manage_toc_membership()}>
               <LeaveOrDeletePanel data={data} slug={slug} />

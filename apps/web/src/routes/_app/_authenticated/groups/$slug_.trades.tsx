@@ -1,17 +1,16 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { ensureFriendGroupDetailCanonical } from "@/features/groups/lib/friend-groups-queries";
-import { privateSeoHead } from "@/lib/seo";
 
+// Trade emails link here, so the slug is resolved through the group's rename aliases first.
 export const Route = createFileRoute("/_app/_authenticated/groups/$slug_/trades")({
-  ssr: "data-only",
-  head: () => privateSeoHead("Trades"),
   loader: async ({ context, location, params }) => {
-    await ensureFriendGroupDetailCanonical({
+    const detail = await ensureFriendGroupDetailCanonical({
       queryClient: context.queryClient,
       userId: context.userId,
       slug: params.slug,
       location,
     });
+    throw redirect({ to: "/trades", search: { group: detail.group.slug }, replace: true });
   },
 });

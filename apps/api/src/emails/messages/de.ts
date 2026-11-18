@@ -58,6 +58,28 @@ export const de: EmailMessages = {
       : `${sender} bietet dir ${cardName} an`,
   requestExpiryNote:
     "Öffne den Tausch, um ihn anzunehmen oder abzulehnen. Hinweis: Tauschanfragen laufen 7 Tage nach dem Versand ab.",
+  tradeAgreedHeading: "Tausch vereinbart",
+  agreedLead: (senderHtml, cardHtml, kind) =>
+    kind === "wants"
+      ? `${senderHtml} bekommt ${cardHtml} von dir. Die Anfrage wurde für dich angenommen, weil du Anfragen in dieser Gruppe automatisch annimmst.`
+      : `${senderHtml} gibt dir ${cardHtml}. Das Angebot wurde für dich angenommen, weil du Angebote in dieser Gruppe automatisch annimmst.`,
+  agreedSubject: (sender, cardName, kind) =>
+    kind === "wants"
+      ? `Vereinbart: ${sender} bekommt ${cardName} von dir`
+      : `Vereinbart: ${sender} gibt dir ${cardName}`,
+  agreedNote:
+    "Öffne den Tausch, um ihn abzubrechen, falls das für dich nicht passt. Das automatische Annehmen kannst du in den Einstellungen der Gruppe ausschalten.",
+  agreedWantsHeading: "Vereinbart: bekommt von dir",
+  agreedOffersHeading: "Vereinbart: gibt dir",
+  coalescedAgreedNote: (count) =>
+    `Bereits vereinbart: ${num("de", count)}, weil du automatisch annimmst. Du kannst jeden Tausch abbrechen, der für dich nicht passt.`,
+  tradesStartedHeading: "Neue Tausche",
+  coalescedStartedSubject: (sender, total) =>
+    `${sender} hat ${num("de", total)} Tausche mit dir gestartet`,
+  coalescedStartedLead: (senderHtml, total) =>
+    `${senderHtml} hat ${num("de", total)} Tausche mit dir gestartet.`,
+  coalescedOpenNote: (count) =>
+    `Warten noch auf deine Antwort: ${num("de", count)}. Offene Anfragen laufen 7 Tage nach dem Versand ab.`,
   reachContact: (name, contact) => `${name} erreichen: ${contact}`,
   viewTradeButton: "Tausch ansehen",
   viewTradesButton: "Tausche ansehen",

@@ -90,6 +90,8 @@ function makeMember(
     role: "member",
     contactMethods: [],
     joinedAt: "2026-01-01T00:00:00Z",
+    autoAcceptOffers: true,
+    autoAcceptRequests: true,
     ...overrides,
   };
 }
