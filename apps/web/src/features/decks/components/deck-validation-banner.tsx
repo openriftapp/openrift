@@ -4,7 +4,7 @@ import { CircleAlertIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-// Purely presentational: reused on surfaces (public share page) where owner-only deck hooks must never run.
+/** Purely presentational: the public share page renders it, so owner-only deck hooks must never run here. */
 export function ViolationBadge({
   formatLabel,
   violations,

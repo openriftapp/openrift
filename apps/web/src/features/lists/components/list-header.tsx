@@ -37,8 +37,6 @@ interface ListHeaderProps {
   actions?: ReactNode;
 }
 
-// Slot order, left to right:
-// backLink -> (menu) title -> intent badge -> "N Kind" badge -> value/attribution -> actions
 export function ListHeader({
   list,
   entries,

@@ -44,7 +44,7 @@ function RuleRow({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-// Matches the geometry Switch renders: h-[18.4px] w-8, size-4 thumb.
+/** Matches the geometry Switch renders: h-[18.4px] w-8, size-4 thumb. */
 function RuleSwitch() {
   return (
     <span className="bg-primary inline-flex h-[18.4px] w-8 shrink-0 items-center rounded-full border border-transparent">

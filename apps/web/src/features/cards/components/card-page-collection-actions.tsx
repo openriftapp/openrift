@@ -7,8 +7,10 @@ import { useTileOwnedCounts } from "@/features/collections/hooks/use-owned-count
 import { useUserId } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
 
-// Every count here comes from a live query with no server snapshot; the card
-// page is full-SSR, so this must only ever be mounted behind `useHydrated()`.
+/**
+ * Every count here comes from a live query with no server snapshot; the card
+ * page is full-SSR, so this must only ever be mounted behind `useHydrated()`.
+ */
 export function CardPageCollectionActions({
   printing,
   siblings,

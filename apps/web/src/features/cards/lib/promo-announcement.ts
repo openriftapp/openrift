@@ -13,7 +13,7 @@ function isSpace(char: string | undefined): boolean {
   return char === undefined || WHITESPACE.test(char);
 }
 
-// A straight quote after whitespace that leads into a word opens a nested quote.
+/** A straight quote after whitespace that leads into a word opens a nested quote. */
 function leadingQuote(text: string): { quote: string; end: number } | null {
   if (!text.startsWith('"') && !text.startsWith("“")) {
     return null;

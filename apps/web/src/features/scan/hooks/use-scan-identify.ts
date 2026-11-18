@@ -52,8 +52,7 @@ export function useScanIdentify({
   const identifySeqRef = useRef(0);
   const [answeringId, setAnsweringId] = useState<string | null>(null);
 
-  // Also how a second copy of a card still in hand gets counted: the engine
-  // won't lock the same artwork twice on its own.
+  /** Also counts a second copy of a card still in hand: the engine won't lock the same artwork twice. */
   async function identifyCard() {
     if (!bank || !index) {
       return;

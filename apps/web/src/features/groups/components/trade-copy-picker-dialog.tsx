@@ -183,8 +183,6 @@ function selectionHint(selected: number, quantity: number): string {
   return m.trades_picked({ count: quantity });
 }
 
-// Opens on the copies already pinned to the trade when there are any,
-// otherwise the server's own pin order; either way capped at `quantity`.
 function defaultSelection(options: CardTradeCopyOptionsResponse, quantity: number): Set<string> {
   const pinned = options.copies.filter((copy) => copy.pinned);
   const preselected = (pinned.length > 0 ? pinned : options.copies).slice(0, quantity);

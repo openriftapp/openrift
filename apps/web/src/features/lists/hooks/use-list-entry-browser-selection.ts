@@ -189,7 +189,7 @@ export function useListEntryBrowserSelection({
 
   const findBy = selectionFindBy(view, groupBy);
 
-  // `itemId` pins the click to its tile: a copy list has one tile per copy.
+  /** `itemId` pins the click to its tile: a copy list has one tile per copy. */
   const handleCardClick = (printing: Printing, itemId?: string) => {
     useSelectionStore.getState().selectCard(printing, items, findBy, {
       itemId,
@@ -341,8 +341,10 @@ export function useListEntryBrowserSelection({
     };
   })();
 
-  // A selection can hold both kinds: rows the API moves and rule entries it can
-  // only re-add on the target list.
+  /**
+   * A selection can hold both kinds: rows the API moves and rule entries it can
+   * only re-add on the target list.
+   */
   const runBulkMove = async (toList: ListResponse, resolution: MoveResolution | null) => {
     const { entryIds, ruleSubjects } = splitSelectionParts(
       actionEntryIds,

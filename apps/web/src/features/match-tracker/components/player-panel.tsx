@@ -53,7 +53,6 @@ const XP_STYLES: Record<XpSize, { tab: string; rail: string; step: string; value
   xl: { tab: "h-11 w-8", rail: "w-9", step: "h-7 text-lg", value: "text-lg" },
 };
 
-// Subscribes to only its own slice of the store, so a tap on one panel never re-renders the others.
 export function PlayerPanel({
   playerId,
   rotated,

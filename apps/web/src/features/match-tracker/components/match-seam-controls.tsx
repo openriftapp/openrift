@@ -28,7 +28,7 @@ import { m } from "@/paraglide/messages.js";
 const SEAM_BUTTON_CLASS =
   "bg-popover hover:border-primary grid size-8 place-items-center rounded-full border shadow-sm transition-colors disabled:opacity-50";
 
-// Only symmetric icons work here: the seam is upside down for whoever sits on the far side.
+/** Only symmetric icons work here: the seam is upside down for whoever sits on the far side. */
 export function MatchSeamControls() {
   const { isRolling, roll } = useFirstPlayerSpotlight();
   // A plain string compares by value, so no shallow wrapper is needed here.

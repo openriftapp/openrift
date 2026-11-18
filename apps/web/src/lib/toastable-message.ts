@@ -1,7 +1,9 @@
 const MAX_TOAST_LENGTH = 300;
 
-// A timed-out POST comes back as nginx's HTML error page, and that body
-// reaches the mutation handler as the error's `message`.
+/**
+ * A timed-out POST comes back as nginx's HTML error page, and that body
+ * reaches the mutation handler as the error's `message`.
+ */
 function isPresentable(message: string): boolean {
   if (message === "") {
     return false;

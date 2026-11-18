@@ -3,7 +3,7 @@ import type { Marketplace } from "@openrift/shared/types/pricing";
 import { MARKETPLACE_ICONS } from "@/lib/marketplace-icons";
 import { cn } from "@/lib/utils";
 
-// Defaults to decorative (alt=""); pass `alt` only where the icon is the sole identification.
+/** Defaults to decorative (alt=""); pass `alt` only where the icon is the sole identification. */
 export function MarketplaceIcon({
   marketplace,
   className,

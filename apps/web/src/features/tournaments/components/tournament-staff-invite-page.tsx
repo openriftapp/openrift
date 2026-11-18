@@ -62,7 +62,7 @@ function StaffInviteAction({
   );
 }
 
-// The grant only happens on explicit confirm (a POST), never on opening the page.
+/** The grant only happens on explicit confirm (a POST), never on opening the page. */
 export function TournamentStaffInvitePage({ token }: { token: string }) {
   const { data } = useTournamentStaffInviteLanding(token);
   const claim = useClaimStaffInvite();

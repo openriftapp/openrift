@@ -22,8 +22,10 @@ let matcher: ReturnType<typeof createMatcher> | undefined;
 const createMatcher = () =>
   createRouter({ routeTree, context: { queryClient: new QueryClient() } });
 
-// Tempo turns http.route and the span name into metric labels, so both carry
-// the route template; the concrete path stays on url.path.
+/**
+ * Tempo turns http.route and the span name into metric labels, so both carry
+ * the route template; the concrete path stays on url.path.
+ */
 const routeTemplate = (pathname: string): string => {
   matcher ??= createMatcher();
   const [, rawParams, route] = matcher.getMatchedRoutes(pathname);

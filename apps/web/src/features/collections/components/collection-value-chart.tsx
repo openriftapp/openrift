@@ -33,8 +33,10 @@ function timeRanges(): { value: TimeRange; label: string }[] {
   ];
 }
 
-// --chart-2, not the neutral --chart-3: gold/gray falls under the ΔE 15
-// contrast floor in dark mode, gold/teal clears it.
+/**
+ * --chart-2, not the neutral --chart-3: gold/gray falls under the ΔE 15
+ * contrast floor in dark mode, gold/teal clears it.
+ */
 function buildChartConfig(): ChartConfig {
   return {
     value: { label: m.collections_stats_value_series_value(), color: "var(--chart-1)" },

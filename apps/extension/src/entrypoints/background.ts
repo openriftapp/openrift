@@ -33,7 +33,7 @@ async function handlePageLoad(tabId: number, url: string): Promise<void> {
   }
 }
 
-// Firefox MV2 has browserAction only; Chrome MV3 has action only.
+/** Firefox MV2 has browserAction only; Chrome MV3 has action only. */
 function toolbarAction() {
   return browser.action ?? browser.browserAction;
 }

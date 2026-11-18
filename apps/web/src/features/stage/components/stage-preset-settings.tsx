@@ -15,7 +15,7 @@ import { useUserId } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
-// Presets never auto-apply on load.
+/** Presets never auto-apply on load. */
 export function StagePresetSettings() {
   const userId = useUserId();
   const { data: presets } = useStagePresets();

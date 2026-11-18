@@ -61,8 +61,10 @@ export async function readCopyOptionsReported(
   return options;
 }
 
-// Settle hard-deletes a specific copy irreversibly, so a giver's row is held
-// back for a choice when its candidate copies differ; the receiver is never asked.
+/**
+ * Settle hard-deletes a specific copy irreversibly, so a giver's row is held
+ * back for a choice when its candidate copies differ; the receiver is never asked.
+ */
 export async function runSettleBatch(
   steps: readonly SettleStep[],
   deps: SettleBatchDeps,

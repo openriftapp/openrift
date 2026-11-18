@@ -112,7 +112,7 @@ export function trackPendingInserts(
   }
 }
 
-// The optimistic row hides the stored one until the whole transaction settles.
+/** The optimistic row hides the stored one until the whole transaction settles. */
 export async function waitForInsert(
   collection: CopiesCollection,
   row: CopyResponse,
@@ -149,7 +149,7 @@ function send<T>(label: string, request: (signal: AbortSignal) => Promise<T>): P
   });
 }
 
-// A timed-out add may have reached the API; resending the same client ids replays the stored rows.
+/** A timed-out add may have reached the API; resending the same client ids replays the stored rows. */
 async function retryOnceOnTimeout<T>(attempt: () => Promise<T>): Promise<T> {
   try {
     return await attempt();
@@ -169,8 +169,10 @@ function isMissingRowError(error: unknown): boolean {
   );
 }
 
-// An earlier chunk's store write can flush a refetch that already removed a later chunk's row,
-// and a batched write then refuses every row in it.
+/**
+ * An earlier chunk's store write can flush a refetch that already removed a later chunk's row,
+ * and a batched write then refuses every row in it.
+ */
 export async function writeSkippingMissing<T>(
   items: readonly T[],
   write: (batch: T[]) => Promise<void>,
@@ -286,7 +288,7 @@ function consentOf(
   return undefined;
 }
 
-// Chunks already sent stay written, so a decline after one of them is a partial failure.
+/** Chunks already sent stay written, so a decline after one of them is a partial failure. */
 async function sendConsented<T>(
   consent: TradeCancelConsent | undefined,
   progress: ChunkProgress,

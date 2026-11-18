@@ -27,8 +27,10 @@ export interface RenderedSectionProps {
   setNameBySlug: Map<string, string>;
 }
 
-// Pre-measurement uses container-query Tailwind classes so SSR HTML matches
-// the eventual column count; post-measurement switches to inline `gridTemplateColumns`.
+/**
+ * Pre-measurement uses container-query Tailwind classes so SSR HTML matches
+ * the eventual column count; post-measurement switches to inline `gridTemplateColumns`.
+ */
 export function buildGridProps(
   columns: number,
   containerWidth: number,

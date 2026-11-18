@@ -42,7 +42,7 @@ function ZoneRing({ count, expected }: { count: number; expected?: number }) {
   );
 }
 
-// Must be mounted inside the editor's SidebarProvider: it opens the zone sheet via useSidebar.
+/** Must be mounted inside the editor's SidebarProvider: it opens the zone sheet via useSidebar. */
 export function DeckMobileDock({ deckId, zone }: { deckId: string; zone: DeckZone }) {
   const { zoneLabels } = useZoneOrder();
   const cards = useDeckCards(deckId);

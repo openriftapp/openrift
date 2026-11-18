@@ -62,7 +62,6 @@ function checkSortOptions(): SortGroupOption<DeckCheckSort>[] {
   ];
 }
 
-// Polls so concurrent judges reconcile.
 export function TournamentDeckCheckEntry({
   tournamentId,
   entryId,
@@ -111,7 +110,7 @@ export function TournamentDeckCheckEntry({
 
   const pendingTransition = setState.isPending ? (setState.variables ?? null) : null;
 
-  // Folds in any unsaved notes so they survive advancing the entry's state.
+  /** Folds in any unsaved notes so they survive advancing the entry's state. */
   const transition = (state: DeckCheckEntryState, reviewOutcome?: DeckCheckReviewOutcome) => {
     setState.mutate(
       {

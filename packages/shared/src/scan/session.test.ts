@@ -66,16 +66,20 @@ function wholeFrameGuide(): (width: number, height: number) => Quad {
   return (width, height) => boxQuad(0, 0, width, height);
 }
 
-// Places each key at (cos, sin) of an angle so 1 - cos equals its requested distance
-// from the fixed query vector (1, 0).
+/**
+ * Places each key at (cos, sin) of an angle so 1 - cos equals its requested distance
+ * from the fixed query vector (1, 0).
+ */
 function createBank(distances: Record<string, number>): EmbedBank {
   const bank: EmbedBank = { keys: [], vectors: new Float32Array(0) };
   setDistances(bank, distances);
   return bank;
 }
 
-// Mutates in place: the session holds this bank object, not a copy, so a running
-// session sees the change on its next frame.
+/**
+ * Mutates in place: the session holds this bank object, not a copy, so a running
+ * session sees the change on its next frame.
+ */
 function setDistances(bank: EmbedBank, distances: Record<string, number>): void {
   bank.keys = Object.keys(distances);
   bank.vectors = new Float32Array(bank.keys.length * 2);
@@ -121,8 +125,10 @@ function testDeps(overrides: Partial<ScanSessionDeps> = {}) {
 const frozenClock = () => 0;
 
 describe("createScanSession — absent-frame re-arm", () => {
-  // `present`/`absent` move the whole card in and out of frame at once: an absent
-  // card must neither rank plausibly nor verify for a frame to count as absent.
+  /**
+   * `present`/`absent` move the whole card in and out of frame at once: an absent
+   * card must neither rank plausibly nor verify for a frame to count as absent.
+   */
   async function lockedSession() {
     const bank = createBank({ "k-a": 0.05 });
     let frame = cardTexture(1);
@@ -306,7 +312,7 @@ describe("createScanSession — printing attempts", () => {
     return { session, frame: printingCard(aimedStamp) };
   }
 
-  // Frame 0 starts the run; every frame from the lock on takes one attempt.
+  /** Frame 0 starts the run; every frame from the lock on takes one attempt. */
   async function pastTheCap(session: ReturnType<typeof createScanSession>, frame: RgbaImage) {
     const outcomes = [];
     for (let index = 0; index < PRINTING_ATTEMPTS + 2; index++) {
@@ -684,7 +690,7 @@ describe("createScanSession — automatic sweep", { timeout: 20_000 }, () => {
     expect(last).toBe(false);
   });
 
-  // Corners in the card's own order: rotating clockwise puts its top-left at the frame's top-right.
+  /** Corners in the card's own order: rotating clockwise puts its top-left at the frame's top-right. */
   const sidewaysOutline = (sideways: RgbaImage) =>
     outline([
       { x: sideways.width - 12, y: 12 },

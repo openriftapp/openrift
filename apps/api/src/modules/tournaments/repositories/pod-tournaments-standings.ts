@@ -44,9 +44,10 @@ interface FinalizedMemberRow {
   gamePoints: number | null;
 }
 
-// A stable pseudo-random key per player id, used as the final standings
-// tie-breaker so fully-tied players get an arbitrary but consistent order instead
-// of reshuffling on every read. Math.imul keeps each step within a 32-bit int.
+/**
+ * Stable pseudo-random key per player id, the final tie-breaker so full ties keep one order across reads.
+ * Math.imul keeps each step within a 32-bit int.
+ */
 export function tieBreakKey(id: string): number {
   let hash = 0;
   for (let index = 0; index < id.length; index++) {
@@ -282,7 +283,7 @@ export function podStandingsRepo(db: Kysely<Database>) {
       .execute();
   }
 
-  // One row per finalized bye (a player id, repeated if they byed in many rounds).
+  /** One row per finalized bye (a player id, repeated if they byed in many rounds). */
   async function loadFinalizedByePlayerIds(
     tournamentId: string,
     throughRound?: number,

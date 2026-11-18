@@ -247,8 +247,10 @@ export function CardBrowser() {
         handleOpenVariants(printing, anchorEl, intent, groupBy === "set", !inCardsView)
     : undefined;
 
-  // Owned variants are counted on click, not pre-bucketed into a map, since
-  // that map would rebuild on every +/- and bust the grid's memoization.
+  /**
+   * Owned variants are counted on click, not pre-bucketed into a map, since
+   * that map would rebuild on every +/- and bust the grid's memoization.
+   */
   const handleDecrement = (printing: Printing, anchorEl?: HTMLElement) => {
     if (useAddModeStore.getState().closeVariantsOn(anchorEl)) {
       return;

@@ -7,8 +7,10 @@ export interface PendingRequest {
   quantity: number;
 }
 
-// Only `pending` requests are included; `reserved` and terminal trades don't apply.
-// uq_card_trades_live caps live trades at one per printing+member.
+/**
+ * Only `pending` requests are included; `reserved` and terminal trades don't apply.
+ * uq_card_trades_live caps live trades at one per printing+member.
+ */
 export function pendingRequestsByPrinting(
   trades: readonly CardTradeResponse[],
   groupSlug: string,
@@ -61,9 +63,10 @@ export function listTargetOptions(
   return options;
 }
 
-// A new wishlist is printing-kind, since card-kind would match every printing
-// of the card. An existing list keeps its kind, narrowed since wishlists are
-// never copy-kind.
+/**
+ * A new wishlist is printing-kind: card-kind would match every printing of the card.
+ * An existing list keeps its kind (wishlists are never copy-kind).
+ */
 export function requestListKind(chosen?: ListTargetOption): "card" | "printing" {
   if (!chosen) {
     return "printing";
@@ -98,8 +101,10 @@ interface OwnedCopy {
   groupId: string | null;
 }
 
-// Group-owned copies belong to a shared pool, not the viewer, so they can't
-// be offered in a personal trade.
+/**
+ * Group-owned copies belong to a shared pool, not the viewer, so they can't
+ * be offered in a personal trade.
+ */
 export function personalCopyIdsByPrinting(copies: readonly OwnedCopy[]): Map<string, string[]> {
   const byPrinting = new Map<string, string[]>();
   for (const copy of copies) {

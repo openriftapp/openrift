@@ -17,8 +17,10 @@ type GenerateResolver = (opts: {
 }) => string;
 type GetServerFnById = (id: string, access: { origin: string }) => Promise<unknown>;
 
-// The generator is not in start-plugin-core's exports map, so it is loaded by file path
-// from the copy @tanstack/react-start depends on.
+/**
+ * The generator is not in start-plugin-core's exports map, so it is loaded by file path
+ * from the copy @tanstack/react-start depends on.
+ */
 async function installedResolverGenerator(): Promise<GenerateResolver> {
   const startRequire = createRequire(
     createRequire(import.meta.url).resolve("@tanstack/react-start/package.json"),

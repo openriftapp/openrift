@@ -30,8 +30,7 @@ export function hasCardPlateContent(printing: Printing, fields: OverlayPlateFiel
   );
 }
 
-// Shared by the OBS overlay and the presentation stage, so a field added
-// here reaches both; errata wins over printed wording via CardDetailText.
+/** Shared by the OBS overlay and the presentation stage; errata wins over printed wording. */
 export function CardPlateContent({
   printing,
   fields,

@@ -45,7 +45,7 @@ export function createRunHeartbeat(deps: RunHeartbeatDeps, runId?: string): RunH
     }
   }
 
-  // Must merge, not replace: a cancel written while this beat was assembling has to survive.
+  /** Must merge, not replace: a cancel written while this beat was assembling has to survive. */
   async function beat(result: object): Promise<boolean> {
     const cancel = await cancelled();
     try {

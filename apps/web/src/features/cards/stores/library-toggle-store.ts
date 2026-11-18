@@ -23,7 +23,7 @@ export const useLibraryToggleStore = create<LibraryToggleState>()((set) => ({
   reset: () => set({ showLibrary: INITIAL }),
 }));
 
-// `scope` is expected to be constant for a given call site: the seed is read once on mount.
+/** `scope` is expected to be constant for a given call site: the seed is read once on mount. */
 export function useLibraryToggle(
   scope: LibraryToggleScope,
 ): [boolean, Dispatch<SetStateAction<boolean>>] {

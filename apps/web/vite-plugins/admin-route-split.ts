@@ -7,7 +7,7 @@ type SplitNode =
 
 const ADMIN_ROUTE_ID = "/_app/_authenticated/admin";
 
-// Error and pending components stay inline: they are tiny and must render before any chunk loads.
+/** Error and pending components stay inline: they must render before any chunk loads. */
 export function adminRouteSplitBehavior({
   routeId,
 }: {

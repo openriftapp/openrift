@@ -53,8 +53,10 @@ function startBuiltWebServer() {
   });
 }
 
-// The built server has no /api proxy; scripts/local-proxy.ts routes /api to the
-// API and everything else to the web server, as `bun run start` does.
+/**
+ * The built server has no /api proxy; scripts/local-proxy.ts routes /api to the
+ * API and everything else to the web server, as `bun run start` does.
+ */
 function startLocalProxy() {
   console.log("[e2e] Starting local proxy on port", WEB_PORT, "...");
   const proxy = spawn("bun", [resolve(repoRoot, "scripts/local-proxy.ts")], {
@@ -86,7 +88,7 @@ async function waitForServer(url: string, timeoutMs: number) {
   throw new Error(`Server at ${url} did not start within ${timeoutMs}ms`);
 }
 
-// "ok" means the database is reachable, migrated, and has seed data.
+/** "ok" means the database is reachable, migrated, and has seed data. */
 async function waitForApiHealthy(url: string, timeoutMs: number) {
   const start = Date.now();
   let lastStatus: string | undefined;

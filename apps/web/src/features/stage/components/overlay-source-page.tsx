@@ -27,8 +27,7 @@ export function OverlaySourcePage() {
   );
 }
 
-// Mounted only after hydration: the poll is a browser-direct fetch, so SSR
-// would just produce a frame hydration immediately replaces.
+/** Mount only after hydration: the poll is a browser-direct fetch. */
 function OverlaySourceCanvas({ token, presetId }: { token: string; presetId?: string }) {
   const { data } = useOverlayState(token, presetId);
   const { printingsBySideKey, cardsById, printingsByCardId } = useCards();

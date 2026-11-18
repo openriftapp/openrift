@@ -36,7 +36,7 @@ export function assertDateOrder(
   }
 }
 
-// Mirrors the DB CHECKs (chk_tournaments_play_mode_*).
+/** Mirrors the DB CHECKs (chk_tournaments_play_mode_*). */
 export function assertPlayModeCompatible(
   playMode: TournamentPlayMode,
   pairingStyle: TournamentPairingStyle,
@@ -61,7 +61,7 @@ export function assertPlayModeCompatible(
   }
 }
 
-// Mirrors chk_tournaments_group_cut: the format runs on size-2 pods only.
+/** Mirrors chk_tournaments_group_cut: the format runs on size-2 pods only. */
 export function assertGroupCutCompatible(
   format: TournamentFormat,
   pairingStyle: TournamentPairingStyle,
@@ -126,9 +126,10 @@ export async function assertLegendAssignable(
   }
 }
 
-// `null`/`undefined` pass (unset/clear); otherwise the value must be an
-// existing custom-tag slug in the `region` category — the same vocabulary the
-// Custom - Region deck format uses.
+/**
+ * null/undefined pass (unset/clear). Any other value must be an existing
+ * custom-tag slug in the `region` category.
+ */
 export async function assertValidRegion(
   repos: Repos,
   region: string | null | undefined,

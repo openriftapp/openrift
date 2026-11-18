@@ -38,8 +38,10 @@ const fetchEntry = createServerFn({ method: "GET" })
     orNotFound(apiOrpcClient(tournamentDeckCheckContract, context.cookie).getEntry(data)),
   );
 
-// `enabled: false` skips the query for viewers who can't read deck-check; the endpoint
-// is staff-only and 403s participants otherwise.
+/**
+ * `enabled: false` skips the query for viewers who can't read deck-check; the endpoint
+ * is staff-only and 403s participants otherwise.
+ */
 export function useTournamentDeckCheckEntries(tournamentId: string, enabled = true) {
   const userId = useRequiredUserId();
   return useQuery({

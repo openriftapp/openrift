@@ -20,8 +20,10 @@ import { useTradeAddTargetStore } from "@/features/groups/stores/trade-add-targe
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
-// Changes where incoming trade copies land, and nothing else: the settle
-// session commits every row at once, so the target must be set beforehand.
+/**
+ * Changes where incoming trade copies land, and nothing else: the settle
+ * session commits every row at once, so the target must be set beforehand.
+ */
 export function TradeAddTargetDialog({
   open,
   onOpenChange,

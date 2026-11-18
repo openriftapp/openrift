@@ -26,8 +26,10 @@ export function indexProductPrintings(
   return Map.groupBy(productPrintings, (p) => productKey(p.externalId, p.finish));
 }
 
-// Cardmarket products are language-aggregate, so the article's own
-// `idLanguage` picks among the printings behind one product.
+/**
+ * Cardmarket products are language-aggregate, so the article's own
+ * `idLanguage` picks among the printings behind one product.
+ */
 export function resolveCardmarketProduct(
   query: CardmarketProductQuery,
   index: CardmarketProductIndex,

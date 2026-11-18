@@ -159,8 +159,10 @@ export function searchRules(index: RuleIndex, query: string, limit: number): Ind
   return searchByText(index, candidates, rest, kind, limit);
 }
 
-// Card names and printing codes always start with letters, so a number-shaped
-// `[[…]]` reference can be routed to the rule index safely.
+/**
+ * Card names and printing codes always start with letters, so a number-shaped
+ * `[[…]]` reference can be routed to the rule index safely.
+ */
 export function isRuleCitation(reference: string): boolean {
   const { rest } = parseRuleQuery(reference);
   return /^\d[\d.a-z]*$/iu.test(rest);
@@ -171,7 +173,7 @@ export function findRule(index: RuleIndex, query: string): IndexedRule | undefin
   return index.byKey.get(normalized) ?? searchRules(index, query, 1)[0];
 }
 
-// Discord caps both the label and the value at 100 characters.
+/** Discord caps both the label and the value at 100 characters. */
 export function ruleChoice(entry: IndexedRule): { name: string; value: string } {
   const citation = `${entry.prefix} ${entry.number}`;
   const label = `${citation} — ${entry.plain}`;

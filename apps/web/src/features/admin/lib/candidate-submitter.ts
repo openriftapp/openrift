@@ -11,8 +11,10 @@ export interface SourceSubmitter {
   note: string | null;
 }
 
-// Keyed by candidate card id: candidate printing rows carry no attribution
-// of their own and resolve it through the parent `candidateCardId`.
+/**
+ * Keyed by candidate card id: candidate printing rows carry no attribution
+ * of their own and resolve it through the parent `candidateCardId`.
+ */
 export function buildSourceSubmitters(
   sources: CandidateCardResponse[],
 ): Record<string, SourceSubmitter> {
@@ -26,7 +28,7 @@ export function buildSourceSubmitters(
   );
 }
 
-// A deleted account keeps the note but drops the id.
+/** A deleted account keeps the note but drops the id. */
 export function submitterLabel(submitter: SourceSubmitter): string {
   if (submitter.name) {
     return submitter.name;

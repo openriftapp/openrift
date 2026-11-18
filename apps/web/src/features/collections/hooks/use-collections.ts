@@ -43,7 +43,7 @@ function withLiveCopyCounts(
   return sorted.map((col) => ({ ...col, copyCount: countById.get(col.id) ?? 0 }));
 }
 
-// Subscribing to a store starts its sync; a page that only lists collections must not download every copy.
+/** Subscribing to a store starts its sync; a page that only lists collections must not download every copy. */
 const unsubscribed = (): void => undefined;
 
 function useCopiesSyncing(copies: CopiesCollection | null): boolean {

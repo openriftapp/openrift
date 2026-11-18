@@ -70,7 +70,7 @@ export interface CatalogSync {
 
 type CatalogErrata = CatalogResponse["cards"][string]["errata"][number];
 
-// A source still on catalog shape 7 sends one English errata object; drop once prod serves shape 8.
+/** A source still on catalog shape 7 sends one English errata object; drop once prod serves shape 8. */
 function errataList(
   errata: CatalogErrata[] | Omit<CatalogErrata, "language"> | null,
 ): CatalogErrata[] {

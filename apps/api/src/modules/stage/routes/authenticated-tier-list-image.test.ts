@@ -24,8 +24,10 @@ const mockTierListsRepo = {
   getByIdForUser: vi.fn(),
 };
 
-// A 418 sentinel stands in for the oRPC catch-all, distinguishing "the image
-// route's auth gated this" (401) from "fell through to a public route" (418).
+/**
+ * A 418 sentinel stands in for the oRPC catch-all, distinguishing "the image
+ * route's auth gated this" (401) from "fell through to a public route" (418).
+ */
 function buildApp(session: { user: { id: string; name?: string } } | null) {
   return new Hono<{ Variables: Variables }>()
     .onError((err, c) => {

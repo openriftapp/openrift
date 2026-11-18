@@ -24,8 +24,10 @@ export function hasFace(detail: AdminCardDetailResponse, faceId: string): boolea
   return detail.printings.some((printing) => printing.faceId === faceId);
 }
 
-// Cardmarket rows apply to all siblings, so any matching finish works there;
-// other marketplaces also require a language match.
+/**
+ * Cardmarket rows apply to all siblings, so any matching finish works there;
+ * other marketplaces also require a language match.
+ */
 export function marketplaceFocusFace(
   printings: readonly AdminPrintingResponse[],
   marketplace: AdminMarketplaceName,

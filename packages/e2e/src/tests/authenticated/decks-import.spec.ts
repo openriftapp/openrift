@@ -66,7 +66,7 @@ function buildTextSample(): string {
   );
 }
 
-// Positional TTS: index 0 = legend, 1 = chosen champion, 2+ = main deck.
+/** Positional TTS: index 0 = legend, 1 = chosen champion, 2+ = main deck. */
 function buildTtsSample(): string {
   return [
     "OGS-017-1",
@@ -82,8 +82,10 @@ async function goToImport(page: Page) {
   await expect(page.getByRole("heading", { name: "Import Deck" })).toBeVisible({ timeout: 15_000 });
 }
 
-// The trigger takes no accessible name from its <Label for>, so address it
-// by the id that label points at.
+/**
+ * The trigger takes no accessible name from its <Label for>, so address it
+ * by the id that label points at.
+ */
 function formatSelect(page: Page): Locator {
   return page.locator("#import-mode");
 }

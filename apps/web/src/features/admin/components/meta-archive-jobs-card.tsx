@@ -16,7 +16,7 @@ import { runningRunId } from "@/features/admin/lib/meta-catalog-display";
 import { latestRun } from "@/features/admin/lib/meta-source-overview";
 import { summarizeRunResult } from "@/lib/job-run-display";
 
-// These re-derive published events from mirrors already held; neither belongs to a source.
+/** Archive jobs re-derive published events from mirrors already held; neither belongs to a source. */
 export function ArchiveJobsCard() {
   const { data } = useMetaArchiveJobs();
   const runs = data?.runs ?? [];

@@ -77,7 +77,7 @@ function emptyVolume(): MemberShareVolume {
   return { offered: 0, wanted: 0, collections: 0 };
 }
 
-// Organize lists carry no trading meaning, so they are left out.
+/** Organize lists carry no trading meaning, so they are left out. */
 export function memberShareVolumes(
   shares: FriendGroupShareResponse[],
   collectionShares: FriendGroupCollectionShareResponse[],
@@ -110,7 +110,6 @@ export function filterMembersByName(
   return members.filter((member) => matchesTextQuery(query, [member.userName]));
 }
 
-// Nameless members sort last; the rest compare by the viewer's locale.
 function compareNames(a: FriendGroupMemberResponse, b: FriendGroupMemberResponse): number {
   if (a.userName === null || b.userName === null) {
     return a.userName === b.userName ? 0 : a.userName === null ? 1 : -1;

@@ -1,6 +1,6 @@
 import { Rectangle } from "recharts";
 
-// crispEdges avoids a sub-pixel seam between adjacent stacked segments.
+/** crispEdges avoids a sub-pixel seam between adjacent stacked segments. */
 export function CrispBar(props: Record<string, unknown>) {
   return <Rectangle {...props} shapeRendering="crispEdges" />;
 }

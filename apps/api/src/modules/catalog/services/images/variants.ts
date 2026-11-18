@@ -293,7 +293,7 @@ export interface OriginalOnDisk {
   height: number;
 }
 
-// Dimensions come from the un-oriented decode: the straighten UI reads the file with EXIF ignored.
+/** Dimensions come from the un-oriented decode: the straighten UI reads the file with EXIF ignored. */
 export async function ensureOriginalOnDisk(io: Io, imageFileId: string): Promise<OriginalOnDisk> {
   const outputDir = join(CARD_MEDIA_DIR, imageFileId.slice(-2));
   const origFile = await requireOrigFile(io, imageFileId, "Image has no original to straighten");

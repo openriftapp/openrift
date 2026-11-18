@@ -3,8 +3,10 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useDisplayLanguages } from "@/hooks/use-display-languages";
 
-// Includes pinnedPrintingId even when its language is filtered out, or the
-// active row would vanish from its own chooser.
+/**
+ * Includes pinnedPrintingId even when its language is filtered out, or the
+ * active row would vanish from its own chooser.
+ */
 export function usePrintingChoices(
   cardId: string,
   pinnedPrintingId: string | null,

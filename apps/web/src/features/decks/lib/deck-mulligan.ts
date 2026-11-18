@@ -2,7 +2,7 @@ interface KeyedCard {
   key: string;
 }
 
-// Recycles the set-aside cards to the library bottom in random order (rules 118, Recycle).
+/** Recycles the set-aside cards to the library bottom in random order (rules 118, Recycle). */
 export function applyMulligan<Card extends KeyedCard>(
   hand: readonly Card[],
   library: readonly Card[],

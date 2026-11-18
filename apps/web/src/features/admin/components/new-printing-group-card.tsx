@@ -157,8 +157,6 @@ export function NewPrintingGroupCard({
   // the "Pre-filled" marker clears.
   const [edited, setEdited] = useState<Record<string, unknown> | null>(null);
 
-  // appendSetTotal skips runes/tokens and codes that already carry a slash, so
-  // a full code like `VEN-R02-EN` is left untouched.
   function withSetTotal(record: Record<string, unknown>): Record<string, unknown> {
     const code = record.publicCode;
     const setSlug = record.setId;

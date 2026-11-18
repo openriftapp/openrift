@@ -78,7 +78,7 @@ export const friendGroupsBannerRouter = {
   ),
 };
 
-// Hono matches a `use` path exactly, so the upload path needs its own body limit.
+/** Hono matches a `use` path exactly, so the upload path needs its own body limit. */
 export function mountFriendGroupBannerMiddleware(app: Hono<{ Variables: Variables }>): void {
   app.use(
     "/api/v1/friend-groups/:slug/banner",

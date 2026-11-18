@@ -42,8 +42,10 @@ async function grantClipboard(page: Page) {
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
 }
 
-// Scoped to main: the global header's user menu is also aria-haspopup="menu"
-// and comes first in DOM order.
+/**
+ * Scoped to main: the global header's user menu is also aria-haspopup="menu"
+ * and comes first in DOM order.
+ */
 function kebabTrigger(page: Page) {
   return page.locator("main").locator('button[aria-haspopup="menu"]').first();
 }
@@ -335,8 +337,10 @@ test.describe("deck editor exports", () => {
 
       const dialog = await openPrintDialog(page, "Proxies");
 
-      // Card images are held until the in-flight state is asserted, so the
-      // generation cannot finish first.
+      /**
+       * Card images are held until the in-flight state is asserted, so the
+       * generation cannot finish first.
+       */
       let releaseImages = () => {};
       const imagesReleased = new Promise<void>((resolve) => {
         releaseImages = resolve;

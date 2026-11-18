@@ -1,6 +1,6 @@
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 
-// Must match the order of the API's listAccessibleForUser.
+/** Must match the order of the API's listAccessibleForUser. */
 export function compareCollections(a: CollectionResponse, b: CollectionResponse): number {
   if ((a.groupId === null) !== (b.groupId === null)) {
     return a.groupId === null ? -1 : 1;

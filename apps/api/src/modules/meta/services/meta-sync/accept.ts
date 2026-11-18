@@ -36,8 +36,10 @@ function emptySummary(): MetaAutoAcceptSummary {
   return { considered: 0, accepted: 0, held: 0, failed: 0, errors: [] };
 }
 
-// Recheck is armed at `now`, not the event's own schedule, so the next
-// processor pass reschedules it correctly either way.
+/**
+ * Recheck is armed at `now`, not the event's own schedule, so the next
+ * processor pass reschedules it correctly either way.
+ */
 export async function acceptCatalogEvent(
   deps: Pick<MetaSyncDeps, "repos" | "now">,
   row: UvsgamesListRow,
@@ -145,8 +147,10 @@ async function sweep(
   return summary;
 }
 
-// The repo read already excludes accepted and dismissed rows, so a dismissed
-// event stays dismissed however well it scores against the rules.
+/**
+ * The repo read already excludes accepted and dismissed rows, so a dismissed
+ * event stays dismissed however well it scores against the rules.
+ */
 export async function autoAcceptCatalogEvents(
   deps: MetaSyncDeps,
   externalIds: readonly string[],
@@ -161,8 +165,10 @@ export async function autoAcceptCatalogEvents(
   return await sweep(deps, vocabulary, externalIds);
 }
 
-// A crawl only judges the keys it wrote, and the hash gate skips unchanged
-// rows, so a rule turned on today never reaches events already in the list.
+/**
+ * A crawl only judges the keys it wrote, and the hash gate skips unchanged
+ * rows, so a rule turned on today never reaches events already in the list.
+ */
 export async function autoAcceptCatalogBacklog(deps: MetaSyncDeps): Promise<MetaAutoAcceptSummary> {
   const vocabulary = await loadVocabulary(deps);
   if (vocabulary === null) {

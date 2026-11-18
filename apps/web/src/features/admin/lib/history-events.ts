@@ -518,9 +518,10 @@ export function filterHistoryEvents(
 ): AdminAuditEventResponse[] {
   const normName = normalizeNameForIdentity(card.name);
 
-  // A rejection is recorded against the incoming row, which carries no card slug,
-  // only the submitted name. The feed is a substring search, so without the name
-  // check a longer card's rejection lands here too.
+  /**
+   * Rejections carry no card slug, only the submitted name. The feed is a substring search,
+   * so without the name check a longer card's rejection matches too.
+   */
   function belongsToCard(event: AdminAuditEventResponse): boolean {
     if (event.cardSlug !== null) {
       return event.cardSlug === card.slug;

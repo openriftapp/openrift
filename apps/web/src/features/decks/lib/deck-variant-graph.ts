@@ -27,8 +27,10 @@ export interface VariantGraph {
   laneCount: number;
 }
 
-// The API prevents cycles in predecessorDeckId, but a graph walker must not
-// trust that; a cycle is cut where it closes.
+/**
+ * The API prevents cycles in predecessorDeckId, but a graph walker must not
+ * trust that; a cycle is cut where it closes.
+ */
 function resolveParents(members: readonly VariantGraphMember[]): Map<string, string | null> {
   const ids = new Set(members.map((member) => member.id));
   const parents = new Map<string, string | null>(
@@ -94,8 +96,10 @@ export function buildVariantGraph(
     childrenOf.set(parentId, [...(childrenOf.get(parentId) ?? []), member]);
   }
 
-  // At a fork, the version the open deck descends from goes first so it keeps
-  // its parent's lane; the rest follow oldest-first.
+  /**
+   * At a fork, the version the open deck descends from goes first so it keeps
+   * its parent's lane; the rest follow oldest-first.
+   */
   const byDescent = (left: VariantGraphMember, right: VariantGraphMember): number => {
     const leftOnChain = chain.has(left.id) ? 0 : 1;
     const rightOnChain = chain.has(right.id) ? 0 : 1;
@@ -130,8 +134,10 @@ export function buildVariantGraph(
   }
   const rowOf = new Map(order.map((member, index) => [member.id, index]));
 
-  // The last row a lane stays busy: the end of member's line of first children.
-  // A fork leaves the lane at the row it branches from.
+  /**
+   * The last row a lane stays busy: the end of member's line of first children.
+   * A fork leaves the lane at the row it branches from.
+   */
   const laneRunEnd = (member: VariantGraphMember): number => {
     let cursor = member;
     let next = children(cursor.id)[0];

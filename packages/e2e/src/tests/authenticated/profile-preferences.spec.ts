@@ -46,7 +46,7 @@ async function createAndLogin(page: Page): Promise<string> {
   return email;
 }
 
-// The /profile loader fetches preferences during SSR, so no client GET follows.
+/** The /profile loader fetches preferences during SSR, so no client GET follows. */
 async function gotoProfile(page: Page) {
   await page.goto("/profile");
   const autoButton = page.getByRole("radio", { name: "Auto", exact: true });

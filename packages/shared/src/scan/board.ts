@@ -230,7 +230,7 @@ async function identifyOutline(
   };
 }
 
-// An outline that fails to identify must not hide the outlines it overlaps.
+/** An outline that fails to identify must not hide the outlines it overlaps. */
 export async function identifyBoard(
   photo: RgbaImage,
   outlines: readonly CardCandidate[],

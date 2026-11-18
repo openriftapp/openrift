@@ -113,8 +113,10 @@ function keydown(code: string): KeyboardEvent {
   return new KeyboardEvent("keydown", { code, bubbles: true, cancelable: true });
 }
 
-// The sidebar is sticky: scrolling the page leaves its rows where they are, so the
-// drag has to move even when the page could scroll toward the target row.
+/**
+ * The sidebar is sticky: scrolling the page leaves its rows where they are, so the
+ * drag has to move even when the page could scroll toward the target row.
+ */
 function startSensor() {
   const page = document.documentElement;
   page.scrollTop = 100;

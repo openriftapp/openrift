@@ -37,8 +37,7 @@ import { moveToIndex } from "@/lib/move-to-index";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-// The up/down buttons aren't redundant with the drag handle: they're the
-// keyboard and screen-reader path to the same reorder.
+/** The up/down buttons are the keyboard and screen-reader path for the drag reorder. */
 function FolderRow({
   folder,
   isFirst,

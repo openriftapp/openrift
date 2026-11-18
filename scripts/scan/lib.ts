@@ -156,8 +156,10 @@ export interface ReferenceImage {
   file: string;
 }
 
-// The disk tree also holds orphaned files (hand-added scans, superseded
-// uploads) that no printing references; skip anything not in the catalogue.
+/**
+ * The disk tree also holds orphaned files (hand-added scans, superseded
+ * uploads) that no printing references; skip anything not in the catalogue.
+ */
 export function listReferenceImages(): ReferenceImage[] {
   const catalogFile = path.join(CACHE_DIR, "catalog.json");
   if (!fs.existsSync(catalogFile)) {

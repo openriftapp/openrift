@@ -333,8 +333,10 @@ export function DeckOverview({
     };
   };
 
-  // Deliberately not art-gated: image-rendering consumers check art themselves,
-  // while a row's set code, rarity and price follow the owned printing regardless.
+  /**
+   * Deliberately not art-gated: image-rendering consumers check art themselves,
+   * while a row's set code, rarity and price follow the owned printing regardless.
+   */
   const ownedPrintingFor = (cardId: string) =>
     preferOwned ? ownershipData?.ownedPrintingByCardId.get(cardId) : undefined;
 
@@ -346,8 +348,10 @@ export function DeckOverview({
     return getThumbnail(cardId, preferredPrintingId);
   };
 
-  // The share page's payload is keyed by the deck's own printings; an owned
-  // printing id finds nothing there, so read-only surfaces keep the entry's own.
+  /**
+   * The share page's payload is keyed by the deck's own printings; an owned
+   * printing id finds nothing there, so read-only surfaces keep the entry's own.
+   */
   const resolveHoverPrintingId = (cardId: string, preferredPrintingId: string | null) => {
     const owned = ownedPrintingFor(cardId);
     if (!readOnly && owned?.imageId) {

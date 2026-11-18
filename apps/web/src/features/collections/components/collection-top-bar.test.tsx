@@ -30,8 +30,6 @@ vi.mock("@/features/cards/components/select-mode-actions", () => ({
 
 const { CollectionTopBar } = await import("./collection-top-bar");
 
-// Renders the bar for a collection the viewer administers, so the ⋮ menu is
-// present in every case and only optional pieces vary per test.
 function renderTopBar(
   overrides: {
     hasCards?: boolean;
@@ -83,8 +81,10 @@ function renderTopBar(
   );
 }
 
-// The menu opens on an animation frame after the press, so every case has to
-// wait for the popup before reading (or ruling out) its items.
+/**
+ * The menu opens on an animation frame after the press, so every case has to
+ * wait for the popup before reading (or ruling out) its items.
+ */
 async function openActionsMenu(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Collection actions" }));
   await screen.findByRole("menu");

@@ -52,10 +52,10 @@ export interface PodForResult {
  * results reported back into it.
  */
 export function podRoundsRepo(db: Kysely<Database>) {
-  // Pod numbers are the physical tables: pods holding a fixed-seat player claim
-  // that table, everyone else fills the free numbers in engine order. Members
-  // are written in seat order, arranged so nobody repeats earlier rounds'
-  // neighbors more than the field forces.
+  /**
+   * Pod numbers are physical tables: a pod with a fixed-seat player claims that table, the rest
+   * fill free numbers in engine order. Members are written in seat order.
+   */
   async function writePodsAndByes(
     trx: Kysely<Database>,
     roundId: string,

@@ -10,7 +10,7 @@ export function usePrices(): PriceLookup {
   return data;
 }
 
-// Resolves a PriceLookup outside of React render (e.g. building share text on a click).
+/** Resolves a PriceLookup outside of React render (e.g. building share text on a click). */
 export async function ensurePriceLookup(queryClient: QueryClient): Promise<PriceLookup> {
   const response = await queryClient.query({
     queryKey: pricesQueryOptions.queryKey,

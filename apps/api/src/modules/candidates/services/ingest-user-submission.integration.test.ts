@@ -133,8 +133,10 @@ describe.skipIf(!ctx)("ingestUserSubmission integration", () => {
   });
 
   it("enforces the daily cap under concurrent submissions (advisory lock)", async () => {
-    // The cap is a deliberately unexported constant: flood past any plausible
-    // limit and read it back from the rate_limited payload instead.
+    /**
+     * The cap is an unexported constant: seed past any plausible limit and read the cap back
+     * from the rate_limited payload.
+     */
     const seedRows = (count: number, offset: number) =>
       db
         .insertInto("cardSubmissions")

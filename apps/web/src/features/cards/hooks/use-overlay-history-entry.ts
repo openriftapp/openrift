@@ -34,7 +34,7 @@ async function runQueued(previous: Promise<void> | null, push: () => Promise<voi
   }
 }
 
-// The router folds a navigation started while another is in flight into one history entry.
+/** The router folds a navigation started while another is in flight into one history entry. */
 function queuePush(push: () => Promise<void>): Promise<void> {
   queued += 1;
   const run = runQueued(queueTail, push);
@@ -79,8 +79,10 @@ async function pushThenLand(push: () => Promise<void>, landing: LayerLanding): P
   land(landing);
 }
 
-// Child effects run before their parent's, so a nested overlay opened in the
-// same commit as its parent parks until the parent's entry is on the stack.
+/**
+ * Child effects run before their parent's, so a nested overlay opened in the
+ * same commit as its parent parks until the parent's entry is on the stack.
+ */
 function afterParentLands(
   parent: OverlayHistoryLayer | null,
   run: () => void,
@@ -140,7 +142,7 @@ export function useOverlayHistoryEntry({
       });
     };
     const release = afterParentLands(readParent(), () => void pushThenLand(push, landing));
-    // A pop that lands on an entry still carrying our token closed an overlay stacked above this one.
+    /** A pop that lands on an entry still carrying our token closed an overlay stacked above this one. */
     const handlePop = () => {
       if ((history.state as Record<string, unknown> | null)?.[stateKey] !== token) {
         handlePopEvent();

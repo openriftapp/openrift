@@ -5,16 +5,10 @@ import { describe, expect, it, vi } from "vitest";
 import { AlertDialog, AlertDialogAction, AlertDialogContent } from "./alert-dialog";
 import { Dialog, DialogContent } from "./dialog";
 
-// Regression for #159 — "Deleting a deck opens the deck editor". Deck tiles wrap
-// their whole body (including the actions menu's dialogs) in a clickable <Link>.
-// BaseUI portals the dialog popup to the body, but React synthetic events still
-// bubble through the React tree to that ancestor, so confirming a delete inside
-// the dialog navigated into the deck editor. Both popups must stop click
-// propagation. The app mounts on `document` (hydrateRoot(document)), so React's
-// root listener catches events on portaled nodes; we mirror that here by mounting
-// the test tree directly on document.body.
-// Mount the React root directly on document.body so the synthetic event delegation
-// catches clicks on portaled (body-level) popup nodes, as it does in production.
+/**
+ * The app hydrates on document, so React's root listener sees clicks on portaled nodes.
+ * Mounting on document.body reproduces that.
+ */
 function mountOnBody(): HTMLDivElement {
   const root = document.createElement("div");
   document.body.append(root);

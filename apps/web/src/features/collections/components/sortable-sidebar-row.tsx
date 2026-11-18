@@ -24,8 +24,10 @@ interface SortableSidebarRowProps {
   children: (handle: ReactNode) => ReactNode;
 }
 
-// The drop side is disabled unless the active drag reorders this row's section,
-// so card drops keep going to the row's Droppable wrapper instead.
+/**
+ * The drop side is disabled unless the active drag reorders this row's section,
+ * so card drops reach the row's Droppable wrapper.
+ */
 export function SortableSidebarRow({ id, data, label, children }: SortableSidebarRowProps) {
   const { active } = useDndContext();
   const acceptsActive = acceptsReorderDrop(data, active?.data.current);
@@ -52,9 +54,10 @@ export function SortableSidebarRow({ id, data, label, children }: SortableSideba
     opacity: isDragging ? 0.3 : undefined,
   };
 
-  // A touch drag off the grip looks exactly like the context menu's long-press
-  // trigger; stopping propagation of onTouchStart here keeps that timer from
-  // starting (right-click still opens the menu on desktop).
+  /**
+   * Keeps the context menu's long-press timer from starting: a touch drag off the grip looks
+   * exactly like its long-press trigger.
+   */
   const stopTouchStart = (event: TouchEvent) => event.stopPropagation();
 
   const handle = (

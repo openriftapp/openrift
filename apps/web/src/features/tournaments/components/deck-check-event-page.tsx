@@ -76,7 +76,7 @@ const STATE_ORDER: Record<DeckCheckEntrySummaryResponse["state"], number> = {
   withdrawn: 4,
 };
 
-// Polls so all judges share state.
+/** Polls so all judges share state. */
 export function TournamentDeckCheckEntries({
   tournamentId,
   canManage,

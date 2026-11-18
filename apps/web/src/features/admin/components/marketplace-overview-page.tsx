@@ -21,7 +21,7 @@ import { useSiblingVariantDrift } from "@/features/admin/hooks/use-sibling-varia
 import { useStartJob } from "@/features/admin/hooks/use-start-job";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 
-// Old `job_runs.result` rows predate the per-SKU prices reshape and lack `upserted.prices`.
+/** Old `job_runs.result` rows predate the per-SKU prices reshape and lack `upserted.prices`. */
 export function isPriceRefreshResult(value: unknown): value is PriceRefreshResponse {
   return priceRefreshResponseSchema.safeParse(value).success;
 }

@@ -47,7 +47,7 @@ const CLEAR_ALL_PATCH = Object.fromEntries(
   [...CLEARABLE_FILTER_PARAMS, "sort", "sortDir"].map((param) => [param, undefined]),
 ) as Partial<FilterSearch>;
 
-// With a card selected the grid scrolls to the selection itself; a reset to the top would undo it.
+/** With a card selected the grid scrolls to the selection itself; a reset to the top would undo it. */
 function resetsScroll(): boolean {
   return useSelectionStore.getState().selectedCard === null;
 }

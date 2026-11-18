@@ -22,8 +22,10 @@ if (import.meta.env.DEV && import.meta.env.VITE_DEVTOOLS) {
   scan({ enabled: true });
 }
 
-// These callbacks fire for the app's whole lifetime, not just hydration, so
-// reports are stamped with whether they landed before the root shell's first effect.
+/**
+ * These callbacks fire for the app's whole lifetime, not just hydration, so
+ * reports are stamped with whether they landed before the root shell's first effect.
+ */
 function reportHydrationError(
   phase: HydrationErrorPhase,
   error: unknown,

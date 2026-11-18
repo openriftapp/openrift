@@ -36,8 +36,10 @@ export function ownedBuckets(): readonly { value: OwnedBucket; label: string }[]
   }));
 }
 
-// Sort/group defaults are passed as primitives, not one object: a derived
-// object makes React Compiler treat this call as maybe-mutated, killing memoization.
+/**
+ * Sort/group defaults are passed as primitives, not one object: a derived
+ * object makes React Compiler treat this call as maybe-mutated, killing memoization.
+ */
 export function toFilterState(
   raw: FilterSearch,
   defaultView: DefaultCardView,

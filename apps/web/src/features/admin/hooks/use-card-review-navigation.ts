@@ -289,7 +289,6 @@ export function useCardReviewNavigation({
   useHotkey("Mod+Shift+Enter", () => void runCheckAllAndNext(), {
     enabled: !isCheckingAll && isAdmin,
   });
-  // Same selection as the < / > buttons, so the hotkeys never drift from what the buttons do.
   const goToNeighbour = (dir: "prev" | "next") => {
     const slug = dir === "prev" ? prevNextCards.prev : prevNextCards.next;
     if (slug) {

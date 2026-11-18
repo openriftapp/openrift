@@ -9,9 +9,10 @@ export function metaFrontImage(imageId: string | null): PrintingImage | null {
   return imageId === null ? null : { imageId };
 }
 
-// Any element taking its own clicks inside here must itself be positioned
-// (not wrapped): a positioned wrapper is a full-width flex child and would
-// cover the stretched permalink.
+/**
+ * Any element taking its own clicks in here must itself be positioned, not wrapped:
+ * a positioned wrapper is a full-width flex child and covers the stretched permalink.
+ */
 export function MetaDeckFrame({
   deck,
   label,

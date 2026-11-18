@@ -37,8 +37,10 @@ export interface RailLayout {
 
 const MAX_LABEL_CHARS = 26;
 
-// A name of the form `<base> (<rest>)` collapses to `<rest>`; anything else
-// shows as-is.
+/**
+ * A name of the form `<base> (<rest>)` collapses to `<rest>`; anything else
+ * shows as-is.
+ */
 export function railLabel(name: string, familyBaseName: string): string {
   let label = name;
   const prefix = `${familyBaseName} (`;
@@ -54,7 +56,7 @@ export function railLabel(name: string, familyBaseName: string): string {
   return label;
 }
 
-// The API prevents predecessor cycles, but a graph walker must not trust that.
+/** The API prevents predecessor cycles, but a graph walker must not trust that. */
 function ancestryChain(
   byId: ReadonlyMap<string, RailMemberInput>,
   currentId: string,
@@ -70,8 +72,10 @@ function ancestryChain(
   return chain.toReversed();
 }
 
-// The open deck's ancestry wins the space first (newest generations first);
-// whatever is left goes to the most recently updated of the others.
+/**
+ * The open deck's ancestry wins the space first (newest generations first);
+ * whatever is left goes to the most recently updated of the others.
+ */
 function selectDrawnMembers(
   members: readonly RailMemberInput[],
   chain: readonly RailMemberInput[],
@@ -89,8 +93,10 @@ function selectDrawnMembers(
   };
 }
 
-// A pointer to a member that isn't drawn is treated as no pointer: the
-// adopted member draws at the left edge with no line into it.
+/**
+ * A pointer to a member that isn't drawn is treated as no pointer: the
+ * adopted member draws at the left edge with no line into it.
+ */
 function resolveGenerations(drawn: readonly RailMemberInput[]): {
   depths: Map<string, number>;
   parents: Map<string, string | null>;
@@ -128,8 +134,10 @@ function resolveGenerations(drawn: readonly RailMemberInput[]): {
   return { depths, parents };
 }
 
-// Lane 0 is the open deck's own line of descent. Unrelated trees share the
-// same rows, newest tree right-most.
+/**
+ * Lane 0 is the open deck's own line of descent. Unrelated trees share the
+ * same rows, newest tree right-most.
+ */
 export function buildRailLayout(
   members: readonly RailMemberInput[],
   currentId: string,
@@ -157,8 +165,10 @@ export function buildRailLayout(
     children.set(parentId, [...(children.get(parentId) ?? []), member]);
   }
 
-  // The open deck's line runs straight, so at every fork the child that leads
-  // to it goes first; the rest follow newest-first.
+  /**
+   * The open deck's line runs straight, so at every fork the child that leads
+   * to it goes first; the rest follow newest-first.
+   */
   const byDescent = (left: RailMemberInput, right: RailMemberInput): number => {
     const leftOnChain = chainIds.has(left.id) ? 0 : 1;
     const rightOnChain = chainIds.has(right.id) ? 0 : 1;

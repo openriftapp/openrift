@@ -153,8 +153,10 @@ export function ContributePopover({
   );
 }
 
-// The Contribute popover starts at lg and the phone sheet carries the links
-// below md, so the account menu holds them only in between.
+/**
+ * The Contribute popover starts at lg and the phone sheet carries the links
+ * below md, so the account menu holds them only in between.
+ */
 export function ContributeSubmenu({
   isLoggedIn,
   onLockedClick,

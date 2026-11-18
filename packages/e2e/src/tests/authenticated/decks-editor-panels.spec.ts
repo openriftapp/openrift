@@ -89,8 +89,10 @@ function statsHeader(page: Page) {
   return page.getByRole("button", { name: /^Stats\b.*\bin main deck$/u }).first();
 }
 
-// The sidebar Stats panel only shows while a zone is active; the deck editor
-// starts on Overview, so tests that inspect it must click a zone first.
+/**
+ * The sidebar Stats panel only shows while a zone is active; the deck editor
+ * starts on Overview, so tests that inspect it must click a zone first.
+ */
 async function activateSidebarPanels(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Edit Main", exact: true }).first().click();
   await expect(statsHeader(page)).toBeVisible();

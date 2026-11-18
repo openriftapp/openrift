@@ -51,7 +51,6 @@ const SUMMARY: LandingSummaryResponse = {
   ],
 };
 
-// fetch may be called with a Request object or a (url, init) pair; normalize both.
 function fetchedUrl(call: unknown[]): string {
   const first = call[0];
   return first instanceof Request ? first.url : String(first);

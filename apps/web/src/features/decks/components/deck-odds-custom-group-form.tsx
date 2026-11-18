@@ -15,7 +15,7 @@ const CUSTOM_GROUP_TYPES: readonly string[] = [
   WellKnown.cardType.GEAR,
 ];
 
-// At least one condition is required so a group can't silently match the whole deck.
+/** At least one condition is required so a group can't silently match the whole deck. */
 export function DeckOddsCustomGroupForm({
   typeLabels,
   onAdd,

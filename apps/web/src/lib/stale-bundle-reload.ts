@@ -10,8 +10,6 @@ let newVersionAvailable = false;
 
 let pendingReloadFlagClear: ReturnType<typeof setTimeout> | undefined;
 
-// ESM bindings are read-only from the importing side; this flag is exposed
-// through a setter.
 export function markNewVersionAvailable(): boolean {
   if (pendingReloadFlagClear !== undefined) {
     clearTimeout(pendingReloadFlagClear);
@@ -24,7 +22,7 @@ export function markNewVersionAvailable(): boolean {
   return true;
 }
 
-// stale-bundle.ts overwrites this at import time before any event listener fires.
+/** stale-bundle.ts overwrites this at import time before any event listener fires. */
 let staleNotifier = (reason: string): void => {
   console.warn(`[stale-bundle] ${reason} — reload blocked and no notifier registered`);
 };
@@ -33,8 +31,7 @@ export function setStaleNotifier(notify: (reason: string) => void): void {
   staleNotifier = notify;
 }
 
-// Deliberately bypasses the RELOAD_FLAG loop guard: a click is a deliberate
-// per-attempt action, so it can't loop the way an automatic reload could.
+/** Bypasses the RELOAD_FLAG loop guard on purpose: a click cannot loop the way an automatic reload can. */
 export function forceReload(reason: string): void {
   if (globalThis.window === undefined) {
     return;
@@ -64,8 +61,10 @@ export function scheduleReloadFlagClear(): void {
   }, RELOAD_FLAG_CLEAR_DELAY_MS);
 }
 
-// Returns whether the reload was triggered; false means the guard blocked it
-// and the notifier was prompted instead.
+/**
+ * Returns whether the reload was triggered; false means the guard blocked it
+ * and the notifier was prompted instead.
+ */
 function reloadOnce(reason: string): boolean {
   if (globalThis.window === undefined) {
     return false;
@@ -90,9 +89,10 @@ function reloadOnce(reason: string): boolean {
   return true;
 }
 
-// Automatic reload on a confirmed newer server build. The reloadOnce guard
-// bounds it to one attempt per session until a matching build id re-arms it,
-// so a shell still served stale after the reload degrades to the toast.
+/**
+ * The reloadOnce guard allows one attempt per session until a matching build id re-arms it;
+ * a shell still served stale after the reload falls back to the toast.
+ */
 export function reloadForNewVersion(reason: string): boolean {
   if (!markNewVersionAvailable()) {
     return false;
@@ -100,8 +100,10 @@ export function reloadForNewVersion(reason: string): boolean {
   return reloadOnce(reason);
 }
 
-// An error thrown on a tab whose bundle predates the deployed server is a
-// deploy artifact, so the error boundary reloads through this instead.
+/**
+ * An error thrown on a tab whose bundle predates the deployed server is a
+ * deploy artifact, so the error boundary reloads through this instead.
+ */
 export function reloadIfNewVersionPending(): boolean {
   return newVersionAvailable && reloadOnce("new version pending — reloading after a render error");
 }
@@ -124,8 +126,10 @@ export function initVersionStaleNavigationReload(router: RouterSubscribe): void 
   });
 }
 
-// serverFnFetch throws StaleServerFnError (lib/stale-server-fn-signal.ts) for the
-// server's stale-function signal. Exported so the query layer can skip retrying it.
+/**
+ * serverFnFetch throws StaleServerFnError (lib/stale-server-fn-signal.ts) for the server's
+ * stale-function signal.
+ */
 export function isStaleServerFnError(error: unknown): boolean {
   return (
     typeof error === "object" &&
@@ -134,8 +138,10 @@ export function isStaleServerFnError(error: unknown): boolean {
   );
 }
 
-// A polling query never navigates, so the soft toast + reload-on-navigation
-// path can't recover it; reload immediately instead.
+/**
+ * A polling query never navigates, so the soft toast + reload-on-navigation
+ * path can't recover it; reload immediately instead.
+ */
 export function reloadIfStaleServerFnError(error: unknown): boolean {
   if (!isStaleServerFnError(error)) {
     return false;
@@ -160,8 +166,10 @@ export function hasChunkLoadError(error: unknown): boolean {
   return chunkLoadErrorMessage(error) !== undefined;
 }
 
-// React wraps a render-time import failure in its own error and hands it to
-// the root callbacks, which never reach initChunkErrorReloader's listeners.
+/**
+ * React wraps a render-time import failure in its own error and hands it to
+ * the root callbacks, which never reach initChunkErrorReloader's listeners.
+ */
 export function reloadIfChunkLoadError(error: unknown): boolean {
   const message = chunkLoadErrorMessage(error);
   if (message === undefined) {
@@ -171,8 +179,10 @@ export function reloadIfChunkLoadError(error: unknown): boolean {
   return true;
 }
 
-// `throw undefined` (or null, or empty string) escapes React error boundaries
-// and produces a white page.
+/**
+ * `throw undefined` (or null, or empty string) escapes React error boundaries
+ * and produces a white page.
+ */
 function isSameOriginBareThrow(event: ErrorEvent): boolean {
   if (event.error !== undefined && event.error !== null && event.error !== "") {
     return false;
@@ -186,9 +196,10 @@ function isBareRejection(reason: unknown): boolean {
   return reason === undefined || reason === null || reason === "";
 }
 
-// React reports uncaught render errors via hydrateRoot's onUncaughtError,
-// which REPLACES the default handler, so the window "error" listener in
-// initChunkErrorReloader never sees them; client.tsx routes them here instead.
+/**
+ * hydrateRoot's onUncaughtError replaces the default handler, so initChunkErrorReloader's
+ * window listener never sees uncaught render errors; client.tsx routes them here.
+ */
 export function reloadIfUncaughtBareThrow(error: unknown): boolean {
   if (!isBareRejection(error)) {
     return false;
@@ -238,8 +249,10 @@ export function initChunkErrorReloader(): void {
   });
 }
 
-// The notifier registration is deliberately left alone: stale-bundle.ts
-// installs it once at import time, exactly like in the real app.
+/**
+ * The notifier registration is deliberately left alone: stale-bundle.ts
+ * installs it once at import time, exactly like in the real app.
+ */
 export function _resetReloadStateForTesting(): void {
   if (globalThis.window !== undefined) {
     try {

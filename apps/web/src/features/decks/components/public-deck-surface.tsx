@@ -277,8 +277,10 @@ function PublicDeckContent({
   );
 }
 
-// Resolving the pending click is PublicDeckOverlayBridge's job, not this
-// one's: both are mounted together, and two effects would select it twice.
+/**
+ * Resolving the pending click is PublicDeckOverlayBridge's job, not this
+ * one's: both are mounted together, and two effects would select it twice.
+ */
 function PublicDeckDetailPaneBridge({
   cards,
   showImages,
@@ -300,7 +302,7 @@ function PublicDeckDetailPaneBridge({
   );
 }
 
-// The single owner of the pending-click effect; the paired bridge above only renders.
+/** The single owner of the pending-click effect; the paired bridge above only renders. */
 function PublicDeckOverlayBridge({
   cards,
   pendingClick,

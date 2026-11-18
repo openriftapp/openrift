@@ -20,8 +20,10 @@ async function createDeckViaApi(
 // Valid UUID shape, guaranteed not to match any real deck.
 const BOGUS_DECK_ID = "00000000-0000-0000-0000-0000000dead1";
 
-// Scoped to main: the page header's user-avatar menu also carries
-// aria-haspopup="menu", which would otherwise match first.
+/**
+ * Scoped to main: the page header's user-avatar menu also carries
+ * aria-haspopup="menu", which would otherwise match first.
+ */
 function kebabTrigger(page: Page) {
   return page.locator("main").locator('button[aria-haspopup="menu"]').first();
 }

@@ -28,7 +28,7 @@ interface LoanCard {
   counterparty: string;
 }
 
-// RarityIcon reads the enum labels from /init, so the meta line rebuilds it from the icon path.
+/** RarityIcon reads the enum labels from /init, so the meta line rebuilds it from the icon path. */
 function MetaLine({ card }: { card: FixtureCard }) {
   const rarityIcon = getFilterIconPath("rarities", card.rarity);
   return (

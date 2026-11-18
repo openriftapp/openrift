@@ -126,7 +126,7 @@ describe("PageToc", () => {
     }
   }
 
-  // The fallback header height is 57px, so the observed band starts there.
+  /** The fallback header height is 57px, so the observed band starts there. */
   function reportIntersections(changes: Record<string, boolean>) {
     const entries = Object.entries(changes).map(([id, isIntersecting]) => ({
       target: document.querySelector(`#${id}`),

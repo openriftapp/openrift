@@ -8,7 +8,6 @@ interface CollectionValueSummaryProps {
   formatValue: (value: number) => string;
 }
 
-// A missing or zero value renders nothing, not "$0.00".
 export function CollectionValueSummary({
   valueCents,
   unpricedCount,

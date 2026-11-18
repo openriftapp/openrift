@@ -64,7 +64,7 @@ import { sourceEventFacts } from "../services/meta-promote-sources.js";
 
 const os = implement(adminMetaCandidatesContract).$context<ApiContext>().use(requireAuthedUser);
 
-// A tournament's lists earn one thank-you per organizer and event, not one per list.
+/** A tournament's lists earn one thank-you per organizer and event, not one per list. */
 function thankedSubmissionIds(submissions: readonly MetaSubmissionRow[]): string[] {
   const ids: string[] = [];
   const thankedSends = new Set<string>();

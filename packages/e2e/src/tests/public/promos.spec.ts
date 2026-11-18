@@ -42,9 +42,10 @@ async function fetchPromoList(language = "EN"): Promise<PromoFixture> {
   return (await res.json()) as PromoFixture;
 }
 
-// SSR resolves the loader server-side and bypasses page.route intercepts, so
-// this drives a client navigation via the mobile drawer (the desktop "More"
-// menu is a hover-driven BaseUI NavigationMenu Playwright can't open reliably).
+/**
+ * SSR resolves the loader server-side and bypasses page.route, so this navigates client-side.
+ * The desktop "More" hover menu does not open reliably in Playwright, so it uses the mobile drawer.
+ */
 async function clientSideNavigateToPromos(page: Page) {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/cards");

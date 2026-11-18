@@ -12,8 +12,10 @@ export function errorText(thrown: unknown, fallback: string): string {
   return message === "" ? fallback : message;
 }
 
-// A server-fn error loses its prototype crossing the boundary, arriving as a
-// plain object that still carries `message`.
+/**
+ * A server-fn error loses its prototype crossing the boundary, arriving as a
+ * plain object that still carries `message`.
+ */
 export function thrownMessage(thrown: unknown): string {
   if (typeof thrown === "object" && thrown !== null) {
     const { message } = thrown as { message?: unknown };

@@ -79,8 +79,10 @@ export async function readPlayloltcgDetail(
   }
 }
 
-// No row total, so a short page is the end. A page starting below the last rank means `pageNum`
-// is ignored again (the source once paged by `startFinalRanking`); ties may straddle a page.
+/**
+ * No row total, so a short page is the end. A page starting below the last rank means `pageNum`
+ * is ignored; ties may straddle a page.
+ */
 async function readStandings(
   deps: PlayloltcgSyncDeps,
   activityShopId: number,

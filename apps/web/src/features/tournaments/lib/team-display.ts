@@ -27,8 +27,10 @@ export function teamNamesById(
   );
 }
 
-// Fixed teams share every stat by construction, so the first row of each team
-// stands for the pair; only the display name changes.
+/**
+ * Fixed teams share every stat by construction, so the first row of each team
+ * stands for the pair; only the display name changes.
+ */
 export function collapseTeamStandings(standings: readonly PodStandingRow[]): PodStandingRow[] {
   const names = teamNamesById(standings);
   const seenTeams = new Set<string>();

@@ -251,7 +251,7 @@ function buildOwned(
   groupBy: CompletionGroupBy,
   countMode: CompletionCountMode,
 ): Map<string, number> {
-  // A double-sided copy counts for the card on each of its sides.
+  /** A double-sided copy counts for the card on each of its sides. */
   const sidesOf = (stack: StackedEntry) =>
     sidesByPrinting.get(stack.printingId) ?? [stack.printing];
   if (countMode === "printings") {

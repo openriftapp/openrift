@@ -201,8 +201,6 @@ export function MetaReviewPlayerRow({ overlay }: { overlay: MetaOverlayQueueRow 
     toast.success("Applied.");
   }
 
-  // A list with names the catalog does not know lands as a row without a deck,
-  // which is easy to do by accident and hard to notice after.
   function onAccept(): void {
     if (overlay.unresolvedNames.length > 0 && !confirming) {
       setConfirming(true);

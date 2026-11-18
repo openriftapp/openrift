@@ -58,7 +58,7 @@ interface PairingsViewProps {
   emptyDescription?: string;
 }
 
-// Members are in the same order as round.pods; index aligns with round.pods.
+/** Members are in the same order as round.pods; index aligns with round.pods. */
 function toEnginePods(round: PodRoundResponse) {
   return round.pods.map((pod) => ({
     size: pod.size,
@@ -246,8 +246,7 @@ export function PairingsView({
   );
 }
 
-// "3 pods" / "4 matches" — an all-1v1 (Swiss) round pairs matches, not pods,
-// and every 2v2 team round is matches throughout.
+/** An all-1v1 (Swiss) round counts matches, not pods, and every 2v2 team round counts matches. */
 function formatPodCount(round: PodRoundResponse, teamMode: boolean): string {
   const allMatches = teamMode || isAllMatchRound(round.pods);
   const count = round.pods.length;

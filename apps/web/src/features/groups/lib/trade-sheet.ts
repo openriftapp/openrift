@@ -19,8 +19,10 @@ export interface TradeLedger {
   history: CardTradeResponse[];
 }
 
-// Currently unreachable: an unsettled reserved row always resolves to
-// readyToSwap, not waiting. Kept in case the server ever produces one here.
+/**
+ * Currently unreachable: an unsettled reserved row always resolves to
+ * readyToSwap, not waiting. Kept in case the server ever produces one here.
+ */
 function waitingRank(trade: CardTradeResponse): number {
   return trade.status === "reserved" ? 0 : 1;
 }

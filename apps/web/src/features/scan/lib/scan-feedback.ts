@@ -3,7 +3,7 @@ export const LOCK_VIBRATION_MS = 50;
 
 let audioContext: AudioContext | null = null;
 
-// Audio is best-effort: a blocked AudioContext must never break the add flow.
+/** Audio is best-effort: a blocked AudioContext must never break the add flow. */
 export function playLockTick(): void {
   try {
     audioContext ??= new AudioContext();

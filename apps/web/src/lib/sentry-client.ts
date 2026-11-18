@@ -42,8 +42,10 @@ export function dropScanFrameBreadcrumb(breadcrumb: SentryBreadcrumb): SentryBre
   return breadcrumb;
 }
 
-// A bare throw (undefined/null/"") reaches window.onerror with no stack or
-// message, so Sentry titles the issue `<unknown>`; enrich it with the route.
+/**
+ * A bare throw (undefined/null/"") reaches window.onerror with no stack or
+ * message, so Sentry titles the issue `<unknown>`; enrich it with the route.
+ */
 export function enrichBareThrow(event: SentryErrorEvent, hint: SentryEventHint): SentryErrorEvent {
   const original = hint.originalException;
   if (original !== undefined && original !== null && original !== "") {

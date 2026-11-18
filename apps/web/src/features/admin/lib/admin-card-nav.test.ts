@@ -15,7 +15,6 @@ function bucket(overrides: Partial<PriceAssignBucket> = {}): PriceAssignBucket {
   };
 }
 
-// A CardTrader bucket in a language with no matching printing — umbrella noise.
 function unassignableCtBucket(language: string): PriceAssignBucket {
   return bucket({ marketplace: "cardtrader", language, assignable: false });
 }

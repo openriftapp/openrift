@@ -57,7 +57,7 @@ export function FilterBadgeSections({
       )}
     </>
   );
-  // Use overrides when URL state is empty (zone presets that aren't in the URL)
+  /** Falls back to overrides when URL state is empty (zone presets that aren't in the URL). */
   const selected = (key: keyof typeof filterState) => {
     const urlValue = filterState[key];
     const arr = Array.isArray(urlValue) ? urlValue : [];

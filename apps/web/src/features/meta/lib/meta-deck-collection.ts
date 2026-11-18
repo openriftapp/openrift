@@ -22,7 +22,7 @@ export interface MetaDeckCost {
   locked?: number;
 }
 
-// A pair naming a card outside the pool is dropped, as is a trailing index without a quantity.
+/** A pair naming a card outside the pool is dropped, as is a trailing index without a quantity. */
 function decodePairs(pairs: readonly number[], cards: readonly string[]): Map<string, number> {
   const requirements = new Map<string, number>();
   for (const [at, cardIndex] of pairs.entries()) {

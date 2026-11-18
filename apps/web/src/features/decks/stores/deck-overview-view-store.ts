@@ -59,7 +59,7 @@ const GROUPS: readonly DeckListGroup[] = ["type", "energy", "domain", "ownership
 
 const DIRECTIONS: readonly ("asc" | "desc")[] = ["asc", "desc"];
 
-// Anything that isn't a usable count, including the `thumbSize` step this replaced, falls back to Auto.
+/** Anything that isn't a usable count falls back to Auto. */
 const pickColumnCount: FieldPicker<number | null> = (raw) =>
   typeof raw === "number" && Number.isInteger(raw) && raw >= MIN_COLUMNS && raw <= MAX_COLUMNS
     ? raw

@@ -18,8 +18,10 @@ import { getFilterIconPath, getTypeIconPath } from "@/lib/icons";
 import { prewarmTintedIcons, TINT_BLACK, TINT_WHITE } from "@/lib/white-icon";
 import { m } from "@/paraglide/messages.js";
 
-// Pre-tints the glyph icons before the export clone is captured, since
-// html2canvas can't apply the CSS color filters. Mirrors CardPlaceholderImage.
+/**
+ * Pre-tints the glyph icons before the export clone is captured: html2canvas
+ * can't apply the CSS color filters.
+ */
 function designerTintedIcons(
   card: DesignerCard,
   domainColors: Record<string, string>,

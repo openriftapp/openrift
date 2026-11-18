@@ -108,7 +108,7 @@ export function cardMentionPattern(
   );
 }
 
-// Quoted text is card wording and *emphasis* marks game terms, so neither is linked.
+/** Quoted text is card wording and *emphasis* marks game terms, so neither is linked. */
 function linkableRuns(text: string): { text: string; linkable: boolean }[] {
   const runs: { text: string; linkable: boolean }[] = [];
   let start = 0;

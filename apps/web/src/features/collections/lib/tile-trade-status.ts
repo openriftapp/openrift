@@ -39,8 +39,10 @@ export function tradeChipTitle({
   });
 }
 
-// What the user physically holds free, not the server's reservable supply.
-// `altered` stays counted: that exclusion in `buildSupply` is a matching policy, not unavailability.
+/**
+ * What the user physically holds free, not the server's reservable supply.
+ * `altered` stays counted: that exclusion in `buildSupply` is a matching policy, not unavailability.
+ */
 export function availableCopyCount(
   copies: readonly CopyResponse[] | undefined,
   printingId: string,
@@ -50,8 +52,10 @@ export function availableCopyCount(
   ).length;
 }
 
-// Uses the annotation's phase, not copies' `reserved` flag, to pick the word:
-// `reserved` stays true after the cards change hands until the giver syncs.
+/**
+ * Uses the annotation's phase, not copies' `reserved` flag, to pick the word:
+ * `reserved` stays true after the cards change hands until the giver syncs.
+ */
 export function tileTradeStatus({
   annotations,
   copies,

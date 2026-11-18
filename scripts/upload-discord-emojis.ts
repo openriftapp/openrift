@@ -70,7 +70,7 @@ async function withOutline(svg: Buffer): Promise<Buffer> {
     .toBuffer();
 }
 
-// The site renders this badge from a styled span; no source SVG exists to read.
+/** The site renders this badge from a styled span; no source SVG exists to read. */
 function energySvg(amount: number): string {
   const fontSize = amount > 9 ? 58 : 76;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}">
@@ -79,8 +79,10 @@ function energySvg(amount: number): string {
 </svg>`;
 }
 
-// Filled glyph variants are a card-frame treatment, never a text glyph, and
-// are skipped here.
+/**
+ * Filled glyph variants are a card-frame treatment, never a text glyph, and
+ * are skipped here.
+ */
 async function renderGlyphs(): Promise<GlyphAsset[]> {
   const entries = await readdir(GLYPH_DIR);
   const files = entries

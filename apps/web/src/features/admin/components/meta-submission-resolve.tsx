@@ -50,8 +50,10 @@ const DEFAULT_REASON: Record<MetaSubmissionResolution, MetaSubmissionReason | nu
   rejected: "not_an_event",
 };
 
-// Declared above the component: the React Compiler bails on a function
-// declared after the return, or one called before its declaration.
+/**
+ * Declared above the component: the React Compiler bails on a function
+ * declared after the return, or one called before its declaration.
+ */
 function blocksSubmit(
   status: MetaSubmissionResolution,
   note: string,

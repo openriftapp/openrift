@@ -9,7 +9,6 @@ import { computeRegionOverview } from "@/features/tournaments/lib/region-overvie
 import { formatScore } from "@/features/tournaments/lib/standings-display";
 import { m } from "@/paraglide/messages.js";
 
-// A zero leading average leaves every track empty.
 function barPercent(avgScore: number, topAvgScore: number): number {
   if (topAvgScore <= 0) {
     return 0;

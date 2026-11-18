@@ -1,6 +1,7 @@
-// `expandedClusterWidths` must come from a measuring strip that always
-// renders labels, not the live cluster state, or the expanded/collapsed
-// decision oscillates (collapsing frees space, which would re-expand it).
+/**
+ * `expandedClusterWidths` must come from a measuring strip that always renders labels.
+ * Live cluster widths make the expanded/collapsed decision oscillate.
+ */
 export function clusterLabelsFit({
   containerWidth,
   childWidths,
@@ -23,9 +24,10 @@ export function clusterLabelsFit({
   return required <= containerWidth;
 }
 
-// Base UI parks focus guards and hidden inputs next to their trigger while a
-// popup is open. They are position:fixed, so they occupy neither width nor a
-// flex gap, and counting them collapses the labels the moment a menu opens.
+/**
+ * Base UI parks position:fixed focus guards and hidden inputs next to an open popup's trigger.
+ * Counting them collapses the labels the moment a menu opens.
+ */
 export function occupiesRowWidth(element: Element): boolean {
   const position = element.ownerDocument.defaultView?.getComputedStyle(element).position;
   return position !== "absolute" && position !== "fixed";

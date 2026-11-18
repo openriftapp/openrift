@@ -38,7 +38,7 @@ export function titleCaseSlug(slug: string): string {
     .join(" ");
 }
 
-// The ellipsis itself counts toward `max`.
+/** The ellipsis itself counts toward `max`. */
 export function truncateWithEllipsis(text: string, max: number): string {
   if (max <= 0) {
     return "";

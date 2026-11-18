@@ -72,8 +72,10 @@ async function addCopyViaApi(page: Page, printingId: string, count = 1) {
 // Normal-foiling print of "Annie, Fiery" (OGS-001). See apps/api/src/test/fixtures/seed.sql.
 const ANNIE_FIERY_PRINTING_NORMAL = "019cfc3b-03d6-74cf-adec-1dce41f631eb";
 
-// A deck-zone row renders the same card image with no add-strip; the add
-// button distinguishes a browser tile from a zone row.
+/**
+ * A deck-zone row renders the same card image with no add-strip; the add
+ * button distinguishes a browser tile from a zone row.
+ */
 function cardTile(page: Page, cardName: string): Locator {
   return page
     .getByRole("img", { name: cardName })
@@ -123,7 +125,7 @@ function zoneLabelButton(page: Page, label: string): Locator {
   return page.getByRole("button", { name: `Edit ${label}`, exact: true }).first();
 }
 
-// "N" on zones with no target, "N/target" on the ones that have one.
+/** "N" on zones with no target, "N/target" on the ones that have one. */
 function zoneCount(page: Page, label: string): Locator {
   return page
     .locator(`[data-slot="deck-zone"][data-zone="${ZONE_SLUGS[label] ?? label}"]`)
@@ -136,8 +138,10 @@ async function activateZone(page: Page, label: string) {
   await zoneLabelButton(page, label).click();
 }
 
-// On mobile the zones sidebar is collapsed; tapping the title button opens it so
-// the zone rows become clickable, then activate the requested zone.
+/**
+ * On mobile the zones sidebar is collapsed; its rows are clickable only after
+ * the title button opens it.
+ */
 async function activateZoneMobile(page: Page, label: string) {
   await expect(page.getByRole("heading", { name: "Zones", level: 1 }).first()).toBeVisible({
     timeout: 15_000,

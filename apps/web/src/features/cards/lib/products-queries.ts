@@ -46,8 +46,10 @@ export interface EnrichedProductDetail {
   variantSiblings: ProductDetailResponse["variantSiblings"];
 }
 
-// Joins against the inlined cards/sets, not the global catalog, so the
-// product page can render server-side.
+/**
+ * Joins against the inlined cards/sets, not the global catalog, so the
+ * product page can render server-side.
+ */
 function enrichProductDetail(response: ProductDetailResponse): EnrichedProductDetail {
   const setById = new Map(response.sets.map((set) => [set.id, set]));
   const today = todayUtc();

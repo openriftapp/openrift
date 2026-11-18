@@ -1,8 +1,7 @@
 import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
-// Organizer contact details and registrant Riot ID tag lines are never stored:
-// the projection is the ceiling on what the archive can know.
+/** Organizer contact details and registrant Riot ID tag lines are never stored. */
 export async function up(db: Kysely<unknown>): Promise<void> {
   await sql`
     CREATE TABLE playriftbound_organizers (

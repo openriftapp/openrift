@@ -82,7 +82,7 @@ interface DeckBoxTabProps {
   onHoverCard?: HoverHandler;
 }
 
-// Copies in the box that no deck calls for trail the list, already ticked, in red.
+/** Copies in the box that no deck calls for trail the list, already ticked, in red. */
 export function DeckBoxTab({
   deckId,
   cards,
@@ -125,14 +125,12 @@ export function DeckBoxTab({
 
   const slotsByCardKey = Map.groupBy(plan.slots, (slot) => slot.cardKey);
 
-  // No toast: the tick going green is the feedback, unticking it is the undo.
+  /** No toast: the tick going green is the feedback, unticking it is the undo. */
   const putIn = (copy: DeckBoxCopy) => {
     rememberOrigin(deckId, copy.copyId, copy.collectionId);
     moveCopies.mutate({ copyIds: [copy.copyId], toCollectionId: homeCollectionId });
   };
 
-  // Clearing a surplus row announces where the card went, with undo; unticking
-  // a settled row stays quiet since the tick clearing is itself the feedback.
   const takeOut = (copyIds: readonly string[], announce = true) => {
     if (inboxId === undefined) {
       return;
@@ -168,7 +166,7 @@ export function DeckBoxTab({
     );
   };
 
-  // Freezes every row of the card, so acting on one row never reshuffles its siblings.
+  /** Freezes every row of the card, so acting on one row never reshuffles its siblings. */
   const hold = (target: DeckBoxSlot, copyId: string) => {
     const next = new Map(slotCopyIds);
     for (const slot of plan.slots) {
@@ -549,8 +547,6 @@ function SlotRow({
   );
 }
 
-// Code stays visible on phones (unlike the deck list's): the row's job is
-// finding this exact printing in a binder.
 function BoxCardThumb({
   card,
   copy,
@@ -575,8 +571,10 @@ function BoxCardThumb({
   );
 }
 
-// The count shown is how many *different* copies are behind the source, not
-// how many copies exist: a shelf of forty identical runes is one choice.
+/**
+ * The count shown is how many *different* copies are behind the source, not
+ * how many copies exist: a shelf of forty identical runes is one choice.
+ */
 function SourcePicker({
   card,
   slot,

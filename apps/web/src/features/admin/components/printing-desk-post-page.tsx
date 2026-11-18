@@ -250,8 +250,7 @@ function PostComposer({
     return getOrientation([printing.cardType]) === "landscape";
   }
 
-  // The full path, matching what the renderer draws: a leaf label like
-  // "October 2025" says nothing without its series.
+  /** Full channel path, matching what the renderer draws. */
   function channelLabelFor(printing: DeskPrintingRow): string | null {
     const slug = printing.distributionChannelSlugs.at(0);
     return slug === undefined ? null : (channelPaths.get(slug) ?? slug);

@@ -7,7 +7,7 @@ import type { DeckFamilyEntry } from "@/features/decks/lib/deck-family";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-// z-10 keeps this above the row's stretched-link overlay so its clicks register.
+/** z-10 keeps this above the row's stretched-link overlay so its clicks register. */
 export function VariantCountToggle({
   family,
   onToggle,
@@ -53,8 +53,7 @@ export function FamilyFrontLine({
   );
 }
 
-// Renders as a span, like `LocalDeckBadge`, so it adds no tab stop to a row
-// that already has one for the deck itself.
+/** Must stay a span: the row already has a tab stop for the deck itself. */
 export function DraftBadge({ className }: { className?: string }) {
   return (
     <Tooltip>

@@ -5,8 +5,10 @@ import type { Page } from "@playwright/test";
 
 const DISPLAY_STORE_KEY = "user-preferences";
 
-// Seeds the store's persisted blob before app code runs; `merge` fills every
-// other field from defaults, so writing just this one key is safe.
+/**
+ * Seeds the store's persisted blob before app code runs; `merge` fills every
+ * other field from defaults, so writing just this one key is safe.
+ */
 export async function dockDetailPane(page: Page): Promise<void> {
   await page.addInitScript(
     ({ key }: { key: string }) => {

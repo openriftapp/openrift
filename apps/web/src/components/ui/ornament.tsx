@@ -115,9 +115,10 @@ export function OrnamentRule({
   );
 }
 
-// Only the diagonal and the echo are SVG. The side stub, the step and the base
-// line are 1px divs, which the browser snaps to device pixels at fractional
-// zoom; an SVG stroke is not, and two collinear runs then meet half a pixel apart.
+/**
+ * Only the diagonal and echo are SVG. 1px divs snap to device pixels at fractional zoom and
+ * SVG strokes do not, so collinear runs in both would meet half a pixel apart.
+ */
 function BaseCap({ mirror }: { mirror?: boolean }) {
   return (
     <svg

@@ -37,8 +37,10 @@ function cappedBody(response: Response) {
   };
 }
 
-// Start's serverFnFetcher returns a non-ok JSON body it did not serialize as the result and
-// throws any other one as raw text. Remove once Start rejects both with a status.
+/**
+ * Start's serverFnFetcher returns a non-ok JSON body it did not serialize as the result and
+ * throws any other one as raw text. Remove once Start rejects both with a status.
+ */
 export const serverFnFetch: CustomFetch = async (input, init) => {
   const response = await apiFetch(input, init);
   const url = input instanceof Request ? input.url : String(input);

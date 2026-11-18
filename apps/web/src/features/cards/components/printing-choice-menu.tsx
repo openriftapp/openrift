@@ -21,7 +21,7 @@ export function usePrintingChoiceHover(clearDelayMs?: number) {
   const { hoveredId, onEnter, onLeave, reset } = usePrintingHover(clearDelayMs);
   const popupRef = useRef<HTMLDivElement>(null);
 
-  // Touch and pen also fire pointerenter; only mouse should trigger a hover preview.
+  /** Touch and pen also fire pointerenter; only mouse should trigger a hover preview. */
   const hoverProps = (printingId: string) => ({
     onPointerEnter: (event: PointerEvent) => {
       if (event.pointerType === "mouse") {

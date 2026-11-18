@@ -29,7 +29,7 @@ function deckPlanQueryOptions(userId: string, deckId: string) {
   });
 }
 
-// SSR-safe: plain react-query, no live collection.
+/** SSR-safe: plain react-query, no live collection. */
 export function useDeckPlan(deckId: string) {
   const userId = useRequiredUserId();
   return useSuspenseQuery(deckPlanQueryOptions(userId, deckId));

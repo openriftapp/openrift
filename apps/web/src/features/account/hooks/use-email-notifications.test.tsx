@@ -32,7 +32,7 @@ interface FetchCall {
   body: unknown;
 }
 
-// oRPC's OpenAPI link sends a body-bearing request as a `Request` object, the fetch call's first arg.
+/** oRPC's OpenAPI link sends a body-bearing request as a `Request` object, the fetch call's first arg. */
 function stubFetch(prefs: UserPreferencesResponse) {
   const calls: FetchCall[] = [];
   const fetchMock = vi.fn(async (input: unknown, init?: { method?: string; body?: string }) => {

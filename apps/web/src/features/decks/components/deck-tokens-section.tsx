@@ -154,8 +154,10 @@ function TokenRow({
   );
 }
 
-// Not a zone: `DeckZone` is a closed union keyed as `Record<DeckZone, …>` in the
-// validation, drag and codec paths.
+/**
+ * Not a zone: `DeckZone` is a closed union keyed as `Record<DeckZone, …>` in the
+ * validation, drag and codec paths.
+ */
 export function DeckTokensSection({
   cards,
   variant,

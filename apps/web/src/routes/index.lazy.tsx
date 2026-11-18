@@ -9,8 +9,10 @@ export const Route = createLazyFileRoute("/")({
   component: LandingRoute,
 });
 
-// Outside `_app` so the hero gradient spans the full viewport width; it composes
-// the header and footer itself. Only signed-out visitors reach it.
+/**
+ * Outside `_app` so the hero gradient spans the full viewport width; it composes
+ * the header and footer itself. Only signed-out visitors reach it.
+ */
 function LandingRoute() {
   return (
     <>

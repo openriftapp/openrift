@@ -533,8 +533,6 @@ describe("refetchImages", () => {
   });
 });
 
-// Build a {imageId, rehostedUrl} entry shaped like `listAllRehosted` rows for
-// the per-batch helper.
 function snap(imageId: string, rehostedUrl?: string) {
   return { imageId, rehostedUrl: rehostedUrl ?? `/media/cards/${imageId.slice(-2)}/${imageId}` };
 }
@@ -711,10 +709,6 @@ describe("regenerateImagesBatch", () => {
   });
 });
 
-// Minimal in-memory job_runs repo good enough for runRegenerateImagesJob:
-// tracks the current `result` JSONB. Tests can mutate the stored value
-// directly via `setCancel` to simulate the cancel endpoint racing with the
-// job loop.
 function makeFakeJobRunsRepo(initial: unknown = null) {
   const state: { stored: unknown } = { stored: initial };
   const repo = {

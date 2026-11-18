@@ -16,8 +16,10 @@ export function watchPage(
   const observer = new MutationObserver(() => {
     schedule(repaint);
   });
-  // Paint must stay synchronous: the host cannot mutate the page while it runs,
-  // so every record still queued afterwards is the painter's own.
+  /**
+   * Paint must stay synchronous: the host cannot mutate the page while it runs,
+   * so every record still queued afterwards is the painter's own.
+   */
   function repaint(): void {
     paint();
     observer.takeRecords();

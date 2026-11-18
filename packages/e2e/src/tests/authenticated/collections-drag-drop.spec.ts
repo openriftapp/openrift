@@ -78,8 +78,10 @@ interface SeedResult {
   printingId: string;
 }
 
-// Picks the first card whose name is plain ASCII letters so the name works
-// as a stable Playwright locator (img[alt=...], text=...).
+/**
+ * Picks the first card whose name is plain ASCII letters so the name works
+ * as a stable Playwright locator (img[alt=...], text=...).
+ */
 async function seedSameCardCopies(
   email: string,
   collectionId: string,
@@ -134,8 +136,10 @@ async function settledCardTile(page: Page, cardName: string): Promise<Locator> {
   return tile;
 }
 
-// DroppableCollection wraps SidebarMenuItem (a <li>) in a <div>; the first div
-// ancestor of the link is that wrapper, where the drop ring class lands.
+/**
+ * DroppableCollection wraps SidebarMenuItem (a <li>) in a <div>; the first div
+ * ancestor of the link is that wrapper, where the drop ring class lands.
+ */
 function collectionRow(link: Locator): Locator {
   return link.locator("xpath=ancestor::div[1]");
 }
@@ -154,8 +158,10 @@ function watchMoveRequests(page: Page): { count: () => number } {
   return { count: () => moves };
 }
 
-// A drop that does move, after a drop that must not: any request from the earlier
-// drop is sent before this one, so the request count settles once this one answers.
+/**
+ * A drop that does move, after a drop that must not: any request from the earlier
+ * drop is sent before this one, so the request count settles once this one answers.
+ */
 async function dropOntoTarget(page: Page, cardName: string) {
   const cardTile = await settledCardTile(page, cardName);
   const targetLink = page.getByRole("link", { name: "Target" });

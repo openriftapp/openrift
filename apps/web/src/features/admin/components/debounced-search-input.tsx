@@ -1,8 +1,7 @@
 import { SearchInput } from "@/components/search-input";
 import { useSearchUrlSync } from "@/hooks/use-search-url-sync";
 
-// State lives here, not lifted, so each keystroke re-renders only this input
-// and not the parent table with its potentially thousands of rows.
+/** State must stay local: lifting it re-renders the parent table, with up to thousands of rows, per keystroke. */
 export function DebouncedSearchInput({
   urlValue,
   onCommit,

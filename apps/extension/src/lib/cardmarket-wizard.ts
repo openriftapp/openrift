@@ -327,8 +327,10 @@ export function zeroShippingToggle(target: EventTarget | null): boolean | undefi
 
 const measuredHeights = new WeakMap<Element, number>();
 
-// Cardmarket's masonry measures the seller cards only at load and on a window resize,
-// and an isolated content script cannot call it, so a changed height needs the event.
+/**
+ * Cardmarket's masonry measures the seller cards only at load and on a window resize,
+ * and an isolated content script cannot call it, so a changed height needs the event.
+ */
 export function relayoutSellerCards(root: ParentNode, document: Document): boolean {
   let changed = false;
   for (const card of root.querySelectorAll<HTMLElement>(CARD_SELECTOR)) {

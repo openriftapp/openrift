@@ -128,8 +128,7 @@ function buildGroups(
 
   if (groupBy === "domain") {
     const grouped = Map.groupBy(cards, (card) => comboKey(card.domains, ctx.domainOrder));
-    // Same interleaving as the stats charts: combos sit at the average
-    // position of their domains.
+    /** Must match the stats charts' ordering: a combo sits at the average position of its domains. */
     const comboPosition = (key: string) => {
       if (key === "") {
         return Number.POSITIVE_INFINITY;

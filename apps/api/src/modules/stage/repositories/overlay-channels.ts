@@ -14,8 +14,10 @@ export interface OverlayChannel extends Omit<Selectable<OverlayChannelsTable>, "
   payload: OverlayPayload;
 }
 
-// Normalizes the payload: it grows display switches without a migration, so
-// older rows are missing whichever ones came later.
+/**
+ * Normalizes the payload: it grows display switches without a migration, so
+ * older rows are missing whichever ones came later.
+ */
 function toChannel(row: Selectable<OverlayChannelsTable>): OverlayChannel {
   return {
     ...row,

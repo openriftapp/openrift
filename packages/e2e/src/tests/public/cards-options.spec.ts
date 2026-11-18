@@ -5,8 +5,10 @@ import { cardImage, typeSearch, waitForCatalogLoaded } from "../../helpers/catal
 import { waitForHydrated } from "../../helpers/hydration.js";
 import { scrollUntilVisible } from "../../helpers/virtualized.js";
 
-// The popover trigger renders as "<Group> · <Sort>" (default groupBy="set"
-// keeps the middot present).
+/**
+ * The popover trigger renders as "<Group> · <Sort>" (default groupBy="set"
+ * keeps the middot present).
+ */
 async function openSortGroupPopover(page: Page) {
   const trigger = page.getByRole("button", { name: /·/u });
   await waitForHydrated(trigger);
@@ -93,7 +95,7 @@ test.describe("card browser — options bar", () => {
     await page.goto("/cards");
     await waitForCatalogLoaded(page);
 
-    // Default group-by-set reorders within groups; compare the whole visible sequence.
+    /** Default group-by-set reorders within groups; compare the whole visible sequence. */
     const cardOrder = () =>
       page
         .locator("main [data-index] [data-printing-id]")

@@ -272,7 +272,7 @@ function RowActionsFor({
   );
 }
 
-// The React Compiler bails on a function declared after a return, so the row-null guard sits in a wrapper.
+/** The React Compiler bails on a function declared after a return, so the row-null guard sits in a wrapper. */
 export function MirrorRowActions({
   row,
   onPickFormat,

@@ -152,8 +152,10 @@ function ScanPageBody({
 
   const [detailOpen, setDetailOpen] = useState(false);
 
-  // Decoration only: a missing video, unmeasurable box, or tainted canvas
-  // just means no flight, never a failed add.
+  /**
+   * Decoration only: a missing video, unmeasurable box, or tainted canvas
+   * just means no flight, never a failed add.
+   */
   function launchFlight() {
     const video = videoRef.current;
     if (!video) {

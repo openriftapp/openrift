@@ -57,7 +57,7 @@ function sortOptionsList(): { value: SortOption; label: string }[] {
   ];
 }
 
-// Excludes "collection" (copies-only); only /collections appends it back.
+/** Excludes "collection" (copies-only); only /collections appends it back. */
 export function defaultGroupByOptions() {
   return groupByOptionsFor(GROUP_BY_FIELDS.filter((field) => !isCopiesOnlyGrouping(field)));
 }
@@ -93,8 +93,10 @@ export function DetailPaneToggle({
   const closeDetail = useSelectionStore((state) => state.closeDetail);
   const isMobile = useIsMobile();
 
-  // Undocking must also clear the selection (mirrors SelectionDetailPane's
-  // own X); otherwise detailOpen stays set and the hidden card reopens as a modal.
+  /**
+   * Undocking must also clear the selection, else detailOpen stays set and the hidden card
+   * reopens as a modal.
+   */
   const handlePressedChange = (next: boolean) => {
     setPaneDocked(next);
     if (!next) {
@@ -372,8 +374,10 @@ export function MobileOptionsDrawer({
     if (smUp || idlePremounted) {
       return;
     }
-    // requestIdleCallback is missing on iOS Safari (runtime floor 16.4) —
-    // fall back to a delay long enough to stay clear of the load work.
+    /**
+     * Scheduled on idle, or after a fixed delay on iOS Safari (runtime floor 16.4), which lacks
+     * requestIdleCallback.
+     */
     const premount = () => setIdlePremounted(true);
     if (typeof requestIdleCallback === "function") {
       const handle = requestIdleCallback(premount, { timeout: 8000 });

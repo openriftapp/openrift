@@ -13,7 +13,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
   await sql`ALTER TABLE card_errata ALTER COLUMN language DROP DEFAULT`.execute(db);
 }
 
-// Fails while a card has errata in more than one language.
+/** Fails while a card has errata in more than one language. */
 export async function down(db: Kysely<unknown>): Promise<void> {
   await sql`
     ALTER TABLE card_errata

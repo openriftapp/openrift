@@ -59,8 +59,10 @@ function storeSubqueries() {
   return expressionBuilder<Database, never>();
 }
 
-// The uvsgames store record carries no address, only each event row does, so
-// a uvsgames shop's address is read off its newest listing.
+/**
+ * The uvsgames store record carries no address, only each event row does, so
+ * a uvsgames shop's address is read off its newest listing.
+ */
 function latestUvsgamesLocation() {
   return storeSubqueries()
     .selectFrom("uvsgamesEvents as le")
@@ -147,8 +149,7 @@ export function friendGroupShopsRepo(db: Kysely<Database>) {
     }));
   }
 
-  // Only shops with a listing ahead of them are offered: a store with no
-  // upcoming Riftbound event would link to a permanently empty feed.
+  /** Returns only shops with an upcoming Riftbound event listed. */
   async function searchUvsgamesShops(pattern: string): Promise<ShopSearchRow[]> {
     const rows = await db
       .selectFrom("uvsgamesStores as s")

@@ -221,8 +221,10 @@ export function FilterMoreMenu({
   const { categories: tagCategories, categoryByTag } = useTagCategories();
   const tagGroups = groupTagsByCategory(availableFilters.tags, tagCategories, categoryByTag);
 
-  // Variant and Stats resolve through their own axes (artVariants / finishes /
-  // signed, energy / might / power), so a per-axis hide still applies to them.
+  /**
+   * Variant and Stats resolve through their own axes (artVariants / finishes /
+   * signed, energy / might / power), so a per-axis hide still applies to them.
+   */
   const shows = (key: string) =>
     visibleDimensions.has(key) && !topLevelUnits.has(filterDimension(key).unit);
 

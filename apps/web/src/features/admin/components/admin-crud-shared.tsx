@@ -176,7 +176,7 @@ interface SlugAddInputProps<TDraft extends { slug: string }> extends AdminDraftS
   width?: string;
 }
 
-// Every taxonomy slug is kebab-case, so typing is lowercased as it goes in.
+/** Every taxonomy slug is kebab-case, so typing is lowercased as it goes in. */
 export function SlugAddInput<TDraft extends { slug: string }>({
   placeholder,
   width = "w-40",

@@ -10,9 +10,7 @@ afterEach(createStoreResetter(useAddModeStore));
 
 const printing = { printingId: "p1", cardId: "c1", setId: "set-ogn" } as Printing;
 
-// Flush the async escalation IIFE inside onDecrement (await tryUndoAdd → maybe
-// open the popover). Two microtask turns cover the single await plus its
-// continuation.
+/** Two microtask turns flush onDecrement's async escalation (await tryUndoAdd, then maybe open the popover). */
 const flush = async () => {
   await Promise.resolve();
   await Promise.resolve();

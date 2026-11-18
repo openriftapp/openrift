@@ -40,7 +40,7 @@ import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-// The server enforces the last-owner guard, not this list.
+/** The server enforces the last-owner guard, not this list. */
 function memberRoleItems(): { value: OrganizationRole; label: string }[] {
   const labels = organizationRoleLabels();
   return organizationRoleSchema.options.map((value) => ({ value, label: labels[value] }));

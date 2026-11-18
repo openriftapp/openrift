@@ -67,7 +67,7 @@ function makePrintingWithImage(slug: string): Printing {
   });
 }
 
-// React synthesizes onMouseEnter from mouseover.
+/** React synthesizes onMouseEnter from mouseover. */
 function hoverTile(container: HTMLElement) {
   const tile = container.querySelector("[data-printing-id]");
   if (!tile) {
@@ -82,7 +82,7 @@ function transitionEnd(propertyName: string): Event {
   return event;
 }
 
-// A closed sibling layer is its bare black clipper: the face mounts inside it on hover.
+/** A closed sibling layer is its bare black clipper: the face mounts inside it on hover. */
 function queryStandin(container: HTMLElement) {
   const layers = [...container.querySelectorAll(".aspect-card.bg-black")];
   return layers.find((layer) => layer.childElementCount === 0) ?? null;
@@ -934,7 +934,7 @@ describe("CardThumbnail card page link", () => {
   ])("leaves a %s click to the browser", (_label, init) => {
     const { link, onClick } = renderLinked();
     let preventedByApp: boolean | undefined;
-    // Runs after React's root listener; the preventDefault only stops jsdom's unimplemented navigation.
+    /** Runs after React's root listener; the preventDefault only stops jsdom's unimplemented navigation. */
     const record = (event: Event) => {
       preventedByApp = event.defaultPrevented;
       event.preventDefault();

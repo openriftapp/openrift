@@ -61,8 +61,10 @@ function soleCopyId(target: CopyDetailsTarget | null): string | null {
   return first !== undefined && rest.length === 0 ? first : null;
 }
 
-// With one target copy it opens straight in the editor; with a stack it first
-// lists the copies and edits the one picked.
+/**
+ * With one target copy it opens straight in the editor; with a stack it first
+ * lists the copies and edits the one picked.
+ */
 export function CopyDetailsDialog({
   target,
   onOpenChange,
@@ -127,8 +129,6 @@ export function CopyDetailsDialog({
   );
 }
 
-// Deduped so the variant label only calls out attributes that differ across
-// the copies actually on screen.
 function distinctPrintings(printingByCopyId: Map<string, Printing>): Printing[] {
   const byId = new Map<string, Printing>();
   for (const printing of printingByCopyId.values()) {

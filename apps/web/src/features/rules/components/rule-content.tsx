@@ -168,7 +168,6 @@ export function VersionComments({ html }: { html: string }) {
   );
 }
 
-// Renders one node of the merged diff tree produced by `diffRuleMarkdown`.
 function renderDiffNode(node: HastNode, key: number): ReactNode {
   if (node.type === "text") {
     return node.value ?? "";
@@ -211,8 +210,10 @@ function renderDiffNode(node: HastNode, key: number): ReactNode {
   }
 }
 
-// Both texts are parsed through the full markdown pipeline and diffed
-// structurally, so emphasis, links and penalty badges survive the diff.
+/**
+ * Both texts are parsed through the full markdown pipeline and diffed
+ * structurally, so emphasis, links and penalty badges survive the diff.
+ */
 export function InlineDiff({
   oldText,
   newText,

@@ -46,8 +46,7 @@ export function normalizeToPeriodStart(release: SetRelease): SetRelease {
   return { releasedAt: `${year}-${String(startMonth).padStart(2, "0")}-01`, precision };
 }
 
-// Compares against the period's end, so a set stays "unreleased" until its
-// full period passes. Being late is the safe direction under the Riot license.
+/** Compares against the period's end, so a set stays unreleased until its full period passes. */
 export function isReleased(release: SetRelease | undefined, today = todayUtc()): boolean {
   if (!release) {
     return false;

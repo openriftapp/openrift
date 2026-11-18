@@ -257,7 +257,10 @@ function buildPrintingJson(
   return out;
 }
 
-// Only validateContribution consumes this; the external_ids here exist to satisfy the schema and are dropped by buildSubmissionPayload.
+/**
+ * Only validateContribution consumes this; its external_ids exist to satisfy the schema
+ * and are dropped by buildSubmissionPayload.
+ */
 export function buildContributionJson(
   state: ContributeFormState,
   dateStamp: string,
@@ -275,7 +278,7 @@ export function buildContributionJson(
   return { card, printings };
 }
 
-// Slug arrays are sorted so a reordering by the pickers doesn't read as an edit.
+/** Slug arrays are sorted: picker order must not count as a change. */
 function printingFingerprint(printing: ContributeFormPrinting): string {
   return JSON.stringify({
     ...printing,
@@ -284,14 +287,14 @@ function printingFingerprint(printing: ContributeFormPrinting): string {
   });
 }
 
-// Slug arrays are picker-ordered, so a reordering must not read as an edit.
+/** Slug arrays are picker-ordered, so a reordering must not count as a change. */
 function sameCardValue(a: unknown, b: unknown): boolean {
   const normalize = (v: unknown) =>
     JSON.stringify(Array.isArray(v) ? [...(v as unknown[])].toSorted() : v);
   return normalize(a) === normalize(b);
 }
 
-// Name identifies the card downstream, so it stays even when unchanged.
+/** Name identifies the card downstream, so it stays even when unchanged. */
 function stripUnchangedCardFields(card: SnakeCardJson, baseline: SnakeCardJson): SnakeCardJson {
   const out: SnakeCardJson = {};
   for (const [key, value] of Object.entries(card)) {
@@ -302,8 +305,7 @@ function stripUnchangedCardFields(card: SnakeCardJson, baseline: SnakeCardJson):
   return out;
 }
 
-// Printings unchanged from `baseline` are left out, since the correction flow prefills every
-// printing and a one-field fix would otherwise bury the edit among rows proposing nothing.
+/** Printings unchanged from `baseline` are left out. */
 export function buildSubmissionPayload(
   state: ContributeFormState,
   submissionNote: string | null,
@@ -332,8 +334,10 @@ export function buildSubmissionPayload(
   };
 }
 
-// Only the fields identifying the card and target printing are populated, so the resulting
-// JSON omits everything else and the consolidation Action treats absent fields as "leave alone".
+/**
+ * Only the fields identifying the card and target printing are populated, so the resulting
+ * JSON omits everything else and the consolidation Action treats absent fields as "leave alone".
+ */
 export function buildImagePatchState(args: {
   cardName: string;
   cardSlug: string;
@@ -368,7 +372,7 @@ export function buildImagePatchState(args: {
   };
 }
 
-// The internal imageId references aren't real URLs, so imageUrl is left blank here.
+/** The internal imageId references aren't real URLs, so imageUrl is left blank here. */
 export function prefillFromCard(
   card: Card,
   printings: Printing[],

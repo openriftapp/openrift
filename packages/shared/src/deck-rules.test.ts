@@ -1306,7 +1306,7 @@ describe("validateDeck for custom-region", () => {
     return { ...card, customTagSlugs: slugs };
   }
 
-  // Custom-region allows exactly 1 battlefield; drops the shell's extra two.
+  /** Custom-region allows exactly 1 battlefield; drops the shell's extra two. */
   function fullyTaggedShell(slugs: string[]): DeckCard[] {
     return makeConstructedShell()
       .filter((card) => card.zone !== "battlefield" || card.cardId === "bf-1")

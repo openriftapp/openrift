@@ -57,8 +57,10 @@ function isCacheablePublicPath(pathname: string): boolean {
   return PREFIX_PATHS.some((prefix) => pathname.startsWith(prefix));
 }
 
-// Locale lives in a cookie, not the URL, so a translated page must never be
-// stored under the plain URL and served to everyone behind it.
+/**
+ * Locale lives in a cookie, not the URL, so a translated page must never be
+ * stored under the plain URL and served to everyone behind it.
+ */
 function hasNonBaseLocaleCookie(request: Request): boolean {
   const cookie = request.headers.get("cookie");
   if (!cookie) {

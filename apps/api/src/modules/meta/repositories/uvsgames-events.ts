@@ -287,8 +287,10 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
     return { ...row, mappedFormat: mappings.get(normalizeFormatKey(row.sourceFormat)) ?? null };
   }
 
-  // Store rows must exist before the events that reference them. A repeated
-  // name updates the store in place, so renames propagate.
+  /**
+   * Store rows must exist before the events that reference them. A repeated
+   * name updates the store in place, so renames propagate.
+   */
   async function upsertStores(
     rows: readonly Pick<UvsgamesUpsertInput, "storeId" | "storeName">[],
   ): Promise<void> {

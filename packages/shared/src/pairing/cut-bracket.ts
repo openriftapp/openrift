@@ -185,8 +185,10 @@ function isPerfect(cost: Cost): boolean {
   return cost.rematches === 0 && cost.sameGroup === 0 && cost.imbalance === 0;
 }
 
-// Top 16 descends by best cost-improving swap from the conventional bracket and from each of its
-// single transpositions, because one descent stalls far above the reachable balance.
+/**
+ * Top 16 descends by best cost-improving swap from the conventional bracket and from each of its
+ * single transpositions, because one descent stalls far above the reachable balance.
+ */
 function swapDescent(
   conventional: readonly number[],
   cost: (a: readonly number[]) => Cost,

@@ -96,7 +96,7 @@ const OPTIONS: BoardOptions = {
   rotationPairOnly: false,
 };
 
-// The embedder maps every crop to (1, 0), so each key sits at its requested distance.
+/** The embedder maps every crop to (1, 0), so each key sits at its requested distance. */
 function boardDeps(
   distances: Record<string, number>,
   fetchReference: BoardDeps["fetchReference"],

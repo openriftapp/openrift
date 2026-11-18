@@ -102,8 +102,10 @@ export const useCardRowActionsStore = create<CardRowActionsState>()((set) => ({
     set((state) => (state.owner === owner ? { owner: null, handlers: {} } : state)),
 }));
 
-// Module-scoped trampolines with permanent identity, so passing them to memoized
-// children (e.g. CardThumbnail) never bails the memo on a fresh closure.
+/**
+ * Module-scoped trampolines with permanent identity, so passing them to memoized
+ * children (e.g. CardThumbnail) never bails the memo on a fresh closure.
+ */
 export function dispatchRowClick(printing: Printing): void {
   useCardRowActionsStore.getState().handlers.onRowClick?.(printing);
 }

@@ -214,8 +214,10 @@ export function useQuickAddActions(
       }
     : undefined;
 
-  // A dismissal that starts on the popover's own anchor is left to that control's click,
-  // which toggles the popover through the store's closeVariantsOn.
+  /**
+   * A dismissal that starts on the popover's own anchor is left to that control's click,
+   * which toggles the popover through the store's closeVariantsOn.
+   */
   const closeVariants = (pressTarget?: EventTarget | null) => {
     const anchor = useAddModeStore.getState().variantPopover?.anchorEl;
     if (anchor && pressTarget instanceof Node && anchor.contains(pressTarget)) {

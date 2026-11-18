@@ -46,8 +46,10 @@ function tabParam(value: string): (typeof OPT_IN_TABS)[number] | undefined {
   return OPT_IN_TABS.find((tab) => tab === value);
 }
 
-// Each tab renders its own page top bar: BaseUI unmounts the hidden panel, so
-// only the active tab's bar is ever portalled into the layout slot.
+/**
+ * Each tab renders its own page top bar: BaseUI unmounts the hidden panel, so
+ * only the active tab's bar is ever portalled into the layout slot.
+ */
 export function MetaAdminPage() {
   const { data } = useAdminMetaOverlays();
   const corrections = useMetaEventCorrections();

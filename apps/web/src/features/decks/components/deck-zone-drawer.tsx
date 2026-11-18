@@ -16,7 +16,7 @@ import { useZoneOrder } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-// Mounts with the drawer's content, which the portal renders a commit after `open` flips.
+/** Mounts with the drawer's content, which the portal renders a commit after `open` flips. */
 function ScrollToZone({
   containerRef,
   zone,

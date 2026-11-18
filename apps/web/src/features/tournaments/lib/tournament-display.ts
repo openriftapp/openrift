@@ -205,9 +205,10 @@ export function regionsAvailable(
   );
 }
 
-// Keyed on the pairing's own seat count, not the tournament's pairing style:
-// the pod engine seats a 2-player pod when the field forces one, and that
-// pairing is a match no matter which engine drew it.
+/**
+ * Keyed on the pairing's seat count, not the pairing style: the pod engine can seat a
+ * 2-player pod, and that pairing is a match whichever engine drew it.
+ */
 export function isMatchPairing(size: number): boolean {
   return size === 2;
 }
@@ -286,8 +287,10 @@ export function isTournamentHost(myRoles: readonly TournamentViewerRole[]): bool
   return myRoles.includes("host");
 }
 
-// Fetching the staff-gated API surfaces (the participant roster with its claim
-// links) as a plain participant 403s, so gate on this first.
+/**
+ * Fetching the staff-gated API surfaces (the participant roster with its claim
+ * links) as a plain participant 403s, so gate on this first.
+ */
 export function isTournamentStaff(myRoles: readonly TournamentViewerRole[]): boolean {
   return myRoles.includes("host") || myRoles.includes("organizer") || myRoles.includes("judge");
 }

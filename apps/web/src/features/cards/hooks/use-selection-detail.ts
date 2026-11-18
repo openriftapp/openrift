@@ -58,8 +58,6 @@ export function useCardDetailNavigation({
     }
   };
 
-  // Bumps selectedIndex onto the picked printing when it is also a grid tile,
-  // so arrow-key nav and grid highlighting follow it; otherwise leaves the index alone.
   const handleSelectPrinting = (printing: Printing) => {
     const idx = items.findIndex((item) => sideKey(item.printing) === sideKey(printing));
     if (idx === -1) {
@@ -71,8 +69,10 @@ export function useCardDetailNavigation({
 
   const handleKeywordClick = (keyword: string) => onSearchAndClose(`kw:${keyword}`);
 
-  // useGridKeyboardNav listens on the window and can't reach inside a focus-trapped
-  // dialog, so this overlay carries its own left/right/up/down handling.
+  /**
+   * useGridKeyboardNav listens on the window and can't reach inside a focus-trapped
+   * dialog, so this overlay carries its own left/right/up/down handling.
+   */
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
     if (event.defaultPrevented) {
       return;

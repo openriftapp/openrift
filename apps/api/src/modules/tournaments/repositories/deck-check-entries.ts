@@ -458,10 +458,10 @@ export function deckCheckEntriesRepo(db: Kysely<Database>) {
       const writesParticipant = Object.keys(participantPatch).length > 0;
       const writesEntry = Object.keys(entryPatch).length > 0;
 
-      // One patch spans two tables, so the two writes share a transaction: a
-      // failure between them would leave the participant renamed while the
-      // entry kept its old state, which the checked/approved columns make
-      // visible to judges immediately.
+      /**
+       * Must run in one transaction: the patch spans two tables, and a partial write leaves the
+       * participant renamed while the entry keeps its old checked/approved state.
+       */
       const applyPatches = async (trx: Kysely<Database>): Promise<boolean> => {
         if (writesParticipant) {
           const row = await trx

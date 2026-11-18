@@ -38,7 +38,7 @@ import { useOnboardingStore } from "@/stores/onboarding-store";
 
 const routeApi = getRouteApi("/_app/stage");
 
-// Dark stand-in while the deck or catalog query settles, so no white flash reaches a capture.
+/** Dark stand-in while the deck or catalog query settles, so no white flash reaches a capture. */
 function StageFallback() {
   return <div className="fixed inset-0 z-50 bg-[#08090c]" />;
 }
@@ -154,8 +154,6 @@ export function StagePage() {
   );
 }
 
-// The show is chrome-free by covering the shell, not by living outside it;
-// this builder stays an ordinary page with the usual header and footer.
 function StageBuilder({ initialIds }: { initialIds: readonly string[] }) {
   const navigate = useNavigate();
   const queued = usePresentQueueStore((state) => state.ids.length);

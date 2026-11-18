@@ -61,7 +61,6 @@ export function useMetaDeckFilters(): MetaDeckFilterState &
   const search = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
 
-  // Every narrowing changes which decks the pages hold, so it opens the first one.
   const update = (patch: Partial<MetaDeckSearch>, replace = false) => {
     void navigate({
       search: (prev) => nextScopeSearch({ ...prev, page: undefined }, patch),

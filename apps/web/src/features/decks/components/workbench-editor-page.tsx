@@ -203,7 +203,7 @@ function WorkbenchContent({
       region?.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: "ease-out" });
     }
   }, [mode]);
-  // The sheet's history entry must be popped before navigating, or Back would land on it.
+  /** The sheet's history entry must be popped before navigating, or Back would land on it. */
   const afterSheetClosed = (run: () => void) => {
     if (isMobile && hasOverlayHistoryEntry("deckSheet")) {
       closeOverlayHistoryEntry("deckSheet", () => setOpenMobile(false), run);

@@ -71,9 +71,10 @@ describe.skipIf(!ctx)("listsRepo (integration)", () => {
     return copy;
   }
 
-  // A copy living in a *group* collection the user is a member of. The user can
-  // see it, but doesn't personally own it — so it must not be addable to a
-  // trade/wish list (personalOnly), only to an organize list.
+  /**
+   * A copy in a group collection the user is a member of: visible but not owned,
+   * so only an organize list accepts it (personalOnly).
+   */
   async function createGroupCopy() {
     const group = await db
       .insertInto("friendGroups")

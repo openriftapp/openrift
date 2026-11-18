@@ -30,7 +30,7 @@ vi.mock("@openrift/shared/filters-available", async (importOriginal) => {
   return { ...actual, getAvailableFilters: () => AVAILABLE };
 });
 
-// The price row's skipped-count pass runs the real `filterCards` over these.
+/** The price row's skipped-count pass runs the real `filterCards` over these. */
 const printing = (id: string, language: string) => ({
   id,
   cardId: `card-${id}`,

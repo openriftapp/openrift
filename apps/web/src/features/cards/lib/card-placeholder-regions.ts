@@ -38,7 +38,7 @@ export function placeholderLabelFontSize(region: PlaceholderRegion): number {
   return Math.min(LABEL_FONT_CQW, fit);
 }
 
-// These rects mirror the absolute positions in card-placeholder-image.tsx and have to move with them.
+/** These rects mirror the absolute positions in card-placeholder-image.tsx and have to move with them. */
 export function cardPlaceholderRegions(): readonly PlaceholderRegion[] {
   return [
     {

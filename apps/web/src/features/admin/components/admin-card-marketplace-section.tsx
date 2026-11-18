@@ -40,8 +40,7 @@ export function AdminCardMarketplaceSection({
   const queryClient = useQueryClient();
   const { data, isLoading } = useQuery(unifiedMappingsForCardQueryOptions(cardSlug));
 
-  // Refreshes both the per-card cache this page reads and the corpus-wide
-  // cache (coverage badges, unmatched products on /admin/cards) so they can't disagree.
+  /** Also invalidates the corpus-wide mapping cache behind the /admin/cards coverage badges. */
   const refreshAfter = async (run: () => Promise<unknown>) => {
     if (await runReportedMutation(run)) {
       await Promise.all([

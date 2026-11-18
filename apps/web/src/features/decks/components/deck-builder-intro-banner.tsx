@@ -18,7 +18,7 @@ function introStepTitles(format: DeckFormat): readonly string[] {
   ];
 }
 
-// Dismissed for good once closed; the flag lives in the onboarding store.
+/** Dismissed for good once closed; the flag lives in the onboarding store. */
 export function DeckBuilderIntroBanner({
   format,
   onDismiss,

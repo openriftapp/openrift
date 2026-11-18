@@ -15,7 +15,7 @@ interface Tier {
   index: number;
 }
 
-// Must never render "S"/"D": row labels are user-renamed from those defaults.
+/** Must never render "S"/"D": row labels are user-renamed from those defaults. */
 function tier1(): Tier {
   return { label: m.marketing_tier_list_tier_1(), index: 0 };
 }
@@ -99,8 +99,10 @@ function PoolCell({ url, tier, animate }: { url?: string; tier?: Tier; animate?:
   );
 }
 
-// Ramp colours come from the shared `tierRowColor`, the same function the real
-// board and the API's share image use; a hand-picked copy here would drift.
+/**
+ * Ramp colours must come from the shared `tierRowColor`, which the real board
+ * and the API's share image also use.
+ */
 export function TierListVignette({ legendUrls = [] }: { legendUrls?: string[] }) {
   const art = (index: number) => legendUrls[index];
   return (

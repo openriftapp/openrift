@@ -34,7 +34,7 @@ import { m } from "@/paraglide/messages.js";
 
 const FEED_ROWS = 10;
 
-// Derived server-side from existing rows; there is no dedicated event log.
+/** Derived server-side from existing rows; there is no dedicated event log. */
 export function FriendGroupActivityFeed({ slug }: { slug: string }) {
   const { data } = useFriendGroupActivity(slug);
   const [expanded, setExpanded] = useState(false);

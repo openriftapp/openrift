@@ -66,8 +66,10 @@ export const sentryTunnelRoute = new Hono<{ Variables: Variables }>().post(
   },
 );
 
-// Relay reads the client address from the envelope header's `forwarded_for`;
-// without it every browser event geolocates to our server.
+/**
+ * Relay reads the client address from the envelope header's `forwarded_for`;
+ * without it every browser event geolocates to our server.
+ */
 function withForwardedFor(
   header: Record<string, unknown>,
   bytes: Uint8Array<ArrayBuffer>,

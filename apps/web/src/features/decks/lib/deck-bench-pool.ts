@@ -17,8 +17,10 @@ export interface BenchState {
   hasDrawn: boolean;
 }
 
-// The counter runs per card across pool entries: a card split over two
-// pinned printings must not restart at 0 and hand two copies the same key.
+/**
+ * The counter runs per card across pool entries: a card split over two
+ * pinned printings must not restart at 0 and hand two copies the same key.
+ */
 export function buildBenchPool(cards: readonly DeckBuilderCard[]): PoolCard[] {
   const copySeq = new Map<string, number>();
   return cards

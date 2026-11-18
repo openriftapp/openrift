@@ -193,8 +193,10 @@ describe("groupSharedIllustrations", () => {
     expect(groups.get("UNL|Mind Rune|altart|")).toBe("SFD|Mind Rune|altart|");
   });
 
-  // Real reprints keep the frame and text box (bottom ~45%) and swap the art,
-  // or keep the art and swap the text language.
+  /**
+   * Real reprints keep the frame and text box (bottom ~45%) and swap the art,
+   * or keep the art and swap the text language.
+   */
   function card(art: RgbaImage, frame: RgbaImage, artShift = 0): RgbaImage {
     const { width, height } = art;
     const artRows = Math.round(height * 0.55);

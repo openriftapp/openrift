@@ -37,7 +37,7 @@ export interface DeckPlanInput {
   }[];
 }
 
-// Plans hang off the deck and never touch deck_cards.
+/** Plans hang off the deck and never touch deck_cards. */
 export function deckPlansRepo(db: Kysely<Database>) {
   return {
     async getForDeck(deckId: string): Promise<DeckPlanData> {

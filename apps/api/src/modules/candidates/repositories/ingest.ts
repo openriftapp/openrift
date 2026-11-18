@@ -10,7 +10,7 @@ import { lockKey } from "../../../repositories/query-helpers.js";
 
 type Db = Kysely<Database>;
 
-// Designed to be instantiated with a transaction for all-or-nothing ingestion.
+/** Pass a transaction: ingestion must be all-or-nothing. */
 export function ingestRepo(db: Db) {
   return {
     /**

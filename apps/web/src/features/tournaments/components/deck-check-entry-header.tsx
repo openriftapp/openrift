@@ -287,8 +287,10 @@ export function EntryHeader({
   );
 }
 
-// An unlinked entry shows no Account row: "not linked" is the default, so
-// omitting the row isn't a bug.
+/**
+ * An unlinked entry shows no Account row: "not linked" is the default, so
+ * omitting the row isn't a bug.
+ */
 function EntryMetaGrid({ entry }: { entry: DeckCheckEntryDetailResponse["entry"] }) {
   const contact = [entry.riotId].filter(Boolean).join(" · ");
   const reviewer =
@@ -340,8 +342,7 @@ function MetaRow({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-// Withholding the deck list keeps everything private, so name/Riot ID read as
-// withheld too regardless of their own flags.
+/** Withholding the deck list also withholds name and Riot ID, regardless of their own flags. */
 function SharingValue({ entry }: { entry: DeckCheckEntryDetailResponse["entry"] }) {
   const published = entry.allowDeckPublishing;
   const items = [
@@ -374,8 +375,10 @@ function SharingValue({ entry }: { entry: DeckCheckEntryDetailResponse["entry"] 
   );
 }
 
-// There is no manual link: an entry only attaches to an account via auto email
-// match or the player's own claim, so this renders nothing when unlinked.
+/**
+ * There is no manual link: an entry only attaches to an account via auto email
+ * match or the player's own claim, so this renders nothing when unlinked.
+ */
 function AccountLinkAction({
   tournamentId,
   entryId,

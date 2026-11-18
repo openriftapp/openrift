@@ -11,7 +11,7 @@ import { useOverlayBoardSync } from "@/features/stage/hooks/use-overlay-board-sy
 import { resolvePresentationKey } from "@/features/stage/lib/presentation-keys";
 import { isTypingTarget } from "@/lib/keyboard-target";
 
-// Mounted only while signed in: the push mutation needs a session, and the stage runs signed out.
+/** Mounted only while signed in: the push mutation needs a session, and the stage runs signed out. */
 export function StageOverlayPushKey({ printingId }: { printingId: string }) {
   const pushCard = usePushOverlayCard();
   const mutate = pushCard.mutate;
@@ -34,7 +34,6 @@ export function StageOverlayPushKey({ printingId }: { printingId: string }) {
   return null;
 }
 
-// Reads `hidden` from the channel query, not local state.
 export function StageOverlayHideKey() {
   const { data: channel } = useOverlayChannel();
   const setHidden = useSetOverlayHidden();
@@ -69,7 +68,7 @@ export interface StageObsBoard {
   revealCount: number;
 }
 
-// Split out for the same reason as StageOverlayPushKey: the channel mutation needs a session.
+/** Mounted only while signed in: the channel mutation needs a session. */
 export function StageObsBoardSync({
   board,
   enabled,

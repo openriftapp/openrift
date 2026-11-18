@@ -182,12 +182,13 @@ function computeSuggestions(
     product: StagedProductResponse;
     score: number;
   }
-  // Language is part of the key: on CardTrader two products can share an
-  // (externalId, finish) pair but differ in language (EN vs SC SKUs).
+  /**
+   * Language is part of the key: on CardTrader two products can share an
+   * (externalId, finish) pair but differ in language (EN vs SC SKUs).
+   */
   const productKey = (product: StagedProductResponse): string =>
     skuKey(product.externalId, product.finish, product.language);
-  // This 2-tuple key is used where evidence is meant to carry across
-  // languages (cross-language and price-rank hints).
+  /** Language-free key, for evidence that carries across languages (cross-language and price-rank hints). */
   const productKey2 = (product: StagedProductResponse): string =>
     `${product.externalId}|${product.finish}`;
   const emptyShortCodes: ReadonlySet<string> = new Set();

@@ -30,8 +30,10 @@ describe.skipIf(!ctx)("friendGroupDiscordLinksRepo (integration)", () => {
     return `fgdl-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
   }
 
-  // Group ids are uuidv7: created in the same ~65s window, they share a hex
-  // prefix, so codes/guild ids must use the whole id to stay unique.
+  /**
+   * Group ids are uuidv7: created in the same ~65s window, they share a hex
+   * prefix, so codes/guild ids must use the whole id to stay unique.
+   */
   async function createGroup() {
     const group = await groups.createWithOwner(
       { slug: uniqueSlug(), name: "Test Group", description: null, code: null },

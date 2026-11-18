@@ -5,8 +5,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { m } from "@/paraglide/messages.js";
 
-// `children` is a render prop, not a resolved result: the contribute form's
-// search stays behind a Suspense boundary that mounts only on open.
+/**
+ * `children` is a render prop, not a resolved result: the contribute form's
+ * search stays behind a Suspense boundary that mounts only on open.
+ */
 export function CardPickerButton({
   label,
   icon,

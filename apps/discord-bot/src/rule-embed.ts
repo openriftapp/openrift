@@ -69,8 +69,10 @@ function descendants(index: RuleIndex, entry: IndexedRule): IndexedRule[] {
   );
 }
 
-// A core-rules subtitle has no numeric children; its section is the run of
-// rules up to the next subtitle (tournament subtitles nest instead, via `descendants`).
+/**
+ * A core-rules subtitle has no numeric children; its section is the run of
+ * rules up to the next subtitle (tournament subtitles nest instead, via `descendants`).
+ */
 function sectionRules(index: RuleIndex, entry: IndexedRule): IndexedRule[] {
   const position = index.entries.indexOf(entry);
   const section: IndexedRule[] = [];

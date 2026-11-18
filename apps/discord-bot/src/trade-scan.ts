@@ -61,7 +61,7 @@ export function buildScanIndex(
   return { byName, byCode: buildCodeIndex(codeEntries), maxTokens };
 }
 
-// Each match becomes a space, not nothing, so removing it can't fuse the words either side.
+/** Each match becomes a space so removing it cannot fuse the words either side. */
 function stripIgnoredRegions(content: string): string {
   let text = content;
   for (const pattern of IGNORED_REGIONS) {
@@ -70,8 +70,10 @@ function stripIgnoredRegions(content: string): string {
   return text;
 }
 
-// Matching is exact only, no prefixes or fuzzy distance: a bare "Jinx" must
-// not resolve to a card named "Jinx, Rebel".
+/**
+ * Matching is exact only, no prefixes or fuzzy distance: a bare "Jinx" must
+ * not resolve to a card named "Jinx, Rebel".
+ */
 export function scanForCards(content: string, index: ScanIndex): CatalogCard[] {
   const text = stripIgnoredRegions(content);
   const found: CatalogCard[] = [];
@@ -112,7 +114,6 @@ export function scanForCards(content: string, index: ScanIndex): CatalogCard[] {
   return found.slice(0, MAX_SCAN_MATCHES);
 }
 
-// Returns plain text, not a card embed.
 export function tradeLine(
   card: CatalogCard,
   holders: TradelistHolders | null,

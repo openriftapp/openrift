@@ -13,14 +13,12 @@ export interface GhostAppearance {
   blurPx: number;
 }
 
-// Rounded so the inline style string is stable across near-identical
-// confidences and doesn't churn the DOM.
+/** Rounded so the inline style string stays stable across near-identical confidences. */
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-// Confidence outside 0-1 (and non-finite) is clamped, so a raw engine score
-// can be passed straight through without the caller normalising it first.
+/** Clamps confidence to 0-1 (non-finite becomes 0), so a raw engine score can be passed in. */
 export function ghostAppearance(confidence: number): GhostAppearance {
   const clamped = Number.isFinite(confidence) ? clamp(confidence, 0, 1) : 0;
   return {
@@ -37,8 +35,10 @@ interface ScanGhostPreviewProps {
   landscape?: boolean;
 }
 
-// Floats the artwork the engine currently favours over the live camera view,
-// converging from faint/blurred to sharp/opaque as confidence builds.
+/**
+ * Floats the artwork the engine currently favours over the live camera view,
+ * converging from faint/blurred to sharp/opaque as confidence builds.
+ */
 export function ScanGhostPreview({
   imageId,
   confidence,

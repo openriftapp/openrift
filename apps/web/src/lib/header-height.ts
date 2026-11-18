@@ -1,7 +1,9 @@
 export const SSR_HEADER_HEIGHT = 57;
 
-// `--header-height` is an unregistered custom property whose calc()/env()
-// value doesn't resolve through getComputedStyle, so it's only a pre-mount fallback.
+/**
+ * `--header-height` is an unregistered custom property whose calc()/env()
+ * value doesn't resolve through getComputedStyle, so it's only a pre-mount fallback.
+ */
 export function getHeaderHeight(): number {
   if (globalThis.window === undefined) {
     return SSR_HEADER_HEIGHT;

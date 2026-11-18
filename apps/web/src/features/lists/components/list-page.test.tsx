@@ -315,8 +315,10 @@ const resetters = [
   createStoreResetter(useSiblingOverrideStore),
 ];
 
-// The dropdown portals outside the render tree, and teardown wipes
-// document.body before React unmounts, so an open menu must detach first.
+/**
+ * The dropdown portals outside the render tree, and teardown wipes
+ * document.body before React unmounts, so an open menu must detach first.
+ */
 async function closeOpenMenu(user: ReturnType<typeof userEvent.setup>) {
   await user.keyboard("{Escape}");
   await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());

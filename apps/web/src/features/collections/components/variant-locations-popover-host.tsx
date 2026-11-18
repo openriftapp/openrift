@@ -33,8 +33,10 @@ function dismissOrigin(details: PopoverRoot.ChangeEventDetails): EventTarget | n
   return null;
 }
 
-// Kept separate from CollectionGrid: the grid must not subscribe to
-// `variantPopover`, or opening/closing it would re-render and reset the grid's scroll.
+/**
+ * Kept separate from CollectionGrid: the grid must not subscribe to
+ * `variantPopover`, or opening/closing it would re-render and reset the grid's scroll.
+ */
 export function VariantLocationsPopoverHost({
   catalogPrintingsByCardId,
   languageScopedPrintingsByCardId,

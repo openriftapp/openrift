@@ -14,7 +14,7 @@ import {
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
-// While a code is outstanding the links list polls, so the redeem shows up without a reload.
+/** While a code is outstanding the links list polls, so the redeem shows up without a reload. */
 export function DiscordPanel({ slug }: { slug: string }) {
   const createCode = useCreateFriendGroupDiscordLinkCode();
   const removeLink = useDeleteFriendGroupDiscordLink();

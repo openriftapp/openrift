@@ -5,7 +5,7 @@ import { waitForCatalogLoaded } from "../../helpers/catalog.js";
 
 const ANNIE_PRINTING_ID = "019cfc3b-03d6-74cf-adec-1dce41f631eb";
 
-// Records every window.scrollTo once armed, so a jump that a later scroll undoes still shows up.
+/** Records every window.scrollTo once armed, so a jump that a later scroll undoes still shows up. */
 async function recordWindowScrolls(page: Page) {
   await page.addInitScript(() => {
     const target = globalThis as unknown as { __scrolls: unknown[]; __armed: boolean };

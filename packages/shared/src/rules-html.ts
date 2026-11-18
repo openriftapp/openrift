@@ -72,7 +72,7 @@ const COMMENT_BLOCK_TAGS: ReadonlySet<string> = new Set([
 const SAFE_HREF_REGEX =
   /^(?:#rule-[\w.-]+|\/rules\/(?:core|tournament)(?:\?lang=[A-Za-z-]+)?#rule-[\w.-]+|\/cards\/[a-z0-9-]+|https:\/\/[^\s"'<>]+)$/u;
 
-// Allowlist serializer: any element or attribute not named here is dropped, and raw HTML never passes.
+/** Allowlist serializer: any element or attribute not named here is dropped, and raw HTML never passes. */
 function serialize(node: HastNode, blockTags: ReadonlySet<string>): string {
   if (node.type === "text") {
     return escapeHtml(node.value ?? "");

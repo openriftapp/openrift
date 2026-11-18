@@ -59,8 +59,10 @@ export function CardDetailPage() {
     side,
   );
 
-  // Mirrored into the path; the route's `head()` reads it for deep-link unfurls.
-  // `?printingId=` is dropped on the way, so the two never disagree.
+  /**
+   * Mirrored into the path; the route's `head()` reads it for deep-link unfurls.
+   * `?printingId=` is dropped on the way, so the two never disagree.
+   */
   const selectPrinting = (printing: Printing) => {
     void navigate({
       to: "/cards/$cardSlug/{-$printingSlug}",

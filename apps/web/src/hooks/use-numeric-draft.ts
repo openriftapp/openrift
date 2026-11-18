@@ -10,8 +10,10 @@ interface NumericDraft {
   resetDraft: () => void;
 }
 
-// The typed text wins over `display` until the field is left, so backspacing
-// to an empty field doesn't snap back to the clamped number under the cursor.
+/**
+ * The typed text wins over `display` until the field is left, so backspacing
+ * to an empty field doesn't snap back to the clamped number under the cursor.
+ */
 export function useNumericDraft({
   display,
   onCommit,

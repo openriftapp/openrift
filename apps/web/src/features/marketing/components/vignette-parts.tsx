@@ -17,7 +17,7 @@ export function VignetteHeading({ children }: { children: ReactNode }) {
 export const FAKE_CONTROL =
   "border-input bg-foreground/5 flex h-(--control-h) w-full min-w-0 items-center rounded-lg border px-2.5 text-base md:text-sm";
 
-// The `now` layer is the base state, so reduced motion and the server render show the finished miniature.
+/** The `now` layer is the base state, so reduced motion and the server render show the finished miniature. */
 export function Swap({
   was,
   now,
@@ -43,7 +43,7 @@ export function Swap({
   );
 }
 
-// Not a real button: the miniatures sit inside a link, so nothing in them may be interactive.
+/** Not a real button: the miniatures sit inside a link, so nothing in them may be interactive. */
 export function StripGlyph({ children }: { children: ReactNode }) {
   return (
     <span

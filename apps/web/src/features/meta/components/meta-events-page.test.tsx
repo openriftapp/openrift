@@ -181,7 +181,7 @@ function winner(playerName: string): MetaEventSummary["topFinishes"][number] {
   };
 }
 
-// 52 events: one more than a page and a half.
+/** 52 events: one more than a page and a half. */
 function manyEvents(): MetaEventSummary[] {
   return Array.from({ length: 52 }, (_, index) =>
     event({

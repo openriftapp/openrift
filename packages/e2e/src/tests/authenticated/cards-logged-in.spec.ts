@@ -65,8 +65,6 @@ async function seedInboxCopy(email: string, printingId: string): Promise<void> {
   }
 }
 
-// The icon-only toggle's accessible name flips between "Show owned count"
-// and "Hide owned count" depending on pressed state, so match either.
 function catalogModeButton(page: Page) {
   return page.getByRole("button", { name: /(?:Show|Hide) owned count/u }).first();
 }
@@ -75,8 +73,10 @@ async function waitForCards(page: Page) {
   await waitForCatalogLoaded(page);
 }
 
-// Hydrates a beat after the grid, which can lag past the default assertion
-// timeout under heavy parallel load.
+/**
+ * Hydrates a beat after the grid, which can lag past the default assertion
+ * timeout under heavy parallel load.
+ */
 async function waitForOwnedCountToggle(page: Page) {
   await expect(catalogModeButton(page)).toBeVisible({ timeout: 15_000 });
 }
@@ -91,8 +91,7 @@ async function openGlobalPalette(page: Page, shortcut: "Control+k" | "Meta+k"): 
   return input;
 }
 
-// /cards leaves the shortcut to the global palette, since the page is already
-// a card search; quick add is that palette's first row instead.
+/** On /cards the shortcut opens the global palette; quick add is that palette's first row. */
 async function openQuickAddPalette(page: Page, shortcut: "Control+k" | "Meta+k"): Promise<Locator> {
   await openGlobalPalette(page, shortcut);
   await page.getByRole("option", { name: "Add to Inbox" }).click();
@@ -102,7 +101,7 @@ async function openQuickAddPalette(page: Page, shortcut: "Control+k" | "Meta+k")
   return paletteInput;
 }
 
-// The palette's "Add to Inbox" row registers only once collections name the inbox.
+/** The palette's "Add to Inbox" row registers only once collections name the inbox. */
 function waitForCollectionsLoaded(page: Page) {
   return page.waitForResponse(
     (res) =>

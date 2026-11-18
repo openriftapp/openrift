@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-// Must match CardGrid's sticky-pill "active" definition.
+/** Must match CardGrid's sticky-pill "active" definition. */
 export function useActiveSection(
   entries: { id: string; label: string }[],
   threshold: number,

@@ -108,8 +108,10 @@ function keepaliveFetch(input: RequestInfo | URL, init?: RequestInit): Promise<R
   return serverFnFetch(input, { ...init, keepalive: true });
 }
 
-// getPrefsSnapshot builds its object literal in a fixed key order, so
-// stringify is stable and can be compared for equality.
+/**
+ * getPrefsSnapshot builds its object literal in a fixed key order, so
+ * stringify is stable and can be compared for equality.
+ */
 function serializePrefs(): string {
   return JSON.stringify(getPrefsSnapshot());
 }

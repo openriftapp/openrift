@@ -17,8 +17,10 @@ function announceNewVersion(reason: string): void {
   reloadForNewVersion(reason);
 }
 
-// API_FORMAT_HEADER describes the body, so it stays valid on a cached
-// response replayed later.
+/**
+ * API_FORMAT_HEADER describes the body, so it stays valid on a cached
+ * response replayed later.
+ */
 function apiFormatOf(response: Response): number | undefined {
   const raw = response.headers.get(API_FORMAT_HEADER);
   if (raw === null) {

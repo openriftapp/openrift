@@ -105,8 +105,10 @@ function TierCell({ row: template, busy = false, onUpdate }: TemplateCellProps) 
     return null;
   }
   const name = template.sourceName ?? template.templateId;
-  // BaseUI hands null when the open Select is dismissed without a pick; the
-  // "Unmapped" item is the explicit clear, so null is not one.
+  /**
+   * BaseUI hands null when the open Select is dismissed without a pick; the
+   * "Unmapped" item is the explicit clear, so null is not one.
+   */
   function setTier(value: string | null) {
     if (value === null || !template || !onUpdate) {
       return;
@@ -315,7 +317,7 @@ function FormatPickCell({
   if (!format || !options || !onUpdate) {
     return null;
   }
-  // A dismissed Select reports null; unmapping is the "Unmapped" item, not null.
+  /** A dismissed Select reports null; unmapping is the "Unmapped" item, not null. */
   function pick(next: string | null) {
     if (next === null || !format || !onUpdate) {
       return;

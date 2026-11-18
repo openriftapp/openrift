@@ -69,7 +69,7 @@ export type ViewPrefsBlob<Surface extends ViewSurface> = Record<Surface, Surface
 
 const DIRECTIONS: ReadonlySet<string> = new Set(SORT_DIRECTIONS);
 
-// Falls back per field: an unknown value reaching the grouping code would render an empty grid.
+/** Falls back per field: an unknown value reaching the grouping code would render an empty grid. */
 export function sanitizeSurfacePrefs(raw: unknown, surface: ViewSurface): SurfaceViewPrefs {
   const config = VIEW_SURFACE_CONFIGS[surface];
   const { defaults } = config;
@@ -91,7 +91,7 @@ export function sanitizeSurfacePrefs(raw: unknown, surface: ViewSurface): Surfac
   };
 }
 
-// Unknown surface keys in the stored blob are dropped, so a renamed surface can't resurrect stale state.
+/** Drops unknown surface keys from the stored blob. */
 export function sanitizeViewPrefsBlob<Surface extends ViewSurface>(
   raw: unknown,
   surfaces: readonly Surface[],
@@ -109,8 +109,10 @@ export function sanitizeViewPrefsBlob<Surface extends ViewSurface>(
 
 export const VIEW_PREFS_COOKIE = "view-prefs";
 
-// Expects the Zustand persist envelope shape:
-// {"state":{"cards":{...},"promos":{...}}}
+/**
+ * Expects the Zustand persist envelope shape:
+ * {"state":{"cards":{...},"promos":{...}}}
+ */
 export function resolveViewPrefsFromCookie(
   raw: string | null | undefined,
 ): ViewPrefsBlob<CookieViewSurface> {

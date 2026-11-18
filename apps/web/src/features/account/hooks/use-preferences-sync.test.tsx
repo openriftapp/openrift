@@ -78,8 +78,10 @@ interface FetchCall {
   body: unknown;
 }
 
-// oRPC's OpenAPI link sends a body-bearing request as a `Request` object, so the
-// method/body are read from whichever shape the call used.
+/**
+ * oRPC's OpenAPI link sends a body-bearing request as a `Request` object, so the
+ * method/body are read from whichever shape the call used.
+ */
 function stubFetch(prefs: UserPreferencesResponse) {
   const calls: FetchCall[] = [];
   let current = prefs;

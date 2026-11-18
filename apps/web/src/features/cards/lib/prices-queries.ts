@@ -19,13 +19,15 @@ export function readPricesFromServerCache(): Promise<PricesResponse> {
 
 const fetchPrices = createServerFn({ method: "GET" }).handler(() => readPricesFromServerCache());
 
-// Goes directly to /api/v1/prices so Cloudflare can serve it from the edge cache.
+/** Goes directly to /api/v1/prices so Cloudflare can serve it from the edge cache. */
 function fetchPricesFromEdge(): Promise<PricesResponse> {
   return browserApiOrpcClient(pricesContract).prices();
 }
 
-// Do not use `pricesQueryOptions` on the server here: it would dehydrate the whole
-// catalog price map into SSR HTML for a few JSON-LD offers.
+/**
+ * Do not use `pricesQueryOptions` on the server here: it would dehydrate the whole
+ * catalog price map into SSR HTML for a few JSON-LD offers.
+ */
 export function fetchPricesForSeo(): Promise<PricesResponse> {
   return fetchPrices();
 }

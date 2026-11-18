@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-// PREVIEW_HOSTS is derived from ./env at module load time, so a specific host
-// list requires mocking ./env and re-importing api-base with a fresh registry.
+/**
+ * PREVIEW_HOSTS is derived from ./env at module load time, so a specific host
+ * list requires mocking ./env and re-importing api-base with a fresh registry.
+ */
 async function importWithPreviewHosts(hosts: string) {
   vi.doMock("./env", () => ({ PREVIEW_HOSTS: hosts }));
   vi.resetModules();

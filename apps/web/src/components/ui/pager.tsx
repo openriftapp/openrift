@@ -28,7 +28,7 @@ export function Pager({
   if (totalPages <= 1) {
     return null;
   }
-  // The scroll only survives when the caller navigates with `resetScroll: false`.
+  /** The scroll only survives when the caller navigates with `resetScroll: false`. */
   const goTo = (next: number) => {
     onPageChange(next);
     if (scrollTargetId !== undefined) {

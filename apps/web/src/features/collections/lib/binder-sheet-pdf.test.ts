@@ -118,7 +118,7 @@ describe("sheetMetrics", () => {
 });
 
 describe("fitFontSize", () => {
-  // Stand-in for jsPDF's measurer: width grows with characters and font size.
+  /** Stand-in for jsPDF's measurer: width grows with characters and font size. */
   const measure = (text: string, size: number) => text.length * size * 0.5;
 
   it("keeps the starting size when the text already fits", () => {

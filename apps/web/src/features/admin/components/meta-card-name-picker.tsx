@@ -7,8 +7,10 @@ import { useResolveMetaOverlayName } from "@/features/admin/hooks/use-admin-meta
 import { CatalogCardPicker } from "@/features/cards/components/catalog-card-picker";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 
-// The pick is stored as a name alias, so every future upload from any provider
-// matches it without asking again; rematching runs immediately for other staged decks.
+/**
+ * The pick is stored as a name alias, so every future upload from any provider
+ * matches it without asking again; rematching runs immediately for other staged decks.
+ */
 export function MetaCardNamePicker({ name }: { name: string }) {
   const resolveName = useResolveMetaOverlayName();
 

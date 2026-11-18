@@ -33,7 +33,7 @@ const REASON_ORDER: CardSubmissionReason[] = [
   "other",
 ];
 
-// A function declared after the component's return bails the React Compiler out of the whole file.
+/** A function declared after the component's return bails the React Compiler out of the whole file. */
 function defaultReason(mode: "reject" | "reply"): CardSubmissionReason | null {
   return mode === "reject" ? "not_a_card" : null;
 }

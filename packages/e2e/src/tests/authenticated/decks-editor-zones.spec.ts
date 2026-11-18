@@ -45,8 +45,7 @@ interface TestCard {
   name: string;
 }
 
-// Pick a deterministic card for a given type. Plain-ASCII names keep the card
-// name usable as a Playwright text locator without escaping.
+/** Plain-ASCII names keep the card name usable as a Playwright text locator without escaping. */
 async function pickCardByType(type: string): Promise<TestCard> {
   const sql = loadDb();
   try {
@@ -95,8 +94,10 @@ const ZONE_SLUGS: Record<string, string> = {
   Legend: "legend",
 };
 
-// The wrapper owning the drop ref and the ring highlight. Its header sits
-// inside an OrnamentRule, so walking up from the label button is not stable.
+/**
+ * The wrapper owning the drop ref and the ring highlight. Its header sits
+ * inside an OrnamentRule, so walking up from the label button is not stable.
+ */
 function zoneSection(page: Page, label: string): Locator {
   return page.locator(`[data-slot="deck-zone"][data-zone="${ZONE_SLUGS[label] ?? label}"]`).first();
 }
@@ -105,14 +106,18 @@ function zoneLabelButton(page: Page, label: string): Locator {
   return page.getByRole("button", { name: `Edit ${label}`, exact: true }).first();
 }
 
-// Events bubble to the draggable outer <div>, so the inner role=button works
-// for both click activation and pointer drag.
+/**
+ * Events bubble to the draggable outer <div>, so the inner role=button works
+ * for both click activation and pointer drag.
+ */
 function deckCardRow(section: Locator, cardName: string): Locator {
   return section.getByRole("button").filter({ hasText: cardName }).first();
 }
 
-// Non-draggable thumbnails also carry data-printing-id, so key off the
-// aria-roledescription dnd-kit only puts on the real drag wrapper.
+/**
+ * Non-draggable thumbnails also carry data-printing-id, so key off the
+ * aria-roledescription dnd-kit only puts on the real drag wrapper.
+ */
 function browserCardTile(page: Page, cardName: string): Locator {
   return page
     .locator("[data-printing-id][aria-roledescription]")
@@ -120,7 +125,7 @@ function browserCardTile(page: Page, cardName: string): Locator {
     .first();
 }
 
-// The card browser renders a placeholder until a zone is active.
+/** The card browser renders a placeholder until a zone is active. */
 async function activateZone(page: Page, label: string) {
   await zoneLabelButton(page, label).click();
 }
@@ -136,8 +141,10 @@ async function dndDragWithShift(page: Page, source: Locator, target: Locator) {
   await dndDrag(page, source, target, { dropRing: target, shift: true });
 }
 
-// Every card edit records an undo step synchronously with the edit, before any
-// save is scheduled, so a disabled Undo after the drop means nothing changed.
+/**
+ * Every card edit records an undo step synchronously with the edit, before any
+ * save is scheduled, so a disabled Undo after the drop means nothing changed.
+ */
 async function expectNoDeckEdit(page: Page) {
   const undo = page.getByRole("button", { name: "Undo", exact: true, includeHidden: true });
   await expect(undo.first()).toBeDisabled();

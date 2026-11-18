@@ -18,8 +18,10 @@ interface PageTopBarProps {
 
 export const PageTopBarHeightContext = createContext(0);
 
-// Returns 0 until hydration: a consumer hydrating after the provider must not
-// read a nonzero height against 0-height server markup, or React can't patch the mismatch.
+/**
+ * Returns 0 until hydration: a consumer hydrating after the provider must not
+ * read a nonzero height against 0-height server markup, or React can't patch the mismatch.
+ */
 export function usePageTopBarHeight(): number {
   const height = use(PageTopBarHeightContext);
   const hydrated = useHydrated();
@@ -105,8 +107,10 @@ interface PageTopBarTitleProps {
   children: React.ReactNode;
 }
 
-// The persistent sidebar can eat most of the viewport on landscape phones
-// (>= md), so the desktop toggle button must stay available there too.
+/**
+ * The persistent sidebar can eat most of the viewport on landscape phones
+ * (>= md), so the desktop toggle button must stay available there too.
+ */
 export function PageTopBarTitle({ onToggleSidebar, children }: PageTopBarTitleProps) {
   if (onToggleSidebar) {
     return (

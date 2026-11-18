@@ -96,7 +96,7 @@ export function statsFocusCount(cards: readonly DeckBuilderCard[], focus: StatsF
   return totalQuantity(cards.filter((card) => cardMatchesStatsFocus(card, focus)));
 }
 
-// Computed over the drawn main deck only: the champion starts outside it.
+/** Computed over the drawn main deck only: the champion starts outside it. */
 export function statsFocusOpeningChance(
   cards: readonly DeckBuilderCard[],
   focus: StatsFocus,

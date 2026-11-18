@@ -74,7 +74,7 @@ export function LegendSearchDialog({
   );
 }
 
-// Split out so useCards suspends inside the boundary, not on the dialog's first render.
+/** Split out so useCards suspends inside the boundary, not on the dialog's first render. */
 function LegendSearch({ onPick }: { onPick: (legendCardId: string) => void }) {
   const [search, setSearch] = useState("");
   const results = useCatalogCardSearch(search, isLegend, cardSearchLeading);

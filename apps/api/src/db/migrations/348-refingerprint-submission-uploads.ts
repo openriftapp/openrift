@@ -1,8 +1,10 @@
 import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
-// The fingerprint sweep could not read contributor uploads and marked them done with
-// no fingerprint. Clearing the URL queues them for the next sweep.
+/**
+ * The fingerprint sweep could not read contributor uploads and marked them done with
+ * no fingerprint. Clearing the URL queues them for the next sweep.
+ */
 export async function up(db: Kysely<unknown>): Promise<void> {
   await sql`
     UPDATE candidate_printings

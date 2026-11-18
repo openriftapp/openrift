@@ -33,7 +33,6 @@ interface DropdownContext {
 
 type DropdownSpec = Omit<MultiSelectComboboxProps, "triggerStyle" | "placeholder" | "fitContent">;
 
-// Presence toggle folded into the top of a dimension's picker, matching the expanded panel.
 function presenceFlag(
   dimension: PresenceDimension,
   value: "any" | "none" | null,
@@ -239,8 +238,6 @@ const DROPDOWNS: Record<string, (ctx: DropdownContext) => DropdownSpec> = {
   }),
 };
 
-// Kept outside DROPDOWNS: which axis is primary is decided by the host, which
-// passes the placement and hiddenSections verdicts in.
 export function FilterVariantDropdown({
   triggerStyle,
   availableFilters,
@@ -341,8 +338,10 @@ export function FilterVariantDropdown({
   );
 }
 
-// A component, not a props builder: a spread props object is a fresh value every
-// render, so React Compiler could never cache the element.
+/**
+ * Must stay a component: a spread props object is a fresh value every render,
+ * so React Compiler could never cache the element.
+ */
 export function FilterValueDropdown({
   dimension,
   triggerStyle,

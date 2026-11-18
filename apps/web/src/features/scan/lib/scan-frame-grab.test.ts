@@ -12,8 +12,6 @@ interface Draw {
   args: number[];
 }
 
-// jsdom has no canvas backend, so the tests substitute a plain object that
-// records the transform and hands back pixels of the size it was asked for.
 function fakeCanvas(available = true) {
   const draws: Draw[] = [];
   const context = {

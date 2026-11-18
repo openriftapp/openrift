@@ -72,8 +72,10 @@ export async function loadScanEmbedder(
         ` crossOriginIsolated ${globalThis.crossOriginIsolated === true}`,
     );
 
-    // Never held in a variable: the create call transfers the buffer, so an
-    // inline temporary keeps a failed attempt's copy collectable (iOS OOM otherwise).
+    /**
+     * Never held in a variable: the create call transfers the buffer, so an
+     * inline temporary keeps a failed attempt's copy collectable (iOS OOM otherwise).
+     */
     const fetchModel = () =>
       fetchWithProgress(
         modelUrl,

@@ -4,7 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { fetchApi } from "@/lib/server-fns/fetch-api";
 import { withCookies } from "@/lib/server-fns/middleware";
 
-// Anonymous or non-admin callers hitting this server function directly must not spam Sentry.
+/** Anonymous or non-admin callers hitting this server function directly must not spam Sentry. */
 async function assertAdmin(cookie: string): Promise<void> {
   await fetchApi({
     errorTitle: "Unauthorized",

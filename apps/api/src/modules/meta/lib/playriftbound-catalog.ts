@@ -350,7 +350,7 @@ function latestStandings(rounds: readonly RoundRef[]): Map<string, Record<string
   return byTeam;
 }
 
-// A Riot ID is `gameName#tagLine`; only the game name is ever stored.
+/** A Riot ID is `gameName#tagLine`; only the game name is ever stored. */
 function gameName(value: unknown): string | null {
   return text(text(value)?.replace(/#.*$/u, ""));
 }

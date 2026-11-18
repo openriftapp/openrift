@@ -34,7 +34,7 @@ async function copyImageToClipboard(blob: Blob): Promise<boolean> {
   return result;
 }
 
-// Copy falls back to a download when the clipboard is unavailable.
+/** Copy falls back to a download when the clipboard is unavailable. */
 export async function exportCardImage(
   element: HTMLElement,
   action: ExportAction,

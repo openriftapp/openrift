@@ -117,7 +117,7 @@ function buildChartConfig(
   return config;
 }
 
-// ChartTooltipContent types the label as the wider ReactNode a config label may hold; it's always the axis bucket here.
+/** ChartTooltipContent types the label as ReactNode; here it is always the axis bucket. */
 function bucketLabel(value: unknown, axis: string): string {
   return typeof value === "string" || typeof value === "number"
     ? m.decks_stats_bucket_label({ value, axis })

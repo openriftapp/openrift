@@ -394,7 +394,7 @@ describe.skipIf(!ctx)("Collections routes (integration)", () => {
     });
 
     it("logs 'removed' events for the cleared copies", async () => {
-      // Disposal nulls copy_id on the event via FK; match by from_collection_id.
+      /** Disposal nulls copy_id on the event via FK; match by from_collection_id. */
       const removedEvents = () =>
         db
           .selectFrom("collectionEvents")

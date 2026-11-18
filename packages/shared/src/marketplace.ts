@@ -32,7 +32,7 @@ const CARDMARKET_LANGUAGE_CODES: Record<string, number> = {
   TC: 11,
 };
 
-// Cardmarket is the only marketplace with a language query param: TCGplayer keys language into the productId, CardTrader into the listing.
+/** Cardmarket is the only marketplace with a language query param: TCGplayer keys language into the productId, CardTrader into the listing. */
 export function cardmarketLangParam(language: string | null | undefined): string {
   if (!language) {
     return "";

@@ -15,8 +15,10 @@ function contributorLine(names: readonly string[]): string {
   return m.meta_join_and({ names: shown.join(", "), last: tail ?? "" });
 }
 
-// Names arrive already filtered by each contributor's visibility setting and
-// render as plain text; linking to a profile is a separate consent question.
+/**
+ * Names arrive pre-filtered by each contributor's visibility setting.
+ * Plain text on purpose: linking to a profile needs separate consent.
+ */
 export function MetaContributors({
   contributors,
   className,

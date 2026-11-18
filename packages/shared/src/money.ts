@@ -1,4 +1,4 @@
-// 0 is treated as no data and returned as null, not 0 cents.
+/** 0 is treated as no data and returned as null, not 0 cents. */
 export function toCents(amount: number | null | undefined): number | null {
   if (amount === null || amount === undefined || amount === 0) {
     return null;

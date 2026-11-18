@@ -219,7 +219,7 @@ function LightboxContent({
   const tileElements = () => [
     ...(scrollerRef.current?.querySelectorAll<HTMLElement>("[data-lightbox-tile]") ?? []),
   ];
-  // Matrix cells sit in different offset parents, so positions come from the viewport.
+  /** Matrix cells sit in different offset parents, so positions come from the viewport. */
   const tileBoxes = (elements: HTMLElement[]) =>
     elements.map((element) => {
       const box = element.getBoundingClientRect();

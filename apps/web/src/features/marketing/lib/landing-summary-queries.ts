@@ -20,8 +20,10 @@ const fetchLandingSummary = createServerFn({ method: "GET" }).handler(
     }),
 );
 
-// Must use the browser client: the server client's base degrades to a
-// CSP-blocked localhost:3000 in the browser bundle.
+/**
+ * Must use the browser client: the server client's base degrades to a
+ * CSP-blocked localhost:3000 in the browser bundle.
+ */
 function fetchLandingSummaryFromEdge(): Promise<LandingSummaryResponse> {
   return browserApiOrpcClient(landingSummaryContract).get();
 }

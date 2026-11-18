@@ -68,8 +68,10 @@ export const useInstallStore = create<InstallState>()(
   ),
 );
 
-// Chrome fires beforeinstallprompt once, often before the install page has
-// loaded, so the listener goes on at startup and the event waits in the store.
+/**
+ * Chrome fires beforeinstallprompt once, often before the install page has
+ * loaded, so the listener goes on at startup and the event waits in the store.
+ */
 export function initInstallPromptCapture(target: EventTarget = globalThis): void {
   target.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();

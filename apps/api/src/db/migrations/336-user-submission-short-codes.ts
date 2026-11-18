@@ -1,8 +1,10 @@
 import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
-// User-submitted printings kept any suffix after the card number in their short
-// code (SGN-T07-P-SC). Recompute it as set-number, as shortCodeFromPublicCode does.
+/**
+ * User-submitted printings kept any suffix after the card number in their short
+ * code (SGN-T07-P-SC). Recompute it as set-number, as shortCodeFromPublicCode does.
+ */
 export async function up(db: Kysely<unknown>): Promise<void> {
   await sql`
     UPDATE candidate_printings cp

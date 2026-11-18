@@ -24,8 +24,10 @@ export interface TierQueueStop extends PresentationItem {
   position: number;
 }
 
-// Board coordinates, not the printing id alone, keep a stop's id unique even
-// if the same art were ever pinned to two entries.
+/**
+ * Board coordinates, not the printing id alone, keep a stop's id unique even
+ * if the same art were ever pinned to two entries.
+ */
 function stopId(rowIndex: number, position: number, printingId: string): string {
   return `${rowIndex}:${position}:${printingId}`;
 }
@@ -56,10 +58,10 @@ export function tierRowsToQueue(
   );
 }
 
-// The stage and the OBS overlay draw the same board, so this count has to
-// mean the same thing on both: in a reveal, the card at the current stop is
-// up on the stage, not yet in its tier, so the board behind it holds `index`
-// cards. Without a reveal the whole ranking is up already.
+/**
+ * Stage and OBS overlay must agree: in a reveal the current card is on stage, not yet in its tier,
+ * so the board holds `index` cards. Without a reveal it holds the whole ranking.
+ */
 export function boardRevealCount({
   reveal,
   index,
@@ -75,9 +77,10 @@ export function boardRevealCount({
   return clampRevealCount(index, total);
 }
 
-// `count` stops are placed; the card at the current index is deliberately not
-// included, since it's up on the stage waiting to be dropped in. Empty rows
-// stay so a tier the run hasn't reached yet still holds its place.
+/**
+ * Places the first `count` stops; the card at the current index is still on stage.
+ * Empty rows stay so a tier the run hasn't reached keeps its place.
+ */
 export function revealedRows(
   rows: readonly ResolvedTierRow[],
   queue: readonly TierQueueStop[],

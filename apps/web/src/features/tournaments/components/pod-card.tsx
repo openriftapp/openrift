@@ -70,7 +70,6 @@ function MemberSeedBadge({
   );
 }
 
-// Omits zero-value figures: a clean pairing renders nothing.
 function podPenaltySummary(penalty: NonNullable<PodResponse["penalty"]>): string | null {
   const parts: string[] = [];
   if (penalty.rematchPairs > 0) {
@@ -168,8 +167,7 @@ export function PodCard({
     }
   }
 
-  // One row per side. In 2v2 the result lives on the side's first member and
-  // teammates mirror it; a team never scores independently per player.
+  /** In 2v2 the result lives on the side's first member and teammates mirror it. */
   function sideRow(members: PodMemberResponse[]) {
     const lead = members[0];
     if (!lead) {

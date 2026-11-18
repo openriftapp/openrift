@@ -441,8 +441,10 @@ export function groupTradeAnnotationsByPrinting(
 export function collapseTradeAnnotations(
   annotations: readonly CardTradeLiveAnnotation[],
 ): CardTradeLiveAnnotation | null {
-  // Adding a half step ranks giver above receiver at equal phase without
-  // crossing into the next phase.
+  /**
+   * Adding a half step ranks giver above receiver at equal phase without
+   * crossing into the next phase.
+   */
   const rank = (entry: CardTradeLiveAnnotation): number =>
     cardTradeLivePhaseRank(entry.phase) + (entry.role === "giver" ? 0.5 : 0);
   return annotations.reduce<CardTradeLiveAnnotation | null>(

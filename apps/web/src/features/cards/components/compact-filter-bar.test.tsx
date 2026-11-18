@@ -27,8 +27,6 @@ import { FilterDropdownChip, FilterIconCluster, OwnedFilterChip } from "./compac
 
 const DOMAINS = ["fury", "calm", "mind"];
 const DISPLAY_LABEL = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
-// The icon path is irrelevant to behaviour — the cluster only needs a value to
-// render a toggle. Returning undefined exercises the text-fallback branch.
 const NO_ICON = () => undefined;
 
 function renderCluster(props: Partial<Parameters<typeof FilterIconCluster>[0]> = {}) {

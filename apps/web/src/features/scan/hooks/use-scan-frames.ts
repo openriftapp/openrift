@@ -253,8 +253,10 @@ export function useScanFrames(options: ScanFramesOptions): ScanFrames {
 
   function startLoop(): void {
     const generation = runGenerationRef.current;
-    // Declared here, not at hook level, so the loop never references a
-    // hoisted function by name; the React Compiler bails out on that.
+    /**
+     * Declared here, not at hook level, so the loop never references a
+     * hoisted function by name; the React Compiler bails out on that.
+     */
     const loop = () => {
       if (generation !== runGenerationRef.current) {
         return;

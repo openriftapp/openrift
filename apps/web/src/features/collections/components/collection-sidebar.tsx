@@ -140,8 +140,6 @@ function CollapsibleSidebarGroup({
   const open = useSidebarFoldStore((state) => state.byKey[foldKey] ?? true);
   const setOpen = useSidebarFoldStore((state) => state.setOpen);
 
-  // Opens the group first: the create action is reachable while folded, but a
-  // new row would land out of sight.
   function handleCreate() {
     setOpen(foldKey, true);
     onCreate();
@@ -181,8 +179,10 @@ function SidebarCreateRow({ label, onCreate }: { label: string; onCreate: () => 
   );
 }
 
-// entryCount counts manual entries only, so a rule-filled list reports 0; this
-// marker stands in because a real count needs a full-catalog filter pass.
+/**
+ * entryCount counts manual entries only, so a rule-filled list reports 0; this
+ * marker stands in because a real count needs a full-catalog filter pass.
+ */
 function DynamicListMarker() {
   return (
     <span title={m.collections_sidebar_rule_title()} className="flex shrink-0 items-center">
@@ -467,7 +467,7 @@ function PersonalCollectionsGroup({
   );
 }
 
-// Not reorderable: the server keeps shared-group rows alphabetical.
+/** Not reorderable: the server keeps shared-group rows alphabetical. */
 function SharedCollectionsGroup({
   section,
   activeId,
@@ -539,8 +539,10 @@ function SharedCollectionsGroup({
   );
 }
 
-// Must live as a child of the route-level DndContext so useDndMonitor sees
-// the same events the route does; non-reorder drags are left to it.
+/**
+ * Must live as a child of the route-level DndContext so useDndMonitor sees
+ * the same events the route does; non-reorder drags are left to it.
+ */
 function SidebarReorderMonitor({
   personalRows,
   listsByIntent,

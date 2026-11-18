@@ -4,7 +4,7 @@ import { PageToc } from "@/components/layout/page-toc";
 import type { PageTocItem } from "@/components/layout/page-toc";
 import { cn } from "@/lib/utils";
 
-// The caller owns the outer page padding and max width, passed via `className`.
+/** The caller owns the outer page padding and max width, passed via `className`. */
 export function SettingsLayout({
   toc,
   children,

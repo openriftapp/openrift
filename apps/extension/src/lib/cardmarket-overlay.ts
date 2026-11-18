@@ -94,16 +94,20 @@ export type OverlayContext = Pick<
   "isInvalid" | "onInvalidated" | "setTimeout" | "addEventListener"
 >;
 
-// An orphaned script (extension updated or reloaded) only learns it is orphaned by
-// reading ctx.isInvalid, so every handler checks it first.
+/**
+ * An orphaned script (extension updated or reloaded) only learns it is orphaned by
+ * reading ctx.isInvalid, so every handler checks it first.
+ */
 export function installOverlay(
   ctx: OverlayContext,
   state: PageState,
   doc: Document,
 ): AnnotateReport {
   const report = paint(state, doc);
-  // The host's resize handlers run synchronously, so the relayout waits until the
-  // paint's own records are drained.
+  /**
+   * The host's resize handlers run synchronously, so the relayout waits until the
+   * paint's own records are drained.
+   */
   const relayout = () => {
     if (state.kind === "wizard") {
       relayoutSellerCards(doc, doc);

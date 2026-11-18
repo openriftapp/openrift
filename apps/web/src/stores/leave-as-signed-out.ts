@@ -62,7 +62,7 @@ export function ownsClientState(userId: string): boolean {
   return owner === null || owner === userId;
 }
 
-// A failed chunk load keeps the previous owner, so the next page load retries the reset.
+/** A failed chunk load keeps the previous owner, so the next page load retries the reset. */
 async function resetForAccount(userId: string): Promise<void> {
   const reset = await import("@/stores/client-state-reset").catch(() => null);
   if (reset) {

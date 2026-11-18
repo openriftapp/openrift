@@ -73,8 +73,6 @@ function creationEdits(input: {
   return edits;
 }
 
-// Normalizes the contract's optional `preferredPrintingId` to the column's
-// explicit null, so the repo never has to reason about an absent key.
 function toCardInputs(
   cards: { cardId: string; zone: string; quantity: number; preferredPrintingId?: string | null }[],
 ): MetaDeckCardInput[] {

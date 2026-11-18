@@ -125,8 +125,10 @@ export const ENGLISH_DATE_WORDS: DateWords = {
   lastMonth: () => "Last month",
 };
 
-// UTC on purpose: SSR and hydration must agree on "today", and comparing a
-// UTC server against a browser's local timezone would cause a React #418.
+/**
+ * UTC on purpose: SSR and hydration must agree on "today", and comparing a
+ * UTC server against a browser's local timezone would cause a React #418.
+ */
 export function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);
 }

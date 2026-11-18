@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import { createPdfDocument } from "./pdf-document";
 
-// Must be a real PNG: jsPDF's PNG path decodes the source and writes raw pixels when compression is off.
+/** Must be a real PNG: jsPDF's PNG path decodes the source and writes raw pixels when compression is off. */
 function fixtureDataUrl(): string {
   const bytes = readFileSync(join(import.meta.dirname, "../../public/og-image.png"));
   return `data:image/png;base64,${bytes.toString("base64")}`;

@@ -43,8 +43,10 @@ export function ListRowMenu({ list, isActive, children }: ListRowMenuProps) {
 
   const shareUrl = useReferralUrl(shareLinkUrl("list", list));
 
-  // The menu closes on click, so the hook's inline "Copied" state never shows;
-  // the toast is the feedback here instead.
+  /**
+   * The menu closes on click, so the hook's inline "Copied" state never shows;
+   * the toast is the feedback here instead.
+   */
   const handleCopyLink = async () => {
     if (!shareUrl) {
       return;

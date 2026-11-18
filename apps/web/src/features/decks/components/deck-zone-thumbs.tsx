@@ -67,8 +67,7 @@ function ThumbEditControls({
   const showStepper = !perCopy && STEPPER_ZONES.has(zone);
   const reveal = alwaysVisible ? "flex" : "hidden group-hover/thumb:flex";
 
-  // Every handler stops propagation: the thumb itself opens the card detail on
-  // click, and dnd-kit's activation distance handles the drag case.
+  /** Stops propagation: the thumb itself opens the card detail on click. */
   const decrement = (event: React.MouseEvent) => {
     event.stopPropagation();
     if (event.shiftKey) {

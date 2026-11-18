@@ -17,8 +17,10 @@ const CHECKERBOARD = {
 const ON_STAGE = FIXTURE_CARDS.azirAltArt;
 const SOURCE_PATH = "/stage/source/Kf3nQ7ZaVb2p";
 
-// The overlay's own type is sized for this miniature, not the 1920-wide
-// canvas it runs at, on purpose.
+/**
+ * The overlay's own type is sized for this miniature, not the 1920-wide
+ * canvas it runs at, on purpose.
+ */
 export function StageVignette({ thumbnailUrls = [] }: { thumbnailUrls?: string[] }) {
   const art = thumbnailUrls[0];
   const placeholder = (

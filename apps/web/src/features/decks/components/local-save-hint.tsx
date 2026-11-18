@@ -19,8 +19,10 @@ function SignInLink({ children }: { children?: ReactNode }) {
   );
 }
 
-// The Badge is the tooltip trigger (via `render`) so it stays a span, valid
-// inside the anchor-wrapped list rows/tiles.
+/**
+ * The Badge is the tooltip trigger (via `render`) so it stays a span, valid
+ * inside the anchor-wrapped list rows/tiles.
+ */
 export function LocalDeckBadge({ className }: { className?: string }) {
   return (
     <Tooltip>

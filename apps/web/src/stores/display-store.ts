@@ -228,8 +228,10 @@ export const useDisplayStore = create<DisplayState>()(
   ),
 );
 
-// A React prop here would mismatch server-rendered HTML (React #418) since the
-// server can't know a localStorage value; lib/sticky-surface.ts keys off this attribute.
+/**
+ * A React prop here would mismatch server-rendered HTML (React #418) since the
+ * server can't know a localStorage value; lib/sticky-surface.ts keys off this attribute.
+ */
 function applyFrostedBars(on: boolean) {
   if (on) {
     document.documentElement.dataset.frosted = "";

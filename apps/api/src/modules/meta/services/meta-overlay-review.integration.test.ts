@@ -181,8 +181,10 @@ describe.skipIf(!ctx)("overlay review", () => {
     return metaEventId;
   }
 
-  // One standings row the source gives a deck and a win count, promoted once,
-  // so every field under test has a source value to take and release.
+  /**
+   * One standings row the source gives a deck and a win count, promoted once,
+   * so every field under test has a source value to take and release.
+   */
   async function seedMirroredPlayer(
     slug: string,
   ): Promise<{ metaEventId: string; metaEventPlayerId: string; deckId: string }> {

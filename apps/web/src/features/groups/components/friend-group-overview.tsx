@@ -131,7 +131,7 @@ function ActionTiles({ slug, data }: { slug: string; data: FriendGroupDetailResp
   );
 }
 
-// The group-tournaments list is member-scoped server-side, so the query is safe for any role.
+/** The group-tournaments list is member-scoped server-side, so the query is safe for any role. */
 function GroupTournamentsTile({ slug, data }: { slug: string; data: FriendGroupDetailResponse }) {
   const { data: tournaments } = useGroupTournaments(slug);
   // Uses the same "current" bucket as the events page so the two never disagree.

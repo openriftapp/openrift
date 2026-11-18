@@ -98,8 +98,10 @@ export function useImportFlow() {
     setIsImporting(false);
   };
 
-  // Lists and the create-new target are always additive; only an existing
-  // collection with `replaceExisting` disposes its current copies first.
+  /**
+   * Lists and the create-new target are always additive; only an existing
+   * collection with `replaceExisting` disposes its current copies first.
+   */
   const handleImport = async ({ replaceExisting = false } = {}) => {
     if (collectionId.startsWith(LIST_TARGET_PREFIX)) {
       await importIntoList(collectionId.slice(LIST_TARGET_PREFIX.length));

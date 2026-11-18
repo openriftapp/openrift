@@ -16,8 +16,6 @@ interface ScanLoadRowProps {
   progress?: ResourceProgress;
 }
 
-// One line of the engine loading screen: a resource's name, its download
-// progress while it has one, and a check once it is ready.
 export function ScanLoadRow({ label, done, failed = false, progress }: ScanLoadRowProps) {
   let detail: string | null = null;
   let percent: number | null = null;

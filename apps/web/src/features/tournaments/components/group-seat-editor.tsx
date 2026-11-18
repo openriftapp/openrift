@@ -182,8 +182,10 @@ export function GroupSeatEditor({
     setGroups((current) => swapSeats(current, a, b));
   }
 
-  // A swap across groups remounts the chip, so the menu's own focus return has
-  // no trigger left to land on.
+  /**
+   * A swap across groups remounts the chip, so the menu's own focus return has
+   * no trigger left to land on.
+   */
   function handleMenuSwap(playerId: string, otherId: string) {
     applySwap(playerId, otherId);
     setRefocusId(playerId);

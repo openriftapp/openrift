@@ -94,14 +94,14 @@ function CardIdentity({
   );
 }
 
-// Incoming copies aren't locked and aren't the viewer's yet: they explain
-// part of the shortfall without reducing it.
 function incomingTooltipText(card: CardOwnership): string {
   return m.decks_overview_incoming({ count: card.incoming });
 }
 
-// A suspending read inside this dialog, mounted while closed, would else be
-// caught by the page's own boundary and hide the whole page mid-edit.
+/**
+ * A suspending read inside this dialog, mounted while closed, would else be
+ * caught by the page's own boundary and hide the whole page mid-edit.
+ */
 export function DeckMissingCardsDialog(props: DeckMissingCardsDialogProps) {
   return (
     <Suspense fallback={null}>

@@ -88,8 +88,7 @@ interface ProductDetailViewProps {
   search: FilterSearch;
 }
 
-// Read-only card-browser surface over the product's fixed printing set. No
-// add strips; the top-bar "Add to collection" action is the one write path.
+/** Read-only over the product's fixed printing set; the top-bar "Add to collection" is the only write path. */
 export function ProductDetailView({ data, search }: ProductDetailViewProps) {
   const [addOpen, setAddOpen] = useState(false);
   const hydrated = useHydrated();
@@ -154,7 +153,7 @@ export function ProductDetailView({ data, search }: ProductDetailViewProps) {
   );
 }
 
-// Printings without a price are counted separately; they do not count as free.
+/** Printings without a price are counted separately; they do not count as free. */
 function ProductHeroStats({
   baseStats,
   contents,
@@ -323,8 +322,7 @@ function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
 
   const handleSearchAndClose = useSearchAndCloseDetail(setSearch);
 
-  // Grid stays ownership-neutral (no owned dimming); the viewer's collection
-  // shows up only in the detail pane and the Owned filter.
+  /** Deliberately ownership-neutral: no owned dimming in the grid. */
   const renderCard = (item: CardViewerItem, ctx: CardRenderContext) => (
     <CardCell
       printing={item.printing}

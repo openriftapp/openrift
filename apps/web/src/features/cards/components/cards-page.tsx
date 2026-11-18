@@ -11,9 +11,10 @@ import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";
 
 const routeApi = getRouteApi("/_app/cards");
 
-// <CardBrowser> only mounts post-hydration: rendering it server-side would
-// trigger the catalog useSuspenseQuery and stage the full 310 KB catalog
-// into the dehydrated per-request QueryClient.
+/**
+ * Mounts CardBrowser only after hydration: on the server its useSuspenseQuery would stage
+ * the full catalog into the dehydrated per-request QueryClient.
+ */
 function CardBrowserShell() {
   const hydrated = useHydrated();
   if (!hydrated) {

@@ -50,8 +50,10 @@ async function rasterTintedIcon(src: string, color: string, key: string): Promis
   return url;
 }
 
-// Best-effort: any failure (load or decode error, no 2D context, tainted
-// canvas) resolves to null so callers fall back to the CSS-filter rendering.
+/**
+ * Best-effort: any failure (load or decode error, no 2D context, tainted
+ * canvas) resolves to null so callers fall back to the CSS-filter rendering.
+ */
 function tintIcon(src: string, color: string): Promise<string | null> {
   const key = cacheKey(src, color);
   const cached = cache.get(key);

@@ -84,20 +84,22 @@ function pageSizeLabels(): Record<ProxyPageSize, string> {
 // Full render width for html2canvas capture (px)
 const RENDER_WIDTH_PX = 504;
 
-// Dynamic import at module scope: react-compiler can't lower an `import()` inside a component
-// and bails on the whole file, and eager import would put jsPDF on every deck tile's page.
+/**
+ * Dynamic import at module scope: react-compiler can't lower an `import()` inside a component
+ * and bails on the whole file, and eager import would put jsPDF on every deck tile's page.
+ */
 async function loadRegistrationPdfGenerator() {
   const module = await import("@/features/decks/lib/registration-pdf");
   return module.generateRegistrationPdf;
 }
 
-// Module scope for the same reasons as loadRegistrationPdfGenerator above.
+/** Module scope for the same reasons as loadRegistrationPdfGenerator above. */
 async function loadImagePdfDownloader() {
   const module = await import("@/lib/image-pdf");
   return module.downloadImageAsPdf;
 }
 
-// The element must already be in the page's React tree (with all providers).
+/** The element must already be in the page's React tree (with all providers). */
 async function captureElement(element: HTMLElement): Promise<string> {
   const canvas = await captureElementCanvas(element);
   return canvas.toDataURL("image/png");
@@ -125,8 +127,10 @@ interface GenerateProxyPdfParams {
   setPreviewUrl: (url: string | null) => void;
 }
 
-// Lives at module scope: react-compiler bails on "value blocks within try/catch"
-// when this mixed async/branch/try-catch control flow sits inside the component.
+/**
+ * Lives at module scope: react-compiler bails on "value blocks within try/catch"
+ * when this mixed async/branch/try-catch control flow sits inside the component.
+ */
 async function generateProxyPdf({
   cards,
   catalog,

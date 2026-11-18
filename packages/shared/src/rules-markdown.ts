@@ -319,8 +319,10 @@ function visitHastForGlyphs(node: HastNode, yIsVariable: boolean): void {
   node.children = rebuilt;
 }
 
-// [Y] is both the Order abbreviation and the variable paired with [X] ("Replace [X] with [Y]");
-// a rule that mentions [X] or opens with [Y] is using the variable.
+/**
+ * [Y] is both the Order abbreviation and the variable paired with [X] ("Replace [X] with [Y]");
+ * a rule that mentions [X] or opens with [Y] is using the variable.
+ */
 export function ruleUsesYVariable(source: string): boolean {
   return source.includes("[X]") || source.trimStart().startsWith("[Y]");
 }

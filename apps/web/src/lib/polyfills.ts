@@ -6,8 +6,10 @@
  * before any module calls it at import time.
  */
 
-// Matches the spec's iteration order: keys appear in the order first
-// encountered, values within a group keep source order.
+/**
+ * Matches the spec's iteration order: keys appear in the order first
+ * encountered, values within a group keep source order.
+ */
 export function groupByShim<K, T>(
   items: Iterable<T>,
   keySelector: (item: T, index: number) => K,

@@ -152,7 +152,7 @@ export function useCollectionCardData({
     ownedFilterBucketBy = "card";
   }
   const filterOptions = useCardSearchContext({ getPrice, priceLookup: prices, getOwnedCount });
-  // Owned-bucket narrowing must run before the Copies slider bound below.
+  /** Must run before the Copies slider's upper bound is computed. */
   const narrowByOwnedBucket = (cards: Printing[]) =>
     ownedFilter && ownedFilter.length > 0
       ? applyOwnedBucketFilter(cards, ownedFilter, ownedFilterCounts, ownedFilterBucketBy)

@@ -10,8 +10,7 @@ const useShortLandscape = createMediaQueryHook(
   false,
 );
 
-// Landscape wins over portrait: a rotated phone can still be under the width
-// cutoff, and the side panel is what actually fits there.
+/** Landscape wins over portrait: a rotated phone can still be under the width cutoff. */
 export function useScanLayout(): ScanLayout {
   const landscape = useShortLandscape();
   const portrait = useIsMobile();

@@ -309,8 +309,10 @@ function row(label: string, ...cardIds: string[]) {
   };
 }
 
-// Walks up from a tile's art: the thumb's own span, then the sized tile, then
-// the span the spotlight ring and dimming live on.
+/**
+ * Walks up from a tile's art: the thumb's own span, then the sized tile, then
+ * the span the spotlight ring and dimming live on.
+ */
 function tileFor(art: HTMLElement): { tile: HTMLElement; spotlight: HTMLElement } {
   const tile = art.closest("span")?.parentElement as HTMLElement;
   return { tile, spotlight: tile.parentElement as HTMLElement };

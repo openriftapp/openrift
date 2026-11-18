@@ -90,8 +90,10 @@ export function useScanOverlay(options: ScanOverlayOptions): ScanOverlay {
   function begin(generation: number): void {
     overlayTargetRef.current = null;
     overlayDrawRef.current = createDrawState();
-    // Declared as a const, like the frame loop: a hook-level function
-    // referencing itself by name makes the React Compiler bail out.
+    /**
+     * Declared as a const, like the frame loop: a hook-level function
+     * referencing itself by name makes the React Compiler bail out.
+     */
     const paint = () => {
       if (generation !== runGenerationRef.current) {
         return;

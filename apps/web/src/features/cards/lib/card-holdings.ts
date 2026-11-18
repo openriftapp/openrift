@@ -21,8 +21,10 @@ export interface CardHoldingLine {
 const LENT_ICON = HandHeartIcon;
 const BORROWED_ICON = HandCoinsIcon;
 
-// Active with copies still out matches the `on_loan` copy pin: an
-// unacknowledged loan has already taken the cards out of the binder.
+/**
+ * Active with copies still out matches the `on_loan` copy pin: an
+ * unacknowledged loan has already taken the cards out of the binder.
+ */
 function lentLines(loans: readonly LoanResponse[]): CardHoldingLine[] {
   const byBorrower = new Map<string, number>();
   for (const loan of loans) {
@@ -44,8 +46,10 @@ function lentLines(loans: readonly LoanResponse[]): CardHoldingLine[] {
   }));
 }
 
-// Unacknowledged and rejected loans are excluded, the same filter
-// aggregateBorrowedCounts applies.
+/**
+ * Unacknowledged and rejected loans are excluded, the same filter
+ * aggregateBorrowedCounts applies.
+ */
 function borrowedLines(loans: readonly LoanResponse[]): CardHoldingLine[] {
   const byLender = new Map<string, number>();
   for (const loan of loans) {

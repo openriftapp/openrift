@@ -99,7 +99,7 @@ export interface PlayriftboundClient {
   readonly blocked: boolean;
 }
 
-// The events page is HTML by design, so only the status can signal a block there.
+/** The events page is HTML by design, so only the status can signal a block there. */
 function isBlock(status: number): boolean {
   return status === 403;
 }

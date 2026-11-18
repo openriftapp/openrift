@@ -41,8 +41,10 @@ function takeFromZone(
   return { taken: requested - remaining, ...(source && { source }) };
 }
 
-// Cut copies are deliberately not returned to the sideboard.
-// All "in" swaps must apply before any "out" swap.
+/**
+ * Cut copies are deliberately not returned to the sideboard.
+ * All "in" swaps must apply before any "out" swap.
+ */
 export function applySwaps(
   cards: readonly DeckBuilderCard[],
   swaps: readonly PlanSwapDraft[],

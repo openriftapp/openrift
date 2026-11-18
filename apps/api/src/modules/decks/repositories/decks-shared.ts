@@ -30,8 +30,10 @@ export async function lockUserFamilies(trx: Kysely<Database>, userId: string): P
   await lockKey(trx, `deck-families:${userId}`);
 }
 
-// Key-share the owner before any deck row lock and write each deck row once: a FK check
-// after a deck row lock (an insert, a second update) deadlocks with a cascading delete.
+/**
+ * Key-share the owner before any deck row lock and write each deck row once: a FK check
+ * after a deck row lock (an insert, a second update) deadlocks with a cascading delete.
+ */
 export async function lockOwnerFamilies(trx: Kysely<Database>, userId: string): Promise<void> {
   await lockUserFamilies(trx, userId);
   await trx.selectFrom("users").select("id").where("id", "=", userId).forKeyShare().execute();

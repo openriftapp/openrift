@@ -11,6 +11,7 @@
     "jsx-a11y",
     "promise"
   ],
+  "jsPlugins": ["./scripts/oxlint-plugin.ts"],
   "categories": {
     "correctness": "error",
     "suspicious": "error",
@@ -29,6 +30,7 @@
     // pre-commit hook both pass.
 
     // Correctness Overwrites
+    "openrift/function-comment-jsdoc": "error",
     "jsdoc/check-tag-names": [
       "error",
       {

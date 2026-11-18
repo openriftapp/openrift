@@ -17,8 +17,10 @@ function createMigrator(db: Kysely<Database>) {
   });
 }
 
-// A database with the core schema but short of the squash point would run its
-// missing folded migrations as no-ops and end up with an incomplete schema.
+/**
+ * A database with the core schema but short of the squash point would run its
+ * missing folded migrations as no-ops and end up with an incomplete schema.
+ */
 async function assertFoldedMigrationsApplied(db: Kysely<Database>): Promise<void> {
   const { rows: exists } = await sql<{ present: boolean }>`
     SELECT to_regclass('kysely_migration') IS NOT NULL AS present

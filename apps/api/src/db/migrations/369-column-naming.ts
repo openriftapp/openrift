@@ -55,7 +55,7 @@ const TABLES: [from: string, to: string][] = [
   ["friend_group_shops", "friend_group_uvsgames_shops"],
 ];
 
-// plpgsql bodies are not rewritten by RENAME COLUMN.
+/** plpgsql bodies are not rewritten by RENAME COLUMN. */
 function snapshotDeletedUserNames(closed: (column: string) => string) {
   return sql`
     CREATE OR REPLACE FUNCTION snapshot_deleted_user_names() RETURNS trigger

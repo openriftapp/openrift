@@ -65,8 +65,6 @@ function tournamentRow(overrides: Partial<Tournament> = {}): Tournament {
   } as Tournament;
 }
 
-// Repos return the given row and empty everything else, so a successful
-// request still assembles a schema-valid detail payload.
 function makeApp(tournament: Tournament) {
   const tournaments = {
     getById: vi.fn(() => Promise.resolve(tournament)),

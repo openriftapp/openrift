@@ -15,8 +15,10 @@ export function sortByLanguageAndCanonicalRank<T extends LanguageRanked>(
   });
 }
 
-// languageOrder must be the caller's effective order (user preference, or
-// languages.sort_order); this function has no hardcoded fallback.
+/**
+ * languageOrder must be the caller's effective order (user preference, or
+ * languages.sort_order); this function has no hardcoded fallback.
+ */
 export function compareWithLanguagePreference(
   a: LanguageRanked,
   b: LanguageRanked,

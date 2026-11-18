@@ -53,8 +53,10 @@ export function liveTradeStatus(annotation: LiveTradeStatusInput): LiveTradeStat
 
 export const SHARED_RESERVED_STATUS: LiveTradeStatusInput = { role: "giver", phase: "reserved" };
 
-// direction is spelled out here because the arrow carrying it is
-// aria-hidden; otherwise a screen reader can't tell arriving from departing.
+/**
+ * direction is spelled out here because the arrow carrying it is
+ * aria-hidden; otherwise a screen reader can't tell arriving from departing.
+ */
 export function tradeStatusTitle({
   label,
   direction,

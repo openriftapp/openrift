@@ -583,7 +583,7 @@ describe.skipIf(!ctx)("Meta archive routes (integration)", () => {
       return { citations, ignored };
     }
 
-    // Postgres grants a contended advisory lock in queue order, so the request fired first wins.
+    /** Postgres grants a contended advisory lock in queue order, so the request fired first wins. */
     async function queuedBehindLock(externalId: string, first: Request, second: Request) {
       const lockName = `meta-promote:${sourcePromoteKey(provider, externalId)}`;
       const held = await holdRow(db, sql`SELECT pg_advisory_xact_lock(hashtext(${lockName}))`);

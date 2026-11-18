@@ -137,8 +137,10 @@ function skipScrollIntoView(): void {
   // PickerList scrolls the highlighted row itself (scrollRowWithinList).
 }
 
-// cmdk 1.1 keeps the highlighted row, and the heading above a group's first row, visible with a
-// native scrollIntoView that also scrolls the window, and has no option to turn it off.
+/**
+ * cmdk 1.1 keeps the highlighted row, and the heading above a group's first row, visible with a
+ * native scrollIntoView that also scrolls the window, and has no option to turn it off.
+ */
 function muteCmdkScroll(node: HTMLElement | null): void {
   if (node) {
     node.scrollIntoView = skipScrollIntoView;

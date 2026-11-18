@@ -287,8 +287,10 @@ export function CardTable({
     scrollToCard,
   );
 
-  // Reads only from mirror refs so React Compiler keeps this reference stable
-  // across scroll-driven re-renders; GroupStickyLabel's onSelect prop stays intact.
+  /**
+   * Reads only from mirror refs so React Compiler keeps this reference stable across
+   * scroll-driven re-renders.
+   */
   const scrollToGroup = (groupId: string) => {
     const rowIndex = virtualRowsRef.current.findIndex(
       (row) => row.kind === "header" && row.group.id === groupId,

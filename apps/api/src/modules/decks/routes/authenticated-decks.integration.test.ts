@@ -147,8 +147,10 @@ describe.skipIf(!ctx)("Decks routes (integration)", () => {
       expect(json.cards[0].zone).toBe("main");
     });
 
-    // Deck-size rules are advisory: PUT /cards saves any composition, and
-    // validation surfaces only as the `isValid` flag on GET /decks.
+    /**
+     * Deck-size rules are advisory: PUT /cards saves any composition, and
+     * validation surfaces only as the `isValid` flag on GET /decks.
+     */
     async function isDeckValid(): Promise<boolean> {
       const listRes = await app.fetch(req("GET", "/decks"));
       const list = (await readJson(listRes)) as {

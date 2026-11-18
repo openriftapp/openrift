@@ -1,8 +1,10 @@
 import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
-// No backfill: the same-store match is a fuzzy name comparison in code, so held
-// rows get their marker on the next auto-accept pass over them.
+/**
+ * No backfill: the same-store match is a fuzzy name comparison in code, so held
+ * rows get their marker on the next auto-accept pass over them.
+ */
 export async function up(db: Kysely<unknown>): Promise<void> {
   await sql`
     CREATE TABLE meta_held_source_events (

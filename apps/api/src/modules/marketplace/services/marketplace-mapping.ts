@@ -357,8 +357,10 @@ export async function getMappingOverview(
   const ignoredVariantKeys = new Set(
     ignoredVariantRows.map((r) => skuKey(r.externalId, r.finish, r.language)),
   );
-  // `language` is null on CM/TCG, and both sides of the comparison stringify
-  // it the same way, so a null-language SKU still matches its ignore entry.
+  /**
+   * `language` is null on CM/TCG, and both sides of the comparison stringify
+   * it the same way, so a null-language SKU still matches its ignore entry.
+   */
   const isIgnored = (row: {
     externalId: number;
     finish: string;

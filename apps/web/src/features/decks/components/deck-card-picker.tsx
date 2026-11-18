@@ -54,8 +54,6 @@ const MAX_PICKER_RESULTS = 50;
 
 const PICKER_MIN_QUERY_LENGTH = 1;
 
-// An empty query lists the whole candidate set for a zone-backed dropdown;
-// a catalog-backed caller turns listAllWhenEmpty off instead.
 function usePickerResults(
   candidates: readonly CardCandidate[],
   query: string,
@@ -138,7 +136,7 @@ export function CardChip({
   );
 }
 
-// Remounts the dropdown after each pick; otherwise its input keeps the chosen label.
+/** Remounts the dropdown after each pick; otherwise its input keeps the chosen label. */
 export function CardPicker({
   candidates,
   onSelect,

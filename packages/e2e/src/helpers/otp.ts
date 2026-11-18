@@ -4,8 +4,10 @@ type Sql = ReturnType<typeof connectToDb>;
 
 type OtpType = "email-verification" | "sign-in" | "forget-password" | "change-email";
 
-// An email holds codes of several types (sign-up verification, then a reset), and
-// created_at follows the wall clock, which can step back: match the type's identifier.
+/**
+ * An email holds codes of several types (sign-up verification, then a reset), and
+ * created_at follows the wall clock, which can step back: match the type's identifier.
+ */
 function latestOtpRows(sql: Sql, type: OtpType, email: string) {
   if (type === "change-email") {
     const suffix = `:${email}`;

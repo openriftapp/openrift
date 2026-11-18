@@ -3,7 +3,7 @@ import { useRouter } from "@tanstack/react-router";
 
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 
-// The dynamic import keeps the area hook modules out of the app-shell chunk.
+/** The dynamic import keeps the area hook modules out of the app-shell chunk. */
 const loadAreaPrefetch = () => import("@/hooks/area-prefetch");
 
 const AREA_ROUTES = ["/cards", "/collections", "/decks"] as const;

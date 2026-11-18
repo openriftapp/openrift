@@ -53,9 +53,7 @@ export interface NavSectionConfig {
   items: NavItemConfig[];
 }
 
-// Renders as the desktop top-level links and the mobile sheet's first block.
-// moreNavSections below renders in the desktop "More" panel and as titled
-// groups in the mobile sheet.
+/** Desktop top-level links and the first block of the mobile sheet. */
 export function primaryNavItems(): NavItemConfig[] {
   return [
     { label: m.nav_cards(), to: "/cards", icon: LayersIcon, keepSearch: true },
@@ -262,8 +260,10 @@ export function visiblePrimaryItems(opts: {
   return [...primaryNavItems(), ...promoted].filter((item) => navItemVisible(item, opts));
 }
 
-// Drops sections left with no visible items, so an all-desktop section
-// leaves no empty heading behind in the mobile sheet.
+/**
+ * Drops sections left with no visible items, so an all-desktop section
+ * leaves no empty heading behind in the mobile sheet.
+ */
 export function visibleMoreSections(opts: {
   flags: NavFlags;
   mobile: boolean;

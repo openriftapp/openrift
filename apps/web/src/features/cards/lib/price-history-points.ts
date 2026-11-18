@@ -7,7 +7,10 @@ export interface PriceHistoryPoint {
   secondary: number | null;
 }
 
-// CardTrader's `zeroLow` is null on days before Zero prices existed; falling back to `low` there would plot a false drop.
+/**
+ * CardTrader's `zeroLow` is null on days before Zero prices existed;
+ * falling back to `low` there would plot a false drop.
+ */
 export function priceHistoryPoint(
   marketplace: Marketplace,
   snapshot: AnySnapshot,

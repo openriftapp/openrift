@@ -34,8 +34,7 @@ function applyToServer(id: string, changes: Partial<CollectionResponse>): void {
   );
 }
 
-// A fake server, not a fixed payload: these handlers refetch, so the next GET
-// is what lands in the store.
+/** These handlers refetch, so the next GET answer is what lands in the store. */
 function succeed({ method, path, body }: SentRequest): Response {
   if (method === "GET") {
     return Response.json({ items: serverCollections });

@@ -23,8 +23,10 @@ const mockCollectionsRepo = {
   getByIdForUser: vi.fn(),
 };
 
-// 418 is a sentinel no real route uses, so a fall-through distinguishes "the
-// image route's auth gated this" (401) from "fell through to the oRPC catch-all".
+/**
+ * 418 is a sentinel no real route uses, so a fall-through distinguishes "the
+ * image route's auth gated this" (401) from "fell through to the oRPC catch-all".
+ */
 function buildApp(session: { user: { id: string; name?: string } } | null) {
   return new Hono<{ Variables: Variables }>()
     .onError((err, c) => {

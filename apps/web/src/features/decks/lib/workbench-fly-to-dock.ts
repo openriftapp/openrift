@@ -81,7 +81,7 @@ export function flyCardToDeck(printingId: string, cardId: string, zone: DeckZone
     ],
     { duration: DURATION_MS, easing: "cubic-bezier(0.45, 0, 0.2, 1)" },
   );
-  // A first copy's row only exists once the add has rendered, so look it up again on landing.
+  /** A first copy's row only exists once the add has rendered, so look it up again on landing. */
   const land = () => {
     ghost.remove();
     const row = cardRow(cardId, zone);

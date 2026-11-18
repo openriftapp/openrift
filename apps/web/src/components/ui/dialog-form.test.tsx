@@ -7,9 +7,6 @@ import { Dialog, DialogContent, DialogFooter } from "./dialog";
 import { DialogForm } from "./dialog-form";
 import { Input } from "./input";
 
-// Regression for "Enter does nothing in dialogs": dialog bodies were plain
-// divs with onClick-wired buttons, so the browser's implicit form submission
-// never fired. DialogForm + a single type="submit" primary restores it.
 function renderDialogForm({
   onConfirm,
   onCancel,

@@ -19,7 +19,7 @@ export function authedParams(name) {
   };
 }
 
-// A bad cookie silently runs the whole test against the anonymous edge path.
+/** A bad cookie silently runs the whole test against the anonymous edge path. */
 export function probeSession() {
   const probe = http.get(`${BASE_URL}/api/auth/get-session`, {
     cookies: { [COOKIE_NAME]: SESSION_COOKIE },

@@ -45,8 +45,10 @@ function trade(overrides: Partial<CardTradeResponse> = {}): CardTradeResponse {
   };
 }
 
-// The spacer between the two rail segments carries no inline style, so the
-// style attribute is what tells segments apart from it.
+/**
+ * The spacer between the two rail segments carries no inline style, so the
+ * style attribute is what tells segments apart from it.
+ */
 function segments(container: HTMLElement): [HTMLElement, HTMLElement] | null {
   const found = container.querySelectorAll<HTMLElement>("span[style]");
   return found.length === 2 ? [found[0]!, found[1]!] : null;

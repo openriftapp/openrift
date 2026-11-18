@@ -29,7 +29,7 @@ async function createVerifiedUser(
   await sql`UPDATE users SET email_verified = true WHERE email = ${email}`;
 }
 
-// Each click below scrolls from a different position, so a scrollend always follows.
+/** Each click below scrolls from a different position, so a scrollend always follows. */
 async function clickAndWaitForScrollEnd(page: Page, link: Locator) {
   await page.evaluate(() => {
     (globalThis as { tocScrollEnded?: Promise<void> }).tocScrollEnded = new Promise<void>(

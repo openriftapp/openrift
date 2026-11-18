@@ -21,7 +21,7 @@ const LINK_HOSTS: ReadonlyMap<string, LinkHost> = new Map([
   ["discord.gg", { label: "Discord", kind: "site" }],
 ]);
 
-// Stripping can't widen an allowlist keyed on the result: "www.youtube.com.evil.test" still misses.
+/** Stripping can't widen an allowlist keyed on the result: "www.youtube.com.evil.test" still misses. */
 export function bareHostname(hostname: string): string {
   const lower = hostname.toLowerCase();
   return lower.startsWith("www.") ? lower.slice(4) : lower;

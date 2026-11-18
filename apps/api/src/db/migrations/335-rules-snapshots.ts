@@ -1,8 +1,10 @@
 import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
-// Every rules version holds its full rule set. Rules a version did not change
-// are carried forward from the latest earlier row, and removal tombstones go away.
+/**
+ * Every rules version holds its full rule set. Rules a version did not change
+ * are carried forward from the latest earlier row, and removal tombstones go away.
+ */
 export async function up(db: Kysely<unknown>): Promise<void> {
   await sql`
     INSERT INTO rules (kind, language, version, rule_number, sort_order, depth, rule_type, content, change_type)

@@ -1,4 +1,4 @@
-// Sized in cqw, so the parent must be an `@container` the width of the card.
+/** Sized in cqw, so the parent must be an `@container` the width of the card. */
 function portraitCqw(value: number, isLandscape: boolean): string {
   return isLandscape ? `${(value * 63) / 88}cqw` : `${value}cqw`;
 }

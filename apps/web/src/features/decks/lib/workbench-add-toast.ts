@@ -97,7 +97,7 @@ export function dismissRemovalToast(): void {
   }
 }
 
-// Their undo closures write to the deck they came from, so they must not outlive its editor.
+/** Their undo closures write to the deck they came from, so they must not outlive its editor. */
 export function dismissRelaxedAddToasts(): void {
   for (const id of openToasts) {
     toast.dismiss(id);

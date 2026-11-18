@@ -82,8 +82,10 @@ export function deckIdentityLabels(
 // (½, ①); this regex must match it character for character.
 const NAME_MATCH_KEEP = /[^\p{L}\p{Nd}\p{Nl}]/gu;
 
-// Must match the SQL mirror (cards_set_norm_name()) character for character;
-// changing this needs a migration and backfill.
+/**
+ * Must match the SQL mirror (cards_set_norm_name()) character for character;
+ * changing this needs a migration and backfill.
+ */
 export function normalizeNameForIdentity(name: string): string {
   return name.toLowerCase().replaceAll(NAME_MATCH_KEEP, "");
 }

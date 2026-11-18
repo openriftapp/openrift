@@ -12,8 +12,10 @@ export interface ScanTrayDisclosure {
   toggle: (id: string) => void;
 }
 
-// A scan landing must not swap what a pinned/closed row's button acts on
-// until that selection's scan count is passed; then it reverts to the newest row.
+/**
+ * A scan landing must not swap what a pinned/closed row's button acts on
+ * until that selection's scan count is passed; then it reverts to the newest row.
+ */
 export function useScanTrayDisclosure(rowIds: readonly string[], scans = 0): ScanTrayDisclosure {
   const [selection, setSelection] = useState<Selection>({ kind: "live" });
   const liveId = rowIds[0] ?? null;

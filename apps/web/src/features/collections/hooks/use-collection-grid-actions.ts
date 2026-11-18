@@ -117,8 +117,10 @@ export function useCollectionGridActions({
     );
   };
 
-  // Reuses the move pipeline (member -> inbox); no trade record since a free
-  // pile has no reciprocation.
+  /**
+   * Moves the copies member -> inbox through the move pipeline and deliberately writes no trade
+   * record: a free pile has no reciprocation.
+   */
   const handleTake = (itemId: string, count: number, tilePrinting?: Printing) => {
     const stack = stackByItemId.get(itemId);
     if (!stack || !inboxId) {

@@ -8,8 +8,10 @@ import type {
   MetaScopeQuery,
 } from "@openrift/shared/types/api/meta";
 
-// An absent filter and one that narrows nothing share the unscoped key, so
-// they don't cache the same fetch twice.
+/**
+ * An absent filter and one that narrows nothing share the unscoped key, so
+ * they don't cache the same fetch twice.
+ */
 function metaFilterKey<T extends object>(
   base: readonly string[],
   filter: T | undefined,

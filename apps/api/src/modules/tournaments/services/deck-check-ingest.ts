@@ -215,8 +215,10 @@ export async function writeDeckCheckPush(
     entries: [],
   };
 
-  // Records one pushed entry's claim link in the response, minting a token for
-  // the rare entry that lacks one.
+  /**
+   * Records one pushed entry's claim link in the response, minting a token for
+   * the rare entry that lacks one.
+   */
   const recordEntry = async (
     externalId: string,
     entry: { id: string; claimToken: string | null },

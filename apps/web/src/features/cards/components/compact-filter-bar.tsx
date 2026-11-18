@@ -209,8 +209,10 @@ export function useClusterLabelsFit() {
     let gap = 0;
     let frame = 0;
 
-    // Clusters are skipped (the strip supplies their expanded widths), as is
-    // the strip itself (absolute, out of flow).
+    /**
+     * Clusters are skipped (the strip supplies their expanded widths), as is
+     * the strip itself (absolute, out of flow).
+     */
     const isInFlowChild = (child: Element): child is HTMLElement =>
       child instanceof HTMLElement &&
       child.dataset.labelFitCluster === undefined &&
@@ -248,8 +250,10 @@ export function useClusterLabelsFit() {
       );
     };
 
-    // A child appearing or disappearing changes the required width without
-    // resizing anything, so this reruns the verdict on the next frame.
+    /**
+     * A child appearing or disappearing changes the required width without
+     * resizing anything, so this reruns the verdict on the next frame.
+     */
     const schedule = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(verdict);
@@ -276,8 +280,10 @@ export function useClusterLabelsFit() {
       }
     };
 
-    // The WeakSet above keeps each target observed exactly once; re-observing
-    // would make the observer re-deliver its size.
+    /**
+     * The WeakSet above keeps each target observed exactly once; re-observing
+     * would make the observer re-deliver its size.
+     */
     const syncObserved = () => {
       observe(bar);
       for (const child of bar.children) {

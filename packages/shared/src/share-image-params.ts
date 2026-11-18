@@ -51,8 +51,10 @@ export function aspectFromQuery(value: string | undefined): ShareImageAspect {
   return value === "vertical" ? "vertical" : "landscape";
 }
 
-// `size=hq` must still resolve to scale 2: already-issued og:image and
-// download URLs depend on it.
+/**
+ * `size=hq` must still resolve to scale 2: already-issued og:image and
+ * download URLs depend on it.
+ */
 export function scaleFromQuery(scale: string | undefined, size: string | undefined): number {
   const asked = Number(scale);
   if (Number.isInteger(asked) && asked >= 1 && asked <= MAX_IMAGE_SCALE) {

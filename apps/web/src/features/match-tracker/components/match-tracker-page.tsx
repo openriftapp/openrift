@@ -21,7 +21,7 @@ import { useIsLandscape } from "@/hooks/use-is-landscape";
 import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { m } from "@/paraglide/messages.js";
 
-// The store reads localStorage, so rendering is gated behind hydration to avoid an SSR mismatch.
+/** The store reads localStorage, so rendering is gated behind hydration to avoid an SSR mismatch. */
 export function MatchTrackerPage() {
   const hydrated = useHydrated();
   if (!hydrated) {

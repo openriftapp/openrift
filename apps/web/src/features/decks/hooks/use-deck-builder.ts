@@ -424,7 +424,7 @@ export function replaceCardAction(
   addCardAction(collection, incoming, zone, undefined, runesByDomain, format, { relaxed: true });
 }
 
-// If the slot already holds the exact same card+printing, no-op to avoid silently dropping a copy.
+/** If the slot already holds the exact same card+printing, no-op to avoid silently dropping a copy. */
 function moveIntoSingleSlot(
   collection: DeckCollection,
   source: DeckBuilderCard,
@@ -731,8 +731,10 @@ export function useDeckBuilderActions(deckId: string): DeckBuilderActions {
   const edit = <T>(apply: () => T, options?: { separate?: boolean }): T =>
     recordDeckEdit(collection, deckId, apply, options);
 
-  // A removal the toast offers to undo is its own undo step, so its Undo
-  // reverts this removal and nothing recorded just before it.
+  /**
+   * A removal the toast offers to undo is its own undo step, so its Undo
+   * reverts this removal and nothing recorded just before it.
+   */
   const removeWithUndoToast = (
     cardId: string,
     zone: DeckZone,

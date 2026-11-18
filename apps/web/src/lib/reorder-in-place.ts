@@ -1,5 +1,7 @@
-// Reorders only the entries whose id is in `orderedIds`, keeping them within
-// the set of slots those entries already occupied; other entries don't move.
+/**
+ * Reorders only the entries whose id is in `orderedIds`, keeping them within
+ * the set of slots those entries already occupied; other entries don't move.
+ */
 export function reorderInPlace<T extends { id: string }>(
   items: readonly T[],
   orderedIds: readonly string[],

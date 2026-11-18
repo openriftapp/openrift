@@ -9,8 +9,10 @@ export const PERSISTENT_ERROR_TOAST: ExternalToast = {
 
 let loadedToast: typeof SonnerToast | undefined;
 
-// The shell's own call sites load sonner on first use so it stays out of the
-// entry chunk; page code imports `toast` from sonner directly.
+/**
+ * The shell's own call sites load sonner on first use so it stays out of the
+ * entry chunk; page code imports `toast` from sonner directly.
+ */
 export async function loadSonner(): Promise<typeof SonnerToast> {
   if (!loadedToast) {
     const module = await import("sonner");

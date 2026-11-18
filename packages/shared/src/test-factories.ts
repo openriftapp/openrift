@@ -22,8 +22,10 @@ export type CatalogPrintingFixture = CatalogResponsePrintingValue & {
   side: 1 | 2;
 };
 
-// Drops undefined-valued keys, so a caller forwarding its own optional
-// override doesn't clobber the default with an explicit undefined.
+/**
+ * Drops undefined-valued keys, so a caller forwarding its own optional
+ * override doesn't clobber the default with an explicit undefined.
+ */
 function defined<T extends object>(overrides: T): T {
   return Object.fromEntries(
     Object.entries(overrides).filter(([, value]) => value !== undefined),

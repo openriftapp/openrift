@@ -12,8 +12,10 @@ interface AdminCardFoldState {
   toggleSection: (sectionId: AdminCardSectionId) => void;
 }
 
-// `undefined` (unseeded, falls back to the default fold) is distinct from an
-// explicitly empty set (everything open after "Expand all").
+/**
+ * `undefined` (unseeded, falls back to the default fold) is distinct from an
+ * explicitly empty set (everything open after "Expand all").
+ */
 export function getStoredCollapsedPrintings(
   state: AdminCardFoldState,
   cardSlug: string,

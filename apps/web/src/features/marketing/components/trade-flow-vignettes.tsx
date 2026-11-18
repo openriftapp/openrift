@@ -24,7 +24,7 @@ const THEM = FIXTURE_PEOPLE.mira.userName;
 
 const SENTENCE_MARKUP = { strong: PROSE_MARKUP.strong, strong2: PROSE_MARKUP.strong };
 
-// The landing summary is edge-cached for up to a day and can predate the identity fields.
+/** The landing summary is edge-cached for up to a day and can predate the identity fields. */
 function tradedName(card: LandingThumbnailCard | undefined): string {
   return card?.name || m.marketing_trade_flow_fallback_card();
 }

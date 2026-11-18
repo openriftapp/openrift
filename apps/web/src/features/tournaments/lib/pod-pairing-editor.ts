@@ -74,7 +74,7 @@ export function moveTargets(state: EditorState, playerId: string, mode: EditorMo
   return targets;
 }
 
-// Empty pods are ignored here; they are dropped on save in toPayload.
+/** Empty pods are ignored here; they are dropped on save in toPayload. */
 export function validatePartition(
   state: EditorState,
   expectedPlayerIds: readonly string[],
@@ -125,8 +125,10 @@ export function validatePartition(
   return { ok: errors.length === 0, podValid, errors };
 }
 
-// Assumes the state is valid (call validatePartition first); an out-of-range
-// pod is coerced by length and the server re-validates anyway.
+/**
+ * Assumes the state is valid (call validatePartition first); an out-of-range
+ * pod is coerced by length and the server re-validates anyway.
+ */
 export function toPayload(state: EditorState): PairingPayload {
   return {
     pods: state.pods

@@ -26,8 +26,10 @@ export function useProductDetail(slug: string) {
   return useSuspenseQuery(productDetailQueryOptions(slug));
 }
 
-// Mutations must bust this explicitly, or client-side invalidation refetches
-// through the still-fresh server cache and pins the stale list.
+/**
+ * Mutations must bust this explicitly, or client-side invalidation refetches
+ * through the still-fresh server cache and pins the stale list.
+ */
 function invalidateProductsServerCache(): Promise<void> {
   return serverCache.invalidateQueries({ queryKey: serverCacheKeys.products });
 }

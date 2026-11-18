@@ -11,7 +11,7 @@ import { overlayRouter } from "./authenticated-overlay";
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
 const UPDATED_AT = new Date("2026-08-14T10:30:00.000Z");
 
-// The board schema rejects a repeated card id.
+/** The board schema rejects a repeated card id. */
 function cardId(at: number): string {
   return `c0000000-0001-4000-a000-000000000${String(at).padStart(3, "0")}`;
 }

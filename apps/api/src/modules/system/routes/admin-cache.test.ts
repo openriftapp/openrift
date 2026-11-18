@@ -8,9 +8,6 @@ import { adminCacheRouter } from "./admin-cache";
 
 const mockFetch = vi.fn();
 
-// Mount the oRPC router directly (without the requireAdmin gate). AppErrors are
-// bridged to ORPCErrors inside the router, so 4xx/5xx responses carry
-// `{ message }`.
 function buildApp(cloudflare: { apiToken: string; zoneId: string } | undefined) {
   const app = new Hono<{ Variables: Variables }>();
   app.use("*", async (c, next) => {

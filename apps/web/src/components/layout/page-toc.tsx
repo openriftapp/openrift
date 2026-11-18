@@ -32,7 +32,7 @@ function cssPixels(value: string): number {
   return Number.parseFloat(value) || 0;
 }
 
-// A smooth scroll that does not move fires no scrollend, so a hold would never release.
+/** A smooth scroll that does not move fires no scrollend, so a hold would never release. */
 function scrollWillMove(element: HTMLElement): boolean {
   const scroller = document.scrollingElement;
   if (!scroller) {
@@ -204,8 +204,10 @@ export function PageToc({
   );
 }
 
-// Pair with PageToc on the same page: this drawer shares its list but relies
-// on PageToc's observer to keep activeId in sync.
+/**
+ * Pair with PageToc on the same page: this drawer shares its list but relies
+ * on PageToc's observer to keep activeId in sync.
+ */
 export function PageTocMobileTrigger({
   items,
   onJump,

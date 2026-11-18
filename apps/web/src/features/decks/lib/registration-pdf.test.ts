@@ -275,8 +275,10 @@ function rowQuantities(doc: FakeDoc, columnX: number, fromY: number, toY: number
     .map((call) => call.text);
 }
 
-// One quantity/name row draws a short underline under the quantity cell, so
-// counting those counts printed rows whether or not a card filled them.
+/**
+ * One quantity/name row draws a short underline under the quantity cell, so
+ * counting those counts printed rows whether or not a card filled them.
+ */
 function rowCount(doc: FakeDoc, columnX: number, fromY: number, toY: number): number {
   return doc.lines.filter(
     (line) =>

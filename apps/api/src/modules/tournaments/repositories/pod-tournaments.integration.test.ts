@@ -72,7 +72,7 @@ describe.skipIf(!ctx)("podTournamentsRepo (integration)", () => {
     return { tournament, players };
   }
 
-  // Strictly descending game points in member order, so derived placements come out 1..size.
+  /** Strictly descending game points in member order, so derived placements come out 1..size. */
   async function reportOpenRound(tournamentId: string) {
     const rounds = await loadRounds(tournamentId, scoring);
     const open = rounds.find((round) => round.status === "reporting");

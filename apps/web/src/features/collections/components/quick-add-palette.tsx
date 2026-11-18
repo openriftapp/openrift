@@ -207,8 +207,10 @@ function PaletteInner({
     inputRef.current?.focus();
   };
 
-  // Preventing mousedown's default keeps focus in the search input so
-  // keyboard navigation survives a mouse click on the result list.
+  /**
+   * Preventing mousedown's default keeps focus in the search input so
+   * keyboard navigation survives a mouse click on the result list.
+   */
   const keepInputFocus = (event: React.MouseEvent) => {
     event.preventDefault();
   };

@@ -22,7 +22,7 @@ function textsOf({ errata, printings }: TokenTextSources): (string | null)[] {
   ];
 }
 
-// Manual rows are left alone; a derived row duplicating a manual one is dropped, not conflicting.
+/** Manual rows are left alone; a derived row duplicating a manual one is dropped, not conflicting. */
 async function writeDerived(
   trx: Kysely<Database>,
   cardId: string,

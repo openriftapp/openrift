@@ -30,8 +30,10 @@ function scrollDestination(target: HTMLElement): number {
   return target.getBoundingClientRect().top + window.scrollY - offset;
 }
 
-// content-visibility sections above the target render in at their real height
-// and move it, so every page resize re-applies the position until the user takes over.
+/**
+ * content-visibility sections above the target render in at their real height
+ * and move it, so every page resize re-applies the position until the user takes over.
+ */
 function startAnchorScroll(target: HTMLElement, animate: boolean): () => void {
   stopActiveScroll?.();
   let frame = 0;
@@ -77,9 +79,10 @@ function startAnchorScroll(target: HTMLElement, animate: boolean): () => void {
   return stop;
 }
 
-// Hand-animated: browsers silently disable native smooth scroll under OS
-// animation settings, and `scroll-behavior: smooth` on the root would also
-// smooth the router's scroll restoration.
+/**
+ * Hand-animated: browsers disable native smooth scroll under OS animation settings,
+ * and root `scroll-behavior: smooth` would also smooth the router's scroll restoration.
+ */
 export function useSmoothAnchorClick() {
   const navigate = useNavigate();
   const stopScroll = useRef<(() => void) | null>(null);
@@ -112,8 +115,10 @@ export function useSmoothAnchorClick() {
 
 const CHIP_CUT = 8;
 
-// Recomputes the last-passed divider from live rects on every call and stops at the first one
-// below the line: content-visibility sections estimate their height, so order can invert.
+/**
+ * Recomputes the last-passed divider from live rects on every call and stops at the first one
+ * below the line: content-visibility sections estimate their height, so order can invert.
+ */
 export function useActiveChapter(chapterIds: string[]): string | null {
   const [activeId, setActiveId] = useState<string | null>(null);
   const chapterKey = chapterIds.join(" ");
@@ -203,8 +208,10 @@ export function FeaturesRail({ chapters }: { chapters: FeatureChapter[] }) {
   );
 }
 
-// The top bar pins at `--header-height - 1px`; without the same -1px here the
-// two layers pin a pixel apart and scrolling content shows through the seam.
+/**
+ * The top bar pins at `--header-height - 1px`; without the same -1px here the
+ * two layers pin a pixel apart and scrolling content shows through the seam.
+ */
 export function FeaturesChipNav({ chapters }: { chapters: FeatureChapter[] }) {
   const activeId = useActiveChapter(chapters.map((chapter) => chapter.id));
   const topBarHeight = usePageTopBarHeight();

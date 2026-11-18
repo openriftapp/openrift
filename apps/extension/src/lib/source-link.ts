@@ -12,8 +12,7 @@ function isTrackingParam(key: string): boolean {
   );
 }
 
-// OpenRift only stores links on an allowlisted host (link-hosts.ts); the
-// import page re-checks the URL, this only avoids sending one it would drop.
+/** Mirrors the host allowlist in link-hosts.ts; the import page re-checks the URL. */
 export function deckSourceLink(pageUrl: string): string | undefined {
   let url: URL;
   try {

@@ -16,8 +16,10 @@ vi.mock("@/features/collections/hooks/use-copies-collection", () => ({
   useCopiesCollection: () => ({ toArray: [] }),
 }));
 
-// Stands in for PickerList, which takes focus on mount before the popover records
-// what was focused, so the trigger is not the element focus returns to.
+/**
+ * Stands in for PickerList, which takes focus on mount before the popover records
+ * what was focused, so the trigger is not the element focus returns to.
+ */
 function FocusingContent() {
   const ref = useRef<HTMLButtonElement>(null);
   useLayoutEffect(() => {

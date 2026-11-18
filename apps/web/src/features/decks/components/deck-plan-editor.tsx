@@ -200,7 +200,7 @@ function MatchupEditor({
   const removeSwap = (swapIndex: number) => {
     onChange({ swaps: matchup.swaps.filter((_, i) => i !== swapIndex) });
   };
-  // A card missing from candidates returns Infinity, so the row stays editable.
+  /** A card missing from candidates returns Infinity, so the row stays editable. */
   const maxSwapQuantity = (cardId: string, direction: SwapDirection) => {
     const candidates = direction === "out" ? maindeckCandidates : sideboardCandidates;
     return (

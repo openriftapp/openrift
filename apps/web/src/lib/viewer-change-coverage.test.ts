@@ -54,7 +54,6 @@ function parameterNames(fn: (...args: unknown[]) => unknown): string[] {
     .filter(Boolean);
 }
 
-// Stands in for any non-user argument: every property read or call yields another stand-in.
 function anyArgument(name: string): unknown {
   const target = () => {};
   const proxy: unknown = new Proxy(target, {

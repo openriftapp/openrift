@@ -41,7 +41,7 @@ interface MetaEventDialogProps {
   onClose: () => void;
 }
 
-// Editing writes the slug first: a failed rename should not leave an overlay claim behind.
+/** Editing writes the slug first: a failed rename should not leave an overlay claim behind. */
 export function MetaEventDialog({ event, onClose }: MetaEventDialogProps) {
   const { formats } = useDeckFormatList();
   const createEvent = useCreateMetaEvent();

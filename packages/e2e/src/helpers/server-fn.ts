@@ -55,8 +55,6 @@ function decodeSerovalNode(node: SerovalNode): unknown {
   }
 }
 
-// Returns the value under the top-level `data` key, since that's what every
-// call site wants.
 export function decodeServerFnData<T = unknown>(rawBody: unknown): T {
   const envelope = rawBody as SerovalEnvelope | { data: unknown } | undefined;
   if (envelope && typeof envelope === "object" && "t" in envelope && envelope.t) {
@@ -69,8 +67,10 @@ export function decodeServerFnData<T = unknown>(rawBody: unknown): T {
   return {} as T;
 }
 
-// Server fn ids are base64url(JSON) of source file + export name. Dev servers do
-// this natively; production builds only with E2E_READABLE_SERVER_FN_IDS=1.
+/**
+ * Server fn ids are base64url(JSON) of source file + export name. Dev servers do
+ * this natively; production builds only with E2E_READABLE_SERVER_FN_IDS=1.
+ */
 export function isServerFn(url: string, fnName: string): boolean {
   const encoded = /\/_serverFn\/(?<encoded>[^/?#]+)/u.exec(url)?.groups?.encoded;
   if (encoded === undefined) {

@@ -48,7 +48,7 @@ export function BulkTradeActions({
   // A trade waiting for a copy choice is settled in its own row, so accept-all leaves it out.
   const acceptTargets = targets.filter((trade) => !awaitingChoice.includes(trade.id));
 
-  // Declared above the early returns for the React Compiler.
+  /** Declared above the early returns for the React Compiler. */
   async function runAll(mutation: {
     mutateAsync: (variables: { tradeId: string; groupSlug?: string }) => Promise<unknown>;
   }): Promise<void> {

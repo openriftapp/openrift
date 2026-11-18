@@ -14,8 +14,7 @@ export interface CopyMarker {
   content?: string;
 }
 
-// Shared by CopyMetadataStrip and CopySummary so they never drift. Excludes
-// condition/grade and loan status: each surface renders those its own way.
+/** Excludes condition/grade and loan status: each surface renders those its own way. */
 export function copyMarkers(copy: CopyResponse): CopyMarker[] {
   const markers: CopyMarker[] = [];
   if (copy.isAltered) {
@@ -53,8 +52,6 @@ export function copyMarkers(copy: CopyResponse): CopyMarker[] {
   return markers;
 }
 
-// Reuses copyMarkers so the "No details yet" fallback can't drift out of
-// sync with the marker fields.
 export function copyHasRecordedDetails(copy: CopyResponse): boolean {
   return (
     copy.onLoan ||

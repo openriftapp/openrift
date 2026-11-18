@@ -224,8 +224,10 @@ export function resolveMatchRows(
   });
 }
 
-// Counts stay separate and price stays per-copy: a wished quantity can exceed
-// what's available, so it must never read as count times price.
+/**
+ * Counts stay separate and price stays per-copy: a wished quantity can exceed
+ * what's available, so it must never read as count times price.
+ */
 function MatchRowMeta({ match }: { match: DirectedMatch }) {
   return (
     <CardMetaLine
@@ -517,8 +519,10 @@ export interface MatchTradeGroup extends CatalogPosition {
   variants: [DirectedMatch, ...DirectedMatch[]];
 }
 
-// groupSlug is deliberately excluded from the key: a card reachable through
-// two shared groups is one opportunity, not a duplicate tile per group.
+/**
+ * groupSlug is deliberately excluded from the key: a card reachable through
+ * two shared groups is one opportunity, not a duplicate tile per group.
+ */
 export function groupTradeMatches(rows: DirectedMatch[]): MatchTradeGroup[] {
   const groups = new Map<string, MatchTradeGroup>();
   for (const row of rows) {

@@ -91,8 +91,10 @@ export function DeckTestBench({
   const oddsRows = buildDrawOddsRows(testCards);
   const hasRunes = cards.some((card) => card.zone === WellKnown.deckZone.RUNES);
 
-  // Uses `cards`, not `testCards`: a card must stay on the swap list at its
-  // real cap no matter how far the experiment has already moved its copies.
+  /**
+   * Uses `cards`, not `testCards`: a card must stay on the swap list at its
+   * real cap no matter how far the experiment has already moved its copies.
+   */
   const swapRowsFor = (zone: DeckZone) => {
     const aggregated = [
       ...Map.groupBy(
@@ -277,7 +279,7 @@ export function DeckTestBench({
     setSideboardOpen((open) => !open);
   };
 
-  // Caps at what the zone actually holds; these copies feed the odds math directly.
+  /** Caps at what the zone actually holds; these copies feed the odds math directly. */
   const maxSwapQuantityFor = (cardId: string, direction: SwapDirection) =>
     copiesAvailable.get(`${direction}:${cardId}`) ?? 1;
 

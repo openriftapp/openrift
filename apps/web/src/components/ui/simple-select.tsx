@@ -76,8 +76,10 @@ export function SimpleSelect<T extends string>({
   const byValue = new Map(items.map((item) => [item.value, item]));
   const triggerValue =
     renderValue ?? (items.some((item) => item.content !== undefined) ? itemContent : undefined);
-  // BaseUI types a single select's value as nullable; every item carries a
-  // string, so null only arrives when the selection is cleared.
+  /**
+   * BaseUI types a single select's value as nullable; every item carries a
+   * string, so null only arrives when the selection is cleared.
+   */
   function pick(next: T | null) {
     if (next !== null) {
       onChange(next);

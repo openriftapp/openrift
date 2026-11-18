@@ -125,8 +125,6 @@ export function ListPage({ listId }: ListPageProps) {
   const entriesCount = data.entries.length;
   const activeRuleCount = data.list.rules.length;
 
-  // Assembled here since it belongs to the page, but rendered by the browser,
-  // which owns select mode - hence the callback.
   const renderTopBar = (selectActions: ReactNode = null, moveCopies?: ListMoveCopiesAction) => {
     const topBar = (
       <ListHeader

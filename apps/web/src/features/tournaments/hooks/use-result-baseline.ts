@@ -9,8 +9,10 @@ function knownPoints(pod: PodResponse): Record<string, Points[]> {
   return Object.fromEntries(pod.members.map((member) => [member.playerId, [member.gamePoints]]));
 }
 
-// A save resolves before the refetch lands, so until then both the stale value
-// and the value just saved count as known.
+/**
+ * A save resolves before the refetch lands, so until then both the stale value
+ * and the value just saved count as known.
+ */
 export function useResultBaseline(
   pod: PodResponse,
   playerId?: string | null,

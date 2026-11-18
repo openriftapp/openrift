@@ -371,10 +371,10 @@ describe("friendGroupMatchesRepo (ADR-034 app-level matcher)", () => {
 });
 
 describe("friendGroupMatchesRepo — promised-incoming netting", () => {
-  // The baseline want is quantity 2 of crd-1 (see baselineQueues). The canned
-  // `cardTrades` rows stand for the already-filtered firm promises (reserved,
-  // or completed with receiver sync unapplied) — the fake db ignores WHEREs, so
-  // the status ladder itself is covered by the integration test.
+  /**
+   * The fake db ignores WHEREs, so these rows stand for already-filtered firm promises
+   * against the baseline want (quantity 2 of crd-1).
+   */
   function promisedRow(overrides: Record<string, unknown> = {}): Record<string, unknown> {
     return {
       receiverUserId: "viewer",
@@ -466,11 +466,10 @@ describe("friendGroupMatchesRepo — promised-incoming netting", () => {
 });
 
 describe("friendGroupMatchesRepo — pending-offer claims", () => {
-  // The seller offers two copies of prt-1; the viewer wants 2. The `cardTrades`
-  // queue is read twice: promised-incoming first (empty here), pending offers
-  // second. The fake db ignores WHEREs, so the canned rows stand for the
-  // already-filtered live offers — the status/initiator ladder is covered by
-  // the integration test.
+  /**
+   * Seller offers two copies of prt-1, viewer wants 2. `cardTrades` is read twice: promised-incoming
+   * (empty), then pending offers, which the fake db returns unfiltered.
+   */
   function twoCopyQueues() {
     return {
       friendGroupListShares: [[tradeShare()], [wishShare()]],
@@ -563,7 +562,7 @@ describe("friendGroupMatchesRepo — pending-offer claims", () => {
 });
 
 describe("friendGroupMatchesRepo — sorting and counterparty scoping", () => {
-  // Two sellers (Alice, Bob); the viewer wants both Alpha and Beta.
+  /** Two sellers (Alice, Bob); the viewer wants both Alpha and Beta. */
   function multiSellerQueues() {
     return {
       friendGroupListShares: [

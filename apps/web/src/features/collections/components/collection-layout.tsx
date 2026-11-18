@@ -141,8 +141,10 @@ export function CollectionLayout() {
         setMoveModifier((current) => (current === digit ? null : current));
       }
     };
-    // Clear on blur: if the user alt-tabs while holding a key, the keyup
-    // arrives in another window and we never see it.
+    /**
+     * Clear on blur: if the user alt-tabs while holding a key, the keyup
+     * arrives in another window and we never see it.
+     */
     const handleBlur = () => setMoveModifier(null);
     globalThis.addEventListener("keydown", handleKeyDown);
     globalThis.addEventListener("keyup", handleKeyUp);
@@ -284,8 +286,10 @@ export function CollectionLayout() {
     return m.collections_toast_moved_to_list_cards({ count, list });
   }
 
-  // A dragged selection can hold both kinds: rows the API moves and rule entries
-  // it can only re-add on the target list.
+  /**
+   * A dragged selection can hold both kinds: rows the API moves and rule entries
+   * it can only re-add on the target list.
+   */
   async function runListEntryMove(
     dragData: ListEntryDragData,
     dropData: SidebarListDropData,

@@ -50,7 +50,7 @@ export interface WebhookFailure {
   detail: string;
 }
 
-// Discord requires absolute URLs for embed images.
+/** Discord requires absolute URLs for embed images. */
 function absoluteImageUrl(appBaseUrl: string, id: string | null): string | undefined {
   if (!id) {
     return undefined;

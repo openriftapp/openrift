@@ -4,8 +4,10 @@ export interface CldrLanguageData {
   localePattern?: string;
 }
 
-// CLDR omits some language-script names (ko has no zh-Hans); those compose
-// from the language, the script and the locale pattern, as ICU does.
+/**
+ * CLDR omits some language-script names (ko has no zh-Hans); those compose
+ * from the language, the script and the locale pattern, as ICU does.
+ */
 export function cldrLanguageName(data: CldrLanguageData, tag: string): string | undefined {
   const direct = data.languages[tag];
   if (direct !== undefined) {

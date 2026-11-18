@@ -775,7 +775,7 @@ describe("GET /api/v1/board-states/share/:token/image.png", () => {
 });
 
 describe("POST /api/v1/decks/image", () => {
-  // The rate limiter's counters live for the whole test file; each test needs its own IP.
+  /** The rate limiter's counters live for the whole test file; each test needs its own IP. */
   function postRender(ip: string, body: unknown) {
     return app.request("/api/v1/decks/image", {
       method: "POST",

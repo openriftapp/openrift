@@ -150,7 +150,7 @@ export function useAddCopies() {
   });
 }
 
-// A selection over the check's cap skips it; each write chunk's own refusal still asks.
+/** A selection over the check's cap skips it; each write chunk's own refusal still asks. */
 function consentForCopies(
   queryClient: QueryClient,
   userId: string,

@@ -332,7 +332,7 @@ function UserMenuTrigger({
   return <EllipsisVerticalIcon className="size-5" />;
 }
 
-// Loaded on click so the auth client stays out of the shell's entry chunk.
+/** Loaded on click so the auth client stays out of the shell's entry chunk. */
 async function signOutViaAuthClient(): Promise<void> {
   const { signOut } = await import("@/features/account/lib/auth-client");
   await signOut();
@@ -497,8 +497,10 @@ function UserMenu({
   );
 }
 
-// Do not swap in a platform-detected glyph (Cmd/Ctrl): navigator-based
-// detection differs between server and client and breaks SSR hydration.
+/**
+ * Do not swap in a platform-detected glyph (Cmd/Ctrl): navigator-based
+ * detection differs between server and client and breaks SSR hydration.
+ */
 function HeaderSearchButton() {
   const openPalette = useCommandPaletteStore((state) => state.openPalette);
   return (

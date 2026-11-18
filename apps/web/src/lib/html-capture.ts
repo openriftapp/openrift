@@ -1,5 +1,7 @@
-// html2canvas-pro reads clip-path polygons but not em/calc units; resolve
-// those to percentages before capture.
+/**
+ * html2canvas-pro reads clip-path polygons but not em/calc units; resolve
+ * those to percentages before capture.
+ */
 function resolveClipPaths(element: HTMLElement): void {
   const inlineClip = element.style.clipPath;
   if (

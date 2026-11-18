@@ -38,7 +38,7 @@ describe("toCents", () => {
   });
 });
 
-// cmProductUrl is private in cardmarket.ts; reimplemented here for testing.
+/** cmProductUrl is private in cardmarket.ts; reimplemented here for testing. */
 function cmProductUrl(externalId: number): string {
   return `https://www.cardmarket.com/en/Riftbound/Products?idProduct=${externalId}`;
 }

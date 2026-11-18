@@ -25,8 +25,7 @@ interface ScanIdentifySheetProps {
   onDismiss: () => void;
 }
 
-// The manual escape hatch when the scanner will not lock: the captured frame
-// and its best matches, offered as tappable thumbnails.
+/** Manual pick when the scanner will not lock: the captured frame and its best matches as thumbnails. */
 export function ScanIdentifySheet({
   open,
   snapshot,

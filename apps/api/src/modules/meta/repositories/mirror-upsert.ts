@@ -16,8 +16,10 @@ export function compareKeys<K extends string | number>(a: K, b: K): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
-// Key order: two crawls writing the same rows in different orders deadlock on the
-// row locks. A repeated key keeps its last row: one statement cannot update a row twice.
+/**
+ * Key order: two crawls writing the same rows in different orders deadlock on the
+ * row locks. A repeated key keeps its last row: one statement cannot update a row twice.
+ */
 export async function upsertMirrorRows<T extends object, K extends string | number>(
   rows: readonly T[],
   spec: MirrorUpsertSpec<T, K>,

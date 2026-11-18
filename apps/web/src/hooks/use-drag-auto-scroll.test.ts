@@ -4,7 +4,6 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { edgeScrollDelta, isPointInRect, useDragAutoScroll } from "./use-drag-auto-scroll";
 
-// A 500px-tall container showing 500 of 1500px, scrolled to the middle.
 function container(overrides?: Partial<Parameters<typeof edgeScrollDelta>[0]>) {
   return {
     pointerY: 250,

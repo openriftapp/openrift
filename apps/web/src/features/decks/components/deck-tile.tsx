@@ -97,7 +97,6 @@ function LegendThumbPlaceholder() {
   );
 }
 
-// Also reused by the deck-check checker hero.
 export function FannedPreview({
   legendImage,
   championImage,

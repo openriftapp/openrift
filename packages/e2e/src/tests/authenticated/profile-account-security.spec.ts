@@ -57,8 +57,10 @@ async function createAndLogin(
   await signIn(page.request, email, password);
 }
 
-// Several sections each render a "Save" button; scope by the form holding
-// the Name input so the locator stays unique.
+/**
+ * Several sections each render a "Save" button; scope by the form holding
+ * the Name input so the locator stays unique.
+ */
 function nameSaveButton(page: Page) {
   return page
     .locator("form")

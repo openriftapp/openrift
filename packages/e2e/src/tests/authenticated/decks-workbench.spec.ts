@@ -8,8 +8,10 @@ import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb } from "../../helpers/db.js";
 
-// The beta is a per-user opt-in, so each test signs up its own user: flipping
-// the shared fixture user would switch every other deck spec to the beta.
+/**
+ * The beta is a per-user opt-in, so each test signs up its own user: flipping
+ * the shared fixture user would switch every other deck spec to the beta.
+ */
 async function signUpFreshUser(
   browser: Browser,
   contextOptions: BrowserContextOptions = {},

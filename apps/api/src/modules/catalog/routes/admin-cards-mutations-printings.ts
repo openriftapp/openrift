@@ -93,9 +93,10 @@ export const adminCardMutationsPrintingsRouter = {
       return { written: false };
     }
 
-    // Audit snapshot: distributionChannelSlugs lives only in a junction table
-    // (no denormalized column), so its old is null; everything else — including
-    // markerSlugs — is on the printings row already fetched above.
+    /**
+     * distributionChannelSlugs lives only in a junction table, so its old value is null;
+     * every other field comes from the printings row fetched above.
+     */
     const auditEvent = (written: unknown) =>
       recordAdminEvent(context.repos, context.userId, {
         action: "printing.accept-field",

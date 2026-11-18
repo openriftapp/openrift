@@ -31,8 +31,10 @@ const SPREAD = [
   { left: 210, top: 48, rotate: 13 },
 ];
 
-// Fixed-size so the spread can arrive with the catalog query without moving
-// the headline beside it.
+/**
+ * Fixed-size so the spread can arrive with the catalog query without moving
+ * the headline beside it.
+ */
 function CardFlourish({ urls }: { urls: string[] }) {
   return (
     <div

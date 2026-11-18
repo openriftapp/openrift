@@ -63,7 +63,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
   );
 }
 
-// The names cleared by up() are gone; rolling back restores only the trigger that keeps them.
+/** The names cleared by up() are gone; rolling back restores only the trigger that keeps them. */
 export async function down(db: Kysely<unknown>): Promise<void> {
   await snapshotFunction({
     declare: "DECLARE\n          display_name text := NULLIF(OLD.name, '');",

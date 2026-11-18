@@ -11,7 +11,6 @@ export interface ScanLanguageItem {
   label: string;
 }
 
-// Includes the selected language even if no printing currently has it, so it stays selectable.
 export function scanLanguageItems(
   printings: Printing[],
   selected: string | null,

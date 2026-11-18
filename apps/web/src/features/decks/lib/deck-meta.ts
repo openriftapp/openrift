@@ -40,8 +40,7 @@ export function deckBoxPart(boxed: readonly BoxedDeck[], deckId: string): DeckMe
   };
 }
 
-// The card count is deliberately absent: like the hero, these surfaces
-// carry the build figure on the format badge instead.
+/** The card count is deliberately absent: these surfaces show it on the format badge. */
 export function deckMetaParts(
   item: DeckListItemResponse,
   formatPrice: (cents: number) => string,

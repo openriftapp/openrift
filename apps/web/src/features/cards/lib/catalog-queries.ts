@@ -46,8 +46,10 @@ export interface UseCardsResult {
   sets: GroupInfo[];
 }
 
-// One serverCache entry holds both the catalog and its ETag so the token can
-// never drift from the body it describes.
+/**
+ * One serverCache entry holds both the catalog and its ETag so the token can
+ * never drift from the body it describes.
+ */
 function fetchCatalogWithVersion(): Promise<{
   catalog: CatalogResponse;
   version: string | null;
@@ -68,8 +70,10 @@ function fetchCatalogWithVersion(): Promise<{
   });
 }
 
-// Do not route this through a per-request `context.queryClient`: it dehydrates to
-// HTML and would inline the full ~310 KB catalog.
+/**
+ * Do not route this through a per-request `context.queryClient`: it dehydrates to
+ * HTML and would inline the full ~310 KB catalog.
+ */
 export async function readCatalogFromServerCache(): Promise<CatalogResponse> {
   const { catalog } = await fetchCatalogWithVersion();
   return catalog;
@@ -119,9 +123,10 @@ export function ssrCatalogPreloadLangs(
   );
 }
 
-// Shared by the client fetch and the /cards SSR head's preload link, which
-// MUST byte-match it (params in this order, same encoding) or the browser
-// downloads the catalog twice.
+/**
+ * The /cards SSR preload link must byte-match this URL (param order, encoding),
+ * or the browser downloads the catalog twice.
+ */
 export function catalogFetchUrl(
   origin: string,
   version: string | null,
@@ -152,8 +157,10 @@ function catalogPrintingsUrl(
   return `${origin}/api/v1/catalog/printings?${params.toString()}`;
 }
 
-// Detects a full response served for a variant request (deploy skew: an
-// older API ignores `langs`). Exported for tests, not real module surface.
+/**
+ * Detects a full response served for a variant request (deploy skew: an
+ * older API ignores `langs`). Exported for tests, not real module surface.
+ */
 export function hasPrintingsOutside(catalog: CatalogResponse, langs: readonly string[]): boolean {
   const wanted = new Set(langs);
   for (const printing of Object.values(catalog.printings)) {
@@ -171,7 +178,7 @@ export function seedCatalogVersion(client: QueryClient, version: string | null):
   }
 }
 
-// A seed serves exactly one fetch; every later fetch asks the server for a fresh token.
+/** A seed serves exactly one fetch; every later fetch asks the server for a fresh token. */
 function catalogVersionFor(client: QueryClient): Promise<string | null> {
   const seeded = client.getQueryData<string>(catalogKeys.version);
   if (seeded !== undefined) {
@@ -181,8 +188,10 @@ function catalogVersionFor(client: QueryClient): Promise<string | null> {
   return fetchCatalogVersion().catch(() => null);
 }
 
-// Fetches /api/v1/catalog directly (bypasses the Start server) so Cloudflare edge-caches it.
-// `?v=<ETag>` must change with the catalog or max-age + stale-while-revalidate serves a stale body.
+/**
+ * Fetches /api/v1/catalog directly (bypasses the Start server) so Cloudflare edge-caches it.
+ * `?v=<ETag>` must change with the catalog or max-age + stale-while-revalidate serves a stale body.
+ */
 async function fetchCatalogFromEdge(
   client: QueryClient,
   langs: string[] | null,
@@ -357,7 +366,7 @@ export const noCatalogQueryOptions: UseSuspenseQueryOptions<CatalogEntry, Error,
   select: selectCards,
 };
 
-// Exported for tests; not part of the module's real surface.
+/** Exported for tests; not part of the module's real surface. */
 export function primaryCatalogLanguages(requested?: readonly string[] | null): string[] | null {
   const base = requested && requested.length > 0 ? requested : preferredCatalogLanguages();
   const merged = normalizeCatalogLangs(base);

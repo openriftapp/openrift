@@ -70,8 +70,10 @@ export function copyLimitFor(card: {
   return override === UNLIMITED_COPIES ? Number.POSITIVE_INFINITY : override;
 }
 
-// Rules assume one row per card per zone (callers may feed several, e.g. one
-// per printing), so rows are merged by summing quantities before rules run.
+/**
+ * Rules assume one row per card per zone (callers may feed several, e.g. one
+ * per printing), so rows are merged by summing quantities before rules run.
+ */
 function aggregateByCardAndZone(cards: DeckCard[]): DeckCard[] {
   const byCardAndZone = new Map<string, DeckCard>();
   for (const card of cards) {
@@ -499,8 +501,10 @@ export const sideboardMaximum: DeckRule = (state) => {
   return [];
 };
 
-// Cards can land here via a format switch or an imported list; they are
-// flagged, never auto-moved.
+/**
+ * Cards can land here via a format switch or an imported list; they are
+ * flagged, never auto-moved.
+ */
 export const sideboardNotAllowed: DeckRule = (state) => {
   const count = totalQuantity(cardsInZone(state.cards, WellKnown.deckZone.SIDEBOARD));
 
@@ -614,7 +618,7 @@ export const battlefieldNoDuplicates: DeckRule = (state) => {
   return violations;
 };
 
-// Rule 103.2.d.1.
+/** Rule 103.2.d.1. */
 const signatureTotalLimit: DeckRule = (state) => {
   const signatureCards = [
     ...cardsInZone(state.cards, WellKnown.deckZone.MAIN),
@@ -636,7 +640,7 @@ const signatureTotalLimit: DeckRule = (state) => {
   return [];
 };
 
-// Rule 103.2.d.2.
+/** Rule 103.2.d.2. */
 const signatureMatchesLegendTag: DeckRule = (state) => {
   const legends = cardsInZone(state.cards, WellKnown.deckZone.LEGEND);
   const legend = legends.length === 1 ? legends[0] : undefined;
@@ -668,8 +672,10 @@ const signatureMatchesLegendTag: DeckRule = (state) => {
   return violations;
 };
 
-// A Signature not tagged to the Legend needs matching champion copies (any
-// printing) in the champion zone or main deck; sideboard doesn't count.
+/**
+ * A Signature not tagged to the Legend needs matching champion copies (any
+ * printing) in the champion zone or main deck; sideboard doesn't count.
+ */
 const signatureChampionCopiesInDeck: DeckRule = (state) => {
   const championIdSet = state.championIdentifierTags;
   if (!championIdSet || championIdSet.size === 0) {
@@ -747,8 +753,10 @@ const signatureChampionCopiesInDeck: DeckRule = (state) => {
   return violations;
 };
 
-// `banned` only carries the base banlist; mode-scoped bans (e.g. 2v2) are
-// deliberately not enforced here and stay a display-only ribbon.
+/**
+ * `banned` only carries the base banlist; mode-scoped bans (e.g. 2v2) are
+ * deliberately not enforced here and stay a display-only ribbon.
+ */
 export const noBannedCards: DeckRule = (state) => {
   const violations: DeckViolation[] = [];
 
@@ -770,8 +778,10 @@ export const noBannedCards: DeckRule = (state) => {
   return violations;
 };
 
-// Tokens are game objects an effect creates during play (rule 133.7.c), not
-// cards you register; an imported list or deck code can still name one.
+/**
+ * Tokens are game objects an effect creates during play (rule 133.7.c), not
+ * cards you register; an imported list or deck code can still name one.
+ */
 export const noTokenCards: DeckRule = (state) => {
   const violations: DeckViolation[] = [];
 

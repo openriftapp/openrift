@@ -114,7 +114,6 @@ export function JobRunsPage() {
     jobRunsParamsFromSearch(search),
   );
 
-  // A filter change reframes the whole result set, so jump back to page 1.
   function changeFilter(next: Partial<JobRunsSearch>) {
     void navigate({ search: (prev) => ({ ...prev, ...next, page: undefined }), replace: true });
   }

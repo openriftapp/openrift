@@ -94,8 +94,10 @@ function OverlayCardArt({
   );
 }
 
-// Forces `dark`: neither render site (the OBS browser source or the dashboard
-// preview) sits in a dark-forced subtree already.
+/**
+ * Forces `dark`: neither render site (the OBS browser source or the dashboard
+ * preview) sits in a dark-forced subtree already.
+ */
 function OverlayPlate({ printing, fields }: { printing: Printing; fields: OverlayPlateFields }) {
   if (!hasCardPlateContent(printing, fields)) {
     return null;
@@ -118,8 +120,10 @@ export function boardTileWidth(scale: number): number {
   return Math.round(BOARD_TILE_WIDTH.min + along * (BOARD_TILE_WIDTH.max - BOARD_TILE_WIDTH.min));
 }
 
-// Opaque, not the plate's `bg-black/85`: a translucent panel over a
-// transparent OBS source washes the tier list out.
+/**
+ * Opaque, not the plate's `bg-black/85`: a translucent panel over a
+ * transparent OBS source washes the tier list out.
+ */
 function OverlayBoardPanel({
   title,
   scene,
@@ -152,8 +156,10 @@ function OverlayFooter({ qrUrl }: { qrUrl: string | null }) {
   );
 }
 
-// No backdrop blur on the transparent ground: OBS composites this over live
-// video, and a blur would sample the page's own emptiness.
+/**
+ * No backdrop blur on the transparent ground: OBS composites this over live
+ * video, and a blur would sample the page's own emptiness.
+ */
 export function OverlayFrame({
   payload,
   printing,

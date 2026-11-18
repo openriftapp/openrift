@@ -72,7 +72,7 @@ interface FailingSchedule {
   failingSince: Date | null;
 }
 
-// Callers write `failingSince: null` on every successful visit, or the streak never ends.
+/** Callers write `failingSince: null` on every successful visit, or the streak never ends. */
 export async function graceFailingVisit(
   row: { checkStage: number; failingSince: Date | null },
   key: string | number,

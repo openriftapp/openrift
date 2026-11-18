@@ -5,8 +5,6 @@ import { describe, expect, it } from "vitest";
 
 const SRC_DIR = join(import.meta.dirname, "..");
 
-// Directories that contain persist()-backed Zustand state: every stores/ plus
-// the persist()-wrapped hooks like use-admin-settings, top level and per feature.
 async function scannedDirs(): Promise<string[]> {
   const dirs = [join(SRC_DIR, "stores"), join(SRC_DIR, "hooks")];
   const features = await readdir(join(SRC_DIR, "features"), { withFileTypes: true });

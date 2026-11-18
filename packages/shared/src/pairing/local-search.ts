@@ -34,7 +34,6 @@ export class InvalidPlayerCountError extends Error {
 
 const EPSILON = 1e-9;
 
-// Shuffles within each equal-score band so restarts differ.
 function constructOrder(players: PairingPlayer[], rng: Random): PairingPlayer[] {
   const byScore = Map.groupBy(players, (player) => player.score);
   const scoresDescending = [...byScore.keys()].toSorted((a, b) => b - a);
@@ -45,8 +44,7 @@ function constructOrder(players: PairingPlayer[], rng: Random): PairingPlayer[] 
   return ordered;
 }
 
-// Shuffles which positions become 3-pods; a fixed order would anchor every
-// restart's 3-pods to the bottom of the standings.
+/** Pod sizes are shuffled: a fixed order anchors every restart's 3-pods to the bottom of the standings. */
 function chunkIntoPods(ordered: PairingPlayer[], sizes: PodSizes, rng: Random): Pod[] {
   const sequence: (2 | 3 | 4)[] = shuffle(
     [
@@ -79,7 +77,7 @@ interface Move {
   apply: (pods: Pod[]) => void;
 }
 
-// Scans 2-swaps first; only scans the pricier 3-cycles if no 2-swap improves.
+/** Scans 2-swaps first; only scans the pricier 3-cycles if no 2-swap improves. */
 function findBestMove(
   pods: Pod[],
   totals: number[],

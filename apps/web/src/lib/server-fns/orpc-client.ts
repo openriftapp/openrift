@@ -41,8 +41,10 @@ export function apiOrpcClient<TContract extends AnyContractRouter>(
   return createORPCClient(withProcedureTag(link));
 }
 
-// `url` must stay a function: reading `location` per-call (not at link-build time) keeps
-// building this client at module scope safe during SSR, where `location` is undefined.
+/**
+ * `url` must stay a function: reading `location` per-call (not at link-build time) keeps
+ * building this client at module scope safe during SSR, where `location` is undefined.
+ */
 export function browserApiOrpcClient<TContract extends AnyContractRouter>(
   contract: TContract,
 ): ContractRouterClient<TContract> {

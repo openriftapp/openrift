@@ -17,7 +17,7 @@ const PDF_BACKED_MODULES = [
   "html2canvas-pro",
 ];
 
-// `import type` is erased before bundling and dynamic `import()` becomes its own chunk, so neither counts.
+/** `import type` is erased before bundling and dynamic `import()` becomes its own chunk, so neither counts. */
 function staticValueImports(): string[] {
   const specifiers: string[] = [];
   const statements = /^import\s+(?<typeOnly>type\s+)?[\S\s]*?from\s+"(?<spec>[^"]+)";/gmu;

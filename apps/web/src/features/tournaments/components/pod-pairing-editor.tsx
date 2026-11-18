@@ -174,15 +174,19 @@ export function PodPairingEditor({
     setState((current) => movePlayer(current, playerId, target));
   }
 
-  // The move remounts the chip in its new pod, so the menu's own focus return
-  // has no trigger left to land on.
+  /**
+   * The move remounts the chip in its new pod, so the menu's own focus return
+   * has no trigger left to land on.
+   */
   function handleMenuMove(playerId: string, target: MoveTarget) {
     applyMove(playerId, target);
     setRefocusId(playerId);
   }
 
-  // Named by the event's style, not seat count like pairingLabel(): a match
-  // dragged through 1 or 3 players is still a match.
+  /**
+   * Named by the event's style, not seat count like pairingLabel(): a match
+   * dragged through 1 or 3 players is still a match.
+   */
   function podTitle(index: number): string {
     return (
       podLabel?.(index) ??
@@ -265,8 +269,10 @@ export function PodPairingEditor({
       return;
     }
     const payload = toPayload(state);
-    // Team mode edits move team units; the server speaks players, so expand
-    // each unit back to its members on the way out.
+    /**
+     * Team mode edits move team units; the server speaks players, so expand
+     * each unit back to its members on the way out.
+     */
     const expandUnit = (unitId: string) => teams.membersByTeam.get(unitId) ?? [unitId];
     const expanded = teamMode
       ? {
@@ -401,7 +407,7 @@ function seedUnitsFromRound(
   };
 }
 
-// The editor index of the n-th non-empty pod (enginePods drops empties).
+/** The editor index of the n-th non-empty pod (enginePods drops empties). */
 function nthNonEmptyPodIndex(state: EditorState, nonEmptyIndex: number): number {
   let seen = -1;
   for (const [index, pod] of state.pods.entries()) {
@@ -432,8 +438,10 @@ function ChipContent({ name, score }: { name: string; score: number }) {
   );
 }
 
-// The menu is a sibling of the drag handle so a press on it or on its portaled
-// popup never reaches the drag listeners.
+/**
+ * The menu is a sibling of the drag handle so a press on it or on its portaled
+ * popup never reaches the drag listeners.
+ */
 function DraggablePlayer({
   playerId,
   name,
@@ -550,8 +558,10 @@ function PodDropZone({
   );
 }
 
-// Stays visible even with no empty pod: a bye may need to form a table the
-// round currently lacks, e.g. after a mid-round drop emptied one.
+/**
+ * Stays visible even with no empty pod: a bye may need to form a table the
+ * round currently lacks, e.g. after a mid-round drop emptied one.
+ */
 function NewPodDropZone({ mode }: { mode: EditorMode }) {
   const { setNodeRef, isOver } = useDroppable({
     id: "new-pod",

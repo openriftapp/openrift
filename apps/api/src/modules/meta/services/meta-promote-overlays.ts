@@ -125,8 +125,6 @@ export async function applyPlayerOverlays(
         : resolveOverlayList(latest, linesByOverlay.get(latest.id) ?? [], cardIndex);
     let next = applied;
     if (list !== undefined && list !== null) {
-      // The archive files an entry under the standings row's legend, so a
-      // list's own legend and champion zones win over the row's fields.
       const inZone = (zone: string) => list.cards.find((card) => card.zone === zone)?.cardId;
       next = {
         ...applied,

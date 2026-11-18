@@ -9,8 +9,10 @@ async function fillOtp(page: Page, value: string) {
   await page.locator('input[autocomplete="one-time-code"]').fill(value);
 }
 
-// ?email= only prefills step 1: the code step claims a code was sent, so only
-// sending one gets there.
+/**
+ * ?email= only prefills step 1: the code step claims a code was sent, so only
+ * sending one gets there.
+ */
 async function gotoStep2(page: Page, email: string, options?: { realSend?: boolean }) {
   if (!options?.realSend) {
     await page.route("**/api/auth/email-otp/send-verification-otp", (route) =>

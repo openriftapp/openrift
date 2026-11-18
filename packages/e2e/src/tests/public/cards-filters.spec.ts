@@ -14,7 +14,7 @@ import { scrollUntilVisible } from "../../helpers/virtualized.js";
 const CARDS_URL = "/cards";
 const FOOTER_BUTTON = /^(?:Done|Show \d+ (?:cards?|printings?))$/u;
 
-// A second click on Options while the drawer animates in closes it again, so click once after hydration.
+/** A second click on Options while the drawer animates in closes it again, so click once after hydration. */
 async function openFilterDrawer(page: Page): Promise<Locator> {
   const options = page.getByRole("button", { name: "Options" });
   await waitForHydrated(options);

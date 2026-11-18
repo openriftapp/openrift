@@ -102,7 +102,6 @@ export function teamMemberCounts(players: TrackedPlayer[]): [number, number] {
   return [first, second];
 }
 
-// Used after a reload, to force every teammate back to their team's highest score.
 function syncTeamPoints(players: TrackedPlayer[]): TrackedPlayer[] {
   const teamPoints = new Map<TeamId, number>();
   for (const player of players) {
@@ -114,7 +113,6 @@ function syncTeamPoints(players: TrackedPlayer[]): TrackedPlayer[] {
   }));
 }
 
-// For the menu row that names the undo before you commit ("Undo Kira's Conquer").
 export function describeAction(
   action: MatchAction | undefined,
   players: TrackedPlayer[],
@@ -172,7 +170,6 @@ interface MatchTrackerState {
   dismissWinner: () => void;
 }
 
-// Append an action, dropping the oldest once the log is full.
 function pushLog(log: MatchAction[], action: MatchAction): MatchAction[] {
   const next = [...log, action];
   return next.length > MAX_LOG ? next.slice(next.length - MAX_LOG) : next;
@@ -465,7 +462,7 @@ function applyScore(
   };
 }
 
-// Missing cardId or name drops the whole entry; other fields degrade to defaults.
+/** Missing cardId or name drops the whole entry; other fields degrade to defaults. */
 function sanitizeLegend(raw: unknown): TrackedLegend | null {
   if (!raw || typeof raw !== "object") {
     return null;
@@ -485,7 +482,7 @@ function sanitizeLegend(raw: unknown): TrackedLegend | null {
   };
 }
 
-// Rejects rosters outside the allowed size.
+/** Rejects rosters outside the allowed size. */
 function sanitizePlayers(raw: unknown): TrackedPlayer[] | null {
   if (!Array.isArray(raw)) {
     return null;

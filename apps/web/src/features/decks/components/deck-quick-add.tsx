@@ -50,8 +50,10 @@ interface AddTarget {
   expected?: number;
 }
 
-// Legends in constructed get the replace action, plus Legend Options when granted;
-// everything else lists its zones with live fullness checks, so Enter is always safe.
+/**
+ * Legends in constructed get the replace action, plus Legend Options when granted;
+ * everything else lists its zones with live fullness checks, so Enter is always safe.
+ */
 export function buildTargets(
   builderCard: DeckBuilderCard,
   deckCards: DeckBuilderCard[],
@@ -111,7 +113,7 @@ export function buildTargets(
   );
 }
 
-// The champion slot holds one card, so an add there replaces the chosen champion.
+/** The champion slot holds one card, so an add there replaces the chosen champion. */
 function championZones(
   builderCard: DeckBuilderCard,
   deckCards: DeckBuilderCard[],
@@ -159,8 +161,10 @@ function keepInputFocus(event: React.MouseEvent) {
   event.preventDefault();
 }
 
-// Pressable renders a native <button>, so a row containing the stepper's own
-// buttons cannot be one: it renders as a plain container instead.
+/**
+ * Pressable renders a native <button>, so a row containing the stepper's own
+ * buttons cannot be one: it renders as a plain container instead.
+ */
 function CardRowShell({
   selected,
   expanded,
@@ -260,7 +264,6 @@ function QuickAddInner({
     return relaxed ? targets.map((target) => ({ ...target, disabled: false })) : targets;
   };
 
-  // Falls back to the first row so a fully-capped card still reports something.
   const defaultTarget = (targets: AddTarget[]): AddTarget | undefined =>
     targets.find((target) => !target.disabled) ?? targets[0];
 
@@ -287,7 +290,6 @@ function QuickAddInner({
     setAddsSinceOpen((count) => count + 1);
   };
 
-  // Unlike Shift+Enter (which pops the undo stack), this removes from the zone directly.
   const performRemove = (cardId: string, target: AddTarget) => {
     if (target.kind === "legend" || target.count === 0) {
       return;

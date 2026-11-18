@@ -82,7 +82,6 @@ function unixSeconds(date: Date): number {
   return Math.floor(date.getTime() / 1000);
 }
 
-// The card bridge is built once per tournament: one query, not one per list.
 async function writeResults(
   deps: TopdeckSyncDeps,
   projection: TopdeckTournamentProjection,
@@ -152,8 +151,10 @@ interface CrawlContext {
   now: Date;
 }
 
-// An unchanged event's results are not rewritten. The content hash covers
-// the standings count, so a grown field counts as a change.
+/**
+ * An unchanged event's results are not rewritten. The content hash covers
+ * the standings count, so a grown field counts as a change.
+ */
 async function crawlFormatWindow(
   deps: TopdeckSyncDeps,
   ctx: CrawlContext,
@@ -237,8 +238,10 @@ export interface TopdeckBackfillOptions {
   resumeFrom?: Date;
 }
 
-// The source pages nothing, so the chunk bounds the response: the full
-// Constructed archive in one call is eleven megabytes.
+/**
+ * The source pages nothing, so the chunk bounds the response: the full
+ * Constructed archive in one call is eleven megabytes.
+ */
 export async function backfillTopdeck(
   deps: TopdeckSyncDeps,
   runId?: string,

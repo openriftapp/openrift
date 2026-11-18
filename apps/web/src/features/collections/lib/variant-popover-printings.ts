@@ -7,10 +7,10 @@ export interface VariantPopoverScope {
   printingId?: string;
 }
 
-// The catalog projection buckets ownership per active-language copy, so a
-// card owned only in a filtered-out language is missing from it even though
-// some grids still show the card. Fall back to the language-scoped full
-// variant list for those cards.
+/**
+ * The catalog projection misses cards owned only in a filtered-out language; those fall
+ * back to the language-scoped variant list.
+ */
 export function resolveVariantPopoverPrintings(
   catalogPrintingsByCardId: ReadonlyMap<string, Printing[]>,
   languageScopedPrintingsByCardId: ReadonlyMap<string, Printing[]>,

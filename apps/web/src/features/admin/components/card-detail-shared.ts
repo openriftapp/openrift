@@ -171,8 +171,10 @@ export function deduplicateSourceImages(
   ];
 }
 
-// Mirrors findStandardArtFallback's catalog rule; only active, rehosted images
-// count, since an external-only image is not servable on the site.
+/**
+ * Mirrors findStandardArtFallback's catalog rule; only active, rehosted images
+ * count, since an external-only image is not servable on the site.
+ */
 export function findDerivedArtPrinting(
   printing: AdminPrintingResponse,
   printings: readonly AdminPrintingResponse[],
@@ -220,8 +222,10 @@ const ACCEPT_CARD_FIELD_KEYS = new Set(
   Object.keys(cardFieldsSchema.shape).filter((key) => key !== "id"),
 );
 
-// Before enum lists load, `labeledOptions` is an empty but truthy array, so
-// validating against it would wrongly reject every value.
+/**
+ * Before enum lists load, `labeledOptions` is an empty but truthy array, so
+ * validating against it would wrongly reject every value.
+ */
 function hasDropdownOptions(field: FieldDef): boolean {
   return (field.options?.length ?? 0) > 0 || (field.labeledOptions?.length ?? 0) > 0;
 }

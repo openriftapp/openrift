@@ -12,8 +12,10 @@ export interface ShopEventDay {
   events: FriendGroupShopEventResponse[];
 }
 
-// The bucket keys are local days, so they have to be read back as local
-// midnight; `2026-09-11` alone parses as UTC and slides a day west of London.
+/**
+ * The bucket keys are local days, so they have to be read back as local
+ * midnight; `2026-09-11` alone parses as UTC and slides a day west of London.
+ */
 function localMidnight(day: string): string {
   return `${day}T00:00:00`;
 }

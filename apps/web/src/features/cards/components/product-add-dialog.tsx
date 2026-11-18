@@ -30,9 +30,10 @@ import { useAddCopies } from "@/features/collections/hooks/use-copies";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
-// Sends batches sequentially so the server never sees a later one before an
-// earlier one. Lives outside the component: React Compiler cannot lower a
-// loop that sits inside a try/catch.
+/**
+ * Sends batches sequentially so the server sees them in order.
+ * Outside the component: React Compiler cannot lower a loop inside try/catch.
+ */
 async function addBatchesInOrder(
   batches: ProductCopyRow[][],
   addCopies: (input: { copies: ProductCopyRow[] }) => Promise<unknown>,

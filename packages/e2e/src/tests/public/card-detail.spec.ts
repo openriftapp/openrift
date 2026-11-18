@@ -16,7 +16,6 @@ const SEED_CARD_NAME = "Annie, Fiery";
 // the virtualized /cards grid tile click isn't drivable in the harness.
 const ANNIE_PRINTING_ID = "019cfc3b-03d6-74cf-adec-1dce41f631eb";
 
-// The seed is deterministic, so a missing fixture is a failure, not a skip.
 function seeded<T>(value: T | null | undefined, message: string): T {
   if (value === null || value === undefined) {
     throw new Error(`Seed fixture missing: ${message}`);
@@ -81,8 +80,10 @@ interface CardFixture {
   tags: string[];
 }
 
-// Legends head their page as "<tag>, <epithet>" (legendDisplayName in
-// @openrift/shared), not under their raw catalog name.
+/**
+ * Legends head their page as "<tag>, <epithet>" (legendDisplayName in
+ * @openrift/shared), not under their raw catalog name.
+ */
 function legendHeading(card: CardFixture): string {
   const tag = card.tags[0];
   if (!tag || card.name.startsWith(`${tag}, `)) {
@@ -126,8 +127,6 @@ async function fetchCardDetail(slug: string): Promise<CardDetailFixture> {
   return detail;
 }
 
-// The info panel is a definition list, so a "row" is a <dt> label plus the
-// <dd> that follows it.
 function infoRowTerm(page: Page, label: string) {
   return page
     .locator('[data-slot="definition-term"]')
@@ -138,8 +137,10 @@ function infoRow(page: Page, label: string) {
   return infoRowTerm(page, label).locator("xpath=following-sibling::dd[1]");
 }
 
-// Mirrors apps/web/src/lib/card-meta.ts's buildCardPriceLine: keep this in
-// sync if that helper's formatting or marketplace-priority logic changes.
+/**
+ * Mirrors apps/web/src/lib/card-meta.ts's buildCardPriceLine: keep this in
+ * sync if that helper's formatting or marketplace-priority logic changes.
+ */
 function buildExpectedPriceLine(
   detail: CardDetailFixture,
   prices: Record<string, MarketplacePrices | undefined>,

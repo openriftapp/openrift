@@ -171,11 +171,10 @@ async function buildDetailResponse(
   // Linked candidate printings are already shown under their accepted printing.
   const unlinkedGroups = groupCandidatePrintings(candidatePrintings.filter((cp) => !cp.printingId));
 
-  // Closest accepted printing for a candidate group whose exact expected id
-  // has no counterpart: same short code (case-insensitive) and language, then
-  // ranked by finish match, marker-set distance, and canonical order. Lets the
-  // UI offer a one-click link for near-misses (marker or finish drift, e.g. a
-  // source reporting `promo` where the catalogue says `launch-exclusive`).
+  /**
+   * Closest accepted printing when the exact expected id has none: same short code (case-insensitive)
+   * and language, ranked by finish match, marker-set distance, then canonical order.
+   */
   function findSuggestedPrinting(
     mcShortCode: string,
     finish: string,

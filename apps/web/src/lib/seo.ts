@@ -11,7 +11,7 @@ const DEFAULT_DESCRIPTION =
   "Browse, collect, and build decks for the Riftbound trading card game. Search cards, track your collection, compare prices, and share decks.";
 const TWITTER_SITE = "@eikowagenknecht";
 
-// Some unfurl crawlers reject relative og:image / twitter:image URLs.
+/** Some unfurl crawlers reject relative og:image / twitter:image URLs. */
 export function toAbsoluteUrl(siteUrl: string, imageUrl: string | undefined): string | undefined {
   if (!imageUrl) {
     return undefined;
@@ -107,7 +107,6 @@ export function adminSeoHead(title: string) {
   return privateSeoHead(`Admin · ${title}`);
 }
 
-// Enables the sitelinks search box in Google search results.
 export function websiteJsonLd(siteUrl: string) {
   return {
     type: "application/ld+json",
@@ -167,8 +166,10 @@ interface ProductJsonLdOptions {
   marketplaceOffers?: MarketplaceOffer[];
 }
 
-// Availability is omitted: a bare Product (no offers/review/rating) is
-// flagged invalid in Search Console.
+/**
+ * Availability is omitted: a bare Product (no offers/review/rating) is
+ * flagged invalid in Search Console.
+ */
 export function productJsonLd(options: ProductJsonLdOptions) {
   const offers = (options.marketplaceOffers ?? []).map((entry) => {
     const sellerNode = { "@type": "Organization", name: entry.seller };
@@ -213,7 +214,6 @@ interface FaqEntry {
   answer: string;
 }
 
-// Can trigger FAQ rich results in Google.
 export function faqPageJsonLd(entries: FaqEntry[]) {
   return {
     type: "application/ld+json",
@@ -237,7 +237,6 @@ interface OrganizationJsonLdOptions {
   sameAs?: readonly string[];
 }
 
-// Helps Google build a knowledge panel linking the site to its social profiles.
 export function organizationJsonLd(siteUrl: string, options: OrganizationJsonLdOptions = {}) {
   return {
     type: "application/ld+json",
@@ -322,7 +321,6 @@ interface ArticleJsonLdOptions {
   image?: string;
 }
 
-// Used for help articles and the changelog to render as article rich results.
 export function articleJsonLd(options: ArticleJsonLdOptions) {
   const url = `${options.siteUrl}${options.path}`;
   return {

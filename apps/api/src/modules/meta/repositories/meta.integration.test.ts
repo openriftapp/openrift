@@ -907,9 +907,10 @@ describe.skipIf(!ctx)("metaRepo", () => {
       expect(rows.map((event) => event.id)).toEqual([premier, local]);
     });
 
-    // The standings count and the decklist count have to disagree, or a query
-    // that read one for the other would still order these the way both expect.
-    // No reported field size, so the players order falls back to the rows held.
+    /**
+     * Standings and decklist counts disagree, so a query reading one for the other orders them wrongly.
+     * No reported field size, so the players order falls back to the rows held.
+     */
     async function seedCountSet(month: string) {
       const crowded = await seedEvent(repo, `mta-count-crowded-${month}`, {
         eventDate: `${month}-01`,
@@ -1036,7 +1037,7 @@ describe.skipIf(!ctx)("metaRepo", () => {
     it("orders by count across the whole archive when nothing narrows it", async () => {
       const { crowded, listed, bare } = await seedCountSet("2030-06");
       const mine = [crowded, listed, bare];
-      // Paged to the end: the archive this shares a database with has no bound.
+      /** Paged to the end: the archive this shares a database with has no bound. */
       const ours = async (order: MetaEventIndexOrder) => {
         const found: string[] = [];
         for (let offset = 0; ; offset += 200) {

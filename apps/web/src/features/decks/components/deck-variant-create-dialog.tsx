@@ -161,7 +161,6 @@ export function DeckVariantCreateForm({
   );
 }
 
-// For surfaces with no open panel to expand into (the rail's "+" button, the deck editor's menu).
 export function DeckVariantCreateDialog({
   deckId,
   deckName,

@@ -11,8 +11,10 @@ import { collectionCollisionDetection } from "@/features/collections/lib/collect
 
 import { SortableSidebarRow } from "./sortable-sidebar-row";
 
-// The onTouchStart spy stands in for Base UI's ContextMenuTrigger, which
-// starts its long-press timer from a React onTouchStart on an ancestor of the grip.
+/**
+ * The onTouchStart spy stands in for Base UI's ContextMenuTrigger, which
+ * starts its long-press timer from a React onTouchStart on an ancestor of the grip.
+ */
 function renderRow() {
   const onTouchStart = vi.fn();
   render(

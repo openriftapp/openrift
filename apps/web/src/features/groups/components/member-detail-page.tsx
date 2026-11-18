@@ -47,8 +47,6 @@ function listSections(): { intent: Extract<ListIntent, "wish" | "trade">; headin
   ];
 }
 
-// tradedCount keeps the fallback honest: without it, a member you'd traded 58
-// cards with could still read "Nothing traded yet".
 function tradeSummaryLine(
   openCount: number,
   needsYouCount: number,
@@ -71,8 +69,10 @@ function tradeSummaryLine(
   return parts.length > 0 ? parts.join(" · ") : m.groups_member_nothing_traded();
 }
 
-// Own component: the API refuses to open a trade sheet for the viewer's own
-// page, so this is mounted only for other members.
+/**
+ * Own component: the API refuses to open a trade sheet for the viewer's own
+ * page, so this is mounted only for other members.
+ */
 function MemberTradeSection({
   slug,
   userId,

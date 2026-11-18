@@ -1,5 +1,7 @@
-// "&" splits as a separator, not a word, so a team name ("Ashe & Braum")
-// yields both members' initials.
+/**
+ * "&" splits as a separator, not a word, so a team name ("Ashe & Braum")
+ * yields both members' initials.
+ */
 export function getUserInitials(name: string | undefined, email: string | undefined): string {
   return (name ?? email ?? "?")
     .split(/[\s@&]+/u)

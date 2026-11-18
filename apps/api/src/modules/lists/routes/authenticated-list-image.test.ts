@@ -23,8 +23,10 @@ const mockListsRepo = {
   entriesWithDetailsAnon: vi.fn(() => Promise.resolve([])),
 };
 
-// 418 sentinel stands in for the oRPC catch-all, distinguishing a 401 from
-// this route's auth from a fall-through to a public route.
+/**
+ * 418 sentinel stands in for the oRPC catch-all, distinguishing a 401 from
+ * this route's auth from a fall-through to a public route.
+ */
 function buildApp(session: { user: { id: string; name?: string } } | null) {
   return new Hono<{ Variables: Variables }>()
     .onError((err, c) => {

@@ -2,8 +2,6 @@ import type { ReactNode } from "react";
 
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
 
-// Nested inside the `capped` page width: `max-w-prose` here caps the line
-// length inside it, which is narrower than the page column.
 export function ProsePage({ children }: { children: ReactNode }) {
   return (
     <div className={cn(PAGE_WIDTH.capped, PAGE_PADDING)}>

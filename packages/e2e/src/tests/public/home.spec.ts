@@ -5,8 +5,10 @@ import { urlWithLanguagesDefault } from "../../helpers/catalog.js";
 import { IS_PRODUCTION_BUILD } from "../../helpers/constants.js";
 import { waitForHydrated } from "../../helpers/hydration.js";
 
-// The fan cards overlap, so a click at a card's center can land on the card
-// stacked above it. Click the first sampled point the card itself receives.
+/**
+ * The fan cards overlap, so a click at a card's center can land on the card
+ * stacked above it. Click the first sampled point the card itself receives.
+ */
 async function clickExposedPart(page: Page, fanCard: Locator) {
   const fan = page.locator("[data-fan-index]");
   // Deal-in, fly-away and hover-lean move the cards, so a sampled point is only

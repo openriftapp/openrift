@@ -32,8 +32,10 @@ function fieldName(key: string): string {
   return key.toLowerCase().replace(/(?:\[[^\]]*\])+$/u, "");
 }
 
-// Backslashes are rejected too: some browsers normalize "\" to "/", which
-// would turn "/\evil.com" into a protocol-relative URL.
+/**
+ * Backslashes are rejected too: some browsers normalize "\" to "/", which
+ * would turn "/\evil.com" into a protocol-relative URL.
+ */
 export function isLocalPath(path: string): boolean {
   return path.startsWith("/") && !path.startsWith("//") && !path.includes("\\");
 }

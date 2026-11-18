@@ -48,7 +48,7 @@ export const VIEWER_VARYING_PATHS: string[] = collectGetPaths(
 
 export const DEVELOPER_API_PATHS: string[] = collectGetPaths((meta) => meta.developerApi === true);
 
-// Must run outside etag() so the ETag header exists yet.
+/** Must run outside etag() so the ETag header already exists. */
 export async function immutableWhenVersionMatches(c: Context, next: Next): Promise<void> {
   await next();
   const version = c.req.query("v");

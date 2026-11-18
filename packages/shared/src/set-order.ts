@@ -7,8 +7,10 @@ export interface SetOrderInfo {
 
 export const UNKNOWN_SET_INDEX = Number.MAX_SAFE_INTEGER;
 
-// The app's one definition of set order: grid headers, filters, and SSR
-// previews all rely on it staying consistent with each other.
+/**
+ * The app's one definition of set order: grid headers, filters, and SSR
+ * previews all rely on it staying consistent with each other.
+ */
 export function orderSetsMainFirst<SetLike extends { setType?: string }>(
   sets: readonly SetLike[],
 ): SetLike[] {

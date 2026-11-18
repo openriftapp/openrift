@@ -10,7 +10,6 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import type { EnumLabels } from "@/lib/enum-labels";
 import { initQueryOptions } from "@/lib/init-queries";
 
-// Generic over T: a colored/described row keeps its extra fields through the sort.
 function sorted<T extends EnumRow>(rows: readonly T[]): T[] {
   return rows.toSorted((a, b) => a.sortOrder - b.sortOrder);
 }

@@ -76,8 +76,10 @@ export function isStandaloneDisplay(): boolean {
   return iosStandalone === true || matchesMediaQuery("(display-mode: standalone)");
 }
 
-// `x-safari-` is undocumented and some Android apps block `intent:` links,
-// so callers always offer a copy-link fallback next to this.
+/**
+ * `x-safari-` is undocumented and some Android apps block `intent:` links,
+ * so callers always offer a copy-link fallback next to this.
+ */
 export function openInBrowserUrl(os: "ios" | "android", url: string): string {
   if (os === "ios") {
     return `x-safari-${url}`;
@@ -86,8 +88,10 @@ export function openInBrowserUrl(os: "ios" | "android", url: string): string {
   return `intent://${parsed.host}${parsed.pathname}${parsed.search}#Intent;scheme=${parsed.protocol.replace(":", "")};end`;
 }
 
-// Android browsers let users move the toolbar, and in-app viewers (Custom Tabs)
-// share the browser's user agent, so only iOS Safari has a known button spot.
+/**
+ * Android browsers let users move the toolbar, and in-app viewers (Custom Tabs)
+ * share the browser's user agent, so only iOS Safari has a known button spot.
+ */
 export function startHerePlacement(
   platform: InstallPlatform,
 ): "top-right" | "bottom-right" | "bottom-center" | null {

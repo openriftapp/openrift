@@ -8,7 +8,7 @@ import { useDisableFriendGroupCode } from "@/features/groups/hooks/use-friend-gr
 import { getSiteUrl } from "@/lib/site-config";
 import { m } from "@/paraglide/messages.js";
 
-// The bare code is deliberately not shown: nothing accepts a typed one, only a link.
+/** The bare code is deliberately not shown: nothing accepts a typed one, only a link. */
 export function InviteLinkPanel({ slug, code }: { slug: string; code: string }) {
   const disableCode = useDisableFriendGroupCode();
 

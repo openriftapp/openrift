@@ -75,8 +75,10 @@ function CreditPreview({
   );
 }
 
-// Credit rows are written regardless of this setting; the public read filters
-// on it at render time, so toggling it retroactively (un)credits everything.
+/**
+ * Credit rows are written regardless of this setting; the public read filters
+ * on it at render time, so toggling it retroactively (un)credits everything.
+ */
 export function MetaCreditSection() {
   const { data: session } = useSession();
   const { data, isPending } = useMetaCreditVisibility();

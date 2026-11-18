@@ -102,7 +102,7 @@ describe.skipIf(!ctx)("trade match digest (integration)", () => {
     return created.id;
   }
 
-  // GIVER shares a trade copy; `wisherId` wishes it — both in a fresh group. Returns the copy id.
+  /** GIVER shares a trade copy that `wisherId` wishes for, both in a fresh group. Returns the copy id. */
   async function setupMatch(wisherId: string): Promise<string> {
     const slug = `dg-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
     const group = await groupsRepo.createWithOwner(

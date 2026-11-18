@@ -13,7 +13,7 @@ export type DeckFolderWithCount = Selectable<DeckFoldersTable> & { deckCount: nu
 
 const deckCountExpr = sql<number>`(select count(*)::int from deck_folder_entries where deck_folder_entries.folder_id = deck_folders.id)`;
 
-// Every method is user-scoped: an id that isn't the caller's matches nothing, it never errors.
+/** Every method is user-scoped: an id that isn't the caller's matches nothing, it never errors. */
 export function deckFoldersRepo(db: Kysely<Database>) {
   return {
     listForUser(userId: string): Promise<DeckFolderWithCount[]> {

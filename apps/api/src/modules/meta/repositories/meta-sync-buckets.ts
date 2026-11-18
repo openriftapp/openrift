@@ -89,7 +89,7 @@ export const JOINED_TRIAGE: MirrorTriagePredicates = { undecided, published, rej
 
 export const NEVER = sql<SqlBool>`false`;
 
-// Uncorrelated, so the planner hashes the hold list once instead of probing it per catalogue row.
+/** Must stay uncorrelated so the planner hashes the hold list once per query. */
 export function heldBySameStore(provider: string, key: RawBuilder<string>): RawBuilder<SqlBool> {
   return sql<SqlBool>`${key} in (
     select h.external_id from meta_held_source_events h where h.provider = ${provider}
@@ -124,8 +124,10 @@ export const TRIAGE_STATE = sql<MirrorTriage>`case
     else 'new'
   end`;
 
-// Absence must be an anti-join here: reading a joined null makes the planner
-// sort the whole catalogue before taking one page. Presence reads the join.
+/**
+ * Absence must be an anti-join here: reading a joined null makes the planner
+ * sort the whole catalogue before taking one page. Presence reads the join.
+ */
 export function pagedTriage(provider: string, key: RawBuilder<string>): MirrorTriagePredicates {
   const notDismissed = sql<SqlBool>`not exists (
     select 1 from ignored_meta_source_events x

@@ -52,7 +52,7 @@ export async function buildCards(
   }));
 }
 
-// Mirrors the share text's KIND_NOUN.
+/** Mirrors the share text's KIND_NOUN. */
 function unitForKind(kind: string): { one: string; many: string } {
   if (kind === "printing" || kind === "copy") {
     return { one: "printing", many: "printings" };

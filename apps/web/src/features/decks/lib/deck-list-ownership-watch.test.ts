@@ -15,7 +15,7 @@ describe("watchOwnershipForDeckList", () => {
   let invalidate: ReturnType<typeof vi.spyOn>;
   let stop: () => void;
 
-  // The path query-db-collection's writeInsert/writeUpsert/writeDelete take.
+  /** The path query-db-collection's writeInsert/writeUpsert/writeDelete take. */
   const storeWrite = (queryKey: QueryKey, data: unknown) => {
     queryClient.getQueryCache().find({ queryKey, exact: true })?.setState({ data });
   };

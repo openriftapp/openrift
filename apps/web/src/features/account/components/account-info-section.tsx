@@ -233,8 +233,10 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
     setOtp("");
   }
 
-  // The verify-new step's OTP is minted by requestEmailChange, which consumes
-  // the current-email OTP; only that step can resend.
+  /**
+   * The verify-new step's OTP is minted by requestEmailChange, which consumes
+   * the current-email OTP; only that step can resend.
+   */
   async function handleResend() {
     setResending(true);
     setError("");

@@ -112,7 +112,7 @@ function edgePath(
   return `M ${x1} ${y1} C ${x1 + bend} ${y1} ${x2 - bend} ${y2} ${x2} ${y2}`;
 }
 
-// Both ends must be loaded before a count means anything; a half-loaded edge draws nothing.
+/** Both ends must be loaded before a count means anything; a half-loaded edge draws nothing. */
 function edgeCounts(
   cardsByDeck: Record<string, DeckCardResponse[]>,
   cardsById: Record<string, Card>,
@@ -155,8 +155,7 @@ function RailDiffRows({ diff }: { diff: DeckDiff }) {
   );
 }
 
-// Split out so the comparison only runs once the popup actually mounts: a
-// rail draws up to six of these, none on screen until someone hovers a node.
+/** Separate component so the diff runs only once the popup mounts; a rail draws up to six. */
 function RailNodeDiff({
   ourCards,
   theirCards,
@@ -633,7 +632,7 @@ function VariantRailBody({ deckId }: { deckId: string }) {
   );
 }
 
-// Never renders for a browser-local deck: local decks have no family.
+/** Never renders for a browser-local deck: local decks have no family. */
 export function DeckVariantRail({ deckId }: { deckId: string }) {
   const isLocal = useIsLocalDeck(deckId);
   if (isLocal) {

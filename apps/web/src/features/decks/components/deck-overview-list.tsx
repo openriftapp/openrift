@@ -440,8 +440,10 @@ function ZoneAddRow({
   );
 }
 
-// Split in two so the dnd hooks never run on the read-only share page, which
-// renders the list outside any DndContext.
+/**
+ * Split in two so the dnd hooks never run on the read-only share page, which
+ * renders the list outside any DndContext.
+ */
 function ZoneSection({
   zone,
   format,
@@ -609,8 +611,10 @@ interface DeckListRowProps {
   onCardClick?: (card: CardOpenTarget) => void;
 }
 
-// The dnd hook lives in only one branch, so it never runs on the share page
-// (hooks can't be conditional; components can).
+/**
+ * The dnd hook lives in only one branch, so it never runs on the share page
+ * (hooks can't be conditional; components can).
+ */
 function ListRow({ draggable, ...props }: DeckListRowProps & { draggable: boolean }) {
   if (draggable) {
     return <DraggableDeckListRow {...props} />;
@@ -618,8 +622,10 @@ function ListRow({ draggable, ...props }: DeckListRowProps & { draggable: boolea
   return <DeckCardListRow {...props} />;
 }
 
-// The payload is byte-for-byte the grid thumbnail's `DeckCardDragData`, so
-// every existing drop handler treats a list drag exactly like a grid drag.
+/**
+ * The payload is byte-for-byte the grid thumbnail's `DeckCardDragData`, so
+ * every existing drop handler treats a list drag exactly like a grid drag.
+ */
 function DraggableDeckListRow(props: DeckListRowProps) {
   const { card, copyIndex } = props;
   const dragData: DeckCardDragData = {
@@ -647,7 +653,7 @@ function DraggableDeckListRow(props: DeckListRowProps) {
   );
 }
 
-// Hook-free so tests can render it on its own.
+/** Hook-free so tests can render it on its own. */
 export function DeckCardListRow({
   card,
   copyIndex,

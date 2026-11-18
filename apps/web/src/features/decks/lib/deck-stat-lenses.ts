@@ -102,7 +102,7 @@ export function buildRarityRows(
     });
 }
 
-// Entries the segment map doesn't cover are skipped, not guessed.
+/** Entries the segment map doesn't cover are skipped, not guessed. */
 export function buildOwnershipRows(
   cards: readonly DeckBuilderCard[],
   segmentsByCardKey: ReadonlyMap<string, OwnershipBandSegments>,
@@ -150,7 +150,7 @@ export function rarityFocusKeys(
   return keys;
 }
 
-// An entry can belong to several classes at once, so result sets may overlap.
+/** An entry can belong to several classes at once, so result sets may overlap. */
 export function ownershipFocusKeys(
   cards: readonly DeckBuilderCard[],
   segmentsByCardKey: ReadonlyMap<string, OwnershipBandSegments>,

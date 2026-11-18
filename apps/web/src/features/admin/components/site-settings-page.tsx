@@ -371,8 +371,6 @@ function KnownSettingRow({
     }
   }
 
-  // A boolean needs nothing typed: creating it restores the default-on row, and
-  // the table's Switch takes over from there.
   async function handleCreateOn() {
     setPending(true);
     setSaveError("");

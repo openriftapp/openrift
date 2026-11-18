@@ -75,7 +75,6 @@ export function sortDeckCheckCards<T extends DeckCheckSortableCard>(
   }
 
   if (sortBy === "energy") {
-    // Numbered values rank before `null` (treated as +Infinity) within a group.
     const compareValue = (a: number | null, b: number | null) => {
       const aRank = a ?? Number.POSITIVE_INFINITY;
       const bRank = b ?? Number.POSITIVE_INFINITY;

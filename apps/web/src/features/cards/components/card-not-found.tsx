@@ -53,7 +53,7 @@ export function CardNotFound() {
   );
 }
 
-// The catalog is a client-only read, so the slot keeps its height from the first paint.
+/** The catalog is a client-only read, so the slot keeps its height from the first paint. */
 function ClosestCardSlot({ query }: { query: string }) {
   const hydrated = useHydrated();
   const { data: catalog } = useQuery({ ...catalogQueryOptions, enabled: hydrated });

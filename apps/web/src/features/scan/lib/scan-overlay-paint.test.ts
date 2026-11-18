@@ -20,8 +20,6 @@ interface Stroke {
   dash: number[];
 }
 
-// jsdom has no canvas backend (`getContext("2d")` returns null there), so
-// tests substitute a plain object that records what was drawn.
 function fakeContext() {
   const calls: string[] = [];
   const strokes: Stroke[] = [];

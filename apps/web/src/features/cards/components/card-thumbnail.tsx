@@ -177,8 +177,10 @@ function CardArtImage({
   fade?: boolean;
   onError?: () => void;
 }) {
-  // Covers cached/instant results: the browser can fire load/error before React
-  // attaches listeners. A broken image has `complete` set with naturalWidth 0.
+  /**
+   * Covers cached/instant results: the browser can fire load/error before React
+   * attaches listeners. A broken image has `complete` set with naturalWidth 0.
+   */
   const coverCachedResult = (node: HTMLImageElement | null) => {
     if (node?.complete) {
       if (node.naturalWidth > 0) {
@@ -513,7 +515,7 @@ function ImageLink({
   );
 }
 
-// Only mounted when dragData is passed, so callers without drag pay zero @dnd-kit cost.
+/** Only mounted when dragData is passed, so callers without drag pay zero @dnd-kit cost. */
 function DraggableTileWrapper({
   dragId,
   dragData,

@@ -16,8 +16,10 @@ import type { EnumLabels } from "@/lib/enum-labels";
 // import it without cycling back through this dispatcher.
 export type { CardGroup } from "@/lib/card-group-types";
 
-// Main sets first, then supplemental ones (matching the filter sidebar
-// order); sets with no items are dropped.
+/**
+ * Main sets first, then supplemental ones (matching the filter sidebar
+ * order); sets with no items are dropped.
+ */
 export function groupItemsBySet(items: CardViewerItem[], setOrder: GroupInfo[]): CardGroup[] {
   const bySet = Map.groupBy(items, (item) => item.printing.setId);
   // Stable sort keeps the source (release) order within each set type.

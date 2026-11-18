@@ -32,8 +32,10 @@ import { collectionPageJsonLd, seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";
 
-// Only a stray sign-in `redirect` param gets a permanent redirect: browsers cache 301s,
-// and the other cleanups depend on data.
+/**
+ * Only a stray sign-in `redirect` param gets a permanent redirect: browsers cache 301s,
+ * and the other cleanups depend on data.
+ */
 function carriesOnlyRedirectParam(searchStr: string): boolean {
   const keys = [...new URLSearchParams(searchStr).keys()];
   return keys.length > 0 && keys.every((key) => key === "redirect");

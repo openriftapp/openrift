@@ -44,8 +44,10 @@ function cleanText(text: string | null | undefined): string {
   return (text ?? "").replaceAll(/\s+/gu, " ").trim();
 }
 
-// Group headers are `.subheader` elements; card rows are `tr.card-list-item`
-// with the quantity in a `<b>` cell and the name as the card link's text.
+/**
+ * Group headers are `.subheader` elements; card rows are `tr.card-list-item`
+ * with the quantity in a `<b>` cell and the name as the card link's text.
+ */
 function readDecklistTable(table: HTMLTableElement): TextEncodableCard[] {
   const cards: TextEncodableCard[] = [];
   let currentZone: DeckZone = "main";
@@ -73,7 +75,6 @@ function readDecklistTable(table: HTMLTableElement): TextEncodableCard[] {
   return cards;
 }
 
-// When several tables qualify, the one with the most card rows wins.
 export function extractTableDecklist(doc: Document): string | null {
   let best: TextEncodableCard[] = [];
   for (const table of doc.querySelectorAll("table")) {
@@ -91,8 +92,10 @@ export function extractTableDecklist(doc: Document): string | null {
   return encodeText(best).code;
 }
 
-// Rows are `.card-name-text` elements (quantity span, then name span). Only
-// a sideboard `.section-header` maps to a zone; other labels stay unheadered.
+/**
+ * Rows are `.card-name-text` elements (quantity span, then name span). Only
+ * a sideboard `.section-header` maps to a zone; other labels stay unheadered.
+ */
 export function extractSectionedListDecklist(doc: Document): string | null {
   if (!doc.querySelector(".section-header")) {
     return null;

@@ -35,7 +35,7 @@ export function buildBoxWantsLookup(items: readonly BoxWantRow[]): BoxWantsLooku
     allCards.add(item.cardId);
   }
 
-  // A double-sided copy has a row per card, each counting the same copies.
+  /** A double-sided copy has a row per card, each counting the same copies. */
   const fulfillable = (collectionId: string, printingId: string) =>
     Math.max(
       0,

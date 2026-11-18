@@ -29,8 +29,10 @@ import { m } from "@/paraglide/messages.js";
 
 const OBS_CANVAS = { width: 1920, height: 1080 };
 
-// Must use the real OverlayFrame component: the preview has to match what
-// the browser source actually renders.
+/**
+ * Must use the real OverlayFrame component: the preview has to match what
+ * the browser source actually renders.
+ */
 function LivePreview({
   payload,
   printing,
@@ -109,7 +111,6 @@ function LivePreview({
   );
 }
 
-// Kept visible but disabled when the queue is empty, not hidden.
 function WalkControls({
   queue,
   livePrintingId,
@@ -167,7 +168,7 @@ function WalkControls({
   );
 }
 
-// Mounted only while signed in: every channel hook here needs a session.
+/** Mounted only while signed in: every channel hook here needs a session. */
 export function OverlayOutputPanel() {
   const { data: channel } = useOverlayChannel();
   const { printingsBySideKey, cardsById, printingsByCardId } = useCards();

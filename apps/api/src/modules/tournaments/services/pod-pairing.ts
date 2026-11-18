@@ -29,7 +29,7 @@ function roundAlreadyOpen(): AppError {
 /** An empty round (every active player took a bye): zero pods, zero penalty. */
 const EMPTY_PAIRING: PairingResult = { pods: [], totalPenalty: 0, perPod: [], strategy: "random" };
 
-// 'none' never reaches pairing.
+/** 'none' never reaches pairing. */
 function pairingModeOf(tournament: Tournament): PairingMode {
   return tournament.pairingStyle === "swiss" ? "swiss" : "pod";
 }

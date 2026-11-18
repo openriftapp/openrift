@@ -24,7 +24,7 @@ const extraCtx = createTestContext(EXTRA_ID, `test-${EXTRA_ID}@test.com`);
 
 const ALL_IDS = [ADMIN_ID, OWNER_ID, MANAGER_ID, OUTSIDER_ID, EXTRA_ID, RACE_ID];
 
-// Mirrors the seed email assigned in beforeAll.
+/** Mirrors the seed email assigned in beforeAll. */
 const emailFor = (userId: string) => `test-${userId}@test.com`;
 
 describe.skipIf(!adminCtx || !ownerCtx || !managerCtx || !outsiderCtx || !extraCtx)(

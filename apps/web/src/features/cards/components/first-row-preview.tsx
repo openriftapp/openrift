@@ -33,7 +33,7 @@ const cardsRoute = getRouteApi("/_app/cards");
 
 const SSR_HIDDEN: ReadonlySet<string> = new Set(["owned", "markers", "channels"]);
 
-// Full class strings required for Tailwind's scanner: don't concatenate dynamically.
+/** Full class strings required for Tailwind's scanner: don't concatenate dynamically. */
 function visibilityForIndex(i: number): string {
   if (i < 4) {
     return "";

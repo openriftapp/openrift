@@ -4,7 +4,7 @@ export interface CatalogPosition {
   shortCode: string;
 }
 
-// shortCode's zero-padded number sorts as a plain string ("OGN-002" before "OGN-010").
+/** shortCode's zero-padded number sorts as a plain string ("OGN-002" before "OGN-010"). */
 export function compareCatalogPosition(a: CatalogPosition, b: CatalogPosition): number {
   return a.setIndex - b.setIndex || a.shortCode.localeCompare(b.shortCode);
 }

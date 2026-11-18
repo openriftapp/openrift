@@ -16,8 +16,10 @@ const CardPageCollectionActions = lazy(async () => {
   return { default: mod.CardPageCollectionActions };
 });
 
-// The counts come from a live query with no server snapshot, so this mounts
-// only after hydration to avoid a server/client mismatch.
+/**
+ * The counts come from a live query with no server snapshot, so this mounts
+ * only after hydration to avoid a server/client mismatch.
+ */
 export function CollectionSlot({
   printing,
   siblings,

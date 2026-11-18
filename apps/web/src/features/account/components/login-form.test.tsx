@@ -85,7 +85,7 @@ function renderLoginForm(props?: { redirectTo?: string }) {
   );
 }
 
-// BaseUI can keep the outgoing tab panel mounted, so pick the input the user can actually type into.
+/** BaseUI can keep the outgoing tab panel mounted, so pick the input the user can actually type into. */
 function activeEmailInput() {
   const active = screen
     .getAllByLabelText("Email")

@@ -15,9 +15,10 @@ interface SidebarShowMoreRowProps {
   shown: boolean;
 }
 
-// A drop target only to reveal: a hidden row can't receive a card while
-// unrendered, so hovering a dragged card here opens the group and the real
-// rows underneath take the drop. Dropping on the row itself does nothing.
+/**
+ * Drop target only to reveal: hovering a dragged card opens the group so the real rows take the drop.
+ * Dropping on this row itself does nothing.
+ */
 export function SidebarShowMoreRow({ foldKey, hiddenCount, shown }: SidebarShowMoreRowProps) {
   const toggleMoreShown = useSidebarFoldStore((state) => state.toggleMoreShown);
   const setMoreShown = useSidebarFoldStore((state) => state.setMoreShown);

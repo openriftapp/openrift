@@ -195,7 +195,7 @@ function pageOf(results: unknown[], count = results.length): UvsPage<unknown> {
   return { results, count, nextPage: null };
 }
 
-// Matches the real listing: any page containing a poison id 500s, others answer normally.
+/** Matches the real listing: any page containing a poison id 500s, others answer normally. */
 function fakeSource(
   events: { id: number; at: string }[],
   poison: number[] = [],

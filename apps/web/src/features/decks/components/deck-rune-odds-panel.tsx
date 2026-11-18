@@ -19,8 +19,7 @@ import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { m } from "@/paraglide/messages.js";
 
-// Runes are their own shuffled deck; this deliberately reads the real deck's
-// rune zone and ignores the sideboard experiment, since runes can't be swapped.
+/** Reads the real deck's rune zone and ignores the sideboard experiment: runes can't be swapped. */
 export function DeckRuneOddsPanel({ cards }: { cards: DeckBuilderCard[] }) {
   const [goingSecond, setGoingSecond] = useState(false);
   const domainColors = useDomainColors();

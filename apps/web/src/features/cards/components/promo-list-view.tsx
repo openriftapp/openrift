@@ -91,8 +91,10 @@ export function PromoListView({
   );
 }
 
-// The note holds source links, so its click target is a stretched Pressable
-// behind the content, with the note rising above it to keep its links clickable.
+/**
+ * The note holds source links, so its click target is a stretched Pressable
+ * behind the content, with the note rising above it to keep its links clickable.
+ */
 export function PromoMobileCard({
   printing,
   ownedCount,

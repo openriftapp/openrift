@@ -5,8 +5,10 @@ import postgres from "postgres";
 import type { E2eState } from "./constants.js";
 import { STATE_FILE } from "./constants.js";
 
-// Re-implements apps/api/src/test/integration-setup.ts to avoid importing
-// across workspaces (the API package has no build step).
+/**
+ * Re-implements apps/api/src/test/integration-setup.ts to avoid importing
+ * across workspaces (the API package has no build step).
+ */
 const noop = () => {};
 
 export function replaceDbName(url: string, dbName: string): string {
@@ -44,8 +46,10 @@ function connectToTempDb() {
 // both are safe to replay.
 const RETRYABLE_SQL_STATES = new Set(["40P01", "40001"]);
 
-// Parallel workers cascade-delete through the same child tables in opposite
-// orders, so a losing cleanup must retry instead of failing that test.
+/**
+ * Parallel workers cascade-delete through the same child tables in opposite
+ * orders, so a losing cleanup must retry instead of failing that test.
+ */
 export async function deleteUser(email: string, attempts = 5): Promise<void> {
   for (let attempt = 1; ; attempt++) {
     const sql = connectToTempDb();

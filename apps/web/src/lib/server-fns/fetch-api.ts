@@ -15,7 +15,7 @@ interface FetchApiOptions {
   acceptStatuses?: readonly number[];
 }
 
-// Throws ApiError on a non-2xx response not listed in acceptStatuses; otherwise returns the Response untouched.
+/** Throws ApiError on a non-2xx response not listed in acceptStatuses; otherwise returns the Response untouched. */
 export async function fetchApi(options: FetchApiOptions): Promise<Response> {
   const {
     errorTitle,

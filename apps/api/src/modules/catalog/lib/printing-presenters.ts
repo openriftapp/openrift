@@ -256,7 +256,7 @@ export function presentPrintingValues(
   decorations: PrintingDecorations,
 ): Record<string, CatalogResponsePrintingValue> {
   const imagesBySide = Map.groupBy(imageRows, sideImageKey);
-  // The wire names markers by slug; resolving them first drops slugs with no marker row.
+  /** The wire names markers by slug; resolving them first drops slugs with no marker row. */
   const toWireSide = ({ markers, ...side }: PresentedSide) => ({
     ...side,
     markers: markers.map((marker) => marker.slug),

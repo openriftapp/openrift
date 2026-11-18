@@ -16,8 +16,7 @@ interface UseGridKeyboardNavParams {
 
 const NAV_KEYS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "+", "=", "-"];
 
-// `=` is accepted as a no-shift alias for `+` — on US layouts `+` requires
-// Shift+= and the asymmetry with `-` is awkward.
+/** `=` is the unshifted `+` on US layouts. */
 const isIncrementKey = (key: string) => key === "+" || key === "=";
 const isAddRemoveKey = (key: string) => isIncrementKey(key) || key === "-";
 

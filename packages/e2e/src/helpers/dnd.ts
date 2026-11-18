@@ -6,8 +6,10 @@ interface Point {
   y: number;
 }
 
-// page.mouse needs viewport coordinates; scrollIntoViewIfNeeded detaches the
-// tile mid-scroll on this window-virtualized grid, so re-measure after each scroll.
+/**
+ * page.mouse needs viewport coordinates; scrollIntoViewIfNeeded detaches the
+ * tile mid-scroll on this window-virtualized grid, so re-measure after each scroll.
+ */
 async function scrollIntoViewport(page: Page, locator: Locator, timeout = 15_000) {
   await expect
     .poll(
@@ -33,13 +35,15 @@ async function centerOf(locator: Locator): Promise<Point> {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
 
-// dnd-kit marks the dragged node aria-pressed once its sensor activates.
+/** dnd-kit marks the dragged node aria-pressed once its sensor activates. */
 function activeDraggable(page: Page): Locator {
   return page.locator('[aria-roledescription="draggable"][aria-pressed="true"]');
 }
 
-// A drop that should land: the drop target's ring shows once dnd-kit has measured
-// the droppables and resolved the pointer onto it. Releasing earlier drops nowhere.
+/**
+ * A drop that should land: the drop target's ring shows once dnd-kit has measured
+ * the droppables and resolved the pointer onto it. Releasing earlier drops nowhere.
+ */
 export async function expectDropTargetArmed(dropRing: Locator) {
   await expect(dropRing).toHaveClass(/ring-primary/u);
 }

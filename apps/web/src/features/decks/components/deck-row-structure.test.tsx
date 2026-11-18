@@ -92,7 +92,7 @@ const FAMILY = {
   expanded: false,
 } as const;
 
-// The HTML content model forbids any interactive descendant inside an `<a>`.
+/** The HTML content model forbids any interactive descendant inside an `<a>`. */
 function interactiveInsideAnchor(container: HTMLElement): string[] {
   return [...container.querySelectorAll("a")].flatMap((anchor) =>
     [...anchor.querySelectorAll("a, button, input, select, textarea, [tabindex]")].map(

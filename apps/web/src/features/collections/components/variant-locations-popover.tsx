@@ -54,8 +54,10 @@ export interface VariantGroup {
   addCandidates: CollectionResponse[];
 }
 
-// viewCollectionId sorts first, even though it may be a group collection never
-// present in personalCollections, so `remove` intent highlights the opened row.
+/**
+ * viewCollectionId sorts first, even though it may be a group collection never
+ * present in personalCollections, so `remove` intent highlights the opened row.
+ */
 export function buildVariantGroups(
   printings: readonly Printing[],
   breakdown: readonly VariantBreakdownEntry[] | undefined,
@@ -420,7 +422,7 @@ export function VariantLocationsPopover({
   );
 }
 
-// cmdk round-trips these values back through onKeyDown as opaque strings; resolve via actionByValue, don't parse them.
+/** cmdk round-trips these values back through onKeyDown as opaque strings; resolve via actionByValue, don't parse them. */
 function variantRowValue(printing: Printing): string {
   return `variant::${printing.printingId}`;
 }

@@ -20,7 +20,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
   `.execute(db);
 }
 
-// The deleted wildcard pins are not restored.
+/** The deleted wildcard pins are not restored. */
 export async function down(db: Kysely<unknown>): Promise<void> {
   await sql`ALTER TABLE printing_link_overrides DROP CONSTRAINT chk_plo_no_empty_provider`.execute(
     db,

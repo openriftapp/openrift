@@ -3,7 +3,7 @@ import type { AnchorHTMLAttributes } from "react";
 
 import { trackEvent } from "@/lib/analytics";
 
-// For non-anchor click handlers (e.g. SVG `window.open`); normal anchors should use `<MarketplaceLink>` instead.
+/** For non-anchor click handlers (e.g. SVG `window.open`). Anchors use `<MarketplaceLink>`. */
 export function trackMarketplaceClick(marketplace: Marketplace, url: string) {
   trackEvent("marketplace-click", { marketplace, url });
 }

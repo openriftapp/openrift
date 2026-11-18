@@ -101,7 +101,7 @@ export const cardSubmissionsRouter = {
   }),
 };
 
-// Hono matches a `use` path exactly, so the upload path needs its own body limit.
+/** Hono matches a `use` path exactly, so the upload path needs its own body limit. */
 export function mountCardSubmissionsMiddleware(app: Hono<{ Variables: Variables }>): void {
   app.use(
     "/api/v1/card-submissions",

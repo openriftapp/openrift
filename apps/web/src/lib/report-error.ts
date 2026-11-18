@@ -2,8 +2,10 @@ import { createIsomorphicFn } from "@tanstack/react-start";
 
 import { PROD } from "./env";
 
-// Callers here ship in the entry chunk; each half loads its SDK behind a
-// dynamic import, and a namespace import of the SDK would pull all of it in.
+/**
+ * Callers here ship in the entry chunk; each half loads its SDK behind a
+ * dynamic import, and a namespace import of the SDK would pull all of it in.
+ */
 async function sendToServerSentry(error: unknown, tags: Record<string, string>): Promise<void> {
   try {
     const { captureException } = await import("@sentry/tanstackstart-react");

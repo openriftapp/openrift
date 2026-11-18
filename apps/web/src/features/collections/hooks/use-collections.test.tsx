@@ -65,8 +65,7 @@ let serverCollections: CollectionResponse[];
 let sent: SentRequest[];
 let respond: (request: SentRequest) => Response | Promise<Response>;
 
-// A fake server, not a fixed payload: these handlers refetch, so the next GET
-// is what lands in the store.
+/** These handlers refetch, so the next GET answer is what lands in the store. */
 function succeed(request: SentRequest): Response {
   if (request.method === "GET") {
     return Response.json({ items: serverCollections });

@@ -13,7 +13,7 @@ const PRICE_END_DAY = Date.parse("2026-08-24T00:00:00Z");
 
 const TICK_STEPS = [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 25];
 
-// No randomness: output must match between server and client renders.
+/** No randomness: output must match between server and client renders. */
 export function priceSeries(source: VignettePriceSource, days: number): number[] {
   const drift = source.price * source.rate * Math.sqrt(days);
   const raw = Array.from({ length: PRICE_SAMPLE_COUNT }, (_, index) => {

@@ -41,7 +41,7 @@ const store = createMediaUploadStore({
 
 export const GROUP_BANNER_MEDIA_DIR = store.dir;
 
-// The group page is members-only, but its banner file is public to anyone with the URL.
+/** The group page is members-only, but its banner file is public to anyone with the URL. */
 export function saveGroupBanner(
   io: Io,
   args: SaveGroupBannerArgs,

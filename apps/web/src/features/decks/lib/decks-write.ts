@@ -172,8 +172,10 @@ function listItemFor(deck: DeckResponse): DeckListItemResponse {
   };
 }
 
-// Upsert, not update: during a create the row `get` returns is the optimistic
-// one, which synced state does not hold yet, and an update of it would throw.
+/**
+ * Upsert, not update: during a create the row `get` returns is the optimistic
+ * one, which synced state does not hold yet, and an update of it would throw.
+ */
 async function mergeDeck(collection: DecksCollection, deck: DeckResponse): Promise<void> {
   const row = collection.get(deck.id);
   const listItem = listItemFor(deck);
@@ -360,8 +362,10 @@ export async function persistDeckMutations(
   settleRefetchRace({ reread });
 }
 
-// A direct mutation commits before the collection recomputes its optimistic state,
-// so the transaction's own rows are the newer value.
+/**
+ * A direct mutation commits before the collection recomputes its optimistic state,
+ * so the transaction's own rows are the newer value.
+ */
 function rowsOfDeck(
   collection: DeckCardsCollection,
   mutations: readonly PendingMutation<DeckCardWithDeckResponse>[],

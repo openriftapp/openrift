@@ -151,7 +151,6 @@ function csvFields(line: string): string[] {
   return fields;
 }
 
-// Quantity's column position depends on the header, not a fixed offset.
 function quantityOf(line: string): string {
   return csvFields(line)[EXPORT_HEADER.split(",").indexOf("Quantity")];
 }
@@ -198,8 +197,7 @@ function buildOpenRiftCsv(
   return lines.join("\n");
 }
 
-// Export moved off /collections/import into a dialog behind the grid's
-// actions menu; it opens on a text format, so switch to the CSV one.
+/** The export dialog opens on a text format, so switch it to the CSV one. */
 async function openOpenRiftCsvExport(page: Page) {
   await page.getByRole("button", { name: "Collection actions" }).click();
   await page.getByRole("menuitem", { name: "Export…" }).click();

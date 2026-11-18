@@ -47,8 +47,10 @@ export function coverScale(aspect?: number | null): CoverScale {
   };
 }
 
-// Clamps pan to the real cover overflow at the given zoom, so a cropped
-// image (e.g. portrait photo) can pan into its hidden edges even at zoom 1.
+/**
+ * Clamps pan to the real cover overflow at the given zoom, so a cropped
+ * image (e.g. portrait photo) can pan into its hidden edges even at zoom 1.
+ */
 export function clampImageTransform(
   transform: BackgroundTransform,
   aspect?: number | null,

@@ -167,14 +167,16 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
 
         const moveCount = clamp(params.copies ?? source.quantity, 1, source.quantity);
         const fullMove = moveCount >= source.quantity;
-        // Dense, exact-length found arrays: the driver can't store the sparse,
-        // non-1-based arrays raw subscript assignment would produce.
+        /**
+         * Dense, exact-length found arrays: the driver can't store the sparse,
+         * non-1-based arrays raw subscript assignment would produce.
+         */
         const denseFound = (found: (boolean | null)[], length: number): boolean[] =>
           Array.from({ length }, (_copy, index) => Boolean(found[index]));
-        // Bind the boolean[] as a typed array literal. Passing the raw JS array as
-        // a Kysely value makes postgres.js bind it as a scalar boolean, so the
-        // assignment fails with "column is of type boolean[] but expression is of
-        // type boolean" (42804).
+        /**
+         * Binds as a typed array literal: postgres.js binds a raw JS array as a scalar boolean,
+         * which fails with 42804 (column is boolean[] but expression is boolean).
+         */
         const foundArray = (values: boolean[]) =>
           sql<boolean[]>`${`{${values.map((value) => (value ? "t" : "f")).join(",")}}`}::bool[]`;
 

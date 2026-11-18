@@ -1,7 +1,7 @@
 import { copyHasMetadata } from "@openrift/shared/copy-metadata";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 
-// Copy ids are uuidv7, so lexicographic id ordering matches creation order.
+/** Copy ids are uuidv7, so lexicographic id ordering matches creation order. */
 export function pickNewestCopy(copies: readonly CopyResponse[]): CopyResponse | undefined {
   if (copies.length === 0) {
     return undefined;
@@ -9,8 +9,10 @@ export function pickNewestCopy(copies: readonly CopyResponse[]): CopyResponse | 
   return copies.toSorted((a, b) => b.id.localeCompare(a.id))[0];
 }
 
-// Prefers the newest copy without recorded details, so conditions/notes survive
-// routine count adjustments. Trade-reserved copies are never candidates.
+/**
+ * Prefers the newest copy without recorded details, so conditions/notes survive
+ * routine count adjustments. Trade-reserved copies are never candidates.
+ */
 export function pickRemovalCopy(copies: readonly CopyResponse[]): CopyResponse | undefined {
   const removable = copies.filter((copy) => !copy.reserved);
   const bare = removable.filter((copy) => !copyHasMetadata(copy));
@@ -23,8 +25,10 @@ type RemovalDecision =
   | { kind: "confirmDispose"; copyId: string }
   | { kind: "picker" };
 
-// Single collection: dispose the newest bare copy, or confirm when only
-// annotated copies remain. Multiple collections: open the picker.
+/**
+ * Single collection: dispose the newest bare copy, or confirm when only
+ * annotated copies remain. Multiple collections: open the picker.
+ */
 export function decideRemoval(
   allCopies: readonly CopyResponse[],
   printingId: string,

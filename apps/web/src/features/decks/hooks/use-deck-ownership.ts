@@ -36,8 +36,10 @@ export function toOwnershipPrinting(printing: Printing): OwnershipPrinting {
   };
 }
 
-// Only meaningful when `entry.locked > 0`. Reasons are joined as alternatives:
-// the per-reason counts aren't zone-capped the way `locked` is.
+/**
+ * Only meaningful when `entry.locked > 0`. Reasons are joined as alternatives:
+ * the per-reason counts aren't zone-capped the way `locked` is.
+ */
 export function lockedReasonText(entry: CardOwnership, count = entry.locked): string {
   const reasons: string[] = [];
   if (entry.lockedLoaned > 0) {
@@ -60,7 +62,7 @@ export function lockedReasonText(entry: CardOwnership, count = entry.locked): st
 
 const REQUIRED_ZONE_SET: ReadonlySet<DeckZone> = new Set(REQUIRED_ZONES);
 
-// A card can sit in one zone as several entries, one per printing.
+/** A card can sit in one zone as several entries, one per printing. */
 function mergeZoneEntries(first: CardOwnership, next: CardOwnership): CardOwnership {
   return {
     ...first,

@@ -28,8 +28,10 @@ export interface CardMarketplaceOffer {
   offerCount: number;
 }
 
-// Uses the first offer in the loader's marketplace order, since
-// cross-currency minimums aren't comparable.
+/**
+ * Uses the first offer in the loader's marketplace order, since
+ * cross-currency minimums aren't comparable.
+ */
 export function buildCardPriceLine(offers: readonly CardMarketplaceOffer[]): string | null {
   const offer = offers[0];
   if (!offer) {
@@ -38,8 +40,10 @@ export function buildCardPriceLine(offers: readonly CardMarketplaceOffer[]): str
   return `Prices from ${formatterForCurrency(offer.currency)(offer.priceLow)} (${offer.seller}).`;
 }
 
-// Mirrors the page component's own preferredPrinting call, so the SSR
-// og:image/description matches what a fresh visitor lands on.
+/**
+ * Mirrors the page component's own preferredPrinting call, so the SSR
+ * og:image/description matches what a fresh visitor lands on.
+ */
 export function pickCardMetaPrinting<T extends MetaPrinting>(
   printings: readonly T[],
   languageOrder: readonly string[],

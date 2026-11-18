@@ -10,7 +10,7 @@ import {
 } from "@/features/admin/hooks/use-admin-meta";
 import { sourceProviderDisplay } from "@/features/admin/lib/meta-source-review";
 
-// No provider field: a citation is keyed by (provider, external_id) and owned by its candidate's link.
+/** No provider field: a citation is keyed by (provider, external_id) and owned by its candidate's link. */
 export function MetaEventSourcesEditor({ eventId }: { eventId: string }) {
   const { data, isPending } = useAdminMetaEventSources(eventId);
   const createSource = useCreateMetaEventSource();

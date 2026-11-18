@@ -30,7 +30,7 @@ export const NO_CARDS: DeckBuilderCard[] = [];
 
 export const NO_ADD_ROOM: ReadonlyMap<string, number> = new Map();
 
-// Must mirror the checks `addCardAction` makes.
+/** Must mirror the checks `addCardAction` makes. */
 export function buildAddRoom(cards: DeckBuilderCard[], format: DeckFormat): Map<string, number> {
   const room = new Map<string, number>();
   const freeform = format === WellKnown.deckFormat.FREEFORM;
@@ -53,7 +53,7 @@ export function buildAddRoom(cards: DeckBuilderCard[], format: DeckFormat): Map<
   return room;
 }
 
-// Must mirror the price resolution the list rows use.
+/** Must mirror the price resolution the list rows use. */
 export function buildPriceTexts(
   cards: DeckBuilderCard[],
   ownershipData: DeckOwnershipData,

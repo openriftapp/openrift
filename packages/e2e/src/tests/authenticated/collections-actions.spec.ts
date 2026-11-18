@@ -123,8 +123,10 @@ async function waitForCollectionReady(page: Page) {
   await expect(page.getByRole("button", { name: /^Manage\b/u })).toBeVisible({ timeout: 45_000 });
 }
 
-// Fresh users get an Inbox plus a default "Binder" collection, so remove the
-// non-inbox collections when a test needs a genuinely inbox-only account.
+/**
+ * Fresh users get an Inbox plus a default "Binder" collection, so remove the
+ * non-inbox collections when a test needs a genuinely inbox-only account.
+ */
 async function deleteNonInboxCollections(email: string) {
   const sql = loadDb();
   try {

@@ -3,7 +3,7 @@ import type { Context, Hono } from "hono";
 import { requireAdminSections } from "../../../middleware/require-admin.js";
 import type { Variables } from "../../../types.js";
 
-// Timestamped so repeated clicks don't dedupe into a single Sentry issue.
+/** Timestamped so repeated clicks don't dedupe into a single Sentry issue. */
 function smokeTestError(surface: string): Error {
   return new Error(`Sentry smoke test (${surface}) @ ${new Date().toISOString()}`);
 }

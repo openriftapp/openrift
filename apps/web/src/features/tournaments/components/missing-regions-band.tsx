@@ -9,7 +9,7 @@ import { PlayerChip } from "@/features/tournaments/components/player-chip";
 import { participantName } from "@/features/tournaments/lib/participant-name";
 import { m } from "@/paraglide/messages.js";
 
-// Holds real buttons, so no `render` prop: a nested anchor would be invalid HTML.
+/** Holds real buttons, so no `render` prop: a nested anchor would be invalid HTML. */
 export function MissingRegionsBand({
   players,
   onSetRegion,

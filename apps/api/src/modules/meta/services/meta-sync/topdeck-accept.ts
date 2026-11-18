@@ -84,8 +84,10 @@ export async function autoAcceptTopdeckEvents(
   return await sweep(deps, threshold, tids);
 }
 
-// Sweeps every row still awaiting triage, not just one crawl's own keys, so
-// a threshold lowered today also catches up events already in the list.
+/**
+ * Sweeps every row still awaiting triage, not just one crawl's own keys, so
+ * a threshold lowered today also catches up events already in the list.
+ */
 export async function autoAcceptTopdeckBacklog(
   deps: TopdeckSyncDeps,
 ): Promise<TopdeckAcceptSummary> {

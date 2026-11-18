@@ -18,7 +18,7 @@ const built = new WeakMap<CatalogResponse, BoosterIndex>();
 
 const COVER_OUTCOMES = ["alt-art", "epic"];
 
-// Battlefields are excluded: their landscape art breaks the portrait card fan.
+/** Battlefields are excluded: their landscape art breaks the portrait card fan. */
 function coverCards(booster: ResolvedBooster): ProductCoverCard[] {
   const outcomes = booster.slots.flatMap((slot) => slot.outcomes);
   return COVER_OUTCOMES.flatMap(

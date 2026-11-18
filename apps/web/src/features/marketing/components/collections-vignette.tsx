@@ -24,7 +24,7 @@ import { m } from "@/paraglide/messages.js";
 
 import { Vignette, VignetteHeading } from "./vignette-parts";
 
-// Before/after counts must keep summing to the 842 the "All Cards" badge shows.
+/** Before/after counts must keep summing to the 842 the "All Cards" badge shows. */
 function collectionRows() {
   return [
     {

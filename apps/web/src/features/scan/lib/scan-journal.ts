@@ -15,8 +15,7 @@ type ScanJournalPayload =
 /** `t` is epoch ms. */
 export type ScanJournalEntry = ScanJournalPayload & { t: number };
 
-// Absent on the server, and Safari in private mode throws on the property
-// access itself rather than on use.
+/** Absent on the server. Safari private mode throws on the property access itself. */
 function storage(): Storage | null {
   try {
     return (globalThis.localStorage as Storage | undefined) ?? null;

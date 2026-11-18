@@ -58,7 +58,7 @@ export function CatalogCardPicker({
   );
 }
 
-// Split out so useCards suspends inside the boundary above, not on the page's first render.
+/** Split out so useCards suspends inside the boundary above, not on the page's first render. */
 function CatalogSearch({ onPick }: { onPick: CatalogCardPick }) {
   const [search, setSearch] = useState("");
   const results = useCatalogCardSearch(search, undefined, cardSearchLeading);

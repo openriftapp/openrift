@@ -19,8 +19,10 @@ type DeckCollection = Collection<DeckBuilderCard, string | number>;
 // Typing inside these should keep the browser's own undo, not ours.
 const TEXT_ENTRY = 'input, textarea, select, [contenteditable], [role="dialog"]';
 
-// Restoring goes through the normal draft-replace path, so the debounced
-// autosave writes it back like any other edit.
+/**
+ * Restoring goes through the normal draft-replace path, so the debounced
+ * autosave writes it back like any other edit.
+ */
 function restoreSnapshot(
   direction: "undo" | "redo",
   queryClient: QueryClient,
@@ -98,7 +100,7 @@ export function useDeckUndo(deckId: string): {
   };
 }
 
-// Card edits only: deck name, format, plan and odds settings are not part of this history.
+/** Card edits only: deck name, format, plan and odds settings are not part of this history. */
 export function DeckUndoControls({ deckId }: { deckId: string }) {
   const { canUndo, canRedo, undo, redo } = useDeckUndo(deckId);
 

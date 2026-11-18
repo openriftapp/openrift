@@ -306,10 +306,10 @@ export function useDissolveTeam() {
   return useParticipantMutation<{ id: string; teamId: string }>((data) => dissolveTeamFn({ data }));
 }
 
-// The two landing pages these drive sit outside `_authenticated`, so both hooks
-// render for signed-out visitors and must not require a session. The user id is
-// only an invalidation key here; the mutations themselves are rejected by the
-// API without one.
+/**
+ * Renders for signed-out visitors (both landing pages sit outside `_authenticated`), so no session is required.
+ * The user id is only an invalidation key; the API rejects the mutations without one.
+ */
 export function useRequestJoinTournament() {
   const userId = useUserId();
   return useMutationWithInvalidation<PublicTournamentJoinResponse, { token: string }>({

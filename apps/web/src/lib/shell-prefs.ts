@@ -6,8 +6,10 @@ import { DARK_SCHEME_QUERY, matchesMediaQuery } from "./media-query";
 // The client-side resolver here MUST NOT fetch over HTTP: root beforeLoad runs on every
 // navigation, including search-param-only ones, and a network round trip would block it.
 
-// The server can't check matchMedia, so "auto" resolves to "light" there and the
-// blocking SHELL_PREFS_SCRIPT corrects the class on the client.
+/**
+ * The server can't check matchMedia, so "auto" resolves to "light" there and the
+ * blocking SHELL_PREFS_SCRIPT corrects the class on the client.
+ */
 export function resolveThemeFromCookie(
   raw: string | null | undefined,
   systemDark = false,
@@ -38,7 +40,7 @@ export function systemPrefersDark(): boolean {
   return matchesMediaQuery(DARK_SCHEME_QUERY);
 }
 
-// Unknown values are clamped so untrusted cookie content never reaches the DOM.
+/** Unknown values are clamped so untrusted cookie content never reaches the DOM. */
 export function resolvePaletteFromCookie(raw: string | null | undefined): Palette {
   if (!raw) {
     return "default";
@@ -55,7 +57,7 @@ export function resolvePaletteFromCookie(raw: string | null | undefined): Palett
   }
 }
 
-// Mirrors the cookie format written by cookie-storage.ts (URL-encoded name and value).
+/** Mirrors the cookie format written by cookie-storage.ts (URL-encoded name and value). */
 export function readClientCookie(name: string): string | null {
   if (typeof document === "undefined") {
     return null;

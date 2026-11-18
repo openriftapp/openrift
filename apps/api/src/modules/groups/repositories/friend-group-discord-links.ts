@@ -13,8 +13,10 @@ export type RedeemResult =
   | { status: "unknown-code" }
   | { status: "guild-taken" };
 
-// A link starts as a pending row with a one-time code; /link redeems it into
-// a live guild binding. Authorization is the caller's job.
+/**
+ * A link starts as a pending row with a one-time code; /link redeems it into
+ * a live guild binding. Authorization is the caller's job.
+ */
 export function friendGroupDiscordLinksRepo(db: Kysely<Database>) {
   return {
     // Replaces any earlier pending code for the group, and opportunistically
@@ -25,9 +27,10 @@ export function friendGroupDiscordLinksRepo(db: Kysely<Database>) {
       code: string;
       codeExpiresAt: Date;
     }): Promise<DiscordLink> {
-      // Delete + insert share a transaction so two concurrent requests can't
-      // interleave into two live codes; the partial unique index on pending
-      // rows rejects whichever loser slips through anyway.
+      /**
+       * Must run in one transaction so concurrent requests can't interleave into two live codes;
+       * the partial unique index on pending rows rejects any loser that slips through.
+       */
       const run = async (trx: typeof db): Promise<DiscordLink> => {
         await trx
           .selectFrom("friendGroups")

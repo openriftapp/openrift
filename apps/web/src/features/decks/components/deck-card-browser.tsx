@@ -561,8 +561,6 @@ function DeckCardBrowserInner({
     activeZone === WellKnown.deckZone.BATTLEFIELD &&
     isBattlefieldZoneFull(deckCards, deckDetail.deck.format);
 
-  // `event` is a structural `{ shiftKey?: boolean }` so the table path can
-  // synthesize the bit it cares about without faking a full React.MouseEvent.
   const handleQuickAdd = (printing: Printing, event?: { shiftKey?: boolean }) => {
     const builderCard: DeckBuilderCard = {
       ...catalogCardToDeckBuilderCard(printing.cardId, printing.card),
@@ -840,8 +838,6 @@ function DeckCardBrowserInner({
     };
   };
 
-  // Extracted so the detail overlay can show the same add controls for the
-  // card it covers.
   const deckStripFor = (printing: Printing) => {
     const cardId = printing.cardId;
     const deckQty = deckQtyForCell(printing);

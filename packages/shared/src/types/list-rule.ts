@@ -52,8 +52,10 @@ export function ruleKindForListKind(kind: "card" | "printing" | "copy"): ListRul
   return kind === "copy" ? "trade" : "wish";
 }
 
-// A rule persisted before the price dimension existed may lack the key until
-// normalizeListRules backfills it, so read it defensively.
+/**
+ * A rule persisted before the price dimension existed may lack the key until
+ * normalizeListRules backfills it, so read it defensively.
+ */
 export function ruleFiltersOnPrice(rule: ListRule): boolean {
   const price: FilterRange | undefined = rule.filter.price;
   return price !== undefined && (price.min !== null || price.max !== null);
@@ -127,8 +129,10 @@ export function rulesWithoutCollection(rules: ListRules, collectionId: string): 
   return changed ? next : null;
 }
 
-// The jsonb column arrives already decoded by postgres.js, so no JSON.parse
-// is needed here; only the dimension backfill for older persisted rules is.
+/**
+ * The jsonb column arrives already decoded by postgres.js, so no JSON.parse
+ * is needed here; only the dimension backfill for older persisted rules is.
+ */
 export function hydrateListRules(value: ListRules | null | undefined): ListRules {
   if (value === null || value === undefined) {
     return [];

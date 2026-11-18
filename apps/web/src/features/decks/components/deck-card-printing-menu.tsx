@@ -49,7 +49,7 @@ function SplitHint({ children }: { children: ReactNode }) {
 /** Read by the row's "⋮" button, which opens the same items as the right-click menu. */
 export const DeckRowMenuContext = createContext<Menu.Handle<unknown> | null>(null);
 
-// On mobile (no drag, no shift key) a multi-copy row gets an extra "move 1" entry per zone.
+/** On mobile (no drag, no shift key) a multi-copy row gets an extra "move 1" entry per zone. */
 export function DeckCardPrintingMenu({
   deckId,
   card,
@@ -91,7 +91,7 @@ export function DeckCardPrintingMenu({
     );
   };
 
-  // `null` clears the pinned printing so the row falls back to the language/set default.
+  /** `null` clears the pinned printing so the row falls back to the language/set default. */
   const handleSelectDefault = (event: MouseEvent) => {
     changePreferredPrinting(
       card.cardId,

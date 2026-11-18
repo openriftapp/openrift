@@ -178,7 +178,7 @@ const workspaceGroups = [
   ...sharedGroups,
 ];
 
-// The dashboard is an index route, so its match reports "/admin/" while the link is "/admin".
+/** The dashboard is an index route, so its match reports "/admin/" while the link is "/admin". */
 function isCurrent(currentPath: string | undefined, to: string): boolean {
   if (currentPath === to || currentPath === `${to}/`) {
     return true;

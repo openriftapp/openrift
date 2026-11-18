@@ -7,8 +7,10 @@ import { useDeckListFilters } from "@/features/decks/hooks/use-deck-list-filters
 import { useDeckFormatList, useEnumOrders } from "@/hooks/use-enums";
 import { m } from "@/paraglide/messages.js";
 
-// Visible only below `md`; the toolbar hides it above via CSS once the
-// filter controls themselves are visible.
+/**
+ * Visible only below `md`; the toolbar hides it above via CSS once the
+ * filter controls themselves are visible.
+ */
 export function DeckActiveFilters() {
   const {
     search,

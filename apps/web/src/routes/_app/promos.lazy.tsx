@@ -8,8 +8,10 @@ export const Route = createLazyFileRoute("/_app/promos")({
   component: PromosEmpty,
 });
 
-// Reached only when the dataset has no printings — the loader otherwise
-// redirects to /promos/$language for the default language.
+/**
+ * Reached only when the dataset has no printings — the loader otherwise
+ * redirects to /promos/$language for the default language.
+ */
 function PromosEmpty() {
   return (
     <div className={PAGE_PADDING}>

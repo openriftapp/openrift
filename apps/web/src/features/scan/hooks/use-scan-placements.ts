@@ -65,8 +65,10 @@ export function useScanPlacements(options: ScanPlacementsOptions): ScanPlacement
       return;
     }
     const watched = video;
-    // Both schedulers hand the callback a performance.now() timestamp, so
-    // the watcher is clocked on the frame it's looking at, not on delay.
+    /**
+     * Both schedulers hand the callback a performance.now() timestamp, so
+     * the watcher is clocked on the frame it's looking at, not on delay.
+     */
     const watch = (frameTime: number) => {
       if (generation !== runGenerationRef.current) {
         return;

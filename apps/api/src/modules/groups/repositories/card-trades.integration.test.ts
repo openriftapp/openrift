@@ -1291,8 +1291,7 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
     const { group, tradeListId } = await setupMatch(1);
     const trade = await request(group, 1);
 
-    // Mirrors the unshareList route: drop the share and re-check the giver's
-    // pending trades in one transaction.
+    /** Mirrors the unshareList route. */
     const unshare = (cancelTradeIds: string[]) =>
       transact(async (trxRepos) => {
         await trxRepos.friendGroups.unshare(group.id, tradeListId);

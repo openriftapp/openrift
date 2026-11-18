@@ -67,8 +67,6 @@ export function initVisibilityVersionCheck(): void {
   });
 }
 
-// Vitest/jsdom can't easily reset sessionStorage or module state between
-// test files, so this exists as a manual reset hook.
 export function _resetReloadFlagForTesting(): void {
   _resetReloadStateForTesting();
   prompted = false;

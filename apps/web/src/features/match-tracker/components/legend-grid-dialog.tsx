@@ -24,8 +24,10 @@ import type { TrackedLegend } from "@/features/match-tracker/lib/match-legends";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-// The catalog only loads while this dialog is open; the board itself renders from
-// the denormalized snapshot on the seat, so the tracker stays usable offline.
+/**
+ * The catalog only loads while this dialog is open; the board itself renders from
+ * the denormalized snapshot on the seat, so the tracker stays usable offline.
+ */
 export function LegendGridDialog({
   open,
   onOpenChange,

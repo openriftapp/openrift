@@ -126,14 +126,16 @@ function newContext(
   };
 }
 
-// The counters alone cannot say a crawl fell short, so a gap is marked explicitly.
+/** The counters alone cannot say a crawl fell short, so a gap is marked explicitly. */
 function skip(ctx: CrawlContext, detail: string): void {
   ctx.result.complete = false;
   recordCapped(ctx.result.skippedRanges, [detail]);
 }
 
-// Ranges are visited in chronological order, so a finished range's end
-// instant alone is the whole resume state.
+/**
+ * Ranges are visited in chronological order, so a finished range's end
+ * instant alone is the whole resume state.
+ */
 function cover(ctx: CrawlContext, to: Date): void {
   if (ctx.checkpoints) {
     ctx.result.coveredThrough = to.toISOString();
@@ -207,13 +209,15 @@ async function absorb(deps: MetaSyncDeps, ctx: CrawlContext, rows: unknown[]): P
   ctx.touched.push(...written.inserted, ...written.changed);
 }
 
-// Never fewer than two: a split that handed back the same range would recurse forever.
+/** Never fewer than two: a split that handed back the same range would recurse forever. */
 function splitParts(count: number): number {
   return clamp(Math.ceil(count / UVSGAMES_MAX_PAGE_SIZE), 2, MAX_SPLIT);
 }
 
-// Contiguous inclusive sub-ranges covering [from, to] exactly once. A range
-// narrower than `parts` milliseconds yields one slice per millisecond instead.
+/**
+ * Contiguous inclusive sub-ranges covering [from, to] exactly once. A range
+ * narrower than `parts` milliseconds yields one slice per millisecond instead.
+ */
 export function sliceRange(from: Date, to: Date, parts: number): { from: Date; to: Date }[] {
   const start = from.getTime();
   const points = to.getTime() - start + 1;
@@ -279,8 +283,10 @@ async function crawlRange(
   }
 }
 
-// Time cannot split a single instant any further, so this is the one place
-// left that pages by offset, and where an unstable tie order can drop a row.
+/**
+ * Time cannot split a single instant any further, so this is the one place
+ * left that pages by offset, and where an unstable tie order can drop a row.
+ */
 async function drainInstant(
   deps: MetaSyncDeps,
   ctx: CrawlContext,
@@ -301,8 +307,10 @@ async function drainInstant(
   }
 }
 
-// Walks a refused instant a row at a time so only the row that breaks the
-// serializer is lost; keeps probing since the row count needs a page to answer.
+/**
+ * Walks a refused instant a row at a time so only the row that breaks the
+ * serializer is lost; keeps probing since the row count needs a page to answer.
+ */
 async function salvageInstant(deps: MetaSyncDeps, ctx: CrawlContext, at: Date): Promise<void> {
   let total: number | null = null;
   let page = 1;
@@ -328,8 +336,10 @@ async function salvageInstant(deps: MetaSyncDeps, ctx: CrawlContext, at: Date): 
   }
 }
 
-// Runs after the crawl so a template id the crawl just met gets its row in
-// the same run; skipped when the crawl stopped short to save one more request.
+/**
+ * Runs after the crawl so a template id the crawl just met gets its row in
+ * the same run; skipped when the crawl stopped short to save one more request.
+ */
 async function finish(deps: MetaSyncDeps, ctx: CrawlContext): Promise<MetaCatalogSyncResult> {
   const auto = await autoAcceptCatalogEvents(deps, [...new Set(ctx.touched)]);
   ctx.result.autoAccepted = auto.accepted;
@@ -349,8 +359,10 @@ async function finish(deps: MetaSyncDeps, ctx: CrawlContext): Promise<MetaCatalo
   return ctx.run.finish();
 }
 
-// The listing drops cancelled, archived and unlisted events, while the
-// per-event endpoint still serves them.
+/**
+ * The listing drops cancelled, archived and unlisted events, while the
+ * per-event endpoint still serves them.
+ */
 async function probeMissing(deps: MetaSyncDeps, ctx: CrawlContext): Promise<void> {
   if (ctx.run.stopped) {
     return;
@@ -408,8 +420,10 @@ async function probeMissing(deps: MetaSyncDeps, ctx: CrawlContext): Promise<void
   ctx.result.missingAbsent = absent.length;
 }
 
-// Rows are flagged missing only when the crawl fully covered the range; a
-// partial run must not mistake unreached rows for dropped ones.
+/**
+ * Rows are flagged missing only when the crawl fully covered the range; a
+ * partial run must not mistake unreached rows for dropped ones.
+ */
 export async function syncCatalog(
   deps: MetaSyncDeps,
   runId?: string,
@@ -470,8 +484,10 @@ export interface BackfillOptions {
   resumeFrom?: Date;
 }
 
-// Manual full resync only; nothing scheduled calls this. Old completed
-// events are crawled once, by this, and never again.
+/**
+ * Manual full resync only; nothing scheduled calls this. Old completed
+ * events are crawled once, by this, and never again.
+ */
 export async function backfillCatalog(
   deps: MetaSyncDeps,
   runId?: string,

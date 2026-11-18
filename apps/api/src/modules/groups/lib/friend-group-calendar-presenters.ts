@@ -41,7 +41,7 @@ export function presentTournamentCalendarEvent(
   };
 }
 
-// uvsgames uids keep their original, unprefixed form so subscribed calendars do not duplicate them.
+/** uvsgames uids keep their original, unprefixed form so subscribed calendars do not duplicate them. */
 export function presentShopCalendarEvent(row: ShopFeedEventRow): CalendarEvent {
   const url = shopEventUrl(row.source, row.externalId);
   const format = shopEventFormat(row.source, row.eventFormat);

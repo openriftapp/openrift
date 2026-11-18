@@ -64,7 +64,7 @@ interface DiffedAtom {
   status: ErrataDiffStatus;
 }
 
-// Reversed in and out to keep front-to-back tie-breaking (additions before removals).
+/** Reversed in and out to keep front-to-back tie-breaking (additions before removals). */
 function diffAtoms(before: Atom[], after: Atom[]): DiffedAtom[] {
   return lcsDiff(before.toReversed(), after.toReversed(), (atom) => atom.key)
     .toReversed()

@@ -26,8 +26,10 @@ function toCatalogValue(printing: Printing) {
   return { ...value, setId: SET_ID };
 }
 
-// Structural cast: the zod wire schema and the stub-derived shape agree on
-// every field the enrichment reads (sets, cards, printings, ids).
+/**
+ * Structural cast: the zod wire schema and the stub-derived shape agree on
+ * every field the enrichment reads (sets, cards, printings, ids).
+ */
 function makeCatalog(printings: Printing[]): CatalogResponse {
   return {
     sets: [

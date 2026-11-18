@@ -169,8 +169,10 @@ export function bundleShareImageUrl(
   );
 }
 
-// Adding/removing copies does not advance `collections.updatedAt`, so callers pass a
-// composite `updatedAt-copyCount` version to keep the cached og:image fresh.
+/**
+ * Adding/removing copies does not advance `collections.updatedAt`, so callers pass a
+ * composite `updatedAt-copyCount` version to keep the cached og:image fresh.
+ */
 export function collectionShareImageUrl(
   siteUrl: string,
   shareToken: string,
@@ -179,8 +181,7 @@ export function collectionShareImageUrl(
   return `${siteUrl}${API_BASE}/collections/share/${shareToken}/image.png?v=${shareImageVersionParam(version)}`;
 }
 
-// Downloads via fetch + object URL, not `<a download>` on the image URL directly,
-// so the chosen filename is honored regardless of cross-origin download-attribute quirks.
+/** Cross-origin `<a download>` ignores the filename, so the image is fetched into an object URL. */
 export async function downloadImageFromUrl(url: string, filename: string): Promise<void> {
   downloadBlob(await fetchImageBlob(url), filename);
 }

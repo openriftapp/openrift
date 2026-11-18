@@ -49,8 +49,10 @@ export function SelectionDetailPane({
   const [pane, setPane] = useState<HTMLElement | null>(null);
   const grownWidth = useGrownWidth(pane);
 
-  // Closes the panel, not just the card: undocking alone would hand the
-  // still-selected card to the modal.
+  /**
+   * Closes the panel, not just the card: undocking alone would hand the
+   * still-selected card to the modal.
+   */
   const handleClose = () => {
     setPaneDocked(false);
     closeDetail();

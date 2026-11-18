@@ -4,8 +4,6 @@ import { Switch } from "@/components/ui/switch";
 import { useEmailNotifications } from "@/features/account/hooks/use-email-notifications";
 import { m } from "@/paraglide/messages.js";
 
-// Join-request switch is shown to everyone, not just group admins: anyone can
-// create a group at any time, and the send side gates on membership anyway.
 export function GroupNotificationsSection() {
   const { gates, isLoading, isSaving, setChannel } = useEmailNotifications();
   const disabled = isLoading || isSaving;

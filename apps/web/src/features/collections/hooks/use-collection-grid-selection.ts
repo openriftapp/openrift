@@ -126,8 +126,10 @@ export function useCollectionGridSelection({
     }
   });
 
-  // `itemId` pins the click to its tile: copies view has one tile per copy, so
-  // a printing lookup alone would always land on the first of them.
+  /**
+   * `itemId` pins the click to its tile: copies view has one tile per copy, so
+   * a printing lookup alone would always land on the first of them.
+   */
   const handleGridCardClick = (printing: Printing, itemId?: string) => {
     useAddModeStore.getState().closeVariants();
     useSelectionStore.getState().selectCard(printing, items, findBy, {
@@ -156,8 +158,10 @@ export function useCollectionGridSelection({
     }
   };
 
-  // In stacked views a tile stands for every copy of the card, so the range
-  // accumulates copy ids; in copies view the tile is the copy.
+  /**
+   * In stacked views a tile stands for every copy of the card, so the range
+   * accumulates copy ids; in copies view the tile is the copy.
+   */
   const shiftSelectRange = (itemId: string) => {
     const rangeIds = computeShiftRange({
       items,
@@ -186,7 +190,6 @@ export function useCollectionGridSelection({
     setLastSelectedItemId(itemId);
   };
 
-  // See resolveContextActionTarget for the browse-vs-select rules.
   const handleContextAction = (
     itemId: string,
     action: CollectionContextAction,

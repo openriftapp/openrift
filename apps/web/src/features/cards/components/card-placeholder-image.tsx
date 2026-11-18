@@ -16,8 +16,10 @@ export const TYPE_ICON_COLOR = "#985920";
 
 const GLYPH_TINT: Record<string, string> = { white: TINT_WHITE, black: TINT_BLACK };
 
-// `tinted` uses a pre-tinted raster; html2canvas-pro (the card designer's
-// export clone) ignores CSS filters and masks.
+/**
+ * `tinted` uses a pre-tinted raster; html2canvas-pro (the card designer's
+ * export clone) ignores CSS filters and masks.
+ */
 function GlyphIcon({
   src,
   className,

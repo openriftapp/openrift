@@ -69,10 +69,10 @@ describe.skipIf(!ctx)("catalogResponseVersion (integration)", () => {
     });
   }
 
-  // An in-place edit the token must notice. These tables carry a timestamp, so
-  // bumping it on one row stands in for any field edit. The token reads max(),
-  // so the bump has to clear the table's own max: a concurrent suite's write
-  // can already sit ahead of this transaction's now().
+  /**
+   * The token reads max(), so the bump must clear the table's own max: a concurrent suite's write
+   * can already sit ahead of this transaction's now().
+   */
   const touch = (table: string, column = "updated_at") =>
     `UPDATE ${table}
         SET ${column} = greatest(now(), (SELECT max(${column}) FROM ${table})) + interval '1 second'

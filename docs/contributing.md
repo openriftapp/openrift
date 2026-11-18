@@ -173,6 +173,7 @@ The three kinds above are the only ones. In practice the bar gets stretched, so 
 - **Length.** A comment is at most two lines. A module header is at most five. Anything longer is an ADR, a doc page, or the commit body.
 - **Fields, enum members, constants: no comment.** The exception is a unit or a wire format (`/** ISO 3166-1 alpha-2 */`, `/** ms */`). `slug: string` does not need `/** The set's slug, which is what the URL carries. */`.
 - **Exports get a one-line JSDoc only when the name cannot carry the meaning.** If the summary would restate the name, leave it off.
+- **A comment directly above a function is always `/** */`,** whichever of the three kinds it is, under the same length limit. A comment that fails the bar is deleted, not turned into `//`. Lint enforces the form (`openrift/function-comment-jsdoc`, a local rule in `scripts/oxlint-plugin.ts`).
 - **Design and product rationale never goes in code.** Why a default is what it is, why a row is rendered one way and not another, what "a reader" expects: that is an ADR if one exists, else the commit message. Code carries constraints, not arguments.
 - **A behaviour covered by a test is documented by the test title.** Do not also describe it in a comment, and never write "pinned by a test".
 - **Rationale tells.** A comment containing "rather than", "instead of", "reads as", "which is what", "so a reader", "the whole point", or "worth" is an argument for a decision, not a constraint. Delete it or reduce it to the constraint.

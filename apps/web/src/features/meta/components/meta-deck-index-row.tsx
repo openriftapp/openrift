@@ -24,7 +24,7 @@ import { compactFormatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-// Shared by the rows and the sort header above them; keep both in sync.
+/** Shared by the rows and the sort header above them; keep both in sync. */
 export function deckIndexGrid(grouped: boolean, withCollection: boolean): string {
   if (grouped) {
     return withCollection

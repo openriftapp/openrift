@@ -36,14 +36,15 @@ const { serverCache } = (await import("./server-cache")) as { serverCache: Query
 const SESSION_COOKIE = "better-auth.session_token=abc123; theme=dark";
 const NO_SESSION_COOKIE = "theme=dark";
 
-// The oRPC OpenAPI client reads the response content-type and streams the
-// body, so the mock must be a real Response, not a hand-rolled stub.
+/**
+ * The oRPC OpenAPI client reads the response content-type and streams the
+ * body, so the mock must be a real Response, not a hand-rolled stub.
+ */
 function mockFlagsResponse(flags: Record<string, boolean>) {
   return Response.json({ flags });
 }
 
-// oRPC's fetch link may call fetch as `fetch(url, init)` or `fetch(request)`.
-// Normalize both into { url, headers } so assertions don't depend on the shape.
+/** oRPC's fetch link may call fetch as `fetch(url, init)` or `fetch(request)`. */
 function readFetchCall(call: unknown[]): { url: string; headers: Headers } {
   const [first, second] = call;
   if (first instanceof Request) {

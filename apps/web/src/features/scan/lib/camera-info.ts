@@ -36,8 +36,10 @@ export function formatTrackValue(value: unknown): string {
   return String(value);
 }
 
-// Undefined fields are dropped (the browser omitted them); null/false are
-// kept as real reported values (e.g. `torch: false`).
+/**
+ * Undefined fields are dropped (the browser omitted them); null/false are
+ * kept as real reported values (e.g. `torch: false`).
+ */
 export function flattenTrackInfo(info: object | undefined): CameraInfoEntry[] {
   if (!info) {
     return [];
@@ -48,8 +50,10 @@ export function flattenTrackInfo(info: object | undefined): CameraInfoEntry[] {
     .toSorted((left, right) => left[0].localeCompare(right[0]));
 }
 
-// Never rejects: each field is optional in some browser and degrades to an
-// empty result on its own.
+/**
+ * Never rejects: each field is optional in some browser and degrades to an
+ * empty result on its own.
+ */
 export async function readCameraInfo(stream: MediaStream): Promise<CameraInfo | null> {
   const track = stream.getVideoTracks()[0];
   if (!track) {

@@ -10,8 +10,10 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "./dropdown-menu";
 import { Sheet, SheetContent, SheetTitle } from "./sheet";
 
-// jsdom does no hit-testing, so these assert the stacking contract: the menu's
-// full-screen backdrop must sit in a z-50 layer opened after the z-50 sheet.
+/**
+ * jsdom does no hit-testing, so these assert the stacking contract: the menu's
+ * full-screen backdrop must sit in a z-50 layer opened after the z-50 sheet.
+ */
 async function backdropLayer() {
   const menu = await screen.findByRole("menu");
   const positioner = menu.parentElement!;

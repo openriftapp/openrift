@@ -114,8 +114,10 @@ export interface StandardArtFallback<T = Printing> {
   image: PrintingImage;
 }
 
-// `candidates` must already be scoped to one card. A pin whose image belongs
-// to another card resolves to a null printing, not an error.
+/**
+ * `candidates` must already be scoped to one card. A pin whose image belongs
+ * to another card resolves to a null printing, not an error.
+ */
 function resolvePinnedArt<T extends FallbackCandidateFields>(
   imageId: string,
   printing: T,
@@ -127,9 +129,10 @@ function resolvePinnedArt<T extends FallbackCandidateFields>(
   return { printing: source ?? null, image: { imageId } };
 }
 
-// An admin override takes precedence over the derived search: "none"
-// suppresses the substitute entirely, "pinned" shows the pinned file. A
-// "pinned" printing with no servable image yet falls through to deriving.
+/**
+ * An admin override wins: "none" suppresses the substitute, "pinned" shows the pinned file.
+ * A "pinned" printing with no servable image yet falls through to the derived search.
+ */
 export function findStandardArtFallback<T extends FallbackCandidateFields>(
   printing: T,
   candidates: readonly T[],

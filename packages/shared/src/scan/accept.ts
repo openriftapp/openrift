@@ -177,8 +177,10 @@ export function observeWinner(
   return null;
 }
 
-// Unlocked tracks are left alone: their gap tolerance exists so mid-aim blur
-// does not restart the lock clock, and this must not undo that.
+/**
+ * Unlocked tracks are left alone: their gap tolerance exists so mid-aim blur
+ * does not restart the lock clock, and this must not undo that.
+ */
 export function rearmLockedTracks(state: AcceptState, except?: ArtTrack): void {
   for (const track of state.values()) {
     if (track.lockedAt !== null && track !== except) {

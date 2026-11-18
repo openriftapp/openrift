@@ -53,7 +53,7 @@ function pickOne<T>(rng: Random, items: readonly T[]): T {
   return item;
 }
 
-// Falls back to the full list when excluding leaves nothing: guards sparse test pools, real sets always have far more printings than slots.
+/** Falls back to the full list when excluding leaves nothing (sparse test pools). */
 export function pickOneUnique<T extends { id: string }>(
   rng: Random,
   items: readonly T[],

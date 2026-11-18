@@ -86,7 +86,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
   await snapshotFunction({ declare: "", participants: PARTICIPANTS_BODY }).execute(db);
 }
 
-// The names cleared by up() are gone; rolling back writes a placeholder into those rows.
+/** The names cleared by up() are gone; rolling back writes a placeholder into those rows. */
 export async function down(db: Kysely<unknown>): Promise<void> {
   await snapshotFunction({ declare: "", participants: "" }).execute(db);
   await sql`

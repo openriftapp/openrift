@@ -30,8 +30,10 @@ function clampToZero(value: number): number {
   return Math.max(value, 0);
 }
 
-// A departure is resolved as a sale before the listing delta. Unmanaged
-// articles stay out of the delta, or the plan would delete hand-listed stock.
+/**
+ * A departure is resolved as a sale before the listing delta. Unmanaged
+ * articles stay out of the delta, or the plan would delete hand-listed stock.
+ */
 export function planCardmarketSync(
   entries: readonly CardmarketSyncEntry[],
 ): CardmarketSyncAction[] {
@@ -60,8 +62,7 @@ export function cardmarketSyncKeyOf(key: CardmarketSyncKey): string {
   return `${key.printingId}::${key.conditionSlug}::${key.isAltered ? "altered" : "plain"}`;
 }
 
-// Several Cardmarket products can resolve to the same printing, so this sums
-// across them rather than reading them as separate listings.
+/** Several Cardmarket products can resolve to the same printing; their counts are summed. */
 export function observedCountsFromResolved(
   resolved: readonly CardmarketResolvedRow[],
 ): Map<string, { key: CardmarketSyncKey; observed: number }> {

@@ -43,8 +43,10 @@ export function copyMetadataWeight(copy: CopyMetadata & { notesPrivate?: string 
   return weight;
 }
 
-// Setting a condition clears grading and vice versa; clearing either half of
-// grader/grade clears both, to satisfy the `copies` table's check constraints.
+/**
+ * Setting a condition clears grading and vice versa; clearing either half of
+ * grader/grade clears both, to satisfy the `copies` table's check constraints.
+ */
 export function normalizeCopyMetadataPatch(patch: CopyMetadataPatch): CopyMetadataPatch {
   const set = (value: unknown): boolean => value !== null && value !== undefined;
   const normalized: CopyMetadataPatch = { ...patch };

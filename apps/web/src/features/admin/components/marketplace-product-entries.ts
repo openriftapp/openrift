@@ -66,8 +66,10 @@ export function setPrefix(shortCode: string): string {
   return dash === -1 ? shortCode : shortCode.slice(0, dash);
 }
 
-// Cardmarket's price guide is language-aggregate: every CM staging row carries a
-// placeholder "EN" regardless of the card's real language, so it renders as a dash.
+/**
+ * Cardmarket's price guide is language-aggregate: every CM staging row carries a
+ * placeholder "EN" regardless of the card's real language, so it renders as a dash.
+ */
 export function displayedProductLanguage(
   marketplace: AdminMarketplaceName,
   language: string | null,

@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { createFrozenAnchor } from "./freeze-anchor";
 
-// jsdom's DOMRect has no structural equality; return distinct instances to assert by identity.
+/** jsdom's DOMRect has no structural equality; return distinct instances to assert by identity. */
 function makeRect(): DOMRect {
   return {
     x: 0,

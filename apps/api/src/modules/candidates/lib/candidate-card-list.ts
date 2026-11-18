@@ -89,9 +89,7 @@ export async function buildCandidateCardList(
     arr.push({ ...cp, orderIndex });
   }
 
-  // Duplicates are kept so the frontend can show counts (e.g. "OGN-001a* ×2").
-  // Linked candidate printings are skipped — they're already resolved to an
-  // accepted printing.
+  /** Keeps duplicates, which the frontend shows as counts, and skips linked candidate printings. */
   function stagingIdsForGroup(group: typeof candidateCards, onlyFavorites?: boolean): string[] {
     const entries: { label: string; orderIndex: number }[] = [];
     for (const cc of group) {
@@ -111,10 +109,10 @@ export async function buildCandidateCardList(
     return entries.toSorted((a, b) => a.orderIndex - b.orderIndex).map((e) => e.label);
   }
 
-  // Distinct set slugs across a group's candidate printings. For candidate
-  // printings `setId` holds the slug directly (unlike accepted printings, which
-  // store a UUID), so no resolution is needed. Includes every candidate printing
-  // so a not-yet-accepted new-set reprint still surfaces under that set's filter.
+  /**
+   * A candidate printing's `setId` holds the set slug. Includes every candidate printing so a
+   * not-yet-accepted new-set reprint still surfaces under that set's filter.
+   */
   function candidateSetSlugsForGroup(group: typeof candidateCards): string[] {
     const slugs = new Set<string>();
     for (const cc of group) {
@@ -127,7 +125,7 @@ export async function buildCandidateCardList(
     return [...slugs];
   }
 
-  // Includes linked printings (printingId set) — they still need review.
+  /** Includes linked printings (printingId set): they still need review. */
   function uncheckedPrintingCountForGroup(
     group: typeof candidateCards,
     onlyFavorites?: boolean,
@@ -146,9 +144,10 @@ export async function buildCandidateCardList(
     return count;
   }
 
-  // No provider or checkedAt narrowing: these are the rows the detail page
-  // renders as "New:" groups, and it groups every unlinked candidate printing
-  // the same way.
+  /**
+   * Counts unlinked candidate printings regardless of checkedAt: the detail page renders every one
+   * as a "New:" group.
+   */
   function unlinkedPrintingCountForGroup(
     group: typeof candidateCards,
     onlyTrusted?: boolean,

@@ -1,8 +1,10 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
-// .first() avoids a strict-mode violation: card-grid.tsx renders group
-// headers twice once scrolled into view (inline header + sticky overlay).
+/**
+ * .first() avoids a strict-mode violation: card-grid.tsx renders group
+ * headers twice once scrolled into view (inline header + sticky overlay).
+ */
 export async function scrollUntilVisible(
   page: Page,
   locator: Locator,
