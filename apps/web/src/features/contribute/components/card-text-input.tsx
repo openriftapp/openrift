@@ -25,6 +25,7 @@ import {
 } from "@/features/contribute/components/contribute-field-focus";
 import { useKeywordStyles } from "@/hooks/use-keyword-styles";
 import { useScopeLayoutEffect } from "@/hooks/use-scope-effect";
+import { glyphPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -271,11 +272,7 @@ function SyntaxToolbar({
                 label={m.contribute_text_insert_rune({ name: rune.name })}
                 onInsert={onInsert}
               >
-                <img
-                  src={`/images/glyphs/${rune.token.replaceAll("_", "-")}.svg`}
-                  alt=""
-                  className="size-4"
-                />
+                <img src={glyphPath(rune.token)} alt="" className="size-4" />
               </GlyphButton>
             ))}
           </ButtonGroup>
@@ -287,10 +284,7 @@ function SyntaxToolbar({
                 label={m.contribute_text_insert_glyph({ name: g.name })}
                 onInsert={onInsert}
               >
-                <CardIcon
-                  src={`/images/glyphs/${g.token.replaceAll("_", "-")}.svg`}
-                  className="size-4"
-                />
+                <CardIcon src={glyphPath(g.token)} className="size-4" />
               </GlyphButton>
             ))}
           </ButtonGroup>

@@ -4,6 +4,7 @@
 
 ### Highlights
 
+- feat(Designer): **Printed card frames** — single-domain Unit, Spell and Gear cards at Common or Uncommon now render in the printed frame, with your art in the window.
 - feat(Trades): **Automatic accepting in groups** — offers and requests other members send you are now agreed at once without waiting for your answer, and each group's settings let you turn that off for offers, requests or both. Trades agreed this way are marked as new until you open them, and the sender sees whether you have.
 
 ### Other

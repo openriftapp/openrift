@@ -1,7 +1,12 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import { CardPlaceholderImage } from "@/features/cards/components/card-placeholder-image";
-import { backgroundLayout, buildAttribution } from "@/features/designer/lib/card-designer";
+import { FramedCardImage } from "@/features/designer/components/framed-card-image";
+import {
+  backgroundLayout,
+  buildAttribution,
+  frameUrlFor,
+} from "@/features/designer/lib/card-designer";
 import { useCardDesignerStore } from "@/features/designer/stores/card-designer-store";
 import { getSiteHost } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
@@ -32,6 +37,10 @@ export function CardDesignerPreview({
   const dragRef = useRef<DragState | null>(null);
 
   const hasImage = background.dataUrl !== null;
+  const [failedFrameUrl, setFailedFrameUrl] = useState<string | null>(null);
+  const candidateFrameUrl = frameUrlFor(card);
+  const frameUrl = candidateFrameUrl === failedFrameUrl ? null : candidateFrameUrl;
+  const artist = buildAttribution(card.artist, showAttribution ? getSiteHost() : null);
   const draggable = interactive && hasImage;
 
   const layout = hasImage
@@ -98,26 +107,38 @@ export function CardDesignerPreview({
       onPointerCancel={endDrag}
       className={cn(draggable && "cursor-grab touch-none active:cursor-grabbing", className)}
     >
-      <CardPlaceholderImage
-        name={card.name}
-        domain={card.domains}
-        energy={card.energy}
-        might={card.might}
-        power={card.power}
-        types={card.type ? [card.type] : undefined}
-        superTypes={card.superTypes}
-        tags={card.tags}
-        rulesText={card.rulesText || null}
-        effectText={card.effectText || null}
-        mightBonus={card.mightBonus}
-        flavorText={card.flavorText || null}
-        rarity={card.rarity ?? undefined}
-        publicCode={card.publicCode || undefined}
-        artist={buildAttribution(card.artist, showAttribution ? getSiteHost() : null)}
-        backgroundImageUrl={background.dataUrl ?? undefined}
-        backgroundImageStyle={backgroundImageStyle}
-        tintIcons={forExport}
-      />
+      {frameUrl ? (
+        <FramedCardImage
+          card={card}
+          frameUrl={frameUrl}
+          onFrameError={() => setFailedFrameUrl(frameUrl)}
+          artist={artist}
+          backgroundImageUrl={background.dataUrl ?? undefined}
+          backgroundImageStyle={backgroundImageStyle}
+          tintIcons={forExport}
+        />
+      ) : (
+        <CardPlaceholderImage
+          name={card.name}
+          domain={card.domains}
+          energy={card.energy}
+          might={card.might}
+          power={card.power}
+          types={card.type ? [card.type] : undefined}
+          superTypes={card.superTypes}
+          tags={card.tags}
+          rulesText={card.rulesText || null}
+          effectText={card.effectText || null}
+          mightBonus={card.mightBonus}
+          flavorText={card.flavorText || null}
+          rarity={card.rarity ?? undefined}
+          publicCode={card.publicCode || undefined}
+          artist={artist}
+          backgroundImageUrl={background.dataUrl ?? undefined}
+          backgroundImageStyle={backgroundImageStyle}
+          tintIcons={forExport}
+        />
+      )}
     </div>
   );
 }

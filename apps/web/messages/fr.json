@@ -5604,6 +5604,7 @@
   "designer_field_flavor_text": "Texte d'ambiance",
   "designer_field_rarity": "Rareté",
   "designer_rarity_placeholder": "Choisir une rareté",
+  "designer_frame_unavailable": "Les cadres imprimés couvrent les cartes Unit, Spell et Gear avec un seul domaine autre que Colorless ou Neutral, de rareté Common ou Uncommon, sans supertype ni coût en essence runique.",
   "designer_name_placeholder": "Sire Patouille, Seigneur des Siestes",
   "designer_tags_placeholder": "Chat",
   "designer_field_code": "Code",

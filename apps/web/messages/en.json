@@ -5609,6 +5609,7 @@
   "designer_field_flavor_text": "Flavor text",
   "designer_field_rarity": "Rarity",
   "designer_rarity_placeholder": "Pick a rarity",
+  "designer_frame_unavailable": "Printed frames cover Unit, Spell and Gear cards with one domain other than Colorless or Neutral, Common or Uncommon rarity, no supertype and no power cost.",
   "designer_name_placeholder": "Sir Pounce, Lord of Naps",
   "designer_tags_placeholder": "Cat",
   "designer_field_code": "Code",

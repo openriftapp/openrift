@@ -8,6 +8,7 @@ import {
   CARD_MIN_ZOOM,
   clampImageTransform,
   coverScale,
+  frameUrlFor,
   isAcceptedImageType,
   scaledDimensions,
   shouldDownscale,
@@ -141,5 +142,43 @@ describe("shouldDownscale / scaledDimensions", () => {
 
   it("uses the taller edge to drive the scale", () => {
     expect(scaledDimensions(1000, 4000, 2000)).toEqual({ width: 500, height: 2000 });
+  });
+});
+
+describe("frameUrlFor", () => {
+  const unit = {
+    type: "unit",
+    rarity: "uncommon",
+    domains: ["fury"],
+    superTypes: [],
+    power: null,
+  };
+
+  it("returns the versioned frame for a covered card", () => {
+    expect(frameUrlFor(unit)).toBe("/media/card-frames/v1/unit-uncommon-fury.webp");
+    expect(frameUrlFor({ ...unit, type: "spell", rarity: "common" })).toBe(
+      "/media/card-frames/v1/spell-common-fury.webp",
+    );
+  });
+
+  it("keeps the frame for a zero power cost", () => {
+    expect(frameUrlFor({ ...unit, power: 0 })).toBe(
+      "/media/card-frames/v1/unit-uncommon-fury.webp",
+    );
+  });
+
+  it.each([
+    ["an uncovered type", { type: "legend" }],
+    ["no type", { type: "" }],
+    ["an uncovered rarity", { rarity: "epic" }],
+    ["no rarity", { rarity: null }],
+    ["two domains", { domains: ["fury", "calm"] }],
+    ["no domain", { domains: [] }],
+    ["the colorless domain", { domains: ["colorless"] }],
+    ["the neutral domain", { domains: ["neutral"] }],
+    ["a supertype", { superTypes: ["champion"] }],
+    ["a power cost", { power: 1 }],
+  ])("falls back for %s", (_label, patch) => {
+    expect(frameUrlFor({ ...unit, ...patch })).toBeNull();
   });
 });

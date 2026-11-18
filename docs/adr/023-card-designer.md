@@ -17,7 +17,7 @@ This is a tool surface, closest in spirit to ADR-021 (Match Tracker): a standalo
 
 - **It is a creative toy, so it must be instant and zero-friction.** No login, no save, no submit. You open it, design a card, and download it. Anything that adds an account or a round-trip kills the appeal.
 - **It must not require new backend infrastructure.** OpenRift has no user-facing upload endpoint today (image upload is admin-only) and runs on local disk plus Postgres. A client-only feature that holds the image as a data URL needs none of that, and a data URL is same-origin so it never taints the export canvas.
-- **It should reuse, not fork.** `/contribute` already has the inputs (domain pickers, enum selects, the `CardTextInput` rich editor) and `CardPlaceholderImage` already _is_ the card template. The designer should extend the one template, not maintain a second.
+- **It should reuse where the look is the same.** `/contribute` already has the inputs (domain pickers, enum selects, the `CardTextInput` rich editor) and `CardPlaceholderImage` already _is_ the CSS card template. The designer extends that template for every card without a printed frame; only the printed-frame layout, which shares no region with it, is a second component.
 - **What you see must be what you get.** The export has to match the on-screen preview exactly, including the chosen background, its framing, and the attribution line.
 - **It has to obey the repo's conventions for client state and re-renders** (Zustand, per-component selector subscriptions, React Compiler, the typography scale) so it is not a special case. Drag-to-reposition fires many updates per second; the preview must update without re-rendering the whole form on every pointer move.
 - **Stay lean for v1.** Ship upload-from-device, full-card editing of everything the template shows, reposition + zoom, and the two exports. Defer catalog-art / URL sources, saving, sharing, and foil effects.
@@ -32,20 +32,27 @@ This is a tool surface, closest in spirit to ADR-021 (Match Tracker): a standalo
 
 **The card template**
 
-- **Extend `CardPlaceholderImage` with an optional background image + scrim (chosen).** Add inert optional props so existing call sites (catalog thumbnails, the `/contribute` preview) are unaffected, and the designer, contribute, and catalog all keep sharing one template.
-- Fork a dedicated `DesignerCard` component. Rejected: two card templates to keep in sync forever; every future tweak to the card look would have to be made twice.
+- **Extend `CardPlaceholderImage` with an optional background image + scrim (chosen).** Add inert optional props so existing call sites (catalog thumbnails, the `/contribute` preview) are unaffected, and the designer's unframed cards, contribute, and catalog all share one CSS template.
+- **A printed frame where one exists, `CardPlaceholderImage` everywhere else (chosen).** `FramedCardImage` (`apps/web/src/features/designer/components/framed-card-image.tsx`) layers the background image, a blank frame image and the card's text. It covers Unit, Spell and Gear cards with one domain other than Colorless or Neutral, Common or Uncommon rarity, no supertype and no power cost; a frame that fails to load falls back to `CardPlaceholderImage` too. `frameUrlFor` in `apps/web/src/features/designer/lib/card-designer.ts` decides coverage; every other card renders through `CardPlaceholderImage`, and the preview says which cards get a frame. The frame layout differs from the CSS template in every region (text on light parchment, numbers inside printed shapes, no scrim), so the framed card is its own component.
+- Fork a dedicated designer copy of the CSS template. Rejected: two copies of the same look to keep in sync; every tweak to the CSS card would have to be made twice.
 - Render the card to a `<canvas>` / SVG (satori) from scratch. Rejected: reimplements a template that already exists as DOM, and satori is not a dependency.
 
 **How the background image sits on the card**
 
-- **Full-bleed behind everything, with a darkening scrim behind the name bar and text (chosen).** The image fills the whole card; a scrim keeps the name and text legible over any photo. (User-selected.)
+- **On a framed card, the image shows through the frame's art window (chosen).** The frame covers everything outside the window, and its name banner and parchment keep the text legible.
+- **On the CSS template, full-bleed behind everything, with a darkening scrim behind the name bar and text (chosen).** The image fills the whole card; a scrim keeps the name and text legible over any photo. (User-selected.)
 - Full-bleed with no scrim. Rejected: text is unreadable over bright / busy images.
-- Art window in the top ~55% only, gradient frame below. Rejected: the user chose full-bleed.
+- An art window with a CSS gradient frame below. Rejected: the user chose full-bleed for the CSS template, and the printed frame supplies the window where one exists.
 
 **How much control over the image**
 
 - **Cover-fill baseline plus zoom and drag-to-reposition (chosen).** The image defaults to covering the card; a zoom slider and pointer-drag let the user frame the art, clamped so the image always covers the card (no empty edges). (User-selected.)
 - Cover-fill only, or a contain/cover toggle. Rejected: the user wants to frame the art.
+
+**Frame images**
+
+- **Static WebP files served from `/media/card-frames/v<N>/<type>-<rarity>-<domain>.webp` (chosen).** nginx serves `/media/` with a one-year immutable cache that releases do not purge, so a changed frame set goes to a new version folder and `CARD_FRAME_BASE` moves with it. The files are same-origin, so they do not taint the export canvas, and lossless WebP keeps the printed grain at about 180 KB per frame.
+- Bundling the frames into the web build. Rejected: they are not source, they change on their own schedule, and they would bloat every deploy.
 
 **Export**
 
@@ -67,13 +74,14 @@ This is a tool surface, closest in spirit to ADR-021 (Match Tracker): a standalo
 
 ## Decision Outcome
 
-We ship a standalone, client-only `/card-designer` route that reuses the `/contribute` inputs and the `CardPlaceholderImage` template. The user uploads a background image (held in-browser as a data URL) and frames it with zoom + drag, edits every field the card visibly shows, and the card renders the attribution `openrift.app` into the artist footer slot. The live preview exports as a PNG via `html2canvas-pro` for download or clipboard copy. No backend, no account, no persistence, no submission.
+We ship a standalone, client-only `/card-designer` route that reuses the `/contribute` inputs. Covered cards render in a printed frame through `FramedCardImage`; all others render through the `CardPlaceholderImage` template. The user uploads a background image (held in-browser as a data URL) and frames it with zoom + drag, edits every field the card visibly shows, and the card renders the attribution `openrift.app` into the artist footer slot. The live preview exports as a PNG via `html2canvas-pro` for download or clipboard copy. No backend, no account, no persistence, no submission.
 
 ### Behaviour
 
 - **Editable fields = everything the template renders.** Exactly the prop surface of `CardPlaceholderImage`: name, domains, energy, might, power, might bonus, type, super-types, tags, rules text, effect text, flavor text, rarity, code, and artist. No catalog / printing metadata (set, language, year, markers, finish, art variant, signed): those are not drawn on the card and are meaningless for an invented one.
-- **Background image.** Upload from device (PNG / JPG / WebP / AVIF / GIF first frame). The file is read to a data URL and kept in the store; it is never uploaded. The image fills the whole card behind the overlays. A zoom slider (and optional wheel / pinch) plus drag-to-reposition frame it, clamped so it always covers the card. A "remove image" control clears it and the card falls back to the domain-gradient base.
-- **Legibility scrim.** When a background image is set, a darkening scrim renders behind the name bar and the text block so they stay readable over any photo. With no image, the card looks exactly as it does in `/contribute` today.
+- **Background image.** Upload from device (PNG / JPG / WebP / AVIF / GIF first frame). The file is read to a data URL and kept in the store; it is never uploaded. On the CSS template the image fills the whole card behind the overlays; on a framed card it shows through the frame's art window. A zoom slider (and optional wheel / pinch) plus drag-to-reposition frame it, clamped so it always covers the card. A "remove image" control clears it: the CSS template falls back to its domain-gradient base, and a framed card shows an empty art window.
+- **Legibility scrim.** On the CSS template, when a background image is set, a darkening scrim renders behind the name bar and the text block so they stay readable over any photo. With no image, the card looks exactly as it does in `/contribute` today. A framed card has no scrim.
+- **Framed text.** On a framed card the rules, effect and flavor text sit in dark type on the parchment and shrink in steps, down to 60%, until they fit the box.
 - **Attribution.** The artist footer line renders `buildAttribution(artist)`: the user's artist text plus `· openrift.app`, or just `openrift.app` when empty. This shows in the preview and the export (WYSIWYG); the artist input itself holds only the raw text.
 - **Export.** Two actions: Download PNG and Copy to clipboard. Both rasterize an off-screen, fixed-resolution clone of the current preview. Clipboard copy uses the async Clipboard API (`ClipboardItem`) and falls back to download where it is unsupported or denied.
 - **No validation.** Every field is optional; any combination renders. There is nothing to submit, so there is no schema check (unlike `/contribute`).
@@ -92,7 +100,8 @@ With no background image, none of these render and the component is byte-for-byt
 ### Consequences
 
 - Good, because it is a pure client feature: no upload endpoint, no storage, no migrations, no repositories, no privacy-policy change. The data-URL image is same-origin, so the export canvas is never tainted.
-- Good, because there is one card template: the designer, `/contribute`, and the catalog grid all keep rendering through the same `CardPlaceholderImage`, and the new props are inert when unused.
+- Good, because there is one CSS card template: the designer's uncovered cards, `/contribute`, and the catalog grid all render through the same `CardPlaceholderImage`, and the new props are inert when unused.
+- Bad, because the framed layout is a second component, so a field added to the designer has to be placed in both.
 - Good, because it reuses the `/contribute` inputs and the `html2canvas-pro` export path, so little new surface is invented.
 - Good, because the Zustand + selector pattern keeps drag-to-reposition smooth (the preview updates without re-rendering the form), consistent with the repo's re-render conventions.
 - Bad, because `html2canvas-pro` does not perfectly rasterize every CSS feature: the template uses container-query units, CSS gradients, and `brightness-0 invert` icon filters. Mitigated by rendering an off-screen fixed-width clone (so `cqw` resolves), hiding the noise filter under an image, and a fidelity spike as the first build step (see Confirmation).
@@ -215,9 +224,9 @@ Split route like `/contribute`:
 - Foil / finish / tilt effects on the designed card (deferred to a possible v2).
 - Catalog / printing metadata fields (set, language, year, markers, finish, art variant, signed).
 - Schema validation of the card (there is nothing to submit).
-- Batch / multi-card export, custom frames or alternate templates, and text-styling controls beyond what the template already does.
+- Batch / multi-card export, user-chosen frames, frames for the uncovered types and rarities, and text-styling controls beyond what the template already does.
 
-Each is additive; the chosen store shape, the single shared template, and the route structure leave room for them without committing now.
+Each is additive; the chosen store shape, the shared CSS template, and the route structure leave room for them without committing now.
 
 ## More Information
 

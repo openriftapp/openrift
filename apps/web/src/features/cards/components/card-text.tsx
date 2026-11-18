@@ -5,7 +5,9 @@ import type { KeywordsResponse } from "@openrift/shared/types/api/keyword";
 import { getKeywordStyle } from "@/features/cards/lib/keywords";
 import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import { useKeywordStyles } from "@/hooks/use-keyword-styles";
+import { glyphPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
+import { getCachedTintedIcon, TINT_BLACK } from "@/lib/white-icon";
 import { m } from "@/paraglide/messages.js";
 
 function keywordClipPath(pointedRight?: boolean, pointedLeft?: boolean): string {
@@ -21,20 +23,28 @@ function keywordClipPath(pointedRight?: boolean, pointedLeft?: boolean): string 
   return "polygon(0.3em 0%, 100% 0%, calc(100% - 0.3em) 100%, 0% 100%)";
 }
 
+type TextSurface = "dark" | "light";
+
+const ENERGY_GLYPH_CLASS = {
+  theme: "bg-foreground text-background",
+  dark: "bg-white text-black",
+  light: "bg-black text-white",
+};
+
+const MONO_GLYPH_CLASS = {
+  theme: "brightness-0 dark:invert",
+  dark: "brightness-0 invert",
+  light: "brightness-0",
+};
+
 interface CardTextProps {
   text: string;
   onKeywordClick?: (keyword: string) => void;
   interactive?: boolean;
-  /** Forces the always-light glyph treatment for use on dark backgrounds. */
-  onDark?: boolean;
+  surface?: TextSurface;
 }
 
-export function CardText({
-  text,
-  onKeywordClick,
-  interactive = true,
-  onDark = false,
-}: CardTextProps) {
+export function CardText({ text, onKeywordClick, interactive = true, surface }: CardTextProps) {
   const styles = useKeywordStyles();
   const reverseMap = useKeywordReverseMap();
   return renderTokens(
@@ -43,7 +53,7 @@ export function CardText({
     interactive ? onKeywordClick : undefined,
     interactive,
     reverseMap,
-    onDark,
+    surface,
   );
 }
 
@@ -73,7 +83,7 @@ function renderTokens(
   onKeywordClick?: (keyword: string) => void,
   interactive = true,
   reverseMap?: Map<string, string>,
-  onDark = false,
+  surface?: TextSurface,
 ): React.ReactNode[] {
   return tokens.map((token, i) => {
     switch (token.type) {
@@ -87,7 +97,7 @@ function renderTokens(
               className={cn(
                 // -0.179em matches the glyph images' -0.125em offset at this element's own 0.7em font-size.
                 "inline-block size-[1.45em] overflow-hidden rounded-full text-center align-[-0.179em] text-[0.7em] leading-[1.45em] font-bold not-italic",
-                onDark ? "bg-white text-black" : "bg-foreground text-background",
+                ENERGY_GLYPH_CLASS[surface ?? "theme"],
               )}
             >
               {energyMatch[1]}
@@ -95,14 +105,18 @@ function renderTokens(
           );
         }
         const monoWhite = token.name === "might" || token.name === "exhaust";
+        const src = glyphPath(token.name);
+        // html2canvas ignores the filter, so an export on a light surface needs the pre-tinted raster.
+        const tinted =
+          monoWhite && surface === "light" ? getCachedTintedIcon(src, TINT_BLACK) : undefined;
         return (
           <img
             key={`${i}-${token.name}`}
-            src={`/images/glyphs/${token.name.replaceAll("_", "-")}.svg`}
+            src={tinted ?? src}
             alt={token.name.replaceAll("_", " ")}
             className={cn(
               "inline-block size-[1em] align-[-0.125em]",
-              monoWhite && (onDark ? "brightness-0 invert" : "brightness-0 dark:invert"),
+              monoWhite && !tinted && MONO_GLYPH_CLASS[surface ?? "theme"],
             )}
           />
         );
@@ -142,7 +156,7 @@ function renderTokens(
                 onKeywordClick,
                 interactive,
                 reverseMap,
-                onDark,
+                surface,
               )}
             </span>
           </Tag>
@@ -151,7 +165,8 @@ function renderTokens(
       case "paren": {
         return (
           <span key={`${i}-paren`} className="italic">
-            ({renderTokens(token.children, styles, onKeywordClick, interactive, reverseMap, onDark)}
+            (
+            {renderTokens(token.children, styles, onKeywordClick, interactive, reverseMap, surface)}
             )
           </span>
         );
@@ -159,7 +174,7 @@ function renderTokens(
       case "italic": {
         return (
           <span key={`${i}-italic`} className="italic">
-            {renderTokens(token.children, styles, onKeywordClick, interactive, reverseMap, onDark)}
+            {renderTokens(token.children, styles, onKeywordClick, interactive, reverseMap, surface)}
           </span>
         );
       }

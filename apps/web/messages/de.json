@@ -5603,6 +5603,7 @@
   "designer_field_flavor_text": "Flavor-Text",
   "designer_field_rarity": "Seltenheit",
   "designer_rarity_placeholder": "Seltenheit wählen",
+  "designer_frame_unavailable": "Gedruckte Rahmen gibt es für Unit-, Spell- und Gear-Karten mit einer Domäne außer Colorless oder Neutral, Seltenheit Common oder Uncommon, ohne Supertyp und ohne Power-Kosten.",
   "designer_name_placeholder": "Sir Pfote, Herr der Nickerchen",
   "designer_tags_placeholder": "Katze",
   "designer_field_code": "Code",

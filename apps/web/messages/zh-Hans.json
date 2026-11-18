@@ -5602,6 +5602,7 @@
   "designer_field_flavor_text": "趣味性文本",
   "designer_field_rarity": "稀有度",
   "designer_rarity_placeholder": "选择稀有度",
+  "designer_frame_unavailable": "印刷卡框适用于只有一个特性（Colorless 和 Neutral 除外）、稀有度为 Common 或 Uncommon、没有超类型和符能费用的 Unit、Spell 和 Gear 卡牌。",
   "designer_name_placeholder": "午睡领主·扑扑爵士",
   "designer_tags_placeholder": "猫",
   "designer_field_code": "编号",

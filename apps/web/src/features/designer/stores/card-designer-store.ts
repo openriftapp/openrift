@@ -3,7 +3,7 @@ import { create } from "zustand";
 
 import { clampImageTransform } from "@/features/designer/lib/card-designer";
 
-/** Everything the card template (`CardPlaceholderImage`) visibly renders. */
+/** Everything the card templates (`CardPlaceholderImage`, `FramedCardImage`) visibly render. */
 export interface DesignerCard {
   name: string;
   domains: Domain[];
@@ -66,18 +66,18 @@ const emptyCard: DesignerCard = {
 
 const funExampleCard: DesignerCard = {
   name: "Sir Pounce, Lord of Naps",
-  domains: ["chaos", "calm"],
+  domains: ["chaos"],
   energy: 2,
   might: 5,
-  power: 1,
-  mightBonus: 1,
+  power: null,
+  mightBonus: null,
   type: "unit",
-  superTypes: ["champion"],
+  superTypes: [],
   tags: ["Cat", "Floof"],
   rulesText: "When Sir Pounce enters, knock one card off the table. (Yes, on purpose.)",
   effectText: "Untargetable by anything boring.",
   flavorText: '"I meant to do that."',
-  rarity: "epic",
+  rarity: "uncommon",
   publicCode: "MEOW-009/009",
   artist: "Whiskers von Catsworth",
 };

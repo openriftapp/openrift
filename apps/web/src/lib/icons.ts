@@ -41,6 +41,10 @@ function singleTypeIconPath(type: string, superTypes: string[]): string | undefi
   return `/images/types/${type.toLowerCase()}.svg`;
 }
 
+export function glyphPath(name: string): string {
+  return `/images/glyphs/${name.replaceAll("_", "-")}.svg`;
+}
+
 export function getFilterIconPath(
   category: FilterCategory,
   value: string,

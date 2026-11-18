@@ -8,13 +8,14 @@ import { BackgroundImageControl } from "@/features/designer/components/backgroun
 import { CardDesignerForm } from "@/features/designer/components/card-designer-form";
 import { CardDesignerPreview } from "@/features/designer/components/card-designer-preview";
 import { CardExportControls } from "@/features/designer/components/card-export-controls";
+import { frameUrlFor } from "@/features/designer/lib/card-designer";
 import type { DesignerCard } from "@/features/designer/stores/card-designer-store";
 import { useCardDesignerStore } from "@/features/designer/stores/card-designer-store";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { getPipGlyphTint } from "@/lib/domain";
 import { downloadFilename } from "@/lib/download";
 import { createRenderHandoff } from "@/lib/html-capture";
-import { getFilterIconPath, getTypeIconPath } from "@/lib/icons";
+import { getFilterIconPath, getTypeIconPath, glyphPath } from "@/lib/icons";
 import { prewarmTintedIcons, TINT_BLACK, TINT_WHITE } from "@/lib/white-icon";
 import { m } from "@/paraglide/messages.js";
 
@@ -42,9 +43,16 @@ function designerTintedIcons(
   if (typeIcon) {
     icons.push({ src: typeIcon, color: TYPE_ICON_COLOR });
   }
+  const framed = frameUrlFor(card) !== null;
   // The might shield's symbol is black on its white left half.
-  if (card.might !== null) {
+  if (card.might !== null || framed) {
     icons.push({ src: "/images/might.svg", color: TINT_BLACK });
+  }
+  if (framed) {
+    icons.push(
+      { src: glyphPath("might"), color: TINT_BLACK },
+      { src: glyphPath("exhaust"), color: TINT_BLACK },
+    );
   }
   // Power pip rune tint must contrast with the domain background (black on order/body domains); see CardPlaceholderImage.
   if (card.power !== null && card.power > 0) {
@@ -65,6 +73,7 @@ const CLONE_KEY = "designer-export";
 
 export function CardDesignerPage() {
   const cardName = useCardDesignerStore((state) => state.card.name);
+  const framed = useCardDesignerStore((state) => frameUrlFor(state.card) !== null);
   const domainColors = useDomainColors();
   // oxlint-disable-next-line react/hook-use-state -- a stable per-mount handoff, never replaced
   const [cloneHandoff] = useState(createRenderHandoff);
@@ -112,6 +121,9 @@ export function CardDesignerPage() {
         </div>
         <div className="order-1 flex flex-col gap-4 lg:sticky lg:top-20 lg:order-2">
           <CardDesignerPreview interactive className="w-full" />
+          {!framed && (
+            <p className="text-muted-foreground text-sm">{m.designer_frame_unavailable()}</p>
+          )}
           <BackgroundImageControl />
           <CardExportControls
             onDownload={() => void runExport("download")}

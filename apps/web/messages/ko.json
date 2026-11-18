@@ -5602,6 +5602,7 @@
   "designer_field_flavor_text": "플레이버 텍스트",
   "designer_field_rarity": "희귀도",
   "designer_rarity_placeholder": "희귀도 선택",
+  "designer_frame_unavailable": "인쇄 프레임은 Colorless나 Neutral이 아닌 영역이 하나이고 희귀도가 Common 또는 Uncommon이며 상위 유형과 힘 비용이 없는 Unit, Spell, Gear 카드에 적용됩니다.",
   "designer_name_placeholder": "낮잠의 군주, 폴짝 경",
   "designer_tags_placeholder": "고양이",
   "designer_field_code": "코드",

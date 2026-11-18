@@ -20,7 +20,7 @@ const GLYPH_TINT: Record<string, string> = { white: TINT_WHITE, black: TINT_BLAC
  * `tinted` uses a pre-tinted raster; html2canvas-pro (the card designer's
  * export clone) ignores CSS filters and masks.
  */
-function GlyphIcon({
+export function GlyphIcon({
   src,
   className,
   tinted,
@@ -318,7 +318,7 @@ export function CardPlaceholderImage({
         <div className="card-text-scaled absolute inset-x-0 top-[67%] flex flex-col gap-[1.5cqw] px-[8cqw]">
           {rulesText && (
             <p className="px-[3cqw] text-[3.5cqw] leading-[1.3] text-white/80">
-              <CardText text={rulesText} interactive={false} onDark />
+              <CardText text={rulesText} interactive={false} surface="dark" />
             </p>
           )}
           {(effectText || (mightBonus !== null && mightBonus !== undefined)) && (
@@ -329,7 +329,7 @@ export function CardPlaceholderImage({
               <div className="flex-1">
                 {effectText ? (
                   <p className="text-[3.5cqw] leading-[1.3] text-white/80">
-                    <CardText text={effectText} interactive={false} onDark />
+                    <CardText text={effectText} interactive={false} surface="dark" />
                   </p>
                 ) : (
                   flavorText && (

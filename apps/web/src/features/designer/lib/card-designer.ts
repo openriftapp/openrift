@@ -4,6 +4,8 @@
  */
 
 import { CARD_ASPECT } from "@openrift/shared/card-orientation";
+import type { Domain, Rarity } from "@openrift/shared/types/enums";
+import { WellKnown } from "@openrift/shared/well-known";
 
 export const CARD_MIN_ZOOM = 1;
 export const CARD_MAX_ZOOM = 4;
@@ -89,6 +91,42 @@ export function backgroundLayout(
     leftPct: leftFrac * 100,
     topPct: topFrac * 100,
   };
+}
+
+/** Files under this prefix are cached as immutable; changed frames go to a new version folder. */
+const CARD_FRAME_BASE = "/media/card-frames/v1";
+
+const FRAMED_TYPES = new Set<string>([
+  WellKnown.cardType.UNIT,
+  WellKnown.cardType.SPELL,
+  WellKnown.cardType.GEAR,
+]);
+const FRAMED_RARITIES = new Set<string>([WellKnown.rarity.COMMON, WellKnown.rarity.UNCOMMON]);
+const FRAMED_DOMAINS = new Set<string>(["fury", "calm", "mind", "body", "chaos", "order"]);
+
+export interface FrameableCard {
+  type: string;
+  rarity: Rarity | null;
+  domains: Domain[];
+  superTypes: string[];
+  power: number | null;
+}
+
+export function frameUrlFor(card: FrameableCard): string | null {
+  const [domain, ...rest] = card.domains;
+  if (
+    !FRAMED_TYPES.has(card.type) ||
+    !card.rarity ||
+    !FRAMED_RARITIES.has(card.rarity) ||
+    !domain ||
+    rest.length > 0 ||
+    !FRAMED_DOMAINS.has(domain) ||
+    card.superTypes.length > 0 ||
+    (card.power !== null && card.power > 0)
+  ) {
+    return null;
+  }
+  return `${CARD_FRAME_BASE}/${card.type}-${card.rarity}-${domain}.webp`;
 }
 
 export function isAcceptedImageType(mimeType: string): boolean {
