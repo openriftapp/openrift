@@ -35,7 +35,7 @@ import {
   filterMarketByGroup,
   filterMarketByPerson,
   marketPeople,
-  openSuggestionCount,
+  openMarketCards,
   sortByValue,
 } from "@/features/groups/lib/trade-market";
 import { tradePrinting } from "@/features/groups/lib/trade-printing";
@@ -180,10 +180,12 @@ export function TradeMarket({ groupSlug }: { groupSlug: string | null }) {
 
   const incomingInGroup = filterMarketByGroup(market.incoming, groupSlug);
   const outgoingInGroup = filterMarketByGroup(market.outgoing, groupSlug);
-  const people = marketPeople(market, tab === "give" ? outgoingInGroup : incomingInGroup);
+  const openIncomingInGroup = openMarketCards(incomingInGroup, userTradeItems);
+  const openOutgoingInGroup = openMarketCards(outgoingInGroup, userTradeItems);
+  const people = marketPeople(market, tab === "give" ? openOutgoingInGroup : openIncomingInGroup);
   const person = people.find((entry) => entry.userId === personId);
-  const incoming = filterMarketByPerson(incomingInGroup, person?.userId ?? null);
-  const outgoing = filterMarketByPerson(outgoingInGroup, person?.userId ?? null);
+  const incoming = filterMarketByPerson(openIncomingInGroup, person?.userId ?? null);
+  const outgoing = filterMarketByPerson(openOutgoingInGroup, person?.userId ?? null);
   const buyable = wanted.filter(
     (item) =>
       !market.incoming.some((card) => wantedMatchesPrinting(item, card.cardId, card.printingId)),
@@ -221,9 +223,10 @@ export function TradeMarket({ groupSlug }: { groupSlug: string | null }) {
 
   const pickedCard =
     picked?.kind === "market"
-      ? (picked.direction === "incoming" ? incoming : outgoing).find(
-          (card) => card.printingId === picked.printingId && card.cardId === picked.cardId,
-        )
+      ? filterMarketByPerson(
+          picked.direction === "incoming" ? incomingInGroup : outgoingInGroup,
+          person?.userId ?? null,
+        ).find((card) => card.printingId === picked.printingId && card.cardId === picked.cardId)
       : undefined;
   const selection: TradeMarketSelection | null =
     picked === null
@@ -238,14 +241,12 @@ export function TradeMarket({ groupSlug }: { groupSlug: string | null }) {
     {
       value: "get",
       label: m.trades_market_tab_get(),
-      count:
-        userTrades === undefined ? null : openSuggestionCount(incoming, "incoming", userTradeItems),
+      count: userTrades === undefined ? null : incoming.length,
     },
     {
       value: "give",
       label: m.trades_market_tab_give(),
-      count:
-        userTrades === undefined ? null : openSuggestionCount(outgoing, "outgoing", userTradeItems),
+      count: userTrades === undefined ? null : outgoing.length,
     },
     { value: "buy", label: m.trades_market_tab_buy(), count: wantedReady ? buyable.length : null },
   ];

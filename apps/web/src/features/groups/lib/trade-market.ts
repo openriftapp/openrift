@@ -5,7 +5,7 @@ import type {
 import type { FriendGroupMatchRow } from "@openrift/shared/types/api/friend-group";
 
 import type { MatchDirection } from "./trade-derivation";
-import { withoutLiveTradeMatches } from "./trade-derivation";
+import { liveTradeFor, liveTradeIndex } from "./trade-derivation";
 import { dismissalKey } from "./trade-dismissals";
 import type { WantedCard } from "./wanted-cards";
 import { wantedMatchesPrinting } from "./wanted-cards";
@@ -240,17 +240,16 @@ export function wantedSources(
   return [...byUser.values()];
 }
 
-export function openSuggestionCount(
+export function openMarketCards(
   cards: readonly TradeMarketCard[],
-  direction: MatchDirection,
   trades: readonly CardTradeResponse[],
-): number {
-  return cards.filter(
-    (card) =>
-      withoutLiveTradeMatches(
-        card.rows.filter((row) => row.liveOnly !== true),
-        trades,
-        direction,
-      ).length > 0,
-  ).length;
+): TradeMarketCard[] {
+  const index = liveTradeIndex(trades);
+  return cards.flatMap((card) => {
+    const narrowed = narrowCard(
+      card,
+      (row) => row.liveOnly !== true && liveTradeFor(index, row, card.direction) === undefined,
+    );
+    return narrowed === null ? [] : [narrowed];
+  });
 }

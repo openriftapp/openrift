@@ -297,6 +297,29 @@ describe("TradeMarket", () => {
     expect(screen.queryByText("Requested")).toBeNull();
   });
 
+  it("leaves a card out of the grid and the count once its only source is in a trade", () => {
+    currentTrades = [{ ...pendingRequest("c-jinx"), printingId: "p-jinx" }];
+    render(<TradeMarket groupSlug={null} />);
+    expect(screen.getByRole("tab", { name: /You could get\s*0/u })).toBeTruthy();
+    expect(screen.queryByText("Jinx, Rebel")).toBeNull();
+  });
+
+  it("keeps a card on offer from someone else with only them as a source", () => {
+    currentMarket = buildTradeMarket([
+      {
+        ...group,
+        incoming: [
+          stubRow(),
+          stubRow({ counterpartyUserId: "user-kofi", counterpartyName: "Kofi", copyId: "copy-2" }),
+        ],
+      },
+    ]);
+    currentTrades = [{ ...pendingRequest("c-jinx"), printingId: "p-jinx" }];
+    render(<TradeMarket groupSlug={null} />);
+    expect(screen.getByRole("tab", { name: /You could get\s*1/u })).toBeTruthy();
+    expect(screen.getByText("Kofi has it")).toBeTruthy();
+  });
+
   it("narrows the grid by the search", () => {
     render(<TradeMarket groupSlug={null} />);
     fireEvent.change(screen.getByRole("textbox", { name: "Search cards" }), {

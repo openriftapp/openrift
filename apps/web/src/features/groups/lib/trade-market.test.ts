@@ -10,9 +10,9 @@ import {
   buildTradeMarket,
   filterMarketByGroup,
   filterMarketByPerson,
-  openSuggestionCount,
   marketDismissals,
   marketPeople,
+  openMarketCards,
   sortByValue,
   wantedSources,
 } from "./trade-market";
@@ -114,17 +114,17 @@ describe("buildTradeMarket", () => {
   });
 });
 
-describe("openSuggestionCount", () => {
-  it("shows a card held only by a live trade without counting it", () => {
+describe("openMarketCards", () => {
+  it("drops a card held only by a live trade", () => {
     const market = buildTradeMarket([
       stubGroup({ incoming: [{ ...stubRow(), liveOnly: true }], outgoing: [stubRow()] }),
     ]);
     expect(market.incoming).toHaveLength(1);
-    expect(openSuggestionCount(market.incoming, "incoming", [])).toBe(0);
-    expect(openSuggestionCount(market.outgoing, "outgoing", [])).toBe(1);
+    expect(openMarketCards(market.incoming, [])).toEqual([]);
+    expect(openMarketCards(market.outgoing, [])).toHaveLength(1);
   });
 
-  it("counts one card offered by three members once", () => {
+  it("keeps one card offered by three members as one card", () => {
     const market = buildTradeMarket([
       stubGroup({
         incoming: [
@@ -134,24 +134,55 @@ describe("openSuggestionCount", () => {
         ],
       }),
     ]);
-    expect(openSuggestionCount(market.incoming, "incoming", [])).toBe(1);
+    expect(openMarketCards(market.incoming, [])).toHaveLength(1);
   });
 
-  it("does not count a card whose only row is in a live trade", () => {
+  it("drops a card whose only row is in a live trade", () => {
     const market = buildTradeMarket([stubGroup({ incoming: [stubRow()] })]);
     const live = [stubCardTrade({ role: "receiver", status: "pending" })];
     expect(market.incoming).toHaveLength(1);
-    expect(openSuggestionCount(market.incoming, "incoming", live)).toBe(0);
+    expect(openMarketCards(market.incoming, live)).toEqual([]);
   });
 
-  it("counts a card with one live and one free row", () => {
+  it("keeps a card that is in a trade in the other direction only", () => {
+    const market = buildTradeMarket([stubGroup({ incoming: [stubRow()] })]);
+    const live = [stubCardTrade({ role: "giver", status: "pending" })];
+    expect(openMarketCards(market.incoming, live)).toHaveLength(1);
+  });
+
+  it("keeps only the free rows and sources of a partly traded card", () => {
     const market = buildTradeMarket([
       stubGroup({
         incoming: [stubRow(), stubRow({ counterpartyUserId: "user-3", buyEntryId: "buy-2" })],
       }),
     ]);
     const live = [stubCardTrade({ role: "receiver", status: "pending" })];
-    expect(openSuggestionCount(market.incoming, "incoming", live)).toBe(1);
+    const [card, ...rest] = openMarketCards(market.incoming, live);
+    expect(rest).toEqual([]);
+    expect(card?.rows.map((row) => row.counterpartyUserId)).toEqual(["user-3"]);
+    expect(card?.sources.map((source) => source.userId)).toEqual(["user-3"]);
+  });
+
+  it("counts people and dismissals from the same open cards", () => {
+    const market = buildTradeMarket([
+      stubGroup({
+        incoming: [
+          stubRow(),
+          stubRow({ printingId: "printing-2", cardId: "card-2", buyEntryId: "buy-2" }),
+          stubRow({ counterpartyUserId: "user-3", buyEntryId: "buy-3" }),
+        ],
+      }),
+    ]);
+    const live = [stubCardTrade({ role: "receiver", status: "pending" })];
+    const open = openMarketCards(market.incoming, live);
+    expect(open).toHaveLength(2);
+    expect(marketPeople(market, open).map((person) => [person.userId, person.cardCount])).toEqual([
+      ["user-2", 1],
+      ["user-3", 1],
+    ]);
+    expect(marketDismissals(open, "user-2")).toEqual([
+      { direction: "incoming", counterpartyUserId: "user-2", printingId: "printing-2" },
+    ]);
   });
 
   it("never exceeds the hub's suggestion count for the same data", () => {
@@ -169,7 +200,7 @@ describe("openSuggestionCount", () => {
       withoutLiveTradeMatches(rows, trades, "incoming"),
       [],
     );
-    expect(openSuggestionCount(market.incoming, "incoming", trades)).toBe(2);
+    expect(openMarketCards(market.incoming, trades)).toHaveLength(2);
     expect(hubSuggestions).toBe(3);
   });
 });
