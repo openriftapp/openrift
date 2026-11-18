@@ -1,7 +1,7 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mutate = vi.fn();
+const mutateAsync = vi.fn();
 const invalidateQueries = vi.fn();
 const toastSuccess = vi.fn();
 let copiesReady = true;
@@ -33,7 +33,7 @@ vi.mock("@/features/collections/hooks/use-copies", () => ({
     ],
     isReady: copiesReady,
   }),
-  useMoveCopies: () => ({ mutate, isPending: false }),
+  useMoveCopies: () => ({ mutateAsync, isPending: false }),
 }));
 
 const { MoveCopiesToCollectionDialog } = await import("./move-copies-to-collection-dialog");
@@ -53,14 +53,12 @@ function renderDialog(copyIds: string[]) {
   return { onOpenChange, onMoved };
 }
 
-function succeedMutation() {
-  const [, options] = mutate.mock.calls.at(-1) as [unknown, { onSuccess: () => void }];
-  options.onSuccess();
-}
-
 describe("MoveCopiesToCollectionDialog", () => {
   beforeEach(() => {
-    mutate.mockReset();
+    mutateAsync.mockReset();
+    mutateAsync.mockImplementation(async ({ copyIds }: { copyIds: string[] }) =>
+      copyIds.map((copyId) => ({ copyId, fromCollectionId: "col-binder" })),
+    );
     invalidateQueries.mockReset();
     toastSuccess.mockReset();
     copiesReady = true;
@@ -74,33 +72,55 @@ describe("MoveCopiesToCollectionDialog", () => {
     expect(screen.getByText("1 already here")).toBeInTheDocument();
   });
 
-  it("moves only the copies not yet in the picked collection and reports the rest", () => {
+  it("moves only the copies not yet in the picked collection and reports the rest", async () => {
     const { onOpenChange, onMoved } = renderDialog(["c1", "c2", "c3"]);
 
     fireEvent.click(screen.getByRole("option", { name: /Bulk box/u }));
     fireEvent.click(screen.getByRole("button", { name: "Move 2 copies" }));
 
-    expect(mutate).toHaveBeenCalledWith(
-      { copyIds: ["c1", "c2"], toCollectionId: "col-bulk" },
-      expect.anything(),
+    expect(mutateAsync).toHaveBeenCalledWith({ copyIds: ["c1", "c2"], toCollectionId: "col-bulk" });
+    await waitFor(() =>
+      expect(toastSuccess).toHaveBeenCalledWith('Moved 2 copies to "Bulk box"', {
+        action: { label: "Undo", onClick: expect.any(Function) },
+        description: "1 was already there.",
+      }),
     );
-    succeedMutation();
-    expect(toastSuccess).toHaveBeenCalledWith('Moved 2 copies to "Bulk box"', {
-      description: "1 was already there.",
-    });
     expect(onOpenChange).toHaveBeenCalledWith(false);
     expect(onMoved).toHaveBeenCalled();
     expect(invalidateQueries).toHaveBeenCalledTimes(2);
   });
 
-  it("omits the already-there note when every copy moves", () => {
+  it("omits the already-there note when every copy moves", async () => {
     renderDialog(["c1", "c2"]);
 
     fireEvent.click(screen.getByRole("option", { name: /Bulk box/u }));
     fireEvent.click(screen.getByRole("button", { name: "Move 2 copies" }));
-    succeedMutation();
 
-    expect(toastSuccess).toHaveBeenCalledWith('Moved 2 copies to "Bulk box"', undefined);
+    await waitFor(() =>
+      expect(toastSuccess).toHaveBeenCalledWith(
+        'Moved 2 copies to "Bulk box"',
+        expect.objectContaining({ description: undefined }),
+      ),
+    );
+  });
+
+  it("moves the copies back and refreshes the list on undo", async () => {
+    renderDialog(["c1", "c2"]);
+
+    fireEvent.click(screen.getByRole("option", { name: /Bulk box/u }));
+    fireEvent.click(screen.getByRole("button", { name: "Move 2 copies" }));
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalled());
+    invalidateQueries.mockReset();
+    const [, options] = toastSuccess.mock.calls[0] as [string, { action: { onClick: () => void } }];
+    options.action.onClick();
+
+    await waitFor(() =>
+      expect(mutateAsync).toHaveBeenLastCalledWith({
+        copyIds: ["c1", "c2"],
+        toCollectionId: "col-binder",
+      }),
+    );
+    await waitFor(() => expect(invalidateQueries).toHaveBeenCalledTimes(2));
   });
 
   it("blocks the confirm when every copy is already in the picked collection", () => {
@@ -109,7 +129,7 @@ describe("MoveCopiesToCollectionDialog", () => {
     fireEvent.click(screen.getByRole("option", { name: /Binder/u }));
 
     expect(screen.getByRole("button", { name: "All already here" })).toBeDisabled();
-    expect(mutate).not.toHaveBeenCalled();
+    expect(mutateAsync).not.toHaveBeenCalled();
   });
 
   it("blocks the confirm until the copies have loaded", () => {
@@ -121,7 +141,7 @@ describe("MoveCopiesToCollectionDialog", () => {
     expect(screen.getByRole("button", { name: "Move 1 copy" })).toBeDisabled();
   });
 
-  it("moves a single copy on pick and disables the collection it is already in", () => {
+  it("moves a single copy on pick and disables the collection it is already in", async () => {
     renderDialog(["c3"]);
 
     expect(screen.getByText("Move 1 copy to collection")).toBeInTheDocument();
@@ -131,11 +151,12 @@ describe("MoveCopiesToCollectionDialog", () => {
     );
     fireEvent.click(screen.getByRole("option", { name: /Binder/u }));
 
-    expect(mutate).toHaveBeenCalledWith(
-      { copyIds: ["c3"], toCollectionId: "col-binder" },
-      expect.anything(),
+    expect(mutateAsync).toHaveBeenCalledWith({ copyIds: ["c3"], toCollectionId: "col-binder" });
+    await waitFor(() =>
+      expect(toastSuccess).toHaveBeenCalledWith(
+        'Moved 1 copy to "Binder"',
+        expect.objectContaining({ description: undefined }),
+      ),
     );
-    succeedMutation();
-    expect(toastSuccess).toHaveBeenCalledWith('Moved 1 copy to "Binder"', undefined);
   });
 });

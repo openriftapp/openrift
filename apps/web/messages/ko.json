@@ -1386,6 +1386,17 @@
       }
     }
   ],
+  "collections_toast_moved_back": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "카드 1장을 되돌렸습니다",
+        "countPlural=*": "카드 {count}장을 되돌렸습니다"
+      }
+    }
+  ],
+  "collections_toast_undo": "실행 취소",
   "collections_toast_moved_to_list_cards": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

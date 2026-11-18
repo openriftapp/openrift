@@ -1386,6 +1386,17 @@
       }
     }
   ],
+  "collections_toast_moved_back": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Moved 1 card back",
+        "countPlural=*": "Moved {count} cards back"
+      }
+    }
+  ],
+  "collections_toast_undo": "Undo",
   "collections_toast_moved_to_list_cards": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

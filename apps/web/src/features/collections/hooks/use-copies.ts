@@ -165,6 +165,11 @@ function consentForCopies(
   return consentBeforeTradeCancels({ queryClient, userId, printingIds, check });
 }
 
+export interface MovedCopy {
+  copyId: string;
+  fromCollectionId: string;
+}
+
 export function useMoveCopies() {
   const userId = useUserId();
   const queryClient = useQueryClient();
@@ -183,9 +188,15 @@ export function useMoveCopies() {
         throw new Error(m.collections_copies_signed_out());
       }
       const collection = copiesCollection;
+      const origins = copyIds.flatMap((copyId): MovedCopy[] => {
+        const fromCollectionId = collection.get(copyId)?.collectionId;
+        return fromCollectionId === undefined || fromCollectionId === toCollectionId
+          ? []
+          : [{ copyId, fromCollectionId }];
+      });
       const present = copyIds.filter((id) => collection.has(id));
       if (present.length === 0) {
-        return;
+        return origins;
       }
       const consent = await consentForCopies(queryClient, userId, collection, present, () =>
         browserApiOrpcClient(copiesContract).moveTradeCancels({
@@ -205,6 +216,7 @@ export function useMoveCopies() {
         },
       );
       await transaction.when("settled");
+      return origins;
     },
   });
 }

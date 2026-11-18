@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { PickerDialog } from "@/components/picker-dialog";
 import type { PickerOption } from "@/components/picker-dialog";
 import { useCollections } from "@/features/collections/hooks/use-collections";
-import { useCopies, useMoveCopies } from "@/features/collections/hooks/use-copies";
+import { useCopies } from "@/features/collections/hooks/use-copies";
+import { useMoveCopiesWithUndo } from "@/features/collections/hooks/use-move-copies-with-undo";
 import {
   alreadyInCollectionCounts,
   copyIdsToMove,
@@ -38,7 +39,7 @@ export function MoveCopiesToCollectionDialog({
   const queryClient = useQueryClient();
   const { data: collections } = useCollections();
   const { data: copies, isReady } = useCopies();
-  const moveCopies = useMoveCopies();
+  const moveWithUndo = useMoveCopiesWithUndo();
 
   const collectionIdByCopyId = new Map(copies.map((copy) => [copy.id, copy.collectionId]));
   const total = new Set(copyIds).size;
@@ -46,34 +47,40 @@ export function MoveCopiesToCollectionDialog({
   const toMoveInto = (collectionId: string) =>
     copyIdsToMove(copyIds, collectionIdByCopyId, collectionId);
 
-  const handleMove = (toCollectionId: string) => {
+  const moveAndClose = async (toCollectionId: string) => {
     const toMove = toMoveInto(toCollectionId);
     if (toMove.length === 0) {
       return;
     }
     const already = total - toMove.length;
     const collectionName = collections.find((col) => col.id === toCollectionId)?.name ?? "";
-    moveCopies.mutate(
-      { copyIds: toMove, toCollectionId },
+    const refreshLists = () => {
+      if (userId) {
+        void queryClient.invalidateQueries({
+          queryKey: listsKeys.detail(userId, listId),
+        });
+        void queryClient.invalidateQueries({ queryKey: listsKeys.all(userId) });
+      }
+    };
+    const moved = await moveWithUndo.move(toMove, toCollectionId, refreshLists);
+    if (!moved) {
+      return;
+    }
+    toast.success(
+      m.lists_toast_moved_to_collection({ count: toMove.length, collection: collectionName }),
       {
-        onSuccess: () => {
-          toast.success(
-            m.lists_toast_moved_to_collection({ count: toMove.length, collection: collectionName }),
-            already > 0
-              ? { description: m.lists_toast_already_in_collection({ count: already }) }
-              : undefined,
-          );
-          onOpenChange(false);
-          onMoved?.();
-          if (userId) {
-            void queryClient.invalidateQueries({
-              queryKey: listsKeys.detail(userId, listId),
-            });
-            void queryClient.invalidateQueries({ queryKey: listsKeys.all(userId) });
-          }
-        },
+        action: moved.undo,
+        description:
+          already > 0 ? m.lists_toast_already_in_collection({ count: already }) : undefined,
       },
     );
+    onOpenChange(false);
+    onMoved?.();
+    refreshLists();
+  };
+
+  const handleMove = (toCollectionId: string) => {
+    void moveAndClose(toCollectionId);
   };
 
   const options: PickerOption[] = collections.map((col) => {
@@ -102,7 +109,7 @@ export function MoveCopiesToCollectionDialog({
       searchPlaceholder={m.collections_dialog_move_filter_placeholder()}
       noMatchesText={m.collections_dialog_move_no_matches()}
       emptyText={m.collections_dialog_move_empty()}
-      pending={moveCopies.isPending}
+      pending={moveWithUndo.isPending}
       {...(total > 1
         ? {
             confirm: {

@@ -4,6 +4,7 @@
 
 ### Other
 
+- feat(Collection): **Undo a move** — the toast after moving cards to another collection has an Undo button that puts each card back where it was.
 - fix(Collection): **Dragging onto the sidebar** — dragging cards over the sidebar no longer scrolls the collection behind it, and the sidebar scrolls when you drag near its top or bottom edge.
 
 ## 2026-11-17

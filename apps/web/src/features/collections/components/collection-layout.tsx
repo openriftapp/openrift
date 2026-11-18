@@ -23,7 +23,7 @@ import {
 } from "@/features/collections/components/collection-drag";
 import { CollectionSidebar } from "@/features/collections/components/collection-sidebar";
 import { useCollectionDndSensors } from "@/features/collections/hooks/use-collection-dnd-sensors";
-import { useMoveCopies } from "@/features/collections/hooks/use-copies";
+import { useMoveCopiesWithUndo } from "@/features/collections/hooks/use-move-copies-with-undo";
 import { collectionCollisionDetection } from "@/features/collections/lib/collection-dnd-sensing";
 import type {
   CollectionDragData,
@@ -99,7 +99,7 @@ export function CollectionLayout() {
   // Read by the key listener below, which is mounted once and can't see
   // `activeDrag` without re-subscribing on every drag.
   const dragActiveRef = useRef(false);
-  const moveCopies = useMoveCopies();
+  const moveWithUndo = useMoveCopiesWithUndo();
   const bulkAddCopiesToList = useBulkAddCopiesToList();
   const bulkAddListEntries = useBulkAddListEntries();
   const moveListEntries = useMoveListEntries();
@@ -167,6 +167,21 @@ export function CollectionLayout() {
     }
   };
 
+  const moveDroppedCopies = async (
+    copyIds: string[],
+    toCollectionId: string,
+    fromSelection: boolean,
+  ) => {
+    const moved = await moveWithUndo.move(copyIds, toCollectionId);
+    if (!moved) {
+      return;
+    }
+    toast.success(m.collections_toast_moved({ count: copyIds.length }), { action: moved.undo });
+    if (fromSelection) {
+      useGridSelectionStore.getState().clearSelection();
+    }
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const modifier = moveModifier;
     const raw = asDragData<CollectionDragData>(event.active.data.current, COLLECTION_DRAG_TYPES);
@@ -202,19 +217,7 @@ export function CollectionLayout() {
       return;
     }
     if (dragData.copyIds.length > 0) {
-      const count = dragData.copyIds.length;
-      const fromSelection = dragData.fromSelection;
-      moveCopies.mutate(
-        { copyIds: dragData.copyIds, toCollectionId: dropData.collectionId },
-        {
-          onSuccess: () => {
-            toast.success(m.collections_toast_moved({ count }));
-            if (fromSelection) {
-              useGridSelectionStore.getState().clearSelection();
-            }
-          },
-        },
-      );
+      void moveDroppedCopies(dragData.copyIds, dropData.collectionId, dragData.fromSelection);
       return;
     }
     if (entryAddsCopies(dragData.sourceKind)) {
@@ -234,18 +237,10 @@ export function CollectionLayout() {
       if (dragData.sourceCollectionId === dropData.collectionId) {
         return;
       }
-      const copyIds = resolveDropCopyIds(dragData, modifier);
-      const count = copyIds.length;
-      moveCopies.mutate(
-        { copyIds, toCollectionId: dropData.collectionId },
-        {
-          onSuccess: () => {
-            toast.success(m.collections_toast_moved({ count }));
-            if (dragData.fromSelection) {
-              useGridSelectionStore.getState().clearSelection();
-            }
-          },
-        },
+      void moveDroppedCopies(
+        resolveDropCopyIds(dragData, modifier),
+        dropData.collectionId,
+        dragData.fromSelection,
       );
       return;
     }

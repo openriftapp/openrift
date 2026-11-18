@@ -12,6 +12,7 @@ import {
   useMoveCopies,
 } from "@/features/collections/hooks/use-copies";
 import { useCopiesCollection } from "@/features/collections/hooks/use-copies-collection";
+import { useMoveCopiesWithUndo } from "@/features/collections/hooks/use-move-copies-with-undo";
 import { copyIdsShareOneCard } from "@/features/collections/lib/collection-grid-items";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
 import { stackSideForTile } from "@/features/collections/lib/stacked-entry";
@@ -53,6 +54,7 @@ export function useCollectionGridActions({
   const [disposeQuantity, setDisposeQuantity] = useState(0);
   const [actionAnnotatedIds, setActionAnnotatedIds] = useState<ReadonlySet<string>>(new Set());
   const moveCopies = useMoveCopies();
+  const moveWithUndo = useMoveCopiesWithUndo();
   const disposeCopies = useDisposeCopies();
   const copiesStore = useCopiesCollection();
   const disposeCopyIds = actionCopyIds.slice(0, disposeQuantity);
@@ -84,18 +86,21 @@ export function useCollectionGridActions({
     }
   };
 
-  const handleMove = (toCollectionId: string, quantity: number) => {
+  const moveAndClose = async (toCollectionId: string, quantity: number) => {
     const copyIds = actionCopyIds.slice(0, quantity);
-    moveCopies.mutate(
-      { copyIds, toCollectionId },
-      {
-        onSuccess: () => {
-          toast.success(m.collections_toast_moved_cards({ count: copyIds.length }));
-          clearSelection();
-          setMoveOpen(false);
-        },
-      },
-    );
+    const moved = await moveWithUndo.move(copyIds, toCollectionId);
+    if (!moved) {
+      return;
+    }
+    toast.success(m.collections_toast_moved_cards({ count: copyIds.length }), {
+      action: moved.undo,
+    });
+    clearSelection();
+    setMoveOpen(false);
+  };
+
+  const handleMove = (toCollectionId: string, quantity: number) => {
+    void moveAndClose(toCollectionId, quantity);
   };
 
   const handleDispose = () => {
@@ -178,7 +183,7 @@ export function useCollectionGridActions({
     setDisposeQuantity,
     disposeListMemberships,
     disposeAnnotatedCount,
-    moveIsPending: moveCopies.isPending,
+    moveIsPending: moveCopies.isPending || moveWithUndo.isPending,
     disposeIsPending: disposeCopies.isPending,
     openAction,
     handleMove,

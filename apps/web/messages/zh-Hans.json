@@ -1386,6 +1386,17 @@
       }
     }
   ],
+  "collections_toast_moved_back": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已移回 1 张卡牌",
+        "countPlural=*": "已移回 {count} 张卡牌"
+      }
+    }
+  ],
+  "collections_toast_undo": "撤销",
   "collections_toast_moved_to_list_cards": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

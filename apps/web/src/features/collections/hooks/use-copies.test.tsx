@@ -230,6 +230,25 @@ describe("useMoveCopies", () => {
     ]);
   });
 
+  it("resolves with each moved copy's previous collection, leaving out copies already there", async () => {
+    const { client } = await signedInWithCopies([
+      stubCopy({ id: "c1", collectionId: "binder" }),
+      stubCopy({ id: "c2", collectionId: "inbox" }),
+      stubCopy({ id: "c3", collectionId: "dest" }),
+    ]);
+    const { result } = renderHook(() => useMoveCopies(), { wrapper: wrap(client) });
+
+    const moved = await result.current.mutateAsync({
+      copyIds: ["c1", "c2", "c3", "gone"],
+      toCollectionId: "dest",
+    });
+
+    expect(moved).toEqual([
+      { copyId: "c1", fromCollectionId: "binder" },
+      { copyId: "c2", fromCollectionId: "inbox" },
+    ]);
+  });
+
   it("rejects while signed out", async () => {
     const { result } = renderHook(() => useMoveCopies(), { wrapper: wrap(newClient()) });
 
