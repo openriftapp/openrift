@@ -154,6 +154,7 @@ function GroupUnitSection({
   const missing = progress.total - progress.reported;
   const earlier = rounds
     .filter((round) => round.roundNumber < unit.roundsStarted)
+    .toSorted((a, b) => b.roundNumber - a.roundNumber)
     .map((round) => ({ roundNumber: round.roundNumber, pods: podsOfUnit(round.pods, unitPlayers) }))
     .filter((entry) => entry.pods.length > 0);
   const nextRound = unit.roundsStarted + 1;

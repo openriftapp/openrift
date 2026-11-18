@@ -168,20 +168,20 @@ export function PeopleSection() {
             <BracketColumn label="Semifinal" collapsed>
               <BracketMatchCard label="Table 1" aside="Best of 3">
                 <BracketSeatRow
-                  winner
+                  outcome="won"
                   mark={<BracketSeedMark>1</BracketSeedMark>}
                   name="Poro Herder"
                   score={2}
                 />
                 <BracketSeatRow
-                  winner={false}
+                  outcome="lost"
                   mark={<BracketSeedMark>4</BracketSeedMark>}
                   name="Glacial Mina"
                   score={1}
                 />
               </BracketMatchCard>
               <BracketMatchCard label="Table 2">
-                <BracketSeatRow winner={false} name="Hex Tinkerer" score={0} />
+                <BracketSeatRow name="Hex Tinkerer" score={0} />
                 <BracketEmptySeat>Waiting on the winner of table 3</BracketEmptySeat>
               </BracketMatchCard>
             </BracketColumn>
@@ -196,13 +196,13 @@ export function PeopleSection() {
                 }
               >
                 <BracketSeatRow
-                  winner
+                  outcome="won"
                   mark={<BracketRankMark rank={1} text="1" />}
                   name="Poro Herder"
                   score={2}
                 />
                 <BracketSeatRow
-                  winner={false}
+                  outcome="lost"
                   mark={<BracketRankMark rank={2} text="2" />}
                   name="Void Binder"
                   score={1}

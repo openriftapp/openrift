@@ -29,7 +29,7 @@ function seatName(seat: MetaBracketSeat, player: MetaEventPlayer | undefined) {
 function Seat({ seat, player }: { seat: MetaBracketSeat; player: MetaEventPlayer | undefined }) {
   return (
     <BracketSeatRow
-      winner={seat.isWinner}
+      outcome={seat.isWinner ? "won" : "lost"}
       mark={
         player === undefined ? undefined : (
           <BracketRankMark rank={player.rank} text={formatRank(player.rank, player.rankIsTier)} />

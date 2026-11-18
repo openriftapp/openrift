@@ -118,12 +118,7 @@ describe("BracketMatchCard", () => {
 describe("BracketSeatRow", () => {
   it("renders the mark, name, notes and score slots", () => {
     render(
-      <BracketSeatRow
-        winner={false}
-        mark={<BracketSeedMark>#3</BracketSeedMark>}
-        name="Ashe"
-        score={2}
-      >
+      <BracketSeatRow mark={<BracketSeedMark>#3</BracketSeedMark>} name="Ashe" score={2}>
         <span>chooses starter</span>
       </BracketSeatRow>,
     );
@@ -133,23 +128,32 @@ describe("BracketSeatRow", () => {
     expect(screen.getByText("2")).toHaveClass("tabular-nums");
   });
 
-  it("bolds the winner and mutes the loser", () => {
+  it("tints and bolds the winner and mutes the loser", () => {
     render(
       <>
-        <BracketSeatRow winner name="Jinx" score={2} />
-        <BracketSeatRow winner={false} name="Sett" score={0} />
+        <BracketSeatRow outcome="won" name="Jinx" score={2} />
+        <BracketSeatRow outcome="lost" name="Sett" score={0} />
       </>,
     );
     const winner = screen.getByText("Jinx").closest("[data-slot=bracket-seat]");
     const loser = screen.getByText("Sett").closest("[data-slot=bracket-seat]");
-    expect(winner).toHaveClass("font-semibold");
-    expect(winner).toHaveAttribute("data-winner", "true");
+    expect(winner).toHaveClass("font-semibold", "bg-primary/10");
+    expect(winner).toHaveAttribute("data-outcome", "won");
+    expect(screen.getByText("2")).toHaveClass("text-primary");
     expect(loser).toHaveClass("text-muted-foreground");
-    expect(loser).not.toHaveAttribute("data-winner");
+    expect(loser).toHaveAttribute("data-outcome", "lost");
+  });
+
+  it("leaves an undecided seat unstyled", () => {
+    render(<BracketSeatRow name="Vi" score="–" />);
+    const seat = screen.getByText("Vi").closest("[data-slot=bracket-seat]");
+    expect(seat).not.toHaveAttribute("data-outcome");
+    expect(seat).not.toHaveClass("text-muted-foreground");
+    expect(seat).not.toHaveClass("font-semibold");
   });
 
   it("keeps an empty mark column when no mark is given", () => {
-    render(<BracketSeatRow winner={false} name="Garen" score="–" />);
+    render(<BracketSeatRow name="Garen" score="–" />);
     const seat = screen.getByText("Garen").closest("[data-slot=bracket-seat]");
     expect(seat?.firstElementChild).toHaveClass("w-16", "h-11");
     expect(seat?.firstElementChild).toBeEmptyDOMElement();
@@ -158,7 +162,7 @@ describe("BracketSeatRow", () => {
   it("shows a rank mark as a crown band", () => {
     render(
       <BracketSeatRow
-        winner
+        outcome="won"
         mark={<BracketRankMark rank={1} text="1st" />}
         name="Ashe"
         score={2}
@@ -171,18 +175,13 @@ describe("BracketSeatRow", () => {
     render(
       <>
         <BracketSeatRow
-          winner
+          outcome="won"
           mark={<BracketRankMark rank={5} text="5th" />}
           name="Ashe"
           score={2}
         />
-        <BracketSeatRow
-          winner={false}
-          mark={<BracketSeedMark>#4</BracketSeedMark>}
-          name="Sett"
-          score={0}
-        />
-        <BracketSeatRow winner={false} name="Garen" score="–" />
+        <BracketSeatRow mark={<BracketSeedMark>#4</BracketSeedMark>} name="Sett" score={0} />
+        <BracketSeatRow name="Garen" score="–" />
         <BracketEmptySeat>Winner of SF 1</BracketEmptySeat>
       </>,
     );

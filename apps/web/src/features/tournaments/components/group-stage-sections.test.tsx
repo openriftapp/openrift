@@ -50,7 +50,7 @@ function round(roundNumber: number, pods: PodResponse[]): PodRoundResponse {
   };
 }
 
-function groupStage(cutGenerated: boolean): GroupStageView {
+function groupStage(cutGenerated: boolean, roundsStarted = 2): GroupStageView {
   return {
     groups: [
       {
@@ -59,7 +59,7 @@ function groupStage(cutGenerated: boolean): GroupStageView {
         pairedGroupId: null,
         pairedGroupLabel: null,
         playerIds: ["Ashe", "Garen", "Jinx", "Sett"],
-        roundsStarted: 2,
+        roundsStarted,
         currentRoundReported: false,
         canStartNextRound: false,
         done: false,
@@ -122,5 +122,32 @@ describe("GroupStageSections", () => {
     expect(screen.getAllByText("Ashe")).toHaveLength(2);
     expect(screen.queryByRole("button", { name: "Edit result" })).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Enter result" })).toHaveLength(2);
+  });
+
+  it("lists earlier rounds newest first", () => {
+    render(
+      <GroupStageSections
+        groupStage={groupStage(false, 3)}
+        rounds={[
+          ...rounds,
+          round(3, [
+            pod("pod-5", 1, [member("Ashe", null), member("Sett", null)]),
+            pod("pod-6", 2, [member("Garen", null), member("Jinx", null)]),
+          ]),
+        ]}
+        scheme="standard"
+        matchFormat="bo3"
+        winPoints={3}
+        drawPoints={1}
+        canEnterResult
+        onSubmitResult={vi.fn()}
+      />,
+    );
+
+    const toggles = screen.getAllByRole("button", { name: /^Expand round/u });
+    expect(toggles.map((toggle) => toggle.getAttribute("aria-label"))).toEqual([
+      "Expand round 2",
+      "Expand round 1",
+    ]);
   });
 });

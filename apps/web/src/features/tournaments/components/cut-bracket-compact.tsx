@@ -85,10 +85,14 @@ function Seat({
   const legend = context.legendByPlayer.get(member.playerId);
   const group = context.groupByPlayer.get(member.playerId);
   const open = pod.resultStatus !== "reported";
+  let outcome: "won" | "lost" | undefined;
+  if (!open) {
+    outcome = winner ? "won" : "lost";
+  }
   const chooser = open && isHigherSeed(pod, member.playerId, context.seedByPlayer);
   return (
     <BracketSeatRow
-      winner={winner}
+      outcome={outcome}
       mark={
         place === undefined ? (
           <BracketSeedMark>
@@ -131,7 +135,6 @@ function Seat({
                 legendCardId={legend.legendCardId}
                 fallback={legend}
                 championOnly
-                hideDomains
                 className="shrink-0"
               />
             </span>
@@ -216,15 +219,17 @@ function Match({
     <BracketMatchCard
       isFinal={isFinal}
       pending={pod === null}
-      label={cutMatchShortLabel(context.cutSize, roundNumber, match.podNumber)}
+      label={
+        pod !== null && isDoubleForfeitPod(pod)
+          ? m.tournaments_pod_double_forfeit()
+          : pairingLabel(match.podNumber)
+      }
       aside={
         <>
+          {cutMatchShortLabel(context.cutSize, roundNumber, match.podNumber)}
           {canEnter && reported ? (
             <Badge variant="success">{m.tournaments_pod_reported()}</Badge>
           ) : null}
-          {pod !== null && isDoubleForfeitPod(pod)
-            ? m.tournaments_pod_double_forfeit()
-            : pairingLabel(match.podNumber)}
         </>
       }
       footer={

@@ -19,19 +19,13 @@ type Props = Pick<MetaIdentityProps, "layout" | "championOnly" | "className"> & 
   legendCardId: string | null;
   /** Server-provided name for the render before the catalog is in. */
   fallback?: ServerLegendName | null;
-  hideDomains?: boolean;
 };
 
 function fallbackLegend(fallback: ServerLegendName | null | undefined): MetaIdentityLegend | null {
   return fallback ? { character: fallback.legendCharacter, epithet: fallback.legendEpithet } : null;
 }
 
-function CatalogLegend({
-  legendCardId,
-  fallback,
-  hideDomains = false,
-  ...rest
-}: Props & { legendCardId: string }) {
+function CatalogLegend({ legendCardId, fallback, ...rest }: Props & { legendCardId: string }) {
   const { printingsByCardId } = useCards();
   const card = printingsByCardId.get(legendCardId)?.[0]?.card;
   if (card === undefined) {
@@ -41,26 +35,21 @@ function CatalogLegend({
     <MetaIdentity
       legend={legendNameParts(card)}
       slug={card.slug}
-      domains={hideDomains ? undefined : card.domains}
+      domains={card.domains}
       {...rest}
     />
   );
 }
 
 /** A player's Legend as the archive shows it: champion, title and domain runes, linked to the card. */
-export function TournamentLegend({ legendCardId, fallback, hideDomains, ...rest }: Props) {
+export function TournamentLegend({ legendCardId, fallback, ...rest }: Props) {
   const hydrated = useHydrated();
   if (legendCardId === null || !hydrated) {
     return <MetaIdentity legend={fallbackLegend(fallback)} {...rest} />;
   }
   return (
     <Suspense fallback={<MetaIdentity legend={fallbackLegend(fallback)} {...rest} />}>
-      <CatalogLegend
-        legendCardId={legendCardId}
-        fallback={fallback}
-        hideDomains={hideDomains}
-        {...rest}
-      />
+      <CatalogLegend legendCardId={legendCardId} fallback={fallback} {...rest} />
     </Suspense>
   );
 }

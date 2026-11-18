@@ -42,10 +42,4 @@ describe("TournamentLegend", () => {
     render(<TournamentLegend legendCardId="lux" championOnly />);
     expect(screen.getByAltText("Fury")).toBeInTheDocument();
   });
-
-  it("leaves the domain runes out when asked to", () => {
-    render(<TournamentLegend legendCardId="lux" championOnly hideDomains />);
-    expect(screen.getByText(/Lux/u)).toBeInTheDocument();
-    expect(screen.queryByAltText("Fury")).not.toBeInTheDocument();
-  });
 });

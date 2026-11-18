@@ -116,15 +116,18 @@ export function BracketMatchCard({
   );
 }
 
-/** Without `mark` the row keeps an empty mark column so names still line up. */
+/**
+ * Without `mark` the row keeps an empty mark column so names still line up.
+ * Without `outcome` the match is undecided and neither seat is styled.
+ */
 export function BracketSeatRow({
-  winner,
+  outcome,
   mark,
   name,
   score,
   children,
 }: {
-  winner: boolean;
+  outcome?: "won" | "lost";
   mark?: ReactNode;
   name: ReactNode;
   score: ReactNode;
@@ -133,17 +136,20 @@ export function BracketSeatRow({
   return (
     <div
       data-slot="bracket-seat"
-      data-winner={winner || undefined}
+      data-outcome={outcome}
       className={cn(
         "flex text-sm not-last:border-b",
-        winner ? "font-semibold" : "text-muted-foreground",
+        outcome === "won" && "bg-primary/10 font-semibold",
+        outcome === "lost" && "text-muted-foreground",
       )}
     >
       {mark ?? <span className={MARK_SLOT} />}
       <div className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5">
         <span className="min-w-0 flex-1 truncate">{name}</span>
         {children}
-        <span className="w-6 text-right tabular-nums">{score}</span>
+        <span className={cn("w-6 text-right tabular-nums", outcome === "won" && "text-primary")}>
+          {score}
+        </span>
       </div>
     </div>
   );

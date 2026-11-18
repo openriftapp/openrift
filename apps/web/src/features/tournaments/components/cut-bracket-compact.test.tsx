@@ -193,6 +193,33 @@ describe("CutBracketCompact", () => {
     expect(screen.getAllByText("–")).toHaveLength(2);
   });
 
+  it("leads the match header with the table and marks only decided seats", () => {
+    render(
+      <CutBracketCompact
+        cutSize={4}
+        groupStage={stage}
+        rounds={[
+          round(4, [
+            pod("p1", 1, [
+              ["Ashe", 2, 1],
+              ["Sett", 0, 2],
+            ]),
+            pod("p2", 2, [
+              ["Garen", null, null],
+              ["Jinx", null, null],
+            ]),
+          ]),
+        ]}
+      />,
+    );
+    const header = screen.getByText("SF 1").parentElement?.parentElement;
+    expect(header?.firstElementChild).toHaveTextContent("Table 1");
+    const outcomes = [...document.querySelectorAll("[data-slot=bracket-seat]")].map(
+      (seat) => seat.dataset.outcome ?? null,
+    );
+    expect(outcomes.slice(0, 4)).toEqual(["won", "lost", null, null]);
+  });
+
   it("swaps the seed for a medal once the final standings exist", () => {
     render(
       <CutBracketCompact
