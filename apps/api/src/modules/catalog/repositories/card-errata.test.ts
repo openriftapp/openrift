@@ -1,68 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { createMockDb } from "../../../test/mock-db.js";
 import { cardErrataRepo } from "./card-errata.js";
 
-const ERRATA = {
-  announcementId: null,
-  correctedRulesText: "Deal 3 damage.",
-  correctedEffectText: null,
-  source: "riot-patch-notes",
-  sourceUrl: null,
-  // A `date` column: the driver hands back the day string, never a Date.
-  effectiveDate: "2026-01-01",
-};
-
 describe("cardErrataRepo", () => {
-  it("upsert writes the errata row", async () => {
-    const db = createMockDb([]);
-    await expect(
-      cardErrataRepo(db).upsert("c-1", "EN", {
-        announcementId: null,
-        correctedRulesText: "Deal 3 damage.",
-        correctedEffectText: null,
-        source: "riot-patch-notes",
-        sourceUrl: null,
-        effectiveDate: "2026-01-01",
-      }),
-    ).resolves.toBeUndefined();
-  });
-
-  it("upsert accepts a null effective date", async () => {
-    const db = createMockDb([]);
-    await expect(
-      cardErrataRepo(db).upsert("c-1", "EN", {
-        announcementId: null,
-        correctedRulesText: null,
-        correctedEffectText: "Draw a card.",
-        source: "manual",
-        sourceUrl: "https://example.invalid/patch",
-        effectiveDate: null,
-      }),
-    ).resolves.toBeUndefined();
-  });
-
-  it("delete removes the errata row", async () => {
-    const db = createMockDb([]);
-    await expect(cardErrataRepo(db).delete("c-1", "EN")).resolves.toBeUndefined();
-  });
-
-  it("get returns the errata row", async () => {
-    const db = createMockDb([ERRATA]);
-    expect(await cardErrataRepo(db).get("c-1", "EN")).toEqual(ERRATA);
-  });
-
-  it("get returns null when the card has no errata", async () => {
-    const db = createMockDb([]);
-    expect(await cardErrataRepo(db).get("c-1", "EN")).toBeNull();
-  });
-
-  it("getByCardIds returns the matching rows", async () => {
-    const rows = [{ cardId: "c-1", ...ERRATA }];
-    const db = createMockDb(rows);
-    expect(await cardErrataRepo(db).getByCardIds(["c-1"])).toEqual(rows);
-  });
-
   it("getByCardIds short-circuits on an empty id list", async () => {
     const throwingDb = new Proxy(
       {},
@@ -73,30 +13,5 @@ describe("cardErrataRepo", () => {
       },
     ) as never;
     expect(await cardErrataRepo(throwingDb).getByCardIds([])).toEqual([]);
-  });
-
-  it("announcements returns the announcement rows", async () => {
-    const rows = [
-      { id: "a-1", name: "Vendetta Errata Updates", publishedOn: "2026-07-23", url: "https://x" },
-    ];
-    const db = createMockDb(rows);
-    expect(await cardErrataRepo(db).announcements()).toEqual(rows);
-  });
-
-  it("upsertAnnouncement returns the announcement id", async () => {
-    const db = createMockDb([{ id: "a-1" }]);
-    expect(
-      await cardErrataRepo(db).upsertAnnouncement({
-        name: "Vendetta Errata Updates",
-        publishedOn: "2026-07-23",
-        url: "https://x",
-      }),
-    ).toBe("a-1");
-  });
-
-  it("listEntries returns one row per erratum", async () => {
-    const rows = [{ slug: "gold", announcementId: null, source: "UNL-T05" }];
-    const db = createMockDb(rows);
-    expect(await cardErrataRepo(db).listEntries()).toEqual(rows);
   });
 });

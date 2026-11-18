@@ -88,12 +88,21 @@ describe("watchOwnershipForDeckList", () => {
     expect(invalidate).not.toHaveBeenCalled();
   });
 
-  it("ignores another user's data and drops a pending refetch when stopped", () => {
-    queryClient.setQueryData(copiesKeys.syncedStore(USER), [{ id: "a" }]);
+  it("ignores another user's data", () => {
     queryClient.setQueryData(copiesKeys.syncedStore("someone-else"), [{ id: "x" }]);
     stop = watchOwnershipForDeckList(queryClient, USER);
 
     queryClient.setQueryData(copiesKeys.syncedStore("someone-else"), [{ id: "y" }]);
+    queryClient.setQueryData(copiesKeys.syncedStore("someone-else"), [{ id: "z" }]);
+    vi.runAllTimers();
+
+    expect(invalidate).not.toHaveBeenCalled();
+  });
+
+  it("drops a pending refetch when stopped", () => {
+    queryClient.setQueryData(copiesKeys.syncedStore(USER), [{ id: "a" }]);
+    stop = watchOwnershipForDeckList(queryClient, USER);
+
     queryClient.setQueryData(copiesKeys.syncedStore(USER), [{ id: "b" }]);
     stop();
     vi.runAllTimers();

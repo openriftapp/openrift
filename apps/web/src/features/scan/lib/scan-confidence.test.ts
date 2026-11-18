@@ -34,12 +34,11 @@ describe("ghostConfidence", () => {
     expect(capture).toBe(ghostConfidence(FLOOR, NO_RUN));
   });
 
-  it("clamps a score past the floor", () => {
-    expect(ghostConfidence(FLOOR * 10, NO_RUN)).toBe(ghostConfidence(FLOOR, NO_RUN));
-  });
-
-  it("clamps a run that overshoots its target", () => {
-    expect(ghostConfidence(FLOOR, { runLength: 99, lockRun: 3 })).toBe(1);
+  it.each([
+    ["a score past the floor", FLOOR * 10, NO_RUN, ghostConfidence(FLOOR, NO_RUN)],
+    ["a run that overshoots its target", FLOOR, { runLength: 99, lockRun: 3 }, 1],
+  ])("clamps %s", (_title, score, run, expected) => {
+    expect(ghostConfidence(score, run)).toBe(expected);
   });
 
   it("treats negative and non-finite inputs as nothing seen", () => {

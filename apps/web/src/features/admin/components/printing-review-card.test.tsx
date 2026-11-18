@@ -256,47 +256,50 @@ describe("PrintingReviewCard", () => {
     expect(captured.switcher?.images?.map((i) => i.id)).toEqual(["img1"]);
   });
 
-  it("shows no badge when the printing has no active image and no substitute", () => {
-    const { queryByText } = renderCard({ printingImages: [stubImage({ isActive: false })] });
+  it.each([
+    { mode: "auto", fallbackImageFileId: null, badgeShown: false },
+    { mode: "pinned", fallbackImageFileId: "file-2", badgeShown: true },
+  ] as const)(
+    "with no active image and fallback mode $mode, shows the substitute badge: $badgeShown",
+    ({ mode, fallbackImageFileId, badgeShown }) => {
+      const { queryByText } = renderCard({
+        printing: stubPrinting({ fallbackArtMode: mode, fallbackImageFileId }),
+        printingImages: [stubImage({ isActive: false })],
+      });
 
-    expect(queryByText("no image")).toBeNull();
-    expect(queryByText("substitute image")).toBeNull();
-  });
+      expect(queryByText("substitute image") !== null).toBe(badgeShown);
+    },
+  );
 
-  it("marks a pinned substitute instead of warning", () => {
-    const printing = stubPrinting({ fallbackArtMode: "pinned", fallbackImageFileId: "file-2" });
-    const { getByText, queryByText } = renderCard({
-      printing,
-      printings: [printing],
-      printingImages: [stubImage({ isActive: false })],
-    });
+  it.each([
+    {
+      name: "the standard printing that carries art",
+      props: () => {
+        const own = stubPrinting({ id: "p1", finish: "metal", canonicalRank: 5 });
+        const standard = stubPrinting({
+          id: "p2",
+          expectedPrintingId: "OGN-001 · normal · EN",
+          finish: "normal",
+        });
+        return {
+          printing: own,
+          printings: [own, standard],
+          printingImages: [
+            stubImage({ id: "img2", printingId: "p2", rehostedUrl: "https://cdn.test/rehosted/b" }),
+          ],
+        };
+      },
+      expected: "OGN-001 · normal · EN",
+    },
+    {
+      name: "null when no standard printing carries art",
+      props: () => ({ printingImages: [] }),
+      expected: null,
+    },
+  ])("passes down $name as the derived art label", ({ props, expected }) => {
+    renderCard(props());
 
-    expect(getByText("substitute image")).toBeTruthy();
-    expect(queryByText("no image")).toBeNull();
-  });
-
-  it("passes down the printing the derived substitute comes from", () => {
-    const own = stubPrinting({ id: "p1", finish: "metal", canonicalRank: 5 });
-    const standard = stubPrinting({
-      id: "p2",
-      expectedPrintingId: "OGN-001 · normal · EN",
-      finish: "normal",
-    });
-    renderCard({
-      printing: own,
-      printings: [own, standard],
-      printingImages: [
-        stubImage({ id: "img2", printingId: "p2", rehostedUrl: "https://cdn.test/rehosted/b" }),
-      ],
-    });
-
-    expect(captured.switcher?.derivedArtLabel).toBe("OGN-001 · normal · EN");
-  });
-
-  it("passes a null derived label when no standard printing carries art", () => {
-    renderCard({ printingImages: [] });
-
-    expect(captured.switcher?.derivedArtLabel).toBeNull();
+    expect(captured.switcher?.derivedArtLabel).toBe(expected);
   });
 
   it("draws a placeholder instead of a broken image when nothing is active", () => {
@@ -368,8 +371,14 @@ describe("PrintingReviewCard", () => {
     expect(captured.spreadsheet).toBeNull();
   });
 
-  it("starts collapsed when the store already has the printing folded", () => {
-    useAdminCardFoldStore.getState().togglePrinting(CARD_ID, "f1");
+  it.each([
+    {
+      name: "the store already has the printing folded",
+      arrange: () => useAdminCardFoldStore.getState().togglePrinting(CARD_ID, "f1"),
+    },
+    { name: "the page has not seeded the card's folds yet", arrange: () => resetStore() },
+  ])("starts collapsed when $name", ({ arrange }) => {
+    arrange();
     renderCard();
 
     expect(captured.spreadsheet).toBeNull();
@@ -423,12 +432,11 @@ describe("PrintingReviewCard", () => {
     expect(captured.spreadsheet).not.toBeNull();
   });
 
-  it("shows the citation editor to admins", () => {
-    expect(renderCard().queryByTestId("citations-editor")).not.toBeNull();
-  });
-
-  it("hides the citation editor from a card-review grant holder", () => {
-    expect(renderCard({ isAdmin: false }).queryByTestId("citations-editor")).toBeNull();
+  it.each([
+    { viewer: "an admin", isAdmin: true, shown: true },
+    { viewer: "a card-review grant holder", isAdmin: false, shown: false },
+  ])("shows the citation editor to $viewer: $shown", ({ isAdmin, shown }) => {
+    expect(renderCard({ isAdmin }).queryByTestId("citations-editor") !== null).toBe(shown);
   });
 
   it("renders the language prefix as a chip", () => {
@@ -438,13 +446,6 @@ describe("PrintingReviewCard", () => {
 
     expect(getByText("EN")).toBeTruthy();
     expect(getByText("OGN-001::foil")).toBeTruthy();
-  });
-
-  it("starts folded before the page seeds the card's folds", () => {
-    resetStore();
-    renderCard();
-
-    expect(captured.spreadsheet).toBeNull();
   });
 
   it("offers the old value back after accepting one from a source", async () => {

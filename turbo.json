@@ -3,7 +3,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["topo"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*", "!src/**/*.test.ts", "!src/**/*.test.tsx"],
       "outputs": ["dist/**", ".output/**"],
       "passThroughEnv": ["SENTRY_AUTH_TOKEN", "SENTRY_ORG", "SENTRY_PROJECT"]
     },
@@ -34,7 +34,8 @@
     // (its exports point at ./src/*.ts), so a change confined to
     // packages/shared/src must invalidate both apps' test caches.
     "topo": {
-      "dependsOn": ["^topo"]
+      "dependsOn": ["^topo"],
+      "inputs": ["$TURBO_DEFAULT$", "!src/**/*.test.ts", "!src/**/*.test.tsx"]
     },
     "test": {
       "dependsOn": ["topo"],

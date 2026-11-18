@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import type { FrameOutlineLabel, OutlineLabelQuad } from "./outline-labels";
+import type { FrameOutlineLabel, FrameOutlineLabels, OutlineLabelQuad } from "./outline-labels";
 import {
   addCard,
-  doneCount,
   outlineLabelFolder,
   outlineLabelMargin,
   outlineLabelStorageKey,
@@ -104,31 +103,38 @@ describe("opening a folder", () => {
     expect(storedOutlineLabelsFor(null, "two")).toEqual({});
   });
 
-  it("lets the autosave win over proposals", () => {
-    expect(mergeOpenedOutlineLabels({ "a.jpg": proposed }, { "a.jpg": stored }, {})).toEqual({
-      labels: { "a.jpg": stored },
-      keptAutosave: 0,
-    });
-  });
-
-  it("keeps the autosave over an opened scan-labels.json and counts the frames", () => {
-    expect(
-      mergeOpenedOutlineLabels(
-        { "a.jpg": proposed },
-        { "a.jpg": stored, "b.jpg": stored },
-        { "a.jpg": saved, "b.jpg": stored, "c.jpg": saved },
-      ),
-    ).toEqual({
-      labels: { "a.jpg": stored, "b.jpg": stored, "c.jpg": saved },
-      keptAutosave: 1,
-    });
-  });
-
-  it("keeps proposals for frames nothing else covers", () => {
-    expect(mergeOpenedOutlineLabels({ "b.jpg": proposed }, { "a.jpg": stored }, {})).toEqual({
-      labels: { "a.jpg": stored, "b.jpg": proposed },
-      keptAutosave: 0,
-    });
+  it.each<
+    [
+      string,
+      FrameOutlineLabels,
+      FrameOutlineLabels,
+      FrameOutlineLabels,
+      ReturnType<typeof mergeOpenedOutlineLabels>,
+    ]
+  >([
+    [
+      "lets the autosave win over proposals",
+      { "a.jpg": proposed },
+      { "a.jpg": stored },
+      {},
+      { labels: { "a.jpg": stored }, keptAutosave: 0 },
+    ],
+    [
+      "keeps the autosave over an opened scan-labels.json and counts the frames",
+      { "a.jpg": proposed },
+      { "a.jpg": stored, "b.jpg": stored },
+      { "a.jpg": saved, "b.jpg": stored, "c.jpg": saved },
+      { labels: { "a.jpg": stored, "b.jpg": stored, "c.jpg": saved }, keptAutosave: 1 },
+    ],
+    [
+      "keeps proposals for frames nothing else covers",
+      { "b.jpg": proposed },
+      { "a.jpg": stored },
+      {},
+      { labels: { "a.jpg": stored, "b.jpg": proposed }, keptAutosave: 0 },
+    ],
+  ])("%s", (_title, proposals, autosave, opened, expected) => {
+    expect(mergeOpenedOutlineLabels(proposals, autosave, opened)).toEqual(expected);
   });
 });
 
@@ -194,6 +200,15 @@ describe("editing", () => {
       { x: 0, y: 140 },
     ];
     expect(nearestCorner([card], { x: 50, y: 70 })).toBeNull();
+  });
+
+  it("finds a corner within reach of the point", () => {
+    const card: OutlineLabelQuad = [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      { x: 100, y: 140 },
+      { x: 0, y: 140 },
+    ];
     expect(nearestCorner([card], { x: 20, y: 20 })).toEqual({ card: 0, corner: 0 });
   });
 
@@ -201,11 +216,13 @@ describe("editing", () => {
     expect(nearestCorner([], { x: 0, y: 0 })).toBeNull();
   });
 
-  it("removes a card", () => {
-    expect(removeCard(label, 0).cards).toEqual([]);
-  });
-
-  it("counts finished frames", () => {
-    expect(doneCount({ a: { cards: [], done: true }, b: { cards: [quad], done: false } })).toBe(1);
+  it("removes only the card at the given index", () => {
+    const other: OutlineLabelQuad = [
+      { x: 50, y: 50 },
+      { x: 60, y: 50 },
+      { x: 60, y: 64 },
+      { x: 50, y: 64 },
+    ];
+    expect(removeCard({ cards: [quad, other], done: false }, 0).cards).toEqual([other]);
   });
 });

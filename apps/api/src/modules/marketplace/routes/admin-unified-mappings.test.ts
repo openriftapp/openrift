@@ -273,29 +273,6 @@ describe("POST /api/admin/v1/marketplace-mappings", () => {
     expect(mockSaveMappings).toHaveBeenCalledTimes(1);
   });
 
-  it("returns 200 with save result for cardmarket", async () => {
-    mockSaveMappings.mockResolvedValue({ saved: 1, skipped: [], applied: [] });
-
-    const res = await app.request("/api/admin/v1/marketplace-mappings?marketplace=cardmarket", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mappings: [
-          {
-            printingId: "00000000-0000-4000-a000-000000000001",
-            externalId: 12_345,
-            finish: "normal",
-            language: null,
-          },
-        ],
-      }),
-    });
-
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.saved).toBe(1);
-  });
-
   it("returns 200 with skipped items", async () => {
     mockSaveMappings.mockResolvedValue({
       saved: 0,

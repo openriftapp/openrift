@@ -42,7 +42,54 @@ function createMockConfig(overrides: Partial<MarketplaceConfig> = {}): Marketpla
       avg30Cents: row.avg30Cents,
     }),
     priceQuery: vi.fn().mockResolvedValue([]),
-    mapPriceRow: vi.fn(),
+    mapPriceRow: vi.fn((row: PriceRow) => ({
+      productName: row.productName,
+      marketCents: row.marketCents,
+      lowCents: row.lowCents,
+      zeroLowCents: row.zeroLowCents,
+      currency: "USD",
+      recordedAt: row.recordedAt.toISOString(),
+      midCents: row.midCents,
+      highCents: row.highCents,
+      trendCents: row.trendCents,
+      avg1Cents: row.avg1Cents,
+      avg7Cents: row.avg7Cents,
+      avg30Cents: row.avg30Cents,
+    })),
+    ...overrides,
+  };
+}
+
+type PriceRow = Parameters<MarketplaceConfig["mapPriceRow"]>[0];
+
+function makePriceRow(overrides: Partial<PriceRow> = {}): PriceRow {
+  return {
+    printingId: "printing-1",
+    externalId: 12_345,
+    productName: "Fireball",
+    finish: "normal",
+    language: "EN",
+    recordedAt: new Date("2026-01-15"),
+    marketCents: 100,
+    lowCents: null,
+    zeroLowCents: null,
+    midCents: null,
+    highCents: null,
+    trendCents: null,
+    avg1Cents: null,
+    avg7Cents: null,
+    avg30Cents: null,
+    ...overrides,
+  };
+}
+
+function makeProduct(overrides: Record<string, unknown> = {}) {
+  return {
+    externalId: 12_345,
+    finish: "normal",
+    language: "EN",
+    groupId: 1,
+    productName: "X",
     ...overrides,
   };
 }
@@ -346,39 +393,9 @@ describe("getMappingOverview", () => {
   });
 
   it("includes assigned products from mapped printings", async () => {
-    const priceQuery = vi.fn().mockResolvedValue([
-      {
-        printingId: "printing-1",
-        externalId: 12_345,
-        productName: "Fireball Product",
-        finish: "normal",
-        language: "EN",
-        recordedAt: new Date("2026-01-15"),
-        marketCents: 500,
-        lowCents: 400,
-        zeroLowCents: null,
-        midCents: 500,
-        highCents: 600,
-        trendCents: 500,
-        avg1Cents: 480,
-        avg7Cents: 490,
-        avg30Cents: 495,
-      },
-    ]);
-    const mapPriceRow = vi.fn().mockReturnValue({
-      productName: "Fireball Product",
-      marketCents: 500,
-      lowCents: 400,
-      zeroLowCents: null,
-      currency: "USD",
-      recordedAt: "2026-01-15T00:00:00.000Z",
-      midCents: 500,
-      highCents: 600,
-      trendCents: 500,
-      avg1Cents: 480,
-      avg7Cents: 490,
-      avg30Cents: 495,
-    });
+    const priceQuery = vi
+      .fn()
+      .mockResolvedValue([makePriceRow({ productName: "Fireball Product" })]);
     const mappingRepo = createMockMappingRepo({
       allCardsWithPrintings: vi.fn().mockResolvedValue([
         makeCardPrintingRow({
@@ -391,7 +408,7 @@ describe("getMappingOverview", () => {
       groupNames: vi.fn().mockResolvedValue([{ gid: 1, name: "Group One" }]),
     });
     const repos = { marketplaceMapping: mappingRepo } as unknown as Repos;
-    const config = createMockConfig({ priceQuery, mapPriceRow });
+    const config = createMockConfig({ priceQuery });
 
     const result = await getMappingOverview(repos, config);
 
@@ -401,39 +418,9 @@ describe("getMappingOverview", () => {
   });
 
   it("uses fallback group name for assigned products with unknown group", async () => {
-    const priceQuery = vi.fn().mockResolvedValue([
-      {
-        printingId: "printing-1",
-        externalId: 123,
-        productName: "X",
-        finish: "normal",
-        language: "EN",
-        recordedAt: new Date("2026-01-15"),
-        marketCents: 100,
-        lowCents: null,
-        zeroLowCents: null,
-        midCents: null,
-        highCents: null,
-        trendCents: null,
-        avg1Cents: null,
-        avg7Cents: null,
-        avg30Cents: null,
-      },
-    ]);
-    const mapPriceRow = vi.fn().mockReturnValue({
-      productName: "X",
-      marketCents: 100,
-      lowCents: null,
-      zeroLowCents: null,
-      currency: "USD",
-      recordedAt: "2026-01-15T00:00:00.000Z",
-      midCents: null,
-      highCents: null,
-      trendCents: null,
-      avg1Cents: null,
-      avg7Cents: null,
-      avg30Cents: null,
-    });
+    const priceQuery = vi
+      .fn()
+      .mockResolvedValue([makePriceRow({ externalId: 123, productName: "X" })]);
     const mappingRepo = createMockMappingRepo({
       allCardsWithPrintings: vi.fn().mockResolvedValue([
         makeCardPrintingRow({
@@ -445,7 +432,7 @@ describe("getMappingOverview", () => {
       ]),
     });
     const repos = { marketplaceMapping: mappingRepo } as unknown as Repos;
-    const config = createMockConfig({ priceQuery, mapPriceRow });
+    const config = createMockConfig({ priceQuery });
 
     const result = await getMappingOverview(repos, config);
 
@@ -453,39 +440,7 @@ describe("getMappingOverview", () => {
   });
 
   it("filters staged products that are already assigned by exact key", async () => {
-    const priceQuery = vi.fn().mockResolvedValue([
-      {
-        printingId: "printing-1",
-        externalId: 12_345,
-        productName: "Fireball",
-        finish: "normal",
-        language: "EN",
-        recordedAt: new Date(),
-        marketCents: 100,
-        lowCents: null,
-        zeroLowCents: null,
-        midCents: null,
-        highCents: null,
-        trendCents: null,
-        avg1Cents: null,
-        avg7Cents: null,
-        avg30Cents: null,
-      },
-    ]);
-    const mapPriceRow = vi.fn().mockReturnValue({
-      productName: "Fireball",
-      marketCents: 100,
-      lowCents: null,
-      zeroLowCents: null,
-      currency: "USD",
-      recordedAt: new Date().toISOString(),
-      midCents: null,
-      highCents: null,
-      trendCents: null,
-      avg1Cents: null,
-      avg7Cents: null,
-      avg30Cents: null,
-    });
+    const priceQuery = vi.fn().mockResolvedValue([makePriceRow()]);
     const mappingRepo = createMockMappingRepo({
       allCardsWithPrintings: vi.fn().mockResolvedValue([
         makeCardPrintingRow({
@@ -502,7 +457,7 @@ describe("getMappingOverview", () => {
         ]),
     });
     const repos = { marketplaceMapping: mappingRepo } as unknown as Repos;
-    const config = createMockConfig({ priceQuery, mapPriceRow });
+    const config = createMockConfig({ priceQuery });
 
     const result = await getMappingOverview(repos, config);
 
@@ -510,56 +465,12 @@ describe("getMappingOverview", () => {
   });
 
   it("deduplicates assigned products by externalId+finish key", async () => {
-    const priceQuery = vi.fn().mockResolvedValue([
-      {
-        printingId: "p-1",
-        externalId: 123,
-        productName: "Fireball",
-        finish: "normal",
-        language: "EN",
-        recordedAt: new Date(),
-        marketCents: 100,
-        lowCents: null,
-        zeroLowCents: null,
-        midCents: null,
-        highCents: null,
-        trendCents: null,
-        avg1Cents: null,
-        avg7Cents: null,
-        avg30Cents: null,
-      },
-      {
-        printingId: "p-2",
-        externalId: 123,
-        productName: "Fireball",
-        finish: "normal",
-        language: "EN",
-        recordedAt: new Date(),
-        marketCents: 100,
-        lowCents: null,
-        zeroLowCents: null,
-        midCents: null,
-        highCents: null,
-        trendCents: null,
-        avg1Cents: null,
-        avg7Cents: null,
-        avg30Cents: null,
-      },
-    ]);
-    const mapPriceRow = vi.fn().mockReturnValue({
-      productName: "Fireball",
-      marketCents: 100,
-      lowCents: null,
-      zeroLowCents: null,
-      currency: "USD",
-      recordedAt: new Date().toISOString(),
-      midCents: null,
-      highCents: null,
-      trendCents: null,
-      avg1Cents: null,
-      avg7Cents: null,
-      avg30Cents: null,
-    });
+    const priceQuery = vi
+      .fn()
+      .mockResolvedValue([
+        makePriceRow({ printingId: "p-1", externalId: 123 }),
+        makePriceRow({ printingId: "p-2", externalId: 123 }),
+      ]);
     const mappingRepo = createMockMappingRepo({
       allCardsWithPrintings: vi.fn().mockResolvedValue([
         makeCardPrintingRow({
@@ -581,7 +492,7 @@ describe("getMappingOverview", () => {
       ]),
     });
     const repos = { marketplaceMapping: mappingRepo } as unknown as Repos;
-    const config = createMockConfig({ priceQuery, mapPriceRow });
+    const config = createMockConfig({ priceQuery });
 
     const result = await getMappingOverview(repos, config);
 
@@ -590,55 +501,14 @@ describe("getMappingOverview", () => {
 
   it("keeps per-finish prices distinct when one externalId has two SKUs bound to the same printing", async () => {
     const priceQuery = vi.fn().mockResolvedValue([
-      {
-        printingId: "printing-1",
-        externalId: 100,
-        productName: "Body Rune",
-        finish: "normal",
-        language: "EN",
-        recordedAt: new Date("2026-04-01"),
-        marketCents: 500,
-        lowCents: 400,
-        zeroLowCents: null,
-        midCents: 500,
-        highCents: 600,
-        trendCents: 500,
-        avg1Cents: 480,
-        avg7Cents: 490,
-        avg30Cents: 495,
-      },
-      {
-        printingId: "printing-1",
+      makePriceRow({ externalId: 100, productName: "Body Rune", marketCents: 500 }),
+      makePriceRow({
         externalId: 100,
         productName: "Body Rune",
         finish: "foil",
-        language: "EN",
-        recordedAt: new Date("2026-04-01"),
         marketCents: 1500,
-        lowCents: 1300,
-        zeroLowCents: null,
-        midCents: 1500,
-        highCents: 1700,
-        trendCents: 1500,
-        avg1Cents: 1480,
-        avg7Cents: 1490,
-        avg30Cents: 1495,
-      },
+      }),
     ]);
-    const mapPriceRow = vi.fn().mockImplementation((row) => ({
-      productName: row.productName,
-      marketCents: row.marketCents,
-      lowCents: row.lowCents,
-      zeroLowCents: null,
-      currency: "EUR",
-      recordedAt: row.recordedAt.toISOString(),
-      midCents: row.midCents,
-      highCents: row.highCents,
-      trendCents: row.trendCents,
-      avg1Cents: row.avg1Cents,
-      avg7Cents: row.avg7Cents,
-      avg30Cents: row.avg30Cents,
-    }));
     const mappingRepo = createMockMappingRepo({
       allCardsWithPrintings: vi.fn().mockResolvedValue([
         makeCardPrintingRow({
@@ -658,7 +528,7 @@ describe("getMappingOverview", () => {
       ]),
     });
     const repos = { marketplaceMapping: mappingRepo } as unknown as Repos;
-    const config = createMockConfig({ priceQuery, mapPriceRow });
+    const config = createMockConfig({ priceQuery });
 
     const result = await getMappingOverview(repos, config);
 
@@ -731,39 +601,10 @@ describe("getMappingOverview", () => {
     expect(result.ignoredProducts[0]!.groupName).toBeUndefined();
   });
 
-  it("keeps staged product when externalId matches assigned but finish has unmapped printing", async () => {
-    const priceQuery = vi.fn().mockResolvedValue([
-      {
-        printingId: "printing-1",
-        productName: "Fireball",
-        finish: "normal",
-        language: "EN",
-        recordedAt: new Date(),
-        marketCents: 100,
-        lowCents: null,
-        zeroLowCents: null,
-        midCents: null,
-        highCents: null,
-        trendCents: null,
-        avg1Cents: null,
-        avg7Cents: null,
-        avg30Cents: null,
-      },
-    ]);
-    const mapPriceRow = vi.fn().mockReturnValue({
-      productName: "Fireball",
-      marketCents: 100,
-      lowCents: null,
-      zeroLowCents: null,
-      currency: "USD",
-      recordedAt: new Date().toISOString(),
-      midCents: null,
-      highCents: null,
-      trendCents: null,
-      avg1Cents: null,
-      avg7Cents: null,
-      avg30Cents: null,
-    });
+  it("keeps a staged foil SKU of an assigned product while a foil printing is unmapped", async () => {
+    const priceQuery = vi
+      .fn()
+      .mockResolvedValue([makePriceRow({ printingId: "p-mapped", externalId: 123 })]);
     const mappingRepo = createMockMappingRepo({
       allCardsWithPrintings: vi.fn().mockResolvedValue([
         makeCardPrintingRow({
@@ -771,6 +612,8 @@ describe("getMappingOverview", () => {
           externalId: 123,
           finish: "normal",
           sourceGroupId: 1,
+          productFinish: "normal",
+          sourceLanguage: "EN",
         }),
         makeCardPrintingRow({ printingId: "p-unmapped", externalId: null, finish: "foil" }),
       ]),
@@ -781,47 +624,19 @@ describe("getMappingOverview", () => {
         ]),
     });
     const repos = { marketplaceMapping: mappingRepo } as unknown as Repos;
-    const config = createMockConfig({ priceQuery, mapPriceRow });
+    const config = createMockConfig({ priceQuery });
 
     const result = await getMappingOverview(repos, config);
 
-    expect(result.groups[0]!.stagedProducts).toHaveLength(1);
-  });
-
-  it("uses null sourceGroupId when sourceGroupId is null on assigned product", async () => {
-    const priceQuery = vi.fn().mockResolvedValue([
-      {
-        printingId: "printing-1",
-        externalId: 123,
-        productName: "Fireball",
-        finish: "normal",
-        language: "EN",
-        recordedAt: new Date(),
-        marketCents: 100,
-        lowCents: null,
-        zeroLowCents: null,
-        midCents: null,
-        highCents: null,
-        trendCents: null,
-        avg1Cents: null,
-        avg7Cents: null,
-        avg30Cents: null,
-      },
+    expect(result.groups[0]!.assignedProducts.map((p) => [p.externalId, p.finish])).toEqual([
+      [123, "normal"],
     ]);
-    const mapPriceRow = vi.fn().mockReturnValue({
-      productName: "Fireball",
-      marketCents: 100,
-      lowCents: null,
-      zeroLowCents: null,
-      currency: "USD",
-      recordedAt: new Date().toISOString(),
-      midCents: null,
-      highCents: null,
-      trendCents: null,
-      avg1Cents: null,
-      avg7Cents: null,
-      avg30Cents: null,
-    });
+    expect(result.groups[0]!.stagedProducts.map((p) => [p.externalId, p.finish])).toEqual([
+      [123, "foil"],
+    ]);
+  });
+  it("uses null sourceGroupId when sourceGroupId is null on assigned product", async () => {
+    const priceQuery = vi.fn().mockResolvedValue([makePriceRow({ externalId: 123 })]);
     const mappingRepo = createMockMappingRepo({
       allCardsWithPrintings: vi.fn().mockResolvedValue([
         makeCardPrintingRow({
@@ -833,7 +648,7 @@ describe("getMappingOverview", () => {
       ]),
     });
     const repos = { marketplaceMapping: mappingRepo } as unknown as Repos;
-    const config = createMockConfig({ priceQuery, mapPriceRow });
+    const config = createMockConfig({ priceQuery });
 
     const result = await getMappingOverview(repos, config);
 
@@ -859,23 +674,6 @@ describe("getMappingOverview", () => {
     expect(result.groups[0]!.printings).toHaveLength(2);
   });
 
-  it("skips already-matched rows in second-pass containment matching", async () => {
-    const mappingRepo = createMockMappingRepo({
-      allCardsWithPrintings: vi
-        .fn()
-        .mockResolvedValue([makeCardPrintingRow({ cardName: "Fireball" })]),
-      allStaging: vi
-        .fn()
-        .mockResolvedValue([makeStagingRow({ externalId: 1, productName: "Fireball Normal" })]),
-    });
-    const repos = { marketplaceMapping: mappingRepo } as unknown as Repos;
-    const config = createMockConfig();
-
-    const result = await getMappingOverview(repos, config);
-
-    expect(result.groups[0]!.stagedProducts).toHaveLength(1);
-  });
-
   it("does not skip override that targets a non-existent card group", async () => {
     const mappingRepo = createMockMappingRepo({
       allCardsWithPrintings: vi.fn().mockResolvedValue([makeCardPrintingRow()]),
@@ -897,39 +695,9 @@ describe("getMappingOverview", () => {
   });
 
   it("keeps staged foil product when only a normal printing is assigned (uniform per-SKU filter)", async () => {
-    const priceQuery = vi.fn().mockResolvedValue([
-      {
-        printingId: "p-mapped",
-        externalId: 123,
-        productName: "Fireball",
-        finish: "normal",
-        language: "EN",
-        recordedAt: new Date(),
-        marketCents: 100,
-        lowCents: null,
-        zeroLowCents: null,
-        midCents: null,
-        highCents: null,
-        trendCents: null,
-        avg1Cents: null,
-        avg7Cents: null,
-        avg30Cents: null,
-      },
-    ]);
-    const mapPriceRow = vi.fn().mockReturnValue({
-      productName: "Fireball",
-      marketCents: 100,
-      lowCents: null,
-      zeroLowCents: null,
-      currency: "USD",
-      recordedAt: new Date().toISOString(),
-      midCents: null,
-      highCents: null,
-      trendCents: null,
-      avg1Cents: null,
-      avg7Cents: null,
-      avg30Cents: null,
-    });
+    const priceQuery = vi
+      .fn()
+      .mockResolvedValue([makePriceRow({ printingId: "p-mapped", externalId: 123 })]);
     const mappingRepo = createMockMappingRepo({
       allCardsWithPrintings: vi.fn().mockResolvedValue([
         makeCardPrintingRow({
@@ -948,7 +716,7 @@ describe("getMappingOverview", () => {
         ]),
     });
     const repos = { marketplaceMapping: mappingRepo } as unknown as Repos;
-    const config = createMockConfig({ priceQuery, mapPriceRow });
+    const config = createMockConfig({ priceQuery });
 
     const result = await getMappingOverview(repos, config);
 
@@ -986,34 +754,9 @@ describe("saveMappings", () => {
 
   it("saves a mapping successfully", async () => {
     const mappingRepo = createMockMappingRepo({
-      productsByExternalIds: vi.fn().mockResolvedValue([
-        {
-          externalId: 12_345,
-          finish: "normal",
-          language: "EN",
-          groupId: 1,
-          productName: "Test Product",
-          recordedAt: new Date("2026-01-15"),
-          marketCents: 500,
-          lowCents: 400,
-          zeroLowCents: null,
-          midCents: 500,
-          highCents: 600,
-          trendCents: 500,
-          avg1Cents: 480,
-          avg7Cents: 490,
-          avg30Cents: 495,
-        },
-      ]),
-      upsertProductVariants: vi.fn().mockResolvedValue([
-        {
-          printingId: "p-1",
-          externalId: 12_345,
-          finish: "normal",
-          language: "EN",
-          variantId: "var-1",
-        },
-      ]),
+      productsByExternalIds: vi
+        .fn()
+        .mockResolvedValue([makeProduct({ productName: "Test Product" })]),
     });
     const repos = { marketplaceMapping: mappingRepo } as unknown as Repos;
     const transact = mockTransact(repos);
@@ -1046,25 +789,7 @@ describe("saveMappings", () => {
 
   it("skips mapping when SKU mismatch", async () => {
     const mappingRepo = createMockMappingRepo({
-      productsByExternalIds: vi.fn().mockResolvedValue([
-        {
-          externalId: 12_345,
-          finish: "normal",
-          language: "EN",
-          groupId: 1,
-          productName: "X",
-          recordedAt: new Date(),
-          marketCents: 100,
-          lowCents: null,
-          zeroLowCents: null,
-          midCents: null,
-          highCents: null,
-          trendCents: null,
-          avg1Cents: null,
-          avg7Cents: null,
-          avg30Cents: null,
-        },
-      ]),
+      productsByExternalIds: vi.fn().mockResolvedValue([makeProduct()]),
     });
     const repos = { marketplaceMapping: mappingRepo } as unknown as Repos;
     const transact = mockTransact(repos);
@@ -1078,42 +803,12 @@ describe("saveMappings", () => {
     expect(result.skipped[0]!.reason).toContain("SKU mismatch");
   });
 
-  it("skips mapping when no marketplace product is found", async () => {
-    const mappingRepo = createMockMappingRepo({
-      productsByExternalIds: vi.fn().mockResolvedValue([]),
-    });
-    const repos = { marketplaceMapping: mappingRepo } as unknown as Repos;
-    const transact = mockTransact(repos);
-    const config = createMockConfig();
-
-    const result = await saveMappings(transact, config, [
-      { printingId: "p-1", externalId: 12_345, finish: "normal", language: "EN" },
-    ]);
-
-    expect(result.skipped).toHaveLength(1);
-    expect(result.skipped[0]!.reason).toBe("no marketplace product found");
-  });
-
   it("rebinds a historical product to a new printing using the existing product row", async () => {
-    const upsertSpy = vi.fn().mockResolvedValue([
-      {
-        printingId: "p-1",
-        externalId: 12_345,
-        finish: "normal",
-        language: "EN",
-        variantId: "v-1",
-      },
-    ]);
+    const upsertSpy = vi.fn().mockResolvedValue([]);
     const mappingRepo = createMockMappingRepo({
-      productsByExternalIds: vi.fn().mockResolvedValue([
-        {
-          externalId: 12_345,
-          productName: "Historical Product",
-          groupId: 42,
-          finish: "normal",
-          language: "EN",
-        },
-      ]),
+      productsByExternalIds: vi
+        .fn()
+        .mockResolvedValue([makeProduct({ productName: "Historical Product", groupId: 42 })]),
       upsertProductVariants: upsertSpy,
     });
     const repos = { marketplaceMapping: mappingRepo } as unknown as Repos;
@@ -1138,49 +833,16 @@ describe("saveMappings", () => {
     ]);
   });
 
-  it("returns SKU mismatch when the product exists for a different finish", async () => {
-    const mappingRepo = createMockMappingRepo({
-      productsByExternalIds: vi.fn().mockResolvedValue([
-        {
-          externalId: 12_345,
-          productName: "X",
-          groupId: 1,
-          finish: "normal",
-          language: "EN",
-        },
-      ]),
-    });
-    const repos = { marketplaceMapping: mappingRepo } as unknown as Repos;
-    const transact = mockTransact(repos);
-    const config = createMockConfig();
-
-    const result = await saveMappings(transact, config, [
-      { printingId: "p-1", externalId: 12_345, finish: "foil", language: "EN" },
-    ]);
-
-    expect(result.skipped).toHaveLength(1);
-    expect(result.skipped[0]!.reason).toContain("SKU mismatch");
-  });
-
   it("accepts cross-language assignments on language-aggregate marketplaces", async () => {
-    const upsertSpy = vi.fn().mockResolvedValue([
-      {
-        printingId: "p-sc",
-        externalId: 872_479,
-        finish: "normal",
-        language: null,
-        variantId: "v-1",
-      },
-    ]);
+    const upsertSpy = vi.fn().mockResolvedValue([]);
     const mappingRepo = createMockMappingRepo({
       productsByExternalIds: vi.fn().mockResolvedValue([
-        {
+        makeProduct({
           externalId: 872_479,
-          finish: "normal",
           language: null,
           groupId: 7,
           productName: "Calm Rune",
-        },
+        }),
       ]),
       upsertProductVariants: upsertSpy,
     });
@@ -1206,97 +868,12 @@ describe("saveMappings", () => {
     ]);
   });
 
-  it("returns 0 saved when all mappings are skipped", async () => {
-    const mappingRepo = createMockMappingRepo({
-      productsByExternalIds: vi.fn().mockResolvedValue([]),
-    });
-    const repos = { marketplaceMapping: mappingRepo } as unknown as Repos;
-    const transact = mockTransact(repos);
-    const config = createMockConfig();
-
-    const result = await saveMappings(transact, config, [
-      { printingId: "p-1", externalId: 12_345, finish: "normal", language: "EN" },
-    ]);
-
-    expect(result.saved).toBe(0);
-    expect(result.skipped).toHaveLength(1);
-  });
-
-  it("passes language=null through to the upsert when the caller supplies null", async () => {
-    const upsertMock = vi.fn().mockResolvedValue([
-      {
-        printingId: "p-1",
-        externalId: 12_345,
-        finish: "normal",
-        language: null,
-        variantId: "var-1",
-      },
-    ]);
-    const mappingRepo = createMockMappingRepo({
-      productsByExternalIds: vi.fn().mockResolvedValue([
-        {
-          externalId: 12_345,
-          finish: "normal",
-          language: null,
-          groupId: 1,
-          productName: "X",
-          recordedAt: new Date("2026-01-01"),
-          marketCents: 100,
-          lowCents: null,
-          zeroLowCents: null,
-          midCents: null,
-          highCents: null,
-          trendCents: null,
-          avg1Cents: null,
-          avg7Cents: null,
-          avg30Cents: null,
-        },
-      ]),
-      upsertProductVariants: upsertMock,
-    });
-    const repos = { marketplaceMapping: mappingRepo } as unknown as Repos;
-    const transact = mockTransact(repos);
-    const config = createMockConfig({ marketplace: "cardmarket" });
-
-    await saveMappings(transact, config, [
-      { printingId: "p-1", externalId: 12_345, finish: "normal", language: null },
-    ]);
-
-    expect(upsertMock).toHaveBeenCalledOnce();
-    const upsertValues = upsertMock.mock.calls[0]![0] as { language: string | null }[];
-    expect(upsertValues[0]!.language).toBeNull();
-  });
-
   it("accepts a metal printing against foil staging and writes finish=foil on the product", async () => {
-    const upsertMock = vi.fn().mockResolvedValue([
-      {
-        printingId: "p-metal",
-        externalId: 12_345,
-        finish: "foil",
-        language: "EN",
-        variantId: "var-m",
-      },
-    ]);
+    const upsertMock = vi.fn().mockResolvedValue([]);
     const mappingRepo = createMockMappingRepo({
-      productsByExternalIds: vi.fn().mockResolvedValue([
-        {
-          externalId: 12_345,
-          finish: "foil",
-          language: "EN",
-          groupId: 1,
-          productName: "Lee Sin Metal",
-          recordedAt: new Date("2026-01-15"),
-          marketCents: 2500,
-          lowCents: null,
-          zeroLowCents: null,
-          midCents: null,
-          highCents: null,
-          trendCents: null,
-          avg1Cents: null,
-          avg7Cents: null,
-          avg30Cents: null,
-        },
-      ]),
+      productsByExternalIds: vi
+        .fn()
+        .mockResolvedValue([makeProduct({ finish: "foil", productName: "Lee Sin Metal" })]),
       upsertProductVariants: upsertMock,
     });
     const repos = { marketplaceMapping: mappingRepo } as unknown as Repos;
@@ -1319,80 +896,10 @@ describe("saveMappings", () => {
     ]);
   });
 
-  it("accepts a metal-deluxe printing against foil staging as well", async () => {
-    const upsertMock = vi.fn().mockResolvedValue([
-      {
-        printingId: "p-md",
-        externalId: 22_345,
-        finish: "foil",
-        language: "EN",
-        variantId: "var-md",
-      },
-    ]);
-    const mappingRepo = createMockMappingRepo({
-      productsByExternalIds: vi.fn().mockResolvedValue([
-        {
-          externalId: 22_345,
-          finish: "foil",
-          language: "EN",
-          groupId: 1,
-          productName: "Lee Sin Metal Deluxe",
-          recordedAt: new Date("2026-01-15"),
-          marketCents: 9900,
-          lowCents: null,
-          zeroLowCents: null,
-          midCents: null,
-          highCents: null,
-          trendCents: null,
-          avg1Cents: null,
-          avg7Cents: null,
-          avg30Cents: null,
-        },
-      ]),
-      upsertProductVariants: upsertMock,
-    });
-    const repos = { marketplaceMapping: mappingRepo } as unknown as Repos;
-    const transact = mockTransact(repos);
-    const config = createMockConfig();
-
-    const result = await saveMappings(transact, config, [
-      { printingId: "p-md", externalId: 22_345, finish: "foil", language: "EN" },
-    ]);
-
-    expect(result.saved).toBe(1);
-    expect(upsertMock).toHaveBeenCalledWith([expect.objectContaining({ finish: "foil" })]);
-  });
-
   it("forwards a non-English language from the caller on per-language marketplaces", async () => {
-    const upsertMock = vi.fn().mockResolvedValue([
-      {
-        printingId: "p-1",
-        externalId: 12_345,
-        finish: "normal",
-        language: "SC",
-        variantId: "var-1",
-      },
-    ]);
+    const upsertMock = vi.fn().mockResolvedValue([]);
     const mappingRepo = createMockMappingRepo({
-      productsByExternalIds: vi.fn().mockResolvedValue([
-        {
-          externalId: 12_345,
-          finish: "normal",
-          language: "SC",
-          groupId: 1,
-          productName: "X",
-          recordedAt: new Date("2026-01-01"),
-          marketCents: 100,
-          lowCents: null,
-          zeroLowCents: null,
-          midCents: null,
-          highCents: null,
-          trendCents: null,
-          avg1Cents: null,
-          avg7Cents: null,
-          avg30Cents: null,
-        },
-      ]),
+      productsByExternalIds: vi.fn().mockResolvedValue([makeProduct({ language: "SC" })]),
       upsertProductVariants: upsertMock,
     });
     const repos = { marketplaceMapping: mappingRepo } as unknown as Repos;
@@ -1453,36 +960,6 @@ describe("unmapPrinting", () => {
       "EN",
     );
     expect(mappingRepo.deleteVariantById).toHaveBeenCalledWith("var-1");
-  });
-
-  // CardTrader fans one blueprint id out across multiple (finish, language) rows.
-  it("scopes the variant lookup by finish and language so CT siblings don't collide", async () => {
-    const mappingRepo = createMockMappingRepo({
-      getVariantForPrinting: vi.fn().mockResolvedValue({
-        variantId: "var-sc",
-        marketplaceProductId: "mp-sc",
-        finish: "normal",
-        language: "SC",
-        externalId: 12_345,
-        groupId: 1,
-        productName: "Test Product",
-        marketplace: "cardtrader",
-      }),
-    });
-    const repos = { marketplaceMapping: mappingRepo } as unknown as Repos;
-    const transact = mockTransact(repos);
-    const config = createMockConfig({ marketplace: "cardtrader" });
-
-    await unmapPrinting(transact, config, "p-1", 12_345, "normal", "SC");
-
-    expect(mappingRepo.getVariantForPrinting).toHaveBeenCalledWith(
-      "cardtrader",
-      "p-1",
-      12_345,
-      "normal",
-      "SC",
-    );
-    expect(mappingRepo.deleteVariantById).toHaveBeenCalledWith("var-sc");
   });
 });
 

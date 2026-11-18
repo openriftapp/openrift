@@ -26,49 +26,22 @@ function mockDb() {
 }
 
 describe("printingEventsRepo", () => {
-  it("recordNew inserts a new event with just printingId", async () => {
-    const db = mockDb();
-    const repo = printingEventsRepo(db as any);
+  it.each([
+    { method: "markSent", builder: "updateTable", expected: undefined },
+    { method: "markRetry", builder: "updateTable", expected: undefined },
+    { method: "retryFailed", builder: "updateTable", expected: undefined },
+    { method: "listByStatus", builder: "selectFrom", expected: [] },
+  ] as const)(
+    "$method skips the query for an empty list",
+    async ({ method, builder, expected }) => {
+      const db = mockDb();
+      const repo = printingEventsRepo(db as any);
 
-    await repo.recordNew("p-1");
+      expect(await repo[method]([])).toEqual(expected);
 
-    expect(db.insertInto).toHaveBeenCalledWith("printingEvents");
-    expect(db.chain.values).toHaveBeenCalledWith(
-      expect.objectContaining({
-        printingId: "p-1",
-        status: "pending",
-        retryCount: 0,
-      }),
-    );
-  });
-
-  it("markSent skips when ids array is empty", async () => {
-    const db = mockDb();
-    const repo = printingEventsRepo(db as any);
-
-    await repo.markSent([]);
-
-    expect(db.updateTable).not.toHaveBeenCalled();
-  });
-
-  it("markRetry skips when ids array is empty", async () => {
-    const db = mockDb();
-    const repo = printingEventsRepo(db as any);
-
-    await repo.markRetry([]);
-
-    expect(db.updateTable).not.toHaveBeenCalled();
-  });
-
-  it("listByStatus skips the query when statuses array is empty", async () => {
-    const db = mockDb();
-    const repo = printingEventsRepo(db as any);
-
-    const result = await repo.listByStatus([]);
-
-    expect(result).toEqual([]);
-    expect(db.selectFrom).not.toHaveBeenCalled();
-  });
+      expect(db[builder]).not.toHaveBeenCalled();
+    },
+  );
 
   it("listByStatus filters by the provided statuses", async () => {
     const db = mockDb();
@@ -80,16 +53,6 @@ describe("printingEventsRepo", () => {
     expect(db.chain.where).toHaveBeenCalledWith("pe.status", "in", ["pending", "failed"]);
   });
 
-  it("listPending filters to pending events", async () => {
-    const db = mockDb();
-    const repo = printingEventsRepo(db as any);
-
-    await repo.listPending();
-
-    expect(db.selectFrom).toHaveBeenCalledWith("printingEvents as pe");
-    expect(db.chain.where).toHaveBeenCalledWith("pe.status", "=", "pending");
-  });
-
   it("retryFailed resets status and retry counter for the supplied ids", async () => {
     const db = mockDb();
     const repo = printingEventsRepo(db as any);
@@ -99,14 +62,5 @@ describe("printingEventsRepo", () => {
     expect(db.updateTable).toHaveBeenCalledWith("printingEvents");
     expect(db.chain.set).toHaveBeenCalledWith({ status: "pending", retryCount: 0 });
     expect(db.chain.where).toHaveBeenCalledWith("id", "in", ["a", "b"]);
-  });
-
-  it("retryFailed skips when ids array is empty", async () => {
-    const db = mockDb();
-    const repo = printingEventsRepo(db as any);
-
-    await repo.retryFailed([]);
-
-    expect(db.updateTable).not.toHaveBeenCalled();
   });
 });

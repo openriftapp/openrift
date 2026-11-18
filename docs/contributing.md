@@ -219,7 +219,7 @@ All workspaces use `vitest`. Run all tests via `bun run test` (goes through Turb
 
 **Unit vs. integration tests** — any test that needs a live database (or other external service) must use a `*.integration.test.ts` filename. The `test` scripts exclude these files so they never run in CI. Run them locally with `bun run test:integration`.
 
-Regular unit tests (`*.test.ts`) must never depend on external services — mock everything via `vi.mock()`. If a test hits the real DB, it belongs in an integration file.
+Regular unit tests (`*.test.ts`) must never depend on external services — mock everything via `vi.mock()`. If a test hits the real DB, it belongs in an integration file. A repository's queries are tested there and never against a mocked query builder. "What needs a test" in `docs/testing.md` lists what a test is for and which tests not to write.
 
 ## Dates and times
 

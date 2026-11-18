@@ -395,6 +395,7 @@ describe("TournamentHero", () => {
     render(<TournamentHero detail={makeDetail()} />);
 
     expect(screen.queryByRole("link", { name: "UVS Games event" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Meta Archive" })).not.toBeInTheDocument();
   });
 });
 
@@ -652,76 +653,6 @@ describe("TournamentOverviewTab", () => {
       expect(screen.queryByRole("link", { name: /My deck/u })).not.toBeInTheDocument();
     });
 
-    it("calls out an unsubmitted deck while the window is open", () => {
-      render(
-        <TournamentOverviewTab
-          id="t-1"
-          detail={makeDetail({
-            ...PLAYER,
-            deckPhase: "open",
-            myDeckEntry: makeMyDeck({ state: "editable" }),
-          })}
-        />,
-      );
-
-      const tile = screen.getByRole("link", { name: /My deck/u });
-      expect(within(tile).getByText("Not submitted")).toBeInTheDocument();
-      expect(within(tile).getByText(/send it in for review/iu)).toBeInTheDocument();
-    });
-
-    it("says the player is no longer in the event in place of the submit nudge", () => {
-      render(
-        <TournamentOverviewTab
-          id="t-1"
-          detail={makeDetail({
-            ...PLAYER,
-            deckPhase: "open",
-            myDeckEntry: makeMyDeck({ state: "editable", leftEvent: true }),
-          })}
-        />,
-      );
-
-      const tile = screen.getByRole("link", { name: /My deck/u });
-      expect(within(tile).getByText("You're no longer playing in this event.")).toBeInTheDocument();
-      expect(within(tile).queryByText(/send it in for review/iu)).not.toBeInTheDocument();
-    });
-
-    it("stops nagging about an unsubmitted deck once the window shuts", () => {
-      render(
-        <TournamentOverviewTab
-          id="t-1"
-          detail={makeDetail({
-            ...PLAYER,
-            deckPhase: "locked",
-            myDeckEntry: makeMyDeck({ state: "editable" }),
-          })}
-        />,
-      );
-
-      const tile = screen.getByRole("link", { name: /My deck/u });
-      expect(within(tile).queryByText(/send it in for review/u)).not.toBeInTheDocument();
-    });
-
-    it("surfaces a judge's rejection over an older message", () => {
-      render(
-        <TournamentOverviewTab
-          id="t-1"
-          detail={makeDetail({
-            ...PLAYER,
-            myDeckEntry: makeMyDeck({
-              state: "editable",
-              reviewOutcome: "issue",
-              hasPlayerMessage: true,
-            }),
-            deckPhase: "closed",
-          })}
-        />,
-      );
-
-      const tile = screen.getByRole("link", { name: /My deck/u });
-      expect(within(tile).getByText("A judge asked for changes.")).toBeInTheDocument();
-    });
-
     it("shows both tiles to a judge who is also entered", () => {
       render(
         <TournamentOverviewTab
@@ -737,34 +668,70 @@ describe("TournamentOverviewTab", () => {
       expect(screen.getByRole("link", { name: /^Decks/u })).toBeInTheDocument();
     });
 
-    it("names the issue state the way the deck page does", () => {
+    it.each([
+      {
+        name: "calls out an unsubmitted deck while the window is open",
+        deckPhase: "open",
+        entry: { state: "editable" },
+        present: ["Not submitted", /send it in for review/iu],
+        absent: [],
+      },
+      {
+        name: "says the player is no longer in the event in place of the submit nudge",
+        deckPhase: "open",
+        entry: { state: "editable", leftEvent: true },
+        present: ["You're no longer playing in this event."],
+        absent: [/send it in for review/iu],
+      },
+      {
+        name: "stops nagging about an unsubmitted deck once the window shuts",
+        deckPhase: "locked",
+        entry: { state: "editable" },
+        present: [],
+        absent: [/send it in for review/u],
+      },
+      {
+        name: "surfaces a judge's rejection over an older message",
+        deckPhase: "closed",
+        entry: { state: "editable", reviewOutcome: "issue", hasPlayerMessage: true },
+        present: ["A judge asked for changes."],
+        absent: [],
+      },
+      {
+        name: "names the issue state the way the deck page does",
+        deckPhase: "open",
+        entry: { state: "submitted", reviewOutcome: "issue" },
+        present: ["Submitted · issue"],
+        absent: [],
+      },
+      {
+        name: "leads with the changes request on a returned deck",
+        deckPhase: "open",
+        entry: { state: "editable", reviewOutcome: "issue" },
+        present: ["Changes requested"],
+        absent: [],
+      },
+    ] satisfies {
+      name: string;
+      deckPhase: TournamentDetailResponse["deckPhase"];
+      entry: Parameters<typeof makeMyDeck>[0];
+      present: (string | RegExp)[];
+      absent: RegExp[];
+    }[])("$name", ({ deckPhase, entry, present, absent }) => {
       render(
         <TournamentOverviewTab
           id="t-1"
-          detail={makeDetail({
-            ...PLAYER,
-            myDeckEntry: makeMyDeck({ state: "submitted", reviewOutcome: "issue" }),
-          })}
+          detail={makeDetail({ ...PLAYER, deckPhase, myDeckEntry: makeMyDeck(entry) })}
         />,
       );
 
       const tile = screen.getByRole("link", { name: /My deck/u });
-      expect(within(tile).getByText("Submitted · issue")).toBeInTheDocument();
-    });
-
-    it("leads with the changes request on a returned deck", () => {
-      render(
-        <TournamentOverviewTab
-          id="t-1"
-          detail={makeDetail({
-            ...PLAYER,
-            myDeckEntry: makeMyDeck({ state: "editable", reviewOutcome: "issue" }),
-          })}
-        />,
-      );
-
-      const tile = screen.getByRole("link", { name: /My deck/u });
-      expect(within(tile).getByText("Changes requested")).toBeInTheDocument();
+      for (const text of present) {
+        expect(within(tile).getByText(text)).toBeInTheDocument();
+      }
+      for (const text of absent) {
+        expect(within(tile).queryByText(text)).not.toBeInTheDocument();
+      }
     });
   });
 

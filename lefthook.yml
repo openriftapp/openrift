@@ -88,6 +88,7 @@ pre-push:
             glob: "**/package.json"
             run: bun install --frozen-lockfile
     - name: test
+      # The one full unit run before CI: /done runs only the tests a branch affects.
       run: bun run test
     - name: test-integration
       # Needs the local docker DB. Runs once per push; not part of /done, and

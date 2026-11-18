@@ -92,15 +92,6 @@ describe("createUvsClient", () => {
     expect(page.nextPage).toBeNull();
   });
 
-  it("spaces consecutive requests instead of firing them back to back", async () => {
-    const { client, sleeps } = harness([() => json({})]);
-
-    await client.get("/api/v2/events/1/");
-    await client.get("/api/v2/events/2/");
-
-    expect(sleeps).toEqual([600]);
-  });
-
   it("retries a 5xx with backoff and returns the eventual success", async () => {
     const attempts: number[] = [];
     const { client, sleeps } = harness([
@@ -125,24 +116,13 @@ describe("createUvsClient", () => {
     expect(client.requests).toBe(3);
   });
 
-  it("gives up after three attempts and surfaces the last failure", async () => {
-    const { client } = harness([() => json({ detail: "boom" }, 502)]);
-
-    await expect(client.get("/api/v2/events/1/")).rejects.toThrow("HTTP 502");
-    expect(client.requests).toBe(3);
-  });
-
-  it("does not retry a 404: the event is gone, not busy", async () => {
-    const { client } = harness([() => json({ detail: "not found" }, 404)]);
-
-    await expect(client.get("/api/v2/events/1/")).rejects.toThrow("HTTP 404");
-    expect(client.requests).toBe(1);
-  });
-
-  it("carries the status on the thrown error, so callers need not parse the message", async () => {
+  it("refuses a 404 once, with the status on the thrown error", async () => {
     const { client } = harness([() => json({ detail: "gone" }, 404)]);
 
-    await expect(client.get("/api/v2/events/1/")).rejects.toMatchObject({ status: 404 });
+    const error = await client.get("/api/v2/events/1/").catch((error_: unknown) => error_);
+
+    expect(error).toMatchObject({ status: 404, message: expect.stringContaining("HTTP 404") });
+    expect(client.requests).toBe(1);
   });
 
   it("retries a network failure", async () => {

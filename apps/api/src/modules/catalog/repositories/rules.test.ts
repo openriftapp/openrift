@@ -17,23 +17,25 @@ describe("rulesRepo", () => {
       changeType: "added" as const,
     };
 
-    it("returns 0 without touching the database when there is nothing to insert", async () => {
-      expect(await rulesRepo(createMockDb([])).insertRules([])).toBe(0);
-    });
-
-    it("sums numInsertedOrUpdatedRows rather than counting InsertResults", async () => {
-      const db = createMockDb([{ numInsertedOrUpdatedRows: 3n }]);
-      expect(await rulesRepo(db).insertRules([rule, rule, rule])).toBe(3);
-    });
-
-    it("adds up the counts when the driver reports more than one result", async () => {
-      const db = createMockDb([{ numInsertedOrUpdatedRows: 2n }, { numInsertedOrUpdatedRows: 1n }]);
-      expect(await rulesRepo(db).insertRules([rule, rule, rule])).toBe(3);
-    });
-
-    it("treats a missing numInsertedOrUpdatedRows as zero", async () => {
-      const db = createMockDb([{}]);
-      expect(await rulesRepo(db).insertRules([rule])).toBe(0);
+    it.each([
+      {
+        name: "one result counting every row",
+        results: [{ numInsertedOrUpdatedRows: 3n }],
+        rows: 3,
+        expected: 3,
+      },
+      {
+        name: "several results",
+        results: [{ numInsertedOrUpdatedRows: 2n }, { numInsertedOrUpdatedRows: 1n }],
+        rows: 3,
+        expected: 3,
+      },
+      { name: "a result without numInsertedOrUpdatedRows", results: [{}], rows: 1, expected: 0 },
+    ])("sums numInsertedOrUpdatedRows over $name", async ({ results, rows, expected }) => {
+      const db = createMockDb(results);
+      expect(await rulesRepo(db).insertRules(Array.from({ length: rows }, () => rule))).toBe(
+        expected,
+      );
     });
   });
 });

@@ -52,15 +52,6 @@ describe("crossSourceProgress", () => {
       unreviewed: 1,
     });
   });
-
-  it("reports an empty review as nothing to do", () => {
-    expect(crossSourceProgress([], "topdeck")).toEqual({
-      total: 0,
-      linked: 0,
-      distinct: 0,
-      unreviewed: 0,
-    });
-  });
 });
 
 describe("crossSourceAutoLinks", () => {

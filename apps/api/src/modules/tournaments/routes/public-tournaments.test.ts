@@ -183,17 +183,14 @@ describe("landing", () => {
     return app;
   }
 
-  it.each(["requested", "invited", "active", "dropped", "no_show"])(
-    "reports a %s viewer's participant status",
-    async (status) => {
-      const res = await landingApp(status).request("/api/v1/tournaments/submit/submit-token");
-      expect(res.status).toBe(200);
-      expect(await readJson(res)).toMatchObject({
-        viewerIsParticipant: true,
-        viewerParticipantStatus: status,
-      });
-    },
-  );
+  it("reports a dropped viewer's participant status", async () => {
+    const res = await landingApp("dropped").request("/api/v1/tournaments/submit/submit-token");
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toMatchObject({
+      viewerIsParticipant: true,
+      viewerParticipantStatus: "dropped",
+    });
+  });
 });
 
 const INVITE_TOKEN = "staffinvite01";

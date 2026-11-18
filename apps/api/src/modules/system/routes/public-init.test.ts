@@ -56,10 +56,6 @@ const mockDistributionChannelsRepo = {
   listAll: vi.fn(() => Promise.resolve([] as never[])),
 };
 
-const mockPrintingCitationsRepo = {
-  listForPrintingIds: vi.fn(() => Promise.resolve([] as Record<string, unknown>[])),
-};
-
 const mockCustomTagsRepo = {
   listAll: vi.fn(() => Promise.resolve([] as never[])),
 };
@@ -86,7 +82,6 @@ app.use("*", async (c, next) => {
     enums: mockEnumsRepo,
     keywords: mockKeywordsRepo,
     distributionChannels: mockDistributionChannelsRepo,
-    printingCitations: mockPrintingCitationsRepo,
     customTags: mockCustomTagsRepo,
     catalog: mockCatalogRepo,
     tagCategories: mockTagCategoriesRepo,
@@ -115,14 +110,6 @@ describe("GET /api/v1/init", () => {
     mockTagDefinitionsRepo.listAll.mockReset();
     mockTagCategoriesRepo.listAll.mockResolvedValue([]);
     mockTagDefinitionsRepo.listAll.mockResolvedValue([]);
-  });
-
-  it("returns 200 with enums and keywords", async () => {
-    const res = await app.request("/api/v1/init");
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.enums).toBeDefined();
-    expect(json.keywords).toBeDefined();
   });
 
   it("returns enum data with isWellKnown stripped", async () => {
@@ -204,15 +191,6 @@ describe("GET /api/v1/init", () => {
     const res = await app.request("/api/v1/init");
     const json = await readJson(res);
     expect(json.keywords.Shield.translations).toBeUndefined();
-  });
-
-  it("fetches all data in parallel", async () => {
-    const res = await app.request("/api/v1/init");
-    expect(res.status).toBe(200);
-    expect(mockEnumsRepo.all).toHaveBeenCalledTimes(1);
-    expect(mockKeywordsRepo.listAll).toHaveBeenCalledTimes(1);
-    expect(mockKeywordsRepo.listAllTranslations).toHaveBeenCalledTimes(1);
-    expect(mockCatalogRepo.championIdentifierTags).toHaveBeenCalledTimes(1);
   });
 
   it("returns championIdentifierTags from the catalog repo", async () => {

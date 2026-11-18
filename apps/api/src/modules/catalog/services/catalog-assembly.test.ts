@@ -8,16 +8,16 @@ import {
 } from "./catalog-assembly.js";
 
 describe("parseLanguageCodes", () => {
-  it("splits, trims and uppercases the codes", () => {
-    expect(parseLanguageCodes(" en , fr ")).toEqual(new Set(["EN", "FR"]));
-  });
-
-  it("drops blank entries and collapses duplicates", () => {
-    expect(parseLanguageCodes("EN,,en, ,FR")).toEqual(new Set(["EN", "FR"]));
-  });
-
-  it("returns an empty set for an all-blank list", () => {
-    expect(parseLanguageCodes(" , ")).toEqual(new Set());
+  it.each([
+    { name: "splits, trims and uppercases the codes", csv: " en , fr ", expected: ["EN", "FR"] },
+    {
+      name: "drops blank entries and collapses duplicates",
+      csv: "EN,,en, ,FR",
+      expected: ["EN", "FR"],
+    },
+    { name: "returns an empty set for an all-blank list", csv: " , ", expected: [] },
+  ])("$name", ({ csv, expected }) => {
+    expect(parseLanguageCodes(csv)).toEqual(new Set(expected));
   });
 });
 
@@ -45,12 +45,6 @@ describe("filterCatalogByLanguages", () => {
     expect(Object.keys(variant.printings)).toEqual(["p-en"]);
     expect(variant.cards).toEqual({ "OGS-001": { name: "Fire Dragon" } });
     expect(variant.sets).toHaveLength(1);
-  });
-
-  it("accepts several codes", () => {
-    const variant = filterCatalogByLanguages(fakeCatalog(), new Set(["EN", "SC"]));
-
-    expect(Object.keys(variant.printings).toSorted()).toEqual(["p-en", "p-sc"]);
   });
 
   it("matches codes case-insensitively", () => {

@@ -19,6 +19,8 @@ bunx turbo test --filter=api
 bun run --cwd apps/web test src/stores/display-store.test.ts
 ```
 
+`/done` runs `bun run test:affected`, which selects the tests whose import graph reaches a file the branch changed and adds every test that reads the source tree from disk. A change it cannot trace through imports (a `package.json`, a config, a non-module asset) runs that package's whole suite. A changed message runs the tests of the files that call it. The full suite runs in the pre-push hook and in CI.
+
 Reserve `bun run --cwd <pkg> test` for a single file. Without a file argument it invokes vitest directly, bypasses the Turbo cache, and forces the pre-push hook to redo identical work.
 
 ## Writing Tests
@@ -60,7 +62,18 @@ For functions that take simple inputs (strings, numbers, `null`), just call them
 
 ### What needs a test
 
-Every new or modified store, hook with real logic, or `lib/` utility gets a sibling `*.test.ts`. Aim for the happy path, the edges (empty input, boundaries), and the error path. Every bug fix gets a regression test that fails without the fix — if the path genuinely can't be tested (a third-party SSR quirk, browser-only behavior), say so in the commit message rather than shipping it uncovered.
+A test exists to catch a regression a reader would not spot in review. Non-trivial logic in a store, a hook or a `lib/` utility gets a sibling `*.test.ts` that covers the happy path, the edges (empty input, boundaries) and the error path. A one-line filter, a pass-through or a label map does not need its own file. Every bug fix gets a regression test that fails without the fix. If the path cannot be tested (a third-party SSR quirk, browser-only behavior), say so in the commit message.
+
+Each test file pays a fixed cost for its environment and import graph, far more than its assertions cost to run, so prefer one more case in an existing file over a new file.
+
+What not to write:
+
+- **A repository test against a mocked database.** `createMockDb` returns the rows the test handed it, so the test asserts its own fixture, and asserting the query-builder call chain restates the source. A repository's behavior is its SQL: test it in a `*.integration.test.ts`. A unit test beside it covers only logic that never reaches the database, such as an empty-input short circuit, and details an integration test cannot observe: a row lock clause, the order of statements, a rollback after a failed step. Those cases assert the recorded statements from `createRecordingDb`.
+- **A unit test that repeats the integration test.** When a route or repository has an integration file, its unit file covers what that file cannot reach: validation, error mapping, races and pure transforms.
+- **Assertions on class names or markup.** Assert what the user sees or what the component does. Pull component logic into `lib/` and test it there in the node project.
+- **Call counts and call shapes of a mock the test set up itself**, unless the call is the observable output (a mutation, a network request, a toast).
+- **An absence assertion on a string that never renders.** Assert the absence of something the previous state showed.
+- **Parallel `it` blocks over one branch.** Use `it.each`.
 
 ### Imports
 

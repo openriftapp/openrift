@@ -70,6 +70,13 @@ describe("splitRuleSections", () => {
     ]);
   });
 
+  it("keeps a rule in a language without markers as one trimmed text section", () => {
+    expect(splitRuleSections("  规则。\n例如：一。  ", "zh-Hans")).toEqual([
+      { kind: "text", content: "规则。\n例如：一。" },
+    ]);
+    expect(splitRuleSections("  \n ", "zh-Hans")).toEqual([]);
+  });
+
   it("leaves a See line in the text when no example precedes it", () => {
     expect(splitRuleSections("Rule text.\n*See rule 100.*")).toEqual([
       { kind: "text", content: "Rule text.\n*See rule 100.*" },

@@ -32,51 +32,50 @@ beforeEach(() => {
 });
 
 describe("runeRefillPlan", () => {
-  it("returns an empty plan for no cards and no legend domains", () => {
-    expect(runeRefillPlan([], []).size).toBe(0);
-  });
-
   it("returns an empty plan for a mono-domain legend", () => {
     expect(runeRefillPlan([rune("r1", "fury", 2)], ["fury"]).size).toBe(0);
   });
 
-  it("tops up each domain to 6 when no runes are held", () => {
-    expect(runeRefillPlan([], ["fury", "calm"])).toEqual(
-      new Map([
+  it.each<[string, [string, string, number][], [string, number][]]>([
+    [
+      "tops up each domain to 6 when no runes are held",
+      [],
+      [
         ["fury", 6],
         ["calm", 6],
-      ]),
-    );
-  });
-
-  it("adds only the missing copies per domain", () => {
-    const plan = runeRefillPlan([rune("r1", "fury", 4), rune("r2", "calm", 1)], ["fury", "calm"]);
-    expect(plan).toEqual(
-      new Map([
+      ],
+    ],
+    [
+      "adds only the missing copies per domain",
+      [
+        ["r1", "fury", 4],
+        ["r2", "calm", 1],
+      ],
+      [
         ["fury", 2],
         ["calm", 5],
-      ]),
-    );
-  });
-
-  it("omits domains already at 6", () => {
-    const plan = runeRefillPlan([rune("r1", "fury", 6)], ["fury", "calm"]);
-    expect(plan).toEqual(new Map([["calm", 6]]));
-  });
-
-  it("returns an empty plan when both domains are full", () => {
-    const plan = runeRefillPlan([rune("r1", "fury", 6), rune("r2", "calm", 6)], ["fury", "calm"]);
-    expect(plan.size).toBe(0);
-  });
-
-  it("does not count runes outside the legend's domains", () => {
-    const plan = runeRefillPlan([rune("r1", "mind", 6)], ["fury", "calm"]);
-    expect(plan).toEqual(
-      new Map([
+      ],
+    ],
+    ["omits domains already at 6", [["r1", "fury", 6]], [["calm", 6]]],
+    [
+      "returns an empty plan when both domains are full",
+      [
+        ["r1", "fury", 6],
+        ["r2", "calm", 6],
+      ],
+      [],
+    ],
+    [
+      "does not count runes outside the legend's domains",
+      [["r1", "mind", 6]],
+      [
         ["fury", 6],
         ["calm", 6],
-      ]),
-    );
+      ],
+    ],
+  ])("%s", (_title, held, expected) => {
+    const cards = held.map(([cardId, domain, quantity]) => rune(cardId, domain, quantity));
+    expect(runeRefillPlan(cards, ["fury", "calm"])).toEqual(new Map(expected));
   });
 
   it("ignores non-rune cards", () => {

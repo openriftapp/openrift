@@ -8,7 +8,7 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "dev": "vite dev --clearScreen false",
-    "build": "vite build && bun run paraglide:compile && tsgo -b",
+    "build": "vite build",
     "analyze": "ANALYZE=1 vite build",
     "start": "bun --env-file=../../.env .output/server/index.mjs",
     "start:lh": "COMPRESS=1 bun run build && bun run start",

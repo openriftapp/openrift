@@ -149,19 +149,13 @@ describe("parsePiltoverDeckCode", () => {
 });
 
 describe("isDeckCode", () => {
-  it("accepts a decodable base32 token", () => {
+  it.each([
+    ["accepts a decodable base32 token", VALID_CODE, true],
+    ["accepts a lowercased code via the uppercase retry", VALID_CODE.toLowerCase(), true],
+    ["rejects a base32-shaped token the decoder refuses", "Battlecruiser", false],
+  ])("%s", (_title, candidate, expected) => {
     mockValidCode(VALID_CODE);
-    expect(isDeckCode(VALID_CODE)).toBe(true);
-  });
-
-  it("accepts a lowercased code via the uppercase retry", () => {
-    mockValidCode(VALID_CODE);
-    expect(isDeckCode(VALID_CODE.toLowerCase())).toBe(true);
-  });
-
-  it("rejects a base32-shaped token the decoder refuses", () => {
-    mockValidCode(VALID_CODE);
-    expect(isDeckCode("Battlecruiser")).toBe(false);
+    expect(isDeckCode(candidate)).toBe(expected);
   });
 
   it("never calls the decoder for short tokens", () => {

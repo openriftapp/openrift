@@ -26,6 +26,16 @@ describe("buildRunesByDomain", () => {
     expect(byDomain.get("order")?.[0]!.cardId).toBe(multi.cardId);
   });
 
+  it("lists a rune card once per domain when several printings share it", () => {
+    const card = { types: [RUNE], domains: ["fury" as const] };
+    const byDomain = buildRunesByDomain([
+      stubPrinting({ cardId: "rune-fury", card }),
+      stubPrinting({ cardId: "rune-fury", card }),
+    ]);
+
+    expect(byDomain.get("fury")?.map((rune) => rune.cardId)).toEqual(["rune-fury"]);
+  });
+
   it("returns an empty map when there are no runes", () => {
     const byDomain = buildRunesByDomain([stubPrinting({ card: { types: ["unit"] } })]);
     expect(byDomain.size).toBe(0);

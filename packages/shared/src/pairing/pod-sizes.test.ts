@@ -58,17 +58,12 @@ describe("determineSwissPodSizes", () => {
     expect(determineSwissPodSizes(20)).toEqual({ fours: 0, threes: 0, twos: 10 });
   });
 
-  it("returns null for odd counts", () => {
-    expect(determineSwissPodSizes(1)).toBeNull();
-    expect(determineSwissPodSizes(7)).toBeNull();
-    expect(determineSwissPodSizes(21)).toBeNull();
-  });
-
-  it("returns null for non-positive or non-integer counts", () => {
-    expect(determineSwissPodSizes(0)).toBeNull();
-    expect(determineSwissPodSizes(-2)).toBeNull();
-    expect(determineSwissPodSizes(4.5)).toBeNull();
-  });
+  it.each([1, 7, 21, 0, -2, 4.5])(
+    "returns null for the odd, non-positive or non-integer count %s",
+    (count) => {
+      expect(determineSwissPodSizes(count)).toBeNull();
+    },
+  );
 });
 
 describe("suggestedRoundCount", () => {

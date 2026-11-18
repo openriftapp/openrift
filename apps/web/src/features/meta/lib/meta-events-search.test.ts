@@ -2,6 +2,7 @@ import { metaEventFilterQuerySchema } from "@openrift/shared/contracts/meta";
 import { MAX_FACET_VALUES, META_MAX_PLAYERS } from "@openrift/shared/meta-query";
 import { describe, expect, it } from "vitest";
 
+import type { MetaEventHoldings, MetaEventIndexHoldings } from "./meta-events-search";
 import { eventIndexHoldings, metaEventsSearchSchema } from "./meta-events-search";
 import { deriveSetEras, ERA_CUSTOM, metaEventFilterQuery } from "./meta-scope";
 
@@ -17,15 +18,14 @@ describe("metaEventsSearchSchema", () => {
     ).toMatchObject({ q: "vienna", by: "players", dir: "asc", tiers: ["premier"] });
   });
 
-  it("keeps a holdings filter, and drops one the page does not offer", () => {
-    expect(metaEventsSearchSchema.parse({ holds: "decks" }).holds).toBe("decks");
-    expect(metaEventsSearchSchema.parse({ holds: "photos" }).holds).toBeUndefined();
-  });
-
-  it("keeps every holdings filter the page offers", () => {
-    for (const holds of ["decks", "standings", "upcoming", "resultless"]) {
-      expect(metaEventsSearchSchema.parse({ holds }).holds).toBe(holds);
-    }
+  it.each([
+    ["decks", "decks"],
+    ["standings", "standings"],
+    ["upcoming", "upcoming"],
+    ["resultless", "resultless"],
+    ["photos", undefined],
+  ])("keeps the holdings filter %s only when the page offers it", (holds, expected) => {
+    expect(metaEventsSearchSchema.parse({ holds }).holds).toBe(expected);
   });
 
   it("drops a needle the API would reject, rather than blanking the page", () => {
@@ -90,16 +90,12 @@ describe("metaEventsSearchSchema", () => {
 });
 
 describe("eventIndexHoldings", () => {
-  it("narrows to events with results when the link names no holdings", () => {
-    expect(eventIndexHoldings()).toBe("standings");
-  });
-
-  it("lifts the narrowing when the link asks for every event", () => {
-    expect(eventIndexHoldings("all")).toBeUndefined();
-  });
-
-  it("passes any other holdings through", () => {
-    expect(eventIndexHoldings("decks")).toBe("decks");
-    expect(eventIndexHoldings("resultless")).toBe("resultless");
+  it.each<[string, MetaEventIndexHoldings | undefined, MetaEventHoldings | undefined]>([
+    ["narrows to events with results when the link names no holdings", undefined, "standings"],
+    ["lifts the narrowing when the link asks for every event", "all", undefined],
+    ["passes decks through", "decks", "decks"],
+    ["passes resultless through", "resultless", "resultless"],
+  ])("%s", (_title, holds, expected) => {
+    expect(eventIndexHoldings(holds)).toBe(expected);
   });
 });

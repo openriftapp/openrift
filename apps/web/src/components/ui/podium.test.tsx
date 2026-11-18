@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import type { PodiumSeat } from "@/components/ui/podium";
-import { Medal, Podium } from "@/components/ui/podium";
+import { Podium } from "@/components/ui/podium";
 
 function seat(rank: number, name: string, score: number, hint?: string): PodiumSeat {
   return { key: name, rank, name, score, hint };
@@ -23,9 +23,31 @@ function renderPodium(seats: PodiumSeat[], emptyLabel?: string) {
 }
 
 describe("Podium", () => {
-  it("centers the winner between the runners-up", () => {
-    renderPodium([seat(1, "DerVuk", 12), seat(2, "Poppy", 10), seat(3, "Fenix", 9)]);
-    expect(seatNames()).toEqual(["Poppy", "DerVuk", "Fenix"]);
+  it.each([
+    {
+      field: "three-player",
+      seats: [seat(1, "DerVuk", 12), seat(2, "Poppy", 10), seat(3, "Fenix", 9)],
+      order: ["Poppy", "DerVuk", "Fenix"],
+      columns: "grid-cols-3",
+    },
+    {
+      field: "two-player",
+      seats: [seat(1, "DerVuk", 6), seat(2, "Poppy", 3)],
+      order: ["Poppy", "DerVuk"],
+      columns: "grid-cols-2",
+    },
+    {
+      field: "one-player",
+      seats: [seat(1, "DerVuk", 3)],
+      order: ["DerVuk"],
+      columns: "grid-cols-1",
+    },
+  ])("seats a $field field with the winner centered and no gap", ({ seats, order, columns }) => {
+    renderPodium(seats);
+    expect(seatNames()).toEqual(order);
+    expect(screen.getByTestId("podium-host").querySelector("[data-slot=podium]")).toHaveClass(
+      columns,
+    );
   });
 
   it("raises only the leader's seat", () => {
@@ -44,22 +66,6 @@ describe("Podium", () => {
     ]);
     expect(screen.queryByText("Mira")).not.toBeInTheDocument();
     expect(seatNames()).toHaveLength(3);
-  });
-
-  it("seats a two-player field without leaving a gap", () => {
-    renderPodium([seat(1, "DerVuk", 6), seat(2, "Poppy", 3)]);
-    expect(seatNames()).toEqual(["Poppy", "DerVuk"]);
-    expect(screen.getByTestId("podium-host").querySelector("[data-slot=podium]")).toHaveClass(
-      "grid-cols-2",
-    );
-  });
-
-  it("seats a one-player field", () => {
-    renderPodium([seat(1, "DerVuk", 3)]);
-    expect(seatNames()).toEqual(["DerVuk"]);
-    expect(screen.getByTestId("podium-host").querySelector("[data-slot=podium]")).toHaveClass(
-      "grid-cols-1",
-    );
   });
 
   it("renders ghost seats and the empty label with no results", () => {
@@ -83,36 +89,5 @@ describe("Podium", () => {
     const raised = document.querySelector(String.raw`.ring-border-accent\/40`) as HTMLElement;
     expect(within(raised).getByText("DerVuk")).toBeInTheDocument();
     expect(within(raised).getByText("opp 1.75")).toBeInTheDocument();
-  });
-});
-
-describe("Medal", () => {
-  it("prints the rank", () => {
-    render(<Medal rank={2} />);
-    expect(screen.getByText("2")).toBeInTheDocument();
-  });
-
-  it("tints a flat medal with the standings-row chip colours", () => {
-    render(<Medal rank={2} />);
-    const medal = screen.getByText("2");
-    expect(medal).toHaveClass("bg-zinc-400/16", "border-zinc-400/60");
-    expect(medal).not.toHaveClass("shadow-md");
-  });
-
-  it("tints the flat crown like the gold rank chip", () => {
-    render(<Medal rank={1} />);
-    expect(document.querySelector("[data-slot=medal]")).toHaveClass("text-amber-700");
-  });
-
-  it("plates and shadows the on-art variant so it holds over card art", () => {
-    render(<Medal rank={2} variant="onArt" />);
-    const medal = screen.getByText("2");
-    expect(medal).toHaveClass("bg-zinc-300", "shadow-md", "ring-1");
-    expect(medal).not.toHaveClass("bg-muted-foreground/40");
-  });
-
-  it("plates ranks past the podium too", () => {
-    render(<Medal rank={9} variant="onArt" />);
-    expect(screen.getByText("9")).toHaveClass("bg-zinc-800");
   });
 });

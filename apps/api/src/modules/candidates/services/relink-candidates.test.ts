@@ -58,11 +58,27 @@ describe("relinkCandidatePrintings", () => {
     expect(linkCandidatePrintings).not.toHaveBeenCalled();
   });
 
-  it("links a row whose composite key now matches an accepted printing", async () => {
+  it.each([
+    {
+      name: "links a row whose composite key now matches an accepted printing",
+      row: {},
+      key: fireballKey,
+    },
+    {
+      name: "matches short codes case-insensitively and defaults language to EN",
+      row: { shortCode: "ogn-001", language: null },
+      key: fireballKey,
+    },
+    {
+      name: "sorts marker slugs before keying so order never blocks a match",
+      row: { markerSlugs: ["promo", "launch-exclusive"] },
+      key: { ...fireballKey, markerSlugs: ["launch-exclusive", "promo"] },
+    },
+  ])("$name", async ({ row, key }) => {
     const { repos, linkCandidatePrintings } = makeRepos({
-      unlinked: [makeUnlinked()],
+      unlinked: [makeUnlinked(row)],
       cardNorms: [{ id: "card-uuid", normName: "fireball" }],
-      printingKeys: [fireballKey],
+      printingKeys: [key],
     });
     expect(await relinkCandidatePrintings(repos)).toEqual({ examined: 1, linked: 1 });
     expect(linkCandidatePrintings).toHaveBeenCalledWith(["cp-1"], "printing-uuid");
@@ -96,26 +112,6 @@ describe("relinkCandidatePrintings", () => {
     });
     expect(await relinkCandidatePrintings(repos)).toEqual({ examined: 1, linked: 0 });
     expect(linkCandidatePrintings).not.toHaveBeenCalled();
-  });
-
-  it("matches short codes case-insensitively and defaults language to EN", async () => {
-    const { repos, linkCandidatePrintings } = makeRepos({
-      unlinked: [makeUnlinked({ shortCode: "ogn-001", language: null })],
-      cardNorms: [{ id: "card-uuid", normName: "fireball" }],
-      printingKeys: [fireballKey],
-    });
-    expect(await relinkCandidatePrintings(repos)).toEqual({ examined: 1, linked: 1 });
-    expect(linkCandidatePrintings).toHaveBeenCalledWith(["cp-1"], "printing-uuid");
-  });
-
-  it("resolves the card via alias when the direct norm does not match", async () => {
-    const { repos } = makeRepos({
-      unlinked: [makeUnlinked({ cardName: "Firbal" })],
-      cardNorms: [{ id: "card-uuid", normName: "fireball" }],
-      aliases: [{ cardId: "card-uuid", normName: "firbal" }],
-      printingKeys: [fireballKey],
-    });
-    expect(await relinkCandidatePrintings(repos)).toEqual({ examined: 1, linked: 1 });
   });
 
   it("prefers a manual link override over key resolution", async () => {
@@ -189,16 +185,6 @@ describe("relinkCandidatePrintings", () => {
     expect(linkCandidatePrintings).toHaveBeenCalledTimes(2);
     expect(linkCandidatePrintings).toHaveBeenCalledWith(["cp-1", "cp-2"], "printing-uuid");
     expect(linkCandidatePrintings).toHaveBeenCalledWith(["cp-3"], "foil-uuid");
-  });
-
-  it("sorts marker slugs before keying so order never blocks a match", async () => {
-    const { repos, linkCandidatePrintings } = makeRepos({
-      unlinked: [makeUnlinked({ markerSlugs: ["promo", "launch-exclusive"] })],
-      cardNorms: [{ id: "card-uuid", normName: "fireball" }],
-      printingKeys: [{ ...fireballKey, markerSlugs: ["launch-exclusive", "promo"] }],
-    });
-    expect(await relinkCandidatePrintings(repos)).toEqual({ examined: 1, linked: 1 });
-    expect(linkCandidatePrintings).toHaveBeenCalledWith(["cp-1"], "printing-uuid");
   });
 });
 

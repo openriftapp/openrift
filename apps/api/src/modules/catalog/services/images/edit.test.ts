@@ -85,15 +85,6 @@ describe("editImageFile", () => {
     expect(events).toEqual(["write new", "swap rows"]);
   });
 
-  it("never writes under the old id", async () => {
-    await editImageFile(io, repo, current, { ...current, needsTrim: true });
-
-    for (const call of vi.mocked(processAndSave).mock.calls) {
-      expect(call[4]).not.toBe(OLD_ID);
-    }
-    expect(deleteRehostFiles).not.toHaveBeenCalledWith(io, NEW_URL);
-  });
-
   it("does nothing when the settings are unchanged", async () => {
     const id = await editImageFile(
       io,

@@ -91,62 +91,49 @@ describe("processAndSave", () => {
     expect(mockWriteFile).toHaveBeenCalledTimes(5);
   });
 
-  it("resizes portrait sources on the width axis", async () => {
-    setSharpMetadata({ width: 600, height: 900 });
+  it.each([
+    {
+      name: "resizes portrait sources on the width axis",
+      size: { width: 600, height: 900 },
+      rotation: 0,
+      rotateCalls: [],
+      axis: "width",
+    },
+    {
+      name: "resizes landscape sources on the height axis",
+      size: { width: 900, height: 600 },
+      rotation: 0,
+      rotateCalls: [],
+      axis: "height",
+    },
+    {
+      name: "treats a 90° rotated portrait source as landscape for short-edge capping",
+      size: { width: 600, height: 900 },
+      rotation: 90,
+      rotateCalls: [[90]],
+      axis: "height",
+    },
+  ])("$name", async ({ size, rotation, rotateCalls, axis }) => {
+    setSharpMetadata(size);
     await processAndSave(
       mockIo,
       Buffer.from("p"),
       ".png",
       "/tmp/out",
-      "portrait-1",
-      0,
+      "resize-1",
+      rotation,
       false,
       null,
     );
 
-    expect(mockSharpInstance.resize).toHaveBeenCalledWith(120, null, { withoutEnlargement: true });
-    expect(mockSharpInstance.resize).toHaveBeenCalledWith(240, null, { withoutEnlargement: true });
-    expect(mockSharpInstance.resize).toHaveBeenCalledWith(400, null, { withoutEnlargement: true });
-    expect(mockSharpInstance.resize).toHaveBeenCalledWith(800, null, { withoutEnlargement: true });
-  });
-
-  it("resizes landscape sources on the height axis", async () => {
-    setSharpMetadata({ width: 900, height: 600 });
-    await processAndSave(
-      mockIo,
-      Buffer.from("l"),
-      ".png",
-      "/tmp/out",
-      "landscape-1",
-      0,
-      false,
-      null,
-    );
-
-    expect(mockSharpInstance.resize).toHaveBeenCalledWith(null, 120, { withoutEnlargement: true });
-    expect(mockSharpInstance.resize).toHaveBeenCalledWith(null, 240, { withoutEnlargement: true });
-    expect(mockSharpInstance.resize).toHaveBeenCalledWith(null, 400, { withoutEnlargement: true });
-    expect(mockSharpInstance.resize).toHaveBeenCalledWith(null, 800, { withoutEnlargement: true });
-  });
-
-  it("treats a 90° rotated portrait source as landscape for short-edge capping", async () => {
-    setSharpMetadata({ width: 600, height: 900 });
-    await processAndSave(
-      mockIo,
-      Buffer.from("p"),
-      ".png",
-      "/tmp/out",
-      "rotated-1",
-      90,
-      false,
-      null,
-    );
-
-    expect(mockSharpInstance.rotate).toHaveBeenCalledWith(90);
-    expect(mockSharpInstance.resize).toHaveBeenCalledWith(null, 120, { withoutEnlargement: true });
-    expect(mockSharpInstance.resize).toHaveBeenCalledWith(null, 240, { withoutEnlargement: true });
-    expect(mockSharpInstance.resize).toHaveBeenCalledWith(null, 400, { withoutEnlargement: true });
-    expect(mockSharpInstance.resize).toHaveBeenCalledWith(null, 800, { withoutEnlargement: true });
+    expect(mockSharpInstance.rotate.mock.calls).toEqual(rotateCalls);
+    for (const edge of [120, 240, 400, 800]) {
+      expect(mockSharpInstance.resize).toHaveBeenCalledWith(
+        axis === "width" ? edge : null,
+        axis === "width" ? null : edge,
+        { withoutEnlargement: true },
+      );
+    }
   });
 
   it("crops scans to the detected card box with a 2px shave when needsTrim=true", async () => {

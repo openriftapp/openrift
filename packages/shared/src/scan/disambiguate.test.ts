@@ -83,65 +83,38 @@ function shifted(signature: GrayImage, offset: number): GrayImage {
   return { data, width, height };
 }
 
-describe("textRegionSignature", () => {
-  it("produces a fixed-size signature for portrait images", () => {
-    const signature = textRegionSignature(cardWithTextPattern(1));
-    expect(signature?.width).toBe(SIGNATURE_WIDTH);
-    expect(signature?.height).toBeGreaterThanOrEqual(24);
-    expect(signature?.height).toBeLessThanOrEqual(96);
+function blankImage(width: number, height: number): RgbaImage {
+  return { data: new Uint8ClampedArray(width * height * 4), width, height };
+}
+
+describe("band signatures", () => {
+  it.each([
+    ["textRegionSignature", textRegionSignature, cardWithTextPattern(1), SIGNATURE_WIDTH, 24, 96],
+    ["codeStripSignature", codeStripSignature, fullSizeCard(1), CODE_SIGNATURE_WIDTH, 12, 32],
+    ["stampBandSignature", stampBandSignature, fullSizeCard(1), STAMP_SIGNATURE_WIDTH, 16, 44],
+  ])(
+    "%s produces a fixed-width signature for a portrait card",
+    (_name, signatureOf, card, width, minHeight, maxHeight) => {
+      const signature = signatureOf(card);
+      expect(signature?.width).toBe(width);
+      expect(signature?.height).toBeGreaterThanOrEqual(minHeight);
+      expect(signature?.height).toBeLessThanOrEqual(maxHeight);
+    },
+  );
+
+  it.each([
+    ["codeStripSignature", codeStripSignature],
+    ["stampBandSignature", stampBandSignature],
+  ])("%s abstains when the band would need upscaling", (_name, signatureOf) => {
+    expect(signatureOf(cardWithTextPattern(1))).toBeNull();
   });
 
-  it("abstains on landscape images", () => {
-    const landscape: RgbaImage = {
-      data: new Uint8ClampedArray(88 * 63 * 4),
-      width: 88,
-      height: 63,
-    };
-    expect(textRegionSignature(landscape)).toBeNull();
-  });
-});
-
-describe("codeStripSignature", () => {
-  it("produces a signature at full query resolution", () => {
-    const signature = codeStripSignature(fullSizeCard(1));
-    expect(signature?.width).toBe(CODE_SIGNATURE_WIDTH);
-    expect(signature?.height).toBeGreaterThanOrEqual(12);
-    expect(signature?.height).toBeLessThanOrEqual(32);
-  });
-
-  it("abstains when the strip would need upscaling", () => {
-    expect(codeStripSignature(cardWithTextPattern(1))).toBeNull();
-  });
-
-  it("abstains on landscape images", () => {
-    const landscape: RgbaImage = {
-      data: new Uint8ClampedArray(528 * 384 * 4),
-      width: 528,
-      height: 384,
-    };
-    expect(codeStripSignature(landscape)).toBeNull();
-  });
-});
-
-describe("stampBandSignature", () => {
-  it("produces a signature at full query resolution", () => {
-    const signature = stampBandSignature(fullSizeCard(1));
-    expect(signature?.width).toBe(STAMP_SIGNATURE_WIDTH);
-    expect(signature?.height).toBeGreaterThanOrEqual(16);
-    expect(signature?.height).toBeLessThanOrEqual(44);
-  });
-
-  it("abstains when the band would need upscaling", () => {
-    expect(stampBandSignature(cardWithTextPattern(1))).toBeNull();
-  });
-
-  it("abstains on landscape images", () => {
-    const landscape: RgbaImage = {
-      data: new Uint8ClampedArray(528 * 384 * 4),
-      width: 528,
-      height: 384,
-    };
-    expect(stampBandSignature(landscape)).toBeNull();
+  it.each([
+    ["textRegionSignature", textRegionSignature, blankImage(88, 63)],
+    ["codeStripSignature", codeStripSignature, blankImage(528, 384)],
+    ["stampBandSignature", stampBandSignature, blankImage(528, 384)],
+  ])("%s abstains on landscape images", (_name, signatureOf, image) => {
+    expect(signatureOf(image)).toBeNull();
   });
 });
 

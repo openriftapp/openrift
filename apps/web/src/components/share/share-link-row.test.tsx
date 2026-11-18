@@ -71,10 +71,14 @@ describe("ShareLinkRow", () => {
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 
-  it("renders caller actions after the copy button", () => {
+  it("renders caller actions after the copy and QR buttons", () => {
     render(<ShareLinkRow url={URL} label="Share link" actions={<Button>Disable link</Button>} />);
 
-    expect(screen.getByRole("button", { name: "Disable link" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button")).toEqual([
+      screen.getByRole("button", { name: "Copy" }),
+      screen.getByRole("button", { name: "Show QR code" }),
+      screen.getByRole("button", { name: "Disable link" }),
+    ]);
   });
 
   it("stays usable when the clipboard write is denied", async () => {

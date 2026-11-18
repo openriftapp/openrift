@@ -16,46 +16,47 @@ function mountOnBody(): HTMLDivElement {
 }
 
 describe("dialog click isolation", () => {
-  it("does not bubble dialog clicks to a clickable ancestor (Dialog)", async () => {
-    const user = userEvent.setup();
-    const ancestorClick = vi.fn();
-    render(
-      // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stand-in for a clickable <Link> ancestor
-      <div onClick={ancestorClick}>
+  it.each([
+    {
+      kind: "Dialog",
+      label: "confirm",
+      dialog: (onAction: () => void) => (
         <Dialog defaultOpen>
           <DialogContent showCloseButton={false}>
-            <button type="button">confirm</button>
+            <button type="button" onClick={onAction}>
+              confirm
+            </button>
           </DialogContent>
         </Dialog>
-      </div>,
-      { container: mountOnBody() },
-    );
-
-    await user.click(screen.getByRole("button", { name: "confirm" }));
-
-    expect(ancestorClick).not.toHaveBeenCalled();
-  });
-
-  it("does not bubble dialog clicks to a clickable ancestor (AlertDialog)", async () => {
-    const user = userEvent.setup();
-    const ancestorClick = vi.fn();
-    const onAction = vi.fn();
-    render(
-      // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stand-in for a clickable <Link> ancestor
-      <div onClick={ancestorClick}>
+      ),
+    },
+    {
+      kind: "AlertDialog",
+      label: "Delete",
+      dialog: (onAction: () => void) => (
         <AlertDialog defaultOpen>
           <AlertDialogContent>
             <AlertDialogAction onClick={onAction}>Delete</AlertDialogAction>
           </AlertDialogContent>
         </AlertDialog>
-      </div>,
-      { container: mountOnBody() },
-    );
+      ),
+    },
+  ])(
+    "runs the $kind button's handler without bubbling to a clickable ancestor",
+    async ({ label, dialog }) => {
+      const user = userEvent.setup();
+      const ancestorClick = vi.fn();
+      const onAction = vi.fn();
+      render(
+        // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stand-in for a clickable <Link> ancestor
+        <div onClick={ancestorClick}>{dialog(onAction)}</div>,
+        { container: mountOnBody() },
+      );
 
-    await user.click(screen.getByRole("button", { name: "Delete" }));
+      await user.click(screen.getByRole("button", { name: label }));
 
-    // The action's own handler still runs; only the ancestor is shielded.
-    expect(onAction).toHaveBeenCalledTimes(1);
-    expect(ancestorClick).not.toHaveBeenCalled();
-  });
+      expect(onAction).toHaveBeenCalledTimes(1);
+      expect(ancestorClick).not.toHaveBeenCalled();
+    },
+  );
 });

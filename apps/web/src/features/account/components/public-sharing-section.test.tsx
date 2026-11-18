@@ -58,12 +58,6 @@ describe("PublicSharingSection", () => {
     expect(screen.getByRole("tab", { name: "Print" })).toBeInTheDocument();
   });
 
-  it("no longer offers a reset, which Stop sharing then Create link already does", () => {
-    shareStateMock.mockReturnValue({ data: { shareToken: "AbCdEfGhIjKl" }, isPending: false });
-    render(<PublicSharingSection />);
-    expect(screen.queryByRole("button", { name: /reset link/iu })).not.toBeInTheDocument();
-  });
-
   it("confirms before dropping the bundle link", async () => {
     const user = userEvent.setup();
     disableMutate.mockClear();

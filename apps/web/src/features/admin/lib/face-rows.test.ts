@@ -60,10 +60,6 @@ describe("buildFaceRows", () => {
     expect(rows[0]?.printings).toEqual([withEmpowered, withShadowClone]);
     expect(rows[0]?.printing).toBe(withEmpowered);
   });
-
-  it("returns no rows for no printings", () => {
-    expect(buildFaceRows([])).toEqual([]);
-  });
 });
 
 describe("faceIdsOfPrinting", () => {

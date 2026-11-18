@@ -45,25 +45,35 @@ describe("reporting error interceptor: server-fault classification", () => {
     logError.mockClear();
   });
 
-  it("captures a 5xx ORPCError (a converted INTERNAL_ERROR AppError)", async () => {
-    await runThrowing(new ORPCError("INTERNAL_ERROR", { status: 500, message: "server fault" }));
-    expect(captureException).toHaveBeenCalledTimes(1);
-  });
-
-  it("does not capture a sub-500 ORPCError (a typed NOT_FOUND / CONFLICT)", async () => {
-    await runThrowing(new ORPCError("NOT_FOUND", { status: 404, message: "missing" }));
-    await runThrowing(new ORPCError("CONFLICT", { status: 409, message: "conflict" }));
-    expect(captureException).not.toHaveBeenCalled();
-  });
-
-  it("still captures a 5xx AppError that reaches the transport boundary unconverted", async () => {
-    await runThrowing(new AppError(500, "INTERNAL_ERROR", "boom"));
-    expect(captureException).toHaveBeenCalledTimes(1);
-  });
-
-  it("does not capture a sub-500 AppError", async () => {
-    await runThrowing(new AppError(404, "NOT_FOUND", "missing"));
-    expect(captureException).not.toHaveBeenCalled();
+  it.each([
+    {
+      name: "captures a 5xx ORPCError (a converted INTERNAL_ERROR AppError)",
+      error: new ORPCError("INTERNAL_ERROR", { status: 500, message: "server fault" }),
+      captures: 1,
+    },
+    {
+      name: "does not capture a typed NOT_FOUND ORPCError",
+      error: new ORPCError("NOT_FOUND", { status: 404, message: "missing" }),
+      captures: 0,
+    },
+    {
+      name: "does not capture a typed CONFLICT ORPCError",
+      error: new ORPCError("CONFLICT", { status: 409, message: "conflict" }),
+      captures: 0,
+    },
+    {
+      name: "still captures a 5xx AppError that reaches the transport boundary unconverted",
+      error: new AppError(500, "INTERNAL_ERROR", "boom"),
+      captures: 1,
+    },
+    {
+      name: "does not capture a sub-500 AppError",
+      error: new AppError(404, "NOT_FOUND", "missing"),
+      captures: 0,
+    },
+  ])("$name", async ({ error, captures }) => {
+    await runThrowing(error);
+    expect(captureException).toHaveBeenCalledTimes(captures);
   });
 
   it("reports an unmapped unique violation as a server fault and rethrows it unchanged", async () => {
@@ -75,11 +85,6 @@ describe("reporting error interceptor: server-fault classification", () => {
     expect(error).toBe(uniqueViolation);
     expect(captureException).toHaveBeenCalledTimes(1);
     expect(logError).toHaveBeenCalledTimes(1);
-  });
-
-  it("captures a raw non-oRPC runtime error", async () => {
-    await runThrowing(new Error("kaboom"));
-    expect(captureException).toHaveBeenCalledTimes(1);
   });
 
   it("reports the offending field paths of an output-validation failure", async () => {

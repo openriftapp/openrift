@@ -14,7 +14,6 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage --coverage.reporter=text --coverage.reporter=lcov",
     "test:watch": "vitest",
-    "build": "tsgo",
     "typecheck": "tsgo",
     "typecheck:scripts": "tsgo --noEmit -p ../../scripts/tsconfig.json",
     "dev": "tsgo --watch",
