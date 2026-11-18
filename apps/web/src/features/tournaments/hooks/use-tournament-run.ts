@@ -157,6 +157,13 @@ const submitResultFn = createServerFn({ method: "POST" })
     apiOrpcClient(tournamentsContract, context.cookie).submitResult(data),
   );
 
+const clearResultFn = createServerFn({ method: "POST" })
+  .validator((input: { id: string; podId: string }) => input)
+  .middleware([withCookies])
+  .handler(({ context, data }): Promise<PodTournamentDetailResponse> =>
+    apiOrpcClient(tournamentsContract, context.cookie).clearResult(data),
+  );
+
 const setReportTokenFn = createServerFn({ method: "POST" })
   .validator((input: { id: string; enabled: boolean }) => input)
   .middleware([withCookies])
@@ -276,6 +283,10 @@ export function useSubmitTournamentResult() {
     (data) => submitResultFn({ data }),
     true,
   );
+}
+
+export function useClearTournamentResult() {
+  return useRunMutation<{ id: string; podId: string }>((data) => clearResultFn({ data }));
 }
 
 export function useSetTournamentReportToken() {

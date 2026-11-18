@@ -654,6 +654,14 @@ export const tournamentsContract = {
     })
     .input(withParams(podParamSchema, podResultSchema))
     .output(podTournamentDetailResponseSchema),
+  clearResult: authedRoute
+    .route({ method: "DELETE", path: `${BASE}/{id}/pods/{podId}/result`, tags: [TAG] })
+    .errors({
+      NOT_FOUND: { message: "Tournament or pod not found" },
+      CONFLICT: { message: "Round is finalized" },
+    })
+    .input(podParamSchema)
+    .output(podTournamentDetailResponseSchema),
   enableReportToken: authedRoute
     .route({ method: "POST", path: `${BASE}/{id}/report-token`, tags: [TAG] })
     .errors({ NOT_FOUND: { message: "Tournament not found" } })

@@ -430,10 +430,11 @@ describe("PairingsView", () => {
       repeatedRegion: 0,
     };
     renderView({
-      rounds: [makeRound({ pods: [makePod({ penalty: cleanPenalty })] })],
+      rounds: [makeRound({ penaltyTotal: 0, pods: [makePod({ penalty: cleanPenalty })] })],
     });
     expect(screen.queryByText(/0 rematches/u)).not.toBeInTheDocument();
     expect(screen.queryByText(/spread 0/u)).not.toBeInTheDocument();
+    expect(document.querySelector("[data-slot='stat-strip']")).toBeNull();
 
     renderView({
       rounds: [

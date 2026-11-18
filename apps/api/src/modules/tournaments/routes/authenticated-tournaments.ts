@@ -65,6 +65,7 @@ import {
 } from "../services/group-cut.js";
 import { dropParticipant, withdrawPendingSpot } from "../services/participant-drops.js";
 import {
+  clearPodResult,
   finalizeRound as finalizeRoundEngine,
   pairNextRound,
   replaceRoundPairing,
@@ -867,6 +868,16 @@ export const tournamentsRouter = {
           drawnGames: input.drawnGames,
         }),
       );
+      return podRunDetailById(repos, input.id);
+    },
+  ),
+
+  clearResult: os.clearResult.handler(
+    async ({ input, context }): Promise<PodTournamentDetailResponse> => {
+      const repos = context.repos;
+      const tournament = await loadTournament(repos, input.id);
+      await requireManage(repos, tournament, context.userId);
+      await context.transact((trxRepos) => clearPodResult(trxRepos, tournament.id, input.podId));
       return podRunDetailById(repos, input.id);
     },
   ),

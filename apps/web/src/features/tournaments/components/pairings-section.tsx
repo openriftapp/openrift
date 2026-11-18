@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import {
+  useClearTournamentResult,
   useFinalizeTournamentRound,
   useRerollTournamentRound,
   useSubmitTournamentResult,
@@ -34,6 +35,7 @@ export function PodPairingsSection({
   const rerollRound = useRerollTournamentRound();
   const finalizeRound = useFinalizeTournamentRound();
   const submitResult = useSubmitTournamentResult();
+  const clearResult = useClearTournamentResult();
   const [editingRound, setEditingRound] = useState<number | null>(null);
   const [warningsExpanded, setWarningsExpanded] = useState(true);
 
@@ -140,6 +142,7 @@ export function PodPairingsSection({
         onSubmitResult={(podId, submission) =>
           submitResult.mutateAsync({ id, podId, ...submission })
         }
+        onClearResult={manage ? (podId) => clearResult.mutateAsync({ id, podId }) : undefined}
         renderRoundActions={(round) => {
           if (round.status !== "reporting") {
             return null;

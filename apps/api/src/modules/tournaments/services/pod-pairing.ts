@@ -433,6 +433,22 @@ export async function submitPodResult(
   );
 }
 
+export async function clearPodResult(
+  repos: Repos,
+  tournamentId: string,
+  podId: string,
+): Promise<void> {
+  await repos.podTournaments.lockRoundOfPod(podId);
+  const found = await repos.podTournaments.getPodForResult(podId);
+  if (!found || found.tournament.id !== tournamentId) {
+    throw notFound("Pod not found");
+  }
+  if (found.round.status === "finalized") {
+    throw conflict("This round is finalized. Edit the result instead of clearing it.");
+  }
+  await repos.podTournaments.clearPodResult(podId);
+}
+
 /**
  * The repo write completes the pod (derives placements, flips it to
  * `reported`) once every member has points; until then the pod stays `pending`.

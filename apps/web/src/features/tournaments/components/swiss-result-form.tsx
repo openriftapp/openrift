@@ -45,6 +45,7 @@ interface SwissResultFormProps {
   submitting: boolean;
   error?: unknown;
   onCancel?: () => void;
+  clearAction?: ReactNode;
 }
 
 function isIntentionalDraw(counts: MatchCounts): boolean {
@@ -68,6 +69,7 @@ export function SwissResultForm({
   submitting,
   error,
   onCancel,
+  clearAction,
 }: SwissResultFormProps) {
   const groups = teamMatch
     ? groupPodMembersByTeam(pod.members)
@@ -244,26 +246,32 @@ export function SwissResultForm({
         })}
       </div>
       <p className="text-muted-foreground min-h-5 text-sm tabular-nums">
-        {summary ?? (intentional ? null : m.tournaments_submit_tap_hint())}
+        {summary ??
+          (intentional
+            ? null
+            : tiedWithoutDraws
+              ? m.tournaments_submit_needs_winner()
+              : m.tournaments_submit_tap_hint())}
         {summary && showPoints && preview ? ` · +${preview[0]} / +${preview[1]}` : null}
       </p>
-      {tiedWithoutDraws ? (
-        <p className="text-muted-foreground text-sm">{m.tournaments_submit_needs_winner()}</p>
-      ) : null}
       {changedRemotely ? <ChangedRemotelyNotice match onShowLatest={loadLatest} /> : null}
       <SaveError error={error} />
       <div className="-mx-3 flex flex-wrap items-center justify-end gap-2 border-t px-3 pt-3">
-        {offerIntentionalDraw ? (
-          <Toggle
-            variant="outline"
-            size="sm"
-            pressed={intentional}
-            onPressedChange={setIntentional}
-            disabled={submitting}
-            className="mr-auto"
-          >
-            {m.tournaments_submit_intentional_draw()}
-          </Toggle>
+        {clearAction || offerIntentionalDraw ? (
+          <span className="mr-auto flex flex-wrap items-center gap-2">
+            {clearAction}
+            {offerIntentionalDraw ? (
+              <Toggle
+                variant="outline"
+                size="sm"
+                pressed={intentional}
+                onPressedChange={setIntentional}
+                disabled={submitting}
+              >
+                {m.tournaments_submit_intentional_draw()}
+              </Toggle>
+            ) : null}
+          </span>
         ) : null}
         {onCancel ? (
           <Button variant="ghost" onClick={onCancel} disabled={submitting}>

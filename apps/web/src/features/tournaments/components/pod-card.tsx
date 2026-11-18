@@ -32,6 +32,7 @@ import { parseIntegerInput } from "@/lib/integer-input";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
+import { ClearResultButton } from "./clear-result-button";
 import { WarningBadge, WarningList } from "./pairing-warnings";
 import { ChangedRemotelyNotice, PodResultForm } from "./pod-result-form";
 import { SwissResultForm } from "./swiss-result-form";
@@ -68,6 +69,7 @@ export function PodCard({
   renderMemberDetail,
   onSubmit,
   onSubmitPlayerResult,
+  onClearResult,
 }: {
   pod: PodResponse;
   teamMode: boolean;
@@ -87,6 +89,7 @@ export function PodCard({
   renderMemberDetail?: (playerId: string) => ReactNode;
   onSubmit: (podId: string, submission: PodResultSubmission) => Promise<unknown>;
   onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<unknown>;
+  onClearResult?: (podId: string) => Promise<unknown>;
 }) {
   const pod = podForDisplay(rawPod);
   const isMatch = teamMode || isMatchPairing(pod.size);
@@ -105,6 +108,17 @@ export function PodCard({
     (submission) => onSubmit(pod.id, submission),
     (submission) => adoptSaved(submission.results, submission.drawnGames),
   );
+  const clearAction =
+    onClearResult && !walkover && (reported || enteredCount > 0) ? (
+      <ClearResultButton
+        podNumber={pod.podNumber}
+        disabled={editor.saving}
+        onClear={async () => {
+          await onClearResult(pod.id);
+          editor.handleCancel();
+        }}
+      />
+    ) : null;
 
   function startScoring(member: PodMemberResponse) {
     resync();
@@ -302,7 +316,7 @@ export function PodCard({
           ) : null}
         </span>
       </div>
-      {showPenalty && (penaltySummary || warningsExpanded) ? (
+      {showPenalty && (penaltySummary || (warningsExpanded && warnings.length > 0)) ? (
         <div className="flex flex-col gap-2 border-b px-3 py-2">
           {penaltySummary ? (
             <p className="text-muted-foreground text-sm">{penaltySummary}</p>
@@ -323,6 +337,7 @@ export function PodCard({
               onSubmit={(submission) => void editor.submit(submission)}
               submitting={editor.saving}
               error={editor.error}
+              clearAction={clearAction}
             />
           ) : (
             <PodResultForm
@@ -331,6 +346,7 @@ export function PodCard({
               onSubmit={(results) => void editor.submit({ results })}
               submitting={editor.saving}
               error={editor.error}
+              clearAction={clearAction}
             />
           )}
         </div>

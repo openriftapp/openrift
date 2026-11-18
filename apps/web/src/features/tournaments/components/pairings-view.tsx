@@ -56,6 +56,7 @@ interface PairingsViewProps {
   canEnterResult: (round: PodRoundResponse, pod: PodResponse) => boolean;
   onSubmitResult: (podId: string, submission: PodResultSubmission) => Promise<unknown>;
   onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<unknown>;
+  onClearResult?: (podId: string) => Promise<unknown>;
   renderRoundActions?: (round: PodRoundResponse) => ReactNode;
   emptyMessage: string;
   emptyDescription?: string;
@@ -85,6 +86,7 @@ export function PairingsView({
   canEnterResult,
   onSubmitResult,
   onSubmitPlayerResult,
+  onClearResult,
   renderRoundActions,
   emptyMessage,
   emptyDescription,
@@ -233,6 +235,7 @@ export function PairingsView({
                   canEnter={canEnterResult(round, pod)}
                   onSubmit={onSubmitResult}
                   onSubmitPlayerResult={onSubmitPlayerResult}
+                  onClearResult={round.status === "reporting" ? onClearResult : undefined}
                   renderMemberDetail={
                     legendByPlayer
                       ? (playerId) => <PodMemberLegend legend={legendByPlayer.get(playerId)} />
@@ -331,6 +334,9 @@ function RoundPenaltyStats({ round }: { round: PodRoundResponse }) {
     icon: ArrowUpDownIcon,
   });
 
+  if (items.every((item) => item.value === 0)) {
+    return null;
+  }
   return <StatStrip items={items} />;
 }
 

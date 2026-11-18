@@ -194,6 +194,71 @@ describe.skipIf(!ready)("Tournament running surface (integration)", () => {
     expect(pods).toHaveLength(1);
   });
 
+  it("clears a table's result while the round reports and refuses once it is finalized", async () => {
+    const id = await createPodTournament(host, { name: "Clear Result", host: { type: "user" } });
+    await host.db
+      .insertInto("tournamentParticipants")
+      .values(
+        ["A", "B", "C", "D"].map((name) => ({
+          tournamentId: id,
+          displayName: name,
+          status: "active" as const,
+        })),
+      )
+      .execute();
+    const paired = await host.app.fetch(req("POST", `/tournaments/${id}/rounds`, {}));
+    expect(paired.status).toBe(200);
+    const pod = await host.db
+      .selectFrom("pods as p")
+      .innerJoin("podRounds as r", "r.id", "p.roundId")
+      .select("p.id")
+      .where("r.tournamentId", "=", id)
+      .executeTakeFirstOrThrow();
+    const members = await host.db
+      .selectFrom("podMembers")
+      .select("playerId")
+      .where("podId", "=", pod.id)
+      .execute();
+    const submit = () =>
+      host.app.fetch(
+        req("PUT", `/tournaments/${id}/pods/${pod.id}/result`, {
+          results: members.map((member, index) => ({
+            playerId: member.playerId,
+            gamePoints: index,
+          })),
+        }),
+      );
+    const first = await submit();
+    expect(first.status).toBe(200);
+
+    const refused = await stranger.app.fetch(
+      req("DELETE", `/tournaments/${id}/pods/${pod.id}/result`),
+    );
+    expect(refused.status).toBe(404);
+    const cleared = await host.app.fetch(req("DELETE", `/tournaments/${id}/pods/${pod.id}/result`));
+
+    expect(cleared.status).toBe(200);
+    const row = await host.db
+      .selectFrom("pods")
+      .select(["resultStatus", "drawnGames"])
+      .where("id", "=", pod.id)
+      .executeTakeFirstOrThrow();
+    expect(row).toEqual({ resultStatus: "pending", drawnGames: 0 });
+    const memberRows = await host.db
+      .selectFrom("podMembers")
+      .select(["placement", "gamePoints"])
+      .where("podId", "=", pod.id)
+      .execute();
+    expect(memberRows.every((m) => m.placement === null && m.gamePoints === null)).toBe(true);
+
+    const second = await submit();
+    expect(second.status).toBe(200);
+    const finalized = await host.app.fetch(req("POST", `/tournaments/${id}/rounds/1/finalize`));
+    expect(finalized.status).toBe(200);
+    const late = await host.app.fetch(req("DELETE", `/tournaments/${id}/pods/${pod.id}/result`));
+    expect(late.status).toBe(409);
+  });
+
   it("serializes concurrent pairing edits and re-rolls of one round", async () => {
     const id = await createPodTournament(host, {
       name: "Concurrent Edits",

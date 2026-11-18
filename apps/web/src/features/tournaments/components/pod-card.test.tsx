@@ -1,5 +1,5 @@
 import type { PodResponse } from "@openrift/shared/types/api/pod-tournament";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -89,6 +89,33 @@ describe("PodCard", () => {
     expect(screen.getByRole("button", { name: "Enter result" })).toBeInTheDocument();
   });
 
+  it("clears a reported result after confirming, then closes the form", async () => {
+    const user = userEvent.setup();
+    const onClearResult = vi.fn().mockResolvedValue(undefined);
+    const reported = { ...threePlayerPod([3, 1, 0]), resultStatus: "reported" as const };
+    render(<PodCard {...props(reported, vi.fn())} onClearResult={onClearResult} />);
+
+    await user.click(screen.getByRole("button", { name: "Edit result" }));
+    await user.click(screen.getByRole("button", { name: "Clear result" }));
+    expect(onClearResult).not.toHaveBeenCalled();
+    await user.click(
+      within(screen.getByRole("alertdialog")).getByRole("button", { name: "Clear result" }),
+    );
+
+    expect(onClearResult).toHaveBeenCalledWith("pod-1");
+    expect(await screen.findByRole("button", { name: "Edit result" })).toBeInTheDocument();
+  });
+
+  it("offers no clear on a table without any entry", async () => {
+    const user = userEvent.setup();
+    render(
+      <PodCard {...props(threePlayerPod([null, null, null]), vi.fn())} onClearResult={vi.fn()} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Enter result" }));
+    expect(screen.queryByRole("button", { name: "Clear result" })).not.toBeInTheDocument();
+  });
+
   it("only accepts whole game point counts in a pod result", async () => {
     const user = userEvent.setup();
     const pod = match([null, null]);
@@ -158,6 +185,13 @@ describe("PodCard", () => {
     expect(label).toHaveClass("whitespace-nowrap");
     expect(label.parentElement).toHaveClass("flex-wrap");
     expect(screen.getByText("Cross-group").parentElement).toHaveClass("flex-wrap");
+  });
+
+  it("leaves no empty strip under the header when warnings are expanded but there are none", () => {
+    render(<PodCard {...props(match([null, null]), vi.fn())} showPenalty warningsExpanded />);
+
+    const header = screen.getByText("Table 1").parentElement!;
+    expect(header.nextElementSibling).toHaveTextContent("Ashe");
   });
 
   it("leaves a player's score draft alone when another player saves theirs", async () => {

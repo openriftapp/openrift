@@ -214,7 +214,7 @@ describe("CutBracketCompact", () => {
     );
     const header = screen.getByText("SF 1").parentElement?.parentElement;
     expect(header?.firstElementChild).toHaveTextContent("Table 1");
-    const outcomes = [...document.querySelectorAll("[data-slot=bracket-seat]")].map(
+    const outcomes = [...document.querySelectorAll<HTMLElement>("[data-slot=bracket-seat]")].map(
       (seat) => seat.dataset.outcome ?? null,
     );
     expect(outcomes.slice(0, 4)).toEqual(["won", "lost", null, null]);

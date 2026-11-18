@@ -41,6 +41,7 @@ interface GroupStageSectionsProps {
   canEnterResult: boolean;
   onSubmitResult: (podId: string, submission: PodResultSubmission) => Promise<unknown>;
   onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<unknown>;
+  onClearResult?: (podId: string) => Promise<unknown>;
   /** Absent when the viewer cannot start a group's round. */
   onStartUnit?: (unit: GroupUnit) => void;
   starting?: boolean;
@@ -56,6 +57,7 @@ export function GroupStageSections({
   canEnterResult,
   onSubmitResult,
   onSubmitPlayerResult,
+  onClearResult,
   onStartUnit,
   starting = false,
 }: GroupStageSectionsProps) {
@@ -64,6 +66,7 @@ export function GroupStageSections({
   const legendByPlayer = legendsByPlayer(groupStage);
   const stageRounds = groupStageRounds(rounds, (round) => round.roundNumber);
   const canEditEarlier = canEnterResult && !groupStage.cutGenerated;
+  const clearResult = groupStage.cutGenerated ? undefined : onClearResult;
 
   if (units.length === 0) {
     return null;
@@ -86,6 +89,7 @@ export function GroupStageSections({
           canEditEarlier={canEditEarlier}
           onSubmitResult={onSubmitResult}
           onSubmitPlayerResult={onSubmitPlayerResult}
+          onClearResult={clearResult}
           onStartUnit={onStartUnit}
           starting={starting}
         />
@@ -129,6 +133,7 @@ function GroupUnitSection({
   canEditEarlier,
   onSubmitResult,
   onSubmitPlayerResult,
+  onClearResult,
   onStartUnit,
   starting,
 }: {
@@ -144,6 +149,7 @@ function GroupUnitSection({
   canEditEarlier: boolean;
   onSubmitResult: (podId: string, submission: PodResultSubmission) => Promise<unknown>;
   onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<unknown>;
+  onClearResult?: (podId: string) => Promise<unknown>;
   onStartUnit?: (unit: GroupUnit) => void;
   starting: boolean;
 }) {
@@ -208,6 +214,7 @@ function GroupUnitSection({
               )}
               onSubmit={onSubmitResult}
               onSubmitPlayerResult={onSubmitPlayerResult}
+              onClearResult={onClearResult}
             />
           ))}
         </div>
@@ -226,6 +233,7 @@ function GroupUnitSection({
           canEnter={canEditEarlier}
           onSubmitResult={onSubmitResult}
           onSubmitPlayerResult={onSubmitPlayerResult}
+          onClearResult={onClearResult}
         />
       ))}
     </section>
@@ -244,6 +252,7 @@ function EarlierRound({
   canEnter,
   onSubmitResult,
   onSubmitPlayerResult,
+  onClearResult,
 }: {
   roundNumber: number;
   pods: PodResponse[];
@@ -256,6 +265,7 @@ function EarlierRound({
   canEnter: boolean;
   onSubmitResult: (podId: string, submission: PodResultSubmission) => Promise<unknown>;
   onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<unknown>;
+  onClearResult?: (podId: string) => Promise<unknown>;
 }) {
   const [expanded, setExpanded] = useState(false);
   return (
@@ -296,6 +306,7 @@ function EarlierRound({
               )}
               onSubmit={onSubmitResult}
               onSubmitPlayerResult={onSubmitPlayerResult}
+              onClearResult={onClearResult}
             />
           ))}
         </div>

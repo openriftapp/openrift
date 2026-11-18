@@ -8,6 +8,7 @@ import { useState } from "react";
 import { ActionBand } from "@/components/ui/action-band";
 import { Button } from "@/components/ui/button";
 import {
+  useClearTournamentResult,
   useFinalizeTournamentRound,
   useRerollTournamentRound,
   useStartGroupRound,
@@ -40,6 +41,7 @@ export function GroupCutPairingsSection({
   manage: boolean;
 }) {
   const submitResult = useSubmitTournamentResult();
+  const clearResult = useClearTournamentResult();
   const startGroupRound = useStartGroupRound();
   const startGroupStageRound = useStartGroupStageRound();
   const finalizeRound = useFinalizeTournamentRound();
@@ -106,6 +108,7 @@ export function GroupCutPairingsSection({
                 canEnterResult: (round) => round.status === "reporting",
                 onSubmitResult: (podId, submission) =>
                   submitResult.mutateAsync({ id, podId, ...submission }),
+                onClearResult: (podId) => clearResult.mutateAsync({ id, podId }),
               }
             : undefined
         }
@@ -223,6 +226,9 @@ export function GroupCutPairingsSection({
           canEnterResult={manage && !completed}
           onSubmitResult={(podId, submission) =>
             submitResult.mutateAsync({ id, podId, ...submission })
+          }
+          onClearResult={
+            manage && !completed ? (podId) => clearResult.mutateAsync({ id, podId }) : undefined
           }
           onStartUnit={
             staff && tournament.groupsSelfPaced

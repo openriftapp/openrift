@@ -4,7 +4,12 @@ import { describe, expect, it, vi } from "vitest";
 import type { Repos } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import type { Tournament } from "../repositories/tournaments-shared.js";
-import { pairNextRound, submitPodPlayerResult, submitPodResult } from "./pod-pairing.js";
+import {
+  clearPodResult,
+  pairNextRound,
+  submitPodPlayerResult,
+  submitPodResult,
+} from "./pod-pairing.js";
 
 const TOURNAMENT = {
   id: "pod-1",
@@ -549,5 +554,47 @@ describe("submitPodPlayerResult", () => {
     const { repos, setMemberGamePoints } = reposWithPod("1v1", 4);
     await submitPodPlayerResult(repos, TEAM_TOURNAMENT.id, "pod-x", "b1", 2);
     expect(setMemberGamePoints).toHaveBeenCalledWith("pod-x", "b1", 2);
+  });
+});
+
+describe("clearPodResult", () => {
+  function reposWithPod(roundStatus: "reporting" | "finalized", tournamentId = TOURNAMENT.id) {
+    const clear = vi.fn(async () => undefined);
+    const repos = {
+      podTournaments: {
+        getPodForResult: vi.fn(async () => ({
+          pod: { id: "pod-x", size: 4 },
+          round: { status: roundStatus },
+          tournament: { ...TOURNAMENT, id: tournamentId },
+          memberPlayerIds: ["a", "b", "c", "d"],
+          teamByPlayer: new Map(),
+        })),
+        lockRoundOfPod: vi.fn(async () => undefined),
+        clearPodResult: clear,
+      },
+    } as unknown as Repos;
+    return { repos, clear };
+  }
+
+  it("clears a pod in a round that is still reporting", async () => {
+    const { repos, clear } = reposWithPod("reporting");
+    await clearPodResult(repos, TOURNAMENT.id, "pod-x");
+    expect(clear).toHaveBeenCalledWith("pod-x");
+  });
+
+  it("refuses to clear a pod in a finalized round", async () => {
+    const { repos, clear } = reposWithPod("finalized");
+    await expect(clearPodResult(repos, TOURNAMENT.id, "pod-x")).rejects.toMatchObject({
+      status: 409,
+    });
+    expect(clear).not.toHaveBeenCalled();
+  });
+
+  it("refuses a pod from another tournament", async () => {
+    const { repos, clear } = reposWithPod("reporting", "other");
+    await expect(clearPodResult(repos, TOURNAMENT.id, "pod-x")).rejects.toMatchObject({
+      status: 404,
+    });
+    expect(clear).not.toHaveBeenCalled();
   });
 });

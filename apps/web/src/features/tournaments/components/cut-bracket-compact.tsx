@@ -43,6 +43,7 @@ import type { PodResultSubmission } from "@/features/tournaments/lib/swiss-resul
 import { pairingLabel } from "@/features/tournaments/lib/tournament-display";
 import { m } from "@/paraglide/messages.js";
 
+import { ClearResultButton } from "./clear-result-button";
 import { SwissResultForm } from "./swiss-result-form";
 import { TournamentLegend } from "./tournament-legend";
 
@@ -53,6 +54,7 @@ export interface CutBracketEntry {
   drawPoints: number;
   canEnterResult: (round: PodRoundResponse, pod: PodResponse) => boolean;
   onSubmitResult: (podId: string, submission: PodResultSubmission) => Promise<unknown>;
+  onClearResult?: (podId: string) => Promise<unknown>;
 }
 
 interface SeatContext {
@@ -206,6 +208,18 @@ function Match({
           submitting={editor.saving}
           error={editor.error}
           onCancel={editor.handleCancel}
+          clearAction={
+            entry.onClearResult && pod.members.some((member) => member.gamePoints !== null) ? (
+              <ClearResultButton
+                podNumber={pod.podNumber}
+                disabled={editor.saving}
+                onClear={async () => {
+                  await entry.onClearResult?.(pod.id);
+                  editor.handleCancel();
+                }}
+              />
+            ) : null
+          }
         />
       </div>
     );

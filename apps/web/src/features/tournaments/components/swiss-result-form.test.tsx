@@ -290,6 +290,7 @@ describe("SwissResultForm", () => {
     await user.click(screen.getByRole("button", { name: "Game 2: Braum" }));
 
     expect(screen.getByText("A top cut match needs a winner.")).toBeInTheDocument();
+    expect(screen.queryByText("Tap the winner of each game.")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save result" })).toBeDisabled();
   });
 

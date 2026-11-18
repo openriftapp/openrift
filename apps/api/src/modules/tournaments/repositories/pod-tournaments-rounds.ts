@@ -297,6 +297,21 @@ export function podRoundsRepo(db: Kysely<Database>) {
       });
     },
 
+    async clearPodResult(podId: string): Promise<void> {
+      await inTransaction(db, async (trx) => {
+        await trx
+          .updateTable("podMembers")
+          .set({ placement: null, gamePoints: null })
+          .where("podId", "=", podId)
+          .execute();
+        await trx
+          .updateTable("pods")
+          .set({ resultStatus: "pending", drawnGames: 0 })
+          .where("id", "=", podId)
+          .execute();
+      });
+    },
+
     // The pod row lock serializes two players submitting at once, so the second sees the first's points.
     async setMemberGamePoints(podId: string, playerId: string, gamePoints: number): Promise<void> {
       await inTransaction(db, async (trx) => {

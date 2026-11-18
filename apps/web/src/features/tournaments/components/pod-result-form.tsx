@@ -1,6 +1,7 @@
 import { placementsFromGamePoints, pointsForPlacements } from "@openrift/shared/pairing/points";
 import type { PodResponse, PodScoringScheme } from "@openrift/shared/types/api/pod-tournament";
 import { MinusIcon, PlusIcon, TriangleAlertIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { participantName } from "@/features/tournaments/lib/participant-name";
 import { formatScore } from "@/features/tournaments/lib/standings-display";
 import type { PodResultEntry } from "@/features/tournaments/lib/swiss-results";
 import { parseIntegerInput } from "@/lib/integer-input";
+import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 interface PodResultFormProps {
@@ -21,6 +23,7 @@ interface PodResultFormProps {
   submitting: boolean;
   error?: unknown;
   onCancel?: () => void;
+  clearAction?: ReactNode;
 }
 
 export function ChangedRemotelyNotice({
@@ -50,6 +53,7 @@ export function PodResultForm({
   submitting,
   error,
   onCancel,
+  clearAction,
 }: PodResultFormProps) {
   const [points, setPoints] = useState<Record<string, string>>(() =>
     Object.fromEntries(
@@ -108,7 +112,7 @@ export function PodResultForm({
           return (
             <div
               key={member.playerId}
-              className="grid grid-cols-[minmax(0,1fr)_auto_4.5rem] items-center gap-x-3 px-3 py-2"
+              className="grid grid-cols-[minmax(0,1fr)_auto_2.25rem_2.25rem] items-center gap-x-3 px-3 py-2"
             >
               <span className="truncate font-medium" title={name}>
                 {name}
@@ -144,18 +148,18 @@ export function PodResultForm({
                   <PlusIcon />
                 </Button>
               </span>
-              <span className="text-right text-sm whitespace-nowrap tabular-nums">
-                {previewPoints && place !== undefined ? (
-                  <>
-                    <span className={place === 1 ? "text-primary font-semibold" : "font-medium"}>
-                      {formatRank(place, false)}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {" "}
-                      · +{formatScore(previewPoints[index] ?? 0)}
-                    </span>
-                  </>
-                ) : null}
+              <span
+                className={cn(
+                  "text-right text-sm whitespace-nowrap tabular-nums",
+                  place === 1 ? "text-primary font-semibold" : "font-medium",
+                )}
+              >
+                {previewPoints && place !== undefined ? formatRank(place, false) : null}
+              </span>
+              <span className="text-muted-foreground text-right text-sm whitespace-nowrap tabular-nums">
+                {previewPoints && place !== undefined
+                  ? `+${formatScore(previewPoints[index] ?? 0)}`
+                  : null}
               </span>
             </div>
           );
@@ -165,6 +169,7 @@ export function PodResultForm({
       {changedRemotely ? <ChangedRemotelyNotice onShowLatest={loadLatest} /> : null}
       <SaveError error={error} />
       <div className="-mx-3 flex justify-end gap-2 border-t px-3 pt-3">
+        {clearAction ? <span className="mr-auto">{clearAction}</span> : null}
         {onCancel ? (
           <Button variant="ghost" onClick={onCancel} disabled={submitting}>
             {m.common_cancel()}
