@@ -338,11 +338,30 @@ describe("CutBracketCompact", () => {
             "reporting",
           ),
         ]}
+        showStatus
         entry={entry(vi.fn())}
       />,
     );
     expect(screen.getByText("Reported")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Edit result" })).toBeInTheDocument();
+  });
+
+  it("keeps the reported badge on a closed round", () => {
+    const bracket = (showStatus: boolean) => (
+      <CutBracketCompact
+        cutSize={4}
+        groupStage={stage}
+        rounds={[semifinals]}
+        showStatus={showStatus}
+        entry={entry(vi.fn())}
+      />
+    );
+    const { rerender } = render(bracket(true));
+    expect(screen.getAllByText("Reported")).toHaveLength(2);
+    expect(screen.queryByRole("button", { name: "Edit result" })).not.toBeInTheDocument();
+
+    rerender(bracket(false));
+    expect(screen.queryByText("Reported")).not.toBeInTheDocument();
   });
 
   it("offers no entry in a read-only bracket", () => {

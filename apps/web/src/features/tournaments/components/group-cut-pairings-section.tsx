@@ -99,6 +99,7 @@ export function GroupCutPairingsSection({
         rounds={bracketRounds}
         cutSize={tournament.cutSize}
         groupStage={groupStage}
+        showStatus
         entry={
           manage && !completed
             ? {

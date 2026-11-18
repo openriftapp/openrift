@@ -166,6 +166,7 @@ function Match({
   roundNumber,
   context,
   isFinal,
+  showStatus,
   entry,
 }: {
   match: BracketMatch;
@@ -173,6 +174,7 @@ function Match({
   roundNumber: number;
   context: SeatContext;
   isFinal: boolean;
+  showStatus: boolean;
   entry: CutBracketEntry | undefined;
 }) {
   const pod = match.pod;
@@ -241,7 +243,7 @@ function Match({
       aside={
         <>
           {cutMatchShortLabel(context.cutSize, roundNumber, match.podNumber)}
-          {canEnter && reported ? (
+          {showStatus && reported ? (
             <Badge variant="success">{m.tournaments_pod_reported()}</Badge>
           ) : null}
         </>
@@ -267,11 +269,13 @@ export function CutBracketCompact({
   rounds,
   cutSize,
   groupStage,
+  showStatus = false,
   entry,
 }: {
   rounds: PodRoundResponse[];
   cutSize: CutSize;
   groupStage: GroupStageView;
+  showStatus?: boolean;
   entry?: CutBracketEntry;
 }) {
   const columns = buildBracketColumns(rounds, cutSize);
@@ -308,6 +312,7 @@ export function CutBracketCompact({
                 roundNumber={column.roundNumber}
                 context={context}
                 isFinal={index === columns.length - 1}
+                showStatus={showStatus}
                 entry={entry}
               />
             ))}

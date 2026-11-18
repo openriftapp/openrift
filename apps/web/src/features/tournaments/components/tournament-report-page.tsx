@@ -54,6 +54,7 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
             rounds={bracketRounds}
             cutSize={data.cutSize}
             groupStage={groupStage}
+            showStatus
             entry={
               canEdit && data.status !== "completed"
                 ? {

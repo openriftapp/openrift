@@ -27,7 +27,7 @@
 - fix(Rules): **Rules search without reloads** — typing in the rules search no longer reloads the page data on every pause.
 - fix(App): **Copy buttons report failures** — a copy button now says when the text could not be copied.
 - fix(App): **Long searches in the Discord bot** — a long search no longer leaves the bot's reply stuck, and long rule texts keep their links intact.
-- feat(Tournaments): **Table cards match the top cut** — tables in rounds and group stages use the same layout as the top cut bracket, with one line per player and the scores and points lined up on the right. Earlier group rounds are listed newest first. In the top cut, each match names its table first, the winner's row is highlighted with the score in gold, seats show the Legend's domains like the group tables, the seed of the player who chooses who starts is gold, seed and group badges explain themselves on hover or tap, and matches whose players aren't known yet are faded.
+- feat(Tournaments): **Table cards match the top cut** — tables in rounds and group stages use the same layout as the top cut bracket, with one line per player and the scores and points lined up on the right. Earlier group rounds are listed newest first. In the top cut, each match names its table first, reported matches stay marked as reported like the group tables, the winner's row is highlighted with the score in gold, seats show the Legend's domains like the group tables, the seed of the player who chooses who starts is gold, seed and group badges explain themselves on hover or tap, and matches whose players aren't known yet are faded.
 
 ## 2026-11-17
 
