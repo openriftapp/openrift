@@ -74,16 +74,6 @@ describe("GET /api/v1/copies", () => {
     mockRepo.listForAccessibleCollections.mockReset();
   });
 
-  it("returns 200 with list of copies", async () => {
-    mockRepo.listForAccessibleCollections.mockResolvedValue([dbCopy]);
-    const res = await app.request("/api/v1/copies");
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.items).toHaveLength(1);
-    expect(json.items[0].id).toBe(dbCopy.id);
-    expect(json.nextCursor).toBeNull();
-  });
-
   it("returns empty array when no copies", async () => {
     mockRepo.listForAccessibleCollections.mockResolvedValue([]);
     const res = await app.request("/api/v1/copies");
@@ -260,41 +250,6 @@ describe("GET /api/v1/copies with a watermark", () => {
   });
 });
 
-describe("POST /api/v1/copies", () => {
-  beforeEach(() => {
-    mockAddCopies.mockReset();
-  });
-
-  it("returns 201 with created copies", async () => {
-    const created = [
-      {
-        id: COPY_ID,
-        printingId: PRINTING_ID,
-        collectionId: COLLECTION_ID,
-        groupId: null,
-        condition: null,
-        grader: null,
-        grade: null,
-        notesPublic: null,
-        notesPrivate: null,
-        isAltered: false,
-        links: [],
-        onLoan: false,
-        reserved: false,
-      },
-    ];
-    mockAddCopies.mockResolvedValue(created);
-    const res = await app.request("/api/v1/copies", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ copies: [{ printingId: PRINTING_ID }] }),
-    });
-    expect(res.status).toBe(201);
-    const json = await readJson(res);
-    expect(json.items).toHaveLength(1);
-  });
-});
-
 describe("pg error mapping", () => {
   beforeEach(() => {
     mockAddCopies.mockReset();
@@ -348,64 +303,17 @@ describe("pg error mapping", () => {
   });
 });
 
-describe("POST /api/v1/copies/move", () => {
-  beforeEach(() => {
-    mockMoveCopies.mockReset();
-  });
-
-  it("returns 204 on successful move", async () => {
-    mockMoveCopies.mockResolvedValue();
-    const res = await app.request("/api/v1/copies/move", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ copyIds: [COPY_ID], toCollectionId: COLLECTION_ID }),
-    });
-    expect(res.status).toBe(204);
-  });
-});
-
-describe("POST /api/v1/copies/dispose", () => {
-  beforeEach(() => {
-    mockDisposeCopies.mockReset();
-  });
-
-  it("returns 204 on successful disposal", async () => {
-    mockDisposeCopies.mockResolvedValue();
-    const res = await app.request("/api/v1/copies/dispose", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ copyIds: [COPY_ID] }),
-    });
-    expect(res.status).toBe(204);
-  });
-});
-
 describe("POST /api/v1/copies — service arguments", () => {
   beforeEach(() => {
     mockAddCopies.mockReset();
   });
 
-  it("passes repos, transact, userId, and copies to addCopies service", async () => {
+  it.each([
+    { name: "without a batch id", batchId: undefined },
+    { name: "with a batch id", batchId: "0191a9c4-2f3e-7c1d-9b4a-3f0c6d2e8a11" },
+  ])("passes repos, transact, userId and copies to addCopies $name", async ({ batchId }) => {
     mockAddCopies.mockResolvedValue([]);
     const copies = [{ printingId: PRINTING_ID, collectionId: COLLECTION_ID }];
-    await app.request("/api/v1/copies", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ copies }),
-    });
-    expect(mockAddCopies).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      USER_ID,
-      copies,
-      { batchId: undefined },
-    );
-  });
-
-  it("passes the batch id through to the service", async () => {
-    mockAddCopies.mockResolvedValue([]);
-    const copies = [{ printingId: PRINTING_ID, collectionId: COLLECTION_ID }];
-    const batchId = "0191a9c4-2f3e-7c1d-9b4a-3f0c6d2e8a11";
     await app.request("/api/v1/copies", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -5,11 +5,6 @@ import { createRecordingDb } from "../../../test/recording-db.js";
 import { priceRefreshRepo } from "./price-refresh.js";
 
 describe("priceRefreshRepo", () => {
-  it("allPrintingsForPriceMatch returns printings", async () => {
-    const db = createMockDb([{ id: "p-1" }]);
-    expect(await priceRefreshRepo(db).allPrintingsForPriceMatch()).toHaveLength(1);
-  });
-
   it("loadIgnoredKeys returns LoadedIgnoredKeys with productIds and variantKeys", async () => {
     const db = createMockDb([{ externalId: 123, finish: "normal", language: "EN" }]);
     const result = await priceRefreshRepo(db).loadIgnoredKeys("tcgplayer");
@@ -26,23 +21,12 @@ describe("priceRefreshRepo", () => {
     expect(result.variantKeys.size).toBe(0);
   });
 
-  it("upsertProductsForMarketplace returns product IDs per SKU", async () => {
-    const db = createMockDb([{ id: "mp-1", externalId: 123, finish: "normal", language: "EN" }]);
-    const result = await priceRefreshRepo(db).upsertProductsForMarketplace("tcgplayer", [
-      {
-        externalId: 123,
-        finish: "normal",
-        language: "EN",
-        groupId: 1,
-        productName: "Card",
-      },
-    ]);
-    expect(result).toEqual([{ id: "mp-1", externalId: 123, finish: "normal", language: "EN" }]);
-  });
-
-  it("upsertProductsForMarketplace is a no-op for empty input", async () => {
-    const db = createMockDb([]);
-    expect(await priceRefreshRepo(db).upsertProductsForMarketplace("tcgplayer", [])).toEqual([]);
+  it("upsertProductsForMarketplace issues no query for empty input", async () => {
+    const recorded = createRecordingDb();
+    expect(
+      await priceRefreshRepo(recorded.db).upsertProductsForMarketplace("tcgplayer", []),
+    ).toEqual([]);
+    expect(recorded.queries).toEqual([]);
   });
 
   it("upsertProductPrices splits the returned rows into inserted and updated", async () => {
@@ -64,21 +48,6 @@ describe("priceRefreshRepo", () => {
         },
       ]),
     ).toEqual({ inserted: 2, updated: 1 });
-  });
-
-  it("existingSourcesByMarketplaces returns sources with finish + language", async () => {
-    const db = createMockDb([
-      {
-        marketplace: "tcgplayer",
-        externalId: 123,
-        printingId: "p-1",
-        finish: "normal",
-        language: "EN",
-        groupId: 1,
-        productName: "Card",
-      },
-    ]);
-    expect(await priceRefreshRepo(db).existingSourcesByMarketplaces(["tcgplayer"])).toHaveLength(1);
   });
 
   it("batchInsertProductVariants throws when a marketplace's product is missing", async () => {

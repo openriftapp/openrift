@@ -78,28 +78,47 @@ describe("buildUserSubmissionCard", () => {
     });
   });
 
-  it("derives printing short_code from the prefix of public_code", () => {
-    const card = buildUserSubmissionCard(submission(), USER_ID, STAMP);
-    expect(card.printings[0]!.short_code).toBe("OGN-066");
-    expect(card.printings[0]!.public_code).toBe("OGN-066/298");
+  it.each([
+    {
+      name: "takes the prefix of public_code",
+      input: submission(),
+      publicCode: "OGN-066/298",
+      shortCode: "OGN-066",
+    },
+    {
+      name: "drops a promo or language suffix",
+      input: submission({ printings: [{ public_code: "SGN-T07-P-SC" }] }),
+      publicCode: "SGN-T07-P-SC",
+      shortCode: "SGN-T07",
+    },
+  ])("derives printing short_code: $name", ({ input, publicCode, shortCode }) => {
+    const card = buildUserSubmissionCard(input, USER_ID, STAMP);
+    expect(card.printings[0]!.short_code).toBe(shortCode);
+    expect(card.printings[0]!.public_code).toBe(publicCode);
   });
 
-  it("drops a promo or language suffix from the short_code", () => {
-    const card = buildUserSubmissionCard(
-      submission({ printings: [{ public_code: "SGN-T07-P-SC" }] }),
-      USER_ID,
-      STAMP,
-    );
-    expect(card.printings[0]!.short_code).toBe("SGN-T07");
-    expect(card.printings[0]!.public_code).toBe("SGN-T07-P-SC");
-  });
-
-  it("keeps a promo apart from its base printing that shares the short code", () => {
-    const card = buildUserSubmissionCard(
-      submission({ printings: [{ public_code: "SGN-T07" }, { public_code: "SGN-T07-P" }] }),
-      USER_ID,
-      STAMP,
-    );
+  it.each([
+    {
+      name: "a promo and its base printing that share the short code",
+      printings: [{ public_code: "SGN-T07" }, { public_code: "SGN-T07-P" }],
+    },
+    {
+      name: "printings that differ only by finish",
+      printings: [
+        { public_code: "OGN-066/298", finish: "foil" },
+        { public_code: "OGN-066/298", finish: "normal" },
+      ],
+    },
+    {
+      name: "printings sharing a public code, finish and language by printing id",
+      printings: [
+        { public_code: "OGN-066/298", finish: "foil", printing_id: BASE_ID },
+        { public_code: "OGN-066/298", finish: "foil", printing_id: PROMO_ID },
+      ],
+    },
+  ])("keeps apart $name", ({ printings }) => {
+    const card = buildUserSubmissionCard(submission({ printings }), USER_ID, STAMP);
+    expect(card.printings).toHaveLength(2);
     expect(card.printings[0]!.external_id).not.toBe(card.printings[1]!.external_id);
   });
 
@@ -133,21 +152,6 @@ describe("buildUserSubmissionCard", () => {
     expect(card.printings[0]!.finish).toBeNull();
   });
 
-  it("keeps multiple printings distinct", () => {
-    const card = buildUserSubmissionCard(
-      submission({
-        printings: [
-          { public_code: "OGN-066/298", finish: "foil" },
-          { public_code: "OGN-066/298", finish: "normal" },
-        ],
-      }),
-      USER_ID,
-      STAMP,
-    );
-    expect(card.printings).toHaveLength(2);
-    expect(card.printings[0]!.external_id).not.toBe(card.printings[1]!.external_id);
-  });
-
   it("carries the claimed printing id, null when none was sent", () => {
     const card = buildUserSubmissionCard(
       submission({
@@ -160,20 +164,6 @@ describe("buildUserSubmissionCard", () => {
       STAMP,
     );
     expect(card.printings.map((printing) => printing.printing_id)).toEqual([PROMO_ID, null]);
-  });
-
-  it("keeps printings sharing a public code, finish and language apart by printing id", () => {
-    const card = buildUserSubmissionCard(
-      submission({
-        printings: [
-          { public_code: "OGN-066/298", finish: "foil", printing_id: BASE_ID },
-          { public_code: "OGN-066/298", finish: "foil", printing_id: PROMO_ID },
-        ],
-      }),
-      USER_ID,
-      STAMP,
-    );
-    expect(card.printings[0]!.external_id).not.toBe(card.printings[1]!.external_id);
   });
 });
 
@@ -306,16 +296,13 @@ describe("ingestUserSubmission printing links", () => {
     return { result, linked, liveSnapshot, insertSubmission };
   }
 
-  it("links the claimed promo, not the base printing sharing its key", async () => {
-    const { result, linked } = await ingest({ printing_id: PROMO_ID });
+  it.each([
+    { name: "the claimed promo, not the base printing sharing its key", printingId: PROMO_ID },
+    { name: "a two-sided printing claimed from its back side's card", printingId: PAIR_ID },
+  ])("links $name", async ({ printingId }) => {
+    const { result, linked } = await ingest({ printing_id: printingId });
     expect(result.status).toBe("ok");
-    expect(linked).toEqual([PROMO_ID]);
-  });
-
-  it("links a two-sided printing claimed from its back side's card", async () => {
-    const { result, linked } = await ingest({ printing_id: PAIR_ID });
-    expect(result.status).toBe("ok");
-    expect(linked).toEqual([PAIR_ID]);
+    expect(linked).toEqual([printingId]);
   });
 
   it("compares against the claimed printing when recording the diff", async () => {
@@ -326,14 +313,12 @@ describe("ingestUserSubmission printing links", () => {
     });
   });
 
-  it("ignores a claimed printing that belongs to another card", async () => {
-    const { result, linked } = await ingest({ printing_id: OTHER_CARD_PRINTING_ID });
+  it.each([
+    { name: "belongs to another card", printingId: OTHER_CARD_PRINTING_ID },
+    { name: "does not exist", printingId: "0199a000-0000-7000-8000-0000000000ff" },
+  ])("ignores a claimed printing that $name", async ({ printingId }) => {
+    const { result, linked } = await ingest({ printing_id: printingId });
     expect(result.status).toBe("ok");
-    expect(linked).toEqual([BASE_ID]);
-  });
-
-  it("ignores a claimed printing that does not exist", async () => {
-    const { linked } = await ingest({ printing_id: "0199a000-0000-7000-8000-0000000000ff" });
     expect(linked).toEqual([BASE_ID]);
   });
 

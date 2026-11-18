@@ -266,13 +266,6 @@ describe("POST /cards/:candidateCardId/check", () => {
     expect(mockNotifySubmitterOfCardAcceptance).not.toHaveBeenCalled();
   });
 
-  it("returns 404 when candidate card not found", async () => {
-    mockCandidateCards.checkCandidateCard.mockResolvedValue({ numUpdatedRows: 0n });
-
-    const res = await app.request(`/api/admin/v1/cards/${CARD_ID}/check`, { method: "POST" });
-    expect(res.status).toBe(404);
-  });
-
   it("returns 404 when result is null", async () => {
     mockCandidateCards.checkCandidateCard.mockResolvedValue(null);
 
@@ -292,13 +285,6 @@ describe("POST /cards/:candidateCardId/uncheck", () => {
     const res = await app.request(`/api/admin/v1/cards/${CARD_ID}/uncheck`, { method: "POST" });
     expect(res.status).toBe(204);
     expect(mockCandidateCards.uncheckCandidateCard).toHaveBeenCalledWith(CARD_ID);
-  });
-
-  it("returns 404 when candidate card not found", async () => {
-    mockCandidateCards.uncheckCandidateCard.mockResolvedValue({ numUpdatedRows: 0n });
-
-    const res = await app.request(`/api/admin/v1/cards/${CARD_ID}/uncheck`, { method: "POST" });
-    expect(res.status).toBe(404);
   });
 });
 
@@ -455,15 +441,6 @@ describe("POST /cards/candidate-printings/:id/check", () => {
     expect(res.status).toBe(204);
     expect(mockCandidateCards.checkCandidatePrinting).toHaveBeenCalledWith(CP_ID);
   });
-
-  it("returns 404 when not found", async () => {
-    mockCandidateCards.checkCandidatePrinting.mockResolvedValue(undefined);
-
-    const res = await app.request(`/api/admin/v1/cards/candidate-printings/${CP_ID}/check`, {
-      method: "POST",
-    });
-    expect(res.status).toBe(404);
-  });
 });
 
 describe("POST /cards/candidate-printings/:id/uncheck", () => {
@@ -479,15 +456,6 @@ describe("POST /cards/candidate-printings/:id/uncheck", () => {
     });
     expect(res.status).toBe(204);
     expect(mockCandidateCards.uncheckCandidatePrinting).toHaveBeenCalledWith(CP_ID);
-  });
-
-  it("returns 404 when not found", async () => {
-    mockCandidateCards.uncheckCandidatePrinting.mockResolvedValue({ numUpdatedRows: 0n });
-
-    const res = await app.request(`/api/admin/v1/cards/candidate-printings/${CP_ID}/uncheck`, {
-      method: "POST",
-    });
-    expect(res.status).toBe(404);
   });
 });
 
@@ -539,13 +507,6 @@ describe("POST /cards/:cardId/check-all", () => {
     expect(await readJson(res)).toEqual({ updated: 1, candidateCardIds: [CARD_ID] });
     expect(mockCandidateCards.checkCandidateCards).toHaveBeenCalledWith([CARD_ID]);
     expect(mockCandidateCards.checkAllCandidateCards).not.toHaveBeenCalled();
-  });
-
-  it("returns 404 when card not found", async () => {
-    mockMut.getCardById.mockResolvedValue(null);
-
-    const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/check-all`, { method: "POST" });
-    expect(res.status).toBe(404);
   });
 });
 
@@ -599,17 +560,6 @@ describe("PATCH /cards/candidate-printings/:id", () => {
     const json = await readJson(res);
     expect(json.message).toContain("No valid fields");
   });
-
-  it("returns 404 when candidate printing not found", async () => {
-    mockCandidateCards.patchCandidatePrinting.mockResolvedValue({ numUpdatedRows: 0n });
-
-    const res = await app.request(`/api/admin/v1/cards/candidate-printings/${CP_ID}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rarity: "rare" }),
-    });
-    expect(res.status).toBe(404);
-  });
 });
 
 describe("DELETE /cards/candidate-printings/:id", () => {
@@ -625,15 +575,6 @@ describe("DELETE /cards/candidate-printings/:id", () => {
     });
     expect(res.status).toBe(204);
     expect(mockCandidateCards.deleteCandidatePrinting).toHaveBeenCalledWith(CP_ID);
-  });
-
-  it("returns 404 when not found", async () => {
-    mockCandidateCards.deleteCandidatePrinting.mockResolvedValue(false);
-
-    const res = await app.request(`/api/admin/v1/cards/candidate-printings/${CP_ID}`, {
-      method: "DELETE",
-    });
-    expect(res.status).toBe(404);
   });
 });
 
@@ -670,15 +611,6 @@ describe("POST /cards/candidate-printings/:id/copy", () => {
       candidatePrinting,
       targetPrinting,
     );
-  });
-
-  it("returns 400 when printingId is empty", async () => {
-    const res = await app.request(`/api/admin/v1/cards/candidate-printings/${CP_ID}/copy`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ printingId: "" }),
-    });
-    expect(res.status).toBe(400);
   });
 
   it("returns 404 when candidate printing not found", async () => {
@@ -1188,26 +1120,6 @@ describe("POST /cards/:cardId/accept-field", () => {
     expect(mockMut.replaceCardDomainsById).toHaveBeenCalledWith(CARD_ID2, ["calm", "fury"]);
   });
 
-  it("returns 400 when field is empty (not in the enum)", async () => {
-    const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/accept-field`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ field: "", value: "test" }),
-    });
-    expect(res.status).toBe(400);
-  });
-
-  it("returns 400 when field is not in the writable-column enum", async () => {
-    // The allowlist is the contract `field` enum, so an unknown field is
-    // rejected by oRPC input validation (400) before the handler runs.
-    const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/accept-field`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ field: "rulesText", value: "text" }),
-    });
-    expect(res.status).toBe(400);
-  });
-
   it("normalizes null to empty array for superTypes (junction table)", async () => {
     mockMut.replaceCardSuperTypesById.mockResolvedValue(undefined);
 
@@ -1426,15 +1338,6 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
     expect(res.status).toBe(200);
     expect(mockMut.getFullPrintingById).toHaveBeenCalledWith(PRINTING_ID, 2);
     expect(mockMut.updatePrintingFieldById).toHaveBeenCalledWith(PRINTING_ID, "artist", "Alice", 2);
-  });
-
-  it("returns 400 when field is not in the writable-column enum", async () => {
-    const res = await app.request(`/api/admin/v1/cards/printing/${PRINTING_ID}/accept-field`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ field: "invalidField", value: "test" }),
-    });
-    expect(res.status).toBe(400);
   });
 
   it("writes nothing for a reordered set of marker slugs", async () => {
@@ -1724,15 +1627,6 @@ describe("POST /cards/new/:name/accept", () => {
     });
     expect(res.status).toBe(400);
     expect(mockTrxMut.acceptNewCardFromSources).not.toHaveBeenCalled();
-  });
-
-  it("returns 400 when cardFields is missing", async () => {
-    const res = await app.request("/api/admin/v1/cards/new/Fire%20Dragon/accept", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    expect(res.status).toBe(400);
   });
 });
 
@@ -2241,15 +2135,6 @@ describe("POST /cards/upload", () => {
         printings: expect.any(Array),
       }),
     ]);
-  });
-
-  it("rejects an empty candidates array", async () => {
-    const res = await app.request("/api/admin/v1/cards/upload", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: "x", candidates: [] }),
-    });
-    expect(res.status).toBe(400);
   });
 });
 

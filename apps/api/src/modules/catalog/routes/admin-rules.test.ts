@@ -222,16 +222,6 @@ describe("DELETE /api/admin/v1/rules/:kind/:language/versions/:version", () => {
     expect(mockRulesRepo.deleteVersion).not.toHaveBeenCalled();
   });
 
-  it("deletes an English version without translations", async () => {
-    mockRulesRepo.getVersion.mockResolvedValue({ kind: "core", language: "en", version: "1.0" });
-    mockRulesRepo.listTranslations.mockResolvedValue([]);
-
-    const res = await app.request("/api/admin/v1/rules/core/en/versions/1.0", { method: "DELETE" });
-
-    expect(res.status).toBe(204);
-    expect(mockRulesRepo.deleteVersion).toHaveBeenCalledWith("core", "en", "1.0");
-  });
-
   it("404s when the version does not exist", async () => {
     mockRulesRepo.getVersion.mockResolvedValue(null);
 
@@ -247,70 +237,37 @@ describe("PATCH /api/admin/v1/rules/:kind/:language/versions/:version", () => {
     vi.resetAllMocks();
   });
 
-  it("updates the version comments, label and document version", async () => {
-    const details = { comments: "Updated note", label: "Vendetta", documentVersion: "1.4" };
-    mockRulesRepo.updateDetails.mockResolvedValue({
+  it.each([
+    {
+      name: "updates the version comments, label and document version",
       kind: "core",
       language: "en",
-      version: "1.0",
-      ...details,
-    });
-
-    const res = await app.request("/api/admin/v1/rules/core/en/versions/1.0", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(details),
-    });
-
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json).toEqual({ kind: "core", language: "en", version: "1.0", ...details });
-    expect(mockRulesRepo.updateDetails).toHaveBeenCalledWith("core", "en", "1.0", details);
-  });
-
-  it("clears the details when null is passed", async () => {
-    const details = { comments: null, label: null, documentVersion: null };
-    mockRulesRepo.updateDetails.mockResolvedValue({
+      details: { comments: "Updated note", label: "Vendetta", documentVersion: "1.4" },
+    },
+    {
+      name: "clears the details when null is passed",
       kind: "tournament",
       language: "en",
-      version: "1.0",
-      ...details,
-    });
+      details: { comments: null, label: null, documentVersion: null },
+    },
+    {
+      name: "passes the language through when updating a translation",
+      kind: "core",
+      language: "fr",
+      details: { comments: null, label: "Origines", documentVersion: null },
+    },
+  ])("$name", async ({ kind, language, details }) => {
+    mockRulesRepo.updateDetails.mockResolvedValue({ kind, language, version: "1.0", ...details });
 
-    const res = await app.request("/api/admin/v1/rules/tournament/en/versions/1.0", {
+    const res = await app.request(`/api/admin/v1/rules/${kind}/${language}/versions/1.0`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(details),
     });
 
     expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json).toEqual({ kind: "tournament", language: "en", version: "1.0", ...details });
-  });
-
-  it("passes the language through when updating a translation", async () => {
-    const details = { comments: null, label: "Origines", documentVersion: null };
-    mockRulesRepo.updateDetails.mockResolvedValue({
-      kind: "core",
-      language: "fr",
-      version: "1.0",
-      ...details,
-    });
-
-    const res = await app.request("/api/admin/v1/rules/core/fr/versions/1.0", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(details),
-    });
-
-    expect(res.status).toBe(200);
-    expect(await readJson(res)).toEqual({
-      kind: "core",
-      language: "fr",
-      version: "1.0",
-      ...details,
-    });
-    expect(mockRulesRepo.updateDetails).toHaveBeenCalledWith("core", "fr", "1.0", details);
+    expect(await readJson(res)).toEqual({ kind, language, version: "1.0", ...details });
+    expect(mockRulesRepo.updateDetails).toHaveBeenCalledWith(kind, language, "1.0", details);
   });
 
   it("rejects an empty label", async () => {

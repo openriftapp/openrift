@@ -89,15 +89,21 @@ describe("putMirrorDecklist", () => {
 });
 
 describe("deckCoverageOf", () => {
-  it("lists referenced decks not held yet and counts the held ones", () => {
-    expect(deckCoverageOf(["a", null, "b", "c"], new Set(["b", "z"]))).toEqual({
-      outstanding: ["a", "c"],
-      held: 2,
-    });
-  });
-
-  it("reports nothing outstanding when every referenced deck is held", () => {
-    expect(deckCoverageOf(["a"], new Set(["a"]))).toEqual({ outstanding: [], held: 1 });
+  it.each([
+    {
+      name: "lists referenced decks not held yet and counts the held ones",
+      referenced: ["a", null, "b", "c"],
+      held: ["b", "z"],
+      expected: { outstanding: ["a", "c"], held: 2 },
+    },
+    {
+      name: "reports nothing outstanding when every referenced deck is held",
+      referenced: ["a"],
+      held: ["a"],
+      expected: { outstanding: [], held: 1 },
+    },
+  ])("$name", ({ referenced, held, expected }) => {
+    expect(deckCoverageOf(referenced, new Set(held))).toEqual(expected);
   });
 });
 

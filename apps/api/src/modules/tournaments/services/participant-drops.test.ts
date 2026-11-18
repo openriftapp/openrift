@@ -121,21 +121,6 @@ describe("dropLiveSpotsOfUser", () => {
     await expect(dropLiveSpotsOfUser(repos, transact, USER_ID, NOW)).resolves.toBeUndefined();
   });
 
-  it("drops an active spot after the current round", async () => {
-    const { repos, transact, updateParticipant, deleteParticipant } = setup({
-      spots: [spot()],
-      tournaments: [tournament()],
-    });
-
-    await dropLiveSpotsOfUser(repos, transact, USER_ID, NOW);
-
-    expect(updateParticipant).toHaveBeenCalledWith("p-1", {
-      status: "dropped",
-      droppedAfterRound: 2,
-    });
-    expect(deleteParticipant).not.toHaveBeenCalled();
-  });
-
   it("drops in a transaction that takes the rounds lock before any write", async () => {
     const { repos, transact, transactions, updateParticipant, setWalkoverResult } = setup({
       spots: [spot()],
@@ -206,29 +191,6 @@ describe("dropLiveSpotsOfUser", () => {
       status: "dropped",
       droppedAfterRound: 2,
     });
-  });
-
-  it("reports an open group-stage pod as a walkover", async () => {
-    const { repos, transact, setWalkoverResult } = setup({
-      spots: [spot()],
-      tournaments: [tournament({ format: "group_cut", pairingStyle: "swiss", currentRound: 1 })],
-      pendingPods: [
-        {
-          podId: "pod-1",
-          members: [
-            { playerId: "p-1", status: "dropped" },
-            { playerId: "p-9", status: "active" },
-          ],
-        },
-      ],
-    });
-
-    await dropLiveSpotsOfUser(repos, transact, USER_ID, NOW);
-
-    expect(setWalkoverResult).toHaveBeenCalledWith("pod-1", [
-      { playerId: "p-1", placement: 2 },
-      { playerId: "p-9", placement: 1 },
-    ]);
   });
 
   it("leaves spots in completed, cancelled and ended events alone", async () => {

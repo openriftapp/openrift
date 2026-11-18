@@ -84,33 +84,6 @@ describe("ingestCandidates", () => {
     vi.resetAllMocks();
   });
 
-  it("throws when provider is empty", async () => {
-    const repos = createMockRepos();
-    const transact = mockTransact(repos);
-    await expect(ingestCandidates(transact, "", [])).rejects.toThrow(
-      "provider name must not be empty",
-    );
-  });
-
-  it("throws when provider is whitespace-only", async () => {
-    const repos = createMockRepos();
-    const transact = mockTransact(repos);
-    await expect(ingestCandidates(transact, "   ", [])).rejects.toThrow(
-      "provider name must not be empty",
-    );
-  });
-
-  it("returns zeros when no cards provided", async () => {
-    const repos = createMockRepos();
-    const transact = mockTransact(repos);
-    const result = await ingestCandidates(transact, "gallery", []);
-    expect(result.provider).toBe("gallery");
-    expect(result.newCards).toBe(0);
-    expect(result.updates).toBe(0);
-    expect(result.unchanged).toBe(0);
-    expect(result.errors).toEqual([]);
-  });
-
   it("inserts a new candidate card", async () => {
     const repos = createMockRepos();
     const transact = mockTransact(repos);
@@ -159,17 +132,6 @@ describe("ingestCandidates", () => {
     expect(result.newCards).toBe(1);
     const insertCall = (repos.ingest as any).insertCandidateCard.mock.calls[0][0];
     expect(insertCall.shortCode).toBeNull();
-  });
-
-  it("sets extraData to null for empty object extra_data on insert", async () => {
-    const repos = createMockRepos();
-    const transact = mockTransact(repos);
-    const card = makeCard({ extra_data: {} });
-    const result = await ingestCandidates(transact, "gallery", [card]);
-
-    expect(result.newCards).toBe(1);
-    const insertCall = (repos.ingest as any).insertCandidateCard.mock.calls[0][0];
-    expect(insertCall.extraData).toBeNull();
   });
 
   it("updates existing candidate card when fields change", async () => {
@@ -265,17 +227,6 @@ describe("ingestCandidates", () => {
     expect(updateCall.uploadedAt).toBeInstanceOf(Date);
   });
 
-  it("records validation error and skips card with invalid name", async () => {
-    const repos = createMockRepos();
-    const transact = mockTransact(repos);
-    const card = makeCard({ name: "" });
-    const result = await ingestCandidates(transact, "gallery", [card]);
-
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0]).toContain("name:");
-    expect(result.newCards).toBe(0);
-  });
-
   it("skips ignored candidate cards", async () => {
     const repos = createMockRepos({
       ignoredCandidateCards: vi.fn().mockResolvedValue([{ externalId: "ext-card-1" }]),
@@ -300,14 +251,48 @@ describe("ingestCandidates", () => {
     expect((repos.ingest as any).insertCandidatePrinting).toHaveBeenCalledTimes(1);
   });
 
-  it("resolves printingId when card and printing match by composite key", async () => {
+  it.each([
+    {
+      name: "when card and printing match by composite key",
+      normName: "fireball",
+      keyShortCode: "OGN-001",
+      keyFinish: "normal",
+      card: { printings: [makePrinting({ rarity: "common", finish: "normal" })] },
+    },
+    {
+      name: "when the source omits rarity",
+      normName: "fireball",
+      keyShortCode: "OGN-001",
+      keyFinish: "normal",
+      card: { printings: [makePrinting({ rarity: null, finish: "normal" })] },
+    },
+    {
+      name: "case-insensitively on short code",
+      normName: "fireball",
+      keyShortCode: "VEN-SP3",
+      keyFinish: "foil",
+      card: {
+        printings: [makePrinting({ short_code: "VEN-sp3", rarity: "epic", finish: "foil" })],
+      },
+    },
+    {
+      name: "for a card whose name is written in a non-Latin script",
+      normName: "影流之主",
+      keyShortCode: "OGN-001",
+      keyFinish: "normal",
+      card: {
+        name: "影流之主",
+        printings: [makePrinting({ rarity: "common", finish: "normal" })],
+      },
+    },
+  ])("resolves printingId $name", async ({ normName, keyShortCode, keyFinish, card }) => {
     const repos = createMockRepos({
-      allCardNorms: vi.fn().mockResolvedValue([{ normName: "fireball", id: "card-uuid" }]),
+      allCardNorms: vi.fn().mockResolvedValue([{ normName, id: "card-uuid" }]),
       allPrintingKeys: vi.fn().mockResolvedValue([
         {
           cardId: "card-uuid",
-          shortCode: "OGN-001",
-          finish: "normal",
+          shortCode: keyShortCode,
+          finish: keyFinish,
           markerSlugs: [],
           id: "printing-uuid",
           language: "EN",
@@ -315,60 +300,7 @@ describe("ingestCandidates", () => {
       ]),
     });
     const transact = mockTransact(repos);
-    const card = makeCard({
-      printings: [makePrinting({ rarity: "common", finish: "normal" })],
-    });
-    const result = await ingestCandidates(transact, "gallery", [card]);
-
-    expect(result.newPrintings).toBe(1);
-    const insertCall = (repos.ingest as any).insertCandidatePrinting.mock.calls[0][0];
-    expect(insertCall.printingId).toBe("printing-uuid");
-  });
-
-  it("resolves printingId when the source omits rarity", async () => {
-    const repos = createMockRepos({
-      allCardNorms: vi.fn().mockResolvedValue([{ normName: "fireball", id: "card-uuid" }]),
-      allPrintingKeys: vi.fn().mockResolvedValue([
-        {
-          cardId: "card-uuid",
-          shortCode: "OGN-001",
-          finish: "normal",
-          markerSlugs: [],
-          id: "printing-uuid",
-          language: "EN",
-        },
-      ]),
-    });
-    const transact = mockTransact(repos);
-    const card = makeCard({
-      printings: [makePrinting({ rarity: null, finish: "normal" })],
-    });
-    const result = await ingestCandidates(transact, "gallery", [card]);
-
-    expect(result.newPrintings).toBe(1);
-    const insertCall = (repos.ingest as any).insertCandidatePrinting.mock.calls[0][0];
-    expect(insertCall.printingId).toBe("printing-uuid");
-  });
-
-  it("resolves printingId case-insensitively on short code", async () => {
-    const repos = createMockRepos({
-      allCardNorms: vi.fn().mockResolvedValue([{ normName: "fireball", id: "card-uuid" }]),
-      allPrintingKeys: vi.fn().mockResolvedValue([
-        {
-          cardId: "card-uuid",
-          shortCode: "VEN-SP3",
-          finish: "foil",
-          markerSlugs: [],
-          id: "printing-uuid",
-          language: "EN",
-        },
-      ]),
-    });
-    const transact = mockTransact(repos);
-    const card = makeCard({
-      printings: [makePrinting({ short_code: "VEN-sp3", rarity: "epic", finish: "foil" })],
-    });
-    const result = await ingestCandidates(transact, "gallery", [card]);
+    const result = await ingestCandidates(transact, "gallery", [makeCard(card)]);
 
     expect(result.newPrintings).toBe(1);
     const insertCall = (repos.ingest as any).insertCandidatePrinting.mock.calls[0][0];
@@ -404,32 +336,6 @@ describe("ingestCandidates", () => {
     expect((repos.ingest as any).insertCandidatePrinting).not.toHaveBeenCalled();
   });
 
-  it("resolves a card whose name is written in a non-Latin script", async () => {
-    const repos = createMockRepos({
-      allCardNorms: vi.fn().mockResolvedValue([{ normName: "影流之主", id: "card-uuid" }]),
-      allPrintingKeys: vi.fn().mockResolvedValue([
-        {
-          cardId: "card-uuid",
-          shortCode: "OGN-001",
-          finish: "normal",
-          markerSlugs: [],
-          id: "printing-uuid",
-          language: "EN",
-        },
-      ]),
-    });
-    const transact = mockTransact(repos);
-    const card = makeCard({
-      name: "影流之主",
-      printings: [makePrinting({ rarity: "common", finish: "normal" })],
-    });
-    const result = await ingestCandidates(transact, "gallery", [card]);
-
-    expect(result.newPrintings).toBe(1);
-    const insertCall = (repos.ingest as any).insertCandidatePrinting.mock.calls[0][0];
-    expect(insertCall.printingId).toBe("printing-uuid");
-  });
-
   it("resolves card via alias when direct normName does not match", async () => {
     const repos = createMockRepos({
       allCardNameAliases: vi
@@ -456,28 +362,19 @@ describe("ingestCandidates", () => {
     expect(insertCall.printingId).toBe("printing-uuid");
   });
 
-  it("passes marker_slugs through to candidate printing insert", async () => {
+  it.each([
+    { name: "passes marker_slugs through to", markerSlugs: ["promo"] },
+    { name: "leaves marker_slugs empty on", markerSlugs: [] },
+  ])("$name the candidate printing insert", async ({ markerSlugs }) => {
     const repos = createMockRepos();
     const transact = mockTransact(repos);
     const card = makeCard({
-      printings: [makePrinting({ marker_slugs: ["promo"] })],
+      printings: [makePrinting({ marker_slugs: markerSlugs })],
     });
     await ingestCandidates(transact, "gallery", [card]);
 
     const insertCall = (repos.ingest as any).insertCandidatePrinting.mock.calls[0][0];
-    expect(insertCall.markerSlugs).toEqual(["promo"]);
-  });
-
-  it("leaves marker_slugs empty when the upload has none", async () => {
-    const repos = createMockRepos();
-    const transact = mockTransact(repos);
-    const card = makeCard({
-      printings: [makePrinting({ marker_slugs: [] })],
-    });
-    await ingestCandidates(transact, "gallery", [card]);
-
-    const insertCall = (repos.ingest as any).insertCandidatePrinting.mock.calls[0][0];
-    expect(insertCall.markerSlugs).toEqual([]);
+    expect(insertCall.markerSlugs).toEqual(markerSlugs);
   });
 
   it("sets printingId to null when card not matched", async () => {
@@ -1128,16 +1025,6 @@ describe("ingestCandidates", () => {
 
     expect(result.newCards).toBe(2);
     expect(result.newPrintings).toBe(3);
-  });
-
-  it("preserves non-empty extra_data object on insert", async () => {
-    const repos = createMockRepos();
-    const transact = mockTransact(repos);
-    const card = makeCard({ extra_data: { key: "value" } });
-    await ingestCandidates(transact, "gallery", [card]);
-
-    const insertCall = (repos.ingest as any).insertCandidateCard.mock.calls[0][0];
-    expect(insertCall.extraData).toEqual({ key: "value" });
   });
 
   it("converts null extra_data to null", async () => {

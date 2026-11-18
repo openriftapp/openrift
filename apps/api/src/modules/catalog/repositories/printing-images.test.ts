@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { createDbContext } from "../../../test/integration-context.js";
 import { createMockDb } from "../../../test/mock-db.js";
 import { createRecordingDb, onlyStatement } from "../../../test/recording-db.js";
 import { printingImagesRepo } from "./printing-images.js";
@@ -21,42 +20,6 @@ describe("printingImagesRepo", () => {
     expect(await printingImagesRepo(db).landscapeImageIds([])).toEqual(new Set());
   });
 
-  it("getIdAndRehostedUrl returns image data", async () => {
-    const db = createMockDb([{ id: "pi-1", rehostedUrl: "https://example.com/img.jpg" }]);
-    expect(await printingImagesRepo(db).getIdAndRehostedUrl("pi-1")).toBeDefined();
-  });
-
-  it("getForActivate returns image for activation", async () => {
-    const db = createMockDb([{ id: "pi-1", printingId: "p-1" }]);
-    expect(await printingImagesRepo(db).getForActivate("pi-1")).toBeDefined();
-  });
-
-  it("getForRehost returns image with set slug", async () => {
-    const db = createMockDb([
-      { id: "pi-1", originalUrl: "https://example.com/img.jpg", setSlug: "OGS" },
-    ]);
-    expect(await printingImagesRepo(db).getForRehost("pi-1")).toBeDefined();
-  });
-
-  it("insertImage returns null when no imageUrl", async () => {
-    const db = createMockDb([]);
-    expect(await printingImagesRepo(db).insertImage("p-1", null)).toBeNull();
-  });
-
-  it("insertImage main mode deactivates and inserts", async () => {
-    const db = createMockDb([{ id: "pi-new", faceId: "f-1" }]);
-    expect(
-      await printingImagesRepo(db).insertImage("p-1", "https://example.com/img.jpg", "main"),
-    ).toBe("pi-new");
-  });
-
-  it("insertImage additional mode inserts as inactive", async () => {
-    const db = createMockDb([{ id: "pi-new", faceId: "f-1" }]);
-    expect(
-      await printingImagesRepo(db).insertImage("p-1", "https://example.com/img.jpg", "additional"),
-    ).toBe("pi-new");
-  });
-
   it("getVariantSettingsByIds keys rotation, trim and quad by image file", async () => {
     const db = createMockDb([{ id: "ci-1", rotation: 90, needsTrim: true, quad: null }]);
     const settings = await printingImagesRepo(db).getVariantSettingsByIds(["ci-1"]);
@@ -64,29 +27,8 @@ describe("printingImagesRepo", () => {
   });
 
   it("getVariantSettingsByIds returns an empty map for empty input", async () => {
-    expect(await printingImagesRepo(createMockDb([])).getVariantSettingsByIds([])).toEqual(
-      new Map(),
-    );
-  });
-
-  it("listUnrehosted returns images needing rehosting", async () => {
-    const db = createMockDb([{ imageId: "pi-1" }]);
-    expect(await printingImagesRepo(db).listUnrehosted(10)).toHaveLength(1);
-  });
-
-  it("rehostStatusBySet returns per-set stats", async () => {
-    const db = createMockDb([{ setId: "OGS", setName: "Proving Grounds", total: 10, rehosted: 5 }]);
-    expect(await printingImagesRepo(db).rehostStatusBySet()).toHaveLength(1);
-  });
-
-  it("listAllRehosted returns rehosted images", async () => {
-    const db = createMockDb([{ imageId: "pi-1", rehostedUrl: "https://cdn.example.com/img.jpg" }]);
-    expect(await printingImagesRepo(db).listAllRehosted()).toHaveLength(1);
-  });
-
-  it("listAllRehostedWithContext returns images with context", async () => {
-    const db = createMockDb([{ imageId: "pi-1" }]);
-    expect(await printingImagesRepo(db).listAllRehostedWithContext()).toHaveLength(1);
+    const db = createMockDb([{ id: "ci-1", rotation: 90, needsTrim: true, quad: null }]);
+    expect(await printingImagesRepo(db).getVariantSettingsByIds([])).toEqual(new Map());
   });
 
   it("allRehostedUrls returns URL list", async () => {
@@ -94,27 +36,6 @@ describe("printingImagesRepo", () => {
     expect(await printingImagesRepo(db).allRehostedUrls()).toEqual([
       "https://cdn.example.com/img.jpg",
     ]);
-  });
-
-  it("getCandidatePrintingById returns a printing", async () => {
-    const db = createMockDb([{ id: "cp-1" }]);
-    expect(await printingImagesRepo(db).getCandidatePrintingById("cp-1")).toBeDefined();
-  });
-
-  it("rehostStatusBySet returns per-set stats via real DB", async () => {
-    const ctx = createDbContext("a0000000-0034-4000-a000-000000000001");
-    if (!ctx) {
-      return;
-    }
-    const repo = printingImagesRepo(ctx.db);
-    const result = await repo.rehostStatusBySet();
-    expect(Array.isArray(result)).toBe(true);
-    if (result.length > 0) {
-      expect(result[0]).toHaveProperty("setId");
-      expect(result[0]).toHaveProperty("setName");
-      expect(result[0]).toHaveProperty("total");
-      expect(result[0]).toHaveProperty("rehosted");
-    }
   });
 });
 

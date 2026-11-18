@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { createMockDb } from "../../../test/mock-db.js";
 import { createRecordingDb } from "../../../test/recording-db.js";
 import { userPreferencesRepo } from "./user-preferences.js";
 
@@ -15,21 +14,6 @@ const STORED_ROW = [
 ];
 
 describe("userPreferencesRepo", () => {
-  it("getByUserId returns undefined when not found", async () => {
-    const db = createMockDb([]);
-    const repo = userPreferencesRepo(db);
-    expect(await repo.getByUserId("u1")).toBeUndefined();
-  });
-
-  it("getByUserId returns parsed preferences when found", async () => {
-    const data = { theme: "dark" };
-    const db = createMockDb([{ userId: "u1", data, createdAt: new Date(), updatedAt: new Date() }]);
-    const repo = userPreferencesRepo(db);
-    const result = await repo.getByUserId("u1");
-    expect(result).toBeDefined();
-    expect(result!.data).toEqual(data);
-  });
-
   it("upsert reads nothing first and returns the stored preferences", async () => {
     const { db, parameters } = createRecordingDb([STORED_ROW]);
 

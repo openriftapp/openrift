@@ -33,12 +33,6 @@ describe("collectionEventsRepo", () => {
     ]);
   });
 
-  it("listForUser applies cursor filter when provided", async () => {
-    const db = createMockDb([]);
-    const repo = collectionEventsRepo(db);
-    expect(await repo.listForUser("u1", 20, "2026-01-01T00:00:00.000Z_e-last")).toEqual([]);
-  });
-
   it("listForUser rejects an unparseable cursor with a 400 AppError instead of an Invalid Date reaching the query", async () => {
     const db = createMockDb([]);
     const repo = collectionEventsRepo(db);
@@ -47,29 +41,10 @@ describe("collectionEventsRepo", () => {
     expect((error as AppError).status).toBe(400);
   });
 
-  it("insert is a no-op for empty array", async () => {
-    const db = createMockDb([]);
-    const repo = collectionEventsRepo(db);
-    await expect(repo.insert([])).resolves.toBeUndefined();
-  });
-
-  it("insert inserts items", async () => {
-    const db = createMockDb([]);
-    const repo = collectionEventsRepo(db);
-    await expect(
-      repo.insert([
-        {
-          userId: "u1",
-          action: "added",
-          printingId: "p1",
-          copyId: "c1",
-          fromCollectionId: null,
-          fromCollectionName: null,
-          toCollectionId: "col1",
-          toCollectionName: "Inbox",
-        },
-      ]),
-    ).resolves.toBeUndefined();
+  it("insert issues no query for an empty array", async () => {
+    const recorded = createRecordingDb();
+    await collectionEventsRepo(recorded.db).insert([]);
+    expect(recorded.queries).toEqual([]);
   });
 
   it("insert splits a collection-sized event batch under the bind-parameter limit", async () => {

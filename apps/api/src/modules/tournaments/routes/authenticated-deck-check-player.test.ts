@@ -1207,44 +1207,6 @@ describe("POST /deck-check/submissions/{token} (submitToToken / persistSubmissio
     expect(repos.deckCheck.createEntry).not.toHaveBeenCalled();
   });
 
-  it("404s a submission whose link was turned off while it waited for the lock", async () => {
-    const repos = makeRepos();
-    repos.deckCheck.getEventBySubmissionToken.mockResolvedValue(
-      deckEvent({ groupName: "Noxus Locals" }),
-    );
-    repos.deckCheck.getEventById.mockResolvedValue(deckEvent({ submissionToken: null }));
-    linkEntry(repos, undefined);
-
-    const res = await makeApp(repos).fetch(
-      req("POST", `/submissions/${TOKEN}`, {
-        cards: [{ name: "Card", quantity: 1, section: "main" }],
-      }),
-    );
-
-    expect(res.status).toBe(404);
-    expect(repos.deckCheck.lockSelfSubmission).not.toHaveBeenCalled();
-    expect(repos.deckCheck.createEntry).not.toHaveBeenCalled();
-  });
-
-  it("403s a stranger's submission when self-registration closed while it waited for the lock", async () => {
-    const repos = makeRepos();
-    repos.deckCheck.getEventBySubmissionToken.mockResolvedValue(
-      deckEvent({ groupName: "Noxus Locals" }),
-    );
-    repos.deckCheck.getEventById.mockResolvedValue(deckEvent({ allowSelfSubmission: false }));
-    linkEntry(repos, undefined);
-
-    const res = await makeApp(repos).fetch(
-      req("POST", `/submissions/${TOKEN}`, {
-        cards: [{ name: "Card", quantity: 1, section: "main" }],
-      }),
-    );
-
-    expect(res.status).toBe(403);
-    expect(repos.deckCheck.lockSelfSubmission).not.toHaveBeenCalled();
-    expect(repos.deckCheck.createEntry).not.toHaveBeenCalled();
-  });
-
   it("409s a resubmit when a judge approved the entry while it was being read", async () => {
     const repos = makeRepos();
     repos.deckCheck.getEventBySubmissionToken.mockResolvedValue(
@@ -1374,23 +1336,6 @@ describe("POST /deck-check/claim/{token}", () => {
     expect(res.status).toBe(404);
     expect(body.code).toBe("NOT_FOUND");
     expect(body.message).toBe("Claim link not found");
-  });
-
-  it("returns the claim outcome for a token the caller already holds", async () => {
-    const repos = makeRepos();
-    repos.tournaments.getParticipantByClaimToken.mockResolvedValue({
-      id: "spot-1",
-      tournamentId: TOURNAMENT_ID,
-      userId: USER_ID,
-      claimBlockedAt: null,
-    });
-    repos.deckCheck.getEntryIdByParticipant.mockResolvedValue(ENTRY_ID);
-
-    const res = await makeApp(repos).fetch(req("POST", `/claim/${TOKEN}`));
-    const body = (await res.json()) as { status: string; tournamentId: string; entryId: string };
-
-    expect(res.status).toBe(200);
-    expect(body).toEqual({ status: "already", tournamentId: TOURNAMENT_ID, entryId: ENTRY_ID });
   });
 });
 

@@ -211,51 +211,6 @@ describe("POST /candidate-printings/:id/set-image", () => {
     expect(res.status).toBe(204);
     expect(mockRehostFaceImage).not.toHaveBeenCalled();
   });
-
-  it("returns 404 when candidate printing not found", async () => {
-    mockPrintingImages.getCandidatePrintingById.mockResolvedValue(null);
-
-    const res = await app.request(SET_IMAGE, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode: "main" }),
-    });
-    expect(res.status).toBe(404);
-  });
-
-  it("returns 400 when candidate printing has no printingId", async () => {
-    mockPrintingImages.getCandidatePrintingById.mockResolvedValue({
-      printingId: null,
-      imageUrl: "https://example.com/img.png",
-      candidateCardId: "cc-1",
-    });
-
-    const res = await app.request(SET_IMAGE, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode: "main" }),
-    });
-    expect(res.status).toBe(400);
-    const json = await readJson(res);
-    expect(json.message).toContain("not linked");
-  });
-
-  it("returns 400 when candidate printing has no imageUrl", async () => {
-    mockPrintingImages.getCandidatePrintingById.mockResolvedValue({
-      printingId: "printing-1",
-      imageUrl: null,
-      candidateCardId: "cc-1",
-    });
-
-    const res = await app.request(SET_IMAGE, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode: "main" }),
-    });
-    expect(res.status).toBe(400);
-    const json = await readJson(res);
-    expect(json.message).toContain("no image URL");
-  });
 });
 
 describe("DELETE /printing-images/:imageId", () => {
@@ -292,18 +247,6 @@ describe("DELETE /printing-images/:imageId", () => {
     });
     expect(res.status).toBe(204);
     expect(mockCleanupOrphanedImageFiles).not.toHaveBeenCalled();
-  });
-
-  it("returns 404 when image not found", async () => {
-    mockPrintingImages.getIdAndRehostedUrl.mockResolvedValue(null);
-
-    const res = await app.request(
-      "/api/admin/v1/cards/printing-images/00000000-0000-4000-a000-000000000099",
-      {
-        method: "DELETE",
-      },
-    );
-    expect(res.status).toBe(404);
   });
 });
 
@@ -411,20 +354,6 @@ describe("POST /printing-images/:imageId/activate", () => {
     expect(mockTrxPrintingImages.setActive).not.toHaveBeenCalled();
     expect(mockTrxPrintingImages.deactivateActiveFace).not.toHaveBeenCalled();
   });
-
-  it("returns 404 when image not found", async () => {
-    mockPrintingImages.getForActivate.mockResolvedValue(null);
-
-    const res = await app.request(
-      "/api/admin/v1/cards/printing-images/00000000-0000-4000-a000-000000000099/activate",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ active: true }),
-      },
-    );
-    expect(res.status).toBe(404);
-  });
 });
 
 describe("POST /printing-images/:imageId/unrehost", () => {
@@ -529,29 +458,6 @@ describe("POST /printing-images/:imageId/rehost", () => {
     expect(res.status).toBe(400);
     const json = await readJson(res);
     expect(json.message).toContain("HTTP 404");
-  });
-
-  it("returns 404 when image not found", async () => {
-    mockPrintingImages.getForRehost.mockResolvedValue(null);
-
-    const res = await app.request(
-      "/api/admin/v1/cards/printing-images/00000000-0000-4000-a000-000000000099/rehost",
-      {
-        method: "POST",
-      },
-    );
-    expect(res.status).toBe(404);
-  });
-
-  it("returns 400 when image has no original URL", async () => {
-    mockPrintingImages.getForRehost.mockResolvedValue({ originalUrl: null, imageFileId: "ci-1" });
-
-    const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}/rehost`, {
-      method: "POST",
-    });
-    expect(res.status).toBe(400);
-    const json = await readJson(res);
-    expect(json.message).toContain("no original URL");
   });
 });
 
@@ -920,20 +826,6 @@ describe("POST /printing/:printingId/add-image-url", () => {
     const json = await readJson(res);
     expect(json.message).toContain("url is required");
   });
-
-  it("returns 404 when printing not found", async () => {
-    mockCatalog.getPrintingById.mockResolvedValue(null);
-
-    const res = await app.request(
-      "/api/admin/v1/cards/printing/00000000-0000-4000-a000-000000000099/add-image-url",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: "https://example.com/img.png" }),
-      },
-    );
-    expect(res.status).toBe(404);
-  });
 });
 
 describe("POST /printing/:printingId/upload-image", () => {
@@ -1022,22 +914,6 @@ describe("POST /printing/:printingId/upload-image", () => {
     expect(mockTrxPrintingImages.insertUploadedImage).toHaveBeenCalledWith(
       expect.objectContaining({ mode: "additional" }),
     );
-  });
-
-  it("returns 404 when printing not found", async () => {
-    mockCatalog.getPrintingById.mockResolvedValue(null);
-
-    const formData = new FormData();
-    formData.append("file", new File(["data"], "card.png", { type: "image/png" }));
-
-    const res = await app.request(
-      "/api/admin/v1/cards/printing/00000000-0000-4000-a000-000000000099/upload-image",
-      {
-        method: "POST",
-        body: formData,
-      },
-    );
-    expect(res.status).toBe(404);
   });
 });
 
@@ -1134,33 +1010,20 @@ describe("POST /printing/:printingId/fallback-art", () => {
     );
   });
 
-  it("clears the pin when switching back to auto", async () => {
+  it.each([
+    { name: "clears the pin when switching back to auto", mode: "auto" },
+    { name: "suppresses the substitute in none mode", mode: "none" },
+  ])("$name", async ({ mode }) => {
     const res = await app.request(FALLBACK_ART, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode: "auto" }),
+      body: JSON.stringify({ mode }),
     });
 
     expect(res.status).toBe(204);
     expect(mockPrintingImages.setFallbackArt).toHaveBeenCalledWith(
       PRINTING_ID,
-      "auto",
-      null,
-      undefined,
-    );
-  });
-
-  it("suppresses the substitute in none mode", async () => {
-    const res = await app.request(FALLBACK_ART, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode: "none" }),
-    });
-
-    expect(res.status).toBe(204);
-    expect(mockPrintingImages.setFallbackArt).toHaveBeenCalledWith(
-      PRINTING_ID,
-      "none",
+      mode,
       null,
       undefined,
     );

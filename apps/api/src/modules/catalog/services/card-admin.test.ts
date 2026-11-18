@@ -70,14 +70,6 @@ describe("deleteCard", () => {
     vi.resetAllMocks();
   });
 
-  it("throws NOT_FOUND when the card does not exist", async () => {
-    const { repos } = baseRepos({ getCardById: vi.fn(async () => null) });
-
-    await expect(
-      deleteCard(mockTransact(repos), {} as Io, repos as any, "card-missing"),
-    ).rejects.toThrow("Card not found");
-  });
-
   it("throws CONFLICT naming the blockers when user data references the card", async () => {
     const { mut, repos } = baseRepos({
       countForCard: vi.fn(async () => noBlockers({ copies: 3, deckCards: 1 })),

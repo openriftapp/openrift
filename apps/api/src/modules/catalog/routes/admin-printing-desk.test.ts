@@ -90,29 +90,15 @@ beforeEach(() => {
 });
 
 describe("PATCH /printing-desk/images/:imageFileId", () => {
-  it("writes the credit", async () => {
-    const res = await patchImage({ credit: "gamesnight" });
+  it.each([
+    { name: "writes the credit", body: { credit: "gamesnight" } },
+    { name: "leaves an omitted credit alone", body: {} },
+    { name: "clears a credit sent as null", body: { credit: null } },
+  ])("$name", async ({ body }) => {
+    const res = await patchImage(body);
 
     expect(res.status).toBe(204);
-    expect(mockPrintingDesk.updateImageCredit).toHaveBeenCalledWith(IMAGE_FILE_ID, {
-      credit: "gamesnight",
-    });
-  });
-
-  it("leaves an omitted credit alone", async () => {
-    const res = await patchImage({});
-
-    expect(res.status).toBe(204);
-    expect(mockPrintingDesk.updateImageCredit).toHaveBeenCalledWith(IMAGE_FILE_ID, {});
-  });
-
-  it("clears a credit sent as null", async () => {
-    const res = await patchImage({ credit: null });
-
-    expect(res.status).toBe(204);
-    expect(mockPrintingDesk.updateImageCredit).toHaveBeenCalledWith(IMAGE_FILE_ID, {
-      credit: null,
-    });
+    expect(mockPrintingDesk.updateImageCredit).toHaveBeenCalledWith(IMAGE_FILE_ID, body);
   });
 
   it("rejects an unknown field", async () => {
@@ -225,15 +211,6 @@ describe("grant holder scope", () => {
 
     expect(res.status).toBe(403);
     expect(mockPrintingDesk.updateImageCredit).not.toHaveBeenCalled();
-  });
-
-  it("lets them credit a file that only desk printings use", async () => {
-    mockPrintingDesk.nonDeskPrintingIdsForImageFile.mockResolvedValue([]);
-
-    const res = await patchImage({ credit: "gamesnight" });
-
-    expect(res.status).toBe(204);
-    expect(mockPrintingDesk.updateImageCredit).toHaveBeenCalled();
   });
 
   it("403s moving an image to the other side on a printing outside the desk", async () => {

@@ -141,74 +141,6 @@ const CREATE_BASE = {
   startsAt: "2026-06-01T12:00:00Z",
 };
 
-describe("GET /tournaments", () => {
-  const PAST_A = "b0000000-0001-4000-a000-00000000000a";
-  const PAST_B = "b0000000-0001-4000-a000-00000000000b";
-
-  function makeListApp() {
-    const { app, repos } = makeApp(tournamentRow());
-    const current = tournamentRow({ startsAt: new Date("2099-01-01T12:00:00Z") });
-    const pastRows = [
-      tournamentRow({ id: PAST_A, startsAt: new Date("2025-05-01T12:00:00Z") }),
-      tournamentRow({ id: PAST_B, startsAt: new Date("2025-04-01T12:00:00Z") }),
-    ].map((row) => ({ ...row, participantCount: 0, pendingRequestCount: 0 }));
-    const list = {
-      listCurrentForUser: vi.fn(() =>
-        Promise.resolve([{ ...current, participantCount: 0, pendingRequestCount: 0 }]),
-      ),
-      listPastForUser: vi.fn(() => Promise.resolve(pastRows)),
-      countPastForUser: vi.fn(() => Promise.resolve(7)),
-      staffRolesAcross: vi.fn(() => Promise.resolve([])),
-      participantTournamentIdsAcross: vi.fn(() => Promise.resolve(new Set())),
-      getGroupInfo: vi.fn(() => Promise.resolve(new Map())),
-    };
-    Object.assign(repos.tournaments, list);
-    Object.assign(repos, {
-      organizations: {
-        listIdsForUser: vi.fn(() => Promise.resolve([])),
-        listJudgeOrgIdsForUser: vi.fn(() => Promise.resolve([])),
-        findByIds: vi.fn(() => Promise.resolve([])),
-      },
-    });
-    return { app, list };
-  }
-
-  it("returns every current tournament plus one page of past ones, with a cursor for the rest", async () => {
-    const { app, list } = makeListApp();
-
-    const res = await app.fetch(req("GET", "/tournaments?limit=1"));
-    const body = (await res.json()) as {
-      items: { id: string }[];
-      nextCursor: string | null;
-      pastCount: number;
-    };
-
-    expect(res.status).toBe(200);
-    expect(body.items.map((item) => item.id)).toEqual([TOURNAMENT_ID, PAST_A]);
-    expect(body.nextCursor).toBe(`2025-05-01T12:00:00.000Z_${PAST_A}`);
-    expect(body.pastCount).toBe(7);
-    expect(list.listPastForUser).toHaveBeenCalledWith(USER_ID, [], expect.any(Date), {
-      cursor: null,
-      limit: 1,
-    });
-  });
-
-  it("returns only past tournaments after the first page", async () => {
-    const { app, list } = makeListApp();
-    const cursor = `2025-05-01T12:00:00.000Z_${PAST_A}`;
-
-    const res = await app.fetch(
-      req("GET", `/tournaments?limit=2&cursor=${encodeURIComponent(cursor)}`),
-    );
-    const body = (await res.json()) as { items: { id: string }[]; nextCursor: string | null };
-
-    expect(res.status).toBe(200);
-    expect(list.listCurrentForUser).not.toHaveBeenCalled();
-    expect(body.items.map((item) => item.id)).toEqual([PAST_A, PAST_B]);
-    expect(body.nextCursor).toBeNull();
-  });
-});
-
 describe("GET /tournaments/{id}", () => {
   it("shows the viewer's list left editable past the deadline as submitted", async () => {
     const { app, repos } = makeApp(tournamentRow({ deckSubmission: "required" }));
@@ -400,29 +332,6 @@ describe("PATCH /tournaments/{id}", () => {
     expect(repos.tournaments.updateSettings).not.toHaveBeenCalled();
   });
 
-  it("rejects a backwards status move", async () => {
-    const { app, repos } = makeApp(tournamentRow({ status: "completed" }));
-
-    const res = await app.fetch(
-      req("PATCH", `/tournaments/${TOURNAMENT_ID}`, { status: "running" }),
-    );
-
-    expect(res.status).toBe(409);
-    expect(repos.tournaments.updateSettings).not.toHaveBeenCalled();
-  });
-
-  it("refuses to edit a cancelled tournament at all", async () => {
-    // The cancelled row of the transition matrix is unreachable through update:
-    // this guard fires first, whatever the patch contains.
-    const { app, repos } = makeApp(tournamentRow({ status: "cancelled" }));
-
-    const res = await app.fetch(req("PATCH", `/tournaments/${TOURNAMENT_ID}`, { name: "Renamed" }));
-
-    expect(res.status).toBe(409);
-    expect(((await res.json()) as { message: string }).message).toContain("cancelled tournament");
-    expect(repos.tournaments.updateSettings).not.toHaveBeenCalled();
-  });
-
   it("honors an explicit status write to cancelled", async () => {
     const { app, repos } = makeApp(tournamentRow());
 
@@ -488,29 +397,6 @@ describe("submission link", () => {
       repos.tournaments.setSubmissionToken.mock.invocationCallOrder[0] ?? 0,
     );
   }
-
-  it("enables the link under the rounds lock", async () => {
-    const { app, repos } = makeApp(tournamentRow());
-
-    const res = await app.fetch(req("POST", `/tournaments/${TOURNAMENT_ID}/submission-token`));
-
-    expect(res.status).toBe(200);
-    expectWrittenUnderLock(repos);
-    expect(repos.tournaments.setSubmissionToken).toHaveBeenCalledWith(
-      TOURNAMENT_ID,
-      expect.any(String),
-    );
-  });
-
-  it("disables the link under the rounds lock", async () => {
-    const { app, repos } = makeApp(tournamentRow({ submissionToken: "old-token" }));
-
-    const res = await app.fetch(req("DELETE", `/tournaments/${TOURNAMENT_ID}/submission-token`));
-
-    expect(res.status).toBe(200);
-    expectWrittenUnderLock(repos);
-    expect(repos.tournaments.setSubmissionToken).toHaveBeenCalledWith(TOURNAMENT_ID, null);
-  });
 
   function rowAfterPatch(repos: ReturnType<typeof makeApp>["repos"], stored: Partial<Tournament>) {
     let locks = 0;

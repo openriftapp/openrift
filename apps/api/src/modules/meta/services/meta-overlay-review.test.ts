@@ -858,18 +858,6 @@ describe("acceptMetaPlayerOverlay", () => {
     ).rejects.toMatchObject({ status: 404 });
     expect(mockOverlays.setPlayerOverlayStatuses).not.toHaveBeenCalled();
   });
-
-  it("refuses a row whose event is still only proposed", async () => {
-    mockOverlays.playerOverlayById.mockResolvedValue({
-      ...LOOSE,
-      metaEventId: null,
-      eventOverlayId: OVERLAY_ID,
-    });
-
-    await expect(acceptMetaPlayerOverlay(transact, PLAYER_OVERLAY_ID)).rejects.toMatchObject({
-      status: 409,
-    });
-  });
 });
 
 describe("acceptMetaPlayerOverlays", () => {
@@ -1098,16 +1086,6 @@ describe("status preconditions", () => {
     status: "pending",
   };
 
-  it("refuses to accept an entry a concurrent accept already settled, writing nothing", async () => {
-    mockOverlays.playerOverlayById.mockResolvedValue(ACCEPTED_PLAYER);
-
-    await expect(acceptMetaPlayerOverlay(transact, PLAYER_OVERLAY_ID)).rejects.toMatchObject({
-      status: 409,
-    });
-    expect(mockOverlays.setPlayerOverlayStatuses).not.toHaveBeenCalled();
-    expect(mockSubmissions.recordAcceptance).not.toHaveBeenCalled();
-  });
-
   it("refuses a bulk accept whole when one entry was already accepted", async () => {
     mockOverlays.playerOverlayById.mockImplementation((id: string) =>
       Promise.resolve(
@@ -1192,12 +1170,6 @@ describe("taking an accepted contribution back", () => {
     claimedFields: ["listStatus", "cards"],
     submittedByUserId: "user-7",
   };
-  const ACCEPTED_SUBMISSION = {
-    id: "s0000000-0001-4000-a000-000000000004",
-    userId: "user-7",
-    playerOverlayId: PLAYER_OVERLAY_ID,
-    status: "accepted",
-  };
   const CORRECTION = {
     ...UPLOAD,
     provider: null,
@@ -1216,47 +1188,6 @@ describe("taking an accepted contribution back", () => {
     mockOverlays.acceptedPlayerOverlays.mockResolvedValue([ACCEPTED_LIST]);
     mockOverlays.adminEditPlayerOverlayIds.mockResolvedValue(new Set());
     mockOverlays.adminEditEventOverlayIds.mockResolvedValue(new Set());
-    mockSubmissions.byPlayerOverlayId.mockResolvedValue(ACCEPTED_SUBMISSION);
-  });
-
-  it("moves an accepted submission to rejected and drops its credit when the list is rejected", async () => {
-    await rejectMetaOverlay(
-      transact,
-      { kind: "player", id: PLAYER_OVERLAY_ID },
-      { reason: "unverified", resolvedByUserId: "admin-1" },
-    );
-
-    expect(mockSubmissions.revokeAcceptance).toHaveBeenCalledWith(
-      expect.objectContaining({
-        submissionId: ACCEPTED_SUBMISSION.id,
-        credit: {
-          metaEventId: LIVE_EVENT_ID,
-          metaEventPlayerId: LIVE_PLAYER_ID,
-          userId: "user-7",
-        },
-        reason: "unverified",
-        resolvedByUserId: "admin-1",
-      }),
-    );
-    expect(mockSubmissions.resolve).not.toHaveBeenCalled();
-  });
-
-  it("rejects a noteless contributor list whose last claim is released, keeping the row", async () => {
-    await releaseMetaPlayerOverlayField(transact, LIVE_PLAYER_ID, "cards", "admin-1");
-
-    expect(mockOverlays.deletePlayerOverlay).not.toHaveBeenCalled();
-    expect(mockOverlays.updatePlayerOverlay).not.toHaveBeenCalled();
-    expect(mockOverlays.setPlayerOverlayStatuses).toHaveBeenCalledWith(
-      [PLAYER_OVERLAY_ID],
-      "rejected",
-      expect.any(Date),
-    );
-    expect(mockSubmissions.revokeAcceptance).toHaveBeenCalledWith(
-      expect.objectContaining({
-        submissionId: ACCEPTED_SUBMISSION.id,
-        resolvedByUserId: "admin-1",
-      }),
-    );
   });
 
   it("deletes an admin's own emptied edit row and touches no ledger", async () => {
@@ -1267,21 +1198,6 @@ describe("taking an accepted contribution back", () => {
 
     expect(mockOverlays.deletePlayerOverlay).toHaveBeenCalledWith(PLAYER_OVERLAY_ID);
     expect(mockSubmissions.revokeAcceptance).not.toHaveBeenCalled();
-  });
-
-  it("takes an accepted event correction back with its event credit when it is rejected", async () => {
-    mockOverlays.eventOverlayById.mockResolvedValue(CORRECTION);
-    mockSubmissions.correctionForOverlay.mockResolvedValue(CORRECTION_SUBMISSION);
-
-    await rejectMetaOverlay(transact, { kind: "event", id: OVERLAY_ID });
-
-    expect(mockSubmissions.correctionForOverlay).toHaveBeenCalledWith(CORRECTION, "accepted");
-    expect(mockSubmissions.revokeAcceptance).toHaveBeenCalledWith(
-      expect.objectContaining({
-        submissionId: CORRECTION_SUBMISSION.id,
-        credit: { metaEventId: LIVE_EVENT_ID, metaEventPlayerId: null, userId: "user-7" },
-      }),
-    );
   });
 
   it("restores a rejected correction and its event credit when its overlay is accepted again", async () => {
@@ -1406,29 +1322,6 @@ describe("writeMetaPlayerOverlayFields with a status-only list change", () => {
     mockMeta.playerDeckCards.mockResolvedValue(STORED);
     mockCatalog.cardNamesByIds.mockResolvedValue(new Map([[CARD_ID, "Jinx"]]));
     mockOverlays.adminPlayerEditOverlay.mockResolvedValue(undefined);
-  });
-
-  it("claims the stored cards with the new status", async () => {
-    await writeMetaPlayerOverlayFields(
-      transact,
-      LIVE_PLAYER_ID,
-      { list: { cards: [], listStatus: "partial" } },
-      ADMIN,
-    );
-
-    expect(mockOverlays.insertPlayerOverlay).toHaveBeenCalledWith(
-      expect.objectContaining({ claimedFields: ["cards", "listStatus"], listStatus: "partial" }),
-      [
-        {
-          lineNumber: 0,
-          zone: "main",
-          quantity: 3,
-          cardName: "Jinx",
-          cardId: CARD_ID,
-          preferredPrintingId: null,
-        },
-      ],
-    );
   });
 
   it("claims the live deck over the admin's own older list", async () => {

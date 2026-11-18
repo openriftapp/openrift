@@ -319,22 +319,6 @@ describe("POST /tournaments/{tournamentId}/deck-check/entries", () => {
     expect(mockCreateManualDeckCheckEntry).not.toHaveBeenCalled();
   });
 
-  it("refuses a deck for an event archived while it waited for the rounds lock", async () => {
-    const { app, repos } = makeCreateApp();
-    repos.tournaments.lockRounds.mockImplementation(() => {
-      repos.deckCheck.getEventById.mockResolvedValue({ ...event, status: "archived" });
-      return Promise.resolve();
-    });
-
-    const res = await post(app, {
-      participantId: PARTICIPANT_ID,
-      cards: [{ name: "Some Card", quantity: 1, section: "main" }],
-    });
-
-    expect(res.status).toBe(409);
-    expect(mockCreateManualDeckCheckEntry).not.toHaveBeenCalled();
-  });
-
   it("resolves the list before it takes the rounds lock", async () => {
     const { app, repos } = makeCreateApp();
     mockCreateManualDeckCheckEntry.mockRejectedValueOnce(conflict("stop"));

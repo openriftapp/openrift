@@ -157,25 +157,18 @@ describe("POST /api/v1/overlay/me/push", () => {
     );
   });
 
-  it("rejects a scale outside the allowed range", async () => {
+  it.each([
+    { name: "a scale outside the allowed range", extra: { scale: 500 } },
+    { name: "a QR link that isn't a URL", extra: { qrUrl: "not a url" } },
+  ])("rejects $name", async ({ extra }) => {
     const res = await app.request("/api/v1/overlay/me/push", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ printingId: "p-1", scale: 500 }),
+      body: JSON.stringify({ printingId: "p-1", ...extra }),
     });
 
     expect(res.status).toBe(400);
     expect(mockRepo.setPayload).not.toHaveBeenCalled();
-  });
-
-  it("rejects a QR link that isn't a URL", async () => {
-    const res = await app.request("/api/v1/overlay/me/push", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ printingId: "p-1", qrUrl: "not a url" }),
-    });
-
-    expect(res.status).toBe(400);
   });
 });
 

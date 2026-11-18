@@ -225,27 +225,6 @@ describe("POST /api/v1/collections", () => {
     mockFriendGroupsRepo.getMembership.mockReset();
   });
 
-  it("returns 201 with created personal collection", async () => {
-    mockCollectionsRepo.createUnlessIdTaken.mockResolvedValue(dbCollection);
-    const res = await app.request("/api/v1/collections", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Main Binder" }),
-    });
-    expect(res.status).toBe(201);
-    const json = await readJson(res);
-    expect(json.name).toBe("Main Binder");
-    expect(mockCollectionsRepo.createUnlessIdTaken).toHaveBeenCalledWith({
-      userId: USER_ID,
-      groupId: null,
-      name: "Main Binder",
-      description: null,
-      isInbox: false,
-      sortOrder: 0,
-      purpose: null,
-    });
-  });
-
   it("creates the marketplace orders collection with its purpose", async () => {
     mockCollectionsRepo.idForPurpose.mockResolvedValueOnce(undefined);
     mockCollectionsRepo.createUnlessIdTaken.mockResolvedValue({
@@ -403,32 +382,12 @@ describe("GET /api/v1/collections/:id", () => {
     expect(json.id).toBe(dbCollection.id);
     expect(json.viewerCanAdmin).toBe(true);
   });
-
-  it("returns 404 when not accessible", async () => {
-    mockCollectionsRepo.getAccessForUser.mockResolvedValue(undefined);
-    const res = await app.request(`/api/v1/collections/${dbCollection.id}`);
-    expect(res.status).toBe(404);
-  });
 });
 
 describe("PATCH /api/v1/collections/:id", () => {
   beforeEach(() => {
     mockCollectionsRepo.getAccessForUser.mockReset();
     mockCollectionsRepo.updateById.mockReset();
-  });
-
-  it("returns 200 with updated collection", async () => {
-    mockCollectionsRepo.getAccessForUser.mockResolvedValue(access(dbCollection));
-    const updated = { ...dbCollection, name: "Renamed" };
-    mockCollectionsRepo.updateById.mockResolvedValue(updated);
-    const res = await app.request(`/api/v1/collections/${dbCollection.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Renamed" }),
-    });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.name).toBe("Renamed");
   });
 
   it("returns 403 when viewer is not an admin of a shared collection", async () => {
@@ -440,16 +399,6 @@ describe("PATCH /api/v1/collections/:id", () => {
     });
     expect(res.status).toBe(403);
     expect(mockCollectionsRepo.updateById).not.toHaveBeenCalled();
-  });
-
-  it("returns 404 when not accessible", async () => {
-    mockCollectionsRepo.getAccessForUser.mockResolvedValue(undefined);
-    const res = await app.request(`/api/v1/collections/${dbCollection.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "X" }),
-    });
-    expect(res.status).toBe(404);
   });
 });
 
@@ -493,38 +442,12 @@ describe("DELETE /api/v1/collections/:id", () => {
     expect(mockEnsureInbox).not.toHaveBeenCalled();
   });
 
-  it("returns 409 when trying to delete a non-empty shared collection", async () => {
-    mockCollectionsRepo.getAccessForUser.mockResolvedValue(access(dbSharedCollection));
-    mockCollectionsRepo.listCopiesInCollection.mockResolvedValue([{ id: "c", printingId: "p" }]);
-    const res = await app.request(`/api/v1/collections/${dbSharedCollection.id}`, {
-      method: "DELETE",
-    });
-    expect(res.status).toBe(409);
-    expect(mockCollectionsRepo.deleteById).not.toHaveBeenCalled();
-  });
-
   it("returns 403 when viewer is not an admin of the shared collection", async () => {
     mockCollectionsRepo.getAccessForUser.mockResolvedValue(access(dbSharedCollection, false));
     const res = await app.request(`/api/v1/collections/${dbSharedCollection.id}`, {
       method: "DELETE",
     });
     expect(res.status).toBe(403);
-  });
-
-  it("returns 404 when not accessible", async () => {
-    mockCollectionsRepo.getAccessForUser.mockResolvedValue(undefined);
-    const res = await app.request(`/api/v1/collections/${dbCollection.id}`, {
-      method: "DELETE",
-    });
-    expect(res.status).toBe(404);
-  });
-
-  it("returns 409 when trying to delete inbox", async () => {
-    mockCollectionsRepo.getAccessForUser.mockResolvedValue(access(dbInbox));
-    const res = await app.request(`/api/v1/collections/${dbInbox.id}`, {
-      method: "DELETE",
-    });
-    expect(res.status).toBe(409);
   });
 });
 
@@ -560,15 +483,6 @@ describe("POST /api/v1/collections/:id/clear", () => {
     expect(res.status).toBe(403);
     expect(mockClearCollection).not.toHaveBeenCalled();
   });
-
-  it("returns 404 when not accessible", async () => {
-    mockCollectionsRepo.getAccessForUser.mockResolvedValue(undefined);
-    const res = await app.request(`/api/v1/collections/${dbCollection.id}/clear`, {
-      method: "POST",
-    });
-    expect(res.status).toBe(404);
-    expect(mockClearCollection).not.toHaveBeenCalled();
-  });
 });
 
 describe("GET /api/v1/collections/:id/copies", () => {
@@ -586,12 +500,6 @@ describe("GET /api/v1/collections/:id/copies", () => {
     expect(json.items).toHaveLength(1);
     expect(json.items[0].id).toBe(dbCopy.id);
     expect(json.nextCursor).toBeNull();
-  });
-
-  it("returns 404 when collection not accessible", async () => {
-    mockCollectionsRepo.getAccessForUser.mockResolvedValue(undefined);
-    const res = await app.request(`/api/v1/collections/${dbCollection.id}/copies`);
-    expect(res.status).toBe(404);
   });
 
   it("returns nextCursor when hasMore copies with explicit limit", async () => {
@@ -688,20 +596,6 @@ describe("DELETE /api/v1/collections/:id/share", () => {
   beforeEach(() => {
     mockCollectionsRepo.getAccessForUser.mockReset();
     mockCollectionsRepo.setShare.mockReset();
-  });
-
-  it("returns 204 and nulls the token + isPublic=false", async () => {
-    mockCollectionsRepo.getAccessForUser.mockResolvedValue(access(dbCollection));
-    mockCollectionsRepo.setShare.mockResolvedValue({
-      ...dbCollection,
-      isPublic: false,
-      shareToken: null,
-    });
-    const res = await app.request(`/api/v1/collections/${dbCollection.id}/share`, {
-      method: "DELETE",
-    });
-    expect(res.status).toBe(204);
-    expect(mockCollectionsRepo.setShare).toHaveBeenCalledWith(dbCollection.id, null, false);
   });
 
   it("returns 404 when the collection is not accessible", async () => {

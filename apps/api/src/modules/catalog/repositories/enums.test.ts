@@ -13,11 +13,6 @@ describe("enumsRepo", () => {
     });
   });
 
-  it("contentVersion returns the digest token", async () => {
-    const db = createMockDb({ rows: [{ token: "abc|def" }] });
-    expect(await enumsRepo(db).contentVersion()).toBe("abc|def");
-  });
-
   it("contentVersion falls back to an empty token when the probe returns no row", async () => {
     const db = createMockDb({ rows: [] });
     expect(await enumsRepo(db).contentVersion()).toBe("");

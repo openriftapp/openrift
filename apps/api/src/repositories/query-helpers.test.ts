@@ -53,9 +53,13 @@ function compileWhere(predicate: Expression<SqlBool>) {
 }
 
 describe("imageUrlWithOriginal", () => {
-  it("returns a raw builder expression", () => {
-    const result = imageUrlWithOriginal("pi");
-    expect(result).toBeDefined();
+  it("prefers the rehosted URL over the original", () => {
+    const { sql } = compileDb
+      .selectFrom("imageFiles as imgf")
+      .select(imageUrlWithOriginal("imgf").as("url"))
+      .compile();
+
+    expect(sql).toContain('COALESCE("imgf"."rehosted_url", "imgf"."original_url")');
   });
 });
 
@@ -216,52 +220,19 @@ describe("keysetCursorPredicate", () => {
   const BOUND = new Date("2026-01-15T12:30:00.001Z");
   const OPTIONS = { timeColumn: "cp.createdAt", idColumn: "cp.id" } as const;
 
-  it("breaks ties ascending on the id column", () => {
+  it.each([
+    { idDirection: "asc" as const, tieBreak: ">" },
+    { idDirection: "desc" as const, tieBreak: "<" },
+  ])("breaks ties $idDirection on the id column", ({ idDirection, tieBreak }) => {
     const { where, parameters } = compileWhere(
-      keysetCursorPredicate(buildKeysetCursor(TIME, "cp-9"), { ...OPTIONS, idDirection: "asc" }),
+      keysetCursorPredicate(buildKeysetCursor(TIME, "cp-9"), { ...OPTIONS, idDirection }),
     );
     expect(where).toBe(
       `("cp"."created_at" < $1 and ` +
         `(date_trunc('milliseconds', "cp"."created_at") < $2 or ` +
-        `(date_trunc('milliseconds', "cp"."created_at") = $3 and "cp"."id" > $4)))`,
+        `(date_trunc('milliseconds', "cp"."created_at") = $3 and "cp"."id" ${tieBreak} $4)))`,
     );
     expect(parameters).toEqual([BOUND, TIME, TIME, "cp-9"]);
-  });
-
-  it("breaks ties descending on the id column", () => {
-    const { where, parameters } = compileWhere(
-      keysetCursorPredicate(buildKeysetCursor(TIME, "cp-9"), { ...OPTIONS, idDirection: "desc" }),
-    );
-    expect(where).toBe(
-      `("cp"."created_at" < $1 and ` +
-        `(date_trunc('milliseconds', "cp"."created_at") < $2 or ` +
-        `(date_trunc('milliseconds', "cp"."created_at") = $3 and "cp"."id" < $4)))`,
-    );
-    expect(parameters).toEqual([BOUND, TIME, TIME, "cp-9"]);
-  });
-
-  // date_trunc is STABLE: the truncated comparison alone is unsargable.
-  it("adds a bare-column upper bound an index can seek on", () => {
-    const compiled = compileWhere(
-      keysetCursorPredicate(buildKeysetCursor(TIME, "cp-9"), { ...OPTIONS, idDirection: "asc" }),
-    );
-    expect(compiled.where).toContain(`"cp"."created_at" < $1`);
-    expect(compiled.parameters[0]).toEqual(BOUND);
-  });
-
-  // A row one microsecond past the cursor still truncates back onto it, so
-  // one millisecond above is the exact width that keeps it a tie.
-  it("keeps the bound one millisecond above the cursor so ties survive", () => {
-    const { parameters } = compileWhere(
-      keysetCursorPredicate(buildKeysetCursor(TIME, "cp-9"), { ...OPTIONS, idDirection: "asc" }),
-    );
-    expect(parameters[0]).toEqual(new Date(TIME.getTime() + 1));
-  });
-
-  it("rejects a timestamp-only cursor with a 400", () => {
-    const parse = () =>
-      keysetCursorPredicate(TIME.toISOString(), { ...OPTIONS, idDirection: "asc" });
-    expect(parse).toThrow(/Invalid cursor/u);
   });
 
   it("keeps the id when it contains the separator", () => {
@@ -271,8 +242,11 @@ describe("keysetCursorPredicate", () => {
     expect(parameters).toEqual([BOUND, TIME, TIME, "a_b"]);
   });
 
-  it("rejects an unparseable cursor with a 400", () => {
-    const parse = () => keysetCursorPredicate("not-a-date", { ...OPTIONS, idDirection: "asc" });
+  it.each([
+    { name: "a timestamp-only cursor", cursor: TIME.toISOString() },
+    { name: "an unparseable cursor", cursor: "not-a-date" },
+  ])("rejects $name with a 400", ({ cursor }) => {
+    const parse = () => keysetCursorPredicate(cursor, { ...OPTIONS, idDirection: "asc" });
     expect(parse).toThrow(AppError);
     expect(parse).toThrow(/Invalid cursor/u);
     try {

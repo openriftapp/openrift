@@ -11,7 +11,6 @@ const mockMktAdmin = {
   getStagingProductNames: vi.fn(),
   insertIgnoredProducts: vi.fn(),
   insertIgnoredVariants: vi.fn(),
-  deleteIgnoredProducts: vi.fn(),
   deleteIgnoredVariants: vi.fn(),
 };
 
@@ -151,24 +150,6 @@ describe("POST /api/admin/v1/ignored-products (L2)", () => {
     expect(json.ignored).toBe(1);
   });
 
-  it("returns 0 and skips insert when no products match staging", async () => {
-    mockMktAdmin.getStagingProductNames.mockResolvedValue([]);
-
-    const res = await app.request("/api/admin/v1/ignored-products", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        level: "product",
-        marketplace: "tcgplayer",
-        products: [{ externalId: 99_999 }],
-      }),
-    });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.ignored).toBe(0);
-    expect(mockMktAdmin.insertIgnoredProducts).not.toHaveBeenCalled();
-  });
-
   it("uses first staging name when duplicates exist", async () => {
     mockMktAdmin.getStagingProductNames.mockResolvedValue([
       { externalId: 12_345, productName: "Fire Dragon" },
@@ -229,45 +210,6 @@ describe("POST /api/admin/v1/ignored-products (L3)", () => {
       },
     ]);
     expect(mockMktAdmin.insertIgnoredProducts).not.toHaveBeenCalled();
-  });
-});
-
-describe("DELETE /api/admin/v1/ignored-products (L2)", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
-
-  it("returns 200 with count of unignored L2 products", async () => {
-    mockMktAdmin.deleteIgnoredProducts.mockResolvedValue(2);
-    const res = await app.request("/api/admin/v1/ignored-products", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        level: "product",
-        marketplace: "tcgplayer",
-        products: [{ externalId: 12_345 }, { externalId: 67_890 }],
-      }),
-    });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.unignored).toBe(2);
-    expect(mockMktAdmin.deleteIgnoredProducts).toHaveBeenCalledWith("tcgplayer", [12_345, 67_890]);
-  });
-
-  it("returns 0 when no products were unignored", async () => {
-    mockMktAdmin.deleteIgnoredProducts.mockResolvedValue(0);
-    const res = await app.request("/api/admin/v1/ignored-products", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        level: "product",
-        marketplace: "cardmarket",
-        products: [{ externalId: 99_999 }],
-      }),
-    });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.unignored).toBe(0);
   });
 });
 

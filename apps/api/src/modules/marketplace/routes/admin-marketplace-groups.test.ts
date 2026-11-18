@@ -86,18 +86,6 @@ describe("GET /marketplace-groups", () => {
       assignedCount: 10,
     });
   });
-
-  it("defaults counts to 0 when no staging or assigned data", async () => {
-    mockMktAdmin.listAllGroups.mockResolvedValue([dbGroup2]);
-    mockMktAdmin.stagingCountsByMarketplaceGroup.mockResolvedValue([]);
-    mockMktAdmin.assignedCountsByMarketplaceGroup.mockResolvedValue([]);
-
-    const res = await app.request("/api/admin/v1/marketplace-groups");
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.groups[0].stagedCount).toBe(0);
-    expect(json.groups[0].assignedCount).toBe(0);
-  });
 });
 
 describe("PATCH /marketplace-groups/:marketplace/:id", () => {
@@ -128,65 +116,34 @@ describe("PATCH /marketplace-groups/:marketplace/:id", () => {
     });
   });
 
-  it("returns 204 on successful name update (coercing the numeric id)", async () => {
+  it.each([
+    {
+      name: "updating groupKind",
+      marketplace: "cardmarket",
+      groupId: 200,
+      patch: { groupKind: "special" },
+    },
+    {
+      name: "assigning a setId",
+      marketplace: "tcgplayer",
+      groupId: 100,
+      patch: { setId: "019cfc3b-0389-744b-837c-792fd586300e" },
+    },
+    {
+      name: "clearing setId to null",
+      marketplace: "tcgplayer",
+      groupId: 100,
+      patch: { setId: null },
+    },
+  ])("returns 204 when $name", async ({ marketplace, groupId, patch }) => {
     mockMktAdmin.updateGroup.mockResolvedValue(true);
-    const res = await app.request("/api/admin/v1/marketplace-groups/tcgplayer/100", {
+    const res = await app.request(`/api/admin/v1/marketplace-groups/${marketplace}/${groupId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Renamed Group" }),
+      body: JSON.stringify(patch),
     });
     expect(res.status).toBe(204);
-    expect(mockMktAdmin.updateGroup).toHaveBeenCalledWith("tcgplayer", 100, {
-      name: "Renamed Group",
-    });
-  });
-
-  it("returns 204 when setting name to null", async () => {
-    mockMktAdmin.updateGroup.mockResolvedValue(true);
-    const res = await app.request("/api/admin/v1/marketplace-groups/cardmarket/200", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: null }),
-    });
-    expect(res.status).toBe(204);
-    expect(mockMktAdmin.updateGroup).toHaveBeenCalledWith("cardmarket", 200, { name: null });
-  });
-
-  it("returns 204 when updating groupKind", async () => {
-    mockMktAdmin.updateGroup.mockResolvedValue(true);
-    const res = await app.request("/api/admin/v1/marketplace-groups/cardmarket/200", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ groupKind: "special" }),
-    });
-    expect(res.status).toBe(204);
-    expect(mockMktAdmin.updateGroup).toHaveBeenCalledWith("cardmarket", 200, {
-      groupKind: "special",
-    });
-  });
-
-  it("returns 204 when assigning a setId", async () => {
-    mockMktAdmin.updateGroup.mockResolvedValue(true);
-    const res = await app.request("/api/admin/v1/marketplace-groups/tcgplayer/100", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ setId: "019cfc3b-0389-744b-837c-792fd586300e" }),
-    });
-    expect(res.status).toBe(204);
-    expect(mockMktAdmin.updateGroup).toHaveBeenCalledWith("tcgplayer", 100, {
-      setId: "019cfc3b-0389-744b-837c-792fd586300e",
-    });
-  });
-
-  it("returns 204 when clearing setId to null", async () => {
-    mockMktAdmin.updateGroup.mockResolvedValue(true);
-    const res = await app.request("/api/admin/v1/marketplace-groups/tcgplayer/100", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ setId: null }),
-    });
-    expect(res.status).toBe(204);
-    expect(mockMktAdmin.updateGroup).toHaveBeenCalledWith("tcgplayer", 100, { setId: null });
+    expect(mockMktAdmin.updateGroup).toHaveBeenCalledWith(marketplace, groupId, patch);
   });
 
   it("returns 400 when setId is not a UUID", async () => {

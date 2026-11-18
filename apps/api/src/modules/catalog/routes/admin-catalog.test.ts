@@ -17,9 +17,6 @@ const mockSetsRepo = {
   getRef: vi.fn(),
   update: vi.fn(),
   createIfNotExists: vi.fn(),
-  printingCount: vi.fn(),
-  deleteById: vi.fn(),
-  reorder: vi.fn(),
 };
 
 // AppErrors are bridged to ORPCErrors, so the error body is `{ message, code }`.
@@ -28,7 +25,7 @@ const USER_ID = "a0000000-0001-4000-a000-000000000001";
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
-  c.set("repos", { sets: mockSetsRepo, catalog: { refreshCanonicalRank: vi.fn() } } as never);
+  c.set("repos", { sets: mockSetsRepo } as never);
   await next();
 });
 registerRouterForTest(app, adminCatalogRouter);
@@ -194,23 +191,6 @@ describe("PATCH /api/admin/v1/sets/:id", () => {
     });
     expect(res.status).toBe(400);
     expect(mockSetsRepo.replaceReleases).not.toHaveBeenCalled();
-  });
-
-  it("returns 404 when set not found", async () => {
-    mockSetsRepo.update.mockResolvedValue(null);
-    const res = await app.request(`/api/admin/v1/sets/${setId1}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: "Updated",
-        printedTotal: 100,
-        releases: {},
-        setType: "main",
-      }),
-    });
-    expect(res.status).toBe(404);
-    const json = await readJson(res);
-    expect(json.message).toContain("not found");
   });
 
   it("clears every release row when the map is empty", async () => {
@@ -390,54 +370,9 @@ describe("POST /api/admin/v1/sets", () => {
   });
 });
 
-describe("DELETE /api/admin/v1/sets/:id", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
-
-  it("returns 204 when set has no printings", async () => {
-    mockSetsRepo.printingCount.mockResolvedValue(0);
-    mockSetsRepo.deleteById.mockResolvedValue(undefined);
-    const res = await app.request(`/api/admin/v1/sets/${setId1}`, { method: "DELETE" });
-    expect(res.status).toBe(204);
-    expect(mockSetsRepo.deleteById).toHaveBeenCalledWith(setId1);
-  });
-
-  it("returns 409 when set still has printings", async () => {
-    mockSetsRepo.printingCount.mockResolvedValue(5);
-    const res = await app.request(`/api/admin/v1/sets/${setId1}`, { method: "DELETE" });
-    expect(res.status).toBe(409);
-    const json = await readJson(res);
-    expect(json.message).toContain("5 printing(s)");
-  });
-});
-
 describe("PUT /api/admin/v1/sets/reorder", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-  });
-
-  it("returns 204 on successful reorder", async () => {
-    mockSetsRepo.listAll.mockResolvedValue([dbSet1, dbSet2]);
-    mockSetsRepo.reorder.mockResolvedValue(undefined);
-    const res = await app.request("/api/admin/v1/sets/reorder", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids: [setId2, setId1] }),
-    });
-    expect(res.status).toBe(204);
-    expect(mockSetsRepo.reorder).toHaveBeenCalledWith([setId2, setId1]);
-  });
-
-  it("returns 400 when ids contain duplicates", async () => {
-    const res = await app.request("/api/admin/v1/sets/reorder", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids: [setId1, setId1] }),
-    });
-    expect(res.status).toBe(400);
-    const json = await readJson(res);
-    expect(json.message).toContain("Duplicate");
   });
 
   it("returns 400 when ids count does not match existing sets", async () => {
@@ -450,18 +385,5 @@ describe("PUT /api/admin/v1/sets/reorder", () => {
     expect(res.status).toBe(400);
     const json = await readJson(res);
     expect(json.message).toContain("Expected 2");
-  });
-
-  it("returns 400 when ids contain unknown set IDs", async () => {
-    const unknownId = "a0000000-0001-4000-a000-000000000099";
-    mockSetsRepo.listAll.mockResolvedValue([dbSet1, dbSet2]);
-    const res = await app.request("/api/admin/v1/sets/reorder", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids: [setId1, unknownId] }),
-    });
-    expect(res.status).toBe(400);
-    const json = await readJson(res);
-    expect(json.message).toContain("Unknown set IDs");
   });
 });

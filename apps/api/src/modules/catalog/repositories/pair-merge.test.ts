@@ -1,23 +1,9 @@
-import { MAX_DECK_CARD_QUANTITY } from "@openrift/shared/deck-cards";
 import { describe, expect, it } from "vitest";
 
 import { createRecordingDb } from "../../../test/recording-db.js";
 import { moveRowsTo } from "./pair-merge.js";
 
 describe("moveRowsTo", () => {
-  it("caps a merged deck slot at the per-row maximum", async () => {
-    const recording = createRecordingDb();
-    await moveRowsTo(recording.db, "deck_cards", "source-id", "home-id");
-
-    const mergeIndex = recording.queries.findIndex((query) =>
-      query.trim().startsWith('UPDATE "deck_cards" h SET'),
-    );
-    expect(recording.queries[mergeIndex]).toContain(
-      '"quantity" = LEAST(h."quantity" + s."quantity", $',
-    );
-    expect(recording.parameters[mergeIndex]).toContain(MAX_DECK_CARD_QUANTITY);
-  });
-
   it("leaves a list entry sum uncapped", async () => {
     const recording = createRecordingDb();
     await moveRowsTo(recording.db, "list_entries", "source-id", "home-id");

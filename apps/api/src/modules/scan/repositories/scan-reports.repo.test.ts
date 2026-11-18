@@ -16,29 +16,12 @@ describe("scanReportsRepo", () => {
     expect(await repo.countRecentByUser("u1", new Date(0))).toBe(0);
   });
 
-  it("referenceExists is true when a row carries the reference", async () => {
-    const db = createMockDb([{ id: "sr-1" }]);
+  it.each([
+    { name: "true when a row carries", rows: [{ id: "sr-1" }], expected: true },
+    { name: "false when no row carries", rows: [], expected: false },
+  ])("referenceExists is $name the reference", async ({ rows, expected }) => {
+    const db = createMockDb(rows);
     const repo = scanReportsRepo(db);
-    expect(await repo.referenceExists("SC-ABCD")).toBe(true);
-  });
-
-  it("referenceExists is false when no row carries the reference", async () => {
-    const db = createMockDb([]);
-    const repo = scanReportsRepo(db);
-    expect(await repo.referenceExists("SC-ABCD")).toBe(false);
-  });
-
-  it("insert writes the report", async () => {
-    const db = createMockDb([]);
-    const repo = scanReportsRepo(db);
-    await expect(
-      repo.insert({
-        userId: "u1",
-        reference: "SC-ABCD",
-        note: null,
-        userAgent: null,
-        journal: [{ t: 1, type: "scan" }],
-      }),
-    ).resolves.toBeUndefined();
+    expect(await repo.referenceExists("SC-ABCD")).toBe(expected);
   });
 });

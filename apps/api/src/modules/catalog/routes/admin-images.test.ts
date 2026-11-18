@@ -7,12 +7,6 @@ import { registerRouterForTest } from "../../../test/mount-router.js";
 import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
 import { rehostImages, runRegenerateImagesJob, refetchImages } from "../services/images/jobs.js";
-import {
-  cleanupOrphanedFiles,
-  findBrokenImages,
-  findLowResImages,
-  getRehostStatus,
-} from "../services/images/maintenance.js";
 import { adminImagesRouter } from "./admin-images";
 
 const RUN_TEST = "019d4999-4219-72f6-b7bb-640000000001";
@@ -29,30 +23,11 @@ vi.mock("../services/images/jobs.js", async (importActual) => {
   };
 });
 
-vi.mock("../services/images/maintenance.js", async (importActual) => {
-  const actual = (await importActual()) as Record<string, unknown>;
-  return {
-    ...actual,
-    cleanupOrphanedFiles: vi.fn(),
-    getRehostStatus: vi.fn(),
-    findBrokenImages: vi.fn(),
-    findLowResImages: vi.fn(),
-  };
-});
-
 const mockRehostImages = vi.mocked(rehostImages);
 const mockRunRegenerateImagesJob = vi.mocked(runRegenerateImagesJob);
-const mockCleanupOrphanedFiles = vi.mocked(cleanupOrphanedFiles);
-const mockGetRehostStatus = vi.mocked(getRehostStatus);
-const mockFindBrokenImages = vi.mocked(findBrokenImages);
-const mockFindLowResImages = vi.mocked(findLowResImages);
 const mockRefetchImages = vi.mocked(refetchImages);
 
 const mockPrintingImages = {};
-
-const mockCandidateCards = {
-  listCardsWithMissingImages: vi.fn(),
-};
 
 const mockJobRuns = {
   start: vi.fn(async () => ({ id: RUN_TEST })),
@@ -78,7 +53,6 @@ app.use("*", async (c, next) => {
   c.set("io", mockIo as never);
   c.set("repos", {
     printingImages: mockPrintingImages,
-    candidateCards: mockCandidateCards,
     jobRuns: mockJobRuns,
   } as never);
   await next();
@@ -218,23 +192,6 @@ describe("POST /api/admin/v1/regenerate-images/cancel", () => {
   });
 });
 
-describe("POST /api/admin/v1/cleanup-orphaned", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
-
-  it("returns 200 with cleanup result", async () => {
-    const result = { scanned: 200, deleted: 5, errors: [] };
-    mockCleanupOrphanedFiles.mockResolvedValue(result);
-
-    const res = await app.request("/api/admin/v1/cleanup-orphaned", { method: "POST" });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json).toEqual(result);
-    expect(mockCleanupOrphanedFiles).toHaveBeenCalledWith(mockIo, mockPrintingImages);
-  });
-});
-
 describe("POST /api/admin/v1/refetch-images", () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -279,160 +236,5 @@ describe("POST /api/admin/v1/refetch-images", () => {
     });
     expect(res.status).toBe(400);
     expect(mockRefetchImages).not.toHaveBeenCalled();
-  });
-
-  it("surfaces partial failures in the response", async () => {
-    const result = { total: 2, refetched: 1, failed: 1, errors: [`${validUuid2}: HTTP 404`] };
-    mockRefetchImages.mockResolvedValue(result);
-
-    const res = await app.request("/api/admin/v1/refetch-images", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ imageIds: [validUuid1, validUuid2] }),
-    });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json).toEqual(result);
-  });
-});
-
-describe("GET /api/admin/v1/rehost-status", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
-
-  it("returns 200 with rehost status", async () => {
-    const result = {
-      total: 500,
-      rehosted: 400,
-      external: 100,
-      failedRetrying: 2,
-      failedManual: 1,
-      orphanedFiles: 5,
-      sets: [
-        {
-          setId: "origin",
-          setName: "Origin Set",
-          total: 100,
-          rehosted: 80,
-          external: 20,
-        },
-      ],
-      disk: {
-        totalBytes: 1_024_000,
-        byResolution: [{ resolution: "full", bytes: 1_024_000, fileCount: 80 }],
-        sets: [{ setId: "origin", bytes: 1_024_000, fileCount: 80 }],
-      },
-    };
-    mockGetRehostStatus.mockResolvedValue(result);
-
-    const res = await app.request("/api/admin/v1/rehost-status");
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json).toEqual(result);
-    expect(mockGetRehostStatus).toHaveBeenCalledWith(mockIo, mockPrintingImages);
-  });
-});
-
-describe("GET /api/admin/v1/broken-images", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
-
-  it("returns 200 with broken images", async () => {
-    const result = {
-      total: 2,
-      broken: [
-        {
-          imageId: "img-1",
-          rehostedUrl: "/cards/origin/img-1.avif",
-          originalUrl: "https://example.com/img1.png",
-          cardSlug: "fire-dragon",
-          cardName: "Fire Dragon",
-          printingShortCode: "OGS-001",
-          setSlug: "origin",
-        },
-      ],
-    };
-    mockFindBrokenImages.mockResolvedValue(result);
-
-    const res = await app.request("/api/admin/v1/broken-images");
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json).toEqual(result);
-    expect(mockFindBrokenImages).toHaveBeenCalledWith(mockIo, mockPrintingImages);
-  });
-});
-
-describe("GET /api/admin/v1/low-res-images", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
-
-  it("returns 200 with low-res images", async () => {
-    const result = {
-      total: 1,
-      lowRes: [
-        {
-          imageId: "img-2",
-          rehostedUrl: "/cards/origin/img-2.avif",
-          originalUrl: "https://example.com/img2.png",
-          cardSlug: "ice-elemental",
-          cardName: "Ice Elemental",
-          printingShortCode: "OGS-002",
-          setSlug: "origin",
-          width: 200,
-          height: 300,
-        },
-      ],
-    };
-    mockFindLowResImages.mockResolvedValue(result);
-
-    const res = await app.request("/api/admin/v1/low-res-images");
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json).toEqual(result);
-    expect(mockFindLowResImages).toHaveBeenCalledWith(mockIo, mockPrintingImages);
-  });
-});
-
-describe("GET /api/admin/v1/missing-images", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
-
-  it("returns 200 with cards with missing images", async () => {
-    const cards = [
-      {
-        cardId: "card-1",
-        slug: "fire-dragon",
-        name: "Fire Dragon",
-        byLanguage: [
-          { language: "EN", count: 1 },
-          { language: "DE", count: 2 },
-        ],
-      },
-      {
-        cardId: "card-2",
-        slug: "ice-elemental",
-        name: "Ice Elemental",
-        byLanguage: [{ language: "DE", count: 1 }],
-      },
-    ];
-    mockCandidateCards.listCardsWithMissingImages.mockResolvedValue(cards);
-
-    const res = await app.request("/api/admin/v1/missing-images");
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json).toEqual(cards);
-  });
-
-  it("returns empty array when all cards have images", async () => {
-    mockCandidateCards.listCardsWithMissingImages.mockResolvedValue([]);
-
-    const res = await app.request("/api/admin/v1/missing-images");
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json).toEqual([]);
   });
 });

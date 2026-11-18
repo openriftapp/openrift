@@ -391,43 +391,48 @@ describe("insertNewPrinting", () => {
     publicCode: "001",
   };
 
-  it("400s a printing without a set", async () => {
+  it.each([
+    {
+      name: "400s a printing without a set",
+      override: { setId: undefined },
+      named: "setId",
+      candidatePrintingIds: ["cp-1"],
+    },
+    {
+      name: "400s a printing without a rarity instead of making it common",
+      override: { rarity: "" },
+      named: "rarity, finish",
+      candidatePrintingIds: [],
+    },
+    {
+      name: "400s a printing without an artist or a public code",
+      override: { artist: "", publicCode: "" },
+      named: "artist, publicCode",
+      candidatePrintingIds: [],
+    },
+    {
+      name: "400s a printing whose public code is only whitespace",
+      override: { publicCode: "  " },
+      named: "publicCode",
+      candidatePrintingIds: [],
+    },
+    {
+      name: "400s a whitespace-only artist",
+      override: { artist: "   " },
+      named: "artist",
+      candidatePrintingIds: [],
+    },
+  ])("$name", async ({ override, named, candidatePrintingIds }) => {
     const repos = trxRepos();
-    await expect(
-      insertNewPrinting(repos as any, "card-uuid", { ...FIELDS, setId: undefined }, ["cp-1"]),
-    ).rejects.toMatchObject({ status: 400, message: expect.stringContaining("setId") });
-    expect(repos.catalogMutations!.insertPrinting).not.toHaveBeenCalled();
-  });
-
-  it("400s a printing without a rarity instead of making it common", async () => {
-    const repos = trxRepos();
-    await expect(
-      insertNewPrinting(repos as any, "card-uuid", { ...FIELDS, rarity: "" }, []),
-    ).rejects.toMatchObject({
-      status: 400,
-      message: expect.stringContaining("rarity, finish"),
-    });
-    expect(repos.catalogMutations!.insertPrinting).not.toHaveBeenCalled();
-  });
-
-  it("400s a printing without an artist or a public code", async () => {
     await expect(
       insertNewPrinting(
-        trxRepos() as any,
+        repos as any,
         "card-uuid",
-        { ...FIELDS, artist: "", publicCode: "" },
-        [],
+        { ...FIELDS, ...override },
+        candidatePrintingIds,
       ),
-    ).rejects.toMatchObject({
-      status: 400,
-      message: expect.stringContaining("artist, publicCode"),
-    });
-  });
-
-  it("400s a printing whose public code is only whitespace", async () => {
-    await expect(
-      insertNewPrinting(trxRepos() as any, "card-uuid", { ...FIELDS, publicCode: "  " }, []),
-    ).rejects.toMatchObject({ status: 400, message: expect.stringContaining("publicCode") });
+    ).rejects.toMatchObject({ status: 400, message: expect.stringContaining(named) });
+    expect(repos.catalogMutations!.insertPrinting).not.toHaveBeenCalled();
   });
 
   it("stores the short code and public code without outer whitespace", async () => {
@@ -534,12 +539,6 @@ describe("insertNewPrinting", () => {
     expect(repos.catalogMutations!.insertPrinting).toHaveBeenCalledOnce();
   });
 
-  it("400s a whitespace-only artist", async () => {
-    await expect(
-      insertNewPrinting(trxRepos() as any, "card-uuid", { ...FIELDS, artist: "   " }, []),
-    ).rejects.toMatchObject({ status: 400, message: expect.stringContaining("artist") });
-  });
-
   it("trims printed text and stores whitespace-only text as null", async () => {
     const repos = trxRepos();
 
@@ -580,20 +579,14 @@ describe("insertNewPrinting", () => {
     );
   });
 
-  it("throws BAD_REQUEST when any marker slug is unknown", async () => {
-    await expect(
-      insertNewPrinting(trxRepos() as any, "card-uuid", { ...FIELDS, markerSlugs: ["bogus"] }, [
-        "cp-1",
-      ]),
-    ).rejects.toThrow('Printing not on an admin list: marker "bogus"');
-  });
-
   it.each([
     ["finish", { finish: "glossy" }, 'finish "glossy"'],
     ["size", { size: "jumbo" }, 'size "jumbo"'],
     ["language", { language: "XX" }, 'language "XX"'],
     ["art variant", { artVariant: "borderless" }, 'art variant "borderless"'],
     ["distribution channel", { distributionChannelSlugs: ["mail-in"] }, 'channel "mail-in"'],
+    ["marker", { markerSlugs: ["bogus"] }, 'Printing not on an admin list: marker "bogus"'],
+    ["rarity", { rarity: "SuperDuperRare" }, 'rarity "SuperDuperRare"'],
   ])("400s an unknown %s before touching the database", async (_field, override, named) => {
     const repos = trxRepos();
 
@@ -827,14 +820,6 @@ describe("insertNewPrinting", () => {
 
     expect(repos.catalogMutations!.insertPrinting).toHaveBeenCalledTimes(1);
     expect(repos.candidateCards!.linkAndCheckCandidatePrintings).not.toHaveBeenCalled();
-  });
-
-  it("throws BAD_REQUEST for invalid rarity", async () => {
-    await expect(
-      insertNewPrinting(trxRepos() as any, "card-uuid", { ...FIELDS, rarity: "SuperDuperRare" }, [
-        "cp-1",
-      ]),
-    ).rejects.toThrow('rarity "SuperDuperRare"');
   });
 
   it("puts the image on the accepted card's side when it sorts second", async () => {

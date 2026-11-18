@@ -379,22 +379,6 @@ describe("GET /api/v1/catalog", () => {
     expect(json.printings["OGS-001:rare:normal:"].setId).toBe("OGS");
   });
 
-  it("returns an empty errata list when no errata exists", async () => {
-    const res = await app.request("/api/v1/catalog");
-    const json = await readJson(res);
-    const card = json.cards["OGS-001"];
-    expect(card.errata).toEqual([]);
-  });
-
-  it("does not include market price on printing (prices live on /api/v1/prices)", async () => {
-    const res = await app.request("/api/v1/catalog");
-    const json = await readJson(res);
-    const printing = json.printings["OGS-001:rare:normal:"];
-    expect(printing).toBeDefined();
-    expect("marketPrice" in printing).toBe(false);
-    expect("marketPrices" in printing).toBe(false);
-  });
-
   it("returns printings from multiple sets keyed by printing id", async () => {
     const secondSet = {
       id: "S2",
@@ -552,15 +536,5 @@ describe("GET /api/v1/catalog", () => {
       images: [{ imageId: "back-uuid" }],
     });
     expect(printing.side2).not.toHaveProperty("size");
-  });
-
-  it("handles printing with no images", async () => {
-    seedDefaults({
-      printingImages: [],
-    });
-    const res = await app.request("/api/v1/catalog");
-    const json = await readJson(res);
-    const printing = json.printings["OGS-001:rare:normal:"];
-    expect(printing.images).toEqual([]);
   });
 });

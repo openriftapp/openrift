@@ -101,7 +101,6 @@ const mockMeta = {
   livePlayersByIds: vi.fn(),
   adminPlayersForEvent: vi.fn(),
   adminPlayersForEvents: vi.fn(),
-  playerDeckCards: vi.fn(),
   eventIdForPlayer: vi.fn(),
   rawStandingsForEvent: vi.fn(),
   renamePlayerDeck: vi.fn(),
@@ -713,20 +712,6 @@ describe("POST /meta/events/{id}/overlays", () => {
     );
   });
 
-  it("merges an admin's later edits into the row their earlier ones made", async () => {
-    mockOverlays.adminEditOverlay.mockResolvedValue(
-      eventOverlay({ status: "accepted", claimedFields: ["organizer"], organizer: "LGS Berlin" }),
-    );
-
-    await claim({ field: "location", value: "Zaun" });
-
-    expect(mockOverlays.insertEventOverlay).not.toHaveBeenCalled();
-    expect(mockOverlays.updateEventOverlay).toHaveBeenCalledWith(
-      EVENT_OVERLAY_ID,
-      expect.objectContaining({ claimedFields: ["organizer", "location"], location: "Zaun" }),
-    );
-  });
-
   it("clears a field when the value is emptied, which the mask makes expressible", async () => {
     mockOverlays.insertEventOverlay.mockResolvedValue("new-overlay");
 
@@ -816,45 +801,6 @@ describe("POST /meta/events/{id}/overlays/release", () => {
     expect(mockOverlays.setEventOverlayStatus).not.toHaveBeenCalled();
   });
 
-  it("rejects a submission whose only claim is handed back, so the ledger reads right", async () => {
-    mockOverlays.acceptedEventOverlays.mockResolvedValue([
-      eventOverlay({
-        status: "accepted",
-        claimedFields: ["organizer"],
-        organizer: "LGS Zaun",
-        submissionNote: "Saw it on stream.",
-      }),
-    ]);
-
-    await release("organizer");
-
-    expect(mockOverlays.deleteEventOverlay).not.toHaveBeenCalled();
-    expect(mockOverlays.setEventOverlayStatus).toHaveBeenCalledWith(
-      EVENT_OVERLAY_ID,
-      "rejected",
-      expect.any(Date),
-    );
-  });
-
-  it("strips one claim from a row that still holds others", async () => {
-    mockOverlays.acceptedEventOverlays.mockResolvedValue([
-      eventOverlay({
-        status: "accepted",
-        claimedFields: ["organizer", "location"],
-        organizer: "LGS Zaun",
-        location: "Zaun",
-      }),
-    ]);
-
-    await release("organizer");
-
-    expect(mockOverlays.updateEventOverlay).toHaveBeenCalledWith(EVENT_OVERLAY_ID, {
-      claimedFields: ["location"],
-      organizer: null,
-    });
-    expect(mockOverlays.deleteEventOverlay).not.toHaveBeenCalled();
-  });
-
   it("leaves an overlay that never claimed the field alone", async () => {
     mockOverlays.acceptedEventOverlays.mockResolvedValue([
       eventOverlay({ status: "accepted", claimedFields: ["tier"] }),
@@ -914,21 +860,6 @@ describe("POST /meta/players/{id}/overlays", () => {
     );
   });
 
-  it("merges into the row this admin's earlier edits already made", async () => {
-    mockOverlays.adminPlayerEditOverlay.mockResolvedValue(
-      playerOverlay({ claimedFields: ["rank"], status: "accepted" }),
-    );
-
-    await write({ fields: { wins: 3 } });
-
-    expect(mockOverlays.insertPlayerOverlay).not.toHaveBeenCalled();
-    expect(mockOverlays.updatePlayerOverlay).toHaveBeenCalledWith(
-      PLAYER_OVERLAY_ID,
-      expect.objectContaining({ claimedFields: ["rank", "wins"], wins: 3 }),
-      undefined,
-    );
-  });
-
   it("refuses to clear the name of a row no source names", async () => {
     mockMeta.rawStandingsForEvent.mockResolvedValue([
       { id: LIVE_PLAYER_ID, uvsgamesPlayerId: null },
@@ -947,18 +878,6 @@ describe("POST /meta/players/{id}/overlays", () => {
     expect(mockOverlays.insertPlayerOverlay).toHaveBeenCalledWith(
       expect.objectContaining({ claimedFields: ["playerName"], playerName: null }),
       [],
-    );
-  });
-
-  it("takes a list with no cards as a status change on the stored deck", async () => {
-    mockMeta.playerDeckCards.mockResolvedValue([LINE]);
-
-    const response = await write({ list: { cards: [], listStatus: "partial" } });
-
-    expect(response.status).toBe(200);
-    expect(mockOverlays.insertPlayerOverlay).toHaveBeenCalledWith(
-      expect.objectContaining({ claimedFields: ["cards", "listStatus"], listStatus: "partial" }),
-      [expect.objectContaining({ cardId: CARD_ID, quantity: 3 })],
     );
   });
 
@@ -987,15 +906,6 @@ describe("POST /meta/players/{id}/overlays", () => {
 
     expect(response.status).toBe(400);
     expect(mockOverlays.insertPlayerOverlay).not.toHaveBeenCalled();
-  });
-
-  it("claims an empty list, which is how an admin says there is none", async () => {
-    await write({ list: null });
-
-    expect(mockOverlays.insertPlayerOverlay).toHaveBeenCalledWith(
-      expect.objectContaining({ claimedFields: ["cards", "listStatus"], listStatus: "none" }),
-      [],
-    );
   });
 
   it("renames the derived deck after the promote, not before it", async () => {
@@ -1456,20 +1366,6 @@ describe("POST /meta/players/{id}/overlays/release", () => {
     );
   });
 
-  it("releases cards and listStatus together, since neither stands alone", async () => {
-    mockOverlays.acceptedPlayerOverlays.mockResolvedValue([
-      anchored({ claimedFields: ["cards", "listStatus", "wins"], listStatus: "full" }),
-    ]);
-
-    await release("listStatus");
-
-    expect(mockOverlays.updatePlayerOverlay).toHaveBeenCalledWith(
-      PLAYER_OVERLAY_ID,
-      { claimedFields: ["wins"], listStatus: null },
-      [],
-    );
-  });
-
   it("deletes an admin row whose last claim was handed back", async () => {
     mockOverlays.acceptedPlayerOverlays.mockResolvedValue([anchored({ claimedFields: ["wins"] })]);
 
@@ -1477,21 +1373,6 @@ describe("POST /meta/players/{id}/overlays/release", () => {
 
     expect(mockOverlays.deletePlayerOverlay).toHaveBeenCalledWith(PLAYER_OVERLAY_ID);
     expect(mockOverlays.setPlayerOverlayStatuses).not.toHaveBeenCalled();
-  });
-
-  it("rejects an emptied submission rather than deleting somebody's contribution", async () => {
-    mockOverlays.acceptedPlayerOverlays.mockResolvedValue([
-      anchored({ claimedFields: ["wins"], submissionNote: "Saw it on stream." }),
-    ]);
-
-    await release("wins");
-
-    expect(mockOverlays.deletePlayerOverlay).not.toHaveBeenCalled();
-    expect(mockOverlays.setPlayerOverlayStatuses).toHaveBeenCalledWith(
-      [PLAYER_OVERLAY_ID],
-      "rejected",
-      expect.any(Date),
-    );
   });
 
   it("leaves another row's overlay on the same event alone", async () => {

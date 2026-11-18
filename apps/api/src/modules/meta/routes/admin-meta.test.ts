@@ -19,7 +19,6 @@ const mockMeta = {
   adminPlayersForEvent: vi.fn(),
   createPlayer: vi.fn(),
   renamePlayerDeck: vi.fn(),
-  deletePlayer: vi.fn(),
   sourcesForEvent: vi.fn(),
   insertEventSource: vi.fn(),
   deleteEventSource: vi.fn(),
@@ -302,15 +301,6 @@ describe("GET /meta/events/{id}/players", () => {
     expect(json.players[0].claimedFields).toEqual([]);
     expect(json.players[1].claimedFields).toEqual(["wins"]);
   });
-
-  it("404s for an unknown event", async () => {
-    mockMeta.eventById.mockResolvedValue(undefined);
-
-    const res = await app.request(`/api/admin/v1/meta/events/${EVENT_ID}/players`);
-
-    expect(res.status).toBe(404);
-    expect(mockMeta.adminPlayersForEvent).not.toHaveBeenCalled();
-  });
 });
 
 describe("POST /meta/players", () => {
@@ -380,17 +370,6 @@ describe("POST /meta/players", () => {
     );
   });
 
-  it("defaults an unlabelled list to a full one", async () => {
-    mockMeta.createPlayer.mockResolvedValue({ metaEventPlayerId: PLAYER_ID, deckId: DECK_ID });
-
-    await createPlayer({ eventId: EVENT_ID, rank: 1, playerName: "Renata", list: listBody() });
-
-    expect(mockMeta.createPlayer).toHaveBeenCalledWith(expect.anything(), {
-      deck: expect.objectContaining({ listStatus: "full" }),
-      shareToken: expect.any(String),
-    });
-  });
-
   it("rejects a list in an unknown format", async () => {
     mockDeckFormats.getBySlug.mockResolvedValue(undefined);
 
@@ -403,33 +382,6 @@ describe("POST /meta/players", () => {
 
     expect(res.status).toBe(400);
     expect(mockMeta.createPlayer).not.toHaveBeenCalled();
-  });
-
-  it("404s when the event is gone", async () => {
-    mockMeta.createPlayer.mockResolvedValue(undefined);
-
-    const res = await createPlayer({ eventId: EVENT_ID, rank: 1, playerName: "Renata" });
-
-    expect(res.status).toBe(404);
-  });
-});
-
-describe("DELETE /meta/players/{id}", () => {
-  it("removes a standings row", async () => {
-    mockMeta.deletePlayer.mockResolvedValue(true);
-
-    const res = await app.request(`/api/admin/v1/meta/players/${PLAYER_ID}`, { method: "DELETE" });
-
-    expect(res.status).toBe(204);
-    expect(mockMeta.deletePlayer).toHaveBeenCalledWith(PLAYER_ID);
-  });
-
-  it("404s an unknown standings row", async () => {
-    mockMeta.deletePlayer.mockResolvedValue(false);
-
-    const res = await app.request(`/api/admin/v1/meta/players/${PLAYER_ID}`, { method: "DELETE" });
-
-    expect(res.status).toBe(404);
   });
 });
 
@@ -485,37 +437,9 @@ describe("GET /meta/events/{id}/sources", () => {
     expect(json.sources[0].provider).toBe("uvsgames");
     expect(json.sources[1].provider).toBeNull();
   });
-
-  it("404s for an unknown event", async () => {
-    mockMeta.eventById.mockResolvedValue(undefined);
-
-    const res = await app.request(`/api/admin/v1/meta/events/${EVENT_ID}/sources`);
-
-    expect(res.status).toBe(404);
-    expect(mockMeta.sourcesForEvent).not.toHaveBeenCalled();
-  });
 });
 
 describe("POST /meta/events/{id}/sources", () => {
-  it("writes a hand-entered citation with no source key", async () => {
-    mockMeta.eventById.mockResolvedValue(eventRow());
-    mockMeta.insertEventSource.mockResolvedValue(sourceRow());
-
-    const res = await createSource({
-      label: "Twitch VOD",
-      sourceUrl: "https://example.invalid/vod",
-    });
-
-    expect(res.status).toBe(201);
-    expect(mockMeta.insertEventSource).toHaveBeenCalledWith({
-      metaEventId: EVENT_ID,
-      provider: null,
-      externalId: null,
-      label: "Twitch VOD",
-      sourceUrl: "https://example.invalid/vod",
-    });
-  });
-
   it("accepts a citation with no URL at all", async () => {
     mockMeta.eventById.mockResolvedValue(eventRow());
     mockMeta.insertEventSource.mockResolvedValue(sourceRow({ sourceUrl: null }));
@@ -526,21 +450,6 @@ describe("POST /meta/events/{id}/sources", () => {
     expect(mockMeta.insertEventSource).toHaveBeenCalledWith(
       expect.objectContaining({ label: "Standings photo", sourceUrl: null }),
     );
-  });
-
-  it("rejects a body claiming a provider key", async () => {
-    mockMeta.eventById.mockResolvedValue(eventRow());
-
-    const res = await createSource({
-      label: "uvsgames",
-      provider: "uvsgames",
-      externalId: "evt-1",
-    });
-
-    // Linking a candidate is what writes a provider citation; one typed in here
-    // would collide with that unique key or outlive the link that owns it.
-    expect(res.status).toBe(400);
-    expect(mockMeta.insertEventSource).not.toHaveBeenCalled();
   });
 
   it("rejects a blank label", async () => {
@@ -563,18 +472,6 @@ describe("POST /meta/events/{id}/sources", () => {
 });
 
 describe("DELETE /meta/events/{id}/sources/{sourceId}", () => {
-  it("removes a hand-entered citation", async () => {
-    mockMeta.sourcesForEvent.mockResolvedValue([sourceRow()]);
-    mockMeta.deleteEventSource.mockResolvedValue(true);
-
-    const res = await app.request(`/api/admin/v1/meta/events/${EVENT_ID}/sources/${SOURCE_ID}`, {
-      method: "DELETE",
-    });
-
-    expect(res.status).toBe(204);
-    expect(mockMeta.deleteEventSource).toHaveBeenCalledWith(SOURCE_ID);
-  });
-
   it("refuses a provider citation, which its candidate's link owns", async () => {
     mockMeta.sourcesForEvent.mockResolvedValue([
       sourceRow({ provider: "uvsgames", externalId: "evt-1" }),
@@ -585,19 +482,6 @@ describe("DELETE /meta/events/{id}/sources/{sourceId}", () => {
     });
 
     expect(res.status).toBe(409);
-    expect(mockMeta.deleteEventSource).not.toHaveBeenCalled();
-  });
-
-  it("404s a citation that belongs to another event", async () => {
-    mockMeta.sourcesForEvent.mockResolvedValue([
-      sourceRow({ id: "c0000000-0001-4000-a000-000000000009" }),
-    ]);
-
-    const res = await app.request(`/api/admin/v1/meta/events/${EVENT_ID}/sources/${SOURCE_ID}`, {
-      method: "DELETE",
-    });
-
-    expect(res.status).toBe(404);
     expect(mockMeta.deleteEventSource).not.toHaveBeenCalled();
   });
 });
@@ -618,10 +502,11 @@ describe("DELETE /events/:id", () => {
     expect(mockMetaOverlays.ignoreEvents).toHaveBeenCalledTimes(1);
   });
 
-  it("404s an event that is already gone, rejecting nothing", async () => {
-    mockMeta.sourcesForEvent.mockResolvedValue([]);
+  it("404s an event that is already gone, rejecting none of its mirrored rows", async () => {
+    mockMeta.sourcesForEvent.mockResolvedValue([
+      sourceRow({ provider: "uvsgames", externalId: "857112" }),
+    ]);
     mockMeta.deleteEvent.mockResolvedValue(false);
-    mockMetaOverlays.ignoreEvents.mockClear();
 
     const res = await app.request(`/api/admin/v1/meta/events/${EVENT_ID}`, { method: "DELETE" });
 

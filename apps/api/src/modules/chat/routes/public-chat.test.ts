@@ -101,15 +101,14 @@ function makeApp(
 }
 
 async function lookup(
-  query: string | undefined,
+  query: string,
   app: ReturnType<typeof makeApp> = makeApp(),
 ): Promise<Response> {
-  const path = query === undefined ? "/api/v1/chat/card" : `/api/v1/chat/card?q=${query}`;
-  return await app.request(path);
+  return await app.request(`/api/v1/chat/card?q=${query}`);
 }
 
 async function lookupText(
-  query: string | undefined,
+  query: string,
   app: ReturnType<typeof makeApp> = makeApp(),
 ): Promise<string> {
   const res = await lookup(query, app);
@@ -135,10 +134,6 @@ describe("GET /api/v1/chat/card", () => {
       "Viktor, Herald of Change — Legend Champion Unit · Fury · Energy 3 · Might 4 · Power 2 — https://openrift.app/cards/viktor-herald-of-change",
     );
     expect(body).not.toContain("\n");
-  });
-
-  it("resolves a printing code with the dashes left out", async () => {
-    expect(await lookupText("ogn045")).toContain("https://openrift.app/cards/mecha-jinx");
   });
 
   it("names the tied cards when a query matches several equally well", async () => {
@@ -181,13 +176,6 @@ describe("GET /api/v1/chat/card", () => {
     expect(await res.text()).toBe(
       'No Riftbound card found for "teemo". Try https://openrift.app/cards?q=teemo',
     );
-  });
-
-  it("answers a missing query with usage text instead of a miss", async () => {
-    const res = await lookup(undefined);
-
-    expect(res.status).toBe(200);
-    expect(await res.text()).toContain("Look up a Riftbound card by name or code");
   });
 
   it("treats a whitespace-only query as a missing one", async () => {

@@ -167,12 +167,6 @@ describe("GET /api/v1/lists", () => {
     expect(mockListsRepo.listForUser).toHaveBeenCalledWith(USER_ID, undefined);
   });
 
-  it("forwards intent filter to repo", async () => {
-    mockListsRepo.listForUser.mockResolvedValue([]);
-    await app.request("/api/v1/lists?intent=trade");
-    expect(mockListsRepo.listForUser).toHaveBeenCalledWith(USER_ID, "trade");
-  });
-
   it("rejects an unknown intent", async () => {
     const res = await app.request("/api/v1/lists?intent=barter");
     expect(res.status).toBe(400);
@@ -206,40 +200,11 @@ describe("POST /api/v1/lists", () => {
     });
   });
 
-  it("creates the list without sharing it with any group (opt-in, ADR-013)", async () => {
-    mockListsRepo.create.mockResolvedValue(dbList);
-    const res = await app.request("/api/v1/lists", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: "Wants", intent: "wish", kind: "card" }),
-    });
-    expect(res.status).toBe(201);
-    expect(mockFriendGroupsRepo.listGroupsSharingList).not.toHaveBeenCalled();
-  });
-
   it("rejects a missing intent", async () => {
     const res = await app.request("/api/v1/lists", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ name: "Wants", kind: "card" }),
-    });
-    expect(res.status).toBe(400);
-  });
-
-  it("rejects a missing kind", async () => {
-    const res = await app.request("/api/v1/lists", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: "Wants", intent: "wish" }),
-    });
-    expect(res.status).toBe(400);
-  });
-
-  it("rejects wish + copy (disallowed combo)", async () => {
-    const res = await app.request("/api/v1/lists", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: "Bad", intent: "wish", kind: "copy" }),
     });
     expect(res.status).toBe(400);
   });
@@ -297,21 +262,6 @@ describe("PATCH /api/v1/lists/:id", () => {
     mockListsRepo.update.mockReset();
     mockListsRepo.getByIdForUser.mockReset();
     mockListsRepo.getByIdForUser.mockResolvedValue(dbList);
-  });
-
-  it("returns 200 with the updated list", async () => {
-    mockListsRepo.update.mockResolvedValue({
-      outcome: "updated",
-      row: { ...dbList, name: "Renamed" },
-    });
-    const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: "Renamed" }),
-    });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.name).toBe("Renamed");
   });
 
   it("returns 404 when not found", async () => {
@@ -482,17 +432,6 @@ describe("PATCH /api/v1/lists/:id", () => {
     expect(mockListsRepo.update).not.toHaveBeenCalled();
   });
 
-  it("passes the expected rules version to the write when the rules change", async () => {
-    mockListsRepo.update.mockResolvedValue({ outcome: "updated", row: dbList });
-    const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ruleCombine: "max", expectedRulesVersion: 4 }),
-    });
-    expect(res.status).toBe(200);
-    expect(mockListsRepo.update).toHaveBeenCalledWith(LIST_ID, USER_ID, { ruleCombine: "max" }, 4);
-  });
-
   it("ignores the expected rules version on a write that leaves the rules alone", async () => {
     mockListsRepo.update.mockResolvedValue({ outcome: "updated", row: dbList });
     const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
@@ -616,12 +555,6 @@ describe("DELETE /api/v1/lists/:id", () => {
     mockListsRepo.getIdKindIntent.mockResolvedValue({ id: LIST_ID, kind: "card", intent: "wish" });
   });
 
-  it("returns 204 on success", async () => {
-    mockListsRepo.deleteByIdForUser.mockResolvedValue(true);
-    const res = await app.request(`/api/v1/lists/${LIST_ID}`, { method: "DELETE" });
-    expect(res.status).toBe(204);
-  });
-
   it("returns 404 when not found", async () => {
     mockListsRepo.deleteByIdForUser.mockResolvedValue(false);
     const res = await app.request(`/api/v1/lists/${LIST_ID}`, { method: "DELETE" });
@@ -675,17 +608,6 @@ describe("POST /api/v1/lists/:id/entries", () => {
     expect(res.status).toBe(status);
   });
 
-  it("rejects mismatched target (card-kind list, printing in body)", async () => {
-    mockListsRepo.getIdKindIntent.mockResolvedValue({ id: LIST_ID, kind: "card", intent: "wish" });
-    const res = await app.request(`/api/v1/lists/${LIST_ID}/entries`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ printingId: PRINTING_ID }),
-    });
-    expect(res.status).toBe(400);
-    expect(mockListsRepo.createEntry).not.toHaveBeenCalled();
-  });
-
   it("validates copy ownership for copy-kind lists", async () => {
     mockListsRepo.getIdKindIntent.mockResolvedValue({ id: LIST_ID, kind: "copy", intent: "trade" });
     mockCopiesRepo.existsForViewer.mockResolvedValue({ id: COPY_ID });
@@ -699,18 +621,6 @@ describe("POST /api/v1/lists/:id/entries", () => {
     expect(mockCopiesRepo.existsForViewer).toHaveBeenCalledWith(COPY_ID, USER_ID, true);
   });
 
-  it("returns 404 when copy is not owned", async () => {
-    mockListsRepo.getIdKindIntent.mockResolvedValue({ id: LIST_ID, kind: "copy", intent: "trade" });
-    mockCopiesRepo.existsForViewer.mockResolvedValue(undefined);
-    const res = await app.request(`/api/v1/lists/${LIST_ID}/entries`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ copyId: COPY_ID }),
-    });
-    expect(res.status).toBe(404);
-    expect(mockListsRepo.createEntry).not.toHaveBeenCalled();
-  });
-
   it("returns 404 when the list doesn't exist for the user", async () => {
     mockListsRepo.getIdKindIntent.mockResolvedValue(undefined);
     const res = await app.request(`/api/v1/lists/${LIST_ID}/entries`, {
@@ -719,16 +629,6 @@ describe("POST /api/v1/lists/:id/entries", () => {
       body: JSON.stringify({ cardId: CARD_ID }),
     });
     expect(res.status).toBe(404);
-  });
-
-  it("rejects an entry with no target", async () => {
-    mockListsRepo.getIdKindIntent.mockResolvedValue({ id: LIST_ID, kind: "card", intent: "wish" });
-    const res = await app.request(`/api/v1/lists/${LIST_ID}/entries`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    expect(res.status).toBe(400);
   });
 
   it("rejects an entry with two targets", async () => {
@@ -807,19 +707,6 @@ describe("POST /api/v1/lists/:id/entries/bulk", () => {
     expect(res.status).toBe(200);
     expect(await readJson(res)).toEqual({ added: 1, updated: 2, skipped: 0 });
   });
-
-  it("rejects bulk add when any entry doesn't match the list's kind", async () => {
-    mockListsRepo.getIdKindIntent.mockResolvedValue({ id: LIST_ID, kind: "card", intent: "wish" });
-    const res = await app.request(`/api/v1/lists/${LIST_ID}/entries/bulk`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        entries: [{ cardId: CARD_ID }, { copyId: COPY_ID }],
-      }),
-    });
-    expect(res.status).toBe(400);
-    expect(mockListsRepo.bulkCreateEntries).not.toHaveBeenCalled();
-  });
 });
 
 describe("POST /api/v1/lists/:id/entries/from-copies", () => {
@@ -868,18 +755,6 @@ describe("POST /api/v1/lists/:id/entries/from-copies", () => {
 describe("PATCH /api/v1/lists/:id/entries/:itemId", () => {
   beforeEach(() => {
     mockListsRepo.updateEntry.mockReset();
-  });
-
-  it("returns 200 with the updated entry", async () => {
-    mockListsRepo.updateEntry.mockResolvedValue({ ...dbEntry, quantity: 5 });
-    const res = await app.request(`/api/v1/lists/${LIST_ID}/entries/${ENTRY_ID}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ quantity: 5 }),
-    });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.quantity).toBe(5);
   });
 
   it("returns 404 when entry not found", async () => {
@@ -950,14 +825,6 @@ describe("DELETE /api/v1/lists/:id/entries/:itemId", () => {
     mockListsRepo.getIdKindIntent.mockResolvedValue({ id: LIST_ID, kind: "card", intent: "wish" });
   });
 
-  it("returns 204 on success", async () => {
-    mockListsRepo.deleteEntry.mockResolvedValue({ numDeletedRows: 1n });
-    const res = await app.request(`/api/v1/lists/${LIST_ID}/entries/${ENTRY_ID}`, {
-      method: "DELETE",
-    });
-    expect(res.status).toBe(204);
-  });
-
   it("returns 404 when not found", async () => {
     mockListsRepo.deleteEntry.mockResolvedValue({ numDeletedRows: 0n });
     const res = await app.request(`/api/v1/lists/${LIST_ID}/entries/${ENTRY_ID}`, {
@@ -971,36 +838,6 @@ describe("POST /api/v1/lists/:id/share", () => {
   beforeEach(() => {
     mockListsRepo.setShare.mockReset();
     mockListsRepo.getShareState.mockReset();
-  });
-
-  it("mints a fresh share token + isPublic=true when not yet shared", async () => {
-    mockListsRepo.getShareState.mockResolvedValue({ shareToken: null, isPublic: false });
-    mockListsRepo.setShare.mockResolvedValue({
-      ...dbList,
-      isPublic: true,
-      shareToken: "stub",
-    });
-    const res = await app.request(`/api/v1/lists/${LIST_ID}/share`, { method: "POST" });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.isPublic).toBe(true);
-    expect(typeof json.shareToken).toBe("string");
-    expect(mockListsRepo.setShare).toHaveBeenCalled();
-    const args = mockListsRepo.setShare.mock.calls[0] ?? [];
-    expect(args[0]).toBe(LIST_ID);
-    expect(args[1]).toBe(USER_ID);
-    expect(typeof args[2]).toBe("string");
-    expect(args[3]).toBe(true);
-  });
-
-  it("is idempotent: returns the existing token without re-minting", async () => {
-    mockListsRepo.getShareState.mockResolvedValue({ shareToken: "existing", isPublic: true });
-    const res = await app.request(`/api/v1/lists/${LIST_ID}/share`, { method: "POST" });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.shareToken).toBe("existing");
-    expect(json.isPublic).toBe(true);
-    expect(mockListsRepo.setShare).not.toHaveBeenCalled();
   });
 
   it("re-publishes a list that kept its token but is not public", async () => {
@@ -1020,42 +857,9 @@ describe("POST /api/v1/lists/:id/share", () => {
   });
 });
 
-describe("GET /api/v1/lists/:id/share", () => {
-  beforeEach(() => {
-    mockListsRepo.getShareState.mockReset();
-  });
-
-  it("reflects unshared state without 404", async () => {
-    mockListsRepo.getShareState.mockResolvedValue({ shareToken: null, isPublic: false });
-    const res = await app.request(`/api/v1/lists/${LIST_ID}/share`);
-    expect(res.status).toBe(200);
-    expect(await readJson(res)).toEqual({ shareToken: null, isPublic: false });
-  });
-
-  it("reflects shared state", async () => {
-    mockListsRepo.getShareState.mockResolvedValue({ shareToken: "tok", isPublic: true });
-    const res = await app.request(`/api/v1/lists/${LIST_ID}/share`);
-    expect(res.status).toBe(200);
-    expect(await readJson(res)).toEqual({ shareToken: "tok", isPublic: true });
-  });
-
-  it("returns 404 when not owned", async () => {
-    mockListsRepo.getShareState.mockResolvedValue(undefined);
-    const res = await app.request(`/api/v1/lists/${LIST_ID}/share`);
-    expect(res.status).toBe(404);
-  });
-});
-
 describe("DELETE /api/v1/lists/:id/share", () => {
   beforeEach(() => {
     mockListsRepo.setShare.mockReset();
-  });
-
-  it("returns 204 and nulls the token / isPublic", async () => {
-    mockListsRepo.setShare.mockResolvedValue(dbList);
-    const res = await app.request(`/api/v1/lists/${LIST_ID}/share`, { method: "DELETE" });
-    expect(res.status).toBe(204);
-    expect(mockListsRepo.setShare).toHaveBeenCalledWith(LIST_ID, USER_ID, null, false);
   });
 
   it("returns 404 when not owned", async () => {

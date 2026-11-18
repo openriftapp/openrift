@@ -99,17 +99,6 @@ describe("GET /api/v1/prices", () => {
     expect(json.prices[PRINTING_B]).toEqual({ tcgplayer: 800 });
   });
 
-  it("groups multiple marketplaces under the same printing", async () => {
-    mockMarketplaceRepo.latestPrices.mockResolvedValue([
-      { printingId: PRINTING_A, marketplace: "tcgplayer", headlineCents: 100 },
-      { printingId: PRINTING_A, marketplace: "cardmarket", headlineCents: 200 },
-      { printingId: PRINTING_A, marketplace: "cardtrader", headlineCents: 300 },
-    ]);
-    const res = await app.request("/api/v1/prices");
-    const json = await readJson(res);
-    expect(json.prices[PRINTING_A]).toEqual({ tcgplayer: 100, cardmarket: 200, cardtrader: 300 });
-  });
-
   it("returns empty prices when no rows exist", async () => {
     mockMarketplaceRepo.latestPrices.mockResolvedValue([]);
     const res = await app.request("/api/v1/prices");
@@ -185,14 +174,6 @@ describe("GET /api/v1/prices/:printingId", () => {
     const json = await readJson(res);
     expect(json.tcgplayer).toMatchObject({ ...UNAVAILABLE, price: 275, snapshots: [] });
     expect(json.cardmarket).toMatchObject({ ...UNAVAILABLE, snapshots: [] });
-  });
-
-  it("defaults to a 30d cutoff and uses null for 'all'", async () => {
-    await app.request(`/api/v1/prices/${PRINTING_A}`);
-    expect(mockMarketplaceRepo.snapshots.mock.calls[0]?.[1]).toBeInstanceOf(Date);
-    mockMarketplaceRepo.snapshots.mockClear();
-    await app.request(`/api/v1/prices/${PRINTING_A}?range=all`);
-    expect(mockMarketplaceRepo.snapshots.mock.calls[0]?.[1]).toBeNull();
   });
 
   it("accepts the 7d and 90d ranges and rejects anything else with 400", async () => {

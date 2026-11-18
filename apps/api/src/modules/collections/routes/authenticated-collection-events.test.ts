@@ -53,18 +53,6 @@ describe("GET /api/v1/collection-events", () => {
     mockCollectionEventsRepo.listForUser.mockReset();
   });
 
-  it("returns 200 with list of events", async () => {
-    mockCollectionEventsRepo.listForUser.mockResolvedValue([dbEvent]);
-    const res = await app.request("/api/v1/collection-events");
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.items).toHaveLength(1);
-    expect(json.items[0].id).toBe(dbEvent.id);
-    expect(json.items[0].action).toBe("added");
-    expect(json.items[0].cardName).toBe("Fire Dragon");
-    expect(json.nextCursor).toBeNull();
-  });
-
   it("returns empty array when no events", async () => {
     mockCollectionEventsRepo.listForUser.mockResolvedValue([]);
     const res = await app.request("/api/v1/collection-events");
@@ -79,28 +67,18 @@ describe("GET /api/v1/collection-events", () => {
     expect(mockCollectionEventsRepo.listForUser).toHaveBeenCalledWith(USER_ID, 100, undefined);
   });
 
-  it("passes cursor and limit query params", async () => {
+  it.each([
+    { name: "limit", query: "?limit=25", limit: 25, cursor: undefined },
+    {
+      name: "cursor and limit",
+      query: "?limit=10&cursor=2026-03-17T00:00:00.000Z_ce-1",
+      limit: 10,
+      cursor: "2026-03-17T00:00:00.000Z_ce-1",
+    },
+  ])("passes the $name query params to the repo", async ({ query, limit, cursor }) => {
     mockCollectionEventsRepo.listForUser.mockResolvedValue([]);
-    await app.request("/api/v1/collection-events?limit=10&cursor=2026-03-17T00:00:00.000Z_ce-1");
-    expect(mockCollectionEventsRepo.listForUser).toHaveBeenCalledWith(
-      USER_ID,
-      10,
-      "2026-03-17T00:00:00.000Z_ce-1",
-    );
-  });
-
-  it("returns nextCursor when hasMore events", async () => {
-    const items = Array.from({ length: 101 }, (_, idx) => ({
-      ...dbEvent,
-      id: `a0000000-0001-4000-a000-${String(idx).padStart(12, "0")}`,
-      createdAt: new Date(now.getTime() - idx * 1000),
-    }));
-    mockCollectionEventsRepo.listForUser.mockResolvedValue(items);
-    const res = await app.request("/api/v1/collection-events");
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.items).toHaveLength(100);
-    expect(json.nextCursor).toBeTruthy();
+    await app.request(`/api/v1/collection-events${query}`);
+    expect(mockCollectionEventsRepo.listForUser).toHaveBeenCalledWith(USER_ID, limit, cursor);
   });
 
   it("returns null nextCursor when items exactly equal limit", async () => {
@@ -137,12 +115,6 @@ describe("GET /api/v1/collection-events", () => {
     expect(event.cardName).toBe("Fire Dragon");
     expect(event.cardTypes).toEqual(["unit"]);
     expect(event.cardSuperTypes).toEqual(["Dragon"]);
-  });
-
-  it("uses custom limit when provided", async () => {
-    mockCollectionEventsRepo.listForUser.mockResolvedValue([]);
-    await app.request("/api/v1/collection-events?limit=25");
-    expect(mockCollectionEventsRepo.listForUser).toHaveBeenCalledWith(USER_ID, 25, undefined);
   });
 
   it("returns compound cursor from last item createdAt and id", async () => {

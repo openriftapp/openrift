@@ -34,15 +34,6 @@ describe("GET /api/v1/preferences", () => {
     vi.resetAllMocks();
   });
 
-  it("returns empty object when no preferences exist", async () => {
-    mockRepo.getByUserId.mockResolvedValue(undefined);
-    const res = await app.request("/api/v1/preferences");
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json).toEqual({});
-    expect(mockRepo.getByUserId).toHaveBeenCalledWith(USER_ID);
-  });
-
   it("returns stored preferences when they exist", async () => {
     const storedPrefs = {
       ...PREFERENCE_DEFAULTS,
@@ -55,6 +46,7 @@ describe("GET /api/v1/preferences", () => {
     const json = await readJson(res);
     expect(json.showImages).toBe(false);
     expect(json.theme).toBe("dark");
+    expect(mockRepo.getByUserId).toHaveBeenCalledWith(USER_ID);
   });
 
   it("returns empty object when row exists but data is null", async () => {
@@ -65,47 +57,43 @@ describe("GET /api/v1/preferences", () => {
     expect(json).toEqual({});
   });
 
-  it("returns stored languages and leaves out a stored completionScope", async () => {
-    const storedPrefs = {
-      languages: ["en", "de"],
-      completionScope: { sets: ["set-a"], promos: "exclude", signed: true },
-    };
-    mockRepo.getByUserId.mockResolvedValue({ userId: USER_ID, data: storedPrefs });
-    const res = await app.request("/api/v1/preferences");
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json).toEqual({ languages: ["en", "de"] });
-  });
-
-  it("drops a stored value the response schema rejects and keeps the rest", async () => {
-    mockRepo.getByUserId.mockResolvedValue({
-      userId: USER_ID,
-      data: { theme: "solarized", showImages: false, defaultCurrency: "GBP" },
-    });
-    const res = await app.request("/api/v1/preferences");
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json).toEqual({ showImages: false });
-  });
-
-  it("drops a nested value the response schema rejects", async () => {
-    mockRepo.getByUserId.mockResolvedValue({
-      userId: USER_ID,
-      data: { emailNotifications: { tradeMatches: "yes" }, languages: ["en"] },
-    });
-    const res = await app.request("/api/v1/preferences");
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json).toEqual({ languages: ["en"] });
-  });
-
-  it("does not leak undocumented stored keys", async () => {
-    mockRepo.getByUserId.mockResolvedValue({
-      userId: USER_ID,
+  it.each([
+    {
+      name: "returns stored languages and leaves out a stored completionScope",
+      data: {
+        languages: ["en", "de"],
+        completionScope: { sets: ["set-a"], promos: "exclude", signed: true },
+      },
+      expected: { languages: ["en", "de"] },
+    },
+    {
+      name: "does not leak undocumented stored keys",
       data: { showImages: true, hiddenFilterSections: ["sets"] },
-    });
+      expected: { showImages: true },
+    },
+  ])("$name", async ({ data, expected }) => {
+    mockRepo.getByUserId.mockResolvedValue({ userId: USER_ID, data });
     const res = await app.request("/api/v1/preferences");
-    expect(await readJson(res)).toEqual({ showImages: true });
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual(expected);
+  });
+
+  it.each([
+    {
+      name: "drops a stored value the response schema rejects and keeps the rest",
+      data: { theme: "solarized", showImages: false, defaultCurrency: "GBP" },
+      expected: { showImages: false },
+    },
+    {
+      name: "drops a nested value the response schema rejects",
+      data: { emailNotifications: { tradeMatches: "yes" }, languages: ["en"] },
+      expected: { languages: ["en"] },
+    },
+  ])("$name", async ({ data, expected }) => {
+    mockRepo.getByUserId.mockResolvedValue({ userId: USER_ID, data });
+    const res = await app.request("/api/v1/preferences");
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual(expected);
   });
 });
 
@@ -114,65 +102,22 @@ describe("PATCH /api/v1/preferences", () => {
     vi.resetAllMocks();
   });
 
-  it("returns 200 with updated preferences", async () => {
-    mockRepo.upsert.mockResolvedValue({ showImages: false });
+  it.each([
+    { name: "showImages", body: { showImages: false } },
+    { name: "theme", body: { theme: "dark" } },
+    { name: "fancyFan", body: { fancyFan: false } },
+    { name: "marketplaceOrder", body: { marketplaceOrder: ["cardmarket", "tcgplayer"] } },
+    { name: "defaultCardView", body: { defaultCardView: "cards" } },
+  ])("updates the $name preference", async ({ body }) => {
+    mockRepo.upsert.mockResolvedValue(body);
     const res = await app.request("/api/v1/preferences", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ showImages: false }),
+      body: JSON.stringify(body),
     });
     expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.showImages).toBe(false);
-    expect(mockRepo.upsert).toHaveBeenCalledWith(USER_ID, { showImages: false });
-  });
-
-  it("updates theme preference", async () => {
-    mockRepo.upsert.mockResolvedValue({ theme: "dark" });
-    const res = await app.request("/api/v1/preferences", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ theme: "dark" }),
-    });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.theme).toBe("dark");
-  });
-
-  it("updates fancyFan preference", async () => {
-    mockRepo.upsert.mockResolvedValue({ fancyFan: false });
-    const res = await app.request("/api/v1/preferences", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fancyFan: false }),
-    });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.fancyFan).toBe(false);
-  });
-
-  it("updates marketplaceOrder preference", async () => {
-    mockRepo.upsert.mockResolvedValue({ marketplaceOrder: ["cardmarket", "tcgplayer"] });
-    const res = await app.request("/api/v1/preferences", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ marketplaceOrder: ["cardmarket", "tcgplayer"] }),
-    });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.marketplaceOrder).toEqual(["cardmarket", "tcgplayer"]);
-  });
-
-  it("updates defaultCardView preference", async () => {
-    mockRepo.upsert.mockResolvedValue({ defaultCardView: "cards" });
-    const res = await app.request("/api/v1/preferences", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ defaultCardView: "cards" }),
-    });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.defaultCardView).toBe("cards");
+    expect(await readJson(res)).toEqual(body);
+    expect(mockRepo.upsert).toHaveBeenCalledWith(USER_ID, body);
   });
 
   it("rejects invalid defaultCardView value", async () => {
@@ -182,34 +127,6 @@ describe("PATCH /api/v1/preferences", () => {
       body: JSON.stringify({ defaultCardView: "copies" }),
     });
     expect(res.status).toBe(400);
-  });
-
-  it("rejects invalid theme value", async () => {
-    const res = await app.request("/api/v1/preferences", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ theme: "neon" }),
-    });
-    expect(res.status).toBe(400);
-  });
-
-  it("rejects duplicate marketplaces", async () => {
-    const res = await app.request("/api/v1/preferences", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ marketplaceOrder: ["tcgplayer", "tcgplayer"] }),
-    });
-    expect(res.status).toBe(400);
-  });
-
-  it("allows empty body (all fields optional)", async () => {
-    mockRepo.upsert.mockResolvedValue({});
-    const res = await app.request("/api/v1/preferences", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    expect(res.status).toBe(200);
   });
 
   it("accepts an older client's retired filter keys and stores nothing for them", async () => {

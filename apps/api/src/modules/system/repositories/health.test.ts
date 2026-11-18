@@ -8,7 +8,7 @@ import { healthRepo } from "./health.js";
 const warn = vi.hoisted(() => vi.fn());
 vi.mock("@openrift/shared/logger", () => ({ createLogger: () => ({ warn }) }));
 
-function createHealthMockDb(results: { rows: unknown[] }[]) {
+function createHealthMockDb(results: ({ rows: unknown[] } | Error | "hang")[]) {
   let callIndex = 0;
   const mockDriver = {
     init: () => Promise.resolve(),
@@ -17,6 +17,12 @@ function createHealthMockDb(results: { rows: unknown[] }[]) {
       Promise.resolve({
         executeQuery: () => {
           const result = results[callIndex++];
+          if (result === "hang") {
+            return new Promise(() => {});
+          }
+          if (result instanceof Error) {
+            return Promise.reject(result);
+          }
           return Promise.resolve(result ?? { rows: [] });
         },
       }),
@@ -45,32 +51,13 @@ function createHealthMockDb(results: { rows: unknown[] }[]) {
 }
 
 describe("healthRepo", () => {
-  it("returns 'db_unreachable' when DB connection throws", async () => {
-    const mockDb = {
-      executeQuery: vi.fn().mockRejectedValue(new Error("connection refused")),
-    } as any;
-    const repo = healthRepo(mockDb);
-    const status = await repo.healthCheck(5000);
-    expect(status).toBe("db_unreachable");
-  });
-
   it("logs the failure behind 'db_unreachable'", async () => {
     warn.mockClear();
-    const mockDb = {
-      executeQuery: vi.fn().mockRejectedValue(new Error("password authentication failed")),
-    } as any;
+    const failure = new Error("password authentication failed");
+    const mockDb = createHealthMockDb([failure]);
 
     expect(await healthRepo(mockDb).healthCheck(5000)).toBe("db_unreachable");
-    expect(warn).toHaveBeenCalledWith({ err: expect.any(Error) }, "database health check failed");
-  });
-
-  it("returns 'db_unreachable' on timeout", async () => {
-    const mockDb = {
-      executeQuery: vi.fn().mockReturnValue(new Promise(() => {})),
-    } as any;
-    const repo = healthRepo(mockDb);
-    const status = await repo.healthCheck(1);
-    expect(status).toBe("db_unreachable");
+    expect(warn).toHaveBeenCalledWith({ err: failure }, "database health check failed");
   });
 
   it("returns 'ok' when DB is connected, migrated, and has data", async () => {
@@ -106,39 +93,7 @@ describe("healthRepo", () => {
   });
 
   it("returns 'db_unreachable' when check hangs past the timeout", async () => {
-    let callIndex = 0;
-    const mockDriver = {
-      init: () => Promise.resolve(),
-      destroy: () => Promise.resolve(),
-      acquireConnection: () =>
-        Promise.resolve({
-          executeQuery: () => {
-            callIndex++;
-            return new Promise(() => {});
-          },
-        }),
-      beginTransaction: () => Promise.resolve(),
-      commitTransaction: () => Promise.resolve(),
-      rollbackTransaction: () => Promise.resolve(),
-      releaseConnection: () => Promise.resolve(),
-    };
-
-    const mockDb = new Kysely<Database>({
-      dialect: {
-        createAdapter: () => ({ supportsTransactionalDdl: true, supportsReturning: true }),
-        createDriver: () => mockDriver,
-        createIntrospector: () => ({}),
-        createQueryCompiler: () => ({
-          compileQuery: (node: any) => ({
-            sql: "",
-            parameters: [],
-            query: node,
-          }),
-        }),
-      } as unknown as Dialect,
-    });
-
-    const repo = healthRepo(mockDb);
+    const repo = healthRepo(createHealthMockDb(["hang"]));
     const status = await repo.healthCheck(1);
     expect(status).toBe("db_unreachable");
   });

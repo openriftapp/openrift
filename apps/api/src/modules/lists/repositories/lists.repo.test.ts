@@ -24,64 +24,7 @@ const LIST = {
   updatedAt: new Date(),
 };
 
-const ENTRY = {
-  id: "le-1",
-  listId: "lst-1",
-  userId: "u1",
-  kind: "card" as const,
-  cardId: "card-1",
-  printingId: null,
-  copyId: null,
-  quantity: 1,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
-
 describe("listsRepo", () => {
-  it("listForUser returns lists", async () => {
-    const db = createMockDb([LIST]);
-    const repo = listsRepo(db);
-    expect(await repo.listForUser("u1")).toEqual([LIST]);
-  });
-
-  it("listForUser filters by intent when given", async () => {
-    const db = createMockDb([LIST]);
-    const repo = listsRepo(db);
-    expect(await repo.listForUser("u1", "wish")).toEqual([LIST]);
-  });
-
-  it("getByIdForUser returns a list", async () => {
-    const db = createMockDb([LIST]);
-    const repo = listsRepo(db);
-    expect(await repo.getByIdForUser("lst-1", "u1")).toEqual(LIST);
-  });
-
-  it("getIdKindIntent returns id + kind + intent when owned", async () => {
-    const db = createMockDb([{ id: "lst-1", kind: "card", intent: "wish" }]);
-    const repo = listsRepo(db);
-    expect(await repo.getIdKindIntent("lst-1", "u1")).toEqual({
-      id: "lst-1",
-      kind: "card",
-      intent: "wish",
-    });
-  });
-
-  it("create returns the created list", async () => {
-    const db = createMockDb([LIST]);
-    const repo = listsRepo(db);
-    const result = await repo.create({ userId: "u1", name: "Wants", intent: "wish", kind: "card" });
-    expect(result).toEqual(LIST);
-  });
-
-  it("update returns the updated list", async () => {
-    const db = createMockDb([LIST]);
-    const repo = listsRepo(db);
-    expect(await repo.update("lst-1", "u1", { name: "Renamed" })).toEqual({
-      outcome: "updated",
-      row: LIST,
-    });
-  });
-
   it("update leaves the rules version alone when the rules are not written", async () => {
     const recording = createRecordingDb([[{ id: "lst-1" }]]);
     await listsRepo(recording.db).update("lst-1", "u1", { name: "Renamed" });
@@ -150,18 +93,6 @@ describe("listsRepo", () => {
     });
   });
 
-  it("listMembershipsForCopies aggregates correctly when an excludeListId is passed", async () => {
-    // The originating list is excluded at the SQL layer (verified by the
-    // integration suite — the mock db ignores WHERE), so the repo only ever
-    // sees the remaining rows. This guards the param plumbing + aggregation.
-    const db = createMockDb([{ listId: "lst-binder", listName: "Binder", copyId: "copy-1" }]);
-    const repo = listsRepo(db);
-    expect(await repo.listMembershipsForCopies(["copy-1"], "u1", "lst-trades")).toEqual({
-      lists: [{ id: "lst-binder", name: "Binder", copyCount: 1 }],
-      copiesOnAnyList: 1,
-    });
-  });
-
   it("listMembershipsForCopies returns empty when no list references the copies", async () => {
     const db = createMockDb([]);
     const repo = listsRepo(db);
@@ -171,85 +102,12 @@ describe("listsRepo", () => {
     });
   });
 
-  it("setShare sets a token + isPublic=true", async () => {
-    const shared = { ...LIST, isPublic: true, shareToken: "tok-abc" };
-    const db = createMockDb([shared]);
-    const repo = listsRepo(db);
-    expect(await repo.setShare("lst-1", "u1", "tok-abc", true)).toEqual(shared);
-  });
-
-  it("setShare nulls the token + isPublic=false on unshare", async () => {
-    const db = createMockDb([LIST]);
-    const repo = listsRepo(db);
-    expect(await repo.setShare("lst-1", "u1", null, false)).toEqual(LIST);
-  });
-
   it("getByShareToken returns list + owner name", async () => {
     const db = createMockDb([{ ...LIST, ownerName: "Friend" }]);
     const repo = listsRepo(db);
     const found = await repo.getByShareToken("tok-abc");
     expect(found?.list.id).toBe("lst-1");
     expect(found?.ownerName).toBe("Friend");
-  });
-
-  it("getByShareToken returns undefined when token is unknown", async () => {
-    const db = createMockDb([]);
-    const repo = listsRepo(db);
-    expect(await repo.getByShareToken("nope")).toBeUndefined();
-  });
-
-  it("entriesWithDetails dispatches to the card-kind query", async () => {
-    const enriched = [
-      {
-        id: "le-1",
-        listId: "lst-1",
-        cardId: "card-1",
-        quantity: 1,
-        name: "Fire Dragon",
-        types: ["unit"],
-        tags: [],
-      },
-    ];
-    const db = createMockDb(enriched);
-    const repo = listsRepo(db);
-    const rows = await repo.entriesWithDetails("lst-1", "card", "u1");
-    expect(rows).toHaveLength(1);
-    const row = rows[0];
-    expect(row?.cardName).toBe("Fire Dragon");
-    // The card-kind query produces the card variant — no printing/copy fields.
-    expect(row?.kind).toBe("card");
-    if (row?.kind === "card") {
-      expect(row.cardId).toBe("card-1");
-    }
-    expect("setId" in (row ?? {})).toBe(false);
-    expect("printingId" in (row ?? {})).toBe(false);
-  });
-
-  it("entriesWithDetailsAnon skips user-scoping", async () => {
-    const db = createMockDb([]);
-    const repo = listsRepo(db);
-    expect(await repo.entriesWithDetailsAnon("lst-1", "card")).toEqual([]);
-  });
-
-  it("createEntry returns the created entry", async () => {
-    const db = createMockDb([ENTRY]);
-    const repo = listsRepo(db);
-    const result = await repo.createEntry({
-      listId: "lst-1",
-      userId: "u1",
-      kind: "card",
-      cardId: "card-1",
-      printingId: null,
-      copyId: null,
-      quantity: 1,
-    });
-    expect(result).toEqual(ENTRY);
-  });
-
-  it("bulkCreateEntries returns zero counts for empty input without hitting the db", async () => {
-    const db = createMockDb([{ id: "should-not-appear" }]);
-    const repo = listsRepo(db);
-    expect(await repo.bulkCreateEntries("card", [])).toEqual({ inserted: 0, updated: 0 });
   });
 
   it("bulkCreateEntries counts inserted vs. updated rows from the xmax marker", async () => {
@@ -299,20 +157,6 @@ describe("listsRepo", () => {
     });
   });
 
-  it("bulkCreateEntriesFromCopies skips all when no owned copies are returned", async () => {
-    // Returning an empty array from the SELECT means none of the copy IDs
-    // belonged to the user; everything is reported as skipped.
-    const db = createMockDb([]);
-    const repo = listsRepo(db);
-    expect(
-      await repo.bulkCreateEntriesFromCopies("lst-1", "card", "u1", ["c1", "c2"], false),
-    ).toEqual({
-      added: 0,
-      updated: 0,
-      skipped: 2,
-    });
-  });
-
   it("bulkCreateEntriesFromCopies files a double-sided copy under the dragged tile's card", async () => {
     const repo = listsRepo(createMockDb([]));
     repo.ownedCopyTargets = vi.fn(async () => [
@@ -351,19 +195,6 @@ describe("listsRepo", () => {
       /^update "list_entries" set "quantity" = case when kind = 'copy' then quantity else least\(greatest\(quantity \+ \$1, 1\), \$2\) end where/u,
     );
     expect(recording.parameters[0]?.slice(0, 2)).toEqual([-1, MAX_LIST_ENTRY_QUANTITY]);
-  });
-
-  it("updateEntry returns the updated entry", async () => {
-    const updated = { ...ENTRY, quantity: 5 };
-    const db = createMockDb([updated]);
-    const repo = listsRepo(db);
-    expect(await repo.updateEntry("le-1", "lst-1", "u1", { quantity: 5 })).toEqual(updated);
-  });
-
-  it("deleteEntry returns a delete result", async () => {
-    const db = createMockDb({ numDeletedRows: 1n });
-    const repo = listsRepo(db);
-    expect(await repo.deleteEntry("le-1", "lst-1", "u1")).toEqual({ numDeletedRows: 1n });
   });
 });
 

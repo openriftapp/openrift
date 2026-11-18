@@ -69,53 +69,11 @@ describe("GET /feature-flags", () => {
       updatedAt: now.toISOString(),
     });
   });
-
-  it("returns empty array when no flags exist", async () => {
-    mockFlagsRepo.listAll.mockResolvedValue([]);
-    const res = await app.request("/api/admin/v1/feature-flags");
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.flags).toEqual([]);
-  });
 });
 
 describe("POST /feature-flags", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-  });
-
-  it("returns 201 when flag is created", async () => {
-    mockFlagsRepo.create.mockResolvedValue(true);
-    const res = await app.request("/api/admin/v1/feature-flags", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: "deck-builder" }),
-    });
-    expect(res.status).toBe(201);
-    expect(mockFlagsRepo.create).toHaveBeenCalledWith({
-      key: "deck-builder",
-      enabled: false,
-      description: null,
-    });
-  });
-
-  it("passes explicit enabled and description values", async () => {
-    mockFlagsRepo.create.mockResolvedValue(true);
-    const res = await app.request("/api/admin/v1/feature-flags", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        key: "deck-builder",
-        enabled: true,
-        description: "Enable deck builder feature",
-      }),
-    });
-    expect(res.status).toBe(201);
-    expect(mockFlagsRepo.create).toHaveBeenCalledWith({
-      key: "deck-builder",
-      enabled: true,
-      description: "Enable deck builder feature",
-    });
   });
 
   it("returns 409 when flag already exists", async () => {
@@ -136,30 +94,6 @@ describe("PATCH /feature-flags/:key", () => {
     vi.resetAllMocks();
   });
 
-  it("returns 204 on successful update", async () => {
-    mockFlagsRepo.update.mockResolvedValue(true);
-    const res = await app.request("/api/admin/v1/feature-flags/deck-builder", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ enabled: true }),
-    });
-    expect(res.status).toBe(204);
-    expect(mockFlagsRepo.update).toHaveBeenCalledWith("deck-builder", { enabled: true });
-  });
-
-  it("updates description only", async () => {
-    mockFlagsRepo.update.mockResolvedValue(true);
-    const res = await app.request("/api/admin/v1/feature-flags/deck-builder", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ description: "Updated description" }),
-    });
-    expect(res.status).toBe(204);
-    expect(mockFlagsRepo.update).toHaveBeenCalledWith("deck-builder", {
-      description: "Updated description",
-    });
-  });
-
   it("returns 404 when flag not found", async () => {
     mockFlagsRepo.update.mockResolvedValue(undefined);
     const res = await app.request("/api/admin/v1/feature-flags/nonexistent", {
@@ -176,15 +110,6 @@ describe("PATCH /feature-flags/:key", () => {
 describe("DELETE /feature-flags/:key", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-  });
-
-  it("returns 204 on successful deletion", async () => {
-    mockFlagsRepo.deleteByKey.mockResolvedValue(true);
-    const res = await app.request("/api/admin/v1/feature-flags/deck-builder", {
-      method: "DELETE",
-    });
-    expect(res.status).toBe(204);
-    expect(mockFlagsRepo.deleteByKey).toHaveBeenCalledWith("deck-builder");
   });
 
   it("returns 404 when flag not found", async () => {

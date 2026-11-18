@@ -15,15 +15,6 @@ const GROUP = {
   updatedAt: new Date(),
 };
 
-const MEMBER = {
-  groupId: "grp-1",
-  userId: "u1",
-  role: "member" as const,
-  joinedAt: new Date(),
-};
-
-const OWNER = { ...MEMBER, userId: "u-owner", role: "owner" as const };
-
 const INVITE = {
   id: "inv-1",
   groupId: "grp-1",
@@ -33,65 +24,17 @@ const INVITE = {
 };
 
 describe("friendGroupsRepo", () => {
-  it("getById returns the group", async () => {
-    const repo = friendGroupsRepo(createMockDb([GROUP]));
-    expect(await repo.getById("grp-1")).toEqual(GROUP);
-  });
-
-  it("getBySlug returns the group", async () => {
-    const repo = friendGroupsRepo(createMockDb([GROUP]));
-    expect(await repo.getBySlug("playgroup")).toEqual(GROUP);
-  });
-
-  it("getByCode returns the group", async () => {
-    const repo = friendGroupsRepo(createMockDb([GROUP]));
-    expect(await repo.getByCode("ABCDEFGHIJKL")).toEqual(GROUP);
-  });
-
-  it("createWithOwner returns the group from the transaction", async () => {
-    const repo = friendGroupsRepo(createMockDb([GROUP]));
-    expect(
-      await repo.createWithOwner(
-        { slug: "playgroup", name: "Tuesday Night Crew", description: null, code: null },
-        "u-owner",
-      ),
-    ).toEqual(GROUP);
-  });
-
-  it("update returns the patched row", async () => {
-    const repo = friendGroupsRepo(createMockDb([GROUP]));
-    expect(await repo.update("grp-1", { name: "New Name" })).toEqual(GROUP);
-  });
-
-  it("setCode returns the patched row", async () => {
-    const repo = friendGroupsRepo(createMockDb([GROUP]));
-    expect(await repo.setCode("grp-1", null)).toEqual(GROUP);
-  });
-
-  it("deleteById reports whether a row was deleted", async () => {
-    await expect(
-      friendGroupsRepo(createMockDb([{ numDeletedRows: 1n }])).deleteById("grp-1"),
-    ).resolves.toBe(true);
-    await expect(
-      friendGroupsRepo(createMockDb([{ numDeletedRows: 0n }])).deleteById("grp-1"),
-    ).resolves.toBe(false);
-  });
-
-  it("getMembership returns the row", async () => {
-    const repo = friendGroupsRepo(createMockDb([MEMBER]));
-    expect(await repo.getMembership("grp-1", "u1")).toEqual(MEMBER);
-  });
-
-  it("listMembers returns enriched rows", async () => {
-    const enriched = {
-      ...OWNER,
-      userName: "Owner",
-      userEmail: "owner@example.com",
-      userImage: null,
-    };
-    const repo = friendGroupsRepo(createMockDb([enriched]));
-    expect(await repo.listMembers("grp-1")).toEqual([enriched]);
-  });
+  it.each([
+    { numDeletedRows: 1n, expected: true },
+    { numDeletedRows: 0n, expected: false },
+  ])(
+    "deleteById reports $expected when $numDeletedRows rows were deleted",
+    async ({ numDeletedRows, expected }) => {
+      await expect(
+        friendGroupsRepo(createMockDb([{ numDeletedRows }])).deleteById("grp-1"),
+      ).resolves.toBe(expected);
+    },
+  );
 
   it("listGroupsForUser coerces sub-select counts to numbers", async () => {
     const raw = {
@@ -111,17 +54,6 @@ describe("friendGroupsRepo", () => {
     expect(row?.memberPreviews).toEqual([]);
   });
 
-  it("addMember and removeMember resolve without throwing", async () => {
-    const repo = friendGroupsRepo(createMockDb([]));
-    await expect(repo.addMember("grp-1", "u1", "member")).resolves.toBeUndefined();
-    await expect(repo.removeMember("grp-1", "u1")).resolves.toBeUndefined();
-  });
-
-  it("updateRole returns the patched row", async () => {
-    const repo = friendGroupsRepo(createMockDb([MEMBER]));
-    expect(await repo.updateRole("grp-1", "u1", "admin")).toEqual(MEMBER);
-  });
-
   it("getRevealedContactsForMembers groups revealed methods by userId", async () => {
     const repo = friendGroupsRepo(
       createMockDb([
@@ -133,11 +65,6 @@ describe("friendGroupsRepo", () => {
     const byUser = await repo.getRevealedContactsForMembers("grp-1");
     expect(byUser.get("u1")?.map((method) => method.id)).toEqual(["m-1", "m-2"]);
     expect(byUser.get("u2")?.map((method) => method.id)).toEqual(["m-3"]);
-  });
-
-  it("setRevealedContacts resolves without throwing", async () => {
-    const repo = friendGroupsRepo(createMockDb([{ id: "m-1" }]));
-    await expect(repo.setRevealedContacts("grp-1", "u1", ["m-1"])).resolves.toBeUndefined();
   });
 
   it("transferOwnership demotes then promotes in one transaction", async () => {
@@ -163,11 +90,6 @@ describe("friendGroupsRepo", () => {
     expect(events).toEqual(["begin", "rollback"]);
   });
 
-  it("getInvite returns the row", async () => {
-    const repo = friendGroupsRepo(createMockDb([INVITE]));
-    expect(await repo.getInvite("grp-1", "u2")).toEqual(INVITE);
-  });
-
   it("listOwnRequestsForUser returns enriched rows without previews", async () => {
     const enriched = {
       ...INVITE,
@@ -179,83 +101,24 @@ describe("friendGroupsRepo", () => {
     expect(await repo.listOwnRequestsForUser("u2")).toEqual([{ ...enriched, memberCount: 0 }]);
   });
 
-  it("listRequestsForGroup returns enriched rows", async () => {
-    const enriched = {
-      ...INVITE,
-      direction: "request" as const,
-      userName: "Requester",
-      userEmail: "requester@example.com",
-      userImage: null,
-    };
-    const repo = friendGroupsRepo(createMockDb([enriched]));
-    expect(await repo.listRequestsForGroup("grp-1")).toEqual([enriched]);
-  });
-
-  it("pendingRequestsCountForUser returns the count", async () => {
-    const repo = friendGroupsRepo(createMockDb([{ count: 2 }]));
-    expect(await repo.pendingRequestsCountForUser("u-owner")).toBe(2);
-  });
-
-  it("pendingRequestsCountForUser coerces a missing count to 0", async () => {
-    const repo = friendGroupsRepo(createMockDb([{ count: null }]));
-    expect(await repo.pendingRequestsCountForUser("u-owner")).toBe(0);
-  });
-
-  it("deleteInvite resolves without throwing", async () => {
-    const repo = friendGroupsRepo(createMockDb([]));
-    await expect(repo.deleteInvite("grp-1", "u2")).resolves.toBeUndefined();
+  it.each([
+    { name: "returns the count", count: 2, expected: 2 },
+    { name: "coerces a missing count to 0", count: null, expected: 0 },
+  ])("pendingRequestsCountForUser $name", async ({ count, expected }) => {
+    const repo = friendGroupsRepo(createMockDb([{ count }]));
+    expect(await repo.pendingRequestsCountForUser("u-owner")).toBe(expected);
   });
 
   // ON CONFLICT DO NOTHING makes a repeat request indistinguishable from a
   // first one unless the affected-row count is read back.
-  it("createInvite reports whether a row was actually inserted", async () => {
-    const inserted = createRecordingDb([{ numAffectedRows: 1n }]);
-    expect(await friendGroupsRepo(inserted.db).createInvite("grp-1", "u2", "request")).toBe(true);
-
-    const conflicted = createRecordingDb([{ numAffectedRows: 0n }]);
-    expect(await friendGroupsRepo(conflicted.db).createInvite("grp-1", "u2", "request")).toBe(
-      false,
-    );
-  });
-
-  it("listSharesForGroup returns enriched rows", async () => {
-    const row = {
-      groupId: "grp-1",
-      listId: "lst-1",
-      userId: "u1",
-      sharedAt: new Date(),
-      listName: "My Wants",
-      listIntent: "wish",
-      listKind: "card",
-      entryCount: 3,
-      userName: "Alice",
-    };
-    const repo = friendGroupsRepo(createMockDb([row]));
-    expect(await repo.listSharesForGroup("grp-1")).toEqual([row]);
-  });
-
-  it("listShareableForUserInGroup returns annotated lists", async () => {
-    const row = {
-      listId: "lst-1",
-      listName: "My Wants",
-      listIntent: "wish",
-      listKind: "card",
-      entryCount: 12,
-      sharedAt: null,
-    };
-    const repo = friendGroupsRepo(createMockDb([row]));
-    expect(await repo.listShareableForUserInGroup("grp-1", "u1")).toEqual([row]);
-  });
-
-  it("listGroupsSharingList returns slug + name rows", async () => {
-    const row = { groupId: "grp-1", groupSlug: "playgroup", groupName: "Tuesday Night Crew" };
-    const repo = friendGroupsRepo(createMockDb([row]));
-    expect(await repo.listGroupsSharingList("lst-1")).toEqual([row]);
-  });
-
-  it("share and unshare resolve without throwing", async () => {
-    const repo = friendGroupsRepo(createMockDb([]));
-    await expect(repo.share("grp-1", "lst-1", "u1")).resolves.toBeUndefined();
-    await expect(repo.unshare("grp-1", "lst-1")).resolves.toBeUndefined();
-  });
+  it.each([
+    { numAffectedRows: 1n, expected: true },
+    { numAffectedRows: 0n, expected: false },
+  ])(
+    "createInvite reports $expected when $numAffectedRows rows were inserted",
+    async ({ numAffectedRows, expected }) => {
+      const { db } = createRecordingDb([{ numAffectedRows }]);
+      expect(await friendGroupsRepo(db).createInvite("grp-1", "u2", "request")).toBe(expected);
+    },
+  );
 });

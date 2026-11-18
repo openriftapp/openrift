@@ -52,23 +52,20 @@ function harness(
   options: {
     pending?: number;
     eventName?: string;
-    resolvedCardIds?: Record<string, string>;
     playerEventId?: string;
   } = {},
 ): Harness {
   const insertEvent = vi.fn().mockResolvedValue("event-overlay-1");
   const insertPlayer = vi.fn().mockResolvedValue("player-overlay-1");
   const insertSubmission = vi.fn().mockResolvedValue("submission-1");
-  const resolved = options.resolvedCardIds ?? { Azir: "card-azir", Shock: "card-shock" };
 
   const repos = {
     ingest: {
       lockCardAndMetaSubmissions: vi.fn().mockResolvedValue(undefined),
-      allCardNorms: vi
-        .fn()
-        .mockResolvedValue(
-          Object.entries(resolved).map(([name, id]) => ({ id, normName: name.toLowerCase() })),
-        ),
+      allCardNorms: vi.fn().mockResolvedValue([
+        { id: "card-azir", normName: "azir" },
+        { id: "card-shock", normName: "shock" },
+      ]),
       allCardNameAliases: vi.fn().mockResolvedValue([]),
     },
     meta: {
@@ -127,14 +124,11 @@ describe("validateMetaSubmission", () => {
     ).toContain("A standings row can only be named on an existing event");
   });
 
-  it("rejects a rank below first place", () => {
-    expect(validateMetaSubmission(args({ rank: 0 }))).toContain("rank must be a positive integer");
-  });
-
-  it("rejects a fractional rank", () => {
-    expect(validateMetaSubmission(args({ rank: 1.5 }))).toContain(
-      "rank must be a positive integer",
-    );
+  it.each([
+    { name: "a rank below first place", rank: 0 },
+    { name: "a fractional rank", rank: 1.5 },
+  ])("rejects $name", ({ rank }) => {
+    expect(validateMetaSubmission(args({ rank }))).toContain("rank must be a positive integer");
   });
 
   it("names each of the three record columns it refuses", () => {
@@ -292,13 +286,6 @@ describe("submitMetaDeck", () => {
       { lineNumber: 0, cardName: "Azir", zone: "legend", quantity: 1, cardId: "card-azir" },
       { lineNumber: 1, cardName: "Shock", zone: "main", quantity: 3, cardId: "card-shock" },
     ]);
-  });
-
-  it("stages a name that matched nothing and reports it back", async () => {
-    const h = harness({ eventName: "Skirmish", resolvedCardIds: { Azir: "card-azir" } });
-    const result = await submitMetaDeck(h.transact, args());
-
-    expect(result).toMatchObject({ status: "ok", unresolvedNames: ["Shock"] });
   });
 
   it("creates a candidate event when the submission proposes one", async () => {

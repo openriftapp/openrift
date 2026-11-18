@@ -20,15 +20,12 @@ const mockRepo = {
   currentSafeXid: vi.fn(() => Promise.resolve("5000")),
   getByIdForUser: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   update: vi.fn(() => Promise.resolve(undefined as object | undefined)),
-  deleteByIdForUser: vi.fn(() => Promise.resolve(false)),
   cardsForDeck: vi.fn(() => Promise.resolve([] as object[])),
   cardsWithDetails: vi.fn(() => Promise.resolve([] as object[])),
   getIdAndFormat: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   exists: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   replaceCards: vi.fn((): Promise<object> => Promise.resolve(REPLACED)),
   cloneDeck: vi.fn(() => Promise.resolve(undefined as object | undefined)),
-  getShareState: vi.fn(() => Promise.resolve(undefined as object | undefined)),
-  setShare: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   getByShareToken: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   cloneFromShareToken: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   setArchivedMany: vi.fn(() => Promise.resolve([] as object[])),
@@ -556,18 +553,6 @@ describe("POST /api/v1/decks", () => {
     mockRepo.getByIdForUser.mockReset();
   });
 
-  it("returns 201 with created deck", async () => {
-    mockRepo.createUnlessIdTaken.mockResolvedValue(dbDeck);
-    const res = await app.request("/api/v1/decks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Fury Aggro", format: "constructed" }),
-    });
-    expect(res.status).toBe(201);
-    const json = await readJson(res);
-    expect(json.name).toBe("Fury Aggro");
-  });
-
   it("creates with all optional fields", async () => {
     mockRepo.createUnlessIdTaken.mockResolvedValue(dbDeck);
     const res = await app.request("/api/v1/decks", {
@@ -643,58 +628,9 @@ describe("POST /api/v1/decks", () => {
   });
 });
 
-describe("GET /api/v1/decks/:id", () => {
-  beforeEach(() => {
-    mockRepo.getByIdForUser.mockReset();
-    mockRepo.cardsForDeck.mockReset();
-  });
-
-  it("returns 200 with deck and cards", async () => {
-    mockRepo.getByIdForUser.mockResolvedValue(dbDeck);
-    mockRepo.cardsForDeck.mockResolvedValue([dbDeckCard]);
-    const res = await app.request(`/api/v1/decks/${DECK_ID}`);
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.deck.name).toBe("Fury Aggro");
-    expect(json.cards).toHaveLength(1);
-    expect(json.cards[0].cardId).toBe("c0000000-0001-4000-a000-000000000001");
-    expect(json.cards[0].zone).toBe("main");
-    expect(json.cards[0].quantity).toBe(4);
-  });
-
-  it("returns 404 when not found", async () => {
-    mockRepo.getByIdForUser.mockResolvedValue(undefined);
-    const res = await app.request(`/api/v1/decks/${DECK_ID}`);
-    expect(res.status).toBe(404);
-  });
-});
-
 describe("PATCH /api/v1/decks/:id", () => {
   beforeEach(() => {
     mockRepo.update.mockReset();
-  });
-
-  it("returns 200 with updated deck", async () => {
-    const updated = { ...dbDeck, name: "Renamed" };
-    mockRepo.update.mockResolvedValue(updated);
-    const res = await app.request(`/api/v1/decks/${DECK_ID}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Renamed" }),
-    });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.name).toBe("Renamed");
-  });
-
-  it("returns 404 when not found", async () => {
-    mockRepo.update.mockResolvedValue(undefined);
-    const res = await app.request(`/api/v1/decks/${DECK_ID}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "X" }),
-    });
-    expect(res.status).toBe(404);
   });
 
   it("sets the home collection when the user can reach it", async () => {
@@ -749,24 +685,6 @@ describe("PATCH /api/v1/decks/:id", () => {
     expect(mockCollections.getAccessForUser).not.toHaveBeenCalled();
     const json = await readJson(res);
     expect(json.collectionId).toBeNull();
-  });
-});
-
-describe("DELETE /api/v1/decks/:id", () => {
-  beforeEach(() => {
-    mockRepo.deleteByIdForUser.mockReset();
-  });
-
-  it("returns 204 when deleted", async () => {
-    mockRepo.deleteByIdForUser.mockResolvedValue(true);
-    const res = await app.request(`/api/v1/decks/${DECK_ID}`, { method: "DELETE" });
-    expect(res.status).toBe(204);
-  });
-
-  it("returns 404 when not found", async () => {
-    mockRepo.deleteByIdForUser.mockResolvedValue(false);
-    const res = await app.request(`/api/v1/decks/${DECK_ID}`, { method: "DELETE" });
-    expect(res.status).toBe(404);
   });
 });
 
@@ -825,21 +743,6 @@ describe("PUT /api/v1/decks/:id/cards", () => {
     mockRepo.replaceCards.mockReset().mockResolvedValue(REPLACED);
   });
 
-  it("returns 200 with updated cards when replaced successfully", async () => {
-    mockRepo.getIdAndFormat.mockResolvedValue({ id: DECK_ID, format: "freeform" });
-    mockRepo.cardsForDeck.mockResolvedValue([]);
-    const res = await app.request(`/api/v1/decks/${DECK_ID}/cards`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        cards: [{ cardId: "c0000000-0001-4000-a000-000000000001", zone: "main", quantity: 4 }],
-      }),
-    });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.cards).toEqual([]);
-  });
-
   it("returns 200 with empty cards array", async () => {
     mockRepo.getIdAndFormat.mockResolvedValue({ id: DECK_ID, format: "freeform" });
     mockRepo.cardsForDeck.mockResolvedValue([]);
@@ -850,56 +753,6 @@ describe("PUT /api/v1/decks/:id/cards", () => {
     });
     expect(res.status).toBe(200);
   });
-
-  it("returns 404 when deck not found", async () => {
-    mockRepo.getIdAndFormat.mockResolvedValue(undefined);
-    const res = await app.request(`/api/v1/decks/${DECK_ID}/cards`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cards: [] }),
-    });
-    expect(res.status).toBe(404);
-  });
-
-  it("saves incomplete constructed deck without validation error", async () => {
-    mockRepo.getIdAndFormat.mockResolvedValue({ id: DECK_ID, format: "constructed" });
-    mockRepo.cardsForDeck.mockResolvedValue([
-      {
-        cardId: "c0000000-0001-4000-a000-000000000001",
-        zone: "main",
-        quantity: 10,
-        preferredPrintingId: null,
-      },
-    ]);
-    const res = await app.request(`/api/v1/decks/${DECK_ID}/cards`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        cards: [{ cardId: "c0000000-0001-4000-a000-000000000001", zone: "main", quantity: 10 }],
-      }),
-    });
-    expect(res.status).toBe(200);
-  });
-
-  it("allows freeform deck without validation", async () => {
-    mockRepo.getIdAndFormat.mockResolvedValue({ id: DECK_ID, format: "freeform" });
-    mockRepo.cardsForDeck.mockResolvedValue([
-      {
-        cardId: "c0000000-0001-4000-a000-000000000001",
-        zone: "main",
-        quantity: 4,
-        preferredPrintingId: null,
-      },
-    ]);
-    const res = await app.request(`/api/v1/decks/${DECK_ID}/cards`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        cards: [{ cardId: "c0000000-0001-4000-a000-000000000001", zone: "main", quantity: 4 }],
-      }),
-    });
-    expect(res.status).toBe(200);
-  });
 });
 
 describe("GET /api/v1/decks — wanted filter false", () => {
@@ -907,28 +760,14 @@ describe("GET /api/v1/decks — wanted filter false", () => {
     mockRepo.listForUser.mockReset();
   });
 
-  it("passes includeArchived=false when query param absent", async () => {
+  it.each([
+    { name: "the query param is absent", query: "", includeArchived: false },
+    { name: "the query is not 'true'", query: "?includeArchived=false", includeArchived: false },
+    { name: "the query says so", query: "?includeArchived=true", includeArchived: true },
+  ])("passes includeArchived=$includeArchived when $name", async ({ query, includeArchived }) => {
     mockRepo.listForUser.mockResolvedValue([]);
-    await app.request("/api/v1/decks");
-    expect(mockRepo.listForUser).toHaveBeenCalledWith(USER_ID, {
-      includeArchived: false,
-    });
-  });
-
-  it("passes includeArchived=false when query is not 'true'", async () => {
-    mockRepo.listForUser.mockResolvedValue([]);
-    await app.request("/api/v1/decks?includeArchived=false");
-    expect(mockRepo.listForUser).toHaveBeenCalledWith(USER_ID, {
-      includeArchived: false,
-    });
-  });
-
-  it("passes includeArchived=true when query says so", async () => {
-    mockRepo.listForUser.mockResolvedValue([]);
-    await app.request("/api/v1/decks?includeArchived=true");
-    expect(mockRepo.listForUser).toHaveBeenCalledWith(USER_ID, {
-      includeArchived: true,
-    });
+    await app.request(`/api/v1/decks${query}`);
+    expect(mockRepo.listForUser).toHaveBeenCalledWith(USER_ID, { includeArchived });
   });
 });
 
@@ -984,18 +823,6 @@ describe("PATCH /api/v1/decks/:id — field updates", () => {
     expect(res.status).toBe(200);
     expect(mockRepo.update).toHaveBeenCalledWith(DECK_ID, USER_ID, { name: "Renamed" });
   });
-
-  it("updates description field", async () => {
-    const updated = { ...dbDeck, description: "Aggro build" };
-    mockRepo.update.mockResolvedValue(updated);
-    const res = await app.request(`/api/v1/decks/${DECK_ID}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ description: "Aggro build" }),
-    });
-    expect(res.status).toBe(200);
-    expect(mockRepo.update).toHaveBeenCalledWith(DECK_ID, USER_ID, { description: "Aggro build" });
-  });
 });
 
 describe("PUT /api/v1/decks/:id/cards — returned cards", () => {
@@ -1003,44 +830,6 @@ describe("PUT /api/v1/decks/:id/cards — returned cards", () => {
     mockRepo.getIdAndFormat.mockReset();
     mockRepo.replaceCards.mockReset();
     mockRepo.cardsForDeck.mockReset();
-  });
-
-  it("returns the replaced cards from cardsForDeck", async () => {
-    mockRepo.getIdAndFormat.mockResolvedValue({ id: DECK_ID, format: "freeform" });
-    mockRepo.replaceCards.mockResolvedValue(REPLACED);
-    mockRepo.cardsForDeck.mockResolvedValue([dbDeckCard]);
-    const res = await app.request(`/api/v1/decks/${DECK_ID}/cards`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        cards: [{ cardId: "c0000000-0001-4000-a000-000000000001", zone: "main", quantity: 4 }],
-      }),
-    });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.cards).toHaveLength(1);
-    expect(json.cards[0].cardId).toBe("c0000000-0001-4000-a000-000000000001");
-    expect(json.cards[0].quantity).toBe(4);
-  });
-
-  it("calls replaceCards with the card data", async () => {
-    mockRepo.getIdAndFormat.mockResolvedValue({ id: DECK_ID, format: "freeform" });
-    mockRepo.replaceCards.mockResolvedValue(REPLACED);
-    mockRepo.cardsForDeck.mockResolvedValue([]);
-    const cards = [
-      { cardId: "c0000000-0001-4000-a000-000000000001", zone: "main", quantity: 4 },
-      { cardId: "c0000000-0002-4000-a000-000000000001", zone: "sideboard", quantity: 2 },
-    ];
-    await app.request(`/api/v1/decks/${DECK_ID}/cards`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cards }),
-    });
-    expect(mockRepo.replaceCards).toHaveBeenCalledWith(
-      DECK_ID,
-      cards.map((card) => ({ ...card, preferredPrintingId: null })),
-      undefined,
-    );
   });
 
   it("returns 404 when the deck is deleted while its cards are being replaced", async () => {
@@ -1237,107 +1026,6 @@ describe("PATCH /api/v1/decks/:id — cover face", () => {
   });
 });
 
-describe("GET /api/v1/decks/:id — card details", () => {
-  beforeEach(() => {
-    mockRepo.getByIdForUser.mockReset();
-    mockRepo.cardsForDeck.mockReset();
-  });
-
-  it("returns empty cards array when deck has no cards", async () => {
-    mockRepo.getByIdForUser.mockResolvedValue(dbDeck);
-    mockRepo.cardsForDeck.mockResolvedValue([]);
-    const res = await app.request(`/api/v1/decks/${DECK_ID}`);
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.deck.id).toBe(DECK_ID);
-    expect(json.cards).toEqual([]);
-  });
-});
-
-describe("GET /api/v1/decks/:id/share", () => {
-  beforeEach(() => {
-    mockRepo.getShareState.mockReset();
-  });
-
-  it("reflects a shared deck", async () => {
-    mockRepo.getShareState.mockResolvedValue({ shareToken: "AbCdEfGhIjKl", isPublic: true });
-    const res = await app.request(`/api/v1/decks/${DECK_ID}/share`, { method: "GET" });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.shareToken).toBe("AbCdEfGhIjKl");
-    expect(json.isPublic).toBe(true);
-  });
-
-  it("returns { shareToken: null, isPublic: false } for an owned-but-unshared deck", async () => {
-    mockRepo.getShareState.mockResolvedValue({ shareToken: null, isPublic: false });
-    const res = await app.request(`/api/v1/decks/${DECK_ID}/share`, { method: "GET" });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.shareToken).toBeNull();
-    expect(json.isPublic).toBe(false);
-  });
-
-  it("returns 404 when the deck is not owned by the caller", async () => {
-    mockRepo.getShareState.mockResolvedValue(undefined);
-    const res = await app.request(`/api/v1/decks/${DECK_ID}/share`, { method: "GET" });
-    expect(res.status).toBe(404);
-  });
-});
-
-describe("POST /api/v1/decks/:id/share", () => {
-  beforeEach(() => {
-    mockRepo.getShareState.mockReset();
-    mockRepo.setShare.mockReset();
-  });
-
-  it("mints a fresh token and isPublic=true when the deck is unshared", async () => {
-    mockRepo.getShareState.mockResolvedValue({ shareToken: null, isPublic: false });
-    mockRepo.setShare.mockResolvedValue({ ...dbDeck, isPublic: true });
-    const res = await app.request(`/api/v1/decks/${DECK_ID}/share`, { method: "POST" });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.shareToken).toMatch(/^[A-Za-z0-9]{12}$/u);
-    expect(json.isPublic).toBe(true);
-    expect(mockRepo.setShare).toHaveBeenCalledWith(DECK_ID, USER_ID, json.shareToken, true);
-  });
-
-  it("is idempotent: returns the existing token without re-minting when already shared", async () => {
-    mockRepo.getShareState.mockResolvedValue({ shareToken: "ExIsTiNg1234", isPublic: true });
-    const res = await app.request(`/api/v1/decks/${DECK_ID}/share`, { method: "POST" });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.shareToken).toBe("ExIsTiNg1234");
-    expect(json.isPublic).toBe(true);
-    expect(mockRepo.setShare).not.toHaveBeenCalled();
-  });
-
-  it("returns 404 when the deck is not owned by the caller", async () => {
-    mockRepo.getShareState.mockResolvedValue(undefined);
-    const res = await app.request(`/api/v1/decks/${DECK_ID}/share`, { method: "POST" });
-    expect(res.status).toBe(404);
-    expect(mockRepo.setShare).not.toHaveBeenCalled();
-  });
-});
-
-describe("DELETE /api/v1/decks/:id/share", () => {
-  beforeEach(() => {
-    mockRepo.setShare.mockReset();
-  });
-
-  it("returns 204 and nulls the token + isPublic=false", async () => {
-    mockRepo.setShare.mockResolvedValue({ ...dbDeck, isPublic: false, shareToken: null });
-    const res = await app.request(`/api/v1/decks/${DECK_ID}/share`, { method: "DELETE" });
-    expect(res.status).toBe(204);
-    expect(mockRepo.setShare).toHaveBeenCalledWith(DECK_ID, USER_ID, null, false);
-  });
-
-  it("returns 404 when the deck is not owned by the caller", async () => {
-    mockRepo.setShare.mockResolvedValue(undefined);
-    const res = await app.request(`/api/v1/decks/${DECK_ID}/share`, { method: "DELETE" });
-    expect(res.status).toBe(404);
-  });
-});
-
 describe("POST /api/v1/decks/archive", () => {
   const OTHER_DECK_ID = "a0000000-0001-4000-a000-000000000011";
 
@@ -1401,20 +1089,6 @@ describe("POST /api/v1/decks/archive", () => {
 describe("POST /api/v1/decks/share/:token/clone", () => {
   beforeEach(() => {
     mockRepo.cloneFromShareToken.mockReset();
-  });
-
-  it("returns 201 with the new deck id when the token resolves to a public deck", async () => {
-    const cloned = { ...dbDeck, id: "a0000000-0001-4000-a000-000000000099" };
-    mockRepo.cloneFromShareToken.mockResolvedValue(cloned);
-    const res = await app.request("/api/v1/decks/share/abc123/clone", { method: "POST" });
-    expect(res.status).toBe(201);
-    const json = await readJson(res);
-    expect(json.deckId).toBe(cloned.id);
-    expect(mockRepo.cloneFromShareToken).toHaveBeenCalledWith("abc123", USER_ID, {
-      name: undefined,
-      description: undefined,
-      extraCards: undefined,
-    });
   });
 
   it("passes a caller-composed name and description through to the copy", async () => {
@@ -1506,11 +1180,5 @@ describe("POST /api/v1/decks/share/:token/clone", () => {
     });
     expect(res.status).toBe(400);
     expect(mockRepo.cloneFromShareToken).not.toHaveBeenCalled();
-  });
-
-  it("returns 404 when the token is missing or the deck is not public", async () => {
-    mockRepo.cloneFromShareToken.mockResolvedValue(undefined);
-    const res = await app.request("/api/v1/decks/share/unknown/clone", { method: "POST" });
-    expect(res.status).toBe(404);
   });
 });

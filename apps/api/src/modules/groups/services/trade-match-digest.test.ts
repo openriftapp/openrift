@@ -31,40 +31,24 @@ describe("extractDigestWatermark", () => {
 });
 
 describe("isTradeMatchDigestNoop", () => {
-  it("is a no-op when no recipient was emailed and no match was included", () => {
-    expect(
-      isTradeMatchDigestNoop({
-        recipients: 0,
-        emailsSent: 0,
-        matches: 0,
-        failed: 0,
-        matchesDropped: 0,
-      }),
-    ).toBe(true);
-  });
-
-  it("did work when at least one digest email went out", () => {
-    expect(
-      isTradeMatchDigestNoop({
-        recipients: 4,
-        emailsSent: 2,
-        matches: 9,
-        failed: 0,
-        matchesDropped: 0,
-      }),
-    ).toBe(false);
-  });
-
-  it("is not a no-op when every send failed", () => {
-    expect(
-      isTradeMatchDigestNoop({
-        recipients: 2,
-        emailsSent: 0,
-        matches: 0,
-        failed: 2,
-        matchesDropped: 5,
-      }),
-    ).toBe(false);
+  it.each([
+    {
+      name: "is a no-op when no recipient was emailed and no match was included",
+      result: { recipients: 0, emailsSent: 0, matches: 0, failed: 0, matchesDropped: 0 },
+      expected: true,
+    },
+    {
+      name: "did work when at least one digest email went out",
+      result: { recipients: 4, emailsSent: 2, matches: 9, failed: 0, matchesDropped: 0 },
+      expected: false,
+    },
+    {
+      name: "is not a no-op when every send failed",
+      result: { recipients: 2, emailsSent: 0, matches: 0, failed: 2, matchesDropped: 5 },
+      expected: false,
+    },
+  ])("$name", ({ result, expected }) => {
+    expect(isTradeMatchDigestNoop(result)).toBe(expected);
   });
 });
 

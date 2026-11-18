@@ -257,48 +257,22 @@ describe("POST /api/admin/v1/ignored-candidates/printings", () => {
     vi.resetAllMocks();
   });
 
-  it("returns 204 when printing is ignored with finish", async () => {
+  it.each([
+    { name: "with finish", body: { finish: "foil" }, finish: "foil" },
+    { name: "with null finish", body: { finish: null }, finish: null },
+    { name: "with finish omitted", body: {}, finish: null },
+  ])("returns 204 when printing is ignored $name", async ({ body, finish }) => {
     mockRepo.ignorePrinting.mockResolvedValue(undefined);
     const res = await app.request("/api/admin/v1/ignored-candidates/printings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: "tcgplayer", externalId: "54321", finish: "foil" }),
+      body: JSON.stringify({ provider: "tcgplayer", externalId: "54321", ...body }),
     });
     expect(res.status).toBe(204);
     expect(mockRepo.ignorePrinting).toHaveBeenCalledWith({
       provider: "tcgplayer",
       externalId: "54321",
-      finish: "foil",
-    });
-  });
-
-  it("returns 204 when printing is ignored with null finish", async () => {
-    mockRepo.ignorePrinting.mockResolvedValue(undefined);
-    const res = await app.request("/api/admin/v1/ignored-candidates/printings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: "tcgplayer", externalId: "54321", finish: null }),
-    });
-    expect(res.status).toBe(204);
-    expect(mockRepo.ignorePrinting).toHaveBeenCalledWith({
-      provider: "tcgplayer",
-      externalId: "54321",
-      finish: null,
-    });
-  });
-
-  it("defaults finish to null when omitted", async () => {
-    mockRepo.ignorePrinting.mockResolvedValue(undefined);
-    const res = await app.request("/api/admin/v1/ignored-candidates/printings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: "tcgplayer", externalId: "54321" }),
-    });
-    expect(res.status).toBe(204);
-    expect(mockRepo.ignorePrinting).toHaveBeenCalledWith({
-      provider: "tcgplayer",
-      externalId: "54321",
-      finish: null,
+      finish,
     });
   });
 });
@@ -308,26 +282,18 @@ describe("DELETE /api/admin/v1/ignored-candidates/printings", () => {
     vi.resetAllMocks();
   });
 
-  it("returns 204 when printing is unignored with finish", async () => {
+  it.each([
+    { name: "with finish", finish: "foil" },
+    { name: "with null finish", finish: null },
+  ])("returns 204 when printing is unignored $name", async ({ finish }) => {
     mockRepo.unignorePrinting.mockResolvedValue(undefined);
     const res = await app.request("/api/admin/v1/ignored-candidates/printings", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: "tcgplayer", externalId: "54321", finish: "foil" }),
+      body: JSON.stringify({ provider: "tcgplayer", externalId: "54321", finish }),
     });
     expect(res.status).toBe(204);
-    expect(mockRepo.unignorePrinting).toHaveBeenCalledWith("tcgplayer", "54321", "foil");
-  });
-
-  it("returns 204 when printing is unignored with null finish", async () => {
-    mockRepo.unignorePrinting.mockResolvedValue(undefined);
-    const res = await app.request("/api/admin/v1/ignored-candidates/printings", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: "tcgplayer", externalId: "54321", finish: null }),
-    });
-    expect(res.status).toBe(204);
-    expect(mockRepo.unignorePrinting).toHaveBeenCalledWith("tcgplayer", "54321", null);
+    expect(mockRepo.unignorePrinting).toHaveBeenCalledWith("tcgplayer", "54321", finish);
   });
 });
 
