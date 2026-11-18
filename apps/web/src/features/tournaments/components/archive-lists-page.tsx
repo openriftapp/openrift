@@ -10,7 +10,7 @@ import type {
 import { uvsgamesEventUrl } from "@openrift/shared/uvsgames-links";
 import { Link } from "@tanstack/react-router";
 import { ExternalLinkIcon, RefreshCwIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { PageDescription, PageTopBarButton } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,11 @@ import {
   resolveArchiveListPick,
 } from "@/features/tournaments/lib/archive-lists";
 import { participantName } from "@/features/tournaments/lib/participant-name";
-import { useArchiveListsStore } from "@/features/tournaments/stores/archive-lists-store";
+import {
+  archiveForced,
+  archivePicks,
+  useArchiveListsStore,
+} from "@/features/tournaments/stores/archive-lists-store";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -116,15 +120,19 @@ function ArchiveTopBar({
 }
 
 function ParticipantRow({
+  tournamentId,
   participant,
   standings,
 }: {
+  tournamentId: string;
   participant: ArchiveListParticipant;
   standings: ArchiveListStanding[];
 }) {
   const { participantId, eligibility } = participant;
-  const pick = useArchiveListsStore((state) => state.picks[participantId]);
-  const forced = useArchiveListsStore((state) => state.forced[participantId] === true);
+  const pick = useArchiveListsStore((state) => archivePicks(state, tournamentId)[participantId]);
+  const forced = useArchiveListsStore(
+    (state) => archiveForced(state, tournamentId)[participantId] === true,
+  );
   const setPick = useArchiveListsStore((state) => state.pick);
   const setForced = useArchiveListsStore((state) => state.setForced);
   const blocked = eligibility !== "ready" && eligibility !== "unchecked";
@@ -150,7 +158,9 @@ function ParticipantRow({
             <Checkbox
               id={forceId}
               checked={forced}
-              onCheckedChange={(checked) => setForced(participantId, checked === true)}
+              onCheckedChange={(checked) =>
+                setForced(tournamentId, participantId, checked === true)
+              }
             />
             <Label htmlFor={forceId} className="font-normal">
               {m.tournaments_archive_force()}
@@ -162,7 +172,9 @@ function ParticipantRow({
         <SimpleSelect
           items={items}
           value={value}
-          onChange={(next) => setPick(participantId, next === NO_STANDING ? null : next)}
+          onChange={(next) =>
+            setPick(tournamentId, participantId, next === NO_STANDING ? null : next)
+          }
           label={m.tournaments_archive_pick_label({
             player: participantName(participant.displayName),
           })}
@@ -183,8 +195,8 @@ function SendBar({
   participants: ArchiveListParticipant[];
   onSent: (result: ArchiveListSendResponse) => void;
 }) {
-  const picks = useArchiveListsStore((state) => state.picks);
-  const forced = useArchiveListsStore((state) => state.forced);
+  const picks = useArchiveListsStore((state) => archivePicks(state, tournamentId));
+  const forced = useArchiveListsStore((state) => archiveForced(state, tournamentId));
   const send = useSendTournamentArchiveLists(tournamentId);
   const plan = planArchiveListSend(participants, picks, forced);
   const blocked = plan.links.length === 0 || plan.duplicates.size > 0;
@@ -262,13 +274,8 @@ function outcomeMessage(outcome: ArchiveListRefreshResponse["outcome"] | null): 
 export function ArchiveListsPage({ tournamentId }: { tournamentId: string }) {
   const { data: state } = useTournamentArchiveLists(tournamentId);
   const refresh = useRefreshTournamentArchiveLists(tournamentId);
-  const openTournament = useArchiveListsStore((store) => store.open);
   const [outcome, setOutcome] = useState<ArchiveListRefreshResponse["outcome"] | null>(null);
   const [result, setResult] = useState<ArchiveListSendResponse | null>(null);
-
-  useEffect(() => {
-    openTournament(tournamentId);
-  }, [openTournament, tournamentId]);
 
   const load = () => {
     setResult(null);
@@ -367,6 +374,7 @@ function ArchiveListsBody({
             {state.participants.map((participant) => (
               <ParticipantRow
                 key={participant.participantId}
+                tournamentId={tournamentId}
                 participant={participant}
                 standings={state.standings}
               />

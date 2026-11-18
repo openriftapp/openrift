@@ -1,3 +1,4 @@
+import { META_MAX_PLAYERS } from "@openrift/shared/meta-query";
 import { metaEntryStatusSchema, metaOverlayStatusSchema } from "@openrift/shared/response-schemas";
 import { isoDate, isoDateTime } from "@openrift/shared/schemas";
 import { z } from "zod";
@@ -12,7 +13,7 @@ import { attachedListStatusSchema, metaDeckCardSchema } from "./meta-players.js"
 export const playerOverlayFieldsSchema = z
   .object({
     playerName: z.string().min(1).max(80).nullable(),
-    rank: z.number().int().min(1),
+    rank: z.number().int().min(1).max(META_MAX_PLAYERS),
     rankIsTier: z.boolean(),
     wins: z.number().int().min(0).nullable(),
     losses: z.number().int().min(0).nullable(),

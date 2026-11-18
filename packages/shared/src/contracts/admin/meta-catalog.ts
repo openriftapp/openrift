@@ -1,3 +1,4 @@
+import { META_MAX_PLAYERS } from "@openrift/shared/meta-query";
 import { META_SYNC_BUCKET_FILTERS } from "@openrift/shared/meta-sync-buckets";
 import { metaEventTierSchema } from "@openrift/shared/response-schemas";
 import { isoDate, isoDateTime } from "@openrift/shared/schemas";
@@ -153,7 +154,7 @@ const metaCatalogListQuerySchema = z.object({
   search: z.string().optional(),
   displayStatus: z.enum(META_CATALOG_DISPLAY_STATUSES).optional(),
   decklistPublished: z.coerce.boolean().optional(),
-  minPlayers: z.coerce.number().int().min(0).optional(),
+  minPlayers: z.coerce.number().int().min(0).max(META_MAX_PLAYERS).optional(),
   dateFrom: isoDateTime.optional(),
   dateTo: isoDateTime.optional(),
   ...catalogListPagingShape,
@@ -192,7 +193,7 @@ const playloltcgCatalogListQuerySchema = z.object({
     .int()
     .refine((value): value is PlayloltcgStatus => PLAYLOLTCG_STATUSES.some((s) => s === value))
     .optional(),
-  minPlayers: z.coerce.number().int().min(0).optional(),
+  minPlayers: z.coerce.number().int().min(0).max(META_MAX_PLAYERS).optional(),
   dateFrom: isoDate.optional(),
   dateTo: isoDate.optional(),
   ...catalogListPagingShape,
@@ -228,7 +229,7 @@ export const topdeckCatalogRowSchema = z.object({
 const topdeckCatalogListQuerySchema = z.object({
   search: z.string().optional(),
   format: z.string().min(1).optional(),
-  minPlayers: z.coerce.number().int().min(0).optional(),
+  minPlayers: z.coerce.number().int().min(0).max(META_MAX_PLAYERS).optional(),
   dateFrom: isoDate.optional(),
   dateTo: isoDate.optional(),
   ...catalogListPagingShape,
@@ -270,7 +271,7 @@ const playriftboundCatalogListQuerySchema = z.object({
   search: z.string().optional(),
   tournamentType: z.enum(PLAYRIFTBOUND_TOURNAMENT_TYPES).optional(),
   format: z.enum(PLAYRIFTBOUND_FORMATS).optional(),
-  minPlayers: z.coerce.number().int().min(0).optional(),
+  minPlayers: z.coerce.number().int().min(0).max(META_MAX_PLAYERS).optional(),
   dateFrom: isoDate.optional(),
   dateTo: isoDate.optional(),
   ...catalogListPagingShape,
@@ -307,10 +308,10 @@ export const metaSyncSettingsSchema = z.object({
 });
 
 const metaSyncSettingsPatchSchema = z.object({
-  autoAcceptMinPlayers: z.number().int().positive().nullable().optional(),
+  autoAcceptMinPlayers: z.number().int().positive().max(META_MAX_PLAYERS).nullable().optional(),
   autoAcceptNotable: z.boolean().optional(),
   autoAcceptOfficial: z.boolean().optional(),
-  competitivePlayerFloor: z.number().int().positive().optional(),
+  competitivePlayerFloor: z.number().int().positive().max(META_MAX_PLAYERS).optional(),
 });
 
 export const metaSourceTemplateSchema = z.object({

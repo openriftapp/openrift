@@ -27,6 +27,7 @@ import { CardCell } from "@/features/cards/components/card-cell";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useCreateDeck, useSaveDeckCards } from "@/features/decks/hooks/use-decks";
+import { importOverflowMessage } from "@/features/decks/lib/deck-import-cards";
 import { UnmatchedCardCell } from "@/features/tournaments/components/deck-check-checklist";
 import { DeckCheckStatsSummary } from "@/features/tournaments/components/deck-check-entry-header";
 import { DeckCheckCardZonesSkeleton } from "@/features/tournaments/components/deck-check-skeletons";
@@ -275,7 +276,7 @@ export function SaveToDecksButton({ data }: { data: PlayerDeckCheckEntryDetailRe
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
 
-  const { cards, skippedCount } = deckCardsFromCheckEntry(data.cards);
+  const { cards, skippedCount, overflow } = deckCardsFromCheckEntry(data.cards);
   if (cards.length === 0) {
     return null;
   }
@@ -300,6 +301,10 @@ export function SaveToDecksButton({ data }: { data: PlayerDeckCheckEntryDetailRe
     if (!saved) {
       setSaving(false);
       return;
+    }
+    const overflowMessage = importOverflowMessage(overflow);
+    if (overflowMessage) {
+      toast.warning(overflowMessage);
     }
     toast.success(
       skippedCount > 0

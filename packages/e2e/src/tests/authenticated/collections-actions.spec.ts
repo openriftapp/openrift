@@ -191,9 +191,7 @@ test.describe("collection actions", () => {
       }
     });
 
-    // FIXME: with 2 copies of one printing in the Inbox, the grid toolbar
-    // never mounts (no "Manage" button). Unskip once the page renders that shape.
-    test.fixme("moves selected copies into another collection", async ({ page }) => {
+    test("moves selected copies into another collection", async ({ page }) => {
       userEmail = await createAndLogin(page);
       const inboxId = await findInboxId(userEmail);
       const targetId = await createCollectionViaApi(page.request, "Target");
@@ -232,7 +230,7 @@ test.describe("collection actions", () => {
       await expect(page.getByText(/Moved 2 cards?/u)).toBeVisible({ timeout: 10_000 });
 
       await page.goto(`/collections/${inboxId}`);
-      await waitForCollectionReady(page);
+      await expect(page.getByText("No cards yet")).toBeVisible({ timeout: 15_000 });
       await expect(page.getByText(ANNIE_FIERY)).toHaveCount(0);
 
       await page.goto(`/collections/${targetId}`);

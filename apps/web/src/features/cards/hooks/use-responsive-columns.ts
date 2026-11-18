@@ -21,7 +21,11 @@ export const COLUMN_BANDS = [
 // `style.gridTemplateColumns`; /promos SSRs this for crawlers.
 const SSR_SAFE_COLUMNS = 2;
 
-export function useResponsiveColumns(maxColumns?: number | null) {
+/** `onAutoColumns` receives each new auto-mode measurement before paint. */
+export function useResponsiveColumns(
+  maxColumns?: number | null,
+  onAutoColumns?: (autoColumns: number) => void,
+) {
   // useState, not a ref: the container can mount on a render after this hook
   // first ran (e.g. behind a cold-cache loading placeholder), and a ref would
   // never notify the effect below of that late mount.
@@ -60,6 +64,7 @@ export function useResponsiveColumns(maxColumns?: number | null) {
       prevCols = cols;
       prevWidth = width;
       setAutoColumns(auto);
+      onAutoColumns?.(auto);
       setColumns(cols);
       setContainerWidth(width);
       setMeasured(true);
@@ -77,7 +82,7 @@ export function useResponsiveColumns(maxColumns?: number | null) {
       cancelAnimationFrame(rafId);
       observer.disconnect();
     };
-  }, [maxColumns, containerEl]);
+  }, [maxColumns, containerEl, onAutoColumns]);
 
   return {
     containerRef: setContainerEl,

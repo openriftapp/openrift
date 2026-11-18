@@ -14,19 +14,24 @@ export function useSessionExpiredRedirect(): boolean {
   const navigate = useNavigate();
   const router = useRouter();
   const location = useLocation();
-  // The layout outlives a pending navigation out of it (sign-out leaves for /cards),
-  // so only a location still under `_authenticated` is bounced to /login.
-  const [matchedRoutes] = router.getMatchedRoutes(location.pathname);
-  const targetIsAuthenticated = matchedRoutes.some((route) => route.id === AUTHENTICATED_ROUTE_ID);
   const expired = session === null;
   const currentHref = location.href;
+  const pathname = location.pathname;
   const redirectedRef = useRef(false);
   useEffect(() => {
     if (!expired) {
       redirectedRef.current = false;
       return;
     }
-    if (redirectedRef.current || !targetIsAuthenticated) {
+    if (redirectedRef.current) {
+      return;
+    }
+    // The layout outlives a pending navigation out of it (sign-out leaves for /cards), and the
+    // location already names that target, so only a location still under `_authenticated` bounces.
+    const targetIsAuthenticated = router
+      .matchRoutes(pathname)
+      .some((match) => match.routeId === AUTHENTICATED_ROUTE_ID);
+    if (!targetIsAuthenticated) {
       return;
     }
     redirectedRef.current = true;
@@ -34,6 +39,6 @@ export function useSessionExpiredRedirect(): boolean {
       to: "/login",
       search: { redirect: currentHref || undefined, email: undefined },
     });
-  }, [expired, targetIsAuthenticated, navigate, currentHref]);
+  }, [expired, router, pathname, navigate, currentHref]);
   return expired;
 }

@@ -2,15 +2,7 @@ import { CARD_ASPECT } from "@openrift/shared/card-orientation";
 import type { GroupByField } from "@openrift/shared/types/search";
 import type { Virtualizer } from "@tanstack/react-virtual";
 import type { ReactNode } from "react";
-import {
-  Fragment,
-  memo,
-  useEffect,
-  useEffectEvent,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { Fragment, memo, useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { OrnamentRule } from "@/components/ui/ornament";
 import { Pressable } from "@/components/ui/pressable";
@@ -259,12 +251,10 @@ export function CardGrid({
   const adminSettings = useAdminSettings();
   const debugOverlayEnabled = adminSettings?.debugOverlay === true;
 
-  const { containerRef, containerEl, columns, autoColumns, containerWidth } =
-    useResponsiveColumns(maxColumns);
-
-  useLayoutEffect(() => {
-    setAutoColumns(autoColumns);
-  }, [autoColumns, setAutoColumns]);
+  const { containerRef, containerEl, columns, containerWidth } = useResponsiveColumns(
+    maxColumns,
+    setAutoColumns,
+  );
 
   const { gap, cardWidth: thumbWidth } = computeGridMetrics(containerWidth, columns);
 
@@ -383,7 +373,7 @@ export function CardGrid({
     virtualizer.measure(),
   );
 
-  // A grid under `display: none` measures 0 wide, and its row estimates are useless until shown.
+  // A grid under `display: none` measures 0 wide; its rows say nothing about the page until shown.
   useScopeEffect(containerWidth > 0 ? returnToItemId : undefined, (itemId) => {
     if (itemId) {
       const found = scrollToCard(itemId);
@@ -392,7 +382,10 @@ export function CardGrid({
   });
 
   useScopeEffect(columns, () => {
-    const anchor = selectedItemId ?? topVisibleCardRef.current;
+    if (containerWidth === 0) {
+      return;
+    }
+    const anchor = returnToItemId ?? selectedItemId ?? topVisibleCardRef.current;
     if (anchor) {
       scrollToCard(anchor);
     }

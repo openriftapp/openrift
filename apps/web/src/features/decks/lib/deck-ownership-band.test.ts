@@ -10,7 +10,6 @@ import {
   collectOwnershipBandSources,
   ownershipBandSegments,
   ownershipBandTitle,
-  sameOwnershipBandSources,
 } from "@/features/decks/lib/deck-ownership-band";
 import { stubDeckBuilderCard } from "@/test/factories";
 
@@ -626,46 +625,6 @@ describe("collectOwnershipBandSources", () => {
 
     expect(sources.availableByCardId).toEqual({ [CARD]: 0 });
     expect(sources.displayedPrintingIdByCardKey).toEqual({});
-  });
-});
-
-describe("sameOwnershipBandSources", () => {
-  it("treats a rebuilt but identical set as unchanged", () => {
-    const displayed = { [`${CARD}|main|`]: STANDARD };
-    expect(
-      sameOwnershipBandSources(
-        sourcesFor({ [STANDARD]: 2 }, displayed),
-        sourcesFor({ [STANDARD]: 2 }, { ...displayed }),
-      ),
-    ).toBe(true);
-  });
-
-  it("spots a changed count, a new entry, and a dropped entry", () => {
-    const base = sourcesFor({ [STANDARD]: 2 }, { [`${CARD}|main|`]: STANDARD });
-    expect(
-      sameOwnershipBandSources(
-        base,
-        sourcesFor({ [STANDARD]: 3 }, base.displayedPrintingIdByCardKey),
-      ),
-    ).toBe(false);
-    expect(
-      sameOwnershipBandSources(
-        base,
-        sourcesFor({ [STANDARD]: 2 }, { ...base.displayedPrintingIdByCardKey, extra: FOIL }),
-      ),
-    ).toBe(false);
-    expect(sameOwnershipBandSources(base, sourcesFor({ [STANDARD]: 2 }, {}))).toBe(false);
-    expect(sameOwnershipBandSources(base, { ...base, lockedByCardId: { [CARD]: 1 } })).toBe(false);
-    expect(sameOwnershipBandSources(base, { ...base, borrowedByCardId: { [CARD]: 1 } })).toBe(
-      false,
-    );
-  });
-
-  it("handles the undefined ends", () => {
-    const base = sourcesFor({}, {}, {});
-    expect(sameOwnershipBandSources(undefined, undefined)).toBe(true);
-    expect(sameOwnershipBandSources(base, undefined)).toBe(false);
-    expect(sameOwnershipBandSources(undefined, base)).toBe(false);
   });
 });
 

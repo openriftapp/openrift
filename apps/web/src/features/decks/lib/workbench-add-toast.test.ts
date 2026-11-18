@@ -29,6 +29,8 @@ import {
   dismissRelaxedAddToasts,
   dismissRemovalToast,
   relaxedAddMessage,
+  rowCapMessage,
+  showRowCapToast,
   showRelaxedAddToast,
   showRemovalToast,
 } from "./workbench-add-toast";
@@ -186,5 +188,28 @@ describe("showRemovalToast", () => {
     mocks.toast.dismiss.mockClear();
     dismissRemovalToast();
     expect(mocks.toast.dismiss).not.toHaveBeenCalled();
+  });
+});
+
+describe("row cap notice", () => {
+  it("says how many copies moved and that the row is at 99", () => {
+    expect(rowCapMessage({ card: scorcher, moved: 4, requested: 10 })).toBe(
+      "Moved 4 of 10 copies of Blazing Scorcher. The row is at 99 copies.",
+    );
+  });
+
+  it("says the row is full when nothing moved", () => {
+    expect(rowCapMessage({ card: scorcher, moved: 0, requested: 150 })).toBe(
+      "Blazing Scorcher is already at 99 copies.",
+    );
+  });
+
+  it("shows a warning without an undo and shows nothing for no notice", () => {
+    showRowCapToast(undefined);
+    expect(mocks.toast.warning).not.toHaveBeenCalled();
+    showRowCapToast({ card: scorcher, moved: 4, requested: 10 });
+    expect(mocks.toast.warning).toHaveBeenCalledOnce();
+    expect(mocks.toast.warning.mock.calls[0]?.[1]?.action).toBeUndefined();
+    dismissRelaxedAddToasts();
   });
 });

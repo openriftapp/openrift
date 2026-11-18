@@ -222,6 +222,7 @@ describe.skipIf(!ctx)("shared candidate filters (integration)", () => {
     expect(drafts).not.toContain(ids.emptyName);
     expect(drafts).not.toContain(ids.brandNewHidden);
     expect(drafts).not.toContain(ids.visible);
+    expect(drafts).not.toContain(ids.aliased);
     expect(trustedDrafts).toEqual([ids.brandNew]);
   });
 

@@ -55,15 +55,8 @@ function FolderRow({
   const remove = useRemoveDeckFolder();
 
   // Destructure before JSX: member access on this hook's return object in render makes the React Compiler bail.
-  const {
-    setNodeRef,
-    setActivatorNodeRef,
-    listeners,
-    attributes,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: folder.id, disabled: editing });
+  const { setNodeRef, setActivatorNodeRef, listeners, transform, transition, isDragging } =
+    useSortable({ id: folder.id, disabled: editing });
 
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -123,24 +116,21 @@ function FolderRow({
 
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-2">
-      {/* oxlint-disable-next-line react/forbid-elements -- dnd-kit drag activator, needs the raw ref + listeners */}
-      <button
+      <span
         ref={setActivatorNodeRef}
-        {...attributes}
         {...listeners}
-        type="button"
-        aria-label={m.decks_dialog_folders_reorder_label({ name: folder.name })}
+        aria-hidden
+        title={m.decks_dialog_folders_reorder_label({ name: folder.name })}
         className={cn(
-          "text-muted-foreground hover:text-foreground flex size-6 shrink-0 items-center justify-center rounded-md outline-hidden",
+          "text-muted-foreground hover:text-foreground flex size-6 shrink-0 items-center justify-center rounded-md",
           "cursor-grab active:cursor-grabbing",
           // Without this, the default touch-action scrolls the dialog and a
           // pointercancel aborts the drag before dnd-kit's sensor activates.
           "touch-none",
-          "focus-visible:ring-ring focus-visible:ring-2",
         )}
       >
         <GripVerticalIcon className="size-4" />
-      </button>
+      </span>
       <span className="min-w-0 flex-1 truncate">{folder.name}</span>
       <span className="text-muted-foreground shrink-0 text-sm">
         {m.decks_dialog_folders_deck_count({ count: folder.deckCount })}

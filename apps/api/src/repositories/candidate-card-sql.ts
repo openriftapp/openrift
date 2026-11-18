@@ -11,13 +11,17 @@ export function liveCardForNorm(norm: RawBuilder<unknown>): RawBuilder<{
   name: string;
 }> {
   return sql`
-    select c.id, c.slug, c.name from cards c
-    where ${norm} <> ''
-      and (
-        c.norm_name = ${norm}
-        or c.id in (select a.card_id from card_name_aliases a where a.norm_name = ${norm})
-      )
-    order by c.norm_name = ${norm} desc, c.id
+    select m.id, m.slug, m.name from (
+      select c.id, c.slug, c.name, c.norm_name = ${norm} as own
+      from cards c
+      where ${norm} <> '' and c.norm_name = ${norm}
+      union all
+      select c.id, c.slug, c.name, c.norm_name = ${norm}
+      from card_name_aliases a
+      join cards c on c.id = a.card_id
+      where ${norm} <> '' and a.norm_name = ${norm}
+    ) m
+    order by m.own desc, m.id
     limit 1
   `;
 }
@@ -38,7 +42,11 @@ export function cardNameKeysSql(cardId: RawBuilder<unknown>): RawBuilder<{
 }
 
 export function isNewCardName(norm: RawBuilder<unknown>): RawBuilder<SqlBool> {
-  return sql<SqlBool>`(${norm} <> '' and not exists (${liveCardForNorm(norm)}))`;
+  return sql<SqlBool>`(
+    ${norm} <> ''
+    and not exists (select 1 from cards c where c.norm_name = ${norm})
+    and not exists (select 1 from card_name_aliases a where a.norm_name = ${norm})
+  )`;
 }
 
 export function candidateSideOrder(

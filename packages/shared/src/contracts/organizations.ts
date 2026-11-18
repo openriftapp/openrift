@@ -1,4 +1,4 @@
-import { withParams } from "@openrift/shared/schemas";
+import { idParamSchema, withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
@@ -76,7 +76,7 @@ export const adminOrganizationsContract = {
       CONFLICT: { message: "An organization with that slug already exists" },
     })
     .input(
-      withParams(orgIdParamSchema, {
+      withParams(idParamSchema, {
         slug: orgSlugSchema.optional(),
         name: orgNameSchema.optional(),
         description: orgDescriptionSchema.optional(),
@@ -86,7 +86,7 @@ export const adminOrganizationsContract = {
   remove: authedRoute
     .route({ method: "DELETE", path: `${ADMIN_BASE}/{id}`, tags: [ADMIN_TAG], successStatus: 204 })
     .errors({ NOT_FOUND: { message: "Organization not found" } })
-    .input(orgIdParamSchema),
+    .input(idParamSchema),
 };
 
 export type AdminOrganizationsContract = typeof adminOrganizationsContract;

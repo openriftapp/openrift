@@ -20,7 +20,7 @@ export function watchForRefetchRace(
   });
   return (options) => {
     unsubscribe();
-    if (options?.reread || fetched || queryClient.isFetching({ queryKey, exact: true }) > 0) {
+    if (options?.reread || fetched) {
       void queryClient.refetchQueries({ queryKey, exact: true }, { cancelRefetch: true });
     }
   };

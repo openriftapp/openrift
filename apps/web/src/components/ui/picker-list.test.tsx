@@ -1,7 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { Command as CommandPrimitive } from "cmdk";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { Command, CommandList } from "./command";
 import { PickerGroup, PickerList, PickerRow } from "./picker-list";
 
 function GroupedPicker({ initial }: { initial: string }) {
@@ -191,6 +193,24 @@ describe("PickerRow", () => {
     const nativeScrollIntoView = Element.prototype.scrollIntoView;
     afterEach(() => {
       Element.prototype.scrollIntoView = nativeScrollIntoView;
+    });
+
+    it("relies on cmdk scrolling a keyboard-selected bare row with a native scrollIntoView", () => {
+      const native = vi.fn();
+      Element.prototype.scrollIntoView = native;
+      const { container } = render(
+        <Command loop>
+          <CommandList>
+            <CommandPrimitive.Item value="a">Alpha</CommandPrimitive.Item>
+            <CommandPrimitive.Item value="b">Beta</CommandPrimitive.Item>
+          </CommandList>
+        </Command>,
+      );
+      const root = container.querySelector("[cmdk-root]") as HTMLElement;
+
+      fireEvent.keyDown(root, { key: "ArrowDown" });
+
+      expect(native).toHaveBeenCalledWith({ block: "nearest" });
     });
 
     it("never runs a native scrollIntoView, so moving onto a group's first row leaves the window alone", () => {

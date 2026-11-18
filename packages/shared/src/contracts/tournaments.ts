@@ -436,7 +436,7 @@ export const tournamentsContract = {
         // Judges may patch region and legend alone; other fields stay organizer/host-only.
         region: z.string().min(1).max(50).nullable().optional(),
         // A Legend card id; frozen once groups exist in a group_cut tournament.
-        legendCardId: z.string().min(1).nullable().optional(),
+        legendCardId: z.uuid().nullable().optional(),
         fixedTable: z.number().int().min(1).max(999).nullable().optional(),
       }),
     )

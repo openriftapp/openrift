@@ -1,7 +1,6 @@
 import { countPrintings } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { Link } from "@tanstack/react-router";
-import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/text-link";
@@ -53,14 +52,13 @@ export function PromoSectionsContent({
 
   const maxColumns = useDisplayStore((s) => s.maxColumns);
   const setAutoColumns = useGridViewportStore((s) => s.setAutoColumns);
-  const { containerRef, columns, autoColumns, containerWidth, measured } =
-    useResponsiveColumns(maxColumns);
+  const { containerRef, columns, containerWidth, measured } = useResponsiveColumns(
+    maxColumns,
+    setAutoColumns,
+  );
   // Resolved once and spread onto every section grid, so the column count and
   // the gap can't drift apart between sections.
   const sectionGrid = buildGridProps(columns, containerWidth, measured);
-  useEffect(() => {
-    setAutoColumns(autoColumns);
-  }, [autoColumns, setAutoColumns]);
 
   const sectionEntries: { id: string; label: string; count: number }[] =
     grouping === "channel"

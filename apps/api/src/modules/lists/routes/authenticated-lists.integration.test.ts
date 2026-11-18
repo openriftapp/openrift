@@ -274,7 +274,9 @@ describe.skipIf(!ctx)("Lists routes (integration)", () => {
         keepPerCard: { mode: "fixed", n: 0 },
         keepCopyIds: [],
       };
-      const patched = await app.fetch(req("PATCH", `/lists/${id}`, { rules: [rule] }));
+      const patched = await app.fetch(
+        req("PATCH", `/lists/${id}`, { rules: [rule], expectedRulesVersion: 0 }),
+      );
       expect(patched.status).toBe(200);
       const [copyA, copyB] = [await createCopy(), await createCopy()];
 

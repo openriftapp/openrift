@@ -852,7 +852,6 @@ function DraggablePiece({ piece, mirrored, context }: PieceProps) {
   const {
     setNodeRef: setDragRef,
     listeners,
-    attributes,
     isDragging,
   } = useDraggable({
     id: `piece:${piece.id}`,
@@ -864,12 +863,7 @@ function DraggablePiece({ piece, mirrored, context }: PieceProps) {
   });
   return (
     <div ref={setDropRef} className={cn(isOver && "ring-ring ring-2")} style={CARD_CORNER_STYLE}>
-      <div
-        ref={setDragRef}
-        {...listeners}
-        {...attributes}
-        style={isDragging ? { opacity: 0.4 } : undefined}
-      >
+      <div ref={setDragRef} {...listeners} style={isDragging ? { opacity: 0.4 } : undefined}>
         <PieceToken piece={piece} mirrored={mirrored} context={context} />
       </div>
     </div>

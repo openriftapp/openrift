@@ -15,11 +15,10 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigateMock,
   useLocation: () => ({ href: locationState.href, pathname: locationState.pathname }),
   useRouter: () => ({
-    getMatchedRoutes: (pathname: string) => [
+    matchRoutes: (pathname: string) =>
       PUBLIC_PATHS.has(pathname)
-        ? [{ id: "__root__" }, { id: "/_app" }, { id: "/_app/cards" }]
-        : [{ id: "__root__" }, { id: "/_app" }, { id: "/_app/_authenticated" }],
-    ],
+        ? [{ routeId: "__root__" }, { routeId: "/_app" }, { routeId: "/_app/cards" }]
+        : [{ routeId: "__root__" }, { routeId: "/_app" }, { routeId: "/_app/_authenticated" }],
   }),
 }));
 

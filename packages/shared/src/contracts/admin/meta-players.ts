@@ -1,3 +1,4 @@
+import { META_MAX_PLAYERS } from "@openrift/shared/meta-query";
 import {
   deckFormatSchema,
   deckZoneSchema,
@@ -57,7 +58,7 @@ const metaPlayerListSchema = z.object({
 
 const playerScalarFields = {
   playerName: z.string().min(1).max(80),
-  rank: z.number().int().min(1),
+  rank: z.number().int().min(1).max(META_MAX_PLAYERS),
   rankIsTier: z.boolean().optional().default(false),
   wins: z.number().int().min(0).nullable().optional().default(null),
   losses: z.number().int().min(0).nullable().optional().default(null),

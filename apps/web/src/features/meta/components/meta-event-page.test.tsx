@@ -90,6 +90,9 @@ vi.mock("@/features/cards/components/card-detail-opener", () => ({
   CardDetailOverlayProvider: ({ children }: { children?: ReactNode }) => children,
 }));
 
+vi.mock("@/features/meta/hooks/use-meta-overlay-failure", () => ({
+  useMetaOverlayFailure: () => ({ failed: false, retry: () => {} }),
+}));
 vi.mock("@/features/meta/hooks/use-meta-deck-costs", () => ({
   useMetaDeckCosts: () => undefined,
 }));

@@ -144,6 +144,9 @@ vi.mock("@/features/meta/hooks/use-meta", async () => {
 
 vi.mock("@/hooks/use-session", () => ({ useUserId: () => session.userId }));
 vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: () => true }));
+vi.mock("@/features/meta/hooks/use-meta-overlay-failure", () => ({
+  useMetaOverlayFailure: () => ({ failed: false, retry: () => {} }),
+}));
 vi.mock("@/features/meta/hooks/use-meta-deck-costs", () => ({
   useMetaDeckCosts: (side: boolean, options: { enabled: boolean; withCollection: boolean }) => {
     if (!options.enabled) {

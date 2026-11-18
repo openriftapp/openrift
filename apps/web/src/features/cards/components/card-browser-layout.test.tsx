@@ -1,15 +1,45 @@
-import { act, render } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
+import { useEffect } from "react";
 import type { Root } from "react-dom/client";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { PageTopBarHeightContext } from "@/components/layout/page-top-bar";
+import { useGridViewportStore } from "@/features/cards/stores/grid-viewport-store";
 import { SSR_HEADER_HEIGHT } from "@/lib/header-height";
 
 import { CardBrowserLayout } from "./card-browser-layout";
 
+function AutoColumnsReadout({ label }: { label: string }) {
+  const autoColumns = useGridViewportStore((state) => state.autoColumns);
+  return <span>{`${label}: ${autoColumns}`}</span>;
+}
+
+function MeasuredGrid({ autoColumns }: { autoColumns: number }) {
+  const setAutoColumns = useGridViewportStore((state) => state.setAutoColumns);
+  useEffect(() => {
+    setAutoColumns(autoColumns);
+  }, [autoColumns, setAutoColumns]);
+  return null;
+}
+
 describe("CardBrowserLayout", () => {
+  it("shares the grid's measured columns with its own toolbar only", () => {
+    render(
+      <>
+        <CardBrowserLayout
+          toolbar={<AutoColumnsReadout label="first" />}
+          gridSlot={<MeasuredGrid autoColumns={8} />}
+        />
+        <CardBrowserLayout toolbar={<AutoColumnsReadout label="second" />} />
+      </>,
+    );
+
+    expect(screen.getByText("first: 8")).toBeInTheDocument();
+    expect(screen.getByText("second: 5")).toBeInTheDocument();
+  });
+
   it("tucks the sticky toolbar 1px under the header", () => {
     // The header and toolbar are separate composited layers that snap to the
     // device-pixel grid independently, so the overlap must be forced.

@@ -121,14 +121,9 @@ function DraggableSource({
   label: string;
   children: React.ReactNode;
 }) {
-  const { setNodeRef, listeners, attributes, isDragging } = useDraggable({ id, data });
+  const { setNodeRef, listeners, isDragging } = useDraggable({ id, data });
   return (
-    <div
-      ref={setNodeRef}
-      {...listeners}
-      {...attributes}
-      className={cn("min-w-0", isDragging && "opacity-40")}
-    >
+    <div ref={setNodeRef} {...listeners} className={cn("min-w-0", isDragging && "opacity-40")}>
       <Pressable className={className} aria-label={label} onClick={onClick}>
         {children}
       </Pressable>

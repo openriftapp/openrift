@@ -531,10 +531,9 @@ function DeckCardBrowserInner({
   const [returnItemId, setReturnItemId] = useState<string | null>(null);
   const [focusItemId, setFocusItemId] = useState<string | null>(null);
   if (openedItemId !== shownDetailId) {
-    const closedItemId = openedItemId === null ? shownDetailId : null;
     setShownDetailId(openedItemId);
-    setReturnItemId(closedItemId);
-    setFocusItemId(closedItemId);
+    setReturnItemId(openedItemId === null ? shownDetailId : null);
+    setFocusItemId(null);
   }
 
   const findBy = selectionFindBy(view, groupBy);
@@ -998,10 +997,8 @@ function DeckCardBrowserInner({
           addStripHeight={ADD_STRIP_HEIGHT}
           returnToItemId={returnItemId ?? undefined}
           onReturned={(focusPending) => {
+            setFocusItemId(focusPending ? returnItemId : null);
             setReturnItemId(null);
-            if (!focusPending) {
-              setFocusItemId(null);
-            }
           }}
           table={{
             actionsColumn: "wide",

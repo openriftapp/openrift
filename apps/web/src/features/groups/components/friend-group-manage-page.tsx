@@ -45,7 +45,7 @@ export function FriendGroupManagePage({ slug }: FriendGroupManagePageProps) {
       render={(data) => {
         const admin = isGroupAdminRole(data.viewerRole);
         return (
-          <SettingsLayout toc={manageToc(admin)}>
+          <SettingsLayout toc={manageToc(admin)} scope={slug}>
             {admin ? (
               <SettingsGroup id="group" title={m.groups_manage_toc_group()}>
                 <AdminSettings data={data} slug={slug} />

@@ -1,22 +1,143 @@
 import { describe, expect, it } from "vitest";
+import type { ZodType } from "zod";
 
 import { META_MAX_PLAYERS } from "../meta-query.js";
 import { POSTGRES_INTEGER_MAX, POSTGRES_SMALLINT_MAX } from "../schemas.js";
+import { adminCardMutationsContract } from "./admin/card-mutations.js";
+import { adminCardSubmissionsContract } from "./admin/card-submissions.js";
+import { acceptSubmissionInputSchema, moveSubmissionInputSchema } from "./admin/catalog-review.js";
+import { workspaceAcceptTrustedPrintingsInputSchema } from "./admin/catalog-workspace-batch.js";
 import { ignoreProductsInput } from "./admin/ignored-products.js";
+import { eventBodySchema } from "./admin/meta-events.js";
+import { playerOverlayFieldsSchema } from "./admin/meta-overlays.js";
+import { createMetaPlayerSchema } from "./admin/meta-players.js";
+import { adminMetaCandidatesContract } from "./admin/meta.js";
 import { cardTradeSyncSchema, createCardTradeSchema } from "./card-trades.js";
 import { updateCollectionSchema } from "./collections.js";
 import { MAX_DECK_CARD_ROWS } from "./decks.js";
 import { createLoanSchema, returnLoanCopiesSchema } from "./loans.js";
-import { metaSubmissionInputSchema } from "./meta-submissions.js";
+import { metaEventFieldEditsSchema, metaSubmissionInputSchema } from "./meta-submissions.js";
 import { metaDeckQuerySchema, metaEventFilterQuerySchema } from "./meta.js";
+import { adminOrganizationsContract } from "./organizations.js";
 import { encodeDeckInputSchema } from "./public-decks.js";
 import {
   generateRoundSchema,
   replacePairingSchema,
   roundNumberParamSchema,
+  tournamentsContract,
 } from "./tournaments.js";
 
 const UUID = "019cfc3b-03d3-7dac-86c9-27900cd43727";
+
+function inputOf(procedure: { "~orpc": { inputSchema?: unknown } }): ZodType {
+  return procedure["~orpc"].inputSchema as ZodType;
+}
+
+describe("ids that reach uuid columns", () => {
+  const cases: [string, ZodType, Record<string, unknown>, Record<string, unknown>][] = [
+    [
+      "check-all candidate printings",
+      inputOf(adminCardMutationsContract.checkAllCandidatePrintings),
+      { printingId: UUID, extraIds: [UUID] },
+      { extraIds: ["x"] },
+    ],
+    [
+      "copy candidate printing",
+      inputOf(adminCardMutationsContract.copyCandidatePrinting),
+      { id: UUID, printingId: UUID },
+      { printingId: "x" },
+    ],
+    [
+      "link candidate printings",
+      inputOf(adminCardMutationsContract.linkCandidatePrintings),
+      { candidatePrintingIds: [UUID], printingId: UUID },
+      { candidatePrintingIds: ["x"] },
+    ],
+    [
+      "link unmatched name",
+      inputOf(adminCardMutationsContract.linkUnmatched),
+      { name: "Ahri", cardId: UUID },
+      { cardId: "ahri" },
+    ],
+    [
+      "submission for candidate",
+      inputOf(adminCardSubmissionsContract.forCandidate),
+      { candidateCardId: UUID },
+      { candidateCardId: "x" },
+    ],
+    [
+      "move submission",
+      moveSubmissionInputSchema,
+      { candidateCardId: UUID, cardId: UUID },
+      { cardId: "ahri" },
+    ],
+    [
+      "accept trusted printings",
+      workspaceAcceptTrustedPrintingsInputSchema,
+      { candidatePrintingIds: [UUID] },
+      { candidatePrintingIds: ["x"] },
+    ],
+    [
+      "move event overlay",
+      inputOf(adminMetaCandidatesContract.moveEventOverlay),
+      { id: UUID, metaEventId: UUID },
+      { metaEventId: "x" },
+    ],
+    [
+      "link player overlay",
+      inputOf(adminMetaCandidatesContract.linkPlayerOverlay),
+      { id: UUID, metaEventPlayerId: UUID },
+      { metaEventPlayerId: "x" },
+    ],
+    [
+      "delete organization",
+      inputOf(adminOrganizationsContract.remove),
+      { id: UUID },
+      { id: "summoner-league" },
+    ],
+    [
+      "update organization",
+      inputOf(adminOrganizationsContract.update),
+      { id: UUID, name: "Summoner League" },
+      { id: "summoner-league" },
+    ],
+    [
+      "submission resolution",
+      inputOf(adminCardSubmissionsContract.setResolution),
+      { candidateCardId: UUID, reason: null, note: null },
+      { candidateCardId: "x" },
+    ],
+    [
+      "accept submission images",
+      acceptSubmissionInputSchema,
+      { candidateCardId: UUID, images: [{ candidatePrintingId: UUID, printingId: UUID }] },
+      { images: [{ candidatePrintingId: UUID, printingId: "x" }] },
+    ],
+    [
+      "accept event overlay",
+      inputOf(adminMetaCandidatesContract.acceptEventOverlay),
+      { id: UUID, metaEventId: UUID },
+      { metaEventId: "x" },
+    ],
+    [
+      "accept player overlays",
+      inputOf(adminMetaCandidatesContract.acceptPlayerOverlays),
+      { items: [{ id: UUID, metaEventPlayerId: UUID }] },
+      { items: [{ id: "x" }] },
+    ],
+    [
+      "participant legend",
+      inputOf(tournamentsContract.updateParticipant),
+      { id: UUID, participantId: UUID, legendCardId: UUID },
+      { legendCardId: "x" },
+    ],
+  ];
+
+  it.each(cases)("%s accepts uuids and refuses anything else", (_name, schema, valid, broken) => {
+    expect(schema.safeParse(valid).success).toBe(true);
+    expect(schema.safeParse({ ...valid, ...broken }).success).toBe(false);
+  });
+});
 
 describe("encodeDeckInputSchema", () => {
   const card = {
@@ -71,6 +192,22 @@ describe("meta filter bounds", () => {
     expect(metaEventFilterQuerySchema.safeParse({ playersMin: over }).success).toBe(false);
     expect(metaEventFilterQuerySchema.safeParse({ playersMax: over }).success).toBe(false);
     expect(metaDeckQuerySchema.safeParse({ maxRank: over }).success).toBe(false);
+  });
+});
+
+describe("meta player and rank inputs", () => {
+  it("caps every player count and rank at the shared player cap", () => {
+    const over = META_MAX_PLAYERS + 1;
+    const schemas = [
+      metaEventFieldEditsSchema.shape.playerCount,
+      eventBodySchema.shape.playerCount,
+      playerOverlayFieldsSchema.shape.rank,
+      createMetaPlayerSchema.shape.rank,
+    ];
+    for (const schema of schemas) {
+      expect(schema.safeParse(META_MAX_PLAYERS).success).toBe(true);
+      expect(schema.safeParse(over).success).toBe(false);
+    }
   });
 });
 

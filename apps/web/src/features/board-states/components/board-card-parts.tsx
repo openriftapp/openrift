@@ -169,13 +169,13 @@ export function BattlefieldCardFrame({
 export function ArrowHandle({ from }: { from: BoardArrow["from"] }) {
   const data: ArrowDragData = { type: "board-arrow", from };
   const id = "piece" in from ? `arrow:${from.piece}` : `arrow:chain:${from.chain}`;
-  const { setNodeRef, listeners, attributes } = useDraggable({ id, data });
+  const { setNodeRef, listeners } = useDraggable({ id, data });
   return (
     <div
       ref={setNodeRef}
       {...listeners}
-      {...attributes}
-      aria-label={m.board_states_arrow_handle()}
+      aria-hidden
+      title={m.board_states_arrow_handle()}
       className="bg-gilt absolute top-1/2 -right-1.5 z-10 size-3 -translate-y-1/2 cursor-grab rounded-full ring-1 ring-black/50"
     />
   );

@@ -51,7 +51,7 @@ export function useCommandPaletteShortcuts(): void {
         openPalette();
       }
     };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
+    globalThis.addEventListener("keydown", handler);
+    return () => globalThis.removeEventListener("keydown", handler);
   }, [openPalette, toggleShortcut]);
 }

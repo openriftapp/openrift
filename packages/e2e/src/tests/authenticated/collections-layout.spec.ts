@@ -155,9 +155,7 @@ test.describe("collections layout", () => {
   });
 
   test.describe("error", () => {
-    // Skipped: the global header SSR-warms the collections query, so a client
-    // page.route 500 never reaches the loader; the SSR fetch isn't interceptable.
-    test.skip("renders the error fallback when the collections fetch fails", async ({
+    test("renders the error fallback when the collections fetch fails", async ({
       authenticatedPage,
     }) => {
       const page = authenticatedPage;

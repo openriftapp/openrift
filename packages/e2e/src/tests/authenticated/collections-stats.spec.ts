@@ -429,9 +429,7 @@ test.describe("collection stats", () => {
         // Body is a card subtype, not a domain, so it isn't asserted here.
         const groupGroup = page.getByRole("group", { name: /Group by/iu });
         await groupGroup.getByRole("button", { name: "Domain" }).click();
-        const completion = page
-          .getByRole("heading", { name: "Completion", level: 2 })
-          .locator("xpath=ancestor::section[1]");
+        const completion = page.getByRole("region", { name: "Completion", exact: true });
         await expect(completion.getByText("Fury", { exact: true }).first()).toBeVisible();
       });
     });
@@ -467,9 +465,7 @@ test.describe("collection stats", () => {
 
         // The same words label rarity filter chips higher up the page, so scope
         // to the rarity chart's own section.
-        const rarityCard = page
-          .locator("section")
-          .filter({ has: page.getByRole("heading", { name: "Rarity", level: 3 }) });
+        const rarityCard = page.getByRole("region", { name: "Rarity", exact: true });
         await expect(rarityCard.getByText("Epic", { exact: true }).first()).toBeVisible();
         await expect(rarityCard.getByText("Rare", { exact: true }).first()).toBeVisible();
 

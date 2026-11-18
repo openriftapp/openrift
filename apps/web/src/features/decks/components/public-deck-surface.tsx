@@ -20,12 +20,11 @@ import type { FilterSearch } from "@/features/cards/lib/search-schemas";
 import { DeckMissingCardsDialog } from "@/features/decks/components/deck-missing-cards-dialog";
 import { DeckOverview } from "@/features/decks/components/deck-overview";
 import type { InferredZoneSlots } from "@/features/decks/components/deck-overview-zone-tile";
-import { DeckOwnershipBridge } from "@/features/decks/components/deck-ownership-bridge";
 import { DeckPlanView } from "@/features/decks/components/deck-plan-view";
 import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
+import { useViewerDeckOwnership } from "@/features/decks/hooks/use-viewer-deck-ownership";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toBuilderCardFromPublic } from "@/features/decks/lib/deck-builder-card";
-import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
 import { useDeckBenchSessionStore } from "@/features/decks/stores/deck-bench-session-store";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
 import { useHeaderHeight } from "@/hooks/use-header-height";
@@ -122,7 +121,11 @@ function PublicDeckContent({
     return map;
   })();
 
-  const [ownershipData, setOwnershipData] = useState<DeckOwnershipData>();
+  const ownershipData = useViewerDeckOwnership(builderCards, {
+    enabled: hydrated,
+    isLoggedIn,
+    marketplace,
+  });
 
   // Old links deep-link with #deck-test / #deck-plan (retired section-nav
   // anchors); map the hash to a tab once on mount.
@@ -260,18 +263,6 @@ function PublicDeckContent({
           mode={isLoggedIn ? "missing" : "prices"}
           deckName={data.deck.name}
         />
-      )}
-
-      {/* Gated behind hydration: ownership + price data needs client-only hooks. */}
-      {hydrated && (
-        <Suspense fallback={null}>
-          <DeckOwnershipBridge
-            builderCards={builderCards}
-            isLoggedIn={isLoggedIn}
-            marketplace={marketplace}
-            onResult={setOwnershipData}
-          />
-        </Suspense>
       )}
     </div>
   );

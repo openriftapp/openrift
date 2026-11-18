@@ -36,6 +36,9 @@
 - fix(Meta): **Result form explains its limits** — rank, record and player count are checked before sending.
 - fix(Stage): **Tier lists offline** — an already loaded tier list opens and leaves the stage without waiting for the connection.
 - fix(App): **More controls announced by screen readers** — filter badges are buttons that say whether they are on, off or excluded, and deck zones, stats sections, the domain bar and the export format have names. Deck and list rows no longer add an extra tab stop.
+- fix(Decks): **Moves past 99 copies say so** — moving cards onto a row, setting a quantity or saving a tournament deck now tells you when the 99-copy limit left copies out.
+- fix(Meta): **Deck details that fail to load** — standings and the deck browser show a note with a Retry button when deck values, bans or owned marks could not be loaded.
+- fix(App): **Contents list follows the page** — the contents list no longer keeps the highlighted section of the previous tournament, group or promo language.
 - feat(Tournaments): **Table cards match the top cut** — tables in rounds and group stages use the same layout as the top cut bracket, with one line per player and the scores and points lined up on the right. Earlier group rounds are listed newest first. In the top cut, each match names its table first, reported matches stay marked as reported like the group tables, the winner's row is highlighted with the score in gold, seats show the Legend's domains like the group tables, the seed of the player who chooses who starts is gold, seed and group badges explain themselves on hover or tap, and matches whose players aren't known yet are faded.
 
 ## 2026-11-17

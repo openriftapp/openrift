@@ -169,6 +169,33 @@ test.describe("deck builder beta", () => {
     await page.context().close();
   });
 
+  test("closing card detail scrolls back to the tile and focuses it", async ({ browser }) => {
+    const page = await signUpFreshUser(browser, { viewport: { width: 1400, height: 800 } });
+    const deckId = await createDeck(page, "Beta Return Deck");
+    await optIn(page);
+
+    await page.goto(`/decks/${deckId}?editor=build&target=main`);
+    await cardTile(page, "Annie, Fiery").waitFor({ timeout: 15_000 });
+    const garen = cardTile(page, "Garen, Commander");
+    await garen.scrollIntoViewIfNeeded();
+    await page.mouse.wheel(0, 300);
+    await expect(garen).toBeInViewport();
+    await expect.poll(() => page.evaluate(() => globalThis.scrollY)).toBeGreaterThan(0);
+
+    await garen.click();
+    const detail = page.getByRole("region", { name: "Card details" });
+    await expect(detail).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(detail).toBeHidden();
+
+    await expect(garen).toBeInViewport();
+    await expect(
+      garen.getByRole("button", { name: "Garen, Commander", exact: true }),
+    ).toBeFocused();
+
+    await page.context().close();
+  });
+
   test("opens the row menu from the keyboard with Shift+F10", async ({ browser }) => {
     const page = await signUpFreshUser(browser);
     const deckId = await createDeck(page, "Beta Keyboard Deck");

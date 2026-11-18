@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { gridGapCss } from "@/features/cards/lib/card-grid-metrics";
 import { MAX_COLUMNS, MIN_COLUMNS } from "@/features/cards/lib/column-range";
@@ -77,6 +77,22 @@ describe("useResponsiveColumns", () => {
     expect(result.current.measured).toBe(true);
     expect(result.current.columns).toBe(6);
     expect(result.current.containerWidth).toBe(300);
+  });
+
+  it("hands each auto-mode measurement to onAutoColumns, even with an override", () => {
+    const onAutoColumns = vi.fn();
+    const { result } = renderHook(() => useResponsiveColumns(3, onAutoColumns));
+    expect(onAutoColumns).not.toHaveBeenCalled();
+
+    const element = document.createElement("div");
+    Object.defineProperty(element, "offsetWidth", { configurable: true, value: 1300 });
+
+    act(() => {
+      result.current.containerRef(element);
+    });
+
+    expect(onAutoColumns).toHaveBeenCalledExactlyOnceWith(6);
+    expect(result.current.columns).toBe(3);
   });
 
   it.each([

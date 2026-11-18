@@ -6,7 +6,7 @@ import { expect, test } from "@playwright/test";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb, deleteUser } from "../../helpers/db.js";
-import { waitForHydrated } from "../../helpers/hydration.js";
+import { waitForProfileReady } from "../../helpers/hydration.js";
 import { decodeServerFnData, isServerFn } from "../../helpers/server-fn.js";
 
 type Sql = ReturnType<typeof connectToDb>;
@@ -49,9 +49,10 @@ async function createAndLogin(page: Page): Promise<string> {
 /** The /profile loader fetches preferences during SSR, so no client GET follows. */
 async function gotoProfile(page: Page) {
   await page.goto("/profile");
-  const autoButton = page.getByRole("radio", { name: "Auto", exact: true });
-  await expect(autoButton).toBeVisible({ timeout: 15_000 });
-  await waitForHydrated(autoButton);
+  await expect(page.getByRole("radio", { name: "Auto", exact: true })).toBeVisible({
+    timeout: 15_000,
+  });
+  await waitForProfileReady(page);
 }
 
 test.describe("profile preferences", () => {

@@ -1,3 +1,4 @@
+import { META_MAX_PLAYERS } from "@openrift/shared/meta-query";
 import { deckFormatSchema, metaEventTierSchema } from "@openrift/shared/response-schemas";
 import { isoDate } from "@openrift/shared/schemas";
 import { z } from "zod";
@@ -43,7 +44,7 @@ export const eventBodySchema = z.object({
   name: z.string().min(1).max(120),
   eventDate: isoDate,
   format: z.string().min(1),
-  playerCount: z.number().int().positive().nullable().optional(),
+  playerCount: z.number().int().positive().max(META_MAX_PLAYERS).nullable().optional(),
   organizer: z.string().min(1).max(120).nullable().optional(),
   notes: z.string().max(4000).nullable().optional(),
   tier: metaEventTierSchema.optional(),

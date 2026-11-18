@@ -127,57 +127,6 @@ export function collectOwnershipBandSources(
   };
 }
 
-function sameIdLists(
-  left: Record<string, readonly string[]>,
-  right: Record<string, readonly string[]>,
-): boolean {
-  const keys = Object.keys(left);
-  if (keys.length !== Object.keys(right).length) {
-    return false;
-  }
-  return keys.every((key) => left[key]?.join(",") === right[key]?.join(","));
-}
-
-function sameRecord<Value>(left: Record<string, Value>, right: Record<string, Value>): boolean {
-  if (left === right) {
-    return true;
-  }
-  const keys = Object.keys(left);
-  if (keys.length !== Object.keys(right).length) {
-    return false;
-  }
-  for (const key of keys) {
-    if (left[key] !== right[key]) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/**
- * An equal-but-new object must not count as a change: keeping the previous
- * one lets React skip the re-render, avoiding a fresh-object-per-render loop.
- */
-export function sameOwnershipBandSources(
-  left: OwnershipBandSources | undefined,
-  right: OwnershipBandSources | undefined,
-): boolean {
-  if (left === right) {
-    return true;
-  }
-  if (!left || !right) {
-    return false;
-  }
-  return (
-    sameRecord(left.availableByPrinting, right.availableByPrinting) &&
-    sameRecord(left.availableByCardId, right.availableByCardId) &&
-    sameRecord(left.lockedByCardId, right.lockedByCardId) &&
-    sameRecord(left.borrowedByCardId, right.borrowedByCardId) &&
-    sameRecord(left.displayedPrintingIdByCardKey, right.displayedPrintingIdByCardKey) &&
-    sameIdLists(left.ownedPrintingIdsByCardId, right.ownedPrintingIdsByCardId)
-  );
-}
-
 /**
  * Copies are allocated across entries, not per entry: every entry claims its
  * displayed printing first (one pool per printing), then remaining copies of

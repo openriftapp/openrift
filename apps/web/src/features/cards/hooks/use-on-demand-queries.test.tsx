@@ -16,9 +16,10 @@ import {
   CatalogLanguageOrderContext,
   catalogLanguageOrder,
 } from "@/features/cards/lib/catalog-language-order";
-import { completeCatalogEntry } from "@/features/cards/lib/catalog-queries";
+import { completeCatalogEntry, enrichCatalog } from "@/features/cards/lib/catalog-queries";
+import { CatalogSubsetContext } from "@/features/cards/lib/catalog-subset-context";
 
-import { useCatalogWhenReady } from "./use-cards";
+import { useCardsOnDemand, useCatalogWhenReady } from "./use-cards";
 import { usePricesOnDemand } from "./use-prices";
 
 const { id: _cardId, ...card } = makeCatalogCard({ id: "card-1" });
@@ -149,5 +150,37 @@ describe("useCatalogWhenReady", () => {
     const consoleError = renderInBoundary(newClient(), () => useCatalogWhenReady(true));
     expect(await screen.findByText("load failed")).toBeInTheDocument();
     consoleError.mockRestore();
+  });
+});
+
+describe("useCardsOnDemand", () => {
+  it("returns undefined while disabled even with the catalogue cached", () => {
+    const client = newClient();
+    client.setQueryData(catalogKeys.all, completeCatalogEntry(CATALOG));
+    const { result } = renderHook(() => useCardsOnDemand(false), {
+      wrapper: wrapperFor(client),
+    });
+    expect(result.current).toBeUndefined();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("serves the page's subset in the viewer's language order without fetching", () => {
+    const Wrapper = wrapperFor(newClient());
+    const { result } = renderHook(() => useCardsOnDemand(true), {
+      wrapper: ({ children }) => (
+        <Wrapper>
+          <CatalogSubsetContext value={enrichCatalog(CATALOG)}>{children}</CatalogSubsetContext>
+        </Wrapper>
+      ),
+    });
+    expect(result.current?.allPrintings.map((printing) => printing.language)).toEqual(["DE", "EN"]);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("stays undefined, without throwing, when the catalogue fails to load", async () => {
+    const client = newClient();
+    const { result } = renderHook(() => useCardsOnDemand(true), { wrapper: wrapperFor(client) });
+    await waitFor(() => expect(client.getQueryState(catalogKeys.all)?.status).toBe("error"));
+    expect(result.current).toBeUndefined();
   });
 });

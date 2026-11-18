@@ -197,14 +197,9 @@ export const adminCardMutationsCandidatesRouter = {
   ),
 
   copyCandidatePrinting: os.copyCandidatePrinting.handler(
-    async ({ input, context, errors }): Promise<void> => {
+    async ({ input, context }): Promise<void> => {
       const { catalogMutations: mut, candidateCards } = context.repos;
       const { id, printingId } = input;
-
-      if (!printingId) {
-        throw errors.BAD_REQUEST({ message: "printingId is required" });
-      }
-
       const ps = await candidateCards.getCandidatePrintingById(id);
       assertFound(ps, "Candidate printing not found");
 

@@ -1,9 +1,20 @@
 // @vitest-environment happy-dom
-import { describe, expect, it } from "vitest";
+import { deckCardKey } from "@openrift/shared/deck-cards";
+import { createCollection, localOnlyCollectionOptions } from "@tanstack/react-db";
+import { describe, expect, it, vi } from "vitest";
 
+import { moveCardAction } from "@/features/decks/hooks/use-deck-builder";
+import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import type { DeckDropData } from "@/features/decks/lib/deck-dnd-data";
+import { showRelaxedAddToast } from "@/features/decks/lib/workbench-add-toast";
+import { stubDeckBuilderCard } from "@/test/factories";
 
-import { releaseDropTarget, zoneAtPoint } from "./deck-dnd-context";
+import { dropDeckCard, releaseDropTarget, zoneAtPoint } from "./deck-dnd-context";
+
+vi.mock("@/features/decks/lib/workbench-add-toast", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  showRelaxedAddToast: vi.fn(),
+}));
 
 function docWithElementsAt(elements: Element[]): Document {
   return { elementsFromPoint: () => elements } as unknown as Document;
@@ -64,5 +75,59 @@ describe("releaseDropTarget", () => {
         accepts,
       ),
     ).toBeNull();
+  });
+});
+
+describe("dropDeckCard", () => {
+  it("warns about and undoes only the copies that fit under the row cap", () => {
+    const row = (zone: DeckBuilderCard["zone"], quantity: number) =>
+      stubDeckBuilderCard({
+        cardId: "card-1",
+        cardType: "unit",
+        zone,
+        quantity,
+        preferredPrintingId: null,
+      });
+    const collection = createCollection(
+      localOnlyCollectionOptions<DeckBuilderCard>({
+        id: "drop-deck-card",
+        getKey: deckCardKey,
+        initialData: [row("main", 97), row("overflow", 5)],
+      }),
+    );
+    const move =
+      (amount: "all" | "one") =>
+      (
+        cardId: string,
+        from: DeckBuilderCard["zone"],
+        to: DeckBuilderCard["zone"],
+        printing: string | null,
+      ) =>
+        moveCardAction(collection, cardId, from, to, printing, "constructed", amount).moved;
+    const quantities = () =>
+      Object.fromEntries([...collection.values()].map((card) => [card.zone, card.quantity]));
+
+    dropDeckCard({
+      data: {
+        type: "deck-card",
+        cardId: "card-1",
+        cardName: "Test Card",
+        fromZone: "overflow",
+        quantity: 5,
+        preferredPrintingId: null,
+      },
+      toZone: "main",
+      moveAll: true,
+      relaxed: true,
+      deckCards: [...collection.values()],
+      format: "constructed",
+      actions: { moveCard: move("all"), moveOneCard: move("one") },
+    });
+
+    expect(quantities()).toEqual({ main: 99, overflow: 3 });
+    const [outcome, handlers] = vi.mocked(showRelaxedAddToast).mock.calls[0] ?? [];
+    expect(outcome).toMatchObject({ rule: "copyLimit", quantity: 2, total: 99 });
+    handlers?.undo();
+    expect(quantities()).toEqual({ main: 97, overflow: 5 });
   });
 });

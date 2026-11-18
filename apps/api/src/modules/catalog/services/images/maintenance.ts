@@ -1,5 +1,6 @@
 import { join } from "node:path";
 
+import { HOUR_MS } from "@openrift/shared/format-date";
 import { errorMessage } from "@openrift/shared/strings";
 import type {
   BrokenImagesResponse,
@@ -36,12 +37,19 @@ function resolveResolutionLabel(filename: string): string {
   return "other";
 }
 
+interface DiskPrefix {
+  prefix: string;
+  files: string[];
+  /** Milliseconds since the epoch, 0 when the file system reports none. */
+  mtimes: Map<string, number>;
+}
+
 async function scanDisk(io: Io): Promise<{
   stats: RehostStatusDiskStats;
-  filesByPrefix: { prefix: string; files: string[] }[];
+  filesByPrefix: DiskPrefix[];
 }> {
   const sets: RehostStatusDiskStats["sets"] = [];
-  const filesByPrefix: { prefix: string; files: string[] }[] = [];
+  const filesByPrefix: DiskPrefix[] = [];
   const resByResolution = new Map<string, { bytes: number; fileCount: number }>();
   let totalBytes = 0;
 
@@ -53,9 +61,11 @@ async function scanDisk(io: Io): Promise<{
       }
       const prefixDir = join(CARD_MEDIA_DIR, entry.name);
       const files = await io.fs.readdir(prefixDir);
+      const mtimes = new Map<string, number>();
       let dirBytes = 0;
       for (const file of files) {
         const info = await io.fs.stat(join(prefixDir, file));
+        mtimes.set(file, info.mtime instanceof Date ? info.mtime.getTime() : 0);
         dirBytes += info.size;
         const resolution = resolveResolutionLabel(file);
         const bucket = resByResolution.get(resolution) ?? { bytes: 0, fileCount: 0 };
@@ -64,7 +74,7 @@ async function scanDisk(io: Io): Promise<{
         resByResolution.set(resolution, bucket);
       }
       sets.push({ setId: entry.name, bytes: dirBytes, fileCount: files.length });
-      filesByPrefix.push({ prefix: entry.name, files });
+      filesByPrefix.push({ prefix: entry.name, files, mtimes });
       totalBytes += dirBytes;
     }
   } catch {
@@ -134,19 +144,14 @@ export async function getRehostStatus(
 }
 
 /** Returns stale duplicate `-orig.*` archives per base, keeping only the newest by mtime. */
-async function findDuplicateOrigs(
-  io: Io,
-  prefixDir: string,
-  files: string[],
-): Promise<Set<string>> {
+function findDuplicateOrigs({ files, mtimes }: DiskPrefix): Set<string> {
   const byBase = new Map<string, { file: string; mtime: number }[]>();
   for (const file of files) {
     const base = ORIG_FILE_RE.exec(file)?.[1];
     if (base === undefined) {
       continue;
     }
-    const info = await io.fs.stat(join(prefixDir, file));
-    const mtime = info.mtime instanceof Date ? info.mtime.getTime() : 0;
+    const mtime = mtimes.get(file) ?? 0;
     const list = byBase.get(base) ?? [];
     list.push({ file, mtime });
     byBase.set(base, list);
@@ -165,21 +170,31 @@ async function findDuplicateOrigs(
   return stale;
 }
 
+const ORPHAN_MIN_AGE_MS = HOUR_MS;
+
+/** Deletes card media files no row references, leaving files written in the last hour to in-flight image writes. */
 export async function cleanupOrphanedFiles(
   io: Io,
   repo: PrintingImagesRepo,
+  now: Date = new Date(),
 ): Promise<CleanupOrphanedResponse> {
   const progress: CleanupOrphanedResponse = { scanned: 0, deleted: 0, errors: [] };
 
   const [knownUrls, { filesByPrefix }] = await Promise.all([repo.allRehostedUrls(), scanDisk(io)]);
   const knownPrefixes = new Set(knownUrls);
 
-  for (const { prefix, files } of filesByPrefix) {
+  const cutoff = now.getTime() - ORPHAN_MIN_AGE_MS;
+
+  for (const disk of filesByPrefix) {
+    const { prefix, files, mtimes } = disk;
     const prefixDir = join(CARD_MEDIA_DIR, prefix);
-    const staleDuplicateOrigs = await findDuplicateOrigs(io, prefixDir, files);
+    const staleDuplicateOrigs = findDuplicateOrigs(disk);
 
     for (const file of files) {
       progress.scanned++;
+      if ((mtimes.get(file) ?? 0) > cutoff) {
+        continue;
+      }
       const orphaned =
         !isValidVariantSuffix(file) ||
         !knownPrefixes.has(diskFileToPrefix(prefix, file)) ||

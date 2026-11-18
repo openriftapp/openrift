@@ -100,6 +100,9 @@ vi.mock("@/features/meta/hooks/use-meta-eras", () => ({
 }));
 vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: () => captured.hydrated }));
 vi.mock("@/hooks/use-sm-up", () => ({ useSmUp: () => captured.smUp }));
+vi.mock("@/features/meta/hooks/use-meta-overlay-failure", () => ({
+  useMetaOverlayFailure: () => ({ failed: false, retry: () => {} }),
+}));
 vi.mock("@/features/meta/hooks/use-meta-deck-costs", () => ({
   useMetaDeckCosts: () => captured.costs,
 }));

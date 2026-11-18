@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { MAX_DECK_CARD_QUANTITY } from "@openrift/shared/deck-cards";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { toast } from "sonner";
 
@@ -20,6 +21,14 @@ export interface RelaxedAddOutcome {
   total: number;
   limit: number;
   swappedOut?: DeckBuilderCard;
+}
+
+/** A row edit that stopped at the per-row cap; `moved` is what landed, 0 when the row was already full. */
+export interface RowCapNotice {
+  card: DeckBuilderCard;
+  moved: number;
+  requested: number;
+  raisedToLimit?: boolean;
 }
 
 function nameOf(card: DeckBuilderCard): string {
@@ -109,4 +118,28 @@ export function dismissRelaxedAddToasts(): void {
     toast.dismiss(id);
   }
   openToasts.clear();
+}
+
+export function rowCapMessage(notice: RowCapNotice): string {
+  const card = nameOf(notice.card);
+  const limit = MAX_DECK_CARD_QUANTITY;
+  if (notice.raisedToLimit) {
+    return m.decks_workbench_row_set_to_limit({ card, limit });
+  }
+  return notice.moved > 0
+    ? m.decks_workbench_row_full_moved({
+        card,
+        moved: notice.moved,
+        requested: notice.requested,
+        limit,
+      })
+    : m.decks_workbench_row_full({ card, limit });
+}
+
+export function showRowCapToast(notice: RowCapNotice | undefined): void {
+  if (!notice) {
+    return;
+  }
+  const onDismiss = (shown: { id: string | number }) => openToasts.delete(shown.id);
+  openToasts.add(toast.warning(rowCapMessage(notice), { onDismiss, onAutoClose: onDismiss }));
 }

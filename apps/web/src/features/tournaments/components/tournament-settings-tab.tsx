@@ -73,7 +73,7 @@ export function TournamentSettingsTab({ detail }: { detail: TournamentDetailResp
   const canEndEarly = effectiveState !== "completed" && effectiveState !== "cancelled";
 
   return (
-    <SettingsLayout toc={buildTocItems({ isHost, runsRounds, showRegions })}>
+    <SettingsLayout toc={buildTocItems({ isHost, runsRounds, showRegions })} scope={detail.id}>
       <SettingsGroup id="general" title={m.tournaments_settings_toc_general()}>
         <NameSection detail={detail} locked={locked} />
 

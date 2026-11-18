@@ -5,6 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
 import { useGridFocusStore } from "@/features/cards/stores/grid-focus-store";
+import {
+  createGridViewportStore,
+  GridViewportStoreContext,
+} from "@/features/cards/stores/grid-viewport-store";
 import type { GroupInfo } from "@/lib/card-group-types";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import { useDisplayStore } from "@/stores/display-store";
@@ -13,7 +17,7 @@ import { createStoreResetter } from "@/test/store-helpers";
 
 const COLUMNS = 3;
 const CONTAINER_WIDTH = 400;
-const layout = vi.hoisted(() => ({ width: 400 }));
+const layout = vi.hoisted(() => ({ width: 400, columns: 3 }));
 
 vi.mock("@/hooks/use-enums", () => ({
   useEnumOrders: () => ({ orders: {}, labels: {} }),
@@ -27,8 +31,8 @@ vi.mock("@/features/cards/hooks/use-responsive-columns", () => ({
   useResponsiveColumns: () => ({
     containerRef: () => {},
     containerEl: null,
-    columns: COLUMNS,
-    autoColumns: COLUMNS,
+    columns: layout.columns,
+    autoColumns: layout.columns,
     containerWidth: layout.width,
     measured: true,
   }),
@@ -54,11 +58,13 @@ const CARDS_ROW_HEIGHT = Math.round(
 );
 const HEADER_ROW_HEIGHT = HEADER_PT + HEADER_CONTENT_HEIGHT + HEADER_PB;
 
+const viewportStore = createGridViewportStore();
 const resetDisplayStore = createStoreResetter(useDisplayStore);
 const resetGridFocusStore = createStoreResetter(useGridFocusStore);
 
 afterEach(() => {
   layout.width = CONTAINER_WIDTH;
+  layout.columns = COLUMNS;
   resetDisplayStore();
   resetGridFocusStore();
   vi.restoreAllMocks();
@@ -103,15 +109,17 @@ function gridElement(
 ) {
   return (
     <FilterSearchProvider value={search}>
-      <CardGrid
-        items={items}
-        totalItems={items.length}
-        renderCard={(item) => <div>{item.id}</div>}
-        setOrder={setOrder}
-        groupBy="set"
-        stickyOffset={0}
-        selectedItemId={selectedItemId}
-      />
+      <GridViewportStoreContext value={viewportStore}>
+        <CardGrid
+          items={items}
+          totalItems={items.length}
+          renderCard={(item) => <div>{item.id}</div>}
+          setOrder={setOrder}
+          groupBy="set"
+          stickyOffset={0}
+          selectedItemId={selectedItemId}
+        />
+      </GridViewportStoreContext>
     </FilterSearchProvider>
   );
 }
@@ -124,16 +132,18 @@ function returnGridElement(
 ) {
   return (
     <FilterSearchProvider value={{}}>
-      <CardGrid
-        items={items}
-        totalItems={items.length}
-        renderCard={(item) => <div>{item.id}</div>}
-        setOrder={setOrder}
-        groupBy="set"
-        stickyOffset={0}
-        returnToItemId={itemId}
-        onReturned={onReturned}
-      />
+      <GridViewportStoreContext value={viewportStore}>
+        <CardGrid
+          items={items}
+          totalItems={items.length}
+          renderCard={(item) => <div>{item.id}</div>}
+          setOrder={setOrder}
+          groupBy="set"
+          stickyOffset={0}
+          returnToItemId={itemId}
+          onReturned={onReturned}
+        />
+      </GridViewportStoreContext>
     </FilterSearchProvider>
   );
 }
@@ -360,6 +370,31 @@ describe("CardGrid return to an item", () => {
     rerender(returnGridElement(items, [set], target));
 
     expect(scrollTo).toHaveBeenCalledTimes(calls);
+  });
+
+  it("lands on the item when the grid comes back with its column count restored", () => {
+    vi.spyOn(document.documentElement, "scrollHeight", "get").mockReturnValue(100_000);
+    const scrollTo = vi
+      .spyOn(globalThis, "scrollTo")
+      .mockImplementation((options?: ScrollToOptions | number) => {
+        if (typeof options === "object" && options.top !== undefined) {
+          setWindowScrollY(options.top);
+        }
+      });
+    const { rerender } = render(returnGridElement(items, [set]));
+    scrollWindowTo(0);
+
+    layout.width = 0;
+    layout.columns = 2;
+    rerender(returnGridElement(items, [set]));
+
+    layout.width = CONTAINER_WIDTH;
+    layout.columns = COLUMNS;
+    rerender(returnGridElement(items, [set], target));
+
+    expect(scrollTo).toHaveBeenLastCalledWith(
+      expect.objectContaining({ top: (CARDS_ROW_HEIGHT + GAP) * 6 }),
+    );
   });
 
   it("reports the return once it has a width, with whether the item is in the grid", () => {

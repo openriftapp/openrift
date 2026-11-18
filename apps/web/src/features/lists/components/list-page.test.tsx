@@ -289,7 +289,18 @@ vi.mock("@/features/lists/components/list-share-dialog", () => ({
 }));
 vi.mock("@/features/lists/components/list-export-dialog", () => ({ ListExportDialog: () => null }));
 vi.mock("@/features/lists/components/list-import-dialog", () => ({ ListImportDialog: () => null }));
-vi.mock("@/features/lists/components/rule-editor-dialog", () => ({ RuleEditorDialog: () => null }));
+const ruleDialogMounts = vi.hoisted(() => ({ count: 0 }));
+vi.mock("@/features/lists/components/rule-editor-dialog", async () => {
+  const { useEffect } = await import("react");
+  return {
+    RuleEditorDialog: () => {
+      useEffect(() => {
+        ruleDialogMounts.count += 1;
+      }, []);
+      return <div role="dialog" aria-label="Dynamic rules" />;
+    },
+  };
+});
 
 const { ListPage } = await import("./list-page");
 const { TopBarSlotContext } = await import("@/components/layout/top-bar-slot");
@@ -603,6 +614,27 @@ describe("ListPage", () => {
 
     expect(screen.getByRole("button", { name: "Edit dynamic rules" })).toBeInTheDocument();
     expect(screen.getByText(/nothing matches this list's rules yet/iu)).toBeInTheDocument();
+  });
+
+  it("keeps the open rule editor mounted when the empty list fills up", async () => {
+    listDetail = emptyListDetail;
+    ruleDialogMounts.count = 0;
+    const user = userEvent.setup();
+    const { view, topBarSlot } = renderListPage();
+    await user.click(screen.getByRole("button", { name: "Set up dynamic rules" }));
+    expect(screen.getByRole("dialog", { name: "Dynamic rules" })).toBeInTheDocument();
+
+    listDetail = ruleDrivenListDetail;
+    view.rerender(
+      <TopBarSlotContext value={topBarSlot}>
+        <FilterSearchProvider value={{}}>
+          <ListPage listId="list-1" />
+        </FilterSearchProvider>
+      </TopBarSlotContext>,
+    );
+
+    expect(screen.getByRole("dialog", { name: "Dynamic rules" })).toBeInTheDocument();
+    expect(ruleDialogMounts.count).toBe(1);
   });
 
   it("manages the selection from the top bar, like a collection does", async () => {

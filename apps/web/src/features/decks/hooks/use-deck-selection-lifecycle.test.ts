@@ -45,12 +45,12 @@ describe("useDeckSelectionLifecycle", () => {
   });
 
   it("marks the Escape it takes as handled, so a docked detail pane stays open", () => {
-    renderHook(() => useDeckSelectionLifecycle());
     let paneSawUnhandled = false;
     const pane = (event: KeyboardEvent) => {
       paneSawUnhandled = !event.defaultPrevented;
     };
     globalThis.addEventListener("keydown", pane);
+    renderHook(() => useDeckSelectionLifecycle());
 
     const event = pressEscape();
 

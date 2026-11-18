@@ -2,6 +2,10 @@ import type { ReactNode } from "react";
 import { createContext, use, useState } from "react";
 
 import { usePageTopBarHeight } from "@/components/layout/page-top-bar";
+import {
+  createGridViewportStore,
+  GridViewportStoreContext,
+} from "@/features/cards/stores/grid-viewport-store";
 import { useHeaderHeight } from "@/hooks/use-header-height";
 import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
@@ -52,6 +56,8 @@ export function CardBrowserLayout({
   children,
 }: CardBrowserLayoutProps) {
   const pageTopBarHeight = usePageTopBarHeight();
+  // oxlint-disable-next-line react/hook-use-state -- a stable per-surface store, never replaced
+  const [gridViewportStore] = useState(createGridViewportStore);
   const [toolbarEl, setToolbarEl] = useState<HTMLDivElement | null>(null);
   const [aboveGridEl, setAboveGridEl] = useState<HTMLDivElement | null>(null);
   const toolbarHeight = useMeasuredHeight(toolbarEl);
@@ -64,55 +70,57 @@ export function CardBrowserLayout({
   const stickyOffset = toolbarOffset + aboveGridHeight;
 
   return (
-    <CardBrowserLayoutContext value={{ toolbarOffset, stickyOffset }}>
-      <div className="@container flex flex-1 flex-col">
-        <div
-          ref={setToolbarEl}
-          className={cn(
-            // z-30, co-planar with the page top bar: at z-20 the bar's own bg
-            // painted over and clipped a focused control's outset ring. See
-            // the sticky z-ladder note in CLAUDE.md.
-            STICKY_SURFACE,
-            // flow-root keeps the last filter row's margin inside the sticky surface.
-            "mx-safe-neg px-safe sticky z-30 flow-root",
-            // Only the first tier under the header gets top padding; a page
-            // top bar above already provides the gap via its own pb-3.
-            pageTopBarHeight === 0 && "-mt-px pt-3",
-            aboveGridHeight === 0 && "sm:rounded-b-lg",
-          )}
-          style={{ top: headerOffset }}
-        >
-          {toolbar}
-        </div>
-        <div
-          className="relative flex flex-1 items-stretch gap-6"
-          style={{ "--sticky-top": `${stickyOffset}px` } as React.CSSProperties}
-        >
-          {leftPane}
-          <div className="flex min-w-0 flex-1 flex-col">
-            <div
-              ref={setAboveGridEl}
-              className={cn(STICKY_SURFACE, "mx-safe-neg px-safe sticky z-15 sm:rounded-b-lg")}
-              style={{ top: toolbarOffset }}
-            >
-              {aboveGrid}
-            </div>
-            {banner}
-            <div className="relative flex flex-1 items-stretch gap-6">
+    <GridViewportStoreContext value={gridViewportStore}>
+      <CardBrowserLayoutContext value={{ toolbarOffset, stickyOffset }}>
+        <div className="@container flex flex-1 flex-col">
+          <div
+            ref={setToolbarEl}
+            className={cn(
+              // z-30, co-planar with the page top bar: at z-20 the bar's own bg
+              // painted over and clipped a focused control's outset ring. See
+              // the sticky z-ladder note in CLAUDE.md.
+              STICKY_SURFACE,
+              // flow-root keeps the last filter row's margin inside the sticky surface.
+              "mx-safe-neg px-safe sticky z-30 flow-root",
+              // Only the first tier under the header gets top padding; a page
+              // top bar above already provides the gap via its own pb-3.
+              pageTopBarHeight === 0 && "-mt-px pt-3",
+              aboveGridHeight === 0 && "sm:rounded-b-lg",
+            )}
+            style={{ top: headerOffset }}
+          >
+            {toolbar}
+          </div>
+          <div
+            className="relative flex flex-1 items-stretch gap-6"
+            style={{ "--sticky-top": `${stickyOffset}px` } as React.CSSProperties}
+          >
+            {leftPane}
+            <div className="flex min-w-0 flex-1 flex-col">
               <div
-                className={cn(
-                  "@container/grid flex min-w-0 flex-1 flex-col transition-opacity duration-150",
-                  stale ? "opacity-60" : "opacity-100",
-                )}
+                ref={setAboveGridEl}
+                className={cn(STICKY_SURFACE, "mx-safe-neg px-safe sticky z-15 sm:rounded-b-lg")}
+                style={{ top: toolbarOffset }}
               >
-                {gridSlot}
+                {aboveGrid}
               </div>
-              {rightPane}
+              {banner}
+              <div className="relative flex flex-1 items-stretch gap-6">
+                <div
+                  className={cn(
+                    "@container/grid flex min-w-0 flex-1 flex-col transition-opacity duration-150",
+                    stale ? "opacity-60" : "opacity-100",
+                  )}
+                >
+                  {gridSlot}
+                </div>
+                {rightPane}
+              </div>
             </div>
           </div>
+          {children}
         </div>
-        {children}
-      </div>
-    </CardBrowserLayoutContext>
+      </CardBrowserLayoutContext>
+    </GridViewportStoreContext>
   );
 }

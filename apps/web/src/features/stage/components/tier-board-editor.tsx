@@ -246,7 +246,7 @@ function RowDragHandle({ rowIndex, label }: { rowIndex: number; label: string })
   const dragData: RowHandleDragData = { type: "tier-row-handle", rowIndex };
   // Destructure before JSX: member access on a dnd-kit hook's return in render
   // makes the React Compiler bail.
-  const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
+  const { setNodeRef, listeners, isDragging } = useDraggable({
     id: `tier-row-handle-${rowIndex}`,
     data: dragData,
   });
@@ -255,8 +255,8 @@ function RowDragHandle({ rowIndex, label }: { rowIndex: number; label: string })
     <div
       ref={setNodeRef}
       {...listeners}
-      {...attributes}
-      aria-label={m.tier_lists_row_reorder_aria({ label })}
+      aria-hidden
+      title={m.tier_lists_row_reorder_aria({ label })}
       // touch-none: dnd-kit's PointerSensor needs pointer events here, not touch-scroll.
       className={cn(
         "text-muted-foreground hover:text-foreground flex cursor-grab touch-none items-center justify-center active:cursor-grabbing",
@@ -300,7 +300,6 @@ function BoardCard({ view, rowIndex, position, width, tapToAssign, onHoverCard }
   const {
     setNodeRef: setDragRef,
     listeners,
-    attributes,
     isDragging,
   } = useDraggable({
     id: `tier-board-card-${view.cardId}`,
@@ -350,12 +349,15 @@ function BoardCard({ view, rowIndex, position, width, tapToAssign, onHoverCard }
         <div
           ref={setDragRef}
           {...listeners}
-          {...attributes}
+          // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- Shift+F10 and the Menu key open the card's context menu from keyboard focus
+          tabIndex={0}
+          aria-label={legendDisplayName(view.card)}
+          aria-haspopup="menu"
           onMouseEnter={() => onHoverCard?.(view)}
           onMouseLeave={() => onHoverCard?.(null)}
           // dnd-kit's PointerSensor needs the browser to keep sending pointer
           // events; the default touch-action would pan the page instead.
-          className="cursor-grab touch-none active:cursor-grabbing"
+          className="focus-visible:ring-ring/50 cursor-grab touch-none rounded-sm focus-visible:ring-2 focus-visible:outline-none active:cursor-grabbing"
           style={isDragging ? { opacity: 0.4 } : undefined}
         >
           <TierCardTile view={view} width={width} />

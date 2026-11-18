@@ -32,11 +32,12 @@ import {
   toRuleEngineCard,
 } from "@/features/decks/lib/deck-builder-card";
 import { legendSwitchCards } from "@/features/decks/lib/legend-switch-preview";
-import type { RelaxedAddOutcome } from "@/features/decks/lib/workbench-add-toast";
+import type { RelaxedAddOutcome, RowCapNotice } from "@/features/decks/lib/workbench-add-toast";
 import {
   dismissRemovalToast,
   showRelaxedAddToast,
   showRemovalToast,
+  showRowCapToast,
 } from "@/features/decks/lib/workbench-add-toast";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
 import { applyDeckSnapshot } from "@/features/decks/stores/deck-draft-store";
@@ -491,9 +492,10 @@ export function moveCardAction(
   preferredPrintingId: string | null,
   format: DeckFormat,
   amount: "all" | "one",
-): void {
+): { moved: number; notice?: RowCapNotice } {
+  const none = { moved: 0 };
   if (fromZone === toZone) {
-    return;
+    return none;
   }
   const sourceKey = deckCardKey({
     cardId,
@@ -502,12 +504,12 @@ export function moveCardAction(
   });
   const source = collection.get(sourceKey);
   if (!source || !isCardAllowedInZone(source, toZone)) {
-    return;
+    return none;
   }
   const singleSlot = isSingleSlotZone(toZone) && format !== WellKnown.deckFormat.FREEFORM;
   if (singleSlot) {
     moveIntoSingleSlot(collection, source, sourceKey, toZone);
-    return;
+    return { moved: 1 };
   }
   const targetKey = deckCardKey({
     cardId,
@@ -515,9 +517,10 @@ export function moveCardAction(
     preferredPrintingId,
   });
   const target = collection.get(targetKey);
-  const moved = Math.min(amount === "all" ? source.quantity : 1, roomIn(target));
+  const requested = amount === "all" ? source.quantity : 1;
+  const moved = Math.min(requested, roomIn(target));
   if (moved <= 0) {
-    return;
+    return { moved: 0, notice: { card: target ?? source, moved: 0, requested } };
   }
   if (source.quantity > moved) {
     collection.update(sourceKey, (draft) => {
@@ -534,6 +537,7 @@ export function moveCardAction(
   } else {
     collection.insert({ ...source, zone: toZone, quantity: moved });
   }
+  return moved < requested ? { moved, notice: { card: source, moved, requested } } : { moved };
 }
 
 /**
@@ -546,7 +550,7 @@ export function setQuantityAction(
   zone: DeckZone,
   quantity: number,
   preferredPrintingId?: string | null,
-): void {
+): RowCapNotice | undefined {
   const target =
     preferredPrintingId === undefined
       ? findRowForCardInZone(allCards(collection), cardId, zone)
@@ -563,9 +567,16 @@ export function setQuantityAction(
     collection.delete(key);
     return;
   }
+  const previous = target.quantity;
   collection.update(key, (draft) => {
     draft.quantity = Math.min(MAX_DECK_CARD_QUANTITY, quantity);
   });
+  if (quantity <= MAX_DECK_CARD_QUANTITY) {
+    return;
+  }
+  return previous < MAX_DECK_CARD_QUANTITY
+    ? { card: target, moved: 0, requested: quantity, raisedToLimit: true }
+    : { card: target, moved: 0, requested: quantity };
 }
 
 /** When countToConvert equals the source row's full quantity, the source row is removed. */
@@ -576,7 +587,7 @@ export function changePreferredPrintingAction(
   fromPrintingId: string | null,
   toPrintingId: string | null,
   countToConvert: number,
-): void {
+): RowCapNotice | undefined {
   if (fromPrintingId === toPrintingId) {
     return;
   }
@@ -591,9 +602,10 @@ export function changePreferredPrintingAction(
   }
   const targetKey = deckCardKey({ cardId, zone, preferredPrintingId: toPrintingId });
   const target = collection.get(targetKey);
-  const take = Math.min(Math.max(1, Math.min(countToConvert, source.quantity)), roomIn(target));
+  const requested = Math.max(1, Math.min(countToConvert, source.quantity));
+  const take = Math.min(requested, roomIn(target));
   if (take <= 0) {
-    return;
+    return { card: target ?? source, moved: 0, requested };
   }
 
   if (take >= source.quantity) {
@@ -611,6 +623,7 @@ export function changePreferredPrintingAction(
   } else {
     collection.insert({ ...source, quantity: take, preferredPrintingId: toPrintingId });
   }
+  return take < requested ? { card: source, moved: take, requested } : undefined;
 }
 
 function replaceDeckCards(
@@ -692,7 +705,7 @@ export function recordDeckEdit<T>(
   return result;
 }
 
-interface DeckBuilderActions {
+export interface DeckBuilderActions {
   addCard: (card: DeckBuilderCard, zone?: DeckZone, count?: number) => void;
   removeCard: (cardId: string, zone: DeckZone, preferredPrintingId?: string | null) => void;
   replaceCard: (outgoing: DeckBuilderCard, incoming: DeckBuilderCard, zone: DeckZone) => void;
@@ -701,13 +714,13 @@ interface DeckBuilderActions {
     fromZone: DeckZone,
     toZone: DeckZone,
     preferredPrintingId: string | null,
-  ) => void;
+  ) => number;
   moveOneCard: (
     cardId: string,
     fromZone: DeckZone,
     toZone: DeckZone,
     preferredPrintingId: string | null,
-  ) => void;
+  ) => number;
   setQuantity: (
     cardId: string,
     zone: DeckZone,
@@ -748,8 +761,8 @@ export function useDeckBuilderActions(deckId: string): DeckBuilderActions {
       addCard: noop,
       removeCard: noop,
       replaceCard: noop,
-      moveCard: noop,
-      moveOneCard: noop,
+      moveCard: () => 0,
+      moveOneCard: () => 0,
       setQuantity: noop,
       changePreferredPrinting: noop,
       setLegend: noop,
@@ -838,10 +851,18 @@ export function useDeckBuilderActions(deckId: string): DeckBuilderActions {
       );
     },
     moveCard: (cardId, from, to, preferredPrintingId) => {
-      edit(() => moveCardAction(collection, cardId, from, to, preferredPrintingId, format, "all"));
+      const result = edit(() =>
+        moveCardAction(collection, cardId, from, to, preferredPrintingId, format, "all"),
+      );
+      showRowCapToast(result.notice);
+      return result.moved;
     },
     moveOneCard: (cardId, from, to, preferredPrintingId) => {
-      edit(() => moveCardAction(collection, cardId, from, to, preferredPrintingId, format, "one"));
+      const result = edit(() =>
+        moveCardAction(collection, cardId, from, to, preferredPrintingId, format, "one"),
+      );
+      showRowCapToast(result.notice);
+      return result.moved;
     },
     setQuantity: (cardId, zone, quantity, preferredPrintingId) => {
       const apply = () =>
@@ -849,18 +870,20 @@ export function useDeckBuilderActions(deckId: string): DeckBuilderActions {
       if (quantity <= 0) {
         removeWithUndoToast(cardId, zone, preferredPrintingId, true, apply);
       } else {
-        edit(apply);
+        showRowCapToast(edit(apply));
       }
     },
     changePreferredPrinting: (cardId, zone, fromPrintingId, toPrintingId, countToConvert) => {
-      edit(() =>
-        changePreferredPrintingAction(
-          collection,
-          cardId,
-          zone,
-          fromPrintingId,
-          toPrintingId,
-          countToConvert,
+      showRowCapToast(
+        edit(() =>
+          changePreferredPrintingAction(
+            collection,
+            cardId,
+            zone,
+            fromPrintingId,
+            toPrintingId,
+            countToConvert,
+          ),
         ),
       );
     },

@@ -27,6 +27,7 @@ import type {
   FieldDef,
 } from "@/features/admin/components/candidate-field-defs";
 import { CandidateSpreadsheet } from "@/features/admin/components/candidate-spreadsheet";
+import type { MovedCardDestination } from "@/features/admin/components/move-submission-dialog";
 import { MoveSubmissionDialog } from "@/features/admin/components/move-submission-dialog";
 import { SubmissionResolutionDialog } from "@/features/admin/components/submission-resolution-dialog";
 import {
@@ -144,6 +145,7 @@ interface CardFieldsSectionProps {
     };
   }) => void;
   runWrite?: RunWrite;
+  cardDestination?: MovedCardDestination;
 }
 
 export function CardFieldsSection({
@@ -158,6 +160,7 @@ export function CardFieldsSection({
   focusField,
   onFieldAccepted,
   runWrite = runWriteDirectly,
+  cardDestination,
 }: CardFieldsSectionProps) {
   const acceptCardField = useAcceptCardField(invalidates);
   const checkCandidateCard = useCheckCandidateCard(invalidates);
@@ -265,6 +268,7 @@ export function CardFieldsSection({
         submitterName={sources.find((source) => source.id === moving)?.submittedByName ?? null}
         scope={{ cardSlug: card.slug }}
         runWrite={runWrite}
+        cardDestination={cardDestination}
         onOpenChange={(open) => {
           if (!open) {
             setMoving(null);

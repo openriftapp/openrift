@@ -8,7 +8,7 @@ export const IS_PRODUCTION_BUILD = process.env.E2E_WEB_MODE === "production";
 export const API_BASE_URL = `http://localhost:${API_PORT}`;
 export const WEB_BASE_URL = `http://localhost:${WEB_PORT}`;
 
-export const STATE_FILE = "/tmp/openrift-e2e-state.json";
+export const STATE_FILE = `/tmp/openrift-e2e-state-${WEB_PORT}.json`;
 
 export const TEST_USERS = {
   regular: {

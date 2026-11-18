@@ -37,6 +37,7 @@ import { CardBansSection } from "@/features/admin/components/card-bans-section";
 import { useCardDetailData } from "@/features/admin/components/card-detail-shared";
 import { CardErrataSection } from "@/features/admin/components/card-errata-section";
 import { CardHistorySection } from "@/features/admin/components/card-history-section";
+import type { MovedCardDestination } from "@/features/admin/components/move-submission-dialog";
 import { MoveSubmissionDialog } from "@/features/admin/components/move-submission-dialog";
 import { RejectSubmissionDialog } from "@/features/admin/components/reject-submission-dialog";
 import { SendNoteDialog } from "@/features/admin/components/send-note-dialog";
@@ -109,6 +110,12 @@ import { errorStatus } from "@/lib/server-fns/api-error";
 import { cn } from "@/lib/utils";
 
 type FieldsView = "differences" | "all";
+
+const workspaceCardDestination: MovedCardDestination = (cardSlug) => ({
+  to: "/admin/workspace/cards/$cardSlug",
+  params: { cardSlug },
+  ignoreBlocker: true,
+});
 
 type SubmissionDialog = {
   kind: "reject" | "reply" | "move";
@@ -706,6 +713,7 @@ function CardRecordBody({
           invalidates={scope}
           isAdmin={isAdmin}
           focusField={compare.focusField}
+          cardDestination={workspaceCardDestination}
         />
       )}
       <RejectSubmissionDialog
@@ -727,6 +735,7 @@ function CardRecordBody({
         submitterName={dialog?.submission.submitterName ?? null}
         scope={{ cardSlug }}
         runWrite={queueWrite}
+        cardDestination={workspaceCardDestination}
         onOpenChange={closeDialog}
       />
     </RecordPane>

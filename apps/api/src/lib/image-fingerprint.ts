@@ -91,34 +91,38 @@ export function markDistance(a: Uint8Array, b: Uint8Array): number {
   const W = MARK_STORED_WIDTH;
   const H = MARK_STORED_HEIGHT;
   const p = MARK_SHIFT;
-  let bestMean = Infinity;
-  let bestTop = Infinity;
   const diffs = new Float32Array((W - 2 * p) * (H - 2 * p));
-  const topCount = Math.ceil(diffs.length / 10);
+  const fillDiffs = (dx: number, dy: number): number => {
+    let sum = 0;
+    let n = 0;
+    for (let y = p; y < H - p; y++) {
+      for (let x = p; x < W - p; x++) {
+        const d = Math.abs((za[y * W + x] ?? 0) - (zb[(y + dy) * W + x + dx] ?? 0));
+        diffs[n++] = d;
+        sum += d;
+      }
+    }
+    return sum / n;
+  };
+  let bestMean = Infinity;
+  let best = { dx: 0, dy: 0 };
   for (let dy = -p; dy <= p; dy++) {
     for (let dx = -p; dx <= p; dx++) {
-      let sum = 0;
-      let n = 0;
-      for (let y = p; y < H - p; y++) {
-        for (let x = p; x < W - p; x++) {
-          const d = Math.abs((za[y * W + x] ?? 0) - (zb[(y + dy) * W + x + dx] ?? 0));
-          diffs[n++] = d;
-          sum += d;
-        }
-      }
-      const mean = sum / n;
+      const mean = fillDiffs(dx, dy);
       if (mean < bestMean) {
         bestMean = mean;
-        const sorted = diffs.toSorted((u, v) => v - u);
-        let top = 0;
-        for (let i = 0; i < topCount; i++) {
-          top += sorted[i] ?? 0;
-        }
-        bestTop = top / topCount;
+        best = { dx, dy };
       }
     }
   }
-  return bestTop;
+  fillDiffs(best.dx, best.dy);
+  diffs.sort();
+  const topCount = Math.ceil(diffs.length / 10);
+  let top = 0;
+  for (let i = 1; i <= topCount; i++) {
+    top += diffs[diffs.length - i] ?? 0;
+  }
+  return top / topCount;
 }
 
 export function wholeDistance(a: ImageFingerprint, b: ImageFingerprint): number {

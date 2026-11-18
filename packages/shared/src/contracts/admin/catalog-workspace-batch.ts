@@ -53,7 +53,7 @@ export const workspaceAcceptTrustedCardsInputSchema = z.object({
 });
 
 export const workspaceAcceptTrustedPrintingsInputSchema = z.object({
-  candidatePrintingIds: z.array(z.string().min(1)),
+  candidatePrintingIds: z.array(z.uuid()),
 });
 
 export const workspaceAssignSuggestedListingsInputSchema = z.object({

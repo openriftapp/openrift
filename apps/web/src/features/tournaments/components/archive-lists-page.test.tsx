@@ -176,6 +176,29 @@ describe("ArchiveListsPage", () => {
     );
   });
 
+  it("keeps the organizer's choices when they come back to the same tournament", async () => {
+    const user = userEvent.setup();
+    const first = render(<ArchiveListsPage tournamentId="t-1" />);
+    await user.click(screen.getByRole("checkbox", { name: "Send anyway" }));
+    first.unmount();
+
+    render(<ArchiveListsPage tournamentId="t-1" />);
+
+    expect(screen.getByRole("checkbox", { name: "Send anyway" })).toBeChecked();
+    expect(screen.getByRole("button", { name: "Send 2 lists" })).toBeInTheDocument();
+  });
+
+  it("starts another tournament without the previous one's choices", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<ArchiveListsPage tournamentId="t-1" />);
+    await user.click(screen.getByRole("checkbox", { name: "Send anyway" }));
+
+    rerender(<ArchiveListsPage tournamentId="t-2" />);
+
+    expect(screen.getByRole("checkbox", { name: "Send anyway" })).not.toBeChecked();
+    expect(screen.getByRole("button", { name: "Send 1 list" })).toBeInTheDocument();
+  });
+
   it("blocks sending while two players share a standing", async () => {
     state = makeState({
       participants: [participant("a", "ready", "u11"), participant("b", "ready", "u11")],

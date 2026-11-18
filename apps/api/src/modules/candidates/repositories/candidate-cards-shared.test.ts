@@ -19,7 +19,7 @@ describe("card name lookups", () => {
 
 describe("candidateSideOrder", () => {
   const picksByLiveCard =
-    /is not distinct from \(select live_card\.id from \(\s*select c\.id, c\.slug, c\.name from cards c/u;
+    /is not distinct from \(select live_card\.id from \(\s*select m\.id, m\.slug, m\.name from \(\s*select c\.id, c\.slug, c\.name/u;
 
   it("picks the side through the same live card lookup in every side picker", async () => {
     const { db, queries } = createRecordingDb();

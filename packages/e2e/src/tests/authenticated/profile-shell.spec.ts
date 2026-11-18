@@ -187,16 +187,17 @@ test.describe("profile shell", () => {
       const page = authenticatedPage;
       await page.goto("/profile");
 
-      // SettingsGroups render as <section id="..."> scroll anchors.
-      for (const id of [
-        "preferences",
-        "sharing",
-        "integrations",
-        "account",
-        "security",
-        "danger-zone",
-      ]) {
-        await expect(page.locator(`section#${id}`)).toHaveCount(1, { timeout: 15_000 });
+      for (const [id, name] of [
+        ["preferences", "Preferences"],
+        ["sharing", "Public profile"],
+        ["integrations", "Integrations"],
+        ["account", "Account"],
+        ["security", "Security"],
+        ["danger-zone", "Danger Zone"],
+      ] as const) {
+        await expect(page.getByRole("region", { name, exact: true })).toHaveAttribute("id", id, {
+          timeout: 15_000,
+        });
       }
     });
   });

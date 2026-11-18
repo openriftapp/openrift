@@ -6,7 +6,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { canAddRune } from "@/features/decks/lib/deck-builder-card";
+import { rowCapMessage } from "@/features/decks/lib/workbench-add-toast";
 import { useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
+import { m } from "@/paraglide/messages.js";
 import { resetIdCounter, stubDeckBuilderCard } from "@/test/factories";
 import { createStoreResetter } from "@/test/store-helpers";
 
@@ -581,26 +583,60 @@ describe("deck row cap", () => {
 
   it("moves only what the target row has room for", () => {
     collection = createDraftCollection([row("main", 10), row("sideboard", 95)]);
-    moveCardAction(collection, "card-1", "main", "sideboard", null, "freeform", "all");
+    const notice = moveCardAction(
+      collection,
+      "card-1",
+      "main",
+      "sideboard",
+      null,
+      "freeform",
+      "all",
+    );
     expect(quantities()).toEqual({ "main:": 6, "sideboard:": 99 });
+    expect(notice).toMatchObject({ moved: 4, notice: { moved: 4, requested: 10 } });
   });
 
   it("leaves both rows alone when the target row is full", () => {
     collection = createDraftCollection([row("main", 10), row("sideboard", 99)]);
-    moveCardAction(collection, "card-1", "main", "sideboard", null, "freeform", "one");
+    const notice = moveCardAction(
+      collection,
+      "card-1",
+      "main",
+      "sideboard",
+      null,
+      "freeform",
+      "one",
+    );
     expect(quantities()).toEqual({ "main:": 10, "sideboard:": 99 });
+    expect(notice).toMatchObject({ moved: 0, notice: { moved: 0, requested: 1 } });
   });
 
   it("converts only what the target printing row has room for", () => {
     collection = createDraftCollection([row("main", 10), row("main", 97, "printing-alt")]);
-    changePreferredPrintingAction(collection, "card-1", "main", null, "printing-alt", 10);
+    const notice = changePreferredPrintingAction(
+      collection,
+      "card-1",
+      "main",
+      null,
+      "printing-alt",
+      10,
+    );
     expect(quantities()).toEqual({ "main:": 8, "main:printing-alt": 99 });
+    expect(notice).toMatchObject({ moved: 2, requested: 10 });
   });
 
   it("converts nothing into a full printing row", () => {
     collection = createDraftCollection([row("main", 10), row("main", 99, "printing-alt")]);
-    changePreferredPrintingAction(collection, "card-1", "main", null, "printing-alt", 1);
+    const notice = changePreferredPrintingAction(
+      collection,
+      "card-1",
+      "main",
+      null,
+      "printing-alt",
+      1,
+    );
     expect(quantities()).toEqual({ "main:": 10, "main:printing-alt": 99 });
+    expect(notice).toMatchObject({ moved: 0, requested: 1 });
   });
 
   it("adds up to the cap in Freeform", () => {
@@ -631,10 +667,32 @@ describe("deck row cap", () => {
     expect(outcome?.rule).toBe("rowCap");
   });
 
-  it("sets a quantity no higher than the cap", () => {
+  it("raises a row to the cap and says so", () => {
     collection = createDraftCollection([row("main", 3)]);
-    setQuantityAction(collection, "card-1", "main", 150, null);
+    const notice = setQuantityAction(collection, "card-1", "main", 150, null);
     expect(quantities()).toEqual({ "main:": 99 });
+    expect(notice).toMatchObject({ moved: 0, requested: 150, raisedToLimit: true });
+    expect(notice && rowCapMessage(notice)).toBe(
+      m.decks_workbench_row_set_to_limit({ card: "Test Card", limit: 99 }),
+    );
+    expect(setQuantityAction(collection, "card-1", "main", 99, null)).toBeUndefined();
+  });
+
+  it("reports a row already at the cap", () => {
+    collection = createDraftCollection([row("main", 99)]);
+    const notice = setQuantityAction(collection, "card-1", "main", 150, null);
+    expect(quantities()).toEqual({ "main:": 99 });
+    expect(notice).toEqual({ card: expect.anything(), moved: 0, requested: 150 });
+    expect(notice && rowCapMessage(notice)).toBe(
+      m.decks_workbench_row_full({ card: "Test Card", limit: 99 }),
+    );
+  });
+
+  it("reports the count that landed in a full move", () => {
+    collection = createDraftCollection([row("overflow", 3)]);
+    expect(
+      moveCardAction(collection, "card-1", "overflow", "main", null, "constructed", "all"),
+    ).toEqual({ moved: 3 });
   });
 });
 

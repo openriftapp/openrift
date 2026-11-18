@@ -23,7 +23,7 @@ function makeEntryCard(
 
 describe("deckCardsFromCheckEntry", () => {
   it("returns no cards and no skips for an empty entry", () => {
-    expect(deckCardsFromCheckEntry([])).toEqual({ cards: [], skippedCount: 0 });
+    expect(deckCardsFromCheckEntry([])).toEqual({ cards: [], skippedCount: 0, overflow: [] });
   });
 
   it("maps matched lines to deck-card rows with the resolved printing", () => {
@@ -72,5 +72,16 @@ describe("deckCardsFromCheckEntry", () => {
     const result = deckCardsFromCheckEntry([makeEntryCard({ resolvedCardId: null })]);
     expect(result.skippedCount).toBe(1);
     expect(result.cards).toEqual([]);
+  });
+
+  it("reports the copies the per-row cap cuts", () => {
+    const result = deckCardsFromCheckEntry([
+      makeEntryCard({ quantity: 90, rawName: "Spark" }),
+      makeEntryCard({ id: "line-2", quantity: 15, rawName: "Spark" }),
+    ]);
+    expect(result.cards).toEqual([
+      { cardId: "card-1", zone: "main", quantity: 99, preferredPrintingId: null },
+    ]);
+    expect(result.overflow).toEqual([{ name: "Spark", count: 6 }]);
   });
 });

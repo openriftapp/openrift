@@ -85,8 +85,8 @@ vi.mock("@/features/decks/components/deck-tokens-section", () => ({
 vi.mock("@/features/decks/components/format-config-card", () => ({
   FormatConfigCard: () => null,
 }));
-vi.mock("@/features/decks/components/deck-ownership-bridge", () => ({
-  OwnershipBandSourcesBridge: () => null,
+vi.mock("@/features/decks/hooks/use-ownership-band-sources", () => ({
+  useOwnershipBandSources: () => undefined,
 }));
 vi.mock("@/features/decks/components/deck-test-bench", () => ({ DeckTestBench: () => null }));
 vi.mock("@/features/decks/components/deck-box-tab", () => ({ DeckBoxTab: () => null }));

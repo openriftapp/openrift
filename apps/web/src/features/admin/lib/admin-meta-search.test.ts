@@ -1,3 +1,4 @@
+import { META_MAX_PLAYERS } from "@openrift/shared/meta-query";
 import { describe, expect, it } from "vitest";
 
 import { metaSearchSchema } from "./admin-meta-search";
@@ -28,6 +29,15 @@ describe("metaSearchSchema", () => {
   it("falls back to the default for a page below one", () => {
     expect(metaSearchSchema.parse({ page: "0", q: "kept" })).toEqual({ q: "kept" });
     expect(metaSearchSchema.parse({ page: "-1", q: "kept" })).toEqual({ q: "kept" });
+  });
+
+  it("falls back to the default for a player floor above the player cap", () => {
+    expect(metaSearchSchema.parse({ minPlayers: String(META_MAX_PLAYERS) }).minPlayers).toBe(
+      META_MAX_PLAYERS,
+    );
+    expect(metaSearchSchema.parse({ minPlayers: String(META_MAX_PLAYERS + 1), q: "kept" })).toEqual(
+      { q: "kept" },
+    );
   });
 
   it("falls back to the default for a fractional page", () => {

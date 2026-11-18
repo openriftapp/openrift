@@ -154,16 +154,22 @@ export function CollectionStatsPage() {
               <Heading id="collection-stats-stats">{m.collections_stats_heading_stats()}</Heading>
               <StatsHeroStats stats={stats} />
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                <section className="flex flex-col gap-3">
-                  <SectionHeading as="h3">{m.collections_stats_heading_domain()}</SectionHeading>
+                <section className="flex flex-col gap-3" aria-labelledby="collection-stats-domain">
+                  <SectionHeading as="h3" id="collection-stats-domain">
+                    {m.collections_stats_heading_domain()}
+                  </SectionHeading>
                   <DomainDistributionChart data={stats.domainDistribution} />
                 </section>
-                <section className="flex flex-col gap-3">
-                  <SectionHeading as="h3">{m.collections_stats_heading_rarity()}</SectionHeading>
+                <section className="flex flex-col gap-3" aria-labelledby="collection-stats-rarity">
+                  <SectionHeading as="h3" id="collection-stats-rarity">
+                    {m.collections_stats_heading_rarity()}
+                  </SectionHeading>
                   <RarityDistributionChart data={stats.rarityDistribution} />
                 </section>
-                <section className="flex flex-col gap-3">
-                  <SectionHeading as="h3">{m.collections_stats_heading_type()}</SectionHeading>
+                <section className="flex flex-col gap-3" aria-labelledby="collection-stats-type">
+                  <SectionHeading as="h3" id="collection-stats-type">
+                    {m.collections_stats_heading_type()}
+                  </SectionHeading>
                   <TypeDistributionChart data={stats.typeBreakdown} />
                 </section>
               </div>
@@ -173,8 +179,11 @@ export function CollectionStatsPage() {
               />
 
               {(stats.energyCurve.length > 0 || stats.powerCurve.length > 0) && (
-                <section className="flex flex-col gap-3">
-                  <SectionHeading as="h3">
+                <section
+                  className="flex flex-col gap-3"
+                  aria-labelledby="collection-stats-energy-power"
+                >
+                  <SectionHeading as="h3" id="collection-stats-energy-power">
                     {m.collections_stats_heading_energy_power()}
                   </SectionHeading>
                   <EnergyPowerChart

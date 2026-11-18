@@ -993,16 +993,19 @@ describe("CardThumbnail drag tile", () => {
     );
   }
 
-  it("marks a tile the deck has no room for as disabled and names it for the card", () => {
+  it("names a tile the deck has no room for as a group around the card", () => {
     const { getByRole } = renderTile("Fury Rune, no room in this zone");
-    const tile = getByRole("button", { name: "Fury Rune, no room in this zone" });
-    expect(tile.getAttribute("aria-disabled")).toBe("true");
+    const tile = getByRole("group", { name: "Fury Rune, no room in this zone" });
+    expect(tile).toContainElement(getByRole("button", { name: "Add to deck" }));
   });
 
-  it("leaves an addable tile enabled", () => {
-    const { container } = renderTile();
-    const tile = container.querySelector('[aria-roledescription="draggable"]');
-    expect(tile?.getAttribute("aria-disabled")).toBe("false");
+  it("adds no role, tab stop or drag description to an addable tile", () => {
+    const { container, queryByRole } = renderTile();
+    const tile = container.querySelector("[data-printing-id]");
+    expect(queryByRole("group")).toBeNull();
+    expect(tile).not.toHaveAttribute("role");
+    expect(tile).not.toHaveAttribute("tabindex");
+    expect(tile).not.toHaveAttribute("aria-roledescription");
   });
 });
 

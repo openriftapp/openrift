@@ -45,13 +45,13 @@ import {
 } from "@/features/decks/components/deck-overview-view-controls";
 import { ZoneTile } from "@/features/decks/components/deck-overview-zone-tile";
 import type { InferredZoneSlots } from "@/features/decks/components/deck-overview-zone-tile";
-import { OwnershipBandSourcesBridge } from "@/features/decks/components/deck-ownership-bridge";
 import { DeckTestBench } from "@/features/decks/components/deck-test-bench";
 import { DeckTokensSection } from "@/features/decks/components/deck-tokens-section";
 import { FormatConfigCard } from "@/features/decks/components/format-config-card";
 import { DeckStatsBand } from "@/features/decks/components/stats/deck-stats-band";
 import { DeckStatsSummary } from "@/features/decks/components/stats/deck-stats-summary";
 import { useDeckStats } from "@/features/decks/hooks/use-deck-stats";
+import { useOwnershipBandSources } from "@/features/decks/hooks/use-ownership-band-sources";
 import type { BattlefieldPlanPicks } from "@/features/decks/lib/battlefield-plan-tags";
 import {
   battlefieldPlanTags,
@@ -80,7 +80,6 @@ import {
 } from "@/features/decks/lib/deck-overview-geometry";
 import type { DeckListSortContext } from "@/features/decks/lib/deck-overview-list-sort";
 import { sortDeckOverviewList } from "@/features/decks/lib/deck-overview-list-sort";
-import type { OwnershipBandSources } from "@/features/decks/lib/deck-ownership-band";
 import { buildOwnershipCopies, copyPrintingId } from "@/features/decks/lib/deck-ownership-band";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
 import { rowOwnership } from "@/features/decks/lib/deck-ownership-types";
@@ -296,7 +295,10 @@ export function DeckOverview({
   const listReadOnly = readOnly === true || cardListReadOnly === true;
   const addRoomByCardKey = listReadOnly ? NO_ADD_ROOM : buildAddRoom(cards, deck.format);
 
-  const [bandSources, setBandSources] = useState<OwnershipBandSources>();
+  const bandSources = useOwnershipBandSources(cards, {
+    enabled: hydrated && canPreferOwned,
+    homeCollectionId: deck.collectionId,
+  });
   const bandsActive = showBands && canPreferOwned && displayMode !== "list";
   const ownedPrintingByCardId = ownershipData?.ownedPrintingByCardId;
   // Computed whenever sources are up, not just while bands show: the stats
@@ -542,15 +544,6 @@ export function DeckOverview({
   return (
     <CardPageHrefContext value={resolveCardPageHref}>
       <div className="@container flex flex-col gap-6 px-1 pt-3 pb-4">
-        {hydrated && canPreferOwned && (
-          <Suspense fallback={null}>
-            <OwnershipBandSourcesBridge
-              cards={cards}
-              homeCollectionId={deck.collectionId}
-              onResult={setBandSources}
-            />
-          </Suspense>
-        )}
         <DeckHero
           name={deck.name}
           format={deck.format}

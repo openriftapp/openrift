@@ -6,7 +6,7 @@ import { expect } from "@playwright/test";
 import type { E2eState } from "./constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "./constants.js";
 import { connectToDb } from "./db.js";
-import { waitForHydrated } from "./hydration.js";
+import { waitForFormReady } from "./hydration.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -15,9 +15,9 @@ export function loadDb(): Sql {
   return connectToDb(state.tempDbUrl);
 }
 
+/** The login page's "Sign in" or the reset-password page's "Send code". */
 export async function waitForHydration(page: Page) {
-  // button/input fall back for the reset-password page, which has no <form>.
-  await waitForHydrated(page.locator("form, button, input").first());
+  await waitForFormReady(page.getByRole("button", { name: /^(?:sign in|send code)$/iu }).first());
 }
 
 export async function signUp(request: APIRequestContext, email: string, password: string) {
@@ -48,10 +48,11 @@ export function emailCodeTab(page: Page) {
 
 export async function loginViaForm(page: Page, email: string, password: string) {
   await page.goto("/login");
-  await waitForHydrated(page.locator("form").first());
   const panel = passwordTab(page);
+  const submit = panel.getByRole("button", { name: /^sign in$/iu });
+  await waitForFormReady(submit);
   await panel.getByRole("textbox", { name: "Email", exact: true }).fill(email);
   await panel.getByRole("textbox", { name: "Password", exact: true }).fill(password);
-  await panel.getByRole("button", { name: /^sign in$/iu }).click();
+  await submit.click();
   await expect(page).not.toHaveURL(/\/login/u, { timeout: 15_000 });
 }

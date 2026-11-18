@@ -179,6 +179,7 @@ vi.mock("@/features/scan/components/scan-printing-picker", () => ({
   ScanPrintingPicker: () => null,
 }));
 
+import { pricesKeys } from "@/features/cards/lib/cards-query-keys";
 import { ScanPage } from "@/features/scan/components/scan-page";
 import { useScanPrefsStore } from "@/features/scan/stores/scan-prefs-store";
 import { useScanSessionStore } from "@/features/scan/stores/scan-session-store";
@@ -193,6 +194,7 @@ const resetPrefs = createStoreResetter(useScanPrefsStore);
 function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(initKeys.all, stubInitResponse());
+  client.setQueryData(pricesKeys.all, { prices: {} });
   const page = () => (
     <QueryClientProvider client={client}>
       <ScanPage />

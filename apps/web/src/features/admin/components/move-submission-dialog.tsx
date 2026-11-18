@@ -1,3 +1,4 @@
+import type { NavigateOptions, RegisteredRouter } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
@@ -20,12 +21,26 @@ import { runWriteDirectly } from "@/features/admin/lib/run-write";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { useAdminCardSearch } from "@/features/cards/hooks/use-card-search";
 
+export type MovedCardDestination = (
+  cardSlug: string,
+) => NavigateOptions<
+  RegisteredRouter,
+  string,
+  "/admin/cards/$cardSlug" | "/admin/workspace/cards/$cardSlug"
+>;
+
+const adminCardDestination: MovedCardDestination = (cardSlug) => ({
+  to: "/admin/cards/$cardSlug",
+  params: { cardSlug },
+});
+
 interface MoveSubmissionDialogProps {
   candidateCardId: string | null;
   submitterName: string | null;
   scope?: SettleScope;
   onOpenChange: (open: boolean) => void;
   runWrite?: RunWrite;
+  cardDestination?: MovedCardDestination;
 }
 
 export function MoveSubmissionDialog({
@@ -34,6 +49,7 @@ export function MoveSubmissionDialog({
   scope,
   onOpenChange,
   runWrite = runWriteDirectly,
+  cardDestination = adminCardDestination,
 }: MoveSubmissionDialogProps) {
   return (
     <Dialog open={candidateCardId !== null} onOpenChange={onOpenChange}>
@@ -44,6 +60,7 @@ export function MoveSubmissionDialog({
             submitterName={submitterName}
             scope={scope}
             runWrite={runWrite}
+            cardDestination={cardDestination}
             onDone={() => onOpenChange(false)}
           />
         )}
@@ -57,12 +74,14 @@ function MoveSubmissionForm({
   submitterName,
   scope,
   runWrite,
+  cardDestination,
   onDone,
 }: {
   candidateCardId: string;
   submitterName: string | null;
   scope?: SettleScope;
   runWrite: RunWrite;
+  cardDestination: MovedCardDestination;
   onDone: () => void;
 }) {
   const navigate = useNavigate();
@@ -85,7 +104,7 @@ function MoveSubmissionForm({
       return;
     }
     onDone();
-    void navigate({ to: "/admin/cards/$cardSlug", params: { cardSlug: moved.cardSlug } });
+    void navigate(cardDestination(moved.cardSlug));
   }
 
   return (

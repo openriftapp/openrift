@@ -24,6 +24,7 @@ export function useDeckSelectionLifecycle(): void {
       event.preventDefault();
       useDeckSelectionStore.getState().resetSelection();
     };
+    // On the document so it runs before the detail pane's globalThis listener, which registered first.
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [selectMode]);

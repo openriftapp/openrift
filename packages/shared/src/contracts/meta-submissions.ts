@@ -71,7 +71,7 @@ export const metaEventFieldEditsSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
   eventDate: isoDate.optional(),
   format: z.string().trim().min(1).max(60).optional(),
-  playerCount: z.number().int().positive().max(1_000_000).optional(),
+  playerCount: z.number().int().positive().max(META_MAX_PLAYERS).optional(),
   organizer: z.string().trim().min(1).max(120).optional(),
   location: z.string().trim().min(1).max(200).optional(),
   /** ISO 3166-1 alpha-2. */

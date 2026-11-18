@@ -31,6 +31,7 @@ import {
 } from "@/features/meta/components/meta-event-standings-body";
 import { MetaEventStandingsByLegend } from "@/features/meta/components/meta-event-standings-by-legend";
 import { MetaListShapeKey } from "@/features/meta/components/meta-list-shape-bar";
+import { MetaOverlayNote } from "@/features/meta/components/meta-overlay-note";
 import { MetaPageSizePicker } from "@/features/meta/components/meta-page-size-picker";
 import { useMetaLegendGroupRows, useMetaStandings } from "@/features/meta/hooks/use-meta";
 import { useMetaDeckBans } from "@/features/meta/hooks/use-meta-deck-bans";
@@ -360,6 +361,13 @@ export function MetaEventStandings({
             )}
           </div>
         )}
+
+        <MetaOverlayNote
+          decks={{ event: slug }}
+          enabled={hydrated && (columns.value || field.withLists > 0)}
+          withPrices={columns.value}
+          className="mb-3"
+        />
 
         <div id={STANDINGS_ID} className={PAGER_SCROLL_TARGET}>
           <div

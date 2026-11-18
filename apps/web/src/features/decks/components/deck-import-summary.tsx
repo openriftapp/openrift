@@ -4,7 +4,7 @@ import type { DeckFormatConfig } from "@openrift/shared/types/api/deck";
 import type { DeckFormat } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { TagIcon } from "lucide-react";
-import { Suspense, useState } from "react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
@@ -13,13 +13,12 @@ import { useCustomTagAssignments } from "@/features/collections/hooks/use-custom
 import { DeckDomainBar } from "@/features/decks/components/deck-domain-bar";
 import { DeckFormatBadge } from "@/features/decks/components/deck-format-badge";
 import { DeckMissingCardsDialog } from "@/features/decks/components/deck-missing-cards-dialog";
-import { DeckOwnershipBridge } from "@/features/decks/components/deck-ownership-bridge";
 import { DeckOwnershipBody } from "@/features/decks/components/deck-ownership-panel";
 import { useDeckStats } from "@/features/decks/hooks/use-deck-stats";
+import { useViewerDeckOwnership } from "@/features/decks/hooks/use-viewer-deck-ownership";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toDeckBuilderCard, toRuleEngineCard } from "@/features/decks/lib/deck-builder-card";
 import type { ImportedDeckCard } from "@/features/decks/lib/deck-import-cards";
-import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
 import { useChampionIdentifierTags } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { formatterForMarketplace } from "@/lib/format";
@@ -42,7 +41,7 @@ export function toBuilderCards(
 }
 
 /**
- * Uses the same hooks the deck page uses (useDeckStats, useDeckOwnership,
+ * Uses the same logic the deck page uses (useDeckStats, computeDeckOwnership,
  * validateDeck), so the preview and the deck it creates can never disagree.
  */
 export function DeckImportSummary({
@@ -65,10 +64,14 @@ export function DeckImportSummary({
   const marketplaceOrder = useDisplayStore((state) => state.marketplaceOrder);
   const marketplace: Marketplace = marketplaceOrder[0];
   const hydrated = useHydrated();
-  const [ownershipData, setOwnershipData] = useState<DeckOwnershipData>();
   const [missingOpen, setMissingOpen] = useState(false);
 
   const builderCards = toBuilderCards(cards, cardsById);
+  const ownershipData = useViewerDeckOwnership(builderCards, {
+    enabled: hydrated,
+    isLoggedIn,
+    marketplace,
+  });
   const stats = useDeckStats(builderCards);
   const violations = validateDeck({
     format,
@@ -134,18 +137,6 @@ export function DeckImportSummary({
           </div>
         )}
       </Callout>
-
-      {/* Client-only: gate behind hydration and suspend for the fetches. */}
-      {hydrated && (
-        <Suspense fallback={null}>
-          <DeckOwnershipBridge
-            builderCards={builderCards}
-            isLoggedIn={isLoggedIn}
-            marketplace={marketplace}
-            onResult={setOwnershipData}
-          />
-        </Suspense>
-      )}
 
       {ownershipData && (
         <DeckMissingCardsDialog

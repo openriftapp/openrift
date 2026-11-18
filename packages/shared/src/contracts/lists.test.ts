@@ -5,6 +5,7 @@ import {
   bulkCreateListEntriesSchema,
   decrementListEntriesSchema,
   updateListEntryInputSchema,
+  updateListInputSchema,
 } from "./lists.js";
 
 const LIST_ID = "a0000000-0001-4000-a000-000000000001";
@@ -14,6 +15,27 @@ const CARD_ID = "c0000000-0001-4000-a000-000000000001";
 function update(fields: Record<string, unknown>) {
   return updateListEntryInputSchema.safeParse({ id: LIST_ID, itemId: ENTRY_ID, ...fields });
 }
+
+describe("updateListInputSchema", () => {
+  function updateList(fields: Record<string, unknown>) {
+    return updateListInputSchema.safeParse({ id: LIST_ID, ...fields });
+  }
+
+  it("refuses a rules or combine change without the rules version", () => {
+    expect(updateList({ rules: [] }).success).toBe(false);
+    expect(updateList({ ruleCombine: null }).success).toBe(false);
+  });
+
+  it("accepts a rules change carrying the rules version", () => {
+    expect(updateList({ rules: [], ruleCombine: null, expectedRulesVersion: 3 }).success).toBe(
+      true,
+    );
+  });
+
+  it("accepts a rename without the rules version", () => {
+    expect(updateList({ name: "Summoner Skirmish wants" }).success).toBe(true);
+  });
+});
 
 describe("updateListEntryInputSchema", () => {
   it("accepts a step in either direction", () => {

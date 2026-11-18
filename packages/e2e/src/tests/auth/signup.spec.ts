@@ -7,7 +7,7 @@ import { test } from "../../fixtures/test.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb } from "../../helpers/db.js";
-import { waitForHydrated } from "../../helpers/hydration.js";
+import { waitForFormReady } from "../../helpers/hydration.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -17,7 +17,7 @@ function loadDb(): Sql {
 }
 
 async function waitForHydration(page: Page) {
-  await waitForHydrated(page.locator("form").first());
+  await waitForFormReady(page.getByRole("button", { name: /^sign up$/iu }));
 }
 
 async function signUpViaApi(

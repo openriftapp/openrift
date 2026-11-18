@@ -1,3 +1,4 @@
+import { META_MAX_PLAYERS } from "@openrift/shared/meta-query";
 import type { MetaEventFieldEdits } from "@openrift/shared/types/api/meta";
 
 import { m } from "@/paraglide/messages.js";
@@ -30,9 +31,6 @@ export interface MetaEventCorrectionSubject {
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/u;
 const WHOLE_NUMBER_PATTERN = /^\d+$/u;
 const COUNTRY_PATTERN = /^[A-Za-z]{2}$/u;
-
-/** Mirrors the contract's own ceiling. */
-const MAX_PLAYER_COUNT = 1_000_000;
 
 export function metaEventCorrectionDraft(
   event: MetaEventCorrectionSubject,
@@ -114,7 +112,7 @@ export function validateMetaEventCorrectionDraft(
     if (!WHOLE_NUMBER_PATTERN.test(players) || Number(players) < 1) {
       return m.meta_validate_player_count();
     }
-    if (Number(players) > MAX_PLAYER_COUNT) {
+    if (Number(players) > META_MAX_PLAYERS) {
       return m.meta_validate_player_count_max();
     }
   }

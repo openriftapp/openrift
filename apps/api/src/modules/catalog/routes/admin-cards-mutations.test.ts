@@ -410,15 +410,18 @@ describe("POST /cards/candidate-printings/check-all", () => {
     const res = await app.request("/api/admin/v1/cards/candidate-printings/check-all", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ printingId: "p-1", extraIds: ["e-1", "e-2"] }),
+      body: JSON.stringify({
+        printingId: "a0000000-0000-4000-a000-0000000000a1",
+        extraIds: ["a0000000-0000-4000-a000-0000000000e1", "a0000000-0000-4000-a000-0000000000e2"],
+      }),
     });
     expect(res.status).toBe(200);
     const json = await readJson(res);
     expect(json).toEqual({ updated: 5 });
-    expect(mockCandidateCards.checkAllCandidatePrintings).toHaveBeenCalledWith("p-1", [
-      "e-1",
-      "e-2",
-    ]);
+    expect(mockCandidateCards.checkAllCandidatePrintings).toHaveBeenCalledWith(
+      "a0000000-0000-4000-a000-0000000000a1",
+      ["a0000000-0000-4000-a000-0000000000e1", "a0000000-0000-4000-a000-0000000000e2"],
+    );
   });
 
   it("works without optional fields", async () => {
@@ -640,8 +643,15 @@ describe("POST /cards/candidate-printings/:id/copy", () => {
   });
 
   it("returns 204 on successful copy", async () => {
-    const candidatePrinting = { id: "cp-1", name: "Fire Dragon", shortCode: "OGN-T05" };
-    const targetPrinting = { id: "p-2", slug: "p-2" };
+    const candidatePrinting = {
+      id: "a0000000-0000-4000-a000-0000000000c1",
+      name: "Fire Dragon",
+      shortCode: "OGN-T05",
+    };
+    const targetPrinting = {
+      id: "a0000000-0000-4000-a000-0000000000a2",
+      slug: "a0000000-0000-4000-a000-0000000000a2",
+    };
     mockCandidateCards.getCandidatePrintingById.mockResolvedValue(candidatePrinting);
     mockMut.getPrintingDifferentiatorsById.mockResolvedValue(targetPrinting);
     mockCandidateCards.copyCandidatePrinting.mockResolvedValue(undefined);
@@ -649,10 +659,13 @@ describe("POST /cards/candidate-printings/:id/copy", () => {
     const res = await app.request(`/api/admin/v1/cards/candidate-printings/${CP_ID}/copy`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ printingId: "p-2" }),
+      body: JSON.stringify({ printingId: "a0000000-0000-4000-a000-0000000000a2" }),
     });
     expect(res.status).toBe(204);
-    expect(mockMut.getPrintingDifferentiatorsById).toHaveBeenCalledWith("p-2", "OGN-T05");
+    expect(mockMut.getPrintingDifferentiatorsById).toHaveBeenCalledWith(
+      "a0000000-0000-4000-a000-0000000000a2",
+      "OGN-T05",
+    );
     expect(mockCandidateCards.copyCandidatePrinting).toHaveBeenCalledWith(
       candidatePrinting,
       targetPrinting,
@@ -674,7 +687,7 @@ describe("POST /cards/candidate-printings/:id/copy", () => {
     const res = await app.request(`/api/admin/v1/cards/candidate-printings/${CP_ID}/copy`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ printingId: "p-2" }),
+      body: JSON.stringify({ printingId: "a0000000-0000-4000-a000-0000000000a2" }),
     });
     expect(res.status).toBe(404);
     const json = await readJson(res);
@@ -682,13 +695,15 @@ describe("POST /cards/candidate-printings/:id/copy", () => {
   });
 
   it("returns 404 when target printing not found", async () => {
-    mockCandidateCards.getCandidatePrintingById.mockResolvedValue({ id: "cp-1" });
+    mockCandidateCards.getCandidatePrintingById.mockResolvedValue({
+      id: "a0000000-0000-4000-a000-0000000000c1",
+    });
     mockMut.getPrintingDifferentiatorsById.mockResolvedValue(null);
 
     const res = await app.request(`/api/admin/v1/cards/candidate-printings/${CP_ID}/copy`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ printingId: "unknown" }),
+      body: JSON.stringify({ printingId: "a0000000-0000-4000-a000-0000000000a3" }),
     });
     expect(res.status).toBe(404);
     const json = await readJson(res);
@@ -708,13 +723,22 @@ describe("POST /cards/candidate-printings/link", () => {
     const res = await app.request("/api/admin/v1/cards/candidate-printings/link", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ candidatePrintingIds: ["cp-1", "cp-2"], printingId: "p-1" }),
+      body: JSON.stringify({
+        candidatePrintingIds: [
+          "a0000000-0000-4000-a000-0000000000c1",
+          "a0000000-0000-4000-a000-0000000000c2",
+        ],
+        printingId: "a0000000-0000-4000-a000-0000000000a1",
+      }),
     });
     expect(res.status).toBe(204);
-    expect(mockCandidateCards.linkCandidatePrintings).toHaveBeenCalledWith(["cp-1", "cp-2"], "p-1");
+    expect(mockCandidateCards.linkCandidatePrintings).toHaveBeenCalledWith(
+      ["a0000000-0000-4000-a000-0000000000c1", "a0000000-0000-4000-a000-0000000000c2"],
+      "a0000000-0000-4000-a000-0000000000a1",
+    );
     expect(mockCandidateCards.upsertPrintingLinkOverrides).toHaveBeenCalledWith(
-      ["cp-1", "cp-2"],
-      "p-1",
+      ["a0000000-0000-4000-a000-0000000000c1", "a0000000-0000-4000-a000-0000000000c2"],
+      "a0000000-0000-4000-a000-0000000000a1",
     );
   });
 
@@ -725,17 +749,25 @@ describe("POST /cards/candidate-printings/link", () => {
     const res = await app.request("/api/admin/v1/cards/candidate-printings/link", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ candidatePrintingIds: ["cp-1"], printingId: null }),
+      body: JSON.stringify({
+        candidatePrintingIds: ["a0000000-0000-4000-a000-0000000000c1"],
+        printingId: null,
+      }),
     });
     expect(res.status).toBe(204);
-    expect(mockCandidateCards.removePrintingLinkOverrides).toHaveBeenCalledWith(["cp-1"]);
+    expect(mockCandidateCards.removePrintingLinkOverrides).toHaveBeenCalledWith([
+      "a0000000-0000-4000-a000-0000000000c1",
+    ]);
   });
 
   it("returns 400 when candidatePrintingIds is empty", async () => {
     const res = await app.request("/api/admin/v1/cards/candidate-printings/link", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ candidatePrintingIds: [], printingId: "p-1" }),
+      body: JSON.stringify({
+        candidatePrintingIds: [],
+        printingId: "a0000000-0000-4000-a000-0000000000a1",
+      }),
     });
     expect(res.status).toBe(400);
     const json = await readJson(res);
@@ -750,7 +782,7 @@ describe("POST /cards/:cardId/rename", () => {
 
   it("returns 204 on successful rename", async () => {
     mockMut.getCardById.mockResolvedValue({
-      id: "card-uuid",
+      id: "a0000000-0000-4000-a000-0000000000d1",
       name: "Fire Dragon",
       slug: "fire-dragon",
     });
@@ -762,12 +794,15 @@ describe("POST /cards/:cardId/rename", () => {
       body: JSON.stringify({ newId: "flame-drake" }),
     });
     expect(res.status).toBe(204);
-    expect(mockMut.renameCardSlugById).toHaveBeenCalledWith("card-uuid", "flame-drake");
+    expect(mockMut.renameCardSlugById).toHaveBeenCalledWith(
+      "a0000000-0000-4000-a000-0000000000d1",
+      "flame-drake",
+    );
   });
 
   it("answers a rename onto a taken slug with a 409", async () => {
     mockMut.getCardById.mockResolvedValue({
-      id: "card-uuid",
+      id: "a0000000-0000-4000-a000-0000000000d1",
       name: "Fire Dragon",
       slug: "fire-dragon",
     });
@@ -789,7 +824,7 @@ describe("POST /cards/:cardId/rename", () => {
 
   it("returns 204 without renaming when newId matches current slug", async () => {
     mockMut.getCardById.mockResolvedValue({
-      id: "card-uuid",
+      id: "a0000000-0000-4000-a000-0000000000d1",
       name: "Fire Dragon",
       slug: "fire-dragon",
     });
@@ -1785,7 +1820,7 @@ describe("POST /cards/new/:name/link", () => {
 
   it("returns 204 on successful link", async () => {
     mockMut.getCardById.mockResolvedValue({
-      id: "card-uuid",
+      id: "a0000000-0000-4000-a000-0000000000d1",
       name: "Fire Dragon",
       slug: "fire-dragon",
     });
@@ -1794,21 +1829,28 @@ describe("POST /cards/new/:name/link", () => {
     const res = await app.request("/api/admin/v1/cards/new/Fire%20Dragon/link", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cardId: "card-uuid" }),
+      body: JSON.stringify({ cardId: "a0000000-0000-4000-a000-0000000000d1" }),
     });
     expect(res.status).toBe(204);
-    expect(mockTrxMut.createNameAliases).toHaveBeenCalledWith("Fire Dragon", "card-uuid");
+    expect(mockTrxMut.createNameAliases).toHaveBeenCalledWith(
+      "Fire Dragon",
+      "a0000000-0000-4000-a000-0000000000d1",
+    );
   });
 
   it("relinks the name's unlinked candidate printings inside the alias transaction", async () => {
-    mockMut.getCardById.mockResolvedValue({ id: "card-uuid", name: "Fire Dragon", slug: "fd" });
+    mockMut.getCardById.mockResolvedValue({
+      id: "a0000000-0000-4000-a000-0000000000d1",
+      name: "Fire Dragon",
+      slug: "fd",
+    });
     const repos = trxRepos();
     mockTransact.mockImplementation(async (cb) => cb(repos));
 
     await app.request("/api/admin/v1/cards/new/firedragon/link", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cardId: "card-uuid" }),
+      body: JSON.stringify({ cardId: "a0000000-0000-4000-a000-0000000000d1" }),
     });
 
     expect(mockRelinkCandidatePrintings).toHaveBeenCalledWith(repos, { normName: "firedragon" });
@@ -1818,28 +1860,31 @@ describe("POST /cards/new/:name/link", () => {
   });
 
   it("scopes the relink to the normalized form of a raw name", async () => {
-    mockMut.getCardById.mockResolvedValue({ id: "card-uuid", name: "Fire Dragon", slug: "fd" });
+    mockMut.getCardById.mockResolvedValue({
+      id: "a0000000-0000-4000-a000-0000000000d1",
+      name: "Fire Dragon",
+      slug: "fd",
+    });
     const repos = trxRepos();
     mockTransact.mockImplementation(async (cb) => cb(repos));
 
     await app.request("/api/admin/v1/cards/new/Fire%20Dragon/link", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cardId: "card-uuid" }),
+      body: JSON.stringify({ cardId: "a0000000-0000-4000-a000-0000000000d1" }),
     });
 
     expect(mockRelinkCandidatePrintings).toHaveBeenCalledWith(repos, { normName: "firedragon" });
   });
 
-  it("returns 400 when cardId is empty", async () => {
+  it.each(["", "fire-dragon"])("returns 400 when cardId is %j", async (cardId) => {
     const res = await app.request("/api/admin/v1/cards/new/Fire%20Dragon/link", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cardId: "" }),
+      body: JSON.stringify({ cardId }),
     });
     expect(res.status).toBe(400);
-    const json = await readJson(res);
-    expect(json.message).toContain("cardId required");
+    expect(mockMut.getCardById).not.toHaveBeenCalled();
   });
 
   it("returns 404 when target card not found", async () => {
@@ -1848,7 +1893,7 @@ describe("POST /cards/new/:name/link", () => {
     const res = await app.request("/api/admin/v1/cards/new/Fire%20Dragon/link", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cardId: "nonexistent" }),
+      body: JSON.stringify({ cardId: "a0000000-0000-4000-a000-0000000000d2" }),
     });
     expect(res.status).toBe(404);
     const json = await readJson(res);
@@ -1876,7 +1921,10 @@ describe("POST /cards/:cardId/accept-printing", () => {
           artist: "Alice",
           publicCode: "OGS-001",
         },
-        candidatePrintingIds: ["cp-1", "cp-2"],
+        candidatePrintingIds: [
+          "a0000000-0000-4000-a000-0000000000c1",
+          "a0000000-0000-4000-a000-0000000000c2",
+        ],
       }),
     });
     expect(res.status).toBe(200);
@@ -1886,7 +1934,7 @@ describe("POST /cards/:cardId/accept-printing", () => {
       expect.anything(),
       CARD_ID2,
       expect.objectContaining({ shortCode: "FD" }),
-      ["cp-1", "cp-2"],
+      ["a0000000-0000-4000-a000-0000000000c1", "a0000000-0000-4000-a000-0000000000c2"],
       { secondFaceId: null },
     );
     expect(mockFinishPrintingAccepts).toHaveBeenCalledWith(expect.anything(), mockIo, [created]);
@@ -1898,7 +1946,7 @@ describe("POST /cards/:cardId/accept-printing", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         printingFields: { shortCode: "FD", artist: "Alice", publicCode: "OGS-001" },
-        candidatePrintingIds: ["cp-1"],
+        candidatePrintingIds: ["a0000000-0000-4000-a000-0000000000c1"],
       }),
     });
     expect(res.status).toBe(400);

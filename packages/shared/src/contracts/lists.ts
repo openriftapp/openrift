@@ -104,6 +104,13 @@ export const updateListSchema = z.object({
   cancelTradeIds: cancelTradeIdsField,
 });
 
+export const updateListInputSchema = withParams(idParamSchema, updateListSchema).refine(
+  (input) =>
+    (input.rules === undefined && input.ruleCombine === undefined) ||
+    input.expectedRulesVersion !== undefined,
+  { message: "A rules change needs the rules version it was made from" },
+);
+
 /** The one id matching the list kind: a card or printing to exclude, or a copy to keep. */
 const dropFromListRulesSchema = z.object({
   cardId: z.uuid().optional(),
@@ -276,7 +283,7 @@ export const listsContract = {
     .output(listDetailResponseSchema),
   update: authedRoute
     .route({ method: "PATCH", path: "/api/v1/lists/{id}", tags: [TAG] })
-    .input(withParams(idParamSchema, updateListSchema))
+    .input(updateListInputSchema)
     .errors({
       NOT_FOUND: { message: "List not found" },
       BAD_REQUEST: { message: "No fields to update" },

@@ -67,6 +67,28 @@ describe("MoveSubmissionDialog", () => {
     });
   });
 
+  it("opens the moved-to card where the caller's destination points", async () => {
+    const user = userEvent.setup();
+    render(
+      <MoveSubmissionDialog
+        candidateCardId="cand-1"
+        submitterName="Renata"
+        onOpenChange={vi.fn()}
+        cardDestination={(cardSlug) => ({
+          to: "/admin/workspace/cards/$cardSlug",
+          params: { cardSlug },
+        })}
+      />,
+    );
+    await user.click(await screen.findByRole("button", { name: "Pick Brush" }));
+    await user.click(screen.getByRole("button", { name: "Move" }));
+
+    expect(captured.navigate).toHaveBeenCalledExactlyOnceWith({
+      to: "/admin/workspace/cards/$cardSlug",
+      params: { cardSlug: "brush" },
+    });
+  });
+
   it("hands the move to runWrite, which passes its signal into the mutation", async () => {
     const user = userEvent.setup();
     const { signal } = new AbortController();

@@ -27,6 +27,7 @@ import {
   IndexSortButton,
   IndexSortHeader,
 } from "@/features/meta/components/meta-index-sort-button";
+import { MetaOverlayNote } from "@/features/meta/components/meta-overlay-note";
 import { MetaPageSizePicker } from "@/features/meta/components/meta-page-size-picker";
 import { MetaScopeEmpty } from "@/features/meta/components/meta-scope-empty";
 import { useMetaDeckFacets, useMetaDecks } from "@/features/meta/hooks/use-meta";
@@ -273,6 +274,8 @@ function MetaDeckBrowser({
       ) : (
         sortHint
       )}
+
+      <MetaOverlayNote decks={page} enabled withPrices className="mt-4" />
 
       <div id={DECK_LIST_ID} className={PAGER_SCROLL_TARGET}>
         {view === "list" ? (

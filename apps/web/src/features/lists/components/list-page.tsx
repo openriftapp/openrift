@@ -280,9 +280,9 @@ export function ListPage({ listId }: ListPageProps) {
 
   // When the library is shown we fall through to the browser even with zero
   // entries, since the grid renders the whole catalog so the user can start adding.
-  if (entriesCount === 0 && !showLibraryActive) {
-    const canShowLibrary = data.list.kind !== "copy";
-    return (
+  const canShowLibrary = data.list.kind !== "copy";
+  const body =
+    entriesCount === 0 && !showLibraryActive ? (
       <>
         {renderTopBar()}
         <EmptyState
@@ -312,18 +312,8 @@ export function ListPage({ listId }: ListPageProps) {
             </Button>
           )}
         </EmptyState>
-        {editDialog}
-        {deleteDialog}
-        {shareDialog}
-        {exportDialog}
-        {importDialog}
-        {ruleDialog}
       </>
-    );
-  }
-
-  return (
-    <>
+    ) : (
       <ListEntryBrowser
         listId={listId}
         kind={data.list.kind}
@@ -344,6 +334,11 @@ export function ListPage({ listId }: ListPageProps) {
         }
         isQuantityPendingFor={stepPending}
       />
+    );
+
+  return (
+    <>
+      {body}
       {editDialog}
       {deleteDialog}
       {shareDialog}

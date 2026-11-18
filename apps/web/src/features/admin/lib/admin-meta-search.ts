@@ -1,3 +1,4 @@
+import { META_MAX_PLAYERS } from "@openrift/shared/meta-query";
 import { META_RESULTS_STATES } from "@openrift/shared/meta-results";
 import { META_SYNC_BUCKET_FILTERS } from "@openrift/shared/meta-sync-buckets";
 import {
@@ -36,7 +37,7 @@ export const metaSearchSchema = z.object({
   prFormat: lenient(z.enum(PLAYRIFTBOUND_FORMATS)),
   eventSort: lenient(z.enum(META_CATALOG_SORTS)),
   eventDir: lenient(z.enum(META_CATALOG_SORT_DIRECTIONS)),
-  minPlayers: lenient(z.coerce.number().check(z.int(), z.gte(0))),
+  minPlayers: lenient(z.coerce.number().check(z.int(), z.gte(0), z.lte(META_MAX_PLAYERS))),
   decklists: lenient(z.boolean()),
   missing: lenient(z.boolean()),
   bucket: lenient(z.enum(META_SYNC_BUCKET_FILTERS)),

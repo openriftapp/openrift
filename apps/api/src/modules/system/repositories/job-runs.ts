@@ -22,6 +22,19 @@ export interface JobRun {
   noop: boolean | null;
 }
 
+const JOB_RUN_COLUMNS = [
+  "id",
+  "kind",
+  "trigger",
+  "status",
+  "startedAt",
+  "finishedAt",
+  "durationMs",
+  "errorMessage",
+  "result",
+  "isNoop as noop",
+] as const;
+
 /** A run's last sign of life: its newest heartbeat, else its start. */
 const lastSeenAt = sql<Date>`greatest(started_at, (result ->> 'heartbeatAt')::timestamptz)`;
 
@@ -154,18 +167,7 @@ export function jobRunsRepo(db: Kysely<Database>) {
     async getLatestForResume(kind: string): Promise<JobRun | null> {
       const row = await db
         .selectFrom("jobRuns")
-        .select([
-          "id",
-          "kind",
-          "trigger",
-          "status",
-          "startedAt",
-          "finishedAt",
-          "durationMs",
-          "errorMessage",
-          "result",
-          "isNoop as noop",
-        ])
+        .select(JOB_RUN_COLUMNS)
         .where("kind", "=", kind)
         .where("result", "is not", null)
         .orderBy("startedAt", "desc")
@@ -188,18 +190,7 @@ export function jobRunsRepo(db: Kysely<Database>) {
     async getById(id: string): Promise<JobRun | null> {
       const row = await db
         .selectFrom("jobRuns")
-        .select([
-          "id",
-          "kind",
-          "trigger",
-          "status",
-          "startedAt",
-          "finishedAt",
-          "durationMs",
-          "errorMessage",
-          "result",
-          "isNoop as noop",
-        ])
+        .select(JOB_RUN_COLUMNS)
         .where("id", "=", id)
         .executeTakeFirst();
       return row ?? null;
@@ -208,18 +199,7 @@ export function jobRunsRepo(db: Kysely<Database>) {
     listRecent(params: { kind?: string; limit?: number }): Promise<JobRun[]> {
       let q = db
         .selectFrom("jobRuns")
-        .select([
-          "id",
-          "kind",
-          "trigger",
-          "status",
-          "startedAt",
-          "finishedAt",
-          "durationMs",
-          "errorMessage",
-          "result",
-          "isNoop as noop",
-        ])
+        .select(JOB_RUN_COLUMNS)
         .orderBy("startedAt", "desc")
         .limit(params.limit ?? 20);
       if (params.kind !== undefined) {
@@ -245,18 +225,7 @@ export function jobRunsRepo(db: Kysely<Database>) {
     }): Promise<{ rows: JobRun[]; total: number }> {
       let query = db
         .selectFrom("jobRuns")
-        .select([
-          "id",
-          "kind",
-          "trigger",
-          "status",
-          "startedAt",
-          "finishedAt",
-          "durationMs",
-          "errorMessage",
-          "result",
-          "isNoop as noop",
-        ])
+        .select(JOB_RUN_COLUMNS)
         .orderBy("startedAt", "desc")
         .orderBy("id", "desc");
       if (params.kind !== undefined) {
@@ -283,18 +252,7 @@ export function jobRunsRepo(db: Kysely<Database>) {
       }
       return db
         .selectFrom("jobRuns")
-        .select([
-          "id",
-          "kind",
-          "trigger",
-          "status",
-          "startedAt",
-          "finishedAt",
-          "durationMs",
-          "errorMessage",
-          "result",
-          "isNoop as noop",
-        ])
+        .select(JOB_RUN_COLUMNS)
         .where("kind", "in", kinds)
         .distinctOn("kind")
         .orderBy("kind")
@@ -308,18 +266,7 @@ export function jobRunsRepo(db: Kysely<Database>) {
       }
       return db
         .selectFrom("jobRuns")
-        .select([
-          "id",
-          "kind",
-          "trigger",
-          "status",
-          "startedAt",
-          "finishedAt",
-          "durationMs",
-          "errorMessage",
-          "result",
-          "isNoop as noop",
-        ])
+        .select(JOB_RUN_COLUMNS)
         .where("kind", "in", kinds)
         .orderBy("startedAt", "desc")
         .limit(limit)
@@ -339,18 +286,7 @@ export function jobRunsRepo(db: Kysely<Database>) {
     async getLatestPerKind(): Promise<Record<string, JobRun>> {
       const rows = await db
         .selectFrom("jobRuns")
-        .select([
-          "id",
-          "kind",
-          "trigger",
-          "status",
-          "startedAt",
-          "finishedAt",
-          "durationMs",
-          "errorMessage",
-          "result",
-          "isNoop as noop",
-        ])
+        .select(JOB_RUN_COLUMNS)
         .distinctOn("kind")
         .orderBy("kind")
         .orderBy("startedAt", "desc")

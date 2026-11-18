@@ -547,11 +547,12 @@ function DraggableTileWrapper({
 }) {
   const isMobile = useIsMobile();
   const enableDrag = !isMobile;
-  const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
+  const { setNodeRef, listeners, isDragging } = useDraggable({
     id: dragId,
     data: dragData,
     disabled: !enableDrag || blockedLabel !== undefined,
   });
+  const blocked = enableDrag && blockedLabel !== undefined;
   return (
     <div
       ref={setNodeRef}
@@ -560,8 +561,9 @@ function DraggableTileWrapper({
       className={cn(className, isDragging && "opacity-40", enableDrag && "select-none")}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      {...(enableDrag ? { ...listeners, ...attributes } : {})}
-      aria-label={enableDrag ? blockedLabel : undefined}
+      {...(enableDrag ? listeners : {})}
+      role={blocked ? "group" : undefined}
+      aria-label={blocked ? blockedLabel : undefined}
     >
       {children}
     </div>

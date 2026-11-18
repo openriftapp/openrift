@@ -272,7 +272,7 @@ export const adminMetaCandidatesContract = {
   /** `metaEventId` accepts the proposal into an event the archive already has; null mints a new one. */
   acceptEventOverlay: authedRoute
     .route({ method: "POST", path: `${BASE}/overlays/events/{id}/accept`, tags: [OVERLAY_TAG] })
-    .input(idParamSchema.extend({ metaEventId: z.string().nullable().optional().default(null) }))
+    .input(idParamSchema.extend({ metaEventId: z.uuid().nullable().optional().default(null) }))
     .errors({
       NOT_FOUND: { message: "Overlay not found" },
       BAD_REQUEST: { message: "A proposed event needs a name, a date and a format" },
@@ -282,7 +282,7 @@ export const adminMetaCandidatesContract = {
 
   moveEventOverlay: authedRoute
     .route({ method: "POST", path: `${BASE}/overlays/events/{id}/move`, tags: [OVERLAY_TAG] })
-    .input(idParamSchema.extend({ metaEventId: z.string() }))
+    .input(idParamSchema.extend({ metaEventId: z.uuid() }))
     .errors({
       NOT_FOUND: { message: "Overlay or archived event not found" },
       BAD_REQUEST: { message: "Only a provider's upload can be moved" },
@@ -294,7 +294,7 @@ export const adminMetaCandidatesContract = {
     .route({ method: "POST", path: `${BASE}/overlays/players/{id}/accept`, tags: [OVERLAY_TAG] })
     .input(
       idParamSchema.extend({
-        metaEventPlayerId: z.string().nullable().optional().default(null),
+        metaEventPlayerId: z.uuid().nullable().optional().default(null),
         fields: acceptClaimFields,
       }),
     )
@@ -313,8 +313,8 @@ export const adminMetaCandidatesContract = {
         items: z
           .array(
             z.object({
-              id: z.string(),
-              metaEventPlayerId: z.string().nullable().optional().default(null),
+              id: z.uuid(),
+              metaEventPlayerId: z.uuid().nullable().optional().default(null),
               fields: acceptClaimFields,
             }),
           )
@@ -331,7 +331,7 @@ export const adminMetaCandidatesContract = {
 
   linkPlayerOverlay: authedRoute
     .route({ method: "POST", path: `${BASE}/overlays/players/{id}/link`, tags: [OVERLAY_TAG] })
-    .input(idParamSchema.extend({ metaEventPlayerId: z.string() }))
+    .input(idParamSchema.extend({ metaEventPlayerId: z.uuid() }))
     .errors({ NOT_FOUND: { message: "Overlay or standings row not found" } })
     .output(metaOverlayReviewResultSchema),
 

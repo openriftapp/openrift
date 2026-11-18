@@ -69,15 +69,8 @@ function QueueRow({
   const rowData: StageQueueRowData = { type: "stage-queue-row", index };
   // Destructure before JSX: member access on the hook's return object in
   // render makes the React Compiler bail on the file.
-  const {
-    setNodeRef,
-    setActivatorNodeRef,
-    listeners,
-    attributes,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: rowId(id, index), data: rowData });
+  const { setNodeRef, setActivatorNodeRef, listeners, transform, transition, isDragging } =
+    useSortable({ id: rowId(id, index), data: rowData });
   // Separate droppable from the sortable above, on an inner element so both
   // can be measured (see StageQueueSlotDropData).
   const { setNodeRef: setSlotRef, isOver: isSlotOver } = useDroppable({
@@ -102,24 +95,21 @@ function QueueRow({
       )}
     >
       <div ref={setSlotRef} className="pointer-events-none absolute inset-0" />
-      {/* oxlint-disable-next-line react/forbid-elements -- dnd-kit drag activator, needs the raw ref + listeners */}
-      <button
+      <span
         ref={setActivatorNodeRef}
-        {...attributes}
         {...listeners}
-        type="button"
-        aria-label={m.stage_queue_reorder_aria({ name: legendDisplayName(printing.card) })}
+        aria-hidden
+        title={m.stage_queue_reorder_aria({ name: legendDisplayName(printing.card) })}
         className={cn(
-          "text-muted-foreground hover:text-foreground flex size-6 shrink-0 items-center justify-center rounded-md outline-hidden",
+          "text-muted-foreground hover:text-foreground flex size-6 shrink-0 items-center justify-center rounded-md",
           "cursor-grab active:cursor-grabbing",
           // dnd-kit's PointerSensor needs pointer events; the default
           // touch-action scrolls the page and aborts the drag instead.
           "touch-none",
-          "focus-visible:ring-ring focus-visible:ring-2",
         )}
       >
         <GripVerticalIcon className="size-4" />
-      </button>
+      </span>
       <span className="text-muted-foreground w-6 shrink-0 text-center font-mono text-sm tabular-nums">
         {index + 1}
       </span>

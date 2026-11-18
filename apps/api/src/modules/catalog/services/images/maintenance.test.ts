@@ -243,6 +243,31 @@ describe("cleanupOrphanedFiles", () => {
     expect(result.errors).toHaveLength(0);
   });
 
+  it("keeps orphans modified within the last hour", async () => {
+    const repo = {
+      allRehostedUrls: vi.fn(async () => []),
+    } as any;
+    mockReaddir.mockImplementation(async (_dir: any, opts?: any) => {
+      if (opts?.withFileTypes) {
+        return [dirent("g1", true)];
+      }
+      return ["recent-full.webp", "old-full.webp"];
+    });
+    mockStat.mockImplementation(async (path: any) => ({
+      size: 500,
+      mtime: String(path).endsWith("recent-full.webp")
+        ? new Date("2026-03-01T11:30:00Z")
+        : new Date("2026-03-01T10:30:00Z"),
+    }));
+
+    const result = await cleanupOrphanedFiles(mockIo, repo, new Date("2026-03-01T12:00:00Z"));
+
+    expect(result.scanned).toBe(2);
+    expect(result.deleted).toBe(1);
+    expect(mockUnlink).toHaveBeenCalledWith(expect.stringContaining("old-full.webp"));
+    expect(mockUnlink).not.toHaveBeenCalledWith(expect.stringContaining("recent-full.webp"));
+  });
+
   it("deletes stale duplicate -orig.* archives, keeping the newest by mtime", async () => {
     const repo = {
       allRehostedUrls: vi.fn(async () => ["/media/cards/g1/img-1"]),

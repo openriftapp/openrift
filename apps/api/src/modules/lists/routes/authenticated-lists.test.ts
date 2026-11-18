@@ -393,7 +393,7 @@ describe("PATCH /api/v1/lists/:id", () => {
     const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ rules: [tradeRule, tradeRule] }),
+      body: JSON.stringify({ rules: [tradeRule, tradeRule], expectedRulesVersion: 4 }),
     });
     expect(res.status).toBe(200);
   });
@@ -405,7 +405,11 @@ describe("PATCH /api/v1/lists/:id", () => {
     const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ rules: [tradeRule], ruleCombine: "count-sum" }),
+      body: JSON.stringify({
+        rules: [tradeRule],
+        ruleCombine: "count-sum",
+        expectedRulesVersion: 4,
+      }),
     });
     expect(res.status).toBe(200);
     // The filter comes back with every dimension backfilled by the schema, so
@@ -417,7 +421,7 @@ describe("PATCH /api/v1/lists/:id", () => {
         rules: [expect.objectContaining({ kind: "trade", keepPerCard: { mode: "fixed", n: 1 } })],
         ruleCombine: "count-sum",
       }),
-      undefined,
+      4,
     );
   });
 
@@ -430,7 +434,7 @@ describe("PATCH /api/v1/lists/:id", () => {
     const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ rules: [wishRule] }),
+      body: JSON.stringify({ rules: [wishRule], expectedRulesVersion: 4 }),
     });
     expect(res.status).toBe(400);
     expect(mockListsRepo.update).not.toHaveBeenCalled();
@@ -441,22 +445,17 @@ describe("PATCH /api/v1/lists/:id", () => {
     const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ruleCombine: "max" }),
+      body: JSON.stringify({ ruleCombine: "max", expectedRulesVersion: 4 }),
     });
     expect(res.status).toBe(200);
-    expect(mockListsRepo.update).toHaveBeenCalledWith(
-      LIST_ID,
-      USER_ID,
-      { ruleCombine: "max" },
-      undefined,
-    );
+    expect(mockListsRepo.update).toHaveBeenCalledWith(LIST_ID, USER_ID, { ruleCombine: "max" }, 4);
   });
 
   it("rejects a trade-mode combine rule on a wish list with 400", async () => {
     const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ruleCombine: "protect" }),
+      body: JSON.stringify({ ruleCombine: "protect", expectedRulesVersion: 4 }),
     });
     expect(res.status).toBe(400);
     expect(mockListsRepo.update).not.toHaveBeenCalled();
@@ -467,15 +466,20 @@ describe("PATCH /api/v1/lists/:id", () => {
     const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ruleCombine: null }),
+      body: JSON.stringify({ ruleCombine: null, expectedRulesVersion: 4 }),
     });
     expect(res.status).toBe(200);
-    expect(mockListsRepo.update).toHaveBeenCalledWith(
-      LIST_ID,
-      USER_ID,
-      { ruleCombine: null },
-      undefined,
-    );
+    expect(mockListsRepo.update).toHaveBeenCalledWith(LIST_ID, USER_ID, { ruleCombine: null }, 4);
+  });
+
+  it("rejects a rules change without the rules version with 400", async () => {
+    const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ruleCombine: "max" }),
+    });
+    expect(res.status).toBe(400);
+    expect(mockListsRepo.update).not.toHaveBeenCalled();
   });
 
   it("passes the expected rules version to the write when the rules change", async () => {
@@ -1187,7 +1191,7 @@ describe("trade-list edits sweep the trades they leave unfillable (ADR-019)", ()
       name: "editing the rules",
       path: `/api/v1/lists/${LIST_ID}`,
       method: "PATCH",
-      body: { rules: [] },
+      body: { rules: [], expectedRulesVersion: 4 },
       status: 200,
     },
   ];

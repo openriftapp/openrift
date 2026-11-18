@@ -27,6 +27,7 @@ import {
   useCardDetailData,
 } from "@/features/admin/components/card-detail-shared";
 import { CardFieldsSection } from "@/features/admin/components/card-fields-section";
+import type { MovedCardDestination } from "@/features/admin/components/move-submission-dialog";
 import { PrintingSourceImageCell } from "@/features/admin/components/printing-source-image-cell";
 import {
   acceptCardFieldFn,
@@ -58,6 +59,7 @@ export function CompareSourcesDialog({
   invalidates,
   isAdmin,
   focusField,
+  cardDestination,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -68,6 +70,7 @@ export function CompareSourcesDialog({
   invalidates: readonly (readonly unknown[])[];
   isAdmin: boolean;
   focusField?: string;
+  cardDestination: MovedCardDestination;
 }) {
   const queueWrite = useQueueWorkspaceWrite();
   const checkCandidateCards = useCheckCandidateCards(invalidates);
@@ -102,6 +105,7 @@ export function CompareSourcesDialog({
           isAdmin={isAdmin}
           focusField={focusField}
           runWrite={queueWrite}
+          cardDestination={cardDestination}
           onFieldAccepted={({ fieldLabel, sourceLabel, revert }) =>
             announce({
               ...usedUndoText({ field: fieldLabel, source: sourceLabel, record: card.name }),

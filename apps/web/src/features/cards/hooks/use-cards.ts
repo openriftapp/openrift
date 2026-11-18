@@ -44,6 +44,20 @@ export function useCatalogOnDemand(enabled: boolean): {
   return useCatalogQuery(enabled, false);
 }
 
+/**
+ * {@link useCards} without suspending: the page's `CatalogSubsetContext` slice, else the catalogue
+ * once fetched. Undefined while disabled, so server-rendered callers pass `useHydrated()`.
+ */
+export function useCardsOnDemand(enabled: boolean): UseCardsResult | undefined {
+  const subset = use(CatalogSubsetContext);
+  const inLanguageOrder = use(CatalogLanguageOrderContext);
+  const { catalog } = useCatalogOnDemand(enabled && subset === null);
+  if (!enabled) {
+    return undefined;
+  }
+  return subset === null ? catalog : inLanguageOrder(subset);
+}
+
 /** {@link useCatalogOnDemand} for a page that cannot render without the catalogue: a failed first load throws. */
 export function useCatalogWhenReady(enabled: boolean): UseCardsResult | undefined {
   return useCatalogQuery(enabled, true).catalog;

@@ -68,11 +68,9 @@ export async function buildWorkspaceQueue(
   },
 ): Promise<WorkspaceQueueResponse> {
   const { access, userId } = options;
-  const scope = await reviewableProviderScope(access, repos.providerSettings);
-  const inScope = (provider: string): boolean => scope === null || scope.has(provider);
-  const listingsPromise = access?.isAdmin === true ? options.loadListings?.() : undefined;
-
   const [
+    scope,
+    deskScope,
     listings,
     cardDifferences,
     drafts,
@@ -83,7 +81,9 @@ export async function buildWorkspaceQueue(
     costKeywords,
     doneToday,
   ] = await Promise.all([
-    listingsPromise,
+    reviewableProviderScope(access, repos.providerSettings),
+    isDeskOnly(access) ? deskPrintingScope(repos, userId) : undefined,
+    access?.isAdmin === true ? options.loadListings?.() : undefined,
     repos.workspaceQueue.uncheckedCardDifferences(),
     repos.workspaceQueue.newCardDrafts(),
     repos.workspaceQueue.uncheckedLinkedPrintings(),
@@ -94,6 +94,7 @@ export async function buildWorkspaceQueue(
     repos.workspaceQueue.countAdminEventsSince(userId, startOfUtcDay(options.now)),
   ]);
 
+  const inScope = (provider: string): boolean => scope === null || scope.has(provider);
   const submissions = pendingSubmissions.filter((row) => inScope(row.provider));
   const slugRows = await repos.candidateCards.cardSlugsByNormNames([
     ...new Set(submissions.map((row) => row.normName)),
@@ -119,8 +120,8 @@ export async function buildWorkspaceQueue(
     listings,
   });
 
-  if (isDeskOnly(access)) {
-    const { promoIds, createdIds } = await deskPrintingScope(repos, userId);
+  if (deskScope !== undefined) {
+    const { promoIds, createdIds } = deskScope;
     const allowed = new Set([...promoIds, ...createdIds]);
     entries = entries.filter((entry) => deskVisible(entry, allowed));
   }

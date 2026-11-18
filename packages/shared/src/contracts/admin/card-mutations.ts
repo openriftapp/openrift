@@ -474,8 +474,8 @@ export const adminCardMutationsContract = {
     .route({ method: "POST", path: `${CARDS}/candidate-printings/check-all`, tags: [TAG] })
     .input(
       z.object({
-        printingId: z.string().optional(),
-        extraIds: z.array(z.string()).optional(),
+        printingId: z.uuid().optional(),
+        extraIds: z.array(z.uuid()).optional(),
       }),
     )
     .output(updatedCountOutput),
@@ -542,9 +542,8 @@ export const adminCardMutationsContract = {
     })
     .errors({
       NOT_FOUND: { message: "Candidate printing or target printing not found" },
-      BAD_REQUEST: { message: "Target printing ID is required" },
     })
-    .input(cpIdParam.extend({ printingId: z.string() })),
+    .input(cpIdParam.extend({ printingId: z.uuid() })),
   linkCandidatePrintings: authedRoute
     .route({
       method: "POST",
@@ -555,8 +554,8 @@ export const adminCardMutationsContract = {
     .errors({ BAD_REQUEST: { message: "At least one candidate printing ID is required" } })
     .input(
       z.object({
-        candidatePrintingIds: z.array(z.string()),
-        printingId: z.string().nullable(),
+        candidatePrintingIds: z.array(z.uuid()),
+        printingId: z.uuid().nullable(),
       }),
     ),
   relinkCandidatePrintings: authedRoute
@@ -680,9 +679,8 @@ export const adminCardMutationsContract = {
     .route({ method: "POST", path: `${CARDS}/new/{name}/link`, tags: [TAG], successStatus: 204 })
     .errors({
       NOT_FOUND: { message: "Target card not found" },
-      BAD_REQUEST: { message: "Card ID is required" },
     })
-    .input(z.object({ name: z.string(), cardId: z.string() })),
+    .input(z.object({ name: z.string(), cardId: z.uuid() })),
   acceptPrinting: authedRoute
     .route({ method: "POST", path: `${CARDS}/{cardId}/accept-printing`, tags: [TAG] })
     .meta({ adminSections: ["card-review"] })
@@ -694,7 +692,7 @@ export const adminCardMutationsContract = {
     .input(
       cardIdParam.extend({
         printingFields: acceptPrintingFieldsSchema,
-        candidatePrintingIds: z.array(z.string()),
+        candidatePrintingIds: z.array(z.uuid()),
         secondSideFaceId: z.uuid().optional(),
       }),
     )

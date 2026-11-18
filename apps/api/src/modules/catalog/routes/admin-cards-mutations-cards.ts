@@ -204,14 +204,9 @@ export const adminCardMutationsCardsRouter = {
     return result;
   }),
 
-  linkUnmatched: os.linkUnmatched.handler(async ({ input, context, errors }): Promise<void> => {
+  linkUnmatched: os.linkUnmatched.handler(async ({ input, context }): Promise<void> => {
     const { catalogMutations: mut } = context.repos;
     const { name, cardId } = input;
-
-    if (!cardId) {
-      throw errors.BAD_REQUEST({ message: "cardId required" });
-    }
-
     const card = await mut.getCardById(cardId);
     assertFound(card, "Target card not found");
 

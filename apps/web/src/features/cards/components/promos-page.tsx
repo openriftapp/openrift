@@ -79,9 +79,7 @@ export function PromosPage() {
     <ViewSurfaceProvider value="promos">
       <FilterSearchProvider value={{ ...search, view: "printings" }}>
         <CatalogLanguagesContext value={[...(search.languages ?? []), language]}>
-          <PageTocProvider>
-            <PromosBrowser />
-          </PageTocProvider>
+          <PromosBrowser />
         </CatalogLanguagesContext>
       </FilterSearchProvider>
     </ViewSurfaceProvider>
@@ -312,7 +310,11 @@ function PromosBrowser() {
                 }
               />
             }
-            leftPane={<PageToc items={tocItems} className="lg:w-52" />}
+            leftPane={
+              <PageTocProvider key={activeLanguage}>
+                <PageToc items={tocItems} className="lg:w-52" />
+              </PageTocProvider>
+            }
             rightPane={
               isMobile ? undefined : (
                 <SelectionDetailPane

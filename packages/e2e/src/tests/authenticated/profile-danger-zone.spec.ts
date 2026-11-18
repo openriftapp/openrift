@@ -3,11 +3,11 @@ import { readFileSync } from "node:fs";
 import type { APIRequestContext, Page } from "@playwright/test";
 
 import { expect, test } from "../../fixtures/test.js";
-import { loginViaForm, passwordTab } from "../../helpers/auth-otp.js";
+import { loginViaForm, passwordTab, waitForHydration } from "../../helpers/auth-otp.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb } from "../../helpers/db.js";
-import { waitForHydrated } from "../../helpers/hydration.js";
+import { waitForProfileReady } from "../../helpers/hydration.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -46,9 +46,8 @@ async function setupUser(
 }
 
 async function openDialog(page: Page) {
-  const trigger = page.getByRole("button", { name: "Delete account", exact: true });
-  await waitForHydrated(trigger);
-  await trigger.click();
+  await waitForProfileReady(page);
+  await page.getByRole("button", { name: "Delete account", exact: true }).click();
   await expect(page.getByRole("alertdialog")).toBeVisible();
   return page.getByRole("alertdialog");
 }
@@ -269,7 +268,7 @@ test.describe("profile danger zone", () => {
       }
 
       await page.goto("/login");
-      await waitForHydrated(page.locator("form").first());
+      await waitForHydration(page);
       const panel = passwordTab(page);
       await panel.getByRole("textbox", { name: "Email", exact: true }).fill(email);
       await panel.getByRole("textbox", { name: "Password", exact: true }).fill(password);

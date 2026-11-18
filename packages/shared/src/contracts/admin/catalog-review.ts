@@ -45,7 +45,7 @@ export const reviewQueueResponseSchema = z.object({
   }),
 });
 
-const candidateCardIdParam = z.object({ candidateCardId: z.string().min(1) });
+const candidateCardIdParam = z.object({ candidateCardId: z.uuid() });
 
 const cardFieldPickSchema = z.object({
   field: z.enum(ACCEPT_CARD_FIELDS),
@@ -53,7 +53,7 @@ const cardFieldPickSchema = z.object({
 });
 
 const printingFieldPickSchema = z.object({
-  printingId: z.string().min(1),
+  printingId: z.uuid(),
   faceId: z.uuid().optional(),
   field: z.enum(ACCEPT_PRINTING_FIELDS),
   value: z.unknown(),
@@ -61,13 +61,13 @@ const printingFieldPickSchema = z.object({
 });
 
 const newPrintingPickSchema = z.object({
-  candidatePrintingId: z.string().min(1),
+  candidatePrintingId: z.uuid(),
   printingFields: acceptPrintingFieldsSchema,
 });
 
 const imagePickSchema = z.object({
-  candidatePrintingId: z.string().min(1),
-  printingId: z.string().min(1),
+  candidatePrintingId: z.uuid(),
+  printingId: z.uuid(),
   faceId: z.uuid().optional(),
 });
 
@@ -91,7 +91,7 @@ export const rejectSubmissionInputSchema = candidateCardIdParam.extend({
 });
 
 export const moveSubmissionInputSchema = candidateCardIdParam.extend({
-  cardId: z.string().min(1),
+  cardId: z.uuid(),
 });
 
 export const moveSubmissionResponseSchema = z.object({

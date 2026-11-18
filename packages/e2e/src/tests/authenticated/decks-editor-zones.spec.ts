@@ -102,13 +102,14 @@ function deckCardRow(section: Locator, cardName: string): Locator {
 }
 
 /**
- * Non-draggable thumbnails also carry data-printing-id, so key off the
- * aria-roledescription dnd-kit only puts on the real drag wrapper.
+ * Deck-zone rows also carry data-printing-id; the add button only sits on the
+ * browser's draggable tile.
  */
 function browserCardTile(page: Page, cardName: string): Locator {
   return page
-    .locator("[data-printing-id][aria-roledescription]")
+    .locator("[data-printing-id]")
     .filter({ has: page.getByRole("img", { name: cardName }) })
+    .filter({ has: page.getByRole("button", { name: "Add to deck" }) })
     .first();
 }
 

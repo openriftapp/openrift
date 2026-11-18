@@ -24,7 +24,7 @@ const adminSubmissionSchema = z.object({
 });
 
 const resolutionInput = z.object({
-  candidateCardId: z.string().min(1),
+  candidateCardId: z.uuid(),
   reason: cardSubmissionReasonSchema.nullable(),
   note: z.string().trim().min(1).max(2000).nullable(),
 });
@@ -36,7 +36,7 @@ const resolutionInput = z.object({
 export const adminCardSubmissionsContract = {
   forCandidate: authedRoute
     .route({ method: "GET", path: `${CS}/by-candidate/{candidateCardId}`, tags: [TAG] })
-    .input(z.object({ candidateCardId: z.string().min(1) }))
+    .input(z.object({ candidateCardId: z.uuid() }))
     .output(z.object({ submission: adminSubmissionSchema.nullable() })),
   setResolution: authedRoute
     .route({ method: "POST", path: `${CS}/resolution`, tags: [TAG], successStatus: 204 })

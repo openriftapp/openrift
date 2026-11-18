@@ -6,7 +6,7 @@ import { expect, test } from "../../fixtures/test.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb, firstRow } from "../../helpers/db.js";
-import { waitForHydrated } from "../../helpers/hydration.js";
+import { waitForProfileReady } from "../../helpers/hydration.js";
 import { fetchLatestOtp } from "../../helpers/otp.js";
 
 type Sql = ReturnType<typeof connectToDb>;
@@ -73,9 +73,7 @@ async function gotoProfileReady(page: Page): Promise<void> {
   await expect(page.getByRole("heading", { name: "Account", level: 2 })).toBeVisible({
     timeout: 15_000,
   });
-  // The profile page renders null until useSession resolves, then mounts the
-  // form; typing before hydration silently drops input events.
-  await waitForHydrated(page.locator("form").first());
+  await waitForProfileReady(page);
 }
 
 test.describe("profile account & security", () => {

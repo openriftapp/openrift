@@ -13,11 +13,11 @@ const pendingSubmission = {
   id: "sub-1",
   status: "pending",
   kind: "correction",
-  candidateCardId: "cc-1",
+  candidateCardId: "a0000000-0001-4000-a000-0000000000c1",
 };
 
 const candidate = {
-  id: "cc-1",
+  id: "a0000000-0001-4000-a000-0000000000c1",
   provider: "usersubmission",
   externalId: "jinx--20260901--u1",
   name: "Jinx",
@@ -104,7 +104,10 @@ function resetDefaults(): void {
   repos.candidateCards.cardSlugsByNormNames.mockResolvedValue([]);
   repos.candidateCards.candidateCardById.mockResolvedValue(candidate);
   repos.catalogMutations.getFullCardById.mockResolvedValue({ id: "card-1", name: "Jinx" });
-  repos.catalogMutations.getCardBySlug.mockResolvedValue({ id: "card-9", name: "Ekko" });
+  repos.catalogMutations.getCardBySlug.mockResolvedValue({
+    id: "a0000000-0001-4000-a000-000000000009",
+    name: "Ekko",
+  });
   repos.printingImages.originalUrlsInUse.mockResolvedValue(new Set());
   repos.ingest.allUnlinkedCandidatePrintings.mockResolvedValue([]);
   repos.ingest.allCardNorms.mockResolvedValue([]);
@@ -124,7 +127,7 @@ describe(`GET ${BASE}/review`, () => {
         provider: "usersubmission",
         cardName: "Jinx",
         normName: "jinx",
-        candidateCardId: "cc-1",
+        candidateCardId: "a0000000-0001-4000-a000-0000000000c1",
         submitterName: "Ekko Fan",
         note: null,
         proposedDiff: ["printing.OGN-002|foil||EN.image"],
@@ -207,7 +210,7 @@ describe(`POST ${BASE}/submissions/{id}/accept`, () => {
   beforeEach(resetDefaults);
 
   it("applies the ticked card field and reports the outcome", async () => {
-    const res = await post(`${BASE}/submissions/cc-1/accept`, {
+    const res = await post(`${BASE}/submissions/a0000000-0001-4000-a000-0000000000c1/accept`, {
       cardFields: [{ field: "energy", value: 3 }],
     });
 
@@ -225,7 +228,7 @@ describe(`POST ${BASE}/submissions/{id}/accept`, () => {
       .mockResolvedValueOnce(pendingSubmission)
       .mockResolvedValueOnce({ ...pendingSubmission, status: "accepted" });
 
-    const res = await post(`${BASE}/submissions/cc-1/accept`, {
+    const res = await post(`${BASE}/submissions/a0000000-0001-4000-a000-0000000000c1/accept`, {
       cardFields: [{ field: "energy", value: 3 }],
     });
 
@@ -242,7 +245,7 @@ describe(`POST ${BASE}/submissions/{id}/accept`, () => {
       .mockResolvedValueOnce({ ...pendingSubmission, status: "accepted" });
     services.notifySubmitterOfCardAcceptance.mockReturnValue(Promise.withResolvers<void>().promise);
 
-    const res = await post(`${BASE}/submissions/cc-1/accept`, {
+    const res = await post(`${BASE}/submissions/a0000000-0001-4000-a000-0000000000c1/accept`, {
       cardFields: [{ field: "energy", value: 3 }],
     });
 
@@ -251,7 +254,7 @@ describe(`POST ${BASE}/submissions/{id}/accept`, () => {
   });
 
   it("sends no thank-you when the submission did not end up accepted", async () => {
-    const res = await post(`${BASE}/submissions/cc-1/accept`, {
+    const res = await post(`${BASE}/submissions/a0000000-0001-4000-a000-0000000000c1/accept`, {
       cardFields: [{ field: "energy", value: 3 }],
     });
 
@@ -265,7 +268,7 @@ describe(`POST ${BASE}/submissions/{id}/accept`, () => {
       status: "rejected",
     });
 
-    const res = await post(`${BASE}/submissions/cc-1/accept`, {});
+    const res = await post(`${BASE}/submissions/a0000000-0001-4000-a000-0000000000c1/accept`, {});
     expect(res.status).toBe(409);
     expect(services.notifySubmitterOfCardAcceptance).not.toHaveBeenCalled();
   });
@@ -273,14 +276,14 @@ describe(`POST ${BASE}/submissions/{id}/accept`, () => {
   it("returns 404 when no submission points at the candidate", async () => {
     repos.cardSubmissions.getByCandidateCardId.mockResolvedValue(null);
 
-    const res = await post(`${BASE}/submissions/cc-1/accept`, {});
+    const res = await post(`${BASE}/submissions/a0000000-0001-4000-a000-0000000000c1/accept`, {});
     expect(res.status).toBe(404);
   });
 
   it("lets a grant holder accept a candidate from a helper-reviewable provider", async () => {
     adminAccess = { isAdmin: false, sections: ["card-review"] };
 
-    const res = await post(`${BASE}/submissions/cc-1/accept`, {
+    const res = await post(`${BASE}/submissions/a0000000-0001-4000-a000-0000000000c1/accept`, {
       cardFields: [{ field: "energy", value: 3 }],
     });
 
@@ -292,7 +295,7 @@ describe(`POST ${BASE}/submissions/{id}/accept`, () => {
     adminAccess = { isAdmin: false, sections: ["card-review"] };
     repos.providerSettings.helperReviewableProviders.mockResolvedValue(new Set(["gallery"]));
 
-    const res = await post(`${BASE}/submissions/cc-1/accept`, {});
+    const res = await post(`${BASE}/submissions/a0000000-0001-4000-a000-0000000000c1/accept`, {});
 
     expect(res.status).toBe(403);
     expect(repos.cardSubmissions.resolve).not.toHaveBeenCalled();
@@ -303,7 +306,7 @@ describe(`POST ${BASE}/submissions/{id}/reject`, () => {
   beforeEach(resetDefaults);
 
   it("returns 204, records the reason and ignores the candidate", async () => {
-    const res = await post(`${BASE}/submissions/cc-1/reject`, {
+    const res = await post(`${BASE}/submissions/a0000000-0001-4000-a000-0000000000c1/reject`, {
       reason: "duplicate",
       note: null,
     });
@@ -321,7 +324,9 @@ describe(`POST ${BASE}/submissions/{id}/reject`, () => {
   });
 
   it("returns 400 and changes nothing without a reason", async () => {
-    const res = await post(`${BASE}/submissions/cc-1/reject`, { note: "Seen it before" });
+    const res = await post(`${BASE}/submissions/a0000000-0001-4000-a000-0000000000c1/reject`, {
+      note: "Seen it before",
+    });
 
     expect(res.status).toBe(400);
     expect(repos.ignoredCandidates.ignoreCard).not.toHaveBeenCalled();
@@ -334,7 +339,7 @@ describe(`POST ${BASE}/submissions/{id}/reject`, () => {
       status: "accepted",
     });
 
-    const res = await post(`${BASE}/submissions/cc-1/reject`, {
+    const res = await post(`${BASE}/submissions/a0000000-0001-4000-a000-0000000000c1/reject`, {
       reason: "other",
       note: "Already handled",
     });
@@ -347,20 +352,25 @@ describe(`POST ${BASE}/submissions/{id}/move`, () => {
 
   it("moves the submission and returns the new card's slug", async () => {
     repos.catalogMutations.getFullCardById.mockResolvedValue({
-      id: "card-9",
+      id: "a0000000-0001-4000-a000-000000000009",
       name: "Ekko",
       normName: "ekko",
       slug: "ekko",
     });
 
-    const res = await post(`${BASE}/submissions/cc-1/move`, { cardId: "card-9" });
+    const res = await post(`${BASE}/submissions/a0000000-0001-4000-a000-0000000000c1/move`, {
+      cardId: "a0000000-0001-4000-a000-000000000009",
+    });
 
     expect(res.status).toBe(200);
     expect(await readJson(res)).toEqual({ cardSlug: "ekko" });
-    expect(repos.candidateCards.moveCandidateCardToCard).toHaveBeenCalledWith("cc-1", {
-      name: "Ekko",
-      normName: "ekko",
-    });
+    expect(repos.candidateCards.moveCandidateCardToCard).toHaveBeenCalledWith(
+      "a0000000-0001-4000-a000-0000000000c1",
+      {
+        name: "Ekko",
+        normName: "ekko",
+      },
+    );
   });
 
   it("returns 409 for an already settled submission", async () => {
@@ -369,7 +379,9 @@ describe(`POST ${BASE}/submissions/{id}/move`, () => {
       status: "rejected",
     });
 
-    const res = await post(`${BASE}/submissions/cc-1/move`, { cardId: "card-9" });
+    const res = await post(`${BASE}/submissions/a0000000-0001-4000-a000-0000000000c1/move`, {
+      cardId: "a0000000-0001-4000-a000-000000000009",
+    });
     expect(res.status).toBe(409);
   });
 });

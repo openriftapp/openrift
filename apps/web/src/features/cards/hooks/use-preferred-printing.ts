@@ -17,6 +17,26 @@ interface PreferredPrintingHelpers {
   faceOf: (cardId: string, printingId?: string | null) => string | null;
 }
 
+/** The card's printing with `preferredPrintingId`, else the first in the language order. */
+export function resolvePreferredPrinting(
+  printingsByCardId: ReadonlyMap<string, Printing[]>,
+  languageOrder: readonly string[],
+  cardId: string,
+  preferredPrintingId?: string | null,
+): Printing | undefined {
+  const candidates = printingsByCardId.get(cardId);
+  if (!candidates) {
+    return undefined;
+  }
+  if (preferredPrintingId) {
+    const match = candidates.find((p) => p.printingId === preferredPrintingId);
+    if (match) {
+      return match;
+    }
+  }
+  return preferredPrinting(candidates, languageOrder);
+}
+
 export function usePreferredPrinting(): PreferredPrintingHelpers {
   "use memo";
 
@@ -26,19 +46,13 @@ export function usePreferredPrinting(): PreferredPrintingHelpers {
   const getPreferredPrinting = (
     cardId: string,
     preferredPrintingId?: string | null,
-  ): Printing | undefined => {
-    const candidates = printingsByCardId.get(cardId);
-    if (!candidates) {
-      return undefined;
-    }
-    if (preferredPrintingId) {
-      const match = candidates.find((p) => p.printingId === preferredPrintingId);
-      if (match) {
-        return match;
-      }
-    }
-    return preferredPrinting(candidates, effectiveLanguageOrder);
-  };
+  ): Printing | undefined =>
+    resolvePreferredPrinting(
+      printingsByCardId,
+      effectiveLanguageOrder,
+      cardId,
+      preferredPrintingId,
+    );
 
   const getPreferredFrontImage = (
     cardId: string,

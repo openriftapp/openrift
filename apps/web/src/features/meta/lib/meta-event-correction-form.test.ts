@@ -1,3 +1,4 @@
+import { META_MAX_PLAYERS } from "@openrift/shared/meta-query";
 import { describe, expect, it } from "vitest";
 
 import type { MetaEventCorrectionSubject } from "./meta-event-correction-form";
@@ -109,10 +110,12 @@ describe("validateMetaEventCorrectionDraft", () => {
   });
 
   it("refuses a player count past the ceiling the contract enforces", () => {
-    expect(validateMetaEventCorrectionDraft(draft({ playerCount: "1000001" }), event)).toContain(
+    const over = String(META_MAX_PLAYERS + 1);
+    expect(validateMetaEventCorrectionDraft(draft({ playerCount: over }), event)).toContain(
       "more players than any tournament",
     );
-    expect(validateMetaEventCorrectionDraft(draft({ playerCount: "1000000" }), event)).toBeNull();
+    const atMax = String(META_MAX_PLAYERS);
+    expect(validateMetaEventCorrectionDraft(draft({ playerCount: atMax }), event)).toBeNull();
   });
 
   it("refuses a country that is not a two-letter code", () => {

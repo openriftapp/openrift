@@ -10,8 +10,7 @@ import {
 import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { copyLimitFor } from "@openrift/shared/deck-rules";
-import { isSingleSlotZone } from "@openrift/shared/deck-zones";
-import type { DeckZone } from "@openrift/shared/types/enums";
+import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -19,11 +18,17 @@ import { useEffect, useRef, useState } from "react";
 import { DndScrollWatcher } from "@/components/dnd-scroll-watcher";
 import { CardDragGhost } from "@/features/cards/components/card-drag-ghost";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
+import type { DeckBuilderActions } from "@/features/decks/hooks/use-deck-builder";
 import { useDeckBuilderActions, useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { isZoneDropRejected } from "@/features/decks/hooks/use-deck-zone-drop";
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
+import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { copyLimitTotal, runeAddRoom } from "@/features/decks/lib/deck-builder-card";
-import type { DeckDragData, DeckDropData } from "@/features/decks/lib/deck-dnd-data";
+import type {
+  DeckCardDragData,
+  DeckDragData,
+  DeckDropData,
+} from "@/features/decks/lib/deck-dnd-data";
 import {
   DECK_DRAG_TYPES,
   DECK_DROP_TYPES,
@@ -72,6 +77,38 @@ export function releaseDropTarget(
     return null;
   }
   return { type: "deck-zone", zone: pointZone, disabled: isRejected(pointZone) };
+}
+
+/** Moves a dragged deck row into another zone; the copy-limit warning and its Undo cover only what landed. */
+export function dropDeckCard(args: {
+  data: DeckCardDragData;
+  toZone: DeckZone;
+  moveAll: boolean;
+  relaxed: boolean;
+  deckCards: readonly DeckBuilderCard[];
+  format: DeckFormat;
+  actions: Pick<DeckBuilderActions, "moveCard" | "moveOneCard">;
+}): void {
+  const { data, toZone, moveAll, relaxed, deckCards, format, actions } = args;
+  const { cardId, fromZone, preferredPrintingId } = data;
+  const source = relaxed ? resolveDraggedCard(data, deckCards) : undefined;
+  const moved =
+    moveAll || data.quantity === 1
+      ? actions.moveCard(cardId, fromZone, toZone, preferredPrintingId)
+      : actions.moveOneCard(cardId, fromZone, toZone, preferredPrintingId);
+  const outcome =
+    source && moved > 0
+      ? relaxedMoveOutcome({ card: source, fromZone, toZone, moved, allCards: deckCards, format })
+      : undefined;
+  if (outcome) {
+    showRelaxedAddToast(outcome, {
+      undo: () => {
+        for (let step = 0; step < moved; step++) {
+          actions.moveOneCard(cardId, toZone, fromZone, preferredPrintingId);
+        }
+      },
+    });
+  }
 }
 
 export function DeckDndContext({ deckId, children }: { deckId: string; children: ReactNode }) {
@@ -219,40 +256,15 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
       if (isDropRejected(activeData, overData)) {
         return;
       }
-      const { cardId, fromZone, preferredPrintingId } = activeData;
-      const toZone = overData.zone;
-      const moved =
-        (moveAll || activeData.quantity === 1) && !isSingleSlotZone(toZone)
-          ? activeData.quantity
-          : 1;
-      const source = relaxed ? resolveDraggedCard(activeData, deckCards) : undefined;
-      const outcome = source
-        ? relaxedMoveOutcome({ card: source, fromZone, toZone, moved, allCards: deckCards, format })
-        : undefined;
-      if (moveAll || activeData.quantity === 1) {
-        actions.moveCard(
-          activeData.cardId,
-          activeData.fromZone,
-          overData.zone,
-          activeData.preferredPrintingId,
-        );
-      } else {
-        actions.moveOneCard(
-          activeData.cardId,
-          activeData.fromZone,
-          overData.zone,
-          activeData.preferredPrintingId,
-        );
-      }
-      if (outcome) {
-        showRelaxedAddToast(outcome, {
-          undo: () => {
-            for (let step = 0; step < moved; step++) {
-              actions.moveOneCard(cardId, toZone, fromZone, preferredPrintingId);
-            }
-          },
-        });
-      }
+      dropDeckCard({
+        data: activeData,
+        toZone: overData.zone,
+        moveAll,
+        relaxed,
+        deckCards,
+        format,
+        actions,
+      });
     }
   };
 
