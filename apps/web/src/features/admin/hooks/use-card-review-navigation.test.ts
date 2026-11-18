@@ -274,7 +274,7 @@ describe("useCardReviewNavigation", () => {
     });
 
     act(() => {
-      result.current.goToCard("zed");
+      void result.current.goToCard("zed");
     });
 
     expect(mocks.navigate).toHaveBeenCalledWith({
@@ -293,7 +293,7 @@ describe("useCardReviewNavigation", () => {
     const { result } = renderNav({ section: "printings" });
 
     act(() => {
-      result.current.goToCard("zed");
+      void result.current.goToCard("zed");
     });
 
     expect(mocks.navigate).toHaveBeenCalledWith({
@@ -331,7 +331,7 @@ describe("useCardReviewNavigation", () => {
     const { result } = renderNav({ listStatus: "new-printings", priceScope: "cardmarket" });
 
     act(() => {
-      result.current.goToList();
+      void result.current.goToList();
     });
 
     expect(mocks.navigate).toHaveBeenCalledWith({
@@ -358,9 +358,9 @@ describe("useCardReviewNavigation", () => {
     expect(result.current.prevNextCards).toEqual({ prev: "ahri", next: "zoe" });
 
     act(() => {
-      result.current.goToCard("zoe");
-      result.current.goToCard("ahri");
-      result.current.goToCard("zyra");
+      void result.current.goToCard("zoe");
+      void result.current.goToCard("ahri");
+      void result.current.goToCard("zyra");
     });
 
     expect(mocks.navigate.mock.calls.map(([call]) => call.search.section)).toEqual([
@@ -385,7 +385,7 @@ describe("useCardReviewNavigation", () => {
     const { result } = renderNav({ listStatus: "prices-to-assign" });
 
     act(() => {
-      result.current.goToCard("zed");
+      void result.current.goToCard("zed");
     });
 
     expect(mocks.navigate).toHaveBeenCalledWith(
@@ -413,7 +413,7 @@ describe("useCardReviewNavigation", () => {
     expect(result.current.prevNextCards).toEqual({ prev: "ahri", next: "zoe" });
 
     act(() => {
-      result.current.goToCard("zoe");
+      void result.current.goToCard("zoe");
     });
 
     expect(mocks.navigate).toHaveBeenCalledWith({
@@ -445,7 +445,7 @@ describe("useCardReviewNavigation", () => {
     const { result } = renderNav({ listStatus: "review", setSlug: "prox" });
 
     act(() => {
-      result.current.goToList();
+      void result.current.goToList();
     });
 
     expect(mocks.navigate).toHaveBeenCalledWith({ to: "/admin/review" });
@@ -461,7 +461,7 @@ describe("useCardReviewNavigation", () => {
     const { result } = renderNav({ setSlug: "prox", priceScope: "cardtrader:FR" });
 
     act(() => {
-      result.current.goToList();
+      void result.current.goToList();
     });
 
     expect(mocks.navigate).toHaveBeenCalledWith({
