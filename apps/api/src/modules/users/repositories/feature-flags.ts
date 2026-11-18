@@ -9,15 +9,6 @@ export function featureFlagsRepo(db: Kysely<Database>) {
       return db.selectFrom("featureFlags").select(["key", "isEnabled as enabled"]).execute();
     },
 
-    async isEnabled(key: string): Promise<boolean | undefined> {
-      const row = await db
-        .selectFrom("featureFlags")
-        .select("isEnabled as enabled")
-        .where("key", "=", key)
-        .executeTakeFirst();
-      return row?.enabled;
-    },
-
     listAll(): Promise<Selectable<FeatureFlagsTable>[]> {
       return db.selectFrom("featureFlags").selectAll().orderBy("key").execute();
     },
