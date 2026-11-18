@@ -64,7 +64,7 @@ describe("SwissResultForm", () => {
     });
   });
 
-  it("totals each side's games and previews the points", async () => {
+  it("sums up the winner, score and points under the sheet", async () => {
     const user = userEvent.setup();
     renderForm(match([null, null]));
 
@@ -72,8 +72,7 @@ describe("SwissResultForm", () => {
     await user.click(screen.getByRole("button", { name: "Game 2: Braum" }));
     await user.click(screen.getByRole("button", { name: "Game 3: Ashe" }));
 
-    expect(screen.getByText("+3 points")).toBeInTheDocument();
-    expect(screen.getByText("+0 points")).toBeInTheDocument();
+    expect(screen.getByText("Ashe wins 2–1 · +3 / +0")).toBeInTheDocument();
   });
 
   it("shows no points preview when points are off", async () => {
@@ -83,7 +82,7 @@ describe("SwissResultForm", () => {
     await user.click(screen.getByRole("button", { name: "Game 1: Ashe" }));
     await user.click(screen.getByRole("button", { name: "Game 2: Ashe" }));
 
-    expect(screen.queryByText(/points/u)).not.toBeInTheDocument();
+    expect(screen.getByText("Ashe wins 2–0")).toBeInTheDocument();
   });
 
   it("keeps a cut-short match open when the confirmation is cancelled", async () => {
@@ -107,7 +106,7 @@ describe("SwissResultForm", () => {
       "aria-pressed",
       "false",
     );
-    expect(screen.queryByRole("button", { name: /^Game 3:/u })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Game 3: Ashe" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Save result" }));
     await user.click(
       within(screen.getByRole("alertdialog")).getByRole("button", { name: "Save result" }),
@@ -132,14 +131,14 @@ describe("SwissResultForm", () => {
     expect(onSubmit).toHaveBeenCalledOnce();
   });
 
-  it("hides game 3 once a 2–0 decides the match", async () => {
+  it("disables game 3 once a 2–0 decides the match", async () => {
     const user = userEvent.setup();
     renderForm(match([null, null]));
 
     await user.click(screen.getByRole("button", { name: "Game 1: Ashe" }));
     await user.click(screen.getByRole("button", { name: "Game 2: Ashe" }));
 
-    expect(screen.queryByRole("button", { name: /^Game 3:/u })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Game 3: Ashe" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Save result" })).toBeEnabled();
   });
 
@@ -192,7 +191,8 @@ describe("SwissResultForm", () => {
     const onSubmit = renderForm(match([null, null]));
 
     await user.click(screen.getByRole("button", { name: "Intentional draw" }));
-    expect(screen.queryByRole("button", { name: /^Game 1:/u })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Game 1: Ashe" })).toBeDisabled();
+    expect(screen.getByText("Intentional draw · +1 / +1")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Save result" }));
 
     expect(onSubmit).toHaveBeenCalledWith({
@@ -317,15 +317,26 @@ describe("SwissResultForm", () => {
     expect(screen.queryByRole("button", { name: "Intentional draw" })).not.toBeInTheDocument();
   });
 
-  it("hides the game 3 heading until games 1 and 2 are split", async () => {
+  it("shows every game from the start and opens each in turn", async () => {
     const user = userEvent.setup();
     renderForm(match([null, null]));
 
+    expect(screen.getByText("G3")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Game 2: Ashe" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Game 1: Ashe" }));
-    await user.click(screen.getByRole("button", { name: "Game 2: Ashe" }));
-    expect(screen.queryByText("G3")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Game 2: Ashe" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Game 3: Ashe" })).toBeDisabled();
 
     await user.click(screen.getByRole("button", { name: "Game 2: Braum" }));
-    expect(screen.getByText("G3")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Game 3: Ashe" })).toBeEnabled();
+  });
+
+  it("calls a level match a draw", async () => {
+    const user = userEvent.setup();
+    renderForm(match([null, null]));
+
+    await user.click(screen.getByRole("button", { name: "Game 1: Draw" }));
+
+    expect(screen.getByText("Draw 0–0 · +1 / +1")).toBeInTheDocument();
   });
 });

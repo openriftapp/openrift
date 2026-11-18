@@ -162,93 +162,77 @@ export function SwissResultForm({
       ? [{ outcome: "draw" as const, label: <SheetRowLabel>{outcomeLabels.draw}</SheetRowLabel> }]
       : []),
   ];
-  const sidePoints: Partial<Record<SheetOutcome, number>> =
-    showPoints && preview ? { first: preview[0], second: preview[1] } : {};
+  const summary = counts ? matchSummary(counts, side1Name, side2Name, intentional) : null;
 
   return (
     <div className="flex flex-col gap-3">
-      {intentional ? null : (
-        <div
-          className={cn(
-            "grid w-full items-center gap-x-1.5 gap-y-2",
-            SHEET_COLUMNS[bo3 ? "bo3" : "bo1"][showPoints ? "points" : "plain"],
-          )}
-        >
-          <span />
-          {rows.map((_, index) =>
-            index < visible ? (
+      <div
+        className={cn(
+          "grid w-fit max-w-full items-center gap-x-1.5 gap-y-2",
+          bo3 ? SHEET_COLUMNS.bo3 : SHEET_COLUMNS.bo1,
+        )}
+      >
+        <span />
+        {rows.map((_, index) => (
+          <span
+            key={index}
+            className="text-muted-foreground text-center text-xs font-medium"
+            title={m.tournaments_submit_game({ number: index + 1 })}
+          >
+            {m.tournaments_submit_game_short({ number: index + 1 })}
+          </span>
+        ))}
+        <span />
+        {sheetRows.map(({ outcome, label }) => {
+          const side = outcome === "first" || outcome === "second";
+          return (
+            <Fragment key={outcome}>
+              {label}
+              {rows.map((game, index) => {
+                const pressed = !intentional && game === outcome;
+                return (
+                  <Toggle
+                    key={index}
+                    variant="outline"
+                    size="sm"
+                    pressed={pressed}
+                    onPressedChange={(next) =>
+                      setRows(
+                        next ? setGame(rows, index, outcome, matchFormat) : clearGame(rows, index),
+                      )
+                    }
+                    disabled={submitting || intentional || index >= visible}
+                    aria-label={m.tournaments_submit_game_outcome_aria({
+                      number: index + 1,
+                      outcome: outcomeLabels[outcome],
+                    })}
+                    className={cn(
+                      "w-full",
+                      side
+                        ? "aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary/90"
+                        : "h-7",
+                    )}
+                  >
+                    {pressed ? <CheckIcon /> : null}
+                  </Toggle>
+                );
+              })}
               <span
-                key={index}
-                className="text-muted-foreground text-center text-xs font-medium"
-                title={m.tournaments_submit_game({ number: index + 1 })}
+                className={cn(
+                  "text-right font-semibold tabular-nums",
+                  outcome === "draw" && "text-muted-foreground text-sm font-normal",
+                )}
               >
-                {m.tournaments_submit_game_short({ number: index + 1 })}
+                {intentional ? null : totals[outcome]}
               </span>
-            ) : (
-              <span key={index} />
-            ),
-          )}
-          <span />
-          {showPoints ? <span /> : null}
-          {sheetRows.map(({ outcome, label }) => {
-            const side = outcome === "first" || outcome === "second";
-            return (
-              <Fragment key={outcome}>
-                {label}
-                {rows.map((game, index) => {
-                  if (index >= visible) {
-                    return <span key={index} />;
-                  }
-                  const number = index + 1;
-                  return (
-                    <Toggle
-                      key={index}
-                      variant="outline"
-                      size="sm"
-                      pressed={game === outcome}
-                      onPressedChange={(pressed) =>
-                        setRows(
-                          pressed
-                            ? setGame(rows, index, outcome, matchFormat)
-                            : clearGame(rows, index),
-                        )
-                      }
-                      disabled={submitting}
-                      aria-label={m.tournaments_submit_game_outcome_aria({
-                        number,
-                        outcome: outcomeLabels[outcome],
-                      })}
-                      className={cn(
-                        "w-full",
-                        side
-                          ? "aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary/90"
-                          : "h-7",
-                      )}
-                    >
-                      {game === outcome ? <CheckIcon /> : null}
-                    </Toggle>
-                  );
-                })}
-                <span
-                  className={cn(
-                    "text-right font-semibold tabular-nums",
-                    outcome === "draw" && "text-muted-foreground text-sm font-normal",
-                  )}
-                >
-                  {totals[outcome]}
-                </span>
-                {showPoints ? (
-                  <span className="text-muted-foreground text-right text-sm tabular-nums">
-                    {sidePoints[outcome] === undefined
-                      ? null
-                      : m.tournaments_submit_points_preview({ points: sidePoints[outcome] })}
-                  </span>
-                ) : null}
-              </Fragment>
-            );
-          })}
-        </div>
-      )}
+            </Fragment>
+          );
+        })}
+      </div>
+      <p className="text-muted-foreground min-h-5 text-sm tabular-nums">
+        {summary}
+        {summary && showPoints && preview ? ` · +${preview[0]} / +${preview[1]}` : null}
+      </p>
       {tiedWithoutDraws ? (
         <p className="text-muted-foreground text-sm">{m.tournaments_submit_needs_winner()}</p>
       ) : null}
@@ -299,15 +283,27 @@ export function SwissResultForm({
 type SheetOutcome = Exclude<GameOutcome, "unplayed">;
 
 const SHEET_COLUMNS = {
-  bo1: {
-    plain: "grid-cols-[minmax(0,1fr)_2.5rem_1.5rem]",
-    points: "grid-cols-[minmax(0,1fr)_2.5rem_1.5rem_auto]",
-  },
-  bo3: {
-    plain: "grid-cols-[minmax(0,1fr)_repeat(3,2.5rem)_1.5rem]",
-    points: "grid-cols-[minmax(0,1fr)_repeat(3,2.5rem)_1.5rem_auto]",
-  },
+  bo1: "grid-cols-[minmax(0,max-content)_2.5rem_1.5rem]",
+  bo3: "grid-cols-[minmax(0,max-content)_repeat(3,2.5rem)_1.5rem]",
 } as const;
+
+function matchSummary(
+  counts: MatchCounts,
+  side1Name: string,
+  side2Name: string,
+  intentional: boolean,
+): string {
+  if (intentional) {
+    return m.tournaments_submit_intentional_draw();
+  }
+  const [first, second] = counts.gamePoints;
+  if (first === second) {
+    return m.tournaments_submit_summary_draw({ score: `${first}–${second}` });
+  }
+  return first > second
+    ? m.tournaments_submit_summary_win({ name: side1Name, score: `${first}–${second}` })
+    : m.tournaments_submit_summary_win({ name: side2Name, score: `${second}–${first}` });
+}
 
 function SheetRowLabel({ children }: { children: ReactNode }) {
   return <span className="text-muted-foreground truncate text-right text-sm">{children}</span>;

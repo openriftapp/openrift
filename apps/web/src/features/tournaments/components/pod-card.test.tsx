@@ -75,6 +75,20 @@ describe("PodCard", () => {
     expect(screen.getByRole("button", { name: "Save result" })).toBeInTheDocument();
   });
 
+  it("closes the result form from the header without saving", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<PodCard {...props(match([null, null]), onSubmit)} />);
+
+    await user.click(screen.getByRole("button", { name: "Enter result" }));
+    await user.click(screen.getByRole("button", { name: "Game 1: Ashe" }));
+    await user.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Save result" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Enter result" })).toBeInTheDocument();
+  });
+
   it("only accepts whole game point counts in a pod result", async () => {
     const user = userEvent.setup();
     const pod = match([null, null]);

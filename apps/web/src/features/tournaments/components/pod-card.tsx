@@ -306,6 +306,17 @@ export function PodCard({
                 size={teamMode ? 2 : pod.size}
               />
             )}
+            {editor.editing ? (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={editor.handleCancel}
+                disabled={editor.saving}
+                aria-label={m.common_close()}
+              >
+                <XIcon />
+              </Button>
+            ) : null}
           </span>
         </CardTitle>
         {showPenalty && penaltySummary ? (
@@ -328,7 +339,6 @@ export function PodCard({
               onSubmit={(submission) => void editor.submit(submission)}
               submitting={editor.saving}
               error={editor.error}
-              onCancel={editor.handleCancel}
             />
           ) : (
             <PodResultForm
@@ -337,7 +347,6 @@ export function PodCard({
               onSubmit={(results) => void editor.submit({ results })}
               submitting={editor.saving}
               error={editor.error}
-              onCancel={editor.handleCancel}
             />
           )
         ) : (
