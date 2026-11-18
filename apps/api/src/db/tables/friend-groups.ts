@@ -61,14 +61,12 @@ export interface FriendGroupInvitesTable {
 export interface FriendGroupUvsgamesShopsTable {
   groupId: string;
   uvsgamesStoreId: number;
-  addedByUserId: string | null;
   createdAt: CreatedAt;
 }
 
 export interface FriendGroupPlayriftboundShopsTable {
   groupId: string;
   organizerId: string;
-  addedByUserId: string | null;
   createdAt: CreatedAt;
 }
 

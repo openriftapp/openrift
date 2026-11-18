@@ -102,13 +102,11 @@ describe.skipIf(!ctx)("friendGroupShopsRepo with playriftbound stores (integrati
       groupId,
       source: "playriftbound",
       storeId: ORGANIZER_ID,
-      addedByUserId: OWNER_ID,
     });
     await repo.linkShop({
       groupId,
       source: "playriftbound",
       storeId: ORGANIZER_ID,
-      addedByUserId: OWNER_ID,
     });
 
     expect(await repo.countShops(groupId)).toBe(1);

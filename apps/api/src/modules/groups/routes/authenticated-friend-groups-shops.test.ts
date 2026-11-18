@@ -265,7 +265,6 @@ describe("friend-group shops route", () => {
       groupId: GROUP_ID,
       source: "playriftbound",
       storeId: RIOT_STORE,
-      addedByUserId: USER_ID,
     });
   });
 

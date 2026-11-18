@@ -326,7 +326,6 @@ export function friendGroupShopsRepo(db: Kysely<Database>) {
       groupId: string;
       source: GroupShopSource;
       storeId: string;
-      addedByUserId: string;
     }): Promise<void> {
       if (values.source === "playriftbound") {
         await db
@@ -334,7 +333,6 @@ export function friendGroupShopsRepo(db: Kysely<Database>) {
           .values({
             groupId: values.groupId,
             organizerId: values.storeId,
-            addedByUserId: values.addedByUserId,
           })
           .onConflict((oc) => oc.columns(["groupId", "organizerId"]).doNothing())
           .execute();
@@ -345,7 +343,6 @@ export function friendGroupShopsRepo(db: Kysely<Database>) {
         .values({
           groupId: values.groupId,
           uvsgamesStoreId: Number(values.storeId),
-          addedByUserId: values.addedByUserId,
         })
         .onConflict((oc) => oc.columns(["groupId", "uvsgamesStoreId"]).doNothing())
         .execute();

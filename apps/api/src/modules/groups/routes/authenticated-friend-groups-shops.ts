@@ -66,7 +66,6 @@ export const friendGroupsShopsRouter = {
         groupId: ctx.group.id,
         source: key.source,
         storeId: key.storeId,
-        addedByUserId: context.userId,
       });
     });
   }),

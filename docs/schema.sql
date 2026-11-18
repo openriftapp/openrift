@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict e8fGdf5Ewg4Bl6L5Qb6nQOBa0ggIKfjXf8T0qNuyl2lmTzpc7N1BDvFSaXcNaa5
+\restrict fqNIl2rcEYIZmqhGCx8yHKr4bPLaiNm6Ji0tuoWpf4Jffsxbun2aCzvE33yyhmZ
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -2377,7 +2377,6 @@ CREATE TABLE public.friend_group_members (
 CREATE TABLE public.friend_group_playriftbound_shops (
     group_id uuid NOT NULL,
     organizer_id text NOT NULL,
-    added_by_user_id text,
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
@@ -2389,7 +2388,6 @@ CREATE TABLE public.friend_group_playriftbound_shops (
 CREATE TABLE public.friend_group_uvsgames_shops (
     group_id uuid CONSTRAINT friend_group_shops_group_id_not_null NOT NULL,
     uvsgames_store_id integer CONSTRAINT friend_group_shops_uvsgames_store_id_not_null NOT NULL,
-    added_by_user_id text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT friend_group_shops_created_at_not_null NOT NULL
 );
 
@@ -10310,14 +10308,6 @@ ALTER TABLE ONLY public.friend_group_members
 
 
 --
--- Name: friend_group_playriftbound_shops fk_friend_group_playriftbound_shops_added_by_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_playriftbound_shops
-    ADD CONSTRAINT fk_friend_group_playriftbound_shops_added_by_user_id FOREIGN KEY (added_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
-
-
---
 -- Name: friend_group_playriftbound_shops fk_friend_group_playriftbound_shops_group_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -10331,14 +10321,6 @@ ALTER TABLE ONLY public.friend_group_playriftbound_shops
 
 ALTER TABLE ONLY public.friend_group_playriftbound_shops
     ADD CONSTRAINT fk_friend_group_playriftbound_shops_organizer_id FOREIGN KEY (organizer_id) REFERENCES public.playriftbound_organizers(id) ON DELETE CASCADE;
-
-
---
--- Name: friend_group_uvsgames_shops fk_friend_group_uvsgames_shops_added_by_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.friend_group_uvsgames_shops
-    ADD CONSTRAINT fk_friend_group_uvsgames_shops_added_by_user_id FOREIGN KEY (added_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --
@@ -11513,5 +11495,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict e8fGdf5Ewg4Bl6L5Qb6nQOBa0ggIKfjXf8T0qNuyl2lmTzpc7N1BDvFSaXcNaa5
+\unrestrict fqNIl2rcEYIZmqhGCx8yHKr4bPLaiNm6Ji0tuoWpf4Jffsxbun2aCzvE33yyhmZ
 
