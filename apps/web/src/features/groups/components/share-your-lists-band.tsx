@@ -42,6 +42,10 @@ export function ShareYourListsBand({ slug, groupName }: { slug: string; groupNam
     );
   }
 
+  if (shared.length === tradable.length) {
+    return null;
+  }
+
   return (
     <Callout className="flex items-center gap-3">
       <IconChip icon={Share2Icon} tone="info" size="sm" shape="round" />
@@ -51,21 +55,17 @@ export function ShareYourListsBand({ slug, groupName }: { slug: string; groupNam
         </p>
         <p className="text-muted-foreground text-xs">{m.trades_share_band_hint()}</p>
       </div>
-      {shared.length === tradable.length ? null : (
-        <>
-          <Button size="sm" variant="outline" className="shrink-0" onClick={() => setOpen(true)}>
-            <Share2Icon />
-            {m.trades_share_more()}
-          </Button>
-          <ShareListsWithGroupDialog
-            slug={slug}
-            groupName={groupName}
-            open={open}
-            onOpenChange={setOpen}
-            flow="manage"
-          />
-        </>
-      )}
+      <Button size="sm" variant="outline" className="shrink-0" onClick={() => setOpen(true)}>
+        <Share2Icon />
+        {m.trades_share_more()}
+      </Button>
+      <ShareListsWithGroupDialog
+        slug={slug}
+        groupName={groupName}
+        open={open}
+        onOpenChange={setOpen}
+        flow="manage"
+      />
     </Callout>
   );
 }

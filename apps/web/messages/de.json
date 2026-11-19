@@ -4729,17 +4729,117 @@
   ],
   "user_profile_updated": "Aktualisiert {time}",
   "trades_title": "Tauschgeschäfte",
-  "trades_hero_eyebrow": [
+  "trades_title_in": "Tauschgeschäfte in {#picker}{group}{/picker}",
+  "trades_title_all_groups": "allen Gruppen",
+  "trades_group_menu_open_group": "{group} öffnen",
+  "trades_hero_lead_groups": "Treffer stammen aus den Wunsch- und Tauschlisten, die Mitglieder in deinen Gruppen teilen.",
+  "trades_section_in_progress": "Laufend",
+  "trades_section_find": "Tausch finden",
+  "trades_section_traded_before": "Schon getauscht",
+  "trades_waiting_show_more": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "In deiner Gruppe",
-        "countPlural=*": "In deinen {count} Gruppen"
+        "countPlural=one": "{count} weitere wartende anzeigen",
+        "countPlural=*": "{count} weitere wartende anzeigen"
       }
     }
   ],
-  "trades_hero_lead": "Treffer stammen aus den Wunsch- und Tauschlisten, die Mitglieder in einer Gruppe teilen. Unbeantwortete Anfragen verfallen nach 7 Tagen.",
+  "trades_your_move_settle": "Abschließen",
+  "trades_row_you_get": "Du bekommst {cards}",
+  "trades_row_you_give": "Du gibst {cards}",
+  "trades_row_card_and_more": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{card} und {count} weitere",
+        "countPlural=*": "{card} und {count} weitere"
+      }
+    }
+  ],
+  "trades_finder_view_label": "Ansicht",
+  "trades_finder_by_person": "Nach Person",
+  "trades_finder_by_card": "Nach Karte",
+  "trades_finder_has_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Hat {count}, die du suchst",
+        "countPlural=*": "Hat {count}, die du suchst"
+      }
+    }
+  ],
+  "trades_finder_wants_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Sucht {count} von dir",
+        "countPlural=*": "Sucht {count} von dir"
+      }
+    }
+  ],
+  "trades_finder_wants_count_after": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "sucht {count} von dir",
+        "countPlural=*": "sucht {count} von dir"
+      }
+    }
+  ],
+  "trades_buy_strip_missing_group": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Wunschkarte, die niemand in {group} hat",
+        "countPlural=*": "{count} Wunschkarten, die niemand in {group} hat"
+      }
+    }
+  ],
+  "trades_finder_you_would_get": "Du bekämst",
+  "trades_finder_you_would_give": "Du gäbst",
+  "trades_finder_from_wishlists": "Aus deinen Wunschlisten",
+  "trades_finder_from_tradelists": "Aus deinen Tauschlisten",
+  "trades_finder_show_all": "Alle {count} anzeigen",
+  "trades_finder_open_sheet": "Tauschblatt öffnen",
+  "trades_finder_empty": "Gerade hat niemand in deinen Gruppen eine Karte von deinen Wunschlisten oder sucht eine von deinen Tauschlisten.",
+  "trades_buy_strip_missing": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Wunschkarte, die niemand in deinen Gruppen hat",
+        "countPlural=*": "{count} Wunschkarten, die niemand in deinen Gruppen hat"
+      }
+    }
+  ],
+  "trades_buy_strip_in_cart": "{count} im Warenkorb",
+  "trades_buy_strip_cart_only": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Karte im Warenkorb",
+        "countPlural=*": "{count} Karten im Warenkorb"
+      }
+    }
+  ],
+  "trades_buy_strip_estimate": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "CardTrader ca. {price}",
+        "countPlural=*": "CardTrader ca. {price} für alle {count}"
+      }
+    }
+  ],
   "trades_view_trades": "Tauschgeschäfte ansehen",
   "trades_this_card": "diese Karte",
   "trades_card_fallback": "Karte",
@@ -4851,22 +4951,9 @@
   "trades_go_to_groups": "Zu den Gruppen",
   "trades_section_your_move": "Du bist dran",
   "trades_your_move_answer": "Antworten",
-  "trades_your_move_hand_over": "Übergeben",
-  "trades_your_move_confirm": "Bestätigen",
   "trades_your_move_open": "Öffnen",
   "trades_section_waiting": "Warten auf sie",
-  "trades_section_to_swap": "Bereit zum Tausch",
   "trades_section_suggestions": "Vorschläge",
-  "trades_traded_before": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Schon mit {count} Person getauscht",
-        "countPlural=*": "Schon mit {count} Personen getauscht"
-      }
-    }
-  ],
   "trades_past_trades": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -10308,9 +10395,7 @@
   "marketing_hero_install": "Lieber auf dem Handy? {#link}Leg OpenRift auf deinen Home-Bildschirm{/link}.",
   "trades_market_tab_get": "Du könntest bekommen",
   "trades_market_tab_give": "Von dir gesucht",
-  "trades_market_tab_buy": "Nicht in deinen Gruppen",
   "trades_market_search_placeholder": "Karten suchen",
-  "trades_market_group_filter": "Gruppe",
   "trades_market_all_groups": "Alle Gruppen",
   "trades_market_one_has": "{name} hat sie",
   "trades_market_one_wants": "{name} sucht sie",
@@ -10356,7 +10441,6 @@
   "trades_match_request_all": "Alle anfragen ({count})",
   "trades_market_empty_get": "Gerade hat niemand in deinen Gruppen eine Karte von deinen Wunschlisten.",
   "trades_market_empty_give": "Gerade sucht niemand in deinen Gruppen eine Karte von deinen Tauschlisten.",
-  "trades_market_empty_buy": "Hier erscheinen Karten von deinen Wunschlisten, die niemand in deinen Gruppen hat.",
   "trades_market_cardtrader_estimate": "CardTrader ca. {price}",
   "trades_market_on_wishlists": "Auf deiner Wunschliste: {lists}",
   "trades_market_on_tradelists": "Auf deiner Tauschliste: {lists}",
@@ -10400,39 +10484,15 @@
       }
     }
   ],
-  "trades_market_open_sheet": "Tauschübersicht mit {name}",
-  "trades_market_no_source": "Niemand in deinen Gruppen hat diese Karte auf einer Tauschliste.",
   "trades_market_or_buy": "Oder kauf sie auf einem Marktplatz.",
-  "trades_market_buy_it": "Kauf sie auf einem Marktplatz.",
   "trades_market_add_to_cart": "In den Warenkorb",
   "trades_market_in_cart": "Im Warenkorb",
   "trades_market_view_cart": "Warenkorb ansehen",
-  "trades_market_buy_banner_title": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} Karte, die niemand in deinen Gruppen hat",
-        "countPlural=*": "{count} Karten, die niemand in deinen Gruppen hat"
-      }
-    }
-  ],
-  "trades_market_buy_banner_add": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} Karte in den Warenkorb",
-        "countPlural=*": "Alle {count} in den Warenkorb"
-      }
-    }
-  ],
   "trades_price_vs_estimate_above": "{amount} über der CardTrader-Schätzung",
   "trades_price_vs_estimate_below": "{amount} unter der CardTrader-Schätzung",
   "trades_price_vs_estimate_match": "Entspricht der CardTrader-Schätzung",
   "trades_buy_title": "Fehlende Karten kaufen",
   "trades_buy_cart_button": "Fehlende Karten kaufen",
-  "trades_buy_cart_button_count": "Warenkorb ({count})",
   "trades_buy_description": "Wähle die Karten von deinen Wunschlisten, die du kaufen willst, und schick sie gesammelt an einen Marktplatz.",
   "trades_buy_filter_none": "Niemand in deinen Gruppen hat",
   "trades_buy_filter_friends": "In deinen Gruppen",
@@ -10556,8 +10616,6 @@
   ],
   "trades_buy_filed_body": "Verschieb sie in ihre Sammlung, sobald sie ankommen.",
   "trades_market_no_match": "Keine Karten passen zu deiner Suche.",
-  "trades_market_people_filter": "Personen",
-  "trades_market_everyone": "Alle",
   "trades_market_hide_person": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

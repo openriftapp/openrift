@@ -121,9 +121,11 @@ describe("nextMoveLabel", () => {
     expect(nextMoveLabel(stubTrade({ actionNeeded: "accept-or-decline" }))).toBe("Answer");
   });
 
-  it("asks the giver to hand over and the receiver to confirm when settling", () => {
-    expect(nextMoveLabel(stubTrade({ actionNeeded: "settle", role: "giver" }))).toBe("Hand over");
-    expect(nextMoveLabel(stubTrade({ actionNeeded: "settle", role: "receiver" }))).toBe("Confirm");
+  it("asks both sides to settle up", () => {
+    expect(nextMoveLabel(stubTrade({ actionNeeded: "settle", role: "giver" }))).toBe("Settle up");
+    expect(nextMoveLabel(stubTrade({ actionNeeded: "settle", role: "receiver" }))).toBe(
+      "Settle up",
+    );
   });
 
   it("falls back to opening the sheet", () => {

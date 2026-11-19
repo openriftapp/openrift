@@ -5,13 +5,13 @@ import { stubCardTrade } from "@/test/factories";
 
 import { countTradeSuggestions, withoutLiveTradeMatches } from "./trade-derivation";
 import { dismissalKeys } from "./trade-dismissals";
+import { finderPeople } from "./trade-finder";
 import type { TradeMarketGroup } from "./trade-market";
 import {
   buildTradeMarket,
   filterMarketByGroup,
   filterMarketByPerson,
   marketDismissals,
-  marketPeople,
   openMarketCards,
   sortByValue,
   wantedSources,
@@ -176,7 +176,11 @@ describe("openMarketCards", () => {
     const live = [stubCardTrade({ role: "receiver", status: "pending" })];
     const open = openMarketCards(market.incoming, live);
     expect(open).toHaveLength(2);
-    expect(marketPeople(market, open).map((person) => [person.userId, person.cardCount])).toEqual([
+    expect(
+      finderPeople(open, [])
+        .map((person) => [person.userId, person.get.length])
+        .toSorted(([a], [b]) => String(a).localeCompare(String(b))),
+    ).toEqual([
       ["user-2", 1],
       ["user-3", 1],
     ]);
@@ -244,19 +248,6 @@ describe("people", () => {
       ],
     }),
   ]);
-
-  it("lists everyone on either side, most cards first", () => {
-    expect(marketPeople(market).map((person) => [person.userId, person.cardCount])).toEqual([
-      ["user-2", 2],
-      ["user-3", 1],
-    ]);
-  });
-
-  it("counts only the given cards per person and drops people with none", () => {
-    expect(
-      marketPeople(market, market.outgoing).map((person) => [person.userId, person.cardCount]),
-    ).toEqual([["user-3", 1]]);
-  });
 
   it("narrows cards to one person", () => {
     expect(filterMarketByPerson(market.incoming, "user-3")).toEqual([]);

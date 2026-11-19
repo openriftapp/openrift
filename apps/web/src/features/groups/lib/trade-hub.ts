@@ -114,7 +114,7 @@ export function nextMoveLabel(trade: CardTradeResponse | undefined): string {
     return m.trades_your_move_answer();
   }
   if (trade?.actionNeeded === "settle") {
-    return trade.role === "giver" ? m.trades_your_move_hand_over() : m.trades_your_move_confirm();
+    return m.trades_your_move_settle();
   }
   return m.trades_your_move_open();
 }

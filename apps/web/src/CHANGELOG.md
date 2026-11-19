@@ -12,6 +12,7 @@
 
 ### Highlights
 
+- feat(Trades): **A clearer Trades page** — open trades sit in one list ordered by whose move it is, and suggestions, browsable by person or by card, leave out cards already in a trade.
 - feat(Designer): **Printed card frames** — single-domain Unit, Spell and Gear cards at Common or Uncommon now render in the printed frame, with your art in the window. A switch turns the frame off.
 - feat(Trades): **Automatic accepting in groups** — offers and requests other members send you are now agreed at once without waiting for your answer, and each group's settings let you turn that off for offers, requests or both. Trades agreed this way are marked as new until you open them, and the sender sees whether you have.
 
@@ -22,7 +23,6 @@
 - feat(Trades): **One Trades page for every group** — a group's trades now open on the Trades page with that group selected, and the group filter there narrows your open trades as well as the suggestions.
 - feat(Tournaments): **Clear a table's result** — organizers can remove a mistaken result from a table while its round is still open, which also unlocks re-rolling a round whose only result was a mistake.
 - fix(Designer): **Text previews look like previews** — the live preview under the rules, effect and flavor text fields is labelled and no longer looks like a second input.
-- fix(Trades): **Suggestions match their counts** — cards you already have a trade going for leave the suggestion grid, so the tab counts, people counts and hide button agree with what is shown.
 - fix(Cards): **Search box ready from the start** — the search box on the cards page keeps your cursor and what you typed while the cards load.
 - fix(App): **Steady collection and deck pages** — collection and deck pages keep their sidebar and title bar in place while they load, and cards appear where they stay.
 - fix(Collection): **Dragging onto the sidebar** — dragging cards over the sidebar no longer scrolls the collection behind it, and the sidebar scrolls when you drag near its top or bottom edge.

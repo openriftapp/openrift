@@ -155,41 +155,6 @@ export function filterMarketByPerson(
   });
 }
 
-export interface TradeMarketPerson extends TradeMarketSource {
-  cardCount: number;
-}
-
-export function marketPeople(
-  market: TradeMarket,
-  counted?: readonly TradeMarketCard[],
-): TradeMarketPerson[] {
-  const byUser = new Map<string, TradeMarketPerson>();
-  for (const card of [...market.incoming, ...market.outgoing]) {
-    for (const source of card.sources) {
-      const person = byUser.get(source.userId);
-      if (person === undefined) {
-        byUser.set(source.userId, { ...source, groupNames: [...source.groupNames], cardCount: 1 });
-      } else {
-        person.cardCount += 1;
-      }
-    }
-  }
-  const people = [...byUser.values()].toSorted(
-    (a, b) => b.cardCount - a.cardCount || (a.name ?? "").localeCompare(b.name ?? ""),
-  );
-  if (counted === undefined) {
-    return people;
-  }
-  return people
-    .map((person) => ({
-      ...person,
-      cardCount: counted.filter((card) =>
-        card.sources.some((source) => source.userId === person.userId),
-      ).length,
-    }))
-    .filter((person) => person.cardCount > 0);
-}
-
 export function marketDismissals(
   cards: readonly TradeMarketCard[],
   userId: string,

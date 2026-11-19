@@ -60,9 +60,17 @@ describe("buildTradesIndex", () => {
     ]);
     expect(index.yourMove.map((person) => person.userId)).toEqual(["user-2"]);
     expect(index.waiting).toEqual([]);
-    expect(index.past).toEqual([]);
     expect(index.yourMove[0]?.needsYou.map((trade) => trade.id)).toEqual(["a"]);
     expect(index.yourMove[0]?.doneCount).toBe(1);
+  });
+
+  it("also lists a person with a live trade under past once a trade with them is done", () => {
+    const index = buildTradesIndex([
+      stubTrade({ id: "a", actionNeeded: "accept-or-decline" }),
+      stubTrade({ id: "b", status: "completed", completedAt: "2026-08-02T10:00:00.000Z" }),
+      stubTrade({ id: "c", actionNeeded: "cancel", ...withPerson("user-3", "Ash") }),
+    ]);
+    expect(index.past.map((person) => person.userId)).toEqual(["user-2"]);
   });
 
   it("files a person under waiting when only they have a move left", () => {
@@ -71,7 +79,7 @@ describe("buildTradesIndex", () => {
     expect(index.waiting[0]?.waiting).toHaveLength(1);
   });
 
-  it("files a person with only finished trades under past, newest first", () => {
+  it("files people with a done trade under past, newest first, and leaves out closed-only ones", () => {
     const index = buildTradesIndex([
       stubTrade({
         id: "old",
@@ -81,6 +89,7 @@ describe("buildTradesIndex", () => {
       }),
       stubTrade({ id: "new", status: "completed", updatedAt: "2026-08-05T10:00:00.000Z" }),
       stubTrade({ id: "closed", status: "declined", updatedAt: "2026-08-06T10:00:00.000Z" }),
+      stubTrade({ id: "expired", status: "expired", ...withPerson("user-4", "Kai") }),
     ]);
     expect(index.past.map((person) => person.userId)).toEqual(["user-2", "user-3"]);
     expect(index.past[0]?.doneCount).toBe(1);

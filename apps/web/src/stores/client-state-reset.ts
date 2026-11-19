@@ -14,6 +14,7 @@ import { useDeckOverviewViewStore } from "@/features/decks/stores/deck-overview-
 import { clearTradeSettlementRequests } from "@/features/groups/lib/trade-settlement-request";
 import { useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
 import { useTradeAddTargetStore } from "@/features/groups/stores/trade-add-target-store";
+import { useTradeFinderStore } from "@/features/groups/stores/trade-finder-store";
 import { useTradeTallyStore } from "@/features/groups/stores/trade-tally-store";
 import { useMatchTrackerStore } from "@/features/match-tracker/stores/match-tracker-store";
 import { clearScanJournal } from "@/features/scan/lib/scan-journal";
@@ -159,6 +160,13 @@ export const CLIENT_STATE: readonly ClientStateEntry[] = [
     keys: ["openrift-milestone-banner"],
     phase: "after-leave",
     reset: () => resetToInitial(useMilestoneBannerStore),
+  },
+  {
+    sources: ["features/groups/stores/trade-finder-store.ts"],
+    storage: "localStorage",
+    keys: ["openrift-trade-finder"],
+    phase: "after-leave",
+    reset: () => resetToInitial(useTradeFinderStore),
   },
   {
     sources: ["stores/sidebar-fold-store.ts"],

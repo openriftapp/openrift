@@ -16,6 +16,7 @@ import { useDeckOddsGroupsStore } from "@/features/decks/stores/deck-odds-groups
 import { useDeckOverviewViewStore } from "@/features/decks/stores/deck-overview-view-store";
 import { useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
 import { useTradeAddTargetStore } from "@/features/groups/stores/trade-add-target-store";
+import { useTradeFinderStore } from "@/features/groups/stores/trade-finder-store";
 import { useTradeTallyStore } from "@/features/groups/stores/trade-tally-store";
 import { useMatchTrackerStore } from "@/features/match-tracker/stores/match-tracker-store";
 import { appendScanJournal, hasScanJournal } from "@/features/scan/lib/scan-journal";
@@ -91,6 +92,7 @@ const resetters = [
   useMilestoneBannerStore,
   useOnboardingStore,
   useSidebarFoldStore,
+  useTradeFinderStore,
   useThemeStore,
   useCookieViewPrefsStore,
   useLocalViewPrefsStore,
@@ -241,6 +243,7 @@ describe("resetClientState", () => {
     useBuyCartStore
       .getState()
       .addItems("friend-1", [{ key: "k1", cardId: "c1", printingId: "p1", quantity: 2 }]);
+    useTradeFinderStore.getState().setView("card");
     useTradeTallyStore.getState().setCount("trade-1", 1);
     useTradeAddTargetStore.getState().setTarget({ id: "list-1", name: "Binder" });
     useMatchTrackerStore.getState().startGame();
@@ -265,6 +268,7 @@ describe("resetClientState", () => {
     expect(useLocalViewPrefsStore.getState().decks.sortDir).toBe("desc");
     expect(useBoardDraftStore.getState().draft).toBeNull();
     expect(useBuyCartStore.getState()).toMatchObject(useBuyCartStore.getInitialState());
+    expect(useTradeFinderStore.getState().view).toBe("person");
     expect(useTradeTallyStore.getState().counts).toEqual({});
     expect(useTradeAddTargetStore.getState().target).toBeNull();
     expect(useMatchTrackerStore.getState().status).toBe("setup");

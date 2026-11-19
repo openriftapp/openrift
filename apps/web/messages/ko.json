@@ -4729,16 +4729,117 @@
   ],
   "user_profile_updated": "{time} 업데이트됨",
   "trades_title": "교환",
-  "trades_hero_eyebrow": [
+  "trades_title_in": "{#picker}{group}{/picker}의 교환",
+  "trades_title_all_groups": "모든 그룹",
+  "trades_group_menu_open_group": "{group} 열기",
+  "trades_hero_lead_groups": "매칭은 멤버가 내 그룹에 공유한 위시리스트와 교환 목록에서 나옵니다.",
+  "trades_section_in_progress": "진행 중",
+  "trades_section_find": "교환 찾기",
+  "trades_section_traded_before": "교환한 적 있음",
+  "trades_waiting_show_more": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=*": "내 그룹 {count}곳"
+        "countPlural=one": "대기 중인 {count}명 더 보기",
+        "countPlural=*": "대기 중인 {count}명 더 보기"
       }
     }
   ],
-  "trades_hero_lead": "매칭은 멤버가 그룹에 공유한 위시리스트와 교환 목록에서 나옵니다. 답하지 않은 요청은 7일 후 만료됩니다.",
+  "trades_your_move_settle": "정산하기",
+  "trades_row_you_get": "받는 카드: {cards}",
+  "trades_row_you_give": "주는 카드: {cards}",
+  "trades_row_card_and_more": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{card} 외 {count}장",
+        "countPlural=*": "{card} 외 {count}장"
+      }
+    }
+  ],
+  "trades_finder_view_label": "보기",
+  "trades_finder_by_person": "사람별",
+  "trades_finder_by_card": "카드별",
+  "trades_finder_has_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "원하는 카드 {count}장 보유",
+        "countPlural=*": "원하는 카드 {count}장 보유"
+      }
+    }
+  ],
+  "trades_finder_wants_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "내 카드 {count}장 원함",
+        "countPlural=*": "내 카드 {count}장 원함"
+      }
+    }
+  ],
+  "trades_finder_wants_count_after": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "내 카드 {count}장 원함",
+        "countPlural=*": "내 카드 {count}장 원함"
+      }
+    }
+  ],
+  "trades_buy_strip_missing_group": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{group}에 아무도 없는 위시리스트 카드 {count}장",
+        "countPlural=*": "{group}에 아무도 없는 위시리스트 카드 {count}장"
+      }
+    }
+  ],
+  "trades_finder_you_would_get": "받을 카드",
+  "trades_finder_you_would_give": "줄 카드",
+  "trades_finder_from_wishlists": "내 위시리스트에서",
+  "trades_finder_from_tradelists": "내 교환 목록에서",
+  "trades_finder_show_all": "{count}장 모두 보기",
+  "trades_finder_open_sheet": "교환 시트 열기",
+  "trades_finder_empty": "지금은 그룹에 내 위시리스트 카드를 가진 사람도, 내 교환 목록 카드를 원하는 사람도 없습니다.",
+  "trades_buy_strip_missing": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "그룹에 아무도 없는 위시리스트 카드 {count}장",
+        "countPlural=*": "그룹에 아무도 없는 위시리스트 카드 {count}장"
+      }
+    }
+  ],
+  "trades_buy_strip_in_cart": "장바구니에 {count}장",
+  "trades_buy_strip_cart_only": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "장바구니에 카드 {count}장",
+        "countPlural=*": "장바구니에 카드 {count}장"
+      }
+    }
+  ],
+  "trades_buy_strip_estimate": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "CardTrader 예상가 {price}",
+        "countPlural=*": "CardTrader 예상가 {count}장 합계 {price}"
+      }
+    }
+  ],
   "trades_view_trades": "교환 보기",
   "trades_this_card": "이 카드",
   "trades_card_fallback": "카드",
@@ -4850,22 +4951,9 @@
   "trades_go_to_groups": "그룹으로 이동",
   "trades_section_your_move": "내 차례",
   "trades_your_move_answer": "답하기",
-  "trades_your_move_hand_over": "전달하기",
-  "trades_your_move_confirm": "확인하기",
   "trades_your_move_open": "열기",
   "trades_section_waiting": "상대 대기 중",
-  "trades_section_to_swap": "교환 준비 완료",
   "trades_section_suggestions": "추천",
-  "trades_traded_before": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "지금까지 {count}명과 교환함",
-        "countPlural=*": "지금까지 {count}명과 교환함"
-      }
-    }
-  ],
   "trades_past_trades": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -10306,9 +10394,7 @@
   "marketing_hero_install": "휴대폰에서 쓰고 싶나요? {#link}OpenRift를 홈 화면에 추가하세요{/link}.",
   "trades_market_tab_get": "받을 수 있는 카드",
   "trades_market_tab_give": "상대가 원하는 카드",
-  "trades_market_tab_buy": "그룹에 없는 카드",
   "trades_market_search_placeholder": "카드 검색",
-  "trades_market_group_filter": "그룹",
   "trades_market_all_groups": "모든 그룹",
   "trades_market_one_has": "{name} 님이 보유",
   "trades_market_one_wants": "{name} 님이 원함",
@@ -10354,7 +10440,6 @@
   "trades_match_request_all": "모두 요청 ({count})",
   "trades_market_empty_get": "지금은 그룹에 내 위시리스트의 카드를 가진 사람이 없습니다.",
   "trades_market_empty_give": "지금은 그룹에 내 교환 목록의 카드를 원하는 사람이 없습니다.",
-  "trades_market_empty_buy": "위시리스트의 카드 중 그룹에 가진 사람이 없는 카드가 여기에 표시됩니다.",
   "trades_market_cardtrader_estimate": "CardTrader 예상가 {price}",
   "trades_market_on_wishlists": "내 위시리스트: {lists}",
   "trades_market_on_tradelists": "내 교환 목록: {lists}",
@@ -10398,39 +10483,15 @@
       }
     }
   ],
-  "trades_market_open_sheet": "{name} 님과의 교환 시트",
-  "trades_market_no_source": "그룹에 이 카드를 교환 목록에 올린 사람이 없습니다.",
   "trades_market_or_buy": "또는 마켓에서 구매하세요.",
-  "trades_market_buy_it": "마켓에서 구매하세요.",
   "trades_market_add_to_cart": "장바구니에 담기",
   "trades_market_in_cart": "장바구니에 있음",
   "trades_market_view_cart": "장바구니 보기",
-  "trades_market_buy_banner_title": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "그룹에 가진 사람이 없는 카드 {count}장",
-        "countPlural=*": "그룹에 가진 사람이 없는 카드 {count}장"
-      }
-    }
-  ],
-  "trades_market_buy_banner_add": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count}장 장바구니에 담기",
-        "countPlural=*": "{count}장 모두 장바구니에 담기"
-      }
-    }
-  ],
   "trades_price_vs_estimate_above": "CardTrader 예상가보다 {amount} 높음",
   "trades_price_vs_estimate_below": "CardTrader 예상가보다 {amount} 낮음",
   "trades_price_vs_estimate_match": "CardTrader 예상가와 같음",
   "trades_buy_title": "부족한 카드 구매",
   "trades_buy_cart_button": "부족한 카드 구매",
-  "trades_buy_cart_button_count": "장바구니 ({count})",
   "trades_buy_description": "위시리스트에서 구매할 카드를 고른 뒤 한 번에 하나의 마켓으로 보내세요.",
   "trades_buy_filter_none": "그룹에 없는 카드",
   "trades_buy_filter_friends": "그룹에 있는 카드",
@@ -10554,8 +10615,6 @@
   ],
   "trades_buy_filed_body": "카드가 도착하면 원래 컬렉션으로 옮기세요.",
   "trades_market_no_match": "검색과 일치하는 카드가 없습니다.",
-  "trades_market_people_filter": "사람",
-  "trades_market_everyone": "모두",
   "trades_market_hide_person": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

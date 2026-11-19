@@ -30,10 +30,6 @@ import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-export type TradeMarketSelection =
-  | { kind: "market"; card: TradeMarketCard }
-  | { kind: "wanted"; wanted: WantedCard; printingId: string };
-
 function distinct(values: readonly string[]): string[] {
   return [...new Set(values.filter((value) => value.length > 0))];
 }
@@ -100,20 +96,16 @@ function SheetCardHeader({
 
 function BuyRow({
   wanted,
-  hasSources,
   inCart,
   onToggleCart,
 }: {
   wanted: WantedCard;
-  hasSources: boolean;
   inCart: boolean;
   onToggleCart: (wanted: WantedCard) => void;
 }) {
   return (
     <div className="flex flex-col gap-3 border-t pt-4">
-      <p className="text-muted-foreground text-sm">
-        {hasSources ? m.trades_market_or_buy() : m.trades_market_buy_it()}
-      </p>
+      <p className="text-muted-foreground text-sm">{m.trades_market_or_buy()}</p>
       <div className="flex flex-wrap items-center gap-3">
         <Button
           size="sm"
@@ -130,14 +122,14 @@ function BuyRow({
 }
 
 export function TradeMarketSheet({
-  selection,
+  card,
   onClose,
   wantedForCard,
   cartKeys,
   onToggleCart,
   priceOf,
 }: {
-  selection: TradeMarketSelection | null;
+  card: TradeMarketCard | null;
   onClose: () => void;
   wantedForCard: (card: TradeMarketCard) => WantedCard | undefined;
   cartKeys: ReadonlySet<string>;
@@ -148,36 +140,10 @@ export function TradeMarketSheet({
   const dismiss = useDismissSuggestions();
   const { printingsById, printingsByCardId } = useCards();
 
-  const printingId =
-    selection === null
-      ? null
-      : selection.kind === "market"
-        ? selection.card.printingId
-        : selection.printingId;
-  const cardId =
-    selection === null
-      ? null
-      : selection.kind === "market"
-        ? selection.card.cardId
-        : selection.wanted.cardId;
   const printing =
-    printingId === null || cardId === null
-      ? undefined
-      : tradePrinting({ cardId, printingId }, printingsByCardId, printingsById);
-  const card = selection?.kind === "market" ? selection.card : null;
-  const wanted =
-    selection === null
-      ? undefined
-      : selection.kind === "market"
-        ? card?.direction === "incoming"
-          ? wantedForCard(selection.card)
-          : undefined
-        : selection.wanted;
-
-  const listNames =
-    card === null
-      ? (wanted?.listNames ?? [])
-      : distinct(card.rows.map((row) => row.viewerListName));
+    card === null ? undefined : tradePrinting(card, printingsByCardId, printingsById);
+  const wanted = card?.direction === "incoming" ? wantedForCard(card) : undefined;
+  const listNames = card === null ? [] : distinct(card.rows.map((row) => row.viewerListName));
   const listLine =
     listNames.length === 0
       ? null
@@ -187,7 +153,7 @@ export function TradeMarketSheet({
 
   return (
     <Sheet
-      open={selection !== null && printing !== undefined}
+      open={card !== null && printing !== undefined}
       onOpenChange={(open) => {
         if (!open) {
           onClose();
@@ -198,7 +164,7 @@ export function TradeMarketSheet({
         side={isMobile ? "bottom" : "right"}
         className={cn("overflow-y-auto", isMobile ? "max-h-[85dvh]" : "sm:max-w-md")}
       >
-        {printing === undefined ? null : (
+        {printing === undefined || card === null ? null : (
           <>
             <SheetCardHeader
               printing={printing}
@@ -206,39 +172,34 @@ export function TradeMarketSheet({
               listLine={listLine}
             />
             <div className="flex flex-col gap-5 px-4 pb-6">
-              {card === null ? (
-                <p>{m.trades_market_no_source()}</p>
-              ) : (
-                <section className="flex flex-col gap-3">
-                  <SectionHeading as="h3">
-                    {card.direction === "incoming"
-                      ? m.trades_market_sources({ count: card.sources.length })
-                      : m.trades_market_wanted_by({ count: card.sources.length })}
-                  </SectionHeading>
-                  <MatchPersonList
-                    rows={card.rows}
-                    direction={card.direction}
-                    groupSlug={card.rows[0]?.groupSlug ?? ""}
-                    onHide={(counterpartyUserId) => {
-                      dismiss.mutate([
-                        {
-                          direction: card.direction,
-                          counterpartyUserId,
-                          printingId: card.printingId,
-                        },
-                      ]);
-                      if (card.sources.length === 1) {
-                        onClose();
-                      }
-                    }}
-                    hidePending={dismiss.isPending}
-                  />
-                </section>
-              )}
+              <section className="flex flex-col gap-3">
+                <SectionHeading as="h3">
+                  {card.direction === "incoming"
+                    ? m.trades_market_sources({ count: card.sources.length })
+                    : m.trades_market_wanted_by({ count: card.sources.length })}
+                </SectionHeading>
+                <MatchPersonList
+                  rows={card.rows}
+                  direction={card.direction}
+                  groupSlug={card.rows[0]?.groupSlug ?? ""}
+                  onHide={(counterpartyUserId) => {
+                    dismiss.mutate([
+                      {
+                        direction: card.direction,
+                        counterpartyUserId,
+                        printingId: card.printingId,
+                      },
+                    ]);
+                    if (card.sources.length === 1) {
+                      onClose();
+                    }
+                  }}
+                  hidePending={dismiss.isPending}
+                />
+              </section>
               {wanted === undefined ? null : (
                 <BuyRow
                   wanted={wanted}
-                  hasSources={card !== null}
                   inCart={cartKeys.has(wanted.key)}
                   onToggleCart={onToggleCart}
                 />

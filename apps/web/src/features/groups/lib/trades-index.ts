@@ -106,12 +106,7 @@ export function buildTradesIndex(trades: readonly CardTradeResponse[]): TradesIn
           person.needsYou.length === 0 && person.toSwap.length === 0 && person.waiting.length > 0,
       )
       .toSorted(compareByName),
-    past: people
-      .filter(
-        (person) =>
-          person.needsYou.length === 0 && person.toSwap.length === 0 && person.waiting.length === 0,
-      )
-      .toSorted(compareByActivity),
+    past: people.filter((person) => person.doneCount > 0).toSorted(compareByActivity),
     groupCount: new Set(trades.map((trade) => trade.groupId)).size,
   };
 }
