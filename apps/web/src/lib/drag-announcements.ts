@@ -12,7 +12,7 @@ export interface DragAnnouncementText {
   unnamed: () => string;
 }
 
-const DRAG_ANNOUNCEMENT_TEXT: DragAnnouncementText = {
+export const DRAG_ANNOUNCEMENT_TEXT: DragAnnouncementText = {
   pickedUp: (name) => m.drag_announce_picked_up({ name }),
   over: (name, target) => m.drag_announce_over({ name, target }),
   notOver: (name) => m.drag_announce_not_over({ name }),

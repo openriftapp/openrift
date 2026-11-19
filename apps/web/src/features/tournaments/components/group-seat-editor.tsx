@@ -28,10 +28,10 @@ import {
 import { DragChip } from "@/features/tournaments/components/drag-chip";
 import { SaveError } from "@/features/tournaments/components/save-error";
 import { useReplaceGroupSeats } from "@/features/tournaments/hooks/use-tournament-run";
-import { dragAnnouncements } from "@/features/tournaments/lib/drag-announcements";
 import type { SeatGroup } from "@/features/tournaments/lib/group-seat-editor";
 import { swapSeats } from "@/features/tournaments/lib/group-seat-editor";
 import { participantName } from "@/features/tournaments/lib/participant-name";
+import { tournamentDragAnnouncements } from "@/features/tournaments/lib/tournament-drag-announcements";
 import { asDragData } from "@/lib/dnd-data";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
@@ -191,18 +191,20 @@ export function GroupSeatEditor({
     setRefocusId(playerId);
   }
 
-  const announcements = dragAnnouncements({
-    itemName: (active) => {
-      const drag = asDragData<SeatDragData>(active, SEAT_TYPES);
-      return drag ? nameOf(drag.playerId) : undefined;
+  const announcements = tournamentDragAnnouncements(
+    {
+      item: (active) => {
+        const drag = asDragData<SeatDragData>(active.data.current, SEAT_TYPES);
+        return drag ? nameOf(drag.playerId) : undefined;
+      },
+      target: (over, active) => {
+        const drop = asDragData<SeatDragData>(over.data.current, SEAT_TYPES);
+        const drag = asDragData<SeatDragData>(active.data.current, SEAT_TYPES);
+        return drop && drop.playerId !== drag?.playerId ? nameOf(drop.playerId) : undefined;
+      },
     },
-    targetName: (over, active) => {
-      const drop = asDragData<SeatDragData>(over, SEAT_TYPES);
-      const drag = asDragData<SeatDragData>(active, SEAT_TYPES);
-      return drop && drop.playerId !== drag?.playerId ? nameOf(drop.playerId) : undefined;
-    },
-    dropped: (name, target) => m.tournaments_seat_editor_drag_swapped({ name, target }),
-  });
+    (name, target) => m.tournaments_seat_editor_drag_swapped({ name, target }),
+  );
 
   function handleDragStart(event: DragStartEvent) {
     setDraggingId(

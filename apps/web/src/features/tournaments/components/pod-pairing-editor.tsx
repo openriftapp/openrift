@@ -39,7 +39,6 @@ import {
   useReplaceCutPairing,
   useReplaceTournamentPairing,
 } from "@/features/tournaments/hooks/use-tournament-run";
-import { dragAnnouncements } from "@/features/tournaments/lib/drag-announcements";
 import { participantName } from "@/features/tournaments/lib/participant-name";
 import {
   movePlayer,
@@ -56,6 +55,7 @@ import type {
   MoveTarget,
 } from "@/features/tournaments/lib/pod-pairing-editor";
 import { teamNamesById } from "@/features/tournaments/lib/team-display";
+import { tournamentDragAnnouncements } from "@/features/tournaments/lib/tournament-drag-announcements";
 import { asDragData } from "@/lib/dnd-data";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
@@ -221,17 +221,19 @@ export function PodPairingEditor({
     }));
   }
 
-  const announcements = dragAnnouncements({
-    itemName: (active) => {
-      const drag = asDragData<PodPlayerDragData>(active, POD_DRAG_TYPES);
-      return drag ? nameById.get(drag.playerId) : undefined;
+  const announcements = tournamentDragAnnouncements(
+    {
+      item: (active) => {
+        const drag = asDragData<PodPlayerDragData>(active.data.current, POD_DRAG_TYPES);
+        return drag ? nameById.get(drag.playerId) : undefined;
+      },
+      target: (over) => {
+        const drop = asDragData<PodSeatDropData>(over.data.current, POD_DROP_TYPES);
+        return drop ? targetLabel(drop.target) : undefined;
+      },
     },
-    targetName: (over) => {
-      const drop = asDragData<PodSeatDropData>(over, POD_DROP_TYPES);
-      return drop ? targetLabel(drop.target) : undefined;
-    },
-    dropped: (name, target) => m.tournaments_pairing_editor_drag_moved({ name, target }),
-  });
+    (name, target) => m.tournaments_pairing_editor_drag_moved({ name, target }),
+  );
 
   function handleDragStart(event: DragStartEvent) {
     const drag = asDragData<PodPlayerDragData>(event.active.data.current, POD_DRAG_TYPES);
