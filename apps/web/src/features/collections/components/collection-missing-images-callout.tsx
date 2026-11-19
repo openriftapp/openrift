@@ -6,23 +6,18 @@ import { buttonVariants } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/text-link";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePrintingVariantText } from "@/features/cards/hooks/use-printing-variant-text";
-import { useMyMissingImages } from "@/features/contribute/hooks/use-missing-images";
+import { useMissingImagesNudge } from "@/features/collections/hooks/use-missing-images-nudge";
 import { m } from "@/paraglide/messages.js";
 import { useOnboardingStore } from "@/stores/onboarding-store";
 
-const PREVIEW_LIMIT = 3;
-
 export function CollectionMissingImagesCallout() {
-  const dismissedPrintings = useOnboardingStore((state) => state.dismissedMissingImagePrintings);
   const dismiss = useOnboardingStore((state) => state.dismissMissingImagesNudge);
-  const { data } = useMyMissingImages();
+  const { items, preview, visible } = useMissingImagesNudge();
   const { printingsById, printingsByCardId } = useCards();
   const variantText = usePrintingVariantText();
 
-  const items = data?.items ?? [];
   const count = items.length;
-  const hasUndismissed = items.some((item) => !dismissedPrintings.includes(item.printingId));
-  if (count === 0 || !hasUndismissed) {
+  if (!visible) {
     return null;
   }
 
@@ -30,7 +25,6 @@ export function CollectionMissingImagesCallout() {
     const printing = printingsById[printingId];
     return printing ? variantText(printing, printingsByCardId.get(printing.cardId)) : fallback;
   };
-  const preview = items.slice(0, PREVIEW_LIMIT);
   const rest = count - preview.length;
   const title = m.collections_stats_missing_images_title({ count });
 

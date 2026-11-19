@@ -75,8 +75,6 @@ const EMPTY_CATALOG: UseCardsResult = {
   sets: [],
 };
 
-const NO_URL_LANGUAGES: readonly string[] = [];
-
 const CARD_BROWSER_HIDDEN_LOGGED_IN: ReadonlySet<string> = new Set(["customTags"]);
 const CARD_BROWSER_HIDDEN_LOGGED_OUT: ReadonlySet<string> = new Set(["owned", "customTags"]);
 
@@ -173,7 +171,7 @@ export function CardBrowser() {
 
   const view = rawView === "copies" ? "printings" : rawView;
 
-  useSeedLanguagesFromPrefs(urlSearch.languages ?? NO_URL_LANGUAGES);
+  useSeedLanguagesFromPrefs(urlSearch.languages);
 
   // The loader ran for the server-rendered search and does not rerun when the search changes.
   const searchKey = useFilterSearchKey();

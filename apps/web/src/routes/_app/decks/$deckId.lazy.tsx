@@ -1,6 +1,7 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
+import { useSearchWithDefaultLanguages } from "@/features/cards/hooks/use-search-with-default-languages";
 import { DeckEditorPage } from "@/features/decks/components/deck-editor-page";
 import { WorkbenchEditorPage } from "@/features/decks/components/workbench-editor-page";
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
@@ -14,12 +15,13 @@ export const Route = createLazyFileRoute("/_app/decks/$deckId")({
 function DeckEditor() {
   const { deckId } = Route.useParams();
   const search = Route.useSearch();
+  const shownSearch = useSearchWithDefaultLanguages(search);
   const { data: session } = useSession();
   const betaEnabled = useFeatureEnabled("deck-builder-beta");
   const useWorkbench = betaEnabled && Boolean(session?.user);
   return (
     <ViewSurfaceProvider value="deckBrowser">
-      <FilterSearchProvider value={search}>
+      <FilterSearchProvider value={shownSearch}>
         {useWorkbench ? (
           <WorkbenchEditorPage key={deckId} deckId={deckId} />
         ) : (

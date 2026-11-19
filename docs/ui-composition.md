@@ -77,6 +77,17 @@ Every card-browser surface (`/cards`, `/collections`, `/collections/share`, `/de
 
 `apps/web/src/features/cards/components/card-browser-hydration.test.tsx` and `packages/e2e/src/tests/public/cards-first-paint.spec.ts` fail when the input is recreated.
 
+### Client-rendered pages
+
+The `/collections` and `/decks` routes are `ssr: false`. The server sends the route's `pendingComponent` and the browser keeps showing it until the page renders, so the pending component is the first paint. Four rules keep the page from moving:
+
+- **The pending component draws the page's frame where the page draws it, and nothing below.** A page that opens with a `PageTopBarSticky` bar uses `PagePending` (`apps/web/src/components/page-pending.tsx`) with the page's `width`. The collections layout uses `CollectionLayoutPending` (sidebar and top-bar slot, in plain elements, because the route file imports it and `components/ui/sidebar` would pull the base-ui chunk into the boot bundle), and its pages use `CollectionPagePending`, or `CollectionGridPagePending` for the grid pages, whose bar has a second line below `lg` (`apps/web/src/features/collections/components/collection-layout-pending.tsx`). Content then fills the empty space below the bar.
+- **The pending component sits in the route file, not the lazy file.** The server renders an `ssr: false` route's pending state without loading its lazy chunk.
+- **A child of an `ssr: false` route is client-only too.** It needs no `useHydrated()` gate.
+- **Everything above the content renders in the same commit as the content.** `CollectionGrid` shows its toolbar, banners and grid together, once the copies have loaded and the missing-images nudge has its final text. Grid pages show the display languages while the URL names none (`useSearchWithDefaultLanguages`), so the language chip does not appear later.
+
+Pages inside a layout with a top-bar slot (collections, admin) render their bar through `TopBarSlotPortal` (`apps/web/src/components/layout/top-bar-slot.tsx`). `packages/e2e/src/tests/authenticated/client-pages-first-paint.spec.ts` fails when a bar, the sidebar or the first card moves after first paint.
+
 ### What belongs to the surface
 
 What stays at the surface: the data hook (`useCardData` / `useCollectionCardData` / a custom one for /promos), the strip computation (zone-aware add controls, in-collection select shift-range, ambiguous-variant routing), click handlers, drag IDs, format presets. What never stays at the surface: chrome assembly, thumbnail wiring, default table actions, default toolbar layout, the detail overlay and what a card click opens.

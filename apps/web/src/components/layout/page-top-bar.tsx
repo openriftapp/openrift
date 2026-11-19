@@ -4,6 +4,7 @@ import type { AnchorHTMLAttributes, ComponentProps } from "react";
 import { createContext, forwardRef, use } from "react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
@@ -78,6 +79,15 @@ export function PageDescription({ className, children, ...props }: ComponentProp
 export function PageTopBar({ children, className }: PageTopBarProps) {
   return (
     <div className={cn("flex h-(--control-h) items-center text-sm", className)}>{children}</div>
+  );
+}
+
+/** A {@link PageTopBar} with a title placeholder, for pending states that keep the page's bar where it will render. */
+export function PageTopBarSkeleton() {
+  return (
+    <PageTopBar>
+      <Skeleton role="status" aria-label={m.common_loading()} className="h-6 w-48 max-w-full" />
+    </PageTopBar>
   );
 }
 

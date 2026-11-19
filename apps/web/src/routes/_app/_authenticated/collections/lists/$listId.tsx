@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { NotFoundFallback } from "@/components/error-message";
-import { CollectionPending } from "@/features/collections/components/collection-pending";
+import { CollectionPagePending } from "@/features/collections/components/collection-layout-pending";
 import { listDetailQueryOptions } from "@/features/lists/lib/lists-queries";
 import { privateSeoHead } from "@/lib/seo";
 import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
@@ -16,6 +16,6 @@ export const Route = createFileRoute("/_app/_authenticated/collections/lists/$li
       }),
     );
   },
-  pendingComponent: CollectionPending,
+  pendingComponent: CollectionPagePending,
   notFoundComponent: NotFoundFallback,
 });

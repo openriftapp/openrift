@@ -9,6 +9,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { WellKnown } from "@openrift/shared/well-known";
+import { getRouteApi } from "@tanstack/react-router";
 import { PackageCheckIcon, PlusIcon } from "lucide-react";
 import { Suspense, useDeferredValue, useState } from "react";
 
@@ -108,6 +109,8 @@ import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
+
+const deckEditorRouteApi = getRouteApi("/_app/decks/$deckId");
 
 function workbenchLimitText(zone: DeckZone, battlefieldsFull: boolean): string {
   if (zone === WellKnown.deckZone.BATTLEFIELD) {
@@ -244,10 +247,10 @@ export function DeckCardBrowser({
 }: DeckCardBrowserProps) {
   const { data: deckDetail } = useDeckDetail(deckId);
   const activeZone = useDeckBuilderUiStore((state) => state.activeZone);
-  const { filters } = useFilterValues();
   // Must stay here, not the inner browser: mounting per-zone would re-seed
   // and undo a user who cleared the language filter.
-  useSeedLanguagesFromPrefs(filters.languages);
+  const urlLanguages = deckEditorRouteApi.useSearch({ select: (search) => search.languages });
+  useSeedLanguagesFromPrefs(urlLanguages);
 
   const pickTag = needsFormatTagPick(deckDetail.deck);
   if (pickTag && !(cardListReadOnly && !activeZone)) {

@@ -1,6 +1,6 @@
 import type { MissingImagePrinting } from "@openrift/shared/contracts/card-submissions";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, renderHook, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,9 +14,19 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 const missingImages = vi.hoisted(() => ({ items: [] as MissingImagePrinting[] }));
+const catalog = vi.hoisted(() => ({
+  printingsById: {} as Record<string, unknown>,
+  tailStatus: "complete" as "complete" | "loading" | "failed",
+  retry: vi.fn(),
+}));
 
 vi.mock("@/features/cards/hooks/use-cards", () => ({
-  useCards: () => ({ printingsByCardId: new Map(), printingsById: {}, printingsBySideKey: {} }),
+  useCards: () => ({
+    printingsByCardId: new Map(),
+    printingsById: catalog.printingsById,
+    printingsBySideKey: {},
+  }),
+  useCatalogTailState: () => ({ status: catalog.tailStatus, retry: catalog.retry }),
 }));
 
 vi.mock("@/hooks/use-enums", () => ({
@@ -30,6 +40,7 @@ vi.mock("@/features/contribute/hooks/use-missing-images", () => ({
 }));
 
 import { CollectionMissingImagesCallout } from "@/features/collections/components/collection-missing-images-callout";
+import { useMissingImagesNudge } from "@/features/collections/hooks/use-missing-images-nudge";
 import { initKeys } from "@/lib/query-keys";
 import { useOnboardingStore } from "@/stores/onboarding-store";
 import { stubMissingImagePrinting } from "@/test/factories";
@@ -47,6 +58,12 @@ function renderCallout(items: MissingImagePrinting[]) {
       <CollectionMissingImagesCallout />
     </QueryClientProvider>,
   );
+}
+
+function resetCatalog() {
+  catalog.printingsById = {};
+  catalog.tailStatus = "complete";
+  catalog.retry.mockClear();
 }
 
 describe("CollectionMissingImagesCallout", () => {
@@ -118,5 +135,50 @@ describe("CollectionMissingImagesCallout", () => {
     expect(screen.getByRole("link", { name: "Card 3 (OGN-3)" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Card 4" })).not.toBeInTheDocument();
     expect(screen.getByText(/and 2 more/u)).toBeInTheDocument();
+  });
+});
+
+describe("useMissingImagesNudge textFinal", () => {
+  beforeEach(() => {
+    resetOnboarding();
+    resetCatalog();
+  });
+  afterEach(() => {
+    resetOnboarding();
+    resetCatalog();
+  });
+
+  function textFinalFor(items: MissingImagePrinting[]): boolean {
+    missingImages.items = items;
+    return renderHook(() => useMissingImagesNudge()).result.current.textFinal;
+  }
+
+  it("is false while a previewed printing waits for the catalogue tail, and starts the tail", () => {
+    catalog.tailStatus = "loading";
+
+    expect(textFinalFor([stubMissingImagePrinting(1)])).toBe(false);
+    expect(catalog.retry).toHaveBeenCalledOnce();
+  });
+
+  it("is true while the tail loads when every previewed printing is already loaded", () => {
+    catalog.tailStatus = "loading";
+    catalog.printingsById = { "printing-1": {}, "printing-2": {}, "printing-3": {} };
+
+    expect(textFinalFor([1, 2, 3, 4].map((index) => stubMissingImagePrinting(index)))).toBe(true);
+    expect(catalog.retry).not.toHaveBeenCalled();
+  });
+
+  it("is true once the tail settles, loaded or failed", () => {
+    catalog.tailStatus = "failed";
+
+    expect(textFinalFor([stubMissingImagePrinting(1)])).toBe(true);
+  });
+
+  it("is true when the nudge is hidden", () => {
+    catalog.tailStatus = "loading";
+    useOnboardingStore.getState().dismissMissingImagesNudge(["printing-1"]);
+
+    expect(textFinalFor([stubMissingImagePrinting(1)])).toBe(true);
+    expect(catalog.retry).not.toHaveBeenCalled();
   });
 });

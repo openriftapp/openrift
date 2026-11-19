@@ -1,9 +1,7 @@
 import type { ReactNode } from "react";
-import { use } from "react";
-import { createPortal } from "react-dom";
 
 import { PageTopBar, PageTopBarActions, PageTopBarTitle } from "@/components/layout/page-top-bar";
-import { TopBarSlotContext } from "@/components/layout/top-bar-slot";
+import { TopBarSlotPortal } from "@/components/layout/top-bar-slot";
 import { useSidebar } from "@/components/ui/sidebar";
 
 interface AdminPageTopBarProps {
@@ -19,18 +17,13 @@ interface AdminPageTopBarProps {
  */
 export function AdminPageTopBar({ title, back, actions }: AdminPageTopBarProps) {
   const { toggleSidebar } = useSidebar();
-  const topBarSlot = use(TopBarSlotContext);
-
-  if (!topBarSlot) {
-    return null;
-  }
-
-  return createPortal(
-    <PageTopBar>
-      {back}
-      <PageTopBarTitle onToggleSidebar={toggleSidebar}>{title}</PageTopBarTitle>
-      {actions && <PageTopBarActions>{actions}</PageTopBarActions>}
-    </PageTopBar>,
-    topBarSlot,
+  return (
+    <TopBarSlotPortal>
+      <PageTopBar>
+        {back}
+        <PageTopBarTitle onToggleSidebar={toggleSidebar}>{title}</PageTopBarTitle>
+        {actions && <PageTopBarActions>{actions}</PageTopBarActions>}
+      </PageTopBar>
+    </TopBarSlotPortal>
   );
 }

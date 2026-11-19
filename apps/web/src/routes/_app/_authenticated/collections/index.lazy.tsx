@@ -1,7 +1,6 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 
 import { CollectionGrid } from "@/features/collections/components/collection-grid";
-import { useHydrated } from "@/hooks/use-hydrated";
 import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute("/_app/_authenticated/collections/")({
@@ -9,12 +8,5 @@ export const Route = createLazyFileRoute("/_app/_authenticated/collections/")({
 });
 
 function CollectionIndex() {
-  // CollectionGrid reads from useOwnedCount → useLiveQuery, which calls
-  // useSyncExternalStore without a server snapshot. Defer the mount until
-  // hydration so SSR doesn't trip React's client-rendering fallback.
-  const hydrated = useHydrated();
-  if (!hydrated) {
-    return null;
-  }
   return <CollectionGrid title={m.collections_all_cards()} />;
 }

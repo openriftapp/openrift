@@ -1,8 +1,5 @@
-import { use } from "react";
-import { createPortal } from "react-dom";
-
 import { PageTopBar, PageTopBarTitle } from "@/components/layout/page-top-bar";
-import { TopBarSlotContext } from "@/components/layout/top-bar-slot";
+import { TopBarSlotPortal } from "@/components/layout/top-bar-slot";
 import { useSidebar } from "@/components/ui/sidebar";
 import { CollectionImportInputStep } from "@/features/collections/components/collection-import-input-step";
 import { CollectionImportPreviewStep } from "@/features/collections/components/collection-import-preview-step";
@@ -12,20 +9,18 @@ import { m } from "@/paraglide/messages.js";
 
 export function CollectionImportPage() {
   const { toggleSidebar } = useSidebar();
-  const topBarSlot = use(TopBarSlotContext);
   const { data: collections } = useCollections();
   const flow = useImportFlow();
 
-  const topBarPortal =
-    topBarSlot &&
-    createPortal(
+  const topBarPortal = (
+    <TopBarSlotPortal>
       <PageTopBar>
         <PageTopBarTitle onToggleSidebar={toggleSidebar}>
           {m.collections_import_top_bar_title()}
         </PageTopBarTitle>
-      </PageTopBar>,
-      topBarSlot,
-    );
+      </PageTopBar>
+    </TopBarSlotPortal>
+  );
 
   if (flow.step === "input") {
     return (

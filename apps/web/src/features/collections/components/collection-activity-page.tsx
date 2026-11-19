@@ -14,13 +14,12 @@ import {
   PlusIcon,
   SearchIcon,
 } from "lucide-react";
-import { use, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useRef, useState } from "react";
 
 import { CardIcon } from "@/components/card-icon";
 import { EmptyState } from "@/components/empty-state";
 import { PageTopBar, PageTopBarTitle } from "@/components/layout/page-top-bar";
-import { TopBarSlotContext } from "@/components/layout/top-bar-slot";
+import { TopBarSlotPortal } from "@/components/layout/top-bar-slot";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
@@ -372,7 +371,6 @@ function FilteredEmptyState() {
 
 export function CollectionActivityPage() {
   const { toggleSidebar } = useSidebar();
-  const topBarSlot = use(TopBarSlotContext);
   const { data, hasNextPage, fetchNextPage, isFetchingNextPage } = useCollectionEvents();
   const prices = usePrices();
   const marketplaceOrder = useDisplayStore((s) => s.marketplaceOrder);
@@ -385,16 +383,15 @@ export function CollectionActivityPage() {
 
   const allEvents = data.pages.flatMap((page) => page.items);
 
-  const topBarPortal =
-    topBarSlot &&
-    createPortal(
+  const topBarPortal = (
+    <TopBarSlotPortal>
       <PageTopBar>
         <PageTopBarTitle onToggleSidebar={toggleSidebar}>
           {m.collections_sidebar_activity()}
         </PageTopBarTitle>
-      </PageTopBar>,
-      topBarSlot,
-    );
+      </PageTopBar>
+    </TopBarSlotPortal>
+  );
 
   if (allEvents.length === 0 && !hasNextPage) {
     return (

@@ -4,8 +4,9 @@ import {
   cleanedSearchForRedirect,
   collectionDetailSearchSchema,
 } from "@/features/cards/lib/search-schemas";
-import { CollectionPending } from "@/features/collections/components/collection-pending";
+import { CollectionGridPagePending } from "@/features/collections/components/collection-layout-pending";
 import { loadCollection } from "@/features/collections/lib/collection-load";
+import { missingImagesQueryOptions } from "@/features/contribute/lib/card-submissions-queries";
 import { privateSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/collections/$collectionId")({
@@ -35,10 +36,16 @@ export const Route = createFileRoute("/_app/_authenticated/collections/$collecti
     const { getCollectionsCollection } =
       await import("@/features/collections/lib/collections-collection");
     const collections = getCollectionsCollection(context.queryClient, context.userId);
-    await loadCollection(collections);
+    await Promise.all([
+      loadCollection(collections),
+      // The missing-images callout is optional; its failure must not fail the page.
+      context.queryClient
+        .query({ ...missingImagesQueryOptions(context.userId), staleTime: "static" })
+        .catch(() => null),
+    ]);
     if (!collections.has(params.collectionId)) {
       throw notFound();
     }
   },
-  pendingComponent: CollectionPending,
+  pendingComponent: CollectionGridPagePending,
 });

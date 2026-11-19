@@ -1,10 +1,9 @@
 import { getAvailableFilters } from "@openrift/shared/filters-available";
-import { use, useDeferredValue, useState } from "react";
-import { createPortal } from "react-dom";
+import { useDeferredValue, useState } from "react";
 
 import { Heading } from "@/components/heading";
 import { PageTopBar, PageTopBarTitle } from "@/components/layout/page-top-bar";
-import { TopBarSlotContext } from "@/components/layout/top-bar-slot";
+import { TopBarSlotPortal } from "@/components/layout/top-bar-slot";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { useSidebar } from "@/components/ui/sidebar";
 import { CompactFilterBar } from "@/features/cards/components/compact-filter-bar";
@@ -42,7 +41,6 @@ import { useDisplayStore } from "@/stores/display-store";
 
 export function CollectionStatsPage() {
   const { toggleSidebar } = useSidebar();
-  const topBarSlot = use(TopBarSlotContext);
   const [collectionScope, setCollectionScope] = useState("all");
   const collectionId = collectionScope === "all" ? undefined : collectionScope;
   // Deferred so the chip paints on the urgent render while the five charts
@@ -68,16 +66,15 @@ export function CollectionStatsPage() {
 
   const availableFilters = getAvailableFilters(stats.allPrintings, { orders, sets: stats.sets });
 
-  const topBarPortal =
-    topBarSlot &&
-    createPortal(
+  const topBarPortal = (
+    <TopBarSlotPortal>
       <PageTopBar>
         <PageTopBarTitle onToggleSidebar={toggleSidebar}>
           {m.collections_stats_title()}
         </PageTopBarTitle>
-      </PageTopBar>,
-      topBarSlot,
-    );
+      </PageTopBar>
+    </TopBarSlotPortal>
+  );
 
   return (
     <div className={cn(PAGE_WIDTH.capped, "pt-3")}>

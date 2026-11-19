@@ -1,9 +1,9 @@
 import { isAllowedLinkUrl } from "@openrift/shared/link-hosts";
 import { createFileRoute } from "@tanstack/react-router";
 
+import { PagePending } from "@/components/page-pending";
 import { customTagsQueryOptions } from "@/features/cards/lib/custom-tags-queries";
 import { loadCollection } from "@/features/collections/lib/collection-load";
-import { DeckPending } from "@/features/decks/components/deck-pending";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { initQueryOptions } from "@/lib/init-queries";
 import { privateSeoHead } from "@/lib/seo";
@@ -71,5 +71,5 @@ export const Route = createFileRoute("/_app/decks/import")({
       }
     }
   },
-  pendingComponent: DeckPending,
+  pendingComponent: () => <PagePending width="capped" />,
 });

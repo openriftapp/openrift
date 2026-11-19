@@ -12,13 +12,12 @@ import {
   UploadIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { use, useState } from "react";
-import { createPortal } from "react-dom";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { EmptyState } from "@/components/empty-state";
 import { PageTopBarButton, PageTopBarIconButton } from "@/components/layout/page-top-bar";
-import { TopBarSlotContext } from "@/components/layout/top-bar-slot";
+import { TopBarSlotPortal } from "@/components/layout/top-bar-slot";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -57,7 +56,6 @@ interface ListPageProps {
 export function ListPage({ listId }: ListPageProps) {
   const navigate = useNavigate();
   const { toggleSidebar } = useSidebar();
-  const topBarSlot = use(TopBarSlotContext);
   const { data } = useListDetail(listId);
 
   const [editOpen, setEditOpen] = useState(false);
@@ -195,7 +193,7 @@ export function ListPage({ listId }: ListPageProps) {
       />
     );
 
-    return topBarSlot ? createPortal(topBar, topBarSlot) : null;
+    return <TopBarSlotPortal>{topBar}</TopBarSlotPortal>;
   };
 
   const editDialog = (

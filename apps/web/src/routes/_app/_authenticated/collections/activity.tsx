@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { CollectionPending } from "@/features/collections/components/collection-pending";
+import { CollectionPagePending } from "@/features/collections/components/collection-layout-pending";
 import { collectionEventsQueryOptions } from "@/features/collections/lib/collection-events-queries";
 import { loadCollection } from "@/features/collections/lib/collection-load";
 import { privateSeoHead } from "@/lib/seo";
@@ -18,5 +18,5 @@ export const Route = createFileRoute("/_app/_authenticated/collections/activity"
       loadCollection(getCollectionsCollection(context.queryClient, context.userId)),
     ]);
   },
-  pendingComponent: CollectionPending,
+  pendingComponent: CollectionPagePending,
 });

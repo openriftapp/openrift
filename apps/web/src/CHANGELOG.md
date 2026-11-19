@@ -24,6 +24,7 @@
 - fix(Designer): **Text previews look like previews** — the live preview under the rules, effect and flavor text fields is labelled and no longer looks like a second input.
 - fix(Trades): **Suggestions match their counts** — cards you already have a trade going for leave the suggestion grid, so the tab counts, people counts and hide button agree with what is shown.
 - fix(Cards): **Search box ready from the start** — the search box on the cards page keeps your cursor and what you typed while the cards load.
+- fix(App): **Steady collection and deck pages** — collection and deck pages keep their sidebar and title bar in place while they load, and cards appear where they stay.
 - fix(Collection): **Dragging onto the sidebar** — dragging cards over the sidebar no longer scrolls the collection behind it, and the sidebar scrolls when you drag near its top or bottom edge.
 - fix(Tournaments): **Legends on every table** — pairings for round-based tournaments show each player's Legend and domains on the table cards, under the player's name.
 - feat(Tournaments): **Match results as a score sheet** — entering a match result shows the players as rows and the games as columns, so long names no longer wrap. Each game is one tap on the winner's cell, and a line below the sheet sums up the winner, score and points. The X in the table's header closes the form without saving. A match saved before all its games are in asks whether it ended early. Free-for-all scores get − and + buttons, and each player's place shows as soon as every score is in.

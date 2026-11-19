@@ -1,9 +1,9 @@
 import type { Printing } from "@openrift/shared/types/catalog";
-import { use, useState } from "react";
-import { createPortal } from "react-dom";
+import { getRouteApi } from "@tanstack/react-router";
+import { useState } from "react";
 import { useStore } from "zustand";
 
-import { TopBarSlotContext } from "@/components/layout/top-bar-slot";
+import { TopBarSlotPortal } from "@/components/layout/top-bar-slot";
 import { useSidebar } from "@/components/ui/sidebar";
 import { BrowserCardViewer } from "@/features/cards/components/browser-card-viewer";
 import { CardBrowserFilterProvider } from "@/features/cards/components/card-browser-filter-scaffold";
@@ -11,6 +11,8 @@ import { useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { useCardSelection } from "@/features/cards/hooks/use-card-selection";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { FilterSearchProvider, useFilterSearch } from "@/features/cards/hooks/use-filter-search";
+import { useSearchWithDefaultLanguages } from "@/features/cards/hooks/use-search-with-default-languages";
 import { useSelectAllHotkey } from "@/features/cards/hooks/use-select-all-hotkey";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { tileSiblings } from "@/features/cards/lib/card-tiles";
@@ -32,6 +34,7 @@ import { CollectionGridOverlays } from "@/features/collections/components/collec
 import { CollectionGridToolbar } from "@/features/collections/components/collection-grid-toolbar";
 import { CollectionGridTopBar } from "@/features/collections/components/collection-grid-top-bar";
 import { CollectionIntroBanner } from "@/features/collections/components/collection-intro-banner";
+import { CollectionGridPagePending } from "@/features/collections/components/collection-layout-pending";
 import { CollectionMissingImagesCallout } from "@/features/collections/components/collection-missing-images-callout";
 import { CollectionSelectionBar } from "@/features/collections/components/collection-selection-bar";
 import {
@@ -45,6 +48,7 @@ import { useCollectionGridActions } from "@/features/collections/hooks/use-colle
 import { useCollectionGridData } from "@/features/collections/hooks/use-collection-grid-data";
 import { useCollectionGridSelection } from "@/features/collections/hooks/use-collection-grid-selection";
 import { useCollections } from "@/features/collections/hooks/use-collections";
+import { useMissingImagesNudge } from "@/features/collections/hooks/use-missing-images-nudge";
 import { useQuickAddActions } from "@/features/collections/hooks/use-quick-add-actions";
 import { buildCollectionGridItems } from "@/features/collections/lib/collection-grid-items";
 import { collectionTableActionsColumn } from "@/features/collections/lib/collection-table";
@@ -64,6 +68,8 @@ import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useOnboardingStore } from "@/stores/onboarding-store";
 
+const collectionsRouteApi = getRouteApi("/_app/_authenticated/collections");
+
 // Custom tags are a deck-builder concept; hiding them keeps this grid scoped
 // to physical attributes of owned copies. Markers/channels self-hide instead.
 const COLLECTION_GRID_HIDDEN_FILTER_SECTIONS: ReadonlySet<string> = new Set(["customTags"]);
@@ -75,7 +81,17 @@ interface CollectionGridProps {
   onWantedOnlyChange?: (next: boolean) => void;
 }
 
-export function CollectionGrid({
+/** Shows the display languages while the URL names none, as the language seed below will. */
+export function CollectionGrid(props: CollectionGridProps) {
+  const shownSearch = useSearchWithDefaultLanguages(useFilterSearch());
+  return (
+    <FilterSearchProvider value={shownSearch}>
+      <CollectionGridContent {...props} />
+    </FilterSearchProvider>
+  );
+}
+
+function CollectionGridContent({
   collectionId,
   title,
   wantedOnly = false,
@@ -84,7 +100,6 @@ export function CollectionGrid({
   const rowActions = useOwnCardRowActionsStore<"collection">();
   const { dispatchItemToggle } = useStore(rowActions, (state) => state.dispatch);
   const { toggleSidebar } = useSidebar();
-  const topBarSlot = use(TopBarSlotContext);
   const { data: collections } = useCollections();
   const showImages = useDisplayStore((state) => state.showImages);
   const display = useCardThumbnailDisplay();
@@ -110,7 +125,8 @@ export function CollectionGrid({
   const { allPrintings, sets, printingsByCardId: catalogAllPrintingsByCardId } = useCards();
   const prices = display.prices;
 
-  useSeedLanguagesFromPrefs(filters.languages);
+  const urlLanguages = collectionsRouteApi.useSearch({ select: (search) => search.languages });
+  useSeedLanguagesFromPrefs(urlLanguages);
 
   const preferredLanguages = useDisplayLanguages();
 
@@ -195,6 +211,7 @@ export function CollectionGrid({
         : null,
   });
 
+  const { textFinal: missingImagesTextFinal } = useMissingImagesNudge();
   const introDismissed = useOnboardingStore((state) =>
     state.dismissedIntros.includes("collection"),
   );
@@ -326,11 +343,15 @@ export function CollectionGrid({
     );
   };
 
-  const isEmpty = !showLibrary && copiesReady && stacks.length === 0;
+  // Toolbar, banners and grid render in one commit, so nothing above the grid grows after it shows.
+  if (!copiesReady || !missingImagesTextFinal) {
+    return <CollectionGridPagePending />;
+  }
 
-  const topBarPortal =
-    topBarSlot &&
-    createPortal(
+  const isEmpty = !showLibrary && stacks.length === 0;
+
+  const topBarPortal = (
+    <TopBarSlotPortal>
       <CollectionGridTopBar
         title={title}
         collections={collections}
@@ -348,9 +369,9 @@ export function CollectionGrid({
         onSelectAll={() => toggleSelectAll(selectableCopyIds)}
         onEnterSelect={enterSelectMode}
         onExitSelect={exitSelectMode}
-      />,
-      topBarSlot,
-    );
+      />
+    </TopBarSlotPortal>
+  );
 
   const collectionOrder = collections.map((collection) => ({
     id: collection.id,

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { catalogQueryOptions } from "@/features/cards/lib/catalog-queries";
-import { CollectionPending } from "@/features/collections/components/collection-pending";
+import { CollectionPagePending } from "@/features/collections/components/collection-layout-pending";
 import { listsQueryOptions } from "@/features/lists/lib/lists-queries";
 import { privateSeoHead } from "@/lib/seo";
 
@@ -16,5 +16,5 @@ export const Route = createFileRoute("/_app/_authenticated/collections/lists/imp
       }),
     ]);
   },
-  pendingComponent: CollectionPending,
+  pendingComponent: CollectionPagePending,
 });

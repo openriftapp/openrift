@@ -8,10 +8,7 @@ import { toast } from "sonner";
 
 import { DndScrollWatcher } from "@/components/dnd-scroll-watcher";
 import { Footer } from "@/components/layout/footer";
-import {
-  PAGE_TOP_BAR_STICKY_BASE,
-  PageTopBarHeightContext,
-} from "@/components/layout/page-top-bar";
+import { PageTopBarHeightContext } from "@/components/layout/page-top-bar";
 import { TopBarSlotContext } from "@/components/layout/top-bar-slot";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { CardDragGhost } from "@/features/cards/components/card-drag-ghost";
@@ -24,6 +21,7 @@ import {
   resolveDropCopyIds,
   resolveSelectionDrag,
 } from "@/features/collections/components/collection-drag";
+import { CollectionContent } from "@/features/collections/components/collection-layout-pending";
 import { CollectionSidebar } from "@/features/collections/components/collection-sidebar";
 import { useCollectionDndSensors } from "@/features/collections/hooks/use-collection-dnd-sensors";
 import { useMoveCopiesWithUndo } from "@/features/collections/hooks/use-move-copies-with-undo";
@@ -80,7 +78,6 @@ import { asDragData } from "@/lib/dnd-data";
 import { isTypingTarget } from "@/lib/keyboard-target";
 import { parseMoveDigit } from "@/lib/parse-digit-key";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
-import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 const routeApi = getRouteApi("/_app/_authenticated/collections");
@@ -424,7 +421,9 @@ export function CollectionLayout() {
                       <DndScrollWatcher />
                       <TopBarSlotContext value={topBarSlot}>
                         <CollectionSidebar />
-                        <CollectionContent setTopBarSlot={setTopBarSlot} />
+                        <CollectionContent setTopBarSlot={setTopBarSlot} footer={<Footer />}>
+                          <Outlet />
+                        </CollectionContent>
                       </TopBarSlotContext>
                       <DragOverlay dropAnimation={null} modifiers={MODIFIERS}>
                         {activeDrag?.type === "collection-card" && (
@@ -469,27 +468,6 @@ export function CollectionLayout() {
         </DragPreviewStoreContext>
       </GridSelectionStoreContext>
     </ListEntriesStoreContext>
-  );
-}
-
-function CollectionContent({
-  setTopBarSlot,
-}: {
-  setTopBarSlot: (el: HTMLDivElement | null) => void;
-}) {
-  return (
-    <div className="pr-safe pl-gutter flex min-w-0 flex-1 flex-col pb-3">
-      {/* No px-safe here: the column already clears iOS safe areas, and px-safe
-          would double-inset the bar on notched phones in landscape. */}
-      <div
-        ref={setTopBarSlot}
-        className={cn(PAGE_TOP_BAR_STICKY_BASE, "mr-safe-neg pr-safe ml-gutter-neg pl-gutter")}
-      />
-      <div className="flex flex-1 flex-col pb-3">
-        <Outlet />
-      </div>
-      <Footer />
-    </div>
   );
 }
 

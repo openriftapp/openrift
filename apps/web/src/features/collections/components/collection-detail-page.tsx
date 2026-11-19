@@ -2,7 +2,6 @@ import { useNavigate, getRouteApi } from "@tanstack/react-router";
 
 import { CollectionGrid } from "@/features/collections/components/collection-grid";
 import { useCollectionsMap } from "@/features/collections/hooks/use-collections";
-import { useHydrated } from "@/hooks/use-hydrated";
 import { m } from "@/paraglide/messages.js";
 
 const routeApi = getRouteApi("/_app/_authenticated/collections/$collectionId");
@@ -13,13 +12,6 @@ export function CollectionDetailPage() {
   const navigate = useNavigate();
   const collectionsMap = useCollectionsMap();
   const collection = collectionsMap.get(collectionId);
-  // CollectionGrid reads from useOwnedCount → useLiveQuery, which calls
-  // useSyncExternalStore without a server snapshot. Defer the mount until
-  // hydration so SSR doesn't trip React's client-rendering fallback.
-  const hydrated = useHydrated();
-  if (!hydrated) {
-    return null;
-  }
   return (
     <CollectionGrid
       collectionId={collectionId}

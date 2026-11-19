@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { NotFoundFallback } from "@/components/error-message";
+import { PagePending } from "@/components/page-pending";
 import { catalogQueryOptions, ensureCatalogComplete } from "@/features/cards/lib/catalog-queries";
-import { CollectionPending } from "@/features/collections/components/collection-pending";
 import { loadCollection } from "@/features/collections/lib/collection-load";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { requireFeature } from "@/lib/feature-flags";
@@ -52,6 +52,12 @@ export const Route = createFileRoute("/_app/scan")({
           noIndex: true,
         })
       : privateSeoHead("Scan cards"),
-  pendingComponent: () => <CollectionPending width="capped" />,
+  pendingComponent: () => (
+    // Hidden where useScanLayout goes immersive, which drops the top bar.
+    <PagePending
+      width="capped"
+      className="max-md:hidden [@media(orientation:landscape)_and_(max-height:600px)]:hidden"
+    />
+  ),
   notFoundComponent: NotFoundFallback,
 });

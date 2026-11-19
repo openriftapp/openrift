@@ -3,11 +3,15 @@ import { useEffect, useRef } from "react";
 
 import { useDisplayStore } from "@/stores/display-store";
 
+const NO_LANGUAGES: readonly string[] = [];
+
 /**
+ * `urlLanguages` is the URL's own param, before any shown default fills it in.
  * Waits on `prefsHydrated` so this doesn't fire before `usePreferencesSync` merges
  * the server response, seeding from stale localStorage/default values instead.
  */
-export function useSeedLanguagesFromPrefs(currentUrlLanguages: readonly string[]) {
+export function useSeedLanguagesFromPrefs(urlLanguages?: readonly string[]) {
+  const currentUrlLanguages = urlLanguages ?? NO_LANGUAGES;
   const preferredLanguages = useDisplayStore((s) => s.languages);
   const prefsHydrated = useDisplayStore((s) => s.prefsHydrated);
   const navigate = useNavigate();

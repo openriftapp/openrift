@@ -95,7 +95,15 @@ function useCatalogTail(fetched: UseCardsResult | null): void {
 
 export type CatalogTailStatus = "complete" | "loading" | "failed";
 
-export function useCatalogTailStatus(): { status: CatalogTailStatus; retry: () => void } {
+interface CatalogTailState {
+  status: CatalogTailStatus;
+  retry: () => void;
+}
+
+function useCatalogTailQueries(): {
+  partial: CatalogEntry | null | undefined;
+  state: CatalogTailState;
+} {
   const queryClient = useQueryClient();
   const { data: partial } = useQuery({
     ...catalogQueryOptions,
@@ -108,14 +116,29 @@ export function useCatalogTailStatus(): { status: CatalogTailStatus; retry: () =
   });
   const retry = () => void ensureCatalogComplete(queryClient);
 
+  if (!partial) {
+    return { partial, state: { status: "complete", retry } };
+  }
+  return {
+    partial,
+    state: { status: tail.isError && !tail.isFetching ? "failed" : "loading", retry },
+  };
+}
+
+/** {@link useCatalogTailStatus} without starting the download: the tail loads on idle unless a caller calls `retry`. */
+export function useCatalogTailState(): CatalogTailState {
+  return useCatalogTailQueries().state;
+}
+
+/** Starts the tail download on mount, so a surface that needs every language does not wait for idle. */
+export function useCatalogTailStatus(): CatalogTailState {
+  const { partial, state } = useCatalogTailQueries();
+
   useScopeEffect(partial, (entry) => {
     if (entry) {
-      retry();
+      state.retry();
     }
   });
 
-  if (!partial) {
-    return { status: "complete", retry };
-  }
-  return { status: tail.isError && !tail.isFetching ? "failed" : "loading", retry };
+  return state;
 }

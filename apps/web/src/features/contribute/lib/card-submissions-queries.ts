@@ -1,6 +1,10 @@
 import { cardSubmissionsContract } from "@openrift/shared/contracts/card-submissions";
-import type { CardSubmissionListResponse } from "@openrift/shared/contracts/card-submissions";
-import { infiniteQueryOptions } from "@tanstack/react-query";
+import type {
+  CardSubmissionListResponse,
+  MissingImagesResponse,
+} from "@openrift/shared/contracts/card-submissions";
+import { MINUTE_MS } from "@openrift/shared/format-date";
+import { infiniteQueryOptions, queryOptions, skipToken } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { cardSubmissionsKeys } from "@/features/contribute/lib/contribute-query-keys";
@@ -26,5 +30,21 @@ export function cardSubmissionsQueryOptions(userId: string) {
       }) as Promise<CardSubmissionListResponse>,
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage: CardSubmissionListResponse) => lastPage.nextCursor ?? undefined,
+  });
+}
+
+const fetchMissingImagesFn = createServerFn({ method: "GET" })
+  .middleware([withCookies])
+  .handler(({ context }): Promise<MissingImagesResponse> =>
+    apiOrpcClient(cardSubmissionsContract, context.cookie).missingImages(),
+  );
+
+/** The API scopes to the session user; `userId` here only keys the cache. */
+export function missingImagesQueryOptions(userId: string | null) {
+  return queryOptions({
+    queryKey: cardSubmissionsKeys.missingImages(userId ?? ""),
+    queryFn:
+      userId === null ? skipToken : (): Promise<MissingImagesResponse> => fetchMissingImagesFn(),
+    staleTime: MINUTE_MS,
   });
 }

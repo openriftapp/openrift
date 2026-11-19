@@ -1,10 +1,10 @@
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 
 import { NotFoundFallback } from "@/components/error-message";
+import { PagePending } from "@/components/page-pending";
 import { customTagsQueryOptions } from "@/features/cards/lib/custom-tags-queries";
 import { cleanedSearchForRedirect } from "@/features/cards/lib/search-schemas";
 import { loadCollection } from "@/features/collections/lib/collection-load";
-import { DeckPending } from "@/features/decks/components/deck-pending";
 import { deckEditorSearchSchema } from "@/features/decks/lib/deck-editor-search";
 import { requireSession } from "@/lib/auth-session";
 import { initQueryOptions } from "@/lib/init-queries";
@@ -58,6 +58,6 @@ export const Route = createFileRoute("/_app/decks/$deckId")({
       }
     }
   },
-  pendingComponent: DeckPending,
+  pendingComponent: PagePending,
   notFoundComponent: NotFoundFallback,
 });

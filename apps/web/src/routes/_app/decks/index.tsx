@@ -1,8 +1,8 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
+import { PagePending } from "@/components/page-pending";
 import { cleanedSearchForRedirect } from "@/features/cards/lib/search-schemas";
 import { loadCollection } from "@/features/collections/lib/collection-load";
-import { DeckPending } from "@/features/decks/components/deck-pending";
 import { deckListSearchSchema } from "@/features/decks/lib/deck-list-search";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { privateSeoHead } from "@/lib/seo";
@@ -37,5 +37,5 @@ export const Route = createFileRoute("/_app/decks/")({
       ]);
     }
   },
-  pendingComponent: DeckPending,
+  pendingComponent: PagePending,
 });

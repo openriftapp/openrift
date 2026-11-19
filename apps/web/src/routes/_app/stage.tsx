@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { PagePending } from "@/components/page-pending";
 import { catalogQueryOptions } from "@/features/cards/lib/catalog-queries";
-import { DeckPending } from "@/features/decks/components/deck-pending";
 import { stageBuilderSearchSchema } from "@/features/stage/lib/stage-search";
 import { initQueryOptions } from "@/lib/init-queries";
 import { seoHead } from "@/lib/seo";
@@ -30,5 +30,5 @@ export const Route = createFileRoute("/_app/stage")({
     ]);
     return null;
   },
-  pendingComponent: DeckPending,
+  pendingComponent: PagePending,
 });

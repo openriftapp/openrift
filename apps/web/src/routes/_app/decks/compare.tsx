@@ -2,8 +2,8 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { z } from "zod/mini";
 
 import { NotFoundFallback } from "@/components/error-message";
+import { PagePending } from "@/components/page-pending";
 import { loadCollection } from "@/features/collections/lib/collection-load";
-import { DeckPending } from "@/features/decks/components/deck-pending";
 import { parseCompareSide, queryDeckLink } from "@/features/decks/lib/deck-compare-side";
 import { requireSession } from "@/lib/auth-session";
 import { initQueryOptions } from "@/lib/init-queries";
@@ -59,6 +59,6 @@ export const Route = createFileRoute("/_app/decks/compare")({
     }
   },
   head: () => privateSeoHead("Compare decks"),
-  pendingComponent: DeckPending,
+  pendingComponent: () => <PagePending width="capped" />,
   notFoundComponent: NotFoundFallback,
 });
