@@ -15,7 +15,7 @@ import type { Variables } from "../types.js";
 import { resolveSession } from "./load-session.js";
 import { getAdminAccess } from "./require-admin.js";
 
-export const API_KEY_HEADER = "x-api-key";
+const API_KEY_HEADER = "x-api-key";
 
 function refuse(c: Context, message: string): Response {
   return orpcErrorResponse(c, "FORBIDDEN", message);
