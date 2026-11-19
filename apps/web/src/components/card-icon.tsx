@@ -24,6 +24,12 @@ export function CardIcon({ src, className, alt }: CardIconProps) {
     );
   }
   return (
-    <img src={src} alt={alt ?? ""} width={28} height={28} className={className ?? "size-3.5"} />
+    <img
+      src={src}
+      alt={alt ?? ""}
+      width={28}
+      height={28}
+      className={cn("object-contain", className ?? "size-3.5")}
+    />
   );
 }

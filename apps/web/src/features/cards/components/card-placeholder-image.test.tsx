@@ -96,6 +96,23 @@ describe("CardPlaceholderImage", () => {
     expect(container.textContent).toContain("+2");
   });
 
+  it("renders flavor text once beside a might bonus with no effect text", () => {
+    const { getAllByText } = render(
+      <CardPlaceholderImage
+        name="Pure Bonus"
+        domain={["fury"]}
+        energy={null}
+        types={["gear"]}
+        effectText={null}
+        mightBonus={2}
+        flavorText="Heavier than it looks."
+      />,
+      { wrapper: makeWrapper() },
+    );
+
+    expect(getAllByText("Heavier than it looks.")).toHaveLength(1);
+  });
+
   it("renders one glyph per type and the gear cost diamond for multi-type cards (ADR-037)", () => {
     const { container } = render(
       <CardPlaceholderImage

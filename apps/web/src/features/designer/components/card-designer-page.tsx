@@ -1,9 +1,9 @@
 import { WellKnown } from "@openrift/shared/well-known";
 import { useState } from "react";
 
-import { TYPE_ICON_COLOR } from "@/features/cards/components/card-placeholder-image";
 import type { ExportAction } from "@/features/cards/lib/card-export";
 import { CARD_EXPORT_WIDTH, exportCardImage } from "@/features/cards/lib/card-export";
+import { typeIconColor } from "@/features/cards/lib/card-face";
 import { BackgroundImageControl } from "@/features/designer/components/background-image-control";
 import { CardDesignerForm } from "@/features/designer/components/card-designer-form";
 import { CardDesignerPreview } from "@/features/designer/components/card-designer-preview";
@@ -39,10 +39,9 @@ function designerTintedIcons(
   white.add("/logo.svg");
 
   const icons = [...white].map((src) => ({ src, color: TINT_WHITE }));
-  // The card-type glyph shows in gold in its black pip above the title.
   const typeIcon = card.type ? getTypeIconPath(card.type, card.superTypes) : undefined;
   if (typeIcon) {
-    icons.push({ src: typeIcon, color: TYPE_ICON_COLOR });
+    icons.push({ src: typeIcon, color: typeIconColor(card.rarity) });
   }
   const framed = showFrame && frameUrlFor(card) !== null;
   // The might shield's symbol is black on its white left half.
@@ -123,7 +122,7 @@ export function CardDesignerPage() {
         </div>
         <div className="order-1 flex flex-col gap-4 lg:sticky lg:top-20 lg:order-2">
           <CardDesignerPreview interactive className="w-full" />
-          {showFrame && !framed && (
+          {!framed && (
             <p className="text-muted-foreground text-sm">{m.designer_frame_unavailable()}</p>
           )}
           <BackgroundImageControl />

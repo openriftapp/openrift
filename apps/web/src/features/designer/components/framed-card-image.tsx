@@ -2,24 +2,16 @@ import { WellKnown } from "@openrift/shared/well-known";
 import type { CSSProperties } from "react";
 import { useLayoutEffect, useRef } from "react";
 
+import { CardFlavorBand } from "@/features/cards/components/card-flavor-band";
 import { GlyphIcon } from "@/features/cards/components/card-placeholder-image";
 import { CardText } from "@/features/cards/components/card-text";
+import { CARD_FACE_REGION as REGION, CARD_TEXT_COLUMN_CLASS } from "@/features/cards/lib/card-face";
 import { shrinkToFit } from "@/features/designer/lib/fit-text";
 import type { DesignerCard } from "@/features/designer/stores/card-designer-store";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { getDomainGradientStyle } from "@/lib/domain";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
-
-/** Positions as percentages of the 744x1039 frame image. */
-const REGION = {
-  energy: { left: "6.32%", top: "5.39%", width: "10.48%", height: "7.51%" },
-  might: { left: "84.54%", top: "5.39%", width: "8.2%", height: "6.26%" },
-  typeLine: { left: "11.02%", top: "51.4%", height: "3.66%" },
-  name: { left: "11.83%", right: "8%", top: "55.53%", height: "7.89%" },
-  rules: { left: "11.4%", right: "11.4%", top: "64.3%", bottom: "8.57%" },
-  footer: { left: "5.1%", right: "11.3%", top: "95.57%", height: "2.7%" },
-} satisfies Record<string, CSSProperties>;
 
 const RULES_TEXT_CQW = 4;
 
@@ -55,10 +47,15 @@ export function FramedCardImage({
     }
     const fit = () => shrinkToFit(box, content, RULES_TEXT_CQW);
     fit();
-    const observer = new ResizeObserver(fit);
-    observer.observe(content);
-    observer.observe(box);
-    return () => observer.disconnect();
+    const resizes = new ResizeObserver(fit);
+    resizes.observe(content);
+    resizes.observe(box);
+    const edits = new MutationObserver(fit);
+    edits.observe(content, { childList: true, characterData: true, subtree: true });
+    return () => {
+      resizes.disconnect();
+      edits.disconnect();
+    };
   }, []);
 
   return (
@@ -100,7 +97,7 @@ export function FramedCardImage({
 
       {showsMight && (
         <div
-          className="font-numeric absolute flex items-center justify-center text-[7cqw] font-semibold text-white"
+          className="font-numeric absolute flex items-center justify-center text-[7.75cqw] font-semibold text-white"
           style={REGION.might}
         >
           {card.might}
@@ -122,10 +119,7 @@ export function FramedCardImage({
         </div>
       )}
 
-      <div
-        className="font-display absolute flex items-center tracking-wide text-white"
-        style={REGION.name}
-      >
+      <div className="font-display absolute flex items-center text-white" style={REGION.name}>
         {commaAt === -1 ? (
           <span className="text-[6cqw] font-semibold">{card.name}</span>
         ) : (
@@ -140,50 +134,55 @@ export function FramedCardImage({
         )}
       </div>
 
-      <div
-        ref={rulesBoxRef}
-        className="absolute flex flex-col overflow-hidden"
-        style={REGION.rules}
-      >
+      <div ref={rulesBoxRef} className="absolute overflow-hidden" style={REGION.textBox}>
         <div
           ref={rulesTextRef}
-          className="card-text-scaled my-auto flex w-full flex-col gap-[0.4em] leading-[1.3] text-black"
+          className="card-text-scaled flex min-h-full flex-col leading-[1.2] text-black"
           style={{ fontSize: `${RULES_TEXT_CQW}cqw` }}
         >
-          {card.rulesText && (
-            <p>
-              <CardText text={card.rulesText} interactive={false} surface="light" />
-            </p>
+          <div
+            className={cn(
+              "flex flex-1 flex-col justify-center gap-[0.3em]",
+              CARD_TEXT_COLUMN_CLASS,
+            )}
+          >
+            {card.rulesText && (
+              <p>
+                <CardText text={card.rulesText} interactive={false} surface="light" />
+              </p>
+            )}
+            {(card.effectText || hasBonus) && (
+              <p>
+                {card.effectText && (
+                  <CardText text={card.effectText} interactive={false} surface="light" />
+                )}
+                {hasBonus && (
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-[0.15em] font-bold whitespace-nowrap",
+                      card.effectText && "ml-[0.3em]",
+                    )}
+                  >
+                    +{card.mightBonus}
+                    <GlyphIcon
+                      src="/images/might.svg"
+                      color="black"
+                      tinted={tintIcons}
+                      className="size-[1em]"
+                    />
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
+          {card.flavorText && (
+            <CardFlavorBand text={card.flavorText} domains={card.domains} surface="light" />
           )}
-          {(card.effectText || hasBonus) && (
-            <p>
-              {card.effectText && (
-                <CardText text={card.effectText} interactive={false} surface="light" />
-              )}
-              {hasBonus && (
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-[0.15em] font-bold whitespace-nowrap",
-                    card.effectText && "ml-[0.3em]",
-                  )}
-                >
-                  +{card.mightBonus}
-                  <GlyphIcon
-                    src="/images/might.svg"
-                    color="black"
-                    tinted={tintIcons}
-                    className="size-[1em]"
-                  />
-                </span>
-              )}
-            </p>
-          )}
-          {card.flavorText && <p className="text-black/60 italic">{card.flavorText}</p>}
         </div>
       </div>
 
       <div
-        className="absolute flex items-center justify-between text-[2.3cqw] text-white/80"
+        className="absolute flex items-center justify-between text-[2.8cqw] text-white/80"
         style={REGION.footer}
       >
         <span>{card.publicCode}</span>
@@ -192,7 +191,7 @@ export function FramedCardImage({
             <GlyphIcon
               src="/images/artist.svg"
               tinted={tintIcons}
-              className="size-[2.3cqw] opacity-80"
+              className="size-[2.8cqw] opacity-80"
             />
             {artist}
           </span>

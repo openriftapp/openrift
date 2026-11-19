@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render } from "@testing-library/react";
+import { fireEvent, render, waitFor } from "@testing-library/react";
 import type { PropsWithChildren } from "react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -8,6 +8,9 @@ import type { DesignerCard } from "@/features/designer/stores/card-designer-stor
 import type * as WhiteIcon from "@/lib/white-icon";
 
 import { FramedCardImage } from "./framed-card-image";
+
+const { shrinkToFit } = vi.hoisted(() => ({ shrinkToFit: vi.fn(() => 1) }));
+vi.mock("@/features/designer/lib/fit-text", () => ({ shrinkToFit }));
 
 const tinted = new Map<string, string>();
 vi.mock("@/lib/white-icon", async (importOriginal) => ({
@@ -93,6 +96,19 @@ describe("FramedCardImage", () => {
   it("shows a +0 might bonus", () => {
     const { getByText } = renderCard({ mightBonus: 0 });
     expect(getByText("+0")).toBeTruthy();
+  });
+
+  it("refits the text when it changes, so shortened text grows back", async () => {
+    const { rerender } = renderCard({ rulesText: "A long ability that needed shrinking." });
+    shrinkToFit.mockClear();
+    rerender(
+      <FramedCardImage
+        card={{ ...card, rulesText: "Short." }}
+        frameUrl="/media/card-frames/v1/unit-common-fury.webp"
+        artist=""
+      />,
+    );
+    await waitFor(() => expect(shrinkToFit).toHaveBeenCalled());
   });
 
   it("reports a frame that fails to load", () => {
