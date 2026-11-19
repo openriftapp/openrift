@@ -193,6 +193,7 @@ export function MetaScopeBar({
         onValueChange={(iso) => setScope({ from: iso })}
         onClear={() => setScope({ from: undefined })}
         placeholder={m.meta_scope_from()}
+        aria-label={m.meta_scope_from()}
         className="w-36"
       />
       <DatePicker
@@ -200,6 +201,7 @@ export function MetaScopeBar({
         onValueChange={(iso) => setScope({ to: iso })}
         onClear={() => setScope({ to: undefined })}
         placeholder={m.meta_scope_to()}
+        aria-label={m.meta_scope_to()}
         className="w-36"
       />
     </>

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-19
+
+### Other
+
+- fix(Trades): **Settling a trade loads only what changed** — settling no longer re-downloads your whole collection when you have an empty collection.
+- fix(Meta): **Deck browser keeps its place while loading** — changing the page or a filter keeps the current decks and count on screen, dimmed, until the new ones arrive.
+- fix(Stage): **Back to the deck without a connection** — leaving a deck presentation returns to the deck page after the connection drops.
+
 ## 2026-11-18
 
 ### Highlights

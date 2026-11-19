@@ -34,6 +34,10 @@ function accessibleCollectionIds(
   return rows === undefined ? undefined : new Set(rows.map((row) => row.id));
 }
 
+function setOf(ids: readonly string[] | undefined): Set<string> | undefined {
+  return ids === undefined ? undefined : new Set(ids);
+}
+
 export function getCopiesCollection(
   queryClient: QueryClient,
   userId: string,
@@ -63,39 +67,35 @@ export function getCopiesCollection(
         const previous = queryClient.getQueryData<CopyResponse[]>([
           ...copiesKeys.syncedStore(userId),
         ]);
-        const accessible = accessibleCollectionIds(queryClient, userId);
+        const cached = accessibleCollectionIds(queryClient, userId);
         const known = syncedCollectionIds;
         // A collection reachable only now (a group just joined) holds copies
         // stamped long before the watermark, which a delta would never return.
         const gainedAccess =
-          known !== undefined &&
-          accessible !== undefined &&
-          [...accessible].some((id) => !known.has(id));
-        // A delta is only safe once the reachable set of the previous read is known.
-        const reachableUnknown = known === undefined && accessible !== undefined;
+          known !== undefined && cached !== undefined && [...cached].some((id) => !known.has(id));
 
         const since =
-          previous === undefined || gainedAccess || reachableUnknown ? undefined : syncedXid;
+          previous === undefined || known === undefined || gainedAccess ? undefined : syncedXid;
         const response = await fetchCopies(since, ctx.signal);
         syncedXid = response.syncedXid ?? syncedXid;
-        // Without the collections store, a full read still shows every collection that holds a copy.
-        syncedCollectionIds =
-          accessible ??
-          known ??
-          (since === undefined
-            ? new Set(response.items.map((row) => row.collectionId))
-            : undefined);
+        const fullRead = since === undefined || response.deletedIds === undefined;
+        // A full read names every collection it covered, empty ones included. A server
+        // without that field leaves the collections list, then the ones holding a copy.
+        syncedCollectionIds = fullRead
+          ? (setOf(response.collectionIds) ??
+            cached ??
+            new Set(response.items.map((row) => row.collectionId)))
+          : (cached ?? known);
 
-        const rows =
-          since === undefined || response.deletedIds === undefined
-            ? response.items
-            : mergeCopiesDelta(previous ?? [], response.items, response.deletedIds);
+        const rows = fullRead
+          ? response.items
+          : mergeCopiesDelta(previous ?? [], response.items, response.deletedIds ?? []);
 
         // Leaving a group writes no tombstone, so its copies go by access instead.
         const lost =
-          known === undefined || accessible === undefined
+          known === undefined || cached === undefined
             ? undefined
-            : [...known].filter((id) => !accessible.has(id));
+            : [...known].filter((id) => !cached.has(id));
         if (lost === undefined || lost.length === 0) {
           return rows;
         }

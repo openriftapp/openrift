@@ -7,6 +7,7 @@ export interface CopiesFetchResult {
   items: CopyResponse[];
   deletedIds?: string[];
   syncedXid?: string;
+  collectionIds?: string[];
 }
 
 export async function fetchCopies(
@@ -16,6 +17,7 @@ export async function fetchCopies(
   let items: CopyResponse[] = [];
   let deletedIds: string[] | undefined;
   let syncedXid: string | undefined;
+  let collectionIds: string[] | undefined;
   let cursor: string | null = null;
   let deltaCursor: string | null = null;
 
@@ -35,6 +37,7 @@ export async function fetchCopies(
       items = [];
       deletedIds = undefined;
       syncedXid = undefined;
+      collectionIds = undefined;
     }
     items.push(...page.items);
     if (page.deletedIds !== undefined) {
@@ -43,9 +46,10 @@ export async function fetchCopies(
     // The earliest watermark of the read: later pages are fetched after it, so
     // keeping the last would skip whatever was written while paging.
     syncedXid ??= page.syncedXid;
+    collectionIds ??= page.collectionIds;
     cursor = page.nextCursor;
     deltaCursor = page.nextDeltaCursor ?? null;
   } while (cursor !== null || deltaCursor !== null);
 
-  return { items, deletedIds, syncedXid };
+  return { items, deletedIds, syncedXid, collectionIds };
 }

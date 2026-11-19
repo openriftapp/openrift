@@ -1,19 +1,14 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
-import { useGridSelectionStore } from "@/features/cards/stores/grid-selection-store";
+import { createGridSelectionStore } from "@/features/cards/stores/grid-selection-store";
 import type { CardDragData } from "@/features/collections/lib/dnd-types";
 import { resetIdCounter, stubPrinting } from "@/test/factories";
-import { createStoreResetter } from "@/test/store-helpers";
 
 import { resolveDropCopyIds, resolveSelectionDrag } from "./collection-drag";
 
-const resetSelection = createStoreResetter(useGridSelectionStore);
-
 beforeEach(() => {
   resetIdCounter();
-  resetSelection();
 });
-afterEach(resetSelection);
 
 describe("resolveSelectionDrag", () => {
   const baseDrag: CardDragData = {
@@ -28,15 +23,17 @@ describe("resolveSelectionDrag", () => {
   };
 
   it("leaves a lone (non-selection) drag untouched", () => {
-    useGridSelectionStore.setState({ selected: new Set(["other-1", "other-2"]) });
-    const resolved = resolveSelectionDrag(baseDrag);
+    const selection = createGridSelectionStore();
+    selection.getState().addToSelection(["other-1", "other-2"]);
+    const resolved = resolveSelectionDrag(baseDrag, selection);
     expect(resolved).toBe(baseDrag);
     expect(resolved.copyIds).toEqual(["grabbed-copy"]);
   });
 
   it("replaces a selection drag's copyIds with the whole live selection", () => {
-    useGridSelectionStore.setState({ selected: new Set(["c1", "c2", "c3"]) });
-    const resolved = resolveSelectionDrag({ ...baseDrag, fromSelection: true });
+    const selection = createGridSelectionStore();
+    selection.getState().addToSelection(["c1", "c2", "c3"]);
+    const resolved = resolveSelectionDrag({ ...baseDrag, fromSelection: true }, selection);
     expect(resolved.copyIds).toEqual(["c1", "c2", "c3"]);
   });
 });

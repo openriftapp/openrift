@@ -165,8 +165,9 @@ export function RulesImportPage() {
         </div>
 
         <div className="grid gap-1.5">
-          <Label>Version (date)</Label>
+          <Label htmlFor="rules-version-date">Version (date)</Label>
           <DatePicker
+            id="rules-version-date"
             value={version || null}
             onValueChange={setVersion}
             onClear={() => setVersion("")}

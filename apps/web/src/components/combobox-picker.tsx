@@ -95,6 +95,8 @@ interface ComboboxPickerBaseProps {
   id?: string;
   "aria-label"?: string;
   "aria-labelledby"?: string;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
 }
 
 interface SingleProps {
@@ -201,6 +203,8 @@ export function ComboboxPicker(props: ComboboxPickerProps) {
     id,
     "aria-label": ariaLabel,
     "aria-labelledby": ariaLabelledBy,
+    "aria-invalid": ariaInvalid,
+    "aria-describedby": ariaDescribedBy,
   } = props;
   const byValue = new Map(
     [...selectedOptions, ...options].map((option) => [option.value, option] as const),
@@ -510,6 +514,8 @@ export function ComboboxPicker(props: ComboboxPickerProps) {
     id,
     "aria-label": ariaLabelledBy ? undefined : ariaLabel,
     "aria-labelledby": ariaLabelledBy,
+    "aria-invalid": ariaInvalid,
+    "aria-describedby": ariaDescribedBy,
   };
   const triggerText = triggerLabel ?? (summary === "" ? placeholder : summary);
 

@@ -1,14 +1,15 @@
 import { useEffect } from "react";
+import { useStore } from "zustand";
 
-import { useDeckSelectionStore } from "@/features/decks/stores/deck-selection-store";
+import type { DeckSelectionStore } from "@/features/decks/stores/deck-selection-store";
 
 const OWNS_ESCAPE = '[role="dialog"], [role="alertdialog"], [role="menu"], input, textarea';
 
 /** Escape leaves select mode unless a dialog, menu or text field takes the key; leaving the page does too. */
-export function useDeckSelectionLifecycle(): void {
-  const selectMode = useDeckSelectionStore((state) => state.selectMode);
+export function useDeckSelectionLifecycle(selection: DeckSelectionStore): void {
+  const selectMode = useStore(selection, (state) => state.selectMode);
 
-  useEffect(() => () => useDeckSelectionStore.getState().resetSelection(), []);
+  useEffect(() => () => selection.getState().resetSelection(), [selection]);
 
   useEffect(() => {
     if (!selectMode) {
@@ -22,10 +23,10 @@ export function useDeckSelectionLifecycle(): void {
         return;
       }
       event.preventDefault();
-      useDeckSelectionStore.getState().resetSelection();
+      selection.getState().resetSelection();
     };
     // On the document so it runs before the detail pane's globalThis listener, which registered first.
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [selectMode]);
+  }, [selectMode, selection]);
 }

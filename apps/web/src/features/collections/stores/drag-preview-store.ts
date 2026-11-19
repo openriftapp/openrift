@@ -1,5 +1,8 @@
 import type { Printing } from "@openrift/shared/types/catalog";
-import { create } from "zustand";
+import { createContext, useContext, useState } from "react";
+import { useStore } from "zustand";
+import type { StoreApi } from "zustand";
+import { createStore } from "zustand/vanilla";
 
 interface DragPreviewState {
   preview: Printing[];
@@ -8,12 +11,39 @@ interface DragPreviewState {
   setPreview: (preview: Printing[], selectionCount: number, selectionNoun: string) => void;
 }
 
-// Cells read the preview with a stable selector, so a +/- click that doesn't
-// change selection leaves the reference identical and skips re-rendering all cells.
-export const useDragPreviewStore = create<DragPreviewState>()((set) => ({
-  preview: [],
-  selectionCount: 0,
-  selectionNoun: "printing",
-  setPreview: (preview, selectionCount, selectionNoun) =>
-    set({ preview, selectionCount, selectionNoun }),
-}));
+export type DragPreviewStore = StoreApi<DragPreviewState>;
+
+/**
+ * The fanned printings and count a select-mode drag shows. Cells read the preview with a stable
+ * selector, so a +/- click that doesn't change the selection skips re-rendering every cell.
+ */
+export function createDragPreviewStore(): DragPreviewStore {
+  return createStore<DragPreviewState>()((set) => ({
+    preview: [],
+    selectionCount: 0,
+    selectionNoun: "printing",
+    setPreview: (preview, selectionCount, selectionNoun) =>
+      set({ preview, selectionCount, selectionNoun }),
+  }));
+}
+
+/** Creates the collection layout's store once and keeps it for the layout's lifetime. */
+export function useOwnDragPreviewStore(): DragPreviewStore {
+  // oxlint-disable-next-line react/hook-use-state -- a stable per-layout store, never replaced
+  const [store] = useState(createDragPreviewStore);
+  return store;
+}
+
+export const DragPreviewStoreContext = createContext<DragPreviewStore | null>(null);
+
+export function useDragPreviewStoreApi(): DragPreviewStore {
+  const store = useContext(DragPreviewStoreContext);
+  if (store === null) {
+    throw new Error("useDragPreviewStore needs a CollectionLayout");
+  }
+  return store;
+}
+
+export function useDragPreviewStore<T>(selector: (state: DragPreviewState) => T): T {
+  return useStore(useDragPreviewStoreApi(), selector);
+}

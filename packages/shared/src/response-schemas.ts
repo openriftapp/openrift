@@ -395,6 +395,8 @@ export const copyListResponseSchema = z.object({
   deletedIds: z.array(z.uuid()).optional(),
   nextDeltaCursor: z.string().nullish(),
   syncedXid: z.string().optional(),
+  // Full reads only, on the first page: every collection the read covers, empty ones included.
+  collectionIds: z.array(z.uuid()).optional(),
 });
 
 // Stays a concrete object (not z.record) so TanStack's server-fn type inference

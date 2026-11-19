@@ -102,12 +102,20 @@ export const copiesRouter = {
       }
     }
 
+    // Read before the copies, so a collection joined mid-request is left out and
+    // forces the next full read rather than counting as covered.
+    const collectionIds =
+      input.cursor === undefined ? await copies.accessibleCollectionIds(context.userId) : undefined;
     const rows = await copies.listForAccessibleCollections(
       context.userId,
       effectiveLimit,
       input.cursor,
     );
-    return { ...keysetPage(rows, effectiveLimit, toCopy), syncedXid: currentSafeXid };
+    return {
+      ...keysetPage(rows, effectiveLimit, toCopy),
+      syncedXid: currentSafeXid,
+      ...(collectionIds === undefined ? {} : { collectionIds }),
+    };
   }),
 
   add: os.add.handler(async ({ input, context, errors }): Promise<CopyAddResponse> => {

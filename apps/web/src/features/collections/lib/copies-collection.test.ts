@@ -73,6 +73,56 @@ describe("the copies store's watermark", () => {
     expect(fetchCopies).toHaveBeenLastCalledWith("1000", expect.any(AbortSignal));
   });
 
+  it("reads a delta for an empty collection the full read named as covered", async () => {
+    fetchCopies.mockResolvedValue({
+      items: [stubCopy({ id: "c1", collectionId: "col-1" })],
+      syncedXid: "1000",
+      collectionIds: ["col-1", "inbox"],
+    });
+    await getCopiesCollection(queryClient, userId).preload();
+
+    reachable("col-1", "inbox");
+    fetchCopies.mockResolvedValue({ items: [], deletedIds: [], syncedXid: "2000" });
+    await resync();
+
+    expect(fetchCopies).toHaveBeenLastCalledWith("1000", expect.any(AbortSignal));
+  });
+
+  it("trusts what the full read covered over an older collections list", async () => {
+    reachable("col-1");
+    fetchCopies.mockResolvedValue({
+      items: [stubCopy({ id: "c1", collectionId: "col-1" })],
+      syncedXid: "1000",
+      collectionIds: ["col-1", "inbox"],
+    });
+    await getCopiesCollection(queryClient, userId).preload();
+
+    reachable("col-1", "inbox");
+    fetchCopies.mockResolvedValue({ items: [], deletedIds: [], syncedXid: "2000" });
+    await resync();
+
+    expect(fetchCopies).toHaveBeenLastCalledWith("1000", expect.any(AbortSignal));
+  });
+
+  it("takes a full read for a collection that became reachable after the full read", async () => {
+    fetchCopies.mockResolvedValue({
+      items: [stubCopy({ id: "c1", collectionId: "col-1" })],
+      syncedXid: "1000",
+      collectionIds: ["col-1"],
+    });
+    await getCopiesCollection(queryClient, userId).preload();
+
+    reachable("col-1", "col-2");
+    fetchCopies.mockResolvedValue({
+      items: [],
+      syncedXid: "2000",
+      collectionIds: ["col-1", "col-2"],
+    });
+    await resync();
+
+    expect(fetchCopies).toHaveBeenLastCalledWith(undefined, expect.any(AbortSignal));
+  });
+
   it("takes a full read when a collection becomes reachable, whose copies predate the watermark", async () => {
     reachable("col-1");
     fetchCopies.mockResolvedValue({ items: [stubCopy({ id: "c1" })], syncedXid: "1000" });

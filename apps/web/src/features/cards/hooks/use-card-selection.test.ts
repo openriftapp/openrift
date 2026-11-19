@@ -1,23 +1,25 @@
 import { renderHook, act } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { useGridSelectionStore } from "@/features/cards/stores/grid-selection-store";
+import { layoutStoresWrapper } from "@/test/collection-layout-stores";
 
 import { useCardSelection } from "./use-card-selection";
 
+let wrapper: ReturnType<typeof layoutStoresWrapper>;
+
 beforeEach(() => {
-  useGridSelectionStore.setState({ selected: new Set() });
+  wrapper = layoutStoresWrapper();
 });
 
 describe("useCardSelection", () => {
   it("starts with an empty selection and no last-selected ID", () => {
-    const { result } = renderHook(() => useCardSelection());
+    const { result } = renderHook(() => useCardSelection(), { wrapper });
     expect(result.current.selected.size).toBe(0);
     expect(result.current.getLastSelectedItemId()).toBeNull();
   });
 
   it("toggleSelect adds then removes a copyId", () => {
-    const { result } = renderHook(() => useCardSelection());
+    const { result } = renderHook(() => useCardSelection(), { wrapper });
     act(() => result.current.toggleSelect("copy-1"));
     expect(result.current.selected.has("copy-1")).toBe(true);
     act(() => result.current.toggleSelect("copy-1"));
@@ -25,7 +27,7 @@ describe("useCardSelection", () => {
   });
 
   it("toggleStack selects all when none are selected, clears when all are selected", () => {
-    const { result } = renderHook(() => useCardSelection());
+    const { result } = renderHook(() => useCardSelection(), { wrapper });
     const ids = ["a", "b", "c"];
 
     act(() => result.current.toggleStack(ids));
@@ -36,14 +38,14 @@ describe("useCardSelection", () => {
   });
 
   it("toggleStack selects all when partially selected", () => {
-    const { result } = renderHook(() => useCardSelection());
+    const { result } = renderHook(() => useCardSelection(), { wrapper });
     act(() => result.current.toggleSelect("a"));
     act(() => result.current.toggleStack(["a", "b", "c"]));
     expect([...result.current.selected].toSorted()).toEqual(["a", "b", "c"]);
   });
 
   it("toggleSelectAll clears when everything is selected, selects all otherwise", () => {
-    const { result } = renderHook(() => useCardSelection());
+    const { result } = renderHook(() => useCardSelection(), { wrapper });
     const ids = ["a", "b", "c"];
 
     act(() => result.current.toggleSelectAll(ids));
@@ -54,21 +56,21 @@ describe("useCardSelection", () => {
   });
 
   it("addToSelection unions without removing existing IDs", () => {
-    const { result } = renderHook(() => useCardSelection());
+    const { result } = renderHook(() => useCardSelection(), { wrapper });
     act(() => result.current.toggleSelect("a"));
     act(() => result.current.addToSelection(["b", "c", "a"]));
     expect([...result.current.selected].toSorted()).toEqual(["a", "b", "c"]);
   });
 
   it("addToSelection with an empty list is a no-op", () => {
-    const { result } = renderHook(() => useCardSelection());
+    const { result } = renderHook(() => useCardSelection(), { wrapper });
     act(() => result.current.toggleSelect("a"));
     act(() => result.current.addToSelection([]));
     expect([...result.current.selected]).toEqual(["a"]);
   });
 
   it("clearSelection resets selection and the last-selected ID", () => {
-    const { result } = renderHook(() => useCardSelection());
+    const { result } = renderHook(() => useCardSelection(), { wrapper });
     act(() => result.current.toggleSelect("a"));
     act(() => result.current.setLastSelectedItemId("item-1"));
     expect(result.current.getLastSelectedItemId()).toBe("item-1");
@@ -79,7 +81,7 @@ describe("useCardSelection", () => {
   });
 
   it("getLastSelectedItemId returns the latest value set via setLastSelectedItemId", () => {
-    const { result } = renderHook(() => useCardSelection());
+    const { result } = renderHook(() => useCardSelection(), { wrapper });
     act(() => result.current.setLastSelectedItemId("item-1"));
     expect(result.current.getLastSelectedItemId()).toBe("item-1");
     act(() => result.current.setLastSelectedItemId("item-2"));
@@ -88,10 +90,13 @@ describe("useCardSelection", () => {
 
   it("setLastSelectedItemId does not trigger a re-render (ref-backed)", () => {
     let renderCount = 0;
-    const { result } = renderHook(() => {
-      renderCount++;
-      return useCardSelection();
-    });
+    const { result } = renderHook(
+      () => {
+        renderCount++;
+        return useCardSelection();
+      },
+      { wrapper },
+    );
     const before = renderCount;
     act(() => result.current.setLastSelectedItemId("item-1"));
     expect(renderCount).toBe(before);

@@ -51,6 +51,8 @@ interface SimpleSelectProps<T extends string> {
   onOpenChange?: (open: boolean) => void;
   id?: string;
   "aria-labelledby"?: string;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
   "data-field-control"?: true;
 }
 
@@ -71,6 +73,8 @@ export function SimpleSelect<T extends string>({
   onOpenChange,
   id,
   "aria-labelledby": ariaLabelledBy,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
   "data-field-control": fieldControl,
 }: SimpleSelectProps<T>) {
   const byValue = new Map(items.map((item) => [item.value, item]));
@@ -130,6 +134,8 @@ export function SimpleSelect<T extends string>({
         className={className}
         aria-label={ariaLabelledBy ? undefined : label}
         aria-labelledby={ariaLabelledBy}
+        aria-invalid={ariaInvalid}
+        aria-describedby={ariaDescribedBy}
       >
         {triggerValue ? (
           <SelectValue placeholder={placeholder}>

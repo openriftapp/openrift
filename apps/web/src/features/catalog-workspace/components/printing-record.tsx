@@ -854,6 +854,7 @@ function PrintingFieldEditor({
       )}
       {field === "announced" && (
         <DatePicker
+          aria-label="Announced on"
           className="w-44"
           value={announcedAt}
           onValueChange={setAnnouncedAt}
@@ -863,6 +864,7 @@ function PrintingFieldEditor({
       {field === "release" && (
         <div className="flex flex-wrap items-center gap-2">
           <DatePicker
+            aria-label="Available from"
             className="w-44"
             value={releasedAt}
             onValueChange={setReleasedAt}

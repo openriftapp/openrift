@@ -30,6 +30,7 @@ function image(overrides: Partial<AdminPrintingImageResponse>): AdminPrintingIma
     needsTrim: false,
     isActive: true,
     activateWhenRehosted: false,
+    fileInUseElsewhere: false,
     rehostFailure: null,
     ...overrides,
   };

@@ -16,7 +16,10 @@ import { TopBarSlotContext } from "@/components/layout/top-bar-slot";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { CardDragGhost } from "@/features/cards/components/card-drag-ghost";
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
-import { useGridSelectionStore } from "@/features/cards/stores/grid-selection-store";
+import {
+  GridSelectionStoreContext,
+  useOwnGridSelectionStore,
+} from "@/features/cards/stores/grid-selection-store";
 import {
   resolveDropCopyIds,
   resolveSelectionDrag,
@@ -33,7 +36,11 @@ import type {
   ListEntryDragData,
 } from "@/features/collections/lib/dnd-types";
 import { COLLECTION_DRAG_TYPES } from "@/features/collections/lib/dnd-types";
-import { useDragPreviewStore } from "@/features/collections/stores/drag-preview-store";
+import {
+  DragPreviewStoreContext,
+  useDragPreviewStore,
+  useOwnDragPreviewStore,
+} from "@/features/collections/stores/drag-preview-store";
 import { AddEntryToCollectionDialog } from "@/features/lists/components/add-entry-to-collection-dialog";
 import type { SidebarListDropData } from "@/features/lists/components/droppable-sidebar-list";
 import {
@@ -90,6 +97,8 @@ const COLLECTION_DROP_TYPES = [
 export function CollectionLayout() {
   const search = routeApi.useSearch();
   const listEntriesStore = useOwnListEntriesStore();
+  const gridSelectionStore = useOwnGridSelectionStore();
+  const dragPreviewStore = useOwnDragPreviewStore();
   const [topBarSlot, setTopBarSlot] = useState<HTMLDivElement | null>(null);
   const topBarHeight = useMeasuredHeight(topBarSlot);
   const [activeDrag, setActiveDrag] = useState<CollectionDragData | null>(null);
@@ -168,11 +177,11 @@ export function CollectionLayout() {
     dragScroll.start(event.activatorEvent);
     const data = asDragData<CollectionDragData>(event.active.data.current, COLLECTION_DRAG_TYPES);
     if (data?.type === "collection-card") {
-      setActiveDrag(resolveSelectionDrag(data));
+      setActiveDrag(resolveSelectionDrag(data, gridSelectionStore));
       return;
     }
     if (data?.type === "list-entry") {
-      setActiveDrag(resolveListEntryDrag(data, listEntriesStore));
+      setActiveDrag(resolveListEntryDrag(data, listEntriesStore, gridSelectionStore));
     }
   };
 
@@ -187,14 +196,17 @@ export function CollectionLayout() {
     }
     toast.success(m.collections_toast_moved({ count: copyIds.length }), { action: moved.undo });
     if (fromSelection) {
-      useGridSelectionStore.getState().clearSelection();
+      gridSelectionStore.getState().clearSelection();
     }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const modifier = moveModifier;
     const raw = asDragData<CollectionDragData>(event.active.data.current, COLLECTION_DRAG_TYPES);
-    const dragData = raw?.type === "list-entry" ? resolveListEntryDrag(raw, listEntriesStore) : raw;
+    const dragData =
+      raw?.type === "list-entry"
+        ? resolveListEntryDrag(raw, listEntriesStore, gridSelectionStore)
+        : raw;
     // Rule entries have no row to move, so a drag carrying one copies everything.
     const carriesRuleEntry =
       dragData?.type === "list-entry" &&
@@ -211,7 +223,11 @@ export function CollectionLayout() {
     }
 
     if (dragData.type === "collection-card") {
-      handleCollectionCardDrop(resolveSelectionDrag(dragData), dropData, modifier);
+      handleCollectionCardDrop(
+        resolveSelectionDrag(dragData, gridSelectionStore),
+        dropData,
+        modifier,
+      );
       return;
     }
 
@@ -273,7 +289,7 @@ export function CollectionLayout() {
             describeListAdd(result, listName),
           );
           if (dragData.fromSelection) {
-            useGridSelectionStore.getState().clearSelection();
+            gridSelectionStore.getState().clearSelection();
           }
         },
       },
@@ -343,7 +359,7 @@ export function CollectionLayout() {
       return;
     }
     if (dragData.fromSelection) {
-      useGridSelectionStore.getState().clearSelection();
+      gridSelectionStore.getState().clearSelection();
     }
     toast.success(
       mode === "copy"
@@ -385,69 +401,73 @@ export function CollectionLayout() {
 
   return (
     <ListEntriesStoreContext value={listEntriesStore}>
-      <ViewSurfaceProvider value="collections">
-        <FilterSearchProvider value={search}>
-          <PageTopBarHeightContext value={topBarHeight}>
-            <div className="flex min-h-0 flex-1 flex-col">
-              <SidebarProvider className="flex-1">
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={collectionCollisionDetection}
-                  accessibility={{ announcements: collectionDragAnnouncements }}
-                  autoScroll={dragScroll.autoScroll}
-                  onDragStart={handleDragStart}
-                  onDragEnd={handleDragEnd}
-                  onDragCancel={() => {
-                    dragActiveRef.current = false;
-                    dragScroll.stop();
-                    setActiveDrag(null);
-                  }}
-                >
-                  <DndScrollWatcher />
-                  <TopBarSlotContext value={topBarSlot}>
-                    <CollectionSidebar />
-                    <CollectionContent setTopBarSlot={setTopBarSlot} />
-                  </TopBarSlotContext>
-                  <DragOverlay dropAnimation={null} modifiers={MODIFIERS}>
-                    {activeDrag?.type === "collection-card" && (
-                      <DragPreview drag={activeDrag} modifier={moveModifier} />
-                    )}
-                    {activeDrag?.type === "list-entry" && (
-                      <ListEntryDragPreview
-                        drag={activeDrag}
-                        copy={copyModifier || activeDrag.ruleEntry !== undefined}
-                      />
-                    )}
-                  </DragOverlay>
-                </DndContext>
-              </SidebarProvider>
-              <AddEntryToCollectionDialog
-                request={pendingCollectionAdd}
-                onClose={() => setPendingCollectionAdd(null)}
-              />
-              <MoveEntryDialog
-                pending={pendingMove}
-                onOpenChange={(open) => {
-                  if (!open) {
-                    setPendingMove(null);
-                  }
-                }}
-                onConfirm={(resolution) => {
-                  if (pendingMove) {
-                    void runListEntryMove(
-                      pendingMove.drag,
-                      { type: "list", ...pendingMove.target },
-                      pendingMove.mode,
-                      resolution,
-                    );
-                  }
-                }}
-                isPending={moveListEntries.isPending || bulkAddListEntries.isPending}
-              />
-            </div>
-          </PageTopBarHeightContext>
-        </FilterSearchProvider>
-      </ViewSurfaceProvider>
+      <GridSelectionStoreContext value={gridSelectionStore}>
+        <DragPreviewStoreContext value={dragPreviewStore}>
+          <ViewSurfaceProvider value="collections">
+            <FilterSearchProvider value={search}>
+              <PageTopBarHeightContext value={topBarHeight}>
+                <div className="flex min-h-0 flex-1 flex-col">
+                  <SidebarProvider className="flex-1">
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={collectionCollisionDetection}
+                      accessibility={{ announcements: collectionDragAnnouncements }}
+                      autoScroll={dragScroll.autoScroll}
+                      onDragStart={handleDragStart}
+                      onDragEnd={handleDragEnd}
+                      onDragCancel={() => {
+                        dragActiveRef.current = false;
+                        dragScroll.stop();
+                        setActiveDrag(null);
+                      }}
+                    >
+                      <DndScrollWatcher />
+                      <TopBarSlotContext value={topBarSlot}>
+                        <CollectionSidebar />
+                        <CollectionContent setTopBarSlot={setTopBarSlot} />
+                      </TopBarSlotContext>
+                      <DragOverlay dropAnimation={null} modifiers={MODIFIERS}>
+                        {activeDrag?.type === "collection-card" && (
+                          <DragPreview drag={activeDrag} modifier={moveModifier} />
+                        )}
+                        {activeDrag?.type === "list-entry" && (
+                          <ListEntryDragPreview
+                            drag={activeDrag}
+                            copy={copyModifier || activeDrag.ruleEntry !== undefined}
+                          />
+                        )}
+                      </DragOverlay>
+                    </DndContext>
+                  </SidebarProvider>
+                  <AddEntryToCollectionDialog
+                    request={pendingCollectionAdd}
+                    onClose={() => setPendingCollectionAdd(null)}
+                  />
+                  <MoveEntryDialog
+                    pending={pendingMove}
+                    onOpenChange={(open) => {
+                      if (!open) {
+                        setPendingMove(null);
+                      }
+                    }}
+                    onConfirm={(resolution) => {
+                      if (pendingMove) {
+                        void runListEntryMove(
+                          pendingMove.drag,
+                          { type: "list", ...pendingMove.target },
+                          pendingMove.mode,
+                          resolution,
+                        );
+                      }
+                    }}
+                    isPending={moveListEntries.isPending || bulkAddListEntries.isPending}
+                  />
+                </div>
+              </PageTopBarHeightContext>
+            </FilterSearchProvider>
+          </ViewSurfaceProvider>
+        </DragPreviewStoreContext>
+      </GridSelectionStoreContext>
     </ListEntriesStoreContext>
   );
 }

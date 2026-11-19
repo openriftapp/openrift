@@ -12,14 +12,20 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { formatLocalDate, parseLocalDate } from "@/lib/date-time-input";
 import { m } from "@/paraglide/messages.js";
 
-interface DatePickerProps {
+interface DatePickerBaseProps {
   value?: string | null;
   onValueChange?: (iso: string) => void;
   onClear?: () => void;
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
 }
+
+/** The text box needs a name: an `id` a label points at, or an `aria-label`. */
+type DatePickerProps = DatePickerBaseProps &
+  ({ id: string; "aria-label"?: string } | { id?: string; "aria-label": string });
 
 export function DatePicker({
   value,
@@ -28,6 +34,10 @@ export function DatePicker({
   placeholder = "YYYY-MM-DD",
   className,
   disabled,
+  id,
+  "aria-label": ariaLabel,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(value ?? "");
@@ -74,6 +84,10 @@ export function DatePicker({
   return (
     <InputGroup className={className}>
       <InputGroupInput
+        id={id}
+        aria-label={ariaLabel}
+        aria-invalid={ariaInvalid}
+        aria-describedby={ariaDescribedBy}
         value={text}
         placeholder={placeholder}
         disabled={disabled}

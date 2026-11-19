@@ -51,6 +51,22 @@ describe("fetchCopies over a paged full read", () => {
     expect(result.items.map((row) => row.id)).toEqual(["c1", "c2"]);
     expect(result.syncedXid).toBe("1000");
   });
+
+  it("keeps the collections the first page names as the ones the read covered", async () => {
+    respond = (query) =>
+      query.cursor === null
+        ? {
+            items: [stubCopy({ id: "c1", collectionId: "col-1" })],
+            nextCursor: "page-2",
+            syncedXid: "1000",
+            collectionIds: ["col-1", "inbox"],
+          }
+        : { items: [stubCopy({ id: "c2" })], nextCursor: null, syncedXid: "9000" };
+
+    const result = await fetchCopies();
+
+    expect(result.collectionIds).toEqual(["col-1", "inbox"]);
+  });
 });
 
 describe("fetchCopies over a delta", () => {
@@ -107,6 +123,27 @@ describe("fetchCopies over a delta", () => {
     expect(result.items.map((row) => row.id)).toEqual(["c1"]);
     expect(result.deletedIds).toBeUndefined();
     expect(result.syncedXid).toBe("7000");
+  });
+
+  it("takes the covered collections from the full list the server falls back to", async () => {
+    respond = (query) =>
+      query.deltaCursor === null && query.cursor === null
+        ? {
+            items: [],
+            nextCursor: null,
+            deletedIds: [],
+            nextDeltaCursor: "5000~4001_stale~",
+          }
+        : {
+            items: [stubCopy({ id: "c1" })],
+            nextCursor: null,
+            syncedXid: "7000",
+            collectionIds: ["col-1", "inbox"],
+          };
+
+    const result = await fetchCopies("1000");
+
+    expect(result.collectionIds).toEqual(["col-1", "inbox"]);
   });
 
   it("leaves the watermark alone when the server withholds one", async () => {

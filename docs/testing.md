@@ -43,7 +43,8 @@ src/
 In `apps/web`, the shared helpers are mandatory rather than optional:
 
 - **Factories** — `apps/web/src/test/factories.ts` builds `Card`, `Printing` and friends. Import from there instead of hand-rolling a stub, so a shape change lands in one file.
-- **Store resets** — Zustand stores are singletons, so a store test must call `createStoreResetter()` from `apps/web/src/test/store-helpers.ts` in `beforeEach`/`afterEach`. Without it, state leaks between tests in the same file.
+- **Store resets** — a module-level store (one exported `create()` hook, such as the persisted preference stores and the app-wide UI and editor stores) is a singleton, so its test calls `createStoreResetter()` from `apps/web/src/test/store-helpers.ts` in `beforeEach`/`afterEach`. Without it, state leaks between tests in the same file.
+- **Per-page stores** — a store with a `create…Store()` factory and a context (card row actions, list entries, grid selection, drag preview, deck selection, the rules page) needs no reset. A test creates a fresh store through the factory in `beforeEach`, and components render inside the provider helpers in `apps/web/src/test/` (`rowActionsWrapper`, `layoutStoresWrapper`, `deckSelectionWrapper`) or the store's own context.
 
 Elsewhere, or for a shape the factories don't cover, define a local factory at the top of the test file that returns a valid object with sensible defaults and override only the fields each test cares about:
 

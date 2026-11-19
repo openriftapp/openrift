@@ -29,7 +29,7 @@ import { stackSides } from "@/features/collections/lib/stacked-entry";
 import { useAddModeStore } from "@/features/collections/stores/add-mode-store";
 import type { VariantPopoverIntent } from "@/features/collections/stores/add-mode-store";
 import { useCollectionOverlayStore } from "@/features/collections/stores/collection-overlay-store";
-import { useDragPreviewStore } from "@/features/collections/stores/drag-preview-store";
+import { useDragPreviewStoreApi } from "@/features/collections/stores/drag-preview-store";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import { computeShiftRange } from "@/lib/shift-range";
 import { useSelectionStore } from "@/stores/selection-store";
@@ -101,6 +101,7 @@ export function useCollectionGridSelection({
   openAction,
   onAddToWishlist,
 }: UseCollectionGridSelectionParams) {
+  const dragPreviewStore = useDragPreviewStoreApi();
   // Keyed by tile (cardId, or cardId|set / cardId|rarity when split) so a card
   // owned across sets keeps each set tile's copies separate.
   const { allCopyIdsByTile, allPrintingIdsByTile } =
@@ -121,7 +122,7 @@ export function useCollectionGridSelection({
   });
   const dragNoun = dragSelectionNoun(view);
   useEffect(() => {
-    const state = useDragPreviewStore.getState();
+    const state = dragPreviewStore.getState();
     if (
       !printingsArrayEqual(dragSummary.printings, state.preview) ||
       dragSummary.count !== state.selectionCount ||

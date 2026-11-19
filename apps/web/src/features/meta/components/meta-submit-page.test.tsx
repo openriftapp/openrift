@@ -74,12 +74,19 @@ vi.mock("@/components/ui/date-picker", () => ({
   DatePicker: ({
     value,
     onValueChange,
+    ...aria
   }: {
     value?: string;
     onValueChange?: (iso: string) => void;
+    id?: string;
+    "aria-invalid"?: boolean;
+    "aria-describedby"?: string;
   }) => (
     <input
       aria-label="Day it was played"
+      id={aria.id}
+      aria-invalid={aria["aria-invalid"]}
+      aria-describedby={aria["aria-describedby"]}
       value={value ?? ""}
       onChange={(event) => onValueChange?.(event.target.value)}
     />
@@ -506,6 +513,45 @@ describe("MetaSubmitPage without a standings row", () => {
 
     expect(mutateAsync).not.toHaveBeenCalled();
     expect(screen.getByText("Pick the tournament this deck came from.")).toBeInTheDocument();
+  });
+
+  it("marks the tournament box invalid when none is picked", async () => {
+    render(<MetaSubmitPage />);
+    await userEvent.type(screen.getByLabelText("Who played it"), "Kira");
+    await pasteDeck(MAIN_ONLY);
+    await send();
+
+    const picker = screen.getByLabelText("Tournament");
+    expect(picker).toHaveAttribute("aria-invalid", "true");
+    expect(picker).toHaveAccessibleDescription("Pick the tournament this deck came from.");
+  });
+
+  it("marks the proposed tournament's day invalid when it is missing", async () => {
+    render(<MetaSubmitPage />);
+    await userEvent.click(screen.getByRole("button", { name: /Tell us about it/u }));
+    await userEvent.type(screen.getByLabelText("Tournament name"), "Rift Open Berlin");
+    await userEvent.type(screen.getByLabelText("Who played it"), "Kira");
+    await pasteDeck(MAIN_ONLY);
+    await send();
+
+    const day = screen.getByLabelText("Day it was played");
+    expect(day).toHaveAttribute("aria-invalid", "true");
+    expect(day).toHaveAccessibleDescription("Pick the day the tournament was played.");
+    expect(screen.getByLabelText("Format")).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("marks the proposed tournament's format invalid when it is missing", async () => {
+    render(<MetaSubmitPage />);
+    await userEvent.click(screen.getByRole("button", { name: /Tell us about it/u }));
+    await userEvent.type(screen.getByLabelText("Tournament name"), "Rift Open Berlin");
+    await userEvent.type(screen.getByLabelText("Day it was played"), "2026-08-15");
+    await userEvent.type(screen.getByLabelText("Who played it"), "Kira");
+    await pasteDeck(MAIN_ONLY);
+    await send();
+
+    const format = screen.getByLabelText("Format");
+    expect(format).toHaveAttribute("aria-invalid", "true");
+    expect(format).toHaveAccessibleDescription("Pick the format that was played.");
   });
 
   it("sends the match record as separate counts", async () => {

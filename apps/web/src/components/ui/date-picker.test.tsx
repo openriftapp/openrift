@@ -1,4 +1,4 @@
-import { fireEvent, render } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { DatePicker } from "./date-picker";
@@ -13,38 +13,40 @@ function getInput(container: HTMLElement): HTMLInputElement {
 
 describe("DatePicker", () => {
   it("shows the initial value", () => {
-    const { container } = render(<DatePicker value="2026-07-27" />);
+    const { container } = render(<DatePicker aria-label="Day" value="2026-07-27" />);
     expect(getInput(container).value).toBe("2026-07-27");
   });
 
   it("shows a value set after mount (the wizard's client-only prefill)", () => {
-    const { container, rerender } = render(<DatePicker value="" />);
+    const { container, rerender } = render(<DatePicker aria-label="Day" value="" />);
     expect(getInput(container).value).toBe("");
 
-    rerender(<DatePicker value="2026-07-27" />);
+    rerender(<DatePicker aria-label="Day" value="2026-07-27" />);
     expect(getInput(container).value).toBe("2026-07-27");
   });
 
   it("clears the text when the value is cleared externally", () => {
-    const { container, rerender } = render(<DatePicker value="2026-07-27" />);
-    rerender(<DatePicker value="" />);
+    const { container, rerender } = render(<DatePicker aria-label="Day" value="2026-07-27" />);
+    rerender(<DatePicker aria-label="Day" value="" />);
     expect(getInput(container).value).toBe("");
   });
 
   it("keeps partial typing when the value prop is unchanged", () => {
-    const { container, rerender } = render(<DatePicker value="2026-07-27" />);
+    const { container, rerender } = render(<DatePicker aria-label="Day" value="2026-07-27" />);
     const input = getInput(container);
     fireEvent.change(input, { target: { value: "2026-08" } });
     expect(input.value).toBe("2026-08");
 
     // A parent re-render with the same value must not clobber the draft.
-    rerender(<DatePicker value="2026-07-27" />);
+    rerender(<DatePicker aria-label="Day" value="2026-07-27" />);
     expect(input.value).toBe("2026-08");
   });
 
   it("emits onValueChange only for complete dates", () => {
     const onValueChange = vi.fn();
-    const { container } = render(<DatePicker value="" onValueChange={onValueChange} />);
+    const { container } = render(
+      <DatePicker aria-label="Day" value="" onValueChange={onValueChange} />,
+    );
     const input = getInput(container);
 
     fireEvent.change(input, { target: { value: "2026-08" } });
@@ -56,7 +58,9 @@ describe("DatePicker", () => {
 
   it("never emits an impossible day and keeps the typed text", () => {
     const onValueChange = vi.fn();
-    const { container } = render(<DatePicker value="" onValueChange={onValueChange} />);
+    const { container } = render(
+      <DatePicker aria-label="Day" value="" onValueChange={onValueChange} />,
+    );
     const input = getInput(container);
 
     fireEvent.change(input, { target: { value: "2025-02-31" } });
@@ -69,8 +73,31 @@ describe("DatePicker", () => {
 
   it("calls onClear when the text is emptied", () => {
     const onClear = vi.fn();
-    const { container } = render(<DatePicker value="2026-07-27" onClear={onClear} />);
+    const { container } = render(
+      <DatePicker aria-label="Day" value="2026-07-27" onClear={onClear} />,
+    );
     fireEvent.change(getInput(container), { target: { value: "" } });
     expect(onClear).toHaveBeenCalled();
+  });
+
+  it("puts its id and error state on the text box", () => {
+    const { container } = render(
+      <DatePicker id="played-on" aria-invalid aria-describedby="played-on-error" />,
+    );
+    const input = getInput(container);
+    expect(input).toHaveAttribute("id", "played-on");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveAttribute("aria-describedby", "played-on-error");
+  });
+
+  it("names its text box with the aria-label it is given", () => {
+    render(<DatePicker aria-label="Event day" value="" />);
+    expect(screen.getByRole("textbox", { name: "Event day" })).toBeInTheDocument();
+  });
+
+  it("refuses at compile time a picker with neither an id nor an aria-label", () => {
+    // @ts-expect-error -- an unnamed date picker is a text box no label points at
+    const unnamed = <DatePicker value="" />;
+    expect(unnamed).toBeTruthy();
   });
 });

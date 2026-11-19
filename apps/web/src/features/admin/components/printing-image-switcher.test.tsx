@@ -63,6 +63,7 @@ const image = {
   originalUrl: "https://cdn.test/a.png",
   rehostedUrl: "/media/cards/fi/file-1",
   isActive: true,
+  fileInUseElsewhere: false,
   rotation: 0,
   needsTrim: false,
   quad: null,
@@ -146,14 +147,14 @@ describe("PrintingImageSwitcher file edits", () => {
 describe("PrintingImageSwitcher un-rehost", () => {
   function renderWith(
     isActive: boolean,
-    over: { fallbackImageFileId?: string; siblingInUse?: boolean } = {},
+    over: { fallbackImageFileId?: string; siblingInUse?: boolean; usedElsewhere?: boolean } = {},
   ) {
     return render(
       <PrintingImageSwitcher
         printingId="p-1"
         face="front"
         printingLabel="OGN-001"
-        images={[{ ...image, isActive }]}
+        images={[{ ...image, isActive, fileInUseElsewhere: over.usedElsewhere ?? false }]}
         siblingImages={
           over.siblingInUse === undefined
             ? []
@@ -185,6 +186,11 @@ describe("PrintingImageSwitcher un-rehost", () => {
 
   it("does not offer un-rehosting a file in use on another face", () => {
     renderWith(false, { siblingInUse: true });
+    expect(screen.queryByRole("button", { name: /Un-rehost/u })).toBeNull();
+  });
+
+  it("does not offer un-rehosting a file another card's printing uses", () => {
+    renderWith(false, { usedElsewhere: true });
     expect(screen.queryByRole("button", { name: /Un-rehost/u })).toBeNull();
   });
 

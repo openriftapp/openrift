@@ -496,6 +496,7 @@ function PrintingDeskFields({
             <Field>
               <FieldLabel htmlFor="desk-announced-at">Announced on</FieldLabel>
               <DatePicker
+                id="desk-announced-at"
                 className="w-44"
                 value={form.announcedAt}
                 onValueChange={(next) => form.setAnnouncedAt(next)}
@@ -509,6 +510,7 @@ function PrintingDeskFields({
               <FieldLabel htmlFor="desk-released-at">Available from</FieldLabel>
               <div className="flex flex-wrap items-center gap-2">
                 <DatePicker
+                  id="desk-released-at"
                   className="w-44"
                   value={form.releasedAt}
                   onValueChange={(next) => form.setReleasedAt(next)}

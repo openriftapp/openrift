@@ -1,10 +1,11 @@
 import { formatDay } from "@openrift/shared/format-date";
 import type { MetaDeckSummary, MetaEventSummary } from "@openrift/shared/types/api/meta";
 import type { Marketplace } from "@openrift/shared/types/pricing";
+import { hashKey } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { LayoutGridIcon, ListIcon, LogInIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { Suspense, useState } from "react";
+import { Suspense, useDeferredValue, useState } from "react";
 
 import {
   PageDescription,
@@ -137,8 +138,15 @@ function MetaDeckBrowser({ signedIn, countAside }: { signedIn: boolean; countAsi
     ...serverDeckOrder(sort, direction),
     ...metaPageSlice(filters.page, filters.perPage),
   };
-  const { data } = useMetaDecks(page);
-  const { data: facets } = useMetaDeckFacets(narrowing);
+  // Every query reads the deferred input: a live key would suspend and blank the
+  // count and the list while the next page loads.
+  const shownPage = useDeferredValue(page);
+  const shownNarrowing = useDeferredValue(narrowing);
+  const shownPageNumber = useDeferredValue(filters.page);
+  const shownPerPage = useDeferredValue(filters.perPage);
+  const stale = hashKey([shownPage]) !== hashKey([page]);
+  const { data } = useMetaDecks(shownPage);
+  const { data: facets } = useMetaDeckFacets(shownNarrowing);
   const marketplace = useDisplayStore((state) => state.marketplaceOrder[0]);
   const view = useDisplayStore((state) => state.metaDeckView);
   const setView = useDisplayStore((state) => state.setMetaDeckView);
@@ -146,7 +154,7 @@ function MetaDeckBrowser({ signedIn, countAside }: { signedIn: boolean; countAsi
   const costs = useMetaDeckCosts(filters.includeSideboard, {
     enabled: true,
     withCollection: signedIn,
-    decks: page,
+    decks: shownPage,
     partialDeckIds: partialListDeckIds(data.decks),
   });
   const [eraPickerOpen, setEraPickerOpen] = useState(false);
@@ -247,7 +255,7 @@ function MetaDeckBrowser({ signedIn, countAside }: { signedIn: boolean; countAsi
 
   // The sort keys are deliberately absent: a re-sort keeps the rows mounted,
   // and with them each thumbnail's record of the source that failed to load.
-  const listKey = [
+  const liveListKey = [
     scopeKey(filters.scope),
     filters.events.join(","),
     filters.legends.join(","),
@@ -257,6 +265,7 @@ function MetaDeckBrowser({ signedIn, countAside }: { signedIn: boolean; countAsi
     filters.valueRange.max ?? "",
     filters.showAll ? "all" : "best",
   ].join("|");
+  const listKey = useDeferredValue(liveListKey);
 
   return (
     <div>
@@ -289,52 +298,57 @@ function MetaDeckBrowser({ signedIn, countAside }: { signedIn: boolean; countAsi
         sortHint
       )}
 
-      <MetaOverlayNote decks={page} enabled withPrices className="mt-4" />
+      <MetaOverlayNote decks={shownPage} enabled withPrices className="mt-4" />
 
       <div id={DECK_LIST_ID} className={PAGER_SCROLL_TARGET}>
-        {view === "list" ? (
-          <div className="mt-6 text-sm">
-            <SortHeader
-              sort={sort}
-              direction={direction}
-              grouped={grouped}
-              withCollection={signedIn}
-              onSort={(column) => filters.sortBy(column)}
-            />
-            {decks.length === 0 ? (
-              emptyState("py-10")
-            ) : (
-              <DeckList
+        <div
+          aria-busy={stale}
+          className={cn("transition-opacity duration-150", stale ? "opacity-60" : "opacity-100")}
+        >
+          {view === "list" ? (
+            <div className="mt-6 text-sm">
+              <SortHeader
+                sort={sort}
+                direction={direction}
+                grouped={grouped}
+                withCollection={signedIn}
+                onSort={(column) => filters.sortBy(column)}
+              />
+              {decks.length === 0 ? (
+                emptyState("py-10")
+              ) : (
+                <DeckList
+                  key={listKey}
+                  decks={decks}
+                  summaries={summaries}
+                  costs={costs}
+                  marketplace={marketplace}
+                  grouped={grouped}
+                  withCollection={signedIn}
+                />
+              )}
+            </div>
+          ) : decks.length === 0 ? (
+            emptyState("mt-6")
+          ) : (
+            <div className="mt-6">
+              <DeckGrid
                 key={listKey}
                 decks={decks}
                 summaries={summaries}
                 costs={costs}
                 marketplace={marketplace}
                 grouped={grouped}
-                withCollection={signedIn}
               />
-            )}
-          </div>
-        ) : decks.length === 0 ? (
-          emptyState("mt-6")
-        ) : (
-          <div className="mt-6">
-            <DeckGrid
-              key={listKey}
-              decks={decks}
-              summaries={summaries}
-              costs={costs}
-              marketplace={marketplace}
-              grouped={grouped}
-            />
-          </div>
-        )}
+            </div>
+          )}
+        </div>
 
         {(total > 0 || filters.perPage !== DEFAULT_DECK_PAGE_SIZE) && (
           <div className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
             <Pager
-              page={filters.page}
-              totalPages={metaPageCount(total, filters.perPage)}
+              page={shownPageNumber}
+              totalPages={metaPageCount(total, shownPerPage)}
               onPageChange={handlePageChange}
               label={m.meta_browser_pages_aria()}
               scrollTargetId={DECK_LIST_ID}

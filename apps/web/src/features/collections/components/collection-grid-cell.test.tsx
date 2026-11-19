@@ -5,10 +5,10 @@ import type { ReactElement, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
-import { useGridSelectionStore } from "@/features/cards/stores/grid-selection-store";
+import { createGridSelectionStore } from "@/features/cards/stores/grid-selection-store";
+import { layoutStoresWrapper } from "@/test/collection-layout-stores";
 import { stubCopy, stubPrinting } from "@/test/factories";
 import { rowActionsWrapper } from "@/test/row-actions";
-import { createStoreResetter } from "@/test/store-helpers";
 
 // Two printings of one card — the /collections "printings" view renders each
 // as its own cell, both sharing a cardId (e.g. "Chaos Rune" + "Chaos Rune SFD").
@@ -111,6 +111,24 @@ vi.mock("@/features/collections/components/draggable-card", () => ({
 
 const { CollectionGridCell } = await import("./collection-grid-cell");
 
+let gridSelection = createGridSelectionStore();
+
+function resetSelection() {
+  gridSelection = createGridSelectionStore();
+}
+
+function cellWrapper() {
+  const RowActions = rowActionsWrapper();
+  const LayoutStores = layoutStoresWrapper({ gridSelection });
+  return function CellWrapper({ children }: { children: ReactNode }) {
+    return (
+      <LayoutStores>
+        <RowActions>{children}</RowActions>
+      </LayoutStores>
+    );
+  };
+}
+
 const collectionId = "col-1";
 // Only getFallbackArt is real; the cell calls it to decide whether to render
 // the standalone suggest-image pill.
@@ -133,18 +151,16 @@ function renderCell(props: { dataView: "cards" | "printings"; siblings: Printing
       display={display}
       showImages
     />,
-    { wrapper: rowActionsWrapper() },
+    { wrapper: cellWrapper() },
   );
 }
-
-const resetSelection = createStoreResetter(useGridSelectionStore);
 
 describe("CollectionGridCell selection checkbox", () => {
   beforeEach(resetSelection);
   afterEach(resetSelection);
 
   it("checks a printing in printings view when only its own copies are selected", () => {
-    useGridSelectionStore.getState().addToSelection(["cx1", "cx2"]);
+    gridSelection.getState().addToSelection(["cx1", "cx2"]);
 
     renderCell({ dataView: "printings", siblings: [printingX, printingY] });
 
@@ -158,11 +174,11 @@ describe("CollectionGridCell selection checkbox", () => {
   });
 
   it("still aggregates sibling copies in cards view", () => {
-    useGridSelectionStore.getState().addToSelection(["cx1", "cx2"]);
+    gridSelection.getState().addToSelection(["cx1", "cx2"]);
     const { rerender } = renderCell({ dataView: "cards", siblings: [printingX, printingY] });
     expect(screen.getByRole("checkbox")).not.toBeChecked();
 
-    useGridSelectionStore.getState().addToSelection(["cy1"]);
+    gridSelection.getState().addToSelection(["cy1"]);
     rerender(
       <CollectionGridCell
         printing={printingX}
@@ -208,7 +224,7 @@ function renderStripCell(props: {
       display={display}
       showImages
     />,
-    { wrapper: rowActionsWrapper() },
+    { wrapper: cellWrapper() },
   );
 }
 
@@ -343,7 +359,7 @@ describe("CollectionGridCell drag payload", () => {
   afterEach(resetSelection);
 
   it("flags a selection drag from a group collection as group-owned", () => {
-    useGridSelectionStore.setState({ selected: new Set(["cx1", "cx2"]) });
+    gridSelection.setState({ selected: new Set(["cx1", "cx2"]) });
     renderStripCell({ stacked: true, mode: "select", sourceCollectionIsGroup: true });
     expect(draggableCardProps.at(-1)).toMatchObject({
       fromSelection: true,
@@ -352,7 +368,7 @@ describe("CollectionGridCell drag payload", () => {
   });
 
   it("leaves a personal-collection selection drag unflagged", () => {
-    useGridSelectionStore.setState({ selected: new Set(["cx1", "cx2"]) });
+    gridSelection.setState({ selected: new Set(["cx1", "cx2"]) });
     renderStripCell({ stacked: true, mode: "select", sourceCollectionIsGroup: false });
     expect(draggableCardProps.at(-1)).toMatchObject({
       fromSelection: true,
@@ -389,7 +405,7 @@ describe("CollectionGridCell context menu", () => {
         showImages
         addTargetName="Binder"
       />,
-      { wrapper: rowActionsWrapper() },
+      { wrapper: cellWrapper() },
     );
   }
 

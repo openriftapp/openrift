@@ -3,6 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronRightIcon, CircleHelpIcon, PlusIcon, SwordsIcon, UploadIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useStore } from "zustand";
 
 import { EmptyState } from "@/components/empty-state";
 import {
@@ -62,7 +63,10 @@ import {
   useDeckListPrefsStore,
   useDeckListViewPrefs,
 } from "@/features/decks/stores/deck-list-prefs-store";
-import { useDeckSelectionStore } from "@/features/decks/stores/deck-selection-store";
+import {
+  DeckSelectionStoreContext,
+  useOwnDeckSelectionStore,
+} from "@/features/decks/stores/deck-selection-store";
 import { useDeckFormatList, useEnumOrders } from "@/hooks/use-enums";
 import { useHeaderHeight } from "@/hooks/use-header-height";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -218,13 +222,14 @@ export function DeckListPage() {
     ...serverItems,
   ];
   const [createOpen, setCreateOpen] = useState(false);
-  const selectMode = useDeckSelectionStore((state) => state.selectMode);
-  const selectedIds = useDeckSelectionStore((state) => state.selected);
-  const setSelectMode = useDeckSelectionStore((state) => state.setSelectMode);
-  const toggleStack = useDeckSelectionStore((state) => state.toggleStack);
-  const clearSelection = useDeckSelectionStore((state) => state.clearSelection);
-  const resetSelection = useDeckSelectionStore((state) => state.resetSelection);
-  useDeckSelectionLifecycle();
+  const selection = useOwnDeckSelectionStore();
+  const selectMode = useStore(selection, (state) => state.selectMode);
+  const selectedIds = useStore(selection, (state) => state.selected);
+  const setSelectMode = useStore(selection, (state) => state.setSelectMode);
+  const toggleStack = useStore(selection, (state) => state.toggleStack);
+  const clearSelection = useStore(selection, (state) => state.clearSelection);
+  const resetSelection = useStore(selection, (state) => state.resetSelection);
+  useDeckSelectionLifecycle(selection);
 
   const sampleCards =
     deckItems.length === 0 || creatingSample ? buildSampleDeckCards(allPrintings) : null;
@@ -387,150 +392,154 @@ export function DeckListPage() {
   );
 
   return (
-    <div className={`${PAGE_WIDTH.full} ${PAGE_PADDING_NO_TOP}`}>
-      {/* mx-safe-neg, not -mx-3: must cancel the same px-safe amount as the gutter. */}
-      <div ref={setTitleSlot} className={cn(PAGE_TOP_BAR_STICKY, "mx-safe-neg")}>
-        <PageTopBar>
-          <PageTopBarTitle>{m.decks_list_title()}</PageTopBarTitle>
-          <PageTopBarActions>
-            {!selectMode && (
+    <DeckSelectionStoreContext value={selection}>
+      <div className={`${PAGE_WIDTH.full} ${PAGE_PADDING_NO_TOP}`}>
+        {/* mx-safe-neg, not -mx-3: must cancel the same px-safe amount as the gutter. */}
+        <div ref={setTitleSlot} className={cn(PAGE_TOP_BAR_STICKY, "mx-safe-neg")}>
+          <PageTopBar>
+            <PageTopBarTitle>{m.decks_list_title()}</PageTopBarTitle>
+            <PageTopBarActions>
+              {!selectMode && (
+                <>
+                  <Link
+                    to="/help/$slug"
+                    params={{ slug: "deck-building" }}
+                    aria-label={m.decks_list_help_aria()}
+                    className={buttonVariants({ variant: "ghost", size: "icon" })}
+                  >
+                    <CircleHelpIcon className="size-4" />
+                  </Link>
+                  <Link to="/decks/import" className={buttonVariants({ variant: "ghost" })}>
+                    <UploadIcon className="size-4" />
+                    {m.decks_list_import()}
+                  </Link>
+                </>
+              )}
+              {(canSelect || selectMode) && (
+                <SelectModeActions
+                  mode={selectMode ? "select" : "browse"}
+                  enterLabel={m.decks_list_select()}
+                  isAllSelected={
+                    selectedItems.length > 0 && selectedItems.length === selectableItems.length
+                  }
+                  hasSelectableItems={canSelect}
+                  onEnterSelect={() => setSelectMode(true)}
+                  onExitSelect={resetSelection}
+                  onSelectAll={() => toggleStack(selectableItems.map((item) => item.deck.id))}
+                />
+              )}
+              {!selectMode && (
+                <PageTopBarPrimaryButton onClick={() => setCreateOpen(true)}>
+                  <PlusIcon className="size-4" />
+                  {m.decks_list_new_deck()}
+                </PageTopBarPrimaryButton>
+              )}
+            </PageTopBarActions>
+          </PageTopBar>
+        </div>
+
+        {!userId && localItems.length > 0 && <LocalDeckSaveBanner className="mb-3" />}
+
+        {deckItems.length === 0 || creatingSample ? (
+          <EmptyState
+            className="py-16"
+            icon={SwordsIcon}
+            title={m.decks_list_empty_title()}
+            description={
               <>
-                <Link
-                  to="/help/$slug"
-                  params={{ slug: "deck-building" }}
-                  aria-label={m.decks_list_help_aria()}
-                  className={buttonVariants({ variant: "ghost", size: "icon" })}
-                >
-                  <CircleHelpIcon className="size-4" />
-                </Link>
-                <Link to="/decks/import" className={buttonVariants({ variant: "ghost" })}>
-                  <UploadIcon className="size-4" />
-                  {m.decks_list_import()}
+                {m.decks_list_empty_description()}{" "}
+                <Link to="/help/$slug" params={{ slug: "deck-building" }}>
+                  {m.decks_list_empty_learn_link()}
                 </Link>
               </>
-            )}
-            {(canSelect || selectMode) && (
-              <SelectModeActions
-                mode={selectMode ? "select" : "browse"}
-                enterLabel={m.decks_list_select()}
-                isAllSelected={
-                  selectedItems.length > 0 && selectedItems.length === selectableItems.length
-                }
-                hasSelectableItems={canSelect}
-                onEnterSelect={() => setSelectMode(true)}
-                onExitSelect={resetSelection}
-                onSelectAll={() => toggleStack(selectableItems.map((item) => item.deck.id))}
-              />
-            )}
-            {!selectMode && (
-              <PageTopBarPrimaryButton onClick={() => setCreateOpen(true)}>
-                <PlusIcon className="size-4" />
-                {m.decks_list_new_deck()}
-              </PageTopBarPrimaryButton>
-            )}
-          </PageTopBarActions>
-        </PageTopBar>
-      </div>
-
-      {!userId && localItems.length > 0 && <LocalDeckSaveBanner className="mb-3" />}
-
-      {deckItems.length === 0 || creatingSample ? (
-        <EmptyState
-          className="py-16"
-          icon={SwordsIcon}
-          title={m.decks_list_empty_title()}
-          description={
-            <>
-              {m.decks_list_empty_description()}{" "}
-              <Link to="/help/$slug" params={{ slug: "deck-building" }}>
-                {m.decks_list_empty_learn_link()}
-              </Link>
-            </>
-          }
-        >
-          <div className="flex flex-wrap justify-center gap-2">
-            <Button onClick={() => setCreateOpen(true)}>
-              <PlusIcon />
-              {m.decks_list_create_first()}
-            </Button>
-            <Link to="/decks/import" className={buttonVariants({ variant: "ghost" })}>
-              <UploadIcon />
-              {m.decks_list_import_a_deck()}
-            </Link>
-          </div>
-          {sampleCards && sampleLegendImage && (
-            <Pressable
-              onClick={handleTrySample}
-              disabled={creatingSample}
-              className="mt-6 block w-full max-w-xs disabled:pointer-events-none disabled:opacity-60"
-            >
-              <span className="text-muted-foreground mb-2 block text-center text-sm">
-                {m.decks_list_sample_lead()}
-              </span>
-              <Card className={cn(cardLinkVariants(), "gap-0 py-0")}>
-                <FannedPreview
-                  legendImage={sampleLegendImage}
-                  championImage={sampleChampionImage}
-                />
-                <span className="flex items-center justify-between gap-3 p-3">
-                  <span className="flex flex-col">
-                    <span className="font-medium">{sampleDeckName()}</span>
-                    <span className="text-muted-foreground text-xs">
-                      {creatingSample ? m.decks_list_sample_opening() : m.decks_list_sample_ready()}
-                    </span>
-                  </span>
-                  <ChevronRightIcon className="text-muted-foreground size-4 shrink-0" />
-                </span>
-              </Card>
-            </Pressable>
-          )}
-        </EmptyState>
-      ) : (
-        <div className="flex flex-col">
-          <div
-            // No pt: the title bar's pb-3 already provides the gap. z-30 keeps this
-            // co-planar with the title bar so the search input's focus ring isn't clipped.
-            className="bg-background/80 mx-safe-neg px-safe sticky z-30 pb-3 backdrop-blur-lg sm:rounded-b-lg"
-            style={{ top: toolbarOffset }}
+            }
           >
-            <DeckListToolbar
-              availableDomains={availableDomains}
-              availability={availability}
-              counts={counts}
-              folders={folderList}
-              totalCount={visible.length}
-              filteredCount={filtered.length}
-            />
-          </div>
-
-          {sorted.length === 0 ? (
-            <Empty className="py-12">
-              <EmptyHeader>
-                <EmptyDescription>{m.decks_list_no_matches()}</EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          ) : (
-            <div className="flex flex-col gap-8 pt-3">
-              {renderedGroups.map(({ group, entries }) => (
-                <div key={group.key}>
-                  <GroupHeader label={group.label} count={group.items.length} />
-                  <div className={containerClass}>
-                    {density === "grid"
-                      ? withVariantPanels(entries).map((entry) => renderGridEntry(entry))
-                      : entries.map((entry) => renderRow(entry))}
-                  </div>
-                </div>
-              ))}
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button onClick={() => setCreateOpen(true)}>
+                <PlusIcon />
+                {m.decks_list_create_first()}
+              </Button>
+              <Link to="/decks/import" className={buttonVariants({ variant: "ghost" })}>
+                <UploadIcon />
+                {m.decks_list_import_a_deck()}
+              </Link>
             </div>
-          )}
-        </div>
-      )}
+            {sampleCards && sampleLegendImage && (
+              <Pressable
+                onClick={handleTrySample}
+                disabled={creatingSample}
+                className="mt-6 block w-full max-w-xs disabled:pointer-events-none disabled:opacity-60"
+              >
+                <span className="text-muted-foreground mb-2 block text-center text-sm">
+                  {m.decks_list_sample_lead()}
+                </span>
+                <Card className={cn(cardLinkVariants(), "gap-0 py-0")}>
+                  <FannedPreview
+                    legendImage={sampleLegendImage}
+                    championImage={sampleChampionImage}
+                  />
+                  <span className="flex items-center justify-between gap-3 p-3">
+                    <span className="flex flex-col">
+                      <span className="font-medium">{sampleDeckName()}</span>
+                      <span className="text-muted-foreground text-xs">
+                        {creatingSample
+                          ? m.decks_list_sample_opening()
+                          : m.decks_list_sample_ready()}
+                      </span>
+                    </span>
+                    <ChevronRightIcon className="text-muted-foreground size-4 shrink-0" />
+                  </span>
+                </Card>
+              </Pressable>
+            )}
+          </EmptyState>
+        ) : (
+          <div className="flex flex-col">
+            <div
+              // No pt: the title bar's pb-3 already provides the gap. z-30 keeps this
+              // co-planar with the title bar so the search input's focus ring isn't clipped.
+              className="bg-background/80 mx-safe-neg px-safe sticky z-30 pb-3 backdrop-blur-lg sm:rounded-b-lg"
+              style={{ top: toolbarOffset }}
+            >
+              <DeckListToolbar
+                availableDomains={availableDomains}
+                availability={availability}
+                counts={counts}
+                folders={folderList}
+                totalCount={visible.length}
+                filteredCount={filtered.length}
+              />
+            </div>
 
-      {selectMode && (
-        <DeckSelectionBar items={selectedItems} folders={folderList} onClear={clearSelection} />
-      )}
-      <CreateDeckDialog open={createOpen} onOpenChange={setCreateOpen} />
-      <ClaimLocalDecksPrompt />
-    </div>
+            {sorted.length === 0 ? (
+              <Empty className="py-12">
+                <EmptyHeader>
+                  <EmptyDescription>{m.decks_list_no_matches()}</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            ) : (
+              <div className="flex flex-col gap-8 pt-3">
+                {renderedGroups.map(({ group, entries }) => (
+                  <div key={group.key}>
+                    <GroupHeader label={group.label} count={group.items.length} />
+                    <div className={containerClass}>
+                      {density === "grid"
+                        ? withVariantPanels(entries).map((entry) => renderGridEntry(entry))
+                        : entries.map((entry) => renderRow(entry))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {selectMode && (
+          <DeckSelectionBar items={selectedItems} folders={folderList} onClear={clearSelection} />
+        )}
+        <CreateDeckDialog open={createOpen} onOpenChange={setCreateOpen} />
+        <ClaimLocalDecksPrompt />
+      </div>
+    </DeckSelectionStoreContext>
   );
 }

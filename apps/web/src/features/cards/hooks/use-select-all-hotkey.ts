@@ -1,10 +1,11 @@
 import { useHotkey } from "@tanstack/react-hotkeys";
 
-import { useGridSelectionStore } from "@/features/cards/stores/grid-selection-store";
+import { useGridSelectionStoreApi } from "@/features/cards/stores/grid-selection-store";
 
 const OVERLAY_SELECTOR = '[role="dialog"],[role="alertdialog"],[role="menu"],[role="listbox"]';
 
 export function useSelectAllHotkey(selectableIds: string[], enabled: boolean) {
+  const selection = useGridSelectionStoreApi();
   useHotkey(
     "Mod+A",
     (event) => {
@@ -12,7 +13,7 @@ export function useSelectAllHotkey(selectableIds: string[], enabled: boolean) {
         return;
       }
       event.preventDefault();
-      useGridSelectionStore.getState().enterSelectAll(selectableIds);
+      selection.getState().enterSelectAll(selectableIds);
     },
     {
       enabled: enabled && selectableIds.length > 0,

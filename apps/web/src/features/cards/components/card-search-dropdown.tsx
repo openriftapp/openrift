@@ -22,6 +22,8 @@ interface CatalogSearchComboboxProps<T> {
   initialQuery?: string;
   id?: string;
   ariaLabel?: string;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
   placeholder?: string;
   emptyMessage?: string;
   loading?: boolean;
@@ -43,6 +45,8 @@ export function CatalogSearchCombobox<T>({
   initialQuery,
   id,
   ariaLabel,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
   placeholder = m.cards_search_placeholder(),
   emptyMessage = m.cards_search_empty(),
   loading,
@@ -99,6 +103,8 @@ export function CatalogSearchCombobox<T>({
         }}
         id={id}
         aria-label={ariaLabel}
+        aria-invalid={ariaInvalid}
+        aria-describedby={ariaDescribedBy}
         placeholder={placeholder}
         emptyText={emptyMessage}
         loading={loading}

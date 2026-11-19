@@ -315,15 +315,19 @@ const { ListPage } = await import("./list-page");
 const { TopBarSlotContext } = await import("@/components/layout/top-bar-slot");
 const { FilterSearchProvider } = await import("@/features/cards/hooks/use-filter-search");
 const { useGridFocusStore } = await import("@/features/cards/stores/grid-focus-store");
-const { useGridSelectionStore } = await import("@/features/cards/stores/grid-selection-store");
+const { createGridSelectionStore } = await import("@/features/cards/stores/grid-selection-store");
+const { createDragPreviewStore } = await import("@/features/collections/stores/drag-preview-store");
+const { LayoutStoresProvider } = await import("@/test/collection-layout-stores");
 const { createListEntriesStore, ListEntriesStoreContext } =
   await import("@/features/lists/stores/list-entries-store");
 const { useSelectionStore } = await import("@/stores/selection-store");
 const { useSiblingOverrideStore } = await import("@/features/cards/stores/sibling-override-store");
 
+let gridSelection = createGridSelectionStore();
+let dragPreview = createDragPreviewStore();
+
 const resetters = [
   createStoreResetter(useGridFocusStore),
-  createStoreResetter(useGridSelectionStore),
   createStoreResetter(useSelectionStore),
   createStoreResetter(useSiblingOverrideStore),
 ];
@@ -344,9 +348,11 @@ function renderListPage() {
   const view = render(
     <TopBarSlotContext value={topBarSlot}>
       <ListEntriesStoreContext value={listEntriesStore}>
-        <FilterSearchProvider value={{}}>
-          <ListPage listId="list-1" />
-        </FilterSearchProvider>
+        <LayoutStoresProvider gridSelection={gridSelection} dragPreview={dragPreview}>
+          <FilterSearchProvider value={{}}>
+            <ListPage listId="list-1" />
+          </FilterSearchProvider>
+        </LayoutStoresProvider>
       </ListEntriesStoreContext>
     </TopBarSlotContext>,
   );
@@ -358,6 +364,8 @@ describe("ListPage", () => {
     for (const reset of resetters) {
       reset();
     }
+    gridSelection = createGridSelectionStore();
+    dragPreview = createDragPreviewStore();
     listDetail = cardKindListDetail;
     updateListEntry = mutationStub();
     removeListEntry = mutationStub();
@@ -569,7 +577,7 @@ describe("ListPage", () => {
     listDetail = copyKindListDetail;
     sortedCards = [printingOnList];
     selectedIds = new Set(["rule:copy-1"]);
-    useGridSelectionStore.setState({ selectMode: true });
+    gridSelection.setState({ selectMode: true });
     renderListPage();
 
     const bar = screen.getByLabelText("1 selected");
@@ -584,7 +592,7 @@ describe("ListPage", () => {
   it("keeps Move to collection off card lists and shows no lock note for manual entries", () => {
     sortedCards = [printingOnList];
     selectedIds = new Set(["entry-1"]);
-    useGridSelectionStore.setState({ selectMode: true });
+    gridSelection.setState({ selectMode: true });
     renderListPage();
 
     const bar = screen.getByLabelText("1 selected");
@@ -631,9 +639,11 @@ describe("ListPage", () => {
     view.rerender(
       <TopBarSlotContext value={topBarSlot}>
         <ListEntriesStoreContext value={listEntriesStore}>
-          <FilterSearchProvider value={{}}>
-            <ListPage listId="list-1" />
-          </FilterSearchProvider>
+          <LayoutStoresProvider gridSelection={gridSelection} dragPreview={dragPreview}>
+            <FilterSearchProvider value={{}}>
+              <ListPage listId="list-1" />
+            </FilterSearchProvider>
+          </LayoutStoresProvider>
         </ListEntriesStoreContext>
       </TopBarSlotContext>,
     );

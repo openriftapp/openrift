@@ -1,21 +1,20 @@
 import { renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { useDeckSelectionStore } from "@/features/decks/stores/deck-selection-store";
-import { createStoreResetter } from "@/test/store-helpers";
+import type { DeckSelectionStore } from "@/features/decks/stores/deck-selection-store";
+import { createDeckSelectionStore } from "@/features/decks/stores/deck-selection-store";
 
 import { useDeckSelectionLifecycle } from "./use-deck-selection-lifecycle";
 
-let resetStore: () => void;
+let store: DeckSelectionStore;
 
 beforeEach(() => {
-  resetStore = createStoreResetter(useDeckSelectionStore);
-  useDeckSelectionStore.getState().setSelectMode(true);
-  useDeckSelectionStore.getState().toggleSelect("deck-1");
+  store = createDeckSelectionStore();
+  store.getState().setSelectMode(true);
+  store.getState().toggleSelect("deck-1");
 });
 
 afterEach(() => {
-  resetStore();
   document.body.innerHTML = "";
 });
 
@@ -31,13 +30,13 @@ function pressEscape(target: Element = document.body, options: KeyboardEventInit
 }
 
 function isSelecting() {
-  const { selectMode, selected } = useDeckSelectionStore.getState();
+  const { selectMode, selected } = store.getState();
   return selectMode || selected.size > 0;
 }
 
 describe("useDeckSelectionLifecycle", () => {
   it("leaves select mode and clears the selection on Escape", () => {
-    renderHook(() => useDeckSelectionLifecycle());
+    renderHook(() => useDeckSelectionLifecycle(store));
 
     pressEscape();
 
@@ -50,7 +49,7 @@ describe("useDeckSelectionLifecycle", () => {
       paneSawUnhandled = !event.defaultPrevented;
     };
     globalThis.addEventListener("keydown", pane);
-    renderHook(() => useDeckSelectionLifecycle());
+    renderHook(() => useDeckSelectionLifecycle(store));
 
     const event = pressEscape();
 
@@ -60,7 +59,7 @@ describe("useDeckSelectionLifecycle", () => {
   });
 
   it("leaves an Escape it does not take unhandled", () => {
-    renderHook(() => useDeckSelectionLifecycle());
+    renderHook(() => useDeckSelectionLifecycle(store));
     const input = document.createElement("input");
     document.body.append(input);
 
@@ -68,7 +67,7 @@ describe("useDeckSelectionLifecycle", () => {
   });
 
   it("ignores keys other than Escape", () => {
-    renderHook(() => useDeckSelectionLifecycle());
+    renderHook(() => useDeckSelectionLifecycle(store));
 
     pressEscape(document.body, { key: "Enter" });
 
@@ -76,7 +75,7 @@ describe("useDeckSelectionLifecycle", () => {
   });
 
   it("leaves Escape to an open dialog", () => {
-    renderHook(() => useDeckSelectionLifecycle());
+    renderHook(() => useDeckSelectionLifecycle(store));
     const dialog = document.createElement("div");
     dialog.setAttribute("role", "dialog");
     const button = document.createElement("button");
@@ -89,7 +88,7 @@ describe("useDeckSelectionLifecycle", () => {
   });
 
   it("leaves Escape to a text field", () => {
-    renderHook(() => useDeckSelectionLifecycle());
+    renderHook(() => useDeckSelectionLifecycle(store));
     const input = document.createElement("input");
     document.body.append(input);
 
@@ -99,7 +98,7 @@ describe("useDeckSelectionLifecycle", () => {
   });
 
   it("ignores an Escape another handler already consumed", () => {
-    renderHook(() => useDeckSelectionLifecycle());
+    renderHook(() => useDeckSelectionLifecycle(store));
     const consume = (event: Event) => event.preventDefault();
     document.body.addEventListener("keydown", consume);
 
@@ -110,19 +109,30 @@ describe("useDeckSelectionLifecycle", () => {
   });
 
   it("does nothing on Escape outside select mode", () => {
-    useDeckSelectionStore.getState().setSelectMode(false);
-    renderHook(() => useDeckSelectionLifecycle());
+    store.getState().setSelectMode(false);
+    renderHook(() => useDeckSelectionLifecycle(store));
 
     pressEscape();
 
-    expect(useDeckSelectionStore.getState().selected.size).toBe(1);
+    expect(store.getState().selected.size).toBe(1);
   });
 
   it("drops the selection when the page unmounts", () => {
-    const { unmount } = renderHook(() => useDeckSelectionLifecycle());
+    const { unmount } = renderHook(() => useDeckSelectionLifecycle(store));
 
     unmount();
 
     expect(isSelecting()).toBe(false);
+  });
+
+  it("resets only the store it was given", () => {
+    const other = createDeckSelectionStore();
+    other.getState().setSelectMode(true);
+    renderHook(() => useDeckSelectionLifecycle(store));
+
+    pressEscape();
+
+    expect(isSelecting()).toBe(false);
+    expect(other.getState().selectMode).toBe(true);
   });
 });

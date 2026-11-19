@@ -139,6 +139,7 @@ function ClaimForm({
       )}
       {field === "eventDate" && (
         <DatePicker
+          aria-label="Event date"
           value={draft}
           onValueChange={setDraft}
           onClear={() => {

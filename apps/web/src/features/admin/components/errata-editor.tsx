@@ -110,8 +110,9 @@ export function ErrataEditor({
             />
           </div>
           <div className="space-y-1">
-            <Label>First seen</Label>
+            <Label htmlFor="errata-first-seen">First seen</Label>
             <DatePicker
+              id="errata-first-seen"
               value={draft.effectiveDate || null}
               className="w-44"
               onValueChange={(effectiveDate) => onChange({ effectiveDate })}

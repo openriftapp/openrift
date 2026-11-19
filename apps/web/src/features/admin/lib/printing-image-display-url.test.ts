@@ -16,6 +16,7 @@ function image(overrides: Partial<AdminPrintingImageResponse>): AdminPrintingIma
     quad: null,
     isActive: true,
     activateWhenRehosted: false,
+    fileInUseElsewhere: false,
     rehostFailure: null,
     ...overrides,
   };

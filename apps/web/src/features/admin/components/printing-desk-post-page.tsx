@@ -537,9 +537,10 @@ function PostComposer({
             </Field>
 
             <Field>
-              <FieldLabel>Date</FieldLabel>
+              <FieldLabel htmlFor="desk-post-date">Date</FieldLabel>
               <div className="flex items-center gap-1">
                 <DatePicker
+                  id="desk-post-date"
                   value={postDayValue}
                   onValueChange={(iso) => goTo({ date: iso })}
                   onClear={() => goTo({ date: POST_DATE_NONE })}

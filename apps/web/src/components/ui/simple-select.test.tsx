@@ -158,4 +158,24 @@ describe("SimpleSelect", () => {
     expect(document.querySelector('[role="listbox"]')).not.toBeNull();
     expect(openOverlayPresent()).toBe(false);
   });
+
+  it("puts the error state on its trigger", () => {
+    render(
+      <>
+        <SimpleSelect
+          items={ITEMS}
+          value={null}
+          onChange={() => undefined}
+          label="Precision"
+          aria-invalid
+          aria-describedby="precision-error"
+        />
+        <p id="precision-error">Pick a precision.</p>
+      </>,
+    );
+
+    const trigger = screen.getByRole("combobox", { name: "Precision" });
+    expect(trigger).toHaveAttribute("aria-invalid", "true");
+    expect(trigger).toHaveAccessibleDescription("Pick a precision.");
+  });
 });

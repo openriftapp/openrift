@@ -3,13 +3,14 @@ import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const router = vi.hoisted(() => ({
-  preloadRoute: vi.fn(() => Promise.resolve(undefined)),
+  preloadRoute: vi.fn((_options: unknown) => Promise.resolve(undefined)),
   loadRouteChunk: vi.fn(() => Promise.resolve()),
   routesById: { "/_app/stage_/show": { id: "/_app/stage_/show" } },
 }));
 vi.mock("@tanstack/react-router", () => ({ useRouter: () => router }));
 
 const { preloadStageShow, usePreloadStageShowCode } = await import("./use-preload-stage-show");
+const stageRouter = router as unknown as Parameters<typeof preloadStageShow>[0];
 
 beforeEach(() => {
   router.preloadRoute.mockClear();
@@ -28,12 +29,14 @@ describe("usePreloadStageShowCode", () => {
 });
 
 describe("preloadStageShow", () => {
-  it("preloads the show for a deck from its first card", () => {
-    preloadStageShow(router, { deck: "deck-1" });
+  const preloaded = () => router.preloadRoute.mock.calls.map(([options]) => options);
 
-    expect(router.preloadRoute).toHaveBeenCalledWith({
-      to: "/stage/show",
-      search: { deck: "deck-1", i: 0 },
-    });
+  it("preloads the show from the deck's first card, and the deck page the exit returns to", () => {
+    preloadStageShow(stageRouter, { deck: "deck-1" });
+
+    expect(preloaded()).toEqual([
+      { to: "/stage/show", search: { deck: "deck-1", i: 0 } },
+      { to: "/decks/$deckId", params: { deckId: "deck-1" } },
+    ]);
   });
 });

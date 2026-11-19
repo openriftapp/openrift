@@ -291,6 +291,7 @@ export function PrintingImageSwitcher({
                   )}
                   {isAdmin &&
                     !effectiveImage.isActive &&
+                    !effectiveImage.fileInUseElsewhere &&
                     effectiveImage.imageFileId !== fallbackImageFileId &&
                     !siblingImages.some(
                       (sibling) =>

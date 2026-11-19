@@ -8,6 +8,7 @@ import type { Variables } from "../../../types.js";
 import { copiesRouter } from "./authenticated-copies";
 
 const mockRepo = {
+  accessibleCollectionIds: vi.fn(() => Promise.resolve([] as string[])),
   listForAccessibleCollections: vi.fn(() => Promise.resolve([] as object[])),
   listChangedForAccessibleCollections: vi.fn(() => Promise.resolve([] as object[])),
   deletionsSince: vi.fn(() => Promise.resolve([] as { copyId: string; deletedXid: string }[])),
@@ -382,5 +383,49 @@ describe("GET /api/v1/copies — default limit", () => {
     mockRepo.listForAccessibleCollections.mockResolvedValue([]);
     await app.request("/api/v1/copies");
     expect(mockRepo.listForAccessibleCollections).toHaveBeenCalledWith(USER_ID, 5000, undefined);
+  });
+});
+
+describe("GET /api/v1/copies — the collections a full read covers", () => {
+  const INBOX_ID = "a0000000-0001-4000-a000-000000000011";
+
+  beforeEach(() => {
+    mockRepo.accessibleCollectionIds.mockReset();
+    mockRepo.accessibleCollectionIds.mockResolvedValue([COLLECTION_ID, INBOX_ID]);
+    mockRepo.listForAccessibleCollections.mockReset();
+    mockRepo.listForAccessibleCollections.mockResolvedValue([dbCopy]);
+    mockRepo.currentSafeXid.mockResolvedValue("5000");
+    mockRepo.prunedThroughXid.mockResolvedValue("100");
+  });
+
+  it("names every reachable collection on the first page, empty ones included", async () => {
+    const json = await readJson(await app.request("/api/v1/copies"));
+
+    expect(json.collectionIds).toEqual([COLLECTION_ID, INBOX_ID]);
+    expect(mockRepo.accessibleCollectionIds).toHaveBeenCalledWith(USER_ID);
+  });
+
+  it("leaves the collections off a later page of the same read", async () => {
+    const json = await readJson(
+      await app.request("/api/v1/copies?limit=10&cursor=2026-03-17T00:00:00.000Z_cp-1"),
+    );
+
+    expect(json.collectionIds).toBeUndefined();
+    expect(mockRepo.accessibleCollectionIds).not.toHaveBeenCalled();
+  });
+
+  it("names them when a stale watermark falls back to a full read", async () => {
+    const json = await readJson(await app.request("/api/v1/copies?since=9999"));
+
+    expect(json.collectionIds).toEqual([COLLECTION_ID, INBOX_ID]);
+  });
+
+  it("leaves them off a delta", async () => {
+    mockRepo.listChangedForAccessibleCollections.mockResolvedValue([]);
+    mockRepo.deletionsSince.mockResolvedValue([]);
+    const json = await readJson(await app.request("/api/v1/copies?since=4000"));
+
+    expect(json.collectionIds).toBeUndefined();
+    expect(mockRepo.accessibleCollectionIds).not.toHaveBeenCalled();
   });
 });

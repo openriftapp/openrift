@@ -14,7 +14,7 @@ import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 
 const { dialogProps, boxed, navigate, router } = vi.hoisted(() => ({
   navigate: vi.fn(),
-  router: { preloadRoute: vi.fn(() => Promise.resolve(undefined)) },
+  router: { preloadRoute: vi.fn((_options: unknown) => Promise.resolve(undefined)) },
   dialogProps: {} as Record<string, Record<string, unknown>>,
   boxed: {
     current: [] as { deckId: string; deckName: string; boxName: string; collectionId: string }[],
@@ -291,6 +291,10 @@ describe("DeckActionsMenu", () => {
     expect(router.preloadRoute).toHaveBeenCalledWith({
       to: "/stage/show",
       search: { deck: "deck-own", i: 0 },
+    });
+    expect(router.preloadRoute).toHaveBeenCalledWith({
+      to: "/decks/$deckId",
+      params: { deckId: "deck-own" },
     });
   });
 

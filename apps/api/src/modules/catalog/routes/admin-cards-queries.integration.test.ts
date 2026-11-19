@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
   adminReq,
@@ -699,6 +699,75 @@ describe.skipIf(!ctx)("Card-sources query routes (integration)", () => {
       expect(json.candidatePrintingGroups).toEqual(expect.any(Array));
       expect(json.candidatePrintingGroups.length).toBeGreaterThanOrEqual(1);
       expect(json.defaultCardId).toBeTypeOf("string");
+    });
+  });
+
+  describe("GET /admin/cards/:cardId image file use", () => {
+    let csqImageFileId: string;
+    let pinnedFileId: string;
+    const addedImageIds: string[] = [];
+
+    beforeAll(async () => {
+      const shown = await testDb
+        .selectFrom("faceImages")
+        .select("imageFileId")
+        .where("faceId", "=", printing1Id)
+        .where("isActive", "=", true)
+        .executeTakeFirstOrThrow();
+      csqImageFileId = shown.imageFileId;
+      const pinnedFile = await insertImageFile(testDb, {
+        originalUrl: "https://example.com/csq-pinned.png",
+      });
+      pinnedFileId = pinnedFile.id;
+      const rows = await testDb
+        .insertInto("faceImages")
+        .values([
+          { faceId: printing2Id, imageFileId: csqImageFileId, isActive: false },
+          { faceId: printing2Id, imageFileId: pinnedFileId, isActive: false },
+        ])
+        .returning("id")
+        .execute();
+      addedImageIds.push(...rows.map((row) => row.id));
+      await testDb
+        .updateTable("faces")
+        .set({ fallbackArtMode: "pinned", fallbackImageFileId: pinnedFileId })
+        .where("id", "=", printing1Id)
+        .execute();
+    });
+
+    afterAll(async () => {
+      await testDb
+        .updateTable("faces")
+        .set({ fallbackArtMode: "auto", fallbackImageFileId: null })
+        .where("id", "=", printing1Id)
+        .execute();
+      await testDb.deleteFrom("faceImages").where("id", "in", addedImageIds).execute();
+      await testDb.deleteFrom("imageFiles").where("id", "=", pinnedFileId).execute();
+    });
+
+    it("flags a file another card's printing shows or pins", async () => {
+      const res = await app.fetch(adminReq("GET", "/cards/CSQ-003"));
+      expect(res.status).toBe(200);
+      const json = await readJson(res);
+
+      const byFile = new Map(
+        json.printingImages.map((image: { imageFileId: string; fileInUseElsewhere: boolean }) => [
+          image.imageFileId,
+          image.fileInUseElsewhere,
+        ]),
+      );
+      expect(byFile.get(csqImageFileId)).toBe(true);
+      expect(byFile.get(pinnedFileId)).toBe(true);
+    });
+
+    it("does not count the image's own active row or an inactive copy elsewhere", async () => {
+      const res = await app.fetch(adminReq("GET", "/cards/CSQ-001"));
+      const json = await readJson(res);
+
+      const own = json.printingImages.find(
+        (image: { imageFileId: string }) => image.imageFileId === csqImageFileId,
+      );
+      expect(own.fileInUseElsewhere).toBe(false);
     });
   });
 });

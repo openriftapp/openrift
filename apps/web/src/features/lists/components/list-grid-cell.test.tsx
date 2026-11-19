@@ -13,6 +13,7 @@ import {
   createListEntriesStore,
   ListEntriesStoreContext,
 } from "@/features/lists/stores/list-entries-store";
+import { layoutStoresWrapper } from "@/test/collection-layout-stores";
 import { stubPrinting } from "@/test/factories";
 
 vi.mock("@/features/cards/components/card-cell", () => ({
@@ -81,6 +82,7 @@ function renderCell(showLibrary: boolean) {
         />
       </CardRowActionsStoreContext>
     </ListEntriesStoreContext>,
+    { wrapper: layoutStoresWrapper() },
   );
 }
 

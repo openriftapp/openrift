@@ -110,6 +110,19 @@ export function copiesRepo(db: Kysely<Database>) {
   }
 
   return {
+    /** Every collection the user can read copies from, empty ones included. */
+    async accessibleCollectionIds(userId: string): Promise<string[]> {
+      const rows = await db
+        .selectFrom("collections as col")
+        .leftJoin("friendGroupMembers as gm", (join) =>
+          join.onRef("gm.groupId", "=", "col.groupId").on("gm.userId", "=", userId),
+        )
+        .select("col.id")
+        .where((eb) => eb.or([eb("col.userId", "=", userId), eb("gm.userId", "=", userId)]))
+        .execute();
+      return rows.map((row) => row.id);
+    },
+
     /** When `limit` is provided, fetches `limit + 1` rows to detect `hasMore`. */
     listForAccessibleCollections(
       userId: string,

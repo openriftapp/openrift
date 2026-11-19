@@ -122,8 +122,9 @@ export function MetaEventDialog({ event, onClose }: MetaEventDialogProps) {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Date</Label>
+              <Label htmlFor="meta-event-date">Date</Label>
               <DatePicker
+                id="meta-event-date"
                 value={draft.eventDate}
                 onValueChange={(iso) => set("eventDate", iso)}
                 onClear={() => set("eventDate", "")}

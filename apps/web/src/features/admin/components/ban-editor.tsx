@@ -49,8 +49,9 @@ export function BanEditor({
       )}
 
       <div className="space-y-1">
-        <Label>Banned from</Label>
+        <Label htmlFor="ban-banned-from">Banned from</Label>
         <DatePicker
+          id="ban-banned-from"
           value={draft.bannedAt || null}
           onValueChange={(bannedAt) => onChange({ bannedAt })}
           className="w-44"

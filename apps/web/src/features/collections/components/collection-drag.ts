@@ -1,15 +1,18 @@
-import { useGridSelectionStore } from "@/features/cards/stores/grid-selection-store";
+import type { GridSelectionStore } from "@/features/cards/stores/grid-selection-store";
 import type { CardDragData } from "@/features/collections/lib/dnd-types";
 
 /**
  * A tile in an active multi-selection carries `fromSelection: true`, not a frozen
  * `copyIds`, since already-selected cells don't re-render as the selection grows.
  */
-export function resolveSelectionDrag(data: CardDragData): CardDragData {
+export function resolveSelectionDrag(
+  data: CardDragData,
+  selection: GridSelectionStore,
+): CardDragData {
   if (!data.fromSelection) {
     return data;
   }
-  return { ...data, copyIds: [...useGridSelectionStore.getState().selected] };
+  return { ...data, copyIds: [...selection.getState().selected] };
 }
 
 /**

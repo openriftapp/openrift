@@ -496,8 +496,8 @@ function RegistrationPrintPanel({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label>{m.decks_dialog_print_reg_event_date()}</Label>
-          <DatePicker value={eventDate || null} onValueChange={setEventDate} />
+          <Label htmlFor="reg-event-date">{m.decks_dialog_print_reg_event_date()}</Label>
+          <DatePicker id="reg-event-date" value={eventDate || null} onValueChange={setEventDate} />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="reg-event-name">{m.decks_dialog_print_reg_event_name()}</Label>

@@ -75,6 +75,7 @@ export function AdminDateRangeFilter({
         onValueChange={(value) => onChange({ dateFrom: value })}
         onClear={() => onChange({ dateFrom: undefined })}
         placeholder="From"
+        aria-label="From date"
         className="w-40"
       />
       <DatePicker
@@ -82,6 +83,7 @@ export function AdminDateRangeFilter({
         onValueChange={(value) => onChange({ dateTo: value })}
         onClear={() => onChange({ dateTo: undefined })}
         placeholder="To"
+        aria-label="To date"
         className="w-40"
       />
     </>

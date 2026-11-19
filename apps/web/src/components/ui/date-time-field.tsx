@@ -35,6 +35,7 @@ export function DateTimeField({
   className,
 }: DateTimeFieldProps) {
   const labelId = useId();
+  const dateId = useId();
   const timeInvalid = time !== "" && !isValidTimeInput(time);
 
   return (
@@ -44,9 +45,12 @@ export function DateTimeField({
       data-slot="date-time-field"
       className={cn("flex flex-col gap-1.5", className)}
     >
-      <Label id={labelId}>{label}</Label>
+      <Label id={labelId} htmlFor={dateId}>
+        {label}
+      </Label>
       <div className="flex flex-wrap items-center gap-2">
         <DatePicker
+          id={dateId}
           value={date}
           onValueChange={onDateChange}
           onClear={() => onDateChange("")}

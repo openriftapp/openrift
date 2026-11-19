@@ -1,6 +1,7 @@
-import { create } from "zustand";
+import type { StateCreator, StoreApi } from "zustand";
+import { createStore } from "zustand/vanilla";
 
-interface MultiSelectState {
+export interface MultiSelectState {
   selected: Set<string>;
   selectMode: boolean;
   toggleSelect: (id: string) => void;
@@ -15,62 +16,64 @@ interface MultiSelectState {
   resetSelection: () => void;
 }
 
-/** One instance per surface. */
-export function createMultiSelectStore() {
-  return create<MultiSelectState>()((set) => ({
-    selected: new Set(),
-    selectMode: false,
-    toggleSelect: (id) => {
-      set((state) => {
-        const next = new Set(state.selected);
-        if (next.has(id)) {
+const multiSelectState: StateCreator<MultiSelectState> = (set) => ({
+  selected: new Set(),
+  selectMode: false,
+  toggleSelect: (id) => {
+    set((state) => {
+      const next = new Set(state.selected);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return { selected: next };
+    });
+  },
+  toggleStack: (ids) => {
+    if (ids.length === 0) {
+      return;
+    }
+    set((state) => {
+      const next = new Set(state.selected);
+      const allSelected = ids.every((id) => next.has(id));
+      for (const id of ids) {
+        if (allSelected) {
           next.delete(id);
         } else {
           next.add(id);
         }
-        return { selected: next };
-      });
-    },
-    toggleStack: (ids) => {
-      if (ids.length === 0) {
-        return;
       }
-      set((state) => {
-        const next = new Set(state.selected);
-        const allSelected = ids.every((id) => next.has(id));
-        for (const id of ids) {
-          if (allSelected) {
-            next.delete(id);
-          } else {
-            next.add(id);
-          }
-        }
-        return { selected: next };
-      });
-    },
-    toggleSelectAll: (allIds) => {
-      set((state) => {
-        if (state.selected.size === allIds.length) {
-          return { selected: new Set() };
-        }
-        return { selected: new Set(allIds) };
-      });
-    },
-    enterSelectAll: (allIds) => set({ selectMode: true, selected: new Set(allIds) }),
-    addToSelection: (ids) => {
-      if (ids.length === 0) {
-        return;
+      return { selected: next };
+    });
+  },
+  toggleSelectAll: (allIds) => {
+    set((state) => {
+      if (state.selected.size === allIds.length) {
+        return { selected: new Set() };
       }
-      set((state) => {
-        const next = new Set(state.selected);
-        for (const id of ids) {
-          next.add(id);
-        }
-        return { selected: next };
-      });
-    },
-    clearSelection: () => set({ selected: new Set() }),
-    setSelectMode: (on) => set({ selectMode: on }),
-    resetSelection: () => set({ selected: new Set(), selectMode: false }),
-  }));
+      return { selected: new Set(allIds) };
+    });
+  },
+  enterSelectAll: (allIds) => set({ selectMode: true, selected: new Set(allIds) }),
+  addToSelection: (ids) => {
+    if (ids.length === 0) {
+      return;
+    }
+    set((state) => {
+      const next = new Set(state.selected);
+      for (const id of ids) {
+        next.add(id);
+      }
+      return { selected: next };
+    });
+  },
+  clearSelection: () => set({ selected: new Set() }),
+  setSelectMode: (on) => set({ selectMode: on }),
+  resetSelection: () => set({ selected: new Set(), selectMode: false }),
+});
+
+/** One instance per surface. */
+export function createMultiSelectStore(): StoreApi<MultiSelectState> {
+  return createStore<MultiSelectState>()(multiSelectState);
 }

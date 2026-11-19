@@ -36,6 +36,7 @@ vi.mock("@/hooks/use-enums", () => ({
   useEnumOrders: () => ({ labels: { domains: {} } }),
 }));
 
+const { deckSelectionWrapper } = await import("@/test/deck-selection");
 const { DeckListRow } = await import("./deck-list-row");
 const { DeckTile } = await import("./deck-tile");
 
@@ -108,6 +109,7 @@ describe.each([
   function renderRow() {
     return render(
       <Row item={ITEM} folderLabels={FOLDER_LABELS} family={FAMILY} onToggleFamily={vi.fn()} />,
+      { wrapper: deckSelectionWrapper() },
     );
   }
 
@@ -140,6 +142,7 @@ describe.each([
         family={{ ...FAMILY, name: "Jinx" }}
         onToggleFamily={vi.fn()}
       />,
+      { wrapper: deckSelectionWrapper() },
     );
 
     expect(screen.getByRole("link", { name: "Jinx" })).toHaveAttribute("href", "/decks/deck-1");
@@ -169,7 +172,7 @@ describe("DeckVariantsPanel", () => {
       ...ITEM,
       deck: { ...ITEM.deck, id: "deck-2", name: "Jinx Budget", isPrimary: false },
     };
-    render(<DeckVariantsPanel items={[ITEM, alt]} />);
+    render(<DeckVariantsPanel items={[ITEM, alt]} />, { wrapper: deckSelectionWrapper() });
 
     const panel = screen.getByRole("region", { name: "Variants" });
     expect(panel.querySelectorAll("a")).toHaveLength(2);

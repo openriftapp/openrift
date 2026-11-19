@@ -10,6 +10,7 @@ import type * as LocalDecks from "@/features/decks/lib/local-decks-collection";
 const local = vi.hoisted(() => ({
   updateLocalDeck: vi.fn(),
   duplicateLocalDeck: vi.fn(() => "copy-id"),
+  router: { preloadRoute: vi.fn((_options: unknown) => Promise.resolve(undefined)) },
 }));
 
 vi.mock("@/features/decks/lib/local-decks-collection", async (importOriginal) => ({
@@ -23,7 +24,7 @@ vi.mock("@/features/decks/hooks/use-local-decks", () => ({
 }));
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
-  useRouter: () => ({ preloadRoute: vi.fn(() => Promise.resolve(undefined)) }),
+  useRouter: () => local.router,
 }));
 vi.mock("@/hooks/use-enums", () => ({
   useDeckFormatList: () => ({

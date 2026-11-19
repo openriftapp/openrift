@@ -55,6 +55,11 @@ import { m } from "@/paraglide/messages.js";
 
 const FORM_ERROR_ID = "meta-submit-error";
 
+interface FieldInvalidProps {
+  "aria-invalid": boolean;
+  "aria-describedby": string;
+}
+
 const DECK_PLACEHOLDER = `Legend:
 1 Emperor of the Sands
 
@@ -119,9 +124,11 @@ function itemLabel(event: MetaEventSummary): string {
 function EventPicker({
   selected,
   setSelected,
+  invalid,
 }: {
   selected: MetaEventSummary | undefined;
   setSelected: Dispatch<SetStateAction<MetaEventSummary | undefined>>;
+  invalid?: FieldInvalidProps;
 }) {
   const [query, setQuery] = useState("");
   const { data } = useMetaEventSearch(query);
@@ -146,6 +153,7 @@ function EventPicker({
         setSelected((prev) => (prev !== undefined && value !== itemLabel(prev) ? undefined : prev));
       }}
       id="meta-submit-event"
+      {...invalid}
       ariaLabel={m.meta_submit_event_label()}
       placeholder={m.meta_submit_event_placeholder()}
       emptyMessage={m.meta_events_no_match()}
@@ -379,7 +387,7 @@ export function MetaSubmitPage({
     }
     const event = proposing ? null : selectedEvent;
     if (event === undefined) {
-      setFormError({ message: m.meta_submit_error_pick_event() });
+      setFormError({ field: "event", message: m.meta_submit_error_pick_event() });
       return;
     }
     if (current === null) {
@@ -410,7 +418,7 @@ export function MetaSubmitPage({
     setResult(null);
   }
 
-  const invalid = (field: MetaSubmissionField) =>
+  const invalid = (field: MetaSubmissionField): FieldInvalidProps | undefined =>
     formError?.field === field
       ? { "aria-invalid": true, "aria-describedby": FORM_ERROR_ID }
       : undefined;
@@ -506,7 +514,11 @@ export function MetaSubmitPage({
                           <FieldLabel htmlFor="meta-submit-event">
                             {m.meta_submit_event_label()}
                           </FieldLabel>
-                          <EventPicker selected={selectedEvent} setSelected={setSelectedEvent} />
+                          <EventPicker
+                            selected={selectedEvent}
+                            setSelected={setSelectedEvent}
+                            invalid={invalid("event")}
+                          />
                           <FieldDescription>
                             <Button
                               type="button"
@@ -541,6 +553,8 @@ export function MetaSubmitPage({
                               {m.meta_submit_event_date()}
                             </FieldLabel>
                             <DatePicker
+                              id="meta-submit-event-date"
+                              {...invalid("eventDate")}
                               value={draft.eventDate}
                               onValueChange={(iso) => set("eventDate", iso)}
                               onClear={() => set("eventDate", "")}
@@ -554,6 +568,7 @@ export function MetaSubmitPage({
                             </FieldLabel>
                             <SimpleSelect
                               id="meta-submit-event-format"
+                              {...invalid("eventFormat")}
                               items={Object.entries(formatItems).map(([value, label]) => ({
                                 value,
                                 label,

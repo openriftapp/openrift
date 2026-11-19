@@ -270,6 +270,7 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
         quad: ImageQuad | null;
         isActive: boolean;
         activateWhenRehosted: boolean;
+        fileInUseElsewhere: boolean;
         rehostAttempts: number | null;
         rehostError: string | null;
         rehostAttemptedAt: Date | null;
@@ -297,6 +298,26 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
           "ci.fingerprint",
           "fi.isActive",
           "fi.isActivationPending as activateWhenRehosted",
+          (eb) =>
+            eb
+              .or([
+                eb.exists(
+                  eb
+                    .selectFrom("faceImages as other")
+                    .select(sql.lit(1).as("one"))
+                    .whereRef("other.imageFileId", "=", "fi.imageFileId")
+                    .whereRef("other.id", "<>", "fi.id")
+                    .where("other.isActive", "=", true),
+                ),
+                eb.exists(
+                  eb
+                    .selectFrom("faces as pinning")
+                    .select(sql.lit(1).as("one"))
+                    .whereRef("pinning.fallbackImageFileId", "=", "fi.imageFileId"),
+                ),
+              ])
+              .$castTo<boolean>()
+              .as("fileInUseElsewhere"),
           "rf.attempts as rehostAttempts",
           "rf.lastError as rehostError",
           "rf.lastAttemptAt as rehostAttemptedAt",

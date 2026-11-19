@@ -1,17 +1,15 @@
 import { useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 
-type StageShowSource = { tier: string } | { tierShare: string } | { deck: string };
+type StageRouter = Pick<ReturnType<typeof useRouter>, "preloadRoute">;
 
 /**
- * Loads the stage show's chunks and loader data into memory, so Present still opens it after
- * the connection drops.
+ * Loads a deck's stage show and the deck page its exit returns to, code and loader data, so
+ * Present and the way back still work after the connection drops.
  */
-export function preloadStageShow(
-  router: Pick<ReturnType<typeof useRouter>, "preloadRoute">,
-  source: StageShowSource,
-): void {
-  void router.preloadRoute({ to: "/stage/show", search: { ...source, i: 0 } });
+export function preloadStageShow(router: StageRouter, source: { deck: string }): void {
+  void router.preloadRoute({ to: "/stage/show", search: { deck: source.deck, i: 0 } });
+  void router.preloadRoute({ to: "/decks/$deckId", params: { deckId: source.deck } });
 }
 
 /**

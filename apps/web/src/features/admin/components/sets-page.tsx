@@ -279,6 +279,7 @@ function ReleaseDateCell({
   return (
     <DatePicker
       key={resetKey}
+      aria-label="Release date"
       value={row.release.releasedAt}
       disabled={busy?.(row)}
       onValueChange={(iso) =>

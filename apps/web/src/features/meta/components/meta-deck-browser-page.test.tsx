@@ -1,5 +1,5 @@
 import type { MetaDeckSummary } from "@openrift/shared/types/api/meta";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -18,6 +18,10 @@ const captured = vi.hoisted(() => ({
   smUp: true,
   query: {} as Record<string, unknown>,
   href: "/meta/decks",
+  /** Answers a query with a total, or suspends on a fetch still in flight, as `useSuspenseQuery` does. */
+  respond: null as
+    | ((query: Record<string, unknown>) => { pending?: Promise<void>; total?: number })
+    | null,
 }));
 
 const navigate = vi.hoisted(() => vi.fn());
@@ -74,20 +78,30 @@ const EVENT_SUMMARY = vi.hoisted(() => ({
 vi.mock("@/features/meta/hooks/use-meta", () => ({
   useMetaDecks: (query: Record<string, unknown>) => {
     captured.query = query;
+    const answer = captured.respond?.(query);
+    if (answer?.pending !== undefined) {
+      // oxlint-disable-next-line only-throw-error -- a suspending hook throws its pending fetch
+      throw answer.pending;
+    }
     return {
       data: {
         decks: captured.decks,
         events: [EVENT_SUMMARY],
-        total: captured.total ?? captured.decks.length,
+        total: answer?.total ?? captured.total ?? captured.decks.length,
         eventCount:
           captured.eventCount ?? new Set(captured.decks.map((entry) => entry.event.slug)).size,
         archiveTotal: captured.archiveTotal ?? captured.total ?? captured.decks.length,
       },
     };
   },
-  useMetaDeckFacets: () => ({
-    data: { events: [], legends: [], finishes: [], countries: [] },
-  }),
+  useMetaDeckFacets: (query: Record<string, unknown>) => {
+    const answer = captured.respond?.(query);
+    if (answer?.pending !== undefined) {
+      // oxlint-disable-next-line only-throw-error -- a suspending hook throws its pending fetch
+      throw answer.pending;
+    }
+    return { data: { events: [], legends: [], finishes: [], countries: [] } };
+  },
 }));
 vi.mock("@/hooks/use-enums", () => ({
   useDeckFormatList: () => ({
@@ -201,6 +215,7 @@ describe("MetaDeckBrowserPage", () => {
     captured.search = {};
     captured.signedIn = false;
     captured.costs = undefined;
+    captured.respond = null;
     captured.hydrated = true;
     captured.smUp = true;
     useDisplayStore.setState({ metaDeckView: "list" });
@@ -411,6 +426,90 @@ describe("MetaDeckBrowserPage", () => {
     captured.archiveTotal = 6266;
     render(<MetaDeckBrowserPage />);
     expect(seen("0 of 6,266 archived decks · 0 events")).toBe(true);
+  });
+
+  it("keeps the last count on screen while a new filter's page loads", async () => {
+    captured.total = 60;
+    captured.eventCount = 7;
+    captured.archiveTotal = 6266;
+    let release = () => {};
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let loaded = false;
+    captured.respond = (query) =>
+      query.offset === 50 ? { pending: loaded ? undefined : pending, total: 12 } : { total: 60 };
+    const { rerender } = render(<MetaDeckBrowserPage />);
+
+    captured.search = { page: 2 };
+    rerender(<MetaDeckBrowserPage />);
+    expect(screen.getByText("60 of 6,266 archived decks · 7 events")).toBeVisible();
+
+    await act(async () => {
+      loaded = true;
+      release();
+      await pending;
+    });
+    expect(await screen.findByText("12 of 6,266 archived decks · 7 events")).toBeInTheDocument();
+  });
+
+  it("marks the rows on screen busy and keeps the pager on their page while the next one loads", async () => {
+    captured.total = 120;
+    captured.archiveTotal = 6266;
+    let release = () => {};
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let loaded = false;
+    captured.respond = (query) =>
+      query.offset === 50 ? { pending: loaded ? undefined : pending, total: 120 } : { total: 120 };
+    const { rerender } = render(<MetaDeckBrowserPage />);
+    const currentPage = () =>
+      within(screen.getByRole("navigation", { name: "Deck pages" })).getByRole("button", {
+        current: "page",
+      });
+    const rows = () => document.querySelector("#meta-deck-list > [aria-busy]");
+    expect(rows()).toHaveAttribute("aria-busy", "false");
+
+    captured.search = { page: 2 };
+    rerender(<MetaDeckBrowserPage />);
+    expect(rows()).toHaveAttribute("aria-busy", "true");
+    expect(currentPage()).toHaveTextContent("1");
+
+    await act(async () => {
+      loaded = true;
+      release();
+      await pending;
+    });
+    await waitFor(() => expect(rows()).toHaveAttribute("aria-busy", "false"));
+    expect(currentPage()).toHaveTextContent("2");
+  });
+
+  it("keeps the last count on screen while a narrowed archive and its facets load", async () => {
+    captured.total = 60;
+    captured.eventCount = 7;
+    captured.archiveTotal = 6266;
+    let release = () => {};
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let loaded = false;
+    captured.respond = (query) =>
+      query.legends === undefined
+        ? { total: 60 }
+        : { pending: loaded ? undefined : pending, total: 12 };
+    const { rerender } = render(<MetaDeckBrowserPage />);
+
+    captured.search = { legends: ["kennen"] };
+    rerender(<MetaDeckBrowserPage />);
+    expect(screen.getByText("60 of 6,266 archived decks · 7 events")).toBeVisible();
+
+    await act(async () => {
+      loaded = true;
+      release();
+      await pending;
+    });
+    expect(await screen.findByText("12 of 6,266 archived decks · 7 events")).toBeInTheDocument();
   });
 
   it("counts the decks left on screen once a cost bound narrows the page", () => {

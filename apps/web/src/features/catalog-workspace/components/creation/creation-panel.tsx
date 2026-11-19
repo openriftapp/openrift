@@ -259,6 +259,7 @@ function PrintingEditor({
         <Field>
           <FieldLabel htmlFor="creation-announced-at">Announced on</FieldLabel>
           <DatePicker
+            id="creation-announced-at"
             className="w-44"
             value={printing.announcedAt}
             disabled={disabled}
@@ -271,6 +272,7 @@ function PrintingEditor({
           <FieldLabel htmlFor="creation-released-at">Available from</FieldLabel>
           <div className="flex flex-wrap items-center gap-2">
             <DatePicker
+              id="creation-released-at"
               className="w-44"
               value={printing.releasedAt}
               disabled={disabled}

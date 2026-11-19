@@ -123,6 +123,7 @@ export function MetaEventCorrectionDialog({
                     {m.meta_correction_event_date()}
                   </FieldLabel>
                   <DatePicker
+                    id="meta-correction-date"
                     value={draft.eventDate}
                     onValueChange={(iso) => set("eventDate", iso)}
                     onClear={() => set("eventDate", event.eventDate)}

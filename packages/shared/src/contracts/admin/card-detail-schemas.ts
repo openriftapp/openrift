@@ -120,6 +120,7 @@ export const adminPrintingImageResponseSchema = z.object({
   quad: imageQuadSchema.nullable().optional(),
   isActive: z.boolean(),
   activateWhenRehosted: z.boolean(),
+  fileInUseElsewhere: z.boolean(),
   rehostFailure: z
     .object({ attempts: z.number().int().min(1), error: z.string(), lastAttemptAt: isoDateTime })
     .nullable(),

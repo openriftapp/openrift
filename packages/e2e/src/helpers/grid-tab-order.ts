@@ -1,10 +1,29 @@
 import type { Page } from "@playwright/test";
+import { expect } from "@playwright/test";
 
 /** Live grid rows; slider thumbs also carry data-index, always beside a data-slot. */
 const GRID_ROW = "[data-index]:not([data-slot])";
 
-/** Every printing id the window-virtualized grid renders, collected by scrolling the page once. */
+/**
+ * Every printing id the window-virtualized grid renders, collected by scrolling the page, again
+ * until two passes in a row find the same tiles.
+ */
 export async function allGridPrintingIds(page: Page): Promise<string[]> {
+  let ids: string[] = [];
+  await expect
+    .poll(
+      async () => {
+        const previous = ids;
+        ids = await collectGridPrintingIds(page);
+        return ids.length > 0 && ids.join(",") === previous.join(",");
+      },
+      { timeout: 30_000 },
+    )
+    .toBe(true);
+  return ids;
+}
+
+function collectGridPrintingIds(page: Page): Promise<string[]> {
   return page.evaluate(async (rowSelector) => {
     const seen: string[] = [];
     const collect = () => {

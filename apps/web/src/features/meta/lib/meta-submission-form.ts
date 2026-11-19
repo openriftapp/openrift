@@ -228,6 +228,7 @@ export type MetaSubmissionField =
   | "record"
   | "note"
   | "deckText"
+  | "event"
   | "eventName"
   | "eventDate"
   | "eventFormat"
