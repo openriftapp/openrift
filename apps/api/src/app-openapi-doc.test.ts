@@ -59,9 +59,14 @@ describe("OpenAPI doc split", () => {
     expect(doc.components?.securitySchemes).toHaveProperty("bearerAuth");
     expect(doc.paths["/api/v1/catalog"]?.get?.security).toEqual([]);
     expect(doc.paths["/api/v1/ingest/deck-check"]?.post?.security).toEqual([{ bearerAuth: [] }]);
+    expect(doc.paths["/api/v1/copies"]?.post?.security).toEqual([
+      { cookieAuth: [] },
+      { apiKeyAuth: [] },
+    ]);
+    expect(doc.paths["/api/v1/preferences"]?.get?.security).toBeUndefined();
   });
 
-  it("developer /api/developers/doc contains exactly the contracts flagged developerApi", async () => {
+  it("developer /api/developers/doc contains exactly the developer and documented key contracts", async () => {
     const doc = await fetchDoc("/api/developers/doc");
     expect(doc.info.title).toBe("OpenRift Developer API");
     const operations = Object.entries(doc.paths).flatMap(([path, item]) =>
@@ -70,20 +75,23 @@ describe("OpenAPI doc split", () => {
     expect(operations.toSorted()).toEqual(developerOperations().toSorted());
     expect(operations).toContain("GET /api/v1/cards/{cardSlug}");
     expect(operations).not.toContain("GET /api/v1/cards/{cardSlug}/related");
+    expect(operations).toContain("POST /api/v1/copies");
+    expect(operations).not.toContain("PUT /api/v1/collections/{id}/sidebar");
     expect(doc.security).toEqual([]);
-    for (const item of Object.values(doc.paths)) {
-      expect(Object.keys(item)).toEqual(["get"]);
-      expect(item.get?.security).toEqual([]);
-    }
+    expect(Object.keys(doc.components?.securitySchemes ?? {})).toEqual(["apiKeyAuth"]);
+    expect(doc.paths["/api/v1/catalog"]?.get?.security).toEqual([]);
+    expect(doc.paths["/api/v1/copies"]?.post?.security).toEqual([{ apiKeyAuth: [] }]);
   });
 
   it("developer operations carry an operationId, a summary and a description", async () => {
     const doc = await fetchDoc("/api/developers/doc");
     for (const [path, item] of Object.entries(doc.paths)) {
-      const operation = item.get as DeveloperOperation;
-      expect(operation.operationId, path).toMatch(/^[a-z][A-Za-z]+$/u);
-      expect(operation.summary, path).toBeTruthy();
-      expect(operation.description, path).toBeTruthy();
+      for (const [method, value] of Object.entries(item)) {
+        const operation = value as DeveloperOperation;
+        expect(operation.operationId, `${method} ${path}`).toMatch(/^[a-z][A-Za-z]+$/u);
+        expect(operation.summary, `${method} ${path}`).toBeTruthy();
+        expect(operation.description, `${method} ${path}`).toBeTruthy();
+      }
     }
   });
 
@@ -96,6 +104,8 @@ describe("OpenAPI doc split", () => {
     });
     const prices = doc.paths["/api/v1/prices"]?.get as DeveloperOperation;
     expect(prices.responses?.["400"]).toBeUndefined();
+    const addCopies = doc.paths["/api/v1/copies"]?.post as DeveloperOperation;
+    expect(addCopies.responses?.["400"]).toBeDefined();
   });
 
   it("names the shared shapes as components and refs them from responses", async () => {

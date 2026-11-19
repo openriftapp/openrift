@@ -47,6 +47,7 @@ export interface ApiContext {
    * read it to distinguish full admins from grant holders.
    */
   adminAccess: AdminAccess | null;
+  apiKeyLimited: boolean;
   /**
    * Resolves the session lazily (better-auth `getSession`, idempotent — paid at
    * most once per request, and only when an auth-gated procedure calls it).
@@ -110,6 +111,7 @@ export function buildApiContext(c: Context<{ Variables: Variables }>): ApiContex
     log: c.get("log") ?? fallbackLog,
     user: c.get("user") ?? null,
     adminAccess: c.get("adminAccess") ?? null,
+    apiKeyLimited: c.get("apiKeyLimited") ?? false,
     loadUser: async () => {
       try {
         await resolveSession(c);

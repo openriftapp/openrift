@@ -1,7 +1,7 @@
 import { idParamSchema, withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
-import { authedRoute } from "./_base.js";
+import { apiKeyScope, authedRoute } from "./_base.js";
 import { MAX_BULK_DECK_IDS } from "./decks.js";
 import { nameField } from "./fields.js";
 
@@ -45,14 +45,17 @@ const TAG = "Deck folders";
 
 export const deckFoldersContract = {
   list: authedRoute
+    .meta(apiKeyScope("decks:read"))
     .route({ method: "GET", path: "/api/v1/deck-folders", tags: [TAG] })
     .output(deckFolderListResponseSchema),
   create: authedRoute
+    .meta(apiKeyScope("decks:write"))
     .route({ method: "POST", path: "/api/v1/deck-folders", tags: [TAG], successStatus: 201 })
     .input(createDeckFolderSchema)
     .errors({ CONFLICT: { message: "You already have a folder with that name" } })
     .output(deckFolderResponseSchema),
   update: authedRoute
+    .meta(apiKeyScope("decks:write"))
     .route({ method: "PATCH", path: "/api/v1/deck-folders/{id}", tags: [TAG] })
     .input(withParams(idParamSchema, updateDeckFolderSchema))
     .errors({
@@ -61,6 +64,7 @@ export const deckFoldersContract = {
     })
     .output(deckFolderResponseSchema),
   remove: authedRoute
+    .meta(apiKeyScope("decks:write"))
     .route({
       method: "DELETE",
       path: "/api/v1/deck-folders/{id}",
@@ -70,6 +74,7 @@ export const deckFoldersContract = {
     .input(idParamSchema)
     .errors({ NOT_FOUND: { message: "Folder not found" } }),
   reorder: authedRoute
+    .meta(apiKeyScope("decks:write"))
     .route({
       method: "POST",
       path: "/api/v1/deck-folders/reorder",
@@ -78,16 +83,19 @@ export const deckFoldersContract = {
     })
     .input(reorderDeckFoldersSchema),
   setForDeck: authedRoute
+    .meta(apiKeyScope("decks:write"))
     .route({ method: "PUT", path: "/api/v1/decks/{id}/folders", tags: [TAG] })
     .input(withParams(idParamSchema, setDeckFoldersSchema))
     .errors({ NOT_FOUND: { message: "Deck not found" } })
     .output(deckFolderListResponseSchema),
   addDecks: authedRoute
+    .meta(apiKeyScope("decks:write"))
     .route({ method: "POST", path: "/api/v1/deck-folders/{folderId}/decks", tags: [TAG] })
     .input(deckFolderDecksSchema)
     .errors({ NOT_FOUND: { message: "Folder not found" } })
     .output(deckFolderListResponseSchema),
   removeDecks: authedRoute
+    .meta(apiKeyScope("decks:write"))
     .route({ method: "POST", path: "/api/v1/deck-folders/{folderId}/decks/remove", tags: [TAG] })
     .input(deckFolderDecksSchema)
     .errors({ NOT_FOUND: { message: "Folder not found" } })

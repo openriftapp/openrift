@@ -26,15 +26,10 @@ import { Label } from "@/components/ui/label";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import { SaveError } from "@/features/tournaments/components/save-error";
 import {
-  useMintMyDeckCheckKey,
   useMintOrgDeckCheckKey,
-  useMyDeckCheckKeys,
   useOrgDeckCheckKeys,
-  useRemoveMyDeckCheckKey,
   useRemoveOrgDeckCheckKey,
-  useRenameMyDeckCheckKey,
   useRenameOrgDeckCheckKey,
-  useRevokeMyDeckCheckKey,
   useRevokeOrgDeckCheckKey,
 } from "@/features/tournaments/hooks/use-deck-check-keys";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
@@ -46,7 +41,7 @@ interface MutationState {
   reset: () => void;
 }
 
-interface KeyActions {
+export interface DeckCheckKeyActions {
   keys: DeckCheckKeyResponse[] | undefined;
   mint: (label: string) => Promise<{ token: string }>;
   mintState: MutationState;
@@ -56,27 +51,6 @@ interface KeyActions {
   revokePending: boolean;
   remove: (keyId: string) => Promise<unknown>;
   removePending: boolean;
-}
-
-export function MyDeckCheckKeysSection({ enabled = true }: { enabled?: boolean }) {
-  const { data } = useMyDeckCheckKeys(enabled);
-  const mintKey = useMintMyDeckCheckKey();
-  const renameKey = useRenameMyDeckCheckKey();
-  const revokeKey = useRevokeMyDeckCheckKey();
-  const removeKey = useRemoveMyDeckCheckKey();
-  return (
-    <DeckCheckKeysCard
-      keys={data?.items}
-      mint={(label) => mintKey.mutateAsync({ label })}
-      mintState={mintKey}
-      rename={(keyId, label) => renameKey.mutateAsync({ keyId, label })}
-      renameState={renameKey}
-      revoke={(keyId) => revokeKey.mutateAsync({ keyId })}
-      revokePending={revokeKey.isPending}
-      remove={(keyId) => removeKey.mutateAsync({ keyId })}
-      removePending={removeKey.isPending}
-    />
-  );
 }
 
 export function OrgDeckCheckKeysSection({
@@ -106,7 +80,7 @@ export function OrgDeckCheckKeysSection({
   );
 }
 
-function DeckCheckKeysCard(actions: KeyActions) {
+function DeckCheckKeysCard(actions: DeckCheckKeyActions) {
   const { keys } = actions;
   const [createOpen, setCreateOpen] = useState(false);
   const [mintedToken, setMintedToken] = useState<string | null>(null);
@@ -125,7 +99,7 @@ function DeckCheckKeysCard(actions: KeyActions) {
       {keys && keys.length > 0 ? (
         <RowList>
           {keys.map((key) => (
-            <KeyRow key={key.id} apiKey={key} actions={actions} />
+            <DeckCheckKeyRow key={key.id} apiKey={key} actions={actions} />
           ))}
         </RowList>
       ) : (
@@ -219,7 +193,18 @@ function CreateKeyDialog({
   );
 }
 
-function KeyRow({ apiKey, actions }: { apiKey: DeckCheckKeyResponse; actions: KeyActions }) {
+export function DeckCheckKeyRow({
+  apiKey,
+  actions,
+  kindLabel,
+}: {
+  apiKey: DeckCheckKeyResponse;
+  actions: Pick<
+    DeckCheckKeyActions,
+    "rename" | "renameState" | "revoke" | "revokePending" | "remove" | "removePending"
+  >;
+  kindLabel?: string;
+}) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
@@ -246,6 +231,7 @@ function KeyRow({ apiKey, actions }: { apiKey: DeckCheckKeyResponse; actions: Ke
           {apiKey.label ?? m.profile_deck_check_unnamed()}{" "}
           <Code className="text-muted-foreground font-normal">{apiKey.tokenPrefix}…</Code>
         </span>
+        {kindLabel && <span className="text-muted-foreground text-sm">{kindLabel}</span>}
         <span className="text-muted-foreground text-sm">
           {apiKey.createdByName
             ? m.profile_deck_check_created_by({
@@ -373,7 +359,7 @@ function RenameKeyDialog({
   );
 }
 
-function MintedKeyDialog({ token, onClose }: { token: string | null; onClose: () => void }) {
+export function MintedKeyDialog({ token, onClose }: { token: string | null; onClose: () => void }) {
   return (
     <Dialog
       open={token !== null}

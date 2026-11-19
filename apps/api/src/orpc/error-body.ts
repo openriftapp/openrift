@@ -11,7 +11,8 @@ export function orpcErrorResponse(
   c: Context,
   code: ErrorCode | "TOO_MANY_REQUESTS",
   message: string,
+  status?: number,
 ): Response {
-  const error = new ORPCError(code, { message });
+  const error = new ORPCError(code, status === undefined ? { message } : { message, status });
   return c.json(error.toJSON(), error.status as ContentfulStatusCode);
 }

@@ -55,8 +55,8 @@ async function fetchWithKey(app: ReturnType<typeof buildApp>, path: string): Pro
 }
 
 describe.each([
-  { surface: "Hono onError", path: "/api/v1/feature-flags" },
-  { surface: "oRPC pipeline", path: "/api/v1/preferences" },
+  { surface: "admin prefix", path: "/api/admin/v1/sets" },
+  { surface: "session-gated procedure", path: "/api/v1/preferences" },
 ])("better-auth APIError on the $surface", ({ path }) => {
   beforeEach(() => {
     captureException.mockClear();

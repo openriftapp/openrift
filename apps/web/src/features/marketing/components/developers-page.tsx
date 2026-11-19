@@ -3,10 +3,12 @@ import { legendDisplayName } from "@openrift/shared/card-name";
 import { DEVELOPERS_SHOWCASE } from "@openrift/shared/developers-showcase";
 import { imageUrl } from "@openrift/shared/image-url";
 import { useQuery } from "@tanstack/react-query";
+import { TriangleAlertIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Heading } from "@/components/heading";
 import { PROSE_MARKUP, linkMarkup } from "@/components/message-markup";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Code } from "@/components/ui/code";
 import {
   Table,
@@ -203,6 +205,40 @@ export function DevelopersPage() {
           <Paragraph>
             <ParaglideMessage message={m.developers_search_details_p} markup={PROSE_MARKUP} />
           </Paragraph>
+        </Section>
+
+        <Section heading={m.developers_account_heading()}>
+          <Alert variant="warning">
+            <TriangleAlertIcon />
+            <AlertDescription className="text-wrap md:text-wrap">
+              {m.developers_account_stability_p()}
+            </AlertDescription>
+          </Alert>
+          <Paragraph>
+            <ParaglideMessage
+              message={m.developers_account_p}
+              markup={{
+                ...PROSE_MARKUP,
+                link: linkMarkup("/profile"),
+                collections: linkMarkup("/api/developers/ui#/Collections"),
+                copies: linkMarkup("/api/developers/ui#/Copies"),
+                lists: linkMarkup("/api/developers/ui#/Lists"),
+                decks: linkMarkup("/api/developers/ui#/Decks"),
+              }}
+            />
+          </Paragraph>
+          <Paragraph>
+            <ParaglideMessage message={m.developers_account_example_p} markup={PROSE_MARKUP} />
+          </Paragraph>
+          <CodeBlock>
+            {[
+              `curl -A "${userAgent}" "${origin}/api/v1/search?q=OGN-202&unique=prints"`,
+              "",
+              `curl -A "${userAgent}" -H "x-api-key: orift_…" -H "content-type: application/json" \\`,
+              `  -d '{"copies":[{"printingId":"…"}]}' ${origin}/api/v1/copies`,
+            ].join("\n")}
+          </CodeBlock>
+          <Paragraph>{m.developers_account_limits_p()}</Paragraph>
         </Section>
 
         <Section heading={m.developers_links_heading()}>

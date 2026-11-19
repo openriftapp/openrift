@@ -2,7 +2,7 @@ import { cardTypeSchema, imageIdSchema, raritySchema } from "@openrift/shared/re
 import { keysetCursorSchema } from "@openrift/shared/schemas";
 import { z } from "zod";
 
-import { authedRoute } from "./_base.js";
+import { apiKeyScope, authedRoute } from "./_base.js";
 
 export const collectionEventsQuerySchema = z.object({
   cursor: keysetCursorSchema.optional(),
@@ -37,6 +37,7 @@ export const collectionEventListResponseSchema = z.object({
 
 export const collectionEventsContract = {
   list: authedRoute
+    .meta(apiKeyScope("collection:read"))
     .route({ method: "GET", path: "/api/v1/collection-events", tags: ["Collection Events"] })
     .input(collectionEventsQuerySchema)
     .output(collectionEventListResponseSchema),

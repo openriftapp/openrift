@@ -124,6 +124,7 @@ import { publicTournamentsRouter } from "../modules/tournaments/routes/public-to
 import { adminFeatureFlagsRouter } from "../modules/users/routes/admin-feature-flags.js";
 import { adminGrantsRouter } from "../modules/users/routes/admin-grants.js";
 import { adminUsersRouter } from "../modules/users/routes/admin-users.js";
+import { apiKeysRouter } from "../modules/users/routes/authenticated-api-keys.js";
 import { contactMethodsRouter } from "../modules/users/routes/authenticated-contact-methods.js";
 import { ownFeatureFlagsRouter } from "../modules/users/routes/authenticated-own-feature-flags.js";
 import { preferencesRouter } from "../modules/users/routes/authenticated-preferences.js";
@@ -194,6 +195,7 @@ const apiRouter = {
   adminTypographyReviewRouter,
   adminUnifiedMappingsRouter,
   adminUsersRouter,
+  apiKeysRouter,
   badgesRouter,
   cardSubmissionsRouter,
   scanReportsRouter,

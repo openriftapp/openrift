@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { marketplaceEnum } from "../types/pricing.js";
-import { authedRoute } from "./_base.js";
+import { apiKeyScope, authedRoute } from "./_base.js";
 
 const CSV_MAX_CHARS = 2000;
 
@@ -89,6 +89,7 @@ export const collectionValueHistoryResponseSchema = z.object({
 
 export const collectionValueHistoryContract = {
   get: authedRoute
+    .meta(apiKeyScope("collection:read"))
     .route({
       method: "GET",
       path: "/api/v1/collection-value-history",

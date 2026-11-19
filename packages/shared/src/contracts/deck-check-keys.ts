@@ -1,7 +1,7 @@
 import { withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
-import { authedRoute } from "./_base.js";
+import { keyManagementRoute } from "./_base.js";
 import {
   deckCheckKeyMintedResponseSchema,
   deckCheckKeyResponseSchema,
@@ -21,24 +21,24 @@ const orgKeyParamSchema = z.object({ orgId: z.uuid(), keyId: z.uuid() });
 
 // Minting returns the plaintext token exactly once.
 export const deckCheckKeysContract = {
-  listMine: authedRoute
+  listMine: keyManagementRoute
     .route({ method: "GET", path: ME_BASE, tags: [TAG] })
     .output(deckCheckKeysResponseSchema),
-  mintMine: authedRoute
+  mintMine: keyManagementRoute
     .route({ method: "POST", path: ME_BASE, tags: [TAG], successStatus: 201 })
     .input(mintDeckCheckKeySchema)
     .output(deckCheckKeyMintedResponseSchema),
-  renameMine: authedRoute
+  renameMine: keyManagementRoute
     .route({ method: "PATCH", path: `${ME_BASE}/{keyId}`, tags: [TAG] })
     .errors({ NOT_FOUND: { message: "Key not found" } })
     .input(withParams(keyParamSchema, updateDeckCheckKeySchema))
     .output(deckCheckKeyResponseSchema),
-  revokeMine: authedRoute
+  revokeMine: keyManagementRoute
     .route({ method: "DELETE", path: `${ME_BASE}/{keyId}`, tags: [TAG], successStatus: 204 })
     .errors({ NOT_FOUND: { message: "Key not found" } })
     .input(keyParamSchema),
   // Permanently deletes an already-revoked key row (clears it from the list).
-  removeMine: authedRoute
+  removeMine: keyManagementRoute
     .route({
       method: "DELETE",
       path: `${ME_BASE}/{keyId}/permanent`,
@@ -48,26 +48,26 @@ export const deckCheckKeysContract = {
     .errors({ NOT_FOUND: { message: "Key not found" } })
     .input(keyParamSchema),
 
-  listForOrg: authedRoute
+  listForOrg: keyManagementRoute
     .route({ method: "GET", path: ORG_BASE, tags: [TAG] })
     .errors({ NOT_FOUND: { message: "Organization not found" } })
     .input(orgParamSchema)
     .output(deckCheckKeysResponseSchema),
-  mintForOrg: authedRoute
+  mintForOrg: keyManagementRoute
     .route({ method: "POST", path: ORG_BASE, tags: [TAG], successStatus: 201 })
     .errors({ NOT_FOUND: { message: "Organization not found" } })
     .input(withParams(orgParamSchema, mintDeckCheckKeySchema))
     .output(deckCheckKeyMintedResponseSchema),
-  renameForOrg: authedRoute
+  renameForOrg: keyManagementRoute
     .route({ method: "PATCH", path: `${ORG_BASE}/{keyId}`, tags: [TAG] })
     .errors({ NOT_FOUND: { message: "Organization or key not found" } })
     .input(withParams(orgKeyParamSchema, updateDeckCheckKeySchema))
     .output(deckCheckKeyResponseSchema),
-  revokeForOrg: authedRoute
+  revokeForOrg: keyManagementRoute
     .route({ method: "DELETE", path: `${ORG_BASE}/{keyId}`, tags: [TAG], successStatus: 204 })
     .errors({ NOT_FOUND: { message: "Organization or key not found" } })
     .input(orgKeyParamSchema),
-  removeForOrg: authedRoute
+  removeForOrg: keyManagementRoute
     .route({
       method: "DELETE",
       path: `${ORG_BASE}/{keyId}/permanent`,

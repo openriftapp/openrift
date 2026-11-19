@@ -30,6 +30,8 @@ export function createAuth(deps: {
   const auth = betterAuth({
     database: { dialect, type: "postgres" },
     basePath: "/api/auth",
+    // Keys are created through /api/v1/me/api-keys, which sets their scopes and enforces the cap.
+    disabledPaths: ["/api-key/create", "/api-key/update"],
     // The app's own limiter in app.ts keys on x-real-ip; better-auth's would bucket every visitor together.
     rateLimit: { enabled: false },
     secret: config.auth.secret,
@@ -67,10 +69,12 @@ export function createAuth(deps: {
         overrideDefaultEmailVerification: true,
       }),
       apiKey({
-        // Resolves a session for the key's owner via `auth.api.getSession`, so
-        // requireAuth/requireAdmin work unchanged for script callers.
+        // Resolves a session for the key's owner on every better-auth endpoint;
+        // apiKeyGate limits where that session may be used.
         enableSessionForAPIKeys: true,
         defaultPrefix: "orift_",
+        maximumNameLength: 120,
+        startingCharactersConfig: { charactersLength: 12 },
         // Plugin default is 10 requests per day, far too tight for upload scripts.
         rateLimit: {
           enabled: true,

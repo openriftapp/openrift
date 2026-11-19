@@ -13,3 +13,7 @@ export const contactMethodsKeys = {
 export const referralKeys = {
   summary: (userId: string) => ["referral", userId] as const,
 } as const;
+
+export const apiKeysKeys = {
+  mine: (userId: string) => ["api-keys", userId] as const,
+} as const;

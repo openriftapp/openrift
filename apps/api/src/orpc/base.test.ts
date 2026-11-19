@@ -22,6 +22,10 @@ const contract = {
     .output(z.object({ ok: z.boolean() })),
   priv: oc.route({ method: "GET", path: "/_t/priv" }).output(z.object({ hasUser: z.boolean() })),
   authed: oc.route({ method: "GET", path: "/_t/authed" }).output(z.object({ userId: z.string() })),
+  cancel: oc
+    .route({ method: "POST", path: "/_t/cancel" })
+    .input(z.object({ cancelTradeIds: z.array(z.string()).optional() }))
+    .output(z.object({ ok: z.boolean() })),
 };
 
 const os = implement(contract).$context<ApiContext>().use(requireUser);
@@ -30,15 +34,20 @@ const router = {
   pub: os.pub.handler(() => ({ ok: true })),
   priv: os.priv.handler(({ context }) => ({ hasUser: context.user !== null })),
   authed: authedOs.authed.handler(({ context }) => ({ userId: context.userId })),
+  cancel: authedOs.cancel.handler(() => ({ ok: true })),
 };
 const handler = new OpenAPIHandler(router);
 
 let currentUser: { id: string } | null = null;
+let apiKeyLimited = false;
 
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   if (currentUser) {
     c.set("user", currentUser as never);
+  }
+  if (apiKeyLimited) {
+    c.set("apiKeyLimited", true);
   }
   c.set("auth", { api: { getSession: async () => null } } as never);
   await next();
@@ -198,5 +207,47 @@ describe("convertingAppErrors typed-error round-trip", () => {
       message: tradeCancelConflictError.message,
       data: { trades: [CANCELLED_TRADE] },
     });
+  });
+});
+
+describe("requireAuthedUser on scope-limited API key requests", () => {
+  function post(body: string | FormData, contentType?: string): Promise<Response> {
+    currentUser = { id: "key-owner" };
+    apiKeyLimited = true;
+    const headers = contentType ? { "content-type": contentType } : undefined;
+    return Promise.resolve(app.request("/_t/cancel", { method: "POST", body, headers }));
+  }
+
+  it("refuses cancelTradeIds sent as JSON", async () => {
+    const res = await post(JSON.stringify({ cancelTradeIds: ["t-1"] }), "application/json");
+    expect(res.status).toBe(403);
+  });
+
+  it("refuses cancelTradeIds sent form-encoded", async () => {
+    const res = await post("cancelTradeIds[0]=t-1", "application/x-www-form-urlencoded");
+    expect(res.status).toBe(403);
+  });
+
+  it("refuses cancelTradeIds sent as multipart", async () => {
+    const form = new FormData();
+    form.append("cancelTradeIds[0]", "t-1");
+    const res = await post(form);
+    expect(res.status).toBe(403);
+  });
+
+  it("allows an empty cancelTradeIds list", async () => {
+    const res = await post(JSON.stringify({ cancelTradeIds: [] }), "application/json");
+    expect(res.status).toBe(200);
+  });
+
+  it("leaves cookie sessions alone", async () => {
+    currentUser = { id: "cookie-user" };
+    apiKeyLimited = false;
+    const res = await app.request("/_t/cancel", {
+      method: "POST",
+      body: JSON.stringify({ cancelTradeIds: ["t-1"] }),
+      headers: { "content-type": "application/json" },
+    });
+    expect(res.status).toBe(200);
   });
 });

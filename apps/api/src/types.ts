@@ -25,4 +25,5 @@ export interface Variables {
   scheduler: JobScheduler | null;
   log: Logger | undefined;
   apiRoute: string | undefined;
+  apiKeyLimited: boolean | undefined;
 }

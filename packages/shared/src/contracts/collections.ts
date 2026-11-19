@@ -2,7 +2,7 @@ import { copyListResponseSchema } from "@openrift/shared/response-schemas";
 import { copiesQuerySchema, idParamSchema, withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
-import { authedRoute } from "./_base.js";
+import { apiKeyScope, authedRoute } from "./_base.js";
 import {
   cancelTradeIdsField,
   nameField,
@@ -116,10 +116,29 @@ const TAG = "Collections";
 
 export const collectionsContract = {
   list: authedRoute
-    .route({ method: "GET", path: "/api/v1/collections", tags: [TAG] })
+    .meta(apiKeyScope("collection:read", { documented: true }))
+    .route({
+      operationId: "listCollections",
+      summary: "Your collections",
+      description:
+        "Every collection you can access: your own and those of friend groups you belong to.",
+      method: "GET",
+      path: "/api/v1/collections",
+      tags: [TAG],
+    })
     .output(collectionListResponseSchema),
   create: authedRoute
-    .route({ method: "POST", path: "/api/v1/collections", tags: [TAG], successStatus: 201 })
+    .meta(apiKeyScope("collection:write", { documented: true }))
+    .route({
+      operationId: "createCollection",
+      summary: "Create a collection",
+      description:
+        "Creates an empty collection. Pass `groupSlug` to create it inside a friend group you belong to; every member then sees and edits it.",
+      method: "POST",
+      path: "/api/v1/collections",
+      tags: [TAG],
+      successStatus: 201,
+    })
     .input(createCollectionSchema)
     .errors({
       NOT_FOUND: { message: "Group not found" },
@@ -127,6 +146,7 @@ export const collectionsContract = {
     })
     .output(collectionResponseSchema),
   reorder: authedRoute
+    .meta(apiKeyScope("collection:write"))
     .route({ method: "POST", path: "/api/v1/collections/reorder", tags: [TAG], successStatus: 204 })
     .input(reorderCollectionsSchema),
   resetAll: authedRoute
@@ -138,17 +158,44 @@ export const collectionsContract = {
     .route({ method: "POST", path: "/api/v1/collections/trade-cancels/reset", tags: [TAG] })
     .output(tradeCancelConflictDataSchema),
   get: authedRoute
-    .route({ method: "GET", path: "/api/v1/collections/{id}", tags: [TAG] })
+    .meta(apiKeyScope("collection:read", { documented: true }))
+    .route({
+      operationId: "getCollection",
+      summary: "One collection",
+      description: "A collection you can access, by id.",
+      method: "GET",
+      path: "/api/v1/collections/{id}",
+      tags: [TAG],
+    })
     .input(idParamSchema)
     .errors({ NOT_FOUND: { message: "Collection not found" } })
     .output(collectionResponseSchema),
   update: authedRoute
-    .route({ method: "PATCH", path: "/api/v1/collections/{id}", tags: [TAG] })
+    .meta(apiKeyScope("collection:write", { documented: true }))
+    .route({
+      operationId: "updateCollection",
+      summary: "Rename or describe a collection",
+      description:
+        "Changes the name, description or sort position. Omitted fields stay as they are.",
+      method: "PATCH",
+      path: "/api/v1/collections/{id}",
+      tags: [TAG],
+    })
     .input(withParams(idParamSchema, updateCollectionSchema))
     .errors({ NOT_FOUND: { message: "Collection not found" } })
     .output(collectionResponseSchema),
   remove: authedRoute
-    .route({ method: "DELETE", path: "/api/v1/collections/{id}", tags: [TAG], successStatus: 204 })
+    .meta(apiKeyScope("collection:write", { documented: true }))
+    .route({
+      operationId: "deleteCollection",
+      summary: "Delete a collection",
+      description:
+        "Deletes the collection and moves its copies to your Inbox. The Inbox cannot be deleted. Answers `409` when a copy is promised in an open trade; resolve that in the app.",
+      method: "DELETE",
+      path: "/api/v1/collections/{id}",
+      tags: [TAG],
+      successStatus: 204,
+    })
     .errors({ NOT_FOUND: { message: "Collection not found" }, CONFLICT: tradeCancelConflictError })
     .input(withParams(idParamSchema, { cancelTradeIds: cancelTradeIdsField })),
   removeTradeCancels: authedRoute
@@ -157,6 +204,7 @@ export const collectionsContract = {
     .errors({ NOT_FOUND: { message: "Collection not found" } })
     .output(tradeCancelConflictDataSchema),
   clear: authedRoute
+    .meta(apiKeyScope("collection:write"))
     .route({ method: "POST", path: "/api/v1/collections/{id}/clear", tags: [TAG] })
     .input(withParams(idParamSchema, { cancelTradeIds: cancelTradeIdsField }))
     .errors({ NOT_FOUND: { message: "Collection not found" }, CONFLICT: tradeCancelConflictError })
@@ -167,7 +215,16 @@ export const collectionsContract = {
     .errors({ NOT_FOUND: { message: "Collection not found" } })
     .output(tradeCancelConflictDataSchema),
   copies: authedRoute
-    .route({ method: "GET", path: "/api/v1/collections/{id}/copies", tags: [TAG] })
+    .meta(apiKeyScope("collection:read", { documented: true }))
+    .route({
+      operationId: "listCollectionCopies",
+      summary: "Copies in one collection",
+      description:
+        "The copies in a collection, paged. Pass `nextCursor` back as `cursor` until it is null.",
+      method: "GET",
+      path: "/api/v1/collections/{id}/copies",
+      tags: [TAG],
+    })
     .input(withParams(idParamSchema, copiesQuerySchema))
     .errors({ NOT_FOUND: { message: "Collection not found" } })
     .output(copyListResponseSchema),
@@ -196,6 +253,7 @@ export const collectionsContract = {
     .errors({ NOT_FOUND: { message: "Collection not found" } })
     .output(collectionGroupSharesResponseSchema),
   setDeckbuilding: authedRoute
+    .meta(apiKeyScope("collection:write"))
     .route({
       method: "PUT",
       path: "/api/v1/collections/{id}/deckbuilding",
@@ -205,6 +263,7 @@ export const collectionsContract = {
     .errors({ NOT_FOUND: { message: "Collection not found" } })
     .input(withParams(idParamSchema, setCollectionDeckbuildingSchema)),
   setSidebarHidden: authedRoute
+    .meta(apiKeyScope("collection:write"))
     .route({
       method: "PUT",
       path: "/api/v1/collections/{id}/sidebar",

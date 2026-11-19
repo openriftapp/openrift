@@ -5,6 +5,7 @@ import type { MiddlewareHandler } from "hono";
 
 import type { Repos } from "../deps.js";
 import { AppError, forbidden } from "../errors.js";
+import { rawPathname } from "../lib/raw-pathname.js";
 import type { Variables } from "../types.js";
 import { resolveSession } from "./load-session.js";
 
@@ -89,7 +90,7 @@ export function requireAdmin(
     // adminAccess is read downstream (card-review's candidate allowlist); do not remove as unused.
     c.set("adminAccess", access);
     if (!access.isAdmin) {
-      const path = c.req.path;
+      const path = rawPathname(c);
       const method = c.req.method === "HEAD" ? "GET" : c.req.method;
       const routeSections =
         access.sections.length > 0 && path !== ME_PATH ? await sectionsFor(method, path) : [];

@@ -2,6 +2,10 @@
 
 ## 2026-11-19
 
+### Highlights
+
+- feat(Profile): **API keys for your collection** — scripts and tools can now read and change your collection, lists and decks with a key you create under Integrations on your profile. Each key gets read or write access per area and an expiry, and the Riftbound API page shows how to use one.
+
 ### Other
 
 - feat(Designer): **Card faces like the printed cards** — flavor text gets its own band, and cards without an image follow the printed layout.

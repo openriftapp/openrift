@@ -80,7 +80,6 @@ export const adminKeys = {
   jobSchedules: ["admin", "job-schedules"] as const,
   cacheStatus: ["admin", "cache-status"] as const,
   siblingVariantDrift: ["admin", "sibling-variant-drift"] as const,
-  apiKeys: ["admin", "api-keys"] as const,
   rehostStatus: ["admin", "rehost-status"] as const,
   brokenImages: ["admin", "broken-images"] as const,
   lowResImages: ["admin", "low-res-images"] as const,

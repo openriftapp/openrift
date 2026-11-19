@@ -1,52 +1,60 @@
-import type { ApiKey } from "@better-auth/api-key";
+import { apiKeysContract } from "@openrift/shared/contracts/api-keys";
+import type {
+  ApiKeyCreatedResponse,
+  ApiKeysResponse,
+  CreateApiKeyInput,
+} from "@openrift/shared/types/api/api-key";
 import { useQuery } from "@tanstack/react-query";
+import { createServerFn } from "@tanstack/react-start";
 
-import { authClient } from "@/features/account/lib/auth-client";
-import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { apiKeysKeys } from "@/features/account/lib/account-query-keys";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useRequiredUserId } from "@/hooks/use-session";
+import { withCookies } from "@/lib/server-fns/middleware";
+import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
-/** A listed key: the server strips the hashed `key` field from list responses. */
-export type ApiKeySummary = Omit<ApiKey, "key">;
+const fetchMyKeys = createServerFn({ method: "GET" })
+  .middleware([withCookies])
+  .handler(({ context }): Promise<ApiKeysResponse> =>
+    apiOrpcClient(apiKeysContract, context.cookie).listMine(),
+  );
 
-export function unwrapAuthResult<T>(result: {
-  data: T | null;
-  error: { message?: string | undefined; statusText: string } | null;
-}): T {
-  if (result.error) {
-    throw new Error(result.error.message ?? result.error.statusText);
-  }
-  // better-auth returns exactly one of data/error; data is set when error is null.
-  return result.data as T;
-}
+const createMyKeyFn = createServerFn({ method: "POST" })
+  .validator((input: CreateApiKeyInput) => input)
+  .middleware([withCookies])
+  .handler(({ context, data }): Promise<ApiKeyCreatedResponse> =>
+    apiOrpcClient(apiKeysContract, context.cookie).createMine(data),
+  );
 
-/** Client-only: better-auth calls carry the browser session cookie, which SSR loaders don't have. */
+const revokeMyKeyFn = createServerFn({ method: "POST" })
+  .validator((input: { keyId: string }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(apiKeysContract, context.cookie).revokeMine(data);
+  });
+
 export function useApiKeys() {
+  const userId = useRequiredUserId();
   return useQuery({
-    queryKey: adminKeys.apiKeys,
-    queryFn: async (): Promise<ApiKeySummary[]> =>
-      unwrapAuthResult(await authClient.apiKey.list()).apiKeys,
+    queryKey: apiKeysKeys.mine(userId),
+    queryFn: () => fetchMyKeys(),
+    select: (response) => response.items,
   });
 }
 
-/**
- * Creates an API key for the current user. The response's `key` field is the
- * plaintext key, shown exactly once.
- */
 export function useCreateApiKey() {
+  const userId = useRequiredUserId();
   return useMutationWithInvalidation({
-    mutationFn: async (input: { name: string }) =>
-      unwrapAuthResult(await authClient.apiKey.create({ name: input.name })),
-    invalidates: [adminKeys.apiKeys],
+    mutationFn: (input: CreateApiKeyInput) => createMyKeyFn({ data: input }),
+    meta: { inlineError: true },
+    invalidates: () => [apiKeysKeys.mine(userId)],
   });
 }
 
-/**
- * Revokes (deletes) one of the current user's API keys.
- */
 export function useDeleteApiKey() {
+  const userId = useRequiredUserId();
   return useMutationWithInvalidation({
-    mutationFn: async (input: { keyId: string }) =>
-      unwrapAuthResult(await authClient.apiKey.delete({ keyId: input.keyId })),
-    invalidates: [adminKeys.apiKeys],
+    mutationFn: (input: { keyId: string }) => revokeMyKeyFn({ data: input }),
+    invalidates: () => [apiKeysKeys.mine(userId)],
   });
 }

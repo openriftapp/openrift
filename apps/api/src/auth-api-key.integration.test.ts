@@ -3,6 +3,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { createAuth } from "./auth.js";
 import { createDb } from "./db/connect.js";
 import { createEmailSender } from "./email.js";
+import { apiKeysRepo } from "./modules/users/repositories/api-keys.js";
 
 const USER_ID = "a0000000-0200-4000-a000-000000000001";
 const USER_EMAIL = "key-0200@test.com";
@@ -40,6 +41,32 @@ describe.skipIf(!conn)("API key auth (integration)", () => {
     });
     expect(session?.user.id).toBe(USER_ID);
     expect(session?.user.email).toBe(USER_EMAIL);
+  });
+
+  it("exposes the key id as the session id, which the API key gate reads scopes by", async () => {
+    const created = await auth.api.createApiKey({
+      body: { name: "scoped", userId: USER_ID, permissions: { decks: ["read"] } },
+    });
+
+    const session = await auth.api.getSession({
+      headers: new Headers({ "x-api-key": created.key }),
+    });
+    expect(session?.session.id).toBe(created.id);
+    const permissions = await apiKeysRepo(db).permissionsById(created.id);
+    expect(JSON.parse(permissions ?? "null")).toEqual({ decks: ["read"] });
+  });
+
+  it("serves no HTTP route for creating or updating keys", async () => {
+    for (const path of ["create", "update", "create/"]) {
+      const res = await auth.handler(
+        new Request(`http://localhost/api/auth/api-key/${path}`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ name: "browser" }),
+        }),
+      );
+      expect(res.status, path).toBe(404);
+    }
   });
 
   it("rejects a tampered key", async () => {

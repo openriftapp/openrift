@@ -47,6 +47,12 @@ type AuthLevel = "public" | "bearer" | undefined;
 interface ContractMeta {
   auth?: AuthLevel;
   developerApi?: boolean;
+  apiKeyScope?: string;
+  apiKeyDocumented?: boolean;
+}
+
+function inDeveloperDoc(meta: ContractMeta | undefined): boolean {
+  return meta?.developerApi === true || meta?.apiKeyDocumented === true;
 }
 
 interface ContractDef {
@@ -75,7 +81,7 @@ export function developerOperations(): string[] {
   const metaByOperation = new Map<string, ContractMeta>();
   collectMetaByOperation(buildContractRouter(), metaByOperation);
   return [...metaByOperation.entries()]
-    .filter(([, meta]) => meta.developerApi)
+    .filter(([, meta]) => inDeveloperDoc(meta))
     .map(([operation]) => operation);
 }
 
@@ -87,7 +93,7 @@ const ADMIN_PATH_PREFIX = `${ADMIN_API_PREFIX}/`;
 /**
  * Sets each operation's OpenAPI `security`: cookieAuth by default
  * (fail-closed), `[]` for public reads, `bearerAuth` for the provider push,
- * `adminAuth` for the admin path prefix.
+ * cookie or `apiKeyAuth` for API-key scoped operations, `adminAuth` for the admin path prefix.
  */
 function applySecurity(doc: OpenAPI.Document, metaByOperation: Map<string, ContractMeta>): void {
   doc.security = [{ cookieAuth: [] }];
@@ -97,13 +103,16 @@ function applySecurity(doc: OpenAPI.Document, metaByOperation: Map<string, Contr
       if (!operation) {
         continue;
       }
-      const auth = metaByOperation.get(`${method.toUpperCase()} ${path}`)?.auth;
+      const meta = metaByOperation.get(`${method.toUpperCase()} ${path}`);
+      const auth = meta?.auth;
       if (path.startsWith(ADMIN_PATH_PREFIX)) {
         operation.security = [{ adminAuth: [] }];
       } else if (auth === "public") {
         operation.security = [];
       } else if (auth === "bearer") {
         operation.security = [{ bearerAuth: [] }];
+      } else if (meta?.apiKeyScope !== undefined) {
+        operation.security = [{ cookieAuth: [] }, { apiKeyAuth: [] }];
       }
       // Otherwise the operation inherits the document-level cookieAuth default.
     }
@@ -178,6 +187,10 @@ const developerDocInfo: DocInfo = {
     "Free, public Riftbound card data. No key or sign-in needed.",
     "Send a `User-Agent` with your project's name and a way to reach you.",
     "",
+    "The collection, list and deck endpoints act on your own account and need an",
+    "API key sent as `x-api-key`. Each key carries scopes (read or write per area).",
+    "These endpoints are unstable and may change without notice.",
+    "",
     "Every error is `{ defined, code, status, message, data }`. A rejected",
     "input is a `400` whose `data.issues` lists each field as `{ path, message }`.",
     "",
@@ -188,6 +201,12 @@ const developerDocInfo: DocInfo = {
 const securitySchemes = {
   cookieAuth: { type: "apiKey", in: "cookie", name: "better-auth.session_token" },
   bearerAuth: { type: "http", scheme: "bearer" },
+  apiKeyAuth: {
+    type: "apiKey",
+    in: "header",
+    name: "x-api-key",
+    description: "An API key. It reaches only the operations its scopes allow.",
+  },
   adminAuth: {
     type: "apiKey",
     in: "cookie",
@@ -234,12 +253,14 @@ export function buildAdminDoc(): Promise<OpenAPI.Document> {
 
 type OperationObject = Record<string, unknown> & {
   parameters?: unknown[];
+  requestBody?: unknown;
   responses?: Record<string, unknown>;
 };
 
 /** Every parameterised operation can reject its input; the generator only knows the contract's declared errors. */
 function withBadRequestResponse(operation: OperationObject): OperationObject {
-  if (!operation.parameters?.length || operation.responses?.["400"]) {
+  const takesInput = (operation.parameters?.length ?? 0) > 0 || operation.requestBody !== undefined;
+  if (!takesInput || operation.responses?.["400"]) {
     return operation;
   }
   return {
@@ -262,14 +283,17 @@ export async function buildDeveloperDoc(serverUrl?: string): Promise<OpenAPI.Doc
     const operations = Object.entries(item ?? {}).filter(
       ([method]) =>
         (HTTP_METHODS as readonly string[]).includes(method) &&
-        metaByOperation.get(`${method.toUpperCase()} ${path}`)?.developerApi,
+        inDeveloperDoc(metaByOperation.get(`${method.toUpperCase()} ${path}`)),
     );
     if (operations.length > 0) {
       paths[path] = Object.fromEntries(
-        operations.map(([method, operation]) => [
-          method,
-          withBadRequestResponse(operation as OperationObject),
-        ]),
+        operations.map(([method, operation]) => {
+          const keyed = metaByOperation.get(`${method.toUpperCase()} ${path}`)?.apiKeyDocumented;
+          const withAuth = keyed
+            ? { ...(operation as OperationObject), security: [{ apiKeyAuth: [] }] }
+            : (operation as OperationObject);
+          return [method, withBadRequestResponse(withAuth)];
+        }),
       );
     }
   }
@@ -280,6 +304,6 @@ export async function buildDeveloperDoc(serverUrl?: string): Promise<OpenAPI.Doc
     ...(serverUrl === undefined ? {} : { servers: [{ url: serverUrl }] }),
     security: [],
     paths: paths as OpenAPI.PathsObject,
-    components: { ...doc.components, securitySchemes: {} },
+    components: { ...doc.components, securitySchemes: { apiKeyAuth: securitySchemes.apiKeyAuth } },
   };
 }

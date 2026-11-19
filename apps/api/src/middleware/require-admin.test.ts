@@ -13,6 +13,7 @@ const mockSectionsForUser = vi.fn<(userId: string) => Promise<string[]>>();
 function createMockContext(options: {
   user?: { id: string } | null;
   path?: string;
+  rawPath?: string;
   method?: string;
 }) {
   const session = options.user ? { user: options.user, session: { id: "s-1" } } : null;
@@ -36,6 +37,7 @@ function createMockContext(options: {
     req: {
       raw: { headers: new Headers() },
       path: options.path ?? "/api/admin/v1/sets",
+      url: `http://localhost${options.rawPath ?? options.path ?? "/api/admin/v1/sets"}`,
       method: options.method ?? "GET",
     },
   } as any;
@@ -146,6 +148,20 @@ describe("require-admin middleware", () => {
         expect(error.status).toBe(403);
         expect(error.code).toBe("FORBIDDEN");
       }
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("checks an encoded path against the procedure oRPC runs, not its decoded twin", async () => {
+      mockIsAdmin.mockResolvedValue(false);
+      mockSectionsForUser.mockResolvedValue(["custom-tags"]);
+      const ctx = createMockContext({
+        user: { id: "grant-user-encoded" },
+        path: "/api/admin/v1/cards/all-cards",
+        rawPath: "/api/admin/v1/cards/%61ll-cards",
+      });
+      const next = vi.fn(() => Promise.resolve());
+
+      await expect(gate(ctx, next)).rejects.toMatchObject({ status: 403 });
       expect(next).not.toHaveBeenCalled();
     });
 

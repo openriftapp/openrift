@@ -23,7 +23,7 @@ import {
 } from "@openrift/shared/schemas";
 import { z } from "zod";
 
-import { authedRoute } from "./_base.js";
+import { apiKeyScope, authedRoute } from "./_base.js";
 import {
   cancelTradeIdsField,
   nameField,
@@ -269,20 +269,56 @@ const TAG = "Lists";
 
 export const listsContract = {
   list: authedRoute
-    .route({ method: "GET", path: "/api/v1/lists", tags: [TAG] })
+    .meta(apiKeyScope("lists:read", { documented: true }))
+    .route({
+      operationId: "listLists",
+      summary: "Your wishlists, tradelists and organize lists",
+      description:
+        "Every list you own. Pass `intent` to get only wishlists, tradelists or organize lists.",
+      method: "GET",
+      path: "/api/v1/lists",
+      tags: [TAG],
+    })
     .input(listIntentQuerySchema)
     .output(listListResponseSchema),
   create: authedRoute
-    .route({ method: "POST", path: "/api/v1/lists", tags: [TAG], successStatus: 201 })
+    .meta(apiKeyScope("lists:write", { documented: true }))
+    .route({
+      operationId: "createList",
+      summary: "Create a list",
+      description:
+        "`intent` picks a wishlist (`wish`), tradelist (`trade`) or organize list (`organize`). `kind` sets what an entry points at: a wishlist holds cards or printings, a tradelist holds copies, an organize list holds any of the three.",
+      method: "POST",
+      path: "/api/v1/lists",
+      tags: [TAG],
+      successStatus: 201,
+    })
     .input(createListSchema)
     .output(listResponseSchema),
   get: authedRoute
-    .route({ method: "GET", path: "/api/v1/lists/{id}", tags: [TAG] })
+    .meta(apiKeyScope("lists:read", { documented: true }))
+    .route({
+      operationId: "getList",
+      summary: "One list with its entries",
+      description: "A list you own, with every entry.",
+      method: "GET",
+      path: "/api/v1/lists/{id}",
+      tags: [TAG],
+    })
     .input(idParamSchema)
     .errors({ NOT_FOUND: { message: "List not found" } })
     .output(listDetailResponseSchema),
   update: authedRoute
-    .route({ method: "PATCH", path: "/api/v1/lists/{id}", tags: [TAG] })
+    .meta(apiKeyScope("lists:write", { documented: true }))
+    .route({
+      operationId: "updateList",
+      summary: "Change a list",
+      description:
+        "Changes name, trade defaults, currency or rules. Omitted fields stay as they are. Answers `409` when new rules would drop entries backing an open trade; resolve that in the app.",
+      method: "PATCH",
+      path: "/api/v1/lists/{id}",
+      tags: [TAG],
+    })
     .input(updateListInputSchema)
     .errors({
       NOT_FOUND: { message: "List not found" },
@@ -295,6 +331,7 @@ export const listsContract = {
     })
     .output(listResponseSchema),
   dropFromRules: authedRoute
+    .meta(apiKeyScope("lists:write"))
     .route({ method: "POST", path: "/api/v1/lists/{id}/rules/drop", tags: [TAG] })
     .input(
       withParams(idParamSchema, dropFromListRulesSchema).refine(oneListEntryTarget, {
@@ -308,11 +345,31 @@ export const listsContract = {
     })
     .output(listResponseSchema),
   remove: authedRoute
-    .route({ method: "DELETE", path: "/api/v1/lists/{id}", tags: [TAG], successStatus: 204 })
+    .meta(apiKeyScope("lists:write", { documented: true }))
+    .route({
+      operationId: "deleteList",
+      summary: "Delete a list",
+      description:
+        "Deletes the list and its entries. The cards and copies it pointed at stay. Answers `409` when the list backs an open trade; resolve that in the app.",
+      method: "DELETE",
+      path: "/api/v1/lists/{id}",
+      tags: [TAG],
+      successStatus: 204,
+    })
     .errors({ NOT_FOUND: { message: "List not found" }, CONFLICT: tradeCancelConflictError })
     .input(withParams(idParamSchema, { cancelTradeIds: cancelTradeIdsField })),
   createEntry: authedRoute
-    .route({ method: "POST", path: "/api/v1/lists/{id}/entries", tags: [TAG], successStatus: 201 })
+    .meta(apiKeyScope("lists:write", { documented: true }))
+    .route({
+      operationId: "addListEntry",
+      summary: "Add one entry",
+      description:
+        "Adds a card, printing or copy to a list. Set exactly one of `cardId`, `printingId` or `copyId`, matching the list's `kind`. `GET /api/v1/search/named?fuzzy=jinx` returns a card's `cardId` and its printings' ids.",
+      method: "POST",
+      path: "/api/v1/lists/{id}/entries",
+      tags: [TAG],
+      successStatus: 201,
+    })
     .input(withParams(idParamSchema, listEntryInputShape))
     .errors({
       NOT_FOUND: { message: "List or copy not found" },
@@ -321,7 +378,16 @@ export const listsContract = {
     })
     .output(listEntryResponseSchema),
   bulkCreateEntries: authedRoute
-    .route({ method: "POST", path: "/api/v1/lists/{id}/entries/bulk", tags: [TAG] })
+    .meta(apiKeyScope("lists:write", { documented: true }))
+    .route({
+      operationId: "addListEntries",
+      summary: "Add several entries",
+      description:
+        "Adds many entries in one call, each with exactly one of `cardId`, `printingId` or `copyId`.",
+      method: "POST",
+      path: "/api/v1/lists/{id}/entries/bulk",
+      tags: [TAG],
+    })
     .input(withParams(idParamSchema, bulkCreateListEntriesSchema))
     .errors({
       NOT_FOUND: { message: "List not found" },
@@ -329,11 +395,13 @@ export const listsContract = {
     })
     .output(listBulkAddResponseSchema),
   bulkAddFromCopies: authedRoute
+    .meta(apiKeyScope("lists:write"))
     .route({ method: "POST", path: "/api/v1/lists/{id}/entries/from-copies", tags: [TAG] })
     .input(withParams(idParamSchema, bulkAddCopiesToListSchema))
     .errors({ NOT_FOUND: { message: "List not found" } })
     .output(listBulkAddResponseSchema),
   moveEntries: authedRoute
+    .meta(apiKeyScope("lists:write"))
     .route({ method: "POST", path: "/api/v1/lists/{id}/entries/move", tags: [TAG] })
     .input(withParams(idParamSchema, moveListEntriesSchema))
     .errors({
@@ -343,7 +411,15 @@ export const listsContract = {
     })
     .output(listMoveResponseSchema),
   updateEntry: authedRoute
-    .route({ method: "PATCH", path: "/api/v1/lists/{id}/entries/{itemId}", tags: [TAG] })
+    .meta(apiKeyScope("lists:write", { documented: true }))
+    .route({
+      operationId: "updateListEntry",
+      summary: "Change an entry",
+      description: "Changes an entry's quantity or its trade preference.",
+      method: "PATCH",
+      path: "/api/v1/lists/{id}/entries/{itemId}",
+      tags: [TAG],
+    })
     .input(updateListEntryInputSchema)
     .errors({
       NOT_FOUND: { message: "Entry not found" },
@@ -351,7 +427,12 @@ export const listsContract = {
     })
     .output(listEntryResponseSchema),
   removeEntry: authedRoute
+    .meta(apiKeyScope("lists:write", { documented: true }))
     .route({
+      operationId: "removeListEntry",
+      summary: "Remove an entry",
+      description:
+        "Removes one entry. Answers `409` when it backs an open trade; resolve that in the app.",
       method: "DELETE",
       path: "/api/v1/lists/{id}/entries/{itemId}",
       tags: [TAG],
@@ -360,7 +441,12 @@ export const listsContract = {
     .errors({ NOT_FOUND: { message: "Entry not found" }, CONFLICT: tradeCancelConflictError })
     .input(withParams(idAndItemIdParamSchema, { cancelTradeIds: cancelTradeIdsField })),
   bulkDeleteEntries: authedRoute
+    .meta(apiKeyScope("lists:write", { documented: true }))
     .route({
+      operationId: "removeListEntries",
+      summary: "Remove several entries",
+      description:
+        "Removes up to 500 entries in one call. Answers `409` when one backs an open trade; resolve that in the app.",
       method: "POST",
       path: "/api/v1/lists/{id}/entries/bulk-delete",
       tags: [TAG],
@@ -369,6 +455,7 @@ export const listsContract = {
     .errors({ NOT_FOUND: { message: "List not found" }, CONFLICT: tradeCancelConflictError })
     .input(withParams(idParamSchema, bulkDeleteListEntriesSchema)),
   decrementEntries: authedRoute
+    .meta(apiKeyScope("lists:write"))
     .route({
       method: "POST",
       path: "/api/v1/lists/entries/decrement",
@@ -392,6 +479,7 @@ export const listsContract = {
     .errors({ NOT_FOUND: { message: "List not found" } })
     .input(idParamSchema),
   reorder: authedRoute
+    .meta(apiKeyScope("lists:write"))
     .route({ method: "POST", path: "/api/v1/lists/reorder", tags: [TAG], successStatus: 204 })
     .input(reorderListsSchema),
   groupShares: authedRoute

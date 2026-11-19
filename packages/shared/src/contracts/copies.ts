@@ -6,7 +6,7 @@ import {
 import { copiesQuerySchema } from "@openrift/shared/schemas";
 import { z } from "zod";
 
-import { authedRoute } from "./_base.js";
+import { apiKeyScope, authedRoute } from "./_base.js";
 import {
   cancelTradeIdsField,
   tradeCancelConflictDataSchema,
@@ -124,11 +124,30 @@ export const copyListMembershipsResponseSchema = z.object({
 
 export const copiesContract = {
   list: authedRoute
-    .route({ method: "GET", path: "/api/v1/copies", tags: ["Copies"] })
+    .meta(apiKeyScope("collection:read", { documented: true }))
+    .route({
+      operationId: "listCopies",
+      summary: "All your copies",
+      description:
+        "Every copy across your collections, paged. Pass `nextCursor` back as `cursor` until it is null. Each copy names its `printingId`; resolve it against `/catalog`.",
+      method: "GET",
+      path: "/api/v1/copies",
+      tags: ["Copies"],
+    })
     .input(copiesQuerySchema)
     .output(copyListResponseSchema),
   add: authedRoute
-    .route({ method: "POST", path: "/api/v1/copies", tags: ["Copies"], successStatus: 201 })
+    .meta(apiKeyScope("collection:write", { documented: true }))
+    .route({
+      operationId: "addCopies",
+      summary: "Add copies",
+      description:
+        "Adds up to 500 copies in one call, one entry per physical card. Find a `printingId` with `GET /api/v1/search?q=OGN-202&unique=prints`, which lists every printing of that card number with its finish and language. Without `collectionId` a copy lands in your Inbox.",
+      method: "POST",
+      path: "/api/v1/copies",
+      tags: ["Copies"],
+      successStatus: 201,
+    })
     .input(addCopiesSchema)
     .errors({
       BAD_REQUEST: { message: "One or more printings do not exist" },
@@ -136,7 +155,17 @@ export const copiesContract = {
     })
     .output(copyAddResponseSchema),
   move: authedRoute
-    .route({ method: "POST", path: "/api/v1/copies/move", tags: ["Copies"], successStatus: 204 })
+    .meta(apiKeyScope("collection:write", { documented: true }))
+    .route({
+      operationId: "moveCopies",
+      summary: "Move copies",
+      description:
+        "Moves copies into another collection you can access. Answers `409` when a copy is promised in an open trade; resolve that in the app.",
+      method: "POST",
+      path: "/api/v1/copies/move",
+      tags: ["Copies"],
+      successStatus: 204,
+    })
     .errors({
       NOT_FOUND: { message: "Target collection or copies not found" },
       CONFLICT: tradeCancelConflictError,
@@ -148,14 +177,34 @@ export const copiesContract = {
     .input(moveCopiesTradeCancelsSchema)
     .output(tradeCancelConflictDataSchema),
   update: authedRoute
-    .route({ method: "POST", path: "/api/v1/copies/update", tags: ["Copies"], successStatus: 204 })
+    .meta(apiKeyScope("collection:write", { documented: true }))
+    .route({
+      operationId: "updateCopies",
+      summary: "Edit copy details",
+      description:
+        "Sets condition, grading, notes, altered flag or links on several copies at once. Omitted fields stay as they are; `null` clears one. A graded copy carries no condition.",
+      method: "POST",
+      path: "/api/v1/copies/update",
+      tags: ["Copies"],
+      successStatus: 204,
+    })
     .errors({
       NOT_FOUND: { message: "One or more copies not found" },
       BAD_REQUEST: { message: "Unknown condition or grader" },
     })
     .input(updateCopiesSchema),
   dispose: authedRoute
-    .route({ method: "POST", path: "/api/v1/copies/dispose", tags: ["Copies"], successStatus: 204 })
+    .meta(apiKeyScope("collection:write", { documented: true }))
+    .route({
+      operationId: "removeCopies",
+      summary: "Remove copies",
+      description:
+        "Removes copies from your collection, for cards you sold, traded away or lost. Answers `409` when a copy is promised in an open trade; resolve that in the app.",
+      method: "POST",
+      path: "/api/v1/copies/dispose",
+      tags: ["Copies"],
+      successStatus: 204,
+    })
     .errors({
       NOT_FOUND: { message: "One or more copies not found" },
       CONFLICT: tradeCancelConflictError,
@@ -167,6 +216,7 @@ export const copiesContract = {
     .input(disposeCopiesTradeCancelsSchema)
     .output(tradeCancelConflictDataSchema),
   listMemberships: authedRoute
+    .meta(apiKeyScope("lists:read"))
     .route({ method: "POST", path: "/api/v1/copies/list-memberships", tags: ["Copies"] })
     .input(copyListMembershipsSchema)
     .output(copyListMembershipsResponseSchema),

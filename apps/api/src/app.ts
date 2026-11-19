@@ -26,6 +26,7 @@ import { defaultIo } from "./io.js";
 import type { Io } from "./io.js";
 import { ADMIN_API_PREFIX } from "./lib/admin-api-prefix.js";
 import { clientAddress } from "./lib/client-address.js";
+import { apiKeyGate } from "./middleware/api-key-gate.js";
 import { loadSession } from "./middleware/load-session.js";
 import { createMetricsMiddleware } from "./middleware/metrics.js";
 import { otelRequestMiddleware } from "./middleware/otel-request.js";
@@ -319,6 +320,8 @@ export function createApp(deps: AppDeps) {
     await next();
   });
 
+  app.use("/api/*", apiKeyGate(resolveApiRoute));
+
   app.use("/api/auth/*", async (c, next) => {
     if (
       !config.authRateLimitDisabled &&
@@ -345,7 +348,7 @@ export function createApp(deps: AppDeps) {
   app.get("/api/admin/ui", swaggerUI({ url: "/api/admin/doc", baseUrl: SWAGGER_ASSETS_BASE_URL }));
   app.get(
     "/api/developers/ui",
-    swaggerUI({ url: "/api/developers/doc", baseUrl: SWAGGER_ASSETS_BASE_URL }),
+    swaggerUI({ url: "/api/developers/doc", baseUrl: SWAGGER_ASSETS_BASE_URL, deepLinking: true }),
   );
 
   // Registered before the oRPC catch-all so these plain-Hono routes win the path match.

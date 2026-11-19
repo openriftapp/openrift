@@ -1,3 +1,4 @@
+import type { ApiKeyResponse } from "@openrift/shared/types/api/api-key";
 import { KeyRoundIcon, PlusIcon, TrashIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -18,7 +19,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { ApiKeySummary } from "@/features/account/hooks/use-api-keys";
 import {
   useApiKeys,
   useCreateApiKey,
@@ -28,6 +28,7 @@ import { InstantCell } from "@/features/admin/components/admin-crud-shared";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import type { AdminCellSlotProps } from "@/features/admin/components/admin-table";
 import { AdminTable } from "@/features/admin/components/admin-table";
+import { SaveError } from "@/features/tournaments/components/save-error";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 function CreatedKeyDialog({ createdKey, onClose }: { createdKey: string; onClose: () => void }) {
@@ -53,7 +54,7 @@ function CreatedKeyDialog({ createdKey, onClose }: { createdKey: string; onClose
   );
 }
 
-function RevokeKeyCell({ row: apiKey }: AdminCellSlotProps<ApiKeySummary>) {
+function RevokeKeyCell({ row: apiKey }: AdminCellSlotProps<ApiKeyResponse>) {
   const deleteKey = useDeleteApiKey();
   if (!apiKey) {
     return null;
@@ -75,7 +76,7 @@ function RevokeKeyCell({ row: apiKey }: AdminCellSlotProps<ApiKeySummary>) {
   );
 }
 
-function KeyStartCell({ row: apiKey }: AdminCellSlotProps<ApiKeySummary>) {
+function KeyStartCell({ row: apiKey }: AdminCellSlotProps<ApiKeyResponse>) {
   return <span className="font-mono">{apiKey?.start ? `${apiKey.start}…` : "—"}</span>;
 }
 
@@ -83,8 +84,8 @@ function TextCell({
   row,
   value,
   className,
-}: AdminCellSlotProps<ApiKeySummary> & {
-  value: (row: ApiKeySummary) => string | number;
+}: AdminCellSlotProps<ApiKeyResponse> & {
+  value: (row: ApiKeyResponse) => string | number;
   className?: string;
 }) {
   return row ? <span className={className}>{value(row)}</span> : null;
@@ -103,11 +104,16 @@ export function ApiKeysPage() {
     }
     let created: Awaited<ReturnType<typeof createKey.mutateAsync>> | undefined;
     const ok = await runReportedMutation(async () => {
-      created = await createKey.mutateAsync({ name: trimmed });
+      created = await createKey.mutateAsync({
+        name: trimmed,
+        grants: { collection: "write", lists: "write", decks: "write" },
+        admin: true,
+        expiresInDays: null,
+      });
     });
     if (ok && created) {
       setName("");
-      setCreatedKey(created.key);
+      setCreatedKey(created.token);
     }
   }
 
@@ -151,6 +157,7 @@ export function ApiKeysPage() {
               Create key
             </Button>
           </div>
+          <SaveError error={createKey.error} />
         </CardContent>
       </Card>
 
@@ -171,16 +178,11 @@ export function ApiKeysPage() {
               { header: "Key", cell: <KeyStartCell /> },
               {
                 header: "Created",
-                cell: <InstantCell<ApiKeySummary> at={(key) => key.createdAt} />,
+                cell: <InstantCell<ApiKeyResponse> at={(key) => key.createdAt} />,
               },
               {
                 header: "Last used",
-                cell: <InstantCell<ApiKeySummary> at={(key) => key.lastRequest} relative />,
-              },
-              {
-                header: "Requests",
-                align: "right",
-                cell: <TextCell value={(key) => key.requestCount} className="tabular-nums" />,
+                cell: <InstantCell<ApiKeyResponse> at={(key) => key.lastUsedAt} relative />,
               },
             ]}
             data={keys}

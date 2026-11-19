@@ -11,7 +11,7 @@ import {
 import { idParamSchema, withParams, xidWatermarkSchema } from "@openrift/shared/schemas";
 import { z } from "zod";
 
-import { authedRoute } from "./_base.js";
+import { apiKeyScope, authedRoute } from "./_base.js";
 import { nameField, shareStateResponseSchema } from "./fields.js";
 
 export const MAX_DECK_LINKS = 5;
@@ -326,15 +326,33 @@ export const deckBulkResponseSchema = z.object({ items: z.array(deckResponseSche
 
 export const decksContract = {
   list: authedRoute
-    .route({ method: "GET", path: "/api/v1/decks", tags: [TAG] })
+    .meta(apiKeyScope("decks:read", { documented: true }))
+    .route({
+      operationId: "listDecks",
+      summary: "Your decks",
+      description: "Every deck you own, without card lists.",
+      method: "GET",
+      path: "/api/v1/decks",
+      tags: [TAG],
+    })
     .input(decksQuerySchema)
     .output(deckListResponseSchema),
   allCards: authedRoute
+    .meta(apiKeyScope("decks:read"))
     .route({ method: "GET", path: "/api/v1/deck-cards", tags: [TAG] })
     .input(deckCardsQuerySchema)
     .output(deckCardsListResponseSchema),
   create: authedRoute
-    .route({ method: "POST", path: "/api/v1/decks", tags: [TAG], successStatus: 201 })
+    .meta(apiKeyScope("decks:write", { documented: true }))
+    .route({
+      operationId: "createDeck",
+      summary: "Create a deck",
+      description: "Creates an empty deck. Add cards with `PUT /decks/{id}/cards`.",
+      method: "POST",
+      path: "/api/v1/decks",
+      tags: [TAG],
+      successStatus: 201,
+    })
     .input(createDeckSchema)
     .errors({
       BAD_REQUEST: { message: "Unknown format or invalid format config" },
@@ -342,12 +360,28 @@ export const decksContract = {
     })
     .output(deckResponseSchema),
   get: authedRoute
-    .route({ method: "GET", path: "/api/v1/decks/{id}", tags: [TAG] })
+    .meta(apiKeyScope("decks:read", { documented: true }))
+    .route({
+      operationId: "getDeck",
+      summary: "One deck with its cards",
+      description: "A deck you own, with every card row by zone.",
+      method: "GET",
+      path: "/api/v1/decks/{id}",
+      tags: [TAG],
+    })
     .input(idParamSchema)
     .errors({ NOT_FOUND: { message: "Deck not found" } })
     .output(deckDetailResponseSchema),
   update: authedRoute
-    .route({ method: "PATCH", path: "/api/v1/decks/{id}", tags: [TAG] })
+    .meta(apiKeyScope("decks:write", { documented: true }))
+    .route({
+      operationId: "updateDeck",
+      summary: "Change a deck",
+      description: "Changes name, description, format or links. Omitted fields stay as they are.",
+      method: "PATCH",
+      path: "/api/v1/decks/{id}",
+      tags: [TAG],
+    })
     .input(withParams(idParamSchema, updateDeckSchema))
     .errors({
       NOT_FOUND: { message: "Deck not found" },
@@ -355,11 +389,29 @@ export const decksContract = {
     })
     .output(deckResponseSchema),
   remove: authedRoute
-    .route({ method: "DELETE", path: "/api/v1/decks/{id}", tags: [TAG], successStatus: 204 })
+    .meta(apiKeyScope("decks:write", { documented: true }))
+    .route({
+      operationId: "deleteDeck",
+      summary: "Delete a deck",
+      description: "Deletes the deck. Cards in your collection are not touched.",
+      method: "DELETE",
+      path: "/api/v1/decks/{id}",
+      tags: [TAG],
+      successStatus: 204,
+    })
     .errors({ NOT_FOUND: { message: "Deck not found" } })
     .input(idParamSchema),
   replaceCards: authedRoute
-    .route({ method: "PUT", path: "/api/v1/decks/{id}/cards", tags: [TAG] })
+    .meta(apiKeyScope("decks:write", { documented: true }))
+    .route({
+      operationId: "setDeckCards",
+      summary: "Set a deck's cards",
+      description:
+        "Replaces the whole card list. One row per card and zone, `cardId` from `/catalog`. Each call returns a `version`; pass it back as `expectedVersion` on the next call to get a `409` instead of overwriting a newer edit.",
+      method: "PUT",
+      path: "/api/v1/decks/{id}/cards",
+      tags: [TAG],
+    })
     .input(withParams(idParamSchema, updateDeckCardsSchema))
     .errors({
       NOT_FOUND: { message: "Deck not found" },
@@ -376,11 +428,13 @@ export const decksContract = {
     })
     .output(deckCardsReplaceResponseSchema),
   getPlan: authedRoute
+    .meta(apiKeyScope("decks:read"))
     .route({ method: "GET", path: "/api/v1/decks/{id}/plan", tags: [TAG] })
     .input(idParamSchema)
     .errors({ NOT_FOUND: { message: "Deck not found" } })
     .output(deckPlanDetailResponseSchema),
   replacePlan: authedRoute
+    .meta(apiKeyScope("decks:write"))
     .route({ method: "PUT", path: "/api/v1/decks/{id}/plan", tags: [TAG] })
     .input(withParams(idParamSchema, updateDeckPlanSchema))
     .errors({
@@ -389,11 +443,13 @@ export const decksContract = {
     })
     .output(deckPlanDetailResponseSchema),
   clone: authedRoute
+    .meta(apiKeyScope("decks:write"))
     .route({ method: "POST", path: "/api/v1/decks/{id}/clone", tags: [TAG], successStatus: 201 })
     .input(idParamSchema)
     .errors({ NOT_FOUND: { message: "Deck not found" } })
     .output(deckResponseSchema),
   createVariant: authedRoute
+    .meta(apiKeyScope("decks:write"))
     .route({
       method: "POST",
       path: "/api/v1/decks/{id}/variants",
@@ -404,6 +460,7 @@ export const decksContract = {
     .errors({ NOT_FOUND: { message: "Deck not found" } })
     .output(deckResponseSchema),
   linkVariant: authedRoute
+    .meta(apiKeyScope("decks:write"))
     .route({ method: "POST", path: "/api/v1/decks/{id}/link", tags: [TAG] })
     .input(withParams(idParamSchema, linkDeckVariantSchema))
     .errors({
@@ -412,6 +469,7 @@ export const decksContract = {
     })
     .output(deckResponseSchema),
   unlinkVariant: authedRoute
+    .meta(apiKeyScope("decks:write"))
     .route({ method: "POST", path: "/api/v1/decks/{id}/unlink", tags: [TAG] })
     .input(idParamSchema)
     .errors({
@@ -420,6 +478,7 @@ export const decksContract = {
     })
     .output(deckResponseSchema),
   setPredecessor: authedRoute
+    .meta(apiKeyScope("decks:write"))
     .route({ method: "PUT", path: "/api/v1/decks/{id}/predecessor", tags: [TAG] })
     .input(withParams(idParamSchema, setDeckPredecessorSchema))
     .errors({
@@ -428,6 +487,7 @@ export const decksContract = {
     })
     .output(deckResponseSchema),
   setFamilyName: authedRoute
+    .meta(apiKeyScope("decks:write"))
     .route({ method: "PUT", path: "/api/v1/decks/{id}/family-name", tags: [TAG] })
     .input(withParams(idParamSchema, setDeckFamilyNameSchema))
     .errors({
@@ -436,6 +496,7 @@ export const decksContract = {
     })
     .output(deckFamilyNameResponseSchema),
   promotePrimary: authedRoute
+    .meta(apiKeyScope("decks:write"))
     .route({ method: "POST", path: "/api/v1/decks/{id}/promote", tags: [TAG] })
     .input(idParamSchema)
     .errors({
@@ -444,21 +505,33 @@ export const decksContract = {
     })
     .output(deckResponseSchema),
   export: authedRoute
-    .route({ method: "GET", path: "/api/v1/decks/{id}/export", tags: [TAG] })
+    .meta(apiKeyScope("decks:read", { documented: true }))
+    .route({
+      operationId: "exportDeck",
+      summary: "Export a deck",
+      description:
+        "The deck as a deck code (`piltover`), plain text (`text`) or a Tabletop Simulator file (`tts`).",
+      method: "GET",
+      path: "/api/v1/decks/{id}/export",
+      tags: [TAG],
+    })
     .input(withParams(idParamSchema, deckExportQuerySchema))
     .errors({ NOT_FOUND: { message: "Deck not found" } })
     .output(deckExportResponseSchema),
   setPinned: authedRoute
+    .meta(apiKeyScope("decks:write"))
     .route({ method: "PATCH", path: "/api/v1/decks/{id}/pin", tags: [TAG] })
     .input(withParams(idParamSchema, pinDeckBodySchema))
     .errors({ NOT_FOUND: { message: "Deck not found" } })
     .output(deckResponseSchema),
   setArchived: authedRoute
+    .meta(apiKeyScope("decks:write"))
     .route({ method: "PATCH", path: "/api/v1/decks/{id}/archive", tags: [TAG] })
     .input(withParams(idParamSchema, archiveDeckBodySchema))
     .errors({ NOT_FOUND: { message: "Deck not found" } })
     .output(deckResponseSchema),
   setArchivedMany: authedRoute
+    .meta(apiKeyScope("decks:write"))
     .route({ method: "POST", path: "/api/v1/decks/archive", tags: [TAG] })
     .input(setDecksArchivedSchema)
     .output(deckBulkResponseSchema),

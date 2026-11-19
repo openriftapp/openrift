@@ -54,15 +54,29 @@ export const requireUser = os
     return convertingAppErrors(() => next({ context: { user } }));
   });
 
+/** Router-level middleware sees the decoded input before schema validation, so any shape is possible. */
+function cancelsTrades(input: unknown): boolean {
+  if (typeof input !== "object" || input === null) {
+    return false;
+  }
+  const ids = (input as { cancelTradeIds?: unknown }).cancelTradeIds;
+  return Array.isArray(ids) ? ids.length > 0 : ids !== undefined && ids !== null;
+}
+
 /**
  * Auth middleware for the **authenticated + admin** routers. Always resolves
  * the session, 401s when absent, and injects a non-null `user` plus `userId`.
  * Admin routers are additionally gated by the Hono `requireAdmin` middleware.
  */
-export const requireAuthedUser = os.$context<ApiContext>().middleware(async ({ context, next }) => {
-  const user = await context.loadUser();
-  if (!user) {
-    throw new ORPCError("UNAUTHORIZED", { message: "Unauthorized" });
-  }
-  return convertingAppErrors(() => next({ context: { user, userId: user.id } }));
-});
+export const requireAuthedUser = os
+  .$context<ApiContext>()
+  .middleware(async ({ context, next }, input: unknown) => {
+    const user = await context.loadUser();
+    if (!user) {
+      throw new ORPCError("UNAUTHORIZED", { message: "Unauthorized" });
+    }
+    if (context.apiKeyLimited && cancelsTrades(input)) {
+      throw new ORPCError("FORBIDDEN", { message: "API keys cannot cancel trades" });
+    }
+    return convertingAppErrors(() => next({ context: { user, userId: user.id } }));
+  });

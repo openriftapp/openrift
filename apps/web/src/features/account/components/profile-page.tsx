@@ -8,6 +8,7 @@ import { SettingsGroup } from "@/components/layout/settings-group";
 import { SettingsLayout } from "@/components/layout/settings-layout";
 import { PersonPageHeader } from "@/components/person-page-header";
 import { AccountInfoSection } from "@/features/account/components/account-info-section";
+import { ApiKeysSection } from "@/features/account/components/api-keys-section";
 import { BetaFeaturesSection } from "@/features/account/components/beta-features-section";
 import { ConnectedAccountsSection } from "@/features/account/components/connected-accounts-section";
 import { ContactMethodsSection } from "@/features/account/components/contact-methods-section";
@@ -25,7 +26,6 @@ import { ReferralSection } from "@/features/account/components/referral-section"
 import { TradingSection } from "@/features/account/components/trading-section";
 import { AdminNotificationsSection } from "@/features/admin/components/admin-notifications-section";
 import { useIsAdmin } from "@/features/admin/hooks/use-admin";
-import { MyDeckCheckKeysSection } from "@/features/tournaments/components/deck-check-keys-section";
 import { useLanguageList } from "@/hooks/use-enums";
 import { useGravatarHash } from "@/hooks/use-gravatar-hash";
 import { useMeasuredHeight } from "@/hooks/use-measured-height";
@@ -127,7 +127,7 @@ export function ProfilePage() {
           </SettingsGroup>
 
           <SettingsGroup id="integrations" title={m.profile_nav_integrations()}>
-            <MyDeckCheckKeysSection />
+            <ApiKeysSection />
           </SettingsGroup>
 
           {isAdmin && (
