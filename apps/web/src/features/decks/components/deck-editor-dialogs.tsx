@@ -22,6 +22,7 @@ import { useDeleteDeck } from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
 import { deleteLocalDeck } from "@/features/decks/lib/local-decks-collection";
+import { shareLinkUrl } from "@/lib/share-links";
 import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
 
@@ -155,6 +156,7 @@ export function DeckEditorDialogs({
         onOpenChange={(next) => setDialogOpen("print", next)}
         deckId={deckId}
         deckName={deck.name}
+        isShared={shareLinkUrl("deck", deck) !== null}
       />
       {ownershipData && (
         <DeckMissingCardsDialog

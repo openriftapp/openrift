@@ -573,22 +573,25 @@ function DeckSheetPrintPanel({
   deckName,
   cards,
   publicSource,
+  isShared,
 }: {
   deckId: string;
   deckName: string;
   cards?: DeckBuilderCard[];
   publicSource?: PublicDeckSource;
+  isShared: boolean;
 }) {
   const isLocal = useIsLocalDeck(deckId);
+  const qrAvailable = !isLocal && (publicSource !== undefined || isShared);
   const imageBody = useLocalDeckImageBody(deckId, deckName, cards);
   const [qr, setQr] = useState(true);
   const [downloading, setDownloading] = useState(false);
 
   const handleDownload = async () => {
     setDownloading(true);
-    const options = { size: "hq" as const, qr: isLocal ? false : qr };
+    const options = { size: "hq" as const, qr: qrAvailable && qr };
     const blob = fetchSheetImage(deckId, publicSource, options, imageBody);
-    const filename = `${downloadFilename({ base: deckName, fallback: "deck", id: deckId })}-proxies.pdf`;
+    const filename = `${downloadFilename({ base: deckName, fallback: "deck", id: deckId })}-sheet.pdf`;
     // React Compiler can't yet lower try/finally, so reset in both paths.
     try {
       const downloadImageAsPdf = await loadImagePdfDownloader();
@@ -603,7 +606,7 @@ function DeckSheetPrintPanel({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-muted-foreground text-sm">{m.decks_dialog_print_sheet_description()}</p>
-      {!isLocal && (
+      {qrAvailable && (
         <div className="flex items-center gap-2">
           <Checkbox
             id="deck-sheet-include-qr"
@@ -630,6 +633,7 @@ interface DeckPrintDialogProps {
   onOpenChange: (open: boolean) => void;
   cards?: DeckBuilderCard[];
   publicSource?: PublicDeckSource;
+  isShared?: boolean;
 }
 
 export function DeckPrintDialog({
@@ -639,6 +643,7 @@ export function DeckPrintDialog({
   onOpenChange,
   cards: cardsProp,
   publicSource,
+  isShared = false,
 }: DeckPrintDialogProps) {
   const [tab, setTab] = useState<PrintTab>("proxies");
   // Subscribing only when cardsProp is omitted keeps the deck-list menus from
@@ -679,6 +684,7 @@ export function DeckPrintDialog({
               deckName={deckName}
               cards={cardsProp}
               publicSource={publicSource}
+              isShared={isShared}
             />
           </TabsContent>
         </Tabs>

@@ -1,6 +1,7 @@
 import { labelMap } from "@openrift/shared/enum-label";
 import { describe, expect, it } from "vitest";
 
+import type { Io } from "../../../io.js";
 import { defaultIo } from "../../../io.js";
 import type { DeckImageCard } from "./deck-image.js";
 import { renderDeckImage } from "./deck-image.js";
@@ -191,6 +192,48 @@ describe("renderDeckImage", () => {
     ]);
     expect(archivedBody).toEqual(plainBody);
   }, 30_000); // Two full-canvas renders plus two raw extracts; generous for cold CI.
+});
+
+describe("renderDeckImage cover backdrop", () => {
+  async function whiteArtIo(): Promise<Io> {
+    const art = await defaultIo
+      .sharp({ create: { width: 60, height: 84, channels: 3, background: "#ffffff" } })
+      .webp({ lossless: true })
+      .toBuffer();
+    const readFile = (async (path: string) =>
+      path.endsWith(".ttf") ? defaultIo.fs.readFile(path) : art) as typeof defaultIo.fs.readFile;
+    return { ...defaultIo, fs: { ...defaultIo.fs, readFile } };
+  }
+
+  it.each([
+    { aspect: "landscape", pad: 24, titleH: 52 },
+    { aspect: "vertical", pad: 28, titleH: 92 },
+  ] as const)(
+    "paints the $aspect title above the backdrop scrim",
+    async ({ aspect, pad, titleH }) => {
+      const png = await renderDeckImage(
+        await whiteArtIo(),
+        { ...baseInput, shareUrl: undefined, coverImageId: "cover", cards: constructedDeck },
+        1,
+        aspect,
+      );
+      const { data, info } = await defaultIo
+        .sharp(png)
+        .extract({ left: pad, top: pad, width: 300, height: titleH })
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+
+      let brightest = 0;
+      for (let offset = 0; offset < data.length; offset += info.channels) {
+        brightest = Math.max(
+          brightest,
+          Math.min(data[offset] ?? 0, data[offset + 1] ?? 0, data[offset + 2] ?? 0),
+        );
+      }
+
+      expect(brightest).toBeGreaterThan(230);
+    },
+  );
 });
 
 describe("renderDeckImage (vertical)", () => {

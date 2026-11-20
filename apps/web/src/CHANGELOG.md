@@ -6,6 +6,7 @@
 
 - feat(Meta): **By legend groups the full standings** — "By legend" now groups every entry under its legend, keeps the player search, legend, decklist and cost filters, and keeps your place on the page when you switch. Rank chips in the standings drop the repeated "Winner" and "Top 8" labels.
 - feat(Decks): **Changes view when replacing a deck** — the preview lists cards going in and out, and cards you kept stay on the art you picked.
+- fix(Decks): **Readable titles on deck images** — the deck name, format and zone labels on shared deck images and the printable deck sheet are no longer dimmed by the cover art. The deck sheet offers a scan code only when the deck is shared.
 - fix(Cards): **Long set names stay readable while scrolling** — the set label pinned under the search bar widens to fit long names, and a name that still wraps grows downward, clear of the bar. While dragging the scroll handle, set names near the end of the list stay on screen.
 - fix(Meta): **Standings load in privacy-focused browsers** — event standings and deck lists no longer fail with an error in browsers or extensions that hide where a request comes from.
 - fix(Collection): **Slow connections show what was saved** — when moving, adding or removing cards times out, your collection reloads, so a change that reached the server still shows.

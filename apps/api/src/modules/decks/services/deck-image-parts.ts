@@ -353,6 +353,15 @@ export function deckHeroBackdrop(backdropUri: string | null, width: number, heig
   );
 }
 
+/** Satori paints positioned boxes after in-flow ones, so content must be positioned to sit above the backdrop. */
+export function deckForeground(...children: Child[]): Element {
+  return element(
+    "div",
+    { display: "flex", position: "relative", flexDirection: "column", flexGrow: 1, minHeight: 0 },
+    ...children,
+  );
+}
+
 interface TileSize {
   w: number;
   h: number;

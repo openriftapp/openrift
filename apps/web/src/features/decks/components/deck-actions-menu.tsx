@@ -61,6 +61,7 @@ import { deckMenuCapabilities } from "@/features/decks/lib/deck-menu-capabilitie
 import { deleteLocalDeck } from "@/features/decks/lib/local-decks-collection";
 import { preloadStageShow } from "@/features/stage/hooks/use-preload-stage-show";
 import { useDeckFormatList } from "@/hooks/use-enums";
+import { shareLinkUrl } from "@/lib/share-links";
 import { m } from "@/paraglide/messages.js";
 
 import { DeckExportDialog } from "./deck-export-dialog";
@@ -405,6 +406,7 @@ function DeckMenuBody({
         cards={cards}
         deckId={deck.id}
         deckName={deck.name}
+        isShared={shareLinkUrl("deck", deck) !== null}
       />
 
       <ConfirmActionDialog

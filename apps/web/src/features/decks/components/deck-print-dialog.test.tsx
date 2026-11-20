@@ -105,6 +105,42 @@ describe("DeckPrintDialog", () => {
     await user.click(screen.getByRole("button", { name: "Download PDF" }));
 
     expect(fetchImageBlobMock).toHaveBeenCalledWith(
+      "https://openrift.app/api/v1/decks/deck-1/image.png?size=hq&qr=0",
+    );
+    expect(downloadImageAsPdfMock).toHaveBeenCalledWith(expect.any(Blob), "yasuo-aggro-sheet.pdf");
+  });
+
+  it("hides the scan code option for an owned deck that is not shared", async () => {
+    render(
+      <DeckPrintDialog
+        deckId="deck-1"
+        deckName="Yasuo Aggro"
+        open
+        onOpenChange={vi.fn()}
+        cards={cards}
+      />,
+    );
+    await openSheetTab();
+
+    expect(screen.queryByRole("checkbox", { name: /scan code/iu })).toBeNull();
+  });
+
+  it("offers the scan code for an owned deck that is shared", async () => {
+    render(
+      <DeckPrintDialog
+        deckId="deck-1"
+        deckName="Yasuo Aggro"
+        open
+        onOpenChange={vi.fn()}
+        cards={cards}
+        isShared
+      />,
+    );
+    const user = await openSheetTab();
+    expect(screen.getByRole("checkbox", { name: /scan code/iu })).toBeChecked();
+    await user.click(screen.getByRole("button", { name: "Download PDF" }));
+
+    expect(fetchImageBlobMock).toHaveBeenCalledWith(
       "https://openrift.app/api/v1/decks/deck-1/image.png?size=hq",
     );
   });

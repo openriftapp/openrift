@@ -11,6 +11,7 @@ import {
   BODY_GAP,
   GAP,
   SECTION_HEADER_H,
+  deckForeground,
   deckHeroBackdrop,
   deckSection,
   domainIconElements,
@@ -328,9 +329,7 @@ export async function renderLandscapeDeckImage(
       overflow: "hidden",
     },
     heroBackdrop,
-    titleRow,
-    element("div", { display: "flex", height: GAP, flexShrink: 0 }),
-    body,
+    deckForeground(titleRow, element("div", { display: "flex", height: GAP, flexShrink: 0 }), body),
   );
 
   return renderTreeToPng(io, root, canvasW, canvasH, scale);

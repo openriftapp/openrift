@@ -12,6 +12,7 @@ import {
   BODY_GAP,
   GAP,
   SECTION_HEADER_H,
+  deckForeground,
   deckHeroBackdrop,
   deckSection,
   domainIconElements,
@@ -327,18 +328,20 @@ export async function renderVerticalDeckImage(
       overflow: "hidden",
     },
     deckHeroBackdrop(backdropUri, canvasW, canvasH),
-    deckTitleBlock(
-      input,
-      canvas,
-      deckMetaLabel(input.formatLabel, zones.cardCount),
-      domainIconElements(domainUris, canvas.domainIcon),
-      qrUri,
-      titleH,
+    deckForeground(
+      deckTitleBlock(
+        input,
+        canvas,
+        deckMetaLabel(input.formatLabel, zones.cardCount),
+        domainIconElements(domainUris, canvas.domainIcon),
+        qrUri,
+        titleH,
+      ),
+      identityBand,
+      gridBlock,
+      lowerStack,
+      footer,
     ),
-    identityBand,
-    gridBlock,
-    lowerStack,
-    footer,
   );
 
   return renderTreeToPng(io, root, canvasW, canvasH, scale);
