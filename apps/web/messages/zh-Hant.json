@@ -7785,7 +7785,7 @@
   "help_search_syntax_artist_ex_1": "Six More Vodka 繪製的卡牌",
   "help_search_syntax_artist_ex_2": "提到皮爾托福的情境文字",
   "help_search_syntax_printings_heading": "工藝、插畫和宣傳卡",
-  "help_search_syntax_printings_body": "{#code}is:{/code} 依種類挑選印刷版：{#code}foil{/code}、{#code}nonfoil{/code}、{#code}metal{/code}、{#code}metaldeluxe{/code}、{#code}altart{/code}（或 {#code}alternate{/code}）、{#code}ultimate{/code}、{#code}signed{/code}、{#code}overnumbered{/code}、{#code}oversized{/code}、{#code}promo{/code} 和 {#code}plain{/code}。{#code}is:variant{/code} 是除普通版以外的所有印刷版。{#code}has:{/code} 搜尋帶有 {#code}errata{/code}、{#code}marker{/code}、{#code}keyword{/code}、{#code}tag{/code} 或 {#code}image{/code} 的卡牌。{#code}marker:{/code} 和 {#code}channel:{/code} 依印章和發放方式搜尋宣傳卡。",
+  "help_search_syntax_printings_body": "{#code}is:{/code} 依種類挑選印刷版：{#code}foil{/code}、{#code}nonfoil{/code}、{#code}metal{/code}、{#code}metaldeluxe{/code}、{#code}shatterfoil{/code}、{#code}altart{/code}（或 {#code}alternate{/code}）、{#code}ultimate{/code}、{#code}signed{/code}、{#code}overnumbered{/code}、{#code}oversized{/code}、{#code}promo{/code} 和 {#code}plain{/code}。{#code}is:variant{/code} 是除普通版以外的所有印刷版。{#code}has:{/code} 搜尋帶有 {#code}errata{/code}、{#code}marker{/code}、{#code}keyword{/code}、{#code}tag{/code} 或 {#code}image{/code} 的卡牌。{#code}marker:{/code} 和 {#code}channel:{/code} 依印章和發放方式搜尋宣傳卡。",
   "help_search_syntax_printings_ex_1": "閃卡 Common",
   "help_search_syntax_printings_ex_2": "Calm 異畫",
   "help_search_syntax_printings_ex_3": "除普通版以外的所有傳奇印刷版",

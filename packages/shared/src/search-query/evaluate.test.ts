@@ -419,6 +419,19 @@ describe("search query evaluation", () => {
       expect(names("is:altart")).toEqual(["Annie, Fiery"]);
     });
 
+    it("keeps is:foil to plain foil and finds shatter foil with is:shatterfoil", () => {
+      const jinx = {
+        ...annie,
+        printingId: "p-jinx",
+        cardId: "c-jinx",
+        finish: "shatter-foil",
+        card: { ...annie.card, name: "Jinx, Loose Cannon" },
+      };
+      const printings = [garen, annie, jinx];
+      expect(names("is:shatterfoil", printings)).toEqual(["Jinx, Loose Cannon"]);
+      expect(names("is:foil", printings)).toEqual(["Annie, Fiery"]);
+    });
+
     it("matches is: aliases", () => {
       expect(names("is:alternate")).toEqual(["Annie, Fiery"]);
       expect(names("is:variant")).toEqual(["Annie, Fiery"]);

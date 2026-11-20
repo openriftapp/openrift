@@ -143,6 +143,9 @@ function isTarget(isValue: IsValue, positive: boolean): Target | null {
     case "metaldeluxe": {
       return value("finishes", WellKnown.finish.METAL_DELUXE, !positive);
     }
+    case "shatterfoil": {
+      return value("finishes", WellKnown.finish.SHATTER_FOIL, !positive);
+    }
     case "nonfoil": {
       return value("finishes", WellKnown.finish.NORMAL, !positive);
     }

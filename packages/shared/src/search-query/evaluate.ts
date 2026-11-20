@@ -233,6 +233,9 @@ function isPredicate(value: IsValue): SearchPredicate {
     case "metaldeluxe": {
       return (printing) => printing.finish === WellKnown.finish.METAL_DELUXE;
     }
+    case "shatterfoil": {
+      return (printing) => printing.finish === WellKnown.finish.SHATTER_FOIL;
+    }
     case "altart": {
       return (printing) => printing.artVariant === WellKnown.artVariant.ALTART;
     }

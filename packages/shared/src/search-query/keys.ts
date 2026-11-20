@@ -75,6 +75,7 @@ export const IS_VALUES = [
   "foil",
   "metal",
   "metaldeluxe",
+  "shatterfoil",
   "altart",
   "ultimate",
   "signed",

@@ -7,7 +7,7 @@ import { sideKey } from "@openrift/shared/printing-side";
 import type { StandardArtFallback } from "@openrift/shared/standard";
 import type { CardBan, Printing, PrintingOtherSide } from "@openrift/shared/types/catalog";
 import type { Domain, Rarity } from "@openrift/shared/types/enums";
-import { WellKnown, isBaseBanFormat } from "@openrift/shared/well-known";
+import { WellKnown, isBaseBanFormat, isFoilFinish } from "@openrift/shared/well-known";
 import { useRouter } from "@tanstack/react-router";
 import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode } from "react";
 import { memo, use, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
@@ -723,7 +723,7 @@ export const CardThumbnail = memo(function CardThumbnail({
     favoriteMarketplace,
   } = display;
   const favoritePrice = prices.get(printing.printingId, favoriteMarketplace);
-  const isFoilCard = printing.finish === WellKnown.finish.FOIL;
+  const isFoilCard = isFoilFinish(printing.finish);
   const finishTitle = enumLabel(finishLabels, printing.finish);
   const pairOtherSide = view === "cards" ? undefined : printing.otherSide;
   const insetSide =
@@ -842,7 +842,7 @@ export const CardThumbnail = memo(function CardThumbnail({
                     }}
                   />
                 )}
-                {sibling.finish === WellKnown.finish.FOIL && gridFoil && <FoilOverlay active dim />}
+                {isFoilFinish(sibling.finish) && gridFoil && <FoilOverlay active dim />}
               </div>
             </div>
           </div>

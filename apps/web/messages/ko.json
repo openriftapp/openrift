@@ -7785,7 +7785,7 @@
   "help_search_syntax_artist_ex_1": "Six More Vodka가 그린 카드",
   "help_search_syntax_artist_ex_2": "필트오버를 언급하는 플레이버 텍스트",
   "help_search_syntax_printings_heading": "마감, 일러스트, 프로모",
-  "help_search_syntax_printings_body": "{#code}is:{/code}는 종류별로 인쇄본을 고릅니다: {#code}foil{/code}, {#code}nonfoil{/code}, {#code}metal{/code}, {#code}metaldeluxe{/code}, {#code}altart{/code}(또는 {#code}alternate{/code}), {#code}ultimate{/code}, {#code}signed{/code}, {#code}overnumbered{/code}, {#code}oversized{/code}, {#code}promo{/code}, {#code}plain{/code}. {#code}is:variant{/code}는 기본 인쇄본을 뺀 모든 인쇄본입니다. {#code}has:{/code}는 {#code}errata{/code}, {#code}marker{/code}, {#code}keyword{/code}, {#code}tag{/code}, {#code}image{/code}가 있는 카드를 찾습니다. {#code}marker:{/code}와 {#code}channel:{/code}은 스탬프와 배포 방식으로 프로모를 찾습니다.",
+  "help_search_syntax_printings_body": "{#code}is:{/code}는 종류별로 인쇄본을 고릅니다: {#code}foil{/code}, {#code}nonfoil{/code}, {#code}metal{/code}, {#code}metaldeluxe{/code}, {#code}shatterfoil{/code}, {#code}altart{/code}(또는 {#code}alternate{/code}), {#code}ultimate{/code}, {#code}signed{/code}, {#code}overnumbered{/code}, {#code}oversized{/code}, {#code}promo{/code}, {#code}plain{/code}. {#code}is:variant{/code}는 기본 인쇄본을 뺀 모든 인쇄본입니다. {#code}has:{/code}는 {#code}errata{/code}, {#code}marker{/code}, {#code}keyword{/code}, {#code}tag{/code}, {#code}image{/code}가 있는 카드를 찾습니다. {#code}marker:{/code}와 {#code}channel:{/code}은 스탬프와 배포 방식으로 프로모를 찾습니다.",
   "help_search_syntax_printings_ex_1": "포일 커먼",
   "help_search_syntax_printings_ex_2": "Calm 이색 일러스트",
   "help_search_syntax_printings_ex_3": "기본 인쇄본을 뺀 모든 전설 인쇄본",

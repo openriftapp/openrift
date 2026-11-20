@@ -62,6 +62,7 @@ export function CardPlateContent({
         <div className="text-muted-foreground font-mono text-sm tracking-wide uppercase">
           {formatPublicCode(printing)}
           {printing.finish === WellKnown.finish.FOIL ? " · Foil" : ""}
+          {printing.finish === WellKnown.finish.SHATTER_FOIL ? " · Shatter Foil" : ""}
         </div>
       )}
       {fields.stats && <CardDetailStats printing={printing} align="start" />}

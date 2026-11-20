@@ -6,7 +6,7 @@ import { formatDay } from "@openrift/shared/format-date";
 import { straightenApostrophes } from "@openrift/shared/strings";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { isAlwaysFoilRarity, WellKnown } from "@openrift/shared/well-known";
+import { WellKnown, isAlwaysFoilRarity, isFoilFinish } from "@openrift/shared/well-known";
 
 import { conditionShortCode } from "@/features/collections/lib/condition-codes";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
@@ -283,7 +283,7 @@ function encodeRiftManaConditions(groups: readonly MetadataGroup[]): string {
  * both RiftMana and RiftCore infer foil from rarity, so the round trip holds.
  */
 function belongsInFoilColumn(printing: StackedEntry["printing"]): boolean {
-  return printing.finish === WellKnown.finish.FOIL && !isAlwaysFoilRarity(printing.rarity);
+  return isFoilFinish(printing.finish) && !isAlwaysFoilRarity(printing.rarity);
 }
 
 interface RiftManaRow {

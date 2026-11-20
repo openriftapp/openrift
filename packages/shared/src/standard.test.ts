@@ -53,6 +53,9 @@ describe("isStandardPrinting", () => {
       it(`${rarity} + metal-deluxe is NOT standard`, () => {
         expect(isStandardPrinting(makePrinting({ rarity, finish: "metal-deluxe" }))).toBe(false);
       });
+      it(`${rarity} + shatter-foil is NOT standard`, () => {
+        expect(isStandardPrinting(makePrinting({ rarity, finish: "shatter-foil" }))).toBe(false);
+      });
     }
   });
 

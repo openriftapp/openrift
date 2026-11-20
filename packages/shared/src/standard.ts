@@ -65,7 +65,8 @@ export function fallbackArtDifferences(
   }
   if (
     printing.finish === WellKnown.finish.METAL ||
-    printing.finish === WellKnown.finish.METAL_DELUXE
+    printing.finish === WellKnown.finish.METAL_DELUXE ||
+    printing.finish === WellKnown.finish.SHATTER_FOIL
   ) {
     tags.push({ kind: "finish", slug: printing.finish });
   }
@@ -97,7 +98,11 @@ export function isStandardPrinting(printing: StandardCheckFields): boolean {
     return false;
   }
   const { finish, rarity } = printing;
-  if (finish === WellKnown.finish.METAL || finish === WellKnown.finish.METAL_DELUXE) {
+  if (
+    finish === WellKnown.finish.METAL ||
+    finish === WellKnown.finish.METAL_DELUXE ||
+    finish === WellKnown.finish.SHATTER_FOIL
+  ) {
     return false;
   }
   if (LOW_RARITIES.has(rarity)) {

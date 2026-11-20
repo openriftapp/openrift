@@ -38,6 +38,7 @@ export const WellKnown = {
   finish: {
     NORMAL: "normal",
     FOIL: "foil",
+    SHATTER_FOIL: "shatter-foil",
     METAL: "metal",
     METAL_DELUXE: "metal-deluxe",
   },
@@ -108,12 +109,20 @@ export function isAlwaysFoilRarity(rarity: string): boolean {
   return RARITIES_ALWAYS_FOIL.some((value) => value.toLowerCase() === normalized);
 }
 
+export function isFoilFinish(finish: string): boolean {
+  return finish === WellKnown.finish.FOIL || finish === WellKnown.finish.SHATTER_FOIL;
+}
+
 /**
- * TCG, Cardmarket and CardTrader staging rows only carry `normal`/`foil`, so a
- * metal or metal-deluxe printing's marketplace variant must store `foil` to join.
+ * TCG, Cardmarket and CardTrader staging rows only carry `normal`/`foil`, so a metal,
+ * metal-deluxe or shatter-foil printing's marketplace variant must store `foil` to join.
  */
 export function marketplaceFinish(dbFinish: string): string {
-  if (dbFinish === WellKnown.finish.METAL || dbFinish === WellKnown.finish.METAL_DELUXE) {
+  if (
+    dbFinish === WellKnown.finish.METAL ||
+    dbFinish === WellKnown.finish.METAL_DELUXE ||
+    dbFinish === WellKnown.finish.SHATTER_FOIL
+  ) {
     return WellKnown.finish.FOIL;
   }
   return dbFinish;

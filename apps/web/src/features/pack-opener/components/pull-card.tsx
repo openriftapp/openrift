@@ -2,7 +2,7 @@ import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { imageSrcSet, imageUrl } from "@openrift/shared/image-url";
 import type { CatalogPrintingResponse } from "@openrift/shared/types/api/catalog";
-import { WellKnown } from "@openrift/shared/well-known";
+import { isFoilFinish } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
@@ -38,7 +38,7 @@ export function PullCard({ pull, image, className, shimmer = true }: PullCardPro
   const { printing } = pull;
   const { ring: highlight, glow } = pullHighlight(pull);
   // Always shows the holo effect on foil-finish pulls, ignoring the user's global foil preference.
-  const showFoil = printing.finish === WellKnown.finish.FOIL;
+  const showFoil = isFoilFinish(printing.finish);
   const rotated = needsCssRotation(getOrientation(printing.cardTypes));
   const displayName = legendDisplayName({
     name: printing.cardName,

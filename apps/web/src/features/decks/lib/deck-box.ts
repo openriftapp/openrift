@@ -87,6 +87,7 @@ export interface DeckBoxInput {
 const FINISH_ORDER: readonly string[] = [
   WellKnown.finish.NORMAL,
   WellKnown.finish.FOIL,
+  WellKnown.finish.SHATTER_FOIL,
   WellKnown.finish.METAL,
   WellKnown.finish.METAL_DELUXE,
 ];

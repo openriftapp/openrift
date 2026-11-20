@@ -41,7 +41,7 @@ const options: QueryFilterOptions = {
     types: ["unit", "spell"],
     superTypes: ["champion"],
     domains: ["fury", "calm", "chaos"],
-    finishes: ["normal", "foil"],
+    finishes: ["normal", "foil", "shatter-foil"],
     artVariants: ["normal", "altart"],
     cardSizes: ["standard", "oversized"],
     markers: ["promo-stamp"],
@@ -100,6 +100,7 @@ describe("showQueryFilters", () => {
   it("maps is: and has: flags onto finishes, variants and toggles", () => {
     expect(show("is:foil").search.finishes).toEqual(["foil"]);
     expect(show("not:foil").search.finishesEx).toEqual(["foil"]);
+    expect(show("is:shatterfoil").search.finishes).toEqual(["shatter-foil"]);
     expect(show("is:altart").search.artVariants).toEqual(["altart"]);
     expect(show("is:oversized").search.cardSizes).toEqual(["oversized"]);
     expect(show("-is:oversized").spans).toEqual([]);
