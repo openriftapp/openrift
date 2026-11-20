@@ -38,7 +38,7 @@ export interface DeckMenuSubject {
   hasOtherFormats: boolean;
 }
 
-export interface DeckMenuManage {
+interface DeckMenuManage {
   storedIn: boolean;
   edit: DeckMenuAction[];
   copies: DeckMenuAction[];
