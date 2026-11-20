@@ -76,13 +76,14 @@ test.describe("deck editor shell", () => {
       // or the amber "N issue(s)" branch; both start with "Constructed".
       await expect(page.getByText(/Constructed/u).first()).toBeVisible();
 
-      await expect(page.getByRole("button", { name: "Share", exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Share link", exact: true })).toBeVisible();
 
       // Renaming a server deck opens the name-and-description dialog, not a
       // bare "Rename" item (that wording is local-deck-only).
       await kebabTrigger(page).click();
-      await expect(page.getByRole("menuitem", { name: "Export" })).toBeVisible();
-      await expect(page.getByRole("menuitem", { name: "Print" })).toBeVisible();
+      await expect(page.getByRole("menuitem", { name: "Text list" })).toBeVisible();
+      await expect(page.getByRole("menuitem", { name: "Proxies…" })).toBeVisible();
+      await page.getByRole("menuitem", { name: "Details" }).click();
       await expect(page.getByRole("menuitem", { name: "Name & description" })).toBeVisible();
 
       await page.keyboard.press("Escape");
@@ -114,6 +115,7 @@ test.describe("deck editor shell", () => {
       });
 
       await kebabTrigger(page).click();
+      await page.getByRole("menuitem", { name: "Details" }).click();
       await page.getByRole("menuitem", { name: "Name & description" }).click();
 
       // The "Deck details" dialog has other textboxes (description/links); target Name explicitly.

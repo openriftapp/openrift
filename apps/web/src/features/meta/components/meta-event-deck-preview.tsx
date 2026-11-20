@@ -3,16 +3,9 @@ import type { PublicDeckCardResponse } from "@openrift/shared/types/api/deck";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
-import { CopyIcon, EllipsisVerticalIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { buttonVariants } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TextLink } from "@/components/ui/text-link";
@@ -20,9 +13,6 @@ import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { useOpenCardDetail } from "@/features/cards/components/card-detail-opener";
 import { DomainIcon } from "@/features/cards/components/domain-icon";
 import { OwnershipBand } from "@/features/decks/components/ownership-band";
-import { useCopyArchivedDeck } from "@/features/decks/hooks/use-copy-archived-deck";
-import { useCopyDeckCode } from "@/features/decks/hooks/use-copy-deck-code";
-import { toEncodeDeckCards } from "@/features/decks/lib/deck-encode-input";
 import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
 import { MetaContributors } from "@/features/meta/components/meta-contributors";
 import { useMetaDeck } from "@/features/meta/hooks/use-meta";
@@ -32,11 +22,11 @@ import type { MetaBanGroup, MetaDeckCardBan } from "@/features/meta/lib/meta-dec
 import { metaDeckCardBanStates } from "@/features/meta/lib/meta-deck-bans";
 import { metaCardOwnershipBand } from "@/features/meta/lib/meta-deck-collection";
 import { deckRuneSplit, deckTypeSplit } from "@/features/meta/lib/meta-deck-composition";
-import { metaDeckCopyFields } from "@/features/meta/lib/meta-deck-copy";
 import { deckCardDetailKeys } from "@/features/meta/lib/meta-deck-side-keys";
 import { inferredCards, inferredSummary } from "@/features/meta/lib/meta-inferred";
 import { useCardHoverPreview } from "@/features/rules/components/rule-card-preview";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { useUserId } from "@/hooks/use-session";
 import { useSignInSearch } from "@/hooks/use-sign-in-search";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -163,11 +153,10 @@ export function MetaEventDeckPreview({
   banGroups?: readonly MetaBanGroup[];
 }) {
   const { data } = useMetaDeck(token);
-  const copyToMyDecks = useCopyArchivedDeck();
-  const deckCode = useCopyDeckCode(toEncodeDeckCards(data.cards));
+  const isLoggedIn = useUserId() !== null;
   const hydrated = useHydrated();
   const signIn = useSignInSearch();
-  const owned = useMetaOwnedCards(hydrated && copyToMyDecks.isLoggedIn);
+  const owned = useMetaOwnedCards(hydrated && isLoggedIn);
   const cardPreview = useCardHoverPreview("[data-card-image]");
   const bandFor = (card: PublicDeckCardResponse) =>
     owned === undefined
@@ -285,53 +274,15 @@ export function MetaEventDeckPreview({
           </span>
         )}
         <MetaContributors contributors={data.meta.contributors} className="text-xs" />
-        {!copyToMyDecks.isLoggedIn && (
+        {!isLoggedIn && (
           <TextLink render={<Link rel="nofollow" {...signIn} />}>
             {m.meta_deck_preview_sign_in_compare()}
           </TextLink>
         )}
         <span className="ml-auto" />
-        <span className="flex items-center gap-1.5">
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button variant="ghost" size="icon-sm" aria-label={m.meta_deck_preview_actions()} />
-              }
-            >
-              <EllipsisVerticalIcon />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                disabled={copyToMyDecks.isPending}
-                onClick={() =>
-                  void copyToMyDecks.copy({
-                    token,
-                    deck: data.deck,
-                    cards: data.cards,
-                    ...metaDeckCopyFields(data, token),
-                  })
-                }
-              >
-                <CopyIcon />
-                {copyToMyDecks.label}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                disabled={deckCode.pending}
-                onClick={() => void deckCode.copyCode()}
-              >
-                <CopyIcon />
-                {m.meta_deck_preview_copy_code()}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Link
-            to="/meta/decks/$token"
-            params={{ token }}
-            className={buttonVariants({ size: "sm" })}
-          >
-            {m.meta_deck_preview_open_deck()}
-          </Link>
-        </span>
+        <Link to="/meta/decks/$token" params={{ token }} className={buttonVariants({ size: "sm" })}>
+          {m.meta_deck_preview_open_deck()}
+        </Link>
       </div>
     </div>
   );

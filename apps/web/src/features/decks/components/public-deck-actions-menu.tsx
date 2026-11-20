@@ -1,13 +1,5 @@
 import type { PublicDeckCardResponse } from "@openrift/shared/types/api/deck";
-import { Link } from "@tanstack/react-router";
-import {
-  CopyIcon,
-  DownloadIcon,
-  EllipsisVerticalIcon,
-  GitCompareArrowsIcon,
-  ImageDownIcon,
-  PrinterIcon,
-} from "lucide-react";
+import { EllipsisVerticalIcon } from "lucide-react";
 import { useState } from "react";
 
 import { PageTopBarIconButton } from "@/components/layout/page-top-bar";
@@ -16,18 +8,22 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DeckExportDialog } from "@/features/decks/components/deck-export-dialog";
+import { DeckCopyFallbackDialog } from "@/features/decks/components/deck-copy-fallback-dialog";
+import { DeckMenuContent } from "@/features/decks/components/deck-menu-content";
+import type { DeckPrintKind } from "@/features/decks/components/deck-print-dialog";
 import { DeckPrintDialog } from "@/features/decks/components/deck-print-dialog";
-import { useCopyDeckCode } from "@/features/decks/hooks/use-copy-deck-code";
+import { DeckImageDialog } from "@/features/decks/components/deck-share-dialog";
+import { useDeckOutputRuns } from "@/features/decks/hooks/use-deck-menu-runs";
 import { toBuilderCardFromPublic } from "@/features/decks/lib/deck-builder-card";
 import type { DeckLinkKind } from "@/features/decks/lib/deck-compare-side";
 import { compareLinkParam } from "@/features/decks/lib/deck-compare-side";
 import { toEncodeDeckCards } from "@/features/decks/lib/deck-encode-input";
-import type { PublicDeckSource } from "@/features/decks/lib/public-deck-source";
-import { deckShareImageUrl, shareImageOptions, shareImageVersion } from "@/lib/share-image";
+import type { DeckMenuAction } from "@/features/decks/lib/deck-menu-model";
+import { deckMenuModel } from "@/features/decks/lib/deck-menu-model";
+import { shareImageVersion } from "@/lib/share-image";
+import { shareLinkUrl } from "@/lib/share-links";
 import { getSiteUrl } from "@/lib/site-config";
 import { m } from "@/paraglide/messages.js";
 
@@ -38,14 +34,25 @@ interface PublicDeckActionsMenuProps {
   linkKind: DeckLinkKind;
   updatedAt: string;
   cards: PublicDeckCardResponse[];
-  extraOptions?: { label: string; description: string; cards: PublicDeckCardResponse[] }[];
   inTopBar?: boolean;
 }
 
-/**
- * Overflow menu on the two read-only deck pages, carrying only the actions
- * that need neither an account nor a session.
- */
+type PublicDialog = "link" | "image" | DeckPrintKind;
+
+const DIALOG_OF: Partial<Record<DeckMenuAction, PublicDialog>> = {
+  shareLink: "link",
+  saveImage: "image",
+  printProxies: "proxies",
+  printRegistration: "registration",
+};
+
+function publicDeckUrl(linkKind: DeckLinkKind, token: string): string {
+  if (linkKind === "meta") {
+    return `${getSiteUrl()}/meta/decks/${token}`;
+  }
+  return shareLinkUrl("deck", { shareToken: token, isPublic: true }) ?? "";
+}
+
 export function PublicDeckActionsMenu({
   deckId,
   deckName,
@@ -53,20 +60,32 @@ export function PublicDeckActionsMenu({
   linkKind,
   updatedAt,
   cards,
-  extraOptions = [],
   inTopBar = false,
 }: PublicDeckActionsMenuProps) {
-  const [imageOpen, setImageOpen] = useState(false);
-  const [printOpen, setPrintOpen] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
-
+  const [dialog, setDialog] = useState<PublicDialog | null>(null);
   const builderCards = cards.map((card) => toBuilderCardFromPublic(card));
-  const publicSource: PublicDeckSource = {
-    shareToken,
-    imageVersion: shareImageVersion(updatedAt),
-  };
+  const source = () => ({ cards: toEncodeDeckCards(builderCards) });
+  const outputs = useDeckOutputRuns(source);
+  const cardCount = cards.reduce((sum, card) => sum + card.quantity, 0);
+  const model = deckMenuModel({
+    context: "public",
+    server: false,
+    cardCount,
+    archived: false,
+    isVariant: false,
+    isPrimary: false,
+    hasOtherFormats: false,
+  });
+  const openChange = (target: PublicDialog) => (open: boolean) => setDialog(open ? target : null);
 
-  const deckCode = useCopyDeckCode(toEncodeDeckCards(builderCards));
+  const onAction = (action: DeckMenuAction) => {
+    const target = DIALOG_OF[action];
+    if (target) {
+      setDialog(target);
+      return;
+    }
+    outputs.run[action]?.();
+  };
 
   return (
     <>
@@ -83,79 +102,54 @@ export function PublicDeckActionsMenu({
           <EllipsisVerticalIcon className="size-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => void deckCode.copyCode()} disabled={deckCode.pending}>
-            <CopyIcon className="size-4" />
-            {m.decks_menu_copy_deck_code()}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            render={
-              <Link
-                to="/decks/compare"
-                search={{ from: compareLinkParam(linkKind, shareToken), to: undefined }}
-              />
-            }
-          >
-            <GitCompareArrowsIcon className="size-4" />
-            {m.decks_editor_menu_compare()}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setImageOpen(true)}>
-            <ImageDownIcon className="size-4" />
-            {m.decks_menu_save_image()}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setPrintOpen(true)}>
-            <PrinterIcon className="size-4" />
-            {m.decks_menu_print()}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setExportOpen(true)}>
-            <DownloadIcon className="size-4" />
-            {m.decks_menu_export()}
-          </DropdownMenuItem>
+          <DeckMenuContent
+            model={model}
+            context="public"
+            deck={{ isPinned: false, isDraft: false, archived: false }}
+            compareFrom={compareLinkParam(linkKind, shareToken)}
+            formats={[]}
+            onAction={onAction}
+          />
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <ShareDialog
-        open={imageOpen}
-        onOpenChange={setImageOpen}
-        title={m.decks_dialog_save_image_title()}
-        description={m.decks_dialog_share_local_description()}
-        noun="deck"
-        image={{
-          title: deckName,
-          filename: { base: deckName, fallback: "deck", id: deckId },
-          buildUrl: (choice) =>
-            deckShareImageUrl(
-              getSiteUrl(),
-              shareToken,
-              publicSource.imageVersion,
-              shareImageOptions(choice),
-            ),
-          scales: [1, 2],
-          qrNoun: "deck",
-          qrAvailable: true,
-        }}
-      />
+      {dialog === "link" && (
+        <ShareDialog
+          open
+          onOpenChange={openChange("link")}
+          title={m.decks_dialog_share_title()}
+          noun="deck"
+          link={{
+            url: publicDeckUrl(linkKind, shareToken),
+            label: m.decks_dialog_share_link_label(),
+          }}
+          qrFilename={{ base: deckName, fallback: "deck", id: deckId }}
+        />
+      )}
 
-      <DeckPrintDialog
-        deckId={deckId}
-        deckName={deckName}
-        cards={builderCards}
-        publicSource={publicSource}
-        open={printOpen}
-        onOpenChange={setPrintOpen}
-      />
+      {dialog === "image" && (
+        <DeckImageDialog
+          open
+          onOpenChange={openChange("image")}
+          deckId={deckId}
+          deckName={deckName}
+          cards={builderCards}
+          publicSource={{ shareToken, imageVersion: shareImageVersion(updatedAt) }}
+        />
+      )}
 
-      <DeckExportDialog
-        deckId={deckId}
-        isDirty={false}
-        cards={builderCards}
-        extraOptions={extraOptions.map((option) => ({
-          ...option,
-          cards: option.cards.map((card) => toBuilderCardFromPublic(card)),
-        }))}
-        publicSource={publicSource}
-        open={exportOpen}
-        onOpenChange={setExportOpen}
-      />
+      {(dialog === "proxies" || dialog === "registration") && (
+        <DeckPrintDialog
+          open
+          kind={dialog}
+          onOpenChange={openChange(dialog)}
+          deckId={deckId}
+          deckName={deckName}
+          cards={builderCards}
+        />
+      )}
+
+      <DeckCopyFallbackDialog fallback={outputs.fallback} onClose={() => outputs.closeFallback()} />
     </>
   );
 }

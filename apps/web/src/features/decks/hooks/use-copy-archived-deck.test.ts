@@ -65,7 +65,7 @@ describe("useCopyArchivedDeck", () => {
     userId = "user-1";
     const { result } = renderHook(() => useCopyArchivedDeck());
 
-    expect(result.current.label).toBe("Copy to my decks");
+    expect(result.current.label).toBe("Add to my decks");
     expect(result.current.isLoggedIn).toBe(true);
   });
 

@@ -331,11 +331,12 @@ test.describe("decks list", () => {
       const deckLink = page.locator(`a[href="/decks/${deckId}"]`);
       await expect(deckLink).toBeVisible({ timeout: 15_000 });
       await page.getByRole("button", { name: "Deck actions" }).click();
-      await page.getByRole("menuitem", { name: "Rename" }).click();
+      await page.getByRole("menuitem", { name: "Edit deck" }).click();
+      await page.getByRole("menuitem", { name: "Name & description" }).click();
 
       const dialog = page.getByRole("dialog");
-      await expect(dialog.getByRole("heading", { name: "Rename deck" })).toBeVisible();
-      const input = dialog.getByRole("textbox");
+      await expect(dialog.getByRole("heading", { name: "Deck details" })).toBeVisible();
+      const input = dialog.getByLabel("Name", { exact: true });
       await expect(input).toHaveValue(deckName);
     });
 
@@ -348,11 +349,11 @@ test.describe("decks list", () => {
       const deckLink = page.locator(`a[href="/decks/${deckId}"]`);
       await expect(deckLink).toBeVisible({ timeout: 15_000 });
       await page.getByRole("button", { name: "Deck actions" }).click();
-      await page.getByRole("menuitem", { name: "Rename" }).click();
+      await page.getByRole("menuitem", { name: "Edit deck" }).click();
+      await page.getByRole("menuitem", { name: "Name & description" }).click();
 
       const dialog = page.getByRole("dialog");
-      const input = dialog.getByRole("textbox");
-      // "Rename" is the menu item that opens the dialog; its confirm button is "Save".
+      const input = dialog.getByLabel("Name", { exact: true });
       const renameButton = dialog.getByRole("button", { name: "Save" });
 
       await input.fill("");
@@ -371,10 +372,11 @@ test.describe("decks list", () => {
       const deckLink = page.locator(`a[href="/decks/${deckId}"]`);
       await expect(deckLink).toBeVisible({ timeout: 15_000 });
       await page.getByRole("button", { name: "Deck actions" }).click();
-      await page.getByRole("menuitem", { name: "Rename" }).click();
+      await page.getByRole("menuitem", { name: "Edit deck" }).click();
+      await page.getByRole("menuitem", { name: "Name & description" }).click();
 
       const dialog = page.getByRole("dialog");
-      const input = dialog.getByRole("textbox");
+      const input = dialog.getByLabel("Name", { exact: true });
       await input.fill(nextName);
 
       const updateRequest = page.waitForRequest((request) =>

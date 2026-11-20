@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { copyTextToClipboard, useCopyToClipboard } from "./use-copy-to-clipboard";
+import { copyPendingText, copyTextToClipboard, useCopyToClipboard } from "./use-copy-to-clipboard";
 
 const writeText = vi.fn<(text: string) => Promise<void>>();
 
@@ -16,6 +16,60 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+});
+
+describe("copyPendingText", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("writes through writeText where the browser has no ClipboardItem", async () => {
+    vi.stubGlobal("ClipboardItem", undefined);
+
+    await expect(copyPendingText(Promise.resolve("DECKCODE"))).resolves.toBe(true);
+    expect(writeText).toHaveBeenCalledWith("DECKCODE");
+  });
+
+  it("hands the clipboard a pending item inside the click, before the text arrives", async () => {
+    class StubClipboardItem {
+      readonly data: Record<string, Promise<Blob>>;
+      constructor(data: Record<string, Promise<Blob>>) {
+        this.data = data;
+      }
+    }
+    const write = vi.fn<(items: StubClipboardItem[]) => Promise<void>>().mockResolvedValue();
+    vi.stubGlobal("ClipboardItem", StubClipboardItem);
+    Object.defineProperty(globalThis.navigator, "clipboard", {
+      value: { writeText, write },
+      configurable: true,
+    });
+    let resolveText: (text: string) => void = () => undefined;
+    const text = new Promise<string>((resolve) => {
+      resolveText = resolve;
+    });
+
+    const copied = copyPendingText(text);
+    expect(write).toHaveBeenCalledTimes(1);
+    resolveText("Main: 3 Yasuo");
+
+    await expect(copied).resolves.toBe(true);
+    const blob = await write.mock.calls[0]?.[0][0]?.data["text/plain"];
+    await expect(blob?.text()).resolves.toBe("Main: 3 Yasuo");
+  });
+
+  it("returns false when the text fails to arrive", async () => {
+    vi.stubGlobal("ClipboardItem", undefined);
+
+    await expect(copyPendingText(Promise.reject(new Error("offline")))).resolves.toBe(false);
+    expect(writeText).not.toHaveBeenCalled();
+  });
+
+  it("returns false when the clipboard refuses the write", async () => {
+    vi.stubGlobal("ClipboardItem", undefined);
+    writeText.mockRejectedValue(new Error("NotAllowedError"));
+
+    await expect(copyPendingText(Promise.resolve("DECKCODE"))).resolves.toBe(false);
+  });
 });
 
 describe("copyTextToClipboard", () => {

@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { imageUrl } from "@openrift/shared/image-url";
 import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Label } from "@/components/ui/label";
 import { Pressable } from "@/components/ui/pressable";
 import { Slider } from "@/components/ui/slider";
+import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { DeckFormDialog, DeckFormFooter } from "@/features/decks/components/deck-form-dialog";
 import type { DeckFormControls } from "@/features/decks/components/deck-form-dialog";
 import { useUpdateDeckMeta } from "@/features/decks/hooks/use-decks";
@@ -41,6 +43,30 @@ export function DeckCoverDialog({
     <DeckFormDialog open={open} onOpenChange={onOpenChange} className="sm:max-w-2xl">
       {(controls) => <DeckCoverForm {...fields} {...controls} />}
     </DeckFormDialog>
+  );
+}
+
+/** {@link DeckCoverDialog} with thumbnails from the viewer's preferred printings. */
+export function DeckCoverPickerDialog(
+  props: Omit<DeckCoverFields, "getThumbnail" | "getCoverThumbnail" | "faceOf"> & {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+  },
+) {
+  const { getPreferredFrontImage, getFaceImage, faceOf } = usePreferredPrinting();
+  return (
+    <DeckCoverDialog
+      {...props}
+      getThumbnail={(cardId, preferredPrintingId) => {
+        const id = getPreferredFrontImage(cardId, preferredPrintingId)?.imageId;
+        return id ? imageUrl(id, "400w") : undefined;
+      }}
+      getCoverThumbnail={(cardId, faceId) => {
+        const id = getFaceImage(cardId, faceId)?.imageId;
+        return id ? imageUrl(id, "400w") : undefined;
+      }}
+      faceOf={faceOf}
+    />
   );
 }
 

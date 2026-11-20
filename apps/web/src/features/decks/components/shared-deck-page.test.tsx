@@ -54,7 +54,7 @@ describe("SharedDeckPage", () => {
   it("offers a signed-in viewer the copy", () => {
     session.user = { id: "user-1" };
     render(<SharedDeckPage />);
-    expect(screen.getByRole("button", { name: "Copy to my decks" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Add to my decks" })).toBeTruthy();
     expect(screen.queryByRole("link", { name: "Create an account" })).toBeNull();
   });
 });

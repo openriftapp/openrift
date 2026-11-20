@@ -1,7 +1,7 @@
 import type { PublicDeckCardResponse } from "@openrift/shared/types/api/deck";
 import type { MetaDeckDetailResponse } from "@openrift/shared/types/api/meta";
 import { WellKnown } from "@openrift/shared/well-known";
-import { createEvent, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { createEvent, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -9,8 +9,6 @@ const state = vi.hoisted(() => ({
   deck: null as MetaDeckDetailResponse | null,
   userId: null as string | null,
   openCardDetail: null as ReturnType<typeof vi.fn> | null,
-  encode: vi.fn(),
-  copy: vi.fn(),
   owned: undefined as
     | {
         ownedByPrinting: Record<string, number>;
@@ -21,13 +19,6 @@ const state = vi.hoisted(() => ({
 
 vi.mock("@/features/meta/hooks/use-meta", () => ({ useMetaDeck: () => ({ data: state.deck }) }));
 vi.mock("@/hooks/use-session", () => ({ useUserId: () => state.userId }));
-vi.mock("@/features/decks/hooks/use-decks", () => ({
-  useCloneSharedDeck: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useEncodeDeckCards: () => ({ mutateAsync: state.encode, isPending: false }),
-}));
-vi.mock("@/hooks/use-copy-to-clipboard", () => ({
-  useCopyToClipboard: () => ({ copied: false, copy: state.copy, reset: vi.fn() }),
-}));
 vi.mock("@/features/cards/components/card-detail-opener", () => ({
   useOpenCardDetail: () => state.openCardDetail,
 }));
@@ -231,8 +222,6 @@ describe("MetaEventDeckPreview", () => {
     state.deck = metaDeck();
     state.userId = null;
     state.openCardDetail = vi.fn();
-    state.encode = vi.fn(async () => ({ code: "RB1-TESTCODE", warnings: [] }));
-    state.copy = vi.fn();
     state.owned = {
       ownedByPrinting: { "p-ruin": 1, "p-ruin-foil": 1, "p-punch": 8 },
       printingsByCardId: new Map([
@@ -481,38 +470,10 @@ describe("MetaEventDeckPreview", () => {
     expect(screen.queryByRole("button", { name: /Ruin Runner/u })).toBeNull();
   });
 
-  it("labels the menu's fork by where the copy lands", async () => {
-    const user = userEvent.setup();
+  it("leaves the deck's actions to its own page", () => {
     renderPreview();
 
-    await user.click(screen.getByRole("button", { name: "Decklist actions" }));
-
-    expect(
-      await screen.findByRole("menuitem", { name: "Open in deck builder" }),
-    ).toBeInTheDocument();
-  });
-
-  it("labels the menu's copy as copying for a signed-in reader", async () => {
-    const user = userEvent.setup();
-    state.userId = "user-1";
-    renderPreview();
-
-    await user.click(screen.getByRole("button", { name: "Decklist actions" }));
-
-    expect(await screen.findByRole("menuitem", { name: "Copy to my decks" })).toBeInTheDocument();
-  });
-
-  it("encodes the list before putting its code on the clipboard", async () => {
-    const user = userEvent.setup();
-    renderPreview();
-
-    await user.click(screen.getByRole("button", { name: "Decklist actions" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Copy deck code" }));
-
-    await waitFor(() => {
-      expect(state.copy).toHaveBeenCalledWith("RB1-TESTCODE");
-    });
-    expect(state.encode).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: "Decklist actions" })).toBeNull();
   });
 
   it("links on to the deck's own page", () => {

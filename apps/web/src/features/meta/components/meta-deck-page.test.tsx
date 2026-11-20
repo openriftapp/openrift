@@ -370,7 +370,7 @@ describe("MetaDeckPage archive frame", () => {
   it("labels the copy for a signed-in reader as copying", () => {
     captured.userId = "user-1";
     renderDeck();
-    expect(screen.getByRole("button", { name: "Copy to my decks" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Add to my decks" })).toBeDefined();
   });
 
   it("offers the overflow menu beside the copy button", () => {

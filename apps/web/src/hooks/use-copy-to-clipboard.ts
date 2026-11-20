@@ -12,6 +12,37 @@ export async function copyTextToClipboard(text: string): Promise<void> {
   await navigator.clipboard.writeText(text);
 }
 
+async function settled(promise: Promise<unknown>): Promise<boolean> {
+  try {
+    await promise;
+  } catch {
+    return false;
+  }
+  return true;
+}
+
+async function writeTextWhenReady(text: Promise<string>): Promise<void> {
+  // Safari drops the click's user activation while the text is fetched, so the
+  // write starts inside the click and the browser waits for the text.
+  if (typeof ClipboardItem !== "undefined" && typeof navigator.clipboard.write === "function") {
+    const blob = (async () => new Blob([await text], { type: "text/plain" }))();
+    // The browser may refuse the write without ever reading the item.
+    void settled(blob);
+    await navigator.clipboard.write([new ClipboardItem({ "text/plain": blob })]);
+    return;
+  }
+  await navigator.clipboard.writeText(await text);
+}
+
+export async function copyPendingText(text: Promise<string>): Promise<boolean> {
+  try {
+    await writeTextWhenReady(text);
+  } catch {
+    return false;
+  }
+  return true;
+}
+
 /** A denied or unavailable write returns false; it never throws. */
 export function useCopyToClipboard(): UseCopyToClipboard {
   const [copied, setCopied] = useState(false);

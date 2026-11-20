@@ -1,26 +1,8 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckDetailResponse } from "@openrift/shared/types/api/deck";
-import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
+import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
-import { Link, useNavigate } from "@tanstack/react-router";
-import {
-  BoxIcon,
-  CopyIcon,
-  DownloadIcon,
-  EllipsisVerticalIcon,
-  FlaskConicalIcon,
-  GitBranchIcon,
-  GitCompareArrowsIcon,
-  ImageIcon,
-  PencilIcon,
-  PlayIcon,
-  PlusIcon,
-  PrinterIcon,
-  RefreshCwIcon,
-  Share2Icon,
-  Trash2Icon,
-  UploadIcon,
-} from "lucide-react";
+import { LinkIcon, PlusIcon } from "lucide-react";
 
 import {
   PageTopBar,
@@ -30,25 +12,13 @@ import {
   PageTopBarIconButton,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { DeckEditorMenu } from "@/features/decks/components/deck-editor-menu";
 import { DeckUndoControls } from "@/features/decks/components/deck-undo-controls";
 import { LocalDeckBadge } from "@/features/decks/components/local-save-hint";
 import type { DeckEditorDialog } from "@/features/decks/hooks/use-deck-editor-dialogs";
-import { useDeckMenuActions } from "@/features/decks/hooks/use-deck-menu-actions";
-import { useEncodeDeckCards, useExportDeck, useUpdateDeck } from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { toEncodeDeckCards } from "@/features/decks/lib/deck-encode-input";
-import { useDeckFormatList, useZoneOrder } from "@/hooks/use-enums";
+import { useZoneOrder } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
@@ -81,40 +51,7 @@ export function DeckEditorTopBar({
   workbench,
 }: DeckEditorTopBarProps) {
   const { zoneLabels } = useZoneOrder();
-  const navigate = useNavigate();
   const openQuickAdd = useCommandPaletteStore((state) => state.openQuickAdd);
-  const updateDeck = useUpdateDeck();
-  const exportDeck = useExportDeck();
-  const encodeDeck = useEncodeDeckCards();
-  const { formats } = useDeckFormatList();
-  const otherFormats = formats.filter((entry) => entry.slug !== deck.format);
-
-  const { duplicate, changeFormat } = useDeckMenuActions({ id: deckId, name: deck.name });
-
-  const handlePlayOnRiftAtlas = () => {
-    // Open the placeholder tab synchronously so it survives the popup blocker
-    // while we fetch the piltover deck code; navigate it once the code arrives.
-    const playTab = window.open("about:blank", "_blank");
-    if (!playTab) {
-      return;
-    }
-    playTab.opener = null;
-    const onSuccess = ({ code }: { code: string }) => {
-      playTab.location.href = `https://play.riftatlas.com/?deckCode=${encodeURIComponent(code)}`;
-    };
-    const onError = () => playTab.close();
-    // A local deck has no server row to export by id — encode its cards via the
-    // public endpoint instead.
-    if (isLocal) {
-      encodeDeck.mutate(
-        { format: "piltover", cards: toEncodeDeckCards(cards) },
-        { onSuccess, onError },
-      );
-      return;
-    }
-    exportDeck.mutate({ deckId, format: "piltover" }, { onSuccess, onError });
-  };
-
   // While a zone browser fills the main area (the hero out of sight), the top
   // bar carries the completion figure shared with the hero and sidebar header.
   const inZoneView = activeZone !== null || workbench !== undefined;
@@ -193,134 +130,22 @@ export function DeckEditorTopBar({
             <DeckUndoControls deckId={deckId} />
           </>
         )}
-        <div className="hidden md:flex md:items-center md:gap-1">
-          <PageTopBarButton onClick={() => openDialog("share")}>
-            <Share2Icon className="size-4" />
-            {m.decks_editor_share()}
-          </PageTopBarButton>
-        </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger render={<PageTopBarIconButton />}>
-            <EllipsisVerticalIcon className="size-4" />
-            <span className="sr-only">{m.decks_editor_deck_actions()}</span>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {workbench?.menuPrefix}
-            {/* Share has its own button in the bar from md up, so the
-                  entry here is the phone's only way to it. */}
-            <div className="md:hidden">
-              <DropdownMenuItem onClick={() => openDialog("share")}>
-                <Share2Icon className="size-4" />
-                {m.decks_editor_menu_share()}
-              </DropdownMenuItem>
-            </div>
-            <DropdownMenuItem onClick={() => openDialog("export")}>
-              <DownloadIcon className="size-4" />
-              {m.decks_editor_menu_export()}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => openDialog("print")}>
-              <PrinterIcon className="size-4" />
-              {m.decks_editor_menu_print()}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                void navigate({
-                  to: "/decks/import",
-                  search: { replaceDeckId: deckId },
-                })
-              }
-            >
-              <UploadIcon className="size-4" />
-              {m.decks_editor_menu_import_replace()}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            {/* Descriptions are a signed-in feature, so a local deck
-                  gets the name on its own. */}
-            <DropdownMenuItem onClick={() => openDialog(isLocal ? "rename" : "details")}>
-              <PencilIcon className="size-4" />
-              {isLocal ? m.common_rename() : m.decks_editor_menu_name_description()}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={duplicate}>
-              <CopyIcon className="size-4" />
-              {m.decks_menu_duplicate()}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => openDialog("cover")}>
-              <ImageIcon className="size-4" />
-              {m.decks_editor_menu_change_cover()}
-            </DropdownMenuItem>
-            {/* A home collection points at a server collection, which
-                  a browser-local deck can't reference. */}
-            {!isLocal && (
-              <DropdownMenuItem onClick={() => openDialog("homeCollection")}>
-                <BoxIcon className="size-4" />
-                {m.decks_editor_menu_stored_in()}
-              </DropdownMenuItem>
-            )}
-            {/* Opens the comparison page with this deck pinned as the
-                  left side and the other still to pick. */}
-            <DropdownMenuItem
-              render={<Link to="/decks/compare" search={{ from: deckId, to: undefined }} />}
-            >
-              <GitCompareArrowsIcon className="size-4" />
-              {m.decks_editor_menu_compare()}
-            </DropdownMenuItem>
-            {/* Variants are server decks in a family, which a
-                  browser-local deck can't join until it's claimed. */}
-            {!isLocal && (
-              <DropdownMenuItem onClick={() => openDialog("variantCreate")}>
-                <CopyIcon className="size-4" />
-                {m.decks_editor_menu_new_variant()}
-              </DropdownMenuItem>
-            )}
-            {/* Always available for a server deck: the dialog is also
-                  where a standalone deck gets linked to its first sibling. */}
-            {!isLocal && (
-              <DropdownMenuItem onClick={() => openDialog("variants")}>
-                <GitBranchIcon className="size-4" />
-                {m.decks_editor_menu_variants()}
-              </DropdownMenuItem>
-            )}
-            {!isLocal && (
-              <DropdownMenuItem
-                onClick={() => updateDeck.mutate({ deckId, isDraft: !deck.isDraft })}
-              >
-                <FlaskConicalIcon className="size-4" />
-                {deck.isDraft
-                  ? m.decks_editor_menu_unmark_draft()
-                  : m.decks_editor_menu_mark_draft()}
-              </DropdownMenuItem>
-            )}
-            {otherFormats.length > 0 && (
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <RefreshCwIcon className="size-4" />
-                  {m.decks_editor_menu_change_format()}
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  {otherFormats.map((entry) => (
-                    <DropdownMenuItem
-                      key={entry.slug}
-                      onClick={() => changeFormat(entry.slug as DeckFormat, entry.label)}
-                    >
-                      {entry.label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-            )}
-            <DropdownMenuItem onClick={handlePlayOnRiftAtlas}>
-              <PlayIcon className="size-4" />
-              {m.decks_editor_menu_play_riftatlas()}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            {/* A variant is a deck of its own, so this is also how a
-                  single version of a family is deleted. */}
-            <DropdownMenuItem variant="destructive" onClick={() => openDialog("delete")}>
-              <Trash2Icon className="size-4" />
-              {m.decks_editor_menu_delete()}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {!isLocal && (
+          <div className="hidden md:flex md:items-center md:gap-1">
+            <PageTopBarButton onClick={() => openDialog("share")}>
+              <LinkIcon className="size-4" />
+              {m.decks_editor_share()}
+            </PageTopBarButton>
+          </div>
+        )}
+        <DeckEditorMenu
+          deckId={deckId}
+          deck={deck}
+          cards={cards}
+          isLocal={isLocal}
+          openDialog={openDialog}
+          prefix={workbench?.menuPrefix}
+        />
       </PageTopBarActions>
     </PageTopBar>
   );

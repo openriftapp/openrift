@@ -1,28 +1,26 @@
-import { imageUrl } from "@openrift/shared/image-url";
 import type { DeckDetailResponse } from "@openrift/shared/types/api/deck";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { useNavigate } from "@tanstack/react-router";
 
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
-import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
-import { DeckCoverDialog } from "@/features/decks/components/deck-cover-dialog";
+import { DeckCoverPickerDialog } from "@/features/decks/components/deck-cover-dialog";
 import { DeckDetailsDialog } from "@/features/decks/components/deck-details-dialog";
 import { DeckDraftConflictDialog } from "@/features/decks/components/deck-draft-conflict-dialog";
-import { DeckExportDialog } from "@/features/decks/components/deck-export-dialog";
 import { DeckHomeCollectionDialog } from "@/features/decks/components/deck-home-collection-dialog";
 import { DeckMissingCardsDialog } from "@/features/decks/components/deck-missing-cards-dialog";
 import { DeckPrintDialog } from "@/features/decks/components/deck-print-dialog";
 import { DeckQuickAdd } from "@/features/decks/components/deck-quick-add";
 import { DeckRenameDialog } from "@/features/decks/components/deck-rename-dialog";
-import { DeckShareDialog } from "@/features/decks/components/deck-share-dialog";
+import { DeckImageDialog, DeckShareDialog } from "@/features/decks/components/deck-share-dialog";
 import { DeckVariantCreateDialog } from "@/features/decks/components/deck-variant-create-dialog";
 import { DeckVariantsDialog } from "@/features/decks/components/deck-variants-dialog";
+import { ManageDeckFoldersDialog } from "@/features/decks/components/manage-deck-folders-dialog";
+import { useBoxedDecks } from "@/features/decks/hooks/use-boxed-decks";
 import type { DeckEditorDialogState } from "@/features/decks/hooks/use-deck-editor-dialogs";
 import { useDeleteDeck } from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
 import { deleteLocalDeck } from "@/features/decks/lib/local-decks-collection";
-import { shareLinkUrl } from "@/lib/share-links";
 import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
 
@@ -49,7 +47,7 @@ export function DeckEditorDialogs({
 }: DeckEditorDialogsProps) {
   const navigate = useNavigate();
   const deleteDeck = useDeleteDeck();
-  const { getPreferredFrontImage, getFaceImage, faceOf } = usePreferredPrinting();
+  const boxed = useBoxedDecks({ id: deckId, name: deck.name, collectionId: deck.collectionId });
   const quickAddOpen = useCommandPaletteStore((state) => state.quickAddOpen);
   const setQuickAddOpen = useCommandPaletteStore((state) => state.setQuickAddOpen);
   const { open, setDialogOpen } = dialogs;
@@ -100,6 +98,7 @@ export function DeckEditorDialogs({
         <DeckHomeCollectionDialog
           deckId={deckId}
           currentCollectionId={deck.collectionId}
+          stored={boxed}
           open={open.homeCollection}
           onOpenChange={(next) => setDialogOpen("homeCollection", next)}
         />
@@ -136,28 +135,52 @@ export function DeckEditorDialogs({
         }
         confirmLabel={m.common_delete()}
       />
-      <DeckShareDialog
-        deckId={deckId}
-        deckName={deck.name}
-        isPublic={deck.isPublic}
-        shareToken={deck.shareToken}
-        isDirty={isDirty}
-        open={open.share}
-        onOpenChange={(next) => setDialogOpen("share", next)}
-      />
-      <DeckExportDialog
-        deckId={deckId}
-        isDirty={isDirty}
-        open={open.export}
-        onOpenChange={(next) => setDialogOpen("export", next)}
-      />
-      <DeckPrintDialog
-        open={open.print}
-        onOpenChange={(next) => setDialogOpen("print", next)}
-        deckId={deckId}
-        deckName={deck.name}
-        isShared={shareLinkUrl("deck", deck) !== null}
-      />
+      {!isLocal && (
+        <DeckShareDialog
+          deckId={deckId}
+          deckName={deck.name}
+          isPublic={deck.isPublic}
+          shareToken={deck.shareToken}
+          open={open.share}
+          onOpenChange={(next) => setDialogOpen("share", next)}
+        />
+      )}
+      {!isLocal && (
+        <ManageDeckFoldersDialog
+          open={open.folders}
+          onOpenChange={(next) => setDialogOpen("folders", next)}
+        />
+      )}
+      {open.image && (
+        <DeckImageDialog
+          deckId={deckId}
+          deckName={deck.name}
+          isPublic={deck.isPublic}
+          shareToken={deck.shareToken}
+          isDirty={isDirty}
+          cards={cards}
+          open
+          onOpenChange={(next) => setDialogOpen("image", next)}
+        />
+      )}
+      {open.proxies && (
+        <DeckPrintDialog
+          kind="proxies"
+          open
+          onOpenChange={(next) => setDialogOpen("proxies", next)}
+          deckId={deckId}
+          deckName={deck.name}
+        />
+      )}
+      {open.registration && (
+        <DeckPrintDialog
+          kind="registration"
+          open
+          onOpenChange={(next) => setDialogOpen("registration", next)}
+          deckId={deckId}
+          deckName={deck.name}
+        />
+      )}
       {ownershipData && (
         <DeckMissingCardsDialog
           open={open.missing}
@@ -175,7 +198,7 @@ export function DeckEditorDialogs({
         format={deck.format}
         cards={cards}
       />
-      <DeckCoverDialog
+      <DeckCoverPickerDialog
         open={open.cover}
         onOpenChange={(next) => setDialogOpen("cover", next)}
         deckId={deckId}
@@ -183,15 +206,6 @@ export function DeckEditorDialogs({
         coverCardId={deck.coverCardId}
         coverFaceId={deck.coverFaceId}
         coverPosition={deck.coverPosition}
-        getThumbnail={(cardId, preferredPrintingId) => {
-          const id = getPreferredFrontImage(cardId, preferredPrintingId)?.imageId;
-          return id ? imageUrl(id, "400w") : undefined;
-        }}
-        getCoverThumbnail={(cardId, faceId) => {
-          const id = getFaceImage(cardId, faceId)?.imageId;
-          return id ? imageUrl(id, "400w") : undefined;
-        }}
-        faceOf={faceOf}
       />
     </>
   );

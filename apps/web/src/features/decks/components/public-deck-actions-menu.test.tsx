@@ -4,18 +4,15 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ShareImageRenderChoice } from "@/lib/share-image";
-
-const { encodeMock, copyMock, toastMock, dialogProps } = vi.hoisted(() => ({
+const { encodeMock, dialogProps } = vi.hoisted(() => ({
   encodeMock: vi.fn(),
-  copyMock: vi.fn(),
-  toastMock: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
-  dialogProps: {} as Record<string, Record<string, unknown>>,
+  dialogProps: new Map<string, Record<string, unknown>>(),
 }));
 
-vi.mock("sonner", () => ({ toast: toastMock }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }));
 
 vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => vi.fn(),
   Link: ({
     to,
     search,
@@ -33,11 +30,12 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@/features/decks/hooks/use-decks", () => ({
-  useEncodeDeckCards: () => ({ mutateAsync: encodeMock, isPending: false }),
+  useEncodeDeckCards: () => ({ mutate: vi.fn(), mutateAsync: encodeMock, isPending: false }),
+  useExportDeck: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }),
 }));
 
 vi.mock("@/hooks/use-copy-to-clipboard", () => ({
-  useCopyToClipboard: () => ({ copied: false, copy: copyMock, reset: vi.fn() }),
+  copyPendingText: () => Promise.resolve(true),
 }));
 
 vi.mock("@/lib/site-config", () => ({ getSiteUrl: () => "https://openrift.app" }));
@@ -50,21 +48,21 @@ vi.mock("@/components/layout/page-top-bar", () => ({
 
 vi.mock("@/components/share/share-dialog", () => ({
   ShareDialog: (props: Record<string, unknown>) => {
-    dialogProps.share = props;
+    dialogProps.set("link", props);
+    return null;
+  },
+}));
+
+vi.mock("@/features/decks/components/deck-share-dialog", () => ({
+  DeckImageDialog: (props: Record<string, unknown>) => {
+    dialogProps.set("image", props);
     return null;
   },
 }));
 
 vi.mock("@/features/decks/components/deck-print-dialog", () => ({
   DeckPrintDialog: (props: Record<string, unknown>) => {
-    dialogProps.print = props;
-    return null;
-  },
-}));
-
-vi.mock("@/features/decks/components/deck-export-dialog", () => ({
-  DeckExportDialog: (props: Record<string, unknown>) => {
-    dialogProps.export = props;
+    dialogProps.set("print", props);
     return null;
   },
 }));
@@ -115,7 +113,7 @@ function renderMenu(props: Partial<React.ComponentProps<typeof PublicDeckActions
 async function openMenu(): Promise<ReturnType<typeof userEvent.setup>> {
   const user = userEvent.setup();
   await user.click(screen.getByRole("button", { name: "Deck actions" }));
-  await screen.findByRole("menuitem", { name: "Copy deck code" });
+  await screen.findByRole("menuitem", { name: "Deck code" });
   return user;
 }
 
@@ -124,8 +122,8 @@ const IMAGE_VERSION = new Date("2026-09-01T00:00:00.000Z").getTime();
 describe("PublicDeckActionsMenu", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    dialogProps.clear();
     encodeMock.mockResolvedValue({ code: "DECKCODE", warnings: [] });
-    copyMock.mockResolvedValue(true);
   });
 
   it("offers the public actions and nothing that needs an account", async () => {
@@ -133,14 +131,18 @@ describe("PublicDeckActionsMenu", () => {
     await openMenu();
 
     expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
-      "Copy deck code",
+      "Play on RiftAtlas",
       "Compare with another deck…",
-      "Save image…",
-      "Print…",
-      "Export…",
+      "Link & QR…",
+      "Save image…PNG, A4 PDF",
+      "Text list",
+      "Deck code",
+      "Tabletop Simulator codes",
+      "Proxies…",
+      "Registration sheet…",
     ]);
-    expect(screen.queryByText(/share link/iu)).toBeNull();
     expect(screen.queryByText(/delete/iu)).toBeNull();
+    expect(screen.queryByText("Manage")).toBeNull();
   });
 
   it("opens the comparison with a shared deck as the left side", async () => {
@@ -163,73 +165,53 @@ describe("PublicDeckActionsMenu", () => {
     );
   });
 
-  it("encodes the deck's own cards and copies the code back", async () => {
+  it("encodes the deck's own cards in the picked format", async () => {
     renderMenu();
     const user = await openMenu();
-    await user.click(screen.getByRole("menuitem", { name: "Copy deck code" }));
+    await user.click(screen.getByRole("menuitem", { name: "Text list" }));
 
     expect(encodeMock).toHaveBeenCalledWith({
+      format: "text",
       cards: [expect.objectContaining({ cardId: "card-1", quantity: 3, zone: "main" })],
     });
-    expect(copyMock).toHaveBeenCalledWith("DECKCODE");
-    expect(toastMock.success).toHaveBeenCalledWith("Deck code copied");
   });
 
-  it("says so when the clipboard write is denied", async () => {
-    copyMock.mockResolvedValue(false);
-    renderMenu();
+  it("links the meta deck's own page", async () => {
+    renderMenu({ linkKind: "meta" });
     const user = await openMenu();
-    await user.click(screen.getByRole("menuitem", { name: "Copy deck code" }));
+    await user.click(screen.getByRole("menuitem", { name: "Link & QR…" }));
 
-    expect(toastMock.error).toHaveBeenCalledWith("Couldn't copy the deck code");
-    expect(toastMock.success).not.toHaveBeenCalled();
+    const link = dialogProps.get("link")?.link as { url: string } | undefined;
+    expect(link?.url).toBe("https://openrift.app/meta/decks/tok123");
   });
 
-  it("warns when the encoder left cards out", async () => {
-    encodeMock.mockResolvedValue({ code: "DECKCODE", warnings: ["Skipped Yasuo."] });
+  it("links the shared deck's own page", async () => {
     renderMenu();
     const user = await openMenu();
-    await user.click(screen.getByRole("menuitem", { name: "Copy deck code" }));
+    await user.click(screen.getByRole("menuitem", { name: "Link & QR…" }));
 
-    expect(toastMock.warning).toHaveBeenCalledWith("The deck code left some cards out.", {
-      description: "Skipped Yasuo.",
+    const link = dialogProps.get("link")?.link as { url: string } | undefined;
+    expect(link?.url).toBe("https://openrift.app/decks/share/tok123");
+  });
+
+  it("renders the image off the share token", async () => {
+    renderMenu();
+    const user = await openMenu();
+    await user.click(screen.getByRole("menuitem", { name: /Save image…/u }));
+
+    expect(dialogProps.get("image")?.publicSource).toEqual({
+      shareToken: "tok123",
+      imageVersion: IMAGE_VERSION,
     });
   });
 
-  it("stays quiet when the encoder rejects, which the global handler reports", async () => {
-    encodeMock.mockRejectedValue(new Error("nope"));
+  it("hands the print dialog the deck's cards and the picked sheet", async () => {
     renderMenu();
     const user = await openMenu();
-    await user.click(screen.getByRole("menuitem", { name: "Copy deck code" }));
+    await user.click(screen.getByRole("menuitem", { name: "Registration sheet…" }));
 
-    expect(copyMock).not.toHaveBeenCalled();
-    expect(toastMock.error).not.toHaveBeenCalled();
-  });
-
-  it("builds the image download off the share token, not an owner route", () => {
-    renderMenu();
-
-    const image = dialogProps.share?.image as {
-      buildUrl: (choice: ShareImageRenderChoice) => string;
-      qrAvailable: boolean;
-    };
-    expect(image.qrAvailable).toBe(true);
-    expect(image.buildUrl({ aspect: "vertical", scale: 2, qr: false })).toBe(
-      `https://openrift.app/api/v1/decks/share/tok123/image.png?v=${IMAGE_VERSION}-r2&size=hq&aspect=vertical&qr=0`,
-    );
-    expect(image.buildUrl({ aspect: "landscape", scale: 1, qr: true })).toBe(
-      `https://openrift.app/api/v1/decks/share/tok123/image.png?v=${IMAGE_VERSION}-r2`,
-    );
-  });
-
-  it("hands the print and export dialogs the public source and the deck's cards", () => {
-    renderMenu();
-
-    const source = { shareToken: "tok123", imageVersion: IMAGE_VERSION };
-    expect(dialogProps.print?.publicSource).toEqual(source);
-    expect(dialogProps.export?.publicSource).toEqual(source);
-    expect(dialogProps.export?.isDirty).toBe(false);
-    expect(dialogProps.print?.cards).toEqual([
+    expect(dialogProps.get("print")?.kind).toBe("registration");
+    expect(dialogProps.get("print")?.cards).toEqual([
       expect.objectContaining({ cardId: "card-1", quantity: 3 }),
     ]);
   });
@@ -239,6 +221,5 @@ describe("PublicDeckActionsMenu", () => {
 
     expect(screen.getByRole("button", { name: "Deck actions" })).toHaveAttribute("data-in-top-bar");
     await openMenu();
-    expect(screen.getAllByRole("menuitem")).toHaveLength(5);
   });
 });

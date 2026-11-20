@@ -2,6 +2,10 @@
 
 ## 2026-11-20
 
+### Highlights
+
+- feat(Decks): **One deck menu everywhere** — the editor, your deck list and published decks share one grouped menu, and copying a text list, deck code or Tabletop Simulator codes takes one click.
+
 ### Other
 
 - feat(Meta): **By legend groups the full standings** — "By legend" now groups every entry under its legend, keeps the player search, legend, decklist and cost filters, and keeps your place on the page when you switch. Rank chips in the standings drop the repeated "Winner" and "Top 8" labels.

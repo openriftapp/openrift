@@ -23,6 +23,22 @@ vi.mock("@/features/decks/hooks/use-local-decks", () => ({
   useIsLocalDeck: () => true,
 }));
 vi.mock("@tanstack/react-router", () => ({
+  Link: ({
+    to: _to,
+    search: _search,
+    params: _params,
+    children,
+    ...rest
+  }: {
+    to: string;
+    search?: unknown;
+    params?: unknown;
+    children?: React.ReactNode;
+  }) => (
+    <a href="/decks/compare" {...rest}>
+      {children}
+    </a>
+  ),
   useNavigate: () => vi.fn(),
   useRouter: () => local.router,
 }));
@@ -35,9 +51,11 @@ vi.mock("@/hooks/use-enums", () => ({
   }),
 }));
 vi.mock("@/features/cards/hooks/use-cards", () => ({ useCards: () => ({ cardsById: {} }) }));
-vi.mock("./deck-export-dialog", () => ({ DeckExportDialog: () => null }));
 vi.mock("./deck-print-dialog", () => ({ DeckPrintDialog: () => null }));
-vi.mock("./deck-share-dialog", () => ({ DeckShareDialog: () => null }));
+vi.mock("./deck-share-dialog", () => ({
+  DeckShareDialog: () => null,
+  DeckImageDialog: () => null,
+}));
 vi.mock("./deck-rename-dialog", () => ({ DeckRenameDialog: () => null }));
 vi.mock("./deck-variants-dialog", () => ({ DeckVariantsDialog: () => null }));
 vi.mock("./manage-deck-folders-dialog", () => ({ ManageDeckFoldersDialog: () => null }));
@@ -99,6 +117,9 @@ describe("DeckActionsMenu on a browser-local deck", () => {
     renderMenu();
 
     await user.click(screen.getByRole("button", { name: "Deck actions" }));
+    const editDeck = await screen.findByRole("menuitem", { name: "Edit deck" });
+    editDeck.focus();
+    await user.keyboard("{ArrowRight}");
     const changeFormat = await screen.findByRole("menuitem", { name: "Change format" });
     changeFormat.focus();
     await user.keyboard("{ArrowRight}");
@@ -115,5 +136,16 @@ describe("DeckActionsMenu on a browser-local deck", () => {
     await user.click(await screen.findByRole("menuitem", { name: "Duplicate" }));
 
     expect(local.duplicateLocalDeck).toHaveBeenCalledWith("local-1");
+  });
+
+  it("hides the account-only entries", async () => {
+    const user = userEvent.setup();
+    renderMenu();
+
+    await user.click(screen.getByRole("button", { name: "Deck actions" }));
+    await screen.findByRole("menuitem", { name: "Duplicate" });
+    for (const name of ["Link & QR…", "Present", "Stored in…", "Organize", "Copies & variants"]) {
+      expect(screen.queryByRole("menuitem", { name })).not.toBeInTheDocument();
+    }
   });
 });

@@ -34,17 +34,11 @@ vi.mock("@tanstack/react-query", async (importOriginal) => ({
   useQueryClient: () => ({}),
 }));
 
-import { DeckPrintDialog } from "./deck-print-dialog";
+import { DeckSheetPrintPanel } from "./deck-print-dialog";
 
 const cards = [stubDeckBuilderCard({ cardId: "card-1", cardName: "Yasuo", quantity: 3 })];
 
-async function openSheetTab() {
-  const user = userEvent.setup();
-  await user.click(await screen.findByRole("tab", { name: "Deck sheet" }));
-  return user;
-}
-
-describe("DeckPrintDialog", () => {
+describe("DeckSheetPrintPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     fetchImageBlobMock.mockResolvedValue(new Blob());
@@ -53,16 +47,14 @@ describe("DeckPrintDialog", () => {
 
   it("renders a public deck's sheet through the share token, not the owner route", async () => {
     render(
-      <DeckPrintDialog
+      <DeckSheetPrintPanel
         deckId="deck-1"
         deckName="Yasuo Aggro"
-        open
-        onOpenChange={vi.fn()}
         cards={cards}
         publicSource={{ shareToken: "tok123", imageVersion: 42 }}
       />,
     );
-    const user = await openSheetTab();
+    const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Download PDF" }));
 
     expect(fetchImageBlobMock).toHaveBeenCalledWith(
@@ -73,16 +65,14 @@ describe("DeckPrintDialog", () => {
 
   it("drops the scan code from a public deck's sheet when the viewer unticks it", async () => {
     render(
-      <DeckPrintDialog
+      <DeckSheetPrintPanel
         deckId="deck-1"
         deckName="Yasuo Aggro"
-        open
-        onOpenChange={vi.fn()}
         cards={cards}
         publicSource={{ shareToken: "tok123", imageVersion: 42 }}
       />,
     );
-    const user = await openSheetTab();
+    const user = userEvent.setup();
     await user.click(screen.getByRole("checkbox", { name: /scan code/iu }));
     await user.click(screen.getByRole("button", { name: "Download PDF" }));
 
@@ -92,16 +82,8 @@ describe("DeckPrintDialog", () => {
   });
 
   it("keeps a deck the viewer owns on the owner route", async () => {
-    render(
-      <DeckPrintDialog
-        deckId="deck-1"
-        deckName="Yasuo Aggro"
-        open
-        onOpenChange={vi.fn()}
-        cards={cards}
-      />,
-    );
-    const user = await openSheetTab();
+    render(<DeckSheetPrintPanel deckId="deck-1" deckName="Yasuo Aggro" cards={cards} />);
+    const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Download PDF" }));
 
     expect(fetchImageBlobMock).toHaveBeenCalledWith(
@@ -111,32 +93,14 @@ describe("DeckPrintDialog", () => {
   });
 
   it("hides the scan code option for an owned deck that is not shared", async () => {
-    render(
-      <DeckPrintDialog
-        deckId="deck-1"
-        deckName="Yasuo Aggro"
-        open
-        onOpenChange={vi.fn()}
-        cards={cards}
-      />,
-    );
-    await openSheetTab();
+    render(<DeckSheetPrintPanel deckId="deck-1" deckName="Yasuo Aggro" cards={cards} />);
 
     expect(screen.queryByRole("checkbox", { name: /scan code/iu })).toBeNull();
   });
 
   it("offers the scan code for an owned deck that is shared", async () => {
-    render(
-      <DeckPrintDialog
-        deckId="deck-1"
-        deckName="Yasuo Aggro"
-        open
-        onOpenChange={vi.fn()}
-        cards={cards}
-        isShared
-      />,
-    );
-    const user = await openSheetTab();
+    render(<DeckSheetPrintPanel deckId="deck-1" deckName="Yasuo Aggro" cards={cards} isShared />);
+    const user = userEvent.setup();
     expect(screen.getByRole("checkbox", { name: /scan code/iu })).toBeChecked();
     await user.click(screen.getByRole("button", { name: "Download PDF" }));
 

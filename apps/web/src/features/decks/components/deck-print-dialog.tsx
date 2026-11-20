@@ -22,7 +22,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CardPlaceholderImage } from "@/features/cards/components/card-placeholder-image";
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
 import type { CatalogEntry } from "@/features/cards/lib/catalog-queries";
@@ -57,13 +56,10 @@ import { getSiteUrl } from "@/lib/site-config";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
-type PrintTab = "proxies" | "registration" | "sheet";
-
-function tabDescriptions(): Record<PrintTab, string> {
+function tabDescriptions(): Record<"proxies" | "registration", string> {
   return {
     proxies: m.decks_dialog_print_desc_proxies(),
     registration: m.decks_dialog_print_desc_registration(),
-    sheet: m.decks_dialog_print_desc_sheet(),
   };
 }
 
@@ -568,18 +564,18 @@ function fetchSheetImage(
   return fetchImageBlob(deckOwnerImageUrl(getSiteUrl(), deckId, options));
 }
 
-function DeckSheetPrintPanel({
+export function DeckSheetPrintPanel({
   deckId,
   deckName,
   cards,
   publicSource,
-  isShared,
+  isShared = false,
 }: {
   deckId: string;
   deckName: string;
   cards?: DeckBuilderCard[];
   publicSource?: PublicDeckSource;
-  isShared: boolean;
+  isShared?: boolean;
 }) {
   const isLocal = useIsLocalDeck(deckId);
   const qrAvailable = !isLocal && (publicSource !== undefined || isShared);
@@ -626,26 +622,32 @@ function DeckSheetPrintPanel({
   );
 }
 
+export type DeckPrintKind = "proxies" | "registration";
+
 interface DeckPrintDialogProps {
+  kind: DeckPrintKind;
   deckId: string;
   deckName: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   cards?: DeckBuilderCard[];
-  publicSource?: PublicDeckSource;
-  isShared?: boolean;
+}
+
+function printTitles(): Record<DeckPrintKind, string> {
+  return {
+    proxies: m.decks_dialog_print_title_proxies(),
+    registration: m.decks_dialog_print_title_registration(),
+  };
 }
 
 export function DeckPrintDialog({
+  kind,
   deckId,
   deckName,
   open,
   onOpenChange,
   cards: cardsProp,
-  publicSource,
-  isShared = false,
 }: DeckPrintDialogProps) {
-  const [tab, setTab] = useState<PrintTab>("proxies");
   // Subscribing only when cardsProp is omitted keeps the deck-list menus from
   // opening one draft per row; the editor still gets the live draft.
   const liveCards = useDeckCards(cardsProp === undefined ? deckId : "");
@@ -654,40 +656,20 @@ export function DeckPrintDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <Tabs value={tab} onValueChange={(value) => setTab(value as PrintTab)}>
-          <DialogHeader>
-            <DialogTitle>{m.decks_dialog_print_title()}</DialogTitle>
-            <TabsList>
-              <TabsTrigger value="proxies">{m.decks_dialog_print_tab_proxies()}</TabsTrigger>
-              <TabsTrigger value="registration">
-                {m.decks_dialog_print_tab_registration()}
-              </TabsTrigger>
-              <TabsTrigger value="sheet">{m.decks_dialog_print_tab_sheet()}</TabsTrigger>
-            </TabsList>
-            <DialogDescription>{tabDescriptions()[tab]}</DialogDescription>
-          </DialogHeader>
-
-          <TabsContent value="proxies" keepMounted>
-            <ProxyPrintPanel
-              cards={cards}
-              deckId={deckId}
-              deckName={deckName}
-              onDone={() => onOpenChange(false)}
-            />
-          </TabsContent>
-          <TabsContent value="registration" keepMounted>
-            <RegistrationPrintPanel cards={cards} deckId={deckId} deckName={deckName} />
-          </TabsContent>
-          <TabsContent value="sheet" keepMounted>
-            <DeckSheetPrintPanel
-              deckId={deckId}
-              deckName={deckName}
-              cards={cardsProp}
-              publicSource={publicSource}
-              isShared={isShared}
-            />
-          </TabsContent>
-        </Tabs>
+        <DialogHeader>
+          <DialogTitle>{printTitles()[kind]}</DialogTitle>
+          <DialogDescription>{tabDescriptions()[kind]}</DialogDescription>
+        </DialogHeader>
+        {kind === "proxies" ? (
+          <ProxyPrintPanel
+            cards={cards}
+            deckId={deckId}
+            deckName={deckName}
+            onDone={() => onOpenChange(false)}
+          />
+        ) : (
+          <RegistrationPrintPanel cards={cards} deckId={deckId} deckName={deckName} />
+        )}
       </DialogContent>
     </Dialog>
   );

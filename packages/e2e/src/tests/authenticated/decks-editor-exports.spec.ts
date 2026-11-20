@@ -50,22 +50,24 @@ function kebabTrigger(page: Page) {
   return page.locator("main").locator('button[aria-haspopup="menu"]').first();
 }
 
-async function openExportDialog(page: Page) {
+async function copyFromMenu(page: Page, entry: string) {
   await kebabTrigger(page).click();
-  await page.getByRole("menuitem", { name: "Export" }).click();
-  const dialog = page.getByRole("dialog");
-  await expect(dialog.getByRole("heading", { name: "Export deck" })).toBeVisible();
-  return dialog;
+  const encodeRequest = page.waitForRequest((request) =>
+    isServerFn(request.url(), "encodeDeckCardsFn"),
+  );
+  await page.getByRole("menuitem", { name: entry, exact: true }).click();
+  await encodeRequest;
 }
 
-async function openPrintDialog(page: Page, tab: "Proxies" | "Registration" | "Deck sheet") {
+async function openPrintDialog(page: Page, entry: "Proxies…" | "Registration sheet…") {
   await kebabTrigger(page).click();
-  await page.getByRole("menuitem", { name: "Print" }).click();
+  await page.getByRole("menuitem", { name: entry }).click();
   const dialog = page.getByRole("dialog");
-  await expect(dialog.getByRole("heading", { name: "Print deck" })).toBeVisible();
-  if (tab !== "Proxies") {
-    await dialog.getByRole("tab", { name: tab }).click();
-  }
+  await expect(
+    dialog.getByRole("heading", {
+      name: entry === "Proxies…" ? "Print proxies" : "Print registration sheet",
+    }),
+  ).toBeVisible();
   return dialog;
 }
 
@@ -74,96 +76,38 @@ function readClipboard(page: Page): Promise<string> {
 }
 
 test.describe("deck editor exports", () => {
-  test.describe("deck export: opening", () => {
-    test("clicking Export opens the dialog with three code tabs; Text is active", async ({
-      authenticatedPage,
-    }) => {
-      const page = authenticatedPage;
-      await grantClipboard(page);
-      const deckId = await createDeckViaApi(page.request, { name: `Export Open ${Date.now()}` });
-      await setDeckCardsViaApi(page.request, deckId, [
-        { cardId: ANNIE_CARD_ID, zone: "main", quantity: 3 },
-      ]);
-
-      await page.goto(`/decks/${deckId}`);
-      const dialog = await openExportDialog(page);
-
-      for (const tabName of ["Text", "Deck Code", "TTS"]) {
-        await expect(dialog.getByRole("tab", { name: tabName })).toBeVisible();
-      }
-      await expect(dialog.getByRole("tab", { name: "Registration" })).toHaveCount(0);
-      await expect(dialog.getByRole("tab", { name: "Text" })).toHaveAttribute(
-        "aria-selected",
-        "true",
-      );
-
-      await page.keyboard.press("Escape");
-      await expect(dialog).toBeHidden();
-    });
-  });
-
-  test.describe("deck export: non-registration tabs", () => {
-    for (const { tab, format } of [
-      { tab: "Deck Code", format: "piltover" },
-      { tab: "Text", format: "text" },
-      { tab: "TTS", format: "tts" },
+  test.describe("copy as", () => {
+    for (const { entry, toast } of [
+      { entry: "Text list", toast: "Text list copied" },
+      { entry: "Deck code", toast: "Deck code copied" },
+      { entry: "Tabletop Simulator codes", toast: "Tabletop Simulator codes copied" },
     ] as const) {
-      test(`${tab} fires the export mutation, displays the code, and Copy writes it to the clipboard`, async ({
+      test(`${entry} puts the deck on the clipboard in one click`, async ({
         authenticatedPage,
       }) => {
         const page = authenticatedPage;
         await grantClipboard(page);
         const deckId = await createDeckViaApi(page.request, {
-          name: `Export ${format} ${Date.now()}`,
+          name: `Copy ${entry} ${Date.now()}`,
         });
         await setDeckCardsViaApi(page.request, deckId, [
           { cardId: ANNIE_CARD_ID, zone: "main", quantity: 3 },
         ]);
-
         await page.goto(`/decks/${deckId}`);
 
-        const exportRequest = page.waitForRequest((request) =>
-          isServerFn(request.url(), "exportDeckFn"),
-        );
-        const dialog = await openExportDialog(page);
+        await copyFromMenu(page, entry);
 
-        // Default tab (Text) fires the mutation on open; the other tabs re-fire
-        // it by clicking the trigger after the initial request lands.
-        await exportRequest;
-        if (tab === "Deck Code" || tab === "TTS") {
-          const switchRequest = page.waitForRequest((request) =>
-            isServerFn(request.url(), "exportDeckFn"),
-          );
-          await dialog.getByRole("tab", { name: tab }).click();
-          await switchRequest;
-        }
-
-        const codeBox = dialog.getByRole("textbox");
-        await expect(codeBox).toBeVisible({ timeout: 15_000 });
-        // The textbox renders before the export request resolves; wait for a
-        // non-empty value or inputValue() races and returns "".
-        await expect(codeBox).not.toHaveValue("", { timeout: 15_000 });
-        const code = await codeBox.inputValue();
-        expect(code.length).toBeGreaterThan(0);
-
-        await dialog.getByRole("button", { name: "Copy" }).click();
-        await expect(dialog.getByRole("button", { name: "Copied" })).toBeVisible();
-
+        await expect(page.getByText(toast)).toBeVisible({ timeout: 15_000 });
         const clipboard = await readClipboard(page);
-        // The component normalizes \n to \r\n for iOS clipboard safety.
-        expect(clipboard.replaceAll("\r\n", "\n")).toBe(code);
+        expect(clipboard.length).toBeGreaterThan(0);
       });
     }
-  });
 
-  test.describe("deck export: unsaved banner", () => {
-    test("banner is visible on every code tab, and absent from the print dialog, when the deck is dirty", async ({
-      authenticatedPage,
-    }) => {
+    test("copies the live draft, unsaved cards included", async ({ authenticatedPage }) => {
       const page = authenticatedPage;
       await grantClipboard(page);
       const deckId = await createDeckViaApi(page.request, {
-        name: `Export Dirty ${Date.now()}`,
+        name: `Copy Dirty ${Date.now()}`,
       });
       await page.goto(`/decks/${deckId}`);
 
@@ -182,44 +126,22 @@ test.describe("deck editor exports", () => {
         .first();
       await expect(annieTile).toBeVisible({ timeout: 15_000 });
       await annieTile.getByRole("button", { name: "Add to deck" }).click();
-      // Wait on the sidebar's zone counter, not the tile's in-deck pill: it's
-      // the reliable signal the optimistic update landed.
       await expect(page.getByText("1/39", { exact: true }).first()).toBeVisible({
         timeout: 5000,
       });
 
-      const dialog = await openExportDialog(page);
-      const banner = dialog.getByText(
-        "You have unsaved changes. The exported code reflects the last saved state.",
-      );
+      await copyFromMenu(page, "Text list");
 
-      await expect(banner).toBeVisible();
-
-      await dialog.getByRole("tab", { name: "Text" }).click();
-      await expect(banner).toBeVisible();
-
-      await dialog.getByRole("tab", { name: "TTS" }).click();
-      await expect(banner).toBeVisible();
-
-      await page.keyboard.press("Escape");
-      await expect(dialog).toBeHidden();
-
-      // Registration renders from the live draft, not an exported code.
-      const printDialog = await openPrintDialog(page, "Registration");
-      await expect(
-        printDialog.getByText(
-          "You have unsaved changes. The exported code reflects the last saved state.",
-        ),
-      ).toHaveCount(0);
+      await expect(page.getByText("Text list copied")).toBeVisible({ timeout: 15_000 });
+      expect(await readClipboard(page)).toContain("Annie, Fiery");
     });
   });
 
-  test.describe("deck print: Registration tab", () => {
+  test.describe("deck print: registration sheet", () => {
     test("renders form fields pre-filled from deck and session, no export request fires", async ({
       authenticatedPage,
     }) => {
       const page = authenticatedPage;
-      await grantClipboard(page);
       const stamp = Date.now();
       const deckName = `Regform ${stamp}`;
       const deckId = await createDeckViaApi(page.request, { name: deckName });
@@ -230,12 +152,15 @@ test.describe("deck editor exports", () => {
 
       const exportRequests: string[] = [];
       page.on("request", (request) => {
-        if (isServerFn(request.url(), "exportDeckFn")) {
+        if (
+          isServerFn(request.url(), "exportDeckFn") ||
+          isServerFn(request.url(), "encodeDeckCardsFn")
+        ) {
           exportRequests.push(request.url());
         }
       });
 
-      const dialog = await openPrintDialog(page, "Registration");
+      const dialog = await openPrintDialog(page, "Registration sheet…");
 
       await expect(dialog.getByLabel("Deck Name")).toHaveValue(deckName);
       // E2E user's display name is "E2E User"; the component splits on whitespace.
@@ -248,8 +173,7 @@ test.describe("deck editor exports", () => {
       await dialog.getByLabel("Deck Designer").fill("E2E Tester");
       await dialog.getByPlaceholder("YYYY-MM-DD").fill("2026-05-01");
 
-      // The print dialog keeps every tab mounted, each with its own page-size select.
-      await expect(dialog.getByRole("tabpanel").getByLabel("Page size")).toContainText("A4");
+      await expect(dialog.getByLabel("Page size")).toContainText("A4");
 
       const downloadButton = dialog.getByRole("button", { name: "Download PDF" });
       const [download] = await Promise.all([
@@ -265,34 +189,28 @@ test.describe("deck editor exports", () => {
     });
   });
 
-  test.describe("deck export: empty deck", () => {
-    test("Registration download is disabled with zero cards; code tabs still render", async ({
-      authenticatedPage,
-    }) => {
+  test.describe("empty deck", () => {
+    test("disables every output of a deck with no cards", async ({ authenticatedPage }) => {
       const page = authenticatedPage;
-      await grantClipboard(page);
-      const deckId = await createDeckViaApi(page.request, { name: `Export Empty ${Date.now()}` });
+      const deckId = await createDeckViaApi(page.request, { name: `Empty ${Date.now()}` });
       await page.goto(`/decks/${deckId}`);
 
-      const exportDialog = await openExportDialog(page);
-
-      await expect(exportDialog.getByText("This deck has no cards to export yet.")).toBeVisible({
-        timeout: 15_000,
-      });
-
-      await page.keyboard.press("Escape");
-      await expect(exportDialog).toBeHidden();
-
-      const printDialog = await openPrintDialog(page, "Registration");
-
-      const download = printDialog.getByRole("button", { name: "Download PDF" });
-      await expect(download).toBeVisible();
-      await expect(download).toBeDisabled();
+      await kebabTrigger(page).click();
+      for (const entry of ["Text list", "Deck code", "Proxies…", "Registration sheet…"]) {
+        await expect(page.getByRole("menuitem", { name: entry, exact: true })).toHaveAttribute(
+          "aria-disabled",
+          "true",
+        );
+      }
+      await expect(page.getByRole("menuitem", { name: /Compare/u })).not.toHaveAttribute(
+        "aria-disabled",
+        "true",
+      );
     });
   });
 
-  test.describe("proxy export: opening", () => {
-    test("Print opens on the Proxies tab with default render mode and page size", async ({
+  test.describe("proxy print: opening", () => {
+    test("Proxies opens with the default render mode and page size", async ({
       authenticatedPage,
     }) => {
       const page = authenticatedPage;
@@ -302,14 +220,11 @@ test.describe("deck editor exports", () => {
       ]);
       await page.goto(`/decks/${deckId}`);
 
-      const dialog = await openPrintDialog(page, "Proxies");
-      await expect(dialog.getByRole("tab", { name: "Proxies" })).toHaveAttribute(
-        "aria-selected",
-        "true",
-      );
+      const dialog = await openPrintDialog(page, "Proxies…");
+      await expect(dialog.getByRole("tab")).toHaveCount(0);
 
       const renderModeTrigger = dialog.getByLabel("Render mode");
-      const pageSizeTrigger = dialog.getByRole("tabpanel").getByLabel("Page size");
+      const pageSizeTrigger = dialog.getByLabel("Page size");
       await expect(renderModeTrigger).toContainText("Card images");
       await expect(pageSizeTrigger).toContainText("A4");
 
@@ -320,7 +235,7 @@ test.describe("deck editor exports", () => {
     });
   });
 
-  test.describe("proxy export: generation", () => {
+  test.describe("proxy print: generation", () => {
     test("clicking Generate disables the button while work is in flight", async ({
       authenticatedPage,
     }) => {
@@ -332,7 +247,7 @@ test.describe("deck editor exports", () => {
       ]);
       await page.goto(`/decks/${deckId}`);
 
-      const dialog = await openPrintDialog(page, "Proxies");
+      const dialog = await openPrintDialog(page, "Proxies…");
 
       /**
        * Card images are held until the in-flight state is asserted, so the
@@ -362,8 +277,8 @@ test.describe("deck editor exports", () => {
     });
   });
 
-  test.describe("mobile access to export and print", () => {
-    test("kebab menu exposes Export and Print entries that open the correct dialogs", async ({
+  test.describe("phone menu", () => {
+    test("opens Manage submenus in place and keeps the link in the menu", async ({
       authenticatedPage,
     }) => {
       const page = authenticatedPage;
@@ -374,19 +289,20 @@ test.describe("deck editor exports", () => {
       ]);
       await page.goto(`/decks/${deckId}`);
 
-      // The bar's only desktop action button is Share, behind `hidden md:flex`.
-      await expect(page.getByRole("button", { name: "Share", exact: true })).toHaveCount(0);
+      // The bar's Share link button sits behind `hidden md:flex`.
+      await expect(page.getByRole("button", { name: "Share link", exact: true })).toHaveCount(0);
 
-      const exportDialog = await openExportDialog(page);
-      await page.keyboard.press("Escape");
-      await expect(exportDialog).toBeHidden();
-
-      // Share is a menu entry on a phone, where the bar has no room for it.
       await kebabTrigger(page).click();
-      await expect(page.getByRole("menuitem", { name: "Share" })).toBeVisible();
+      await expect(page.getByRole("menuitem", { name: "Link & QR…" })).toBeVisible();
+      await page.getByRole("menuitem", { name: "Details" }).click();
+      await expect(page.getByRole("menuitem", { name: "Back" })).toBeVisible();
+      await expect(page.getByRole("menuitem", { name: "Name & description" })).toBeVisible();
+      await expect(page.getByRole("menuitem", { name: "Link & QR…" })).toHaveCount(0);
+      await page.getByRole("menuitem", { name: "Back" }).click();
+      await expect(page.getByRole("menuitem", { name: "Link & QR…" })).toBeVisible();
       await page.keyboard.press("Escape");
 
-      await openPrintDialog(page, "Proxies");
+      await openPrintDialog(page, "Proxies…");
     });
   });
 });

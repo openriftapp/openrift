@@ -5,8 +5,10 @@ export type DeckEditorDialog =
   | "details"
   | "cover"
   | "homeCollection"
-  | "export"
-  | "print"
+  | "image"
+  | "proxies"
+  | "registration"
+  | "folders"
   | "missing"
   | "share"
   | "variants"
@@ -24,8 +26,10 @@ const ALL_CLOSED: Record<DeckEditorDialog, boolean> = {
   details: false,
   cover: false,
   homeCollection: false,
-  export: false,
-  print: false,
+  image: false,
+  proxies: false,
+  registration: false,
+  folders: false,
   missing: false,
   share: false,
   variants: false,

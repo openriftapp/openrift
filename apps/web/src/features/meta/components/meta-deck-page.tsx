@@ -205,7 +205,6 @@ export function MetaDeckPage({ token }: { token: string }) {
                 linkKind="meta"
                 updatedAt={data.deck.updatedAt}
                 cards={data.cards}
-                extraOptions={copyOptions}
                 inTopBar
               />
             </>

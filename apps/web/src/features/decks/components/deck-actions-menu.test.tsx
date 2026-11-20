@@ -12,7 +12,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type * as UseDecks from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 
-const { dialogProps, boxed, navigate, router } = vi.hoisted(() => ({
+const { dialogProps, boxed, navigate, router, mobile } = vi.hoisted(() => ({
+  mobile: { current: false },
   navigate: vi.fn(),
   router: { preloadRoute: vi.fn((_options: unknown) => Promise.resolve(undefined)) },
   dialogProps: {} as Record<string, Record<string, unknown>>,
@@ -47,12 +48,34 @@ vi.mock("@/features/decks/hooks/use-decks-collections", () => ({
 }));
 
 vi.mock("@tanstack/react-router", () => ({
+  Link: ({
+    to: _to,
+    search: _search,
+    params: _params,
+    children,
+    ...rest
+  }: {
+    to: string;
+    search?: unknown;
+    params?: unknown;
+    children?: React.ReactNode;
+  }) => (
+    <a href="/decks/compare" {...rest}>
+      {children}
+    </a>
+  ),
   useNavigate: () => navigate,
   useRouter: () => router,
 }));
+vi.mock("@/hooks/use-is-mobile", () => ({ useIsMobile: () => mobile.current }));
 vi.mock("@/features/decks/hooks/use-boxed-decks", () => ({ useBoxedDecks: () => boxed.current }));
 
 const noopMutation = { mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false };
+const exportMutation = {
+  mutate: vi.fn(),
+  mutateAsync: vi.fn(() => Promise.resolve({ code: "CODE", warnings: [] })),
+  isPending: false,
+};
 vi.mock("@/features/decks/hooks/use-decks", async (importOriginal) => ({
   ...(await importOriginal<typeof UseDecks>()),
   useDeleteDeck: () => noopMutation,
@@ -62,6 +85,11 @@ vi.mock("@/features/decks/hooks/use-decks", async (importOriginal) => ({
   useUpdateDeck: () => noopMutation,
   useCloneDeck: () => noopMutation,
   useUpdateDeckMeta: () => ({ update: vi.fn(), isPending: false }),
+  useExportDeck: () => exportMutation,
+  useEncodeDeckCards: () => noopMutation,
+}));
+vi.mock("@/hooks/use-copy-to-clipboard", () => ({
+  copyPendingText: () => Promise.resolve(true),
 }));
 
 vi.mock("@/features/decks/hooks/use-local-decks", () => ({
@@ -93,12 +121,6 @@ vi.mock("@/features/cards/hooks/use-cards", async () => {
 });
 
 // The dialogs stand in as prop recorders: what matters here is which cards reach them.
-vi.mock("./deck-export-dialog", () => ({
-  DeckExportDialog: (props: Record<string, unknown>) => {
-    dialogProps.export = props;
-    return null;
-  },
-}));
 vi.mock("./deck-print-dialog", () => ({
   DeckPrintDialog: (props: Record<string, unknown>) => {
     dialogProps.print = props;
@@ -106,8 +128,12 @@ vi.mock("./deck-print-dialog", () => ({
   },
 }));
 vi.mock("./deck-share-dialog", () => ({
-  DeckShareDialog: (props: Record<string, unknown>) => {
-    dialogProps.share = props;
+  DeckShareDialog: () => null,
+  DeckImageDialog: () => null,
+}));
+vi.mock("./deck-home-collection-dialog", () => ({
+  DeckHomeCollectionDialog: (props: Record<string, unknown>) => {
+    dialogProps.storedIn = props;
     return null;
   },
 }));
@@ -168,11 +194,13 @@ describe("DeckActionsMenu", () => {
       cardRow("deck-own", "card-own", 3),
       cardRow("deck-other", "card-other", 2),
     ]);
-    dialogProps.export = {};
+    mobile.current = false;
+    dialogProps.print = {};
+    dialogProps.storedIn = {};
     boxed.current = [];
   });
 
-  it("names the deck's own box", async () => {
+  it("shows the deck's own box beside Stored in…", async () => {
     boxed.current = [
       { deckId: "deck-own", deckName: "Yasuo Aggro", boxName: "Red box", collectionId: "c1" },
     ];
@@ -180,10 +208,12 @@ describe("DeckActionsMenu", () => {
     render(<DeckActionsMenu item={ITEM} source="server" />);
 
     await user.click(screen.getByRole("button", { name: "Deck actions" }));
-    expect(await screen.findByRole("menuitem", { name: "Stored in Red box" })).toBeInTheDocument();
+    expect(await screen.findByRole("menuitem", { name: /Stored in…/u })).toHaveTextContent(
+      "Red box",
+    );
   });
 
-  it("names each boxed variant on a family front", async () => {
+  it("hands the Stored in dialog each boxed variant of a family front", async () => {
     boxed.current = [
       { deckId: "v2", deckName: "Yasuo VEN", boxName: "Red box", collectionId: "c1" },
       { deckId: "v3", deckName: "Yasuo UNL", boxName: "Blue box", collectionId: "c2" },
@@ -192,44 +222,44 @@ describe("DeckActionsMenu", () => {
     render(<DeckActionsMenu item={ITEM} source="server" />);
 
     await user.click(screen.getByRole("button", { name: "Deck actions" }));
-    expect(
-      await screen.findByRole("menuitem", { name: "Yasuo VEN in Red box" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "Yasuo UNL in Blue box" })).toBeInTheDocument();
+    await user.click(await screen.findByRole("menuitem", { name: /Stored in…/u }));
+
+    expect(dialogProps.storedIn?.stored).toEqual(boxed.current);
   });
 
   it("reads no cards until a dialog that needs them opens", () => {
     render(<DeckActionsMenu item={ITEM} source="server" />);
 
-    expect(dialogProps.export?.cards).toBeUndefined();
+    expect(dialogProps.print?.cards).toBeUndefined();
   });
 
-  it("hands the export dialog this deck's cards and no other deck's", async () => {
+  it("hands the proxy print dialog this deck's cards and no other deck's", async () => {
     const user = userEvent.setup();
     render(<DeckActionsMenu item={ITEM} source="server" />);
 
     await user.click(screen.getByRole("button", { name: "Deck actions" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Export…" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Proxies…" }));
 
     await vi.waitFor(() => {
-      expect(dialogProps.export?.cards).toBeDefined();
+      expect(dialogProps.print?.cards).toBeDefined();
     });
-    const cards = dialogProps.export?.cards as DeckBuilderCard[];
+    expect(dialogProps.print?.kind).toBe("proxies");
+    const cards = dialogProps.print?.cards as DeckBuilderCard[];
     expect(cards.map((card) => [card.cardId, card.quantity])).toEqual([["card-own", 3]]);
   });
 
-  it("exports a card this client's catalog does not know", async () => {
+  it("prints a card this client's catalog does not know", async () => {
     cardsCollection.insert(cardRow("deck-own", "card-gone", 2));
     const user = userEvent.setup();
     render(<DeckActionsMenu item={ITEM} source="server" />);
 
     await user.click(screen.getByRole("button", { name: "Deck actions" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Export…" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Registration sheet…" }));
 
     await vi.waitFor(() => {
-      expect(dialogProps.export?.cards).toBeDefined();
+      expect(dialogProps.print?.cards).toBeDefined();
     });
-    const cards = dialogProps.export?.cards as DeckBuilderCard[];
+    const cards = dialogProps.print?.cards as DeckBuilderCard[];
     expect(cards.map((card) => [card.cardId, card.quantity])).toEqual(
       expect.arrayContaining([
         ["card-own", 3],
@@ -237,6 +267,49 @@ describe("DeckActionsMenu", () => {
       ]),
     );
     expect(cards).toHaveLength(2);
+  });
+
+  it("copies a saved deck's code by exporting it by id", async () => {
+    const user = userEvent.setup();
+    exportMutation.mutateAsync.mockClear();
+    render(<DeckActionsMenu item={ITEM} source="server" />);
+
+    await user.click(screen.getByRole("button", { name: "Deck actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Deck code" }));
+
+    expect(exportMutation.mutateAsync).toHaveBeenCalledWith({
+      deckId: "deck-own",
+      format: "piltover",
+    });
+  });
+
+  it("puts Unarchive beside Delete on an archived deck", async () => {
+    const user = userEvent.setup();
+    noopMutation.mutate.mockClear();
+    render(
+      <DeckActionsMenu
+        item={{ ...ITEM, deck: { ...ITEM.deck, archivedAt: "2026-10-01T00:00:00.000Z" } }}
+        source="server"
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Deck actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Unarchive" }));
+    expect(noopMutation.mutate).toHaveBeenCalledWith({ deckId: "deck-own", archived: false });
+  });
+
+  it("disables the outputs of a deck with no cards", async () => {
+    const user = userEvent.setup();
+    render(<DeckActionsMenu item={{ ...ITEM, totalCards: 0 }} source="server" />);
+
+    await user.click(screen.getByRole("button", { name: "Deck actions" }));
+    for (const name of ["Text list", "Deck code", "Proxies…", "Present"]) {
+      expect(await screen.findByRole("menuitem", { name })).toHaveAttribute(
+        "aria-disabled",
+        "true",
+      );
+    }
+    expect(screen.getByRole("menuitem", { name: /Compare/u })).not.toHaveAttribute("aria-disabled");
   });
 
   it("keeps the delete confirmation open until the delete succeeds", async () => {
@@ -259,23 +332,15 @@ describe("DeckActionsMenu", () => {
     });
   });
 
-  it("offers duplicate and change format on a browser-local deck, without account actions", async () => {
-    const user = userEvent.setup();
-    render(<DeckActionsMenu item={ITEM} source="local" />);
-
-    await user.click(screen.getByRole("button", { name: "Deck actions" }));
-    expect(await screen.findByRole("menuitem", { name: "Duplicate" })).toBeInTheDocument();
-    expect(screen.queryByRole("menuitem", { name: "Pin" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("menuitem", { name: "Archive" })).not.toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "Change format" })).toBeInTheDocument();
-  });
-
   it("offers duplicate on a server deck", async () => {
     const user = userEvent.setup();
     noopMutation.mutate.mockClear();
     render(<DeckActionsMenu item={ITEM} source="server" />);
 
     await user.click(screen.getByRole("button", { name: "Deck actions" }));
+    const copies = await screen.findByRole("menuitem", { name: "Copies & variants" });
+    copies.focus();
+    await user.keyboard("{ArrowRight}");
     await user.click(await screen.findByRole("menuitem", { name: "Duplicate" }));
     expect(noopMutation.mutate).toHaveBeenCalledWith("deck-own", expect.anything());
   });
@@ -309,5 +374,30 @@ describe("DeckActionsMenu", () => {
       to: "/stage/show",
       search: { deck: "deck-own", i: 0 },
     });
+  });
+
+  it("opens Manage submenus in place on a phone and returns focus to their trigger", async () => {
+    mobile.current = true;
+    const user = userEvent.setup();
+    render(<DeckActionsMenu item={ITEM} source="server" />);
+
+    await user.click(screen.getByRole("button", { name: "Deck actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Edit deck" }));
+    expect(screen.getByRole("menuitem", { name: "Name & description" })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Text list" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("menuitem", { name: "Change format" }));
+    expect(screen.getByRole("menuitem", { name: "Freeform" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("menuitem", { name: "Back" }));
+    await waitFor(() => {
+      expect(screen.getByRole("menuitem", { name: "Change format" })).toHaveFocus();
+    });
+
+    await user.click(screen.getByRole("menuitem", { name: "Back" }));
+    await waitFor(() => {
+      expect(screen.getByRole("menuitem", { name: "Edit deck" })).toHaveFocus();
+    });
+    expect(screen.getByRole("menuitem", { name: "Text list" })).toBeInTheDocument();
   });
 });

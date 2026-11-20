@@ -1,6 +1,8 @@
+import { Link } from "@tanstack/react-router";
+import { BoxIcon } from "lucide-react";
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
 import { FieldError } from "@/components/ui/field";
@@ -19,9 +21,37 @@ import { m } from "@/paraglide/messages.js";
 const NONE = "none";
 const NEW = "new";
 
+interface StoredBox {
+  deckId: string;
+  deckName: string;
+  collectionId: string;
+  boxName: string;
+}
+
 interface DeckHomeCollectionFields {
   deckId: string;
   currentCollectionId: string | null;
+  stored?: readonly StoredBox[];
+}
+
+function StoredBoxLinks({ deckId, stored }: { deckId: string; stored: readonly StoredBox[] }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {stored.map((entry) => (
+        <Link
+          key={entry.deckId}
+          to="/collections/$collectionId"
+          params={{ collectionId: entry.collectionId }}
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
+          <BoxIcon />
+          {entry.deckId === deckId
+            ? m.decks_dialog_home_go_to({ box: entry.boxName })
+            : m.decks_meta_variant_in_box({ deck: entry.deckName, box: entry.boxName })}
+        </Link>
+      ))}
+    </div>
+  );
 }
 
 /**
@@ -44,6 +74,7 @@ export function DeckHomeCollectionDialog({
 function DeckHomeCollectionForm({
   deckId,
   currentCollectionId,
+  stored = [],
   onClose,
   onSavingChange,
 }: DeckHomeCollectionFields & DeckFormControls) {
@@ -102,6 +133,8 @@ function DeckHomeCollectionForm({
           <DialogTitle>{m.decks_dialog_home_title()}</DialogTitle>
           <DialogDescription>{m.decks_dialog_home_description()}</DialogDescription>
         </DialogHeader>
+
+        {stored.length > 0 && <StoredBoxLinks deckId={deckId} stored={stored} />}
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="deck-home-collection">{m.decks_dialog_home_label()}</Label>

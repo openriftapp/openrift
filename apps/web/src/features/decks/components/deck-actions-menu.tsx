@@ -1,98 +1,82 @@
-import type { DeckFolderResponse, DeckListItemResponse } from "@openrift/shared/types/api/deck";
+import type { DeckListItemResponse } from "@openrift/shared/types/api/deck";
 import type { DeckFormat } from "@openrift/shared/types/enums";
-import { useNavigate, useRouter } from "@tanstack/react-router";
-import {
-  ArchiveIcon,
-  ArchiveRestoreIcon,
-  BoxIcon,
-  CopyIcon,
-  DownloadIcon,
-  EllipsisVerticalIcon,
-  FlaskConicalIcon,
-  FolderIcon,
-  GitBranchIcon,
-  MonitorPlayIcon,
-  PencilIcon,
-  PinIcon,
-  PinOffIcon,
-  PrinterIcon,
-  RefreshCwIcon,
-  SettingsIcon,
-  Share2Icon,
-  StarIcon,
-  Trash2Icon,
-} from "lucide-react";
+import { useRouter } from "@tanstack/react-router";
+import { EllipsisVerticalIcon } from "lucide-react";
 import { useState } from "react";
 
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { DeckCopyFallbackDialog } from "@/features/decks/components/deck-copy-fallback-dialog";
+import { DeckCoverPickerDialog } from "@/features/decks/components/deck-cover-dialog";
+import { DeckDetailsDialog } from "@/features/decks/components/deck-details-dialog";
+import { DeckHomeCollectionDialog } from "@/features/decks/components/deck-home-collection-dialog";
+import { DeckMenuContent } from "@/features/decks/components/deck-menu-content";
+import { DeckPrintDialog } from "@/features/decks/components/deck-print-dialog";
+import { DeckRenameDialog } from "@/features/decks/components/deck-rename-dialog";
+import { DeckImageDialog, DeckShareDialog } from "@/features/decks/components/deck-share-dialog";
+import { DeckVariantCreateDialog } from "@/features/decks/components/deck-variant-create-dialog";
+import { DeckVariantsDialog } from "@/features/decks/components/deck-variants-dialog";
+import { ManageDeckFoldersDialog } from "@/features/decks/components/manage-deck-folders-dialog";
 import { useBoxedDecks } from "@/features/decks/hooks/use-boxed-decks";
-import { useDeckFolders, useSetDeckFolders } from "@/features/decks/hooks/use-deck-folders";
+import type { DeckCopySource } from "@/features/decks/hooks/use-deck-copy";
 import { useDeckMenuActions } from "@/features/decks/hooks/use-deck-menu-actions";
+import type { DeckMenuRuns } from "@/features/decks/hooks/use-deck-menu-runs";
 import {
-  useDeckCardsFor,
-  useDeleteDeck,
-  usePromoteDeckPrimary,
-  useSetDeckArchived,
-  useSetDeckPinned,
-  useUpdateDeck,
-} from "@/features/decks/hooks/use-decks";
+  useDeckOutputRuns,
+  useServerDeckMenuRuns,
+} from "@/features/decks/hooks/use-deck-menu-runs";
+import { useDeckCardsFor, useDeleteDeck } from "@/features/decks/hooks/use-decks";
 import { useLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toDraftDeckCard } from "@/features/decks/lib/deck-builder-card";
+import { toEncodeDeckCards } from "@/features/decks/lib/deck-encode-input";
 import type { DeckFamilyEntry } from "@/features/decks/lib/deck-family";
-import type {
-  DeckMenuCapabilities,
-  DeckMenuSource,
-} from "@/features/decks/lib/deck-menu-capabilities";
-import { deckMenuCapabilities } from "@/features/decks/lib/deck-menu-capabilities";
+import type { DeckMenuAction } from "@/features/decks/lib/deck-menu-model";
+import { deckMenuModel } from "@/features/decks/lib/deck-menu-model";
 import { deleteLocalDeck } from "@/features/decks/lib/local-decks-collection";
 import { preloadStageShow } from "@/features/stage/hooks/use-preload-stage-show";
 import { useDeckFormatList } from "@/hooks/use-enums";
-import { shareLinkUrl } from "@/lib/share-links";
 import { m } from "@/paraglide/messages.js";
 
-import { DeckExportDialog } from "./deck-export-dialog";
-import { DeckPrintDialog } from "./deck-print-dialog";
-import { DeckRenameDialog } from "./deck-rename-dialog";
-import { DeckShareDialog } from "./deck-share-dialog";
-import { DeckVariantsDialog } from "./deck-variants-dialog";
-import { ManageDeckFoldersDialog } from "./manage-deck-folders-dialog";
+type RowDialog =
+  | "link"
+  | "image"
+  | "proxies"
+  | "registration"
+  | "storedIn"
+  | "details"
+  | "rename"
+  | "cover"
+  | "newVariant"
+  | "variants"
+  | "folders"
+  | "delete";
 
-type DeckMenuDialog = "share" | "export" | "print" | "rename" | "delete" | "folders" | "variants";
+const NEEDS_CARDS: ReadonlySet<RowDialog> = new Set(["proxies", "registration", "cover"]);
 
-interface ServerOnlyActions {
+interface ServerRowExtras {
   boxed: ReturnType<typeof useBoxedDecks>;
-  handleTogglePin: () => void;
-  folders: readonly DeckFolderResponse[];
+  folders: readonly { id: string; name: string; checked: boolean }[];
+  run: DeckMenuRuns;
   toggleFolder: (folderId: string) => void;
-  handlePromotePrimary: () => void;
-  handleToggleDraft: () => void;
-  handleToggleArchive: () => void;
 }
 
-interface DeckMenuBodyProps {
+interface RowMenuProps {
   item: DeckListItemResponse;
-  capabilities: DeckMenuCapabilities;
-  dialog: DeckMenuDialog | null;
-  setDialog: (dialog: DeckMenuDialog | null) => void;
+  dialog: RowDialog | null;
+  setDialog: (dialog: RowDialog | null) => void;
   cards: DeckBuilderCard[] | undefined;
+  copySource: () => DeckCopySource;
   remove: () => void;
   deletePending: boolean;
   deleteDescription: string;
-  server?: ServerOnlyActions;
+  server?: ServerRowExtras;
 }
 
 function toBuilderCards(
@@ -109,7 +93,7 @@ export function DeckActionsMenu({
 }: {
   item: DeckListItemResponse;
   family?: DeckFamilyEntry;
-  source: DeckMenuSource;
+  source: "server" | "local";
 }) {
   return source === "server" ? (
     <ServerDeckActions item={item} family={family} />
@@ -127,27 +111,21 @@ function ServerDeckActions({
 }) {
   const { deck } = item;
   const boxed = useBoxedDecks(deck, family);
-  const [dialog, setDialog] = useState<DeckMenuDialog | null>(null);
+  const [dialog, setDialog] = useState<RowDialog | null>(null);
   const deleteDeck = useDeleteDeck();
-  const updateDeck = useUpdateDeck();
-  const setPinned = useSetDeckPinned();
-  const setArchived = useSetDeckArchived();
-  const promotePrimary = usePromoteDeckPrimary();
-  const { data: folders } = useDeckFolders();
-  const setDeckFolders = useSetDeckFolders();
+  const serverRuns = useServerDeckMenuRuns(deck, item.folderIds);
   const { cardsById } = useCards();
 
-  const needsCards = dialog === "share" || dialog === "export" || dialog === "print";
-  const cardRows = useDeckCardsFor(needsCards ? [deck.id] : []);
+  const cardRows = useDeckCardsFor(dialog !== null && NEEDS_CARDS.has(dialog) ? [deck.id] : []);
   const cards = cardRows ? toBuilderCards(cardRows, cardsById) : undefined;
 
   return (
-    <DeckMenuBody
+    <RowMenu
       item={item}
-      capabilities={deckMenuCapabilities("server")}
       dialog={dialog}
       setDialog={setDialog}
       cards={cards}
+      copySource={() => ({ deckId: deck.id })}
       remove={() => {
         // A second confirm while the delete is in flight 404s on the server.
         if (deleteDeck.isPending) {
@@ -157,40 +135,25 @@ function ServerDeckActions({
       }}
       deletePending={deleteDeck.isPending}
       deleteDescription={m.decks_dialog_delete_description({ name: deck.name })}
-      server={{
-        boxed,
-        handleTogglePin: () => setPinned.mutate({ deckId: deck.id, isPinned: !deck.isPinned }),
-        folders: folders ?? [],
-        // Folder membership is set wholesale; the toggle sends the full resulting set.
-        toggleFolder: (folderId) =>
-          setDeckFolders.mutate({
-            id: deck.id,
-            folderIds: item.folderIds.includes(folderId)
-              ? item.folderIds.filter((id) => id !== folderId)
-              : [...item.folderIds, folderId],
-          }),
-        handlePromotePrimary: () => promotePrimary.mutate(deck.id),
-        handleToggleDraft: () => updateDeck.mutate({ deckId: deck.id, isDraft: !deck.isDraft }),
-        handleToggleArchive: () =>
-          setArchived.mutate({ deckId: deck.id, archived: deck.archivedAt === null }),
-      }}
+      server={{ ...serverRuns, boxed }}
     />
   );
 }
 
 function LocalDeckActions({ item }: { item: DeckListItemResponse }) {
   const { deck } = item;
-  const [dialog, setDialog] = useState<DeckMenuDialog | null>(null);
+  const [dialog, setDialog] = useState<RowDialog | null>(null);
   const localDeck = useLocalDeck(deck.id);
   const { cardsById } = useCards();
+  const cards = localDeck ? toBuilderCards(localDeck.cards, cardsById) : [];
 
   return (
-    <DeckMenuBody
+    <RowMenu
       item={item}
-      capabilities={deckMenuCapabilities("local")}
       dialog={dialog}
       setDialog={setDialog}
-      cards={localDeck ? toBuilderCards(localDeck.cards, cardsById) : []}
+      cards={cards}
+      copySource={() => ({ cards: toEncodeDeckCards(cards) })}
       remove={() => {
         deleteLocalDeck(deck.id);
         setDialog(null);
@@ -201,31 +164,67 @@ function LocalDeckActions({ item }: { item: DeckListItemResponse }) {
   );
 }
 
-function DeckMenuBody({
+const DIALOG_OF: Partial<Record<DeckMenuAction, RowDialog>> = {
+  shareLink: "link",
+  saveImage: "image",
+  printProxies: "proxies",
+  printRegistration: "registration",
+  storedIn: "storedIn",
+  details: "details",
+  rename: "rename",
+  cover: "cover",
+  newVariant: "newVariant",
+  variants: "variants",
+  delete: "delete",
+};
+
+function RowMenu({
   item,
-  capabilities,
   dialog,
   setDialog,
   cards,
+  copySource,
   remove,
   deletePending,
   deleteDescription,
   server,
-}: DeckMenuBodyProps) {
+}: RowMenuProps) {
   const { deck } = item;
-  const navigate = useNavigate();
   const router = useRouter();
-  const canPresent = capabilities.present && item.totalCards > 0;
   const { duplicate, changeFormat } = useDeckMenuActions(deck);
   const { formats } = useDeckFormatList();
   const otherFormats = formats.filter((entry) => entry.slug !== deck.format);
-  const openChange = (target: DeckMenuDialog) => (open: boolean) => setDialog(open ? target : null);
+  const outputs = useDeckOutputRuns(copySource, server ? deck.id : undefined);
+  const model = deckMenuModel({
+    context: "row",
+    server: server !== undefined,
+    cardCount: item.totalCards,
+    archived: deck.archivedAt !== null,
+    isVariant: deck.familyId !== null,
+    isPrimary: deck.isPrimary,
+    hasOtherFormats: otherFormats.length > 0,
+  });
+  const openChange = (target: RowDialog) => (open: boolean) => setDialog(open ? target : null);
+  const ownBox = server?.boxed.find((entry) => entry.deckId === deck.id);
+
+  const onAction = (action: DeckMenuAction) => {
+    const target = DIALOG_OF[action];
+    if (target) {
+      setDialog(target);
+      return;
+    }
+    (
+      server?.run[action] ??
+      outputs.run[action] ??
+      (action === "duplicate" ? duplicate : undefined)
+    )?.();
+  };
 
   return (
     <>
       <DropdownMenu
         onOpenChange={(open) => {
-          if (open && canPresent) {
+          if (open && server && item.totalCards > 0) {
             preloadStageShow(router, { deck: deck.id });
           }
         }}
@@ -238,176 +237,114 @@ function DeckMenuBody({
           <EllipsisVerticalIcon className="size-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          {server?.boxed.map((entry) => (
-            <DropdownMenuItem
-              key={entry.deckId}
-              onClick={() => {
-                void navigate({
-                  to: "/collections/$collectionId",
-                  params: { collectionId: entry.collectionId },
-                });
-              }}
-            >
-              <BoxIcon className="size-4" />
-              {entry.deckId === deck.id && server.boxed.length === 1
-                ? m.decks_meta_stored_in_box({ box: entry.boxName })
-                : m.decks_meta_variant_in_box({ deck: entry.deckName, box: entry.boxName })}
-            </DropdownMenuItem>
-          ))}
-          {server && server.boxed.length > 0 && <DropdownMenuSeparator />}
-          {capabilities.pin && server ? (
-            <DropdownMenuItem onClick={server.handleTogglePin}>
-              {deck.isPinned ? (
-                <>
-                  <PinOffIcon className="size-4" />
-                  {m.decks_menu_unpin()}
-                </>
-              ) : (
-                <>
-                  <PinIcon className="size-4" />
-                  {m.decks_menu_pin()}
-                </>
-              )}
-            </DropdownMenuItem>
-          ) : null}
-          <DropdownMenuItem onClick={() => setDialog("share")}>
-            <Share2Icon className="size-4" />
-            {m.decks_menu_share()}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setDialog("export")}>
-            <DownloadIcon className="size-4" />
-            {m.decks_menu_export()}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setDialog("print")}>
-            <PrinterIcon className="size-4" />
-            {m.decks_menu_print()}
-          </DropdownMenuItem>
-          {canPresent ? (
-            <DropdownMenuItem
-              onClick={() => {
-                void navigate({ to: "/stage/show", search: { deck: deck.id, i: 0 } });
-              }}
-            >
-              <MonitorPlayIcon className="size-4" />
-              {m.decks_menu_present()}
-            </DropdownMenuItem>
-          ) : null}
-          <DropdownMenuItem onClick={() => setDialog("rename")}>
-            <PencilIcon className="size-4" />
-            {m.common_rename()}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={duplicate}>
-            <CopyIcon className="size-4" />
-            {m.decks_menu_duplicate()}
-          </DropdownMenuItem>
-          {otherFormats.length > 0 ? (
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <RefreshCwIcon className="size-4" />
-                {m.decks_menu_change_format()}
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                {otherFormats.map((entry) => (
-                  <DropdownMenuItem
-                    key={entry.slug}
-                    onClick={() => changeFormat(entry.slug as DeckFormat, entry.label)}
-                  >
-                    {entry.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-          ) : null}
-          {capabilities.folders && server ? (
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <FolderIcon className="size-4" />
-                {m.decks_menu_add_to_folder()}
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                {server.folders.map((folder) => (
-                  <DropdownMenuCheckboxItem
-                    key={folder.id}
-                    checked={item.folderIds.includes(folder.id)}
-                    onClick={() => server.toggleFolder(folder.id)}
-                  >
-                    {folder.name}
-                  </DropdownMenuCheckboxItem>
-                ))}
-                {server.folders.length > 0 && <DropdownMenuSeparator />}
-                <DropdownMenuItem onClick={() => setDialog("folders")}>
-                  <SettingsIcon className="size-4" />
-                  {m.decks_menu_manage_folders()}
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-          ) : null}
-          {capabilities.variants ? (
-            <DropdownMenuItem onClick={() => setDialog("variants")}>
-              <GitBranchIcon className="size-4" />
-              {m.decks_menu_variants()}
-            </DropdownMenuItem>
-          ) : null}
-          {capabilities.primary && server && deck.familyId !== null && !deck.isPrimary ? (
-            <DropdownMenuItem onClick={server.handlePromotePrimary}>
-              <StarIcon className="size-4" />
-              {m.decks_menu_make_primary()}
-            </DropdownMenuItem>
-          ) : null}
-          {capabilities.draft && server ? (
-            <DropdownMenuItem onClick={server.handleToggleDraft}>
-              <FlaskConicalIcon className="size-4" />
-              {deck.isDraft ? m.decks_menu_unmark_draft() : m.decks_menu_mark_draft()}
-            </DropdownMenuItem>
-          ) : null}
-          {capabilities.archive && server ? (
-            <DropdownMenuItem onClick={server.handleToggleArchive}>
-              {deck.archivedAt === null ? (
-                <>
-                  <ArchiveIcon className="size-4" />
-                  {m.decks_menu_archive()}
-                </>
-              ) : (
-                <>
-                  <ArchiveRestoreIcon className="size-4" />
-                  {m.decks_menu_unarchive()}
-                </>
-              )}
-            </DropdownMenuItem>
-          ) : null}
-          <DropdownMenuItem variant="destructive" onClick={() => setDialog("delete")}>
-            <Trash2Icon className="size-4" />
-            {m.common_delete()}
-          </DropdownMenuItem>
+          <DeckMenuContent
+            model={model}
+            context="row"
+            deck={{
+              isPinned: deck.isPinned,
+              isDraft: deck.isDraft,
+              archived: deck.archivedAt !== null,
+            }}
+            boxName={ownBox?.boxName}
+            compareFrom={deck.id}
+            formats={otherFormats}
+            folders={server?.folders}
+            onAction={onAction}
+            onFormat={(slug, label) => changeFormat(slug as DeckFormat, label)}
+            onToggleFolder={server?.toggleFolder}
+            onManageFolders={() => setDialog("folders")}
+          />
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <DeckShareDialog
-        deckId={deck.id}
-        deckName={deck.name}
-        isPublic={deck.isPublic}
-        shareToken={deck.shareToken}
-        open={dialog === "share"}
-        onOpenChange={openChange("share")}
-        cards={cards}
-      />
-
-      <DeckExportDialog
-        deckId={deck.id}
-        isDirty={false}
-        open={dialog === "export"}
-        onOpenChange={openChange("export")}
-        cards={cards}
-      />
-
-      <DeckPrintDialog
-        open={dialog === "print"}
-        onOpenChange={openChange("print")}
-        cards={cards}
-        deckId={deck.id}
-        deckName={deck.name}
-        isShared={shareLinkUrl("deck", deck) !== null}
-      />
+      {dialog === "link" && (
+        <DeckShareDialog
+          open
+          onOpenChange={openChange("link")}
+          deckId={deck.id}
+          deckName={deck.name}
+          isPublic={deck.isPublic}
+          shareToken={deck.shareToken}
+        />
+      )}
+      {dialog === "image" && (
+        <DeckImageDialog
+          open
+          onOpenChange={openChange("image")}
+          deckId={deck.id}
+          deckName={deck.name}
+          isPublic={deck.isPublic}
+          shareToken={deck.shareToken}
+          cards={cards}
+        />
+      )}
+      {(dialog === "proxies" || dialog === "registration") && (
+        <DeckPrintDialog
+          open
+          kind={dialog}
+          onOpenChange={openChange(dialog)}
+          cards={cards}
+          deckId={deck.id}
+          deckName={deck.name}
+        />
+      )}
+      {dialog === "storedIn" && server && (
+        <DeckHomeCollectionDialog
+          open
+          onOpenChange={openChange("storedIn")}
+          deckId={deck.id}
+          currentCollectionId={deck.collectionId}
+          stored={server.boxed}
+        />
+      )}
+      {dialog === "details" && (
+        <DeckDetailsDialog
+          open
+          onOpenChange={openChange("details")}
+          deckId={deck.id}
+          currentName={deck.name}
+          currentDescription={deck.description}
+          currentLinks={deck.links}
+        />
+      )}
+      {dialog === "rename" && (
+        <DeckRenameDialog
+          open
+          onOpenChange={openChange("rename")}
+          deckId={deck.id}
+          currentName={deck.name}
+        />
+      )}
+      {dialog === "cover" && cards && (
+        <DeckCoverPickerDialog
+          open
+          onOpenChange={openChange("cover")}
+          deckId={deck.id}
+          cards={cards}
+          coverCardId={deck.coverCardId}
+          coverFaceId={deck.coverFaceId}
+          coverPosition={deck.coverPosition}
+        />
+      )}
+      {dialog === "newVariant" && (
+        <DeckVariantCreateDialog
+          open
+          onOpenChange={openChange("newVariant")}
+          deckId={deck.id}
+          deckName={deck.name}
+        />
+      )}
+      {dialog === "variants" && (
+        <DeckVariantsDialog
+          open
+          onOpenChange={openChange("variants")}
+          deckId={deck.id}
+          deckName={deck.name}
+        />
+      )}
+      {dialog === "folders" && (
+        <ManageDeckFoldersDialog open onOpenChange={openChange("folders")} />
+      )}
 
       <ConfirmActionDialog
         open={dialog === "delete"}
@@ -418,26 +355,7 @@ function DeckMenuBody({
         description={deleteDescription}
         confirmLabel={m.common_delete()}
       />
-
-      <DeckRenameDialog
-        deckId={deck.id}
-        currentName={deck.name}
-        open={dialog === "rename"}
-        onOpenChange={openChange("rename")}
-      />
-
-      {capabilities.variants ? (
-        <DeckVariantsDialog
-          deckId={deck.id}
-          deckName={deck.name}
-          open={dialog === "variants"}
-          onOpenChange={openChange("variants")}
-        />
-      ) : null}
-
-      {capabilities.folders ? (
-        <ManageDeckFoldersDialog open={dialog === "folders"} onOpenChange={openChange("folders")} />
-      ) : null}
+      <DeckCopyFallbackDialog fallback={outputs.fallback} onClose={() => outputs.closeFallback()} />
     </>
   );
 }
