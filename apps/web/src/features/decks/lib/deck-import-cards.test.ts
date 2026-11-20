@@ -4,6 +4,7 @@ import {
   archivedCopyCards,
   dedupeMatchedEntries,
   importOverflowMessage,
+  keepCurrentPrintings,
   mergeMatchedEntries,
 } from "./deck-import-cards";
 
@@ -128,5 +129,68 @@ describe("archivedCopyCards", () => {
   it("adds a guessed card the list lacks", () => {
     const result = archivedCopyCards([named("a", "main", 3)], [named("yi", "champion", 1)]);
     expect(result.cards.map((card) => card.cardId)).toEqual(["a", "yi"]);
+  });
+});
+
+function row(cardId: string, zone: string, quantity: number, printing: string | null = null) {
+  return { cardId, zone: zone as never, quantity, preferredPrintingId: printing };
+}
+
+describe("keepCurrentPrintings", () => {
+  it("keeps the printing the deck already uses for a card", () => {
+    expect(
+      keepCurrentPrintings([row("legend", "legend", 1)], [row("legend", "legend", 1, "legend-on")]),
+    ).toEqual([row("legend", "legend", 1, "legend-on")]);
+  });
+
+  it("splits copies across the deck's printings and gives extras the first one", () => {
+    expect(
+      keepCurrentPrintings(
+        [row("rune", "runes", 7)],
+        [row("rune", "runes", 4, "art-a"), row("rune", "runes", 2, "art-b")],
+      ),
+    ).toEqual([row("rune", "runes", 5, "art-a"), row("rune", "runes", 2, "art-b")]);
+  });
+
+  it("fills fewer copies from the first printing only", () => {
+    expect(
+      keepCurrentPrintings(
+        [row("rune", "runes", 3)],
+        [row("rune", "runes", 4, "art-a"), row("rune", "runes", 2, "art-b")],
+      ),
+    ).toEqual([row("rune", "runes", 3, "art-a")]);
+  });
+
+  it("fills chosen printings before default art, whatever the row order", () => {
+    expect(
+      keepCurrentPrintings(
+        [row("rune", "runes", 7)],
+        [row("rune", "runes", 6), row("rune", "runes", 6, "alt-art")],
+      ),
+    ).toEqual([row("rune", "runes", 6, "alt-art"), row("rune", "runes", 1)]);
+  });
+
+  it("takes the printing from another zone when the card moved", () => {
+    expect(
+      keepCurrentPrintings([row("card", "sideboard", 2)], [row("card", "main", 3, "alt-art")]),
+    ).toEqual([row("card", "sideboard", 2, "alt-art")]);
+  });
+
+  it("prefers the same zone's printing over another zone's", () => {
+    expect(
+      keepCurrentPrintings(
+        [row("card", "main", 2)],
+        [row("card", "sideboard", 1, "side-art"), row("card", "main", 2, "main-art")],
+      ),
+    ).toEqual([row("card", "main", 2, "main-art")]);
+  });
+
+  it("leaves new cards and rows with their own printing as imported", () => {
+    expect(
+      keepCurrentPrintings(
+        [row("new", "main", 3), row("card", "main", 1, "picked")],
+        [row("card", "main", 1, "old")],
+      ),
+    ).toEqual([row("new", "main", 3), row("card", "main", 1, "picked")]);
   });
 });

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-20
+
+### Other
+
+- feat(Decks): **Changes view when replacing a deck** — the preview lists cards going in and out, and cards you kept stay on the art you picked.
+
 ## 2026-11-19
 
 ### Highlights

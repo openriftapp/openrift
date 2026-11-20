@@ -1,5 +1,9 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
-import { MAX_DECK_CARD_QUANTITY, mergeDeckCardsWithOverflow } from "@openrift/shared/deck-cards";
+import {
+  MAX_DECK_CARD_QUANTITY,
+  mergeDeckCards,
+  mergeDeckCardsWithOverflow,
+} from "@openrift/shared/deck-cards";
 import type { CardType, DeckZone } from "@openrift/shared/types/enums";
 
 import { m } from "@/paraglide/messages.js";
@@ -117,4 +121,40 @@ export function importOverflowMessage(overflow: readonly ImportOverflow[]): stri
     max: MAX_DECK_CARD_QUANTITY,
     cards: overflow.map((row) => row.name).join(", "),
   });
+}
+
+export function keepCurrentPrintings(
+  imported: readonly ImportedDeckCard[],
+  current: readonly ImportedDeckCard[],
+): ImportedDeckCard[] {
+  const rows = imported.flatMap((card) => {
+    if (card.preferredPrintingId !== null) {
+      return [card];
+    }
+    const sameCard = current.filter((row) => row.cardId === card.cardId);
+    const sameZone = sameCard.filter((row) => row.zone === card.zone);
+    const sources = (sameZone.length > 0 ? sameZone : sameCard).toSorted(
+      (left, right) =>
+        Number(left.preferredPrintingId === null) - Number(right.preferredPrintingId === null) ||
+        right.quantity - left.quantity,
+    );
+    const first = sources.at(0);
+    if (!first) {
+      return [card];
+    }
+    const split: ImportedDeckCard[] = [];
+    let left = card.quantity;
+    for (const source of sources) {
+      const take = Math.min(left, source.quantity);
+      if (take > 0) {
+        split.push({ ...card, quantity: take, preferredPrintingId: source.preferredPrintingId });
+        left -= take;
+      }
+    }
+    if (left > 0) {
+      split.push({ ...card, quantity: left, preferredPrintingId: first.preferredPrintingId });
+    }
+    return split;
+  });
+  return mergeDeckCards(rows);
 }

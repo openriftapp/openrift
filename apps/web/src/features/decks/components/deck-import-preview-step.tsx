@@ -4,6 +4,7 @@ import type { DeckFormatConfig } from "@openrift/shared/types/api/deck";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import { ArrowLeftIcon, ExternalLinkIcon } from "lucide-react";
+import { useState } from "react";
 
 import {
   PageDescription,
@@ -20,7 +21,11 @@ import { Callout } from "@/components/ui/callout";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { SimpleSelect } from "@/components/ui/simple-select";
+import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
+import { HoveredCardPreview } from "@/features/cards/components/hovered-card-preview";
 import {
   ImportPreviewStack,
   ImportRowsSection,
@@ -29,15 +34,73 @@ import {
   ImportTroubleNote,
 } from "@/features/collections/components/import-preview-chrome";
 import { classifyBucket } from "@/features/collections/lib/import-summary";
+import { DeckChangesList } from "@/features/decks/components/deck-changes-list";
 import { DeckImportEntryRow } from "@/features/decks/components/deck-import-entry-row";
 import { DeckImportSummary } from "@/features/decks/components/deck-import-summary";
+import { useDeckHoverPreview } from "@/features/decks/hooks/use-deck-hover-preview";
 import type { ImportedDeckCard } from "@/features/decks/lib/deck-import-cards";
 import { defaultImportDeckName } from "@/features/decks/lib/deck-import-cards";
 import type { DeckMatchedEntry, ResolvedCard } from "@/features/decks/lib/deck-import-matcher";
 import { deckImportRowId } from "@/features/decks/lib/deck-import-preview";
+import type { SideBySideZone } from "@/features/decks/lib/deck-side-by-side";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
+
+function ReplaceChangesSection({ zones }: { zones: readonly SideBySideZone[] }) {
+  const [changesOnly, setChangesOnly] = useState(true);
+  const isMobile = useIsMobile();
+  const { hoveredCard, containerRef, handleHoverMain } = useDeckHoverPreview({
+    mainOrigin: "main",
+    disabled: isMobile,
+  });
+  const rows = zones.flatMap((zone) => zone.rows);
+  const added = rows.reduce((total, row) => total + Math.max(0, row.to - row.from), 0);
+  const removed = rows.reduce((total, row) => total + Math.max(0, row.from - row.to), 0);
+  const same = rows.reduce((total, row) => total + Math.min(row.from, row.to), 0);
+  const isIdentical = added === 0 && removed === 0;
+
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <SectionHeading>{m.decks_import_changes_title()}</SectionHeading>
+        {!isIdentical && (
+          <div className="flex items-center gap-2">
+            <Switch
+              id="replace-changes-only"
+              checked={changesOnly}
+              onCheckedChange={setChangesOnly}
+            />
+            <Label htmlFor="replace-changes-only" className="font-normal">
+              {m.decks_compare_only_changed()}
+            </Label>
+          </div>
+        )}
+      </div>
+      <p className="text-muted-foreground text-sm tabular-nums">
+        {isIdentical
+          ? m.decks_compare_identical()
+          : m.decks_import_changes_summary({ added, removed, same })}
+      </p>
+      {!isIdentical && (
+        <div ref={containerRef} className="relative flex flex-col gap-2">
+          <div className="text-muted-foreground grid grid-cols-[1fr_auto_1fr] gap-2 px-2 text-sm font-medium">
+            <span>{m.decks_import_changes_current()}</span>
+            <span className="w-3" />
+            <span>{m.decks_import_changes_imported()}</span>
+          </div>
+          <DeckChangesList
+            zones={zones}
+            changesOnly={changesOnly}
+            linkCards={false}
+            onHover={handleHoverMain}
+          />
+          <HoveredCardPreview hoveredCard={hoveredCard} origin="main" containerRef={containerRef} />
+        </div>
+      )}
+    </section>
+  );
+}
 
 export function DeckImportPreviewStep({
   matchedEntries,
@@ -63,6 +126,8 @@ export function DeckImportPreviewStep({
   isLoggedIn,
   isImporting,
   replaceDeckName,
+  replaceChanges,
+  replaceCardsLoading = false,
   sourceLink,
   onDropSourceLink,
   onResolve,
@@ -98,6 +163,8 @@ export function DeckImportPreviewStep({
   isLoggedIn: boolean;
   isImporting: boolean;
   replaceDeckName?: string;
+  replaceChanges?: readonly SideBySideZone[] | null;
+  replaceCardsLoading?: boolean;
   sourceLink?: string;
   onDropSourceLink: () => void;
   onResolve: (index: number, card: ResolvedCard) => void;
@@ -111,7 +178,7 @@ export function DeckImportPreviewStep({
   onBack: () => void;
 }) {
   const isReplaceMode = replaceDeckName !== undefined;
-  const canImport = importableCount > 0;
+  const canImport = importableCount > 0 && !replaceCardsLoading;
   const isMobile = useIsMobile();
 
   const jumpToFirstNeedsAttention = () => {
@@ -170,6 +237,14 @@ export function DeckImportPreviewStep({
           {m.common_cards({ count: totalCards })}
           {sourceNote ? ` (${sourceNote})` : null}
         </PageDescription>
+
+        {isReplaceMode && replaceCardsLoading && (
+          <p className="text-muted-foreground flex items-center gap-2 text-sm">
+            <Spinner />
+            {m.decks_import_changes_loading()}
+          </p>
+        )}
+        {isReplaceMode && replaceChanges && <ReplaceChangesSection zones={replaceChanges} />}
 
         <DeckImportSummary
           cards={importCards}

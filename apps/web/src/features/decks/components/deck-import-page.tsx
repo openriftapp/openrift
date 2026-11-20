@@ -51,6 +51,8 @@ export function DeckImportPage() {
         isLoggedIn={flow.isLoggedIn}
         isImporting={flow.isImporting}
         replaceDeckName={replaceDeckName}
+        replaceChanges={flow.replaceChanges}
+        replaceCardsLoading={flow.replaceCardsLoading}
         sourceLink={flow.sourceLink}
         onDropSourceLink={flow.handleDropSourceLink}
         onResolve={flow.handleResolve}

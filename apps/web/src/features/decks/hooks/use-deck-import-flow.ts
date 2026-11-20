@@ -12,13 +12,15 @@ import { toast } from "sonner";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { handleImportFileUpload } from "@/features/collections/lib/import-flow-shared";
 import { classifyBucket } from "@/features/collections/lib/import-summary";
-import { useCreateDeck, useSaveDeckCards } from "@/features/decks/hooks/use-decks";
+import { useCreateDeck, useDeckCardsFor, useSaveDeckCards } from "@/features/decks/hooks/use-decks";
 import { useDecksCollection } from "@/features/decks/hooks/use-decks-collections";
 import { useLocalDecks } from "@/features/decks/hooks/use-local-decks";
 import type { DeckLinkKind } from "@/features/decks/lib/deck-compare-side";
 import { queryDeckLink } from "@/features/decks/lib/deck-compare-side";
+import { ownDeckDiffCards } from "@/features/decks/lib/deck-compare-sources";
 import {
   importOverflowMessage,
+  keepCurrentPrintings,
   mergeMatchedEntries,
   defaultImportDeckName,
 } from "@/features/decks/lib/deck-import-cards";
@@ -38,6 +40,7 @@ import {
 } from "@/features/decks/lib/deck-import-parsers";
 import { sortDeckImportEntries } from "@/features/decks/lib/deck-import-preview";
 import { resolveReplaceTarget } from "@/features/decks/lib/deck-import-replace";
+import { alignDeckLists } from "@/features/decks/lib/deck-side-by-side";
 import {
   createLocalDeck,
   setLocalDeckCards,
@@ -61,7 +64,7 @@ export function useDeckImportFlow() {
     name: prefillName,
     source: prefillSource,
   } = routeApi.useSearch();
-  const { allPrintings } = useCards();
+  const { allPrintings, cardsById } = useCards();
   const { zoneOrder, zoneLabels } = useZoneOrder();
   const { formats: deckFormats } = useDeckFormatList();
   const createDeck = useCreateDeck();
@@ -89,7 +92,15 @@ export function useDeckImportFlow() {
       : replaceTarget.mode === "server"
         ? deckRow?.deck
         : undefined;
+  const serverTargetCards = useDeckCardsFor(
+    replaceTarget.mode === "server" ? [replaceTarget.deckId] : [],
+  );
+  const replaceTargetCards =
+    replaceTarget.mode === "local"
+      ? localDecks.find((deck) => deck.id === replaceTarget.deckId)?.cards
+      : serverTargetCards;
   const replaceDeckName = replaceTargetDeck?.name;
+  const replaceCardsLoading = replaceTarget.mode !== "none" && replaceTargetCards === undefined;
   const isReplaceMode = replaceTarget.mode !== "none";
 
   const queryClient = useQueryClient();
@@ -260,7 +271,16 @@ export function useDeckImportFlow() {
   const importableEntries = matchedEntries.filter(
     (entry, index) => entry.resolvedCard && !skippedIndices.has(index),
   );
-  const { cards: importCards, overflow: importOverflow } = mergeMatchedEntries(importableEntries);
+  const { cards: matchedCards, overflow: importOverflow } = mergeMatchedEntries(importableEntries);
+  const importCards = replaceTargetCards
+    ? keepCurrentPrintings(matchedCards, replaceTargetCards)
+    : matchedCards;
+  const replaceChanges = replaceTargetCards
+    ? alignDeckLists(
+        ownDeckDiffCards(replaceTargetCards, cardsById).theirs,
+        ownDeckDiffCards(importCards, cardsById).theirs,
+      )
+    : null;
   const overflowNotice = importOverflowMessage(importOverflow);
   const previewWarnings = overflowNotice ? [...parseWarnings, overflowNotice] : parseWarnings;
   const summaryFormat = replaceTargetDeck?.format ?? deckFormat;
@@ -277,7 +297,7 @@ export function useDeckImportFlow() {
   );
 
   const executeReplace = () => {
-    if (replaceTarget.mode === "none") {
+    if (replaceTarget.mode === "none" || replaceCardsLoading) {
       return;
     }
     const targetName = replaceDeckName ?? m.decks_import_fallback_deck_name();
@@ -397,6 +417,8 @@ export function useDeckImportFlow() {
     isImporting,
     isReplaceMode,
     replaceDeckName,
+    replaceChanges,
+    replaceCardsLoading,
     sourceLink,
     handleDropSourceLink: () => setSourceLinkDropped(true),
     confirmReplaceOpen,
