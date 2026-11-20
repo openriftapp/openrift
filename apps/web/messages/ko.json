@@ -8058,8 +8058,6 @@
   "meta_standings_order_aria": "순위표 보기 방식",
   "meta_standings_by_rank": "순위별",
   "meta_standings_by_legend": "전설별",
-  "meta_standings_expand_all": "모두 펼치기",
-  "meta_standings_collapse_all": "모두 접기",
   "meta_standings_legend_best": "최고",
   "meta_standings_legend_page": "전설 페이지",
   "meta_standings_legend_unknown": "전설 정보 없음",
@@ -8074,15 +8072,6 @@
       "match": {
         "countPlural=one": "플레이어 {countFormatted}명",
         "countPlural=*": "플레이어 {countFormatted}명"
-      }
-    }
-  ],
-  "meta_standings_legend_see_all": [
-    {
-      "declarations": ["input count", "local countFormatted = count: number"],
-      "selectors": ["countFormatted"],
-      "match": {
-        "countFormatted=*": "순위표에서 {countFormatted}명 모두 보기"
       }
     }
   ],

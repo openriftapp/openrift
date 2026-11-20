@@ -15,7 +15,7 @@ import type { MetaDeckCostFilterProps } from "@/features/meta/components/meta-de
 import type { MetaBanGroup } from "@/features/meta/lib/meta-deck-bans";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import type { MetaStandingsSearch } from "@/features/meta/lib/meta-standings-search";
-import { standingsPageQuery } from "@/features/meta/lib/meta-standings-search";
+import { groupsByLegend, standingsPageQuery } from "@/features/meta/lib/meta-standings-search";
 import { metaField, metaPhase, metaRow } from "@/test/meta-event-fixtures";
 
 const session = vi.hoisted(() => ({ userId: null as string | null }));
@@ -53,8 +53,7 @@ const archive = vi.hoisted(() => {
     rows: [] as { id: string; playerName: string; shareToken: string | null; legend: unknown }[],
     cache: new Map<string, StandingsPage>(),
     fetched: [] as string[],
-    groupFetches: [] as string[],
-    failingGroups: new Set<string>(),
+    navigations: [] as Record<string, unknown>[],
     kept: undefined as StandingsPage | undefined,
     // Keys the API rejects, and keys whose request never lands.
     failing: new Set<string>(),
@@ -85,26 +84,6 @@ const archive = vi.hoisted(() => {
 vi.mock("@/features/meta/hooks/use-meta", async () => {
   const react = await import("react");
   return {
-    useMetaLegendGroupRows: (_slug: string, cardIds: readonly string[], limit: number) => {
-      archive.groupFetches.push(...cardIds);
-      const groups = cardIds.map((legend) =>
-        archive.failingGroups.has(legend)
-          ? {
-              players: undefined,
-              isError: true,
-              refetch: () => {
-                archive.failingGroups.delete(legend);
-                searchStore.write({ ...searchStore.read() });
-              },
-            }
-          : {
-              players: archive.pageFor({ legend, limit, offset: 0 }).players,
-              isError: false,
-              refetch: () => {},
-            },
-      );
-      return { groups, lists: groups.map((group) => group.players) };
-    },
     useMetaStandings: (slug: string, query: StandingsQuery) => {
       const key = archive.keyOf(slug, query);
       const hit = archive.cache.get(key);
@@ -212,7 +191,13 @@ vi.mock("@tanstack/react-router", async () => {
         react.useSyncExternalStore(searchStore.subscribe, searchStore.read, searchStore.read),
       useNavigate:
         () =>
-        ({ search }: { search: (prev: Record<string, unknown>) => Record<string, unknown> }) => {
+        ({
+          search,
+          ...options
+        }: {
+          search: (prev: Record<string, unknown>) => Record<string, unknown>;
+        }) => {
+          archive.navigations.push(options);
           searchStore.write(search(searchStore.read()));
         },
     }),
@@ -269,20 +254,10 @@ function fieldOf(
   });
 }
 
-function bestPerLegendOf(players: MetaStandingsRow[]): MetaStandingsRow[] {
-  const best = new Map<string, MetaStandingsRow>();
-  for (const player of players.toSorted((a, b) => a.rank - b.rank)) {
-    if (player.legend !== null && !best.has(player.legend.cardId)) {
-      best.set(player.legend.cardId, player);
-    }
-  }
-  return [...best.values()];
-}
-
 const SLUG = "summoner-skirmish";
 
-function seedFromLoader(search: MetaStandingsSearch, total: number) {
-  const query = standingsPageQuery(search, total);
+function seedFromLoader(search: MetaStandingsSearch, total: number, legendCount = 0) {
+  const query = standingsPageQuery(search, total, groupsByLegend(search, total, legendCount));
   archive.cache.set(archive.keyOf(SLUG, query), archive.pageFor(query));
 }
 
@@ -313,12 +288,12 @@ function renderStandings(
   const search = (extra.search ?? {}) as MetaStandingsSearch;
   searchStore.write(search);
   seedFromLoader({}, players.length);
-  seedFromLoader(search, players.length);
+  const standingsField = fieldOf(players, extra);
+  seedFromLoader(search, players.length, standingsField.legends.length);
   render(
     <MetaEventStandings
       firstPage={{ players: players.slice(0, 200), total: players.length }}
-      field={fieldOf(players, extra)}
-      bestPerLegend={bestPerLegendOf(players)}
+      field={standingsField}
       phases={extra.phases ?? []}
       slug={SLUG}
       recordedStatus={status}
@@ -364,8 +339,7 @@ describe("MetaEventStandings", () => {
     archive.includeSideboard = [];
     archive.cache.clear();
     archive.fetched = [];
-    archive.groupFetches = [];
-    archive.failingGroups.clear();
+    archive.navigations = [];
     archive.kept = undefined;
     archive.failing.clear();
     archive.holding.clear();
@@ -811,13 +785,15 @@ describe("MetaEventStandings", () => {
     expect(screen.getByRole("columnheader", { name: "Record" })).toBeInTheDocument();
   });
 
-  it("bands the top cut by the bracket each player reached and leaves the rest bare", () => {
+  it("fills the top cut bands without a bracket label and leaves the rest bare", () => {
     renderStandings(field(10), "2020-01-01", { phases: [metaPhase()] });
 
     const band = (name: string) => phoneRow(name).querySelector("[data-slot=rank-band]");
-    expect(band("Player 0")).toHaveTextContent("Winner");
+    expect(band("Player 0")).toHaveTextContent("1st");
+    expect(band("Player 0")).not.toHaveTextContent("Winner");
     expect(band("Player 5")).toHaveAttribute("data-tone", "muted");
-    expect(band("Player 5")).toHaveTextContent("Top 8");
+    expect(band("Player 5")).toHaveTextContent("6th");
+    expect(band("Player 5")).not.toHaveTextContent("Top 8");
     expect(band("Player 9")).toHaveAttribute("data-tone", "plain");
   });
 
@@ -1482,42 +1458,49 @@ describe("MetaEventStandings", () => {
       expect(screen.queryByRole("button", { name: "By legend" })).toBeNull();
     });
 
-    it("switches to the grouping and drops the narrowings it does not apply", async () => {
+    it("switches to the grouping in place, keeping the narrowings and the scroll position", async () => {
       const user = userEvent.setup();
-      renderStandings(mixedField(), "2020-01-01", {
-        search: { q: "player", list: "with", legend: "card-ahri" },
-      });
+      renderStandings(mixedField(), "2020-01-01", { search: { q: "player", list: "with" } });
 
       await user.click(screen.getByRole("button", { name: "By legend" }));
 
-      expect(searchStore.read()).toMatchObject({
-        by: "legend",
-        q: undefined,
-        list: undefined,
-        legend: undefined,
-      });
-      expect(screen.queryByLabelText("Filter by legend")).toBeNull();
-      expect(screen.queryByLabelText("Find a player")).toBeNull();
+      expect(searchStore.read()).toMatchObject({ by: "legend", q: "player", list: "with" });
+      expect(archive.navigations.at(-1)).toMatchObject({ resetScroll: false });
+      expect(screen.getByLabelText("Filter by legend")).toBeInTheDocument();
+      expect(screen.getByLabelText("Find a player")).toBeInTheDocument();
       expect(screen.queryByLabelText("Standings pages")).toBeNull();
     });
 
-    it("orders groups by best finish and opens the first one", () => {
-      renderStandings(mixedField(), "2020-01-01", { search: { by: "legend" } });
+    it("asks for the whole narrowed field and groups it closed, best finish first", () => {
+      renderStandings(mixedField(), "2020-01-01", { search: { by: "legend", page: 2 } });
 
-      const headers = screen.getAllByRole("button", { expanded: true });
-      expect(headers).toHaveLength(1);
+      expect(archive.fetched).toEqual([]);
+      const headers = screen.getAllByRole("button", { expanded: false });
+      expect(headers).toHaveLength(3);
       expect(within(headers[0]!).getAllByText("Ahri").length).toBeGreaterThan(0);
       expect(within(headers[0]!).getAllByText("2 players").length).toBeGreaterThan(0);
-      const closed = screen.getAllByRole("button", { expanded: false });
-      expect(within(closed[0]!).getAllByText("Yasuo").length).toBeGreaterThan(0);
-      expect(within(closed[0]!).getAllByText("7 players").length).toBeGreaterThan(0);
-      expect(archive.groupFetches).toEqual(["card-ahri"]);
-      expect(screen.getAllByText("Player 3").length).toBeGreaterThan(0);
+      expect(within(headers[1]!).getAllByText("Yasuo").length).toBeGreaterThan(0);
+      expect(within(headers[1]!).getAllByText("7 players").length).toBeGreaterThan(0);
+      expect(within(headers[2]!).getAllByText("No legend on file").length).toBeGreaterThan(0);
       expect(screen.queryByText("Player 2")).toBeNull();
+      expect(screen.queryByText("Player 9")).toBeNull();
     });
 
-    it("leaves the legend to the group header on phone rows", () => {
+    it("counts a group by the entries the narrowings leave", async () => {
+      renderStandings(mixedField(), "2020-01-01", { search: { by: "legend", q: "Player 3" } });
+
+      await waitFor(() =>
+        expect(screen.getAllByRole("button", { expanded: false })).toHaveLength(1),
+      );
+      const [header] = screen.getAllByRole("button", { expanded: false });
+      expect(within(header!).getAllByText("Ahri").length).toBeGreaterThan(0);
+      expect(within(header!).getAllByText("1 player").length).toBeGreaterThan(0);
+    });
+
+    it("leaves the legend to the group header on phone rows", async () => {
+      const user = userEvent.setup();
       renderStandings(mixedField(), "2020-01-01", { search: { by: "legend" } });
+      await user.click(screen.getByRole("button", { expanded: false, name: /Ahri/u }));
       const row = screen
         .getAllByText("Player 3")
         .map((element) => element.closest("li"))
@@ -1526,21 +1509,7 @@ describe("MetaEventStandings", () => {
       expect(within(row!).queryByText("Ahri")).toBeNull();
     });
 
-    it("groups the entries without a legend at the end and opens them like any legend", async () => {
-      const user = userEvent.setup();
-      renderStandings(mixedField(), "2020-01-01", { search: { by: "legend" } });
-
-      const unknown = screen.getByRole("button", { name: /No legend on file/u });
-      expect(within(unknown).getAllByText("1 player").length).toBeGreaterThan(0);
-      expect(screen.queryByText("Player 9")).toBeNull();
-
-      await user.click(unknown);
-
-      expect(archive.groupFetches).toContain("none");
-      expect(screen.getAllByText("Player 9").length).toBeGreaterThan(0);
-    });
-
-    it("keys the list shapes of partial lists in an open group", () => {
+    it("keys the list shapes of partial lists in a group", () => {
       const shape = {
         format: "constructed",
         legend: 1,
@@ -1566,36 +1535,43 @@ describe("MetaEventStandings", () => {
       ).toBeInTheDocument();
     });
 
-    it("opens and closes groups, one at a time or all at once", async () => {
+    it("opens and closes groups one at a time", async () => {
       const user = userEvent.setup();
       renderStandings(mixedField(), "2020-01-01", { search: { by: "legend" } });
 
       await user.click(screen.getByRole("button", { expanded: false, name: /Yasuo/u }));
-      expect(screen.getAllByRole("button", { expanded: true })).toHaveLength(2);
-      expect(screen.getAllByText("Player 1").length).toBeGreaterThan(0);
+      expect(screen.getAllByRole("button", { expanded: true })).toHaveLength(1);
+      expect(screen.getAllByText("Player 2").length).toBeGreaterThan(0);
 
-      await user.click(screen.getByRole("button", { name: "Collapse all" }));
+      await user.click(screen.getByRole("button", { expanded: true, name: /Yasuo/u }));
       expect(screen.queryAllByRole("button", { expanded: true })).toHaveLength(0);
-
-      await user.click(screen.getByRole("button", { name: "Expand all" }));
-      expect(screen.getAllByRole("button", { expanded: true })).toHaveLength(3);
+      expect(screen.queryByText("Player 2")).toBeNull();
     });
 
-    it("hands a group's full list to the ranked standings, narrowed to its legend", async () => {
+    it("closes every group on the way into the grouping", async () => {
       const user = userEvent.setup();
       renderStandings(mixedField(), "2020-01-01", { search: { by: "legend" } });
+      await user.click(screen.getByRole("button", { expanded: false, name: /Ahri/u }));
 
-      await user.click(screen.getByRole("button", { expanded: false, name: /Yasuo/u }));
-      await user.click(screen.getByRole("button", { name: "See all 7 in the standings" }));
+      await user.click(screen.getByRole("button", { name: "By rank" }));
+      await user.click(screen.getByRole("button", { name: "By legend" }));
 
-      expect(searchStore.read()).toMatchObject({ by: undefined, legend: "card-yasuo" });
+      expect(screen.queryAllByRole("button", { expanded: true })).toHaveLength(0);
     });
 
-    it("links an open group to its legend page", () => {
+    it("links an open group to its legend page", async () => {
+      const user = userEvent.setup();
       renderStandings(mixedField(), "2020-01-01", { search: { by: "legend" } });
-      expect(screen.getByRole("link", { name: "Legend page" }).getAttribute("href")).toBe(
+      await user.click(screen.getByRole("button", { expanded: false, name: /Ahri/u }));
+      await user.click(screen.getByRole("button", { expanded: false, name: /Yasuo/u }));
+      expect(
+        screen
+          .getAllByRole("link", { name: "Legend page" })
+          .map((link) => link.getAttribute("href")),
+      ).toEqual([
         "/meta/legends/ahri-ahri-the-nine-tailed-fox",
-      );
+        "/meta/legends/yasuo-yasuo-the-unforgiven",
+      ]);
     });
 
     it("stays on the legend view when its own switch is pressed again", async () => {
@@ -1607,9 +1583,21 @@ describe("MetaEventStandings", () => {
       expect(searchStore.read()).toMatchObject({ by: "legend" });
     });
 
-    it("drops a price bound on the way to the legend view", async () => {
+    it("keeps a price bound across the switch and applies it to the groups", async () => {
       const user = userEvent.setup();
-      archive.costs = new Map();
+      archive.costs = new Map(
+        Array.from({ length: 10 }, (_, index) => [
+          `deck-${index}`,
+          {
+            needed: 40,
+            owned: 30,
+            value: 100,
+            toComplete: index === 3 ? 5 : 50,
+            unpriced: 0,
+            unpricedMissing: 0,
+          },
+        ]),
+      );
       renderStandings(
         field(10, (index) => ({
           legend: index % 2 === 0 ? ahri : yasuo,
@@ -1619,51 +1607,20 @@ describe("MetaEventStandings", () => {
       );
 
       await user.click(screen.getByRole("button", { name: "cost bound" }));
-      expect(screen.getByText("cost max: 10")).toBeInTheDocument();
-
       await user.click(screen.getByRole("button", { name: "By legend" }));
-      await user.click(screen.getByRole("button", { name: "By rank" }));
 
-      expect(screen.getByText("cost max: null")).toBeInTheDocument();
-    });
-
-    it("offers a retry when a group's rows fail to load", async () => {
-      const user = userEvent.setup();
-      archive.failingGroups.add("card-ahri");
-      renderStandings(mixedField(), "2020-01-01", { search: { by: "legend" } });
-
-      expect(screen.getByText("Something went wrong. Please try again.")).toBeInTheDocument();
-      await user.click(screen.getByRole("button", { name: "Retry" }));
-
-      expect(screen.getAllByText("Player 3").length).toBeGreaterThan(0);
-    });
-
-    it("expands the legends shown past the first twelve", async () => {
-      const user = userEvent.setup();
-      renderStandings(
-        field(14, (index) => ({
-          legend: {
-            ...yasuo,
-            cardId: `card-${index}`,
-            name: `Legend ${index}`,
-            character: `Legend ${index}`,
-          },
-        })),
-        "2020-01-01",
-        { search: { by: "legend" } },
-      );
-
-      await user.click(screen.getByRole("button", { name: "Show all 14" }));
-      await user.click(screen.getByRole("button", { name: "Collapse all" }));
-      await user.click(screen.getByRole("button", { name: "Expand all" }));
-
-      expect(screen.getAllByRole("button", { expanded: true })).toHaveLength(14);
+      expect(screen.getByText("cost max: 10")).toBeInTheDocument();
+      const headers = screen.getAllByRole("button", { expanded: false });
+      expect(headers).toHaveLength(1);
+      expect(within(headers[0]!).getAllByText("Yasuo").length).toBeGreaterThan(0);
+      expect(within(headers[0]!).getAllByText("1 player").length).toBeGreaterThan(0);
+      expect(screen.queryByText("Player 0")).toBeNull();
     });
 
     it("falls back to ranks when the field played one legend", () => {
       renderStandings(field(9), "2020-01-01", { search: { by: "legend" } });
       expect(screen.queryByText("No legend on file")).toBeNull();
-      expect(archive.groupFetches).toEqual([]);
+      expect(phoneRow("Player 5")).toBeInTheDocument();
     });
   });
 });

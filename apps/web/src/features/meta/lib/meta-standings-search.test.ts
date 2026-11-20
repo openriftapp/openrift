@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   metaStandingsSearchSchema,
+  groupsByLegend,
   standingsPageQuery,
   standingsPageSize,
 } from "./meta-standings-search";
@@ -84,5 +85,20 @@ describe("standingsPageQuery", () => {
       },
     );
     expect(standingsPageQuery({ q: "   " }, 100).q).toBeUndefined();
+  });
+
+  it("asks for the whole field when grouped, whatever page the URL names", () => {
+    expect(
+      standingsPageQuery({ page: 3, per: 50, list: "with", by: "legend" }, 2054, true),
+    ).toMatchObject({ list: "with", limit: 2054, offset: 0 });
+  });
+});
+
+describe("groupsByLegend", () => {
+  it("groups only where the legend filter shows", () => {
+    expect(groupsByLegend({ by: "legend" }, 9, 2)).toBe(true);
+    expect(groupsByLegend({ by: "legend" }, 8, 2)).toBe(false);
+    expect(groupsByLegend({ by: "legend" }, 9, 1)).toBe(false);
+    expect(groupsByLegend({}, 9, 2)).toBe(false);
   });
 });

@@ -5,9 +5,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { NotFoundFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
 import { metaEventHasArchivedResults, metaEventSeoTitle } from "@/features/meta/lib/meta-format";
-import { LEGEND_GROUP_ROWS, legendGroups } from "@/features/meta/lib/meta-legend-groups";
 import { metaEventQueryOptions, metaStandingsQueryOptions } from "@/features/meta/lib/meta-queries";
 import {
+  groupsByLegend,
   metaStandingsSearchSchema,
   standingsPageQuery,
 } from "@/features/meta/lib/meta-standings-search";
@@ -61,30 +61,17 @@ export const Route = createFileRoute("/_app/meta_/$slug")({
     if (context.queryClient.getQueryData(unnarrowed.queryKey) === undefined) {
       context.queryClient.setQueryData(unnarrowed.queryKey, detail.standings);
     }
-    const firstGroup =
-      deps.by === "legend"
-        ? legendGroups(detail.field.legends, detail.bestPerLegend)[0]
-        : undefined;
-    if (firstGroup !== undefined) {
-      await notFoundOnSentinel(
-        context.queryClient.query({
-          ...metaStandingsQueryOptions(params.slug, {
-            legend: firstGroup.cardId,
-            limit: LEGEND_GROUP_ROWS,
-            offset: 0,
-          }),
-          staleTime: "static",
-        }),
-      );
-      return detail.event;
-    }
     // Page and size are read from the location, deliberately outside the deps.
     const landed = metaStandingsSearchSchema.parse(location.search);
     await notFoundOnSentinel(
       context.queryClient.query({
         ...metaStandingsQueryOptions(
           params.slug,
-          standingsPageQuery({ ...deps, page: landed.page, per: landed.per }, total),
+          standingsPageQuery(
+            { ...deps, page: landed.page, per: landed.per },
+            total,
+            groupsByLegend(deps, total, detail.field.legends.length),
+          ),
         ),
         staleTime: "static",
       }),

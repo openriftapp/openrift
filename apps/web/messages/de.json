@@ -8059,8 +8059,6 @@
   "meta_standings_order_aria": "Ansicht der Tabelle",
   "meta_standings_by_rank": "Nach Platz",
   "meta_standings_by_legend": "Nach Legende",
-  "meta_standings_expand_all": "Alle aufklappen",
-  "meta_standings_collapse_all": "Alle zuklappen",
   "meta_standings_legend_best": "Bester Platz",
   "meta_standings_legend_page": "Legendenseite",
   "meta_standings_legend_unknown": "Keine Legende hinterlegt",
@@ -8075,15 +8073,6 @@
       "match": {
         "countPlural=one": "{countFormatted} Spieler",
         "countPlural=*": "{countFormatted} Spieler"
-      }
-    }
-  ],
-  "meta_standings_legend_see_all": [
-    {
-      "declarations": ["input count", "local countFormatted = count: number"],
-      "selectors": ["countFormatted"],
-      "match": {
-        "countFormatted=*": "Alle {countFormatted} in der Tabelle ansehen"
       }
     }
   ],

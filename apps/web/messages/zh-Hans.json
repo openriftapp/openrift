@@ -8058,8 +8058,6 @@
   "meta_standings_order_aria": "排名视图",
   "meta_standings_by_rank": "按名次",
   "meta_standings_by_legend": "按传奇",
-  "meta_standings_expand_all": "全部展开",
-  "meta_standings_collapse_all": "全部收起",
   "meta_standings_legend_best": "最佳",
   "meta_standings_legend_page": "传奇页面",
   "meta_standings_legend_unknown": "未记录传奇",
@@ -8074,15 +8072,6 @@
       "match": {
         "countPlural=one": "{countFormatted} 名玩家",
         "countPlural=*": "{countFormatted} 名玩家"
-      }
-    }
-  ],
-  "meta_standings_legend_see_all": [
-    {
-      "declarations": ["input count", "local countFormatted = count: number"],
-      "selectors": ["countFormatted"],
-      "match": {
-        "countFormatted=*": "在排名中查看全部 {countFormatted} 名"
       }
     }
   ],

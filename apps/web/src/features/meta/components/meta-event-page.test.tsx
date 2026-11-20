@@ -40,7 +40,6 @@ vi.mock("@/features/meta/hooks/use-meta", async () => {
       data: { players: captured.players, total: captured.players.length },
     }),
     useMetaPendingSubmissions: () => ({ data: undefined }),
-    useMetaLegendGroupRows: () => ({ groups: [], lists: [] }),
   };
 });
 

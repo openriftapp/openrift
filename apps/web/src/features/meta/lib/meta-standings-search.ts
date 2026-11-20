@@ -2,6 +2,7 @@ import { NO_LEGEND, STANDINGS_PAGE_SIZE } from "@openrift/shared/meta-query";
 import { z } from "zod/mini";
 
 import {
+  META_PAGE_ALL,
   metaPageSize,
   metaPageSlice,
   metaPagingSearchFieldsWithAll,
@@ -31,16 +32,31 @@ export function standingsPageSize(search: MetaStandingsSearch, total: number): n
   return metaPageSize(search.per, STANDINGS_PAGE_SIZE, total);
 }
 
+export function offersLegendFilter(total: number, legendCount: number): boolean {
+  return total > 8 && legendCount > 1;
+}
+
+export function groupsByLegend(
+  search: MetaStandingsSearch,
+  total: number,
+  legendCount: number,
+): boolean {
+  return search.by === "legend" && offersLegendFilter(total, legendCount);
+}
+
 /** The page the API is asked for, narrowings included. */
 export function standingsPageQuery(
   search: MetaStandingsSearch,
   total: number,
+  grouped = false,
 ): { q?: string; list?: "with"; legend?: string; limit: number; offset: number } {
   const needle = search.q?.trim() ?? "";
   return {
     q: needle === "" ? undefined : needle,
     list: search.list,
     legend: search.legend,
-    ...metaPageSlice(search.page, standingsPageSize(search, total)),
+    ...(grouped
+      ? metaPageSlice(undefined, metaPageSize(META_PAGE_ALL, STANDINGS_PAGE_SIZE, total))
+      : metaPageSlice(search.page, standingsPageSize(search, total))),
   };
 }

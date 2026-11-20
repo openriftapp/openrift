@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useWindowScrollMargin } from "./use-window-scroll-margin";
+import { useMeasuredWindowScrollMargin, useWindowScrollMargin } from "./use-window-scroll-margin";
 
 const observer = {
   callback: null as (() => void) | null,
@@ -103,6 +103,17 @@ describe("useWindowScrollMargin", () => {
 
     expect(observer.observed).toContain(el);
     expect(result.current).toBe(240);
+  });
+
+  it("reports no measured top before it has an element", () => {
+    const { result, rerender } = renderHook(({ el }) => useMeasuredWindowScrollMargin(el), {
+      initialProps: { el: null as HTMLElement | null },
+    });
+    expect(result.current).toBeUndefined();
+
+    rerender({ el: elementAt(0).el });
+
+    expect(result.current).toBe(0);
   });
 
   it("disconnects on unmount", () => {

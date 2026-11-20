@@ -277,21 +277,6 @@ describe("partialListDeckIds", () => {
   it("is empty for no rows", () => {
     expect(partialListDeckIds([])).toEqual(new Set());
   });
-
-  it("adds the partial decks of further lists and skips those still loading", () => {
-    expect(
-      partialListDeckIds(
-        [{ deckId: "deck-1", listStatus: "partial" }],
-        [
-          [
-            { deckId: "deck-2", listStatus: "partial" },
-            { deckId: "deck-3", listStatus: "full" },
-          ],
-          undefined,
-        ],
-      ),
-    ).toEqual(new Set(["deck-1", "deck-2"]));
-  });
 });
 
 describe("metaCardOwnershipBand", () => {

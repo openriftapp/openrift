@@ -2,7 +2,11 @@ import { useLayoutEffect, useState } from "react";
 
 /** Document-space top of `el` plus `extra`, for a window virtualizer's `scrollMargin`. */
 export function useWindowScrollMargin(el: HTMLElement | null, extra = 0): number {
-  const [top, setTop] = useState(0);
+  return (useMeasuredWindowScrollMargin(el) ?? 0) + extra;
+}
+
+export function useMeasuredWindowScrollMargin(el: HTMLElement | null): number | undefined {
+  const [top, setTop] = useState<number>();
   useLayoutEffect(() => {
     if (!el) {
       return;
@@ -32,5 +36,5 @@ export function useWindowScrollMargin(el: HTMLElement | null, extra = 0): number
     }
     return () => observer.disconnect();
   }, [el]);
-  return top + extra;
+  return el === null ? undefined : top;
 }

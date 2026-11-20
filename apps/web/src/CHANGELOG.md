@@ -4,6 +4,7 @@
 
 ### Other
 
+- feat(Meta): **By legend groups the full standings** — "By legend" now groups every entry under its legend, keeps the player search, legend, decklist and cost filters, and keeps your place on the page when you switch. Rank chips in the standings drop the repeated "Winner" and "Top 8" labels.
 - feat(Decks): **Changes view when replacing a deck** — the preview lists cards going in and out, and cards you kept stay on the art you picked.
 - fix(Cards): **Long set names stay readable while scrolling** — the set label pinned under the search bar widens to fit long names, and a name that still wraps grows downward, clear of the bar. While dragging the scroll handle, set names near the end of the list stay on screen.
 - fix(Meta): **Standings load in privacy-focused browsers** — event standings and deck lists no longer fail with an error in browsers or extensions that hide where a request comes from.

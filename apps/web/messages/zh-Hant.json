@@ -8058,8 +8058,6 @@
   "meta_standings_order_aria": "排名檢視",
   "meta_standings_by_rank": "依名次",
   "meta_standings_by_legend": "依傳奇",
-  "meta_standings_expand_all": "全部展開",
-  "meta_standings_collapse_all": "全部收合",
   "meta_standings_legend_best": "最佳",
   "meta_standings_legend_page": "傳奇頁面",
   "meta_standings_legend_unknown": "未記錄傳奇",
@@ -8074,15 +8072,6 @@
       "match": {
         "countPlural=one": "{countFormatted} 名玩家",
         "countPlural=*": "{countFormatted} 名玩家"
-      }
-    }
-  ],
-  "meta_standings_legend_see_all": [
-    {
-      "declarations": ["input count", "local countFormatted = count: number"],
-      "selectors": ["countFormatted"],
-      "match": {
-        "countFormatted=*": "在排名中查看全部 {countFormatted} 名"
       }
     }
   ],

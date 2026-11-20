@@ -33,6 +33,7 @@ function runLoader(
   overrides: {
     missing?: boolean;
     cached?: readonly (readonly unknown[])[];
+    legends?: { cardId: string; name: string; count: number }[];
   } = {},
 ) {
   const query = vi.fn((options: { queryKey: readonly unknown[] }) => {
@@ -43,7 +44,7 @@ function runLoader(
       return Promise.resolve({
         event: metaEvent(),
         standings: metaStandings([metaRow()], 2054),
-        field: metaField(),
+        field: metaField(overrides.legends === undefined ? {} : { legends: overrides.legends }),
         bestPerLegend: [],
         cutMatches: [],
         phases: [],
@@ -127,6 +128,23 @@ describe("/meta/$slug loader", () => {
 
     expect(keys).toContainEqual([
       ...metaKeys.standings(SLUG, { q: "ana", list: "with", limit: 50, offset: 100 }),
+    ]);
+  });
+
+  it("warms the whole narrowed field for the legend grouping, whatever page the link names", async () => {
+    const { loaded, query } = runLoader(
+      { by: "legend", list: "with", page: 3, per: 50 },
+      {
+        legends: [
+          { cardId: "card-ahri", name: "Ahri", count: 1000 },
+          { cardId: "card-yasuo", name: "Yasuo", count: 1054 },
+        ],
+      },
+    );
+    await loaded;
+
+    expect(query.mock.calls.map((call) => [...call[0].queryKey])).toContainEqual([
+      ...metaKeys.standings(SLUG, { list: "with", limit: 2054, offset: 0 }),
     ]);
   });
 

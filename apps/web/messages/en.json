@@ -8065,8 +8065,6 @@
   "meta_standings_order_aria": "Standings view",
   "meta_standings_by_rank": "By rank",
   "meta_standings_by_legend": "By legend",
-  "meta_standings_expand_all": "Expand all",
-  "meta_standings_collapse_all": "Collapse all",
   "meta_standings_legend_best": "Best",
   "meta_standings_legend_page": "Legend page",
   "meta_standings_legend_unknown": "No legend on file",
@@ -8081,15 +8079,6 @@
       "match": {
         "countPlural=one": "{countFormatted} player",
         "countPlural=*": "{countFormatted} players"
-      }
-    }
-  ],
-  "meta_standings_legend_see_all": [
-    {
-      "declarations": ["input count", "local countFormatted = count: number"],
-      "selectors": ["countFormatted"],
-      "match": {
-        "countFormatted=*": "See all {countFormatted} in the standings"
       }
     }
   ],

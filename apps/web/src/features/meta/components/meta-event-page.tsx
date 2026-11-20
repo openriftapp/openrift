@@ -114,7 +114,6 @@ export function MetaEventPage({ slug }: { slug: string }) {
         <MetaEventStandings
           firstPage={standings}
           field={field}
-          bestPerLegend={bestPerLegend}
           phases={phases}
           slug={slug}
           eventDate={event.eventDate}

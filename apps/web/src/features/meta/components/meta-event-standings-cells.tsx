@@ -16,11 +16,7 @@ import { MetaRunStrip } from "@/features/meta/components/meta-run-strip";
 import { useMetaPriceFormat } from "@/features/meta/hooks/use-meta-price-format";
 import type { MetaBanGroup } from "@/features/meta/lib/meta-deck-bans";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
-import {
-  finishBracketLabel,
-  formatRank,
-  formatStandingsRecord,
-} from "@/features/meta/lib/meta-format";
+import { formatRank, formatStandingsRecord } from "@/features/meta/lib/meta-format";
 import type { MetaPendingRowMark } from "@/features/meta/lib/meta-pending-submissions";
 import { metaSubmitSearchForPlayer } from "@/features/meta/lib/meta-submit-link";
 import { cn } from "@/lib/utils";
@@ -39,7 +35,6 @@ export function RankCell({
     <RankBand
       rank={player.rank}
       text={formatRank(player.rank, player.rankIsTier)}
-      label={finishBracketLabel(player.rank, player.rankIsTier, cutSize)}
       filled={cutSize !== null && player.rank <= cutSize}
       className={className}
     />

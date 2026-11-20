@@ -8060,8 +8060,6 @@
   "meta_standings_order_aria": "Affichage du classement",
   "meta_standings_by_rank": "Par rang",
   "meta_standings_by_legend": "Par légende",
-  "meta_standings_expand_all": "Tout déplier",
-  "meta_standings_collapse_all": "Tout replier",
   "meta_standings_legend_best": "Meilleur",
   "meta_standings_legend_page": "Page de la légende",
   "meta_standings_legend_unknown": "Aucune légende connue",
@@ -8076,15 +8074,6 @@
       "match": {
         "countPlural=one": "{countFormatted} joueur",
         "countPlural=*": "{countFormatted} joueurs"
-      }
-    }
-  ],
-  "meta_standings_legend_see_all": [
-    {
-      "declarations": ["input count", "local countFormatted = count: number"],
-      "selectors": ["countFormatted"],
-      "match": {
-        "countFormatted=*": "Voir les {countFormatted} dans le classement"
       }
     }
   ],

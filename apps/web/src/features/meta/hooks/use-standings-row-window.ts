@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import type { RowSlot } from "@/features/meta/lib/meta-event-standings";
 import { useHydrated } from "@/hooks/use-hydrated";
-import { useWindowScrollMargin } from "@/hooks/use-window-scroll-margin";
+import { useMeasuredWindowScrollMargin } from "@/hooks/use-window-scroll-margin";
 import { useWindowVirtualizerFresh } from "@/lib/virtualizer-fresh";
 
 const ROWS_SHOWN = 16;
@@ -27,7 +27,8 @@ export interface RowWindow {
 export function useRowWindow(players: readonly MetaStandingsRow[]): RowWindow {
   const hydrated = useHydrated();
   const [container, setContainer] = useState<HTMLElement | null>(null);
-  const scrollMargin = useWindowScrollMargin(container);
+  const measuredMargin = useMeasuredWindowScrollMargin(container);
+  const scrollMargin = measuredMargin ?? 0;
 
   const { virtualizer, virtualItems, totalSize } = useWindowVirtualizerFresh<HTMLElement>({
     count: players.length,
@@ -36,6 +37,9 @@ export function useRowWindow(players: readonly MetaStandingsRow[]): RowWindow {
     measureElement: measureRow,
     scrollMargin,
     overscan: 6,
+    // Rows measured against a margin of 0 sit above the fold, and the virtualizer
+    // scrolls by their size corrections: a group opened mid-page would jump.
+    enabled: measuredMargin !== undefined,
   });
 
   if (!hydrated) {
