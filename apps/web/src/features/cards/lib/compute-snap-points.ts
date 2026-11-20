@@ -78,13 +78,22 @@ export function computeSnapPoints({
     });
   }
 
-  const MIN_GAP = IS_COARSE_POINTER ? 32 : 26;
+  const gap =
+    points.length > 1
+      ? Math.min(IS_COARSE_POINTER ? 32 : 26, (trackBottom - trackTop) / (points.length - 1))
+      : 0;
   let previousY: number | undefined;
   for (const point of points) {
-    if (previousY !== undefined && point.screenY - previousY < MIN_GAP) {
-      point.screenY = previousY + MIN_GAP;
+    if (previousY !== undefined && point.screenY - previousY < gap) {
+      point.screenY = previousY + gap;
     }
     previousY = point.screenY;
+  }
+  let nextY: number | undefined;
+  for (const point of points.toReversed()) {
+    const limit = nextY === undefined ? trackBottom : nextY - gap;
+    point.screenY = Math.round(Math.min(point.screenY, limit));
+    nextY = point.screenY;
   }
 
   return points;

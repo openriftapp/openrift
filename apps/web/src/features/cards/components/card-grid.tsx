@@ -435,9 +435,9 @@ export function CardGrid({
         {multipleGroups && activeHeaderRow && (
           <div
             className="pointer-events-none flex items-end justify-center"
-            style={{ height: STICKY_GROUP_LABEL_BAND }}
+            style={{ minHeight: STICKY_GROUP_LABEL_BAND }}
           >
-            <OrnamentRule fade="tips" className="w-72 max-w-full">
+            <OrnamentRule fade="tips" className="w-max max-w-full min-w-[min(18rem,100%)]">
               <GroupHeaderLabel
                 slug={activeHeaderRow.group.slug}
                 name={activeHeaderRow.group.name}

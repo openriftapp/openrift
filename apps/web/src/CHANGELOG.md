@@ -5,6 +5,7 @@
 ### Other
 
 - feat(Decks): **Changes view when replacing a deck** — the preview lists cards going in and out, and cards you kept stay on the art you picked.
+- fix(Cards): **Long set names stay readable while scrolling** — the set label pinned under the search bar widens to fit long names, and a name that still wraps grows downward, clear of the bar. While dragging the scroll handle, set names near the end of the list stay on screen.
 
 ## 2026-11-19
 
