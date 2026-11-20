@@ -243,34 +243,27 @@ function metadataPatchOf(mutation: PendingMutation<CopyResponse>): CopyMetadataP
 async function persistInserts(
   collection: CopiesCollection,
   mutations: readonly PendingMutation<CopyResponse>[],
-  context: CopiesWriteContext,
 ): Promise<void> {
   const batchIds = new Set(mutations.map((mutation) => batchIdOf(mutation)));
   const batchId = batchIds.size === 1 ? [...batchIds][0] : undefined;
   const pending = pendingInsertsOf(collection);
-  try {
-    await sendInBatches(mutations, MAX_COPIES_PER_ADD, async (chunk) => {
-      const { items } = await retryOnceOnTimeout(() =>
-        send(m.collections_copies_timeout_add(), (signal) =>
-          browserApiOrpcClient(copiesContract).add(
-            { batchId, copies: chunk.map((mutation) => addCopyInput(mutation.modified)) },
-            { signal },
-          ),
+  await sendInBatches(mutations, MAX_COPIES_PER_ADD, async (chunk) => {
+    const { items } = await retryOnceOnTimeout(() =>
+      send(m.collections_copies_timeout_add(), (signal) =>
+        browserApiOrpcClient(copiesContract).add(
+          { batchId, copies: chunk.map((mutation) => addCopyInput(mutation.modified)) },
+          { signal },
         ),
-      );
-      await collection.utils.writeUpsert(items);
-      for (const item of items) {
-        const entry = pending.get(item.id);
-        if (entry) {
-          entry.confirmed = true;
-        }
+      ),
+    );
+    await collection.utils.writeUpsert(items);
+    for (const item of items) {
+      const entry = pending.get(item.id);
+      if (entry) {
+        entry.confirmed = true;
       }
-    });
-  } catch (error) {
-    // A lost response may still have created the rows, so resync.
-    void context.queryClient.invalidateQueries({ queryKey: copiesKeys.all(context.userId) });
-    throw error;
-  }
+    }
+  });
 }
 
 interface ChunkProgress {
@@ -414,7 +407,7 @@ async function abandonedInsertKeys(
   return abandoned;
 }
 
-async function persistInOrder(
+async function writeInOrder(
   collection: CopiesCollection,
   mutations: readonly PendingMutation<CopyResponse>[],
   context: CopiesWriteContext,
@@ -424,7 +417,7 @@ async function persistInOrder(
   const abandoned = abandonedInsertKeys(collection, later);
 
   if (inserts.length > 0) {
-    await persistInserts(collection, inserts, context);
+    await persistInserts(collection, inserts);
   }
   const skipped = await abandoned;
   const live = later.filter((mutation) => !skipped.has(String(mutation.key)));
@@ -471,5 +464,12 @@ export async function persistCopyMutations(
   mutations: readonly PendingMutation<CopyResponse>[],
   context: CopiesWriteContext,
 ): Promise<void> {
-  await persistInOrder(collection, mutations, context);
+  try {
+    await writeInOrder(collection, mutations, context);
+  } catch (error) {
+    // A timed-out or lost response may still have been applied, so resync.
+    void context.queryClient.invalidateQueries({ queryKey: copiesKeys.all(context.userId) });
+    void context.queryClient.invalidateQueries({ queryKey: collectionsKeys.all(context.userId) });
+    throw error;
+  }
 }

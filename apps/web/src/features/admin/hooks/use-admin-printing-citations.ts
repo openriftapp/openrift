@@ -33,6 +33,24 @@ export function useAdminPrintingCitations(printingId: string) {
   });
 }
 
+const fetchCardPrintingCitations = createServerFn({ method: "GET" })
+  .validator((input: { cardId: string }) => input)
+  .middleware([withCookies])
+  .handler(({ context, data }): Promise<{ byPrinting: Record<string, AdminPrintingCitation[]> }> =>
+    apiOrpcClient(adminPrintingCitationsContract, context.cookie).listForCard({
+      cardId: data.cardId,
+    }),
+  );
+
+export function useAdminCardPrintingCitations(cardId: string | undefined) {
+  return useQuery({
+    queryKey: adminKeys.cardPrintingCitations.byCard(cardId ?? ""),
+    queryFn: () => fetchCardPrintingCitations({ data: { cardId: cardId ?? "" } }),
+    enabled: cardId !== undefined,
+    staleTime: 5 * MINUTE_MS,
+  });
+}
+
 type CreatePrintingCitationInput = ContractInput<typeof adminPrintingCitationsContract, "create">;
 
 const createPrintingCitationFn = createServerFn({ method: "POST" })
@@ -49,7 +67,11 @@ const createPrintingCitationFn = createServerFn({ method: "POST" })
 export function useCreatePrintingCitation() {
   return useMutationWithInvalidation<AdminPrintingCitation, CreatePrintingCitationInput>({
     mutationFn: (vars, signal) => createPrintingCitationFn({ data: vars, signal }),
-    invalidates: (vars) => [adminKeys.printingCitations(vars.printingId), ...PUBLIC_CATALOG_KEYS],
+    invalidates: (vars) => [
+      adminKeys.printingCitations(vars.printingId),
+      adminKeys.cardPrintingCitations.all,
+      ...PUBLIC_CATALOG_KEYS,
+    ],
   });
 }
 
@@ -65,7 +87,11 @@ const updatePrintingCitationFn = createServerFn({ method: "POST" })
 export function useUpdatePrintingCitation() {
   return useMutationWithInvalidation<void, UpdatePrintingCitationInput>({
     mutationFn: (vars, signal) => updatePrintingCitationFn({ data: vars, signal }),
-    invalidates: (vars) => [adminKeys.printingCitations(vars.printingId), ...PUBLIC_CATALOG_KEYS],
+    invalidates: (vars) => [
+      adminKeys.printingCitations(vars.printingId),
+      adminKeys.cardPrintingCitations.all,
+      ...PUBLIC_CATALOG_KEYS,
+    ],
   });
 }
 
@@ -83,6 +109,10 @@ export function useDeletePrintingCitation() {
   return useMutationWithInvalidation({
     mutationFn: (vars: { printingId: string; citationId: string }, signal) =>
       deletePrintingCitationFn({ data: vars, signal }),
-    invalidates: (vars) => [adminKeys.printingCitations(vars.printingId), ...PUBLIC_CATALOG_KEYS],
+    invalidates: (vars) => [
+      adminKeys.printingCitations(vars.printingId),
+      adminKeys.cardPrintingCitations.all,
+      ...PUBLIC_CATALOG_KEYS,
+    ],
   });
 }

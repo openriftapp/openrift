@@ -575,6 +575,13 @@ describe("moves and disposals that would cancel pending trades", () => {
   it("declining at a later chunk keeps the earlier chunk and reports how far it got", async () => {
     const { client, collection } = await signedInWithCopies(manyCopies(501), [GIVING_P1]);
     refuseSecondChunkOnce();
+    fetchCopies.mockResolvedValue({
+      items: manyCopies(501).map((copy, index) => ({
+        ...copy,
+        collectionId: index < 500 ? "dest" : "source",
+      })),
+      nextCursor: null,
+    });
     const { result } = renderHook(() => useMoveCopies(), { wrapper: wrap(client) });
 
     const outcome = result.current

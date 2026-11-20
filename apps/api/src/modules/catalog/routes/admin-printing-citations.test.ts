@@ -8,8 +8,11 @@ import { adminPrintingCitationsRouter } from "./admin-printing-citations";
 
 const mockCatalog = { getPrintingById: vi.fn() };
 
+const mockCatalogMutations = { getPrintingIdsByCardId: vi.fn() };
+
 const mockPrintingCitations = {
   listForPrinting: vi.fn(),
+  listForPrintingIds: vi.fn(),
   insert: vi.fn(),
   update: vi.fn(),
   delete: vi.fn(),
@@ -39,6 +42,7 @@ app.use("*", async (c, next) => {
   c.set("repos", {
     adminEvents: mockAdminEvents,
     catalog: mockCatalog,
+    catalogMutations: mockCatalogMutations,
     printingCitations: mockPrintingCitations,
     printingDesk: mockPrintingDesk,
   } as never);
@@ -94,6 +98,40 @@ describe("GET /printings/{printingId}/citations", () => {
 
     expect(res.status).toBe(404);
     expect(mockPrintingCitations.listForPrinting).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /printing-citations/by-card/{cardId}", () => {
+  const CARD_ID = "d0000000-0001-4000-a000-000000000001";
+  const OTHER_PRINTING_ID = "b0000000-0001-4000-a000-000000000002";
+  const OTHER_CITATION_ID = "c0000000-0001-4000-a000-000000000002";
+
+  it("groups every printing's citations in one response, marking only the caller's own as editable", async () => {
+    adminAccess = GRANT_HOLDER;
+    mockCatalogMutations.getPrintingIdsByCardId.mockResolvedValue([
+      { id: PRINTING_ID },
+      { id: OTHER_PRINTING_ID },
+    ]);
+    mockPrintingCitations.listForPrintingIds.mockResolvedValue([
+      citationRow(),
+      citationRow({ id: OTHER_CITATION_ID, printingId: OTHER_PRINTING_ID }),
+    ]);
+    mockAdminEvents.citationIdsCreatedBy.mockResolvedValue([OTHER_CITATION_ID]);
+
+    const res = await app.request(`/api/admin/v1/printing-citations/by-card/${CARD_ID}`);
+
+    expect(res.status).toBe(200);
+    const json = await readJson(res);
+    expect(json.byPrinting[PRINTING_ID]).toEqual([
+      expect.objectContaining({ id: CITATION_ID, canEdit: false }),
+    ]);
+    expect(json.byPrinting[OTHER_PRINTING_ID]).toEqual([
+      expect.objectContaining({ id: OTHER_CITATION_ID, canEdit: true }),
+    ]);
+    expect(mockPrintingCitations.listForPrintingIds).toHaveBeenCalledWith([
+      PRINTING_ID,
+      OTHER_PRINTING_ID,
+    ]);
   });
 });
 

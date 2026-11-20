@@ -257,6 +257,58 @@ describe("GET /api/v1/lists/:id", () => {
   });
 });
 
+describe("GET /api/v1/lists/details", () => {
+  beforeEach(() => {
+    mockListsRepo.listForUser.mockReset();
+    mockListsRepo.entriesWithDetails.mockReset();
+  });
+
+  it("returns every list of the intent with its entries in one response", async () => {
+    mockListsRepo.listForUser.mockResolvedValue([{ ...dbList, entryCount: 1 }]);
+    mockListsRepo.entriesWithDetails.mockResolvedValue([
+      {
+        id: "le-1",
+        listId: LIST_ID,
+        kind: "card",
+        ruleQuantity: 0,
+        source: "manual",
+        cardId: CARD_ID,
+        printingId: null,
+        copyId: null,
+        quantity: 2,
+        tradeOverride: { pricePref: null, priceAbsoluteCents: null, tradeType: null },
+        cardName: "Fire Dragon",
+        setId: null,
+        rarity: null,
+        finish: null,
+        imageId: null,
+        collectionId: null,
+        resolvedPrintingId: null,
+      },
+    ]);
+
+    const res = await app.request("/api/v1/lists/details?intent=wish");
+
+    expect(res.status).toBe(200);
+    const json = await readJson(res);
+    expect(json.items).toHaveLength(1);
+    expect(json.items[0].list.id).toBe(LIST_ID);
+    expect(json.items[0].entries[0]).toMatchObject({ cardId: CARD_ID, quantity: 2 });
+    expect(mockListsRepo.listForUser).toHaveBeenCalledWith(USER_ID, "wish");
+    expect(mockListsRepo.entriesWithDetails).toHaveBeenCalledWith(LIST_ID, "card", USER_ID);
+  });
+
+  it("returns an empty list when the user has none", async () => {
+    mockListsRepo.listForUser.mockResolvedValue([]);
+
+    const res = await app.request("/api/v1/lists/details?intent=wish");
+
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual({ items: [] });
+    expect(mockListsRepo.entriesWithDetails).not.toHaveBeenCalled();
+  });
+});
+
 describe("PATCH /api/v1/lists/:id", () => {
   beforeEach(() => {
     mockListsRepo.update.mockReset();

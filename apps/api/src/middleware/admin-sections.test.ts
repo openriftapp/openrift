@@ -37,6 +37,7 @@ const GRANTED: Record<string, string[]> = {
   "GET /finishes": ["printing-desk"],
   "GET /languages": ["card-review", "printing-desk"],
   "GET /markers": ["card-review", "printing-desk"],
+  "GET /printing-citations/by-card/{cardId}": ["printing-desk"],
   "GET /printing-desk/cards/{cardSlug}": ["printing-desk"],
   "GET /printing-desk/printings": ["printing-desk"],
   "GET /printing-desk/printings/{printingId}": ["card-review", "printing-desk"],

@@ -156,6 +156,12 @@ describe("persisting copy writes", () => {
       ids.map((id) => stubCopy({ id, collectionId: "source" })),
     );
     respond = (request) => (sent.length === 2 ? fail() : succeed(request));
+    fetchCopies.mockResolvedValue({
+      items: ids.map((id, index) =>
+        stubCopy({ id, collectionId: index < 500 ? "dest" : "source" }),
+      ),
+      nextCursor: null,
+    });
 
     const move = collection.update(ids, (drafts) => {
       for (const draft of drafts) {
@@ -174,6 +180,10 @@ describe("persisting copy writes", () => {
     const ids = Array.from({ length: 700 }, (_, index) => `c${index}`);
     const collection = await copiesOnServer(ids.map((id) => stubCopy({ id })));
     respond = (request) => (sent.length === 2 ? fail() : succeed(request));
+    fetchCopies.mockResolvedValue({
+      items: ids.slice(500).map((id) => stubCopy({ id })),
+      nextCursor: null,
+    });
 
     await expect(collection.delete(ids).when("settled")).rejects.toThrow();
 
@@ -226,6 +236,28 @@ describe("persisting copy writes", () => {
       { copies: [{ id: "c1", printingId: "p1", collectionId: "col-1" }] },
     ]);
     expect(collection.get("c1")?.collectionId).toBe("col-1");
+  });
+
+  it("shows a timed-out move the API applied anyway once the store resyncs", async () => {
+    const collection = await copiesOnServer([stubCopy({ id: "c1", collectionId: "source" })]);
+    vi.useFakeTimers({ toFake: ["setTimeout"] });
+    respond = () => new Promise<Response>(() => {});
+    fetchCopies.mockResolvedValue({
+      items: [stubCopy({ id: "c1", collectionId: "dest" })],
+      nextCursor: null,
+    });
+
+    const move = collection.update("c1", (draft) => {
+      draft.collectionId = "dest";
+    });
+    const settled = expect(move.when("settled")).rejects.toThrow(/timed out/u);
+    await vi.advanceTimersByTimeAsync(5000);
+    vi.useRealTimers();
+    await settled;
+
+    await vi.waitFor(() => {
+      expect(collection.get("c1")?.collectionId).toBe("dest");
+    });
   });
 
   it("drops a removal of a copy whose add failed", async () => {

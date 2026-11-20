@@ -1,6 +1,7 @@
 import type {
   listBulkAddResponseSchema,
   listDetailResponseSchema,
+  listDetailsResponseSchema,
   listEntryResponseSchema,
   listListResponseSchema,
   listMoveResponseSchema,
@@ -40,6 +41,8 @@ export type ListEntryResponse = z.infer<typeof listEntryResponseSchema>;
 export type ListEntryDetailResponse = z.infer<typeof listEntryDetailResponseSchema>;
 
 export type ListDetailResponse = z.infer<typeof listDetailResponseSchema>;
+
+export type ListDetailsResponse = z.infer<typeof listDetailsResponseSchema>;
 
 export type ListDetailListResponse = ListDetailResponse["list"];
 

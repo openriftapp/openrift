@@ -46,6 +46,10 @@ export const adminKeys = {
   // citation write would refetch the whole candidate review payload.
   printingCitations: (printingId: string) =>
     ["admin", "printings", printingId, "citations"] as const,
+  cardPrintingCitations: {
+    all: ["admin", "card-printing-citations"] as const,
+    byCard: (cardId: string) => ["admin", "card-printing-citations", cardId] as const,
+  },
   printingDesk: {
     all: ["admin", "printing-desk"] as const,
     list: (mode: string) => ["admin", "printing-desk", "list", mode] as const,

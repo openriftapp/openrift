@@ -21,7 +21,7 @@ import type { Services } from "./deps.js";
 import { createRepos, createServices, createTransact } from "./deps.js";
 import { createEmailDeps } from "./email.js";
 import type { SendEmail } from "./email.js";
-import { AppError, codeForStatus } from "./errors.js";
+import { AppError, BusyError, codeForStatus } from "./errors.js";
 import { defaultIo } from "./io.js";
 import type { Io } from "./io.js";
 import { ADMIN_API_PREFIX } from "./lib/admin-api-prefix.js";
@@ -133,6 +133,12 @@ export function createApp(deps: AppDeps) {
 
   // oxlint-disable-next-line promise/prefer-await-to-callbacks -- Hono's onError API takes a callback
   app.onError((err, c) => {
+    if (err instanceof BusyError) {
+      c.header("Retry-After", String(err.retryAfterSeconds));
+      const body: ApiErrorResponse = { error: err.message, code: err.code };
+      return c.json(body, 503);
+    }
+
     if (err instanceof AppError) {
       if (err.status >= 500) {
         Sentry.captureException(err, { extra: { method: c.req.method, path: c.req.path } });

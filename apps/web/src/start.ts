@@ -4,6 +4,7 @@ import {
 } from "@sentry/tanstackstart-react";
 import { createCsrfMiddleware, createStart } from "@tanstack/react-start";
 
+import { isTrustedServerFnOrigin } from "./lib/server-fns/csrf-origin";
 import { serverFnFetch } from "./lib/server-fns/server-fn-fetch";
 import { statusErrorAdapter } from "./lib/server-fns/status-error-adapter";
 import { buildIdMiddleware } from "./middleware/build-id";
@@ -15,6 +16,7 @@ const csrfMiddleware = createCsrfMiddleware({
   // Missing Sec-Fetch-Site/Origin/Referer means a client that strips them, not CSRF;
   // browsers always send at least one on a cross-site request.
   allowRequestsWithoutOriginCheck: true,
+  origin: (origin, ctx) => isTrustedServerFnOrigin(origin, ctx.request),
 });
 
 // Order matters: Sentry first so its span wraps OTel's, CSRF last so

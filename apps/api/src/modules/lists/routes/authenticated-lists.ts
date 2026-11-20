@@ -3,6 +3,7 @@ import type { ListGroupSharesResponse } from "@openrift/shared/types/api/friend-
 import type {
   ListBulkAddResponse,
   ListDetailResponse,
+  ListDetailsResponse,
   ListEntryResponse,
   ListKind,
   ListListResponse,
@@ -72,6 +73,22 @@ export const listsRouter = {
       ruleCombine: input.ruleCombine ?? null,
     });
     return toList(row);
+  }),
+
+  details: os.details.handler(async ({ input, context }): Promise<ListDetailsResponse> => {
+    const { lists } = context.repos;
+    const userId = context.userId;
+    const rows = await lists.listForUser(userId, input.intent);
+    const items = await Promise.all(
+      rows.map(async (row) => {
+        const entries = await lists.entriesWithDetails(row.id, row.kind, userId);
+        return {
+          list: toListDetail(row),
+          entries: entries.map((entry) => toListEntryDetail(entry)),
+        };
+      }),
+    );
+    return { items };
   }),
 
   get: os.get.handler(async ({ input, context }): Promise<ListDetailResponse> => {

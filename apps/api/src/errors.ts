@@ -21,6 +21,16 @@ export class AppError extends Error {
   }
 }
 
+export class BusyError extends AppError {
+  readonly retryAfterSeconds: number;
+
+  constructor(message: string, retryAfterSeconds: number) {
+    super(503, ERROR_CODES.SERVICE_UNAVAILABLE, message);
+    this.name = "BusyError";
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
 /** Thrown inside the edit's transaction, so the edit rolls back with it. */
 export class TradeCancelConsentRequiredError extends Error {
   readonly data: TradeCancelConflictData;

@@ -4,6 +4,7 @@ export const listsKeys = {
       ? (["lists", userId] as const)
       : (["lists", userId, "intent", intent] as const),
   detail: (userId: string, id: string) => ["lists", userId, id] as const,
+  details: (userId: string, intent: string) => ["lists", userId, "details", intent] as const,
   publicByToken: (token: string) => ["lists", "share", token] as const,
   groupShares: (userId: string, id: string) => ["lists", userId, id, "group-shares"] as const,
 } as const;

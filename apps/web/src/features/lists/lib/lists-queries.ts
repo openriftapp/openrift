@@ -3,6 +3,7 @@ import { publicListsContract } from "@openrift/shared/contracts/public-lists";
 import { MINUTE_MS } from "@openrift/shared/format-date";
 import type {
   ListDetailResponse,
+  ListDetailsResponse,
   ListIntent,
   ListListResponse,
   PublicListDetailResponse,
@@ -29,6 +30,13 @@ const fetchListDetail = createServerFn({ method: "GET" })
     orNotFound(apiOrpcClient(listsContract, context.cookie).get({ id: listId })),
   );
 
+const fetchListDetails = createServerFn({ method: "GET" })
+  .validator((input: { intent: ListIntent }) => input)
+  .middleware([withCookies])
+  .handler(({ context, data }): Promise<ListDetailsResponse> =>
+    apiOrpcClient(listsContract, context.cookie).details({ intent: data.intent }),
+  );
+
 const fetchPublicListFn = createServerFn({ method: "GET" })
   .validator((input: string) => input)
   .handler(({ data: token }): Promise<PublicListDetailResponse> =>
@@ -48,6 +56,15 @@ export function listDetailQueryOptions(userId: string, listId: string) {
   return queryOptions({
     queryKey: listsKeys.detail(userId, listId),
     queryFn: () => fetchListDetail({ data: listId }),
+  });
+}
+
+export function listDetailsQueryOptions(userId: string, intent: ListIntent) {
+  return queryOptions({
+    queryKey: listsKeys.details(userId, intent),
+    queryFn: () => fetchListDetails({ data: { intent } }),
+    select: (data: ListDetailsResponse) => data.items,
+    staleTime: 5 * MINUTE_MS,
   });
 }
 

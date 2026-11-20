@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AppError } from "../../../errors.js";
+import { BusyError } from "../../../errors.js";
 import type { RenderJob, RenderResponse } from "./render-job.js";
 import type { CreateRenderWorker, RenderWorkerHandle } from "./render-pool.js";
 import {
@@ -120,8 +120,8 @@ describe("renderImage", () => {
 
     const overflow = renderImage(shareJob());
 
-    await expect(overflow).rejects.toMatchObject({ status: 503 });
-    await expect(overflow).rejects.toBeInstanceOf(AppError);
+    await expect(overflow).rejects.toMatchObject({ status: 503, retryAfterSeconds: 10 });
+    await expect(overflow).rejects.toBeInstanceOf(BusyError);
 
     shutdownRenderPool();
     await Promise.allSettled(started);

@@ -34,6 +34,17 @@ export const adminPrintingCitationsContract = {
     .errors({ NOT_FOUND: { message: "Printing not found" } })
     .output(z.object({ citations: z.array(adminPrintingCitationSchema) })),
 
+  /** Keyed by printing id; a printing without citations has no key. */
+  listForCard: authedRoute
+    .route({
+      method: "GET",
+      path: "/api/admin/v1/printing-citations/by-card/{cardId}",
+      tags: [TAG],
+    })
+    .meta({ adminSections: ["printing-desk"] })
+    .input(z.object({ cardId: z.uuid() }))
+    .output(z.object({ byPrinting: z.record(z.string(), z.array(adminPrintingCitationSchema)) })),
+
   create: authedRoute
     .route({ method: "POST", path: BASE, tags: [TAG], successStatus: 201 })
     .meta({ adminSections: ["printing-desk"] })

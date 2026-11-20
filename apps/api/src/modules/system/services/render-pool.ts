@@ -1,6 +1,6 @@
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 
-import { AppError } from "../../../errors.js";
+import { AppError, BusyError } from "../../../errors.js";
 import type { RenderJob, RenderResponse } from "./render-job.js";
 
 /**
@@ -71,6 +71,8 @@ interface Slot {
   current: Pending | null;
   timer: ReturnType<typeof setTimeout> | null;
 }
+
+const QUEUE_FULL_RETRY_AFTER_SECONDS = 10;
 
 let options: RenderPoolOptions = { ...DEFAULTS };
 let slots: Slot[] = [];
@@ -181,7 +183,9 @@ function pump(): void {
 export function renderImage(job: RenderJob): Promise<Buffer> {
   ensureSlots();
   if (queue.length >= options.queueLimit) {
-    return Promise.reject(busyError("Image rendering is busy, try again shortly"));
+    return Promise.reject(
+      new BusyError("Image rendering is busy, try again shortly", QUEUE_FULL_RETRY_AFTER_SECONDS),
+    );
   }
   // oxlint-disable-next-line promise/avoid-new -- bridges the callback-driven worker queue to a promise
   return new Promise<Buffer>((resolve, reject) => {

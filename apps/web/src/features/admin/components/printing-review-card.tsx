@@ -6,6 +6,7 @@ import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { isPrintingLevelField } from "@openrift/shared/printing-field-level";
 import type {
+  AdminPrintingCitation,
   AdminPrintingImageResponse,
   AdminPrintingResponse,
   CandidateCardResponse,
@@ -42,7 +43,7 @@ import {
   buildPrintingNormalizer,
   findDerivedArtPrinting,
 } from "@/features/admin/components/card-detail-shared";
-import { PrintingCitationsEditor } from "@/features/admin/components/printing-citations-editor";
+import { PrintingCitationsEditorView } from "@/features/admin/components/printing-citations-editor";
 import { PrintingIdLabel } from "@/features/admin/components/printing-id-label";
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
 import { PrintingImageSwitcher } from "@/features/admin/components/printing-image-switcher";
@@ -58,7 +59,6 @@ import {
   useLinkCandidatePrintings,
   useUncheckCandidatePrinting,
 } from "@/features/admin/hooks/use-admin-card-mutations";
-import { useAdminPrintingCitations } from "@/features/admin/hooks/use-admin-printing-citations";
 import { useIgnoreCandidatePrinting } from "@/features/admin/hooks/use-ignored-candidates";
 import { useMarkers } from "@/features/admin/hooks/use-markers";
 import { useScrollTarget } from "@/features/admin/hooks/use-scroll-target";
@@ -129,6 +129,7 @@ interface PrintingReviewCardProps {
   printings: AdminPrintingResponse[];
   candidatePrintings: CandidatePrintingResponse[];
   printingImages: AdminPrintingImageResponse[];
+  citations: AdminPrintingCitation[] | undefined;
   sourceLabels: Record<string, string>;
   sourceNames: Record<string, string>;
   /** Keyed by candidate card id; printing rows resolve theirs via their parent. */
@@ -158,6 +159,7 @@ export function PrintingReviewCard({
   printings,
   candidatePrintings,
   printingImages,
+  citations,
   sourceLabels,
   sourceNames,
   sourceSubmitters,
@@ -202,9 +204,8 @@ export function PrintingReviewCard({
   const ignorePrintingSource = useIgnoreCandidatePrinting();
   const { labels } = useEnumOrders();
   const { data: markersData } = useMarkers();
-  const { data: citationsData } = useAdminPrintingCitations(printingId);
   const [addingCitation, setAddingCitation] = useState(false);
-  const hasCitations = (citationsData?.citations.length ?? 0) > 0;
+  const hasCitations = (citations?.length ?? 0) > 0;
 
   const allSources = candidatePrintings.filter(
     (ps) => ps.printingId !== null && facePrintingIds.has(ps.printingId),
@@ -491,8 +492,10 @@ export function PrintingReviewCard({
               }
             />
             {isAdmin && !shared && (
-              <PrintingCitationsEditor
+              <PrintingCitationsEditorView
                 printingId={printingId}
+                citations={citations ?? []}
+                isPending={citations === undefined}
                 adding={hasCitations ? undefined : addingCitation}
                 onAddingChange={hasCitations ? undefined : setAddingCitation}
               />

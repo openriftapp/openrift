@@ -1,9 +1,9 @@
 import type { ListDetailResponse } from "@openrift/shared/types/api/list";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 import type { WishEntryFlat } from "@/features/groups/lib/wish-entry";
-import { listDetailQueryOptions, listsQueryOptions } from "@/features/lists/lib/lists-queries";
+import { listDetailsQueryOptions } from "@/features/lists/lib/lists-queries";
 import { useUserId } from "@/hooks/use-session";
 
 /** The viewer's wish-list membership, queried for highlighting + post-take cleanup. */
@@ -81,17 +81,9 @@ export function buildWishMembership(details: readonly ListDetailResponse[]): Wis
 /** Safe on surfaces that render for logged-out visitors: with no signed-in user it stays empty and fetches nothing. */
 export function useWishEntries(enabled: boolean): WishMembership {
   const userId = useUserId();
-  const active = enabled && userId !== null;
-  const { data: wishLists } = useQuery({
-    ...listsQueryOptions(userId ?? "", "wish"),
-    enabled: active,
+  const { data: details } = useQuery({
+    ...listDetailsQueryOptions(userId ?? "", "wish"),
+    enabled: enabled && userId !== null,
   });
-  const lists = wishLists ?? [];
-  const detailResults = useQueries({
-    queries: active ? lists.map((list) => listDetailQueryOptions(userId ?? "", list.id)) : [],
-  });
-  const details = detailResults
-    .map((result) => result.data)
-    .filter((detail): detail is ListDetailResponse => detail !== undefined);
-  return buildWishMembership(details);
+  return buildWishMembership(details ?? []);
 }

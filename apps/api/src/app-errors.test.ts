@@ -5,7 +5,7 @@ import { z as zm } from "zod/mini";
 import { z } from "zod/v4";
 
 import { createApp } from "./app.js";
-import { AppError } from "./errors.js";
+import { AppError, BusyError } from "./errors.js";
 import { readJson } from "./test/read-json.js";
 
 const mockAuth = {
@@ -239,6 +239,31 @@ describe("onError handler (5xx AppError)", () => {
     const res = await testApp.fetch(new Request("http://localhost/api/test-error/5xx-app-error"));
     expect(res.status).toBe(500);
     expect(logErrorSpy).toHaveBeenCalled();
+    logErrorSpy.mockRestore();
+  });
+
+  it("answers a busy 503 with Retry-After and does not log it as a fault", async () => {
+    const log = createLogger("test", "silent");
+    const logErrorSpy = vi.spyOn(log, "error").mockImplementation(() => {});
+    const testApp = createApp({
+      db: {} as any,
+      auth: mockAuth as any,
+      config: { ...baseMockConfig, isDev: false } as any,
+      log,
+    });
+    testApp.get("/api/test-error/busy", () => {
+      throw new BusyError("Image rendering is busy, try again shortly", 10);
+    });
+
+    const res = await testApp.fetch(new Request("http://localhost/api/test-error/busy"));
+
+    expect(res.status).toBe(503);
+    expect(res.headers.get("Retry-After")).toBe("10");
+    expect(await readJson(res)).toEqual({
+      error: "Image rendering is busy, try again shortly",
+      code: "SERVICE_UNAVAILABLE",
+    });
+    expect(logErrorSpy).not.toHaveBeenCalled();
     logErrorSpy.mockRestore();
   });
 });

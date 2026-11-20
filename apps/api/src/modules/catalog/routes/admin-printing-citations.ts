@@ -94,6 +94,23 @@ export const adminPrintingCitationsRouter = {
     return { citations: rows.map((row) => toCitation(row, editable.has(row.id))) };
   }),
 
+  listForCard: os.listForCard.handler(async ({ input, context }) => {
+    const { catalogMutations, printingCitations } = context.repos;
+    const printingIds = await catalogMutations.getPrintingIdsByCardId(input.cardId);
+    const rows = await printingCitations.listForPrintingIds(printingIds.map((row) => row.id));
+    const editable = await citationsEditableBy(
+      context.repos,
+      context.adminAccess,
+      context.userId,
+      rows.map((row) => row.id),
+    );
+    const byPrinting: Record<string, AdminPrintingCitation[]> = {};
+    for (const row of rows) {
+      (byPrinting[row.printingId] ??= []).push(toCitation(row, editable.has(row.id)));
+    }
+    return { byPrinting };
+  }),
+
   create: os.create.handler(async ({ input, context }) => {
     const { catalog, printingCitations } = context.repos;
     assertFound(await catalog.getPrintingById(input.printingId), "Printing not found");

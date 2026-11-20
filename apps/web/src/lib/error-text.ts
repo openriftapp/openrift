@@ -27,11 +27,10 @@ export function thrownMessage(thrown: unknown): string {
   return typeof thrown === "string" ? thrown : "";
 }
 
-// Matches each browser's phrasing for a dynamic-import failure (Chrome,
-// Firefox, Safari) plus webpack's ChunkLoadError. Shared with
-// sentry-client.ts to filter these out of Sentry before the reload fires.
+// Each browser's phrasing for a failed dynamic import or a missing chunk export, plus
+// webpack's ChunkLoadError. sentry-client.ts drops these from Sentry before the reload fires.
 export const CHUNK_LOAD_ERROR_PATTERN =
-  /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|ChunkLoadError|Loading chunk \d+ failed/u;
+  /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|does(?: not|n't) provide an export named|Importing binding name '[^']*' is not found|import not found: |ChunkLoadError|Loading chunk \d+ failed/u;
 
 export const NETWORK_ERROR_MESSAGES = [
   "Load failed",

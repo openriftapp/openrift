@@ -70,6 +70,15 @@ describe("needsFullReload", () => {
     expect(needsFullReload(new Error("render failed", { cause: chunk }))).toBe(true);
   });
 
+  it.each([
+    "The requested module './definition-list-CqumZud_.js' does not provide an export named 'n'",
+    "The requested module './search-input-BY9ZjxU5.js' doesn't provide an export named: 't'",
+    "Importing binding name 'n' is not found.",
+    "import not found: n",
+  ])("is true for a chunk missing an export: %s", (message) => {
+    expect(needsFullReload(new SyntaxError(message))).toBe(true);
+  });
+
   it("is true for a stale server function", () => {
     expect(needsFullReload(new StaleServerFnError("/_serverFn/abc"))).toBe(true);
   });

@@ -240,6 +240,8 @@ export const listDetailResponseSchema = z.object({
   entries: z.array(listEntryDetailResponseSchema),
 });
 
+export const listDetailsResponseSchema = z.object({ items: z.array(listDetailResponseSchema) });
+
 // shareToken is nullable: GET /share reports an owned-but-unshared list as
 // null; share always returns a non-null token.
 export const listShareResponseSchema = shareStateResponseSchema;
@@ -295,6 +297,11 @@ export const listsContract = {
     })
     .input(createListSchema)
     .output(listResponseSchema),
+  details: authedRoute
+    .meta(apiKeyScope("lists:read"))
+    .route({ method: "GET", path: "/api/v1/lists/details", tags: [TAG] })
+    .input(listIntentQuerySchema)
+    .output(listDetailsResponseSchema),
   get: authedRoute
     .meta(apiKeyScope("lists:read", { documented: true }))
     .route({

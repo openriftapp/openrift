@@ -1,3 +1,5 @@
+import type { AdminPrintingCitation } from "@openrift/shared/types/api/admin";
+
 import { SourceCitationsEditor } from "@/features/admin/components/source-citations-editor";
 import {
   useAdminPrintingCitations,
@@ -24,13 +26,40 @@ export function PrintingCitationsEditor({
   runWrite?: RunWrite;
 }) {
   const { data, isPending } = useAdminPrintingCitations(printingId);
+  return (
+    <PrintingCitationsEditorView
+      printingId={printingId}
+      citations={data?.citations ?? []}
+      isPending={isPending}
+      adding={adding}
+      onAddingChange={onAddingChange}
+      runWrite={runWrite}
+    />
+  );
+}
+
+export function PrintingCitationsEditorView({
+  printingId,
+  citations,
+  isPending,
+  adding,
+  onAddingChange,
+  runWrite = runWriteDirectly,
+}: {
+  printingId: string;
+  citations: AdminPrintingCitation[];
+  isPending: boolean;
+  adding?: boolean;
+  onAddingChange?: (adding: boolean) => void;
+  runWrite?: RunWrite;
+}) {
   const createCitation = useCreatePrintingCitation();
   const updateCitation = useUpdatePrintingCitation();
   const deleteCitation = useDeletePrintingCitation();
 
   return (
     <SourceCitationsEditor
-      citations={data?.citations ?? []}
+      citations={citations}
       isPending={isPending}
       adding={adding}
       onAddingChange={onAddingChange}

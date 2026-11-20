@@ -2,6 +2,7 @@ import { getOrientation } from "@openrift/shared/card-orientation";
 import type { AcceptPrintingBody } from "@openrift/shared/contracts/admin/card-mutations";
 import type {
   AdminCardDetailResponse,
+  AdminPrintingCitation,
   AdminMarketplaceName,
   AdminPrintingResponse,
 } from "@openrift/shared/types/api/admin";
@@ -48,6 +49,7 @@ import {
   useLinkCandidatePrintings,
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-queries";
+import { useAdminCardPrintingCitations } from "@/features/admin/hooks/use-admin-printing-citations";
 import { useCardPageFocus } from "@/features/admin/hooks/use-card-page-focus";
 import { useCardReviewNavigation } from "@/features/admin/hooks/use-card-review-navigation";
 import { usePrintingsByLanguage } from "@/features/admin/hooks/use-printings-by-language";
@@ -85,6 +87,7 @@ import { errorStatus } from "@/lib/server-fns/api-error";
 
 /** Stable placeholder so the filter hook can run before the detail lands. */
 const NO_PRINTINGS: AdminPrintingResponse[] = [];
+const NO_CITATIONS: AdminPrintingCitation[] = [];
 
 function MissingCard({ cardSlug, children }: { cardSlug: string; children: ReactNode }) {
   return (
@@ -229,6 +232,7 @@ export function ExistingCardDetailPage({
     enabled: isAdmin,
   });
   const { data: bansData } = useCardBans(existingData?.card?.id ?? "");
+  const { data: citationsData } = useAdminCardPrintingCitations(existingData?.card?.id);
   const attentionSubmissions = existingData
     ? buildAttentionSubmissions(existingData, costKeywords)
     : [];
@@ -478,6 +482,11 @@ export function ExistingCardDetailPage({
                           printings={printings}
                           candidatePrintings={candidatePrintings}
                           printingImages={printingImages}
+                          citations={
+                            citationsData
+                              ? (citationsData.byPrinting[faceRow.printing.id] ?? NO_CITATIONS)
+                              : undefined
+                          }
                           sourceLabels={sourceLabels}
                           sourceNames={sourceNames}
                           sourceSubmitters={sourceSubmitters}

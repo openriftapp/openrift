@@ -74,7 +74,7 @@ vi.mock("@/features/admin/components/printing-image-switcher", () => ({
 }));
 
 vi.mock("@/features/admin/components/printing-citations-editor", () => ({
-  PrintingCitationsEditor: () => <div data-testid="citations-editor" />,
+  PrintingCitationsEditorView: () => <div data-testid="citations-editor" />,
 }));
 
 // The real chip reads language colors from the /init suspense query.
@@ -106,10 +106,6 @@ vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
 
 vi.mock("@/features/admin/hooks/use-ignored-candidates", () => ({
   useIgnoreCandidatePrinting: () => stubMutation,
-}));
-
-vi.mock("@/features/admin/hooks/use-admin-printing-citations", () => ({
-  useAdminPrintingCitations: () => ({ data: { citations: [] } }),
 }));
 
 vi.mock("@/hooks/use-enums", () => ({
@@ -201,6 +197,7 @@ function renderCard({
       printings={[printing]}
       candidatePrintings={[]}
       printingImages={[]}
+      citations={[]}
       sourceLabels={{}}
       sourceNames={{}}
       sourceSubmitters={{}}
@@ -312,6 +309,14 @@ describe("PrintingReviewCard", () => {
     const { getByText } = renderCard();
 
     expect(getByText("Add source link")).toBeTruthy();
+  });
+
+  it("drops the menu's source link once the card's citations show one for this printing", () => {
+    const { queryByText } = renderCard({
+      citations: [{ id: "c1", label: "Unboxing", sourceUrl: null, canEdit: true }],
+    });
+
+    expect(queryByText("Add source link")).toBeNull();
   });
 
   it("marks a source image the printing already carries as used", () => {
