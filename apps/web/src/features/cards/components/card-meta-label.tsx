@@ -12,7 +12,7 @@ import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-export interface LabelSide {
+interface LabelSide {
   shortCode: string;
   name: string;
   finish?: string;
