@@ -58,3 +58,50 @@ describe("deriveCardGrid with English as the only display language", () => {
     expect(shown("OGN-210")).toEqual(["en"]);
   });
 });
+
+describe("deriveCardGrid with a double-sided printing", () => {
+  const bird = stubPrinting({
+    printingId: "pair",
+    side: 1,
+    cardId: "bird",
+    language: "EN",
+    shortCode: "SGN-T02",
+    card: { name: "Bird", slug: "bird" },
+  });
+  const sprite = stubPrinting({
+    printingId: "pair",
+    side: 2,
+    cardId: "sprite",
+    language: "EN",
+    shortCode: "SGN-T08",
+    card: { name: "Sprite", slug: "sprite" },
+  });
+
+  function sides(search: string, everySide?: boolean) {
+    return deriveCardGrid({
+      allPrintings: [bird, sprite],
+      sets: [],
+      filters: { ...EMPTY_CARD_FILTERS, search, languages: ["EN"] },
+      view: "printings",
+      everySide,
+      groupBy: "none",
+      sortBy: "id",
+      sortDir: "asc",
+      context: testSearchContext(),
+      prices: EMPTY_PRICE_LOOKUP,
+      favoriteMarketplace: "cardtrader",
+    }).sortedCards.map((printing) => printing.cardId);
+  }
+
+  it("shows the printing once in the printings view, from side 1", () => {
+    expect(sides("")).toEqual(["bird"]);
+  });
+
+  it("shows the side the search matched", () => {
+    expect(sides("sprite")).toEqual(["sprite"]);
+  });
+
+  it("keeps every side for pickers", () => {
+    expect(sides("", true)).toEqual(["bird", "sprite"]);
+  });
+});

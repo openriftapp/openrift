@@ -44,6 +44,50 @@ describe("CardMetaLabel", () => {
     expect(queryByTitle("Metal")).not.toBeNull();
   });
 
+  it("marks a foil side of a double-sided printing that is not pictured", () => {
+    const { container, queryByTitle } = renderLabel({
+      shortCode: "SGN-T02",
+      name: "Bird",
+      rarity: "rare",
+      finish: "normal",
+      pair: {
+        side: 1,
+        other: { shortCode: "SGN-T08", name: "Sprite", finish: "foil", finishTitle: "Foil" },
+      },
+    });
+    expect(container.textContent).toContain("SGN-T02 // SGN-T08");
+    expect(container.textContent).toContain("Bird // Sprite");
+    expect(queryByTitle("Foil")).not.toBeNull();
+  });
+
+  it("marks a pictured foil side of a double-sided printing at always-foil rarities", () => {
+    const { queryByTitle } = renderLabel({
+      shortCode: "SGN-T02",
+      name: "Bird",
+      rarity: "rare",
+      finish: "foil",
+      finishTitle: "Foil",
+      pair: { side: 1, other: { shortCode: "SGN-T08", name: "Sprite", finish: "normal" } },
+    });
+    expect(queryByTitle("Foil")).not.toBeNull();
+  });
+
+  it("puts side 1 first on a side-2 label", () => {
+    const { container } = renderLabel({
+      shortCode: "SGN-T08",
+      name: "Sprite",
+      pair: { side: 2, other: { shortCode: "SGN-T02", name: "Bird" } },
+    });
+    expect(container.textContent).toContain("SGN-T02 // SGN-T08");
+    expect(container.textContent).toContain("Bird // Sprite");
+  });
+
+  it("names the other card of a double-sided printing in a hint", () => {
+    const { getByRole, getByText } = renderLabel({ pairHint: "Double-sided, with Sprite" });
+    fireEvent.click(getByRole("button", { name: /Double-sided/u }));
+    expect(getByText("Double-sided, with Sprite")).toBeInTheDocument();
+  });
+
   it("opens the printing note with a tap on a coarse pointer", () => {
     const { getByRole, getByText } = renderLabel({ printingComment: "Launch event handout" });
     fireEvent.click(getByRole("button", { name: /Printing note/u }));

@@ -111,6 +111,17 @@ describe("useSelectionStore", () => {
       expect(useSelectionStore.getState().selectedItemId).toBe("copy-1");
     });
 
+    it("anchors a flipped tile's other side on the tile that holds its printing", () => {
+      const bird = stubPrinting({ printingId: "p1", cardId: "bird", side: 1 });
+      const sprite = stubPrinting({ printingId: "p1", cardId: "sprite", side: 2 });
+      const items = [{ id: sideKey(bird), printing: bird }];
+
+      useSelectionStore.getState().selectCard(sprite, items, "printing");
+
+      expect(useSelectionStore.getState().selectedItemId).toBe(sideKey(bird));
+      expect(useSelectionStore.getState().selectedCard).toBe(sprite);
+    });
+
     it("leaves selectedZone null when zone is omitted (catalog path)", () => {
       const printing = stubPrinting({ printingId: "p1", cardId: "c1" });
       useSelectionStore.getState().selectCard(printing, [{ id: "p1", printing }], "printing");

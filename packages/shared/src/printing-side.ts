@@ -18,6 +18,23 @@ export function uniquePrintings<T extends Pick<Printing, "printingId">>(
   });
 }
 
+/** One entry per printing, in place: side 1 when present, else the side that is. */
+export function onePerPrinting<T extends Pick<Printing, "printingId" | "side">>(
+  entries: readonly T[],
+): T[] {
+  const withSide1 = new Set(
+    entries.filter((entry) => entry.side === 1).map((entry) => entry.printingId),
+  );
+  const seen = new Set<string>();
+  return entries.filter((entry) => {
+    if (seen.has(entry.printingId) || (entry.side !== 1 && withSide1.has(entry.printingId))) {
+      return false;
+    }
+    seen.add(entry.printingId);
+    return true;
+  });
+}
+
 export function indexBySideKey<T extends Pick<Printing, "printingId" | "side">>(
   entries: readonly T[],
 ): Record<string, T> {

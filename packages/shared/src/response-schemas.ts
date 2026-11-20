@@ -234,6 +234,10 @@ export const printingOtherSideSchema = z.object({
   faceId: z.string().meta({ examples: ["019cfc3b-03d3-7dac-86c9-27900cd43727"] }),
   cardId: z.string().meta({ examples: ["019cfc3b-0389-744b-837c-792fd586300e"] }),
   cardName: z.string().meta({ examples: ["Gold"] }),
+  printedName: z
+    .string()
+    .optional()
+    .meta({ examples: ["Or"] }),
   cardSlug: z.string().meta({ examples: ["gold"] }),
   shortCode: z.string().meta({ examples: ["UNL-T05"] }),
   imageId: imageIdSchema.optional(),

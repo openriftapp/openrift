@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { MouseEvent, ReactElement, ReactNode, TransitionEvent } from "react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
+import { otherSideName } from "@/features/cards/lib/card-meta";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -40,11 +41,11 @@ export function DoubleSidedFlip({
 }) {
   const [flipped, setFlipped] = useState(false);
   const reducedMotion = useReducedMotion();
-  const pillLabel = m.cards_flip_to_other_side({ name: otherSide.cardName });
+  const pillLabel = m.cards_flip_to_other_side({ name: otherSideName(otherSide) });
   const pillContent = (
     <>
       <RefreshCwIcon aria-hidden="true" />
-      {!compact && otherSide.cardName}
+      {!compact && otherSideName(otherSide)}
     </>
   );
   const pillSize = compact ? "icon-sm" : "default";

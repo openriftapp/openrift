@@ -4,6 +4,7 @@ import {
   countPrintings,
   indexByPrinting,
   indexBySideKey,
+  onePerPrinting,
   ownedTotalsByCard,
   printingOnSide,
   sideKey,
@@ -32,6 +33,20 @@ describe("countPrintings", () => {
 describe("uniquePrintings", () => {
   it("keeps the first entry of each printing", () => {
     expect(uniquePrintings([birdSide, goldSide, single])).toEqual([birdSide, single]);
+  });
+});
+
+describe("onePerPrinting", () => {
+  it("keeps side 1 of a printing with both sides listed, at side 1's position", () => {
+    expect(onePerPrinting([goldSide, single, birdSide])).toEqual([single, birdSide]);
+  });
+
+  it("keeps side 2 when it is the only side listed", () => {
+    expect(onePerPrinting([single, goldSide])).toEqual([single, goldSide]);
+  });
+
+  it("keeps one entry for a card printed on both sides", () => {
+    expect(onePerPrinting([buffBack, buffFront])).toEqual([buffFront]);
   });
 });
 

@@ -483,6 +483,7 @@ function DeckCardBrowserInner({
     setDisplayLabel,
     searchAlternatives,
   } = useCardData({
+    everySide: true,
     allPrintings,
     sets,
     filters,
@@ -885,6 +886,7 @@ function DeckCardBrowserInner({
         display={display}
         showImages={showImages}
         view={view}
+        otherSideInset={false}
         onClick={isMobile ? handleQuickAdd : handleCardClick}
         priceRange={priceRangeByCardId?.get(cardId)}
         dimmed={highlightOwned && ownedCount === 0 && deckQty === 0}

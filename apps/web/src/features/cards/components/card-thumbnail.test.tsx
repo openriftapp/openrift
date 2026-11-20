@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { labelMapOf } from "@openrift/shared/enum-label";
 import { EMPTY_PRICE_LOOKUP } from "@openrift/shared/price-lookup";
+import { indexBySideKey } from "@openrift/shared/printing-side";
 import type { StandardArtFallback } from "@openrift/shared/standard";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -11,6 +12,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { CardThumbnail } from "@/features/cards/components/card-thumbnail";
 import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
+import { OtherSideContext, otherSideLookup } from "@/features/cards/lib/other-side-context";
 import { initKeys } from "@/lib/query-keys";
 import { stubPrinting } from "@/test/factories";
 import { stubInitResponse } from "@/test/init-fixtures";
@@ -774,6 +776,234 @@ describe("CardThumbnail label", () => {
     );
     expect(container.textContent).toContain("OGN-271 // OGN");
     expect(container.textContent).toContain("Recruit // Buff");
+  });
+
+  it("names the other side by its printed name on a localized printing", () => {
+    const printing = stubPrinting({
+      shortCode: "SGN-T02",
+      language: "DE",
+      printedName: "Vogel",
+      card: { name: "Bird" },
+      otherSide: {
+        faceId: "face-sprite",
+        cardId: "sprite",
+        cardName: "Sprite",
+        printedName: "Geist",
+        cardSlug: "sprite",
+        shortCode: "SGN-T08",
+      },
+    });
+    const { container } = render(
+      <CardThumbnail
+        printing={printing}
+        onClick={() => {}}
+        showImages={false}
+        display={baseDisplay}
+        view="printings"
+      />,
+      { wrapper: makeWrapper() },
+    );
+    expect(container.textContent).toContain("Vogel // Geist");
+  });
+});
+
+describe("CardThumbnail other side inset", () => {
+  const pair = stubPrinting({
+    shortCode: "SGN-T02",
+    card: { name: "Bird" },
+    images: [{ imageId: "bird-image" }],
+    otherSide: {
+      faceId: "face-sprite",
+      cardId: "sprite",
+      cardName: "Sprite",
+      cardSlug: "sprite",
+      shortCode: "SGN-T08",
+      imageId: "sprite-image",
+      finish: "foil",
+    },
+  });
+
+  function renderPair(view: "cards" | "printings", showImages = true) {
+    return render(
+      <CardThumbnail
+        printing={pair}
+        onClick={() => {}}
+        showImages={showImages}
+        display={baseDisplay}
+        view={view}
+      />,
+      { wrapper: makeWrapper() },
+    );
+  }
+
+  function insetImage(container: HTMLElement) {
+    return container.querySelector('img[src*="sprite-image"]');
+  }
+
+  it("shows the other side in the corner outside the cards view", () => {
+    const { container } = renderPair("printings");
+    expect(insetImage(container)).not.toBeNull();
+  });
+
+  it("leaves the cards view tile to its own card, with a double-sided hint", () => {
+    const { container, getByRole } = renderPair("cards");
+    expect(insetImage(container)).toBeNull();
+    expect(getByRole("button", { name: /Double-sided/u })).toBeInTheDocument();
+  });
+
+  it("names the card once when it is printed on both sides", async () => {
+    const buffBuff = stubPrinting({
+      cardId: "buff",
+      card: { name: "Buff" },
+      otherSide: {
+        faceId: "face-buff-2",
+        cardId: "buff",
+        cardName: "Buff",
+        cardSlug: "buff",
+        shortCode: "OGN-T02",
+      },
+    });
+    const { getByRole, findByText } = render(
+      <CardThumbnail
+        printing={buffBuff}
+        onClick={() => {}}
+        showImages={false}
+        display={baseDisplay}
+        view="cards"
+      />,
+      { wrapper: makeWrapper() },
+    );
+    fireEvent.focus(getByRole("button", { name: /Double-sided/u }));
+    expect(await findByText("Buff on both sides")).toBeInTheDocument();
+  });
+
+  it("fades the inset with an unowned tile", () => {
+    const { container } = render(
+      <CardThumbnail
+        printing={pair}
+        onClick={() => {}}
+        showImages
+        display={baseDisplay}
+        view="printings"
+        dimmed
+      />,
+      { wrapper: makeWrapper() },
+    );
+    expect(insetImage(container)?.closest(".opacity-50")).not.toBeNull();
+  });
+
+  it("draws no inset where the tile stands for a card, such as a deck list", () => {
+    const { container } = render(
+      <CardThumbnail printing={pair} onClick={() => {}} showImages display={baseDisplay} />,
+      { wrapper: makeWrapper() },
+    );
+    expect(insetImage(container)).toBeNull();
+  });
+
+  it("draws no inset when images are hidden", () => {
+    const { container } = renderPair("printings", false);
+    expect(insetImage(container)).toBeNull();
+  });
+});
+
+describe("CardThumbnail flip", () => {
+  const bird = stubPrinting({
+    printingId: "pair",
+    side: 1,
+    cardId: "bird",
+    shortCode: "SGN-T02",
+    card: { name: "Bird" },
+    images: [{ imageId: "bird-image" }],
+    otherSide: {
+      faceId: "face-sprite",
+      cardId: "sprite",
+      cardName: "Sprite",
+      cardSlug: "sprite",
+      shortCode: "SGN-T08",
+      imageId: "sprite-image",
+    },
+  });
+  const sprite = stubPrinting({
+    printingId: "pair",
+    side: 2,
+    cardId: "sprite",
+    shortCode: "SGN-T08",
+    card: { name: "Sprite" },
+    images: [{ imageId: "sprite-image" }],
+    otherSide: {
+      faceId: "face-bird",
+      cardId: "bird",
+      cardName: "Bird",
+      cardSlug: "bird",
+      shortCode: "SGN-T02",
+      imageId: "bird-image",
+    },
+  });
+  const lookup = otherSideLookup(indexBySideKey([bird, sprite]));
+
+  function flipWrapper() {
+    const Base = makeWrapper();
+    function Wrapper({ children }: PropsWithChildren) {
+      return (
+        <Base>
+          <OtherSideContext value={lookup}>{children}</OtherSideContext>
+        </Base>
+      );
+    }
+    return Wrapper;
+  }
+
+  it("turns the tile to the other side and opens that side on click", () => {
+    const onClick = vi.fn();
+    const { getByRole, container } = render(
+      <CardThumbnail
+        printing={bird}
+        onClick={onClick}
+        showImages
+        display={baseDisplay}
+        view="printings"
+      />,
+      { wrapper: flipWrapper() },
+    );
+
+    fireEvent.click(getByRole("button", { name: "Flip to Sprite" }));
+
+    expect(getByRole("button", { name: "Flip to Bird" })).toBeInTheDocument();
+    expect(container.textContent).toContain("Sprite");
+    fireEvent.click(getByRole("img", { name: "Sprite" }));
+    expect(onClick).toHaveBeenCalledWith(sprite, expect.anything());
+
+    fireEvent.click(getByRole("button", { name: "Flip to Bird" }));
+    expect(getByRole("button", { name: "Flip to Sprite" })).toBeInTheDocument();
+  });
+
+  it("keeps the inset still outside a grid that offers flipping", () => {
+    const { queryByRole } = render(
+      <CardThumbnail
+        printing={bird}
+        onClick={() => {}}
+        showImages
+        display={baseDisplay}
+        view="printings"
+      />,
+      { wrapper: makeWrapper() },
+    );
+    expect(queryByRole("button", { name: "Flip to Sprite" })).toBeNull();
+  });
+
+  it("keeps the inset still while copies are being selected", () => {
+    const { queryByRole } = render(
+      <CardThumbnail
+        printing={bird}
+        onClick={() => {}}
+        showImages
+        display={baseDisplay}
+        view="printings"
+        checked={false}
+      />,
+      { wrapper: flipWrapper() },
+    );
+    expect(queryByRole("button", { name: "Flip to Sprite" })).toBeNull();
   });
 });
 

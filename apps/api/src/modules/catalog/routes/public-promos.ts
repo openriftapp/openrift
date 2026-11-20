@@ -34,7 +34,7 @@ export const promosRouter = {
       const rows = rowsByLanguage.get(language) ?? [];
       return {
         language,
-        printingCount: rows.length,
+        printingCount: new Set(rows.map((p) => p.printingId)).size,
         cardCount: new Set(rows.map((p) => p.cardId)).size,
       };
     });
@@ -56,21 +56,21 @@ export const promosRouter = {
     const cards = buildCardsResponse(cardRows, banRows, errataRows);
     const printings = buildPrintingsResponse(printingRows, imageRows, decorations);
 
-    const channelCounts = new Map<string, { cards: Set<string>; printings: number }>();
+    const channelCounts = new Map<string, { cards: Set<string>; printings: Set<string> }>();
     for (const printing of printings) {
       for (const link of printing.distributionChannels) {
         let entry = channelCounts.get(link.channel.id);
         if (!entry) {
-          entry = { cards: new Set(), printings: 0 };
+          entry = { cards: new Set(), printings: new Set() };
           channelCounts.set(link.channel.id, entry);
         }
         entry.cards.add(printing.cardId);
-        entry.printings += 1;
+        entry.printings.add(printing.printingId);
       }
     }
 
     const rollupCards = new Map<string, Set<string>>();
-    const rollupPrintings = new Map<string, number>();
+    const rollupPrintings = new Map<string, Set<string>>();
     const channelById = new Map(allChannels.map((ch) => [ch.id, ch]));
     for (const [leafId, leafCounts] of channelCounts) {
       let cursorId: string | null = leafId;
@@ -83,7 +83,14 @@ export const promosRouter = {
         for (const cardId of leafCounts.cards) {
           cardSet.add(cardId);
         }
-        rollupPrintings.set(cursorId, (rollupPrintings.get(cursorId) ?? 0) + leafCounts.printings);
+        let printingSet = rollupPrintings.get(cursorId);
+        if (!printingSet) {
+          printingSet = new Set();
+          rollupPrintings.set(cursorId, printingSet);
+        }
+        for (const printingId of leafCounts.printings) {
+          printingSet.add(printingId);
+        }
         cursorId = channelById.get(cursorId)?.parentId ?? null;
       }
     }
@@ -97,7 +104,7 @@ export const promosRouter = {
       parentId: ch.parentId,
       childrenLabel: ch.childrenLabel,
       cardCount: rollupCards.get(ch.id)?.size ?? 0,
-      printingCount: rollupPrintings.get(ch.id) ?? 0,
+      printingCount: rollupPrintings.get(ch.id)?.size ?? 0,
     }));
 
     return { channels, cards, printings, sets, languages, languageCounts };

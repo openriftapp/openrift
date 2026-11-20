@@ -1,19 +1,59 @@
 import type { CardBan } from "@openrift/shared/types/catalog";
 import type { Rarity } from "@openrift/shared/types/enums";
 import { LOW_RARITIES, WellKnown } from "@openrift/shared/well-known";
-import { LayersIcon, TriangleAlertIcon } from "lucide-react";
+import { LayersIcon, RefreshCwIcon, TriangleAlertIcon } from "lucide-react";
+import { Fragment } from "react";
 import type { ReactNode } from "react";
 
 import { CountPill } from "@/components/ui/count-pill";
 import { InfoHint } from "@/components/ui/info-hint";
-import { FinishIcon } from "@/features/cards/components/finish-icon";
+import { FinishIcon, hasFinishIcon } from "@/features/cards/components/finish-icon";
 import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
+export interface LabelSide {
+  shortCode: string;
+  name: string;
+  finish?: string;
+  finishTitle?: string;
+}
+
+interface PairEntry extends LabelSide {
+  shown: boolean;
+}
+
+function inDisplayOrder(side: 1 | 2, shown: LabelSide, other: LabelSide): PairEntry[] {
+  const entries = [
+    { ...shown, shown: true },
+    { ...other, shown: false },
+  ];
+  return side === 1 ? entries : entries.toReversed();
+}
+
+function PairSegments({ entries, field }: { entries: PairEntry[]; field: "shortCode" | "name" }) {
+  const shownClass = field === "shortCode" ? "text-foreground" : undefined;
+  return entries.map((entry, index) => (
+    <Fragment key={entry.shown ? "shown" : "other"}>
+      {index > 0 && " // "}
+      <span className={entry.shown ? shownClass : "text-muted-foreground"}>{entry[field]}</span>
+      {field === "shortCode" && entry.finish && hasFinishIcon(entry.finish) && (
+        <FinishIcon
+          finish={entry.finish}
+          title={entry.finishTitle}
+          className="ml-0.5 align-[-2px]"
+          iconClassName="size-3"
+        />
+      )}
+    </Fragment>
+  ));
+}
+
 interface CardMetaLabelProps {
   shortCode: string;
   name: string;
+  pair?: { side: 1 | 2; other: LabelSide };
+  pairHint?: string;
   rarity: Rarity;
   rarityTitle?: string;
   finish?: string;
@@ -31,6 +71,8 @@ interface CardMetaLabelProps {
 export function CardMetaLabel({
   shortCode,
   name,
+  pair,
+  pairHint,
   rarity,
   rarityTitle,
   finish,
@@ -46,7 +88,12 @@ export function CardMetaLabel({
 }: CardMetaLabelProps) {
   const rarityIconPath = getFilterIconPath("rarities", rarity);
   const showFinishIcon =
-    finish !== undefined && (finish !== WellKnown.finish.FOIL || LOW_RARITIES.has(rarity));
+    pair === undefined &&
+    finish !== undefined &&
+    (finish !== WellKnown.finish.FOIL || LOW_RARITIES.has(rarity));
+  const pairEntries = pair
+    ? inDisplayOrder(pair.side, { shortCode, name, finish, finishTitle }, pair.other)
+    : undefined;
 
   return (
     // ⚠ space-y-0.5 and py-0.5 are mirrored as META_LINE_GAP / META_LABEL_PY in card-grid-constants.ts — update both together
@@ -56,7 +103,9 @@ export function CardMetaLabel({
       {/* ⚠ text-xs is mirrored as META_LINE_HEIGHT in card-grid-constants.ts — update both together */}
       {/* min-h-4: WebKit truncate + overflow:hidden shortens by 1px on iOS Safari, see webkit.org/b/225695 */}
       <div className="text-muted-foreground flex min-h-4 items-center justify-between gap-1 text-xs">
-        <span className="truncate font-medium">{shortCode}</span>
+        <span className="truncate font-medium">
+          {pairEntries ? <PairSegments entries={pairEntries} field="shortCode" /> : shortCode}
+        </span>
         <span className="flex shrink-0 items-center gap-1">
           {printingCount !== undefined && printingCount > 1 && (
             <CountPill
@@ -79,6 +128,11 @@ export function CardMetaLabel({
             />
           )}
           {showFinishIcon && finish && <FinishIcon finish={finish} title={finishTitle} />}
+          {pairHint && (
+            <InfoHint label={m.cards_thumb_double_sided()} icon={RefreshCwIcon}>
+              {pairHint}
+            </InfoHint>
+          )}
           {oversized && (
             <span
               title={sizeLabel}
@@ -116,7 +170,9 @@ export function CardMetaLabel({
       </div>
       {/* min-h-4: same WebKit workaround as above */}
       <div className="flex min-h-4 items-center gap-1 text-xs font-medium">
-        <span className="min-w-0 flex-1 truncate">{name}</span>
+        <span className="min-w-0 flex-1 truncate">
+          {pairEntries ? <PairSegments entries={pairEntries} field="name" /> : name}
+        </span>
         {price}
       </div>
     </div>

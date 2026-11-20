@@ -34,6 +34,7 @@ interface UseCardDataParams {
   sortBy: SortOption | SearchOrder;
   sortDir: "asc" | "desc";
   view: "cards" | "printings";
+  everySide?: boolean;
   groupBy?: GroupByField;
   ownedCountByPrinting: Record<string, number> | undefined;
   favoriteMarketplace: Marketplace;
@@ -246,6 +247,7 @@ export function useCardData({
   sortBy,
   sortDir,
   view,
+  everySide,
   groupBy = "none",
   ownedCountByPrinting,
   favoriteMarketplace,
@@ -302,6 +304,7 @@ export function useCardData({
       sets,
       filters,
       view,
+      everySide,
       groupBy,
       sortBy,
       sortDir,

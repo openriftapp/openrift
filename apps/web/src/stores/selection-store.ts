@@ -42,7 +42,10 @@ function findAnchorIndex(
     }
   }
   if (findBy === "printing") {
-    return items.findIndex((item) => sideKey(item.printing) === sideKey(printing));
+    const bySide = items.findIndex((item) => sideKey(item.printing) === sideKey(printing));
+    return bySide === -1
+      ? items.findIndex((item) => item.printing.printingId === printing.printingId)
+      : bySide;
   }
   if (anchor?.zone === undefined) {
     return items.findIndex((item) => item.printing.cardId === printing.cardId);

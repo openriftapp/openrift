@@ -1,6 +1,7 @@
 import { filterCards } from "@openrift/shared/filters";
 import type { CardSearchContext } from "@openrift/shared/filters-shared";
 import { sortCards } from "@openrift/shared/filters-sort";
+import { onePerPrinting } from "@openrift/shared/printing-side";
 import { sortByPreference } from "@openrift/shared/search-query/evaluate";
 import type { SearchOrder } from "@openrift/shared/search-query/keys";
 import { parseSearchQuery } from "@openrift/shared/search-query/parse";
@@ -26,6 +27,7 @@ export interface CardGridInput {
   sets: GroupInfo[];
   filters: CardFilters;
   view: "cards" | "printings";
+  everySide?: boolean;
   groupBy: GroupByField;
   sortBy: SortOption | SearchOrder;
   sortDir: "asc" | "desc";
@@ -82,7 +84,9 @@ export function deriveCardGrid(input: CardGridInput): CardGrid {
           prefer ? sortByPreference(filteredCards, prefer, prices) : filteredCards,
           groupBy,
         )
-      : filteredCards;
+      : input.everySide
+        ? filteredCards
+        : onePerPrinting(filteredCards);
 
   const printingsByCardId = Map.groupBy(filteredCards, (printing) => printing.cardId);
   const priceRangeByCardId =

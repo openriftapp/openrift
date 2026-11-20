@@ -17,6 +17,7 @@ import { useSelectAllHotkey } from "@/features/cards/hooks/use-select-all-hotkey
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { tileSiblings } from "@/features/cards/lib/card-tiles";
 import { isCopiesOnlyGrouping } from "@/features/cards/lib/group-by-collection";
+import { OtherSideContext, otherSideLookup } from "@/features/cards/lib/other-side-context";
 import {
   CardRowActionsStoreContext,
   useOwnCardRowActionsStore,
@@ -122,7 +123,12 @@ function CollectionGridContent({
     collectionId === undefined && view === "copies" && !showLibrary;
   const groupBy =
     isCopiesOnlyGrouping(rawGroupBy) && !collectionGroupingAvailable ? "set" : rawGroupBy;
-  const { allPrintings, sets, printingsByCardId: catalogAllPrintingsByCardId } = useCards();
+  const {
+    allPrintings,
+    printingsBySideKey,
+    sets,
+    printingsByCardId: catalogAllPrintingsByCardId,
+  } = useCards();
   const prices = display.prices;
 
   const urlLanguages = collectionsRouteApi.useSearch({ select: (search) => search.languages });
@@ -426,51 +432,112 @@ function CollectionGridContent({
           ownedCountMax={ownedCountBound}
         >
           {topBarPortal}
-          <BrowserCardViewer
-            items={items}
-            totalItems={showLibrary ? allPrintings.length : totalCopies}
-            renderCard={renderCard}
-            setOrder={sets}
-            collectionOrder={collectionGroupingAvailable ? collectionOrder : undefined}
-            groupBy={groupBy}
-            groupDir={groupDir}
-            renderedCards={renderedCards}
-            printingsByCardId={printingsByCardId}
-            view={dataView}
-            stale={isGridStale}
-            noResultsDescription={wantedFilterActive ? m.collections_grid_no_wanted() : undefined}
-            toolbar={
-              <CollectionGridToolbar
-                sortedCards={sortedCards}
-                stackByPrintingId={stackByPrintingId}
-                view={view}
-                dataView={dataView}
-                hasActiveFilters={hasActiveFilters}
-                totalCopies={totalCopies}
-                totalUniqueCards={totalUniqueCards}
-                showLibrary={showLibrary}
-                collectionGroupingAvailable={collectionGroupingAvailable}
-                groupBy={groupBy}
-                isGroupCollection={isGroupCollection}
-                wantedOnly={wantedOnly}
-                onWantedOnlyChange={onWantedOnlyChange}
-                addTarget={addTarget}
-                onToggleLibrary={toggleShowLibrary}
-              />
-            }
-            banner={
-              <>
-                {showIntroBanner && (
-                  <CollectionIntroBanner
-                    showLibrary={showLibrary}
-                    onDismiss={() => dismissIntro("collection")}
+          <OtherSideContext value={mode === "select" ? null : otherSideLookup(printingsBySideKey)}>
+            <BrowserCardViewer
+              items={items}
+              totalItems={showLibrary ? allPrintings.length : totalCopies}
+              renderCard={renderCard}
+              setOrder={sets}
+              collectionOrder={collectionGroupingAvailable ? collectionOrder : undefined}
+              groupBy={groupBy}
+              groupDir={groupDir}
+              renderedCards={renderedCards}
+              printingsByCardId={printingsByCardId}
+              view={dataView}
+              stale={isGridStale}
+              noResultsDescription={wantedFilterActive ? m.collections_grid_no_wanted() : undefined}
+              toolbar={
+                <CollectionGridToolbar
+                  sortedCards={sortedCards}
+                  stackByPrintingId={stackByPrintingId}
+                  view={view}
+                  dataView={dataView}
+                  hasActiveFilters={hasActiveFilters}
+                  totalCopies={totalCopies}
+                  totalUniqueCards={totalUniqueCards}
+                  showLibrary={showLibrary}
+                  collectionGroupingAvailable={collectionGroupingAvailable}
+                  groupBy={groupBy}
+                  isGroupCollection={isGroupCollection}
+                  wantedOnly={wantedOnly}
+                  onWantedOnlyChange={onWantedOnlyChange}
+                  addTarget={addTarget}
+                  onToggleLibrary={toggleShowLibrary}
+                />
+              }
+              banner={
+                <>
+                  {showIntroBanner && (
+                    <CollectionIntroBanner
+                      showLibrary={showLibrary}
+                      onDismiss={() => dismissIntro("collection")}
+                    />
+                  )}
+                  <CollectionMissingImagesCallout />
+                </>
+              }
+              rightPane={
+                <CollectionDetailPane
+                  items={items}
+                  printingsByCardId={detailPanePrintingsByCardId}
+                  showImages={showImages}
+                  collectionId={collectionId}
+                  mode={mode}
+                  wish={wish}
+                  onAddToWishlist={setWishTarget}
+                />
+              }
+              addStripHeight={ADD_STRIP_HEIGHT}
+              table={{
+                actionsColumn: collectionTableActionsColumn({
+                  stacked,
+                  mode,
+                  hasQuickAdd: Boolean(handleQuickAdd),
+                }),
+                actionsCell: (
+                  <CollectionActionsCell
+                    collectionId={collectionId}
+                    dataView={dataView}
+                    catalogPrintingsByCardId={catalogPrintingsByCardId}
+                    tileGroupBy={tileGroupBy}
                   />
-                )}
-                <CollectionMissingImagesCallout />
-              </>
-            }
-            rightPane={
-              <CollectionDetailPane
+                ),
+                rowWrapper: (
+                  <CollectionRowWrapper
+                    collectionId={collectionId}
+                    stackByItemId={stackByItemId}
+                    allCopyIdsByTile={allCopyIdsByTile}
+                    sourceCollectionIsGroup={sourceCollectionIsGroup}
+                    tileGroupBy={tileGroupBy}
+                    mode={mode}
+                    stacked={stacked}
+                    selected={selected}
+                  />
+                ),
+                selection:
+                  mode === "select"
+                    ? {
+                        isPicked: (itemId, printing) =>
+                          isCollectionRowPicked(
+                            { stackByItemId, allCopyIdsByTile, tileGroupBy, stacked, selected },
+                            printing,
+                            itemId,
+                          ),
+                        onToggle: (itemId) => dispatchItemToggle(itemId),
+                      }
+                    : undefined,
+              }}
+            >
+              <CollectionSelectionBar
+                mode={mode}
+                selected={selected}
+                moveIsPending={actions.moveIsPending}
+                disposeIsPending={actions.disposeIsPending}
+                openAction={actions.openAction}
+                onClear={clearSelection}
+              />
+
+              <CollectionDetailOverlays
                 items={items}
                 printingsByCardId={detailPanePrintingsByCardId}
                 showImages={showImages}
@@ -479,75 +546,16 @@ function CollectionGridContent({
                 wish={wish}
                 onAddToWishlist={setWishTarget}
               />
-            }
-            addStripHeight={ADD_STRIP_HEIGHT}
-            table={{
-              actionsColumn: collectionTableActionsColumn({
-                stacked,
-                mode,
-                hasQuickAdd: Boolean(handleQuickAdd),
-              }),
-              actionsCell: (
-                <CollectionActionsCell
-                  collectionId={collectionId}
-                  dataView={dataView}
-                  catalogPrintingsByCardId={catalogPrintingsByCardId}
-                  tileGroupBy={tileGroupBy}
-                />
-              ),
-              rowWrapper: (
-                <CollectionRowWrapper
-                  collectionId={collectionId}
-                  stackByItemId={stackByItemId}
-                  allCopyIdsByTile={allCopyIdsByTile}
-                  sourceCollectionIsGroup={sourceCollectionIsGroup}
-                  tileGroupBy={tileGroupBy}
-                  mode={mode}
-                  stacked={stacked}
-                  selected={selected}
-                />
-              ),
-              selection:
-                mode === "select"
-                  ? {
-                      isPicked: (itemId, printing) =>
-                        isCollectionRowPicked(
-                          { stackByItemId, allCopyIdsByTile, tileGroupBy, stacked, selected },
-                          printing,
-                          itemId,
-                        ),
-                      onToggle: (itemId) => dispatchItemToggle(itemId),
-                    }
-                  : undefined,
-            }}
-          >
-            <CollectionSelectionBar
-              mode={mode}
-              selected={selected}
-              moveIsPending={actions.moveIsPending}
-              disposeIsPending={actions.disposeIsPending}
-              openAction={actions.openAction}
-              onClear={clearSelection}
-            />
 
-            <CollectionDetailOverlays
-              items={items}
-              printingsByCardId={detailPanePrintingsByCardId}
-              showImages={showImages}
-              collectionId={collectionId}
-              mode={mode}
-              wish={wish}
-              onAddToWishlist={setWishTarget}
-            />
-
-            <CollectionGridActionDialogs
-              actions={actions}
-              collections={collections}
-              collectionId={collectionId}
-              sourceCollectionIsGroup={sourceCollectionIsGroup}
-              onAdded={clearSelection}
-            />
-          </BrowserCardViewer>
+              <CollectionGridActionDialogs
+                actions={actions}
+                collections={collections}
+                collectionId={collectionId}
+                sourceCollectionIsGroup={sourceCollectionIsGroup}
+                onAdded={clearSelection}
+              />
+            </BrowserCardViewer>
+          </OtherSideContext>
 
           <VariantLocationsPopoverHost
             catalogPrintingsByCardId={catalogPrintingsByCardId}

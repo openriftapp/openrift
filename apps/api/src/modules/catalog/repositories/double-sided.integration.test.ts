@@ -20,6 +20,7 @@ import { listEntriesRepo } from "../../lists/repositories/lists-entries.js";
 import { marketplaceCollectionValueHistoryRepo } from "../../marketplace/repositories/marketplace-collection-value-history.js";
 import { marketplacePricesRepo } from "../../marketplace/repositories/marketplace-prices.js";
 import { catalogMutationsRepo } from "./catalog-mutations.js";
+import { catalogPrintingsRepo } from "./catalog-printings.js";
 import { printingDeskRepo } from "./printing-desk.js";
 import { printingEventsRepo } from "./printing-events.js";
 import { printingImagesRepo } from "./printing-images.js";
@@ -178,6 +179,25 @@ describe.skipIf(!ctx)("double-sided printings (integration)", () => {
     expect(printings.every((p) => p.face1Id === birdFace?.id || p.face2Id === birdFace?.id)).toBe(
       true,
     );
+  });
+
+  it("names the other side by its printed name when it differs from the card name", async () => {
+    const { faceId: goldFace } = await insertPrinting(db, {
+      ...sideValues("Gold", "DST-T25"),
+      language: "FR",
+      printedName: "Or",
+      comment: null,
+    });
+    const printingId = await pairPrinting(
+      { ...sideValues("Bird", "DST-T24"), language: "FR" },
+      goldFace,
+    );
+
+    const rows = await catalogPrintingsRepo(db).printingsByIds([printingId]);
+    const birdRow = rows.find((row) => row.cardId === cardIds.Bird);
+    const goldRow = rows.find((row) => row.cardId === cardIds.Gold);
+    expect(birdRow?.otherSide).toMatchObject({ cardName: "Gold", printedName: "Or" });
+    expect(goldRow?.otherSide).not.toHaveProperty("printedName");
   });
 
   it("finds the pair again whichever side is named first", async () => {

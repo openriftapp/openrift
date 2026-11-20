@@ -12,6 +12,7 @@ export interface CardCellProps {
   display: CardThumbnailDisplay;
   showImages: boolean;
   view?: "cards" | "printings";
+  otherSideInset?: boolean;
 
   onClick: (printing: Printing, event?: ReactMouseEvent) => void;
   onSiblingClick?: (printing: Printing) => void;
@@ -47,6 +48,7 @@ export function CardCell({
   display,
   showImages,
   view,
+  otherSideInset,
   onClick,
   onSiblingClick,
   href,
@@ -81,6 +83,7 @@ export function CardCell({
       priority={ctx.priority}
       display={display}
       view={view}
+      otherSideInset={otherSideInset}
       siblings={siblings}
       priceRange={priceRange}
       dimmed={dimmed}

@@ -2,7 +2,12 @@ import { filterCards } from "@openrift/shared/filters";
 import { getAvailableFilters } from "@openrift/shared/filters-available";
 import { sortCards } from "@openrift/shared/filters-sort";
 import { EMPTY_PRICE_LOOKUP } from "@openrift/shared/price-lookup";
-import { sideKey, countPrintings } from "@openrift/shared/printing-side";
+import {
+  countPrintings,
+  indexBySideKey,
+  onePerPrinting,
+  sideKey,
+} from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { SortDirection, SortOption } from "@openrift/shared/types/search";
 import { useSuspenseQuery } from "@tanstack/react-query";
@@ -35,6 +40,7 @@ import { useSearchAndCloseDetail } from "@/features/cards/hooks/use-search-and-c
 import { buildGroups } from "@/features/cards/lib/card-groups";
 import { CatalogLanguagesContext } from "@/features/cards/lib/catalog-languages-context";
 import { groupByOptionsFor } from "@/features/cards/lib/group-by-field";
+import { OtherSideContext, otherSideLookup } from "@/features/cards/lib/other-side-context";
 import {
   buildPromoTreeFromMatches,
   withCatalogPrintedNames,
@@ -169,10 +175,11 @@ function PromosBrowser() {
       ? matches
       : applyOwnedBucketFilter(matches, filters.ownedFilter, ownedCountByPrinting);
   };
-  const matchedPrintings = matchPrintings(cardFilters.search);
+  const matchedSides = matchPrintings(cardFilters.search);
+  const matchedPrintings = onePerPrinting(matchedSides);
   const searchAlternatives = findSearchAlternatives(
     cardFilters.search,
-    matchedPrintings,
+    matchedSides,
     matchPrintings,
   );
   const grouping = asPromoGrouping(filterState.groupBy);
@@ -326,20 +333,22 @@ function PromosBrowser() {
               )
             }
             gridSlot={
-              <PromoSectionsContent
-                grouping={grouping}
-                channelRenderItems={channelRenderItems}
-                flatRenderItems={flatRenderItems}
-                hasContent={hasContent}
-                hasActiveFilters={hasActiveFilters}
-                viewMode={viewMode}
-                showImages={showImages}
-                display={display}
-                ownedCounts={ownedCounts}
-                onCardClick={handleCardClick}
-                sortPrintings={sortPrintings}
-                setNameBySlug={setSlugToName}
-              />
+              <OtherSideContext value={otherSideLookup(indexBySideKey(activePrintings))}>
+                <PromoSectionsContent
+                  grouping={grouping}
+                  channelRenderItems={channelRenderItems}
+                  flatRenderItems={flatRenderItems}
+                  hasContent={hasContent}
+                  hasActiveFilters={hasActiveFilters}
+                  viewMode={viewMode}
+                  showImages={showImages}
+                  display={display}
+                  ownedCounts={ownedCounts}
+                  onCardClick={handleCardClick}
+                  sortPrintings={sortPrintings}
+                  setNameBySlug={setSlugToName}
+                />
+              </OtherSideContext>
             }
           >
             <SelectionDetailOverlays

@@ -1055,6 +1055,8 @@
   "cards_printing_same_both_sides": "{name} des deux côtés",
   "cards_printing_part_one_side": "{part} d'un côté",
   "cards_flip_to_other_side": "Retourner vers {name}",
+  "cards_thumb_double_sided": "Recto verso",
+  "cards_thumb_double_sided_with": "Recto verso, avec {name}",
   "cards_printing_with_side": "avec {name}",
   "cards_flag_signed": "Signée",
   "cards_flag_banned": "Bannie dans au moins un format",

@@ -49,6 +49,7 @@ export function PromoCardThumbnail({
       href={cardPageHref(router, printing)}
       showImages={showImages}
       display={display}
+      view="printings"
       sizes={PROMOS_CARD_SIZES}
       belowLabel={<MarkerChips printing={printing} />}
       aboveCard={ownedCounts ? <CardCountStrip count={ownedCount} /> : undefined}

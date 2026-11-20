@@ -94,6 +94,7 @@ export function PickerCardBrowser({
     filteredCount,
     searchAlternatives,
   } = useCardData({
+    everySide: true,
     allPrintings,
     sets,
     filters,

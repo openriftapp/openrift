@@ -33,6 +33,7 @@ import { selectionFindBy, tileSiblings } from "@/features/cards/lib/card-tiles";
 import { fromWireFacets, fromWireFilterCounts } from "@/features/cards/lib/cards-facets";
 import type { UseCardsResult } from "@/features/cards/lib/catalog-queries";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
+import { OtherSideContext, otherSideLookup } from "@/features/cards/lib/other-side-context";
 import {
   CardRowActionsStoreContext,
   useOwnCardRowActionsStore,
@@ -117,6 +118,7 @@ export function CardBrowser() {
   const {
     allPrintings,
     printingsById,
+    printingsBySideKey,
     sets,
     printingsByCardId: catalogAllPrintingsByCardId,
   } = live ? catalog : EMPTY_CATALOG;
@@ -446,36 +448,38 @@ export function CardBrowser() {
         hiddenSections={hiddenFilterSections}
         ownedCountMax={live ? ownedCountBound : undefined}
       >
-        <BrowserCardViewer
-          items={items}
-          totalItems={allPrintings.length}
-          renderCard={renderCard}
-          setOrder={sets}
-          groupBy={groupBy}
-          groupDir={groupDir}
-          renderedCards={sortedCards}
-          printingsByCardId={printingsByCardId}
-          view={view}
-          toolbar={toolbar}
-          rightPane={rightPane}
-          stale={countsPending}
-          pendingGrid={live ? undefined : <FirstRowGrid />}
-          addStripHeight={showStrip ? ADD_STRIP_HEIGHT : undefined}
-          table={{
-            actionsColumn: showStrip ? (canAdd ? "stepper" : "narrow") : "none",
-            actionsCell: showStrip ? (
-              <CatalogActionsCell view={view} printingsByCardId={printingsByCardId} />
-            ) : undefined,
-          }}
-        >
-          <SelectionDetailOverlays
+        <OtherSideContext value={otherSideLookup(printingsBySideKey)}>
+          <BrowserCardViewer
             items={items}
-            printingsByCardId={detailPanePrintingsByCardId}
-            showImages={showImages}
-            onSearchAndClose={searchAndClose}
-            actions={detailActions}
-          />
-        </BrowserCardViewer>
+            totalItems={allPrintings.length}
+            renderCard={renderCard}
+            setOrder={sets}
+            groupBy={groupBy}
+            groupDir={groupDir}
+            renderedCards={sortedCards}
+            printingsByCardId={printingsByCardId}
+            view={view}
+            toolbar={toolbar}
+            rightPane={rightPane}
+            stale={countsPending}
+            pendingGrid={live ? undefined : <FirstRowGrid />}
+            addStripHeight={showStrip ? ADD_STRIP_HEIGHT : undefined}
+            table={{
+              actionsColumn: showStrip ? (canAdd ? "stepper" : "narrow") : "none",
+              actionsCell: showStrip ? (
+                <CatalogActionsCell view={view} printingsByCardId={printingsByCardId} />
+              ) : undefined,
+            }}
+          >
+            <SelectionDetailOverlays
+              items={items}
+              printingsByCardId={detailPanePrintingsByCardId}
+              showImages={showImages}
+              onSearchAndClose={searchAndClose}
+              actions={detailActions}
+            />
+          </BrowserCardViewer>
+        </OtherSideContext>
 
         {/* Variant×collection popover. Self-subscribes to the add-mode store so
           opening it never re-renders this grid. */}

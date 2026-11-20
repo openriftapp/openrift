@@ -181,8 +181,8 @@ describe("GET /api/v1/promos", () => {
     mockDistributionChannelsRepo.listAll.mockResolvedValue([dbChannel]);
     mockCatalogRepo.channelDistributedPrintings.mockResolvedValue([
       dbPrinting,
-      { ...dbPrinting, id: "p0000000-0002-4000-a000-000000000002" },
-      { ...dbPrinting, id: "p0000000-0003-4000-a000-000000000003", language: "SC" },
+      { ...dbPrinting, printingId: "p0000000-0002-4000-a000-000000000002" },
+      { ...dbPrinting, printingId: "p0000000-0003-4000-a000-000000000003", language: "SC" },
     ]);
     mockCatalogRepo.cardsByIds.mockResolvedValue([dbCard]);
 
@@ -193,6 +193,28 @@ describe("GET /api/v1/promos", () => {
       { language: "EN", printingCount: 2, cardCount: 1 },
       { language: "SC", printingCount: 1, cardCount: 1 },
     ]);
+  });
+
+  it("counts a double-sided printing once per language and per channel", async () => {
+    const otherCardId = "c0000000-0002-4000-a000-000000000002";
+    mockDistributionChannelsRepo.listAll.mockResolvedValue([dbChannel]);
+    mockCatalogRepo.channelDistributedPrintings.mockResolvedValue([
+      dbPrinting,
+      {
+        ...dbPrinting,
+        side: 2,
+        faceId: "f0000000-0002-4000-a000-000000000002",
+        cardId: otherCardId,
+      },
+    ]);
+    mockCatalogRepo.cardsByIds.mockResolvedValue([dbCard, { ...dbCard, id: otherCardId }]);
+    mockDistributionChannelsRepo.listForPrintingIds.mockResolvedValue([dbChannelLink]);
+
+    const res = await app.request("/api/v1/promos?language=EN");
+    const json = await readJson(res);
+
+    expect(json.languageCounts).toEqual([{ language: "EN", printingCount: 1, cardCount: 2 }]);
+    expect(json.channels[0]).toMatchObject({ printingCount: 1, cardCount: 2 });
   });
 
   it("carries only the sets its own printings reference", async () => {

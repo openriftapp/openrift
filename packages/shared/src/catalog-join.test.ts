@@ -223,6 +223,18 @@ describe("joinCatalogPrintings double-sided", () => {
     expect(bird!.otherSide?.cardName).toBe("Azir, Emperor of the Sands");
   });
 
+  it("carries the other side's printed name only when it differs from the card name", () => {
+    const base = doubleSided(GOLD_ID);
+    const { side2, ...side1 } = base.printings["printing-1"]!;
+    const withNames = (printedName: string) =>
+      joinCatalogPrintings({
+        ...base,
+        printings: { "printing-1": { ...side1, side2: { ...side2!, printedName } } },
+      })[0]!.otherSide;
+    expect(withNames("Or")).toMatchObject({ cardName: "Gold", printedName: "Or" });
+    expect(withNames("Gold")).not.toHaveProperty("printedName");
+  });
+
   it("keeps a printing with the same card on both sides as two entries of that card", () => {
     const sides = joinCatalogPrintings(doubleSided(CARD_ID));
     expect(sides.map((side) => side.cardId)).toEqual([CARD_ID, CARD_ID]);

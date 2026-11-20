@@ -190,6 +190,9 @@ export function joinCatalog(catalog: CatalogSlice): {
                 faceId: other.faceId,
                 cardId: other.cardId,
                 cardName: legendDisplayName(otherCard),
+                ...(other.printedName && other.printedName !== otherCard.name
+                  ? { printedName: other.printedName }
+                  : {}),
                 cardSlug: otherCard.slug,
                 shortCode: other.shortCode,
                 finish: other.finish,

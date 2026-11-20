@@ -115,6 +115,7 @@ export interface PrintingOtherSide {
   faceId: string;
   cardId: string;
   cardName: string;
+  printedName?: string;
   cardSlug: string;
   shortCode: string;
   imageId?: string;

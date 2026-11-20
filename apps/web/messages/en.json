@@ -1055,6 +1055,8 @@
   "cards_printing_same_both_sides": "{name} on both sides",
   "cards_printing_part_one_side": "{part} on one side",
   "cards_flip_to_other_side": "Flip to {name}",
+  "cards_thumb_double_sided": "Double-sided",
+  "cards_thumb_double_sided_with": "Double-sided, with {name}",
   "cards_printing_with_side": "with {name}",
   "cards_flag_signed": "Signed",
   "cards_flag_banned": "Banned in any format",

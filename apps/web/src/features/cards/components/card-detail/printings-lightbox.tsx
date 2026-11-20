@@ -29,6 +29,7 @@ import {
   useOverlayHistoryEntry,
 } from "@/features/cards/hooks/use-overlay-history-entry";
 import { usePrintingVariantText } from "@/features/cards/hooks/use-printing-variant-text";
+import { otherSideName } from "@/features/cards/lib/card-meta";
 import { lightboxPrintingsInLanguage } from "@/features/cards/lib/lightbox-printings";
 import type { PrintingDesign } from "@/features/cards/lib/printing-designs";
 import {
@@ -511,7 +512,7 @@ function LightboxTile({
         {design && <DesignDetails design={design} />}
         {other && other.cardId !== printing.cardId && (
           <p className="text-muted-foreground">
-            {m.card_detail_lightbox_back({ name: other.cardName })}
+            {m.card_detail_lightbox_back({ name: otherSideName(other) })}
           </p>
         )}
       </div>

@@ -19,6 +19,7 @@ import {
   CARD_BORDER_RADIUS,
   CARD_BORDER_RADIUS_LANDSCAPE,
 } from "@/features/cards/lib/card-grid-constants";
+import { otherSideName } from "@/features/cards/lib/card-meta";
 import type { PrintingDesign } from "@/features/cards/lib/printing-designs";
 import { groupPrintingDesigns, isSelectedSide } from "@/features/cards/lib/printing-designs";
 import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
@@ -349,7 +350,7 @@ function DesignInfo({ design, leads }: { design: PrintingDesign; leads: Printing
       <DesignDetails design={design} />
       {design.lead.otherSide && design.lead.otherSide.cardId !== design.lead.cardId && (
         <span className="text-muted-foreground text-xs">
-          {m.card_detail_lightbox_back({ name: design.lead.otherSide.cardName })}
+          {m.card_detail_lightbox_back({ name: otherSideName(design.lead.otherSide) })}
         </span>
       )}
     </div>

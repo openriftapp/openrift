@@ -140,6 +140,7 @@ const OTHER_SIDE = sql<OtherSideRow | null>`(
     'faceId', ofc.id,
     'cardId', oc.id,
     'cardName', oc.name,
+    'printedName', NULLIF(ofc.printed_name, oc.name),
     'cardSlug', oc.slug,
     'shortCode', ofc.short_code,
     'imageId', oif.id,

@@ -5,12 +5,12 @@ import { errataForLanguage } from "@openrift/shared/errata";
 import { imageSrcSet, imageUrl } from "@openrift/shared/image-url";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { StandardArtFallback } from "@openrift/shared/standard";
-import type { CardBan, Printing } from "@openrift/shared/types/catalog";
+import type { CardBan, Printing, PrintingOtherSide } from "@openrift/shared/types/catalog";
 import type { Domain, Rarity } from "@openrift/shared/types/enums";
 import { WellKnown, isBaseBanFormat } from "@openrift/shared/well-known";
 import { useRouter } from "@tanstack/react-router";
 import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode } from "react";
-import { memo, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
+import { memo, use, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 
 import { MarketplaceIcon } from "@/components/marketplace-icon";
 import { Pressable } from "@/components/ui/pressable";
@@ -25,8 +25,9 @@ import {
   CARD_BORDER_RADIUS,
   LABEL_WRAPPER_MT_CLASS,
 } from "@/features/cards/lib/card-grid-constants";
-import { printingName } from "@/features/cards/lib/card-meta";
+import { otherSideName, printingName } from "@/features/cards/lib/card-meta";
 import { isPlainPrimaryClick } from "@/features/cards/lib/card-row-interactions";
+import { OtherSideContext } from "@/features/cards/lib/other-side-context";
 import { groupPrintingDesigns } from "@/features/cards/lib/printing-designs";
 import { NO_TILE_ART, tileArt } from "@/features/cards/lib/tile-art";
 import { useGridFocusStore } from "@/features/cards/stores/grid-focus-store";
@@ -344,8 +345,82 @@ function CardImageContent({
   );
 }
 
-function inDisplayOrder(side: 1 | 2, own: string, other: string): string {
-  return side === 1 ? `${own} // ${other}` : `${other} // ${own}`;
+function doubleSidedHint(printing: Printing): string | undefined {
+  const other = printing.otherSide;
+  if (!other) {
+    return undefined;
+  }
+  return other.cardId === printing.cardId
+    ? m.cards_printing_same_both_sides({ name: otherSideName(other) })
+    : m.cards_thumb_double_sided_with({ name: otherSideName(other) });
+}
+
+const INSET_CLASS =
+  "bg-muted ring-background aspect-card absolute right-[5%] bottom-[4%] z-[11] flex w-[30%] items-center justify-center rounded-sm shadow-md ring-2";
+
+function OtherSideInset({
+  otherSide,
+  showFoil,
+  dimmed,
+  rotated,
+  onFlip,
+}: {
+  otherSide: PrintingOtherSide;
+  showFoil: boolean;
+  dimmed?: boolean;
+  rotated?: boolean;
+  onFlip?: () => void;
+}) {
+  const image = otherSide.imageId ? (
+    <img
+      src={imageUrl(otherSide.imageId, "240w")}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      className="size-full rounded-sm object-cover"
+    />
+  ) : undefined;
+  const art =
+    image && rotated ? (
+      <div className="absolute top-1/2 left-1/2" style={LANDSCAPE_ROTATION_STYLE}>
+        {image}
+      </div>
+    ) : (
+      image
+    );
+  const content = (
+    <>
+      {art ?? (
+        <span className="text-2xs text-muted-foreground px-0.5 text-center">
+          {otherSideName(otherSide)}
+        </span>
+      )}
+      {showFoil && <FoilOverlay active dim />}
+    </>
+  );
+  if (!onFlip) {
+    return (
+      <div
+        aria-hidden="true"
+        className={cn(INSET_CLASS, "pointer-events-none overflow-hidden", dimmed && "opacity-50")}
+      >
+        {content}
+      </div>
+    );
+  }
+  return (
+    <Pressable
+      aria-label={m.cards_flip_to_other_side({ name: otherSideName(otherSide) })}
+      className={cn(
+        INSET_CLASS,
+        "transition-transform before:absolute before:-inset-1 before:content-[''] hover:scale-105 pointer-coarse:before:-inset-3",
+        dimmed && "opacity-50",
+      )}
+      onClick={onFlip}
+    >
+      {content}
+    </Pressable>
+  );
 }
 
 function displayCard(printing: Printing) {
@@ -382,6 +457,7 @@ interface CardThumbnailProps {
   siblings?: Printing[];
   priceRange?: { min: number; max: number };
   view?: "cards" | "printings";
+  otherSideInset?: boolean;
   cardWidth?: number;
   /** Ignored when `cardWidth` is provided; the pixel-precise value wins. */
   sizes?: string;
@@ -573,7 +649,7 @@ function DraggableTileWrapper({
 // React Compiler cannot memoize JSX created inside the virtualizer's items.map() callback.
 // oxlint-disable-next-line eslint/prefer-arrow-callback -- named for React DevTools
 export const CardThumbnail = memo(function CardThumbnail({
-  printing,
+  printing: entry,
   onClick,
   onSiblingClick,
   showImages,
@@ -582,6 +658,7 @@ export const CardThumbnail = memo(function CardThumbnail({
   siblings,
   priceRange,
   view,
+  otherSideInset = true,
   cardWidth,
   sizes: sizesOverride,
   priority,
@@ -612,6 +689,17 @@ export const CardThumbnail = memo(function CardThumbnail({
     }
   }, [focusRequested]);
 
+  const findOtherSide = use(OtherSideContext);
+  const [flip, setFlip] = useState<{ entryKey: string; flipped: boolean } | null>(null);
+  const entryKey = sideKey(entry);
+  const flipTarget =
+    findOtherSide && showImages && otherSideInset && view === "printings" && checked === undefined
+      ? findOtherSide(entry)
+      : undefined;
+  const flipped = flipTarget !== undefined && flip?.entryKey === entryKey && flip.flipped;
+  const printing = flipped ? flipTarget : entry;
+  const toggleFlip = () => setFlip({ entryKey, flipped: !flipped });
+
   const card = displayCard(printing);
   const displayName = printingName(printing, printing.card);
   const art = showImages ? tileArt(printing, display.getFallbackArt) : NO_TILE_ART;
@@ -637,6 +725,10 @@ export const CardThumbnail = memo(function CardThumbnail({
   const favoritePrice = prices.get(printing.printingId, favoriteMarketplace);
   const isFoilCard = printing.finish === WellKnown.finish.FOIL;
   const finishTitle = enumLabel(finishLabels, printing.finish);
+  const pairOtherSide = view === "cards" ? undefined : printing.otherSide;
+  const insetSide =
+    showImages && otherSideInset && view === "printings" ? printing.otherSide : undefined;
+  const pairHint = view === "cards" ? doubleSidedHint(printing) : undefined;
   const rarityTitle = enumLabel(rarityLabels, printing.rarity);
   const isOversized = printing.size !== WellKnown.cardSize.STANDARD;
   const sizeLabel = enumLabel(sizeLabels, printing.size);
@@ -785,6 +877,18 @@ export const CardThumbnail = memo(function CardThumbnail({
             fallbackArt={fallbackArt}
           />
         </ImageTarget>
+        {insetSide && (
+          <OtherSideInset
+            otherSide={insetSide}
+            showFoil={insetSide.finish === WellKnown.finish.FOIL && gridFoil}
+            dimmed={dimmed}
+            rotated={
+              flipTarget !== undefined &&
+              needsCssRotation(getOrientation((flipped ? entry : flipTarget).card.types))
+            }
+            onFlip={flipTarget ? toggleFlip : undefined}
+          />
+        )}
         {banDim}
         {ribbon}
         {imageOverlay}
@@ -829,20 +933,27 @@ export const CardThumbnail = memo(function CardThumbnail({
       </span>
     );
 
-  const labelOtherSide = view === "cards" ? undefined : printing.otherSide;
   const labelSection = (
     <CardMetaLabel
       className={cn("relative z-10", LABEL_WRAPPER_MT_CLASS)}
-      shortCode={
-        labelOtherSide
-          ? inDisplayOrder(printing.side, printing.shortCode, labelOtherSide.shortCode)
-          : printing.shortCode
+      shortCode={printing.shortCode}
+      name={displayName}
+      pair={
+        pairOtherSide
+          ? {
+              side: printing.side,
+              other: {
+                shortCode: pairOtherSide.shortCode,
+                name: otherSideName(pairOtherSide),
+                finish: pairOtherSide.finish,
+                finishTitle: pairOtherSide.finish
+                  ? enumLabel(finishLabels, pairOtherSide.finish)
+                  : undefined,
+              },
+            }
+          : undefined
       }
-      name={
-        labelOtherSide
-          ? inDisplayOrder(printing.side, displayName, labelOtherSide.cardName)
-          : displayName
-      }
+      pairHint={pairHint}
       rarity={printing.rarity}
       rarityTitle={rarityTitle}
       finish={printing.finish}
@@ -924,7 +1035,7 @@ export const CardThumbnail = memo(function CardThumbnail({
         onMouseEnter={fanMouseEnter}
         onMouseLeave={fanMouseLeave}
         printingId={printing.printingId}
-        tileSideKey={sideKey(printing)}
+        tileSideKey={entryKey}
       >
         {wrapperContent}
       </DraggableTileWrapper>
@@ -934,7 +1045,7 @@ export const CardThumbnail = memo(function CardThumbnail({
   return (
     <div
       data-printing-id={printing.printingId}
-      data-side-key={sideKey(printing)}
+      data-side-key={entryKey}
       className={wrapperClassName}
       onMouseEnter={fanMouseEnter}
       onMouseLeave={fanMouseLeave}

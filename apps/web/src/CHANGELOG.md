@@ -8,6 +8,7 @@
 
 ### Other
 
+- feat(Cards): **Double-sided cards show both sides** — in the printings view, on the promos page and in your collection, a double-sided card is one tile with its other side in the corner. Tap the corner to turn the card over. The foil mark sits next to the side that is foil. In the cards view, a small icon names the card on the other side. Promo counts no longer count these cards twice.
 - feat(Meta): **By legend groups the full standings** — "By legend" now groups every entry under its legend, keeps the player search, legend, decklist and cost filters, and keeps your place on the page when you switch. Rank chips in the standings drop the repeated "Winner" and "Top 8" labels.
 - feat(Decks): **Changes view when replacing a deck** — the preview lists cards going in and out, and cards you kept stay on the art you picked.
 - fix(Decks): **Readable titles on deck images** — the deck name, format and zone labels on shared deck images and the printable deck sheet are no longer dimmed by the cover art. The deck sheet offers a scan code only when the deck is shared.

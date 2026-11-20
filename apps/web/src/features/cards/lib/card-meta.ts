@@ -8,7 +8,7 @@ import { imageUrl } from "@openrift/shared/image-url";
 import { preferredPrinting } from "@openrift/shared/printing-select";
 import type { CardDetailResponse } from "@openrift/shared/types/api/catalog";
 import type { Currency } from "@openrift/shared/types/api/trade-preferences";
-import type { Printing } from "@openrift/shared/types/catalog";
+import type { Printing, PrintingOtherSide } from "@openrift/shared/types/catalog";
 
 import { formatterForCurrency } from "@/lib/format";
 
@@ -129,6 +129,10 @@ export function printingName(
   return printing.printedName && printing.printedName !== card.name
     ? printing.printedName
     : legendDisplayName(card);
+}
+
+export function otherSideName(other: Pick<PrintingOtherSide, "cardName" | "printedName">): string {
+  return other.printedName ?? other.cardName;
 }
 
 /** A double-sided printing is named by both of its cards, side 1 first. */

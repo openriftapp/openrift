@@ -1055,6 +1055,8 @@
   "cards_printing_same_both_sides": "两面均为{name}",
   "cards_printing_part_one_side": "单面{part}",
   "cards_flip_to_other_side": "翻到{name}",
+  "cards_thumb_double_sided": "双面",
+  "cards_thumb_double_sided_with": "双面，另一面是{name}",
   "cards_printing_with_side": "另含{name}",
   "cards_flag_signed": "签名",
   "cards_flag_banned": "在任一赛制中被禁用",
