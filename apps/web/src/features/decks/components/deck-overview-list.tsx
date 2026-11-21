@@ -426,13 +426,14 @@ function ZoneAddRow({
   }
   return (
     <Button
+      size="xs"
       type="button"
       variant="dashed"
       onClick={onClick}
       aria-label={
         isEmpty ? hint : m.decks_overview_zone_add_to({ zone: enumLabel(zoneLabels, zone) })
       }
-      className="h-auto w-full justify-start gap-1.5 rounded-md px-2 py-1.5 text-xs font-normal whitespace-normal"
+      className="h-auto w-full justify-start gap-1.5 px-2 py-1.5 font-normal whitespace-normal"
     >
       <PlusIcon className="size-3.5 shrink-0" />
       <span>{isEmpty ? hint : m.decks_overview_zone_add_cards()}</span>

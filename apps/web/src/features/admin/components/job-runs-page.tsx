@@ -290,11 +290,7 @@ function StatusCell({ row: run }: AdminCellSlotProps<JobRunView>) {
   return (
     <div className="flex items-center gap-1.5">
       <JobStatusBadge status={run.status} />
-      {run.noop === true && (
-        <Badge variant="outline" className="text-muted-foreground">
-          no-op
-        </Badge>
-      )}
+      {run.noop === true && <Badge variant="neutral">no-op</Badge>}
     </div>
   );
 }

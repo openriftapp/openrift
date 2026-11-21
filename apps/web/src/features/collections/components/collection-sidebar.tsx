@@ -255,7 +255,7 @@ function ListIntentGroup({
                         <span className="flex-1 truncate">{list.name}</span>
                         {list.hasRule && <DynamicListMarker />}
                         {list.entryCount > 0 && (
-                          <Badge variant="ghost" className="text-2xs ml-auto">
+                          <Badge size="sm" variant="ghost" className="ml-auto">
                             {list.entryCount}
                           </Badge>
                         )}
@@ -399,7 +399,7 @@ function PersonalCollectionsGroup({
                 <InboxIcon />
                 <span className="flex-1 truncate">{inbox.name}</span>
                 {inbox.copyCount > 0 && (
-                  <Badge variant="default" className="text-2xs ml-auto">
+                  <Badge size="sm" variant="default" className="ml-auto">
                     {inbox.copyCount}
                   </Badge>
                 )}
@@ -445,7 +445,7 @@ function PersonalCollectionsGroup({
                       )}
                       <span className="flex-1 truncate">{col.name}</span>
                       {col.copyCount > 0 && (
-                        <Badge variant="ghost" className="text-2xs ml-auto">
+                        <Badge size="sm" variant="ghost" className="ml-auto">
                           {col.copyCount}
                         </Badge>
                       )}
@@ -519,7 +519,7 @@ function SharedCollectionsGroup({
                 {col.homeDecks.length > 0 ? <BoxIcon /> : <BookOpenIcon />}
                 <span className="flex-1 truncate">{col.name}</span>
                 {col.copyCount > 0 && (
-                  <Badge variant="ghost" className="text-2xs ml-auto">
+                  <Badge size="sm" variant="ghost" className="ml-auto">
                     {col.copyCount}
                   </Badge>
                 )}
@@ -665,7 +665,7 @@ export function CollectionSidebar() {
               <LayersIcon />
               <span className="flex-1">{m.collections_all_cards()}</span>
               {totalCopies > 0 && (
-                <Badge variant="ghost" className="text-2xs ml-auto">
+                <Badge size="sm" variant="ghost" className="ml-auto">
                   {totalCopies}
                 </Badge>
               )}

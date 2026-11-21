@@ -57,7 +57,9 @@ interface DeckCardRowProps {
   onContextMenu?: (event: React.MouseEvent) => void;
 }
 
+// oxlint-disable-next-line shadcn/no-restyle -- row buttons over the row's own hover fill
 const ROW_BUTTON_HOVER = "hover:bg-foreground/20 dark:hover:bg-foreground/20";
+// oxlint-disable-next-line shadcn/no-restyle -- round touch target over the row
 const TOUCH_ROW_BUTTON = "bg-foreground/10 size-8 rounded-full [&_svg]:size-3.5";
 
 export function CardControls({
@@ -281,12 +283,12 @@ export function DeckCardRow({
           handle={menuHandle}
           render={
             <Button
-              variant="ghost"
+              variant={coarsePointer ? "ghost-muted" : "ghost"}
               size="icon-sm"
               className={cn(
                 "shrink-0",
                 coarsePointer
-                  ? "text-muted-foreground size-8 [&_svg]:size-4"
+                  ? "size-8 [&_svg]:size-4"
                   : "hidden size-5 group-focus-within/card:inline-flex group-hover/card:inline-flex data-popup-open:inline-flex",
               )}
               aria-label={m.decks_workbench_row_menu({ card: cardName })}

@@ -425,6 +425,11 @@ html {
   --color-card-edge: var(--card-edge);
   --color-board-felt: var(--board-felt);
   --color-board-felt-edge: var(--board-felt-edge);
+  --color-card-blank: var(--color-neutral-800);
+  --color-card-blank-shade: var(--color-neutral-900);
+  --color-card-blank-deep: var(--color-neutral-950);
+  --color-rarity-ink: var(--color-neutral-950);
+  --color-locked: var(--color-slate-400);
   --color-gilt: var(--gilt);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -548,6 +553,20 @@ html {
   --animate-lists-count-now: lists-count-now 10s ease-out infinite;
 }
 
+@utility bg-foil {
+  background-image: linear-gradient(
+    125deg,
+    oklch(0.7 0.15 0) 0%,
+    oklch(0.75 0.15 60) 14%,
+    oklch(0.8 0.15 120) 28%,
+    oklch(0.75 0.15 180) 42%,
+    oklch(0.7 0.15 240) 57%,
+    oklch(0.75 0.15 300) 71%,
+    oklch(0.8 0.15 360) 85%,
+    oklch(0.7 0.15 60) 100%
+  );
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -569,20 +588,6 @@ html {
   }
   html {
     @apply font-sans;
-  }
-
-  .bg-foil {
-    background-image: linear-gradient(
-      125deg,
-      oklch(0.7 0.15 0) 0%,
-      oklch(0.75 0.15 60) 14%,
-      oklch(0.8 0.15 120) 28%,
-      oklch(0.75 0.15 180) 42%,
-      oklch(0.7 0.15 240) 57%,
-      oklch(0.75 0.15 300) 71%,
-      oklch(0.8 0.15 360) 85%,
-      oklch(0.7 0.15 60) 100%
-    );
   }
 
   @keyframes selection-flash {

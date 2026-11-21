@@ -59,7 +59,7 @@ export function CardTextExpandDialog({
     <>
       <Button
         type="button"
-        variant="ghost"
+        variant="ghost-muted"
         size="icon-xs"
         aria-label={`Expand ${label} editor`}
         title={`Expand ${label} editor`}
@@ -108,8 +108,8 @@ export function CardTextExpandDialog({
             <DialogFooter>
               <Button
                 type="button"
-                variant="ghost"
-                className="text-destructive sm:mr-auto"
+                variant="ghost-destructive"
+                className="sm:mr-auto"
                 onClick={() => save("")}
               >
                 Clear

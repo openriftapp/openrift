@@ -23,10 +23,10 @@ function SignInLink({ children }: { children?: ReactNode }) {
  * The Badge is the tooltip trigger (via `render`) so it stays a span, valid
  * inside the anchor-wrapped list rows/tiles.
  */
-export function LocalDeckBadge({ className }: { className?: string }) {
+export function LocalDeckBadge({ className, size }: { className?: string; size?: "sm" }) {
   return (
     <Tooltip>
-      <TooltipTrigger render={<Badge variant="secondary" className={className} />}>
+      <TooltipTrigger render={<Badge variant="secondary" size={size} className={className} />}>
         {m.decks_local_badge_on_device()}
       </TooltipTrigger>
       <TooltipContent className="max-w-56 text-center">

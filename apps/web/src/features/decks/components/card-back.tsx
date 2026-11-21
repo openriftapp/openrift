@@ -15,7 +15,7 @@ export function CardBack({ className, interactive = false }: CardBackProps) {
     <div
       className={cn(
         "aspect-card @container relative overflow-hidden rounded-lg",
-        "bg-linear-to-br from-neutral-800 via-neutral-900 to-black",
+        "from-card-blank via-card-blank-shade bg-linear-to-br to-black",
         "ring-border ring-1",
         interactive && "transition-transform hover:scale-[1.02] hover:shadow-lg",
         className,

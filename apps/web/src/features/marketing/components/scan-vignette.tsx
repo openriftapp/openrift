@@ -164,7 +164,7 @@ export function ScanVignette({ cards }: { cards: LandingThumbnailCard[] }) {
   return (
     <ClipFrame className="flex flex-col p-0">
       {/* Matches ScanStartPanel's dark plate in both themes. */}
-      <div className="relative grid aspect-[4/3] place-items-center bg-radial from-neutral-800 to-neutral-950">
+      <div className="from-card-blank to-card-blank-deep relative grid aspect-[4/3] place-items-center bg-radial">
         <div className="aspect-card relative h-[74%] overflow-hidden border-2 border-white/15">
           {scanned?.url && (
             <ImgWithFallback

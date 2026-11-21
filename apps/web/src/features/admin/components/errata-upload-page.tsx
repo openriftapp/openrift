@@ -257,7 +257,7 @@ function Pill({
   tone: "success" | "warning" | "destructive" | "neutral";
 }) {
   return (
-    <Badge variant={tone} className="h-auto rounded-md px-2 py-0.5 text-sm">
+    <Badge variant={tone} className="h-auto rounded-md px-2 py-0.5">
       {label}: {count}
     </Badge>
   );

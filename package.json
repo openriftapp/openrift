@@ -59,6 +59,7 @@
     "@commitlint/cli": "21.2.4",
     "@commitlint/config-conventional": "21.2.4",
     "@commitlint/types": "21.2.3",
+    "@shadcn/lint": "0.2.5",
     "@tanstack/devtools-vite": "0.8.6",
     "jscpd": "5.4.2",
     "knip": "6.45.1",

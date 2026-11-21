@@ -277,10 +277,7 @@ function DeckDetailsForm({
                   aria-selected={index === clampedSuggestion}
                   variant="ghost"
                   size="sm"
-                  className={cn(
-                    "w-full justify-start rounded-none font-normal",
-                    index === clampedSuggestion && "bg-muted",
-                  )}
+                  className="w-full justify-start rounded-none font-normal"
                   // Mousedown so the click wins against the textarea blur
                   // closing the popup.
                   onMouseDown={(event) => {

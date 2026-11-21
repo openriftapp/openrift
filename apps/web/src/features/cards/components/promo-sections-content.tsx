@@ -109,7 +109,7 @@ export function PromoSectionsContent({
           <div className="flex justify-center pt-2">
             <Button
               variant="glass-pill"
-              className="h-auto px-3 py-1 text-sm font-normal"
+              className="h-auto px-3 py-1 font-normal"
               onClick={handlePillClick}
             >
               <span className="font-semibold">{activeSection.label}</span>{" "}

@@ -476,9 +476,9 @@ export function DeckPlanEditor({
       ) : null}
       {isPlanDraftEmpty(draft) ? null : (
         <Button
-          variant="ghost"
+          variant="ghost-destructive"
           size="sm"
-          className="text-destructive hover:text-destructive"
+
           aria-label={m.decks_plan_clear_plan()}
           onClick={() => setClearConfirmOpen(true)}
         >

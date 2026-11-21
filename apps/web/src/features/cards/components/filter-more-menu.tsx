@@ -516,14 +516,7 @@ export function FilterMoreMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={
-          <Button
-            variant="control"
-            size="sm"
-            data-active={active || undefined}
-            className="font-medium"
-          />
-        }
+        render={<Button variant="control" size="sm" data-active={active || undefined} />}
         aria-label={
           singleActiveLabel
             ? m.cards_filter_more_single({ label: singleActiveLabel })

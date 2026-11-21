@@ -53,7 +53,7 @@ function DomainToggles() {
 
 function MiniCardPreview() {
   return (
-    <span className="aspect-card relative block w-24 shrink-0 overflow-hidden rounded-lg bg-neutral-800 sm:w-28">
+    <span className="aspect-card bg-card-blank relative block w-24 shrink-0 overflow-hidden rounded-lg sm:w-28">
       <span aria-hidden="true" className="absolute inset-0" style={{ backgroundImage: ART_FILL }} />
       <span
         aria-hidden="true"

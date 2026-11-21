@@ -16,10 +16,10 @@ export function ResetButton({ onClick, label }: ResetButtonProps) {
         render={
           <Button
             type="button"
-            variant="ghost"
+            variant="ghost-muted"
             size="icon-xs"
             onClick={onClick}
-            className="text-muted-foreground relative z-10"
+            className="relative z-10"
             aria-label={label}
           />
         }

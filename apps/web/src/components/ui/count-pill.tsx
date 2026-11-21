@@ -24,6 +24,7 @@ const countPillVariants = cva(
         // the interactive form regains a muted ground on hover (see
         // countPillHover) so tappability still reads on pointer devices.
         ghost: "text-muted-foreground bg-transparent px-1",
+        "primary-ghost": "text-primary bg-transparent",
       },
     },
     defaultVariants: {
@@ -39,6 +40,7 @@ const countPillHover: Record<NonNullable<CountPillVariant>, string> = {
   primary: "hover:bg-primary/20",
   success: "hover:bg-success/20",
   ghost: "hover:bg-muted/80",
+  "primary-ghost": "hover:bg-primary/10",
 };
 
 // For call sites that put the pill classes on another primitive's trigger

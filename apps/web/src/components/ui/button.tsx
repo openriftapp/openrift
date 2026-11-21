@@ -27,8 +27,24 @@ const buttonVariants = cva(
         // custom: corner-cut on the filled secondary too — all solid fills share the signature shape (docs/design-language.md)
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground btn-corner-cut rounded-none focus-visible:ring-inset",
+        // custom: aria-selected:bg-muted marks the active option when a ghost button serves as a listbox option
         ghost:
-          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground aria-selected:bg-muted dark:hover:bg-muted/50",
+        // custom: ghost tones for secondary icon actions, destructive actions and remove buttons
+        "ghost-muted":
+          "text-muted-foreground hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+        "ghost-destructive":
+          "text-destructive hover:bg-muted hover:text-destructive aria-expanded:bg-muted dark:hover:bg-muted/50",
+        "ghost-remove":
+          "text-muted-foreground hover:bg-muted hover:text-destructive aria-expanded:bg-muted dark:hover:bg-muted/50",
+        // custom: ghost on the always-dark stage surface, independent of the color scheme
+        "ghost-on-dark":
+          "text-white/70 hover:bg-white/10 hover:text-white aria-expanded:bg-white/10",
+        // custom: bordered tone buttons that flag a problem (deck errors, excluded filters, weak matches)
+        "outline-destructive":
+          "border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/16 aria-expanded:bg-destructive/16",
+        "outline-warning":
+          "border-warning/40 text-warning hover:bg-warning-soft aria-expanded:bg-warning-soft",
         control: CONTROL_FILL,
         // custom: solid destructive fill with the corner-cut signature — destructive commits share the family shape (docs/design-language.md); text-destructive-foreground instead of text-white to track the token
         // custom: dark:hover:bg-destructive/70 — scaffold's dark:bg-destructive/60 wins over hover:bg-destructive/90 in the cascade, leaving dark mode with no hover feedback
@@ -61,6 +77,9 @@ const buttonVariants = cva(
         "icon-sm":
           "[--btn-cut:5px] size-(--control-h-sm) rounded-md in-data-[slot=button-group]:rounded-lg",
         "icon-lg": "size-9",
+        // custom: the h-5 card-strip tier; --btn-cut:0 keeps the corner-cut off at this height
+        strip:
+          "[--btn-cut:0px] h-5 min-w-5 gap-1 rounded-md px-1.5 py-0 text-xs font-semibold [&_svg:not([class*='size-'])]:size-3",
       },
     },
     defaultVariants: {

@@ -386,9 +386,7 @@ function KnownSettingRow({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground font-mono text-sm">{known.key}</span>
-          <Badge variant={known.scope === "web" ? "default" : "secondary"} className="text-xs">
-            {known.scope}
-          </Badge>
+          <Badge variant={known.scope === "web" ? "default" : "secondary"}>{known.scope}</Badge>
         </div>
         <p className="text-muted-foreground mt-0.5 text-xs">{known.description}</p>
       </div>

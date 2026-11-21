@@ -90,7 +90,7 @@ export function ZoneIssuesPopover({
             variant="ghost"
             size="icon-xs"
             aria-label={m.decks_overview_zone_issues({ zone: zoneLabel })}
-            className="size-5 shrink-0 rounded-md"
+            className="size-5 shrink-0"
           />
         }
       >

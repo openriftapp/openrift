@@ -107,8 +107,8 @@ export function OverlaySettingsPanel({
             hideQr
             actions={
               <Button
-                variant="ghost"
-                className="text-destructive"
+                variant="ghost-destructive"
+
                 onClick={() => setConfirmDisable(true)}
                 disabled={disableToken.isPending}
               >

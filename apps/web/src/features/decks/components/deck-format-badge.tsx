@@ -19,11 +19,7 @@ export function FormatStateBadge({ format, isValid }: { format: string; isValid:
   const { labels: formatLabels } = useDeckFormatList();
   const formatLabel = enumLabel(formatLabels, format);
   if (format === WellKnown.deckFormat.FREEFORM) {
-    return (
-      <Badge variant="outline" className="text-xs">
-        {formatLabel}
-      </Badge>
-    );
+    return <Badge variant="outline">{formatLabel}</Badge>;
   }
   if (isValid) {
     return (
@@ -95,7 +91,7 @@ export function DeckFormatBadge({
 
   if (kind === "building") {
     return (
-      <Badge variant="outline" className="text-xs">
+      <Badge variant="outline">
         {formatLabel}
         <span className="tabular-nums">· {progress}</span>
       </Badge>

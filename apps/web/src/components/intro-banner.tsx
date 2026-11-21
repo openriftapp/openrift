@@ -44,11 +44,11 @@ export function IntroBanner({
     <Callout className={className}>
       <Button
         type="button"
-        variant="ghost"
+        variant="ghost-muted"
         size="icon-xs"
         onClick={onDismiss}
         aria-label={m.layout_intro_dismiss()}
-        className="text-muted-foreground absolute top-3 right-3"
+        className="absolute top-3 right-3"
       >
         <XIcon className="size-4" />
       </Button>

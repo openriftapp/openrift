@@ -338,9 +338,9 @@ function RemoveReleaseAction({
   }
   return (
     <Button
-      variant="ghost"
+      variant="ghost-destructive"
       size="icon"
-      className="text-destructive"
+
       aria-label={`Remove the ${row.language} release of ${row.setSlug}`}
       disabled={busy?.(row)}
       onClick={() => remove(row.setId, row.language)}

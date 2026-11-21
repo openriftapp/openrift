@@ -11,7 +11,7 @@
     "jsx-a11y",
     "promise"
   ],
-  "jsPlugins": ["./scripts/oxlint-plugin.ts"],
+  "jsPlugins": ["./scripts/oxlint-plugin.ts", "@shadcn/lint"],
   "categories": {
     "correctness": "error",
     "suspicious": "error",
@@ -603,6 +603,44 @@
         "no-promise-executor-return": "off",
         "no-empty-function": "off",
         "no-restricted-imports": "off"
+      }
+    },
+    {
+      // toaster and cn-input-otp are shadcn scaffold markers with no CSS.
+      "files": ["apps/web/src/**/*.tsx"],
+      "rules": {
+        "shadcn/no-unknown-classes": ["error", { "allow": ["toaster", "cn-input-otp"] }],
+        "shadcn/no-raw-colors": "error",
+        "shadcn/no-restyle": [
+          "error",
+          {
+            "allow": ["layout", "color", "typography", "spacing", "shape", "effects", "motion"],
+            "contracts": [
+              {
+                "pattern": "^(Button|Badge)$",
+                "allow": [
+                  "layout",
+                  "spacing",
+                  "motion",
+                  "font-mono",
+                  "font-normal",
+                  "opacity-*",
+                  "shadow",
+                  "shadow-*",
+                  "tabular-nums",
+                  "truncate",
+                  "rounded-*"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["apps/web/src/components/ui/**", "apps/web/src/**/*.test.tsx"],
+      "rules": {
+        "shadcn/no-restyle": "off"
       }
     }
   ]

@@ -80,14 +80,14 @@ export function DeckTableActions({
           <Button
             type="button"
             variant="default"
-            size={addLabel ? "sm" : "icon-sm"}
+            size={addLabel ? "sm" : showBulkAdd ? "xs" : "icon-sm"}
             disabled={maxReached}
             onClick={(event) => {
               event.stopPropagation();
               onQuickAdd(printing, event);
             }}
             aria-label={addAriaLabel ?? m.decks_editor_add_to_deck()}
-            className={cn(showBulkAdd && "min-w-9 px-1 text-xs font-semibold")}
+            className={cn(showBulkAdd && "h-(--control-h-sm) min-w-9 px-1")}
           />
         }
       >
@@ -118,13 +118,13 @@ export function DeckTableActions({
             <Button
               type="button"
               variant={showBulkRemove ? "destructive" : "outline"}
-              size="icon-sm"
+              size={showBulkRemove ? "xs" : "icon-sm"}
               onClick={(event) => {
                 event.stopPropagation();
                 onRemove(printing, event);
               }}
               aria-label={m.decks_editor_remove_from_deck()}
-              className={cn(showBulkRemove && "min-w-9 px-1 text-xs font-semibold")}
+              className={cn(showBulkRemove && "h-(--control-h-sm) min-w-9 px-1")}
             />
           }
         >

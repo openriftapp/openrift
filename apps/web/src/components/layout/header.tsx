@@ -513,10 +513,10 @@ function HeaderSearchButton() {
   const openPalette = useCommandPaletteStore((state) => state.openPalette);
   return (
     <Button
-      variant="ghost"
+      variant="ghost-muted"
       aria-label={m.layout_header_search()}
       onClick={openPalette}
-      className="text-muted-foreground gap-1.5 max-xl:w-(--control-h) max-xl:px-0"
+      className="gap-1.5 max-xl:w-(--control-h) max-xl:px-0"
     >
       <SearchIcon className="size-4" />
       <span className="hidden xl:inline">{m.layout_header_search()}</span>

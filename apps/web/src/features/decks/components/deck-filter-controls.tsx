@@ -179,7 +179,7 @@ export function DeckFilterControls({
           variant="control"
           size="sm"
           data-active={showArchived || undefined}
-          className="font-medium"
+
           onClick={() => setShowArchived(!showArchived)}
           aria-pressed={showArchived}
         >

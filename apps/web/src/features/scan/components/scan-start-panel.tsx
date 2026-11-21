@@ -77,7 +77,7 @@ export function ScanStartPanel({
   ...load
 }: ScanStartPanelProps) {
   return (
-    <div className="[container-type:size] absolute inset-0 grid place-items-center overflow-hidden bg-radial from-neutral-800 to-neutral-950 text-white">
+    <div className="from-card-blank to-card-blank-deep [container-type:size] absolute inset-0 grid place-items-center overflow-hidden bg-radial text-white">
       <div aria-hidden className={cn("absolute border-2 border-white/15", FRAME_SIZE)}>
         <Bracket className="-top-0.5 -left-0.5 border-t-2 border-l-2" />
         <Bracket className="-top-0.5 -right-0.5 border-t-2 border-r-2" />

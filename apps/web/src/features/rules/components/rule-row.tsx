@@ -150,9 +150,7 @@ export function RuleRow({
               <Tooltip>
                 <TooltipTrigger
                   render={
-                    <Badge
-                      className={cn("ml-3 shrink-0 cursor-help no-underline", badge.className)}
-                    >
+                    <Badge variant={badge.variant} className="ml-3 shrink-0 cursor-help">
                       {badge.label}
                     </Badge>
                   }
@@ -165,7 +163,7 @@ export function RuleRow({
               </Tooltip>
             </TooltipProvider>
           ) : (
-            <Badge className={cn("ml-3 shrink-0 no-underline", badge.className)}>
+            <Badge variant={badge.variant} className="ml-3 shrink-0">
               {badge.label}
             </Badge>
           )

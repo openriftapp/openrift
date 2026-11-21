@@ -395,7 +395,8 @@ function buildStrip({
         }
         right={
           <StripIconButton
-            className="text-muted-foreground hover:text-destructive"
+            variant="ghost-remove"
+
             onClick={() => dispatchListBulkAction(entryId, "takeOff")}
             aria-label={m.lists_entry_take_off_aria({ name: entry.cardName })}
           >

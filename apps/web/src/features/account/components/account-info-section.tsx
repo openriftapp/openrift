@@ -313,18 +313,13 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
               pending={resending}
               type="button"
               variant="link-muted"
-              className="h-auto px-0 text-sm"
+              className="h-auto px-0"
               disabled={resending}
               onClick={() => void handleResend()}
             >
               {m.profile_account_resend()}
             </Button>
-            <Button
-              type="button"
-              variant="link-muted"
-              className="h-auto px-0 text-sm"
-              onClick={resetFlow}
-            >
+            <Button type="button" variant="link-muted" className="h-auto px-0" onClick={resetFlow}>
               {m.common_cancel()}
             </Button>
           </div>
@@ -349,12 +344,7 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
             </Button>
           </Field>
           <div className="flex justify-center">
-            <Button
-              type="button"
-              variant="link-muted"
-              className="h-auto px-0 text-sm"
-              onClick={resetFlow}
-            >
+            <Button type="button" variant="link-muted" className="h-auto px-0" onClick={resetFlow}>
               {m.common_cancel()}
             </Button>
           </div>

@@ -99,26 +99,14 @@ export function StageShell({
   return (
     <div className={cn("dark fixed inset-0 z-50 flex flex-col text-white", GROUND_CLASS[ground])}>
       <div className={cn(chrome, "top-4 left-4 flex items-center gap-1")}>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onExit}
-          aria-label={exit}
-          title={exit}
-          className="text-white/70 hover:bg-white/10 hover:text-white"
-        >
+        <Button variant="ghost-on-dark" size="icon" onClick={onExit} aria-label={exit} title={exit}>
           <XIcon className="size-5" />
         </Button>
         {settings && (
           <Popover open={settingsOpen} onOpenChange={setSettingsOpen}>
             <PopoverTrigger
               render={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={m.stage_settings_aria()}
-                  className="text-white/70 hover:bg-white/10 hover:text-white"
-                >
+                <Button variant="ghost-on-dark" size="icon" aria-label={m.stage_settings_aria()}>
                   <SettingsIcon className="size-5" />
                 </Button>
               }

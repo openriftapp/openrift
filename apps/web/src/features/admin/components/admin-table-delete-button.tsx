@@ -26,7 +26,7 @@ export function DeleteButton<TData>({
         description={description}
         confirmLabel="Delete"
         onConfirm={() => config.onDelete(row)}
-        trigger={<Button variant="ghost" size="icon" className="text-destructive" />}
+        trigger={<Button variant="ghost-destructive" size="icon" />}
       >
         <Trash2Icon className="size-4" />
         <span className="sr-only">Delete</span>
@@ -40,8 +40,8 @@ export function DeleteButton<TData>({
 
   return (
     <Button
-      variant="ghost"
-      className="text-destructive hover:text-destructive"
+      variant="ghost-destructive"
+
       onClick={() => void handleDelete()}
     >
       Delete

@@ -103,6 +103,7 @@ function ThumbEditControls({
               variant="ghost"
               size="icon-xs"
               className={cn(
+                // oxlint-disable-next-line shadcn/no-restyle -- floats over card art
                 "bg-background/80 hover:bg-background absolute top-1 right-1 z-40 size-5 rounded-md",
                 reveal,
               )}
@@ -165,7 +166,8 @@ function ThumbStepStrip({
     <CardStrip
       left={
         <StripIconButton
-          className="text-muted-foreground"
+          variant="ghost-muted"
+
           aria-label={m.decks_editor_remove_one_copy({ card: cardName })}
           onClick={() => removeCard(card.cardId, zone, card.preferredPrintingId)}
         >
@@ -186,7 +188,7 @@ function ThumbStepStrip({
       }
       right={
         <StripIconButton
-          className={canAdd ? "text-muted-foreground" : "text-muted-foreground/30"}
+          variant="ghost-muted"
           disabled={!canAdd}
           aria-label={m.decks_editor_add_one_copy({ card: cardName })}
           onClick={() => addCard(card, zone, 1)}

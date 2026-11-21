@@ -14,7 +14,7 @@ export function ClearResultButton({
 }) {
   return (
     <ConfirmActionButton
-      trigger={<Button variant="ghost" className="text-destructive" />}
+      trigger={<Button variant="ghost-destructive" />}
       disabled={disabled}
       title={m.tournaments_pod_clear_result_title({ table: pairingLabel(podNumber) })}
       description={m.tournaments_pod_clear_result_description()}

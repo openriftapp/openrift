@@ -56,11 +56,8 @@ export function StripActionButton({
       type="button"
       tabIndex={-1}
       variant={variant}
-      // --btn-cut:0 flattens the corner-cut so it doesn't fight rounded-md at h-5.
-      className={cn(
-        "h-5 min-w-5 rounded-md px-1.5 py-0 text-xs font-semibold [--btn-cut:0px]",
-        className,
-      )}
+      size="strip"
+      className={className}
       onClick={(event) => {
         event.stopPropagation();
         onClick?.(event);

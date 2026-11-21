@@ -113,7 +113,7 @@ function ArrowMarkers() {
         markerHeight="5"
         orient="auto-start-reverse"
       >
-        <path d="M0 0L10 5L0 10z" fill="white" />
+        <path d="M0 0L10 5L0 10z" fill="currentColor" />
       </marker>
       <marker
         id="board-arrow-head-open"
@@ -127,7 +127,7 @@ function ArrowMarkers() {
         <path
           d="M1 1L8 5L1 9"
           fill="none"
-          stroke="white"
+          stroke="currentColor"
           strokeWidth={2}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -142,7 +142,7 @@ function ArrowStroke({ kind, d }: { kind: ArrowKind; d: string }) {
     <path
       d={d}
       fill="none"
-      stroke="white"
+      stroke="currentColor"
       strokeWidth={2.5}
       strokeLinecap="round"
       strokeDasharray={ARROW_DASH[kind]}
@@ -176,7 +176,10 @@ export function ArrowOverlay({
     return null;
   }
   return (
-    <svg className="pointer-events-none absolute inset-0 size-full overflow-visible" aria-hidden>
+    <svg
+      className="pointer-events-none absolute inset-0 size-full overflow-visible text-white"
+      aria-hidden
+    >
       <ArrowMarkers />
       {lines.map((line, index) => (
         <ArrowStroke
@@ -199,7 +202,7 @@ export function ArrowLegend({ arrows }: { arrows: readonly BoardArrow[] }) {
     <div className="text-2xs mt-2 flex flex-wrap gap-3 text-white/70 uppercase">
       {kinds.map((kind) => (
         <span key={kind} className="flex items-center gap-1.5">
-          <svg width="28" height="10" aria-hidden className="overflow-visible">
+          <svg width="28" height="10" aria-hidden className="overflow-visible text-white">
             <ArrowMarkers />
             <ArrowStroke kind={kind} d="M2 5L24 5" />
           </svg>

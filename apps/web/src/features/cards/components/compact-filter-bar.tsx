@@ -349,14 +349,7 @@ export function FilterDropdownChip({
   return (
     <Popover>
       <PopoverTrigger
-        render={
-          <Button
-            variant="control"
-            size="sm"
-            data-active={active || undefined}
-            className="font-medium"
-          />
-        }
+        render={<Button variant="control" size="sm" data-active={active || undefined} />}
         aria-label={
           summary ?? (active ? m.cards_filter_chip_selected({ label, count: activeCount }) : label)
         }
@@ -714,9 +707,9 @@ export function CompactFilterBar({
 
         {hasClearableFilters && (
           <Button
-            variant="ghost"
+            variant="ghost-muted"
             size="icon-sm"
-            className="text-muted-foreground hover:text-foreground ml-auto"
+            className="ml-auto"
             onClick={clearAllFilters}
             aria-label={m.cards_clear_all_filters()}
           >

@@ -1,8 +1,8 @@
 import type { EntrySource } from "@openrift/shared/types/api/list";
 import { BanIcon, PinIcon, SparklesIcon } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
+import { CountPill } from "@/components/ui/count-pill";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -24,11 +24,10 @@ export function RuleSourceBadge({
   keep?: { handleKeep: () => void; label: string };
 }) {
   return (
-    <Badge
-      variant="subtle"
-      // Must match countPillVariants in ui/count-pill.tsx.
+    <CountPill
+      variant="primary-ghost"
       className={cn(
-        "rounded-md border-0 bg-transparent",
+        "shrink-0 whitespace-nowrap [&>svg]:size-3",
         (onExclude ?? keep) && "pr-0.5",
         className,
       )}
@@ -72,6 +71,6 @@ export function RuleSourceBadge({
           <PinIcon className="size-3" aria-hidden />
         </ChipRemoveButton>
       ) : null}
-    </Badge>
+    </CountPill>
   );
 }

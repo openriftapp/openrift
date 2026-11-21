@@ -316,7 +316,8 @@ function TeamChip({ team }: { team: TeamId }) {
 
 function FirstBadge() {
   return (
-    <Badge className="text-2xs font-semibold tracking-wide uppercase">
+    // oxlint-disable-next-line shadcn/no-restyle -- eyebrow-style label
+    <Badge size="sm" className="font-semibold tracking-wide uppercase">
       <FlagIcon aria-hidden className="size-3" />
       {m.tracker_goes_first()}
     </Badge>

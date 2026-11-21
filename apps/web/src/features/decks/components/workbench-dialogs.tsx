@@ -243,7 +243,7 @@ function BattlefieldReplaceDialog({
         </div>
         <DialogFooter>
           <DialogCancel />
-          <Button variant="ghost" className="text-warning" onClick={addAnyway}>
+          <Button variant="outline-warning" onClick={addAnyway}>
             {m.decks_workbench_add_anyway({ count: battlefields.length + 1 })}
           </Button>
         </DialogFooter>

@@ -20,7 +20,8 @@ export function LanguageChip({ code, className }: { code: string; className?: st
   const labels = useLanguageLabels();
   return (
     <Badge
-      className={cn("text-2xs h-4 gap-0.5 px-1.5 font-mono", className)}
+      size="sm"
+      className={cn("h-4 gap-0.5 px-1.5 font-mono", className)}
       style={languageChipStyle(colors[code] ?? null)}
       title={enumLabel(labels, code)}
     >

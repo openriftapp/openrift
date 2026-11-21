@@ -16,7 +16,8 @@ export function WorkspaceUndoButton() {
   const text = `Undo: ${latest.label}`;
   return (
     <PageTopBarButton
-      className="border-border max-w-[40vw] border md:max-w-md"
+      variant="outline"
+      className="max-w-[40vw] md:max-w-md"
       title={text}
       disabled={undoing}
       onClick={() => undoLatest()}

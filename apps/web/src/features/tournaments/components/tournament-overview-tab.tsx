@@ -225,8 +225,8 @@ function JoinRequestsSection({
                 </Button>
                 <Button
                   size="sm"
-                  variant="ghost"
-                  className="text-destructive"
+                  variant="ghost-destructive"
+
                   disabled={rowPending !== null}
                   pending={rowPending === "deny"}
                   onClick={() =>

@@ -40,7 +40,7 @@ export function ShowMoreButton({
         variant="link"
         pending={pending}
         disabled={disabled}
-        className={cn("h-auto p-0 text-sm font-medium", className)}
+        className={cn("h-auto p-0", className)}
         onClick={onClick}
       >
         {label}

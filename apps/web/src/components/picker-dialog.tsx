@@ -195,9 +195,9 @@ function PickerCreateRow({
       {create.actions.map((action) => (
         <Button
           key={action.key}
-          variant="ghost"
+          variant="ghost-muted"
           size="sm"
-          className="text-muted-foreground justify-start"
+          className="justify-start"
           onClick={() => (action.placeholder ? onActiveChange(action) : action.onClick?.())}
           disabled={create.disabled}
         >

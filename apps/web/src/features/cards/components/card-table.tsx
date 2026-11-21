@@ -137,7 +137,7 @@ const GroupStickyLabel = memo(function GroupStickyLabel({
     <Button
       type="button"
       variant="glass-pill"
-      className="pointer-events-auto h-auto gap-3 rounded-lg px-3 py-1 text-sm font-normal"
+      className="pointer-events-auto h-auto gap-3 rounded-lg px-3 py-1 font-normal"
       onClick={() => onSelect(groupId)}
     >
       {slug && <span className="text-muted-foreground font-medium">{slug}</span>}

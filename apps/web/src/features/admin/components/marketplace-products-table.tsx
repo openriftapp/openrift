@@ -47,11 +47,10 @@ function AcceptSuggestionsButton({
   }
   return (
     <Button
-      variant="outline"
+      variant={isWeak ? "outline-warning" : "outline"}
       size="xs"
       disabled={disabled}
       onClick={() => onAccept(mappings)}
-      className={isWeak ? "border-warning/40 text-warning hover:bg-warning-soft" : undefined}
     >
       <WandSparklesIcon />
       Accept {mappings.length} {isWeak ? "weak " : ""}

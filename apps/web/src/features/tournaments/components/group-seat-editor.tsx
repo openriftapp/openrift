@@ -112,11 +112,7 @@ function SwapMenu({
         ref={triggerRef}
         aria-label={m.tournaments_seat_editor_swap_label({ name })}
         render={
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            className="text-muted-foreground pointer-coarse:size-9"
-          >
+          <Button variant="ghost-muted" size="icon-xs" className="pointer-coarse:size-9">
             <EllipsisVerticalIcon />
           </Button>
         }

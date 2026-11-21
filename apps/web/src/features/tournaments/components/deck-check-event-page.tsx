@@ -259,8 +259,8 @@ function EntryRow({
         ) : null}
         {participantInactive && entry.participantStatus ? (
           <Badge
-            variant="outline"
-            className="text-muted-foreground"
+            variant="neutral"
+
             title={m.tournaments_deck_check_participant_left_title()}
           >
             {participantStatusLabels()[entry.participantStatus]}

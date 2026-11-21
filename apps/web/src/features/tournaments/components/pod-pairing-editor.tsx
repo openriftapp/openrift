@@ -492,11 +492,7 @@ function DraggablePlayer({
           ref={triggerRef}
           aria-label={m.tournaments_pairing_editor_move_label({ name })}
           render={
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              className="text-muted-foreground mx-0.5 pointer-coarse:size-9"
-            >
+            <Button variant="ghost-muted" size="icon-xs" className="mx-0.5 pointer-coarse:size-9">
               <EllipsisVerticalIcon />
             </Button>
           }

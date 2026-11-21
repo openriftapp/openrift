@@ -293,9 +293,9 @@ export function MetaScopeBar({
           {active && (
             <Button
               type="button"
-              variant="ghost"
+              variant="ghost-muted"
               size="icon-sm"
-              className="text-muted-foreground hover:text-foreground ml-auto"
+              className="ml-auto"
               onClick={clearScope}
               aria-label={m.cards_clear_all_filters()}
             >
@@ -344,9 +344,9 @@ export function MetaScopeBar({
           {active && (
             <Button
               type="button"
-              variant="ghost"
+              variant="ghost-muted"
               size="xs"
-              className="text-muted-foreground"
+
               onClick={clearScope}
             >
               {m.cards_clear_all_filters()}

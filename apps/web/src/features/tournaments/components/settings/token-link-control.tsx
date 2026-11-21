@@ -54,9 +54,7 @@ export function TokenLinkControl({
       defaultQrOpen={defaultQrOpen}
       actions={
         <ConfirmActionButton
-          trigger={
-            <Button variant="ghost" className="text-destructive" aria-label={disableAriaLabel} />
-          }
+          trigger={<Button variant="ghost-destructive" aria-label={disableAriaLabel} />}
           disabled={disableLocked || pending}
           title={disableTitle}
           description={disableDescription}

@@ -114,11 +114,11 @@ function ShareableListRow({
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="font-medium">{row.listName}</span>
           <div className="flex flex-wrap items-center gap-1.5">
-            <Badge variant="outline" className="text-2xs gap-1">
+            <Badge size="sm" variant="outline" className="gap-1">
               <IntentIcon className="size-3" />
               {INTENT_LABEL[row.listIntent]()}
             </Badge>
-            <Badge variant="outline" className="text-2xs gap-1">
+            <Badge size="sm" variant="outline" className="gap-1">
               <KindIcon className="size-3" />
               {kindCount}
             </Badge>
@@ -126,9 +126,7 @@ function ShareableListRow({
         </div>
       </div>
       {row.listIntent === "organize" ? (
-        <Badge variant="outline" className="text-xs">
-          {m.share_lists_organize_note()}
-        </Badge>
+        <Badge variant="outline">{m.share_lists_organize_note()}</Badge>
       ) : null}
     </RowListItem>
   );

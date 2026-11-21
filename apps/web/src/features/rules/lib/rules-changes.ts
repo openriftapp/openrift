@@ -25,13 +25,13 @@ export function withSourceContent(
   });
 }
 
-const CHANGE_KIND_CLASS: Record<ChangeKind, string> = {
-  new: "bg-success-soft text-success",
-  changed: "bg-warning-soft text-warning",
-  moved: "bg-info-soft text-info",
-  replaced: "bg-violet-soft text-violet",
-  removed: "bg-destructive-soft text-destructive",
-};
+const CHANGE_KIND_VARIANT = {
+  new: "success",
+  changed: "warning",
+  moved: "info",
+  replaced: "violet",
+  removed: "destructive",
+} as const satisfies Record<ChangeKind, string>;
 
 const CHANGE_KIND_LABEL: Record<ChangeKind, () => string> = {
   new: m.rules_change_new,
@@ -41,8 +41,8 @@ const CHANGE_KIND_LABEL: Record<ChangeKind, () => string> = {
   removed: m.rules_change_removed,
 };
 
-export function changeKindBadge(kind: ChangeKind): { label: string; className: string } {
-  return { label: CHANGE_KIND_LABEL[kind](), className: CHANGE_KIND_CLASS[kind] };
+export function changeKindBadge(kind: ChangeKind) {
+  return { label: CHANGE_KIND_LABEL[kind](), variant: CHANGE_KIND_VARIANT[kind] };
 }
 
 export interface RuleMoves {

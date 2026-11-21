@@ -146,7 +146,6 @@ export function MetaDeckCostFilter({
               variant="control"
               size={triggerSize}
               data-active={isActive || undefined}
-              className="font-medium"
             />
           }
         >

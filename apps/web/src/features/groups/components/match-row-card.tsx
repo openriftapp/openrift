@@ -862,8 +862,8 @@ function MatchPersonRow({
         {onHide === undefined ? null : (
           <Button
             size="icon-sm"
-            variant="ghost"
-            className="text-muted-foreground"
+            variant="ghost-muted"
+
             aria-label={m.trades_market_hide_one({ name })}
             title={m.trades_market_hide_one({ name })}
             disabled={hidePending}

@@ -5,7 +5,7 @@ import { ChevronDownIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Heading } from "@/components/heading";
-import { Button } from "@/components/ui/button";
+import { Pressable } from "@/components/ui/pressable";
 import { TextLink } from "@/components/ui/text-link";
 import { landingSummaryQueryOptions } from "@/features/marketing/lib/landing-summary-queries";
 import { landingSamples } from "@/features/marketing/lib/page-samples";
@@ -82,11 +82,9 @@ export function LandingPage() {
         <div className="mx-auto grid w-full max-w-6xl items-center gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-12">
           <div className="flex flex-col items-center gap-3 text-center lg:items-start lg:text-left">
             <div className="flex items-center gap-4">
-              <Button
-                type="button"
-                variant="ghost"
+              <Pressable
                 aria-label="OpenRift"
-                className="h-auto cursor-pointer rounded-2xl p-0 hover:bg-transparent dark:hover:bg-transparent"
+                className="shrink-0 rounded-2xl"
                 onClick={() => setHintTap((tap) => tap + 1)}
               >
                 <img
@@ -97,7 +95,7 @@ export function LandingPage() {
                   style={spinning ? { animationDelay: `${SPIN_DELAY_MS}ms` } : undefined}
                   onAnimationEnd={spinning ? handleSpinEnd : undefined}
                 />
-              </Button>
+              </Pressable>
               <span className="font-heading text-4xl font-bold md:text-5xl">OpenRift</span>
             </div>
             <Heading level={1} className="text-balance md:text-4xl">

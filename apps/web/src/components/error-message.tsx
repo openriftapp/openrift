@@ -67,9 +67,10 @@ function DevErrorDetails({ error }: { error: string }) {
   return (
     <div className="mt-2 flex max-w-lg flex-col items-center gap-2">
       <Button
+        size="xs"
         type="button"
         variant="link-muted"
-        className="h-auto px-0 text-xs"
+        className="h-auto px-0"
         onClick={() => setOpen((prev) => !prev)}
       >
         {open ? m.error_hide_details() : m.error_show_details()}

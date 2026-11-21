@@ -385,7 +385,7 @@ export function DeckTile({
             )}
           </span>
           <span className="flex shrink-0 items-center gap-1 max-sm:hidden">
-            {isLocal && <LocalDeckBadge className="text-2xs" />}
+            {isLocal && <LocalDeckBadge size="sm" />}
             <DeckFormatBadge
               format={deck.format}
               totalCards={totalCards}
@@ -397,7 +397,7 @@ export function DeckTile({
         </div>
 
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:hidden">
-          {isLocal && <LocalDeckBadge className="text-2xs" />}
+          {isLocal && <LocalDeckBadge size="sm" />}
           <DeckFormatBadge
             format={deck.format}
             totalCards={totalCards}

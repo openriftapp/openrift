@@ -9,7 +9,7 @@ import { PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { ButtonGroup } from "@/components/ui/button-group";
+import { ButtonGroup, ButtonGroupSeparator } from "@/components/ui/button-group";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -129,6 +129,7 @@ export function MetaDeckPage({ token }: { token: string }) {
         >
           {copyButtonContent}
         </PageTopBarPrimaryButton>
+        <ButtonGroupSeparator className="bg-primary-foreground/25 data-vertical:my-0" />
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
@@ -137,7 +138,6 @@ export function MetaDeckPage({ token }: { token: string }) {
                 size="icon"
                 disabled={copyPending}
                 aria-label={m.meta_copy_options()}
-                className="border-primary-foreground/25 border-l"
               />
             }
           >

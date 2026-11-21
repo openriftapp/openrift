@@ -25,9 +25,9 @@ export function ListEntryTableActions(props: ListEntryTableActionsProps) {
   if (!props.showQuantity) {
     return (
       <Button
-        variant="ghost"
+        variant="ghost-remove"
         size="icon-sm"
-        className="text-muted-foreground hover:text-destructive"
+
         onClick={(event) => {
           event.stopPropagation();
           props.onTakeOff();
@@ -57,9 +57,9 @@ export function ListEntryTableActions(props: ListEntryTableActionsProps) {
         onIncrement={props.isQuantityPending ? undefined : props.onIncrement}
       />
       <Button
-        variant="ghost"
+        variant="ghost-remove"
         size="icon-sm"
-        className="text-muted-foreground hover:text-destructive"
+
         onClick={(event) => {
           event.stopPropagation();
           props.onRemove();

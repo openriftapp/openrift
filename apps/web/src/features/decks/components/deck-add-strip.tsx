@@ -102,7 +102,8 @@ export function DeckAddStrip({
             />
           ) : (
             <StripIconButton
-              className="text-muted-foreground"
+              variant="ghost-muted"
+
               aria-label={m.decks_editor_remove_from_deck()}
               onClick={(event) => onRemove(printing, event)}
             />
@@ -126,7 +127,7 @@ export function DeckAddStrip({
             />
           ) : (
             <StripIconButton
-              className={maxReached ? "text-muted-foreground/30" : "text-muted-foreground"}
+              variant="ghost-muted"
               disabled={maxReached}
               aria-label={addAriaLabel ?? m.decks_editor_add_to_deck()}
               onClick={(event) => onQuickAdd(printing, event)}

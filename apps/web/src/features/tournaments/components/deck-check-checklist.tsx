@@ -452,14 +452,14 @@ function ChecklistRow({
           {fixLocked ? null : (
             <>
               <Button
-                variant="ghost"
+                variant="ghost-muted"
                 size="icon-xs"
                 aria-label={
                   fixZoneOnly
                     ? m.tournaments_deck_check_move_card({ name })
                     : m.tournaments_deck_check_fix_card({ name })
                 }
-                className="text-muted-foreground"
+
                 onClick={() => setFixOpen(true)}
               >
                 <PencilIcon className="size-3.5" />
@@ -476,10 +476,10 @@ function ChecklistRow({
           )}
           {locked ? null : (
             <Button
-              variant="ghost"
+              variant="ghost-remove"
               size="icon-xs"
               aria-label={m.tournaments_deck_check_remove_copy({ name })}
-              className="text-muted-foreground hover:text-destructive"
+
               onClick={() => setRemoveOpen(true)}
             >
               <XIcon className="size-3.5" />
@@ -541,8 +541,8 @@ function ChecklistCell({
             <>
               {fixLocked ? null : (
                 <StripActionButton
-                  variant="ghost"
-                  className="text-muted-foreground hover:text-foreground gap-1 font-medium"
+                  variant="ghost-muted"
+                  className="gap-1"
                   aria-label={m.tournaments_deck_check_edit_card({ name })}
                   onClick={() => setFixOpen(true)}
                 >
@@ -552,7 +552,8 @@ function ChecklistCell({
               )}
               {locked ? null : (
                 <StripIconButton
-                  className="text-muted-foreground hover:text-destructive"
+                  variant="ghost-remove"
+
                   aria-label={m.tournaments_deck_check_remove_copy({ name })}
                   onClick={() => setRemoveOpen(true)}
                 >

@@ -34,9 +34,9 @@ export function WorkbenchStatsStrip({ deckId, compact }: { deckId: string; compa
         <PopoverTrigger
           render={
             <Button
-              variant="outline"
+              variant="outline-destructive"
               size={compact ? "sm" : "default"}
-              className={cn("text-destructive border-destructive/40", !compact && "w-full")}
+              className={cn(!compact && "w-full")}
             />
           }
         >

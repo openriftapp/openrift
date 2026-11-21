@@ -68,16 +68,17 @@ function VisibilityBadges({ list }: { list: PublicUserBundleListResponse }) {
   return (
     <>
       {list.isPublic ? (
-        <Badge variant="outline" className="text-2xs gap-1" title={m.user_profile_public_title()}>
+        <Badge size="sm" variant="outline" className="gap-1" title={m.user_profile_public_title()}>
           <GlobeIcon className="size-3" />
           {m.user_profile_public()}
         </Badge>
       ) : null}
       {list.viaGroups.map((group) => (
         <Badge
+          size="sm"
           key={group.id}
           variant="outline"
-          className="text-2xs max-w-[10rem] gap-1"
+          className="max-w-[10rem] gap-1"
           title={m.user_profile_shared_with({ group: group.name })}
         >
           <UsersIcon className="size-3 shrink-0" />

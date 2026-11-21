@@ -593,10 +593,10 @@ function VariantRailBody({ deckId }: { deckId: string }) {
               <TooltipTrigger
                 render={
                   <Button
-                    variant="ghost"
+                    variant="dashed"
                     size="icon-sm"
                     aria-label={m.decks_dialog_variant_create_title()}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed"
+                    className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full"
                     style={{ left: nodeX(ghost, geometry), top: laneY(ghost.lane) }}
                     onClick={() => handleCreate({ id: deckId, name: openDeckName })}
                   />

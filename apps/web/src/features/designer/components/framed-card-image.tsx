@@ -60,7 +60,7 @@ export function FramedCardImage({
 
   return (
     <div
-      className="aspect-card font-card @container relative overflow-hidden rounded-lg bg-neutral-800"
+      className="aspect-card font-card bg-card-blank @container relative overflow-hidden rounded-lg"
       role="img"
       aria-label={m.cards_placeholder_aria({
         name: card.name,

@@ -325,7 +325,7 @@ export function SubmissionBlock({
           />
 
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <Button variant="ghost" className="text-destructive" onClick={() => setRejecting(true)}>
+            <Button variant="ghost-destructive" onClick={() => setRejecting(true)}>
               Reject
             </Button>
             <Button

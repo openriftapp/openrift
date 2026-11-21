@@ -384,13 +384,7 @@ export function RulesSettingsSheet({ label, children }: { label: string; childre
   return (
     <Drawer showSwipeHandle>
       <DrawerTrigger
-        render={
-          <Button
-            type="button"
-            variant="outline"
-            className="text-muted-foreground shrink-0 md:hidden"
-          />
-        }
+        render={<Button type="button" variant="outline" className="shrink-0 md:hidden" />}
       >
         <span className="sr-only">{m.rules_settings_title()}</span> {label}
         <ChevronDownIcon data-icon="inline-end" />

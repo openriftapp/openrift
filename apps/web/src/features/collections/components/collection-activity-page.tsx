@@ -207,7 +207,7 @@ function EventCard({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           {count > 1 && (
-            <Badge variant="secondary" className="text-2xs shrink-0">
+            <Badge size="sm" variant="secondary" className="shrink-0">
               {count}x
             </Badge>
           )}

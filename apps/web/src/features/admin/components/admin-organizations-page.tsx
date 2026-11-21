@@ -172,8 +172,8 @@ function OrgRow({ org }: { org: OrganizationSummaryResponse }) {
         ) : (
           <Button
             size="sm"
-            variant="ghost"
-            className="text-destructive"
+            variant="ghost-destructive"
+
             onClick={() => setConfirming(true)}
           >
             Delete

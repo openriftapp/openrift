@@ -64,7 +64,8 @@ export function CardStripsSection() {
               <CardStrip
                 left={
                   <StripIconButton
-                    className="text-muted-foreground"
+                    variant="ghost-muted"
+
                     aria-label="Remove from deck"
                     onClick={() => toast.success("Removed")}
                   >
@@ -85,7 +86,8 @@ export function CardStripsSection() {
                 }
                 right={
                   <StripIconButton
-                    className="text-muted-foreground"
+                    variant="ghost-muted"
+
                     aria-label="Add to deck"
                     onClick={() => toast.success("Added")}
                   >

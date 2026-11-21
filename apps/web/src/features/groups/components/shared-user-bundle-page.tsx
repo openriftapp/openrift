@@ -129,9 +129,10 @@ function BundleCollectionRow({ collection }: { collection: PublicUserBundleColle
       <div className="flex flex-wrap gap-1.5">
         {collection.viaGroups.map((group) => (
           <Badge
+            size="sm"
             key={group.id}
             variant="outline"
-            className="text-2xs max-w-[10rem] gap-1"
+            className="max-w-[10rem] gap-1"
             title={m.user_profile_shared_with({ group: group.name })}
           >
             <UsersIcon className="size-3 shrink-0" />

@@ -73,6 +73,16 @@ export function MarksSection() {
             </Swatch>
           ))}
         </SwatchRow>
+        <SwatchRow label="Sizes">
+          <Swatch label="default">
+            <Badge variant="secondary">default</Badge>
+          </Swatch>
+          <Swatch label="sm">
+            <Badge variant="secondary" size="sm">
+              sm
+            </Badge>
+          </Swatch>
+        </SwatchRow>
       </DemoGroup>
 
       <DemoGroup {...GROUPS.countPill} hint="All pills share the h-5 tier.">
@@ -91,6 +101,9 @@ export function MarksSection() {
           </Swatch>
           <Swatch label="primary" colors>
             <CountPill variant="primary">Requested</CountPill>
+          </Swatch>
+          <Swatch label="primary-ghost" colors>
+            <CountPill variant="primary-ghost">Rule</CountPill>
           </Swatch>
           <Swatch label="success" colors>
             <CountPill variant="success">Reserved</CountPill>

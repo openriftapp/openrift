@@ -87,18 +87,18 @@ function FilterPlacementBody({ placement }: { placement: FilterPlacement }) {
               <span className="min-w-0 flex-1 truncate">{placementUnitLabel(unit.key)}</span>
               <div className="flex shrink-0 items-center gap-0.5">
                 <Button
-                  variant={isTop ? "secondary" : "ghost"}
+                  variant={isTop ? "secondary" : "ghost-muted"}
                   size="sm"
-                  className={cn("h-6 px-2", !isTop && "text-muted-foreground")}
+                  className="h-6 px-2"
                   aria-pressed={isTop}
                   onClick={() => placement.setPlacement(unit.key, true)}
                 >
                   {m.cards_filter_placement_top()}
                 </Button>
                 <Button
-                  variant={isTop ? "ghost" : "secondary"}
+                  variant={isTop ? "ghost-muted" : "secondary"}
                   size="sm"
-                  className={cn("h-6 px-2", isTop && "text-muted-foreground")}
+                  className="h-6 px-2"
                   aria-pressed={!isTop}
                   onClick={() => placement.setPlacement(unit.key, false)}
                 >
@@ -150,8 +150,8 @@ function FilterCustomizePopover({ className }: { className?: string }) {
   return (
     <Popover>
       <PopoverTrigger
-        render={<Button variant="ghost" size="icon-sm" />}
-        className={cn("text-muted-foreground relative", className)}
+        render={<Button variant="ghost-muted" size="icon-sm" />}
+        className={cn("relative", className)}
         aria-label={
           placement.overridden ? m.cards_customize_filters_changed() : m.cards_customize_filters()
         }

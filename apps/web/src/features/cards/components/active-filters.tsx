@@ -335,9 +335,9 @@ export function ActiveFilters({
         ))}
       </div>
       <Button
-        variant="ghost"
+        variant="ghost-muted"
         size="icon-sm"
-        className="text-muted-foreground hover:text-foreground shrink-0 self-start"
+        className="shrink-0 self-start"
         onClick={clearAllFilters}
         title={m.cards_filter_clear_all()}
       >

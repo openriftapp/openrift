@@ -179,6 +179,7 @@ function PasswordSignIn({
               pending={resending}
               type="button"
               variant="link-muted"
+              // oxlint-disable-next-line shadcn/no-restyle -- inline link inherits the sentence's color
               className="ml-1 h-auto px-0 text-inherit hover:text-inherit"
               disabled={resending}
               onClick={() => void handleResend(unverifiedEmail.trim())}

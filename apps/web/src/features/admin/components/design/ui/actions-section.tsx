@@ -42,6 +42,12 @@ const BUTTON_VARIANTS = [
   "control",
   "outline",
   "ghost",
+  "ghost-muted",
+  "ghost-destructive",
+  "ghost-remove",
+  "ghost-on-dark",
+  "outline-destructive",
+  "outline-warning",
   "destructive",
   "dashed",
   "glass-pill",
@@ -49,7 +55,7 @@ const BUTTON_VARIANTS = [
   "link-muted",
 ] as const;
 
-const BUTTON_SIZES = ["xs", "sm", "default", "lg"] as const;
+const BUTTON_SIZES = ["strip", "xs", "sm", "default", "lg"] as const;
 const BUTTON_ICON_SIZES = ["icon-xs", "icon-sm", "icon", "icon-lg"] as const;
 
 interface ButtonState {

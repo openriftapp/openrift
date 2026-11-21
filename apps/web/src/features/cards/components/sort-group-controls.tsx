@@ -56,9 +56,9 @@ function DirToggle({
       <TooltipTrigger
         render={
           <Button
-            variant="ghost"
+            variant="ghost-muted"
             size="icon-xs"
-            className="text-muted-foreground hover:text-foreground -mr-1 rounded-md p-0.5 transition-colors"
+            className="-mr-1 p-0.5"
             onClick={() => onToggle(dir === "asc" ? "desc" : "asc")}
             aria-label={label}
           />

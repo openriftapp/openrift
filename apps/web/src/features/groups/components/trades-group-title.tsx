@@ -2,7 +2,6 @@ import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { Link } from "@tanstack/react-router";
 import { ChevronDownIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Pressable } from "@/components/ui/pressable";
 import { m } from "@/paraglide/messages.js";
 
 const ALL_GROUPS = "all";
@@ -39,10 +39,7 @@ export function TradesGroupTitle({
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
-                <Button
-                  variant="ghost"
-                  className="text-primary decoration-primary/50 hover:text-primary aria-expanded:text-primary hover:decoration-primary h-auto px-1 align-baseline font-[inherit] text-[length:inherit] leading-[inherit] whitespace-normal underline decoration-dashed decoration-2 underline-offset-8 hover:bg-transparent aria-expanded:bg-transparent dark:hover:bg-transparent"
-                />
+                <Pressable className="text-primary decoration-primary/50 hover:decoration-primary inline-flex items-center gap-1.5 rounded-lg px-1 align-baseline underline decoration-dashed decoration-2 underline-offset-8 [&_svg]:pointer-events-none [&_svg]:shrink-0" />
               }
             >
               {children}

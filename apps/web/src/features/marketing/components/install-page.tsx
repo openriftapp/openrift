@@ -203,6 +203,7 @@ function AndroidSteps({ guide }: { guide: InstallGuide }) {
 function InstallPromptButton({ label }: { label: string }) {
   const promptInstall = useInstallStore((state) => state.promptInstall);
   return (
+    // oxlint-disable-next-line shadcn/no-restyle -- oversized install CTA
     <Button size="lg" className="h-12 w-full gap-2 text-base" onClick={() => void promptInstall()}>
       <DownloadIcon className="size-5" />
       {label}

@@ -58,7 +58,7 @@ export function PullCard({ pull, image, className, shimmer = true }: PullCardPro
     >
       <div
         className={cn(
-          "aspect-card relative overflow-hidden rounded-lg bg-neutral-800 ring-1",
+          "aspect-card bg-card-blank relative overflow-hidden rounded-lg ring-1",
           highlight,
           glow,
           "transition-transform group-hover:-translate-y-0.5",

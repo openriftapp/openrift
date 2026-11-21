@@ -218,7 +218,7 @@ export function CollectionsVignette({ thumbnailUrls }: { thumbnailUrls: string[]
         <div className={SIDEBAR_ROW}>
           <LayersIcon className="size-4 shrink-0" aria-hidden="true" />
           <span className="flex-1">{m.collections_all_cards()}</span>
-          <Badge variant="ghost" className="text-2xs ml-auto">
+          <Badge size="sm" variant="ghost" className="ml-auto">
             842
           </Badge>
         </div>
@@ -228,14 +228,16 @@ export function CollectionsVignette({ thumbnailUrls }: { thumbnailUrls: string[]
           <span className="flex-1">{m.collections_dialog_picker_inbox_badge()}</span>
           <span className="ml-auto inline-grid justify-items-end">
             <Badge
+              size="sm"
               variant="default"
-              className="text-2xs motion-safe:animate-collect-until-a col-start-1 row-start-1 opacity-0"
+              className="motion-safe:animate-collect-until-a col-start-1 row-start-1 opacity-0"
             >
               3
             </Badge>
             <Badge
+              size="sm"
               variant="default"
-              className="text-2xs motion-safe:animate-collect-between col-start-1 row-start-1 opacity-0"
+              className="motion-safe:animate-collect-between col-start-1 row-start-1 opacity-0"
             >
               1
             </Badge>
@@ -255,7 +257,7 @@ export function CollectionsVignette({ thumbnailUrls }: { thumbnailUrls: string[]
             {row.receives !== null && <DropRing className={DROP_PHASE[row.receives].ring} />}
             <row.icon className="relative size-4 shrink-0" aria-hidden="true" />
             <span className="relative flex-1 truncate">{row.name}</span>
-            <Badge variant="ghost" className="text-2xs relative ml-auto">
+            <Badge size="sm" variant="ghost" className="relative ml-auto">
               {row.receives === null ? (
                 row.count
               ) : (

@@ -33,7 +33,7 @@ export function ownershipLensSeries(): readonly (LensSeries & { key: OwnershipCl
     { key: "exact", label: m.decks_stats_lens_exact(), color: "var(--color-green-500)" },
     { key: "other", label: m.decks_stats_lens_other(), color: "var(--color-sky-500)" },
     { key: "borrowed", label: m.decks_stats_lens_borrowed(), color: "var(--color-violet-500)" },
-    { key: "locked", label: m.decks_stats_lens_locked(), color: "var(--color-slate-400)" },
+    { key: "locked", label: m.decks_stats_lens_locked(), color: "var(--color-locked)" },
     { key: "missing", label: m.decks_stats_lens_missing(), color: "var(--color-amber-500)" },
   ];
 }

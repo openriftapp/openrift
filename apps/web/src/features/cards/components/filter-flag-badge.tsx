@@ -34,15 +34,10 @@ export function FlagBadge({
   if (triggerStyle === "button") {
     return (
       <Button
-        variant="control"
+        variant={isExcluded ? "outline-destructive" : "control"}
         size="sm"
         data-active={state === true || undefined}
-        className={cn(
-          "gap-1 font-medium",
-          isExcluded &&
-            "border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/16",
-          isZero && !isActive && "opacity-40",
-        )}
+        className={cn("gap-1", isZero && !isActive && "opacity-40")}
         onClick={onClick}
       >
         {content}

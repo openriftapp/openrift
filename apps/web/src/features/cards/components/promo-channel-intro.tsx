@@ -33,8 +33,9 @@ function ClampedQuote({ text }: { text: string }) {
       </p>
       {(clamped || expanded) && (
         <Button
+          size="xs"
           variant="link-muted"
-          className="h-auto p-0 text-xs"
+          className="h-auto p-0"
           aria-expanded={expanded}
           onClick={() => setExpanded(!expanded)}
         >

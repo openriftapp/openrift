@@ -84,12 +84,12 @@ export function TierBoardEditor({
       ))}
       {roomForMore && (
         <div className="flex gap-1.5">
-          <Button variant="outline" className="flex-1 border-dashed" onClick={addRow}>
+          <Button variant="dashed" className="flex-1" onClick={addRow}>
             <PlusIcon />
             {m.tier_lists_add_tier()}
           </Button>
           {!hasUnranked && (
-            <Button variant="outline" className="flex-1 border-dashed" onClick={addUnrankedRow}>
+            <Button variant="dashed" className="flex-1" onClick={addUnrankedRow}>
               <PlusIcon />
               {m.tier_lists_add_unranked_row()}
             </Button>

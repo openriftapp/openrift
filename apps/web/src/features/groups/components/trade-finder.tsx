@@ -62,6 +62,7 @@ const PANE_GRID =
   "grid grid-cols-2 gap-x-3 gap-y-5 @md:grid-cols-3 @lg:grid-cols-4 @4xl:grid-cols-6 @6xl:grid-cols-8";
 const PANE_GRID_SIZES = "(min-width: 1280px) 160px, (min-width: 640px) 25vw, 50vw";
 const IN_TRADE_BADGE =
+  // oxlint-disable-next-line shadcn/no-restyle -- solid warning tag over card art
   "pointer-events-none absolute bottom-1.5 left-1.5 z-30 bg-warning text-warning-foreground shadow-md";
 const MAX_SOURCE_AVATARS = 3;
 

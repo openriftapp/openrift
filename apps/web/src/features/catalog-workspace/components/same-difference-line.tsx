@@ -38,12 +38,7 @@ export function SameDifferenceLine({
     <>
       <p className="text-muted-foreground basis-full">
         Same difference on {count} cards.{" "}
-        <Button
-          variant="link"
-          size="xs"
-          className="h-auto px-0 text-sm"
-          onClick={() => setOpen(true)}
-        >
+        <Button variant="link" className="h-auto px-0" onClick={() => setOpen(true)}>
           Discard on all {count}
         </Button>
       </p>

@@ -553,7 +553,7 @@ export function ComboboxPicker(props: ComboboxPickerProps) {
         render={
           <Badge
             variant={(active ?? summary !== "") ? "default" : "outline"}
-            className="cursor-pointer [&>svg]:text-current"
+            className="cursor-pointer"
             // oxlint-disable-next-line jsx-a11y/control-has-associated-label, react/forbid-elements -- bare render slot; Badge owns all styling; label injected as ComboboxTrigger children
             render={<button type="button" />}
           />

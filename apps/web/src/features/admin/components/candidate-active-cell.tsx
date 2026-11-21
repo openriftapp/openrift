@@ -181,7 +181,7 @@ export function CandidateActiveCell<TKey extends string>({
                   onActiveChange(field.key, value);
                   return true;
                 }}
-                triggerClassName="text-muted-foreground shrink-0"
+                triggerClassName="shrink-0"
               />
             )}
           </div>
@@ -318,11 +318,11 @@ export function CandidateActiveCell<TKey extends string>({
             {canReverseActive && (
               <Button
                 type="button"
-                variant="ghost"
+                variant="ghost-muted"
                 size="icon-xs"
                 aria-label={`Reverse ${field.label} order`}
                 title="Reverse order"
-                className="text-muted-foreground"
+
                 onClick={(e) => {
                   e.stopPropagation();
                   onActiveChange(field.key, (activeValue as unknown[]).toReversed());
@@ -334,10 +334,10 @@ export function CandidateActiveCell<TKey extends string>({
             {!isRequired && hasFieldValue(activeValue) && (
               <Button
                 type="button"
-                variant="ghost"
+                variant="ghost-muted"
                 size="icon-xs"
                 aria-label={`Clear ${field.label}`}
-                className="text-muted-foreground"
+
                 onClick={(e) => {
                   e.stopPropagation();
                   onActiveChange(field.key, null);

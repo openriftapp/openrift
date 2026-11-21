@@ -104,9 +104,9 @@ export function WishlistHeart({
           <div className="p-1 pt-2">
             <Button
               type="button"
-              variant="ghost"
+              variant="ghost-muted"
               size="sm"
-              className="text-muted-foreground w-full justify-start"
+              className="w-full justify-start"
               onClick={(event) => {
                 event.stopPropagation();
                 onAdd();
@@ -150,8 +150,8 @@ export function WishlistButton({
             type="button"
             tabIndex={-1}
             size="icon-xs"
-            variant="ghost"
-            className="text-muted-foreground hover:text-destructive"
+            variant="ghost-remove"
+
             onClick={(event) => {
               event.stopPropagation();
               onAdd();

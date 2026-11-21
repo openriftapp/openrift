@@ -217,6 +217,7 @@ function StatsHeadline({
               variant="link-muted"
               onClick={onToggleUnpriced}
               aria-expanded={unpricedVisible}
+              // oxlint-disable-next-line shadcn/no-restyle -- dotted disclosure link
               className="h-auto px-0 text-xs decoration-dotted underline-offset-4"
             >
               {m.packs_stats_unpriced({ count: unpricedCount })}
@@ -249,7 +250,7 @@ function RarityBar({
           return (
             <div
               key={rarity}
-              className="flex items-center justify-center overflow-hidden px-1.5 text-center whitespace-nowrap text-neutral-950"
+              className="text-rarity-ink flex items-center justify-center overflow-hidden px-1.5 text-center whitespace-nowrap"
               style={{
                 width: `${width}%`,
                 backgroundColor: color,

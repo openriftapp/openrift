@@ -306,11 +306,7 @@ export function DeckBoxTab({
             {homeCollectionName}
           </TextLink>
         </span>
-        {complete && (
-          <Badge variant="neutral" className="text-success">
-            {m.decks_overview_ready_to_play()}
-          </Badge>
-        )}
+        {complete && <Badge variant="success">{m.decks_overview_ready_to_play()}</Badge>}
       </div>
 
       <div className="w-full columns-[30rem] gap-x-10">
@@ -765,7 +761,7 @@ function SourcePicker({
           <Button
             variant="ghost"
             size="xs"
-            className="max-w-[50cqw] min-w-0 shrink text-xs"
+            className="max-w-[50cqw] min-w-0 shrink"
             aria-label={wording.action}
             onClick={rowControlClick()}
           >

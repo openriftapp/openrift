@@ -33,9 +33,15 @@ const badgeVariants = cva(
         // custom: compact count/notification bubble — replaces hand-rolled bg-primary text-primary-foreground count pills (header nav, group tabs)
         count: "bg-primary text-primary-foreground h-auto px-1.5 py-0 text-2xs font-medium",
       },
+      // custom: compact size for badges inside dense rows and tiles
+      size: {
+        default: "",
+        sm: "text-2xs",
+      },
     },
     defaultVariants: {
       variant: "default",
+      size: "default",
     },
   },
 );
@@ -43,6 +49,7 @@ const badgeVariants = cva(
 function Badge({
   className,
   variant = "default",
+  size = "default", // custom: compact size
   render,
   ...props
 }: useRender.ComponentProps<"span"> & VariantProps<typeof badgeVariants>) {
@@ -50,7 +57,7 @@ function Badge({
     defaultTagName: "span",
     props: mergeProps<"span">(
       {
-        className: cn(badgeVariants({ variant }), className),
+        className: cn(badgeVariants({ variant, size }), className), // custom: compact size
       },
       props,
     ),

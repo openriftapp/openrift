@@ -247,7 +247,7 @@ function SidebarItem({
     <div className={cn(SIDEBAR_ROW, active && SIDEBAR_ROW_ACTIVE)}>
       {icon}
       <span className="flex-1 truncate">{label}</span>
-      <Badge variant="ghost" className="text-2xs ml-auto">
+      <Badge size="sm" variant="ghost" className="ml-auto">
         {count}
       </Badge>
     </div>

@@ -144,7 +144,7 @@ export function CardPlaceholderImage({
   return (
     <div
       className={cn(
-        "aspect-card font-card @container relative overflow-hidden rounded-lg bg-neutral-800",
+        "aspect-card font-card bg-card-blank @container relative overflow-hidden rounded-lg",
         className,
       )}
       role="img"
