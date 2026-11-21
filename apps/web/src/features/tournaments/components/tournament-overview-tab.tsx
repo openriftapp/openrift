@@ -226,7 +226,6 @@ function JoinRequestsSection({
                 <Button
                   size="sm"
                   variant="ghost-destructive"
-
                   disabled={rowPending !== null}
                   pending={rowPending === "deny"}
                   onClick={() =>

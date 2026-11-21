@@ -434,7 +434,10 @@ function PostComposer({
               <Popover open={addOpen} onOpenChange={setAddOpen}>
                 <PopoverTrigger
                   render={
-                    <Button variant="dashed" className="aspect-card h-auto w-full flex-col gap-1" />
+                    <Button
+                      variant="ghost-muted"
+                      className="aspect-card h-auto w-full flex-col gap-1 rounded-md"
+                    />
                   }
                 >
                   <PlusIcon className="size-5" />

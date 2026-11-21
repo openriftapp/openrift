@@ -593,7 +593,7 @@ function VariantRailBody({ deckId }: { deckId: string }) {
               <TooltipTrigger
                 render={
                   <Button
-                    variant="dashed"
+                    variant="ghost"
                     size="icon-sm"
                     aria-label={m.decks_dialog_variant_create_title()}
                     className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full"

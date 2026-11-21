@@ -342,13 +342,7 @@ export function MetaScopeBar({
             />
           ))}
           {active && (
-            <Button
-              type="button"
-              variant="ghost-muted"
-              size="xs"
-
-              onClick={clearScope}
-            >
+            <Button type="button" variant="ghost-muted" size="xs" onClick={clearScope}>
               {m.cards_clear_all_filters()}
             </Button>
           )}

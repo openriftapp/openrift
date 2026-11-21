@@ -156,7 +156,6 @@ export function OrganizationPage({ id }: { id: string }) {
                   <Button
                     size="sm"
                     variant="ghost-destructive"
-
                     disabled={removeMember.isPending}
                     onClick={() =>
                       setMemberToRemove({

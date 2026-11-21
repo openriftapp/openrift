@@ -322,7 +322,6 @@ export function CandidateActiveCell<TKey extends string>({
                 size="icon-xs"
                 aria-label={`Reverse ${field.label} order`}
                 title="Reverse order"
-
                 onClick={(e) => {
                   e.stopPropagation();
                   onActiveChange(field.key, (activeValue as unknown[]).toReversed());
@@ -337,7 +336,6 @@ export function CandidateActiveCell<TKey extends string>({
                 variant="ghost-muted"
                 size="icon-xs"
                 aria-label={`Clear ${field.label}`}
-
                 onClick={(e) => {
                   e.stopPropagation();
                   onActiveChange(field.key, null);

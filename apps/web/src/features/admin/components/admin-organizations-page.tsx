@@ -170,12 +170,7 @@ function OrgRow({ org }: { org: OrganizationSummaryResponse }) {
             </Button>
           </>
         ) : (
-          <Button
-            size="sm"
-            variant="ghost-destructive"
-
-            onClick={() => setConfirming(true)}
-          >
+          <Button size="sm" variant="ghost-destructive" onClick={() => setConfirming(true)}>
             Delete
           </Button>
         )}

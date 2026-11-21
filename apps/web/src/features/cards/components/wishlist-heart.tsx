@@ -151,7 +151,6 @@ export function WishlistButton({
             tabIndex={-1}
             size="icon-xs"
             variant="ghost-remove"
-
             onClick={(event) => {
               event.stopPropagation();
               onAdd();

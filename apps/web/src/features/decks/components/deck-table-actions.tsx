@@ -87,7 +87,7 @@ export function DeckTableActions({
               onQuickAdd(printing, event);
             }}
             aria-label={addAriaLabel ?? m.decks_editor_add_to_deck()}
-            className={cn(showBulkAdd && "h-(--control-h-sm) min-w-9 px-1")}
+            className={cn(showBulkAdd && "h-(--control-h-sm) min-w-9 px-1 font-semibold")}
           />
         }
       >
@@ -124,7 +124,7 @@ export function DeckTableActions({
                 onRemove(printing, event);
               }}
               aria-label={m.decks_editor_remove_from_deck()}
-              className={cn(showBulkRemove && "h-(--control-h-sm) min-w-9 px-1")}
+              className={cn(showBulkRemove && "h-(--control-h-sm) min-w-9 px-1 font-semibold")}
             />
           }
         >

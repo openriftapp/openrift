@@ -276,7 +276,6 @@ export function ParticipantRow({
                 size="sm"
                 variant="ghost-destructive"
                 aria-label={m.tournaments_participant_deny()}
-
                 disabled={pendingAction !== null}
                 pending={pendingAction === "deny"}
                 onClick={() => onAction(participant.id, "deny")}

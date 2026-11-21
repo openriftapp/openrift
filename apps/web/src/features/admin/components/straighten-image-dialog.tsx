@@ -368,7 +368,6 @@ function StraightenDialogBody({
           <Button
             type="button"
             variant="ghost-destructive"
-
             disabled={setQuad.isPending}
             pending={setQuad.isPending && setQuad.variables?.quad === null}
             onClick={() => void saveQuad(null)}

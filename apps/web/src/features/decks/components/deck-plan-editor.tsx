@@ -478,7 +478,6 @@ export function DeckPlanEditor({
         <Button
           variant="ghost-destructive"
           size="sm"
-
           aria-label={m.decks_plan_clear_plan()}
           onClick={() => setClearConfirmOpen(true)}
         >

@@ -39,11 +39,7 @@ export function DeleteButton<TData>({
   }
 
   return (
-    <Button
-      variant="ghost-destructive"
-
-      onClick={() => void handleDelete()}
-    >
+    <Button variant="ghost-destructive" onClick={() => void handleDelete()}>
       Delete
     </Button>
   );

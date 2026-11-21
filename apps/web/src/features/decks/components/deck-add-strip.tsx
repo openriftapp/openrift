@@ -103,7 +103,6 @@ export function DeckAddStrip({
           ) : (
             <StripIconButton
               variant="ghost-muted"
-
               aria-label={m.decks_editor_remove_from_deck()}
               onClick={(event) => onRemove(printing, event)}
             />

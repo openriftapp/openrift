@@ -108,7 +108,6 @@ export function OverlaySettingsPanel({
             actions={
               <Button
                 variant="ghost-destructive"
-
                 onClick={() => setConfirmDisable(true)}
                 disabled={disableToken.isPending}
               >

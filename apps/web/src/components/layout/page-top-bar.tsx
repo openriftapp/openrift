@@ -176,11 +176,8 @@ export function PageTopBarActions({ children, className }: PageTopBarProps) {
 
 type PageTopBarButtonProps = Omit<ComponentProps<typeof Button>, "variant" | "size">;
 
-export function PageTopBarButton({
-  variant = "ghost",
-  ...props
-}: PageTopBarButtonProps & { variant?: "ghost" | "outline" }) {
-  return <Button variant={variant} {...props} />;
+export function PageTopBarButton(props: PageTopBarButtonProps) {
+  return <Button variant="ghost" {...props} />;
 }
 
 /** Use at most one per bar. */

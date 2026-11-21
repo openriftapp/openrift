@@ -167,7 +167,6 @@ function ThumbStepStrip({
       left={
         <StripIconButton
           variant="ghost-muted"
-
           aria-label={m.decks_editor_remove_one_copy({ card: cardName })}
           onClick={() => removeCard(card.cardId, zone, card.preferredPrintingId)}
         >

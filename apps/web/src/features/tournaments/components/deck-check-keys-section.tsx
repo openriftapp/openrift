@@ -248,12 +248,7 @@ export function DeckCheckKeyRow({
       {revoked ? (
         <>
           <Badge variant="secondary">{m.profile_deck_check_revoked_badge()}</Badge>
-          <Button
-            size="sm"
-            variant="ghost-destructive"
-
-            onClick={() => setRemoveOpen(true)}
-          >
+          <Button size="sm" variant="ghost-destructive" onClick={() => setRemoveOpen(true)}>
             {m.profile_deck_check_remove()}
           </Button>
         </>

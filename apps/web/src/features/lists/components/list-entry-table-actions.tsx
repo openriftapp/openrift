@@ -27,7 +27,6 @@ export function ListEntryTableActions(props: ListEntryTableActionsProps) {
       <Button
         variant="ghost-remove"
         size="icon-sm"
-
         onClick={(event) => {
           event.stopPropagation();
           props.onTakeOff();
@@ -59,7 +58,6 @@ export function ListEntryTableActions(props: ListEntryTableActionsProps) {
       <Button
         variant="ghost-remove"
         size="icon-sm"
-
         onClick={(event) => {
           event.stopPropagation();
           props.onRemove();

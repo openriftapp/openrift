@@ -624,6 +624,8 @@
                   "motion",
                   "font-mono",
                   "font-normal",
+                  "font-medium",
+                  "font-semibold",
                   "opacity-*",
                   "shadow",
                   "shadow-*",

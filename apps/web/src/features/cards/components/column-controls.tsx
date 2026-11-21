@@ -44,7 +44,8 @@ export function ColumnControls({
       <Button
         variant="control"
         size={compact ? "sm" : "default"}
-        className={compact ? "min-w-7 px-1.5 tabular-nums" : "min-w-10 tabular-nums"}
+        // oxlint-disable-next-line shadcn/no-restyle -- compact count reads at text-xs, below the sm size
+        className={compact ? "min-w-7 px-1.5 text-xs tabular-nums" : "min-w-10 tabular-nums"}
         onClick={() => {
           if (maxColumns !== null) {
             onMaxColumnsChange(null);
