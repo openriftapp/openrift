@@ -3396,6 +3396,22 @@
     }
   ],
   "decks_overview_borrowed_hint": "你向朋友借來的卡牌。在你持有期間可用於組牌，但不屬於你的收藏。",
+  "decks_overview_box_add_copy": "新增一張 {card}",
+  "decks_overview_box_added": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已將 {count} 張卡牌新增至 {collection}",
+        "countPlural=*": "已將 {count} 張卡牌新增至 {collection}"
+      }
+    }
+  ],
+  "decks_overview_box_adding_body": "勾選一張你未擁有的卡牌，會在 {collection} 中新增一張。",
+  "decks_overview_box_adding_done": "完成",
+  "decks_overview_box_adding_start": "有卡牌還不在你的收藏中？邊裝牌盒邊新增",
+  "decks_overview_box_adding_title": "邊裝牌盒邊新增",
+  "decks_overview_box_change_printing": "變更 {card} 的印刷版本",
   "decks_overview_box_copy_hint": "這一列所代表的那一張卡",
   "decks_overview_box_graded": "鑑定 {grade} 分",
   "decks_overview_box_graded_hint": "這一張已經鑑定過。如果你想把它留在卡冊裡，可以換成一張普通的。",
@@ -3438,10 +3454,12 @@
       }
     }
   ],
+  "decks_overview_box_new": "新",
   "decks_overview_box_not_in_deck": "不在這副牌組中",
   "decks_overview_box_not_owned": "未擁有",
   "decks_overview_box_on_loan": "已外借",
   "decks_overview_box_put_in": "將 {card} 放入牌盒",
+  "decks_overview_box_remove_new": "移除新增的 {card}",
   "decks_overview_box_reserved": "已保留給交易",
   "decks_overview_box_shared": [
     {
@@ -3462,6 +3480,7 @@
   "decks_overview_box_take_other": "改拿 {card} 的另一張",
   "decks_overview_box_take_out": "將 {card} 從牌盒取出",
   "decks_overview_box_take_prompt": "改拿這一張",
+  "decks_overview_box_tick_to_add": "勾選以新增",
   "decks_overview_box_undo": "復原",
   "decks_overview_buy_card_on": "在 {marketplace} 購買 {card}",
   "decks_overview_buy_on": "在 {marketplace} 購買",

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-21
+
+### Highlights
+
+- feat(Decks): **Add cards while packing** — turn on "Add them as you pack" in a deck's Box tab, and ticking a card you don't own yet adds a copy to the box, and Done offers one undo for everything you added.
+
 ## 2026-11-20
 
 ### Highlights

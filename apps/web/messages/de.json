@@ -3396,6 +3396,22 @@
     }
   ],
   "decks_overview_borrowed_hint": "Kopien, die du dir von Freunden leihst. Sie zählen als baubar, solange du sie hast, gehören aber nicht zu deiner Sammlung.",
+  "decks_overview_box_add_copy": "Ein Exemplar von {card} hinzufügen",
+  "decks_overview_box_added": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Karte zu {collection} hinzugefügt",
+        "countPlural=*": "{count} Karten zu {collection} hinzugefügt"
+      }
+    }
+  ],
+  "decks_overview_box_adding_body": "Ein Haken bei einer Karte, die du nicht besitzt, fügt {collection} ein neues Exemplar hinzu.",
+  "decks_overview_box_adding_done": "Fertig",
+  "decks_overview_box_adding_start": "Karten noch nicht in deiner Sammlung? Füge sie beim Packen hinzu",
+  "decks_overview_box_adding_title": "Hinzufügen beim Packen",
+  "decks_overview_box_change_printing": "Druck von {card} ändern",
   "decks_overview_box_copy_hint": "Die Kopie, für die diese Zeile steht",
   "decks_overview_box_graded": "gegradet {grade}",
   "decks_overview_box_graded_hint": "Diese Kopie ist gegradet. Tausche sie gegen eine einfache, wenn du sie lieber im Ordner lässt.",
@@ -3438,10 +3454,12 @@
       }
     }
   ],
+  "decks_overview_box_new": "Neu",
   "decks_overview_box_not_in_deck": "Nicht in diesem Deck",
   "decks_overview_box_not_owned": "nicht im Besitz",
   "decks_overview_box_on_loan": "verliehen",
   "decks_overview_box_put_in": "{card} in die Box legen",
+  "decks_overview_box_remove_new": "Neues Exemplar von {card} entfernen",
   "decks_overview_box_reserved": "für einen Tausch reserviert",
   "decks_overview_box_shared": [
     {
@@ -3462,6 +3480,7 @@
   "decks_overview_box_take_other": "Eine andere Kopie von {card} nehmen",
   "decks_overview_box_take_out": "{card} wieder aus der Box nehmen",
   "decks_overview_box_take_prompt": "Stattdessen diese Kopie nehmen",
+  "decks_overview_box_tick_to_add": "zum Hinzufügen abhaken",
   "decks_overview_box_undo": "Rückgängig",
   "decks_overview_buy_card_on": "{card} auf {marketplace} kaufen",
   "decks_overview_buy_on": "Auf {marketplace} kaufen",

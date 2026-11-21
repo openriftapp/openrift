@@ -245,6 +245,28 @@ function toBoxCardFromCatalog(cardId: string, card: Card): DeckBoxCard {
   };
 }
 
+/** The card's printings whose copies the plan credits to this card, matching the side-1 rule in `computeDeckBoxPlan`. */
+export function creditedPrintings(
+  cards: readonly DeckBuilderCard[],
+  cardId: string,
+  printingsByCardId: ReadonlyMap<string, Printing[]>,
+): Printing[] {
+  const claimed = new Set<string>();
+  for (const card of cards) {
+    if (card.cardId === cardId || !isCountedZone(card.zone)) {
+      continue;
+    }
+    for (const printing of printingsByCardId.get(card.cardId) ?? []) {
+      if (printing.side === 1) {
+        claimed.add(printing.printingId);
+      }
+    }
+  }
+  return (printingsByCardId.get(cardId) ?? []).filter(
+    (printing) => printing.side === 1 || !claimed.has(printing.printingId),
+  );
+}
+
 /**
  * A copy in the box but on loan or reserved for a trade counts as blocked,
  * not settled.

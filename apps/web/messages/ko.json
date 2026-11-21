@@ -3396,6 +3396,22 @@
     }
   ],
   "decks_overview_borrowed_hint": "친구에게서 빌린 카드입니다. 가지고 있는 동안에는 덱 구성에 반영되지만, 내 컬렉션의 일부는 아닙니다.",
+  "decks_overview_box_add_copy": "{card} 추가",
+  "decks_overview_box_added": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count}장을 {collection}에 추가했습니다",
+        "countPlural=*": "{count}장을 {collection}에 추가했습니다"
+      }
+    }
+  ],
+  "decks_overview_box_adding_body": "보유하지 않은 카드를 체크하면 {collection}에 새 카드가 추가됩니다.",
+  "decks_overview_box_adding_done": "완료",
+  "decks_overview_box_adding_start": "아직 컬렉션에 없는 카드가 있나요? 박스에 넣으면서 추가하세요",
+  "decks_overview_box_adding_title": "박스에 넣으면서 추가",
+  "decks_overview_box_change_printing": "{card} 인쇄판 변경",
   "decks_overview_box_copy_hint": "이 행이 가리키는 카드",
   "decks_overview_box_graded": "{grade}등급",
   "decks_overview_box_graded_hint": "이 카드는 등급이 매겨져 있습니다. 바인더에 두고 싶다면 일반 카드로 바꾸세요.",
@@ -3438,10 +3454,12 @@
       }
     }
   ],
+  "decks_overview_box_new": "새 카드",
   "decks_overview_box_not_in_deck": "이 덱에 없음",
   "decks_overview_box_not_owned": "미보유",
   "decks_overview_box_on_loan": "대여 중",
   "decks_overview_box_put_in": "{card}을(를) 박스에 넣기",
+  "decks_overview_box_remove_new": "새로 추가한 {card} 삭제",
   "decks_overview_box_reserved": "교환에 예약됨",
   "decks_overview_box_shared": [
     {
@@ -3462,6 +3480,7 @@
   "decks_overview_box_take_other": "{card}의 다른 카드를 꺼내기",
   "decks_overview_box_take_out": "{card}을(를) 박스에서 다시 꺼내기",
   "decks_overview_box_take_prompt": "대신 이 카드를 꺼내기",
+  "decks_overview_box_tick_to_add": "체크하여 추가",
   "decks_overview_box_undo": "실행 취소",
   "decks_overview_buy_card_on": "{marketplace}에서 {card} 구매",
   "decks_overview_buy_on": "{marketplace}에서 구매",

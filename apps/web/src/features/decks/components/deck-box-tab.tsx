@@ -5,15 +5,24 @@ import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { VariantLabelEnumLabels, VariantLabelPrinting } from "@openrift/shared/printing-label";
 import { formatPrintingVariantLabelParts } from "@openrift/shared/printing-label";
+import type { Printing } from "@openrift/shared/types/catalog";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
-import { ArrowUpRightIcon, BoxIcon, HandHeartIcon, PackageSearchIcon } from "lucide-react";
+import {
+  ArrowUpRightIcon,
+  BoxIcon,
+  ChevronDownIcon,
+  HandHeartIcon,
+  PackageSearchIcon,
+  PlusIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PickerGroup, PickerList, PickerRow } from "@/components/ui/picker-list";
 import {
@@ -25,6 +34,9 @@ import { TextLink } from "@/components/ui/text-link";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CardMiniRow } from "@/features/cards/components/card-mini-row";
 import { FilterIcon } from "@/features/cards/components/filter-icon";
+import { useCards } from "@/features/cards/hooks/use-cards";
+import { resolvePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
+import { frontImageId } from "@/features/cards/lib/card-meta";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import {
   cardHoverProps,
@@ -37,8 +49,13 @@ import { useMoveCopies } from "@/features/collections/hooks/use-copies";
 import { DECK_LIST_SECTION_CLASS } from "@/features/decks/components/deck-overview-list";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
 import { useDeckBox } from "@/features/decks/hooks/use-deck-box";
+import { useDeckBoxAdding } from "@/features/decks/hooks/use-deck-box-adding";
 import type { DeckBoxCard, DeckBoxCopy, DeckBoxSlot } from "@/features/decks/lib/deck-box";
-import { groupBoxSlotsBySet, toBoxCardFromDeck } from "@/features/decks/lib/deck-box";
+import {
+  creditedPrintings,
+  groupBoxSlotsBySet,
+  toBoxCardFromDeck,
+} from "@/features/decks/lib/deck-box";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import type { DeckCardGroup, DeckListGroup } from "@/features/decks/lib/deck-card-group";
 import { GROUPED_ZONES } from "@/features/decks/lib/deck-card-sort";
@@ -48,6 +65,7 @@ import {
   useDeckBoxOriginsStore,
 } from "@/features/decks/stores/deck-box-origins-store";
 import { useDomainColors } from "@/hooks/use-domain-colors";
+import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 import { useEnumOrders, useZoneOrder } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -106,6 +124,9 @@ export function DeckBoxTab({
   const forgetOrigins = useDeckBoxOriginsStore((state) => state.forget);
   const plan = useDeckBox(deckId, cards, homeCollectionId, slotCopyIds);
   const moveCopies = useMoveCopies();
+  const adder = useDeckBoxAdding(homeCollectionId, homeCollectionName);
+  const { printingsByCardId } = useCards();
+  const languageOrder = useEffectiveLanguageOrder();
   const { data: collections } = useCollections();
   const inboxId = collections.find((collection) => collection.isInbox)?.id;
   const { labels: enumLabels } = useEnumOrders();
@@ -179,41 +200,66 @@ export function DeckBoxTab({
   };
 
   const complete = plan.neededTotal > 0 && plan.inBoxTotal === plan.neededTotal;
+  const anyMissing = plan.slots.some((slot) => slot.state === "missing");
 
-  const slotRow = (card: DeckBuilderCard, slot: DeckBoxSlot) => (
-    <SlotRow
-      key={slot.key}
-      card={toBoxCardFromDeck(card)}
-      slot={slot}
-      labels={labels}
-      siblings={plan.siblingPrintingsByCardId.get(card.cardId) ?? []}
-      disabled={moveCopies.isPending}
-      onTick={() => {
-        if (slot.copy) {
-          hold(slot, slot.copy.copyId);
-          putIn(slot.copy);
+  const slotRow = (card: DeckBuilderCard, slot: DeckBoxSlot) => {
+    const printings = creditedPrintings(cards, card.cardId, printingsByCardId);
+    return (
+      <SlotRow
+        key={slot.key}
+        card={toBoxCardFromDeck(card)}
+        slot={slot}
+        labels={labels}
+        siblings={plan.siblingPrintingsByCardId.get(card.cardId) ?? []}
+        printings={printings}
+        disabled={moveCopies.isPending}
+        adding={adder.adding}
+        isNew={slot.copy !== undefined && adder.createdIds.has(slot.copy.copyId)}
+        onAdd={() => {
+          const printing = resolvePreferredPrinting(
+            new Map([[card.cardId, printings]]),
+            languageOrder,
+            card.cardId,
+            card.preferredPrintingId,
+          );
+          if (printing) {
+            hold(slot, adder.add(printing.printingId));
+          }
+        }}
+        onReprint={(printingId) => {
+          if (slot.copy) {
+            hold(slot, adder.replace(slot.copy.copyId, printingId));
+          }
+        }}
+        onTick={() => {
+          if (slot.copy) {
+            hold(slot, slot.copy.copyId);
+            putIn(slot.copy);
+          }
+        }}
+        onTakeOut={() => {
+          if (slot.copy && adder.createdIds.has(slot.copy.copyId)) {
+            adder.remove(slot.copy.copyId);
+          } else if (slot.copy) {
+            hold(slot, slot.copy.copyId);
+            takeOut([slot.copy.copyId], false);
+          }
+        }}
+        onSwap={(copyId) => hold(slot, copyId)}
+        onHoverCard={onHoverCard}
+        onOpen={
+          onCardClick
+            ? () =>
+                onCardClick({
+                  cardId: card.cardId,
+                  preferredPrintingId: slot.copy?.printingId ?? card.preferredPrintingId,
+                  zone: card.zone,
+                })
+            : undefined
         }
-      }}
-      onTakeOut={() => {
-        if (slot.copy) {
-          hold(slot, slot.copy.copyId);
-          takeOut([slot.copy.copyId], false);
-        }
-      }}
-      onSwap={(copyId) => hold(slot, copyId)}
-      onHoverCard={onHoverCard}
-      onOpen={
-        onCardClick
-          ? () =>
-              onCardClick({
-                cardId: card.cardId,
-                preferredPrintingId: slot.copy?.printingId ?? card.preferredPrintingId,
-                zone: card.zone,
-              })
-          : undefined
-      }
-    />
-  );
+      />
+    );
+  };
 
   const zones = BOX_ZONE_ORDER.map((zone) => ({
     zone,
@@ -223,6 +269,27 @@ export function DeckBoxTab({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-muted-foreground max-w-prose">{m.decks_overview_box_intro()}</p>
+      {adder.adding ? (
+        <Callout className="border-primary/50 bg-primary/10 flex max-w-prose items-center gap-3 py-3">
+          <PlusIcon className="text-primary size-4 shrink-0" />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span className="font-medium">{m.decks_overview_box_adding_title()}</span>
+            <span className="text-muted-foreground">
+              {m.decks_overview_box_adding_body({ collection: homeCollectionName })}
+            </span>
+          </div>
+          <Button size="sm" onClick={() => adder.finish()}>
+            {m.decks_overview_box_adding_done()}
+          </Button>
+        </Callout>
+      ) : (
+        anyMissing && (
+          <Button variant="link" className="h-auto self-start p-0" onClick={() => adder.start()}>
+            <PlusIcon className="size-4" />
+            {m.decks_overview_box_adding_start()}
+          </Button>
+        )
+      )}
       <div className="flex items-center gap-2">
         <BoxIcon className="text-muted-foreground size-4" />
         <span className="font-medium">
@@ -410,7 +477,12 @@ function SlotRow({
   slot,
   labels,
   siblings,
+  printings,
   disabled,
+  adding,
+  isNew,
+  onAdd,
+  onReprint,
   onTick,
   onTakeOut,
   onSwap,
@@ -421,13 +493,51 @@ function SlotRow({
   slot: DeckBoxSlot;
   labels: BoxRowLabels;
   siblings: readonly VariantLabelPrinting[];
+  printings: readonly Printing[];
   disabled: boolean;
+  adding: boolean;
+  isNew: boolean;
+  onAdd: () => void;
+  onReprint: (printingId: string) => void;
   onTick: () => void;
   onTakeOut: () => void;
   onSwap: (copyId: string) => void;
   onHoverCard?: HoverHandler;
   onOpen?: () => void;
 }) {
+  if (slot.state === "in-box" && slot.copy && isNew && adding) {
+    return (
+      <BoxRow
+        card={card}
+        copy={slot.copy}
+        labels={labels}
+        siblings={siblings}
+        onHoverCard={onHoverCard}
+        onOpen={onOpen}
+        leading={
+          <Checkbox
+            checked
+            aria-label={m.decks_overview_box_remove_new({ card: legendDisplayName(card) })}
+            onClick={rowControlClick()}
+            onCheckedChange={onTakeOut}
+          />
+        }
+        trailing={
+          <span className="flex shrink-0 items-center gap-1.5">
+            <Badge variant="secondary">{m.decks_overview_box_new()}</Badge>
+            <PrintingPicker
+              card={card}
+              copy={slot.copy}
+              printings={printings}
+              labels={labels}
+              onPick={onReprint}
+            />
+          </span>
+        }
+      />
+    );
+  }
+
   if (slot.state === "in-box") {
     return (
       <BoxRow
@@ -524,6 +634,32 @@ function SlotRow({
               {m.decks_overview_box_reserved()}
             </span>
           )
+        }
+      />
+    );
+  }
+
+  if (adding && printings.length > 0) {
+    return (
+      <BoxRow
+        card={card}
+        labels={labels}
+        siblings={siblings}
+        onHoverCard={onHoverCard}
+        onOpen={onOpen}
+        leading={
+          <Checkbox
+            checked={false}
+            className="border-primary border-dashed"
+            aria-label={m.decks_overview_box_add_copy({ card: legendDisplayName(card) })}
+            onClick={rowControlClick()}
+            onCheckedChange={onAdd}
+          />
+        }
+        trailing={
+          <span className="text-primary shrink-0 text-xs">
+            {m.decks_overview_box_tick_to_add()}
+          </span>
         }
       />
     );
@@ -674,6 +810,83 @@ function SourcePicker({
   );
 }
 
+function PrintingPicker({
+  card,
+  copy,
+  printings,
+  labels,
+  onPick,
+}: {
+  card: DeckBoxCard;
+  copy: DeckBoxCopy;
+  printings: readonly Printing[];
+  labels: BoxRowLabels;
+  onPick: (printingId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [highlightedId, setHighlightedId] = useState("");
+  if (printings.length < 2) {
+    return null;
+  }
+  const action = m.decks_overview_box_change_printing({ card: legendDisplayName(card) });
+
+  return (
+    <ResponsivePopover open={open} onOpenChange={setOpen}>
+      <ResponsivePopoverTrigger
+        render={
+          <Button variant="ghost" size="icon-xs" aria-label={action} onClick={rowControlClick()}>
+            <ChevronDownIcon />
+          </Button>
+        }
+      />
+      <ResponsivePopoverContent title={action} hideTitle align="end" onClick={rowControlClick()}>
+        <PickerList highlightedId={highlightedId} onHighlightChange={setHighlightedId}>
+          {printings.map((printing) => (
+            <PickerRow
+              key={printing.printingId}
+              value={printing.printingId}
+              onSelect={() => {
+                setOpen(false);
+                if (printing.printingId !== copy.printingId) {
+                  onPick(printing.printingId);
+                }
+              }}
+            >
+              <CardMiniRow
+                className="self-stretch"
+                imageId={frontImageId(printing)}
+                landscape={getOrientation(card.types) === "landscape"}
+                domains={card.domains}
+                domainColors={labels.domainColors}
+                rarity={printing.rarity}
+                rarityLabels={labels.rarities}
+                shortCode={distinctPrintingCode(printing)}
+                loading="lazy"
+              />
+              <span className="text-muted-foreground text-xs">
+                {printingVariantText(printing, printings, labels)}
+              </span>
+            </PickerRow>
+          ))}
+        </PickerList>
+      </ResponsivePopoverContent>
+    </ResponsivePopover>
+  );
+}
+
+function printingVariantText(
+  printing: VariantLabelPrinting,
+  siblings: readonly VariantLabelPrinting[],
+  labels: BoxRowLabels,
+): string {
+  const { language, rest, otherSide } = formatPrintingVariantLabelParts(printing, siblings, labels);
+  const parts: string[] = language === null ? [...rest] : [language, ...rest];
+  if (otherSide) {
+    parts.push(m.cards_printing_with_side({ name: otherSide }));
+  }
+  return parts.join(" · ");
+}
+
 function BoxRow({
   card,
   copy,
@@ -726,11 +939,8 @@ function CopyDetails({
   labels: BoxRowLabels;
   siblings: readonly VariantLabelPrinting[];
 }) {
-  const { language, rest, otherSide } = formatPrintingVariantLabelParts(copy, siblings, labels);
-  const parts: string[] = language === null ? [...rest] : [language, ...rest];
-  if (otherSide) {
-    parts.push(m.cards_printing_with_side({ name: otherSide }));
-  }
+  const variant = printingVariantText(copy, siblings, labels);
+  const parts: string[] = variant === "" ? [] : [variant];
   if (copy.grade !== null) {
     parts.push(m.decks_overview_box_graded({ grade: copy.grade }));
   } else if (copy.condition !== null) {

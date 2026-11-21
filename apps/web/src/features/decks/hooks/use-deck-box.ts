@@ -27,7 +27,7 @@ export function useDeckBox(
   const conditions = useConditionList();
 
   const collections = useCollectionsList();
-  const { data: copies } = useLiveQuery({
+  const { data: copies, isReady: copiesReady } = useLiveQuery({
     query: (q) => (enabled && copiesCollection ? q.from({ copy: copiesCollection }) : null),
   });
 
@@ -54,7 +54,7 @@ export function useDeckBox(
   });
 
   const awaitingDeckCards = sharingDeckIds.length > 0 && !deckCardsReady;
-  if (!homeCollectionId || !copies || !collections || awaitingDeckCards) {
+  if (!homeCollectionId || !copies || !copiesReady || !collections || awaitingDeckCards) {
     return undefined;
   }
 

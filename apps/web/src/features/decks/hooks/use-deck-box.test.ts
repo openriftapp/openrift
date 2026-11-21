@@ -1,3 +1,4 @@
+import { sleep } from "@openrift/shared/async";
 import type { CollectionResponse, CopyResponse } from "@openrift/shared/types/api/collection";
 import type { DeckCardWithDeckResponse } from "@openrift/shared/types/api/deck";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -40,6 +41,13 @@ const copiesCollection = createCollection(
   }),
 );
 
+const loadingCopies = createCollection<CopyResponse, string>({
+  id: "copies:deck-box-test-loading",
+  getKey: (row) => row.id,
+  sync: { sync: () => {} },
+});
+
+let activeCopies: typeof copiesCollection | typeof loadingCopies = copiesCollection;
 let collectionsList: CollectionResponse[] | undefined;
 
 vi.mock("@/hooks/use-session", () => ({ useUserId: () => "user-1" }));
@@ -47,7 +55,7 @@ vi.mock("@/features/collections/hooks/use-collections", () => ({
   useCollectionsList: () => collectionsList,
 }));
 vi.mock("@/features/collections/hooks/use-copies-collection", () => ({
-  useCopiesCollection: () => copiesCollection,
+  useCopiesCollection: () => activeCopies,
 }));
 vi.mock("@/features/decks/hooks/use-decks-collections", () => ({
   useDeckCardsCollection: () => cardsCollection,
@@ -131,6 +139,16 @@ describe("useDeckBox", () => {
     const { result } = renderHook(() => useDeckBox("deck-a", [], HOME));
 
     expect(result.current).toBeUndefined();
+  });
+
+  it("is undefined while the copies are still loading", async () => {
+    activeCopies = loadingCopies;
+
+    const { result } = renderHook(() => useDeckBox("deck-a", [], HOME));
+
+    await sleep(20);
+    expect(result.current).toBeUndefined();
+    activeCopies = copiesCollection;
   });
 
   it("is undefined without a home collection", () => {

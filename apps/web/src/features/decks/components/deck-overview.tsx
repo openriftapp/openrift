@@ -668,6 +668,7 @@ export function DeckOverview({
         {/* No server snapshot for the live copies feed, so it waits for hydration too. */}
         {activeTab === "box" && hydrated && homeCollection && (
           <DeckBoxTab
+            key={deck.id}
             deckId={deck.id}
             cards={cards}
             homeCollectionId={homeCollection.id}

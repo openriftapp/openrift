@@ -3397,6 +3397,22 @@
     }
   ],
   "decks_overview_borrowed_hint": "Exemplaires que vous empruntez à des amis. Ils comptent comme jouables tant que vous les avez, mais ne font pas partie de votre collection.",
+  "decks_overview_box_add_copy": "Ajouter un exemplaire de {card}",
+  "decks_overview_box_added": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} carte ajoutée à {collection}",
+        "countPlural=*": "{count} cartes ajoutées à {collection}"
+      }
+    }
+  ],
+  "decks_overview_box_adding_body": "Cocher une carte que vous ne possédez pas ajoute un nouvel exemplaire à {collection}.",
+  "decks_overview_box_adding_done": "Terminé",
+  "decks_overview_box_adding_start": "Des cartes pas encore dans votre collection ? Ajoutez-les en remplissant la boîte",
+  "decks_overview_box_adding_title": "Ajout en remplissant la boîte",
+  "decks_overview_box_change_printing": "Changer l'impression de {card}",
   "decks_overview_box_copy_hint": "L'exemplaire que représente cette ligne",
   "decks_overview_box_graded": "gradée {grade}",
   "decks_overview_box_graded_hint": "Cet exemplaire est gradé. Échangez-le contre un exemplaire simple si vous préférez le garder dans le classeur.",
@@ -3439,10 +3455,12 @@
       }
     }
   ],
+  "decks_overview_box_new": "Nouveau",
   "decks_overview_box_not_in_deck": "Pas dans ce deck",
   "decks_overview_box_not_owned": "non possédée",
   "decks_overview_box_on_loan": "prêtée",
   "decks_overview_box_put_in": "Mettre {card} dans la boîte",
+  "decks_overview_box_remove_new": "Retirer le nouvel exemplaire de {card}",
   "decks_overview_box_reserved": "réservée pour un échange",
   "decks_overview_box_shared": [
     {
@@ -3463,6 +3481,7 @@
   "decks_overview_box_take_other": "Prendre un autre exemplaire de {card}",
   "decks_overview_box_take_out": "Ressortir {card} de la boîte",
   "decks_overview_box_take_prompt": "Prendre cet exemplaire à la place",
+  "decks_overview_box_tick_to_add": "cocher pour ajouter",
   "decks_overview_box_undo": "Annuler",
   "decks_overview_buy_card_on": "Acheter {card} sur {marketplace}",
   "decks_overview_buy_on": "Acheter sur {marketplace}",

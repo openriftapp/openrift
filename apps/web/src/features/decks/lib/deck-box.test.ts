@@ -11,7 +11,11 @@ import type {
   DeckBoxInput,
   DeckBoxPlan,
 } from "@/features/decks/lib/deck-box";
-import { computeDeckBoxPlan, groupBoxSlotsBySet } from "@/features/decks/lib/deck-box";
+import {
+  computeDeckBoxPlan,
+  creditedPrintings,
+  groupBoxSlotsBySet,
+} from "@/features/decks/lib/deck-box";
 import { resetIdCounter, stubCopy, stubDeckBuilderCard, stubPrinting } from "@/test/factories";
 
 function missingSlots(plan: DeckBoxPlan): number {
@@ -519,6 +523,50 @@ describe("computeDeckBoxPlan", () => {
       extraCount: 0,
       siblingPrintingsByCardId: new Map(),
     });
+  });
+});
+
+describe("creditedPrintings", () => {
+  const bird = stubPrinting({ printingId: "pair", side: 1, cardId: "bird" });
+  const gold = stubPrinting({ printingId: "pair", side: 2, cardId: "gold" });
+  const goldSolo = stubPrinting({ printingId: "gold-solo", side: 1, cardId: "gold" });
+  const printingsByCardId = new Map([
+    ["bird", [bird]],
+    ["gold", [gold, goldSolo]],
+  ]);
+  const birdCard = stubDeckBuilderCard({ cardId: "bird" });
+  const goldCard = stubDeckBuilderCard({ cardId: "gold" });
+
+  it("drops a side-2 printing whose side-1 card is also in the deck", () => {
+    expect(creditedPrintings([birdCard, goldCard], "gold", printingsByCardId)).toEqual([goldSolo]);
+  });
+
+  it("keeps a side-2 printing when its side-1 card is not in the deck", () => {
+    expect(creditedPrintings([goldCard], "gold", printingsByCardId)).toEqual([gold, goldSolo]);
+  });
+
+  it("keeps the side-1 card's own printing", () => {
+    expect(creditedPrintings([birdCard, goldCard], "bird", printingsByCardId)).toEqual([bird]);
+  });
+
+  it("ignores a side-1 card parked in Overflow", () => {
+    const parked = stubDeckBuilderCard({ cardId: "bird", zone: "overflow" as never });
+    expect(creditedPrintings([parked, goldCard], "gold", printingsByCardId)).toEqual([
+      gold,
+      goldSolo,
+    ]);
+  });
+
+  it("matches the plan: a copy of a kept printing fills the side-2 card's slot", () => {
+    const copy = stubCopy({ printingId: "gold-solo", collectionId: BOX });
+    const plan = computeDeckBoxPlan({
+      ...inputFor({ printings: [], copies: [copy] }),
+      cards: [birdCard, goldCard],
+      printingsByCardId,
+      printingsById: { pair: bird, "gold-solo": goldSolo },
+    });
+    const goldSlots = plan.slots.filter((slot) => slot.cardId === "gold");
+    expect(goldSlots.map((slot) => slot.state)).toEqual(["in-box"]);
   });
 });
 
