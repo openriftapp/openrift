@@ -99,8 +99,8 @@ export const tournamentDeckCheckContract = {
   renameCard: authedRoute
     .route({ method: "PATCH", path: `${BASE}/entries/{entryId}/cards/{cardId}`, tags: [TAG] })
     .errors({
-      NOT_FOUND: { message: "Tournament, entry, or card not found" },
-      CONFLICT: { message: "Entry list is not yet submitted" },
+      NOT_FOUND: { message: "Tournament or entry not found" },
+      CONFLICT: { message: "Entry list changed or not yet submitted" },
       VALIDATION_ERROR: { status: 422, message: "Unknown deck section" },
     })
     .input(withParams(entryCardParamSchema, updateDeckCheckCardSchema))
@@ -121,8 +121,8 @@ export const tournamentDeckCheckContract = {
       successStatus: 204,
     })
     .errors({
-      NOT_FOUND: { message: "Tournament, entry, or card not found" },
-      CONFLICT: { message: "Entry list is not yet submitted" },
+      NOT_FOUND: { message: "Tournament or entry not found" },
+      CONFLICT: { message: "Entry list changed or not yet submitted" },
     })
     .input(cardCopyParamSchema),
   tickCard: authedRoute

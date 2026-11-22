@@ -178,6 +178,7 @@ describe("deadline auto-submit", () => {
         Promise.resolve([{ id: ENTRY_ID, preEditLines: null, updatedAt: now }]),
       ),
       settleEditableEntries: vi.fn(() => Promise.resolve([ENTRY_ID])),
+      getEntryForUpdate: vi.fn(() => Promise.resolve(entry("submitted"))),
       setCardCopyFound: vi.fn(() => Promise.resolve(true)),
       updateEntry: vi.fn(),
     };

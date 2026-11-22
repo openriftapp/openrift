@@ -285,6 +285,8 @@ export async function writeDeckCheckPush(
     // 'submitted'; it does not restore the pre-withdrawal state.
     const wasWithdrawn = existing.state === "withdrawn";
     if (existing.participantId !== null) {
+      // Participant before entry, the order judge edits take; the legend sync below writes it.
+      await repos.tournaments.lockParticipant(existing.participantId);
       touched.add(existing.participantId);
     }
     const storedIdentity =

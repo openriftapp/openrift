@@ -21,6 +21,7 @@ import { reportMutationError } from "@/lib/query-client";
 import { orNotFound } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
+import { useSignalledMutation } from "@/lib/write-signal";
 
 const fetchEntries = createServerFn({ method: "GET" })
   .validator((input: string) => input)
@@ -56,9 +57,24 @@ export function useTournamentDeckCheckEntries(tournamentId: string, enabled = tr
 
 export function useTournamentDeckCheckEntry(tournamentId: string, entryId: string) {
   const userId = useRequiredUserId();
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: tournamentDeckCheckKeys.entry(userId, tournamentId, entryId),
-    queryFn: () => fetchEntry({ data: { tournamentId, entryId } }),
+    queryFn: async () => {
+      const detail = await fetchEntry({ data: { tournamentId, entryId } });
+      const pendingTicks = queryClient.getMutationCache().findAll({
+        mutationKey: TICK_MUTATION_KEY,
+        status: "pending",
+      });
+      let overlaid = detail;
+      for (const mutation of pendingTicks) {
+        const vars = mutation.state.variables as TickVars | undefined;
+        if (vars?.entryId === entryId) {
+          overlaid = withCopyFound(overlaid, vars, vars.found) ?? overlaid;
+        }
+      }
+      return overlaid;
+    },
     staleTime: 0,
     refetchInterval: (query) => deckCheckEntryRefetchInterval(query.state.data),
     refetchOnWindowFocus: true,
@@ -252,9 +268,16 @@ export function useUpdateTournamentDeckCheckEntry() {
 
 export function useDeleteTournamentDeckCheckEntry() {
   const userId = useRequiredUserId();
-  return useMutationWithInvalidation({
+  const queryClient = useQueryClient();
+  return useSignalledMutation({
     mutationFn: (vars: { tournamentId: string; entryId: string }) => deleteEntryFn({ data: vars }),
-    invalidates: (vars) => [tournamentDeckCheckKeys.entries(userId, vars.tournamentId)],
+    onSuccess: async (_data, vars) => {
+      // Exact: the list key prefixes the deleted entry's key, which would refetch into a 404.
+      await queryClient.invalidateQueries({
+        queryKey: tournamentDeckCheckKeys.entries(userId, vars.tournamentId),
+        exact: true,
+      });
+    },
   });
 }
 

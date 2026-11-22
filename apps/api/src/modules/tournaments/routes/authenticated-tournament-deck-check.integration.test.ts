@@ -34,6 +34,7 @@ interface CardLine {
   id: string;
   zone: string;
   quantity: number;
+  rawName?: string;
   foundCopies?: boolean[];
 }
 
@@ -646,6 +647,23 @@ describe.skipIf(!hostCtx)("Tournament-scoped deck-check + host keys (integration
       return ((await readJson(created)) as { entry: { id: string } }).entry.id;
     };
 
+    it("adds a resolved card line to an existing list", async () => {
+      const entry = await newEntry("Repair Jinx", [
+        { name: CARD_FURY_RUNE.name, quantity: 1, section: "runes" },
+      ]);
+      const res = await judge.app.fetch(
+        req("POST", `/tournaments/${tournamentId}/deck-check/entries/${entry}/cards`, {
+          name: CARD_FURY_UNIT.name,
+          quantity: 2,
+          section: "main",
+        }),
+      );
+      expect(res.status).toBe(200);
+      const after = await fetchCards(entry);
+      expect(after).toHaveLength(2);
+      expect(after.at(-1)).toMatchObject({ zone: "main", quantity: 2, matchStatus: "matched" });
+    });
+
     it("splits a multi-copy line on a partial move, merging into the target zone", async () => {
       const entry = await newEntry("Repair Riven", [
         { name: CARD_FURY_UNIT.name, quantity: 3, section: "main" },
@@ -665,6 +683,31 @@ describe.skipIf(!hostCtx)("Tournament-scoped deck-check + host keys (integration
       expect(after).toHaveLength(2);
       expect(after.find((card) => card.zone === "main")?.quantity).toBe(1);
       expect(after.find((card) => card.zone === "sideboard")?.quantity).toBe(3);
+    });
+
+    it("renames only the moved copies when a partial move changes the name", async () => {
+      const entry = await newEntry("Repair Ekko", [
+        { name: CARD_FURY_UNIT.name, quantity: 3, section: "main" },
+      ]);
+      const cards = await fetchCards(entry);
+      const line = cards[0]!;
+      const res = await judge.app.fetch(
+        req("PATCH", `/tournaments/${tournamentId}/deck-check/entries/${entry}/cards/${line.id}`, {
+          name: "Mystery Poro",
+          section: "sideboard",
+          copies: 1,
+        }),
+      );
+      expect(res.status).toBe(200);
+      const after = await fetchCards(entry);
+      expect(after.find((card) => card.zone === "main")).toMatchObject({
+        quantity: 2,
+        rawName: CARD_FURY_UNIT.name,
+      });
+      expect(after.find((card) => card.zone === "sideboard")).toMatchObject({
+        quantity: 1,
+        rawName: "Mystery Poro",
+      });
     });
 
     it("splices the removed copy's tick, keeping the other cells", async () => {
@@ -692,6 +735,22 @@ describe.skipIf(!hostCtx)("Tournament-scoped deck-check + host keys (integration
       expect(afterRemoval[0]!.foundCopies).toEqual([true, true]);
     });
 
+    it("answers a stale card the same way on remove, rename and tick", async () => {
+      const entry = await newEntry("Repair Vi", [
+        { name: CARD_FURY_UNIT.name, quantity: 1, section: "main" },
+      ]);
+      const cards = await fetchCards(entry);
+      const line = cards[0]!;
+      const cardPath = `/tournaments/${tournamentId}/deck-check/entries/${entry}/cards`;
+      const missing = "00000000-0000-7000-8000-000000000000";
+      const responses = await Promise.all([
+        judge.app.fetch(req("DELETE", `${cardPath}/${line.id}/copies/1`)),
+        judge.app.fetch(req("PATCH", `${cardPath}/${missing}`, { name: CARD_FURY_UNIT.name })),
+        judge.app.fetch(req("PUT", `${cardPath}/${missing}`, { copyIndex: 0, found: true })),
+      ]);
+      expect(responses.map((res) => res.status)).toEqual([409, 409, 409]);
+    });
+
     it("applies only a currently-suggested zone fix, ignoring forged ids", async () => {
       const entry = await newEntry("Repair Ryze", [
         { name: CARD_FURY_RUNE.name, quantity: 1, section: "main" },
@@ -706,6 +765,28 @@ describe.skipIf(!hostCtx)("Tournament-scoped deck-check + host keys (integration
       expect(res.status).toBe(200);
       const afterFix = await fetchCards(entry);
       expect(afterFix[0]!.zone).toBe("runes");
+    });
+
+    it("leaves the entry untouched when no zone fix applies", async () => {
+      const entry = await newEntry("Repair Zoe", [
+        { name: CARD_FURY_RUNE.name, quantity: 1, section: "runes" },
+      ]);
+      const readUpdatedAt = async () => {
+        const row = await host.db
+          .selectFrom("deckCheckEntries")
+          .select("updatedAt")
+          .where("id", "=", entry)
+          .executeTakeFirstOrThrow();
+        return row.updatedAt;
+      };
+      const before = await readUpdatedAt();
+      const res = await judge.app.fetch(
+        req("POST", `/tournaments/${tournamentId}/deck-check/entries/${entry}/zone-fixes`, {
+          cardIds: ["00000000-0000-7000-8000-000000000000"],
+        }),
+      );
+      expect(res.status).toBe(200);
+      expect(await readUpdatedAt()).toEqual(before);
     });
   });
 

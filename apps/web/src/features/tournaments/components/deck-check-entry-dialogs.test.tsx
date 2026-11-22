@@ -177,4 +177,22 @@ describe("AddCardDialog", () => {
 
     expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
   });
+
+  it("starts empty after a cancelled entry", async () => {
+    const user = userEvent.setup();
+    const dialog = (open: boolean) => (
+      <AddCardDialog tournamentId="t-1" entryId="e-1" open={open} onOpenChange={vi.fn()} />
+    );
+    const { rerender } = render(dialog(true));
+    await user.type(screen.getByRole("combobox", { name: /card name/iu }), "Mystic Poro");
+    await user.clear(screen.getByLabelText("Copies"));
+    await user.type(screen.getByLabelText("Copies"), "3");
+
+    rerender(dialog(false));
+    rerender(dialog(true));
+
+    expect(screen.getByRole("combobox", { name: /card name/iu })).toHaveValue("");
+    expect(screen.getByLabelText("Copies")).toHaveValue("1");
+    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+  });
 });

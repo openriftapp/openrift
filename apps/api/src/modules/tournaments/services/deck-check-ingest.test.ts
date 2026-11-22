@@ -136,7 +136,10 @@ describe("ingestDeckCheckPush", () => {
         replaceEntryCards: vi.fn(() => Promise.resolve()),
         setClaimTokenIfMissing: vi.fn(() => Promise.resolve("token")),
       },
-      tournaments: { lockRounds: vi.fn(() => Promise.resolve()) },
+      tournaments: {
+        lockRounds: vi.fn(() => Promise.resolve()),
+        lockParticipant: vi.fn(() => Promise.resolve(true)),
+      },
       tournamentGroups: { syncParticipantLegendsFromDeckCheck: vi.fn(() => Promise.resolve()) },
     } as unknown as Repos;
     const collision = Object.assign(new Error("duplicate key"), {
@@ -228,6 +231,53 @@ describe("ingestDeckCheckPush", () => {
       null,
       "ext-1",
     ]);
+  });
+});
+
+describe("writeDeckCheckPush lock order", () => {
+  it("locks an existing entry's participant before writing the entry", async () => {
+    const calls: string[] = [];
+    const record = (name: string) =>
+      vi.fn(() => {
+        calls.push(name);
+        return Promise.resolve();
+      });
+    const repos = {
+      deckCheck: {
+        getEntryByExternalId: vi.fn(() =>
+          Promise.resolve({
+            id: ENTRY_ID,
+            participantId: PARTICIPANT_ID,
+            claimToken: "token",
+            contentHash: "old",
+            state: "submitted",
+            playerName: "Ekko",
+            withdrawnAt: null,
+          }),
+        ),
+        listCardsForEntry: vi.fn(() => Promise.resolve([])),
+        updateEntry: record("updateEntry"),
+        replaceEntryCards: record("replaceEntryCards"),
+      },
+      tournaments: { lockParticipant: record("lockParticipant") },
+      tournamentGroups: { syncParticipantLegendsFromDeckCheck: record("syncLegends") },
+    } as unknown as Repos;
+    const list = {
+      entry: { ...PUSH.entries[0]!, cards: [] },
+      lines: [],
+      contentHash: "new",
+      cardRows: [],
+    };
+
+    await writeDeckCheckPush(
+      repos,
+      { id: TOURNAMENT_ID, status: "active" } as never,
+      [list],
+      "https://openrift.test",
+      { rosterSynced: true },
+    );
+
+    expect(calls).toEqual(["lockParticipant", "updateEntry", "replaceEntryCards", "syncLegends"]);
   });
 });
 

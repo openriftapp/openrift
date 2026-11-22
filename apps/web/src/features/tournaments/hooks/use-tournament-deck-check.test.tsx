@@ -29,8 +29,10 @@ vi.mock("@/hooks/use-session", () => ({
 }));
 
 const tickCard = vi.fn<(input: unknown) => Promise<void>>();
+const getEntry = vi.fn<(input: unknown) => Promise<DeckCheckEntryDetailResponse>>();
+const deleteEntry = vi.fn<(input: unknown) => Promise<void>>();
 vi.mock("@/lib/server-fns/orpc-client", () => ({
-  apiOrpcClient: () => ({ tickCard }),
+  apiOrpcClient: () => ({ tickCard, getEntry, deleteEntry }),
 }));
 
 const reportMutationError = vi.fn();
@@ -42,8 +44,10 @@ const {
   useAddTournamentDeckCheckCard,
   useApplyTournamentDeckCheckZoneFixes,
   useCreateTournamentDeckCheckEntry,
+  useDeleteTournamentDeckCheckEntry,
   useFixTournamentDeckCheckCard,
   useTickTournamentDeckCheckCard,
+  useTournamentDeckCheckEntry,
   useUpdateTournamentDeckCheckEntry,
 } = await import("./use-tournament-deck-check");
 
@@ -51,6 +55,8 @@ const ENTRY_KEY = tournamentDeckCheckKeys.entry("user-1", "t-1", "e-1");
 
 function makeDetail(foundCopies: boolean[]): DeckCheckEntryDetailResponse {
   return {
+    event: { status: "active", submissionsCloseAt: null },
+    entry: { state: "approved", unlockRequestedAt: null },
     cards: [{ id: "card-1", foundCopies }],
   } as unknown as DeckCheckEntryDetailResponse;
 }
@@ -90,6 +96,8 @@ const vars = (copyIndex: number, found = true) => ({
 
 afterEach(() => {
   tickCard.mockReset();
+  getEntry.mockReset();
+  deleteEntry.mockReset();
   reportMutationError.mockReset();
 });
 
@@ -157,6 +165,55 @@ describe("useTickTournamentDeckCheckCard", () => {
     second.resolve();
     await act(() => secondDone);
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ENTRY_KEY });
+  });
+});
+
+describe("useTournamentDeckCheckEntry", () => {
+  it("keeps an in-flight tick when a poll answers first", async () => {
+    const request = deferred();
+    tickCard.mockReturnValue(request.promise);
+    getEntry.mockResolvedValue(makeDetail([false, false]));
+    const { client, result } = setup();
+    const { result: entry } = renderHook(() => useTournamentDeckCheckEntry("t-1", "e-1"), {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      ),
+    });
+
+    let pending: Promise<unknown> = Promise.resolve();
+    await act(async () => {
+      pending = result.current.mutateAsync(vars(1));
+      await Promise.resolve();
+    });
+    await act(() => entry.current.refetch());
+
+    expect(getEntry).toHaveBeenCalled();
+    expect(readFoundCopies(client)).toEqual([false, true]);
+    request.resolve();
+    await act(() => pending);
+  });
+});
+
+describe("useDeleteTournamentDeckCheckEntry", () => {
+  it("refreshes the list without refetching the deleted entry", async () => {
+    getEntry.mockResolvedValue(makeDetail([false]));
+    deleteEntry.mockResolvedValue();
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const { result: entry } = renderHook(() => useTournamentDeckCheckEntry("t-1", "e-1"), {
+      wrapper,
+    });
+    await act(() => entry.current.refetch());
+    const entryFetches = getEntry.mock.calls.length;
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+    const { result } = renderHook(() => useDeleteTournamentDeckCheckEntry(), { wrapper });
+
+    await act(() => result.current.mutateAsync({ tournamentId: "t-1", entryId: "e-1" }));
+
+    expect(invalidate).toHaveBeenCalledWith(expect.objectContaining({ exact: true }));
+    expect(getEntry).toHaveBeenCalledTimes(entryFetches);
   });
 });
 

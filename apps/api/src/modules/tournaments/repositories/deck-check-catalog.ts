@@ -21,6 +21,7 @@ export function deckCheckCatalogRepo(db: Kysely<Database>) {
         .select(["printingId", "cardId"])
         .where("cardId", "in", cardIds)
         .orderBy("canonicalRank", "asc")
+        .orderBy("printingId", "asc")
         .execute();
       for (const row of printingRows) {
         if (!thumbnailByCard.has(row.cardId)) {

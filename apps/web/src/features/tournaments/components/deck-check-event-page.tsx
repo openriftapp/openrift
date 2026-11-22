@@ -11,6 +11,7 @@ import {
   PlusIcon,
   RotateCcwIcon,
   Trash2Icon,
+  TriangleAlertIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -85,8 +86,23 @@ export function TournamentDeckCheckEntries({
   /** Host / organizer: may add players by hand. */
   canManage: boolean;
 }) {
-  const { data: detail } = useTournamentDeckCheckEntries(tournamentId);
+  const { data: detail, isError, refetch } = useTournamentDeckCheckEntries(tournamentId);
   const [search, setSearch] = useState("");
+
+  if (!detail && isError) {
+    return (
+      <EmptyState
+        className="py-12"
+        icon={TriangleAlertIcon}
+        title={m.tournaments_deck_check_entries_unavailable_title()}
+        description={m.common_error_generic()}
+      >
+        <Button variant="outline" onClick={() => void refetch()}>
+          {m.common_retry()}
+        </Button>
+      </EmptyState>
+    );
+  }
 
   if (!detail) {
     return (

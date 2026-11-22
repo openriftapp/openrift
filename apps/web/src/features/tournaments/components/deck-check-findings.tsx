@@ -177,6 +177,15 @@ function FixZonesDialog({
     () => new Set(suggestions.map((suggestion) => suggestion.cardId)),
   );
 
+  // Seeds on the open transition: BaseUI's Dialog only fires onOpenChange for user changes.
+  const [seededOpen, setSeededOpen] = useState(open);
+  if (open !== seededOpen) {
+    setSeededOpen(open);
+    if (open) {
+      setSelected(new Set(suggestions.map((suggestion) => suggestion.cardId)));
+    }
+  }
+
   const displayNameFor = (suggestion: DeckCheckEntryDetailResponse["zoneSuggestions"][number]) => {
     const printing = printingsByCardId.get(suggestion.cardId)?.[0];
     return printing ? legendDisplayName(printing.card) : suggestion.cardName;
@@ -202,9 +211,7 @@ function FixZonesDialog({
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
-        if (nextOpen) {
-          setSelected(new Set(suggestions.map((suggestion) => suggestion.cardId)));
-        } else {
+        if (!nextOpen) {
           applyZoneFixes.reset();
         }
         onOpenChange(nextOpen);

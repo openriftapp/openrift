@@ -381,6 +381,16 @@ export function AddCardDialog({
   const [quantity, setQuantity] = useState("1");
   const [section, setSection] = useState<string>(WellKnown.deckZone.MAIN);
   const addCard = useAddTournamentDeckCheckCard();
+
+  const [seededOpen, setSeededOpen] = useState(open);
+  if (open !== seededOpen) {
+    setSeededOpen(open);
+    if (open) {
+      setName("");
+      setQuantity("1");
+      setSection(WellKnown.deckZone.MAIN);
+    }
+  }
   const parsedQuantity = parseIntegerInput(quantity, 1, 99) ?? undefined;
 
   const handleAdd = async () => {
@@ -390,8 +400,6 @@ export function AddCardDialog({
     }
     const card = { tournamentId, entryId, name: trimmed, quantity: parsedQuantity, section };
     if (await runReportedMutation(() => addCard.mutateAsync(card))) {
-      setName("");
-      setQuantity("1");
       onOpenChange(false);
     }
   };

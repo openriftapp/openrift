@@ -3,10 +3,11 @@ import type {
   DeckCheckReviewOutcome,
 } from "@openrift/shared/types/api/deck-check";
 import { useNavigate } from "@tanstack/react-router";
-import { ExpandIcon, PlusIcon, ShrinkIcon } from "lucide-react";
+import { ExpandIcon, FileQuestionIcon, PlusIcon, ShrinkIcon } from "lucide-react";
 import { useState } from "react";
 
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -72,7 +73,7 @@ export function TournamentDeckCheckEntry({
   /** Host / organizer: may delete entries (judges can review but not delete). */
   canManage: boolean;
 }) {
-  const { data: detail, refetch } = useTournamentDeckCheckEntry(tournamentId, entryId);
+  const { data: detail, isError, refetch } = useTournamentDeckCheckEntry(tournamentId, entryId);
   const wide = useDeckCheckViewStore((state) => state.wide);
   const setWide = useDeckCheckViewStore((state) => state.setWide);
   const displayMode = useDeckCheckViewStore((state) => state.displayMode);
@@ -123,6 +124,24 @@ export function TournamentDeckCheckEntry({
       { onSuccess: notesDirty ? beginNotesSave() : undefined },
     );
   };
+
+  if (!detail && isError) {
+    return (
+      <>
+        <DeckEntryTopBar tournamentId={tournamentId} />
+        <EmptyState
+          className={cn(PAGE_WIDTH.capped, "px-safe py-12")}
+          icon={FileQuestionIcon}
+          title={m.tournaments_deck_check_entry_unavailable_title()}
+          description={m.tournaments_deck_check_entry_unavailable_description()}
+        >
+          <Button variant="outline" onClick={() => void refetch()}>
+            {m.common_retry()}
+          </Button>
+        </EmptyState>
+      </>
+    );
+  }
 
   if (!detail) {
     return (
@@ -199,6 +218,7 @@ export function TournamentDeckCheckEntry({
                 setNotes(event.target.value);
                 markNotesEdited();
               }}
+              aria-label={m.tournaments_deck_check_notes_label()}
               placeholder={m.tournaments_deck_check_notes_placeholder()}
               maxLength={4000}
               rows={3}

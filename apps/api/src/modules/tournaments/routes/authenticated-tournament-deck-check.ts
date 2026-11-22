@@ -91,6 +91,51 @@ function requireListVisible(entry: DeckCheckEntry): void {
   }
 }
 
+/**
+ * Locks participant before entry, the order the player's save paths take, since
+ * the legend sync writes the participant row. Re-checks visibility under the lock.
+ */
+async function lockVisibleEntry(
+  txRepos: Repos,
+  event: DeckCheckEvent,
+  entry: DeckCheckEntry,
+): Promise<DeckCheckEntry> {
+  if (entry.participantId !== null) {
+    await txRepos.tournaments.lockParticipant(entry.participantId);
+  }
+  const locked = await txRepos.deckCheck.getEntryForUpdate(event.id, entry.id);
+  assertFound(locked, "Entry not found");
+  requireListVisible(locked);
+  return locked;
+}
+
+/**
+ * A judge's card edit and the content-hash refresh commit together, serialized per entry.
+ * An edit returning `false` changed nothing and skips the refresh.
+ */
+function editVisibleList<T>(
+  context: ApiContext,
+  event: DeckCheckEvent,
+  entry: DeckCheckEntry,
+  edit: (txRepos: Repos) => Promise<T>,
+): Promise<T> {
+  return context.transact(async (txRepos) => {
+    const locked = await lockVisibleEntry(txRepos, event, entry);
+    const result = await edit(txRepos);
+    if (result !== false) {
+      await refreshEditedEntry(txRepos, locked);
+    }
+    return result;
+  });
+}
+
+/** A card row replaced by a re-import, or a copy index past its quantity, while the judge had the entry open. */
+function requireCardStillListed(found: boolean): void {
+  if (!found) {
+    throw conflict("Card list changed. Reload the entry.");
+  }
+}
+
 const os = implement(tournamentDeckCheckContract).$context<ApiContext>().use(requireAuthedUser);
 
 /** Thrown `AppError`s map to ORPCErrors at the handler boundary. */
@@ -169,11 +214,15 @@ export const tournamentDeckCheckRouter = {
       const repos = context.repos;
       const event = await authorizeJudge(repos, input.tournamentId, context.userId);
       // This 404s fast, outside the transaction; it is not the entry the transition validates against.
-      assertFound(await repos.deckCheck.getEntry(event.id, input.entryId), "Entry not found");
+      const current = await repos.deckCheck.getEntry(event.id, input.entryId);
+      assertFound(current, "Entry not found");
 
       const updated = await context.transact(async (txRepos) => {
         // Row-locked re-load: without it, two concurrent judge requests validate
         // against stale state and the second commit overwrites the first's.
+        if (current.participantId !== null) {
+          await txRepos.tournaments.lockParticipant(current.participantId);
+        }
         const fresh = await txRepos.deckCheck.getEntryForUpdate(event.id, input.entryId);
         assertFound(fresh, "Entry not found");
         const settled = await settleExpiredEditable(txRepos, event, fresh);
@@ -267,7 +316,7 @@ export const tournamentDeckCheckRouter = {
       resolvedPrintingId: null,
       matchStatus: "unmatched" as const,
     };
-    await context.transact(async ({ deckCheck }) => {
+    await editVisibleList(context, event, entry, async ({ deckCheck }) => {
       await deckCheck.lockCardOrder(entry.id);
       const existing = await deckCheck.listCardsForEntry(entry.id);
       await deckCheck.addEntryCard(entry.id, {
@@ -279,7 +328,6 @@ export const tournamentDeckCheckRouter = {
         ...resolution,
       });
     });
-    await refreshEditedEntry(repos, entry);
     const reloaded = await loadEntry(repos, event, input.entryId);
     return buildEntryDetail(repos, event, reloaded);
   }),
@@ -299,24 +347,23 @@ export const tournamentDeckCheckRouter = {
         matchStatus: "unmatched" as const,
       };
 
-      let updated: boolean;
-      if (section === undefined) {
-        updated = await repos.deckCheck.updateCardName(entry.id, input.cardId, name, resolution);
-      } else {
-        const zone = mapSectionToZone(section);
-        if (!zone) {
-          throw new AppError(422, ERROR_CODES.VALIDATION_ERROR, `Unknown deck section: ${section}`);
-        }
-        updated = await repos.deckCheck.moveCardCopies(entry.id, input.cardId, {
-          name,
-          resolution,
-          section,
-          zone,
-          copies,
-        });
+      const zone = section === undefined ? undefined : mapSectionToZone(section);
+      if (section !== undefined && !zone) {
+        throw new AppError(422, ERROR_CODES.VALIDATION_ERROR, `Unknown deck section: ${section}`);
       }
-      assertExisted(updated, "Card not found");
-      await refreshEditedEntry(repos, entry);
+      await editVisibleList(context, event, entry, async ({ deckCheck }) => {
+        const updated =
+          section === undefined || !zone
+            ? await deckCheck.updateCardName(entry.id, input.cardId, name, resolution)
+            : await deckCheck.moveCardCopies(entry.id, input.cardId, {
+                name,
+                resolution,
+                section,
+                zone,
+                copies,
+              });
+        requireCardStillListed(updated);
+      });
       const reloaded = await loadEntry(repos, event, input.entryId);
       return buildEntryDetail(repos, event, reloaded);
     },
@@ -331,36 +378,37 @@ export const tournamentDeckCheckRouter = {
 
       // The client names which cards to move, never the destination; only a
       // currently-suggested move is applied, so a forged id is a no-op.
-      const cards = await repos.deckCheck.listCardsForEntry(entry.id);
-      const matchedIds = [
-        ...new Set(
-          cards.flatMap((card) =>
-            card.matchStatus === "matched" && card.resolvedCardId ? [card.resolvedCardId] : [],
+      await editVisibleList(context, event, entry, async ({ deckCheck }) => {
+        const cards = await deckCheck.listCardsForEntry(entry.id);
+        const matchedIds = [
+          ...new Set(
+            cards.flatMap((card) =>
+              card.matchStatus === "matched" && card.resolvedCardId ? [card.resolvedCardId] : [],
+            ),
           ),
-        ),
-      ];
-      const details = await repos.deckCheck.getCardDetails(matchedIds);
-      const suggestionById = new Map(
-        computeZoneSuggestions(cards, details).map((suggestion) => [suggestion.cardId, suggestion]),
-      );
-
-      let applied = 0;
-      for (const cardId of new Set(input.cardIds)) {
-        const suggestion = suggestionById.get(cardId);
-        if (!suggestion) {
-          continue;
-        }
-        await repos.deckCheck.updateCardZone(
-          entry.id,
-          cardId,
-          suggestion.suggestedZone,
-          suggestion.suggestedZone,
+        ];
+        const details = await deckCheck.getCardDetails(matchedIds);
+        const suggestionById = new Map(
+          computeZoneSuggestions(cards, details).map((suggestion) => [
+            suggestion.cardId,
+            suggestion,
+          ]),
         );
-        applied += 1;
-      }
-      if (applied > 0) {
-        await refreshEditedEntry(repos, entry);
-      }
+        let applied = false;
+        for (const cardId of new Set(input.cardIds)) {
+          const suggestion = suggestionById.get(cardId);
+          if (suggestion) {
+            await deckCheck.updateCardZone(
+              entry.id,
+              cardId,
+              suggestion.suggestedZone,
+              suggestion.suggestedZone,
+            );
+            applied = true;
+          }
+        }
+        return applied;
+      });
       const reloaded = await loadEntry(repos, event, input.entryId);
       return buildEntryDetail(repos, event, reloaded);
     },
@@ -372,30 +420,33 @@ export const tournamentDeckCheckRouter = {
     const entry = await loadEntryForWrite(repos, event, input.entryId);
     requireListVisible(entry);
 
-    const removed = await repos.deckCheck.deleteEntryCardCopy(
-      input.entryId,
-      input.cardId,
-      input.copyIndex,
-    );
-    assertExisted(removed, "Card not found");
-    await refreshEditedEntry(repos, entry);
+    await editVisibleList(context, event, entry, async ({ deckCheck }) => {
+      const removed = await deckCheck.deleteEntryCardCopy(
+        input.entryId,
+        input.cardId,
+        input.copyIndex,
+      );
+      requireCardStillListed(removed);
+    });
   }),
 
   tickCard: os.tickCard.handler(async ({ input, context }): Promise<void> => {
     const repos = context.repos;
     const event = await authorizeJudge(repos, input.tournamentId, context.userId);
-    requireListVisible(await loadEntryForWrite(repos, event, input.entryId));
+    const entry = await loadEntryForWrite(repos, event, input.entryId);
+    requireListVisible(entry);
 
-    const stored = await repos.deckCheck.setCardCopyFound(
-      input.entryId,
-      input.cardId,
-      input.copyIndex,
-      input.found,
-    );
-    if (!stored) {
-      // The card row was replaced by a re-import while the judge had the entry open.
-      throw conflict("Card list changed. Reload the entry.");
-    }
+    await context.transact(async (txRepos) => {
+      await lockVisibleEntry(txRepos, event, entry);
+      requireCardStillListed(
+        await txRepos.deckCheck.setCardCopyFound(
+          input.entryId,
+          input.cardId,
+          input.copyIndex,
+          input.found,
+        ),
+      );
+    });
   }),
 
   unlinkEntry: os.unlinkEntry.handler(

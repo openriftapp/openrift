@@ -42,6 +42,20 @@ export interface DeckCheckCardResolution {
   matchStatus: DeckCheckMatchStatus;
 }
 
+/** `resolvedPrintingId` is derived on read; the table has no such column. */
+function toInsertRow(entryId: string, card: NewDeckCheckEntryCard) {
+  return {
+    entryId,
+    sortOrder: card.sortOrder,
+    rawName: card.rawName,
+    section: card.section,
+    zone: card.zone,
+    quantity: card.quantity,
+    resolvedCardId: card.resolvedCardId,
+    matchStatus: card.matchStatus,
+  };
+}
+
 export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
   return {
     /** Call inside a transaction; the split in moveCardCopies takes the same key. */
@@ -79,18 +93,7 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
       if (cards.length > 0) {
         await db
           .insertInto("deckCheckEntryCards")
-          .values(
-            cards.map((card) => ({
-              entryId,
-              sortOrder: card.sortOrder,
-              rawName: card.rawName,
-              section: card.section,
-              zone: card.zone,
-              quantity: card.quantity,
-              resolvedCardId: card.resolvedCardId,
-              matchStatus: card.matchStatus,
-            })),
-          )
+          .values(cards.map((card) => toInsertRow(entryId, card)))
           .execute();
       }
     },
@@ -115,12 +118,8 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
     },
 
     /**
-     * Moves copies of a card line into another zone, renaming and re-resolving
-     * the line in the same step. Moving fewer than all copies splits the line,
-     * leaving the remainder where it was; copies landing in a zone that already
-     * holds the same resolved card merge into that line. A re-zone to the line's
-     * current zone is treated as a plain rename, never a split. Found ticks for
-     * moved (or newly merged-in) copies reset to unfound.
+     * Moves copies to another zone under a new name. A partial move splits the line,
+     * and only the moved copies take the new name and reset to unfound.
      */
     moveCardCopies(
       entryId: string,
@@ -184,7 +183,6 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
           trx
             .updateTable("deckCheckEntryCards")
             .set({
-              ...resolutionColumns,
               quantity: source.quantity - moveCount,
               foundCopies: foundArray(denseFound(source.foundCopies, source.quantity - moveCount)),
             })
@@ -286,10 +284,7 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
     },
 
     async addEntryCard(entryId: string, card: NewDeckCheckEntryCard): Promise<void> {
-      await db
-        .insertInto("deckCheckEntryCards")
-        .values({ ...card, entryId })
-        .execute();
+      await db.insertInto("deckCheckEntryCards").values(toInsertRow(entryId, card)).execute();
     },
 
     /**

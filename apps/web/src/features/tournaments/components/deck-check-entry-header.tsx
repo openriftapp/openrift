@@ -441,6 +441,7 @@ export function PlayerMessageField({
           setMessage(event.target.value);
           markEdited();
         }}
+        aria-label={m.tournaments_deck_check_player_message_label()}
         placeholder={m.tournaments_deck_check_player_message_placeholder()}
         maxLength={2000}
         rows={2}

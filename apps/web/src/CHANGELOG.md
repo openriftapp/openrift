@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-22
+
+### Highlights
+
+- fix(Tournaments): **Adding cards in deck checks** — adding a card during a deck check failed with an error and now saves the line.
+
+### Other
+
+- fix(Tournaments): **Steadier deck-check pages** — a decklist that fails to load offers Retry, reopened dialogs start empty, and ticks stay on while the page refreshes.
+
 ## 2026-11-21
 
 ### Highlights
