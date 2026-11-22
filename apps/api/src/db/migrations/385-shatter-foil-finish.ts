@@ -20,7 +20,9 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 }
 
 export async function down(db: Kysely<unknown>): Promise<void> {
+  await sql`SET CONSTRAINTS trg_finishes_catalog_version IMMEDIATE`.execute(db);
   await sql`ALTER TABLE finishes DISABLE TRIGGER trg_finishes_protect_well_known`.execute(db);
   await sql`UPDATE finishes SET is_well_known = false WHERE slug = 'shatter-foil'`.execute(db);
   await sql`ALTER TABLE finishes ENABLE TRIGGER trg_finishes_protect_well_known`.execute(db);
+  await sql`SET CONSTRAINTS trg_finishes_catalog_version DEFERRED`.execute(db);
 }
