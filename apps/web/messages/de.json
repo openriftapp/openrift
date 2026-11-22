@@ -3490,6 +3490,7 @@
   "decks_overview_display_options": "Anzeigeoptionen",
   "decks_overview_display_options_changed": "Anzeigeoptionen, geändert",
   "decks_overview_edit_description": "Beschreibung bearbeiten",
+  "decks_hero_edit_name": "Deckname bearbeiten",
   "decks_overview_focus_clear": "Alle Karten zeigen",
   "decks_overview_focus_in_deck": "{count} im Deck",
   "decks_overview_focus_opening_hand": "{chance} in deiner Starthand",

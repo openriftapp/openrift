@@ -9,6 +9,7 @@
 ### Other
 
 - fix(Tournaments): **Steadier deck-check pages** — a decklist that fails to load offers Retry, reopened dialogs start empty, and ticks stay on while the page refreshes.
+- feat(Decks): **Edit a deck's name from its header** — click the deck name at the top of your deck to change its name and description.
 
 ## 2026-11-21
 

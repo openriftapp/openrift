@@ -52,6 +52,7 @@ interface DeckHeroProps {
   showSignIn?: boolean;
   onViewMissing?: () => void;
   onCardClick?: (card: CardOpenTarget) => void;
+  onEditName?: () => void;
   /** Owner-only: the public share page never resolves one. */
   box?: { name: string; onOpen: () => void };
   byline?: React.ReactNode;
@@ -166,6 +167,7 @@ export function DeckHero({
   showSignIn,
   onViewMissing,
   onCardClick,
+  onEditName,
   box,
   byline,
   heading,
@@ -291,8 +293,23 @@ export function DeckHero({
           {heading ?? (
             <div className="min-w-0">
               <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <p className="font-heading min-w-0 text-2xl font-bold break-words max-sm:line-clamp-2 sm:truncate">
+                <p
+                  className={cn(
+                    "font-heading min-w-0 text-2xl font-bold break-words max-sm:line-clamp-2 sm:truncate",
+                    onEditName &&
+                      "decoration-muted-foreground/60 relative underline-offset-4 has-hover:underline",
+                  )}
+                >
                   {name}
+                  {/* Overlay: a button inside the clamped text would defeat the ellipsis. */}
+                  {onEditName && (
+                    <Pressable
+                      onClick={onEditName}
+                      aria-label={m.decks_hero_edit_name()}
+                      title={m.decks_hero_edit_name()}
+                      className="absolute inset-0 rounded-sm"
+                    />
+                  )}
                 </p>
                 {/* self-center: row aligns on text baseline, which an image meets at its bottom edge. */}
                 {legendDomains.length > 0 && (

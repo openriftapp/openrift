@@ -335,6 +335,7 @@ function WorkbenchContent({
       onHoverCard={handleHoverMain}
       onOverviewCardClick={openOverviewCard}
       onEditDescription={isLocal ? undefined : () => dialogs.openDialog("details")}
+      onEditName={() => dialogs.openDialog(isLocal ? "rename" : "details")}
       variantRailSlot={isLocal ? undefined : <DeckVariantRail deckId={deckId} />}
       onTargetZone={setZone}
       cardListReadOnly={mode === "deck"}

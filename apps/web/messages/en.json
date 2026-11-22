@@ -3491,6 +3491,7 @@
   "decks_overview_display_options": "Display options",
   "decks_overview_display_options_changed": "Display options, changed",
   "decks_overview_edit_description": "Edit description",
+  "decks_hero_edit_name": "Edit deck name",
   "decks_overview_focus_clear": "Show all cards",
   "decks_overview_focus_in_deck": "{count} in deck",
   "decks_overview_focus_opening_hand": "{chance} in your opening hand",

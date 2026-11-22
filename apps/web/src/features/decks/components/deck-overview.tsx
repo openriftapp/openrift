@@ -126,6 +126,7 @@ interface DeckOverviewProps {
   showSignIn?: boolean;
   description?: string;
   onEditDescription?: () => void;
+  onEditName?: () => void;
   onCardClick?: (card: CardOpenTarget) => void;
   planSlot?: React.ReactNode;
   battlefieldPlan?: BattlefieldPlanPicks | null;
@@ -158,6 +159,7 @@ export function DeckOverview({
   showSignIn,
   description,
   onEditDescription,
+  onEditName,
   onCardClick,
   planSlot,
   battlefieldPlan,
@@ -565,6 +567,7 @@ export function DeckOverview({
           showSignIn={showSignIn}
           onViewMissing={onViewMissing}
           onCardClick={onCardClick}
+          onEditName={readOnly ? undefined : onEditName}
           box={
             showBoxTab && homeCollection
               ? { name: homeCollection.name, onOpen: () => setTab("box") }

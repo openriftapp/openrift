@@ -296,6 +296,7 @@ function DeckEditorContent({
                   onHoverCard={handleHoverMain}
                   onOverviewCardClick={openOverviewCard}
                   onEditDescription={isLocal ? undefined : () => dialogs.openDialog("details")}
+                  onEditName={() => dialogs.openDialog(isLocal ? "rename" : "details")}
                   // Variant families are server-only, so a local deck gets no
                   // rail at all.
                   variantRailSlot={isLocal ? undefined : <DeckVariantRail deckId={deckId} />}

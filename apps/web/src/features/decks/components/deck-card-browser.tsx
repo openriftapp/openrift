@@ -227,6 +227,7 @@ interface DeckCardBrowserProps {
   onHoverCard?: HoverHandler;
   onOverviewCardClick: (card: CardOpenTarget) => void;
   onEditDescription?: () => void;
+  onEditName?: () => void;
   variantRailSlot?: React.ReactNode;
   onTargetZone?: (zone: DeckZone) => void;
   cardListReadOnly?: boolean;
@@ -241,6 +242,7 @@ export function DeckCardBrowser({
   onHoverCard,
   onOverviewCardClick,
   onEditDescription,
+  onEditName,
   variantRailSlot,
   onTargetZone,
   cardListReadOnly,
@@ -273,6 +275,7 @@ export function DeckCardBrowser({
         onHoverCard={onHoverCard}
         onCardClick={onOverviewCardClick}
         onEditDescription={onEditDescription}
+        onEditName={onEditName}
         variantRailSlot={variantRailSlot}
         cardListReadOnly={cardListReadOnly}
         cardListSlot={pickTag ? <FormatTagPickBanner deck={deckDetail.deck} /> : undefined}
@@ -300,6 +303,7 @@ function DeckOverviewForEditor({
   onHoverCard,
   onCardClick,
   onEditDescription,
+  onEditName,
   variantRailSlot,
   cardListReadOnly,
   cardListSlot,
@@ -354,6 +358,7 @@ function DeckOverviewForEditor({
         onCardClick={onCardClick}
         description={deck.description ?? undefined}
         onEditDescription={onEditDescription}
+        onEditName={onEditName}
         variantRailSlot={variantRailSlot}
         oddsConfig={isLocal ? undefined : (deck.oddsConfig ?? null)}
         onSaveOddsConfig={

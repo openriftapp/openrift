@@ -3490,6 +3490,7 @@
   "decks_overview_display_options": "显示选项",
   "decks_overview_display_options_changed": "显示选项，已更改",
   "decks_overview_edit_description": "编辑描述",
+  "decks_hero_edit_name": "编辑卡组名称",
   "decks_overview_focus_clear": "显示所有卡牌",
   "decks_overview_focus_in_deck": "卡组中{count}张",
   "decks_overview_focus_opening_hand": "起手牌中出现的概率为{chance}",

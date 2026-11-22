@@ -3490,6 +3490,7 @@
   "decks_overview_display_options": "표시 옵션",
   "decks_overview_display_options_changed": "표시 옵션, 변경됨",
   "decks_overview_edit_description": "설명 편집",
+  "decks_hero_edit_name": "덱 이름 편집",
   "decks_overview_focus_clear": "모든 카드 보기",
   "decks_overview_focus_in_deck": "덱에 {count}장",
   "decks_overview_focus_opening_hand": "시작 패에 들어올 확률 {chance}",
