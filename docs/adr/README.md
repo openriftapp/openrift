@@ -80,3 +80,4 @@ The MADR documentation is available at <https://adr.github.io/madr/> while gener
 - **[ADR-045](045-borrowed-cards-in-deck-boxes.md)**: Borrowed Cards in Deck Boxes (undecided; placement rows vs. flagged copies)
 - **[ADR-048](048-cardmarket-stock-sync.md)**: Cardmarket Stock Sync through the Browser Extension
 - **[ADR-053](053-catalog-workspace.md)**: Catalog Workspace for Cards, Printings and Faces
+- **[ADR-058](058-self-describing-deck-codes.md)**: Self-Describing Deck Codes
