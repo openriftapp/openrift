@@ -95,6 +95,7 @@ export interface AcceptSubmissionArgs extends ReviewerArgs {
   printingFields: PrintingFieldPick[];
   newPrintings: NewPrintingPick[];
   images: ImagePick[];
+  markApplied?: boolean;
 }
 
 interface SkippedNewPrinting {
@@ -362,12 +363,13 @@ export async function acceptSubmission(
       skipped.map((entry) => entry.candidatePrintingId),
     );
 
-    const outcome: CardSubmissionStatus = count > 0 ? "accepted" : "not_applied";
+    const credited = count > 0 || args.markApplied === true;
+    const outcome: CardSubmissionStatus = credited ? "accepted" : "not_applied";
     await trx.cardSubmissions.resolve(submission.id, {
       status: outcome,
       resolvedAt: now,
       resolvedByUserId: adminUserId,
-      acceptedCardId: liveCard && count > 0 ? liveCard.id : null,
+      acceptedCardId: liveCard && credited ? liveCard.id : null,
     });
 
     return { applied: count, status: outcome };

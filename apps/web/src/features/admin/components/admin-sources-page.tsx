@@ -23,29 +23,14 @@ import { errorText } from "@/lib/error-text";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 const SWITCH_HELP = [
-  {
-    term: "Show in review",
-    description:
-      "Off hides the source from Review and from the compare panel on card pages. Its rows stay stored.",
-  },
-  {
-    term: "Trusted",
-    description:
-      "Trusted values are what bulk accept may apply, and their compare column is tinted first. Review counts every source, trusted or not.",
-  },
-  {
-    term: "Helpers can review",
-    description: "Card-review helpers see this source and can settle it.",
-  },
+  { term: "Show in review", description: "Off hides the source in Review and in compare." },
+  { term: "Trusted", description: "Bulk accept may apply its values." },
+  { term: "Helpers can review", description: "Card-review helpers see and settle it." },
   {
     term: "Check matching",
-    description:
-      "Marks every unchecked source row checked when each value it provides equals the live card or printing. Fields the source leaves empty count as matching. Contributor submissions and unlinked printings are left alone.",
+    description: "Checks every unchecked row whose values all equal the live record.",
   },
-  {
-    term: "Order",
-    description: "Drag rows to set the column order in compare panels.",
-  },
+  { term: "Order", description: "Column order in compare. Drag to change." },
 ];
 
 function ExportCatalogButton() {

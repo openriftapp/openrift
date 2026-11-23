@@ -4,11 +4,13 @@ import { implement } from "@orpc/server";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { listUnassignedListings } from "../../marketplace/services/unassigned-listings.js";
-import { listWorkspaceDecisions } from "../services/workspace-decisions.js";
 import { listWorkspaceHistory } from "../services/workspace-history.js";
-import { buildWorkspaceQueue } from "../services/workspace-queue.js";
+import {
+  buildListingItems,
+  buildReviewCards,
+  buildWorkspaceQueue,
+} from "../services/workspace-queue.js";
 import { listWorkspaceRecords } from "../services/workspace-records.js";
-import { buildWorkspaceUploads } from "../services/workspace-uploads.js";
 
 const os = implement(adminCatalogWorkspaceContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -18,10 +20,25 @@ export const adminCatalogWorkspaceRouter = {
       access: context.adminAccess,
       userId: context.userId,
       owner: input.owner,
-      now: new Date(),
       loadListings: () => listUnassignedListings(context.repos),
     }),
   ),
+
+  workspaceListings: os.workspaceListings.handler(async ({ context }) =>
+    buildListingItems(await listUnassignedListings(context.repos)),
+  ),
+
+  reviewCards: os.reviewCards.handler(({ context }) =>
+    buildReviewCards(context.repos, {
+      access: context.adminAccess,
+      userId: context.userId,
+    }),
+  ),
+
+  workspaceCardImages: os.workspaceCardImages.handler(async ({ context }) => {
+    const rows = await context.repos.workspaceRecords.cardImages();
+    return { images: Object.fromEntries(rows.map((row) => [row.cardSlug, row.imageUrl])) };
+  }),
 
   workspaceRecords: os.workspaceRecords.handler(({ input, context }) =>
     listWorkspaceRecords(context.repos, {
@@ -29,14 +46,6 @@ export const adminCatalogWorkspaceRouter = {
       userId: context.userId,
       input,
     }),
-  ),
-
-  workspaceUploads: os.workspaceUploads.handler(({ context }) =>
-    buildWorkspaceUploads(context.repos, { access: context.adminAccess }),
-  ),
-
-  workspaceDecisions: os.workspaceDecisions.handler(({ input, context }) =>
-    listWorkspaceDecisions(context.repos, { userId: context.userId, input, now: new Date() }),
   ),
 
   workspaceHistory: os.workspaceHistory.handler(({ input, context }) =>

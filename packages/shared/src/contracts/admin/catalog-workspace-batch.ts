@@ -21,13 +21,20 @@ export const workspaceTrustedPrintingSchema = z.object({
   candidatePrintingId: z.string(),
   cardSlug: z.string(),
   label: z.string(),
+  providers: z.array(z.string()),
 });
 
 export const workspaceTrustedPrintingsPreviewSchema = z.object({
   count: z.number().int().min(0),
   items: z.array(workspaceTrustedPrintingSchema),
   ineligible: z.array(
-    z.object({ candidatePrintingId: z.string(), label: z.string(), reason: z.string() }),
+    z.object({
+      candidatePrintingId: z.string(),
+      cardSlug: z.string(),
+      label: z.string(),
+      providers: z.array(z.string()),
+      reason: z.string(),
+    }),
   ),
 });
 

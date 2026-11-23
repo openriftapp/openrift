@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
 import { adminCardDetailQueryOptions } from "@/features/admin/lib/admin-card-queries";
 import { loadCardDetailData } from "@/features/admin/lib/card-detail-prefetch";
+import { setsQueryOptions } from "@/features/cards/lib/sets-queries";
 import { adminSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin/workspace/cards/$cardSlug")({
@@ -16,7 +17,10 @@ export const Route = createFileRoute("/_app/_authenticated/admin/workspace/cards
         }),
       ]);
     }
-    await loadCardDetailData(context.queryClient, context.userId);
+    await Promise.all([
+      loadCardDetailData(context.queryClient, context.userId),
+      context.queryClient.query({ ...setsQueryOptions, staleTime: "static" }),
+    ]);
   },
   head: () => adminSeoHead("Card"),
   pendingComponent: AdminPending,

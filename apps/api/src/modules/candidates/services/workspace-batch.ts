@@ -145,6 +145,7 @@ async function loadTrustedPrintings(repos: BatchRepos): Promise<{
   eligible: TrustedPrintingGroup[];
   ineligible: IneligibleTrustedPrinting[];
   favorites: ReadonlySet<string>;
+  providersOf: (group: TrustedPrintingGroup) => string[];
 }> {
   const favorites = await repos.providerSettings.favoriteProviders();
   const providers = [...favorites];
@@ -175,7 +176,10 @@ async function loadTrustedPrintings(repos: BatchRepos): Promise<{
       });
     }
   }
-  return { eligible, ineligible, favorites };
+  const providerById = new Map(rows.map((row) => [row.id, row.provider]));
+  const providersOf = (group: TrustedPrintingGroup): string[] =>
+    [...new Set(group.candidates.flatMap((cp) => providerById.get(cp.id) ?? []))].toSorted();
+  return { eligible, ineligible, favorites, providersOf };
 }
 
 export async function previewTrustedPrintings(
@@ -183,17 +187,20 @@ export async function previewTrustedPrintings(
   access: AdminAccess | null,
 ): Promise<WorkspaceTrustedPrintingsPreview> {
   assertAdmin(access);
-  const { eligible, ineligible } = await loadTrustedPrintings(repos);
+  const { eligible, ineligible, providersOf } = await loadTrustedPrintings(repos);
   return {
     count: eligible.length,
     items: eligible.map((group) => ({
       candidatePrintingId: group.first.id,
       cardSlug: group.cardSlug,
       label: group.label,
+      providers: providersOf(group),
     })),
-    ineligible: ineligible.map(({ candidatePrintingId, label, reason }) => ({
+    ineligible: ineligible.map(({ candidatePrintingId, reason, group }) => ({
       candidatePrintingId,
-      label,
+      cardSlug: group.cardSlug,
+      label: group.label,
+      providers: providersOf(group),
       reason,
     })),
   };

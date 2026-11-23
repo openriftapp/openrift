@@ -1,4 +1,3 @@
-import type { ComparablePrintingField } from "@openrift/shared/catalog-field-compare";
 import type {
   DeskImage,
   DeskPrintingRow,
@@ -8,17 +7,13 @@ import type {
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay } from "@openrift/shared/format-date";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
-import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
-import { computeProductSuggestions } from "@openrift/shared/marketplace-suggestions";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
-import type { ReleasePrecision } from "@openrift/shared/set-release";
-import { formatReleasePeriod, normalizeToPeriodStart } from "@openrift/shared/set-release";
+import { normalizeToPeriodStart } from "@openrift/shared/set-release";
 import { pluralize } from "@openrift/shared/strings";
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronRightIcon, ExternalLinkIcon, Share2Icon } from "lucide-react";
-import type { ReactNode } from "react";
 import { Suspense, useState } from "react";
 import { toast } from "sonner";
 
@@ -29,14 +24,11 @@ import { SimpleSelect } from "@/components/ui/simple-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePrecisionControl } from "@/features/admin/components/date-precision-control";
-import { collectEntries } from "@/features/admin/components/marketplace-product-entries";
 import { PrintingActionsMenu } from "@/features/admin/components/printing-actions-menu";
 import { PrintingCitationsEditor } from "@/features/admin/components/printing-citations-editor";
 import { PrintingDeskChannelPicker } from "@/features/admin/components/printing-desk-channel-picker";
 import { DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
-import { RejectSubmissionDialog } from "@/features/admin/components/reject-submission-dialog";
-import { SendNoteDialog } from "@/features/admin/components/send-note-dialog";
 import { SideSearch } from "@/features/admin/components/side-search";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import { useUnmapMarketplacePrinting } from "@/features/admin/hooks/use-admin-card-mutations";
@@ -51,47 +43,26 @@ import type { AdminCardDetail } from "@/features/admin/lib/admin-card-queries";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { hasAdminSection } from "@/features/admin/lib/admin-sections";
 import { deskPrintingName } from "@/features/admin/lib/desk-face-options";
-import {
-  EMPTY_VALUE_TEXT,
-  formatCatalogFieldValue,
-  formatReleaseValue,
-} from "@/features/admin/lib/field-value-text";
+import { EMPTY_VALUE_TEXT, formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
 import { deskImageSrc } from "@/features/admin/lib/printing-desk-image";
 import { deskPrintingPeriod } from "@/features/admin/lib/printing-desk-status";
 import type { PrintingFace } from "@/features/admin/lib/printing-faces";
 import { printingFaces } from "@/features/admin/lib/printing-faces";
 import { encodePostSlides } from "@/features/admin/lib/printing-post-slides";
 import { providerSettingsQueryOptions } from "@/features/admin/lib/provider-settings-queries";
-import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
-import { PrintingCompareSourcesDialog } from "@/features/catalog-workspace/components/compare-sources-dialog";
 import { RecordFieldRow } from "@/features/catalog-workspace/components/record/field-row";
-import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
 import {
-  RecordBanner,
+  PendingReviewNotice,
   RecordHeader,
   RecordPane,
   RecordSection,
 } from "@/features/catalog-workspace/components/record/record-pane";
-import { SourceStrip } from "@/features/catalog-workspace/components/record/source-strip";
-import { SuggestionChip } from "@/features/catalog-workspace/components/record/suggestion-chip";
 import { WorkspaceHistorySection } from "@/features/catalog-workspace/components/record/workspace-history-section";
 import { useValueLabels } from "@/features/catalog-workspace/hooks/use-face-record-actions";
-import type { PrintingChip } from "@/features/catalog-workspace/hooks/use-printing-record-actions";
-import { usePrintingRecordActions } from "@/features/catalog-workspace/hooks/use-printing-record-actions";
-import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
-import {
-  ADMIN_ONLY_DISCARD,
-  ADMIN_ONLY_REPLY,
-  submitterNameOf,
-} from "@/features/catalog-workspace/lib/face-suggestion-rows";
-import {
-  buildPrintingSuggestions,
-  listingSuggestionsForPrinting,
-} from "@/features/catalog-workspace/lib/printing-suggestion-rows";
+import { buildPrintingSuggestions } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
 import { replaceSecondFace } from "@/features/catalog-workspace/lib/replace-second-face";
-import { discardLabel, primaryLabel } from "@/features/catalog-workspace/lib/suggestion-labels";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
 import { errorText } from "@/lib/error-text";
@@ -140,44 +111,33 @@ function PrintingRecordBody({
   canReview: boolean;
   canDesk: boolean;
 }) {
+  const navigate = useNavigate();
   const { data } = useDeskPrinting(printingId, 1);
   const printing = data.printing;
   const faces = printingFaces(printing);
   const slugs = [...new Set(faces.map((face) => face.cardSlug))];
-  const firstQuery = useAdminCardDetail(canReview ? (slugs[0] ?? "") : "");
-  const secondQuery = useAdminCardDetail(canReview ? (slugs[1] ?? "") : "");
-  const first = firstQuery.data;
-  const second = secondQuery.data;
-  const { data: providerData, isLoading: providerLoading } = useQuery({
-    ...providerSettingsQueryOptions,
-    enabled: canReview,
-  });
-  const { data: mappingData, isLoading: mappingLoading } = useQuery({
-    ...unifiedMappingsForCardQueryOptions(printing.cardSlug),
-    enabled: isAdmin,
-  });
+  const first = useAdminCardDetail(canReview ? (slugs[0] ?? "") : "").data;
+  const second = useAdminCardDetail(canReview ? (slugs[1] ?? "") : "").data;
+  const { data: providerData } = useQuery({ ...providerSettingsQueryOptions, enabled: canReview });
   const costKeywords = useCostKeywords();
   const labels = useValueLabels();
-  const navigation = useQueueNavigation("printing");
   const queueWrite = useQueueWorkspaceWrite();
   const [editing, setEditing] = useState<PrintingField | null>(null);
-  const [replyTo, setReplyTo] = useState<string | null>(null);
-  const [rejecting, setRejecting] = useState<string | null>(null);
-  const [compareOpen, setCompareOpen] = useState(false);
 
-  const details = [first, second].filter(
-    (detail): detail is AdminCardDetail => detail !== undefined,
+  const cardDetails = [
+    { slug: slugs[0], detail: first },
+    { slug: slugs[1], detail: second },
+  ].filter(
+    (entry): entry is { slug: string; detail: AdminCardDetail } =>
+      entry.slug !== undefined && entry.detail !== undefined,
   );
-  const providerSettings = providerData?.providerSettings ?? [];
-  const trusted = new Set(
-    providerSettings.filter((setting) => setting.isFavorite).map((setting) => setting.provider),
-  );
+  const details = cardDetails.map((entry) => entry.detail);
   const hiddenProviders = new Set(
-    providerSettings
+    (providerData?.providerSettings ?? [])
       .filter((setting) => setting.isHidden || (!isAdmin && !setting.helperReviewable))
       .map((setting) => setting.provider),
   );
-  const model = buildPrintingSuggestions(details, printingId, {
+  const { suggestions } = buildPrintingSuggestions(details, printingId, {
     costKeywords,
     setTotals: Object.assign({}, ...details.map((detail) => detail.setTotals)) as Record<
       string,
@@ -185,51 +145,15 @@ function PrintingRecordBody({
     >,
     hiddenProviders,
   });
-  const group = mappingData?.group ?? null;
-  const listings =
-    group === null
-      ? []
-      : listingSuggestionsForPrinting(
-          collectEntries(group),
-          computeProductSuggestions(group),
-          (entry) =>
-            marketplaceSkuKey(
-              entry.marketplace,
-              entry.product.externalId,
-              entry.product.finish,
-              entry.product.language,
-            ),
-          printingId,
-        );
-  const actions = usePrintingRecordActions({
-    printingId,
-    record: deskPrintingName(printing),
-    model,
-    listings,
-    canCheck: isAdmin,
-    canMap: isAdmin,
-    loading: firstQuery.isLoading || secondQuery.isLoading || providerLoading || mappingLoading,
+  const pendingCards = cardDetails.flatMap(({ slug, detail }) => {
+    const pending = suggestions.filter(
+      (suggestion) =>
+        cardDetails.find((entry) =>
+          entry.detail.candidatePrintings.some((row) => row.id === suggestion.candidate.id),
+        )?.detail === detail,
+    ).length;
+    return pending > 0 ? [{ cardSlug: slug, cardName: detail.displayName, pending }] : [];
   });
-
-  const chipIndex = new Map(actions.chips.map((chip, index) => [chip.key, index + 1]));
-  const hotkeyOf = (key: string) => {
-    const index = chipIndex.get(key);
-    return index !== undefined && index <= 9 ? index : undefined;
-  };
-  const sourceById = new Map(model.sources.map((source) => [source.candidatePrintingId, source]));
-  const enterProviders = [
-    ...new Set(
-      model.sources
-        .filter((source) => model.enterCandidateIds.includes(source.candidatePrintingId))
-        .map((source) => source.provider),
-    ),
-  ];
-  const fieldChips = actions.chips.filter(
-    (chip): chip is Extract<PrintingChip, { kind: "field" }> => chip.kind === "field",
-  );
-  const listingChips = actions.chips.filter(
-    (chip): chip is Extract<PrintingChip, { kind: "listing" }> => chip.kind === "listing",
-  );
   const activeFront = data.images.find((image) => image.face === "front" && image.isActive);
   const postImage = activeFront ?? data.images.at(0) ?? null;
   const postSlides =
@@ -246,75 +170,6 @@ function PrintingRecordBody({
     ).values(),
   ];
 
-  const primaryAndNext = async () => {
-    if (await actions.runPrimary()) {
-      navigation.goNext();
-    }
-  };
-
-  function chipValue(
-    field: ComparablePrintingField,
-    suggestion: Extract<PrintingChip, { kind: "field" }>["suggestion"],
-  ): string {
-    if (field === "releasedAt") {
-      return formatReleaseValue(suggestion.proposed, suggestion.candidate.releasePrecision);
-    }
-    if (field === "releasePrecision" && printing.releasedAt !== null) {
-      return formatReleasePeriod({
-        releasedAt: printing.releasedAt,
-        precision: suggestion.proposed as ReleasePrecision,
-      });
-    }
-    return formatCatalogFieldValue(field, suggestion.proposed, labels);
-  }
-
-  function chipsFor(field: ComparablePrintingField): ReactNode {
-    const own = fieldChips.filter((chip) => chip.suggestion.field === field);
-    if (own.length === 0) {
-      return undefined;
-    }
-    return own.map((chip) => {
-      const { suggestion } = chip;
-      return (
-        <SuggestionChip
-          key={chip.key}
-          tone={suggestion.isContributor ? "contributor" : "source"}
-          sourceLabel={suggestion.isContributor ? "Contributor" : suggestion.provider}
-          value={chipValue(field, suggestion)}
-          hotkey={hotkeyOf(chip.key)}
-          pending={actions.pending}
-          onUse={() => void actions.applyChip(chip)}
-          onDiscard={
-            suggestion.isContributor || !isAdmin
-              ? undefined
-              : () => void actions.discard(suggestion.candidate.id)
-          }
-          discardDisabledReason={suggestion.isContributor ? undefined : ADMIN_ONLY_DISCARD}
-          discardLabel={discardLabel(
-            sourceById.get(suggestion.candidate.id)?.differences ?? 0,
-            suggestion.provider,
-            sourceById.get(suggestion.candidate.id)?.elsewhere,
-          )}
-          onReject={
-            suggestion.isContributor
-              ? () => setRejecting(suggestion.candidate.candidateCardId)
-              : undefined
-          }
-          onReply={
-            suggestion.isContributor && isAdmin
-              ? () => setReplyTo(suggestion.candidate.candidateCardId)
-              : undefined
-          }
-          replyDisabledReason={suggestion.isContributor ? ADMIN_ONLY_REPLY : undefined}
-        />
-      );
-    });
-  }
-
-  const releaseChips = [chipsFor("releasedAt"), chipsFor("releasePrecision")].filter(
-    (chips) => chips !== undefined,
-  );
-  const availableFromChips = releaseChips.length === 0 ? undefined : releaseChips;
   const editOf = (field: PrintingField) =>
     printing.canEdit && editing === null ? () => setEditing(field) : undefined;
   const editorOf = (field: PrintingField) =>
@@ -356,40 +211,24 @@ function PrintingRecordBody({
                   Make a post
                 </Link>
               )}
-              <Button variant="ghost" size="sm" onClick={() => navigation.skipToEnd()}>
-                Skip to end <Kbd>S</Kbd>
-              </Button>
-              {isAdmin && (
-                <Button size="sm" disabled={actions.pending} onClick={() => void primaryAndNext()}>
-                  {primaryLabel(actions.enterCount)}
-                  <Kbd>↵</Kbd>
-                </Button>
-              )}
               {isAdmin && (
                 <PrintingActionsMenu
                   printing={printing}
                   invalidates={RECORD_DELETE_SCOPE}
                   runWrite={queueWrite}
                   inWorkspace
-                  onDeleted={() => navigation.goNext()}
+                  onDeleted={() =>
+                    void navigate({ to: "/admin/workspace/printings", ignoreBlocker: true })
+                  }
                 />
               )}
             </>
           }
         />
       }
-      banner={
-        isAdmin && actions.enterCount > 0 ? (
-          <RecordBanner>
-            {`Enter discards ${actions.enterCount} ${pluralize(actions.enterCount, "source")} (${enterProviders.join(", ")}) and opens the next printing.`}
-          </RecordBanner>
-        ) : undefined
-      }
+      banner={<PendingReviewNotice record="printing" cards={pendingCards} />}
     >
       <RecordSection title="Faces">
-        <p className="text-muted-foreground text-sm">
-          Images and face fields are edited on each face.
-        </p>
         <div className="grid gap-3 xl:grid-cols-2">
           {faces.map((face) => (
             <FaceSummary
@@ -406,17 +245,6 @@ function PrintingRecordBody({
       </RecordSection>
 
       <RecordSection title="Printing fields">
-        {canReview && (
-          <SourceStrip
-            sources={model.sources.map((source) => ({
-              key: source.candidatePrintingId,
-              label: source.provider,
-              differences: source.differences,
-              trusted: trusted.has(source.provider),
-            }))}
-            onCompare={() => setCompareOpen(true)}
-          />
-        )}
         <div>
           <RecordFieldRow
             label="Channel"
@@ -427,14 +255,12 @@ function PrintingRecordBody({
             )}
             onEdit={editOf("channel")}
             editing={editorOf("channel")}
-            suggestions={chipsFor("distributionChannelSlugs")}
           />
           <RecordFieldRow
             label="Size"
             value={formatCatalogFieldValue("size", printing.size, labels)}
             onEdit={editOf("size")}
             editing={editorOf("size")}
-            suggestions={chipsFor("size")}
           />
           <RecordFieldRow
             label="Announced on"
@@ -443,14 +269,12 @@ function PrintingRecordBody({
             }
             onEdit={editOf("announced")}
             editing={editorOf("announced")}
-            suggestions={chipsFor("announcedAt")}
           />
           <RecordFieldRow
             label="Available from"
             value={deskPrintingPeriod(printing)}
             onEdit={editOf("release")}
             editing={editorOf("release")}
-            suggestions={availableFromChips}
           />
           <RecordFieldRow
             label="Comment"
@@ -472,43 +296,17 @@ function PrintingRecordBody({
 
       {isAdmin && (
         <RecordSection
-          title={
-            <span className="inline-flex flex-wrap items-center gap-2">
-              Marketplace
-              {listingChips.length > 0 && (
-                <Badge variant="warning">{listingChips.length} to map</Badge>
-              )}
-            </span>
+          title="Marketplace"
+          actions={
+            <Link
+              to="/admin/workspace/listings"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              Map listings
+              <ChevronRightIcon />
+            </Link>
           }
         >
-          {listingChips.map((chip) => (
-            <div
-              key={chip.key}
-              className="bg-warning-soft flex flex-wrap items-center gap-2 rounded-md px-2 py-1.5 text-sm"
-            >
-              <span className="min-w-0 flex-1 break-words">
-                &ldquo;{chip.listing.product.productName}&rdquo;{" "}
-                <span className="text-muted-foreground">
-                  · {marketplaceLabel(chip.listing.marketplace)} #{chip.listing.product.externalId}
-                </span>
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void actions.ignoreListing(chip.listing)}
-              >
-                Ignore
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void actions.mapListing(chip.listing)}
-              >
-                Map here
-                {hotkeyOf(chip.key) !== undefined && <Kbd>{hotkeyOf(chip.key)}</Kbd>}
-              </Button>
-            </div>
-          ))}
           <MappedListings printingId={printingId} mapped={mapped} />
         </RecordSection>
       )}
@@ -520,41 +318,6 @@ function PrintingRecordBody({
       )}
 
       {(canReview || printing.canEdit) && <WorkspaceHistorySection target={{ printingId }} />}
-      {compareOpen && (
-        <PrintingCompareSourcesDialog
-          open
-          onOpenChange={setCompareOpen}
-          printingId={printingId}
-          cardSlugs={slugs}
-          details={details}
-          providerSettings={providerSettings}
-          hiddenProviders={hiddenProviders}
-          costKeywords={costKeywords}
-          isAdmin={isAdmin}
-        />
-      )}
-      <SendNoteDialog
-        candidateCardId={replyTo}
-        submitterName={replyTo === null ? null : submitterNameOf(details, replyTo)}
-        runWrite={queueWrite}
-        onOpenChange={(open) => {
-          if (!open) {
-            setReplyTo(null);
-          }
-        }}
-      />
-      <RejectSubmissionDialog
-        candidateCardId={rejecting}
-        submitterName={rejecting === null ? null : submitterNameOf(details, rejecting)}
-        kindLabel="Correction"
-        runWrite={queueWrite}
-        onOpenChange={(open) => {
-          if (!open) {
-            setRejecting(null);
-          }
-        }}
-        onRejected={() => actions.settleCards()}
-      />
     </RecordPane>
   );
 }

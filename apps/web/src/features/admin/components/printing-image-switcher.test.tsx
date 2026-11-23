@@ -46,6 +46,7 @@ vi.mock("@/features/admin/hooks/use-admin-image-mutations", () => {
     useRehostPrintingImage: idle,
     useRotatePrintingImage: () => ({ mutateAsync: state.rotate, isPending: false }),
     useSetFallbackArt: idle,
+    useSetPrintingImageNeedsLevels: idle,
     useSetPrintingImageNeedsTrim: idle,
     useUnrehostPrintingImage: idle,
     useUploadFallbackArt: idle,
@@ -66,6 +67,7 @@ const image = {
   fileInUseElsewhere: false,
   rotation: 0,
   needsTrim: false,
+  needsLevels: false,
   quad: null,
 } as unknown as AdminPrintingImageResponse;
 
@@ -126,11 +128,17 @@ describe("PrintingImageSwitcher writes", () => {
 });
 
 describe("PrintingImageSwitcher file edits", () => {
-  it("holds rotate, trim and straighten while any of them is saving", () => {
+  it("holds rotate, trim, contrast and straighten while any of them is saving", () => {
     state.editingImageIds = ["img-1"];
     renderSwitcher();
 
-    for (const name of [/^Straighten/u, /^Rotate left/u, /^Rotate right/u, /^Auto-trim/u]) {
+    for (const name of [
+      /^Straighten/u,
+      /^Rotate left/u,
+      /^Rotate right/u,
+      /^Auto-trim/u,
+      /^Contrast/u,
+    ]) {
       expect(screen.getByRole("button", { name })).toBeDisabled();
     }
   });
@@ -138,7 +146,13 @@ describe("PrintingImageSwitcher file edits", () => {
   it("offers them again once the image is idle", () => {
     renderSwitcher();
 
-    for (const name of [/^Straighten/u, /^Rotate left/u, /^Rotate right/u, /^Auto-trim/u]) {
+    for (const name of [
+      /^Straighten/u,
+      /^Rotate left/u,
+      /^Rotate right/u,
+      /^Auto-trim/u,
+      /^Contrast/u,
+    ]) {
       expect(screen.getByRole("button", { name })).toBeEnabled();
     }
   });

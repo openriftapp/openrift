@@ -70,8 +70,8 @@ export async function generateWebpVariants(
   outputDir: string,
   fileBase: string,
   rotation: number,
-  /** True crops to the detected card box and applies auto-levels; false leaves the image untouched. */
   needsTrim: boolean,
+  needsLevels: boolean,
   quad: ImageQuad | null,
   skipExisting = false,
 ): Promise<void> {
@@ -101,7 +101,7 @@ export async function generateWebpVariants(
   let preppedWidth: number;
   let preppedHeight: number;
 
-  if (needsTrim) {
+  if (needsTrim || needsLevels) {
     // One greyscale decode of the rotated scan feeds both the projection
     // crop and the auto-levels measurement.
     const { data: grey, info: greyInfo } = await prepped
@@ -114,7 +114,7 @@ export async function generateWebpVariants(
     preppedHeight = greyInfo.height;
     const box = computeScanCropBox(grey, greyInfo.width, greyInfo.height);
     const wasCropped = box !== null && (box.width < greyInfo.width || box.height < greyInfo.height);
-    if (box && wasCropped && box.width > 4 && box.height > 4) {
+    if (needsTrim && box && wasCropped && box.width > 4 && box.height > 4) {
       // Shave 2px off each side to absorb scanner halo and a slightly tilted edge.
       const shaved = {
         left: box.left + 2,
@@ -126,11 +126,13 @@ export async function generateWebpVariants(
       preppedWidth = shaved.width;
       preppedHeight = shaved.height;
     }
-    const levels = computeScanLevels(
-      grey,
-      greyInfo.width,
-      box ?? { left: 0, top: 0, width: greyInfo.width, height: greyInfo.height },
-    );
+    const levels = needsLevels
+      ? computeScanLevels(
+          grey,
+          greyInfo.width,
+          box ?? { left: 0, top: 0, width: greyInfo.width, height: greyInfo.height },
+        )
+      : null;
     if (levels) {
       prepped = prepped.linear(levels.multiply, levels.offset);
     }
@@ -222,6 +224,7 @@ export async function processAndSave(
   fileBase: string,
   rotation: number,
   needsTrim: boolean,
+  needsLevels: boolean,
   quad: ImageQuad | null,
   allowOverwrite = false,
 ): Promise<void> {
@@ -233,7 +236,16 @@ export async function processAndSave(
   await io.fs.mkdir(outputDir, { recursive: true });
   await sweepExistingOrig(io, outputDir, fileBase);
   await io.fs.writeFile(join(outputDir, `${fileBase}-orig${originalExt}`), buffer);
-  await generateWebpVariants(io, buffer, outputDir, fileBase, rotation, needsTrim, quad);
+  await generateWebpVariants(
+    io,
+    buffer,
+    outputDir,
+    fileBase,
+    rotation,
+    needsTrim,
+    needsLevels,
+    quad,
+  );
 }
 
 export async function deleteRehostFiles(io: Io, rehostedUrl: string): Promise<void> {

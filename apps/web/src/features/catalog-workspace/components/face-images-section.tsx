@@ -7,6 +7,7 @@ import type {
 } from "@openrift/shared/types/api/admin";
 import {
   ArrowLeftRightIcon,
+  ContrastIcon,
   CropIcon,
   DownloadIcon,
   EllipsisVerticalIcon,
@@ -36,32 +37,28 @@ import { PrintingImageBox } from "@/features/admin/components/printing-image-box
 import { PrintingImageSwitcher } from "@/features/admin/components/printing-image-switcher";
 import { RehostStatusBadge } from "@/features/admin/components/rehost-status-badge";
 import { StraightenImageDialog } from "@/features/admin/components/straighten-image-dialog";
+import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import {
   useActivatePrintingImage,
   useAddImageFromUrl,
   useDeletePrintingImage,
+  useKeepPrintingImage,
   useImageEditPending,
   useRehostPrintingImage,
   useRotatePrintingImage,
-  useSetCandidatePrintingImage,
+  useSetPrintingImageNeedsLevels,
   useSetPrintingImageNeedsTrim,
   useUploadPrintingImage,
 } from "@/features/admin/hooks/use-admin-image-mutations";
 import { useSetDeskImageFace, useUpdateDeskImage } from "@/features/admin/hooks/use-printing-desk";
 import { adminKeys, IMAGE_FILE_SCOPE } from "@/features/admin/lib/admin-query-keys";
+import { hasAdminSection } from "@/features/admin/lib/admin-sections";
 import { deskImageSrc } from "@/features/admin/lib/printing-desk-image";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
 import { siblingImagesOf } from "@/features/admin/lib/sibling-images";
 import { imageQuadOf } from "@/features/admin/lib/straighten-quad";
 import { RecordSection } from "@/features/catalog-workspace/components/record/record-pane";
-import { SuggestionChip } from "@/features/catalog-workspace/components/record/suggestion-chip";
-import type { FaceChip } from "@/features/catalog-workspace/hooks/use-face-record-actions";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
-import type { FaceSuggestionModel } from "@/features/catalog-workspace/lib/face-suggestion-rows";
-import {
-  ADMIN_ONLY_DISCARD,
-  ADMIN_ONLY_REPLY,
-} from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import { useSession } from "@/hooks/use-session";
 import { errorText } from "@/lib/error-text";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
@@ -77,33 +74,19 @@ export function FaceImagesSection({
   cardSlug,
   face,
   detail,
-  model,
+  images,
+  printings,
   providerSettings,
   isAdmin,
-  chips,
-  hotkeyOf,
-  discardLabelOf,
-  pending,
-  onUse,
-  onDiscard,
-  onReject,
-  onReply,
   landscape,
 }: {
   cardSlug: string;
   face: AdminPrintingResponse;
   detail: AdminCardDetailResponse;
-  model: FaceSuggestionModel;
+  images: readonly AdminPrintingImageResponse[];
+  printings: readonly AdminPrintingResponse[];
   providerSettings: ProviderSettingResponse[];
   isAdmin: boolean;
-  chips: FaceChip[];
-  hotkeyOf: (key: string) => number | undefined;
-  discardLabelOf: (candidatePrintingId: string, provider: string) => string;
-  pending: boolean;
-  onUse: (chip: FaceChip) => void;
-  onDiscard: (candidatePrintingId: string) => void;
-  onReject: (candidateCardId: string) => void;
-  onReply: (candidateCardId: string) => void;
   landscape: boolean;
 }) {
   const queueWrite = useQueueWorkspaceWrite();
@@ -115,19 +98,15 @@ export function FaceImagesSection({
   ];
   const upload = useUploadPrintingImage(scope, { inlineError: true });
   const addFromUrl = useAddImageFromUrl(scope);
-  const setCandidateImage = useSetCandidatePrintingImage(scope);
   const [uploading, setUploading] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [urlOpen, setUrlOpen] = useState(false);
   const [url, setUrl] = useState("");
 
   const side = sideOf(face);
-  const printingIds = new Set(model.printings.map((printing) => printing.id));
-  const inactive = model.images.filter((image) => !image.isActive);
-  const hasActive = model.images.some((image) => image.isActive);
-  const imageChips = chips.filter(
-    (chip): chip is Extract<FaceChip, { kind: "image" }> => chip.kind === "image",
-  );
+  const printingIds = new Set(printings.map((printing) => printing.id));
+  const inactive = images.filter((image) => !image.isActive);
+  const hasActive = images.some((image) => image.isActive);
   const derived = findDerivedArtPrinting(face, detail.printings, detail.printingImages);
 
   async function addUrl() {
@@ -176,7 +155,7 @@ export function FaceImagesSection({
           printingId={face.id}
           face={side}
           printingLabel={face.expectedPrintingId}
-          images={model.images.filter((image) => image.isActive)}
+          images={images.filter((image) => image.isActive)}
           siblingImages={siblingImagesOf(detail.printingImages, detail.printings, printingIds)}
           derivedArtLabel={derived?.expectedPrintingId ?? null}
           fallbackArtMode={face.fallbackArtMode}
@@ -188,57 +167,6 @@ export function FaceImagesSection({
         />
 
         <div className="min-w-0 flex-1 space-y-2">
-          {imageChips.map((chip) => {
-            const { candidate, provider, url: imageUrl, isContributor } = chip.image;
-            return (
-              <SuggestionChip
-                key={chip.key}
-                tone={isContributor ? "contributor" : "source"}
-                sourceLabel={isContributor ? "Contributor photo" : `${provider} scan`}
-                value={
-                  <PrintingImageBox
-                    url={imageUrl}
-                    alt={`${provider} image`}
-                    href={imageUrl}
-                    className="w-20"
-                    landscape={landscape}
-                  />
-                }
-                hotkey={hotkeyOf(chip.key)}
-                pending={pending}
-                onUse={() => onUse(chip)}
-                onDiscard={isContributor || !isAdmin ? undefined : () => onDiscard(candidate.id)}
-                discardLabel={discardLabelOf(candidate.id, provider)}
-                discardDisabledReason={isContributor ? undefined : ADMIN_ONLY_DISCARD}
-                onReject={isContributor ? () => onReject(candidate.candidateCardId) : undefined}
-                onReply={
-                  isContributor && isAdmin ? () => onReply(candidate.candidateCardId) : undefined
-                }
-                replyDisabledReason={isContributor ? ADMIN_ONLY_REPLY : undefined}
-                menu={
-                  isContributor ? undefined : (
-                    <DropdownMenuItem
-                      onClick={() =>
-                        void queueWrite((signal) =>
-                          setCandidateImage.mutateAsync(
-                            {
-                              candidatePrintingId: candidate.id,
-                              mode: "additional",
-                            },
-                            { signal },
-                          ),
-                        )
-                      }
-                    >
-                      <ImagePlusIcon />
-                      Use as additional image
-                    </DropdownMenuItem>
-                  )
-                }
-              />
-            );
-          })}
-
           {inactive.map((image) => (
             <InactiveImageRow
               key={image.id}
@@ -250,7 +178,7 @@ export function FaceImagesSection({
             />
           ))}
 
-          {imageChips.length === 0 && inactive.length === 0 && (
+          {inactive.length === 0 && (
             <p className="text-muted-foreground text-sm">No new images for this face.</p>
           )}
 
@@ -323,14 +251,18 @@ function InactiveImageRow({
   const queueWrite = useQueueWorkspaceWrite();
   const activate = useActivatePrintingImage(scope);
   const remove = useDeletePrintingImage(scope);
+  const keep = useKeepPrintingImage(scope);
+  const { data: access } = useAdminAccess();
+  const canKeep = hasAdminSection(access, "card-review");
   const rotate = useRotatePrintingImage();
   const setNeedsTrim = useSetPrintingImageNeedsTrim();
+  const setNeedsLevels = useSetPrintingImageNeedsLevels();
   const editing = useImageEditPending(image.id);
   const rehost = useRehostPrintingImage();
   const moveFace = useSetDeskImageFace();
   const [straightening, setStraightening] = useState(false);
 
-  const pending = activate.isPending || remove.isPending;
+  const pending = activate.isPending || remove.isPending || keep.isPending;
   const otherSide = face.side === 2 ? "front" : "back";
 
   return (
@@ -343,7 +275,7 @@ function InactiveImageRow({
         landscape={landscape}
       />
       <span className="min-w-0 flex-1 space-y-1">
-        <Badge variant="secondary">Not active</Badge>
+        <Badge variant="secondary">{image.isReviewed ? "Extra" : "Waiting for review"}</Badge>
         <RehostStatusBadge image={image} />
       </span>
       {isAdmin && (
@@ -351,22 +283,35 @@ function InactiveImageRow({
           variant="outline"
           size="sm"
           disabled={pending}
+          pending={remove.isPending}
           onClick={() => void queueWrite((signal) => remove.mutateAsync(image.id, { signal }))}
         >
-          Discard
+          Delete
+        </Button>
+      )}
+      {canKeep && !image.isReviewed && !image.activateWhenRehosted && (
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={pending}
+          pending={keep.isPending}
+          onClick={() => void queueWrite((signal) => keep.mutateAsync(image.id, { signal }))}
+        >
+          Keep as extra
         </Button>
       )}
       <Button
         variant="outline"
         size="sm"
         disabled={pending}
+        pending={activate.isPending}
         onClick={() =>
           void queueWrite((signal) =>
             activate.mutateAsync({ imageId: image.id, active: true }, { signal }),
           )
         }
       >
-        Use
+        Make main
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger
@@ -448,6 +393,20 @@ function InactiveImageRow({
               >
                 <ScissorsIcon />
                 {image.needsTrim ? "Turn auto-trim off" : "Turn auto-trim on"}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={editing}
+                onClick={() =>
+                  void queueWrite((signal) =>
+                    setNeedsLevels.mutateAsync(
+                      { imageId: image.id, needsLevels: !image.needsLevels },
+                      { signal },
+                    ),
+                  )
+                }
+              >
+                <ContrastIcon />
+                {image.needsLevels ? "Turn contrast off" : "Turn contrast on"}
               </DropdownMenuItem>
             </>
           )}

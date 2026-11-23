@@ -5,6 +5,7 @@ import type {
   WorkspaceRecordsResponse,
 } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { WORKSPACE_RECORD_FILTERS } from "@openrift/shared/contracts/admin/catalog-workspace";
+import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useSearch } from "@tanstack/react-router";
 
@@ -12,44 +13,15 @@ import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import { useAdminCardListWhen } from "@/features/admin/hooks/use-admin-card-queries";
 import { filterDeskPrintings, sortDeskPrintings } from "@/features/admin/lib/printing-desk-filter";
 import { deskPrintingsQueryOptions } from "@/features/admin/lib/printing-desk-queries";
-import type {
-  DeskMode,
-  DeskRow,
-  ListEntry,
-  OwnerGroup,
-  WorkspaceRole,
-} from "@/features/catalog-workspace/lib/owner-items";
+import type { DeskRow, WorkspaceRole } from "@/features/catalog-workspace/lib/owner-items";
 import {
-  cardSummaryEntry,
-  cardSummaryKey,
-  deskEntry,
-  distinctProviders,
   filterCardSummaries,
   filterDeskRows,
-  filterGroups,
-  groupEntry,
-  groupOwnerItems,
-  groupsByKey,
-  ownersForRole,
-  queueStats,
-  recordEntry,
-  rowMatchesSource,
-  segmentCounts,
-  sortGroups,
-  visibleQueueItems,
   workspaceRole,
 } from "@/features/catalog-workspace/lib/owner-items";
-import {
-  workspaceQueueQueryOptions,
-  workspaceRecordsInfiniteQueryOptions,
-} from "@/features/catalog-workspace/lib/workspace-queries";
-import type {
-  WorkspaceSearch,
-  WorkspaceView,
-} from "@/features/catalog-workspace/lib/workspace-search";
-import { workspaceSearchSchema } from "@/features/catalog-workspace/lib/workspace-search";
-import { useWorkspaceSkipStore } from "@/features/catalog-workspace/stores/workspace-skip-store";
-import { useScopeEffect } from "@/hooks/use-scope-effect";
+import { workspaceRecordsInfiniteQueryOptions } from "@/features/catalog-workspace/lib/workspace-queries";
+import type { WorkspaceSearch } from "@/features/catalog-workspace/lib/workspace-search";
+import { printingsSearchSchema } from "@/features/catalog-workspace/lib/workspace-search";
 
 const RECORDS_PAGE_SIZE = 500;
 
@@ -70,7 +42,7 @@ export function recordFilterFor(
 
 export function filterDeskTable(
   rows: readonly DeskRow[],
-  search: Pick<WorkspaceSearchState, "q" | "status" | "deskSort" | "filter">,
+  search: Pick<WorkspaceSearch, "q" | "status" | "deskSort" | "filter">,
 ): DeskRow[] {
   const filter = recordFilterFor("desk", search.filter);
   const matching = filterDeskPrintings(filterDeskRows(rows, search.q), {
@@ -84,76 +56,17 @@ export function filterDeskTable(
   return sortDeskPrintings(matching, search.deskSort ?? "updated");
 }
 
-const NO_SKIPS: string[] = [];
-
-export interface WorkspaceSearchState extends WorkspaceSearch {
-  desk?: DeskMode;
-}
-
 export function useWorkspaceRole(): WorkspaceRole {
   const { data } = useAdminAccess();
   return workspaceRole(data);
 }
 
-function useWorkspaceSearch(): WorkspaceSearchState {
+export function useWorkspaceSearch(): WorkspaceSearch {
   const raw: Record<string, unknown> = useSearch({ strict: false });
-  const desk = raw.desk === "mine" || raw.desk === "promos" ? raw.desk : undefined;
-  return { ...workspaceSearchSchema.parse(raw), desk };
-}
-
-export function resolveView(
-  owner: WorkspaceOwner,
-  role: WorkspaceRole,
-  segment: WorkspaceView | undefined,
-): WorkspaceView {
-  if (role === "desk") {
-    return "all";
-  }
-  if (segment === "new" && owner === "face") {
-    return "open";
-  }
-  return segment ?? "open";
-}
-
-export function useWorkspaceQueue(owner: WorkspaceOwner) {
-  const role = useWorkspaceRole();
-  const search = useWorkspaceSearch();
-  const view = resolveView(owner, role, search.segment);
-  const query = useQuery({ ...workspaceQueueQueryOptions(), enabled: role !== "none" });
-  const skipped = useWorkspaceSkipStore((state) => state.skipped[owner] ?? NO_SKIPS);
-  const prune = useWorkspaceSkipStore((state) => state.prune);
-
-  const items = query.data ? visibleQueueItems(query.data.items, role) : [];
-  const ownerGroups = groupOwnerItems(items.filter((item) => item.owner === owner));
-  useScopeEffect(query.data, (data) => {
-    if (data !== undefined && role !== "none") {
-      prune(owner, new Set(ownerGroups.map((group) => group.key)));
-    }
-  });
-  const segmentGroups = view === "all" ? [] : ownerGroups.filter((group) => group.segment === view);
-  const groups = sortGroups(filterGroups(segmentGroups, search), search.order ?? "oldest", skipped);
-
-  return {
-    role,
-    search,
-    view,
-    isPending: query.isPending && role !== "none",
-    error: query.error,
-    items,
-    groups,
-    entries: groups.map((group) => groupEntry(group)),
-    ownerGroups,
-    counts: segmentCounts(ownerGroups),
-    stats: queueStats(segmentGroups),
-    providers: distinctProviders(view === "all" ? ownerGroups : segmentGroups),
-    doneToday: query.data?.doneToday ?? 0,
-  };
+  return printingsSearchSchema.parse(raw);
 }
 
 interface RecordsCommon {
-  entries: ListEntry[];
-  groups: ReadonlyMap<string, OwnerGroup>;
-  source: Pick<WorkspaceSearch, "provider" | "reason">;
   query: { kind: "face" | "printing"; q?: string; filter?: WorkspaceRecordFilter };
   pages: readonly WorkspaceRecordsResponse[];
   total: number | null;
@@ -170,12 +83,12 @@ const NO_MORE = { hasMore: false, isLoadingMore: false, loadMore: () => null };
 export type WorkspaceRecordsResult =
   | (RecordsCommon & {
       kind: "card";
-      rows: ReturnType<typeof filterCardSummaries>;
-      loadedRows: ReturnType<typeof filterCardSummaries>;
+      rows: CandidateCardSummaryResponse[];
+      loadedRows: readonly CandidateCardSummaryResponse[];
     })
   | (RecordsCommon & {
       kind: "desk";
-      rows: ReturnType<typeof filterDeskRows>;
+      rows: DeskRow[];
       loadedRows: readonly DeskRow[];
     })
   | (RecordsCommon & {
@@ -202,34 +115,29 @@ export function useWorkspaceRecords(
     filter: recordFilterFor(recordKind, search.filter),
   } as const;
 
-  const queue = useQuery({ ...workspaceQueueQueryOptions(), enabled: enabled && role !== "none" });
-  const groups = groupsByKey(
-    groupOwnerItems(
-      visibleQueueItems(queue.data?.items ?? [], role).filter((item) => item.owner === owner),
-    ),
-  );
   const cards = useAdminCardListWhen(enabled && owner === "card");
   const records = useInfiniteQuery({
-    ...workspaceRecordsInfiniteQueryOptions({ ...query, limit: RECORDS_PAGE_SIZE }),
+    ...workspaceRecordsInfiniteQueryOptions({
+      ...query,
+      limit: RECORDS_PAGE_SIZE,
+      sort: search.recordSort,
+      direction: search.recordSort === undefined ? undefined : (search.recordDir ?? "asc"),
+    }),
     enabled: enabled && owner !== "card" && !isDesk,
   });
   const desk = useQuery({
     ...deskPrintingsQueryOptions(deskMode === "promos" ? "all" : "mine"),
     enabled: enabled && isDesk,
   });
-  const source = { provider: search.provider, reason: search.reason };
-  const common = { groups, source, query, pages: [] as WorkspaceRecordsResponse[] };
+  const common = { query, pages: [] as WorkspaceRecordsResponse[] };
 
   if (owner === "card") {
-    const rows = filterCardSummaries(cards.data ?? [], q).filter((row) =>
-      rowMatchesSource(groups.get(cardSummaryKey(row)), search),
-    );
+    const liveCards = (cards.data ?? []).filter((row) => row.cardSlug !== null);
     return {
       kind: "card" as const,
-      rows,
-      loadedRows: cards.data ?? [],
-      entries: rows.map((row) => cardSummaryEntry(row)),
-      total: cards.data?.length ?? null,
+      rows: filterCardSummaries(liveCards, q),
+      loadedRows: liveCards,
+      total: cards.data === undefined ? null : liveCards.length,
       ...common,
       ...NO_MORE,
       isPending: enabled && cards.isPending,
@@ -242,7 +150,6 @@ export function useWorkspaceRecords(
       kind: "desk" as const,
       rows,
       loadedRows: desk.data?.printings ?? [],
-      entries: rows.map((row) => deskEntry(row)),
       total: desk.data ? rows.length : null,
       ...common,
       ...NO_MORE,
@@ -251,15 +158,11 @@ export function useWorkspaceRecords(
     };
   }
   const pages = records.data?.pages ?? [];
-  const loadedRows = pages.flatMap((page) => page.rows);
-  const rows = loadedRows.filter((row) =>
-    rowMatchesSource(groups.get(recordEntry(recordKind, row).key), search),
-  );
+  const rows = pages.flatMap((page) => page.rows);
   return {
     kind: recordKind,
     rows,
-    loadedRows,
-    entries: rows.map((row) => recordEntry(recordKind, row)),
+    loadedRows: rows,
     total: records.data ? (pages[0]?.total ?? rows.length) : null,
     ...common,
     pages,
@@ -272,20 +175,5 @@ export function useWorkspaceRecords(
     },
     isPending: enabled && records.isPending,
     error: records.error,
-  };
-}
-
-export function useWorkspaceEntries(owner: WorkspaceOwner): {
-  view: WorkspaceView;
-  listAllowed: boolean;
-  entries: ListEntry[];
-} {
-  const queue = useWorkspaceQueue(owner);
-  const listAllowed = ownersForRole(queue.role).includes(owner);
-  const records = useWorkspaceRecords(owner, queue.view === "all" && listAllowed);
-  return {
-    view: queue.view,
-    listAllowed,
-    entries: queue.view === "all" ? records.entries : queue.entries,
   };
 }

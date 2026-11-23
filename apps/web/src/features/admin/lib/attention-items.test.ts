@@ -170,6 +170,7 @@ describe("buildAttentionSubmissions", () => {
           rehostedUrl: "/media/cards/skewed",
           rotation: 0,
           needsTrim: false,
+          needsLevels: false,
           isActive: true,
         } as AdminPrintingImageResponse,
       ],
@@ -603,6 +604,7 @@ describe("buildAttentionSources image comparison", () => {
       isActive: true,
       rotation: 0,
       needsTrim: false,
+      needsLevels: false,
     } as AdminPrintingImageResponse;
     const change = buildAttentionSources({ ...detail, printingImages: [image] }, settings, [])[0]
       ?.entries[0]?.groups[0]?.changes[0];
@@ -637,7 +639,13 @@ describe("existingPrintingFor", () => {
 
   it("misses a double-sided printing, which a single-sided accept never collides with", () => {
     const paired = makeAdminPrinting({
-      otherFace: { faceId: "f-2", cardName: "Gold", cardSlug: "gold", publicCode: "T05" },
+      otherFace: {
+        faceId: "f-2",
+        cardName: "Gold",
+        cardSlug: "gold",
+        publicCode: "T05",
+        imageUrl: null,
+      },
     });
     expect(existingPrintingFor(makeCandidatePrinting(), [paired])).toBeUndefined();
   });

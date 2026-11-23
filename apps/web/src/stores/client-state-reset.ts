@@ -3,7 +3,6 @@ import type { StoreApi } from "zustand";
 import { useLocaleBannerStore } from "@/features/account/stores/locale-banner-store";
 import { useAdminSettingsStore } from "@/features/admin/stores/admin-settings-store";
 import { useBoardDraftStore } from "@/features/board-states/stores/board-draft-store";
-import { useWorkspaceSkipStore } from "@/features/catalog-workspace/stores/workspace-skip-store";
 import { useAddModeStore } from "@/features/collections/stores/add-mode-store";
 import { usePaletteStore } from "@/features/collections/stores/palette-store";
 import { isLocalDeck, preloadLocalDecks } from "@/features/decks/lib/local-decks-collection";
@@ -204,13 +203,6 @@ export const CLIENT_STATE: readonly ClientStateEntry[] = [
     keys: ["openrift.design.specs"],
     phase: "after-leave",
     reset: () => removeLocalItem("openrift.design.specs"),
-  },
-  {
-    sources: ["features/catalog-workspace/stores/workspace-skip-store.ts"],
-    storage: "localStorage",
-    keys: ["catalog-workspace-skipped"],
-    phase: "after-leave",
-    reset: () => resetToInitial(useWorkspaceSkipStore),
   },
   {
     sources: ["features/scan/stores/scan-prefs-store.ts"],

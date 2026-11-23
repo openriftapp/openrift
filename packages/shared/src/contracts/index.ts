@@ -15,7 +15,6 @@ export * from "./admin/catalog.js";
 export * from "./admin/catalog-review.js";
 export * from "./admin/catalog-workspace.js";
 export * from "./admin/catalog-workspace-batch.js";
-export * from "./admin/catalog-workspace-bulk.js";
 export * from "./admin/changelog.js";
 export * from "./admin/core.js";
 export * from "./admin/custom-tags.js";

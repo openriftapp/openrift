@@ -11,39 +11,38 @@ const run = vi.hoisted(() => ({
 
 vi.mock("@/features/catalog-workspace/hooks/use-workspace-batch", async (importOriginal) => ({
   ...(await importOriginal<object>()),
-  useWorkspaceBatch: () => ({
-    preview: {
-      count: 2,
-      names: ["Ekko, Recurrent", "Jinx, Demolitionist"],
-      keys: ["ekko", "jinx"],
-      ineligible: [],
-    },
-    isPreviewPending: false,
-    run,
+  useBatchRun: () => run,
+  useListingsBatchPreview: () => ({
+    count: 2,
+    names: ["Gold Token Foil", "Poro Normal"],
+    keys: ["l1", "l2"],
+    ineligible: [],
   }),
 }));
 
-const { BatchButton } = await import("./batch-dialogs");
+const { AssignSuggestedListingsButton } = await import("./batch-dialogs");
 
-describe("BatchButton", () => {
+describe("AssignSuggestedListingsButton", () => {
   it("offers the confirm button again after Done closes a finished run", async () => {
     render(
       <QueryClientProvider client={new QueryClient()}>
-        <BatchButton kind="trusted-cards" />
+        <AssignSuggestedListingsButton />
       </QueryClientProvider>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Accept 2 trusted new cards" }));
+    fireEvent.click(screen.getByRole("button", { name: "Assign 2 listings by suggestion" }));
     const dialog = await screen.findByRole("dialog");
-    fireEvent.click(within(dialog).getByRole("button", { name: "Accept 2 trusted new cards" }));
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Assign 2 listings by suggestion" }),
+    );
     fireEvent.click(await screen.findByRole("button", { name: "Done" }));
     expect(run.reset).toHaveBeenCalled();
 
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    fireEvent.click(screen.getByRole("button", { name: "Accept 2 trusted new cards" }));
+    fireEvent.click(screen.getByRole("button", { name: "Assign 2 listings by suggestion" }));
     const reopened = await screen.findByRole("dialog");
     expect(
-      within(reopened).getByRole("button", { name: "Accept 2 trusted new cards" }),
+      within(reopened).getByRole("button", { name: "Assign 2 listings by suggestion" }),
     ).toBeVisible();
     expect(screen.queryByRole("button", { name: "Done" })).toBeNull();
   });

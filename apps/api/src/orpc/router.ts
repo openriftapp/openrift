@@ -10,7 +10,6 @@ import { StandardOpenAPIMatcher } from "@orpc/openapi/standard";
 import { adminCardSubmissionsRouter } from "../modules/candidates/routes/admin-card-submissions.js";
 import { adminCatalogReviewRouter } from "../modules/candidates/routes/admin-catalog-review.js";
 import { adminCatalogWorkspaceBatchRouter } from "../modules/candidates/routes/admin-catalog-workspace-batch.js";
-import { adminCatalogWorkspaceBulkRouter } from "../modules/candidates/routes/admin-catalog-workspace-bulk.js";
 import { adminCatalogWorkspaceRouter } from "../modules/candidates/routes/admin-catalog-workspace.js";
 import { adminIgnoredCandidatesRouter } from "../modules/candidates/routes/admin-ignored-candidates.js";
 import { adminStagingCardOverridesRouter } from "../modules/candidates/routes/admin-staging-card-overrides.js";
@@ -150,7 +149,6 @@ const apiRouter = {
   adminCatalogReviewRouter,
   adminCatalogWorkspaceRouter,
   adminCatalogWorkspaceBatchRouter,
-  adminCatalogWorkspaceBulkRouter,
   adminChangelogRouter,
   adminCoreRouter,
   adminCustomTagsRouter,

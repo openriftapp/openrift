@@ -117,9 +117,13 @@ export const adminPrintingImageResponseSchema = z.object({
   rehostedUrl: z.string().nullable(),
   rotation: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]),
   needsTrim: z.boolean(),
+  needsLevels: z.boolean(),
   quad: imageQuadSchema.nullable().optional(),
   isActive: z.boolean(),
   activateWhenRehosted: z.boolean(),
+  isReviewed: z.boolean(),
+  addedAt: isoDateTime,
+  uploadedByName: z.string().nullable(),
   fileInUseElsewhere: z.boolean(),
   rehostFailure: z
     .object({ attempts: z.number().int().min(1), error: z.string(), lastAttemptAt: isoDateTime })
@@ -137,6 +141,7 @@ export const adminPrintingOtherFaceSchema = z.object({
   cardName: z.string(),
   cardSlug: z.string(),
   publicCode: z.string(),
+  imageUrl: z.string().nullable(),
 });
 
 export const adminPrintingResponseSchema = z.object({

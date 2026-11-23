@@ -36,7 +36,7 @@ describe("workspace card record loaders", () => {
 
     const keys = requestedKeys(client);
     expect(new Set(keys).size).toBe(9);
-    expect(keys.some((key) => key.includes("ahri nine tailed fox"))).toBe(true);
+    expect(keys.some((key) => key.includes("ahrininetailedfox"))).toBe(true);
   });
 
   it("requests the card's detail and every reference query before any of them resolves", () => {
@@ -48,7 +48,7 @@ describe("workspace card record loaders", () => {
     });
 
     const keys = requestedKeys(client);
-    expect(new Set(keys).size).toBe(7);
+    expect(new Set(keys).size).toBe(8);
     expect(keys.some((key) => key.includes("jinx-loose-cannon"))).toBe(true);
   });
 
@@ -61,7 +61,7 @@ describe("workspace card record loaders", () => {
     });
 
     const keys = requestedKeys(client);
-    expect(keys).toHaveLength(6);
+    expect(keys).toHaveLength(7);
     expect(keys.some((key) => key.includes("jinx-loose-cannon"))).toBe(false);
   });
 

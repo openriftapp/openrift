@@ -18,21 +18,11 @@ import { createStoreResetter } from "@/test/store-helpers";
 const navigation = {
   goNext: vi.fn(),
   goPrev: vi.fn(),
-  skipToEnd: vi.fn(),
-  position: null,
 };
 
 const notice = vi.hoisted(() => vi.fn());
 
 vi.mock("sonner", () => ({ toast: Object.assign(notice, { success: vi.fn() }) }));
-
-const routeParams = vi.hoisted(() => ({ current: {} as Record<string, string> }));
-
-vi.mock("@tanstack/react-router", () => ({ useParams: () => routeParams.current }));
-
-vi.mock("@/features/catalog-workspace/hooks/use-queue-navigation", () => ({
-  useQueueNavigation: () => navigation,
-}));
 
 const {
   RECORD_LOADING_NOTICE,
@@ -63,7 +53,6 @@ function deps(overrides: Partial<Parameters<typeof handleWorkspaceKey>[1]> = {})
   return {
     goNext: vi.fn(),
     goPrev: vi.fn(),
-    skipToEnd: vi.fn(),
     actions: null,
     record: null,
     stale: false,
@@ -89,7 +78,6 @@ afterEach(() => {
   resetWorkspaceWriteQueue();
   resetActions();
   resetSelection();
-  routeParams.current = {};
   document.body.innerHTML = "";
 });
 
@@ -98,13 +86,13 @@ describe("workspaceKeyAction", () => {
     expect(workspaceKeyAction(keyEvent("j"))).toEqual({ action: "next" });
     expect(workspaceKeyAction(keyEvent("K"))).toEqual({ action: "previous" });
     expect(workspaceKeyAction(keyEvent("Enter"))).toEqual({ action: "settle-and-next" });
-    expect(workspaceKeyAction(keyEvent("3"))).toEqual({ action: "use-suggestion", digit: 3 });
   });
 
   it("ignores modified keys and unbound keys", () => {
     expect(workspaceKeyAction(keyEvent("j", { metaKey: true }))).toBeNull();
     expect(workspaceKeyAction(keyEvent("k", { ctrlKey: true }))).toBeNull();
     expect(workspaceKeyAction(keyEvent("q"))).toBeNull();
+    expect(workspaceKeyAction(keyEvent("3"))).toBeNull();
     expect(workspaceKeyAction(keyEvent("0"))).toBeNull();
   });
 
@@ -127,14 +115,12 @@ describe("workspaceKeyAction", () => {
 });
 
 describe("handleWorkspaceKey", () => {
-  it("moves with J and K and skips with S", () => {
+  it("moves with J and K", () => {
     const d = deps();
     expect(handleWorkspaceKey(keyEvent("j"), d)).toBe(true);
     expect(handleWorkspaceKey(keyEvent("k"), d)).toBe(true);
-    expect(handleWorkspaceKey(keyEvent("s"), d)).toBe(true);
     expect(d.goNext).toHaveBeenCalledOnce();
     expect(d.goPrev).toHaveBeenCalledOnce();
-    expect(d.skipToEnd).toHaveBeenCalledOnce();
   });
 
   it("does nothing while a dialog is open", () => {
@@ -192,20 +178,16 @@ describe("handleWorkspaceKey", () => {
     expect(d.goNext).toHaveBeenCalledOnce();
   });
 
-  it("calls accept, ignore and the numbered suggestion", async () => {
+  it("calls accept and ignore", async () => {
     const accept = vi.fn();
     const ignore = vi.fn();
-    const useSuggestion = vi.fn();
-    const d = deps({ actions: { accept, ignore, useSuggestion } });
+    const d = deps({ actions: { accept, ignore } });
     handleWorkspaceKey(keyEvent("a"), d);
     await vi.waitFor(() => expect(d.queue.idle()).toBe(true));
     handleWorkspaceKey(keyEvent("x"), d);
     await vi.waitFor(() => expect(d.queue.idle()).toBe(true));
-    handleWorkspaceKey(keyEvent("2"), d);
-    await vi.waitFor(() => expect(d.queue.idle()).toBe(true));
     expect(accept).toHaveBeenCalledOnce();
     expect(ignore).toHaveBeenCalledOnce();
-    expect(useSuggestion).toHaveBeenCalledWith(expect.any(AbortSignal), 2);
   });
 
   it("gives accept the limit its record registered", async () => {
@@ -343,24 +325,23 @@ describe("handleWorkspaceKey", () => {
   it("runs no record action while the registration is stale, and says so", () => {
     const ignore = vi.fn();
     const accept = vi.fn();
-    const apply = vi.fn();
     const run = vi.fn();
     const goNext = vi.fn();
     const d = deps({
       stale: true,
       goNext,
       record: Symbol("previous"),
-      actions: { ignore, accept, useSuggestion: apply, primary: { label: "Discard", run } },
+      actions: { ignore, accept, primary: { label: "Discard", run } },
     });
 
-    for (const key of ["x", "a", "1", "Enter"]) {
+    for (const key of ["x", "a", "Enter"]) {
       expect(handleWorkspaceKey(keyEvent(key), d)).toBe(true);
     }
 
-    for (const fn of [ignore, accept, apply, run, goNext]) {
+    for (const fn of [ignore, accept, run, goNext]) {
       expect(fn).not.toHaveBeenCalled();
     }
-    expect(notice).toHaveBeenCalledTimes(4);
+    expect(notice).toHaveBeenCalledTimes(3);
     expect(notice).toHaveBeenCalledWith(RECORD_LOADING_NOTICE);
   });
 
@@ -395,7 +376,6 @@ describe("handleWorkspaceKey", () => {
 
   it("reports unhandled keys when the record has no matching action", () => {
     expect(handleWorkspaceKey(keyEvent("a"), deps())).toBe(false);
-    expect(handleWorkspaceKey(keyEvent("1"), deps())).toBe(false);
   });
 
   it("undoes the latest step with Z and leaves Z unhandled when nothing is on the stack", () => {
@@ -408,7 +388,7 @@ describe("handleWorkspaceKey", () => {
 
 describe("useWorkspaceKeyboard", () => {
   it("binds keys on the window and prevents their default", () => {
-    renderHook(() => useWorkspaceKeyboard("card"), { wrapper });
+    renderHook(() => useWorkspaceKeyboard(navigation), { wrapper });
     const event = new KeyboardEvent("keydown", { key: "j", cancelable: true });
     globalThis.dispatchEvent(event);
     expect(navigation.goNext).toHaveBeenCalledOnce();
@@ -432,7 +412,7 @@ describe("useWorkspaceKeyboard", () => {
           };
         }),
     );
-    renderHook(() => useWorkspaceKeyboard("printing"), { wrapper });
+    renderHook(() => useWorkspaceKeyboard(), { wrapper });
     useWorkspaceActionsStore.getState().register({ accept }, Symbol("record"));
     const pressZ = new KeyboardEvent("keydown", { key: "z", cancelable: true });
     globalThis.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
@@ -448,7 +428,7 @@ describe("useWorkspaceKeyboard", () => {
   it("undoes a write a button started once it lands when Z is pressed during it", async () => {
     const undo = vi.fn(() => Promise.resolve());
     let land = () => {};
-    renderHook(() => useWorkspaceKeyboard("printing"), { wrapper });
+    renderHook(() => useWorkspaceKeyboard(), { wrapper });
     useWorkspaceActionsStore.getState().register({}, Symbol("record"));
     const older = {
       label: "Ignored Ekko",
@@ -501,7 +481,7 @@ describe("useWorkspaceKeyboard", () => {
     const ignore = vi.fn(() => {
       order.push("ignore");
     });
-    renderHook(() => useWorkspaceKeyboard("printing"), { wrapper });
+    renderHook(() => useWorkspaceKeyboard(), { wrapper });
     useWorkspaceActionsStore.getState().register({ ignore }, Symbol("record"));
 
     globalThis.dispatchEvent(new KeyboardEvent("keydown", { key: "z" }));
@@ -518,7 +498,7 @@ describe("useWorkspaceKeyboard", () => {
   it("keeps X away from the record being left and runs it on the next record once that registers", async () => {
     const ignorePrevious = vi.fn();
     const ignoreNext = vi.fn();
-    renderHook(() => useWorkspaceKeyboard("printing"), { wrapper });
+    renderHook(() => useWorkspaceKeyboard(), { wrapper });
     const previous = Symbol("previous");
     useWorkspaceActionsStore.getState().register({ ignore: ignorePrevious }, previous);
     useWorkspaceActionsStore.getState().leave(false);
@@ -538,27 +518,27 @@ describe("useWorkspaceKeyboard", () => {
     expect(ignorePrevious).not.toHaveBeenCalled();
   });
 
-  it("says the record is still loading for X, A, digits and Enter while it registers as loading", () => {
-    renderHook(() => useWorkspaceKeyboard("card"), { wrapper });
+  it("says the record is still loading for X, A and Enter while it registers as loading", () => {
+    renderHook(() => useWorkspaceKeyboard(navigation), { wrapper });
     const run = vi.fn();
     useWorkspaceActionsStore
       .getState()
       .register({ loading: true, primary: { label: "Next", run } }, Symbol("loading"));
 
-    for (const key of ["x", "a", "1", "Enter"]) {
+    for (const key of ["x", "a", "Enter"]) {
       const event = new KeyboardEvent("keydown", { key, cancelable: true });
       globalThis.dispatchEvent(event);
       expect(event.defaultPrevented).toBe(true);
     }
 
-    expect(notice).toHaveBeenCalledTimes(4);
+    expect(notice).toHaveBeenCalledTimes(3);
     expect(notice).toHaveBeenCalledWith(RECORD_LOADING_NOTICE);
     expect(run).not.toHaveBeenCalled();
     expect(navigation.goNext).not.toHaveBeenCalled();
   });
 
   it("does not skip a record when Enter follows J before the next record registers", () => {
-    renderHook(() => useWorkspaceKeyboard("card"), { wrapper });
+    renderHook(() => useWorkspaceKeyboard(navigation), { wrapper });
     const previous = Symbol("previous");
     useWorkspaceActionsStore.getState().register({}, previous);
     useWorkspaceActionsStore.getState().leave(false);
@@ -573,8 +553,7 @@ describe("useWorkspaceKeyboard", () => {
   });
 
   it("keeps Enter on a record opened from the list until that record registers", () => {
-    routeParams.current = { cardSlug: "jinx-loose-cannon" };
-    renderHook(() => useWorkspaceKeyboard("card"), { wrapper });
+    renderHook(() => useWorkspaceKeyboard(navigation), { wrapper });
 
     globalThis.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
     expect(navigation.goNext).not.toHaveBeenCalled();
@@ -586,7 +565,7 @@ describe("useWorkspaceKeyboard", () => {
   });
 
   it("ignores keys while a dialog is in the document", () => {
-    renderHook(() => useWorkspaceKeyboard("face"), { wrapper });
+    renderHook(() => useWorkspaceKeyboard(navigation), { wrapper });
     const dialog = document.createElement("div");
     dialog.setAttribute("role", "dialog");
     document.body.append(dialog);
@@ -595,7 +574,7 @@ describe("useWorkspaceKeyboard", () => {
   });
 
   it("keeps the keys while a closed select popup stays mounted", () => {
-    renderHook(() => useWorkspaceKeyboard("printing"), { wrapper });
+    renderHook(() => useWorkspaceKeyboard(navigation), { wrapper });
     const popup = document.createElement("div");
     popup.dataset.closed = "";
     const list = document.createElement("div");
@@ -607,9 +586,27 @@ describe("useWorkspaceKeyboard", () => {
   });
 
   it("stops listening on unmount", () => {
-    const { unmount } = renderHook(() => useWorkspaceKeyboard("card"), { wrapper });
+    const { unmount } = renderHook(() => useWorkspaceKeyboard(navigation), { wrapper });
     unmount();
     globalThis.dispatchEvent(new KeyboardEvent("keydown", { key: "j" }));
     expect(navigation.goNext).not.toHaveBeenCalled();
+  });
+
+  it("binds only A, X and Z without navigation", async () => {
+    const ignore = vi.fn();
+    renderHook(() => useWorkspaceKeyboard(), { wrapper });
+    useWorkspaceActionsStore.getState().register({ ignore }, Symbol("record"));
+
+    for (const key of ["j", "k", "Enter", "s", "1"]) {
+      const event = new KeyboardEvent("keydown", { key, cancelable: true });
+      globalThis.dispatchEvent(event);
+      expect(event.defaultPrevented, key).toBe(false);
+    }
+    const pressX = new KeyboardEvent("keydown", { key: "x", cancelable: true });
+    globalThis.dispatchEvent(pressX);
+
+    expect(pressX.defaultPrevented).toBe(true);
+    await vi.waitFor(() => expect(ignore).toHaveBeenCalledOnce());
+    expect(notice).not.toHaveBeenCalled();
   });
 });

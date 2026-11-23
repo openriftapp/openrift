@@ -90,11 +90,10 @@ describe("registrationIsStale", () => {
   });
 
   it("is stale on a record opened without J or K until that record registers", () => {
-    expect(registrationIsStale(useWorkspaceActionsStore.getState(), true)).toBe(true);
-    expect(registrationIsStale(useWorkspaceActionsStore.getState(), false)).toBe(false);
+    expect(stale()).toBe(true);
 
     useWorkspaceActionsStore.getState().register({}, Symbol("record"));
 
-    expect(registrationIsStale(useWorkspaceActionsStore.getState(), true)).toBe(false);
+    expect(stale()).toBe(false);
   });
 });

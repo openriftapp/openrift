@@ -74,6 +74,16 @@ export const adminCardImagesContract = {
       BAD_REQUEST: { message: "Image could not be rehosted" },
     })
     .input(imageIdParam.extend({ active: z.boolean() })),
+  keepImage: authedRoute
+    .route({
+      method: "POST",
+      path: "/api/admin/v1/cards/printing-images/{imageId}/keep",
+      tags: [TAG],
+      successStatus: 204,
+    })
+    .meta({ adminSections: ["card-review"] })
+    .errors({ NOT_FOUND: { message: "Printing image not found" } })
+    .input(imageIdParam),
   unrehostImage: authedRoute
     .route({
       method: "POST",
@@ -124,6 +134,16 @@ export const adminCardImagesContract = {
     .meta({ adminSections: ["card-review"] })
     .errors({ NOT_FOUND: { message: "Printing image not found" } })
     .input(imageIdParam.extend({ needsTrim: z.boolean() })),
+  setNeedsLevels: authedRoute
+    .route({
+      method: "POST",
+      path: "/api/admin/v1/cards/printing-images/{imageId}/set-needs-levels",
+      tags: [TAG],
+      successStatus: 204,
+    })
+    .meta({ adminSections: ["card-review"] })
+    .errors({ NOT_FOUND: { message: "Printing image not found" } })
+    .input(imageIdParam.extend({ needsLevels: z.boolean() })),
   setQuad: authedRoute
     .route({
       method: "POST",

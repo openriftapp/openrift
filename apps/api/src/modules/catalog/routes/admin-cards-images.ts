@@ -144,6 +144,22 @@ export const adminCardImagesRouter = {
     });
   }),
 
+  keepImage: os.keepImage.handler(async ({ input, context }): Promise<void> => {
+    const { printingImages } = context.repos;
+    const { imageId } = input;
+
+    const image = await printingImages.getForActivate(imageId);
+    assertFound(image, "Printing image not found");
+    await context.transact((trxRepos) => trxRepos.printingImages.markReviewed(imageId));
+
+    await recordAdminEvent(context.repos, context.userId, {
+      action: "image.keep",
+      entityType: "image",
+      entityId: imageId,
+      newValues: { printingId: image.printingId, face: image.face },
+    });
+  }),
+
   unrehostImage: os.unrehostImage.handler(async ({ input, context }): Promise<void> => {
     const { printingImages } = context.repos;
     const { imageId } = input;
@@ -209,6 +225,7 @@ export const adminCardImagesRouter = {
     const imageFileId = await editImageFile(context.io, printingImages, image, {
       rotation,
       needsTrim: image.needsTrim,
+      needsLevels: image.needsLevels,
       quad: image.quad,
     });
 
@@ -235,6 +252,7 @@ export const adminCardImagesRouter = {
     const imageFileId = await editImageFile(context.io, printingImages, image, {
       rotation: image.rotation,
       needsTrim,
+      needsLevels: image.needsLevels,
       quad: image.quad,
     });
 
@@ -244,6 +262,33 @@ export const adminCardImagesRouter = {
       entityId: imageId,
       oldValues: { needsTrim: image.needsTrim, imageFileId: image.imageFileId },
       newValues: { needsTrim, imageFileId },
+    });
+  }),
+
+  setNeedsLevels: os.setNeedsLevels.handler(async ({ input, context }): Promise<void> => {
+    const { printingImages } = context.repos;
+    const { imageId, needsLevels } = input;
+
+    const image = await printingImages.getForRehost(imageId);
+    assertFound(image, "Printing image not found");
+    await assertImageEditScope(context.repos, context.adminAccess, context.userId, {
+      imageId,
+      printingId: image.printingId,
+    });
+
+    const imageFileId = await editImageFile(context.io, printingImages, image, {
+      rotation: image.rotation,
+      needsTrim: image.needsTrim,
+      needsLevels,
+      quad: image.quad,
+    });
+
+    await recordAdminEvent(context.repos, context.userId, {
+      action: "image.set-needs-levels",
+      entityType: "image",
+      entityId: imageId,
+      oldValues: { needsLevels: image.needsLevels, imageFileId: image.imageFileId },
+      newValues: { needsLevels, imageFileId },
     });
   }),
 
@@ -264,6 +309,7 @@ export const adminCardImagesRouter = {
     const imageFileId = await editImageFile(context.io, printingImages, image, {
       rotation: image.rotation,
       needsTrim: image.needsTrim,
+      needsLevels: image.needsLevels,
       quad,
     });
 

@@ -498,12 +498,19 @@ describe("PrintingReviewCard", () => {
         cardName: "Empowered",
         cardSlug: "empowered",
         publicCode: "VEN-T01",
+        imageUrl: null,
       },
     });
     const withShadowClone = stubPrinting({
       id: "p2",
       side: 2,
-      otherFace: { faceId: "fs", cardName: "Shadow Clone", cardSlug: "x", publicCode: "VEN-T05" },
+      otherFace: {
+        faceId: "fs",
+        cardName: "Shadow Clone",
+        cardSlug: "x",
+        publicCode: "VEN-T05",
+        imageUrl: null,
+      },
     });
     const [sharedFace] = buildFaceRows([withEmpowered, withShadowClone]) as [FaceRow];
     const fields = [

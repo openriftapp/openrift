@@ -1,8 +1,6 @@
 import { adminCatalogWorkspaceContract } from "@openrift/shared/contracts/admin/catalog-workspace";
 import type {
-  WorkspaceOwner,
   WorkspaceQueueResponse,
-  WorkspaceRecordRow,
   WorkspaceRecordsInput,
   WorkspaceRecordsResponse,
 } from "@openrift/shared/contracts/admin/catalog-workspace";
@@ -15,11 +13,28 @@ import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 const fetchWorkspaceQueue = createServerFn({ method: "GET" })
-  .validator((input: { owner?: WorkspaceOwner }) => input)
   .middleware([withCookies])
-  .handler(({ context, data }): Promise<WorkspaceQueueResponse> =>
-    apiOrpcClient(adminCatalogWorkspaceContract, context.cookie).workspaceQueue(data),
+  .handler(({ context }): Promise<WorkspaceQueueResponse> =>
+    apiOrpcClient(adminCatalogWorkspaceContract, context.cookie).workspaceQueue({}),
   );
+
+const fetchCardImages = createServerFn({ method: "GET" })
+  .middleware([withCookies])
+  .handler(async ({ context }): Promise<Record<string, string>> => {
+    const response = await apiOrpcClient(
+      adminCatalogWorkspaceContract,
+      context.cookie,
+    ).workspaceCardImages();
+    return response.images;
+  });
+
+export function cardImagesQueryOptions() {
+  return queryOptions({
+    queryKey: [...adminKeys.workspace, "card-images"] as const,
+    queryFn: () => fetchCardImages(),
+    staleTime: 10 * MINUTE_MS,
+  });
+}
 
 const fetchWorkspaceRecords = createServerFn({ method: "GET" })
   .validator((input: WorkspaceRecordsInput) => input)
@@ -28,10 +43,10 @@ const fetchWorkspaceRecords = createServerFn({ method: "GET" })
     apiOrpcClient(adminCatalogWorkspaceContract, context.cookie).workspaceRecords(data),
   );
 
-export function workspaceQueueQueryOptions(owner?: WorkspaceOwner) {
+export function workspaceQueueQueryOptions() {
   return queryOptions({
-    queryKey: adminKeys.workspaceQueueFor(owner ?? "all"),
-    queryFn: () => fetchWorkspaceQueue({ data: { owner } }),
+    queryKey: adminKeys.workspaceQueue,
+    queryFn: () => fetchWorkspaceQueue(),
     staleTime: MINUTE_MS,
   });
 }
@@ -44,21 +59,4 @@ export function workspaceRecordsInfiniteQueryOptions(input: Omit<WorkspaceRecord
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     staleTime: MINUTE_MS,
   });
-}
-
-export async function fetchAllWorkspaceRecords(
-  input: Omit<WorkspaceRecordsInput, "cursor">,
-  loaded: readonly WorkspaceRecordsResponse[] = [],
-): Promise<WorkspaceRecordRow[]> {
-  const rows = loaded.flatMap((page) => page.rows);
-  let cursor: string | null | undefined =
-    loaded.length === 0 ? undefined : (loaded.at(-1)?.nextCursor ?? null);
-  while (cursor !== null) {
-    const page: WorkspaceRecordsResponse = await fetchWorkspaceRecords({
-      data: { ...input, cursor },
-    });
-    rows.push(...page.rows);
-    cursor = page.nextCursor;
-  }
-  return rows;
 }

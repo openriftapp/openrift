@@ -72,7 +72,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
   async function clearPendingOnFace(conn: Kysely<Database>, faceId: string): Promise<void> {
     await conn
       .updateTable("faceImages")
-      .set({ isActivationPending: false })
+      .set({ isActivationPending: false, reviewedAt: sql<Date>`coalesce(reviewed_at, now())` })
       .where("faceId", "=", faceId)
       .where("isActivationPending", "=", true)
       .execute();
@@ -83,7 +83,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
     await clearPendingOnFace(conn, faceId);
     await conn
       .updateTable("faceImages")
-      .set({ isActive: false })
+      .set({ isActive: false, reviewedAt: sql<Date>`coalesce(reviewed_at, now())` })
       .where("faceId", "=", faceId)
       .where("isActive", "=", true)
       .execute();
@@ -174,6 +174,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
           "imgf.rehostedUrl",
           "imgf.rotation",
           "imgf.needsTrim",
+          "imgf.needsLevels",
           "imgf.quad",
         ])
         .where("fi.id", "=", imageId)
@@ -182,17 +183,30 @@ export function printingImagesRepo(db: Kysely<Database>) {
 
     async getVariantSettingsByIds(
       ids: string[],
-    ): Promise<Map<string, { rotation: number; needsTrim: boolean; quad: ImageQuad | null }>> {
+    ): Promise<
+      Map<
+        string,
+        { rotation: number; needsTrim: boolean; needsLevels: boolean; quad: ImageQuad | null }
+      >
+    > {
       if (ids.length === 0) {
         return new Map();
       }
       const rows = await db
         .selectFrom("imageFiles")
-        .select(["id", "rotation", "needsTrim", "quad"])
+        .select(["id", "rotation", "needsTrim", "needsLevels", "quad"])
         .where("id", "in", ids)
         .execute();
       return new Map(
-        rows.map((r) => [r.id, { rotation: r.rotation, needsTrim: r.needsTrim, quad: r.quad }]),
+        rows.map((r) => [
+          r.id,
+          {
+            rotation: r.rotation,
+            needsTrim: r.needsTrim,
+            needsLevels: r.needsLevels,
+            quad: r.quad,
+          },
+        ]),
       );
     },
 
@@ -208,6 +222,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
         rehostedUrl: string;
         rotation: 0 | 90 | 180 | 270;
         needsTrim: boolean;
+        needsLevels: boolean;
         quad: ImageQuad | null;
       },
     ): Promise<boolean> {
@@ -344,7 +359,11 @@ export function printingImagesRepo(db: Kysely<Database>) {
     async setActive(imageId: string, active: boolean): Promise<void> {
       await db
         .updateTable("faceImages")
-        .set({ isActive: active })
+        .set(
+          active
+            ? { isActive: true }
+            : { isActive: false, reviewedAt: sql<Date>`coalesce(reviewed_at, now())` },
+        )
         .where("id", "=", imageId)
         .where("isActive", "is distinct from", active)
         .execute();
@@ -492,8 +511,17 @@ export function printingImagesRepo(db: Kysely<Database>) {
     async clearPending(imageId: string): Promise<void> {
       await db
         .updateTable("faceImages")
-        .set({ isActivationPending: false })
+        .set({ isActivationPending: false, reviewedAt: sql<Date>`coalesce(reviewed_at, now())` })
         .where("id", "=", imageId)
+        .execute();
+    },
+
+    async markReviewed(imageId: string): Promise<void> {
+      await db
+        .updateTable("faceImages")
+        .set({ reviewedAt: sql<Date>`now()` })
+        .where("id", "=", imageId)
+        .where("reviewedAt", "is", null)
         .execute();
     },
 
@@ -521,7 +549,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
         }
         await db
           .updateTable("faceImages")
-          .set({ isActive: false })
+          .set({ isActive: false, reviewedAt: sql<Date>`coalesce(reviewed_at, now())` })
           .where("faceId", "=", faceId)
           .where("isActive", "=", true)
           .execute();
@@ -706,6 +734,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
           "imgf.originalUrl",
           "imgf.rotation",
           "imgf.needsTrim",
+          "imgf.needsLevels",
           "imgf.quad",
         ])
         .where("imgf.rehostedUrl", "is", null)
@@ -761,7 +790,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
     },
 
     /**
-     * `scansOnly` keeps only images with `needs_trim` set — the scanned
+     * `scansOnly` keeps only images with `needs_trim` or `needs_levels` set — the scanned
      * uploads whose variants the crop/contrast pipeline touches.
      */
     listAllRehosted(scansOnly = false) {
@@ -769,7 +798,11 @@ export function printingImagesRepo(db: Kysely<Database>) {
         .selectFrom("imageFiles as imgf")
         .select(["imgf.id as imageId", "imgf.rehostedUrl"])
         .where("imgf.rehostedUrl", "is not", null)
-        .$if(scansOnly, (qb) => qb.where("imgf.needsTrim", "=", true))
+        .$if(scansOnly, (qb) =>
+          qb.where((eb) =>
+            eb.or([eb("imgf.needsTrim", "=", true), eb("imgf.needsLevels", "=", true)]),
+          ),
+        )
         .orderBy("imgf.id")
         .$narrowType<{ rehostedUrl: string }>()
         .execute();
@@ -782,13 +815,22 @@ export function printingImagesRepo(db: Kysely<Database>) {
           rehostedUrl: string | null;
           rotation: 0 | 90 | 180 | 270;
           needsTrim: boolean;
+          needsLevels: boolean;
           quad: ImageQuad | null;
         }
       | undefined
     > {
       return db
         .selectFrom("imageFiles")
-        .select(["id", "originalUrl", "rehostedUrl", "rotation", "needsTrim", "quad"])
+        .select([
+          "id",
+          "originalUrl",
+          "rehostedUrl",
+          "rotation",
+          "needsTrim",
+          "needsLevels",
+          "quad",
+        ])
         .where("id", "=", imageFileId)
         .executeTakeFirst();
     },

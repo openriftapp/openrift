@@ -45,6 +45,7 @@ export const adminCatalogReviewRouter = {
       printingFields: input.printingFields,
       newPrintings: input.newPrintings,
       images: input.images,
+      markApplied: input.markApplied,
       adminUserId: context.userId,
       scope,
       now: new Date(),

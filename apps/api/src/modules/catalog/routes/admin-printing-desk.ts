@@ -49,10 +49,11 @@ export const adminPrintingDeskRouter = {
     const rows = await printingDesk.listDeskPrintingsForCard(card.id);
 
     const isAdmin = context.adminAccess?.isAdmin ?? false;
+    const readOnly = !canUseDesk(context.adminAccess);
     return {
       card,
       printings: rows.map((row) =>
-        toDeskPrintingRow(row, { createdByMe: mine.has(row.printingId), isAdmin }),
+        toDeskPrintingRow(row, { createdByMe: mine.has(row.printingId), isAdmin, readOnly }),
       ),
     };
   }),

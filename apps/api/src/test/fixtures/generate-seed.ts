@@ -335,7 +335,7 @@ const imageFileIds = faceImages.map((fi) => fi.image_file_id as string);
 const rawImageFiles =
   imageFileIds.length > 0
     ? await sql<Record<string, unknown>[]>`
-        SELECT id, original_url, rehosted_url, rotation, needs_trim
+        SELECT id, original_url, rehosted_url, rotation, needs_trim, needs_levels
         FROM image_files WHERE id = ANY(${imageFileIds})
         ORDER BY id
       `

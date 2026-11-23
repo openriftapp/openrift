@@ -88,9 +88,7 @@ export function CandidateSpreadsheetHeader<TRow extends CandidateSpreadsheetRow>
   return (
     <thead>
       <tr className="bg-muted/50 border-b">
-        <th className="bg-muted/50 sticky left-0 z-10 w-40 px-3 py-2 text-left font-medium">
-          Field
-        </th>
+        <th className="bg-muted sticky left-0 z-10 w-40 px-3 py-2 text-left font-medium">Field</th>
         <th className="bg-success-soft text-success w-64 border-l px-3 py-2 text-left font-medium">
           <span className="inline-flex items-center gap-1.5">
             On the site

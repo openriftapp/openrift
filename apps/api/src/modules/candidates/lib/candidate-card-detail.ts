@@ -114,6 +114,7 @@ async function buildDetailResponse(
           cardName: other.cardName,
           cardSlug: other.cardSlug,
           publicCode: other.publicCode,
+          imageUrl: other.imageUrl,
         }
       : null;
   };
@@ -304,9 +305,11 @@ async function buildDetailResponse(
         rehostAttempts,
         rehostError,
         rehostAttemptedAt,
+        addedAt,
         ...image
       }) => ({
         ...image,
+        addedAt: addedAt.toISOString(),
         rotation: image.rotation as 0 | 90 | 180 | 270,
         rehostFailure:
           rehostAttempts === null || rehostError === null || rehostAttemptedAt === null

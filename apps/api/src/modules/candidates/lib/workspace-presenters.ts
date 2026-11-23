@@ -6,7 +6,6 @@ import {
 } from "@openrift/shared/catalog-field-compare";
 import type {
   WorkspaceOwner,
-  WorkspaceOwnerCounts,
   WorkspaceQueueItem,
   WorkspaceQueueResponse,
   WorkspaceReason,
@@ -259,7 +258,7 @@ export function buildWorkspaceQueueEntries(sources: WorkspaceQueueSources): Work
       itemBase("printing", "new", "new-printing", row.id, null, {
         cardSlug: row.cardSlug,
         cardName: row.cardName,
-        label: candidatePrintingLabel(row),
+        label: [candidatePrintingLabel(row), ...row.markerSlugs].join(" "),
         provider: row.provider,
         isContributor: row.provider === USER_SUBMISSION_PROVIDER,
       }),
@@ -390,39 +389,12 @@ function cardListingEntries(listings: readonly UnmatchedListing[]): WorkspaceQue
   });
 }
 
-function ownerCounts(items: readonly WorkspaceQueueItem[]): WorkspaceOwnerCounts {
-  let oldestAt: string | null = null;
-  let open = 0;
-  let fresh = 0;
-  for (const item of items) {
-    if (item.segment === "open") {
-      open += 1;
-    } else {
-      fresh += 1;
-    }
-    if (oldestAt === null || item.createdAt < oldestAt) {
-      oldestAt = item.createdAt;
-    }
-  }
-  return { open, new: fresh, oldestAt };
-}
-
 export function toWorkspaceQueueResponse(
   items: readonly WorkspaceQueueItem[],
-  doneToday: number,
   owner?: WorkspaceOwner,
 ): WorkspaceQueueResponse {
   const sorted = items.toSorted((a, b) => a.createdAt.localeCompare(b.createdAt));
-  const byOwner = (target: WorkspaceOwner) => sorted.filter((item) => item.owner === target);
-  return {
-    items: owner === undefined ? sorted : byOwner(owner),
-    counts: {
-      card: ownerCounts(byOwner("card")),
-      face: ownerCounts(byOwner("face")),
-      printing: ownerCounts(byOwner("printing")),
-    },
-    doneToday,
-  };
+  return { items: owner === undefined ? sorted : sorted.filter((item) => item.owner === owner) };
 }
 
 export interface DeskRecordScope {
@@ -489,8 +461,4 @@ export function toWorkspaceEvent(row: WorkspaceEventRow): WorkspaceEvent {
     cardSlug: row.cardSlug,
     createdAt: row.createdAt.toISOString(),
   };
-}
-
-export function startOfUtcDay(now: Date): Date {
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }

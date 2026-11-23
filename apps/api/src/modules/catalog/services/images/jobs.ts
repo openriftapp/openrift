@@ -69,6 +69,7 @@ export async function rehostImageFile(
       file.id,
       file.rotation,
       file.needsTrim,
+      file.needsLevels,
       file.quad,
       true,
     );
@@ -116,6 +117,7 @@ export async function refetchImageFile(
     id = await writeReplacementFile(io, repo, file.id, source, {
       rotation: file.rotation,
       needsTrim: file.needsTrim,
+      needsLevels: file.needsLevels,
       quad: file.quad,
     });
   } catch (error) {
@@ -344,6 +346,7 @@ export async function regenerateImagesBatch(
         img.imageId,
         setting?.rotation ?? 0,
         setting?.needsTrim ?? false,
+        setting?.needsLevels ?? false,
         setting?.quad ?? null,
         options.skipExisting,
       );

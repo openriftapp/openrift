@@ -7,15 +7,15 @@ const validateSearch = Route.options.validateSearch as unknown as {
 };
 
 describe("/admin/workspace/printings search", () => {
-  it("keeps the desk next to the workspace params", () => {
-    expect(validateSearch.parse({ desk: "promos", segment: "open", filter: "promo" })).toEqual({
+  it("keeps the desk next to the table params", () => {
+    expect(validateSearch.parse({ desk: "promos", q: "jinx", filter: "promo" })).toEqual({
       desk: "promos",
-      segment: "open",
+      q: "jinx",
       filter: "promo",
     });
   });
 
-  it("drops an unknown desk instead of failing the page", () => {
-    expect(validateSearch.parse({ desk: "everyone" }).desk).toBeUndefined();
+  it("drops an unknown desk and old queue params instead of failing the page", () => {
+    expect(validateSearch.parse({ desk: "everyone", segment: "open" })).toEqual({});
   });
 });

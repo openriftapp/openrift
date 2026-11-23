@@ -14,7 +14,6 @@ import {
   candidateBelongsToFace,
   describeElsewhere,
   faceCompareCandidates,
-  submitterNameOf,
 } from "./face-suggestion-rows";
 
 const CONTEXT = { costKeywords: [], setTotals: {} };
@@ -29,9 +28,13 @@ function image(overrides: Partial<AdminPrintingImageResponse> = {}): AdminPrinti
     rehostedUrl: null,
     rotation: 0,
     needsTrim: false,
+    needsLevels: false,
     quad: null,
     isActive: true,
     activateWhenRehosted: false,
+    isReviewed: false,
+    addedAt: "2026-01-01T00:00:00.000Z",
+    uploadedByName: null,
     fileInUseElsewhere: false,
     rehostFailure: null,
     ...overrides,
@@ -335,22 +338,6 @@ describe("buildFaceSuggestions", () => {
     expect(buildFaceSuggestions(detail, "f2", CONTEXT).images.map((entry) => entry.id)).toEqual([
       "back",
     ]);
-  });
-});
-
-describe("submitterNameOf", () => {
-  it("finds the contributor's name on whichever card holds the proposal", () => {
-    const first = makeAdminCardDetail({ sources: [makeCandidateCard({ provider: "provider-a" })] });
-    const proposal = makeCandidateCard({ submittedByName: "Poro Keeper" });
-    const second = makeAdminCardDetail({ sources: [proposal] });
-    expect(submitterNameOf([first, second], proposal.id)).toBe("Poro Keeper");
-  });
-
-  it("returns null for an unknown source or a nameless submitter", () => {
-    const nameless = makeCandidateCard({ submittedByName: null });
-    const detail = makeAdminCardDetail({ sources: [nameless] });
-    expect(submitterNameOf([detail], nameless.id)).toBeNull();
-    expect(submitterNameOf([detail], "missing")).toBeNull();
   });
 });
 

@@ -6,6 +6,10 @@ import type { CardListingRow } from "@/features/catalog-workspace/lib/card-listi
 
 import { ListingPrintingDialog } from "./listing-printing-dialog";
 
+vi.mock("./listing-any-printing-combobox", () => ({
+  ListingAnyPrintingCombobox: () => null,
+}));
+
 function printing(printingId: string, shortCode: string, finish: string) {
   return { printingId, shortCode, markerSlugs: [], finish, language: "EN", size: null };
 }

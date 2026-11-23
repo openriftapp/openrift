@@ -382,11 +382,12 @@ describe.skipIf(!ctx)("catalogResponseVersion (integration)", () => {
       ],
     },
     {
-      what: "a rotation, trim or quad edit",
+      what: "a rotation, trim, levels or quad edit",
       statements: [
         `UPDATE image_files
             SET rotation = CASE WHEN rotation = 90 THEN 180 ELSE 90 END,
                 needs_trim = NOT needs_trim,
+                needs_levels = NOT needs_levels,
                 quad = '[[0,0],[1,0],[1,1],[0,1]]'::jsonb,
                 fingerprint = NULL
           WHERE ctid = (SELECT ctid FROM image_files LIMIT 1)`,

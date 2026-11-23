@@ -9,7 +9,6 @@ import { useLocaleBannerStore } from "@/features/account/stores/locale-banner-st
 import { useAdminSettingsStore } from "@/features/admin/stores/admin-settings-store";
 import type { BoardDraft } from "@/features/board-states/stores/board-draft-store";
 import { useBoardDraftStore } from "@/features/board-states/stores/board-draft-store";
-import { useWorkspaceSkipStore } from "@/features/catalog-workspace/stores/workspace-skip-store";
 import { usePaletteStore } from "@/features/collections/stores/palette-store";
 import { useDeckListPrefsStore } from "@/features/decks/stores/deck-list-prefs-store";
 import { useDeckOddsGroupsStore } from "@/features/decks/stores/deck-odds-groups-store";
@@ -75,7 +74,6 @@ const resetters = [
   useLocaleBannerStore,
   useAdminSettingsStore,
   useBoardDraftStore,
-  useWorkspaceSkipStore,
   usePaletteStore,
   useDeckListPrefsStore,
   useDeckOddsGroupsStore,
@@ -230,7 +228,6 @@ describe("resetClientState", () => {
     useLocaleBannerStore.getState().dismiss();
     useAdminSettingsStore.getState().update({ debugOverlay: true });
     localStorage.setItem("openrift.design.specs", "1");
-    useWorkspaceSkipStore.getState().skip("card", "card-1");
     useScanPrefsStore.getState().setDestinationCollectionId("collection-1");
     useScanSessionStore.setState({ scans: 4, lastScanAt: 1 });
     appendScanJournal({ type: "reload-prompt" });
@@ -258,7 +255,6 @@ describe("resetClientState", () => {
     expect(useLocaleBannerStore.getState().dismissed).toBe(false);
     expect(useAdminSettingsStore.getState().settings.debugOverlay).toBe(false);
     expect(localStorage.getItem("openrift.design.specs")).toBeNull();
-    expect(useWorkspaceSkipStore.getState().skipped).toEqual({});
     expect(useScanPrefsStore.getState().destinationCollectionId).toBeNull();
     expect(useScanSessionStore.getState().scans).toBe(0);
     expect(hasScanJournal()).toBe(false);

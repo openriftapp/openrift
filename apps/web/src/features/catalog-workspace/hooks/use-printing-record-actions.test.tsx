@@ -1,13 +1,10 @@
-import type { StagedProductResponse } from "@openrift/shared/types/api/admin";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { acceptFieldWithUndo } from "@/features/admin/lib/accept-undo";
-import type { RecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
-import type { ListingSuggestion } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
+import type { PrintingSuggestionModel } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
 import { buildPrintingSuggestions } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
 import { resetWorkspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
 import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
@@ -26,67 +23,27 @@ function mutation() {
 
 const mocks = vi.hoisted(() => ({
   acceptField: { current: null as ReturnType<typeof mutation> | null },
-  checkAll: { current: null as ReturnType<typeof mutation> | null },
-  save: { current: null as ReturnType<typeof mutation> | null },
-  ignore: { current: null as ReturnType<typeof mutation> | null },
   generic: { current: null as ReturnType<typeof mutation> | null },
-  registered: { current: null as RecordActions | null },
   acceptPrintingFieldFn: vi.fn((_input: unknown) => Promise.resolve()),
-  uncheckFn: vi.fn((_input: unknown) => Promise.resolve()),
-  unmapFn: vi.fn((_input: unknown) => Promise.resolve()),
-  unignoreFn: vi.fn((_input: unknown) => Promise.resolve()),
 }));
 
 vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
   acceptPrintingFieldFn: mocks.acceptPrintingFieldFn,
-  uncheckCandidatePrintingsFn: mocks.uncheckFn,
-  unmapMarketplacePrintingFn: mocks.unmapFn,
   useAcceptPrintingField: () => mocks.acceptField.current,
-  useCheckCandidatePrinting: () => mocks.generic.current,
-  useCheckAllCandidatePrintings: () => mocks.checkAll.current,
-}));
-vi.mock("@/features/admin/hooks/use-ignored-products", () => ({
-  unignoreProductFn: mocks.unignoreFn,
 }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn() }) }));
 vi.mock("@/features/admin/hooks/use-catalog-review", () => ({
   useAcceptSubmission: () => mocks.generic.current,
-}));
-vi.mock("@/features/admin/hooks/use-unified-mappings", () => ({
-  useSaveMappingsByMarketplace: () => ({
-    tcgplayer: mocks.save.current,
-    cardmarket: mocks.save.current,
-    cardtrader: mocks.save.current,
-    cardnexus: mocks.save.current,
-  }),
-  useIgnoreVariantsByMarketplace: () => ({
-    tcgplayer: mocks.ignore.current,
-    cardmarket: mocks.ignore.current,
-    cardtrader: mocks.ignore.current,
-    cardnexus: mocks.ignore.current,
-  }),
 }));
 vi.mock("@/features/admin/lib/accept-undo", () => ({
   acceptFieldWithUndo: vi.fn(async () => true),
   revertAcceptedField: (revert: unknown, write: (revert: unknown) => Promise<unknown>) =>
     write(revert),
 }));
-vi.mock("@/features/catalog-workspace/hooks/use-register-record-actions", () => ({
-  useRegisterRecordActions: (actions: RecordActions) => {
-    mocks.registered.current = actions;
-  },
-}));
 
-const { printingChips, usePrintingRecordActions } = await import("./use-printing-record-actions");
+const { usePrintingFieldWrites } = await import("./use-printing-record-actions");
 
 const CONTEXT = { costKeywords: [], setTotals: {} };
-
-const LISTING: ListingSuggestion = {
-  key: "tcgplayer::7::normal::",
-  marketplace: "tcgplayer",
-  product: { externalId: 7, finish: "normal", language: null } as StagedProductResponse,
-  score: 180,
-};
 
 function setup() {
   const source = makeCandidateCard({ provider: "provider-a" });
@@ -100,17 +57,28 @@ function setup() {
     printings: [makeAdminPrinting({ id: "p1" })],
     candidatePrintings: [candidate],
   });
-  return { model: buildPrintingSuggestions([detail], "p1", CONTEXT), candidate };
+  return buildPrintingSuggestions([detail], "p1", CONTEXT);
 }
 
 function latest() {
   return useWorkspaceSelectionStore.getState().undoStack.at(-1);
 }
 
-function wrapper(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
+function renderWrites(model: PrintingSuggestionModel) {
+  const client = new QueryClient();
+  return renderHook(
+    () =>
+      usePrintingFieldWrites({
+        printingId: "p1",
+        record: "Kai'Sa · OGN-001",
+        printing: model.printing,
+      }),
+    {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      ),
+    },
+  );
 }
 
 let resetStore: () => void;
@@ -124,228 +92,31 @@ beforeEach(() => {
   resetIdCounter();
   resetStore = createStoreResetter(useWorkspaceSelectionStore);
   mocks.acceptField.current = mutation();
-  mocks.checkAll.current = mutation();
-  mocks.acceptPrintingFieldFn.mockClear();
-  mocks.uncheckFn.mockClear();
-  mocks.unmapFn.mockClear();
-  mocks.unignoreFn.mockClear();
-  vi.mocked(toast.success).mockClear();
-  mocks.save.current = mutation();
-  mocks.ignore.current = mutation();
   mocks.generic.current = mutation();
-  mocks.registered.current = null;
+  mocks.acceptPrintingFieldFn.mockClear();
 });
 
 const { signal } = new AbortController();
 
-describe("printingChips", () => {
-  it("puts field suggestions before listings", () => {
-    const { model } = setup();
-    expect(printingChips(model, [LISTING]).map((chip) => chip.kind)).toEqual(["field", "listing"]);
-  });
-});
+describe("usePrintingFieldWrites", () => {
+  it("pushes an entry whose undo writes the previous value back", async () => {
+    const model = setup();
+    const { result } = renderWrites(model);
 
-describe("usePrintingRecordActions", () => {
-  it("checks the sources with a printing-level difference on Enter", async () => {
-    const { model, candidate } = setup();
-    const client = new QueryClient();
-    renderHook(
-      () =>
-        usePrintingRecordActions({
-          printingId: "p1",
-          record: "Kai'Sa · OGN-001",
-          model,
-          listings: [LISTING],
-          canCheck: true,
-          canMap: true,
-        }),
-      { wrapper: wrapper(client) },
-    );
-
-    await mocks.registered.current?.primary?.run(signal);
-    expect(mocks.checkAll.current?.mutateAsync).toHaveBeenCalledWith(
-      { extraIds: [candidate.id] },
-      { signal: expect.any(AbortSignal) },
-    );
-    const entry = latest();
-    expect(entry?.label).toBe("Discarded 1 suggestion on Kai'Sa · OGN-001");
-    await entry?.undo(signal);
-    expect(mocks.uncheckFn).toHaveBeenCalledWith({
-      data: { candidatePrintingIds: [candidate.id] },
-      signal,
-    });
-  });
-
-  it("undoes an Enter over two sources with one batch uncheck", async () => {
-    const sources = [
-      makeCandidateCard({ provider: "provider-a" }),
-      makeCandidateCard({ provider: "provider-b" }),
-    ];
-    const candidates = sources.map((source) =>
-      makeCandidatePrinting({ candidateCardId: source.id, printingId: "p1", size: "oversized" }),
-    );
-    const detail = makeAdminCardDetail({
-      sources,
-      printings: [makeAdminPrinting({ id: "p1" })],
-      candidatePrintings: candidates,
-    });
-    const model = buildPrintingSuggestions([detail], "p1", CONTEXT);
-    renderHook(
-      () =>
-        usePrintingRecordActions({
-          printingId: "p1",
-          record: "Kai'Sa · OGN-001",
-          model,
-          listings: [],
-          canCheck: true,
-          canMap: true,
-        }),
-      { wrapper: wrapper(new QueryClient()) },
-    );
-
-    await mocks.registered.current?.primary?.run(signal);
-    await latest()?.undo(signal);
-
-    expect(mocks.uncheckFn).toHaveBeenCalledOnce();
-    expect(mocks.uncheckFn).toHaveBeenCalledWith({
-      data: { candidatePrintingIds: candidates.map((candidate) => candidate.id) },
-      signal,
-    });
-  });
-
-  it("Discard pushes an undo that unchecks the row", async () => {
-    const { model, candidate } = setup();
-    const client = new QueryClient();
-    const { result } = renderHook(
-      () =>
-        usePrintingRecordActions({
-          printingId: "p1",
-          record: "Kai'Sa · OGN-001",
-          model,
-          listings: [],
-          canCheck: true,
-          canMap: true,
-        }),
-      { wrapper: wrapper(client) },
-    );
-
-    await act(() => result.current.discard(candidate.id));
-    expect(mocks.generic.current?.mutateAsync).toHaveBeenCalledWith(candidate.id, {
-      signal: expect.any(AbortSignal),
-    });
-    expect(toast.success).toHaveBeenCalledWith(
-      "Discarded 1 suggestion on Kai'Sa · OGN-001",
-      expect.anything(),
-    );
-    await latest()?.undo(signal);
-    expect(mocks.uncheckFn).toHaveBeenCalledWith({
-      data: { candidatePrintingIds: [candidate.id] },
-      signal,
-    });
-  });
-
-  it("maps the listing with the number key and refreshes the queue once it settles", async () => {
-    const { model } = setup();
-    mocks.save.current = {
-      ...mutation(),
-      mutateAsync: vi.fn(async () => ({ skipped: [] }) as unknown as void),
-    };
-    const client = new QueryClient();
-    const invalidate = vi.spyOn(client, "invalidateQueries");
-    renderHook(
-      () =>
-        usePrintingRecordActions({
-          printingId: "p1",
-          record: "Kai'Sa · OGN-001",
-          model,
-          listings: [LISTING],
-          canCheck: true,
-          canMap: true,
-        }),
-      { wrapper: wrapper(client) },
-    );
-
-    await mocks.registered.current?.useSuggestion?.(signal, 2);
-    expect(mocks.save.current?.mutateAsync).toHaveBeenCalledWith(
-      {
-        mappings: [{ externalId: 7, finish: "normal", language: null, printingId: "p1" }],
-      },
-      { signal: expect.any(AbortSignal) },
-    );
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["admin", "workspace"] });
-    expect(latest()?.label).toBe("Assigned TCGplayer #7 to Kai'Sa · OGN-001");
-    await latest()?.undo(signal);
-    expect(mocks.unmapFn).toHaveBeenCalledWith({
-      data: {
-        marketplace: "tcgplayer",
-        printingId: "p1",
-        externalId: 7,
-        finish: "normal",
-        language: null,
-      },
-      signal,
-    });
-  });
-
-  it("pushes no entry for a mapping the server skipped or refused", async () => {
-    const { model } = setup();
-    mocks.save.current = {
-      ...mutation(),
-      mutateAsync: vi
-        .fn()
-        .mockResolvedValueOnce({ skipped: [{ externalId: 7, reason: "taken" }] })
-        .mockRejectedValueOnce(new Error("offline")),
-    };
-    const client = new QueryClient();
-    renderHook(
-      () =>
-        usePrintingRecordActions({
-          printingId: "p1",
-          record: "Kai'Sa · OGN-001",
-          model,
-          listings: [LISTING],
-          canCheck: true,
-          canMap: true,
-        }),
-      { wrapper: wrapper(client) },
-    );
-
-    await mocks.registered.current?.useSuggestion?.(signal, 2);
-    await mocks.registered.current?.useSuggestion?.(signal, 2);
-    expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([]);
-  });
-
-  it("Use pushes an entry whose undo writes the previous value back", async () => {
-    const { model } = setup();
-    const client = new QueryClient();
-    renderHook(
-      () =>
-        usePrintingRecordActions({
-          printingId: "p1",
-          record: "Kai'Sa · OGN-001",
-          model,
-          listings: [],
-          canCheck: true,
-          canMap: true,
-        }),
-      { wrapper: wrapper(client) },
-    );
-
-    await mocks.registered.current?.useSuggestion?.(signal, 1);
+    await act(() => result.current.applyField(signal, model.suggestions[0]!));
     const [options] = vi.mocked(acceptFieldWithUndo).mock.lastCall as unknown as [
       { onAccepted: (revert: unknown) => void },
     ];
-    const { onAccepted } = options;
     const revert = { printingId: "p1", field: "size", value: "standard", source: "manual" };
-    onAccepted(revert);
+    options.onAccepted(revert);
 
     expect(latest()?.label).toBe("Used Size from provider-a on Kai'Sa · OGN-001");
     await latest()?.undo(signal);
     expect(mocks.acceptPrintingFieldFn).toHaveBeenCalledWith({ data: revert, signal });
   });
 
-  it("keeps the number key's promise pending until the write lands", async () => {
-    const { model } = setup();
+  it("keeps the write's promise pending until the write lands", async () => {
+    const model = setup();
     let finish = () => {};
     mocks.acceptField.current = {
       ...mutation(),
@@ -360,23 +131,11 @@ describe("usePrintingRecordActions", () => {
       await accept(input);
       return true;
     });
-    const client = new QueryClient();
-    renderHook(
-      () =>
-        usePrintingRecordActions({
-          printingId: "p1",
-          record: "Kai'Sa · OGN-001",
-          model,
-          listings: [],
-          canCheck: true,
-          canMap: true,
-        }),
-      { wrapper: wrapper(client) },
-    );
+    const { result } = renderWrites(model);
 
     let settled = false;
     const run = (async () => {
-      await mocks.registered.current?.useSuggestion?.(signal, 1);
+      await result.current.applyField(signal, model.suggestions[0]!);
       settled = true;
     })();
     await Promise.resolve();
@@ -384,75 +143,6 @@ describe("usePrintingRecordActions", () => {
     finish();
     await run;
     expect(settled).toBe(true);
-  });
-
-  it("hides listings from holders who cannot map and keeps Enter as plain Next", () => {
-    const { model } = setup();
-    const client = new QueryClient();
-    const { result } = renderHook(
-      () =>
-        usePrintingRecordActions({
-          printingId: "p1",
-          record: "Kai'Sa · OGN-001",
-          model,
-          listings: [LISTING],
-          canCheck: false,
-          canMap: false,
-        }),
-      { wrapper: wrapper(client) },
-    );
-
-    expect(result.current.chips.map((chip) => chip.kind)).toEqual(["field"]);
-    expect(mocks.registered.current?.primary).toBeUndefined();
-  });
-
-  it("ignores a listing as one SKU and pushes an entry once it lands", async () => {
-    const { model } = setup();
-    const client = new QueryClient();
-    const { result } = renderHook(
-      () =>
-        usePrintingRecordActions({
-          printingId: "p1",
-          record: "Kai'Sa · OGN-001",
-          model,
-          listings: [LISTING],
-          canCheck: true,
-          canMap: true,
-        }),
-      { wrapper: wrapper(client) },
-    );
-
-    const gate = { open: () => {} };
-    mocks.ignore.current!.mutateAsync.mockImplementation(
-      () =>
-        new Promise<void>((resolve) => {
-          gate.open = resolve;
-        }),
-    );
-    let run = Promise.resolve(true);
-    act(() => {
-      run = result.current.ignoreListing(LISTING);
-    });
-    await vi.waitFor(() => expect(mocks.ignore.current?.mutateAsync).toHaveBeenCalled());
-    expect(mocks.ignore.current?.mutateAsync).toHaveBeenCalledWith(
-      [{ externalId: 7, finish: "normal", language: null }],
-      { signal: expect.any(AbortSignal) },
-    );
-    expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([]);
-    gate.open();
-    await act(() => run);
-    expect(latest()?.label).toBe("Ignored TCGplayer #7 on Kai'Sa · OGN-001");
-    await latest()?.undo(signal);
-    expect(mocks.unignoreFn).toHaveBeenCalledWith({
-      data: {
-        level: "variant",
-        marketplace: "tcgplayer",
-        externalId: 7,
-        finish: "normal",
-        language: null,
-      },
-      signal,
-    });
   });
 
   it("sends a source's release date together with its precision", async () => {
@@ -471,24 +161,10 @@ describe("usePrintingRecordActions", () => {
       candidatePrintings: [candidate],
     });
     const model = buildPrintingSuggestions([detail], "p1", CONTEXT);
-    const client = new QueryClient();
-    const { result } = renderHook(
-      () =>
-        usePrintingRecordActions({
-          printingId: "p1",
-          record: "Kai'Sa · OGN-001",
-          model,
-          listings: [],
-          canCheck: true,
-          canMap: true,
-        }),
-      { wrapper: wrapper(client) },
-    );
+    const { result } = renderWrites(model);
 
-    const chip = result.current.chips.find(
-      (entry) => entry.kind === "field" && entry.suggestion.field === "releasedAt",
-    );
-    await act(() => result.current.applyChip(chip!));
+    const suggestion = model.suggestions.find((entry) => entry.field === "releasedAt");
+    await act(() => result.current.applyField(signal, suggestion!));
     expect(vi.mocked(acceptFieldWithUndo).mock.lastCall?.[0].input).toEqual({
       printingId: "p1",
       field: "releasedAt",
@@ -502,22 +178,10 @@ describe("usePrintingRecordActions", () => {
   });
 
   it("sends any other field's proposed value as is", async () => {
-    const { model } = setup();
-    const client = new QueryClient();
-    const { result } = renderHook(
-      () =>
-        usePrintingRecordActions({
-          printingId: "p1",
-          record: "Kai'Sa · OGN-001",
-          model,
-          listings: [],
-          canCheck: true,
-          canMap: true,
-        }),
-      { wrapper: wrapper(client) },
-    );
+    const model = setup();
+    const { result } = renderWrites(model);
 
-    await act(() => result.current.applyChip(result.current.chips[0]!));
+    await act(() => result.current.applyField(signal, model.suggestions[0]!));
     expect(vi.mocked(acceptFieldWithUndo).mock.lastCall?.[0]).toEqual(
       expect.objectContaining({
         accept: expect.any(Function),

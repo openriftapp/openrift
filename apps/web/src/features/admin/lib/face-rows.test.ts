@@ -9,7 +9,13 @@ import {
   printingPairName,
 } from "./face-rows";
 
-const empowered = { faceId: "fe", cardName: "Empowered", cardSlug: "e", publicCode: "VEN-T01" };
+const empowered = {
+  faceId: "fe",
+  cardName: "Empowered",
+  cardSlug: "e",
+  publicCode: "VEN-T01",
+  imageUrl: null,
+};
 
 describe("printingPairName", () => {
   it("puts face 1's card first when this card is face 2", () => {

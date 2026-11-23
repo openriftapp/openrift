@@ -1,5 +1,6 @@
 import { isoDateTime } from "@openrift/shared/schemas";
 import {
+  WORKSPACE_RECORD_SORTS,
   WORKSPACE_REASONS,
   WORKSPACE_RECORD_FILTER_VALUES,
 } from "@openrift/shared/workspace-kinds";
@@ -40,24 +41,33 @@ export const workspaceQueueItemSchema = z.object({
   createdAt: isoDateTime,
 });
 
-export const workspaceOwnerCountsSchema = z.object({
-  open: z.number().int().min(0),
-  new: z.number().int().min(0),
-  oldestAt: isoDateTime.nullable(),
-});
-
 export const workspaceQueueInputSchema = z.object({
   owner: workspaceOwnerSchema.optional(),
 });
 
 export const workspaceQueueResponseSchema = z.object({
   items: z.array(workspaceQueueItemSchema),
-  counts: z.object({
-    card: workspaceOwnerCountsSchema,
-    face: workspaceOwnerCountsSchema,
-    printing: workspaceOwnerCountsSchema,
+});
+
+export const reviewCardSchema = z.object({
+  key: z.string(),
+  cardSlug: z.string().nullable(),
+  cardName: z.string(),
+  hasContribution: z.boolean(),
+  providers: z.array(z.string()),
+  pending: z.object({
+    cardFields: z.array(z.string()),
+    newPrintings: z.number().int().min(0),
+    faces: z.number().int().min(0),
+    printings: z.number().int().min(0),
+    newImages: z.number().int().min(0),
+    failedImages: z.number().int().min(0),
   }),
-  doneToday: z.number().int().min(0),
+  waitingSince: isoDateTime,
+});
+
+export const reviewCardsResponseSchema = z.object({
+  cards: z.array(reviewCardSchema),
 });
 
 export const workspaceRecordKindSchema = z.enum(["printing", "face"]);
@@ -69,6 +79,8 @@ export const WORKSPACE_RECORD_FILTERS = {
   face: ["no-image", "substitute", "shared"],
 } as const satisfies Record<WorkspaceRecordKind, readonly WorkspaceRecordFilter[]>;
 
+export type WorkspaceRecordSort = (typeof WORKSPACE_RECORD_SORTS)[number];
+
 export const workspaceRecordsInputSchema = z
   .object({
     kind: workspaceRecordKindSchema,
@@ -76,6 +88,8 @@ export const workspaceRecordsInputSchema = z
     filter: workspaceRecordFilterSchema.optional(),
     limit: z.coerce.number().int().min(1).max(500).optional(),
     cursor: z.string().min(1).optional(),
+    sort: z.enum(WORKSPACE_RECORD_SORTS).optional(),
+    direction: z.enum(["asc", "desc"]).optional(),
   })
   .refine(
     (input) =>
@@ -118,23 +132,6 @@ export const workspaceRecordsResponseSchema = z.object({
   total: z.number().int().min(0),
 });
 
-export const workspaceUploadSourceSchema = z.object({
-  provider: z.string(),
-  label: z.string(),
-  uploadedAt: isoDateTime,
-  newCards: z.number().int().min(0),
-  newPrintings: z.number().int().min(0),
-  updates: z.number().int().min(0),
-  removed: z.number().int().min(0),
-  repeatedDifference: z
-    .object({ field: z.string(), value: z.string(), count: z.number().int().min(2) })
-    .nullable(),
-});
-
-export const workspaceUploadsResponseSchema = z.object({
-  sources: z.array(workspaceUploadSourceSchema),
-});
-
 export const workspaceEventSchema = z.object({
   id: z.string(),
   action: z.string(),
@@ -143,10 +140,6 @@ export const workspaceEventSchema = z.object({
   entityId: z.string().nullable(),
   cardSlug: z.string().nullable(),
   createdAt: isoDateTime,
-});
-
-export const workspaceDecisionsInputSchema = z.object({
-  since: isoDateTime.optional(),
 });
 
 export const workspaceHistoryInputSchema = z
@@ -168,21 +161,23 @@ export const adminCatalogWorkspaceContract = {
     .meta({ adminSections: ["card-review", "printing-desk"] })
     .input(workspaceQueueInputSchema)
     .output(workspaceQueueResponseSchema),
+  workspaceListings: authedRoute
+    .route({ method: "GET", path: `${WORKSPACE}/listings`, tags: [TAG] })
+    .output(workspaceQueueResponseSchema),
+  reviewCards: authedRoute
+    .route({ method: "GET", path: `${WORKSPACE}/review`, tags: [TAG] })
+    .meta({ adminSections: ["card-review"] })
+    .output(reviewCardsResponseSchema),
   workspaceRecords: authedRoute
     .route({ method: "GET", path: `${WORKSPACE}/records`, tags: [TAG] })
     .meta({ adminSections: ["card-review", "printing-desk"] })
     .errors({ BAD_REQUEST: { message: "Invalid cursor" } })
     .input(workspaceRecordsInputSchema)
     .output(workspaceRecordsResponseSchema),
-  workspaceUploads: authedRoute
-    .route({ method: "GET", path: `${WORKSPACE}/uploads`, tags: [TAG] })
-    .meta({ adminSections: ["card-review"] })
-    .output(workspaceUploadsResponseSchema),
-  workspaceDecisions: authedRoute
-    .route({ method: "GET", path: `${WORKSPACE}/decisions`, tags: [TAG] })
-    .meta({ adminSections: ["card-review"] })
-    .input(workspaceDecisionsInputSchema)
-    .output(workspaceEventsResponseSchema),
+  workspaceCardImages: authedRoute
+    .route({ method: "GET", path: `${WORKSPACE}/card-images`, tags: [TAG] })
+    .meta({ adminSections: ["card-review", "printing-desk"] })
+    .output(z.object({ images: z.record(z.string(), z.string()) })),
   workspaceHistory: authedRoute
     .route({ method: "GET", path: `${WORKSPACE}/history`, tags: [TAG] })
     .meta({ adminSections: ["card-review", "printing-desk"] })
@@ -197,18 +192,16 @@ export type WorkspaceSegment = z.infer<typeof workspaceSegmentSchema>;
 export type WorkspaceReason = z.infer<typeof workspaceReasonSchema>;
 export type WorkspaceListingVariant = z.infer<typeof workspaceListingVariantSchema>;
 export type WorkspaceQueueItem = z.infer<typeof workspaceQueueItemSchema>;
-export type WorkspaceOwnerCounts = z.infer<typeof workspaceOwnerCountsSchema>;
 export type WorkspaceQueueInput = z.input<typeof workspaceQueueInputSchema>;
 export type WorkspaceQueueResponse = z.infer<typeof workspaceQueueResponseSchema>;
+export type ReviewCard = z.infer<typeof reviewCardSchema>;
+export type ReviewCardsResponse = z.infer<typeof reviewCardsResponseSchema>;
 export type WorkspaceRecordKind = z.infer<typeof workspaceRecordKindSchema>;
 export type WorkspaceRecordsInput = z.infer<typeof workspaceRecordsInputSchema>;
 export type WorkspaceRecordRow = z.infer<typeof workspaceRecordRowSchema>;
 export type WorkspaceRecordsResponse = z.infer<typeof workspaceRecordsResponseSchema>;
 export type WorkspaceRecordFilter = z.infer<typeof workspaceRecordFilterSchema>;
 export type WorkspaceImageState = z.infer<typeof workspaceImageStateSchema>;
-export type WorkspaceUploadSource = z.infer<typeof workspaceUploadSourceSchema>;
-export type WorkspaceUploadsResponse = z.infer<typeof workspaceUploadsResponseSchema>;
 export type WorkspaceEvent = z.infer<typeof workspaceEventSchema>;
-export type WorkspaceDecisionsInput = z.infer<typeof workspaceDecisionsInputSchema>;
 export type WorkspaceHistoryInput = z.infer<typeof workspaceHistoryInputSchema>;
 export type WorkspaceEventsResponse = z.infer<typeof workspaceEventsResponseSchema>;

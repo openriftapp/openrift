@@ -87,7 +87,7 @@ describe("workspace record loaders", () => {
 
     const keys = requestedKeys(client);
     expect(new Set(keys).size).toBe(6);
-    expect(keys).toContain(JSON.stringify(["admin", "workspace", "queue", "all"]));
+    expect(keys).toContain(JSON.stringify(["admin", "workspace", "queue"]));
   });
 
   it("requests the new printing's card once the queue names it", async () => {

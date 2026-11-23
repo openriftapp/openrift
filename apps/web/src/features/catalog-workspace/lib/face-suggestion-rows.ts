@@ -142,9 +142,6 @@ export function compareCandidate(
   return { suggestions, agreeing };
 }
 
-export const ADMIN_ONLY_DISCARD = "Only an admin discards source suggestions.";
-export const ADMIN_ONLY_REPLY = "Only an admin replies to contributors.";
-
 export function faceCompareCandidates(
   detail: AdminCardDetailResponse,
   faceId: string,
@@ -161,19 +158,6 @@ export function faceCompareCandidates(
 
 export function providerOf(detail: AdminCardDetailResponse, candidateCardId: string): string {
   return detail.sources.find((source) => source.id === candidateCardId)?.provider ?? "Source";
-}
-
-export function submitterNameOf(
-  details: readonly AdminCardDetailResponse[],
-  candidateCardId: string,
-): string | null {
-  for (const detail of details) {
-    const source = detail.sources.find((entry) => entry.id === candidateCardId);
-    if (source !== undefined) {
-      return source.submittedByName;
-    }
-  }
-  return null;
 }
 
 /**

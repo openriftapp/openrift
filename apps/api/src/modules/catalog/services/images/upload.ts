@@ -21,6 +21,6 @@ export async function saveUploadedImage(
   const ext = file.name ? `.${file.name.split(".").pop()?.toLowerCase() ?? "png"}` : ".png";
   const imageFileId = uuidv7();
   const outputDir = join(CARD_MEDIA_DIR, imageFileId.slice(-2));
-  await processAndSave(io, buffer, ext, outputDir, imageFileId, 0, false, null);
+  await processAndSave(io, buffer, ext, outputDir, imageFileId, 0, false, false, null);
   return { imageFileId, rehostedUrl: imageRehostedUrl(imageFileId) };
 }

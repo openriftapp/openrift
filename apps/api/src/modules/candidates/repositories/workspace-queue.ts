@@ -65,6 +65,7 @@ export interface WorkspaceNewPrintingRow {
   rarity: string | null;
   language: string | null;
   size: string | null;
+  markerSlugs: string[];
 }
 
 export interface WorkspaceInactiveImageRow {
@@ -176,7 +177,8 @@ export function workspaceQueueRepo(db: Kysely<Database>) {
           cp.finish,
           cp.rarity,
           cp.language,
-          cp.size
+          cp.size,
+          cp.marker_slugs as "markerSlugs"
         from candidate_printings cp
         join candidate_cards cc on cc.id = cp.candidate_card_id
         join lateral (${cardForCandidate}) live_card on true
@@ -205,6 +207,7 @@ export function workspaceQueueRepo(db: Kysely<Database>) {
         join cards c on c.id = f.card_id
         join printings pr on f.id in (pr.face1_id, pr.face2_id)
         where not fi.is_active
+          and fi.reviewed_at is null
           and (
             not fi.is_activation_pending
             or exists (
@@ -232,16 +235,6 @@ export function workspaceQueueRepo(db: Kysely<Database>) {
         group by rf.image_file_id, rf.last_attempt_at, f.id, c.slug, c.name
       `.execute(db);
       return rows.rows;
-    },
-
-    async countAdminEventsSince(actorUserId: string, since: Date): Promise<number> {
-      const row = await db
-        .selectFrom("adminEvents")
-        .select((eb) => eb.fn.countAll<string>().as("count"))
-        .where("actorUserId", "=", actorUserId)
-        .where(sql<Date>`date_trunc('milliseconds', ${sql.ref("createdAt")})`, ">=", since)
-        .executeTakeFirstOrThrow();
-      return Number(row.count);
     },
   };
 }

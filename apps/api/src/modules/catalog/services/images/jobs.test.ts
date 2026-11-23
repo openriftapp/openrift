@@ -143,6 +143,7 @@ describe("rehostImageFile", () => {
       rehostedUrl?: string | null;
       rotation?: number;
       needsTrim?: boolean;
+      needsLevels?: boolean;
     } | null,
   ) {
     return {
@@ -156,6 +157,7 @@ describe("rehostImageFile", () => {
               rehostedUrl: file.rehostedUrl ?? null,
               rotation: file.rotation ?? 0,
               needsTrim: file.needsTrim ?? false,
+              needsLevels: file.needsLevels ?? false,
               quad: null,
             },
       ),
@@ -192,6 +194,14 @@ describe("rehostImageFile", () => {
 
   it("propagates needsTrim from the image_file row to the scan analysis", async () => {
     const repo = makeRehostRepo({ originalUrl: "https://example.com/img.png", needsTrim: true });
+
+    await rehostImageFile(mockIo, repo, FILE_ID);
+
+    expect(mockSharpInstance.greyscale).toHaveBeenCalled();
+  });
+
+  it("propagates needsLevels from the image_file row to the scan analysis", async () => {
+    const repo = makeRehostRepo({ originalUrl: "https://example.com/img.png", needsLevels: true });
 
     await rehostImageFile(mockIo, repo, FILE_ID);
 
@@ -308,6 +318,7 @@ describe("ensureRehostedOriginal", () => {
         ...file,
         rotation: 0,
         needsTrim: false,
+        needsLevels: false,
         quad: null,
       })),
       completeRehost: vi.fn(async () => true),
@@ -456,6 +467,7 @@ describe("retryDueRehosts", () => {
           rehostedUrl: null,
           rotation: 0,
           needsTrim: false,
+          needsLevels: false,
           quad: null,
         }),
       ),
@@ -517,6 +529,7 @@ describe("refetchImages", () => {
                 rehostedUrl: rehosted ? `/media/cards/${id.slice(-2)}/${id}` : null,
                 rotation: 90,
                 needsTrim: true,
+                needsLevels: true,
                 quad: null,
               }
             : undefined,
@@ -541,6 +554,7 @@ describe("refetchImages", () => {
       rehostedUrl: `/media/cards/${outcome.imageFileId.slice(-2)}/${outcome.imageFileId}`,
       rotation: 90,
       needsTrim: true,
+      needsLevels: true,
       quad: null,
     });
     expect(repo.completeRehost).not.toHaveBeenCalled();
@@ -773,7 +787,9 @@ describe("regenerateImagesBatch", () => {
   it("uses per-image needsTrim from the settings map", async () => {
     const repo = makeMockRepo({});
     repo.getVariantSettingsByIds = vi.fn(() =>
-      Promise.resolve(new Map([["card-trim", { rotation: 0, needsTrim: true }]])),
+      Promise.resolve(
+        new Map([["card-trim", { rotation: 0, needsTrim: true, needsLevels: false }]]),
+      ),
     );
     mockReaddir.mockImplementation(async () => ["card-trim-orig.png"]);
     await regenerateImagesBatch(mockIo, repo, [snap("card-trim")]);
@@ -781,10 +797,26 @@ describe("regenerateImagesBatch", () => {
     expect(mockSharpInstance.greyscale).toHaveBeenCalled();
   });
 
-  it("skips the scan analysis when needsTrim is false in the settings map", async () => {
+  it("uses per-image needsLevels from the settings map", async () => {
     const repo = makeMockRepo({});
     repo.getVariantSettingsByIds = vi.fn(() =>
-      Promise.resolve(new Map([["card-keep", { rotation: 0, needsTrim: false }]])),
+      Promise.resolve(
+        new Map([["card-levels", { rotation: 0, needsTrim: false, needsLevels: true }]]),
+      ),
+    );
+    mockReaddir.mockImplementation(async () => ["card-levels-orig.png"]);
+    await regenerateImagesBatch(mockIo, repo, [snap("card-levels")]);
+
+    expect(mockSharpInstance.greyscale).toHaveBeenCalled();
+    expect(mockSharpInstance.extract).not.toHaveBeenCalled();
+  });
+
+  it("skips the scan analysis when needsTrim and needsLevels are false in the settings map", async () => {
+    const repo = makeMockRepo({});
+    repo.getVariantSettingsByIds = vi.fn(() =>
+      Promise.resolve(
+        new Map([["card-keep", { rotation: 0, needsTrim: false, needsLevels: false }]]),
+      ),
     );
     mockReaddir.mockImplementation(async () => ["card-keep-orig.png"]);
     await regenerateImagesBatch(mockIo, repo, [snap("card-keep")]);

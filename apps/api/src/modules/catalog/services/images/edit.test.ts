@@ -37,6 +37,7 @@ const current = {
   originalUrl: "https://example.com/scan.png",
   rotation: 0 as const,
   needsTrim: false,
+  needsLevels: false,
   quad: null,
 };
 
@@ -73,6 +74,7 @@ describe("editImageFile", () => {
       NEW_ID,
       90,
       false,
+      false,
       null,
     );
     expect(replaceImageFile).toHaveBeenCalledWith(OLD_ID, {
@@ -80,6 +82,7 @@ describe("editImageFile", () => {
       rehostedUrl: NEW_URL,
       rotation: 90,
       needsTrim: false,
+      needsLevels: false,
       quad: null,
     });
     expect(events).toEqual(["write new", "swap rows"]);
@@ -98,6 +101,27 @@ describe("editImageFile", () => {
     expect(replaceImageFile).not.toHaveBeenCalled();
   });
 
+  it("rewrites the variants when only needsLevels changes", async () => {
+    const id = await editImageFile(io, repo, current, { ...current, needsLevels: true });
+
+    expect(id).toBe(NEW_ID);
+    expect(processAndSave).toHaveBeenCalledWith(
+      io,
+      Buffer.from("orig"),
+      ".png",
+      join("/media/cards", "cd"),
+      NEW_ID,
+      0,
+      false,
+      true,
+      null,
+    );
+    expect(replaceImageFile).toHaveBeenCalledWith(
+      OLD_ID,
+      expect.objectContaining({ needsLevels: true }),
+    );
+  });
+
   it("fetches the source when no orig is on disk", async () => {
     vi.mocked(origFileOnDisk).mockResolvedValue(undefined);
     vi.mocked(fetchOriginalImage).mockResolvedValue({ buffer: Buffer.from("src"), ext: ".jpg" });
@@ -112,6 +136,7 @@ describe("editImageFile", () => {
       join("/media/cards", "cd"),
       NEW_ID,
       0,
+      false,
       false,
       [...QUAD],
     );

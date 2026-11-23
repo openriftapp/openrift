@@ -485,6 +485,22 @@ describe("acceptSubmission", () => {
     expect(repos.cardSubmissions.candidatePrintingImageUrls).toHaveBeenCalledWith("cc-1");
   });
 
+  it("settles as accepted without a pick when the admin marks it applied", async () => {
+    const repos = createRepos();
+
+    const result = await acceptSubmission(transactOn(repos), repos, io, {
+      ...baseArgs,
+      ...noPicks,
+      markApplied: true,
+    });
+
+    expect(result).toMatchObject({ status: "accepted", applied: 0, createdPrintingIds: [] });
+    expect(repos.cardSubmissions.resolve).toHaveBeenCalledWith(
+      "sub-1",
+      expect.objectContaining({ status: "accepted", resolvedByUserId: ADMIN_ID }),
+    );
+  });
+
   it("skips writing picks that hold the stored values and still records them as applied", async () => {
     const repos = createRepos();
 

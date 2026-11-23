@@ -127,7 +127,7 @@ export function makeMockRepo(
   return {
     listUnrehosted: vi.fn(() => Promise.resolve(opts.selectResult ?? [])),
     getImageFileById: vi.fn((id: string) => {
-      const settings = { rotation: 0, needsTrim: false, quad: null };
+      const settings = { rotation: 0, needsTrim: false, needsLevels: false, quad: null };
       if (opts.imageFile !== undefined) {
         return Promise.resolve(
           opts.imageFile === null ? undefined : { ...opts.imageFile, ...settings },

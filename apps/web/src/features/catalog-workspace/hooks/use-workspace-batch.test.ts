@@ -1,48 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  batchButtonLabel,
   batchOutcomeText,
   batchPreviewQueryKey,
   suggestedListingsPreview,
+  listingsBatchLabel,
   toBatchOutcome,
-  trustedCardsPreview,
-  trustedPrintingsPreview,
 } from "./use-workspace-batch";
 
 describe("batch previews", () => {
-  it("keys trusted cards by name and lists the held-back ones with their reason", () => {
-    expect(
-      trustedCardsPreview({
-        count: 2,
-        names: ["Bird", "Brush"],
-        ineligible: [{ name: "Gold", reason: "no card type" }],
-      }),
-    ).toEqual({
-      count: 2,
-      names: ["Bird", "Brush"],
-      keys: ["Bird", "Brush"],
-      ineligible: [{ key: "Gold", label: "Gold", reason: "no card type" }],
-    });
-  });
-
-  it("keys trusted printings by candidate printing", () => {
-    expect(
-      trustedPrintingsPreview({
-        count: 1,
-        items: [{ candidatePrintingId: "cp1", cardSlug: "ahri", label: "Ahri OGN-066p FR" }],
-        ineligible: [
-          { candidatePrintingId: "cp2", label: "ahri OGN-067 foil EN", reason: "missing: rarity" },
-        ],
-      }),
-    ).toEqual({
-      count: 1,
-      names: ["Ahri OGN-066p FR"],
-      keys: ["cp1"],
-      ineligible: [{ key: "cp2", label: "ahri OGN-067 foil EN", reason: "missing: rarity" }],
-    });
-  });
-
   it("keys suggested listings by listing", () => {
     expect(
       suggestedListingsPreview({
@@ -105,11 +71,9 @@ describe("batch outcomes", () => {
   });
 });
 
-describe("batchButtonLabel", () => {
-  it("counts what the batch touches", () => {
-    expect(batchButtonLabel("trusted-cards", 1)).toBe("Accept 1 trusted new card");
-    expect(batchButtonLabel("trusted-cards", 3)).toBe("Accept 3 trusted new cards");
-    expect(batchButtonLabel("trusted-printings", 2)).toBe("Accept 2 trusted printings");
-    expect(batchButtonLabel("suggested-listings", 1)).toBe("Assign 1 listing by suggestion");
+describe("listingsBatchLabel", () => {
+  it("counts the listings the batch assigns", () => {
+    expect(listingsBatchLabel(1)).toBe("Assign 1 listing by suggestion");
+    expect(listingsBatchLabel(4)).toBe("Assign 4 listings by suggestion");
   });
 });

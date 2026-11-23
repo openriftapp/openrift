@@ -1,6 +1,7 @@
 import type {
   WORKSPACE_RECORD_FILTERS,
   WorkspaceImageState,
+  WorkspaceRecordSort,
 } from "@openrift/shared/contracts/admin/catalog-workspace";
 import type { Expression, Kysely, SqlBool } from "kysely";
 import { sql } from "kysely";
@@ -51,6 +52,7 @@ interface WorkspaceRecordsQuery<F> {
   filter?: F;
   limit: number;
   cursor?: string;
+  sort?: { key: WorkspaceRecordSort; direction: "asc" | "desc" };
   printingIds?: readonly string[];
   mineIds?: readonly string[];
 }
@@ -58,12 +60,6 @@ interface WorkspaceRecordsQuery<F> {
 export interface WorkspaceRecordsPage<R> {
   rows: R[];
   total: number;
-}
-
-export interface WorkspaceUploadEventRow {
-  provider: string;
-  uploadedAt: Date;
-  counts: Record<string, unknown> | null;
 }
 
 export interface WorkspaceEventRow {
@@ -187,6 +183,32 @@ const EVENT_COLUMNS = [
   "ae.createdAt",
 ] as const;
 
+function sortColumn(key: WorkspaceRecordSort, updatedColumn: string): string {
+  switch (key) {
+    case "name": {
+      return "c.name";
+    }
+    case "code": {
+      return "f.shortCode";
+    }
+    case "finish": {
+      return "f.finish";
+    }
+    case "language": {
+      return "f.language";
+    }
+    case "updated": {
+      return updatedColumn;
+    }
+  }
+}
+
+/** A sorted list pages by offset; its cursor is the number of rows already sent. */
+export function offsetCursor(cursor: string | undefined): number {
+  const offset = Number(cursor);
+  return Number.isInteger(offset) && offset > 0 ? offset : 0;
+}
+
 export function workspaceRecordsRepo(db: Kysely<Database>) {
   return {
     async listPrintingRecords(
@@ -228,10 +250,15 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
           printingStatus.as("status"),
           "p.updatedAt",
         ])
-        .orderBy("p.updatedAt", "desc")
-        .orderBy("p.id", "desc")
         .limit(query.limit + 1);
-      if (query.cursor !== undefined) {
+      page =
+        query.sort === undefined
+          ? page.orderBy("p.updatedAt", "desc").orderBy("p.id", "desc")
+          : page
+              .orderBy(sql.ref(sortColumn(query.sort.key, "p.updatedAt")), query.sort.direction)
+              .orderBy("p.id", "desc")
+              .offset(offsetCursor(query.cursor));
+      if (query.sort === undefined && query.cursor !== undefined) {
         page = page.where(
           keysetCursorPredicate(query.cursor, {
             timeColumn: "p.updatedAt",
@@ -284,10 +311,15 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
           faceImageState.as("imageState"),
           "f.updatedAt",
         ])
-        .orderBy("f.updatedAt", "desc")
-        .orderBy("f.id", "desc")
         .limit(query.limit + 1);
-      if (query.cursor !== undefined) {
+      page =
+        query.sort === undefined
+          ? page.orderBy("f.updatedAt", "desc").orderBy("f.id", "desc")
+          : page
+              .orderBy(sql.ref(sortColumn(query.sort.key, "f.updatedAt")), query.sort.direction)
+              .orderBy("f.id", "desc")
+              .offset(offsetCursor(query.cursor));
+      if (query.sort === undefined && query.cursor !== undefined) {
         page = page.where(
           keysetCursorPredicate(query.cursor, {
             timeColumn: "f.updatedAt",
@@ -301,42 +333,6 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
         base.select(sql<number>`count(*)::int`.as("total")).executeTakeFirstOrThrow(),
       ]);
       return { rows, total: count.total };
-    },
-
-    async latestUploads(): Promise<WorkspaceUploadEventRow[]> {
-      const rows = await sql<WorkspaceUploadEventRow>`
-        select distinct on (ae.entity_id)
-          ae.entity_id as provider,
-          ae.created_at as "uploadedAt",
-          ae.new_values as counts
-        from admin_events ae
-        where ae.action = 'candidates.upload'
-          and ae.entity_id is not null
-          and exists (select 1 from candidate_cards cc where cc.provider = ae.entity_id)
-          and not exists (
-            select 1 from provider_settings ps
-            where ps.provider = ae.entity_id and ps.is_hidden
-          )
-        order by ae.entity_id, ae.created_at desc
-      `.execute(db);
-      return rows.rows;
-    },
-
-    eventsByActorSince(
-      actorUserId: string,
-      since: Date,
-      limit: number,
-    ): Promise<WorkspaceEventRow[]> {
-      return db
-        .selectFrom("adminEvents as ae")
-        .select(EVENT_COLUMNS)
-        .where("ae.actorUserId", "=", actorUserId)
-        .where("ae.createdAt", ">=", since)
-        .where(sql<SqlBool>`date_trunc('milliseconds', ae.created_at) >= ${since}`)
-        .orderBy("ae.createdAt", "desc")
-        .orderBy("ae.id", "desc")
-        .limit(limit)
-        .execute();
     },
 
     eventsOnPrintings(
@@ -415,6 +411,21 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
         .where("id", "=", faceId)
         .executeTakeFirst();
       return row !== undefined;
+    },
+
+    async cardImages(): Promise<{ cardSlug: string; imageUrl: string }[]> {
+      const rows = await sql<{ cardSlug: string; imageUrl: string }>`
+        select distinct on (c.slug)
+          c.slug as "cardSlug",
+          coalesce(i.rehosted_url, i.original_url) as "imageUrl"
+        from cards c
+        join faces f on f.card_id = c.id
+        join face_images fi on fi.face_id = f.id and fi.is_active
+        join image_files i on i.id = fi.image_file_id
+        where coalesce(i.rehosted_url, i.original_url) is not null
+        order by c.slug, (f.language <> 'EN'), f.short_code
+      `.execute(db);
+      return rows.rows;
     },
   };
 }

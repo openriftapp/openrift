@@ -11,19 +11,33 @@ export function firstPrintingSetLabel(printings: readonly AdminPrintingResponse[
   return first.setName ?? first.setSlug;
 }
 
-function adminDesignKey(printing: AdminPrintingResponse): string {
+function adminFaceDesignKey(printing: AdminPrintingResponse): string {
   return [
     printing.setId,
     printing.shortCode,
-    printing.side,
     printing.finish,
     printing.artVariant,
-    printing.size,
     printing.isSigned,
     printing.isOvernumbered,
     printing.markerSlugs.toSorted(),
+  ].join("|");
+}
+
+function adminDesignKey(printing: AdminPrintingResponse): string {
+  return [
+    adminFaceDesignKey(printing),
+    printing.side,
+    printing.size,
     printing.otherFace?.cardSlug ?? "",
   ].join("|");
+}
+
+/** `faces` holds one row per face, in language-preference order. */
+export function groupAdminFaceDesigns(faces: readonly AdminPrintingResponse[]): {
+  languages: string[];
+  designs: PrintingDesign<AdminPrintingResponse>[];
+} {
+  return groupDesigns(faces, adminFaceDesignKey);
 }
 
 /** `printings` must be in language-preference order. */

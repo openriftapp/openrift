@@ -40,12 +40,12 @@ export function discardUndoText({
   const shown = parts.filter(([count]) => count > 0);
   if (shown.length === 0) {
     return {
-      label: `Discarded ${countNoun(sources, "source")} on ${record}`,
+      label: `Dismissed ${countNoun(sources, "source")} on ${record}`,
       undoneLabel: `Undone: ${restored(sources, "source")} restored on ${record}`,
     };
   }
   return {
-    label: `Discarded ${shown.map(([count, noun]) => countNoun(count, noun)).join(" and ")} on ${record}`,
+    label: `Dismissed ${shown.map(([count, noun]) => countNoun(count, noun)).join(" and ")} on ${record}`,
     undoneLabel: `Undone: ${shown.map(([count, noun]) => (shown.length === 1 ? restored(count, noun) : countNoun(count, noun))).join(" and ")} restored on ${record}`,
   };
 }
@@ -78,19 +78,6 @@ export function ignoredUndoText({
   return {
     label: `Ignored ${subject}`,
     undoneLabel: `Undone: ${subject} ${plural ? "are" : "is"} back in the queue`,
-  };
-}
-
-export function mappedUndoText({
-  listing,
-  record,
-}: {
-  listing: string;
-  record: string;
-}): WorkspaceUndoText {
-  return {
-    label: `Assigned ${listing} to ${record}`,
-    undoneLabel: `Undone: ${listing} unassigned from ${record}`,
   };
 }
 

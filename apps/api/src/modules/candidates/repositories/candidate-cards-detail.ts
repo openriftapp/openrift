@@ -142,6 +142,13 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
           "c.name as cardName",
           "c.slug as cardSlug",
           "ps.publicCode",
+          sql<string | null>`(
+            select coalesce(i.rehosted_url || '-full.webp', i.original_url)
+            from face_images fi
+            join image_files i on i.id = fi.image_file_id
+            where fi.face_id = ps.face_id and fi.is_active
+            limit 1
+          )`.as("imageUrl"),
         ])
         .where("ps.printingId", "in", printingIds)
         .execute();
@@ -267,9 +274,13 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
         rehostedUrl: string | null;
         rotation: number;
         needsTrim: boolean;
+        needsLevels: boolean;
         quad: ImageQuad | null;
         isActive: boolean;
         activateWhenRehosted: boolean;
+        isReviewed: boolean;
+        addedAt: Date;
+        uploadedByName: string | null;
         fileInUseElsewhere: boolean;
         rehostAttempts: number | null;
         rehostError: string | null;
@@ -294,10 +305,23 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
           "ci.rehostedUrl",
           "ci.rotation",
           "ci.needsTrim",
+          "ci.needsLevels",
           "ci.quad",
           "ci.fingerprint",
           "fi.isActive",
           "fi.isActivationPending as activateWhenRehosted",
+          sql<boolean>`fi.reviewed_at IS NOT NULL`.as("isReviewed"),
+          "fi.createdAt as addedAt",
+          sql<string | null>`(
+            select u.name
+            from admin_events ae
+            join users u on u.id = ae.actor_user_id
+            where ae.action = 'image.upload'
+              and ae.entity_type = 'image'
+              and ae.entity_id = fi.id::text
+            order by ae.created_at
+            limit 1
+          )`.as("uploadedByName"),
           (eb) =>
             eb
               .or([

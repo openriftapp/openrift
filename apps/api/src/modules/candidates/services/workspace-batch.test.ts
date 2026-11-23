@@ -291,12 +291,27 @@ describe("trusted printings", () => {
     const repos = makeRepos({ printings, probes });
     expect(await previewTrustedPrintings(asRepos(repos), ADMIN)).toEqual({
       count: 1,
-      items: [{ candidatePrintingId: "p1", cardSlug: "poro", label: "OGN-027 normal EN" }],
+      items: [
+        {
+          candidatePrintingId: "p1",
+          cardSlug: "poro",
+          label: "OGN-027 normal EN",
+          providers: ["gallery"],
+        },
+      ],
       ineligible: [
-        { candidatePrintingId: "p3", label: "poro OGN-030 normal EN", reason: "missing: rarity" },
+        {
+          candidatePrintingId: "p3",
+          cardSlug: "poro",
+          label: "OGN-030 normal EN",
+          providers: ["gallery"],
+          reason: "missing: rarity",
+        },
         {
           candidatePrintingId: "p4",
-          label: "poro OGN-031 normal EN",
+          cardSlug: "poro",
+          label: "OGN-031 normal EN",
+          providers: ["gallery"],
           reason: "possible duplicate of OGN-031",
         },
       ],
@@ -469,7 +484,9 @@ describe("trusted printings", () => {
     expect(preview.ineligible).toEqual([
       {
         candidatePrintingId: "p1",
-        label: "poro OGN-027 normal EN",
+        cardSlug: "poro",
+        label: "OGN-027 normal EN",
+        providers: ["gallery"],
         reason:
           "The existing OGN-027 normal EN face differs in artist. Edit that face or the source first.",
       },
@@ -485,7 +502,9 @@ describe("trusted printings", () => {
       ineligible: [
         {
           candidatePrintingId: "p1",
-          label: "poro OGN-027 glossy EN",
+          cardSlug: "poro",
+          label: "OGN-027 glossy EN",
+          providers: ["gallery"],
           reason: 'not on an admin list: finish "glossy"',
         },
       ],

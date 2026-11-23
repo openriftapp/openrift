@@ -151,6 +151,7 @@ describe.skipIf(!adminCtx)("Admin catalog workspace batch routes (integration)",
       candidatePrintingId: newPrintingId,
       cardSlug: "wsbt-poro-herder",
       label: "WSBT-001 normal EN",
+      providers: [TRUSTED],
     });
   });
 

@@ -1,95 +1,199 @@
-import type { WorkspaceOwner } from "@openrift/shared/contracts/admin/catalog-workspace";
-import { Link, Outlet, useChildMatches, useNavigate, useParams } from "@tanstack/react-router";
-import { ArrowLeftIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, PlusIcon } from "lucide-react";
-import { useId } from "react";
+import type {
+  WorkspaceOwner,
+  WorkspaceRecordFilter,
+} from "@openrift/shared/contracts/admin/catalog-workspace";
+import { WORKSPACE_RECORD_SORTS } from "@openrift/shared/workspace-kinds";
+import {
+  Link,
+  Outlet,
+  useCanGoBack,
+  useChildMatches,
+  useNavigate,
+  useRouter,
+} from "@tanstack/react-router";
+import { PlusIcon } from "lucide-react";
+import type { MouseEvent } from "react";
+import { useEffect, useEffectEvent } from "react";
 
 import {
   PageDescription,
-  PageTopBarIconButton,
+  PageTopBarBack,
   PageTopBarPrimaryButton,
 } from "@/components/layout/page-top-bar";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Spinner } from "@/components/ui/spinner";
+import { TextLink } from "@/components/ui/text-link";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
-import { useRowSelection } from "@/features/admin/hooks/use-row-selection";
-import { workspaceRowSelectionStore } from "@/features/admin/stores/row-selection-store";
-import { EmptyQueue } from "@/features/catalog-workspace/components/empty-queue";
-import { QueueHeader } from "@/features/catalog-workspace/components/queue-header";
-import { WorkspaceQueueList } from "@/features/catalog-workspace/components/queue-list";
-import { RecordsTable } from "@/features/catalog-workspace/components/records-table";
-import { WorkspaceSplitLayout } from "@/features/catalog-workspace/components/workspace-split-layout";
+import { DebouncedSearchInput } from "@/features/admin/components/debounced-search-input";
+import { RecordsTable, summaryText } from "@/features/catalog-workspace/components/records-table";
 import { WorkspaceUndoButton } from "@/features/catalog-workspace/components/workspace-undo-button";
 import { useClearUndoOnLeave } from "@/features/catalog-workspace/hooks/use-clear-undo-on-leave";
-import { useWorkspaceKeyboard } from "@/features/catalog-workspace/hooks/use-workspace-keyboard";
-import type { WorkspaceSearchState } from "@/features/catalog-workspace/hooks/use-workspace-queue";
 import {
-  useWorkspaceQueue,
+  useWorkspaceKeyboard,
+  workspaceKeyAction,
+} from "@/features/catalog-workspace/hooks/use-workspace-keyboard";
+import {
+  RECORD_FILTERS,
   useWorkspaceRecords,
+  useWorkspaceRole,
+  useWorkspaceSearch,
 } from "@/features/catalog-workspace/hooks/use-workspace-queue";
-import type { WorkspaceRouteParams } from "@/features/catalog-workspace/lib/owner-items";
-import {
-  OWNER_LABELS,
-  ownersForRole,
-  selectedKeyFromParams,
-} from "@/features/catalog-workspace/lib/owner-items";
-import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
+import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
+import type { DeskMode } from "@/features/catalog-workspace/lib/owner-items";
+import { OWNER_LABELS, ownersForRole } from "@/features/catalog-workspace/lib/owner-items";
+import type { WorkspaceSearch } from "@/features/catalog-workspace/lib/workspace-search";
+import { DESK_SORTS, DESK_STATUSES } from "@/features/catalog-workspace/lib/workspace-search";
 import { formatCount } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { openOverlayPresent } from "@/lib/open-overlay";
 
-function BackToList({ owner }: { owner: WorkspaceOwner }) {
-  const className = "text-muted-foreground mb-3 inline-flex items-center gap-1 text-sm md:hidden";
-  const label = `Back to ${OWNER_LABELS[owner].toLowerCase()}`;
+const RECORD_NOUNS = {
+  card: "cards",
+  desk: "printings",
+  printing: "printings",
+  face: "faces",
+} as const;
+
+const PASS_ROUTES: ReadonlySet<string> = new Set([
+  "/_app/_authenticated/admin/workspace/cards/$cardSlug",
+  "/_app/_authenticated/admin/workspace/cards/new/$name",
+]);
+
+const KEYBOARD_ROUTES: ReadonlySet<string> = new Set([
+  "/_app/_authenticated/admin/workspace/printings/new/$candidatePrintingId",
+]);
+
+const FILTER_LABELS: Record<WorkspaceRecordFilter, string> = {
+  promo: "Promos",
+  "double-sided": "Double-sided",
+  "no-image": "No image",
+  mine: "Added by me",
+  substitute: "Substitute image",
+  shared: "Shared",
+};
+
+const DESK_MODES: { value: DeskMode; label: string }[] = [
+  { value: "mine", label: "Added by me" },
+  { value: "promos", label: "All promos" },
+];
+
+const ANY_STATUS = "__any__";
+
+const DESK_STATUS_ITEMS = [
+  { value: ANY_STATUS, label: "Any status" },
+  ...DESK_STATUSES.map((value) => ({
+    value,
+    label: value === "announced" ? "Announced" : "Released",
+  })),
+];
+
+const DESK_SORT_LABELS: Record<(typeof DESK_SORTS)[number], string> = {
+  code: "By code",
+  card: "By card name",
+  updated: "Last updated",
+  release: "Available from",
+};
+
+const DESK_SORT_ITEMS = DESK_SORTS.map((value) => ({
+  value,
+  label: `Sort: ${DESK_SORT_LABELS[value]}`,
+}));
+
+export function WorkspaceOwnerPage({ owner }: { owner: WorkspaceOwner }) {
+  useClearUndoOnLeave();
+  const childRouteId = useChildMatches({ select: (matches) => matches.at(0)?.routeId });
+  if (childRouteId === undefined) {
+    return (
+      <>
+        <UndoKey />
+        <RecordsPage owner={owner} />
+      </>
+    );
+  }
+  if (PASS_ROUTES.has(childRouteId)) {
+    return <Outlet />;
+  }
+  return (
+    <>
+      {KEYBOARD_ROUTES.has(childRouteId) ? (
+        <AdminPageTopBar
+          back={<PageTopBarBack to="/admin/workspace/review" aria-label="Back to review" />}
+          title="Review"
+          actions={<WorkspaceUndoButton />}
+        />
+      ) : (
+        <AdminPageTopBar
+          back={<BackToTable owner={owner} />}
+          title={OWNER_LABELS[owner]}
+          actions={<WorkspaceUndoButton />}
+        />
+      )}
+      {KEYBOARD_ROUTES.has(childRouteId) ? <RecordKeyboard /> : <UndoKey />}
+      <Outlet />
+    </>
+  );
+}
+
+function RecordKeyboard() {
+  useWorkspaceKeyboard();
+  return null;
+}
+
+function UndoKey() {
+  const { undoLatest } = useWorkspaceUndo();
+  const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    if (
+      !event.repeat &&
+      workspaceKeyAction(event)?.action === "undo" &&
+      !openOverlayPresent() &&
+      undoLatest()
+    ) {
+      event.preventDefault();
+    }
+  });
+  useEffect(() => {
+    const listener = (event: KeyboardEvent) => onKeyDown(event);
+    globalThis.addEventListener("keydown", listener);
+    return () => globalThis.removeEventListener("keydown", listener);
+  }, []);
+  return null;
+}
+
+function BackToTable({ owner }: { owner: WorkspaceOwner }) {
+  const router = useRouter();
+  const canGoBack = useCanGoBack();
+  const label = canGoBack ? "Back" : `Back to ${OWNER_LABELS[owner].toLowerCase()}`;
+  const onClick = (event: MouseEvent) => {
+    if (canGoBack) {
+      event.preventDefault();
+      router.history.back();
+    }
+  };
   if (owner === "card") {
     return (
-      <Link to="/admin/workspace/cards" search className={className}>
-        <ArrowLeftIcon className="size-4" />
-        {label}
-      </Link>
+      <PageTopBarBack to="/admin/workspace/cards" search aria-label={label} onClick={onClick} />
     );
   }
   if (owner === "face") {
     return (
-      <Link to="/admin/workspace/faces" search className={className}>
-        <ArrowLeftIcon className="size-4" />
-        {label}
-      </Link>
+      <PageTopBarBack to="/admin/workspace/faces" search aria-label={label} onClick={onClick} />
     );
   }
   return (
-    <Link to="/admin/workspace/printings" search className={className}>
-      <ArrowLeftIcon className="size-4" />
-      {label}
-    </Link>
+    <PageTopBarBack to="/admin/workspace/printings" search aria-label={label} onClick={onClick} />
   );
 }
 
-function LoadState({ error, pending }: { error: Error | null; pending: boolean }) {
-  if (error !== null) {
+function NewButton({ owner }: { owner: WorkspaceOwner }) {
+  if (owner === "card") {
     return (
-      <p role="alert" className="text-muted-foreground px-3 py-6 text-sm">
-        This list could not be loaded. {error.message}
-      </p>
+      <PageTopBarPrimaryButton render={<Link to="/admin/workspace/cards/create" />}>
+        <PlusIcon />
+        New card
+      </PageTopBarPrimaryButton>
     );
   }
-  if (pending) {
-    return (
-      <div className="flex justify-center py-8">
-        <Spinner />
-      </div>
-    );
-  }
-  return null;
-}
-
-function NewButton({ owner, canCreate }: { owner: WorkspaceOwner; canCreate: boolean }) {
-  if (!canCreate || owner === "face") {
-    return null;
-  }
-  return owner === "card" ? (
-    <PageTopBarPrimaryButton render={<Link to="/admin/workspace/cards/create" />}>
-      <PlusIcon />
-      New card
-    </PageTopBarPrimaryButton>
-  ) : (
+  return (
     <PageTopBarPrimaryButton render={<Link to="/admin/workspace/printings/create" search />}>
       <PlusIcon />
       New printing
@@ -97,39 +201,17 @@ function NewButton({ owner, canCreate }: { owner: WorkspaceOwner; canCreate: boo
   );
 }
 
-const TABLE_DESCRIPTIONS: Record<WorkspaceOwner, string> = {
-  card: "Gameplay identity: name, types, domains, stats and rules text. Printed details sit on faces, physical cards on printings.",
-  printing:
-    "Physical cards: one or two faces, a size, a channel and release dates. Owned, priced and traded as one unit.",
-  face: "Every printed face. Images and printed details are edited here.",
-};
-
-function RecordPlaceholder({ owner }: { owner: WorkspaceOwner }) {
-  return (
-    <p className="text-muted-foreground py-10">
-      Pick a {owner === "card" ? "card" : owner} from the list, or press J to open the first one.
-    </p>
-  );
-}
-
-export function WorkspaceOwnerPage({ owner }: { owner: WorkspaceOwner }) {
-  useWorkspaceKeyboard(owner);
-  useClearUndoOnLeave();
+function RecordsPage({ owner }: { owner: WorkspaceOwner }) {
   const navigate = useNavigate();
-  const params: WorkspaceRouteParams = useParams({ strict: false });
-  const hasRecord = useChildMatches().length > 0;
-  const collapsed = useWorkspaceSelectionStore((state) => state.listCollapsed);
-  const toggleCollapsed = useWorkspaceSelectionStore((state) => state.toggleListCollapsed);
-
-  const queue = useWorkspaceQueue(owner);
-  const { role, view, search } = queue;
+  const role = useWorkspaceRole();
+  const search = useWorkspaceSearch();
   const listAllowed = ownersForRole(role).includes(owner);
-  const records = useWorkspaceRecords(owner, view === "all" && listAllowed);
-  const selection = useRowSelection(workspaceRowSelectionStore, useId());
+  const records = useWorkspaceRecords(owner, listAllowed);
   const isDesk = role === "desk";
-  const canCreate = owner === "card" ? role === "admin" : role === "admin" || isDesk;
+  const canCreate =
+    owner !== "face" && (owner === "card" ? role === "admin" : role === "admin" || isDesk);
 
-  function changeSearch(patch: Partial<WorkspaceSearchState>) {
+  function changeSearch(patch: Partial<WorkspaceSearch>) {
     void navigate({
       to: ".",
       search: (prev) => ({ ...prev, ...patch }),
@@ -144,40 +226,9 @@ export function WorkspaceOwnerPage({ owner }: { owner: WorkspaceOwner }) {
       actions={
         <>
           <WorkspaceUndoButton />
-          <NewButton owner={owner} canCreate={canCreate} />
-          {hasRecord && (
-            <PageTopBarIconButton
-              className="hidden md:inline-flex"
-              aria-label={collapsed ? "Show list" : "Collapse list"}
-              title={collapsed ? "Show list" : "Collapse list"}
-              onClick={toggleCollapsed}
-            >
-              {collapsed ? <PanelLeftOpenIcon /> : <PanelLeftCloseIcon />}
-            </PageTopBarIconButton>
-          )}
+          {canCreate && <NewButton owner={owner} />}
         </>
       }
-    />
-  );
-
-  const header = (
-    <QueueHeader
-      owner={owner}
-      view={view}
-      desk={isDesk && owner === "printing"}
-      isAdmin={role === "admin"}
-      hint={
-        view === "all" && hasRecord
-          ? `${formatCount(records.entries.length)} ${OWNER_LABELS[owner].toLowerCase()} · the table returns when you close the record`
-          : undefined
-      }
-      counts={queue.counts}
-      allCount={records.total}
-      search={search}
-      providers={queue.providers}
-      stats={queue.stats}
-      doneToday={queue.doneToday}
-      onSearchChange={changeSearch}
     />
   );
 
@@ -185,88 +236,137 @@ export function WorkspaceOwnerPage({ owner }: { owner: WorkspaceOwner }) {
     return (
       <>
         {topBar}
-        <Outlet />
+        <PageDescription>
+          Your printings and their faces are under{" "}
+          <TextLink render={<Link to="/admin/workspace/printings" />}>Printings</TextLink>.
+        </PageDescription>
       </>
     );
   }
 
-  if (view === "all" && !hasRecord) {
-    const loading = records.error !== null || records.isPending;
-    return (
-      <>
-        {topBar}
-        <div className="space-y-3">
-          <PageDescription>{TABLE_DESCRIPTIONS[owner]}</PageDescription>
-          <div className="max-w-xl">{header}</div>
-          {loading ? (
-            <LoadState error={records.error} pending={records.isPending} />
-          ) : (
-            <RecordsTable
-              records={records}
-              deskMode={search.desk ?? "mine"}
-              role={role}
-              selection={selection}
-            />
-          )}
-        </div>
-      </>
-    );
-  }
-
-  const source =
-    view === "all"
-      ? { entries: records.entries, error: records.error, pending: records.isPending }
-      : { entries: queue.entries, error: queue.error, pending: queue.isPending };
-  const segmentTotal = view === "new" ? queue.counts.new : queue.counts.open;
-  const queueEmpty =
-    view !== "all" && !hasRecord && source.error === null && !source.pending && segmentTotal === 0;
-  const noun = OWNER_LABELS[owner].toLowerCase();
-
-  const list =
-    source.error !== null || source.pending ? (
-      <LoadState error={source.error} pending={source.pending} />
-    ) : (
-      <WorkspaceQueueList
-        entries={source.entries}
-        selectedKey={selectedKeyFromParams(params)}
-        emptyText={segmentTotal === 0 ? "Nothing open." : `No ${noun} match these filters.`}
-        label={OWNER_LABELS[owner]}
-      />
-    );
-
-  let record = <RecordPlaceholder owner={owner} />;
-  if (hasRecord) {
-    record = (
-      <>
-        <BackToList owner={owner} />
-        <Outlet />
-      </>
-    );
-  } else if (queueEmpty) {
-    record = (
-      <EmptyQueue
-        owner={owner}
-        segment={view === "new" ? "new" : "open"}
-        role={role}
-        items={queue.items}
-        newCount={owner === "face" ? 0 : queue.counts.new}
-        doneToday={queue.doneToday}
-      />
-    );
-  }
+  const deskTable = isDesk && owner === "printing";
+  const filterKind = deskTable ? "desk" : owner;
+  const filters = filterKind === "card" ? [] : RECORD_FILTERS[filterKind];
+  const activeFilter = filters.find((filter) => filter === search.filter);
 
   return (
     <>
       {topBar}
-      <WorkspaceSplitLayout
-        header={header}
-        list={list}
-        recordKey={selectedKeyFromParams(params)}
-        recordFirst={hasRecord || queueEmpty}
-        collapsed={collapsed && hasRecord}
-      >
-        <div className={cn(hasRecord && "md:pr-1")}>{record}</div>
-      </WorkspaceSplitLayout>
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <DebouncedSearchInput
+            urlValue={search.q ?? ""}
+            onCommit={(next) => changeSearch({ q: next === "" ? undefined : next })}
+            placeholder="Name or code…"
+            className="w-full sm:w-72"
+          />
+          {deskTable && (
+            <ToggleGroup
+              variant="outline"
+              spacing={0}
+              value={[search.desk ?? "mine"]}
+              aria-label="Printings"
+              onValueChange={([next]) => {
+                const mode = DESK_MODES.find((option) => option.value === next)?.value;
+                if (mode !== undefined) {
+                  changeSearch({ desk: mode === "mine" ? undefined : mode });
+                }
+              }}
+            >
+              {DESK_MODES.map((option) => (
+                <ToggleGroupItem key={option.value} value={option.value}>
+                  {option.label}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          )}
+          {filters.length > 0 && (
+            <ToggleGroup
+              variant="outline"
+              spacing={0}
+              value={activeFilter === undefined ? [] : [activeFilter]}
+              aria-label="Show only"
+              onValueChange={([next]) => {
+                changeSearch({ filter: filters.find((filter) => filter === next) });
+              }}
+            >
+              {filters.map((filter) => (
+                <ToggleGroupItem key={filter} value={filter}>
+                  {filter === activeFilter && records.total !== null
+                    ? `${FILTER_LABELS[filter]} ${formatCount(records.total)}`
+                    : FILTER_LABELS[filter]}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          )}
+          {deskTable && (
+            <>
+              <SimpleSelect
+                items={DESK_STATUS_ITEMS}
+                value={search.status ?? ANY_STATUS}
+                onChange={(next) =>
+                  changeSearch({ status: DESK_STATUSES.find((value) => value === next) })
+                }
+                label="Status"
+                className="min-w-0"
+              />
+              <SimpleSelect
+                items={DESK_SORT_ITEMS}
+                value={search.deskSort ?? "updated"}
+                onChange={(next) => {
+                  const deskSort = DESK_SORTS.find((value) => value === next);
+                  changeSearch({ deskSort: deskSort === "updated" ? undefined : deskSort });
+                }}
+                label="Sort"
+                className="min-w-0"
+              />
+            </>
+          )}
+          {records.error === null && !records.isPending && (
+            <span className="text-muted-foreground text-sm">
+              {summaryText(
+                records.rows.length,
+                records.total,
+                RECORD_NOUNS[records.kind],
+                records.hasMore,
+              )}
+            </span>
+          )}
+        </div>
+        <RecordsBody
+          records={records}
+          sort={{
+            key: search.recordSort ?? "updated",
+            direction: search.recordSort === undefined ? "desc" : (search.recordDir ?? "asc"),
+            onChange: ({ key, direction }) => {
+              const recordSort = WORKSPACE_RECORD_SORTS.find((value) => value === key);
+              changeSearch({
+                recordSort,
+                recordDir: recordSort === undefined ? undefined : direction,
+              });
+            },
+          }}
+        />
+      </div>
     </>
   );
+}
+
+function RecordsBody(props: Parameters<typeof RecordsTable>[0]) {
+  const { records } = props;
+  if (records.error !== null) {
+    return (
+      <p role="alert" className="text-muted-foreground py-6">
+        This list could not be loaded. {records.error.message}
+      </p>
+    );
+  }
+  if (records.isPending) {
+    return (
+      <div className="flex justify-center py-8">
+        <Spinner />
+      </div>
+    );
+  }
+  return <RecordsTable {...props} />;
 }

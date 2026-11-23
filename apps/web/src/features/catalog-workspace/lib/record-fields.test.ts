@@ -1,18 +1,9 @@
-import type { WorkspaceQueueItem } from "@openrift/shared/contracts/admin/catalog-workspace";
-import { labelMapOf } from "@openrift/shared/enum-label";
 import type { AdminPrintingImageResponse } from "@openrift/shared/types/api/admin";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { makeAdminPrinting, resetIdCounter } from "@/test/factories";
 
-import {
-  buildFaceTree,
-  CARD_RECORD_FIELDS,
-  cardTypeLine,
-  cardWaitingSince,
-  faceOpenCounts,
-  primaryCardImage,
-} from "./record-fields";
+import { CARD_RECORD_FIELDS, primaryCardImage } from "./record-fields";
 
 beforeEach(() => {
   resetIdCounter();
@@ -28,94 +19,17 @@ function image(overrides: Partial<AdminPrintingImageResponse>): AdminPrintingIma
     rehostedUrl: null,
     rotation: 0,
     needsTrim: false,
+    needsLevels: false,
     isActive: true,
     activateWhenRehosted: false,
+    isReviewed: false,
+    addedAt: "2026-01-01T00:00:00.000Z",
+    uploadedByName: null,
     fileInUseElsewhere: false,
     rehostFailure: null,
     ...overrides,
   };
 }
-
-function queueItem(overrides: Partial<WorkspaceQueueItem>): WorkspaceQueueItem {
-  return {
-    id: "item",
-    owner: "card",
-    segment: "open",
-    ownerId: "jinx",
-    cardSlug: "jinx",
-    cardName: "Jinx, Demolitionist",
-    label: "Name",
-    reason: "source-difference",
-    fields: [],
-    provider: "scans",
-    isContributor: false,
-    decisions: 1,
-    createdAt: "2026-10-16T10:00:00.000Z",
-    ...overrides,
-  };
-}
-
-describe("buildFaceTree", () => {
-  const standard = makeAdminPrinting({ id: "p1", faceId: "f1", shortCode: "OGN-030" });
-  const foil = makeAdminPrinting({
-    id: "p2",
-    faceId: "f1",
-    shortCode: "OGN-030",
-    markerSlugs: ["promo"],
-    canonicalRank: 1,
-  });
-  const chinese = makeAdminPrinting({
-    id: "p3",
-    faceId: "f2",
-    shortCode: "OGN-030",
-    language: "ZH",
-    canonicalRank: 2,
-  });
-  const paired = makeAdminPrinting({
-    id: "p4",
-    faceId: "f3",
-    shortCode: "OGN-030s",
-    canonicalRank: 3,
-    otherFace: { faceId: "f9", cardName: "Gold", cardSlug: "gold", publicCode: "OGN-T01" },
-  });
-
-  it("groups printings under their face with open counts and the active image", () => {
-    const tree = buildFaceTree(
-      [standard, foil, chinese, paired],
-      [image({ printingId: "p2", isActive: true })],
-      new Map([["f1", 2]]),
-    );
-
-    expect(tree.map((entry) => [entry.faceId, entry.openItems, entry.printings.length])).toEqual([
-      ["f1", 2, 2],
-      ["f2", 0, 1],
-      ["f3", 0, 1],
-    ]);
-    expect(tree[0]?.imageUrl).toBe("https://img.test/original.png");
-    expect(tree[1]?.imageUrl).toBeNull();
-  });
-
-  it("writes a double-faced printing as both codes in side order", () => {
-    const back = { ...paired, side: 2 as const };
-    expect(buildFaceTree([paired], [], new Map())[0]?.printings[0]?.code).toBe(
-      "OGN-030s // OGN-T01",
-    );
-    expect(buildFaceTree([back], [], new Map())[0]?.printings[0]?.code).toBe("OGN-T01 // OGN-030s");
-  });
-
-  it("filters by language and marker", () => {
-    expect(
-      buildFaceTree([standard, foil, chinese], [], new Map(), { language: "ZH" }).map(
-        (entry) => entry.faceId,
-      ),
-    ).toEqual(["f2"]);
-    expect(
-      buildFaceTree([standard, foil, chinese], [], new Map(), { marker: "promo" }).flatMap(
-        (entry) => entry.printings.map((row) => row.id),
-      ),
-    ).toEqual(["p2"]);
-  });
-});
 
 describe("primaryCardImage", () => {
   it("takes the first active image by canonical rank", () => {
@@ -134,43 +48,6 @@ describe("primaryCardImage", () => {
   });
 });
 
-describe("faceOpenCounts", () => {
-  it("counts face items of this card only", () => {
-    const counts = faceOpenCounts(
-      [
-        queueItem({ owner: "face", ownerId: "f1" }),
-        queueItem({ owner: "face", ownerId: "f1" }),
-        queueItem({ owner: "face", ownerId: "f2", cardSlug: "lux" }),
-        queueItem({ owner: "card", ownerId: "jinx" }),
-      ],
-      "jinx",
-    );
-    expect([...counts]).toEqual([["f1", 2]]);
-  });
-});
-
-describe("cardWaitingSince", () => {
-  it("returns the oldest card item for the record", () => {
-    expect(
-      cardWaitingSince(
-        [
-          queueItem({ createdAt: "2026-10-18T00:00:00.000Z" }),
-          queueItem({ createdAt: "2026-10-16T00:00:00.000Z" }),
-          queueItem({ owner: "face", createdAt: "2026-10-01T00:00:00.000Z" }),
-        ],
-        "jinx",
-      ),
-    ).toBe("2026-10-16T00:00:00.000Z");
-    expect(cardWaitingSince([], "jinx")).toBeNull();
-  });
-});
-
-const labels = {
-  cardTypes: labelMapOf({ unit: "Unit" }),
-  superTypes: labelMapOf({ champion: "Champion" }),
-  domains: labelMapOf({ fury: "Fury", chaos: "Chaos" }),
-};
-
 describe("CARD_RECORD_FIELDS", () => {
   it("lists the compared fields first, then the card-only ones", () => {
     expect(CARD_RECORD_FIELDS.map((entry) => entry.field)).toEqual([
@@ -188,20 +65,5 @@ describe("CARD_RECORD_FIELDS", () => {
       "comment",
     ]);
     expect(CARD_RECORD_FIELDS.filter((entry) => entry.comparable)).toHaveLength(9);
-  });
-});
-
-describe("cardTypeLine", () => {
-  it("joins types, supertypes and domains", () => {
-    expect(
-      cardTypeLine(
-        { types: ["unit"], superTypes: ["champion"], domains: ["fury", "chaos"] },
-        labels,
-      ),
-    ).toBe("Unit · Champion · Fury, Chaos");
-  });
-
-  it("drops the domain part when there are none", () => {
-    expect(cardTypeLine({ types: ["unit"], superTypes: [], domains: [] }, labels)).toBe("Unit");
   });
 });

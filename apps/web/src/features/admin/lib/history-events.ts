@@ -64,6 +64,7 @@ const ACTION_SENTENCES: Record<string, string> = {
   "errata.upsert": "Saved the errata",
   "image.activate": "Made an image the one shown",
   "image.add-url": "Added an image by link",
+  "image.keep": "Kept an image as an extra",
   "image.credit": "Changed an image credit",
   "image.delete": "Deleted an image",
   "image.face": "Changed which face an image shows",
@@ -71,6 +72,7 @@ const ACTION_SENTENCES: Record<string, string> = {
   "image.rehost": "Took a copy of an image",
   "image.rotate": "Rotated an image",
   "image.set-from-candidate": "Took the image from a source",
+  "image.set-needs-levels": "Flagged an image for contrast",
   "image.set-needs-trim": "Flagged an image for trimming",
   "image.unrehost": "Dropped the local copy of an image",
   "image.upload": "Uploaded an image",
@@ -371,6 +373,13 @@ export function historySentence(
       return joined([
         shown ? "Made an image the one shown" : "Took an image out of use",
         printing && `on ${printing}`,
+      ]);
+    }
+    case "image.set-needs-levels": {
+      const on = event.newValues?.needsLevels !== false;
+      return joined([
+        on ? "Turned contrast on" : "Turned contrast off",
+        printing && `for ${printing}`,
       ]);
     }
     case "image.set-needs-trim": {

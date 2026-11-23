@@ -16,3 +16,5 @@ export const WORKSPACE_RECORD_FILTER_VALUES = [
   "substitute",
   "shared",
 ] as const;
+
+export const WORKSPACE_RECORD_SORTS = ["name", "code", "finish", "language", "updated"] as const;

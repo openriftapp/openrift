@@ -15,17 +15,10 @@ export const adminKeys = {
   sources: ["admin", "sources"] as const,
   reviewQueue: ["admin", "review-queue"] as const,
   workspace: ["admin", "workspace"] as const,
+  workspaceReview: ["admin", "workspace", "review"] as const,
+  workspaceListings: ["admin", "workspace", "listings"] as const,
   workspaceQueue: ["admin", "workspace", "queue"] as const,
-  workspaceQueueFor: (owner: string) => ["admin", "workspace", "queue", owner] as const,
   workspaceHistory: (target: object) => ["admin", "workspace", "history", target] as const,
-  workspaceUploads: ["admin", "workspace", "uploads"] as const,
-  workspaceDecisions: (since: string) => ["admin", "workspace", "decisions", since] as const,
-  workspaceSameDifference: (params: {
-    provider: string;
-    field: string;
-    value: string;
-    currentValue?: string;
-  }) => ["admin", "workspace", "same-difference", params] as const,
   workspaceRecords: Object.assign(
     (params: { kind: string; q?: string; limit?: number; cursor?: string }) =>
       ["admin", "workspace", "records", params] as const,

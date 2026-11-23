@@ -5,7 +5,6 @@ import {
   discardUndoText,
   goneNotice,
   ignoredUndoText,
-  mappedUndoText,
   undoScope,
   usedUndoText,
 } from "./workspace-undo";
@@ -15,7 +14,7 @@ describe("discardUndoText", () => {
     expect(
       discardUndoText({ suggestions: 0, images: 1, sources: 1, record: "Teemo, Scout" }),
     ).toEqual({
-      label: "Discarded 1 image on Teemo, Scout",
+      label: "Dismissed 1 image on Teemo, Scout",
       undoneLabel: "Undone: image restored on Teemo, Scout",
     });
   });
@@ -24,14 +23,14 @@ describe("discardUndoText", () => {
     expect(
       discardUndoText({ suggestions: 3, images: 1, sources: 2, record: "Jinx, Demolitionist" }),
     ).toEqual({
-      label: "Discarded 3 suggestions and 1 image on Jinx, Demolitionist",
+      label: "Dismissed 3 suggestions and 1 image on Jinx, Demolitionist",
       undoneLabel: "Undone: 3 suggestions and 1 image restored on Jinx, Demolitionist",
     });
   });
 
   it("falls back to the source count when the sources differ in nothing shown", () => {
     expect(discardUndoText({ suggestions: 0, images: 0, sources: 2, record: "Vi" })).toEqual({
-      label: "Discarded 2 sources on Vi",
+      label: "Dismissed 2 sources on Vi",
       undoneLabel: "Undone: 2 sources restored on Vi",
     });
   });
@@ -65,15 +64,6 @@ describe("ignoredUndoText", () => {
     expect(ignoredUndoText({ what: "TCGplayer #12", record: "Ekko" }).label).toBe(
       "Ignored TCGplayer #12 on Ekko",
     );
-  });
-});
-
-describe("mappedUndoText", () => {
-  it("names the listing and the printing", () => {
-    expect(mappedUndoText({ listing: "Cardmarket #9", record: "OGN-001" })).toEqual({
-      label: "Assigned Cardmarket #9 to OGN-001",
-      undoneLabel: "Undone: Cardmarket #9 unassigned from OGN-001",
-    });
   });
 });
 

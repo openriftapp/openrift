@@ -55,14 +55,20 @@ export function HistoryRow({
   userId,
   context,
   onOpen,
+  openable,
 }: {
   event: AdminAuditEventResponse;
   userId: string | null;
   context: HistoryContext;
   onOpen?: (target: HistoryTarget) => void;
+  openable?: readonly HistoryTarget["kind"][];
 }) {
   const outcome = submissionOutcome(event);
-  const target = onOpen === undefined ? null : historyTarget(event);
+  const eventTarget = onOpen === undefined ? null : historyTarget(event);
+  const target =
+    eventTarget !== null && (openable === undefined || openable.includes(eventTarget.kind))
+      ? eventTarget
+      : null;
   return (
     <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-3 py-2 text-sm">
       <AdminInstant
@@ -92,11 +98,13 @@ export function CardHistorySection({
   cardName,
   printingLabels,
   onOpen,
+  openable,
 }: {
   cardSlug: string;
   cardName: string;
   printingLabels?: Record<string, string>;
   onOpen?: (target: HistoryTarget) => void;
+  openable?: readonly HistoryTarget["kind"][];
 }) {
   const [filter, setFilter] = useState<HistoryFilter>("all");
   const userId = useUserId();
@@ -152,6 +160,7 @@ export function CardHistorySection({
               userId={userId}
               context={{ printingLabels }}
               onOpen={onOpen}
+              openable={openable}
             />
           ))}
         </CardList>

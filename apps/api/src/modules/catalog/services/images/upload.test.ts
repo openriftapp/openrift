@@ -31,6 +31,7 @@ describe("saveUploadedImage", () => {
       "0190-file-ab",
       0,
       false,
+      false,
       null,
     );
   });

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict fqNIl2rcEYIZmqhGCx8yHKr4bPLaiNm6Ji0tuoWpf4Jffsxbun2aCzvE33yyhmZ
+\restrict q295eLwGoV6Toq3LI0AfEhTfTexToz5f3kOuqnQGIgDn7JD4sbNQQrNAAaehFfo
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -2197,6 +2197,7 @@ CREATE TABLE public.face_images (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     is_activation_pending boolean DEFAULT false CONSTRAINT face_images_activate_when_rehosted_not_null NOT NULL,
+    reviewed_at timestamp with time zone,
     CONSTRAINT chk_face_images_pending_inactive CHECK ((NOT (is_active AND is_activation_pending)))
 );
 
@@ -2506,6 +2507,7 @@ CREATE TABLE public.image_files (
     credit text,
     quad jsonb,
     fingerprint text,
+    needs_levels boolean DEFAULT false NOT NULL,
     CONSTRAINT chk_image_files_credit CHECK ((credit <> ''::text)),
     CONSTRAINT chk_image_files_has_url CHECK (((original_url IS NOT NULL) OR (rehosted_url IS NOT NULL))),
     CONSTRAINT chk_image_files_original_url CHECK ((original_url <> ''::text)),
@@ -11495,5 +11497,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict fqNIl2rcEYIZmqhGCx8yHKr4bPLaiNm6Ji0tuoWpf4Jffsxbun2aCzvE33yyhmZ
+\unrestrict q295eLwGoV6Toq3LI0AfEhTfTexToz5f3kOuqnQGIgDn7JD4sbNQQrNAAaehFfo
 

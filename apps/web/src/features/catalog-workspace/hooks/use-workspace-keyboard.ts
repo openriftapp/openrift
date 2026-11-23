@@ -1,16 +1,11 @@
-import type { WorkspaceOwner } from "@openrift/shared/contracts/admin/catalog-workspace";
 import type { QueryClient } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
-import { useParams } from "@tanstack/react-router";
 import { useEffect, useEffectEvent } from "react";
 import { toast } from "sonner";
 
-import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
-import type { WorkspaceRouteParams } from "@/features/catalog-workspace/lib/owner-items";
-import { selectedKeyFromParams } from "@/features/catalog-workspace/lib/owner-items";
 import type { WorkspaceKeyAction } from "@/features/catalog-workspace/lib/workspace-keys";
-import { SUGGESTION_KEYS, WORKSPACE_KEYS } from "@/features/catalog-workspace/lib/workspace-keys";
+import { WORKSPACE_KEYS } from "@/features/catalog-workspace/lib/workspace-keys";
 import type { WorkspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
 import { workspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
 import type { WorkspaceRecordActions } from "@/features/catalog-workspace/stores/workspace-actions-store";
@@ -25,8 +20,9 @@ const RECORD_WRITES: ReadonlySet<WorkspaceKeyAction> = new Set([
   "settle-and-next",
   "accept-new",
   "ignore",
-  "use-suggestion",
 ]);
+
+const RECORD_KEYS: ReadonlySet<WorkspaceKeyAction> = new Set(["accept-new", "ignore", "undo"]);
 
 const CONTROL_SELECTOR = 'button, [role="button"], [role="menuitem"], [role="option"]';
 
@@ -34,12 +30,14 @@ export const STILL_SAVING_NOTICE =
   "This record is still saving. Press the key again once the save lands.";
 
 export const RECORD_LOADING_NOTICE =
-  "The next record is still loading. Press the key again once it shows.";
+  "This record is still loading. Press the key again once it shows.";
 
-export interface WorkspaceKeyDeps {
+interface WorkspaceNavigation {
   goNext: () => void;
   goPrev: () => void;
-  skipToEnd: () => void;
+}
+
+export interface WorkspaceKeyDeps extends WorkspaceNavigation {
   actions: WorkspaceRecordActions | null;
   /** The registration that owns `actions`. */
   record: symbol | null;
@@ -58,18 +56,12 @@ type KeyEventLike = Pick<
   "key" | "target" | "ctrlKey" | "metaKey" | "altKey" | "repeat" | "defaultPrevented"
 >;
 
-export function workspaceKeyAction(
-  event: KeyEventLike,
-): { action: WorkspaceKeyAction; digit?: number } | null {
+export function workspaceKeyAction(event: KeyEventLike): { action: WorkspaceKeyAction } | null {
   if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) {
     return null;
   }
   if (isTypingTarget(event.target)) {
     return null;
-  }
-  const digitIndex = (SUGGESTION_KEYS as readonly string[]).indexOf(event.key);
-  if (digitIndex !== -1) {
-    return { action: "use-suggestion", digit: digitIndex + 1 };
   }
   const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
   const binding = WORKSPACE_KEYS.find((entry) => entry.key === key);
@@ -116,10 +108,6 @@ export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps):
       deps.goPrev();
       return true;
     }
-    case "skip": {
-      deps.skipToEnd();
-      return true;
-    }
     case "settle-and-next": {
       const primary = actions?.primary;
       if (primary === undefined) {
@@ -163,36 +151,25 @@ export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps):
     case "undo": {
       return deps.undo();
     }
-    case "use-suggestion": {
-      if (actions?.useSuggestion === undefined || resolved.digit === undefined) {
-        return false;
-      }
-      const apply = actions.useSuggestion;
-      const { digit } = resolved;
-      void deps.queue.enqueue(deps.record, (signal) => apply(signal, digit), {
-        queryClient: deps.queryClient,
-      });
-      return true;
-    }
   }
 }
 
-export function useWorkspaceKeyboard(owner: WorkspaceOwner): void {
-  const navigation = useQueueNavigation(owner);
-  const params: WorkspaceRouteParams = useParams({ strict: false });
-  const onRecord = selectedKeyFromParams(params) !== null;
+export function useWorkspaceKeyboard(navigation?: WorkspaceNavigation): void {
   const { undoLatest } = useWorkspaceUndo();
   const queryClient = useQueryClient();
 
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    const action = workspaceKeyAction(event)?.action;
+    if (navigation === undefined && (action === undefined || !RECORD_KEYS.has(action))) {
+      return;
+    }
     const registration = useWorkspaceActionsStore.getState();
     const handled = handleWorkspaceKey(event, {
-      goNext: navigation.goNext,
-      goPrev: navigation.goPrev,
-      skipToEnd: navigation.skipToEnd,
+      goNext: () => navigation?.goNext(),
+      goPrev: () => navigation?.goPrev(),
       actions: registration.actions,
       record: registration.owner,
-      stale: registrationIsStale(registration, onRecord),
+      stale: registrationIsStale(registration),
       currentRecord: () => useWorkspaceActionsStore.getState().owner,
       undo: undoLatest,
       overlayOpen: openOverlayPresent,

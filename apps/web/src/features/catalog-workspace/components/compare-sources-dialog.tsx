@@ -14,7 +14,6 @@ import type {
 } from "@openrift/shared/types/api/admin";
 import { Suspense } from "react";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import type {
   CandidateCardFieldKey,
@@ -28,6 +27,7 @@ import {
 } from "@/features/admin/components/card-detail-shared";
 import { CardFieldsSection } from "@/features/admin/components/card-fields-section";
 import type { MovedCardDestination } from "@/features/admin/components/move-submission-dialog";
+import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
 import { PrintingSourceImageCell } from "@/features/admin/components/printing-source-image-cell";
 import {
   acceptCardFieldFn,
@@ -40,6 +40,7 @@ import {
 import { acceptFieldWithUndo, revertAcceptedField } from "@/features/admin/lib/accept-undo";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { getProviderLabel } from "@/features/admin/lib/candidate-rows";
+import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
 import { activeImageSourceUrl, imagesOnSide } from "@/features/admin/lib/printing-side-images";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
@@ -49,27 +50,21 @@ import { printingCompareGroups } from "@/features/catalog-workspace/lib/printing
 import { undoScope, usedUndoText } from "@/features/catalog-workspace/lib/workspace-undo";
 import { withSignal, withWriteSignal } from "@/lib/write-signal";
 
-export function CompareSourcesDialog({
-  open,
-  onOpenChange,
+export function CardCompareGrid({
   card,
   sources,
   fields,
   providerSettings,
   invalidates,
   isAdmin,
-  focusField,
   cardDestination,
 }: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   card: AdminCardResponse;
   sources: CandidateCardResponse[];
   fields: FieldDef<CandidateCardFieldKey>[];
   providerSettings: ProviderSettingResponse[];
   invalidates: readonly (readonly unknown[])[];
   isAdmin: boolean;
-  focusField?: string;
   cardDestination: MovedCardDestination;
 }) {
   const queueWrite = useQueueWorkspaceWrite();
@@ -80,45 +75,40 @@ export function CompareSourcesDialog({
     .map((source) => source.id);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-6xl">
-        <DialogHeader>
-          <DialogTitle>Compare all sources</DialogTitle>
-        </DialogHeader>
-        <CardFieldsSection
-          card={card}
-          sources={sources}
-          candidateCardFields={fields}
-          providerSettings={providerSettings}
-          onCheckAllSources={() => {
-            if (openSourceIds.length > 0) {
-              void queueWrite((signal) =>
-                checkCandidateCards.mutateAsync(
-                  { cardId: card.id, candidateCardIds: openSourceIds },
-                  { signal },
-                ),
-              );
-            }
-          }}
-          isCheckingAllSources={checkCandidateCards.isPending}
-          invalidates={invalidates}
-          isAdmin={isAdmin}
-          focusField={focusField}
-          runWrite={queueWrite}
-          cardDestination={cardDestination}
-          onFieldAccepted={({ fieldLabel, sourceLabel, revert }) =>
-            announce({
-              ...usedUndoText({ field: fieldLabel, source: sourceLabel, record: card.name }),
-              invalidates: undoScope(invalidates),
-              undo: (signal) =>
-                revertAcceptedField(revert, (data) =>
-                  withWriteSignal(signal, () => acceptCardFieldFn({ data, signal })),
-                ),
-            })
-          }
-        />
-      </DialogContent>
-    </Dialog>
+    <CardFieldsSection
+      hideHeading
+      agreedFieldsOpenByDefault
+      checkableCount={openSourceIds.length}
+      card={card}
+      sources={sources}
+      candidateCardFields={fields}
+      providerSettings={providerSettings}
+      onCheckAllSources={() => {
+        if (openSourceIds.length > 0) {
+          void queueWrite((signal) =>
+            checkCandidateCards.mutateAsync(
+              { cardId: card.id, candidateCardIds: openSourceIds },
+              { signal },
+            ),
+          );
+        }
+      }}
+      isCheckingAllSources={checkCandidateCards.isPending}
+      invalidates={invalidates}
+      isAdmin={isAdmin}
+      runWrite={queueWrite}
+      cardDestination={cardDestination}
+      onFieldAccepted={({ fieldLabel, sourceLabel, revert }) =>
+        announce({
+          ...usedUndoText({ field: fieldLabel, source: sourceLabel, record: card.name }),
+          invalidates: undoScope(invalidates),
+          undo: (signal) =>
+            revertAcceptedField(revert, (data) =>
+              withWriteSignal(signal, () => acceptCardFieldFn({ data, signal })),
+            ),
+        })
+      }
+    />
   );
 }
 
@@ -132,22 +122,11 @@ interface PrintingSourcesProps {
   isAdmin: boolean;
 }
 
-export function PrintingCompareSourcesDialog({
-  open,
-  onOpenChange,
-  ...props
-}: PrintingSourcesProps & { open: boolean; onOpenChange: (open: boolean) => void }) {
+export function PrintingCompareGrid(props: PrintingSourcesProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-6xl">
-        <DialogHeader>
-          <DialogTitle>Compare all sources</DialogTitle>
-        </DialogHeader>
-        <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-          <PrintingSources {...props} />
-        </Suspense>
-      </DialogContent>
-    </Dialog>
+    <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+      <PrintingSources {...props} />
+    </Suspense>
   );
 }
 
@@ -214,22 +193,11 @@ interface FaceSourcesProps {
   isAdmin: boolean;
 }
 
-export function FaceCompareSourcesDialog({
-  open,
-  onOpenChange,
-  ...props
-}: FaceSourcesProps & { open: boolean; onOpenChange: (open: boolean) => void }) {
+export function FaceCompareGrid(props: FaceSourcesProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-6xl">
-        <DialogHeader>
-          <DialogTitle>Compare all sources</DialogTitle>
-        </DialogHeader>
-        <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-          <FaceSources {...props} />
-        </Suspense>
-      </DialogContent>
-    </Dialog>
+    <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+      <FaceSources {...props} />
+    </Suspense>
   );
 }
 
@@ -294,6 +262,10 @@ function SourceSpreadsheet({
     face,
   );
   const ownUrls = new Set(sideImages.map((image) => image.originalUrl));
+  const storedByOriginal = new Map(
+    sideImages.map((image) => [image.originalUrl, printingImageDisplayUrl(image)]),
+  );
+  const mainImage = sideImages.find((image) => image.isActive);
   const activeRow = {
     ...face,
     imageUrl: activeImageSourceUrl(sideImages),
@@ -312,11 +284,20 @@ function SourceSpreadsheet({
       activeImageUrl={activeRow.imageUrl}
       costKeywords={costKeywords}
       normalizeCandidate={buildPrintingNormalizer(detail.setTotals, face.setSlug, costKeywords)}
+      renderActiveCell={(field) =>
+        field.key === "imageUrl" && mainImage !== undefined ? (
+          <PrintingImageBox
+            url={printingImageDisplayUrl(mainImage)}
+            alt="Current image"
+            landscape={landscape}
+          />
+        ) : undefined
+      }
       renderCandidateCell={(field, row) =>
         field.key === "imageUrl" && typeof row.imageUrl === "string" ? (
           <PrintingSourceImageCell
             candidatePrintingId={row.id}
-            url={row.imageUrl}
+            url={storedByOriginal.get(row.imageUrl) ?? row.imageUrl}
             sourceLabel={labels[row.candidateCardId] ?? "Source"}
             isUsed={ownUrls.has(row.imageUrl)}
             landscape={landscape}

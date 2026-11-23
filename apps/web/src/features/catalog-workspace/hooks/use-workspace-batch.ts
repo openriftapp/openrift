@@ -9,7 +9,7 @@ import type {
 import { adminCatalogWorkspaceBatchContract } from "@openrift/shared/contracts/admin/catalog-workspace-batch";
 import { MINUTE_MS } from "@openrift/shared/format-date";
 import { pluralize } from "@openrift/shared/strings";
-import { useQuery } from "@tanstack/react-query";
+import { queryOptions, useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
@@ -98,28 +98,6 @@ const assignSuggestedListingsFn = createServerFn({ method: "POST" })
     ).workspaceAssignSuggestedListings(data),
   );
 
-export function trustedCardsPreview(response: WorkspaceTrustedCardsPreview): BatchPreview {
-  return {
-    count: response.count,
-    names: response.names,
-    keys: response.names,
-    ineligible: response.ineligible.map(({ name, reason }) => ({ key: name, label: name, reason })),
-  };
-}
-
-export function trustedPrintingsPreview(response: WorkspaceTrustedPrintingsPreview): BatchPreview {
-  return {
-    count: response.count,
-    names: response.items.map((item) => item.label),
-    keys: response.items.map((item) => item.candidatePrintingId),
-    ineligible: response.ineligible.map(({ candidatePrintingId, label, reason }) => ({
-      key: candidatePrintingId,
-      label,
-      reason,
-    })),
-  };
-}
-
 export function suggestedListingsPreview(
   response: WorkspaceSuggestedListingsPreview,
 ): BatchPreview {
@@ -131,14 +109,27 @@ export function suggestedListingsPreview(
   };
 }
 
-const PREVIEW_FNS: Record<BatchKind, () => Promise<BatchPreview>> = {
-  "trusted-cards": async () => trustedCardsPreview(await fetchTrustedCardsPreview()),
-  "trusted-printings": async () => trustedPrintingsPreview(await fetchTrustedPrintingsPreview()),
-  "suggested-listings": async () => suggestedListingsPreview(await fetchSuggestedListingsPreview()),
-};
-
-export function batchPreviewQueryKey(kind: BatchKind) {
+export function batchPreviewQueryKey(kind: BatchKind | "ready") {
   return [...adminKeys.workspace, "batch", kind] as const;
+}
+
+export interface ReadyPreview {
+  cards: WorkspaceTrustedCardsPreview;
+  printings: WorkspaceTrustedPrintingsPreview;
+}
+
+export function readyPreviewQueryOptions() {
+  return queryOptions({
+    queryKey: batchPreviewQueryKey("ready"),
+    queryFn: async (): Promise<ReadyPreview> => {
+      const [cards, printings] = await Promise.all([
+        fetchTrustedCardsPreview(),
+        fetchTrustedPrintingsPreview(),
+      ]);
+      return { cards, printings };
+    },
+    staleTime: MINUTE_MS,
+  });
 }
 
 export function toBatchOutcome(response: RunResponse): BatchOutcome {
@@ -151,18 +142,8 @@ export function toBatchOutcome(response: RunResponse): BatchOutcome {
   };
 }
 
-export function batchButtonLabel(kind: BatchKind, count: number): string {
-  switch (kind) {
-    case "trusted-cards": {
-      return `Accept ${count} trusted ${pluralize(count, "new card")}`;
-    }
-    case "trusted-printings": {
-      return `Accept ${count} trusted ${pluralize(count, "printing")}`;
-    }
-    case "suggested-listings": {
-      return `Assign ${count} ${pluralize(count, "listing")} by suggestion`;
-    }
-  }
+export function listingsBatchLabel(count: number): string {
+  return `Assign ${count} ${pluralize(count, "listing")} by suggestion`;
 }
 
 const OUTCOME_NOUNS: Record<BatchKind, string> = {
@@ -199,21 +180,24 @@ async function runBatch(
   }
 }
 
-export function useWorkspaceBatch(kind: BatchKind, enabled: boolean) {
-  const preview = useQuery({
-    queryKey: batchPreviewQueryKey(kind),
-    queryFn: PREVIEW_FNS[kind],
-    staleTime: MINUTE_MS,
-    enabled,
-  });
-  const run = useMutationWithInvalidation({
+export function useBatchRun(kind: BatchKind) {
+  return useMutationWithInvalidation({
     meta: { inlineError: true },
     mutationFn: (keys: string[], signal) => runBatch(kind, keys, signal),
-    invalidates: [adminKeys.workspace, adminKeys.cards.list, adminKeys.reviewQueue],
+    invalidates: [
+      adminKeys.workspace,
+      adminKeys.cards.list,
+      adminKeys.reviewQueue,
+      ...(kind === "suggested-listings" ? [adminKeys.unifiedMappings.all] : []),
+    ],
   });
-  return {
-    preview: preview.data,
-    isPreviewPending: enabled && preview.isPending,
-    run,
-  };
+}
+
+export function useListingsBatchPreview(): BatchPreview | undefined {
+  const preview = useQuery({
+    queryKey: batchPreviewQueryKey("suggested-listings"),
+    queryFn: async () => suggestedListingsPreview(await fetchSuggestedListingsPreview()),
+    staleTime: MINUTE_MS,
+  });
+  return preview.data;
 }

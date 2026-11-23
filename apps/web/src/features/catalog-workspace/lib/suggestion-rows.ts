@@ -4,7 +4,6 @@ import {
   hasFieldValue,
   sameFieldValue,
 } from "@openrift/shared/catalog-field-compare";
-import type { WorkspaceSameDifferenceInput } from "@openrift/shared/contracts/admin/catalog-workspace-bulk";
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import type {
   AdminCardDetailResponse,
@@ -15,8 +14,6 @@ import type { AttentionSubmission } from "@/features/admin/lib/attention-items";
 import { CARD_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
 
 type SuggestionTone = "source" | "contributor";
-
-const MAX_SUGGESTION_HOTKEY = 9;
 
 export interface FieldSuggestion {
   key: string;
@@ -29,7 +26,6 @@ export interface FieldSuggestion {
   rowDifferences: number;
   changeKey?: string;
   otherChanges?: number;
-  hotkey?: number;
 }
 
 export interface SuggestionRow {
@@ -59,14 +55,13 @@ export interface CardSuggestions {
   sources: SourceDifferences[];
   agreedLabels: string[];
   enterTargets: EnterTarget[];
-  openContributorIds: string[];
 }
 
 function contributorSourceKey(candidateCardId: string): string {
   return `contributor:${candidateCardId}`;
 }
 
-function submissionChangeCount(submission: AttentionSubmission): number {
+export function submissionChangeCount(submission: AttentionSubmission): number {
   return submission.groups.reduce(
     (total, group) => total + (group.kind === "new-printing" ? 1 : group.changes.length),
     0,
@@ -118,7 +113,6 @@ export function buildCardSuggestions(
   }
 
   const contributorSources: SourceDifferences[] = [];
-  const openContributorIds: string[] = [];
   for (const submission of submissions) {
     const cardChanges = submission.groups
       .filter((group) => group.kind === "card")
@@ -126,7 +120,6 @@ export function buildCardSuggestions(
     if (cardChanges.length === 0) {
       continue;
     }
-    openContributorIds.push(submission.candidateCardId);
     const label = submission.submitterName ?? "Contributor";
     const total = submissionChangeCount(submission);
     contributorSources.push({
@@ -153,15 +146,11 @@ export function buildCardSuggestions(
     }
   }
 
-  let hotkey = 0;
   const rows: SuggestionRow[] = COMPARABLE_CARD_FIELDS.map((field) => ({
     field,
     label: CARD_FIELD_LABELS[field],
     currentValue: card[field] ?? null,
-    suggestions: (byField.get(field) ?? []).map((suggestion) => {
-      hotkey += 1;
-      return hotkey <= MAX_SUGGESTION_HOTKEY ? { ...suggestion, hotkey } : suggestion;
-    }),
+    suggestions: byField.get(field) ?? [],
   }));
 
   const providerSources = [...Map.groupBy(enterTargets, (target) => target.provider)].map(
@@ -180,36 +169,5 @@ export function buildCardSuggestions(
     sources: [...providerSources, ...contributorSources],
     agreedLabels: rows.filter((row) => row.suggestions.length === 0).map((row) => row.label),
     enterTargets,
-    openContributorIds,
   };
-}
-
-export function sameDifferenceInput(
-  suggestion: FieldSuggestion,
-): WorkspaceSameDifferenceInput | null {
-  if (suggestion.tone !== "source") {
-    return null;
-  }
-  return {
-    provider: suggestion.sourceKey,
-    field: suggestion.field,
-    value: JSON.stringify(suggestion.value),
-  };
-}
-
-export function suggestionByHotkey(
-  suggestions: readonly FieldSuggestion[],
-  hotkey: number,
-): FieldSuggestion | undefined {
-  return suggestions.find((suggestion) => suggestion.hotkey === hotkey);
-}
-
-export function enterProviders(targets: readonly EnterTarget[]): string[] {
-  return [
-    ...new Set(targets.filter((target) => target.differences > 0).map((target) => target.provider)),
-  ];
-}
-
-export function enterDifferenceCount(targets: readonly EnterTarget[]): number {
-  return targets.reduce((total, target) => total + target.differences, 0);
 }

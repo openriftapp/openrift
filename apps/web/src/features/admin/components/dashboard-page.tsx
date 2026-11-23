@@ -13,10 +13,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-import { Heading } from "@/components/heading";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardLink } from "@/components/ui/card-link";
-import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { StatFigure } from "@/components/ui/stat-figure";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { GrowthChart, GrowthRangeToggle } from "@/features/admin/components/growth-chart";
@@ -24,7 +22,6 @@ import { useAdminDashboard } from "@/features/admin/hooks/use-admin-dashboard";
 import type { GrowthRange } from "@/features/admin/lib/growth";
 import { GROWTH_RANGE_CAPTIONS, countAdded, toGrowthSeries } from "@/features/admin/lib/growth";
 import { CatalogWorkTile } from "@/features/catalog-workspace/components/catalog-work-tile";
-import { LastUploadsSection } from "@/features/catalog-workspace/components/last-uploads-section";
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { formatCount } from "@/lib/format";
 
@@ -76,7 +73,6 @@ export function DashboardPage() {
   const { app, growth } = data;
   const [range, setRange] = useState<GrowthRange>("30d");
   const workspaceEnabled = useFeatureEnabled("catalog-workspace");
-  const [siteOpen, setSiteOpen] = useState(false);
 
   const siteTiles = (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
@@ -140,25 +136,8 @@ export function DashboardPage() {
         actions={<GrowthRangeToggle value={range} onChange={setRange} />}
       />
 
-      {workspaceEnabled ? (
-        <>
-          <CatalogWorkTile />
-          <LastUploadsSection />
-          <section className="space-y-3">
-            <ExpandToggle
-              expanded={siteOpen}
-              onClick={() => setSiteOpen(!siteOpen)}
-              className="gap-2"
-            >
-              <Heading level={2}>Site</Heading>
-              <span className="text-muted-foreground text-sm">Users, collections and lists</span>
-            </ExpandToggle>
-            {siteOpen && siteTiles}
-          </section>
-        </>
-      ) : (
-        siteTiles
-      )}
+      {workspaceEnabled && <CatalogWorkTile />}
+      {siteTiles}
     </div>
   );
 }

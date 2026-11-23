@@ -60,7 +60,7 @@ describe("rehostFilesExist", () => {
 describe("processAndSave", () => {
   it("writes original and 4 webp variants", async () => {
     const buf = Buffer.from("test-img");
-    await processAndSave(mockIo, buf, ".png", "/tmp/out", "card-001", 0, false, null);
+    await processAndSave(mockIo, buf, ".png", "/tmp/out", "card-001", 0, false, false, null);
 
     expect(mockMkdir).toHaveBeenCalledTimes(2);
     expect(mockWriteFile).toHaveBeenCalledTimes(5);
@@ -75,7 +75,7 @@ describe("processAndSave", () => {
     mockReaddir.mockResolvedValue(["card-001-orig.png", "card-001-400w.webp"]);
     const buf = Buffer.from("test-img");
     await expect(
-      processAndSave(mockIo, buf, ".png", "/tmp/out", "card-001", 0, false, null),
+      processAndSave(mockIo, buf, ".png", "/tmp/out", "card-001", 0, false, false, null),
     ).rejects.toMatchObject({
       name: "AppError",
       status: 409,
@@ -87,7 +87,7 @@ describe("processAndSave", () => {
   it("allows overwrite when allowOverwrite is true", async () => {
     mockReaddir.mockResolvedValue(["card-001-orig.png"]);
     const buf = Buffer.from("test-img");
-    await processAndSave(mockIo, buf, ".png", "/tmp/out", "card-001", 0, false, null, true);
+    await processAndSave(mockIo, buf, ".png", "/tmp/out", "card-001", 0, false, false, null, true);
     expect(mockWriteFile).toHaveBeenCalledTimes(5);
   });
 
@@ -123,6 +123,7 @@ describe("processAndSave", () => {
       "resize-1",
       rotation,
       false,
+      false,
       null,
     );
 
@@ -141,7 +142,17 @@ describe("processAndSave", () => {
     grey[300 * 600 + 5] = 0;
     setGreyData(grey);
 
-    await processAndSave(mockIo, Buffer.from("p"), ".png", "/tmp/out", "trim-1", 0, true, null);
+    await processAndSave(
+      mockIo,
+      Buffer.from("p"),
+      ".png",
+      "/tmp/out",
+      "trim-1",
+      0,
+      true,
+      true,
+      null,
+    );
 
     expect(mockSharpInstance.extract).toHaveBeenCalledTimes(1);
     expect(mockSharpInstance.extract).toHaveBeenCalledWith({
@@ -155,15 +166,107 @@ describe("processAndSave", () => {
   it("applies the capped auto-levels stretch to scans", async () => {
     setGreyData(greyScan(600, 850, { left: 100, top: 50, width: 400, height: 700 }));
 
-    await processAndSave(mockIo, Buffer.from("p"), ".png", "/tmp/out", "levels-1", 0, true, null);
+    await processAndSave(
+      mockIo,
+      Buffer.from("p"),
+      ".png",
+      "/tmp/out",
+      "levels-1",
+      0,
+      true,
+      true,
+      null,
+    );
 
     const multiply = 255 / 190;
     expect(mockSharpInstance.linear).toHaveBeenCalledTimes(1);
     expect(mockSharpInstance.linear).toHaveBeenCalledWith(multiply, -30 * multiply);
   });
 
-  it("does not analyze or crop when needsTrim=false", async () => {
-    await processAndSave(mockIo, Buffer.from("d"), ".png", "/tmp/out", "digital-1", 0, false, null);
+  it("crops without changing levels when only needsTrim is set", async () => {
+    setGreyData(greyScan(600, 850, { left: 100, top: 50, width: 400, height: 700 }));
+
+    await processAndSave(
+      mockIo,
+      Buffer.from("p"),
+      ".png",
+      "/tmp/out",
+      "trim-2",
+      0,
+      true,
+      false,
+      null,
+    );
+
+    expect(mockSharpInstance.greyscale).toHaveBeenCalledTimes(1);
+    expect(mockSharpInstance.extract).toHaveBeenCalledWith({
+      left: 102,
+      top: 52,
+      width: 396,
+      height: 696,
+    });
+    expect(mockSharpInstance.linear).not.toHaveBeenCalled();
+  });
+
+  it("applies levels measured inside the card box without cropping when only needsLevels is set", async () => {
+    setGreyData(greyScan(600, 850, { left: 100, top: 50, width: 400, height: 700 }));
+
+    await processAndSave(
+      mockIo,
+      Buffer.from("p"),
+      ".png",
+      "/tmp/out",
+      "levels-2",
+      0,
+      false,
+      true,
+      null,
+    );
+
+    const multiply = 255 / 190;
+    expect(mockSharpInstance.greyscale).toHaveBeenCalledTimes(1);
+    expect(mockSharpInstance.extract).not.toHaveBeenCalled();
+    expect(mockSharpInstance.linear).toHaveBeenCalledWith(multiply, -30 * multiply);
+  });
+
+  it("crops and applies levels from one greyscale decode when both are set", async () => {
+    setGreyData(greyScan(600, 850, { left: 100, top: 50, width: 400, height: 700 }));
+
+    await processAndSave(
+      mockIo,
+      Buffer.from("p"),
+      ".png",
+      "/tmp/out",
+      "both-1",
+      0,
+      true,
+      true,
+      null,
+    );
+
+    const multiply = 255 / 190;
+    expect(mockSharpInstance.greyscale).toHaveBeenCalledTimes(1);
+    expect(mockSharpInstance.extract).toHaveBeenCalledWith({
+      left: 102,
+      top: 52,
+      width: 396,
+      height: 696,
+    });
+    expect(mockSharpInstance.linear).toHaveBeenCalledWith(multiply, -30 * multiply);
+  });
+
+  it("does not analyze, crop or change levels when neither is set", async () => {
+    await processAndSave(
+      mockIo,
+      Buffer.from("d"),
+      ".png",
+      "/tmp/out",
+      "digital-1",
+      0,
+      false,
+      false,
+      null,
+    );
     expect(mockSharpInstance.greyscale).not.toHaveBeenCalled();
     expect(mockSharpInstance.extract).not.toHaveBeenCalled();
     expect(mockSharpInstance.linear).not.toHaveBeenCalled();
@@ -171,7 +274,7 @@ describe("processAndSave", () => {
 
   it("preserves the -orig buffer regardless of needsTrim", async () => {
     const buf = Buffer.from("orig-bytes");
-    await processAndSave(mockIo, buf, ".png", "/tmp/out", "orig-check", 0, true, null);
+    await processAndSave(mockIo, buf, ".png", "/tmp/out", "orig-check", 0, true, true, null);
     expect(mockWriteFile).toHaveBeenCalledWith("/tmp/out/orig-check-orig.png", buf);
   });
 
@@ -179,7 +282,17 @@ describe("processAndSave", () => {
     setSharpMetadata({ width: 600, height: 900 });
     setGreyData(greyScan(600, 900, { left: 0, top: 0, width: 600, height: 900 }));
 
-    await processAndSave(mockIo, Buffer.from("e"), ".png", "/tmp/out", "edge-1", 0, true, null);
+    await processAndSave(
+      mockIo,
+      Buffer.from("e"),
+      ".png",
+      "/tmp/out",
+      "edge-1",
+      0,
+      true,
+      true,
+      null,
+    );
 
     expect(mockSharpInstance.extract).not.toHaveBeenCalled();
   });
@@ -193,6 +306,7 @@ describe("processAndSave", () => {
       "/tmp/out",
       "card-001",
       0,
+      false,
       false,
       null,
       true,
@@ -311,7 +425,16 @@ describe("generateWebpVariants with a quad", () => {
   }
 
   it("rectifies the quad into a card-shaped variant", async () => {
-    await generateWebpVariants(realIo, await quadrantPng(), "/tmp/out", "quad-1", 0, false, BOX);
+    await generateWebpVariants(
+      realIo,
+      await quadrantPng(),
+      "/tmp/out",
+      "quad-1",
+      0,
+      false,
+      false,
+      BOX,
+    );
 
     const full = await sharp(writtenVariant("-full.webp")).metadata();
     expect({ width: full.width, height: full.height }).toEqual(straightenedSize(BOX));
@@ -326,7 +449,16 @@ describe("generateWebpVariants with a quad", () => {
   });
 
   it("rotates after straightening", async () => {
-    await generateWebpVariants(realIo, await quadrantPng(), "/tmp/out", "quad-2", 90, false, BOX);
+    await generateWebpVariants(
+      realIo,
+      await quadrantPng(),
+      "/tmp/out",
+      "quad-2",
+      90,
+      false,
+      false,
+      BOX,
+    );
 
     const [topLeft, topRight] = await cornerColors(writtenVariant("-full.webp"));
     expect(dominant(topLeft!)).toBe("yellow");
@@ -341,7 +473,16 @@ describe("generateWebpVariants with a quad", () => {
       { x: 0, y: 95 },
     ];
     await expect(
-      generateWebpVariants(realIo, await quadrantPng(), "/tmp/out", "quad-3", 0, false, outside),
+      generateWebpVariants(
+        realIo,
+        await quadrantPng(),
+        "/tmp/out",
+        "quad-3",
+        0,
+        false,
+        false,
+        outside,
+      ),
     ).rejects.toThrow("Quad does not fit the original image");
     expect(mockWriteFile).not.toHaveBeenCalled();
   });
@@ -354,12 +495,30 @@ describe("generateWebpVariants with a quad", () => {
       { x: 10, y: 10 },
     ];
     await expect(
-      generateWebpVariants(realIo, await quadrantPng(), "/tmp/out", "quad-4", 0, false, collapsed),
+      generateWebpVariants(
+        realIo,
+        await quadrantPng(),
+        "/tmp/out",
+        "quad-4",
+        0,
+        false,
+        false,
+        collapsed,
+      ),
     ).rejects.toThrow("Quad does not fit the original image");
   });
 
   it("leaves the image untouched when no quad is stored", async () => {
-    await generateWebpVariants(realIo, await quadrantPng(), "/tmp/out", "quad-5", 0, false, null);
+    await generateWebpVariants(
+      realIo,
+      await quadrantPng(),
+      "/tmp/out",
+      "quad-5",
+      0,
+      false,
+      false,
+      null,
+    );
 
     const full = await sharp(writtenVariant("-full.webp")).metadata();
     expect({ width: full.width, height: full.height }).toEqual({ width: 120, height: 120 });

@@ -4,6 +4,7 @@ import type {
   ProviderSettingResponse,
 } from "@openrift/shared/types/api/admin";
 import {
+  ContrastIcon,
   DownloadIcon,
   CropIcon,
   EllipsisVerticalIcon,
@@ -46,6 +47,7 @@ import {
   useRehostPrintingImage,
   useRotatePrintingImage,
   useSetFallbackArt,
+  useSetPrintingImageNeedsLevels,
   useSetPrintingImageNeedsTrim,
   useUnrehostPrintingImage,
   useUploadFallbackArt,
@@ -103,6 +105,7 @@ export function PrintingImageSwitcher({
   const unrehostPrintingImage = useUnrehostPrintingImage(invalidates);
   const rotatePrintingImage = useRotatePrintingImage();
   const setNeedsTrim = useSetPrintingImageNeedsTrim();
+  const setNeedsLevels = useSetPrintingImageNeedsLevels();
   const addImageFromUrl = useAddImageFromUrl(invalidates);
   const uploadPrintingImage = useUploadPrintingImage(invalidates);
   const setFallbackArt = useSetFallbackArt(invalidates);
@@ -286,6 +289,21 @@ export function PrintingImageSwitcher({
                           <ScissorsLineDashedIcon className="size-3.5" />
                         )}
                         {effectiveImage.needsTrim ? "Auto-trim is on" : "Auto-trim is off"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={editing}
+                        onClick={() => {
+                          const input = {
+                            imageId: effectiveImage.id,
+                            needsLevels: !effectiveImage.needsLevels,
+                          };
+                          void runWrite((signal) => setNeedsLevels.mutateAsync(input, { signal }));
+                        }}
+                      >
+                        <ContrastIcon
+                          className={cn("size-3.5", effectiveImage.needsLevels && "text-success")}
+                        />
+                        {effectiveImage.needsLevels ? "Contrast is on" : "Contrast is off"}
                       </DropdownMenuItem>
                     </>
                   )}

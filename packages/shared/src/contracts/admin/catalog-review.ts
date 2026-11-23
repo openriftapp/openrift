@@ -76,6 +76,7 @@ export const acceptSubmissionInputSchema = candidateCardIdParam.extend({
   printingFields: z.array(printingFieldPickSchema).default([]),
   newPrintings: z.array(newPrintingPickSchema).default([]),
   images: z.array(imagePickSchema).default([]),
+  markApplied: z.boolean().default(false),
 });
 
 export const acceptSubmissionResponseSchema = z.object({

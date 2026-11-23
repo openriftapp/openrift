@@ -5,6 +5,7 @@ import type {
 } from "@openrift/shared/types/api/admin";
 import { WellKnown } from "@openrift/shared/well-known";
 import { PaletteIcon, TagIcon } from "lucide-react";
+import { isValidElement } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
 import { CardIcon } from "@/components/card-icon";
@@ -14,7 +15,10 @@ import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Pressable } from "@/components/ui/pressable";
 import { useMarkers } from "@/features/admin/hooks/use-markers";
 import { usePrintingsByLanguage } from "@/features/admin/hooks/use-printings-by-language";
-import { groupAdminPrintingDesigns } from "@/features/admin/lib/card-overview";
+import {
+  groupAdminFaceDesigns,
+  groupAdminPrintingDesigns,
+} from "@/features/admin/lib/card-overview";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
 import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
@@ -26,25 +30,37 @@ import { useEnumOrders } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
 
 const cellGrid =
-  "grid grid-cols-[repeat(var(--cols),minmax(0,1fr))] gap-2 sm:grid-cols-[repeat(var(--cols),4.5rem)]";
+  "grid grid-cols-[repeat(var(--cols),minmax(0,1fr))] gap-2 sm:grid-cols-[repeat(var(--cols),var(--cell,4.5rem))]";
 
 export function AdminPrintingMatrix({
   detail,
   landscape,
   onOpen,
+  faces,
+  printings,
+  highlightedIds,
 }: {
   detail: AdminCardDetailResponse;
   landscape: boolean;
   onOpen: (printingId: string) => void;
+  faces?: readonly AdminPrintingResponse[];
+  printings?: readonly AdminPrintingResponse[];
+  highlightedIds?: ReadonlySet<string>;
 }) {
-  const byLanguage = usePrintingsByLanguage(detail.printings);
-  const { languages, designs } = groupAdminPrintingDesigns(
-    byLanguage.flatMap((group) => group.printings),
-  );
-  const columns = { "--cols": languages.length } as CSSProperties;
+  const byLanguage = usePrintingsByLanguage(faces ?? printings ?? detail.printings);
+  const ordered = byLanguage.flatMap((group) => group.printings);
+  const { languages, designs } =
+    faces === undefined ? groupAdminPrintingDesigns(ordered) : groupAdminFaceDesigns(ordered);
+  const columns: MatrixColumns =
+    faces === undefined ? (printings === undefined ? "flow" : "printing") : "face";
+  const paired = printings?.some((printing) => printing.otherFace !== null) === true;
+  const columnCount = {
+    "--cols": languages.length,
+    ...(paired ? { "--cell": "7rem" } : {}),
+  } as CSSProperties;
 
   return (
-    <div className="bg-card overflow-hidden rounded-xl border" style={columns}>
+    <div className="bg-card @container overflow-hidden rounded-xl border" style={columnCount}>
       <div className="flex px-3 py-2 sm:px-4">
         <span className="hidden flex-1 sm:block" />
         <div className={cn(cellGrid, "flex-1 sm:flex-none")}>
@@ -61,7 +77,7 @@ export function AdminPrintingMatrix({
             key={design.key}
             className="flex flex-col gap-2.5 border-t px-3 py-3 sm:flex-row sm:items-center sm:gap-4 sm:px-4 sm:py-2"
           >
-            <DesignInfo design={design} />
+            <DesignInfo design={design} columns={columns} />
             <div className={cellGrid}>
               {languages.map((language) => {
                 const printing = design.byLanguage.get(language);
@@ -83,6 +99,8 @@ export function AdminPrintingMatrix({
                     detail={detail}
                     landscape={landscape}
                     onOpen={onOpen}
+                    highlighted={highlightedIds?.has(printing.id) === true}
+                    bothFaces={columns === "printing"}
                   />
                 );
               })}
@@ -99,17 +117,21 @@ function PrintingCell({
   detail,
   landscape,
   onOpen,
+  highlighted,
+  bothFaces,
 }: {
   printing: AdminPrintingResponse;
   detail: AdminCardDetailResponse;
   landscape: boolean;
   onOpen: (printingId: string) => void;
+  highlighted: boolean;
+  bothFaces: boolean;
 }) {
   const image = imagesOnSide(detail.printingImages, printing).find(
     (candidate) => candidate.isActive,
   );
   const url = image === undefined ? null : printingImageDisplayUrl(image);
-  const thumb = (
+  const own = (
     <CardArtThumb
       src={url}
       landscape={landscape}
@@ -118,14 +140,38 @@ function PrintingCell({
       loading="lazy"
     />
   );
+  const other = bothFaces && printing.otherFace !== null && (
+    <CardArtThumb
+      src={printing.otherFace.imageUrl}
+      landscape={landscape}
+      rarity={printing.rarity}
+      className="w-11"
+      loading="lazy"
+    />
+  );
+  const thumb = other ? (
+    <span className="flex gap-0.5">
+      {printing.side === 1 ? own : other}
+      {printing.side === 1 ? other : own}
+    </span>
+  ) : (
+    own
+  );
 
   return (
     <HoverCard>
       <HoverCardTrigger
         render={
           <Pressable
-            aria-label={`${printing.shortCode}, ${printing.language}`}
-            className="hover:bg-muted/50 flex justify-center rounded-md py-1 transition-colors"
+            aria-label={
+              highlighted
+                ? `${printing.shortCode}, ${printing.language}, has pending work`
+                : `${printing.shortCode}, ${printing.language}`
+            }
+            className={cn(
+              "hover:bg-muted/50 flex justify-center rounded-md py-1 transition-colors",
+              highlighted && "bg-warning-soft ring-warning ring-2",
+            )}
             onClick={() => onOpen(printing.id)}
           />
         }
@@ -146,18 +192,27 @@ function PrintingCell({
   );
 }
 
-function DesignInfo({ design }: { design: PrintingDesign<AdminPrintingResponse> }) {
+type MatrixColumns = "flow" | "face" | "printing";
+
+function DesignInfo({
+  design,
+  columns,
+}: {
+  design: PrintingDesign<AdminPrintingResponse>;
+  columns: MatrixColumns;
+}) {
+  const faceOnly = columns === "face";
   const printing = design.lead;
   const { labels } = useEnumOrders();
   const { data: markersData } = useMarkers();
   const markerLabels = labelMap(markersData.markers);
 
   const badges: ReactNode[] = [
-    <span key="rarity" className="text-muted-foreground inline-flex items-center gap-0.5 text-xs">
+    <span key="rarity" className="text-muted-foreground inline-flex items-center gap-1 text-xs">
       <RarityIcon rarity={printing.rarity} className="size-3" />
       {enumLabel(labels.rarities, printing.rarity)}
     </span>,
-    <span key="finish" className="inline-flex items-center gap-0.5 text-xs">
+    <span key="finish" className="inline-flex items-center gap-1 text-xs">
       {hasFinishIcon(printing.finish) && (
         <FinishIcon finish={printing.finish} iconClassName="size-3" />
       )}
@@ -166,7 +221,7 @@ function DesignInfo({ design }: { design: PrintingDesign<AdminPrintingResponse> 
   ];
   if (printing.artVariant !== WellKnown.artVariant.NORMAL) {
     badges.push(
-      <span key="art" className="text-muted-foreground inline-flex items-center gap-0.5 text-xs">
+      <span key="art" className="text-muted-foreground inline-flex items-center gap-1 text-xs">
         <PaletteIcon className="size-3" />
         {enumLabel(labels.artVariants, printing.artVariant)}
       </span>,
@@ -174,30 +229,27 @@ function DesignInfo({ design }: { design: PrintingDesign<AdminPrintingResponse> 
   }
   if (printing.markerSlugs.length > 0) {
     badges.push(
-      <span
-        key="markers"
-        className="text-muted-foreground inline-flex items-center gap-0.5 text-xs"
-      >
+      <span key="markers" className="text-muted-foreground inline-flex items-center gap-1 text-xs">
         <TagIcon className="size-3" />
         {printing.markerSlugs.map((slug) => enumLabel(markerLabels, slug)).join(", ")}
       </span>,
     );
   }
-  if (printing.size !== WellKnown.cardSize.STANDARD) {
+  if (!faceOnly && printing.size !== WellKnown.cardSize.STANDARD) {
     badges.push(
       <span key="size" className="text-muted-foreground text-xs">
         {enumLabel(labels.cardSizes, printing.size)}
       </span>,
     );
   }
-  if (printing.side === 2) {
+  if (!faceOnly && printing.side === 2) {
     badges.push(
       <span key="side" className="text-muted-foreground text-xs">
         Back face
       </span>,
     );
   }
-  if (printing.otherFace) {
+  if (!faceOnly && printing.otherFace) {
     badges.push(
       <span key="other-face" className="text-muted-foreground text-xs">
         Paired with {printing.otherFace.cardName}
@@ -219,13 +271,48 @@ function DesignInfo({ design }: { design: PrintingDesign<AdminPrintingResponse> 
     );
   }
 
+  if (columns === "printing") {
+    const cell = (key: string) =>
+      badges.find((badge) => isValidElement(badge) && badge.key === key) ?? (
+        <span className="hidden @5xl:block" />
+      );
+    return (
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 @5xl:grid @5xl:grid-cols-[6.5rem_4.5rem_5rem_5rem_10rem_minmax(0,1fr)]">
+        <p className="font-semibold">{printing.shortCode}</p>
+        {cell("finish")}
+        {cell("markers")}
+        {cell("size")}
+        {cell("other-face")}
+        <span className="text-muted-foreground text-xs">
+          {printing.distributionChannelSlugs.join(", ")}
+        </span>
+      </div>
+    );
+  }
+
+  if (faceOnly) {
+    const cell = (key: string) =>
+      badges.find((badge) => isValidElement(badge) && badge.key === key) ?? (
+        <span className="hidden @5xl:block" />
+      );
+    return (
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 @5xl:grid @5xl:grid-cols-[6.5rem_6rem_4.5rem_5rem_minmax(0,1fr)]">
+        <p className="font-semibold">{printing.shortCode}</p>
+        {cell("rarity")}
+        {cell("finish")}
+        {cell("art")}
+        {cell("markers")}
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <p className="font-semibold">{printing.shortCode}</p>
         {badges}
       </div>
-      {printing.artist && (
+      {!faceOnly && printing.artist && (
         <p className="text-muted-foreground inline-flex items-center gap-1 text-xs">
           <CardIcon src="/images/artist.svg" className="size-3 shrink-0" />
           <span className="truncate">{printing.artist}</span>

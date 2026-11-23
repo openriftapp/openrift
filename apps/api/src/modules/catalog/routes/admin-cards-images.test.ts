@@ -420,6 +420,7 @@ describe("POST /printing-images/:imageId/rehost", () => {
       rehostedUrl: "/media/cards/ab/00594247-a18a-4efd-8998-105449a4c1ab",
       rotation: 0,
       needsTrim: false,
+      needsLevels: false,
       quad: null,
     });
     mockRefetchImageFile.mockResolvedValue({
@@ -472,6 +473,7 @@ describe("POST /printing-images/:imageId/rotate", () => {
       imageFileId: "ci-1",
       rotation: 0,
       needsTrim: true,
+      needsLevels: true,
       quad: null,
       originalUrl: "https://example.com/img.png",
     };
@@ -487,6 +489,7 @@ describe("POST /printing-images/:imageId/rotate", () => {
     expect(mockEditImageFile).toHaveBeenCalledWith(mockIo, mockPrintingImages, image, {
       rotation: 90,
       needsTrim: true,
+      needsLevels: true,
       quad: null,
     });
     expect(mockAdminEvents.insert).toHaveBeenCalledWith(
@@ -502,6 +505,7 @@ describe("POST /printing-images/:imageId/rotate", () => {
       imageFileId: "ci-1",
       rotation: 0,
       needsTrim: false,
+      needsLevels: false,
       quad: null,
       originalUrl: "https://example.com/img.png",
       rehostedUrl: null,
@@ -555,6 +559,7 @@ describe("POST /printing-images/:imageId/set-needs-trim", () => {
       imageFileId: "ci-1",
       rotation: 90,
       needsTrim: false,
+      needsLevels: false,
       quad: null,
       originalUrl: "https://example.com/img.png",
     };
@@ -573,6 +578,7 @@ describe("POST /printing-images/:imageId/set-needs-trim", () => {
     expect(mockEditImageFile).toHaveBeenCalledWith(mockIo, mockPrintingImages, image, {
       rotation: 90,
       needsTrim: true,
+      needsLevels: false,
       quad: null,
     });
   });
@@ -592,6 +598,63 @@ describe("POST /printing-images/:imageId/set-needs-trim", () => {
   });
 });
 
+describe("POST /printing-images/:imageId/set-needs-levels", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    adminAccess = FULL_ADMIN;
+  });
+
+  it("edits the image file with the new needs-levels value and keeps trim", async () => {
+    const image = {
+      imageFileId: "ci-1",
+      rotation: 90,
+      needsTrim: true,
+      needsLevels: false,
+      quad: null,
+      originalUrl: "https://example.com/img.png",
+    };
+    mockPrintingImages.getForRehost.mockResolvedValue(image);
+    mockEditImageFile.mockResolvedValue("ci-2");
+
+    const res = await app.request(
+      `/api/admin/v1/cards/printing-images/${IMAGE_ID}/set-needs-levels`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ needsLevels: true }),
+      },
+    );
+    expect(res.status).toBe(204);
+    expect(mockEditImageFile).toHaveBeenCalledWith(mockIo, mockPrintingImages, image, {
+      rotation: 90,
+      needsTrim: true,
+      needsLevels: true,
+      quad: null,
+    });
+    expect(mockAdminEvents.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "image.set-needs-levels",
+        oldValues: { needsLevels: false, imageFileId: "ci-1" },
+        newValues: { needsLevels: true, imageFileId: "ci-2" },
+      }),
+    );
+  });
+
+  it("returns 404 when image not found", async () => {
+    mockPrintingImages.getForRehost.mockResolvedValue(null);
+
+    const res = await app.request(
+      "/api/admin/v1/cards/printing-images/00000000-0000-4000-a000-000000000099/set-needs-levels",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ needsLevels: true }),
+      },
+    );
+    expect(res.status).toBe(404);
+  });
+});
+
 describe("POST /printing-images/:imageId/quad", () => {
   const QUAD = [
     { x: 10, y: 5 },
@@ -603,6 +666,7 @@ describe("POST /printing-images/:imageId/quad", () => {
     imageFileId: "ci-1",
     rotation: 90,
     needsTrim: true,
+    needsLevels: false,
     quad: null,
     originalUrl: "https://example.com/img.png",
   };
@@ -625,6 +689,7 @@ describe("POST /printing-images/:imageId/quad", () => {
     expect(mockEditImageFile).toHaveBeenCalledWith(mockIo, mockPrintingImages, IMAGE, {
       rotation: 90,
       needsTrim: true,
+      needsLevels: false,
       quad: QUAD,
     });
   });
@@ -643,6 +708,7 @@ describe("POST /printing-images/:imageId/quad", () => {
     expect(mockEditImageFile).toHaveBeenCalledWith(mockIo, mockPrintingImages, straightened, {
       rotation: 90,
       needsTrim: true,
+      needsLevels: false,
       quad: null,
     });
   });
@@ -697,6 +763,7 @@ describe("POST /printing-images/:imageId/original", () => {
       imageFileId: "00594247-a18a-4efd-8998-105449a4c1ab",
       rotation: 90,
       needsTrim: false,
+      needsLevels: false,
       quad: null,
       originalUrl: "https://example.com/img.png",
     });
@@ -732,6 +799,7 @@ describe("POST /printing-images/:imageId/original", () => {
       imageFileId: "00594247-a18a-4efd-8998-105449a4c1ab",
       rotation: 0,
       needsTrim: false,
+      needsLevels: false,
       quad: null,
       originalUrl: null,
     });
@@ -1261,6 +1329,7 @@ describe("grant holder scope", () => {
       originalUrl: null,
       rotation: 0,
       needsTrim: false,
+      needsLevels: false,
     });
 
     const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}/rotate`, {
@@ -1320,6 +1389,11 @@ describe("image edit scope", () => {
       body: { needsTrim: true },
       effect: () => mockEditImageFile,
     },
+    {
+      name: "set-needs-levels",
+      body: { needsLevels: true },
+      effect: () => mockEditImageFile,
+    },
   ];
 
   const cases = [
@@ -1348,6 +1422,7 @@ describe("image edit scope", () => {
       rehostedUrl: "/media/cards/-1/if-1",
       rotation: 0,
       needsTrim: false,
+      needsLevels: false,
       quad: null,
     };
     mockPrintingImages.getForActivate.mockResolvedValue(image);

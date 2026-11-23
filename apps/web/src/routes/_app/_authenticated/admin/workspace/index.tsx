@@ -10,7 +10,7 @@ export const Route = createFileRoute("/_app/_authenticated/admin/workspace/")({
       staleTime: "static",
     });
     if (hasAdminSection(access, "card-review")) {
-      throw redirect({ to: "/admin/workspace/cards" });
+      throw redirect({ to: "/admin/workspace/review" });
     }
     throw redirect({ to: "/admin/workspace/printings" });
   },

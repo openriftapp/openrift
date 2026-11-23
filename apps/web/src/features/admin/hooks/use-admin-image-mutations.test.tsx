@@ -41,6 +41,7 @@ const {
   useImageEditPending,
   useRehostPrintingImage,
   useRotatePrintingImage,
+  useSetPrintingImageNeedsLevels,
   useSetPrintingImageNeedsTrim,
   useSetPrintingImageQuad,
 } = await import("./use-admin-image-mutations");
@@ -126,6 +127,12 @@ describe("image file edits", () => {
       });
       return () => result.current.mutateAsync({ imageId: "img-1", needsTrim: true });
     },
+    contrast: () => {
+      const { result } = renderHook(() => useSetPrintingImageNeedsLevels(), {
+        wrapper: wrap(client),
+      });
+      return () => result.current.mutateAsync({ imageId: "img-1", needsLevels: true });
+    },
     straighten: () => {
       const { result } = renderHook(() => useSetPrintingImageQuad(), { wrapper: wrap(client) });
       return () => result.current.mutateAsync({ imageId: "img-1", quad: null });
@@ -152,7 +159,7 @@ describe("image file edits", () => {
         adminKeys.cards.detail("other-card-sharing-the-face"),
         adminKeys.cards.list,
         adminKeys.printingDesk.printing("printing-1"),
-        adminKeys.workspaceQueueFor("face"),
+        adminKeys.workspaceQueue,
         adminKeys.workspaceRecords.infinite({ kind: "face" }),
         catalogKeys.all,
         cardsKeys.detail("jinx-loose-cannon"),

@@ -1,3 +1,4 @@
+import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { AdminPending } from "@/features/admin/components/admin-route-components";
@@ -15,7 +16,7 @@ export const Route = createFileRoute("/_app/_authenticated/admin/workspace/cards
     if (!preload) {
       void Promise.allSettled([
         context.queryClient.query({
-          ...unmatchedCardDetailQueryOptions(params.name),
+          ...unmatchedCardDetailQueryOptions(normalizeNameForIdentity(params.name)),
           staleTime: "static",
         }),
       ]);

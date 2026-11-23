@@ -1,101 +1,115 @@
 import type { WorkspaceRecordRow } from "@openrift/shared/contracts/admin/catalog-workspace";
 import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel, labelMap } from "@openrift/shared/enum-label";
-import { formatDay } from "@openrift/shared/format-date";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
-import { pluralize } from "@openrift/shared/strings";
 import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
-import type { QueryClient } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
-import { DownloadIcon, Share2Icon } from "lucide-react";
+import { WellKnown } from "@openrift/shared/well-known";
+import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { useRef, useState } from "react";
-import { toast } from "sonner";
+import { useRef } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { InstantCell } from "@/features/admin/components/admin-crud-shared";
-import { selectColumn } from "@/features/admin/components/admin-row-select";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import { DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
 import { useDistributionChannels } from "@/features/admin/hooks/use-distribution-channels";
-import { useIgnoreNewCardDrafts } from "@/features/admin/hooks/use-ignored-candidates";
 import { useMarkers } from "@/features/admin/hooks/use-markers";
-import type { RowSelection } from "@/features/admin/hooks/use-row-selection";
-import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import type { ServerSort } from "@/features/admin/lib/admin-table-types";
 import { EMPTY_VALUE_TEXT } from "@/features/admin/lib/field-value-text";
-import {
-  buildPrintingDeskCsv,
-  printingDeskCsvFilename,
-} from "@/features/admin/lib/printing-desk-csv";
 import { imageCountText } from "@/features/admin/lib/printing-desk-filter";
-import { deskImageSrc } from "@/features/admin/lib/printing-desk-image";
-import { deskPrintingQueryOptions } from "@/features/admin/lib/printing-desk-queries";
-import type { PostSlide } from "@/features/admin/lib/printing-post-slides";
-import { encodePostSlides } from "@/features/admin/lib/printing-post-slides";
-import { selectionSummary, splitSelection } from "@/features/admin/lib/selection-summary";
-import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
+import { useSets } from "@/features/cards/hooks/use-sets";
 import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
-import { WorkspaceTargetLink } from "@/features/catalog-workspace/components/queue-list";
-import { ignoredCardsUndo } from "@/features/catalog-workspace/hooks/candidate-undo";
-import type { WorkspaceRecordsResult } from "@/features/catalog-workspace/hooks/use-workspace-queue";
-import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
-import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
-import { ignoredDraftsMessage } from "@/features/catalog-workspace/lib/ignored-drafts-message";
-import type {
-  DeskMode,
-  DeskRow,
-  OwnerGroup,
-  WorkspaceRole,
-  WorkspaceTarget,
-} from "@/features/catalog-workspace/lib/owner-items";
 import {
-  cardOpenBadges,
+  CardThumb,
+  RecordThumb,
+} from "@/features/catalog-workspace/components/record/record-thumb";
+import type { WorkspaceRecordsResult } from "@/features/catalog-workspace/hooks/use-workspace-queue";
+import type { DeskRow, WorkspaceTarget } from "@/features/catalog-workspace/lib/owner-items";
+import {
+  cardPendingBadges,
   cardSummaryKey,
   cardSummaryTarget,
   deskEntry,
   recordEntry,
-  rowMatchesSource,
 } from "@/features/catalog-workspace/lib/owner-items";
-import {
-  buildCardsCsv,
-  buildFacesCsv,
-  buildPrintingsCsv,
-  recordsCsvFilename,
-} from "@/features/catalog-workspace/lib/records-csv";
-import { fetchAllWorkspaceRecords } from "@/features/catalog-workspace/lib/workspace-queries";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
-import { downloadCsv } from "@/lib/download";
-import { errorText } from "@/lib/error-text";
 import { formatCount } from "@/lib/format";
-import { runReportedMutation } from "@/lib/run-reported-mutation";
-import { getSiteUrl } from "@/lib/site-config";
 
 const ROW_HEIGHT = 57;
+
+function TargetLink({
+  target,
+  className,
+  children,
+}: {
+  target: WorkspaceTarget;
+  className: string;
+  children: ReactNode;
+}) {
+  switch (target.kind) {
+    case "card": {
+      return (
+        <Link
+          to="/admin/workspace/cards/$cardSlug"
+          params={{ cardSlug: target.cardSlug }}
+          className={className}
+          search
+        >
+          {children}
+        </Link>
+      );
+    }
+    case "card-new": {
+      return (
+        <Link
+          to="/admin/workspace/cards/new/$name"
+          params={{ name: target.name }}
+          className={className}
+          search
+        >
+          {children}
+        </Link>
+      );
+    }
+    case "face": {
+      return (
+        <Link
+          to="/admin/workspace/faces/$cardSlug/$faceId"
+          params={{ cardSlug: target.cardSlug, faceId: target.faceId }}
+          className={className}
+          search
+        >
+          {children}
+        </Link>
+      );
+    }
+    case "printing": {
+      return (
+        <Link
+          to="/admin/workspace/printings/$printingId"
+          params={{ printingId: target.printingId }}
+          className={className}
+          search
+        >
+          {children}
+        </Link>
+      );
+    }
+  }
+}
 
 function NameLink({ target, children }: { target: WorkspaceTarget | null; children: string }) {
   if (target === null) {
     return <span className="font-medium">{children}</span>;
   }
   return (
-    <WorkspaceTargetLink target={target} className="font-medium hover:underline">
+    <TargetLink target={target} className="font-medium hover:underline">
       {children}
-    </WorkspaceTargetLink>
-  );
-}
-
-function Thumb({ url }: { url: string | null }) {
-  return (
-    <CardArtThumb
-      src={deskImageSrc(url, "240w")}
-      alt=""
-      loading="lazy"
-      className="w-7 min-w-0 shrink-0"
-    />
+    </TargetLink>
   );
 }
 
@@ -108,7 +122,7 @@ function MarkerBadges({ markers, labels }: { markers: readonly string[]; labels?
     return null;
   }
   return (
-    <span className="mt-0.5 flex flex-wrap gap-1">
+    <span className="flex flex-wrap gap-1">
       {markers.map((marker) => (
         <Badge key={marker} variant="neutral">
           {labels ? enumLabel(labels, marker) : marker}
@@ -123,15 +137,30 @@ function CardNameCell({ row }: AdminCellSlotProps<CandidateCardSummaryResponse>)
     return null;
   }
   return (
-    <span className="flex flex-wrap items-center gap-2">
+    <span className="flex items-center gap-2">
+      <CardThumb cardSlug={row.cardSlug} />
       <NameLink target={cardSummaryTarget(row)}>{row.name}</NameLink>
-      {row.cardSlug === null && <Badge variant="violet">New</Badge>}
     </span>
   );
 }
 
+function firstSetOf(
+  row: CandidateCardSummaryResponse,
+  sets: readonly { slug: string; name: string }[],
+): { index: number; slug: string; name: string } | null {
+  const slugs = new Set(row.setSlugs.map((slug) => slug.toLowerCase()));
+  const index = sets.findIndex((set) => slugs.has(set.slug.toLowerCase()));
+  const set = sets[index];
+  return set === undefined ? null : { index, slug: set.slug, name: set.name };
+}
+
 function CardSetCell({ row }: AdminCellSlotProps<CandidateCardSummaryResponse>) {
-  return <Muted>{row?.setSlugs.at(0) ?? ""}</Muted>;
+  const { data } = useSets();
+  if (!row || row.setSlugs.length === 0) {
+    return null;
+  }
+  const first = firstSetOf(row, data.sets);
+  return <Muted>{first === null ? row.setSlugs.at(0) : `${first.slug} · ${first.name}`}</Muted>;
 }
 
 function CardPrintingsCell({ row }: AdminCellSlotProps<CandidateCardSummaryResponse>) {
@@ -142,16 +171,11 @@ function CardPrintingsCell({ row }: AdminCellSlotProps<CandidateCardSummaryRespo
   return <Muted>{row.cardSlug === null ? `+${count}` : count}</Muted>;
 }
 
-function CardOpenCell({
-  row,
-  groups,
-}: AdminCellSlotProps<CandidateCardSummaryResponse> & {
-  groups?: ReadonlyMap<string, OwnerGroup>;
-}) {
+function CardPendingCell({ row }: AdminCellSlotProps<CandidateCardSummaryResponse>) {
   if (!row) {
     return null;
   }
-  const badges = cardOpenBadges(row, groups?.get(cardSummaryKey(row)));
+  const badges = cardPendingBadges(row);
   if (badges.length === 0) {
     return <Muted>{EMPTY_VALUE_TEXT}</Muted>;
   }
@@ -172,8 +196,8 @@ function PrintingNameCell({ row }: AdminCellSlotProps<WorkspaceRecordRow>) {
   }
   return (
     <span className="flex items-center gap-2">
-      <Thumb url={row.imageUrl} />
-      <span className="min-w-0">
+      <RecordThumb url={row.imageUrl} />
+      <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
         <NameLink target={recordEntry("printing", row).target}>{row.cardName}</NameLink>
         <MarkerBadges markers={row.markers ?? []} />
       </span>
@@ -221,17 +245,23 @@ function PrintingStatusCell({ row }: AdminCellSlotProps<WorkspaceRecordRow>) {
   );
 }
 
-function PrintingImagesCell({ row }: AdminCellSlotProps<WorkspaceRecordRow>) {
+function FaceNameCell({ row }: AdminCellSlotProps<WorkspaceRecordRow>) {
   if (!row) {
     return null;
   }
-  if (row.imageCount === undefined) {
-    return <Muted>{row.imageUrl === null ? "No image" : ""}</Muted>;
-  }
-  return <Muted>{imageCountText(row.imageCount)}</Muted>;
+  return (
+    <span className="flex items-center gap-2">
+      <RecordThumb url={row.imageUrl} />
+      <NameLink target={recordEntry("face", row).target}>{row.cardName}</NameLink>
+    </span>
+  );
 }
 
-function FaceNameCell({
+function FaceSetCell({ row }: AdminCellSlotProps<WorkspaceRecordRow>) {
+  return <Muted>{row?.setName ?? ""}</Muted>;
+}
+
+function FaceRarityCell({
   row,
   rarityLabels,
   artVariantLabels,
@@ -242,37 +272,17 @@ function FaceNameCell({
   if (!row) {
     return null;
   }
-  const sub = [
-    row.setName,
+  const parts = [
     row.rarity && rarityLabels ? enumLabel(rarityLabels, row.rarity) : null,
-    row.artVariant && artVariantLabels ? enumLabel(artVariantLabels, row.artVariant) : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-  return (
-    <span className="flex items-center gap-2">
-      <Thumb url={row.imageUrl} />
-      <span className="min-w-0">
-        <NameLink target={recordEntry("face", row).target}>{row.cardName}</NameLink>
-        <span className="text-muted-foreground block truncate text-sm">{sub}</span>
-      </span>
-    </span>
-  );
+    row.artVariant && row.artVariant !== WellKnown.artVariant.NORMAL && artVariantLabels
+      ? enumLabel(artVariantLabels, row.artVariant)
+      : null,
+  ].filter(Boolean);
+  return <Muted>{parts.join(" · ")}</Muted>;
 }
 
 function FaceCodeCell({ row }: AdminCellSlotProps<WorkspaceRecordRow>) {
   return <span className="font-mono text-sm">{row?.shortCode ?? ""}</span>;
-}
-
-function FaceUsedOnCell({ row }: AdminCellSlotProps<WorkspaceRecordRow>) {
-  if (row?.printingCount === undefined) {
-    return null;
-  }
-  return (
-    <Muted>
-      {row.printingCount} {pluralize(row.printingCount, "printing")}
-    </Muted>
-  );
 }
 
 function FaceStatusCell({ row }: AdminCellSlotProps<WorkspaceRecordRow>) {
@@ -286,6 +296,9 @@ function FaceStatusCell({ row }: AdminCellSlotProps<WorkspaceRecordRow>) {
         <Badge variant="warning">No image</Badge>
       )}
       {row.artist === null && <Badge variant="neutral">No artist</Badge>}
+      {row.printingCount !== undefined && row.printingCount > 1 && (
+        <Badge variant="neutral">On {row.printingCount} printings</Badge>
+      )}
     </span>
   );
 }
@@ -300,8 +313,8 @@ function DeskNameCell({
   const entry = deskEntry(row);
   return (
     <span className="flex items-center gap-2">
-      <Thumb url={row.activeImageUrl} />
-      <span className="min-w-0">
+      <RecordThumb url={row.activeImageUrl} />
+      <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
         <NameLink target={entry.target}>{entry.title}</NameLink>
         <MarkerBadges markers={row.markerSlugs} labels={markerLabels} />
       </span>
@@ -335,100 +348,15 @@ function DeskImagesCell({ row }: AdminCellSlotProps<DeskRow>) {
   return row ? <Muted>{imageCountText(row.imageCount)}</Muted> : null;
 }
 
-function summaryText(shown: number, total: number | null, noun: string, hasMore: boolean): string {
-  const count =
-    hasMore && total !== null
-      ? `${formatCount(shown)} of ${formatCount(total)} ${noun} loaded`
-      : `${formatCount(shown)} ${noun}`;
-  return `${count} · a row opens beside the list`;
-}
-
-function Toolbar({
-  summary,
-  selectedCount,
-  hiddenCount = 0,
-  actions,
-  note,
-  onExport,
-  exporting,
-}: {
-  summary: string;
-  selectedCount: number;
-  hiddenCount?: number;
-  actions?: ReactNode;
-  note?: string;
-  onExport: () => void;
-  exporting: boolean;
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      {selectedCount > 0 && (
-        <span className="bg-primary/10 flex flex-wrap items-center gap-2 rounded-md px-3 py-1">
-          <span className="text-sm font-medium">
-            {selectionSummary(selectedCount, hiddenCount)}
-          </span>
-          {actions}
-          {note !== undefined && <Muted>{note}</Muted>}
-        </span>
-      )}
-      <Muted>{summary}</Muted>
-      <Button
-        variant="outline"
-        size="sm"
-        className="ml-auto"
-        disabled={exporting}
-        onClick={onExport}
-      >
-        {exporting ? <Spinner /> : <DownloadIcon />}
-        Export CSV
-      </Button>
-    </div>
-  );
-}
-
-function withoutImageNote(count: number): string | undefined {
-  if (count === 0) {
-    return undefined;
-  }
-  return count === 1 ? "1 without an image is left out" : `${count} without an image are left out`;
-}
-
-function useMakePost() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [working, setWorking] = useState(false);
-
-  function open(slides: PostSlide[]) {
-    void navigate({
-      to: "/admin/printing-desk/post",
-      search: { slides: encodePostSlides(slides) },
-    });
-  }
-
-  async function openFromIds(printingIds: string[]) {
-    setWorking(true);
-    const slides = await loadPostSlides(queryClient, printingIds);
-    setWorking(false);
-    if (slides !== null) {
-      open(slides);
-    }
-  }
-
-  return { open, openFromIds, working };
-}
-
-function useExport(build: () => Promise<{ csv: string; filename: string }>) {
-  const [exporting, setExporting] = useState(false);
-  async function run() {
-    setExporting(true);
-    await exportCsv(build);
-    setExporting(false);
-  }
-  return { exporting, handleExport: () => void run() };
-}
-
-function todayDay(): string {
-  return formatDay(new Date());
+export function summaryText(
+  shown: number,
+  total: number | null,
+  noun: string,
+  hasMore: boolean,
+): string {
+  return hasMore && total !== null
+    ? `${formatCount(shown)} of ${formatCount(total)} ${noun} loaded`
+    : `${formatCount(shown)} ${noun}`;
 }
 
 const LOAD_MORE_MARGIN = "800px";
@@ -480,92 +408,48 @@ type CardRecords = Extract<WorkspaceRecordsResult, { kind: "card" }>;
 type DeskRecords = Extract<WorkspaceRecordsResult, { kind: "desk" }>;
 type RowRecords = Extract<WorkspaceRecordsResult, { kind: "face" | "printing" }>;
 
-async function fetchMatchingRecords(records: RowRecords): Promise<WorkspaceRecordRow[]> {
-  const rows = await fetchAllWorkspaceRecords(records.query, records.pages);
-  return rows.filter((row) =>
-    rowMatchesSource(records.groups.get(recordEntry(records.kind, row).key), records.source),
-  );
-}
-
-function CardsTable({
-  records,
-  isAdmin,
-  selection,
-}: {
-  records: CardRecords;
-  isAdmin: boolean;
-  selection: RowSelection;
-}) {
-  const queueWrite = useQueueWorkspaceWrite();
-  const ignoreDrafts = useIgnoreNewCardDrafts([adminKeys.workspace, adminKeys.cards.list]);
-  const { push: pushUndo } = useWorkspaceUndo();
-  const exporter = useExport(() =>
-    Promise.resolve({
-      csv: buildCardsCsv(records.rows),
-      filename: recordsCsvFilename("cards", todayDay()),
-    }),
-  );
-  const split = splitSelection(
-    records.loadedRows.filter((row) => row.cardSlug === null),
-    records.rows,
-    cardSummaryKey,
-    selection.selected,
-  );
-  const selectedDrafts = split.selected;
-
-  async function ignoreSelected(signal: AbortSignal) {
-    const selectedCount = selectedDrafts.length;
-    let result: Awaited<ReturnType<typeof ignoreDrafts.mutateAsync>> | undefined;
-    const ok = await runReportedMutation(async () => {
-      result = await ignoreDrafts.mutateAsync(
-        selectedDrafts.map((row) => row.normalizedName),
-        { signal },
-      );
-    });
-    if (!ok || !result) {
-      return;
-    }
-    const { ignored, sources } = result;
-    selection.clear();
-    if (ignored > 0) {
-      pushUndo(
-        ignoredCardsUndo(sources, `${ignored} new ${pluralize(ignored, "card")}`, ignored > 1),
-      );
-    }
-    const message = ignoredDraftsMessage(ignored, selectedCount - ignored);
-    if (ignored === 0) {
-      toast(message);
-    } else {
-      toast.success(message);
-    }
-  }
-
+function CardsTable({ records }: { records: CardRecords }) {
+  const { data: setsData } = useSets();
+  const { sets } = setsData;
   const columns: AdminColumnDef<CandidateCardSummaryResponse>[] = [
-    ...(isAdmin
-      ? [
-          selectColumn<CandidateCardSummaryResponse>(selection.store, {
-            scope: selection.scope,
-            rowKey: cardSummaryKey,
-            rowLabel: (row) => row.name,
-            canSelect: (row) => row.cardSlug === null,
-          }),
-        ]
-      : []),
-    { header: "Card", id: "name", wrap: true, cell: <CardNameCell /> },
-    { header: "First set", id: "set", width: "w-[16%]", cell: <CardSetCell /> },
+    {
+      header: "Card",
+      id: "name",
+      wrap: true,
+      sortValue: (row) => row.name,
+      cell: <CardNameCell />,
+    },
+    {
+      header: "First set",
+      id: "set",
+      width: "w-[22%]",
+      sortValue: (row) => firstSetOf(row, sets)?.index ?? null,
+      cell: <CardSetCell />,
+    },
     {
       header: "Printings",
       id: "printings",
       width: "w-24",
       align: "right",
+      sortValue: (row) => row.shortCodes.length,
+      sortFirst: "desc",
       cell: <CardPrintingsCell />,
     },
-    { header: "Open", id: "open", wrap: true, cell: <CardOpenCell groups={records.groups} /> },
+    {
+      header: "Pending",
+      id: "pending",
+      wrap: true,
+      sortValue: (row) => cardPendingBadges(row).length,
+      sortFirst: "desc",
+      cell: <CardPendingCell />,
+    },
     {
       header: "Updated",
       id: "updated",
       width: "w-24",
       align: "right",
+      sortValue: (row) => row.updatedAt,
+      sortFirst: "desc",
       cell: <InstantCell<CandidateCardSummaryResponse> at={(row) => row.updatedAt} relative />,
     },
   ];
@@ -578,76 +462,37 @@ function CardsTable({
       emptyText="No cards found."
       virtualize={{ rowHeight: ROW_HEIGHT }}
       minWidth="min-w-[720px]"
-      rowClassName={(row) => (row.cardSlug === null ? "border-violet border-l-2" : undefined)}
-      toolbar={
-        <Toolbar
-          summary={summaryText(records.rows.length, records.total, "cards", false)}
-          selectedCount={selectedDrafts.length}
-          hiddenCount={split.hiddenCount}
-          actions={
-            <Button
-              variant="outline"
-              size="sm"
-              pending={ignoreDrafts.isPending}
-              onClick={() => void queueWrite(ignoreSelected, { limit: "long" })}
-            >
-              Ignore
-            </Button>
-          }
-          onExport={exporter.handleExport}
-          exporting={exporter.exporting}
-        />
-      }
     />
   );
 }
 
-function PrintingsTable({ records, selection }: { records: RowRecords; selection: RowSelection }) {
+function PrintingsTable({ records, sort }: { records: RowRecords; sort: ServerSort }) {
   const { labels } = useEnumOrders();
-  const post = useMakePost();
-  const exporter = useExport(async () => ({
-    csv: buildPrintingsCsv(await fetchMatchingRecords(records)),
-    filename: recordsCsvFilename("printings", todayDay()),
-  }));
-  const loaded = splitSelection(
-    records.loadedRows,
-    records.rows,
-    (row) => row.id,
-    selection.selected,
-  );
-  const loadedIds = new Set(loaded.selected.map((row) => row.id));
-  const unloadedIds = [...selection.selected].filter((id) => !loadedIds.has(id));
-  const selectedCount = loaded.selected.length + unloadedIds.length;
-  const hiddenCount = loaded.hiddenCount + unloadedIds.length;
-  const withImage = loaded.selected.filter((row) => row.imageUrl !== null && row.imageCount !== 0);
-  const postIds = [...withImage.map((row) => row.id), ...unloadedIds];
 
   const columns: AdminColumnDef<WorkspaceRecordRow>[] = [
-    selectColumn<WorkspaceRecordRow>(selection.store, {
-      scope: selection.scope,
-      rowKey: (row) => row.id,
-      rowLabel: (row) => row.cardName,
-    }),
     {
       header: "Printing",
       id: "name",
+      sortKey: "name",
       wrap: true,
       cell: <PrintingNameCell />,
     },
-    { header: "Codes", id: "codes", width: "w-40", cell: <PrintingCodesCell /> },
+    { header: "Codes", id: "codes", sortKey: "code", width: "w-40", cell: <PrintingCodesCell /> },
     {
       header: "Finish",
       id: "finish",
+      sortKey: "finish",
       width: "w-24",
       cell: <FinishCell finishLabels={labels.finishes} />,
     },
-    { header: "Lang", id: "language", width: "w-16", cell: <LanguageCell /> },
+    { header: "Lang", id: "language", sortKey: "language", width: "w-16", cell: <LanguageCell /> },
     { header: "Channel", id: "channel", wrap: true, cell: <PrintingChannelCell /> },
     { header: "Status", id: "status", width: "w-28", cell: <PrintingStatusCell /> },
-    { header: "Images", id: "images", width: "w-24", align: "right", cell: <PrintingImagesCell /> },
     {
       header: "Updated",
       id: "updated",
+      sortKey: "updated",
+      sortFirst: "desc",
       width: "w-24",
       align: "right",
       cell: <InstantCell<WorkspaceRecordRow> at={(row) => row.updatedAt} relative />,
@@ -660,29 +505,9 @@ function PrintingsTable({ records, selection }: { records: RowRecords; selection
       data={records.rows}
       getRowKey={(row) => row.id}
       emptyText="No printings found."
+      serverSort={sort}
       virtualize={{ rowHeight: ROW_HEIGHT }}
-      minWidth="min-w-[960px]"
-      toolbar={
-        <Toolbar
-          summary={summaryText(records.rows.length, records.total, "printings", records.hasMore)}
-          selectedCount={selectedCount}
-          hiddenCount={hiddenCount}
-          actions={
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={postIds.length === 0 || post.working}
-              onClick={() => void post.openFromIds(postIds)}
-            >
-              <Share2Icon />
-              Make a post
-            </Button>
-          }
-          note={withoutImageNote(loaded.selected.length - withImage.length)}
-          onExport={exporter.handleExport}
-          exporting={exporter.exporting}
-        />
-      }
+      minWidth="min-w-[820px]"
       footer={
         <LoadMoreFooter
           hasMore={records.hasMore}
@@ -694,32 +519,38 @@ function PrintingsTable({ records, selection }: { records: RowRecords; selection
   );
 }
 
-function FacesTable({ records }: { records: RowRecords }) {
+function FacesTable({ records, sort }: { records: RowRecords; sort: ServerSort }) {
   const { labels } = useEnumOrders();
-  const exporter = useExport(async () => ({
-    csv: buildFacesCsv(await fetchMatchingRecords(records)),
-    filename: recordsCsvFilename("faces", todayDay()),
-  }));
   const columns: AdminColumnDef<WorkspaceRecordRow>[] = [
     {
       header: "Face",
       id: "name",
+      sortKey: "name",
       wrap: true,
-      cell: <FaceNameCell rarityLabels={labels.rarities} artVariantLabels={labels.artVariants} />,
+      cell: <FaceNameCell />,
     },
-    { header: "Code", id: "code", width: "w-28", cell: <FaceCodeCell /> },
-    { header: "Lang", id: "language", width: "w-16", cell: <LanguageCell /> },
+    { header: "Code", id: "code", sortKey: "code", width: "w-28", cell: <FaceCodeCell /> },
+    { header: "Set", id: "set", width: "w-32", cell: <FaceSetCell /> },
+    {
+      header: "Rarity",
+      id: "rarity",
+      width: "w-36",
+      cell: <FaceRarityCell rarityLabels={labels.rarities} artVariantLabels={labels.artVariants} />,
+    },
     {
       header: "Finish",
       id: "finish",
+      sortKey: "finish",
       width: "w-24",
       cell: <FinishCell finishLabels={labels.finishes} />,
     },
-    { header: "Used on", id: "used", width: "w-28", cell: <FaceUsedOnCell /> },
+    { header: "Lang", id: "language", sortKey: "language", width: "w-16", cell: <LanguageCell /> },
     { header: "Status", id: "status", wrap: true, cell: <FaceStatusCell /> },
     {
       header: "Updated",
       id: "updated",
+      sortKey: "updated",
+      sortFirst: "desc",
       width: "w-24",
       align: "right",
       cell: <InstantCell<WorkspaceRecordRow> at={(row) => row.updatedAt} relative />,
@@ -732,16 +563,9 @@ function FacesTable({ records }: { records: RowRecords }) {
       data={records.rows}
       getRowKey={(row) => row.id}
       emptyText="No faces found."
+      serverSort={sort}
       virtualize={{ rowHeight: ROW_HEIGHT }}
       minWidth="min-w-[860px]"
-      toolbar={
-        <Toolbar
-          summary={summaryText(records.rows.length, records.total, "faces", records.hasMore)}
-          selectedCount={0}
-          onExport={exporter.handleExport}
-          exporting={exporter.exporting}
-        />
-      }
       footer={
         <LoadMoreFooter
           hasMore={records.hasMore}
@@ -753,47 +577,16 @@ function FacesTable({ records }: { records: RowRecords }) {
   );
 }
 
-function DeskTable({
-  records,
-  mode,
-  selection,
-}: {
-  records: DeskRecords;
-  mode: DeskMode;
-  selection: RowSelection;
-}) {
+function DeskTable({ records }: { records: DeskRecords }) {
   const rows = records.rows;
 
-  const post = useMakePost();
   const { data: channelData } = useDistributionChannels();
   const { data: markerData } = useMarkers();
   const { labels } = useEnumOrders();
   const channelPaths = buildChannelBreadcrumbsBySlug(channelData.distributionChannels);
   const markerLabels = labelMap(markerData.markers);
-  const exporter = useExport(() =>
-    Promise.resolve({
-      csv: buildPrintingDeskCsv(rows, { channelPaths, siteUrl: getSiteUrl() }),
-      filename: printingDeskCsvFilename(mode === "promos" ? "all" : "mine", todayDay()),
-    }),
-  );
-  const { selected: selectedRows, hiddenCount } = splitSelection(
-    records.loadedRows,
-    rows,
-    (row) => row.printingId,
-    selection.selected,
-  );
-  const slides = selectedRows.flatMap((row) =>
-    row.activeImageFileId === null
-      ? []
-      : [{ printingId: row.printingId, imageFileId: row.activeImageFileId }],
-  );
 
   const columns: AdminColumnDef<DeskRow>[] = [
-    selectColumn<DeskRow>(selection.store, {
-      scope: selection.scope,
-      rowKey: (row) => row.printingId,
-      rowLabel: (row) => row.cardName,
-    }),
     {
       header: "Printing",
       id: "name",
@@ -833,92 +626,29 @@ function DeskTable({
       emptyText="No printings found."
       virtualize={{ rowHeight: ROW_HEIGHT }}
       minWidth="min-w-[960px]"
-      toolbar={
-        <Toolbar
-          summary={summaryText(rows.length, records.total, "printings", false)}
-          selectedCount={selectedRows.length}
-          hiddenCount={hiddenCount}
-          actions={
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={slides.length === 0}
-              onClick={() => post.open(slides)}
-            >
-              <Share2Icon />
-              Make a post
-            </Button>
-          }
-          note={withoutImageNote(selectedRows.length - slides.length)}
-          onExport={exporter.handleExport}
-          exporting={exporter.exporting}
-        />
-      }
     />
   );
 }
 
 export function RecordsTable({
   records,
-  deskMode,
-  role,
-  selection,
+  sort,
 }: {
   records: WorkspaceRecordsResult;
-  deskMode: DeskMode;
-  role: WorkspaceRole;
-  selection: RowSelection;
+  sort: ServerSort;
 }) {
   switch (records.kind) {
     case "card": {
-      return <CardsTable records={records} isAdmin={role === "admin"} selection={selection} />;
+      return <CardsTable records={records} />;
     }
     case "desk": {
-      return <DeskTable records={records} mode={deskMode} selection={selection} />;
+      return <DeskTable records={records} />;
     }
     case "printing": {
-      return <PrintingsTable records={records} selection={selection} />;
+      return <PrintingsTable records={records} sort={sort} />;
     }
     case "face": {
-      return <FacesTable records={records} />;
+      return <FacesTable records={records} sort={sort} />;
     }
-  }
-}
-
-async function loadPostSlides(
-  queryClient: QueryClient,
-  printingIds: string[],
-): Promise<PostSlide[] | null> {
-  try {
-    const details = await Promise.all(
-      printingIds.map((printingId) => queryClient.query(deskPrintingQueryOptions(printingId))),
-    );
-    const slides = details.flatMap((detail) =>
-      detail.printing.activeImageFileId === null
-        ? []
-        : [
-            {
-              printingId: detail.printing.printingId,
-              imageFileId: detail.printing.activeImageFileId,
-            },
-          ],
-    );
-    if (slides.length === 0) {
-      toast.error("None of the selected printings has an active image.");
-      return null;
-    }
-    return slides;
-  } catch (error) {
-    toast.error(errorText(error, "The printings could not be loaded."));
-    return null;
-  }
-}
-
-async function exportCsv(build: () => Promise<{ csv: string; filename: string }>): Promise<void> {
-  try {
-    const { csv, filename } = await build();
-    downloadCsv(csv, filename);
-  } catch (error) {
-    toast.error(errorText(error, "The export failed."));
   }
 }

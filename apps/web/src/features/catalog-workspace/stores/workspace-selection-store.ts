@@ -5,12 +5,9 @@ import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/worksp
 const UNDO_LIMIT = 20;
 
 interface WorkspaceSelectionState {
-  listCollapsed: boolean;
   undoStack: WorkspaceUndoEntry[];
   undoing: boolean;
   undoQueue: WorkspaceUndoEntry[];
-  setListCollapsed: (collapsed: boolean) => void;
-  toggleListCollapsed: () => void;
   pushUndo: (entry: WorkspaceUndoEntry) => void;
   removeUndo: (entry: WorkspaceUndoEntry) => boolean;
   setUndoing: (undoing: boolean) => void;
@@ -19,14 +16,9 @@ interface WorkspaceSelectionState {
 }
 
 export const useWorkspaceSelectionStore = create<WorkspaceSelectionState>()((set, get) => ({
-  listCollapsed: false,
   undoStack: [],
   undoing: false,
   undoQueue: [],
-
-  setListCollapsed: (collapsed) => set({ listCollapsed: collapsed }),
-
-  toggleListCollapsed: () => set((state) => ({ listCollapsed: !state.listCollapsed })),
 
   pushUndo: (entry) =>
     set((state) => ({ undoStack: [...state.undoStack, entry].slice(-UNDO_LIMIT) })),

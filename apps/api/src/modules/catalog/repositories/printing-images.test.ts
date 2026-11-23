@@ -20,14 +20,23 @@ describe("printingImagesRepo", () => {
     expect(await printingImagesRepo(db).landscapeImageIds([])).toEqual(new Set());
   });
 
-  it("getVariantSettingsByIds keys rotation, trim and quad by image file", async () => {
-    const db = createMockDb([{ id: "ci-1", rotation: 90, needsTrim: true, quad: null }]);
+  it("getVariantSettingsByIds keys rotation, trim, levels and quad by image file", async () => {
+    const db = createMockDb([
+      { id: "ci-1", rotation: 90, needsTrim: true, needsLevels: false, quad: null },
+    ]);
     const settings = await printingImagesRepo(db).getVariantSettingsByIds(["ci-1"]);
-    expect(settings.get("ci-1")).toEqual({ rotation: 90, needsTrim: true, quad: null });
+    expect(settings.get("ci-1")).toEqual({
+      rotation: 90,
+      needsTrim: true,
+      needsLevels: false,
+      quad: null,
+    });
   });
 
   it("getVariantSettingsByIds returns an empty map for empty input", async () => {
-    const db = createMockDb([{ id: "ci-1", rotation: 90, needsTrim: true, quad: null }]);
+    const db = createMockDb([
+      { id: "ci-1", rotation: 90, needsTrim: true, needsLevels: false, quad: null },
+    ]);
     expect(await printingImagesRepo(db).getVariantSettingsByIds([])).toEqual(new Map());
   });
 
@@ -59,6 +68,7 @@ describe("replaceImageFile", () => {
     rehostedUrl: "/media/cards/ew/if-new",
     rotation: 90 as const,
     needsTrim: false,
+    needsLevels: false,
     quad: null,
   };
 

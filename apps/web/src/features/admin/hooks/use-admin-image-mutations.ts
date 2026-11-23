@@ -40,6 +40,15 @@ const activatePrintingImageFn = createServerFn({ method: "POST" })
     });
   });
 
+const keepPrintingImageFn = createServerFn({ method: "POST" })
+  .validator((input: { imageId: string }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminCardImagesContract, context.cookie).keepImage({
+      imageId: data.imageId,
+    });
+  });
+
 const rehostPrintingImageFn = createServerFn({ method: "POST" })
   .validator((input: { imageId: string }) => input)
   .middleware([withCookies])
@@ -77,6 +86,16 @@ const setNeedsTrimFn = createServerFn({ method: "POST" })
     await apiOrpcClient(adminCardImagesContract, context.cookie).setNeedsTrim({
       imageId: data.imageId,
       needsTrim: data.needsTrim,
+    });
+  });
+
+const setNeedsLevelsFn = createServerFn({ method: "POST" })
+  .validator((input: { imageId: string; needsLevels: boolean }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminCardImagesContract, context.cookie).setNeedsLevels({
+      imageId: data.imageId,
+      needsLevels: data.needsLevels,
     });
   });
 
@@ -217,6 +236,15 @@ export function useActivatePrintingImage(invalidates: Scope = defaultScope) {
   });
 }
 
+export function useKeepPrintingImage(invalidates: Scope = defaultScope) {
+  return useMutationWithInvalidation({
+    mutationFn: async (imageId: string, signal) => {
+      await keepPrintingImageFn({ data: { imageId }, signal });
+    },
+    invalidates: [...invalidates, adminKeys.workspace],
+  });
+}
+
 /** A rehost of a rehosted image writes a new image file, so it refreshes every view of it. */
 export function useRehostPrintingImage() {
   const queryClient = useQueryClient();
@@ -264,6 +292,19 @@ export function useSetPrintingImageNeedsTrim() {
   });
 }
 
+export function useSetPrintingImageNeedsLevels() {
+  return useMutationWithInvalidation({
+    mutationKey: IMAGE_EDIT_MUTATION_KEY,
+    mutationFn: async (
+      { imageId, needsLevels }: { imageId: string; needsLevels: boolean },
+      signal,
+    ) => {
+      await setNeedsLevelsFn({ data: { imageId, needsLevels }, signal });
+    },
+    invalidates: IMAGE_FILE_SCOPE,
+  });
+}
+
 export function useSetPrintingImageQuad() {
   return useMutationWithInvalidation({
     mutationKey: IMAGE_EDIT_MUTATION_KEY,
@@ -274,7 +315,7 @@ export function useSetPrintingImageQuad() {
   });
 }
 
-/** True while a rotate, trim or straighten of this image is in flight; a second one would lose the file swap. */
+/** True while a rotate, trim, contrast or straighten of this image is in flight; a second one would lose the file swap. */
 export function useImageEditPending(imageId: string): boolean {
   const running = useIsMutating({
     mutationKey: IMAGE_EDIT_MUTATION_KEY,

@@ -9,7 +9,6 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { RunWrite } from "@/features/admin/lib/run-write";
-import type { FaceSuggestionModel } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import {
   resetWorkspaceWriteQueue,
   workspaceWriteQueue,
@@ -69,6 +68,10 @@ vi.mock("@/features/admin/hooks/use-printing-desk", () => ({
 
 vi.mock("@/hooks/use-session", () => ({ useSession: () => ({ data: null }) }));
 
+vi.mock("@/features/admin/hooks/use-admin", () => ({
+  useAdminAccess: () => ({ data: { isAdmin: true, sections: [] } }),
+}));
+
 vi.mock("@/features/admin/hooks/use-admin-image-mutations", () => {
   const idle = () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false });
   return {
@@ -76,9 +79,10 @@ vi.mock("@/features/admin/hooks/use-admin-image-mutations", () => {
     useAddImageFromUrl: idle,
     useDeletePrintingImage: idle,
     useImageEditPending: (imageId: string) => state.editingImageIds.includes(imageId),
+    useKeepPrintingImage: idle,
     useRehostPrintingImage: idle,
     useRotatePrintingImage: () => state.rotate,
-    useSetCandidatePrintingImage: idle,
+    useSetPrintingImageNeedsLevels: idle,
     useSetPrintingImageNeedsTrim: idle,
     useUploadPrintingImage: idle,
   };
@@ -105,6 +109,7 @@ const inactive = {
   isActive: false,
   rotation: 0,
   needsTrim: false,
+  needsLevels: false,
   quad: null,
 } as unknown as AdminPrintingImageResponse;
 
@@ -119,24 +124,23 @@ function renderSection() {
         detail={
           { printings: [face], printingImages: [inactive] } as unknown as AdminCardDetailResponse
         }
-        model={{ printings: [face], images: [inactive] } as unknown as FaceSuggestionModel}
+        images={[inactive]}
+        printings={[face]}
         providerSettings={[]}
         isAdmin={false}
-        chips={[]}
-        hotkeyOf={() => undefined}
-        discardLabelOf={() => "Discard"}
-        pending={false}
-        onUse={vi.fn()}
-        onDiscard={vi.fn()}
-        onReject={vi.fn()}
-        onReply={vi.fn()}
         landscape={false}
       />
     </QueryClientProvider>,
   );
 }
 
-const EDITS = [/^Rotate left/u, /^Rotate right/u, /^Straighten/u, /^Turn auto-trim/u];
+const EDITS = [
+  /^Rotate left/u,
+  /^Rotate right/u,
+  /^Straighten/u,
+  /^Turn auto-trim/u,
+  /^Turn contrast/u,
+];
 
 beforeEach(() => {
   state.editingImageIds = [];

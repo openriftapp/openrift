@@ -238,29 +238,6 @@ if (adminCtx) {
     .values([
       {
         actorUserId: ADMIN_ID,
-        action: "card.accept-field",
-        entityType: "card",
-        entityId: cardId,
-        cardSlug: "wsq-poro-keeper",
-      },
-      {
-        actorUserId: ADMIN_ID,
-        action: "candidates.upload",
-        entityType: "upload",
-        entityId: ALLOWED,
-        entityLabel: ALLOWED,
-        newValues: { newCards: 1, newPrintings: 2, updates: 1, printingUpdates: 1 },
-      },
-      {
-        actorUserId: ADMIN_ID,
-        action: "candidates.upload",
-        entityType: "upload",
-        entityId: DENIED,
-        entityLabel: DENIED,
-        newValues: { newCards: 0 },
-      },
-      {
-        actorUserId: ADMIN_ID,
         action: "printing.accept-field",
         entityType: "printing",
         entityId: promoPrintingId,
@@ -292,7 +269,7 @@ afterAll(async () => {
   await db.deleteFrom("sets").where("id", "=", setId).execute();
   await db.deleteFrom("markers").where("slug", "=", "wsq-promo").execute();
   await db.deleteFrom("providerSettings").where("provider", "in", [ALLOWED, DENIED]).execute();
-  await db.deleteFrom("adminEvents").where("actorUserId", "=", ADMIN_ID).execute();
+  await db.deleteFrom("adminEvents").where("actorUserId", "in", [ADMIN_ID, REVIEW_ID]).execute();
   await db.deleteFrom("adminGrants").where("userId", "in", [REVIEW_ID, DESK_ID]).execute();
   await db.deleteFrom("admins").where("userId", "=", ADMIN_ID).execute();
   await db
@@ -337,13 +314,6 @@ describe.skipIf(!adminCtx)("Admin catalog workspace routes (integration)", () =>
       );
     });
 
-    it("counts the caller's admin events today", async () => {
-      const res = await adminApp.fetch(adminReq("GET", "/catalog/workspace/queue"));
-      const json = await readJson(res);
-      expect(json.doneToday).toBeGreaterThanOrEqual(1);
-      expect(json.counts.card.new).toBeGreaterThanOrEqual(1);
-    });
-
     it("narrows items to the requested owner", async () => {
       const res = await adminApp.fetch(adminReq("GET", "/catalog/workspace/queue?owner=face"));
       const json = await readJson(res);
@@ -364,6 +334,92 @@ describe.skipIf(!adminCtx)("Admin catalog workspace routes (integration)", () =>
           `printing:source-difference:${promoPrintingId}:wsq-allowed`,
         ].toSorted(),
       );
+    });
+  });
+
+  describe("GET /catalog/workspace/review", () => {
+    async function reviewCard(app: typeof adminApp, key: string) {
+      const res = await app.fetch(adminReq("GET", "/catalog/workspace/review"));
+      expect(res.status).toBe(200);
+      const json = await readJson(res);
+      return (
+        json.cards as { key: string; providers: string[]; pending: Record<string, unknown> }[]
+      ).find((card) => card.key === key);
+    }
+
+    async function restoreUpload() {
+      await adminCtx!.db
+        .updateTable("faceImages")
+        .set({ reviewedAt: null })
+        .where("id", "=", imageId)
+        .execute();
+      await adminCtx!.db
+        .deleteFrom("adminEvents")
+        .where("action", "=", "image.keep")
+        .where("entityId", "=", imageId)
+        .execute();
+    }
+
+    it("returns 403 to a desk holder", async () => {
+      const res = await deskApp.fetch(adminReq("GET", "/catalog/workspace/review"));
+      expect(res.status).toBe(403);
+    });
+
+    it("folds a card's open work into one row and lists the new card", async () => {
+      const card = await reviewCard(adminApp, "wsq-poro-keeper");
+      expect(card?.pending).toMatchObject({
+        newPrintings: 1,
+        faces: 1,
+        printings: 1,
+        newImages: 1,
+      });
+      expect(await reviewCard(adminApp, "new:wsqbrandnewcard")).toBeDefined();
+    });
+
+    it("lists every provider with open work to an admin", async () => {
+      const card = await reviewCard(adminApp, "wsq-poro-keeper");
+      expect(card?.providers).toEqual(expect.arrayContaining([ALLOWED, DENIED]));
+    });
+
+    it("hides providers helpers cannot review from a card-review holder", async () => {
+      const card = await reviewCard(reviewApp, "wsq-poro-keeper");
+      expect(card?.providers).toContain(ALLOWED);
+      expect(card?.providers).not.toContain(DENIED);
+      expect(await reviewCard(reviewApp, "new:wsqbrandnewcard")).toBeDefined();
+    });
+
+    it("drops an upload from the card once it is kept as an extra", async () => {
+      const res = await adminApp.fetch(adminReq("POST", `/cards/printing-images/${imageId}/keep`));
+      expect(res.status).toBe(204);
+
+      const card = await reviewCard(adminApp, "wsq-poro-keeper");
+      expect(card?.pending.newImages).toBe(0);
+
+      await restoreUpload();
+    });
+
+    it("lets a card-review holder keep an upload as an extra", async () => {
+      const res = await reviewApp.fetch(adminReq("POST", `/cards/printing-images/${imageId}/keep`));
+      expect(res.status).toBe(204);
+
+      const card = await reviewCard(reviewApp, "wsq-poro-keeper");
+      expect(card?.pending.newImages).toBe(0);
+
+      await restoreUpload();
+    });
+  });
+
+  describe("GET /catalog/workspace/listings", () => {
+    it("returns 403 to a card-review holder", async () => {
+      const res = await reviewApp.fetch(adminReq("GET", "/catalog/workspace/listings"));
+      expect(res.status).toBe(403);
+    });
+
+    it("lists unassigned listings for an admin", async () => {
+      const res = await adminApp.fetch(adminReq("GET", "/catalog/workspace/listings"));
+      expect(res.status).toBe(200);
+      const json = await readJson(res);
+      expect(Array.isArray(json.items)).toBe(true);
     });
   });
 
@@ -404,60 +460,6 @@ describe.skipIf(!adminCtx)("Admin catalog workspace routes (integration)", () =>
         adminReq("GET", "/catalog/workspace/records?kind=face&filter=promo"),
       );
       expect(res.status).toBe(400);
-    });
-  });
-
-  describe("GET /catalog/workspace/uploads", () => {
-    it("returns 403 to a desk holder", async () => {
-      const res = await deskApp.fetch(adminReq("GET", "/catalog/workspace/uploads"));
-      expect(res.status).toBe(403);
-    });
-
-    it("lists each provider's newest upload for an admin", async () => {
-      const res = await adminApp.fetch(adminReq("GET", "/catalog/workspace/uploads"));
-      expect(res.status).toBe(200);
-      const json = await readJson(res);
-      const sources = json.sources as { provider: string }[];
-      expect(sources).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            provider: ALLOWED,
-            newCards: 1,
-            newPrintings: 2,
-            updates: 2,
-          }),
-          expect.objectContaining({ provider: DENIED }),
-        ]),
-      );
-    });
-
-    it("hides sources helpers cannot review from a card-review holder", async () => {
-      const res = await reviewApp.fetch(adminReq("GET", "/catalog/workspace/uploads"));
-      expect(res.status).toBe(200);
-      const json = await readJson(res);
-      const providers = (json.sources as { provider: string }[]).map((s) => s.provider);
-      expect(providers).toContain(ALLOWED);
-      expect(providers).not.toContain(DENIED);
-    });
-  });
-
-  describe("GET /catalog/workspace/decisions", () => {
-    it("lists the caller's own events today", async () => {
-      const res = await adminApp.fetch(adminReq("GET", "/catalog/workspace/decisions"));
-      expect(res.status).toBe(200);
-      const json = await readJson(res);
-      expect(json.events).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ action: "card.accept-field", label: "wsq-poro-keeper" }),
-        ]),
-      );
-    });
-
-    it("returns nothing for a caller without events", async () => {
-      const res = await reviewApp.fetch(adminReq("GET", "/catalog/workspace/decisions"));
-      expect(res.status).toBe(200);
-      const json = await readJson(res);
-      expect(json.events).toEqual([]);
     });
   });
 

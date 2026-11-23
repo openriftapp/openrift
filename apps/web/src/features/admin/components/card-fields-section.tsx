@@ -134,6 +134,9 @@ interface CardFieldsSectionProps {
   invalidates: readonly (readonly unknown[])[];
   isAdmin: boolean;
   focusField?: string;
+  hideHeading?: boolean;
+  checkableCount?: number;
+  agreedFieldsOpenByDefault?: boolean;
   onFieldAccepted?: (accepted: {
     fieldLabel: string;
     sourceLabel: string;
@@ -158,6 +161,9 @@ export function CardFieldsSection({
   invalidates,
   isAdmin,
   focusField,
+  hideHeading = false,
+  checkableCount,
+  agreedFieldsOpenByDefault,
   onFieldAccepted,
   runWrite = runWriteDirectly,
   cardDestination,
@@ -173,14 +179,14 @@ export function CardFieldsSection({
   } | null>(null);
   const [moving, setMoving] = useState<string | null>(null);
 
-  const uncheckedCount = sources.filter((s) => !s.checkedAt).length;
+  const uncheckedCount = checkableCount ?? sources.filter((s) => !s.checkedAt).length;
   const submitters = buildSourceSubmitters(sources);
   const resolutionSource = sources.find((s) => s.id === resolution?.candidateCardId);
 
   return (
     <section className="space-y-2">
       <div className="flex items-center gap-2">
-        <Heading level={2}>Card fields</Heading>
+        {!hideHeading && <Heading level={2}>Card fields</Heading>}
         {isAdmin && uncheckedCount > 0 && (
           <Button
             variant="outline"
@@ -202,6 +208,7 @@ export function CardFieldsSection({
         submitters={submitters}
         providerSettings={providerSettings}
         focusField={focusField}
+        agreedFieldsOpenByDefault={agreedFieldsOpenByDefault}
         onCellClick={(field, value, candidateId) => {
           if (!isAcceptCardField(field)) {
             return;

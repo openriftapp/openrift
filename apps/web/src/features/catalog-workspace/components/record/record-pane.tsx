@@ -1,10 +1,14 @@
+import { countNoun, pluralize } from "@openrift/shared/strings";
+import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Heading } from "@/components/heading";
 import { Card } from "@/components/ui/card";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
+import { TextLink } from "@/components/ui/text-link";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
+import { cn } from "@/lib/utils";
 
 export function RecordPane({
   header,
@@ -61,8 +65,38 @@ export function RecordBanner({ children }: { children: ReactNode }) {
   return <div className="bg-muted rounded-lg px-3 py-2 text-sm">{children}</div>;
 }
 
+export function PendingReviewNotice({
+  record,
+  cards,
+}: {
+  record: "printing" | "face";
+  cards: readonly { cardSlug: string; cardName: string; pending: number }[];
+}) {
+  const count = cards.reduce((sum, card) => sum + card.pending, 0);
+  if (count === 0) {
+    return null;
+  }
+  return (
+    <RecordBanner>
+      {`${countNoun(count, "suggestion")} ${pluralize(count, "is", "are")} pending on this ${record}.`}
+      {cards.map((card) => (
+        <TextLink
+          key={card.cardSlug}
+          className="ml-2"
+          render={
+            <Link to="/admin/workspace/cards/$cardSlug" params={{ cardSlug: card.cardSlug }} />
+          }
+        >
+          Review {card.cardName}
+        </TextLink>
+      ))}
+    </RecordBanner>
+  );
+}
+
 export function RecordSection({
   title,
+  titleAction,
   actions,
   children,
   collapsible = false,
@@ -70,6 +104,7 @@ export function RecordSection({
   summary,
 }: {
   title: ReactNode;
+  titleAction?: ReactNode;
   actions?: ReactNode;
   children: ReactNode;
   collapsible?: boolean;
@@ -79,7 +114,10 @@ export function RecordSection({
   const [open, setOpen] = useState(defaultOpen);
   const expanded = !collapsible || open;
   const heading = (
-    <Heading level={3} className="font-heading flex-1 font-semibold">
+    <Heading
+      level={3}
+      className={cn("font-heading font-semibold", titleAction === undefined && "flex-1")}
+    >
       {title}
     </Heading>
   );
@@ -101,6 +139,9 @@ export function RecordSection({
           </ExpandToggle>
         ) : (
           heading
+        )}
+        {titleAction !== undefined && (
+          <span className="flex flex-1 items-center">{expanded && titleAction}</span>
         )}
         {expanded && actions}
       </div>

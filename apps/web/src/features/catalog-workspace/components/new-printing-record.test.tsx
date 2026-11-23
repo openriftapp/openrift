@@ -22,13 +22,15 @@ function fakeMutation(): FakeMutation {
 
 const QUEUE_KEY = ["admin", "workspace", "queue", "all"];
 
+const RECORD_PATH = "/admin/workspace/printings/new/candidate";
+
 const state = vi.hoisted(() => ({
   detail: undefined as object | undefined,
   queue: { items: [] } as object,
   accept: null as unknown as FakeMutation,
   ignore: null as unknown as FakeMutation,
   desk: null as unknown as FakeMutation,
-  goNext: vi.fn(),
+  navigate: vi.fn(),
   followUpMeta: [] as unknown[],
 }));
 
@@ -40,6 +42,9 @@ vi.mock("@/features/catalog-workspace/lib/workspace-queries", () => ({
 }));
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children }: { children: unknown }) => children,
+  useNavigate: () => state.navigate,
+  useRouter: () => ({ latestLocation: { pathname: RECORD_PATH } }),
+  useRouterState: () => RECORD_PATH,
 }));
 vi.mock("@/features/admin/hooks/use-admin", () => ({
   useAdminAccess: () => ({ data: { isAdmin: true } }),
@@ -77,14 +82,20 @@ vi.mock("@/features/cards/hooks/use-sets", () => ({ useSets: () => ({ data: { se
 vi.mock("@/features/catalog-workspace/hooks/use-face-record-actions", () => ({
   useValueLabels: () => ({}),
 }));
-vi.mock("@/features/catalog-workspace/hooks/use-queue-navigation", () => ({
-  useQueueNavigation: () => ({ goNext: state.goNext, skipToEnd: vi.fn() }),
-}));
 vi.mock("@/features/catalog-workspace/hooks/use-workspace-undo", () => ({
   useWorkspaceUndo: () => ({ announce: vi.fn() }),
 }));
 vi.mock("@/features/catalog-workspace/components/creation/creation-panel", () => ({
-  CreationPanel: () => null,
+  CreationPanel: ({
+    onMergeDuplicate,
+  }: {
+    onMergeDuplicate?: (duplicate: { printingId: string }) => void;
+  }) =>
+    onMergeDuplicate ? (
+      <button type="button" onClick={() => onMergeDuplicate({ printingId: "printing-9" })}>
+        Merge duplicate
+      </button>
+    ) : null,
 }));
 vi.mock("@/features/catalog-workspace/lib/creation-draft", () => ({
   draftFromCandidatePrinting: () => ({ candidatePrintingIds: [] }),
@@ -132,7 +143,7 @@ beforeEach(() => {
   state.accept = fakeMutation();
   state.ignore = fakeMutation();
   state.desk = fakeMutation();
-  state.goNext.mockClear();
+  state.navigate.mockClear();
   state.followUpMeta = [];
 });
 
@@ -146,7 +157,7 @@ describe("NewPrintingRecord", () => {
     renderRecord();
 
     await waitFor(() => expect(useWorkspaceActionsStore.getState().actions?.loading).toBe(true));
-    expect(screen.queryByRole("button", { name: /Accept & next/u })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Accept/u })).toBeNull();
     expect(useWorkspaceActionsStore.getState().actions?.accept).toBeUndefined();
   });
 
@@ -161,7 +172,7 @@ describe("NewPrintingRecord", () => {
     );
     state.desk.mutateAsync.mockRejectedValue(new Error("Network down"));
 
-    const acceptButton = await screen.findByRole("button", { name: /Accept & next/u });
+    const acceptButton = await screen.findByRole("button", { name: /^Accept/u });
     act(() => acceptButton.click());
     await waitFor(() => expect(state.accept.mutateAsync).toHaveBeenCalledOnce());
     state.detail = makeAdminCardDetail({ card, sources: [source], candidatePrintings: [] });
@@ -176,14 +187,14 @@ describe("NewPrintingRecord", () => {
         "The printing was created, but the dates and note did not save: Network down.",
       ),
     ).toBeVisible();
-    expect(screen.queryByText(/not in the queue any more/u)).toBeNull();
-    expect(state.goNext).not.toHaveBeenCalled();
+    expect(screen.queryByText(/no longer open/u)).toBeNull();
+    expect(state.navigate).not.toHaveBeenCalled();
     expect(useWorkspaceActionsStore.getState().actions?.accept).toBeUndefined();
   });
 
   it("reports failed follow-up writes inline only, not as a toast", async () => {
     renderRecord();
-    await screen.findByRole("button", { name: /Accept & next/u });
+    await screen.findByRole("button", { name: /^Accept/u });
 
     expect(state.followUpMeta.length).toBeGreaterThan(0);
     for (const meta of state.followUpMeta) {
@@ -196,7 +207,7 @@ describe("NewPrintingRecord", () => {
     state.accept.mutateAsync.mockResolvedValue({ printingId: "printing-1" });
     state.desk.mutateAsync.mockRejectedValue(new Error("Network down"));
 
-    const acceptButton = await screen.findByRole("button", { name: /Accept & next/u });
+    const acceptButton = await screen.findByRole("button", { name: /^Accept/u });
     await act(async () => acceptButton.click());
 
     expect(
@@ -204,9 +215,53 @@ describe("NewPrintingRecord", () => {
         "The printing was created, but the dates and note did not save: Network down.",
       ),
     ).toBeVisible();
-    expect(screen.queryByRole("button", { name: /Accept & next/u })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Accept/u })).toBeNull();
     expect(useWorkspaceActionsStore.getState().actions?.accept).toBeUndefined();
     expect(useWorkspaceActionsStore.getState().actions?.ignore).toBeUndefined();
     expect(state.accept.mutateAsync).toHaveBeenCalledOnce();
+  });
+
+  it("opens the card's pass once the accept and its follow-up writes land", async () => {
+    renderRecord();
+    state.accept.mutateAsync.mockResolvedValue({ printingId: "printing-1" });
+
+    const acceptButton = await screen.findByRole("button", { name: /^Accept/u });
+    await act(async () => acceptButton.click());
+
+    await waitFor(() =>
+      expect(state.navigate).toHaveBeenCalledExactlyOnceWith({
+        to: "/admin/workspace/cards/$cardSlug",
+        params: { cardSlug: card.slug },
+      }),
+    );
+  });
+
+  it("opens the card's pass after an ignore", async () => {
+    renderRecord();
+
+    const ignoreButton = await screen.findByRole("button", { name: /^Ignore/u });
+    await act(async () => ignoreButton.click());
+
+    await waitFor(() => expect(state.ignore.mutateAsync).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(state.navigate).toHaveBeenCalledExactlyOnceWith({
+        to: "/admin/workspace/cards/$cardSlug",
+        params: { cardSlug: card.slug },
+      }),
+    );
+  });
+
+  it("opens the card's pass after a merge into an existing printing", async () => {
+    renderRecord();
+
+    const mergeButton = await screen.findByRole("button", { name: "Merge duplicate" });
+    await act(async () => mergeButton.click());
+
+    await waitFor(() =>
+      expect(state.navigate).toHaveBeenCalledExactlyOnceWith({
+        to: "/admin/workspace/cards/$cardSlug",
+        params: { cardSlug: card.slug },
+      }),
+    );
   });
 });

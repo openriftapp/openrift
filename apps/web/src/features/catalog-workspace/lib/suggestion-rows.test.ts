@@ -9,14 +9,7 @@ import {
   resetIdCounter,
 } from "@/test/factories";
 
-import { discardLabel } from "./suggestion-labels";
-import {
-  buildCardSuggestions,
-  enterDifferenceCount,
-  enterProviders,
-  sameDifferenceInput,
-  suggestionByHotkey,
-} from "./suggestion-rows";
+import { buildCardSuggestions } from "./suggestion-rows";
 
 beforeEach(() => {
   resetIdCounter();
@@ -89,23 +82,11 @@ describe("buildCardSuggestions", () => {
       }),
     ]);
 
-    expect(result.suggestions.map((s) => [s.field, s.tone, s.hotkey])).toEqual([
-      ["name", "source", 1],
-      ["might", "source", 2],
-      ["might", "contributor", 3],
+    expect(result.suggestions.map((s) => [s.field, s.tone, s.sourceLabel])).toEqual([
+      ["name", "source", "gallery"],
+      ["might", "source", "gallery"],
+      ["might", "contributor", "Renata"],
     ]);
-    expect(suggestionByHotkey(result.suggestions, 3)?.sourceLabel).toBe("Renata");
-  });
-
-  it("leaves suggestions past the ninth without a hotkey", () => {
-    const sources = Array.from({ length: 10 }, (_, index) =>
-      sameAsCard({ provider: `provider-${index}`, name: `Jinx ${index}` }),
-    );
-    const result = build(sources);
-
-    expect(result.suggestions).toHaveLength(10);
-    expect(result.suggestions.at(8)?.hotkey).toBe(9);
-    expect(result.suggestions.at(9)?.hotkey).toBeUndefined();
   });
 
   it("counts differences per provider and marks trusted ones", () => {
@@ -145,9 +126,7 @@ describe("buildCardSuggestions", () => {
       source.id,
       quiet.id,
     ]);
-    expect(enterProviders(result.enterTargets)).toEqual(["scans"]);
-    expect(enterDifferenceCount(result.enterTargets)).toBe(1);
-    expect(result.openContributorIds).toEqual(["sub-1"]);
+    expect(result.enterTargets.map((target) => target.differences)).toEqual([1, 0]);
   });
 
   it("carries the submission's change key and its other open changes", () => {
@@ -172,54 +151,5 @@ describe("buildCardSuggestions", () => {
         trusted: false,
       },
     ]);
-  });
-});
-
-describe("discardLabel", () => {
-  it("says Discard when the source has one difference here", () => {
-    const [suggestion] = build([sameAsCard({ name: "Jinx A" })]).suggestions;
-    expect(suggestion && discardLabel(suggestion.rowDifferences, suggestion.sourceLabel)).toBe(
-      "Discard",
-    );
-  });
-
-  it("names the count and source when it has more", () => {
-    const [suggestion] = build([
-      sameAsCard({ provider: "scans", name: "Jinx A", might: 1 }),
-    ]).suggestions;
-    expect(suggestion && discardLabel(suggestion.rowDifferences, suggestion.sourceLabel)).toBe(
-      "Discard 2 from scans",
-    );
-  });
-});
-
-describe("sameDifferenceInput", () => {
-  it("encodes a source suggestion's provider, field and JSON value", () => {
-    const [suggestion] = build([sameAsCard({ might: 6 })]).suggestions;
-    expect(suggestion && sameDifferenceInput(suggestion)).toEqual({
-      provider: "gallery",
-      field: "might",
-      value: "6",
-    });
-  });
-
-  it("encodes list values as JSON arrays", () => {
-    const [suggestion] = build([sameAsCard({ tags: ["Zaun"] })]).suggestions;
-    expect(suggestion && sameDifferenceInput(suggestion)?.value).toBe('["Zaun"]');
-  });
-
-  it("returns null for a contributor proposal", () => {
-    expect(
-      sameDifferenceInput({
-        key: "card.might",
-        field: "might",
-        tone: "contributor",
-        sourceKey: "contributor:cc-1",
-        sourceLabel: "Ezreal",
-        value: 6,
-        candidateRowId: "cc-1",
-        rowDifferences: 1,
-      }),
-    ).toBeNull();
   });
 });

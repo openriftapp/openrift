@@ -17,6 +17,7 @@ type PrintingImagesRepo = ReturnType<typeof printingImagesRepo>;
 export interface ImageFileSettings {
   rotation: 0 | 90 | 180 | 270;
   needsTrim: boolean;
+  needsLevels: boolean;
   quad: ImageQuad | null;
 }
 
@@ -28,7 +29,12 @@ function sameQuad(a: ImageQuad | null, b: ImageQuad | null): boolean {
 }
 
 function sameSettings(a: ImageFileSettings, b: ImageFileSettings): boolean {
-  return a.rotation === b.rotation && a.needsTrim === b.needsTrim && sameQuad(a.quad, b.quad);
+  return (
+    a.rotation === b.rotation &&
+    a.needsTrim === b.needsTrim &&
+    a.needsLevels === b.needsLevels &&
+    sameQuad(a.quad, b.quad)
+  );
 }
 
 async function readSource(
@@ -74,6 +80,7 @@ export async function writeReplacementFile(
       id,
       settings.rotation,
       settings.needsTrim,
+      settings.needsLevels,
       settings.quad,
     );
     replaced = await repo.replaceImageFile(oldId, {
@@ -81,6 +88,7 @@ export async function writeReplacementFile(
       rehostedUrl,
       rotation: settings.rotation,
       needsTrim: settings.needsTrim,
+      needsLevels: settings.needsLevels,
       quad: settings.quad,
     });
   } catch (error) {

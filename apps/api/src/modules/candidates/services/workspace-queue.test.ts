@@ -4,7 +4,6 @@ import type { WorkspaceRepos } from "./workspace-queue.js";
 import { buildWorkspaceQueue } from "./workspace-queue.js";
 
 const T1 = new Date("2026-10-18T09:00:00.000Z");
-const NOW = new Date("2026-10-21T15:30:00.000Z");
 
 const LIVE = {
   shortCode: "OGN-030",
@@ -85,7 +84,6 @@ function makeRepos() {
           rehostFailed: true,
         },
       ]),
-      countAdminEventsSince: vi.fn().mockResolvedValue(3),
     },
     workspaceRecords: {},
     cardSubmissions: { pendingReviewQueueRows: vi.fn().mockResolvedValue([]) },
@@ -107,12 +105,11 @@ function ids(response: Awaited<ReturnType<typeof buildWorkspaceQueue>>): string[
 }
 
 describe("buildWorkspaceQueue", () => {
-  it("returns every source to an admin and counts today's events from UTC midnight", async () => {
+  it("returns every source to an admin", async () => {
     const repos = makeRepos();
     const response = await buildWorkspaceQueue(repos as unknown as WorkspaceRepos, {
       access: { isAdmin: true, sections: [] },
       userId: "admin-1",
-      now: NOW,
     });
     expect(ids(response)).toEqual([
       "face:image-rehost-failed:face-base:img-2",
@@ -122,11 +119,6 @@ describe("buildWorkspaceQueue", () => {
       "printing:source-difference:hidden:provider-b",
       "printing:source-difference:promo:provider-a",
     ]);
-    expect(response.doneToday).toBe(3);
-    expect(repos.workspaceQueue.countAdminEventsSince).toHaveBeenCalledWith(
-      "admin-1",
-      new Date("2026-10-21T00:00:00.000Z"),
-    );
     expect(repos.providerSettings.helperReviewableProviders).not.toHaveBeenCalled();
   });
 
@@ -134,7 +126,6 @@ describe("buildWorkspaceQueue", () => {
     const response = await buildWorkspaceQueue(makeRepos() as unknown as WorkspaceRepos, {
       access: { isAdmin: false, sections: ["card-review"] },
       userId: "helper-1",
-      now: NOW,
     });
     expect(ids(response)).not.toContain("printing:source-difference:hidden:provider-b");
     expect(ids(response)).toContain("face:source-difference:face-promo:provider-a");
@@ -147,7 +138,6 @@ describe("buildWorkspaceQueue", () => {
     const response = await buildWorkspaceQueue(repos as unknown as WorkspaceRepos, {
       access: { isAdmin: false, sections: ["printing-desk"] },
       userId: "desk-1",
-      now: NOW,
     });
     expect(ids(response)).toEqual([
       "face:image-rehost-failed:face-base:img-2",
@@ -158,7 +148,7 @@ describe("buildWorkspaceQueue", () => {
     expect(repos.printingDesk.listDeskPrintings).toHaveBeenCalledWith({ promosOnly: true });
   });
 
-  it("adds listings to an admin's printing queues and counts them", async () => {
+  it("adds listings to an admin's printing queues", async () => {
     const loadListings = vi.fn().mockResolvedValue({
       suggested: [
         {
@@ -201,13 +191,12 @@ describe("buildWorkspaceQueue", () => {
       access: { isAdmin: true, sections: [] },
       userId: "admin-1",
       owner: "printing",
-      now: NOW,
       loadListings,
     });
     expect(ids(response)).toContain("printing:listing:base:tcgplayer");
     expect(ids(response)).toContain("printing:listing:listing:cardnexus:9:foil:EN");
     expect(ids(response)).toContain("printing:listing:listing-card:jinx-loose-cannon");
-    expect(response.counts.printing).toEqual({ open: 4, new: 2, oldestAt: T1.toISOString() });
+    expect(response.items.filter((item) => item.segment === "new")).toHaveLength(2);
   });
 
   it("never loads listings for a card-review or desk holder", async () => {
@@ -216,7 +205,6 @@ describe("buildWorkspaceQueue", () => {
       await buildWorkspaceQueue(makeRepos() as unknown as WorkspaceRepos, {
         access: { isAdmin: false, sections: [section] },
         userId: "helper-1",
-        now: NOW,
         loadListings,
       });
     }
@@ -228,9 +216,7 @@ describe("buildWorkspaceQueue", () => {
       access: { isAdmin: false, sections: ["printing-desk"] },
       userId: "desk-1",
       owner: "printing",
-      now: NOW,
     });
     expect(ids(response)).toEqual(["printing:source-difference:promo:provider-a"]);
-    expect(response.counts.face).toEqual({ open: 1, new: 0, oldestAt: T1.toISOString() });
   });
 });

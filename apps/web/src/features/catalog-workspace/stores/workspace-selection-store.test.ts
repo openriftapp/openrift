@@ -24,25 +24,10 @@ function entry(label: string) {
 }
 
 describe("useWorkspaceSelectionStore", () => {
-  it("starts expanded with an empty undo stack and no undo running", () => {
+  it("starts with an empty undo stack and no undo running", () => {
     const state = useWorkspaceSelectionStore.getState();
-    expect(state.listCollapsed).toBe(false);
     expect(state.undoStack).toEqual([]);
     expect(state.undoing).toBe(false);
-  });
-
-  describe("list collapse", () => {
-    it("sets the collapsed state", () => {
-      useWorkspaceSelectionStore.getState().setListCollapsed(true);
-      expect(useWorkspaceSelectionStore.getState().listCollapsed).toBe(true);
-    });
-
-    it("toggles the collapsed state", () => {
-      useWorkspaceSelectionStore.getState().toggleListCollapsed();
-      expect(useWorkspaceSelectionStore.getState().listCollapsed).toBe(true);
-      useWorkspaceSelectionStore.getState().toggleListCollapsed();
-      expect(useWorkspaceSelectionStore.getState().listCollapsed).toBe(false);
-    });
   });
 
   describe("undo stack", () => {

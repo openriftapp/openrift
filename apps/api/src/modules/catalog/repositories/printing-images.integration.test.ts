@@ -44,6 +44,7 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
     failedOld: "https://example.com/failed-old-0034.jpg",
     failedNew: "https://example.com/failed-new-0034.jpg",
     rehostedScan: "https://example.com/rehosted-scan-0034.jpg",
+    rehostedLevels: "https://example.com/rehosted-levels-0034.jpg",
     rehostedPlain: "https://example.com/rehosted-plain-0034.jpg",
     notRehosted: "https://example.com/not-rehosted-0034.jpg",
   };
@@ -225,6 +226,7 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
       rehostedUrl: imageRehostedUrl(imageFileId),
       rotation: 0,
       needsTrim: false,
+      needsLevels: false,
       quad: null,
     });
   });
@@ -235,16 +237,18 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
   });
 
   describe("listAllRehosted", () => {
-    const files = { scan: "", plain: "", notRehosted: "" };
+    const files = { scan: "", levels: "", plain: "", notRehosted: "" };
 
     beforeAll(async () => {
       const scan = await insertImageFile(db, { originalUrl: URLS.rehostedScan });
+      const levels = await insertImageFile(db, { originalUrl: URLS.rehostedLevels });
       const plain = await insertImageFile(db, { originalUrl: URLS.rehostedPlain });
       const notRehosted = await insertImageFile(db, {
         originalUrl: URLS.notRehosted,
         rehosted: false,
       });
       files.scan = scan.id;
+      files.levels = levels.id;
       files.plain = plain.id;
       files.notRehosted = notRehosted.id;
       await db
@@ -252,11 +256,16 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
         .set({ needsTrim: true })
         .where("id", "=", files.scan)
         .execute();
+      await db
+        .updateTable("imageFiles")
+        .set({ needsLevels: true })
+        .where("id", "=", files.levels)
+        .execute();
     });
 
     it.each([
-      { scansOnly: false, expected: ["scan", "plain"] as const },
-      { scansOnly: true, expected: ["scan"] as const },
+      { scansOnly: false, expected: ["scan", "levels", "plain"] as const },
+      { scansOnly: true, expected: ["scan", "levels"] as const },
     ])("lists rehosted files with scansOnly $scansOnly", async ({ scansOnly, expected }) => {
       const ours = new Set(Object.values(files));
       const rows = await repo.listAllRehosted(scansOnly);
@@ -398,6 +407,7 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
       rehostedUrl: imageRehostedUrl(newId),
       rotation: 90,
       needsTrim: true,
+      needsLevels: true,
       quad,
     });
 
@@ -410,6 +420,7 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
       rehostedUrl: imageRehostedUrl(newId),
       rotation: 90,
       needsTrim: true,
+      needsLevels: true,
       quad,
     });
     const lateId = uuidv7();
@@ -418,6 +429,7 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
       rehostedUrl: imageRehostedUrl(lateId),
       rotation: 0,
       needsTrim: false,
+      needsLevels: false,
       quad: null,
     });
     expect(late).toBe(false);

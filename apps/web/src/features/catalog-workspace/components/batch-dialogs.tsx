@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { PageTopBarButton } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,33 +12,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type {
-  BatchKind,
   BatchOutcome,
   BatchPreview,
   BatchReason,
 } from "@/features/catalog-workspace/hooks/use-workspace-batch";
 import {
-  batchButtonLabel,
   batchOutcomeText,
-  useWorkspaceBatch,
+  listingsBatchLabel,
+  useBatchRun,
+  useListingsBatchPreview,
 } from "@/features/catalog-workspace/hooks/use-workspace-batch";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import { errorText } from "@/lib/error-text";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 
-const CONFIRM_TITLES: Record<BatchKind, string> = {
-  "trusted-cards": "Accept trusted new cards",
-  "trusted-printings": "Accept trusted printings",
-  "suggested-listings": "Assign listings by suggestion",
-};
-
-const CONFIRM_DESCRIPTIONS: Record<BatchKind, string> = {
-  "trusted-cards":
-    "Each card is created from its trusted source as it stands. Cards that fail a check are skipped and stay in New.",
-  "trusted-printings":
-    "Each printing is added to its card from the trusted source. Printings that fail a check are skipped and stay in New.",
-  "suggested-listings": "Each listing is assigned to the printing its strong suggestion names.",
-};
+const KIND = "suggested-listings";
 
 function BatchReasonList({ entries }: { entries: BatchReason[] }) {
   return (
@@ -55,19 +44,17 @@ function BatchReasonList({ entries }: { entries: BatchReason[] }) {
 const EMPTY_PREVIEW: BatchPreview = { count: 0, names: [], keys: [], ineligible: [] };
 
 function BatchDialog({
-  kind,
   open,
   preview,
   onOpenChange,
 }: {
-  kind: BatchKind;
   open: boolean;
   preview: BatchPreview;
   onOpenChange: (open: boolean) => void;
 }) {
   const queueWrite = useQueueWorkspaceWrite();
   const { names, keys, ineligible } = preview;
-  const { run } = useWorkspaceBatch(kind, false);
+  const run = useBatchRun(KIND);
   const [outcome, setOutcome] = useState<BatchOutcome | null>(null);
 
   async function confirm(signal: AbortSignal) {
@@ -92,9 +79,11 @@ function BatchDialog({
     <Dialog open={open} onOpenChange={changeOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{CONFIRM_TITLES[kind]}</DialogTitle>
+          <DialogTitle>Assign listings by suggestion</DialogTitle>
           <DialogDescription>
-            {outcome === null ? CONFIRM_DESCRIPTIONS[kind] : batchOutcomeText(kind, outcome)}
+            {outcome === null
+              ? "Each listing is assigned to the printing its strong suggestion names."
+              : batchOutcomeText(KIND, outcome)}
           </DialogDescription>
         </DialogHeader>
         {outcome === null ? (
@@ -130,7 +119,7 @@ function BatchDialog({
                 pending={run.isPending}
                 onClick={() => void queueWrite(confirm, { limit: "long" })}
               >
-                {batchButtonLabel(kind, names.length)}
+                {listingsBatchLabel(names.length)}
               </Button>
             </>
           ) : (
@@ -142,8 +131,8 @@ function BatchDialog({
   );
 }
 
-export function BatchButton({ kind }: { kind: BatchKind }) {
-  const { preview } = useWorkspaceBatch(kind, true);
+export function AssignSuggestedListingsButton() {
+  const preview = useListingsBatchPreview();
   const [open, setOpen] = useState(false);
   const [snapshot, setSnapshot] = useState<BatchPreview | null>(null);
 
@@ -151,24 +140,14 @@ export function BatchButton({ kind }: { kind: BatchKind }) {
   if (count === 0 && (preview?.ineligible.length ?? 0) === 0 && !open) {
     return null;
   }
+  const openDialog = () => {
+    setSnapshot(preview ?? null);
+    setOpen(true);
+  };
   return (
     <>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => {
-          setSnapshot(preview ?? null);
-          setOpen(true);
-        }}
-      >
-        {batchButtonLabel(kind, count)}
-      </Button>
-      <BatchDialog
-        kind={kind}
-        open={open}
-        preview={snapshot ?? EMPTY_PREVIEW}
-        onOpenChange={setOpen}
-      />
+      <PageTopBarButton onClick={openDialog}>{listingsBatchLabel(count)}</PageTopBarButton>
+      <BatchDialog open={open} preview={snapshot ?? EMPTY_PREVIEW} onOpenChange={setOpen} />
     </>
   );
 }

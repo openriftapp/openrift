@@ -1,4 +1,3 @@
-import type { StagedProductResponse } from "@openrift/shared/types/api/admin";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import {
@@ -9,11 +8,7 @@ import {
   resetIdCounter,
 } from "@/test/factories";
 
-import {
-  buildPrintingSuggestions,
-  listingSuggestionsForPrinting,
-  printingCompareGroups,
-} from "./printing-suggestion-rows";
+import { buildPrintingSuggestions, printingCompareGroups } from "./printing-suggestion-rows";
 
 const CONTEXT = { costKeywords: [], setTotals: {} };
 
@@ -127,33 +122,6 @@ describe("buildPrintingSuggestions", () => {
     ]);
     expect(model.suggestions[0]?.isContributor).toBe(true);
     expect(model.enterCandidateIds).toEqual([]);
-  });
-});
-
-describe("listingSuggestionsForPrinting", () => {
-  function product(externalId: number): StagedProductResponse {
-    return { externalId, finish: "normal", language: null } as StagedProductResponse;
-  }
-  const keyOf = (entry: { marketplace: string; product: StagedProductResponse }) =>
-    `${entry.marketplace}:${entry.product.externalId}`;
-
-  it("keeps unassigned listings that suggest this printing, strongest first", () => {
-    const entries = [
-      { marketplace: "tcgplayer" as const, product: product(1), isAssigned: false },
-      { marketplace: "tcgplayer" as const, product: product(2), isAssigned: false },
-      { marketplace: "tcgplayer" as const, product: product(3), isAssigned: true },
-      { marketplace: "cardmarket" as const, product: product(4), isAssigned: false },
-    ];
-    const suggestions = new Map([
-      ["tcgplayer:1", [{ printingId: "p1", score: 120 }]],
-      ["tcgplayer:2", [{ printingId: "p1", score: 180 }]],
-      ["tcgplayer:3", [{ printingId: "p1", score: 200 }]],
-      ["cardmarket:4", [{ printingId: "p2", score: 200 }]],
-    ]);
-
-    const result = listingSuggestionsForPrinting(entries, suggestions, keyOf, "p1");
-
-    expect(result.map((entry) => entry.product.externalId)).toEqual([2, 1]);
   });
 });
 

@@ -129,6 +129,7 @@ export interface ImageFilesTable {
   rehostedUrl: string | null;
   rotation: Generated<0 | 90 | 180 | 270>;
   needsTrim: Generated<boolean>;
+  needsLevels: Generated<boolean>;
   quad: ImageQuad | null;
   credit: string | null;
   fingerprint: string | null;
@@ -142,6 +143,7 @@ export interface FaceImagesTable {
   imageFileId: string;
   isActive: Generated<boolean>;
   isActivationPending: Generated<boolean>;
+  reviewedAt: Date | null;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
 }

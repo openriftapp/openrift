@@ -6,7 +6,6 @@ import type { WorkspaceQueueSources } from "./workspace-presenters.js";
 import {
   buildWorkspaceQueueEntries,
   linkedPrintingDifferences,
-  startOfUtcDay,
   toWorkspaceQueueResponse,
   toWorkspaceEvent,
   toWorkspaceFaceRow,
@@ -329,6 +328,7 @@ describe("buildWorkspaceQueueEntries", () => {
             rarity: "rare",
             language: "FR",
             size: null,
+            markerSlugs: [],
           },
         ],
       }),
@@ -340,6 +340,35 @@ describe("buildWorkspaceQueueEntries", () => {
       ownerId: "cp-7",
       label: "OGN-205 normal FR",
     });
+  });
+
+  it("names the markers of a new printing, so two variants of one code stay apart", () => {
+    const row = {
+      id: "cp-8",
+      candidateCardId: "cc-8",
+      provider: "provider-a",
+      createdAt: T1,
+      cardSlug: "yasuo-unforgiven",
+      cardName: "Yasuo, Unforgiven",
+      shortCode: "OGN-205",
+      finish: "foil",
+      rarity: "rare",
+      language: "EN",
+      size: null,
+    };
+    const entries = buildWorkspaceQueueEntries(
+      sources({
+        newPrintings: [
+          { ...row, markerSlugs: [] },
+          { ...row, id: "cp-9", markerSlugs: ["promo"] },
+        ],
+      }),
+    );
+
+    expect(entries.map((entry) => entry.item.label)).toEqual([
+      "OGN-205 foil EN",
+      "OGN-205 foil EN promo",
+    ]);
   });
 
   it("labels a new printing without a finish by the one its rarity implies", () => {
@@ -358,6 +387,7 @@ describe("buildWorkspaceQueueEntries", () => {
             rarity: "epic",
             language: null,
             size: null,
+            markerSlugs: [],
           },
         ],
       }),
@@ -681,30 +711,23 @@ describe("toWorkspaceQueueResponse", () => {
     ...over,
   });
 
-  it("counts every owner and narrows items to the requested one", () => {
+  it("narrows items to the requested owner", () => {
     const response = toWorkspaceQueueResponse(
       [
         item({ id: "a" }),
         item({ id: "b", segment: "new", createdAt: T1.toISOString() }),
         item({ id: "c", owner: "face" }),
       ],
-      7,
       "face",
     );
     expect(response.items.map((row) => row.id)).toEqual(["c"]);
-    expect(response.counts).toEqual({
-      card: { open: 1, new: 1, oldestAt: T1.toISOString() },
-      face: { open: 1, new: 0, oldestAt: T2.toISOString() },
-      printing: { open: 0, new: 0, oldestAt: null },
-    });
-    expect(response.doneToday).toBe(7);
   });
 
   it("orders items oldest first", () => {
-    const response = toWorkspaceQueueResponse(
-      [item({ id: "late" }), item({ id: "early", createdAt: T1.toISOString() })],
-      0,
-    );
+    const response = toWorkspaceQueueResponse([
+      item({ id: "late" }),
+      item({ id: "early", createdAt: T1.toISOString() }),
+    ]);
     expect(response.items.map((row) => row.id)).toEqual(["early", "late"]);
   });
 });
@@ -824,13 +847,5 @@ describe("toWorkspaceEvent", () => {
     expect(
       toWorkspaceEvent({ ...event, entityLabel: null, cardSlug: null, entityId: null }).label,
     ).toBe("");
-  });
-});
-
-describe("startOfUtcDay", () => {
-  it("truncates to midnight UTC", () => {
-    expect(startOfUtcDay(new Date("2026-10-21T23:59:59.999Z"))).toEqual(
-      new Date("2026-10-21T00:00:00.000Z"),
-    );
   });
 });

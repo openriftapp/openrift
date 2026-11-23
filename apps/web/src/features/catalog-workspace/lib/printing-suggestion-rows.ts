@@ -1,10 +1,8 @@
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import type {
   AdminCardDetailResponse,
-  AdminMarketplaceName,
   AdminPrintingResponse,
   CandidatePrintingResponse,
-  StagedProductResponse,
 } from "@openrift/shared/types/api/admin";
 
 import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
@@ -128,37 +126,4 @@ export function printingCompareGroups(
     }
   }
   return groups.toSorted((a, b) => a.face.side - b.face.side);
-}
-
-export interface ListingSuggestion {
-  key: string;
-  marketplace: AdminMarketplaceName;
-  product: StagedProductResponse;
-  score: number;
-}
-
-interface ListingEntry {
-  marketplace: AdminMarketplaceName;
-  product: StagedProductResponse;
-  isAssigned: boolean;
-}
-
-export function listingSuggestionsForPrinting(
-  entries: readonly ListingEntry[],
-  suggestions: ReadonlyMap<string, readonly { printingId: string; score: number }[]>,
-  keyOf: (entry: ListingEntry) => string,
-  printingId: string,
-): ListingSuggestion[] {
-  return entries
-    .filter((entry) => !entry.isAssigned)
-    .flatMap((entry) => {
-      const key = keyOf(entry);
-      const match = suggestions
-        .get(key)
-        ?.find((suggestion) => suggestion.printingId === printingId);
-      return match === undefined
-        ? []
-        : [{ key, marketplace: entry.marketplace, product: entry.product, score: match.score }];
-    })
-    .toSorted((a, b) => b.score - a.score);
 }

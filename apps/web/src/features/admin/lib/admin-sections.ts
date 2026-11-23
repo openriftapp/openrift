@@ -15,6 +15,7 @@ const EXTRA_SECTION_ROUTES: Partial<Record<AdminSectionSlug, readonly `/admin/${
 };
 
 const WORKSPACE_ROOT = "/admin/workspace";
+const ADMIN_ONLY_ROUTES: readonly `/admin/${string}`[] = ["/admin/workspace/listings"];
 const WORKSPACE_FACE_RECORD = /^\/admin\/workspace\/faces\/[^/]+\/[^/]+\/?$/u;
 
 function underRoute(pathname: string, route: string): boolean {
@@ -22,6 +23,9 @@ function underRoute(pathname: string, route: string): boolean {
 }
 
 function sectionCovers(slug: AdminSectionSlug, pathname: string): boolean {
+  if (ADMIN_ONLY_ROUTES.some((route) => underRoute(pathname, route))) {
+    return false;
+  }
   const extra = EXTRA_SECTION_ROUTES[slug] ?? [];
   if (
     underRoute(pathname, ADMIN_SECTION_ROUTES[slug]) ||

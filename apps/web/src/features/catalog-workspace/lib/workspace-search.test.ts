@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  printingPrefillSearchSchema,
-  WORKSPACE_SORTS,
-  workspaceSearchSchema,
-} from "./workspace-search";
+import { printingPrefillSearchSchema, printingsSearchSchema } from "./workspace-search";
 
 describe("printingPrefillSearchSchema", () => {
   it("keeps a card, language and finish", () => {
@@ -37,47 +33,35 @@ describe("printingPrefillSearchSchema", () => {
   });
 });
 
-describe("workspaceSearchSchema", () => {
-  it("leaves the segment unset by default", () => {
-    expect(workspaceSearchSchema.parse({})).toEqual({});
+describe("printingsSearchSchema", () => {
+  it("leaves every param unset by default", () => {
+    expect(printingsSearchSchema.parse({})).toEqual({});
   });
 
-  it("drops an unknown segment", () => {
-    expect(workspaceSearchSchema.parse({ segment: "archived" }).segment).toBeUndefined();
-  });
-
-  it("drops invalid optional params", () => {
-    const search = workspaceSearchSchema.parse({ order: "random", collapsed: "yes", reason: "x" });
-    expect(search.order).toBeUndefined();
-    expect(search.collapsed).toBeUndefined();
-    expect(search.reason).toBeUndefined();
-  });
-
-  it("keeps valid params", () => {
+  it("drops the params of the old queue view", () => {
     expect(
-      workspaceSearchSchema.parse({
+      printingsSearchSchema.parse({
         segment: "new",
-        order: WORKSPACE_SORTS[0],
+        order: "oldest",
         provider: "provider-a",
         reason: "new-image",
-        q: "jinx",
         collapsed: true,
+        q: "jinx",
       }),
-    ).toEqual({
-      segment: "new",
-      order: "oldest",
-      provider: "provider-a",
-      reason: "new-image",
-      q: "jinx",
-      collapsed: true,
-    });
+    ).toEqual({ q: "jinx" });
   });
 
   it("keeps table filters and desk controls and drops unknown values", () => {
     expect(
-      workspaceSearchSchema.parse({ filter: "no-image", status: "released", deskSort: "card" }),
-    ).toEqual({ filter: "no-image", status: "released", deskSort: "card" });
-    const search = workspaceSearchSchema.parse({ filter: "x", status: "y", deskSort: "z" });
-    expect(search).toEqual({});
+      printingsSearchSchema.parse({
+        filter: "no-image",
+        status: "released",
+        deskSort: "card",
+        desk: "promos",
+      }),
+    ).toEqual({ filter: "no-image", status: "released", deskSort: "card", desk: "promos" });
+    expect(
+      printingsSearchSchema.parse({ filter: "x", status: "y", deskSort: "z", desk: "everyone" }),
+    ).toEqual({});
   });
 });

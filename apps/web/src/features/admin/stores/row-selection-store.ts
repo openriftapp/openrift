@@ -42,5 +42,4 @@ export function selectedRowKeys(state: RowSelectionState, scope: string): string
 }
 
 export const mirrorSelectionStore = createRowSelectionStore();
-export const workspaceRowSelectionStore = createRowSelectionStore();
 export const deskSelectionStore = createRowSelectionStore();

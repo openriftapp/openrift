@@ -337,6 +337,7 @@ describe("buildCardDetail", () => {
           cardName: "Empowered",
           cardSlug: "empowered",
           publicCode: "VEN-T01",
+          imageUrl: "/media/empowered-full.webp",
         },
         {
           printingId: "p-1",
@@ -345,6 +346,7 @@ describe("buildCardDetail", () => {
           cardName: "Tentacle",
           cardSlug: "tentacle",
           publicCode: "VEN-T06",
+          imageUrl: null,
         },
       ]),
     });
@@ -357,6 +359,7 @@ describe("buildCardDetail", () => {
       cardName: "Empowered",
       cardSlug: "empowered",
       publicCode: "VEN-T01",
+      imageUrl: "/media/empowered-full.webp",
     });
   });
 
@@ -867,9 +870,12 @@ describe("buildCardDetail", () => {
       rehostedUrl: null,
       rotation: 0,
       needsTrim: false,
+      needsLevels: false,
       quad: null,
       isActive: true,
       activateWhenRehosted: false,
+      addedAt: new Date("2026-01-01T00:00:00.000Z"),
+      uploadedByName: null,
       rehostAttempts: null,
       rehostError: null,
       rehostAttemptedAt: null,
@@ -921,9 +927,12 @@ describe("buildCardDetail", () => {
           rehostedUrl: null,
           rotation: 0,
           needsTrim: false,
+          needsLevels: false,
           quad: null,
           isActive: false,
           activateWhenRehosted: true,
+          addedAt: new Date("2026-01-01T00:00:00.000Z"),
+          uploadedByName: null,
           rehostAttempts: 2,
           rehostError: "HTTP 404",
           rehostAttemptedAt: new Date("2026-11-12T10:00:00.000Z"),
@@ -938,6 +947,8 @@ describe("buildCardDetail", () => {
       expect.objectContaining({
         id: "img-1",
         activateWhenRehosted: true,
+        addedAt: "2026-01-01T00:00:00.000Z",
+        uploadedByName: null,
         rehostFailure: {
           attempts: 2,
           error: "HTTP 404",

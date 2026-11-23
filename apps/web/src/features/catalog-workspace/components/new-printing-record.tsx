@@ -2,9 +2,9 @@ import { formatPrintingCode } from "@openrift/shared/printing-code";
 import type { AdminPrintingResponse } from "@openrift/shared/types/api/admin";
 import { isListingOwnerId, parseListingCardOwnerId } from "@openrift/shared/workspace-listing-key";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { ChevronDownIcon } from "lucide-react";
-import { Suspense, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TextLink } from "@/components/ui/text-link";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import {
   useAcceptPrintingGroup,
@@ -35,9 +36,7 @@ import { favoriteProviderSet } from "@/features/admin/lib/candidate-rows";
 import { formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
 import { buildSetReleaseYears } from "@/features/admin/lib/set-release-years";
 import { useSets } from "@/features/cards/hooks/use-sets";
-import { CardListingsRecord } from "@/features/catalog-workspace/components/card-listings-record";
 import { CreationPanel } from "@/features/catalog-workspace/components/creation/creation-panel";
-import { ListingRecord } from "@/features/catalog-workspace/components/listing-record";
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
 import {
   RecordHeader,
@@ -47,7 +46,6 @@ import {
 } from "@/features/catalog-workspace/components/record/record-pane";
 import { ignoredPrintingUndo } from "@/features/catalog-workspace/hooks/candidate-undo";
 import { useValueLabels } from "@/features/catalog-workspace/hooks/use-face-record-actions";
-import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
@@ -66,18 +64,24 @@ import {
 } from "@/features/catalog-workspace/lib/creation-draft";
 import { providerOf } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import { workspaceQueueQueryOptions } from "@/features/catalog-workspace/lib/workspace-queries";
+import { useWorkspaceActionsStore } from "@/features/catalog-workspace/stores/workspace-actions-store";
+import { focusRecordPane } from "@/features/catalog-workspace/stores/workspace-record-pane-store";
 import { errorText } from "@/lib/error-text";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 export function NewPrintingRecord({ candidatePrintingId }: { candidatePrintingId: string }) {
-  if (parseListingCardOwnerId(candidatePrintingId) !== null) {
-    return <CardListingsRecord ownerId={candidatePrintingId} />;
+  if (
+    isListingOwnerId(candidatePrintingId) ||
+    parseListingCardOwnerId(candidatePrintingId) !== null
+  ) {
+    return (
+      <RecordNotice>
+        Marketplace listings are mapped on the{" "}
+        <TextLink render={<Link to="/admin/workspace/listings" />}>Listings</TextLink> page.
+      </RecordNotice>
+    );
   }
-  return isListingOwnerId(candidatePrintingId) ? (
-    <ListingRecord ownerId={candidatePrintingId} />
-  ) : (
-    <NewCandidatePrintingRecord candidatePrintingId={candidatePrintingId} />
-  );
+  return <NewCandidatePrintingRecord candidatePrintingId={candidatePrintingId} />;
 }
 
 function NewCandidatePrintingRecord({ candidatePrintingId }: { candidatePrintingId: string }) {
@@ -95,7 +99,7 @@ function NewCandidatePrintingRecord({ candidatePrintingId }: { candidatePrinting
   if (cardSlug === null) {
     return (
       <RecordNotice>
-        This candidate is not in the queue any more. It was accepted, merged or ignored.
+        This candidate is no longer open. It was accepted, merged or ignored.
       </RecordNotice>
     );
   }
@@ -134,7 +138,9 @@ function NewPrintingBody({
   const labels = useValueLabels();
   const { data: setsData } = useSets();
   const { data: providerData } = useProviderSettings();
-  const navigation = useQueueNavigation("printing");
+  const navigate = useNavigate();
+  const router = useRouter();
+  const resolvedPathname = useRouterState({ select: (state) => state.resolvedLocation?.pathname });
   const queryClient = useQueryClient();
   const scope = [adminKeys.cards.detail(cardSlug), adminKeys.cards.list, adminKeys.workspace];
   const acceptGroup = useAcceptPrintingGroup(scope, { inlineError: true });
@@ -149,6 +155,23 @@ function NewPrintingBody({
   const [failure, setFailure] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
   const accepting = useRef(false);
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  function openCardPass() {
+    // A write that lands after the admin left this record must not pull them back.
+    if (!mounted.current || router.latestLocation.pathname !== resolvedPathname) {
+      return;
+    }
+    useWorkspaceActionsStore.getState().leave(false);
+    focusRecordPane();
+    void navigate({ to: "/admin/workspace/cards/$cardSlug", params: { cardSlug } });
+  }
 
   const candidate = detail?.candidatePrintings.find((entry) => entry.id === candidatePrintingId);
   const card = detail?.card ?? null;
@@ -252,7 +275,7 @@ function NewPrintingBody({
       );
       return;
     }
-    navigation.goNext();
+    openCardPass();
   };
 
   const accept = async (signal: AbortSignal) => {
@@ -273,7 +296,7 @@ function NewPrintingBody({
     const entry = ignoredPrintingUndo(ignored, detail?.displayName ?? cardSlug);
     if (await runReportedMutation(() => ignoreCandidate.mutateAsync(ignored, { signal }))) {
       announce(entry);
-      navigation.goNext();
+      openCardPass();
     }
   };
 
@@ -288,7 +311,7 @@ function NewPrintingBody({
       ),
     );
     if (ok) {
-      navigation.goNext();
+      openCardPass();
     }
   };
 
@@ -344,9 +367,6 @@ function NewPrintingBody({
           badges={<Badge variant="info">New from {provider}</Badge>}
           actions={
             <>
-              <Button variant="ghost" size="sm" onClick={() => navigation.skipToEnd()}>
-                Skip to end <Kbd>S</Kbd>
-              </Button>
               {isAdmin && (
                 <Button
                   variant="outline"
@@ -384,7 +404,7 @@ function NewPrintingBody({
                 disabled={!canAccept}
                 onClick={() => void queueWrite(accept, { limit: "upload" })}
               >
-                Accept & next <Kbd>A</Kbd>
+                Accept <Kbd>A</Kbd>
               </Button>
             </>
           }

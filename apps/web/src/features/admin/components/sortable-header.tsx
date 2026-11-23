@@ -2,6 +2,7 @@ import { ArrowDownIcon, ArrowUpIcon, ChevronsUpDownIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 
 import { Pressable } from "@/components/ui/pressable";
+import { cn } from "@/lib/utils";
 
 export type SortedState = false | "asc" | "desc";
 
@@ -20,13 +21,13 @@ export function ariaSort(sorted: SortedState): "ascending" | "descending" | "non
 
 function SortIcon({ sorted }: { sorted: SortedState }) {
   if (sorted === "asc") {
-    return <ArrowUpIcon className="text-foreground size-3.5" />;
+    return <ArrowUpIcon className="text-foreground size-3.5 self-center" />;
   }
   if (sorted === "desc") {
-    return <ArrowDownIcon className="text-foreground size-3.5" />;
+    return <ArrowDownIcon className="text-foreground size-3.5 self-center" />;
   }
   return (
-    <ChevronsUpDownIcon className="text-muted-foreground/50 size-3.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
+    <ChevronsUpDownIcon className="text-muted-foreground/50 size-3.5 self-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
   );
 }
 
@@ -42,27 +43,20 @@ export function SortHeaderButton({
 }: {
   sorted: SortedState;
   onClick?: ComponentProps<"button">["onClick"];
-  /** `right` puts the icon before the label, keeping the label on the column edge. */
   align?: "left" | "center" | "right";
   children: ReactNode;
 }) {
   const icon = <SortIcon sorted={sorted} />;
   return (
     <Pressable
-      className="group inline-flex items-center gap-1 rounded-sm select-none"
+      className={cn(
+        "group inline-flex items-baseline gap-1 rounded-sm select-none",
+        align === "right" && "flex-row-reverse",
+      )}
       onClick={onClick}
     >
-      {align === "right" ? (
-        <>
-          {icon}
-          {children}
-        </>
-      ) : (
-        <>
-          {children}
-          {icon}
-        </>
-      )}
+      {children}
+      {icon}
     </Pressable>
   );
 }

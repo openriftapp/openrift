@@ -1,4 +1,5 @@
 import type {
+  ReviewCardsResponse,
   WorkspaceOwner,
   WorkspaceQueueResponse,
 } from "@openrift/shared/contracts/admin/catalog-workspace";
@@ -7,10 +8,10 @@ import type { Repos } from "../../../deps.js";
 import type { AdminAccess } from "../../../middleware/require-admin.js";
 import type { UnassignedListings } from "../../marketplace/lib/unassigned-listings.js";
 import { reviewableProviderScope } from "../lib/card-review-scope.js";
+import { toReviewCards } from "../lib/review-cards.js";
 import type { WorkspaceQueueEntry } from "../lib/workspace-presenters.js";
 import {
   buildWorkspaceQueueEntries,
-  startOfUtcDay,
   toWorkspaceQueueResponse,
 } from "../lib/workspace-presenters.js";
 
@@ -63,7 +64,6 @@ export async function buildWorkspaceQueue(
     access: AdminAccess | null;
     userId: string;
     owner?: WorkspaceOwner;
-    now: Date;
     loadListings?: () => Promise<UnassignedListings>;
   },
 ): Promise<WorkspaceQueueResponse> {
@@ -79,7 +79,6 @@ export async function buildWorkspaceQueue(
     inactiveImages,
     pendingSubmissions,
     costKeywords,
-    doneToday,
   ] = await Promise.all([
     reviewableProviderScope(access, repos.providerSettings),
     isDeskOnly(access) ? deskPrintingScope(repos, userId) : undefined,
@@ -91,7 +90,6 @@ export async function buildWorkspaceQueue(
     repos.workspaceQueue.inactiveFaceImages(),
     repos.cardSubmissions.pendingReviewQueueRows(),
     repos.keywords.listCostKeywords(),
-    repos.workspaceQueue.countAdminEventsSince(userId, startOfUtcDay(options.now)),
   ]);
 
   const inScope = (provider: string): boolean => scope === null || scope.has(provider);
@@ -128,7 +126,28 @@ export async function buildWorkspaceQueue(
 
   return toWorkspaceQueueResponse(
     entries.map((entry) => entry.item),
-    doneToday,
     options.owner,
   );
+}
+
+export function buildListingItems(listings: UnassignedListings): WorkspaceQueueResponse {
+  const entries = buildWorkspaceQueueEntries({
+    cardDifferences: [],
+    drafts: [],
+    linkedPrintings: [],
+    newPrintings: [],
+    inactiveImages: [],
+    submissions: [],
+    costKeywords: [],
+    listings,
+  });
+  return toWorkspaceQueueResponse(entries.map((entry) => entry.item));
+}
+
+export async function buildReviewCards(
+  repos: WorkspaceRepos,
+  options: { access: AdminAccess | null; userId: string },
+): Promise<ReviewCardsResponse> {
+  const { items } = await buildWorkspaceQueue(repos, options);
+  return { cards: toReviewCards(items) };
 }

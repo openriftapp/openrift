@@ -176,7 +176,7 @@ export const adminPrintingDeskContract = {
   // Every printing of the card, in every language, not only the desk's own.
   cardPrintings: authedRoute
     .route({ method: "GET", path: `${BASE}/cards/{cardSlug}`, tags: [TAG] })
-    .meta({ adminSections: ["printing-desk"] })
+    .meta({ adminSections: ["card-review", "printing-desk"] })
     .errors({ NOT_FOUND: { message: "Card not found" } })
     .input(cardSlugParam)
     .output(deskCardPrintingsOutputSchema),

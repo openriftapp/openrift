@@ -16,7 +16,7 @@ export function RecordFieldRow({
   suggestions?: ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)_auto] items-center gap-x-2.5 gap-y-1.5 border-t py-1.5 first:border-t-0">
+    <div className="grid grid-cols-[minmax(0,11rem)_minmax(0,1fr)_auto] items-center gap-x-2.5 gap-y-1.5 border-t py-1.5 first:border-t-0">
       <span className="text-muted-foreground">{label}</span>
       <div className="min-w-0 break-words">{editing ?? value}</div>
       <div>

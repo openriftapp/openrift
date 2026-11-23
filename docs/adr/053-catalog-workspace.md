@@ -1,73 +1,78 @@
 ---
 status: proposed
-date: 2026-10-21
+date: 2026-11-23
 ---
 
 # ADR-053: Catalog Workspace for Cards, Printings and Faces
 
 ## Context and Problem Statement
 
-Since ADR-020 a printing is one or two faces, and a face can sit on several printings. The catalog admin still follows the older shape: Review is a queue of sources and submissions, Cards is a list plus a card page whose "Fields & faces" section stacks a transposed source spreadsheet per face, and Printing Desk is a separate area for promo contributors. Face data is edited in three places, image work is split between the card page and the printing page, and the daily review means jumping between Review and a long card page.
+Since ADR-020 a printing is one or two faces, and a face can sit on several printings. The catalog admin still follows the older shape: Review is a queue of sources and submissions, Cards is a list plus a card page that edits card, face, printing, image and listing data, and Printing Desk is a separate area for promo contributors. Face data is edited in three places, image work is split between the card page and the printing page, and one source row can be settled from several screens.
 
-How do we organize the catalog admin around cards, faces and printings so the daily review is one pass per record, each open item has one place, and the desk grant keeps working?
+How do we organize the catalog admin around cards, faces and printings so the daily review is one pass per card, every field has one editor, and the desk grant keeps working?
 
 ## Decision Drivers
 
 - The daily review is the main job and must stay fast: keyboard, no back-and-forth navigation.
-- Every open item has exactly one owner, so counts add up and nothing is decided twice.
-- Images belong to faces.
-- Today's functions stay reachable, including the ones behind menus.
+- A source row is settled once, in one place.
+- Every field has one editor. Images belong to faces.
+- Few controls per item. A reviewer reads the screen without learning a vocabulary.
 - The old pages keep working until the new surface has been tried (ADR-050 built a replacement that turned out worse).
 
 ## Considered Options
 
-1. **List page and detail page per entity**: Cards, Printings and Faces each get a table and a full detail page.
-2. **Split view per entity**: list on the left, record on the right, for every view.
-3. **Hybrid**: split view for the Open and New queues, full-width tables for All, one record component for both.
+1. **One queue per entity**: Cards, Printings and Faces each have Open and New queues beside their table, and every open item belongs to one of the three.
+2. **Faces inside printings**: two areas, Cards and Printings, with faces as panels of a printing.
+3. **One review queue of cards, three record areas**: Review lists cards with pending work, a card pass settles everything on the card, and Cards, Printings and Faces are plain tables with record pages.
 
 ## Decision Outcome
 
-Chosen option: "Hybrid", because the queues need the list beside the record to walk through them, while browsing thousands of printings needs table columns and bulk actions.
+Chosen option: "One review queue of cards, three record areas", because a source upload or a contribution arrives per card, while per-entity queues split one source row across two screens and spread one card's work over three lists.
 
-The new surface lives under `/admin/workspace/` behind the `catalog-workspace` feature flag. With the flag off nothing changes.
+The surface lives under `/admin/workspace/` behind the `catalog-workspace` feature flag. With the flag off nothing changes.
 
-### Ownership
+### Review
 
-- Cards: card-field differences, contributor proposals on card fields, new-card drafts (New).
-- Faces: face-field differences and images (new source images, contributor and desk uploads). Which candidate field is a face field follows `isPrintingLevelField` in `packages/shared/src/printing-field-level.ts`.
-- Printings: printing-level field differences, new printings from sources (New), suggested marketplace listings, unmatched listings (New).
+- Review lists every card with pending work: source differences on the card, its faces or its printings, new printings, new source images, uploads waiting for a decision, open contributions, and new cards. Contributions come first, then the longest wait.
+- Sources switched off under "Show in review" never put a card in Review. Grant holders see the sources marked "Helpers can review".
+- Marketplace listings are not review items. They are mapped under Marketplaces.
 
-Images are edited only on the face. Other records show them read-only with a link to the face.
+### Card pass
 
-### Lists and records
+- Opening a card from Review shows everything pending on it in one scroll: Card, New printings, Faces, Printings. Records without pending work collapse to one line.
+- A source suggestion is one button that applies the value. "Dismiss N & next" checks every remaining source row on the card and opens the next card. "Checked" is stored per source row (`checked_at`), so a dismissal covers all fields of that row.
+- A contribution shows on the field it concerns with the contributor's name and note. It is settled only by Use or by Reject with a reply. Dismissing never settles it, and the card stays in Review while one is open.
+- A new printing is created from its row with the source's values. Linking it to an existing printing and ignoring it sit in the row's menu.
+- An uploaded image waiting on a face is made the main image, kept as an extra, or deleted. Keeping sets `face_images.reviewed_at`, which takes it out of Review.
+- A two-faced printing whose faces belong to two cards shows in the pass of each card. Each pass edits its own card's face.
+- Keys: Enter dismisses and moves on, J and K move between cards, A creates the first new printing, Z undoes.
 
-- Each list has Open, New and All, then type filters, sort, source and reason filters. The queue header shows decisions, oldest age and done today.
-- Source differences show inline under each field as suggestions with Discard and Use. Contributor proposals show Reject, Use and Reply. A per-source strip shows "matches" or the number of differences. "Compare all sources" opens the existing source grid.
-- Discard checks that source's candidate row, because "checked" is stored per row (`checked_at`). A per-field discard would need a migration and is left out. The label says what happens: "Discard" when that source has one difference on the record, "Discard 2 from Provider B" when it has more, and Enter's banner names the sources it checks.
-- Keys: J and K move, Enter discards the remaining source suggestions and opens the next item, A accepts a new record, S moves the item to the end, X ignores, Z undoes, number keys use the nth suggestion. Enter never settles a contributor item and never creates a record. For grant holders who cannot check, Enter is plain Next.
-- One creation panel serves new cards, new printings from sources and manual printings: faces (new or existing), images, printing fields, and a duplicate check.
+### Record areas
+
+- Cards, Printings and Faces are tables with one record page each. A record page edits its own fields and shows no source suggestions. A record with pending work links to its card's pass.
+- Card fields are edited on the card. Face fields and images are edited on the face. Size, channel, release dates and the pair of faces are edited on the printing.
 
 ### Grants
 
-- `printing-desk`: Printings (Added by me, All promos) and the faces reached from a printing. Edits any promo printing and anything it created, plus the fields of faces on those printings. Uploads are always stored inactive and appear in the Faces queue for an admin to activate.
-- `card-review`: all three queues, Use and Discard, accepting new cards and printings as the API allows today. Queues respect "Helpers can review" on sources.
+- `printing-desk`: the Printings table narrowed to promo printings and printings the holder created, with the faces on those printings. Uploads are stored inactive and wait in Review for an admin.
+- `card-review`: Review and all three areas, Use on suggestions, creating cards and printings as the API allows. Dismissing is admin-only, so the primary action is Next for a holder.
 - `products`: the Products page, unchanged.
 
 ### API
 
-- `GET /admin/v1/catalog/workspace/queue` returns open items with owner, owner id, reason, source and age, plus per-owner counts, oldest age and the caller's decisions today.
-- `GET /admin/v1/catalog/workspace/records?kind=printing|face` returns lean rows for the All tables.
-- Everything scoped to one card comes from the existing card detail, printing and image endpoints. No migration.
+- `GET /admin/v1/catalog/workspace/review` returns one row per card with its pending counts, sources, contribution flag and waiting time.
+- `POST /admin/v1/cards/printing-images/{imageId}/keep` marks an inactive image as reviewed.
+- Everything scoped to one card comes from the existing card detail, printing and image endpoints.
 
 ### Consequences
 
-- Good, because a card, a face or a printing is reviewed in one pass from one list.
-- Good, because counts add up across the sidebar, the dashboard and the lists.
-- Good, because the desk grant keeps today's edit rights and gains a review path for its uploads.
-- Bad, because Discard works per source row, so discarding one field marks the source's other fields on that record as seen.
-- Bad, because a deliberately kept extra image stays an open item until it is activated or deleted. A `face_images.reviewed_at` column would fix that.
+- Good, because a card is reviewed in one pass from one list, and a source row is settled once.
+- Good, because each field has one editor and each suggestion has one control.
+- Good, because the sidebar carries one count.
+- Bad, because a dismissal works per source row, so it also marks that row's other fields as seen.
+- Bad, because a card with many printings makes a long pass. Collapsing records without pending work limits it.
 - Bad, because two admin surfaces exist until the old pages are removed.
 
 ### Confirmation
 
-The queue presenter has unit tests for owner assignment, including a double-sided printing whose faces belong to different cards. Integration tests cover the queue endpoint per grant. The sidebar and route guard tests cover the flag on and off.
+The review presenter has unit tests for grouping by card, counting a printing reported by several sources once, leaving listings out and ordering. Integration tests cover the review endpoint per grant and the kept image leaving the queue. The set of rows a dismissal checks has a unit test covering a row that differs on face and printing fields, contributor rows and sources outside the holder's scope.

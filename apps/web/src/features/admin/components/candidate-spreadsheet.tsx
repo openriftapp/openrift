@@ -42,6 +42,7 @@ interface CandidateSpreadsheetProps<
   costKeywords?: readonly string[];
   activeColumnBadge?: React.ReactNode;
   agreedFieldsFolded?: boolean;
+  agreedFieldsOpenByDefault?: boolean;
   onAgreedFieldsFoldedChange?: (folded: boolean) => void;
   focusField?: string;
 }
@@ -72,6 +73,7 @@ export function CandidateSpreadsheet<
   costKeywords = [],
   activeColumnBadge,
   agreedFieldsFolded,
+  agreedFieldsOpenByDefault = false,
   onAgreedFieldsFoldedChange,
   focusField,
 }: CandidateSpreadsheetProps<TKey, TRow>) {
@@ -88,7 +90,7 @@ export function CandidateSpreadsheet<
 
   const [editingField, setEditingField] = useState<string | null>(null);
   const [localCollapsed, setLocalCollapsed] = useState(
-    () => focusField === undefined || !foldedKeys.has(focusField),
+    () => !agreedFieldsOpenByDefault && (focusField === undefined || !foldedKeys.has(focusField)),
   );
   const collapsed = agreedFieldsFolded ?? localCollapsed;
 
@@ -119,11 +121,8 @@ export function CandidateSpreadsheet<
         className="bg-muted/30 hover:bg-muted/50 cursor-pointer border-b"
         onClick={toggleCollapsed}
       >
-        <td
-          className="bg-muted/30 text-muted-foreground sticky left-0 z-10 px-3 py-1 font-medium"
-          colSpan={2 + sortedRows.length}
-        >
-          <span className="inline-flex items-center gap-1">
+        <td className="text-muted-foreground px-3 py-1 font-medium" colSpan={2 + sortedRows.length}>
+          <span className="sticky left-3 inline-flex items-center gap-1">
             {collapsed ? (
               <ChevronRightIcon className="size-3" />
             ) : (
@@ -139,7 +138,7 @@ export function CandidateSpreadsheet<
   }
 
   return (
-    <div className="relative w-fit max-w-full overflow-x-auto rounded-md border">
+    <div className="relative w-fit max-w-full overflow-x-auto rounded-md border pb-3">
       <table
         ref={tableRef}
         className="table-fixed text-sm"
