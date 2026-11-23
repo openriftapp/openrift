@@ -90,6 +90,35 @@ describe("useDisplayStore", () => {
       expect(useDisplayStore.getState().overrides.marketplaceOrder).toEqual(newOrder);
     });
 
+    it("setFavoriteMarketplace moves the marketplace to the front and keeps the rest in order", () => {
+      useDisplayStore
+        .getState()
+        .setMarketplaceOrder(["cardtrader", "tcgplayer", "cardmarket", "cardnexus"]);
+      useDisplayStore.getState().setFavoriteMarketplace("cardmarket");
+
+      const expected = ["cardmarket", "cardtrader", "tcgplayer", "cardnexus"];
+      expect(useDisplayStore.getState().marketplaceOrder).toEqual(expected);
+      expect(useDisplayStore.getState().overrides.marketplaceOrder).toEqual(expected);
+    });
+
+    it("setFavoriteMarketplace re-enables a marketplace missing from the order", () => {
+      useDisplayStore.getState().setMarketplaceOrder(["cardtrader", "tcgplayer"]);
+      useDisplayStore.getState().setFavoriteMarketplace("cardnexus");
+
+      expect(useDisplayStore.getState().marketplaceOrder).toEqual([
+        "cardnexus",
+        "cardtrader",
+        "tcgplayer",
+      ]);
+    });
+
+    it("setFavoriteMarketplace keeps the order when the marketplace is already first", () => {
+      useDisplayStore.getState().setMarketplaceOrder(["tcgplayer", "cardmarket"]);
+      useDisplayStore.getState().setFavoriteMarketplace("tcgplayer");
+
+      expect(useDisplayStore.getState().marketplaceOrder).toEqual(["tcgplayer", "cardmarket"]);
+    });
+
     it("setLanguages updates languages", () => {
       useDisplayStore.getState().setLanguages(["DE", "FR"]);
 

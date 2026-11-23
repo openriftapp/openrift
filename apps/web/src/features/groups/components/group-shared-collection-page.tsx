@@ -25,6 +25,7 @@ export function GroupSharedCollectionPage() {
       copyCount: data.collection.copyCount,
       totalValueCents: data.collection.totalValueCents,
       unpricedCopyCount: data.collection.unpricedCopyCount,
+      valueMarketplace: data.collection.valueMarketplace,
       createdAt: "",
       updatedAt: "",
     },

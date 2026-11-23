@@ -56,6 +56,10 @@ export function forgetClientStateOwner(): void {
   }
 }
 
+export function isClientStateOwner(userId: string): boolean {
+  return clientStateOwner() === userId;
+}
+
 /** False while another account's state is still on this device, so nothing may save it as this account's. */
 export function ownsClientState(userId: string): boolean {
   const owner = clientStateOwner();
@@ -73,11 +77,17 @@ async function resetForAccount(userId: string): Promise<void> {
 
 /** Null when the state already belongs to `userId`; else resolves once another account's state is reset. */
 export function claimClientState(userId: string): Promise<void> | null {
-  if (ownsClientState(userId)) {
-    setClientStateOwner(userId);
+  const owner = clientStateOwner();
+  if (owner === userId) {
     return null;
   }
-  return resetForAccount(userId);
+  return owner === null ? claimVisitorState(userId) : resetForAccount(userId);
+}
+
+async function claimVisitorState(userId: string): Promise<void> {
+  const reset = await import("@/stores/client-state-reset").catch(() => null);
+  reset?.dropVisitorOnlyState();
+  setClientStateOwner(userId);
 }
 
 /** Claims the stores before the session flips, so no render or write sees the previous account's state. */

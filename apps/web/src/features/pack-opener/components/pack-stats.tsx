@@ -25,7 +25,7 @@ import { m } from "@/paraglide/messages.js";
 interface PackStatsProps {
   packs: PackResult[];
   prices: PriceLookup;
-  marketplace: Marketplace | null;
+  marketplace: Marketplace;
 }
 
 interface NotablePull {
@@ -64,11 +64,8 @@ export function PackStats({ packs, prices, marketplace }: PackStatsProps) {
     for (const pull of pack.pulls) {
       const rarity = packRarityKey(pull);
       rarityCounts[rarity] = (rarityCounts[rarity] ?? 0) + 1;
-      const value = marketplace ? prices.get(pull.printing.printingId, marketplace) : undefined;
-      if (value !== undefined) {
-        totalValue += value;
-        valuedCount++;
-      } else if (marketplace) {
+      const value = prices.get(pull.printing.printingId, marketplace);
+      if (value === undefined) {
         unpricedPulls.push({
           cardName: legendDisplayName({
             name: pull.printing.cardName,
@@ -78,6 +75,9 @@ export function PackStats({ packs, prices, marketplace }: PackStatsProps) {
           printing: pull.printing,
           rarity,
         });
+      } else {
+        totalValue += value;
+        valuedCount++;
       }
       allPulls.push({ pull, rarity, value });
     }
@@ -92,8 +92,8 @@ export function PackStats({ packs, prices, marketplace }: PackStatsProps) {
 
   const notable = buildNotablePulls(allPulls);
 
-  const fullFmt = marketplace ? formatterForMarketplace(marketplace) : null;
-  const compactFmt = marketplace ? compactFormatterForMarketplace(marketplace) : null;
+  const fullFmt = formatterForMarketplace(marketplace);
+  const compactFmt = compactFormatterForMarketplace(marketplace);
 
   const rarityOrderedCounts = PACK_RARITY_ORDER.filter((r) => (rarityCounts[r] ?? 0) > 0).map(
     (r) => ({
@@ -191,7 +191,7 @@ function StatsHeadline({
   valuedCount: number;
   totalValue: number;
   averageValue: number;
-  fullFmt: ((n: number) => string) | null;
+  fullFmt: (n: number) => string;
   unpricedVisible: boolean;
   onToggleUnpriced: () => void;
 }) {
@@ -201,31 +201,25 @@ function StatsHeadline({
       <span className="text-foreground text-lg font-semibold tabular-nums">
         {m.packs_pack_count({ count: packCount })}
       </span>
-      {fullFmt ? (
-        <>
-          <span className="text-muted-foreground">·</span>
-          <span className="text-foreground font-medium tabular-nums">
-            {m.packs_stats_total({ value: fullFmt(totalValue) })}
-          </span>
-          <span className="text-muted-foreground">·</span>
-          <span className="text-muted-foreground tabular-nums">
-            {m.packs_stats_per_pack({ value: fullFmt(averageValue) })}
-          </span>
-          {unpricedCount > 0 && (
-            <Button
-              type="button"
-              variant="link-muted"
-              onClick={onToggleUnpriced}
-              aria-expanded={unpricedVisible}
-              // oxlint-disable-next-line shadcn/no-restyle -- dotted disclosure link
-              className="h-auto px-0 text-xs decoration-dotted underline-offset-4"
-            >
-              {m.packs_stats_unpriced({ count: unpricedCount })}
-            </Button>
-          )}
-        </>
-      ) : (
-        <span className="text-muted-foreground text-sm">{m.packs_stats_sign_in()}</span>
+      <span className="text-muted-foreground">·</span>
+      <span className="text-foreground font-medium tabular-nums">
+        {m.packs_stats_total({ value: fullFmt(totalValue) })}
+      </span>
+      <span className="text-muted-foreground">·</span>
+      <span className="text-muted-foreground tabular-nums">
+        {m.packs_stats_per_pack({ value: fullFmt(averageValue) })}
+      </span>
+      {unpricedCount > 0 && (
+        <Button
+          type="button"
+          variant="link-muted"
+          onClick={onToggleUnpriced}
+          aria-expanded={unpricedVisible}
+          // oxlint-disable-next-line shadcn/no-restyle -- dotted disclosure link
+          className="h-auto px-0 text-xs decoration-dotted underline-offset-4"
+        >
+          {m.packs_stats_unpriced({ count: unpricedCount })}
+        </Button>
       )}
     </div>
   );
@@ -271,7 +265,7 @@ function NotablePullsList({
   compactFmt,
 }: {
   pulls: NotablePull[];
-  compactFmt: ((n: number) => string) | null;
+  compactFmt: (n: number) => string;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -289,7 +283,7 @@ function NotablePullsList({
             <span className="flex shrink-0 items-baseline gap-3 text-xs">
               <span className="text-muted-foreground">{pull.slotLabel}</span>
               <span className="tabular-nums">
-                {pull.value !== undefined && compactFmt ? compactFmt(pull.value) : "—"}
+                {pull.value === undefined ? "—" : compactFmt(pull.value)}
               </span>
             </span>
           </RowListItem>

@@ -33,3 +33,13 @@ export function computeListValue(input: ComputeListValueInput): {
   );
   return { value, unpriced };
 }
+
+export function computeListValueByMarketplace(
+  input: Omit<ComputeListValueInput, "marketplace"> & { marketplaces: readonly Marketplace[] },
+): { marketplace: Marketplace; value: number; unpriced: number }[] {
+  const { marketplaces, ...rest } = input;
+  return marketplaces.map((marketplace) => ({
+    marketplace,
+    ...computeListValue({ ...rest, marketplace }),
+  }));
+}

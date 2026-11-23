@@ -36,7 +36,7 @@ export const publicCollectionsRouter = {
       const { items, nextCursor } = keysetPage(rows, effectiveLimit, toPublicCopy);
 
       return {
-        collection: toPublicCollection(found.collection, value),
+        collection: toPublicCollection(found.collection, favMarketplace, value),
         items,
         nextCursor,
         owner: toShareOwner({ displayName: found.ownerName, email: found.ownerEmail }),

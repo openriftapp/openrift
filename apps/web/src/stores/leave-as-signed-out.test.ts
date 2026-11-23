@@ -65,9 +65,15 @@ describe("claimClientState", () => {
     localStorage.removeItem(CLIENT_STATE_OWNER_KEY);
   });
 
-  it("claims a device no account owns without a reset", () => {
-    expect(claimClientState("user-b")).toBeNull();
+  it("claims a device no account owns even when the reset chunk failed to load", async () => {
+    await claimClientState("user-b");
     expect(localStorage.getItem(CLIENT_STATE_OWNER_KEY)).toBe("user-b");
+    localStorage.removeItem(CLIENT_STATE_OWNER_KEY);
+  });
+
+  it("leaves a device its own account already owns untouched", () => {
+    localStorage.setItem(CLIENT_STATE_OWNER_KEY, "user-b");
+    expect(claimClientState("user-b")).toBeNull();
     localStorage.removeItem(CLIENT_STATE_OWNER_KEY);
   });
 });

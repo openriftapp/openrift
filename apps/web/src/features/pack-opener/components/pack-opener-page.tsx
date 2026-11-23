@@ -7,7 +7,6 @@ import { clamp } from "@openrift/shared/math";
 import { sideKey } from "@openrift/shared/printing-side";
 import { mathRandom } from "@openrift/shared/random";
 import type { SetListEntry } from "@openrift/shared/types/api/catalog";
-import type { Marketplace } from "@openrift/shared/types/pricing";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -34,7 +33,6 @@ import { PackReveal } from "@/features/pack-opener/components/pack-reveal";
 import { PackStats } from "@/features/pack-opener/components/pack-stats";
 import type { PackResult } from "@/features/pack-opener/lib/pack-types";
 import { useNumericDraft } from "@/hooks/use-numeric-draft";
-import { useSession } from "@/hooks/use-session";
 import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -462,9 +460,6 @@ function BulkPackResult({
 
 function ValueStats({ packs }: { packs: PackResult[] }) {
   const prices = usePrices();
-  const { data: session } = useSession();
-  const marketplaceOrder = useDisplayStore((s) => s.marketplaceOrder);
-  const isLoggedIn = Boolean(session?.user);
-  const marketplace: Marketplace | null = isLoggedIn ? marketplaceOrder[0] : null;
+  const marketplace = useDisplayStore((s) => s.marketplaceOrder[0]);
   return <PackStats packs={packs} prices={prices} marketplace={marketplace} />;
 }

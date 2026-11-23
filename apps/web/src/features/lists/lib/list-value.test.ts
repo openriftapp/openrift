@@ -9,7 +9,7 @@ import {
   stubPrinting,
 } from "@/test/factories";
 
-import { computeListValue } from "./list-value";
+import { computeListValue, computeListValueByMarketplace } from "./list-value";
 
 beforeEach(() => {
   resetIdCounter();
@@ -246,5 +246,27 @@ describe("computeListValue", () => {
       languages: [],
     });
     expect(result).toEqual({ value: 0.5 * 2 + 2 * 3, unpriced: 1 });
+  });
+});
+
+describe("computeListValueByMarketplace", () => {
+  it("totals the list once per marketplace, in the order given", () => {
+    const p1 = stubPrinting();
+    const p2 = stubPrinting();
+    const result = computeListValueByMarketplace({
+      entries: [printingEntry(p1, 2), printingEntry(p2, 1)],
+      prices: stubPriceLookup({
+        [p1.printingId]: { cardtrader: 3, tcgplayer: 4 },
+        [p2.printingId]: { tcgplayer: 10 },
+      }),
+      marketplaces: ["tcgplayer", "cardtrader", "cardmarket"],
+      printingsByCardId: new Map(),
+      languages: [],
+    });
+    expect(result).toEqual([
+      { marketplace: "tcgplayer", value: 18, unpriced: 0 },
+      { marketplace: "cardtrader", value: 6, unpriced: 1 },
+      { marketplace: "cardmarket", value: 0, unpriced: 3 },
+    ]);
   });
 });

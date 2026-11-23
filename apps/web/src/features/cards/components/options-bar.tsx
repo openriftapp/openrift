@@ -31,6 +31,7 @@ import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ColumnControls } from "@/features/cards/components/column-controls";
 import { LabelledRow, LabelledRowLayoutContext } from "@/features/cards/components/labelled-row";
+import { PriceSourceRow } from "@/features/cards/components/price-source-row";
 import { SortGroupControls } from "@/features/cards/components/sort-group-controls";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { isCopiesOnlyGrouping } from "@/features/cards/lib/group-by-collection";
@@ -332,6 +333,7 @@ export function DisplayOptionsPopover({
             <ColumnControls compact {...columnProps} />
           </LabelledRow>
         )}
+        <PriceSourceRow />
         <FilterPlacementSection />
       </PopoverContent>
     </Popover>
@@ -510,6 +512,7 @@ export function MobileOptionsContent({
           onDirChange: setGroupDir,
         }}
       />
+      <PriceSourceRow />
     </div>
   );
 }

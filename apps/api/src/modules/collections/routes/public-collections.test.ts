@@ -1,3 +1,4 @@
+import type { Marketplace } from "@openrift/shared/types/pricing";
 import { Hono } from "hono";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -24,7 +25,9 @@ const mockMarketplaceRepo = {
 };
 
 const mockUserPreferencesRepo = {
-  getByUserId: vi.fn(() => Promise.resolve(undefined)),
+  getByUserId: vi.fn<() => Promise<{ data: { marketplaceOrder: Marketplace[] } } | undefined>>(() =>
+    Promise.resolve(undefined),
+  ),
 };
 
 const app = new Hono<{ Variables: Variables }>();
@@ -111,6 +114,30 @@ describe("GET /api/v1/collections/share/:token", () => {
     expect(json.items[0].id).toBe(dbCopy.id);
     expect(json.owner.displayName).toBe("Alice");
     expect(json.nextCursor).toBeNull();
+  });
+
+  it("names the owner's favorite marketplace the value was computed in", async () => {
+    mockCollectionsRepo.getByShareToken.mockResolvedValue({
+      collection: dbCollection,
+      ownerName: "Alice",
+    });
+    mockCopiesRepo.listForCollection.mockResolvedValue([]);
+    mockUserPreferencesRepo.getByUserId.mockResolvedValue({
+      data: { marketplaceOrder: ["tcgplayer", "cardmarket"] },
+    });
+    mockMarketplaceRepo.singleCollectionValue.mockResolvedValue({
+      collectionId: COLLECTION_ID,
+      totalValueCents: 500,
+      unpricedCopyCount: 0,
+    });
+
+    const res = await app.request("/api/v1/collections/share/tok-abc");
+    const json = await readJson(res);
+    expect(mockMarketplaceRepo.singleCollectionValue).toHaveBeenCalledWith(
+      COLLECTION_ID,
+      "tcgplayer",
+    );
+    expect(json.collection.valueMarketplace).toBe("tcgplayer");
   });
 
   it("excludes owner-only fields (shareToken, isPublic, isInbox, availableForDeckbuilding) from the response", async () => {

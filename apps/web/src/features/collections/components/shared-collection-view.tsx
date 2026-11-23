@@ -1,4 +1,3 @@
-import { centsToDollars } from "@openrift/shared/money";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { PublicCollectionDetailResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -16,6 +15,7 @@ import {
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
 import { TopBarBreadcrumbSeparator } from "@/components/layout/top-bar-breadcrumb";
+import { MarketplaceIcon } from "@/components/marketplace-icon";
 import {
   BrowserToolbar,
   CardBrowserFilterProvider,
@@ -37,12 +37,14 @@ import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { cardPageHref } from "@/features/cards/lib/card-page-href";
 import { selectionFindBy } from "@/features/cards/lib/card-tiles";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
+import { MARKETPLACE_META } from "@/features/cards/lib/marketplace-meta";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
 import {
   CardRowActionsStoreContext,
   useOwnCardRowActionsStore,
 } from "@/features/cards/stores/card-row-actions-store";
 import { useOwnedCount } from "@/features/collections/hooks/use-owned-count";
+import { formatSharedCollectionValue } from "@/features/collections/lib/collection-value";
 import { maxOwnedCount } from "@/features/collections/lib/owned-bucket";
 import { OnLoanChip } from "@/features/groups/components/on-loan-chip";
 import { useChannelRegistry } from "@/hooks/use-enums";
@@ -51,7 +53,6 @@ import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { useSession } from "@/hooks/use-session";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
-import { formatterForMarketplace } from "@/lib/format";
 import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -97,15 +98,8 @@ export function SharedCollectionView({
   const [topBarSlot, setTopBarSlot] = useState<HTMLDivElement | null>(null);
   const topBarHeight = useMeasuredHeight(topBarSlot);
 
-  const marketplaceOrder = useDisplayStore((state) => state.marketplaceOrder);
-  const marketplace = marketplaceOrder[0];
-  const formatValue = formatterForMarketplace(marketplace);
-
   const { collection, owner } = data;
-  const valueLabel =
-    collection.totalValueCents === null
-      ? null
-      : formatValue(centsToDollars(collection.totalValueCents));
+  const valueLabel = formatSharedCollectionValue(collection);
 
   return (
     <FilterSearchProvider value={search}>
@@ -124,6 +118,11 @@ export function SharedCollectionView({
                   {valueLabel !== null && (
                     <>
                       {owner.displayName ? <span aria-hidden="true">·</span> : null}
+                      <MarketplaceIcon
+                        marketplace={collection.valueMarketplace}
+                        alt={MARKETPLACE_META[collection.valueMarketplace].label}
+                        className="self-center"
+                      />
                       <ValueWithUnpriced
                         value={valueLabel}
                         unpriced={collection.unpricedCopyCount ?? 0}

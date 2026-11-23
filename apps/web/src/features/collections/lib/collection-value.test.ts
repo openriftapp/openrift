@@ -1,7 +1,7 @@
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import { describe, expect, it } from "vitest";
 
-import { aggregatePersonalCollectionValue } from "./collection-value";
+import { aggregatePersonalCollectionValue, formatSharedCollectionValue } from "./collection-value";
 
 function col(overrides: Partial<CollectionResponse> = {}): CollectionResponse {
   return {
@@ -64,5 +64,22 @@ describe("aggregatePersonalCollectionValue", () => {
       col({ totalValueCents: 250, unpricedCopyCount: 4 }),
     ]);
     expect(result).toEqual({ valueCents: 250, unpricedCount: 4 });
+  });
+});
+
+describe("formatSharedCollectionValue", () => {
+  it("formats in the currency of the marketplace the server valued it in", () => {
+    expect(
+      formatSharedCollectionValue({ totalValueCents: 1250, valueMarketplace: "tcgplayer" }),
+    ).toBe("$12.50");
+    expect(
+      formatSharedCollectionValue({ totalValueCents: 1250, valueMarketplace: "cardmarket" }),
+    ).toBe("€12.50");
+  });
+
+  it("returns null when the collection has no value", () => {
+    expect(
+      formatSharedCollectionValue({ totalValueCents: null, valueMarketplace: "cardtrader" }),
+    ).toBeNull();
   });
 });

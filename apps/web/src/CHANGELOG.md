@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-11-23
+
+### Highlights
+
+- feat(Cards): **Pick a marketplace without an account** — visitors choose where prices come from in the display options, and pack openings show their value.
+- feat(Collection): **List value per marketplace** — tap a list's total to compare what it costs on each marketplace.
+
+### Other
+
+- fix(Groups): **Shared collection value currency** — the total showed the owner's sum with your currency sign and now names the owner's marketplace.
+
 ## 2026-11-22
 
 ### Highlights

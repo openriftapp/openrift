@@ -593,6 +593,44 @@ describe("usePreferencesSync", () => {
     });
   });
 
+  describe("a visitor's marketplace pick on sign-in", () => {
+    beforeEach(() => {
+      forgetClientStateOwner();
+      useDisplayStore.getState().setFavoriteMarketplace("cardmarket");
+    });
+
+    afterEach(() => {
+      forgetClientStateOwner();
+    });
+
+    it("drops the pick when the account has no stored order", async () => {
+      const server = stubFetch({} as UserPreferencesResponse);
+      const { Wrapper } = wrap();
+      renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
+
+      await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+      expect(useDisplayStore.getState().marketplaceOrder[0]).toBe("cardtrader");
+      act(() => useDisplayStore.getState().setShowImages(false));
+      await flushSaveDebounce();
+      expect(server.patches()).toHaveLength(1);
+      expect(server.patches()[0]?.body).not.toMatchObject({
+        marketplaceOrder: expect.arrayContaining(["cardmarket"]),
+      });
+    });
+
+    it("keeps the order the account stored", async () => {
+      stubFetch({ marketplaceOrder: ["tcgplayer", "cardtrader"] } as UserPreferencesResponse);
+      const { Wrapper } = wrap();
+      renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
+
+      await vi.waitFor(() =>
+        expect(useDisplayStore.getState().marketplaceOrder).toEqual(["tcgplayer", "cardtrader"]),
+      );
+      await flushSaveDebounce();
+      expect(useDisplayStore.getState().marketplaceOrder).toEqual(["tcgplayer", "cardtrader"]);
+    });
+  });
+
   // React Compiler cannot lower `??=` and bails out of the whole hook; this
   // source-level check catches it in vitest, where the compiler doesn't run.
   it("does not use `??=` assignments (React Compiler cannot lower them)", () => {

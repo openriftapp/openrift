@@ -197,6 +197,7 @@ export const friendGroupsSharesRouter = {
           copyCount: copyRows.length,
           totalValueCents: value?.totalValueCents ?? null,
           unpricedCopyCount: value?.unpricedCopyCount ?? null,
+          valueMarketplace: favMarketplace,
           ownerUserId: shared.collection.userId,
           ownerName: shared.ownerName,
         },

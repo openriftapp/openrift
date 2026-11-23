@@ -18,6 +18,7 @@ import {
 import { z } from "zod";
 
 import { GROUP_SHOP_SOURCES, parseGroupShopKey } from "../group-shops.js";
+import { marketplaceEnum } from "../types/pricing.js";
 import { authedRoute } from "./_base.js";
 import {
   cancelTradeIdsField,
@@ -492,6 +493,7 @@ export const friendGroupSharedCollectionDetailResponseSchema = z.object({
     copyCount: z.number().int().nonnegative(),
     totalValueCents: z.number().int().nullable(),
     unpricedCopyCount: z.number().int().nullable(),
+    valueMarketplace: marketplaceEnum,
     ownerUserId: z.string(),
     ownerName: z.string().nullable(),
   }),

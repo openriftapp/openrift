@@ -1,4 +1,10 @@
-import type { CollectionResponse } from "@openrift/shared/types/api/collection";
+import { centsToDollars } from "@openrift/shared/money";
+import type {
+  CollectionResponse,
+  PublicCollectionResponse,
+} from "@openrift/shared/types/api/collection";
+
+import { formatterForMarketplace } from "@/lib/format";
 
 /** Excludes shared group collections: their copies are communal, not the viewer's own. */
 export function aggregatePersonalCollectionValue(collections: readonly CollectionResponse[]): {
@@ -17,4 +23,14 @@ export function aggregatePersonalCollectionValue(collections: readonly Collectio
     },
     { valueCents: 0, unpricedCount: 0 },
   );
+}
+
+export function formatSharedCollectionValue(
+  collection: Pick<PublicCollectionResponse, "totalValueCents" | "valueMarketplace">,
+): string | null {
+  return collection.totalValueCents === null
+    ? null
+    : formatterForMarketplace(collection.valueMarketplace)(
+        centsToDollars(collection.totalValueCents),
+      );
 }

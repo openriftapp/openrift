@@ -30,7 +30,11 @@ import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { serverFnFetch } from "@/lib/server-fns/server-fn-fetch";
 import { getLocale, setLocale } from "@/paraglide/runtime.js";
 import { useDisplayStore } from "@/stores/display-store";
-import { claimClientState, ownsClientState } from "@/stores/leave-as-signed-out";
+import {
+  claimClientState,
+  isClientStateOwner,
+  ownsClientState,
+} from "@/stores/leave-as-signed-out";
 import { useThemeStore } from "@/stores/theme-store";
 
 const patchPreferencesFn = createServerFn({ method: "POST" })
@@ -148,7 +152,7 @@ export function usePreferencesSync(enabled: boolean) {
   // already match it; hydrate stands down when they don't. Null until seeded below.
   const lastSynced = useRef<string | null>(null);
   const [claimedFor, setClaimedFor] = useState<string | null>(null);
-  const ownsState = userId === null || claimedFor === userId || ownsClientState(userId);
+  const ownsState = userId === null || claimedFor === userId || isClientStateOwner(userId);
 
   const { data, isError } = useQuery({
     ...preferencesQueryOptions(userId),

@@ -6,6 +6,7 @@ import {
   DISPLAY_PREFERENCE_KEYS,
   PREFERENCE_DEFAULTS,
 } from "@openrift/shared/types/api/preferences";
+import type { Marketplace } from "@openrift/shared/types/pricing";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -49,6 +50,7 @@ interface DisplayState extends DisplayPreferences {
   setFancyFan: (value: DisplayPreferences["fancyFan"]) => void;
   setFoilEffect: (value: DisplayPreferences["foilEffect"]) => void;
   setMarketplaceOrder: (value: DisplayPreferences["marketplaceOrder"]) => void;
+  setFavoriteMarketplace: (value: Marketplace) => void;
   setLanguages: (value: DisplayPreferences["languages"]) => void;
   setDefaultCardView: (value: DisplayPreferences["defaultCardView"]) => void;
   setDefaultCurrency: (value: DisplayPreferences["defaultCurrency"]) => void;
@@ -113,6 +115,17 @@ export const useDisplayStore = create<DisplayState>()(
           marketplaceOrder: value,
           overrides: { ...state.overrides, marketplaceOrder: value },
         })),
+      setFavoriteMarketplace: (value) =>
+        set((state) => {
+          const order: DisplayPreferences["marketplaceOrder"] = [
+            value,
+            ...state.marketplaceOrder.filter((marketplace) => marketplace !== value),
+          ];
+          return {
+            marketplaceOrder: order,
+            overrides: { ...state.overrides, marketplaceOrder: order },
+          };
+        }),
       setLanguages: (value) =>
         set((state) => ({
           languages: value,

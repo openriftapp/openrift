@@ -386,6 +386,10 @@ export async function resetClientState(phase: ResetPhase): Promise<void> {
   }
 }
 
+export function dropVisitorOnlyState(): void {
+  useDisplayStore.getState().resetPreference("marketplaceOrder");
+}
+
 /** Another account signed in on this device. Its preferences load next, so the display store waits for them. */
 export async function resetClientStateForAccountSwitch(): Promise<void> {
   await resetClientState("before-leave");

@@ -3,6 +3,7 @@ import { copiesQuerySchema } from "@openrift/shared/schemas";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
+import { marketplaceEnum } from "../types/pricing.js";
 import { shareOwnerSchema } from "./fields.js";
 
 export const publicCollectionResponseSchema = z.object({
@@ -12,6 +13,7 @@ export const publicCollectionResponseSchema = z.object({
   copyCount: z.number(),
   totalValueCents: z.number().int().nullable(),
   unpricedCopyCount: z.number().nullable(),
+  valueMarketplace: marketplaceEnum,
   createdAt: z.string(),
   updatedAt: z.string(),
 });

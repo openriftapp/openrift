@@ -35,7 +35,7 @@ import {
 import { resolveViewPrefsFromCookie, VIEW_PREFS_COOKIE } from "@/lib/view-prefs";
 import { createStoreResetter } from "@/test/store-helpers";
 
-import { CLIENT_STATE, resetClientState } from "./client-state-reset";
+import { CLIENT_STATE, dropVisitorOnlyState, resetClientState } from "./client-state-reset";
 import { useDisplayStore } from "./display-store";
 import { useInstallStore } from "./install-store";
 import { useMilestoneBannerStore } from "./milestone-banner-store";
@@ -313,5 +313,19 @@ describe("resetClientState", () => {
 
     expect(useMilestoneBannerStore.getState().dismissedDate).toBeNull();
     vi.restoreAllMocks();
+  });
+});
+
+describe("dropVisitorOnlyState", () => {
+  it("drops a visitor's marketplace pick and keeps their other display choices", () => {
+    useDisplayStore.getState().setFavoriteMarketplace("cardmarket");
+    useDisplayStore.getState().setShowImages(false);
+
+    dropVisitorOnlyState();
+
+    const state = useDisplayStore.getState();
+    expect(state.overrides.marketplaceOrder).toBeNull();
+    expect(state.marketplaceOrder[0]).toBe("cardtrader");
+    expect(state.overrides.showImages).toBe(false);
   });
 });

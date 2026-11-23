@@ -3,6 +3,7 @@ import type {
   PublicCollectionResponse,
 } from "@openrift/shared/types/api/collection";
 import type { CollectionEventResponse } from "@openrift/shared/types/api/collection-event";
+import type { Marketplace } from "@openrift/shared/types/pricing";
 import type { Selectable } from "kysely";
 
 import type { CollectionsTable } from "../../../db/tables/collections.js";
@@ -62,6 +63,7 @@ export function toCollection(
 /** Public-facing collection fields — excludes shareToken, isPublic, isInbox, sortOrder, availableForDeckbuilding. */
 export function toPublicCollection(
   row: Selectable<CollectionsTable> & { copyCount?: number },
+  valueMarketplace: Marketplace,
   value?: CollectionValue,
 ): PublicCollectionResponse {
   return {
@@ -71,6 +73,7 @@ export function toPublicCollection(
     copyCount: row.copyCount ?? 0,
     totalValueCents: value?.totalValueCents ?? null,
     unpricedCopyCount: value?.unpricedCopyCount ?? null,
+    valueMarketplace,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
