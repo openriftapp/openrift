@@ -28,7 +28,7 @@ export interface FieldSuggestion {
   otherChanges?: number;
 }
 
-export interface SuggestionRow {
+interface SuggestionRow {
   field: ComparableCardField;
   label: string;
   currentValue: unknown;
@@ -43,7 +43,7 @@ interface SourceDifferences {
   trusted: boolean;
 }
 
-export interface EnterTarget {
+interface EnterTarget {
   candidateRowId: string;
   provider: string;
   differences: number;

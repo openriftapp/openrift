@@ -740,7 +740,7 @@ export function useDeleteProvider() {
   });
 }
 
-export const unmapMarketplacePrintingFn = createServerFn({ method: "POST" })
+const unmapMarketplacePrintingFn = createServerFn({ method: "POST" })
   .validator(
     (input: {
       marketplace: Marketplace;

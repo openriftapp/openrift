@@ -10,11 +10,11 @@ export const DESK_SORTS = ["code", "card", "updated", "release"] as const;
 
 export const DESK_STATUSES = ["announced", "released"] as const;
 
-export const cardsSearchSchema = z.object({
+export const workspaceCardsSearchSchema = z.object({
   q: lenient(z.string()),
 });
 
-export const facesSearchSchema = z.extend(cardsSearchSchema, {
+export const facesSearchSchema = z.extend(workspaceCardsSearchSchema, {
   filter: lenient(z.enum(WORKSPACE_RECORD_FILTER_VALUES)),
   recordSort: lenient(z.enum(WORKSPACE_RECORD_SORTS)),
   recordDir: lenient(z.enum(["asc", "desc"])),

@@ -15,7 +15,6 @@ RegionOverview 2
 RuleRef 2
 SetsPage 2
 TagCategoriesTable 2
-TradeMarket 2
 UnsubscribePreview 2
 otelRequestMiddleware 2
 referencedDeckIds 2
