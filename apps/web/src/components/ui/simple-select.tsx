@@ -98,9 +98,13 @@ export function SimpleSelect<T extends string>({
       lang={item.lang}
       className={item.className}
     >
-      {itemContent(item)}
-      {item.detail !== undefined && (
-        <span className="text-muted-foreground text-2xs tabular-nums">{item.detail}</span>
+      {item.detail === undefined ? (
+        itemContent(item)
+      ) : (
+        <span className="flex items-baseline gap-2">
+          {itemContent(item)}
+          <span className="text-muted-foreground text-2xs tabular-nums">{item.detail}</span>
+        </span>
       )}
     </SelectItem>
   );
