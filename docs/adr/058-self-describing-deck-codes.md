@@ -54,7 +54,7 @@ Take this deck:
 The number after `/` counts the cards in the set. A receiver can look it up in its own card data, so the code leaves it out. A deck code writes the rest down in five steps.
 
 1. **A short dictionary.** The deck uses three sets, `OGN`, `RAD` and `UNL`. Their names are spelled out once at the start, and the code refers to them by position after that. The same happens for everything after the number, called the ending. This deck has five: none, `-P` (promo), `-P-EN` (English promo), `a` (alternate art) and `a*-SC` (signed alternate art, Simplified Chinese). The letters before a number (`R` in `UNL-R02`) and how many digits the number has form the number style, which is listed the same way. The spec has no list of sets, letters or endings. Each code spells out the ones its deck uses.
-2. **Zones in a fixed order.** Seven yes/no bits say which of the seven zones (legend, champion, main, …) have cards. Those zones then follow in that order. Empty zones cost one bit. Each zone starts with one yes/no bit per set, saying whether it has cards from that set. Number styles and endings get the same yes/no bits, but only when the code has more than one.
+2. **Zones in a fixed order.** Seven yes/no bits say which of the seven zones (legend, champion, main, …) have cards. Those zones then follow in that order. Empty zones cost one bit. Each zone says which sets it has cards from, and for each such set which number styles and endings, with one yes/no bit each. Number styles and endings only get bits when the code has more than one.
 3. **Gaps instead of numbers.** Inside a zone, the cards of each set are sorted by number. Inferna (`UNL-002`), Grim Apothecary (`UNL-021`) and Pyke (`UNL-028`) are written as 2, then "skip 18", then "skip 6": after 2, skip the 18 numbers 3 to 20 and land on 21. Small numbers take few bits.
 
    Cards whose codes differ in anything besides the number get their own sorted list, called a group. `VEN-SP1` and `VEN-SP3` have the letters `SP` before the number, so they form a list of their own, written as 1, then "skip 1". The same happens for `R`, `T` or any letters Riot uses in future, and for each ending.
@@ -93,7 +93,7 @@ A code is a list of **entries**. Each entry is a card reference, a number of cop
 
 **Ending.** The art letters and marks together form the card's ending: `a`, `a*-SC`, `-P-EN`, or nothing. Each distinct ending is spelled out once per code, like a set name, and cards point to it by position. A deck where every card is the standard version has one empty ending and pays nothing for it.
 
-None of these parts is looked up in a list. The shape of the code says which part is which (see Grammar under Specification). A rune is not recognized by its `R`: Fury Rune `OGN-007` has no prefix and still goes in the runes zone. The zone says where a card sits in the deck. The prefix is only part of how its code is printed.
+None of these parts is looked up in a list. The shape of the code says which part is which (see the grammar in `SPEC.md`, linked under Specification). A rune is not recognized by its `R`: Fury Rune `OGN-007` has no prefix and still goes in the runes zone. The zone says where a card sits in the deck. The prefix is only part of how its code is printed.
 
 Each entry is one of two kinds:
 
@@ -158,62 +158,7 @@ Special codes:
 
 ### Specification
 
-#### Building blocks
-
-Bits are written most significant first. "Sorted" means ordered by ASCII code, character by character, with a shorter string before a longer one that starts with it.
-
-- **Fixed(n)**: the value in exactly n bits.
-- **Count**: the Elias gamma code of value + 1. Write value + 1 in binary, which has some length L, and put L − 1 zeros in front. 0 is `1`, 1 is `010`, 2 is `011`, 3 is `00100`.
-- **Gap**: the order-4 exponential Golomb code. Write value + 16 in binary, length L, and put L − 5 zeros in front. 7 is `10111`, 18 is `0100010`, 183 is `00011000111`.
-- **Text**: Count(length), then each character as Fixed(6), its position in `0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-*`.
-- **Name**: Text with Count(length − 1) in place of Count(length), for strings that are never empty.
-
-#### Grammar
-
-A card reference that matches
-
-```
-^([A-Z0-9]+)-([A-Z]*)([0-9]+)([a-z*]*)(/[0-9]+)?((-[A-Z]+)*)$
-```
-
-splits into set, prefix, number, art letters, set size and marks, in that order. Set names may contain digits (`T1A`). The ending is art letters followed by marks. A reference that does not match is raw text. Encoding fails on a character outside the Text alphabet.
-
-#### Layout
-
-1. Fixed(5) = 1, the marker. It makes the first character `1` in every version.
-2. Count(version). This spec is version 0.
-3. **Sets**: Count(n), then n × Name, sorted.
-4. **Number styles**: Count(n), then n × (Text(prefix), Count(digits − 1)). `OGN-007` has prefix `""` and 3 digits, `UNL-R02` has prefix `R` and 2 digits, `VEN-SP1` has prefix `SP` and 1 digit. Sorted by prefix, then by digits as a number. Readers attach no meaning to a prefix.
-5. **Endings**: Count(n), then n entries. Each is Fixed(1) = 1 for "any printing", or Fixed(1) = 0 followed by Text(art letters and marks), for example `a`, `a-P-EN`, or empty for the base art without marks. "Any printing" sorts first, the rest by text.
-6. **Zones**: Fixed(1) for each section number 0 to 6 in order, 1 when that zone has entries. Then Count(m), the number of sections 7 and up.
-7. **Zone bodies** of the present zones 0 to 6, in order. A group is the cards of one set, number style and ending. A zone body first says which groups it has: for each set in list order, Fixed(1) = 1 if the zone has cards of that set. For each set marked 1, and only when there are two or more number styles, Fixed(1) per style. For each style marked 1 (or the only style), and only when there are two or more endings, Fixed(1) per ending. Then each group the bits name, in that order: Count(cards − 1), and per card Gap(number − previous number − 1) and Count(copies − 1). For the first card in a group, previous number counts as −1. A zone that has only raw entries marks no set.
-8. **Raw entries** of the whole deck: Count(n), then each as Fixed(3) section number, Text(code), Fixed(1) (1 = any printing), Count(copies − 1). Sorted by section number, then by code, exact before any printing.
-9. **Sections 7 and up**, the m of them in ascending section number, each as Count(section number), Count(body length in bits), body. They are reserved for future deck parts. A reader skips any whose number it does not know.
-10. Zero bits until the length plus 8 is a multiple of five.
-11. Fixed(8) checksum: CRC-8/SMBUS (polynomial 0x07, start value 0, no reflection, no final XOR; check value 0xF4 for the ASCII text `123456789`). It is computed over all bits before it, with zero bits added in front up to a whole byte.
-12. Each five bits as one character of the Crockford base32 alphabet `0123456789ABCDEFGHJKMNPQRSTVWXYZ`.
-
-#### Reading
-
-A reader uppercases the input, removes all whitespace and hyphens, reads `O` as `0` and `I` or `L` as `1`. The last 8 bits are the checksum, so the reader verifies it before parsing anything else. It rejects a code that has:
-
-- a character outside the alphabet;
-- a checksum that does not match, or more than four padding bits or a non-zero padding bit before it;
-- a marker other than 1 or an unknown version;
-- a Count or card number above 1,000,000, or more than 999 copies;
-- sections 7 and up that are repeated or out of order, or a section length running past the checksum.
-
-A reader accepts lists in any order. Only encoders must sort.
-
-To rebuild a card reference, a reader writes the set, `-`, the prefix, the number padded with zeros to the style's digit count, and the ending. An "any printing" entry has no ending.
-
-#### Same deck, same code
-
-Before encoding, the encoder normalizes every card reference (drop the set size, and for "any printing" also the art letters and marks), merges entries with the same zone, reference and kind by adding their copies, and drops entries with zero copies. Every list above has a defined order, so one app writes one code per deck.
-
-#### Adding things later
-
-A new set, number prefix or art letter needs no change to this spec. A new kind of deck part gets a section number from 7 upwards, with a length, so older readers skip it and still read the rest. Zone bodies carry no length, so a new per-card field also goes in a section 7 and up that refers to cards by their position in the deck. A new version number is reserved for changes that older readers cannot skip. The marker stays, so every version keeps the leading `1`.
+The normative format lives in [openriftapp/open-deck-code](https://github.com/openriftapp/open-deck-code): `SPEC.md` defines the bit layout, the reading rules and the error reasons, `vectors/` holds the test vectors, and the repository has reference implementations in TypeScript, PHP, C# and Rust. `SPEC.md` is the source of truth when it and this ADR differ.
 
 ### Consequences
 
@@ -231,7 +176,7 @@ A new set, number prefix or art letter needs no change to this spec. A new kind 
 
 ### Confirmation
 
-A reference encoder and decoder with the examples above as test vectors. The test suite round-trips every deck in the dev database and checks that lowercased, hyphenated and `O`-for-`0` inputs decode to the same deck, and that a changed character fails the checksum.
+The open-deck-code implementations reproduce the codes above and pass one shared set of test vectors. The test suite round-trips every deck in the dev database and checks that lowercased, hyphenated and `O`-for-`0` inputs decode to the same deck, and that a changed character fails the checksum.
 
 ## Pros and Cons of the Options
 
