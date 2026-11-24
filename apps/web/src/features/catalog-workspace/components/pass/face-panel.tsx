@@ -13,6 +13,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
 import { TextLink } from "@/components/ui/text-link";
+import { FormattedText } from "@/features/admin/components/attention-change-list";
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
 import { StraightenImageDialog } from "@/features/admin/components/straighten-image-dialog";
 import {
@@ -32,6 +33,8 @@ import type { PrintingValueLabels } from "@/features/admin/lib/field-value-text"
 import { formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
 import { imageQuadOf } from "@/features/admin/lib/straighten-quad";
+import { ErrataPane } from "@/features/cards/components/errata-diff-pane";
+import { diffCardText } from "@/features/cards/lib/errata-diff";
 import { FaceCompareGrid } from "@/features/catalog-workspace/components/compare-sources-dialog";
 import type { ComparedImage } from "@/features/catalog-workspace/components/pass/image-compare-dialog";
 import { ImageCompareDialog } from "@/features/catalog-workspace/components/pass/image-compare-dialog";
@@ -43,7 +46,7 @@ import { RecordFieldRow } from "@/features/catalog-workspace/components/record/f
 import type { FaceChip } from "@/features/catalog-workspace/hooks/use-face-record-actions";
 import { useFaceSuggestionWrites } from "@/features/catalog-workspace/hooks/use-face-record-actions";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
-import type { PassFace } from "@/features/catalog-workspace/lib/card-pass";
+import type { PassDismiss, PassFace } from "@/features/catalog-workspace/lib/card-pass";
 import { imageOrigin, passContributor } from "@/features/catalog-workspace/lib/card-pass";
 import {
   FACE_FIELDS,
@@ -57,6 +60,32 @@ export function faceHeading(face: PassFace["face"], labels: PrintingValueLabels)
     face.language,
     formatCatalogFieldValue("finish", face.finish, labels),
   ].join(" · ");
+}
+
+const CARD_TEXT_FIELDS: ReadonlySet<string> = new Set([
+  "printedRulesText",
+  "printedEffectText",
+  "flavorText",
+]);
+
+function isCardTextField(field: string): boolean {
+  return CARD_TEXT_FIELDS.has(field);
+}
+
+function textChange(field: string, current: unknown, proposed: unknown): ReactNode {
+  if (!isCardTextField(field) || typeof proposed !== "string") {
+    return null;
+  }
+  const segments = diffCardText(typeof current === "string" ? current : "", proposed);
+  return (
+    <ErrataPane
+      title="Suggested text"
+      tone="updated"
+      side="corrected"
+      className="basis-full"
+      changes={[{ key: field, label: null, segments }]}
+    />
+  );
 }
 
 export function FacePanel({
@@ -73,6 +102,7 @@ export function FacePanel({
   onReject,
   onMove,
   onMarkApplied,
+  onDismissSource,
   comparingImageId,
   onCompareImage,
   onImageResolved,
@@ -90,6 +120,7 @@ export function FacePanel({
   onReject: (candidateCardId: string, kindLabel: string) => void;
   onMove?: (candidateCardId: string) => void;
   onMarkApplied: (candidateCardId: string) => void;
+  onDismissSource?: (target: PassDismiss) => void;
   comparingImageId: string | null;
   onCompareImage: (imageId: string | null) => void;
   onImageResolved: (imageId: string) => void;
@@ -158,20 +189,37 @@ export function FacePanel({
             <RecordFieldRow
               key={field}
               label={PRINTING_FIELD_LABELS[field]}
-              value={formatCatalogFieldValue(field, face[field], labels)}
+              value={
+                isCardTextField(field) ? (
+                  <FormattedText field={field} value={face[field]} />
+                ) : (
+                  formatCatalogFieldValue(field, face[field], labels)
+                )
+              }
               suggestions={model.suggestions
                 .filter((suggestion) => suggestion.field === field)
                 .map((suggestion) => {
                   const value = formatCatalogFieldValue(field, suggestion.proposed, labels);
+                  const diff = textChange(field, face[field], suggestion.proposed);
                   const chip = { kind: "field" as const, key: suggestion.key, suggestion };
                   if (!suggestion.isContributor) {
                     return (
                       <SourceUse
                         key={suggestion.key}
-                        value={value}
+                        value={diff === null ? value : undefined}
+                        preview={diff}
                         source={suggestion.provider}
                         pending={pending}
                         onUse={() => apply(chip)}
+                        onDismiss={
+                          onDismissSource &&
+                          (() =>
+                            onDismissSource({
+                              candidateCardIds: [],
+                              candidatePrintingIds: [suggestion.candidate.id],
+                              suggestions: 1,
+                            }))
+                        }
                       />
                     );
                   }
@@ -184,7 +232,7 @@ export function FacePanel({
                     <ContributionBlock
                       key={suggestion.key}
                       {...contributor}
-                      value={value}
+                      value={diff ?? value}
                       pending={pending}
                       onUse={() => apply(chip)}
                       onReject={() => onReject(suggestion.candidate.candidateCardId, "Correction")}
@@ -199,7 +247,7 @@ export function FacePanel({
             <RecordFieldRow
               label="Images"
               value={
-                <div className="flex flex-wrap items-start gap-4">
+                <div className="flex flex-wrap items-start gap-4 max-sm:grid max-sm:grid-cols-2 max-sm:gap-3">
                   <ImageTile
                     caption="Current"
                     image={
@@ -290,12 +338,16 @@ function ImageTile({
   children?: ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-2">
-      <div className="flex w-24 flex-col gap-1">
+    <div className="flex min-w-0 items-start gap-2 max-sm:flex-col">
+      <div className="flex w-24 flex-col gap-1 max-sm:w-full">
         {image}
         <span className="text-muted-foreground text-sm break-words">{caption}</span>
       </div>
-      {children !== undefined && <div className="flex flex-col gap-1.5">{children}</div>}
+      {children !== undefined && (
+        <div className="flex gap-1.5 max-sm:w-full max-sm:flex-wrap max-sm:*:flex-1 max-sm:*:px-2 sm:flex-col">
+          {children}
+        </div>
+      )}
     </div>
   );
 }
@@ -405,7 +457,7 @@ function SourceImageTile({
         }
       >
         <Button variant="outline" size="sm" onClick={() => setComparing(true)}>
-          Compare images
+          Compare<span className="max-sm:hidden"> images</span>
         </Button>
         {use}
       </ImageTile>
@@ -556,7 +608,7 @@ function UploadActions({
       )}
       {isAdmin && (
         <Button
-          variant="outline"
+          variant="outline-destructive"
           size="sm"
           disabled={pending}
           pending={remove.isPending}
@@ -605,7 +657,7 @@ function WaitingUpload({
         }
       >
         <Button variant="outline" size="sm" onClick={() => onCompare(true)}>
-          Compare images
+          Compare<span className="max-sm:hidden"> images</span>
         </Button>
         <UploadActions cardSlug={cardSlug} image={image} isAdmin={isAdmin} deleteOnly />
       </ImageTile>

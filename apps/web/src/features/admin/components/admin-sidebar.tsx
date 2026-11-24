@@ -1,4 +1,3 @@
-import type { ReviewCard } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useMatches } from "@tanstack/react-router";
 import {
@@ -69,11 +68,10 @@ const REVIEW_PATH = "/admin/review" as const;
 
 const overviewPages = [{ to: "/admin" as const, icon: LayoutDashboardIcon, title: "Dashboard" }];
 
-const WORKSPACE_REVIEW_PATH = "/admin/workspace/review" as const;
+const WORKSPACE_CARDS_PATH = "/admin/workspace/cards" as const;
 
 const workspacePages = [
-  { to: WORKSPACE_REVIEW_PATH, icon: InboxIcon, title: "Review" },
-  { to: "/admin/workspace/cards" as const, icon: GalleryVerticalIcon, title: "Cards" },
+  { to: WORKSPACE_CARDS_PATH, icon: GalleryVerticalIcon, title: "Cards" },
   { to: "/admin/workspace/printings" as const, icon: LayersIcon, title: "Printings" },
   { to: "/admin/workspace/faces" as const, icon: CopyIcon, title: "Faces" },
 ];
@@ -199,20 +197,6 @@ function isCurrent(currentPath: string | undefined, to: string): boolean {
   return WORKSPACE_RECORD_ROOTS.includes(to) && currentPath?.startsWith(`${to}/`) === true;
 }
 
-function isReviewPass(
-  match: { fullPath: string; params: object } | undefined,
-  reviewCards: readonly ReviewCard[],
-): boolean {
-  if (match?.fullPath === "/admin/workspace/cards/new/$name") {
-    return true;
-  }
-  if (match?.fullPath !== "/admin/workspace/cards/$cardSlug") {
-    return false;
-  }
-  const slug = "cardSlug" in match.params ? match.params.cardSlug : undefined;
-  return reviewCards.some((card) => card.cardSlug === slug);
-}
-
 export function AdminSidebar() {
   const matches = useMatches();
   const currentMatch = matches.at(-1);
@@ -231,18 +215,7 @@ export function AdminSidebar() {
   });
   const openReviews = reviewQueue?.counts.open ?? 0;
   const cardsToReview = reviewCards?.cards.length ?? 0;
-  const inQueue = isReviewPass(currentMatch, reviewCards?.cards ?? []);
-  const pathname = currentMatch?.pathname ?? null;
-  const [passPathname, setPassPathname] = useState<string | null>(null);
-  if (inQueue && passPathname !== pathname) {
-    setPassPathname(pathname);
-  } else if (!inQueue && passPathname !== null && passPathname !== pathname) {
-    setPassPathname(null);
-  }
-  const currentPath =
-    inQueue || (pathname !== null && passPathname === pathname)
-      ? WORKSPACE_REVIEW_PATH
-      : currentMatch?.fullPath;
+  const currentPath = currentMatch?.fullPath;
   const { data: listings } = useQuery({
     ...listingsQueryOptions(),
     enabled: workspaceEnabled && isAdmin,
@@ -280,7 +253,7 @@ export function AdminSidebar() {
                         {openReviews}
                       </Badge>
                     )}
-                    {page.to === WORKSPACE_REVIEW_PATH && cardsToReview > 0 && (
+                    {page.to === WORKSPACE_CARDS_PATH && cardsToReview > 0 && (
                       <Badge variant="count" className="ml-auto">
                         {cardsToReview}
                       </Badge>

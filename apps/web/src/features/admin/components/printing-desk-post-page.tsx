@@ -236,7 +236,8 @@ function PostComposer({
 
   const index = Math.min(selected, entries.length - 1);
   const current = entries.at(index);
-  const label = labelParam ?? (current ? deskPrintingStatus(current.printing) : "announced");
+  const label =
+    labelParam ?? (current ? (deskPrintingStatus(current.printing) ?? "announced") : "announced");
   const aspect = aspectParam ?? "square";
   const { w, h } = POST_IMAGE_ASPECTS[aspect];
   const firstEntry = entries.at(0);

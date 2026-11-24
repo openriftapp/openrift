@@ -5,7 +5,6 @@ import type {
 } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { WORKSPACE_RECORD_FILTERS } from "@openrift/shared/contracts/admin/catalog-workspace";
 
-import { buildKeysetCursor } from "../../../lib/keyset-cursor.js";
 import type { AdminAccess } from "../../../middleware/require-admin.js";
 import type { DeskRecordScope } from "../lib/workspace-presenters.js";
 import { toWorkspaceFaceRow, toWorkspacePrintingRow } from "../lib/workspace-presenters.js";
@@ -26,21 +25,14 @@ function narrowFilter<K extends keyof typeof WORKSPACE_RECORD_FILTERS>(
     : undefined;
 }
 
-function toPage<R extends { id: string; updatedAt: Date }, T>(
+function toPage<R, T>(
   result: WorkspaceRecordsPage<R>,
   limit: number,
   present: (row: R) => T,
-  sortedOffset: number | null,
+  offset: number,
 ): { rows: T[]; nextCursor: string | null; total: number } {
   const page = result.rows.slice(0, limit);
-  const last = page.at(-1);
-  let nextCursor: string | null = null;
-  if (result.rows.length > limit && last !== undefined) {
-    nextCursor =
-      sortedOffset === null
-        ? buildKeysetCursor(last.updatedAt, last.id)
-        : String(sortedOffset + limit);
-  }
+  const nextCursor = result.rows.length > limit ? String(offset + limit) : null;
   return { rows: page.map((row) => present(row)), nextCursor, total: result.total };
 }
 
@@ -56,11 +48,12 @@ export async function listWorkspaceRecords(
   }
   const sort =
     input.sort === undefined ? undefined : { key: input.sort, direction: input.direction ?? "asc" };
-  const sortedOffset = sort === undefined ? null : offsetCursor(input.cursor);
+  const offset = offsetCursor(input.cursor);
   const query = {
     q: input.q,
     limit,
     cursor: input.cursor,
+    setSlug: input.set,
     sort,
     printingIds:
       desk === undefined ? undefined : [...new Set([...desk.promoIds, ...desk.createdIds])],
@@ -70,7 +63,7 @@ export async function listWorkspaceRecords(
       ...query,
       filter: narrowFilter("face", input.filter),
     });
-    return toPage(result, limit, (row) => toWorkspaceFaceRow(row), sortedOffset);
+    return toPage(result, limit, (row) => toWorkspaceFaceRow(row), offset);
   }
   let mineIds: string[] | undefined;
   if (input.filter === "mine") {
@@ -84,5 +77,5 @@ export async function listWorkspaceRecords(
     filter: narrowFilter("printing", input.filter),
     mineIds,
   });
-  return toPage(result, limit, (row) => toWorkspacePrintingRow(row, desk), sortedOffset);
+  return toPage(result, limit, (row) => toWorkspacePrintingRow(row, desk), offset);
 }

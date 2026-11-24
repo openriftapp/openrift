@@ -17,6 +17,7 @@ function renderCell(isUsed = false) {
       url="https://cdn.test/a.png"
       sourceLabel="gallery"
       isUsed={isUsed}
+      landscape={false}
     />,
   );
 }

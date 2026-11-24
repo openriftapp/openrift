@@ -4,7 +4,7 @@ import { matchesTextQuery } from "@openrift/shared/search-fold";
 import { pluralize } from "@openrift/shared/strings";
 
 import type { DeskPrintingStatus } from "./printing-desk-status";
-import { deskPrintingStatus } from "./printing-desk-status";
+import { deskPrintingRelease, deskPrintingStatus } from "./printing-desk-status";
 
 export type DeskStatusFilter = "any" | DeskPrintingStatus;
 
@@ -48,7 +48,9 @@ const DESK_SORTS: Record<DeskSort, (a: DeskPrintingRow, b: DeskPrintingRow) => n
   card: (a, b) => collator.compare(a.cardName, b.cardName) || DESK_SORTS.code(a, b),
   updated: (a, b) => b.updatedAt.localeCompare(a.updatedAt) || DESK_SORTS.code(a, b),
   release: (a, b) =>
-    (b.releasedAt ?? "").localeCompare(a.releasedAt ?? "") || DESK_SORTS.code(a, b),
+    (deskPrintingRelease(b).releasedAt ?? "").localeCompare(
+      deskPrintingRelease(a).releasedAt ?? "",
+    ) || DESK_SORTS.code(a, b),
 };
 
 export function sortDeskPrintings(

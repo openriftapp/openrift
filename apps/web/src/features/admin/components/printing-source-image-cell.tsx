@@ -15,7 +15,7 @@ export function PrintingSourceImageCell({
   url: string;
   sourceLabel: string;
   isUsed: boolean;
-  landscape?: boolean;
+  landscape: boolean;
 }) {
   const setSourceImage = useSetCandidatePrintingImage();
 

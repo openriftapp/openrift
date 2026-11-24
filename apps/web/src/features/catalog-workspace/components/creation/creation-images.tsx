@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Dropzone } from "@/components/ui/dropzone";
-import { ImgWithFallback } from "@/components/ui/img-with-fallback";
+import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
 import type { DraftImage } from "@/features/catalog-workspace/lib/creation-draft";
 import { isAttachedImage } from "@/features/catalog-workspace/lib/creation-draft";
 import { cn } from "@/lib/utils";
@@ -22,13 +22,7 @@ function FileThumb({ file, alt }: { file: File; alt: string }) {
 }
 
 function ThumbFrame({ src, alt }: { src: string | null; alt: string }) {
-  return (
-    <div className="bg-muted aspect-card w-12 min-w-0 overflow-hidden rounded-sm">
-      {src !== null && (
-        <ImgWithFallback src={src} alt={alt} className="size-full object-cover" fallback={null} />
-      )}
-    </div>
-  );
+  return <PrintingImageBox url={src} alt={alt} landscape={null} className="w-12" />;
 }
 
 function DraftImageThumb({ image }: { image: DraftImage }) {

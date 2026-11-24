@@ -20,8 +20,11 @@ import {
   workspaceRole,
 } from "@/features/catalog-workspace/lib/owner-items";
 import { workspaceRecordsInfiniteQueryOptions } from "@/features/catalog-workspace/lib/workspace-queries";
-import type { WorkspaceSearch } from "@/features/catalog-workspace/lib/workspace-search";
-import { printingsSearchSchema } from "@/features/catalog-workspace/lib/workspace-search";
+import type { CardView, WorkspaceSearch } from "@/features/catalog-workspace/lib/workspace-search";
+import {
+  cardsRouteSearchSchema,
+  printingsSearchSchema,
+} from "@/features/catalog-workspace/lib/workspace-search";
 
 const RECORDS_PAGE_SIZE = 500;
 
@@ -30,7 +33,7 @@ export const RECORD_FILTERS: Record<
   readonly WorkspaceRecordFilter[]
 > = {
   ...WORKSPACE_RECORD_FILTERS,
-  desk: ["double-sided", "no-image"],
+  desk: ["no-image"],
 };
 
 export function recordFilterFor(
@@ -42,17 +45,14 @@ export function recordFilterFor(
 
 export function filterDeskTable(
   rows: readonly DeskRow[],
-  search: Pick<WorkspaceSearch, "q" | "status" | "deskSort" | "filter">,
+  search: Pick<WorkspaceSearch, "q" | "status" | "deskSort" | "filter" | "set">,
 ): DeskRow[] {
   const filter = recordFilterFor("desk", search.filter);
-  const matching = filterDeskPrintings(filterDeskRows(rows, search.q), {
+  const inSet = rows.filter((row) => search.set === undefined || row.setSlug === search.set);
+  const matching = filterDeskPrintings(filterDeskRows(inSet, search.q), {
     query: "",
     status: search.status ?? "any",
-  }).filter(
-    (row) =>
-      (filter !== "double-sided" || row.secondSide !== null) &&
-      (filter !== "no-image" || row.imageCount === 0),
-  );
+  }).filter((row) => filter !== "no-image" || row.imageCount === 0);
   return sortDeskPrintings(matching, search.deskSort ?? "updated");
 }
 
@@ -61,13 +61,18 @@ export function useWorkspaceRole(): WorkspaceRole {
   return workspaceRole(data);
 }
 
+export function useCardView(): CardView | undefined {
+  const raw: Record<string, unknown> = useSearch({ strict: false });
+  return cardsRouteSearchSchema.parse(raw).queue;
+}
+
 export function useWorkspaceSearch(): WorkspaceSearch {
   const raw: Record<string, unknown> = useSearch({ strict: false });
   return printingsSearchSchema.parse(raw);
 }
 
 interface RecordsCommon {
-  query: { kind: "face" | "printing"; q?: string; filter?: WorkspaceRecordFilter };
+  query: { kind: "face" | "printing"; q?: string; filter?: WorkspaceRecordFilter; set?: string };
   pages: readonly WorkspaceRecordsResponse[];
   total: number | null;
   hasMore: boolean;
@@ -113,6 +118,7 @@ export function useWorkspaceRecords(
     kind: recordKind,
     q,
     filter: recordFilterFor(recordKind, search.filter),
+    set: search.set,
   } as const;
 
   const cards = useAdminCardListWhen(enabled && owner === "card");
@@ -135,7 +141,7 @@ export function useWorkspaceRecords(
     const liveCards = (cards.data ?? []).filter((row) => row.cardSlug !== null);
     return {
       kind: "card" as const,
-      rows: filterCardSummaries(liveCards, q),
+      rows: filterCardSummaries(liveCards, q, search.set),
       loadedRows: liveCards,
       total: cards.data === undefined ? null : liveCards.length,
       ...common,

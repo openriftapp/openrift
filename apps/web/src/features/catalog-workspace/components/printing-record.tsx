@@ -1,3 +1,4 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
 import type {
   DeskImage,
   DeskPrintingRow,
@@ -11,6 +12,7 @@ import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { normalizeToPeriodStart } from "@openrift/shared/set-release";
 import { pluralize } from "@openrift/shared/strings";
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
+import type { CardType } from "@openrift/shared/types/enums";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronRightIcon, ExternalLinkIcon, Share2Icon } from "lucide-react";
@@ -433,6 +435,11 @@ function FaceSummary({
       <PrintingImageBox
         url={active === null ? null : deskImageSrc(active.url, "240w")}
         alt={face.cardName}
+        landscape={
+          face.position === 1
+            ? getOrientation([printing.cardType as CardType]) === "landscape"
+            : null
+        }
         className="w-16 shrink-0"
       />
       <div className="min-w-0 flex-1 space-y-1">

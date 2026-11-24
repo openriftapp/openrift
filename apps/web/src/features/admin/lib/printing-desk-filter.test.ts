@@ -31,6 +31,8 @@ function row(overrides: Partial<DeskPrintingRow> = {}): DeskPrintingRow {
     announcedAt: null,
     releasedAt: null,
     releasePrecision: null,
+    setReleasedAt: null,
+    setReleasePrecision: null,
     comment: null,
     flavorText: null,
     imageCount: 0,
@@ -102,8 +104,21 @@ describe("matchesDeskFilter", () => {
   });
 
   it("keeps only announced rows on the announced filter", () => {
-    expect(matchesDeskFilter(row(), { query: "", status: "announced" })).toBe(true);
+    const announced = row({ announcedAt: "2026-08-01" });
+
+    expect(matchesDeskFilter(announced, { query: "", status: "announced" })).toBe(true);
+    expect(matchesDeskFilter(announced, { query: "", status: "released" })).toBe(false);
+  });
+
+  it("leaves a row without any date out of both status filters", () => {
+    expect(matchesDeskFilter(row(), { query: "", status: "announced" })).toBe(false);
     expect(matchesDeskFilter(row(), { query: "", status: "released" })).toBe(false);
+  });
+
+  it("counts a row as released through its set's release date", () => {
+    const viaSet = row({ setReleasedAt: "2020-01-01", setReleasePrecision: "day" });
+
+    expect(matchesDeskFilter(viaSet, { query: "", status: "released" })).toBe(true);
   });
 
   it("keeps only released rows on the released filter", () => {

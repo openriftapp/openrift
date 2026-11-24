@@ -24,7 +24,7 @@ import {
 import { RecordFieldRow } from "@/features/catalog-workspace/components/record/field-row";
 import { usePrintingFieldWrites } from "@/features/catalog-workspace/hooks/use-printing-record-actions";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
-import type { PassPrinting } from "@/features/catalog-workspace/lib/card-pass";
+import type { PassDismiss, PassPrinting } from "@/features/catalog-workspace/lib/card-pass";
 import { passContributor } from "@/features/catalog-workspace/lib/card-pass";
 import type { PrintingFieldSuggestion } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import { PRINTING_FIELDS } from "@/features/catalog-workspace/lib/face-suggestion-rows";
@@ -108,6 +108,7 @@ export function PrintingPanel({
   onReject,
   onMove,
   onMarkApplied,
+  onDismissSource,
 }: {
   cardSlug: string;
   detail: AdminCardDetailResponse;
@@ -121,6 +122,7 @@ export function PrintingPanel({
   onReject: (candidateCardId: string, kindLabel: string) => void;
   onMove?: (candidateCardId: string) => void;
   onMarkApplied: (candidateCardId: string) => void;
+  onDismissSource?: (target: PassDismiss) => void;
 }) {
   const { printing, model } = entry;
   const writes = usePrintingFieldWrites({
@@ -188,6 +190,15 @@ export function PrintingPanel({
                         source={suggestion.provider}
                         pending={writes.pending}
                         onUse={() => apply(suggestion)}
+                        onDismiss={
+                          onDismissSource &&
+                          (() =>
+                            onDismissSource({
+                              candidateCardIds: [],
+                              candidatePrintingIds: [suggestion.candidate.id],
+                              suggestions: 1,
+                            }))
+                        }
                       />
                     );
                   }

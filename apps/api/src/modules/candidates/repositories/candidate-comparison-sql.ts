@@ -1,5 +1,6 @@
 import { sql } from "kysely";
 
+import { translatedCandidateTags } from "../../../db/helpers.js";
 import { candidateSideOrder } from "../../../repositories/candidate-card-sql.js";
 
 // The fragments read fixed aliases: `cc` candidate_cards, `c` cards, `mca`
@@ -54,7 +55,7 @@ export type LivePrintingComparison = ComparablePrintingValues & {
 export const candidateCardValues = sql<ComparableCardValues>`jsonb_build_object(
   'name', cc.name, 'types', cc.types, 'superTypes', cc.super_types,
   'domains', cc.domains, 'might', cc.might, 'energy', cc.energy,
-  'power', cc.power, 'mightBonus', cc.might_bonus, 'tags', cc.tags
+  'power', cc.power, 'mightBonus', cc.might_bonus, 'tags', ${translatedCandidateTags("cc")}
 )`;
 
 export const liveCardValues = sql<ComparableCardValues>`jsonb_build_object(

@@ -1,12 +1,12 @@
-import { ImageOffIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Pressable } from "@/components/ui/pressable";
 import { TextLink } from "@/components/ui/text-link";
+import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
+import { useLoadedImageSize } from "@/features/admin/hooks/use-loaded-image-size";
 import { isWebUrl } from "@/features/catalog-workspace/lib/card-pass";
 import { cn } from "@/lib/utils";
 
@@ -25,34 +25,17 @@ function LargeImage({
   landscape: boolean;
   tools?: ReactNode;
 }) {
-  const [loaded, setLoaded] = useState<{ url: string; size: string } | null>(null);
-  const size = loaded !== null && loaded.url === image.url ? loaded.size : null;
-  const placeholder = <ImageOffIcon className="text-muted-foreground size-6" />;
+  const { size, onLoad } = useLoadedImageSize(image.url);
   return (
     <figure className="flex min-w-0 flex-col items-center gap-2">
-      <span
-        className={cn(
-          "flex max-h-[65vh] w-full items-center justify-center overflow-hidden rounded-md border",
-          landscape ? "aspect-card-landscape" : "aspect-card",
-        )}
-      >
-        {image.url === null ? (
-          placeholder
-        ) : (
-          <ImgWithFallback
-            src={image.url}
-            alt={image.caption}
-            className="size-full object-contain"
-            fallback={placeholder}
-            onLoad={(event) => {
-              const img = event.currentTarget;
-              if (image.url !== null) {
-                setLoaded({ url: image.url, size: `${img.naturalWidth} × ${img.naturalHeight}` });
-              }
-            }}
-          />
-        )}
-      </span>
+      <PrintingImageBox
+        url={image.url}
+        alt={image.caption}
+        landscape={landscape}
+        className="max-h-[65vh]"
+        iconClassName="size-6"
+        onLoad={onLoad}
+      />
       <figcaption className="text-muted-foreground text-center text-sm">
         {typeof image.href === "string" && isWebUrl(image.href) ? (
           <TextLink className="font-medium" href={image.href} target="_blank" rel="noreferrer">
@@ -61,10 +44,17 @@ function LargeImage({
         ) : (
           <span className="text-foreground font-medium">{image.caption}</span>
         )}
-        {size !== null && <> · {size}</>}
+        {size !== null && (
+          <>
+            {" "}
+            · {size.width} × {size.height}
+          </>
+        )}
       </figcaption>
       {tools !== undefined && (
-        <div className="flex flex-wrap items-center justify-center gap-2">{tools}</div>
+        <div className="flex flex-wrap items-center justify-center gap-2 max-sm:w-full max-sm:flex-col max-sm:items-stretch">
+          {tools}
+        </div>
       )}
     </figure>
   );
@@ -102,7 +92,7 @@ export function ImageCompareDialog({
             <LargeImage image={candidate} landscape={landscape} tools={tools} />
           </div>
         ) : (
-          <div className="mx-auto flex w-1/2 flex-col gap-2">
+          <div className="mx-auto flex w-full flex-col gap-2 sm:w-1/2">
             <Pressable
               className="block"
               aria-label="Show the other image"
@@ -113,7 +103,7 @@ export function ImageCompareDialog({
             {tools !== undefined && (
               <div
                 className={cn(
-                  "flex flex-wrap items-center justify-center gap-2",
+                  "grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-center",
                   flip === "current" && "invisible",
                 )}
               >
@@ -137,7 +127,9 @@ export function ImageCompareDialog({
               Side by side
             </Button>
           )}
-          <span className="flex flex-1 flex-wrap justify-end gap-2">{actions}</span>
+          <span className="flex flex-1 flex-wrap justify-end gap-2 max-sm:basis-full max-sm:*:flex-1">
+            {actions}
+          </span>
         </div>
       </DialogContent>
     </Dialog>

@@ -4,6 +4,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
 
+import { translatedCandidateTags } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import type {
   CandidateCardsTable,
@@ -420,6 +421,7 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
       return db
         .selectFrom("candidateCards")
         .selectAll()
+        .select(translatedCandidateTags("candidateCards").as("tags"))
         .where("candidateCards.normName", "=", normName)
         .where(notIgnoredCard("candidateCards"))
         .where(notHiddenSource("candidateCards"))
@@ -474,7 +476,7 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
           "candidateCards.mightBonus",
           "candidateCards.rulesText",
           "candidateCards.effectText",
-          "candidateCards.tags",
+          translatedCandidateTags("candidateCards").as("tags"),
           "candidateCards.shortCode",
           "candidateCards.externalId",
           "candidateCards.extraData",

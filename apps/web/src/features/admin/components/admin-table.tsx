@@ -39,8 +39,13 @@ import { useAdminSorting } from "@/features/admin/hooks/use-admin-sorting";
 import { useAdminTableEditing } from "@/features/admin/hooks/use-admin-table-editing";
 import { useVirtualizedRows } from "@/features/admin/hooks/use-virtualized-rows";
 import { columnId } from "@/features/admin/lib/admin-table-columns";
-import { ADMIN_TABLE_CLASS, ADMIN_TABLE_SURFACE } from "@/features/admin/lib/admin-table-styles";
+import {
+  ADMIN_TABLE_CLASS,
+  ADMIN_TABLE_STACKED,
+  ADMIN_TABLE_SURFACE,
+} from "@/features/admin/lib/admin-table-styles";
 import type { ServerSort } from "@/features/admin/lib/admin-table-types";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { downloadJson } from "@/lib/download";
 import { cn } from "@/lib/utils";
 
@@ -139,7 +144,9 @@ interface AdminTableProps<TData, TDraft = TData> {
 
   rowClassName?: (row: TData) => string | undefined;
 
-  virtualize?: { rowHeight: number };
+  virtualize?: { rowHeight: number; stackedRowHeight?: number };
+
+  stacked?: boolean;
 
   minWidth?: string;
 
@@ -243,6 +250,7 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
   reorderSteppers = true,
   rowClassName,
   virtualize,
+  stacked = false,
   minWidth,
   export: exportConfig,
   actions,
@@ -295,9 +303,12 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
     handleDragCancel,
   } = useAdminReorder({ reorder, rowKeys: rows.map((row) => row.id) });
 
-  const { tableAnchorRef, virtualItems, totalSize, scrollMargin } = useVirtualizedRows(
+  const measured = useIsMobile() && stacked;
+  const rowHeight =
+    (measured ? virtualize?.stackedRowHeight : undefined) ?? virtualize?.rowHeight ?? 0;
+  const { tableAnchorRef, virtualItems, totalSize, scrollMargin, measureRow } = useVirtualizedRows(
     rows.length,
-    virtualize?.rowHeight ?? 0,
+    rowHeight,
     virtualize !== undefined,
   );
   const renderedRows = virtualize
@@ -400,6 +411,7 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
               ADMIN_TABLE_CLASS,
               (virtualize || layout === "fixed") && "table-fixed",
               minWidth,
+              stacked && ADMIN_TABLE_STACKED,
             )}
           >
             <AdminTableHead
@@ -466,7 +478,9 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
                     ) : (
                       <TableRow
                         className={rowClassName?.(row.original)}
-                        style={virtualize ? { height: virtualize.rowHeight } : undefined}
+                        ref={virtualize && measured ? measureRow : undefined}
+                        data-index={virtualize ? virtualItems[index]?.index : undefined}
+                        style={virtualize && !measured ? { height: rowHeight } : undefined}
                       >
                         {rowCells(row)}
                       </TableRow>
@@ -645,7 +659,7 @@ function AdminTableChrome({
 
   return (
     <div className="flex items-center justify-between gap-4">
-      <div className="flex-1">{toolbar}</div>
+      <div className="min-w-0 flex-1">{toolbar}</div>
       <div className="flex items-center gap-2">
         {onExport && (
           <Button variant="outline" onClick={onExport}>

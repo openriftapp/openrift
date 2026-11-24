@@ -25,16 +25,13 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AdminCardThumb } from "@/features/admin/components/admin-card-thumb";
 import { AdminFilterSelect } from "@/features/admin/components/admin-filters";
 import { AdminInstant } from "@/features/admin/components/admin-instant";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { RowSelectCheckbox } from "@/features/admin/components/admin-row-select";
 import { PrintingDeskCardSearchDialog } from "@/features/admin/components/printing-desk-card-search";
-import {
-  DeskSegmented,
-  DeskStatusBadge,
-  DeskThumb,
-} from "@/features/admin/components/printing-desk-shared";
+import { DeskSegmented, DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
 import { useIsAdmin } from "@/features/admin/hooks/use-admin";
 import { useDistributionChannels } from "@/features/admin/hooks/use-distribution-channels";
 import { useMarkers } from "@/features/admin/hooks/use-markers";
@@ -275,7 +272,13 @@ function DeskPrintingListRow({
         className="relative z-10"
       />
 
-      <DeskThumb row={row} className="h-12" />
+      <AdminCardThumb
+        url={row.activeImageUrl}
+        cardType={row.cardType}
+        rarity={row.rarity}
+        alt={row.cardName}
+        className="h-12"
+      />
 
       <div className="min-w-0 flex-1">
         {/* The ::after resolves against the row, the only positioned ancestor. */}

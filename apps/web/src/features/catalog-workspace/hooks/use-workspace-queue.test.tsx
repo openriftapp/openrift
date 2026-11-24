@@ -73,6 +73,7 @@ vi.mock("@/features/catalog-workspace/lib/workspace-queries", () => ({
             id,
             cardSlug: "jinx-loose-cannon",
             cardName: "Jinx, Loose Cannon",
+            cardType: "unit",
             setName: "Origins",
             shortCode: "OGN-030",
             language: "en",
@@ -240,10 +241,7 @@ describe("filterDeskTable", () => {
     ]);
   });
 
-  it("narrows to double-sided printings or printings without images", () => {
-    expect(filterDeskTable(rows, { filter: "double-sided" }).map((row) => row.printingId)).toEqual([
-      "c",
-    ]);
+  it("narrows to printings without images", () => {
     expect(filterDeskTable(rows, { filter: "no-image" }).map((row) => row.printingId)).toEqual([
       "b",
     ]);

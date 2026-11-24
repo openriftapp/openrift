@@ -75,7 +75,7 @@ export const workspaceRecordKindSchema = z.enum(["printing", "face"]);
 export const workspaceRecordFilterSchema = z.enum(WORKSPACE_RECORD_FILTER_VALUES);
 
 export const WORKSPACE_RECORD_FILTERS = {
-  printing: ["promo", "double-sided", "no-image", "mine"],
+  printing: ["promo", "no-image", "mine"],
   face: ["no-image", "substitute", "shared"],
 } as const satisfies Record<WorkspaceRecordKind, readonly WorkspaceRecordFilter[]>;
 
@@ -86,6 +86,7 @@ export const workspaceRecordsInputSchema = z
     kind: workspaceRecordKindSchema,
     q: z.string().trim().min(1).optional(),
     filter: workspaceRecordFilterSchema.optional(),
+    set: z.string().min(1).optional(),
     limit: z.coerce.number().int().min(1).max(500).optional(),
     cursor: z.string().min(1).optional(),
     sort: z.enum(WORKSPACE_RECORD_SORTS).optional(),
@@ -104,6 +105,7 @@ export const workspaceRecordRowSchema = z.object({
   id: z.string(),
   cardSlug: z.string(),
   cardName: z.string(),
+  cardType: z.string(),
   setName: z.string(),
   shortCode: z.string(),
   language: z.string(),
@@ -118,6 +120,10 @@ export const workspaceRecordRowSchema = z.object({
   imageCount: z.number().int().min(0).optional(),
   markers: z.array(z.string()).optional(),
   isDoubleSided: z.boolean().optional(),
+  otherFace: z
+    .object({ cardName: z.string(), cardType: z.string(), imageUrl: z.string().nullable() })
+    .nullable()
+    .optional(),
   publicCode: z.string().optional(),
   artist: z.string().nullable().optional(),
   imageState: workspaceImageStateSchema.optional(),
@@ -177,7 +183,11 @@ export const adminCatalogWorkspaceContract = {
   workspaceCardImages: authedRoute
     .route({ method: "GET", path: `${WORKSPACE}/card-images`, tags: [TAG] })
     .meta({ adminSections: ["card-review", "printing-desk"] })
-    .output(z.object({ images: z.record(z.string(), z.string()) })),
+    .output(
+      z.object({
+        images: z.record(z.string(), z.object({ url: z.string(), cardType: z.string() })),
+      }),
+    ),
   workspaceHistory: authedRoute
     .route({ method: "GET", path: `${WORKSPACE}/history`, tags: [TAG] })
     .meta({ adminSections: ["card-review", "printing-desk"] })

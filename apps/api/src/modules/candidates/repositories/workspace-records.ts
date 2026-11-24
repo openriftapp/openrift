@@ -6,22 +6,21 @@ import type {
 import type { Expression, Kysely, SqlBool } from "kysely";
 import { sql } from "kysely";
 
+import { primaryCardTypeSql } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import { containsPattern } from "../../../lib/like-pattern.js";
-import {
-  imageUrlWithOriginal,
-  joinAdminFaceImage,
-  keysetCursorPredicate,
-} from "../../../repositories/query-helpers.js";
+import { imageUrlWithOriginal, joinAdminFaceImage } from "../../../repositories/query-helpers.js";
 
 interface WorkspaceRecordBaseDbRow {
   id: string;
   cardSlug: string;
   cardName: string;
+  cardType: string;
   setName: string;
   shortCode: string;
   language: string;
   finish: string;
+  rarity: string;
   imageUrl: string | null;
   updatedAt: Date;
 }
@@ -30,6 +29,7 @@ export interface WorkspacePrintingRecordDbRow extends WorkspaceRecordBaseDbRow {
   faceCount: number;
   publicCode: string;
   isDoubleSided: boolean;
+  otherFace: { cardName: string; cardType: string; imageUrl: string | null } | null;
   imageCount: number;
   markers: string[];
   channelLabel: string | null;
@@ -39,7 +39,6 @@ export interface WorkspacePrintingRecordDbRow extends WorkspaceRecordBaseDbRow {
 export interface WorkspaceFaceRecordDbRow extends WorkspaceRecordBaseDbRow {
   printingCount: number;
   artist: string;
-  rarity: string;
   artVariant: string;
   imageState: WorkspaceImageState;
 }
@@ -52,6 +51,7 @@ interface WorkspaceRecordsQuery<F> {
   filter?: F;
   limit: number;
   cursor?: string;
+  setSlug?: string;
   sort?: { key: WorkspaceRecordSort; direction: "asc" | "desc" };
   printingIds?: readonly string[];
   mineIds?: readonly string[];
@@ -107,6 +107,36 @@ const printingStatus = sql<"announced" | "released" | null>`case
   when p.announced_at is not null or p.released_at is not null then 'announced'
 end`;
 
+const printingOtherFace = sql<WorkspacePrintingRecordDbRow["otherFace"]>`(
+  select jsonb_build_object(
+    'cardName', c2.name,
+    'cardType', ${primaryCardTypeSql("c2.id")},
+    'imageUrl', (
+      select coalesce(i2.rehosted_url, i2.original_url)
+      from face_images fi2
+      join image_files i2 on i2.id = fi2.image_file_id
+      where fi2.face_id = f2.id and fi2.is_active
+      limit 1
+    )
+  )
+  from faces f2
+  join cards c2 on c2.id = f2.card_id
+  where f2.id = p.face2_id
+)`;
+
+/** The catalog's own printing order: language, set, code, markers, finish, size. */
+const printingCanonicalRank = sql<number>`(
+  select r.canonical_rank from mv_printing_sides_canonical_rank r
+  where r.printing_id = p.id and r.position = 1
+)`;
+
+const faceCanonicalRank = sql<number>`(
+  select min(r.canonical_rank)
+  from mv_printing_sides_canonical_rank r
+  join printings rp on rp.id = r.printing_id
+  where (r.position = 1 and rp.face1_id = f.id) or (r.position = 2 and rp.face2_id = f.id)
+)`;
+
 const faceHasOwnImage = sql<SqlBool>`exists (
   select 1 from face_images oi where oi.face_id = f.id and oi.is_active
 )`;
@@ -142,9 +172,6 @@ function printingFilterPredicate(
   switch (filter) {
     case "promo": {
       return printingIsPromo;
-    }
-    case "double-sided": {
-      return sql<SqlBool>`p.face2_id is not null`;
     }
     case "no-image": {
       return sql<SqlBool>`(
@@ -203,7 +230,11 @@ function sortColumn(key: WorkspaceRecordSort, updatedColumn: string): string {
   }
 }
 
-/** A sorted list pages by offset; its cursor is the number of rows already sent. */
+function inSet(setSlug: string): Expression<SqlBool> {
+  return sql<SqlBool>`f.set_id = (select st.id from sets st where st.slug = ${setSlug})`;
+}
+
+/** Lists page by offset; the cursor is the number of rows already sent. */
 export function offsetCursor(cursor: string | undefined): number {
   const offset = Number(cursor);
   return Number.isInteger(offset) && offset > 0 ? offset : 0;
@@ -227,6 +258,9 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
       if (query.q !== undefined) {
         base = base.where(searchPredicate(query.q));
       }
+      if (query.setSlug !== undefined) {
+        base = base.where(inSet(query.setSlug));
+      }
       if (query.filter !== undefined) {
         base = base.where(printingFilterPredicate(query.filter, query.mineIds ?? []));
       }
@@ -236,14 +270,17 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
           "p.id",
           "c.slug as cardSlug",
           "c.name as cardName",
+          primaryCardTypeSql("c.id").as("cardType"),
           "s.name as setName",
           "f.shortCode",
           "f.publicCode",
           "f.language",
           "f.finish",
+          "f.rarity",
           imageUrlWithOriginal("imgf").as("imageUrl"),
           sql<number>`case when p.face2_id is null then 1 else 2 end`.as("faceCount"),
           sql<boolean>`p.face2_id is not null`.as("isDoubleSided"),
+          printingOtherFace.as("otherFace"),
           printingImageCount.as("imageCount"),
           printingMarkers.as("markers"),
           printingChannelLabel.as("channelLabel"),
@@ -251,22 +288,13 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
           "p.updatedAt",
         ])
         .limit(query.limit + 1);
-      page =
+      page = (
         query.sort === undefined
-          ? page.orderBy("p.updatedAt", "desc").orderBy("p.id", "desc")
-          : page
-              .orderBy(sql.ref(sortColumn(query.sort.key, "p.updatedAt")), query.sort.direction)
-              .orderBy("p.id", "desc")
-              .offset(offsetCursor(query.cursor));
-      if (query.sort === undefined && query.cursor !== undefined) {
-        page = page.where(
-          keysetCursorPredicate(query.cursor, {
-            timeColumn: "p.updatedAt",
-            idColumn: "p.id",
-            idDirection: "desc",
-          }),
-        );
-      }
+          ? page.orderBy(printingCanonicalRank, "asc")
+          : page.orderBy(sql.ref(sortColumn(query.sort.key, "p.updatedAt")), query.sort.direction)
+      )
+        .orderBy("p.id", "desc")
+        .offset(offsetCursor(query.cursor));
       const [rows, count] = await Promise.all([
         page.execute(),
         base.select(sql<number>`count(*)::int`.as("total")).executeTakeFirstOrThrow(),
@@ -290,6 +318,9 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
       if (query.q !== undefined) {
         base = base.where(searchPredicate(query.q));
       }
+      if (query.setSlug !== undefined) {
+        base = base.where(inSet(query.setSlug));
+      }
       if (query.filter !== undefined) {
         base = base.where(faceFilterPredicate(query.filter));
       }
@@ -299,6 +330,7 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
           "f.id",
           "c.slug as cardSlug",
           "c.name as cardName",
+          primaryCardTypeSql("c.id").as("cardType"),
           "s.name as setName",
           "f.shortCode",
           "f.language",
@@ -312,22 +344,13 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
           "f.updatedAt",
         ])
         .limit(query.limit + 1);
-      page =
+      page = (
         query.sort === undefined
-          ? page.orderBy("f.updatedAt", "desc").orderBy("f.id", "desc")
-          : page
-              .orderBy(sql.ref(sortColumn(query.sort.key, "f.updatedAt")), query.sort.direction)
-              .orderBy("f.id", "desc")
-              .offset(offsetCursor(query.cursor));
-      if (query.sort === undefined && query.cursor !== undefined) {
-        page = page.where(
-          keysetCursorPredicate(query.cursor, {
-            timeColumn: "f.updatedAt",
-            idColumn: "f.id",
-            idDirection: "desc",
-          }),
-        );
-      }
+          ? page.orderBy(faceCanonicalRank, "asc")
+          : page.orderBy(sql.ref(sortColumn(query.sort.key, "f.updatedAt")), query.sort.direction)
+      )
+        .orderBy("f.id", "desc")
+        .offset(offsetCursor(query.cursor));
       const [rows, count] = await Promise.all([
         page.execute(),
         base.select(sql<number>`count(*)::int`.as("total")).executeTakeFirstOrThrow(),
@@ -413,10 +436,11 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
       return row !== undefined;
     },
 
-    async cardImages(): Promise<{ cardSlug: string; imageUrl: string }[]> {
-      const rows = await sql<{ cardSlug: string; imageUrl: string }>`
+    async cardImages(): Promise<{ cardSlug: string; cardType: string; imageUrl: string }[]> {
+      const rows = await sql<{ cardSlug: string; cardType: string; imageUrl: string }>`
         select distinct on (c.slug)
           c.slug as "cardSlug",
+          ${primaryCardTypeSql("c.id")} as "cardType",
           coalesce(i.rehosted_url, i.original_url) as "imageUrl"
         from cards c
         join faces f on f.card_id = c.id

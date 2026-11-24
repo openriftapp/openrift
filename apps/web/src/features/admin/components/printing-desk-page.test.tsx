@@ -134,6 +134,8 @@ function row(overrides: Partial<DeskPrintingRow> = {}): DeskPrintingRow {
     announcedAt: null,
     releasedAt: null,
     releasePrecision: null,
+    setReleasedAt: null,
+    setReleasePrecision: null,
     comment: null,
     flavorText: null,
     imageCount: 0,
@@ -204,12 +206,20 @@ describe("PrintingDeskPage", () => {
     expect(screen.getByText("Code TBA")).toBeInTheDocument();
   });
 
-  it("marks a dated printing released and an undated one announced", () => {
-    captured.rows = [row(), released];
+  it("marks a dated printing released and an announced one announced", () => {
+    captured.rows = [{ ...row(), announcedAt: "2026-08-01" }, released];
     render(<PrintingDeskPage />);
 
     expect(screen.getByText("Announced")).toBeInTheDocument();
     expect(screen.getByText("Released")).toBeInTheDocument();
+  });
+
+  it("shows no status on a printing without any date", () => {
+    captured.rows = [row()];
+    render(<PrintingDeskPage />);
+
+    expect(screen.queryByText("Announced")).not.toBeInTheDocument();
+    expect(screen.queryByText("Released")).not.toBeInTheDocument();
   });
 
   it("filters the list by card name", async () => {

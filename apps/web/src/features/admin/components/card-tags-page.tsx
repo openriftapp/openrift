@@ -12,6 +12,7 @@ import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar"
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import { TagCategoriesTable } from "@/features/admin/components/tag-categories-table";
+import { TagTranslationsSection } from "@/features/admin/components/tag-translations-section";
 import {
   useCardTags,
   useCreateTagCategory,
@@ -53,6 +54,11 @@ export function CardTagsPage() {
       <CardTagCategoriesSection categories={categoriesData.categories} />
 
       <ClassificationSection tags={tagsData.tags} categories={categoriesData.categories} />
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Tag translations</h2>
+        <TagTranslationsSection tags={tagsData.tags} />
+      </section>
     </div>
   );
 }

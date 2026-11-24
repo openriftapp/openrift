@@ -10,7 +10,6 @@ export const WORKSPACE_REASONS = [
 
 export const WORKSPACE_RECORD_FILTER_VALUES = [
   "promo",
-  "double-sided",
   "no-image",
   "mine",
   "substitute",

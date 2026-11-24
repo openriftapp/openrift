@@ -26,7 +26,9 @@ import { TextLink } from "@/components/ui/text-link";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { DebouncedSearchInput } from "@/features/admin/components/debounced-search-input";
+import { CardsBody } from "@/features/catalog-workspace/components/cards-body";
 import { RecordsTable, summaryText } from "@/features/catalog-workspace/components/records-table";
+import { SetFilterSelect } from "@/features/catalog-workspace/components/set-filter-select";
 import { WorkspaceUndoButton } from "@/features/catalog-workspace/components/workspace-undo-button";
 import { useClearUndoOnLeave } from "@/features/catalog-workspace/hooks/use-clear-undo-on-leave";
 import {
@@ -65,7 +67,6 @@ const KEYBOARD_ROUTES: ReadonlySet<string> = new Set([
 
 const FILTER_LABELS: Record<WorkspaceRecordFilter, string> = {
   promo: "Promos",
-  "double-sided": "Double-sided",
   "no-image": "No image",
   mine: "Added by me",
   substitute: "Substitute image",
@@ -117,7 +118,7 @@ export function WorkspaceOwnerPage({ owner }: { owner: WorkspaceOwner }) {
     <>
       {KEYBOARD_ROUTES.has(childRouteId) ? (
         <AdminPageTopBar
-          back={<PageTopBarBack to="/admin/workspace/review" aria-label="Back to review" />}
+          back={<PageTopBarBack to="/admin/workspace/cards" search aria-label="Back to cards" />}
           title="Review"
           actions={<WorkspaceUndoButton />}
         />
@@ -232,6 +233,56 @@ function RecordsPage({ owner }: { owner: WorkspaceOwner }) {
     />
   );
 
+  const count = records.error === null && !records.isPending && (
+    <span className="text-muted-foreground text-sm">
+      {summaryText(records.rows.length, records.total, RECORD_NOUNS[records.kind], records.hasMore)}
+    </span>
+  );
+  const table = (
+    <RecordsBody
+      records={records}
+      sort={{
+        key: search.recordSort ?? "",
+        direction: search.recordSort === undefined ? "asc" : (search.recordDir ?? "asc"),
+        onChange: ({ key, direction }) => {
+          const recordSort = WORKSPACE_RECORD_SORTS.find((value) => value === key);
+          changeSearch({
+            recordSort,
+            recordDir: recordSort === undefined ? undefined : direction,
+          });
+        },
+      }}
+    />
+  );
+
+  const setFilter = (
+    <SetFilterSelect value={search.set} onChange={(set) => changeSearch({ set })} />
+  );
+
+  if (owner === "card") {
+    return (
+      <>
+        {topBar}
+        <CardsBody
+          listAllowed={listAllowed}
+          query={search.q ?? ""}
+          onQuery={(next) => changeSearch({ q: next === "" ? undefined : next })}
+          onView={(view) =>
+            void navigate({
+              to: ".",
+              search: (prev) => ({ ...prev, queue: view }),
+              replace: true,
+              resetScroll: false,
+            })
+          }
+          allCount={count}
+          allFilter={setFilter}
+          allTable={table}
+        />
+      </>
+    );
+  }
+
   if (!listAllowed) {
     return (
       <>
@@ -246,7 +297,7 @@ function RecordsPage({ owner }: { owner: WorkspaceOwner }) {
 
   const deskTable = isDesk && owner === "printing";
   const filterKind = deskTable ? "desk" : owner;
-  const filters = filterKind === "card" ? [] : RECORD_FILTERS[filterKind];
+  const filters = RECORD_FILTERS[filterKind];
   const activeFilter = filters.find((filter) => filter === search.filter);
 
   return (
@@ -260,6 +311,7 @@ function RecordsPage({ owner }: { owner: WorkspaceOwner }) {
             placeholder="Name or code…"
             className="w-full sm:w-72"
           />
+          {setFilter}
           {deskTable && (
             <ToggleGroup
               variant="outline"
@@ -322,31 +374,9 @@ function RecordsPage({ owner }: { owner: WorkspaceOwner }) {
               />
             </>
           )}
-          {records.error === null && !records.isPending && (
-            <span className="text-muted-foreground text-sm">
-              {summaryText(
-                records.rows.length,
-                records.total,
-                RECORD_NOUNS[records.kind],
-                records.hasMore,
-              )}
-            </span>
-          )}
+          {count}
         </div>
-        <RecordsBody
-          records={records}
-          sort={{
-            key: search.recordSort ?? "updated",
-            direction: search.recordSort === undefined ? "desc" : (search.recordDir ?? "asc"),
-            onChange: ({ key, direction }) => {
-              const recordSort = WORKSPACE_RECORD_SORTS.find((value) => value === key);
-              changeSearch({
-                recordSort,
-                recordDir: recordSort === undefined ? undefined : direction,
-              });
-            },
-          }}
-        />
+        {table}
       </div>
     </>
   );

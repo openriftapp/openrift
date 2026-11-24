@@ -110,7 +110,9 @@ export function CardArtThumb({
       src={resolved}
       alt={alt}
       loading={loading}
-      className={cn("size-full object-cover", !landscape && CROP_CLASS[shape])}
+      // WebKit resolves a percentage height against an aspect-ratio frame that
+      // is a flex item as auto, so the image is pinned to the frame edges.
+      className={cn("absolute inset-0 size-full object-cover", !landscape && CROP_CLASS[shape])}
       fallback={emptyFrame}
     />
   );

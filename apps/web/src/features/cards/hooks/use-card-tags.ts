@@ -7,6 +7,7 @@ import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import {
   adminCardTagsQueryOptions,
   adminTagCategoriesQueryOptions,
+  adminTagTranslationsQueryOptions,
 } from "@/features/cards/lib/card-tags-queries";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { initKeys } from "@/lib/query-keys";
@@ -106,5 +107,58 @@ export function useDetectLegendTags() {
   return useMutationWithInvalidation({
     mutationFn: (vars: { categoryId: string }) => detectLegendTagsFn({ data: vars }),
     invalidates: [adminKeys.cardTags, adminKeys.tagCategories, initKeys.all],
+  });
+}
+
+export function useTagTranslations() {
+  return useSuspenseQuery(adminTagTranslationsQueryOptions);
+}
+
+const TRANSLATION_INVALIDATES = [
+  adminKeys.tagTranslations,
+  adminKeys.workspace,
+  adminKeys.cards.all,
+] as const;
+
+const setTagTranslationFn = createServerFn({ method: "POST" })
+  .validator((input: { tag: string; language: string; label: string }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminCardTagsContract, context.cookie).setTranslation(data);
+  });
+
+export function useSetTagTranslation() {
+  return useMutationWithInvalidation({
+    mutationFn: (vars: { tag: string; language: string; label: string }) =>
+      setTagTranslationFn({ data: vars }),
+    invalidates: [...TRANSLATION_INVALIDATES],
+  });
+}
+
+const removeTagTranslationFn = createServerFn({ method: "POST" })
+  .validator((input: { language: string; label: string }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminCardTagsContract, context.cookie).removeTranslation(data);
+  });
+
+export function useRemoveTagTranslation() {
+  return useMutationWithInvalidation({
+    mutationFn: (vars: { language: string; label: string }) =>
+      removeTagTranslationFn({ data: vars }),
+    invalidates: [...TRANSLATION_INVALIDATES],
+  });
+}
+
+const discoverTagTranslationsFn = createServerFn({ method: "POST" })
+  .middleware([withCookies])
+  .handler(({ context }) =>
+    apiOrpcClient(adminCardTagsContract, context.cookie).discoverTranslations(),
+  );
+
+export function useDiscoverTagTranslations() {
+  return useMutationWithInvalidation({
+    mutationFn: () => discoverTagTranslationsFn(),
+    invalidates: [...TRANSLATION_INVALIDATES],
   });
 }

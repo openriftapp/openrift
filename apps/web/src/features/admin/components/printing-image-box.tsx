@@ -1,9 +1,12 @@
 import { ImageOffIcon } from "lucide-react";
+import type { SyntheticEvent } from "react";
 
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
+import { useLoadedImageSize } from "@/features/admin/hooks/use-loaded-image-size";
 import { cn } from "@/lib/utils";
 
-/** An `<img>` with no `src` draws the browser's own broken glyph and never fires
+/** `landscape: null` means the card type is unknown; the frame then follows the image.
+ *  An `<img>` with no `src` draws the browser's own broken glyph and never fires
  *  the error a fallback waits for, so an absent url renders the placeholder here. */
 export function PrintingImageBox({
   url,
@@ -11,18 +14,22 @@ export function PrintingImageBox({
   href,
   className,
   iconClassName,
-  landscape = false,
+  landscape,
+  onLoad,
 }: {
   url: string | null;
   alt: string;
   href?: string;
   className?: string;
   iconClassName?: string;
-  landscape?: boolean;
+  landscape: boolean | null;
+  onLoad?: (event: SyntheticEvent<HTMLImageElement>) => void;
 }) {
+  const { size, onLoad: trackSize } = useLoadedImageSize(url);
+  const lying = landscape ?? (size !== null && size.width > size.height);
   const boxClass = cn(
     "bg-muted/30 inline-flex w-full items-center justify-center overflow-hidden rounded-md border",
-    landscape ? "aspect-card-landscape" : "aspect-card",
+    lying ? "aspect-card-landscape" : "aspect-card",
     className,
   );
   const placeholder = (
@@ -37,6 +44,10 @@ export function PrintingImageBox({
         alt={alt}
         className="size-full object-contain"
         fallback={placeholder}
+        onLoad={(event) => {
+          trackSize(event);
+          onLoad?.(event);
+        }}
       />
     );
 

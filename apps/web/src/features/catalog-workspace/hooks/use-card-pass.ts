@@ -1,3 +1,4 @@
+import type { ReviewCard } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { toError } from "@openrift/shared/strings";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
@@ -11,6 +12,7 @@ import {
   useCheckCandidateCards,
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { cardRecordScope } from "@/features/catalog-workspace/hooks/use-card-record-actions";
+import { useCardView } from "@/features/catalog-workspace/hooks/use-workspace-queue";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import type { PassDismiss } from "@/features/catalog-workspace/lib/card-pass";
 import { reviewNeighbor } from "@/features/catalog-workspace/lib/card-pass";
@@ -20,6 +22,7 @@ import { reviewNeighborByKey } from "@/features/catalog-workspace/lib/new-card-p
 import {
   NEW_CARD_KEY_PREFIX,
   reviewCardsQueryOptions,
+  selectReviewQueue,
 } from "@/features/catalog-workspace/lib/review-cards";
 import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/workspace-undo";
 import {
@@ -32,12 +35,15 @@ import { focusRecordPane } from "@/features/catalog-workspace/stores/workspace-r
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { withWriteSignal } from "@/lib/write-signal";
 
+const EMPTY_CARDS: readonly ReviewCard[] = [];
+
 export function useReviewNavigation(card: string | { reviewKey: string }) {
   const navigate = useNavigate();
   const router = useRouter();
   const resolvedPathname = useRouterState({ select: (state) => state.resolvedLocation?.pathname });
   const { data } = useQuery(reviewCardsQueryOptions());
-  const cards = data?.cards ?? [];
+  const view = useCardView();
+  const cards = selectReviewQueue(data?.cards ?? EMPTY_CARDS, view);
   const cardSlug = typeof card === "string" ? card : null;
   const reviewKey = typeof card === "string" ? null : card.reviewKey;
   const index = cards.findIndex((entry) =>
@@ -73,16 +79,18 @@ export function useReviewNavigation(card: string | { reviewKey: string }) {
     }
     focusRecordPane();
     if (target === null) {
-      void navigate({ to: "/admin/workspace/review" });
+      void navigate({ to: "/admin/workspace/cards", search: true });
     } else if (target.cardSlug === null) {
       void navigate({
         to: "/admin/workspace/cards/new/$name",
         params: { name: target.key.slice(NEW_CARD_KEY_PREFIX.length) },
+        search: true,
       });
     } else {
       void navigate({
         to: "/admin/workspace/cards/$cardSlug",
         params: { cardSlug: target.cardSlug },
+        search: true,
       });
     }
   }
@@ -112,9 +120,9 @@ export function usePassDismiss({
   const checkPrintings = useCheckAllCandidatePrintings(scope);
   const { push } = useWorkspaceUndo();
 
-  async function run(signal: AbortSignal) {
-    const cardIds = [...dismiss.candidateCardIds];
-    const printingIds = [...dismiss.candidatePrintingIds];
+  async function run(signal: AbortSignal, target: PassDismiss = dismiss) {
+    const cardIds = [...target.candidateCardIds];
+    const printingIds = [...target.candidatePrintingIds];
     const entries: WorkspaceUndoEntry[] = [];
     const undoOf = (undo: WorkspaceUndoEntry["undo"]): WorkspaceUndoEntry => ({
       label: "",
@@ -155,7 +163,7 @@ export function usePassDismiss({
     }
     if (entries.length > 0) {
       const text = discardUndoText({
-        suggestions: failure === null ? dismiss.suggestions : 0,
+        suggestions: failure === null ? target.suggestions : 0,
         images: 0,
         sources: failure === null ? cardIds.length + printingIds.length : cardIds.length,
         record,

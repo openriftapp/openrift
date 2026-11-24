@@ -154,6 +154,7 @@ export const adminKeys = {
   customTagCategories: ["admin", "custom-tag-categories"] as const,
   cardTags: ["admin", "card-tags"] as const,
   tagCategories: ["admin", "tag-categories"] as const,
+  tagTranslations: ["admin", "tag-translations"] as const,
   cardCustomTags: Object.assign(
     (cardId: string) => ["admin", "card-custom-tags", cardId] as const,
     { prefix: ["admin", "card-custom-tags"] as const },

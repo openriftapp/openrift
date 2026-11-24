@@ -1,6 +1,7 @@
 import type { ExpressionBuilder, Kysely, UpdateResult } from "kysely";
 import { sql } from "kysely";
 
+import { translatedCandidateTags } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import { liveCardForNorm } from "../../../repositories/candidate-card-sql.js";
 import { notHiddenSource, notIgnoredCard, notIgnoredPrinting } from "./candidate-cards-shared.js";
@@ -188,7 +189,8 @@ export function candidateReviewRepo(db: Kysely<Database>) {
     ): Promise<{ card: ProposedCard; printings: ProposedPrinting[] } | null> {
       const card = await db
         .selectFrom("candidateCards")
-        .select(["name", "types", "might", "energy", "power", "mightBonus", "tags"])
+        .select(["name", "types", "might", "energy", "power", "mightBonus"])
+        .select(translatedCandidateTags("candidateCards").as("tags"))
         .where("id", "=", candidateCardId)
         .executeTakeFirst();
       if (!card) {

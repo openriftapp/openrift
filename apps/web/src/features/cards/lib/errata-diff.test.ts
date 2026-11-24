@@ -68,6 +68,34 @@ describe("diffCardText", () => {
     });
   });
 
+  it("marks single changed characters in Chinese text", () => {
+    const segments = diffCardText(
+      "當你進攻或防守，給予1個單位",
+      "當我進攻或防守，給予此處的1個單位",
+    );
+    const changed = segments
+      .filter((segment) => segment.status !== "same")
+      .map((segment) => [
+        segment.status,
+        segment.tokens.map((token) => (token.type === "text" ? token.value : "")).join(""),
+      ]);
+    expect(changed).toEqual([
+      ["removed", "你"],
+      ["added", "我"],
+      ["added", "此處的"],
+    ]);
+  });
+
+  it("still compares whole words in Latin text next to Chinese", () => {
+    const segments = diffCardText("攻擊 Jinx", "攻擊 Vi");
+    const changed = segments
+      .filter((segment) => segment.status !== "same")
+      .map((segment) =>
+        segment.tokens.map((token) => (token.type === "text" ? token.value : "")).join(""),
+      );
+    expect(changed).toEqual(["Jinx", "Vi"]);
+  });
+
   it("keeps newlines in place", () => {
     expect(render(diffCardText("A.\nB.", "A.\nC."))).toBe("A.\n{-B-}{+C+}.");
   });

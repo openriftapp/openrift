@@ -12,6 +12,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { CARD_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
+import type { CardView } from "@/features/catalog-workspace/lib/workspace-search";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -47,6 +48,46 @@ function cardFieldsText(fields: readonly string[]): string | null {
     (field) => (CARD_FIELD_LABELS as Partial<Record<string, string>>)[field] ?? field,
   );
   return `${labels.join(", ")}${differ(fields.length)}`;
+}
+
+export function hasImageWork(card: ReviewCard): boolean {
+  return card.pending.newImages + card.pending.failedImages > 0;
+}
+
+export function hasDataWork(card: ReviewCard): boolean {
+  const { pending } = card;
+  const data =
+    pending.cardFields.length + pending.newPrintings + pending.faces + pending.printings > 0;
+  return data || !hasImageWork(card);
+}
+
+/** The cards Skip walks: one segment, or every card with work when no segment is open. */
+export function selectReviewQueue(
+  cards: readonly ReviewCard[],
+  view: CardView | undefined,
+): ReviewCard[] {
+  if (view === "review") {
+    return cards.filter((card) => hasDataWork(card));
+  }
+  if (view === "images") {
+    return cards.filter((card) => hasImageWork(card));
+  }
+  return [...cards];
+}
+
+export function summaryReviewKey(row: { cardSlug: string | null; normalizedName: string }): string {
+  return row.cardSlug ?? `${NEW_CARD_KEY_PREFIX}${row.normalizedName}`;
+}
+
+const byKeyCache = new WeakMap<readonly ReviewCard[], ReadonlyMap<string, ReviewCard>>();
+
+export function reviewCardsByKey(cards: readonly ReviewCard[]): ReadonlyMap<string, ReviewCard> {
+  let byKey = byKeyCache.get(cards);
+  if (byKey === undefined) {
+    byKey = new Map(cards.map((card) => [card.key, card]));
+    byKeyCache.set(cards, byKey);
+  }
+  return byKey;
 }
 
 export function pendingCount(card: ReviewCard): number {

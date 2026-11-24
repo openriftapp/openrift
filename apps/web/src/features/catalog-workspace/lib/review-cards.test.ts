@@ -3,8 +3,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   pendingSummary,
+  reviewCardsByKey,
   reviewSources,
   selectReviewCards,
+  selectReviewQueue,
+  summaryReviewKey,
 } from "@/features/catalog-workspace/lib/review-cards";
 
 function card(overrides: Partial<ReviewCard> = {}, pending: Partial<ReviewCard["pending"]> = {}) {
@@ -77,5 +80,52 @@ describe("selectReviewCards", () => {
 
   it("returns nothing when no card matches", () => {
     expect(selectReviewCards(cards, "teemo")).toEqual([]);
+  });
+});
+
+describe("selectReviewQueue", () => {
+  const data = card({ key: "data" }, { faces: 1 });
+  const images = card({ key: "images" }, { newImages: 2 });
+  const both = card({ key: "both" }, { cardFields: ["might"], failedImages: 1 });
+  const proposalOnly = card({ key: "proposal", hasContribution: true });
+  const newCard = card({ key: "new:teemo", cardSlug: null });
+  const all = [data, images, both, proposalOnly, newCard];
+  const keys = (cards: readonly { key: string }[]) => cards.map((entry) => entry.key);
+
+  it("puts field, face, printing and new-printing work in the review segment", () => {
+    expect(keys(selectReviewQueue(all, "review"))).toEqual([
+      "data",
+      "both",
+      "proposal",
+      "new:teemo",
+    ]);
+  });
+
+  it("puts waiting and failed images in the images segment", () => {
+    expect(keys(selectReviewQueue(all, "images"))).toEqual(["images", "both"]);
+  });
+
+  it("leaves no card out of both segments", () => {
+    const covered = new Set([
+      ...keys(selectReviewQueue(all, "review")),
+      ...keys(selectReviewQueue(all, "images")),
+    ]);
+    expect(covered).toEqual(new Set(keys(all)));
+  });
+
+  it("walks every card when no segment is open", () => {
+    expect(selectReviewQueue(all, undefined)).toEqual(all);
+    expect(selectReviewQueue(all, "ready")).toEqual(all);
+  });
+});
+
+describe("summaryReviewKey", () => {
+  it("joins a catalog card by slug and a draft by its normalized name", () => {
+    expect(summaryReviewKey({ cardSlug: "jinx", normalizedName: "jinx" })).toBe("jinx");
+    expect(summaryReviewKey({ cardSlug: null, normalizedName: "teemo scout" })).toBe(
+      "new:teemo scout",
+    );
+    const cards = [card({ key: "new:teemo scout", cardSlug: null })];
+    expect(reviewCardsByKey(cards).get("new:teemo scout")).toBe(cards[0]);
   });
 });

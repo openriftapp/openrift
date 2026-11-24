@@ -37,7 +37,11 @@ export const adminCatalogWorkspaceRouter = {
 
   workspaceCardImages: os.workspaceCardImages.handler(async ({ context }) => {
     const rows = await context.repos.workspaceRecords.cardImages();
-    return { images: Object.fromEntries(rows.map((row) => [row.cardSlug, row.imageUrl])) };
+    return {
+      images: Object.fromEntries(
+        rows.map((row) => [row.cardSlug, { url: row.imageUrl, cardType: row.cardType }]),
+      ),
+    };
   }),
 
   workspaceRecords: os.workspaceRecords.handler(({ input, context }) =>

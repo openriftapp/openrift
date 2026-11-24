@@ -1,6 +1,7 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { countNoun } from "@openrift/shared/strings";
 import type { AdminCardDetailResponse, AdminCardResponse } from "@openrift/shared/types/api/admin";
+import { WellKnown } from "@openrift/shared/well-known";
 import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Suspense, useState } from "react";
@@ -8,10 +9,11 @@ import { toast } from "sonner";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { Heading } from "@/components/heading";
-import { PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
+import { PageTopBarButton, PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TextLink } from "@/components/ui/text-link";
+import type { MatrixGhost } from "@/features/admin/components/admin-printing-matrix";
 import { AdminPrintingMatrix } from "@/features/admin/components/admin-printing-matrix";
 import { CardBansSection } from "@/features/admin/components/card-bans-section";
 import { useCardDetailData } from "@/features/admin/components/card-detail-shared";
@@ -27,7 +29,7 @@ import { useAcceptSubmission } from "@/features/admin/hooks/use-catalog-review";
 import type { AttentionSubmission } from "@/features/admin/lib/attention-items";
 import { buildAttentionSubmissions } from "@/features/admin/lib/attention-items";
 import { favoriteProviderSet } from "@/features/admin/lib/candidate-rows";
-import { formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
+import { EMPTY_VALUE_TEXT, formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
 import { buildSetReleaseYears } from "@/features/admin/lib/set-release-years";
 import { useSets } from "@/features/cards/hooks/use-sets";
 import { CardCompareGrid } from "@/features/catalog-workspace/components/compare-sources-dialog";
@@ -58,6 +60,7 @@ import { useValueLabels } from "@/features/catalog-workspace/hooks/use-face-reco
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useWorkspaceKeyboard } from "@/features/catalog-workspace/hooks/use-workspace-keyboard";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
+import type { PassDismiss } from "@/features/catalog-workspace/lib/card-pass";
 import {
   buildCardPass,
   nextUploadId,
@@ -224,36 +227,56 @@ function CardPassBody({
     ...seededPrintingDraft(detail, group, setReleaseYears, favorites),
   }));
 
+  const ghosts: MatrixGhost[] = rows.flatMap(({ group }) => {
+    const [lead] = group.candidates;
+    if (lead === undefined) {
+      return [];
+    }
+    return [
+      {
+        key: group.key,
+        shortCode: lead.shortCode,
+        language: lead.language ?? WellKnown.language.EN,
+        summary: [
+          formatCatalogFieldValue("finish", lead.finish, valueLabels),
+          formatCatalogFieldValue("artVariant", lead.artVariant, valueLabels),
+          formatCatalogFieldValue("rarity", lead.rarity, valueLabels),
+        ]
+          .filter((part) => part !== EMPTY_VALUE_TEXT)
+          .join(" · "),
+        imageUrl: lead.imageUrl,
+        action: (
+          <TextLink
+            className="text-xs"
+            render={
+              <Link
+                to="/admin/workspace/printings/new/$candidatePrintingId"
+                params={{ candidatePrintingId: lead.id }}
+              />
+            }
+          >
+            Review and create
+          </TextLink>
+        ),
+      },
+    ];
+  });
+
   const dismissCount = pass.dismiss.suggestions;
   const canDismiss = isAdmin && dismissCount > 0;
   const stillPending = navigation.position !== null;
-  const primaryText = canDismiss
-    ? `Dismiss ${dismissCount} & next`
-    : stillPending
-      ? "Skip"
-      : "Next";
+  const primaryText = stillPending ? "Skip" : "Next";
+  const dismissSource = isAdmin
+    ? (target: PassDismiss) => void queueWrite((signal) => dismiss.run(signal, target))
+    : undefined;
   const firstDraft = rows[0]?.ready === true ? rows[0].draft : null;
 
   useRegisterRecordActions({
-    primary:
-      canDismiss && navigation.inReview
-        ? { label: primaryText, disabled: dismiss.pending, run: dismiss.run }
-        : undefined,
     accept:
       firstDraft === null || creator.pending
         ? undefined
         : (signal) => creator.create(signal, [firstDraft]),
   });
-
-  async function primaryAndNext() {
-    if (!canDismiss) {
-      navigation.goNext();
-      return;
-    }
-    if (await queueWrite(dismiss.run)) {
-      navigation.goNext();
-    }
-  }
 
   const rowsByField = new Map<string, FieldSuggestion[]>(
     pass.card.rows.map((row) => [row.field, row.suggestions]),
@@ -292,6 +315,7 @@ function CardPassBody({
     onReject,
     onMove,
     onMarkApplied,
+    onDismissSource: dismissSource,
     comparingImageId,
     onCompareImage: setComparingImageId,
     onImageResolved: (imageId: string) => setComparingImageId(nextUploadId(pass.faces, imageId)),
@@ -305,11 +329,16 @@ function CardPassBody({
         actions={
           <>
             <WorkspaceUndoButton />
-            {navigation.inReview && (
-              <PageTopBarPrimaryButton
-                pending={dismiss.pending}
-                onClick={() => void primaryAndNext()}
+            {canDismiss && (
+              <PageTopBarButton
+                disabled={dismiss.pending}
+                onClick={() => void queueWrite((signal) => dismiss.run(signal))}
               >
+                Dismiss all {dismissCount}
+              </PageTopBarButton>
+            )}
+            {navigation.inReview && (
+              <PageTopBarPrimaryButton onClick={() => navigation.goNext()}>
                 {primaryText}
                 <Kbd>↵</Kbd>
               </PageTopBarPrimaryButton>
@@ -389,6 +418,15 @@ function CardPassBody({
                             source={suggestion.sourceLabel}
                             pending={cardActions.isPending}
                             onUse={() => void cardActions.applySuggestion(suggestion)}
+                            onDismiss={
+                              dismissSource &&
+                              (() =>
+                                dismissSource({
+                                  candidateCardIds: [suggestion.candidateRowId],
+                                  candidatePrintingIds: [],
+                                  suggestions: suggestion.rowDifferences,
+                                }))
+                            }
                           />
                         );
                       }
@@ -523,12 +561,16 @@ function CardPassBody({
           {pendingPrintings.map((entry) => (
             <PrintingPanel key={entry.printing.id} entry={entry} {...panelProps} />
           ))}
-          {printingsShown && pass.printings.length > 0 && (
+          {(printingsShown || ghosts.length > 0) && pass.printings.length > 0 && (
             <AdminPrintingMatrix
               detail={detail}
               printings={pass.printings.map((entry) => entry.printing)}
               highlightedIds={pendingPrintingIds}
               landscape={landscape}
+              ghosts={ghosts}
+              onlyShortCodes={
+                printingsShown ? undefined : new Set(ghosts.map((ghost) => ghost.shortCode))
+              }
               onOpen={(printingId) =>
                 void navigate({
                   to: "/admin/workspace/printings/$printingId",

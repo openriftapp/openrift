@@ -34,6 +34,25 @@ export const adminTagCategoryListResponseSchema = z.object({
 
 export const adminCardTagListResponseSchema = z.object({ tags: z.array(classifiedCardTagSchema) });
 
+export const tagTranslationSchema = z.object({
+  tag: z.string(),
+  language: z.string(),
+  label: z.string(),
+});
+
+export const adminTagTranslationListResponseSchema = z.object({
+  translations: z.array(tagTranslationSchema),
+  unmapped: z.array(z.object({ language: z.string(), label: z.string(), cardCount: z.number() })),
+});
+
+export const tagTranslationDiscoveryResponseSchema = z.object({
+  discovered: z.number(),
+  inserted: z.number(),
+  conflicts: z.array(
+    z.object({ language: z.string(), label: z.string(), tags: z.array(z.string()) }),
+  ),
+});
+
 const createTagCategoryInput = z.object({
   slug: z.string().min(1).regex(slugRegex, "Slug must be kebab-case (e.g. species)"),
   label: z.string().min(1),
@@ -106,6 +125,24 @@ export const adminCardTagsContract = {
         assigned: z.number(),
       }),
     ),
+
+  listTranslations: authedRoute
+    .route({ method: "GET", path: `${TAGS}/translations`, tags: [TAG] })
+    .meta({ adminSections: ["card-tags"] })
+    .output(adminTagTranslationListResponseSchema),
+  setTranslation: authedRoute
+    .route({ method: "PUT", path: `${TAGS}/translations`, tags: [TAG], successStatus: 204 })
+    .meta({ adminSections: ["card-tags"] })
+    .errors({ BAD_REQUEST: { message: "Unknown language" } })
+    .input(z.object({ tag: printedTag, language: z.string().min(1), label: printedTag })),
+  removeTranslation: authedRoute
+    .route({ method: "POST", path: `${TAGS}/translations/remove`, tags: [TAG], successStatus: 204 })
+    .meta({ adminSections: ["card-tags"] })
+    .input(z.object({ language: z.string().min(1), label: printedTag })),
+  discoverTranslations: authedRoute
+    .route({ method: "POST", path: `${TAGS}/translations/discover`, tags: [TAG] })
+    .meta({ adminSections: ["card-tags"] })
+    .output(tagTranslationDiscoveryResponseSchema),
 };
 
 export type AdminCardTagsContract = typeof adminCardTagsContract;

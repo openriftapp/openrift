@@ -9,12 +9,13 @@ import {
   deduplicateSourceImages,
   sortByProviderOrder,
 } from "@/features/admin/components/card-detail-shared";
+import { useLoadedImageSize } from "@/features/admin/hooks/use-loaded-image-size";
 
 export function ImagePreview({ url, alt }: { url: string | null; alt: string }) {
-  const [loaded, setLoaded] = useState<{ url: string; resolution: string } | null>(null);
+  const { size, onLoad } = useLoadedImageSize(url);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const imgError = url !== null && failedUrl === url;
-  const resolution = loaded && loaded.url === url ? loaded.resolution : null;
+  const resolution = size === null ? null : `${size.width}×${size.height}`;
 
   return (
     <div className="relative">
@@ -24,10 +25,7 @@ export function ImagePreview({ url, alt }: { url: string | null; alt: string }) 
             src={url}
             alt={alt}
             className="w-full rounded-md border object-contain"
-            onLoad={(e) => {
-              const img = e.currentTarget;
-              setLoaded({ url, resolution: `${img.naturalWidth}×${img.naturalHeight}` });
-            }}
+            onLoad={onLoad}
             onError={() => setFailedUrl(url)}
           />
         </a>

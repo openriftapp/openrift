@@ -224,6 +224,14 @@ export interface TagDefinitionsTable {
   updatedAt: UpdatedAt;
 }
 
+export interface TagTranslationsTable {
+  tag: string;
+  language: string;
+  label: string;
+  createdAt: CreatedAt;
+  updatedAt: UpdatedAt;
+}
+
 export interface DistributionChannelsTable {
   id: Generated<string>;
   slug: string;

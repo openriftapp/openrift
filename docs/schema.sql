@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict q295eLwGoV6Toq3LI0AfEhTfTexToz5f3kOuqnQGIgDn7JD4sbNQQrNAAaehFfo
+\restrict TLkhKVLx9BBqc80w4aobGQKB1Ng0x4lskXqPBwMHffRiwipRHOXlqWF9DVLWeQa
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -4303,6 +4303,21 @@ CREATE TABLE public.tag_definitions (
 
 
 --
+-- Name: tag_translations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tag_translations (
+    tag text NOT NULL,
+    language text NOT NULL,
+    label text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_tag_translations_label_not_empty CHECK ((label <> ''::text)),
+    CONSTRAINT chk_tag_translations_tag_not_empty CHECK ((tag <> ''::text))
+);
+
+
+--
 -- Name: tier_lists; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -6108,6 +6123,14 @@ ALTER TABLE ONLY public.tag_definitions
 
 
 --
+-- Name: tag_translations pk_tag_translations; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tag_translations
+    ADD CONSTRAINT pk_tag_translations PRIMARY KEY (language, label);
+
+
+--
 -- Name: tier_lists pk_tier_lists; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7733,6 +7756,13 @@ CREATE INDEX idx_tag_definitions_category_id ON public.tag_definitions USING btr
 
 
 --
+-- Name: idx_tag_translations_label; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tag_translations_label ON public.tag_translations USING btree (label);
+
+
+--
 -- Name: idx_tier_lists_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -9249,6 +9279,13 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.tag_categories FOR EAC
 --
 
 CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.tag_definitions FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: tag_translations trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.tag_translations FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 
 --
@@ -11174,6 +11211,14 @@ ALTER TABLE ONLY public.tag_definitions
 
 
 --
+-- Name: tag_translations fk_tag_translations_language; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tag_translations
+    ADD CONSTRAINT fk_tag_translations_language FOREIGN KEY (language) REFERENCES public.languages(code) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: tier_lists fk_tier_lists_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -11497,5 +11542,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict q295eLwGoV6Toq3LI0AfEhTfTexToz5f3kOuqnQGIgDn7JD4sbNQQrNAAaehFfo
+\unrestrict TLkhKVLx9BBqc80w4aobGQKB1Ng0x4lskXqPBwMHffRiwipRHOXlqWF9DVLWeQa
 

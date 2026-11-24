@@ -25,6 +25,8 @@ const row: DeskPrintingDbRow = {
   announcedAt: "2026-02-14",
   releasedAt: "2026-04-01",
   releasePrecision: "month",
+  setReleasedAt: null,
+  setReleasePrecision: null,
   comment: null,
   flavorText: "Crunchy.",
   imageCount: 2,

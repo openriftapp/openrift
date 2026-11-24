@@ -83,6 +83,8 @@ export const deskPrintingRowSchema = z.object({
   announcedAt: z.string().nullable(),
   releasedAt: z.string().nullable(),
   releasePrecision: deskReleasePrecisionSchema.nullable(),
+  setReleasedAt: z.string().nullable(),
+  setReleasePrecision: deskReleasePrecisionSchema.nullable(),
   comment: z.string().nullable(),
   flavorText: z.string().nullable(),
   imageCount: z.number(),

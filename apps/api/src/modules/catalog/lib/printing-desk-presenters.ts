@@ -32,6 +32,8 @@ export function toDeskPrintingRow(
     announcedAt: row.announcedAt,
     releasedAt: row.releasedAt,
     releasePrecision: row.releasePrecision,
+    setReleasedAt: row.setReleasedAt,
+    setReleasePrecision: row.setReleasePrecision,
     comment: row.comment,
     flavorText: row.flavorText,
     imageCount: row.imageCount,

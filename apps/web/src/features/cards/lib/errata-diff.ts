@@ -17,7 +17,14 @@ interface Atom {
   token: CardTextToken;
 }
 
-const WORD_PATTERN = /\s+|[\p{L}\p{N}’'-]+|[^\s\p{L}\p{N}’'-]/gu;
+const CJK = String.raw`\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}`;
+
+// Chinese, Japanese and Korean text has no reliable word spacing, so each of its
+// characters is compared on its own.
+const WORD_PATTERN = new RegExp(
+  String.raw`\s+|[${CJK}]|(?:(?![${CJK}])[\p{L}\p{N}’'-])+|[^\s\p{L}\p{N}’'-]`,
+  "gu",
+);
 
 function textAtoms(value: string, italic: boolean): Atom[] {
   return [...value.matchAll(WORD_PATTERN)].map((match) => ({

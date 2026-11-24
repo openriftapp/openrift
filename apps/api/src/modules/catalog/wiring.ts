@@ -39,6 +39,7 @@ import { setsRepo } from "./repositories/sets.js";
 import { superTypesRepo } from "./repositories/super-types.js";
 import { tagCategoryRepo } from "./repositories/tag-categories.js";
 import { tagDefinitionsRepo } from "./repositories/tag-definitions.js";
+import { tagTranslationsRepo } from "./repositories/tag-translations.js";
 import { assembleCatalogResponse, assembleRuleCatalog } from "./services/catalog-assembly.js";
 import type { RuleCatalog } from "./services/catalog-assembly.js";
 
@@ -70,6 +71,7 @@ export interface CatalogRepos {
   superTypes: ReturnType<typeof superTypesRepo>;
   tagCategories: ReturnType<typeof tagCategoryRepo>;
   tagDefinitions: ReturnType<typeof tagDefinitionsRepo>;
+  tagTranslations: ReturnType<typeof tagTranslationsRepo>;
   printingEvents: ReturnType<typeof printingEventsRepo>;
 }
 
@@ -180,6 +182,7 @@ export function createCatalogRepos(
     superTypes: superTypesRepo(db),
     tagCategories: tagCategoryRepo(db, { table: "tagCategories", tagTable: "tagDefinitions" }),
     tagDefinitions: tagDefinitionsRepo(db),
+    tagTranslations: tagTranslationsRepo(db),
     printingEvents: printingEventsRepo(db),
   };
 }

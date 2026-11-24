@@ -39,3 +39,15 @@ export const adminTagCategoriesQueryOptions = queryOptions({
   queryFn: () => fetchTagCategories(),
   staleTime: 30 * MINUTE_MS,
 });
+
+const fetchTagTranslations = createServerFn({ method: "GET" })
+  .middleware([withCookies])
+  .handler(({ context }) =>
+    apiOrpcClient(adminCardTagsContract, context.cookie).listTranslations(),
+  );
+
+export const adminTagTranslationsQueryOptions = queryOptions({
+  queryKey: adminKeys.tagTranslations,
+  queryFn: () => fetchTagTranslations(),
+  staleTime: 30 * MINUTE_MS,
+});

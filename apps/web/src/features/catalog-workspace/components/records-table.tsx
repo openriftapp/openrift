@@ -1,16 +1,22 @@
-import type { WorkspaceRecordRow } from "@openrift/shared/contracts/admin/catalog-workspace";
+import type {
+  ReviewCard,
+  WorkspaceRecordRow,
+} from "@openrift/shared/contracts/admin/catalog-workspace";
 import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
 import { WellKnown } from "@openrift/shared/well-known";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useRef } from "react";
 
+import { LanguageChip } from "@/components/language-chip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { AdminCardThumb } from "@/features/admin/components/admin-card-thumb";
 import { InstantCell } from "@/features/admin/components/admin-crud-shared";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
@@ -22,24 +28,33 @@ import { EMPTY_VALUE_TEXT } from "@/features/admin/lib/field-value-text";
 import { imageCountText } from "@/features/admin/lib/printing-desk-filter";
 import { useSets } from "@/features/cards/hooks/use-sets";
 import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
-import {
-  CardThumb,
-  RecordThumb,
-} from "@/features/catalog-workspace/components/record/record-thumb";
+import { CardThumb } from "@/features/catalog-workspace/components/record/record-thumb";
 import type { WorkspaceRecordsResult } from "@/features/catalog-workspace/hooks/use-workspace-queue";
 import type { DeskRow, WorkspaceTarget } from "@/features/catalog-workspace/lib/owner-items";
 import {
-  cardPendingBadges,
   cardSummaryKey,
   cardSummaryTarget,
   deskEntry,
   recordEntry,
+  sortCardsByCatalogOrder,
 } from "@/features/catalog-workspace/lib/owner-items";
-import { useEnumOrders } from "@/hooks/use-enums";
+import {
+  pendingCount,
+  pendingSummary,
+  reviewCardsByKey,
+  reviewCardsQueryOptions,
+  summaryReviewKey,
+} from "@/features/catalog-workspace/lib/review-cards";
+import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { formatCount } from "@/lib/format";
 
 const ROW_HEIGHT = 57;
+
+const NO_REVIEW_CARDS: readonly ReviewCard[] = [];
+const STACKED_ROW_HEIGHT = 88;
+
+const relativeRow = () => "relative";
 
 function TargetLink({
   target,
@@ -107,7 +122,10 @@ function NameLink({ target, children }: { target: WorkspaceTarget | null; childr
     return <span className="font-medium">{children}</span>;
   }
   return (
-    <TargetLink target={target} className="font-medium hover:underline">
+    <TargetLink
+      target={target}
+      className="font-medium after:absolute after:inset-0 hover:underline"
+    >
       {children}
     </TargetLink>
   );
@@ -171,21 +189,26 @@ function CardPrintingsCell({ row }: AdminCellSlotProps<CandidateCardSummaryRespo
   return <Muted>{row.cardSlug === null ? `+${count}` : count}</Muted>;
 }
 
-function CardPendingCell({ row }: AdminCellSlotProps<CandidateCardSummaryResponse>) {
+function CardPendingCell({
+  row,
+  reviewByKey,
+}: AdminCellSlotProps<CandidateCardSummaryResponse> & {
+  reviewByKey?: ReadonlyMap<string, ReviewCard>;
+}) {
   if (!row) {
     return null;
   }
-  const badges = cardPendingBadges(row);
-  if (badges.length === 0) {
+  const review = reviewByKey?.get(summaryReviewKey(row));
+  if (review === undefined) {
     return <Muted>{EMPTY_VALUE_TEXT}</Muted>;
   }
+  const summary = pendingSummary(review);
   return (
-    <span className="flex flex-wrap gap-1">
-      {badges.map((badge) => (
-        <Badge key={badge.label} variant={badge.variant}>
-          {badge.label}
-        </Badge>
-      ))}
+    <span className="flex min-w-0 items-center gap-1.5 max-md:flex-wrap">
+      {review.hasContribution && <Badge variant="success">Contribution</Badge>}
+      <span className="text-muted-foreground min-w-0 text-sm md:truncate" title={summary}>
+        {summary}
+      </span>
     </span>
   );
 }
@@ -194,12 +217,31 @@ function PrintingNameCell({ row }: AdminCellSlotProps<WorkspaceRecordRow>) {
   if (!row) {
     return null;
   }
+  const other = row.otherFace ?? null;
   return (
     <span className="flex items-center gap-2">
-      <RecordThumb url={row.imageUrl} />
+      <span className="flex shrink-0 gap-0.5">
+        <AdminCardThumb
+          url={row.imageUrl}
+          cardType={row.cardType}
+          rarity={row.rarity}
+          className="w-7"
+        />
+        {other && (
+          <AdminCardThumb
+            url={other.imageUrl}
+            cardType={other.cardType}
+            rarity={row.rarity}
+            className="w-7"
+          />
+        )}
+      </span>
       <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
-        <NameLink target={recordEntry("printing", row).target}>{row.cardName}</NameLink>
+        <NameLink target={recordEntry("printing", row).target}>
+          {other ? `${row.cardName} // ${other.cardName}` : row.cardName}
+        </NameLink>
         <MarkerBadges markers={row.markers ?? []} />
+        {row.channelLabel && <Muted>{row.channelLabel}</Muted>}
       </span>
     </span>
   );
@@ -217,7 +259,7 @@ function PrintingCodesCell({ row }: AdminCellSlotProps<WorkspaceRecordRow>) {
 }
 
 function LanguageCell({ row }: AdminCellSlotProps<{ language: string }>) {
-  return row ? <Badge variant="neutral">{row.language.toUpperCase()}</Badge> : null;
+  return row ? <LanguageChip code={row.language} /> : null;
 }
 
 function FinishCell({
@@ -230,55 +272,29 @@ function FinishCell({
   return <span>{finishLabels ? enumLabel(finishLabels, row.finish) : row.finish}</span>;
 }
 
-function PrintingChannelCell({ row }: AdminCellSlotProps<WorkspaceRecordRow>) {
-  return <Muted>{row?.channelLabel ?? ""}</Muted>;
-}
-
-function PrintingStatusCell({ row }: AdminCellSlotProps<WorkspaceRecordRow>) {
-  if (!row?.status) {
-    return null;
-  }
-  return row.status === "released" ? (
-    <Badge variant="success">Released</Badge>
-  ) : (
-    <Badge variant="warning">Announced</Badge>
-  );
-}
-
-function FaceNameCell({ row }: AdminCellSlotProps<WorkspaceRecordRow>) {
+function FaceNameCell({
+  row,
+  artVariantLabels,
+}: AdminCellSlotProps<WorkspaceRecordRow> & { artVariantLabels?: LabelMap }) {
   if (!row) {
     return null;
   }
   return (
     <span className="flex items-center gap-2">
-      <RecordThumb url={row.imageUrl} />
-      <NameLink target={recordEntry("face", row).target}>{row.cardName}</NameLink>
+      <AdminCardThumb
+        url={row.imageUrl}
+        cardType={row.cardType}
+        rarity={row.rarity}
+        className="w-7"
+      />
+      <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+        <NameLink target={recordEntry("face", row).target}>{row.cardName}</NameLink>
+        {row.artVariant && row.artVariant !== WellKnown.artVariant.NORMAL && artVariantLabels && (
+          <Muted>{enumLabel(artVariantLabels, row.artVariant)}</Muted>
+        )}
+      </span>
     </span>
   );
-}
-
-function FaceSetCell({ row }: AdminCellSlotProps<WorkspaceRecordRow>) {
-  return <Muted>{row?.setName ?? ""}</Muted>;
-}
-
-function FaceRarityCell({
-  row,
-  rarityLabels,
-  artVariantLabels,
-}: AdminCellSlotProps<WorkspaceRecordRow> & {
-  rarityLabels?: LabelMap;
-  artVariantLabels?: LabelMap;
-}) {
-  if (!row) {
-    return null;
-  }
-  const parts = [
-    row.rarity && rarityLabels ? enumLabel(rarityLabels, row.rarity) : null,
-    row.artVariant && row.artVariant !== WellKnown.artVariant.NORMAL && artVariantLabels
-      ? enumLabel(artVariantLabels, row.artVariant)
-      : null,
-  ].filter(Boolean);
-  return <Muted>{parts.join(" · ")}</Muted>;
 }
 
 function FaceCodeCell({ row }: AdminCellSlotProps<WorkspaceRecordRow>) {
@@ -313,7 +329,12 @@ function DeskNameCell({
   const entry = deskEntry(row);
   return (
     <span className="flex items-center gap-2">
-      <RecordThumb url={row.activeImageUrl} />
+      <AdminCardThumb
+        url={row.activeImageUrl}
+        cardType={row.cardType}
+        rarity={row.rarity}
+        className="w-7"
+      />
       <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
         <NameLink target={entry.target}>{entry.title}</NameLink>
         <MarkerBadges markers={row.markerSlugs} labels={markerLabels} />
@@ -411,6 +432,13 @@ type RowRecords = Extract<WorkspaceRecordsResult, { kind: "face" | "printing" }>
 function CardsTable({ records }: { records: CardRecords }) {
   const { data: setsData } = useSets();
   const { sets } = setsData;
+  const languages = Object.keys(useLanguageLabels());
+  const rows = sortCardsByCatalogOrder(records.rows, {
+    languages,
+    sets: sets.map((set) => set.slug),
+  });
+  const { data: reviewData } = useQuery(reviewCardsQueryOptions());
+  const reviewByKey = reviewCardsByKey(reviewData?.cards ?? NO_REVIEW_CARDS);
   const columns: AdminColumnDef<CandidateCardSummaryResponse>[] = [
     {
       header: "Card",
@@ -438,10 +466,12 @@ function CardsTable({ records }: { records: CardRecords }) {
     {
       header: "Pending",
       id: "pending",
-      wrap: true,
-      sortValue: (row) => cardPendingBadges(row).length,
+      sortValue: (row) => {
+        const review = reviewByKey.get(summaryReviewKey(row));
+        return review === undefined ? 0 : pendingCount(review);
+      },
       sortFirst: "desc",
-      cell: <CardPendingCell />,
+      cell: <CardPendingCell reviewByKey={reviewByKey} />,
     },
     {
       header: "Updated",
@@ -457,10 +487,12 @@ function CardsTable({ records }: { records: CardRecords }) {
   return (
     <AdminTable
       columns={columns}
-      data={records.rows}
+      data={rows}
       getRowKey={cardSummaryKey}
       emptyText="No cards found."
-      virtualize={{ rowHeight: ROW_HEIGHT }}
+      virtualize={{ rowHeight: ROW_HEIGHT, stackedRowHeight: STACKED_ROW_HEIGHT }}
+      stacked
+      rowClassName={relativeRow}
       minWidth="min-w-[720px]"
     />
   );
@@ -477,7 +509,14 @@ function PrintingsTable({ records, sort }: { records: RowRecords; sort: ServerSo
       wrap: true,
       cell: <PrintingNameCell />,
     },
-    { header: "Codes", id: "codes", sortKey: "code", width: "w-40", cell: <PrintingCodesCell /> },
+    {
+      header: "Public code",
+      id: "codes",
+      sortKey: "code",
+      width: "w-40",
+      cell: <PrintingCodesCell />,
+    },
+    { header: "Lang", id: "language", sortKey: "language", width: "w-16", cell: <LanguageCell /> },
     {
       header: "Finish",
       id: "finish",
@@ -485,9 +524,6 @@ function PrintingsTable({ records, sort }: { records: RowRecords; sort: ServerSo
       width: "w-24",
       cell: <FinishCell finishLabels={labels.finishes} />,
     },
-    { header: "Lang", id: "language", sortKey: "language", width: "w-16", cell: <LanguageCell /> },
-    { header: "Channel", id: "channel", wrap: true, cell: <PrintingChannelCell /> },
-    { header: "Status", id: "status", width: "w-28", cell: <PrintingStatusCell /> },
     {
       header: "Updated",
       id: "updated",
@@ -506,7 +542,9 @@ function PrintingsTable({ records, sort }: { records: RowRecords; sort: ServerSo
       getRowKey={(row) => row.id}
       emptyText="No printings found."
       serverSort={sort}
-      virtualize={{ rowHeight: ROW_HEIGHT }}
+      virtualize={{ rowHeight: ROW_HEIGHT, stackedRowHeight: STACKED_ROW_HEIGHT }}
+      stacked
+      rowClassName={relativeRow}
       minWidth="min-w-[820px]"
       footer={
         <LoadMoreFooter
@@ -527,16 +565,16 @@ function FacesTable({ records, sort }: { records: RowRecords; sort: ServerSort }
       id: "name",
       sortKey: "name",
       wrap: true,
-      cell: <FaceNameCell />,
+      cell: <FaceNameCell artVariantLabels={labels.artVariants} />,
     },
-    { header: "Code", id: "code", sortKey: "code", width: "w-28", cell: <FaceCodeCell /> },
-    { header: "Set", id: "set", width: "w-32", cell: <FaceSetCell /> },
     {
-      header: "Rarity",
-      id: "rarity",
-      width: "w-36",
-      cell: <FaceRarityCell rarityLabels={labels.rarities} artVariantLabels={labels.artVariants} />,
+      header: "Short code",
+      id: "code",
+      sortKey: "code",
+      width: "w-32",
+      cell: <FaceCodeCell />,
     },
+    { header: "Lang", id: "language", sortKey: "language", width: "w-16", cell: <LanguageCell /> },
     {
       header: "Finish",
       id: "finish",
@@ -544,8 +582,7 @@ function FacesTable({ records, sort }: { records: RowRecords; sort: ServerSort }
       width: "w-24",
       cell: <FinishCell finishLabels={labels.finishes} />,
     },
-    { header: "Lang", id: "language", sortKey: "language", width: "w-16", cell: <LanguageCell /> },
-    { header: "Status", id: "status", wrap: true, cell: <FaceStatusCell /> },
+    { header: "Flags", id: "status", wrap: true, cell: <FaceStatusCell /> },
     {
       header: "Updated",
       id: "updated",
@@ -564,7 +601,9 @@ function FacesTable({ records, sort }: { records: RowRecords; sort: ServerSort }
       getRowKey={(row) => row.id}
       emptyText="No faces found."
       serverSort={sort}
-      virtualize={{ rowHeight: ROW_HEIGHT }}
+      virtualize={{ rowHeight: ROW_HEIGHT, stackedRowHeight: STACKED_ROW_HEIGHT }}
+      stacked
+      rowClassName={relativeRow}
       minWidth="min-w-[860px]"
       footer={
         <LoadMoreFooter
@@ -624,7 +663,9 @@ function DeskTable({ records }: { records: DeskRecords }) {
       data={rows}
       getRowKey={(row) => row.printingId}
       emptyText="No printings found."
-      virtualize={{ rowHeight: ROW_HEIGHT }}
+      virtualize={{ rowHeight: ROW_HEIGHT, stackedRowHeight: STACKED_ROW_HEIGHT }}
+      stacked
+      rowClassName={relativeRow}
       minWidth="min-w-[960px]"
     />
   );

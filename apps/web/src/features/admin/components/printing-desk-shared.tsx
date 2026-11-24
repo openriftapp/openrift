@@ -1,45 +1,17 @@
-import { getOrientation } from "@openrift/shared/card-orientation";
-import type { DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
-import type { ImageVariant } from "@openrift/shared/image-url";
-
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { deskImageSrc } from "@/features/admin/lib/printing-desk-image";
+import type { ReleaseFields } from "@/features/admin/lib/printing-desk-status";
 import { DESK_STATUS_LABELS, deskPrintingStatus } from "@/features/admin/lib/printing-desk-status";
-import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 
-export function DeskStatusBadge({
-  row,
-}: {
-  row: Pick<DeskPrintingRow, "releasedAt" | "releasePrecision">;
-}) {
+export function DeskStatusBadge({ row }: { row: ReleaseFields }) {
   const status = deskPrintingStatus(row);
+  if (status === null) {
+    return null;
+  }
   return (
     <Badge variant={status === "released" ? "success" : "warning"}>
       {DESK_STATUS_LABELS[status]}
     </Badge>
-  );
-}
-
-/** Battlefields are stored landscape, so they get a landscape box. */
-export function DeskThumb({
-  row,
-  className,
-  variant = "240w",
-}: {
-  row: Pick<DeskPrintingRow, "activeImageUrl" | "cardType" | "cardName" | "rarity">;
-  className?: string;
-  variant?: ImageVariant;
-}) {
-  return (
-    <CardArtThumb
-      src={deskImageSrc(row.activeImageUrl, variant)}
-      landscape={getOrientation([row.cardType]) === "landscape"}
-      rarity={row.rarity}
-      alt={row.cardName}
-      loading="lazy"
-      className={className}
-    />
   );
 }
 

@@ -4,7 +4,6 @@ import type {
   WorkspaceRecordRow,
 } from "@openrift/shared/contracts/admin/catalog-workspace";
 import type { DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
-import { pluralize } from "@openrift/shared/strings";
 import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
 
 import { deskPrintingCodes, deskPrintingName } from "@/features/admin/lib/desk-face-options";
@@ -81,35 +80,6 @@ function targetKey(target: WorkspaceTarget): string {
   }
 }
 
-interface PendingBadge {
-  label: string;
-  variant: "warning" | "violet" | "neutral" | "info";
-}
-
-export function cardPendingBadges(row: CandidateCardSummaryResponse): PendingBadge[] {
-  const badges: PendingBadge[] = [];
-  if (row.cardSlug === null) {
-    badges.push({
-      label: `${row.candidateCount} ${pluralize(row.candidateCount, "source")}`,
-      variant: "neutral",
-    });
-    if (row.uncheckedTrustedProviders.length > 0) {
-      badges.push({ label: "Trusted", variant: "info" });
-    }
-  }
-  const fromSources = row.uncheckedCardCount + row.uncheckedPrintingCount;
-  if (row.cardSlug !== null && fromSources > 0) {
-    badges.push({ label: `${fromSources} from sources`, variant: "warning" });
-  }
-  if (row.pendingSubmissions > 0) {
-    badges.push({
-      label: `${row.pendingSubmissions} ${pluralize(row.pendingSubmissions, "proposal")}`,
-      variant: "violet",
-    });
-  }
-  return badges;
-}
-
 export function cardSummaryKey(row: CandidateCardSummaryResponse): string {
   const target = cardSummaryTarget(row);
   return target ? targetKey(target) : `card-row:${row.name}`;
@@ -146,15 +116,65 @@ export function deskEntry(row: DeskRow): ListEntry {
 export function filterCardSummaries(
   rows: readonly CandidateCardSummaryResponse[],
   query: string | undefined,
+  setSlug?: string,
 ): CandidateCardSummaryResponse[] {
   const trimmed = query?.trim() ?? "";
+  const set = setSlug?.toLowerCase();
   return rows
+    .filter((row) => set === undefined || row.setSlugs.some((slug) => slug.toLowerCase() === set))
     .filter(
       (row) =>
         trimmed === "" ||
         matchesCardQuery(trimmed, [row.name, ...row.shortCodes, ...row.stagingShortCodes]),
     )
     .toSorted((a, b) => a.name.localeCompare(b.name));
+}
+
+const codeCollator = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
+
+const CODE_LABEL = /^(?<code>.*?)(?: \[(?<language>[^\]]+)\])?$/u;
+
+/** Each card sits at its earliest printing by language, set and code; others go last. */
+export function sortCardsByCatalogOrder(
+  rows: readonly CandidateCardSummaryResponse[],
+  order: { languages: readonly string[]; sets: readonly string[] },
+): CandidateCardSummaryResponse[] {
+  const languageIndex = new Map(order.languages.map((code, index) => [code, index]));
+  const setIndex = new Map(order.sets.map((slug, index) => [slug.toLowerCase(), index]));
+  const place = (row: CandidateCardSummaryResponse) => {
+    let best: { language: number; set: number; code: string } | null = null;
+    for (const label of row.shortCodes) {
+      const groups = CODE_LABEL.exec(label)?.groups;
+      const code = groups?.code ?? label;
+      const set = setIndex.get(code.split("-")[0]?.toLowerCase() ?? "");
+      if (set === undefined) {
+        continue;
+      }
+      const language = languageIndex.get(groups?.language ?? "EN") ?? order.languages.length;
+      const here = { language, set, code };
+      if (best === null || comparePlace(here, best) < 0) {
+        best = here;
+      }
+    }
+    return best ?? { language: Number.POSITIVE_INFINITY, set: 0, code: "" };
+  };
+  return rows
+    .map((row) => ({ row, at: place(row) }))
+    .toSorted((a, b) => comparePlace(a.at, b.at) || a.row.name.localeCompare(b.row.name))
+    .map((entry) => entry.row);
+}
+
+interface CatalogPlace {
+  language: number;
+  set: number;
+  code: string;
+}
+
+function comparePlace(a: CatalogPlace, b: CatalogPlace): number {
+  if (a.language !== b.language) {
+    return a.language < b.language ? -1 : 1;
+  }
+  return a.set - b.set || codeCollator.compare(a.code, b.code);
 }
 
 export function filterDeskRows(rows: readonly DeskRow[], query: string | undefined): DeskRow[] {

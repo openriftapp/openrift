@@ -113,7 +113,7 @@ function Thumb({
   );
 }
 
-function FormattedText({ field, value }: { field: string; value: unknown }) {
+export function FormattedText({ field, value }: { field: string; value: unknown }) {
   if (typeof value !== "string" || value === "") {
     return formatCatalogFieldValue(field, value);
   }

@@ -407,10 +407,12 @@ function recordBase(row: WorkspaceFaceRecordDbRow | WorkspacePrintingRecordDbRow
     id: row.id,
     cardSlug: row.cardSlug,
     cardName: row.cardName,
+    cardType: row.cardType,
     setName: row.setName,
     shortCode: row.shortCode,
     language: row.language,
     finish: row.finish,
+    rarity: row.rarity,
     imageUrl: row.imageUrl,
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -425,6 +427,7 @@ export function toWorkspacePrintingRow(
     faceCount: row.faceCount,
     publicCode: row.publicCode,
     isDoubleSided: row.isDoubleSided,
+    otherFace: row.otherFace,
     imageCount: row.imageCount,
     markers: row.markers,
     channelLabel: row.channelLabel,
@@ -445,7 +448,6 @@ export function toWorkspaceFaceRow(row: WorkspaceFaceRecordDbRow): WorkspaceReco
     ...recordBase(row),
     printingCount: row.printingCount,
     artist: row.artist,
-    rarity: row.rarity,
     artVariant: row.artVariant,
     imageState: row.imageState,
   };

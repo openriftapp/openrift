@@ -27,10 +27,11 @@ export function CatalogWorkTile() {
       <CardContent>
         {error === null ? (
           <Link
-            to="/admin/workspace/review"
+            to="/admin/workspace/cards"
+            search={{ queue: "review" }}
             className="hover:bg-muted/50 flex flex-col gap-0.5 rounded-lg border p-3 sm:w-64"
           >
-            <span className="text-sm font-medium">Cards in Review</span>
+            <span className="text-sm font-medium">Cards with pending work</span>
             <span className="font-heading text-2xl font-bold">
               {data === undefined ? "…" : formatCount(data.cards.length)}
             </span>

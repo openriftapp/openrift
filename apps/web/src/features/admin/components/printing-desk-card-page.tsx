@@ -11,8 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { CardLink } from "@/components/ui/card-link";
 import { TextLink } from "@/components/ui/text-link";
+import { AdminCardThumb } from "@/features/admin/components/admin-card-thumb";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
-import { DeskSegmented, DeskThumb } from "@/features/admin/components/printing-desk-shared";
+import { DeskSegmented } from "@/features/admin/components/printing-desk-shared";
 import { useMarkers } from "@/features/admin/hooks/use-markers";
 import { useDeskCardPrintings } from "@/features/admin/hooks/use-printing-desk";
 import {
@@ -88,7 +89,15 @@ function CardHeaderPanel({ card, base }: { card: DeskCard; base: DeskPrintingRow
   return (
     <Card>
       <CardContent className="flex items-start gap-3">
-        {base && <DeskThumb row={base} className="w-16" />}
+        {base && (
+          <AdminCardThumb
+            url={base.activeImageUrl}
+            cardType={base.cardType}
+            rarity={base.rarity}
+            alt={base.cardName}
+            className="w-16"
+          />
+        )}
         <div className="min-w-0 flex-1 space-y-1">
           <p className="font-medium">{card.name}</p>
           <p className="text-muted-foreground text-sm">{meta.join(" · ")}</p>
@@ -124,7 +133,14 @@ function PrintingTile({
         <Link to="/admin/printings/$printingId" params={{ printingId: printing.printingId }} />
       }
     >
-      <DeskThumb row={printing} className="w-full" variant="400w" />
+      <AdminCardThumb
+        url={printing.activeImageUrl}
+        cardType={printing.cardType}
+        rarity={printing.rarity}
+        alt={printing.cardName}
+        className="w-full"
+        variant="400w"
+      />
       <p className="font-mono text-sm">{formatPrintingCode(printing.publicCode)}</p>
       <div className="flex flex-wrap gap-1">
         <Badge variant="neutral">{rarityLabel}</Badge>

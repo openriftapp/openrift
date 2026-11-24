@@ -21,6 +21,7 @@ export function SourceUse({
   label = "Use",
   pending,
   onUse,
+  onDismiss,
 }: {
   value?: string;
   preview?: ReactNode;
@@ -28,6 +29,7 @@ export function SourceUse({
   label?: string;
   pending: boolean;
   onUse: () => void;
+  onDismiss?: () => void;
 }) {
   const long = value !== undefined && value.length > LONG_VALUE;
   return (
@@ -47,6 +49,17 @@ export function SourceUse({
           </span>
         </Button>
         <span className="text-muted-foreground text-sm">{source}</span>
+        {onDismiss && (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={pending}
+            title={`Mark what ${source} sent for this record as checked`}
+            onClick={onDismiss}
+          >
+            Dismiss
+          </Button>
+        )}
       </span>
       {long && <p className="text-muted-foreground text-sm break-words">{value}</p>}
     </div>
@@ -167,13 +180,7 @@ export function PassTopBar({
       : `Review · ${position.index + 1} of ${position.total}`;
   return (
     <AdminPageTopBar
-      back={
-        inReview ? (
-          <PageTopBarBack to="/admin/workspace/review" aria-label="Back to review" />
-        ) : (
-          <PageTopBarBack to="/admin/workspace/cards" aria-label="Back to cards" />
-        )
-      }
+      back={<PageTopBarBack to="/admin/workspace/cards" search aria-label="Back to cards" />}
       title={title}
       actions={actions}
     />

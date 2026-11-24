@@ -52,6 +52,7 @@ import type {
   SetsTable,
   TagCategoriesTable,
   TagDefinitionsTable,
+  TagTranslationsTable,
 } from "./tables/catalog.js";
 import type {
   CollectionDeckbuildingPrefsTable,
@@ -382,6 +383,7 @@ export interface Database {
 
   tagCategories: TagCategoriesTable;
   tagDefinitions: TagDefinitionsTable;
+  tagTranslations: TagTranslationsTable;
 
   products: ProductsTable;
   productPrintings: ProductPrintingsTable;

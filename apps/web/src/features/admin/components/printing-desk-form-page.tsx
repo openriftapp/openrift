@@ -20,13 +20,14 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui
 import { Input } from "@/components/ui/input";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Textarea } from "@/components/ui/textarea";
+import { AdminCardThumb } from "@/features/admin/components/admin-card-thumb";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { DatePrecisionControl } from "@/features/admin/components/date-precision-control";
 import { LanguageSelect } from "@/features/admin/components/language-select";
 import { PrintingDeskChannelPicker } from "@/features/admin/components/printing-desk-channel-picker";
 import { PrintingDeskMarkerPicker } from "@/features/admin/components/printing-desk-marker-picker";
 import { PrintingDeskPackOdds } from "@/features/admin/components/printing-desk-pack-odds";
-import { DeskSegmented, DeskThumb } from "@/features/admin/components/printing-desk-shared";
+import { DeskSegmented } from "@/features/admin/components/printing-desk-shared";
 import { SetPicker } from "@/features/admin/components/set-picker";
 import { SideSearch } from "@/features/admin/components/side-search";
 import {
@@ -615,7 +616,13 @@ function BaseAside({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        <DeskThumb row={base} className="w-24" />
+        <AdminCardThumb
+          url={base.activeImageUrl}
+          cardType={base.cardType}
+          rarity={base.rarity}
+          alt={base.cardName}
+          className="w-24"
+        />
 
         <DefinitionList>
           <DefinitionTerm>Rarity</DefinitionTerm>

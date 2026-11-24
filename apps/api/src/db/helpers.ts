@@ -6,6 +6,35 @@ export function primaryCardTypeSql(cardIdColumn: string) {
   return sql<CardType>`(SELECT cct.type_slug FROM card_card_types cct WHERE cct.card_id = ${sql.ref(cardIdColumn)} ORDER BY cct.sort_order LIMIT 1)`;
 }
 
+/** A source row whose printings are all in another language than English. */
+export function foreignLanguageCandidate(alias: string) {
+  const id = sql.ref(`${alias}.id`);
+  return sql<SqlBool>`(
+    exists (select 1 from candidate_printings fcp where fcp.candidate_card_id = ${id})
+    and not exists (
+      select 1 from candidate_printings fcp
+      where fcp.candidate_card_id = ${id} and fcp.language = 'EN'
+    )
+  )`;
+}
+
+/** A foreign-language row yields no tags while one of its labels has no translation. */
+export function translatedCandidateTags(alias: string) {
+  const tags = sql.ref(`${alias}.tags`);
+  return sql<string[]>`(case
+    when not ${foreignLanguageCandidate(alias)} then ${tags}
+    when exists (
+      select 1 from unnest(${tags}) raw(label)
+      where not exists (select 1 from tag_translations tt where tt.label = raw.label)
+    ) then '{}'::text[]
+    else array(
+      select (select min(tt.tag) from tag_translations tt where tt.label = raw.label)
+      from unnest(${tags}) with ordinality raw(label, ord)
+      order by raw.ord
+    )
+  end)`;
+}
+
 export function cardTypes(cardIdColumn: string) {
   return sql<
     CardType[]

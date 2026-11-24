@@ -32,6 +32,8 @@ function row(): DeskPrintingRow {
     distributionChannelSlugs: [],
     announcedAt: null,
     ...release,
+    setReleasedAt: null,
+    setReleasePrecision: null,
     comment: null,
     flavorText,
     imageCount: 0,

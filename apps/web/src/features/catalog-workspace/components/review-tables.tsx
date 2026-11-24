@@ -1,22 +1,17 @@
 import type { ReviewCard } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { countNoun } from "@openrift/shared/strings";
 import { useQuery } from "@tanstack/react-query";
-import { getRouteApi, Link } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/text-link";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { InstantCell } from "@/features/admin/components/admin-crud-shared";
-import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
-import { DebouncedSearchInput } from "@/features/admin/components/debounced-search-input";
-import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import { CardThumb } from "@/features/catalog-workspace/components/record/record-thumb";
-import { WorkspaceUndoButton } from "@/features/catalog-workspace/components/workspace-undo-button";
 import type { BatchReason } from "@/features/catalog-workspace/hooks/use-workspace-batch";
 import {
   readyPreviewQueryOptions,
@@ -33,12 +28,9 @@ import {
   NEW_CARD_KEY_PREFIX,
   pendingCount,
   pendingSummary,
-  reviewCardsQueryOptions,
   reviewSources,
   selectReviewCards,
 } from "@/features/catalog-workspace/lib/review-cards";
-
-const routeApi = getRouteApi("/_app/_authenticated/admin/workspace/review");
 
 function CardCell({ row }: AdminCellSlotProps<ReviewCard>) {
   if (!row) {
@@ -49,14 +41,19 @@ function CardCell({ row }: AdminCellSlotProps<ReviewCard>) {
       <Link
         to="/admin/workspace/cards/new/$name"
         params={{ name: row.key.slice(NEW_CARD_KEY_PREFIX.length) }}
+        search
       />
     ) : (
-      <Link to="/admin/workspace/cards/$cardSlug" params={{ cardSlug: row.cardSlug }} />
+      <Link to="/admin/workspace/cards/$cardSlug" params={{ cardSlug: row.cardSlug }} search />
     );
   return (
     <span className="flex items-center gap-2">
       <CardThumb cardSlug={row.cardSlug} />
-      <TextLink variant="inherit" className="font-medium" render={link}>
+      <TextLink
+        variant="inherit"
+        className="font-medium after:absolute after:inset-0"
+        render={link}
+      >
         {row.cardName}
       </TextLink>
     </span>
@@ -117,10 +114,11 @@ function ReadyCardCell({ row }: AdminCellSlotProps<ReadyRow>) {
         <Link
           to="/admin/workspace/cards/new/$name"
           params={{ name: row.reviewKey.slice(NEW_CARD_KEY_PREFIX.length) }}
+          search
         />
       )
     ) : (
-      <Link to="/admin/workspace/cards/$cardSlug" params={{ cardSlug: row.cardSlug }} />
+      <Link to="/admin/workspace/cards/$cardSlug" params={{ cardSlug: row.cardSlug }} search />
     );
   const thumb = <CardThumb cardSlug={row.cardSlug} />;
   if (!link) {
@@ -134,7 +132,11 @@ function ReadyCardCell({ row }: AdminCellSlotProps<ReadyRow>) {
   return (
     <span className="flex items-center gap-2">
       {thumb}
-      <TextLink variant="inherit" className="font-medium" render={link}>
+      <TextLink
+        variant="inherit"
+        className="font-medium after:absolute after:inset-0"
+        render={link}
+      >
         {row.cardName}
       </TextLink>
     </span>
@@ -171,7 +173,7 @@ const readyColumns: AdminColumnDef<ReadyRow>[] = [
   },
 ];
 
-function ReadyTable({
+export function ReadyTable({
   reviewCards,
   query,
   toolbarStart,
@@ -211,20 +213,11 @@ function ReadyTable({
 
   return (
     <AdminTable
-      topBar={(actions) => (
-        <AdminPageTopBar
-          title="Review"
-          actions={
-            <>
-              {actions}
-              <WorkspaceUndoButton />
-            </>
-          }
-        />
-      )}
       columns={readyColumns}
       data={rows}
       getRowKey={(row) => row.key}
+      stacked
+      rowClassName={() => "relative"}
       emptyText={
         all.length === 0
           ? "No trusted source has a new card or printing to accept."
@@ -270,82 +263,28 @@ function ReadyTable({
   );
 }
 
-export function ReviewPage() {
-  const search = routeApi.useSearch();
-  const navigate = routeApi.useNavigate();
-  const { data } = useQuery(reviewCardsQueryOptions());
-  const { data: access } = useAdminAccess();
-  const isAdmin = access?.isAdmin === true;
-  const query = search.q ?? "";
-  const all = data?.cards ?? [];
-  const cards = selectReviewCards(all, query);
-  const { data: preview } = useQuery({ ...readyPreviewQueryOptions(), enabled: isAdmin });
-  const readyCount = (preview?.cards.count ?? 0) + (preview?.printings.count ?? 0);
-  const ready = isAdmin && search.only === "ready";
-
-  const toolbarStart = (
-    <>
-      <DebouncedSearchInput
-        urlValue={query}
-        placeholder="Search cards or sources…"
-        className="w-64"
-        onCommit={(next) => {
-          void navigate({
-            replace: true,
-            search: (prev) => ({ ...prev, q: next === "" ? undefined : next }),
-          });
-        }}
-      />
-      {isAdmin && (
-        <ToggleGroup
-          variant="outline"
-          spacing={0}
-          value={[ready ? "ready" : "all"]}
-          aria-label="Show"
-          onValueChange={([next]) => {
-            if (next !== undefined) {
-              void navigate({
-                replace: true,
-                search: (prev) => ({ ...prev, only: next === "ready" ? "ready" : undefined }),
-              });
-            }
-          }}
-        >
-          <ToggleGroupItem value="all">All</ToggleGroupItem>
-          <ToggleGroupItem value="ready">Ready to accept {readyCount}</ToggleGroupItem>
-        </ToggleGroup>
-      )}
-    </>
-  );
-
-  if (ready) {
-    return <ReadyTable reviewCards={all} query={query} toolbarStart={toolbarStart} />;
-  }
-
+export function ReviewQueueTable({
+  cards,
+  query,
+  toolbar,
+  emptyText,
+}: {
+  cards: readonly ReviewCard[];
+  query: string;
+  toolbar: ReactNode;
+  emptyText: string;
+}) {
+  const rows = selectReviewCards(cards, query);
   return (
     <AdminTable
-      topBar={(actions) => (
-        <AdminPageTopBar
-          title="Review"
-          actions={
-            <>
-              {actions}
-              <WorkspaceUndoButton />
-            </>
-          }
-        />
-      )}
       columns={reviewColumns}
-      data={cards}
+      data={rows}
       getRowKey={(card) => card.key}
-      emptyText={all.length === 0 ? "Nothing waiting for review." : "No card matches this search."}
+      stacked
+      rowClassName={() => "relative"}
+      emptyText={cards.length === 0 ? emptyText : "No card matches this search."}
       minWidth="min-w-[820px]"
-      toolbar={
-        <div className="flex flex-wrap items-center gap-3">
-          {toolbarStart}
-          <span className="text-muted-foreground text-sm">{countNoun(all.length, "card")}</span>
-        </div>
-      }
+      toolbar={toolbar}
     />
   );
 }

@@ -20,7 +20,7 @@ const fetchWorkspaceQueue = createServerFn({ method: "GET" })
 
 const fetchCardImages = createServerFn({ method: "GET" })
   .middleware([withCookies])
-  .handler(async ({ context }): Promise<Record<string, string>> => {
+  .handler(async ({ context }): Promise<Record<string, { url: string; cardType: string }>> => {
     const response = await apiOrpcClient(
       adminCatalogWorkspaceContract,
       context.cookie,

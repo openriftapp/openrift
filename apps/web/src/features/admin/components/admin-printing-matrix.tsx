@@ -5,11 +5,12 @@ import type {
 } from "@openrift/shared/types/api/admin";
 import { WellKnown } from "@openrift/shared/well-known";
 import { PaletteIcon, TagIcon } from "lucide-react";
-import { isValidElement } from "react";
+import { Fragment, isValidElement } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
 import { CardIcon } from "@/components/card-icon";
 import { LanguageChip } from "@/components/language-chip";
+import { Badge } from "@/components/ui/badge";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Pressable } from "@/components/ui/pressable";
@@ -29,8 +30,22 @@ import type { PrintingDesign } from "@/features/cards/lib/printing-designs";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
 
+const NO_GHOSTS: readonly MatrixGhost[] = [];
+
 const cellGrid =
   "grid grid-cols-[repeat(var(--cols),minmax(0,1fr))] gap-2 sm:grid-cols-[repeat(var(--cols),var(--cell,4.5rem))]";
+
+/** A printing a source proposes, drawn where it would join the grid. */
+export interface MatrixGhost {
+  key: string;
+  shortCode: string;
+  language: string;
+  summary: string;
+  imageUrl: string | null;
+  action: ReactNode;
+}
+
+const PAIRED_THUMB = "max-w-11 flex-1";
 
 export function AdminPrintingMatrix({
   detail,
@@ -39,6 +54,8 @@ export function AdminPrintingMatrix({
   faces,
   printings,
   highlightedIds,
+  ghosts = NO_GHOSTS,
+  onlyShortCodes,
 }: {
   detail: AdminCardDetailResponse;
   landscape: boolean;
@@ -46,11 +63,27 @@ export function AdminPrintingMatrix({
   faces?: readonly AdminPrintingResponse[];
   printings?: readonly AdminPrintingResponse[];
   highlightedIds?: ReadonlySet<string>;
+  ghosts?: readonly MatrixGhost[];
+  onlyShortCodes?: ReadonlySet<string>;
 }) {
   const byLanguage = usePrintingsByLanguage(faces ?? printings ?? detail.printings);
   const ordered = byLanguage.flatMap((group) => group.printings);
-  const { languages, designs } =
+  const grouped =
     faces === undefined ? groupAdminPrintingDesigns(ordered) : groupAdminFaceDesigns(ordered);
+  const languages = [
+    ...grouped.languages,
+    ...new Set(
+      ghosts.map((ghost) => ghost.language).filter((code) => !grouped.languages.includes(code)),
+    ),
+  ];
+  const designs =
+    onlyShortCodes === undefined
+      ? grouped.designs
+      : grouped.designs.filter((design) => onlyShortCodes.has(design.lead.shortCode));
+  const lastWithCode = new Map(designs.map((design) => [design.lead.shortCode, design.key]));
+  const ghostsAfter = Map.groupBy(ghosts, (ghost) => lastWithCode.get(ghost.shortCode) ?? null);
+  const ghostRows = (list: readonly MatrixGhost[] | undefined) =>
+    list?.map((ghost) => <GhostRow key={ghost.key} ghost={ghost} languages={languages} />);
   const columns: MatrixColumns =
     faces === undefined ? (printings === undefined ? "flow" : "printing") : "face";
   const paired = printings?.some((printing) => printing.otherFace !== null) === true;
@@ -73,42 +106,73 @@ export function AdminPrintingMatrix({
       </div>
       <ul>
         {designs.map((design) => (
-          <li
-            key={design.key}
-            className="flex flex-col gap-2.5 border-t px-3 py-3 sm:flex-row sm:items-center sm:gap-4 sm:px-4 sm:py-2"
-          >
-            <DesignInfo design={design} columns={columns} />
-            <div className={cellGrid}>
-              {languages.map((language) => {
-                const printing = design.byLanguage.get(language);
-                if (!printing) {
+          <Fragment key={design.key}>
+            <li className="flex flex-col gap-2.5 border-t px-3 py-3 sm:flex-row sm:items-center sm:gap-4 sm:px-4 sm:py-2">
+              <DesignInfo design={design} columns={columns} />
+              <div className={cellGrid}>
+                {languages.map((language) => {
+                  const printing = design.byLanguage.get(language);
+                  if (!printing) {
+                    return (
+                      <span key={language} className="flex justify-center py-1">
+                        <span
+                          aria-hidden
+                          className="aspect-card w-11 border border-dashed"
+                          style={{ borderRadius: CARD_BORDER_RADIUS }}
+                        />
+                      </span>
+                    );
+                  }
                   return (
-                    <span key={language} className="flex justify-center py-1">
-                      <span
-                        aria-hidden
-                        className="aspect-card w-11 border border-dashed"
-                        style={{ borderRadius: CARD_BORDER_RADIUS }}
-                      />
-                    </span>
+                    <PrintingCell
+                      key={language}
+                      printing={printing}
+                      detail={detail}
+                      landscape={landscape}
+                      onOpen={onOpen}
+                      highlighted={highlightedIds?.has(printing.id) === true}
+                      bothFaces={columns === "printing"}
+                    />
                   );
-                }
-                return (
-                  <PrintingCell
-                    key={language}
-                    printing={printing}
-                    detail={detail}
-                    landscape={landscape}
-                    onOpen={onOpen}
-                    highlighted={highlightedIds?.has(printing.id) === true}
-                    bothFaces={columns === "printing"}
-                  />
-                );
-              })}
-            </div>
-          </li>
+                })}
+              </div>
+            </li>
+            {ghostRows(ghostsAfter.get(design.key))}
+          </Fragment>
         ))}
+        {ghostRows(ghostsAfter.get(null))}
       </ul>
     </div>
+  );
+}
+
+function GhostRow({ ghost, languages }: { ghost: MatrixGhost; languages: readonly string[] }) {
+  return (
+    <li className="border-primary bg-muted/40 flex flex-col gap-2.5 border-t px-3 py-3 sm:flex-row sm:items-center sm:gap-4 sm:px-4 sm:py-2">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
+        <Badge variant="warning">New</Badge>
+        <p className="font-semibold">{ghost.shortCode}</p>
+        <span className="text-muted-foreground text-xs">{ghost.summary}</span>
+        {ghost.action}
+      </div>
+      <div className={cellGrid}>
+        {languages.map((language) => (
+          <span key={language} className="flex justify-center py-1">
+            {language === ghost.language ? (
+              <span className="border-primary rounded-sm border-2 border-dashed p-0.5">
+                <CardArtThumb src={ghost.imageUrl} className="w-10" loading="lazy" />
+              </span>
+            ) : (
+              <span
+                aria-hidden
+                className="aspect-card w-11 border border-dashed"
+                style={{ borderRadius: CARD_BORDER_RADIUS }}
+              />
+            )}
+          </span>
+        ))}
+      </div>
+    </li>
   );
 }
 
@@ -131,26 +195,27 @@ function PrintingCell({
     (candidate) => candidate.isActive,
   );
   const url = image === undefined ? null : printingImageDisplayUrl(image);
+  const pairs = bothFaces && printing.otherFace !== null;
   const own = (
     <CardArtThumb
       src={url}
       landscape={landscape}
       rarity={printing.rarity}
-      className="w-11"
+      className={pairs ? PAIRED_THUMB : "w-11"}
       loading="lazy"
     />
   );
-  const other = bothFaces && printing.otherFace !== null && (
+  const other = pairs && (
     <CardArtThumb
-      src={printing.otherFace.imageUrl}
+      src={printing.otherFace?.imageUrl}
       landscape={landscape}
       rarity={printing.rarity}
-      className="w-11"
+      className={PAIRED_THUMB}
       loading="lazy"
     />
   );
   const thumb = other ? (
-    <span className="flex gap-0.5">
+    <span className="flex w-full justify-center gap-0.5">
       {printing.side === 1 ? own : other}
       {printing.side === 1 ? other : own}
     </span>

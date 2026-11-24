@@ -12,6 +12,15 @@ export const DESK_STATUSES = ["announced", "released"] as const;
 
 export const workspaceCardsSearchSchema = z.object({
   q: lenient(z.string()),
+  set: lenient(z.string().check(z.minLength(1))),
+});
+
+export const CARD_VIEWS = ["review", "images", "ready"] as const;
+
+export type CardView = (typeof CARD_VIEWS)[number];
+
+export const cardsRouteSearchSchema = z.extend(workspaceCardsSearchSchema, {
+  queue: lenient(z.enum(CARD_VIEWS)),
 });
 
 export const facesSearchSchema = z.extend(workspaceCardsSearchSchema, {

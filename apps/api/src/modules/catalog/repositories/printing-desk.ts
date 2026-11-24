@@ -37,6 +37,8 @@ export interface DeskPrintingDbRow {
   announcedAt: string | null;
   releasedAt: string | null;
   releasePrecision: ReleasePrecision | null;
+  setReleasedAt: string | null;
+  setReleasePrecision: ReleasePrecision | null;
   comment: string | null;
   flavorText: string | null;
   imageCount: number;
@@ -150,6 +152,9 @@ export function printingDeskRepo(db: Kysely<Database>) {
     )
       .innerJoin("cards as c", "c.id", "pf.cardId")
       .innerJoin("sets as s", "s.id", "pf.setId")
+      .leftJoin("setReleases as sr", (join) =>
+        join.onRef("sr.setId", "=", "pf.setId").onRef("sr.language", "=", "pf.language"),
+      )
       .select([
         "p.id as printingId",
         "p.slug",
@@ -171,6 +176,8 @@ export function printingDeskRepo(db: Kysely<Database>) {
         "p.announcedAt",
         "p.releasedAt",
         "p.releasePrecision",
+        "sr.releasedAt as setReleasedAt",
+        "sr.precision as setReleasePrecision",
         "p.comment",
         "pf.flavorText",
         "imgf.id as activeImageFileId",

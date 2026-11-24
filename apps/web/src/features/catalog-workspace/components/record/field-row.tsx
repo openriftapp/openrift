@@ -16,8 +16,8 @@ export function RecordFieldRow({
   suggestions?: ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-[minmax(0,11rem)_minmax(0,1fr)_auto] items-center gap-x-2.5 gap-y-1.5 border-t py-1.5 first:border-t-0">
-      <span className="text-muted-foreground">{label}</span>
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2.5 gap-y-1.5 border-t py-1.5 first:border-t-0 sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)_auto]">
+      <span className="text-muted-foreground max-sm:col-span-2">{label}</span>
       <div className="min-w-0 break-words">{editing ?? value}</div>
       <div>
         {onEdit !== undefined && editing === undefined && (
@@ -27,7 +27,7 @@ export function RecordFieldRow({
         )}
       </div>
       {suggestions !== undefined && (
-        <div className="col-span-2 col-start-2 flex flex-col gap-1.5">{suggestions}</div>
+        <div className="col-span-2 flex flex-col gap-1.5 sm:col-start-2">{suggestions}</div>
       )}
     </div>
   );

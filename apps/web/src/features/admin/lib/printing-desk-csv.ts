@@ -4,7 +4,11 @@ import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { cardUrl } from "@openrift/shared/site-paths";
 
 import { deskImageSrc } from "./printing-desk-image";
-import { deskPrintingPeriod, deskPrintingStatus } from "./printing-desk-status";
+import {
+  deskPrintingPeriod,
+  deskPrintingRelease,
+  deskPrintingStatus,
+} from "./printing-desk-status";
 
 const HEADERS = [
   "Card",
@@ -73,10 +77,10 @@ export function buildPrintingDeskCsv(
       row.distributionChannelSlugs
         .map((slug) => options.channelPaths.get(slug) ?? slug)
         .join(LIST_SEPARATOR),
-      deskPrintingStatus(row),
+      deskPrintingStatus(row) ?? "",
       row.announcedAt ?? "",
       deskPrintingPeriod(row),
-      row.releasePrecision ?? "",
+      deskPrintingRelease(row).precision ?? "",
       row.artist,
       row.comment ?? "",
       String(row.imageCount),

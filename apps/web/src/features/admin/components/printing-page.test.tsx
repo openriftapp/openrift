@@ -142,6 +142,8 @@ function row(): DeskPrintingRow {
     announcedAt: null,
     releasedAt: null,
     releasePrecision: null,
+    setReleasedAt: null,
+    setReleasePrecision: null,
     comment: null,
     flavorText: null,
     imageCount: 0,
