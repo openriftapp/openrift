@@ -15,6 +15,7 @@ import type { ComponentType, ReactNode, SVGProps } from "react";
 
 import { DateLeaf } from "@/components/ui/date-leaf";
 import { Empty, EmptyContent, EmptyDescription } from "@/components/ui/empty";
+import { ExternalAnchor } from "@/components/ui/external-anchor";
 import { IconChip } from "@/components/ui/icon-chip";
 import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -246,8 +247,7 @@ function ShopNextUp({ slug, data }: { slug: string; data: FriendGroupDetailRespo
         <RowList>
           {upcoming.slice(0, 3).map((event) => (
             <RowListItem key={`${event.shopKey}:${event.externalId}`}>
-              {/* oxlint-disable-next-line jsx-a11y/control-has-associated-label -- text label is inside the RowListLink children */}
-              <RowListLink render={<a href={event.url} target="_blank" rel="noreferrer" />}>
+              <RowListLink render={<ExternalAnchor href={event.url} />}>
                 <DateLeaf at={event.startAt} clock="local" size="sm" />
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate text-sm font-medium">{event.name}</span>

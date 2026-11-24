@@ -1,8 +1,9 @@
+import { CARD_ASPECT } from "@openrift/shared/card-orientation";
 /**
  * Hand-checked card outlines for detector training: one entry per frame, the
  * card quads in image pixels and whether every card in the frame is outlined.
  */
-import { CARD_ASPECT } from "@openrift/shared/card-orientation";
+import { fnv1a } from "@openrift/shared/fnv1a";
 
 export interface OutlineLabelPoint {
   x: number;
@@ -201,12 +202,7 @@ export function outlineLabelFolder(files: readonly { name: string; size: number 
 }
 
 export function outlineLabelStorageKey(folder: string): string {
-  let hash = 0x81_1c_9d_c5;
-  for (let index = 0; index < folder.length; index++) {
-    // oxlint-disable-next-line unicorn/prefer-code-point -- FNV-1a hashes UTF-16 units
-    hash = Math.imul(hash ^ folder.charCodeAt(index), 0x01_00_01_93) >>> 0;
-  }
-  return `openrift-scan-labels:${hash.toString(16)}`;
+  return `openrift-scan-labels:${fnv1a(folder).toString(16)}`;
 }
 
 export function serializeStoredOutlineLabels(folder: string, labels: FrameOutlineLabels): string {

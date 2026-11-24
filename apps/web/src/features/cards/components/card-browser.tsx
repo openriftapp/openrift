@@ -59,6 +59,7 @@ import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useSeedLanguagesFromPrefs } from "@/hooks/use-seed-languages-from-prefs";
 import { useSession } from "@/hooks/use-session";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
+import { useConstant } from "@/lib/use-constant";
 import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
 import { useDisplayStore } from "@/stores/display-store";
@@ -177,8 +178,7 @@ export function CardBrowser() {
 
   // The loader ran for the server-rendered search and does not rerun when the search changes.
   const searchKey = useFilterSearchKey();
-  // oxlint-disable-next-line react/hook-use-state -- the search this page loaded with, never replaced
-  const [loaderSearchKey] = useState(searchKey);
+  const loaderSearchKey = useConstant(() => searchKey);
   const countsPending = !live && searchKey !== loaderSearchKey;
 
   // No useDeferredValue on the filter state: deferring split each toggle into

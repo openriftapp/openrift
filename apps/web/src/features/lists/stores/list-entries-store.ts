@@ -1,9 +1,11 @@
 import type { ListEntryDetailResponse } from "@openrift/shared/types/api/list";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext } from "react";
 import { useStore } from "zustand";
 import type { StoreApi } from "zustand";
 import { createStore } from "zustand/vanilla";
+
+import { useConstant } from "@/lib/use-constant";
 
 interface ListEntriesState {
   entryByItemId: Map<string, ListEntryDetailResponse>;
@@ -36,8 +38,7 @@ export function createListEntriesStore(): ListEntriesStore {
 
 /** Creates the collection layout's store once and keeps it for the layout's lifetime. */
 export function useOwnListEntriesStore(): ListEntriesStore {
-  // oxlint-disable-next-line react/hook-use-state -- a stable per-layout store, never replaced
-  const [store] = useState(createListEntriesStore);
+  const store = useConstant(createListEntriesStore);
   return store;
 }
 

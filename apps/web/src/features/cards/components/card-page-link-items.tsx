@@ -3,6 +3,7 @@ import { Link, useRouter } from "@tanstack/react-router";
 import { AppWindowIcon, ExternalLinkIcon, LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import { ExternalAnchor } from "@/components/ui/external-anchor";
 import { CardMenuItem } from "@/features/cards/components/card-context-menu";
 import { cardPageHref, cardPageLinkOptions } from "@/features/cards/lib/card-page-href";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
@@ -27,13 +28,7 @@ export function CardPageLinkItems({ printing }: { printing: Printing }) {
       <CardMenuItem icon={ExternalLinkIcon} render={<Link {...cardPageLinkOptions(printing)} />}>
         {m.cards_context_open_card_page()}
       </CardMenuItem>
-      <CardMenuItem
-        icon={AppWindowIcon}
-        render={
-          // oxlint-disable-next-line jsx-a11y/control-has-associated-label -- text label is inside the CardMenuItem children
-          <a href={href} target="_blank" rel="noreferrer" />
-        }
-      >
+      <CardMenuItem icon={AppWindowIcon} render={<ExternalAnchor href={href} />}>
         {m.cards_context_open_in_new_tab()}
       </CardMenuItem>
       <CardMenuItem icon={LinkIcon} onSelect={() => void copyLink()}>

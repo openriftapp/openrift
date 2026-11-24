@@ -1,6 +1,8 @@
 import type { ListEntryDetailResponse } from "@openrift/shared/types/api/list";
 import type { MutationCache } from "@tanstack/react-query";
 
+import { mutationsSettled } from "@/lib/mutations-settled";
+
 const LIST_ENTRY_WRITE_KEY = ["lists", "entry-write"] as const;
 
 export const LIST_ENTRY_MUTATION_KEYS = {
@@ -103,18 +105,7 @@ export function entryStepsSettled(
   listId: string,
   entryId: string,
 ): Promise<void> {
-  if (!stepPendingOn(mutationCache, listId, entryId)) {
-    return Promise.resolve();
-  }
-  // oxlint-disable-next-line promise/avoid-new -- settles on a mutation cache event
-  return new Promise<void>((resolve) => {
-    const unsubscribe = mutationCache.subscribe(() => {
-      if (!stepPendingOn(mutationCache, listId, entryId)) {
-        unsubscribe();
-        resolve();
-      }
-    });
-  });
+  return mutationsSettled(mutationCache, () => stepPendingOn(mutationCache, listId, entryId));
 }
 
 export function bulkAddItemMatches(item: BulkAddItem, entry: EntryIdentity): boolean {

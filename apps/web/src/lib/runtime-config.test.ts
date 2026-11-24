@@ -2,8 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import { runtimeConfigScript } from "./runtime-config";
 
-// oxlint-disable unicorn/prefer-string-raw -- explicit \u escapes assert exact output shape; String.raw would defeat the readability in assertions
-
 describe("runtimeConfigScript", () => {
   it("serializes a Sentry DSN and the app environment onto globalThis", () => {
     const script = runtimeConfigScript({
@@ -26,7 +24,7 @@ describe("runtimeConfigScript", () => {
       appEnv: "development",
     });
     expect(script).not.toContain("</script>");
-    expect(script).toContain("\\u003c/script>");
+    expect(script).toContain(String.raw`\u003c/script>`);
   });
 
   it("escapes U+2028 and U+2029 line separators", () => {
@@ -38,8 +36,8 @@ describe("runtimeConfigScript", () => {
     });
     expect(script).not.toContain(lineSep);
     expect(script).not.toContain(paraSep);
-    expect(script).toContain("\\u2028");
-    expect(script).toContain("\\u2029");
+    expect(script).toContain(String.raw`\u2028`);
+    expect(script).toContain(String.raw`\u2029`);
   });
 
   it("carries the operator's legal page URLs and omits unset ones", () => {

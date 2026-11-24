@@ -1,4 +1,3 @@
-/* oxlint-disable typescript/no-non-null-assertion -- standalone script */
 /**
  * Integration test orchestrator.
  *
@@ -17,7 +16,7 @@ import {
   sweepStaleTestDatabases,
 } from "./integration-setup.js";
 
-const repoRoot = resolve(import.meta.dirname!, "../..");
+const repoRoot = resolve(import.meta.dir, "../..");
 
 const MIGRATIONS_FILE = "src/db/migrations/migrations.integration.test.ts";
 
@@ -27,7 +26,7 @@ const ALL_FILES = [...new Bun.Glob("src/**/*.integration.test.ts").scanSync({ cw
 
 const PARALLEL_FILES = ALL_FILES.filter((file) => file !== MIGRATIONS_FILE);
 
-const DATABASE_URL = process.env.DATABASE_URL;
+const DATABASE_URL = process.env.DATABASE_URL ?? "";
 if (!DATABASE_URL) {
   console.log("DATABASE_URL not set — skipping integration tests");
   process.exit(0);
@@ -65,7 +64,7 @@ async function cleanupAndExit(code: number): Promise<void> {
   if (tempDbName) {
     console.log(`\nInterrupted, dropping ${tempDbName}...`);
     try {
-      await dropTempDb(DATABASE_URL!, tempDbName);
+      await dropTempDb(DATABASE_URL, tempDbName);
     } catch {
       // Nothing more we can do while going down. The sweep catches it later.
     }

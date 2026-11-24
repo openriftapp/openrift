@@ -1,3 +1,4 @@
+import { noop } from "@openrift/shared/noop";
 import type { SortDirection } from "@openrift/shared/types/search";
 import { createContext, useContext } from "react";
 
@@ -64,14 +65,12 @@ export interface ViewPrefsWriter {
 }
 
 // Unscoped surfaces have nowhere to persist; writes are dropped, only the URL param takes effect.
-/* oxlint-disable no-empty-function -- intentional no-ops for unscoped surfaces */
 const NO_OP_WRITER: ViewPrefsWriter = {
-  setSort: () => {},
-  setSortDir: () => {},
-  setGroupBy: () => {},
-  setGroupDir: () => {},
+  setSort: noop,
+  setSortDir: noop,
+  setGroupBy: noop,
+  setGroupDir: noop,
 };
-/* oxlint-enable no-empty-function */
 
 /** Arriving via someone else's link only sets the URL; it never overwrites the visitor's own defaults. */
 export function useViewPrefsWriter(): ViewPrefsWriter {

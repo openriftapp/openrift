@@ -3,6 +3,7 @@ import type {
   DeskPrintingRow,
   DeskSecondSide,
 } from "@openrift/shared/contracts/admin/printing-desk";
+import type * as ReactQuery from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
@@ -104,8 +105,7 @@ vi.mock("@/hooks/use-enums", () => ({
 }));
 
 vi.mock("@tanstack/react-query", async (importOriginal) => ({
-  // oxlint-disable-next-line typescript/consistent-type-imports -- vitest dynamic import pattern
-  ...(await importOriginal<typeof import("@tanstack/react-query")>()),
+  ...(await importOriginal<typeof ReactQuery>()),
   useSuspenseQuery: () => ({ data: { printings: state.cardPrintings } }),
 }));
 

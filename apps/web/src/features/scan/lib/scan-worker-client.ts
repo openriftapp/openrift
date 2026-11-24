@@ -128,6 +128,15 @@ export function createScanWorkerClient(
     worker.postMessage(request, transfer ?? []);
   };
 
+  const request = <T>(build: (id: number) => ScanWorkerRequest, transfer?: Transferable[]) => {
+    const id = nextId++;
+    /* oxlint-disable-next-line promise/avoid-new -- bridging a message protocol to a promise */
+    return new Promise<T>((resolve, reject) => {
+      pending.set(id, { resolve: resolve as (r: never) => void, reject });
+      send(build(id), transfer);
+    });
+  };
+
   return {
     init(assets, ortThreads) {
       /* oxlint-disable-next-line promise/avoid-new -- bridging a message protocol to a promise */
@@ -143,42 +152,30 @@ export function createScanWorkerClient(
       });
     },
     create(live, catchUp) {
-      const id = nextId++;
-      /* oxlint-disable-next-line promise/avoid-new -- bridging a message protocol to a promise */
-      return new Promise<void>((resolve, reject) => {
-        pending.set(id, { resolve: resolve as (r: never) => void, reject });
-        send({ type: "create", id, live, catchUp });
-      });
+      return request<void>((id) => ({ type: "create", id, live, catchUp }));
     },
     processFrame(kind, frame, index, seconds) {
-      const id = nextId++;
       const buffer = transferable(frame.data);
-      /* oxlint-disable-next-line promise/avoid-new -- bridging a message protocol to a promise */
-      return new Promise<FrameOutcome>((resolve, reject) => {
-        pending.set(id, { resolve: resolve as (r: never) => void, reject });
-        send(
-          {
-            type: "frame",
-            id,
-            kind,
-            buffer,
-            width: frame.width,
-            height: frame.height,
-            index,
-            seconds,
-          },
-          [buffer],
-        );
-      });
+      return request<FrameOutcome>(
+        (id) => ({
+          type: "frame",
+          id,
+          kind,
+          buffer,
+          width: frame.width,
+          height: frame.height,
+          index,
+          seconds,
+        }),
+        [buffer],
+      );
     },
     readBoard(frame) {
-      const id = nextId++;
       const buffer = transferable(frame.data);
-      /* oxlint-disable-next-line promise/avoid-new -- bridging a message protocol to a promise */
-      return new Promise<BoardCard[]>((resolve, reject) => {
-        pending.set(id, { resolve: resolve as (r: never) => void, reject });
-        send({ type: "board", id, buffer, width: frame.width, height: frame.height }, [buffer]);
-      });
+      return request<BoardCard[]>(
+        (id) => ({ type: "board", id, buffer, width: frame.width, height: frame.height }),
+        [buffer],
+      );
     },
     rearm() {
       send({ type: "rearm" });

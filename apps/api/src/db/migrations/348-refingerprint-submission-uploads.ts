@@ -14,5 +14,5 @@ export async function up(db: Kysely<unknown>): Promise<void> {
   `.execute(db);
 }
 
-// oxlint-disable-next-line eslint/no-empty-function -- the cleared URLs carry no state to restore
-export async function down(): Promise<void> {}
+// One-way: the cleared URLs carry no state to restore.
+export { down } from "./_noop.js";

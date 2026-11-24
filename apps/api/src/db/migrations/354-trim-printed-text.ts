@@ -37,5 +37,5 @@ export async function up(db: Kysely<unknown>): Promise<void> {
   await trimNullable(db, "candidate_cards", ["rules_text", "effect_text"]);
 }
 
-// oxlint-disable-next-line eslint/no-empty-function -- the stripped whitespace carries no meaning to restore
-export async function down(): Promise<void> {}
+// One-way: the stripped whitespace carries no meaning to restore.
+export { down } from "./_noop.js";

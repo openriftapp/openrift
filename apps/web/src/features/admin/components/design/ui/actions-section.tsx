@@ -22,8 +22,10 @@ import { ButtonGroup, ButtonGroupSeparator } from "@/components/ui/button-group"
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { CountPillButton } from "@/components/ui/count-pill";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
+import { ExternalAnchor } from "@/components/ui/external-anchor";
 import { Pressable } from "@/components/ui/pressable";
 import { ScrollToTopButton } from "@/components/ui/scroll-to-top-button";
+import { TextLink } from "@/components/ui/text-link";
 import {
   DemoGroup,
   DemoRow,
@@ -190,6 +192,14 @@ export function ActionsSection() {
                 <div className="text-muted-foreground text-xs">OGN-042 · Epic</div>
               </div>
             </Pressable>
+          </DemoRow>
+          <DemoRow
+            label="ExternalAnchor"
+            hint="Render-slot target for a link that opens in a new tab. The host supplies children and styling."
+          >
+            <TextLink render={<ExternalAnchor href="https://example.com" />}>
+              Opens in a new tab
+            </TextLink>
           </DemoRow>
           <DemoRow
             label="ScrollToTopButton"

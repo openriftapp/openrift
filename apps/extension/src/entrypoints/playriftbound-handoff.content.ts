@@ -20,8 +20,7 @@ export default defineContentScript({
         post: (message) => globalThis.postMessage(message, origin),
         listen: (handler) => {
           const onMessage = (event: MessageEvent) => {
-            // oxlint-disable-next-line unicorn/prefer-global-this -- MessageEvent.source is typed as a Window
-            if (event.source === window && event.origin === origin) {
+            if (event.source === globalThis.window && event.origin === origin) {
               handler(event.data);
             }
           };

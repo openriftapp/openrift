@@ -1,6 +1,8 @@
 import type { QueryClient, StaleTime } from "@tanstack/react-query";
 import { onlineManager } from "@tanstack/react-query";
 
+import { mutationsSettled } from "@/lib/mutations-settled";
+
 export const TIER_LIST_SAVE_MUTATION_KEY = ["tier-lists", "save"] as const;
 
 function savesList(variables: unknown, id: string): boolean {
@@ -21,18 +23,7 @@ function hasPendingSave(queryClient: QueryClient, id: string): boolean {
  * included. A loader that read the list earlier would hand its editor the board from before the save.
  */
 export function tierListSavesSettled(queryClient: QueryClient, id: string): Promise<void> {
-  if (!hasPendingSave(queryClient, id)) {
-    return Promise.resolve();
-  }
-  // oxlint-disable-next-line promise/avoid-new -- settles from the mutation cache's subscription callback
-  return new Promise((resolve) => {
-    const unsubscribe = queryClient.getMutationCache().subscribe(() => {
-      if (!hasPendingSave(queryClient, id)) {
-        unsubscribe();
-        resolve();
-      }
-    });
-  });
+  return mutationsSettled(queryClient.getMutationCache(), () => hasPendingSave(queryClient, id));
 }
 
 /** Entry reads the list fresh; offline it takes the cached board, and the open page refetches on reconnect. */

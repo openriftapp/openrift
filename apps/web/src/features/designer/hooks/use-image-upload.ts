@@ -7,21 +7,8 @@ import {
 } from "@/features/designer/lib/card-designer";
 import { useCardDesignerStore } from "@/features/designer/stores/card-designer-store";
 import { loadImage } from "@/lib/load-image";
+import { readAsDataUrl } from "@/lib/read-as-data-url";
 import { m } from "@/paraglide/messages.js";
-
-export function readFileAsDataUrl(file: Blob): Promise<string> {
-  // oxlint-disable-next-line promise/avoid-new -- wrapping the FileReader callback API
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.addEventListener("load", () => {
-      resolve(reader.result as string);
-    });
-    reader.addEventListener("error", () => {
-      reject(reader.error ?? new Error("Failed to read file."));
-    });
-    reader.readAsDataURL(file);
-  });
-}
 
 /**
  * Best-effort: any failure (no canvas, decode error) yields the input
@@ -72,7 +59,7 @@ export function useImageUpload(): UseImageUpload {
       return;
     }
     setLoading(true);
-    const prepared = await readFileAsDataUrl(file)
+    const prepared = await readAsDataUrl(file)
       .then(prepareImage)
       .catch(() => null);
     if (prepared) {

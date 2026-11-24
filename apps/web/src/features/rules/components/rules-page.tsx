@@ -53,6 +53,7 @@ import { useIsStuck } from "@/hooks/use-is-stuck";
 import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { formatCount } from "@/lib/format";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
+import { useConstant } from "@/lib/use-constant";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -241,8 +242,7 @@ function RulesContent({
   const searchParam = routeApi.useSearch({ select: (search) => search.q });
   const searchQuery = searchParam ?? "";
   const hash = useLocation({ select: (location) => location.hash });
-  // oxlint-disable-next-line react/hook-use-state -- a stable per-page store, never replaced
-  const [store] = useState(createRulesPageStore);
+  const store = useConstant(createRulesPageStore);
 
   const isHydrated = useHydrated();
   const cardPreview = useRuleCardPreview();
@@ -417,8 +417,8 @@ function RulesContent({
                 }
               >
                 <PageToc items={tocItems} onJump={jumpToTocItem} />
-                {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- delegated link handling */}
                 <div
+                  role="presentation"
                   className="min-w-0 flex-1"
                   lang={language}
                   onClick={(event) =>

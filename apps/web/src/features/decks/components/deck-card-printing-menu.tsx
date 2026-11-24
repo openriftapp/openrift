@@ -2,7 +2,7 @@ import { Menu } from "@base-ui/react/menu";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { ComponentType, MouseEvent, ReactNode } from "react";
-import { createContext, useState } from "react";
+import { createContext } from "react";
 
 import {
   ContextMenu,
@@ -33,6 +33,7 @@ import { buildMoveRows, getAllowedMoveTargets } from "@/features/decks/lib/deck-
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
 import { useZoneOrder } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useConstant } from "@/lib/use-constant";
 import { m } from "@/paraglide/messages.js";
 
 interface DeckCardPrintingMenuProps {
@@ -87,8 +88,7 @@ export function DeckCardPrintingMenu({
   const isMobile = useIsMobile();
   const printings = usePrintingChoices(card.cardId, card.preferredPrintingId);
   const { hoveredId, popupRef, hoverProps, reset } = usePrintingChoiceHover();
-  // oxlint-disable-next-line react/hook-use-state -- a stable per-mount handle, never replaced
-  const [menuHandle] = useState(() => Menu.createHandle());
+  const menuHandle = useConstant(() => Menu.createHandle());
 
   const { data: deckDetail } = useDeckDetail(deckId);
   const deckCards = useDeckCards(deckId);

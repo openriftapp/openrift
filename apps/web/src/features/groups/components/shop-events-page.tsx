@@ -13,6 +13,7 @@ import { PageDescription } from "@/components/layout/page-top-bar";
 import { buttonVariants } from "@/components/ui/button";
 import { DateLeaf } from "@/components/ui/date-leaf";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
+import { ExternalAnchor } from "@/components/ui/external-anchor";
 import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -176,8 +177,7 @@ function ShopEventRow({
   ].join(" · ");
 
   return (
-    // oxlint-disable-next-line jsx-a11y/control-has-associated-label -- text label is inside the RowListLink children
-    <RowListLink render={<a href={event.url} target="_blank" rel="noreferrer" />}>
+    <RowListLink render={<ExternalAnchor href={event.url} />}>
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-sm font-medium">{event.name}</span>
         <span className="text-muted-foreground truncate text-xs">{meta}</span>

@@ -1,7 +1,7 @@
+import { noop } from "@openrift/shared/noop";
 import { useSyncExternalStore } from "react";
 
-// oxlint-disable-next-line eslint/no-empty-function -- intentional no-op unsubscribe for useSyncExternalStore
-const emptySubscribe = () => () => {};
+const emptySubscribe = () => noop;
 
 /** Returns true once the client has hydrated; always false during SSR. */
 export function useHydrated(): boolean {

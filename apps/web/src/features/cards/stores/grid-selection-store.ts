@@ -1,7 +1,8 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext } from "react";
 import { useStore } from "zustand";
 import type { StoreApi } from "zustand";
 
+import { useConstant } from "@/lib/use-constant";
 import type { MultiSelectState } from "@/stores/multi-select-store";
 import { createMultiSelectStore } from "@/stores/multi-select-store";
 
@@ -14,8 +15,7 @@ export function createGridSelectionStore(): GridSelectionStore {
 
 /** Creates the collection layout's store once and keeps it for the layout's lifetime. */
 export function useOwnGridSelectionStore(): GridSelectionStore {
-  // oxlint-disable-next-line react/hook-use-state -- a stable per-layout store, never replaced
-  const [store] = useState(createGridSelectionStore);
+  const store = useConstant(createGridSelectionStore);
   return store;
 }
 

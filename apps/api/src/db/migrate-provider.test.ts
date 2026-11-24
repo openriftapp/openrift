@@ -1,11 +1,11 @@
 import type { Logger } from "@openrift/shared/logger";
+import type * as KyselyMigration from "kysely/migration";
 import { describe, expect, it, vi } from "vitest";
 
 let capturedProvider: { getMigrations: () => Promise<Record<string, unknown>> } | undefined;
 
 vi.mock("kysely/migration", async (importOriginal) => {
-  // oxlint-disable-next-line typescript/consistent-type-imports -- vitest dynamic import pattern
-  const original = await importOriginal<typeof import("kysely/migration")>();
+  const original = await importOriginal<typeof KyselyMigration>();
   return {
     ...original,
     Migrator: class MockMigrator {

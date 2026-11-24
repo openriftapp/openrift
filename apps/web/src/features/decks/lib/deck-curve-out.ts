@@ -1,3 +1,4 @@
+import { fnv1a } from "@openrift/shared/fnv1a";
 import { mulberry32, shuffle } from "@openrift/shared/random";
 import { WellKnown } from "@openrift/shared/well-known";
 
@@ -18,15 +19,7 @@ export function deckCompositionSeed(cards: readonly DeckBuilderCard[]): number {
     .filter((card) => card.zone === WellKnown.deckZone.MAIN)
     .map((card) => `${card.cardId}:${card.quantity}`)
     .toSorted();
-  let hash = 0x81_1c_9d_c5;
-  for (const part of parts) {
-    for (let index = 0; index < part.length; index++) {
-      // oxlint-disable-next-line unicorn/prefer-code-point -- FNV-1a hashes UTF-16 units; ids are ASCII anyway
-      hash ^= part.charCodeAt(index);
-      hash = Math.imul(hash, 0x01_00_01_93);
-    }
-  }
-  return hash >>> 0;
+  return fnv1a(parts.join(""));
 }
 
 interface SimCard {

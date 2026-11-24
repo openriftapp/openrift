@@ -24,12 +24,21 @@ vi.mock("@/components/ui/sheet", () => ({
   SheetClose: ({
     render: element,
     className,
+    onClick,
     children,
   }: {
-    render: ReactElement<{ className?: string; children?: ReactNode }>;
+    render?: ReactElement<{ className?: string; children?: ReactNode }>;
     className?: string;
+    onClick?: () => void;
     children?: ReactNode;
-  }) => cloneElement(element, { className, children }),
+  }) =>
+    element ? (
+      cloneElement(element, { className, children })
+    ) : (
+      <button type="button" className={className} onClick={onClick}>
+        {children}
+      </button>
+    ),
 }));
 
 vi.mock("@/hooks/use-help-menu-flags", () => ({ useHelpMenuFlags: () => flags }));

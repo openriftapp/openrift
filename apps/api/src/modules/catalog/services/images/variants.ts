@@ -2,6 +2,7 @@ import { dirname, join } from "node:path";
 
 import type { ImageQuad } from "@openrift/shared/contracts/admin/card-images";
 import { imageRehostedUrl } from "@openrift/shared/image-url";
+import { noop } from "@openrift/shared/noop";
 import { straightenedSize, unwarpQuad } from "@openrift/shared/scan/unwarp";
 
 import { badRequest, conflict } from "../../../../errors.js";
@@ -210,8 +211,7 @@ async function sweepExistingOrig(io: Io, outputDir: string, fileBase: string): P
   }
   for (const file of files) {
     if (file.startsWith(`${fileBase}-orig.`)) {
-      // oxlint-disable-next-line no-empty-function -- swallow missing-file errors
-      await io.fs.unlink(join(outputDir, file)).catch(() => {});
+      await io.fs.unlink(join(outputDir, file)).catch(noop);
     }
   }
 }
@@ -262,8 +262,7 @@ export async function deleteRehostFiles(io: Io, rehostedUrl: string): Promise<vo
 
   for (const file of files) {
     if (file.startsWith(`${base}-`)) {
-      // oxlint-disable-next-line no-empty-function -- swallow missing-file errors
-      await io.fs.unlink(join(parentDir, file)).catch(() => {});
+      await io.fs.unlink(join(parentDir, file)).catch(noop);
     }
   }
 }

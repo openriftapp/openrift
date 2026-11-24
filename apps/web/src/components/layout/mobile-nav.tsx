@@ -12,6 +12,7 @@ import {
   visibleMoreSections,
   visiblePrimaryItems,
 } from "@/components/layout/nav-items";
+import { ExternalAnchor } from "@/components/ui/external-anchor";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useHelpMenuFlags } from "@/hooks/use-help-menu-flags";
@@ -48,11 +49,7 @@ function MobileNavItem({
   );
   if (lockedKey && !isLoggedIn) {
     return (
-      <SheetClose
-        // oxlint-disable-next-line jsx-a11y/control-has-associated-label, react/forbid-elements -- bare render slot; SheetClose/MOBILE_NAV_ITEM_CLASS owns all styling and provides the label as children
-        render={<button type="button" onClick={() => onLockedClick(lockedKey)} />}
-        className={rowClass}
-      >
+      <SheetClose onClick={() => onLockedClick(lockedKey)} className={rowClass}>
         {icon}
         {item.label}
       </SheetClose>
@@ -145,11 +142,7 @@ function MobileLinkCell({
   );
   if (lockedKey && !isLoggedIn) {
     return (
-      <SheetClose
-        // oxlint-disable-next-line jsx-a11y/control-has-associated-label, react/forbid-elements -- bare render slot; SheetClose/MOBILE_NAV_CELL_CLASS owns all styling and provides the label as children
-        render={<button type="button" onClick={() => onLockedClick(lockedKey)} />}
-        className={MOBILE_NAV_CELL_CLASS}
-      >
+      <SheetClose onClick={() => onLockedClick(lockedKey)} className={MOBILE_NAV_CELL_CLASS}>
         {content}
       </SheetClose>
     );
@@ -157,14 +150,7 @@ function MobileLinkCell({
   return (
     <SheetClose
       nativeButton={false}
-      render={
-        link.href === undefined ? (
-          <Link to={link.to} />
-        ) : (
-          // oxlint-disable-next-line jsx-a11y/anchor-has-content, jsx-a11y/control-has-associated-label -- content is provided as children of SheetClose
-          <a href={link.href} target="_blank" rel="noreferrer" />
-        )
-      }
+      render={link.href === undefined ? <Link to={link.to} /> : <ExternalAnchor href={link.href} />}
       className={MOBILE_NAV_CELL_CLASS}
     >
       {content}

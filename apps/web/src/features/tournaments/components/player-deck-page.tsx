@@ -1,5 +1,6 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay, formatDayTimeLocal } from "@openrift/shared/format-date";
+import { noop } from "@openrift/shared/noop";
 import type {
   DeckCheckEntryCardResponse,
   PlayerDeckCheckEntryDetailResponse,
@@ -264,8 +265,7 @@ function PlayerCardCell({ card }: { card: DeckCheckEntryCardResponse }) {
       ctx={{ isSelected: false, isFlashing: false, cardWidth: PLAYER_CELL_WIDTH, priority: false }}
       display={display}
       showImages
-      // oxlint-disable-next-line no-empty-function -- read-only cell, clicks do nothing
-      onClick={() => {}}
+      onClick={noop}
     />
   );
 }

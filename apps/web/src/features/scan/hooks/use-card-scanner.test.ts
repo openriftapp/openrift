@@ -1,3 +1,4 @@
+import { noop } from "@openrift/shared/noop";
 import { DEFAULT_ALIGNED_OPTIONS } from "@openrift/shared/scan/accept";
 import type * as AlignedVerifyModule from "@openrift/shared/scan/aligned-verify";
 import type { BoardCard } from "@openrift/shared/scan/board";
@@ -243,14 +244,15 @@ function deferred<T>(): {
   resolve: (value: T) => void;
   reject: (reason: unknown) => void;
 } {
-  let resolve!: (value: T) => void;
-  let reject!: (reason: unknown) => void;
-  // oxlint-disable-next-line promise/param-names -- a hand-rolled deferred exists to expose the executor's settle functions
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
+  const settle: { resolve: (value: T) => void; reject: (reason: unknown) => void } = {
+    resolve: noop,
+    reject: noop,
+  };
+  const promise = new Promise<T>((resolve, reject) => {
+    settle.resolve = resolve;
+    settle.reject = reject;
   });
-  return { promise, resolve, reject };
+  return { promise, ...settle };
 }
 
 const FAKE_CAMERA_INFO: CameraInfo = {

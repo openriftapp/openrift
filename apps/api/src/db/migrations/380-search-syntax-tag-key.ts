@@ -29,5 +29,4 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 }
 
 /** The rename is one-way: a stored `tag:` cannot be told apart from one a user typed. */
-// oxlint-disable-next-line eslint/no-empty-function -- nothing can be restored
-export async function down(): Promise<void> {}
+export { down } from "./_noop.js";

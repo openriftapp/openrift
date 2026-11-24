@@ -1,11 +1,12 @@
 import type { Printing } from "@openrift/shared/types/catalog";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext } from "react";
 import { useStore } from "zustand";
 import type { StoreApi } from "zustand";
 import { createStore } from "zustand/vanilla";
 
 import type { VariantPopoverIntent } from "@/features/collections/stores/add-mode-store";
 import type { RuleDropTarget } from "@/features/rules/lib/rule-drop";
+import { useConstant } from "@/lib/use-constant";
 
 export interface CardRowClickModifiers {
   shift?: boolean;
@@ -156,8 +157,7 @@ export function createCardRowActionsStore(): CardRowActionsStore {
 export function useOwnCardRowActionsStore<
   TSurface extends CardRowSurface = CardRowSurface,
 >(): SurfaceRowActionsStore<TSurface> {
-  // oxlint-disable-next-line react/hook-use-state -- a stable per-surface store, never replaced
-  const [store] = useState(createCardRowActionsStore);
+  const store = useConstant(createCardRowActionsStore);
   return store;
 }
 

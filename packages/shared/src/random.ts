@@ -17,8 +17,7 @@ export function mulberry32(seed: number): Random {
   let state = toUint32(seed);
   return {
     next(): number {
-      // oxlint-disable-next-line unicorn/numeric-separators-style -- Mulberry32 constant, keeping it in its canonical hex form
-      state = toUint32(state + 0x6d2b79f5);
+      state = toUint32(state + 0x6d_2b_79_f5);
       let t = state;
       t = Math.imul(t ^ (t >>> 15), t | 1);
       t ^= t + Math.imul(t ^ (t >>> 7), t | 61);

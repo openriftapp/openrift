@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 import { SettingsSection } from "@/components/layout/settings-section";
 import { SharePanel } from "@/components/share/share-panel";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,6 +10,7 @@ import { useSession } from "@/hooks/use-session";
 import { bundleShareImageUrl, shareImageOptions } from "@/lib/share-image";
 import { shareLinkUrl } from "@/lib/share-links";
 import { getSiteUrl } from "@/lib/site-config";
+import { useConstant } from "@/lib/use-constant";
 import { m } from "@/paraglide/messages.js";
 
 export function PublicSharingSection() {
@@ -21,8 +20,7 @@ export function PublicSharingSection() {
   const disableShare = useDisableUserShare();
   // Stamped once per mount; stamping it in the URL builder would give the
   // preview a new URL on every render and reload the image forever.
-  // oxlint-disable-next-line react/hook-use-state -- read-only, no setter needed
-  const [imageVersion] = useState(() => Date.now());
+  const imageVersion = useConstant(() => Date.now());
 
   const shareToken = data?.shareToken ?? null;
   const shareUrl = shareLinkUrl("bundle", { shareToken, isPublic: shareToken !== null });

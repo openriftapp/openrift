@@ -79,8 +79,7 @@ function ResponsivePopoverContent({
   if (isMobile) {
     // React bubbles clicks on the portaled backdrop and viewport to the trigger's ancestors too.
     return (
-      // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- event boundary around the portal, renders no box
-      <div className="contents" onClick={onClick}>
+      <div role="presentation" className="contents" onClick={onClick}>
         <DrawerContent>
           <DrawerHeader className={cn(hideTitle && "sr-only")}>
             <DrawerTitle>{title}</DrawerTitle>

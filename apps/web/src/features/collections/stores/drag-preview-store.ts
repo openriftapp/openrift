@@ -1,8 +1,10 @@
 import type { Printing } from "@openrift/shared/types/catalog";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext } from "react";
 import { useStore } from "zustand";
 import type { StoreApi } from "zustand";
 import { createStore } from "zustand/vanilla";
+
+import { useConstant } from "@/lib/use-constant";
 
 interface DragPreviewState {
   preview: Printing[];
@@ -29,8 +31,7 @@ export function createDragPreviewStore(): DragPreviewStore {
 
 /** Creates the collection layout's store once and keeps it for the layout's lifetime. */
 export function useOwnDragPreviewStore(): DragPreviewStore {
-  // oxlint-disable-next-line react/hook-use-state -- a stable per-layout store, never replaced
-  const [store] = useState(createDragPreviewStore);
+  const store = useConstant(createDragPreviewStore);
   return store;
 }
 

@@ -11,6 +11,7 @@ import {
 } from "@openrift/shared/deck-rules";
 import { isSingleSlotZone } from "@openrift/shared/deck-zones";
 import { enumLabel } from "@openrift/shared/enum-label";
+import { noop } from "@openrift/shared/noop";
 import type { DeckFormatConfig } from "@openrift/shared/types/api/deck";
 import type { DeckFormat, DeckZone, Domain } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -788,8 +789,6 @@ export function useDeckBuilderActions(deckId: string): DeckBuilderActions {
   // Mid-sign-out the collection briefly goes null while React commits the
   // unmount of this route; make all actions no-ops in that window.
   if (!collection) {
-    // oxlint-disable-next-line typescript/no-empty-function -- intentional no-op stand-ins while the collection is null
-    const noop = (): void => {};
     const noopActions: DeckBuilderActions = {
       addCard: noop,
       removeCard: noop,

@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type * as Download from "@/lib/download";
+
 const captured = vi.hoisted(() => ({
   mode: "" as string,
   rows: [] as unknown[],
@@ -97,8 +99,7 @@ vi.mock("@/features/admin/hooks/use-admin", () => ({
 }));
 
 vi.mock("@/lib/download", async (importOriginal) => {
-  // oxlint-disable-next-line typescript/consistent-type-imports -- vitest dynamic import pattern
-  const original = await importOriginal<typeof import("@/lib/download")>();
+  const original = await importOriginal<typeof Download>();
   return {
     ...original,
     downloadCsv: (csv: string, filename: string) => {

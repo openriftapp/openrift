@@ -13,8 +13,7 @@ import { m } from "@/paraglide/messages.js";
 
 function StopRowClick({ children }: { children: ReactNode }) {
   return (
-    // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- only stops the row behind from opening the card detail; the hint's own button takes the key events
-    <span className="flex" onClick={(event) => event.stopPropagation()}>
+    <span role="presentation" className="flex" onClick={(event) => event.stopPropagation()}>
       {children}
     </span>
   );

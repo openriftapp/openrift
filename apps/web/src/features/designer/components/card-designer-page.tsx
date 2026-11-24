@@ -16,6 +16,7 @@ import { getPipGlyphTint } from "@/lib/domain";
 import { downloadFilename } from "@/lib/download";
 import { createRenderHandoff } from "@/lib/html-capture";
 import { getFilterIconPath, getTypeIconPath, glyphPath } from "@/lib/icons";
+import { useConstant } from "@/lib/use-constant";
 import { prewarmTintedIcons, TINT_BLACK, TINT_WHITE } from "@/lib/white-icon";
 import { m } from "@/paraglide/messages.js";
 
@@ -76,8 +77,7 @@ export function CardDesignerPage() {
   const showFrame = useCardDesignerStore((state) => state.showFrame);
   const framed = useCardDesignerStore((state) => frameUrlFor(state.card) !== null);
   const domainColors = useDomainColors();
-  // oxlint-disable-next-line react/hook-use-state -- a stable per-mount handoff, never replaced
-  const [cloneHandoff] = useState(createRenderHandoff);
+  const cloneHandoff = useConstant(createRenderHandoff);
   const [renderClone, setRenderClone] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);

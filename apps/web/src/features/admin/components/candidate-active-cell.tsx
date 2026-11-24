@@ -194,8 +194,7 @@ export function CandidateActiveCell<TKey extends string>({
             onClose={() => setEditingField(null)}
           />
         ) : editingField === field.key && hasDropdown(field) ? (
-          // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- keeps trigger clicks from reaching the row's cell selection, renders no box
-          <span className="contents" onClick={(e) => e.stopPropagation()}>
+          <span role="presentation" className="contents" onClick={(e) => e.stopPropagation()}>
             <SimpleSelect
               items={[
                 { value: SELECT_NONE, label: "— clear —" },

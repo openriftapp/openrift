@@ -40,6 +40,7 @@ import {
 import { useIsStuck } from "@/hooks/use-is-stuck";
 import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
+import { useConstant } from "@/lib/use-constant";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -82,8 +83,7 @@ export function InfractionsPage({
 }
 
 function InfractionsScope({ language, version }: { language: RuleLanguage; version: string }) {
-  // oxlint-disable-next-line react/hook-use-state -- a stable per-page store, never replaced
-  const [store] = useState(createInfractionsOpenStore);
+  const store = useConstant(createInfractionsOpenStore);
   return (
     <InfractionsOpenStoreContext value={store}>
       <InfractionsContent language={language} version={version} />
@@ -221,8 +221,8 @@ function InfractionsContent({ language, version }: { language: RuleLanguage; ver
             {allOpen ? m.rules_infractions_collapse_all() : m.rules_infractions_expand_all()}
           </Button>
         </div>
-        {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- delegated link handling */}
         <div
+          role="presentation"
           onClick={(event) =>
             handleRuleHtmlClick(event, {
               navigate: (href) => void navigate({ href }),

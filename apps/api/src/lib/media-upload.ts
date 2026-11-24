@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { DAY_MS } from "@openrift/shared/format-date";
+import { noop } from "@openrift/shared/noop";
 import { v7 as uuidv7 } from "uuid";
 
 import type { Io } from "../io.js";
@@ -89,8 +90,7 @@ export function createMediaUploadStore(options: {
       }
     },
     async remove(io, url) {
-      // oxlint-disable-next-line no-empty-function -- swallow missing-file errors
-      await io.fs.unlink(join(dir, fileName(url))).catch(() => {});
+      await io.fs.unlink(join(dir, fileName(url))).catch(noop);
     },
   };
 }

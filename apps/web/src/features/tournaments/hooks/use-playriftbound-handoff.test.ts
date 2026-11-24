@@ -16,8 +16,7 @@ const PAYLOAD = {
   readAt: "2026-11-17T10:00:00Z",
 };
 
-// oxlint-disable-next-line unicorn/prefer-global-this -- MessageEvent.source is typed as a Window
-function deliver(data: unknown, source: MessageEventSource | null = window) {
+function deliver(data: unknown, source: MessageEventSource | null = globalThis.window) {
   act(() => {
     globalThis.dispatchEvent(
       new MessageEvent("message", { data, origin: globalThis.location.origin, source }),

@@ -1,5 +1,6 @@
 import { loadImage } from "@/lib/load-image";
 import { createPdfDocument } from "@/lib/pdf-document";
+import { readAsDataUrl } from "@/lib/read-as-data-url";
 
 const A4_SHORT_MM = 210;
 const A4_LONG_MM = 297;
@@ -40,23 +41,13 @@ export function fitImageOnPage(
   };
 }
 
-async function blobToDataUrl(blob: Blob): Promise<string> {
-  // oxlint-disable-next-line promise/avoid-new -- wrapping callback-based FileReader API
-  return await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.addEventListener("load", () => resolve(reader.result as string));
-    reader.addEventListener("error", () => reject(reader.error ?? new Error("Read failed")));
-    reader.readAsDataURL(blob);
-  });
-}
-
 async function imageSize(dataUrl: string): Promise<{ width: number; height: number }> {
   const img = await loadImage(dataUrl);
   return { width: img.naturalWidth, height: img.naturalHeight };
 }
 
 export async function downloadImageAsPdf(blob: Blob, filename: string): Promise<void> {
-  const dataUrl = await blobToDataUrl(blob);
+  const dataUrl = await readAsDataUrl(blob);
   const { width, height } = await imageSize(dataUrl);
   const placement = fitImageOnPage(width, height);
   const doc = createPdfDocument({ orientation: placement.orientation, unit: "mm", format: "a4" });

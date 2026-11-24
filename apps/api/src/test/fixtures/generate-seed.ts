@@ -501,8 +501,7 @@ const seedSql = [
   toInsert("feature_flags", syntheticFeatureFlags),
 ].join("\n");
 
-// oxlint-disable-next-line typescript/no-non-null-assertion -- dirname is always defined when running as a script
-const dir = resolve(import.meta.dirname!);
+const dir = resolve(import.meta.dir);
 writeFileSync(resolve(dir, "seed.sql"), seedSql);
 console.log(
   [

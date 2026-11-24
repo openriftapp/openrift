@@ -4,20 +4,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { useCardDesignerStore } from "@/features/designer/stores/card-designer-store";
 import { createStoreResetter } from "@/test/store-helpers";
 
-import { readFileAsDataUrl, useImageUpload } from "./use-image-upload";
+import { useImageUpload } from "./use-image-upload";
 
 const reset = createStoreResetter(useCardDesignerStore);
 
 beforeEach(reset);
 afterEach(reset);
-
-describe("readFileAsDataUrl", () => {
-  it("reads a blob into a data URL", async () => {
-    const blob = new Blob(["hello"], { type: "text/plain" });
-    const result = await readFileAsDataUrl(blob);
-    expect(result.startsWith("data:")).toBe(true);
-  });
-});
 
 describe("useImageUpload", () => {
   it("rejects a non-image file and leaves the store empty", async () => {

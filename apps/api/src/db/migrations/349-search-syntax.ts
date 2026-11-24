@@ -44,5 +44,4 @@ export async function up(db: Kysely<unknown>): Promise<void> {
  * The prefix rewrite is one-way, and the protect trigger refuses to unmark `other`;
  * leaving it well-known only stops it being renamed or deleted.
  */
-// oxlint-disable-next-line eslint/no-empty-function -- nothing can be restored
-export async function down(): Promise<void> {}
+export { down } from "./_noop.js";

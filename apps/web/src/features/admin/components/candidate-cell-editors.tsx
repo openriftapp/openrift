@@ -20,8 +20,8 @@ export function SuggestionCombobox({
   const [highlighted, setHighlighted] = useState<string | null>(null);
 
   return (
-    // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- keeps clicks inside the editor from reaching the row's edit handler
     <div
+      role="presentation"
       className="border-primary rounded-md border"
       onClick={(event: React.MouseEvent) => event.stopPropagation()}
     >

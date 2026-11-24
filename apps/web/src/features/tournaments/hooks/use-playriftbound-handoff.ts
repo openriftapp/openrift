@@ -11,8 +11,7 @@ export function usePlayriftboundHandoff(): PlayriftboundSyncPayload | undefined 
   useEffect(() => {
     const origin = globalThis.location.origin;
     const onMessage = (event: MessageEvent) => {
-      // oxlint-disable-next-line unicorn/prefer-global-this -- MessageEvent.source is typed as a Window
-      if (event.source !== window || event.origin !== origin) {
+      if (event.source !== globalThis.window || event.origin !== origin) {
         return;
       }
       const received = readPlayriftboundHandoff(event.data);

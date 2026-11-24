@@ -13,10 +13,9 @@ vi.mock("@tanstack/react-start", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => {
     const chain = {
-      // oxlint-disable-next-line react/function-component-definition -- mocked server-fn handler, not a component
-      handler: () => async (input: unknown) => {
+      handler: () => (input: unknown) => {
         serverFnCalls.push(input);
-        return null;
+        return Promise.resolve(null);
       },
       middleware: () => chain,
       validator: () => chain,

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/drawer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useHeaderHeight } from "@/hooks/use-header-height";
+import { useConstant } from "@/lib/use-constant";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { createPageTocStore, PageTocStoreContext, usePageTocStore } from "@/stores/page-toc-store";
@@ -31,8 +32,7 @@ export interface PageTocItem {
 export type PageTocJump = (id: string) => Promise<void> | void;
 
 export function PageTocProvider({ children }: { children: ReactNode }) {
-  // oxlint-disable-next-line react/hook-use-state -- a stable per-page store, never replaced
-  const [store] = useState(createPageTocStore);
+  const store = useConstant(createPageTocStore);
   return <PageTocStoreContext value={store}>{children}</PageTocStoreContext>;
 }
 

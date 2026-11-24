@@ -3,7 +3,7 @@ import { HOUR_MS } from "@openrift/shared/format-date";
 import { centsToDollars } from "@openrift/shared/money";
 import type { PrintingPricesResponse } from "@openrift/shared/types/api/pricing";
 import type { TimeRange } from "@openrift/shared/types/pricing";
-import { useQuery } from "@tanstack/react-query";
+import { skipToken, useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { priceHistoryKeys } from "@/features/cards/lib/cards-query-keys";
@@ -25,11 +25,7 @@ type PriceHistory = PrintingPricesResponse;
 export function usePriceHistory(printingId: string | null, range: TimeRange = "30d") {
   return useQuery({
     queryKey: priceHistoryKeys.byPrinting(printingId ?? "", range),
-    queryFn: () =>
-      fetchPrintingPricesFn({
-        // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by enabled: Boolean(printingId)
-        data: { printingId: printingId!, range },
-      }),
+    queryFn: printingId ? () => fetchPrintingPricesFn({ data: { printingId, range } }) : skipToken,
     select: (data): PriceHistory => ({
       tcgplayer: {
         ...data.tcgplayer,
@@ -67,7 +63,6 @@ export function usePriceHistory(printingId: string | null, range: TimeRange = "3
         })),
       },
     }),
-    enabled: Boolean(printingId),
     staleTime: HOUR_MS,
   });
 }

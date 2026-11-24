@@ -28,12 +28,21 @@ vi.mock("@/components/ui/popover", () => ({
   PopoverClose: ({
     render: element,
     className,
+    onClick,
     children,
   }: {
-    render: Slot;
+    render?: Slot;
     className?: string;
+    onClick?: () => void;
     children?: ReactNode;
-  }) => cloneElement(element, { className, children }),
+  }) =>
+    element ? (
+      cloneElement(element, { className, children })
+    ) : (
+      <button type="button" className={className} onClick={onClick}>
+        {children}
+      </button>
+    ),
 }));
 
 vi.mock("@/hooks/use-help-menu-flags", () => ({ useHelpMenuFlags: () => flags }));

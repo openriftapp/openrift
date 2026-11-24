@@ -160,8 +160,8 @@ function RangeSliderBlock({
   ownedCountMax?: number;
 }) {
   return (
-    // oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- the wrapper only guards keydown bubbling; the focusable controls are its slider children
     <div
+      role="presentation"
       className="hover:bg-muted focus-within:bg-muted flex flex-col gap-3 rounded-md px-2 py-1.5"
       // Stops the menu's roving-focus keydown handling so the slider's own arrow/Home/End keys work.
       onKeyDown={(event) => event.stopPropagation()}

@@ -53,6 +53,7 @@ import { useUserId } from "@/hooks/use-session";
 import { trackAuthGate } from "@/lib/analytics";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { shareLinkUrl } from "@/lib/share-links";
+import { useConstant } from "@/lib/use-constant";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -75,8 +76,7 @@ function HydratedEditor({ children }: { children: ReactNode }) {
 }
 
 export function BoardStateEditorPage({ boardState }: { boardState: BoardStateResponse }) {
-  // oxlint-disable-next-line react/hook-use-state -- read once on mount, never updated
-  const [adoption] = useState(() => {
+  const adoption = useConstant(() => {
     const pending = useBoardEditorStore.getState().adoption;
     if (pending?.boardId === boardState.id) {
       return pending;

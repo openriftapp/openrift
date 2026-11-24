@@ -1,5 +1,5 @@
 import { useRouter } from "@tanstack/react-router";
-import { use, useEffect, useEffectEvent, useState } from "react";
+import { use, useEffect, useEffectEvent } from "react";
 
 import { OverlayHistoryLayerContext } from "@/features/cards/lib/overlay-history-layer";
 import type {
@@ -7,6 +7,7 @@ import type {
   OverlayHistoryLayer,
   OverlayLayerId,
 } from "@/features/cards/lib/overlay-history-layer";
+import { useConstant } from "@/lib/use-constant";
 
 let lastEntryToken = Date.now();
 
@@ -119,8 +120,7 @@ export function useOverlayHistoryEntry({
 }: OverlayHistoryEntryOptions): OverlayHistoryLayer {
   const router = useRouter();
   const parent = use(OverlayHistoryLayerContext);
-  // oxlint-disable-next-line react/hook-use-state -- a stable per-mount layer identity, never replaced
-  const [id] = useState<OverlayLayerId>(() => ({ stateKey }));
+  const id = useConstant<OverlayLayerId>(() => ({ stateKey }));
   const readParent = useEffectEvent(() => parent);
   const handlePopEvent = useEffectEvent(() => onPop());
 

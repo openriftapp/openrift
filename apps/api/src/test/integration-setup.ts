@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { Logger } from "@openrift/shared/logger";
+import { noop } from "@openrift/shared/noop";
 import { Kysely } from "kysely";
 import { PostgresJSDialect } from "kysely-postgres-js";
 import postgres from "postgres";
@@ -10,9 +11,6 @@ import { createDb } from "../db/connect.js";
 import { migrate } from "../db/migrate.js";
 import type { Database } from "../db/tables.js";
 import { refreshSeedMaterializedViews } from "./seed-views.js";
-
-// oxlint-disable-next-line no-empty-function -- noop for postgres notice handler and logger
-export const noop = () => {};
 
 export const noopLogger = {
   info: noop,

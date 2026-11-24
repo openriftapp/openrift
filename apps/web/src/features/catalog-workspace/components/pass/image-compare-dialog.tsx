@@ -55,13 +55,7 @@ function LargeImage({
       </span>
       <figcaption className="text-muted-foreground text-center text-sm">
         {typeof image.href === "string" && isWebUrl(image.href) ? (
-          <TextLink
-            className="font-medium"
-            render={
-              // oxlint-disable-next-line jsx-a11y/control-has-associated-label -- text label is inside the TextLink children
-              <a href={image.href} target="_blank" rel="noreferrer" />
-            }
-          >
+          <TextLink className="font-medium" href={image.href} target="_blank" rel="noreferrer">
             {image.caption}
           </TextLink>
         ) : (

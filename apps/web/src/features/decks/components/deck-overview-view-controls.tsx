@@ -264,17 +264,18 @@ export function DeckOverviewViewControls({
       : []),
   ];
 
-  const optionSwitchRows = optionSwitches.map((option) => (
-    <OptionSwitchRow
-      key={option.key}
-      label={option.label}
-      description={option.description}
-      checked={option.checked}
-      nested={option.nested}
-      // oxlint-disable-next-line react/jsx-handler-names -- forwarded store setter, name fixed by the descriptor
-      onCheckedChange={option.onCheckedChange}
-    />
-  ));
+  const optionSwitchRows = optionSwitches.map(
+    ({ key, label, description, checked, nested, onCheckedChange }) => (
+      <OptionSwitchRow
+        key={key}
+        label={label}
+        description={description}
+        checked={checked}
+        nested={nested}
+        onCheckedChange={onCheckedChange}
+      />
+    ),
+  );
 
   if (compact) {
     return (

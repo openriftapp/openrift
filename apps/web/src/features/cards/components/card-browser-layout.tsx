@@ -9,6 +9,7 @@ import {
 import { useHeaderHeight } from "@/hooks/use-header-height";
 import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
+import { useConstant } from "@/lib/use-constant";
 import { cn } from "@/lib/utils";
 
 interface CardBrowserLayoutOffsets {
@@ -56,8 +57,7 @@ export function CardBrowserLayout({
   children,
 }: CardBrowserLayoutProps) {
   const pageTopBarHeight = usePageTopBarHeight();
-  // oxlint-disable-next-line react/hook-use-state -- a stable per-surface store, never replaced
-  const [gridViewportStore] = useState(createGridViewportStore);
+  const gridViewportStore = useConstant(createGridViewportStore);
   const [toolbarEl, setToolbarEl] = useState<HTMLDivElement | null>(null);
   const [aboveGridEl, setAboveGridEl] = useState<HTMLDivElement | null>(null);
   const toolbarHeight = useMeasuredHeight(toolbarEl);

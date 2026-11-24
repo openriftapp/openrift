@@ -1,3 +1,5 @@
+import { setImmediate } from "node:timers/promises";
+
 /**
  * Returns a function that resolves on the next macrotask once `budgetMs` of
  * synchronous work has passed since the previous yield, and immediately otherwise.
@@ -11,10 +13,7 @@ export function createEventLoopYielder(
     if (now() - sliceStart < budgetMs) {
       return;
     }
-    // oxlint-disable-next-line promise/avoid-new -- wrapping the callback-based setImmediate
-    await new Promise<void>((resolve) => {
-      setImmediate(resolve);
-    });
+    await setImmediate();
     sliceStart = now();
   };
 }

@@ -53,6 +53,7 @@ import {
   fetchImageBlobFromPost,
 } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
+import { useConstant } from "@/lib/use-constant";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
@@ -250,8 +251,7 @@ function ProxyPrintPanel({
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [rendering, setRendering] = useState<RenderingCard | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  // oxlint-disable-next-line react/hook-use-state -- a stable per-mount handoff, never replaced
-  const [renderHandoff] = useState(createRenderHandoff);
+  const renderHandoff = useConstant(createRenderHandoff);
   const queryClient = useQueryClient();
   const languages = useDisplayStore((state) => state.languages);
 

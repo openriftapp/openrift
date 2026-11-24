@@ -1,7 +1,7 @@
 import { createLink } from "@tanstack/react-router";
 import { ArrowLeftIcon, ChevronDownIcon, PanelLeftIcon } from "lucide-react";
-import type { AnchorHTMLAttributes, ComponentProps } from "react";
-import { createContext, forwardRef, use } from "react";
+import type { ComponentProps } from "react";
+import { createContext, use } from "react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -91,20 +91,22 @@ export function PageTopBarSkeleton() {
   );
 }
 
-const BackAnchor = forwardRef<HTMLAnchorElement, AnchorHTMLAttributes<HTMLAnchorElement>>(
-  // oxlint-disable-next-line react/function-component-definition -- a forwardRef render function is a callback, so the function-expression form this rule wants trips prefer-arrow-callback instead; the two rules cannot both be satisfied here
-  ({ children: _children, className, "aria-label": ariaLabel, ...rest }, ref) => (
+function BackAnchor({
+  children: _children,
+  className,
+  "aria-label": ariaLabel,
+  ...rest
+}: ComponentProps<"a">) {
+  return (
     <a
-      ref={ref}
       aria-label={ariaLabel ?? m.common_back()}
       {...rest}
       className={cn(buttonVariants({ variant: "ghost", size: "icon" }), className)}
     >
       <ArrowLeftIcon className="size-4" />
     </a>
-  ),
-);
-BackAnchor.displayName = "BackAnchor";
+  );
+}
 
 /**
  * Back arrow linking to a parent route. Fully type-checked against the

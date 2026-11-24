@@ -1,4 +1,5 @@
 import { clamp } from "@openrift/shared/math";
+import { noop } from "@openrift/shared/noop";
 import type { Virtualizer } from "@tanstack/react-virtual";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
@@ -206,10 +207,8 @@ export function useScrollIndicator({
     setIndicator((prev) => ({ ...prev, visible: true, dragging: true }));
   };
 
-  // oxlint-disable-next-line no-empty-function -- initialised lazily in effect
-  const handleMoveRef = useRef((_clientY: number) => {});
-  // oxlint-disable-next-line no-empty-function -- initialised lazily in effect
-  const handleUpRef = useRef(() => {});
+  const handleMoveRef = useRef<(clientY: number) => void>(noop);
+  const handleUpRef = useRef(noop);
 
   useEffect(() => {
     const handleMove = (clientY: number) => {

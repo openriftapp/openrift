@@ -11,6 +11,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ExternalAnchor } from "@/components/ui/external-anchor";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useHelpMenuFlags } from "@/hooks/use-help-menu-flags";
 import type { LockedFeatureKey } from "@/lib/nav-items";
@@ -65,8 +66,7 @@ function PopoverLinkRow({
         // A native <button> shrinks to its content and centers its text; force
         // it to fill and left-align so it matches the <Link>-rendered rows.
         className={cn(POPOVER_ROW_CLASS, "w-full text-left")}
-        // oxlint-disable-next-line jsx-a11y/control-has-associated-label, react/forbid-elements -- bare render slot; PopoverClose owns all styling and provides the label as children
-        render={<button type="button" onClick={() => onLockedClick(lockedKey)} />}
+        onClick={() => onLockedClick(lockedKey)}
       >
         {icon}
         {text}
@@ -77,10 +77,7 @@ function PopoverLinkRow({
     return (
       <PopoverClose
         nativeButton={false}
-        render={
-          // oxlint-disable-next-line jsx-a11y/control-has-associated-label -- content is provided as children of PopoverClose
-          <a href={link.href} target="_blank" rel="noreferrer" />
-        }
+        render={<ExternalAnchor href={link.href} />}
         className={POPOVER_ROW_CLASS}
       >
         {icon}
@@ -189,8 +186,7 @@ export function ContributeSubmenu({
                 link.href === undefined ? (
                   <Link to={link.to} />
                 ) : (
-                  // oxlint-disable-next-line jsx-a11y/anchor-has-content, jsx-a11y/control-has-associated-label -- content is provided as children of DropdownMenuItem
-                  <a href={link.href} target="_blank" rel="noreferrer" />
+                  <ExternalAnchor href={link.href} />
                 )
               }
             >
