@@ -10,12 +10,12 @@ export const DESK_SORTS = ["code", "card", "updated", "release"] as const;
 
 export const DESK_STATUSES = ["announced", "released"] as const;
 
-export const workspaceCardsSearchSchema = z.object({
+const workspaceCardsSearchSchema = z.object({
   q: lenient(z.string()),
   set: lenient(z.string().check(z.minLength(1))),
 });
 
-export const CARD_VIEWS = ["review", "images", "ready"] as const;
+const CARD_VIEWS = ["review", "images", "ready"] as const;
 
 export type CardView = (typeof CARD_VIEWS)[number];
 

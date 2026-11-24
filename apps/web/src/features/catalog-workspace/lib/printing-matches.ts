@@ -29,18 +29,11 @@ type Existing = Pick<
   | "canonicalRank"
 >;
 
-export const MATCH_FIELDS = [
-  "finish",
-  "artVariant",
-  "markerSlugs",
-  "rarity",
-  "size",
-  "isSigned",
-] as const;
+const MATCH_FIELDS = ["finish", "artVariant", "markerSlugs", "rarity", "size", "isSigned"] as const;
 
-export type MatchField = (typeof MATCH_FIELDS)[number];
+type MatchField = (typeof MATCH_FIELDS)[number];
 
-export interface PrintingMatch<P> {
+interface PrintingMatch<P> {
   printing: P;
   differs: MatchField[];
 }

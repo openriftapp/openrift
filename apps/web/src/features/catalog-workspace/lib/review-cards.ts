@@ -50,11 +50,11 @@ function cardFieldsText(fields: readonly string[]): string | null {
   return `${labels.join(", ")}${differ(fields.length)}`;
 }
 
-export function hasImageWork(card: ReviewCard): boolean {
+function hasImageWork(card: ReviewCard): boolean {
   return card.pending.newImages + card.pending.failedImages > 0;
 }
 
-export function hasDataWork(card: ReviewCard): boolean {
+function hasDataWork(card: ReviewCard): boolean {
   const { pending } = card;
   const data =
     pending.cardFields.length + pending.newPrintings + pending.faces + pending.printings > 0;
