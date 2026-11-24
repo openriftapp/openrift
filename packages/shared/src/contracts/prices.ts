@@ -246,7 +246,7 @@ export const pricesContract = {
       operationId: "listPrices",
       summary: "Today's price of every printing",
       description:
-        "One price per marketplace per printing, in integer cents of that marketplace's currency (see `currencies`). TCGplayer's market price, the lowest listing on Cardmarket and CardNexus, and the lowest CardTrader Zero listing on CardTrader. Updated once a day.",
+        "One price per marketplace per printing, in integer cents of that marketplace's currency (see `currencies`). TCGplayer's market price, the lowest listing on Cardmarket and CardNexus, and the lowest CardTrader Zero listing on CardTrader. Updated once a day. The prices belong to the marketplaces, whose terms decide how you may use them (see Terms on `/developers`).",
     })
     .meta({ auth: "public", developerApi: true, cache: "long", etag: true })
     .output(pricesResponseSchema),
@@ -273,7 +273,7 @@ export const pricesContract = {
       operationId: "getPrintingPrices",
       summary: "One printing's prices, links and history",
       description:
-        "Today's price, the store link and the daily price history of one printing on every marketplace. A marketplace the printing is not sold on comes back as `available: false` with empty snapshots.",
+        "Today's price, the store link and the daily price history of one printing on every marketplace. A marketplace the printing is not sold on comes back as `available: false` with empty snapshots. The prices belong to the marketplaces, whose terms decide how you may use them (see Terms on `/developers`).",
     })
     .meta({ auth: "public", developerApi: true, cache: "long", etag: true })
     .input(z.extend(rangeQuerySchema, { printingId: printingIdParam }))

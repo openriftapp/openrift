@@ -8747,6 +8747,7 @@
   "developers_limits_p": "沒有固定的請求頻率限制，但請盡量減少你的流量。單卡端點用於單次查詢，不用於大量擷取。請求過多的用戶端會被封鎖。如果你的 User-Agent 中有聯絡方式，我可能會先嘗試聯絡你。",
   "developers_stability_p": "這個 API 還很新，可能會有變化。我會盡量只新增欄位，而不重新命名或刪除既有欄位；破壞性變更會在 Discord 上公告，並通知所有在 User-Agent 中留有聯絡方式的用戶端。",
   "developers_license_p": "卡牌文字、卡圖與規則文件屬於 Riot Games，因此使用它們須遵守 Riot 針對 Riftbound 應用程式的政策。我不對你如何使用它們負責，也無法授予你任何相關權利。",
+  "developers_marketplace_terms_p": "價格歸其來源交易平台所有，我無法授予你任何相關權利。能否使用以及如何使用，取決於各交易平台的條款，請先查閱。我不對你如何使用這些價格負責。",
   "developers_contact_heading": "問題與需求",
   "developers_contribute_p": "發現缺少某張卡牌、印刷版本或圖片，或是有錯誤？你可以在{#link}投稿{/link}頁面補充或修正。卡牌資料由一個人維護，所以非常感謝每一份填補空缺的幫助。",
   "developers_contact_p": "缺少某個欄位或端點，或是發現了問題？請在 {#link}GitHub{/link} 上開 issue，或在 {#link2}Discord{/link2} 上提問。如果你用這個 API 做了什麼，也歡迎告訴我，我很樂意為它加上連結。",

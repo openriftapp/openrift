@@ -280,6 +280,7 @@ export function DevelopersPage() {
 
         <Section heading={m.developers_terms_heading()}>
           <Paragraph>{m.developers_license_p()}</Paragraph>
+          <Paragraph>{m.developers_marketplace_terms_p()}</Paragraph>
           <Paragraph>{m.developers_stability_p()}</Paragraph>
         </Section>
 
