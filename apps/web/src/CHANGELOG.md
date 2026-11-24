@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-24
+
+### Other
+
+- fix(Cards): **Search fields on phones** — the keyboard shows a Search key and no longer autocorrects or capitalises queries like `t:unit`.
+
 ## 2026-11-23
 
 ### Highlights

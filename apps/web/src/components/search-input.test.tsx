@@ -25,6 +25,16 @@ describe("SearchInput", () => {
     expect(onValueChange).toHaveBeenNthCalledWith(2, "b");
   });
 
+  it("asks phone keyboards for a Search key without autocorrect or capitals", () => {
+    render(<SearchInput value="" onValueChange={() => {}} placeholder="Search cards" />);
+
+    const input = screen.getByRole("textbox", { name: "Search cards" });
+    expect(input).toHaveAttribute("enterkeyhint", "search");
+    expect(input).toHaveAttribute("autocorrect", "off");
+    expect(input).toHaveAttribute("autocapitalize", "off");
+    expect(input).toHaveAttribute("spellcheck", "false");
+  });
+
   it("names the input with aria-label over the placeholder", () => {
     render(
       <SearchInput

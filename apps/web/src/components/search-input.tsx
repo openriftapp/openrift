@@ -112,6 +112,10 @@ export function SearchInput({
         name={name}
         placeholder={placeholder}
         autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        enterKeyHint="search"
         aria-label={ariaLabel ?? (id === undefined ? placeholder : undefined)}
         value={value}
         onChange={(event) => onValueChange(event.target.value)}
