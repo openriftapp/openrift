@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { SaveError } from "@/features/tournaments/components/save-error";
 import {
   AllowDeckEditsField,
+  DeckCircuitField,
   DeckDeadlineField,
   DeckFormatField,
   DeckSubmissionField,
@@ -72,6 +73,17 @@ export function DecksSection({
             onChange={(deckFormat) =>
               void runReportedMutation(() =>
                 updateTournament.mutateAsync({ id: detail.id, deckFormat }),
+              )
+            }
+          />
+
+          <DeckCircuitField
+            value={detail.circuit}
+            disabled={locked || updateTournament.isPending}
+            className="max-w-sm"
+            onChange={(circuit) =>
+              void runReportedMutation(() =>
+                updateTournament.mutateAsync({ id: detail.id, circuit }),
               )
             }
           />

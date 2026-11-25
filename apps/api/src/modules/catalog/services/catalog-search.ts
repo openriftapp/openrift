@@ -5,6 +5,7 @@ import { resolveCard } from "@openrift/shared/card-search";
 import type { SearchResponse } from "@openrift/shared/contracts/search";
 import { SEARCH_PAGE_DEFAULT } from "@openrift/shared/contracts/search";
 import { sortCards } from "@openrift/shared/filters-sort";
+import type { LegalityContext } from "@openrift/shared/format-legality";
 import { foldForSearch } from "@openrift/shared/search-fold";
 import { resolveSearchQuery } from "@openrift/shared/search-query/bind";
 import { compileQuery, sortByPreference } from "@openrift/shared/search-query/evaluate";
@@ -43,6 +44,7 @@ export interface CatalogSearchSource {
   printings: Printing[];
   formats: readonly { id: string; name: string }[];
   prices?: PriceLookup;
+  legality?: LegalityContext;
 }
 
 export interface CatalogSearchInput {
@@ -206,6 +208,7 @@ function matchCatalog(
   const context = {
     priceLookup: source.prices,
     rarityOrder: source.catalog.enums.rarities.map((row) => row.slug),
+    legality: source.legality,
   };
   const filtered = source.printings
     .filter(

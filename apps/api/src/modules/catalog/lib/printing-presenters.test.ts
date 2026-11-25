@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildPrintingsResponse,
   groupErrataByCard,
+  presentCardBans,
   presentPrintingValues,
   referencedChannels,
   referencedMarkers,
@@ -15,6 +16,40 @@ import {
   resolveMarkers,
   toCatalogPrintingImage,
 } from "./printing-presenters.js";
+
+describe("presentCardBans", () => {
+  const row = {
+    cardId: "c1",
+    formatId: "standard",
+    formatName: "Constructed",
+    reason: null,
+  };
+
+  it("sends active global rows as bans and omits circuitBans without circuit rows", () => {
+    expect(
+      presentCardBans([
+        { ...row, circuit: null, bannedAt: "2026-03-31", unbannedAt: null },
+        { ...row, circuit: null, bannedAt: "2026-03-31", unbannedAt: "2026-04-02" },
+      ]),
+    ).toEqual({
+      bans: [
+        { formatId: "standard", formatName: "Constructed", bannedAt: "2026-03-31", reason: null },
+      ],
+    });
+  });
+
+  it("sends every circuit row, lifted and undated ones included", () => {
+    const presented = presentCardBans([
+      { ...row, circuit: "korea", bannedAt: "2026-03-31", unbannedAt: "2026-11-23" },
+      { ...row, circuit: "korea", bannedAt: null, unbannedAt: null },
+    ]);
+    expect(presented.bans).toEqual([]);
+    expect(presented.circuitBans?.map((ban) => [ban.bannedAt, ban.unbannedAt])).toEqual([
+      ["2026-03-31", "2026-11-23"],
+      [null, null],
+    ]);
+  });
+});
 
 describe("groupErrataByCard", () => {
   function errataRow(cardId: string, language: string) {

@@ -51,6 +51,7 @@ function tournamentRow(overrides: Partial<Tournament> = {}): Tournament {
     listLockMode: "on_submit",
     deckFormat: "constructed",
     allowedSets: null,
+    circuit: null,
     hasSelfRegistration: false,
     uvsgamesEventId: null,
     playriftboundEventId: null,

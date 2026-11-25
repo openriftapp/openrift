@@ -32,6 +32,8 @@ const ACTION_SENTENCES: Record<string, string> = {
   "ban.delete": "Removed a ban",
   "ban.update": "Edited a ban",
   "candidate-card.check": "Marked sources as reviewed",
+  "format-set.delete": "Removed a set from a format",
+  "format-set.upsert": "Set when a set is legal in a format",
   "candidate-card.discard-same-difference":
     "Discarded a source suggestion on every card it was made on",
   "candidate-card.dismiss-value": "Dismissed a source value",

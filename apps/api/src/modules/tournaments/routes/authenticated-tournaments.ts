@@ -16,6 +16,7 @@ import { buildKeysetCursor } from "../../../lib/keyset-cursor.js";
 import { withUniqueShareToken } from "../../../lib/share-token.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { assertKnownCircuit } from "../../catalog/lib/circuit-validation.js";
 import { assertKnownFormat } from "../../decks/lib/deck-format-validation.js";
 import { loadGroupForMember } from "../../groups/lib/group-access.js";
 import { withUniqueClaimToken } from "../lib/claim-token.js";
@@ -156,6 +157,7 @@ export const tournamentsRouter = {
     if (input.deckFormat !== undefined) {
       await assertKnownFormat(repos.deckFormats, input.deckFormat);
     }
+    await assertKnownCircuit(repos.cardBans, input.circuit);
 
     const host: TournamentHostColumns =
       input.host.type === "user"
@@ -197,6 +199,7 @@ export const tournamentsRouter = {
             listLockMode: input.listLockMode,
             deckFormat: input.deckFormat,
             allowedSets: input.allowedSets ?? null,
+            circuit: input.circuit ?? null,
             hasSelfRegistration: input.selfRegistration,
             startsAt: new Date(input.startsAt),
             endsAt: input.endsAt ? new Date(input.endsAt) : null,
@@ -230,6 +233,7 @@ export const tournamentsRouter = {
     if (patch.deckFormat !== undefined) {
       await assertKnownFormat(repos.deckFormats, patch.deckFormat);
     }
+    await assertKnownCircuit(repos.cardBans, patch.circuit);
     if (patch.groupId) {
       const membership = await repos.friendGroups.getMembership(patch.groupId, userId);
       if (!membership) {

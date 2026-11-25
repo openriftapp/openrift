@@ -16,6 +16,7 @@ import { DeckMissingCardsDialog } from "@/features/decks/components/deck-missing
 import { DeckOwnershipNote } from "@/features/decks/components/deck-ownership-note";
 import { DeckOwnershipBody } from "@/features/decks/components/deck-ownership-panel";
 import { useDeckStats } from "@/features/decks/hooks/use-deck-stats";
+import { useRuleCardJudge } from "@/features/decks/hooks/use-rule-card-judge";
 import { useViewerDeckOwnership } from "@/features/decks/hooks/use-viewer-deck-ownership";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toDeckBuilderCard, toRuleEngineCard } from "@/features/decks/lib/deck-builder-card";
@@ -62,6 +63,7 @@ export function DeckImportSummary({
   const { cardsById } = useCards();
   const championIdentifierTags = useChampionIdentifierTags();
   const customTagAssignments = useCustomTagAssignments();
+  const judge = useRuleCardJudge();
   const marketplaceOrder = useDisplayStore((state) => state.marketplaceOrder);
   const marketplace: Marketplace = marketplaceOrder[0];
   const hydrated = useHydrated();
@@ -77,7 +79,7 @@ export function DeckImportSummary({
   const violations = validateDeck({
     format,
     formatConfig,
-    cards: builderCards.map((card) => toRuleEngineCard(card, customTagAssignments)),
+    cards: builderCards.map((card) => toRuleEngineCard(card, customTagAssignments, judge)),
     championIdentifierTags,
   });
   const totalCards = deckCardCount(builderCards);

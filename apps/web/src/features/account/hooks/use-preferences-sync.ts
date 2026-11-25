@@ -90,6 +90,7 @@ function getPrefsSnapshot(): PreferencesUpdateInput {
     defaultCurrency: overrides.defaultCurrency,
     topLevelFilters: overrides.topLevelFilters,
     countExcludedCollections: overrides.countExcludedCollections,
+    playCircuit: overrides.playCircuit,
     theme: themePreference,
     palette: palettePreference,
   };

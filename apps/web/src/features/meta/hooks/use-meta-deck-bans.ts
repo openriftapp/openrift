@@ -6,6 +6,7 @@ import type { MetaBanGroup } from "@/features/meta/lib/meta-deck-bans";
 import { metaDeckBans } from "@/features/meta/lib/meta-deck-bans";
 import { decodeMetaDeckCardIndex } from "@/features/meta/lib/meta-deck-collection";
 import { metaDeckCardsQueryOptions } from "@/features/meta/lib/meta-queries";
+import { useViewerLegality } from "@/hooks/use-viewer-legality";
 
 /** Undefined until the deck cards and the catalogue have landed; never suspends. */
 export function useMetaDeckBans(
@@ -14,8 +15,9 @@ export function useMetaDeckBans(
 ): ReadonlyMap<string, MetaBanGroup[]> | undefined {
   const { data: index } = useQuery({ ...metaDeckCardsQueryOptions(decks), enabled });
   const { catalog } = useCatalogOnDemand(enabled);
+  const legality = useViewerLegality();
   if (!enabled || index === undefined || catalog === undefined) {
     return undefined;
   }
-  return metaDeckBans(decodeMetaDeckCardIndex(index), catalog.cardsById);
+  return metaDeckBans(decodeMetaDeckCardIndex(index), catalog.cardsById, legality);
 }

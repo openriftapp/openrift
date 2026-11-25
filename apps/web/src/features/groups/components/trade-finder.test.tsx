@@ -13,6 +13,11 @@ import { useTradeFinderStore } from "@/features/groups/stores/trade-finder-store
 import { stubPrinting } from "@/test/factories";
 import { createStoreResetter } from "@/test/store-helpers";
 
+vi.mock("@/hooks/use-viewer-legality", () => ({
+  useViewerLegality: () => ({ windows: [] }),
+  useGlobalLegality: () => ({ windows: [] }),
+}));
+
 const jinx = stubPrinting({
   printingId: "p-jinx",
   cardId: "c-jinx",

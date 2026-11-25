@@ -25,6 +25,8 @@ export function stubInitResponse(enums: Partial<InitResponse["enums"]> = {}): In
     championIdentifierTags: [],
     tagCategories: [],
     tagCategoryMap: {},
+    circuits: [],
+    formatSets: [],
   };
 }
 

@@ -1,4 +1,5 @@
 import { joinCatalogPrintings } from "@openrift/shared/catalog-join";
+import type { LegalityContext } from "@openrift/shared/format-legality";
 import { keywordReverseMap } from "@openrift/shared/keywords";
 import type { SearchVocabulary } from "@openrift/shared/search-query/bind";
 import { catalogSearchVocabulary } from "@openrift/shared/search-query/vocabulary";
@@ -11,9 +12,11 @@ import type {
 import type { Printing } from "@openrift/shared/types/catalog";
 
 import type { Repos } from "../../../deps.js";
+import { toFormatSetWindow } from "../lib/format-set-presenters.js";
 import {
   groupErrataByCard,
   loadPrintingDecorations,
+  presentCardBans,
   presentPrintingValues,
 } from "../lib/printing-presenters.js";
 import { toEnumRows, toKeywordEntries, toTagCategoryMap } from "../lib/reference-presenters.js";
@@ -66,12 +69,7 @@ export async function assembleCatalogResponse(repos: Repos): Promise<CatalogResp
     cards[id] = {
       ...rest,
       errata: errataByCard.get(id) ?? [],
-      bans: (bansByCard.get(id) ?? []).map((b) => ({
-        formatId: b.formatId,
-        formatName: b.formatName,
-        bannedAt: b.bannedAt,
-        reason: b.reason,
-      })),
+      ...presentCardBans(bansByCard.get(id) ?? []),
     };
   }
 
@@ -171,20 +169,23 @@ export interface RuleCatalog {
   customTagAssignments: Record<string, readonly string[]>;
   vocabulary: SearchVocabulary;
   keywordReverseMap: Map<string, string>;
+  legality: LegalityContext;
 }
 
 export async function assembleRuleCatalog(repos: Repos): Promise<RuleCatalog> {
-  const [response, assignments, formats, translations] = await Promise.all([
+  const [response, assignments, formats, translations, windowRows] = await Promise.all([
     assembleCatalogResponse(repos),
     repos.customTags.assignmentsByCard(),
     repos.cardBans.listFormats(),
     repos.keywords.listAllTranslations(),
+    repos.formatSets.listAll(),
   ]);
   const printings = joinCatalogPrintings(response);
   return {
     printings,
     customTagAssignments: Object.fromEntries(assignments),
     keywordReverseMap: keywordReverseMap(translations),
+    legality: { windows: windowRows.map((row) => toFormatSetWindow(row)) },
     vocabulary: catalogSearchVocabulary({
       printings,
       sets: response.sets,

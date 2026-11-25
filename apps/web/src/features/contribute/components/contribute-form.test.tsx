@@ -69,6 +69,8 @@ const INIT_RESPONSE: InitResponse = {
   championIdentifierTags: [],
   tagCategories: [],
   tagCategoryMap: {},
+  circuits: [],
+  formatSets: [],
 };
 
 const SET_LIST_RESPONSE: SetListResponse = {

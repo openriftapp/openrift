@@ -5,6 +5,7 @@ import { PencilIcon, XIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useCircuitList } from "@/hooks/use-enums";
 
 export function BanRow({
   ban,
@@ -15,11 +16,19 @@ export function BanRow({
   onEdit: () => void;
   onRemove: () => void;
 }) {
+  const circuits = useCircuitList();
+  const circuitLabel =
+    ban.circuit === null
+      ? null
+      : (circuits.find((circuit) => circuit.slug === ban.circuit)?.label ?? ban.circuit);
   return (
     <li className="flex flex-wrap items-center gap-2 px-3 py-2">
       <Badge variant="destructive">{ban.formatName}</Badge>
+      {circuitLabel !== null && <Badge variant="outline">{circuitLabel}</Badge>}
       <span className="text-muted-foreground text-sm">
-        {isBanInEffect(ban) ? "since" : "from"} {formatDay(ban.bannedAt)}
+        {ban.bannedAt === null
+          ? "date not announced"
+          : `${isBanInEffect({ bannedAt: ban.bannedAt }) ? "since" : "from"} ${formatDay(ban.bannedAt)}`}
       </span>
       {ban.reason !== null && (
         <span className="text-muted-foreground min-w-0 flex-1 truncate text-sm italic">

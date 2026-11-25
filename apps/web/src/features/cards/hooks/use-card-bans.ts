@@ -29,15 +29,22 @@ export function useCardBans(cardId: string) {
   });
 }
 
+interface CardBanWrite {
+  cardId: string;
+  formatId: string;
+  circuit: string | null;
+  bannedAt: string | null;
+  reason: string | null;
+}
+
 const createCardBanFn = createServerFn({ method: "POST" })
-  .validator(
-    (input: { cardId: string; formatId: string; bannedAt: string; reason: string | null }) => input,
-  )
+  .validator((input: CardBanWrite) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
     await apiOrpcClient(adminCardBansContract, context.cookie).create({
       id: data.cardId,
       formatId: data.formatId,
+      circuit: data.circuit,
       bannedAt: data.bannedAt,
       reason: data.reason,
     });
@@ -45,36 +52,21 @@ const createCardBanFn = createServerFn({ method: "POST" })
 
 export function useCreateCardBan() {
   return useMutationWithInvalidation({
-    mutationFn: async (
-      {
-        cardId,
-        formatId,
-        bannedAt,
-        reason,
-      }: {
-        cardId: string;
-        formatId: string;
-        bannedAt: string;
-        reason: string | null;
-      },
-      signal,
-    ) => {
-      await createCardBanFn({ data: { cardId, formatId, bannedAt, reason }, signal });
+    mutationFn: async (input: CardBanWrite, signal) => {
+      await createCardBanFn({ data: input, signal });
     },
     invalidates: [adminKeys.cardBans.prefix, catalogKeys.all],
   });
 }
 
 const updateCardBanFn = createServerFn({ method: "POST" })
-  .validator(
-    (input: { cardId: string; formatId: string; bannedAt?: string; reason?: string | null }) =>
-      input,
-  )
+  .validator((input: CardBanWrite) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
     await apiOrpcClient(adminCardBansContract, context.cookie).update({
       id: data.cardId,
       formatId: data.formatId,
+      circuit: data.circuit,
       bannedAt: data.bannedAt,
       reason: data.reason,
     });
@@ -82,40 +74,30 @@ const updateCardBanFn = createServerFn({ method: "POST" })
 
 export function useUpdateCardBan() {
   return useMutationWithInvalidation({
-    mutationFn: async (
-      {
-        cardId,
-        formatId,
-        bannedAt,
-        reason,
-      }: {
-        cardId: string;
-        formatId: string;
-        bannedAt?: string;
-        reason?: string | null;
-      },
-      signal,
-    ) => {
-      await updateCardBanFn({ data: { cardId, formatId, bannedAt, reason }, signal });
+    mutationFn: async (input: CardBanWrite, signal) => {
+      await updateCardBanFn({ data: input, signal });
     },
     invalidates: [adminKeys.cardBans.prefix, catalogKeys.all],
   });
 }
 
+type CardBanKey = Pick<CardBanWrite, "cardId" | "formatId" | "circuit">;
+
 const removeCardBanFn = createServerFn({ method: "POST" })
-  .validator((input: { cardId: string; formatId: string }) => input)
+  .validator((input: CardBanKey) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
     await apiOrpcClient(adminCardBansContract, context.cookie).remove({
       id: data.cardId,
       formatId: data.formatId,
+      circuit: data.circuit,
     });
   });
 
 export function useRemoveCardBan() {
   return useMutationWithInvalidation({
-    mutationFn: async ({ cardId, formatId }: { cardId: string; formatId: string }, signal) => {
-      await removeCardBanFn({ data: { cardId, formatId }, signal });
+    mutationFn: async (input: CardBanKey, signal) => {
+      await removeCardBanFn({ data: input, signal });
     },
     invalidates: [adminKeys.cardBans.prefix, catalogKeys.all],
   });

@@ -88,6 +88,7 @@ export const updatePreferencesSchema = z.object({
     .nullable()
     .optional(),
   countExcludedCollections: z.boolean().nullable().optional(),
+  playCircuit: z.string().min(1).max(40).nullable().optional(),
   emailNotifications: emailNotificationPreferenceSchema.nullable().optional(),
 });
 
@@ -106,6 +107,7 @@ export const userPreferencesResponseSchema = z.object({
   defaultCurrency: z.enum(["EUR", "USD"]).optional(),
   topLevelFilters: z.array(z.string()).optional(),
   countExcludedCollections: z.boolean().optional(),
+  playCircuit: z.string().optional(),
   emailNotifications: emailNotificationPreferenceSchema.optional(),
 });
 

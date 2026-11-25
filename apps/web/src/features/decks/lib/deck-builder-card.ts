@@ -9,6 +9,8 @@ import {
   RUNE_TARGET,
   totalQuantity,
 } from "@openrift/shared/deck-rules";
+import { bansInEffect, standardSetLegality } from "@openrift/shared/format-legality";
+import type { LegalityContext } from "@openrift/shared/format-legality";
 import type { DeckCardResponse, PublicDeckCardResponse } from "@openrift/shared/types/api/deck";
 import type { Card } from "@openrift/shared/types/catalog";
 import type {
@@ -29,8 +31,28 @@ const EMPTY_ARRAY: string[] = [];
  * Only the base banlist invalidates a deck; mode-scoped bans (e.g. 2v2) stay
  * a display-only ribbon since a deck carries no play-mode identity.
  */
-export function isCardBanned(card: Pick<Card, "bans">): boolean {
-  return card.bans.some((ban) => isBaseBanFormat(ban.formatId));
+export function isCardBanned(
+  card: Pick<Card, "bans" | "upcomingBans" | "circuitBans">,
+  legality?: LegalityContext,
+): boolean {
+  return bansInEffect(card, legality).some((ban) => isBaseBanFormat(ban.formatId));
+}
+
+/** A card's ban and set status as one viewer sees them; undefined keeps the card's own snapshot. */
+export type RuleCardJudge = (
+  cardId: string,
+) => Pick<DeckCard, "banned" | "setLegality"> | undefined;
+
+export function ruleCardJudge(
+  cardsById: Record<string, Card>,
+  legality: LegalityContext,
+): RuleCardJudge {
+  return (cardId) => {
+    const card = cardsById[cardId];
+    return card
+      ? { banned: isCardBanned(card, legality), setLegality: standardSetLegality(card, legality) }
+      : undefined;
+  };
 }
 
 export const COPY_LIMIT_ZONES: ReadonlySet<DeckZone> = new Set([
@@ -109,7 +131,9 @@ export function toBuilderCardFromPublic(card: PublicDeckCardResponse): DeckBuild
 export function toRuleEngineCard(
   card: DeckBuilderCard,
   customTagAssignments: Record<string, readonly string[]>,
+  judge?: RuleCardJudge,
 ): DeckCard {
+  const judged = judge?.(card.cardId);
   return {
     cardId: card.cardId,
     zone: card.zone,
@@ -125,6 +149,7 @@ export function toRuleEngineCard(
     maxCopiesOverride: card.maxCopiesOverride,
     additionalLegendCount: card.additionalLegendCount,
     banned: card.banned,
+    ...judged,
   };
 }
 

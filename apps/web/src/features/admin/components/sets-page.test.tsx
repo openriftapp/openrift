@@ -46,7 +46,13 @@ vi.mock("@/features/admin/hooks/use-set-releases", () => ({
   useDeleteSetRelease: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
-vi.mock("@/hooks/use-enums", () => ({ useLanguageList: () => [] }));
+vi.mock("@/hooks/use-enums", () => ({ useLanguageList: () => [], useCircuitList: () => [] }));
+
+vi.mock("@/features/admin/hooks/use-format-sets", () => ({
+  useFormatSets: () => ({ data: [] }),
+  useUpsertFormatSet: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useRemoveFormatSet: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}));
 
 const { SetsPage } = await import("./sets-page");
 

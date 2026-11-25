@@ -20,6 +20,7 @@ export type CatalogCardRow = Omit<
   superTypes: SuperType[];
   types: CardType[];
   tokenCardIds: string[];
+  numberedSetSlugs: string[];
 };
 
 /**
@@ -44,7 +45,7 @@ export interface RelatedCardRow {
 
 type CatalogCardBanRow = Pick<
   Selectable<CardBansTable>,
-  "cardId" | "formatId" | "bannedAt" | "reason"
+  "cardId" | "formatId" | "circuit" | "bannedAt" | "unbannedAt" | "reason"
 > & { formatName: string };
 
 type CatalogCardErrataRow = Pick<
@@ -78,8 +79,13 @@ const CARD_COLUMNS = [
   "mca.superTypes",
   "mca.tokenCardIds",
   "mca.types",
+  sql<string[]>`array(
+    SELECT DISTINCT s.slug FROM faces f JOIN sets s ON s.id = f.set_id
+    WHERE f.card_id = cards.id AND NOT f.is_overnumbered ORDER BY s.slug
+  )`.as("numberedSetSlugs"),
 ] as const;
 
+/** Global rows still in force, and every circuit row: a lifted circuit row still replaces the global one. */
 function selectCardBans(db: Kysely<Database>) {
   return db
     .selectFrom("cardBans")
@@ -87,11 +93,15 @@ function selectCardBans(db: Kysely<Database>) {
     .select([
       "cardBans.cardId",
       "cardBans.formatId",
+      "cardBans.circuit",
       "cardBans.bannedAt",
+      "cardBans.unbannedAt",
       "cardBans.reason",
       "banFormats.label as formatName",
     ])
-    .where("unbannedAt", "is", null);
+    .where((eb) =>
+      eb.or([eb("cardBans.circuit", "is not", null), eb("cardBans.unbannedAt", "is", null)]),
+    );
 }
 
 function selectCardErrata(db: Kysely<Database>) {
@@ -154,6 +164,26 @@ export function catalogCardsRepo(db: Kysely<Database>) {
         .where("id", "in", [...cardIds])
         .execute();
       return new Map(rows.map((row) => [row.id, row.name]));
+    },
+
+    /** See `numberedSetSlugs` on the card wire schema. */
+    async numberedSetSlugsByCardIds(cardIds: readonly string[]): Promise<Map<string, string[]>> {
+      if (cardIds.length === 0) {
+        return new Map();
+      }
+      const rows = await db
+        .selectFrom("faces")
+        .innerJoin("sets", "sets.id", "faces.setId")
+        .select(["faces.cardId", "sets.slug"])
+        .distinct()
+        .where("faces.cardId", "in", [...cardIds])
+        .where("faces.isOvernumbered", "=", false)
+        .execute();
+      const byCard = new Map<string, string[]>();
+      for (const row of rows) {
+        byCard.set(row.cardId, [...(byCard.get(row.cardId) ?? []), row.slug]);
+      }
+      return byCard;
     },
 
     cardBans(): Promise<CatalogCardBanRow[]> {

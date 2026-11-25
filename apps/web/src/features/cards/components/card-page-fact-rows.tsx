@@ -1,6 +1,7 @@
 import { BOOSTERS } from "@openrift/shared/boosters/definitions";
 import { errataForLanguage } from "@openrift/shared/errata";
 import { formatMonth } from "@openrift/shared/format-date";
+import { cardBansFor, standardSetLegality } from "@openrift/shared/format-legality";
 import type { CardDetailResponse } from "@openrift/shared/types/api/catalog";
 import type { CardErrata, Printing } from "@openrift/shared/types/catalog";
 import { isBaseBanFormat } from "@openrift/shared/well-known";
@@ -17,7 +18,9 @@ import { BoosterFoundInLine } from "@/features/boosters/components/booster-found
 import { PrintingCitationList } from "@/features/cards/components/card-detail/printing-citations";
 import { CardText } from "@/features/cards/components/card-text";
 import { errataEntryAnchor } from "@/features/cards/lib/errata-list";
+import { setLegalityText } from "@/features/cards/lib/set-legality-text";
 import { useDomainColors } from "@/hooks/use-domain-colors";
+import { useViewerLegality } from "@/hooks/use-viewer-legality";
 import { getDomainGradientStyle } from "@/lib/domain";
 import { m } from "@/paraglide/messages.js";
 
@@ -40,6 +43,11 @@ export function CardPageFactRows({
 }) {
   const domainColors = useDomainColors();
   const errata = errataForLanguage(card.errata, printing.language);
+  const legality = useViewerLegality();
+  const viewerBans = cardBansFor({ ...card, upcomingBans: [] }, legality);
+  const bans = [...viewerBans.bans, ...viewerBans.upcomingBans];
+  const hasBaseBan = bans.some((ban) => isBaseBanFormat(ban.formatId));
+  const setStatusText = setLegalityText(standardSetLegality(card, legality));
   return (
     <DefinitionList className="grid-cols-[6rem_minmax(0,1fr)] gap-y-4">
       {printing.printedRulesText && (
@@ -85,16 +93,21 @@ export function CardPageFactRows({
         </FactRow>
       )}
       {errata && <ErrataRow errata={errata} printing={printing} />}
-      {card.bans.length > 0 && (
+      {setStatusText && (
+        <FactRow label={m.card_detail_row_legality()}>
+          <p>{setStatusText}</p>
+        </FactRow>
+      )}
+      {bans.length > 0 && (
         <FactRow label={m.card_detail_row_bans()}>
           <Alert variant="destructive" className="space-y-1.5">
-            {card.bans.map((ban) => (
+            {bans.map((ban) => (
               <div key={ban.formatId}>
                 <AlertTitle>
                   {m.card_detail_ban_title({ format: ban.formatName, date: ban.bannedAt })}
                 </AlertTitle>
                 {ban.reason && <AlertDescription className="mt-0.5">{ban.reason}</AlertDescription>}
-                {!isBaseBanFormat(ban.formatId) && (
+                {!hasBaseBan && (
                   <AlertDescription className="mt-0.5">
                     {m.card_detail_ban_other_format({ format: ban.formatName })}
                   </AlertDescription>

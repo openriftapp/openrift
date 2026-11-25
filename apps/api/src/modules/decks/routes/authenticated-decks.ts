@@ -1,4 +1,3 @@
-import { isBanInEffect } from "@openrift/shared/card-ban";
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { DECK_ROW_OVER_CAP, decksContract } from "@openrift/shared/contracts/decks";
 import type { updateDeckPlanSchema } from "@openrift/shared/contracts/decks";
@@ -9,6 +8,8 @@ import {
 } from "@openrift/shared/deck-cards";
 import { isValidInDeckList, summarizeDeckCards } from "@openrift/shared/deck-list-summary";
 import { requiredZoneProgress } from "@openrift/shared/deck-zones";
+import { todayUtc } from "@openrift/shared/format-date";
+import { cardIdsBannedIn, cardSetLegality } from "@openrift/shared/format-legality";
 import type {
   DeckCardsListResponse,
   DeckDetailResponse,
@@ -17,7 +18,7 @@ import type {
   DeckListResponse,
   DeckShareResponse,
 } from "@openrift/shared/types/api/deck";
-import { PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
+import { GLOBAL_CIRCUIT, PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
 import type {
   CardType,
   DeckFormat,
@@ -25,7 +26,7 @@ import type {
   Domain,
   SuperType,
 } from "@openrift/shared/types/enums";
-import { WellKnown, isBaseBanFormat } from "@openrift/shared/well-known";
+import { WellKnown } from "@openrift/shared/well-known";
 import { implement } from "@orpc/server";
 import type { z } from "zod";
 
@@ -44,6 +45,7 @@ import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { buildPatchUpdates } from "../../../patch.js";
 import type { FieldMapping } from "../../../patch.js";
+import { toFormatSetWindow } from "../../catalog/lib/format-set-presenters.js";
 import { resolveFavoriteMarketplace } from "../../users/lib/preferences.js";
 import { clampDeckCardsLimit } from "../lib/deck-cards-page-limit.js";
 import { assertKnownFormat, validateFormatConfig } from "../lib/deck-format-validation.js";
@@ -182,22 +184,34 @@ export const decksRouter = {
     const homeCollectionIds = deckRows
       .map((row) => row.collectionId)
       .filter((id): id is string => id !== null);
-    const [deckValueMap, banRows, homeExtrasByCollection, folderIdsByDeck, familyNames] =
-      await Promise.all([
-        marketplace.deckValues(userId, favMarketplace, preferredLanguages),
-        catalog.cardBansByCardIds([...new Set(allCards.map((card) => card.cardId))]),
-        copies.buildableCountByCardForCollections(userId, homeCollectionIds),
-        deckFolders.folderIdsByDeckIds(
-          deckRows.map((row) => row.id),
-          userId,
-        ),
-        decks.familyNamesForUser(userId),
-      ]);
-    const bannedCardIds = new Set(
-      banRows
-        .filter((ban) => isBaseBanFormat(ban.formatId) && isBanInEffect(ban))
-        .map((ban) => ban.cardId),
-    );
+    const allCardIds = [...new Set(allCards.map((card) => card.cardId))];
+    const [
+      deckValueMap,
+      banRows,
+      numberedSets,
+      windowRows,
+      homeExtrasByCollection,
+      folderIdsByDeck,
+      familyNames,
+    ] = await Promise.all([
+      marketplace.deckValues(userId, favMarketplace, preferredLanguages),
+      catalog.cardBansByCardIds(allCardIds),
+      catalog.numberedSetSlugsByCardIds(allCardIds),
+      context.repos.formatSets.listAll(),
+      copies.buildableCountByCardForCollections(userId, homeCollectionIds),
+      deckFolders.folderIdsByDeckIds(
+        deckRows.map((row) => row.id),
+        userId,
+      ),
+      decks.familyNamesForUser(userId),
+    ]);
+    const playCircuit = prefs?.data?.playCircuit;
+    const legalityScope = {
+      day: todayUtc(),
+      ...(playCircuit && playCircuit !== GLOBAL_CIRCUIT ? { circuit: playCircuit } : {}),
+    };
+    const bannedCardIds = cardIdsBannedIn(banRows, WellKnown.banFormat.CONSTRUCTED, legalityScope);
+    const windows = windowRows.map((window) => toFormatSetWindow(window));
 
     const cardsByDeckId = Map.groupBy(allCards, (card) => card.deckId);
 
@@ -279,6 +293,12 @@ export const decksRouter = {
           maxCopiesOverride: card.maxCopiesOverride,
           additionalLegendCount: card.additionalLegendCount,
           banned: bannedCardIds.has(card.cardId),
+          setLegality: cardSetLegality(
+            numberedSets.get(card.cardId) ?? [],
+            windows,
+            WellKnown.banFormat.CONSTRUCTED,
+            legalityScope,
+          ),
         })),
       );
 

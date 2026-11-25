@@ -56,6 +56,7 @@ interface DisplayState extends DisplayPreferences {
   setDefaultCurrency: (value: DisplayPreferences["defaultCurrency"]) => void;
   setTopLevelFilters: (value: DisplayPreferences["topLevelFilters"]) => void;
   setCountExcludedCollections: (value: DisplayPreferences["countExcludedCollections"]) => void;
+  setPlayCircuit: (value: DisplayPreferences["playCircuit"]) => void;
 
   resetPreference: (key: DisplayPreferenceKey) => void;
 
@@ -150,6 +151,11 @@ export const useDisplayStore = create<DisplayState>()(
         set((state) => ({
           countExcludedCollections: value,
           overrides: { ...state.overrides, countExcludedCollections: value },
+        })),
+      setPlayCircuit: (value) =>
+        set((state) => ({
+          playCircuit: value,
+          overrides: { ...state.overrides, playCircuit: value },
         })),
 
       resetPreference: (key) =>

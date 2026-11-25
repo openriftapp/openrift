@@ -13,6 +13,7 @@ import {
 import type { BoundsAcc, FilterCardsOptions } from "./filters-shared.js";
 import { bumpBounds, EMPTY_STRINGS, readBounds } from "./filters-shared.js";
 import { cardMatchContext } from "./filters.js";
+import { bansInEffect } from "./format-legality.js";
 import { searchPredicate } from "./search-query/evaluate.js";
 import { isStandardPrinting } from "./standard.js";
 import type { Printing } from "./types/catalog.js";
@@ -425,7 +426,7 @@ export function computeFilterCounts(
     const artVariant = printing.artVariant || WellKnown.artVariant.NORMAL;
     const hasSuperTypes = card.superTypes.some((st) => st !== WellKnown.superType.BASIC);
     const isStandard = isStandardPrinting(printing);
-    const isBanned = card.bans.length > 0;
+    const isBanned = bansInEffect(card, options.legality).length > 0;
     const hasErrata = errataForLanguage(card.errata, printing.language) !== null;
     const hasNoImage = printing.images.length === 0;
 

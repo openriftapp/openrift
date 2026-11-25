@@ -60,6 +60,7 @@ function cardRow(id: string, tokenCardIds: string[] = []) {
     might: 2,
     power: 1,
     tokenCardIds,
+    numberedSetSlugs: [],
   };
 }
 
@@ -100,7 +101,15 @@ function repos(options: {
   printings: ReturnType<typeof printingRow>[];
   printingsByCardIds?: ReturnType<typeof vi.fn>;
   deckCards?: { cardId: string; zone: string; quantity: number; preferredPrintingId: null }[];
-  bans?: { cardId: string; formatId: string; formatName: string; bannedAt: string; reason: null }[];
+  bans?: {
+    cardId: string;
+    formatId: string;
+    formatName: string;
+    circuit: null;
+    bannedAt: string;
+    unbannedAt: null;
+    reason: null;
+  }[];
 }): Repos {
   const printingsByCardIds =
     options.printingsByCardIds ?? vi.fn(() => Promise.resolve(options.printings));
@@ -234,6 +243,8 @@ describe("buildPublicDeckDetail", () => {
       cardId: CARD_ID,
       formatId: WellKnown.banFormat.CONSTRUCTED,
       formatName: "Constructed",
+      circuit: null,
+      unbannedAt: null,
       reason: null,
     };
     const build = (bannedAt: string) =>
@@ -258,7 +269,9 @@ describe("buildPublicDeckDetail", () => {
             cardId: CARD_ID,
             formatId: WellKnown.banFormat.CONSTRUCTED,
             formatName: "Constructed",
+            circuit: null,
             bannedAt: "2020-01-01",
+            unbannedAt: null,
             reason: null,
           },
         ],

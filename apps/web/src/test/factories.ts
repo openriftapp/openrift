@@ -484,6 +484,7 @@ export function makeCardBan(overrides: Partial<CardBanResponse> = {}): CardBanRe
     cardId: nextId(),
     formatId: "constructed",
     formatName: "Constructed",
+    circuit: null,
     bannedAt: "2026-08-01",
     reason: "Locks the board out of every deck",
     createdAt: "2026-08-01T00:00:00.000Z",

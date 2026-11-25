@@ -7,6 +7,7 @@ import {
   totalQuantity,
   battlefieldExactlyThree,
   battlefieldNoDuplicates,
+  cardsFromLegalSets,
   championExactlyOne,
   championSharesTagWithLegend,
   copyLimitAcrossZones,
@@ -972,6 +973,59 @@ describe("signatureMatchesLegendTag (via validateDeck)", () => {
       ),
     ];
     expect(tagViolations(cards)).toEqual([]);
+  });
+});
+
+describe("cardsFromLegalSets", () => {
+  it("passes a card without a set status, and a legal one", () => {
+    expect(
+      cardsFromLegalSets(
+        makeState([makeCard(), makeCard({ cardId: "ok", setLegality: { status: "legal" } })]),
+      ),
+    ).toEqual([]);
+  });
+
+  it("flags rotated, upcoming and outside cards with their own codes", () => {
+    const violations = cardsFromLegalSets(
+      makeState([
+        makeCard({
+          cardId: "old",
+          cardName: "Old Unit",
+          setLegality: { status: "rotated", until: "2028-01-28" },
+        }),
+        makeCard({
+          cardId: "new",
+          cardName: "New Unit",
+          setLegality: { status: "upcoming", from: "2027-01-29" },
+        }),
+        makeCard({
+          cardId: "undated",
+          cardName: "Undated Unit",
+          setLegality: { status: "upcoming" },
+        }),
+        makeCard({ cardId: "promo", cardName: "Promo Unit", setLegality: { status: "outside" } }),
+      ]),
+    );
+
+    expect(violations.map((violation) => [violation.cardId, violation.code])).toEqual([
+      ["old", "CARD_ROTATED"],
+      ["new", "CARD_NOT_YET_LEGAL"],
+      ["undated", "CARD_NOT_YET_LEGAL"],
+      ["promo", "CARD_NOT_IN_FORMAT_SETS"],
+    ]);
+    expect(violations[0]!.message).toBe("Old Unit rotated out on 2028-01-28.");
+    expect(violations[1]!.message).toBe("New Unit is legal from 2027-01-29.");
+    expect(violations[2]!.message).toBe("Undated Unit is not legal yet.");
+  });
+
+  it("ignores overflow and formats without set windows", () => {
+    const rotated = { status: "rotated", until: "2028-01-28" } as const;
+    expect(
+      cardsFromLegalSets(makeState([makeCard({ zone: "overflow", setLegality: rotated })])),
+    ).toEqual([]);
+    expect(cardsFromLegalSets(makeState([makeCard({ setLegality: rotated })], "infinity"))).toEqual(
+      [],
+    );
   });
 });
 

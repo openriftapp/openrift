@@ -205,6 +205,7 @@ describe("useDisplayStore", () => {
         defaultCurrency: null,
         topLevelFilters: null,
         countExcludedCollections: null,
+        playCircuit: null,
       });
       expect(state.showImages).toBe(PREFERENCE_DEFAULTS.showImages);
       expect(state.fancyFan).toBe(PREFERENCE_DEFAULTS.fancyFan);

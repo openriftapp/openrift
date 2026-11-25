@@ -26,6 +26,7 @@ const card: CardDetailResponse["card"] = {
   tags: [],
   errata: [],
   bans: [],
+  numberedSetSlugs: [],
 };
 
 function makePrinting(language: string, frontImageId: string): CatalogResponsePrintingValue {

@@ -79,6 +79,11 @@ function makeInit(overrides: Partial<InitResponse> = {}): InitResponse {
     championIdentifierTags: [],
     tagCategories: [{ slug: "region", label: "Region", sortOrder: 0 }],
     tagCategoryMap: { Testland: "region" },
+    circuits: [{ slug: "korea", label: "Korea", countryCodes: ["KR"] }],
+    formatSets: [
+      { formatId: "standard", setSlug: "TST", legalFrom: "2026-01-01" },
+      { formatId: "standard", setSlug: "TST", circuit: "korea", legalFrom: null },
+    ],
     ...overrides,
   };
 }
@@ -155,6 +160,17 @@ function makeCatalog(overrides: Partial<CatalogResponse> = {}): CatalogResponse 
         bans: [
           { formatId: "standard", formatName: "Constructed", bannedAt: "2026-03-01", reason: null },
         ],
+        circuitBans: [
+          {
+            formatId: "standard",
+            formatName: "Constructed",
+            circuit: "korea",
+            bannedAt: null,
+            unbannedAt: null,
+            reason: null,
+          },
+        ],
+        numberedSetSlugs: ["TST"],
       },
     },
     printings: {
@@ -190,8 +206,34 @@ describe("buildCatalogSync", () => {
     expect(rows.cardTokens).toEqual([{ cardId: CARD_ID, tokenCardId: TOKEN_ID }]);
     expect(rows.cardBans).toEqual([
       { cardId: CARD_ID, formatId: "standard", bannedAt: "2026-03-01", reason: null },
+      {
+        cardId: CARD_ID,
+        formatId: "standard",
+        circuit: "korea",
+        bannedAt: null,
+        unbannedAt: null,
+        reason: null,
+      },
     ]);
     expect(rows.banFormats).toEqual([{ slug: "standard", label: "Constructed", sortOrder: 1 }]);
+  });
+
+  it("carries circuits and set windows by set slug", () => {
+    const rows = buildCatalogSync(makeInit(), makeCatalog());
+
+    expect(rows.circuits).toEqual([
+      { slug: "korea", label: "Korea", countryCodes: ["KR"], sortOrder: 0 },
+    ]);
+    expect(rows.formatSets).toEqual([
+      {
+        formatId: "standard",
+        setSlug: "TST",
+        circuit: null,
+        legalFrom: "2026-01-01",
+        legalUntil: null,
+      },
+      { formatId: "standard", setSlug: "TST", circuit: "korea", legalFrom: null, legalUntil: null },
+    ]);
   });
 
   it("writes errata as a sourced row", () => {

@@ -8,6 +8,7 @@ import { descriptionSnippet } from "@openrift/shared/description-snippet";
 import type { DeckListItemResponse } from "@openrift/shared/types/api/deck";
 import type { Card } from "@openrift/shared/types/catalog";
 
+import type { RuleCardJudge } from "@/features/decks/lib/deck-builder-card";
 import { toDeckBuilderCard, toRuleEngineCard } from "@/features/decks/lib/deck-builder-card";
 import type { LocalDeck } from "@/features/decks/lib/local-deck";
 
@@ -15,6 +16,7 @@ export interface LocalDeckListItemContext {
   cardsById: Record<string, Card>;
   cardTypeOrder: readonly string[];
   domainOrder: readonly string[];
+  judge?: RuleCardJudge;
 }
 
 /** Synthesizes the server `DeckListItemResponse` shape so a local deck flows through the same sort/filter/group/tile code as server decks. */
@@ -38,7 +40,7 @@ export function localDeckToListItem(
 
   const isValid = isValidInDeckList(
     localDeck.format,
-    builderCards.map((card) => toRuleEngineCard(card, {})),
+    builderCards.map((card) => toRuleEngineCard(card, {}, ctx.judge)),
   );
 
   return {

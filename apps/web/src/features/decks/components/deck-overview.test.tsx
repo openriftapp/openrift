@@ -96,6 +96,11 @@ vi.mock("@/features/decks/components/deck-builder-intro-banner", () => ({
 
 import { DeckOverview } from "./deck-overview";
 
+vi.mock("@/hooks/use-viewer-legality", () => ({
+  useViewerLegality: () => ({ windows: [] }),
+  useGlobalLegality: () => ({ windows: [] }),
+}));
+
 const resetUiStore = createStoreResetter(useDeckBuilderUiStore);
 const resetViewStore = createStoreResetter(useDeckOverviewViewStore);
 

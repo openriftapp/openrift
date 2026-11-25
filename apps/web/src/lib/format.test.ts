@@ -86,6 +86,7 @@ function stub(overrides: Partial<Printing> = {}): Printing {
       additionalLegendCount: null,
       errata: [],
       bans: [],
+      numberedSetSlugs: [],
       upcomingBans: [],
     },
     ...overrides,

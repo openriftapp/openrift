@@ -25,6 +25,7 @@ export * from "./admin/distribution-channels.js";
 export * from "./admin/domains.js";
 export * from "./admin/feature-flags.js";
 export * from "./admin/finishes.js";
+export * from "./admin/format-sets.js";
 export * from "./admin/formats.js";
 export * from "./admin/friend-group-banners.js";
 export * from "./admin/grants.js";

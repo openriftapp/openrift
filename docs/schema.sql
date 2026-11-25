@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict oOe9OlcFCLfAjBwedCg5dDVLhPof7OkLHVKwFmO3p2ZpXIsce5TxyLlIdGYGHCU
+\restrict HgItp8xXFnY7TqeIIyoMLf3u9vrHajhGPQcFIqUBWd3UfANZnogSrJcLZt2EcFk
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -1401,12 +1401,15 @@ CREATE TABLE public.card_bans (
     id uuid DEFAULT uuidv7() NOT NULL,
     card_id uuid NOT NULL,
     format_id text NOT NULL,
-    banned_at date NOT NULL,
+    banned_at date,
     unbanned_at date,
     reason text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    circuit text,
     CONSTRAINT chk_card_bans_dates_ordered CHECK (((unbanned_at IS NULL) OR (unbanned_at >= banned_at))),
-    CONSTRAINT chk_card_bans_reason_not_empty CHECK ((reason <> ''::text))
+    CONSTRAINT chk_card_bans_reason_not_empty CHECK ((reason <> ''::text)),
+    CONSTRAINT chk_card_bans_undated_is_regional CHECK (((banned_at IS NOT NULL) OR (circuit IS NOT NULL))),
+    CONSTRAINT chk_card_bans_undated_not_lifted CHECK (((banned_at IS NOT NULL) OR (unbanned_at IS NULL)))
 );
 
 
@@ -1699,6 +1702,23 @@ CREATE TABLE public.catalog_versions (
     scope text NOT NULL,
     version bigint NOT NULL,
     bumped_by xid8
+);
+
+
+--
+-- Name: circuits; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.circuits (
+    slug text NOT NULL,
+    label text NOT NULL,
+    country_codes text[] DEFAULT '{}'::text[] NOT NULL,
+    release_language text,
+    has_set_ban_lists boolean DEFAULT false NOT NULL,
+    sort_order smallint NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_circuits_label_not_empty CHECK ((label <> ''::text)),
+    CONSTRAINT chk_circuits_slug_not_empty CHECK ((slug <> ''::text))
 );
 
 
@@ -2271,6 +2291,23 @@ CREATE TABLE public.finishes (
     is_well_known boolean DEFAULT false NOT NULL,
     CONSTRAINT chk_finishes_label_not_empty CHECK ((label <> ''::text)),
     CONSTRAINT chk_finishes_slug_not_empty CHECK ((slug <> ''::text))
+);
+
+
+--
+-- Name: format_sets; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.format_sets (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    format_id text NOT NULL,
+    set_id uuid NOT NULL,
+    circuit text,
+    legal_from date,
+    legal_until date,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_format_sets_window CHECK (((legal_until IS NULL) OR ((legal_from IS NOT NULL) AND (legal_until > legal_from))))
 );
 
 
@@ -4566,6 +4603,7 @@ CREATE TABLE public.tournaments (
     uvsgames_event_id text,
     is_published boolean DEFAULT true CONSTRAINT tournaments_published_not_null NOT NULL,
     playriftbound_event_id text,
+    circuit text,
     CONSTRAINT chk_tournaments_allowed_sets_shape CHECK (((allowed_sets IS NULL) OR (jsonb_typeof(allowed_sets) = 'array'::text))),
     CONSTRAINT chk_tournaments_bye_points CHECK ((bye_points >= 0)),
     CONSTRAINT chk_tournaments_cut_size CHECK ((cut_size = ANY (ARRAY[4, 8, 16]))),
@@ -5159,6 +5197,14 @@ ALTER TABLE ONLY public.catalog_versions
 
 
 --
+-- Name: circuits pk_circuits; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.circuits
+    ADD CONSTRAINT pk_circuits PRIMARY KEY (slug);
+
+
+--
 -- Name: collection_deckbuilding_prefs pk_collection_deckbuilding_prefs; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5396,6 +5442,14 @@ ALTER TABLE ONLY public.feature_flags
 
 ALTER TABLE ONLY public.finishes
     ADD CONSTRAINT pk_finishes PRIMARY KEY (slug);
+
+
+--
+-- Name: format_sets pk_format_sets; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.format_sets
+    ADD CONSTRAINT pk_format_sets PRIMARY KEY (id);
 
 
 --
@@ -7959,7 +8013,7 @@ CREATE UNIQUE INDEX uq_candidate_printings_card_external_id ON public.candidate_
 -- Name: uq_card_bans_active; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_card_bans_active ON public.card_bans USING btree (card_id, format_id) WHERE (unbanned_at IS NULL);
+CREATE UNIQUE INDEX uq_card_bans_active ON public.card_bans USING btree (card_id, format_id, circuit) NULLS NOT DISTINCT WHERE (unbanned_at IS NULL);
 
 
 --
@@ -8023,6 +8077,13 @@ CREATE UNIQUE INDEX uq_face_images_active ON public.face_images USING btree (fac
 --
 
 CREATE UNIQUE INDEX uq_face_images_pending ON public.face_images USING btree (face_id) WHERE is_activation_pending;
+
+
+--
+-- Name: uq_format_sets_window; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_format_sets_window ON public.format_sets USING btree (format_id, set_id, circuit) NULLS NOT DISTINCT;
 
 
 --
@@ -8502,6 +8563,13 @@ CREATE CONSTRAINT TRIGGER trg_cards_require_card_types AFTER INSERT ON public.ca
 
 
 --
+-- Name: circuits trg_circuits_catalog_version; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE CONSTRAINT TRIGGER trg_circuits_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.circuits DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
+
+
+--
 -- Name: collections trg_collections_record_copy_deletions; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -8660,6 +8728,13 @@ CREATE CONSTRAINT TRIGGER trg_finishes_catalog_version AFTER INSERT OR DELETE OR
 --
 
 CREATE TRIGGER trg_finishes_protect_well_known BEFORE DELETE OR UPDATE ON public.finishes FOR EACH ROW EXECUTE FUNCTION public.protect_well_known();
+
+
+--
+-- Name: format_sets trg_format_sets_catalog_version; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE CONSTRAINT TRIGGER trg_format_sets_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.format_sets DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -9010,6 +9085,13 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.faces FOR EACH ROW EXE
 --
 
 CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.feature_flags FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: format_sets trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.format_sets FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 
 --
@@ -9524,6 +9606,14 @@ ALTER TABLE ONLY public.candidate_printings
 
 ALTER TABLE ONLY public.card_bans
     ADD CONSTRAINT fk_card_bans_card_id FOREIGN KEY (card_id) REFERENCES public.cards(id);
+
+
+--
+-- Name: card_bans fk_card_bans_circuit; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_bans
+    ADD CONSTRAINT fk_card_bans_circuit FOREIGN KEY (circuit) REFERENCES public.circuits(slug);
 
 
 --
@@ -10244,6 +10334,30 @@ ALTER TABLE ONLY public.faces
 
 ALTER TABLE ONLY public.faces
     ADD CONSTRAINT fk_faces_set_id FOREIGN KEY (set_id) REFERENCES public.sets(id);
+
+
+--
+-- Name: format_sets fk_format_sets_circuit; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.format_sets
+    ADD CONSTRAINT fk_format_sets_circuit FOREIGN KEY (circuit) REFERENCES public.circuits(slug);
+
+
+--
+-- Name: format_sets fk_format_sets_format_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.format_sets
+    ADD CONSTRAINT fk_format_sets_format_id FOREIGN KEY (format_id) REFERENCES public.ban_formats(slug);
+
+
+--
+-- Name: format_sets fk_format_sets_set_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.format_sets
+    ADD CONSTRAINT fk_format_sets_set_id FOREIGN KEY (set_id) REFERENCES public.sets(id) ON DELETE CASCADE;
 
 
 --
@@ -11351,6 +11465,14 @@ ALTER TABLE ONLY public.tournament_teams
 
 
 --
+-- Name: tournaments fk_tournaments_circuit; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tournaments
+    ADD CONSTRAINT fk_tournaments_circuit FOREIGN KEY (circuit) REFERENCES public.circuits(slug);
+
+
+--
 -- Name: tournaments fk_tournaments_deck_format; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -11546,5 +11668,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict oOe9OlcFCLfAjBwedCg5dDVLhPof7OkLHVKwFmO3p2ZpXIsce5TxyLlIdGYGHCU
+\unrestrict HgItp8xXFnY7TqeIIyoMLf3u9vrHajhGPQcFIqUBWd3UfANZnogSrJcLZt2EcFk
 

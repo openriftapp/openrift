@@ -1,3 +1,4 @@
+import { cardBansFor, standardSetLegality } from "@openrift/shared/format-legality";
 import type { CardBan, Printing } from "@openrift/shared/types/catalog";
 import { ChevronLeftIcon, ChevronRightIcon, PanelRightIcon, XIcon } from "lucide-react";
 import type { ReactNode } from "react";
@@ -5,7 +6,9 @@ import type { ReactNode } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { setLegalityText } from "@/features/cards/lib/set-legality-text";
 import { useDomainColors } from "@/hooks/use-domain-colors";
+import { useViewerLegality } from "@/hooks/use-viewer-legality";
 import { getDomainTintStyle } from "@/lib/domain";
 import { formatPublicCode } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -76,6 +79,14 @@ function BanAlert({ bans, upcoming }: { bans: CardBan[]; upcoming: boolean }) {
   );
 }
 
+function SetLegalityAlert({ text }: { text: string }) {
+  return (
+    <Alert variant="warning">
+      <AlertTitle>{text}</AlertTitle>
+    </Alert>
+  );
+}
+
 /**
  * The full card detail, rendered in one of two arrangements. Both are composed
  * from the same parts so a field added to one is never missing from the other.
@@ -101,8 +112,18 @@ export function CardDetail({
   const { card } = printing;
   const domainColors = useDomainColors();
   const setNumber = formatPublicCode(printing);
-  const hasBans = card.bans.length > 0;
-  const hasUpcomingBans = card.upcomingBans.length > 0;
+  const legality = useViewerLegality();
+  const viewerBans = cardBansFor(card, legality);
+  const setStatusText = setLegalityText(standardSetLegality(card, legality));
+  const hasBans = viewerBans.bans.length > 0;
+  const hasUpcomingBans = viewerBans.upcomingBans.length > 0;
+  const legalityAlerts = (
+    <>
+      {hasBans && <BanAlert bans={viewerBans.bans} upcoming={false} />}
+      {setStatusText && <SetLegalityAlert text={setStatusText} />}
+      {hasUpcomingBans && <BanAlert bans={viewerBans.upcomingBans} upcoming />}
+    </>
+  );
   const hasPicker =
     printings !== undefined && printings.length > 0 && onSelectPrinting !== undefined;
   const hasNav = onPrevCard !== undefined || onNextCard !== undefined;
@@ -227,8 +248,7 @@ export function CardDetail({
                   <CardCredits printing={printing} />
                 </div>
               )}
-              {hasBans && <BanAlert bans={card.bans} upcoming={false} />}
-              {hasUpcomingBans && <BanAlert bans={card.upcomingBans} upcoming />}
+              {legalityAlerts}
               <CardDetailStats printing={printing} align="start" />
               {text}
               {notes}
@@ -327,8 +347,7 @@ export function CardDetail({
       </div>
 
       <div className={cn("space-y-4 p-4 md:p-0 md:pb-4", onClose && "md:pt-2")}>
-        {hasBans && <BanAlert bans={card.bans} upcoming={false} />}
-        {hasUpcomingBans && <BanAlert bans={card.upcomingBans} upcoming />}
+        {legalityAlerts}
 
         {actions}
 

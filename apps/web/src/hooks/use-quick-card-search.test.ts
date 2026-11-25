@@ -6,6 +6,11 @@ import { stubPrinting } from "@/test/factories";
 
 import { useQuickCardSearch } from "./use-quick-card-search";
 
+vi.mock("@/hooks/use-viewer-legality", () => ({
+  useViewerLegality: () => ({ windows: [] }),
+  useGlobalLegality: () => ({ windows: [] }),
+}));
+
 const queryOptions = vi.hoisted(() => [] as { enabled?: boolean }[]);
 
 vi.mock("@tanstack/react-query", async (importOriginal) => ({

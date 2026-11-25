@@ -1,3 +1,5 @@
+import { setWindowFormatFor } from "./format-legality.js";
+import type { SetLegality } from "./format-legality.js";
 import { pluralize } from "./strings.js";
 import type { DeckFormatConfig } from "./types/api/deck.js";
 import type { CardType, DeckFormat, DeckZone, Domain, SuperType } from "./types/enums.js";
@@ -18,6 +20,7 @@ export interface DeckCard {
   maxCopiesOverride: number | null;
   additionalLegendCount: number | null;
   banned: boolean;
+  setLegality?: SetLegality;
 }
 
 export interface DeckState {
@@ -778,6 +781,52 @@ export const noBannedCards: DeckRule = (state) => {
   return violations;
 };
 
+function setLegalityMessage(
+  cardName: string,
+  legality: Exclude<SetLegality, { status: "legal" }>,
+): string {
+  switch (legality.status) {
+    case "upcoming": {
+      return legality.from
+        ? `${cardName} is legal from ${legality.from}.`
+        : `${cardName} is not legal yet.`;
+    }
+    case "rotated": {
+      return `${cardName} rotated out on ${legality.until}.`;
+    }
+    case "outside": {
+      return `${cardName} is not from a set legal in this format.`;
+    }
+  }
+}
+
+const SET_LEGALITY_CODES = {
+  upcoming: "CARD_NOT_YET_LEGAL",
+  rotated: "CARD_ROTATED",
+  outside: "CARD_NOT_IN_FORMAT_SETS",
+} as const;
+
+/** Tournament Rules 601.2: a card needs a printing in a set the format allows. */
+export const cardsFromLegalSets: DeckRule = (state) => {
+  if (setWindowFormatFor(state.format) === undefined) {
+    return [];
+  }
+  const violations: DeckViolation[] = [];
+  for (const card of state.cards) {
+    const legality = card.setLegality;
+    if (card.zone === WellKnown.deckZone.OVERFLOW || !legality || legality.status === "legal") {
+      continue;
+    }
+    violations.push({
+      zone: card.zone,
+      code: SET_LEGALITY_CODES[legality.status],
+      message: setLegalityMessage(card.cardName, legality),
+      cardId: card.cardId,
+    });
+  }
+  return violations;
+};
+
 /**
  * Tokens are game objects an effect creates during play (rule 133.7.c), not
  * cards you register; an imported list or deck code can still name one.
@@ -848,6 +897,7 @@ const cardsCarryFormatTag: DeckRule = (state) => {
 
 const CONSTRUCTED_RULES: DeckRule[] = [
   noBannedCards,
+  cardsFromLegalSets,
   noTokenCards,
   legendExactlyOne,
   legendOptionsCount,

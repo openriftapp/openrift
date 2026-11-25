@@ -9,6 +9,11 @@ import { stubCard, stubDeckBuilderCard } from "@/test/factories";
 
 import { ZoneThumb } from "./deck-zone-thumbs";
 
+vi.mock("@/hooks/use-viewer-legality", () => ({
+  useViewerLegality: () => ({ windows: [] }),
+  useGlobalLegality: () => ({ windows: [] }),
+}));
+
 const { cardsById } = vi.hoisted(() => ({ cardsById: {} as Record<string, Card> }));
 vi.mock("@/features/cards/hooks/use-cards", () => ({ useCards: () => ({ cardsById }) }));
 vi.mock("@/features/decks/components/deck-card-printing-menu", () => ({

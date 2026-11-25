@@ -10,7 +10,8 @@ import { ssrCardSearchContext } from "./search-context";
 const INIT = {
   enums: { rarities: [], domains: [], languages: [], formats: [] },
   keywords: {},
-} as unknown as Pick<InitResponse, "enums" | "keywords">;
+  formatSets: [],
+} as unknown as Pick<InitResponse, "enums" | "keywords" | "formatSets">;
 
 describe("ssrCardSearchContext", () => {
   it("builds the vocabulary and keyword map once per catalog and init", () => {

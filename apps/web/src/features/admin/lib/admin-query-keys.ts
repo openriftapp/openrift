@@ -106,6 +106,7 @@ export const adminKeys = {
   superTypes: ["admin", "super-types"] as const,
   deckFormats: ["admin", "deck-formats"] as const,
   formats: ["admin", "formats"] as const,
+  formatSets: ["admin", "format-sets"] as const,
   markers: ["admin", "markers"] as const,
   meta: {
     // Prefix every event read sits under, so a write that moves an event's

@@ -2,6 +2,11 @@ import { primaryCardType } from "@openrift/shared/card-primary-type";
 import { formatIgnoresBans, validateDeck } from "@openrift/shared/deck-rules";
 import type { DeckViolation } from "@openrift/shared/deck-rules";
 import { formatDay, todayUtc } from "@openrift/shared/format-date";
+import {
+  cardIdsBannedIn,
+  cardSetLegality,
+  setWindowFormatFor,
+} from "@openrift/shared/format-legality";
 import type { DeckCheckMatchStatus, ZoneSuggestion } from "@openrift/shared/types/api/deck-check";
 import type { TournamentPlayMode } from "@openrift/shared/types/api/tournament";
 import type { CardType, DeckZone, Domain, SuperType } from "@openrift/shared/types/enums";
@@ -9,6 +14,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { inferZone } from "@openrift/shared/zone-inference";
 
 import type { Repos } from "../../../deps.js";
+import { toFormatSetWindow } from "../../catalog/lib/format-set-presenters.js";
 
 /**
  * The card-line shape the advisory computation needs: satisfied both by stored
@@ -97,6 +103,7 @@ export async function buildEntryAdvisories(
     playMode: TournamentPlayMode;
     allowedSets: string[] | null;
     eventDate: Date | null;
+    circuit: string | null;
   },
   cards: AdvisoryCardLine[],
 ): Promise<EntryAdvisories> {
@@ -110,41 +117,35 @@ export async function buildEntryAdvisories(
   const freeform = event.format === WellKnown.deckFormat.FREEFORM;
   // A list is judged by the bans of the day it is played, including ones lifted since.
   const eventDay = event.eventDate === null ? todayUtc() : formatDay(event.eventDate);
-  // Banlists are additive per play mode: the base list covers all constructed
-  // play, and a 2v2 event checks the 2v2-only additions on top.
-  const banFormatIds = formatIgnoresBans(event.format)
-    ? []
-    : event.playMode === "2v2"
-      ? [WellKnown.banFormat.CONSTRUCTED, WellKnown.banFormat.TWO_V_TWO]
-      : [WellKnown.banFormat.CONSTRUCTED];
-  const [enumRows, details, setSlugsByCard, championIdentifierTags, banRows] = await Promise.all([
-    repos.enums.all(),
-    repos.deckCheck.getCardDetails(matchedIds),
-    event.allowedSets && event.allowedSets.length > 0
-      ? repos.deckCheck.getCardSetSlugs(matchedIds)
-      : Promise.resolve(new Map<string, string[]>()),
-    // Only Custom-Region's signature rule consumes the champion-identifier
-    // tag set — skip the query for every other format.
-    event.format === WellKnown.deckFormat.CUSTOM_REGION
-      ? repos.catalog.championIdentifierTags()
-      : Promise.resolve([] as string[]),
-    freeform
-      ? Promise.resolve([])
-      : repos.cardBans.listInEffectForCards(matchedIds, banFormatIds, eventDay),
-  ]);
+  const banFormatId =
+    event.playMode === "2v2" ? WellKnown.banFormat.TWO_V_TWO : WellKnown.banFormat.CONSTRUCTED;
+  const banFormatIds = formatIgnoresBans(event.format) ? [] : [banFormatId];
+  const scope = { day: eventDay, ...(event.circuit === null ? {} : { circuit: event.circuit }) };
+  // An event's own set list replaces the format's set windows.
+  const hasAllowedSets = event.allowedSets !== null && event.allowedSets.length > 0;
+  const windowFormat = hasAllowedSets ? undefined : setWindowFormatFor(event.format);
+  const [enumRows, details, championIdentifierTags, banRows, numberedSets, windowRows] =
+    await Promise.all([
+      repos.enums.all(),
+      repos.deckCheck.getCardDetails(matchedIds),
+      // Only Custom-Region's signature rule consumes the champion-identifier
+      // tag set — skip the query for every other format.
+      event.format === WellKnown.deckFormat.CUSTOM_REGION
+        ? repos.catalog.championIdentifierTags()
+        : Promise.resolve([] as string[]),
+      freeform
+        ? Promise.resolve([])
+        : repos.cardBans.listForCards(matchedIds, banFormatIds, scope.circuit),
+      windowFormat === undefined && !hasAllowedSets
+        ? Promise.resolve(new Map<string, string[]>())
+        : repos.catalog.numberedSetSlugsByCardIds(matchedIds),
+      windowFormat === undefined ? Promise.resolve([]) : repos.formatSets.listAll(),
+    ]);
+  const windows = windowRows.map((row) => toFormatSetWindow(row));
 
   const violations: DeckViolation[] = [];
 
-  const banned2v2 = new Set(
-    banRows
-      .filter((ban) => ban.formatId === WellKnown.banFormat.TWO_V_TWO)
-      .map((ban) => ban.cardId),
-  );
-  const bannedBase = new Set(
-    banRows
-      .filter((ban) => ban.formatId === WellKnown.banFormat.CONSTRUCTED)
-      .map((ban) => ban.cardId),
-  );
+  const banned = cardIdsBannedIn(banRows, banFormatId, scope);
   const flaggedBanned = new Set<string>();
   for (const card of cards) {
     if (!card.resolvedCardId || card.matchStatus !== "matched") {
@@ -153,16 +154,15 @@ export async function buildEntryAdvisories(
     if (flaggedBanned.has(card.resolvedCardId)) {
       continue;
     }
-    const base = bannedBase.has(card.resolvedCardId);
-    const extra = banned2v2.has(card.resolvedCardId);
-    if (!base && !extra) {
+    if (!banned.has(card.resolvedCardId)) {
       continue;
     }
     flaggedBanned.add(card.resolvedCardId);
     violations.push({
       zone: "deck",
       code: "banned-card",
-      message: base ? `${card.rawName} is banned` : `${card.rawName} is banned in 2v2`,
+      message:
+        event.playMode === "2v2" ? `${card.rawName} is banned in 2v2` : `${card.rawName} is banned`,
       cardId: card.resolvedCardId,
     });
   }
@@ -190,6 +190,16 @@ export async function buildEntryAdvisories(
         // Always false: the banned-card violation is emitted above already,
         // and CARD_BANNED from the rule engine would double it.
         banned: false,
+        ...(windowFormat === undefined
+          ? {}
+          : {
+              setLegality: cardSetLegality(
+                numberedSets.get(detail.id) ?? [],
+                windows,
+                windowFormat,
+                scope,
+              ),
+            }),
       },
     ];
   });
@@ -207,7 +217,7 @@ export async function buildEntryAdvisories(
       if (!card.resolvedCardId || card.matchStatus !== "matched") {
         continue;
       }
-      const cardSets = setSlugsByCard.get(card.resolvedCardId) ?? [];
+      const cardSets = numberedSets.get(card.resolvedCardId) ?? [];
       if (!cardSets.some((setId) => allowed.has(setId.toLowerCase()))) {
         violations.push({
           zone: "deck",

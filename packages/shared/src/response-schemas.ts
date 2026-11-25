@@ -176,6 +176,24 @@ const cardBanSchema = z.object({
     .meta({ examples: ["Power level"] }),
 });
 
+const circuitCardBanSchema = z.object({
+  formatId: z.string().meta({ examples: ["standard"] }),
+  formatName: z.string().meta({ examples: ["Constructed"] }),
+  circuit: z.string().meta({ examples: ["korea"] }),
+  bannedAt: z
+    .string()
+    .nullable()
+    .meta({ examples: [null] }),
+  unbannedAt: z
+    .string()
+    .nullable()
+    .meta({ examples: [null] }),
+  reason: z
+    .string()
+    .nullable()
+    .meta({ examples: [null] }),
+});
+
 export const catalogCardResponseSchema = z.object({
   id: z.string().meta({ examples: ["019cfc3b-0389-744b-837c-792fd586300e"] }),
   slug: z.string().meta({ examples: ["jinx-rebel"] }),
@@ -226,6 +244,18 @@ export const catalogCardResponseSchema = z.object({
     )
     .meta({ examples: [[]] }),
   bans: z.array(cardBanSchema).meta({ examples: [[]] }),
+  circuitBans: z.array(circuitCardBanSchema).optional().meta({
+    description:
+      "Ban rows of one competitive circuit. A circuit's rows replace the global `bans` of the same format there; a null `bannedAt` is announced without a local date.",
+  }),
+  numberedSetSlugs: z
+    .array(z.string())
+    .meta({
+      description:
+        "Sets holding a printing of this card within the set's normal numbering. Format legality follows these sets (Tournament Rules 601.2).",
+      examples: [["OGN", "SFD"]],
+    })
+    .default([]),
 });
 
 export const printingSideSchema = z.union([z.literal(1), z.literal(2)]);

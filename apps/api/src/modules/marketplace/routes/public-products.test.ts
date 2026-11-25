@@ -50,6 +50,7 @@ const dbCard = {
   superTypes: ["Champion"],
   domains: ["Chaos"],
   tokenCardIds: [],
+  numberedSetSlugs: [],
   might: 5,
   energy: 5,
   power: null,

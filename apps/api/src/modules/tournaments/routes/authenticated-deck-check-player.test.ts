@@ -154,7 +154,6 @@ function makeRepos() {
     createEntry: stub<any>(undefined),
     canonicalPrintingByCard: stub(new Map()),
     getCardDetails: stub(new Map()),
-    getCardSetSlugs: stub(new Map()),
     getEntryIdByParticipant: stub<any>(null),
   };
   // The locked re-read in a save sees the event the token resolved to, unless a test sets it.
@@ -178,11 +177,23 @@ function makeRepos() {
     cards: stub([] as unknown[]),
     printingLookupRows: stub([] as unknown[]),
     catalogContentVersion: stub("catalog-v1"),
+    numberedSetSlugsByCardIds: stub(new Map<string, string[]>()),
   };
   const cardLookup = cardLookupSlot(catalog);
-  const cardBans = { listInEffectForCards: stub([] as unknown[]) };
+  const cardBans = { listForCards: stub([] as unknown[]) };
+  const formatSets = { listAll: stub([] as unknown[]) };
   const tournamentGroups = { syncParticipantLegendsFromDeckCheck: stub<any>(undefined) };
-  return { deckCheck, tournaments, decks, enums, catalog, cardLookup, cardBans, tournamentGroups };
+  return {
+    deckCheck,
+    tournaments,
+    decks,
+    enums,
+    catalog,
+    cardLookup,
+    cardBans,
+    formatSets,
+    tournamentGroups,
+  };
 }
 
 function catalogCards(

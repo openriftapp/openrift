@@ -8,6 +8,7 @@ import { useCustomTagAssignments } from "@/features/collections/hooks/use-custom
 import { ownedCopiesFromCopyList } from "@/features/lists/lib/rule-owned-copies";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
+import { useGlobalLegality } from "@/hooks/use-viewer-legality";
 
 /** Personal copies only, like the server's `ownedRowsForUser`; undefined while copies load. */
 export function useCopyRuleEvalContext(): RuleEvalContext | undefined {
@@ -17,6 +18,7 @@ export function useCopyRuleEvalContext(): RuleEvalContext | undefined {
   const priceLookup = usePrices();
   const vocabulary = useCatalogSearchVocabulary();
   const keywordReverseMap = useKeywordReverseMap();
+  const legality = useGlobalLegality();
   const copiesStore = useCopies();
   if (!copiesStore.isReady) {
     return undefined;
@@ -29,5 +31,6 @@ export function useCopyRuleEvalContext(): RuleEvalContext | undefined {
     priceLookup,
     vocabulary,
     keywordReverseMap,
+    legality,
   };
 }

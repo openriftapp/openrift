@@ -21,6 +21,7 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 import { useCustomTagAssignments } from "@/features/collections/hooks/use-custom-tag-assignments";
 import { useDeckBuilderActions, useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
+import { useRuleCardJudge } from "@/features/decks/hooks/use-rule-card-judge";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { catalogCardToDeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { previewLegendSwitch } from "@/features/decks/lib/legend-switch-preview";
@@ -64,6 +65,7 @@ function LegendSwitchDialog({ deckId, legend }: { deckId: string; legend: DeckBu
   const { data } = useDeckDetail(deckId);
   const customTagAssignments = useCustomTagAssignments();
   const championIdentifierTags = useChampionIdentifierTags();
+  const judge = useRuleCardJudge();
   const { labels } = useEnumOrders();
   const runesByDomain = useDeckBuilderUiStore((state) => state.runesByDomain);
   const setPendingLegend = useWorkbenchStore((state) => state.setPendingLegend);
@@ -76,6 +78,7 @@ function LegendSwitchDialog({ deckId, legend }: { deckId: string; legend: DeckBu
     formatConfig: data.deck.formatConfig,
     championIdentifierTags,
     customTagAssignments,
+    judge,
   });
   const domainsText = (domains: string[]) =>
     domains.map((domain) => enumLabel(labels.domains, domain)).join(" ");

@@ -56,6 +56,7 @@ export async function resolveGiverPrintingSupply(
         customTagAssignments: ruleCatalog?.customTagAssignments,
         vocabulary: ruleCatalog?.vocabulary,
         keywordReverseMap: ruleCatalog?.keywordReverseMap,
+        legality: ruleCatalog?.legality,
         priceLookup,
       },
     )) {
@@ -69,6 +70,7 @@ export async function resolveGiverPrintingSupply(
     customTagAssignments: ruleCatalog?.customTagAssignments,
     vocabulary: ruleCatalog?.vocabulary,
     keywordReverseMap: ruleCatalog?.keywordReverseMap,
+    legality: ruleCatalog?.legality,
     // Keep the nicer copies, offer the plainer — same order the owner's list
     // page uses, so surfaced and matched copies never diverge.
     enumOrders: hasRules && providers ? await providers.enumOrders() : undefined,
@@ -203,6 +205,7 @@ async function resolveTradelistHoldersForCard(
           customTagAssignments: ruleCatalog?.customTagAssignments,
           vocabulary: ruleCatalog?.vocabulary,
           keywordReverseMap: ruleCatalog?.keywordReverseMap,
+          legality: ruleCatalog?.legality,
           enumOrders,
           priceLookup,
         },

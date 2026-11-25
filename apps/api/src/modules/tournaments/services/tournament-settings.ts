@@ -127,6 +127,7 @@ export async function applySettingsPatch(
     listLockMode: patch.listLockMode,
     deckFormat: patch.deckFormat,
     allowedSets: patch.allowedSets,
+    circuit: patch.circuit,
     hasSelfRegistration: patch.selfRegistration,
     uvsgamesEventId: patch.uvsgamesEventId,
     playriftboundEventId: patch.playriftboundEventId,

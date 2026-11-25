@@ -407,9 +407,58 @@ describe("search query evaluation", () => {
       expect(names("banned:standard")).toEqual(["Annie, Fiery"]);
     });
 
-    it("counts Constructed bans as 2v2 bans", () => {
-      expect(names("banned:2v2")).toEqual(["Annie, Fiery"]);
-      expect(names("f:2v2")).toEqual(["Garen, Rugged"]);
+    it("reads 2v2 from its own list, so a Constructed ban alone leaves a card legal there", () => {
+      expect(names("banned:2v2")).toEqual([]);
+      expect(names("f:2v2")).toEqual(["Garen, Rugged", "Annie, Fiery"]);
+      const both = {
+        ...annie,
+        card: {
+          ...annie.card,
+          bans: [
+            ...annie.card.bans,
+            { formatId: "2v2", formatName: "2v2", bannedAt: "2026-07-24", reason: null },
+          ],
+        },
+      };
+      expect(names("banned:2v2", [garen, both])).toEqual(["Annie, Fiery"]);
+    });
+
+    it("drops cards whose sets have rotated out from f:", () => {
+      const rotatedGaren = {
+        ...garen,
+        card: { ...garen.card, numberedSetSlugs: ["OGN"] },
+      };
+      const windows = [
+        { formatId: "standard", setSlug: "OGN", legalFrom: "2025-10-31", legalUntil: "2026-01-01" },
+      ];
+      const printings = [rotatedGaren, annie];
+      expect(names("f:constructed", printings, { ...options, legality: { windows } })).toEqual([]);
+      expect(names("f:freeform", printings, { ...options, legality: { windows } })).toEqual([
+        "Garen, Rugged",
+        "Annie, Fiery",
+      ]);
+    });
+
+    it("reads bans for the viewer's circuit", () => {
+      const lifted = {
+        ...annie,
+        card: {
+          ...annie.card,
+          circuitBans: [
+            {
+              formatId: "standard",
+              formatName: "Constructed",
+              circuit: "korea",
+              bannedAt: null,
+              unbannedAt: null,
+              reason: null,
+            },
+          ],
+        },
+      };
+      const korea = { ...options, legality: { circuit: "korea", windows: [] } };
+      expect(names("banned:constructed", [garen, lifted], korea)).toEqual([]);
+      expect(names("banned:constructed", [garen, lifted])).toEqual(["Annie, Fiery"]);
     });
   });
 

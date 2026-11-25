@@ -26,6 +26,7 @@ import { domainsRepo } from "./repositories/domains.js";
 import type { AllEnumRows } from "./repositories/enums.js";
 import { enumsRepo } from "./repositories/enums.js";
 import { finishesRepo } from "./repositories/finishes.js";
+import { formatSetsRepo } from "./repositories/format-sets.js";
 import { keywordsRepo } from "./repositories/keywords.js";
 import { languagesRepo } from "./repositories/languages.js";
 import { markersRepo } from "./repositories/markers.js";
@@ -46,6 +47,7 @@ import type { RuleCatalog } from "./services/catalog-assembly.js";
 export interface CatalogRepos {
   artVariants: ReturnType<typeof artVariantsRepo>;
   cardBans: ReturnType<typeof cardBansRepo>;
+  formatSets: ReturnType<typeof formatSetsRepo>;
   cardErrata: ReturnType<typeof cardErrataRepo>;
   cardTokens: ReturnType<typeof cardTokensRepo>;
   cardTypes: ReturnType<typeof cardTypesRepo>;
@@ -157,6 +159,7 @@ export function createCatalogRepos(
   return {
     artVariants: artVariantsRepo(db),
     cardBans: cardBansRepo(db),
+    formatSets: formatSetsRepo(db),
     cardErrata: cardErrataRepo(db),
     cardTokens: cardTokensRepo(db),
     cardTypes: cardTypesRepo(db),

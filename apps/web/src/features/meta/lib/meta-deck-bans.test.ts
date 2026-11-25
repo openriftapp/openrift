@@ -76,6 +76,27 @@ describe("metaDeckBans", () => {
     ]);
   });
 
+  it("reads the viewer's circuit, where a pending circuit row lifts the global ban", () => {
+    const lifted = {
+      ...card("Ekko, Recurrent", [ban("2026-09-18")]),
+      circuitBans: [
+        {
+          formatId: CONSTRUCTED,
+          formatName: "Constructed",
+          circuit: "korea",
+          bannedAt: null,
+          unbannedAt: null,
+          reason: null,
+        },
+      ],
+    };
+    const decks = new Map([["d", deck([["ekko", 2]])]]);
+    expect(metaDeckBans(decks, { ekko: lifted }).has("d")).toBe(true);
+    expect(metaDeckBans(decks, { ekko: lifted }, { circuit: "korea", windows: [] }).has("d")).toBe(
+      false,
+    );
+  });
+
   it("counts a card played only in the sideboard", () => {
     const result = metaDeckBans(new Map([["d", deck([["plain", 3]], [["herder", 2]])]]), cardsById);
 

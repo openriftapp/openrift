@@ -26,6 +26,8 @@ vi.mock("@/features/admin/hooks/use-formats", () => ({
 
 import { CardBansSection } from "./card-bans-section";
 
+vi.mock("@/hooks/use-enums", () => ({ useCircuitList: () => [] }));
+
 async function liftBan(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Remove the Standard ban" }));
   await user.click(await screen.findByRole("button", { name: "Remove ban" }));

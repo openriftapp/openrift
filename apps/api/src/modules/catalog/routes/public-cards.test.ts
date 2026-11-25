@@ -75,6 +75,7 @@ const dbCard = {
   superTypes: ["Champion"],
   domains: ["Chaos"],
   tokenCardIds: [],
+  numberedSetSlugs: [],
   might: 5,
   energy: 5,
   power: null,
@@ -130,7 +131,9 @@ const dbBan = {
   cardId: CARD_ID,
   formatId: "f0000000-0001-4000-a000-000000000001",
   formatName: "Constructed",
+  circuit: null,
   bannedAt: "2026-01-15",
+  unbannedAt: null,
   reason: "Power level",
 };
 

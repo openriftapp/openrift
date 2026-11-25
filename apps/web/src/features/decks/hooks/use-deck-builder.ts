@@ -22,6 +22,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCustomTagAssignments } from "@/features/collections/hooks/use-custom-tag-assignments";
 import { useDeckDraftCollection, useDeckDraftScope } from "@/features/decks/hooks/use-deck-draft";
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
+import { useRuleCardJudge } from "@/features/decks/hooks/use-rule-card-judge";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import {
   canAddRune,
@@ -967,10 +968,11 @@ export function useDeckViolations(
   const cards = useDeckCards(deckId);
   const customTagAssignments = useCustomTagAssignments();
   const championIdentifierTags = useChampionIdentifierTags();
+  const judge = useRuleCardJudge();
   return validateDeck({
     format,
     formatConfig,
-    cards: cards.map((card) => toRuleEngineCard(card, customTagAssignments)),
+    cards: cards.map((card) => toRuleEngineCard(card, customTagAssignments, judge)),
     championIdentifierTags,
   });
 }

@@ -74,6 +74,34 @@ const mockTagDefinitionsRepo = {
 
 const mockCardBansRepo = {
   listFormats: vi.fn(() => Promise.resolve([] as { id: string; name: string }[])),
+  listCircuits: vi.fn(() =>
+    Promise.resolve([{ slug: "korea", label: "Korea", countryCodes: ["KR"] }]),
+  ),
+};
+
+const mockFormatSetsRepo = {
+  listAll: vi.fn(() =>
+    Promise.resolve([
+      {
+        id: "w1",
+        formatId: "standard",
+        setId: "s1",
+        setSlug: "OGN",
+        circuit: null,
+        legalFrom: "2025-10-31",
+        legalUntil: null,
+      },
+      {
+        id: "w2",
+        formatId: "standard",
+        setId: "s1",
+        setSlug: "OGN",
+        circuit: "korea",
+        legalFrom: null,
+        legalUntil: null,
+      },
+    ]),
+  ),
 };
 
 const app = new Hono<{ Variables: Variables }>();
@@ -87,6 +115,7 @@ app.use("*", async (c, next) => {
     tagCategories: mockTagCategoriesRepo,
     tagDefinitions: mockTagDefinitionsRepo,
     cardBans: mockCardBansRepo,
+    formatSets: mockFormatSetsRepo,
   } as any);
   await next();
 });
@@ -222,5 +251,18 @@ describe("GET /api/v1/init", () => {
       { slug: "species", label: "Species", sortOrder: 2 },
     ]);
     expect(json.tagCategoryMap).toEqual({ Ionia: "region", Poro: "species" });
+  });
+
+  it("sends circuits and set windows, omitting absent circuit and end dates", async () => {
+    const res = await app.request("/api/v1/init");
+    const json = (await res.json()) as {
+      circuits: unknown[];
+      formatSets: Record<string, unknown>[];
+    };
+    expect(json.circuits).toEqual([{ slug: "korea", label: "Korea", countryCodes: ["KR"] }]);
+    expect(json.formatSets).toEqual([
+      { formatId: "standard", setSlug: "OGN", legalFrom: "2025-10-31" },
+      { formatId: "standard", setSlug: "OGN", circuit: "korea", legalFrom: null },
+    ]);
   });
 });

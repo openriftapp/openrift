@@ -5,6 +5,7 @@ import type { SearchContext } from "@openrift/shared/search-query/evaluate";
 import { useCatalogSearchVocabulary } from "@/features/cards/hooks/use-catalog-search-vocabulary";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
+import { useViewerLegality } from "@/hooks/use-viewer-legality";
 
 type ViewerParts = Pick<
   SearchContext,
@@ -18,10 +19,12 @@ export function useCardSearchContext(viewer: ViewerParts = NO_VIEWER_PARTS): Car
   const vocabulary = useCatalogSearchVocabulary();
   const keywordReverseMap = useKeywordReverseMap();
   const { orders } = useEnumOrders();
+  const legality = useViewerLegality();
   return cardSearchContext({
     vocabulary,
     keywordReverseMap,
     rarityOrder: orders.rarities,
+    legality,
     ...viewer,
     customTagAssignments: viewer.customTagAssignments,
   });

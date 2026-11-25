@@ -25,6 +25,7 @@ import type {
 } from "@/features/admin/components/admin-table";
 import { CountBadge } from "@/features/admin/components/count-badge";
 import { DatePrecisionControl } from "@/features/admin/components/date-precision-control";
+import { FormatSetWindowsTable } from "@/features/admin/components/format-set-windows-table";
 import { LanguageSelect } from "@/features/admin/components/language-select";
 import { SetPicker } from "@/features/admin/components/set-picker";
 import { useDeleteSetRelease, usePutSetRelease } from "@/features/admin/hooks/use-set-releases";
@@ -571,6 +572,7 @@ export function SetsPage() {
         }}
       />
       <SetReleasesTable sets={sets} />
+      <FormatSetWindowsTable />
     </div>
   );
 }

@@ -13,6 +13,7 @@ import { implement } from "@orpc/server";
 
 import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { toFormatSetWindow } from "../lib/format-set-presenters.js";
 import type {
   CatalogSearchFailure,
   CatalogSearchSource,
@@ -50,8 +51,9 @@ async function searchSource(
   order?: SearchOrder,
 ): Promise<CatalogSearchSource> {
   const { version, value: catalog } = await context.repos.catalogResponse.current();
-  const [formats, priceRows] = await Promise.all([
+  const [formats, windowRows, priceRows] = await Promise.all([
     context.repos.cardBans.listFormats(),
+    context.repos.formatSets.listAll(),
     queryReadsPrices(parseSearchQuery(q), order)
       ? context.repos.marketplace.latestPrices()
       : Promise.resolve([]),
@@ -68,6 +70,7 @@ async function searchSource(
     printings: joinedCatalog(version, catalog).printings,
     formats,
     prices: priceLookupFromMap(priceMap),
+    legality: { windows: windowRows.map((row) => toFormatSetWindow(row)) },
   };
 }
 

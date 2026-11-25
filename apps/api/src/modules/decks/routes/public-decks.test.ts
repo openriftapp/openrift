@@ -30,7 +30,9 @@ const mockCatalogRepo = {
         cardId: string;
         formatId: string;
         formatName: string;
-        bannedAt: string;
+        circuit: string | null;
+        bannedAt: string | null;
+        unbannedAt: string | null;
         reason: string | null;
       }[],
     ),
@@ -128,6 +130,7 @@ const cardMeta = {
   domains: ["fury"],
   superTypes: ["champion"],
   tokenCardIds: [],
+  numberedSetSlugs: [],
   comment: null,
 };
 
@@ -167,7 +170,9 @@ describe("GET /api/v1/decks/share/:token", () => {
         cardId: dbCard.cardId,
         formatId: WellKnown.banFormat.CONSTRUCTED,
         formatName: "Constructed",
+        circuit: null,
         bannedAt: "2026-01-01",
+        unbannedAt: null,
         reason: null,
       },
     ]);
@@ -190,7 +195,9 @@ describe("GET /api/v1/decks/share/:token", () => {
         cardId: dbCard.cardId,
         formatId: WellKnown.banFormat.TWO_V_TWO,
         formatName: "2v2",
+        circuit: null,
         bannedAt: "2026-01-01",
+        unbannedAt: null,
         reason: null,
       },
     ]);

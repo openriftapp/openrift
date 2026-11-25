@@ -4,7 +4,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { useState } from "react";
 
 import { CardPlaceholderImage } from "@/features/cards/components/card-placeholder-image";
-import { CornerRibbon } from "@/features/cards/components/card-thumbnail";
+import { CornerRibbon } from "@/features/cards/components/card-ribbons";
 import { FallbackArtBadges } from "@/features/cards/components/fallback-art-badges";
 import { FoilOverlay } from "@/features/cards/components/foil-overlay";
 import { SuggestImageNotice } from "@/features/cards/components/suggest-image-notice";

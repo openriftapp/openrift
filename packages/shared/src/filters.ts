@@ -13,6 +13,7 @@ import {
 } from "./filters-predicates.js";
 import type { CardSearchContext, FilterCardsOptions } from "./filters-shared.js";
 import { EMPTY_STRINGS } from "./filters-shared.js";
+import { bansInEffect } from "./format-legality.js";
 import { searchPredicate } from "./search-query/evaluate.js";
 import { isStandardPrinting } from "./standard.js";
 import type { Printing } from "./types/catalog.js";
@@ -146,7 +147,7 @@ export function cardFiltersPredicate(
         matchesRange(card.might, filters.might) &&
         matchesRange(card.power, filters.power) &&
         matchesRange(getPrice?.(printing) ?? null, filters.price) &&
-        matchesFlag(filters.isBanned, card.bans.length > 0) &&
+        matchesFlag(filters.isBanned, bansInEffect(card, options.legality).length > 0) &&
         matchesFlag(
           filters.hasErrata,
           errataForLanguage(card.errata, printing.language) !== null,

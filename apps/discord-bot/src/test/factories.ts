@@ -137,6 +137,8 @@ export function makeInitResponse(): InitResponse {
     championIdentifierTags: [],
     tagCategories: [],
     tagCategoryMap: {},
+    circuits: [],
+    formatSets: [],
   };
 }
 

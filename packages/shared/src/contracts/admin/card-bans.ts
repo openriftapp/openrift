@@ -12,12 +12,14 @@ const banResponseSchema = z.object({
   cardId: z.string(),
   formatId: z.string(),
   formatName: z.string(),
-  bannedAt: isoDate,
+  circuit: z.string().nullable(),
+  bannedAt: isoDate.nullable(),
   reason: z.string().nullable(),
   createdAt: isoDateTime,
 });
 
 const formatIdSchema = z.string().min(1);
+const circuitSchema = z.string().min(1).nullable().optional();
 const reasonSchema = z.string().min(1).nullable().optional();
 
 /** All four verbs share the same path, distinguished by HTTP method. */
@@ -35,8 +37,12 @@ export const adminCardBansContract = {
     .input(
       withParams(idParamSchema, {
         formatId: formatIdSchema,
-        bannedAt: isoDate,
+        circuit: circuitSchema,
+        bannedAt: isoDate.nullable(),
         reason: reasonSchema,
+      }).refine((input) => input.bannedAt !== null || Boolean(input.circuit), {
+        message: "Only a circuit ban may be undated",
+        path: ["bannedAt"],
       }),
     )
     .output(z.object({ ban: banResponseSchema })),
@@ -46,15 +52,19 @@ export const adminCardBansContract = {
     .input(
       withParams(idParamSchema, {
         formatId: formatIdSchema,
-        bannedAt: isoDate.optional(),
+        circuit: circuitSchema,
+        bannedAt: isoDate.nullable().optional(),
         reason: reasonSchema,
+      }).refine((input) => input.bannedAt !== null || Boolean(input.circuit), {
+        message: "Only a circuit ban may be undated",
+        path: ["bannedAt"],
       }),
     )
     .output(z.object({ ban: banResponseSchema })),
   remove: authedRoute
     .route({ method: "DELETE", path: BANS, tags: [TAG], successStatus: 204 })
     .errors({ NOT_FOUND: { message: "Ban not found" } })
-    .input(withParams(idParamSchema, { formatId: formatIdSchema })),
+    .input(withParams(idParamSchema, { formatId: formatIdSchema, circuit: circuitSchema })),
 };
 
 export type AdminCardBansContract = typeof adminCardBansContract;

@@ -77,6 +77,7 @@ export function makeCard(partial: Partial<Card> = {}): Card {
     errata: [],
     bans: [],
     upcomingBans: [],
+    numberedSetSlugs: [],
     ...overrides,
   };
 }

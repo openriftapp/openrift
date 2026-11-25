@@ -121,6 +121,21 @@ describe("sanitize-preferences — countExcludedCollections", () => {
   });
 });
 
+describe("sanitize-preferences — playCircuit", () => {
+  it("keeps a circuit slug from the server and drops a non-string", () => {
+    expect(sanitizeServerResponse({ playCircuit: "korea" }).playCircuit).toBe("korea");
+    expect(sanitizeServerResponse({ playCircuit: 3 }).playCircuit).toBeNull();
+    expect(sanitizeServerResponse({ playCircuit: "" }).playCircuit).toBeNull();
+  });
+
+  it("reads it from the persisted overrides and defaults to null when absent", () => {
+    expect(sanitizeOverrides({ overrides: { playCircuit: "korea" } }).overrides.playCircuit).toBe(
+      "korea",
+    );
+    expect(sanitizeOverrides({ overrides: {} }).overrides.playCircuit).toBeNull();
+  });
+});
+
 describe("sanitize-preferences — languages", () => {
   describe("retired language codes", () => {
     it("rewrites a persisted ZH to SC", () => {

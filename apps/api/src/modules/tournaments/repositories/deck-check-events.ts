@@ -21,6 +21,7 @@ export interface DeckCheckEvent {
   /** A 2v2 event's decks are additionally checked against the 2v2 banlist. */
   playMode: TournamentPlayMode;
   allowedSets: string[] | null;
+  circuit: string | null;
   status: "active" | "archived";
   listLockMode: DeckCheckListLockMode;
   allowSelfSubmission: boolean;
@@ -50,6 +51,7 @@ function tournamentToEvent(row: Selectable<TournamentsTable>): DeckCheckEvent {
     submissionToken: row.submissionToken,
     submissionsCloseAt: row.submissionsCloseAt,
     allowedSets: row.allowedSets,
+    circuit: row.circuit,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

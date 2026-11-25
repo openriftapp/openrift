@@ -39,6 +39,8 @@ export interface CatalogSync {
   slugReferences: { table: SlugReferenceTable; rows: SlugReferenceRow[] }[];
   languages: Row<"languages">[];
   banFormats: Row<"banFormats">[];
+  circuits: Row<"circuits">[];
+  formatSets: (Omit<Row<"formatSets">, "setId"> & { setSlug: string })[];
   keywords: Row<"keywords">[];
   keywordTranslations: Row<"keywordTranslations">[];
   markers: Row<"markers">[];
@@ -149,9 +151,11 @@ export function buildCatalogSync(init: InitResponse, catalog: CatalogResponse): 
     ],
   );
   const faceSides = [...new Map(sides.map((side) => [side.faceId, side])).values()];
-  const formatLabels = new Map<string, string>();
+  const formatLabels = new Map<string, string>(
+    init.enums.formats.map((format) => [format.slug, format.label]),
+  );
   for (const [, card] of cards) {
-    for (const ban of card.bans) {
+    for (const ban of [...card.bans, ...(card.circuitBans ?? [])]) {
       formatLabels.set(ban.formatId, ban.formatName);
     }
   }
@@ -182,6 +186,19 @@ export function buildCatalogSync(init: InitResponse, catalog: CatalogResponse): 
     banFormats: [...formatLabels]
       .toSorted(([, a], [, b]) => a.localeCompare(b))
       .map(([slug, label], index) => ({ slug, label, sortOrder: index + 1 })),
+    circuits: init.circuits.map((circuit, index) => ({
+      slug: circuit.slug,
+      label: circuit.label,
+      countryCodes: circuit.countryCodes,
+      sortOrder: index,
+    })),
+    formatSets: init.formatSets.map((window) => ({
+      formatId: window.formatId,
+      setSlug: window.setSlug,
+      circuit: window.circuit ?? null,
+      legalFrom: window.legalFrom,
+      legalUntil: window.legalUntil ?? null,
+    })),
     keywords: Object.entries(init.keywords).map(([name, keyword]) => ({
       name,
       color: keyword.color,
@@ -274,14 +291,22 @@ export function buildCatalogSync(init: InitResponse, catalog: CatalogResponse): 
         effectiveDate: errata.effectiveDate,
       })),
     ),
-    cardBans: cards.flatMap(([cardId, card]) =>
-      card.bans.map((ban) => ({
+    cardBans: cards.flatMap(([cardId, card]) => [
+      ...card.bans.map((ban) => ({
         cardId,
         formatId: ban.formatId,
         bannedAt: ban.bannedAt,
         reason: ban.reason,
       })),
-    ),
+      ...(card.circuitBans ?? []).map((ban) => ({
+        cardId,
+        formatId: ban.formatId,
+        circuit: ban.circuit,
+        bannedAt: ban.bannedAt,
+        unbannedAt: ban.unbannedAt,
+        reason: ban.reason,
+      })),
+    ]),
     imageFiles: [...imageFiles.values()],
     faces: faceSides.map((printing) => ({
       id: printing.faceId,

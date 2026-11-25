@@ -1,3 +1,4 @@
+import type { LegalityContext } from "@openrift/shared/format-legality";
 import {
   dropTargetFromRules,
   evaluateListRules,
@@ -36,6 +37,7 @@ export interface ListRuleProviders {
     customTagAssignments: Record<string, readonly string[]>;
     vocabulary?: SearchVocabulary;
     keywordReverseMap?: Map<string, string>;
+    legality?: LegalityContext;
   }>;
   /**
    * The given user's personally-owned copies, narrowed to `printingIds`.
@@ -76,6 +78,7 @@ export function listRulesRepo(db: Kysely<Database>, providers?: ListRuleProvider
         customTagAssignments: catalogData.customTagAssignments,
         vocabulary: catalogData.vocabulary,
         keywordReverseMap: catalogData.keywordReverseMap,
+        legality: catalogData.legality,
         priceLookup,
       };
     },

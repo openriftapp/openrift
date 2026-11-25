@@ -3,6 +3,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import { stubPrinting } from "@/test/factories";
 
+vi.mock("@/hooks/use-viewer-legality", () => ({
+  useViewerLegality: () => ({ windows: [] }),
+  useGlobalLegality: () => ({ windows: [] }),
+}));
+
 vi.mock("@/hooks/use-domain-colors", () => ({ useDomainColors: () => ({}) }));
 vi.mock("./card-detail-art", () => ({
   CardDetailArt: ({ frame }: { frame?: string }) => <div data-testid="art" data-frame={frame} />,

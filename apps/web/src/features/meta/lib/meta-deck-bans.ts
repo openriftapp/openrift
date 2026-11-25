@@ -1,4 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { cardBansFor } from "@openrift/shared/format-legality";
+import type { LegalityContext } from "@openrift/shared/format-legality";
 import type { Card, CardBan } from "@openrift/shared/types/catalog";
 import { isBaseBanFormat } from "@openrift/shared/well-known";
 
@@ -22,7 +24,7 @@ export interface MetaBanGroup {
 
 type MetaDeckBanState = "banned" | "upcoming";
 
-type BanCard = Pick<Card, "name" | "types" | "tags" | "bans" | "upcomingBans">;
+type BanCard = Pick<Card, "name" | "types" | "tags" | "bans" | "upcomingBans" | "circuitBans">;
 
 function groupKey(ban: CardBan, inEffect: boolean): string {
   return `${inEffect ? 0 : 1}|${ban.bannedAt}|${ban.formatId}`;
@@ -32,6 +34,7 @@ function groupKey(ban: CardBan, inEffect: boolean): string {
 export function metaDeckBans(
   decks: MetaDeckCardsByDeck,
   cardsById: Readonly<Record<string, BanCard | undefined>>,
+  legality?: LegalityContext,
 ): Map<string, MetaBanGroup[]> {
   const byDeck = new Map<string, MetaBanGroup[]>();
   for (const [deckId, cards] of decks) {
@@ -47,9 +50,10 @@ export function metaDeckBans(
         main: cards.main.get(cardId) ?? 0,
         side: cards.side.get(cardId) ?? 0,
       };
+      const viewerBans = cardBansFor(card, legality);
       const bans = [
-        ...card.bans.map((ban) => ({ ban, inEffect: true })),
-        ...card.upcomingBans.map((ban) => ({ ban, inEffect: false })),
+        ...viewerBans.bans.map((ban) => ({ ban, inEffect: true })),
+        ...viewerBans.upcomingBans.map((ban) => ({ ban, inEffect: false })),
       ];
       for (const { ban, inEffect } of bans) {
         const key = groupKey(ban, inEffect);

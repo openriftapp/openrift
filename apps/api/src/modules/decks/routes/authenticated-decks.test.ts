@@ -68,9 +68,22 @@ const mockDeckFolders = {
 
 const mockCatalog = {
   cardBansByCardIds: vi.fn(() =>
-    Promise.resolve([] as { cardId: string; formatId: string; bannedAt: string }[]),
+    Promise.resolve(
+      [] as {
+        cardId: string;
+        formatId: string;
+        circuit: string | null;
+        bannedAt: string | null;
+        unbannedAt: string | null;
+      }[],
+    ),
   ),
+  numberedSetSlugsByCardIds: vi.fn(() => Promise.resolve(new Map<string, string[]>())),
   cardsByIds: vi.fn((ids: string[]) => Promise.resolve(ids.map((id) => ({ id })))),
+};
+
+const mockFormatSets = {
+  listAll: vi.fn(() => Promise.resolve([] as object[])),
 };
 
 const mockUserPreferences = {
@@ -139,6 +152,7 @@ app.use("*", async (c, next) => {
     copies: mockCopies,
     loans: mockLoans,
     catalog: mockCatalog,
+    formatSets: mockFormatSets,
     collections: mockCollections,
   } as never);
   await next();

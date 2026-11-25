@@ -17,6 +17,7 @@ function event(overrides: Partial<DeckCheckEvent> = {}): DeckCheckEvent {
     format: "standard",
     playMode: "1v1",
     allowedSets: ["OGN"],
+    circuit: null,
     status: "active",
     listLockMode: "at_deadline",
     allowSelfSubmission: false,

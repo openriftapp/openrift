@@ -38,6 +38,7 @@ const baseCard: CardDetailResponse["card"] = {
   tags: [],
   errata: [],
   bans: [],
+  numberedSetSlugs: [],
 };
 
 function makePrinting(rulesText: string | null): CatalogPrintingResponse {

@@ -47,6 +47,7 @@ function makeCard(overrides: Partial<CatalogResponseCardValue> = {}): CatalogRes
     additionalLegendCount: null,
     errata: [],
     bans: [],
+    numberedSetSlugs: [],
     ...overrides,
   };
 }
@@ -215,9 +216,10 @@ describe("extractSetLabels", () => {
   });
 });
 
-const NO_INIT: Pick<InitResponse, "enums" | "keywords"> = {
+const NO_INIT: Pick<InitResponse, "enums" | "keywords" | "formatSets"> = {
   enums: stubInitResponse().enums,
   keywords: {},
+  formatSets: [],
 };
 
 describe("extractCardCounts", () => {
@@ -268,8 +270,9 @@ describe("extractCardCounts", () => {
       "p-1": makePrinting({ cardId: "card-1", shortCode: "OGN-001" }),
       "p-2": makePrinting({ cardId: "card-2", shortCode: "OGN-002" }),
     };
-    const init: Pick<InitResponse, "enums" | "keywords"> = {
+    const init: Pick<InitResponse, "enums" | "keywords" | "formatSets"> = {
       enums: stubInitResponse().enums,
+      formatSets: [],
       keywords: {
         Accelerate: {
           color: "#000000",

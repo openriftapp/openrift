@@ -5,7 +5,7 @@ import type { DeckFormatConfig } from "@openrift/shared/types/api/deck";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 
-import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
+import type { DeckBuilderCard, RuleCardJudge } from "@/features/decks/lib/deck-builder-card";
 import { toRuleEngineCard } from "@/features/decks/lib/deck-builder-card";
 
 interface RuneChange {
@@ -28,6 +28,7 @@ interface LegendSwitchContext {
   format: DeckFormat;
   formatConfig: DeckFormatConfig | null;
   championIdentifierTags: ReadonlySet<string>;
+  judge?: RuleCardJudge;
   customTagAssignments: Record<string, readonly string[]>;
 }
 
@@ -195,7 +196,9 @@ export function previewLegendSwitch(
     validateDeck({
       format: context.format,
       formatConfig: context.formatConfig,
-      cards: deck.map((card) => toRuleEngineCard(card, context.customTagAssignments)),
+      cards: deck.map((card) =>
+        toRuleEngineCard(card, context.customTagAssignments, context.judge),
+      ),
       championIdentifierTags: context.championIdentifierTags,
     });
   const violationsBefore = validate(cards);

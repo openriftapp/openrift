@@ -4,6 +4,7 @@ import { implement } from "@orpc/server";
 
 import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { toFormatSetWindow } from "../../catalog/lib/format-set-presenters.js";
 import {
   toDistributionChannel,
   toEnumRows,
@@ -34,6 +35,7 @@ export const initRouter = {
       tagCategories,
       tagDefinitions,
       cardBans,
+      formatSets,
     } = context.repos;
     const [
       enumData,
@@ -45,6 +47,8 @@ export const initRouter = {
       tagCategoryRows,
       tagDefinitionRows,
       formatRows,
+      circuitRows,
+      formatSetRows,
     ] = await Promise.all([
       enums.all(),
       keywords.listAll(),
@@ -55,6 +59,8 @@ export const initRouter = {
       tagCategories.listAll(),
       tagDefinitions.listAll(),
       cardBans.listFormats(),
+      cardBans.listCircuits(),
+      formatSets.listAll(),
     ]);
 
     // Listing keys explicitly keeps this checked against InitResponse["enums"];
@@ -88,6 +94,8 @@ export const initRouter = {
       championIdentifierTags,
       tagCategories: toEnumRows(tagCategoryRows),
       tagCategoryMap: toTagCategoryMap(tagDefinitionRows),
+      circuits: circuitRows,
+      formatSets: formatSetRows.map((row) => toFormatSetWindow(row)),
     };
   }),
 };

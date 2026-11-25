@@ -71,6 +71,16 @@ export interface CardBan {
   reason: string | null;
 }
 
+/** See `circuitBans` on the catalog card wire schema. */
+export interface CircuitCardBan {
+  formatId: string;
+  formatName: string;
+  circuit: string;
+  bannedAt: string | null;
+  unbannedAt: string | null;
+  reason: string | null;
+}
+
 export interface CardErrata {
   language: string;
   correctedRulesText: string | null;
@@ -101,6 +111,8 @@ export interface Card {
   errata: CardErrata[];
   bans: CardBan[];
   upcomingBans: CardBan[];
+  circuitBans?: CircuitCardBan[];
+  numberedSetSlugs: string[];
 }
 
 export interface PrintingImage {

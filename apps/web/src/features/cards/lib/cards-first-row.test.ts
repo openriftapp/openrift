@@ -41,6 +41,7 @@ function makeCard(overrides: Partial<CatalogResponseCardValue> = {}): CatalogRes
     additionalLegendCount: null,
     errata: [],
     bans: [],
+    numberedSetSlugs: [],
     ...overrides,
   };
 }
@@ -89,7 +90,7 @@ function enumRows(slugs: string[]) {
   return slugs.map((slug, sortOrder) => ({ slug, label: slug, sortOrder }));
 }
 
-const NO_INIT: Pick<InitResponse, "enums" | "keywords"> = {
+const NO_INIT: Pick<InitResponse, "enums" | "keywords" | "formatSets"> = {
   enums: stubInitResponse({
     rarities: enumRows(["common", "uncommon", "rare", "epic"]).map((row) => ({
       ...row,
@@ -98,6 +99,7 @@ const NO_INIT: Pick<InitResponse, "enums" | "keywords"> = {
     cardTypes: enumRows(["legend", "unit", "spell", "gear", "battlefield", "rune"]),
   }).enums,
   keywords: {},
+  formatSets: [],
 };
 
 const NO_PRICES = { prices: {}, currencies: {} } as unknown as PricesResponse;
@@ -636,7 +638,7 @@ describe("extractFirstRow", () => {
             translations: { de: "Beschleunigen" },
           },
         },
-      } as Pick<InitResponse, "enums" | "keywords">;
+      } as Pick<InitResponse, "enums" | "keywords" | "formatSets">;
       const result = extractFirstRow(
         sources(cards, printings, init),
         { q: "kw:beschleunigen" },

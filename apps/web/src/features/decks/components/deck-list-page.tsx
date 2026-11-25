@@ -37,6 +37,7 @@ import { useDeckListFilters } from "@/features/decks/hooks/use-deck-list-filters
 import { useDeckSelectionLifecycle } from "@/features/decks/hooks/use-deck-selection-lifecycle";
 import { useCreateDeck, useDeckList, useSaveDeckCards } from "@/features/decks/hooks/use-decks";
 import { useLocalDecks } from "@/features/decks/hooks/use-local-decks";
+import { useRuleCardJudge } from "@/features/decks/hooks/use-rule-card-judge";
 import type { CollapsedDeckEntry, DeckGridEntry } from "@/features/decks/lib/deck-family";
 import { collapseFamilies, withVariantPanels } from "@/features/decks/lib/deck-family";
 import type { DeckListItemWithNames } from "@/features/decks/lib/deck-list-utils";
@@ -204,6 +205,7 @@ export function DeckListPage() {
   const saveDeckCards = useSaveDeckCards();
   const [creatingSample, setCreatingSample] = useState(false);
   const { orders, labels } = useEnumOrders();
+  const judge = useRuleCardJudge();
   const localItems: DeckListItemResponse[] =
     hydrated && localDecks.length > 0
       ? localDecks.map((deck) =>
@@ -211,6 +213,7 @@ export function DeckListPage() {
             cardsById,
             cardTypeOrder: orders.cardTypes,
             domainOrder: orders.domains,
+            judge,
           }),
         )
       : [];

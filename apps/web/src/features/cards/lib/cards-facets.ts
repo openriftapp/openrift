@@ -190,7 +190,7 @@ export interface CardCounts {
 export function extractCardCounts(
   catalog: CatalogResponse,
   prices: PricesResponse,
-  init: Pick<InitResponse, "enums" | "keywords">,
+  init: Pick<InitResponse, "enums" | "keywords" | "formatSets">,
   search: FilterSearch,
   viewerLanguages: readonly string[] | null = null,
 ): CardCounts {

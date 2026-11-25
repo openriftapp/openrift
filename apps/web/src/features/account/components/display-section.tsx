@@ -6,7 +6,11 @@ import type {
   Palette,
   Theme,
 } from "@openrift/shared/types/api/preferences";
-import { DISPLAY_LOCALES, PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
+import {
+  DISPLAY_LOCALES,
+  GLOBAL_CIRCUIT,
+  PREFERENCE_DEFAULTS,
+} from "@openrift/shared/types/api/preferences";
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
@@ -22,6 +26,7 @@ import { TextLink } from "@/components/ui/text-link";
 import { applyDisplayLocale } from "@/features/account/hooks/use-preferences-sync";
 import { themeLabels } from "@/features/account/lib/theme-labels";
 import { usePaletteStore } from "@/features/collections/stores/palette-store";
+import { useCircuitList } from "@/hooks/use-enums";
 import { DISPLAY_LOCALE_LABELS } from "@/lib/display-locale";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { cn } from "@/lib/utils";
@@ -120,6 +125,20 @@ export function DisplaySection() {
         )}
       </SettingsRow>
 
+      <SettingsRow
+        label={m.profile_display_play_circuit()}
+        htmlFor="pref-play-circuit"
+        description={m.profile_display_play_circuit_description()}
+      >
+        <PlayCircuitPicker />
+        {overrides.playCircuit !== null && (
+          <ResetButton
+            onClick={() => resetPreference("playCircuit")}
+            label={m.profile_display_play_circuit_reset()}
+          />
+        )}
+      </SettingsRow>
+
       <SettingsRow label={m.profile_display_show_images()} htmlFor="pref-images">
         <Switch
           id="pref-images"
@@ -190,6 +209,26 @@ function displayLocaleOptions(): SimpleSelectItem<DisplayLocale>[] {
         </span>
       ),
   }));
+}
+
+function PlayCircuitPicker() {
+  const circuits = useCircuitList();
+  const playCircuit = useDisplayStore((s) => s.playCircuit);
+  const setPlayCircuit = useDisplayStore((s) => s.setPlayCircuit);
+  const items: SimpleSelectItem[] = [
+    { value: GLOBAL_CIRCUIT, label: m.profile_display_play_circuit_global() },
+    ...circuits.map((circuit) => ({ value: circuit.slug, label: circuit.label })),
+  ];
+  const known = items.some((item) => item.value === playCircuit);
+  return (
+    <SimpleSelect
+      id="pref-play-circuit"
+      items={items}
+      value={known ? playCircuit : GLOBAL_CIRCUIT}
+      onChange={setPlayCircuit}
+      className="w-56"
+    />
+  );
 }
 
 function DisplayLocalePicker() {

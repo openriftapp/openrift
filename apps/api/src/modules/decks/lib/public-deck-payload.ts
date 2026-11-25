@@ -1,13 +1,14 @@
-import { isBanInEffect } from "@openrift/shared/card-ban";
 import { formatIgnoresBans } from "@openrift/shared/deck-rules";
 import { isCountedZone } from "@openrift/shared/deck-zones";
+import { todayUtc } from "@openrift/shared/format-date";
+import { cardIdsBannedIn } from "@openrift/shared/format-legality";
 import type {
   DeckCatalogSubset,
   DeckPlanCardMetaResponse,
   PublicDeckCardResponse,
   PublicDeckDetailResponse,
 } from "@openrift/shared/types/api/deck";
-import { isBaseBanFormat } from "@openrift/shared/well-known";
+import { WellKnown } from "@openrift/shared/well-known";
 import type { Selectable } from "kysely";
 
 import type { DecksTable } from "../../../db/tables/decks.js";
@@ -96,13 +97,9 @@ export async function buildPublicDeckDetailWithExtras(
   ]);
   // Only base-list bans in effect today invalidate a deck; mode-scoped ones (e.g. 2v2) stay
   // a display concern, so they never reach the share payload.
-  const bannedCardIds = new Set(
-    formatIgnoresBans(found.deck.format)
-      ? []
-      : banRows
-          .filter((ban) => isBaseBanFormat(ban.formatId) && isBanInEffect(ban))
-          .map((ban) => ban.cardId),
-  );
+  const bannedCardIds = formatIgnoresBans(found.deck.format)
+    ? new Set<string>()
+    : cardIdsBannedIn(banRows, WellKnown.banFormat.CONSTRUCTED, { day: todayUtc() });
 
   // The plan references cards the deck may not contain (notably the opponent
   // identity card), so denormalize their display meta separately.

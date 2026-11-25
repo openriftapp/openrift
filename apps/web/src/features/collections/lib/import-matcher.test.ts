@@ -53,6 +53,7 @@ function makePrinting(
       additionalLegendCount: null,
       errata: [],
       bans: [],
+      numberedSetSlugs: [],
       upcomingBans: [],
     },
     ...overrides,
@@ -321,6 +322,7 @@ describe("matchEntries — Legend colloquial names", () => {
       additionalLegendCount: null,
       errata: [],
       bans: [],
+      numberedSetSlugs: [],
       upcomingBans: [],
     },
   });

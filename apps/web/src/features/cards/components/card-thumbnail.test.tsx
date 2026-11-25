@@ -17,6 +17,11 @@ import { initKeys } from "@/lib/query-keys";
 import { stubPrinting } from "@/test/factories";
 import { stubInitResponse } from "@/test/init-fixtures";
 
+vi.mock("@/hooks/use-viewer-legality", () => ({
+  useViewerLegality: () => ({ windows: [] }),
+  useGlobalLegality: () => ({ windows: [] }),
+}));
+
 // No router in these tests, so swap the "Suggest image" Link for a plain span.
 const { preloadRoute } = vi.hoisted(() => ({ preloadRoute: vi.fn(async () => undefined) }));
 

@@ -9,8 +9,9 @@ import { CountPill } from "@/components/ui/count-pill";
 import { InlineCountStepper } from "@/components/ui/inline-count-stepper";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CardPriceChip } from "@/features/cards/components/card-price-chip";
+import { CardLegalityRibbon } from "@/features/cards/components/card-ribbons";
 import { CardStrip, StripIconButton } from "@/features/cards/components/card-strip";
-import { AFTER_BORDER, BanRibbon } from "@/features/cards/components/card-thumbnail";
+import { AFTER_BORDER } from "@/features/cards/components/card-thumbnail";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
@@ -316,9 +317,7 @@ export function ZoneThumb({
           />
         )}
       </DeckCardPageLink>
-      {catalogCard && !hideBans && (
-        <BanRibbon bans={catalogCard.bans} upcomingBans={catalogCard.upcomingBans} />
-      )}
+      {catalogCard && !hideBans && <CardLegalityRibbon card={catalogCard} />}
       {hasCustomPrinting && (
         <span
           title={m.decks_editor_pinned_printing()}

@@ -48,6 +48,8 @@ const INIT = {
   championIdentifierTags: [],
   tagCategories: [],
   tagCategoryMap: {},
+  circuits: [],
+  formatSets: [],
 };
 
 const SOURCE_PRINTING = stubPrinting({

@@ -101,6 +101,7 @@ const dbCard = {
   additionalLegendCount: null,
   keywords: ["Shield"],
   tags: ["Dragon"],
+  numberedSetSlugs: ["OGS"],
 };
 
 const dbPrintingRow = {

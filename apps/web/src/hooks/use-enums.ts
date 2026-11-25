@@ -206,6 +206,12 @@ export function useChannelRegistry(): DistributionChannel[] {
   return data.distributionChannels;
 }
 
+/** Competitive circuits with their own ban list or set dates, in admin order. */
+export function useCircuitList(): InitResponse["circuits"] {
+  const { data } = useSuspenseQuery(initQueryOptions);
+  return data.circuits;
+}
+
 export function useChampionIdentifierTags(): ReadonlySet<string> {
   return useEnumView("championIdentifierTags");
 }

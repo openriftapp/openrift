@@ -20,6 +20,11 @@ vi.mock("@/features/meta/lib/meta-deck-bans", () => ({ metaDeckBans: () => banne
 
 import { useMetaDeckBans } from "./use-meta-deck-bans";
 
+vi.mock("@/hooks/use-viewer-legality", () => ({
+  useViewerLegality: () => ({ windows: [] }),
+  useGlobalLegality: () => ({ windows: [] }),
+}));
+
 describe("useMetaDeckBans", () => {
   beforeEach(() => {
     cardIndex = {

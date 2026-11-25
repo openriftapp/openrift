@@ -10,6 +10,11 @@ import { describe, expect, it, vi } from "vitest";
 import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { stubPrinting } from "@/test/factories";
 
+vi.mock("@/hooks/use-viewer-legality", () => ({
+  useViewerLegality: () => ({ windows: [] }),
+  useGlobalLegality: () => ({ windows: [] }),
+}));
+
 const printing = stubPrinting({ card: { name: "Ekko" } });
 const display: CardThumbnailDisplay = {
   fancyFan: false,

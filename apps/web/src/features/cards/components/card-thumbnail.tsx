@@ -2,10 +2,11 @@ import { useDraggable } from "@dnd-kit/core";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { errataForLanguage } from "@openrift/shared/errata";
+import { cardBansFor, standardSetLegality } from "@openrift/shared/format-legality";
 import { imageSrcSet, imageUrl } from "@openrift/shared/image-url";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { StandardArtFallback } from "@openrift/shared/standard";
-import type { CardBan, Printing, PrintingOtherSide } from "@openrift/shared/types/catalog";
+import type { Printing, PrintingOtherSide } from "@openrift/shared/types/catalog";
 import type { Domain, Rarity } from "@openrift/shared/types/enums";
 import { WellKnown, isBaseBanFormat, isFoilFinish } from "@openrift/shared/well-known";
 import { useRouter } from "@tanstack/react-router";
@@ -16,6 +17,7 @@ import { MarketplaceIcon } from "@/components/marketplace-icon";
 import { Pressable } from "@/components/ui/pressable";
 import { CardMetaLabel } from "@/features/cards/components/card-meta-label";
 import { CardPlaceholderImage } from "@/features/cards/components/card-placeholder-image";
+import { BanRibbon, CornerRibbon } from "@/features/cards/components/card-ribbons";
 import { FallbackArtBadges } from "@/features/cards/components/fallback-art-badges";
 import { FoilOverlay } from "@/features/cards/components/foil-overlay";
 import { SuggestImageNotice } from "@/features/cards/components/suggest-image-notice";
@@ -32,6 +34,7 @@ import { groupPrintingDesigns } from "@/features/cards/lib/printing-designs";
 import { NO_TILE_ART, tileArt } from "@/features/cards/lib/tile-art";
 import { useGridFocusStore } from "@/features/cards/stores/grid-focus-store";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useViewerLegality } from "@/hooks/use-viewer-legality";
 import { getDomainGradientStyle } from "@/lib/domain";
 import { priceColorClass } from "@/lib/format";
 import { LANDSCAPE_ROTATION_STYLE, needsCssRotation } from "@/lib/images";
@@ -51,80 +54,6 @@ export const AFTER_BORDER =
 const SHELL_INNER_CLASS = cn("relative", AFTER_BORDER, "hover:ring-primary/60 hover:ring-2");
 
 const MAX_CLOSED_STACK_EDGES = 5;
-
-const RIBBON_TONE = {
-  banned: "bg-destructive text-white",
-  caution: "bg-warning text-warning-foreground",
-} as const;
-
-// contain: paint keeps the rotated band out of the page's scrollable overflow, which clip-path alone does not.
-const RIBBON_CLIP_STYLE = {
-  clipPath: `inset(0 round ${CARD_BORDER_RADIUS})`,
-  contain: "paint",
-} as const;
-
-/** The one diagonal corner label a card may carry: banned, ban incoming, or unreleased. */
-export function CornerRibbon({
-  tone,
-  title,
-  children,
-}: {
-  tone: keyof typeof RIBBON_TONE;
-  title?: string;
-  children: ReactNode;
-}) {
-  return (
-    // clip-path, not overflow-hidden: Firefox's GPU compositor cuts this overflow-hidden
-    // @container box to a thin strip when it sits inside the tilt transform.
-    <div
-      className="@container pointer-events-none absolute inset-0 z-30"
-      style={RIBBON_CLIP_STYLE}
-      title={title}
-    >
-      <div
-        className={cn(
-          "absolute top-[18cqi] -right-[22cqi] w-[90cqi] rotate-[45deg] py-[1.5cqi] text-center text-[6cqi] font-black tracking-wider uppercase shadow-md select-none",
-          RIBBON_TONE[tone],
-        )}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
-
-export function BanRibbon({ bans, upcomingBans }: { bans: CardBan[]; upcomingBans: CardBan[] }) {
-  if (bans.length > 0) {
-    const hasBaseBan = bans.some((ban) => isBaseBanFormat(ban.formatId));
-    const soleModeBan = !hasBaseBan && bans.length === 1 ? bans[0] : undefined;
-    const banLines = bans.map((ban) =>
-      m.cards_thumb_banned_since({ format: ban.formatName, date: ban.bannedAt }),
-    );
-    return (
-      <CornerRibbon
-        tone="banned"
-        title={(hasBaseBan ? banLines : [...banLines, m.cards_thumb_legal_elsewhere()]).join("\n")}
-      >
-        {soleModeBan
-          ? m.cards_thumb_format_ban({ format: soleModeBan.formatName })
-          : m.cards_thumb_banned()}
-      </CornerRibbon>
-    );
-  }
-  if (upcomingBans.length > 0) {
-    return (
-      <CornerRibbon
-        tone="caution"
-        title={upcomingBans
-          .map((ban) => m.cards_thumb_banned_from({ format: ban.formatName, date: ban.bannedAt }))
-          .join("\n")}
-      >
-        {m.cards_thumb_ban_upcoming()}
-      </CornerRibbon>
-    );
-  }
-  return null;
-}
 
 function ImageShell({
   children,
@@ -745,19 +674,24 @@ export const CardThumbnail = memo(function CardThumbnail({
 
   // Base-list bans apply to all constructed play; mode-scoped bans (e.g. 2v2-only)
   // leave the card legal elsewhere, so only base bans get the full "unusable" treatment.
-  const activeBans = banDisplay === "none" ? [] : printing.card.bans;
+  const legality = useViewerLegality();
+  const viewerBans = cardBansFor(printing.card, legality);
+  const setStatus = standardSetLegality(printing.card, legality);
+  const activeBans = banDisplay === "none" ? [] : viewerBans.bans;
   const banDim = banDisplay === "overlay" &&
     activeBans.some((ban) => isBaseBanFormat(ban.formatId)) && (
       <div className="pointer-events-none absolute inset-0 z-20 rounded-[inherit] bg-black/70" />
     );
 
-  const upcomingBans = banDisplay === "none" ? [] : printing.card.upcomingBans;
+  const upcomingBans = banDisplay === "none" ? [] : viewerBans.upcomingBans;
+  const rotatedOn =
+    banDisplay !== "none" && setStatus.status === "rotated" ? setStatus.until : undefined;
   // Preview outranks an upcoming ban: the card is still legal, and the Riot TCG
   // community license requires previewed/unreleased cards to be labeled.
   // `setReleased` is per printing language, covering a set out elsewhere but not here.
   const ribbon =
     activeBans.length > 0 || printing.setReleased ? (
-      <BanRibbon bans={activeBans} upcomingBans={upcomingBans} />
+      <BanRibbon bans={activeBans} upcomingBans={upcomingBans} rotatedOn={rotatedOn} />
     ) : (
       <CornerRibbon tone="caution" title={m.cards_thumb_not_released()}>
         {m.cards_thumb_preview_ribbon()}
@@ -960,7 +894,7 @@ export const CardThumbnail = memo(function CardThumbnail({
       finishTitle={finishTitle}
       oversized={isOversized}
       sizeLabel={sizeLabel}
-      bans={banDisplay === "label" ? printing.card.bans : undefined}
+      bans={banDisplay === "label" ? viewerBans.bans : undefined}
       hasRulesDeviation={errataForLanguage(printing.card.errata, printing.language) !== null}
       printingComment={printing.comment}
       printingCount={

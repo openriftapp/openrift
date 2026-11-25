@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-25
+
+### Highlights
+
+- feat(Cards): **Ban lists and legal sets per region** — pick your play region in settings, and cards, decks and deck checks follow its ban list and set release dates.
+
+### Other
+
+- fix(Cards): **2v2 ban list** — Master Yi, Wuju Bladesman is now banned in 2v2, and Fight or Flight is legal there as on Riot's current list.
+
 ## 2026-11-24
 
 ### Other

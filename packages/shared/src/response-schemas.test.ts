@@ -38,6 +38,7 @@ const validCard = {
   additionalLegendCount: null,
   errata: [],
   bans: [],
+  numberedSetSlugs: ["OGN"],
 };
 
 const validPrinting = {

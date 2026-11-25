@@ -73,6 +73,36 @@ export const initResponseSchema = z.object({
   tagCategoryMap: z.record(z.string(), z.string()).meta({
     examples: [{ Ionia: "region", Poro: "species" }],
   }),
+  circuits: z
+    .array(
+      z.object({
+        slug: z.string(),
+        label: z.string(),
+        countryCodes: z.array(z.string()),
+      }),
+    )
+    .meta({
+      description:
+        "Competitive circuits with their own ban list or set release dates. Everywhere else follows the global rows.",
+      examples: [[{ slug: "korea", label: "Korea", countryCodes: ["KR"] }]],
+    })
+    .default([]),
+  formatSets: z
+    .array(
+      z.object({
+        formatId: z.string(),
+        setSlug: z.string(),
+        circuit: z.string().optional(),
+        legalFrom: z.string().nullable(),
+        legalUntil: z.string().optional(),
+      }),
+    )
+    .meta({
+      description:
+        "When each set is legal in a format. A circuit row replaces the global row of the same format and set there. A null `legalFrom` is announced without a date; `legalUntil` is the first day the set is out.",
+      examples: [[{ formatId: "standard", setSlug: "OGN", legalFrom: "2025-10-31" }]],
+    })
+    .default([]),
 });
 
 export const initContract = {

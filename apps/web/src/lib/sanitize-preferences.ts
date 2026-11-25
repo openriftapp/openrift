@@ -111,6 +111,9 @@ export function sanitizeServerResponse(data: unknown): Partial<DisplayOverrides>
     result.countExcludedCollections =
       typeof record.countExcludedCollections === "boolean" ? record.countExcludedCollections : null;
   }
+  if ("playCircuit" in record) {
+    result.playCircuit = sanitizePlayCircuit(record.playCircuit);
+  }
   return result;
 }
 
@@ -233,5 +236,11 @@ function sanitizeOverrideFields(record: Record<string, unknown>): DisplayOverrid
     topLevelFilters: safeTopLevelFilters,
     countExcludedCollections:
       typeof record.countExcludedCollections === "boolean" ? record.countExcludedCollections : null,
+    playCircuit: sanitizePlayCircuit(record.playCircuit),
   };
+}
+
+/** Circuits are catalog data, so an unknown slug passes here and resolves to global at read time. */
+function sanitizePlayCircuit(value: unknown): string | null {
+  return typeof value === "string" && value.length > 0 && value.length <= 40 ? value : null;
 }

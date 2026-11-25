@@ -1,3 +1,4 @@
+import { GLOBAL_CIRCUIT } from "@openrift/shared/types/api/preferences";
 import type {
   TournamentDeckSubmission,
   TournamentListLockMode,
@@ -10,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { SwitchField } from "@/features/tournaments/components/settings/switch-field";
 import { deckSubmissionItems } from "@/features/tournaments/lib/tournament-display";
-import { useDeckFormatList } from "@/hooks/use-enums";
+import { useCircuitList, useDeckFormatList } from "@/hooks/use-enums";
 import { localTimeZoneLabel } from "@/lib/date-time-input";
 import { m } from "@/paraglide/messages.js";
 
@@ -74,6 +75,39 @@ export function DeckFormatField({
       <span className="text-muted-foreground text-sm">
         {m.tournaments_settings_deck_format_hint()}
       </span>
+    </div>
+  );
+}
+
+/** The circuit whose ban list and set dates judge the decklists; global when none. */
+export function DeckCircuitField({
+  value,
+  disabled = false,
+  className,
+  onChange,
+}: {
+  value: string | null;
+  disabled?: boolean;
+  className?: string;
+  onChange: (value: string | null) => void;
+}) {
+  const circuits = useCircuitList();
+  const items = [
+    { value: GLOBAL_CIRCUIT, label: m.tournaments_settings_circuit_global() },
+    ...circuits.map((circuit) => ({ value: circuit.slug, label: circuit.label })),
+  ];
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label>{m.tournaments_settings_circuit_label()}</Label>
+      <SimpleSelect
+        items={items}
+        value={value ?? GLOBAL_CIRCUIT}
+        disabled={disabled}
+        onChange={(next) => onChange(next === GLOBAL_CIRCUIT ? null : next)}
+        label={m.tournaments_settings_circuit_label()}
+        className={className ?? "w-full"}
+      />
+      <span className="text-muted-foreground text-sm">{m.tournaments_settings_circuit_hint()}</span>
     </div>
   );
 }

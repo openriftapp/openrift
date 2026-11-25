@@ -286,14 +286,37 @@ export interface BanFormatsTable {
   createdAt: CreatedAt;
 }
 
+export interface CircuitsTable {
+  slug: string;
+  label: string;
+  countryCodes: Generated<string[]>;
+  releaseLanguage: string | null;
+  hasSetBanLists: Generated<boolean>;
+  sortOrder: number;
+  createdAt: CreatedAt;
+}
+
+/** A null `circuit` is the global row; a circuit row replaces it there. */
 export interface CardBansTable {
   id: Generated<string>;
   cardId: string;
   formatId: string;
-  bannedAt: string;
+  circuit: string | null;
+  bannedAt: string | null;
   unbannedAt: string | null;
   reason: string | null;
   createdAt: CreatedAt;
+}
+
+export interface FormatSetsTable {
+  id: Generated<string>;
+  formatId: string;
+  setId: string;
+  circuit: string | null;
+  legalFrom: string | null;
+  legalUntil: string | null;
+  createdAt: CreatedAt;
+  updatedAt: UpdatedAt;
 }
 
 export interface RuleVersionsTable {

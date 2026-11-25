@@ -54,6 +54,7 @@ const stubCardValue: CatalogResponseCardValue = {
   additionalLegendCount: null,
   errata: [],
   bans: [],
+  numberedSetSlugs: [],
 };
 
 function stubPrintingValue(

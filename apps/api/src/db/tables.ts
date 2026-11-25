@@ -20,6 +20,8 @@ import type {
 } from "./tables/candidates.js";
 import type {
   CardBansTable,
+  CircuitsTable,
+  FormatSetsTable,
   CardCardTypesTable,
   CardCustomTagsTable,
   CardDomainsTable,
@@ -405,6 +407,10 @@ export interface Database {
   banFormats: BanFormatsTable;
 
   cardBans: CardBansTable;
+
+  circuits: CircuitsTable;
+
+  formatSets: FormatSetsTable;
 
   ruleVersions: RuleVersionsTable;
   rules: RulesTable;

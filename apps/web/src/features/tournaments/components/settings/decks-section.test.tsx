@@ -13,6 +13,7 @@ vi.mock("@/features/tournaments/hooks/use-tournament-mutations", () => ({
 }));
 
 vi.mock("@/hooks/use-enums", () => ({
+  useCircuitList: () => [{ slug: "korea", label: "Korea", countryCodes: ["KR"] }],
   useDeckFormatList: () => ({
     formats: [
       { slug: "constructed", label: "Constructed" },

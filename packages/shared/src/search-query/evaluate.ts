@@ -6,6 +6,8 @@ import {
   toSearchTerm,
 } from "../filters-search.js";
 import type { SearchTerm } from "../filters-search.js";
+import { bansInEffect, standardSetLegality } from "../format-legality.js";
+import type { LegalityContext } from "../format-legality.js";
 import { isStandardPrinting } from "../standard.js";
 import type { PriceLookup } from "../types/api/pricing.js";
 import type { Printing } from "../types/catalog.js";
@@ -32,6 +34,7 @@ export interface SearchContext {
   rarityOrder?: readonly string[];
   vocabulary?: SearchVocabulary;
   strict?: boolean;
+  legality?: LegalityContext;
 }
 
 type SearchPredicate = (printing: Printing, context: SearchContext) => boolean;
@@ -292,15 +295,9 @@ function hasPredicate(value: string): SearchPredicate {
   }
 }
 
-const TWO_V_TWO = WellKnown.banFormat.TWO_V_TWO.toLowerCase();
-
-/** 2v2 records only its own extra bans; everything banned in Constructed is banned there too. */
-function isBannedIn(printing: Printing, format: string): boolean {
-  return printing.card.bans.some(
-    (ban) =>
-      ban.formatId.toLowerCase() === format ||
-      formatSearchSlug(ban.formatName) === format ||
-      (format === TWO_V_TWO && ban.formatId === WellKnown.banFormat.CONSTRUCTED),
+function isBannedIn(printing: Printing, format: string, context: SearchContext): boolean {
+  return bansInEffect(printing.card, context.legality).some(
+    (ban) => ban.formatId.toLowerCase() === format || formatSearchSlug(ban.formatName) === format,
   );
 }
 
@@ -448,10 +445,14 @@ function clausePredicate(
       return datePredicate(operator, value);
     }
     case "format": {
-      return (printing) => isDeckable(printing) && !isBannedIn(printing, value);
+      const followsSets = value !== WellKnown.deckFormat.FREEFORM;
+      return (printing, context) =>
+        isDeckable(printing) &&
+        !isBannedIn(printing, value, context) &&
+        (!followsSets || standardSetLegality(printing.card, context.legality).status === "legal");
     }
     case "banned": {
-      return (printing) => isBannedIn(printing, value);
+      return (printing, context) => isBannedIn(printing, value, context);
     }
     case "is": {
       return isPredicate(value as IsValue);

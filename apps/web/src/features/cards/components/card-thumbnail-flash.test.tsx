@@ -10,6 +10,11 @@ import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumb
 import { useGridFocusStore } from "@/features/cards/stores/grid-focus-store";
 import { stubPrinting } from "@/test/factories";
 
+vi.mock("@/hooks/use-viewer-legality", () => ({
+  useViewerLegality: () => ({ windows: [] }),
+  useGlobalLegality: () => ({ windows: [] }),
+}));
+
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children }: { children: ReactNode }) => <span>{children}</span>,
   useRouter: () => ({ preloadRoute: vi.fn(), options: { defaultPreloadDelay: 50 } }),

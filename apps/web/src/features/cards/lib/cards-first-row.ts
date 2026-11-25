@@ -62,7 +62,7 @@ const SSR_DEFAULT_VIEW: "cards" | "printings" = "cards";
 
 export interface FirstRowSources {
   catalog: CatalogResponse;
-  init: Pick<InitResponse, "enums" | "keywords">;
+  init: Pick<InitResponse, "enums" | "keywords" | "formatSets">;
   prices: PricesResponse;
 }
 

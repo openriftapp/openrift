@@ -203,7 +203,10 @@ export interface ResolvedPreferences {
   defaultCurrency: Currency;
   topLevelFilters: string[];
   countExcludedCollections: boolean;
+  playCircuit: string;
 }
+
+export const GLOBAL_CIRCUIT = "global";
 
 /**
  * Excludes `theme`/`palette`: the theme store applies them before React
@@ -219,6 +222,7 @@ export const DISPLAY_PREFERENCE_KEYS = [
   "defaultCurrency",
   "topLevelFilters",
   "countExcludedCollections",
+  "playCircuit",
 ] as const satisfies readonly (keyof ResolvedPreferences)[];
 
 export type DisplayPreferenceKey = (typeof DISPLAY_PREFERENCE_KEYS)[number];
@@ -253,4 +257,5 @@ export const PREFERENCE_DEFAULTS: ResolvedPreferences = {
     "stats",
   ],
   countExcludedCollections: false,
+  playCircuit: GLOBAL_CIRCUIT,
 };

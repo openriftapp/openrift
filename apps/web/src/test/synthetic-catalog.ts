@@ -59,6 +59,7 @@ export function buildSyntheticPrintings(): Printing[] {
     additionalLegendCount: null,
     errata: [],
     bans: [],
+    numberedSetSlugs: [],
     upcomingBans: [],
   }));
 

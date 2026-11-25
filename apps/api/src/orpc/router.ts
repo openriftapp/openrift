@@ -25,6 +25,7 @@ import { adminCatalogRouter } from "../modules/catalog/routes/admin-catalog.js";
 import { adminDistributionChannelsRouter } from "../modules/catalog/routes/admin-distribution-channels.js";
 import { adminDomainsRouter } from "../modules/catalog/routes/admin-domains.js";
 import { adminFinishesRouter } from "../modules/catalog/routes/admin-finishes.js";
+import { adminFormatSetsRouter } from "../modules/catalog/routes/admin-format-sets.js";
 import { adminImagesRouter } from "../modules/catalog/routes/admin-images.js";
 import { adminKeywordsRouter } from "../modules/catalog/routes/admin-keywords.js";
 import { adminLanguagesRouter } from "../modules/catalog/routes/admin-languages.js";
@@ -159,6 +160,7 @@ const apiRouter = {
   adminDomainsRouter,
   adminFeatureFlagsRouter,
   adminFinishesRouter,
+  adminFormatSetsRouter,
   adminFormatsRouter,
   adminFriendGroupBannersRouter,
   adminBoardStatesRouter,

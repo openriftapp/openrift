@@ -174,6 +174,34 @@ export function groupErrataByCard(errataRows: readonly CardErrataRow[]): Map<str
   return byCard;
 }
 
+/** Global rows go to `bans`; circuit rows, lifted ones included, to `circuitBans`. */
+export function presentCardBans(
+  rows: readonly CardBanRow[],
+): Pick<CatalogCardResponse, "bans" | "circuitBans"> {
+  const bans: CatalogCardResponse["bans"] = [];
+  const circuitBans: NonNullable<CatalogCardResponse["circuitBans"]> = [];
+  for (const row of rows) {
+    if (row.circuit !== null) {
+      circuitBans.push({
+        formatId: row.formatId,
+        formatName: row.formatName,
+        circuit: row.circuit,
+        bannedAt: row.bannedAt,
+        unbannedAt: row.unbannedAt,
+        reason: row.reason,
+      });
+    } else if (row.bannedAt !== null && row.unbannedAt === null) {
+      bans.push({
+        formatId: row.formatId,
+        formatName: row.formatName,
+        bannedAt: row.bannedAt,
+        reason: row.reason,
+      });
+    }
+  }
+  return circuitBans.length > 0 ? { bans, circuitBans } : { bans };
+}
+
 export function buildCardsResponse(
   cardRows: readonly CardRow[],
   banRows: readonly CardBanRow[],
@@ -188,12 +216,7 @@ export function buildCardsResponse(
       {
         ...r,
         errata: errataByCard.get(r.id) ?? [],
-        bans: (bansByCard.get(r.id) ?? []).map((b) => ({
-          formatId: b.formatId,
-          formatName: b.formatName,
-          bannedAt: b.bannedAt,
-          reason: b.reason,
-        })),
+        ...presentCardBans(bansByCard.get(r.id) ?? []),
       },
     ]),
   );

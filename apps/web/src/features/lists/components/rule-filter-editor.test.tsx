@@ -6,6 +6,11 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("@/hooks/use-viewer-legality", () => ({
+  useViewerLegality: () => ({ windows: [] }),
+  useGlobalLegality: () => ({ windows: [] }),
+}));
+
 // A fixed facet set so only Markers and Custom Tags are offered, to prove
 // presence folding without dragging in the whole catalog.
 const AVAILABLE = {

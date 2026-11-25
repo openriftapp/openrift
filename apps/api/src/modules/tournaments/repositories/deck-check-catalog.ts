@@ -83,25 +83,5 @@ export function deckCheckCatalogRepo(db: Kysely<Database>) {
         ]),
       );
     },
-
-    async getCardSetSlugs(cardIds: string[]): Promise<Map<string, string[]>> {
-      if (cardIds.length === 0) {
-        return new Map();
-      }
-      const rows = await db
-        .selectFrom("faces as p")
-        .innerJoin("sets as s", "s.id", "p.setId")
-        .select(["p.cardId", "s.slug"])
-        .where("p.cardId", "in", cardIds)
-        .groupBy(["p.cardId", "s.slug"])
-        .execute();
-      const bySets = new Map<string, string[]>();
-      for (const row of rows) {
-        const list = bySets.get(row.cardId) ?? [];
-        list.push(row.slug);
-        bySets.set(row.cardId, list);
-      }
-      return bySets;
-    },
   };
 }

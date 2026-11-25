@@ -52,6 +52,7 @@ import { DeckStatsBand } from "@/features/decks/components/stats/deck-stats-band
 import { DeckStatsSummary } from "@/features/decks/components/stats/deck-stats-summary";
 import { useDeckStats } from "@/features/decks/hooks/use-deck-stats";
 import { useOwnershipBandSources } from "@/features/decks/hooks/use-ownership-band-sources";
+import { useRuleCardJudge } from "@/features/decks/hooks/use-rule-card-judge";
 import type { BattlefieldPlanPicks } from "@/features/decks/lib/battlefield-plan-tags";
 import {
   battlefieldPlanTags,
@@ -187,10 +188,11 @@ export function DeckOverview({
     return printing ? cardPageHref(router, printing) : undefined;
   };
   const { getFaceImage } = usePreferredPrinting();
+  const judge = useRuleCardJudge();
   const violations = validateDeck({
     format: deck.format,
     formatConfig: deck.formatConfig,
-    cards: cards.map((card) => toRuleEngineCard(card, customTagAssignments)),
+    cards: cards.map((card) => toRuleEngineCard(card, customTagAssignments, judge)),
     championIdentifierTags,
   });
   const stats = useDeckStats(cards);

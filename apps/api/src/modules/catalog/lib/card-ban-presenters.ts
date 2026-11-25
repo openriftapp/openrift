@@ -5,7 +5,8 @@ export interface CardBanRow {
   cardId: string;
   formatId: string;
   formatName: string;
-  bannedAt: string;
+  circuit: string | null;
+  bannedAt: string | null;
   reason: string | null;
   createdAt: Date;
 }
@@ -16,6 +17,7 @@ export function toCardBanResponse(row: CardBanRow): CardBanResponse {
     cardId: row.cardId,
     formatId: row.formatId,
     formatName: row.formatName,
+    circuit: row.circuit,
     bannedAt: row.bannedAt,
     reason: row.reason,
     createdAt: row.createdAt.toISOString(),

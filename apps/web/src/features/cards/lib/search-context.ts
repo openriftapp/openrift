@@ -86,7 +86,7 @@ function preloadPrintings(
  */
 export function ssrCardSearchContext(
   catalog: VocabularyCatalog,
-  init: Pick<InitResponse, "enums" | "keywords">,
+  init: Pick<InitResponse, "enums" | "keywords" | "formatSets">,
   prices: Pick<CardSearchContext, "getPrice" | "priceLookup">,
   preloadLangs: readonly string[],
 ): CardSearchContext {
@@ -97,6 +97,7 @@ export function ssrCardSearchContext(
     customTagAssignments: undefined,
     rarityOrder,
     searchablePrintings: preloadPrintings(catalog.allPrintings, preloadLangs),
+    legality: { windows: init.formatSets },
     ...prices,
   });
 }

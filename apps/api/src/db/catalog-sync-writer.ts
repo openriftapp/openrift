@@ -122,6 +122,7 @@ export async function writeCatalogSync(
     }
     await upsertChunked(trx, "languages", rows.languages, ["code"]);
     await upsertChunked(trx, "banFormats", rows.banFormats, ["slug"], ["label", "sortOrder"]);
+    await upsertChunked(trx, "circuits", rows.circuits, ["slug"]);
     await upsertChunked(trx, "keywords", rows.keywords, ["name"]);
     await upsertChunked(trx, "keywordTranslations", rows.keywordTranslations, [
       "keywordName",
@@ -167,6 +168,17 @@ export async function writeCatalogSync(
 
     await upsertChunked(trx, "sets", rows.sets, ["id"]);
     await replaceChildren(trx, "setReleases", "setId", setIds, rows.setReleases);
+    const setIdBySlug = new Map(rows.sets.map((set) => [set.slug, set.id as string]));
+    await replaceChildren(
+      trx,
+      "formatSets",
+      "setId",
+      setIds,
+      rows.formatSets.flatMap(({ setSlug, ...window }) => {
+        const setId = setIdBySlug.get(setSlug);
+        return setId === undefined ? [] : [{ ...window, setId }];
+      }),
+    );
     await upsertChunked(trx, "cards", rows.cards, ["id"]);
     await replaceChildren(trx, "cardCardTypes", "cardId", cardIds, rows.cardCardTypes);
     await replaceChildren(trx, "cardDomains", "cardId", cardIds, rows.cardDomains);

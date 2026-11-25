@@ -339,6 +339,7 @@ export async function buildDetail(
     listLockMode: tournament.listLockMode,
     deckFormat: tournament.deckFormat,
     allowedSets: tournament.allowedSets,
+    circuit: tournament.circuit,
     selfRegistration: tournament.hasSelfRegistration,
     reportToken,
     followToken,

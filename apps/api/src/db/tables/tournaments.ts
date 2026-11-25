@@ -71,6 +71,7 @@ export interface TournamentsTable {
   listLockMode: Generated<TournamentListLockMode>;
   deckFormat: Generated<string>;
   allowedSets: string[] | null;
+  circuit: string | null;
   hasSelfRegistration: Generated<boolean>;
 
   uvsgamesEventId: string | null;

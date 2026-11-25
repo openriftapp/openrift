@@ -8,6 +8,11 @@ import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
 import type { GroupInfo } from "@/lib/card-group-types";
 import { resetIdCounter, stubPrinting } from "@/test/factories";
 
+vi.mock("@/hooks/use-viewer-legality", () => ({
+  useViewerLegality: () => ({ windows: [] }),
+  useGlobalLegality: () => ({ windows: [] }),
+}));
+
 const TEST_ORDERS = {
   rarities: ["common", "uncommon", "rare", "epic"],
   finishes: ["normal", "foil"],

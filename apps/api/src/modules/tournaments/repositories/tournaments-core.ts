@@ -53,6 +53,7 @@ export interface NewTournament {
   listLockMode?: TournamentListLockMode;
   deckFormat?: string;
   allowedSets?: string[] | null;
+  circuit?: string | null;
   hasSelfRegistration?: boolean;
 }
 
@@ -90,6 +91,7 @@ export interface TournamentPatch {
   listLockMode?: TournamentListLockMode;
   deckFormat?: string;
   allowedSets?: string[] | null;
+  circuit?: string | null;
   hasSelfRegistration?: boolean;
   uvsgamesEventId?: string | null;
   playriftboundEventId?: string | null;

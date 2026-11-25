@@ -55,6 +55,7 @@ function card(name: string, energy: number) {
     additionalLegendCount: null,
     errata: [],
     bans: [],
+    numberedSetSlugs: [],
   } as CatalogResponse["cards"][string];
 }
 
@@ -87,6 +88,7 @@ app.use("*", async (c, next) => {
   c.set("repos", {
     catalogResponse: { current: () => Promise.resolve({ version: "v1", value: catalog }) },
     cardBans: { listFormats: () => Promise.resolve([{ id: "standard", name: "Constructed" }]) },
+    formatSets: { listAll: () => Promise.resolve([]) },
     marketplace: mockMarketplace,
   } as never);
   await next();
@@ -207,6 +209,7 @@ describe("GET /api/v1/search across a ban's start day", () => {
         current: () => Promise.resolve({ version: "scheduled-ban", value: scheduled }),
       },
       cardBans: { listFormats: () => Promise.resolve([{ id: "standard", name: "Constructed" }]) },
+      formatSets: { listAll: () => Promise.resolve([]) },
       marketplace: mockMarketplace,
     } as never);
     await next();

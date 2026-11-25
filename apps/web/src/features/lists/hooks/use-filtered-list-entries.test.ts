@@ -6,6 +6,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import { EMPTY_TRADE_PREFERENCE, stubPrinting } from "@/test/factories";
 
+vi.mock("@/hooks/use-viewer-legality", () => ({
+  useViewerLegality: () => ({ windows: [] }),
+  useGlobalLegality: () => ({ windows: [] }),
+}));
+
 // "Vi" has a normal and a foil printing so the card-kind resolution path
 // has more than one candidate to pick from.
 const viNormal = stubPrinting({ printingId: "p-vi", cardId: "card-vi", card: { name: "Vi" } });

@@ -30,23 +30,47 @@ function ban(formatId: string): CardBan {
 
 describe("isCardBanned", () => {
   it("is false for a card with no bans", () => {
-    expect(isCardBanned({ bans: [] })).toBe(false);
+    expect(isCardBanned({ bans: [], upcomingBans: [] })).toBe(false);
   });
 
   it("is true for a base-banlist ban", () => {
-    expect(isCardBanned({ bans: [ban(WellKnown.banFormat.CONSTRUCTED)] })).toBe(true);
+    expect(isCardBanned({ bans: [ban(WellKnown.banFormat.CONSTRUCTED)], upcomingBans: [] })).toBe(
+      true,
+    );
   });
 
   it("is false for a mode-scoped ban alone", () => {
-    expect(isCardBanned({ bans: [ban(WellKnown.banFormat.TWO_V_TWO)] })).toBe(false);
+    expect(isCardBanned({ bans: [ban(WellKnown.banFormat.TWO_V_TWO)], upcomingBans: [] })).toBe(
+      false,
+    );
   });
 
   it("is true when a base ban sits alongside a mode-scoped one", () => {
     expect(
       isCardBanned({
         bans: [ban(WellKnown.banFormat.TWO_V_TWO), ban(WellKnown.banFormat.CONSTRUCTED)],
+        upcomingBans: [],
       }),
     ).toBe(true);
+  });
+
+  it("follows the viewer's circuit, where a lifted circuit row replaces the global ban", () => {
+    const card = {
+      bans: [ban(WellKnown.banFormat.CONSTRUCTED)],
+      upcomingBans: [],
+      circuitBans: [
+        {
+          formatId: WellKnown.banFormat.CONSTRUCTED,
+          formatName: "Constructed",
+          circuit: "korea",
+          bannedAt: "2026-01-01",
+          unbannedAt: "2026-11-23",
+          reason: null,
+        },
+      ],
+    };
+    expect(isCardBanned(card, { windows: [] })).toBe(true);
+    expect(isCardBanned(card, { circuit: "korea", windows: [] })).toBe(false);
   });
 });
 

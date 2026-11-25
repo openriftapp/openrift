@@ -1,6 +1,7 @@
 import type { CardSearchContext } from "./filters-shared.js";
 import { cardSearchContext } from "./filters-shared.js";
 import { filterCards } from "./filters.js";
+import type { LegalityContext } from "./format-legality.js";
 import { getPlaysetSize } from "./playset.js";
 import { indexByPrinting } from "./printing-side.js";
 import type { SearchVocabulary } from "./search-query/bind.js";
@@ -75,6 +76,7 @@ export interface RuleEvalContext {
   priceLookup?: PriceLookup;
   vocabulary?: SearchVocabulary;
   keywordReverseMap?: Map<string, string>;
+  legality?: LegalityContext;
 }
 
 function ruleSearchContext(
@@ -88,6 +90,7 @@ function ruleSearchContext(
     rarityOrder: undefined,
     strict: true,
     getPrice,
+    legality: ctx.legality,
   });
 }
 

@@ -44,7 +44,7 @@ export function CardBansSection({
   const [removingId, setRemovingId] = useState<string | null>(null);
 
   const rows = bans ?? [];
-  const openFormats = selectableFormats(formats ?? [], rows);
+  const openFormats = selectableFormats(formats ?? [], rows, draft.circuit);
   const removing = rows.find((ban) => ban.id === removingId) ?? null;
 
   function changeDraft(next: Partial<BanDraft>) {
@@ -64,8 +64,10 @@ export function CardBansSection({
     if (removing === null) {
       return;
     }
-    const formatId = removing.formatId;
-    if (await runWrite((signal) => removeBan.mutateAsync({ cardId, formatId }, { signal }))) {
+    const { formatId, circuit } = removing;
+    if (
+      await runWrite((signal) => removeBan.mutateAsync({ cardId, formatId, circuit }, { signal }))
+    ) {
       setRemovingId(null);
     }
   }
@@ -125,12 +127,12 @@ export function CardBansSection({
         />
       )}
 
-      {!adding && !isPending && openFormats.length > 0 && (
+      {!adding && !isPending && (formats ?? []).length > 0 && (
         <Button
           variant="outline"
           onClick={() => {
             setEditingId(null);
-            setDraft(newBanDraft(openFormats.at(0)?.id ?? ""));
+            setDraft(newBanDraft(selectableFormats(formats ?? [], rows, null).at(0)?.id ?? ""));
             setAdding(true);
           }}
         >
