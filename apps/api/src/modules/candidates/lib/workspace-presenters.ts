@@ -3,6 +3,7 @@ import {
   COMPARABLE_PRINTING_FIELDS,
   differingFields,
   hasFieldValue,
+  isDismissedValue,
 } from "@openrift/shared/catalog-field-compare";
 import type {
   WorkspaceOwner,
@@ -17,6 +18,7 @@ import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submis
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import { isPrintingLevelField } from "@openrift/shared/printing-field-level";
 import { normalizeProvidedPrintingRecord } from "@openrift/shared/printing-value-normalize";
+import { withoutCoveredRelease } from "@openrift/shared/set-release";
 import { listingCardOwnerId, listingOwnerId } from "@openrift/shared/workspace-listing-key";
 
 import { classifyAgainstLive } from "../../../lib/image-fingerprint.js";
@@ -145,17 +147,22 @@ export function linkedPrintingDifferences(
   row: WorkspaceLinkedPrintingRow,
   costKeywords: string[],
 ): LinkedPrintingDifferences {
-  const { imageUrl, imageFingerprint, ...candidate } = row.candidate;
+  const { imageUrl, imageFingerprint, dismissedValues, ...candidate } = row.candidate;
   const { imageUrls, imageFingerprints, ...live } = row.live;
   const newImage =
     hasFieldValue(imageUrl) &&
+    !isDismissedValue(dismissedValues, "imageUrl", imageUrl) &&
     !imageUrls.includes(imageUrl as string) &&
     classifyAgainstLive(imageFingerprint, imageFingerprints) !== "same";
   const normalized = normalizeProvidedPrintingRecord(candidate, {
     costKeywords,
     printedTotal: row.printedTotal,
   });
-  const fields = differingFields(COMPARABLE_PRINTING_FIELDS, live, normalized);
+  const fields = withoutCoveredRelease(
+    differingFields(COMPARABLE_PRINTING_FIELDS, live, normalized, dismissedValues),
+    live,
+    normalized,
+  );
   return {
     faceFields: fields.filter((field) => !isPrintingLevelField(field)),
     printingFields: fields.filter((field) => isPrintingLevelField(field)),
@@ -173,7 +180,12 @@ export function buildWorkspaceQueueEntries(sources: WorkspaceQueueSources): Work
   const collector = new EntryCollector();
 
   for (const row of sources.cardDifferences) {
-    const fields = differingFields(COMPARABLE_CARD_FIELDS, row.live, row.candidate);
+    const fields = differingFields(
+      COMPARABLE_CARD_FIELDS,
+      row.live,
+      row.candidate,
+      row.candidate.dismissedValues,
+    );
     if (fields.length === 0) {
       continue;
     }
@@ -456,6 +468,12 @@ export function toWorkspaceFaceRow(row: WorkspaceFaceRecordDbRow): WorkspaceReco
 export function toWorkspaceEvent(row: WorkspaceEventRow): WorkspaceEvent {
   return {
     id: row.id,
+    actorUserId: row.actorUserId,
+    actorName: row.actorName,
+    actorEmail: null,
+    entityLabel: row.entityLabel,
+    oldValues: row.oldValues,
+    newValues: row.newValues,
     action: row.action,
     label: row.entityLabel ?? row.cardSlug ?? row.entityId ?? "",
     entityType: row.entityType,

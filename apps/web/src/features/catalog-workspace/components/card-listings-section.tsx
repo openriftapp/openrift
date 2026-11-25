@@ -1,13 +1,15 @@
-import { marketplaceLabel } from "@openrift/shared/marketplace";
+import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
 import { computeProductSuggestions } from "@openrift/shared/marketplace-suggestions";
+import { countNoun } from "@openrift/shared/strings";
 import type {
   AdminMarketplaceName,
   AssignableCardResponse,
 } from "@openrift/shared/types/api/admin";
 import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BanIcon, EllipsisVerticalIcon, LinkIcon, XIcon } from "lucide-react";
-import { useState } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { BanIcon, EllipsisVerticalIcon, LinkIcon, PlusIcon, XIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,13 +21,34 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { AdminCellSlotProps } from "@/features/admin/components/admin-table";
+import { AdminTable } from "@/features/admin/components/admin-table";
 import { IgnoredProductsNote } from "@/features/admin/components/ignored-products-note";
-import { PrintingLabel } from "@/features/admin/components/marketplace-printing-label";
-import { ProductLink } from "@/features/admin/components/price-mappings-utils";
+import type { RowSuggestion } from "@/features/admin/components/marketplace-product-cells";
+import {
+  AssignedPrintingsCell,
+  PriceCell,
+  ProductCell,
+  VariantCell,
+} from "@/features/admin/components/marketplace-product-cells";
+import type {
+  MarketplaceHandlers,
+  MarketplaceTableRow,
+} from "@/features/admin/components/marketplace-product-entries";
+import {
+  buildMarketplaceRows,
+  collectEntries,
+  displayedProductLanguage,
+} from "@/features/admin/components/marketplace-product-entries";
 import { PrintingPairNamesContext } from "@/features/admin/components/printing-pair-names";
 import { useUnmapMarketplacePrinting } from "@/features/admin/hooks/use-admin-card-mutations";
 import {
+  useAssignToCardByMarketplace,
+  useIgnoreProductsByMarketplace,
+  useIgnoreVariantsByMarketplace,
+  useUnassignFromCardByMarketplace,
   useUnifiedAssignToCard,
   useUnifiedIgnoreProducts,
   useUnifiedIgnoreVariants,
@@ -42,21 +65,12 @@ import { useAssignableCardSearch } from "@/features/cards/hooks/use-card-search"
 import { ListingPrintingDialog } from "@/features/catalog-workspace/components/listing-printing-dialog";
 import { RecordSection } from "@/features/catalog-workspace/components/record/record-pane";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
-import type {
-  CardListingRow,
-  ListingStrength,
-} from "@/features/catalog-workspace/lib/card-listing-rows";
+import type { CardListingRow } from "@/features/catalog-workspace/lib/card-listing-rows";
 import {
   buildCardListings,
   listingAssignment,
 } from "@/features/catalog-workspace/lib/card-listing-rows";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
-
-const STRENGTH_VARIANT: Record<ListingStrength, "success" | "warning" | "neutral"> = {
-  strong: "success",
-  possible: "warning",
-  weak: "neutral",
-};
 
 function useListingDone(cardSlug: string) {
   const queueWrite = useQueueWorkspaceWrite();
@@ -118,7 +132,24 @@ function ReassignCardDialog({
   );
 }
 
-function ListingRow({
+function ListingActionsCell({
+  row,
+  listingsByKey,
+  cardSlug,
+  allCards,
+}: AdminCellSlotProps<MarketplaceTableRow> & {
+  listingsByKey: ReadonlyMap<string, CardListingRow>;
+  cardSlug: string;
+  allCards: AssignableCardResponse[];
+}) {
+  const listing = row === undefined ? undefined : listingsByKey.get(row.key);
+  if (listing === undefined) {
+    return null;
+  }
+  return <ListingActions row={listing} cardSlug={cardSlug} allCards={allCards} />;
+}
+
+function ListingActions({
   row,
   cardSlug,
   allCards,
@@ -181,48 +212,8 @@ function ListingRow({
   }
 
   return (
-    <li className="flex flex-wrap items-center gap-2 border-t py-1.5">
-      <Badge variant="outline">{marketplaceLabel(marketplace)}</Badge>
-      <span className="min-w-0 flex-1 break-words">
-        <ProductLink
-          config={SOURCE_CONFIGS[marketplace]}
-          externalId={product.externalId}
-          language={product.language}
-        >
-          &ldquo;{product.productName}&rdquo;
-        </ProductLink>{" "}
-        <span className="text-muted-foreground text-sm">
-          {[product.finish, product.language].filter(Boolean).join(" · ")}
-        </span>{" "}
-        {row.isAssigned ? (
-          <span className="font-mono text-sm">
-            <span className="text-muted-foreground font-sans">&rarr; </span>
-            {row.assignedPrintings.map((printing, index) => (
-              <span key={printing.printingId}>
-                {index > 0 && ", "}
-                <PrintingLabel printing={printing} />
-              </span>
-            ))}
-          </span>
-        ) : row.suggestion === null ? (
-          <span className="text-muted-foreground text-sm">&rarr; no match</span>
-        ) : (
-          <span className="inline-flex flex-wrap items-center gap-1.5 text-sm">
-            <span className="text-muted-foreground">&rarr; suggested</span>
-            <span className="font-mono">
-              <PrintingLabel
-                printing={row.suggestion.printing}
-                highlightFinish={product.finish}
-                highlightLanguage={product.language ?? undefined}
-              />
-            </span>
-            <Badge variant={STRENGTH_VARIANT[row.suggestion.strength]}>
-              {row.suggestion.strength}
-            </Badge>
-          </span>
-        )}
-      </span>
-      <span className="flex items-center gap-1.5">
+    <>
+      <span className="flex items-center justify-end gap-1.5">
         {!row.isAssigned && (
           <Button
             variant="outline"
@@ -262,6 +253,24 @@ function ListingRow({
               <DropdownMenuItem onClick={() => setDialog("card")}>
                 <LinkIcon />
                 Reassign to another card…
+              </DropdownMenuItem>
+            )}
+            {!row.isAssigned && (
+              <DropdownMenuItem
+                render={
+                  <Link
+                    to="/admin/workspace/printings/create"
+                    search={{
+                      card: cardSlug,
+                      language:
+                        displayedProductLanguage(marketplace, product.language) ?? undefined,
+                      finish: product.finish,
+                    }}
+                  />
+                }
+              >
+                <PlusIcon />
+                Create printing from this listing
               </DropdownMenuItem>
             )}
             {canUnassign && (
@@ -319,26 +328,93 @@ function ListingRow({
           }}
         />
       )}
-    </li>
+    </>
   );
 }
 
 export function CardListingsSection({
   cardSlug,
   pairNames,
+  collapsible = false,
+  defaultOpen = true,
+  scrollWhenLoaded = false,
 }: {
   cardSlug: string;
   pairNames: ReadonlyMap<string, string>;
+  collapsible?: boolean;
+  defaultOpen?: boolean;
+  scrollWhenLoaded?: boolean;
 }) {
   const { data, isPending } = useQuery(unifiedMappingsForCardQueryOptions(cardSlug));
+  const anchor = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (scrollWhenLoaded && !isPending) {
+      anchor.current?.scrollIntoView();
+    }
+  }, [scrollWhenLoaded, isPending]);
   const done = useListingDone(cardSlug);
   const saves = useSaveMappingsByMarketplace();
-  const [showAll, setShowAll] = useState(false);
+  const navigate = useNavigate();
+  const ignoreVariants = useIgnoreVariantsByMarketplace();
+  const ignoreProducts = useIgnoreProductsByMarketplace();
+  const assignToCards = useAssignToCardByMarketplace();
+  const unassigns = useUnassignFromCardByMarketplace();
+  const unmap = useUnmapMarketplacePrinting([
+    adminKeys.cards.detail(cardSlug),
+    adminKeys.unifiedMappings.all,
+    adminKeys.workspace,
+  ]);
   const saving = ALL_MARKETPLACES.some((marketplace) => saves[marketplace].isPending);
 
   const group = data?.group ?? null;
+  const suggestions = group === null ? null : computeProductSuggestions(group);
   const listings =
-    group === null ? null : buildCardListings(group, computeProductSuggestions(group));
+    group === null || suggestions === null ? null : buildCardListings(group, suggestions);
+  const listingsByKey = new Map(
+    [...(listings?.unassigned ?? []), ...(listings?.assigned ?? [])].map((row) => [row.key, row]),
+  );
+  const entries = group === null ? [] : collectEntries(group);
+  const printingById = new Map(
+    (group?.printings ?? []).map((printing) => [printing.printingId, printing]),
+  );
+
+  const handlersFor = (marketplace: AdminMarketplaceName): MarketplaceHandlers => {
+    const assign = (mappings: PrintingAssignment[]) =>
+      done((signal) => saves[marketplace].mutateAsync({ mappings }, { signal }));
+    return {
+      onIgnoreVariant: (externalId, finish, language) =>
+        void done((signal) =>
+          ignoreVariants[marketplace].mutateAsync([{ externalId, finish, language }], { signal }),
+        ),
+      onIgnoreProduct: (externalId) =>
+        void done((signal) =>
+          ignoreProducts[marketplace].mutateAsync([{ externalId }], { signal }),
+        ),
+      onAssignToCard: (externalId, finish, language, cardId) =>
+        void done((signal) =>
+          assignToCards[marketplace].mutateAsync(
+            { externalId, finish, language, cardId },
+            { signal },
+          ),
+        ),
+      onAssignToPrinting: (externalId, finish, language, printingId) =>
+        assign([{ externalId, finish, language, printingId }]),
+      onBatchAssignToPrintings: (mappings) => void assign(mappings),
+      onUnassign: (externalId, finish, language) =>
+        void done((signal) =>
+          unassigns[marketplace].mutateAsync({ externalId, finish, language }, { signal }),
+        ),
+      onUnmapPrinting: (printingId, externalId, finish, language) =>
+        void done((signal) =>
+          unmap.mutateAsync({ marketplace, printingId, externalId, finish, language }, { signal }),
+        ),
+      isIgnoring: ignoreVariants[marketplace].isPending || ignoreProducts[marketplace].isPending,
+      isAssigning: assignToCards[marketplace].isPending,
+      isAssigningToPrinting: saves[marketplace].isPending,
+      isUnassigning: unassigns[marketplace].isPending,
+      isUnmappingPrinting: unmap.isPending,
+    };
+  };
 
   function acceptStrong(strong: Record<AdminMarketplaceName, PrintingAssignment[]>) {
     for (const marketplace of ALL_MARKETPLACES) {
@@ -350,65 +426,121 @@ export function CardListingsSection({
   }
 
   return (
-    <RecordSection
-      title="Marketplace listings"
-      actions={
-        listings !== null && (
-          <>
-            {listings.unassigned.length > 0 && (
-              <Badge variant="warning">{listings.unassigned.length} unassigned</Badge>
-            )}
-            {listings.strongCount > 0 && (
-              <Button size="sm" disabled={saving} onClick={() => acceptStrong(listings.strong)}>
-                Accept {listings.strongCount} strong
-              </Button>
-            )}
-          </>
-        )
-      }
-    >
-      {isPending ? (
-        <Skeleton className="h-24" />
-      ) : listings === null ? (
-        <div className="space-y-2">
-          <p className="text-muted-foreground">No marketplace listings point at this card.</p>
-          <IgnoredProductsNote />
-        </div>
-      ) : (
-        <PrintingPairNamesContext value={pairNames}>
-          <div className="space-y-2">
-            {listings.unassigned.length === 0 && (
-              <p className="text-muted-foreground">Every listing of this card is assigned.</p>
-            )}
-            <ul>
-              {[...listings.unassigned, ...(showAll ? listings.assigned : [])].map((row) => (
-                <ListingRow
-                  key={row.key}
-                  row={row}
-                  cardSlug={cardSlug}
-                  allCards={data?.allCards ?? []}
-                />
-              ))}
-            </ul>
-            {listings.assigned.length > 0 && (
-              <p className="text-muted-foreground text-sm">
-                {showAll
-                  ? `${listings.assigned.length} assigned shown.`
-                  : `${listings.assigned.length} assigned hidden.`}{" "}
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="h-auto p-0"
-                  onClick={() => setShowAll(!showAll)}
-                >
-                  {showAll ? "Hide assigned" : "Show all"}
+    <div ref={anchor} className="scroll-mt-20">
+      <RecordSection
+        title="Marketplace listings"
+        collapsible={collapsible}
+        defaultOpen={defaultOpen}
+        summary={
+          listings === null
+            ? undefined
+            : [
+                countNoun(listingsByKey.size, "listing"),
+                listings.unassigned.length > 0 ? `${listings.unassigned.length} unassigned` : null,
+              ]
+                .filter((part) => part !== null)
+                .join(", ")
+        }
+        actions={
+          listings !== null && (
+            <>
+              {listings.unassigned.length > 0 && (
+                <Badge variant="warning">{listings.unassigned.length} unassigned</Badge>
+              )}
+              {listings.strongCount > 0 && (
+                <Button size="sm" disabled={saving} onClick={() => acceptStrong(listings.strong)}>
+                  Accept {listings.strongCount} strong
                 </Button>
-              </p>
-            )}
+              )}
+            </>
+          )
+        }
+      >
+        {isPending ? (
+          <Skeleton className="h-24" />
+        ) : listings === null ? (
+          <div className="space-y-2">
+            <p className="text-muted-foreground">No marketplace listings point at this card.</p>
             <IgnoredProductsNote />
           </div>
-        </PrintingPairNamesContext>
-      )}
-    </RecordSection>
+        ) : (
+          <PrintingPairNamesContext value={pairNames}>
+            <div className="space-y-4">
+              {ALL_MARKETPLACES.map((marketplace) => {
+                const rows = buildMarketplaceRows(entries, marketplace);
+                if (rows.length === 0) {
+                  return null;
+                }
+                const suggestionsByKey = new Map<string, RowSuggestion[]>(
+                  rows.map((row) => [
+                    row.key,
+                    (
+                      suggestions?.get(
+                        marketplaceSkuKey(
+                          marketplace,
+                          row.entry.product.externalId,
+                          row.entry.product.finish,
+                          row.entry.product.language,
+                        ),
+                      ) ?? []
+                    ).flatMap((suggestion) => {
+                      const printing = printingById.get(suggestion.printingId);
+                      return printing ? [{ ...suggestion, printing }] : [];
+                    }),
+                  ]),
+                );
+                return (
+                  <AdminTable<MarketplaceTableRow>
+                    key={marketplace}
+                    columns={[
+                      {
+                        header: "Product",
+                        width: "w-72",
+                        wrap: true,
+                        cell: <ProductCell cardName={group?.cardName ?? ""} />,
+                      },
+                      { header: "Variant", width: "w-32", cell: <VariantCell /> },
+                      { header: "Price", width: "w-24", align: "right", cell: <PriceCell /> },
+                      {
+                        header: "Assigned printings",
+                        wrap: true,
+                        cell: (
+                          <AssignedPrintingsCell
+                            handlers={handlersFor(marketplace)}
+                            suggestionsByKey={suggestionsByKey}
+                            onOpenPrinting={(printingId) =>
+                              void navigate({
+                                to: "/admin/workspace/printings/$printingId",
+                                params: { printingId },
+                              })
+                            }
+                          />
+                        ),
+                      },
+                    ]}
+                    data={rows}
+                    getRowKey={(row) => row.key}
+                    minWidth="min-w-[44rem]"
+                    toolbar={
+                      <SectionHeading as="h4" size="sm">
+                        {SOURCE_CONFIGS[marketplace].displayName}
+                      </SectionHeading>
+                    }
+                    actions={
+                      <ListingActionsCell
+                        listingsByKey={listingsByKey}
+                        cardSlug={cardSlug}
+                        allCards={data?.allCards ?? []}
+                      />
+                    }
+                  />
+                );
+              })}
+              <IgnoredProductsNote />
+            </div>
+          </PrintingPairNamesContext>
+        )}
+      </RecordSection>
+    </div>
   );
 }

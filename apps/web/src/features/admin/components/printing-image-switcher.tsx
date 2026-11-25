@@ -4,15 +4,9 @@ import type {
   ProviderSettingResponse,
 } from "@openrift/shared/types/api/admin";
 import {
-  ContrastIcon,
   DownloadIcon,
-  CropIcon,
   EllipsisVerticalIcon,
   ImagePlusIcon,
-  RotateCcwIcon,
-  RotateCwIcon,
-  ScissorsIcon,
-  ScissorsLineDashedIcon,
   TriangleAlertIcon,
   Trash2Icon,
   UploadIcon,
@@ -62,6 +56,8 @@ import type { SiblingImage } from "@/features/admin/lib/sibling-images";
 import { imageQuadOf } from "@/features/admin/lib/straighten-quad";
 import { cn } from "@/lib/utils";
 
+import { ImageEditMenuItems } from "./image-edit-menu-items";
+
 type Rotation = 0 | 90 | 180 | 270;
 
 function imageLabel(img: AdminPrintingImageResponse): string {
@@ -83,6 +79,7 @@ export function PrintingImageSwitcher({
   invalidates,
   isAdmin,
   runWrite = runWriteDirectly,
+  caption,
 }: {
   printingId: string;
   face: "front" | "back";
@@ -98,6 +95,7 @@ export function PrintingImageSwitcher({
   /** Card-review grant holders keep image finishing; un-rehost, delete, and URL/file add stay full-admin. */
   isAdmin: boolean;
   runWrite?: RunWrite;
+  caption?: string;
 }) {
   const deletePrintingImage = useDeletePrintingImage(invalidates);
   const activatePrintingImage = useActivatePrintingImage(invalidates);
@@ -155,10 +153,180 @@ export function PrintingImageSwitcher({
   const editing = useImageEditPending(effectiveImage?.id ?? "");
   const effectiveUrl = effectiveImage ? getDisplayUrl(effectiveImage) : null;
 
+  const tile = caption !== undefined;
+  const toolsMenu = (
+    <DropdownMenu>
+      {tile ? (
+        <DropdownMenuTrigger render={<Button variant="ghost" size="sm" />}>
+          <EllipsisVerticalIcon />
+          Image tools
+        </DropdownMenuTrigger>
+      ) : (
+        <DropdownMenuTrigger
+          render={<Button variant="ghost" size="icon-xs" className="ml-auto" />}
+          aria-label="Image tools"
+        >
+          <EllipsisVerticalIcon className="size-3" />
+        </DropdownMenuTrigger>
+      )}
+      <DropdownMenuContent align="end">
+        {effectiveImage && (
+          <>
+            {tile && effectiveImage.isActive && (
+              <DropdownMenuItem
+                disabled={activatePrintingImage.isPending}
+                onClick={() => {
+                  const input = { imageId: effectiveImage.id, active: false };
+                  void runWrite((signal) => activatePrintingImage.mutateAsync(input, { signal }));
+                }}
+              >
+                <XIcon className="size-3.5" />
+                Take off the site
+              </DropdownMenuItem>
+            )}
+            {!effectiveImage.rehostedUrl && effectiveImage.originalUrl && (
+              <DropdownMenuItem
+                disabled={rehostPrintingImage.isPending}
+                onClick={() => {
+                  const imageId = effectiveImage.id;
+                  void runWrite((signal) => rehostPrintingImage.mutateAsync(imageId, { signal }));
+                }}
+              >
+                <DownloadIcon className="size-3.5" />
+                Rehost
+              </DropdownMenuItem>
+            )}
+            {effectiveImage.activateWhenRehosted && (
+              <DropdownMenuItem
+                disabled={activatePrintingImage.isPending}
+                onClick={() => {
+                  const input = { imageId: effectiveImage.id, active: false };
+                  void runWrite((signal) => activatePrintingImage.mutateAsync(input, { signal }));
+                }}
+              >
+                <XIcon className="size-3.5" />
+                Cancel going live
+              </DropdownMenuItem>
+            )}
+            {effectiveImage.rehostedUrl && (
+              <ImageEditMenuItems
+                image={effectiveImage}
+                disabled={editing}
+                onStraighten={() => setStraightening(true)}
+                onRotate={(degrees) => {
+                  const input = {
+                    imageId: effectiveImage.id,
+                    rotation: ((effectiveImage.rotation + degrees) % 360) as Rotation,
+                  };
+                  void runWrite((signal) => rotatePrintingImage.mutateAsync(input, { signal }));
+                }}
+                onToggleTrim={() => {
+                  const input = {
+                    imageId: effectiveImage.id,
+                    needsTrim: !effectiveImage.needsTrim,
+                  };
+                  void runWrite((signal) => setNeedsTrim.mutateAsync(input, { signal }));
+                }}
+                onToggleLevels={() => {
+                  const input = {
+                    imageId: effectiveImage.id,
+                    needsLevels: !effectiveImage.needsLevels,
+                  };
+                  void runWrite((signal) => setNeedsLevels.mutateAsync(input, { signal }));
+                }}
+              />
+            )}
+            {isAdmin &&
+              !effectiveImage.isActive &&
+              !effectiveImage.fileInUseElsewhere &&
+              effectiveImage.imageFileId !== fallbackImageFileId &&
+              !siblingImages.some(
+                (sibling) => sibling.imageFileId === effectiveImage.imageFileId && sibling.inUse,
+              ) &&
+              effectiveImage.rehostedUrl &&
+              effectiveImage.originalUrl && (
+                <DropdownMenuItem
+                  disabled={unrehostPrintingImage.isPending}
+                  onClick={() => {
+                    const imageId = effectiveImage.id;
+                    void runWrite((signal) =>
+                      unrehostPrintingImage.mutateAsync(imageId, { signal }),
+                    );
+                  }}
+                >
+                  <XIcon className="size-3.5" />
+                  Un-rehost (delete files)
+                </DropdownMenuItem>
+              )}
+            {isAdmin && (
+              <DropdownMenuItem
+                variant="destructive"
+                disabled={deletePrintingImage.isPending}
+                onClick={() => {
+                  const imageId = effectiveImage.id;
+                  void runWrite((signal) => deletePrintingImage.mutateAsync(imageId, { signal }));
+                }}
+              >
+                <Trash2Icon className="size-3.5" />
+                Remove
+              </DropdownMenuItem>
+            )}
+          </>
+        )}
+        {isAdmin && !tile && (
+          <>
+            {effectiveImage && <DropdownMenuSeparator />}
+            <DropdownMenuItem onClick={() => setShowUrlInput(true)}>
+              <ImagePlusIcon className="size-3.5" />
+              Add from URL…
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={uploadPrintingImage.isPending}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <UploadIcon className="size-3.5" />
+              Upload an image…
+            </DropdownMenuItem>
+          </>
+        )}
+        {isAdmin && !activeSideImage && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setShowFallbackUrlInput(true)}>
+              <ImagePlusIcon className="size-3.5" />
+              Pin substitute from URL…
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={uploadFallbackArt.isPending}
+              onClick={() => fallbackFileInputRef.current?.click()}
+            >
+              <UploadIcon className="size-3.5" />
+              Upload a pinned substitute…
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   return (
-    <div className="w-full max-w-96 shrink-0 space-y-2">
+    <div className={cn("w-full max-w-96 space-y-2", tile ? "min-w-0" : "shrink-0")}>
       <ImagePreview url={effectiveUrl} alt={printingLabel} />
-      {(effectiveImage || isAdmin) && (
+      {tile && effectiveImage && (
+        <div className="space-y-1.5 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground min-w-0 flex-1 break-words">{caption}</span>
+            {toolsMenu}
+          </div>
+          <span className="flex flex-wrap gap-1">
+            <Badge>Current</Badge>
+            <RehostStatusBadge image={effectiveImage} />
+            {imageQuadOf(effectiveImage) !== null && <Badge variant="outline">Straightened</Badge>}
+          </span>
+        </div>
+      )}
+      {tile && !effectiveImage && isAdmin && toolsMenu}
+      {!tile && (effectiveImage || isAdmin) && (
         <div className="flex min-h-6 flex-wrap items-center gap-1">
           {effectiveImage && (
             <Badge
@@ -192,198 +360,10 @@ export function PrintingImageSwitcher({
               {hostnameFromUrl(effectiveImage.originalUrl) ?? "upload"}
             </a>
           )}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={<Button variant="ghost" size="icon-xs" className="ml-auto" />}
-              aria-label="Image tools"
-            >
-              <EllipsisVerticalIcon className="size-3" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {effectiveImage && (
-                <>
-                  {!effectiveImage.rehostedUrl && effectiveImage.originalUrl && (
-                    <DropdownMenuItem
-                      disabled={rehostPrintingImage.isPending}
-                      onClick={() => {
-                        const imageId = effectiveImage.id;
-                        void runWrite((signal) =>
-                          rehostPrintingImage.mutateAsync(imageId, { signal }),
-                        );
-                      }}
-                    >
-                      <DownloadIcon className="size-3.5" />
-                      Rehost
-                    </DropdownMenuItem>
-                  )}
-                  {effectiveImage.activateWhenRehosted && (
-                    <DropdownMenuItem
-                      disabled={activatePrintingImage.isPending}
-                      onClick={() => {
-                        const input = { imageId: effectiveImage.id, active: false };
-                        void runWrite((signal) =>
-                          activatePrintingImage.mutateAsync(input, { signal }),
-                        );
-                      }}
-                    >
-                      <XIcon className="size-3.5" />
-                      Cancel going live
-                    </DropdownMenuItem>
-                  )}
-                  {effectiveImage.rehostedUrl && (
-                    <>
-                      <DropdownMenuItem disabled={editing} onClick={() => setStraightening(true)}>
-                        <CropIcon
-                          className={cn(
-                            "size-3.5",
-                            imageQuadOf(effectiveImage) !== null && "text-success",
-                          )}
-                        />
-                        {imageQuadOf(effectiveImage) === null
-                          ? "Straighten…"
-                          : "Straighten (corners set)…"}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        disabled={editing}
-                        onClick={() => {
-                          const input = {
-                            imageId: effectiveImage.id,
-                            rotation: ((effectiveImage.rotation + 270) % 360) as Rotation,
-                          };
-                          void runWrite((signal) =>
-                            rotatePrintingImage.mutateAsync(input, { signal }),
-                          );
-                        }}
-                      >
-                        <RotateCcwIcon className="size-3.5" />
-                        Rotate left ({effectiveImage.rotation}&deg;)
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        disabled={editing}
-                        onClick={() => {
-                          const input = {
-                            imageId: effectiveImage.id,
-                            rotation: ((effectiveImage.rotation + 90) % 360) as Rotation,
-                          };
-                          void runWrite((signal) =>
-                            rotatePrintingImage.mutateAsync(input, { signal }),
-                          );
-                        }}
-                      >
-                        <RotateCwIcon className="size-3.5" />
-                        Rotate right ({effectiveImage.rotation}&deg;)
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        disabled={editing}
-                        onClick={() => {
-                          const input = {
-                            imageId: effectiveImage.id,
-                            needsTrim: !effectiveImage.needsTrim,
-                          };
-                          void runWrite((signal) => setNeedsTrim.mutateAsync(input, { signal }));
-                        }}
-                      >
-                        {effectiveImage.needsTrim ? (
-                          <ScissorsIcon className="text-success size-3.5" />
-                        ) : (
-                          <ScissorsLineDashedIcon className="size-3.5" />
-                        )}
-                        {effectiveImage.needsTrim ? "Auto-trim is on" : "Auto-trim is off"}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        disabled={editing}
-                        onClick={() => {
-                          const input = {
-                            imageId: effectiveImage.id,
-                            needsLevels: !effectiveImage.needsLevels,
-                          };
-                          void runWrite((signal) => setNeedsLevels.mutateAsync(input, { signal }));
-                        }}
-                      >
-                        <ContrastIcon
-                          className={cn("size-3.5", effectiveImage.needsLevels && "text-success")}
-                        />
-                        {effectiveImage.needsLevels ? "Contrast is on" : "Contrast is off"}
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  {isAdmin &&
-                    !effectiveImage.isActive &&
-                    !effectiveImage.fileInUseElsewhere &&
-                    effectiveImage.imageFileId !== fallbackImageFileId &&
-                    !siblingImages.some(
-                      (sibling) =>
-                        sibling.imageFileId === effectiveImage.imageFileId && sibling.inUse,
-                    ) &&
-                    effectiveImage.rehostedUrl &&
-                    effectiveImage.originalUrl && (
-                      <DropdownMenuItem
-                        disabled={unrehostPrintingImage.isPending}
-                        onClick={() => {
-                          const imageId = effectiveImage.id;
-                          void runWrite((signal) =>
-                            unrehostPrintingImage.mutateAsync(imageId, { signal }),
-                          );
-                        }}
-                      >
-                        <XIcon className="size-3.5" />
-                        Un-rehost (delete files)
-                      </DropdownMenuItem>
-                    )}
-                  {isAdmin && (
-                    <DropdownMenuItem
-                      variant="destructive"
-                      disabled={deletePrintingImage.isPending}
-                      onClick={() => {
-                        const imageId = effectiveImage.id;
-                        void runWrite((signal) =>
-                          deletePrintingImage.mutateAsync(imageId, { signal }),
-                        );
-                      }}
-                    >
-                      <Trash2Icon className="size-3.5" />
-                      Remove
-                    </DropdownMenuItem>
-                  )}
-                </>
-              )}
-              {isAdmin && (
-                <>
-                  {effectiveImage && <DropdownMenuSeparator />}
-                  <DropdownMenuItem onClick={() => setShowUrlInput(true)}>
-                    <ImagePlusIcon className="size-3.5" />
-                    Add from URL…
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    disabled={uploadPrintingImage.isPending}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <UploadIcon className="size-3.5" />
-                    Upload an image…
-                  </DropdownMenuItem>
-                </>
-              )}
-              {isAdmin && !activeSideImage && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setShowFallbackUrlInput(true)}>
-                    <ImagePlusIcon className="size-3.5" />
-                    Pin substitute from URL…
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    disabled={uploadFallbackArt.isPending}
-                    onClick={() => fallbackFileInputRef.current?.click()}
-                  >
-                    <UploadIcon className="size-3.5" />
-                    Upload a pinned substitute…
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {toolsMenu}
         </div>
       )}
-      {sortedImages.length > 0 && (
+      {sortedImages.length > 0 && !tile && (
         <ToggleGroup
           variant="outline"
           size="sm"

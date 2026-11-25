@@ -1,3 +1,4 @@
+import type { DismissedValue } from "@openrift/shared/contracts/admin/card-detail-schemas";
 import type {
   CardSubmissionKind,
   CardSubmissionReason,
@@ -6,6 +7,8 @@ import type {
 import type { ColumnType, Generated } from "kysely";
 
 import type { CreatedAt, UpdatedAt } from "./columns.js";
+
+type DismissedValues = Record<string, DismissedValue>;
 
 export interface CandidateCardsTable {
   id: Generated<string>;
@@ -28,6 +31,7 @@ export interface CandidateCardsTable {
   submittedByUserId: string | null;
   submissionNote: string | null;
   checkedAt: ColumnType<Date | null, Date | null | undefined, Date | null>;
+  dismissedValues: ColumnType<DismissedValues, DismissedValues | undefined, DismissedValues>;
   uploadedAt: ColumnType<Date, Date | undefined, Date>;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
@@ -67,6 +71,7 @@ export interface CandidatePrintingsTable {
   announcedAt: string | null;
 
   checkedAt: ColumnType<Date | null, Date | null | undefined, Date | null>;
+  dismissedValues: ColumnType<DismissedValues, DismissedValues | undefined, DismissedValues>;
   uploadedAt: ColumnType<Date, Date | undefined, Date>;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;

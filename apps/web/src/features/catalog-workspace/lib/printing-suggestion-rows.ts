@@ -1,3 +1,4 @@
+import { hasFieldValue } from "@openrift/shared/catalog-field-compare";
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import type {
   AdminCardDetailResponse,
@@ -126,4 +127,16 @@ export function printingCompareGroups(
     }
   }
   return groups.toSorted((a, b) => a.face.side - b.face.side);
+}
+
+export function sourcesReportPrintingFields(
+  details: readonly AdminCardDetailResponse[],
+  printingId: string,
+  hiddenProviders: ReadonlySet<string> = new Set(),
+): boolean {
+  return printingCompareGroups(details, printingId, hiddenProviders).some((group) =>
+    group.candidates.some((candidate) =>
+      PRINTING_FIELDS.some((field) => hasFieldValue((candidate as Record<string, unknown>)[field])),
+    ),
+  );
 }

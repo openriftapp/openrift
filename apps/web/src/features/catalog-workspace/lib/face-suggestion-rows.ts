@@ -2,11 +2,13 @@ import type { ComparablePrintingField } from "@openrift/shared/catalog-field-com
 import {
   COMPARABLE_PRINTING_FIELDS,
   hasFieldValue,
+  isDismissedValue,
   sameFieldValue,
 } from "@openrift/shared/catalog-field-compare";
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import { isPrintingLevelField } from "@openrift/shared/printing-field-level";
 import { normalizeProvidedPrintingValue } from "@openrift/shared/printing-value-normalize";
+import { withoutCoveredRelease } from "@openrift/shared/set-release";
 import { pluralize } from "@openrift/shared/strings";
 import type {
   AdminCardDetailResponse,
@@ -69,6 +71,33 @@ export const FACE_FIELDS = COMPARABLE_PRINTING_FIELDS.filter(
   (field) => !isPrintingLevelField(field),
 );
 
+const FACE_FIELD_READING_ORDER: readonly string[] = [
+  "shortCode",
+  "publicCode",
+  "setId",
+  "language",
+  "rarity",
+  "finish",
+  "artVariant",
+  "markerSlugs",
+  "isSigned",
+  "isOvernumbered",
+  "printedName",
+  "printedRulesText",
+  "printedEffectText",
+  "flavorText",
+  "artist",
+  "printedYear",
+];
+
+export const FACE_FIELDS_FOR_READING = FACE_FIELDS.toSorted((a, b) => {
+  const rank = (field: string) => {
+    const index = FACE_FIELD_READING_ORDER.indexOf(field);
+    return index === -1 ? FACE_FIELD_READING_ORDER.length : index;
+  };
+  return rank(a) - rank(b);
+});
+
 export const PRINTING_FIELDS = COMPARABLE_PRINTING_FIELDS.filter((field) =>
   isPrintingLevelField(field),
 );
@@ -80,6 +109,7 @@ export function candidateHasNewImage(
 ): boolean {
   return (
     hasFieldValue(candidate.imageUrl) &&
+    !isDismissedValue(candidate.dismissedValues, "imageUrl", candidate.imageUrl) &&
     (isContributor || candidate.imageMatch !== "same") &&
     !ownUrls.has(candidate.imageUrl)
   );
@@ -126,6 +156,9 @@ export function compareCandidate(
       agreeing += 1;
       continue;
     }
+    if (isDismissedValue(candidate.dismissedValues, field, proposed)) {
+      continue;
+    }
     suggestions.push({
       key: `${candidate.id}:${field}`,
       field,
@@ -139,7 +172,17 @@ export function compareCandidate(
       isContributor: provider === USER_SUBMISSION_PROVIDER,
     });
   }
-  return { suggestions, agreeing };
+  const shown = new Set(
+    withoutCoveredRelease(
+      suggestions.map((suggestion) => suggestion.field),
+      { releasedAt: row.releasedAt, setReleasedAt: row.setReleasedAt },
+      { releasedAt: candidate.releasedAt, releasePrecision: candidate.releasePrecision },
+    ),
+  );
+  return {
+    suggestions: suggestions.filter((suggestion) => shown.has(suggestion.field)),
+    agreeing,
+  };
 }
 
 export function faceCompareCandidates(

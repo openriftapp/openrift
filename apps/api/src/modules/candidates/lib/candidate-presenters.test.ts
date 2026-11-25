@@ -21,6 +21,7 @@ const CARD_ROW: CandidateCardRow = {
   externalId: "ext-42",
   extraData: { rawRarity: "epic" },
   checkedAt: new Date("2026-08-15T23:59:07.250Z"),
+  dismissedValues: {},
   submittedByUserId: "user-1",
   submissionNote: "Spotted in a prerelease pack.",
   submittedByName: "Poppy",
@@ -57,6 +58,7 @@ const PRINTING_ROW: CandidatePrintingRow = {
   externalId: "ext-42-alt",
   extraData: null,
   checkedAt: new Date("2026-08-15T23:59:07.250Z"),
+  dismissedValues: {},
 };
 
 describe("formatCandidateCard", () => {

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict TLkhKVLx9BBqc80w4aobGQKB1Ng0x4lskXqPBwMHffRiwipRHOXlqWF9DVLWeQa
+\restrict oOe9OlcFCLfAjBwedCg5dDVLhPof7OkLHVKwFmO3p2ZpXIsce5TxyLlIdGYGHCU
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -1296,6 +1296,8 @@ CREATE TABLE public.candidate_cards (
     submission_note text,
     types text[] DEFAULT '{}'::text[] NOT NULL,
     uploaded_at timestamp with time zone DEFAULT now() NOT NULL,
+    dismissed_values jsonb DEFAULT '{}'::jsonb NOT NULL,
+    CONSTRAINT chk_candidate_cards_dismissed_values_shape CHECK ((jsonb_typeof(dismissed_values) = 'object'::text)),
     CONSTRAINT chk_candidate_cards_energy_non_negative CHECK ((energy >= 0)),
     CONSTRAINT chk_candidate_cards_extra_data_shape CHECK (((extra_data IS NULL) OR (jsonb_typeof(extra_data) = 'object'::text))),
     CONSTRAINT chk_candidate_cards_might_bonus_non_negative CHECK ((might_bonus >= 0)),
@@ -1366,6 +1368,8 @@ CREATE TABLE public.candidate_printings (
     released_at date,
     release_precision public.release_precision,
     announced_at date,
+    dismissed_values jsonb DEFAULT '{}'::jsonb NOT NULL,
+    CONSTRAINT chk_candidate_printings_dismissed_values_shape CHECK ((jsonb_typeof(dismissed_values) = 'object'::text)),
     CONSTRAINT chk_candidate_printings_extra_data_shape CHECK (((extra_data IS NULL) OR (jsonb_typeof(extra_data) = 'object'::text))),
     CONSTRAINT chk_candidate_printings_no_empty_art_variant CHECK ((art_variant <> ''::text)),
     CONSTRAINT chk_candidate_printings_no_empty_artist CHECK ((artist <> ''::text)),
@@ -11542,5 +11546,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict TLkhKVLx9BBqc80w4aobGQKB1Ng0x4lskXqPBwMHffRiwipRHOXlqWF9DVLWeQa
+\unrestrict oOe9OlcFCLfAjBwedCg5dDVLhPof7OkLHVKwFmO3p2ZpXIsce5TxyLlIdGYGHCU
 

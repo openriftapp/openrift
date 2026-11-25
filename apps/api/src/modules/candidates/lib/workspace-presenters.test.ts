@@ -69,8 +69,14 @@ function linked(
     cardName: "Jinx, Loose Cannon",
     printingLabel: "OGN-030 normal EN",
     faceShortCode: "OGN-030",
-    candidate: { ...LIVE_PRINTING, imageUrl: null, imageFingerprint: null, ...candidate },
-    live: { ...LIVE_PRINTING, imageUrls: [], imageFingerprints: [] },
+    candidate: {
+      ...LIVE_PRINTING,
+      imageUrl: null,
+      imageFingerprint: null,
+      dismissedValues: {},
+      ...candidate,
+    },
+    live: { ...LIVE_PRINTING, setReleasedAt: null, imageUrls: [], imageFingerprints: [] },
     ...over,
   };
 }
@@ -253,7 +259,7 @@ describe("buildWorkspaceQueueEntries", () => {
             cardSlug: "jinx-loose-cannon",
             cardName: "Jinx, Loose Cannon",
             live,
-            candidate: { ...live, might: 4, energy: 5 },
+            candidate: { ...live, might: 4, energy: 5, dismissedValues: {} },
           },
           {
             id: "cc-2",
@@ -262,7 +268,7 @@ describe("buildWorkspaceQueueEntries", () => {
             cardSlug: "jinx-loose-cannon",
             cardName: "Jinx, Loose Cannon",
             live,
-            candidate: live,
+            candidate: { ...live, dismissedValues: {} },
           },
         ],
       }),
@@ -826,6 +832,10 @@ describe("toWorkspaceFaceRow", () => {
 describe("toWorkspaceEvent", () => {
   const event = {
     id: "event-1",
+    actorUserId: "user-1",
+    actorName: "Jinx",
+    oldValues: { artist: "A" },
+    newValues: { artist: "B" },
     action: "printing.accept-field",
     entityType: "printing",
     entityId: "printing-1",
@@ -834,9 +844,15 @@ describe("toWorkspaceEvent", () => {
     createdAt: T1,
   };
 
-  it("labels an event by its entity label", () => {
+  it("labels an event by its entity label and keeps who changed what", () => {
     expect(toWorkspaceEvent(event)).toEqual({
       id: "event-1",
+      actorUserId: "user-1",
+      actorName: "Jinx",
+      actorEmail: null,
+      entityLabel: "OGN-030",
+      oldValues: { artist: "A" },
+      newValues: { artist: "B" },
       action: "printing.accept-field",
       label: "OGN-030",
       entityType: "printing",

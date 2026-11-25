@@ -14,6 +14,7 @@ export const WORKSPACE_RECORD_FILTER_VALUES = [
   "mine",
   "substitute",
   "shared",
+  "needs-review",
 ] as const;
 
 export const WORKSPACE_RECORD_SORTS = ["name", "code", "finish", "language", "updated"] as const;

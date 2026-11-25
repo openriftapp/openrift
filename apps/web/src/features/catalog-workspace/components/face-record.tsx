@@ -31,29 +31,33 @@ import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-querie
 import { useDeskCardPrintings, useDeskPrinting } from "@/features/admin/hooks/use-printing-desk";
 import { useProviderSettings } from "@/features/admin/hooks/use-provider-settings";
 import { hasAdminSection } from "@/features/admin/lib/admin-sections";
-import { PRINTING_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
 import { printingPairName } from "@/features/admin/lib/face-rows";
 import { formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
 import { deskRowForFace, printingFaces } from "@/features/admin/lib/printing-faces";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
+import { FaceCompareGrid } from "@/features/catalog-workspace/components/compare-sources-dialog";
 import {
   DeskFaceImagesSection,
   FaceImagesSection,
 } from "@/features/catalog-workspace/components/face-images-section";
+import { FaceFieldsSection } from "@/features/catalog-workspace/components/record/face-fields-section";
 import { RecordFieldRow } from "@/features/catalog-workspace/components/record/field-row";
 import {
-  PendingReviewNotice,
   RecordBanner,
+  PublicPageLink,
   RecordHeader,
   RecordPane,
   RecordSection,
+  VariantFacts,
 } from "@/features/catalog-workspace/components/record/record-pane";
+import { ReviewStopBar } from "@/features/catalog-workspace/components/record/review-stop-bar";
 import { WorkspaceHistorySection } from "@/features/catalog-workspace/components/record/workspace-history-section";
 import { useValueLabels } from "@/features/catalog-workspace/hooks/use-face-record-actions";
 import {
   buildFaceSuggestions,
-  FACE_FIELDS,
+  faceCompareCandidates,
 } from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import { variantExtras } from "@/features/catalog-workspace/lib/variant-facts";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
 
@@ -97,7 +101,6 @@ function ReviewFaceRecord({
   const { data: providerData } = useProviderSettings();
   const costKeywords = useCostKeywords();
   const labels = useValueLabels();
-  const [editing, setEditing] = useState(false);
 
   if (detail === undefined) {
     return detailQuery.isError ? (
@@ -129,6 +132,7 @@ function ReviewFaceRecord({
 
   return (
     <RecordPane
+      banner={<ReviewStopBar current={{ kind: "face", faceId }} />}
       header={
         <RecordHeader
           thumb={
@@ -140,24 +144,21 @@ function ReviewFaceRecord({
             />
           }
           title={detail.displayName}
-          subtitle={[
-            formatPrintingCode(face.publicCode),
-            face.language,
-            formatCatalogFieldValue("finish", face.finish, labels),
-          ].join(" · ")}
-          actions={<FaceActionsMenu cardSlug={cardSlug} faceId={faceId} />}
-        />
-      }
-      banner={
-        <PendingReviewNotice
-          record="face"
-          cards={[
-            {
-              cardSlug,
-              cardName: detail.displayName,
-              pending: model.suggestions.length + model.sourceImages.length,
-            },
-          ]}
+          subtitle={
+            <VariantFacts
+              rarity={face.rarity}
+              code={formatPrintingCode(face.publicCode)}
+              language={face.language}
+              finish={formatCatalogFieldValue("finish", face.finish, labels)}
+              extras={variantExtras(face, labels)}
+            />
+          }
+          actions={
+            <>
+              <PublicPageLink cardSlug={cardSlug} />
+              <FaceActionsMenu cardSlug={cardSlug} faceId={faceId} />
+            </>
+          }
         />
       }
     >
@@ -167,44 +168,36 @@ function ReviewFaceRecord({
         detail={detail}
         images={model.images}
         printings={model.printings}
+        sourceImages={model.sourceImages}
         providerSettings={providerSettings}
         isAdmin={isAdmin}
         landscape={landscape}
       />
 
-      <RecordSection
-        title="Face fields"
-        actions={
-          isAdmin &&
-          !editing && (
-            <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-              Edit
-            </Button>
-          )
+      <FaceFieldsSection
+        cardSlug={cardSlug}
+        face={face}
+        canEdit={isAdmin}
+        isAdmin={isAdmin}
+        detail={detail}
+        suggestions={model.suggestions}
+        compareDisabledReason={
+          faceCompareCandidates(detail, faceId, hiddenProviders).length === 0
+            ? "No source lists this face"
+            : undefined
         }
-      >
-        {editing ? (
-          <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-            <PrintingDeskEditFields
-              printingId={face.id}
-              side={face.side}
-              scope="face"
-              onSaved={() => setEditing(false)}
-              onCancel={() => setEditing(false)}
-            />
-          </Suspense>
-        ) : (
-          <div>
-            {FACE_FIELDS.map((field) => (
-              <RecordFieldRow
-                key={field}
-                label={PRINTING_FIELD_LABELS[field]}
-                value={formatCatalogFieldValue(field, face[field], labels)}
-              />
-            ))}
-          </div>
-        )}
-      </RecordSection>
+        compare={
+          <FaceCompareGrid
+            cardSlug={cardSlug}
+            faceId={faceId}
+            detail={detail}
+            providerSettings={providerSettings}
+            hiddenProviders={hiddenProviders}
+            costKeywords={costKeywords}
+            isAdmin={isAdmin}
+          />
+        }
+      />
 
       <RecordSection title="Card">
         <Link

@@ -38,6 +38,7 @@ export function candidatePrintingRow(
     releasePrecision: null,
     announcedAt: null,
     checkedAt: null,
+    dismissedValues: {},
     uploadedAt: new Date("2026-10-20T00:00:00.000Z"),
     createdAt: new Date("2026-10-20T00:00:00.000Z"),
     updatedAt: new Date("2026-10-20T00:00:00.000Z"),

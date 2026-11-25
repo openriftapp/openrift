@@ -1,4 +1,5 @@
 import { pluralize } from "@openrift/shared/strings";
+import { useLocation } from "@tanstack/react-router";
 import { EllipsisVerticalIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -11,11 +12,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
-
-const LONG_VALUE = 48;
+import { valueParts } from "@/features/catalog-workspace/lib/value-diff";
 
 export function SourceUse({
   value,
+  current,
   preview,
   source,
   label = "Use",
@@ -24,6 +25,7 @@ export function SourceUse({
   onDismiss,
 }: {
   value?: string;
+  current?: string;
   preview?: ReactNode;
   source: string;
   label?: string;
@@ -31,37 +33,44 @@ export function SourceUse({
   onUse: () => void;
   onDismiss?: () => void;
 }) {
-  const long = value !== undefined && value.length > LONG_VALUE;
   return (
-    <div className="flex min-w-0 flex-col gap-1">
-      <span className="flex min-w-0 flex-wrap items-center gap-2">
-        {preview}
-        <Button
-          variant="outline"
-          size="sm"
-          className="max-w-full min-w-0"
-          title={value}
-          disabled={pending}
-          onClick={onUse}
-        >
-          <span className="truncate">
-            {value === undefined || long ? label : `${label} ${value}`}
-          </span>
+    <div className="bg-warning-soft col-span-full grid grid-cols-subgrid items-center gap-y-1 rounded-md py-1">
+      <span className="text-muted-foreground text-sm break-words max-sm:col-span-full sm:pl-3">
+        {source}
+      </span>
+      <div className="min-w-0 break-words">
+        {preview ??
+          (value === undefined
+            ? null
+            : valueParts(current, value).map((part, index) =>
+                part.changed ? (
+                  <ins
+                    key={index}
+                    className="decoration-warning font-medium underline decoration-2 underline-offset-2"
+                  >
+                    {part.text}
+                  </ins>
+                ) : (
+                  <span key={index}>{part.text}</span>
+                ),
+              ))}
+      </div>
+      <span className="flex items-center justify-end gap-1.5 pr-1">
+        <Button variant="outline" size="sm" disabled={pending} onClick={onUse}>
+          {label}
         </Button>
-        <span className="text-muted-foreground text-sm">{source}</span>
         {onDismiss && (
           <Button
             variant="ghost"
             size="sm"
             disabled={pending}
-            title={`Mark what ${source} sent for this record as checked`}
+            title={`Hide this value from ${source} until it reports another one`}
             onClick={onDismiss}
           >
             Dismiss
           </Button>
         )}
       </span>
-      {long && <p className="text-muted-foreground text-sm break-words">{value}</p>}
     </div>
   );
 }
@@ -137,7 +146,7 @@ export function ContributionBlock({
   onMove?: () => void;
 }) {
   return (
-    <div className="bg-violet-soft flex flex-col gap-1.5 rounded-md px-3 py-2">
+    <div className="bg-violet-soft col-span-full flex flex-col gap-1.5 rounded-md px-3 py-2 sm:col-span-2 sm:col-start-2">
       <p>
         <span className="font-medium">{name}</span>
         <span className="text-muted-foreground"> proposes</span>
@@ -178,9 +187,22 @@ export function PassTopBar({
         ? "Review"
         : "Cards"
       : `Review · ${position.index + 1} of ${position.total}`;
+  const fromPrintingId = useLocation({
+    select: (location) => location.state.workspaceFromPrintingId,
+  });
   return (
     <AdminPageTopBar
-      back={<PageTopBarBack to="/admin/workspace/cards" search aria-label="Back to cards" />}
+      back={
+        fromPrintingId === undefined ? (
+          <PageTopBarBack to="/admin/workspace/cards" search aria-label="Back to cards" />
+        ) : (
+          <PageTopBarBack
+            to="/admin/workspace/printings/$printingId"
+            params={{ printingId: fromPrintingId }}
+            aria-label="Back to the printing"
+          />
+        )
+      }
       title={title}
       actions={actions}
     />
@@ -189,7 +211,7 @@ export function PassTopBar({
 
 export function ContributorNote({ name, note }: { name: string; note: string | null }) {
   return (
-    <div className="bg-violet-soft flex flex-col gap-1.5 rounded-md px-3 py-2">
+    <div className="bg-violet-soft col-span-full flex flex-col gap-1.5 rounded-md px-3 py-2 sm:col-span-2 sm:col-start-2">
       <p>
         <span className="font-medium">{name}</span>
         <span className="text-muted-foreground"> sent this card</span>

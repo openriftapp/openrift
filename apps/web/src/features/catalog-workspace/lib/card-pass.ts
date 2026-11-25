@@ -262,13 +262,6 @@ export function isWebUrl(url: string): boolean {
   return url.startsWith("http://") || url.startsWith("https://");
 }
 
-export function nextUploadId(faces: readonly PassFace[], imageId: string): string | null {
-  const ids = faces.flatMap((entry) => entry.uploads.map((image) => image.id));
-  const index = ids.indexOf(imageId);
-  const rest = [...ids.slice(index + 1), ...ids.slice(0, Math.max(index, 0))];
-  return rest.find((id) => id !== imageId) ?? null;
-}
-
 export function reviewNeighbor(
   cards: readonly ReviewCard[],
   cardSlug: string,

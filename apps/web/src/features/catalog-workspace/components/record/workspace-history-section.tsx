@@ -1,10 +1,12 @@
-import type { WorkspaceEvent } from "@openrift/shared/contracts/admin/catalog-workspace";
-
 import { Skeleton } from "@/components/ui/skeleton";
-import { AdminInstant } from "@/features/admin/components/admin-instant";
+import { HistoryRow } from "@/features/admin/components/card-history-section";
 import { RecordSection } from "@/features/catalog-workspace/components/record/record-pane";
-import type { WorkspaceHistoryTarget } from "@/features/catalog-workspace/hooks/use-workspace-history";
+import type {
+  WorkspaceHistoryEvent,
+  WorkspaceHistoryTarget,
+} from "@/features/catalog-workspace/hooks/use-workspace-history";
 import { useWorkspaceHistory } from "@/features/catalog-workspace/hooks/use-workspace-history";
+import { useUserId } from "@/hooks/use-session";
 
 export function WorkspaceHistorySection({
   target,
@@ -35,10 +37,11 @@ function WorkspaceHistoryList({
   isPending,
   isError,
 }: {
-  events: readonly WorkspaceEvent[];
+  events: readonly WorkspaceHistoryEvent[];
   isPending: boolean;
   isError: boolean;
 }) {
+  const userId = useUserId();
   if (isPending) {
     return <Skeleton className="h-16 w-full" />;
   }
@@ -49,12 +52,9 @@ function WorkspaceHistoryList({
     return <p className="text-muted-foreground text-sm">Nothing has happened here yet.</p>;
   }
   return (
-    <ul className="space-y-1">
+    <ul className="divide-y">
       {events.map((event) => (
-        <li key={event.id} className="flex flex-wrap items-baseline gap-x-3">
-          <span className="min-w-0 flex-1">{event.label}</span>
-          <AdminInstant at={event.createdAt} className="text-muted-foreground text-sm" />
-        </li>
+        <HistoryRow key={event.id} event={event} userId={userId} context={{}} />
       ))}
     </ul>
   );

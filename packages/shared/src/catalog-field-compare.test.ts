@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { differingFields, hasFieldValue, sameFieldValue } from "./catalog-field-compare.js";
+import {
+  differingFields,
+  hasFieldValue,
+  isDismissedValue,
+  sameFieldValue,
+} from "./catalog-field-compare.js";
 
 describe("hasFieldValue", () => {
   it("rejects null, undefined, the empty string and the empty array", () => {
@@ -82,5 +87,31 @@ describe("differingFields", () => {
       "announcedAt",
     ]);
     expect(differingFields(fields, live, { ...live })).toEqual([]);
+  });
+});
+
+describe("dismissed values", () => {
+  const live = { might: 3, markerSlugs: ["promo"] };
+
+  it("leaves out a difference whose value was dismissed", () => {
+    const proposed = { might: 4, markerSlugs: ["promo", "top-4"] };
+    expect(differingFields(["might", "markerSlugs"], live, proposed, { might: 4 })).toEqual([
+      "markerSlugs",
+    ]);
+  });
+
+  it("hears the source again once it reports another value", () => {
+    expect(differingFields(["might"], { might: 3 }, { might: 5 }, { might: 4 })).toEqual(["might"]);
+  });
+
+  it("matches a dismissed slug list in any order", () => {
+    expect(
+      isDismissedValue({ markerSlugs: ["top-4", "promo"] }, "markerSlugs", ["promo", "top-4"]),
+    ).toBe(true);
+  });
+
+  it("is false without a dismissal for the field", () => {
+    expect(isDismissedValue(undefined, "might", 4)).toBe(false);
+    expect(isDismissedValue({ artist: "A" }, "might", 4)).toBe(false);
   });
 });

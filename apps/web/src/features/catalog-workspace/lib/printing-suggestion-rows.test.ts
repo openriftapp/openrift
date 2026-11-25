@@ -8,7 +8,11 @@ import {
   resetIdCounter,
 } from "@/test/factories";
 
-import { buildPrintingSuggestions, printingCompareGroups } from "./printing-suggestion-rows";
+import {
+  buildPrintingSuggestions,
+  printingCompareGroups,
+  sourcesReportPrintingFields,
+} from "./printing-suggestion-rows";
 
 const CONTEXT = { costKeywords: [], setTotals: {} };
 
@@ -195,5 +199,48 @@ describe("printingCompareGroups", () => {
 
   it("returns nothing when no detail carries the printing", () => {
     expect(printingCompareGroups([makeAdminCardDetail()], "p1")).toEqual([]);
+  });
+});
+
+describe("sourcesReportPrintingFields", () => {
+  function detailWith(candidate: Parameters<typeof makeCandidatePrinting>[0]) {
+    const source = makeCandidateCard({ provider: "provider-a" });
+    return makeAdminCardDetail({
+      sources: [source],
+      printings: [makeAdminPrinting({ id: "p1" })],
+      candidatePrintings: [
+        makeCandidatePrinting({
+          candidateCardId: source.id,
+          printingId: "p1",
+          size: null,
+          distributionChannelSlugs: [],
+          ...candidate,
+        }),
+      ],
+    });
+  }
+
+  it("is false when the sources only fill face fields", () => {
+    expect(sourcesReportPrintingFields([detailWith({ artist: "Someone" })], "p1")).toBe(false);
+  });
+
+  it("is true once a source names a size or a channel", () => {
+    expect(sourcesReportPrintingFields([detailWith({ size: "oversized" })], "p1")).toBe(true);
+    expect(
+      sourcesReportPrintingFields(
+        [detailWith({ distributionChannelSlugs: ["nexus-night"] })],
+        "p1",
+      ),
+    ).toBe(true);
+  });
+
+  it("ignores a hidden provider", () => {
+    expect(
+      sourcesReportPrintingFields(
+        [detailWith({ size: "oversized" })],
+        "p1",
+        new Set(["provider-a"]),
+      ),
+    ).toBe(false);
   });
 });

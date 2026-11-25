@@ -122,6 +122,11 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
           "comment",
           "releasedAt",
           "releasePrecision",
+          sql<string | null>`(
+            select sr.released_at from set_releases sr
+            where sr.set_id = printing_sides_ordered.set_id
+              and sr.language = printing_sides_ordered.language
+          )`.as("setReleasedAt"),
           "announcedAt",
           "canonicalRank",
           "fallbackArtMode",
@@ -190,6 +195,7 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
         | "externalId"
         | "extraData"
         | "checkedAt"
+        | "dismissedValues"
       >[]
     > {
       if (candidateCardIds.length === 0) {
@@ -233,6 +239,7 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
           "ps.externalId",
           "ps.extraData",
           "ps.checkedAt",
+          "ps.dismissedValues",
         ])
         .where("ps.candidateCardId", "in", candidateCardIds)
         .where(notIgnoredPrinting("ps", "cs_parent"))
@@ -456,6 +463,7 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
         | "externalId"
         | "extraData"
         | "checkedAt"
+        | "dismissedValues"
         | "submittedByUserId"
         | "submissionNote"
       > & { submittedByName: string | null })[]
@@ -481,6 +489,7 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
           "candidateCards.externalId",
           "candidateCards.extraData",
           "candidateCards.checkedAt",
+          "candidateCards.dismissedValues",
           "candidateCards.submittedByUserId",
           "candidateCards.submissionNote",
           "users.name as submittedByName",

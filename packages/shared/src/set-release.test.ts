@@ -9,6 +9,7 @@ import {
   normalizeToPeriodStart,
   parseReleaseInput,
   releasePeriodEnd,
+  withoutCoveredRelease,
 } from "./set-release.js";
 import type { SetRelease } from "./set-release.js";
 
@@ -242,5 +243,48 @@ describe("parseReleaseInput", () => {
     expect(parseReleaseInput("2026-02-30", null)).toBeNull();
     expect(parseReleaseInput("20261120", null)).toBeNull();
     expect(parseReleaseInput("Nov 2026", null)).toBeNull();
+  });
+});
+
+describe("withoutCoveredRelease", () => {
+  const fields = ["size", "releasedAt", "releasePrecision"];
+  const undated = { releasedAt: null, setReleasedAt: "2025-10-31" };
+
+  it("drops a source period that contains the set's release date", () => {
+    expect(
+      withoutCoveredRelease(fields, undated, {
+        releasedAt: "2025-10-01",
+        releasePrecision: "month",
+      }),
+    ).toEqual(["size"]);
+    expect(
+      withoutCoveredRelease(fields, undated, { releasedAt: "2025-10-31", releasePrecision: "day" }),
+    ).toEqual(["size"]);
+  });
+
+  it("keeps a source date outside the set's release date", () => {
+    expect(
+      withoutCoveredRelease(fields, undated, {
+        releasedAt: "2025-11-01",
+        releasePrecision: "month",
+      }),
+    ).toEqual(fields);
+    expect(
+      withoutCoveredRelease(fields, undated, { releasedAt: "2025-10-30", releasePrecision: "day" }),
+    ).toEqual(fields);
+  });
+
+  it("keeps the fields when the printing has its own date or the set has none", () => {
+    const source = { releasedAt: "2025-10-01", releasePrecision: "month" };
+    expect(
+      withoutCoveredRelease(
+        fields,
+        { releasedAt: "2025-10-15", setReleasedAt: "2025-10-31" },
+        source,
+      ),
+    ).toEqual(fields);
+    expect(
+      withoutCoveredRelease(fields, { releasedAt: null, setReleasedAt: null }, source),
+    ).toEqual(fields);
   });
 });

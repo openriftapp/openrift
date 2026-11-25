@@ -1,3 +1,4 @@
+import type { DismissedValueRow } from "@openrift/shared/contracts/admin/card-mutations";
 import type { ExpressionBuilder, Kysely, UpdateResult } from "kysely";
 import { sql } from "kysely";
 
@@ -281,6 +282,55 @@ export function candidateReviewRepo(db: Kysely<Database>) {
         .where("id", "in", ids)
         .execute();
       return { updated: rows.length, candidateCardIds: existing.map((row) => row.id) };
+    },
+
+    async listDismissedValues(): Promise<DismissedValueRow[]> {
+      const result = await sql<DismissedValueRow>`
+        select 'printing' as kind, cp.id as "candidateId", cc.provider, cc.name as "cardName",
+          cp.short_code as "shortCode", entry.key as field, entry.value
+        from candidate_printings cp
+        join candidate_cards cc on cc.id = cp.candidate_card_id
+        cross join lateral jsonb_each(cp.dismissed_values) entry
+        where cp.dismissed_values <> '{}'::jsonb
+        union all
+        select 'card', cc.id, cc.provider, cc.name, null, entry.key, entry.value
+        from candidate_cards cc
+        cross join lateral jsonb_each(cc.dismissed_values) entry
+        where cc.dismissed_values <> '{}'::jsonb
+        order by 4, 5 nulls first, 6
+      `.execute(db);
+      return result.rows;
+    },
+
+    async dismissCandidateValue(
+      kind: "card" | "printing",
+      candidateId: string,
+      field: string,
+      value: unknown,
+    ): Promise<boolean> {
+      const rows = await db
+        .updateTable(kind === "card" ? "candidateCards" : "candidatePrintings")
+        .set({
+          dismissedValues: sql`dismissed_values || jsonb_build_object(${field}::text, ${value ?? null}::jsonb)`,
+        })
+        .where("id", "=", candidateId)
+        .returning("id")
+        .execute();
+      return rows.length > 0;
+    },
+
+    async restoreCandidateValue(
+      kind: "card" | "printing",
+      candidateId: string,
+      field: string,
+    ): Promise<boolean> {
+      const rows = await db
+        .updateTable(kind === "card" ? "candidateCards" : "candidatePrintings")
+        .set({ dismissedValues: sql`dismissed_values - ${field}::text` })
+        .where("id", "=", candidateId)
+        .returning("id")
+        .execute();
+      return rows.length > 0;
     },
 
     async uncheckCandidateCards(candidateCardIds: readonly string[]): Promise<number> {

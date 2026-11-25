@@ -13,6 +13,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
+import { dismissedValueSchema } from "./card-detail-schemas.js";
 
 const TAG = "Admin - Cards";
 
@@ -181,6 +182,23 @@ export const REQUIRED_PRINTING_FIELD_KEYS: readonly AcceptPrintingField[] = requ
   ACCEPT_PRINTING_FIELDS,
   printingFieldRules,
 );
+
+const dismissedValueTarget = z.object({
+  kind: z.enum(["card", "printing"]),
+  candidateId: z.uuid(),
+  field: z.string().min(1).max(64),
+});
+
+export type DismissedValueTarget = z.infer<typeof dismissedValueTarget>;
+
+const dismissedValueRowSchema = dismissedValueTarget.extend({
+  provider: z.string(),
+  cardName: z.string(),
+  shortCode: z.string().nullable(),
+  value: dismissedValueSchema,
+});
+
+export type DismissedValueRow = z.infer<typeof dismissedValueRowSchema>;
 
 const acceptCardFieldBodySchema = z.object({
   field: z.enum(ACCEPT_CARD_FIELDS),
@@ -497,6 +515,27 @@ export const adminCardMutationsContract = {
     })
     .errors({ NOT_FOUND: { message: "Candidate printing not found" } })
     .input(cpIdParam),
+  listDismissedCandidateValues: authedRoute
+    .route({ method: "GET", path: `${CARDS}/candidate-values/dismissed`, tags: [TAG] })
+    .output(z.object({ items: z.array(dismissedValueRowSchema) })),
+  dismissCandidateValue: authedRoute
+    .route({
+      method: "POST",
+      path: `${CARDS}/candidate-values/dismiss`,
+      tags: [TAG],
+      successStatus: 204,
+    })
+    .errors({ NOT_FOUND: { message: "Source entry not found" } })
+    .input(dismissedValueTarget.extend({ value: dismissedValueSchema })),
+  restoreCandidateValue: authedRoute
+    .route({
+      method: "POST",
+      path: `${CARDS}/candidate-values/restore`,
+      tags: [TAG],
+      successStatus: 204,
+    })
+    .errors({ NOT_FOUND: { message: "Source entry not found" } })
+    .input(dismissedValueTarget),
   uncheckCandidatePrintings: authedRoute
     .route({ method: "POST", path: `${CARDS}/candidate-printings/uncheck-batch`, tags: [TAG] })
     .errors({ NOT_FOUND: { message: "Candidate printing not found" } })

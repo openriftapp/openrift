@@ -38,6 +38,7 @@ function candidate(id: string, shortCode = "OGN-001"): CandidatePrintingResponse
     releasePrecision: null,
     announcedAt: null,
     checkedAt: null,
+    dismissedValues: {},
   };
 }
 

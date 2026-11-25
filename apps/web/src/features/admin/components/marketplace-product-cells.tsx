@@ -48,7 +48,7 @@ export function ProductCell({ row, cardName }: CellProps & { cardName: string })
   const beyondCardName = nameBeyondCardName(product.productName, cardName);
 
   return (
-    <span className="flex items-center gap-1.5">
+    <span className="flex max-w-80 min-w-0 items-center gap-1.5">
       {isAssigned ? (
         <CheckIcon className="text-success size-3.5 shrink-0" />
       ) : (
@@ -63,7 +63,7 @@ export function ProductCell({ row, cardName }: CellProps & { cardName: string })
             aria-label={`This product's name does not match ${cardName}`}
             className="text-warning size-3.5 shrink-0"
           />
-          <span className="text-warning truncate" title={product.productName}>
+          <span className="text-warning max-w-40 shrink-0 truncate" title={product.productName}>
             {beyondCardName}
           </span>
         </>

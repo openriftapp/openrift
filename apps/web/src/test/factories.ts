@@ -336,6 +336,7 @@ export function makeCandidateCard(
     tags: [],
     extraData: null,
     checkedAt: null,
+    dismissedValues: {},
     submittedByUserId: nextId(),
     submittedByName: "Renata",
     submissionNote: null,
@@ -375,6 +376,7 @@ export function makeAdminPrinting(
     comment: null,
     releasedAt: null,
     releasePrecision: null,
+    setReleasedAt: null,
     announcedAt: null,
     expectedPrintingId: "OGN-001",
     canonicalRank: 0,
@@ -418,6 +420,7 @@ export function makeCandidatePrinting(
     releasePrecision: null,
     announcedAt: null,
     checkedAt: null,
+    dismissedValues: {},
     ...overrides,
   };
 }

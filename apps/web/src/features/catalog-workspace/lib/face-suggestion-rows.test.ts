@@ -13,6 +13,8 @@ import {
   buildFaceSuggestions,
   candidateBelongsToFace,
   describeElsewhere,
+  FACE_FIELDS,
+  FACE_FIELDS_FOR_READING,
   faceCompareCandidates,
 } from "./face-suggestion-rows";
 
@@ -377,5 +379,18 @@ describe("faceCompareCandidates", () => {
     expect(
       faceCompareCandidates(detail, "f1", new Set(["provider-hidden"])).map((row) => row.id),
     ).toEqual([open.id, checked.id]);
+  });
+});
+
+describe("FACE_FIELDS_FOR_READING", () => {
+  it("lists every face field once, identity first and printed text last", () => {
+    expect([...FACE_FIELDS_FOR_READING].toSorted()).toEqual([...FACE_FIELDS].toSorted());
+    expect(FACE_FIELDS_FOR_READING.slice(0, 4)).toEqual([
+      "shortCode",
+      "publicCode",
+      "setId",
+      "language",
+    ]);
+    expect(FACE_FIELDS_FOR_READING.at(-1)).toBe("printedYear");
   });
 });

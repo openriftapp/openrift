@@ -67,6 +67,14 @@ vi.mock("@/features/admin/hooks/use-printing-desk", () => ({
 }));
 
 vi.mock("@/hooks/use-session", () => ({ useSession: () => ({ data: null }) }));
+vi.mock("@/hooks/use-keyword-styles", () => ({ useCostKeywords: () => [] }));
+vi.mock("@/features/admin/lib/attention-items", () => ({ buildAttentionSubmissions: () => [] }));
+vi.mock("@/features/catalog-workspace/components/pass/submission-decisions", () => ({
+  useSubmissionDecisions: () => ({ onReject: vi.fn(), onMarkApplied: vi.fn(), dialogs: null }),
+}));
+vi.mock("@/features/catalog-workspace/hooks/use-face-record-actions", () => ({
+  useFaceSuggestionWrites: () => ({ applyChip: vi.fn(), pending: false }),
+}));
 
 vi.mock("@/features/admin/hooks/use-admin", () => ({
   useAdminAccess: () => ({ data: { isAdmin: true, sections: [] } }),
@@ -116,14 +124,26 @@ const inactive = {
 const queryClient = new QueryClient();
 
 function renderSection() {
+  const view = renderUnselected();
+  fireEvent.click(screen.getByRole("button", { name: /Added /u }));
+  return view;
+}
+
+function renderUnselected() {
   return render(
     <QueryClientProvider client={queryClient}>
       <FaceImagesSection
         cardSlug="jinx-loose-cannon"
         face={face}
         detail={
-          { printings: [face], printingImages: [inactive] } as unknown as AdminCardDetailResponse
+          {
+            printings: [face],
+            printingImages: [inactive],
+            candidatePrintings: [],
+            sources: [],
+          } as unknown as AdminCardDetailResponse
         }
+        sourceImages={[]}
         images={[inactive]}
         printings={[face]}
         providerSettings={[]}

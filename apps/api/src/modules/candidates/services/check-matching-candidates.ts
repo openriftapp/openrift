@@ -3,9 +3,11 @@ import {
   COMPARABLE_PRINTING_FIELDS,
   differingFields,
   hasFieldValue,
+  isDismissedValue,
 } from "@openrift/shared/catalog-field-compare";
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import { normalizeProvidedPrintingRecord } from "@openrift/shared/printing-value-normalize";
+import { withoutCoveredRelease } from "@openrift/shared/set-release";
 
 import { createEventLoopYielder } from "../../../lib/event-loop-yield.js";
 import { classifyAgainstLive } from "../../../lib/image-fingerprint.js";
@@ -74,7 +76,12 @@ export async function checkMatchingCandidates(
       ),
     matches: (row) =>
       row.live !== null &&
-      differingFields(COMPARABLE_CARD_FIELDS, row.live, row.candidate).length === 0,
+      differingFields(
+        COMPARABLE_CARD_FIELDS,
+        row.live,
+        row.candidate,
+        row.candidate.dismissedValues,
+      ).length === 0,
     check: (ids) => candidateCards.checkCandidateCardsByIds(ids, now),
     pageSize,
     yieldIfBusy,
@@ -88,10 +95,11 @@ export async function checkMatchingCandidates(
         pageSize,
       ),
     matches: (row) => {
-      const { imageUrl, imageFingerprint, ...candidate } = row.candidate;
+      const { imageUrl, imageFingerprint, dismissedValues, ...candidate } = row.candidate;
       const { imageUrls, imageFingerprints, ...live } = row.live;
       if (
         hasFieldValue(imageUrl) &&
+        !isDismissedValue(dismissedValues, "imageUrl", imageUrl) &&
         !imageUrls.includes(imageUrl as string) &&
         classifyAgainstLive(imageFingerprint, imageFingerprints) !== "same"
       ) {
@@ -101,7 +109,13 @@ export async function checkMatchingCandidates(
         costKeywords,
         printedTotal: row.printedTotal,
       });
-      return differingFields(COMPARABLE_PRINTING_FIELDS, live, normalized).length === 0;
+      return (
+        withoutCoveredRelease(
+          differingFields(COMPARABLE_PRINTING_FIELDS, live, normalized, dismissedValues),
+          live,
+          normalized,
+        ).length === 0
+      );
     },
     check: (ids) => candidateCards.checkCandidatePrintingsByIds(ids, now),
     pageSize,

@@ -44,7 +44,10 @@ export interface WorkspaceFaceRecordDbRow extends WorkspaceRecordBaseDbRow {
 }
 
 export type WorkspacePrintingRecordFilter = (typeof WORKSPACE_RECORD_FILTERS)["printing"][number];
-export type WorkspaceFaceRecordFilter = (typeof WORKSPACE_RECORD_FILTERS)["face"][number];
+export type WorkspaceFaceRecordFilter = Exclude<
+  (typeof WORKSPACE_RECORD_FILTERS)["face"][number],
+  "needs-review"
+>;
 
 interface WorkspaceRecordsQuery<F> {
   q?: string;
@@ -55,6 +58,7 @@ interface WorkspaceRecordsQuery<F> {
   sort?: { key: WorkspaceRecordSort; direction: "asc" | "desc" };
   printingIds?: readonly string[];
   mineIds?: readonly string[];
+  faceIds?: readonly string[];
 }
 
 export interface WorkspaceRecordsPage<R> {
@@ -64,6 +68,10 @@ export interface WorkspaceRecordsPage<R> {
 
 export interface WorkspaceEventRow {
   id: string;
+  actorUserId: string;
+  actorName: string | null;
+  oldValues: Record<string, unknown> | null;
+  newValues: Record<string, unknown> | null;
   action: string;
   entityType: string;
   entityId: string | null;
@@ -202,6 +210,10 @@ function faceFilterPredicate(filter: WorkspaceFaceRecordFilter): Expression<SqlB
 
 const EVENT_COLUMNS = [
   "ae.id",
+  "ae.actorUserId",
+  "u.name as actorName",
+  "ae.oldValues",
+  "ae.newValues",
   "ae.action",
   "ae.entityType",
   "ae.entityId",
@@ -305,10 +317,13 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
     async listFaceRecords(
       query: WorkspaceRecordsQuery<WorkspaceFaceRecordFilter>,
     ): Promise<WorkspaceRecordsPage<WorkspaceFaceRecordDbRow>> {
-      if (query.printingIds?.length === 0) {
+      if (query.printingIds?.length === 0 || query.faceIds?.length === 0) {
         return { rows: [], total: 0 };
       }
       let base = db.selectFrom("faces as f").innerJoin("cards as c", "c.id", "f.cardId");
+      if (query.faceIds !== undefined) {
+        base = base.where("f.id", "in", [...query.faceIds]);
+      }
       if (query.printingIds !== undefined) {
         base = base.where(sql<SqlBool>`f.id in (
           select unnest(array[pr.face1_id, pr.face2_id]) from printings pr
@@ -364,7 +379,10 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
       limit: number,
       actorUserId?: string,
     ): Promise<WorkspaceEventRow[]> {
-      let query = db.selectFrom("adminEvents as ae").select(EVENT_COLUMNS);
+      let query = db
+        .selectFrom("adminEvents as ae")
+        .leftJoin("users as u", "u.id", "ae.actorUserId")
+        .select(EVENT_COLUMNS);
       if (actorUserId !== undefined) {
         query = query.where("ae.actorUserId", "=", actorUserId);
       }

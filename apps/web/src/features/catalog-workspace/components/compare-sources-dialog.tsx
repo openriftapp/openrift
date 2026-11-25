@@ -159,6 +159,7 @@ function PrintingSources({
       providerSettings={providerSettings}
       costKeywords={costKeywords}
       isAdmin={isAdmin}
+      level="printing"
     />
   );
 
@@ -224,7 +225,7 @@ function FaceSources({
       providerSettings={providerSettings}
       costKeywords={costKeywords}
       isAdmin={isAdmin}
-      faceFieldsOnly
+      level="face"
     />
   );
 }
@@ -236,7 +237,7 @@ function SourceSpreadsheet({
   providerSettings,
   costKeywords,
   isAdmin,
-  faceFieldsOnly = false,
+  level,
 }: {
   group: PrintingCompareGroup;
   printingId: string;
@@ -244,7 +245,7 @@ function SourceSpreadsheet({
   providerSettings: ProviderSettingResponse[];
   costKeywords: readonly string[];
   isAdmin: boolean;
-  faceFieldsOnly?: boolean;
+  level: "face" | "printing";
 }) {
   const queueWrite = useQueueWorkspaceWrite();
   const { printingSourceFields } = useCardDetailData(scope);
@@ -253,9 +254,9 @@ function SourceSpreadsheet({
   const uncheckPrintingSource = useUncheckCandidatePrinting(scope);
   const { announce } = useWorkspaceUndo();
 
-  const fields = faceFieldsOnly
-    ? printingSourceFields.filter((field) => !isPrintingLevelField(field.key))
-    : printingSourceFields;
+  const fields = printingSourceFields.filter(
+    (field) => isPrintingLevelField(field.key) === (level === "printing"),
+  );
   const { labels, names, submitters } = buildSourceLabels(detail.sources, detail.displayName);
   const sideImages = imagesOnSide(
     detail.printingImages.filter((image) => image.printingId === printingId),

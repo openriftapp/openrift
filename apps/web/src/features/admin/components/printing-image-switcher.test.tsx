@@ -136,8 +136,8 @@ describe("PrintingImageSwitcher file edits", () => {
       /^Straighten/u,
       /^Rotate left/u,
       /^Rotate right/u,
-      /^Auto-trim/u,
-      /^Contrast/u,
+      /auto-trim/u,
+      /contrast/u,
     ]) {
       expect(screen.getByRole("button", { name })).toBeDisabled();
     }
@@ -150,8 +150,8 @@ describe("PrintingImageSwitcher file edits", () => {
       /^Straighten/u,
       /^Rotate left/u,
       /^Rotate right/u,
-      /^Auto-trim/u,
-      /^Contrast/u,
+      /auto-trim/u,
+      /contrast/u,
     ]) {
       expect(screen.getByRole("button", { name })).toBeEnabled();
     }

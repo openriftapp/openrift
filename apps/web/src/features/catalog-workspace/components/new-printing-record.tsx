@@ -76,8 +76,11 @@ export function NewPrintingRecord({ candidatePrintingId }: { candidatePrintingId
   ) {
     return (
       <RecordNotice>
-        Marketplace listings are mapped on the{" "}
-        <TextLink render={<Link to="/admin/workspace/listings" />}>Listings</TextLink> page.
+        Marketplace listings are mapped on the card page. They are listed under{" "}
+        <TextLink render={<Link to="/admin/workspace/cards" search={{ queue: "listings" }} />}>
+          Listings to map
+        </TextLink>
+        .
       </RecordNotice>
     );
   }

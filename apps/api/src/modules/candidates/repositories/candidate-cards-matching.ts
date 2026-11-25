@@ -6,6 +6,7 @@ import { liveCardForNorm } from "../../../repositories/candidate-card-sql.js";
 import { visibleCandidateCard, visibleCandidatePrinting } from "./candidate-cards-shared.js";
 import type {
   CandidatePrintingComparison,
+  CandidateCardComparison,
   ComparableCardValues,
   LivePrintingComparison,
 } from "./candidate-comparison-sql.js";
@@ -19,7 +20,7 @@ import {
 
 export interface UncheckedCandidateCardWithLive {
   id: string;
-  candidate: ComparableCardValues;
+  candidate: CandidateCardComparison;
   live: ComparableCardValues | null;
 }
 

@@ -5,6 +5,7 @@ import type {
 import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
+import { countNoun } from "@openrift/shared/strings";
 import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useQuery } from "@tanstack/react-query";
@@ -307,6 +308,14 @@ function FaceStatusCell({ row }: AdminCellSlotProps<WorkspaceRecordRow>) {
   }
   return (
     <span className="flex flex-wrap gap-1">
+      {row.pendingImages !== undefined && row.pendingImages > 0 && (
+        <Badge variant="warning">
+          {row.pendingImages === 1 ? "New image" : `${row.pendingImages} new images`}
+        </Badge>
+      )}
+      {row.pendingFields !== undefined && row.pendingFields > 0 && (
+        <Badge variant="warning">{countNoun(row.pendingFields, "suggestion")}</Badge>
+      )}
       {row.imageState === "substitute" && <Badge variant="destructive">Substitute image</Badge>}
       {(row.imageState === "none" || (row.imageState === undefined && row.imageUrl === null)) && (
         <Badge variant="warning">No image</Badge>

@@ -1,3 +1,4 @@
+import type { DismissedValue } from "@openrift/shared/contracts/admin/card-detail-schemas";
 import { sql } from "kysely";
 
 import { translatedCandidateTags } from "../../../db/helpers.js";
@@ -42,20 +43,27 @@ export interface ComparablePrintingValues {
   announcedAt: string | null;
 }
 
+export type CandidateCardComparison = ComparableCardValues & {
+  dismissedValues: Record<string, DismissedValue>;
+};
+
 export type CandidatePrintingComparison = ComparablePrintingValues & {
   imageUrl: string | null;
   imageFingerprint: string | null;
+  dismissedValues: Record<string, DismissedValue>;
 };
 
 export type LivePrintingComparison = ComparablePrintingValues & {
+  setReleasedAt: string | null;
   imageUrls: string[];
   imageFingerprints: (string | null)[];
 };
 
-export const candidateCardValues = sql<ComparableCardValues>`jsonb_build_object(
+export const candidateCardValues = sql<CandidateCardComparison>`jsonb_build_object(
   'name', cc.name, 'types', cc.types, 'superTypes', cc.super_types,
   'domains', cc.domains, 'might', cc.might, 'energy', cc.energy,
-  'power', cc.power, 'mightBonus', cc.might_bonus, 'tags', ${translatedCandidateTags("cc")}
+  'power', cc.power, 'mightBonus', cc.might_bonus, 'tags', ${translatedCandidateTags("cc")},
+  'dismissedValues', cc.dismissed_values
 )`;
 
 export const liveCardValues = sql<ComparableCardValues>`jsonb_build_object(
@@ -76,7 +84,8 @@ export const candidatePrintingValues = sql<CandidatePrintingComparison>`jsonb_bu
   'printedYear', cp.printed_year, 'releasedAt', cp.released_at,
   'releasePrecision', cp.release_precision, 'announcedAt', cp.announced_at,
   'imageUrl', cp.image_url,
-  'imageFingerprint', cp.image_fingerprint
+  'imageFingerprint', cp.image_fingerprint,
+  'dismissedValues', cp.dismissed_values
 )`;
 
 export const livePrintingValues = sql<LivePrintingComparison>`jsonb_build_object(
@@ -95,6 +104,10 @@ export const livePrintingValues = sql<LivePrintingComparison>`jsonb_build_object
   'language', p.language, 'printedName', p.printed_name,
   'printedYear', p.printed_year, 'releasedAt', pr.released_at,
   'releasePrecision', pr.release_precision, 'announcedAt', pr.announced_at,
+  'setReleasedAt', (
+    select sr.released_at from set_releases sr
+    where sr.set_id = p.set_id and sr.language = p.language
+  ),
   'imageUrls', coalesce((
     select array_remove(array_agg(u), null)
     from face_images pi

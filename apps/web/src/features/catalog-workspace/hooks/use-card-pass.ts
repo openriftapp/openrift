@@ -43,7 +43,10 @@ export function useReviewNavigation(card: string | { reviewKey: string }) {
   const resolvedPathname = useRouterState({ select: (state) => state.resolvedLocation?.pathname });
   const { data } = useQuery(reviewCardsQueryOptions());
   const view = useCardView();
-  const cards = selectReviewQueue(data?.cards ?? EMPTY_CARDS, view);
+  const cards = selectReviewQueue(
+    data?.cards ?? EMPTY_CARDS,
+    view === "listings" ? undefined : view,
+  );
   const cardSlug = typeof card === "string" ? card : null;
   const reviewKey = typeof card === "string" ? null : card.reviewKey;
   const index = cards.findIndex((entry) =>

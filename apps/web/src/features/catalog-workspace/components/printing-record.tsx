@@ -1,4 +1,5 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
+import type { ComparablePrintingField } from "@openrift/shared/catalog-field-compare";
 import type {
   DeskImage,
   DeskPrintingRow,
@@ -7,15 +8,13 @@ import type {
 } from "@openrift/shared/contracts/admin/printing-desk";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay } from "@openrift/shared/format-date";
-import { marketplaceLabel } from "@openrift/shared/marketplace";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { normalizeToPeriodStart } from "@openrift/shared/set-release";
 import { pluralize } from "@openrift/shared/strings";
-import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import type { CardType } from "@openrift/shared/types/enums";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ChevronRightIcon, ExternalLinkIcon, Share2Icon } from "lucide-react";
+import { ChevronRightIcon, Share2Icon } from "lucide-react";
 import { Suspense, useState } from "react";
 import { toast } from "sonner";
 
@@ -33,7 +32,6 @@ import { DeskStatusBadge } from "@/features/admin/components/printing-desk-share
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
 import { SideSearch } from "@/features/admin/components/side-search";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
-import { useUnmapMarketplacePrinting } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-queries";
 import {
   useDeskPrinting,
@@ -53,22 +51,33 @@ import { printingFaces } from "@/features/admin/lib/printing-faces";
 import { encodePostSlides } from "@/features/admin/lib/printing-post-slides";
 import { providerSettingsQueryOptions } from "@/features/admin/lib/provider-settings-queries";
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
+import { PrintingCompareGrid } from "@/features/catalog-workspace/components/compare-sources-dialog";
+import { PrintingMarketplaceSection } from "@/features/catalog-workspace/components/printing-marketplace-section";
 import { RecordFieldRow } from "@/features/catalog-workspace/components/record/field-row";
+import { PrintingRowSuggestions } from "@/features/catalog-workspace/components/record/printing-row-suggestions";
 import {
-  PendingReviewNotice,
+  CompareSourcesToggle,
+  PublicPageLink,
   RecordHeader,
   RecordPane,
   RecordSection,
+  VariantFacts,
 } from "@/features/catalog-workspace/components/record/record-pane";
+import { ReviewStopBar } from "@/features/catalog-workspace/components/record/review-stop-bar";
 import { WorkspaceHistorySection } from "@/features/catalog-workspace/components/record/workspace-history-section";
 import { useValueLabels } from "@/features/catalog-workspace/hooks/use-face-record-actions";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
-import { buildPrintingSuggestions } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
+import {
+  buildPrintingSuggestions,
+  sourcesReportPrintingFields,
+} from "@/features/catalog-workspace/lib/printing-suggestion-rows";
 import { replaceSecondFace } from "@/features/catalog-workspace/lib/replace-second-face";
+import { variantExtras } from "@/features/catalog-workspace/lib/variant-facts";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
 import { errorText } from "@/lib/error-text";
 import { PERSISTENT_ERROR_TOAST } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 
 type PrintingField = "channel" | "size" | "announced" | "release" | "comment";
 type DeskPatch = Omit<DeskUpdateInput, "printingId" | "side">;
@@ -125,6 +134,9 @@ function PrintingRecordBody({
   const labels = useValueLabels();
   const queueWrite = useQueueWorkspaceWrite();
   const [editing, setEditing] = useState<PrintingField | null>(null);
+  const [addingFace, setAddingFace] = useState(false);
+  const [comparing, setComparing] = useState(false);
+  const canAddFace = faces.length === 1 && printing.canEdit;
 
   const cardDetails = [
     { slug: slugs[0], detail: first },
@@ -134,6 +146,9 @@ function PrintingRecordBody({
       entry.slug !== undefined && entry.detail !== undefined,
   );
   const details = cardDetails.map((entry) => entry.detail);
+  const firstFace = details
+    .flatMap((detail) => detail.printings)
+    .find((row) => row.id === printingId && row.faceId === printing.faceId);
   const hiddenProviders = new Set(
     (providerData?.providerSettings ?? [])
       .filter((setting) => setting.isHidden || (!isAdmin && !setting.helperReviewable))
@@ -147,30 +162,31 @@ function PrintingRecordBody({
     >,
     hiddenProviders,
   });
-  const pendingCards = cardDetails.flatMap(({ slug, detail }) => {
-    const pending = suggestions.filter(
-      (suggestion) =>
-        cardDetails.find((entry) =>
-          entry.detail.candidatePrintings.some((row) => row.id === suggestion.candidate.id),
-        )?.detail === detail,
-    ).length;
-    return pending > 0 ? [{ cardSlug: slug, cardName: detail.displayName, pending }] : [];
-  });
   const activeFront = data.images.find((image) => image.face === "front" && image.isActive);
   const postImage = activeFront ?? data.images.at(0) ?? null;
   const postSlides =
     postImage === null
       ? null
       : encodePostSlides([{ printingId, imageFileId: postImage.imageFileId }]);
-  // Each card on a double-sided printing reports the printing's mappings, so both details list them.
-  const mapped = [
-    ...new Map(
-      details
-        .flatMap((detail) => detail.marketplaceMappings)
-        .filter((mapping) => mapping.targetPrintingId === printingId)
-        .map((mapping) => [mappingKey(mapping), mapping]),
-    ).values(),
-  ];
+
+  const reviewRow = details
+    .flatMap((detail) => detail.printings)
+    .find((row) => row.id === printingId);
+  const reviewDetail = cardDetails.at(0);
+  const rowSuggestions = (fields: readonly ComparablePrintingField[]) =>
+    reviewRow !== undefined &&
+    reviewDetail !== undefined &&
+    suggestions.some((suggestion) => fields.includes(suggestion.field)) ? (
+      <PrintingRowSuggestions
+        fields={fields}
+        suggestions={suggestions}
+        printing={reviewRow}
+        detail={reviewDetail.detail}
+        cardSlug={reviewDetail.slug}
+        isAdmin={isAdmin}
+        labels={labels}
+      />
+    ) : undefined;
 
   const editOf = (field: PrintingField) =>
     printing.canEdit && editing === null ? () => setEditing(field) : undefined;
@@ -181,22 +197,53 @@ function PrintingRecordBody({
 
   return (
     <RecordPane
+      banner={<ReviewStopBar current={{ kind: "printing", printingId }} />}
       header={
         <RecordHeader
+          thumb={
+            <span className="flex shrink-0 gap-1">
+              {faces.map((face) => {
+                const image = data.images.find(
+                  (entry) => entry.face === face.imageFace && entry.isActive,
+                );
+                return (
+                  <PrintingImageBox
+                    key={face.faceId}
+                    url={image === undefined ? null : deskImageSrc(image.url, "240w")}
+                    alt={face.cardName}
+                    landscape={
+                      face.position === 1
+                        ? getOrientation([printing.cardType as CardType]) === "landscape"
+                        : null
+                    }
+                    className="w-12"
+                  />
+                );
+              })}
+            </span>
+          }
           title={deskPrintingName(printing)}
-          subtitle={faces.map((face) => formatPrintingCode(face.publicCode)).join(" // ")}
-          badges={<DeskStatusBadge row={printing} />}
+          subtitle={
+            <VariantFacts
+              rarity={printing.rarity}
+              code={faces.map((face) => formatPrintingCode(face.publicCode)).join(" // ")}
+              language={printing.language}
+              finish={formatCatalogFieldValue("finish", printing.finish, labels)}
+              extras={variantExtras(
+                {
+                  markerSlugs: printing.markerSlugs,
+                  artVariant: firstFace?.artVariant,
+                  isSigned: firstFace?.isSigned,
+                  isOvernumbered: firstFace?.isOvernumbered,
+                  size: printing.size,
+                },
+                labels,
+              )}
+            />
+          }
           actions={
             <>
-              <Link
-                to="/cards/$cardSlug/{-$printingSlug}"
-                params={{ cardSlug: printing.cardSlug, printingSlug: printing.slug }}
-                target="_blank"
-                className={buttonVariants({ variant: "ghost", size: "sm" })}
-              >
-                Public page
-                <ExternalLinkIcon />
-              </Link>
+              <PublicPageLink cardSlug={printing.cardSlug} printingSlug={printing.slug} />
               {canDesk && postSlides === null && (
                 <Button variant="ghost" size="sm" disabled>
                   <Share2Icon />
@@ -213,12 +260,14 @@ function PrintingRecordBody({
                   Make a post
                 </Link>
               )}
-              {isAdmin && (
+              {(isAdmin || canAddFace) && (
                 <PrintingActionsMenu
                   printing={printing}
                   invalidates={RECORD_DELETE_SCOPE}
                   runWrite={queueWrite}
                   inWorkspace
+                  canManage={isAdmin}
+                  onAddFace={canAddFace ? () => setAddingFace(true) : undefined}
                   onDeleted={() =>
                     void navigate({ to: "/admin/workspace/printings", ignoreBlocker: true })
                   }
@@ -228,10 +277,9 @@ function PrintingRecordBody({
           }
         />
       }
-      banner={<PendingReviewNotice record="printing" cards={pendingCards} />}
     >
-      <RecordSection title="Faces">
-        <div className="grid gap-3 xl:grid-cols-2">
+      <RecordSection title={faces.length === 1 ? "Face" : "Faces"}>
+        <div className={cn("grid gap-3", faces.length > 1 && "xl:grid-cols-2")}>
           {faces.map((face) => (
             <FaceSummary
               key={face.faceId}
@@ -242,12 +290,42 @@ function PrintingRecordBody({
               isAdmin={isAdmin}
             />
           ))}
-          {faces.length === 1 && printing.canEdit && <AddFace printing={printing} />}
+          {canAddFace && addingFace && (
+            <Suspense fallback={<Skeleton className="h-32" />}>
+              <AddFace printing={printing} onCancel={() => setAddingFace(false)} />
+            </Suspense>
+          )}
         </div>
       </RecordSection>
 
-      <RecordSection title="Printing fields">
-        <div>
+      <RecordSection
+        title="Printing fields"
+        actions={
+          canReview && (
+            <CompareSourcesToggle
+              comparing={comparing}
+              onToggle={() => setComparing(!comparing)}
+              disabledReason={
+                sourcesReportPrintingFields(details, printingId, hiddenProviders)
+                  ? undefined
+                  : "No source reports a size, channel or date for this printing"
+              }
+            />
+          )
+        }
+      >
+        {comparing && (
+          <PrintingCompareGrid
+            printingId={printingId}
+            cardSlugs={slugs}
+            details={details}
+            providerSettings={providerData?.providerSettings ?? []}
+            hiddenProviders={hiddenProviders}
+            costKeywords={costKeywords}
+            isAdmin={isAdmin}
+          />
+        )}
+        <div className={comparing ? "hidden" : undefined}>
           <RecordFieldRow
             label="Channel"
             value={formatCatalogFieldValue(
@@ -257,12 +335,14 @@ function PrintingRecordBody({
             )}
             onEdit={editOf("channel")}
             editing={editorOf("channel")}
+            suggestions={rowSuggestions(["distributionChannelSlugs"])}
           />
           <RecordFieldRow
             label="Size"
             value={formatCatalogFieldValue("size", printing.size, labels)}
             onEdit={editOf("size")}
             editing={editorOf("size")}
+            suggestions={rowSuggestions(["size"])}
           />
           <RecordFieldRow
             label="Announced on"
@@ -271,12 +351,19 @@ function PrintingRecordBody({
             }
             onEdit={editOf("announced")}
             editing={editorOf("announced")}
+            suggestions={rowSuggestions(["announcedAt"])}
           />
           <RecordFieldRow
             label="Available from"
-            value={deskPrintingPeriod(printing)}
+            value={
+              <span className="inline-flex flex-wrap items-center gap-2">
+                {deskPrintingPeriod(printing)}
+                <DeskStatusBadge row={printing} />
+              </span>
+            }
             onEdit={editOf("release")}
             editing={editorOf("release")}
+            suggestions={rowSuggestions(["releasedAt", "releasePrecision"])}
           />
           <RecordFieldRow
             label="Comment"
@@ -297,20 +384,13 @@ function PrintingRecordBody({
       </RecordSection>
 
       {isAdmin && (
-        <RecordSection
-          title="Marketplace"
-          actions={
-            <Link
-              to="/admin/workspace/listings"
-              className={buttonVariants({ variant: "outline", size: "sm" })}
-            >
-              Map listings
-              <ChevronRightIcon />
-            </Link>
-          }
-        >
-          <MappedListings printingId={printingId} mapped={mapped} />
-        </RecordSection>
+        <PrintingMarketplaceSection
+          printingId={printingId}
+          cardSlug={printing.cardSlug}
+          cardName={printing.cardName}
+          language={printing.language}
+          mappings={details.flatMap((detail) => detail.marketplaceMappings)}
+        />
       )}
 
       {canDesk && (
@@ -321,66 +401,6 @@ function PrintingRecordBody({
 
       {(canReview || printing.canEdit) && <WorkspaceHistorySection target={{ printingId }} />}
     </RecordPane>
-  );
-}
-
-function mappingKey(mapping: AdminCardDetailResponse["marketplaceMappings"][number]): string {
-  return `${mapping.marketplace}:${mapping.externalId}:${mapping.finish}:${mapping.variantLanguage ?? ""}`;
-}
-
-function MappedListings({
-  printingId,
-  mapped,
-}: {
-  printingId: string;
-  mapped: AdminCardDetailResponse["marketplaceMappings"];
-}) {
-  const queueWrite = useQueueWorkspaceWrite();
-  const unmap = useUnmapMarketplacePrinting([
-    adminKeys.cards.all,
-    adminKeys.unifiedMappings.all,
-    adminKeys.workspace,
-  ]);
-
-  if (mapped.length === 0) {
-    return <p className="text-muted-foreground text-sm">No listing is mapped to this printing.</p>;
-  }
-  return (
-    <ul className="space-y-1">
-      {mapped.map((mapping) => (
-        <li
-          key={mappingKey(mapping)}
-          className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm"
-        >
-          <span className="w-28 shrink-0 font-medium">{marketplaceLabel(mapping.marketplace)}</span>
-          <span className="min-w-0 flex-1">
-            {mapping.productName}{" "}
-            <span className="text-muted-foreground font-mono">#{mapping.externalId}</span>
-          </span>
-          <Button
-            variant="ghost"
-            size="xs"
-            disabled={unmap.isPending}
-            onClick={() =>
-              void queueWrite((signal) =>
-                unmap.mutateAsync(
-                  {
-                    marketplace: mapping.marketplace,
-                    printingId,
-                    externalId: mapping.externalId,
-                    finish: mapping.finish,
-                    language: mapping.variantLanguage,
-                  },
-                  { signal },
-                ),
-              )
-            }
-          >
-            Unmap
-          </Button>
-        </li>
-      ))}
-    </ul>
   );
 }
 
@@ -424,14 +444,17 @@ function FaceSummary({
     }
     if (outcome === "lost") {
       toast.error(
-        `Face 2 was removed and could not be put back. Add ${face.cardName} again under Add face 2.`,
+        `Face 2 was removed and could not be put back. Add ${face.cardName} again with Add face 2 in the printing menu.`,
         PERSISTENT_ERROR_TOAST,
       );
     }
   };
 
   return (
-    <div className="flex gap-3 rounded-lg border p-3" data-face-id={face.faceId}>
+    <div
+      className={cn("flex gap-3", faceCount > 1 && "rounded-lg border p-3")}
+      data-face-id={face.faceId}
+    >
       <PrintingImageBox
         url={active === null ? null : deskImageSrc(active.url, "240w")}
         alt={face.cardName}
@@ -440,11 +463,12 @@ function FaceSummary({
             ? getOrientation([printing.cardType as CardType]) === "landscape"
             : null
         }
-        className="w-16 shrink-0"
+        className="w-16 shrink-0 self-start"
       />
       <div className="min-w-0 flex-1 space-y-1">
         <p className="font-medium">
-          Face {face.position} · {face.cardName}
+          {faceCount > 1 && `Face ${face.position} · `}
+          {face.cardName}
         </p>
         <p className="text-muted-foreground font-mono text-sm">
           {formatPrintingCode(face.publicCode)}
@@ -519,7 +543,7 @@ function FaceSummary({
   );
 }
 
-function AddFace({ printing }: { printing: DeskPrintingRow }) {
+function AddFace({ printing, onCancel }: { printing: DeskPrintingRow; onCancel: () => void }) {
   const queueWrite = useQueueWorkspaceWrite();
   const setFace = useSetDeskSecondSide();
 
@@ -546,6 +570,9 @@ function AddFace({ printing }: { printing: DeskPrintingRow }) {
           {errorText(setFace.error, "Could not add the face.")}
         </p>
       )}
+      <Button variant="ghost" size="sm" disabled={setFace.isPending} onClick={onCancel}>
+        Cancel
+      </Button>
     </div>
   );
 }

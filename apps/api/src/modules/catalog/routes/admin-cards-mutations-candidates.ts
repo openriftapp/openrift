@@ -90,6 +90,37 @@ export const adminCardMutationsCandidatesRouter = {
     },
   ),
 
+  listDismissedCandidateValues: os.listDismissedCandidateValues.handler(async ({ context }) => ({
+    items: await context.repos.candidateCards.listDismissedValues(),
+  })),
+
+  dismissCandidateValue: os.dismissCandidateValue.handler(
+    async ({ input, context, errors }): Promise<void> => {
+      const found = await context.repos.candidateCards.dismissCandidateValue(
+        input.kind,
+        input.candidateId,
+        input.field,
+        input.value,
+      );
+      if (!found) {
+        throw errors.NOT_FOUND();
+      }
+    },
+  ),
+
+  restoreCandidateValue: os.restoreCandidateValue.handler(
+    async ({ input, context, errors }): Promise<void> => {
+      const found = await context.repos.candidateCards.restoreCandidateValue(
+        input.kind,
+        input.candidateId,
+        input.field,
+      );
+      if (!found) {
+        throw errors.NOT_FOUND();
+      }
+    },
+  ),
+
   uncheckCandidatePrintings: os.uncheckCandidatePrintings.handler(
     async ({ input, context, errors }) => {
       const ids = [...new Set(input.candidatePrintingIds)];

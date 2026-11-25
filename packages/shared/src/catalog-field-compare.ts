@@ -71,15 +71,29 @@ export function sameFieldValue(a: unknown, b: unknown, field?: string): boolean 
   return left === right;
 }
 
-/** Fields the proposal has a value for that differ from the live value. */
+/** A dismissal holds for the value it was made on; a source that reports another value is heard again. */
+export function isDismissedValue(
+  dismissed: Readonly<Record<string, unknown>> | undefined,
+  field: string,
+  value: unknown,
+): boolean {
+  return (
+    dismissed !== undefined &&
+    Object.hasOwn(dismissed, field) &&
+    sameFieldValue(dismissed[field], value, field)
+  );
+}
+
 export function differingFields<K extends string>(
   fields: readonly K[],
   live: Readonly<Record<K, unknown>>,
   proposed: Readonly<Record<K, unknown>>,
+  dismissed?: Readonly<Record<string, unknown>>,
 ): K[] {
   return fields.filter(
     (field) =>
       hasFieldValue(proposed[field]) &&
-      !sameFieldValue(live[field] ?? null, proposed[field], field),
+      !sameFieldValue(live[field] ?? null, proposed[field], field) &&
+      !isDismissedValue(dismissed, field, proposed[field]),
   );
 }

@@ -1,8 +1,9 @@
+import type { WorkspaceQueueItem } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { describe, expect, it, vi } from "vitest";
 
 import type { AdminAccess } from "../../../middleware/require-admin.js";
 import type { WorkspaceRepos } from "./workspace-queue.js";
-import { listWorkspaceRecords } from "./workspace-records.js";
+import { faceWorkCounts, listWorkspaceRecords } from "./workspace-records.js";
 
 const ADMIN: AdminAccess = { isAdmin: true, sections: [] };
 const DESK: AdminAccess = { isAdmin: false, sections: ["printing-desk"] };
@@ -91,6 +92,80 @@ describe("listWorkspaceRecords", () => {
     await list(repos, ADMIN, { kind: "face", filter: "promo" });
     expect(repos.workspaceRecords.listFaceRecords).toHaveBeenLastCalledWith(
       expect.objectContaining({ filter: undefined }),
+    );
+  });
+});
+
+function item(overrides: Partial<WorkspaceQueueItem>): WorkspaceQueueItem {
+  return {
+    id: "face:f-1",
+    owner: "face",
+    segment: "open",
+    ownerId: "f-1",
+    cardSlug: "jinx-loose-cannon",
+    cardName: "Jinx, Loose Cannon",
+    label: "OGN-030",
+    reason: "source-difference",
+    provider: "provider-a",
+    isContributor: false,
+    decisions: 1,
+    fields: ["artist"],
+    createdAt: "2026-10-21T09:00:00.000Z",
+    ...overrides,
+  };
+}
+
+describe("faceWorkCounts", () => {
+  it("adds up images and field differences per face and skips other owners", () => {
+    const work = faceWorkCounts([
+      item({ fields: ["artist", "rarity"] }),
+      item({ reason: "contributor-proposal", fields: ["flavorText"] }),
+      item({ reason: "new-image", decisions: 2, fields: [] }),
+      item({ ownerId: "f-2", reason: "image-rehost-failed", fields: [] }),
+      item({ owner: "printing", ownerId: "p-1" }),
+    ]);
+    expect(Object.fromEntries(work)).toEqual({
+      "f-1": { pendingImages: 2, pendingFields: 3 },
+      "f-2": { pendingImages: 1, pendingFields: 0 },
+    });
+  });
+});
+
+describe("listWorkspaceRecords face work", () => {
+  const face = { ...printing("f-1"), printingCount: 1, artist: null, artVariant: "normal" };
+
+  function faceRepos() {
+    const repos = makeRepos();
+    repos.workspaceRecords.listFaceRecords.mockResolvedValue({ rows: [face], total: 1 });
+    return repos;
+  }
+
+  function listFaces(
+    repos: ReturnType<typeof makeRepos>,
+    filter?: "needs-review" | "shared",
+  ): ReturnType<typeof listWorkspaceRecords> {
+    return listWorkspaceRecords(repos as unknown as WorkspaceRepos, {
+      access: ADMIN,
+      userId: "user-1",
+      input: { kind: "face", filter },
+      loadFaceItems: () => Promise.resolve([item({ reason: "new-image", fields: [] })]),
+    });
+  }
+
+  it("puts the open work on the face's row", async () => {
+    const response = await listFaces(faceRepos());
+    expect(response.rows[0]).toMatchObject({ id: "f-1", pendingImages: 1, pendingFields: 0 });
+  });
+
+  it("limits the needs-review filter to faces with open work", async () => {
+    const repos = faceRepos();
+    await listFaces(repos, "needs-review");
+    expect(repos.workspaceRecords.listFaceRecords).toHaveBeenLastCalledWith(
+      expect.objectContaining({ filter: undefined, faceIds: ["f-1"] }),
+    );
+    await listFaces(repos, "shared");
+    expect(repos.workspaceRecords.listFaceRecords).toHaveBeenLastCalledWith(
+      expect.objectContaining({ filter: "shared", faceIds: undefined }),
     );
   });
 });

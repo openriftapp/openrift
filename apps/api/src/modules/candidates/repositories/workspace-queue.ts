@@ -7,6 +7,7 @@ import { isNewCardName, liveCardForNorm } from "../../../repositories/candidate-
 import { visibleCandidateCard, visibleCandidatePrinting } from "./candidate-cards-shared.js";
 import type {
   CandidatePrintingComparison,
+  CandidateCardComparison,
   ComparableCardValues,
   LivePrintingComparison,
 } from "./candidate-comparison-sql.js";
@@ -24,7 +25,7 @@ export interface WorkspaceCardDifferenceRow {
   createdAt: Date;
   cardSlug: string;
   cardName: string;
-  candidate: ComparableCardValues;
+  candidate: CandidateCardComparison;
   live: ComparableCardValues;
 }
 

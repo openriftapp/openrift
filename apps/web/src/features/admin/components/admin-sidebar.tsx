@@ -24,7 +24,6 @@ import {
   LanguagesIcon,
   LayoutDashboardIcon,
   LayoutListIcon,
-  LinkIcon,
   ListChecksIcon,
   PackageIcon,
   PackageSearchIcon,
@@ -60,7 +59,6 @@ import {
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import { useReviewQueueWhen } from "@/features/admin/hooks/use-catalog-review";
 import { adminSectionsForPathname, hasAdminSection } from "@/features/admin/lib/admin-sections";
-import { listingsQueryOptions } from "@/features/catalog-workspace/lib/listings-queries";
 import { reviewCardsQueryOptions } from "@/features/catalog-workspace/lib/review-cards";
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 
@@ -125,13 +123,6 @@ const marketplacePages = [
   { to: "/admin/ignored-products" as const, icon: BanIcon, title: "Ignored Products" },
 ];
 
-const WORKSPACE_LISTINGS_PATH = "/admin/workspace/listings" as const;
-
-const workspaceMarketplacePages = [
-  ...marketplacePages,
-  { to: WORKSPACE_LISTINGS_PATH, icon: LinkIcon, title: "Listings" },
-];
-
 const operationsPages = [
   { to: "/admin/status" as const, icon: ActivityIcon, title: "Status" },
   { to: "/admin/jobs" as const, icon: CalendarClockIcon, title: "Jobs" },
@@ -185,7 +176,7 @@ const workspaceGroups = [
   { label: "Overview", pages: overviewPages },
   { label: "Workspace", pages: workspacePages },
   { label: "Catalog", pages: catalogPages },
-  { label: "Marketplaces", pages: workspaceMarketplacePages },
+  { label: "Marketplaces", pages: marketplacePages },
   ...otherGroups,
 ];
 
@@ -216,11 +207,6 @@ export function AdminSidebar() {
   const openReviews = reviewQueue?.counts.open ?? 0;
   const cardsToReview = reviewCards?.cards.length ?? 0;
   const currentPath = currentMatch?.fullPath;
-  const { data: listings } = useQuery({
-    ...listingsQueryOptions(),
-    enabled: workspaceEnabled && isAdmin,
-  });
-  const cardsWithListings = listings?.cards.length ?? 0;
   const [openGroups, setOpenGroups] = useState<Partial<Record<string, boolean>>>({});
   const visibleGroups = (workspaceEnabled ? workspaceGroups : groups)
     .map((group) => ({
@@ -256,11 +242,6 @@ export function AdminSidebar() {
                     {page.to === WORKSPACE_CARDS_PATH && cardsToReview > 0 && (
                       <Badge variant="count" className="ml-auto">
                         {cardsToReview}
-                      </Badge>
-                    )}
-                    {page.to === WORKSPACE_LISTINGS_PATH && cardsWithListings > 0 && (
-                      <Badge variant="count" className="ml-auto">
-                        {cardsWithListings}
                       </Badge>
                     )}
                   </SidebarMenuButton>

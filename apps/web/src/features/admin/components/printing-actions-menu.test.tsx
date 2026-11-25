@@ -119,3 +119,33 @@ describe("PrintingActionsMenu duplicate link", () => {
     });
   });
 });
+
+describe("PrintingActionsMenu add face", () => {
+  it("offers only the second face to an editor who cannot manage the printing", async () => {
+    const user = userEvent.setup();
+    const onAddFace = vi.fn();
+    render(
+      <PrintingActionsMenu
+        printing={printing}
+        invalidates={[]}
+        onDeleted={vi.fn()}
+        canManage={false}
+        onAddFace={onAddFace}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Printing actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Add face 2" }));
+
+    expect(onAddFace).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("menuitem", { name: "Delete" })).not.toBeInTheDocument();
+  });
+
+  it("leaves the item out when no handler is given", async () => {
+    const user = userEvent.setup();
+    render(<PrintingActionsMenu printing={printing} invalidates={[]} onDeleted={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: "Printing actions" }));
+    await screen.findByRole("menuitem", { name: "Delete" });
+
+    expect(screen.queryByRole("menuitem", { name: "Add face 2" })).not.toBeInTheDocument();
+  });
+});

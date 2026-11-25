@@ -71,6 +71,7 @@ const FILTER_LABELS: Record<WorkspaceRecordFilter, string> = {
   mine: "Added by me",
   substitute: "Substitute image",
   shared: "Shared",
+  "needs-review": "Needs review",
 };
 
 const DESK_MODES: { value: DeskMode; label: string }[] = [

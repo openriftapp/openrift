@@ -62,7 +62,7 @@ export function CardMenu({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={<Button variant="outline" size="icon-sm" aria-label="Card actions" />}
+          render={<Button variant="ghost" size="icon-sm" aria-label="Card actions" />}
         >
           <EllipsisVerticalIcon />
         </DropdownMenuTrigger>

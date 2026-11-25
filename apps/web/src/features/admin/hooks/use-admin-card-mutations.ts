@@ -1,3 +1,4 @@
+import type { DismissedValue } from "@openrift/shared/contracts/admin/card-detail-schemas";
 import type {
   AcceptCardField,
   AcceptNewCardBody,
@@ -5,6 +6,7 @@ import type {
   AcceptPrintingField,
   CreateCardBody,
   CreatePrintingBody,
+  DismissedValueTarget,
   PatchCandidatePrintingBody,
 } from "@openrift/shared/contracts/admin/card-mutations";
 import { adminCardMutationsContract } from "@openrift/shared/contracts/admin/card-mutations";
@@ -15,7 +17,7 @@ import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { isDefinedError, safe } from "@orpc/client";
 import type { MutationMeta } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useRef } from "react";
 
@@ -91,6 +93,31 @@ export const uncheckCandidatePrintingsFn = createServerFn({ method: "POST" })
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
     await apiOrpcClient(adminCardMutationsContract, context.cookie).uncheckCandidatePrintings(data);
+  });
+
+const dismissCandidateValueFn = createServerFn({ method: "POST" })
+  .validator((input: DismissedValueTarget & { value: DismissedValue }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminCardMutationsContract, context.cookie).dismissCandidateValue(data);
+  });
+
+const listDismissedValuesFn = createServerFn({ method: "GET" })
+  .middleware([withCookies])
+  .handler(({ context }) =>
+    apiOrpcClient(adminCardMutationsContract, context.cookie).listDismissedCandidateValues(),
+  );
+
+export const dismissedValuesQueryOptions = queryOptions({
+  queryKey: adminKeys.dismissedValues,
+  queryFn: () => listDismissedValuesFn(),
+});
+
+export const restoreCandidateValueFn = createServerFn({ method: "POST" })
+  .validator((input: DismissedValueTarget) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminCardMutationsContract, context.cookie).restoreCandidateValue(data);
   });
 
 const checkAllCandidatePrintingsFn = createServerFn({ method: "POST" })
@@ -292,6 +319,24 @@ export function useCheckCandidateCard(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
     mutationFn: async (candidateCardId: string, signal) => {
       await checkCandidateCardFn({ data: { candidateCardId }, signal });
+    },
+    invalidates,
+  });
+}
+
+export function useDismissCandidateValue(invalidates: Scope = defaultScope) {
+  return useMutationWithInvalidation({
+    mutationFn: async (input: DismissedValueTarget & { value: DismissedValue }, signal) => {
+      await dismissCandidateValueFn({ data: input, signal });
+    },
+    invalidates,
+  });
+}
+
+export function useRestoreCandidateValue(invalidates: Scope = defaultScope) {
+  return useMutationWithInvalidation({
+    mutationFn: async (input: DismissedValueTarget, signal) => {
+      await restoreCandidateValueFn({ data: input, signal });
     },
     invalidates,
   });

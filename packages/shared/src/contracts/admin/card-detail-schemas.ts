@@ -40,6 +40,18 @@ export const adminCardResponseSchema = z.object({
   comment: z.string().nullable(),
 });
 
+export const dismissedValueSchema = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.null(),
+  z.array(z.string()),
+]);
+
+export const dismissedValuesSchema = z.record(z.string(), dismissedValueSchema);
+
+export type DismissedValue = z.infer<typeof dismissedValueSchema>;
+
 export const candidateCardResponseSchema = z.object({
   id: z.string(),
   provider: z.string(),
@@ -58,6 +70,7 @@ export const candidateCardResponseSchema = z.object({
   tags: z.array(z.string()),
   extraData: z.unknown().nullable(),
   checkedAt: z.string().nullable(),
+  dismissedValues: dismissedValuesSchema,
   submittedByUserId: z.string().nullable(),
   submittedByName: z.string().nullable(),
   submissionNote: z.string().nullable(),
@@ -98,6 +111,7 @@ export const candidatePrintingResponseSchema = z.object({
   releasePrecision: releasePrecisionSchema.nullable(),
   announcedAt: z.string().nullable(),
   checkedAt: z.string().nullable(),
+  dismissedValues: dismissedValuesSchema,
 });
 
 export const candidatePrintingGroupResponseSchema = z.object({
@@ -175,6 +189,7 @@ export const adminPrintingResponseSchema = z.object({
   comment: z.string().nullable(),
   releasedAt: z.string().nullable(),
   releasePrecision: releasePrecisionSchema.nullable(),
+  setReleasedAt: z.string().nullable(),
   announcedAt: z.string().nullable(),
   expectedPrintingId: z.string(),
   canonicalRank: z.number(),

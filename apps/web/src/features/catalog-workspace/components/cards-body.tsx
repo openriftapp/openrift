@@ -5,12 +5,14 @@ import type { ReactNode } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { DebouncedSearchInput } from "@/features/admin/components/debounced-search-input";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
+import { ListingsQueueTable } from "@/features/catalog-workspace/components/listings-queue-table";
 import {
   ReadyTable,
   ReviewQueueTable,
 } from "@/features/catalog-workspace/components/review-tables";
 import { readyPreviewQueryOptions } from "@/features/catalog-workspace/hooks/use-workspace-batch";
 import { useCardView } from "@/features/catalog-workspace/hooks/use-workspace-queue";
+import { listingsQueryOptions } from "@/features/catalog-workspace/lib/listings-queries";
 import {
   reviewCardsQueryOptions,
   selectReviewQueue,
@@ -45,13 +47,22 @@ export function CardsBody({
   const cards = data?.cards ?? [];
   const review = selectReviewQueue(cards, "review");
   const images = selectReviewQueue(cards, "images");
+  const { data: listings } = useQuery({ ...listingsQueryOptions(), enabled: isAdmin });
   const readyCount = (preview?.cards.count ?? 0) + (preview?.printings.count ?? 0);
 
   const segments: { value: Segment; label: string }[] = [
     ...(listAllowed ? [{ value: "all" as const, label: "All" }] : []),
     { value: "review", label: `Needs review ${review.length}` },
     { value: "images", label: `New images ${images.length}` },
-    ...(isAdmin ? [{ value: "ready" as const, label: `Ready to accept ${readyCount}` }] : []),
+    ...(isAdmin
+      ? [
+          { value: "ready" as const, label: `Ready to accept ${readyCount}` },
+          {
+            value: "listings" as const,
+            label: `Listings to map ${listings?.cards.length ?? 0}`,
+          },
+        ]
+      : []),
   ];
   const fallback: Segment = listAllowed ? "all" : "review";
   const active: Segment =
@@ -62,7 +73,13 @@ export function CardsBody({
       <DebouncedSearchInput
         urlValue={query}
         onCommit={onQuery}
-        placeholder={active === "all" ? "Name or code…" : "Search cards or sources…"}
+        placeholder={
+          active === "all"
+            ? "Name or code…"
+            : active === "listings"
+              ? "Search cards…"
+              : "Search cards or sources…"
+        }
         className="w-full sm:w-72"
       />
       {active === "all" && allFilter}
@@ -90,6 +107,9 @@ export function CardsBody({
 
   if (active === "ready") {
     return <ReadyTable reviewCards={cards} query={query} toolbarStart={controls} />;
+  }
+  if (active === "listings") {
+    return <ListingsQueueTable query={query} controls={controls} />;
   }
   if (active === "all") {
     return (

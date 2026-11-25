@@ -16,11 +16,9 @@ import {
   buildCardPass,
   imageOrigin,
   newPrintingGroups,
-  nextUploadId,
   reviewNeighbor,
   seededPrintingDraft,
 } from "./card-pass";
-import type { PassFace } from "./card-pass";
 
 const OPTIONS = { providerSettings: [], submissions: [], costKeywords: [], isAdmin: true };
 
@@ -307,24 +305,6 @@ function reviewCard(cardSlug: string | null, cardName = "Vi, Destructive"): Revi
     },
   };
 }
-
-describe("nextUploadId", () => {
-  const face = (...ids: string[]) => ({ uploads: ids.map((id) => ({ id })) }) as PassFace;
-  const faces = [face("a", "b"), face(), face("c")];
-
-  it("moves on within a face and into the next face", () => {
-    expect(nextUploadId(faces, "a")).toBe("b");
-    expect(nextUploadId(faces, "b")).toBe("c");
-  });
-
-  it("wraps from the last image to the first one left", () => {
-    expect(nextUploadId(faces, "c")).toBe("a");
-  });
-
-  it("is null when no other image waits", () => {
-    expect(nextUploadId([face("a")], "a")).toBeNull();
-  });
-});
 
 describe("reviewNeighbor", () => {
   const cards = [reviewCard("ahri"), reviewCard(null, "Jinx"), reviewCard("vi")];

@@ -11,6 +11,7 @@ import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar"
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import { DebouncedSearchInput } from "@/features/admin/components/debounced-search-input";
+import { DismissedValuesSection } from "@/features/admin/components/dismissed-values-section";
 import {
   useDeletePrintingLink,
   useIgnoredCandidates,
@@ -289,6 +290,8 @@ export function IgnoredCandidatesPage() {
           actions={<PrintingUnignoreAction />}
         />
       </section>
+
+      <DismissedValuesSection />
 
       <section className="space-y-3">
         <Heading level={2}>Pinned Printing Links</Heading>

@@ -32,6 +32,27 @@ export function releasePeriodEnd(release: SetRelease): string | null {
   return formatDay(new Date(Date.UTC(year, endMonth, 0)));
 }
 
+const RELEASE_FIELDS: ReadonlySet<string> = new Set(["releasedAt", "releasePrecision"]);
+
+/** Without a date of its own a printing shows its set's, so a source period containing that date adds nothing. */
+export function withoutCoveredRelease<K extends string>(
+  fields: readonly K[],
+  live: { releasedAt: string | null; setReleasedAt: string | null },
+  proposed: { releasedAt?: unknown; releasePrecision?: unknown },
+): K[] {
+  const { setReleasedAt } = live;
+  const start = proposed.releasedAt;
+  if (live.releasedAt !== null || setReleasedAt === null || typeof start !== "string") {
+    return [...fields];
+  }
+  const end = releasePeriodEnd({
+    releasedAt: start,
+    precision: proposed.releasePrecision as ReleasePrecision,
+  });
+  const covered = end !== null && start <= setReleasedAt && setReleasedAt <= end;
+  return covered ? fields.filter((field) => !RELEASE_FIELDS.has(field)) : [...fields];
+}
+
 export function normalizeToPeriodStart(release: SetRelease): SetRelease {
   const { releasedAt, precision } = release;
   if (!releasedAt || !precision || precision === "day") {

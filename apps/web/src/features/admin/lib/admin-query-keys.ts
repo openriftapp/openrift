@@ -90,6 +90,7 @@ export const adminKeys = {
   ignoredProducts: ["admin", "ignored-products"] as const,
   productPrintingIds: ["admin", "products", "printing-ids"] as const,
   ignoredCandidates: ["admin", "ignored-candidates"] as const,
+  dismissedValues: ["admin", "dismissed-values"] as const,
   deckZones: ["admin", "deck-zones"] as const,
   domains: ["admin", "domains"] as const,
   languages: ["admin", "languages"] as const,

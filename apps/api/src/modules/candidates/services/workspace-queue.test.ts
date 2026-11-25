@@ -41,7 +41,7 @@ function linked(printingId: string, provider: string, candidate: object) {
     printingLabel: "OGN-030 normal EN",
     faceShortCode: "OGN-030",
     candidate: { ...LIVE, imageUrl: null, imageFingerprint: null, ...candidate },
-    live: { ...LIVE, imageUrls: [], imageFingerprints: [] },
+    live: { ...LIVE, setReleasedAt: null, imageUrls: [], imageFingerprints: [] },
   };
 }
 

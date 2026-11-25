@@ -49,6 +49,14 @@ export const adminCatalogWorkspaceRouter = {
       access: context.adminAccess,
       userId: context.userId,
       input,
+      loadFaceItems: async () => {
+        const queue = await buildWorkspaceQueue(context.repos, {
+          access: context.adminAccess,
+          userId: context.userId,
+          owner: "face",
+        });
+        return queue.items;
+      },
     }),
   ),
 

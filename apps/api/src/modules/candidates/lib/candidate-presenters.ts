@@ -36,6 +36,7 @@ export type CandidateCardRow = Pick<
   | "externalId"
   | "extraData"
   | "checkedAt"
+  | "dismissedValues"
   | "submittedByUserId"
   | "submissionNote"
 > & { submittedByName: string | null };
@@ -72,6 +73,7 @@ export type CandidatePrintingRow = Pick<
   | "externalId"
   | "extraData"
   | "checkedAt"
+  | "dismissedValues"
 >;
 
 export function formatCandidateCard(row: CandidateCardRow): CandidateCardResponse {

@@ -1,12 +1,14 @@
-import { countNoun, pluralize } from "@openrift/shared/strings";
 import { Link } from "@tanstack/react-router";
+import { ExternalLinkIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Heading } from "@/components/heading";
+import { LanguageChip } from "@/components/language-chip";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
-import { TextLink } from "@/components/ui/text-link";
+import { RarityIcon } from "@/features/cards/components/rarity-icon";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { cn } from "@/lib/utils";
 
@@ -20,7 +22,7 @@ export function RecordPane({
   children: ReactNode;
 }) {
   return (
-    <section className="flex min-w-0 flex-col gap-3.5 px-4 py-3.5 sm:px-5">
+    <section className="flex min-w-0 flex-col gap-3.5">
       {header}
       {banner}
       {children}
@@ -52,7 +54,7 @@ export function RecordHeader({
       {thumb}
       <div className="min-w-0">
         <Heading level={2}>{title}</Heading>
-        {subtitle !== undefined && <p className="text-muted-foreground text-sm">{subtitle}</p>}
+        {subtitle !== undefined && <div className="text-muted-foreground text-sm">{subtitle}</div>}
       </div>
       {badges}
       <span className="flex-1" />
@@ -61,37 +63,76 @@ export function RecordHeader({
   );
 }
 
-export function RecordBanner({ children }: { children: ReactNode }) {
-  return <div className="bg-muted rounded-lg px-3 py-2 text-sm">{children}</div>;
+export function PublicPageLink({
+  cardSlug,
+  printingSlug,
+}: {
+  cardSlug: string;
+  printingSlug?: string;
+}) {
+  return (
+    <Link
+      to="/cards/$cardSlug/{-$printingSlug}"
+      params={{ cardSlug, printingSlug }}
+      target="_blank"
+      className={buttonVariants({ variant: "ghost", size: "sm" })}
+    >
+      Public page
+      <ExternalLinkIcon />
+    </Link>
+  );
 }
 
-export function PendingReviewNotice({
-  record,
-  cards,
+export function VariantFacts({
+  code,
+  language,
+  finish,
+  rarity,
+  extras = [],
 }: {
-  record: "printing" | "face";
-  cards: readonly { cardSlug: string; cardName: string; pending: number }[];
+  code: string;
+  language: string;
+  finish: string;
+  rarity?: string;
+  extras?: readonly string[];
 }) {
-  const count = cards.reduce((sum, card) => sum + card.pending, 0);
-  if (count === 0) {
-    return null;
-  }
   return (
-    <RecordBanner>
-      {`${countNoun(count, "suggestion")} ${pluralize(count, "is", "are")} pending on this ${record}.`}
-      {cards.map((card) => (
-        <TextLink
-          key={card.cardSlug}
-          className="ml-2"
-          render={
-            <Link to="/admin/workspace/cards/$cardSlug" params={{ cardSlug: card.cardSlug }} />
-          }
-        >
-          Review {card.cardName}
-        </TextLink>
-      ))}
-    </RecordBanner>
+    <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+      {rarity !== undefined && <RarityIcon rarity={rarity} labelled />}
+      <span className="font-mono">{code}</span>
+      <LanguageChip code={language} />
+      <span>{finish}</span>
+      {extras.length > 0 && <span>· {extras.join(" · ")}</span>}
+    </span>
   );
+}
+
+export function CompareSourcesToggle({
+  comparing,
+  onToggle,
+  disabledReason,
+}: {
+  comparing: boolean;
+  onToggle: () => void;
+  disabledReason?: string;
+}) {
+  return (
+    <span title={disabledReason}>
+      <Button
+        variant="link"
+        size="xs"
+        disabled={disabledReason !== undefined}
+        aria-description={disabledReason}
+        onClick={onToggle}
+      >
+        {comparing ? "Close compare" : "Compare sources"}
+      </Button>
+    </span>
+  );
+}
+
+export function RecordBanner({ children }: { children: ReactNode }) {
+  return <div className="bg-muted rounded-lg px-3 py-2 text-sm">{children}</div>;
 }
 
 export function RecordSection({

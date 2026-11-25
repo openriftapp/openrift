@@ -1,15 +1,18 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { countNoun } from "@openrift/shared/strings";
 import type { AdminCardDetailResponse, AdminCardResponse } from "@openrift/shared/types/api/admin";
 import { WellKnown } from "@openrift/shared/well-known";
-import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
+import { getRouteApi, Link, useLocation, useNavigate } from "@tanstack/react-router";
+import type { NavigateOptions } from "@tanstack/react-router";
+import { ChevronRightIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { RouteErrorFallback } from "@/components/error-message";
-import { Heading } from "@/components/heading";
 import { PageTopBarButton, PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
+import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TextLink } from "@/components/ui/text-link";
@@ -29,22 +32,29 @@ import { useAcceptSubmission } from "@/features/admin/hooks/use-catalog-review";
 import type { AttentionSubmission } from "@/features/admin/lib/attention-items";
 import { buildAttentionSubmissions } from "@/features/admin/lib/attention-items";
 import { favoriteProviderSet } from "@/features/admin/lib/candidate-rows";
+import { pairNamesByPrinting } from "@/features/admin/lib/face-rows";
 import { EMPTY_VALUE_TEXT, formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
 import { buildSetReleaseYears } from "@/features/admin/lib/set-release-years";
+import { useCardBans } from "@/features/cards/hooks/use-card-bans";
 import { useSets } from "@/features/cards/hooks/use-sets";
+import { CardListingsSection } from "@/features/catalog-workspace/components/card-listings-section";
 import { CardCompareGrid } from "@/features/catalog-workspace/components/compare-sources-dialog";
 import { CardMenu } from "@/features/catalog-workspace/components/pass/card-menu";
-import { FacePanel, faceHeading } from "@/features/catalog-workspace/components/pass/face-panel";
+import { faceHeading } from "@/features/catalog-workspace/components/pass/field-text";
 import { NewPrintingsSection } from "@/features/catalog-workspace/components/pass/new-printings-section";
 import {
   ContributionBlock,
   PassTopBar,
   SourceUse,
 } from "@/features/catalog-workspace/components/pass/pass-parts";
-import { PrintingPanel } from "@/features/catalog-workspace/components/pass/printing-panel";
 import { RecordFieldRow } from "@/features/catalog-workspace/components/record/field-row";
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
-import { RecordSection } from "@/features/catalog-workspace/components/record/record-pane";
+import {
+  PublicPageLink,
+  RecordHeader,
+  RecordSection,
+} from "@/features/catalog-workspace/components/record/record-pane";
+import { stopNavigation } from "@/features/catalog-workspace/components/record/review-stop-bar";
 import { WorkspaceUndoButton } from "@/features/catalog-workspace/components/workspace-undo-button";
 import {
   usePassCreatePrinting,
@@ -56,14 +66,14 @@ import {
   useCardRecordActions,
 } from "@/features/catalog-workspace/hooks/use-card-record-actions";
 import { useClearUndoOnLeave } from "@/features/catalog-workspace/hooks/use-clear-undo-on-leave";
+import { useDismissSuggestion } from "@/features/catalog-workspace/hooks/use-dismiss-suggestion";
 import { useValueLabels } from "@/features/catalog-workspace/hooks/use-face-record-actions";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useWorkspaceKeyboard } from "@/features/catalog-workspace/hooks/use-workspace-keyboard";
+import { useCardView } from "@/features/catalog-workspace/hooks/use-workspace-queue";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
-import type { PassDismiss } from "@/features/catalog-workspace/lib/card-pass";
 import {
   buildCardPass,
-  nextUploadId,
   newPrintingGroups,
   passContributor,
   seededPrintingDraft,
@@ -72,6 +82,8 @@ import {
   CARD_RECORD_FIELDS,
   primaryCardImage,
 } from "@/features/catalog-workspace/lib/record-fields";
+import type { ReviewStop, ReviewTrail } from "@/features/catalog-workspace/lib/review-stops";
+import { nextPendingStop, reviewStops } from "@/features/catalog-workspace/lib/review-stops";
 import type { FieldSuggestion } from "@/features/catalog-workspace/lib/suggestion-rows";
 import { useWorkspaceRecordPaneStore } from "@/features/catalog-workspace/stores/workspace-record-pane-store";
 import { useEnumOrders } from "@/hooks/use-enums";
@@ -87,6 +99,11 @@ const workspaceCardDestination: MovedCardDestination = (cardSlug) => ({
 });
 
 type Navigation = ReturnType<typeof useReviewNavigation>;
+
+interface FirstStop {
+  stop: ReviewStop;
+  trail: ReviewTrail;
+}
 
 export function CardPassPage() {
   const { cardSlug } = routeApi.useParams();
@@ -116,7 +133,19 @@ function PassNotice({ navigation, children }: { navigation: Navigation; children
 
 function CardPass({ cardSlug }: { cardSlug: string }) {
   useClearUndoOnLeave();
-  const navigation = useReviewNavigation(cardSlug);
+  const review = useReviewNavigation(cardSlug);
+  const navigate = useNavigate();
+  const [firstStop, setFirstStop] = useState<FirstStop | null>(null);
+  const navigation = {
+    ...review,
+    goNext: () => {
+      if (firstStop === null) {
+        review.goNext();
+      } else {
+        void navigate(stopNavigation(firstStop.stop, firstStop.trail));
+      }
+    },
+  };
   useWorkspaceKeyboard(navigation.inReview ? navigation : undefined);
   const setPane = useWorkspaceRecordPaneStore((state) => state.setPane);
   const { data: access } = useAdminAccess();
@@ -154,6 +183,7 @@ function CardPass({ cardSlug }: { cardSlug: string }) {
           card={detail.card}
           isAdmin={access?.isAdmin === true}
           navigation={navigation}
+          onFirstStop={setFirstStop}
         />
       </Suspense>
     );
@@ -177,12 +207,14 @@ function CardPassBody({
   card,
   isAdmin,
   navigation,
+  onFirstStop,
 }: {
   cardSlug: string;
   detail: AdminCardDetailResponse;
   card: AdminCardResponse;
   isAdmin: boolean;
   navigation: Navigation;
+  onFirstStop: (first: FirstStop | null) => void;
 }) {
   const scope = cardRecordScope(cardSlug);
   const { providerSettings, candidateCardFields } = useCardDetailData(scope);
@@ -191,6 +223,7 @@ function CardPassBody({
   const costKeywords = useCostKeywords();
   const { data: setsData } = useSets();
   const queueWrite = useQueueWorkspaceWrite();
+  const dismissValue = useDismissSuggestion(scope, detail.displayName);
   const navigate = useNavigate();
   const [allFields, setAllFields] = useState<boolean | null>(null);
   const showAll = allFields ?? !navigation.inReview;
@@ -203,9 +236,11 @@ function CardPassBody({
     null,
   );
   const [movingId, setMovingId] = useState<string | null>(null);
-  const [comparingImageId, setComparingImageId] = useState<string | null>(null);
 
   const submissions: AttentionSubmission[] = buildAttentionSubmissions(detail, costKeywords);
+  const opensListings = useLocation({ select: (location) => location.hash === "listings" });
+  const { data: bans } = useCardBans(isAdmin ? card.id : "");
+  const isBanned = (bans?.length ?? 0) > 0;
   const pass = buildCardPass(detail, { providerSettings, submissions, costKeywords, isAdmin });
   const cardActions = useCardRecordActions({
     cardSlug,
@@ -262,13 +297,25 @@ function CardPassBody({
     ];
   });
 
+  const queue = useCardView();
+  const trail: ReviewTrail = {
+    cardSlug,
+    queue,
+    cardIndex: navigation.position?.index ?? -1,
+  };
+  const firstStop = navigation.inReview
+    ? nextPendingStop(reviewStops(pass), { kind: "card" })
+    : null;
+  const firstStopKey = firstStop === null ? null : JSON.stringify({ stop: firstStop, trail });
+  useEffect(() => {
+    onFirstStop(firstStopKey === null ? null : (JSON.parse(firstStopKey) as FirstStop));
+    return () => onFirstStop(null);
+  }, [firstStopKey, onFirstStop]);
+
   const dismissCount = pass.dismiss.suggestions;
   const canDismiss = isAdmin && dismissCount > 0;
   const stillPending = navigation.position !== null;
-  const primaryText = stillPending ? "Skip" : "Next";
-  const dismissSource = isAdmin
-    ? (target: PassDismiss) => void queueWrite((signal) => dismiss.run(signal, target))
-    : undefined;
+  const primaryText = firstStop === null && stillPending ? "Skip" : "Next";
   const firstDraft = rows[0]?.ready === true ? rows[0].draft : null;
 
   useRegisterRecordActions({
@@ -303,23 +350,6 @@ function CardPassBody({
       );
     });
   const onMove = isAdmin ? (candidateCardId: string) => setMovingId(candidateCardId) : undefined;
-  const panelProps = {
-    cardSlug,
-    detail,
-    submissions,
-    providerSettings,
-    hiddenProviders: pass.hiddenProviders,
-    costKeywords,
-    isAdmin,
-    labels: valueLabels,
-    onReject,
-    onMove,
-    onMarkApplied,
-    onDismissSource: dismissSource,
-    comparingImageId,
-    onCompareImage: setComparingImageId,
-    onImageResolved: (imageId: string) => setComparingImageId(nextUploadId(pass.faces, imageId)),
-  };
 
   return (
     <>
@@ -347,23 +377,35 @@ function CardPassBody({
         }
       />
 
-      <div className="flex items-center gap-3">
-        <PrintingImageBox
-          url={primaryCardImage(detail.printings, detail.printingImages)}
-          alt={detail.displayName}
-          className="w-12 shrink-0"
-          landscape={landscape}
-        />
-        <div className="min-w-0 flex-1">
-          <Heading level={2}>{detail.displayName}</Heading>
-        </div>
-        <TextLink render={<Link to="/cards/$cardSlug/{-$printingSlug}" params={{ cardSlug }} />}>
-          Public page
-        </TextLink>
-        {isAdmin && (
-          <CardMenu card={card} cardSlug={cardSlug} expectedCardId={detail.expectedCardId} />
-        )}
-      </div>
+      <RecordHeader
+        thumb={
+          <PrintingImageBox
+            url={primaryCardImage(detail.printings, detail.printingImages)}
+            alt={detail.displayName}
+            className="w-12 shrink-0"
+            landscape={landscape}
+          />
+        }
+        title={detail.displayName}
+        subtitle={[
+          [
+            ...card.superTypes.map((type) => enumLabel(labels.superTypes, type)),
+            ...card.types.map((type) => enumLabel(labels.cardTypes, type)),
+          ].join(" "),
+          card.domains.map((domain) => enumLabel(labels.domains, domain)).join(" / "),
+          countNoun(new Set(detail.printings.map((printing) => printing.id)).size, "printing"),
+          countNoun(new Set(detail.printings.map((printing) => printing.faceId)).size, "face"),
+        ].join(" · ")}
+        badges={isBanned && <Badge variant="destructive">Banned</Badge>}
+        actions={
+          <>
+            <PublicPageLink cardSlug={cardSlug} />
+            {isAdmin && (
+              <CardMenu card={card} cardSlug={cardSlug} expectedCardId={detail.expectedCardId} />
+            )}
+          </>
+        }
+      />
 
       <RecordSection
         title="Card"
@@ -415,17 +457,22 @@ function CardPassBody({
                           <SourceUse
                             key={suggestion.key}
                             value={value}
+                            current={formatCatalogFieldValue(def.field, card[def.field], labels)}
                             source={suggestion.sourceLabel}
                             pending={cardActions.isPending}
                             onUse={() => void cardActions.applySuggestion(suggestion)}
                             onDismiss={
-                              dismissSource &&
-                              (() =>
-                                dismissSource({
-                                  candidateCardIds: [suggestion.candidateRowId],
-                                  candidatePrintingIds: [],
-                                  suggestions: suggestion.rowDifferences,
-                                }))
+                              isAdmin
+                                ? () =>
+                                    void dismissValue.run({
+                                      kind: "card",
+                                      candidateId: suggestion.candidateRowId,
+                                      field: suggestion.field,
+                                      value: suggestion.value,
+                                      label: def.label,
+                                      source: suggestion.sourceLabel,
+                                    })
+                                : undefined
                             }
                           />
                         );
@@ -504,11 +551,28 @@ function CardPassBody({
             </p>
           )}
           {pendingFaces.map((entry) => (
-            <FacePanel
+            <StopLine
               key={entry.face.faceId}
-              entry={entry}
-              landscape={landscape}
-              {...panelProps}
+              navigation={stopNavigation({ kind: "face", faceId: entry.face.faceId }, trail)}
+              title={faceHeading(entry.face, valueLabels)}
+              summary={[
+                entry.model.suggestions.length > 0
+                  ? countNoun(entry.model.suggestions.length, "field")
+                  : null,
+                entry.model.sourceImages.length +
+                  entry.uploads.length +
+                  entry.failedRehosts.length >
+                0
+                  ? countNoun(
+                      entry.model.sourceImages.length +
+                        entry.uploads.length +
+                        entry.failedRehosts.length,
+                      "image",
+                    )
+                  : null,
+              ]
+                .filter((part) => part !== null)
+                .join(", ")}
             />
           ))}
           {facesShown && pass.faces.length > 0 && (
@@ -559,7 +623,15 @@ function CardPassBody({
             <p className="text-muted-foreground">No printings yet.</p>
           )}
           {pendingPrintings.map((entry) => (
-            <PrintingPanel key={entry.printing.id} entry={entry} {...panelProps} />
+            <StopLine
+              key={entry.printing.id}
+              navigation={stopNavigation(
+                { kind: "printing", printingId: entry.printing.id },
+                trail,
+              )}
+              title={entry.printing.expectedPrintingId}
+              summary={countNoun(entry.model.suggestions.length, "field")}
+            />
           ))}
           {(printingsShown || ghosts.length > 0) && pass.printings.length > 0 && (
             <AdminPrintingMatrix
@@ -583,29 +655,44 @@ function CardPassBody({
       </RecordSection>
 
       {isAdmin && (
-        <RecordSection title="Bans, errata and history" collapsible defaultOpen={false}>
+        <CardListingsSection
+          cardSlug={cardSlug}
+          pairNames={pairNamesByPrinting(detail.printings, card.name)}
+          collapsible
+          defaultOpen={opensListings}
+          scrollWhenLoaded={opensListings}
+        />
+      )}
+
+      {isAdmin && (
+        <RecordSection title="Bans and errata" collapsible defaultOpen={false}>
           <div className="space-y-8">
             <CardBansSection cardId={card.id} runWrite={queueWrite} />
             <CardErrataSection cardId={card.id} errata={card.errata} runWrite={queueWrite} />
-            <CardHistorySection
-              cardSlug={cardSlug}
-              cardName={card.name}
-              printingLabels={Object.fromEntries(
-                detail.printings.map((printing) => [printing.id, printing.expectedPrintingId]),
-              )}
-              openable={["printing", "sources"]}
-              onOpen={(target) => {
-                if (target.kind === "printing") {
-                  void navigate({
-                    to: "/admin/workspace/printings/$printingId",
-                    params: { printingId: target.printingId },
-                  });
-                } else if (target.kind === "sources") {
-                  void navigate({ to: "/admin/sources" });
-                }
-              }}
-            />
           </div>
+        </RecordSection>
+      )}
+
+      {isAdmin && (
+        <RecordSection title="History" collapsible defaultOpen={false}>
+          <CardHistorySection
+            cardSlug={cardSlug}
+            cardName={card.name}
+            printingLabels={Object.fromEntries(
+              detail.printings.map((printing) => [printing.id, printing.expectedPrintingId]),
+            )}
+            openable={["printing", "sources"]}
+            onOpen={(target) => {
+              if (target.kind === "printing") {
+                void navigate({
+                  to: "/admin/workspace/printings/$printingId",
+                  params: { printingId: target.printingId },
+                });
+              } else if (target.kind === "sources") {
+                void navigate({ to: "/admin/sources" });
+              }
+            }}
+          />
         </RecordSection>
       )}
 
@@ -640,5 +727,29 @@ function CardPassBody({
         }}
       />
     </>
+  );
+}
+
+function StopLine({
+  navigation,
+  title,
+  summary,
+}: {
+  navigation: NavigateOptions;
+  title: string;
+  summary: string;
+}) {
+  return (
+    <div className="hover:bg-muted/50 relative flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border px-3 py-2">
+      <TextLink
+        variant="inherit"
+        className="font-medium after:absolute after:inset-0"
+        render={<Link {...navigation} />}
+      >
+        {title}
+      </TextLink>
+      <span className="text-muted-foreground min-w-0 flex-1 text-sm">{summary}</span>
+      <ChevronRightIcon className="text-muted-foreground size-4" />
+    </div>
   );
 }

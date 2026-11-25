@@ -2,6 +2,7 @@ import type { ComparableCardField } from "@openrift/shared/catalog-field-compare
 import {
   COMPARABLE_CARD_FIELDS,
   hasFieldValue,
+  isDismissedValue,
   sameFieldValue,
 } from "@openrift/shared/catalog-field-compare";
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
@@ -91,7 +92,8 @@ export function buildCardSuggestions(
     const differing = COMPARABLE_CARD_FIELDS.filter(
       (field) =>
         hasFieldValue(proposed[field]) &&
-        !sameFieldValue(card[field] ?? null, proposed[field], field),
+        !sameFieldValue(card[field] ?? null, proposed[field], field) &&
+        !isDismissedValue(source.dismissedValues, field, proposed[field]),
     );
     enterTargets.push({
       candidateRowId: source.id,

@@ -7,6 +7,7 @@ import {
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
+import { adminAuditEventSchema } from "./audit-events.js";
 
 const TAG = "Admin - Catalog Workspace";
 
@@ -76,7 +77,7 @@ export const workspaceRecordFilterSchema = z.enum(WORKSPACE_RECORD_FILTER_VALUES
 
 export const WORKSPACE_RECORD_FILTERS = {
   printing: ["promo", "no-image", "mine"],
-  face: ["no-image", "substitute", "shared"],
+  face: ["needs-review", "no-image", "substitute", "shared"],
 } as const satisfies Record<WorkspaceRecordKind, readonly WorkspaceRecordFilter[]>;
 
 export type WorkspaceRecordSort = (typeof WORKSPACE_RECORD_SORTS)[number];
@@ -127,6 +128,8 @@ export const workspaceRecordRowSchema = z.object({
   publicCode: z.string().optional(),
   artist: z.string().nullable().optional(),
   imageState: workspaceImageStateSchema.optional(),
+  pendingImages: z.number().int().min(0).optional(),
+  pendingFields: z.number().int().min(0).optional(),
   rarity: z.string().nullable().optional(),
   artVariant: z.string().nullable().optional(),
   updatedAt: isoDateTime,
@@ -138,15 +141,7 @@ export const workspaceRecordsResponseSchema = z.object({
   total: z.number().int().min(0),
 });
 
-export const workspaceEventSchema = z.object({
-  id: z.string(),
-  action: z.string(),
-  label: z.string(),
-  entityType: z.string(),
-  entityId: z.string().nullable(),
-  cardSlug: z.string().nullable(),
-  createdAt: isoDateTime,
-});
+export const workspaceEventSchema = adminAuditEventSchema.extend({ label: z.string() });
 
 export const workspaceHistoryInputSchema = z
   .object({

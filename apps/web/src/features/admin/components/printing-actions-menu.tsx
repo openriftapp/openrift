@@ -1,6 +1,6 @@
 import type { DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
 import { Link } from "@tanstack/react-router";
-import { CopyIcon, EllipsisVerticalIcon, Trash2Icon } from "lucide-react";
+import { CopyIcon, EllipsisVerticalIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
@@ -22,12 +22,16 @@ export function PrintingActionsMenu({
   onDeleted,
   runWrite = runWriteDirectly,
   inWorkspace = false,
+  canManage = true,
+  onAddFace,
 }: {
   printing: DeskPrintingRow;
   invalidates: Parameters<typeof useDeletePrinting>[0];
   onDeleted: () => void;
   runWrite?: RunWrite;
   inWorkspace?: boolean;
+  canManage?: boolean;
+  onAddFace?: () => void;
 }) {
   const deletePrinting = useDeletePrinting(invalidates);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -48,33 +52,43 @@ export function PrintingActionsMenu({
           <span className="sr-only">Printing actions</span>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem
-            render={
-              inWorkspace ? (
-                <Link
-                  to="/admin/workspace/printings/create"
-                  search={{ card: printing.cardSlug, duplicateFrom: printing.printingId }}
-                />
-              ) : (
-                <Link
-                  to="/admin/cards/$cardSlug/printings/create"
-                  params={{ cardSlug: printing.cardSlug }}
-                  search={{ duplicateFrom: printing.printingId }}
-                />
-              )
-            }
-          >
-            <CopyIcon />
-            Duplicate printing
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            variant="destructive"
-            disabled={deletePrinting.isPending}
-            onClick={() => setDeleteOpen(true)}
-          >
-            <Trash2Icon />
-            Delete
-          </DropdownMenuItem>
+          {onAddFace !== undefined && (
+            <DropdownMenuItem onClick={onAddFace}>
+              <PlusIcon />
+              Add face 2
+            </DropdownMenuItem>
+          )}
+          {canManage && (
+            <>
+              <DropdownMenuItem
+                render={
+                  inWorkspace ? (
+                    <Link
+                      to="/admin/workspace/printings/create"
+                      search={{ card: printing.cardSlug, duplicateFrom: printing.printingId }}
+                    />
+                  ) : (
+                    <Link
+                      to="/admin/cards/$cardSlug/printings/create"
+                      params={{ cardSlug: printing.cardSlug }}
+                      search={{ duplicateFrom: printing.printingId }}
+                    />
+                  )
+                }
+              >
+                <CopyIcon />
+                Duplicate printing
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                variant="destructive"
+                disabled={deletePrinting.isPending}
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2Icon />
+                Delete
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
       <ConfirmActionDialog

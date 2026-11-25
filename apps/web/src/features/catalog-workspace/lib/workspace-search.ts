@@ -15,7 +15,7 @@ const workspaceCardsSearchSchema = z.object({
   set: lenient(z.string().check(z.minLength(1))),
 });
 
-const CARD_VIEWS = ["review", "images", "ready"] as const;
+const CARD_VIEWS = ["review", "images", "ready", "listings"] as const;
 
 export type CardView = (typeof CARD_VIEWS)[number];
 

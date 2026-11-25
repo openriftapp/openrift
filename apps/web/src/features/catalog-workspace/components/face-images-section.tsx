@@ -1,4 +1,5 @@
 import type { DeskImage, DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
+import { formatDay } from "@openrift/shared/format-date";
 import type {
   AdminCardDetailResponse,
   AdminPrintingImageResponse,
@@ -7,18 +8,16 @@ import type {
 } from "@openrift/shared/types/api/admin";
 import {
   ArrowLeftRightIcon,
-  ContrastIcon,
   CropIcon,
   DownloadIcon,
   EllipsisVerticalIcon,
   ImagePlusIcon,
-  RotateCcwIcon,
   RotateCwIcon,
-  ScissorsIcon,
   Trash2Icon,
   UploadIcon,
   XIcon,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -31,14 +30,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Dropzone } from "@/components/ui/dropzone";
 import { Input } from "@/components/ui/input";
+import { Pressable } from "@/components/ui/pressable";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { Spinner } from "@/components/ui/spinner";
+import { TextLink } from "@/components/ui/text-link";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { findDerivedArtPrinting } from "@/features/admin/components/card-detail-shared";
+import { ImageEditMenuItems } from "@/features/admin/components/image-edit-menu-items";
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
 import { PrintingImageSwitcher } from "@/features/admin/components/printing-image-switcher";
 import { RehostStatusBadge } from "@/features/admin/components/rehost-status-badge";
 import { StraightenImageDialog } from "@/features/admin/components/straighten-image-dialog";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import {
+  useSetCandidatePrintingImage,
   useActivatePrintingImage,
   useAddImageFromUrl,
   useDeletePrintingImage,
@@ -53,15 +58,24 @@ import {
 import { useSetDeskImageFace, useUpdateDeskImage } from "@/features/admin/hooks/use-printing-desk";
 import { adminKeys, IMAGE_FILE_SCOPE } from "@/features/admin/lib/admin-query-keys";
 import { hasAdminSection } from "@/features/admin/lib/admin-sections";
+import { buildAttentionSubmissions } from "@/features/admin/lib/attention-items";
 import { deskImageSrc } from "@/features/admin/lib/printing-desk-image";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
 import { siblingImagesOf } from "@/features/admin/lib/sibling-images";
 import { imageQuadOf } from "@/features/admin/lib/straighten-quad";
+import { ContributionBlock } from "@/features/catalog-workspace/components/pass/pass-parts";
+import { useSubmissionDecisions } from "@/features/catalog-workspace/components/pass/submission-decisions";
 import { RecordSection } from "@/features/catalog-workspace/components/record/record-pane";
+import { useDismissSuggestion } from "@/features/catalog-workspace/hooks/use-dismiss-suggestion";
+import { useFaceSuggestionWrites } from "@/features/catalog-workspace/hooks/use-face-record-actions";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
+import { imageOrigin, passContributor } from "@/features/catalog-workspace/lib/card-pass";
+import type { SourceImageCandidate } from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import { useCostKeywords } from "@/hooks/use-keyword-styles";
 import { useSession } from "@/hooks/use-session";
 import { errorText } from "@/lib/error-text";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
+import { cn } from "@/lib/utils";
 
 type Rotation = 0 | 90 | 180 | 270;
 type Scope = readonly (readonly unknown[])[];
@@ -79,11 +93,13 @@ export function FaceImagesSection({
   providerSettings,
   isAdmin,
   landscape,
+  sourceImages,
 }: {
   cardSlug: string;
   face: AdminPrintingResponse;
   detail: AdminCardDetailResponse;
   images: readonly AdminPrintingImageResponse[];
+  sourceImages: readonly SourceImageCandidate[];
   printings: readonly AdminPrintingResponse[];
   providerSettings: ProviderSettingResponse[];
   isAdmin: boolean;
@@ -100,13 +116,30 @@ export function FaceImagesSection({
   const addFromUrl = useAddImageFromUrl(scope);
   const [uploading, setUploading] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [urlOpen, setUrlOpen] = useState(false);
+  const [adding, setAdding] = useState(false);
   const [url, setUrl] = useState("");
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [mode, setMode] = useState<CompareMode>("side");
+  const costKeywords = useCostKeywords();
+  const submissions = buildAttentionSubmissions(detail, costKeywords);
+  const decisions = useSubmissionDecisions({ cardSlug, detail, submissions, isAdmin });
+  const writes = useFaceSuggestionWrites({
+    cardSlug,
+    record: face.expectedPrintingId,
+    face,
+  });
 
   const side = sideOf(face);
   const printingIds = new Set(printings.map((printing) => printing.id));
   const inactive = images.filter((image) => !image.isActive);
-  const hasActive = images.some((image) => image.isActive);
+  const actives = images.filter((image) => image.isActive);
+  const active = actives.at(0);
+  const hasActive = active !== undefined;
+  const currentUrl = active === undefined ? null : printingImageDisplayUrl(active);
+  const listed = sourceImages.filter((image) => !image.isContributor);
+  const contributed = sourceImages.filter((image) => image.isContributor);
+  const selectedStored = inactive.find((image) => selectedKey === `stored:${image.id}`);
+  const selectedSource = listed.find((image) => selectedKey === `source:${image.candidate.id}`);
   const derived = findDerivedArtPrinting(face, detail.printings, detail.printingImages);
 
   async function addUrl() {
@@ -118,7 +151,7 @@ export function FaceImagesSection({
     };
     if (await queueWrite((signal) => addFromUrl.mutateAsync(input, { signal }))) {
       setUrl("");
-      setUrlOpen(false);
+      setAdding(false);
     }
   }
 
@@ -148,41 +181,161 @@ export function FaceImagesSection({
   }
 
   return (
-    <RecordSection title="Images">
+    <RecordSection
+      title="Images"
+      actions={
+        isAdmin &&
+        !adding && (
+          <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
+            <ImagePlusIcon />
+            Add image
+          </Button>
+        )
+      }
+    >
       <div className="flex flex-col gap-4 lg:flex-row">
-        <PrintingImageSwitcher
-          key={face.id}
-          printingId={face.id}
-          face={side}
-          printingLabel={face.expectedPrintingId}
-          images={images.filter((image) => image.isActive)}
-          siblingImages={siblingImagesOf(detail.printingImages, detail.printings, printingIds)}
-          derivedArtLabel={derived?.expectedPrintingId ?? null}
-          fallbackArtMode={face.fallbackArtMode}
-          fallbackImageFileId={face.fallbackImageFileId}
-          providerSettings={providerSettings}
-          invalidates={scope}
-          isAdmin={isAdmin}
-          runWrite={queueWrite}
-        />
+        {(actives.length === 0 ? [undefined] : actives).map((current) => (
+          <PrintingImageSwitcher
+            key={current?.id ?? face.id}
+            printingId={face.id}
+            face={side}
+            printingLabel={face.expectedPrintingId}
+            images={current === undefined ? [] : [current]}
+            caption={
+              current === undefined
+                ? "No image"
+                : `${imageOrigin(detail, current)}, added ${formatDay(current.addedAt)}`
+            }
+            siblingImages={siblingImagesOf(detail.printingImages, detail.printings, printingIds)}
+            derivedArtLabel={derived?.expectedPrintingId ?? null}
+            fallbackArtMode={face.fallbackArtMode}
+            fallbackImageFileId={face.fallbackImageFileId}
+            providerSettings={providerSettings}
+            invalidates={scope}
+            isAdmin={isAdmin}
+            runWrite={queueWrite}
+          />
+        ))}
 
-        <div className="min-w-0 flex-1 space-y-2">
-          {inactive.map((image) => (
-            <InactiveImageRow
-              key={image.id}
-              image={image}
-              face={face}
-              scope={scope}
-              isAdmin={isAdmin}
-              landscape={landscape}
+        {selectedStored !== undefined && (
+          <StoredCandidate
+            key={selectedStored.id}
+            image={selectedStored}
+            caption={`${imageOrigin(detail, selectedStored)}, added ${formatDay(selectedStored.addedAt)}`}
+            currentUrl={currentUrl}
+            mode={mode}
+            face={face}
+            scope={scope}
+            isAdmin={isAdmin}
+            landscape={landscape}
+          />
+        )}
+        {selectedSource !== undefined && (
+          <SourceCandidate
+            key={selectedSource.candidate.id}
+            image={selectedSource}
+            currentUrl={currentUrl}
+            mode={mode}
+            scope={scope}
+            record={face.expectedPrintingId}
+            hasActive={hasActive}
+            isAdmin={isAdmin}
+            landscape={landscape}
+            pending={writes.pending}
+            onUse={() =>
+              void queueWrite((signal) =>
+                writes.applyChip(signal, {
+                  kind: "image",
+                  key: selectedSource.candidate.id,
+                  image: selectedSource,
+                }),
+              )
+            }
+          />
+        )}
+
+        <div className="min-w-0 space-y-3 lg:w-64 lg:shrink-0">
+          {(selectedStored !== undefined || selectedSource !== undefined) && (
+            <ToggleGroup
+              variant="outline"
+              size="sm"
+              spacing={0}
+              aria-label="Compare"
+              value={[mode]}
+              onValueChange={([next]) => {
+                if (next === "side" || next === "flip") {
+                  setMode(next);
+                }
+              }}
+            >
+              <ToggleGroupItem value="side">Side by side</ToggleGroupItem>
+              <ToggleGroupItem value="flip">Flip</ToggleGroupItem>
+            </ToggleGroup>
+          )}
+          {inactive.length > 0 && (
+            <CandidateGroup title="Stored">
+              {inactive.map((image) => (
+                <CandidateRow
+                  key={image.id}
+                  url={printingImageDisplayUrl(image)}
+                  title={imageOrigin(detail, image)}
+                  detail={`Added ${formatDay(image.addedAt)}`}
+                  status={image.isReviewed ? "Extra" : "Waiting for review"}
+                  tone={image.isReviewed ? "secondary" : "warning"}
+                  selected={selectedKey === `stored:${image.id}`}
+                  landscape={landscape}
+                  onSelect={() => setSelectedKey(`stored:${image.id}`)}
+                />
+              ))}
+            </CandidateGroup>
+          )}
+          {listed.length > 0 && (
+            <CandidateGroup title="Listed by sources">
+              {listed.map((image) => (
+                <CandidateRow
+                  key={image.candidate.id}
+                  url={image.url}
+                  title={`From ${image.provider}`}
+                  detail={hostOf(image.url)}
+                  status="Not stored"
+                  tone="neutral"
+                  dashed
+                  selected={selectedKey === `source:${image.candidate.id}`}
+                  landscape={landscape}
+                  onSelect={() => setSelectedKey(`source:${image.candidate.id}`)}
+                />
+              ))}
+            </CandidateGroup>
+          )}
+          {contributed.map((image) => (
+            <ContributionBlock
+              key={image.candidate.id}
+              {...passContributor(detail, submissions, image.candidate.candidateCardId)}
+              value={
+                <PrintingImageBox
+                  url={image.url}
+                  alt="Contributed image"
+                  href={image.url}
+                  className="w-28"
+                  landscape={landscape}
+                />
+              }
+              pending={writes.pending}
+              onUse={() =>
+                void queueWrite((signal) =>
+                  writes.applyChip(signal, { kind: "image", key: image.candidate.id, image }),
+                )
+              }
+              onReject={() => decisions.onReject(image.candidate.candidateCardId, "Image")}
+              onMove={
+                decisions.onMove && (() => decisions.onMove?.(image.candidate.candidateCardId))
+              }
+              onMarkApplied={() => decisions.onMarkApplied(image.candidate.candidateCardId)}
             />
           ))}
+          {decisions.dialogs}
 
-          {inactive.length === 0 && (
-            <p className="text-muted-foreground text-sm">No new images for this face.</p>
-          )}
-
-          {isAdmin && (
+          {isAdmin && adding && (
             <>
               <Dropzone
                 multiple
@@ -200,33 +353,26 @@ export function FaceImagesSection({
                 </p>
               )}
               {uploadError !== null && <p className="text-destructive text-sm">{uploadError}</p>}
-              {urlOpen ? (
-                <div className="flex gap-1">
-                  <Input
-                    aria-label="Image address"
-                    placeholder="https://…"
-                    value={url}
-                    onChange={(event) => setUrl(event.target.value)}
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="outline"
-                    disabled={url.trim().length === 0}
-                    pending={addFromUrl.isPending}
-                    onClick={() => void addUrl()}
-                  >
-                    Add
-                  </Button>
-                  <Button variant="ghost" onClick={() => setUrlOpen(false)}>
-                    Cancel
-                  </Button>
-                </div>
-              ) : (
-                <Button variant="outline" size="sm" onClick={() => setUrlOpen(true)}>
-                  <ImagePlusIcon />
-                  Add from URL…
+              <div className="flex gap-1">
+                <Input
+                  aria-label="Image address"
+                  placeholder="Or paste an image address, https://…"
+                  value={url}
+                  onChange={(event) => setUrl(event.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  disabled={url.trim().length === 0}
+                  pending={addFromUrl.isPending}
+                  onClick={() => void addUrl()}
+                >
+                  Add
                 </Button>
-              )}
+                <Button variant="ghost" onClick={() => setAdding(false)}>
+                  Done
+                </Button>
+              </div>
             </>
           )}
         </div>
@@ -235,14 +381,20 @@ export function FaceImagesSection({
   );
 }
 
-function InactiveImageRow({
+function StoredCandidate({
   image,
+  caption,
+  currentUrl,
+  mode,
   face,
   scope,
   isAdmin,
   landscape,
 }: {
   image: AdminPrintingImageResponse;
+  caption: string;
+  currentUrl: string | null;
+  mode: CompareMode;
   face: AdminPrintingResponse;
   scope: Scope;
   isAdmin: boolean;
@@ -265,43 +417,10 @@ function InactiveImageRow({
   const pending = activate.isPending || remove.isPending || keep.isPending;
   const otherSide = face.side === 2 ? "front" : "back";
 
-  return (
-    <div className="flex flex-wrap items-center gap-2 rounded-md border px-2 py-1.5 text-sm">
-      <PrintingImageBox
-        url={printingImageDisplayUrl(image)}
-        alt="Inactive image"
-        href={image.originalUrl ?? undefined}
-        className="w-20"
-        landscape={landscape}
-      />
-      <span className="min-w-0 flex-1 space-y-1">
-        <Badge variant="secondary">{image.isReviewed ? "Extra" : "Waiting for review"}</Badge>
-        <RehostStatusBadge image={image} />
-      </span>
-      {isAdmin && (
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={pending}
-          pending={remove.isPending}
-          onClick={() => void queueWrite((signal) => remove.mutateAsync(image.id, { signal }))}
-        >
-          Delete
-        </Button>
-      )}
-      {canKeep && !image.isReviewed && !image.activateWhenRehosted && (
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={pending}
-          pending={keep.isPending}
-          onClick={() => void queueWrite((signal) => keep.mutateAsync(image.id, { signal }))}
-        >
-          Keep as extra
-        </Button>
-      )}
+  const url = printingImageDisplayUrl(image);
+  const decide = (
+    <>
       <Button
-        variant="outline"
         size="sm"
         disabled={pending}
         pending={activate.isPending}
@@ -313,11 +432,46 @@ function InactiveImageRow({
       >
         Make main
       </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={<Button variant="outline" size="icon-sm" aria-label="Image tools" />}
+      {canKeep && !image.isReviewed && !image.activateWhenRehosted && (
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={pending}
+          pending={keep.isPending}
+          onClick={() => void queueWrite((signal) => keep.mutateAsync(image.id, { signal }))}
         >
+          Keep as extra
+        </Button>
+      )}
+      {isAdmin && (
+        <Button
+          variant="outline-destructive"
+          size="sm"
+          disabled={pending}
+          pending={remove.isPending}
+          onClick={() => void queueWrite((signal) => remove.mutateAsync(image.id, { signal }))}
+        >
+          Delete
+        </Button>
+      )}
+    </>
+  );
+
+  return (
+    <div className="w-full max-w-96 min-w-0 space-y-2 text-sm">
+      <CandidateImage url={url} currentUrl={currentUrl} mode={mode} landscape={landscape} />
+      <span className="text-muted-foreground block break-words">{caption}</span>
+      <span className="flex flex-wrap gap-1">
+        <Badge variant={image.isReviewed ? "secondary" : "warning"}>
+          {image.isReviewed ? "Extra" : "Waiting for review"}
+        </Badge>
+        <RehostStatusBadge image={image} />
+      </span>
+      <div className="flex flex-wrap gap-1.5">{decide}</div>
+      <DropdownMenu>
+        <DropdownMenuTrigger render={<Button variant="ghost" size="sm" />}>
           <EllipsisVerticalIcon />
+          Image tools
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {image.rehostedUrl === null && image.originalUrl !== null && (
@@ -341,74 +495,35 @@ function InactiveImageRow({
             </DropdownMenuItem>
           )}
           {image.rehostedUrl !== null && (
-            <>
-              <DropdownMenuItem
-                disabled={editing}
-                onClick={() =>
-                  void queueWrite((signal) =>
-                    rotate.mutateAsync(
-                      {
-                        imageId: image.id,
-                        rotation: ((image.rotation + 270) % 360) as Rotation,
-                      },
-                      { signal },
-                    ),
-                  )
-                }
-              >
-                <RotateCcwIcon />
-                Rotate left
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                disabled={editing}
-                onClick={() =>
-                  void queueWrite((signal) =>
-                    rotate.mutateAsync(
-                      {
-                        imageId: image.id,
-                        rotation: ((image.rotation + 90) % 360) as Rotation,
-                      },
-                      { signal },
-                    ),
-                  )
-                }
-              >
-                <RotateCwIcon />
-                Rotate right
-              </DropdownMenuItem>
-              <DropdownMenuItem disabled={editing} onClick={() => setStraightening(true)}>
-                <CropIcon />
-                Straighten…
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                disabled={editing}
-                onClick={() =>
-                  void queueWrite((signal) =>
-                    setNeedsTrim.mutateAsync(
-                      { imageId: image.id, needsTrim: !image.needsTrim },
-                      { signal },
-                    ),
-                  )
-                }
-              >
-                <ScissorsIcon />
-                {image.needsTrim ? "Turn auto-trim off" : "Turn auto-trim on"}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                disabled={editing}
-                onClick={() =>
-                  void queueWrite((signal) =>
-                    setNeedsLevels.mutateAsync(
-                      { imageId: image.id, needsLevels: !image.needsLevels },
-                      { signal },
-                    ),
-                  )
-                }
-              >
-                <ContrastIcon />
-                {image.needsLevels ? "Turn contrast off" : "Turn contrast on"}
-              </DropdownMenuItem>
-            </>
+            <ImageEditMenuItems
+              image={image}
+              disabled={editing}
+              onStraighten={() => setStraightening(true)}
+              onRotate={(degrees) =>
+                void queueWrite((signal) =>
+                  rotate.mutateAsync(
+                    { imageId: image.id, rotation: ((image.rotation + degrees) % 360) as Rotation },
+                    { signal },
+                  ),
+                )
+              }
+              onToggleTrim={() =>
+                void queueWrite((signal) =>
+                  setNeedsTrim.mutateAsync(
+                    { imageId: image.id, needsTrim: !image.needsTrim },
+                    { signal },
+                  ),
+                )
+              }
+              onToggleLevels={() =>
+                void queueWrite((signal) =>
+                  setNeedsLevels.mutateAsync(
+                    { imageId: image.id, needsLevels: !image.needsLevels },
+                    { signal },
+                  ),
+                )
+              }
+            />
           )}
           {isAdmin && face.otherFace !== null && (
             <DropdownMenuItem
@@ -682,6 +797,189 @@ function DeskWaitingImage({
           />
         </>
       )}
+    </div>
+  );
+}
+
+type CompareMode = "side" | "flip";
+
+function hostOf(url: string): string {
+  return URL.canParse(url) ? new URL(url).hostname : url;
+}
+
+function CandidateImage({
+  url,
+  currentUrl,
+  mode,
+  landscape,
+}: {
+  url: string | null;
+  currentUrl: string | null;
+  mode: CompareMode;
+  landscape: boolean;
+}) {
+  const [showsCurrent, setShowsCurrent] = useState(false);
+  if (mode === "side") {
+    return (
+      <PrintingImageBox url={url} alt="Candidate image" className="w-full" landscape={landscape} />
+    );
+  }
+  return (
+    <Pressable
+      aria-label="Flip between the candidate and the current image"
+      className="relative block w-full"
+      onClick={() => setShowsCurrent(!showsCurrent)}
+    >
+      <PrintingImageBox
+        url={showsCurrent ? currentUrl : url}
+        alt={showsCurrent ? "Current image" : "Candidate image"}
+        className="w-full"
+        landscape={landscape}
+      />
+      <span className="bg-background/85 absolute top-2 left-2 rounded-md px-2 py-0.5 text-sm">
+        {showsCurrent ? "Current" : "Candidate"} · click to flip
+      </span>
+    </Pressable>
+  );
+}
+
+function CandidateGroup({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <SectionHeading as="h4" size="sm">
+        {title}
+      </SectionHeading>
+      {children}
+    </div>
+  );
+}
+
+function CandidateRow({
+  url,
+  title,
+  detail,
+  status,
+  tone,
+  selected,
+  dashed = false,
+  landscape,
+  onSelect,
+}: {
+  url: string | null;
+  title: string;
+  detail: string;
+  status: string;
+  tone: "warning" | "secondary" | "neutral";
+  selected: boolean;
+  dashed?: boolean;
+  landscape: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <Pressable
+      aria-pressed={selected}
+      className={cn(
+        "flex w-full items-center gap-3 rounded-lg border p-2 text-left",
+        selected ? "border-primary bg-muted" : "hover:bg-muted/50",
+      )}
+      onClick={onSelect}
+    >
+      <PrintingImageBox
+        url={url}
+        alt=""
+        className={cn("w-14 shrink-0", dashed && "border-dashed")}
+        landscape={landscape}
+      />
+      <span className="min-w-0 space-y-1">
+        <span className="block font-medium break-words">{title}</span>
+        <span className="text-muted-foreground block text-sm break-words">{detail}</span>
+        <Badge variant={tone}>{status}</Badge>
+      </span>
+    </Pressable>
+  );
+}
+
+function SourceCandidate({
+  image,
+  currentUrl,
+  mode,
+  scope,
+  record,
+  hasActive,
+  isAdmin,
+  landscape,
+  pending,
+  onUse,
+}: {
+  image: SourceImageCandidate;
+  currentUrl: string | null;
+  mode: CompareMode;
+  scope: Scope;
+  record: string;
+  hasActive: boolean;
+  isAdmin: boolean;
+  landscape: boolean;
+  pending: boolean;
+  onUse: () => void;
+}) {
+  const queueWrite = useQueueWorkspaceWrite();
+  const store = useSetCandidatePrintingImage(scope);
+  const dismissValue = useDismissSuggestion(scope, record);
+
+  return (
+    <div className="w-full max-w-96 min-w-0 space-y-2 text-sm">
+      <CandidateImage url={image.url} currentUrl={currentUrl} mode={mode} landscape={landscape} />
+      <span className="text-muted-foreground block break-words">
+        From {image.provider},{" "}
+        <TextLink variant="muted" href={image.url} target="_blank" rel="noreferrer">
+          {hostOf(image.url)}
+        </TextLink>
+      </span>
+      <span className="flex flex-wrap gap-1">
+        <Badge variant="neutral">Not stored</Badge>
+      </span>
+      <div className="flex flex-wrap gap-1.5">
+        <Button size="sm" disabled={pending} onClick={onUse}>
+          Make main
+        </Button>
+        {hasActive && (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={pending || store.isPending}
+            pending={store.isPending}
+            onClick={() =>
+              void queueWrite((signal) =>
+                store.mutateAsync(
+                  { candidatePrintingId: image.candidate.id, mode: "additional" },
+                  { signal },
+                ),
+              )
+            }
+          >
+            Store beside
+          </Button>
+        )}
+        {isAdmin && (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={dismissValue.pending}
+            onClick={() =>
+              void dismissValue.run({
+                kind: "printing",
+                candidateId: image.candidate.id,
+                field: "imageUrl",
+                value: image.candidate.imageUrl,
+                label: "the image",
+                source: image.provider,
+              })
+            }
+          >
+            Dismiss
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
